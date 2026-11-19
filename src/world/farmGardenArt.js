@@ -3,7 +3,7 @@
 // ploughed-furrow ground (302:54), darker with better soil and cooler while wet; three to six plants a bed, placed by
 // the bed's own seed, grow smoothly with their crop instead of in three jumps; a bed left dry a day sprouts weeds; and
 // irrigation, once the farm has it, runs as water channels along the worked rows. Every picture is in the art register.
-import { gardenStage, gardenGrowth, farmSeed, FARM_BED_SIZE, FARM_WATER_S } from '../net/farmGardenLaw.js';
+import { gardenStage, gardenGrowth, farmSeed, bedSeconds, FARM_BED_SIZE, FARM_WATER_S } from '../net/farmGardenLaw.js';
 import { writeDecalQuad, DECAL_FLOATS } from '../combat/blood/bloodDecals.js';
 import { bedWeedy, WEED_DRY_S } from '../net/farm/careLaw.js';   // PHASE 2: weeds are the law's, so weeding clears them
 export const FARM_ART = Object.freeze({ soil: [302, 54], water: [302, 0],
@@ -46,7 +46,7 @@ export function bedPlants(index) {
 /** A planted bed's height now, m, quantized so plants of a stage share a few batches. */
 export function plantHeight(bed, now) {
   const seed = farmSeed(bed.crop), span = HEIGHT[bed.crop] ?? HEIGHT.grain;
-  const progress = Math.min(1, gardenGrowth(bed, now) / (seed?.seconds ?? Infinity));
+  const progress = seed ? Math.min(1, gardenGrowth(bed, now) / bedSeconds(bed)) : 0;
   return Math.round((span[0] + (span[1] - span[0]) * progress) * (1 + (bed.quality ?? 0) * .1) * 20) / 20;
 }
 

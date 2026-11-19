@@ -6,7 +6,7 @@ import { rayDirFromScreen, projectToScreen } from '../player/tapRay.js';
 import { farmGardenSite } from '../world/farmGardenSite.js';
 import { createFarmGardenArt } from '../world/farmGardenArt.js';
 import { createFarmingHud, farmToolName, farmCropName } from '../ui/farmingHud.js';
-import { FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
+import { bedSeconds, FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
 import { t } from '../systems/textManager.js';
 import { ChoiceWindow } from '../ui/talkWindow.js';
 import { TITLE_TEXT } from '../ui/playerBadge.js';
@@ -19,6 +19,8 @@ import { bedWeedy, birdsNow, GRADES, gradeOf, clampCare } from '../net/farm/care
 import { createFarmGame, gameForOp } from '../net/farm/farmGameLaw.js';   // PHASE 2: the field games
 import { createFarmGameWidget } from '../ui/farmGames.js';
 import { createBirdArt } from '../world/farm/birdArt.js';
+import { strainOf } from '../net/farm/strainLaw.js';   // PHASE 2c: strains
+import { traitWord } from './farm/farmsteadActs.js';
 import { createSackArt, sackSpot, SACK_H } from '../world/farm/sackArt.js';
 import { liveSacks, wagonCargo, cargoTotal, CARRY_MAX, SACK_GATHER_M } from '../net/farm/haulLaw.js';   // FARM EXPANSION PHASE 1: the farm as a place
 import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
@@ -208,7 +210,13 @@ export function createFarmingMode(deps) {
     }
     // PHASE 2: the hoe on a weedy planted bed weeds it; with Careful work on, sowing, weeding and scything are played
     const here = garden.beds[selected], op = tool === 'hoe' && here?.crop && bedWeedy(here, now(), gardenStage(here, now()) === 'ripe') ? 'weed' : tool;
-    const action = { op, bed: selected, beds: ids, crop }, kind = gameForOp(op);
+    const [cropId, sid] = crop.split('#'), action = { op, bed: selected, beds: ids, crop: cropId, ...(sid ? { strain: Number(sid) } : {}) }, kind = gameForOp(op);
+    // PHASE 2c: a harvest names the nearest other ripe bed of the same crop as its partner, for a cross
+    if (op === 'harvest' && here?.crop) {
+      let best = -1, bestD = 2.6;
+      for (const [k, b] of Object.entries(garden.beds)) { const i = Number(k), p = site.beds[i]; if (!b || ids.includes(i) || !p || b.crop !== here.crop || gardenStage(b, now()) !== 'ripe') continue; const dd = Math.hypot(p[0] - bed[0], p[2] - bed[2]); if (dd < bestD) { bestD = dd; best = i; } }
+      if (best >= 0) action.partner = best;
+    }
     if (careful && kind && kind !== 'birds' && readyFor(op, here)) { startGame(kind, action, bed); return; }
     await perform(action);
   }
@@ -232,6 +240,8 @@ export function createFarmingMode(deps) {
     else notice(t('farm.game.laidDown', 'You leave it for now.'));
   }
   const hudRoot = () => document.querySelector('.farming-hud') ?? document.body;
+  /** The seed in hand in words: a crop, or a strain by its name. */
+  function seedName(id) { const [c, sid] = id.split('#'), st = sid ? strainOf(garden, Number(sid)) : null; return st ? st.name : farmCropName(c) ?? c; }
   const gradeName = (g) => [t('farm.grade.common', 'Common'), t('farm.grade.fine', 'Fine'), t('farm.grade.choice', 'Choice'), t('farm.grade.prize', 'Prize')][g] ?? GRADES[g];
   async function perform(action) {
     if(!active||busy||version<0)return;
@@ -244,6 +254,8 @@ export function createFarmingMode(deps) {
         // FARM EXPANSION (10.2): a farm title earned is said where it happens, by the factor
         if (r.data.work?.title) { deps.say?.(t('farm.stead.titleEarned', 'The factor tips his hat: "They\'re calling you {title} in town now."', { title: TITLE_TEXT[r.data.work.title] ?? r.data.work.title })); deps.titleEarned?.(r.data.work.title); }
         if(action.op==='upgrade'||action.op==='deliver')nextRead=0;
+        if(r.data.strain)deps.say?.(t('farm.stead.cross','A cross seed! The farm names it {name} - {traits}. It has a sack on the seed shelf now.',{name:r.data.strain.name,traits:r.data.strain.traits.map(traitWord).join(', ')}));
+        if(action.op==='burn'){notice(t('farm.stead.burnt','The seed is burnt; its place on the shelf is free.'));return;}
         if(action.op==='birds'){notice(r.data.chased?t('farm.game.birdsGone','The birds scatter and wheel away over the fields.'):t('farm.game.birdsStay','The birds hop back to the rows. Try again.'));return;}
         if(action.game&&r.data.played&&!r.data.played.full)notice(t('farm.game.noBonus','Done - but you have had your fill of that game today, so no bonus care.'));
         if(action.op==='haul'){carried=carried.filter(id=>!action.sacks.includes(id));notice(t('farm.stead.hauled','You load the sacks onto the wagon: {n} crops for this week\'s orders.',{n:r.data.hauled}));deps.sound?.('haul');return;}
@@ -272,6 +284,7 @@ export function createFarmingMode(deps) {
       'farm-birds-none':t('farm.game.birdsNone','The birds have already flown.'),
       'farm-birds-gone':t('farm.game.birdsChased','Someone has already chased them off.'),
       'farm-game-bad':t('farm.game.bad','That did not take. Try it again.'),
+      'farm-strain-bad':t('farm.stead.strainBad','That seed is not on the shelf any more.'),
       'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
@@ -296,7 +309,7 @@ export function createFarmingMode(deps) {
   }
   const acts = createFarmsteadActs({
     garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
-    setSeed: (id) => { crop = id; tool = 'plant'; },
+    setSeed: (id) => { crop = id; tool = 'plant'; }, held: () => crop,
     ask: (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
       { code: 'KeyY', label: t('farm.stead.yes', 'Y: yes'), action: yes },
       { code: 'KeyN', label: t('farm.stead.no', 'N: no'), action: () => {} },
@@ -357,7 +370,7 @@ export function createFarmingMode(deps) {
       if (carried.length) { const live = new Set(liveSacks(garden, now()).map((s) => s.id)); const kept = carried.filter((id) => live.has(id)); if (kept.length < carried.length) { carried = kept; notice(t('farm.stead.sackGone', 'Those sacks have already gone to the Company Stores.')); } }
       if (active) {
         deps.cam.yaw = yaw;
-        hud.update(farm, tool, crop, status(), deps.blocked(), careful);
+        hud.update(farm, tool, seedName(crop), status(), deps.blocked(), careful);
       }
     },
     camera(out, dt, normalFwd) {
@@ -381,8 +394,10 @@ export function createFarmingMode(deps) {
       if (stead.ready) {
         if (!site.farmstead) {
           site.farmstead = layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
-          if (site.farmstead) site.farmstead.seeds = seedsFor(deps.farms()?.climateOf?.(farm.mapId) ?? null).map((s) => s.id);
+          if (site.farmstead) site.farmstead.base = seedsFor(deps.farms()?.climateOf?.(farm.mapId) ?? null).map((s) => s.id);
         }
+        // the shelf: the farm's seeds, then its strains of them (PHASE 2c)
+        if (site.farmstead?.base) { const all = [...site.farmstead.base, ...(garden.strains ?? []).filter((x) => site.farmstead.base.includes(x.crop)).map((x) => `${x.crop}#${x.id}`)]; if (all.join() !== site.farmstead.seeds?.join()) site.farmstead.seeds = all; }
         if (site.farmstead?.seeds && !site.farmstead.seeds.includes(crop)) crop = site.farmstead.seeds[0] ?? 'grain';
         stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))) }); stead.draw(right, up);
       }
@@ -407,7 +422,7 @@ export function createFarmingMode(deps) {
         const growing = bed?.crop && stage !== 'ripe';
         const info = stage === 'wild' ? t('farm.mode.untilled', 'Untilled soil') : stage === 'tilled' ? t('farm.mode.tilled', 'Tilled soil') :
           stage === 'ripe' ? t('farm.mode.ready', 'Ready to harvest') : bed.wetUntil <= now() ? t('farm.mode.thirsty', 'Needs water') :
-            t('farm.mode.hours', '{n}h to harvest', { n: Math.max(1, Math.ceil((farmSeed(bed.crop).seconds - gardenGrowth(bed, now())) / (3600*(bed.rate??1)))) });
+            t('farm.mode.hours', '{n}h to harvest', { n: Math.max(1, Math.ceil((bedSeconds(bed) - gardenGrowth(bed, now())) / (3600*(bed.rate??1)))) });
         label = `${farmToolName(tool)} · ${bed?.crop ? farmCropName(bed.crop) : info}${bed?.crop ? ` · ${info}` : ''}`;
         if (bed?.crop) label += ` · ${gradeName(gradeOf(clampCare(bed.care ?? 0)))}`;   // the grade it is on course for
         if (bed?.crop && bedWeedy(bed, now(), stage === 'ripe')) label += ` · ${t('farm.mode.weedy', 'Weeds! Hoe them out')}`;

@@ -48,6 +48,10 @@ A planted bed gathers care (`src/net/farm/careLaw.js`, 0-6): sown or scythed wit
 
 Careful work (F, or the belt button) turns sowing, weeding and scything into a short game pinned over the bed (`src/net/farm/farmGameLaw.js`, drawn by `src/ui/farmGames.js`); the hoe on a weedy planted bed weeds it. When birds are about, the scarecrow starts the chase. The service judges each play (the right game for the work, a score 0-1, at least its shortest honest time) and gives its care only for each account's first plays of the day (6 sowings, 10 weedings, 4 scythings, 3 chases); a full-bonus play is also 5 farm work.
 
+### Strains
+
+Harvesting a ripe bed with another ripe bed of the same crop within reach (the client names the nearest as the partner; the service checks it is ripe and the same crop) may drop a cross seed (`src/net/farm/strainLaw.js`): 5% plus 2% for each point of both beds' care, at most 30%. The strain is named from its id and has one or two traits (inherited from strain parents first): quick (85% of the time), hardy (half the season slowing), heavy (+1 crop), showy and sweet (for the market and the pot, later phases). A planted bed carries its strain's traits. Up to 12 a farm; an officer burns one (op `burn`) by taking its sack while holding its seed.
+
 ### Sacks and the wagon
 
 A harvest still puts its crops into the Company Stores at once. It also leaves the crops' sacks at the bed corner for fifteen minutes (`src/net/farm/haulLaw.js`). Click a sack to shoulder it and the others lying near it, up to four; click the wagon to load them. The wagon's cargo for the week (Monday UTC) fills the cart as it grows and is read in the ledger. Hauling adds nothing to the Stores (the crops are there already) and counts as working the sack's bed for the day's care bonus. The garden route's `haul` op commits it with the garden revision, so a sack loads once.

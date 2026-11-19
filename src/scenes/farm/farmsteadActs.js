@@ -11,8 +11,11 @@ import { FARM_CROP_TYPES, FARM_UPGRADES, FARM_ARGENTS_PER_WEEK, farmProgress, fa
 import { wagonCargo, cargoTotal } from '../../net/farm/haulLaw.js';
 import { nextFarmTitle, FARM_WORK_DAY_CAP } from '../../net/farm/farmWorkLaw.js';
 import { FARM_SEED_IDS, farmSeed, farmSeason, seasonPace, SEASON_OFF } from '../../net/farm/cropLaw.js';
+import { strainOf } from '../../net/farm/strainLaw.js';
 import { TITLE_TEXT } from '../../ui/playerBadge.js';
 
+/** A strain trait in words. */
+export const traitWord = (k) => ({ quick: t('farm.trait.quick', 'quick'), hardy: t('farm.trait.hardy', 'hardy'), heavy: t('farm.trait.heavy', 'heavy'), showy: t('farm.trait.showy', 'showy'), sweet: t('farm.trait.sweet', 'sweet') })[k] ?? k;
 /** Which improvement each fixture shows and sells. */
 export const FIXTURE_UPGRADE = Object.freeze({ toolRack: 'tools', well: 'irrigation', compost: 'soil' });
 const fmt = (n) => Number(n).toLocaleString('en-US');
@@ -20,7 +23,7 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 /**
  * @param {{ garden: () => any, now: () => number, mayManage: () => boolean, busy: () => boolean, economy: () => any,
  *   work: () => ({ total: number, today: number } | null), say: (s: string) => void, setSeed: (id: string) => void, ask: (lines: string[], yes: () => void) => void,
- *   act: (action: any) => any, wantFunds: () => void }} d
+ *   act: (action: any) => any, wantFunds: () => void, held?: () => string }} d
  */
 export function createFarmsteadActs(d) {
   let ledgerLine = 0, postLine = 0;
@@ -107,7 +110,9 @@ export function createFarmsteadActs(d) {
     /** The hover line over a fixture. */
     label(id) {
       if (id.startsWith('seed:')) {
-        const seed = farmSeed(id.slice(5)), pace = seasonPace(seed, farmSeason(d.now()));
+        const [cropId, sid] = id.slice(5).split('#'), st = sid ? strainOf(d.garden(), Number(sid)) : null;
+        const seed = farmSeed(cropId), pace = seasonPace(seed, farmSeason(d.now()));
+        if (st) return `${t('farm.stead.strainLabel', '{name} ({crop}) · {traits}', { name: st.name, crop: farmCropName(cropId), traits: st.traits.map(traitWord).join(', ') })}`;
         const when = !seed?.seasons ? '' : pace >= 1 ? t('farm.stead.seedInSeason', ' · in season') : pace >= SEASON_OFF ? t('farm.stead.seedOffSeason', ' · slow this season') : t('farm.stead.seedWinter', ' · slow in winter');
         return t('farm.stead.seedLabel', '{crop} seed · take a handful', { crop: farmCropName(id.slice(5)) }) + when;
       }
@@ -128,9 +133,14 @@ export function createFarmsteadActs(d) {
     use(id) {
       if (d.busy()) return;
       if (id.startsWith('seed:')) {
-        const crop = id.slice(5);
-        if (!FARM_SEED_IDS.includes(crop)) return;
-        d.setSeed(crop); d.say(t('farm.stead.seedTaken', 'You take a handful of {crop} seed.', { crop: farmCropName(crop) }));
+        const seedId = id.slice(5), [crop, sid] = seedId.split('#'), st = sid ? strainOf(d.garden(), Number(sid)) : null;
+        if (!FARM_SEED_IDS.includes(crop) || (sid && !st)) return;
+        // PHASE 2c: an officer burns a strain by taking its sack twice - asked first
+        if (st && d.held?.() === seedId && d.mayManage()) {
+          d.ask([t('farm.stead.burnAsk', 'Burn the {name} seed? Its place on the shelf is freed for a new cross; beds already sown grow on.', { name: st.name })], () => d.act({ op: 'burn', strain: st.id }));
+          return;
+        }
+        d.setSeed(seedId); d.say(st ? t('farm.stead.strainTaken', 'You take a handful of {name} seed.', { name: st.name }) : t('farm.stead.seedTaken', 'You take a handful of {crop} seed.', { crop: farmCropName(crop) }));
         return;
       }
       if (Object.hasOwn(FIXTURE_UPGRADE, id)) { improvement(FIXTURE_UPGRADE[id]); return; }

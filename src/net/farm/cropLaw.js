@@ -69,7 +69,7 @@ export function seasonPace(seed, season) {
  * moment: the interval cut at every season's turn. Months are whole classic months, so a season's turn falls where the
  * classic minute count crosses a multiple of the month - found from `a` and stepped by SEASON_REAL_S.
  */
-export function seasonGrowth(seed, a, b) {
+export function seasonGrowth(seed, a, b, hardy = false) {   // PHASE 2c: a hardy strain feels half the slowing
   if (!(b > a)) return 0;
   if (!seed?.seasons) return b - a;
   let t = a, grown = 0;
@@ -78,7 +78,8 @@ export function seasonGrowth(seed, a, b) {
     const d = dateFromClassicMinutes(Math.floor(sharedClassicMinutes(t * 1000)));
     const nextMonth = d.month >= 11 ? { year: d.year + 1, month: 0 } : { year: d.year, month: d.month + 1 };
     const end = Math.min(b, Math.max(t + 1, wallMsForClassicMinutes(dateToClassicMinutes({ ...nextMonth, day: 0, hour: 0, minute: 0 })) / 1000));
-    grown += (end - t) * seasonPace(seed, seasonValue(d));
+    const pace = seasonPace(seed, seasonValue(d));
+    grown += (end - t) * (hardy ? 1 - (1 - pace) / 2 : pace);
     t = end;
   }
   return grown;

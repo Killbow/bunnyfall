@@ -23,7 +23,7 @@ test('soil preparation, seeds, water and real-time growth form a harvest loop', 
   const ripe = 100 + 6 * 3600;
   assert.equal(gardenStage(garden.beds[0], ripe), 'ripe');
   const harvest = stepFarmGarden(garden, { op: 'harvest', bed: 0 }, ripe);
-  assert.deepEqual(harvest.harvest, { crop: 'grain', material: 'food:grain', qty: 2, grade: 0 });   // PHASE 2: a Common crop
+  assert.deepEqual(harvest.harvest, { crop: 'grain', material: 'food:grain', qty: 2, grade: 0, care: 0, traits: [] });   // PHASE 2: a Common crop, no strain
   assert.equal(gardenStage(harvest.garden.beds[0], ripe), 'tilled');
   assert.ok(stepFarmGarden(harvest.garden, { op: 'harvest', bed: 0 }, ripe).error);
   assert.ok(stepFarmGarden(garden, { op: 'hoe', bed: 65536 }, ripe).error);

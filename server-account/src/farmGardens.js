@@ -2,7 +2,7 @@
 // BUNNYFALL: shared gardens. Revision claims and harvest deposits commit in one batch.
 import { guildActorOf } from './guilds.js';
 import { mustChange } from './realm.js';
-import { emptyGarden, validGarden, stepFarmGardenAction, stepFarmBirds } from '../../src/net/farmGardenLaw.js';
+import { emptyGarden, validGarden, stepFarmGardenAction, stepFarmBirds, stepFarmBurn } from '../../src/net/farmGardenLaw.js';
 import { cropMaterial } from '../../src/net/farmLaw.js';
 import { farmProgressStep, farmProgressRead } from './farmProgress.js';
 import { stepFarmHaul } from '../../src/net/farm/haulLaw.js';   // FARM EXPANSION: sacks carried to the wagon
@@ -10,7 +10,7 @@ import { farmWorkOf, farmWorkStep, farmTitleCrossed, FARM_WORK_DAY_CAP } from '.
 
 export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const { character, mapId, op = 'read', version } = body;
-  if (!Number.isSafeInteger(mapId) || mapId < 0 || mapId > 0xffffffff || !['read', 'hoe', 'plant', 'water', 'harvest', 'upgrade', 'deliver', 'haul', 'weed', 'birds'].includes(op)) return { error: 'farm-bed-bad' };
+  if (!Number.isSafeInteger(mapId) || mapId < 0 || mapId > 0xffffffff || !['read', 'hoe', 'plant', 'water', 'harvest', 'upgrade', 'deliver', 'haul', 'weed', 'birds', 'burn'].includes(op)) return { error: 'farm-bed-bad' };
   const management = op === 'upgrade' || op === 'deliver';
   // Any authenticated visitor may see a garden. Only Company members may change it.
   const actor = op === 'read' ? null : await guildActorOf(db, player, character);
@@ -18,7 +18,7 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const farm = await db.prepare('SELECT * FROM company_farms WHERE map_id = ?').bind(mapId).first();
   if (!farm) return { error: 'farm-not-ours' };
   if (op !== 'read' && farm.guild_id !== actor.me.guild_id) return { error: 'farm-not-ours' };
-  if (management && Number(actor.me.rank) > 1) return { error:'farm-rank' };
+  if ((management || op === 'burn') && Number(actor.me.rank) > 1) return { error:'farm-rank' };   // PHASE 2c: burning a strain is an officer's
   await db.prepare('INSERT OR IGNORE INTO company_farm_gardens (map_id, version, garden) VALUES (?, 0, ?)').bind(mapId, JSON.stringify(emptyGarden())).run();
   const row = await db.prepare('SELECT version, garden FROM company_farm_gardens WHERE map_id = ?').bind(mapId).first();
   let garden;
@@ -28,6 +28,7 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   if (!Number.isSafeInteger(version) || version !== Number(row.version)) return { error: 'farm-bed-version' };
   const step = management ? await farmProgressStep({db,nowS,env},player,farm,garden,body) : op === 'haul' ? stepFarmHaul(garden, body.sacks, nowS)
     : op === 'birds' ? stepFarmBirds(garden, { mapId, who: player.id, game: body.game }, nowS)
+    : op === 'burn' ? stepFarmBurn(garden, body.strain)
     : stepFarmGardenAction(garden, { ...body, climate: Number(farm.climate), who: player.id }, nowS);   // the farm's own climate and the account's own id, never the client's
   if ('error' in step) return step;
   const statements = [db.prepare(`UPDATE company_farm_gardens SET garden = ?1, version = version + 1
@@ -71,5 +72,5 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
     .bind(mapId, day, player.id, actor.me.name || player.handle || 'Farmer'));
   let result;
   try { result = await db.batch(statements); } catch { return { error: 'farm-bed-version' }; }
-  return { ok: true, garden: step.garden, version: version + 1, nowS, mayManage:Number(actor.me.rank)<=1, harvested:harvests.reduce((n,h)=>n+h.qty,0), reward:step.reward, upgraded:step.upgraded, hauled:step.hauled, work, played:step.played ?? null, chased:step.chased, grades:harvests.map((h)=>h.grade), choreAwarded: !management && !!result.at(-1)?.meta?.changes };
+  return { ok: true, garden: step.garden, version: version + 1, nowS, mayManage:Number(actor.me.rank)<=1, harvested:harvests.reduce((n,h)=>n+h.qty,0), reward:step.reward, upgraded:step.upgraded, hauled:step.hauled, work, played:step.played ?? null, chased:step.chased, grades:harvests.map((h)=>h.grade), strain:step.strain ?? null, choreAwarded: !management && !!result.at(-1)?.meta?.changes };
 }

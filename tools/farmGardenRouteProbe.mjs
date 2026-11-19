@@ -112,6 +112,14 @@ try {
   const chase=await req('/v1/farms/garden',{...body,op:'birds',game:{kind:'birds',score:1,ms:9000},version:v});
   if(here){assert.equal(chase.status,200,JSON.stringify(chase));assert.ok(chase.data.chased&&chase.data.garden.chased.includes(here.id));v=chase.data.version;}
   else assert.equal(chase.data?.error??chase.error,'farm-birds-none','No birds, no chase: '+JSON.stringify(chase));
+  // STRAINS (2c): a strain on the shelf is sown with its traits; an officer burns it
+  const gS=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
+  gS.strains=[{id:1,crop:'grain',name:'Golden Ear',traits:['quick','heavy']}];gS.nextStrain=2;
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(gS)).run();
+  await tl({op:'hoe',bed:10});
+  const sownS=await tl({op:'plant',bed:10,crop:'grain',strain:1});assert.deepEqual(sownS.data.garden.beds[10].traits,['quick','heavy']);
+  const wrongS=await req('/v1/farms/garden',{...body,op:'plant',bed:10,crop:'grain',strain:9,version:v});assert.notEqual(wrongS.status,200,'An unknown strain is refused');
+  const burnt=await tl({op:'burn',strain:1});assert.equal(burnt.data.garden.strains.length,0,'An officer burns a strain');
   harvest.data.version=v;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
@@ -138,5 +146,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

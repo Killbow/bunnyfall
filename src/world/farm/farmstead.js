@@ -150,8 +150,8 @@ export function shelfOf(seeds) {
   (seeds ?? []).forEach((id, i) => {
     const row = Math.floor(i / SHELF_ROW), inRow = Math.min(SHELF_ROW, seeds.length - row * SHELF_ROW);
     const dx = ((i % SHELF_ROW) - (inRow - 1) / 2) * SHELF_STEP, dz = -row * .55;
-    const crop = FARM_ART[id]?.ripe ?? FARM_ART.grain.ripe;
-    parts.push({ a: 205, r: 17 + (i % 3), dx, dz, h: .5 }, { a: crop[0], r: crop[1], dx, dz, dy: .42, h: id === 'mushroom' ? .18 : .3 });
+    const base = id.split('#')[0], crop = FARM_ART[base]?.ripe ?? FARM_ART.grain.ripe;   // a strain ('grain#3') shows its crop
+    parts.push({ a: 205, r: 17 + (i % 3), dx, dz, h: .5 }, { a: crop[0], r: crop[1], dx, dz, dy: .42, h: base === 'mushroom' ? .18 : .3 });
     targets.push({ id: `seed:${id}`, dx, dz, r: .27, h: .85 });
   });
   return { parts, targets };

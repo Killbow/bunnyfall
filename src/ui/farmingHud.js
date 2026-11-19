@@ -59,7 +59,7 @@ export function createFarmingHud({ tool, leave, careful }) {
       root.hidden = blocked; name.textContent = farm.name; message.textContent = status;
       root.dataset.skin = isEnhanced() ? 'enhanced' : 'classic';
       buttons.forEach((b, i) => { const on = ['hoe', 'plant', 'water', 'harvest'][i] === selected; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
-      seeds.textContent = t('farm.mode.seedHeld', 'Seed: {crop}', { crop: farmCropName(crop) });
+      seeds.textContent = t('farm.mode.seedHeld', 'Seed: {crop}', { crop: farmCropName(crop) ?? crop });   // a strain comes already named
     },
     target(text, at) { target.hidden = !at?.front; if (!at?.front) return; target.textContent = text; target.style.left = `${at.x}px`; target.style.top = `${at.y}px`; },
     dispose() { root.remove(); },

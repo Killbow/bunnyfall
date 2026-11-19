@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-19
 
+- Strains: harvesting a ripe bed next to another ripe bed of the same crop can drop a cross seed, more often the better both were tended. The farm names it ("Golden Ear") and it gets its own sack on the seed shelf. A strain can be quick (ripens sooner), hardy (shrugs off the seasons), heavy (one more crop), showy or sweet. A farm keeps up to twelve; an officer burns one by taking its sack twice.
 - Farm crops now have grades: Common, Fine, Choice and Prize. A Fine harvest gives a quarter more, Choice half again, and Prize double. Beds earn care by being sown and scythed well, weeded, and watered before they dry out; hover a bed to see the grade it is heading for.
 - Careful work (press F, or the belt button) turns sowing, weeding and scything into a short game played right over the bed. Play well for more care; each game gives its bonus a few times a day. A game played well also counts as farm work toward the farm titles.
 - Weeds grow on planted beds left dry for a day. Hoe them out for care.
