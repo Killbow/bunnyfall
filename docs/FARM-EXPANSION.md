@@ -7,8 +7,10 @@ Status: **design, all decisions taken** (2026-11-19). Nothing here is built yet;
 
 - **Design first.** This document is reviewed before any code.
 - **Art is ARENA2 and the vendored DFU mods only.** No new hand-made sprites and no new meshes beyond the ones already
-  vendored (the windmill, the carts, the tent). Records this document names without a source in the repo are marked
-  *(confirm)*: the data could not be read while writing it, and each must be checked against `ARENA2_PATH` before use.
+  vendored (the windmill, the carts, the tent). Every record named here was **checked by eye** against the owner's
+  ARENA2 files (TEXTURE 201, 205, 211-214, 254, 301, 302 with ART_PAL.COL) on 2026-11-19: Appendix A is the register.
+  What the data lacks is left out: there are **no chickens, sheep, goats or beehives** in ARENA2 or the mods, so eggs,
+  shearing and the apiary are dropped.
 - **Four content pillars:** hands-on farm work, market days and contests, crafting chains, farm events and threats.
 - **Revenants:** only **sworn** revenants of a **beast** kind can be stationed at a farm, each doing the work its kind
   suits.
@@ -19,7 +21,7 @@ Status: **design, all decisions taken** (2026-11-19). Nothing here is built yet;
 - **Work in Farming Mode only.** The farm is *seen* by everyone in the normal view; its stations are *used* from the
   Farming Mode camera.
 - **Raids strike only while a Company member is at the farm.** Nobody loses goods while everyone is away.
-- **Animals belong to the Company,** like the beds: every member feeds, milks and shears them, and their goods go to the
+- **Animals belong to the Company,** like the beds: every member feeds, waters and milks them, and their goods go to the
   Company Stores. Nobody owns a personal animal. (Sworn beasts stay their owner's: a revenant is a character's.)
 - **Online only,** as the farms are today. Nothing here works offline.
 - **A weekly market day on every farm,** not a seasonal fair on one (section 9).
@@ -32,7 +34,7 @@ Status: **design, all decisions taken** (2026-11-19). Nothing here is built yet;
 ## 1. The rules of the expansion
 
 1. **Diegetic first.** Every feature is a *thing on the farm* you walk up to and use: a post, a crate, a pen, a wagon, a
-   hive. There are no new panels, pages, sidebars or lists. What a screen may still show:
+   pen. There are no new panels, pages, sidebars or lists. What a screen may still show:
    - the **tool belt** (it is your hands: what you hold);
    - a **hover line** in the world-tooltips style ("Grushnak the Scarred, ploughing. Content.");
    - **short spoken lines and notices** in the HUD's normal message line;
@@ -92,18 +94,17 @@ finds **fixture plots** on that ground once per farm:
 
 | Fixture | Footprint | Made of (ARENA2 / mods) | What it does (section) |
 | --- | --- | --- | --- |
-| **Order post** | 1x1 | a signpost flat, nailed notices (paper flats *(confirm)*) | Weekly orders (3.3) |
+| **Order post** | 1x1 | the hanging signboard 212:5, notices drawn on it as pale paper quads | Weekly orders (3.3) |
 | **Factor's wagon** | 3x5 | horse-cart-and-cargo's cart + a 201 horse, sacks 205:17 | Ships orders (3.3) |
-| **Estate ledger** | 1x1 | a lectern/book flat *(confirm)* in the porch | Read-only farm record (3.4) |
-| **Seed shelf** | 1x2 | sacks 205:17, baskets *(confirm)* | Picking a seed (3.5) |
-| **Tool rack** | 1x2 | the tools as flats *(confirm: 205/207 records)* | Upgrades made visible (3.6) |
-| **Well and trough** | 2x2 | 212:0/2/8/9 wells, troughs 41220-41222 | Water; irrigation (3.6) |
-| **Compost heap** | 2x2 | grain pile (DET 10024:1), dung *(confirm)* | Soil; manure in (3.6) |
-| **Pens and coop** | 6x8 | fences (RMB fence models *(confirm)*), hay (DET 10024:0) | Livestock (5) |
+| **Estate ledger** | 1x1 | the quill and ink 211:1 on the wooden block 211:31, in the porch (there is no lectern flat) | Read-only farm record (3.4) |
+| **Seed shelf** | 1x2 | the shelves 211:18/19, sacks 205:17-20, baskets 205:9/10 | Picking a seed (3.5) |
+| **Tool rack** | 1x2 | the tool flats of TEXTURE.214 (shovel 0, rake 1, spade 4, pick 6, hoe 7, broom 10, pail 11, shears 14) | Upgrades made visible (3.6) |
+| **Well and trough** | 2x2 | the well 212:0, the hand pumps 212:8/9, troughs 41220-41222, buckets 205:29/30 | Water; irrigation (3.6) |
+| **Compost heap** | 2x2 | the dark heap 212:7, the dung pile with flies 211:3 | Soil; manure in (3.6) |
+| **Pens and sty** | 6x8 | posts 212:13/14 with rails drawn between them (no fence flat exists), haystack 212:1, the cart 205:27 | Livestock (5) |
 | **Beast posts** | 2x2 each | a stake and chain, a kennel or straw bed | Sworn beasts (6) |
 | **Workshop yard** | 8x8 | mill, press, churn, smokehouse, loom (7) | Crafting chains (7) |
-| **Apiary** | 3x3 | hive flats *(confirm)*, flowers 254 | Bees (4.7) |
-| **Scarecrow** | 1x1 | a person flat on a pole *(confirm)* | Crows (8.3) |
+| **Scarecrow** | 1x1 | the scarecrow 211:20 | Crows (8.3) |
 | **Market green** | a field's edge | tent model (climates-calories), stalls, banners | Market day (9) |
 
 An **unbuilt fixture** is not hidden: its plot shows **stakes and a rope** with a **work-order board**. Click it and the
@@ -178,7 +179,7 @@ ships:
   billboard pass (*check whether `createBillboardBatch` can take one, as the grass sway does*), otherwise a per-batch
   lean updated each frame.
 - **Particles** (one pooled emitter module, `world/farm/farmParticles.js`): soil clods from the hoe, a spray from the
-  watering can, chaff from the scythe, dust behind the plough and the wagon, bees about the hives, smoke from the
+  watering can, chaff from the scythe, dust behind the plough and the wagon, flies over the dung heap, smoke from the
   smokehouse and the cooking fire, flour from the mill's door, sparks from a stationed dragonling, fireflies at night.
   Every particle is a tiny pixel quad or a borrowed ARENA2 sprite. The count scales with the graphics setting.
 - **Light.** The farm's lights (lanterns, windows, the smokehouse's glow) join the scene's point lights where the
@@ -187,12 +188,12 @@ ships:
 - **Ground.** Decal layers for tilled rows, wet soil (the `wet` sheen), puddles, wheel ruts on the wagon's track,
   hoofprints in the pens, and a trodden path that forms where members walk most (a slow decal that darkens over days).
 - **Life.** Animals are never still: they graze, turn, walk to the trough, lie down, follow the herding wolf. Birds lift
-  off a field in a flock when you walk through. A cat (201, *confirm*) sleeps on the porch.
+  off a field in a flock when you walk through. A cat sleeps on the porch (201:8) and stalks the barn (201:7).
 - **Camera beats.** Farming Mode already owns a camera. It eases in for minigames (lower and closer over the bed), pulls
   back for the wagon's departure and a title, and rises to show a whole field after a big harvest. Every beat is short
   and skippable with any key.
 - **Feedback with weight.** Every tool lands with a small punch in the world: the plant bends, soil kicks up, a sound
-  (the immersive-footsteps and ambience mods' sets, *confirm which have farm sounds*), and a sack's thump.
+  (the immersive-footsteps and better-ambience sets, the sounds chosen in Phase 1), and a sack's thump.
 
 **Performance.** The farm is a world scene, not a showcase. Budgets: under 2 ms of GPU at the farm on the mid setting,
 a few hundred particles at most, plants and fixtures batched by sprite. Observers (other farms in view) draw fixtures
@@ -216,12 +217,14 @@ Today a bed is a flat square with four billboards. The overhaul, all with existi
   billboard pass can take a per-vertex offset *(check the renderer)*), and a quality crop stands a little taller and
   fuller.
 - **Stage art per crop**, from TEXTURE.301 (records named in `flatFields.js`): wheat 19/21, corn 0/1, sunflower 3/4,
-  vines 7/8, desert plant 2/20. Mushrooms get a real progression: a small cap, then a cluster, then a large cluster (301:10
-  scaled, plus the dungeon mushroom flats *(confirm: 213/254)*).
-- **Weeds.** A bed left dry for a day grows weed flats (301 shrub records *(confirm)*) around its plants. They are shown
+  vines 7/8, desert plant 2/20. **No mushroom sprite exists** in these archives: today's mushroom beds draw 301:10, a low
+  leafy row. They keep it, grown as a shaded bed (darker soil decal, a slatted cover drawn over it in code), and a
+  harvest pops caps as particles. Wheat stands as **shocks** (301:0/1) once harvested, and a haystack (212:1) grows by
+  the barn with the season's grain.
+- **Weeds.** A bed left dry for a day grows weed flats (301:12, 301:20, 301:23) around its plants. They are shown
   and they can be weeded (4.4). They slow growth, never stop it.
 - **Ripe crops** catch the light: a faint warm tint and, at dusk, a few fireflies (the dust motes the heat-haze mod
-  draws, if usable *(confirm)*). No glowing UI markers.
+  draws). No glowing UI markers.
 - **Harvest.** The plants drop away, leaving sacks at the bed's edge (3.3) and stubble (511:22, the winter stubble record)
   for an hour before the soil shows again.
 - **Seasons.** The farm reads the **world's season** (`gameDate.js seasonValue` on the world clock, not the
@@ -246,8 +249,11 @@ dragonling):
 | Herbs | 18 | 8/13/14 | climate's common herb | all |
 | Sunflower | 14 | 3/4 | `food:seeds` (new), oil at the press | subtropical, woodland |
 | Grapes | 30 | 7/8 | `food:grapes` (DET 10021:14/15 art) | rainforest, swamp, subtropical |
-| Cabbage | 10 | the DET cabbage flat 10021:16 | `food:cabbage` | woodland, mountain |
-| Flax | 20 | a tall reed record *(confirm)* | `fiber:flax` (new), cloth at the loom | woodland, swamp |
+| Cabbage | 10 | 301:18 | `food:cabbage` | woodland, mountain |
+| Flax | 20 | 301:19 growing, 301:15 in blue flower (flax flowers blue) | `fiber:flax` (new), linen at the loom | woodland, swamp |
+| Gourd | 24 | 301:23 vines, the gourd 213:0 on the ground when ripe | `food:gourd` (new); the heaviest-gourd contest | woodland, subtropical |
+| Berries | 16 | 301:5, 301:11, 301:14 (berry bushes) | `food:berries` (new), wine and pies | woodland, mountain |
+| Tomato | 12 | 301:12 low plant, the fruit 213:1 when ripe | `food:tomato` (new) | subtropical, woodland |
 | Desert root | 16 | 2/20 | `food:root` (new) | desert |
 
 **Seasons scale growth:** in season ×1.0, off season ×0.7, winter outdoors ×0.4 (never zero: crops pause, never die).
@@ -271,7 +277,7 @@ At most 12 strains per farm; an officer can **burn** one at the shelf to free a 
 ### 4.3 The minigames, in general
 
 Each minigame is a pure state machine like `systems/simmerAct.js`: `tick(dt, input)` and `report()`, a score from 0 to 1,
-about 10 to 25 seconds. It is drawn **on the object itself** (a wobbling furrow line, a swarm about the hive, a pail
+about 10 to 25 seconds. It is drawn **on the object itself** (a wobbling furrow line, a churn's dasher, a pail
 filling). Rules for all of them:
 
 - **Optional.** The plain tool click still works. A minigame is the *better* way, not the only one.
@@ -290,10 +296,9 @@ filling). Rules for all of them:
 | **Weeding** | a weedy bed | weeds pop up as flats; click them before they reseed; don't hit the crop | clears the bed's weeds and adds care | 10 beds |
 | **Scything** | a row of ripe grain or corn | hold to wind up, release at the bright mark; a swing clears the next bed and chains | +quality on the row; a perfect chain of 5 drops a bonus sheaf | 4 rows |
 | **Crow chasing** | the field while crows have landed (8.3) | crows hop along rows; click near one to scare it; a stationed wolf helps | stops the crows' quality theft; a clean chase adds care | 3 chases |
-| **Milking** | a cow or goat in the pen | alternate two keys in the beast's rhythm; too fast and it kicks the pail | milk amount and its quality | once per animal per day (it is the animal's daily) |
-| **Shearing** | a sheep in the pen | trace the sheep's shape with the cursor; nicks lower the score | wool amount and quality | once per sheep per two days |
-| **Smoking the hive** | the apiary | hold to puff smoke and keep the swarm in a calm band (the Simmer's shape), then lift the frame | honey and wax, quality | once per hive per day |
-| **Egg gathering** | the coop | eggs hidden in straw flats; find them before the hens resettle | eggs and a chance of a double yolk | once per day |
+| **Milking** | a cow in the pen | alternate two keys in the beast's rhythm; too fast and it kicks the pail | milk amount and its quality | once per animal per day (it is the animal's daily) |
+| **Mucking out** | the sty or the cow pen | sweep the dung (211:3 flats) onto the cart before the pigs tread it back; the broom 214:10 in hand | contentment for every animal in the pen, and manure to the compost | once per pen per day |
+| **Pig run** | the sty, when a pig gets out | herd it back through the gate before it reaches the beds; a stationed wolf herds with you | the pig's contentment; no trampled bed | when it happens |
 | **Threshing** | the mill's floor | flail on the beat | +flour from the batch (7) | 3 batches |
 | **Treading grapes** | the press's vat | alternate feet in time with a work song (the song the dfu-music set plays) | +must and its quality (7) | 3 batches |
 
@@ -308,29 +313,29 @@ All the input is the existing keys and pointer, so they also work on the mobile/
 
 | Animal | Art | Products | Needs |
 | --- | --- | --- | --- |
-| Cow | 201:3 (cow), 201:4 (calf), 201:3 ×1.1 (bull) | milk daily, manure | hay or grain, water |
-| Horse | 201:0/1 | ploughs (as a bear does, slower), hauls the factor's wagon faster | grain, water |
-| Dog | 201:9/10 | guards the coop (foxes, 8.4) | scraps (any food) |
-| Pig | 201 *(confirm record)* | meat on market day, truffles with a boar beside it | scraps |
-| Chicken | *(confirm: a bird flat in 201 or a mod)* | eggs | grain |
-| Sheep / goat | *(confirm)* | wool / goat milk | hay |
+| Cow | 201:3 (standing), 201:4 (grazing), 4 frames each; a calf at ×0.6 | milk daily, manure | hay or grain, water |
+| Horse | 201:0 (bay), 201:1 (black), 4 frames each | ploughs (as a bear does, slower), hauls the factor's wagon faster | grain, water |
+| Dog | 201:9/10 (two breeds) | guards the pens (prowlers, 8.4) | scraps (any food) |
+| Pig | 201:5 (walking, 4 frames), 201:6 (rooting, 3 frames) | meat for the smokehouse, manure, truffles with a stationed boar | scraps, corn |
+| Cat | 201:7 (walking), 201:8 (sitting) | keeps the granary's vermin down: stored grain keeps longer | scraps |
 
-An animal with no ARENA2 or mod sprite is **left out** rather than drawn as a stand-in. The list above shrinks to what
-the data really has.
+These are every farm animal ARENA2 has (201 also holds a camel, 201:2, kept for a desert farm's drover, and a seagull,
+201:11, the crows' stand-in in 8.3). **No chickens, sheep or goats exist** in ARENA2 or the vendored mods, so there are
+no eggs, no shearing and no coop. Wool still comes to the loom from the Company's hides-and-wool farms.
 
 ### 5.2 Getting them
 
 The **drover** is a wandering merchant (8.5) who comes to the farm's gate once a week with two or three animals in tow.
 An officer buys it with Company gold (the Y/N question). **Every animal is the Company's**, as the beds are: any member
-feeds, milks and shears it, and everything it gives goes to the Company Stores. A member who cares for it earns farm
-work (10.1). Animals live in the **pens and coop** fixture: one pen holds 4 large animals, one coop 8 birds. Members may
+feeds, waters and milks it, and everything it gives goes to the Company Stores. A member who cares for it earns farm
+work (10.1). Animals live in the **pens and sty** fixture: one pen holds 4 large animals, the sty 4 pigs. Members may
 **name** an animal at its pen (a short name, with the same filter as character names).
 
 ### 5.3 Care
 
 Each animal has one number, **contentment** (0 to 100), shown by how it behaves, not as a bar: content animals graze
 and wander; hungry ones stand at the trough and call; unhappy ones lie down. The hover line says it in words ("Bessie.
-Hungry."). Contentment rises with fed and watered days, a clean pen (the muck-out click) and being milked or sheared,
+Hungry."). Contentment rises with fed and watered days, a clean pen (mucking out) and being milked,
 and falls slowly with neglect. It sets the **quality** of what the animal gives. **Animals never die or run off**: at
 zero they only stop producing.
 
@@ -366,13 +371,13 @@ A person, an orc, an undead or a daedra is never stationed (the owner chose "swo
 | --- | --- | --- |
 | **Wolf, Snow Wolf** | Herder and guard | Keeps livestock content (+5 a day); joins crow chases; fights raiders (8.2) |
 | **Hell Hound** | Watch at the gate | Raiders strike this farm less often; it lights the night lanterns |
-| **Grizzly Bear** | Plough beast and honey thief | Pulls the plough (ploughing minigame); the apiary gives more honey, but a hive is now and then raided (honey taken, the bear content) |
+| **Grizzly Bear** | Plough beast and hauler | Pulls the plough (ploughing minigame); hauls the factor's wagon in a third less time |
 | **Boar, Wereboar** | Rooter | Tills a few wild beds a day on its own; finds **truffles** (new food, rare) in mushroom beds |
 | **Spider** | Silk spinner | Spins **silk** (`cloth:silk`, new or the existing material *(check professionLaw)*) on a frame by the loom; eats field pests |
 | **Giant Scorpion** | Pest warden and venom | Blights spread more slowly (8.1); gives **venom** to the provisioning cauldron |
 | **Rat** | Barn rat | Turns scraps into compost faster; sometimes "finds" a stray coin in the barn |
 | **Giant Bat, Bat** | Night guard and guano | Guano is the best manure (soil care on the beds nearest its roost); keeps the night moths off |
-| **Sabertooth Tiger** | Predator ward | No foxes at the coop; raiders' first wave flees |
+| **Sabertooth Tiger** | Predator ward | No prowlers at the pens; raiders' first wave flees |
 | **Werewolf** | Night watch | At night, does a wolf's guard work twice over; by day it sleeps in the barn |
 | **Dragonling** | Hearth beast | Warms a **greenhouse** bed patch: out-of-climate crops grow there, and winter does not slow them; also fires the smokehouse |
 | **Slaughterfish** | Fish pond | Only at a farm with water nearby: a pond fixture yields fish (`food:fish`) |
@@ -424,17 +429,16 @@ lifts a batch's quality.
 
 | Workshop | In | Out | Time | Seen working | Art |
 | --- | --- | --- | --- | --- | --- |
-| **Windmill** | grain, corn | flour, cornmeal | 2 h/batch | blades turn (the vendored mesh); the interior already exists (`windmillInterior.js`) | windmills-kamer |
-| **Press** | grapes, sunflower seeds, apples | must → wine, oil, cider | 6 h; wine ages 3 days | the screw turns, the vat fills | barrels, a vat *(confirm)* |
+| **Windmill** | grain, corn | flour, cornmeal | 2 h/batch | blades turn (the vendored mesh); the millstones 211:16/17 turn inside (`windmillInterior.js`) | windmills-kamer |
+| **Press** | grapes, sunflower seeds, apples | must → wine, oil, cider | 6 h; wine ages 3 days | the screw turns, the vat fills | barrels 205:0, buckets 205:29/30, the wheel 211:15 as the press's screw |
 | **Dairy churn** | milk | butter, cheese (wheel, soft) | 4 h; cheese ages 2 days | the dasher bobs; wheels appear on the shelf | DET 10021 cheese flats |
-| **Smokehouse** | meat, fish | smoked meat, smoked fish (slower spoilage) | 8 h | smoke from the chimney | a shed model *(confirm)*, smoke particles |
+| **Smokehouse** | meat, fish | smoked meat, smoked fish (slower spoilage) | 8 h | smoke from the chimney | hanging meats 211:40 and 211:43-46 on the tripods 211:13/14, smoke particles |
 | **Loom** | wool, flax, silk | cloth bolts (wool, linen, silk) | 3 h | the shuttle moves | 204 cloth flat |
-| **Brewery** | grain, honey | ale, mead | 12 h | a bubbling vat | barrels |
-| **Apiary** | flowers nearby | honey, wax (→ candles at the workshop) | daily | bees as motes | hive *(confirm)* |
+| **Brewery** | grain, honey (the Grocers' pantry), berries | ale, mead, berry wine | 12 h | a bubbling vat | barrels |
 
 **Outputs feed the systems we already have:**
 
-- Food goes into **Provisioning** as ingredients with traits (flour, cheese, butter, wine, honey, smoked meat). Their
+- Food goes into **Provisioning** as ingredients with traits (flour, cheese, butter, wine, berries, smoked meat). Their
   traits are written into `provisionLaw.js`'s ingredient table, and farm quality raises them as rank does.
 - Cloth (wool, linen, silk), wax and oil are **Outfitting and Enchanting materials** where the crafting rework has slots
   for them (`docs/CRAFTING.md`).
@@ -477,14 +481,15 @@ for every player. Farms join the roll as targets:
 
 ### 8.3 Crows and pests
 
-Crows (bird flats *(confirm: 201 seagull or an Enemy Expansion bird)*) land on ripening fields a few times a day and
+Crows (the seagull 201:11, darkened in code to a crow's black) land on ripening fields a few times a day and
 **hop along the rows**, eating quality from each bed they sit on. A **scarecrow** fixture keeps them off its quarter of
 the field. The crow chase minigame (4.4) and stationed wolves and bats clear them.
 
-### 8.4 Foxes at the coop
+### 8.4 Prowlers at the pens
 
-At night, now and then, a fox (a wolf sprite at small scale, or a DEX animal *(confirm)*) comes for the coop and takes
-eggs. A dog, tiger or wolf stationed nearby stops it. Seen early, it can be chased off by walking at it.
+At night, now and then, a wild wolf (the Enemy Expansion's Wolf, already in the game) slinks toward the pens and
+frightens the animals: their contentment drops for the next day. A dog, a tiger or a stationed wolf stops it. Seen
+early, it can be chased off by walking at it. It never takes an animal.
 
 ### 8.5 Weather and wanderers
 
@@ -571,7 +576,7 @@ gets **farm work** points, kept by the service (they are never the client's word
 | each crop unit harvested by your own hand | 1 |
 | each sack carried to the factor's wagon (3.3) | 2 |
 | a minigame played to its full bonus (4.4, within its daily cap) | 5 |
-| an animal fed, milked, sheared or mucked out, once per animal per day | 3 |
+| an animal fed, watered, milked or mucked out, once per animal per day | 3 |
 | a workshop batch started from your own goods | 10 |
 | a fixture's building paid for, or materials brought to it | 10 |
 | a raid on your farm driven off with you there | 50 |
@@ -636,7 +641,7 @@ New pure laws, both ends read them (`src/net/farm/`):
 | `herdLaw.js` | animals, contentment, products |
 | `stationLaw.js` | who can be stationed, each kind's role and numbers |
 | `workshopLaw.js` | recipes, times, quality |
-| `threatLaw.js` | blight, raids on farms, crows, foxes, weather effects |
+| `threatLaw.js` | blight, raids on farms, crows, prowlers, weather effects |
 | `marketLaw.js` | each farm's market day, its contests, stalls, scoring, prizes |
 | `farmGameLaw.js` | each minigame's state machine and score bounds |
 
@@ -660,7 +665,7 @@ the farm calls at 1374-1379).
 | `/v1/farms/garden` | (exists, grows) | `farmGardens.js` | the one farm read (11, "One read") and bed ops; new ops `weed`, `scythe`, `sow-row`, `plough`, `pull-blight`, `crow`, each with an optional minigame `score` | members to act, anyone to read |
 | `/v1/farms/build` | 1 | `farmStead.js` | pay for a fixture; bring materials to it | officers pay, members bring |
 | `/v1/farms/ship` | 1 | `farmStead.js` | carry sacks to the wagon; dispatch a full order (replaces the garden's `deliver` op, which stays a while for old clients) | members carry, officers dispatch |
-| `/v1/farms/herd` | 3 | `farmHerd.js` | buy from the drover; feed, water, milk, shear, muck out, gather eggs | members (officers for Company gold) |
+| `/v1/farms/herd` | 3 | `farmHerd.js` | buy from the drover; feed, water, milk, muck out, herd a pig back | members (officers for Company gold) |
 | `/v1/farms/workshop` | 4 | `farmWorkshops.js` | fill a workshop's crate; collect its shelf | members |
 | `/v1/farms/station` | 5 | `farmStations.js` | station a sworn beast; recall it | the beast's owner |
 | `/v1/farms/threat` | 6 | `farmStead.js` | a raid's result at its end (raiders slain, who stood) | members there |
@@ -710,18 +715,38 @@ Each phase ships on its own, behind its `contentOff` flag, with a `CHANGELOG.md`
 2. **Hands on the land.** Farm work points and the three titles with their aura (10) start counting here. New crops by
    climate, the four quality levels, strains, and the field minigames (sowing,
    weeding, scything, crows).
-3. **Livestock.** Pens and coop, the drover, animals with ARENA2 art, care, milking, shearing, eggs, the trough.
-4. **Workshops.** Windmill, churn, press, loom, smokehouse, brewery, apiary; product orders; Provisioning and crafting
+3. **Livestock.** Pens and sty, the drover, horses, cows, pigs, dogs and cats, care, milking, mucking out, the trough.
+4. **Workshops.** Windmill, churn, press, loom, smokehouse, brewery; product orders; Provisioning and crafting
    hooks.
 5. **Sworn beasts.** Beast posts, stationing, the kind roles, server stations, ploughing with a beast.
-6. **Threats.** Blight, crows and foxes, weather, raids on farms.
+6. **Threats.** Blight, crows and prowlers, weather, raids on farms.
 7. **Market day.** The market green on every farm each week, stalls, contests and ribbons.
 
 ---
 
 ## 14. Open questions for the owner
 
-All answered (2026-11-19); see *Decisions taken*. What is left is checking, not deciding: before Phase 1, the ARENA2
-archives (201, 205, 211-214, 254, 301) and the mods' sound sets are read and the exact records listed for animals, birds,
-hives, fences, tools, the lectern and farm sounds. Anything missing is dropped or replaced by a mod's asset, never drawn
-new.
+All answered (2026-11-19); see *Decisions taken*. The art check is done (Appendix A). The farm sounds are chosen at the
+start of Phase 1 from the vendored sound sets.
+
+---
+
+## Appendix A. The art register
+
+Checked by eye on 2026-11-19 against the owner's ARENA2 files, with `node tools/farmArtSheet.mjs <arena2> <out>`, which
+draws a labelled contact sheet of each archive (it reads the game's files and writes PNGs outside the repo).
+
+| Archive | Records used | What they are |
+| --- | --- | --- |
+| **201** animals | 0, 1 horses (4 frames); 3 cow, 4 grazing cow (4 frames); 5 pig walking (4), 6 pig rooting (3); 7 cat walking, 8 cat sitting; 9, 10 dogs; 11 seagull (crows); 2 camel (a desert drover) | every farm animal there is: no chicken, sheep or goat |
+| **205** clutter | 0 barrel; 9, 10 baskets (empty, full); 17-20 sacks; 24-26 crates and stacks; 27, 28 carts; 29, 30 buckets | sacks, the wagon's cargo, the stalls' goods |
+| **211** fixtures | 1 quill and ink; 3 dung heap with flies; 11 hanging bundle; 13, 14 tripods; 15-17 wheels and millstones; 18, 19 shelves; 20 **scarecrow**; 31 wooden block; 40 ham; 43-46 hanging cloths and meats | the ledger, the seed shelf, the smokehouse, the mill |
+| **212** yard | 0 well; 1 **haystack**; 4, 5 hanging signboards; 6 signpost; 7 dark heap; 8, 9 hand pumps; 10 post; 11, 12 woodpiles; 13, 14 posts | the order post, the compost, the pens' posts, the water |
+| **213** plants | 0 gourd; 1 tomato; 2-6 potted plants (the porch, the market stalls) | ripe fruit on the ground |
+| **214** tools | 0 shovel; 1 rake; 4 spade; 5 lantern on a pole; 6 pick; 7 hoe; 10 broom; 11 pail; 14 shears | the tool rack, the lanterns, the belt's tools |
+| **254** items | 11, 12, 16-18 berries and flowers; 24-33 roses and blooms | the market's flower stalls, ribbons' rosettes |
+| **301** crops | 0, 1 wheat shocks; 2 corn; 3, 4 sunflowers; 5, 11, 14 berry bushes; 6 hay shock; 7-9 climbing vines; 10 low leafy row (mushroom beds); 12, 20, 23 low plants and weeds; 15 blue flowers (flax); 16, 17 flowers; 18 **cabbage**; 19, 21 tall grain | every crop stage and weed |
+| **302** ground | 1 dirt; 2 grass; **54 ploughed furrows** | tilled beds: 302:54 replaces the plain dirt 302:1 under worked beds |
+
+**Not in the data, so left out:** chickens, sheep, goats, beehives, a fence flat (the pens use posts with rails drawn in
+code), a lectern (the ledger is a quill on a block), a mushroom sprite (mushroom beds keep 301:10).
