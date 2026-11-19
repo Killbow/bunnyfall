@@ -59,7 +59,8 @@ rebuilds `dist/`. Never edit files on the box itself.
   list in `server-account/src/service.js`. The service turns away any path not in that list as `not-found` before the
   handler runs, so a route only in `index.js` never works, with no error anywhere. On 2026-11-05 this had silently broken
   the account vault, the Dusk Token count, player festivals, guestbooks and the great cannon. Run
-  `node tools/routesCheck.mjs` after adding a route: it lists anything `index.js` handles that `ROUTES` lacks.
+  `node tools/routesCheck.mjs` after adding a route: it lists anything `index.js` handles that `ROUTES` lacks, and any
+  `/v1/...` path the client calls that neither the account service nor the relay serves.
 - **Test a server feature against the real service, not only its functions.** `BUNNYFALL_DATA=/tmp/bf node
   selfhost/start.mjs` runs both servers locally (migrations included); make a guest with
   `POST /v1/auth/guest {"terms":true,"privacy":true}` and call the route with its `secret` as a Bearer token.
