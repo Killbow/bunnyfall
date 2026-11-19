@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-19
 
+- Fixed: Nyx at the Nowhere Tavern (and the guild clerks) now show their own pictures; the game was looking for them in the wrong folder.
 - The Nowhere Tavern: Nyx now shows her own face when you talk to her instead of a generic bartender, and the hall's red carpet and drapes are dyed a dark purple-blue.
 - Fixed: harvesting a big field no longer makes the sacks by the first beds vanish. A farm now keeps up to 500 sacks lying about (it kept 64), still for fifteen minutes each.
 - Elite dungeons now rise in batches: every two hours (on the even hours, UTC) three to five new dungeons become elite dungeons, instead of eight once a day. They stay until someone cleanses them, and up to 32 can stand at once; when the map is full, no new ones rise until a dungeon is cleansed. Everything else about them (the crystal, the purple glow, Sifrit, the 50 Dusk Tokens, the spreading purple zone after two days) is as before.
