@@ -15,6 +15,7 @@
 //     horse - draws the wagon: a hauled sack is worth more farm work.
 // Pure: no clock, no network; the service turns its answers into the Stores' and treasury's statements.
 import { validGame, recordPlay, GAMES } from './farmGameLaw.js';
+import { herdKeep } from './stationLaw.js';   // PHASE 5: a stationed wolf keeps the herd content
 
 export const HERD_MAX = 16;
 /** The kinds, their art (the art register's TEXTURE.201), their drover price, their pen and their most. */
@@ -36,14 +37,16 @@ const NAMES = Object.freeze({ cow: ['Bessie', 'Clover', 'Daisy', 'Marigold', 'Bu
 function hash(...xs) { let h = 0x811c9dc5; for (const x of xs) { h = Math.imul(h ^ (x | 0), 0x01000193) >>> 0; h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0; } return (h ^ (h >>> 15)) >>> 0; }
 
 /** An animal's contentment at `nowS`: its stored value moved by the time since it was last tended. */
-export function contentAt(a, nowS) {
+export function contentAt(a, nowS, keep = 0) {   // PHASE 5: `keep` the herding beasts' daily lift (stationLaw.js herdKeep)
   if (!a) return 0;
   const span = Math.max(0, nowS - a.tick), fed = Math.max(0, Math.min(nowS, a.fedUntil) - a.tick), wet = Math.max(0, Math.min(nowS, a.wateredUntil) - a.tick);
-  const both = Math.min(fed, wet), delta = both / DAY * CONTENT_UP - (span - fed) / DAY * CONTENT_DOWN - (span - wet) / DAY * CONTENT_DOWN;
+  const both = Math.min(fed, wet), delta = both / DAY * CONTENT_UP - (span - fed) / DAY * CONTENT_DOWN - (span - wet) / DAY * CONTENT_DOWN + span / DAY * keep;
   return Math.max(0, Math.min(100, a.content + delta));
 }
 /** Whether some animal of `kind` is content now (a kind's work runs while one is). */
-export const kindContent = (garden, kind, nowS) => (garden?.herd ?? []).some((a) => a.kind === kind && contentAt(a, nowS) >= CONTENT_GOOD);
+export const kindContent = (garden, kind, nowS) => (garden?.herd ?? []).some((a) => a.kind === kind && contentAt(a, nowS, herdKeep(garden)) >= CONTENT_GOOD);
+/** An animal's contentment in this garden: its own, with the stationed herders' lift (PHASE 5). */
+export const contentIn = (garden, a, nowS) => contentAt(a, nowS, herdKeep(garden));
 /** How long a sack waits at its bed on this farm: longer while a content cat keeps the granary. */
 export const sackLifeOf = (garden, nowS, base) => (kindContent(garden, 'cat', nowS) ? SACK_LIFE_CAT : base);
 
@@ -76,7 +79,7 @@ export function validHerd(garden) {
 
 // ─── THE ACTS ──────────────────────────────────────────────────────────
 /** The animal's state moved to `nowS` (its contentment banked), for an act to change. */
-const settle = (a, nowS) => ({ ...a, content: Math.round(contentAt(a, nowS) * 10) / 10, tick: nowS });
+const settle = (a, nowS, keep = 0) => ({ ...a, content: Math.round(contentAt(a, nowS, keep) * 10) / 10, tick: nowS });
 
 /**
  * ONE ACT ON THE HERD: `buy` (an offer's index, the officer's - the service checks rank and gold), `feed`, `water`,
@@ -84,7 +87,7 @@ const settle = (a, nowS) => ({ ...a, content: Math.round(contentAt(a, nowS) * 10
  * deposit?: [{ material, qty }], muckedKinds?: [], worked: [] } or an error. `score` a milking game's (0..1), when played.
  */
 export function stepFarmHerd(garden, { act, animal, offer, pen, score, mapId = 0 }, nowS, farmWeekOf) {
-  const next = structuredClone(garden), herd = next.herd ?? [], day = Math.floor(nowS / DAY);
+  const next = structuredClone(garden), herd = next.herd ?? [], day = Math.floor(nowS / DAY), keep = herdKeep(garden);   // PHASE 5: the stationed herders' lift
   if (act === 'buy') {
     const d = droverHere(garden, mapId, nowS, farmWeekOf);
     if (!d) return { error: 'farm-drover-away' };
@@ -103,9 +106,9 @@ export function stepFarmHerd(garden, { act, animal, offer, pen, score, mapId = 0
     const inPen = herd.filter((a) => ANIMALS[a.kind].pen === pen);
     if (!inPen.length) return { error: 'farm-herd-bad' };
     next.mucked = { ...(garden.mucked ?? {}), [pen]: day };
-    next.herd = herd.map((a) => (ANIMALS[a.kind].pen === pen ? { ...settle(a, nowS), content: Math.min(100, contentAt(a, nowS) + MUCK_LIFT) } : a));
+    next.herd = herd.map((a) => (ANIMALS[a.kind].pen === pen ? { ...settle(a, nowS, keep), content: Math.min(100, contentAt(a, nowS, keep) + MUCK_LIFT) } : a));
     // a content pig's sty gives manure for the beds
-    if (pen === 'sty') next.manure = Math.min(MANURE_MAX, (garden.manure ?? 0) + inPen.filter((a) => contentAt(a, nowS) >= CONTENT_GOOD).length * 2);
+    if (pen === 'sty') next.manure = Math.min(MANURE_MAX, (garden.manure ?? 0) + inPen.filter((a) => contentAt(a, nowS, keep) >= CONTENT_GOOD).length * 2);
     return { garden: next, worked: [], tended: inPen.length };
   }
   const i = herd.findIndex((a) => a.id === animal);
@@ -113,23 +116,23 @@ export function stepFarmHerd(garden, { act, animal, offer, pen, score, mapId = 0
   const a = herd[i];
   if (act === 'feed') {
     if (a.fedUntil > nowS + FED_S / 2) return { error: 'farm-herd-done' };
-    herd[i] = { ...settle(a, nowS), fedUntil: nowS + FED_S };
+    herd[i] = { ...settle(a, nowS, keep), fedUntil: nowS + FED_S };
     next.herd = herd;
     return { garden: next, consume: { feed: ANIMALS[a.kind].feed, units: FEED_UNITS }, worked: [], tended: 1 };
   }
   if (act === 'water') {
     if (a.wateredUntil > nowS + WATERED_S / 2) return { error: 'farm-herd-done' };
-    herd[i] = { ...settle(a, nowS), wateredUntil: nowS + WATERED_S };
+    herd[i] = { ...settle(a, nowS, keep), wateredUntil: nowS + WATERED_S };
     next.herd = herd;
     return { garden: next, worked: [], tended: 1 };
   }
   if (act === 'milk') {
     if (a.kind !== 'cow') return { error: 'farm-herd-bad' };
     if (a.milked === day) return { error: 'farm-herd-done' };
-    const c = contentAt(a, nowS);
+    const c = contentAt(a, nowS, keep);
     if (c < CONTENT_GOOD / 2) return { error: 'farm-herd-unhappy' };
     const qty = (c >= 90 ? 3 : c >= CONTENT_GOOD ? 2 : 1) + (Number.isFinite(score) && score >= .7 ? 1 : 0);
-    herd[i] = { ...settle(a, nowS), milked: day };
+    herd[i] = { ...settle(a, nowS, keep), milked: day };
     next.herd = herd;
     return { garden: next, deposit: [{ material: 'food:milk', qty }], worked: [], tended: 1, milk: qty };
   }

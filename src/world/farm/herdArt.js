@@ -4,6 +4,7 @@
 // yard (by the ledger). They are never still: each wanders to a new spot every few seconds, and a contented one grazes
 // (its grazing picture). Seen by everyone near the farm.
 import { ANIMALS, CONTENT_GOOD, contentAt } from '../../net/farm/herdLaw.js';
+// PHASE 5: `keep` is the stationed herders' daily lift (stationLaw.js herdKeep)
 
 /** Where an animal stands at `seconds`: its pen's centre and a wander inside its radius. */
 export function animalSpot(a, home, radius, seconds) {
@@ -29,12 +30,12 @@ export function createHerdArt(renderer, assets = {}) {
      * @param {number} nowS the garden's time (contentment), @param {number} seconds the wander's clock
      * @returns {{ id: number, pos: number[], h: number }[]} where each was drawn, for picking
      */
-    update(herd, homeOf, nowS, seconds) {
+    update(herd, homeOf, nowS, seconds, keep = 0) {
       if (!ready) return [];
       /** @type {Map<string, number[][]>} */ const groups = new Map(), placed = [];
       for (const a of herd ?? []) {
         const home = homeOf(a); if (!home) continue;
-        const A = ANIMALS[a.kind], [arch, rec] = contentAt(a, nowS) >= CONTENT_GOOD && a.id % 2 ? A.graze : A.art;
+        const A = ANIMALS[a.kind], [arch, rec] = contentAt(a, nowS, keep) >= CONTENT_GOOD && a.id % 2 ? A.graze : A.art;
         const pos = animalSpot(a, home.home, home.radius, seconds), key = `${arch}_${rec}_${A.h}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(pos); placed.push({ id: a.id, pos, h: A.h });

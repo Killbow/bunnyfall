@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). Phases 4 to 7 are designed here. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). **Phase 5 built**: sworn beasts on the farm (section 6). Phases 4, 6 and 7 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -422,6 +422,8 @@ their part:
   the character's next load ("Grushnak has come home from the farm.").
 - If the save and the row disagree (an older save loaded), the **server row wins** for where it is; the record's
   revision (`revenant.js`'s merge) wins for everything about the beast itself.
+
+*As built (Phase 5):* the stations live in the garden JSON (`garden.stations`, validated in `validGarden`), not in a `farm_stations` table, so no migration was needed (0220 is unused); the 2-a-character cap across farms is counted over the Company's gardens by the service. Each entry also carries its `post` (0-5). Ops `station`, `recall` and `plough` are on the existing garden route. The law is `src/net/farm/stationLaw.js`; the beasts are `STATION_KINDS` (by mobile id, Enemy Expansion's wolf, snow wolf, hell hound, boar and bat by their ids 262-264, 278, 260). The record side is `companion.state 'station'` + `companion.station` (`revenant.js` sanitize; `revenantCompanions.js` `stationRevenant`, `recallStationed`, `reconcileStations`). Work built: wolf/snow wolf/hell hound/werewolf herd (contentment +5 a day, birds' toll nothing; the werewolf is a wolf by day and night alike), grizzly ploughing game, boar/wereboar truffles, spider silk (`hide:spider`, the existing thread: no new pantry entry; 741-742 stay free), bat guano care, rat manure, dragonling greenhouse. Left for Phase 6: the sabertooth's prowler ward and the scorpion's blight warden stand and do nothing yet; the hell hound does not yet light the lanterns or lessen raids. Not built: the boar tilling wild beds on its own, the grizzly hauling the wagon faster, the rat's stray coin, the slaughterfish's pond, arts and personalities colouring the work (the `art` is carried in the row for them), loyalty and renown paid back on load.
 
 ---
 

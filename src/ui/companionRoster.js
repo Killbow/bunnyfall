@@ -304,7 +304,7 @@ function row(el, r, { now, rerender, meter, here, kindName, stars }) {
   const text = el('div', 'cmp-text');
   const head = el('div', 'cmp-head');
   head.append(el('span', 'cmp-name', r.name));
-  head.append(el('span', `cmp-state${state === 'with' ? '' : ` is-${state}`}`, state === 'with' ? 'At your side' : state === 'resting' ? 'Recovering' : state === 'errand' ? t('rvn.errand.abroad', 'Abroad') : 'Away'));   // RVN-ERRAND
+  head.append(el('span', `cmp-state${state === 'with' ? '' : ` is-${state}`}`, state === 'with' ? 'At your side' : state === 'resting' ? 'Recovering' : state === 'errand' ? t('rvn.errand.abroad', 'Abroad') : state === 'station' ? t('rvn.station.at', 'At a farm') : 'Away'));   // RVN-ERRAND
   text.append(head);
   const P = PERSONALITIES[r.personality];
   // AUDIT (2026-10-02): its chip says who it is - the blurb is a foe's ("...your death included"), never an ally's row's

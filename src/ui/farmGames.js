@@ -4,7 +4,7 @@
 // net/farm/farmGameLaw.js; this draws its state and turns the pointer and the keys into its input. Styled by the farming
 // HUD's skin (classic or enhanced), as the tool belt is.
 import { t } from '../systems/textManager.js';
-import { SOW, SCYTHE, WEED, BIRDS, MILK } from '../net/farm/farmGameLaw.js';
+import { SOW, SCYTHE, WEED, BIRDS, MILK, PLOUGH, ploughLine } from '../net/farm/farmGameLaw.js';
 
 const HINT = {
   sow: () => t('farm.game.sowHint', 'Space or click as the hand passes the mark'),
@@ -12,10 +12,11 @@ const HINT = {
   weed: () => t('farm.game.weedHint', 'Click the weeds. Leave the sprouts!'),
   birds: () => t('farm.game.birdsHint', 'Click the birds before they peck'),
   milk: () => t('farm.game.milkHint', 'A, D, A, D - in her rhythm, not too quick'),
+  plough: () => t('farm.game.ploughHint', 'Hold A and D to steer the plough along the bright furrow'),   // PHASE 5
 };
 const TITLE = {
   sow: () => t('farm.game.sow', 'Sowing'), scythe: () => t('farm.game.scythe', 'Scything'),
-  weed: () => t('farm.game.weed', 'Weeding'), birds: () => t('farm.game.birds', 'Chasing the birds'), milk: () => t('farm.game.milk', 'Milking'),
+  weed: () => t('farm.game.weed', 'Weeding'), birds: () => t('farm.game.birds', 'Chasing the birds'), milk: () => t('farm.game.milk', 'Milking'), plough: () => t('farm.game.plough', 'Ploughing'),
 };
 
 /**
@@ -42,12 +43,24 @@ export function createFarmGameWidget(host, game) {
   const tally = document.createElement('p');
   const hint = document.createElement('p'); hint.textContent = HINT[kind]();
   box.append(title);
-  /** @type {HTMLElement|null} */ let moving = null;
+  /** @type {HTMLElement|null} */ let moving = null, ploughBand = null;
   /** @type {HTMLButtonElement[]} */ const cells = [];
   if (kind === 'milk') {
     const keys = document.createElement('div'); keys.className = 'cells'; keys.style.gridTemplateColumns = 'repeat(2, 1fr)';
     for (const k of ['a', 'd']) { const b = document.createElement('button'); b.type = 'button'; b.className = 'cell'; b.textContent = k.toUpperCase(); b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); game.input({ key: k }); }); keys.append(b); cells.push(b); }
     box.append(keys);
+  } else if (kind === 'plough') {   // PHASE 5: a bar the width of the field; the furrow's line wanders, the plough follows A and D
+    const bar = document.createElement('div'); bar.className = 'bar'; bar.style.height = '22px';
+    const band = document.createElement('i'); band.className = 'band'; band.style.width = `${PLOUGH.tol * 100}%`;
+    moving = document.createElement('i'); moving.className = 'hand'; bar.append(band, moving); box.append(bar);
+    const keys = document.createElement('div'); keys.className = 'cells'; keys.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    for (const [k, v] of [['a', -1], ['d', 1]]) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'cell'; b.textContent = k.toUpperCase();
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); game.input({ steer: v }); });
+      for (const up of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(up, () => game.input({ steer: 0 }));
+      keys.append(b);
+    }
+    box.append(keys); ploughBand = band;
   } else if (kind === 'sow' || kind === 'scythe') {
     const bar = document.createElement('div'); bar.className = 'bar';
     if (kind === 'sow') { const mark = document.createElement('i'); mark.className = 'mark'; moving = document.createElement('i'); moving.className = 'hand'; bar.append(mark, moving); }
@@ -72,6 +85,7 @@ export function createFarmGameWidget(host, game) {
       box.hidden = !at?.front;
       if (at?.front) { box.style.left = `${at.x}px`; box.style.top = `${at.y}px`; }
       if (kind === 'milk') { cells.forEach((c, i) => c.classList.toggle('weed', s.lastKey === (i ? 'a' : 'd'))); tally.textContent = t('farm.game.strokes', 'Strokes: {n} of {all} · good: {hits}', { n: Math.max(0, s.swings - 1), all: MILK.strokes, hits: s.hits }); }
+      else if (kind === 'plough') { moving.style.left = `calc(${(s.pos + 1) * 50}% - 5px)`; ploughBand.style.left = `${(ploughLine(s.t) + 1) * 50 - PLOUGH.tol * 50}%`; tally.textContent = t('farm.game.furrow', 'True furrow: {n}%', { n: Math.round(s.onLine / PLOUGH.seconds * 100) }); }
       else if (kind === 'sow') { moving.style.left = `calc(${s.hand * 100}% - 5px)`; tally.textContent = t('farm.game.throws', 'Throws: {n} of {all}', { n: s.marks.length, all: SOW.throws }); }
       else if (kind === 'scythe') { moving.style.width = `${Math.min(1, s.power) * 100}%`; tally.textContent = t('farm.game.swings', 'Swings: {n} of {all} · clean: {hits}', { n: s.swings, all: SCYTHE.swings, hits: s.hits }); }
       else {

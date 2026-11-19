@@ -413,6 +413,8 @@ export const PANTRY = Object.freeze([
   Object.freeze({ key: 'food:flax', name: 'Flax', templateIndex: 720, value: 3, art: [254, 15] }),
   Object.freeze({ key: 'food:gourd', name: 'Gourd', templateIndex: 721, value: 4, art: [213, 0] }),
   Object.freeze({ key: 'food:grapes', name: 'Grapes', templateIndex: 722, value: 4, art: [254, 16] }),
+  // FARM EXPANSION PHASE 5 (docs/FARM-EXPANSION.md 6.2): a boar's find among the mushroom beds (net/farm/stationLaw.js); the dark lump of Raw Meat's picture
+  Object.freeze({ key: 'food:truffle', name: 'Truffle', templateIndex: 740, value: 8, icon: 538 }),
 ]);
 export const PANTRY_KEYS = Object.freeze(PANTRY.map((p) => p.key));
 export const pantryOf = (/** @type {string} */ key) => PANTRY.find((p) => p.key === key) ?? null;
