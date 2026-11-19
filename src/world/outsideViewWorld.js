@@ -1,9 +1,9 @@
 // The world's view out of a window: the street the last street frame drew, lit by the current
 // clock, with the town's lanterns lit as the street frame lights them. It also creates the witches
-// host.
+// host while the Witches' Festival is switched on.
 import { aabbOutside } from '../render/frustum.js';
 import { clockFogColor, VIEW_RINGS } from '../render/realWindows.js';
-import { createWitchesHost } from '../homes/witchesHost.js';
+import { arcOn, loadArc } from '../systems/offArcs.js';
 import { farFlatVisibleAt } from './flatDistance.js';
 import { fillLanternPool, nearestLights } from './cityLights.js';
 import { getFloat } from '../platform/settings.js';
@@ -13,7 +13,7 @@ import { windowEmissionRGB } from '../render/windowEmission.js';
 import { withMoonAmbient } from '../render/enhancedSky.js';
 
 /** @param {any} shared */
-export function createOutsideViewWorld(shared) {
+export async function createOutsideViewWorld(shared) {
   const {
     _mode, built, cam, chatNotice, CITY_LIGHT_COLOR_F32, deepWaters, drawDeepWatersFloors, drawDeepWatersSurfaces,
     ecoDraw, lightsOnAt, minuteNow, onlineHomes, pipeline, player, renderer, saveSoon, sky, snowCover, state,
@@ -92,9 +92,10 @@ export function createOutsideViewWorld(shared) {
   });
   // ONLINE-PUBLIC: the instance door is retired for dungeons and buildings. Every way in opens the public room; a quest's
   // own people, items and foes still stand there for the player whose quest names it (dungeonContext.js's private stands).
-  // WITCH1 (bible/06-Systems/Witches-Festival.md): THE WITCHES' FESTIVAL IN THE STREETS (scenes/witchesHost.js) - the town
-  // underfoot's Hearth Offerings stood at their doors, taken from and filled; the Wyrd Sisters' window; the finds' doors.
-  // The dressing and the Sisters themselves are the build's (scenes/pixelBuild.js, world/witchesDecor.js)
-  shared.witches = createWitchesHost({ built, renderer, pipeline, onlineHomes, townTalk, state, player, saveSoon, chatNotice, mode: _mode, get online() { return shared.online; } });
+  // The Witches' Festival in the streets (homes/witchesHost.js, bible/06-Systems/Witches-Festival.md): the town's
+  // Hearth Offerings at their doors, taken from and filled, the Wyrd Sisters' window, and the finds' doors. The
+  // dressing and the Sisters are built in world/pixelBuild.js and world/witchesDecor.js. The host is null while the
+  // festival is off.
+  shared.witches = arcOn('witchesFestival') ? (await loadArc('witchesFestival')).createWitchesHost({ built, renderer, pipeline, onlineHomes, townTalk, state, player, saveSoon, chatNotice, mode: _mode, get online() { return shared.online; } }) : null;
   return { outsideView };
 }

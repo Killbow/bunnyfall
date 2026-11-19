@@ -225,11 +225,9 @@ import { findGateSite } from '../worldEvents/gateSite.js';   // WB1: where the d
 import { createGatePool, GATE_TEXT } from '../worldEvents/gatePool.js';   // WB2: the gate the world stands - its stone, its fire and beacon, its collider and its door
 import { createStarfallHost } from '../systems/starfall/starfallHost.js';   // STAR4-STAR6: the Witches' Festival's fallen stars - in the sky, in the world, defended
 import { createRiteHost } from '../worldEvents/riteHost.js';   // WB12d: the faithful's rite - its circle, its smoke, its faithful, its word and its chest
-import { createSdHost } from '../worldEvents/sdHost.js';   // SD2b: the Hollow in the world - the hub's record in, the Hollow stood at its pixel, the find, the lines
+import { arcOn, loadArc } from '../systems/offArcs.js';
 import { SD_CAST_OUT_LINE, isSdRoom } from '../net/sdLaw.js';   // SD2d: a Hollow's end said to whoever it casts out; SD5a: the Hour's room; SD9e: a receipt from my realm's
-import { createEgClient } from '../systems/eliteGates/egClient.js';   // EG-PLAY: the breach on this screen - the key, the call, the halls, the receipts
 import { createEgArchPool } from '../systems/eliteGates/egArch.js';   // EG-F: the Elite Breach's arch - its pool, its place, its site; a Dagon's Breach near
-import { createEgCallPortal, createEgCallPrompt } from '../systems/eliteGates/egCall.js';   // EG-F: the call's portal at my feet, and its prompt
 import { gateClearMemo } from '../world/gateClearance.js';   // EG-F: the gate's clearing and every standing arch's, one set - STAR-CLEAR: and every fallen star's
 import { EG_LAST_WORD_MIN } from '../net/eliteGates/egLaw.js';   // EG-F: a quest falling due inside a breach's last word
 import { createEgFight } from '../systems/eliteGates/egFight.js';   // EG-PLAY: a hall's fight
@@ -255,7 +253,6 @@ import { sdVeilModelOf, sdRingsFarFirst } from '../worldEvents/sdThrough.js';   
 import { sdSlotsKept } from '../worldEvents/sdSlots.js';   // SD-ONELIFE: the Hollows' slots kept on the device, by the account
 import { sdCities, sdTemplates } from '../worldEvents/sdSite.js';   // SD2b: the Hollow's cities and templates, over the game's own rows
 import { RANDOM_TREASURE_ARCHIVE } from '../items/lootDataTables.js';   // WB12d: the casket's pile, undrawn
-import { createSigilBroker } from '../worldEvents/sigilBrokerPool.js';
 import { createCromwarkHost } from '../world/wild/cromwarkHost.js';   // BUNNYFALL (Cromwark): the haze's counter, the Dusk Tokens, the Guild camp and Nyx   // SET7: the Sigil Broker - her body, her box and name, her press; BROKER-CAGE: caged at the faithful's circle
 import { closeBrokerDoor } from '../ui/brokerDoor.js';   // SET7: her window, a lazy chunk behind its door
 import { panoplyPieceById } from '../items/aetheric.js';   // EG15: a Panoply piece minted by its id - the sink's
@@ -12809,23 +12806,23 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     get playerSpawned() { return playerSpawned; },
     get social() { return social; },
   });
-  const egArchPool = params.has('online') ? createEgArchPool({
+  const egArchPool = params.has('online') && arcOn('eliteBreach') ? createEgArchPool({
     renderer, collider: () => collider, pixelTranslation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => heightAt(x, z), now: egNow,
     feet: egFeet, me: () => _accountEg.me(), say: (text) => setMidScreenText(text), onStep: (b) => egClient?.archStep(b), landAt: (l) => egLandAt(l),
     verifyKey: () => egClient?.relayKey() ?? Promise.resolve(null),
   }) : null;
-  const _egCallPortal = params.has('online') ? createEgCallPortal({
+  const _egCallPortal = params.has('online') && arcOn('eliteBreach') ? (await loadArc('eliteBreach')).createEgCallPortal({
     renderer, audio, toScene: (p) => campToScene(p), toWire: (p) => campToWire(p), hold: () => portalHoldNow(),
     groundAt: (s) => { const d = collider.surfaceHit([s[0], s[1] + PORTAL_REGROUND, s[2]], [0, -1, 0], PORTAL_REGROUND * 2)?.dist; return Number.isFinite(d) ? s[1] + PORTAL_REGROUND - d : null; },
     onEnter: () => egClient?.portalEntered(), onRefused: (hold) => townTalk.say(PORTAL_HOLD_TEXT[hold]),
   }) : null;
   if (_egCallPortal) portalGates.drawAlso(() => _egCallPortal.batches());   // EG-F: the call's portal drawn with the Portal Stone's, on the flats' axis
-  const egCallPrompt = params.has('online') ? createEgCallPrompt({ onAnswer: () => egClient?.command(''), touch: isTouchDevice(), doc: document }) : null;
+  const egCallPrompt = params.has('online') && arcOn('eliteBreach') ? (await loadArc('eliteBreach')).createEgCallPrompt({ onAnswer: () => egClient?.command(''), touch: isTouchDevice(), doc: document }) : null;
   const egBoardDoor = createEgBoardDoor({
     open: (o) => openEgBoard({ doc: document, classic: !isEnhancedPlus(), fetchBoard: () => _accountEg.board(), listPickerReady: listPickerArtLoaded, runs: () => egRecapsKept(appStorage()), ...o }),   // AUDIT EG V (c, L7-19): and the last runs
     slot: egWindowSlot,
   });
-  const egClient = params.has('online') ? createEgClient({
+  const egClient = params.has('online') && arcOn('eliteBreach') ? (await loadArc('eliteBreach')).createEgClient({
     modes: () => modes, online: () => online, hub: () => socialLink(), account: { ..._accountEg, claim: (r) => _accountEg.claim(r, characterIdOf(playerEntity)).then(weirHeard) }, now: egNow, entity: playerEntity, player, cam,   // EG-E1: a claim carries the claiming character (its guild's deed) and its Weir Key restacks
     keyFacts: egKeyFacts, startWindow: egStartWindow, arches: egArchPool, callPortal: _egCallPortal, prompt: egCallPrompt, feet: egFeet, probes: egProbes,   // EG-F
     party: () => (social?.party?.members ?? []).map((m) => ({ sub: m.acct, name: m.name, h: m.p?.h, hm: m.p?.hm })), windowUp: () => gamePaused(),   // EG-F: the start window's ticks; the prompt under a window; AUDIT EG V (c, L7-7): a witness's watched member's health, the party's pose
@@ -12890,7 +12887,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */
   const _egLightList = [], NO_EG_LIGHTS = Object.freeze([]);
   let _omenClockAt = null;   // AUDIT WB C4: when the relay's clock was first read this session (the omen's fallback wait)
-  const gateOmen = params.has('online') ? createGateOmen({
+  const gateOmen = params.has('online') && arcOn('dagonBreaches') ? createGateOmen({
     now: () => Date.now() + _sharedOffsetMs,
     site: (day) => {
       if (!maps) return null;
@@ -12959,7 +12956,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // my receipt: to the account service, with the character that fought and the level it was admitted at
     onReceipt: (r) => { const c = readSerpentReceipt(r); serpentClaims?.add(r, characterIdOf(playerEntity), typeof playerEntity?.name === 'string' ? playerEntity.name : null, c?.l ?? playerEntity.level ?? 1); },
   }) : null;
-  const serpentOmen = serpentLink ? createSerpentOmen({
+  const serpentOmen = serpentLink && arcOn('seaSerpent') ? createSerpentOmen({
     now: () => Date.now() + _sharedOffsetMs,
     // the day's site off the packet lanes - every client's the same lanes, the same ways, the same open sea; none before
     // the map's data has come (asked again - systems/serpent/serpentOmen.js SITE_RETRY_MS)
@@ -13135,7 +13132,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  rises or goes on ground that stands (sweepSdLate) - the find said at its mouth to the cell its pixel is in, and the
    *  lines for its find, its kill and its fading (the event board's news since EVENTS1). */
   let _sdDoorAt = null;
-  const sdHost = params.has('online') ? createSdHost({
+  const sdHost = params.has('online') && arcOn('abyssDungeons') ? (await loadArc('abyssDungeons')).createSdHost({
     now: () => Date.now() + _sharedOffsetMs,
     scan: () => gateScanOf(_sdScanRow),
     warmScan: () => warmGateScan(),
@@ -13285,7 +13282,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _eventClaimed = new Set();
   connectSkins(insigniaIo); onSkinsChange(() => { try { refreshPaperDoll(playerEntity); } catch { /* the doll redraws on its next ask */ } });   // BUNNYFALL: the worn custom paperdoll, read from the account; the inventory doll redraws when its pictures land
   const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById, insigniaIo, settleBrokerSale);   // BROKER-RID (AUDIT FB1024): her sales by their request ids - an unheard one owed, settled as her window opens
-  const sigilBroker = gateOmen ? createSigilBroker({
+  const sigilBroker = gateOmen ? (await loadArc('dagonBreaches')).createSigilBroker({
     renderer, getTexture, uploadRecordFrame, collider: () => collider,
     site: () => gateOmen.cageSite(),   // BROKER-CAGE: the breach the clock is about, omen to midnight - a Warden fallen early never takes her
     pixelTranslation: (px, py, out) => state.pixelTranslation(px, py, out),
@@ -13963,7 +13960,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // The building the player stands in is drawn with the rest: its walls seen from inside are back faces, and what stands
   // on the room's side of a pane the renderer leaves out (PANE-CLIP, FIELD BUGS 2026-10-12g - its model's box left out
   // its own other wing and a neighbour's wall against it, "Wall missing through window").
-  const { outsideView } = createOutsideViewWorld({
+  const { outsideView } = await createOutsideViewWorld({
     _mode, built, cam, chatNotice, CITY_LIGHT_COLOR_F32, deepWaters, drawDeepWatersFloors, drawDeepWatersSurfaces,
     ecoDraw, lightsOnAt, minuteNow, onlineHomes, pipeline, player, renderer, saveSoon, sky, snowCover, state,
     townTalk, waterOn, weatherTerms, worldLightAnimator,
