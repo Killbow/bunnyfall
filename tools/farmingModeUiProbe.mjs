@@ -199,6 +199,19 @@ try {
   await page.waitForFunction(()=>window.probe.garden.cargo?.grain===5);
   assert.deepEqual(await page.evaluate(()=>window.probe.mode.inspect().carried),[],'The wagon takes the sacks');
   assert.equal(await page.evaluate(()=>window.probe.glError),0,'sack draw error');
+  // THE HERD (PHASE 3): a cow in the pen is drawn, clicked and fed - through the same fake book as every other act.
+  // A read is started inside frame() and answers after it: wait for the mode to take the new version, THEN render again.
+  await page.evaluate(()=>{const p=window.probe;p.garden.herd=[{id:1,kind:'cow',name:'Bessie',tick:p.now,fedUntil:p.now,wateredUntil:p.now,content:60}];p.version++;});
+  await page.waitForFunction(()=>{window.probe.render();return window.probe.mode.inspect().version===window.probe.version;},null,{timeout:5000});
+  await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
+  assert.equal(await page.evaluate(()=>window.probe.mode.inspect().animals.length),1,'The cow in the pen is drawn');
+  await page.evaluate(()=>{const p=window.probe,a=p.mode.inspect().animals[0];p.feet=[a.pos[0]-1.6,0,a.pos[2]];for(let i=0;i<30;i++)p.render();});
+  const cowAt=await page.evaluate(()=>{const p=window.probe,a=p.mode.inspect().animals[0];return p.project([a.pos[0],a.pos[1]+a.h*.5,a.pos[2]]);});
+  await page.mouse.move(cowAt.x,cowAt.y);await page.evaluate(()=>window.probe.render());await page.mouse.click(cowAt.x,cowAt.y);await page.evaluate(()=>window.probe.render());
+  await page.waitForFunction(()=>window.probe.garden.herd[0].fedUntil>window.probe.now,null,{timeout:5000});
+  assert.equal(await page.evaluate(()=>window.probe.requests.filter((r)=>r.op==='herd').at(-1).act),'feed','Clicking the hungry cow feeds her');
+  await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
+  assert.equal(await page.evaluate(()=>window.probe.glError),0,'herd draw error');
   // CAREFUL WORK (PHASE 2): F turns sowing into the sowing game, pinned over the bed; its report rides the planting
   await page.evaluate(()=>{const p=window.probe;p.feet=[(1%4+.5)*2-1.6,0,(Math.floor(1/4)+.5)*2];for(let i=0;i<30;i++)p.render();});
   await page.keyboard.press('f'); await page.keyboard.press('2'); await page.evaluate(()=>window.probe.render());
@@ -317,5 +330,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS (with sworn beasts stationed, the plough played and market day): real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work, a workshop built, run and collected), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS (with sworn beasts stationed, the plough played and market day, a cow fed in the pen): real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work, a workshop built, run and collected), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }
