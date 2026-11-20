@@ -1,20 +1,13 @@
 // @ts-check
 // BUNNYFALL TOUCH (2026-11-20, the owner: "more ways to interact beyond trading, fighting and chatting"): THE LAW of the
-// warm gestures - pure, shared by the chat parser, the wheel and the host. No DOM, no network, no clock.
+// warm gestures - pure, shared by the chat parser, the wheel and the picture-throwing. No DOM, no network, no clock.
 //
-// A gesture AT someone that touches them (a hug, a kiss, a pat...) is asked first: the asker whispers a marker line, the
-// other player's game answers it. CONSENT IS ONE TIME ONLY: the first /accept lets that account use every touch gesture
-// on them from then on (their game answers the later asks by itself, so it never gets clunky); /decline refuses this one;
-// /untouch <name> takes the leave back. A blocked account is never answered. The gestures that do not touch (wave, bow,
-// toast...) are never asked.
+// Every gesture is just said, on Local, the chat's own action line: nobody is asked first.
 import { EMOTES, emoteText } from './chatCommands.js';
 
-/** The gestures that touch someone, and so are asked for. */
+/** The gestures that touch someone (the wheel's pictures and the chat's words for them). */
 export const TOUCH_VERBS = Object.freeze(['hug', 'embrace', 'pat', 'headpat', 'kiss', 'handkiss', 'cuddle', 'comfort', 'highfive', 'handshake', 'fistbump', 'poke', 'tickle', 'nuzzle', 'hold', 'bump']);
 export const isTouch = (verb) => TOUCH_VERBS.includes(verb);
-
-/** How long an ask waits for its answer, ms. */
-export const TOUCH_ASK_MS = 60_000;
 
 /** The little pictures a gesture throws up over the bodies (the browser's own emoji face draws them). */
 export const TOUCH_FX = Object.freeze({
@@ -28,24 +21,6 @@ export const TOUCH_FX = Object.freeze({
 
 /** The wheel's slots, in order round the circle from the top: gestures a player picks most. */
 export const WHEEL_VERBS = Object.freeze(['hug', 'pat', 'kiss', 'highfive', 'handshake', 'comfort', 'wave', 'bow']);
-
-const MARK = /^\[\[touch:(ask|yes|no):([a-z]{2,12})\]\]$/;
-/** The marker line for `kind` ('ask' | 'yes' | 'no') and a touch verb. */
-export const markerOf = (kind, verb) => `[[touch:${kind}:${verb}]]`;
-/** A whisper's text read as a marker: { kind, verb }, or null for any other line (or a verb that is no touch). */
-export function readMarker(text) {
-  const m = MARK.exec(String(text ?? '').trim());
-  return m && isTouch(m[2]) ? { kind: /** @type {'ask'|'yes'|'no'} */ (m[1]), verb: m[2] } : null;
-}
-
-/** A typed line read as an ask: { verb, to } for `/hug Ann` (a touch verb with a name), else null. Pure. */
-export function parseTouch(line) {
-  const m = /^\/([A-Za-z]+)(?:\s+([\s\S]*))?$/.exec(String(line ?? '').trim());
-  if (!m) return null;
-  const verb = m[1].toLowerCase();
-  const to = (m[2] ?? '').replace(/\s+/g, ' ').trim().replace(/^"(.*)"$/, '$1').slice(0, 24);
-  return isTouch(verb) && to ? { verb, to } : null;
-}
 
 /** The action line a gesture says, for a verb and a name (the chat's own table). */
 export const touchLine = (verb, name) => emoteText(verb, name);
@@ -66,7 +41,3 @@ export function fxOfLine(text) {
   }
   return null;
 }
-
-/** What an ask says the asker would like to do ("Bran would like to hug you"). */
-const ASK_WORDS = { hug: 'hug you', embrace: 'embrace you', pat: 'pat you on the shoulder', headpat: 'pat your head', kiss: 'kiss you on the cheek', handkiss: 'kiss your hand', cuddle: 'cuddle up to you', comfort: 'comfort you', highfive: 'give you a high five', handshake: 'shake your hand', fistbump: 'bump fists with you', poke: 'poke you', tickle: 'tickle you', nuzzle: 'nuzzle you', hold: 'take your hand', bump: 'bump shoulders with you' };
-export const askPhrase = (verb) => ASK_WORDS[verb] ?? `${verb} you`;
