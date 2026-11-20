@@ -420,3 +420,24 @@ test('a big harvest keeps every sack: a hundred beds harvested leave a hundred s
   const kept = liveSacks(h, T + 60 + SACKS_MAX + 10).map((s) => s.bed);   // right after the last harvest: none has expired yet
   assert.equal(kept.length, SACKS_MAX); assert.ok(kept.includes(SACKS_MAX + 9) && !kept.includes(0), 'the oldest ten went, the newest stay');
 });
+
+test('every crop the farm grows can be drawn, as a plant at every stage and as a sack on the ground and the shoulder', async () => {
+  // a desert root harvest once crashed the sack drawing: only the first three crops had a sack picture
+  const { FARM_SEED_IDS } = await import('../src/net/farm/cropLaw.js');
+  const { createSackArt } = await import('../src/world/farm/sackArt.js');
+  const { createFarmGardenArt, FARM_ART } = await import('../src/world/farmGardenArt.js');
+  const renderer = { textures: new Map([['302_54#opaque', {}], ['302_0#opaque', {}]]), createDecalBatch: () => ({}), destroyDecalBatch() {}, writeDecalSlot() {}, drawDecalPicture() {},
+    createBillboardBatch: () => ({}), moveBillboardBatch() {}, destroyBillboardBatch() {}, drawBillboards() {} };
+  const assets = { getTexture: async () => ({ getSize: () => ({ width: 30, height: 40 }) }), uploadRecord() {} };
+  const sacks = createSackArt(renderer, assets); await sacks.prepare();
+  const lying = FARM_SEED_IDS.map((crop, i) => ({ id: i + 1, crop, pos: [i, 0, 0] })), shouldered = FARM_SEED_IDS.map((crop) => ({ crop }));
+  sacks.update(lying, [], [0, 0, 0], [1, 0, 0]);
+  for (const one of shouldered) { sacks.update([], [one], [0, 0, 0], [1, 0, 0]); sacks.update([], [], [0, 0, 0], [1, 0, 0]); }
+  const art = createFarmGardenArt(renderer, assets); await art.prepare();
+  const T = 1_800_000_000, site = { beds: FARM_SEED_IDS.map((_, i) => [i * 2, 0, 0]) };
+  for (const crop of FARM_SEED_IDS) assert.ok(FARM_ART[crop]?.seedling && FARM_ART[crop].growing && FARM_ART[crop].ripe, `${crop} has art for every stage`);
+  for (const when of [0, 3 * 3600, 99 * 3600]) {   // seedling, growing, ripe
+    const beds = {}; FARM_SEED_IDS.forEach((crop, i) => { beds[i] = { crop, grown: when, tick: T, wetUntil: T, quality: 0, care: 0 }; });
+    art.update(site, { beds }, T, -1);
+  }
+});

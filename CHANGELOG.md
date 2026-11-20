@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
 
+- Fixed a crash on farms: harvesting any of the new crops (corn, cabbage, tomatoes, sunflowers, berries, desert root, flax, gourds, grapes) crashed the game when its sacks were drawn. Every crop now has a sack.
 - The chat has a new look: tidier tabs, small icon buttons in its top bar (pop out, hide, close), quieter grey system lines, small times in their own column, and a compact message row. The text stays the same size when you resize the chat: a bigger chat shows more lines instead of bigger letters.
 - Chat scrolling is smoother: it stays on the newest line while you are at the bottom, it no longer jumps while you read older lines, and a "new messages ↓" pill takes you back down. The scrollbar is slim.
 - Clicking a name in the chat or in the player list opens a small menu instead of a long stack of buttons: Whisper, Add friend, Invite to party and Follow first. Staff tools and the report reasons are each tucked under one entry.
