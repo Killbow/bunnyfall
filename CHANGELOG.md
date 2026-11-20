@@ -5,6 +5,10 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
 
+- The chat has a new look: tidier tabs, small icon buttons in its top bar (pop out, hide, close), quieter grey system lines, small times in their own column, and a compact message row. The text stays the same size when you resize the chat: a bigger chat shows more lines instead of bigger letters.
+- Chat scrolling is smoother: it stays on the newest line while you are at the bottom, it no longer jumps while you read older lines, and a "new messages ↓" pill takes you back down. The scrollbar is slim.
+- Clicking a name in the chat or in the player list opens a small menu instead of a long stack of buttons: Whisper, Add friend, Invite to party and Follow first. Staff tools and the report reasons are each tucked under one entry.
+- The chat can pop out into its own window with the ⧉ button in its top bar. It stays live there: you can read and send as normal. Close that window, or press ⇲ in it, to bring the chat back into the game.
 - Weeberfall townsfolk with orc-style names (Orsinium's orcs and a few others) now have names. They showed none, so their plaques were empty and a tavern shift's customers went unnamed.
 - Gestures have more to see and hear: a plate over the speaker's head says what they did ("Bran hugs Ann."), hearts orbit hugs and kisses, high fives and cheers burst into sparks, waves and bows sweep, and a soft glow blooms on each body. When a gesture is yours or aimed at you, the plate shows high on the screen and its edge glows. A chime answers warm gestures, a click the brisk ones.
 - The emote wheel is dressed like the game's own wheels: stone and brass in Enhanced, dark wood and gold in Classic, with softened pictures that light up under the mouse and each slot's number key shown.

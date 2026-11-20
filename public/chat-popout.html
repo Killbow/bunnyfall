@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- BUNNYFALL CHAT-REWORK: the chat's own window (src/ui/chatPopout.js). The game moves its chat into #dfchat-pop; this
+     page only watches for the game going away and says so, then closes itself. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bunnyfall chat</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0e1013; color: #e9e4d9; overflow: hidden; }
+  #dfchat-pop { height: 100%; }
+  #dfchat-pop-gone { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; padding: 24px;
+    text-align: center; font: 14px/1.5 system-ui, sans-serif; color: #9a9486; background: #0e1013; }
+  body.gone #dfchat-pop-gone { display: flex; }
+</style>
+</head>
+<body>
+<div id="dfchat-pop"></div>
+<div id="dfchat-pop-gone">The game window closed. You can close this window.</div>
+<script>
+  // The game closes this window when its page leaves. Should that fail, say so and try to close.
+  setInterval(function () {
+    var o = null;
+    try { o = window.opener; } catch (e) { o = null; }
+    if (!o || o.closed) { document.body.className = 'gone'; try { window.close(); } catch (e) { /* the browser keeps it */ } }
+  }, 1000);
+</script>
+</body>
+</html>

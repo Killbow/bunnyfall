@@ -450,7 +450,9 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     const sub = line.sub;
     if (!ID_RE.test(sub)) return [];
     return staffLineActs(glyphs()).map((act) => {
-      const row = { label: STAFF_LABEL[act](), title: STAFF_SEEN.includes(act) ? t('net.staffMenu.seen', 'The player can see this.') : t('net.staffMenu.unseen', 'The player does not see this.') };
+      // CHAT-REWORK (2026-11-20): Follow stands with the everyday acts; the rest fold behind one "Staff tools" entry of the
+      // chat's player menu (ui/chatMenu.js reads `group`; the staff view's tag menu ignores it)
+      const row = { label: STAFF_LABEL[act](), title: STAFF_SEEN.includes(act) ? t('net.staffMenu.seen', 'The player can see this.') : t('net.staffMenu.unseen', 'The player does not see this.'), ...(act === 'follow' ? {} : { group: 'staff' }) };
       // CHAT-FOLLOW-CARD (2026-10-24, mob: "no panel pops up when followingf from chat"): a follow that took hands the panel
       // the followed player's card, as a tag's click does (scenes/staffViewHost.js go) - the same act word, no line said
       if (act === 'follow') return typeof f === 'function' ? { ...row, run: () => { void Promise.resolve().then(() => f(sub)).then((ok) => { if (ok !== false && card) post('follow', sub, name); if (ok === false) sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing opens without the Staff Panel extension.', { act: row.label, name })); }).catch((e) => sayActive(String(e?.message ?? e))); } } : null;   // false: no Staff Panel over this game (staffFollowHost.js follow), said as the panel's other acts say it
@@ -527,6 +529,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
       /** @type {any[]} */
       const rows = staff() ? [] : REPORT_REASONS.map((reason) => ({
         label: t('net.safety.reportAs', 'Report: {reason}', { reason: reportReasonLabel(reason) }),
+        group: 'report',   // CHAT-REWORK: the reasons fold behind one Report entry of the player menu
         run: () => { void report(line.sub, name, reason, log()?.reportLines?.(line.sub, { seq: line.seq }) ?? []); },
       }));
       rows.push(...staffRows(line, name));

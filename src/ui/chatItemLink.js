@@ -25,7 +25,8 @@ export function chatItemLink(item, el) {
   const link = el('span', 'dfchat-item', `[${itemChatLabel(item)}]`);
   const colour = rarityColour(item);
   if (colour) link.style.color = colour;
-  link.addEventListener('mouseenter', () => showItemHover(item, {}, link, 'shop'));
+  // CHAT-REWORK: no card for a link in the chat's own window (ui/chatPopout.js) - the card is drawn in the game's window
+  link.addEventListener('mouseenter', () => { if (link.ownerDocument === globalThis.document) showItemHover(item, {}, link, 'shop'); });
   link.addEventListener('mouseleave', () => hideItemHover());
   return link;
 }
