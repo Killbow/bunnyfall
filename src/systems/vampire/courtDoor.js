@@ -10,6 +10,12 @@ import { skyMinutes } from '../worldTick.js';
 import { HOME_VERB } from '../online/onlineHomes.js';
 import { awakenedVampirism } from './vitae.js';
 import { clanName } from './clanLaw.js';
+import { vampirismInfection, bloodlineChoiceOn } from './bloodlineLeaf.js';
+import { clanRepickLeft } from '../vampirism.js';
+
+/** Who the Courts let in: an awakened vampire, one bitten and not yet turned (to be claimed), and a vampire who has not
+ *  yet used their one change of blood. @param {any} entity */
+const courtCanSee = (entity) => !!awakenedVampirism(entity) || (bloodlineChoiceOn() && (!!vampirismInfection(entity) || clanRepickLeft(entity)));
 
 export const COURT_VERB = 'vampire-court';
 
@@ -19,13 +25,13 @@ export const COURT_VERB = 'vampire-court';
 export function createCourtDoor({ entity, seats, open }) {
   const courtAt = (/** @type {any} */ bd) => {
     if (!bd || bd.buildingType !== BUILDING_TYPES.Tavern || !bd.townMapId) return null;
-    if (!awakenedVampirism(entity) || isDayFromMinutes(skyMinutes())) return null;
+    if (!courtCanSee(entity) || isDayFromMinutes(skyMinutes())) return null;
     return seats().get(Number(bd.townMapId) >>> 0) ?? null;
   };
   return {
     verb: COURT_VERB,
     /** The door's cached words depend on the night and the awakening. */
-    sig: () => `${awakenedVampirism(entity) ? 1 : 0}${isDayFromMinutes(skyMinutes()) ? 'd' : 'n'}`,
+    sig: () => `${courtCanSee(entity) ? 1 : 0}${isDayFromMinutes(skyMinutes()) ? 'd' : 'n'}`,
     rows(/** @type {any} */ bd, /** @type {any[]|null} */ verbs) {
       const c = courtAt(bd);
       if (!c) return verbs;

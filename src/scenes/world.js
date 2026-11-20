@@ -715,7 +715,8 @@ import { havenDoorRows, openHavenWindow } from '../ui/vampire/havenWindow.js';
 import { createHuntersHost } from './vampire/huntersHost.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: witch hunters and the Courts' assassins
 import { createCourtDoor } from '../systems/vampire/courtDoor.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: a clan Court's back room
 import { openCourtWindow } from '../ui/vampire/courtWindow.js';
-import { courtSeats } from '../systems/vampire/clanLaw.js';
+import { courtSeats, clanName } from '../systems/vampire/clanLaw.js';
+import { setBloodlineHost } from '../systems/vampire/bloodlineLeaf.js';   // BUNNYFALL VAMPIRE EXPANSION: the bloodline chosen before the turn
 import { installDisciplineKey, disciplineWheelOpen } from '../ui/vampire/disciplineWheel.js';   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at the home's door   // CHEB'S NECROMANCY: the raised dead at the player's side
 import { revenantParty, setRetinuePlayer, setRetinueListener, setRetinueBodies, revenantsWithYou, leaveRefusal, isRevenantCompanionKey, revenantIdOfKey, applySwornStrength, sendRevenantAway, forgetSwornMember, swornFightStep, swornFightWon, devotedWithYou } from '../systems/revenant/revenantCompanions.js';   // REVENANT-COMPANION: the sworn, stood by the same layer
 import { registerCompanionCount, registerCompanionRoster, companionsWithYou, COMPANION_SLOTS } from '../systems/companionSlots.js';   // COMPANION-SLOTS: the crew's hands ashore counted with the sworn
@@ -10591,6 +10592,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const vampireHunters = createHuntersHost({ playerEntity, mode: () => _mode(), region: () => _questRegionIndex(), now: () => playerTicker.ownMinutes, stand: (mt) => _standLooseFoe(mt), say: (l) => townTalk.say(l) });
   /** @type {Map<number, { clan: number, name: string, regionIndex: number }>|null} */
   let _courtSeats = null;
+  // BUNNYFALL VAMPIRE EXPANSION (systems/vampire/bloodlineLeaf.js): the bitten are told where the Courts meet, to be claimed
+  setBloodlineHost({
+    seatsWords: () => [...(_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))).values()].map((v) => `${v.name} (${clanName(v.clan)})`).join(', '),
+    say: (l) => townTalk.say(l),
+  });
   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key - `seenBy` the townsfolk within DISCIPLINE_SEEN_M of me, in the
   // street or in the room (a visible Discipline seen is a Masquerade breach)
   const DISCIPLINE_SEEN_M = 15;

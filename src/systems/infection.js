@@ -67,6 +67,7 @@
 // below). `entity.racialOverridePending` remains the one hand-off,
 // and the thing that makes a SECOND infection impossible.
 
+import { turnMayProceed, isClanId, bloodlineNag } from './vampire/bloodlineLeaf.js';   // BUNNYFALL VAMPIRE EXPANSION: the bloodline chosen at a Court before the turn
 import { PERMANENT_DISEASE_VALUE, COMPLETED_DISEASE_VALUE, endDisease } from './diseases.js';
 // DaggerfallDateTime's two constants for the raise at the bottom of
 // this file. Declaring them here is what the one-home guard caught,
@@ -243,7 +244,8 @@ export function infectionStep(entry, currentDay) {
   // infection at this gate for ever.
   if (daysPast > TURN_AFTER_DAYS && entry.dreamPlayed) {
     if (entry.infection === INFECTION.Vampirism) {
-      if (!entry.deathScheduled) return { kind: 'death', video: VAMPIRE_DEATH_VIDEO };
+      // BUNNYFALL VAMPIRE EXPANSION (vampire/bloodlineLeaf.js): the death waits until a clan's Court has claimed them
+      if (!entry.deathScheduled && turnMayProceed(entry)) return { kind: 'death', video: VAMPIRE_DEATH_VIDEO };
     } else if (!entry.deployed) {
       return { kind: 'deploy' };
     }
@@ -294,7 +296,7 @@ export function deployInfection(entry, entity, { hourNow = () => 0, raiseTime = 
     cancelRest?.();
     // DISC10-D V3: GetVampireClan reads the PLAYER's own faction data
     // (FormulaHelper.cs:400-427), so the entity rides to the host's read.
-    pending.clan = clanOf ? clanOf(entry.regionIndex, entity) : VAMPIRE_CLANS.Lyrezi;
+    pending.clan = isClanId(entry.chosenClan) ? entry.chosenClan : clanOf ? clanOf(entry.regionIndex, entity) : VAMPIRE_CLANS.Lyrezi;   // BUNNYFALL VAMPIRE EXPANSION: the Court that claimed them
     // Raise game time to an evening two weeks later (:159-161),
     // BEFORE the popup, because the popup is what the player reads on
     // the far side of the fortnight.
@@ -378,6 +380,7 @@ export function runInfections(entity, currentDay, opts = {}) {
   let first = null;
   for (const entry of entries) {
     const step = infectionStep(entry, currentDay);
+    if (entry.infection === INFECTION.Vampirism) bloodlineNag(entry, currentDay, currentDay - entry.startingDay > TURN_AFTER_DAYS);   // BUNNYFALL VAMPIRE EXPANSION: the day's word while no clan has claimed them
     if (step.kind === 'dream') {
       entry.dreamScheduled = true;                   // set at PUSH (:129)
       playVideo(step.video, () => markDreamPlayed(entry));

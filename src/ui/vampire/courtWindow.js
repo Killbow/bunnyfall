@@ -12,6 +12,19 @@ import { awakenedVampirism } from '../../systems/vampire/vitae.js';
 import { clanName, clanIdentityWords, CLAN_RIVAL } from '../../systems/vampire/clanLaw.js';
 import { courtState, payTithe, askPenance, askCourtWork, heatList, tierName, regionName, titheInVitae, HUNT_STRIKES } from '../../systems/vampire/masquerade.js';
 import { startClanQuest } from '../../systems/racialQuests.js';
+import { vampirismInfection, claimBloodline } from '../../systems/vampire/bloodlineLeaf.js';   // the bloodline chosen before the turn
+import { clanRepickLeft, changeVampireClan } from '../../systems/vampirism.js';
+import { liveVampirism } from '../../systems/racialLive.js';
+import { DISCIPLINES } from '../../systems/vampire/disciplineLaw.js';
+import { CLAN_TERRITORY } from '../../systems/vampire/clanLaw.js';
+import { regionName as regionWord } from '../../systems/vampire/masquerade.js';
+
+/** What a clan offers, for one choosing it: its land, its strength and bane, its two Disciplines. @param {number} clan */
+function offerRows(clan) {
+  const own = DISCIPLINES.filter((d) => d.clan === clan).map((d) => d.name()).join(t('court.and', ' and '));
+  const land = (CLAN_TERRITORY[clan] ?? []).slice(0, 4).map(regionWord).join(', ');
+  return [t('court.offer.land', 'Their land: {land}.', { land }), ...clanIdentityWords(clan), t('court.offer.disciplines', 'Their Disciplines: {list}.', { list: own })];
+}
 
 /**
  * @param {{ entity: any, clan: number, seat: string, now: () => number, onClose?: () => void }} o
@@ -21,6 +34,35 @@ export function openCourtWindow({ entity, clan, seat, now, onClose }) {
   const pick = (items) => ({ picker: items.map((i) => i.label), onPick: (i) => items[i]?.go() ?? [], onCancel: () => [] });
 
   const main = () => {
+    // THE BITTEN: not yet turned, they ask to be claimed (the turn waits for it - bloodlineLeaf.js)
+    const fever = vampirismInfection(entity);
+    if (fever && !liveVampirism(entity)) {
+      const promised = fever.chosenClan;
+      const rows = [
+        t('court.fever', 'The {clan} Court meets in the back room in {seat}. Pale faces turn to you: they smell the fever in your blood.', { clan: clanName(clan), seat }),
+        ...offerRows(clan),
+        promised === clan ? t('court.fever.ours', 'The {clan} have claimed you. When the fever ends you will wake as one of them.', { clan: clanName(clan) })
+          : promised ? t('court.fever.promised', 'You have promised your blood to the {other}.', { other: clanName(promised) })
+            : t('court.fever.none', 'No bloodline has claimed you yet. Until one does, the turning cannot end.'),
+      ];
+      const items = [];
+      if (promised !== clan) items.push({ label: t('court.claim', 'Ask the {clan} to claim you', { clan: clanName(clan) }), go: () => said([claimBloodline(entity, clan) ? t('court.claimed', 'An Elder of the {clan} takes your wrist and drinks a single drop. "You are ours now. Sleep, and wake as one of us."', { clan: clanName(clan) }) : ''], main) });
+      items.push({ label: t('court.leave', 'Leave the back room'), go: () => [] });
+      return [{ rows, onClick: () => [pick(items)] }];
+    }
+    // A VAMPIRE'S ONE CHANGE OF BLOOD, sworn at another Court
+    const curse = liveVampirism(entity);
+    const repick = curse && curse.clan !== clan && clanRepickLeft(entity);
+    const swear = () => ({
+      rows: [t('court.swear.ask', 'Swear yourself to the {clan}? You may change your blood only once. The {old} will not take you back.', { clan: clanName(clan), old: clanName(curse.clan) })],
+      buttons: 'YesNo',
+      onYes: () => said([changeVampireClan(entity, clan) ? t('court.swore', 'You kneel, and drink from the Elder\'s wrist. You are of the {clan} now: their spells and Disciplines are yours.', { clan: clanName(clan) }) : ''], main),
+      onNo: () => main(),
+    });
+    if (curse && !awakenedVampirism(entity)) {
+      return [{ rows: [t('court.title.rival', 'The {clan} Court meets in the back room in {seat}. They watch you, a stranger of another blood.', { clan: clanName(clan), seat }), ...offerRows(clan)],
+        onClick: () => [pick([...(repick ? [{ label: t('court.swear', 'Swear yourself to the {clan} (your one change of blood)', { clan: clanName(clan) }), go: () => [swear()] }] : []), { label: t('court.leave', 'Leave the back room'), go: () => [] }])] }];
+    }
     const own = awakenedVampirism(entity)?.clan === clan;
     const c = courtState(clan);
     const rows = [
@@ -40,6 +82,7 @@ export function openCourtWindow({ entity, clan, seat, now, onClose }) {
       items.push({ label: t('court.payVitae', 'Pay the tithe in blood ({n} Vitae)', { n: titheInVitae(c.owed) }), go: () => said(payTithe(entity, clan, 'vitae', now()), main) });
     }
     if (c.hunt) items.push({ label: t('court.penance', 'Ask for penance'), go: () => said(askPenance(clan), main) });
+    if (repick) { rows.push(...offerRows(clan)); items.push({ label: t('court.swear', 'Swear yourself to the {clan} (your one change of blood)', { clan: clanName(clan) }), go: () => [swear()] }); }
     if (own && !c.hunt) {
       items.push({ label: t('court.work', 'Ask for the Court\'s work (a rogue of a rival blood)'), go: () => said(askCourtWork(entity, clan), main) });
       items.push({ label: t('court.family', 'Ask for the family\'s business'), go: () => said([startClanQuest(entity) ? t('court.family.given', 'An Elder nods. A letter will find you.') : t('court.family.none', 'There is no family business for you tonight.')], main) });

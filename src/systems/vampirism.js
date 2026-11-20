@@ -495,3 +495,18 @@ export function cureVampirism(entity, { advanceMinutes = null } = {}) {
   endVampireQuests();
   return true;
 }
+
+/** BUNNYFALL VAMPIRE EXPANSION (vampire/bloodlineLeaf.js; the owner: existing vampires get "One free re-pick"): A VAMPIRE
+ *  SWORN TO ANOTHER COURT - once a curse (`clanRepicked`): the clan changed, the old clan's spells taken and the new
+ *  one's granted (AssignPlayerVampireSpells' own set). The Courts' strikes stay where they were earned. Answers whether
+ *  it changed. */
+export const clanRepickLeft = (entity) => { const e = liveVampirism(entity); return !!e && !e.clanRepicked; };
+export function changeVampireClan(entity, clan) {
+  const entry = liveVampirism(entity);
+  if (!entry || entry.clanRepicked || entry.clan === clan || !Object.values(VAMPIRE_CLANS).includes(clan) || clan === VAMPIRE_CLANS.None) return false;
+  entry.clan = clan;
+  entry.clanRepicked = true;
+  if (entity.spells) entity.spells = entity.spells.filter((s) => s.tag !== VAMPIRE_SPELL_TAG);
+  grantVampireSpells(entity, clan);
+  return true;
+}
