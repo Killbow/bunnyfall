@@ -1,0 +1,72 @@
+-- BUNNYFALL VAMPIRE EXPANSION, PHASE 3 (2026-11-20, the owner's blueprint section 4): THE COURT'S WORK. Asked of one's
+-- own Court's back room (ui/vampire/courtWindow.js, systems/vampire/masquerade.js askCourtWork): a rogue vampire of a
+-- rival bloodline, hiding in a dungeon of the region, to be destroyed. Slain, the Court pays and forgives a strike
+-- (`vamp courtwork`, systems/vampire/vampireActions.js).
+Quest: QLVA03
+DisplayName: The Court's Work
+-- Message panels
+QRC:
+
+QuestFail:  [1003]
+<ce>          The rogue has slipped out of ___lair_. The
+<ce>          Court will find someone else.
+
+QuestComplete:  [1004]
+<ce>          The Court of %vam sends _gold_ gold
+<ce>          for your work, and forgets a little.
+
+QuestLogEntry:  [1010]
+%qdt:
+ The Court of %vam has work for me: a
+ rogue vampire of a rival bloodline,
+ =rogue_, hides in ___lair_. The Court
+ wants them destroyed.
+
+Message:  1011
+%pcn,
+
+     A rogue of another bloodline has crept into
+ our land and feeds without leave. It hides in
+ ___lair_. Destroy it, and the Court will
+ remember who served it.
+
+<ce>                  The Court of %vam
+
+Message:  1012
+<ce>         The rogue crumbles to ash. Word will reach
+<ce>         the Court before you do.
+
+Message:  1020
+<ce>         A pale child presses a sealed letter into
+<ce>         your hand, and is gone.
+
+QBN:
+Item _letter_ letter used 1011
+Item _gold_ gold range 300 to 700
+
+Place _lair_ remote dungeon
+
+Clock _wait_ 10.00:00 0 flag 1 range 0 1
+
+Foe _rogue_ is Vampire
+
+--	Quest start-up:
+	_letter_ used do _readletter_
+	give pc _letter_ notify 1020
+	place foe _rogue_ at _lair_
+	start timer _wait_
+
+_readletter_ task:
+	reveal _lair_ readmap
+	log 1010 step 0
+
+_slain_ task:
+	killed 1 _rogue_
+	say 1012
+	give pc _gold_
+	vamp courtwork
+	end quest
+
+_wait_ task:
+	say 1003
+	end quest

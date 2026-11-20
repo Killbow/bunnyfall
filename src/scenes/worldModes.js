@@ -392,6 +392,7 @@ import {
   homeStationsServe,   // FB1018D HOME-BENCH: a home's stations serve its owner's account, as its door does
 } from '../systems/online/onlineHomes.js';
 import { guestbookRows, isGuestbookVerb, pressGuestbook } from '../systems/online/guestbook.js';   // GUESTBOOK: signed at the door, read by its people
+import { HAVEN_VERB } from '../ui/vampire/havenWindow.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven's door row
 import { HOME_HIDE_VERB, homeHideRows, homeHideLine, homeHideVersion, homeDecorSeenByMe, toggleHomeDecorHidden } from '../systems/online/homeDecorHide.js';   // DECOR-HIDE: another's home's decorations hidden for me alone
 import { homeDecorShown, homeVotedLine, homeVotesLine, homeVoteRefusalLine, decorStaysShunned, HOME_VOTE_GONE_LINE } from '../net/homeVoteLaw.js';   // HOME-VOTE: a shunned home's decor stands for its insiders alone
 import { goldSum, accountWords } from '../systems/homeWords.js';   // AUDIT HOME-PRICE E4: a home's sums and the account they moved in
@@ -3411,7 +3412,7 @@ export function createWorldModes(host) {
       if (c.hidden) return;   // BASE-HIDE: taken out of the room
       targets.push({ key: `container:${i}`, aabb: worldAabb(c.cpu.positions, c.matrix), distance: RAY_DISTANCE, reach: TREASURE_ACTIVATION_DISTANCE, surface: true });   // S2b; WHERE-ROBES: struck at its mesh (activate.js), so what stands on it is reached
     });
-    if (bedSleepingOn()) interiorCtx.beds?.forEach((bd, i) => {   // RR1: RegisterCustomActivation(41000..41002, BedActivation) - a target only while the module is on
+    if (bedSleepingOn() || host.vampireBeds?.live()) interiorCtx.beds?.forEach((bd, i) => {   // BUNNYFALL VAMPIRE EXPANSION: and in Steal mode while a sleeper lies here   // RR1: RegisterCustomActivation(41000..41002, BedActivation) - a target only while the module is on
       if (bd.hidden) return;   // BASE-HIDE
       targets.push({ key: `bed:${i}`, aabb: worldAabb(bd.cpu.positions, bd.matrix), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE, surface: true });   // WHERE-ROBES: the mattress, not the air under the headboard
     });
@@ -7644,7 +7645,8 @@ export function createWorldModes(host) {
       const home = homeOf(bd);
       // HOME-PLAQUE: the door's verbs first - a nameless house with verbs to list is named "Residence", so its plaque
       // stands and lists them (it drew none, and the click fell through to HOME-OFFER's box at every house)
-      const houseVerbs = host.farmDoor ? host.farmDoor.rows(bd, homeDoorVerbs(bd, home), getInteractionMode(), homeDoorFor(bd, home) === 'locked') : homeDoorVerbs(bd, home);
+      const houseVerbs0 = host.farmDoor ? host.farmDoor.rows(bd, homeDoorVerbs(bd, home), getInteractionMode(), homeDoorFor(bd, home) === 'locked') : homeDoorVerbs(bd, home);
+      const houseVerbs = host.courtDoor ? host.courtDoor.rows(bd, houseVerbs0) : houseVerbs0;   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: a clan Court's back room, by night
       _doorText = staticDoorName('building', {
         displayName: home ? homeDoorTitle(home, questSiteHere(bd) && db.isOverrideName ? db.displayName : null) : homeDoorName(shownBuildingName(db, bd.name), !!houseVerbs),   // EMPIRE-BANK: a bank's name now; QUEST-RESIDENCE: a quest's home its name
         locationName: currentLocationName(),
@@ -7734,11 +7736,11 @@ export function createWorldModes(host) {
   /** The door's cached text also depends on state outside the door, so all of it goes into this key. It covers whether
    *  verbs are listed (Steal lists none), the decoration-hide version, and the live buy arm, whose lapse repaints the
    *  row back to "Buy it". It also covers the farm chore row (the farm book and the player's map pixel). */
-  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}|${host.farmDoor?.sig() ?? ''}`;
+  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}|${host.farmDoor?.sig() ?? ''}|${host.haven?.rows().length ?? 0}|${host.courtDoor?.sig() ?? ''}`;   // BUNNYFALL VAMPIRE EXPANSION: the Haven's row comes with the awakening
   /** The door's verbs, or null: my own home's, or a house's I could buy (homeOfferPrice), in any mode but Steal. */
   function homeDoorVerbs(bd, home) {
     if (!host.onlineHomes || getInteractionMode() === 'steal') return null;
-    if (home?.own) return [...homeOwnerRows(home.entry), ...(host.guestbookApi ? guestbookRows(home) : [])];   // GUESTBOOK: the owner reads it
+    if (home?.own) return [...homeOwnerRows(home.entry), ...(host.guestbookApi ? guestbookRows(home) : []), ...(host.haven?.rows() ?? [])];   // GUESTBOOK: the owner reads it; BUNNYFALL VAMPIRE EXPANSION: and a vampire's Haven
     if (home) {
       // HOME-RENT: a tenant's own room, or a room to rent; GUILD1d: a hall's members go in, its keepers say who may;
       // HOME-VOTE: and the town's word on it, under whatever else the door does, to anyone who is not its insider - where the plaque DRAWS a list (AUDIT HOME-VOTE II D1: the classic face folds a door's rows it never draws, and a wheel notch lit a vote the click cast unseen; there the Info box asks)
@@ -7999,6 +8001,7 @@ export function createWorldModes(host) {
       // player where DFU always has BuildingSummary.
       if (bd && bd.buildingType != null) {
         if (locId) discoverBuilding(locId, bd, null, questBuildingSource);   // AUDIT 63 F49: PlayerEnterExit.cs:1032's call takes the quest name-override arm (PlayerGPS.cs:945-959)
+        if (!isBash && host.courtDoor?.press(bd, verb)) return true;   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the Court's window
         if (!isBash && host.farmDoor?.press(bd, verb, { asked: homeAsked, listed, mode: getInteractionMode(), onward: () => activateStaticDoor(hit, entries, false, { listed }) })) return true;
         // After the farm chore check above, a player's home is handled before Daggerfall's lock ladder. Online, a
         // building the account service names as a player's home opens at any hour for its owner and for whoever the
@@ -8023,6 +8026,7 @@ export function createWorldModes(host) {
           // said so, never handed to Daggerfall's lock ladder); and an Info press on a home I may vote on asks - only where
           // the plaque lists no rows (AUDIT B1: a touch screen, World Tooltips off; a drawn plaque's plain click goes in)
           if (!isBash && !homeAsked && getInteractionMode() !== 'steal') {
+            if (verb === HAVEN_VERB) { if (home?.own) host.haven?.open(); return true; }   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven window
             if (isGuestbookVerb(verb)) { if (home) pressGuestbook(verb, { api: host.guestbookApi, mapId: Number(homeTownOf(bd)) >>> 0, buildingKey: bd.buildingKey, name: playerEntity?.name ?? '', show: (w) => townTalk?.showOverlay?.(w), say: (l) => townTalk?.say?.(l), refusal: (w) => accountRefusalText(w) }); return true; }   // GUESTBOOK
             if (verb === HOME_HIDE_VERB) { if (home) townTalk?.say?.(homeHideLine(toggleHomeDecorHidden(Number(homeTownOf(bd)) >>> 0, bd.buildingKey))); return true; }   // DECOR-HIDE
             if (isHomeVoteVerb(verb)) { if (homeVotePressable(home, homeVoteOfVerb(verb))) pressHomeVote(bd, homeVoteOfVerb(verb)); else if (!home) townTalk?.say?.(HOME_VOTE_GONE_LINE); return true; }
@@ -9091,6 +9095,7 @@ export function createWorldModes(host) {
         return true;
       }
       if (key.startsWith('bed:')) {
+        if (host.vampireBeds?.feed()) return true;   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds on a sleeper first
         (decorTool.flying() && !decorTool.ghost() && plaqueActionFor(key) === 'out' ? decorTool.act('out', interiorCtx.beds?.[Number(key.split(':')[1])]?.baseKey) : restFromInteriorBed());   // RR1: BedActivation (RoleplayRealism.cs:464-506) is DaggerfallUI's rest gate less its GiveOffer rung (CSA-J's audit), then the window; AUDIT-RR F6: `new DaggerfallRestWindow(uiManager, true)` (:524) - you rest in the bed you clicked, not the room's allocated one. Decorating takes the bed out.
         return true;
       }

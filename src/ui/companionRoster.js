@@ -46,6 +46,9 @@ import { itemLongName } from '../systems/item/itemInfo.js';
 import { itemValueOf } from '../systems/item/itemTemplates.js';
 import { rarityOf, RARITIES } from '../systems/loot/lootRarity.js';
 import { minionRows, setMinionWaiting, releaseMinion } from '../systems/necromancy/necromancy.js';
+import { servants as thrallServants, socials as thrallSocials, setDuty as setThrallDuty } from '../systems/vampire/thralls.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2
+import { thrallRank, DUTIES as THRALL_DUTIES } from '../systems/vampire/thrallLaw.js';
+import { archetypeName } from '../systems/vampire/bloodLaw.js';
 
 /** The rail's row, its word read when it is read (AUDIT RVN-STARS S23: a level reached names "the Companions page" in the
  *  player's language - the rail said it in English). */
@@ -58,7 +61,7 @@ let _icon = (p, box, onReady) => requestFittedIcon(p.archive, p.record, { box, d
 export function _setCompanionRosterIconForTests(fn) { _icon = fn ?? ((p, box, onReady) => requestFittedIcon(p.archive, p.record, { box, dpr: Number(globalThis.devicePixelRatio) || 1, cap: 8, onReady })); }
 
 /** The rail shows the page while anyone is sworn to the player, or anyone walks at its side. */
-export const companionPageShown = () => retinue().length > 0 || companionsWithYou() > 0;
+export const companionPageShown = () => retinue().length > 0 || companionsWithYou() > 0 || thrallServants().length > 0;   // BUNNYFALL VAMPIRE EXPANSION: and a vampire's servants
 
 export const COMPANION_PAGE_CSS = `
 .px-sys .cmp-slots { display: flex; gap: 8px; margin: 6px 0 4px; }
@@ -420,6 +423,37 @@ function minionRow(el, m, { rerender, meter }) {
   return item;
 }
 
+/** BUNNYFALL VAMPIRE EXPANSION, PHASE 2: a servant thrall - its duty, and Follow / Send home (prisoners, errands and its
+ *  kit are the Haven's, at the vampire's own door: ui/vampire/havenWindow.js). */
+function thrallRow(el, sv, { rerender, meter }) {
+  const item = el('div', 'cmp-row');
+  const f = el('div', 'cmp-face');
+  f.setAttribute('aria-hidden', 'true');
+  f.append(el('span', 'cmp-glyph', '\u2020'));
+  const text = el('div', 'cmp-text');
+  const head = el('div', 'cmp-head');
+  const following = sv.duty === THRALL_DUTIES.Follow;
+  const state = following ? t('thrall.roster.with', 'At your side') : sv.duty === THRALL_DUTIES.Errand ? t('thrall.roster.errand', 'On an errand') : sv.duty === THRALL_DUTIES.Guard ? t('thrall.roster.guard', 'Guarding your Haven') : t('thrall.roster.home', 'In your Haven');
+  head.append(el('span', 'cmp-name', sv.name), el('span', `cmp-state${following ? '' : ' is-away'}`, state));
+  text.append(head, el('span', 'cmp-line', t('thrall.roster.line', '{type} thrall, rank {rank}. Loyalty {l}.', { type: archetypeName(sv.type), rank: thrallRank(sv.quality), l: sv.loyalty })));
+  const hm = sv.maxHealth ?? 0, h = Math.max(0, Math.round(sv.health ?? hm));
+  if (following && hm > 0 && typeof meter === 'function') {
+    const hp = el('div', 'cmp-hp');
+    hp.append(meter(h, Math.round(hm), 'verdigris'), el('span', 'cmp-hpn', `${h} / ${Math.round(hm)}`));
+    text.append(hp);
+  }
+  const acts = el('div', 'cmp-acts');
+  if (sv.duty !== THRALL_DUTIES.Errand) {
+    const b = keyed(el('button', `act${following ? '' : ' primary'}`, following ? t('thrall.roster.sendHome', 'Send home') : t('thrall.roster.follow', 'Follow me')), `cmp-th:${sv.id}-duty`);
+    b.onclick = () => { const lines = setThrallDuty(sv.id, following ? THRALL_DUTIES.Idle : THRALL_DUTIES.Follow); _notice = lines.length ? { id: `th:${sv.id}`, text: lines[0] } : null; rerender(); };
+    acts.append(b);
+  }
+  if (_notice?.id === `th:${sv.id}`) text.append(el('span', 'cmp-why', _notice.text));
+  text.append(acts);
+  item.append(f, text);
+  return item;
+}
+
 /**
  * THE PAGE: `detail` the rail's detail pane; `kit` the menu's makers ({ el, divider, meter }), and `here(id)` - the
  * body a sworn one stands in now (its live health), if any; `stars(id)` (RVN-STARS) the door's - a sworn one's sky over the
@@ -469,6 +503,16 @@ export function drawCompanionsPage(detail, rerender, { el, divider, meter = null
     const list = el('div', 'cmp-list');
     for (const m of raised) list.append(minionRow(el, m, { rerender, meter }));
     detail.append(list);
+  }
+  // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the vampire's thralls
+  const bound = thrallServants(), held = thrallSocials();
+  if (bound.length || held.length) {
+    detail.append(divider(t('thrall.roster.title', 'Thralls')));
+    const list = el('div', 'cmp-list');
+    for (const sv of bound) list.append(thrallRow(el, sv, { rerender, meter }));
+    detail.append(list);
+    if (held.length) detail.append(el('p', 'cmp-slotline', t('thrall.roster.socials', 'Enthralled in town: {names}.', { names: held.map((x) => `${x.name} (${x.townName || '?'})`).join(', ') })));
+    detail.append(el('p', 'cmp-foot', t('thrall.roster.haven', 'Prisoners, errands and kit are kept at your Haven: the door of a home you own.')));
   }
   if (!withYou.length && !away.length) {
     detail.append(el('p', 'px-note', 'No revenant is sworn to you. Defeat one of your revenants and it will yield. Spare it, and it is yours.'));

@@ -13,6 +13,7 @@
 // stays false so the C-slice fallback makes them close), and the
 // 13 fixed-list casters do not cast up here yet.
 
+import { subdueFoe } from './vampire/thrallCapture.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: subdue in Steal mode
 import { cromwarkProfile, cromwarkSpecies, makeCromwarkEntity, cromwarkTitanheart, cromwarkTitanDamage, CROMWARK_TITAN_SIZE, CROMWARK_TITAN_GLOW } from '../systems/wild/cromwarkRoster.js';
 import { cromwarkBlightEliteChance, cromwarkBlightLoot } from '../systems/wild/cromwarkBlight.js';
 import { CROMWARK_WARDKEEPER, CROMWARK_WARD_HP, CROMWARK_WARD_GLOW, CROMWARK_WARDED_GLOW, cromwarkWardSource, cromwarkWardDamage } from '../systems/wild/cromwarkWards.js';
@@ -1106,6 +1107,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (f.entity?.revenant?.id && !ownersWholeKill(_whole, { fromPlayer, peer }) && revenantLastStandDue(f)) { lastStand(f); return; }
       // RVN3 (Feud-Arc.md 14.2): one of rank 3 and up whose will this fight has not broken does not kneel - it tears away
       if (fates && revenantMayYield(f)) { if (!ownersWholeKill(_whole, { fromPlayer, peer }) && revenantWillHolds(f)) tearAway(f); else yieldFoe(f); return; }
+      if (subdueFoe(f, { playerEntity, fromPlayer, peer, questFoe: _questLike(f), portals, say })) return;   // BUNNYFALL VAMPIRE EXPANSION: Steal mode takes a person alive, to the Haven (scenes/vampire/thrallCapture.js)
       // X5: the SOUL TRAP intercept, where EnemyEntity.SetHealth's
       // override sits (:157-177) - before the death, every source alike.
       // AUDIT WORLD6b B2 (AUDIT WORLD2 B9's law, the dungeon's): a PEER's killing blow fills no Star of mine, tethers

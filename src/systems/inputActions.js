@@ -212,6 +212,9 @@ export const ACTIONS = Object.freeze([
   'HotbarPreset',
   // BUNNYFALL EVENT-BOARD-KEY: the world event board, shown or hidden (Equal, beside Minus)
   'EventBoard',
+  // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire's Disciplines - tap casts the last, hold opens their wheel
+  // (ui/vampire/disciplineWheel.js). Numpad0: every letter and digit is spent, and nothing in play reads it.
+  'Discipline',
 ]);
 
 /** AUDIT SOC D3: THE PORT'S OWN ROWS, NAMED SO THE CLASSIC WINDOWS CAN YIELD THEM.
@@ -229,7 +232,7 @@ export const PORT_ACTIONS = Object.freeze(['SocialInteract', 'QuickUse1', 'Quick
   'TorchToggleLight', 'TorchDrop', 'TorchThrow', 'ShoulderSwitch', 'AutoPerspective', 'FollowPaths', 'HorseMount', 'HorseSummon', 'DebugOverlay',
   'BoatDisembark', 'BoatToggleLight', 'BoatToggleSail', 'BoatTrimRight', 'BoatTrimLeft', 'BoatTrimModifier',
   'BoatTimeScaleUp', 'BoatTimeScaleDown', 'BoatTimeScaleReset', 'TravelView', 'WalkMode', 'TogglePerspective', 'ActChoice', 'BoatSailUp', 'BoatSailDown', 'Professions',
-  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset', 'EventBoard']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
+  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset', 'EventBoard', 'Discipline']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
 
 const ACTION_SET = new Set(ACTIONS);
 
@@ -379,6 +382,7 @@ export const DEFAULT_BINDINGS = Object.freeze([
   ['Digit9', 'Hotbar9'],
   ['Digit0', 'Hotbar10'],
   ['Equal', 'EventBoard'],   // BUNNYFALL EVENT-BOARD-KEY: free on every count (DFU, the port, the vendored mods); the map's zoom reads it only inside the map
+  ['Numpad0', 'Discipline'],   // BUNNYFALL VAMPIRE EXPANSION: free on every count; a vampire rebinds it in Controls
   ['Minus', 'HotbarPreset'],   // BUNNYFALL HOTBAR-PRESETS: free on every count (DFU, the port, the vendored mods)
   ['KeyO', 'TorchToggleLight'],
   ['KeyG', 'TorchDrop'],
@@ -563,6 +567,7 @@ export const ACTION_GROUPS = Object.freeze([
   g('Magic', [
     ['CastSpell', 'Spellbook'], ['RecastSpell', 'Ready the last spell'], ['AbortSpell', 'Drop the readied spell'],
     ['UseMagicItem', 'Use magic item'],
+    ['Discipline', t('input.action.discipline', 'Vampire Discipline (tap: last, hold: wheel)')],   // BUNNYFALL VAMPIRE EXPANSION
   ]),
   g('Interaction', [
     ['ActivateCenterObject', 'Activate (mouse)'], ['Interact', 'Interact'], ['Decorate', t('input.action.decorate', 'Decorate this room')], ['ModeWheel', 'Mode wheel (hold, flick, release)'],

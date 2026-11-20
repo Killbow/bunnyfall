@@ -95,6 +95,11 @@ import { localizedText, localizedTable } from './textManager.js';   // L10N3d: D
 import { cloakState } from './survival/temperature.js';   // VAMP-HOOD: the ONE "is the hood up" - the felt temperature's, never a second list
 import { isEnhanced } from './uiSkin.js';   // HOOD-SAID: the hint names the skin's own button
 import { playerInSunlight, careerSunAverse } from './passiveSpecials.js';   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
+import { awakenedVampirism, vitaeRound, feedVampire, beastStageNow } from './vampire/vitae.js';   // BUNNYFALL VAMPIRE EXPANSION: Vitae and the Beast, once the Elder awakened them
+import { BEAST, ARCHETYPES, qualityOfCreature } from './vampire/bloodLaw.js';
+import { thrallRound } from './vampire/thralls.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2
+import { clanSunMod } from './vampire/clanLaw.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3
+import { masqueradeRound } from './vampire/masquerade.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3
 
 /** VampirismEffect.VampirismCurseKey (:33). */
 export const VAMPIRISM_CURSE_KEY = 'Vampirism-Curse';
@@ -204,6 +209,7 @@ export function createVampirismCurse(entity, clan, { now = 0, restore = false } 
     clan: clan || VAMPIRE_CLANS.Lyrezi,
     lastTimeFed: now,                     // UpdateSatiation runs in Start
     hasStartedInitialVampireQuest: false,
+    ...(restore ? {} : { turnedAt: now }),   // BUNNYFALL VAMPIRE EXPANSION: the Elder writes a few nights after the turning (vampire/vitae.js)
     // CreateCompoundRace (:252-261): name, both immunities, SunDamage
     // + HolyDamage - carried as flags the consumers read (see header)
     raceNameOverride: 'Vampire',
@@ -262,16 +268,19 @@ export function consumeVampirismPending(entity, { now = 0 } = {}) {
  * HOOD-SUN: never under a raised hood (racialSunAverse; BAL6: 0 there)
  * (`nowMinutes` is the world clock, worldTick's `clockMinutes`).
  */
-export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMinutes } = {}) {
+export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMinutes, say = () => {} } = {}) {
   const entry = liveVampirism(entity);
   if (!entry) return;
-  const mod = vampireStatMod(skyMinutes, racialSunAverse(entity));   // HOOD-SUN: the hood's law; LIVED1: VAMP-DAY's day and night are the world's sky; the thirst below is the character's own clock
+  const mod = clanSunMod(entry.clan, vampireStatMod(skyMinutes, racialSunAverse(entity)));   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: Selenu take half the sun   // HOOD-SUN: the hood's law; LIVED1: VAMP-DAY's day and night are the world's sky; the thirst below is the character's own clock
   entry.statMods = {};
   for (const stat of VAMPIRE_STATS) entry.statMods[stat] = mod;
   if (entry.clan === VAMPIRE_CLANS.Anthotis) entry.statMods.intelligence = mod;
   entry.skillMods = {};
   for (const skill of VAMPIRE_SKILLS) entry.skillMods[skill] = VAMPIRE_SKILL_MOD;
   entity.minMetalToHit = WEAPON_MATERIALS.Silver;
+  vitaeRound(entity, nowMinutes, say);   // BUNNYFALL VAMPIRE EXPANSION: the drain, the Beast's stage and the blood's resonance on top (or the Elder's letter)
+  thrallRound(entity, nowMinutes, say);
+  masqueradeRound(entity, nowMinutes, say);   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the regions cool, the Courts speak   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the thralls' upkeep, the prisoners' day, an errand home
   entry.satiated = isVampireSatiated(entity, nowMinutes);
 }
 
@@ -279,14 +288,22 @@ export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMi
 export function isVampireSatiated(entity, nowMinutes = 0) {
   const entry = liveVampirism(entity);
   if (!entry) return true;
+  if (awakenedVampirism(entity)) return beastStageNow(entity, nowMinutes) < BEAST.Starving;   // BUNNYFALL VAMPIRE EXPANSION: awakened, only the Starving are refused rest
   return nowMinutes - (entry.lastTimeFed ?? 0) <= MINUTES_PER_DAY;
 }
 
 /** OnWeaponHitEntity (:125-128): the whole body is UpdateSatiation -
  *  any landed attack feeds. */
-export function onVampireHit(entity, nowMinutes = 0) {
+export function onVampireHit(entity, nowMinutes = 0, { target = null, isCivilian = false } = {}) {
   const entry = liveVampirism(entity);
-  if (entry) entry.lastTimeFed = nowMinutes;
+  if (!entry) return;
+  // BUNNYFALL VAMPIRE EXPANSION: once awakened a blow is no feed - a mouthful of a creature's or a foe's blood in the
+  // fight (FEEDS.wound, Beast blood), and nothing of a civilian's; real feeding is the Steal mode's (vampireFeed.js)
+  if (awakenedVampirism(entity)) {
+    if (!isCivilian) feedVampire(entity, { kind: 'wound', type: ARCHETYPES.Beast, quality: qualityOfCreature(target?.level), now: nowMinutes });
+    return;
+  }
+  entry.lastTimeFed = nowMinutes;
 }
 
 /** CheckStartRest (:143-158): an unfed vampire cannot rest - the
@@ -476,5 +493,20 @@ export function cureVampirism(entity, { advanceMinutes = null } = {}) {
   advanceMinutes?.(1);   // RaiseTime(60) - sixty SECONDS, the V2a lesson
   if (entity.spells) entity.spells = entity.spells.filter((s) => s.tag !== VAMPIRE_SPELL_TAG);
   endVampireQuests();
+  return true;
+}
+
+/** BUNNYFALL VAMPIRE EXPANSION (vampire/bloodlineLeaf.js; the owner: existing vampires get "One free re-pick"): A VAMPIRE
+ *  SWORN TO ANOTHER COURT - once a curse (`clanRepicked`): the clan changed, the old clan's spells taken and the new
+ *  one's granted (AssignPlayerVampireSpells' own set). The Courts' strikes stay where they were earned. Answers whether
+ *  it changed. */
+export const clanRepickLeft = (entity) => { const e = liveVampirism(entity); return !!e && !e.clanRepicked; };
+export function changeVampireClan(entity, clan) {
+  const entry = liveVampirism(entity);
+  if (!entry || entry.clanRepicked || entry.clan === clan || !Object.values(VAMPIRE_CLANS).includes(clan) || clan === VAMPIRE_CLANS.None) return false;
+  entry.clan = clan;
+  entry.clanRepicked = true;
+  if (entity.spells) entity.spells = entity.spells.filter((s) => s.tag !== VAMPIRE_SPELL_TAG);
+  grantVampireSpells(entity, clan);
   return true;
 }
