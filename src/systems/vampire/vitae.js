@@ -153,6 +153,17 @@ export function spendMindCloud(entity, now) {
   return true;
 }
 
+/** PHASE 2: spend `n` Vitae (a thrall bound, a bond renewed): answers whether it was there to spend.
+ *  @param {any} entity @param {number} n @param {number} now */
+export function spendVitae(entity, n, now) {
+  const entry = awakenedVampirism(entity);
+  if (!entry) return false;
+  settle(entry, now);
+  if (entry.vitae < n) return false;
+  entry.vitae -= n;
+  return true;
+}
+
 /** A deed's count (the Elder's quest reads it). @param {any} entity @param {string} deed */
 export function deedCount(entity, deed) {
   const entry = liveVampirism(entity);

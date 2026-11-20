@@ -96,7 +96,8 @@ import { cloakState } from './survival/temperature.js';   // VAMP-HOOD: the ONE 
 import { isEnhanced } from './uiSkin.js';   // HOOD-SAID: the hint names the skin's own button
 import { playerInSunlight, careerSunAverse } from './passiveSpecials.js';
 import { awakenedVampirism, vitaeRound, feedVampire, beastStageNow } from './vampire/vitae.js';   // BUNNYFALL VAMPIRE EXPANSION: Vitae and the Beast, once the Elder awakened them
-import { BEAST, ARCHETYPES, qualityOfCreature } from './vampire/bloodLaw.js';   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
+import { BEAST, ARCHETYPES, qualityOfCreature } from './vampire/bloodLaw.js';
+import { thrallRound } from './vampire/thralls.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
 
 /** VampirismEffect.VampirismCurseKey (:33). */
 export const VAMPIRISM_CURSE_KEY = 'Vampirism-Curse';
@@ -276,6 +277,7 @@ export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMi
   for (const skill of VAMPIRE_SKILLS) entry.skillMods[skill] = VAMPIRE_SKILL_MOD;
   entity.minMetalToHit = WEAPON_MATERIALS.Silver;
   vitaeRound(entity, nowMinutes, say);   // BUNNYFALL VAMPIRE EXPANSION: the drain, the Beast's stage and the blood's resonance on top (or the Elder's letter)
+  thrallRound(entity, nowMinutes, say);   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the thralls' upkeep, the prisoners' day, an errand home
   entry.satiated = isVampireSatiated(entity, nowMinutes);
 }
 

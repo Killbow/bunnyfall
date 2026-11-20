@@ -8,6 +8,7 @@
 // original-archive sizes while pixels come from the table archive,
 // which is exactly the dungeon convention already on record.
 
+import { subdueFoe } from './vampire/thrallCapture.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: subdue in Steal mode
 import { blightFoeTint, CROMWARK_FOE_TINT } from '../systems/wild/cromwark.js';   // BUNNYFALL: the purple monsters
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN
@@ -6973,6 +6974,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (foe.entity?.revenant?.id && !ownersWholeKill(_whole, { fromPlayer, peer }) && (!onlineRoom() || !isRoomFoe(foe)) && revenantLastStandDue(foe)) { lastStandDungeonFoe(foe); return; }
       // RVN3 (Feud-Arc.md 14.2): one of rank 3 and up whose will this fight has not broken does not kneel - it tears away
       if (opts.fates && (!onlineRoom() || !isRoomFoe(foe)) && revenantMayYield(foe)) { if (!ownersWholeKill(_whole, { fromPlayer, peer }) && revenantWillHolds(foe)) tearAwayDungeonFoe(foe); else yieldDungeonFoe(foe); return; }
+      if (subdueFoe(foe, { playerEntity, fromPlayer, peer, shared: onlineRoom() && isRoomFoe(foe), questFoe: !!foe.questBehaviour, portals, say: (l) => hudText.add(l) })) return;   // BUNNYFALL VAMPIRE EXPANSION: Steal mode takes a person alive, to the Haven (scenes/vampire/thrallCapture.js)
       // X5: SOUL TRAP intercepts the kill, exactly where DFU's
       // EnemyEntity.SetHealth override does (:157-177) - before the
       // death, on every damage source alike. A successful roll with no

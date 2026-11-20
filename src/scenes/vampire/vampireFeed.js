@@ -22,6 +22,8 @@ import {
   archetypeOfPerson, archetypeName, qualityOfPerson, resonanceWords, resonanceTier, beastStageName, beastStageOf,
   MIND_CLOUD_COST, KISS_SLIP,
 } from '../../systems/vampire/bloodLaw.js';
+import { captureRefusal, takePrisoner, enthrallSocial, slotRefusal, isSocialThrall, socialPerk, guardHushes, thrallState, takeScouted } from '../../systems/vampire/thralls.js';   // PHASE 2
+import { socialRoleOf, mobileOfThrall, ENTHRALL_COST } from '../../systems/vampire/thrallLaw.js';
 
 /** The chance in a hundred that one drunk from and left (no Kiss) cries for the watch. */
 export const REPORT_CHANCE = 35;
@@ -45,13 +47,16 @@ function sightRows(name, type, quality, seenCount) {
   return rows;
 }
 
-/** The picker's rows, and the choice each means. */
-function choices(canDrain) {
+/** PHASE 2: a social role's word. */
+const roleWord = (role) => (role === 'innkeeper' ? t('thrall.role.innkeeper', 'innkeeper') : role === 'guard' ? t('thrall.role.guard', 'watchman') : t('thrall.role.merchant', 'merchant'));
+/** The picker's rows, and the choice each means. PHASE 2: `extra` rows before Leave (take them, enthrall them). */
+function choices(canDrain, extra = []) {
   const list = [
     { id: 'kiss', label: t('vampire.feed.kiss', 'The Kiss: drink, and cloud their memory (-{cost} Vitae)', { cost: MIND_CLOUD_COST }) },
     { id: 'drink', label: t('vampire.feed.drink', 'Drink, and leave them weakened') },
   ];
   if (canDrain) list.push({ id: 'drain', label: t('vampire.feed.drain', 'Drain them dry') });
+  list.push(...extra);
   list.push({ id: 'leave', label: t('vampire.feed.leave', 'Leave them be') });
   return list;
 }
@@ -114,7 +119,7 @@ const crimeArm = (entity, onCrime) => (kind) => {
  * @param {{ entity: any, target: { person: any, pos: number[] }, persons?: { person: any, pos: number[] }[], now: number,
  *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
  */
-export function feedOnPerson({ entity, target, persons = [], now, showBox, say, onCrime, rolls = Math.random }) {
+export function feedOnPerson({ entity, target, persons = [], now, showBox, say, onCrime, rolls = Math.random, regionIndex = 0 }) {
   if (!awakenedVampirism(entity)) return false;
   const person = target?.person;
   if (!person) return false;
@@ -129,10 +134,22 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
   for (const w of town ? town.witnesses(pos, person.living.id) : []) ids.add(String(w.id));
   for (const p of near) ids.add(String(p.person?.living?.id ?? p.person?.nameNPC ?? ids.size));
   const seenBy = [...ids];
-  const victim = { name: String(person.nameNPC ?? t('vampire.feed.someone', 'them')), type: archetypeOfPerson(person), quality: qualityOfPerson(person), seen: seenBy.length };
+  const scouted = thrallState().scouted;   // PHASE 2: a servant's scouting marks richer blood
+  const victim = { name: String(person.nameNPC ?? t('vampire.feed.someone', 'them')), type: archetypeOfPerson(person), quality: Math.min(100, qualityOfPerson(person) + scouted), seen: seenBy.length };
   const canDrain = !!(town?.slain && town?.retire);
-  const list = choices(canDrain);
-  const onSeen = (kind) => { town?.caught?.(person); crimeArm(entity, onCrime)(kind); };
+  // PHASE 2: unseen, a living townsperson may be TAKEN to the Haven (after the Kiss) or ENTHRALLED where they stand
+  const res = person.living?.res ?? null;
+  const role = socialRoleOf(person);
+  const extra = [];
+  if (!victim.seen && res && canDrain && !captureRefusal(entity)) extra.push({ id: 'take', label: t('thrall.feed.take', 'Kiss them and take them to your Haven (-{cost} Vitae)', { cost: MIND_CLOUD_COST }) });
+  if (!victim.seen && res && role && !slotRefusal(entity) && !isSocialThrall(res.id)) extra.push({ id: 'enthrall', label: t('thrall.feed.enthrall', 'Enthrall them, your {role} in this town (-{cost} Vitae)', { role: roleWord(role), cost: ENTHRALL_COST }) });
+  const list = choices(canDrain, extra);
+  // PHASE 2: a watchman among the vampire's thralls hushes one witnessed bite a day in their town (never a death)
+  const onSeen = (kind) => {
+    town?.caught?.(person);
+    if (kind === 'assault' && res && guardHushes(res.town, now)) { say(t('thrall.guard.hush', 'Your thrall in the watch looks the other way.')); return; }
+    crimeArm(entity, onCrime)(kind);
+  };
   showBox({
     rows: sightRows(victim.name, victim.type, victim.quality, victim.seen),
     onClick: () => [{
@@ -140,6 +157,9 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
       onPick: (i) => {
         const c = list[i];
         if (c && c.id !== 'leave') FED_TODAY.add(fedKey(id, now));
+        if (c && c.id !== 'leave' && scouted) takeScouted();
+        if (c?.id === 'take') return takeToHaven(entity, person, victim, now);
+        if (c?.id === 'enthrall') return enthrallHere(entity, person, role, now, regionIndex);
         return resolveChoice(entity, c?.id ?? 'leave', victim, {
           now, rolls, onSeen, reportChance: REPORT_CHANCE,
           onReported: () => { town?.caught?.(person); crimeArm(entity, onCrime)('assault'); },
@@ -150,6 +170,25 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
     }],
   });
   return true;
+}
+
+/** PHASE 2: the Kiss, and the townsperson taken to the Haven - gone from their town for good (their household's grief the
+ *  Living World's, as a death's). */
+function takeToHaven(entity, person, victim, now) {
+  const town = person.living.town, res = person.living.res;
+  if (!spendMindCloud(entity, now)) return [{ rows: [t('vampire.feed.noVitae', 'You have too little Vitae for the Kiss.')] }];
+  const p = takePrisoner(entity, { name: victim.name, gender: res.sex, type: victim.type, quality: victim.quality, mobile: mobileOfThrall(victim.type, res.cls), source: 'town', health: 70 });
+  if (!p) return [{ rows: [captureRefusal(entity) ?? ''] }];
+  town.slain(person);
+  town.retire(person);
+  return [{ rows: [t('thrall.taken', 'The Kiss takes them, and they follow you into the dark. {name} waits in your Haven.', { name: p.name })] }];
+}
+/** PHASE 2: a social thrall bound where they stand. */
+function enthrallHere(entity, person, role, now, regionIndex) {
+  const res = person.living.res, town = person.living.town;
+  const r = enthrallSocial(entity, { id: res.id, name: res.name, role, town: res.town, townName: String(town?.o?.town?.name ?? ''), region: Number.isInteger(town?.o?.town?.region) ? town.o.town.region : regionIndex }, now);
+  if (typeof r === 'string') return [{ rows: [r] }];
+  return [{ rows: [t('thrall.enthralled', '{name} looks into your eyes, and is yours. Your {role} here, while your blood keeps them.', { name: r.name, role: roleWord(role) })] }];
 }
 
 /** Whether a bed here holds a sleeper to feed on now (the bed rows are offered while it does).
@@ -176,7 +215,7 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
   const awake = town.insideAt?.(key, town._now)?.length ?? 0;
   const stealth = skillValue(entity, SKILLS.Stealth) ?? 0;
   const seenChance = awake > 0 ? Math.max(5, Math.min(90, awake * 20 - Math.floor(stealth / 3))) : 0;
-  const seen = Math.floor(rolls() * 100) < seenChance ? 1 : 0;
+  const seen = !socialPerk('innkeeper', res.town) && Math.floor(rolls() * 100) < seenChance ? 1 : 0;   // PHASE 2: an innkeeper thrall in this town keeps the house quiet
   const pseudo = { living: { id: res.id, res }, nameNPC: res.name };
   const victim = { name: res.name, type: archetypeOfPerson(pseudo), quality: qualityOfPerson(pseudo), seen };
   const list = choices(true);

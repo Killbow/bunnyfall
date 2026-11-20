@@ -190,6 +190,10 @@ export const FEEDS = Object.freeze({
   drink: Object.freeze({ vitae: 30, relief: true }),
   /** Drained to death: the most, and the worst. */
   drain: Object.freeze({ vitae: 60, relief: true }),
+  /** PHASE 2: a prisoner tapped in the Haven - stale blood (thrallLaw.js TAP). */
+  tap: Object.freeze({ vitae: 20, relief: false }),
+  /** PHASE 2: a bottled vial drunk - stale blood (thrallLaw.js VIAL_VITAE). */
+  vial: Object.freeze({ vitae: 18, relief: false }),
   /** A landed blow on a creature or a foe: a mouthful in the fight. */
   wound: Object.freeze({ vitae: 2, relief: false }),
 });
