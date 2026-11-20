@@ -5,7 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
 - Every Company member can now ship the week's orders at the factor's wagon and the workshop order, not just the Captain and Officers. Buying improvements, animals and workshops is still for them.
-
+- New weapon: the Royal Ballista, an even heavier crossbow. Its bolt flies in a high arc and bursts where it lands, hurting every hostile foe around the spot (calm townsfolk, guards who are not after you and your companions are spared). While you hold the button to aim, a dotted arc shows the bolt's path and a ring shows where it will burst. It shakes the screen when fired, slows you down while drawn, uses arrows and Archery, and is slow to reload. Good Weapon Smiths sometimes sell one, and deep dungeon piles rarely hold one. Other players see its bolts arc too.
+- New tool: the Grappling Hook. Ready it like a weapon and click to throw it where you look (up to about 30 m). If it catches a wall, a ledge or the ground, you are pulled there: onto the top of a low wall or ledge, or hanging against a high wall. The pull never causes falling damage, and Jump lets go. It needs 6 seconds to coil after a catch (1.5 after a miss), shown as a ring around the crosshair. General Stores and Pawn Shops sell it, and dungeon piles sometimes hold one.
 - The estate ledger on a farm now opens one page with everything at once (your farm work, this week's orders, what has shipped, what each improvement still needs, your animals and workshops), instead of one line a click. Esc closes it.
 - Shipping crops is easier to find: the factor's wagon now says on hover how to ship the week's orders, and the order post says the same. The ledger lists the shipping steps.
 - A new workshop for farms: the apiary, bee boxes among roses that make honey on their own, so the brewery can make mead from your own farm.

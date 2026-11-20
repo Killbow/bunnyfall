@@ -36,6 +36,7 @@ import { survivalOn } from './survival/switch.js';   // SURV2: the one switch
 import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { ARMOR_BITS_SHIFT } from './specialAdvantages.js';   // the armour field's place, one home
 import { isCrossbowItem, CROSSBOW_EQUIP_DELAY } from '../characters/crossbowIds.js';
+import { isBallistaItem, BALLISTA_EQUIP_DELAY } from '../characters/heavyGearIds.js';   // BUNNYFALL: the Royal Ballista
 
 export { EQUIP_SLOTS, ITEM_HANDS };
 
@@ -77,6 +78,7 @@ export const wearableItem = (item) => !!item && createEquipTable().getEquipSlot(
 export function equipDelayFor(item) {
   // BUNNYFALL: Crossbows are given their own equip delay.
   if (isCrossbowItem(item)) return CROSSBOW_EQUIP_DELAY;
+  if (isBallistaItem(item)) return BALLISTA_EQUIP_DELAY;   // BUNNYFALL: and the Royal Ballista, longer still
 
   // AUDIT-RR2 G8: `EquipDelayTimes[item.GroupIndex]` (DaggerfallInventoryWindow.cs:1168-1182) - a custom class answers its
   // own GroupIndex virtual (ItemArchersAxe.cs:28-31 -> 3, ItemLightFlail.cs:28-31 -> 6); 513 - 113 fell off the table
@@ -643,7 +645,7 @@ export function getEquipSound(item) {
         case 125: return 414;                        // Flail
         case 124: case 126: return 413;              // Mace, Warhammer
         case 115: return 380;                        // Staff
-        case 129: case 130: case 563: return 416;    // Short_Bow, Long_Bow (BUNNYFALL: 563 the crossbow)
+        case 129: case 130: case 563: case 564: return 416;    // Short_Bow, Long_Bow (BUNNYFALL: 563 the crossbow, 564 the Royal Ballista)
         default: return null;
       }
     default:

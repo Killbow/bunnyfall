@@ -14294,9 +14294,9 @@ export function createWorldModes(host) {
      *  the exterior, where world.js's own rig is the one drawn. */
     /** SPELLFX1: another player's arrow, DRAWN in the live mode's own pool - a shaft that flies, stops on a wall or
      *  a body, and lands nothing (their own game dealt the damage). False in the exterior: world.js's pool is its own. */
-    visualArrow(from, dir) {
-      if (mode === 'interior') { interiorArrows.fire(from, dir, { visual: true }); return true; }
-      if (mode === 'dungeon') return !!dungeonCtx?.visualArrow?.(from, dir);
+    visualArrow(from, dir, bolt = false) {   // BUNNYFALL: `bolt` - a peer's Royal Ballista shot, drawn on its arc
+      if (mode === 'interior') { interiorArrows.fire(from, dir, { visual: true, peerBolt: bolt }); return true; }
+      if (mode === 'dungeon') return !!dungeonCtx?.visualArrow?.(from, dir, bolt);
       return false;
     },
     liveArm() {

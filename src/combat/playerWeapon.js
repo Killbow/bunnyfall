@@ -30,6 +30,7 @@ import { GUN_FEEL, GUN_TICK_SECONDS, thunderlockReloadSeconds, PISTOLET_FEEL } f
 import { DIRECTION_TO_STRIKE, ATTACKS_FP, sampleClip } from '../characters/anims.js';
 import { combinePose } from '../characters/animate.js';
 import { weaponTypeForItem, WEAPON_TYPES, isGunType, isPistoletType } from './fpsWeapon.js';
+import { BALLISTA_TEMPLATE, BALLISTA_COOLDOWN_MULT } from '../characters/heavyGearIds.js';   // BUNNYFALL: the Royal Ballista's slower still
 import { CROSSBOW_TEMPLATE, CROSSBOW_COOLDOWN_MULT } from '../characters/crossbowIds.js';   // BUNNYFALL: the crossbow's slower cycle
 import { createPair, PAIR_TRIGGER } from './gun/pistolPair.js';   // PISTOL-PORT: a Pistolet fires on the pistol lab's own machines
 import { WEAPONS } from '../characters/weapons.js';
@@ -964,6 +965,7 @@ export class PlayerWeapon {
     // when the shot ends, so a Speed change mid-pump does not move the pump already running.
     this.machine.tick = thunderlock ? GUN_TICK_SECONDS : null;
     this.machine.cooldown = thunderlock ? thunderlockReloadSeconds(this.liveSpeed)
+      : t === WEAPON_TYPES.Bow && held?.templateIndex === BALLISTA_TEMPLATE ? getBowCooldownTime(this.liveSpeed) * BALLISTA_COOLDOWN_MULT   // BUNNYFALL: the Royal Ballista, three times
       : t === WEAPON_TYPES.Bow && held?.templateIndex === CROSSBOW_TEMPLATE ? getBowCooldownTime(this.liveSpeed) * CROSSBOW_COOLDOWN_MULT   // BUNNYFALL: the crossbow takes twice the bow's rest
       : null;
     this.machine.hitFrame = thunderlock ? GUN_FEEL.hitFrame : null;

@@ -29268,6 +29268,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       am: hasDaggerfallArrows(playerEntity.items) ? 1 : 0, sr: (live ? live.armed : magic.spellArmed()) ? 1 : 0,
       cn: rig.cast.n, cr: rig.cast.rangeType | 0, ce: rig.cast.element ?? 4,   // SPELLFX1: and its element, so the peers draw the right missile
       ar: rig.shot?.n ?? 0,   // SPELLFX1: and the arrows loosed, so the peers draw the shafts
+      ...(rig.shot?.bl ? { bl: 1 } : {}),   // BUNNYFALL: the last of them a Royal Ballista's bolt (net/wire.js validPose)
       // RIDE: the mount - the horse or the cart, outdoors (a door dismounts), and which of Eye Of The Beholder's five
       // mounted sprite sets this player chose, so the others draw the rider they drew themselves
       rd: !riding ? 0 : player.transportMode === TRANSPORT_MODES.Cart ? 2 : 1,
@@ -29458,7 +29459,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // SPELLFX1: and their ARROW - a shaft from their eye along their aim, in the live mode's own arrow pool
       if (was.ar !== ar) {
         const from = [eye[0] + dir[0] * 0.6, eye[1] + dir[1] * 0.6, eye[2] + dir[2] * 0.6];   // clear of their own body
-        try { if (!modes?.visualArrow?.(from, dir)) arrows.fire(from, dir, { visual: true }); } catch (err) { console.warn(`[online] a peer's arrow visual threw: ${err?.message ?? err}`); }
+        try { if (!modes?.visualArrow?.(from, dir, !!s.bl)) arrows.fire(from, dir, { visual: true, peerBolt: !!s.bl }); } catch (err) { console.warn(`[online] a peer's arrow visual threw: ${err?.message ?? err}`); }   // BUNNYFALL: `bl` a Royal Ballista's bolt, drawn on its arc
       }
     }
     if (_castSeen.size > (online?.peers.size ?? 0) + 16) for (const [id, v] of _castSeen) if (v.frame !== _castFrame) _castSeen.delete(id);

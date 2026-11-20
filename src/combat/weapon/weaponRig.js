@@ -37,6 +37,9 @@ import { loadFpsWeaponArt, drawFpsWeapon, fpsWeaponQuad, weaponTypeForItem, WEAP
 import { spriteGlow, meshGlow } from '../../systems/weaponGlow.js';   // WEAPON-GLOW1: the held weapon's element, as each hand shows it
 import { loadThunderlockArt } from '../thunderlockArt.js';
 import { loadCrossbowArt } from '../crossbowArt.js';   // BUNNYFALL: the crossbow's own first-person frames
+import { loadBallistaArt, loadGrappleArt } from '../heavyGearArt.js';   // BUNNYFALL: the Royal Ballista's and the grappling hook's
+import { isBallistaItem, isGrappleItem } from '../../characters/heavyGearIds.js';
+import { stepHeavyGear, noteHeavyShot } from '../heavyGearRig.js';   // BUNNYFALL: their frame and their loose, one call each
 import { CROSSBOW_TEMPLATE } from '../../characters/crossbowIds.js';
 import { THUNDERLOCK_NUM_FRAMES } from '../../characters/weaponStates.js';   // THUNDERLOCK-ART2's audit: the cycle's length, never a literal six
 import { loadPistoletArt } from '../gun/pistoletArt.js';   // PISTOLET: the second gun's strip
@@ -922,6 +925,8 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
   const heldGlowNow = () => { if (playerWeapon.weapon !== heldFor) askHeld(); return heldGlow; };
   const heldType = (item) => (glowOf(item) ? plainWeaponType(weaponTypeForItem(item)) : weaponTypeForItem(item));
   let _dx = 0, _dy = 0, _held = false;
+  let _hookFrame = 0;   // BUNNYFALL: the grappling hook's frame (combat/grapple/grapple.js grappleFrame)
+  const _gearToken = {};   // BUNNYFALL: this rig, to the heavy gear's bindings
   let wolfForm = false, wolfSkin = null;   // WEREWOLF1 / SHADOW-FANG (AUDIT D5): the form handed to the rig last, and the skin read at its change
 
   function artFor(held) {
@@ -936,7 +941,8 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // classic weapon still cannot.
     const thunderlock = isGunType(type);   // PISTOLET: either gun
     const crossbow = type === WEAPON_TYPES.Bow && item?.templateIndex === CROSSBOW_TEMPLATE;   // BUNNYFALL: our own art, no palette needed
-    if (!thunderlock && !crossbow && !palette) return null;
+    const gear = isBallistaItem(item) ? 'ballista' : isGrappleItem(item) ? 'grapple' : null;   // BUNNYFALL: the Royal Ballista's and the hook's, the same
+    if (!thunderlock && !crossbow && !gear && !palette) return null;
     // DW1: the key carries the name the atlas is ASKED by. Under Diverse
     // Weapons a longsword and a broadsword are the same WEAPON_TYPE with
     // different sprite sets, and an enchanted one a third - and the flag
@@ -952,13 +958,15 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // is what the mod is for, and its author's tables are honoured over
     // DFU's cache slot.
     const gilded = thunderlock && item?.rarity === 'gilded';   // GILDED1: the Hourlock's frames in gold leaf (thunderlockArt.js gildFrame)
-    const key = crossbow ? 'crossbow' : `${type}:${item?.material ?? 0}:${thunderlock ? (gilded ? 'gilded' : '') : atlasFileName(item, WEAPON_FILE[type] ?? '', undefined, plain ? false : undefined)}`;
+    const key = gear ?? (crossbow ? 'crossbow' : null) ?? `${type}:${item?.material ?? 0}:${thunderlock ? (gilded ? 'gilded' : '') : atlasFileName(item, WEAPON_FILE[type] ?? '', undefined, plain ? false : undefined)}`;
     if (!cache.has(key)) {
       cache.set(key, null);
       (isPistoletType(type)
         ? loadPistoletArt(renderer, { magic: type === WEAPON_TYPES.Pistolet_Magic, gilded })   // PISTOLET: its own strip
         : thunderlock
         ? loadThunderlockArt(renderer, { magic: type === WEAPON_TYPES.Thunderlock_Magic, gilded })
+        : gear
+        ? (gear === 'ballista' ? loadBallistaArt(renderer) : loadGrappleArt(renderer))
         : crossbow
         ? loadCrossbowArt(renderer)
         : loadFpsWeaponArt(fetchBytes, palette, renderer, type, item?.material ?? 0, item, { plain }))
@@ -1109,7 +1117,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
   }
 
   /** SPELLFX1: one loose counted for the wire - the hosts' own (`noteShot`, below) and a technique's (TECH1). */
-  const noteShotHere = (weapon) => { if (!orbArchiveFor(weapon)) shot.n = (shot.n + 1) & 0xffff; };
+  const noteShotHere = (weapon) => { if (!orbArchiveFor(weapon)) shot.n = (shot.n + 1) & 0xffff; noteHeavyShot(weapon, shot, { audio }); };   // BUNNYFALL: a Royal Ballista's kick, and its word to the peers
   /** TECH1: this rig's identity to the one technique runner (a door into another host's rig sets an aim aside), and the
    *  frame's context it was last stepped with (the loose's claim reads it at the frame's end). */
   const _techRig = {};
@@ -1913,6 +1921,8 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // BOW-CLOCK: no shot starts the arm cannot draw (armLoosing, above) - gesture() is not asked, so its button
       // latch keeps the press made while waiting.
       const armLoosing = armCannotDraw();
+      const gear = stepHeavyGear(_gearToken, { dt, weapon: playerWeapon.weapon, sheathed: playerWeapon.sheathed, held: _held, canAttack, paralyzed, camera, collider, canvas: c, renderer, flip: handedFlip(), audio, say });   // BUNNYFALL: the Royal Ballista's slow and arc, the hook's throw (combat/heavyGearRig.js)
+      _hookFrame = gear.hookFrame;
       // TECH1 (bible/05-Combat/Weapon-Techniques.md): THE TECHNIQUE KEY, stepped by the rig that owns the frame - every
       // host's - AHEAD of the gesture: a technique's strike and a click's are one machine, and the first to start it holds
       // it. Its gate is the swing's own (drawn, no spell, no cast, no climb, no equip pause, no act's tool, no arm still
@@ -1927,14 +1937,14 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       if (camNow?.pos && camNow?.feet) { _techCam.pos = camNow.pos; _techCam.yaw = camNow.yaw ?? 0; _techCam.pitch = camNow.pitch ?? 0; _techCam.feet = camNow.feet; tc.cam = _techCam; } else tc.cam = null;
       tc.collider = collider?.() ?? null;
       tc.held = !!actionDown?.(TECHNIQUE_ACTION);
-      tc.ready = !paralyzed && !!c && canAttack && !armLoosing && !_heldHit && !!camNow?.pos && !!camNow?.feet;   // AUDIT TECH1: and no plain shot's hit still held for the arm (MW-D42) - the click path's own gate
+      tc.ready = !paralyzed && !!c && canAttack && !armLoosing && !_heldHit && !!camNow?.pos && !!camNow?.feet && !gear.grappling;   // BUNNYFALL: the hook has no technique   // AUDIT TECH1: and no plain shot's hit still held for the arm (MW-D42) - the click path's own gate
       tc.cancel = !!activateHeld();
       tc.paralyzed = !!paralyzed;   // AUDIT TECH1: a held body's machine is frozen - and so is its technique's clock
       tc.blocked = !!technique?.blocked?.();   // AUDIT TECH1: a window holds the world (the host's gamePaused) - and the key
       tc.holding = !!_heldHit;   // MW-D42: a shot's hit held for the Morrowind arm's release - the loose is still to come
       stepTechnique(dt, _techCtx);
       // AUDIT TECH1: no gesture while a technique's leap or dash is in the air - its strike is the landing's
-      const strike = !paralyzed && c && canAttack && !armLoosing && !techniqueFlying()
+      const strike = !gear.grappling && !paralyzed && c && canAttack && !armLoosing && !techniqueFlying()   // BUNNYFALL: the hook is thrown, never swung
         ? playerWeapon.gesture(_dx, _dy, _held, dt, Math.max(c.clientWidth, c.clientHeight), { cancelHeld: activateHeld() })   // AUDIT 28 W12
         : null;
       if (strike) fpAttack(strike, dt);
@@ -2605,8 +2615,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       if (widgetOn() && c && widget.draw(renderer, c, fpTint, _spellGuard.weapon > 0 ? { transform: (r) => ({ ...r, y: r.y + guardDrop(_spellGuard.weapon, r.h) }) } : undefined)) return;
       const art = c && artFor(playerWeapon.weapon);
       const m = playerWeapon.machine, offsetHeight = c ? weaponOffsetHeight() - climbDrop(_climbLower, c.height) : 0;
-      const spellDrop = art && _spellGuard.weapon > 0 ? guardDrop(_spellGuard.weapon, fpsWeaponQuad(c, art, m.state, m.frame, { offsetHeight })?.rect.h ?? 0) : 0;
-      if (art && spriteShown()) drawFpsWeapon(renderer, c, art, m.state, m.frame, { tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow() });   // CLIMB4: lowered for the climb (0: OnGUI's own offset); WEAPON-GLOW1: the element's outline, the held weapon's own
+      const mf = isGrappleItem(playerWeapon.weapon) ? _hookFrame : m.frame;   // BUNNYFALL: the hook's frame is its own clock's
+      const spellDrop = art && _spellGuard.weapon > 0 ? guardDrop(_spellGuard.weapon, fpsWeaponQuad(c, art, m.state, mf, { offsetHeight })?.rect.h ?? 0) : 0;
+      if (art && spriteShown()) drawFpsWeapon(renderer, c, art, m.state, mf, { tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow() });   // CLIMB4: lowered for the climb (0: OnGUI's own offset); WEAPON-GLOW1: the element's outline, the held weapon's own
     }
   }
 }

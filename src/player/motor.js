@@ -407,6 +407,7 @@ import { CLIMB_MOVE_KINDS, CLIMB_MOVE_RISE_MAX, CLIMB_MOVE_TIME_MAX } from '../n
 import { clampToRing } from '../net/duel/duelSession.js';   // AUDIT DUEL1 D4: the ring's one clamp
 import { keepOffBodies } from './bodyClamp.js';   // PROP-BODIES: the flats' bodies, kept out of after the collider's move
 import { MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE } from '../world/terrain/terrainSampler.js';   // FALL-KEPT: the world's tallest drop bounds a carried fall
+import { grappleStep } from '../combat/grapple/grapple.js';   // BUNNYFALL: the grappling hook - its pull is a step of this motor's
 
 /** PlayerSpeedChanger.GetWalkSpeed, verbatim (audit 2026-08-16e F1):
  *  drag = 0.5 x (100 - max(30, LiveSpeed)) rides the WALK base only -
@@ -3068,6 +3069,7 @@ export class PlayerMotor {
       }
       return;
     }
+    if (grappleStep(this, dt, input, yaw, pitch)) return;   // BUNNYFALL: the grappling hook's throw and pull (combat/grapple/grapple.js) - the pull holds the step
     // A6 - PlayerMoveScanner's OTHER TWO probes belong HERE (:308-309:
     // `playerScanner.FindHeadHit(new Ray(controller.transform.position,
     // Vector3.up)); playerScanner.SetHitSomethingInFront();`), on every

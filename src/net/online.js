@@ -393,6 +393,7 @@ export function lerpPose(from, to, t) {
     am: to.am ?? 0, sr: to.sr ?? 0, cn: to.cn ?? 0, cr: to.cr ?? 0,   // MAC7 #2: and the other four
     ce: to.ce ?? 4,   // SPELLFX1: the cast's element, whole
     ar: to.ar ?? 0,   // SPELLFX1: and the arrows loosed
+    ...(to.bl ? { bl: 1 } : {}),   // BUNNYFALL: the last a Royal Ballista's bolt - discrete, omitted otherwise
     fk: to.fk ?? 0,   // PEER-FS1: the footstep-sound kind - discrete, rides the drawn pose whole like the rest
     ...(to.rd ? { rd: to.rd, rv: to.rv ?? 0, ...(to.hs ? { hs: 1 } : {}), ...(to.rc ? { rc: to.rc } : {}) } : {}),   // COATS1: the horse's coat with it   // RIDE: the mount, discrete, omitted on foot as the wire omits it; DISC7: the half-speed bit with it
     ...(to.lh ? { lh: 1 } : {}),   // DISC12: the LEFT hand in use - discrete, omitted on the right as the wire omits it

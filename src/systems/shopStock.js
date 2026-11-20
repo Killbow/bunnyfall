@@ -249,6 +249,7 @@ import { SPELLBOOK_TEMPLATE_INDEX } from './spell/spellMaker.js';   // G4: one h
 import { restItemsStock } from './rest/restItems.js';   // REST6: the Bedroll, the Ember Jar, Firewood and the draughts
 import { scrollShelfStock } from './scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls on the shelves
 import { crossbowShelfStock } from './crossbow.js';   // BUNNYFALL: the crossbow on the Weapon Smith's shelf
+import { heavyGearShelfStock } from './heavyGear.js';   // BUNNYFALL: the Royal Ballista and the grappling hook on the shelves
 import { isLockpick, ensureEndlessLockpicks, restockLockpicks } from './lockpick/lockpickItem.js';   // LOCKPICK: the counter's endless picks
 import { provisionsStock, campfireStock, createSurvivalItem, isSurvivalItem, isCampfireKit, TEMPLATE as SURVIVAL_TEMPLATE, ensureEndlessProvisions, ENDLESS_RATIONS_STACK } from './survival/items.js';   // SURV2: the general store's provisions shelf   // REST2: and online the Campfire alone, the arc Off
 import { sharedClockOn } from './worldTick.js';
@@ -558,6 +559,7 @@ export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { r
   if (shelfIndex === 0 && (buildingType === BUILDING_TYPES.WeaponSmith || buildingType === BUILDING_TYPES.PawnShop)) {
     for (const it of crossbowShelfStock(buildingType === BUILDING_TYPES.WeaponSmith ? 'WeaponSmith' : 'PawnShop', quality, rolls)) addItem(items, it);
   }
+  for (const it of heavyGearShelfStock(buildingType === BUILDING_TYPES.WeaponSmith ? 'WeaponSmith' : buildingType === BUILDING_TYPES.GeneralStore ? 'GeneralStore' : buildingType === BUILDING_TYPES.PawnShop ? 'PawnShop' : null, shelfIndex, quality, rolls)) addItem(items, it);   // BUNNYFALL: a good Weapon Smith's Royal Ballista, a General Store's and a Pawn Shop's hook
   // ENDLESS PROVISIONS: a General Store's and a Pawn Shop's counter shelf has a Campfire Kit and a full stack of Rations in
   // every tier, Climates & Calories Off and offline too - after DFU's draws, from no roll. Online a purchase stands them
   // again (restockEndless); offline they sell out until the day's restock, as the rest of the shelf does (ENDLESS-STOCK F4)

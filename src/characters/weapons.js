@@ -14,6 +14,7 @@ import { SKILLS } from '../systems/skills.js';   // GetWeaponSkillIDAsShort's re
 import { SOUND } from '../systems/soundClips.js';   // F023: GetEquipSound's clips (soundClips is a leaf)
 import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE, PISTOLET_SPAN } from './thunderlockIds.js';
 import { CROSSBOW_TEMPLATE, CROSSBOW_SPAN } from './crossbowIds.js';   // BUNNYFALL: the crossbow
+import { BALLISTA_TEMPLATE, BALLISTA_SPAN, GRAPPLE_TEMPLATE } from './heavyGearIds.js';   // BUNNYFALL: the Royal Ballista and the grappling hook
 import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: a custom weapon class answers its own skill, damage and equip sound (virtuals)   // the port's own weapon - a leaf, so no cycle (see the file)
 
 export const WEAPONS = Object.freeze({
@@ -100,6 +101,8 @@ export function weaponMinDamage(weapon) {
   if (weapon === THUNDERLOCK_TEMPLATE) return THUNDERLOCK_SPAN.min;   // THE DEPARTURE, below
   if (weapon === PISTOLET_TEMPLATE) return PISTOLET_SPAN.min;   // PISTOLET: the second gun's, the same departure
   if (weapon === CROSSBOW_TEMPLATE) return CROSSBOW_SPAN.min;   // BUNNYFALL: the crossbow, the Long Bow's span x1.6
+  if (weapon === BALLISTA_TEMPLATE) return BALLISTA_SPAN.min;   // BUNNYFALL: the Royal Ballista (characters/heavyGearIds.js)
+  if (weapon === GRAPPLE_TEMPLATE) return 1;   // BUNNYFALL: the grappling hook is never swung (combat/grapple/grapple.js)
   const cls = customItemClass(weapon);   // RRI1: GetBaseDamageMin
   if (cls?.baseDamageMin) return cls.baseDamageMin();
   const o = _damageOverride.min?.(weapon);   // TryGetOverride("CalculateWeaponMinDamage") - RRI2's weaponBalance registers one
@@ -135,6 +138,8 @@ export function weaponMaxDamage(weapon) {
   if (weapon === THUNDERLOCK_TEMPLATE) return THUNDERLOCK_SPAN.max;   // THE DEPARTURE, below
   if (weapon === PISTOLET_TEMPLATE) return PISTOLET_SPAN.max;   // PISTOLET
   if (weapon === CROSSBOW_TEMPLATE) return CROSSBOW_SPAN.max;   // BUNNYFALL: the crossbow
+  if (weapon === BALLISTA_TEMPLATE) return BALLISTA_SPAN.max;   // BUNNYFALL: the Royal Ballista
+  if (weapon === GRAPPLE_TEMPLATE) return 2;   // BUNNYFALL: the grappling hook
   const cls = customItemClass(weapon);   // RRI1: GetBaseDamageMax
   if (cls?.baseDamageMax) return cls.baseDamageMax();
   const o = _damageOverride.max?.(weapon);   // TryGetOverride("CalculateWeaponMaxDamage")
@@ -190,6 +195,7 @@ export function weaponSkillUsed(templateIndex) {
   // any of them learning that a new weapon exists.
   if (templateIndex === THUNDERLOCK_TEMPLATE) return SKILLS.Archery;
   if (templateIndex === CROSSBOW_TEMPLATE) return SKILLS.Archery;   // BUNNYFALL: the crossbow is an archery weapon
+  if (templateIndex === BALLISTA_TEMPLATE) return SKILLS.Archery;   // BUNNYFALL: and so is the Royal Ballista
   if (templateIndex === PISTOLET_TEMPLATE) return SKILLS.Archery;   // PISTOLET: fired, and it spends the Pellet - the same answer
   const cls = customItemClass(templateIndex);   // RRI1: GetWeaponSkillUsed
   if (cls?.weaponSkillUsed) return SKILLS[cls.weaponSkillUsed];

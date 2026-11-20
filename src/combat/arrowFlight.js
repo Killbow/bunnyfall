@@ -41,6 +41,7 @@ import { sparedByPlayer } from './friendlyFire.js';   // SHIPMATES: the player's
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
 import { blowMult, scaleBlowDamage, playerBody, tellTechniqueLanded } from './technique/techniqueBlow.js';   // TECH1: a technique's shaft - its weight, and never a player's body
 import { takeOwed } from '../systems/playerDoor.js';   // AUDIT MARTIAL L2 F5: the follow-ups a shaft owes a body the relay runs
+import { boltMeta, bendBolt, ballistaBurst } from './ballista/ballistaFlight.js';   // BUNNYFALL: the Royal Ballista's bolt - its arc and its burst
 import { monsterVolume } from '../systems/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
 
 export const ARROW_MODEL_ID = 99800;
@@ -235,7 +236,7 @@ export class ArrowFlight {
     const origin = meta.fromPlayer
       ? playerShotOrigin(from, dir, meta.muzzle)
       : [...from];
-    this.arrows.push({ pos: origin, dir: [...dir], age: 0, gpu: null, dead: false, orb, orbFlat: null, ...meta });   // ROAD-H H1c: a PLAYER shaft leaves the BOW HAND - GetAimPosition (DaggerfallMissile.cs:540-550) offsets the camera position 0.11 DOWN the camera's own up and 0.15 to the hand (the other way under FPSWeapon.FlipHorizontal), and it runs INSIDE the missile in DFU (:471), so it runs here rather than at each host's loose; an ENEMY shaft arrives with its own origin already applied (enemyTargets.enemyArrowOrigin)
+    this.arrows.push({ pos: origin, dir: [...dir], age: 0, gpu: null, dead: false, orb, orbFlat: null, ...meta, ...boltMeta(meta.weapon, dir, !!meta.peerBolt) });   // BUNNYFALL: a ballista's bolt (or a peer's) flies on an arc   // ROAD-H H1c: a PLAYER shaft leaves the BOW HAND - GetAimPosition (DaggerfallMissile.cs:540-550) offsets the camera position 0.11 DOWN the camera's own up and 0.15 to the hand (the other way under FPSWeapon.FlipHorizontal), and it runs INSIDE the missile in DFU (:471), so it runs here rather than at each host's loose; an ENEMY shaft arrives with its own origin already applied (enemyTargets.enemyArrowOrigin)
   }
 
   tick(dt, ctxOf) {
@@ -274,6 +275,7 @@ export class ArrowFlight {
       }
       m.age += dt;
       if (m.age > MISSILE_LIFESPAN_S) { m.dead = true; continue; }
+      bendBolt(m, dt);   // BUNNYFALL: a ballista's bolt falls as it flies (combat/ballista/ballistaFlight.js)
       const step = (m.orb ? MISSILE_SPEED : ARROW_FLIGHT_SPEED) * (m.speedScale ?? 1) * dt;   // TELL6d: an aimed shot flies x1.3 as fast; BAL-ARCHERY: a shaft, not a gun's orb
       const { unit, reach } = missileReach(m.dir, step);   // ROAD-H tail: displacement.magnitude + ColliderRadius along the NORMALISED direction (DaggerfallMissile.cs:333 builds the displacement, :337 casts it - an ARROW always takes that Raycast arm, never the :339 SphereCast) - a crouch-dipped shaft carries |dir| > 1
       // TACT1: a tree, a crate - cover stops a shaft; AUDIT TACT B5: by touch, the bodies before it tested first
@@ -360,6 +362,7 @@ export class ArrowFlight {
       // heightAt fallback floor) - an arrow at or under it has landed.
       if (c && m.pos[1] <= c.heightAt(m.pos[0], m.pos[2])) { if (from) this._stick(m, groundEntry(from, m.pos, c), m.dir); m.dead = true; }   // STUCK-ARROWS: in the ground where the step crossed it
     }
+    for (const m of this.arrows) if (m.dead && m.arc && !m.burst) ballistaBurst(m, { targets: foeTargets ?? [], hit: onPlayerArrowHitFoe, effects: this._effects });   // BUNNYFALL: a landed bolt bursts - through the same player-arrow door
     if (!live && this.arrows.length) { for (const m of this.arrows) this._releaseOrb(m); this.arrows.length = 0; }
   }
 
