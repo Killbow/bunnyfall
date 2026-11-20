@@ -494,6 +494,7 @@ import { realWindowsMode, createViewOut, viewOutFrame } from '../render/realWind
 import { raiseContainerLootSpawned } from '../systems/containerLoot.js';   // FORAGE3: PlayerActivate.OnLootSpawned, one home - RRI2's shelf subscribers first (bandage stacks, store-quality wear, the alchemist's potions), then Foraging's
 import { bedSleepingOn, rrDouseOnDungeonExit, rrRefinedTrainingOn, rrSetting } from '../systems/roleplayRealism/rrRealism.js';   // RR1: the bed's activation gate, the douse on leaving a dungeon; RR2: the refined training window's switches
 import { rrVariantPerson } from '../systems/roleplayRealism/rrVariants.js';   // RR2: the variant keepers and residents
+import { flatReplacementFor, flatReplacerPortrait } from '../systems/flatReplacer/flatReplacer.js';   // WEEB1: Flat Replacer's pick and portrait
 import { chairSeatOf, chairProbeOver, CHAIR_KIND, CHAIR_FLOOR_STEP } from '../world/chairSeat.js';   // SIT1: where on a chair the sitter's body goes
 import { isLampKeeper, lampLines, LAMP_TEXT, createLampTitle } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a shop's keeper standing as the lamp, its words and its title
 import { bunnyGuildOfFaction, hallTypeOf } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls
@@ -2102,6 +2103,7 @@ export function createWorldModes(host) {
     get race() { const i = interiorBuilding?.regionIndex ?? host.currentRegionIndex?.() ?? -1; return REGION_RACES[i] != null ? REGION_RACES[i] + 1 : null; },
   };
   const standingLook = (pn) => {
+    if (pn.flatSwap) return null;   // WEEB1: a person Flat Replacer stood as a mod's picture keeps that picture
     if (pn._mwLook !== undefined) return pn._mwLook;
     const dict = townTalk?.factionDict ?? null;
     if (!dict) return null;
@@ -5947,12 +5949,12 @@ export function createWorldModes(host) {
    *  hosts spread the whole pipeline now. */
   function staticNpcPortrait(npcData) {
     if (npcData && talkedTo.get(npcData)?.magicKeeper) return { archive: 'BunnyfallNyx', record: 0 };   // MAGIC-TAVERN: Nyx's own face, not a bartender's
-    const portrait = portraitIndexFromStaticNPCBillboard(npcData, {
+    const pn = npcData ? talkedTo.get(npcData) : null;
+    const portrait = flatReplacerPortrait(pn, townTalk?.factionDict?.get(npcData?.factionID ?? 0) ?? null) ?? portraitIndexFromStaticNPCBillboard(npcData, {   // WEEB1: a Flat Replacer record's portrait first
       factionData: townTalk?.factionDict?.get(npcData?.factionID ?? 0) ?? null,
       flatFaceIndex: pipeline.flatFaceIndex,
     });
     // PORTRAIT3D: and the look this NPC's body stands in (peopleBodies.js personLook) - its face the head that body wears
-    const pn = npcData ? talkedTo.get(npcData) : null;
     return pn && portrait ? { ...portrait, head: standingLook(pn) } : portrait;
   }
   /** PORTRAIT3D: the person a click's NPCData was made for - the talk window's face is theirs. */
@@ -8770,6 +8772,7 @@ export function createWorldModes(host) {
             region: hit.dfLocation?.regionIndex ?? null,   // REGIONAL-FOLK: a Redguard region's residents are Redguards
             worldClimate: hit.dfLocation?.climate?.worldClimate ?? null,   // AUDIT-RR F13: `climate` IS the settings object; its worldClimate (223-232) is what GetWorldClimateSettings takes - climateType (0-3) fell to the Breton arm everywhere
           }),
+          flatReplacement: (pn) => flatReplacementFor(pn, { region: hit.dfLocation?.regionIndex ?? -1, building: building ? { factionId: building.factionId, buildingType: building.buildingType, quality: building.quality } : null, socialGroup: townTalk?.factionDict?.get(pn.factionID ?? 0)?.sgroup ?? -1, nameSeed: staticNpcData(pn, { ...(questSceneCtx?.() ?? {}), buildingKey: building?.buildingKey ?? 0 }).nameSeed }),   // WEEB1: Flat Replacer (Weeberfall's townsfolk)
           // ROAD-C c2/S9: SetupBeacons(door)'s building arm - the
           // entrance beacon stands at the door walked through
           // (Automap.cs:1450-1457), with rayEntrancePosOffset (0,0,0).

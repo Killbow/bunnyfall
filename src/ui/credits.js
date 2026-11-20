@@ -108,6 +108,36 @@ export const CREDITS = Object.freeze({
     }),
   ]),
   mods: Object.freeze([
+    // MODPACK1 / WEEB1: the two mods a player attaches from their own downloads (none of their art ships with the game),
+    // and the framework whose law the port follows to stand Weeberfall's townsfolk
+    Object.freeze({
+      title: 'Paperdoll Enhanced',
+      version: '1.2.0',
+      author: 'Barbariank, jodzie, TheCausedMarlin',
+      get what() { return t('credits.pde.what', 'Hand-drawn paperdolls for female characters. Attached by the player from the mod\u2019s own download; none of its art ships with the game. Pieces it does not draw in every metal are recoloured from its own art.'); },
+      get terms() { return t('credits.pde.terms', 'Not distributed with the game. Each player supplies their own copy.'); },
+      get contact() { return t('credits.contact.manifest', '{contact}', { contact: 'nexusmods.com/daggerfallunity/mods/748' }); },
+      vendor: Object.freeze([]),
+      link: 'https://www.nexusmods.com/daggerfallunity/mods/748',
+    }),
+    Object.freeze({
+      title: 'Weeberfall',
+      author: 'Weeberfall\u2019s authors',
+      get what() { return t('credits.weeb.what', 'Art and townsfolk, attached by the player from the mod\u2019s own download; none of its art ships with the game. Its Dibellan Degeneracy add-on has a switch of its own.'); },
+      get terms() { return t('credits.weeb.terms', 'Not distributed with the game. Each player supplies their own copy.'); },
+      get contact() { return t('credits.contact.manifest', '{contact}', { contact: 'nexusmods.com/daggerfallunity' }); },
+      vendor: Object.freeze([]),
+      link: 'https://www.nexusmods.com/daggerfallunity',
+    }),
+    Object.freeze({
+      title: 'Flat Replacer',
+      author: 'Numidium3rd',
+      get what() { return t('credits.flatReplacer.what', 'How a mod\u2019s townsfolk replace the NPCs in buildings: which picture, portrait and name each one gets. Its rules are followed for Weeberfall\u2019s townsfolk.'); },
+      get terms() { return t('credits.flatReplacer.terms', 'Its rules followed under its MIT License (Copyright (c) 2020 numidium).'); },
+      get contact() { return t('credits.contact.manifest', '{contact}', { contact: 'github.com/numidium/dfu-mods' }); },
+      vendor: Object.freeze([]),
+      link: 'https://github.com/numidium/dfu-mods/tree/master/FlatReplacer',
+    }),
     Object.freeze({
       title: 'Meaner Monsters',
       version: '1.5.2',

@@ -1205,6 +1205,7 @@ async function registerTextureStoreNow({ warm }) {
     { setDfmodSources, setDfmodDetailSource },
     { installVanillaEnhancedPack },
     { getPref },
+    { registerModPacks },
   ] = await Promise.all([
     import('../systems/textureReplacement.js'),
     import('../systems/seasonsIliacBayAssets.js'),
@@ -1213,6 +1214,7 @@ async function registerTextureStoreNow({ warm }) {
     import('../systems/dfmodTextures.js'),
     import('../systems/vanillaEnhanced/vanillaEnhancedPack.js'),
     import('../systems/uiPrefs.js'),
+    import('../systems/modPacks/modPacks.js'),   // MODPACK1
   ]);
   setDfmodDetailSource(() => getPref('dfmodTextureDetail'));   // DFMOD2: the packs card's detail choice
   installVanillaEnhancedPack();   // VE4: the shipped mods, in one load order with the attached
@@ -1222,6 +1224,7 @@ async function registerTextureStoreNow({ warm }) {
   setDiverseWeaponsSources(names, loadTextureFile);   // DW1: Diverse Weapons' bundle, a sprite set per weapon
   const seasons = setSeasonsSources(names, loadTextureFile);   // SIB1: the mod's own files (its bundle counts one)
   const mods = await setDfmodSources(names, loadTextureFile, { saveIndex: saveTextureJson, loadBlob: loadTextureBlob, warm });   // DFMOD1: every other bundle; DFMOD2: by range, warmed at a host's boot
+  await registerModPacks(names, loadTextureFile).catch((e) => console.warn('[modpacks] registration failed:', e?.message ?? e));   // MODPACK1: what each pack brought; Weeberfall's Flat Replacer files
   return n + seasons + mods;
 }
 /** DFMOD1: a small JSON beside the bundles (a bundle's name index), as a Blob in the texture store. */
@@ -1312,6 +1315,100 @@ export async function pickDfmodFiles() {
   });
 }
 
+// ---- MODPACK1: PAPERDOLL ENHANCED AND WEEBERFALL, EACH FROM ITS DOWNLOAD (systems/modPacks/modPacks.js) ----------------
+
+const baseName = (path) => String(path).split('/').pop();
+async function loadTextureJson(key) {
+  try { const b = await loadTextureFile(key); return b ? JSON.parse(new TextDecoder().decode(b)) : null; } catch { return null; }
+}
+
+/** Store what a pack's downloads carry (`files`: .zip, .7z or .dfmod files) and write it into the pack's manifest.
+ *  Answers what was added; throws with a sentence a player can read when nothing in them is the pack's. */
+export async function storeModPackFiles(id, files, progress = null) {
+  const packs = await import('../systems/modPacks/modPacks.js');
+  const { readArchive } = await import('../systems/modPacks/archiveReader.js');
+  const { dfmodIndexKey } = await import('../systems/dfmodTextures.js');
+  const pack = packs.MOD_PACKS[id];
+  const other = Object.values(packs.MOD_PACKS).filter((p) => p.id !== id && p.guid);
+  const add = { dfmods: [], loose: [], flat: [], addon: [] };
+  for (const f of files) {
+    let entries;
+    if (/\.dfmod$/i.test(f.name)) entries = [{ name: f.name, size: f.size, blob: async () => f }];
+    else {
+      progress?.(`opening ${f.name}...`);
+      entries = await readArchive(f, { onProgress: (n, total) => progress?.(`unpacking ${f.name}: ${total ? Math.floor((100 * n) / total) : 0}%`) });
+    }
+    const c = packs.classifyModPackEntries(entries);
+    for (const e of [...c.dfmods, ...c.flat, ...c.addon, ...c.loose]) e.want?.();   // a 7z decodes each solid block once
+    for (const e of c.dfmods) {
+      const key = packs.modPackDfmodKey(id, e.name);
+      progress?.(`unpacking ${baseName(e.name)}...`);
+      const blob = await e.blob();
+      await storeDfmodFiles([new globalThis.File([blob], key.slice('dfmod/'.length))], progress);
+      const index = await loadTextureJson(dfmodIndexKey(key));
+      const wrongPack = pack.guid ? index?.guid !== pack.guid && !pack.titleWord.test(index?.title ?? '') : other.some((p) => index?.guid === p.guid);
+      if (wrongPack) {
+        await deleteAssets(TEXTURE_STORE, [key, dfmodIndexKey(key)]);
+        throw new Error(`${baseName(e.name)} is not ${pack.title}${index?.title ? ` (it is ${index.title})` : ''}`);
+      }
+      add.dfmods.push(key);
+    }
+    for (const e of [...c.flat, ...c.addon]) (c.addon.includes(e) ? add.addon : add.flat).push({ name: baseName(e.name), text: await (await e.blob()).text() });
+    if (c.loose.length) {
+      progress?.(`storing ${c.loose.length} loose textures...`);
+      const loose = [];
+      for (const e of c.loose) loose.push(new globalThis.File([await e.blob()], baseName(e.name)));
+      await storeTextureFiles(loose);
+      add.loose.push(...loose.map((x) => x.name));
+    }
+  }
+  if (!add.dfmods.length && !add.flat.length && !add.addon.length && !add.loose.length) {
+    throw new Error(`nothing of ${pack.title} in ${[...files].map((x) => x.name).join(', ')} (no .dfmod, FlatReplacements or Textures folder inside)`);
+  }
+  const key = packs.modPackManifestKey(id);
+  await saveTextureJson(key, JSON.stringify(packs.mergeManifest((await loadTextureJson(key)) ?? packs.emptyManifest(id), add)));
+  return add;
+}
+
+/** MODPACK1: the pack section's Attach - its downloads, as they came. */
+export async function pickModPack(id) {
+  const { MOD_PACKS } = await import('../systems/modPacks/modPacks.js');
+  const pack = MOD_PACKS[id];
+  const blurb = id === 'pde'
+    ? `<p>Pick <b>Paperdoll Enhanced</b> as you downloaded it: its <b>.7z</b> or
+      <b>.zip</b>, or the <b>.dfmod</b> inside. Nothing is uploaded. It is stored in this browser.</p>
+      <p style="color:#999">It dresses female characters' paperdolls. Male characters keep the classic paperdoll
+      (the mod has no male art).</p>`
+    : `<p>Pick <b>Weeberfall</b> as you downloaded it: its <b>.zip</b> or <b>.7z</b> (or the <b>.dfmod</b>), and its
+      <b>Flat Replacements</b> download if it came separately. Pick its <b>Dibellan Degeneracy</b> add-on here too, then
+      switch it on in this section. Nothing is uploaded. It is stored in this browser.</p>
+      <p style="color:#999">Where Weeberfall and Paperdoll Enhanced dress the same thing, Weeberfall's is drawn.
+      Big downloads take a while the first time.</p>`;
+  return pickAssetFolder({
+    title: `Attach ${pack.title}`,
+    blurb,
+    store: (files, progress) => storeModPackFiles(id, files, progress),
+    register: registerTextureStore,
+    directory: false,
+    accept: '.zip,.7z,.dfmod',
+    doneText: `${pack.title} attached. It takes full effect the next time an area loads.`,
+  });
+}
+
+/** MODPACK1: take a pack out - everything its manifest names, and (Paperdoll Enhanced) its .dfmod however attached. */
+export async function removeModPack(id) {
+  const packs = await import('../systems/modPacks/modPacks.js');
+  const { dfmodIndexKey, forgetDfmodOff, attachedDfmods } = await import('../systems/dfmodTextures.js');
+  const pack = packs.MOD_PACKS[id];
+  const m = (await loadTextureJson(packs.modPackManifestKey(id))) ?? packs.emptyManifest(id);
+  const dfmods = new Set(m.dfmods ?? []);
+  if (pack.guid) for (const d of attachedDfmods()) if (!d.shipped && d.guid === pack.guid) dfmods.add(d.key);
+  const keys = [...dfmods, ...[...dfmods].map(dfmodIndexKey), ...(m.loose ?? []), packs.modPackManifestKey(id)];
+  await deleteAssets(TEXTURE_STORE, keys);
+  forgetDfmodOff([...dfmods]);
+  return registerTextureStore();
+}
+
 /** DFMOD1: remove one attached bundle (and its index). */
 export async function removeStoredDfmod(key) {
   const { dfmodIndexKey, forgetDfmodOff } = await import('../systems/dfmodTextures.js');
@@ -1330,7 +1427,8 @@ export async function clearStoredDfmods() {
 /** DFMOD1: REMOVE THE TEXTURE PACK - the loose files a folder pick stored (DFU-named PNGs, a mod's Textures
  *  folders); the attached .dfmod bundles stay (they have their own removal). */
 export async function clearStoredTexturePack() {
-  const names = (await storedTextureNames()).filter((n) => !n.startsWith('dfmod/') && !n.startsWith('dfmod-index/'));
+  const owned = (await import('../systems/modPacks/modPacks.js')).modPackOwnedKeys();   // MODPACK1: a pack's loose files are its section's to remove
+  const names = (await storedTextureNames()).filter((n) => !n.startsWith('dfmod/') && !n.startsWith('dfmod-index/') && !n.startsWith('modpack/') && !owned.has(n));
   await deleteAssets(TEXTURE_STORE, names);
   await registerTextureStore();
   return names.length;

@@ -6,6 +6,17 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-20
 
 - Fixed a crash on farms: harvesting any of the new crops (corn, cabbage, tomatoes, sunflowers, berries, desert root, flax, gourds, grapes) crashed the game when its sacks were drawn. Every crop now has a sack.
+- The chat has a new look: tidier tabs, small icon buttons in its top bar (pop out, hide, close), quieter grey system lines, small times in their own column, and a compact message row. The text stays the same size when you resize the chat: a bigger chat shows more lines instead of bigger letters.
+- Chat scrolling is smoother: it stays on the newest line while you are at the bottom, it no longer jumps while you read older lines, and a "new messages ↓" pill takes you back down. The scrollbar is slim.
+- Clicking a name in the chat or in the player list opens a small menu instead of a long stack of buttons: Whisper, Add friend, Invite to party and Follow first. Staff tools and the report reasons are each tucked under one entry.
+- The chat can pop out into its own window with the ⧉ button in its top bar. It stays live there: you can read and send as normal. Close that window, or press ⇲ in it, to bring the chat back into the game.
+- Weeberfall townsfolk with orc-style names (Orsinium's orcs and a few others) now have names. They showed none, so their plaques were empty and a tavern shift's customers went unnamed.
+- Gestures have more to see and hear: a plate over the speaker's head says what they did ("Bran hugs Ann."), hearts orbit hugs and kisses, high fives and cheers burst into sparks, waves and bows sweep, and a soft glow blooms on each body. When a gesture is yours or aimed at you, the plate shows high on the screen and its edge glows. A chime answers warm gestures, a click the brisk ones.
+- The emote wheel is dressed like the game's own wheels: stone and brass in Enhanced, dark wood and gold in Classic, with softened pictures that light up under the mouse and each slot's number key shown.
+- Hugs, pats, kisses and the other gestures no longer ask first: they are just said on Local. /accept, /decline, /untouch and /touchlist are gone.
+- Paperdoll Enhanced and Weeberfall each have their own section under Replacement packs. Attach the mod's download as it came (its .zip or .7z, or the .dfmod inside): no unpacking needed. Where both dress the same thing, Weeberfall's is drawn.
+- Weeberfall's townsfolk: with its Flat Replacements files attached, the people in shops, temples, guilds and homes wear its art, with their own talk portraits and names. Its Dibellan Degeneracy add-on has its own switch in the Weeberfall section (off until you turn it on).
+- Paperdoll Enhanced dresses female characters; male characters keep the classic paperdoll. Helmets, shields and chain greaves it has no picture for in your metal are recoloured from its own art instead of showing a low-detail classic piece, and two Formal Brassiere styles it lacks borrow a neighbouring style. Turn this off with "Fill in missing pieces" in its section.
 - Vampires, the visual pass: every vampire screen is now a real window in your chosen look, stone and brass in Enhanced Plus, dark wood and gold in Classic, instead of plain message boxes. Each clan has its own crest and colour, each kind of blood its own glyph and colour.
 - Blood Sight is a card: the victim's blood glyph, its kind and quality on a meter, who can see you, and each choice as an illustrated card. Feeding ends in a red flash and shows your Vitae and the Beast after.
 - The Haven shows each prisoner with health and misery bars, each servant with rank, loyalty, duty and errand progress (and its kit right under it), and each enthralled townsperson with their perk. The Court shows its crest, your strikes as pips, the tithe, a Blood Hunt banner and the Masquerade as heat bars; while bitten, you see all nine bloodlines side by side.
@@ -31,6 +42,10 @@ the last release (scripts/changelogNotes.mjs).
 - Touch gestures ask first, once: when you hug, pat or kiss someone they get a question; /accept lets you do it any time from then on, /decline says no this time, /untouch <name> takes the leave back, and /touchlist shows who has it. Blocked players are never answered.
 - An Emotes row on the player menu (hold the interact key on someone) opens a wheel of eight gestures: hug, pat, kiss, high five, handshake, comfort, wave and bow. Click one or press 1 to 8.
 
+
+## 2026-11-20
+
+- Sifrit the Forbidden One now stands exactly as tall as a player (she was still almost three times too tall, which made the elite dungeons feel cramped and let her clip through walls).
 
 ## 2026-11-19
 
