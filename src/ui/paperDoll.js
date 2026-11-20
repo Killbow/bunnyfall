@@ -49,7 +49,9 @@ import { getBool } from '../systems/settings/settings.js';   // UI3: EnableGeogr
 import { EQUIP_SLOTS, equipTableOf, getItemHands, ITEM_HANDS } from '../systems/equip.js';
 import { getTemplate, paperdollOrder } from '../characters/paperdoll/paperdoll.js';
 import { applyDyeToIndex, DYE_TARGETS, DYE_COLORS, CLOTHING_DYES } from '../characters/dyes.js';
-import { decodedTextureTopDown, preloadTextureRecord, textureReplacementRect } from '../systems/textureReplacement.js';
+import { decodedTextureTopDown, preloadTextureRecord, textureReplacementRect, hasTextureReplacement } from '../systems/textureReplacement.js';
+import { pdeGapFillOn } from '../systems/modPacks/modPacks.js';   // MODPACK1: Paperdoll Enhanced's missing pieces
+import { pdeGap, recolourMetal, learnMetalRamp, PDE_REFERENCE_RECORDS } from '../systems/modPacks/pdeGapFill.js';
 import { dfmodImgImage, dfmodCifRciImage, dfmodCifRciRect, dfmodGeneration, resampleRgba, dfmodCarriesDollArt } from '../systems/dfmodTextures.js';   // DFMOD1: an attached mod's backdrop, body, head and hi-res items   // DW3: GetItemImage's import arm, by the item's dye; AUDIT-DW F1: decoded when the doll asks
 import { itemDyeColor, itemDyeTarget } from '../systems/item/itemDye.js';   // DW3: DaggerfallUnityItem.dyeColor, as the port's items carry it
 import { ARTIFACT_MALE_TEXTURE_ARCHIVE, ARTIFACT_FEMALE_TEXTURE_ARCHIVE } from '../systems/loot/loot.js';   // ART-DOLL: an artifact's own doll archive
@@ -627,7 +629,7 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
     const it = table[slot];
     if (!it || !CLOAK_TEMPLATES.has(it.templateIndex)) continue;
     const t = getTemplate(it.templateIndex);
-    const img = await loadRecord(t.playerTextureArchive + (raceByKey(deps.race)?.morphologyIndex ?? HUMAN_MORPHOLOGY), t.playerTextureRecord, deps.getTexture, itemDyeColor(it), S);
+    const img = await loadRecord(t.playerTextureArchive + (raceByKey(deps.race)?.morphologyIndex ?? HUMAN_MORPHOLOGY), t.playerTextureRecord, deps.getTexture, itemDyeColor(it), S, art.palette);
     if (img) {
       if (img.bmp?.rgba) blitRgba(out, img, { under, S });   // DFMOD4: a mod's cloak lining is truecolor
       else blit(out, img, art.palette, { remap: (i) => applyDyeToIndex(i, it.dye ?? DYE_COLORS.Blue, DYE_TARGETS.Clothing), under, S });
@@ -673,7 +675,7 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
   for (const it of ordered) {
     const res = paperdollItemImage(it, { gender: deps.gender, race: deps.race });
     if (!res) continue;
-    const img = await loadRecord(res.archive, res.record, deps.getTexture, itemDyeColor(drawnPiece(it)), S);   // DW3: the import ask is by item.dyeColor (an artifact's is Unchanged); the remap below stays res.dye. APPEARANCES-II: the drawn piece's - a look's record asked in the piece's metal drew Diverse Weapons' picture of it in the wrong one
+    const img = await loadRecord(res.archive, res.record, deps.getTexture, itemDyeColor(drawnPiece(it)), S, art.palette);   // DW3: the import ask is by item.dyeColor (an artifact's is Unchanged); the remap below stays res.dye. APPEARANCES-II: the drawn piece's - a look's record asked in the piece's metal drew Diverse Weapons' picture of it in the wrong one
     if (!img) continue;
     // FIELD-GUN4: a vendor-only archive has no indexed bitmap to blit
     // through the palette - it hands back RGBA instead, and it is the
@@ -744,7 +746,7 @@ export async function refreshPaperDoll(entity) {
 
 /** One TEXTURE.### record as an indexed bitmap + its baked offset
  *  (with DFU's 237/52+54 bad-offset fix). */
-async function loadRecord(archive, record, getTexture, dye = null, S = 1) {
+async function loadRecord(archive, record, getTexture, dye = null, S = 1, palette = null) {
   try {
     const tex = await getTexture(archive);
     if (!tex || record >= tex.recordCount) return null;
@@ -755,21 +757,35 @@ async function loadRecord(archive, record, getTexture, dye = null, S = 1) {
     // classic record's offset. It comes back in the RGBA shape the
     // vendor arm already blits (FIELD-GUN4), because it has no index.
     await preloadTextureRecord(archive, record, 0, 'Albedo', dye);   // AUDIT-DW F1: this record's, on demand
-    const swap = decodedTextureTopDown(archive, record, 0, 'Albedo', dye);
+    let swap = decodedTextureTopDown(archive, record, 0, 'Albedo', dye);
+    let picDye = dye;   // MODPACK1: the dye the picture - and its mask and rect - was found under
+    // MODPACK1 (systems/modPacks/pdeGapFill.js): Paperdoll Enhanced's missing pieces - a style it lacks borrows the next
+    // one, a metal it lacks is its own picture in another metal recoloured
+    const gap = !swap && palette && pdeGapFillOn() ? pdeGap(archive, record, dye) : null;
+    if (gap?.style != null && hasTextureReplacement(archive, gap.style, 0, 'Albedo', dye)) return loadRecord(archive, gap.style, getTexture, dye, S);
+    for (const m of gap?.metal ?? []) {
+      if (!hasTextureReplacement(archive, record, 0, 'Albedo', m)) continue;
+      await preloadTextureRecord(archive, record, 0, 'Albedo', m);
+      const src = decodedTextureTopDown(archive, record, 0, 'Albedo', m);
+      if (!src) continue;
+      swap = await recolouredPiece(archive, record, m, dye ?? DYE_COLORS.Unchanged, src, tex, palette);
+      picDye = m;
+      break;
+    }
     if (swap) {
       // RRI1: the MASK beside an imported texture (ItemHelper.cs:452-453,
       // TryImportTexture(..., TextureMap.Mask)): "alpha 0 is unmasked
       // areas of image and alpha 1 are masked areas" - the helmet's
       // hair cutout. Asked by the same name with `_Mask`; absent for
       // everything that has none.
-      let mask = (await preloadTextureRecord(archive, record, 0, 'Mask', dye)) ? decodedTextureTopDown(archive, record, 0, 'Mask', dye) : null;
+      let mask = (await preloadTextureRecord(archive, record, 0, 'Mask', picDye)) ? decodedTextureTopDown(archive, record, 0, 'Mask', picDye) : null;
       // DFMOD1: A HI-RES SPRITE TAKES ITS CLASSIC PLACE. The doll composes at 110x184, and a mod's paperdoll art is
       // several times that (DREAM's is 8x): drawn raw it covered the panel. DFU draws an imported item into the
       // classic record's rect, or the `<rect>` its xml gives (TextureReplacement.OverridePaperdollItemRect) - the
       // same here, box-filtered to that size. Same-size art (every vendored set) passes through untouched.
       let pic = { width: swap.width, height: swap.height, data: swap.rgba };
       let place = off;
-      const rect = textureReplacementRect(archive, record, 0, 'Albedo', dye);
+      const rect = textureReplacementRect(archive, record, 0, 'Albedo', picDye);
       const classic = tex.vendor ? (tex.getBox?.(record) ?? null) : tex.getSize(record);   // STUDIO1: a studio picture over a stand-in fits the stand-in's box
       // DFMOD4: fitted at S texels per doll pixel - the composite's own density - and marked so
       let scale = 1;
@@ -780,6 +796,35 @@ async function loadRecord(archive, record, getTexture, dye = null, S = 1) {
     }
     return { bmp: tex.getDFBitmap(record, 0), off };
   } catch { return null; }
+}
+
+/** MODPACK1: a recoloured Paperdoll Enhanced piece, kept per piece, metal and mod set (a doll recomposes often). The
+ *  colours are the mod's own, learned off a piece it draws in both metals (pdeGapFill.js learnMetalRamp). */
+const _recoloured = new Map();
+const _ramps = new Map();
+async function metalPairRamp(archive, from, to) {
+  const key = `${archive}_${from}_${to}_${dfmodGeneration()}`;
+  if (!_ramps.has(key)) {
+    _ramps.set(key, (async () => {
+      for (const r of PDE_REFERENCE_RECORDS) {
+        if (!hasTextureReplacement(archive, r, 0, 'Albedo', from) || !hasTextureReplacement(archive, r, 0, 'Albedo', to)) continue;
+        await Promise.all([preloadTextureRecord(archive, r, 0, 'Albedo', from), preloadTextureRecord(archive, r, 0, 'Albedo', to)]);
+        const ramp = learnMetalRamp(decodedTextureTopDown(archive, r, 0, 'Albedo', from), decodedTextureTopDown(archive, r, 0, 'Albedo', to));
+        if (ramp) return ramp;
+      }
+      return null;
+    })().catch(() => null));
+  }
+  return _ramps.get(key);
+}
+async function recolouredPiece(archive, record, from, to, src, tex, palette) {
+  const key = `${archive}_${record}_${from}_${to}_${dfmodGeneration()}`;
+  if (!_recoloured.has(key)) {
+    if (_recoloured.size > 64) _recoloured.clear();
+    const ramp = await metalPairRamp(archive, from, to);
+    _recoloured.set(key, recolourMetal(src, tex.getDFBitmap(record, 0), palette, from, to, ramp));
+  }
+  return _recoloured.get(key);
 }
 
 /** Draw the doll with the panel's top-left at virtual (x,y). */

@@ -246,6 +246,9 @@ export const PREF_DEFAULTS = Object.freeze({
   // (RA1/EE1, the AI, ECV1, WATER1, LV1, PERF1, LR1) is the row's note
   // now. Adding a switch is one row; nothing here.
   ...FEATURE_PREF_DEFAULTS,
+  // MODPACK1: Paperdoll Enhanced's missing pieces filled in (systems/modPacks/pdeGapFill.js); Weeberfall's Dibellan
+  // Degeneracy add-on off until the player turns it on (systems/flatReplacer/flatReplacer.js)
+  pdeFillGaps: true, weeberfallDibellan: false,
   textScale: 0,        // 0 = normal, 1 = large (buys a whole scale step)
   category: 'game',
   open: {},            // "video:stored" -> true

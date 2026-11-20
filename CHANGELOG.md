@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
 
+- Paperdoll Enhanced and Weeberfall each have their own section under Replacement packs. Attach the mod's download as it came (its .zip or .7z, or the .dfmod inside): no unpacking needed. Where both dress the same thing, Weeberfall's is drawn.
+- Weeberfall's townsfolk: with its Flat Replacements files attached, the people in shops, temples, guilds and homes wear its art, with their own talk portraits and names. Its Dibellan Degeneracy add-on has its own switch in the Weeberfall section (off until you turn it on).
+- Paperdoll Enhanced dresses female characters; male characters keep the classic paperdoll. Helmets, shields and chain greaves it has no picture for in your metal are recoloured from its own art instead of showing a low-detail classic piece, and two Formal Brassiere styles it lacks borrow a neighbouring style. Turn this off with "Fill in missing pieces" in its section.
 - Vampires, the visual pass: every vampire screen is now a real window in your chosen look, stone and brass in Enhanced Plus, dark wood and gold in Classic, instead of plain message boxes. Each clan has its own crest and colour, each kind of blood its own glyph and colour.
 - Blood Sight is a card: the victim's blood glyph, its kind and quality on a meter, who can see you, and each choice as an illustrated card. Feeding ends in a red flash and shows your Vitae and the Beast after.
 - The Haven shows each prisoner with health and misery bars, each servant with rank, loyalty, duty and errand progress (and its kit right under it), and each enthralled townsperson with their perk. The Court shows its crest, your strikes as pips, the tithe, a Blood Hunt banner and the Masquerade as heat bars; while bitten, you see all nine bloodlines side by side.
