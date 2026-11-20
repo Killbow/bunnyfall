@@ -24,6 +24,8 @@ import {
 } from '../../systems/vampire/bloodLaw.js';
 import { captureRefusal, takePrisoner, enthrallSocial, slotRefusal, isSocialThrall, socialPerk, guardHushes, thrallState, takeScouted } from '../../systems/vampire/thralls.js';   // PHASE 2
 import { socialRoleOf, mobileOfThrall, ENTHRALL_COST } from '../../systems/vampire/thrallLaw.js';
+import { noteBreach, watcherChance } from '../../systems/vampire/masquerade.js';   // PHASE 3: the Masquerade
+import { clanKissesAwake, clanKissCost } from '../../systems/vampire/clanLaw.js';   // PHASE 3: the clans' Kiss
 
 /** The chance in a hundred that one drunk from and left (no Kiss) cries for the watch. */
 export const REPORT_CHANCE = 35;
@@ -50,9 +52,9 @@ function sightRows(name, type, quality, seenCount) {
 /** PHASE 2: a social role's word. */
 const roleWord = (role) => (role === 'innkeeper' ? t('thrall.role.innkeeper', 'innkeeper') : role === 'guard' ? t('thrall.role.guard', 'watchman') : t('thrall.role.merchant', 'merchant'));
 /** The picker's rows, and the choice each means. PHASE 2: `extra` rows before Leave (take them, enthrall them). */
-function choices(canDrain, extra = []) {
+function choices(canDrain, extra = [], { kiss = true, kissCost = MIND_CLOUD_COST } = {}) {
   const list = [
-    { id: 'kiss', label: t('vampire.feed.kiss', 'The Kiss: drink, and cloud their memory (-{cost} Vitae)', { cost: MIND_CLOUD_COST }) },
+    ...(kiss ? [{ id: 'kiss', label: t('vampire.feed.kiss', 'The Kiss: drink, and cloud their memory (-{cost} Vitae)', { cost: kissCost }) }] : []),   // PHASE 3: never for a Khulari on one awake
     { id: 'drink', label: t('vampire.feed.drink', 'Drink, and leave them weakened') },
   ];
   if (canDrain) list.push({ id: 'drain', label: t('vampire.feed.drain', 'Drain them dry') });
@@ -77,8 +79,11 @@ function afterRows(fed, lead) {
  * `onSeen(kind)` the crime's own consequence ('assault' | 'murder'), `onReported()` a victim who cried out, `onDrain()`
  * the death, null where no death can be had. Answers the boxes to show after the pick.
  */
-function resolveChoice(entity, id, victim, { now, rolls, onSeen, onReported, onDrain, reportChance }) {
+function resolveChoice(entity, id, victim, { now, rolls, onSeen, onReported, onDrain, reportChance, onBreach = () => {} }) {
   if (id === 'leave') return [];
+  const seenThen = onSeen, reportedThen = onReported;
+  onSeen = (kind) => { onBreach(kind === 'murder' ? 'murder' : 'seen'); seenThen(kind); };   // PHASE 3: every breach heats the region
+  onReported = () => { onBreach('cried'); reportedThen(); };
   const seen = victim.seen > 0;
   const base = { type: victim.type, quality: victim.quality, now };
   if (id === 'kiss') {
@@ -101,6 +106,7 @@ function resolveChoice(entity, id, victim, { now, rolls, onSeen, onReported, onD
   if (id === 'drain' && onDrain) {
     const fed = feedVampire(entity, { ...base, kind: 'drain', deed: seen ? 'seen' : 'drained' });
     onDrain(seen);
+    if (!seen) onBreach('body');   // PHASE 3: a drained body is found
     if (seen) onSeen('murder');
     return [{ rows: afterRows(fed, t('vampire.feed.drained', 'You drain them dry. The body is cold before it falls.')) }];
   }
@@ -141,9 +147,13 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
   const res = person.living?.res ?? null;
   const role = socialRoleOf(person);
   const extra = [];
-  if (!victim.seen && res && canDrain && !captureRefusal(entity)) extra.push({ id: 'take', label: t('thrall.feed.take', 'Kiss them and take them to your Haven (-{cost} Vitae)', { cost: MIND_CLOUD_COST }) });
+  const clan = awakenedVampirism(entity)?.clan ?? null;
+  const kissAwake = clanKissesAwake(clan), kissCost = clanKissCost(clan, MIND_CLOUD_COST);   // PHASE 3: the clan's Kiss
+  if (kissAwake && !victim.seen && res && canDrain && !captureRefusal(entity)) extra.push({ id: 'take', label: t('thrall.feed.take', 'Kiss them and take them to your Haven (-{cost} Vitae)', { cost: kissCost }) });
   if (!victim.seen && res && role && !slotRefusal(entity) && !isSocialThrall(res.id)) extra.push({ id: 'enthrall', label: t('thrall.feed.enthrall', 'Enthrall them, your {role} in this town (-{cost} Vitae)', { role: roleWord(role), cost: ENTHRALL_COST }) });
-  const list = choices(canDrain, extra);
+  const list = choices(canDrain, extra, { kiss: kissAwake, kissCost });
+  const onBreach = (kind) => noteBreach(entity, regionIndex, kind, now);   // PHASE 3: the region's Masquerade
+  const watch = victim.seen ? 0 : watcherChance(regionIndex, now);
   // PHASE 2: a watchman among the vampire's thralls hushes one witnessed bite a day in their town (never a death)
   const onSeen = (kind) => {
     town?.caught?.(person);
@@ -151,20 +161,24 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
     crimeArm(entity, onCrime)(kind);
   };
   showBox({
-    rows: sightRows(victim.name, victim.type, victim.quality, victim.seen),
+    rows: [...sightRows(victim.name, victim.type, victim.quality, victim.seen), ...(watch ? [t('masq.feed.wary', 'This region is wary of your kind. There may be eyes you cannot see.')] : [])],
     onClick: () => [{
       picker: list.map((c) => c.label),
       onPick: (i) => {
         const c = list[i];
         if (c && c.id !== 'leave') FED_TODAY.add(fedKey(id, now));
         if (c && c.id !== 'leave' && scouted) takeScouted();
-        if (c?.id === 'take') return takeToHaven(entity, person, victim, now);
+        // PHASE 3: a hidden watcher - a window, a doorway - in a wary region
+        const spotted = !!c && c.id !== 'leave' && c.id !== 'enthrall' && watch > 0 && Math.floor(rolls() * 100) < watch;
+        if (spotted) victim.seen = 1;
+        const lead = spotted ? [{ rows: [t('masq.feed.spotted', 'A shutter bangs. Someone was watching.')] }] : [];
+        if (c?.id === 'take') { if (spotted) { onSeen('assault'); onBreach('seen'); return lead; } onBreach('taken'); return takeToHaven(entity, person, victim, now); }
         if (c?.id === 'enthrall') return enthrallHere(entity, person, role, now, regionIndex);
-        return resolveChoice(entity, c?.id ?? 'leave', victim, {
-          now, rolls, onSeen, reportChance: REPORT_CHANCE,
+        return [...lead, ...resolveChoice(entity, c?.id ?? 'leave', victim, {
+          now, rolls, onSeen, reportChance: REPORT_CHANCE, onBreach,
           onReported: () => { town?.caught?.(person); crimeArm(entity, onCrime)('assault'); },
           onDrain: canDrain ? () => { town.slain(person); town.retire(person); } : null,
-        });
+        })];
       },
       onCancel: () => [],
     }],
@@ -205,7 +219,7 @@ export function sleeperHere(entity, building) {
  * @param {{ entity: any, building: { key: number, town: any } | null, now: number, showBox: (box: any) => void,
  *   say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
  */
-export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, rolls = Math.random }) {
+export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, rolls = Math.random, regionIndex = -1 }) {
   if (!awakenedVampirism(entity) || !building?.town?.sleepersAt) return false;
   const { town, key } = building;
   const sleepers = town.sleepersAt(key);
@@ -214,7 +228,7 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
   if (!res) { say(t('vampire.feed.allPale', 'Everyone asleep here is already pale.')); return true; }
   const awake = town.insideAt?.(key, town._now)?.length ?? 0;
   const stealth = skillValue(entity, SKILLS.Stealth) ?? 0;
-  const seenChance = awake > 0 ? Math.max(5, Math.min(90, awake * 20 - Math.floor(stealth / 3))) : 0;
+  const seenChance = Math.min(90, (awake > 0 ? Math.max(5, awake * 20 - Math.floor(stealth / 3)) : 0) + watcherChance(regionIndex, now));   // PHASE 3: a wary region keeps a lamp lit
   const seen = !socialPerk('innkeeper', res.town) && Math.floor(rolls() * 100) < seenChance ? 1 : 0;   // PHASE 2: an innkeeper thrall in this town keeps the house quiet
   const pseudo = { living: { id: res.id, res }, nameNPC: res.name };
   const victim = { name: res.name, type: archetypeOfPerson(pseudo), quality: qualityOfPerson(pseudo), seen };
@@ -230,7 +244,7 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
         const c = list[i];
         if (c && c.id !== 'leave') FED_TODAY.add(fedKey(res.id, now));
         return resolveChoice(entity, c?.id ?? 'leave', victim, {
-          now, rolls, onSeen, reportChance: SLEEPER_WAKES,
+          now, rolls, onSeen, reportChance: SLEEPER_WAKES, onBreach: (kind) => noteBreach(entity, regionIndex, kind, now),   // PHASE 3
           onReported: () => { town.wokeBitten?.(res); crimeArm(entity, onCrime)('assault'); },
           onDrain: (wasSeen) => { town.slainAsleep?.(res, wasSeen); },
         });
@@ -248,7 +262,7 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
  * @param {{ entity: any, building: () => ({ key: number, town: any } | null), mode: () => string, now: () => number,
  *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void }} o
  */
-export function createVampireBeds({ entity, building, mode, now, showBox, say, onCrime }) {
+export function createVampireBeds({ entity, building, mode, now, showBox, say, onCrime, region = () => -1 }) {
   let at = -Infinity, was = false;
   const stamp = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   return {
@@ -262,7 +276,7 @@ export function createVampireBeds({ entity, building, mode, now, showBox, say, o
     /** The bed pressed: a feed when it is one (answers whether it took the press). */
     feed() {
       if (mode() !== 'steal') return false;
-      return feedOnSleeper({ entity, building: building(), now: Math.floor(now()), showBox, say, onCrime });
+      return feedOnSleeper({ entity, building: building(), now: Math.floor(now()), showBox, say, onCrime, regionIndex: region() });
     },
   };
 }

@@ -14,6 +14,7 @@ import { ActionTemplate } from '../quest/actions.js';
 import { isDayFromMinutes } from '../gameDate.js';
 import { skyMinutes, ownMinutes } from '../worldTick.js';
 import { awakenVampire, deedCount } from './vitae.js';
+import { penanceDone, courtWorkDone } from './masquerade.js';   // PHASE 3
 
 export class VampNight extends ActionTemplate {
   static typeName = 'VampNight';
@@ -67,4 +68,20 @@ export class VampAwaken extends ActionTemplate {
 
 /** The templates, in the order the bridge registers them (after DFU's and the questlines'; no other pattern claims a
  *  line beginning `vamp `). */
-export const vampireActionTemplates = () => [new VampNight(null), new VampClouded(null), new VampAwaken(null)];
+export const vampireActionTemplates = () => [new VampNight(null), new VampClouded(null), new VampAwaken(null), new VampPenance(null), new VampCourtWork(null)];
+
+// ── PHASE 3: the Courts' quests (QLVA02 penance, QLVA03 the Court's work) ─────────────────
+/** `vamp penance` - the Blood Hunt of the Court that gave the penance is lifted (masquerade.js penanceDone). */
+export class VampPenance extends ActionTemplate {
+  static typeName = 'VampPenance';
+  get pattern() { return /^\s*vamp penance\s*$/; }
+  createNew(source, parentQuest) { return this.test(source) ? new VampPenance(parentQuest) : null; }
+  update(_caller) { penanceDone(); this.setComplete(); }
+}
+/** `vamp courtwork` - the Court's work done: a strike forgiven (masquerade.js courtWorkDone). */
+export class VampCourtWork extends ActionTemplate {
+  static typeName = 'VampCourtWork';
+  get pattern() { return /^\s*vamp courtwork\s*$/; }
+  createNew(source, parentQuest) { return this.test(source) ? new VampCourtWork(parentQuest) : null; }
+  update(_caller) { courtWorkDone(); this.setComplete(); }
+}

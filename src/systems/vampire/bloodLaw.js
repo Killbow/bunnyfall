@@ -214,8 +214,8 @@ export function vitaeAfterFeed(vitae, gain, { fresh = true } = {}) {
 /** The blood a feed leaves the vampire with: the new blood when its quality beats the faded one held, else the one held.
  *  @param {{ type: string, quality: number } | null} held @param {string} type @param {number} quality
  *  @param {{ fresh?: boolean }} [o] */
-export function bloodAfterFeed(held, type, quality, { fresh = true } = {}) {
-  const q = Math.max(1, Math.min(fresh ? 100 : STALE_QUALITY_CAP, Math.round(quality)));
+export function bloodAfterFeed(held, type, quality, { fresh = true, staleCap = STALE_QUALITY_CAP } = {}) {
+  const q = Math.max(1, Math.min(fresh ? 100 : staleCap, Math.round(quality)));
   if (!held || q >= (held.quality ?? 0)) return { type, quality: q };
   return { ...held };
 }

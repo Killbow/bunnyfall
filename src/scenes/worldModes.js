@@ -7645,7 +7645,8 @@ export function createWorldModes(host) {
       const home = homeOf(bd);
       // HOME-PLAQUE: the door's verbs first - a nameless house with verbs to list is named "Residence", so its plaque
       // stands and lists them (it drew none, and the click fell through to HOME-OFFER's box at every house)
-      const houseVerbs = host.farmDoor ? host.farmDoor.rows(bd, homeDoorVerbs(bd, home), getInteractionMode(), homeDoorFor(bd, home) === 'locked') : homeDoorVerbs(bd, home);
+      const houseVerbs0 = host.farmDoor ? host.farmDoor.rows(bd, homeDoorVerbs(bd, home), getInteractionMode(), homeDoorFor(bd, home) === 'locked') : homeDoorVerbs(bd, home);
+      const houseVerbs = host.courtDoor ? host.courtDoor.rows(bd, houseVerbs0) : houseVerbs0;   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: a clan Court's back room, by night
       _doorText = staticDoorName('building', {
         displayName: home ? homeDoorTitle(home, questSiteHere(bd) && db.isOverrideName ? db.displayName : null) : homeDoorName(shownBuildingName(db, bd.name), !!houseVerbs),   // EMPIRE-BANK: a bank's name now; QUEST-RESIDENCE: a quest's home its name
         locationName: currentLocationName(),
@@ -7735,7 +7736,7 @@ export function createWorldModes(host) {
   /** The door's cached text also depends on state outside the door, so all of it goes into this key. It covers whether
    *  verbs are listed (Steal lists none), the decoration-hide version, and the live buy arm, whose lapse repaints the
    *  row back to "Buy it". It also covers the farm chore row (the farm book and the player's map pixel). */
-  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}|${host.farmDoor?.sig() ?? ''}|${host.haven?.rows().length ?? 0}`;   // BUNNYFALL VAMPIRE EXPANSION: the Haven's row comes with the awakening
+  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}|${host.farmDoor?.sig() ?? ''}|${host.haven?.rows().length ?? 0}|${host.courtDoor?.sig() ?? ''}`;   // BUNNYFALL VAMPIRE EXPANSION: the Haven's row comes with the awakening
   /** The door's verbs, or null: my own home's, or a house's I could buy (homeOfferPrice), in any mode but Steal. */
   function homeDoorVerbs(bd, home) {
     if (!host.onlineHomes || getInteractionMode() === 'steal') return null;
@@ -8000,6 +8001,7 @@ export function createWorldModes(host) {
       // player where DFU always has BuildingSummary.
       if (bd && bd.buildingType != null) {
         if (locId) discoverBuilding(locId, bd, null, questBuildingSource);   // AUDIT 63 F49: PlayerEnterExit.cs:1032's call takes the quest name-override arm (PlayerGPS.cs:945-959)
+        if (!isBash && host.courtDoor?.press(bd, verb)) return true;   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the Court's window
         if (!isBash && host.farmDoor?.press(bd, verb, { asked: homeAsked, listed, mode: getInteractionMode(), onward: () => activateStaticDoor(hit, entries, false, { listed }) })) return true;
         // After the farm chore check above, a player's home is handled before Daggerfall's lock ladder. Online, a
         // building the account service names as a player's home opens at any hour for its owner and for whoever the

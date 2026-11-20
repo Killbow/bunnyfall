@@ -32,6 +32,8 @@ import {
   MIND_CLOUD_COST, beastStageName, archetypeName,
 } from './bloodLaw.js';
 import { t } from '../textManager.js';
+import { STALE_QUALITY_CAP } from './bloodLaw.js';
+import { clanDrainMul, clanFeedMul, clanStaleCap, clanKissCost, clanStageShift, clanSkillMods } from './clanLaw.js';   // PHASE 3: the nine bloodlines
 import { VAMPIRE_AWAKENING_QUEST, startNamedRacialQuest, racialQuestLive } from '../racialQuests.js';
 
 /** Days after the turning before the Elder writes (own clock); a vampire already standing hears in ELDER_FIRST_DAYS. */
@@ -76,7 +78,7 @@ function settle(entry, nowMinutes) {
   const days = Math.max(0, nowMinutes - from) / MINUTES_PER_DAY;
   entry.vitaeAt = Math.max(from, nowMinutes);
   if (!(days > 0)) return;
-  entry.vitae = Math.max(0, (Number(entry.vitae) || 0) - days * VITAE_DRAIN_PER_DAY);
+  entry.vitae = Math.max(0, (Number(entry.vitae) || 0) - days * VITAE_DRAIN_PER_DAY * clanDrainMul(entry.clan));   // PHASE 3: Haarvenu's fever
   if (entry.blood) {
     entry.blood.quality = Math.max(0, entry.blood.quality - days * BLOOD_FADE_PER_DAY);
     if (entry.blood.quality <= 0) entry.blood = null;
@@ -116,7 +118,8 @@ export function vitaeRound(entity, nowMinutes, say = () => {}) {
   const add = (map, mods, n = 1) => { for (const [k, v] of Object.entries(mods)) map[k] = (map[k] ?? 0) + v * n; };
   entry.statMods ??= {};
   entry.skillMods ??= {};
-  add(entry.statMods, BEAST_STAT_MODS[stage] ?? {});
+  add(entry.statMods, BEAST_STAT_MODS[Math.min(BEAST.Starving, stage + clanStageShift(entry.clan, entity))] ?? {});   // PHASE 3: Lyrezi tells early, a wounded Vraseth's Beast
+  add(entry.skillMods, clanSkillMods(entry.clan));   // PHASE 3: Vraseth's legs
   const tier = entry.blood ? resonanceTier(entry.blood.quality) : 0;
   if (tier > 0) {
     add(entry.statMods, RESONANCE_STAT_MODS[entry.blood.type] ?? {}, tier);
@@ -135,8 +138,9 @@ export function feedVampire(entity, { kind, type, quality, fresh = true, now, de
   if (!entry) return null;
   settle(entry, now);
   const feed = FEEDS[kind] ?? FEEDS.sip;
-  entry.vitae = vitaeAfterFeed(entry.vitae, feed.vitae, { fresh: fresh && feed.relief });
-  if (kind !== 'wound' || !entry.blood || entry.blood.type === type) entry.blood = bloodAfterFeed(entry.blood, type, quality, { fresh });
+  const gain = Math.round(feed.vitae * clanFeedMul(entry.clan, kind, type, quality));   // PHASE 3: the clan's strength and bane
+  entry.vitae = vitaeAfterFeed(entry.vitae, gain, { fresh: fresh && feed.relief });
+  if (gain > 0 && (kind !== 'wound' || !entry.blood || entry.blood.type === type)) entry.blood = bloodAfterFeed(entry.blood, type, quality, { fresh, staleCap: clanStaleCap(entry.clan, STALE_QUALITY_CAP) });
   if (deed) { const d = deedsOf(entry); d[deed] = (d[deed] ?? 0) + 1; }
   entry.lastTimeFed = now;   // Daggerfall's own stamp, kept true for anything that still reads it
   entry.stageSaid = beastStageOf(entry.vitae);
@@ -148,8 +152,9 @@ export function spendMindCloud(entity, now) {
   const entry = awakenedVampirism(entity);
   if (!entry) return false;
   settle(entry, now);
-  if (entry.vitae < MIND_CLOUD_COST) return false;
-  entry.vitae -= MIND_CLOUD_COST;
+  const cost = clanKissCost(entry.clan, MIND_CLOUD_COST);   // PHASE 3: Montalion's half
+  if (entry.vitae < cost) return false;
+  entry.vitae -= cost;
   return true;
 }
 

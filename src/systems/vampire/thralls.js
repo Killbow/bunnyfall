@@ -26,6 +26,8 @@ import { MINUTES_PER_DAY, isDayFromMinutes } from '../gameDate.js';
 import { worldMinutes, skyMinutes, ownMinutes } from '../worldTick.js';
 import { awakenedVampirism, feedVampire, spendVitae } from './vitae.js';
 import { archetypeName, STALE_QUALITY_CAP } from './bloodLaw.js';
+import { noteBreach } from './masquerade.js';   // PHASE 3: a thrall broken free talks
+import { clanExtraSlots, clanGentle, clanStaleCap, clanFortress, clanSocialUpkeep } from './clanLaw.js';   // PHASE 3: the nine bloodlines
 import { gearRefusal, gearKeyOf, sanitizeGear, gearItems, wornGear, gearLabel } from '../revenant/revenantGear.js';
 import {
   bloodSlots, PRISONERS_MAX, SERVANT_UPKEEP, SOCIAL_UPKEEP, LOYALTY_START, LOYALTY_UNPAID, LOYALTY_PAID, BIND_COST,
@@ -65,7 +67,9 @@ export const provisions = () => _s.provisions;
 
 /** Slots used, and the vampire's slots. @param {any} entity */
 export function slotsUsed() { return _s.prisoners.length + _s.servants.length + _s.socials.length; }
-export function slotsOf(entity) { return bloodSlots(entity?.level ?? 1); }
+export function slotsOf(entity) { return bloodSlots(entity?.level ?? 1) + clanExtraSlots(clanOf(entity)); }   // PHASE 3: Lyrezi keep one more
+/** The vampire's clan (faction id), or null. @param {any} entity */
+const clanOf = (entity) => awakenedVampirism(entity)?.clan ?? null;
 /** Why no new thrall can be bound now, or null. @param {any} entity */
 export function slotRefusal(entity) {
   if (!awakenedVampirism(entity)) return t('thrall.no.awake', 'Only an awakened vampire binds thralls.');
@@ -120,7 +124,7 @@ export function tapPrisoner(entity, id, now, rolls = Math.random) {
   if (!p || !awakenedVampirism(entity)) return [];
   const fed = feedVampire(entity, { kind: 'tap', type: p.type, quality: Math.min(p.quality, STALE_QUALITY_CAP), fresh: false, now });
   p.health = clamp(p.health - TAP.health);
-  p.misery = clamp(p.misery + TAP.misery);
+  p.misery = clamp(p.misery + (clanGentle(clanOf(entity)) ? TAP.misery / 2 : TAP.misery));   // PHASE 3: Thrafey keep them kindly
   const died = underTheKnife(p, rolls);
   return [t('thrall.prisoner.tapped', 'You drink from {name}. Stale, but it holds the Beast back. Vitae {vitae}.', { name: p.name, vitae: Math.round(fed?.vitae ?? 0) }), ...(died ? [died] : [])];
 }
@@ -132,8 +136,8 @@ export const VIAL_ROW = Object.freeze({ ...ITEM_TEMPLATES[83], index: VIAL_TEMPL
 registerCustomTemplates([VIAL_ROW]);
 registerTemplateLore(VIAL_TEMPLATE, 'Blood, bottled in a vampire\'s Haven. Stale, but it keeps the Beast quiet for a while.');
 /** A vial of `type` blood at `quality` (stale: capped). */
-export function mintVial(type, quality) {
-  const q = Math.min(STALE_QUALITY_CAP, clamp(quality, 1, 100));
+export function mintVial(type, quality, cap = STALE_QUALITY_CAP) {
+  const q = Math.min(cap, clamp(quality, 1, 100));
   return { ...mintCondition(setItemFields({ group: VIAL_GROUP, templateIndex: VIAL_TEMPLATE, name: `Vial of Vitae (${archetypeName(type)}, ${q}%)` })), bloodType: type, bloodQuality: q };
 }
 export const isVial = (item) => item?.templateIndex === VIAL_TEMPLATE && item?.group === VIAL_GROUP;
@@ -152,9 +156,9 @@ export function bottlePrisoner(entity, id, rolls = Math.random) {
   const p = prisonerOf(id);
   if (!p || !awakenedVampirism(entity)) return [];
   entity.items ??= [];
-  addItem(entity.items, mintVial(p.type, p.quality));
+  addItem(entity.items, mintVial(p.type, p.quality, clanStaleCap(clanOf(entity), STALE_QUALITY_CAP)));   // PHASE 3: Anthotis keep it better
   p.health = clamp(p.health - BOTTLE.health);
-  p.misery = clamp(p.misery + BOTTLE.misery);
+  p.misery = clamp(p.misery + (clanGentle(clanOf(entity)) ? BOTTLE.misery / 2 : BOTTLE.misery));
   const died = underTheKnife(p, rolls);
   return [t('thrall.prisoner.bottled', 'You bleed {name} into a vial and stopper it.', { name: p.name }), ...(died ? [died] : [])];
 }
@@ -165,8 +169,9 @@ export function tendPrisoner(entity, id) {
   if (_s.provisions > 0) _s.provisions--;
   else if (goldAmount(entity) >= TEND_GOLD) deductGoldPieces(entity, TEND_GOLD);
   else return [t('thrall.tend.poor', 'You have no provisions and not {gold} gold to buy food.', { gold: TEND_GOLD })];
-  p.health = clamp(p.health + TEND.health);
-  p.misery = clamp(p.misery - TEND.misery);
+  const kind = clanGentle(clanOf(entity)) ? 1.5 : 1;   // PHASE 3: Thrafey tend them better
+  p.health = clamp(p.health + TEND.health * kind);
+  p.misery = clamp(p.misery - TEND.misery * kind);
   return [t('thrall.tend.done', '{name} eats, and some colour comes back. Health {health}, misery {misery}.', { name: p.name, health: p.health, misery: p.misery })];
 }
 /** Make a prisoner a servant thrall (BIND_COST Vitae). @param {any} entity @param {string} id @param {number} now */
@@ -346,9 +351,10 @@ export function thrallRound(entity, now, say = () => {}, rolls = Math.random) {
   for (const line of takeThrallLines()) say(line);
 }
 function oneDay(entity, now, rolls) {
-  const guarded = _s.servants.some((s) => s.duty === DUTIES.Guard);
+  const fortress = clanFortress(clanOf(entity));   // PHASE 3: a Garlythi Haven is a fortress
+  const guarded = fortress || _s.servants.some((s) => s.duty === DUTIES.Guard);
   for (const p of [..._s.prisoners]) {
-    p.misery = clamp(p.misery + (guarded ? PRISONER_DAY.miseryGuarded : PRISONER_DAY.misery));
+    p.misery = clamp(p.misery + (guarded ? PRISONER_DAY.miseryGuarded : PRISONER_DAY.misery) - (fortress ? 2 : 0));
     p.health = clamp(p.health + PRISONER_DAY.health);
     if (!guarded && p.misery >= 100 && Math.floor(rolls() * 100) < PRISONER_DAY.escapeChance) {
       _s.prisoners.splice(_s.prisoners.indexOf(p), 1);
@@ -362,9 +368,10 @@ function oneDay(entity, now, rolls) {
     note(t('thrall.servant.left', '{name} went too long without your blood, and has left you. Their kit is back in your pack.', { name: sv.name }));
   }
   for (const s of [..._s.socials]) {
-    if (payDay(entity, s, SOCIAL_UPKEEP, now)) continue;
+    if (payDay(entity, s, clanSocialUpkeep(clanOf(entity), SOCIAL_UPKEEP), now)) continue;   // PHASE 3: Lyrezi pay less
     _s.socials.splice(_s.socials.indexOf(s), 1);
     try { lowerRepForCrime(entity, s.region, CRIMES.Assault); } catch { /* a name lost is no round's failure */ }
+    noteBreach(entity, s.region, 'freed', now);   // PHASE 3: and the region hears of it
     note(t('thrall.social.free', '{name} of {town} has broken free of your hold, and talks of a pale stranger. Your name suffers in the region.', { name: s.name, town: s.townName || t('thrall.social.theirTown', 'their town') }));
   }
 }

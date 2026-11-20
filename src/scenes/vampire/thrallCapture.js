@@ -11,6 +11,7 @@ import { awakenedVampirism } from '../../systems/vampire/vitae.js';
 import { captureRefusal, takePrisoner } from '../../systems/vampire/thralls.js';
 import { subduableFoe, archetypeOfFoe, qualityOfFoe, mobileOfThrall } from '../../systems/vampire/thrallLaw.js';
 import { archetypeName } from '../../systems/vampire/bloodLaw.js';
+import { clanCaptor } from '../../systems/vampire/clanLaw.js';
 import { enemyDisplayName } from '../../characters/enemy/enemyBasics.js';
 import { t } from '../../systems/textManager.js';
 import { revenantGivenName } from '../../systems/revenant/revenant.js';   // the revenants' seeded given name
@@ -39,9 +40,10 @@ export function subdueFoe(f, { playerEntity, fromPlayer, peer, shared = false, q
   const no = captureRefusal(playerEntity);
   if (no) { say?.(no); return false; }
   const type = archetypeOfFoe(f.mobileType);
+  const captor = clanCaptor(awakenedVampirism(playerEntity)?.clan);   // PHASE 3: the Khulari take them whole
   const p = takePrisoner(playerEntity, {
     name: captiveName(f.mobileType, f.gender === 'female' ? 'female' : 'male', rolls), gender: f.gender === 'female' ? 'female' : 'male', type,
-    quality: qualityOfFoe(f.entity.level, rolls()), mobile: mobileOfThrall(type, f.mobileType), source: 'foe', health: 30,
+    quality: qualityOfFoe(f.entity.level, rolls()) + (captor ? 10 : 0), mobile: mobileOfThrall(type, f.mobileType), source: 'foe', health: captor ? 60 : 30,
   });
   if (!p) return false;
   f.entity.health = 1;

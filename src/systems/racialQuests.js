@@ -134,6 +134,16 @@ export function racialQuestLive(name) {
   const live = _host?.activeQuestNames?.();
   return Array.isArray(live) ? live.includes(name) : null;
 }
+/** BUNNYFALL VAMPIRE EXPANSION, PHASE 3: Daggerfall's own clan quest line, asked of the Court - the guild pool's quest
+ *  by the player's level (the StartQuest arm above, without its roll). Answers its name, or null. */
+export function startClanQuest(entity) {
+  const clan = entity?.racialOverride?.clan;
+  if (!clan || !_host) return null;
+  const quest = _host.getVampireClanQuest?.(clan, entity.level ?? 1) ?? null;
+  if (!quest) return null;
+  _host.startQuestObject?.(quest);
+  return quest.questName ?? quest.name ?? null;
+}
 /** Start a quest by name through the host; answers whether it was started (never a second copy). */
 export function startNamedRacialQuest(name) {
   if (racialQuestLive(name) !== false) return false;
