@@ -97,6 +97,7 @@ import { installStudioArt } from '../systems/studioArt/studioArt.js';   // STUDI
 import { installWarmAshesShips } from '../systems/warmAshesShips.js';   // WA1: Warm Ashes - Ships' quest list and save slot
 import { installScrollLoot } from '../systems/scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls
 import { installCrossbowLoot } from '../systems/crossbow.js';   // BUNNYFALL: the crossbow
+import { installHeavyGear } from '../systems/heavyGear.js';   // BUNNYFALL: the Royal Ballista and the grappling hook
 import { installRestItemLoot, litCandle, meditate, snuffCandle, draughtTaken, spendDraught, DRAUGHT_SPENT_MINUTES } from '../systems/rest/restItems.js';   // REST6: the seven that fill the gaps
 import { installForaging } from '../systems/foraging/foragingInstall.js';   // FORAGE1: Foraging's quest list, tools, foods, pictures and console command
 import { installSmithing } from '../systems/smithItems.js';   // PROF3: the Repair Kit's use
@@ -1458,6 +1459,7 @@ export function ensureAudio(fetch = fetchBytes) {
   installRestItemLoot();   // REST6: the piles' and the foes' Ember Jars and Tonics - after Foraging's and the healing supply's hooks, the last draw
   installScrollLoot();   // BUNNYFALL: spell scrolls in the piles and on the foes
   installCrossbowLoot();   // BUNNYFALL: the crossbow in the piles and on the foes
+  installHeavyGear();   // BUNNYFALL: the Royal Ballista and the grappling hook in the piles, and their pictures
   installCooking();   // PROF9: a dish eaten from the pack, in every host (a dish is the pack's, offline too)
   // MW-IMPORT: same seam, same never-traps rule - no data means the
   // opt-in layer stays inert, which is its resting state anyway.

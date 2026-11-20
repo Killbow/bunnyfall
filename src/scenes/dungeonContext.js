@@ -129,6 +129,7 @@ import { ImgFile } from '../formats/imgFile.js';
 import { createWeapon, bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
 import { setDefaultEnchantCtx } from '../systems/enchantments.js';   // FS1 (wave D): this host mounts the enchant ctx too
 import { createEnchantCtx, standLooseFoe } from './hostEnchant.js';   // FS1 (wave D): the ONE ctx body + SD1's loose-foe placement
+import { boltMeta, bendBolt, ballistaBurst } from '../combat/ballista/ballistaFlight.js';   // BUNNYFALL: the Royal Ballista's arc and burst - one hook each below
 import { playerArrowHitFoe } from '../combat/arrowFlight.js';   // AUDIT 39 (#64) wave D: the FOURTH host calls the shared player-arrow law rather than carrying a fourth body of it
 import { techniquePierces, shaftSequence, stickable, stickArrow, syncStuckArrowDraws, ARROW_MODEL_ID } from '../combat/arrowFlight.js';   // STUCK-ARROWS: a player's shaft that meets the walls stays there, a pile of this host's, drawn in dynamicDraws   // TECH1: a piercing technique shaft flies on (bible/05-Combat/Weapon-Techniques.md)
 import {
@@ -3926,7 +3927,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const pos = fromPlayer
       ? playerShotOrigin(from, dir, muzzle)   // AUDIT FIELD-GUN-MW F2: the one fork, so a world muzzle lands here too
       : [...from];
-    missiles.push({ arrow: true, flatArchive: orbArchiveFor(weapon), weapon, fromPlayer, shooterFoe, aimFoe, pos, dir: [...dir], age: 0, batch: null, draw: null, ...(extra ?? {}) });   // ROAD-H H1c: a PLAYER shaft leaves the BOW HAND - GetAimPosition (DaggerfallMissile.cs:540-550) offsets the camera position 0.11 DOWN the camera's own up and 0.15 to the hand (the other way under FPSWeapon.FlipHorizontal), and it runs INSIDE the missile in DFU (:471), so it runs here rather than at each host's loose; an ENEMY shaft arrives with its own origin already applied (enemyTargets.enemyArrowOrigin)
+    missiles.push({ arrow: true, flatArchive: orbArchiveFor(weapon), weapon, fromPlayer, shooterFoe, aimFoe, pos, dir: [...dir], age: 0, batch: null, draw: null, ...(extra ?? {}), ...(fromPlayer ? boltMeta(weapon, dir) : null) });   // ROAD-H H1c: a PLAYER shaft leaves the BOW HAND - GetAimPosition (DaggerfallMissile.cs:540-550) offsets the camera position 0.11 DOWN the camera's own up and 0.15 to the hand (the other way under FPSWeapon.FlipHorizontal), and it runs INSIDE the missile in DFU (:471), so it runs here rather than at each host's loose; an ENEMY shaft arrives with its own origin already applied (enemyTargets.enemyArrowOrigin)
   }
   // S16: the enemy cast - "enemies always cast ready spell instantly
   // once queued" (EntityEffectManager.Update): spend the S10 cost
@@ -4745,6 +4746,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     hitEffects?.showImpactFlash(missileArchive(m.spell.element), pos);
   }
   function retireMissile(m) {
+    if (m.arc && !m.burst) ballistaBurst(m, { targets: foes.filter((f) => f.companion == null), hit: (b, f) => playerArrowHitFoe(b, f, { playerEntity, playerWeapon, playerFeet: lastPlayerFeet, audio, hitEffects, say: (l) => hudText.add(l), dealDamage: (t, d) => damageFoe(t, d, lastPlayerFeet, b.dir, { kind: 'arrow', weapon: b.weapon ?? null }), onInflictPoison: (att, tgt, pt) => poisonFoe(f, pt), onAttackFromPlayer: (t, landed) => attackFromPlayer(t, lastPlayerFeet, 'arrow', landed) }), effects: hitEffects });   // BUNNYFALL: a landed ballista bolt bursts, each blow through the shaft's own door (combat/ballista/ballistaFlight.js)
     if (m.draw && m.draw.object) {
       const di = dynamicDraws.indexOf(m.draw);
       if (di >= 0) dynamicDraws.splice(di, 1);
@@ -4762,7 +4764,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
    *  clearMissiles reaches the player's spells alone. Dead before freed, so a missile whose archive is still warming
    *  mints nothing afterwards (ensureMissileBatch's m.dead check). */
   function clearLocalMissiles() {
-    for (const m of missiles) retireMissile(m);
+    for (const m of missiles) { m.burst = true; retireMissile(m); }   // BUNNYFALL: a scene's end sets off no bolt
     missiles.length = 0;
     _pendingCasts.length = 0;
   }
@@ -4797,6 +4799,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       }
       m.age += dt;
       if (m.age > MISSILE_LIFESPAN_S) { retireMissile(m); continue; }
+      bendBolt(m, dt);   // BUNNYFALL: a ballista's bolt falls as it flies
       const step = (m.arrow && !m.flatArchive ? ARROW_FLIGHT_SPEED : MISSILE_SPEED) * (m.speedScale ?? 1) * dt;   // TELL6d: an aimed shot flies x1.3 as fast; BAL-ARCHERY: a shaft, not a spell or an orb
       const { unit: _unit, reach } = missileReach(m.dir, step);   // ROAD-H tail: DaggerfallMissile.cs:333/:337-339's reach along the normalised direction
       // TACT1: cover stops a bolt, and an area spell bursts on it; AUDIT TACT B5: by touch, the bodies before it tested first
@@ -9432,7 +9435,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     conjured: magic.conjured,
     peerCandles: (list, dt) => magic.peerCandles(list, dt),   // PEERLIGHT2: the others' Light spells, in this dungeon's own engine
     /** SPELLFX1: a peer's arrow, drawn: this pool's own shaft, flagged visual - it stops on a wall or a body and lands nothing. */
-    visualArrow: (from, dir) => { missiles.push({ arrow: true, visual: true, flatArchive: null, weapon: null, fromPlayer: false, shooterFoe: null, aimFoe: null, pos: [...from], dir: [...dir], age: 0, batch: null, draw: null }); return true; },
+    visualArrow: (from, dir, bolt = false) => { missiles.push({ arrow: true, visual: true, flatArchive: null, weapon: null, fromPlayer: false, shooterFoe: null, aimFoe: null, pos: [...from], dir: [...dir], age: 0, batch: null, draw: null, ...boltMeta(null, dir, bolt) }); return true; },   // BUNNYFALL: a peer's ballista bolt arcs
     // V3 probe surface: the ONE foe damage door. Soul Trap's kill
     // intercept lives inside it, so a probe that killed a foe any
     // other way would be testing a path the game never takes.

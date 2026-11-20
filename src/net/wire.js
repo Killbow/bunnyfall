@@ -1707,7 +1707,8 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world276';
+export const RELAY_VERSION = 'world277';
+// world277: the pose carries `bl` - the last arrow loosed was a Royal Ballista's bolt, which peers draw on its arc
 // world276: the pose carries Meteor and Wall of Earth (`mt`, `ew`)
 // world275: BUNNYFALL copy pass (staff help and herald words); world274: the relay strips its /relay path prefix
 // world273: APPEARANCES and HUNTERS-MARK, one release (2026-10-27; bible/04-Characters/Wardrobe.md section 6, bible/06-Systems/Bounty-Boards.md section 12; NOT YET DEPLOYED - world270, world271, then world272, on the branch, renumbered past main's CHAT-POST world270, MASTER-THREE world271 and FIELD BUGS 2026-10-26r world272 at the merges): a look item may carry `ap` - [t, m, v], the look a worn piece wears - kept only when it is a look there is and of the same kind as the piece (validLookItem, through net/appearanceLaw.js validWireAppearance); appearanceLaw.js and systems/armorMaterials.js join the bundle. Either side may deploy first: a relay before it drops `ap`, and the piece is seen in its own look; and net/identityToken.js's TITLES gains the hunt's four, the ten Marks of Mastery and the sea's two, last - the relay reads a token's title as every badge; the bundle's files unchanged; and APPEARANCES-II's sworn revenant's kit carries its look (validFoeRecord's `la`, each of its piece's kind - an older relay drops it and the piece is drawn in its own); and AUDIT HORIZONTAL B7's LOOT-DOOR: a loot room's hello (a world room or a cell - lootRoom) says the loot its build reads (`ll`, LOOT_HELLO_LAW), and while the setting `lootDoor` is on (net/relayCfg.js - off unset, and off until the site serves this build, since the relay deploys first) a hello there that says less or none is refused (LOOT_OLD_REASON, GROUND-GATE's words)
@@ -2008,7 +2009,7 @@ export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;
-  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef, tq, bp, tt, tn, tg, mt, ew } = p;
+  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, bl, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef, tq, bp, tt, tn, tg, mt, ew } = p;
   if (![x, y, z, yaw, pitch].every(finite)) return null;
   if (Math.abs(x) > POSE_BOUND || Math.abs(z) > POSE_BOUND || Math.abs(y) > POSE_Y_BOUND) return null;
   // ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
@@ -2036,6 +2037,7 @@ export function validPose(p) {
     am: am ? 1 : 0, sr: sr ? 1 : 0, cn: uint(cn, 65535) ?? 0, cr: uint(cr, POSE_CAST_RANGES - 1) ?? 0,
     ce: uint(ce, POSE_CAST_ELEMENTS - 1) ?? 4,   // SPELLFX1: the cast's element - a pose from before it reads Magic
     ar: uint(ar, 65535) ?? 0,   // SPELLFX1: arrows loosed - a peer draws a shaft for each new one
+    ...(uint(bl, 1) ? { bl: 1 } : {}),   // BUNNYFALL: the last of them a Royal Ballista's bolt (peers draw it on its arc) - omitted otherwise
     fk: uint(fk, 5) ?? 0,   // PEER-FS1: the footstep-sound kind (systems/footsteps.js FOOTSTEP_KIND), 0-5
     // RIDE (2026-09-23, Mac: "need to ensure other people see others riding on horses"): THE MOUNT. `rd` is the
     // transport the player is riding - POSE_RIDE's 1 the horse, 2 the cart - and `rv` which of Eye Of The Beholder's

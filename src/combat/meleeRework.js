@@ -45,6 +45,7 @@ import { registerWeaponDamageMod } from '../systems/entityMods.js';
 import { registerArmorPierce } from './armorPierce.js';
 import { weaponMinDamage, weaponMaxDamage, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';
 import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';
+import { BALLISTA_TEMPLATE } from '../characters/heavyGearIds.js';   // BUNNYFALL: the Royal Ballista
 
 /** The switch: off, every row reads 1, no shield blocks and no fist slows. */
 export const MELEE_REWORK = { on: true };
@@ -77,6 +78,7 @@ export const WEAPON_POWER = Object.freeze({
   129: [1.42, 0.63],   // Short Bow
   130: [1.34, 0.67],   // Long Bow
   [CROSSBOW_TEMPLATE]: [1.60, 0.53],   // the Crossbow: half the bow's shots, each much heavier, and it pierces
+  [BALLISTA_TEMPLATE]: [1.40, 0.36],   // BUNNYFALL: the Royal Ballista - a third of the bow's shots, each bursting, and it pierces
 });
 
 /** Each family's templates (the crossbow's id is RR's, characters/crossbowIds.js). */
@@ -87,7 +89,7 @@ export const FAMILY = Object.freeze({
   flow: Object.freeze([119]),
   short: Object.freeze([113, 114, 116, 117]),
   axe: Object.freeze([127, 128, 513]),
-  pierce: Object.freeze([125, 126, 514, CROSSBOW_TEMPLATE]),
+  pierce: Object.freeze([125, 126, 514, CROSSBOW_TEMPLATE, BALLISTA_TEMPLATE]),
   breaker: Object.freeze([124]),
   flail: Object.freeze([125]),
   quick: Object.freeze([514]),

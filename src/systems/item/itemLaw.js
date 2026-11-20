@@ -87,6 +87,7 @@ import '../survival/items.js';
 import '../thunderlock.js';
 import '../pistolet.js';   // PISTOLET: the second gun's row, the Thunderlock's way
 import '../crossbow.js';   // BUNNYFALL: the crossbow's row (563), known headless too
+import '../heavyGear.js';   // BUNNYFALL: the Royal Ballista's and the grappling hook's rows (564, 565), known headless too
 import '../scrolls/spellScrolls.js';   // BUNNYFALL: the spell scroll's row (1820), known headless too
 import '../gate/gateSpoils.js';
 import '../ayleidStones.js';
@@ -130,8 +131,9 @@ import '../naval/treasureCharts.js';   // CAPT-CHARTS: the treasure chart
  *  such field). Nothing a law of 13 found is lawful now. MASTER-ART left it at 14: a Master's work (net/masterLaw.js) is a
  *  shape no earlier law met honestly - none was made before the service that makes it, whose judge is this law - so no
  *  finding of 14 is one to ask again. BUNNYFALL moved it to 15: the crossbow (563) and the spell scroll (1820) are templates the
- *  law knows from it on, so a finding a law of 14 made against either ('template') is a finding to ask again. */
-export const ITEM_LAW_VERSION = 15;
+ *  law knows from it on, so a finding a law of 14 made against either ('template') is a finding to ask again. And to 16: the Royal Ballista (564) and the
+ *  Grappling Hook (565) (systems/heavyGear.js), the same reason. */
+export const ITEM_LAW_VERSION = 16;
 
 const T = ENCHANTMENT_TYPES;
 const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(T).map(([k, v]) => [v, k])));
@@ -152,7 +154,7 @@ const CLASSIC_GROUPS = (() => {
  *  writes it. Every index not named here is UselessItems2's - the custom items' own group. Pinned by the producer sweep
  *  (test/systems/item/int1_itemlaw.test.js): every custom index a producer mints, in the group it mints it in. */
 export const CUSTOM_TEMPLATE_GROUPS = Object.freeze({
-  Weapons: Object.freeze([513, 514, 560, 561, 562, 563]),   // BUNNYFALL: 563 the crossbow
+  Weapons: Object.freeze([513, 514, 560, 561, 562, 563, 564, 565]),   // BUNNYFALL: 563 the crossbow, 564 the Royal Ballista, 565 the grappling hook
   Armor: Object.freeze([515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526]),
   Gems: Object.freeze([570, 571, ...GEM_GRADE_TEMPLATES]),   // GEM2: the graded gems (systems/gems.js)
   Jewellery: Object.freeze([]),
