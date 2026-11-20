@@ -7,6 +7,10 @@ the last release (scripts/changelogNotes.mjs).
 
 - Sentinel's warriors at the edge of the reach now have an envoy, Lord Calder Vane. Give him arms and armor (anything you carry and are not wearing) and choose a side: arm the garrison to stay, or fit it for the road home. Every gift moves a shared bar, nobody is told who gave what, and the garrison's choice at the end of the month cannot be undone. Near him the bar shows at the top of the screen, and it replaces the Purple Haze on the Notices of the Realm. In the last three days the count goes secret.
 - Giving to Sentinel's envoy now pays Garrison Tokens (2 a piece) and keeps a count. Give 100 pieces and you earn the title Sentinel's Bannerbearer and the aura Sentinel's Banner, Dagon's Fire reforged in crimson and gold. The envoy also runs a shop for the tokens: Welkynd Shards, and unique gear with imprints on swords, axes, hammers, daggers, bows, crossbows, a staff, a shield and a ring.
+- New warm gestures for roleplay: /hug, /embrace, /pat, /headpat, /kiss, /handkiss, /cuddle, /comfort, /highfive, /handshake, /fistbump, /poke, /tickle, /nuzzle, /hold, /bump, /toast and /wink. Add a name to aim one at someone ("/hug Ann"), and players nearby see it as an action line with little hearts and sparkles floating over you both. /emotes lists them all.
+- Touch gestures ask first, once: when you hug, pat or kiss someone they get a question; /accept lets you do it any time from then on, /decline says no this time, /untouch <name> takes the leave back, and /touchlist shows who has it. Blocked players are never answered.
+- An Emotes row on the player menu (hold the interact key on someone) opens a wheel of eight gestures: hug, pat, kiss, high five, handshake, comfort, wave and bow. Click one or press 1 to 8.
+
 
 ## 2026-11-19
 
