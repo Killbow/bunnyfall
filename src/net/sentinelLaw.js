@@ -60,7 +60,7 @@ export const sentinelOfferById = (/** @type {any} */ id) => SENTINEL_OFFERS.find
 export const sentinelTokens = (/** @type {number} */ given, /** @type {number} */ spent) => Math.max(0, (Math.trunc(Number(given)) || 0) * SENTINEL_TOKENS_PER_PIECE - (Math.trunc(Number(spent)) || 0));
 
 /** The noble: a name for now, where he stands (what /pos says: the map pixel's world point, DF units), how tall (m). */
-export const SENTINEL_NOBLE = Object.freeze({ name: 'Lord Calder Vane', title: "Sentinel's envoy", world: Object.freeze({ x: 26001697, z: 13320620 }), h: 1.95 });
+export const SENTINEL_NOBLE = Object.freeze({ name: 'Lord Calder Vane', title: "Sentinel's envoy", world: Object.freeze({ x: 26001697, z: 13320620 }), h: 1.5 });
 
 const UNIT_M = 40;       // DF world units to metres
 const PIXEL_UNITS = 32768;
