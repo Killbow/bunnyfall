@@ -89,6 +89,7 @@ import { QuestLens } from '../../ui/quest/questLens.js';   // GUIDE1: the modern
 import { questHerald, heraldOn } from '../../ui/quest/questHerald.js';   // GUIDE3: the news the lens sees, told
 import { questTracker, followOn } from '../../ui/quest/questTracker.js';   // GUIDE4: the quest the HUD follows (GUIDE5: the card's or the marks')
 import { createQuestlines } from '../../systems/questlines/qlLayer.js';   // QL1: the questlines' layer over this machine (bible/06-Systems/Questlines-Arc.md)
+import { vampireActionTemplates } from '../../systems/vampire/vampireActions.js';   // BUNNYFALL VAMPIRE EXPANSION
 import { questlineActionTemplates } from '../../systems/questlines/qlActions.js';   // QL4: ask, outcome, ql act, ql paid, ql name - registered here, every host's machine
 import { setActSink } from '../../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by this bridge's layer
 import { questlineService, serviceReady } from './questlineHost.js';   // QL12: the endgame lines' claims - the account service's door, online alone
@@ -524,6 +525,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
   // host's machine has them before a save or a script that says them is read (a first-match scan; none of DFU's claims
   // these lines - test/systems/questlines/ql4_actions.test.js).
   for (const template of questlineActionTemplates()) machine.registerAction(template);
+  for (const template of vampireActionTemplates()) machine.registerAction(template);   // BUNNYFALL VAMPIRE EXPANSION: the Elder's quest's `vamp` lines (QLVA01)
   // MACRO-ONE: this machine's hooks are the page's GameManager for every
   // macro walk that is not handed a context of its own (questMacros.js
   // setMacroWorld) - one registration, every window, every host.

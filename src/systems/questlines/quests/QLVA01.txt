@@ -1,0 +1,161 @@
+-- BUNNYFALL VAMPIRE EXPANSION, PHASE 1 (2026-11-20, the owner's blueprint): THE ELDER'S SUMMONS. Sent, never taken: a
+-- vampire clan's letter is one DFU sends unasked (QL-OFFERED's own exception), by courier, a few nights after the
+-- turning and to every vampire already standing (systems/vampire/vitae.js elderLetterDue; again a week after a summons
+-- left to lapse). The Elder is one of the player's own bloodline (%vam), met BY NIGHT in a tavern of the region; the
+-- meeting awakens the Beast (`vamp awaken`: Vitae, the Beast's stages, Blood Sight, feeding in Steal mode), and the rite
+-- is three Kisses no one sees (`vamp clouded 3`). The `vamp` lines are systems/vampire/vampireActions.js. The cure ends
+-- this quest with the clan's (racialQuests.js endVampireQuests).
+Quest: QLVA01
+DisplayName: The Elder's Summons
+-- Message panels
+QRC:
+
+QuestFail:  [1003]
+<ce>          _elder_ has left __haven_. The Elder will
+<ce>          not wait on a fledgling forever.
+
+QuestComplete:  [1004]
+<ce>          "Three drinks, and not a soul the wiser.
+<ce>           %vam will be proud of you."
+<ce>          _elder_ presses _gold_ gold into your cold hand.
+
+QuestLogEntry:  [1010]
+%qdt:
+ A letter came from _elder_, an Elder of
+ %vam. I am to come to __haven_ in
+ ___haven_, after dark, to learn what
+ my blood is.
+
+Message:  1011
+%pcn,
+
+     You have been one of us for some nights now,
+ and you still feed like a starving dog: a bite in
+ a brawl, a mouthful in the dark. That is not how
+ %vam lives.
+
+     The blood is more than hunger. It carries the
+ strength of the one it came from. It can be taken
+ quietly, and forgotten by the one it was taken
+ from. And the Beast in you can be fed, or it will
+ feed itself.
+
+     Come to __haven_ in ___haven_. Come after
+ dark. I will be waiting, but not forever.
+
+<ce>                  _elder_, Elder of %vam
+
+Message:  1012
+<ce>         "Good. You came by night, as I asked."
+<ce>
+<ce>         _elder_ takes your wrist, and something in
+<ce>         your blood wakes and stretches.
+<ce>
+<ce>         "Feel that? That is your Beast. Keep it fed
+<ce>          and it sleeps. Starve it, and it will make
+<ce>          you a monster in the street."
+<ce>
+<ce>         "Now look at them the way I do. You see the
+<ce>          blood in them? Scholar, warrior, noble...
+<ce>          each kind gives its own strength."
+<ce>
+<ce>         "Walk among them quietly, as a thief walks.
+<ce>          Drink from three of them, and give each one
+<ce>          the Kiss, so they forget you. Let no one see
+<ce>          you do it. Then come back to me."
+
+Message:  1013
+<ce>         "Not under this sun, fool. Come back
+<ce>          after dark."
+
+Message:  1014
+_elder_? A pale stranger. Only seems to come out at night.
+<--->
+That one at __haven_ never orders a drink. Never.
+<--->
+_elder_ keeps odd hours, even for a traveller.
+
+Message:  1015
+%qdt:
+ _elder_ awakened the Beast in me. To
+ feed, I go among the living in Steal
+ mode, at night if I am wise. The Kiss
+ clouds their memory. I must drink from
+ three of them with the Kiss, unseen,
+ and return to __haven_.
+
+Message:  1016
+<ce>         "Not yet. Three Kisses, and no one sees.
+<ce>          Then come back."
+
+Message:  1017
+<ce>         The third one forgets you as you walk away.
+<ce>         Somewhere in the night, _elder_ knows.
+
+Message:  1018
+%qdt:
+ I have fed three times, unseen, with
+ the Kiss. _elder_ waits for me at
+ __haven_ in ___haven_.
+
+Message:  1020
+<ce>         A pale child hands you a letter sealed
+<ce>         with dark wax, and is gone.
+
+QBN:
+Item _letter_ letter used 1011
+Item _gold_ gold range 300 to 600
+
+Person _elder_ factiontype Vampire_Clan remote anyInfo 1014
+Place _haven_ remote tavern
+
+Clock _wait_ 14.00:00 0 flag 1 range 0 1
+
+--	Quest start-up:
+	_letter_ used do _readletter_
+	give pc _letter_ notify 1020
+	place npc _elder_ at _haven_
+	start timer _wait_
+
+_readletter_ task:
+	log 1010 step 0
+
+_night_ task:
+	vamp night
+
+_clicked_ task:
+	clicked npc _elder_
+
+_awake_ task:
+	when _clicked_ and _night_
+	say 1012
+	vamp awaken
+	log 1015 step 1
+	clear _clicked_
+
+_day_ task:
+	when _clicked_ and not _night_ and not _awake_
+	say 1013
+	clear _clicked_ _day_
+
+_kissed_ task:
+	vamp clouded 3
+
+_rite_ task:
+	when _awake_ and _kissed_
+	say 1017
+	log 1018 step 2
+
+_notyet_ task:
+	when _awake_ and _clicked_ and not _rite_
+	say 1016
+	clear _clicked_ _notyet_
+
+_done_ task:
+	when _rite_ and _clicked_
+	give pc _gold_
+	end quest
+
+_wait_ task:
+	say 1003
+	end quest

@@ -67,7 +67,7 @@ import { onPlayerStruckByEnemy } from './artifactEffects.js';   // V3: the Ring 
  */
 export function playerWeaponHitEntity(player, target, { nowMinutes = Math.floor(ownMinutes()), isCivilian = false, mobileType = null } = {}) {   // LIVED1: the feeding and the kill stamp the character's own clock
   if (!player?.racialOverride) return;   // `if (racialOverride != null)` (WeaponManager.cs:632-634)
-  onVampireHit(player, nowMinutes);
+  onVampireHit(player, nowMinutes, { target, isCivilian });   // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire's blow reads whom it struck
   onLycanthropeHit(player, target, { nowMinutes, isCivilian, mobileType: mobileType ?? target?.mobileType ?? null });
 }
 /**
@@ -396,7 +396,7 @@ export function runMagicRoundsFor(entity, from, to, { sinks, rolls = Math.random
     consumeRacialOverridePending(entity, { now: clockMinutes });
     consumeVampirismPending(entity, { now: clockMinutes });
     lycanthropyMagicRound(entity, { nowMinutes: r + 1, clockMinutes, skyMinutes: sky, moonNight: Number.isFinite(skyMinutes), say });   // DISC10-E V1: the round for the nag's cadence, the clock for the kill; LIVED1: the sky's for the moon; TIME2: a sky handed is the online lane, where the full moon forces its night alone
-    vampirismMagicRound(entity, { nowMinutes: clockMinutes, skyMinutes: sky });   // DISC10-D V1: IsSatiated reads the clock (VampirismEffect.cs:238-241); LIVED1: VAMP-DAY's day the sky's
+    vampirismMagicRound(entity, { nowMinutes: clockMinutes, skyMinutes: sky, say });   // DISC10-D V1: IsSatiated reads the clock (VampirismEffect.cs:238-241); LIVED1: VAMP-DAY's day the sky's
     updatePoisons(entity, r + 1, sinks, rolls, say);
     tickActiveEffects(entity, sinks);
     // E1: the enchantment pump rides the SAME round (DoMagicRound's

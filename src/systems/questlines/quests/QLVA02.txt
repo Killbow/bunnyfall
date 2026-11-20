@@ -1,0 +1,73 @@
+-- BUNNYFALL VAMPIRE EXPANSION, PHASE 3 (2026-11-20, the owner's blueprint section 4): PENANCE OF THE COURT. Given in a
+-- Court's back room to a vampire it hunts (ui/vampire/courtWindow.js, systems/vampire/masquerade.js askPenance): a
+-- witch hunter who learned too much, to be silenced in a dungeon of the region. Slain, `vamp penance` lifts that
+-- Court's Blood Hunt (systems/vampire/vampireActions.js). Left to lapse, the Court may be asked again.
+Quest: QLVA02
+DisplayName: Penance of the Court
+-- Message panels
+QRC:
+
+QuestFail:  [1003]
+<ce>          The witch hunter has left ___lair_, with
+<ce>          everything they know. The Court is not pleased.
+
+QuestComplete:  [1004]
+<ce>          The Court's debt is paid in the hunter's blood.
+
+QuestLogEntry:  [1010]
+%qdt:
+ The Court of %vam gave me penance: a
+ witch hunter, =hunter_, has learned
+ too much of our kind and hides in
+ ___lair_. Silence them, and the
+ Blood Hunt is over.
+
+Message:  1011
+%pcn,
+
+     You have been careless, and the living have
+ noticed. One of them, a witch hunter, has
+ followed your trail to our door and now waits in
+ ___lair_ with what they know.
+
+     Silence them. Do it, and the Court forgets
+ what you have done. Fail, and the hunt goes on.
+
+<ce>                  The Court of %vam
+
+Message:  1012
+<ce>         The witch hunter is dead, and what they knew
+<ce>         dies with them. The Court will hear of it.
+
+Message:  1020
+<ce>         A pale child presses a sealed letter into
+<ce>         your hand, and is gone.
+
+QBN:
+Item _letter_ letter used 1011
+
+Place _lair_ remote dungeon
+
+Clock _wait_ 10.00:00 0 flag 1 range 0 1
+
+Foe _hunter_ is Knight
+
+--	Quest start-up:
+	_letter_ used do _readletter_
+	give pc _letter_ notify 1020
+	place foe _hunter_ at _lair_
+	start timer _wait_
+
+_readletter_ task:
+	reveal _lair_ readmap
+	log 1010 step 0
+
+_slain_ task:
+	killed 1 _hunter_
+	say 1012
+	vamp penance
+	end quest
+
+_wait_ task:
+	say 1003
+	end quest

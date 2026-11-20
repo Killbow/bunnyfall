@@ -1296,7 +1296,7 @@ export function clampMarkersAheadOf(entity, own) {
     if (!a || typeof a !== 'object') continue;
     if (a.kind === 'disease') { cap(a, 'lastDay', day); cap(a, 'startingDay', day); }
     cap(a, 'lastMinute', own);   // a poison's
-    for (const k of ['lastKilledInnocent', 'lastCastMorphSelf', 'lastMorphHeal', 'lastUrgeNotify', 'lastTimeFed']) cap(a, k, own);   // the curses'
+    for (const k of ['lastKilledInnocent', 'lastCastMorphSelf', 'lastMorphHeal', 'lastUrgeNotify', 'lastTimeFed', 'vitaeAt', 'turnedAt']) cap(a, k, own);   // the curses'
   }
   return n;
 }

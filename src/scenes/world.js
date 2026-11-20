@@ -583,6 +583,7 @@ import { initEscortFaces, addEscortFace, dropEscortFace, escortQuestEnded } from
 import { largeHudOptions, routeLargeHudClick, hudLargeNextMode, hudLargePrevMode, activeMouseOverLargeHUD, trackLargeHudPointer } from '../ui/hud/hudLarge.js';   // U45: the classic bottom bar and its eleven panels; ROAD-Ar: and the guard that stops them being world clicks too
 import { trackHudPointer } from '../ui/hud/hudActiveSpells.js';   // U46: the spell-icon rows' pointer
 import { getInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';   // U45: the mode panel's cycle reads it; MODE-WHEEL: the pad's unbound mode actions
+import { createVampireBeds } from './vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: feeding on sleepers through their beds
 import { modeWheel } from '../ui/modeWheel.js';   // MODE-WHEEL: the mouse steers it while it is open
 import { randomEpitaph } from '../systems/gravestoneLore.js';   // GRAVE1: Info mode's graveyard flavour line
 import { ImgFile } from '../formats/imgFile.js';   // AUDIT 21 hosts F7: loadHud's reader
@@ -709,6 +710,15 @@ import { asleepHour } from '../systems/naval/shipWatch.js';   // SHIP-WATCH: the
 import { crewRoster, crewCount } from '../systems/naval/crewLife.js';
 import { createCrewAshore } from './crewAshore.js';   // CREW-COMPANIONS: the party ashore, stood in every place
 import { createNecroHost } from './necroHost.js';   // CHEB'S NECROMANCY: the raised dead at the player's side
+import { createThrallHost } from './vampire/thrallHost.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the thrall at the vampire's side
+import { havenDoorRows, openHavenWindow } from '../ui/vampire/havenWindow.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at the home's door
+import { createHuntersHost } from './vampire/huntersHost.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: witch hunters and the Courts' assassins
+import { createCourtDoor } from '../systems/vampire/courtDoor.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: a clan Court's back room
+import { openCourtWindow } from '../ui/vampire/courtWindow.js';
+import { courtSeats, clanName } from '../systems/vampire/clanLaw.js';
+import { setBloodlineHost } from '../systems/vampire/bloodlineLeaf.js';   // BUNNYFALL VAMPIRE EXPANSION: the bloodline chosen before the turn
+import { installDisciplineKey, disciplineWheelOpen } from '../ui/vampire/disciplineWheel.js';   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key
+import { installBeastOverlay } from '../ui/vampire/beastOverlay.js';   // BUNNYFALL VAMPIRE EXPANSION, THE VISUAL PASS: the Beast's vignette, Classic's vial
 import { revenantParty, setRetinuePlayer, setRetinueListener, setRetinueBodies, revenantsWithYou, leaveRefusal, isRevenantCompanionKey, revenantIdOfKey, applySwornStrength, sendRevenantAway, forgetSwornMember, swornFightStep, swornFightWon, devotedWithYou } from '../systems/revenant/revenantCompanions.js';   // REVENANT-COMPANION: the sworn, stood by the same layer
 import { registerCompanionCount, registerCompanionRoster, companionsWithYou, COMPANION_SLOTS } from '../systems/companionSlots.js';   // COMPANION-SLOTS: the crew's hands ashore counted with the sworn
 import { PERSONALITIES } from '../systems/revenant/revenantPersonality.js';   // REVENANT-COMPANION: the party card's word for one
@@ -6864,6 +6874,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     otherOverlayActive: () => modes?.overlayHeld ?? false,
     otherHudCovered: () => modes?.hudCovered ?? false,   // AUDIT ENH-NOTICE3 C2: the previousWindow chain on the mode host's stack, for the toasts
     keysLive: () => _worldKeysLive,   // MODE-WHEEL (AUDIT): KEY-BOOT's gate, for the wheel this rung opens above it - declared below, read deferred
+    vampireFeed: { showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w) },   // THE VISUAL PASS: the Blood Sight card   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire, in the quest box (declared below, read deferred)
   });
   townTalk.ensureLoaded();
   /** THE GAME PAUSE for this host - ONE composition, asked of the
@@ -7629,7 +7640,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     visit: { may: (t) => caravanVisitMay(t), enter: (t) => caravanVisitEnter(t) },   // WAGONS2-VISIT: another's caravan, open to me
     horses: () => horseCountOf(playerEntity.items ?? []),   // WAGONS3: my parked pair keeps its second horse while I own two
     playerCapsule: () => (walkMode && playerSpawned ? { feet: player.pos, height: player.height, radius: CAPSULE_RADIUS } : null),   // WAGONS3: my parked wagon's box never stands round me
-    bodyCapsules: () => [...crewAshore.capsules(), ...revenantAshore.capsules(), ...necro.capsules()],   // FIELD BUGS 2026-10-18 WAGON-ALIGHT: nor round my companions (both layers stand below; the pool steps only once frames run)
+    bodyCapsules: () => [...crewAshore.capsules(), ...revenantAshore.capsules(), ...necro.capsules(), ...thralls.capsules()],   // FIELD BUGS 2026-10-18 WAGON-ALIGHT: nor round my companions (both layers stand below; the pool steps only once frames run)
     renderShift: () => { if (!walkMode || !playerSpawned) return null; const f = player.feetAt(); return [f[0] - player.pos[0], 0, f[2] - player.pos[2]]; },   // WAGONS3: my driven wagon drawn where I am drawn
     peerAnchor: (id) => { const sh = _peerMapPoses.get(id); return sh && (sh.rd | 0) === 2 ? onlineToScene(sh) : null; },   // AUDIT HCC O5: the change key in the wire frame (campToWire is the pose's law, declared with the stream below; read only once frames run); WAGON-HITCH: where another player's cart rider stands as drawn this frame (`rd` 2, the cart - the pose peerRiders stands them on, boat-adjusted; the online frame fills the map before the pool steps), so their trailing wagon hangs from the rider seen here rather than easing apart from it
   });
@@ -10575,6 +10586,36 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     say: (l) => townTalk.say(l),
     playerEntity,
   });
+  // BUNNYFALL VAMPIRE EXPANSION, PHASE 2 (scenes/vampire/thrallHost.js): the servant thrall that follows, by the same layer
+  const thralls = createThrallHost({
+    place: () => companionPlace({ crew: false }),
+    leader: () => (playerSpawned ? { feet: [player.pos[0], player.pos[1], player.pos[2]], yaw: cam.yaw, grounded: !!player.grounded && !player.levitating && !player.swimming } : null),
+    now: () => Math.floor(playerTicker.ownMinutes),
+    say: (l) => townTalk.say(l),
+    playerEntity,
+  });
+  // BUNNYFALL VAMPIRE EXPANSION, PHASE 3 (scenes/vampire/huntersHost.js): witch hunters and the Courts' assassins, outdoors
+  // by night; and the Courts' cities, read once from the hubs
+  const vampireHunters = createHuntersHost({ playerEntity, mode: () => _mode(), region: () => _questRegionIndex(), now: () => playerTicker.ownMinutes, stand: (mt) => _standLooseFoe(mt), say: (l) => townTalk.say(l) });
+  /** @type {Map<number, { clan: number, name: string, regionIndex: number }>|null} */
+  let _courtSeats = null;
+  // BUNNYFALL VAMPIRE EXPANSION (systems/vampire/bloodlineLeaf.js): the bitten are told where the Courts meet, to be claimed
+  setBloodlineHost({
+    seatsWords: () => [...(_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))).values()].map((v) => `${v.name} (${clanName(v.clan)})`).join(', '),
+    say: (l) => townTalk.say(l),
+  });
+  installBeastOverlay({ entity: playerEntity, now: () => playerTicker.ownMinutes });   // THE VISUAL PASS: the Beast's vignette, the Classic skin's vial
+  // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key - `seenBy` the townsfolk within DISCIPLINE_SEEN_M of me, in the
+  // street or in the room (a visible Discipline seen is a Masquerade breach)
+  const DISCIPLINE_SEEN_M = 15;
+  installDisciplineKey({
+    entity: playerEntity, now: () => playerTicker.ownMinutes, region: () => _questRegionIndex(), say: (l) => townTalk.say(l),
+    seenBy: () => {
+      const f = player.feetAt();
+      const near = (/** @type {any[]} */ seats) => (seats ?? []).filter((x) => x?.pos && Math.hypot(x.pos[0] - f[0], x.pos[2] - f[2]) <= DISCIPLINE_SEEN_M).length;
+      return _mode() === 'exterior' ? near(_livePersons) : _mode() === 'interior' ? near(livingIndoors?.seats?.() ?? []) : 0;
+    },
+  });
   /** REVENANT-COMPANION: a sworn one called to the player's side - it says so as it steps through. */
   const noteRevenantArrival = (id) => _revenantArrivals.add(id);
   // COMPANION-ROSTER (ui/companionRoster.js): the roster's acts heard here - a call's words wait for the stand, a
@@ -10592,7 +10633,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   /** AUDIT (2026-10-02): the sworn's layer lifted for a load - its bodies, the words still to say, and every member (so
    *  no spell the last game's body wore stands with the loaded one). */
-  const clearSworn = () => { necro.clear(); revenantAshore.clear(); _revenantArrivals.clear(); _revenantDepartures.length = 0; _revenantBetrayals.length = 0; forgetSwornMember(); };   // AUDIT FEUD: and a turning queued under a window - the loaded game's is its own
+  const clearSworn = () => { necro.clear(); thralls.clear(); revenantAshore.clear(); _revenantArrivals.clear(); _revenantDepartures.length = 0; _revenantBetrayals.length = 0; forgetSwornMember(); };   // AUDIT FEUD: and a turning queued under a window - the loaded game's is its own
   setRetinueBodies((id) => revenantAshore.bodies().find((b) => b.revenantCompanion === id && !b.dead && !b._knockedOut)?.entity ?? null);   // AUDIT FEUD: a knocked-out one stands for nothing - no turning, no warning, no witness
   registerCompanionRoster('crew', () => (navalOn() ? (naval?.companions?.party ?? []).map((c) => ({ name: c.name, role: c.role })) : []));
   /** REVENANT-COMPANION: A SWORN ONE'S WORD IN A FIGHT, now and then and never a chatter - as it goes in (BARK_BATTLE), over
@@ -10692,6 +10733,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (gamePaused()) return;   // the sworn wait out a window too (AUDIT CC-A10's law: no knock, no stand, no catch-up under one)
     while (_revenantBetrayals.length) turnSworn(_revenantBetrayals.shift());   // RVN11c: before the layer's frame - its body lifted, no portal
     necro.tick();   // CHEB'S NECROMANCY: the minions, beside the sworn
+    thralls.tick();   // BUNNYFALL VAMPIRE EXPANSION: the thrall at my side
+    vampireHunters.tick();   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the hunters by night
     try { revenantAshore.frame(); } catch (e) { console.warn('[companions] the sworn', e?.message ?? e); }
     while (_revenantDepartures.length) {   // COMPANION-ROSTER: its parting words, as it goes
       const d = _revenantDepartures.shift();
@@ -12112,7 +12155,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     lairHere: createLairDoor({ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel }),
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the party mates' bodies, for a beneficial touch, missile or blast (declared beside allyTargetPick, below) - SPELL-GIFT: the spell rides, for the strangers its list may reach
     peerBodies: () => peersNear(),   // SPELLFX1: every player's body, where a peer's drawn missile stops (declared below this engine's build)
-    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
+    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies(), ...thralls.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
     // DUEL1: my duel opponent's body, for my harmful spells alone, while we fight - and the door the blow leaves by
     duelMark: () => { if (!duelMgr.fighting) return siegeSpellMarks(); const b = duelBody(duelMgr.opponent); return b ? { ...b, name: peerName(b.id) ?? 'your opponent' } : null; },   // AUDIT-SEATS G5: outside a duel, a siege's foes (WILD1: and past them the open zone's fair players)
     castAtDuel: (id, sp) => duelSpellOut(id, sp),
@@ -18209,6 +18252,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (townTalk.hover(e) || modes?.hover?.(e)) return;
     if (document.pointerLockElement !== canvas) return;
     if (modeWheel.isOpen()) return;   // MODE-WHEEL: while it is open the mouse steers it (its own listener), not the view
+    if (disciplineWheelOpen()) return;   // BUNNYFALL VAMPIRE EXPANSION: the Discipline wheel steers the same way
     // AUDIT 24 (wave 45): RMB in walk mode ALWAYS ends here - it is a
     // weapon control, and whether this host or worldModes owns the
     // swing, it is never a look. The old line gated the whole thing on
@@ -29704,6 +29748,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       _cardBarks = list.filter((m) => m.say).map((m) => ({ id: m.res.id, name: m.res.name, feet: m.feet, text: m.say }));
     },
     livingPersonsAct: (eye, dir, nearer) => !!livingIndoors?.size && townTalk.tryActivate(eye, dir, livingIndoors.seats(), Math.min(nearer, modes?.interiorCollider?.raycast(eye, dir, 80) ?? Infinity)),   // LW8: ...and the street's own talk ray on them - AUDIT LW-ROOMS: never through the room's walls (a bare wall is nothing to press, so the ray reached a drinker behind it)
+    vampireBeds: createVampireBeds({ entity: playerEntity, mode: getInteractionMode, now: ownMinutes, showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w), say: (l) => townTalk.say(l), onCrime: () => _crimeResponse(), region: () => _questRegionIndex(),   // BUNNYFALL VAMPIRE EXPANSION: a sleeper fed on through their bed (scenes/vampire/vampireFeed.js)
+      building: () => { const b = modes?.interiorBuilding; const town = b && !modes?.interiorCtx?.ownedRoom ? livingTownOfMap(b.townMapId ?? 0) : null; return town ? { key: b.buildingKey, town } : null; } }),
     livingSpeech: ({ proj, view, eye, dt }) => livingRoomLines(proj, view, eye, dt),   // LW8b: ...and what they say, over their heads
     csaDrawWindWidget: () => csaDrawWindWidget(),   // CSA-E: the wind widget over a mode's HUD
     csaOnPlayerDeath: () => { if (csaRuntime) csaCall(() => csaRuntime.OnPlayerDeath()); },   // CSA-J (the audit): PlayerEntity.OnDeath and OnExhausted reach ComeSailAway.OnPlayerDeath in every mode (Start 1059-1060)
@@ -29887,7 +29933,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     postItem: (text, item) => postItemInChat(text, item), linkItem: (item) => linkItemInChat(item), canPostItem: () => canPostItemInChat(),   // CHAT-POST: the building's and the dungeon's packs post too
     partyNear: () => partyOnMaps(), professionMarks: (feet) => professionMarks(feet),   // DISC23-A: the party's bodies, for the dungeon's and the building's plans (AUDIT pre-merge I-E: those drawn here); NODE-MARKS: the dungeon's veins (and a body the knife may skin) on its compass, at its own feet
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the dungeon's own cast engine gives to the same mates - SPELL-GIFT: and strangers, by the spell
-    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies()],   // COMPANION-KIT: my companions underground, for the dungeon's own cast engine (REVENANT-COMPANION: the sworn too)
+    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies(), ...thralls.bodies()],   // COMPANION-KIT: my companions underground, for the dungeon's own cast engine (REVENANT-COMPANION: the sworn too)
     openCompanionPack: (rec) => openCompanionPack(rec),   // COMPANION-KIT: a companion activated indoors or underground - his pack
     openRevenantFate: (rec) => openRevenantFate(rec),   // REVENANT-FATE: a beaten revenant indoors or underground - its choice
     shakeCamera: (k) => betterAmbience.weaponKick(k),   // REVENANT-FATE: an execution's blow, felt
@@ -30170,6 +30216,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       },
     },
     homeVendor: { open: (o) => openHomeVendorWindow(o) },   // HOME-VENDOR: a trader pressed in its home (worldModes.js openHomeVendor)
+    courtDoor: createCourtDoor({ entity: playerEntity, seats: () => (_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))), open: (c) => mountWindow(openCourtWindow({ entity: playerEntity, clan: c.clan, seat: c.name, now: () => Math.floor(playerTicker.ownMinutes), seats: () => (_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))) })) }),   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the Courts (ui/vampire/courtWindow.js)
+    haven: { rows: () => havenDoorRows(playerEntity), open: () => mountWindow(openHavenWindow({ entity: playerEntity, now: () => Math.floor(playerTicker.ownMinutes) })) },   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at my own home's door (ui/vampire/havenWindow.js)
     guestbookApi: homesApi,   // GUESTBOOK: the homes' service signs and reads a home's book (systems/online/guestbook.js)
     bardStage,   // BARDS' COLLEGE: the performance window plays and sends through it
     tavernSocial,   // TAVERN-SOCIAL: the innkeeper's rounds and tips (the tavern window's house rows, bunnyServices.js bunnyTavernRows)

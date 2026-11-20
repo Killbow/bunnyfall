@@ -71,6 +71,8 @@ import { overlayOpen } from './enhancedOverlays.js';
 import { getPref } from '../../systems/uiPrefs.js';   // PX30c: the port's own prefs, not DFU's settings
 import { hudRenown } from '../hud/hudRenown.js';   // RENOWN4: my own Renown, under the vitals
 import { survivalHudChips } from '../../systems/survival/status.js';   // SURV5: the needs (UI3: tiles in the status widget)
+import { vampireHudChips, vampireStatus } from '../../systems/vampire/vitae.js';   // BUNNYFALL VAMPIRE EXPANSION: the Beast's tile and the Vitae bar
+import { beastStageName } from '../../systems/vampire/bloodLaw.js';   // THE VISUAL PASS: the Vitae bar's word
 import { statusTiles, afflictionRows, statusGlyphSrc, statRoom, statSide, statPlace, statOverflow, STAT_TILE, STAT_GAP, STAT_METRICS, STAT_SHORT_QUERY, STAT_MIDDLE_CLEAR } from '../hud/hudStatus.js';   // UI3: the status widget
 import { sigilRuneTileSrc } from '../sigilRune.js';   // UI3: a set power's tile is its set's rune
 import { techniqueGlyphTileSrc } from '../techniqueGlyph.js';   // TECH-CARD: a technique's tile is its own glyph, the card block's
@@ -758,6 +760,17 @@ function build(doc) {
   gripTrack.append(gripFill);
   grip.append(gripLabel, gripTrack);
   bottom.append(grip);
+  // BUNNYFALL VAMPIRE EXPANSION (THE VISUAL PASS): THE VITAE - an awakened vampire's blood, in the breath's and the grip's
+  // likeness above the vitals: crimson, the Beast's stage on its label, glowing harder as the Beast rises
+  const vitaeBar = el('div', 'hud-breath hud-vitae');
+  const vitaeTrack = el('div', 'hud-track');
+  const vitaeFill = el('i', 'hud-fill');
+  const vitaeLabel = el('span', 'hud-breathlabel', 'Vitae');
+  vitaeTrack.style.width = 'min(220px, 26vw)';
+  vitaeFill.style.background = 'linear-gradient(180deg, #e0303f, #7a0d18)';
+  vitaeTrack.append(vitaeFill);
+  vitaeBar.append(vitaeLabel, vitaeTrack);
+  bottom.append(vitaeBar);
   const bars = el('div', 'hud-bars');
   // PX30c (Mac: "for the status bars, can we use percentages and
   // organize them within the bar itself"): THE NUMBER GOES INSIDE.
@@ -1002,7 +1015,7 @@ function build(doc) {
     temp: { el: temp, glyph: tempGlyph, num: tempNum, word: tempWord, mark: tempMark },   // TEMP-UI: the temperature plate
     stat, quickCap: cap, quickDiamond: diamond, top,   // UI3: the status widget, the caption it stands on, the diamond it may stand beside and the top block over it (its band is measured from them)
     renown, renownBox, renownFill, renownGhost, renownNum, adv,
-    breath, breathFill, grip, gripFill, gripLabel, readied, reticle, cross, centreWord, cornerWord,
+    breath, breathFill, grip, gripFill, gripLabel, vitaeBar, vitaeFill, vitaeLabel, readied, reticle, cross, centreWord, cornerWord,
     quick, quickCells: cells, quickTags: tags, hotDock, gemDock,
     spellChip: { chip: spellChip, tag: spellTag, img: spellGlyph, text: spellText, name: spellName, icon: spellIcon } };
 }
@@ -1338,6 +1351,20 @@ export function drawEnhancedHud(vitals, heading01, dt = 0, opts = {}) {
     }
   }
 
+  // BUNNYFALL VAMPIRE EXPANSION: THE VITAE (systems/vampire/vitae.js vampireStatus) - drawn for an awakened vampire alone
+  const vs = vampireStatus(vitals, Math.floor(ownMinutes()));
+  if (last.vitaeOn !== !!vs) { last.vitaeOn = !!vs; parts.vitaeBar.classList.toggle('on', !!vs); }
+  if (vs) {
+    width(parts.vitaeFill, 'vitaeW', (vs.vitae / vs.max) * 100);
+    const word = `${beastStageName(vs.stage)} \u00b7 ${vs.vitae}`;
+    if (last.vitaeWord !== word) {
+      last.vitaeWord = word;
+      parts.vitaeLabel.textContent = word;
+      parts.vitaeFill.style.boxShadow = vs.stage >= 3 ? '0 0 10px 2px rgba(220,20,50,0.75)' : vs.stage >= 2 ? '0 0 6px rgba(200,20,40,0.5)' : 'none';
+      parts.vitaeLabel.style.color = vs.stage >= 3 ? '#ff6b6b' : '';
+    }
+  }
+
   // CLIMB2: THE GRIP - the host's `grip` ({ amount, low } or null). STEED1: else the ridden horse's breath (`steed`, the
   // same shape - systems/upkeep/upkeepRuntime.js bar), in the grip's place and under the horse's word.
   const gr = opts.grip ?? opts.steed ?? null;
@@ -1479,11 +1506,11 @@ function drawStatus(vitals, opts, live = null) {
   const powers = setPowerChips(vitals);   // SET5: the set powers (the host's - setHudSetChips)
   powers.push(...techniqueChips(vitals));   // TECH1: and the weapon's technique beside them (the host's - setHudTechniqueChips)
   // SURV5: the needs - one a felt need (survival/status.js), none while every need is met, and none with the switch off
-  const needs = survivalOn() ? survivalHudChips(vitals, Math.floor(ownMinutes()), { vampire: !!liveVampirism(vitals), endurance: liveStat(vitals, 'endurance'), rules: survivalRules(), live }) : [];   // AUDIT SURV C: the vampire's strip, the page's drunk bands; AUDIT SURV-BOONS C14: the live tier's, so a turn shows at once (AUDIT C&C S5: and its levels are that tier's); AUDIT C&C S9: the plate's live reading
+  const needs = [...vampireHudChips(vitals, Math.floor(ownMinutes())), ...(survivalOn() ? survivalHudChips(vitals, Math.floor(ownMinutes()), { vampire: !!liveVampirism(vitals), endurance: liveStat(vitals, 'endurance'), rules: survivalRules(), live }) : [])];   // BUNNYFALL VAMPIRE EXPANSION: the Beast and the blood first (systems/vampire/vitae.js vampireHudChips)   // AUDIT SURV C: the vampire's strip, the page's drunk bands; AUDIT SURV-BOONS C14: the live tier's, so a turn shows at once (AUDIT C&C S5: and its levels are that tier's); AUDIT C&C S9: the plate's live reading
   // TUT1: the first felt need - AUDIT SURV-BOONS C2: a boon is none (a fresh Boons character is fed and watered, and met
   // the page in its first minute). CHARGEN-TUT: and only a made character's - the HUD draws under the wizard on the
   // stand-in, whose needs are nobody's, and the page it raised stood over the wizard where no click could reach it
-  if (vitals?.chargenDone && needs.some((c) => c.level !== 'boon')) noteFirstUse('survival');
+  if (vitals?.chargenDone && needs.some((c) => c.level !== 'boon' && c.key !== 'vitae')) noteFirstUse('survival');   // BUNNYFALL VAMPIRE EXPANSION: the Beast's tile is no survival need
   const rested = sharedClockOn() ? { minutes: nightRealMinutesLeft(vitals, ownMinutes()) } : null;   // REST1: the night interval, online
   const all = statusTiles({ spells, powers, afflictions: afflictionRows(vitals), needs, rested });
   const zone = zoneTile();

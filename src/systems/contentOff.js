@@ -44,6 +44,9 @@ export const CONTENT = Object.freeze({
   eliteDungeons: true,
   /** FARM EXPANSION, PHASE 7: market day on every Company farm (net/farm/marketLaw.js marketToday). Off, no farm holds a market. */
   farmMarkets: true,
+  /** BUNNYFALL VAMPIRE EXPANSION, PHASE 1 (2026-11-20): Vitae, the Beast, Blood Sight and feeding in Steal mode, awakened by
+   *  the Clan Elder's summons (systems/vampire/). Off, no summons comes and a vampire lives by Daggerfall's rules. */
+  vampireBlood: true,
 });
 
 /** Whether a piece of content is on. */

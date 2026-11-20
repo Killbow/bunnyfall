@@ -23,6 +23,7 @@ const progress = {
 // scripts) could not be shared once its trigger had been asked, and every resync of a party's copy was refused.
 const holders = {
   QlAct: { from: (v) => v === null || count(v) },
+  VampClouded: { from: (v) => v === null || count(v) },   // BUNNYFALL VAMPIRE EXPANSION: the Kisses counted from this holder's own (systems/vampire/vampireActions.js)
   // QUEST-AUDIT III GUARD-HOLDER: GUARD-ONLINE's watch is the holder's arrival at the hall (onlineGuard.js), never the
   // partner's - a member who left at the close sent `guardAway` and started the watch over for the one still in the hall
   DailyFrom: { guardAnchor: (v) => v === null || finite(v), guardAway: bool },
