@@ -419,7 +419,7 @@ export const PANTRY = Object.freeze([
   Object.freeze({ key: 'food:butter', name: 'Butter', templateIndex: 724, value: 4, art: [205, 29] }),
   Object.freeze({ key: 'food:cheesewheel', name: 'Aged Cheese', templateIndex: 725, value: 7, art: [205, 10] }),
   Object.freeze({ key: 'food:wine', name: 'Wine', templateIndex: 726, value: 8, art: [205, 13] }),
-  Object.freeze({ key: 'food:oil', name: 'Sunflower Oil', templateIndex: 727, value: 6, art: [205, 1] }),
+  Object.freeze({ key: 'food:oil', name: 'Pressed Oil', templateIndex: 727, value: 6, art: [205, 1] }),
   Object.freeze({ key: 'food:berrywine', name: 'Berry Wine', templateIndex: 728, value: 7, art: [205, 7] }),
   Object.freeze({ key: 'food:ale', name: 'Ale', templateIndex: 729, value: 5, art: [205, 0] }),
   Object.freeze({ key: 'food:mead', name: 'Mead', templateIndex: 730, value: 7, art: [205, 5] }),

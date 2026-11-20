@@ -13,6 +13,9 @@ import { nextFarmTitle, FARM_WORK_DAY_CAP } from '../../net/farm/farmWorkLaw.js'
 import { FARM_SEED_IDS, farmSeed, farmSeason, seasonPace, SEASON_OFF } from '../../net/farm/cropLaw.js';
 import { strainOf } from '../../net/farm/strainLaw.js';
 import { TITLE_TEXT } from '../../ui/playerBadge.js';
+import { WORKSHOP_IDS, stageOf, batchState } from '../../net/farm/workshopLaw.js';   // the ledger's yard
+import { contentAt, CONTENT_GOOD } from '../../net/farm/herdLaw.js';
+import { workshopName } from './workshopActs.js';
 
 /** A strain trait in words. */
 export const traitWord = (k) => ({ quick: t('farm.trait.quick', 'quick'), hardy: t('farm.trait.hardy', 'hardy'), heavy: t('farm.trait.heavy', 'heavy'), showy: t('farm.trait.showy', 'showy'), sweet: t('farm.trait.sweet', 'sweet') })[k] ?? k;
@@ -23,10 +26,10 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 /**
  * @param {{ garden: () => any, now: () => number, mayManage: () => boolean, busy: () => boolean, economy: () => any,
  *   work: () => ({ total: number, today: number } | null), say: (s: string) => void, setSeed: (id: string) => void, ask: (lines: string[], yes: () => void) => void,
- *   act: (action: any) => any, wantFunds: () => void, held?: () => string, postNote?: () => (string | null) }} d
+ *   act: (action: any) => any, wantFunds: () => void, held?: () => string, postNote?: () => (string | null), ledger?: (model: any) => void }} d
  */
 export function createFarmsteadActs(d) {
-  let ledgerLine = 0, postLine = 0;
+  let postLine = 0;
   const progress = () => farmProgress(d.garden());
   const grownOf = (p, crop) => Math.max(0, p.harvested[crop] - p.delivered[crop]);
   const total = (o) => Object.values(o).reduce((a, b) => a + b, 0);
@@ -35,41 +38,59 @@ export function createFarmsteadActs(d) {
   function notice(crop) {
     const p = progress(), order = farmOrder(p, crop), name = farmCropName(crop);
     if (p.weeks[crop] === farmWeek(d.now())) return t('farm.stead.postFilled', '{crop}: filled this week. The next notice goes up on Morndas.', { crop: name });
-    return t('farm.stead.postOrder', 'Wanted: {quantity} {crop}, for {gold} gold and {argents} Argents. Grown here and not yet shipped: {grown}.',
+    return t('farm.stead.postOrder', 'Wanted: {quantity} {crop}, for {gold} gold and {argents} Argents. Harvested here and not yet shipped: {grown}. Any Company member ships it at the factor\'s wagon.',
       { quantity: fmt(order.quantity), crop: name, gold: fmt(order.gold), argents: order.argents, grown: fmt(grownOf(p, crop)) });
   }
 
-  /** The estate ledger's lines, in turn. */
-  function ledger() {
-    d.wantFunds();   // and my farm work, read while I use it
-    const p = progress(), week = farmWeek(d.now()), lines = [
-      t('farm.stead.ledgerTotals', 'The ledger: {harvested} crops harvested here, {delivered} shipped.', { harvested: fmt(total(p.harvested)), delivered: fmt(total(p.delivered)) }),
-      t('farm.stead.ledgerShipped', 'Shipped so far: {grain} grain, {mushroom} mushrooms, {herbs} herbs.', { grain: fmt(p.delivered.grain), mushroom: fmt(p.delivered.mushroom), herbs: fmt(p.delivered.herbs) }),
-      t('farm.stead.ledgerWeek', 'This week\'s orders filled: {n} of {all}.', { n: FARM_CROP_TYPES.filter((c) => p.weeks[c] === week).length, all: FARM_CROP_TYPES.length }),
-    ];
-    const work = d.work?.();
+  /**
+   * THE ESTATE LEDGER'S PAGE (2026-11-20, a player: "annoying to click through it multiple times ... it would be better if it just
+   * popped up a ui that gave a sort of overview of the farm"): everything the old ledger read out in turn, as one model for the
+   * read-only page (ui/farmLedger.js) - your farm work, this week's orders and how to ship them, what has shipped, what each
+   * improvement still wants, the herd and the workshops. Pure.
+   */
+  function overview() {
+    const p = progress(), g = d.garden(), now = d.now(), week = farmWeek(now), work = d.work?.(), sections = [];
     if (work) {
       const next = nextFarmTitle(work.total);
-      lines.unshift(next
-        ? t('farm.stead.ledgerWork', 'Your farm work: {total} ({today} of {cap} today). {left} more and they will call you {title}.', { total: fmt(work.total), today: work.today, cap: FARM_WORK_DAY_CAP, left: fmt(next.left), title: TITLE_TEXT[next.title] ?? next.title })
-        : t('farm.stead.ledgerWorkDone', 'Your farm work: {total}. There is no higher name for a farmer than the one you have.', { total: fmt(work.total) }));
+      sections.push({ title: t('farm.ledger.work', 'Your farm work'), rows: [
+        { label: t('farm.ledger.workTotal', 'So far'), text: t('farm.ledger.workText', '{total} ({today} of {cap} counted today)', { total: fmt(work.total), today: work.today, cap: FARM_WORK_DAY_CAP }) },
+        { label: t('farm.ledger.workNext', 'Next name'), text: next ? t('farm.ledger.workNextText', '{title} at {needed}: {left} to go', { title: TITLE_TEXT[next.title] ?? next.title, needed: fmt(next.needed), left: fmt(next.left) }) : t('farm.ledger.workDone', 'You hold the highest name a farmer can.') },
+      ] });
     }
-    const cargo = wagonCargo(d.garden(), d.now());
-    if (cargoTotal(cargo)) lines.push(t('farm.stead.ledgerCargo', 'Hauled to the wagon this week by hand: {n} crops.', { n: fmt(cargoTotal(cargo)) }));
-    for (const key of Object.keys(FARM_UPGRADES)) {
-      const tier = p.upgrades[key];
-      if (tier >= 2) continue;
-      const need = FARM_UPGRADES[key][tier].delivered, short = FARM_CROP_TYPES.filter((c) => p.delivered[c] < need);
-      lines.push(short.length
-        ? t('farm.stead.ledgerNeed', '{name} wants {needed} of every crop shipped. Still short: {crops}.', { name: farmUpgradeName(key, tier), needed: fmt(need), crops: short.map(farmCropName).join(', ') })
-        : t('farm.stead.ledgerReady', '{name} can be ordered: every crop has shipped enough.', { name: farmUpgradeName(key, tier) }));
-    }
-    return lines[ledgerLine++ % lines.length];
+    sections.push({ title: t('farm.ledger.orders', 'This week\'s orders: ship them at the factor\'s wagon'), rows: FARM_CROP_TYPES.map((c) => {
+      const o = farmOrder(p, c), grown = grownOf(p, c), pays = { gold: fmt(o.gold), argents: o.argents };
+      if (p.weeks[c] === week) return { label: farmCropName(c), text: t('farm.ledger.orderFilled', 'Filled this week. The next one goes up on Morndas.') };
+      return grown >= o.quantity
+        ? { label: farmCropName(c), ready: true, text: t('farm.ledger.orderReady', 'Ready to ship: {quantity} wanted, {grown} harvested here. Pays {gold} gold and {argents} Argents.', { quantity: fmt(o.quantity), grown: fmt(grown), ...pays }) }
+        : { label: farmCropName(c), text: t('farm.ledger.orderNot', '{grown} of {quantity} harvested here and not yet shipped. Pays {gold} gold and {argents} Argents.', { quantity: fmt(o.quantity), grown: fmt(grown), ...pays }) };
+    }) });
+    const cargo = cargoTotal(wagonCargo(g, now)), shipped = [
+      { label: t('farm.ledger.harvested', 'Harvested here'), text: t('farm.ledger.harvestedText', '{n} crops in all', { n: fmt(total(p.harvested)) }) },
+      { label: t('farm.ledger.shipped', 'Shipped so far'), text: t('farm.ledger.shippedText', '{grain} grain, {mushroom} mushrooms, {herbs} herbs', { grain: fmt(p.delivered.grain), mushroom: fmt(p.delivered.mushroom), herbs: fmt(p.delivered.herbs) }) },
+    ];
+    if (cargo) shipped.push({ label: t('farm.ledger.cargo', 'On the wagon'), text: t('farm.ledger.cargoText', '{n} crops carried there by hand this week', { n: fmt(cargo) }) });
+    sections.push({ title: t('farm.ledger.totals', 'The farm\'s books'), rows: shipped });
+    const place = { tools: t('farm.ledger.atRack', 'the tool rack'), irrigation: t('farm.ledger.atWell', 'the well'), soil: t('farm.ledger.atHeap', 'the compost heap') };
+    const family = { tools: t('farm.ledger.tools', 'Tools'), irrigation: t('farm.ledger.irrigation', 'Irrigation'), soil: t('farm.ledger.soil', 'Soil') };
+    sections.push({ title: t('farm.ledger.improvements', 'Improvements'), rows: Object.keys(FARM_UPGRADES).map((key) => {
+      const tier = p.upgrades[key], have = tier > 0 ? farmUpgradeName(key, tier - 1) : t('farm.ledger.none', 'none yet');
+      if (tier >= 2) return { label: family[key], text: t('farm.ledger.best', '{name}: the best there is', { name: have }) };
+      const price = FARM_UPGRADES[key][tier], short = FARM_CROP_TYPES.filter((c) => p.delivered[c] < price.delivered);
+      return { label: family[key], text: short.length
+        ? t('farm.ledger.nextShort', '{have}. Next: {name}, once {needed} of every crop has shipped (short: {crops})', { have, name: farmUpgradeName(key, tier), needed: fmt(price.delivered), crops: short.map(farmCropName).join(', ') })
+        : t('farm.ledger.nextReady', '{have}. Next: {name}, for {gold} gold and {argents} Argents: a Captain or an Officer orders it at {place}', { have, name: farmUpgradeName(key, tier), gold: fmt(price.gold), argents: price.argents, place: place[key] }) };
+    }) });
+    const herd = g.herd ?? [], built = WORKSHOP_IDS.filter((id) => stageOf(g, id, now) === 2);
+    sections.push({ title: t('farm.ledger.yard', 'The yard'), rows: [
+      { label: t('farm.ledger.herd', 'Animals'), text: herd.length ? t('farm.ledger.herdText', '{n} ({m} content)', { n: herd.length, m: herd.filter((a) => contentAt(a, now) >= CONTENT_GOOD).length }) : t('farm.ledger.noHerd', 'none yet: a drover visits one day a week') },
+      { label: t('farm.ledger.workshops', 'Workshops'), text: built.length ? built.map((id) => workshopName(id) + (batchState(g, id, now) === 1 ? t('farm.ledger.working', ' (at work)') : batchState(g, id, now) === 2 ? t('farm.ledger.shelf', ' (goods on the shelf)') : '')).join(', ') : t('farm.ledger.noShops', 'none built: officers order them on the staked plots') },
+    ] });
+    return { title: t('farm.ledger.title', 'The estate ledger'), sections,
+      note: t('farm.ledger.note', 'Harvests go into the Company Stores at once. "Harvested here" counts the crops harvested by hand at this farm; shipping an order takes that many out of the Stores.') };
   }
 
   /** The factor's wagon: load the first order that is ready. */
   function wagon() {
-    if (!d.mayManage()) { d.say(t('farm.stead.wagonRank', 'The factor waits for the Captain or an Officer to send the wagon.')); return; }
     d.wantFunds();
     const p = progress(), week = farmWeek(d.now());
     const open = FARM_CROP_TYPES.filter((c) => p.weeks[c] !== week);
@@ -77,7 +98,7 @@ export function createFarmsteadActs(d) {
     const crop = open.find((c) => grownOf(p, c) >= farmOrder(p, c).quantity);
     if (!crop) {
       const c = open[0];
-      d.say(t('farm.stead.wagonEmpty', 'Nothing is ready to load. The next order wants {quantity} {crop}; {grown} are grown and unshipped.', { quantity: fmt(farmOrder(p, c).quantity), crop: farmCropName(c), grown: fmt(grownOf(p, c)) }));
+      d.say(t('farm.stead.wagonEmpty', 'Nothing is ready to ship yet. The next order wants {quantity} {crop}; {grown} harvested here and not yet shipped.', { quantity: fmt(farmOrder(p, c).quantity), crop: farmCropName(c), grown: fmt(grownOf(p, c)) }));
       return;
     }
     const order = farmOrder(p, crop), economy = d.economy();
@@ -107,6 +128,8 @@ export function createFarmsteadActs(d) {
   }
 
   return {
+    /** The estate ledger's page, as a model (the farm refreshes the open page from it each frame). */
+    overview,
     /** The hover line over a fixture. */
     label(id) {
       if (id.startsWith('seed:')) {
@@ -123,7 +146,7 @@ export function createFarmsteadActs(d) {
       }
       return {
         orderPost: t('farm.stead.postLabel', 'Order post · this week\'s notices'),
-        wagon: t('farm.stead.wagonLabel', 'The factor\'s wagon'),
+        wagon: t('farm.stead.wagonLabelOfficer', 'The factor\'s wagon · click to ship this week\'s orders'),
         ledger: t('farm.stead.ledgerLabel', 'The estate ledger'),
         haystack: t('farm.stead.hayLabel', 'The season\'s hay'),
         scarecrow: t('farm.stead.scarecrowLabel', 'The scarecrow'),
@@ -148,7 +171,7 @@ export function createFarmsteadActs(d) {
         const note = d.postNote?.(), i = postLine++ % (FARM_CROP_TYPES.length + (note ? 1 : 0));
         d.say(i < FARM_CROP_TYPES.length ? notice(FARM_CROP_TYPES[i]) : note); return;
       }
-      if (id === 'ledger') { d.say(ledger()); return; }
+      if (id === 'ledger') { d.wantFunds(); d.ledger ? d.ledger(overview()) : d.say(overview().sections[0].rows[0].text); return; }   // my farm work is read while I use it
       if (id === 'wagon') { wagon(); return; }
       if (id === 'haystack') { d.say(t('farm.stead.hay', 'Sweet-smelling hay, stacked for the winter.')); return; }
       if (id === 'scarecrow') d.say(t('farm.stead.scarecrow', 'The scarecrow keeps its watch over the rows.'));

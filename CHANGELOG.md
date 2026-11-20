@@ -4,7 +4,13 @@ Newest first. One line a change, in plain words, for players. The desktop app's 
 the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
+- Every Company member can now ship the week's orders at the factor's wagon and the workshop order, not just the Captain and Officers. Buying improvements, animals and workshops is still for them.
 
+- The estate ledger on a farm now opens one page with everything at once (your farm work, this week's orders, what has shipped, what each improvement still needs, your animals and workshops), instead of one line a click. Esc closes it.
+- Shipping crops is easier to find: the factor's wagon now says on hover how to ship the week's orders, and the order post says the same. The ledger lists the shipping steps.
+- A new workshop for farms: the apiary, bee boxes among roses that make honey on their own, so the brewery can make mead from your own farm.
+- The loom and the press now work in the desert: the loom weaves linen from desert root or grain straw, and the press makes oil from desert root or grain. Sunflower oil is now called Pressed Oil.
+- A player can now station up to four sworn beasts across the Company's farms (it was two).
 - Fixed a crash on farms: harvesting any of the new crops (corn, cabbage, tomatoes, sunflowers, berries, desert root, flax, gourds, grapes) crashed the game when its sacks were drawn. Every crop now has a sack.
 - The chat has a new look: tidier tabs, small icon buttons in its top bar (pop out, hide, close), quieter grey system lines, small times in their own column, and a compact message row. The text stays the same size when you resize the chat: a bigger chat shows more lines instead of bigger letters.
 - Chat scrolling is smoother: it stays on the newest line while you are at the bottom, it no longer jumps while you read older lines, and a "new messages ↓" pill takes you back down. The scrollbar is slim.

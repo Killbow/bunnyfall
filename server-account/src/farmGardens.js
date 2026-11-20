@@ -16,14 +16,14 @@ import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';
 export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const { character, mapId, op = 'read', version } = body;
   if (!Number.isSafeInteger(mapId) || mapId < 0 || mapId > 0xffffffff || !['read', 'hoe', 'plant', 'water', 'harvest', 'upgrade', 'deliver', 'haul', 'weed', 'birds', 'burn', 'herd', 'pull', 'prowl', 'workshop', 'plough', 'station', 'recall'].includes(op)) return { error: 'farm-bed-bad' };
-  const management = op === 'upgrade' || op === 'deliver';
+  const management = op === 'upgrade' || op === 'deliver';   // both move Company money; only buying an improvement ('upgrade') is an officer's, any member ships an order
   // Any authenticated visitor may see a garden. Only Company members may change it.
   const actor = op === 'read' ? null : await guildActorOf(db, player, character);
   if (actor && 'error' in actor) return actor;
   const farm = await db.prepare('SELECT * FROM company_farms WHERE map_id = ?').bind(mapId).first();
   if (!farm) return { error: 'farm-not-ours' };
   if (op !== 'read' && farm.guild_id !== actor.me.guild_id) return { error: 'farm-not-ours' };
-  if ((management || op === 'burn' || (op === 'herd' && body.act === 'buy') || (op === 'workshop' && ['build', 'order'].includes(body.act))) && Number(actor.me.rank) > 1) return { error:'farm-rank' };   // PHASE 2c/3: burning a strain and buying an animal are an officer's   // PHASE 2c: burning a strain is an officer's
+  if ((op === 'upgrade' || op === 'burn' || (op === 'herd' && body.act === 'buy') || (op === 'workshop' && body.act === 'build')) && Number(actor.me.rank) > 1) return { error:'farm-rank' };   // PHASE 2c/3: burning a strain and buying an animal are an officer's   // PHASE 2c: burning a strain is an officer's
   await db.prepare('INSERT OR IGNORE INTO company_farm_gardens (map_id, version, garden) VALUES (?, 0, ?)').bind(mapId, JSON.stringify(emptyGarden())).run();
   const row = await db.prepare('SELECT version, garden FROM company_farm_gardens WHERE map_id = ?').bind(mapId).first();
   let garden;

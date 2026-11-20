@@ -107,6 +107,14 @@ export const FIXTURES = Object.freeze([
   ...[0, 1].map((i) => ({ id: `table${i}`, r: .85, h: 1.2, parts: [
     { a: 205, r: 25, h: .9, min: { market: 1 } }, { a: 254, r: 24 + i, dx: -.3, dy: .85, h: .3, min: { market: 1 } }, { a: 211, r: 1, dx: .3, dy: .85, h: .3, min: { market: 1 } },
   ] })),
+  // 2026-11-20 (a player: "a beehive structure for honey"): THE APIARY - ARENA2 has no beehive, so the bee boxes are stacked crates
+  // (a hive is a stack of boxes) among roses; the same workshop as the others (workshopLaw.js), no input. Last, so no plot moves.
+  workshop('apiary', 1.8, 1.5,
+    [{ a: 205, r: 24, dx: -.6, dz: -.3, h: .8 }, { a: 205, r: 25, dx: -.6, dz: -.3, dy: .78, h: .7 }, { a: 205, r: 25, dx: .3, dz: -.5, h: .75 }, { a: 205, r: 24, dx: .3, dz: -.5, dy: .73, h: .78 },
+      { a: 205, r: 24, dx: 1.0, dz: -.1, h: .8 },
+      { a: 254, r: 26, dx: -1.2, dz: .5, h: .38 }, { a: 254, r: 27, dx: -.2, dz: .6, h: .36 }, { a: 254, r: 29, dx: .7, dz: .5, h: .38 }, { a: 254, r: 30, dx: 1.4, dz: .4, h: .36 }, { a: 254, r: 28, dx: -.9, dz: -.9, h: .34 }],
+    [{ a: 254, r: 32, dx: -.2, dz: .95, h: .34 }, { a: 254, r: 33, dx: .9, dz: .9, h: .34 }],
+    [{ a: 205, r: 8, dx: .9, dz: 1.95, dy: .75, h: .3 }, { a: 205, r: 8, dx: 1.3, dz: 1.9, dy: .75, h: .26 }]),
 ]);
 /** A beast post's index from its fixture id, or -1. */
 export const postIndexOf = (id) => (/^beastPost[0-5]$/.test(id) ? Number(id.slice(9)) : -1);

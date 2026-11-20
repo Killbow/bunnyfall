@@ -98,3 +98,44 @@ test('the workshop handler spends gold and Stores exactly once, pays one product
   assert.equal(denied.error, 'farm-rank', 'Building is an officer\'s');
   m.sql.close();
 });
+
+test('the apiary makes honey from nothing; the loom and the press have recipes a desert farm can run', async () => {
+  // 2026-11-20, a player: no honey on a farm for the brewery's mead; the loom and press useless in the desert
+  const f = fixture();
+  f.sql.exec("INSERT INTO players (id) VALUES ('tester')");
+  let version = 0;
+  const go = async (fields, nowS) => { const r = await farmGarden({ ...f.ctx, nowS }, f.player, { character: 'char1', mapId: 42, op: 'workshop', version, ...fields }); if (r.ok) version = r.version; return r; };
+  const stores = (material) => f.sql.prepare('SELECT COALESCE(SUM(qty), 0) AS q FROM guild_prof_stores WHERE material = ?').get(material).q;
+  const T = 100000;
+  assert.ok((await go({ act: 'build', workshop: 'apiary' }, T)).ok);
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury, 1000000 - WORKSHOPS.apiary.gold);
+  const ready = T + WORKSHOPS.apiary.buildS;
+  assert.equal(WORKSHOPS.apiary.recipes[0].in, null, 'bees need no input');
+  const s = await go({ act: 'start', workshop: 'apiary', recipe: 'honey' }, ready);
+  assert.ok(s.ok, 'a batch starts with an empty Stores: ' + JSON.stringify(s));
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM guild_prof_stores').get().n, 0, 'and takes nothing from them');
+  assert.equal((await go({ act: 'start', workshop: 'apiary', recipe: 'honey' }, ready + 60)).error, 'farm-workshop-busy');
+  assert.ok((await go({ act: 'collect', workshop: 'apiary' }, ready + 12 * 3600)).ok);
+  assert.equal(stores('food:honey'), 4, 'four honey for the brewery');
+  assert.equal(f.sql.prepare('SELECT farm_work FROM players').get().farm_work, 10);
+  // the loom: desert root and grain straw both make linen, each taking exactly its own input
+  assert.ok((await go({ act: 'build', workshop: 'loom' }, ready)).ok);
+  const woven = ready + WORKSHOPS.loom.buildS;
+  f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:root','','',20,'t',1), ('guild1','food:grain','','',30,'t',1)");
+  assert.ok((await go({ act: 'start', workshop: 'loom', recipe: 'rootlinen' }, woven)).ok);
+  assert.equal(stores('food:root'), 12, 'eight desert root'); assert.equal(stores('food:grain'), 30, 'and no grain');
+  assert.ok((await go({ act: 'collect', workshop: 'loom' }, woven + 3 * 3600)).ok);
+  assert.equal(stores('cloth:linen'), 2);
+  assert.ok((await go({ act: 'start', workshop: 'loom', recipe: 'strawlinen' }, woven + 4 * 3600)).ok);
+  assert.equal(stores('food:grain'), 18, 'twelve grain of straw');
+  // the press: root oil and grain oil
+  assert.ok((await go({ act: 'build', workshop: 'press' }, woven + 5 * 3600)).ok);
+  const pressed = woven + 5 * 3600 + WORKSHOPS.press.buildS;
+  assert.ok((await go({ act: 'start', workshop: 'press', recipe: 'rootoil' }, pressed)).ok);
+  assert.equal(stores('food:root'), 4);
+  assert.ok((await go({ act: 'collect', workshop: 'press' }, pressed + 6 * 3600)).ok);
+  assert.equal(stores('food:oil'), 3);
+  assert.ok((await go({ act: 'start', workshop: 'press', recipe: 'grainoil' }, pressed + 7 * 3600)).ok);
+  assert.equal(stores('food:grain'), 6, 'twelve grain pressed');
+  f.sql.close();
+});

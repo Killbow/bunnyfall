@@ -15,18 +15,25 @@
 import { farmWeek } from '../farmProgressLaw.js';
 
 const HOUR = 3600;
-/** A recipe: `n` of `in` from the Stores make `qty` of `out`, `s` seconds. */
+/** A recipe: `n` of `in` from the Stores make `qty` of `out`, `s` seconds. No `in` (null): the workshop makes it of itself, as
+ *  the apiary's bees do - nothing is taken from the Stores. */
 const r = (id, input, n, out, qty, hours) => Object.freeze({ id, in: input, n, out, qty, s: hours * HOUR });
 
 /** The workshops: the gold an officer pays, the hours it takes to rise, and what each makes. */
 export const WORKSHOPS = Object.freeze({
   windmill: Object.freeze({ gold: 12000, buildS: 24 * HOUR, recipes: Object.freeze([r('flour', 'food:grain', 8, 'food:flour', 8, 2), r('cornmeal', 'food:corn', 8, 'food:cornmeal', 8, 2)]) }),
-  press: Object.freeze({ gold: 8000, buildS: 12 * HOUR, recipes: Object.freeze([r('wine', 'food:grapes', 8, 'food:wine', 4, 6), r('oil', 'food:sunseed', 8, 'food:oil', 4, 6), r('berrywine', 'food:berries', 8, 'food:berrywine', 4, 6)]) }),
+  press: Object.freeze({ gold: 8000, buildS: 12 * HOUR, recipes: Object.freeze([r('wine', 'food:grapes', 8, 'food:wine', 4, 6), r('oil', 'food:sunseed', 8, 'food:oil', 4, 6), r('berrywine', 'food:berries', 8, 'food:berrywine', 4, 6),
+    // 2026-11-20, a player: the press was useless in the desert. These two need only what every farm grows (grain) or a desert grows (its root)
+    r('rootoil', 'food:root', 8, 'food:oil', 3, 6), r('grainoil', 'food:grain', 12, 'food:oil', 3, 6)]) }),
   churn: Object.freeze({ gold: 3000, buildS: 4 * HOUR, recipes: Object.freeze([r('butter', 'food:milk', 6, 'food:butter', 3, 4), r('cheesewheel', 'food:milk', 8, 'food:cheesewheel', 2, 6)]) }),
   smokehouse: Object.freeze({ gold: 5000, buildS: 8 * HOUR, recipes: Object.freeze([r('smokedmeat', 'food:meat', 4, 'food:smokedmeat', 4, 8), r('smokedboar', 'food:boar', 4, 'food:smokedmeat', 4, 8),
     r('smokedbear', 'food:bear', 4, 'food:smokedmeat', 4, 8), r('smokedfish', 'food:fish', 4, 'food:smokedfish', 4, 8)]) }),
-  loom: Object.freeze({ gold: 6000, buildS: 6 * HOUR, recipes: Object.freeze([r('linen', 'food:flax', 6, 'cloth:linen', 2, 3)]) }),   // wool is already cloth in the Stores (cloth:wool): the loom has nothing to do to it
+  loom: Object.freeze({ gold: 6000, buildS: 6 * HOUR, recipes: Object.freeze([r('linen', 'food:flax', 6, 'cloth:linen', 2, 3),
+    // 2026-11-20, a player: the loom was useless where flax does not grow. Coarser thread from the desert's root and from any farm's grain straw
+    r('rootlinen', 'food:root', 8, 'cloth:linen', 2, 3), r('strawlinen', 'food:grain', 12, 'cloth:linen', 2, 3)]) }),   // wool is already cloth in the Stores (cloth:wool): the loom has nothing to do to it
   brewery: Object.freeze({ gold: 9000, buildS: 12 * HOUR, recipes: Object.freeze([r('ale', 'food:grain', 10, 'food:ale', 5, 12), r('mead', 'food:honey', 6, 'food:mead', 3, 12)]) }),
+  // 2026-11-20, a player: the brewery's mead wanted honey and a farm could not make any. Bee boxes among the roses: no input at all
+  apiary: Object.freeze({ gold: 4000, buildS: 6 * HOUR, recipes: Object.freeze([r('honey', null, 0, 'food:honey', 4, 12)]) }),
 });
 export const WORKSHOP_IDS = Object.freeze(Object.keys(WORKSHOPS));
 export const recipeOf = (workshop, id) => WORKSHOPS[workshop]?.recipes.find((x) => x.id === id) ?? null;
@@ -58,6 +65,7 @@ export const PRODUCT_ORDERS = Object.freeze([
   Object.freeze({ key: 'food:wine', qty: 12, gold: 800 }), Object.freeze({ key: 'food:oil', qty: 12, gold: 700 }),
   Object.freeze({ key: 'food:ale', qty: 20, gold: 700 }), Object.freeze({ key: 'food:mead', qty: 12, gold: 800 }),
   Object.freeze({ key: 'food:smokedmeat', qty: 24, gold: 800 }), Object.freeze({ key: 'cloth:linen', qty: 12, gold: 700 }),
+  Object.freeze({ key: 'food:honey', qty: 12, gold: 600 }),
 ]);
 const hash = (...xs) => { let h = 0x811c9dc5; for (const x of xs) { h = Math.imul(h ^ (x | 0), 0x01000193) >>> 0; h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0; } return (h ^ (h >>> 15)) >>> 0; };
 /** This farm's product order in `week` (farmWeek). */
@@ -117,7 +125,7 @@ export function stepFarmWorkshop(garden, { act, workshop, recipe, mapId = 0 }, n
     if (batchState(garden, workshop, nowS) === 1) return { error: 'farm-workshop-busy' };
     const dep = collectDone(next, workshop, nowS);   // a finished batch on the shelf goes to the Stores first
     next.batches = { ...(next.batches ?? {}), [workshop]: { r: rec.id, t0: nowS, t1: nowS + rec.s, out: rec.out, qty: rec.qty } };
-    return { garden: next, consume: { key: rec.in, units: rec.n }, deposit: dep ? [dep] : [], started: 1, worked: [] };
+    return { garden: next, ...(rec.in ? { consume: { key: rec.in, units: rec.n } } : {}), deposit: dep ? [dep] : [], started: 1, worked: [] };   // the apiary takes nothing from the Stores
   }
   return { error: 'farm-workshop-bad' };
 }

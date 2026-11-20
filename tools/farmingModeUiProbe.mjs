@@ -132,7 +132,7 @@ try {
   assert.ok(await page.evaluate(before => window.probe.eye[1] > before + .3, zoomBefore), 'Wheel zoom did not raise the camera');
   // THE FARMYARD (docs/FARM-EXPANSION.md section 3): every fixture laid out, drawn without a GL error, and used in place
   const ids = await page.evaluate(() => window.probe.mode.inspect().fixtures.map((f) => f.id));
-  for (const id of ['orderPost', 'wagon', 'ledger', 'seed:grain', 'seed:mushroom', 'seed:herbs', 'toolRack', 'well', 'compost', 'haystack', 'scarecrow']) assert.ok(ids.includes(id), `farmyard lacks ${id}`);
+  for (const id of ['orderPost', 'wagon', 'ledger', 'apiary', 'seed:grain', 'seed:mushroom', 'seed:herbs', 'toolRack', 'well', 'compost', 'haystack', 'scarecrow']) assert.ok(ids.includes(id), `farmyard lacks ${id}`);
   assert.equal(await page.evaluate(() => window.probe.glError), 0, 'farmyard draw error');
   const lamps = await page.evaluate(() => { window.probe.walkTo('ledger'); return window.probe.mode.lights(); });
   assert.ok(lamps.length >= 1 && lamps.length <= 3 && lamps.every((l) => Number.isFinite(l.x) && l.range > 0), 'The farmyard lanterns light the night');
@@ -150,8 +150,14 @@ try {
   await page.waitForTimeout(1100);await page.evaluate(()=>window.probe.render());
   assert.equal(await page.getByRole('button',{name:'Progress & orders',exact:true}).count(),0,'The sidebar is gone');
   await useFixture('ledger');
-  const ledgerLine = await page.locator('.farm-message').textContent();
-  assert.ok(ledgerLine.includes('19,000 crops harvested'), `The ledger reads the totals: ${ledgerLine}`);
+  // 2026-11-20: the ledger opens one page with everything (it used to speak one line a click)
+  assert.equal(await page.locator('.farm-ledger').count(), 1, 'The ledger opens its page');
+  const ledgerText = await page.locator('.farm-ledger').textContent();
+  for (const want of ['This week', 'wagon', 'Harvested here', '19,000', 'Improvements', 'Workshops', 'Animals']) assert.ok(ledgerText.includes(want), `the ledger page shows "${want}": ${ledgerText.slice(0, 300)}`);
+  assert.equal(await page.locator('.farm-ledger').isVisible(), true);
+  await page.keyboard.press('Escape'); await page.evaluate(() => window.probe.render());
+  assert.equal(await page.locator('.farm-ledger').isVisible(), false, 'Esc closes the page');
+  assert.ok(await page.evaluate(() => window.probe.mode.active), 'and leaves the farming mode on');
   await useFixture('wagon');
   assert.ok(await page.evaluate(()=>!!window.probe.asked), 'The wagon must ask an officer first');
   assert.equal(await page.evaluate(()=>window.probe.garden.progress.delivered.grain),0,'Asking must not ship');
