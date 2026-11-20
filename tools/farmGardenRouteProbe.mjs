@@ -174,10 +174,11 @@ try {
   const ordered=await tl({op:'workshop',act:'order'});assert.ok(ordered.data.workshop.order);
   assert.equal((await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury,goldBefore+po.gold,'The product order pays gold');
   const twice=await req('/v1/farms/garden',{...body,op:'workshop',act:'order',version:v});assert.notEqual(twice.status,200,'One product order a week');
-  // SWORN BEASTS (Phase 5): a boar and a grizzly stationed (two a character), a truffle among the mushrooms, a row ploughed, both recalled
+  // SWORN BEASTS (Phase 5): a boar and a grizzly stationed, two more, and the fifth refused (four a character), a truffle among the mushrooms, a row ploughed, both recalled
   const stBoar=await tl({op:'station',revenantId:'rv-boar',kind:278,name:'Tusk',rank:5,art:null,post:0});assert.equal(stBoar.data.station.revenantId,'rv-boar');
   await tl({op:'station',revenantId:'rv-bear',kind:4,name:'Bruin',rank:3,art:'warcry',post:1});
-  const third=await req('/v1/farms/garden',{...body,op:'station',revenantId:'rv-wolf',kind:262,name:'Fang',rank:1,art:null,post:2,version:v});assert.equal(third.data?.error??third.error,'farm-station-limit','Two beasts a character: '+JSON.stringify(third));
+  await tl({op:'station',revenantId:'rv-cat1',kind:5,name:'Stripe',rank:1,art:null,post:2});await tl({op:'station',revenantId:'rv-cat2',kind:5,name:'Claw',rank:1,art:null,post:3});
+  const fifth=await req('/v1/farms/garden',{...body,op:'station',revenantId:'rv-wolf',kind:262,name:'Fang',rank:1,art:null,post:4,version:v});assert.equal(fifth.data?.error??fifth.error,'farm-station-limit','Four beasts a character: '+JSON.stringify(fifth));
   const orc=await req('/v1/farms/garden',{...body,op:'recall',revenantId:'nobody',version:v});assert.equal(orc.data?.error??orc.error,'farm-station-none');
   const truffles=async()=>Number((await db.prepare("SELECT COALESCE(SUM(qty),0) AS q FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:truffle'").first()).q);
   for(let b=20;b<60&&!await truffles();b++){
@@ -191,6 +192,7 @@ try {
   assert.ok([100,101,102,103,104,105].every((i)=>ploughed.data.garden.beds[i]?.crop===null&&ploughed.data.garden.beds[i].care===3),'A stationed grizzly ploughs a whole row with care');
   await tl({op:'recall',revenantId:'rv-bear'});
   const plain=await req('/v1/farms/garden',{...body,op:'plough',beds:[120],game:{kind:'plough',score:.9,ms:12000},version:v});assert.equal(plain.data?.error??plain.error,'farm-plough-none','No grizzly, no plough');
+  await tl({op:'recall',revenantId:'rv-cat1'});await tl({op:'recall',revenantId:'rv-cat2'});
   const recalled=await tl({op:'recall',revenantId:'rv-boar'});assert.equal(recalled.data.garden.stations,undefined);
   harvest.data.version=v;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);

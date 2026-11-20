@@ -4,9 +4,16 @@ Newest first. One line a change, in plain words, for players. The desktop app's 
 the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
+- Every Company member can now ship the week's orders at the factor's wagon and the workshop order, not just the Captain and Officers. Buying improvements, animals and workshops is still for them.
 
 - New weapon: the Royal Ballista, an even heavier crossbow. Its bolt flies in a high arc and bursts where it lands, hurting every hostile foe around the spot (calm townsfolk, guards who are not after you and your companions are spared). While you hold the button to aim, a dotted arc shows the bolt's path and a ring shows where it will burst. It shakes the screen when fired, slows you down while drawn, uses arrows and Archery, and is slow to reload. Good Weapon Smiths sometimes sell one, and deep dungeon piles rarely hold one. Other players see its bolts arc too.
 - New tool: the Grappling Hook. Ready it like a weapon and click to throw it where you look (up to about 30 m). If it catches a wall, a ledge or the ground, you are pulled there: onto the top of a low wall or ledge, or hanging against a high wall. The pull never causes falling damage, and Jump lets go. It needs 6 seconds to coil after a catch (1.5 after a miss), shown as a ring around the crosshair. General Stores and Pawn Shops sell it, and dungeon piles sometimes hold one.
+- The estate ledger on a farm now opens one page with everything at once (your farm work, this week's orders, what has shipped, what each improvement still needs, your animals and workshops), instead of one line a click. Esc closes it.
+- Shipping crops is easier to find: the factor's wagon now says on hover how to ship the week's orders, and the order post says the same. The ledger lists the shipping steps.
+- A new workshop for farms: the apiary, bee boxes among roses that make honey on their own, so the brewery can make mead from your own farm.
+- The loom and the press now work in the desert: the loom weaves linen from desert root or grain straw, and the press makes oil from desert root or grain. Sunflower oil is now called Pressed Oil.
+- A player can now station up to four sworn beasts across the Company's farms (it was two).
+- Fixed a crash on farms: harvesting any of the new crops (corn, cabbage, tomatoes, sunflowers, berries, desert root, flax, gourds, grapes) crashed the game when its sacks were drawn. Every crop now has a sack.
 - The chat has a new look: tidier tabs, small icon buttons in its top bar (pop out, hide, close), quieter grey system lines, small times in their own column, and a compact message row. The text stays the same size when you resize the chat: a bigger chat shows more lines instead of bigger letters.
 - Chat scrolling is smoother: it stays on the newest line while you are at the bottom, it no longer jumps while you read older lines, and a "new messages ↓" pill takes you back down. The scrollbar is slim.
 - Clicking a name in the chat or in the player list opens a small menu instead of a long stack of buttons: Whisper, Add friend, Invite to party and Follow first. Staff tools and the report reasons are each tucked under one entry.

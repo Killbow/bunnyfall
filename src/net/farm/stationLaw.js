@@ -23,7 +23,9 @@
 // Pure: no clock, no network. Every number is balance, tunable here.
 import { MOBILE_TYPES as M } from '../../characters/mobile/mobileTypes.js';
 
-export const STATION_MAX = 6, STATION_PER_CHARACTER = 2, STATION_POSTS = 6;
+// 2026-11-20, a player (relayed by the owner: "a collaborative effort, maybe 4 people, should reach the cap"): four a character, so five
+// people fill a Company's eighteen posts; the retinue's six still counts them, so a player keeps at least two sworn beasts with them
+export const STATION_MAX = 6, STATION_PER_CHARACTER = 4, STATION_POSTS = 6;
 /** The herd's daily contentment a herding beast adds (herdLaw.js contentAt), and the most all of them add. */
 export const HERD_KEEP = 5, HERD_KEEP_MAX = 20;
 export const PLOUGH_BEDS = 6, GLASS_BEDS = 4, TRUFFLE_CHANCE = .2, TRUFFLE_MAX = .6, DAILY_BANK_DAYS = 3;

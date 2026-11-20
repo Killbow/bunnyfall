@@ -209,7 +209,8 @@ test('bought stock cannot replace farm-grown milestones; officers and the Argent
   assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-order-grown');
   assert.equal(f.sql.prepare('SELECT qty FROM guild_prof_stores').get().qty,10000);
   f.sql.exec("UPDATE guild_members SET rank=2; INSERT INTO guild_members VALUES ('captain','captainchar','guild1',0,'Captain',1)");
-  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-rank');
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-order-grown','a plain member may ship: only the farm-grown rule stops it');
+  assert.equal((await farmGarden(f.ctx,f.player,{...body,op:'upgrade',upgrade:'tools'})).error,'farm-rank','buying an improvement stays an officer\'s');
   f.sql.exec('UPDATE guild_members SET rank=0');f.ctx.env.MARKS_OPEN='off';
   assert.equal((await farmGarden(f.ctx,f.player,body)).error,'marks-closed');
   assert.equal(f.sql.prepare('SELECT version FROM company_farm_gardens').get().version,0);
@@ -297,7 +298,7 @@ const WOLF = 262, BOAR = 278, DEXBAT = 260;
 const beast = (kind, over = {}) => ({ player: 'tester', character: 'char1', revenantId: `r${kind}`, kind, name: 'Grushnak the Scarred', rank: 3, art: null, post: 0, since: 50, ...over });
 const withBeasts = (...list) => ({ ...emptyGarden(), stations: list });
 
-test('stationing: bounded to real beast kinds, six a farm, two a character, posts unique, recalled by the owner only', () => {
+test('stationing: bounded to real beast kinds, six a farm, four a character, posts unique, recalled by the owner only', () => {
   let g = emptyGarden();
   const base = { act: 'station', who: 'tester', character: 'char1', revenantId: 'a', kind: MT.GrizzlyBear, name: 'Bruin', rank: 2, art: 'warcry', post: 0 };
   assert.equal(stepFarmStation(g, { ...base, kind: MT.Orc }, 100).error, 'farm-station-bad', 'an orc is never stationed');
@@ -308,9 +309,14 @@ test('stationing: bounded to real beast kinds, six a farm, two a character, post
   assert.equal(stepFarmStation(g, { ...base, post: 1 }, 100).error, 'farm-station-bad', 'one beast, one post');
   assert.equal(stepFarmStation(g, { ...base, revenantId: 'b', post: 0 }, 100).error, 'farm-station-post');
   g = stepFarmStation(g, { ...base, revenantId: 'b', kind: MT.Spider, post: 1 }, 100).garden;
-  assert.equal(stepFarmStation(g, { ...base, revenantId: 'c', post: 2 }, 100).error, 'farm-station-limit', 'two a character');
+  let four = g;   // the cap is four a character (it was two): two more do-nothing beasts, and the fifth is refused
+  four = stepFarmStation(four, { ...base, revenantId: 'c', kind: MT.SabertoothTiger, post: 2 }, 100).garden;
+  four = stepFarmStation(four, { ...base, revenantId: 'd', kind: MT.SabertoothTiger, post: 3 }, 100).garden;
+  assert.equal(four.stations.length, 4);
+  assert.equal(stepFarmStation(four, { ...base, revenantId: 'e', kind: MT.SabertoothTiger, post: 4 }, 100).error, 'farm-station-limit', 'four a character');
   assert.ok(stepFarmStation(g, { ...base, revenantId: 'c', post: 2, character: 'other', who: 'p2' }, 100).garden, 'another character may');
-  assert.equal(stepFarmStation(emptyGarden(), { ...base, elsewhere: 2 }, 100).error, 'farm-station-limit', 'across the Company\'s farms');
+  assert.equal(stepFarmStation(emptyGarden(), { ...base, elsewhere: 4 }, 100).error, 'farm-station-limit', 'across the Company\'s farms');
+  assert.ok(stepFarmStation(emptyGarden(), { ...base, elsewhere: 3 }, 100).garden, 'three elsewhere, one more here');
   assert.equal(stepFarmStation(g, { act: 'recall', who: 'p2', character: 'char1', revenantId: 'a' }, 100).error, 'farm-station-theirs');
   assert.equal(stepFarmStation(g, { act: 'recall', who: 'tester', character: 'char1', revenantId: 'zz' }, 100).error, 'farm-station-none');
   assert.equal(stepFarmStation(g, { act: 'recall', who: 'tester', character: 'char1', revenantId: 'a' }, 100).garden.stations.length, 1);
@@ -389,14 +395,17 @@ test('the route: station, recall, the Company\'s cross-farm cap, the silk deposi
   const D = 86400;
   assert.equal((await at(D * 20, 42, { ...mk('a', 0), version: v(42) })).station.revenantId, 'a');
   assert.ok((await at(D * 20, 43, { ...mk('b', 0, MT.Rat), version: v(43) })).ok);
-  assert.equal((await at(D * 20, 42, { ...mk('c', 1), version: v(42) })).error, 'farm-station-limit', 'two a character across both farms');
-  assert.equal((await at(D * 20, 42, { op: 'read' })).garden.stations.length, 1);
+  // four a character across the Company's farms (it was two): two more beasts that do no daily work, then the fifth is refused
+  assert.ok((await at(D * 20, 42, { ...mk('c', 1, MT.SabertoothTiger), version: v(42) })).ok);
+  assert.ok((await at(D * 20, 43, { ...mk('e', 1, MT.SabertoothTiger), version: v(43) })).ok);
+  assert.equal((await at(D * 20, 42, { ...mk('f', 2, MT.SabertoothTiger), version: v(42) })).error, 'farm-station-limit', 'four a character across both farms');
+  assert.equal((await at(D * 20, 42, { op: 'read' })).garden.stations.length, 2);
   assert.ok((await at(D * 21, 42, { op: 'hoe', bed: 0, version: v(42) })).ok);
   const silk = () => f.sql.prepare("SELECT qty FROM guild_prof_stores WHERE material = 'hide:spider'").get()?.qty;
   assert.equal(silk(), 2, 'a day on, the spider\'s silk is in the Stores');
   assert.ok((await at(D * 21 + 60, 42, { op: 'hoe', bed: 1, version: v(42) })).ok); assert.equal(silk(), 2, 'paid once a day');
   assert.equal((await at(D * 21 + 90, 42, { op: 'recall', revenantId: 'a', version: v(42) })).recalled.revenantId, 'a');
-  assert.equal(stations(), undefined);
+  assert.deepEqual(stations().map((s) => s.revenantId), ['c']);
   f.sql.exec("UPDATE company_farm_gardens SET garden = json_set(garden, '$.stations', json('[{\"player\":\"ghost\",\"character\":\"gone\",\"revenantId\":\"g\",\"kind\":6,\"name\":\"Old\",\"rank\":1,\"art\":null,\"post\":2,\"since\":1}]')) WHERE map_id = 42");
   assert.ok((await at(D * 21 + 99, 42, { ...mk('d', 3), version: v(42) })).ok);
   assert.deepEqual(stations().map((s) => s.revenantId), ['d'], 'the keeper who left takes no place');
@@ -419,4 +428,25 @@ test('a big harvest keeps every sack: a hundred beds harvested leave a hundred s
   for (let b = 0; b < SACKS_MAX + 10; b++) h = stepFarmGardenAction(h, { op: 'harvest', bed: b, mapId: 7, who: 'p' }, T + 60 + b).garden;
   const kept = liveSacks(h, T + 60 + SACKS_MAX + 10).map((s) => s.bed);   // right after the last harvest: none has expired yet
   assert.equal(kept.length, SACKS_MAX); assert.ok(kept.includes(SACKS_MAX + 9) && !kept.includes(0), 'the oldest ten went, the newest stay');
+});
+
+test('every crop the farm grows can be drawn, as a plant at every stage and as a sack on the ground and the shoulder', async () => {
+  // a desert root harvest once crashed the sack drawing: only the first three crops had a sack picture
+  const { FARM_SEED_IDS } = await import('../src/net/farm/cropLaw.js');
+  const { createSackArt } = await import('../src/world/farm/sackArt.js');
+  const { createFarmGardenArt, FARM_ART } = await import('../src/world/farmGardenArt.js');
+  const renderer = { textures: new Map([['302_54#opaque', {}], ['302_0#opaque', {}]]), createDecalBatch: () => ({}), destroyDecalBatch() {}, writeDecalSlot() {}, drawDecalPicture() {},
+    createBillboardBatch: () => ({}), moveBillboardBatch() {}, destroyBillboardBatch() {}, drawBillboards() {} };
+  const assets = { getTexture: async () => ({ getSize: () => ({ width: 30, height: 40 }) }), uploadRecord() {} };
+  const sacks = createSackArt(renderer, assets); await sacks.prepare();
+  const lying = FARM_SEED_IDS.map((crop, i) => ({ id: i + 1, crop, pos: [i, 0, 0] })), shouldered = FARM_SEED_IDS.map((crop) => ({ crop }));
+  sacks.update(lying, [], [0, 0, 0], [1, 0, 0]);
+  for (const one of shouldered) { sacks.update([], [one], [0, 0, 0], [1, 0, 0]); sacks.update([], [], [0, 0, 0], [1, 0, 0]); }
+  const art = createFarmGardenArt(renderer, assets); await art.prepare();
+  const T = 1_800_000_000, site = { beds: FARM_SEED_IDS.map((_, i) => [i * 2, 0, 0]) };
+  for (const crop of FARM_SEED_IDS) assert.ok(FARM_ART[crop]?.seedling && FARM_ART[crop].growing && FARM_ART[crop].ripe, `${crop} has art for every stage`);
+  for (const when of [0, 3 * 3600, 99 * 3600]) {   // seedling, growing, ripe
+    const beds = {}; FARM_SEED_IDS.forEach((crop, i) => { beds[i] = { crop, grown: when, tick: T, wetUntil: T, quality: 0, care: 0 }; });
+    art.update(site, { beds }, T, -1);
+  }
 });
