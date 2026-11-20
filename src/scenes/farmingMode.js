@@ -20,6 +20,7 @@ import { createFarmGame, gameForOp } from '../net/farm/farmGameLaw.js';   // PHA
 import { createFarmGameWidget } from '../ui/farmGames.js';
 import { bedBlighted, prowlHere } from '../net/farm/threatLaw.js';   // PHASE 6: blight and prowlers
 import { createBirdArt } from '../world/farm/birdArt.js';
+import { createFarmLedger } from '../ui/farmLedger.js';   // 2026-11-20: the estate ledger as one page
 import { strainOf } from '../net/farm/strainLaw.js';   // PHASE 2c: strains
 import { ANIMALS, contentIn, droverHere, CONTENT_GOOD, FED_S, WATERED_S } from '../net/farm/herdLaw.js';   // PHASE 3: the herd
 import { createHerdArt } from '../world/farm/herdArt.js';
@@ -51,6 +52,8 @@ export function createFarmingMode(deps) {
   let fixture = null, detailsUntil = 0, carried = [];
   // PHASE 2: Careful work turns sowing, weeding and scything into the field games; `game` the one being played
   let careful = false, game = null;
+  /** The estate ledger's page, open or not (ui/farmLedger.js): made on first use, gone with the HUD. */
+  let ledgerPage = null;
   const birds = createBirdArt(deps.renderer, deps);
   const herdArt = createHerdArt(deps.renderer, deps); let herdSpots = [];   // PHASE 3: where each animal was drawn this frame   // the fixture under the pointer; officers' Company funds read while they use one
   const stationArt = createStationArt(deps.renderer, deps); let stationSpots = [], stationLast = performance.now();   // PHASE 5: where each stationed beast was drawn this frame
@@ -114,6 +117,7 @@ export function createFarmingMode(deps) {
   function leave() {
     if (game) { game.widget.dispose(); game = null; }
     active = false; selected = -1; carried = []; eye = null; fwd = null; frame = null; pointer = null;
+    ledgerPage?.dispose(); ledgerPage = null;
     hud?.dispose(); hud = null; freeCursor?.(); freeCursor = null;
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
@@ -128,6 +132,7 @@ export function createFarmingMode(deps) {
       if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) game.engine.input(game.engine.state.kind === 'scythe' ? { hold: true } : { press: true }); return; }
       if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); endGame(false); return; }
     }
+    if (e.code === 'Escape' && ledgerPage?.open) { ledgerPage.hide(); e.preventDefault(); e.stopImmediatePropagation(); return; }   // the page first, then the mode
     if (e.code === 'Escape') { leave(); e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (e.code === 'KeyF') { e.preventDefault(); e.stopImmediatePropagation(); setCareful(!careful); return; }
     const i = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
@@ -153,6 +158,7 @@ export function createFarmingMode(deps) {
   function up(e) { if (game && e.button === 0 && game.engine.state.kind === 'scythe') game.engine.input({ hold: false }); }
   function down(e) {
     if (!active || deps.blocked() || e.target !== deps.canvas) return;
+    if (ledgerPage?.open) { e.preventDefault(); e.stopImmediatePropagation(); ledgerPage.hide(); return; }   // a click on the ground closes the ledger page, and does nothing else
     if (game) {   // a click on the field plays the game; it never works a bed meanwhile
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.button === 0) game.engine.input(game.engine.state.kind === 'scythe' ? { hold: true } : { press: true });
@@ -393,7 +399,7 @@ export function createFarmingMode(deps) {
       'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-station-full':t('farm.beast.full','Every post on this farm is taken.'),
       'farm-station-post':t('farm.beast.postTaken','Another beast already stands at that post.'),
-      'farm-station-limit':t('farm.beast.limit','You already have two beasts stationed at the Company\'s farms.'),
+      'farm-station-limit':t('farm.beast.limit','You already have four beasts stationed at the Company\'s farms.'),
       'farm-station-none':t('farm.beast.none','That beast is not at the farm any more.'),
       'farm-station-theirs':t('farm.beast.theirs','That beast is another\'s to call.'),
       'farm-station-bad':t('farm.beast.bad','The farm will not take that beast.'),
@@ -434,6 +440,7 @@ export function createFarmingMode(deps) {
     ask: askYN,
     act: (action) => perform(action),
     wantFunds: () => { detailsUntil = Date.now() + 60000; nextRead = 0; },
+    ledger: (model) => { ledgerPage ??= createFarmLedger(hudRoot()); ledgerPage.show(model); },
   });
   // PHASE 4: the workshop yard - the staked plots, the crates and the shelves
   const workshops = createWorkshopActs({
@@ -503,6 +510,7 @@ export function createFarmingMode(deps) {
       if (active) {
         deps.cam.yaw = yaw;
         hud.update(farm, tool, seedName(crop), status(), deps.blocked(), careful);
+        if (ledgerPage?.open) ledgerPage.update(acts.overview());   // the open page follows the garden
       }
     },
     camera(out, dt, normalFwd) {
@@ -547,6 +555,7 @@ export function createFarmingMode(deps) {
       if (active && prowlerNow() && told !== prowlerNow().id && ownHere()?.mapId === farm.mapId) { told = prowlerNow().id; notice(t('farm.threat.prowlSeen', 'Something is prowling toward the pens in the dark! Click the pen to drive it off.')); }
       if (!active || !hud) return;
       const rect = deps.canvas.getBoundingClientRect(), i = selected;
+      if (ledgerPage?.open) { hud.target('', null); return; }   // the page covers the hover line
       if (game) { game.widget.update(projectTo(game.pos, game.engine.state.kind === 'birds' ? 2.6 : 1.1, rect, proj, view)); hud.target('', null); return; }
       const pos = i >= 0 ? site.beds[i] : site.center;
       const at = projectToScreen([pos[0], pos[1] + .9, pos[2]], rect.width, rect.height, proj, view, deps.renderer.worldViewportRect);

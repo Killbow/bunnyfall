@@ -12,8 +12,8 @@ import { farmWeek } from '../../net/farmProgressLaw.js';
 const fmt = (n) => Number(n).toLocaleString('en-US');
 /** A product or input in words. */
 export const goodName = (key) => pantryOf(key)?.name ?? CLOTHS.find((c) => c.key === key)?.name ?? key.replace(/^\w+:/, '');
-const workshopName = (id) => ({ windmill: t('farm.shop.windmill', 'windmill'), press: t('farm.shop.press', 'press'), churn: t('farm.shop.churn', 'dairy churn'),
-  smokehouse: t('farm.shop.smokehouse', 'smokehouse'), loom: t('farm.shop.loom', 'loom'), brewery: t('farm.shop.brewery', 'brewery') })[id] ?? id;
+export const workshopName = (id) => ({ windmill: t('farm.shop.windmill', 'windmill'), press: t('farm.shop.press', 'press'), churn: t('farm.shop.churn', 'dairy churn'),
+  smokehouse: t('farm.shop.smokehouse', 'smokehouse'), loom: t('farm.shop.loom', 'loom'), brewery: t('farm.shop.brewery', 'brewery'), apiary: t('farm.shop.apiary', 'apiary') })[id] ?? id;
 /** Seconds as a plain wait. */
 const wait = (s) => (s >= 5400 ? t('farm.shop.hours', '{n} hours', { n: Math.ceil(s / 3600) }) : t('farm.shop.minutes', '{n} minutes', { n: Math.max(1, Math.ceil(s / 60)) }));
 /** A target id's workshop and part, or null: `loom` (body), `loom:in`, `loom:out`. */
@@ -40,7 +40,11 @@ export function createWorkshopActs(d) {
   let postClicks = 0;
   const recipe = (id) => WORKSHOPS[id].recipes[(pick[id] ?? 0) % WORKSHOPS[id].recipes.length];
   const batch = (id) => d.garden().batches?.[id];
-  const recipeLine = (id) => { const r = recipe(id); return t('farm.shop.recipe', '{n} {input} make {qty} {out}, in {time}.', { n: r.n, input: goodName(r.in), qty: r.qty, out: goodName(r.out), time: wait(r.s) }); };
+  const recipeLine = (id) => {
+    const r = recipe(id);
+    return r.in ? t('farm.shop.recipe', '{n} {input} make {qty} {out}, in {time}.', { n: r.n, input: goodName(r.in), qty: r.qty, out: goodName(r.out), time: wait(r.s) })
+      : t('farm.shop.recipeFree', 'The bees make {qty} {out}, in {time}. It costs nothing from the Stores.', { qty: r.qty, out: goodName(r.out), time: wait(r.s) });
+  };
 
   /** The product order, read aloud; an officer is asked whether to ship it. */
   function orderLine() {
@@ -61,7 +65,7 @@ export function createWorkshopActs(d) {
       const stage = stageOf(d.garden(), w.workshop, d.now()), name = workshopName(w.workshop), st = batchState(d.garden(), w.workshop, d.now());
       if (stage === 0) return t('farm.shop.stakedLabel', 'Staked plot · a {name} could be built here', { name });
       if (stage === 1) return t('farm.shop.risingLabel', 'The {name} is going up · {time} to go', { name, time: wait(d.garden().built[w.workshop] - d.now()) });
-      if (w.part === 'in') return st === 1 ? t('farm.shop.inBusy', 'Input crate · the {name} is at work', { name }) : t('farm.shop.inLabel', 'Input crate · click to start: {recipe}', { recipe: recipeLine(w.workshop) });
+      if (w.part === 'in') return st === 1 ? t('farm.shop.inBusy', 'Input crate · the {name} is at work', { name }) : (recipe(w.workshop).in ? t('farm.shop.inLabel', 'Input crate · click to start: {recipe}', { recipe: recipeLine(w.workshop) }) : t('farm.shop.inLabelFree', 'Bee boxes · click to set the bees to work: {recipe}', { recipe: recipeLine(w.workshop) }));
       if (w.part === 'out') return st === 2 ? t('farm.shop.outReady', 'Output shelf · {qty} {out} ready · click to collect', { qty: batch(w.workshop).qty, out: goodName(batch(w.workshop).out) })
         : st === 1 ? t('farm.shop.outBusy', 'Output shelf · ready in {time}', { time: wait(batch(w.workshop).t1 - d.now()) }) : t('farm.shop.outEmpty', 'Output shelf · empty');
       return t('farm.shop.bodyLabel', 'The {name} · click to change what it makes', { name });
@@ -99,6 +103,7 @@ export function createWorkshopActs(d) {
       if (action.act === 'order') return t('farm.shop.orderPaid', 'The order is shipped. Company treasury: +{gold} gold.', { gold: fmt(w.order?.gold ?? 0) });
       if (action.act === 'collect') return t('farm.shop.collected', '{qty} {out} go to the Company Stores.', { qty: w.collected?.qty ?? 0, out: goodName(w.collected?.material ?? '') });
       const r = recipeOf(id, action.recipe);
+      if (r && !r.in) return t('farm.shop.startedFree', 'You open the bee boxes. The {name} is at work: {time}.', { name: workshopName(id), time: wait(r.s) });
       return t('farm.shop.started', 'You fill the crate from the Company Stores. The {name} is at work: {time}.', { name: workshopName(id), time: wait(r?.s ?? 0) });
     },
   };
