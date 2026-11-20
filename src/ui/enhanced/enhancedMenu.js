@@ -148,7 +148,9 @@ import { brandMark } from '../brandMark.js';   // INTRO2: Mac's supplied logo, s
 import { titleHeld } from '../intro/titleHeld.js';   // TITLE-DOOR: the film's held title, the boot home's ground
 import { soundReplacementCount } from '../../systems/soundReplacer.js';   // SNDREP1: the sound pack's count
 import { textureReplacementCount, bundleTextureCount } from '../../systems/textureReplacement.js';   // M-TEX: and the texture half; DFMOD1: and the bundles'
-import { attachedDfmods, DFMOD_DETAIL, dfmodMaxSize, setDfmodEnabled, unregisteredDfmods } from '../../systems/dfmodTextures.js';   // VE3: a mod switched on or off; AUDIT VE R5: and one stored that did not register
+import { attachedDfmods, DFMOD_DETAIL, dfmodMaxSize, setDfmodEnabled, unregisteredDfmods } from '../../systems/dfmodTextures.js';
+import { MOD_PACKS, modPackManifest } from '../../systems/modPacks/modPacks.js';   // MODPACK1: Paperdoll Enhanced's and Weeberfall's own sections
+import { flatReplacerCounts, setDibellanOn, DIBELLAN_PREF } from '../../systems/flatReplacer/flatReplacer.js';   // WEEB1: Weeberfall's townsfolk and its add-on's switch   // VE3: a mod switched on or off; AUDIT VE R5: and one stored that did not register
 import { isIilMod } from '../../systems/improvedInteriorLighting.js';   // IIL3: the lighting mod's own section   // DFMOD1: the attached texture mods, one row each; DFMOD2: the detail choice
 import { isTouchDevice } from '../touch/touch.js';   // TI2: the Touch card mounts only where a finger can reach it
 import { dateFromClassicMinutes, dateString } from '../../systems/gameDate.js';
@@ -3413,6 +3415,7 @@ function packsCard() {
     c.append(row);
   }
   if (!lighting.length) c.append(acts([{ label: t('menu.packs.attachLighting', 'Attach lighting mod'), primary: true, onClick: async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickLightingModFiles(); render(); } }]));
+  mods = modPackSections(c, mods, remove);   // MODPACK1: Paperdoll Enhanced and Weeberfall, each its own section - and off the list below
   // DFMOD1: the texture mods, one row each
   c.append(el('h3', null, t('menu.packs.dfmods', 'Texture mods (.dfmod)')));
   // DFMOD2: two mods that dress the same things (DREAM and DREAM 90s side by side) cost memory twice for one picture
@@ -3462,6 +3465,54 @@ function packsCard() {
     ...(mods.filter((m) => !m.shipped).length + unregisteredDfmods().length > 1 ? [remove(t('menu.packs.removeAllDfmods', 'Remove all texture mods'), t('menu.packs.removeAllDfmods', 'Remove all texture mods'), t('menu.packs.removeAllDfmodsBody', 'Removes every attached .dfmod texture mod from this browser. The built-in ones stay. Takes full effect the next time an area loads.'), (d) => d.clearStoredDfmods())] : []),
   ]));
   return c;
+}
+
+/** MODPACK1 (2026-11-20, the owner: "players upload the archives for each of these two mods ... weeberfall being on top,
+ *  and there is a toggle for dibellan degeneracy"): PAPERDOLL ENHANCED AND WEEBERFALL, EACH A SECTION OF ITS OWN in the
+ *  packs card - attached from the download as it came (systems/modPacks/), listed with what it brought, removed whole.
+ *  Answers the texture mods still to list under them (the packs' own bundles taken out). */
+function modPackSections(c, mods, remove) {
+  const pdeGuid = MOD_PACKS.pde.guid;
+  const owned = (id) => new Set(modPackManifest(id)?.dfmods ?? []);
+  const pdeKeys = owned('pde'), weebKeys = owned('weeberfall');
+  const pdeMods = mods.filter((m) => !m.shipped && (pdeKeys.has(m.key) || m.guid === pdeGuid));
+  const weebMods = mods.filter((m) => !m.shipped && weebKeys.has(m.key));
+  const pick = (id) => async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickModPack(id); render(); };
+  const modLine = (m) => `${m.title}${m.version ? ` ${m.version}` : ''} \u00b7 ${m.enabled ? t('menu.packs.inBundle', '{n} textures in the bundle', { n: m.textures }) : t('menu.packs.inBundleOff', '{n} textures in the bundle \u00b7 switched off', { n: m.textures })}`;
+  // Paperdoll Enhanced
+  c.append(el('h3', null, t('menu.packs.pde', 'Paperdoll Enhanced')));
+  c.append(el('p', 'meta', t('menu.packs.pdeBlurb', 'Hand-drawn paperdolls for female characters: heads, bodies, clothing and armor. Male characters keep the classic paperdoll, since the mod has no male art. Pick the mod as you downloaded it (.7z, .zip or .dfmod).')));
+  if (pdeMods.length) {
+    const row = el('div', 'card');
+    for (const m of pdeMods) row.append(el('p', null, modLine(m)));
+    if (pdeMods.some((m) => m.error)) row.append(el('p', 'meta', t('menu.packs.notWorking', 'Not working: {error}.', { error: pdeMods.find((m) => m.error).error })));
+    row.append(prefRow('pdeFillGaps', t('menu.packs.pdeFill', 'Fill in missing pieces'), t('menu.packs.pdeFillNote', 'Some helmets, shields and chain greaves have no picture in every metal, and two Formal Brassiere styles have none at all. On: they are recoloured from the mod\u2019s own art (the brassieres borrow a neighbouring style). Off: the classic piece is drawn there.'), { home: true }));
+    row.append(acts([remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: MOD_PACKS.pde.title }), t('menu.packs.removeModBody', 'Removes {mod} from this browser. Takes full effect the next time an area loads.', { mod: MOD_PACKS.pde.title }), (d) => d.removeModPack('pde'))]));
+    c.append(row);
+  } else c.append(acts([{ label: t('menu.packs.attachPde', 'Attach Paperdoll Enhanced'), primary: true, onClick: pick('pde') }]));
+  // Weeberfall
+  const weeb = modPackManifest('weeberfall');
+  const counts = flatReplacerCounts();
+  c.append(el('h3', null, t('menu.packs.weeb', 'Weeberfall')));
+  c.append(el('p', 'meta', t('menu.packs.weebBlurb', 'Weeberfall\u2019s art and townsfolk. Where it and Paperdoll Enhanced dress the same thing, Weeberfall\u2019s is drawn. Pick its download (.zip, .7z or .dfmod), and its Flat Replacements download if that came separately.')));
+  if (weeb) {
+    const row = el('div', 'card');
+    for (const m of weebMods) row.append(el('p', null, modLine(m)));
+    if (weeb.loose?.length) row.append(el('p', 'meta', t('menu.packs.weebLoose', '{n} loose textures', { n: weeb.loose.length })));
+    row.append(el('p', 'meta', counts.base
+      ? t('menu.packs.weebFlats', '{n} townsfolk replacements', { n: counts.base })
+      : t('menu.packs.weebNoFlats', 'No townsfolk yet: add its FlatReplacements files (they are in its download, or a download of their own).')));
+    if (!weebMods.length && !weeb.loose?.length) row.append(el('p', 'meta', t('menu.packs.weebNoArt', 'Its art is not attached yet: add the download with its .dfmod.')));
+    if (weeb.addon?.length) {
+      row.append(prefRow(DIBELLAN_PREF, t('menu.packs.dibellan', 'Dibellan Degeneracy'), t('menu.packs.dibellanNote', 'The add-on\u2019s adult townsfolk, drawn with Weeberfall\u2019s own art: {n} replacements. One entry of the add-on is left out. Takes effect the next time you enter a building.', { n: counts.addon }), { home: true, onChange: (on) => setDibellanOn(on) }));
+    } else row.append(el('p', 'meta', t('menu.packs.dibellanMissing', 'Dibellan Degeneracy add-on: not attached. Add its .zip to get its switch here.')));
+    row.append(acts([
+      { label: t('menu.packs.weebAdd', 'Add Weeberfall files'), onClick: pick('weeberfall') },
+      remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: MOD_PACKS.weeberfall.title }), t('menu.packs.removeModBody', 'Removes {mod} from this browser. Takes full effect the next time an area loads.', { mod: MOD_PACKS.weeberfall.title }), (d) => d.removeModPack('weeberfall')),
+    ]));
+    c.append(row);
+  } else c.append(acts([{ label: t('menu.packs.attachWeeb', 'Attach Weeberfall'), primary: true, onClick: pick('weeberfall') }]));
+  return mods.filter((m) => !pdeMods.includes(m) && !weebMods.includes(m));
 }
 
 /** SNDREP1: the two night sounds a player may want gone - on by default, as Daggerfall has them. Off silences the

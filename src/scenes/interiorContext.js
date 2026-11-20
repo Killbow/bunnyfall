@@ -72,6 +72,7 @@ import { rollLootRarity, pileSource, INTERIOR_RARITY_TIER, stampWonWeapons } fro
 import { generateItems as generateLootItems, addPileLootExtras, DUNGEON_LOOT_KEYS, DROP_ICON_ARCHIVES } from '../systems/loot/loot.js';
 import { createCoverIndex, isCoverFlat, coverProxy } from '../ai/cover.js';   // TACT1: billboards are cover
 import { flatBodies } from '../world/propBodies.js';   // PROP-BODIES: the solid flats' bodies, beside their cover
+import { standFlatSwap } from './flatReplacerStand.js';   // WEEB1: an NPC stood as Flat Replacer's picture (Weeberfall)
 // TACT1: the Enhanced AI switch is ai/cover.js's to read (createCoverIndex's default), not this host's
 
 /** AUDIT 63 F22: DaggerfallInterior.AddFlats' treasure arm
@@ -692,6 +693,9 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     }
     return (async () => {
       if (await standGuildClerkArt(pn, renderer, billboardBatches, () => peopleBuilt)) return;
+      if (pn.flatSwap === undefined) pn.flatSwap = opts.flatReplacement?.(pn) ?? null;   // WEEB1: Flat Replacer's pick (scenes/flatReplacerStand.js), asked once the quest machine has had the person
+      const swapped = pn.flatSwap ? await standFlatSwap(pn, { getTexture, renderer, stillWanted: () => peopleBuilt && pn.stood && !pn.standBatch }) : null;
+      if (swapped) { if (swapped.batch) { pn.standBatch = swapped.batch; billboardBatches.push(swapped.batch); } return; }
       const t = await getTexture(pn.drawArchive ?? pn.textureArchive);   // RR2: the re-materialised billboard, where a mod set one
       if (!t || (pn.drawRecord ?? pn.textureRecord) >= t.recordCount) return;
       // LAMP-KEEPER (2026-09-26, Mac: "Shop keepers are lamp posts"): the mod's picture is registered LAZY (RR2 -
