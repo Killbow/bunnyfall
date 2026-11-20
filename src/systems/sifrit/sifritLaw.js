@@ -28,9 +28,9 @@ export const SIFRIT_MUMMY = 19;
 export const SIFRIT_FIGHTERS = 4;
 export const SIFRIT_REF_LEVEL = 30;
 export const SIFRIT_HP = SIFRIT_FIGHTERS * 600 * (5 + SIFRIT_REF_LEVEL);
-/** Her size, percent of her sprite's: a player's own (she was 170 and stuck in the walls; makeSifrit sets it past
- *  promoteStaffBoss's 150-300 clamp). */
-export const SIFRIT_SIZE_PCT = 100;
+/** Her size, percent of her sprite's: her picture is 214 px tall, 5.35 m drawn whole (214 x GLOBAL_SCALE 0.025), so 34% stands
+ *  her at a player's 1.8 m. makeSifrit sets it past promoteStaffBoss's 150-300 clamp. */
+export const SIFRIT_SIZE_PCT = 34;
 
 /** TITANHEART (the Cromwark titan's rule, cromwarkRoster.js): no one hit takes more than a quarter of her maximum health,
  *  so she is never one-shot. @param {any} entity @param {number} damage */

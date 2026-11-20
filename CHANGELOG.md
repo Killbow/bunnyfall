@@ -38,6 +38,10 @@ the last release (scripts/changelogNotes.mjs).
 - An Emotes row on the player menu (hold the interact key on someone) opens a wheel of eight gestures: hug, pat, kiss, high five, handshake, comfort, wave and bow. Click one or press 1 to 8.
 
 
+## 2026-11-20
+
+- Sifrit the Forbidden One now stands exactly as tall as a player (she was still almost three times too tall, which made the elite dungeons feel cramped and let her clip through walls).
+
 ## 2026-11-19
 
 - Fixed: only the Mages Guild and Fighters Guild quest givers wear the new paperdoll again; the rest of the hall keep their own look.
