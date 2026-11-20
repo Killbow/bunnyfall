@@ -266,6 +266,17 @@ export function setDefaultEnchantCtx(ctx) { _defaultCtx = ctx; }
  *  own), the one door a spell takes to that player whole. True when it went; false for a foe I run, a spell the wire
  *  cannot carry, or no ctx mounted. The cast engine sends a cast's Soul Trap through it (scenes/hostMagic.js). */
 export const spellToFoeOwner = (foe, record, level) => { try { return !!_defaultCtx?.spellToOwner?.(foe, record, level); } catch { return false; } };
+/** BUNNYFALL VAMPIRE EXPANSION (systems/vampire/disciplines.js): A SPELL CAST FREE BY THE PLAYER through the live host's
+ *  cast engine - CastWhenUsed's own two arms: one on the caster goes off at once (castByItemSelf), any other is readied
+ *  free and the next click looses it (SetReadySpell, noSpellPointCost). Answers false where no host stands or the place
+ *  bars casting. @param {any} record @param {any} entity */
+export function castFreeForPlayer(record, entity) {
+  const c = _defaultCtx;
+  if (!c || !record) return false;
+  if (c.castBarred?.()) return false;
+  if (record.rangeType === 0) { c.applySpellToSelf?.(record, entity, null); return true; }
+  return c.setReadySpell?.(record, null) !== false;
+}
 const mergeCtx = (ctx) => (ctx && _defaultCtx ? { ..._defaultCtx, ...ctx } : ctx ?? _defaultCtx);
 // AUDIT 63 F14: removeFilledTrap rides the same bag, registered by
 // mysticism.js (the soul-trap law's home, beside fillEmptyTrap) - this

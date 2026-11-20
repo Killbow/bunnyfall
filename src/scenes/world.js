@@ -715,7 +715,8 @@ import { havenDoorRows, openHavenWindow } from '../ui/vampire/havenWindow.js';
 import { createHuntersHost } from './vampire/huntersHost.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: witch hunters and the Courts' assassins
 import { createCourtDoor } from '../systems/vampire/courtDoor.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: a clan Court's back room
 import { openCourtWindow } from '../ui/vampire/courtWindow.js';
-import { courtSeats } from '../systems/vampire/clanLaw.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at the home's door   // CHEB'S NECROMANCY: the raised dead at the player's side
+import { courtSeats } from '../systems/vampire/clanLaw.js';
+import { installDisciplineKey, disciplineWheelOpen } from '../ui/vampire/disciplineWheel.js';   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at the home's door   // CHEB'S NECROMANCY: the raised dead at the player's side
 import { revenantParty, setRetinuePlayer, setRetinueListener, setRetinueBodies, revenantsWithYou, leaveRefusal, isRevenantCompanionKey, revenantIdOfKey, applySwornStrength, sendRevenantAway, forgetSwornMember, swornFightStep, swornFightWon, devotedWithYou } from '../systems/revenant/revenantCompanions.js';   // REVENANT-COMPANION: the sworn, stood by the same layer
 import { registerCompanionCount, registerCompanionRoster, companionsWithYou, COMPANION_SLOTS } from '../systems/companionSlots.js';   // COMPANION-SLOTS: the crew's hands ashore counted with the sworn
 import { PERSONALITIES } from '../systems/revenant/revenantPersonality.js';   // REVENANT-COMPANION: the party card's word for one
@@ -10590,6 +10591,17 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const vampireHunters = createHuntersHost({ playerEntity, mode: () => _mode(), region: () => _questRegionIndex(), now: () => playerTicker.ownMinutes, stand: (mt) => _standLooseFoe(mt), say: (l) => townTalk.say(l) });
   /** @type {Map<number, { clan: number, name: string, regionIndex: number }>|null} */
   let _courtSeats = null;
+  // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key - `seenBy` the townsfolk within DISCIPLINE_SEEN_M of me, in the
+  // street or in the room (a visible Discipline seen is a Masquerade breach)
+  const DISCIPLINE_SEEN_M = 15;
+  installDisciplineKey({
+    entity: playerEntity, now: () => playerTicker.ownMinutes, region: () => _questRegionIndex(), say: (l) => townTalk.say(l),
+    seenBy: () => {
+      const f = player.feetAt();
+      const near = (/** @type {any[]} */ seats) => (seats ?? []).filter((x) => x?.pos && Math.hypot(x.pos[0] - f[0], x.pos[2] - f[2]) <= DISCIPLINE_SEEN_M).length;
+      return _mode() === 'exterior' ? near(_livePersons) : _mode() === 'interior' ? near(livingIndoors?.seats?.() ?? []) : 0;
+    },
+  });
   /** REVENANT-COMPANION: a sworn one called to the player's side - it says so as it steps through. */
   const noteRevenantArrival = (id) => _revenantArrivals.add(id);
   // COMPANION-ROSTER (ui/companionRoster.js): the roster's acts heard here - a call's words wait for the stand, a
@@ -18226,6 +18238,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (townTalk.hover(e) || modes?.hover?.(e)) return;
     if (document.pointerLockElement !== canvas) return;
     if (modeWheel.isOpen()) return;   // MODE-WHEEL: while it is open the mouse steers it (its own listener), not the view
+    if (disciplineWheelOpen()) return;   // BUNNYFALL VAMPIRE EXPANSION: the Discipline wheel steers the same way
     // AUDIT 24 (wave 45): RMB in walk mode ALWAYS ends here - it is a
     // weapon control, and whether this host or worldModes owns the
     // swing, it is never a look. The old line gated the whole thing on

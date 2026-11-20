@@ -28,7 +28,7 @@ import { startNamedRacialQuest, racialQuestLive } from '../racialQuests.js';
 
 export const MASQUERADE_SAVE_VENDOR = 'Bunnyfall Masquerade';
 /** What each breach adds to its region's heat. */
-export const BREACH_HEAT = Object.freeze({ cried: 8, seen: 15, body: 10, murder: 30, taken: 6, freed: 10 });
+export const BREACH_HEAT = Object.freeze({ cried: 8, seen: 15, body: 10, murder: 30, taken: 6, freed: 10, power: 8 });   // `power` a Discipline seen (disciplines.js): heat, no strike
 /** The breaches a Court counts as a strike. */
 const STRIKING = new Set(['seen', 'body', 'murder', 'freed']);
 export const HEAT_COOL_PER_DAY = 10;
