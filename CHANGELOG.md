@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
 
+- Weeberfall townsfolk with orc-style names (Orsinium's orcs and a few others) now have names. They showed none, so their plaques were empty and a tavern shift's customers went unnamed.
 - Gestures have more to see and hear: a plate over the speaker's head says what they did ("Bran hugs Ann."), hearts orbit hugs and kisses, high fives and cheers burst into sparks, waves and bows sweep, and a soft glow blooms on each body. When a gesture is yours or aimed at you, the plate shows high on the screen and its edge glows. A chime answers warm gestures, a click the brisk ones.
 - The emote wheel is dressed like the game's own wheels: stone and brass in Enhanced, dark wood and gold in Classic, with softened pictures that light up under the mouse and each slot's number key shown.
 - Hugs, pats, kisses and the other gestures no longer ask first: they are just said on Local. /accept, /decline, /untouch and /touchlist are gone.

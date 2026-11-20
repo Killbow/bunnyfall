@@ -12,7 +12,7 @@
 // differ between one building and the next.
 
 import { srand } from '../formats/dfRandom.js';
-import { fullName, getNameBankOfRegion, BANK_TYPES, GENDERS } from './nameHelper.js';
+import { fullName, monsterName, getNameBankOfRegion, BANK_TYPES, GENDERS } from './nameHelper.js';
 import { RACES } from '../systems/races.js';
 // ONE HOME for FactionFile.FactionTypes (FactionFile.cs:530-546) - the
 // enum the parser already mints. Individual is 4; 3 is Subgroup.
@@ -262,7 +262,10 @@ export function staticNpcName(data, { getFaction = null, nameBank = null } = {})
   // (:328). The string compare here was propping up the stale
   // staticNpcData above, which wrote 'female'/'male'; that one is gone
   // and this is the C# line.
-  const drawn = fullName(bank, data.gender);
+  // WEEB1: a Flat Replacer record may give a person a MONSTER bank (8-10 - Weeberfall's orcs take Monster3, the orcish
+  // names), which fullName has no parts for and answered "" - a nameless person, no plaque, a tavern shift's customer
+  // unnamed. Those banks draw through MonsterName, on the same seeded stream.
+  const drawn = bank >= BANK_TYPES.Monster1 ? monsterName(data.gender, Math.random, bank) : fullName(bank, data.gender);
   // QUEST-NAME-ONE (a departure): a quest Person's stand answers to the
   // Person's own name (systems/quest/person.js personOwnName, carried as
   // `personName` by the stand's one builder) - the name its quest's
