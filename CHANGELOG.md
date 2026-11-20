@@ -26,6 +26,10 @@ the last release (scripts/changelogNotes.mjs).
 - Once awakened you have Vitae, your blood, which runs down over time. As it falls the Beast rises: Sated, Thirsty, Hungry, Ravenous, Starving. Each stage changes your stats (stronger but harder to talk to when Ravenous), and a Starving vampire cannot rest. A tile on the left of the HUD shows where you stand.
 - Feeding: in Steal mode, use a townsperson to feed instead of picking their pocket, or use a bed indoors to feed on whoever sleeps there. Blood Sight shows their blood (Scholar, Warrior, Rogue, Noble, Worker) and its quality, and who could see you. Choose the Kiss (costs a little Vitae, they forget you), drink and leave them, or drain them dry. Being seen is Assault, or Murder; someone left without the Kiss may call the watch.
 - The blood you drink gives a gift by its kind (Scholar: mind and spells, Warrior: strength, Rogue: stealth and speed, Noble: charm, Worker: endurance, Beast: claws), stronger the better the blood, fading over a few days. Hitting monsters in a fight gives only a mouthful of Beast blood now.
+- New warm gestures for roleplay: /hug, /embrace, /pat, /headpat, /kiss, /handkiss, /cuddle, /comfort, /highfive, /handshake, /fistbump, /poke, /tickle, /nuzzle, /hold, /bump, /toast and /wink. Add a name to aim one at someone ("/hug Ann"), and players nearby see it as an action line with little hearts and sparkles floating over you both. /emotes lists them all.
+- Touch gestures ask first, once: when you hug, pat or kiss someone they get a question; /accept lets you do it any time from then on, /decline says no this time, /untouch <name> takes the leave back, and /touchlist shows who has it. Blocked players are never answered.
+- An Emotes row on the player menu (hold the interact key on someone) opens a wheel of eight gestures: hug, pat, kiss, high five, handshake, comfort, wave and bow. Click one or press 1 to 8.
+
 
 ## 2026-11-19
 

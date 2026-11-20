@@ -88,7 +88,7 @@ export function injectSocialMenuStyle(doc = document) {
  *  friendship is. `relation` and `acct` are no longer read at all - callers still hand the WHOLE of `actionsFor`
  *  in (they should not have to strip it), and the extra keys are simply ignored, which is what an object argument
  *  is for. */
-export function socialMenuRows({ peerId, canFriend = false, canInvite = false, whyNotFriend = null, whyNotInvite = null, canTrade, whyNotTrade = null, tradeLabel = null, canInspect, canReadPage, duelRow = null, canDeclineDuel = false } = {}) {
+export function socialMenuRows({ peerId, canFriend = false, canInvite = false, whyNotFriend = null, whyNotInvite = null, canTrade, whyNotTrade = null, tradeLabel = null, canInspect, canReadPage, duelRow = null, canDeclineDuel = false, canEmote = false } = {}) {
   const rows = [
     { key: 'friend', label: 'Add friend', enabled: !!canFriend, why: canFriend ? null : (whyNotFriend ?? null), act: { k: 'friend.request', peer: peerId } },
     { key: 'invite', label: 'Invite to party', enabled: !!canInvite, why: canInvite ? null : (whyNotInvite ?? null), act: { k: 'party.invite', peer: peerId } },
@@ -113,6 +113,8 @@ export function socialMenuRows({ peerId, canFriend = false, canInvite = false, w
   // (`canDeclineDuel`); a duel with them live reads 'Yield the duel'. Not hub acts: the host routes them to the duel.
   if (duelRow && typeof duelRow.label === 'string' && typeof duelRow.k === 'string') rows.push({ key: 'duel', label: duelRow.label, enabled: !!duelRow.enabled, why: duelRow.enabled ? null : (duelRow.why ?? null), act: { k: duelRow.k, peer: peerId } });
   if (canDeclineDuel) rows.push({ key: 'duel-decline', label: 'Decline duel', enabled: true, why: null, act: { k: 'duel.decline', peer: peerId } });
+  // BUNNYFALL TOUCH: the emote wheel over this player (hugs, pats, kisses... asked first - net/touchLaw.js)
+  if (canEmote) rows.unshift({ key: 'emotes', label: 'Emotes', enabled: true, why: null, act: { k: 'emote.wheel', peer: peerId } });
   rows.push({ key: 'cancel', label: 'Cancel', enabled: true, why: null, act: null });
   return rows;
 }
