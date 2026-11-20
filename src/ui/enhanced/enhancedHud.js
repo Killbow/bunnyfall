@@ -70,7 +70,8 @@ import { cursorActive } from '../../player/pointerLock.js';   // BUFF-END: the f
 import { overlayOpen } from './enhancedOverlays.js';
 import { getPref } from '../../systems/uiPrefs.js';   // PX30c: the port's own prefs, not DFU's settings
 import { hudRenown } from '../hud/hudRenown.js';   // RENOWN4: my own Renown, under the vitals
-import { survivalHudChips } from '../../systems/survival/status.js';   // SURV5: the needs (UI3: tiles in the status widget)
+import { survivalHudChips } from '../../systems/survival/status.js';
+import { vampireHudChips } from '../../systems/vampire/vitae.js';   // BUNNYFALL VAMPIRE EXPANSION: the Beast's tile   // SURV5: the needs (UI3: tiles in the status widget)
 import { statusTiles, afflictionRows, statusGlyphSrc, statRoom, statSide, statPlace, statOverflow, STAT_TILE, STAT_GAP, STAT_METRICS, STAT_SHORT_QUERY, STAT_MIDDLE_CLEAR } from '../hud/hudStatus.js';   // UI3: the status widget
 import { sigilRuneTileSrc } from '../sigilRune.js';   // UI3: a set power's tile is its set's rune
 import { techniqueGlyphTileSrc } from '../techniqueGlyph.js';   // TECH-CARD: a technique's tile is its own glyph, the card block's
@@ -1479,11 +1480,11 @@ function drawStatus(vitals, opts, live = null) {
   const powers = setPowerChips(vitals);   // SET5: the set powers (the host's - setHudSetChips)
   powers.push(...techniqueChips(vitals));   // TECH1: and the weapon's technique beside them (the host's - setHudTechniqueChips)
   // SURV5: the needs - one a felt need (survival/status.js), none while every need is met, and none with the switch off
-  const needs = survivalOn() ? survivalHudChips(vitals, Math.floor(ownMinutes()), { vampire: !!liveVampirism(vitals), endurance: liveStat(vitals, 'endurance'), rules: survivalRules(), live }) : [];   // AUDIT SURV C: the vampire's strip, the page's drunk bands; AUDIT SURV-BOONS C14: the live tier's, so a turn shows at once (AUDIT C&C S5: and its levels are that tier's); AUDIT C&C S9: the plate's live reading
+  const needs = [...vampireHudChips(vitals, Math.floor(ownMinutes())), ...(survivalOn() ? survivalHudChips(vitals, Math.floor(ownMinutes()), { vampire: !!liveVampirism(vitals), endurance: liveStat(vitals, 'endurance'), rules: survivalRules(), live }) : [])];   // BUNNYFALL VAMPIRE EXPANSION: the Beast and the blood first (systems/vampire/vitae.js vampireHudChips)   // AUDIT SURV C: the vampire's strip, the page's drunk bands; AUDIT SURV-BOONS C14: the live tier's, so a turn shows at once (AUDIT C&C S5: and its levels are that tier's); AUDIT C&C S9: the plate's live reading
   // TUT1: the first felt need - AUDIT SURV-BOONS C2: a boon is none (a fresh Boons character is fed and watered, and met
   // the page in its first minute). CHARGEN-TUT: and only a made character's - the HUD draws under the wizard on the
   // stand-in, whose needs are nobody's, and the page it raised stood over the wizard where no click could reach it
-  if (vitals?.chargenDone && needs.some((c) => c.level !== 'boon')) noteFirstUse('survival');
+  if (vitals?.chargenDone && needs.some((c) => c.level !== 'boon' && c.key !== 'vitae')) noteFirstUse('survival');   // BUNNYFALL VAMPIRE EXPANSION: the Beast's tile is no survival need
   const rested = sharedClockOn() ? { minutes: nightRealMinutesLeft(vitals, ownMinutes()) } : null;   // REST1: the night interval, online
   const all = statusTiles({ spells, powers, afflictions: afflictionRows(vitals), needs, rested });
   const zone = zoneTile();

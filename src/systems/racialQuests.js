@@ -124,6 +124,21 @@ export function racialArmIdle(isCureQuest) {
  *  $CUREVAM is NOT P0*: it ends itself with its own `end quest`. */
 export function endVampireQuests() {
   _host?.tombstoneQuestsByPrefix?.(VAMPIRE_QUEST_PREFIX);
+  _host?.tombstoneQuestsByName?.(VAMPIRE_AWAKENING_QUEST);   // BUNNYFALL VAMPIRE EXPANSION: the Elder's summons goes with the curse
+}
+
+/** BUNNYFALL VAMPIRE EXPANSION (systems/vampire/vitae.js): the Clan Elder's summons, the quest that awakens the Beast. */
+export const VAMPIRE_AWAKENING_QUEST = 'QLVA01';
+/** Whether a quest of that name is running: true, false, or null when no host answers (no machine yet). */
+export function racialQuestLive(name) {
+  const live = _host?.activeQuestNames?.();
+  return Array.isArray(live) ? live.includes(name) : null;
+}
+/** Start a quest by name through the host; answers whether it was started (never a second copy). */
+export function startNamedRacialQuest(name) {
+  if (racialQuestLive(name) !== false) return false;
+  _host?.startQuest?.(name);
+  return true;
 }
 
 /** EndLycanthropyQuests (:660-670): every $CUREWER instance. */

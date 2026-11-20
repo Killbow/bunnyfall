@@ -819,6 +819,40 @@ export class LivingTown {
     return out.sort((a, b) => (a.res.id < b.res.id ? -1 : 1));
   }
 
+  /**
+   * BUNNYFALL VAMPIRE EXPANSION (scenes/vampire/vampireFeed.js): WHO SLEEPS in building `key` now - insideAt's own
+   * filters (never the taken, the gone or the dead), keeping only those whose day has them abed there. In id order.
+   * @param {number} key @returns {Resident[]}
+   */
+  sleepersAt(key) {
+    const t = this._now, day = this.dayOf(t);
+    const out = [];
+    for (const res of this.peopleOf(day)) {
+      if (this._taken.get(res.id) === day || this._away(res) || this._gone(res) || this.o.deadAt?.(res, t)) continue;
+      const e = this.entryOf(res, t)?.e;
+      if (e?.kind === 'sleep' && e.at?.building === key) out.push(res);
+    }
+    return out.sort((a, b) => (a.id < b.id ? -1 : 1));
+  }
+
+  /** BUNNYFALL VAMPIRE EXPANSION: a SLEEPER drained to death in their bed - `slain`'s law with no body on the street: dead
+   *  for good from this minute, their own turned against the player, `seen` whether anyone saw it. @param {Resident} res
+   *  @param {boolean} seen */
+  slainAsleep(res, seen) {
+    const day = this.dayOf(this._now);
+    const rel = this.o.relations?.();
+    this.o.slay?.(res, this._now, seen);
+    for (const kin of this.kinOf(res)) rel?.note(kin.id, 'slain', day);
+    this._take(res);
+    return res.id;
+  }
+
+  /** BUNNYFALL VAMPIRE EXPANSION: a sleeper who woke under the vampire's teeth - a crime in their own regard. @param {Resident} res */
+  wokeBitten(res) {
+    this.o.relations?.()?.note(res.id, 'crime', this.dayOf(this._now));
+    return res.id;
+  }
+
   /** The walk's line, if its path is known (undefined: not searched yet; null: no way). LW-PERF: a resident on the street
    *  asks first (`_onStreet`, the street's own pass). */
   _line(e, search) {

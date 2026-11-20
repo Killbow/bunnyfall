@@ -3,6 +3,13 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-20
+
+- Vampires, awakened: a few nights after you are turned (or soon, if you are a vampire already), a letter comes from an Elder of your bloodline. Meet them after dark in a tavern of the region and they awaken the Beast in you.
+- Once awakened you have Vitae, your blood, which runs down over time. As it falls the Beast rises: Sated, Thirsty, Hungry, Ravenous, Starving. Each stage changes your stats (stronger but harder to talk to when Ravenous), and a Starving vampire cannot rest. A tile on the left of the HUD shows where you stand.
+- Feeding: in Steal mode, use a townsperson to feed instead of picking their pocket, or use a bed indoors to feed on whoever sleeps there. Blood Sight shows their blood (Scholar, Warrior, Rogue, Noble, Worker) and its quality, and who could see you. Choose the Kiss (costs a little Vitae, they forget you), drink and leave them, or drain them dry. Being seen is Assault, or Murder; someone left without the Kiss may call the watch.
+- The blood you drink gives a gift by its kind (Scholar: mind and spells, Warrior: strength, Rogue: stealth and speed, Noble: charm, Worker: endurance, Beast: claws), stronger the better the blood, fading over a few days. Hitting monsters in a fight gives only a mouthful of Beast blood now.
+
 ## 2026-11-19
 
 - Fixed: only the Mages Guild and Fighters Guild quest givers wear the new paperdoll again; the rest of the hall keep their own look.

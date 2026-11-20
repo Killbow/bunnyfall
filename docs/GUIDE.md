@@ -109,6 +109,7 @@ authors to `src/ui/credits.js`.
 | /dm banner (coloured line across the top of every screen; developers and Dungeon Masters) | `src/net/dmLaw.js` (colours), `src/ui/dmBanner.js`, the narrate arm in `server/src/index.js` and `src/net/wire.js` |
 | Names (first and last, how NPCs address you) | `src/systems/names.js`, `src/ui/namePicker.js` |
 | Content switched off | `src/systems/contentOff.js` |
+| Vampire expansion, phase 1 (Vitae, the Beast's stages, Blood Sight, feeding in Steal mode on townsfolk and sleepers, the Clan Elder's summons; switch `vampireBlood` in contentOff) | `src/systems/vampire/bloodLaw.js` (numbers), `vitae.js` (the curse's state, the HUD tile, the Elder's letter), `vampireActions.js` (the quest's `vamp` lines), `src/systems/questlines/quests/QLVA01.txt`, `src/scenes/vampire/vampireFeed.js`; hooks in `vampirism.js`, `townTalk.js` (steal arm), `worldModes.js` (bed rows), `livingTown.js` (`sleepersAt`) |
 | Homes: buying, votes, who may enter | `src/net/homeLaw.js`, `server-account/src/homes.js`, `homeVotes.js`, `src/systems/online/onlineHomes.js` |
 | Decor: caps, placing, nudging, panel | `src/net/decorLaw.js`, `server-account/src/decor.js`, `src/systems/decor/`, `src/scenes/decor/`, `src/ui/decorPanel.js` |
 | Yards and their edges | `src/scenes/homeYards.js` |

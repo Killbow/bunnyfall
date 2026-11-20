@@ -94,7 +94,9 @@ import { endVampireQuests } from './racialQuests.js';   // V2d: the cure's P0* t
 import { localizedText, localizedTable } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { cloakState } from './survival/temperature.js';   // VAMP-HOOD: the ONE "is the hood up" - the felt temperature's, never a second list
 import { isEnhanced } from './uiSkin.js';   // HOOD-SAID: the hint names the skin's own button
-import { playerInSunlight, careerSunAverse } from './passiveSpecials.js';   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
+import { playerInSunlight, careerSunAverse } from './passiveSpecials.js';
+import { awakenedVampirism, vitaeRound, feedVampire, beastStageNow } from './vampire/vitae.js';   // BUNNYFALL VAMPIRE EXPANSION: Vitae and the Beast, once the Elder awakened them
+import { BEAST, ARCHETYPES, qualityOfCreature } from './vampire/bloodLaw.js';   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
 
 /** VampirismEffect.VampirismCurseKey (:33). */
 export const VAMPIRISM_CURSE_KEY = 'Vampirism-Curse';
@@ -204,6 +206,7 @@ export function createVampirismCurse(entity, clan, { now = 0, restore = false } 
     clan: clan || VAMPIRE_CLANS.Lyrezi,
     lastTimeFed: now,                     // UpdateSatiation runs in Start
     hasStartedInitialVampireQuest: false,
+    ...(restore ? {} : { turnedAt: now }),   // BUNNYFALL VAMPIRE EXPANSION: the Elder writes a few nights after the turning (vampire/vitae.js)
     // CreateCompoundRace (:252-261): name, both immunities, SunDamage
     // + HolyDamage - carried as flags the consumers read (see header)
     raceNameOverride: 'Vampire',
@@ -262,7 +265,7 @@ export function consumeVampirismPending(entity, { now = 0 } = {}) {
  * HOOD-SUN: never under a raised hood (racialSunAverse; BAL6: 0 there)
  * (`nowMinutes` is the world clock, worldTick's `clockMinutes`).
  */
-export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMinutes } = {}) {
+export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMinutes, say = () => {} } = {}) {
   const entry = liveVampirism(entity);
   if (!entry) return;
   const mod = vampireStatMod(skyMinutes, racialSunAverse(entity));   // HOOD-SUN: the hood's law; LIVED1: VAMP-DAY's day and night are the world's sky; the thirst below is the character's own clock
@@ -272,6 +275,7 @@ export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMi
   entry.skillMods = {};
   for (const skill of VAMPIRE_SKILLS) entry.skillMods[skill] = VAMPIRE_SKILL_MOD;
   entity.minMetalToHit = WEAPON_MATERIALS.Silver;
+  vitaeRound(entity, nowMinutes, say);   // BUNNYFALL VAMPIRE EXPANSION: the drain, the Beast's stage and the blood's resonance on top (or the Elder's letter)
   entry.satiated = isVampireSatiated(entity, nowMinutes);
 }
 
@@ -279,14 +283,22 @@ export function vampirismMagicRound(entity, { nowMinutes = 0, skyMinutes = nowMi
 export function isVampireSatiated(entity, nowMinutes = 0) {
   const entry = liveVampirism(entity);
   if (!entry) return true;
+  if (awakenedVampirism(entity)) return beastStageNow(entity, nowMinutes) < BEAST.Starving;   // BUNNYFALL VAMPIRE EXPANSION: awakened, only the Starving are refused rest
   return nowMinutes - (entry.lastTimeFed ?? 0) <= MINUTES_PER_DAY;
 }
 
 /** OnWeaponHitEntity (:125-128): the whole body is UpdateSatiation -
  *  any landed attack feeds. */
-export function onVampireHit(entity, nowMinutes = 0) {
+export function onVampireHit(entity, nowMinutes = 0, { target = null, isCivilian = false } = {}) {
   const entry = liveVampirism(entity);
-  if (entry) entry.lastTimeFed = nowMinutes;
+  if (!entry) return;
+  // BUNNYFALL VAMPIRE EXPANSION: once awakened a blow is no feed - a mouthful of a creature's or a foe's blood in the
+  // fight (FEEDS.wound, Beast blood), and nothing of a civilian's; real feeding is the Steal mode's (vampireFeed.js)
+  if (awakenedVampirism(entity)) {
+    if (!isCivilian) feedVampire(entity, { kind: 'wound', type: ARCHETYPES.Beast, quality: qualityOfCreature(target?.level), now: nowMinutes });
+    return;
+  }
+  entry.lastTimeFed = nowMinutes;
 }
 
 /** CheckStartRest (:143-158): an unfed vampire cannot rest - the

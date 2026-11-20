@@ -3411,7 +3411,7 @@ export function createWorldModes(host) {
       if (c.hidden) return;   // BASE-HIDE: taken out of the room
       targets.push({ key: `container:${i}`, aabb: worldAabb(c.cpu.positions, c.matrix), distance: RAY_DISTANCE, reach: TREASURE_ACTIVATION_DISTANCE, surface: true });   // S2b; WHERE-ROBES: struck at its mesh (activate.js), so what stands on it is reached
     });
-    if (bedSleepingOn()) interiorCtx.beds?.forEach((bd, i) => {   // RR1: RegisterCustomActivation(41000..41002, BedActivation) - a target only while the module is on
+    if (bedSleepingOn() || host.vampireBeds?.live()) interiorCtx.beds?.forEach((bd, i) => {   // BUNNYFALL VAMPIRE EXPANSION: and in Steal mode while a sleeper lies here   // RR1: RegisterCustomActivation(41000..41002, BedActivation) - a target only while the module is on
       if (bd.hidden) return;   // BASE-HIDE
       targets.push({ key: `bed:${i}`, aabb: worldAabb(bd.cpu.positions, bd.matrix), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE, surface: true });   // WHERE-ROBES: the mattress, not the air under the headboard
     });
@@ -9091,6 +9091,7 @@ export function createWorldModes(host) {
         return true;
       }
       if (key.startsWith('bed:')) {
+        if (host.vampireBeds?.feed()) return true;   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds on a sleeper first
         (decorTool.flying() && !decorTool.ghost() && plaqueActionFor(key) === 'out' ? decorTool.act('out', interiorCtx.beds?.[Number(key.split(':')[1])]?.baseKey) : restFromInteriorBed());   // RR1: BedActivation (RoleplayRealism.cs:464-506) is DaggerfallUI's rest gate less its GiveOffer rung (CSA-J's audit), then the window; AUDIT-RR F6: `new DaggerfallRestWindow(uiManager, true)` (:524) - you rest in the bed you clicked, not the room's allocated one. Decorating takes the bed out.
         return true;
       }

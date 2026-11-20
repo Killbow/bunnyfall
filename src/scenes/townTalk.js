@@ -92,6 +92,8 @@ export const TONE_NAMES = ['Polite', 'Normal', 'Blunt'];   // T3f: TalkTone -> i
 // currentMode is GLOBAL - the dungeon door ladder reads it too);
 // townTalk keeps the keydown, the HUD line and these re-exports.
 export { MODES, nextInteractionMode } from '../player/interactionMode.js';
+import { feedOnPerson } from './vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire
+import { ownMinutes } from '../systems/worldTick.js';   // BUNNYFALL VAMPIRE EXPANSION: the feeding stamps the character's own clock
 import { MODES, MODE_ACTIONS, getInteractionMode, setInteractionMode, nextInteractionMode, interactionModeText, askInteractionMode } from '../player/interactionMode.js';
 import { modeWheel, MODE_WHEEL_ACTION } from '../ui/modeWheel.js';   // MODE-WHEEL: the held key's wheel
 import { getClassicQuestionIndex } from '../systems/answerPipeline.js';   // F042
@@ -147,7 +149,7 @@ export function rayPersonDistance(camPos, fwd, feet) {
   return t / fl * Math.hypot(fwd[0], fwd[1], fwd[2]);
 }
 
-export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, regionIndex, onCrime = null, topics = null, palette = null, rolls = Math.random, talkEngine = null, onBuildingList = null, otherOverlayActive = null, otherHudCovered = null, keysLive = null, questBuildingSource = null, livingTalk = null, livingTone = null, legacyTopics = null }) {   // LW2: `livingTalk` the living world's doors - { refuses(person) -> text|null, talked(person), caught(person) } (bible/06-Systems/Living-World.md); LEGACY-HOME: `kin(person, talk)` true when one of the player's line took the activation (`talk` the conversation, should they ask for it); LW7: `livingTone(person, taste)` a question's tone, as they took it (TONE-TASTE)   // AUDIT ENH-NOTICE3 C2: `otherHudCovered` is the mode host's previousWindow-chain answer (modes.hudCovered), for the toasts   // AUDIT 63 F49: PlayerGPS.DiscoverBuilding's quest name-override seam ({ currentMapID, isBuildingQuestResource }), null in a host with no topic tree
+export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, regionIndex, onCrime = null, topics = null, palette = null, rolls = Math.random, talkEngine = null, onBuildingList = null, otherOverlayActive = null, otherHudCovered = null, keysLive = null, questBuildingSource = null, livingTalk = null, livingTone = null, legacyTopics = null, vampireFeed = null }) {   // BUNNYFALL VAMPIRE EXPANSION: `vampireFeed` { showBox(box) } - an awakened vampire's Steal mode feeds (scenes/vampire/vampireFeed.js)   // LW2: `livingTalk` the living world's doors - { refuses(person) -> text|null, talked(person), caught(person) } (bible/06-Systems/Living-World.md); LEGACY-HOME: `kin(person, talk)` true when one of the player's line took the activation (`talk` the conversation, should they ask for it); LW7: `livingTone(person, taste)` a question's tone, as they took it (TONE-TASTE)   // AUDIT ENH-NOTICE3 C2: `otherHudCovered` is the mode host's previousWindow-chain answer (modes.hudCovered), for the toasts   // AUDIT 63 F49: PlayerGPS.DiscoverBuilding's quest name-override seam ({ currentMapID, isBuildingQuestResource }), null in a host with no topic tree
   // RP1 - THE REGION IS READ LIVE, NOT CAPTURED AT BOOT.
   //
   // This took a plain number, and the world host had no choice but to
@@ -767,6 +769,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     // 3.2 alone). The old 6.4 pre-gate answered a person down a long
     // street with SILENCE and let E fall through to a door behind them.
     if (!best || bestDist > RAY_DISTANCE || !(bestDist < nearerThan)) return false;   // MC-2: :412 is reached for the ray's OWN hit
+    _feedPersons = persons;   // BUNNYFALL VAMPIRE EXPANSION: the street the feeding's witnesses are read from
     // AUDIT 64 F34: PlayerActivate.cs:780 - SetMidScreenText, not the popup queue.
     if (getInteractionMode() !== 'steal' && bestDist > MOBILE_NPC_ACTIVATION_DISTANCE) { setMidScreenText(tooFarAwayText()); return true; }
     // AUDIT 26 F048: ActivateMobileNPC NESTS the steal distance test
@@ -780,11 +783,15 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     return true;
   }
 
+  /** BUNNYFALL VAMPIRE EXPANSION: the persons the last activation ray was cast over (the feeding's witnesses). */
+  let _feedPersons = [];
   function activate(target, dist) {
     if (getInteractionMode() === 'steal') {
       // PlayerActivate: pickpocket once per person, 3.2 max - and
       // F048's nesting, so the already-attempted arm is SILENT here
       // too, whatever the range.
+      // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire feeds where a mortal picks a purse
+      if (vampireFeed && dist <= PICKPOCKET_DISTANCE && feedOnPerson({ entity: playerEntity, target, persons: _feedPersons, now: Math.floor(ownMinutes()), showBox: (b) => vampireFeed.showBox(b), say: (line) => hud.add(line), onCrime, rolls })) return;
       if (target.person.pickpocketAttempted) return;
       if (dist > PICKPOCKET_DISTANCE) { setMidScreenText(tooFarAwayText()); return; }   // AUDIT 64 F34: :790, the same surface
       target.person.pickpocketAttempted = true;

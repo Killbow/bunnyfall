@@ -582,7 +582,8 @@ import { loadHud, drawHud, hudScale } from '../ui/hud/hud.js';   // AUDIT 21 hos
 import { initEscortFaces, addEscortFace, dropEscortFace, escortQuestEnded } from '../ui/hud/hudEscortFaces.js';   // FE1: the quest escorts' portrait column
 import { largeHudOptions, routeLargeHudClick, hudLargeNextMode, hudLargePrevMode, activeMouseOverLargeHUD, trackLargeHudPointer } from '../ui/hud/hudLarge.js';   // U45: the classic bottom bar and its eleven panels; ROAD-Ar: and the guard that stops them being world clicks too
 import { trackHudPointer } from '../ui/hud/hudActiveSpells.js';   // U46: the spell-icon rows' pointer
-import { getInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';   // U45: the mode panel's cycle reads it; MODE-WHEEL: the pad's unbound mode actions
+import { getInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';
+import { createVampireBeds } from './vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: feeding on sleepers through their beds   // U45: the mode panel's cycle reads it; MODE-WHEEL: the pad's unbound mode actions
 import { modeWheel } from '../ui/modeWheel.js';   // MODE-WHEEL: the mouse steers it while it is open
 import { randomEpitaph } from '../systems/gravestoneLore.js';   // GRAVE1: Info mode's graveyard flavour line
 import { ImgFile } from '../formats/imgFile.js';   // AUDIT 21 hosts F7: loadHud's reader
@@ -6859,6 +6860,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     otherOverlayActive: () => modes?.overlayHeld ?? false,
     otherHudCovered: () => modes?.hudCovered ?? false,   // AUDIT ENH-NOTICE3 C2: the previousWindow chain on the mode host's stack, for the toasts
     keysLive: () => _worldKeysLive,   // MODE-WHEEL (AUDIT): KEY-BOOT's gate, for the wheel this rung opens above it - declared below, read deferred
+    vampireFeed: { showBox: (b) => showQuestBox(b) },   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire, in the quest box (declared below, read deferred)
   });
   townTalk.ensureLoaded();
   /** THE GAME PAUSE for this host - ONE composition, asked of the
@@ -29657,6 +29659,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       _cardBarks = list.filter((m) => m.say).map((m) => ({ id: m.res.id, name: m.res.name, feet: m.feet, text: m.say }));
     },
     livingPersonsAct: (eye, dir, nearer) => !!livingIndoors?.size && townTalk.tryActivate(eye, dir, livingIndoors.seats(), Math.min(nearer, modes?.interiorCollider?.raycast(eye, dir, 80) ?? Infinity)),   // LW8: ...and the street's own talk ray on them - AUDIT LW-ROOMS: never through the room's walls (a bare wall is nothing to press, so the ray reached a drinker behind it)
+    vampireBeds: createVampireBeds({ entity: playerEntity, mode: getInteractionMode, now: ownMinutes, showBox: (b) => showQuestBox(b), say: (l) => townTalk.say(l), onCrime: () => _crimeResponse(),   // BUNNYFALL VAMPIRE EXPANSION: a sleeper fed on through their bed (scenes/vampire/vampireFeed.js)
+      building: () => { const b = modes?.interiorBuilding; const town = b && !modes?.interiorCtx?.ownedRoom ? livingTownOfMap(b.townMapId ?? 0) : null; return town ? { key: b.buildingKey, town } : null; } }),
     livingSpeech: ({ proj, view, eye, dt }) => livingRoomLines(proj, view, eye, dt),   // LW8b: ...and what they say, over their heads
     csaDrawWindWidget: () => csaDrawWindWidget(),   // CSA-E: the wind widget over a mode's HUD
     csaOnPlayerDeath: () => { if (csaRuntime) csaCall(() => csaRuntime.OnPlayerDeath()); },   // CSA-J (the audit): PlayerEntity.OnDeath and OnExhausted reach ComeSailAway.OnPlayerDeath in every mode (Start 1059-1060)

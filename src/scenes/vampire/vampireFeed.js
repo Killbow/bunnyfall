@@ -1,0 +1,229 @@
+// @ts-check
+// BUNNYFALL VAMPIRE EXPANSION, PHASE 1: FEEDING. An awakened vampire (systems/vampire/vitae.js) in STEAL MODE feeds where
+// a mortal would pick a purse:
+//   - on a TOWNSPERSON in the street or in a room (townTalk.js's steal arm hands the person here first);
+//   - on a SLEEPER, through the bed they sleep in (worldModes.js's bed rows, while the building holds a sleeper).
+// BLOOD SIGHT reads the victim first - their blood's archetype and quality %, and who could see - and the player chooses
+// in a small box (the quest box's own ServiceFlowWindow, through the host's `showBox`):
+//   The Kiss          a sip, their memory clouded for MIND_CLOUD_COST Vitae: no suspicion (a Ravenous Beast may slip)
+//   Drink             more blood, Vitae kept; they wake weakened and may cry for the watch (REPORT_CHANCE)
+//   Drain them dry    the most blood, and a death: Murder if seen, their household's hatred either way
+//   Leave them be
+// Seen by anyone (the Living World's witnesses: on the street within its WITNESS_M with a clear line, in a room anyone
+// awake), the feeding is a crime: Assault, or Murder for a death - and the watch comes (the host's onCrime, the
+// pickpocket's own). Each person feeds once a day (FED_TODAY), as a purse is picked once.
+
+import { t } from '../../systems/textManager.js';
+import { setCrimeCommitted, CRIMES } from '../../systems/court.js';
+import { skillValue, SKILLS } from '../../systems/skills.js';
+import { MINUTES_PER_DAY } from '../../systems/gameDate.js';
+import { awakenedVampirism, feedVampire, spendMindCloud, beastStageNow } from '../../systems/vampire/vitae.js';
+import {
+  archetypeOfPerson, archetypeName, qualityOfPerson, resonanceWords, resonanceTier, beastStageName, beastStageOf,
+  MIND_CLOUD_COST, KISS_SLIP,
+} from '../../systems/vampire/bloodLaw.js';
+
+/** The chance in a hundred that one drunk from and left (no Kiss) cries for the watch. */
+export const REPORT_CHANCE = 35;
+/** The chance in a hundred that a sleeper drunk from without the Kiss wakes. */
+export const SLEEPER_WAKES = 50;
+/** Without a Living World town, anyone this near (m) sees the feeding. */
+export const NEAR_WITNESS_M = 6;
+
+/** Who has fed today: `${id}@${day}`, kept for the page's life (a day is short online, and a reload forgives). */
+const FED_TODAY = new Set();
+const fedKey = (/** @type {string} */ id, /** @type {number} */ now) => `${id}@${Math.floor(now / MINUTES_PER_DAY)}`;
+
+/** The rows Blood Sight shows of a victim. */
+function sightRows(name, type, quality, seenCount) {
+  const rows = [
+    t('vampire.feed.lean', 'You lean close to {name}.', { name }),
+    t('vampire.feed.sight', 'Blood Sight: {type} blood, {quality}%. Resonance: {gift}.', { type: archetypeName(type), quality, gift: resonanceWords(type) }),
+  ];
+  if (seenCount > 0) rows.push(t('vampire.feed.seen', 'Careful: {n} could see you.', { n: seenCount }));
+  else rows.push(t('vampire.feed.unseen', 'No one is watching.'));
+  return rows;
+}
+
+/** The picker's rows, and the choice each means. */
+function choices(canDrain) {
+  const list = [
+    { id: 'kiss', label: t('vampire.feed.kiss', 'The Kiss: drink, and cloud their memory (-{cost} Vitae)', { cost: MIND_CLOUD_COST }) },
+    { id: 'drink', label: t('vampire.feed.drink', 'Drink, and leave them weakened') },
+  ];
+  if (canDrain) list.push({ id: 'drain', label: t('vampire.feed.drain', 'Drain them dry') });
+  list.push({ id: 'leave', label: t('vampire.feed.leave', 'Leave them be') });
+  return list;
+}
+
+/** The line after a feed: what was drunk and where the Beast stands. */
+function afterRows(fed, lead) {
+  const rows = [lead];
+  if (fed) {
+    const tier = fed.blood ? resonanceTier(fed.blood.quality) : 0;
+    rows.push(t('vampire.feed.after', 'Vitae {vitae}. The Beast is {stage}.', { vitae: Math.round(fed.vitae), stage: beastStageName(beastStageOf(fed.vitae)) }));
+    if (fed.blood && tier > 0) rows.push(t('vampire.feed.resonance', '{type} resonance, tier {tier}.', { type: archetypeName(fed.blood.type), tier }));
+  }
+  return rows;
+}
+
+/**
+ * The shared choice: the feed, its crime, its words. `victim` { name, type, quality, seen } and the arms the place has:
+ * `onSeen(kind)` the crime's own consequence ('assault' | 'murder'), `onReported()` a victim who cried out, `onDrain()`
+ * the death, null where no death can be had. Answers the boxes to show after the pick.
+ */
+function resolveChoice(entity, id, victim, { now, rolls, onSeen, onReported, onDrain, reportChance }) {
+  if (id === 'leave') return [];
+  const seen = victim.seen > 0;
+  const base = { type: victim.type, quality: victim.quality, now };
+  if (id === 'kiss') {
+    if (!spendMindCloud(entity, now)) return [{ rows: [t('vampire.feed.noVitae', 'You have too little Vitae for the Kiss.')] }];
+    const slip = Math.floor(rolls() * 100) < (KISS_SLIP[beastStageNow(entity, now)] ?? 0);
+    const fed = feedVampire(entity, { ...base, kind: 'sip', deed: seen || slip ? 'seen' : 'clouded' });
+    if (seen) onSeen('assault');
+    else if (slip) onReported();
+    const lead = slip ? t('vampire.feed.slip', 'The Beast is too loud: the Kiss slips, and they remember.') : t('vampire.feed.kissed', 'You drink, and their memory clouds over.');
+    return [{ rows: afterRows(fed, lead) }];
+  }
+  if (id === 'drink') {
+    const fed = feedVampire(entity, { ...base, kind: 'drink', deed: seen ? 'seen' : 'drunk' });
+    const cries = !seen && Math.floor(rolls() * 100) < reportChance;
+    if (seen) onSeen('assault');
+    else if (cries) onReported();
+    const lead = cries ? t('vampire.feed.cries', 'You drink deep. They stagger away, crying for the watch.') : t('vampire.feed.drunk', 'You drink deep, and leave them pale and confused.');
+    return [{ rows: afterRows(fed, lead) }];
+  }
+  if (id === 'drain' && onDrain) {
+    const fed = feedVampire(entity, { ...base, kind: 'drain', deed: seen ? 'seen' : 'drained' });
+    onDrain(seen);
+    if (seen) onSeen('murder');
+    return [{ rows: afterRows(fed, t('vampire.feed.drained', 'You drain them dry. The body is cold before it falls.')) }];
+  }
+  return [];
+}
+
+/** The crime's arm, the pickpocket's own: the crime set, the watch called. */
+const crimeArm = (entity, onCrime) => (kind) => {
+  setCrimeCommitted(entity, kind === 'murder' ? CRIMES.Murder : CRIMES.Assault);
+  onCrime?.();
+};
+
+/**
+ * STEAL MODE ON A TOWNSPERSON (townTalk.js's steal arm). Answers true when the vampire took the activation - an awakened
+ * vampire always does (no purse is picked); false lets the pickpocket run.
+ * @param {{ entity: any, target: { person: any, pos: number[] }, persons?: { person: any, pos: number[] }[], now: number,
+ *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
+ */
+export function feedOnPerson({ entity, target, persons = [], now, showBox, say, onCrime, rolls = Math.random }) {
+  if (!awakenedVampirism(entity)) return false;
+  const person = target?.person;
+  if (!person) return false;
+  const id = String(person.living?.id ?? person.nameNPC ?? '');
+  if (FED_TODAY.has(fedKey(id, now))) { say(t('vampire.feed.already', 'They are still pale from your last visit.')); return true; }
+  const town = person.living?.town ?? null;
+  const pos = target.pos ?? person.pos;
+  // the Living World's street witnesses (a clear line, within its WITNESS_M) - and anyone near among the persons the ray
+  // was cast over, which in a room are the room's people (the street's witnesses never stand indoors)
+  const near = persons.filter((p) => p.person !== person && Math.hypot(p.pos[0] - pos[0], p.pos[2] - pos[2]) <= NEAR_WITNESS_M);
+  const ids = new Set();
+  for (const w of town ? town.witnesses(pos, person.living.id) : []) ids.add(String(w.id));
+  for (const p of near) ids.add(String(p.person?.living?.id ?? p.person?.nameNPC ?? ids.size));
+  const seenBy = [...ids];
+  const victim = { name: String(person.nameNPC ?? t('vampire.feed.someone', 'them')), type: archetypeOfPerson(person), quality: qualityOfPerson(person), seen: seenBy.length };
+  const canDrain = !!(town?.slain && town?.retire);
+  const list = choices(canDrain);
+  const onSeen = (kind) => { town?.caught?.(person); crimeArm(entity, onCrime)(kind); };
+  showBox({
+    rows: sightRows(victim.name, victim.type, victim.quality, victim.seen),
+    onClick: () => [{
+      picker: list.map((c) => c.label),
+      onPick: (i) => {
+        const c = list[i];
+        if (c && c.id !== 'leave') FED_TODAY.add(fedKey(id, now));
+        return resolveChoice(entity, c?.id ?? 'leave', victim, {
+          now, rolls, onSeen, reportChance: REPORT_CHANCE,
+          onReported: () => { town?.caught?.(person); crimeArm(entity, onCrime)('assault'); },
+          onDrain: canDrain ? () => { town.slain(person); town.retire(person); } : null,
+        });
+      },
+      onCancel: () => [],
+    }],
+  });
+  return true;
+}
+
+/** Whether a bed here holds a sleeper to feed on now (the bed rows are offered while it does).
+ *  @param {any} entity @param {{ key: number, town: any } | null} building */
+export function sleeperHere(entity, building) {
+  if (!awakenedVampirism(entity) || !building?.town?.sleepersAt) return false;
+  return building.town.sleepersAt(building.key).length > 0;
+}
+
+/**
+ * STEAL MODE ON A BED (worldModes.js's bed rows): the first sleeper of the building not fed on today. The room's waking
+ * people are the witnesses - each one a chance to be seen, less the vampire's Stealth. Answers true when it took the
+ * activation.
+ * @param {{ entity: any, building: { key: number, town: any } | null, now: number, showBox: (box: any) => void,
+ *   say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
+ */
+export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, rolls = Math.random }) {
+  if (!awakenedVampirism(entity) || !building?.town?.sleepersAt) return false;
+  const { town, key } = building;
+  const sleepers = town.sleepersAt(key);
+  if (!sleepers.length) return false;
+  const res = sleepers.find((r) => !FED_TODAY.has(fedKey(r.id, now)));
+  if (!res) { say(t('vampire.feed.allPale', 'Everyone asleep here is already pale.')); return true; }
+  const awake = town.insideAt?.(key, town._now)?.length ?? 0;
+  const stealth = skillValue(entity, SKILLS.Stealth) ?? 0;
+  const seenChance = awake > 0 ? Math.max(5, Math.min(90, awake * 20 - Math.floor(stealth / 3))) : 0;
+  const seen = Math.floor(rolls() * 100) < seenChance ? 1 : 0;
+  const pseudo = { living: { id: res.id, res }, nameNPC: res.name };
+  const victim = { name: res.name, type: archetypeOfPerson(pseudo), quality: qualityOfPerson(pseudo), seen };
+  const list = choices(true);
+  const onSeen = (kind) => { town.wokeBitten?.(res); crimeArm(entity, onCrime)(kind); };
+  const rows = [t('vampire.feed.sleeper', '{name} sleeps here.', { name: res.name }), ...sightRows(victim.name, victim.type, victim.quality, 0).slice(1, 2)];
+  if (awake > 0) rows.push(t('vampire.feed.awake', 'Others are awake in the building.'));
+  showBox({
+    rows,
+    onClick: () => [{
+      picker: list.map((c) => c.label),
+      onPick: (i) => {
+        const c = list[i];
+        if (c && c.id !== 'leave') FED_TODAY.add(fedKey(res.id, now));
+        return resolveChoice(entity, c?.id ?? 'leave', victim, {
+          now, rolls, onSeen, reportChance: SLEEPER_WAKES,
+          onReported: () => { town.wokeBitten?.(res); crimeArm(entity, onCrime)('assault'); },
+          onDrain: (wasSeen) => { town.slainAsleep?.(res, wasSeen); },
+        });
+      },
+      onCancel: () => [],
+    }],
+  });
+  return true;
+}
+
+/**
+ * THE BEDS' HOST PART (worldModes.js: the bed rows while a sleeper lies here, and the bed's press first). `building()`
+ * the host's current building and its Living World town ({ key, town }, null outside one or in the player's own room).
+ * `live()` is asked as the room's targets are drawn, so it is read at most once a REAL second.
+ * @param {{ entity: any, building: () => ({ key: number, town: any } | null), mode: () => string, now: () => number,
+ *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void }} o
+ */
+export function createVampireBeds({ entity, building, mode, now, showBox, say, onCrime }) {
+  let at = -Infinity, was = false;
+  const stamp = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  return {
+    /** Whether the room's beds are feeding targets now: Steal mode, awakened, and a sleeper here. */
+    live() {
+      if (mode() !== 'steal' || !awakenedVampirism(entity)) return false;
+      const ms = stamp();
+      if (ms - at > 1000) { at = ms; was = sleeperHere(entity, building()); }
+      return was;
+    },
+    /** The bed pressed: a feed when it is one (answers whether it took the press). */
+    feed() {
+      if (mode() !== 'steal') return false;
+      return feedOnSleeper({ entity, building: building(), now: Math.floor(now()), showBox, say, onCrime });
+    },
+  };
+}
