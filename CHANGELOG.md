@@ -4,6 +4,8 @@ Newest first. One line a change, in plain words, for players. The desktop app's 
 the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-21
+
+- Fixed: Bring here and Lay up now work online at Eltheric Ocean port isles, and clicking a disabled button in Your fleet shows why it is unavailable. Canceling ship placement also no longer blocks Bring here.
 - The Grappling Hook can now be equipped, from the inventory and from the hotbar. It could not be held at all before.
 
 ## 2026-11-20
