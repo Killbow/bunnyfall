@@ -100,6 +100,9 @@ export function staticNpcData(pn, {
     context,
     buildingKey,
     mapID: mapId,
+    // WEEB1: a person Flat Replacer stood as another picture draws its name from that picture's bank (FlatReplacer.cs
+    // writes npcData.nameBank) - scenes/flatReplacerStand.js sets it
+    ...(Number.isInteger(pn.flatNameBank) ? { nameBank: pn.flatNameBank, nameBankFixed: true } : {}),
   };
 }
 
@@ -253,7 +256,7 @@ export function staticNpcName(data, { getFaction = null, nameBank = null } = {})
   // GetDisplayName (:319) tests `factionData.type == (int)FactionTypes.Individual`.
   if (fd && fd.type === FACTION_TYPES.Individual) return fd.name;
   srand(data.nameSeed);
-  const bank = nameBank ?? BANK_TYPES.Breton;   // F016: GetNameBankOfCurrentRegion's own fallback
+  const bank = data.nameBankFixed ? data.nameBank : nameBank ?? BANK_TYPES.Breton;   // F016: GetNameBankOfCurrentRegion's own fallback; WEEB1: unless a Flat Replacer record set the person's own
   // AUDIT 24 (wave 24): `data.gender` is the Genders enum, which is
   // what FullName takes - C# passes `npcData.gender` straight through
   // (:328). The string compare here was propping up the stale
