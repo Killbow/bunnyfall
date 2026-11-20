@@ -21650,7 +21650,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // its halo are one socket each in the speaker's room, so a line is heard ONCE across a cell edge; what this client
     // keeps is what it can hear - its own line, and a line from a body within earshot (net/chat.js localLineHeard).
     // Local is not a private channel: the relay's reach is the room's, and the earshot is each hearer's own.
-    online.onChat = (line) => { if (localLineHeard(line, peersNear(), player.feetAt(), sayRangeOf(line))) { chatLog.push('local', voicedLine(line)); if (line.me) touchFx?.line(line.id, line.text, peerIdByName, performance.now()); } };   // TOUCH: a gesture heard floats its pictures   // BUNNYFALL VOICE: a shout carries further, a low voice less
+    online.onChat = (line) => { if (localLineHeard(line, peersNear(), player.feetAt(), sayRangeOf(line))) { chatLog.push('local', voicedLine(line)); if (line.me) touchFx?.line(line.id, line.text, peerIdByName, performance.now(), { name: line.name, mine: !!line.mine, myName: online.name }); } };   // TOUCH: a gesture heard floats its pictures   // BUNNYFALL VOICE: a shout carries further, a low voice less
     online.onRoll = (line) => { if (localLineHeard(line, peersNear(), player.feetAt())) chatLog.push('local', line); };   // DICE1: a roll at the table is heard as a line is
     online.onIliac = (f) => modes?.iliacOnlineFrame?.(f);   // CARDS10: the relay's Iliac table, to the room's host
     online.onGambit = (f) => modes?.gambitOnlineFrame?.(f);   // KG5: the relay's King's Gambit table, to the room's host
@@ -22264,7 +22264,17 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       chatLog.push(tab.id, { text: went ? socialActText(act.k, who) : (hub?.status === 'open' ? TRY_AGAIN_TEXT : NOT_CONNECTED_TEXT), system: true });
     };
     // BUNNYFALL TOUCH: the wheel and the pictures its gestures throw up.
-    touchFx ??= createTouchFx({ doc: document });
+    touchFx ??= createTouchFx({
+      doc: document, enhanced: () => isEnhanced(),
+      // a short answer to a gesture: a chime for the warm ones, a click for the brisk, nothing for the rest
+      play: (verb, involvesMe) => {
+        const warm = ['hug', 'embrace', 'cuddle', 'hold', 'nuzzle', 'comfort', 'kiss', 'handkiss'], brisk = ['highfive', 'handshake', 'fistbump', 'bump', 'pat', 'headpat', 'poke', 'tickle', 'clap'];
+        const v = involvesMe ? 0.5 : 0.22;
+        if (warm.includes(verb)) audio.playOneShot(SOUND.MakePotion, v, verb === 'kiss' || verb === 'handkiss' ? 1.25 : 0.95);
+        else if (brisk.includes(verb)) audio.playOneShot(SOUND.ButtonClick, v, 1);
+        else if (verb === 'toast' || verb === 'cheer') audio.playOneShot(SOUND.GoldPieces, v, 1);
+      },
+    });
     emoteWheel = createEmoteWheel({
       doc: document, win: globalThis,
       canOpen: socialMenuCanOpen,
@@ -28571,7 +28581,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         if (at.front) heads.set(p.id, at);
       }
     }
-    touchFx.frame(performance.now(), (id) => heads.get(id) ?? null);
+    touchFx.frame(performance.now(), (id) => heads.get(id) ?? null, covered ? { w: 0, h: 0 } : _canvasSize());
   }
   const peersNear = ({ presenceOnly = false } = {}) => {
     if (!online || !online.room || online.status !== 'open') return null;
