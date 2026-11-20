@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
 
+- The emote wheel is dressed like the game's own wheels: stone and brass in Enhanced, dark wood and gold in Classic, with softened pictures that light up under the mouse and each slot's number key shown.
+- Hugs, pats, kisses and the other gestures no longer ask first: they are just said on Local. /accept, /decline, /untouch and /touchlist are gone.
 - Paperdoll Enhanced and Weeberfall each have their own section under Replacement packs. Attach the mod's download as it came (its .zip or .7z, or the .dfmod inside): no unpacking needed. Where both dress the same thing, Weeberfall's is drawn.
 - Weeberfall's townsfolk: with its Flat Replacements files attached, the people in shops, temples, guilds and homes wear its art, with their own talk portraits and names. Its Dibellan Degeneracy add-on has its own switch in the Weeberfall section (off until you turn it on).
 - Paperdoll Enhanced dresses female characters; male characters keep the classic paperdoll. Helmets, shields and chain greaves it has no picture for in your metal are recoloured from its own art instead of showing a low-detail classic piece, and two Formal Brassiere styles it lacks borrow a neighbouring style. Turn this off with "Fill in missing pieces" in its section.

@@ -237,7 +237,7 @@ export const HELP_LINES = lazyLines([
   () => t('net.chat.joinHelp', '/join trade, /join lfg: add a channel tab (/leave trade or /leave lfg removes it)'),
   '/me <action>: an action on this tab, like /me looks around',
   () => t('net.chat.rpHelp', '/rp <text>: a roleplay line on this tab, in green italics, like /rp draws her blade'),
-  '/wave, /bow, /nod ... [name]: a gesture to players nearby (/emotes lists them all). Hugs, pats and kisses (/hug Ann) ask first: /accept lets them any time, /decline says no, /untouch <name> takes it back. The Emotes row on the player menu opens a wheel of gestures',
+  '/wave, /bow, /nod ... [name]: a gesture to players nearby (/emotes lists them all). The Emotes row on the player menu opens a wheel of gestures',
   ':smile: :sword: :heart: ...: shortcodes become emoji',
   '/ready: how party resting works online (resting at a fire rests the whole party)',
   '/leader: travel to your party leader',

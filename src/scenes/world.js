@@ -924,10 +924,8 @@ import { makeHitPend } from '../net/hitPend.js';   // AUDIT FOES FOE2: a blow th
 import { PeerBodies, peerIsWolf, BODY_BUILD_GATE, playerBuildOpts } from '../net/peer/peerBodies.js';   // MWBODY1: the others in the Morrowind body; WEREWOLF1: and in Bloodmoon's wolf; MW-HEADS2: a player's build
 import { ChatLog, CHAT_REJOIN_MS } from '../net/chat.js';   // CHAT1: the tabs and their lines
 import { createChatSafetyHost } from './chatSafetyHost.js';   // SAFE1-SAFE7: blocks, reports, the relay's word on my chat, the code of conduct
-import { createTouchHost } from './touchHost.js';   // BUNNYFALL TOUCH: asking before a hug or a kiss, once
 import { createTouchFx } from './touchFx.js';   // BUNNYFALL TOUCH: the little pictures a gesture throws up
 import { createEmoteWheel } from '../ui/emoteWheel.js';   // BUNNYFALL TOUCH: the wheel on the F-card's Emotes row
-import { isTouch as isTouchGesture } from '../net/touchLaw.js';
 import { createWhisperHost } from './whisperHost.js';   // BUNNYFALL WHISPER: private lines
 import { LANG_OLD_RELAY_TEXT, NO_LANG_TEXT, langJoinedText } from '../net/chat.js';   // CHAT-LANG: the Language tab's words
 import { CHAT_LANGS, chatLangRoom } from '../net/wire.js';   // CHAT-LANG: the language channels
@@ -20402,7 +20400,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let social = null, _partyComposedAt = -Infinity, _partyPose = null;   // PARTY8-B: the last pose composed, for the party HUD's own "where am I"
   let partyPing = null, _partyPingTry = -Infinity;   // PARTY-PING: the look's point, wired below
   const whispers = createWhisperHost({ log: () => chatLog, link: () => socialLink() });
-  const touchAsk = createTouchHost({ log: () => chatLog, link: () => socialLink(), say: (text) => chatSend('local', text, 'local', { me: true }), hears: (sub) => chatSafety.hears(sub) });   // BUNNYFALL TOUCH (scenes/touchHost.js)
   let touchFx = null, emoteWheel = null;   // BUNNYFALL TOUCH: made with the F-card, beside it   // BUNNYFALL WHISPER: private lines (scenes/whisperHost.js)
   const chatSafety = createChatSafetyHost({ log: () => chatLog, links: () => [...(chatLinks?.values?.() ?? []), online].filter(Boolean), social: () => social, minter: () => identityMinter, panel: () => chatPanel, glyphs: () => _staffGlyphs, teleport: (id) => runStaffCommand(chatLog?.active, { cmd: 'tp', player: { id } }), follow: () => staffFollow.follow });   // STAFF-PANEL5-FOLLOW (mob 2026-10-23: "why doesnt follow work?"): the Follow row's follow - staffFollow is made later in this same synchronous stretch, before any line can be clicked; STAFF-PANEL2: an Admin's (developer) or a Moderator's chat lines carry no Report; STAFF-PANEL2-CHATMENU: their acts instead, TP by the line's socket through /tp's own door   // SAFE1-SAFE7 (bible/11-Multiplayer/Chat-Safety-Arc.md) - AUDIT SAFE CLIENT-2: the minter a ban lets go of; CLIENT-12: the field a slowed line goes back to
   /** CONCEAL-MATE: a peer in my party - the test player/socialPick.js openPeers is handed, so a concealed mate stays
@@ -21661,7 +21658,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (const tab of chatLog.tabs) {
       if (!tab.link) continue;   // CHAT-CHAN: the Party and Local tabs ride the hub's link and the presence session's room
       const link = new OnlineSession({ url: online.url, name: online.name, look: online.look, id: online.id, secret: online.secret, presence: false, wave: pageWave, wire2: true });   // SCALE2c: the page's one wave; SCALE5b: the second wire
-      link.onChat = (line) => (tab.room === SOCIAL_ROOM && line.ch === 'whisper' && (touchAsk.heard(line) || whispers.heard(line))) || (tab.room === SOCIAL_ROOM && (line.ch === 'party' || line.ch === 'guild') && receiveWaypointLine(line)) || chatLog.push(tab.room === SOCIAL_ROOM && (line.ch === 'party' || line.ch === 'guild') ? line.ch : tab.id, line);   // CHAT-CHAN: the hub's party lines to the Party tab - by the relay's own routing word, heard only on the hub; GUILD1c: and a guild's to the Guild tab; WAYPOINTS: a party's or a guild's waypoint line is the maps', never a line of chat
+      link.onChat = (line) => (tab.room === SOCIAL_ROOM && line.ch === 'whisper' && whispers.heard(line)) || (tab.room === SOCIAL_ROOM && (line.ch === 'party' || line.ch === 'guild') && receiveWaypointLine(line)) || chatLog.push(tab.room === SOCIAL_ROOM && (line.ch === 'party' || line.ch === 'guild') ? line.ch : tab.id, line);   // CHAT-CHAN: the hub's party lines to the Party tab - by the relay's own routing word, heard only on the hub; GUILD1c: and a guild's to the Guild tab; WAYPOINTS: a party's or a guild's waypoint line is the maps', never a line of chat
       link.onRoll = (line) => chatLog.push(tab.room === SOCIAL_ROOM && (line.ch === 'party' || line.ch === 'guild') ? line.ch : tab.id, line);   // DICE1: a roll lands where a line would
       // RED1: the SERVER's own line, and it lands on the log with the
       // flag set HERE - from the frame type the relay used, never from
@@ -21905,7 +21902,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
             .then(say, () => say(accountRefusalText('server')));
           return true;
         }
-        { const tc = touchAsk.onSend(tabId, text); if (tc !== undefined) return tc; }   // BUNNYFALL TOUCH: /hug Ann, /accept, /decline, /untouch
         { const w = whispers.onSend(tabId, text); if (w !== undefined) return w; }   // BUNNYFALL WHISPER: /w, /reply, the Whispers tab
         { const safe = chatSafety.onSend(tabId, text); if (safe != null) return safe; }   // SAFE1-SAFE7: /block, /report, /ban and the rest; the code of conduct before a first line
         // PARTY-REST2 (2026-09-20, per-request: "a party member confirmation
@@ -22267,7 +22263,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const went = hub?.sendSocial(act) === true;
       chatLog.push(tab.id, { text: went ? socialActText(act.k, who) : (hub?.status === 'open' ? TRY_AGAIN_TEXT : NOT_CONNECTED_TEXT), system: true });
     };
-    // BUNNYFALL TOUCH: the wheel and the pictures its gestures throw up. A gesture that touches is asked first (touchHost).
+    // BUNNYFALL TOUCH: the wheel and the pictures its gestures throw up.
     touchFx ??= createTouchFx({ doc: document });
     emoteWheel = createEmoteWheel({
       doc: document, win: globalThis,
@@ -22277,8 +22273,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       onPick: (verb, peerId) => {
         const who = peerName(peerId);
         if (!who) { peerNote?.('They are no longer here.'); return; }
-        if (isTouchGesture(verb)) touchAsk.ask(verb, who);
-        else chatSend('local', emoteText(verb, who) ?? '', 'local', { me: true });
+        chatSend('local', emoteText(verb, who) ?? '', 'local', { me: true });
       },
     });
     // INSPECT1 (kurkku: "a profile page that you can bring up when you're near them"; Mac: "a new enhanced UI element for
