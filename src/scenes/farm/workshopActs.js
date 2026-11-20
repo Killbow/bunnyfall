@@ -51,7 +51,6 @@ export function createWorkshopActs(d) {
     const o = productOrder(d.mapId(), farmWeek(d.now())), name = goodName(o.key);
     if (!productOpen(d.garden(), d.now())) { d.say(t('farm.shop.orderDone', 'The {name} order is filled this week. A new one goes up on Morndas.', { name })); return; }
     const line = t('farm.shop.orderLine', 'Wanted: {qty} {name}, for {gold} gold. Take it from the Company Stores.', { qty: o.qty, name, gold: fmt(o.gold) });
-    if (!d.mayManage()) { d.say(`${line} ${t('farm.shop.orderOfficer', 'A Captain or an Officer can ship it.')}`); return; }
     d.wantFunds();
     d.ask([t('farm.shop.orderAsk', 'Ship {qty} {name} from the Company Stores for this week\'s order?', { qty: o.qty, name }), t('farm.shop.orderPays', 'The Company treasury is paid {gold} gold.', { gold: fmt(o.gold) })], () => d.act({ op: 'workshop', act: 'order' }));
   }

@@ -28,7 +28,7 @@ Working three distinct beds in a UTC day earns the existing daily care bonus. Re
 Since the farm expansion's first phase (`docs/FARM-EXPANSION.md`) the farm is used where it stands, not from a menu. Each farm lays out a farmyard on the open ground by its fields (`src/world/farm/farmstead.js`): the same for every client, gathered round one spot by the first field. Everyone nearby sees it; it is used in Farming Mode by walking within reach and clicking:
 
 - **Order post** reads this week's notice for each crop in turn.
-- **The factor's wagon** ships an order. A Captain or Officer is asked Y/N before the crops leave the Stores.
+- **The factor's wagon** ships an order. Any Company member can send it, after a Y/N question before the crops leave the Stores.
 - **Estate ledger** opens one read-only page (`src/ui/farmLedger.js`, built from `farmsteadActs.js` `overview`): your farm work, this week's orders and how to ship them, what has shipped, what each improvement still wants, the herd and the workshops. Esc, its Close button or a click on the ground closes it. It has no controls: the farm is still worked by clicking things on it.
 - **Seed shelf** has a sack for each seed: click one to take that seed (this replaced the Crop button).
 - **Tool rack**, **well** and **compost heap** show the tools, irrigation and soil improvements, and sell the next one to a Captain or Officer with a Y/N question.

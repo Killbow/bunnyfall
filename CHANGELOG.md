@@ -4,9 +4,10 @@ Newest first. One line a change, in plain words, for players. The desktop app's 
 the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-20
+- Every Company member can now ship the week's orders at the factor's wagon and the workshop order, not just the Captain and Officers. Buying improvements, animals and workshops is still for them.
 
 - The estate ledger on a farm now opens one page with everything at once (your farm work, this week's orders, what has shipped, what each improvement still needs, your animals and workshops), instead of one line a click. Esc closes it.
-- Shipping crops is easier to find: the factor's wagon now says on hover that a Captain or Officer ships the week's orders there, and the order post says the same. The ledger lists the shipping steps.
+- Shipping crops is easier to find: the factor's wagon now says on hover how to ship the week's orders, and the order post says the same. The ledger lists the shipping steps.
 - A new workshop for farms: the apiary, bee boxes among roses that make honey on their own, so the brewery can make mead from your own farm.
 - The loom and the press now work in the desert: the loom weaves linen from desert root or grain straw, and the press makes oil from desert root or grain. Sunflower oil is now called Pressed Oil.
 - A player can now station up to four sworn beasts across the Company's farms (it was two).

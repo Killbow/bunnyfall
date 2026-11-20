@@ -209,7 +209,8 @@ test('bought stock cannot replace farm-grown milestones; officers and the Argent
   assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-order-grown');
   assert.equal(f.sql.prepare('SELECT qty FROM guild_prof_stores').get().qty,10000);
   f.sql.exec("UPDATE guild_members SET rank=2; INSERT INTO guild_members VALUES ('captain','captainchar','guild1',0,'Captain',1)");
-  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-rank');
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-order-grown','a plain member may ship: only the farm-grown rule stops it');
+  assert.equal((await farmGarden(f.ctx,f.player,{...body,op:'upgrade',upgrade:'tools'})).error,'farm-rank','buying an improvement stays an officer\'s');
   f.sql.exec('UPDATE guild_members SET rank=0');f.ctx.env.MARKS_OPEN='off';
   assert.equal((await farmGarden(f.ctx,f.player,body)).error,'marks-closed');
   assert.equal(f.sql.prepare('SELECT version FROM company_farm_gardens').get().version,0);

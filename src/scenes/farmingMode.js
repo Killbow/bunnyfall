@@ -404,7 +404,7 @@ export function createFarmingMode(deps) {
       'farm-station-theirs':t('farm.beast.theirs','That beast is another\'s to call.'),
       'farm-station-bad':t('farm.beast.bad','The farm will not take that beast.'),
       'farm-plough-none':t('farm.beast.noPlough','No ploughing beast is stationed here.'),
-      'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
+      'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds.'),
       ...workshopErrors(),   // PHASE 4
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
     }[error];

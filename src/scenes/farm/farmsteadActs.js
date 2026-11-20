@@ -38,7 +38,7 @@ export function createFarmsteadActs(d) {
   function notice(crop) {
     const p = progress(), order = farmOrder(p, crop), name = farmCropName(crop);
     if (p.weeks[crop] === farmWeek(d.now())) return t('farm.stead.postFilled', '{crop}: filled this week. The next notice goes up on Morndas.', { crop: name });
-    return t('farm.stead.postOrder', 'Wanted: {quantity} {crop}, for {gold} gold and {argents} Argents. Harvested here and not yet shipped: {grown}. A Captain or an Officer ships it at the factor\'s wagon.',
+    return t('farm.stead.postOrder', 'Wanted: {quantity} {crop}, for {gold} gold and {argents} Argents. Harvested here and not yet shipped: {grown}. Any Company member ships it at the factor\'s wagon.',
       { quantity: fmt(order.quantity), crop: name, gold: fmt(order.gold), argents: order.argents, grown: fmt(grownOf(p, crop)) });
   }
 
@@ -91,7 +91,6 @@ export function createFarmsteadActs(d) {
 
   /** The factor's wagon: load the first order that is ready. */
   function wagon() {
-    if (!d.mayManage()) { d.say(t('farm.stead.wagonRank', 'The factor waits for the Captain or an Officer to send the wagon.')); return; }
     d.wantFunds();
     const p = progress(), week = farmWeek(d.now());
     const open = FARM_CROP_TYPES.filter((c) => p.weeks[c] !== week);
@@ -147,7 +146,7 @@ export function createFarmsteadActs(d) {
       }
       return {
         orderPost: t('farm.stead.postLabel', 'Order post · this week\'s notices'),
-        wagon: d.mayManage() ? t('farm.stead.wagonLabelOfficer', 'The factor\'s wagon · click to ship this week\'s orders') : t('farm.stead.wagonLabelMember', 'The factor\'s wagon · a Captain or an Officer ships orders here'),
+        wagon: t('farm.stead.wagonLabelOfficer', 'The factor\'s wagon · click to ship this week\'s orders'),
         ledger: t('farm.stead.ledgerLabel', 'The estate ledger'),
         haystack: t('farm.stead.hayLabel', 'The season\'s hay'),
         scarecrow: t('farm.stead.scarecrowLabel', 'The scarecrow'),
