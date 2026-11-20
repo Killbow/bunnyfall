@@ -3,6 +3,9 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-21
+- The Grappling Hook can now be equipped, from the inventory and from the hotbar. It could not be held at all before.
+
 ## 2026-11-20
 - Every Company member can now ship the week's orders at the factor's wagon and the workshop order, not just the Captain and Officers. Buying improvements, animals and workshops is still for them.
 - New weapon: the Royal Ballista, an even heavier crossbow. Its bolt flies in a high arc and bursts where it lands, hurting every hostile foe around the spot (calm townsfolk, guards who are not after you and your companions are spared). While you hold the button to aim, a dotted arc shows the bolt's path and a ring shows where it will burst. It shakes the screen when fired, slows you down while drawn, uses arrows and Archery, and is slow to reload. Good Weapon Smiths sometimes sell one, and deep dungeon piles rarely hold one. Other players see its bolts arc too.
