@@ -391,8 +391,8 @@ import {
   homeVoteRows, homeVotePressable, homeVoteOfVerb, homeVoteChoices, homeVoteLines, isHomeVoteVerb,   // HOME-VOTE: the town's word on it, at its door
   homeStationsServe,   // FB1018D HOME-BENCH: a home's stations serve its owner's account, as its door does
 } from '../systems/online/onlineHomes.js';
-import { guestbookRows, isGuestbookVerb, pressGuestbook } from '../systems/online/guestbook.js';
-import { HAVEN_VERB } from '../ui/vampire/havenWindow.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven's door row   // GUESTBOOK: signed at the door, read by its people
+import { guestbookRows, isGuestbookVerb, pressGuestbook } from '../systems/online/guestbook.js';   // GUESTBOOK: signed at the door, read by its people
+import { HAVEN_VERB } from '../ui/vampire/havenWindow.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven's door row
 import { HOME_HIDE_VERB, homeHideRows, homeHideLine, homeHideVersion, homeDecorSeenByMe, toggleHomeDecorHidden } from '../systems/online/homeDecorHide.js';   // DECOR-HIDE: another's home's decorations hidden for me alone
 import { homeDecorShown, homeVotedLine, homeVotesLine, homeVoteRefusalLine, decorStaysShunned, HOME_VOTE_GONE_LINE } from '../net/homeVoteLaw.js';   // HOME-VOTE: a shunned home's decor stands for its insiders alone
 import { goldSum, accountWords } from '../systems/homeWords.js';   // AUDIT HOME-PRICE E4: a home's sums and the account they moved in

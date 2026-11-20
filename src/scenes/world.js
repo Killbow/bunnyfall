@@ -582,8 +582,8 @@ import { loadHud, drawHud, hudScale } from '../ui/hud/hud.js';   // AUDIT 21 hos
 import { initEscortFaces, addEscortFace, dropEscortFace, escortQuestEnded } from '../ui/hud/hudEscortFaces.js';   // FE1: the quest escorts' portrait column
 import { largeHudOptions, routeLargeHudClick, hudLargeNextMode, hudLargePrevMode, activeMouseOverLargeHUD, trackLargeHudPointer } from '../ui/hud/hudLarge.js';   // U45: the classic bottom bar and its eleven panels; ROAD-Ar: and the guard that stops them being world clicks too
 import { trackHudPointer } from '../ui/hud/hudActiveSpells.js';   // U46: the spell-icon rows' pointer
-import { getInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';
-import { createVampireBeds } from './vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: feeding on sleepers through their beds   // U45: the mode panel's cycle reads it; MODE-WHEEL: the pad's unbound mode actions
+import { getInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';   // U45: the mode panel's cycle reads it; MODE-WHEEL: the pad's unbound mode actions
+import { createVampireBeds } from './vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: feeding on sleepers through their beds
 import { modeWheel } from '../ui/modeWheel.js';   // MODE-WHEEL: the mouse steers it while it is open
 import { randomEpitaph } from '../systems/gravestoneLore.js';   // GRAVE1: Info mode's graveyard flavour line
 import { ImgFile } from '../formats/imgFile.js';   // AUDIT 21 hosts F7: loadHud's reader
@@ -709,15 +709,16 @@ import { createNavalCrew, CREW_RANGE, CREW_KEEP } from './naval/navalCrew.js';  
 import { asleepHour } from '../systems/naval/shipWatch.js';   // SHIP-WATCH: the crews' sleeping hours
 import { crewRoster, crewCount } from '../systems/naval/crewLife.js';
 import { createCrewAshore } from './crewAshore.js';   // CREW-COMPANIONS: the party ashore, stood in every place
-import { createNecroHost } from './necroHost.js';
+import { createNecroHost } from './necroHost.js';   // CHEB'S NECROMANCY: the raised dead at the player's side
 import { createThrallHost } from './vampire/thrallHost.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the thrall at the vampire's side
-import { havenDoorRows, openHavenWindow } from '../ui/vampire/havenWindow.js';
+import { havenDoorRows, openHavenWindow } from '../ui/vampire/havenWindow.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at the home's door
 import { createHuntersHost } from './vampire/huntersHost.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: witch hunters and the Courts' assassins
 import { createCourtDoor } from '../systems/vampire/courtDoor.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: a clan Court's back room
 import { openCourtWindow } from '../ui/vampire/courtWindow.js';
 import { courtSeats, clanName } from '../systems/vampire/clanLaw.js';
 import { setBloodlineHost } from '../systems/vampire/bloodlineLeaf.js';   // BUNNYFALL VAMPIRE EXPANSION: the bloodline chosen before the turn
-import { installDisciplineKey, disciplineWheelOpen } from '../ui/vampire/disciplineWheel.js';   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at the home's door   // CHEB'S NECROMANCY: the raised dead at the player's side
+import { installDisciplineKey, disciplineWheelOpen } from '../ui/vampire/disciplineWheel.js';   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key
+import { installBeastOverlay } from '../ui/vampire/beastOverlay.js';   // BUNNYFALL VAMPIRE EXPANSION, THE VISUAL PASS: the Beast's vignette, Classic's vial
 import { revenantParty, setRetinuePlayer, setRetinueListener, setRetinueBodies, revenantsWithYou, leaveRefusal, isRevenantCompanionKey, revenantIdOfKey, applySwornStrength, sendRevenantAway, forgetSwornMember, swornFightStep, swornFightWon, devotedWithYou } from '../systems/revenant/revenantCompanions.js';   // REVENANT-COMPANION: the sworn, stood by the same layer
 import { registerCompanionCount, registerCompanionRoster, companionsWithYou, COMPANION_SLOTS } from '../systems/companionSlots.js';   // COMPANION-SLOTS: the crew's hands ashore counted with the sworn
 import { PERSONALITIES } from '../systems/revenant/revenantPersonality.js';   // REVENANT-COMPANION: the party card's word for one
@@ -6868,7 +6869,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     otherOverlayActive: () => modes?.overlayHeld ?? false,
     otherHudCovered: () => modes?.hudCovered ?? false,   // AUDIT ENH-NOTICE3 C2: the previousWindow chain on the mode host's stack, for the toasts
     keysLive: () => _worldKeysLive,   // MODE-WHEEL (AUDIT): KEY-BOOT's gate, for the wheel this rung opens above it - declared below, read deferred
-    vampireFeed: { showBox: (b) => showQuestBox(b) },   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire, in the quest box (declared below, read deferred)
+    vampireFeed: { showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w) },   // THE VISUAL PASS: the Blood Sight card   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire, in the quest box (declared below, read deferred)
   });
   townTalk.ensureLoaded();
   /** THE GAME PAUSE for this host - ONE composition, asked of the
@@ -10597,6 +10598,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     seatsWords: () => [...(_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))).values()].map((v) => `${v.name} (${clanName(v.clan)})`).join(', '),
     say: (l) => townTalk.say(l),
   });
+  installBeastOverlay({ entity: playerEntity, now: () => playerTicker.ownMinutes });   // THE VISUAL PASS: the Beast's vignette, the Classic skin's vial
   // BUNNYFALL VAMPIRE EXPANSION: the Disciplines' key - `seenBy` the townsfolk within DISCIPLINE_SEEN_M of me, in the
   // street or in the room (a visible Discipline seen is a Masquerade breach)
   const DISCIPLINE_SEEN_M = 15;
@@ -29699,7 +29701,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       _cardBarks = list.filter((m) => m.say).map((m) => ({ id: m.res.id, name: m.res.name, feet: m.feet, text: m.say }));
     },
     livingPersonsAct: (eye, dir, nearer) => !!livingIndoors?.size && townTalk.tryActivate(eye, dir, livingIndoors.seats(), Math.min(nearer, modes?.interiorCollider?.raycast(eye, dir, 80) ?? Infinity)),   // LW8: ...and the street's own talk ray on them - AUDIT LW-ROOMS: never through the room's walls (a bare wall is nothing to press, so the ray reached a drinker behind it)
-    vampireBeds: createVampireBeds({ entity: playerEntity, mode: getInteractionMode, now: ownMinutes, showBox: (b) => showQuestBox(b), say: (l) => townTalk.say(l), onCrime: () => _crimeResponse(), region: () => _questRegionIndex(),   // BUNNYFALL VAMPIRE EXPANSION: a sleeper fed on through their bed (scenes/vampire/vampireFeed.js)
+    vampireBeds: createVampireBeds({ entity: playerEntity, mode: getInteractionMode, now: ownMinutes, showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w), say: (l) => townTalk.say(l), onCrime: () => _crimeResponse(), region: () => _questRegionIndex(),   // BUNNYFALL VAMPIRE EXPANSION: a sleeper fed on through their bed (scenes/vampire/vampireFeed.js)
       building: () => { const b = modes?.interiorBuilding; const town = b && !modes?.interiorCtx?.ownedRoom ? livingTownOfMap(b.townMapId ?? 0) : null; return town ? { key: b.buildingKey, town } : null; } }),
     livingSpeech: ({ proj, view, eye, dt }) => livingRoomLines(proj, view, eye, dt),   // LW8b: ...and what they say, over their heads
     csaDrawWindWidget: () => csaDrawWindWidget(),   // CSA-E: the wind widget over a mode's HUD
@@ -30167,7 +30169,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       },
     },
     homeVendor: { open: (o) => openHomeVendorWindow(o) },   // HOME-VENDOR: a trader pressed in its home (worldModes.js openHomeVendor)
-    courtDoor: createCourtDoor({ entity: playerEntity, seats: () => (_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))), open: (c) => mountWindow(openCourtWindow({ entity: playerEntity, clan: c.clan, seat: c.name, now: () => Math.floor(playerTicker.ownMinutes) })) }),   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the Courts (ui/vampire/courtWindow.js)
+    courtDoor: createCourtDoor({ entity: playerEntity, seats: () => (_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))), open: (c) => mountWindow(openCourtWindow({ entity: playerEntity, clan: c.clan, seat: c.name, now: () => Math.floor(playerTicker.ownMinutes), seats: () => (_courtSeats ??= courtSeats((r) => hubOfRegion(regionHubs, r))) })) }),   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3: the Courts (ui/vampire/courtWindow.js)
     haven: { rows: () => havenDoorRows(playerEntity), open: () => mountWindow(openHavenWindow({ entity: playerEntity, now: () => Math.floor(playerTicker.ownMinutes) })) },   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven at my own home's door (ui/vampire/havenWindow.js)
     guestbookApi: homesApi,   // GUESTBOOK: the homes' service signs and reads a home's book (systems/online/guestbook.js)
     bardStage,   // BARDS' COLLEGE: the performance window plays and sends through it

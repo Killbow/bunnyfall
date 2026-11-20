@@ -213,10 +213,9 @@ export function vampireHudChips(entity, nowMinutes) {
   const st = vampireStatus(entity, nowMinutes);
   if (!st) return [];
   const level = st.stage >= BEAST.Ravenous ? 'danger' : st.stage >= BEAST.Thirsty ? 'warn' : 'boon';
-  const out = [{
-    key: level === 'boon' ? 'boon:vitae' : 'vitae', text: t('vampire.hud.beast', '{stage} (Vitae {vitae})', { stage: beastStageName(st.stage), vitae: st.vitae }),
-    level, glyph: 'bleed', foot: String(st.vitae),
-  }];
+  // THE VISUAL PASS: the Vitae and the Beast are the HUD's own bar now (ui/enhanced/enhancedHud.js); a tile for them only
+  // where it says more than the bar - a Ravenous or Starving Beast, red
+  const out = st.stage >= BEAST.Ravenous ? [{ key: 'vitae', text: t('vampire.hud.beast', '{stage} (Vitae {vitae})', { stage: beastStageName(st.stage), vitae: st.vitae }), level, glyph: 'bleed', foot: String(st.vitae) }] : [];
   if (st.blood?.tier > 0) {
     out.push({ key: 'boon:blood', text: t('vampire.hud.blood', '{type} blood, {quality}%', { type: archetypeName(st.blood.type), quality: Math.round(st.blood.quality) }), level: 'boon', glyph: 'bleed', foot: `T${st.blood.tier}` });
   }

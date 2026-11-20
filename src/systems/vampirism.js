@@ -94,12 +94,12 @@ import { endVampireQuests } from './racialQuests.js';   // V2d: the cure's P0* t
 import { localizedText, localizedTable } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { cloakState } from './survival/temperature.js';   // VAMP-HOOD: the ONE "is the hood up" - the felt temperature's, never a second list
 import { isEnhanced } from './uiSkin.js';   // HOOD-SAID: the hint names the skin's own button
-import { playerInSunlight, careerSunAverse } from './passiveSpecials.js';
+import { playerInSunlight, careerSunAverse } from './passiveSpecials.js';   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
 import { awakenedVampirism, vitaeRound, feedVampire, beastStageNow } from './vampire/vitae.js';   // BUNNYFALL VAMPIRE EXPANSION: Vitae and the Beast, once the Elder awakened them
 import { BEAST, ARCHETYPES, qualityOfCreature } from './vampire/bloodLaw.js';
-import { thrallRound } from './vampire/thralls.js';
-import { clanSunMod } from './vampire/clanLaw.js';
-import { masqueradeRound } from './vampire/masquerade.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2   // FIELD BUGS 2026-10-01b: the day's -20 is the SUN's - IsPlayerInSunlight, the one seam every host registers; HOOD-CAREER: the career's hooded rung
+import { thrallRound } from './vampire/thralls.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2
+import { clanSunMod } from './vampire/clanLaw.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3
+import { masqueradeRound } from './vampire/masquerade.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 3
 
 /** VampirismEffect.VampirismCurseKey (:33). */
 export const VAMPIRISM_CURSE_KEY = 'Vampirism-Curse';

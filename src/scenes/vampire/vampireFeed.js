@@ -17,7 +17,8 @@ import { t } from '../../systems/textManager.js';
 import { setCrimeCommitted, CRIMES } from '../../systems/court.js';
 import { skillValue, SKILLS } from '../../systems/skills.js';
 import { MINUTES_PER_DAY } from '../../systems/gameDate.js';
-import { awakenedVampirism, feedVampire, spendMindCloud, beastStageNow } from '../../systems/vampire/vitae.js';
+import { awakenedVampirism, feedVampire, spendMindCloud, beastStageNow, vampireStatus } from '../../systems/vampire/vitae.js';
+import { openBloodSight } from '../../ui/vampire/bloodSightCard.js';   // THE VISUAL PASS: the Blood Sight card
 import {
   archetypeOfPerson, archetypeName, qualityOfPerson, resonanceWords, resonanceTier, beastStageName, beastStageOf,
   MIND_CLOUD_COST, KISS_SLIP,
@@ -125,7 +126,7 @@ const crimeArm = (entity, onCrime) => (kind) => {
  * @param {{ entity: any, target: { person: any, pos: number[] }, persons?: { person: any, pos: number[] }[], now: number,
  *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
  */
-export function feedOnPerson({ entity, target, persons = [], now, showBox, say, onCrime, rolls = Math.random, regionIndex = 0 }) {
+export function feedOnPerson({ entity, target, persons = [], now, showBox, showWindow = null, say, onCrime, rolls = Math.random, regionIndex = 0 }) {
   if (!awakenedVampirism(entity)) return false;
   const person = target?.person;
   if (!person) return false;
@@ -160,11 +161,10 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
     if (kind === 'assault' && res && guardHushes(res.town, now)) { say(t('thrall.guard.hush', 'Your thrall in the watch looks the other way.')); return; }
     crimeArm(entity, onCrime)(kind);
   };
-  showBox({
+  present({ showBox, showWindow, entity, now, list,
+    view: { name: victim.name, type: victim.type, quality: victim.quality, seen: victim.seen, scouted, wary: watch > 0 },
     rows: [...sightRows(victim.name, victim.type, victim.quality, victim.seen), ...(watch ? [t('masq.feed.wary', 'This region is wary of your kind. There may be eyes you cannot see.')] : [])],
-    onClick: () => [{
-      picker: list.map((c) => c.label),
-      onPick: (i) => {
+    pick: (i) => {
         const c = list[i];
         if (c && c.id !== 'leave') FED_TODAY.add(fedKey(id, now));
         if (c && c.id !== 'leave' && scouted) takeScouted();
@@ -179,11 +179,26 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, say, 
           onReported: () => { town?.caught?.(person); crimeArm(entity, onCrime)('assault'); },
           onDrain: canDrain ? () => { town.slain(person); town.retire(person); } : null,
         })];
-      },
-      onCancel: () => [],
-    }],
+    },
   });
   return true;
+}
+
+/**
+ * THE VISUAL PASS: the choice shown - the Blood Sight card in the player's skin (ui/vampire/bloodSightCard.js) where the
+ * host hands a window slot (`showWindow`), else the quest box's chain as before. `pick(i)` the chosen row's consequence,
+ * answering the boxes the chain would show (their rows are the card's words after).
+ */
+function present({ showBox, showWindow, entity, now, list, view, rows, pick }) {
+  if (showWindow) {
+    const win = openBloodSight({
+      victim: view, choices: list,
+      status: () => { const st = vampireStatus(entity, Math.floor(now)); return st ? { vitae: st.vitae, stage: st.stage } : null; },
+      onPick: (id) => (pick(list.findIndex((c) => c.id === id)) ?? []).flatMap((b) => b?.rows ?? []),
+    });
+    if (win) { showWindow(win); return; }
+  }
+  showBox({ rows, onClick: () => [{ picker: list.map((c) => c.label), onPick: pick, onCancel: () => [] }] });
 }
 
 /** PHASE 2: the Kiss, and the townsperson taken to the Haven - gone from their town for good (their household's grief the
@@ -219,7 +234,7 @@ export function sleeperHere(entity, building) {
  * @param {{ entity: any, building: { key: number, town: any } | null, now: number, showBox: (box: any) => void,
  *   say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
  */
-export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, rolls = Math.random, regionIndex = -1 }) {
+export function feedOnSleeper({ entity, building, now, showBox, showWindow = null, say, onCrime, rolls = Math.random, regionIndex = -1 }) {
   if (!awakenedVampirism(entity) || !building?.town?.sleepersAt) return false;
   const { town, key } = building;
   const sleepers = town.sleepersAt(key);
@@ -236,11 +251,9 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
   const onSeen = (kind) => { town.wokeBitten?.(res); crimeArm(entity, onCrime)(kind); };
   const rows = [t('vampire.feed.sleeper', '{name} sleeps here.', { name: res.name }), ...sightRows(victim.name, victim.type, victim.quality, 0).slice(1, 2)];
   if (awake > 0) rows.push(t('vampire.feed.awake', 'Others are awake in the building.'));
-  showBox({
-    rows,
-    onClick: () => [{
-      picker: list.map((c) => c.label),
-      onPick: (i) => {
+  present({ showBox, showWindow, entity, now, list, rows,
+    view: { name: res.name, type: victim.type, quality: victim.quality, seen: 0, sleeper: true, wary: watcherChance(regionIndex, now) > 0 || awake > 0 },
+    pick: (i) => {
         const c = list[i];
         if (c && c.id !== 'leave') FED_TODAY.add(fedKey(res.id, now));
         return resolveChoice(entity, c?.id ?? 'leave', victim, {
@@ -248,9 +261,7 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
           onReported: () => { town.wokeBitten?.(res); crimeArm(entity, onCrime)('assault'); },
           onDrain: (wasSeen) => { town.slainAsleep?.(res, wasSeen); },
         });
-      },
-      onCancel: () => [],
-    }],
+    },
   });
   return true;
 }
@@ -262,7 +273,7 @@ export function feedOnSleeper({ entity, building, now, showBox, say, onCrime, ro
  * @param {{ entity: any, building: () => ({ key: number, town: any } | null), mode: () => string, now: () => number,
  *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void }} o
  */
-export function createVampireBeds({ entity, building, mode, now, showBox, say, onCrime, region = () => -1 }) {
+export function createVampireBeds({ entity, building, mode, now, showBox, showWindow = null, say, onCrime, region = () => -1 }) {
   let at = -Infinity, was = false;
   const stamp = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   return {
@@ -276,7 +287,7 @@ export function createVampireBeds({ entity, building, mode, now, showBox, say, o
     /** The bed pressed: a feed when it is one (answers whether it took the press). */
     feed() {
       if (mode() !== 'steal') return false;
-      return feedOnSleeper({ entity, building: building(), now: Math.floor(now()), showBox, say, onCrime, regionIndex: region() });
+      return feedOnSleeper({ entity, building: building(), now: Math.floor(now()), showBox, showWindow, say, onCrime, regionIndex: region() });
     },
   };
 }

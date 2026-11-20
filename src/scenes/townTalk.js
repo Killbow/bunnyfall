@@ -791,7 +791,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
       // F048's nesting, so the already-attempted arm is SILENT here
       // too, whatever the range.
       // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire feeds where a mortal picks a purse
-      if (vampireFeed && dist <= PICKPOCKET_DISTANCE && feedOnPerson({ entity: playerEntity, target, persons: _feedPersons, now: Math.floor(ownMinutes()), showBox: (b) => vampireFeed.showBox(b), say: (line) => hud.add(line), onCrime, rolls, regionIndex: typeof regionIndex === 'function' ? regionIndex() : regionIndex })) return;
+      if (vampireFeed && dist <= PICKPOCKET_DISTANCE && feedOnPerson({ entity: playerEntity, target, persons: _feedPersons, now: Math.floor(ownMinutes()), showBox: (b) => vampireFeed.showBox(b), showWindow: vampireFeed.showWindow ?? null, say: (line) => hud.add(line), onCrime, rolls, regionIndex: typeof regionIndex === 'function' ? regionIndex() : regionIndex })) return;
       if (target.person.pickpocketAttempted) return;
       if (dist > PICKPOCKET_DISTANCE) { setMidScreenText(tooFarAwayText()); return; }   // AUDIT 64 F34: :790, the same surface
       target.person.pickpocketAttempted = true;
