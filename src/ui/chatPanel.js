@@ -161,14 +161,13 @@ import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelif
 import { t } from '../systems/textManager.js';   // CHAT-TRADE: the channel picker's words in the player's language
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { voiceMeText, voiceRedText } from '../net/chatVoice.js';   // STAFF-CHAT-RED: the voice switch's two words
-import { capturePointer, releasePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
 import { chatItemsOf, chatItemLink, chatTextParts, hideChatItemTip, openLinkQuery, matchBagItems, takePendingLinks, prunePendingLinks } from './chatItemLink.js';   // CHAT-POST: coloured [Name] + the pack's hover card; `[` opens a bag picker in the field
 import { itemChatLabel, itemLine, linePictureUrl } from './enhanced/enhancedInventory.js';   // CHAT-POST: label + pack icon for the [ picker
 import { createChatMenu, CHAT_MENU_CSS } from './chatMenu.js';   // CHAT-REWORK: the player menu, a popover under a name
 import { smoothWheel } from './chatScroll.js';   // CHAT-REWORK: eased wheel scrolling
 import { createChatPopout } from './chatPopout.js';   // CHAT-REWORK: the chat in its own window
 import { mountChatLook, unmountChatLook, chatLookKey, chatScale, chatTextSize, stepChatTextSize, canStepChatTextSize } from './chatLook.js';
-import { pointerDrag, savedChatPlace } from './chatPlace.js';
+import { pointerDrag, savedChatPlace, shownPlace, isBarGap, chatPopFeatures, createPopMemory } from './chatPlace.js';
 
 /** The action whose key opens the chat: DFU's own cursor key (Enter by default), since opening frees the cursor. */
 export const CHAT_OPEN_ACTION = 'ActivateCursor';
@@ -632,6 +631,8 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-edge-r { top: 8px; right: -6px; bottom: 14px; width: 6px; cursor: ew-resize; }
 .dfchat-edge-b { left: 8px; right: 14px; bottom: -3px; height: 6px; cursor: ns-resize; }
 .dfchat.touch .dfchat-edge, .dfchat-popwin .dfchat-edge { display: none; }
+/* the empty part of the top bar moves the chat too, on the desktop skin */
+.dfchat:not(.touch):not(.dfchat-popwin) .dfchat-tabs { cursor: move; }
 ${CHAT_MENU_CSS}
 `;
 
@@ -1193,6 +1194,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   const resetSize = () => { sizeW = null; sizeH = null; applySize(); keepSize(); if (log.open && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; };
   let drag = null;   // { w, h, follow } while the grip or an edge is held
+  let saved = savedChatPlace();
   applySize();
   let lookKey = null;
   let popDoc = null;
@@ -1847,52 +1849,51 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   sizeDrag(grip, 1, 1);
   sizeDrag(edgeR, 1, 0);
   sizeDrag(edgeB, 0, 1);
-  // BUNNYFALL CHAT-MOVE: the handle moves the whole chat (the peek over the world with it), kept inside the window
-  let move = null;
-  const placeAt = (x, y) => {
-    if (x == null || y == null) { root.style.left = ''; root.style.top = ''; return; }
-    const w = root.offsetWidth || 300, h = Math.max(40, root.offsetHeight || 40);
-    const cx = Math.round(Math.min(Math.max(0, x), Math.max(0, (win.innerWidth || 800) - w)));
-    const cy = Math.round(Math.min(Math.max(0, y), Math.max(0, (win.innerHeight || 600) - Math.min(h, 120))));
-    root.style.left = `${cx}px`; root.style.top = `${cy}px`;
+  // The handle moves the whole chat with its peek; on the desktop skin the empty part of the top bar does too.
+  // A window too small for the saved place draws the box pulled inside it and keeps the saved place.
+  let moving = false;
+  let viewSeen = '';
+  const placeShown = () => {
+    viewSeen = `${win.innerWidth}x${win.innerHeight}`;
+    if (!saved) { root.style.left = ''; root.style.top = ''; return; }
+    const p = shownPlace(saved.x, saved.y, root.offsetWidth || 300, Math.max(40, root.offsetHeight || 40), win.innerWidth || 800, win.innerHeight || 600);
+    root.style.left = `${p.x}px`; root.style.top = `${p.y}px`;
   };
-  const keepPlace = () => { setPref('chatLeft', root.style.left ? parseInt(root.style.left, 10) : null); setPref('chatTop', root.style.top ? parseInt(root.style.top, 10) : null); };
-  { const l = getPref('chatLeft'), tp = getPref('chatTop'); if (Number.isFinite(l) && Number.isFinite(tp)) placeAt(l, tp); }
+  /** A player's move: the place drawn is the place saved. */
+  const moveTo = (x, y) => { saved = { x, y }; placeShown(); saved = { x: parseInt(root.style.left, 10), y: parseInt(root.style.top, 10) }; };
+  const keepPlace = () => { setPref('chatLeft', saved ? saved.x : null); setPref('chatTop', saved ? saved.y : null); };
+  placeShown();
   let placeSeen = null;
   /** Settings > Chat writes the size and the place (a preset, Reset): the next frame draws them. */
   const syncPrefs = () => {
     if (!drag) {
       const w = sizeOf(getPref('chatWidth')), h = sizeOf(getPref('chatListHeight'));
-      if (w !== sizeW || h !== sizeH) { sizeW = w; sizeH = h; applySize(); }
+      if (w !== sizeW || h !== sizeH) { sizeW = w; sizeH = h; applySize(); placeShown(); }
     }
-    if (!move) {
+    if (!moving) {
       const at = savedChatPlace();
       const key = at ? `${at.x},${at.y}` : '';
-      if (placeSeen !== null && key !== placeSeen) placeAt(at?.x ?? null, at?.y ?? null);
+      if (placeSeen !== null && key !== placeSeen) { saved = at; placeShown(); }
       placeSeen = key;
     }
+    if (`${win.innerWidth}x${win.innerHeight}` !== viewSeen) placeShown();
   };
-  mover.addEventListener('pointerdown', (e) => {
-    if (e.button != null && e.button !== 0) return;
-    e.preventDefault?.();
+  const startMove = () => {
+    if (popWrap) return null;
     const r = root.getBoundingClientRect();
-    move = { id: e.pointerId ?? null, dx: (Number(e.clientX) || 0) - r.left, dy: (Number(e.clientY) || 0) - r.top };
-    if (e.pointerId != null) capturePointer(mover, e.pointerId);
-  });
-  mover.addEventListener('pointermove', (e) => {
-    if (!move || (move.id != null && e.pointerId != null && e.pointerId !== move.id)) return;
-    placeAt((Number(e.clientX) || 0) - move.dx, (Number(e.clientY) || 0) - move.dy);
-  });
-  const endMove = () => { if (!move) return; const id = move.id; move = null; if (id != null) releasePointer(mover, id); keepPlace(); };
-  mover.addEventListener('pointerup', endMove);
-  mover.addEventListener('pointercancel', endMove);
-  mover.addEventListener('dblclick', () => { placeAt(null, null); keepPlace(); });
+    moving = true;
+    return { x: r.left, y: r.top };
+  };
+  const moveDrag = { start: startMove, move: (m, dx, dy) => moveTo(m.x + dx, m.y + dy), end: () => { moving = false; keepPlace(); } };
+  pointerDrag(mover, moveDrag);
+  pointerDrag(tabs, { ...moveDrag, start: (e) => (!touch && isBarGap(e.target, tabs, tabList) ? startMove() : null) });
+  mover.addEventListener('dblclick', () => { saved = null; placeShown(); keepPlace(); });
   mover.addEventListener('keydown', (e) => {
     const step = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }[e.code];
     if (!step) return;
     e.preventDefault?.(); e.stopPropagation?.();
     const r = root.getBoundingClientRect();
-    placeAt(r.left + step[0], r.top + step[1]);
+    moveTo(r.left + step[0], r.top + step[1]);
     keepPlace();
   });
   grip.addEventListener('dblclick', () => resetSize());
@@ -1958,6 +1959,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     const pw = popout?.view();
     popout?.frame();
     if (!alive || !popWrap || !pw) return;
+    popMem.sample(pw);
     syncLook();
     if (log.version !== painted) paint();
     paintVoice(); paintWho(); paintSocial(); paintNames();
@@ -1980,7 +1982,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     popWrap = wrap;
     wrap.append(box);
     pw.addEventListener('keydown', onKey, true);   // the field's keys, typed in that window, are the panel's as here (CG2)
-    pw.addEventListener('resize', () => { if (popWrap && pinned && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; placeFind(); });   // a reader at the foot stays there
+    pw.addEventListener('resize', () => { if (popWrap && pinned && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; placeFind(); popMem.sample(pw); popMem.save(); });   // a reader at the foot stays there
     findIn = null; placeFind();   // the roster column by that window's width
     if (!log.open) log.setOpen(true);
     paint(true);
@@ -1990,6 +1992,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   /** The window went (docked, closed by hand, reloaded, never came up): the box comes home, the chat closed. */
   const dockPop = () => {
+    popMem.save();
     menu.close(); hideChatItemTip(); clearSuggest();
     popWrap = null;
     popDoc = null;
@@ -1999,7 +2002,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     paint();
     paintPopBtn();
   };
-  popout = createChatPopout({ win, onReady: mountPop, onGone: dockPop });
+  const popMem = createPopMemory();
+  popout = createChatPopout({ win, onReady: mountPop, onGone: dockPop, features: chatPopFeatures });
   const popOut = () => {
     if (popout.state()) return;
     if (!popout.open()) {
@@ -2090,6 +2094,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     render({ covered = false, status: line = null, here: hereAct = null } = {}) {
       if (!alive) return;
       popout?.frame();   // CHAT-REWORK: the chat's window come up, or gone
+      // Sampled here too, so a window moved without a resize is still saved.
+      { const pv = popout?.view(); if (pv) popMem.sample(pv); }
       syncLook();
       if (covered || overlay()) { if (log.open) closePanel(); if (root.style.display !== 'none') root.style.display = 'none'; return; }
       if (root.style.display !== '') root.style.display = '';

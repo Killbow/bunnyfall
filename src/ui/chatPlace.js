@@ -1,4 +1,6 @@
-// The chat box size presets and Reset (Settings > Chat), and the pointer drags that resize the box.
+// Where the chat box sits and how big it is: the size presets and Reset in Settings > Chat, and the drags that resize
+// and move the box. A saved place is drawn inside a smaller window without being lost, and the chat's own window keeps
+// its size and place.
 import { getPref, setPref } from '../systems/uiPrefs.js';
 import { capturePointer, releasePointer } from './pointerCapture.js';
 
@@ -32,6 +34,17 @@ export function savedChatPlace() {
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 
+/** Clamps a place into a vw x vh window: the whole box width inside it, and at least 120px of its top on screen. */
+export function shownPlace(x, y, w, h, vw, vh) {
+  return {
+    x: Math.round(Math.min(Math.max(0, x), Math.max(0, vw - w))),
+    y: Math.round(Math.min(Math.max(0, y), Math.max(0, vh - Math.min(h, 120)))),
+  };
+}
+
+/** True when a press in the top bar landed on its empty part (the bar or the tab strip), not on a tab or a button. */
+export const isBarGap = (target, bar, strip) => target === bar || target === strip;
+
 /**
  * A pointer drag on `node`, captured to it. `start(e)` returns the drag state, or null for no drag.
  * `move(state, dx, dy)` gets the travel from the press, and `end(state)` runs on release.
@@ -60,4 +73,32 @@ export function pointerDrag(node, { start, move, end = null }) {
   node.addEventListener('pointerup', stop);
   node.addEventListener('pointercancel', stop);
   return { active: () => !!d };
+}
+
+export const CHAT_POP_SIZE = Object.freeze({ w: 560, h: 640, minW: 300, minH: 240 });
+
+/** The pop-out's window.open features: its saved size and screen place, else the default size. */
+export function chatPopFeatures() {
+  const w = num(getPref('chatPopW')), h = num(getPref('chatPopH'));
+  const x = getPref('chatPopX'), y = getPref('chatPopY');
+  let f = `popup=yes,width=${Math.round(Math.max(CHAT_POP_SIZE.minW, w ?? CHAT_POP_SIZE.w))},height=${Math.round(Math.max(CHAT_POP_SIZE.minH, h ?? CHAT_POP_SIZE.h))}`;
+  if (Number.isFinite(x) && Number.isFinite(y)) f += `,left=${Math.round(x)},top=${Math.round(y)}`;
+  return f;
+}
+
+/** The pop-out's last seen size and place: `sample` reads it off the window while it is open, `save` writes it. */
+export function createPopMemory() {
+  let seen = null;
+  return {
+    sample(pw) {
+      try {
+        const g = { chatPopW: pw.innerWidth, chatPopH: pw.innerHeight, chatPopX: pw.screenX, chatPopY: pw.screenY };
+        if (Object.values(g).every(Number.isFinite) && g.chatPopW > 0 && g.chatPopH > 0) seen = g;
+      } catch { /* the window went */ }
+    },
+    save() {
+      if (!seen) return;
+      for (const [k, v] of Object.entries(seen)) if (getPref(k) !== Math.round(v)) setPref(k, Math.round(v));
+    },
+  };
 }
