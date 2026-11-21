@@ -135,6 +135,7 @@ import { createTreasureFleet } from './treasureFleet.js';   // SEA-EVENTS: the t
 import { createNavalPvp } from './navalPvp.js';   // SHIP-PVP: the open sea's guns' seams
 import { strikeShip } from '../../systems/sea/seaEvents.js';   // SEA-EVENTS: the Aether Storm's lightning on my ship
 import { createBerthWatch } from './navalBerth.js';   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the berth, still or not, and the helm let go in port
+import { t } from '../../systems/textManager.js';
 
 /** The record's name in the save's per-mod slot (systems/modSaveData.js) - the port's own, as the Sigil Broker's is. */
 export const NAVAL_SAVE_VENDOR = 'NavalCombat';
@@ -3819,7 +3820,7 @@ export function createNavalHost(deps) {
   /** SHIP-CLAIM: whether a prize can be claimed - mine to settle, and Come Sail Away here to place her. */
   const claimable = (entry) => !entry.owner && typeof csa()?.LaunchFromDeed === 'function' && typeof deps.board?.mintUid === 'function' && typeof deps.board?.packDeed === 'function';
   /** SHIP-CLAIM: what claiming her makes of her, in the window's words. */
-  const claimDetail = (entry) => (entry.boat?.crewed ? `Keep it as your own ${HULL_NAMES[entry.ship.hull]}. The title goes to your Fleet ledger and the cargo stays in its hold. It has no crew.`
+  const claimDetail = (entry) => (entry.boat?.crewed ? t('naval.claim.keepShip', 'Keep it as your own {hull} where it lies, with its cargo and no crew. To move it, sail it to port or use Bring here at a shipyard on this side of the Veil.', { hull: HULL_NAMES[entry.ship.hull] })
     : `Keep it as your own ${HULL_NAMES[entry.ship.hull]} where it is, with the cargo in its hold.`);
 
   /** Back over the rail onto your own deck - AUDIT NAV1 (B11): and at her helm, as Black Flag hands you the wheel when

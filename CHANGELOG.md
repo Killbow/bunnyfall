@@ -10,6 +10,7 @@ the last release (scripts/changelogNotes.mjs).
 - On a computer, the chat can now be moved by the empty part of its top bar as well as its handle. Making the window smaller pulls the chat back on screen, and it returns to its place when the window grows.
 - The chat's own window now opens at the size and place it had when it was last closed.
 - The list of players online, Friends, and Party have moved into a drawer beside the chat, closed until the Social button opens it. Letters is now a chat tab, and on a computer the drawer's border can be dragged to resize it.
+- Fixed: Bring here and Lay up now work online at Eltheric Ocean port isles, and clicking a disabled button in Your fleet shows why it is unavailable. Canceling ship placement also no longer blocks Bring here.
 - The Grappling Hook can now be equipped, from the inventory and from the hotbar. It could not be held at all before.
 
 ## 2026-11-20
