@@ -70,6 +70,7 @@ export const SHIPYARD_CSS = `
 .dfyard-card .dfnaval-btn { min-width: 0; margin-top: 4px; font-size: 13px; padding: 5px 10px; }
 .dfyard-row { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 1.6fr) fit-content(40%); align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(5,6,8,0.6); white-space: normal; }
 .dfyard-row:last-child { border-bottom-color: transparent; }
+.dfyard-acts .dfnaval-btn[aria-disabled="true"] { cursor: default; color: #9c937d; opacity: 0.55; }
 .dfyard-row b { font-weight: normal; letter-spacing: 0.06em; text-transform: uppercase; color: #efe8d6; font-size: 13px; }
 .dfyard-row span { font-size: 12px; color: #b9ab93; }
 .dfyard-row .dfyard-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -121,6 +122,7 @@ export function fleetRowText(r) {
     name: r.label, sub: `${r.hullName} - ${w.state}`, where: w.line,
     worth: `Worth ${gold(r.worth)}. The shipmaster offers ${gold(r.offer)}.${fits ? ` Refits: ${fits}.` : ''}`,
     sell: r.sell, canSell: !r.sell, summon: r.can?.summon ?? null, away: r.can?.away ?? null,
+    note: r.where === 'away' && r.can?.summon ? r.can.summon : r.sell,
   };
 }
 /** A recruit's words. Pure. */
@@ -140,13 +142,13 @@ const el = (tag, cls = null, text = null) => {
   if (text != null) n.textContent = text;
   return n;
 };
-/** @param {string} text @param {string} cls @param {() => void} onPress @param {boolean} [can] @param {string|null} [why] */
-const button = (text, cls, onPress, can = true, why = null) => {
+/** @param {string} text @param {string} cls @param {() => void} onPress @param {boolean} [can] @param {string|null} [why] @param {((why: string) => void)|null} [tell] */
+const button = (text, cls, onPress, can = true, why = null, tell = null) => {
   const b = /** @type {HTMLButtonElement} */ (el('button', cls, text));
   b.setAttribute('type', 'button');
-  if (!can) b.setAttribute('disabled', '');
+  if (!can) b.setAttribute(tell ? 'aria-disabled' : 'disabled', tell ? 'true' : '');
   if (why) b.title = why;
-  b.onclick = (e) => { e.stopPropagation(); if (!b.disabled) onPress(); };
+  b.onclick = (e) => { e.stopPropagation(); if (!can && tell) tell(why ?? ''); else if (!b.disabled) onPress(); };
   return b;
 };
 function injectStyle(doc = document) {
@@ -228,6 +230,7 @@ export function mountShipyardWindow(host, deps) {
     Promise.resolve(deps.picture(hull, () => (alive ? win.getBoundingClientRect?.() ?? null : null))).then(settle, () => settle(null));
   };
   const said = (r) => { if (r && typeof r.text === 'string' && r.text) note = { text: r.text, warn: !r.ok }; };
+  const tell = (why) => { confirm = null; said({ ok: false, text: why }); render(); };
   /** CREW-SIGNED: an act the account service answers first (a hire online) - no press is taken while it is out. */
   let asking = false;
   const press = (verb, a, b) => {
@@ -307,13 +310,13 @@ export function mountShipyardWindow(host, deps) {
       left.append(el('b', null, t.name), el('br'), el('span', null, t.sub));
       const mid = el('div');
       mid.append(el('span', null, t.where), el('br'), el('span', null, t.worth));
-      if (t.sell) mid.append(el('br'), el('span', null, t.sell));
+      if (t.note) mid.append(el('br'), el('span', null, t.note));
       const acts = el('div', 'dfyard-acts');
       const key = `sell:${r.uid}`;
       acts.append(button(confirm === key ? `Yes, sell for ${gold(r.offer)}` : 'Sell', 'dfnaval-btn',
-        () => twoPress(key, `Sell ${t.name} for ${gold(r.offer)}? This can't be undone. Press again to confirm.`, () => press('sell', r.uid)), t.canSell, t.sell));
-      acts.append(button('Bring here', 'dfnaval-btn', () => press('summon', r.uid), !t.summon, t.summon));
-      acts.append(button('Lay up', 'dfnaval-btn', () => press('away', r.uid), !t.away, t.away));
+        () => twoPress(key, `Sell ${t.name} for ${gold(r.offer)}? This can't be undone. Press again to confirm.`, () => press('sell', r.uid)), t.canSell, t.sell, tell));
+      acts.append(button('Bring here', 'dfnaval-btn', () => press('summon', r.uid), !t.summon, t.summon, tell));
+      acts.append(button('Lay up', 'dfnaval-btn', () => press('away', r.uid), !t.away, t.away, tell));
       const named = el('div', 'dfyard-name');
       const input = /** @type {HTMLInputElement} */ (el('input'));
       input.maxLength = SHIP_NAME_MAX;

@@ -4931,6 +4931,7 @@ mods.worldEventsRaidingParties.Enabled.description,"Knights, bandits or orcs rai
 mods.worldOfDaggerfall.Enabled.description,"More to find in the wilderness: bandit camps and forts, ruins, shrines, mountains and rock fields across the Iliac Bay, with bandits, bears and treasure, and a camp outside Privateer’s Hold."
 mods.worldTooltips.Enabled.description,"Shows the name of what you’re looking at under the crosshair: people, shops and their opening hours, doors and their locks, where an exit leads, levers, ladders, bookshelves and Daedra waiting to be summoned. Off, you still see what a chest or body holds."
 mods.worldTooltips.HideDefaultInteractTooltip.description,"Hides the label on things that may be meant to stay secret, such as the puzzles of the main quest."
+naval.claim.keepShip,"Keep it as your own {hull} where it lies, with its cargo and no crew. To move it, sail it to port or use Bring here at a shipyard on this side of the Veil."
 naval.class.fishingSkiff,"Fishing Skiff"
 naval.class.fishingSmack,"Fishing Smack"
 naval.deck.bad,"Those fittings can't be placed on this ship."

@@ -42,6 +42,7 @@ import { optionPath } from '../ui/settings/settingsMap.js';   // ORG2: a switch 
 import { holdsCargo } from './holdDoor.js';   // CARGO-ANYWHERE: the hulls that carry a hold
 import { t } from '../systems/textManager.js';   // CARGO-ANYWHERE: the hold's words in the player's language
 import { etherWildRingAt } from '../systems/wild/etherWild.js';   // AUDIT FOE-KEEPS E3: the open sea's PvP waters
+import { inEther } from '../world/ethericSea.js';
 
 /** The hulls whose prefab carries a live `Crewed` node (Come Sail Away's Small Ship, Large Galley and Carrack - the
  *  Rowboat's is inactive): a ship with hands, who sail her to a port and mend her where she lies. */
@@ -67,10 +68,18 @@ export function createFleetHost(deps) {
    *  has hands, and her laid-up hold (Come Sail Away's PackedCargoes under her number, live). */
   const standIn = (rec) => ({ uid: rec.uid, hull: rec.hull, variant: rec.variant, crewed: CREWED_HULLS.includes(rec.hull), Cargo: { Items: csa()?.laidUpHold?.(rec.uid) ?? [] }, laidUp: true });
 
+  // A placing can be cancelled: clear her old port only once she lies on a new map pixel.
+  const handed = new Map();
   /** Every deed in the pack entered in the book, and every boat of mine with a number known to the ledger. */
   function sweep() {
     titleDeedsIn(pack(), { except: csa()?.state?.placeItem ?? null });   // AUDIT HOLDINGS F2: never the deed a placing holds
     for (const b of placed()) knowShip(b.uid, b.hull, b.variant, b.itemValue);   // AUDIT HOLDINGS F3: her rig as she stands
+    for (const [uid, h] of handed) {
+      if (csa()?.state?.placeItem?.UID === uid) continue;
+      handed.delete(uid);
+      const b = placed().find((x) => x.uid === uid);
+      if (b && (b.MapPixel?.X !== h.px?.X || b.MapPixel?.Y !== h.px?.Y) && fleetShip(uid)?.port === h.port) setShipPort(uid, null);
+    }
     settleCredit(deps.accounts?.());   // AUDIT HOLDINGS F4: a claim whose bank is owed nothing now, cleared for good
     for (const it of pack()) if (it?.templateIndex === BOAT_PARTS_TEMPLATE && it.UID) knowShip(it.UID, Math.floor((it.message | 0) / 10), (it.message | 0) % 10, it.value);
   }
@@ -116,12 +125,10 @@ export function createFleetHost(deps) {
     const loan = loanOwed(rec, deps.accounts?.());
     const sailing = !!r?.isSailing?.();
     const apart = !!deps.veilApart?.(rec, at.boat ?? null);   // AUDIT CAPTAIN'S SEA P5: never across the Veil
-    // AUDIT FOE-KEEPS E3 (the owner, 2026-10-24, asked: "Refuse on the open sea"): since FOE-KEEPS a death to a foe there
-    // costs a tenth and rises at the nearest freeport, so a Summon after it was the sea's free hop for captain, ship and
-    // hold past the waters where another captain takes a third of a boarded hold. No Fleet order moves a ship into, out
-    // of or about the open sea while it is a PvP zone (`where().sea` - online, its relay refereeing): the player's waters
-    // or hers past Veilhaven's peace. A laid-up ship is no ship in those waters.
-    const openSea = !!w.sea && (etherWildRingAt(w.pixel?.X, w.pixel?.Y) > 0 || (!!at.boat?.MapPixel && etherWildRingAt(at.boat.MapPixel.X, at.boat.MapPixel.Y) > 0));
+    // Online, the open sea past Veilhaven's peace is a PvP zone. No Fleet order moves a ship into, out of, or about it
+    // unless the player is at a port isle (Veilhaven included) and not at a helm. A laid-up ship is not at sea.
+    const atPortIsle = atPort && !sailing && inEther(w.pixel?.X, w.pixel?.Y);
+    const openSea = !!w.sea && !atPortIsle && (etherWildRingAt(w.pixel?.X, w.pixel?.Y) > 0 || (!!at.boat?.MapPixel && etherWildRingAt(at.boat.MapPixel.X, at.boat.MapPixel.Y) > 0));
     const summon = !r ? 'Come Sail Away is not running.'
       : at.where === 'sailing' || at.where === 'here' ? 'This ship is already here.'
       : at.where === 'packed' ? 'This ship is in your pack. Launch it from its parts.'
@@ -292,12 +299,13 @@ export function createFleetHost(deps) {
     }
     if (verb === 'summon') {
       if (why.summon) return said(false, why.summon);
-      setShipPort(uid, null);   // AUDIT HOLDINGS Q8: called away from where she lay - made fast at the quay, the docking says the port again
       const title = titleOf(uid);
       const berth = n?.freeBerth?.(rec.hull) ?? null;   // QUAYS: alongside its quay for her own hull - made fast at it
       if (berth) {
         const boat = r.SummonBoat(uid, title, fleetBook(), berth.position, berth.direction, deps.terrainAt?.(berth.position) ?? null);
         if (!boat) return said(false, 'The ship couldn\'t be brought here.');
+        // She has left where she lay. Docking at the quay records the port again.
+        setShipPort(uid, null);
         return said(true, `${name} is brought to ${berth.harbour ? `${berth.harbour}'s` : 'the'} quay and moored.`);
       }
       // no berth known (the sea fight off, every one taken): the deed's own placing - the water clicked
@@ -308,6 +316,7 @@ export function createFleetHost(deps) {
         // travel or a placing already under way left that title in the book while she stood
         const t = title ?? mintDeed(rec.hull, rec.variant, uid, rec.value);
         const list = title ? fleetBook() : [t];
+        handed.set(uid, { port: rec.port, px: at.boat?.MapPixel ? { X: at.boat.MapPixel.X, Y: at.boat.MapPixel.Y } : null });
         r.StartPlacing(t, () => list);
         return true;
       });
