@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-21
 
+- The chat's own window now opens at the size and place it had when it was last closed.
 - The list of players online, Friends, and Party have moved into a drawer beside the chat, closed until the Social button opens it. Letters is now a chat tab, and on a computer the drawer's border can be dragged to resize it.
 - The Grappling Hook can now be equipped, from the inventory and from the hotbar. It could not be held at all before.
 

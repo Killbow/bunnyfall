@@ -168,6 +168,7 @@ import { createChatMenu, CHAT_MENU_CSS } from './chatMenu.js';   // CHAT-REWORK:
 import { smoothWheel } from './chatScroll.js';   // CHAT-REWORK: eased wheel scrolling
 import { createChatPopout } from './chatPopout.js';   // CHAT-REWORK: the chat in its own window
 import { mountChatLook, unmountChatLook, chatLookKey, chatScale, chatTextSize, stepChatTextSize, canStepChatTextSize } from './chatLook.js';
+import { pointerDrag, savedChatPlace } from './chatPlace.js';
 
 /** The action whose key opens the chat: DFU's own cursor key (Enter by default), since opening frees the cursor. */
 export const CHAT_OPEN_ACTION = 'ActivateCursor';
@@ -589,7 +590,7 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-send { font-size: 12px; padding: 6px 11px; border-radius: 5px; background: rgba(192, 138, 62, .85); color: #16110a; }
 .dfchat-send:hover { background: var(--brass, #c08a3e); }
 .dfchat-voice button { font-size: 11px; padding: 4px 6px; }
-.dfchat-who { width: clamp(calc(120px * var(--dfchat-scale, 1)), 30%, calc(168px * var(--dfchat-scale, 1))); border-left-color: rgba(233, 228, 217, .08); background: rgba(0, 0, 0, .12); }
+.dfchat-who { width: clamp(min(calc(120px * var(--dfchat-scale, 1)), 34%), 30%, calc(168px * var(--dfchat-scale, 1))); border-left-color: rgba(233, 228, 217, .08); background: rgba(0, 0, 0, .12); }
 .dfchat-whohead { font-size: calc(10px * var(--dfchat-scale, 1)); padding: 6px 8px 3px; }
 .dfchat-wholist { padding: 0 4px 14px; }
 .dfchat-who-row { font-size: calc(12px * var(--dfchat-scale, 1)); padding: 2px 4px; border-radius: 3px; }
@@ -626,6 +627,11 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat.touch .dfchat-sizes { display: none; position: absolute; top: 100%; z-index: 3; gap: 2px; padding: 4px;
   background: rgba(14, 16, 19, .96); border: 1px solid var(--iron, #2b323b); border-radius: 4px; }
 .dfchat.touch .dfchat-sizes.on { display: flex; }
+/* the right edge sets the width, the bottom edge the list height (the corner grip both); desktop only, not in the pop-out */
+.dfchat-edge { position: absolute; z-index: 1; touch-action: none; }
+.dfchat-edge-r { top: 8px; right: -6px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.dfchat-edge-b { left: 8px; right: 14px; bottom: -3px; height: 6px; cursor: ns-resize; }
+.dfchat.touch .dfchat-edge, .dfchat-popwin .dfchat-edge { display: none; }
 ${CHAT_MENU_CSS}
 `;
 
@@ -753,6 +759,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   grip.setAttribute('role', 'button');
   grip.setAttribute('aria-label', 'Resize chat');
   grip.setAttribute('title', t('chat.gripTitle', 'Drag to resize. Bigger shows more lines. Double-click to reset.'));
+  const edgeR = el('div', 'dfchat-edge dfchat-edge-r');
+  const edgeB = el('div', 'dfchat-edge dfchat-edge-b');
   const hide = el('button', 'dfchat-hbtn dfchat-hide', '–'); hide.type = 'button';
   hide.setAttribute('aria-label', t('chat.hide', 'Hide chat'));
   hide.title = t('chat.hideTitle', 'Hide the chat. A small Chat button brings it back.');
@@ -1085,6 +1093,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   tabs.prepend(mover);   // BUNNYFALL CHAT-MOVE
   box.append(tabs, cols, grip);   // CHAT-SIZE: the grip is the BOX's - its corner is past the roster column, not at the end of the form's row
   box.append(suggest);   // CHAT-POST: the bag list hangs off the box's right edge (absolute; after the grip so the pin still sees box.append(tabs, cols, grip))
+  box.append(edgeR, edgeB);
   // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
   // FB1020h HUD-FOCUS: what stands over the world while the chat is shut is never the keyboard's focus (ui/input.js
   // neverTheFocus) - Play online here, the touch skin's Chat, the Social button (above) and Show
@@ -1183,7 +1192,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (follow) list.scrollTop = list.scrollHeight ?? 0;
   };
   const resetSize = () => { sizeW = null; sizeH = null; applySize(); keepSize(); if (log.open && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; };
-  let drag = null;   // { id, x, y, w, h, follow } while the grip is held
+  let drag = null;   // { w, h, follow } while the grip or an edge is held
   applySize();
   let lookKey = null;
   let popDoc = null;
@@ -1828,27 +1837,16 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   // are the ELEMENTS' listeners - the panel's one window listener stays the key's (AUDIT CHAT D5).
   jump.addEventListener('click', () => { unseen = 0; paintJump(); smooth.to(list.scrollHeight ?? 0); input.focus?.(); });   // CHAT-REWORK: an eased glide down
   list.addEventListener('scroll', () => { pinned = atNewest(); if (unseen && log.open && pinned) { unseen = 0; paintJump(); } });
-  // CHAT-SIZE: THE GRIP. A press captures the pointer to the grip, so the drag keeps its target however far the hand
-  // travels and the host never sees the moves as a press anywhere else (the box already swallows the press itself,
-  // and a release is never stopped - AUDIT CHAT C5). The box is anchored at its top-left, so the grip's travel IS the
-  // size's change. All of it is the grip's own listeners: the panel's one window listener stays the key's (D5).
-  grip.addEventListener('pointerdown', (e) => {
-    if (e.button != null && e.button !== 0) return;
-    e.preventDefault?.();
-    drag = { id: e.pointerId ?? null, x: Number(e.clientX) || 0, y: Number(e.clientY) || 0, w: widthNow(), h: listNow(), follow: unseen === 0 && atNewest() };
-    if (e.pointerId != null) capturePointer(grip, e.pointerId);
+  // The grip and the two edges capture the pointer, so the host never sees the drag's moves as presses elsewhere.
+  // The box is anchored at its top-left, so the pointer's travel is the change in size.
+  const sizeDrag = (node, ax, ay) => pointerDrag(node, {
+    start: () => (drag = { w: widthNow(), h: listNow(), follow: unseen === 0 && atNewest() }),
+    move: (d, dx, dy) => resizeTo(d.w + dx * ax, d.h + dy * ay, d.follow),
+    end: () => { drag = null; keepSize(); },
   });
-  grip.addEventListener('pointermove', (e) => {
-    if (!drag || (drag.id != null && e.pointerId != null && e.pointerId !== drag.id)) return;
-    resizeTo(drag.w + ((Number(e.clientX) || 0) - drag.x), drag.h + ((Number(e.clientY) || 0) - drag.y), drag.follow);
-  });
-  const endDrag = () => {
-    if (!drag) return;
-    const id = drag.id;
-    drag = null;
-    if (id != null) releasePointer(grip, id);
-    keepSize();
-  };
+  sizeDrag(grip, 1, 1);
+  sizeDrag(edgeR, 1, 0);
+  sizeDrag(edgeB, 0, 1);
   // BUNNYFALL CHAT-MOVE: the handle moves the whole chat (the peek over the world with it), kept inside the window
   let move = null;
   const placeAt = (x, y) => {
@@ -1860,6 +1858,20 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   const keepPlace = () => { setPref('chatLeft', root.style.left ? parseInt(root.style.left, 10) : null); setPref('chatTop', root.style.top ? parseInt(root.style.top, 10) : null); };
   { const l = getPref('chatLeft'), tp = getPref('chatTop'); if (Number.isFinite(l) && Number.isFinite(tp)) placeAt(l, tp); }
+  let placeSeen = null;
+  /** Settings > Chat writes the size and the place (a preset, Reset): the next frame draws them. */
+  const syncPrefs = () => {
+    if (!drag) {
+      const w = sizeOf(getPref('chatWidth')), h = sizeOf(getPref('chatListHeight'));
+      if (w !== sizeW || h !== sizeH) { sizeW = w; sizeH = h; applySize(); }
+    }
+    if (!move) {
+      const at = savedChatPlace();
+      const key = at ? `${at.x},${at.y}` : '';
+      if (placeSeen !== null && key !== placeSeen) placeAt(at?.x ?? null, at?.y ?? null);
+      placeSeen = key;
+    }
+  };
   mover.addEventListener('pointerdown', (e) => {
     if (e.button != null && e.button !== 0) return;
     e.preventDefault?.();
@@ -1883,8 +1895,6 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     placeAt(r.left + step[0], r.top + step[1]);
     keepPlace();
   });
-  grip.addEventListener('pointerup', endDrag);
-  grip.addEventListener('pointercancel', endDrag);
   grip.addEventListener('dblclick', () => resetSize());
   // the keyboard's way: arrows step the width and the list's height, stopped here so the host's ring never walks
   grip.addEventListener('keydown', (e) => {
@@ -2083,6 +2093,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       syncLook();
       if (covered || overlay()) { if (log.open) closePanel(); if (root.style.display !== 'none') root.style.display = 'none'; return; }
       if (root.style.display !== '') root.style.display = '';
+      syncPrefs();
       publishFit();   // CHAT-SIZE: the screen can change under the chat (a rotate, a resized window) - said on a change only
     placeFind();   // CHAT-FIND: and the strip follows the roster column in and out of the page
       if (log.version !== painted) paint();
