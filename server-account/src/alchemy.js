@@ -1,3 +1,6 @@
+import { upgradeArgents } from '../../src/net/gearUpgradeLaw.js';
+import { utcDay } from '../../src/net/marksLaw.js';
+import { marksOpenFor, balanceOf } from './marks.js';
 // @ts-check
 // ═══════════════════════════════════════════════════════════════════
 // PROF12 (2026-10-02, Mac: "2 and 4"; "lets just finish out everything
@@ -288,51 +291,47 @@ export async function disenchantPiece(ctx, player, env, { character, provenance,
 /** A Reforge with Essence's answer, read back from its row. */
 async function reforgeAnswer(db, player, row, nowS, extra = {}) {
   return {
-    ok: true, ...extra, tier: row.tier, essence: Number(row.essence), seed: Number(row.seed),
+    ok: true, ...extra, tier: row.tier, essence: Number(row.essence), balance: await balanceOf(db, player.id),
     track: trackView(await trackRow(db, player.id, row.char_id, 'enchanting'), 'enchanting', nowS),
     store: await storeOf(db, player.id, row.char_id, ARCANE_ESSENCE.key),
   };
 }
 
-/**
- * A REFORGE WITH ESSENCE (CRAFT4, Professions-Arc 41.2 and 41.7): `{ character, tier, count?, rid }` - an Enchanter of
- * rank 50 (temperLaw REFORGE_RANK; `prof-rank`) spends 2 Arcane Essence for a Magic piece's line or 5 for a Rare's the
- * first time - REFORGE-REPLACE (the owner: "Replace, price rises"): doubled for every reforge the piece has taken,
- * `count` (absent, none - a page from before the count) - (temperLaw reforgeEssence - Legendary and up, or a count no
- * piece holds, none: law 7, `prof-reforge`), never gold's units (FB1020h ESSENCE-LOOSE: a station's
- * spend - loose units first, then bought, then own, as a craft's), and is answered the seed the line
- * is replaced with - the service's CSPRNG, as a craft's quality is its roll. The service cannot see the pack: the
- * piece, its line and its count are the client's (systems/loot/lootRarity.js reforgeAffix and reforgeCount - the Loot
- * arc's own Reforge: one line, any line, always by another kind), the save's word as its tier is and as the Mages
- * Guild's reforge is; the Essence is the bound.
- * DECIDED: no XP - the Essence's XP was its disenchanting's. Refused: the Essence short (`stores-short`, `stores-gold`).
- */
-export async function reforgeWithEssence(ctx, player, env, { character, tier, count = 0, rid } = {}) {
+/** Charge a fixed Essence price for the replacement chosen at the enchanting station. */
+export async function reforgeWithEssence(ctx, player, env, { character, tier, rid, choose } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
   if (refused) return refused;
+  if (choose !== true) return { error: 'prof-reforge-update' };
   const prior = await db.prepare('SELECT * FROM prof_reforges WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
   if (prior) return reforgeAnswer(db, player, prior, nowS, { repeat: true });
   const closed = shut(player, env);
   if (closed) return closed;
-  const essence = reforgeEssence(tier, count);   // REFORGE-REPLACE: the piece's count, doubling it
+  if (!marksOpenFor(player, env)) return { error: 'marks-closed' };
+  const essence = reforgeEssence(tier);
+  const argents = upgradeArgents('reforge', tier);
   if (!essence) return { error: 'prof-reforge' };
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
   const { rank } = await tracksOf(db, player.id, character, 'enchanting', nowS);
   if (rank < REFORGE_RANK) return { error: 'prof-rank' };
-  const seed = Math.floor(dice(rand) * 4294967296);
   const nonce = mintId(rand);
   await db.batch([
     // THE DECISION: the Essence held, never gold's units - FB1020h ESSENCE-LOOSE: a station's (workableSql), its loose too
     db.prepare(`INSERT OR IGNORE INTO prof_reforges (player, rid, char_id, tier, essence, seed, at, n)
-      SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8 WHERE ${workableSql('?1', '?2', '?9')} >= ?5`)
-      .bind(player.id, character, rid, tier, essence, seed, nowS, nonce, ARCANE_ESSENCE.key),
+      SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8 WHERE ${workableSql('?1', '?2', '?9')} >= ?5
+      AND COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) >= ?10`)
+      .bind(player.id, character, rid, tier, essence, 0, nowS, nonce, ARCANE_ESSENCE.key, argents),
+    db.prepare(`INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, who, rid)
+      SELECT 'account', ?1, 'burn', NULL, 'gear-essence-reforge', ?4, ?5, ?6, ?1, char_id, rid || ':gear'
+      FROM prof_reforges WHERE player = ?1 AND rid = ?2 AND n = ?3`)
+      .bind(player.id, rid, nonce, argents, utcDay(nowS), nowS),
     // the Essence out, loose first, then bought - FB1020h ESSENCE-LOOSE: a station's spend (workStatements)
     ...workStatements(db, { player: player.id, character, materialSql: '?3', qtySql: '?4', guard: 'EXISTS (SELECT 1 FROM prof_reforges WHERE player = ?1 AND rid = ?5 AND n = ?6)', binds: [ARCANE_ESSENCE.key, essence, rid, nonce] }),
   ]);
   const made = await db.prepare('SELECT * FROM prof_reforges WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
   if (made?.n === nonce) return reforgeAnswer(db, player, made, nowS);
   if (made) return reforgeAnswer(db, player, made, nowS, { repeat: true });
+  if (await balanceOf(db, player.id) < argents) return { error: 'marks-short' };
   const st = await storeOf(db, player.id, character, ARCANE_ESSENCE.key);
   return { error: workHeld(st) + (st.gold ?? 0) >= essence ? 'stores-gold' : 'stores-short', material: ARCANE_ESSENCE.key };
 }

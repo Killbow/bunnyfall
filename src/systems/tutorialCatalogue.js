@@ -430,7 +430,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'reforge', group: 'loot', title: 'Reforging', trigger: 'When you first visit the Reforge.',
     body: [
-      'The Reforge at the Mages Guild remakes one power on a Magic or Rare item for Welkynd Shards and gold. It can also take a gem out of its socket.',
+      'At the Mages Guild, spend Welkynd Shards and gold to choose a replacement bonus, raise a bonus to its maximum, or raise an item’s rarity and choose new bonuses.',
       'Salvage breaks gear you don\'t need into crafting materials, and magic gear into Welkynd Shards as well.',
     ],
   }),

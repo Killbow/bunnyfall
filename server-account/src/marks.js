@@ -1,3 +1,4 @@
+import { upgradeArgents } from '../../src/net/gearUpgradeLaw.js';
 // @ts-check
 // ═══════════════════════════════════════════════════════════════════
 // MARKS1 - MARKS, AS THE SERVICE KEEPS THEM (bible/06-Systems/
@@ -596,4 +597,29 @@ export async function marksReport({ db, nowS }, player, env) {
     cappedDays: { combat: Number(combatCapped?.d ?? 0), bank: Number(bankCapped?.d ?? 0), gather: Number(gatherCapped?.d ?? 0), find: Number(findCapped?.d ?? 0) },
     medians,
   };
+}
+
+/** A ledger debit for a guild upgrade. The service derives the price from the shared rules. */
+export async function payGearUpgrade(ctx, player, env, { service, tier, rid } = {}) {
+  const { db, nowS } = ctx;
+  const refused = whoAsks(player, rid);
+  if (refused) return refused;
+  const amount = upgradeArgents(service, tier);
+  if (!amount) return { error: 'bad-piece' };
+  const kind = `gear-${service}`;
+  const answer = async (line, repeat = false) =>
+    line.kind === kind && line.who === tier
+      ? { ok: true, repeat, balance: await balanceOf(db, player.id) }
+      : { error: 'marks-rid' };
+  const prior = await lineOf(db, player.id, rid);
+  if (prior) return answer(prior, true);
+  const closed = shut(player, env);
+  if (closed) return closed;
+  if (await overRate(ctx, `marks:${player.id}`, MARKS_OPS_MAX, MARKS_OPS_WINDOW_S)) return { error: 'marks-rate' };
+  const made = await decide(db.prepare(`${INSERT_LINE}
+    SELECT 'account', ?1, 'burn', NULL, ?2, ?3, ?4, ?5, ?1, ?6, ?7
+    WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) >= ?3`)
+    .bind(player.id, kind, amount, utcDay(nowS), nowS, tier, rid));
+  const line = await lineOf(db, player.id, rid);
+  return line ? answer(line, !made) : { error: 'marks-short' };
 }

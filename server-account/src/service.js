@@ -583,7 +583,7 @@ export const ROUTES = new Set([
   // MARKS1: Marks (marks.js) - an account's balance, the Bank's exchange (Marks for gold, never the other way), a
   // guild's Marks treasury, and the developers' weekly report. Every one behind a session, an account's alone.
   // SILVER-FINDS: and a loot find (the service's dice, the day's count).
-  '/v1/marks/balance', '/v1/marks/exchange', '/v1/marks/find', '/v1/marks/guild/deposit', '/v1/marks/guild/withdraw', '/v1/marks/report',
+  '/v1/marks/balance', '/v1/marks/gear-upgrade', '/v1/marks/exchange', '/v1/marks/find', '/v1/marks/guild/deposit', '/v1/marks/guild/withdraw', '/v1/marks/report',
   '/v1/board/read', '/v1/board/pin', '/v1/board/take-down', '/v1/board/report', '/v1/board/mod/remove', '/v1/board/mod/restore',
   '/v1/board/notice', '/v1/board/notice/remove',
   // SAFE1-SAFE8 (bible/11-Multiplayer/Chat-Safety-Arc.md): a player's block list, a report, the code of conduct agreed;

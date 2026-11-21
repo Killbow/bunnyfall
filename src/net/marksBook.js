@@ -200,6 +200,14 @@ export function createMarksBook({ door, store = null, character = () => null, ri
 
   return {
     state,
+    async gearUpgrade(service, tier, requestId) {
+      const origin = account();
+      if (!origin) return { ok: false, error: 'no-session' };
+      const result = await ask(() => door.gearUpgrade(service, tier, requestId, origin));
+      if (origin !== account()) return { ok: false, error: 'no-session' };
+      if (result?.ok) noteAnswer(result.data);
+      return result;
+    },
     /** The balance and today's counts, from the service; a closed currency or a guest reads `open` false. */
     async refresh() {
       const r = await ask(() => door.balance());

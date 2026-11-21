@@ -44,13 +44,8 @@
 //
 // ═══ REFORGE (41.2, DECIDED) ════════════════════════════════════════
 //
-// - Enchanting 50: one property of a Magic or Rare piece replaced - the
-//   Loot arc's own Reforge (systems/loot/lootRarity.js reforgeAffix: one
-//   line, any line, always by another kind - REFORGE-REPLACE) - for 2
-//   (Magic) or 5 (Rare) Arcane Essence from the Stores the first time,
-//   doubled for every reforge the piece has taken (its count, the save's
-//   word as its tier is - reforgeEssence), in place of the Mages Guild's
-//   shards and gold. The roll's seed is the service's.
+// - Enchanting 50: choose a replacement bonus for a Magic or Rare item.
+//   The station charges Arcane Essence from the Stores at the item's fixed tier price.
 // - DECIDED: no XP - the Essence's XP was its disenchanting's (a log's
 //   was its fall's, PROF0 25's law).
 //
@@ -59,7 +54,6 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN, qualityOdds, masterworkSpec } from './recipeLaw.js';
-import { REFORGES_MAX } from '../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the most reforges a piece counts - the ladder's one bound (the service loads the ladder already, through the item law)
 import { NON_FOCUS_QUALITY_MAX } from './craft/craftLaw.js';
 
 /** The highest quality a temper can reach (Masterwork). temperCap may set a lower limit. */
@@ -146,11 +140,8 @@ export function temperStep(q) {
 
 /** The Enchanting rank a Reforge with Essence asks (41.2: "Enchanting 50"). */
 export const REFORGE_RANK = 50;
-/** The Arcane Essence a piece's first Reforge takes, by the piece's tier (41.2: "2 (Magic) or 5 (Rare)"). */
-export const REFORGE_ESSENCE = Object.freeze({ magic: 2, rare: 5 });
-/** The Essence a piece's next Reforge takes, or null for a tier it does not take (Legendary and up - law 7) or a count
- *  that is no piece's. REFORGE-REPLACE (the owner: "Replace, price rises"): its tier's first price doubled for every
- *  reforge the piece has taken (`count`, lootRarity.js reforgeCount - none by default, a request from before the count; at most REFORGES_MAX),
- *  as the Mages Guild's doubles (systems/reforge.js reforgePrice). */
-export const reforgeEssence = (/** @type {string|null|undefined} */ tier, count = 0) => (
-  (tier === 'magic' || tier === 'rare') && Number.isSafeInteger(count) && count >= 0 && count <= REFORGES_MAX ? REFORGE_ESSENCE[tier] * 2 ** count : null);
+/** Fixed Arcane Essence cost to choose a replacement bonus. */
+export const REFORGE_ESSENCE = Object.freeze({ magic: 12, rare: 25 });
+export const reforgeEssence = (tier) => (
+  tier === 'magic' || tier === 'rare' ? REFORGE_ESSENCE[tier] : null
+);

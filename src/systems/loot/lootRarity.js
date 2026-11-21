@@ -2209,26 +2209,25 @@ export const REFORGES_MAX = 31;
  *  marked (`reforged`, the line it locked the piece to: that mark is a reforge taken, honoured as a count, never a lock
  *  now), or none. What the next reforge costs (systems/reforge.js reforgePrice; net/temperLaw.js reforgeEssence). */
 export const reforgeCount = (item) => (Number.isInteger(item?.reforges) && item.reforges > 0 ? item.reforges : Number.isInteger(item?.reforged) ? 1 : 0);
-/** LOOT9: REFORGE ONE LINE, IN PLACE. REFORGE-REPLACE: the line REPLACED - a kind of its pool (reforgePool: never its own,
- *  never one another line carries; a proc for a proc, a number for a number; any name slot), drawn over the pool's
- *  lines as the roll draws (AFFIX-LINES, pickByLines), its value from its tier's band - an Exalted Legendary's line from
- *  the top half of the Legendary band, as its exalting rolled it - and its param on the roll's own leans (a skill to the
- *  item's own, LOOT1; a garment's standing to its dress, LOOT14). The name (a Magic's or a Rare's, which may gain or lose
- *  a part as the line crosses a slot - a Legendary keeps its record's; NAME-KEPT: a name of the piece's own stands -
- *  linesName) and the price follow, and the piece counts the
- *  reforge (`reforges` - what the next costs; an old piece's `reforged` mark folded into it). Answers the new line, or
- *  null (a line the Reforge may not take; nothing changed). */
-export function reforgeAffix(item, index, rolls = Math.random) {
-  if (!reforgeableLines(item).includes(index)) return null;
-  const tier = item.rarity;
+/** Legal replacements at the bottom of this item's bonus range. */
+export function reforgeChoices(item, index) {
+  if (!reforgeableLines(item).includes(index)) return [];
+  const { ids, freeParams } = reforgePool(item, index);
+  return ids.flatMap((id) => {
+    const [low, high] = AFFIX_RANGES[id][item.rarity];
+    const value = item.rarity === 'legendary' ? Math.ceil((low + high) / 2) : low;
+    return AFFIX_KINDS[id].params
+      ? freeParams(id).map((param) => ({ id, param, value }))
+      : [{ id, value }];
+  });
+}
+
+/** Apply a chosen replacement, using the game's value and name rules. */
+export function reforgeAffix(item, index, choice) {
+  const line = reforgeChoices(item, index).find((a) => a.id === choice?.id && a.param === choice?.param);
+  if (!line) return null;
   const old = item.affixes[index];
-  const { ids: pool, others, freeParams } = reforgePool(item, index);
-  const id = pickByLines(pool, (k) => drawWeight(k, item, others), rolls);
-  const k = AFFIX_KINDS[id];
-  const [lo, hi] = AFFIX_RANGES[id][tier];
-  const value = rangeInt(tier === 'legendary' ? Math.ceil((lo + hi) / 2) : lo, hi, rolls);
-  const leaned = id === 'skill' ? pickSkill : id === 'standing' ? pickStanding : null;   // LOOT1's lean, LOOT14's
-  const line = k.params ? { id, param: leaned ? leaned(item, freeParams(id), rolls) : leanedParam(armorLean(item), id, freeParams(id), rolls), value } : { id, value };   // ARMOR-LEAN: armour's stat or resistance on its family
+  const tier = item.rarity;
   const count = Math.min(REFORGES_MAX, reforgeCount(item) + 1);
   item.affixes = item.affixes.map((a, i) => (i === index ? line : a));
   item.reforges = count;
@@ -2246,15 +2245,15 @@ export function honeableLines(item) {
   if (!takes || !Array.isArray(item.affixes)) return [];
   return item.affixes.map((_, i) => i).filter((i) => { const b = affixBand(item, i); return !!b && item.affixes[i].value < b[1]; });
 }
-/** LOOT17: HONE ONE LINE, IN PLACE - its value rolled again from one above it to its band's top: never lower and never
+/** LOOT17: HONE ONE LINE, IN PLACE - its value set to the top of its band: never lower and never
  *  the same, its kind and its param kept, so its name stands (a name's word reads the tier's band, never the value).
  *  The price moves by the line's worth, and the piece counts the hone (`honed` - what the next costs). Answers the new
  *  line, or null (a line no hone may take; nothing changed). */
-export function honeAffix(item, index, rolls = Math.random) {
+export function honeAffix(item, index) {
   if (!honeableLines(item).includes(index)) return null;
   const old = item.affixes[index];
   const band = /** @type {number[]} */ (affixBand(item, index));
-  const line = { ...old, value: rangeInt(old.value + 1, band[1], rolls) };
+  const line = { ...old, value: band[1] };
   item.affixes = item.affixes.map((a, i) => (i === index ? line : a));
   item.honed = (item.honed | 0) + 1;
   const was = Number.isFinite(item.value) ? item.value : itemBaseValue(item);

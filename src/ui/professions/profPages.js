@@ -1,3 +1,5 @@
+import { upgradeArgents } from '../../net/gearUpgradeLaw.js';
+import { upgradeSelect } from '../upgradeSelect.js';
 // @ts-check
 // ═══════════════════════════════════════════════════════════════════
 // PROF1 (2026-09-28, Mac: "actual UI integration for life skills") -
@@ -82,7 +84,7 @@ import {
   owedOpenFirsts, owedName, xpSources, gradeNote, madeShown,
 } from './craftHall.js';   // CRAFT-HALL
 import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence, temperCap } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
-import { reforgeCount } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
+import { reforgeChoices, affixLabel } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
 import { drawMasterBox, resetMasterBoxes } from './masterBox.js';   // MASTER-ART: a Master's work, in the craft box at Master
 import { createStitchAct } from '../../systems/stitchAct.js';
 import { createChiselAct } from '../../systems/chiselAct.js';   // PROF11
@@ -162,9 +164,9 @@ import { pricedStation, recipeValue } from '../../systems/craftFees.js';   // BU
  *   recipe and its quality
  * @property {(offer: { item: any, name: string, recipe: string, quality: number, provenance: string|null }) => Promise<{ ok: boolean, text: string }>} [temper]
  *   CRAFT4: a temper, the step laid on the piece and the station's fee paid
- * @property {() => Array<{ item: any, name: string, tier: string, lines: Array<{ index: number, text: string }> }>} [reforgeable]
- *   CRAFT4: the pack's known Magic and Rare pieces an Enchanter reforges with Essence, each line it may roll
- * @property {(offer: { item: any, name: string, tier: string }, index: number) => Promise<{ ok: boolean, text: string }>} [essenceReforge]
+ * @property {() => Array<{ item: any, name: string, tier: string, fee: number, lines: Array<{ index: number, text: string }> }>} [reforgeable]
+ *   CRAFT4: known Magic and Rare pieces and the bonuses an Enchanter can replace
+ * @property {(offer: { item: any, name: string, tier: string }, index: number, choice: any) => Promise<{ ok: boolean, text: string }>} [essenceReforge]
  *   CRAFT4: a line replaced for Arcane Essence (REFORGE-REPLACE: by another kind)
  * @property {(plan: { material: string, qty: number, order: string }[]) => Promise<{ ok: boolean, text: string, kept?: boolean }[]>} [deposit]   BAG1:
  *   carried units of a material - out of the bag and the pack - into the Stores; FB1020c ONE-SAVE: a plan of put-ins as
@@ -2596,15 +2598,12 @@ function drawTemper(detail, rerender, { el, divider }, where) {
   if (_temper.word && _temper.where === where) detail.append(el('p', 'prof-word', _temper.word));
 }
 
-/** What the Reforge with Essence says it is, and below its rank. */
-/** REFORGE-REPLACE (the owner: "Replace, price rises"): a line is replaced by another kind, any line, the price doubling. */
-export const ESSENCE_REFORGE_HOW = () => t('prof.page.reforge.how', 'An Enchanter replaces one line of a Magic piece with a line of another kind for {magic} Arcane Essence, or of a Rare piece for {rare}. Any line can be reforged, and each reforge doubles the price of the next on that piece.', { magic: REFORGE_ESSENCE.magic, rare: REFORGE_ESSENCE.rare });
+/** Price and selection instructions shown at the enchanting station. */
+export const ESSENCE_REFORGE_HOW = () => t('prof.page.reforge.how', 'An Enchanter replaces one line of a Magic piece with a line of another kind for {magic} Arcane Essence, or of a Rare piece for {rare}. Choose the replacement bonus before paying.', { magic: REFORGE_ESSENCE.magic, rare: REFORGE_ESSENCE.rare });
 export const ESSENCE_REFORGE_RANK_LINE = () => t('prof.page.reforge.rank', 'From Enchanting {rank}, you can replace one line of a Magic or Rare piece with a line of another kind here, for Arcane Essence.', { rank: REFORGE_RANK });   // REFORGE-REPLACE: a line replaced, never rolled again
 export const ESSENCE_REFORGE_NONE = 'Nothing in your pack can be reforged. It takes an identified Magic or Rare piece you are not wearing.';
 /**
- * CRAFT4: THE REFORGE WITH ESSENCE - at the enchanting station, an Enchanter of rank 50's: each known Magic and Rare piece
- * of the pack, each line it may replace (the Loot arc's own Reforge, lootRarity.js reforgeAffix), for 2 or 5 Arcane
- * Essence from the Stores - never gold's units - doubled for every reforge the piece has taken (REFORGE-REPLACE).
+ * Offer each legal replacement at the item’s fixed Essence price and station fee.
  * @param {HTMLElement} detail @param {() => void} rerender @param {{ el: Function, divider: (w: string) => HTMLElement }} kit
  * @param {number} rank @param {string|null} short
  */
@@ -2619,10 +2618,10 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
   const pieces = p.reforgeable();
   if (!pieces.length) detail.append(el('p', 'px-note', ESSENCE_REFORGE_NONE));
   for (const pc of pieces) {
-    const n = reforgeEssence(pc.tier, reforgeCount(pc.item));   // REFORGE-REPLACE: its next reforge's, doubled for each it has taken
+    const n = reforgeEssence(pc.tier);
     if (!n) continue;
     const row = el('div', 'prof-smelt');
-    row.append(el('b', null, pc.name), el('span', 'prof-split', `${n} Arcane Essence a line`));
+    row.append(el('b', null, pc.name), el('span', 'prof-split', `${n} Arcane Essence + ${upgradeArgents('reforge', pc.tier)} Imperial Argents${pc.fee > 0 ? ` + ${pc.fee} gold` : ''}`));
     if (have < n) row.append(el('span', 'prof-short', `Needs ${n} Arcane Essence, and your Stores hold ${have}.`));
     // FB1017 REFORGE-STACK: a press a line, in a block of their own under the piece - in the row's button track (one cell,
     // `.prof-smelt .act`) every press drew on the first and the name was squeezed to nothing
@@ -2630,14 +2629,24 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
     for (const line of pc.lines) {
       const b = el('button', 'act', _essReforge.busy === pc.item ? 'Reforging...' : `Reforge: ${line.text}`);
       b.type = 'button';
-      b.disabled = !!_essReforge.busy || !!short || have < n;
+      const choices = reforgeChoices(pc.item, line.index);
+      const select = upgradeSelect(`Replace ${line.text}`, choices, affixLabel);
+      select.disabled = !!_essReforge.busy;
+      b.disabled = true;
+      select.onchange = () => { b.disabled = !!_essReforge.busy || !!short || have < n || select.value === ''; };
       b.onclick = async () => {
-        if (_essReforge.busy) return;
+        if (b.disabled || _essReforge.busy) return;
+        const choice = choices[Number(select.value)];
         _essReforge.busy = pc.item; _essReforge.word = null; rerender();
-        const res = await /** @type {any} */ (p.essenceReforge)(pc, line.index);
-        _essReforge.busy = null; _essReforge.word = res?.text ?? null; rerender();
+        try {
+          const res = await p.essenceReforge(pc, line.index, choice);
+          _essReforge.word = res?.text ?? null;
+        } finally {
+          _essReforge.busy = null;
+          rerender();
+        }
       };
-      presses.append(b);
+      presses.append(select, b);
     }
     row.append(presses);
     detail.append(row);

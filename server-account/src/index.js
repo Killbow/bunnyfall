@@ -133,7 +133,7 @@
 //   POST /v1/prof/disenchant { character, provenance, rid, realm? } -> { ok, provenance, recipe, points, essence, origin, xp, track, store, realm? } | { repeat, ... } | { error: 'prof-no-piece', why? }   (PROF12: a crafted piece into Arcane Essence, gone; AUDIT PROF-541 B2: a realm character's out of its record - `realm` where it stands, `realm.seq` the record's new sequence, `why: 'disenchanted'` a piece this account's disenchant took)
 //   POST /v1/prof/stock { character, material, qty, rid }             -> { ok, ... } | { repeat, ... }   (PROF3 the smith's stock; PROF4 the furnisher's; PROF5 the Weavers')
 //   POST /v1/prof/temper { character, recipe, quality, provenance?, rid } -> { ok, recipe, quality, provenance, record?, xp, track, stores } | { repeat, ... }   (CRAFT4: a piece a quality step better, up to Superior)
-//   POST /v1/prof/reforge { character, tier, count?, rid }             -> { ok, tier, essence, seed, track, store } | { repeat, ... }   (CRAFT4: an Enchanter's Reforge for Arcane Essence; REFORGE-REPLACE: `count` the piece's reforges, doubling it)
+//   POST /v1/prof/reforge { character, tier, rid, choose: true }                     -> { ok, tier, essence, track, store } | { repeat, ... }
 //   POST /v1/stores/withdraw { character, material, qty, rid }         -> { ok, material, qty, store } | { repeat, ... }
 //        BAG1: { carry: true, held, seen? } counts the units as carried -> { ..., carry, carried }
 //   POST /v1/stores/deposit { character, material, qty, held, order, rid, seen? } -> { ok, material, qty, own, bought, gold, loose?, store, carried } | { repeat, ... }   (BAG1: `order` 'all' or 'spend'; a deposit made is answered as made, for good - prof_deposits; BAG-CRAFT: 'work', a station's, moves `loose` units the count does not hold too)
@@ -358,7 +358,7 @@ import { decoratorsRoute } from './decorators.js';
 import { saveDraft, acceptDraft } from './decoratorDrafts.js';
 import { caravanRoute } from './caravanTemplates.js';
 import { TEMPLATE_BODY_BYTES } from '../../src/net/decoratorLaw.js';
-import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
+import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, payGearUpgrade, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
 import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
 import { profState, profPixels, harvestNode, chooseSpec, withdrawStores, depositStores, smeltAtForge, craftAtAnvil, temperPiece, buyStock, listWrits, deliverWrit, makeAtBench, chooseFocus, enterCraftwork } from './professions.js';   // BAG1: a deposit   // PROF1: the professions; PROF2: the forge; PROF3: the anvil and the smith's stock
@@ -2022,6 +2022,7 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         const act = {
           '/v1/marks/balance': () => marksOf(ctx, who.player, env),
+          '/v1/marks/gear-upgrade': () => payGearUpgrade(ctx, who.player, env, body),
           '/v1/marks/exchange': () => exchangeMarks(ctx, who.player, env, body),
           '/v1/marks/find': () => findMarks(ctx, who.player, env, body),   // SILVER-FINDS: a loot find
           '/v1/marks/guild/deposit': () => depositGuildMarks(ctx, who.player, env, body),
@@ -2163,7 +2164,7 @@ const service = {
           '/v1/prof/salvage': () => salvagePieces({ ...ctx, bucket: env.SAVES }, who.player, env, body),   // BUNNYFALL: found gear into materials; a realm character's record is in R2 (without it every realm salvage was 'no-storage')
           '/v1/prof/upgrade': () => upgradeMaterial(ctx, who.player, env, body),   // BUNNYFALL: a found piece one metal up
           '/v1/prof/temper': () => temperPiece(ctx, who.player, env, body),   // CRAFT4: a piece a quality step better
-          '/v1/prof/reforge': () => reforgeWithEssence(ctx, who.player, env, body),   // CRAFT4: a line rolled again for Arcane Essence
+          '/v1/prof/reforge': () => reforgeWithEssence(ctx, who.player, env, body),   // Pay for a chosen replacement with Arcane Essence
           '/v1/prof/master': () => masterWork(ctx, who.player, env, body),   // MASTER-ART: a Master's work, its lines chosen
           '/v1/stores/withdraw': () => withdrawStores(ctx, who.player, env, body),
           '/v1/stores/deposit': () => depositStores(ctx, who.player, env, body),   // BAG1: what is carried, into the Stores
