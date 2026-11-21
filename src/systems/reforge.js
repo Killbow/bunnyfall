@@ -20,18 +20,8 @@
 //     MADE piece now breaks for its tier's shards too (PRICE-CATCH): you may
 //     break your own work for Welkynd Shards - except the maker breaking it
 //     themselves ("you may not salvage items you've created yourself").
-//   - THE REFORGE: one line of a known Magic or Rare piece - or an
-//     Exalted Legendary's own extra line - REPLACED by a line of another
-//     kind (lootRarity.js reforgeAffix), for shards and gold. REFORGE-
-//     REPLACE (2026-10-25, the owner: "Replace, price rises"): any line,
-//     as often as the purse allows, the price rising with every reforge the
-//     piece has taken (reforgePrice). PRICE-CAP (the owner): it rises no
-//     past fifty Welkynd Shards - once a piece's reforge costs fifty shards,
-//     neither its shards nor its gold goes up again.
-//   - LOOT17 (the Loot arc II, bible/06-Systems/Loot-II-Arc.md section 9):
-//     THE HONE - a line taken up its own band, never lower (lootRarity.js
-//     honeAffix), the price rising with every hone on the piece. PRICE-CAP:
-//     as the reforge's is - neither rises past fifty Welkynd Shards.
+//   - REFORGE: choose a legal replacement for one bonus at a fixed tier price.
+//   - HONE: raise a bonus to its maximum, paying for the size of the increase.
 //   - LOOT20 (section 12): THE SOCKETS - a gem from the pack set in a
 //     piece's empty socket (lootRarity.js setGem), and unset, the gem
 //     shattering. GEM1 (bible/06-Systems/Gem-Sockets.md section 3): free,
@@ -44,8 +34,8 @@
 // nothing is reforged.
 // ═══════════════════════════════════════════════════════════════════
 
-import { lootRarityOn, reforgeableLines, reforgeAffix, reforgeCount, honeableLines, honeAffix, affixBand } from './loot/lootRarity.js';   // LOOT17: and the hone; REFORGE-REPLACE: the reforges a piece has taken
-import { applyRarity, rarityEligible, AFFIX_KINDS, isCursed, addTechniqueLine, linesName } from './loot/lootRarity.js';   // LOOT-GATE: the Imbue; AUDIT UPDATE L2: a kept technique in its new band; NAME-KEPT: the name it keeps
+import { lootRarityOn, reforgeableLines, reforgeAffix, honeableLines, honeAffix, affixBand } from './loot/lootRarity.js';   // LOOT17: and the hone; REFORGE-REPLACE: the reforges a piece has taken
+import { rarityEligible, AFFIX_KINDS, AFFIX_IDS, AFFIX_COUNTS, AFFIX_RANGES, RARE_FLAVOURS, kindParams, affixesWorth, rareEnchantWorth, isCursed, linesName, rarityName } from './loot/lootRarity.js';   // LOOT-GATE: the Imbue; AUDIT UPDATE L2: a kept technique in its new band; NAME-KEPT: the name it keeps
 import { itemLawFindings } from './loot/loot.js';   // AUDIT UPDATE L2: the item law's word on what the Imbue made
 import { sigilFloor } from './sigil/sigil.js';   // AUDIT UPDATE L2: a won sigil at its new tier's floor
 import { itemBaseValue } from './item/itemTemplates.js';   // AUDIT UPDATE L5: the price a piece with none stood at
@@ -161,34 +151,17 @@ export function spendShards(items, n) {
 export const shardsText = (n) => `${n} ${WELKYND_SHARD.name}${n === 1 ? '' : 's'}`;
 
 // ── the Reforge ─────────────────────────────────────────────────────
-/** What a piece's first reforge costs, by its tier: shards and gold. */
+/** Fixed shard and gold cost by rarity. */
 export const REFORGE_PRICE = Object.freeze({
-  magic: Object.freeze({ shards: 2, gold: 100 }),
-  rare: Object.freeze({ shards: 4, gold: 400 }),
-  exalted: Object.freeze({ shards: 10, gold: 2000 }),
+  magic: Object.freeze({ shards: 12, gold: 3000 }),
+  rare: Object.freeze({ shards: 25, gold: 10000 }),
+  exalted: Object.freeze({ shards: 50, gold: 30000 }),
 });
-/** A piece's next reforge's price, or null for one the Reforge does not take. REFORGE-REPLACE (2026-10-25, the owner:
- *  "Replace, price rises"): any line, as often as the purse allows; PRICE-CATCH: its tier's first price RISES with every
- *  reforge the piece has taken (lootRarity.js reforgeCount - an old piece's one-line mark counts as one), a half-price a
- *  step up each time (`ceil(base + base*reforges/2)`), as the hone's rises by its own count. PRICE-CAP: it climbs no past
- *  fifty Welkynd Shards - once a reforge costs fifty shards, neither its shards nor its gold goes up again (the gold is
- *  frozen at that same point). */
 export function reforgePrice(item) {
-  const base = item?.rarity === 'magic' || item?.rarity === 'rare' ? REFORGE_PRICE[item.rarity]
+  return item?.rarity === 'magic' || item?.rarity === 'rare' ? REFORGE_PRICE[item.rarity]
     : item?.rarity === 'legendary' && item.exalted === true ? REFORGE_PRICE.exalted : null;
-  if (!base) return null;
-  const price = reforgePriceAt(base, reforgeCount(item));
-  const shards = Math.min(price.shards, WELKYND_CAP);   // PRICE-CAP: no step past fifty Welkynd Shards
-  return { shards, gold: base.gold * (shards / base.shards) };   // and the gold freezes at that same point - neither goes up after shards hit fifty
 }
-/** PRICE-CATCH: a tier's first price raised by `count` steps of half its own - `ceil(base + base*count/2)` shards and the
- *  same multiple of its gold. PRICE-CAP: no step past fifty Welkynd Shards, so once it hits fifty neither rises again. */
-const WELKYND_CAP = 50;
-function reforgePriceAt(base, count) {
-  const steps = Math.max(0, count);
-  const shards = Math.ceil(base.shards + (base.shards * steps) / 2);
-  return { shards, gold: base.gold * (shards / base.shards) };
-}
+
 /** Why a line of a piece may not be reforged now, or null: 'off', 'not' (no tier the Reforge takes, or no line it may
  *  roll), 'unknown' (not yet identified), 'worn', 'line' (a line it may not take - a record's, or one nothing else can
  *  replace - REFORGE-REPLACE), 'shards', 'gold'. `player` is the payer: `{ items, goldPieces }`. */
@@ -205,33 +178,28 @@ export function reforgeRefusal(item, index, player) {
   return null;
 }
 // ── LOOT17: the hone ────────────────────────────────────────────────
-/** What a piece's first hone costs, by its tier - doubled for every hone it has taken (`honed`), so a Perfect Rare is a
- *  chase with a price. */
-export const HONE_PRICE = Object.freeze({
-  magic: Object.freeze({ shards: 1, gold: 50 }),
-  rare: Object.freeze({ shards: 2, gold: 150 }),
-  exalted: Object.freeze({ shards: 4, gold: 500 }),
+const HONE_PRICE_PER_POINT = Object.freeze({
+  magic: { shards: 2, gold: 300 },
+  rare: { shards: 3, gold: 800 },
+  exalted: { shards: 5, gold: 2000 },
 });
-/** A piece's next hone's price, or null for one the hone does not take. PRICE-CATCH: its tier's first price rises by a
- *  half-price step each time (`ceil(base + base*honed/2)`), as the reforge's does; PRICE-CAP: it climbs no past fifty
- *  Welkynd Shards, so once a hone costs fifty shards neither its shards nor its gold goes up again. */
-export function honePrice(item) {
-  const base = item?.rarity === 'magic' || item?.rarity === 'rare' ? HONE_PRICE[item.rarity]
-    : item?.rarity === 'legendary' && item.exalted === true ? HONE_PRICE.exalted : null;
-  if (!base) return null;
-  const price = reforgePriceAt(base, Math.max(0, item.honed | 0));
-  return { shards: Math.min(price.shards, WELKYND_CAP), gold: Math.min(price.gold, base.gold * (price.shards / base.shards)) };
+
+export function honePrice(item, index) {
+  if (!honeableLines(item).includes(index)) return null;
+  const unit = HONE_PRICE_PER_POINT[item.exalted ? 'exalted' : item.rarity];
+  const gain = affixBand(item, index)[1] - item.affixes[index].value;
+  return { shards: unit.shards * gain, gold: unit.gold * gain };
 }
 /** Why a line of a piece may not be honed now, or null: 'off', 'not' (no tier the hone takes), 'unknown', 'worn', 'top'
  *  (the line stands at its band's top), 'line' (no roll made it - a record's), 'shards', 'gold'. */
 export function honeRefusal(item, index, player) {
   if (!lootRarityOn()) return 'off';
-  const price = honePrice(item);
-  if (!price) return 'not';
+  if (!reforgePrice(item)) return 'not';
   const known = itemIsIdentified(item);
   if (!known) return 'unknown';
   if (isEquipped(item)) return 'worn';
   if (!honeableLines(item).includes(index)) return affixBand(item, index) ? 'top' : 'line';
+  const price = honePrice(item, index);
   const purse = { shards: shardsHeld(player?.items), gold: totalGoldAmount(player) };
   if (purse.shards < price.shards) return 'shards';
   if (purse.gold < price.gold) return 'gold';
@@ -239,12 +207,12 @@ export function honeRefusal(item, index, player) {
 }
 /** THE HONE, MADE: paid at the price before it (the shards, then the gold), the line taken up its band. Answers
  *  `{ ok: true, line, price }` or `{ ok: false, reason }` with nothing taken. */
-export function honePiece(item, index, player, rolls = Math.random) {
+export function honePiece(item, index, player) {
   if (!player || !Array.isArray(player.items) || !player.items.includes(item)) return { ok: false, reason: 'gone' };
   const why = honeRefusal(item, index, player);
   if (why) return { ok: false, reason: why };
-  const price = /** @type {{ shards: number, gold: number }} */ (honePrice(item));
-  const line = honeAffix(item, index, rolls);
+  const price = /** @type {{ shards: number, gold: number }} */ (honePrice(item, index));
+  const line = honeAffix(item, index);
   if (!line) return { ok: false, reason: 'not' };
   const { shards, gold } = price;
   spendShards(player.items, shards);
@@ -252,16 +220,11 @@ export function honePiece(item, index, player, rolls = Math.random) {
   return { ok: true, line, price };
 }
 // ── LOOT-GATE: the Imbue ───────────────────────────────────────────
-// LOOT-GATE (2026-10-25, Dudey: "we need a gold sink"; "without my level", "15k gold is gate enough"): a press at the
-// Mages Guild's Reforge that raises a piece one tier at a flat price, at any level: plain to Magic, Magic to Rare. Never
-// to Legendary - a Legendary is found, never bought. Its lines are rolled fresh, as a found one's are; a technique line
-// stays, last. The piece is marked `imbued`, and a counter pays for the piece it was (lootRarity.js
-// craftedRarityWorth), so buying a tier and selling it never prints gold.
-
+// Keep compatible bonuses and let the player choose the new ones. Shops value the piece at its pre-Imbue price.
 /** The prices, the same at every level. */
 export const IMBUE_PRICE = Object.freeze({
-  magic: Object.freeze({ shards: 2, gold: 2500 }),
-  rare: Object.freeze({ shards: 6, gold: 15000 }),
+  magic: Object.freeze({ shards: 10, gold: 10000 }),
+  rare: Object.freeze({ shards: 30, gold: 50000 }),
 });
 /** What a purse lacks for a price - 'shards', 'gold' - or null. */
 const shortOf = (player, p) => (shardsHeld(player?.items) < p.shards ? 'shards' : totalGoldAmount(player) < p.gold ? 'gold' : null);
@@ -299,30 +262,68 @@ export function imbueRefusal(item, player) {
   if (socketGems(item).length) return 'set';
   return shortOf(player, /** @type {{ shards: number, gold: number }} */ (imbuePrice(item)));
 }
-/** THE IMBUE, MADE: paid at its price, the piece rolled at its new tier. Answers `{ ok: true, tier, price }` or
- *  `{ ok: false, reason }` with nothing taken. */
-export function imbuePiece(item, player, rolls = Math.random) {
+export function imbueFlavours(item) {
+  return imbueTarget(item) === 'rare'
+    ? (RARE_FLAVOURS[item.group] ?? RARE_FLAVOURS.Jewellery).filter((f) => !f.retired)
+    : [];
+}
+
+export function imbueBonusCount(item) {
+  const target = imbueTarget(item);
+  const existing = (item.affixes ?? []).filter((a) => !AFFIX_KINDS[a.id]?.technique && !AFFIX_KINDS[a.id]?.proc && AFFIX_RANGES[a.id]?.[target]);
+  return Math.max(0, (AFFIX_COUNTS[target]?.[0] ?? 0) - existing.length);
+}
+
+export function imbueBonusChoices(item, chosen = []) {
+  const tier = imbueTarget(item);
+  if (!tier) return [];
+  const used = [...(item.affixes ?? []), ...chosen];
+  return AFFIX_IDS.flatMap((id) => {
+    const kind = AFFIX_KINDS[id];
+    if (kind.proc || !kind.groups.includes(item.group)) return [];
+    const value = AFFIX_RANGES[id][tier][0];
+    const params = kind.params ? kindParams(id, item) : [undefined];
+    return params.filter((param) => !used.some((a) => a.id === id && a.param === param))
+      .map((param) => param === undefined ? { id, value } : { id, param, value });
+  });
+}
+
+/** Existing bonuses adjusted to fit the new rarity, including the current technique. */
+export function imbueKeptBonuses(item) {
+  const tier = imbueTarget(item);
+  return (item.affixes ?? []).filter((a) => AFFIX_RANGES[a.id]?.[tier]).map((a) => {
+    const [low, high] = AFFIX_RANGES[a.id][tier];
+    return { ...a, value: Math.max(low, Math.min(high, a.value)) };
+  });
+}
+
+export function imbuePiece(item, player, choices = [], flavour = null) {
   if (!player || !Array.isArray(player.items) || !player.items.includes(item)) return { ok: false, reason: 'gone' };
   const why = imbueRefusal(item, player);
   if (why) return { ok: false, reason: why };
-  const tier = /** @type {'magic'|'rare'} */ (imbueTarget(item));
-  const price = /** @type {{ shards: number, gold: number }} */ (imbuePrice(item));
-  const kept = (item.affixes ?? []).filter((a) => AFFIX_KINDS[a?.id]?.technique);
-  const was = structuredClone(item);   // AUDIT UPDATE L2: whole, so a refused piece is put back exactly
-  const lawBefore = new Set(itemLawFindings(item));
-  const before = Number.isFinite(item.value) ? item.value : itemBaseValue(item);   // AUDIT UPDATE L5: the price it stood at
-  if (tier === 'rare') {
-    // the Magic tier's marks go with its lines
-    for (const k of ['rarity', 'reforged', 'reforges', 'honed']) delete item[k];   // REFORGE-REPLACE x MAIN: and the reforges it took
-    item.affixes = [];
+  const tier = imbueTarget(item);
+  const price = imbuePrice(item);
+  const enchantment = imbueFlavours(item).find((f) => f.type === flavour?.type && f.param === flavour?.param);
+  if (!Array.isArray(choices) || choices.length !== imbueBonusCount(item) || (tier === 'rare' && !enchantment)) return { ok: false, reason: 'choice' };
+  const selected = [];
+  for (const choice of choices) {
+    const bonus = imbueBonusChoices(item, selected).find((a) => a.id === choice?.id && a.param === choice?.param);
+    if (!bonus) return { ok: false, reason: 'choice' };
+    selected.push(bonus);
   }
+  const was = structuredClone(item);
+  const lawBefore = new Set(itemLawFindings(item));
+  const base = itemBaseValue(item);
+  const before = Number.isFinite(item.value) ? item.value : base;
   const putBack = () => { for (const k of Object.keys(item)) delete item[k]; Object.assign(item, was); };
   try {
-    applyRarity(item, tier, rolls);
-    if (item.rarity === tier) item.name = linesName(item, tier, was);   // NAME-KEPT (AUDIT FB1025i A4): a name of its own stands - a questline's (`qlNamed`) - where applyRarity named it from its template
-    // AUDIT UPDATE L2: what the piece keeps, at its new tier's law - a technique rolled again in the new band (the law
-    // reads a Rare's line by the Rare's band), a won sigil at least at the new tier's floor
-    if (item.rarity === tier) for (const a of kept) addTechniqueLine(item, rolls, { id: a.param });
+    const kept = imbueKeptBonuses(item);
+    const techniques = kept.filter((a) => AFFIX_KINDS[a.id].technique);
+    item.rarity = tier;
+    item.affixes = [...kept.filter((a) => !AFFIX_KINDS[a.id].technique), ...selected, ...techniques];
+    item.name = was.rarity ? linesName(item, tier, was) : (was.name || rarityName(item, tier, item.affixes));
+    item.value = base + affixesWorth(item.affixes, item) + (enchantment ? rareEnchantWorth(item) : 0);
+    if (enchantment) item.enchantments = [{ type: enchantment.type, param: enchantment.param }];
     if (item.rarity === tier && Number.isFinite(item.sigil?.power)) item.sigil = { ...item.sigil, power: Math.max(item.sigil.power, sigilFloor(tier, item.sigil.party)) };   // AUDIT UPDATE II A2: a set's sigil is no blow - it has no power to raise
     item.imbued = true;
     item.imbueWorth = (Number.isInteger(was.imbueWorth) ? Math.max(0, was.imbueWorth) : 0) + Math.max(0, Math.round((Number.isFinite(item.value) ? item.value : before) - before));   // AUDIT UPDATE L5: what a counter takes off (lootRarity.js craftedRarityWorth); AUDIT UPDATE II A7: a second Imbue's added to the first's
@@ -442,23 +443,21 @@ export function extractGemPiece(item, player, at = null) {
   refold(item, player);
   return { ok: true, gem, price };
 }
-/** THE REFORGE, MADE: paid at the price before it (the shards, then the gold - DFU's purse-then-letters law), the line
- *  replaced and the reforge counted (REFORGE-REPLACE: so the next costs twice). Answers
- *  `{ ok: true, line, price }` or `{ ok: false, reason }` with nothing taken. */
-export function reforgePiece(item, index, player, rolls = Math.random) {
+/** Apply the selected bonus and charge the fixed price only if it succeeds. */
+export function reforgePiece(item, index, player, choice, { preview = false } = {}) {
   if (!player || !Array.isArray(player.items) || !player.items.includes(item)) return { ok: false, reason: 'gone' };
   const why = reforgeRefusal(item, index, player);
   if (why) return { ok: false, reason: why };
   const price = /** @type {{ shards: number, gold: number }} */ (reforgePrice(item));
   const before = { affixes: item.affixes, name: item.name, value: item.value, reforged: item.reforged, reforges: item.reforges };
-  const line = reforgeAffix(item, index, rolls);
+  const line = reforgeAffix(item, index, choice);
   if (!line) {
     Object.assign(item, before);
     for (const k of /** @type {const} */ (['reforged', 'reforges'])) if (before[k] === undefined) delete item[k];
-    return { ok: false, reason: 'not' };
+    return { ok: false, reason: 'choice' };
   }
   spendShards(player.items, price.shards);
   deductGold(player, price.gold);
-  noteAct('piece-reforged');   // QL11: a piece reforged - paid, its line replaced
+  if (!preview) noteAct('piece-reforged');   // QL11: a piece reforged - paid, its line replaced
   return { ok: true, line, price };
 }

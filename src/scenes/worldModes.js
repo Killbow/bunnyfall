@@ -1,3 +1,4 @@
+import { upgradeArgents } from '../net/gearUpgradeLaw.js';
 // Interior/dungeon mode machine (P3-P6, extracted at the P7
 // consolidation): a HOST scene stays in 'exterior' mode until an E on a
 // static door swaps the whole frame pipeline - draws, lighting, fog,
@@ -463,7 +464,7 @@ import { setPassiveSpecialsHost, FIGHTER_TRAINERS_FACTION } from '../systems/pas
 import { DaedraSummonedWindow, REFUSAL_FOE_COUNT, COVEN_FAIL_FOE_COUNT } from '../ui/daedraSummonedWindow.js';   // G7b: the summoning's own film window
 import { orderOf } from '../systems/guild/guildVariants.js';
 import { joinedGuildOfGroup } from '../systems/guild/guilds.js';
-import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, imbuePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { createShopRows } from './shopRows.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
+import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, imbuePiece, imbueTarget, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { createShopRows } from './shopRows.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
 import { liftCurse } from '../systems/loot/lootCurse.js';   // LOOT16: the temple's lifting
 import { setJunk } from '../systems/item/itemJunk.js';   // AUDIT LOOT II C5: a sold piece's mark ends at the shelf
 import { scryPlace } from '../systems/loot/lootScry.js';   // LOOT19: the guild's scryers
@@ -6293,14 +6294,59 @@ export function createWorldModes(host) {
   }
   /** LOOT9: THE REFORGE'S WINDOW over the player's own pack - its salvage and its reforge the law's (systems/reforge.js),
    *  paid from the player's shards and purse. Answers the window, or null with no page to draw it on. */
+  const gearPayments = new WeakMap();
+  let payingGear = false;
+
+  async function buyGearUpgrade(service, item, selection, apply) {
+    if (!host.marks) return apply(item, playerEntity);
+    if (payingGear) return { ok: false, text: 'An upgrade payment is in progress.' };
+    const pack = playerEntity.items;
+    if (!pack?.includes(item)) return { ok: false, reason: 'gone' };
+    const tier = service === 'imbue' ? imbueTarget(item) : item.exalted ? 'exalted' : item.rarity;
+    if (!upgradeArgents(service, tier)) return { ok: false, reason: 'not' };
+    const copy = structuredClone(item);
+    const preview = apply(copy, { ...playerEntity, items: pack.map((it) => it === item ? copy : { ...it }) }, true);
+    if (!preview.ok) return preview;
+    const key = JSON.stringify([service, tier, selection, item]);
+    const pending = gearPayments.get(item);
+    if (pending && pending.key !== key) return { ok: false, text: 'Retry the previous upgrade to settle its Argent payment.' };
+    const rid = pending?.rid ?? host.gearUpgradeRid();
+    gearPayments.set(item, { key, rid });
+    payingGear = true;
+    try {
+      const result = await host.marks.gearUpgrade(service, tier, rid);
+      if (!result?.ok) {
+        if (['marks-short', 'marks-closed', 'marks-need-account', 'marks-rid', 'bad-piece'].includes(result?.error)) gearPayments.delete(item);
+        return { ok: false, text: accountRefusalText(result?.error) };
+      }
+      host.gearBalance?.(result.data?.balance);
+      if (pack !== playerEntity.items || !pack.includes(item) || key !== JSON.stringify([service, tier, selection, item])) {
+        return { ok: false, text: 'The payment was recorded. Return the item to its previous state and retry this upgrade.' };
+      }
+      const done = apply(item, playerEntity);
+      if (done.ok) {
+        gearPayments.delete(item);
+        host.saveSoon?.();
+      }
+      return done;
+    } catch {
+      return { ok: false, text: 'The payment answer was lost. Retry the same upgrade to settle it.' };
+    } finally {
+      payingGear = false;
+    }
+  }
+
   function workshopReforgeDeps() {
     return {
       items: () => playerEntity.items ?? [], payer: () => playerEntity, gold: () => totalGoldAmount(playerEntity),
-      reforge: (item, line) => reforgePiece(item, line, playerEntity),
-      imbue: (item) => imbuePiece(item, playerEntity),
+      argents: host.marks ? () => host.marks.state.balance : null,
+      reforge: (item, line, choice) => buyGearUpgrade('reforge', item, [line, choice],
+        (target, payer, preview) => reforgePiece(target, line, payer, choice, { preview })),
+      imbue: (item, choices, flavour) => buyGearUpgrade('imbue', item, [choices, flavour],
+        (target, payer) => imbuePiece(target, payer, choices, flavour)),
       salvage: (item) => salvagePiece(item, { items: (playerEntity.items ??= []) }, playerEntity.name),
       imprint: (item, id) => imprintPiece(item, id, playerEntity),   // LOOT10: a Rare takes a found Legendary's power
-      hone: (item, line) => honePiece(item, line, playerEntity),   // LOOT17: a line taken up its band
+      hone: (item, line) => buyGearUpgrade('hone', item, line, (target, payer) => honePiece(target, line, payer)),
       scry: (family) => { const done = scryPlace(playerEntity, family, host.scryWhere?.() ?? null); if (done.ok) surfacePlayer(); return done; },   // LOOT19: the scryers
       scryWhere: () => host.scryWhere?.() ?? null,
       setGem: (item, gem) => setGemPiece(item, gem, playerEntity),   // LOOT20: a gem from the pack in a socket

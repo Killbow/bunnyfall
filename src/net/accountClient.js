@@ -613,6 +613,7 @@ const REFUSAL_WORDS = {
   'prof-no-salvage': () => 'Nothing there breaks into materials.',   // BUNNYFALL
   'prof-salvage': () => 'The salvage did not go through. Nothing was broken.',   // BUNNYFALL
   'prof-temper-stale': () => t('account.refusal.profTemperStale', 'That piece\'s quality has changed. Check your Stores again.'),
+  'prof-reforge-update': () => 'Reload the game to choose a replacement bonus before reforging.',
   'prof-reforge': () => t('account.refusal.profReforge', 'Arcane Essence can reforge a line on a Magic or Rare piece, but never on a Legendary, Aetheric or artifact piece.'),
   'prof-no-essence': () => t('account.refusal.profNoEssence', 'That piece carries too little enchantment to give any Arcane Essence.'),
   // MASTER-ART: a Master's work's refusals (server-account/src/masterWork.js)
@@ -2347,6 +2348,7 @@ export function accountMarks({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     account: () => storedSession(storage)?.id ?? null,
     balance: () => post('/v1/marks/balance', {}),
     exchange: (marks, rid) => post('/v1/marks/exchange', { marks, rid }),
+    gearUpgrade: (service, tier, rid, account) => post('/v1/marks/gear-upgrade', { service, tier, rid }, account),
     guildDeposit: (character, marks, rid) => post('/v1/marks/guild/deposit', { character, marks, rid }),
     guildWithdraw: (character, marks, rid) => post('/v1/marks/guild/withdraw', { character, marks, rid }),
     report: () => post('/v1/marks/report', {}),
@@ -2507,7 +2509,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     brew: (character, potion, keys, rid, seat = null) => post('/v1/prof/brew', { character, potion, keys, rid, ...(seat == null ? {} : { seat }) }),   // PROF12: the alchemy station's brew - `keys` the cauldron as the Stores hold it, `seat` the held town it stands in
     temper: (character, recipe, quality, provenance, rid) => post('/v1/prof/temper', { character, recipe, quality, rid, ...(provenance ? { provenance } : {}) }),   // CRAFT4: a piece a quality step better
     master: (character, recipe, lines, name, rid, dye = null) => post('/v1/prof/master', { character, recipe, lines, name, rid, ...(dye == null ? {} : { dye }) }),   // MASTER-ART: a Master's work, its three lines chosen
-    reforge: (character, tier, rid, count = 0) => post('/v1/prof/reforge', { character, tier, count, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with; REFORGE-REPLACE: the piece's reforges, its price doubled for each
+    reforge: (character, tier, rid) => post('/v1/prof/reforge', { character, tier, rid, choose: true }),
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
     salvage: (character, pieces, rid, commit = null, realm = null, picks = null) => post('/v1/prof/salvage', { character, pieces, rid, ...(commit?.length ? { commit } : {}), ...(realm ? { realm, picks } : {}) }),   // BF-02: a realm character's pieces leave its record   // BUNNYFALL: found gear into materials
     upgrade: (character, recipe, rid) => post('/v1/prof/upgrade', { character, recipe, rid }),   // BUNNYFALL: a found piece one metal up

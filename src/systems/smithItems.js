@@ -378,10 +378,10 @@ export function essenceReforgeRefusal(item, index) {
 export const TEMPER_MOVED_TEXT = 'That piece has changed. Look again.';
 export const TEMPER_LOST_TEXT = 'The temper was paid for, but the piece left your pack or changed before it could be tempered.';
 export const REFORGE_LOST_TEXT = 'The Essence was spent, but the piece left your pack or changed before it could be reforged.';
-/** A REFORGE WITH ESSENCE, ON THE PIECE: the line replaced off the service's `seed` (lootRarity.js reforgeAffix - the
+/** A REFORGE WITH ESSENCE, ON THE PIECE: the selected line applied after payment (lootRarity.js reforgeAffix - the
  *  Loot arc's own Reforge: another kind, its name and price following, the reforge counted). Answers the new line, or
  *  null. */
-export const reforgeItem = (item, index, seed) => (essenceReforgeRefusal(item, index) || !Number.isSafeInteger(seed) ? null : reforgeAffix(item, index, seededRng(seed >>> 0)));
+export const reforgeItem = (item, index, choice) => (essenceReforgeRefusal(item, index) ? null : reforgeAffix(item, index, choice));
 
 // ─── THE REPAIR KIT'S USE ────────────────────────────────────────────
 

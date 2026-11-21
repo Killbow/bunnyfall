@@ -66,7 +66,7 @@ export function createReforgeOverlay(deps) {
   mountEnhancedChunk({
     load: () => import('./reforgeWindow.js'),
     // LOOT-GATE: the Imbue on the host's own payer, unless the host hands its own (the hosts do not grow)
-    mount: ({ mountReforgeWindow }) => { view = mountReforgeWindow(host, { imbue: (it) => imbuePiece(it, deps.payer()), ...deps, onExit: close }); },
+    mount: ({ mountReforgeWindow }) => { view = mountReforgeWindow(host, { imbue: (it, choices, flavour) => imbuePiece(it, deps.payer(), choices, flavour), ...deps, onExit: close }); },
     alive: () => !fired, host, onDismiss: () => { close(); }, label: 'reforge',
   });
   return overlay;

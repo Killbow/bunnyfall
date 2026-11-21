@@ -640,7 +640,7 @@ import { JEWEL_KEPT_TEXT } from '../systems/smithItems.js';   // PROF10: the jew
 import { temperItem, reforgeItem, essenceReforgeRefusal, TEMPER_MOVED_TEXT, TEMPER_LOST_TEXT, REFORGE_LOST_TEXT } from '../systems/smithItems.js';   // CRAFT4: the temper and the Reforge with Essence, on the piece
 import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence, withTemperGold } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
 import { QUALITY_NAMES } from '../net/recipeLaw.js';   // CRAFT4: a temper's word
-import { reforgeableLines, affixLine, reforgeCount } from '../systems/loot/lootRarity.js';   // CRAFT4: the lines an Enchanter reforges; REFORGE-REPLACE: the reforges a piece has taken
+import { reforgeableLines, affixLine, reforgeChoices } from '../systems/loot/lootRarity.js';   // CRAFT4: the lines an Enchanter reforges; REFORGE-REPLACE: the reforges a piece has taken
 import { trackOf } from '../net/professionLaw.js';   // CRAFT4: the craft a piece's temper is
 import { brewItems, brewedText, BREW_KEPT_TEXT } from '../systems/alchemyItems.js';   // PROF12: a brew's potions, DFU's own, into the pack
 import { facetBand } from '../net/recipeLaw.js';   // PROF10: the facet's attribute band
@@ -11834,6 +11834,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // BUNNYFALL AUDIT BF-02: a realm character's salvage is the record's own act - the pieces leave the saved record in the
       // salvage's batch (ui/salvageMaterials.js), the save checkpointed first
       setSalvageRealmAct(realmSession ? (o) => realmGoldAct({ ...o, session: realmSession, checkpoint: () => onlineCheckpoint() }) : null);
+      const essenceReforgeFee = (item) => {
+        const station = pricedStation(modes?.enchantHere?.() ?? null, itemFeeValue(item));
+        return station ? station.fee * 2 : null;
+      };
       setProfessionsPages({
         reforgeKit: () => modes?.enchantHere?.() ? modes.workshopReforgeDeps() : null,
         ...createCraftHost({ player: () => playerEntity, forge: () => modes?.forgeHere?.() ?? null, book: () => profBook, saved: () => saveSoon.changed(), nameOf: (it) => itemLongName(it), worn: (it) => isEquipped(it), gold: () => totalGoldAmount(playerEntity), pay: (n) => deductGold(playerEntity, n) }),   // BUNNYFALL: the crafting window's pack-side acts
@@ -12015,25 +12019,33 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           if (!took) return { ok: false, text: TEMPER_LOST_TEXT };
           return { ok: true, text: `${name} is ${QUALITY_NAMES[r.data.quality]} now (+${r.data.xp} ${professionName(r0.profession)} experience)${f.fee > 0 ? `, and paid the ${who} ${f.fee} gold` : ''}.` };
         },
-        // CRAFT4: THE REFORGE WITH ESSENCE at the enchanting station - the pack's known Magic and Rare pieces, not worn, each
-        // line the Loot arc's own Reforge may replace (REFORGE-REPLACE: any line another kind can take, the price doubling
-        // with the piece's reforges); the line replaced on the service's seed
+        // Charge the station fee and Essence before applying the player's selected replacement.
         reforgeable: () => (playerEntity.items ?? []).filter((it) => it && reforgeEssence(it.rarity) && !essenceReforgeRefusal(it, reforgeableLines(it)[0]))
-          .map((it) => ({ item: it, name: itemLongName(it), tier: it.rarity, lines: reforgeableLines(it).map((index) => ({ index, text: affixLine(it, index) })) })),
-        essenceReforge: async (offer, index) => {
-          const f = pricedStation(modes?.enchantHere?.() ?? null, itemFeeValue(offer?.item));   // BUNNYFALL CRAFT FEES
-          if (!f) return { ok: false, text: 'You are not at an enchanting station.' };
-          if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The enchanter asks ${f.fee} gold to reforge a piece.` };
+          .map((it) => ({
+            item: it, name: itemLongName(it), tier: it.rarity,
+            fee: essenceReforgeFee(it) ?? 0,
+            lines: reforgeableLines(it).map((index) => ({ index, text: affixLine(it, index) })),
+          })),
+        essenceReforge: async (offer, index, choice) => {
+          const fee = essenceReforgeFee(offer?.item);
+          if (fee === null) return { ok: false, text: 'You are not at an enchanting station.' };
+          if (fee > 0 && totalGoldAmount(playerEntity) < fee) return { ok: false, text: `The enchanter asks ${fee} gold to reforge a piece.` };
           const pack = playerEntity.items, it = offer.item;
           if (!pack?.includes(it) || essenceReforgeRefusal(it, index) || it.rarity !== offer.tier) return { ok: false, text: TEMPER_MOVED_TEXT };
-          const r = await profBook.reforge(offer.tier, reforgeCount(it));   // REFORGE-REPLACE: the piece's count, its price
+          if (!reforgeChoices(it, index).some((a) => a.id === choice?.id && a.param === choice?.param)) {
+            return { ok: false, text: 'Choose a replacement bonus first.' };
+          }
+          const original = it.affixes[index];
+          const selection = JSON.stringify([pack.indexOf(it), index, original, choice]);
+          const r = await profBook.reforge(offer.tier, selection);
           if (r?.elsewhere || pack !== playerEntity.items) return { ok: false, text: 'Your character changed while reforging. Check its Stores when you return.' };
           if (!r?.ok) return { ok: false, text: accountRefusalText(r?.error) };
-          if (f.fee > 0) deductGold(playerEntity, Math.min(f.fee, totalGoldAmount(playerEntity)));
-          const line = pack.includes(it) && r.data?.tier === it.rarity ? reforgeItem(it, index, r.data.seed) : null;
+          toldBalance(r.data?.balance);
+          if (fee > 0) deductGold(playerEntity, Math.min(fee, totalGoldAmount(playerEntity)));
+          const line = pack.includes(it) && r.data?.tier === it.rarity && it.affixes[index] === original ? reforgeItem(it, index, choice) : null;
           saveSoon.changed();
           if (!line) return { ok: false, text: REFORGE_LOST_TEXT };
-          return { ok: true, text: `Reforged: ${affixLine(it, index)}${f.fee > 0 ? `, and paid the enchanter ${f.fee} gold` : ''}.` };
+          return { ok: true, text: `Reforged: ${affixLine(it, index)}${fee > 0 ? `, and paid the enchanter ${fee} gold` : ''}.` };
         },
         facetBand: () => facetBand({ willpower: liveStat(playerEntity, 'willpower'), luck: liveStat(playerEntity, 'luck') }),
         clothing: () => (playerEntity?.gender === 'female' ? 'WomensClothing' : 'MensClothing'),
@@ -30254,6 +30266,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     hearHomeLayouts,
     holdRealmDeed: onlineHomes ? (d) => holdGrantedDeed(d) : null,   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: an order's house, held by the service
     marks: marksBook,   // MARKS1: the Bank of the Empire's Marks, online
+    gearUpgradeRid: mintMarksRid, gearBalance: toldBalance,
     accountVault: () => accountVault,   // BUNNYFALL (Phase 5): the bank's vault button
     accountVaultPack: () => ({ pack: () => (playerEntity.items ??= []), refuses: (it) => !!packTradeRefusal(it, playerEntity) }),
     saveSoon: () => saveSoon.changed(),   // PROF-SAVE: a Marks sale's gold in the Bank's account saved soon
