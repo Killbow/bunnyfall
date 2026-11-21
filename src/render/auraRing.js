@@ -960,6 +960,7 @@ export const AURA_LOOK = Object.freeze({
   // BUNNYFALL (Cromwark, the owner: "build the aura"): NYX'S VEIL - the reach's purple haze about the wearer, a mist
   // drifting up round the body with stars glinting in it (Nyx's own coat's), a pool of it at the feet; added whole
   nyxveil: Object.freeze({ kind: 16, ringR: NYX_VEIL_R, flameH: NYX_VEIL_H, glyphs: 0 }),
+  sentinelbanner: Object.freeze({ kind: 17, ringR: AURA_RING_R, flameH: AURA_FLAME_H, glyphs: 0 }),   // BUNNYFALL (the Sentinel event): Dagon's Fire's own ring and wall, tinted crimson and gold (bannerTint)
   sagesmoke: Object.freeze({ kind: 14, ringR: SAGE_RUNE_R, flameH: SAGE_WALL_H, glyphs: SAGE_CARDS, shade: true }),   // NIRNROOT-SAGE: the runes and the smoke's shade at the feet, the runes' light and the low smoke on the strip, the smoke's puffs and the nirnroots the third draw - premultiplied, so the smoke covers   // WITCH1: the green fire and its candles at the feet, its tongues and violet motes on the strip   // WIKIMAID: the ring and the tracks at the feet, the sparkles on the strip, the rabbits the third draw - premultiplied, so a rabbit stays lilac
 });
 /** SERAPH-WINGS: the wings' own look, kept for its pins and a later wearer (the developers wear the halo since BUNNYFALL). */
@@ -2533,6 +2534,15 @@ out vec4 o;
 ${FOG_FACTOR_GLSL}${NOISE_GLSL}
 const float TAU = 6.283185307179586;
 ${WARD_GLSL}${RADIANCE_GLSL}${RESONANCE_GLSL}${TURNING_GLSL}${MAELSTROM_GLSL}${SPIRE_GLSL}${CLOAK_SHAPE_GLSL}${CLOAK_FS_GLSL}${WING_SHARED_GLSL}${WING_FS_GLSL}${WARREN_GLSL}${WITCH_GLSL}${SAGE_GLSL}
+// BUNNYFALL (the Sentinel event): SENTINEL'S BANNER - Dagon's Fire drawn as it is, then its light read as a heat and laid on
+// the garrison's colours: a deep crimson in the cool, crimson to gold through the flames, white-gold at the hottest. The
+// dark stays dark (the colour is weighted by the heat), so the ring keeps Dagon's shape and the embers become gold sparks.
+vec3 bannerTint(vec3 c) {
+  float l = clamp(dot(c, vec3(0.30, 0.59, 0.11)) * 1.25, 0.0, 1.0);
+  vec3 deep = vec3(0.30, 0.04, 0.10), crim = vec3(0.78, 0.12, 0.16), gold = vec3(1.0, 0.82, 0.32), pale = vec3(1.0, 0.96, 0.82);
+  vec3 r = l < 0.45 ? mix(deep, crim, l / 0.45) : (l < 0.8 ? mix(crim, gold, (l - 0.45) / 0.35) : mix(gold, pale, (l - 0.8) / 0.2));
+  return r * l * 1.15;
+}
 // BUNNYFALL: THE HALO's light - a bright gold core along the ribbon's middle, a soft glow either side, a glint running
 // round it and a slow breath; nothing on the ground
 vec3 haloRing(vec2 q) {
@@ -2632,6 +2642,7 @@ void main() {
     float fade = pow(1.0 - v, 1.3);
     col = (fireRamp(0.3 + 0.45 * core) * body * 0.8 + vec3(1.0, 0.8, 0.45) * core * 0.3) * fade;
   }
+  if (uAura == 17) col = bannerTint(col);   // BUNNYFALL: Sentinel's Banner - Dagon's Fire in the garrison's colours
   o = vec4(col * uKindle * fogFactorAt(vWorld), 1.0);
 }`;
 

@@ -1396,6 +1396,12 @@ export const nyxTotal = (io) => call(io, '/v1/nyx/total', {});
 export const cannonStatus = (io) => call(io, '/v1/cannon', {});
 /** BUNNYFALL: a gift to the cannon: `material` a net/cannonLaw.js key, `n` units - the build after it, `taken`, `coins`, `fired`. */
 export const cannonGive = (io, material, n) => call(io, '/v1/cannon/give', { material, n });
+/** BUNNYFALL: the Sentinel garrison event - the bar as it stands (server-account/src/sentinel.js). `pct` is null while the bar is dark. */
+export const sentinelStatus = (io) => call(io, '/v1/sentinel', {});
+/** BUNNYFALL: arms or armor given to the noble: `side` 'stay' or 'leave', `n` pieces - the bar after it, and `taken`. */
+export const sentinelGive = (io, side, n) => call(io, '/v1/sentinel/give', { side, n });
+/** BUNNYFALL: a buy in the Sentinel event shop: `offer` a net/sentinelLaw.js SENTINEL_OFFERS id - answers `{ ok, offer, mine }` once the tokens are taken. */
+export const sentinelBuy = (io, offer) => call(io, '/v1/sentinel/buy', { offer });
 export const buyInsignia = (io, item, rid = null) => call(io, '/v1/account/insignia', rid ? { item, rid } : { item });   // AUDIT FB1024 (BROKER-RID): the press's request id
 /** AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id (`{ rid, nonce }`) -
  *  server-account/src/brokerSales.js settleBrokerSale. Signed out, nothing is asked. */
