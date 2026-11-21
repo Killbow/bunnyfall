@@ -89,6 +89,11 @@ import { isEnhanced } from '../systems/uiSkin.js';   // AUDIT SUGGESTIONS-1019 L
 import { itemLongName } from '../systems/item/itemInfo.js';   // AUDIT SUGGESTIONS-1019 L4-6: a row named as the pack names the piece
 import { LOOSE_ORIGIN } from '../net/bagLaw.js';   // AUDIT SUGGESTIONS-1019 L4-1: the loose units the service's room counts
 import { walledText } from './storesWalled.js';   // RPT1026-MARKET STORES-SAID: what the guild Stores may not take, said
+import { chatDock } from './chatDrawer.js';
+
+/** Below this much room right of the chat and its drawer, the drawer tucks away while the Company window is open. */
+const GUILD_BESIDE_MIN = 362;
+
 /** GUILD-UX: the vault row's card - the pack's own (enhancedInventory.js showItemHover), compared against what I wear. */
 // AUDIT SUGGESTIONS-1019 L4-4: on the enhanced skin alone - the card's sheet is the enhanced dress's (enhancedPlusStyle.js),
 // and on the classic skin it fell, unstyled, below the screen
@@ -514,6 +519,10 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
     --dfguild-l: max(calc((100vw - var(--dfguild-w)) / 2), min(calc(26px + min(var(--dfchat-w, 440px), calc(100vw - 28px)) + env(safe-area-inset-left, 0px)), calc(100vw - 774px)));
     left: var(--dfguild-l); width: min(var(--dfguild-w), calc(100vw - 14px - var(--dfguild-l))); }
 }
+/* The chat's drawer open beside it (data-dfchat-drawer, ui/chatPanel.js): this window sits right of the chat and the
+   drawer. Where that leaves too little room, the chat tucks its drawer away while the window is up. */
+:root[data-dfchat-drawer] .dfsocial[data-mode="guild"][data-open], :root[data-dfchat-drawer] .dfsocial.touch[data-mode="guild"][data-open] {
+  --dfguild-l: calc(var(--dfchat-right, 0px) + 12px); left: var(--dfguild-l); width: min(var(--dfguild-w), calc(100vw - 14px - var(--dfguild-l))); }
 .dfsocial[data-mode="guild"] .dfsocial-tabs { display: none; }
 .dfsocial-back { display: none; flex: none; background: none; color: var(--dim, #9a9486); border: 1px solid var(--iron, #2b323b); border-radius: 3px;
   font: inherit; font-size: 12px; padding: 3px 10px; cursor: pointer; }
@@ -723,7 +732,7 @@ export function friendOrder(friends) {
  * a panel with something above it IGNORES the key (does not close, does not stop it), and the one that handles it
  * calls `stopImmediatePropagation` so no other window listener - the host's pause door included - sees that press.
  */
-export function createSocialPanel({ social, send = null, mail = null, guild = null, territory = () => null, garrison = () => null, farms = () => null, keepLetter = null, journey = () => null, canLead = () => false, canOpen = () => true, onOpen = null, onClose = null, above = () => false, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), itemCard = ITEM_CARD } = {}) {
+export function createSocialPanel({ social, send = null, mail = null, guild = null, territory = () => null, garrison = () => null, farms = () => null, keepLetter = null, journey = () => null, canLead = () => false, canOpen = () => true, onOpen = null, onClose = null, above = () => false, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), itemCard = ITEM_CARD, dock = chatDock() } = {}) {
   injectSocialStyle(doc);
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
 
@@ -739,7 +748,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   closeBtn.type = 'button'; closeBtn.setAttribute('aria-label', CLOSE_SOCIAL_LABEL);
   const titleEl = el('div', 'dfsocial-title', 'Social');
   // GUILD-WINDOW: the Guild window's way back to the social tabs it put away - drawn in the window alone (its sheet)
-  const backBtn = guild ? el('button', 'dfsocial-back', t('social.guild.back', '← Social')) : null;
+  const backBtn = guild && !dock ? el('button', 'dfsocial-back', t('social.guild.back', '← Social')) : null;
   // AUDIT GUILD-WINDOW W11: its name holds the word it shows (and no Letters where there is no letterbox); W16: and the
   // social tabs' badges summed beside it - a friend's request, an invitation, a letter are not hidden with their tabs
   const backBadge = backBtn ? el('span', 'dfguild-backbadge') : null;
@@ -751,12 +760,14 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   const note = el('div', 'dfsocial-note');
   const tabs = el('div', 'dfsocial-tabs');
   const body = el('div', 'dfsocial-body');
+  // Docked in the chat window (`dock`), this panel's own window is the Company window alone.
+  const socialTabs = dock ? [] : [['friends', 'Friends'], ['party', 'Party'], ...(mail ? [['letters', 'Letters']] : [])];
   const tabBtns = new Map();
   tabs.setAttribute('role', 'tablist');
   // MAIL1: the third tab, where the host has a letterbox to hand (net/mail.js) - a panel without one is the two it was
   // GUILD1b: and the fourth, where the host has a guild book (net/guild/guildBook.js)
   // BUNNY-GUILDS (Phase 1): no Company tab - the Company window is opened at an Adventurers Guild hall's desk (openGuild)
-  for (const [id, label] of [['friends', 'Friends'], ['party', 'Party'], ...(mail ? [['letters', 'Letters']] : [])]) {
+  for (const [id, label] of socialTabs) {
     const b = el('button', 'dfsocial-tab', label);
     b.type = 'button'; b.dataset.tab = id;
     b.setAttribute('role', 'tab');                    // AUDIT SOC C21: a tab that says it is one...
@@ -957,7 +968,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       // to the name on the row - that is the name the room reads, which may be their character's (no username at all, or
       // somebody else's), so the shape of it says nothing about a username any more. A friend who is still a guest has
       // no letterbox, and the service says so in its own words (`reader-guest`).
-      if (mail) acts.append(btn('Letter', { run: () => { tab = 'letters'; writeTo(r.name, '', r.acct); } }));
+      if (mail) acts.append(btn('Letter', { run: () => { if (dock) { writeTo(r.name, '', r.acct); dock.show('letters'); } else { tab = 'letters'; writeTo(r.name, '', r.acct); } } }));
       // CUSTOM-SKIN: whether their custom paperdoll is drawn for me - mine alone, they are never told
       if (r.acct) acts.append(btn(skinHiddenFor(r.acct) ? 'Show skin' : 'Hide skin', { run: () => { setSkinHidden(r.acct, !skinHiddenFor(r.acct), r.name); ui++; if (open) repaint(); } }));
       // ONE CLICK ARMS, THE SECOND SENDS. No `window.confirm`: it is a modal the game cannot dismiss, it steals the
@@ -1037,7 +1048,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
    *  Call off), and a click that straddles one is lost (AUDIT PARTY8), so the round's count, which moves as members
    *  cross the gather radius, is left out and written in place. */
   const journeyKey = () => {
-    if (tab !== 'party') return '';
+    if ((dock ? dock.view() : tab) !== 'party') return '';
     const st = journey?.()?.status?.();
     return st ? JSON.stringify(st, (k, v) => (k === 'count' ? undefined : v)) : '';
   };
@@ -1094,7 +1105,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     return n;
   };
   /** Into one of the tab's views. */
-  const lettersTo = (mode, id = null) => { letters.mode = mode; letters.id = id; letters.del = null; ui++; if (open) repaint(); };
+  const lettersTo = (mode, id = null) => { letters.mode = mode; letters.id = id; letters.del = null; lettersRev++; ui++; if (open) repaint(); };
   /** THE FORM, on a draft: a fresh one to `to` (a friend's row, a reply), or - named nothing - the words already there.
    *  NAME-AS: `account`, a friend's account id - the letter goes to the account, `to` only the name it is shown by. */
   const writeTo = (to = null, subject = '', account = null) => {
@@ -2413,7 +2424,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     painted = social.version; paintedUi = ui; paintedMail = mail?.version ?? 0; paintedGuild = guild?.version ?? 0; paintedWho = guildWho(); paintedHere = farmsHere();
     paintedJourney = journeyKey();   // PARTY-UI
     paintedLead = !!canLead();   // PARTY-LEAD
-    ticking = []; liveSubs = []; liveBtns = []; liveDots = [];
+    if (dock) prune(body); else { ticking = []; liveSubs = []; liveBtns = []; liveDots = []; }
     for (const [id, t] of tabBtns) {
       t.b.className = `dfsocial-tab${id === tab ? ' active' : ''}`;
       t.b.setAttribute('aria-selected', id === tab ? 'true' : 'false');   // C21
@@ -2457,6 +2468,41 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (open) { repaint(); tabBtns.get(tab)?.b?.focus?.(); }   // AUDIT GUILD-WINDOW W10: the Social button goes with its window
   });
 
+  // Docked, Friends and Party are drawn into the chat's drawer and Letters into its Letters view. Each is rebuilt on
+  // its own key, so a presence frame never rebuilds a letter being written, and the live passes keep both.
+  const dockedTab = (() => { let last = 'friends'; return { get: () => last, set: (v) => { last = v; } }; })();
+  const errD = dock ? el('div', 'dfsocial-err') : null;
+  const noteD = dock ? el('div', 'dfsocial-note') : null;
+  const drawerBody = dock ? el('div', 'dfsocial-docked') : null;
+  const prune = (box) => {
+    const out = (n) => !within(n, box);
+    ticking = ticking.filter((x) => out(x.el)); liveSubs = liveSubs.filter((x) => out(x.el));
+    liveBtns = liveBtns.filter((x) => out(x.b)); liveDots = liveDots.filter((x) => out(x.el));
+  };
+  const paintInto = (box, build) => { prune(box); box.replaceChildren(...build()); };
+  let dockedDrawer = '', dockedLetters = '', dockedView = null, dockedLettersUp = false, lettersRev = 0;
+  const paintDocked = () => {
+    const v = dock.view();
+    if (v === 'friends' || v === 'party') {
+      dockedTab.set(v);
+      // Company invitations are listed on Friends, so the guild book is read when Friends comes up.
+      if (v !== dockedView && v === 'friends') lookAtGuild();
+      const k = `${v}|${social.version}|${ui}|${journeyKey()}|${!!canLead()}`;
+      if (k !== dockedDrawer) { dockedDrawer = k; paintInto(drawerBody, v === 'party' ? partyBody : friendsBody); }
+    } else dockedDrawer = '';
+    dockedView = v;
+    const up = !!mail && dock.lettersUp();
+    if (up && !dockedLettersUp) lookAtLetters();
+    dockedLettersUp = up;
+    if (up) {
+      const k = `${lettersRev}|${letters.mode}|${letters.id}|${letters.sending}|${letters.word}|${letters.del}|${letters.kept.size}|${letters.mode === 'write' ? '' : mail?.version ?? 0}`;
+      if (k !== dockedLetters) { dockedLetters = k; paintInto(dock.letters, lettersBody); }
+    } else dockedLetters = '';
+    const before = ui;
+    paintLive();
+    if (ui !== before) dockedDrawer = '';
+  };
+
   /**
    * The handful of things that move without the picture changing: the countdowns, the hub's last refusal, the note,
    * and the two self-disarming timers. Cheap enough for every frame; nothing here touches a row.
@@ -2473,8 +2519,8 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (guildUi.arm && now - guildUi.armAt > SOCIAL_CONFIRM_MS) { guildUi.arm = null; ui++; }   // GUILD1b: and the guild's two-press acts
     if (noteMsg && now - noteAt > SOCIAL_NOTE_MS) noteMsg = '';
     const e = social.lastError ? String(social.lastError) : '';
-    if (err.textContent !== e) err.textContent = e;
-    if (note.textContent !== noteMsg) note.textContent = noteMsg;
+    for (const n of [err, errD]) if (n && n.textContent !== e) n.textContent = e;
+    for (const n of [note, noteD]) if (n && n.textContent !== noteMsg) n.textContent = noteMsg;
     // AUDIT SOC C5: THE BADGES ARE READ BACK, NOT REMEMBERED. `liveInvites()` sheds a lapsed invitation as it is
     // READ and moves no version (time merely passed), so an invitation that expired while the FRIENDS tab was up
     // left the Party badge standing at a number that was no longer true - the body it belonged to was not even
@@ -2551,6 +2597,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (!alive || !open) return false;
     open = false; confirm = null; ui++;
     root.dataset.open = '0';
+    dock?.tuck?.(false);
     hideCard();   // AUDIT SUGGESTIONS-1019 L4-2: nor the panel - closed, the pointer locked, no leave ever came
     onClose?.();   // and takes it back inside the closing gesture, the only place a lock request is honoured
     return true;
@@ -2614,23 +2661,34 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     return openPanel();
   };
 
+  if (dock) {
+    dock.drawer.replaceChildren(errD, noteD, drawerBody);
+    // A key typed into a field stays in the field, as on the panel's own root.
+    for (const n of [dock.drawer, dock.letters]) n.addEventListener('keydown', (e) => { if (!isTextEntryTarget(e.target)) return; swallowBrowserKey(e); e.stopPropagation(); });
+    dock.attach({ letters: !!mail, badge: badgeText, style: injectSocialStyle });
+  }
+
   return {
     root, toast,
-    open: openSocial, close: closePanel,
-    toggle: () => (open ? closePanel() : openSocial()),
+    open: () => (dock ? (dock.show(dockedTab.get()), true) : openSocial()), close: closePanel,
+    toggle: () => (dock ? (dock.toggle(), true) : open ? closePanel() : openSocial()),
     isOpen: () => open,
-    /** Which tab is up - for the host and for the pins. */
-    tab: () => tab,
+    /** Which tab is up - for the host and for the pins. Docked, the Company window's, else the drawer's. */
+    tab: () => (dock && !open ? dock.view() : tab),
+    /** Whether `id` ('friends', 'party', 'letters', 'guild') is on screen now. */
+    showing: (id) => (id === 'guild' ? open && tab === 'guild' : !dock ? open && tab === id : id === 'letters' ? dock.lettersUp() : dock.view() === id),
     /** MAIL1: open on the Letters tab - on the form to `to` when a name is given, on the box otherwise; JOURNAL1: on the
      *  form with a whole `draft` ({to, subject, body}) when one is given. False where the host handed no letterbox, or
      *  the panel cannot open now. */
     openLetters({ to = null, draft = null } = {}) {
       if (!mail) return false;
-      tab = 'letters'; confirm = null;
+      if (!dock) tab = 'letters';
+      confirm = null;
       // JOURNAL1: a whole draft - a page of the journal sent as a letter (net/journalPage.js letterOfPage), to anyone
       if (draft) { letters.draft = { to: String(draft.to ?? ''), subject: String(draft.subject ?? ''), body: String(draft.body ?? '') }; letters.word = ''; lettersTo('write'); }
       else if (to != null) writeTo(to); else { letters.mode = 'list'; letters.id = null; ui++; }
       lookAtLetters();
+      if (dock) return dock.show('letters');
       if (open) { repaint(); return true; }
       return openPanel();
     },
@@ -2668,7 +2726,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       }
       if (root.style.display !== '') root.style.display = '';
       if (toast.style.display !== '') toast.style.display = '';
-      if (resumeParty) { resumeParty = false; if (!open && social.party) { tab = 'party'; openPanel(); } }   // PARTY-READY
+      if (resumeParty) { resumeParty = false; if (social.party) { if (dock) dock.show('party'); else if (!open) { tab = 'party'; openPanel(); } } }   // PARTY-READY
       if (open) {
         // MAIL1: the Letters tab is drawn from the BOX, not the social picture - and the form from neither, so a presence
         // frame or a poll landing while a player types rebuilds nothing under their caret
@@ -2679,6 +2737,11 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
         // a countdown that just hit zero raises the panel's version from inside `paintLive`, and the row it belongs
         // to has to go on THIS pass rather than the next one - `liveInvites` has already shed it by now
         else { paintLive(); if (ui !== paintedUi) repaint(); }
+      }
+      if (dock) {
+        const r = open && tab === 'guild' ? dock.besideRight?.() : null;
+        dock.tuck?.(r != null && (Number(win.innerWidth) || 0) - 14 - (r + 12) < GUILD_BESIDE_MIN);
+        paintDocked();
       }
       paintToast();
     },

@@ -142,6 +142,8 @@ export const PREF_DEFAULTS = Object.freeze({
   // The chat font ('' follows the game text font, else a TEXT_FONTS key from ui/textFont.js) and its text size in
   // percent (CHAT_TEXT_SIZES in ui/chatLook.js).
   chatFont: '', chatTextSize: 100,
+  // The chat's drawer (Online, Friends, Party): open or shut, the tab it shows, and its width (null: the default).
+  chatDrawer: false, chatDrawerTab: 'online', chatDrawerW: null,
   // TI2: THE PHONE IN HAND, TUNED (2026-09-11, Mac: "enhance the mobile
   // element... camera movement, character movement and a more phone
   // built feel"). The touch layer's own knobs - DFU has no touch input

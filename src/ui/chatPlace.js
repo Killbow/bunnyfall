@@ -1,6 +1,6 @@
-// Where the chat box sits and how big it is: the size presets and Reset in Settings > Chat, and the drags that resize
-// and move the box. A saved place is drawn inside a smaller window without being lost, and the chat's own window keeps
-// its size and place.
+// Where the chat box sits and how big it is: the size presets and Reset in Settings > Chat, and the pointer drags.
+// Those resize the box, move it, and move the drawer's split. A saved place is drawn inside a smaller window without
+// being lost, and the chat's own window keeps its size and place.
 import { getPref, setPref } from '../systems/uiPrefs.js';
 import { capturePointer, releasePointer } from './pointerCapture.js';
 
@@ -26,7 +26,7 @@ export function setChatBoxPreset(id) {
   return true;
 }
 export function resetChatBox() {
-  for (const k of ['chatWidth', 'chatListHeight', 'chatLeft', 'chatTop']) setPref(k, null);
+  for (const k of ['chatWidth', 'chatListHeight', 'chatLeft', 'chatTop', 'chatDrawerW']) setPref(k, null);
 }
 
 export function savedChatPlace() {
