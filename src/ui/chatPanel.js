@@ -106,18 +106,10 @@
 // A host that passes none of the three gets the chat it had, byte for
 // byte: no button is built, no colour is asked for, no row is a door.
 //
-// CHAT-SIZE (2026-09-23, Mac: "I want to implement the ability to click and
-// drag the chat to resize/along with the text"): THE CORNER. A grip at the
-// box's bottom-right corner drags it from there: the WIDTH is
-// the text's scale (width / 440, the sheet's own width, between 0.8 and
-// 1.8 - every size the chat's TEXT is drawn at is `calc(Npx * scale)`:
-// the lines, the tags and the times, the roster's rows and its column,
-// the field) and the HEIGHT is how many lines the list shows. So a wider
-// chat is a bigger chat, its lines wrapping where they did, and a taller
-// one is more history. What a THUMB presses does not scale (the buttons,
-// the tabs: AUDIT SOC C8's 44px targets are the targets). The two numbers
+// The grip at the bottom-right corner of the box sets the box width and how many lines the list shows. The text
+// size is a separate setting (ui/chatLook.js); buttons and tabs do not scale with it. The two numbers
 // are the player's (uiPrefs chatWidth/chatListHeight; null is the sheet's
-// own size), arrow keys on the focused grip step them, and a double click
+// own size). Arrow keys on the focused grip step them, and a double click
 // on it gives the sheet's size back. The panel publishes its footprint on
 // the document - the width and the list height as the same custom
 // properties its own rules read, and `data-dfchat-fit` for whether the
@@ -169,18 +161,19 @@ import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelif
 import { t } from '../systems/textManager.js';   // CHAT-TRADE: the channel picker's words in the player's language
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { voiceMeText, voiceRedText } from '../net/chatVoice.js';   // STAFF-CHAT-RED: the voice switch's two words
-import { capturePointer, releasePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
 import { chatItemsOf, chatItemLink, chatTextParts, hideChatItemTip, openLinkQuery, matchBagItems, takePendingLinks, prunePendingLinks } from './chatItemLink.js';   // CHAT-POST: coloured [Name] + the pack's hover card; `[` opens a bag picker in the field
 import { itemChatLabel, itemLine, linePictureUrl } from './enhanced/enhancedInventory.js';   // CHAT-POST: label + pack icon for the [ picker
 import { createChatMenu, CHAT_MENU_CSS } from './chatMenu.js';   // CHAT-REWORK: the player menu, a popover under a name
 import { smoothWheel } from './chatScroll.js';   // CHAT-REWORK: eased wheel scrolling
 import { createChatPopout } from './chatPopout.js';   // CHAT-REWORK: the chat in its own window
+import { mountChatLook, unmountChatLook, chatLookKey, chatScale, chatTextSize, stepChatTextSize, canStepChatTextSize } from './chatLook.js';
+import { pointerDrag, savedChatPlace, shownPlace, isBarGap, chatPopFeatures, createPopMemory } from './chatPlace.js';
+import { createChatDrawer, drawerSide, drawerWidth, DRAWER_SPLIT_MIN, CHAT_DRAWER_CSS, setChatDock, clearChatDock } from './chatDrawer.js';
 
 /** The action whose key opens the chat: DFU's own cursor key (Enter by default), since opening frees the cursor. */
 export const CHAT_OPEN_ACTION = 'ActivateCursor';
 
-/** CHAT-SIZE: the sheet's own width, which is the text's scale 1 - the scale is the dragged width over it, inside these
- *  bounds, so the width bounds are the scale's. */
+/** The sheet's own width. CHAT_WIDTH_MIN and CHAT_WIDTH_MAX are fractions of it. */
 export const CHAT_WIDTH_BASE = 440;
 export const CHAT_SCALE_MIN = 0.8;
 export const CHAT_SCALE_MAX = 1.8;
@@ -197,8 +190,6 @@ export const CHAT_SIZE_STEP = 20;
 /** CHAT-SIZE: the friends panel's width (ui/socialPanel.js SOCIAL_CSS - a pin holds the two equal): the chat is what
  *  knows its own size, so it is the chat that says whether that panel still fits beside it. */
 export const SOCIAL_PANEL_WIDTH = 360;
-/** CHAT-SIZE: the text's scale for a dragged width. */
-export const chatScaleFor = (width) => Math.min(CHAT_SCALE_MAX, Math.max(CHAT_SCALE_MIN, width / CHAT_WIDTH_BASE));
 /** CHAT-SIZE: 'beside' when the friends panel fits to the right of the chat box on this screen (14 + the box + 12 +
  *  the panel + 14 - the sheet's own gutters), else 'below'. `width` null is the sheet's own. At the sheet's size this
  *  is the friends panel's old 840px breakpoint exactly. */
@@ -209,8 +200,6 @@ export function chatFit(viewportWidth, width = null) {
 }
 
 export const CHAT_STYLE_ID = 'dagger-chat-style';
-/** CHAT-REWORK: the narrowest chat window (popped out) that still draws the roster column. */
-export const CHAT_POP_ROSTER_MIN = 380;
 
 /** The panel's sheet: the enhanced tokens (enhancedStyle.js) where they exist, a fallback where the skin's sheet is not loaded.
  *
@@ -264,7 +253,7 @@ ${PIXELIFY_FIVE_FACE}
 .dfchat-suggest-icon { width: 28px; height: 28px; flex: none; object-fit: contain; image-rendering: pixelated;
   background: rgba(0, 0, 0, 0.25); border-radius: 2px; }
 .dfchat-suggest-label { flex: none; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dfchat-suggest-worn { flex: none; margin-left: auto; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+.dfchat-suggest-worn { flex: none; margin-left: auto; font-size: calc(11px * var(--dfchat-scale, 1)); letter-spacing: .04em; text-transform: uppercase;
   color: var(--brass, #c08a3e); }
 /* ...and it is the DESKTOP's: every phone keyboard carries an emoji key of its own, and on a 320px phone this button
    took the field down to 67px (tools/chatChanProbe.mjs). The touch skin keeps the field; the shortcodes work on both. */
@@ -380,13 +369,12 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-find-count { flex: none; color: var(--dim, #9a9486); font-size: calc(11px * var(--dfchat-scale, 1)); }
 .dfchat-find-clear { display: none; flex: none; background: none; border: 0; color: var(--dim, #9a9486); cursor: pointer; font: inherit; font-size: 13px; padding: 2px 6px; }
 .dfchat-find.on .dfchat-find-clear { display: inline-block; }
-.dfchat.touch .dfchat-search { font-size: 16px; padding: 7px 8px; }
+.dfchat.touch .dfchat-search { font-size: max(16px, calc(12px * var(--dfchat-scale, 1))); padding: 7px 8px; }
 .dfchat.touch .dfchat-find-clear { min-width: 44px; min-height: 44px; }
 .dfchat-hit { background: rgba(192, 138, 62, .38); color: inherit; border-radius: 2px; }
 .dfchat-find-none { color: var(--dim, #9a9486); font-style: italic; }
-/* CHAT-FIND: AT THE TOP OF THE ROSTER COLUMN (the owner: "above the player list for better visibility") - the field the
-   column's width, the clear beside it, the count on its own line under them. Where the column is not drawn (a screen
-   under 560px, a host with no roster) the strip stands over the conversation instead (placeFind), 180px wide. */
+/* While the drawer shows Online, the search strip sits at the top of the roster, its field as wide as the column and
+   the count on its own line. Otherwise it sits over the messages, 180px wide (placeFind). */
 .dfchat-who .dfchat-find { flex: none; flex-wrap: wrap; gap: 2px 4px; padding: 6px 6px 4px; }
 .dfchat-who .dfchat-search { flex: 1 1 0; width: auto; }
 .dfchat-who .dfchat-find-count { flex-basis: 100%; order: 3; padding-left: 2px; }
@@ -398,10 +386,8 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
    this tab is out, and can still take it back */
 .dfchat-here { display: none; pointer-events: auto; margin-top: 4px; background: var(--brass, #b08d57); color: var(--ink, #14110d); border: 0; border-radius: 3px; font: inherit; font-size: 14px; padding: 6px 10px; cursor: pointer; }
 .dfchat-here.on { display: inline-flex; }
-/* CHAT-SIZE: the corner the box is dragged from - the BOX's own bottom-right, over both columns (the form's row ends
-   where the conversation column does, and the roster stands beyond it). The width it gives is the text's scale
-   (--dfchat-scale), the height the list's lines; arrow keys on it step the same two, and a double click puts the
-   sheet's own size back. The form keeps its last button clear of it, and the roster its last row. */
+/* The corner the box is dragged from, at the box's own bottom-right. It sets the width and the list height, arrow
+   keys on it step the same two, and a double click resets the size. The form keeps its last button clear of it. */
 .dfchat-grip { position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; cursor: nwse-resize; touch-action: none; border-bottom-right-radius: 6px;
   background: linear-gradient(135deg, transparent 0 50%, var(--dim, #9a9486) 50% 58%, transparent 58% 70%, var(--dim, #9a9486) 70% 78%, transparent 78%); opacity: .75; }
 .dfchat-grip:hover, .dfchat-grip:focus-visible { opacity: 1; outline: none; }
@@ -450,8 +436,6 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 /* GUILD1c: the company's tag right of the name, before the glyphs - the name layer's own steel, on a line and in the roster */
 .dfchat-line-company, .dfchat-who-company { flex: none; color: #a9c4dd; font-size: calc(11px * var(--dfchat-scale, 1)); letter-spacing: .04em; margin-left: 4px; }
 .dfchat-who-more { font-size: calc(11px * var(--dfchat-scale, 1)); color: var(--dim, #9a9486); padding-top: 4px; }
-/* the roster is the first thing to go when there is no width for it */
-@media (max-width: 560px) { .dfchat-who { display: none; } }
 
 /* SOC3: THE SOCIAL BUTTON, IN BOTH STATES - one class in two places,
    so the badge's law is written once. Closed it stands beside the Chat
@@ -579,36 +563,36 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-list::-webkit-scrollbar-track, .dfchat-wholist::-webkit-scrollbar-track { background: transparent; }
 .dfchat-list::-webkit-scrollbar-thumb, .dfchat-wholist::-webkit-scrollbar-thumb { background: rgba(233, 228, 217, .2); border-radius: 3px; }
 .dfchat-list::-webkit-scrollbar-thumb:hover, .dfchat-wholist::-webkit-scrollbar-thumb:hover { background: rgba(233, 228, 217, .38); }
-.dfchat-list .dfchat-line { font-size: 13px; line-height: 1.4; padding: 1px 4px 1px 42px; text-indent: -38px; border-radius: 3px; }
+.dfchat-list .dfchat-line { font-size: calc(13px * var(--dfchat-scale, 1)); line-height: 1.4; padding: 1px 4px 1px calc(8px + 34px * var(--dfchat-scale, 1)); text-indent: calc(-4px - 34px * var(--dfchat-scale, 1)); border-radius: 3px; }
 .dfchat-list .dfchat-line:hover { background: rgba(233, 228, 217, .04); }
-.dfchat-list .dfchat-line.ping { padding-left: 42px; }
-.dfchat-list .dfchat-line.system { font-size: 12px; }
-.dfchat-list .dfchat-time { display: inline-block; width: 34px; margin-right: 4px; text-indent: 0; font-size: 10px; letter-spacing: 0;
+.dfchat-list .dfchat-line.ping { padding-left: calc(8px + 34px * var(--dfchat-scale, 1)); }
+.dfchat-list .dfchat-line.system { font-size: calc(12px * var(--dfchat-scale, 1)); }
+.dfchat-list .dfchat-time { display: inline-block; width: calc(34px * var(--dfchat-scale, 1)); margin-right: 4px; text-indent: 0; font-size: calc(10px * var(--dfchat-scale, 1)); letter-spacing: 0;
   color: var(--dim, #9a9486); opacity: .55; }
 .dfchat-list .dfchat-line:hover .dfchat-time { opacity: .95; }
-.dfchat-list .dfchat-tag { font-size: 10px; opacity: .55; margin: 0 6px 0 3px; }
+.dfchat-list .dfchat-tag { font-size: calc(10px * var(--dfchat-scale, 1)); opacity: .55; margin: 0 6px 0 3px; }
 .dfchat-list .dfchat-find-none { text-indent: 0; padding-left: 4px; }
-.dfchat-list .dfchat-chan { font-size: 10px; }
+.dfchat-list .dfchat-chan { font-size: calc(10px * var(--dfchat-scale, 1)); }
 .dfchat-rowbtn { text-indent: 0; }
 .dfchat-name.dfchat-act:hover { text-decoration: underline; text-underline-offset: 2px; }
 .dfchat-jump { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 2; border: 0; border-radius: 999px;
   padding: 4px 12px; font-size: 11px; white-space: nowrap; background: var(--brass, #c08a3e); color: #16110a; box-shadow: 0 3px 10px rgba(0, 0, 0, .45); }
 .dfchat-jump:hover { filter: brightness(1.1); }
 .dfchat-form { align-items: center; gap: 5px; padding: 5px 16px 5px 6px; border-top: 1px solid rgba(233, 228, 217, .08); }
-.dfchat-input { font-size: 13px; padding: 6px 9px; border-radius: 5px; background: rgba(0, 0, 0, .35); border-color: rgba(233, 228, 217, .12); }
+.dfchat-input { font-size: calc(13px * var(--dfchat-scale, 1)); padding: 6px 9px; border-radius: 5px; background: rgba(0, 0, 0, .35); border-color: rgba(233, 228, 217, .12); }
 .dfchat-input:focus { outline: none; border-color: var(--brass, #c08a3e); }
-.dfchat.touch .dfchat-input { font-size: 16px; }
+.dfchat.touch .dfchat-input { font-size: max(16px, calc(13px * var(--dfchat-scale, 1))); }
 .dfchat-send { font-size: 12px; padding: 6px 11px; border-radius: 5px; background: rgba(192, 138, 62, .85); color: #16110a; }
 .dfchat-send:hover { background: var(--brass, #c08a3e); }
 .dfchat-voice button { font-size: 11px; padding: 4px 6px; }
-.dfchat-who { width: clamp(120px, 30%, 168px); border-left-color: rgba(233, 228, 217, .08); background: rgba(0, 0, 0, .12); }
-.dfchat-whohead { font-size: 10px; padding: 6px 8px 3px; }
+.dfchat-who { width: clamp(min(calc(120px * var(--dfchat-scale, 1)), 34%), 30%, calc(168px * var(--dfchat-scale, 1))); border-left-color: rgba(233, 228, 217, .08); background: rgba(0, 0, 0, .12); }
+.dfchat-whohead { font-size: calc(10px * var(--dfchat-scale, 1)); padding: 6px 8px 3px; }
 .dfchat-wholist { padding: 0 4px 14px; }
-.dfchat-who-row { font-size: 12px; padding: 2px 4px; border-radius: 3px; }
+.dfchat-who-row { font-size: calc(12px * var(--dfchat-scale, 1)); padding: 2px 4px; border-radius: 3px; }
 .dfchat-who-row.dfchat-act:hover, .dfchat-who-row.open { background: rgba(233, 228, 217, .07); }
-.dfchat-who-tag, .dfchat-who-more, .dfchat-who-company { font-size: 10px; }
-.dfchat-search { font-size: 12px; }
-.dfchat-find-count { font-size: 10px; }
+.dfchat-who-tag, .dfchat-who-more, .dfchat-who-company { font-size: calc(10px * var(--dfchat-scale, 1)); }
+.dfchat-search { font-size: calc(12px * var(--dfchat-scale, 1)); }
+.dfchat-find-count { font-size: calc(10px * var(--dfchat-scale, 1)); }
 /* CHAT-REWORK: THE CHAT IN ITS OWN WINDOW (ui/chatPopout.js) - the box fills that window and its list takes the height */
 .dfchat.dfchat-popwin { position: static; left: auto; top: auto; width: auto; height: 100%; pointer-events: auto; }
 .dfchat-popwin .dfchat-box { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; border: 0; border-radius: 0;
@@ -620,15 +604,29 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-popwin :is(.dfchat-grip, .dfchat-move, .dfchat-hide, .dfchat-close) { display: none; }
 .dfchat-popwin .dfchat-form { padding-right: 6px; }
 .dfchat-popwin .dfchat-suggest { left: 6px !important; right: 6px !important; bottom: 54px; width: auto; }
-/* the chat's own window is all chat: the roster column stands down to a narrower window than the game's does */
-@media (max-width: 560px) { .dfchat-popwin .dfchat-who { display: block; } }
-@media (max-width: ${CHAT_POP_ROSTER_MIN}px) { .dfchat-popwin .dfchat-who { display: none; } }
 /* ...and the game's own window while it does: the chat is not drawn here, one small button brings it back */
 .dfchat[data-popped="1"] :is(.dfchat-peek, .dfchat-hint, .dfchat-open, .dfchat-show, .dfchat-box) { display: none; }
 .dfchat-docked { display: none; pointer-events: auto; margin-top: 4px; margin-left: 6px; align-items: center; gap: 6px; background: rgba(13, 15, 19, .85);
   color: var(--dim, #9a9486); border: 1px solid rgba(233, 228, 217, .12); border-radius: 5px; font: inherit; font-size: 12px; padding: 5px 10px; cursor: pointer; }
 .dfchat-docked:hover { color: var(--bone, #e9e4d9); }
 .dfchat[data-popped="1"] .dfchat-docked { display: inline-flex; }
+.dfchat-hbtn.dfchat-size { font-size: 11px; letter-spacing: 0; }
+.dfchat-hbtn.dfchat-size[disabled] { opacity: .35; cursor: default; background: none; }
+/* on the touch skin A- and A+ open from one Aa button, so the tabs keep their room on a phone */
+.dfchat-size-menu { display: none; }
+.dfchat-sizes { display: contents; }
+.dfchat.touch .dfchat-size-menu { display: inline-flex; }
+.dfchat.touch .dfchat-sizes { display: none; position: absolute; top: 100%; z-index: 3; gap: 2px; padding: 4px;
+  background: rgba(14, 16, 19, .96); border: 1px solid var(--iron, #2b323b); border-radius: 4px; }
+.dfchat.touch .dfchat-sizes.on { display: flex; }
+/* the right edge sets the width, the bottom edge the list height (the corner grip both); desktop only, not in the pop-out */
+.dfchat-edge { position: absolute; z-index: 1; touch-action: none; }
+.dfchat-edge-r { top: 8px; right: -6px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.dfchat-edge-b { left: 8px; right: 14px; bottom: -3px; height: 6px; cursor: ns-resize; }
+.dfchat.touch .dfchat-edge, .dfchat-popwin .dfchat-edge { display: none; }
+/* the empty part of the top bar moves the chat too, on the desktop skin */
+.dfchat:not(.touch):not(.dfchat-popwin) .dfchat-tabs { cursor: move; }
+${CHAT_DRAWER_CSS}
 ${CHAT_MENU_CSS}
 `;
 
@@ -723,6 +721,24 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   close.setAttribute('aria-label', t('chat.close', 'Close chat'));
   close.title = t('chat.closeTitle', 'Close the chat (Esc)');
   const popBtn = el('button', 'dfchat-hbtn dfchat-popbtn', '⧉'); popBtn.type = 'button';
+  const sizeDown = el('button', 'dfchat-hbtn dfchat-size dfchat-size-down', 'A\u2212'); sizeDown.type = 'button';
+  sizeDown.setAttribute('aria-label', t('chat.textSmaller', 'Smaller chat text'));
+  sizeDown.title = t('chat.textSmaller', 'Smaller chat text');
+  const sizeUp = el('button', 'dfchat-hbtn dfchat-size dfchat-size-up', 'A+'); sizeUp.type = 'button';
+  sizeUp.setAttribute('aria-label', t('chat.textLarger', 'Larger chat text'));
+  sizeUp.title = t('chat.textLarger', 'Larger chat text');
+  const sizes = el('div', 'dfchat-sizes');
+  sizes.append(sizeDown, sizeUp);
+  const sizeMenu = el('button', 'dfchat-hbtn dfchat-size dfchat-size-menu', 'Aa'); sizeMenu.type = 'button';
+  sizeMenu.setAttribute('aria-label', t('chat.textSize', 'Chat text size'));
+  sizeMenu.setAttribute('aria-expanded', 'false');
+  sizeMenu.title = t('chat.textSize', 'Chat text size');
+  const setSizesOpen = (on) => {
+    sizes.className = on ? 'dfchat-sizes on' : 'dfchat-sizes';
+    sizeMenu.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) sizes.style.right = `${Math.max(0, (tabs.clientWidth || 0) - sizeMenu.offsetLeft - sizeMenu.offsetWidth)}px`;
+  };
+  sizeMenu.addEventListener('click', () => setSizesOpen(sizes.className === 'dfchat-sizes'));
   // while the chat stands in its own window, the game's window shows this one small button in its place
   const docked = el('button', 'dfchat-docked', t('chat.docked', 'Chat is in its own window. Bring it back'));
   docked.type = 'button';
@@ -738,6 +754,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   grip.setAttribute('role', 'button');
   grip.setAttribute('aria-label', 'Resize chat');
   grip.setAttribute('title', t('chat.gripTitle', 'Drag to resize. Bigger shows more lines. Double-click to reset.'));
+  const edgeR = el('div', 'dfchat-edge dfchat-edge-r');
+  const edgeB = el('div', 'dfchat-edge dfchat-edge-b');
   const hide = el('button', 'dfchat-hbtn dfchat-hide', '–'); hide.type = 'button';
   hide.setAttribute('aria-label', t('chat.hide', 'Hide chat'));
   hide.title = t('chat.hideTitle', 'Hide the chat. A small Chat button brings it back.');
@@ -941,6 +959,16 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const whoInner = el('div', 'dfchat-who-inner');   // CHAT-FIT: absolute inside the column, so the column takes the conversation's height and not the room's
   whoInner.append(whoHead, whoList, whoMore);   // CHAT-FIND: the search strip goes above the heading (placeFind)
   who.append(whoInner);
+  const drawer = createChatDrawer({ el, who });
+  const split = el('div', 'dfchat-split');
+  split.tabIndex = 0;
+  split.setAttribute('role', 'separator');
+  split.setAttribute('aria-orientation', 'vertical');
+  split.setAttribute('aria-label', t('chat.drawer.split', 'Drawer width'));
+  split.title = t('chat.drawer.splitTitle', 'Drag to share the width between the messages and the drawer. Double-click to reset.');
+  drawer.node.append(split);
+  let view = 'chat';
+  let dockLetters = false, dockBadge = null, dockStyle = null;
   const tabButtons = new Map();
   const tabList = el('div', 'dfchat-tablist');   // CHAT-CHAN: the tabs' own strip - the Social button stands beside it, in the bar
   for (const tab of log.tabs) {
@@ -949,10 +977,17 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     const badge = el('span', 'dfchat-badge');
     badge.setAttribute('aria-hidden', 'true');   // CHAT-CHAN: a dot to the eye - the count is the button's name (paint)
     b.append(badge);
-    b.addEventListener('click', () => { menu.close(); if (query) setQuery(''); log.select(tab.id); paint(true); input.focus?.(); b.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); });   // CHAT-FIND: a tab pressed under a search is that tab's conversation - the search gives way to it; TAB-WHEEL: a tab chosen is wholly in the strip
+    b.addEventListener('click', () => { menu.close(); if (query) setQuery(''); setView('chat'); log.select(tab.id); paint(true); input.focus?.(); b.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); });   // CHAT-FIND: a tab pressed under a search is that tab's conversation - the search gives way to it; TAB-WHEEL: a tab chosen is wholly in the strip
     tabList.append(b);
     tabButtons.set(tab.id, { b, badge, name: null });
   }
+  const lettersTab = el('button', 'dfchat-tab dfchat-letters-tab', t('chat.letters', 'Letters'));
+  lettersTab.type = 'button'; lettersTab.dataset.tab = 'letters';
+  const lettersBadge = el('span', 'dfchat-badge');
+  lettersBadge.setAttribute('aria-hidden', 'true');
+  lettersTab.append(lettersBadge);
+  lettersTab.addEventListener('click', () => { menu.close(); setView('letters'); });
+  tabList.append(lettersTab);
   tabs.append(tabList);
   // CHAT-TRADE: THE CHANNEL PICKER, built only when the host hands `channels` ({ list, set } - see the header): the +
   // toggles the list, a row joins or leaves its channel through the host's one door, and the caret goes back to the
@@ -1026,19 +1061,20 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     neverTheFocus(b);   // FB1020h HUD-FOCUS: a Tab walked onto it and the next Space (the game's Jump) pressed it
     const badge = el('span', 'dfchat-badge');
     b.append(badge); socialBadges.push(badge);
-    b.addEventListener('click', () => social.onToggle?.());
+    b.addEventListener('click', () => (drawer.attached() || !social?.onToggle ? toggleDrawer() : social.onToggle()));
     return b;
   };
   const socialOut = social ? socialButton('dfchat-social-out') : null;
-  if (social) tabs.append(socialButton('dfchat-social-tab'));
+  if (social || roster) tabs.append(socialButton('dfchat-social-tab'));
   // CHAT-REWORK: the header's small buttons, last in the bar - pop out (or dock back), hide, close
+  tabs.append(sizeMenu, sizes);
   if (typeof win.open === 'function') tabs.append(popBtn);
   tabs.append(hide, close);
   // CHAT-REWORK: the list and its "new messages" pill share a frame, so the pill floats over the list's foot
   const listWrap = el('div', 'dfchat-listwrap');
   listWrap.append(list, jump);
-  main.append(listWrap, emojiGrid, form);
-  cols.append(main, who);
+  main.append(listWrap, emojiGrid, form, drawer.letters);
+  cols.append(main, drawer.node);
   // CHAT-FIND: the search strip - under the tabs, over the conversation AND the roster, because it filters both. Its
   // listeners are the elements' own (the panel keeps its one window listener, AUDIT CHAT D5); its keys are taken in
   // that listener, as the chat field's are (onKey), so a name typed here walks no one.
@@ -1053,22 +1089,21 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const findClear = el('button', 'dfchat-find-clear', '✕'); findClear.type = 'button';
   findClear.setAttribute('aria-label', 'Clear the search');
   findRow.append(search, findCount, findClear);
-  /** CHAT-FIND: where the strip stands - above the player list (the owner's choice: it is seen there), or, where the
-   *  list is not drawn (the sheet hides the column under 560px; a host with no roster), above the conversation. Moved
-   *  only when that answer changes, by laying the column it goes into in its whole order (the move takes it out of the
-   *  other; the conversation's own nodes are kept, never rebuilt). */
+  /** Where the search strip goes: over the roster while the drawer shows Online, else over the messages. Moved only
+   *  when that changes, by laying the column it goes into in its whole order; the conversation's nodes are kept. */
   let findIn = null;
   const placeFind = () => {
-    const inWho = !!roster && (popWrap ? (Number(popout?.view()?.innerWidth) || 0) > CHAT_POP_ROSTER_MIN : vw() > 560);   // CHAT-REWORK: popped out, the chat window's width (the sheet's two rules)
+    const inWho = !!roster && !!sideNow() && drawer.tab() === 'online';
     if (findIn === inWho) return;
     menu.close();   // CHAT-REWORK: a popover over a roster row that is about to be moved
     findIn = inWho;
     if (inWho) whoInner.replaceChildren(findRow, whoHead, whoList, whoMore);
-    else main.replaceChildren(findRow, listWrap, emojiGrid, form);
+    else main.replaceChildren(findRow, listWrap, emojiGrid, form, drawer.letters);
   };
   tabs.prepend(mover);   // BUNNYFALL CHAT-MOVE
   box.append(tabs, cols, grip);   // CHAT-SIZE: the grip is the BOX's - its corner is past the roster column, not at the end of the form's row
   box.append(suggest);   // CHAT-POST: the bag list hangs off the box's right edge (absolute; after the grip so the pin still sees box.append(tabs, cols, grip))
+  box.append(edgeR, edgeB);
   // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
   // FB1020h HUD-FOCUS: what stands over the world while the chat is shut is never the keyboard's focus (ui/input.js
   // neverTheFocus) - Play online here, the touch skin's Chat, the Social button (above) and Show
@@ -1139,7 +1174,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const docEl = doc.documentElement ?? null;
   const vw = () => Number(win.innerWidth) || 1280;
   const vh = () => Number(win.innerHeight) || 800;
-  const clampW = (w) => Math.round(Math.min(CHAT_WIDTH_MAX, Math.max(CHAT_WIDTH_MIN, w)));
+  const clampW = (w, min = CHAT_WIDTH_MIN) => Math.round(Math.min(CHAT_WIDTH_MAX, Math.max(min, w)));
   const clampH = (h) => Math.round(Math.max(CHAT_LIST_MIN, Math.min(h, vh() * CHAT_LIST_MAX_VH / 100)));
   const setVar = (k, v) => { const st = docEl?.style ?? root.style; if (v == null) st.removeProperty?.(k); else st.setProperty?.(k, v); };
   /** The friends panel's side of the chat, said once per change. */
@@ -1149,29 +1184,74 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     fit = next;
     docEl?.setAttribute?.('data-dfchat-fit', fit);
   };
+  let drawerW = sizeOf(getPref('chatDrawerW'));
+  const dwNow = () => Math.max(drawer.minWidth(), drawerW ?? drawerWidth(chatScale()));
+  // The first applySize runs before the drawer's layout below is defined.
+  let drawerLaid = false;
+  const besideNow = () => { if (!drawerLaid) return false; const s = sideNow(); return s === 'right' || s === 'left'; };
+  /** The message area's width. A split can take it under the box's narrowest; that floor holds with the drawer shut. */
+  const msgsW = (beside = besideNow()) => Math.min(beside ? (sizeW ?? CHAT_WIDTH_BASE) : Math.max(CHAT_WIDTH_MIN, sizeW ?? CHAT_WIDTH_BASE), vw() - 28);
+  const publishW = () => setVar('--dfchat-w', sizeW == null ? null : `${besideNow() ? sizeW : Math.max(CHAT_WIDTH_MIN, sizeW)}px`);
   const applySize = () => {
-    setVar('--dfchat-w', sizeW == null ? null : `${sizeW}px`);
-    // CHAT-REWORK (the owner: "when the window grows, everything scales up awkwardly"): the text stays one size - a
-    // wider box is more words to a line and a wider roster, not bigger letters. The scale is never published now.
-    setVar('--dfchat-scale', null);
+    publishW();
     setVar('--dfchat-list-h', sizeH == null ? null : `min(${sizeH}px, ${CHAT_LIST_MAX_VH}vh)`);
     publishFit();
   };
   const keepSize = () => { setPref('chatWidth', sizeW); setPref('chatListHeight', sizeH); };
   /** The size a drag or a key starts from: the player's, or the box as the sheet drew it. */
-  const widthNow = () => sizeW ?? clampW(Math.min(CHAT_WIDTH_BASE, vw() - 28));
+  const widthNow = () => (besideNow() ? msgsW(true) : sizeW ?? clampW(Math.min(CHAT_WIDTH_BASE, vw() - 28)));
   /** The list's own padding, top and bottom: its clientHeight carries it, and the height the sheet sets does not. */
   const listPadY = () => { try { const cs = win.getComputedStyle?.(list); return cs ? (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0) : 0; } catch { return 0; } };
   const listNow = () => sizeH ?? clampH((Number(list.clientHeight) || Math.min(220, vh() * 0.34)) - listPadY());
   /** To a size, keeping a reader who was on the newest line on it (a list that shrinks under them hides it). */
-  const resizeTo = (w, h, follow) => {
-    sizeW = clampW(w); sizeH = clampH(h);
+  const resizeTo = (w, h, follow, minW = CHAT_WIDTH_MIN) => {
+    sizeW = clampW(w, minW); sizeH = clampH(h);
     applySize();
     if (follow) list.scrollTop = list.scrollHeight ?? 0;
   };
   const resetSize = () => { sizeW = null; sizeH = null; applySize(); keepSize(); if (log.open && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; };
-  let drag = null;   // { id, x, y, w, h, follow } while the grip is held
+  let drag = null;
+  let saved = savedChatPlace();
   applySize();
+  let lookKey = null;
+  let popDoc = null;
+  const paintSizeBtns = () => { sizeDown.disabled = !canStepChatTextSize(-1); sizeUp.disabled = !canStepChatTextSize(1); };
+  /** Where the reader is: on the newest line, or the first line in view and its offset. */
+  const readerPlace = () => {
+    if (!log.open || !list.isConnected) return null;
+    if (unseen === 0 && atNewest()) return { newest: true };
+    const top = list.getBoundingClientRect().top;
+    const row = listNodes.find((r) => r.node.getBoundingClientRect().top >= top - 0.5);
+    return row ? { node: row.node, off: row.node.getBoundingClientRect().top - top } : null;
+  };
+  // Set by a scroll made here, so its scroll event does not re-read the reader's place.
+  let ownScroll = false;
+  const keepReader = (at) => {
+    if (!at || (!at.newest && !at.node?.isConnected)) return;
+    smooth.stop();
+    const was = list.scrollTop;
+    if (at.newest) list.scrollTop = list.scrollHeight ?? 0;
+    else list.scrollTop += at.node.getBoundingClientRect().top - list.getBoundingClientRect().top - at.off;
+    if (list.scrollTop !== was) ownScroll = true;
+  };
+  let lookSize = null;
+  const syncLook = () => {
+    const k = chatLookKey(true);
+    if (k === lookKey) return;
+    lookKey = k;
+    if (drawerLaid) { drawerKey = ''; layoutDrawer(); }
+    const resized = lookSize !== null && lookSize !== chatTextSize();
+    lookSize = chatTextSize();
+    const at = resized ? readerPlace() : null;
+    mountChatLook(doc);
+    if (popDoc) mountChatLook(popDoc, { mirrorText: true });
+    keepReader(at);
+    paintSizeBtns();
+  };
+  syncLook();
+  const stepText = (dir) => { if (stepChatTextSize(dir)) syncLook(); };
+  sizeDown.addEventListener('click', () => { stepText(-1); input.focus?.(); });
+  sizeUp.addEventListener('click', () => { stepText(1); input.focus?.(); });
 
   /** A drawn line, and the span its AUTHOR's name is in - SOC3 colours that span from the host's `nameColor` without
    *  rebuilding the row, so a party formed while the chat is open turns the names green where they already stand. */
@@ -1378,6 +1458,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
 
   /** SOC3: the badge on both Social buttons - what is waiting on the player (requests to me + live invites). */
   const paintSocial = () => {
+    if (dockBadge) { const n = String(dockBadge('letters') ?? ''); if (lettersBadge.textContent !== n) lettersBadge.textContent = n; }
     if (!social) return;
     const n = Number(social.pending?.() ?? 0);
     const text = Number.isFinite(n) && n > 0 ? String(n) : '';
@@ -1588,7 +1669,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       const t = tabButtons.get(tab.id);
       const display = tab.shown ? '' : 'none';   // CHAT-P: a tab off the bar (the Party tab outside a party) is not drawn
       if (t.b.style.display !== display) t.b.style.display = display;
-      t.b.className = `dfchat-tab${tab.id === log.active ? ' active' : ''}${tab.pings ? ' pinged' : ''}`;   // PING1: a tab holding a line that names me
+      t.b.className = `dfchat-tab${tab.id === log.active && view === 'chat' ? ' active' : ''}${tab.pings ? ' pinged' : ''}`;   // PING1: a tab holding a line that names me
       t.badge.textContent = tab.unread ? String(tab.unread) : '';
       // CHAT-CHAN: who a tab reaches, a hover away - and the place a moving channel is (the Region tab's region)
       const title = tab.place ? `${tab.place} - ${tab.hint ?? ''}` : (tab.hint ?? '');
@@ -1615,6 +1696,9 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     // CHAT-SCROLL: LAST, after the badge pass - a badge laid into a new line can wrap it, and a scroll taken before
     // that growth left the newest line under the fold
     if (follow) toNewest(); else paintJump();
+    const lcls = `dfchat-tab dfchat-letters-tab${dockLetters ? ' on' : ''}${view === 'letters' ? ' active' : ''}`;
+    if (lettersTab.className !== lcls) lettersTab.className = lcls;
+    layoutDrawer();
   };
 
   /** The closed state's lines: rebuilt when the set changes, their alpha stepped every frame. */
@@ -1645,8 +1729,10 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (popout?.state()) return false;   // CHAT-REWORK: a chat in its own window is closed by docking it, never by the game
     setEmojiOpen(false);   // EMOTE1: the picker goes with the panel
     setChanOpen(false);   // CHAT-TRADE: and the channel list
+    setSizesOpen(false);
     hideChatItemTip();   // CHAT-POST: a tip over a closed panel is none
     log.setOpen(false);
+    setView('chat');
     setQuery('');   // CHAT-FIND: a search is a look at the log, not a state of it - the next open is the conversation
     search.blur?.();
     input.blur?.();
@@ -1780,71 +1866,184 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   // are the ELEMENTS' listeners - the panel's one window listener stays the key's (AUDIT CHAT D5).
   jump.addEventListener('click', () => { unseen = 0; paintJump(); smooth.to(list.scrollHeight ?? 0); input.focus?.(); });   // CHAT-REWORK: an eased glide down
   list.addEventListener('scroll', () => { pinned = atNewest(); if (unseen && log.open && pinned) { unseen = 0; paintJump(); } });
-  // CHAT-SIZE: THE GRIP. A press captures the pointer to the grip, so the drag keeps its target however far the hand
-  // travels and the host never sees the moves as a press anywhere else (the box already swallows the press itself,
-  // and a release is never stopped - AUDIT CHAT C5). The box is anchored at its top-left, so the grip's travel IS the
-  // size's change. All of it is the grip's own listeners: the panel's one window listener stays the key's (D5).
-  grip.addEventListener('pointerdown', (e) => {
-    if (e.button != null && e.button !== 0) return;
-    e.preventDefault?.();
-    drag = { id: e.pointerId ?? null, x: Number(e.clientX) || 0, y: Number(e.clientY) || 0, w: widthNow(), h: listNow(), follow: unseen === 0 && atNewest() };
-    if (e.pointerId != null) capturePointer(grip, e.pointerId);
-  });
-  grip.addEventListener('pointermove', (e) => {
-    if (!drag || (drag.id != null && e.pointerId != null && e.pointerId !== drag.id)) return;
-    resizeTo(drag.w + ((Number(e.clientX) || 0) - drag.x), drag.h + ((Number(e.clientY) || 0) - drag.y), drag.follow);
-  });
-  const endDrag = () => {
-    if (!drag) return;
-    const id = drag.id;
-    drag = null;
-    if (id != null) releasePointer(grip, id);
-    keepSize();
+  // The list changing size (the drawer, the split, an edge, the window) keeps the reader where they were. That is the
+  // newest line, or the line they were reading when they last scrolled.
+  let readerAt = null, listBox = null;
+  list.addEventListener('scroll', () => { if (ownScroll) { ownScroll = false; return; } readerAt = readerPlace(); }, { passive: true });
+  if (typeof globalThis.ResizeObserver === 'function') {
+    new globalThis.ResizeObserver(() => {
+      const was = listBox;
+      listBox = { w: list.clientWidth, h: list.clientHeight };
+      if (!was?.w || !was?.h || !listBox.w || !listBox.h || (!log.open && !popWrap)) return;
+      keepReader(readerAt ?? { newest: true });
+    }).observe(list);
+  }
+  // With the drawer beside the chat, a drag narrows the messages down to DRAWER_SPLIT_MIN and then the drawer down
+  // to its own minimum. The box is anchored at its top-left, so the pointer's travel is the change in size.
+  const sizeBy = (d, dx, dy) => {
+    if (!d.beside || !dx) { resizeTo(d.w + dx, d.h + dy, d.follow, d.beside ? DRAWER_SPLIT_MIN : CHAT_WIDTH_MIN); return; }
+    const w = d.w + dx;
+    if (w < DRAWER_SPLIT_MIN) { drawerW = Math.max(drawer.minWidth(), d.d + w - DRAWER_SPLIT_MIN); layoutDrawer(); }
+    else if (drawerW !== d.dw0) { drawerW = d.dw0; layoutDrawer(); }
+    resizeTo(w, d.h + dy, d.follow, DRAWER_SPLIT_MIN);
   };
-  // BUNNYFALL CHAT-MOVE: the handle moves the whole chat (the peek over the world with it), kept inside the window
-  let move = null;
-  const placeAt = (x, y) => {
-    if (x == null || y == null) { root.style.left = ''; root.style.top = ''; return; }
-    const w = root.offsetWidth || 300, h = Math.max(40, root.offsetHeight || 40);
-    const cx = Math.round(Math.min(Math.max(0, x), Math.max(0, (win.innerWidth || 800) - w)));
-    const cy = Math.round(Math.min(Math.max(0, y), Math.max(0, (win.innerHeight || 600) - Math.min(h, 120))));
-    root.style.left = `${cx}px`; root.style.top = `${cy}px`;
+  const sizeStart = () => ({ w: widthNow(), h: listNow(), d: dwNow(), dw0: drawerW, beside: besideNow(), follow: unseen === 0 && atNewest() });
+  const keepDrawer = () => setPref('chatDrawerW', drawerW);
+  const sizeDrag = (node, ax, ay) => pointerDrag(node, {
+    start: () => (drag = sizeStart()),
+    move: (d, dx, dy) => sizeBy(d, dx * ax, dy * ay),
+    end: () => { drag = null; keepSize(); keepDrawer(); },
+  });
+  sizeDrag(grip, 1, 1);
+  sizeDrag(edgeR, 1, 0);
+  sizeDrag(edgeB, 0, 1);
+  /** Moves the split by `dx` from where the drag or key began, sharing the width of the chat (or of the pop-out
+   *  window). Each side keeps its minimum; with the drawer on the left its outer edge holds and the messages move. */
+  const splitBy = (s, dx) => {
+    const sg = s.side === 'left' ? -1 : 1;
+    const d = Math.round(Math.max(drawer.minWidth(), Math.min(s.total - DRAWER_SPLIT_MIN, s.d - sg * dx)));
+    drawerW = d;
+    if (!s.pop) { sizeW = s.total - d; applySize(); }
+    if (s.side === 'left' && saved) saved = { x: s.x + d - s.d, y: saved.y };
+    layoutDrawer();
   };
-  const keepPlace = () => { setPref('chatLeft', root.style.left ? parseInt(root.style.left, 10) : null); setPref('chatTop', root.style.top ? parseInt(root.style.top, 10) : null); };
-  { const l = getPref('chatLeft'), tp = getPref('chatTop'); if (Number.isFinite(l) && Number.isFinite(tp)) placeAt(l, tp); }
-  mover.addEventListener('pointerdown', (e) => {
-    if (e.button != null && e.button !== 0) return;
-    e.preventDefault?.();
+  const splitStart = () => {
+    const side = sideNow();
+    if (touch || (side !== 'right' && side !== 'left')) return null;
+    const d = dwNow();
+    const total = popWrap ? Number(popout?.view()?.innerWidth) || 0 : msgsW(true) + d;
+    return { side, d, total, pop: !!popWrap, x: saved?.x ?? 0 };
+  };
+  const keepSplit = (s) => { keepSize(); keepDrawer(); if (s?.side === 'left') keepPlace(); };
+  pointerDrag(split, {
+    start: () => { const s = splitStart(); if (s) drag = s; return s; },
+    move: (s, dx) => splitBy(s, dx),
+    end: (s) => { drag = null; keepSplit(s); },
+  });
+  split.addEventListener('dblclick', () => { drawerW = null; keepDrawer(); layoutDrawer(); });
+  split.addEventListener('keydown', (e) => {
+    const dx = { ArrowLeft: -CHAT_SIZE_STEP, ArrowRight: CHAT_SIZE_STEP }[e.code];
+    const s = dx ? splitStart() : null;
+    if (!s) return;
+    e.preventDefault?.(); e.stopPropagation?.();
+    splitBy(s, dx);
+    keepSplit(s);
+  });
+  // The handle moves the whole chat with its peek; on the desktop skin the empty part of the top bar does too.
+  // A window too small for the saved place draws the box pulled inside it and keeps the saved place.
+  let moving = false;
+  let viewSeen = '';
+  let tucked = false;
+  /** The drawer's side: '' (shut, tucked, or the chat closed), 'right', 'left', or 'over' the messages. */
+  const sideNow = (evenTucked = false) => {
+    if (!drawer.isOpen() || (tucked && !evenTucked)) return '';
+    const dw = dwNow();
+    if (popWrap) return (Number(popout?.view()?.innerWidth) || 0) - dw >= DRAWER_SPLIT_MIN ? 'right' : 'over';
+    if (!log.open) return '';
+    const vwN = Number(win.innerWidth) || 800, w = Math.min(sizeW ?? CHAT_WIDTH_BASE, vwN - 28);
+    const x = saved ? shownPlace(saved.x, saved.y, w, 40, vwN, Number(win.innerHeight) || 600).x : 14;
+    return drawerSide({ x, w, dw, vw: vwN });
+  };
+  let drawerKey = '';
+  /** The right edge of the chat and its drawer while the drawer is open beside it (tucked or not), else null. */
+  const besideRight = () => {
+    const side = sideNow(true);
+    if (popWrap || (side !== 'right' && side !== 'left')) return null;
+    const vwN = Number(win.innerWidth) || 800, dw = dwNow();
+    const x = saved ? placeOf(saved.x, saved.y).x : 14;
+    return Math.round((side === 'left' ? x - dw : x) + Math.min(msgsW(true) + dw, vwN - 28));
+  };
+  const layoutDrawer = () => {
+    drawer.paint();
+    const side = sideNow(), dw = dwNow();
+    const right = side === 'right' || side === 'left' ? besideRight() : null;
+    const key = `${side}|${dw}|${popWrap ? 1 : 0}|${right}|${sizeW}`;
+    if (key === drawerKey) return;
+    drawerKey = key;
+    // The Company window (ui/socialPanel.js) is placed right of the chat and its drawer.
+    if (right != null) { docEl?.setAttribute?.('data-dfchat-drawer', side); setVar('--dfchat-right', `${right}px`); }
+    else { docEl?.removeAttribute?.('data-dfchat-drawer'); setVar('--dfchat-right', null); }
+    for (const n of [root, popWrap]) {
+      if (!n?.dataset) continue;
+      if (n === (popWrap ?? root) && side) n.dataset.drawer = side; else delete n.dataset.drawer;
+    }
+    setVar('--dfchat-dw', `${dw}px`);
+    popDoc?.documentElement?.style?.setProperty('--dfchat-dw', `${dw}px`);
+    publishW();
+    split.setAttribute('aria-valuenow', String(dw));
+    split.setAttribute('aria-valuemin', String(drawer.minWidth()));
+    placeShown();
+    placeFind();
+    // The drawer's minimum is the tab strip width, known only once it is drawn, so a change lays it out again.
+    if (side && drawer.measure()) { drawerKey = ''; layoutDrawer(); }
+  };
+  drawerLaid = true;
+  const toggleDrawer = () => {
+    if (!log.open && !popWrap) { if (!open()) return; drawer.setOpen(true); } else drawer.setOpen(!drawer.isOpen());
+    layoutDrawer();
+  };
+  const setView = (v) => {
+    view = v === 'letters' && dockLetters ? 'letters' : 'chat';
+    if (box.dataset.view !== view) box.dataset.view = view;
+    if (view === 'letters') { input.blur?.(); setEmojiOpen(false); setChanOpen(false); clearSuggest(); menu.close(); }
+    paint();
+  };
+  const placeOf = (x, y) => shownPlace(x, y, msgsW(), Math.max(40, root.offsetHeight || 40), win.innerWidth || 800, win.innerHeight || 600);
+  /** How far left of the chat's own place the root is drawn: the width of a drawer opened on the left. */
+  const leftShift = () => (sideNow() === 'left' ? dwNow() : 0);
+  const placeShown = () => {
+    viewSeen = `${win.innerWidth}x${win.innerHeight}`;
+    if (!saved) { root.style.left = ''; root.style.top = ''; return; }
+    const p = placeOf(saved.x, saved.y);
+    root.style.left = `${p.x - leftShift()}px`; root.style.top = `${p.y}px`;
+  };
+  /** A player's move: the place drawn is the place saved. */
+  const moveTo = (x, y) => { saved = placeOf(x, y); placeShown(); };
+  const keepPlace = () => { setPref('chatLeft', saved ? saved.x : null); setPref('chatTop', saved ? saved.y : null); };
+  placeShown();
+  let placeSeen = null;
+  /** Settings > Chat writes the size and the place (a preset, Reset): the next frame draws them. */
+  const syncPrefs = () => {
+    if (!drag) {
+      const w = sizeOf(getPref('chatWidth')), h = sizeOf(getPref('chatListHeight'));
+      if (w !== sizeW || h !== sizeH) { sizeW = w; sizeH = h; applySize(); placeShown(); }
+      const d = sizeOf(getPref('chatDrawerW'));
+      if (d !== drawerW) { drawerW = d; layoutDrawer(); }
+    }
+    if (!moving) {
+      const at = savedChatPlace();
+      const key = at ? `${at.x},${at.y}` : '';
+      if (placeSeen !== null && key !== placeSeen) { saved = at; placeShown(); }
+      placeSeen = key;
+    }
+    if (`${win.innerWidth}x${win.innerHeight}` !== viewSeen) placeShown();
+  };
+  const startMove = () => {
+    if (popWrap) return null;
     const r = root.getBoundingClientRect();
-    move = { id: e.pointerId ?? null, dx: (Number(e.clientX) || 0) - r.left, dy: (Number(e.clientY) || 0) - r.top };
-    if (e.pointerId != null) capturePointer(mover, e.pointerId);
-  });
-  mover.addEventListener('pointermove', (e) => {
-    if (!move || (move.id != null && e.pointerId != null && e.pointerId !== move.id)) return;
-    placeAt((Number(e.clientX) || 0) - move.dx, (Number(e.clientY) || 0) - move.dy);
-  });
-  const endMove = () => { if (!move) return; const id = move.id; move = null; if (id != null) releasePointer(mover, id); keepPlace(); };
-  mover.addEventListener('pointerup', endMove);
-  mover.addEventListener('pointercancel', endMove);
-  mover.addEventListener('dblclick', () => { placeAt(null, null); keepPlace(); });
+    moving = true;
+    return { x: r.left + leftShift(), y: r.top };
+  };
+  const moveDrag = { start: startMove, move: (m, dx, dy) => moveTo(m.x + dx, m.y + dy), end: () => { moving = false; keepPlace(); } };
+  pointerDrag(mover, moveDrag);
+  pointerDrag(tabs, { ...moveDrag, start: (e) => (!touch && isBarGap(e.target, tabs, tabList) ? startMove() : null) });
+  mover.addEventListener('dblclick', () => { saved = null; placeShown(); keepPlace(); });
   mover.addEventListener('keydown', (e) => {
     const step = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }[e.code];
     if (!step) return;
     e.preventDefault?.(); e.stopPropagation?.();
     const r = root.getBoundingClientRect();
-    placeAt(r.left + step[0], r.top + step[1]);
+    moveTo(r.left + leftShift() + step[0], r.top + step[1]);
     keepPlace();
   });
-  grip.addEventListener('pointerup', endDrag);
-  grip.addEventListener('pointercancel', endDrag);
   grip.addEventListener('dblclick', () => resetSize());
   // the keyboard's way: arrows step the width and the list's height, stopped here so the host's ring never walks
   grip.addEventListener('keydown', (e) => {
     const step = { ArrowLeft: [-CHAT_SIZE_STEP, 0], ArrowRight: [CHAT_SIZE_STEP, 0], ArrowUp: [0, -CHAT_SIZE_STEP], ArrowDown: [0, CHAT_SIZE_STEP] }[e.code];
     if (!step) return;
     e.preventDefault?.(); e.stopPropagation?.();
-    resizeTo(widthNow() + step[0], listNow() + step[1], unseen === 0 && atNewest());
-    keepSize();
+    sizeBy(sizeStart(), step[0], step[1]);
+    keepSize(); keepDrawer();
   });
 
   /**
@@ -1900,6 +2099,9 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     const pw = popout?.view();
     popout?.frame();
     if (!alive || !popWrap || !pw) return;
+    popMem.sample(pw);
+    syncLook();
+    layoutDrawer();
     if (log.version !== painted) paint();
     paintVoice(); paintWho(); paintSocial(); paintNames();
     pw.requestAnimationFrame?.(popFrame);
@@ -1908,6 +2110,9 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const mountPop = (pw, wrap) => {
     const pd = pw.document;
     injectChatStyle(pd);
+    dockStyle?.(pd);
+    popDoc = pd;
+    lookKey = null; syncLook();
     // the skin's pixel face is a font sheet in the game's head (the enhanced skin's); the window is handed the same links
     for (const l of doc.querySelectorAll?.('link[rel="stylesheet"][href*="fonts.googleapis"]') ?? []) pd.head?.append(l.cloneNode(true));
     pd.title = t('chat.popTitle', 'Bunnyfall chat');
@@ -1919,8 +2124,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     popWrap = wrap;
     wrap.append(box);
     pw.addEventListener('keydown', onKey, true);   // the field's keys, typed in that window, are the panel's as here (CG2)
-    pw.addEventListener('resize', () => { if (popWrap && pinned && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; placeFind(); });   // a reader at the foot stays there
-    findIn = null; placeFind();   // the roster column by that window's width
+    pw.addEventListener('resize', () => { if (popWrap && pinned && unseen === 0) list.scrollTop = list.scrollHeight ?? 0; placeFind(); popMem.sample(pw); popMem.save(); });   // a reader at the foot stays there
+    findIn = null; placeFind();
     if (!log.open) log.setOpen(true);
     paint(true);
     paintPopBtn();
@@ -1929,15 +2134,18 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   /** The window went (docked, closed by hand, reloaded, never came up): the box comes home, the chat closed. */
   const dockPop = () => {
+    popMem.save();
     menu.close(); hideChatItemTip(); clearSuggest();
     popWrap = null;
+    popDoc = null;
     if (box.parentNode !== root) root.append(box);   // last in the root, where it was built
     findIn = null; placeFind();
     if (log.open) log.setOpen(false);
     paint();
     paintPopBtn();
   };
-  popout = createChatPopout({ win, onReady: mountPop, onGone: dockPop });
+  const popMem = createPopMemory();
+  popout = createChatPopout({ win, onReady: mountPop, onGone: dockPop, features: chatPopFeatures });
   const popOut = () => {
     if (popout.state()) return;
     if (!popout.open()) {
@@ -1957,7 +2165,30 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   docked.addEventListener('click', () => { popout.close(); open(); });
   for (const ev of ['pointerdown', 'mousedown', 'click', 'touchstart']) docked.addEventListener(ev, swallow);
   paintPopBtn();
-  placeFind();   // CHAT-FIND: the strip is in the page from the start, where the screen says it goes
+  placeFind();   // the search strip is in the page from the start, where the drawer says it goes
+
+  /** Where the friends panel draws in the chat: the drawer's Friends and Party, the Letters view, and the calls that
+   *  show them. A friends panel created after the chat draws into it (ui/chatDrawer.js chatDock). */
+  const dockApi = {
+    drawer: drawer.social, letters: drawer.letters,
+    view: () => (alive && sideNow() ? drawer.tab() : null),
+    lettersUp: () => alive && view === 'letters' && (log.open || !!popWrap),
+    show: (v) => {
+      if (!log.open && !popWrap && !open()) return false;
+      if (v === 'letters') setView('letters'); else { drawer.setTab(v); drawer.setOpen(true); }
+      layoutDrawer();
+      return true;
+    },
+    toggle: () => toggleDrawer(),
+    besideRight: () => besideRight(),
+    tuck: (on) => { if (tucked !== !!on) { tucked = !!on; layoutDrawer(); } },
+    attach: ({ letters = false, badge = null, style = null } = {}) => {
+      drawer.attach(badge); dockLetters = !!letters; dockBadge = badge; dockStyle = style;
+      style?.(doc);
+      paint();
+    },
+  };
+  setChatDock(dockApi);
 
   return {
     root, input,
@@ -2005,7 +2236,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     isHidden: () => hidden,
     setHidden,
     /** CHAT-SIZE: the player's size (null: the sheet's own), and the way back to the sheet's. */
-    size: () => ({ width: sizeW, listHeight: sizeH, scale: 1, fit }),   // CHAT-REWORK: the text no longer scales
+    size: () => ({ width: sizeW, listHeight: sizeH, scale: chatScale(), fit }),
     resetSize,
     // AUDIT-CHATR F5: a `whoRows()` accessor stood here, labelled "for
     // the pins". No pin ever called it - they read the drawn column out
@@ -2028,10 +2259,15 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     render({ covered = false, status: line = null, here: hereAct = null } = {}) {
       if (!alive) return;
       popout?.frame();   // CHAT-REWORK: the chat's window come up, or gone
+      // Sampled here too, so a window moved without a resize is still saved.
+      { const pv = popout?.view(); if (pv) popMem.sample(pv); }
+      syncLook();
       if (covered || overlay()) { if (log.open) closePanel(); if (root.style.display !== 'none') root.style.display = 'none'; return; }
       if (root.style.display !== '') root.style.display = '';
+      syncPrefs();
       publishFit();   // CHAT-SIZE: the screen can change under the chat (a rotate, a resized window) - said on a change only
-    placeFind();   // CHAT-FIND: and the strip follows the roster column in and out of the page
+    placeFind();   // and the search strip follows the drawer's Online tab
+      layoutDrawer();
       if (log.version !== painted) paint();
       paintVoice();   // STAFF-CHAT-RED: every frame - my glyphs, the tab in front and Me's ask move with no line said
       // CHAT-R2/R1: the dataset the sheet reads, and the roster - both
@@ -2064,6 +2300,10 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       releaseCursorKey();
       // CHAT-SIZE: the footprint it published goes with it - a page with no chat places the friends panel by the sheet
       for (const k of ['--dfchat-w', '--dfchat-scale', '--dfchat-list-h']) setVar(k, null);
+      unmountChatLook(doc);
+      setVar('--dfchat-dw', null); setVar('--dfchat-right', null);
+      docEl?.removeAttribute?.('data-dfchat-drawer');
+      clearChatDock(dockApi);
       docEl?.removeAttribute?.('data-dfchat-fit');
       root.remove?.();
     },

@@ -31,8 +31,9 @@ export function chatPopoutUrl(href) {
  * @param {(pop: any, wrap: any) => void} o.onReady  the page is up: `wrap` is where the chat goes
  * @param {() => void} o.onGone  the window went (or never came): the chat comes home
  * @param {() => number} [o.now]
+ * @param {() => string} [o.features]  the window.open features (its size and place)
  */
-export function createChatPopout({ win, onReady, onGone, now = () => Date.now() }) {
+export function createChatPopout({ win, onReady, onGone, now = () => Date.now(), features = () => 'popup=yes,width=560,height=640' }) {
   let pop = null;
   let state = null;   // null | 'opening' | 'open'
   let since = 0;
@@ -54,7 +55,7 @@ export function createChatPopout({ win, onReady, onGone, now = () => Date.now() 
       if (state) { try { pop?.focus?.(); } catch { /* gone */ } return true; }
       if (typeof win.open !== 'function') return false;
       let w = null;
-      try { w = win.open(chatPopoutUrl(win.location?.href ?? ''), CHAT_POPOUT_NAME, 'popup=yes,width=560,height=640'); } catch { w = null; }
+      try { w = win.open(chatPopoutUrl(win.location?.href ?? ''), CHAT_POPOUT_NAME, features()); } catch { w = null; }
       if (!w) return false;
       pop = w;
       state = 'opening';

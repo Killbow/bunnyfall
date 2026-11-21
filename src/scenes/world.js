@@ -27422,7 +27422,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     closePrompt: (box) => { if (box.done) return; box.onYes = null; box.onNo = null; box.answer(false); },
     say: (text) => chatNotice(text),
     mid: (text, seconds = PARTY_REST_FAR_SECONDS) => setMidScreenText(text, seconds),   // PARTY-READY: the leader's wait stands the round
-    tabOpen: () => !!socialPanel?.isOpen?.() && socialPanel.tab() === 'party',   // PARTY-READY: the tab answers the round itself
+    tabOpen: () => !!socialPanel?.showing?.('party'),
     travel: (pick, opts, computed) => partyTravelJourney(pick, opts, computed),
     openMap: () => toggleTravelMap(),
     clock: () => performance.now(),
