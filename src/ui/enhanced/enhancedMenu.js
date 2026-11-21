@@ -237,6 +237,7 @@ import { plusTheme, setPlusTheme } from './enhancedPlusStyle.js';
 import { plusCursorOn, setPlusCursor } from '../plus/plusCursor.js';   // OVH1: the three looks
 import { CHAT_LANGS } from '../../net/wire.js';   // CHAT-LANG: the language channels, for the Chat rows
 import { TEXT_FONTS, textFont, textFontSystem, setTextFont, setTextFontSystem, cleanFamily, canListFonts, installedFamilies, fontMatches } from '../textFont.js';   // TEXT-FONT: the words' face
+import { CHAT_FONT_SAME, CHAT_TEXT_SIZES, chatFont, chatTextSize } from '../chatLook.js';
 import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, GRIMOIRE_TEXTS, GRIMOIRE_COMPASSES, grimoireText, grimoireCompass, setGrimoireText, setGrimoireCompass, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial, isDressMark } from '../grimoireDress.js';   // GRIM1: Bunnyfall Grimoire's own rows; GRIM3: and its spellbook
 import { UI_PACKS, packUrl } from '../../systems/uiPack.js';   // OVH2: a pack's own picture on its card
 import { FEATURES, KINDS, KIND_ORDER, featureForControl, resolveControl, modModules, modDials, featureSearchText } from '../../systems/features.js';   // FT14: each mod's curated keys (ORG2: the map places the rows, ui/settings/settingsMap.js)
@@ -3346,6 +3347,13 @@ function peerSpritesCard() {
     t('menu.chat.lfgNote', 'A chat tab for finding a group, or filling yours. You can also join it with /join lfg.'), { home: true }));
   c.append(prefRow('chatChannelColours', t('menu.chat.colours', 'Chat colors by channel'),
     t('menu.chat.coloursNote', 'World white, Region green, Company purple, Local gray, Party teal, Language rose, Trade gold, LFG blue.'), { home: true }));
+  c.append(choiceRow('chatFont', t('menu.chat.font', 'Chat font'),
+    t('menu.chat.fontNote', 'The font the chat is written in. The rest of the game keeps its own text font.'),
+    [[CHAT_FONT_SAME, t('menu.chat.fontSame', 'Same as game text')], ...Object.entries(TEXT_FONTS)], { home: true, read: chatFont }));
+  if (chatFont() === 'system') c.append(systemFontRow(render));
+  c.append(choiceRow('chatTextSize', t('menu.chat.size', 'Chat text size'),
+    t('menu.chat.sizeNote', 'How big the words in the chat are. The A- and A+ buttons at the top of the chat change it too.'),
+    CHAT_TEXT_SIZES.map((n) => [n, t('menu.chat.sizePercent', '{n}%', { n })]), { home: true, read: chatTextSize }));
   c.append(prefRow('chatPingSound', t('menu.chat.ping', 'Chime when someone @mentions you'),
     t('menu.chat.pingNote', 'Lines with @YourName are always marked in gold. This adds a sound.'), { home: true }));
   c.append(prefRow('chatChimeSound', t('menu.chat.chime', 'Chime for new chat messages'),

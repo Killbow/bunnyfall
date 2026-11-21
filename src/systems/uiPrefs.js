@@ -133,13 +133,15 @@ export const PREF_DEFAULTS = Object.freeze({
   // launch too - the panel is still built and still counting unread,
   // so bringing it back finds the room where they left it.
   chatHidden: false,
-  // CHAT-SIZE (2026-09-23, Mac: "the ability to click and drag the chat to resize/along with the text"): the chat
-  // box's width and its list's height in CSS pixels, as the player dragged them - null is the sheet's own default
-  // (min(440px, 100vw - 28px) wide, min(220px, 34vh) of list). The text's scale follows the width (ui/chatPanel.js).
+  // The chat box's width and its list height in CSS px, as the player set them. Null is the sheet's own size
+  // (min(440px, 100vw - 28px) wide, min(220px, 34vh) of list). Text size is a separate pref, chatTextSize.
   chatWidth: null,
   chatListHeight: null,
   // BUNNYFALL CHAT-MOVE: where the player dragged the chat to (CSS px from the top-left) - null is the sheet's corner
   chatLeft: null, chatTop: null,
+  // The chat font ('' follows the game text font, else a TEXT_FONTS key from ui/textFont.js) and its text size in
+  // percent (CHAT_TEXT_SIZES in ui/chatLook.js).
+  chatFont: '', chatTextSize: 100,
   // TI2: THE PHONE IN HAND, TUNED (2026-09-11, Mac: "enhance the mobile
   // element... camera movement, character movement and a more phone
   // built feel"). The touch layer's own knobs - DFU has no touch input

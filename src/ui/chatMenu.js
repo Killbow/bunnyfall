@@ -26,7 +26,7 @@ export const CHAT_MENU_CSS = `
   min-width: 172px; max-width: 250px; max-height: min(420px, 70vh); overflow-y: auto; padding: 4px; box-sizing: border-box;
   background: rgba(17, 19, 24, .98); border: 1px solid rgba(233, 228, 217, .14); border-radius: 7px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .55); scrollbar-width: thin; scrollbar-color: rgba(233, 228, 217, .25) transparent; }
-.dfchat-pmenu-head { display: flex; align-items: center; gap: 6px; padding: 4px 8px 5px; font-size: 11px; color: var(--brass, #c08a3e);
+.dfchat-pmenu-head { display: flex; align-items: center; gap: 6px; padding: 4px 8px 5px; font-size: calc(11px * var(--dfchat-scale, 1)); color: var(--brass, #c08a3e);
   letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dfchat-pmenu-sep { height: 1px; margin: 3px 4px; background: rgba(233, 228, 217, .1); flex: none; }
 .dfchat-mi { display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; background: none; border: 0;

@@ -45,23 +45,29 @@ export function wordStack(id = textFont(), system = textFontSystem()) {
 
 const fontUrl = (file, root = APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/', dir = DYSLEXIC_DIR) => new URL(`${dir}/${file}`, root).href;
 
-/** The sheet, for the choice in hand. */
-export function textFontCss(id = textFont(), system = textFontSystem()) {
-  const words = wordStack(id, system);
-  const keep = [...KEEP_SELECTORS, ...KEEP_SELECTORS.map((q) => `${q} *`)].join(', ');
-  let css = '/* TEXT-FONT: ui/textFont.js */\n';
+/** The @font-face rules a choice needs: the shipped Dyslexic and Book faces, fetched only when chosen. */
+export function fontFaceCss(id) {
   if (id === 'dyslexic') {
-    css += `@font-face { font-family: '${DYSLEXIC_FAMILY}'; font-weight: 400; font-display: swap; src: url("${fontUrl('opendyslexic-latin-400-normal.woff2')}") format('woff2'); }
+    return `@font-face { font-family: '${DYSLEXIC_FAMILY}'; font-weight: 400; font-display: swap; src: url("${fontUrl('opendyslexic-latin-400-normal.woff2')}") format('woff2'); }
 @font-face { font-family: '${DYSLEXIC_FAMILY}'; font-weight: 700; font-display: swap; src: url("${fontUrl('opendyslexic-latin-700-normal.woff2')}") format('woff2'); }
 `;
   }
   if (id === 'book') {
     const book = (f) => fontUrl(f, undefined, BOOK_DIR);
-    css += `@font-face { font-family: '${BOOK_FAMILY}'; font-weight: 400; font-display: swap; src: url("${book('alegreya-latin-400-normal.woff2')}") format('woff2'); }
+    return `@font-face { font-family: '${BOOK_FAMILY}'; font-weight: 400; font-display: swap; src: url("${book('alegreya-latin-400-normal.woff2')}") format('woff2'); }
 @font-face { font-family: '${BOOK_FAMILY}'; font-weight: 400; font-style: italic; font-display: swap; src: url("${book('alegreya-latin-400-italic.woff2')}") format('woff2'); }
 @font-face { font-family: '${BOOK_FAMILY}'; font-weight: 700; font-display: swap; src: url("${book('alegreya-latin-700-normal.woff2')}") format('woff2'); }
 `;
   }
+  return '';
+}
+
+/** The sheet, for the choice in hand. */
+export function textFontCss(id = textFont(), system = textFontSystem()) {
+  const words = wordStack(id, system);
+  const keep = [...KEEP_SELECTORS, ...KEEP_SELECTORS.map((q) => `${q} *`)].join(', ');
+  let css = '/* TEXT-FONT: ui/textFont.js */\n';
+  css += fontFaceCss(id);
   if (words) {
     css += `:root { --dfo-text-font: ${words}; }
 body, body *:not(:is(${keep})) { font-family: var(--dfo-text-font) !important; -webkit-font-smoothing: auto !important; font-synthesis: weight style !important; }
