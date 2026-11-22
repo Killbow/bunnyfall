@@ -2539,8 +2539,10 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       if (now >= c.expires) lapsed = true;
     }
     if (lapsed) ui++;
-    if (journeyKey() !== paintedJourney) ui++;   // PARTY-UI: a round opened, an answer landed, a journey began - the block again
-    if (!!canLead() !== paintedLead) ui++;   // PARTY-LEAD: the hub's word came (or a reconnect lost it) - Make leader drawn or taken away
+    // Only the window's repaint records these two, so they are compared only while it is open.
+    // The chat drawer keys on both itself.
+    if (open && journeyKey() !== paintedJourney) ui++;
+    if (open && !!canLead() !== paintedLead) ui++;
   };
 
   /** THE TOAST, which is the panel's one part that draws while the panel is shut. It goes away on either button, at
