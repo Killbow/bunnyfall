@@ -44,4 +44,20 @@ export function cromwarkDoor(/** @type {any} */ maps, /** @type {any} */ dfLocat
 /** The doors' words, read when said. */
 export const cromwarkTownText = (/** @type {'boarded' | 'looted'} */ k) => (k === 'boarded'
   ? t('cromwark.door.boarded', 'The door is boarded up. Nobody has lived here since Cromwark fell.')
-  : t('cromwark.door.looted', 'The house stands open. Whatever was here was taken long ago.'));
+  : t('cromwark.door.looted', 'The house stands open. Almost everything here was taken long ago.'));
+
+// False until the world host registers the map files.
+export function cromwarkLooted(/** @type {any} */ bd) {
+  const region = bd?.townMapId != null ? _maps?.getRegion?.(bd.regionIndex ?? -1) : null;
+  const i = region?.mapIdLookup?.get(bd.townMapId);
+  return i != null && cromwarkDesolateLocation(null, { mapTableData: region.mapTable[i] });
+}
+export const CROMWARK_SCRAP_ODDS = 12;
+export function cromwarkLeftovers(/** @type {any[]} */ items, /** @type {any} */ bd, /** @type {string} */ key, /** @type {number} */ day) {
+  if (!cromwarkLooted(bd)) return items;
+  let h = 0x811c9dc5;
+  for (const c of `${bd.townMapId}:${bd.buildingKey}:${key}:${day}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12;
+  const worth = (/** @type {any} */ it) => (it.value ?? 0) * (it.stackCount ?? 1);
+  return !items?.length || h % CROMWARK_SCRAP_ODDS ? [] : [items.reduce((a, b) => (worth(b) < worth(a) ? b : a))];
+}

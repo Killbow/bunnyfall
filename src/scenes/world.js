@@ -11581,11 +11581,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  it, DFU's own quirk); a civilian who can starts the 5-10 second
    *  arrival countdown the pool's update already consumes. */
   /** ROAD-B: the ONE entry to PlayerEntity.SpawnCityGuards for this
-   *  host, both arms. The INDOOR arm (:628-642) runs first and, when
-   *  it takes the call, RETURNS - a crime in an open shop, a tavern or
-   *  a residence is answered at that building's own lowest outer door
-   *  by the interior's own watch pool, and the street law below never
-   *  runs. Every other case falls through here exactly as C# falls
+   *  host, both arms. In a desolate Cromwark town the call returns before either arm.
+   *  The INDOOR arm (:628-642) runs next; when it takes the call, it RETURNS.
+   *  A crime in an open shop, tavern, or residence is answered at the building's
+   *  lowest outer door by its interior watch pool, and the street law below
+   *  never runs. Every other case falls through here exactly as C# falls
    *  through the `if`. The note this host used to carry (below, at
    *  the mode machine's `spawnCityGuards` key, where its retirement is
    *  written) said the arm was unreachable because "this host's pool
@@ -11613,7 +11613,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   function rrRidingContacts() { rrRiding.contacts(); }
   function _spawnGuards(immediate) {
-    if (modes?.spawnCityGuardsInside?.(immediate)) return;
+    if (cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y) || modes?.spawnCityGuardsInside?.(immediate)) return;
     const feet = walkMode && playerSpawned ? player.pos : cam.pos;
     const fwd = [Math.sin(cam.yaw), 0, Math.cos(cam.yaw)];
     cityGuards.spawnCityGuards(!!immediate, { playerFeet: [...feet], playerFwd: fwd, pool: _guardPool() }).catch((e) => console.error('[guards]', e));

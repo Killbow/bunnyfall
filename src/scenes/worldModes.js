@@ -24,7 +24,7 @@ import { upgradeArgents } from '../net/gearUpgradeLaw.js';
 
 import { readableTargets, readableName, readReadable } from './editorReadables.js';   // BUNNYFALL
 import { nextPersonLine } from '../world/editorPeople.js';   // BUNNYFALL: the Dungeon Editor's people
-import { cromwarkDoor, cromwarkTownText } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate doors
+import { cromwarkDoor, cromwarkTownText, cromwarkLooted, cromwarkLeftovers } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate doors
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { markInteriorLoad } from '../ui/interiorLoadMark.js';   // a building's load is a ring over the hotbar, not the full screen
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN
@@ -3714,7 +3714,7 @@ export function createWorldModes(host) {
     const fresh = needsRestock(shelf, today);   // AUDIT WORLD6a A5: said at the window's mount, whichever window
     if (fresh) {
       shelf.stockedDate = today;
-      shelf.items = shelfLootSpawned(stockShopShelf({ buildingType: b.buildingType, quality: b.quality }, playerEntity, { shelfIndex: i }), b);   // PlayerActivate.OnLootSpawned (:885): RRI2's three shelf hooks, then the other mods' in load order (Foraging's FORAGE3, Come Sail Away's CSA-H)
+      shelf.items = cromwarkLeftovers(shelfLootSpawned(stockShopShelf({ buildingType: b.buildingType, quality: b.quality }, playerEntity, { shelfIndex: i }), b), b, `shelf:${i}`, today);   // PlayerActivate.OnLootSpawned (:885): RRI2's three shelf hooks, then the other mods' in load order (Foraging's FORAGE3, Come Sail Away's CSA-H)
     }
     // AUDIT 26 F066: DFU NEVER opens a paying trade window in a
     // closed shop. PlayerActivate gates shelf activation on
@@ -3723,7 +3723,7 @@ export function createWorldModes(host) {
     // (SetShopShelfStealing): the shelf is the Remove-mode remote and
     // taking is stealing. The port's inventory-with-loot shape IS
     // that window, and PT1 gave it the consequence below.
-    if (b.insideOpenShop === false) {
+    if (b.insideOpenShop === false || cromwarkLooted(b)) {
       // PT1: SetShopShelfStealing's other half, at the window's own
       // teardown (:681-687). No roll, no guards, no crime record - a
       // COUNT comparison against the shelf as it stood when the window
@@ -3731,11 +3731,12 @@ export function createWorldModes(host) {
       // used to sit here promised "the shoplifting ROLL and its crime
       // tally"; the roll belongs to the house-container arm and never
       // to this one.
-      const shelfBefore = new Set(shelf.items);   // STOLEN-GOODS AUDIT S1: the shop's keeping as the window opens - what the mark and the tally both read
+      // A desolate Cromwark shop has no owner, so nothing is counted or marked stolen.
+      const shelfBefore = cromwarkLooted(b) ? null : new Set(shelf.items);   // STOLEN-GOODS AUDIT S1: the shop's keeping as the window opens - what the mark and the tally both read
       const win = interiorInventory({
         loot: { items: () => shelf.items, stolenFrom: shelfBefore },   // STOLEN-GOODS: a take of the shop's own piece off a shut shelf is a theft - the piece is marked as it lands
         onClose: () => {
-          if (shopShelfTheft(shelfBefore, shelf.items)) tallyCrimeGuildRequirements(playerEntity, true, 1);
+          if (shelfBefore && shopShelfTheft(shelfBefore, shelf.items)) tallyCrimeGuildRequirements(playerEntity, true, 1);
           decorDeliverCarried();   // DECOR2b: furniture taken off the shelf is delivered, never carried
         },
       });
@@ -8184,7 +8185,7 @@ export function createWorldModes(host) {
         // real, if stupid, way into a house.
         if (isBash && !opened) {
           if (!dice100(25 - lockValue, Math.random())) {   // Dice100.FailedRoll(25 - lock)
-            if (dice100(10, Math.random())) {
+            if (!cromwarkLooted(bd) && dice100(10, Math.random())) {
               setCrimeCommitted(playerEntity, CRIMES.Attempted_Breaking_And_Entering);   // PT1: the ONE crime write
               host.spawnCityGuards?.(true);
             }
@@ -8249,7 +8250,7 @@ export function createWorldModes(host) {
         // above is that same return) and only a bash that showed no box
         // - or showed the HUD line - can be noticed. Ported where C#
         // has it rather than where it reads more sensibly.
-        if (isBash && dice100(10, Math.random())) {
+        if (isBash && !cromwarkLooted(bd) && dice100(10, Math.random())) {
           setCrimeCommitted(playerEntity, CRIMES.Breaking_And_Entering);
           host.spawnCityGuards?.(true);
         }
@@ -8934,7 +8935,7 @@ export function createWorldModes(host) {
       // removed it (:715-722) - is simply rebuilt with fresh loot,
       // which is what SerializableStateManager.RestoreLootContainerData
       // (:427-459) does by having no entry to apply.
-      if (!privateVisitRoom && !interiorCabin) seedTreasureMarkers(hit.dfLocation?.mapTableData?.locationType ?? -1);
+      if (!privateVisitRoom && !interiorCabin && !cromwarkLooted(interiorBuilding)) seedTreasureMarkers(hit.dfLocation?.mapTableData?.locationType ?? -1);
       // Q4-v: the quest layer mounts with the interior (RMBLayout's
       // AddQuestResourceObjects moment - the walk runs once the site's
       // buildingKey is known).
@@ -9254,11 +9255,11 @@ export function createWorldModes(host) {
           let fresh = false;   // AUDIT WORLD6a A5: this open rolled the new day's stock (said at the window, not at the roll)
           const openLoot = (privateProperty = false) => {
             if (privateProperty) interiorLootBirth(interiorCtx, key, _intShared);   // OUTDOOR-LOOT: the Yes mints the held roll as the room's and composes it into the cupboard - BEFORE the keeping below is taken, or a first opener's theft marks read an empty one
-            const before = privateProperty ? new Set(c.items ?? []) : null;   // STOLEN-GOODS AUDIT S1: the owner's keeping - the mark's and the basket's one Set
+            const before = privateProperty && !cromwarkLooted(b) ? new Set(c.items ?? []) : null;   // STOLEN-GOODS AUDIT S1: the owner's keeping - the mark's and the basket's one Set
             const win = interiorInventory({
               loot: { items: () => c.items, storage: !privateProperty, stolenFrom: before },   // SHIP-STORE: an owned house's or ship's cupboard is the player's storage, two-way; STOLEN-GOODS: a stranger's is a theft, each take of theirs marked as it lands
               onClose: () => {
-                if (!privateProperty) return;
+                if (!before) return;
                 const out = privatePropertyTheft({
                   basket: theftBasket(before, c.items ?? []),
                   pickpocketSkill: skillValue(playerEntity, SKILLS.Pickpocket),
@@ -9301,11 +9302,13 @@ export function createWorldModes(host) {
               rolled = stockHouseContainer({ buildingType: b?.buildingType, record: containerTextureRecord(c.modelIdNum) }, playerEntity);
               // FORAGE3: PlayerActivate.OnLootSpawned (:914), raised for a house container as for a shelf - before
               // "If no contents" (:916), so a subscriber's item can fill a cupboard that stocked empty
-              raiseContainerLootSpawned({ containerType: LOOT_CONTAINER_TYPES.HouseContainers, items: rolled, buildingType: b?.buildingType, quality: b?.quality, luck: liveStat(playerEntity, 'luck') });
+              rolled = cromwarkLeftovers(raiseContainerLootSpawned({ containerType: LOOT_CONTAINER_TYPES.HouseContainers, items: rolled, buildingType: b?.buildingType, quality: b?.quality, luck: liveStat(playerEntity, 'luck') }), b, key, today);
               if (!interiorLootRoll(interiorCtx, key, rolled, _intShared, today)) { c.stockedDate = today; c.items = rolled; }   // OUTDOOR-LOOT: online the roll is HELD by the room - never written to the cupboard, so the plaque stays a name and a No claims nothing
               fresh = true;   // AUDIT WORLD6a A5: said at the window's mount, after the prompt - No claims nothing
             }
             if ((rolled ?? c.items).length === 0) return true;   // "If no contents, do nothing"
+            // A desolate town's cupboard skips the private-property question and opens with no theft roll.
+            if (cromwarkLooted(b)) { openLoot(true); return true; }
             // UXB1-M: DFU's own box (PlayerActivate.cs:916-918: CommonMessageBoxButtons.YesNo, PrivatePropertyId) -
             // Yes and No a mouse presses, on the parchment or the enhanced card; Y, N and Return (No) as DFU's.
             interiorOverlay = new YesNoBoxWindow({
