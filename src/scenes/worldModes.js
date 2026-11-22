@@ -14163,7 +14163,7 @@ export function createWorldModes(host) {
       if (mode !== 'interior' || !interiorBuilding) return null;
       const t = interiorBuilding.buildingType;
       // AUDIT 29 D4: a smith's open for trade - not one broken into by night (its insideOpenShop latch false)
-      if (t === BUILDING_TYPES.WeaponSmith || t === BUILDING_TYPES.Armorer) return interiorBuilding.insideOpenShop === false ? null : { kind: 'shop', fee: FORGE_FEE };
+      if (t === BUILDING_TYPES.WeaponSmith || t === BUILDING_TYPES.Armorer) return interiorBuilding.insideOpenShop === false || cromwarkLooted(interiorBuilding) ? null : { kind: 'shop', fee: FORGE_FEE };
       if (stationOwnerHere() && interiorDecor.list().some((p) => p?.station === 'forge')) return { kind: 'home', fee: 0 };
       if (hallMemberHere() && interiorDecor.list().some((p) => p?.station === 'forge')) return { kind: 'home', fee: 0 };   // AUDIT GUILD1d A2: a hall's, its members'
       return caravanGuestStation('forge');   // WAGONS2-VISIT: and a caravan's, its visitor's
@@ -14172,7 +14172,7 @@ export function createWorldModes(host) {
      *  trade (its use fee, WORKBENCH_FEE gold a craft or a saw), or their own home's workbench station - or null. */
     workbenchHere() {
       if (mode !== 'interior' || !interiorBuilding) return null;
-      if (interiorBuilding.buildingType === BUILDING_TYPES.FurnitureStore) return interiorBuilding.insideOpenShop === false ? null : { kind: 'shop', fee: WORKBENCH_FEE };
+      if (interiorBuilding.buildingType === BUILDING_TYPES.FurnitureStore) return interiorBuilding.insideOpenShop === false || cromwarkLooted(interiorBuilding) ? null : { kind: 'shop', fee: WORKBENCH_FEE };
       if (stationOwnerHere() && interiorDecor.list().some((p) => p?.station === 'workbench')) return { kind: 'home', fee: 0 };
       if (hallMemberHere() && interiorDecor.list().some((p) => p?.station === 'workbench')) return { kind: 'home', fee: 0 };   // AUDIT GUILD1d A2
       return caravanGuestStation('workbench');   // WAGONS2-VISIT: and a caravan's, its visitor's
@@ -14181,7 +14181,7 @@ export function createWorldModes(host) {
      *  open for trade (its use fee, LOOM_FEE gold a craft, a cure or a weave), or their own home's loom station - or null. */
     loomHere() {
       if (mode !== 'interior' || !interiorBuilding) return null;
-      if (interiorBuilding.buildingType === BUILDING_TYPES.ClothingStore) return interiorBuilding.insideOpenShop === false ? null : { kind: 'shop', fee: LOOM_FEE };
+      if (interiorBuilding.buildingType === BUILDING_TYPES.ClothingStore) return interiorBuilding.insideOpenShop === false || cromwarkLooted(interiorBuilding) ? null : { kind: 'shop', fee: LOOM_FEE };
       if (stationOwnerHere() && interiorDecor.list().some((p) => p?.station === 'loom')) return { kind: 'home', fee: 0 };
       if (hallMemberHere() && interiorDecor.list().some((p) => p?.station === 'loom')) return { kind: 'home', fee: 0 };   // AUDIT GUILD1d A2
       return caravanGuestStation('loom');   // WAGONS2-VISIT: and a caravan's, its visitor's
