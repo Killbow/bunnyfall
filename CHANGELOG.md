@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-22
+
+- Fixed: Buttons inside the chat drawer's Party and Friends lists now work when clicked.
+
 ## 2026-11-21
 
 - The chat now has its own font and text size from 85% to 150%, set in Settings > Chat or with the A- and A+ buttons in its top bar. The chat's own window uses them too, and it now shows the game text font by default instead of the pixel font.
