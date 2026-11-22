@@ -393,6 +393,7 @@ export const ROUTES = new Set([
   // account vault (accountVault.js), the Dusk Tokens (nyx.js), the great cannon (cannon.js), player festivals and guestbooks
   '/v1/account/vault', '/v1/account/vault/put', '/v1/account/vault/take', '/v1/account/vault/gold',
   '/v1/nyx/found', '/v1/nyx/total', '/v1/cannon', '/v1/cannon/give',
+  '/v1/sentinel', '/v1/sentinel/give', '/v1/sentinel/buy',   // BUNNYFALL: the Sentinel garrison event (sentinel.js)
   '/v1/territories',   // BUNNYFALL COMPANIES: every Company's territory (territory.js)
   '/v1/charters/found', '/v1/charters/invite', '/v1/charters/answer', '/v1/charters/leave',   // BUNNYFALL COMPANIES: City Charters (charters.js)
   '/v1/blight', '/v1/blight/push',   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)

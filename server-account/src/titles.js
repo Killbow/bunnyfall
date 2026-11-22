@@ -105,6 +105,7 @@ import { farmTitlesFor, FARM_TITLE_AURA } from '../../src/net/farm/farmWorkLaw.j
 import { EG_HONOUR, EG_HONOUR_TITLES, EG_HONOUR_AURA, EG_CHAMPION_TITLE, EG_FIRST_TITLE, EG_FIRST_AURA } from './egHonours.js';   // EG-E2: the Spire's honours on the row
 import { LAMP_TITLE } from './lamp.js';   // LAMP-KEEPER II: I Love Lamp on the row
 import { QL_TITLES, qlTitleBit } from '../../src/net/questlineClaims.js';   // QL12: the questlines' titles on the row
+import { SENTINEL_DONOR_PIECES, SENTINEL_DONOR_TITLE, SENTINEL_DONOR_AURA } from '../../src/net/sentinelLaw.js';   // BUNNYFALL: the Sentinel event's donor honours
 import { festivalWaresHeld, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../src/net/festivalLaw.js';   // WITCH1: the Witches' Festival's wares and honours on the row
 import { STAFF_GLYPHS } from '../../src/net/staffCommands.js';   // STAFF-PANEL2-FIX: the glyphs that open the staff's commands, none held while cut off
 import { MASTERY_MARKS } from '../../src/net/huntLaw.js';   // HUNTERS-MARK, MARKS-OF-MASTERY: the hunt's, a Master's and the sea's titles
@@ -403,6 +404,9 @@ export function titlesHeld(player, env) {
   if (typeof player?.handle === 'string' && player.handle) {
     for (const t of festivalKeys(player, 'title')) if (!held.includes(t)) held.push(t);
     if (Number(player?.fest_given) >= HEARTHKEEPER_GIVEN) held.push(HEARTHKEEPER_TITLE);
+    // BUNNYFALL (the Sentinel event): BANNERBEARER once the account has given SENTINEL_DONOR_PIECES pieces to the envoy
+    // (`sentinel_given`, sentinel.js), held for good
+    if (Number(player?.sentinel_given) >= SENTINEL_DONOR_PIECES) held.push(SENTINEL_DONOR_TITLE);
     // HUNTERS-MARK, MARKS-OF-MASTERY: derived from the account's rows (hunts.js masteryMarksRead) - its board clears, a
     // living Master of a profession, the serpents it helped slay - laid on the row as `masteryMarks` for this request alone
     if (Array.isArray(player?.masteryMarks)) for (const t of MASTERY_MARKS) if (player.masteryMarks.includes(t) && !held.includes(t)) held.push(t);
@@ -444,6 +448,7 @@ export function aurasHeld(player, env) {
   if (typeof player?.handle === 'string' && player.handle) for (const a of festivalKeys(player, 'aura')) if (!held.includes(a)) held.push(a);   // WITCH1: Witchfire, bought
   // FARM EXPANSION (10.3): First Light with Sovereign of the Sheaf - the breach's dawn ring, given to the farm while the breach is shut
   if (typeof player?.handle === 'string' && player.handle) for (const t of farmTitlesFor(player?.farm_work)) { const a = FARM_TITLE_AURA[t]; if (a && !held.includes(a)) held.push(a); }
+  if (typeof player?.handle === 'string' && player.handle && Number(player?.sentinel_given) >= SENTINEL_DONOR_PIECES) held.push(SENTINEL_DONOR_AURA);   // BUNNYFALL: Sentinel's Banner with its title
   return held;
 }
 

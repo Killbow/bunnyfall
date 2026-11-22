@@ -29,6 +29,7 @@ import { createNyxOverlay } from '../ui/nyxWindow.js';
 import { TENT_MODEL } from '../systems/survival/camp.js';
 import { trs } from '../world/mat4.js';
 import { createCannonHost } from './cannonHost.js';
+import { createSentinelHost } from './sentinelHost.js';   // BUNNYFALL: the Sentinel garrison's noble and its bar (the month's event)
 import { createWorldEventsBoard } from '../ui/worldEventsBoard.js';   // BUNNYFALL: the realm's notices - its events and the Discord   // BUNNYFALL: the great cannon by Wayrest, the smaller event
 import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
 import { IDLE_ANIMS } from '../characters/mobile/mobileUnit.js';
@@ -71,7 +72,8 @@ export function createCromwarkHost(deps) {
   const clock = createHazeClock();
   const cannon = createCannonHost(deps);   // the great cannon by Wayrest (scenes/cannonHost.js)
   // the board of the realm's events, once a session as the world stands (ui/worldEventsBoard.js)
-  const board = createWorldEventsBoard({ cannon: () => cannon.progress(), askCannon: () => cannon.ask(), cromwark: CROMWARK_ON, ready: () => !!deps.boardReady?.() });
+  const sentinel = createSentinelHost(deps);   // the Sentinel garrison's noble (scenes/sentinelHost.js)
+  const board = createWorldEventsBoard({ cannon: () => cannon.progress(), askCannon: () => cannon.ask(), sentinel: () => sentinel.progress(), askSentinel: () => sentinel.ask(), ready: () => !!deps.boardReady?.() });
   let lastT = null, heartS = 0;
   let hud = null;
 
@@ -106,6 +108,7 @@ export function createCromwarkHost(deps) {
     hudFrame();
     campFrame();
     try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); }
+    try { sentinel.frame(); } catch (e) { console.warn('[sentinel]', e?.message ?? e); }
     try { board.frame(); } catch (e) { console.warn('[events board]', e?.message ?? e); }
     owedFrame(now);
   }
@@ -397,19 +400,20 @@ export function createCromwarkHost(deps) {
     /** The Guild camp's post `[{ court: { css, name }, x, y }]` for the held map (empty until its pixel is known). */
     campPosts: () => { try { const p = campPoint(); return p ? [{ court: { css: '#9b4dff', name: t('nyx.campMark', 'Guild Camp (Nyx)') }, x: p.x, y: p.y }] : []; } catch { return []; } },
     /** The cannon alone, for a game with no online frame to carry it (it stands offline too; only its build and its gifts need the service). */
-    cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } },
+    cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } try { sentinel.frame(); } catch (e) { console.warn('[sentinel]', e?.message ?? e); } },
     /** The cannon's shot, its flash and smoke, for the particle pass (null with none). */
     particles: () => cannon.particles(),
     /** Nyx's billboard, for the host's flats. */
-    batches: () => [...(at ? [...(batch ? [batch] : []), ...guardBatches] : []), ...(deps.poiNpcs?.()?.batches() ?? [])],
+    batches: () => [...(at ? [...(batch ? [batch] : []), ...guardBatches] : []), ...sentinel.batches(), ...(deps.poiNpcs?.()?.batches() ?? [])],
     /** The Guild's tent, in the host's world pass. */
     draw(r = renderer) { const c = cannon.draw(r); if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return c; r.drawMesh(tent.gpu, tentMat, null); for (const m of tentMats) r.drawMesh(tent.gpu, m, null); return c + 1 + tentMats.length; },
     /** The eye's box on her. */
-    targets: () => [...(at && box ? box : []), ...cannon.targets(), ...(deps.poiNpcs?.()?.targets() ?? [])],
-    hoverName: (key) => cannon.hoverName(key) ?? deps.poiNpcs?.()?.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Dusk Tokens')] } : null),
+    targets: () => [...(at && box ? box : []), ...cannon.targets(), ...sentinel.targets(), ...(deps.poiNpcs?.()?.targets() ?? [])],
+    hoverName: (key) => cannon.hoverName(key) ?? sentinel.hoverName(key) ?? deps.poiNpcs?.()?.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Dusk Tokens')] } : null),
     /** A press on her: Info names her, anything else opens her window. */
     activate(key, mode = 'grab') {
       if (cannon.ours(key)) return cannon.activate(key, mode);
+      if (sentinel.ours(key)) return sentinel.activate(key, mode);
       if (deps.poiNpcs?.()?.ours(key)) return deps.poiNpcs().activate(key, mode);   // BUNNYFALL
       if (key !== 'nyx:camp' || !at) return false;
       if (mode === 'info') deps.say?.(t('nyx.info', 'You see Nyx, the Adventurers\' Guild\'s quartermaster. She trades in Dusk Tokens.'));
@@ -417,7 +421,7 @@ export function createCromwarkHost(deps) {
       else open();
       return true;
     },
-    ours: (key) => key === 'nyx:camp' || cannon.ours(key) || !!deps.poiNpcs?.()?.ours(key),
+    ours: (key) => key === 'nyx:camp' || cannon.ours(key) || sentinel.ours(key) || !!deps.poiNpcs?.()?.ours(key),
     /** For the probes. */
     state: () => ({ site, at, haze: { on: clock.on, s: clock.seconds, mult: clock.mult }, owed, heart: heartS }),
     /** Death resets the haze. */

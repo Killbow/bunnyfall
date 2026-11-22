@@ -86,7 +86,8 @@ const el = (/** @type {string} */ tag, /** @type {string|null} */ cls = null, /*
  * @param {{
  *   cannon?: () => ({ round: number, share: number } | null),
  *   askCannon?: () => any,
- *   cromwark?: boolean,
+ *   sentinel?: () => ({ pct: { stay: number, leave: number } | null, dark: boolean, over: boolean, outcome: string | null, daysLeft: number } | null),
+ *   askSentinel?: () => any,
  *   ready?: () => boolean,
  * }} deps `ready`: the world stands (not loading, not the menu) - the board waits for it
  */
@@ -115,12 +116,19 @@ export function createWorldEventsBoard(deps = {}) {
     board.replaceChildren();
     board.append(el('h1', null, 'Notices of the Realm'), el('p', 'sub', 'What stirs in the Iliac Bay. Read, then go and make your mark.'));
     const notes = el('div', 'notes');
-    if (deps.cromwark !== false) {
+    {
+      // BUNNYFALL (2026-11-20): replaces the Purple Haze's notice - the Sentinel garrison's month (scenes/sentinelHost.js)
       const n = el('section', 'note'); n.style.setProperty('--tilt', '-1.2deg');
-      n.append(icons([p.coin]), el('h2', null, 'The Purple Haze over Cromwark'),
-        el('p', null, 'A daedric haze has swallowed the Cromwark reach. Its foes come back stronger, and they drop Dusk Tokens, more of them the deeper you go.'),
-        el('p', null, 'Spend the coins at Nyx\'s camp by the reach for titles and gear no shop sells. No teleporting in or out: walk, and mind the haze timer.'),
-        el('p', 'where', 'Where: the Wrothgarian Mountains, east of Wrothgaria. For seasoned adventurers.'));
+      const s = deps.sentinel?.() ?? null;
+      n.append(el('h2', null, "Sentinel's Warriors at the Reach"),
+        el('p', null, 'The soldiers Sentinel left at the edge of Cromwark have gone months without pay or a full ration. They can be armed to stay and press the war, or fitted for the road home.'),
+        el('p', null, "Give arms and armor to Sentinel's envoy and choose a side. Every gift moves the bar, and the garrison's choice cannot be undone."));
+      if (s && !s.over && s.pct) {
+        const bar = el('div', 'bar'); const fill = el('i'); fill.style.width = `${s.pct.stay}%`; bar.append(fill);
+        n.append(bar, el('p', 'where', `Stay ${s.pct.stay}% · Go home ${s.pct.leave}%. ${s.daysLeft} days left.`));
+      } else if (s && !s.over) n.append(el('p', 'where', `The count is secret in the last days. ${s.daysLeft} left.`));
+      else if (s?.over) n.append(el('p', 'where', s.outcome === 'stay' ? 'The garrison has chosen to stay.' : s.outcome === 'leave' ? 'The garrison has gone home.' : 'The garrison has divided.'));
+      n.append(el('p', 'where', "Where: Sentinel's warriors, at the reach's edge, marked on your map."));
       notes.append(n);
     }
     {
@@ -164,6 +172,7 @@ export function createWorldEventsBoard(deps = {}) {
     document.body.append(root);
     offOverlay = registerOverlay(closeBoard);
     try { deps.askCannon?.(); } catch { /* the board stands without the build */ }
+    try { deps.askSentinel?.(); } catch { /* the board stands without the bar */ }
     render();
     tick = setInterval(render, 1500);
   }
