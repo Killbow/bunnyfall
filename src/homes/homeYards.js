@@ -668,6 +668,7 @@ export function createHomeYards(deps) {
   const kitStands = (rec) => !!rec && !!deps.campPool?.()?.camps?.some?.((x) => x?.rec?.id === rec);
   /** MY KIT'S TENTS AND MY CAMPS BROUGHT IN LINE, near me, for the character I play. */
   function lineUpCamps() {
+    for (const id of campOwed.keys()) settleOwed(id);
     const pool = deps.campPool?.();
     const char = deps.character?.() ?? null;
     const feet = deps.feet?.() ?? null;
@@ -687,7 +688,7 @@ export function createHomeYards(deps) {
         const c = res?.ok ? campOf(res.data?.camp) : null;
         if (c) {
           campsById.set(c.id, c);
-          if (!res.data?.repeat) deps.say?.(`Your camp will stay when you leave. Stand in it to decorate it (up to ${CAMP_CAP} pieces).`);
+          if (!res.data?.repeat && !campOwed.has(r.id)) deps.say?.(`Your camp will stay when you leave. Stand in it to decorate it (up to ${CAMP_CAP} pieces).`);
           return;
         }
         campRefused.set(r.id, now());
@@ -699,31 +700,46 @@ export function createHomeYards(deps) {
       }, () => {}).finally(() => { campAsking.delete(r.id); });
     }
     for (const c of mine) {
-      if (!c.rec || recs.has(c.rec) || campStriking.has(c.id)) continue;
+      if (!c.rec || recs.has(c.rec) || campStriking.has(c.id) || campOwed.has(c.rec)) continue;
       const o = campOriginOf(c);
       if (!o || Math.hypot(o[0] - feet[0], o[2] - feet[2]) > CAMP_LINE_M) continue;
       if (seenRecs.has(c.rec)) strikeKept(c.id, c.pieces.length);
     }
   }
   function strikeKept(id, pieces) {
-    if (campStriking.has(id)) return;
+    if (campStriking.has(id)) return Promise.resolve(null);
     campStriking.add(id);
-    Promise.resolve(deps.api.campStrike(id)).then((res) => {
-      if (!res?.ok && res?.error !== 'no-camp') return;
+    return Promise.resolve(deps.api.campStrike(id)).then((res) => {
+      if (!res?.ok && res?.error !== 'no-camp') return res;
       campsById.delete(id);
       if (pieces) deps.say?.('Your camp is packed up, and its decorations with it.');
-    }, () => {}).finally(() => { campStriking.delete(id); });
+      return res;
+    }, () => null).finally(() => { campStriking.delete(id); });
+  }
+  // Packed tents whose camp still has to be struck, retried each line-up until the service answers; dropped when a
+  // load brings the tent back or another character plays. Memory only.
+  /** @type {Map<string, { char: string|null, at: { px: number, py: number } | null, busy: boolean }>} */
+  const campOwed = new Map();
+  const owedAgain = (res) => !res || res.error === 'offline' || res.error === 'server';
+  function settleOwed(recId) {
+    const o = campOwed.get(recId);
+    if (!o || o.busy || campAsking.has(recId)) return;
+    if (o.char !== (deps.character?.() ?? null) || kitStands(recId)) { campOwed.delete(recId); return; }
+    o.busy = true;
+    Promise.resolve(keptCampOf({ id: recId }, o.at)).then((k) => {
+      if (!k) return true;
+      return k.id ? strikeKept(k.id, k.pieces).then((res) => !owedAgain(res)) : false;
+    }).then((done) => { if (done) campOwed.delete(recId); }, () => {}).finally(() => { o.busy = false; });
   }
   function scenePixelOf(pos) {
     const t = deps.translation(0, 0);
     return { px: Math.floor((pos[0] - t[0]) / CAMP_PIXEL_M), py: -Math.floor((pos[2] - t[2]) / CAMP_PIXEL_M) };
   }
   /** @returns {{ id: string|null, pieces: number } | null | Promise<{ id: string|null, pieces: number } | null>} */
-  function keptCampOf(rec) {
+  function keptCampOf(rec, at = Array.isArray(rec.pos) ? scenePixelOf(rec.pos) : null) {
     const hit = (list) => list.find((c) => c?.mine && c.rec === rec.id) ?? null;
     const near = hit([...campsById.values()]);
-    if (near || !deps.api?.campsNear || !Array.isArray(rec.pos)) return near ? { id: near.id, pieces: near.pieces.length } : null;
-    const at = scenePixelOf(rec.pos);
+    if (near || !deps.api?.campsNear || !at) return near ? { id: near.id, pieces: near.pieces.length } : null;
     return Promise.resolve(deps.api.campsNear(at.px, at.py)).then((r) => {
       if (!r?.ok) return { id: null, pieces: 1 };
       const c = hit((r.data?.camps ?? []).map(campOf));
@@ -734,7 +750,10 @@ export function createHomeYards(deps) {
     loaded: () => seenRecs.clear(),
     free: () => deps.slotFree?.() ?? true,
     kept: keptCampOf,
-    struck: (rec) => Promise.resolve(keptCampOf(rec)).then((k) => { if (k?.id) strikeKept(k.id, k.pieces); }),
+    struck: (rec) => {
+      campOwed.set(rec.id, { char: deps.character?.() ?? null, at: Array.isArray(rec.pos) ? scenePixelOf(rec.pos) : null, busy: false });
+      settleOwed(rec.id);
+    },
   });
   /** The pieces a camp stands: its own, and the kit's tent and fire while nobody's live record of them stands. */
   const campPiecesOf = (c) => (!c.mine && !kitStands(c.rec) ? [...c.pieces, ...campKitPieces(c.yaw)] : c.pieces);

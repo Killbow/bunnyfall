@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: Packing up a tent now removes its camp from the Camps page at once, even if you cast Recall, mount, go indoors, or leave the game right after.
 - Fixed: When decorating a yard, home, or caravan, Place now says how much more gold you need once your unconfirmed pieces use it up.
 - Fixed: Decorating a camp no longer asks for gold or says a piece has left your pack, and a full camp is no longer called your yard.
 - Fixed: Placing a fifth tent or fire now asks first when it would pack up your oldest camp and its decorations.

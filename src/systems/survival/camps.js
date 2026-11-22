@@ -644,6 +644,7 @@ export function createCamps({
       const r = packCamp(c.rec);
       if (r.item && entity) (entity.items ??= []).push(r.item);
       drop(c); say(r.text); onChanged?.();
+      if (c.rec.kind === CAMP_KIND.Tent) keeper?.struck?.(c.rec);
       return;
     }
     if (key === 'cook') openCook(c);
