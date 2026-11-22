@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-21
 
+- Fixed: Revenants near the reach of Cromwark no longer make lairs in its sealed dungeons, and an existing lair there moves to the nearest open dungeon in range.
 - Fixed: Sealed dungeons in the reach of Cromwark now open for players holding a bounty that sends them there.
 - Fixed: Quests no longer send players to boarded-up buildings in Cromwark's ruined towns, and players on a quest that already targets one can now go inside.
 - Fixed: Smiths, furniture stores, and clothiers in Cromwark's ruined towns no longer offer their forge, workbench, or loom.

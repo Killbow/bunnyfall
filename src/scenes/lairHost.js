@@ -24,6 +24,8 @@ import { RUMOR_PX } from '../systems/revenant/revenantFeud.js';
 import { meshHasDungeonEntrance } from '../systems/travel/travelDungeonModels.js';
 import { layoutLocation } from '../world/locationLayout.js';
 import { isEnhanced } from '../systems/uiSkin.js';
+import { wildMaskOf, wildInside } from '../systems/wild/wildZone.js';
+import { isOnlinePage } from '../systems/online/onlineLane.js';
 
 /**
  * Whether laid blocks place a dungeon-entrance door: `entranceOf(modelIdNum)` answers true, false, or null where the
@@ -79,8 +81,10 @@ export function createLairDoor({ maps, blocks, arch, locations, dungeons, region
     byModel.set(id, v);
     return v;
   };
-  /** Can the player go down into the place at map pixel (`px`, `py`)? Not judged - true. */
+  /** Whether the place at map pixel (`px`, `py`) can be entered. Online, the reach's dungeons never
+   *  count; a place whose entrance cannot be read counts as enterable. */
   const enterable = (px, py) => {
+    if (isOnlinePage() && wildInside(wildMaskOf(maps), px, py)) return false;
     const en = !!enhanced();
     const key = `${en ? 1 : 0}:${px},${py}`;
     const kept = byPixel.get(key);
