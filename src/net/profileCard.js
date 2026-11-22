@@ -15,8 +15,8 @@
 // Nothing on the card is vouched for: it is the answering player's own word about their own character, drawn as theirs.
 //
 // Not a DFU member: Daggerfall Unity has no other players. Ledger A (ONLINE).
-import { STAT_KEYS_ORDER } from '../systems/chargen.js';
-import { liveStat, maxFatigue, FATIGUE_MULTIPLIER } from '../systems/statMods.js';
+import { STAT_KEYS_ORDER } from '../characters/chargen.js';
+import { liveStat, maxFatigue, FATIGUE_MULTIPLIER } from '../characters/statMods.js';
 import { composeLook } from './remotePlayers.js';
 import { validCard, CARD_LEVEL_MAX, CARD_STAT_MAX, CARD_VITAL_MAX } from './wire.js';
 

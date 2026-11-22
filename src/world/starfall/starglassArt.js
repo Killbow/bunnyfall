@@ -10,7 +10,7 @@
 // registers it at its import.
 //
 // Pure but for its registration. Not a DFU member. Ledger A (STARFALL).
-import { image, putTexel, ramp, paletteOf, quantize } from '../superDungeon/sdPixelKit.js';
+import { image, putTexel, ramp, paletteOf, quantize } from '../sdPixelKit.js';
 import { STAR_RAMPS } from './starArt.js';
 
 /** Starglass's pseudo-archive (registered in world/eliteGates/pseudoArchives.js), its one record. */

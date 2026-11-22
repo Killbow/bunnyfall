@@ -18,7 +18,7 @@
 
 import { rand } from './dfRandom.js';   // ROAD-A7: GetRandomTokens' dfRand arm
 import { INTERNAL_RSC } from './rscTable.js';   // MAC-U: DFU's Internal_RSC rows, read before the file (TextProvider.cs:167-188)
-import { tryGetLocalizedText, currentLocale, TextCollections, BASE_LOCALE } from '../systems/textManager.js';   // L10N3a: the locale's own row first
+import { tryGetLocalizedText, currentLocale, TextCollections, BASE_LOCALE } from '../ui/textManager.js';   // L10N3a: the locale's own row first
 
 export const RSC = Object.freeze({
   NewLine: 0x00, EndOfPage: 0xf6, InputCursorPositioner: 0xf8,

@@ -12,7 +12,7 @@
 // The popover is position: fixed, a child of the chat's own root (or of the popped-out chat window's wrapper,
 // ui/chatPopout.js), never of the box: the box's backdrop-filter would make it the containing block. It closes on a
 // choice, on Escape (the panel asks `close`), on a press anywhere outside it, and when what it hangs under scrolls.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** The words a folded group's entry wears. */
 const GROUP_LABEL = Object.freeze({

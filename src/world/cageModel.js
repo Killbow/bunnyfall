@@ -15,7 +15,7 @@
 // jambs under the beam, the posts capped over it). Pure.
 //
 // Not a DFU member. Ledger A (WB).
-import { faces, GATE_STONE_RECORD, GATE_PLINTH_RECORD, GATE_ARCHIVE } from './gate/gateModel.js';
+import { faces, GATE_STONE_RECORD, GATE_PLINTH_RECORD, GATE_ARCHIVE } from './gateModel.js';
 
 /** The cage, metres: across, deep, and high over her feet (her idle stands 2.15). */
 export const CAGE_W = 2.2;

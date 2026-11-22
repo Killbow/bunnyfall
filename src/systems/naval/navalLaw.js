@@ -26,7 +26,7 @@
 // had paid nothing - Warm Ashes' small raid declares its `_victory_` and never gives it, and the sea's own party
 // returned before the law was asked.
 
-import { CRIMES } from '../crimes.js';
+import { CRIMES } from '../../justice/crimes.js';
 import { CROWNS } from './navalShips.js';
 
 export const NOTORIETY = Object.freeze({ max: 100, fire: 30, sink: 20, board: 15, decayPerDay: 12 });

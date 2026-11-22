@@ -1,9 +1,9 @@
 // CHAT-POST (2026-10-27): A POSTED ITEM IN CHAT - coloured [Name] that opens the pack's own hover card.
 // One home for the panel (ui/chatPanel.js): the wire carries the record(s); the card is showItemHover's.
-import { showItemHover, hideItemHover, itemChatLabel } from './enhanced/enhancedInventory.js';
-import { rarityColour } from '../systems/loot/lootRarity.js';
-import { validLootItem } from '../systems/loot/loot.js';
-import { isEquipped } from '../systems/equip.js';
+import { showItemHover, hideItemHover, itemChatLabel } from './enhancedInventory.js';
+import { rarityColour } from '../items/lootRarity.js';
+import { validLootItem } from '../items/loot.js';
+import { isEquipped } from '../characters/equip.js';
 import { CHAT_ITEMS_MAX } from '../net/wire.js';
 
 /** The piece as a card may draw it, or null when the wire's shape is not an item this port could have minted. */

@@ -15,7 +15,7 @@
 // pixels its blit WROTE (the alpha sentinel below), never the ones whose colour changed - a leather cuirass laid over
 // skin of the same palette entry left those pixels the body's, and the armour came out speckled with skin.
 
-import { EQUIP_SLOTS } from '../systems/equip.js';
+import { EQUIP_SLOTS } from '../characters/equip.js';
 
 /** DOLL-BACK IV: the back's own light - how dark a rounded edge is against its middle, how much lighter a piece's top
  *  is than its bottom, the outline's and a seam's darkening, and the passes that smooth the pieces' borders. */

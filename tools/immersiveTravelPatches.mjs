@@ -44,9 +44,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMain } from './lib/isMain.mjs';
-import { readUnityBundle } from '../src/formats/unity/unityBundle.js';
+import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { BlocksFile } from '../src/formats/blocksFile.js';
-import { PATCH_FORMAT, rebuildWorldDataPatch } from '../src/formats/worldData/worldDataPatch.js';
+import { PATCH_FORMAT, rebuildWorldDataPatch } from '../src/formats/worldDataPatch.js';
 import { parseFullSerializerJson } from './worldDataPackBuild.mjs';
 import { makePatch, formatPatch, sha256Canonical } from './worldDataPatch.mjs';
 

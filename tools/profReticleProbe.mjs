@@ -25,16 +25,16 @@ try {
     await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
-    await page.goto('http://localhost:5241/src/ui/professions/profHud.js', { waitUntil: 'domcontentloaded' }); console.error('loaded', tag);   // a page of the origin - the modules import from it; never the landing (U60)
+    await page.goto('http://localhost:5241/src/ui/profHud.js', { waitUntil: 'domcontentloaded' }); console.error('loaded', tag);   // a page of the origin - the modules import from it; never the landing (U60)
     await page.evaluate(() => { document.head.querySelectorAll('style, link[rel=stylesheet]').forEach((n) => n.remove()); document.body.innerHTML = ''; document.body.style.cssText = 'margin:0;height:100vh;background:linear-gradient(#8aa0b5 0 48%, #55663f 48% 70%, #3f4d30 70%)'; const x = document.createElement('div'); x.style.cssText = 'position:fixed;left:50%;top:50%;width:9px;height:9px;transform:translate(-50%,-50%);background:linear-gradient(#e6dcc0,#e6dcc0) center/100% 1px no-repeat,linear-gradient(#e6dcc0,#e6dcc0) center/1px 100% no-repeat'; document.body.append(x); });
     const scenes = await page.evaluate(async () => {
-      const { createProfHud } = await import('/src/ui/professions/profHud.js');
-      const { createMineAct } = await import('/src/systems/mineAct.js');
-      const { createChopAct } = await import('/src/systems/chopAct.js');
-      const { createHerbAct } = await import('/src/systems/herbAct.js');
-      const { createTraceAct } = await import('/src/systems/traceAct.js');
-      const { createFishAct } = await import('/src/systems/fishAct.js');
-      const { setProfCueSink } = await import('/src/systems/professions/profSounds.js');
+      const { createProfHud } = await import('/src/ui/profHud.js');
+      const { createMineAct } = await import('/src/professions/mineAct.js');
+      const { createChopAct } = await import('/src/professions/chopAct.js');
+      const { createHerbAct } = await import('/src/professions/herbAct.js');
+      const { createTraceAct } = await import('/src/professions/traceAct.js');
+      const { createFishAct } = await import('/src/professions/fishAct.js');
+      const { setProfCueSink } = await import('/src/professions/profSounds.js');
       setProfCueSink(() => {});
       window.__hud = createProfHud({ anchor: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2, focal: window.innerHeight / 2 / Math.tan((65 * Math.PI) / 360) }) });
       const run = (n, f) => { for (let i = 0; i < n; i++) f(i); };

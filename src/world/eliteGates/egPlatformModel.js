@@ -45,10 +45,10 @@
 import { createMeshKit } from './meshKit.js';
 import { EG_DRESS, EG_KIT_MAP, egBandArchive, egTellArchive } from './egBandArt.js';
 import { EG_KIT_RECORD, egKitStyle } from './egKit.js';
-import { SD_REALM_ARCHIVE, SD_ISLAND_SIDES } from '../superDungeon/sdRealm.js';
-import { SD_STEP_THICK, SD_RISER_H } from '../superDungeon/sdSteps.js';
-import { SD_STEPS_RECORD, SD_STEPS_ATLAS, SD_STEP_BEVEL, SD_STEP_LINE } from '../superDungeon/sdStepsArt.js';
-import { buildStepModel, buildCrumbleChunks } from '../superDungeon/sdStepsModel.js';
+import { SD_REALM_ARCHIVE, SD_ISLAND_SIDES } from '../sdRealm.js';
+import { SD_STEP_THICK, SD_RISER_H } from '../sdSteps.js';
+import { SD_STEPS_RECORD, SD_STEPS_ATLAS, SD_STEP_BEVEL, SD_STEP_LINE } from '../sdStepsArt.js';
+import { buildStepModel, buildCrumbleChunks } from '../sdStepsModel.js';
 import { EG_CRUMBLE_TELL_RECORDS } from './egPlatformArt.js';
 
 /** THE PIECES' MEASURES (m): THE EDGE LINE's strip (the slab's own since EG-PLAY - out from the side, its top over the top

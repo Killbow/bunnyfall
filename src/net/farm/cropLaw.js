@@ -12,7 +12,7 @@
 //     Growth over an interval is integrated across the season's boundaries (seasonGrowth), so it is exact.
 // Pure: both ends read it.
 import { sharedClassicMinutes, wallMsForClassicMinutes } from '../wire.js';
-import { dateFromClassicMinutes, dateToClassicMinutes, seasonValue, SEASONS, MINUTES_PER_DAY, DAYS_PER_MONTH } from '../../systems/gameDate.js';
+import { dateFromClassicMinutes, dateToClassicMinutes, seasonValue, SEASONS, MINUTES_PER_DAY, DAYS_PER_MONTH } from '../../world/gameDate.js';
 
 const C = Object.freeze({ Desert: 224, Desert2: 225, Mountain: 226, Rainforest: 227, Swamp: 228, Subtropical: 229, MountainWoods: 230, Woodlands: 231, HauntedWoodlands: 232 });
 const { Fall, Spring, Summer } = SEASONS;

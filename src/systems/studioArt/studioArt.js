@@ -26,10 +26,10 @@
 import {
   textureEntry, textureKey, addVendorTextures, hasTextureReplacement, decodedTexture, decodedTextureTopDown, preloadTextureRecord, decodePng,
   holdTextureTiers, PRELOAD_CONCURRENCY,
-} from '../textureReplacement.js';
+} from '../../render/textureReplacement.js';
 import { LAST_CLASSIC_TEXTURE_ARCHIVE } from '../../formats/textureFile.js';
 import { DYE_COLORS, dyeToken } from '../../characters/dyes.js';
-import { APP_ROOT } from '../appRoot.js';
+import { APP_ROOT } from '../../platform/appRoot.js';
 
 /** Where the studio is served, under the site's root (`public/art/studio/` in the tree). */
 export const STUDIO_DIR = 'art/studio';

@@ -19,9 +19,9 @@
 
 import { PLUS_SKY, GRIM_SKY, NODE_R, FIRM_CSS, FIRM_STYLE_ID } from './firmamentWindow.js';
 import { GRIM_TONES, GRIMOIRE_STACK } from './grimoireDress.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import { capturePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
 
 const G = GRIM_TONES;

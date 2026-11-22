@@ -11,10 +11,10 @@
 // the throw with the rope leaving, the recovery), so every one of its anims is the one record holding all seven.
 
 import { WEAPON_TYPES, BOW_ANIMS, ALIGN, getWeaponAnims } from './fpsWeapon.js';
-import { decodePng } from '../systems/textureReplacement.js';
+import { decodePng } from '../render/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';
-import { cropImage } from './gun/pistolStrip.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { cropImage } from './pistolStrip.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 
 export const BALLISTA_STRIP = Object.freeze({ file: 'art/bunnyfall-ballista/ballista-frames.png', cells: 5 });
 export const GRAPPLE_STRIP = Object.freeze({ file: 'art/bunnyfall-grapple/grapple-frames.png', cells: 7 });

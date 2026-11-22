@@ -35,7 +35,7 @@ const PAGE_PATH = join(ROOT, PAGE_REL);
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>MWCROUCH probe</title></head>
 <body><script type="module">
 import { held, keyEdges, noteKeyDown, noteKeyUp, beginInputFrame, pressed, released, setBindings } from '/src/ui/input.js';
-import { createBindings, resetDefaults } from '/src/systems/inputActions.js';
+import { createBindings, resetDefaults } from '/src/ui/inputActions.js';
 import { Collider } from '/src/player/collider.js';
 import { PlayerMotor } from '/src/player/motor.js';
 

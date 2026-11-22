@@ -80,9 +80,9 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
   const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const [{ Renderer }, { MwBsaFile }, fp, rig] = await Promise.all([
     import('/src/render/renderer.js'),
-    import('/src/formats/morrowind/mwBsaFile.js'),
+    import('/src/formats/mwBsaFile.js'),
     import('/src/combat/fpArm.js'),
-    import('/src/combat/weapon/weaponRig.js'),
+    import('/src/combat/weaponRig.js'),
   ]);
   const cv = document.createElement('canvas');
   cv.style.width = '960px'; cv.style.height = '720px';

@@ -46,9 +46,9 @@
 import { PIXELIFY_FIVE_FACE, PIXEL_STACK } from './pixelifyFive.js';   // the enhanced face, with FIX-D's five ahead of it
 import { NAME_GAP_PX, namePixelSize, nameViewportScale } from '../net/remotePlayers.js';
 import { titleBadge, glyphBadges, glyphSvgNode, cssRgba, titlePaint, TITLE_PAINT_KEYS } from './playerBadge.js';   // ACC3: the same table the classic pass reads - one law, two faces   // the anchor's gap, and the size law's own two doors (AUDIT NAME1 F3)
-import { graphemesOf } from '../systems/graphemes.js';   // EMOTE1's characters, which JOURNAL1's notebook break reads too
+import { graphemesOf } from './graphemes.js';   // EMOTE1's characters, which JOURNAL1's notebook break reads too
 import { renownText } from '../net/renown.js';   // RENOWN1: Renown, left of the name
-import { guildTagText } from '../net/guild/guildLaw.js';   // GUILD1c: the guild's tag, right of the name
+import { guildTagText } from '../net/guildLaw.js';   // GUILD1c: the guild's tag, right of the name
 import { houseLine } from '../net/houseLaw.js';   // LEGACY7: the house, under the name
 import { ribbonColours, heraldryOf, heraldryColourOf, heraldryKey } from '../net/heraldryLaw.js';   // SEASON1 part two: a Season's banner ribbon, under the name; HERALDRY-SHOWN: the tag's frame
 import { heraldrySwatchSrc } from './heraldrySwatch.js';   // HERALDRY-SHOWN (Seats-Arc 8.1): the guild's shield, in its tag's frame

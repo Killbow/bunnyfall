@@ -2,9 +2,9 @@
 // BUNNYFALL FARM EXPANSION, PHASE 5 (docs/FARM-EXPANSION.md section 6.4): THE STATIONED BEASTS DRAWN - each at its beast
 // post, as its own kind's foe sprite (the enemy archive the revenant itself wears: ENEMY_BASICS' maleTexture, the same
 // MobileUnit the bands and the foes stand as) at a calm idle. Seen by everyone near the farm, as the herd is.
-import { MobileUnit } from '../../characters/mobile/mobileUnit.js';
-import { ENEMY_BASICS } from '../../characters/enemy/enemyBasics.js';
-import { setupFoeLook } from '../../characters/enemy/foeLook.js';
+import { MobileUnit } from '../../characters/mobileUnit.js';
+import { ENEMY_BASICS } from '../../characters/enemyBasics.js';
+import { setupFoeLook } from '../../characters/foeLook.js';
 import { mobileBillboardSize } from '../rmbFlats.js';
 
 /**

@@ -17,16 +17,16 @@
 // the player's data: the archive sheet (archive-sheet.html) reads them off the player's own ARENA2, and nothing here
 // draws them.
 import { wagonArt, wagonLookArt, WAGON_ARCHIVE, TEX as WAGON_TEX, LOOK_RECORDS, lookRecord, isGlassRecord } from '../../world/wagonArt.js';
-import { WAGON_OUTSIDE_LOOKS, CARAVAN_INSIDE_LOOKS, LOOK_NAMES } from '../wagon/wagonLooks.js';
-import { GALLEON_ARCHIVE, TEX as GALLEON_TEX, GALLEON_NIGHT, galleonArt, galleonGlow, shipStandIns } from '../../world/ships/galleonArt.js';
-import { CARRACK_ARCHIVE, TEX as CARRACK_TEX, CARRACK_NIGHT, carrackArt, carrackGlow } from '../../world/ships/carrackArt.js';
-import { LARGE_BOAT_ARCHIVE, TEX as BOAT_TEX, largeBoatArt } from '../../world/ships/largeBoatArt.js';
+import { WAGON_OUTSIDE_LOOKS, CARAVAN_INSIDE_LOOKS, LOOK_NAMES } from '../../travel/wagonLooks.js';
+import { GALLEON_ARCHIVE, TEX as GALLEON_TEX, GALLEON_NIGHT, galleonArt, galleonGlow, shipStandIns } from '../../world/galleonArt.js';
+import { CARRACK_ARCHIVE, TEX as CARRACK_TEX, CARRACK_NIGHT, carrackArt, carrackGlow } from '../../world/carrackArt.js';
+import { LARGE_BOAT_ARCHIVE, TEX as BOAT_TEX, largeBoatArt } from '../../world/largeBoatArt.js';
 import { TOWN_PICTURE_ARCHIVE, TOWN_PICTURES } from '../../world/townPictures.js';
 import { LEFAY_ARCHIVE, LEFAY_GRANITE, LEFAY_MARBLE, LEFAY_GILT, LEFAY_PLAQUE, LEFAY_BRONZE } from '../../world/lefayMonument.js';
 import { lefayArt } from '../../world/lefayArt.js';
 import { YARD_ARCHIVE, YARD_REC, yardArt } from '../../world/merchantYards/merchantYardArt.js';
 import { PORT_ARCHIVE, PORT_REC, PORT_PAINTERS, PORT_HOW } from '../../world/portArt.js';
-import { textureKey, textureName } from '../textureReplacement.js';
+import { textureKey, textureName } from '../../render/textureReplacement.js';
 import { STUDIO_LABEL } from './studioArt.js';
 
 /** A name as a file's label: lower case, words joined by dashes (`Weathered oak` -> `weathered-oak`). */

@@ -35,8 +35,8 @@
 
 import { CifRciFile } from '../formats/cifRciFile.js';
 import { frameToColor32 } from './fpsWeapon.js';   // the ONE indexed-bitmap bake
-import { weaponOffsetHeight } from '../ui/hud/hudLarge.js';
-import { validCastRate } from '../systems/castSpeed.js';   // CAST-SPEED: the rate a cast runs at
+import { weaponOffsetHeight } from '../ui/hudLarge.js';
+import { validCastRate } from '../magic/castSpeed.js';   // CAST-SPEED: the rate a cast runs at
 
 /** nativeScreenWidth / nativeScreenHeight (:44-45). NOT 320x200: the
  *  hands are laid out against a 300-wide surface, which is why they

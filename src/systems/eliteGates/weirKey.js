@@ -25,10 +25,10 @@
 // item's picture draws it (the custom template's world arm - systems/item/itemTemplates.js usesWorldTexture).
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from '../item/itemTemplates.js';
+import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from '../../items/itemTemplates.js';
 import { EG_TEXT } from '../../net/eliteGates/egLaw.js';
 import { WEIR_KEY_ART, registerWeirKeyArt } from '../../world/eliteGates/egKeyArt.js';   // EG-ZH: its own picture
-import { addVendorTextures } from '../textureReplacement.js';
+import { addVendorTextures } from '../../render/textureReplacement.js';
 import { WEIR_KEY_TEMPLATE, WEIR_KEY_LAW_ROW } from './weirKeyRow.js';   // KEY-LAW: its row a leaf, so the law knows it headless
 
 export { WEIR_KEY_TEMPLATE };

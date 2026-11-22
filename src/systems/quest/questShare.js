@@ -69,15 +69,15 @@ import { MEMBERSHIP_STATUS, isMainQuestName } from './questLists.js';
 import { TaskType } from './task.js';
 import { getInnerSymbolName } from './symbol.js';
 import { sharedActionMatches, takeLocalActions } from './shareActions.js';
-import { GUILDS, hasJoined } from '../guild/guilds.js';
+import { GUILDS, hasJoined } from '../../guilds/guilds.js';
 import { QUEST_FRAME_MAX } from '../../net/wire.js';
 import { BUILD_TAG } from '../../buildTag.js';   // SHARE-MEND: the sender's build rides the envelope, so a refusal can name a skew
 import { relayQuestOnline, relayQuestMovedLayout } from './questRepair.js';   // AUDIT SD III (D5): a shared copy laid on this page's world sizes
-import { isOnlinePage } from '../online/onlineLane.js';
+import { isOnlinePage } from '../../platform/onlineLane.js';
 import { isShelved } from './quest.js';   // QUEST-SHELF: a copy set aside
 import { lineStepOf } from '../questlines/qlLines.js';   // AUDIT QUESTLINES REWARD-2: a questline's step is never shared
 import { QL_STAMP } from '../questlines/qlState.js';   // AUDIT QUESTLINES BRANCH-12: the script a copy was read with
-import { t } from '../textManager.js';   // AUDIT QUESTLINES REWARD-2: the refusal's words
+import { t } from '../../ui/textManager.js';   // AUDIT QUESTLINES REWARD-2: the refusal's words
 import { ONLINE_REPUTE_GATES } from './onlineRepute.js';   // QUEST-AUDIT III REPUTE-SHARE: the gate, on receipt too
 
 /** The relay's own frame cap for a quest-share envelope (net/wire.js's

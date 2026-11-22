@@ -4,8 +4,8 @@
 // (ui/chargen.js), and made as a custom class is - the builder's career and its specials through the builder's own
 // parser - so every place a custom career goes (the save keeps it whole, the custom spell rule, the custom kit) takes it
 // with nothing new. `necromancer: true` marks it for the kit (systems/necromancy/necromancy.js giveNecromancerKit).
-import { buildCustomCareer } from '../customClass.js';
-import { parseCareerData } from '../specialAdvantages.js';
+import { buildCustomCareer } from '../../characters/customClass.js';
+import { parseCareerData } from '../../characters/specialAdvantages.js';
 import { NECROMANCER, NECROMANCER_NAME } from './necroLaw.js';
 
 /** A fresh Necromancer career. */

@@ -49,9 +49,9 @@
 // write. A LEAF but for the settings store and the xml registry.
 // ═══════════════════════════════════════════════════════════════════
 
-import { modSetting } from '../systems/modSettings.js';
+import { modSetting } from '../mods/modSettings.js';
 import { registerBillboardXml } from '../world/billboardXml.js';
-import { meanerMonstersAlone } from '../systems/enemyExpansion/dexSwitches.js';   // MUDEX1: beside DEX it is MUDEX
+import { meanerMonstersAlone } from '../mods/enemyExpansion/dexSwitches.js';   // MUDEX1: beside DEX it is MUDEX
 
 export const MEANER_MONSTERS_VENDOR = 'meanerMonsters';
 

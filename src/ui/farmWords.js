@@ -1,6 +1,6 @@
 // BUNNYFALL FARM EXPANSION: the farm's words - the improvements' names and effects, said by the fixtures that show them
 // (docs/FARM-EXPANSION.md section 3.6). Kept from the old Progress & orders sidebar, which the farm itself replaced.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 export const farmUpgradeName = (key, tier) => ({
   tools: [t('farm.progress.tools1', 'Tempered tools'), t('farm.progress.tools2', 'Masterwork tools')],

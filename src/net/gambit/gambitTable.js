@@ -40,7 +40,7 @@ import {
   newGambit, gambitAct, finishTurn, armyRefusal, KG_COLS, KG_ROWS, KG_TILE, KG_COMMANDS, KG_HAZARD_KINDS, KG_LAYOUTS,
   KG_OPEN_FIELD, KG_MAX_UNITS, KG_MAX_HAZARDS, KG_ACTIONS_PER_TURN, KG_POTIONS_MAX, rosterUnit, KG_KING_CLASSES,
 } from '../kingsGambit.js';
-import { HOLDEM_SEATS_MIN, HOLDEM_SEATS_MAX } from '../card/cardLaw.js';
+import { HOLDEM_SEATS_MIN, HOLDEM_SEATS_MAX } from '../cardLaw.js';
 import { HOLDEM_TABLES_MAX, HOLDEM_NAME_MAX, HOLDEM_STAKE_MAX } from '../holdemTable.js';
 import { gambitStakeOk } from './gambitStakes.js';
 import { GAMBIT_GAME_ID_RE, GAMBIT_RECEIPT_MAX } from './gambitReceipt.js';

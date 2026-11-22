@@ -3,7 +3,7 @@
 // brought up, by species (scenes/fishHost.js), and the trophies it has taken, by beast (systems/hunt/trophies.js) - kept in
 // its save (the per-mod slot, systems/modSaveData.js), read by the Collections page's Fish and Trophies parts. Each row is
 // how many and the UTC day of the first. Read defensively: a row out of its law is dropped.
-import { registerModSaveData } from '../modSaveData.js';
+import { registerModSaveData } from '../../saves/modSaveData.js';
 
 export const GATHERED_VENDOR = 'gatheredLog';
 /** The kinds the log keeps: a fish by its item template, a trophy by its beast (MobileTypes, or a mod's id). */

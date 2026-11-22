@@ -11,7 +11,7 @@
 import { holdingsProvider, ensureHoldingsStyle, holdingMeter } from './holdingsPages.js';
 import { CROWN_RANKS, nextRankOf, PERKS_REFUSED_AT } from '../systems/naval/captainLedger.js';
 import { xpForLevel } from '../systems/naval/captainTree.js';   // CAPTAIN-TREE: a level's floor, the meter's
-import { t } from '../systems/textManager.js';   // CAPTAIN-TREE: the stars' card in the player's language
+import { t } from './textManager.js';   // CAPTAIN-TREE: the stars' card in the player's language
 
 export const CAPTAIN_PAGE_SECTIONS = Object.freeze([Object.freeze(['captain', 'Captain'])]);
 /** The page stands while the host gives the captain's model (the world host, whose ledger it is). */

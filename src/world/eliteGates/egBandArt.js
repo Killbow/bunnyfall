@@ -57,14 +57,14 @@
 // Beats stays one batched draw. Painted once a palette, as a span asks for it.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { SD_RAMP } from '../superDungeon/sdLook.js';
-import { rng, noiseField, image, putTexel, scale, ramp, step, bevel, rivet, paletteOf, quantize, bayer, BAYER4 } from '../superDungeon/sdPixelKit.js';
-import { SD_ART_SIZE, SD_ROOT_ART_H, SD_BRASS_EDGE_GLOW, SD_EDGE_GLOW } from '../superDungeon/sdRealmArt.js';
+import { SD_RAMP } from '../sdLook.js';
+import { rng, noiseField, image, putTexel, scale, ramp, step, bevel, rivet, paletteOf, quantize, bayer, BAYER4 } from '../sdPixelKit.js';
+import { SD_ART_SIZE, SD_ROOT_ART_H, SD_BRASS_EDGE_GLOW, SD_EDGE_GLOW } from '../sdRealmArt.js';
 import { EG_BAND_ARCHIVES } from './pseudoArchives.js';
-import { SD_REALM_ARCHIVE } from '../superDungeon/sdRealm.js';
-import { beatArt, SD_STEPS_RECORD, SD_BEAT_EMBER_FRAME, SD_STEPS_ATLAS, SD_STEP_BEVEL } from '../superDungeon/sdStepsArt.js';   // EG-ZL: the Beat's warning, the place's white
-import { SD_BEAT_DISSOLVE } from '../superDungeon/sdStepsModel.js';
-import { SD_BEAT_SIZE } from '../superDungeon/sdSteps.js';
+import { SD_REALM_ARCHIVE } from '../sdRealm.js';
+import { beatArt, SD_STEPS_RECORD, SD_BEAT_EMBER_FRAME, SD_STEPS_ATLAS, SD_STEP_BEVEL } from '../sdStepsArt.js';   // EG-ZL: the Beat's warning, the place's white
+import { SD_BEAT_DISSOLVE } from '../sdStepsModel.js';
+import { SD_BEAT_SIZE } from '../sdSteps.js';
 import { EG_DANGER_PALETTE_KEYS, egPaletteOf } from './egDangerPalettes.js';
 import { EG_KIT_RECORD, EG_KIT_RECORDS } from './egKit.js';   // EG-LOOK (Elite-Gates-Look.md section 8): the kit's records
 import { EG_ATMOS } from './egAtmos.js';   // EG-LOOK: the haze the foundations fade to is the band's own fog
@@ -1040,7 +1040,7 @@ const PAINTERS = Object.freeze({
 /** Every picture band `band` (0-3) wears, by record: `[record, { albedo, emission, cutout? }]` - what a host uploads under
  *  the band's archive (egBandArchive) before it draws the band's halls (a `cutout` picture asking the renderer for its
  *  holes - EG_CUTOUT_RECORDS). Pure: the same pixels every call. */
-/** @returns {Array<[number, { albedo: import('../superDungeon/sdPixelKit.js').Img, emission: import('../superDungeon/sdPixelKit.js').Img, cutout?: boolean }]>} */
+/** @returns {Array<[number, { albedo: import('../sdPixelKit.js').Img, emission: import('../sdPixelKit.js').Img, cutout?: boolean }]>} */
 export function egBandArt(band) {
   return EG_BAND_RECORDS.map((rec) => egBandArtOf(band, rec));
 }
@@ -1048,7 +1048,7 @@ export function egBandArt(band) {
  *  alone, for a pass that wears a few of the band's records (the Spire's underside on the stair - world/eliteGates/egUnderside.js:
  *  its walkways' tesserae, the costliest picture by far, are never painted for a fall that wears none). The same pixels
  *  egBandArt paints for that record. Pure. A record the band does not paint throws.
- *  @returns {[number, { albedo: import('../superDungeon/sdPixelKit.js').Img, emission: import('../superDungeon/sdPixelKit.js').Img, cutout?: boolean }]} */
+ *  @returns {[number, { albedo: import('../sdPixelKit.js').Img, emission: import('../sdPixelKit.js').Img, cutout?: boolean }]} */
 export function egBandArtOf(band, rec) {
   const paint = PAINTERS[rec];
   if (!paint) throw new Error(`the band paints no record ${rec}`);
@@ -1095,7 +1095,7 @@ export const EG_BEAT_TELL_RECORDS = Object.freeze({
  * out of its mesh; here a cell's texels go to nothing, a picture the renderer cuts, `{ cutout: true }`): `art`'s cells of
  * EG_DISSOLVE_TEXELS kept `keep` of every 16 by the ordered dither (world/superDungeon/sdPixelKit.js BAYER4) - the rest clear in its
  * albedo (a hole) and dark in its light. Pure.
- * @param {{ albedo: import('../superDungeon/sdPixelKit.js').Img, emission: import('../superDungeon/sdPixelKit.js').Img }} art @param {number} keep
+ * @param {{ albedo: import('../sdPixelKit.js').Img, emission: import('../sdPixelKit.js').Img }} art @param {number} keep
  */
 export function egDissolveArt(art, keep) {
   const W = art.albedo.width, H = art.albedo.height, a = Uint8Array.from(art.albedo.colors), e = Uint8Array.from(art.emission.colors), C = EG_DISSOLVE_TEXELS;

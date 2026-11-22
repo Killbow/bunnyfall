@@ -1,8 +1,8 @@
 // BUNNYFALL: a tool belt over the world, never a modal menu. FARM EXPANSION PHASE 1: the belt is the hands alone - the
 // seed is taken from the seed shelf, and orders and improvements live on the farm (docs/FARM-EXPANSION.md section 3).
-import { t } from '../systems/textManager.js';
-import { isEnhanced } from '../systems/uiSkin.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { t } from './textManager.js';
+import { isEnhanced } from './uiSkin.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { PIXEL_STACK } from './pixelifyFive.js';
 
 export const farmToolName = (tool) => ({

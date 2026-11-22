@@ -1,4 +1,4 @@
-import { MOBILE_TYPES } from './mobile/mobileTypes.js';
+import { MOBILE_TYPES } from './mobileTypes.js';
 
 // ═══════════════════════════════════════════════════════════════════
 // THE ATRONACHS

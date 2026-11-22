@@ -25,8 +25,8 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#333}</style></head><body>
 <script type="module">
 import { createWeapon } from '/src/combat/enemyEquipment.js';
-import { setItemFields, mintCondition } from '/src/systems/item/itemTemplates.js';
-import { ARMOR_MATERIAL } from '/src/systems/armorMaterials.js';
+import { setItemFields, mintCondition } from '/src/items/itemTemplates.js';
+import { ARMOR_MATERIAL } from '/src/items/armorMaterials.js';
 import { createInventoryWindow } from '/src/ui/inventoryDoor.js';
 
 const e = { isPlayer: true, name: 'Aelwyn', career: { name: 'Spellsword' }, level: 12,
@@ -114,7 +114,7 @@ globalThis.__placed = async (where, frac, query = '') => {
   await frame(); await frame();
   const col = colOf(where);
   const rows = rowsIn(where);
-  const { itemLine } = await import('/src/ui/enhanced/enhancedInventory.js');
+  const { itemLine } = await import('/src/ui/enhancedInventory.js');
   const items = itemsOf(where).filter((it) => !query || itemLine(it, e).name.toLowerCase().includes(query));
   const idx = rows.map((r) => items.indexOf(r._padItem));
   const boxes = rows.map((r) => r.getBoundingClientRect());

@@ -22,9 +22,9 @@
 //   - Init matches ResetStreamingWorld: compensation zeroed on x/z,
 //     mapOrigin = the player's current pixel.
 
-import { TERRAIN_SIZE } from './terrain/terrainSampler.js';
+import { TERRAIN_SIZE } from './terrainSampler.js';
 import { GLOBAL_SCALE } from './meshReader.js';
-import { WORLD_MAP_TILE_DIM, getLocationTerrainTileOrigin } from './terrain/terrainTiles.js';
+import { WORLD_MAP_TILE_DIM, getLocationTerrainTileOrigin } from './terrainTiles.js';
 
 export const TERRAIN_DISTANCE = 3;   // DFU's default (StreamingWorld.cs:56); D1: the world host passes the LIVE Experimental/TerrainDistance (1..4) into the constructor
 /** BUILD-RETRY (bible/06-Systems/Travel-View.md LOAD-OWED, the port's own - DFU's builds do not fail): the stream's own

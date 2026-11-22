@@ -38,17 +38,17 @@
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { egVOf, EG_SECOND_WIND_UNDER, EG_MOMENTUM_STEP } from '../../net/eliteGates/egVestige.js';
 import { egResonance, EG_WEAVE_N } from '../../net/eliteGates/egVestige.js';   // EG-ZS: Spellweave's resonance and its fourth spell
-import { registerSpellFreeCast } from '../spellcost.js';   // EG-ZS: Spellweave's free cast
-import { registerPlayerCastListener } from '../playerCasts.js';   // EG-ZS: my casts, told as they leave the hands
-import { isDamageHealthEffect } from '../spellcast.js';   // EG-ZS: a damage spell (Damage Health, its continuous twin)
-import { HIT_KINDS } from '../../net/gate/gateBrain.js';
-import { registerEntityFold, computeEntityMods, newMods, EMPTY_MODS } from '../entityMods.js';
-import { RESIST_ELEMENTS } from '../loot/lootRarity.js';   // the five elements the resistance channel names (EG15's Bearing reads them too)
-import { registerSpellCostMod } from '../spellcost.js';
+import { registerSpellFreeCast } from '../../magic/spellcost.js';   // EG-ZS: Spellweave's free cast
+import { registerPlayerCastListener } from '../../magic/playerCasts.js';   // EG-ZS: my casts, told as they leave the hands
+import { isDamageHealthEffect } from '../../magic/spellcast.js';   // EG-ZS: a damage spell (Damage Health, its continuous twin)
+import { HIT_KINDS } from '../../net/gateBrain.js';
+import { registerEntityFold, computeEntityMods, newMods, EMPTY_MODS } from '../../characters/entityMods.js';
+import { RESIST_ELEMENTS } from '../../items/lootRarity.js';   // the five elements the resistance channel names (EG15's Bearing reads them too)
+import { registerSpellCostMod } from '../../magic/spellcost.js';
 import { registerPlayerHurtListener, registerShieldSoakMod } from '../../characters/playerEntity.js';
 import { registerRunSpeedMod } from '../../player/motor.js';
-import { setSpireHp, spireBodyMax } from '../renownLayer.js';
-import { healMine } from '../playerHeal.js';
+import { setSpireHp, spireBodyMax } from '../../characters/renownLayer.js';
+import { healMine } from '../../player/playerHeal.js';
 
 /** The registries' one name. */
 export const SPIRE_VESTIGES = 'spire-vestiges';

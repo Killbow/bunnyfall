@@ -14,10 +14,10 @@
 // world while a box is open.
 
 import { drawText, measureText } from './text.js';
-import { nativeMetrics } from './native/nativePanel.js';
+import { nativeMetrics } from './nativePanel.js';
 import { layoutMessageBox, drawMessageBox, messageBoxArtLoaded } from './messageBox.js';   // U11
 import { InputMessageBoxWindow } from './inputMessageBox.js';   // CM3: the one DaggerfallInputMessageBox
-import { noticeDraw, noticeRelease } from './enhanced/enhancedNotice.js';   // ENH-NOTICE1: the enhanced skin's panel
+import { noticeDraw, noticeRelease } from './enhancedNotice.js';   // ENH-NOTICE1: the enhanced skin's panel
 import { catchBoxClicks, releaseBoxClicks } from './boxClickCatcher.js';   // BOX-ON-TOP: over an enhanced window the box takes the click
 
 /** DaggerfallInputMessageBox maxCharacters. */

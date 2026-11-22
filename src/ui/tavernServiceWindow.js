@@ -1,9 +1,9 @@
 // BUNNYFALL: explicit mouse/touch pouring and the bound recipe book, on the normal overlay lifecycle.
 import { TAVERN_DOSES, TAVERN_INGREDIENTS, TAVERN_RECIPES, tavernDoseCount } from '../net/tavernServiceLaw.js';
-import { tavernIngredientName, tavernRecipeName, tavernRecipeNote } from '../systems/tavern/tavernServiceWords.js';
-import { t } from '../systems/textManager.js';
+import { tavernIngredientName, tavernRecipeName, tavernRecipeNote } from '../trade/tavern/tavernServiceWords.js';
+import { t } from './textManager.js';
 import { releaseLook } from '../player/pointerLock.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
+import { registerOverlay } from './enhancedOverlays.js';
 import { TAVERN_SERVICE_STYLE } from './tavernServiceStyle.js';
 
 const INKS = { wine: '#8e3545', cream: '#fff0cb', beer: '#d99734' };

@@ -18,8 +18,8 @@
 //   chime, the recap's Rare chime) ride it too (`beat`): their one-shot through the engine, the score ducked, never culled.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { BOSS_CUES } from '../../world/gate/gateBoss.js';
-import { setPeerSoundScope } from '../../net/peer/peerFx.js';   // EG-ZH: the peers' sounds' one scope
+import { BOSS_CUES } from '../../world/gateBoss.js';
+import { setPeerSoundScope } from '../../net/peerFx.js';   // EG-ZH: the peers' sounds' one scope
 
 /** THE SPIRE MIX's numbers (section 26). */
 export const EG_MIX = Object.freeze({ duckDb: 6, duckMs: 300, addGapMs: 1500, barksPerKind: 4, peerDb: -4, watchfirePitch: 1.4 });

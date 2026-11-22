@@ -12,8 +12,8 @@
 // draws the Firmament in the pause window's Growth tab, so its door went. The owner, of the revenants' (2026-10-17):
 // "Keep it on the companion page" - this one stays.
 
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // AUDIT RVN-STARS S8: the QuickDial's key asks the sky first
+import { mountEnhancedChunk } from './enhancedChunk.js';
+import { registerOverlay } from './enhancedOverlays.js';   // AUDIT RVN-STARS S8: the QuickDial's key asks the sky first
 
 /**
  * A window laid over a door's page, through the lazy-chunk door: `load` its chunk, `mount(mod, host, arg, onExit)` it;

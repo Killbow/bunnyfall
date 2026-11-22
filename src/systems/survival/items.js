@@ -14,8 +14,8 @@
 // every stage change runs - AUDIT C&C I5). A waterskin carries
 // `water` (kg), which the weight law adds and the name reads. Camping
 // equipment and the campfire carry their condition as USES.
-import { registerCustomTemplates, templateByIndex, mintCondition, setItemFields, ITEM_TEMPLATES } from '../item/itemTemplates.js';
-import { addVendorTextures, vendorTextureCount } from '../textureReplacement.js';
+import { registerCustomTemplates, templateByIndex, mintCondition, setItemFields, ITEM_TEMPLATES } from '../../items/itemTemplates.js';
+import { addVendorTextures, vendorTextureCount } from '../../render/textureReplacement.js';
 import { DYE_COLORS } from '../../characters/dyes.js';   // AUDIT C&C I7: the start's clothes, in CreateMensClothing's default dye
 const dice100 = (chance, roll01) => Math.floor(roll01 * 100) < chance;   // Dice100's line; no combat import (the formulas -> equip cycle)
 import {
@@ -23,7 +23,7 @@ import {
   isWaterskin, waterIn, waterskinName, drinkFrom, refillSkins, DRINK_RELIEF, WATERSKIN_CAPACITY_KG, FOOD_STAGE,
 } from './food.js';
 import { survivalOf, NEED } from './needs.js';
-import { maxFatigue } from '../statMods.js';   // ENDLESS PROVISIONS: the Off meal gives stamina back
+import { maxFatigue } from '../../characters/statMods.js';   // ENDLESS PROVISIONS: the Off meal gives stamina back
 
 /** The torch's icon stands in for the campfire's bundle until it has
  *  art of its own (a torch is UselessItems2 247, a world-textured item). */

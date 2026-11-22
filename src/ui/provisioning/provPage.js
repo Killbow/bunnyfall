@@ -8,11 +8,11 @@ import {
   provPlan, traitsOf, traitName, traitKnown, slotsAt, BASES, POT_KEYS, CAULDRON_KEYS, FOOD_TRAITS, ALCHEMY_TRAITS, PREPARES, provXp, GROCER_STOCK,
 } from '../../net/provision/provisionLaw.js';
 import { DISHES } from '../../net/recipeLaw.js';
-import { POTION_RECIPES } from '../../systems/potionRecipes.js';
-import { createSimmer } from '../../systems/simmerAct.js';
+import { POTION_RECIPES } from '../../items/potionRecipes.js';
+import { createSimmer } from '../../professions/simmerAct.js';
 import { scaleXp, xpPct } from '../../net/firmament/firmamentLaw.js';
-import { firmamentStats } from '../../systems/firmamentLive.js';
-import { getPref } from '../../systems/uiPrefs.js';
+import { firmamentStats } from '../../characters/firmamentLive.js';
+import { getPref } from '../uiPrefs.js';
 import { accountRefusalText } from '../../net/accountClient.js';
 
 /** What a refused answer says: its own words, else the service's word for its error. */

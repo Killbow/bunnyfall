@@ -54,20 +54,20 @@ for (const skin of ['plus', 'classic']) {
     await page.setViewportSize({ width: W, height: H });
     const r = await page.evaluate(async ([skin, touch, scale, chatMode, buffs]) => {
       history.replaceState(null, '', `${location.pathname}${location.search.replace(/touch=(on|off)/, `touch=${touch ? 'on' : 'off'}`)}`);
-      const { drawEnhancedHud } = await import('/src/ui/enhanced/enhancedHud.js');
+      const { drawEnhancedHud } = await import('/src/ui/enhancedHud.js');
       const { ChatLog } = await import('/src/net/chat.js');
       const { createChatPanel } = await import('/src/ui/chatPanel.js');
       const { drawEventBoard, destroyEventBoard } = await import('/src/ui/eventBoard.js');
-      const { seatEventBoard, eventNotice, _resetEventNotices } = await import('/src/systems/eventNotices.js');
-      const { gateAt } = await import('/src/net/gate/gateLaw.js');
+      const { seatEventBoard, eventNotice, _resetEventNotices } = await import('/src/worldEvents/eventNotices.js');
+      const { gateAt } = await import('/src/net/gateLaw.js');
       const { injectPartyStyle } = await import('/src/ui/partyPanel.js');
-      const { setPref } = await import('/src/systems/uiPrefs.js');
-      const { registerPresenter } = await import('/src/systems/notify.js');
+      const { setPref } = await import('/src/ui/uiPrefs.js');
+      const { registerPresenter } = await import('/src/ui/notify.js');
       setPref('hudScale', scale);
       setPref('chatWidth', chatMode === 'wide' ? 560 : null); setPref('chatListHeight', chatMode === 'wide' ? 320 : null);
       const hudLine = [];
       registerPresenter({ hudText: (t) => { hudLine.push(t); return true; } });
-      if (skin === 'plus') (await import('/src/ui/enhanced/enhancedStyle.js')).injectEnhancedStyle(document);
+      if (skin === 'plus') (await import('/src/ui/enhancedStyle.js')).injectEnhancedStyle(document);
       destroyEventBoard(); _resetEventNotices();
       // the HUD's root is the enhanced HUD's own, built once and kept (its module holds it); every other node goes
       for (const n of [...document.body.children]) if (n.tagName !== 'SCRIPT' && !n.classList.contains('hud') && !n.classList.contains('hb-dock')) n.remove();

@@ -26,10 +26,10 @@
 // the tiers this list holds, each with its count, and a material menu of the same shape for armour and weapons. The
 // ground and a reward tray stay whole.
 import { PACK_PAGES, pageOf } from './packPages.js';
-import { isMaterialItem } from '../systems/materialsBag.js';
-import { RARITIES, RARITY_ORDER, rarityOf } from '../systems/loot/lootRarity.js';
-import { materialName, metalLabel, itemSaysMaterial } from '../systems/item/itemInfo.js';   // MAT-FILTER: the metal the card already says
-import { t } from '../systems/textManager.js';
+import { isMaterialItem } from '../professions/materialsBag.js';
+import { RARITIES, RARITY_ORDER, rarityOf } from '../items/lootRarity.js';
+import { materialName, metalLabel, itemSaysMaterial } from '../items/itemInfo.js';   // MAT-FILTER: the metal the card already says
+import { t } from './textManager.js';
 
 /** The remote kinds (enhancedInventory.js remoteModel) that carry the bar: the player's own stores, and a container. */
 export const STORE_FILTER_KINDS = Object.freeze(new Set(['wagon', 'storage', 'bag', 'container']));

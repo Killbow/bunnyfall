@@ -42,7 +42,7 @@
 // Not a DFU member: Daggerfall has no other players and no Discord. Ledger A (ELITE-GATES).
 import { heraldCard, heraldName, heraldList } from '../herald/heraldCard.js';   // HERALD-CARDS: the one card
 import { EG_BREACH_RE, EG_PARTY_MAX, EG_LORDS, EG_OPEN, egBandOfHall } from './egLaw.js';
-import { arenaSeasonOf } from '../arena/arenaLaw.js';
+import { arenaSeasonOf } from '../arenaLaw.js';
 
 /** The hub's internal door a breach's room tells its news at. */
 export const EG_INTERNAL_HERALD = '/internal/eg/herald';

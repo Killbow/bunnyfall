@@ -20,7 +20,7 @@
 //   THE CABIN         behind the helm - the Ketchmaster's hold, and the stern lift down
 //
 // Not a DFU member. Ledger A (KETCH).
-import { realmToDungeon, dungeonToRealm, SD_REALM_ORIGIN } from '../superDungeon/sdBrain.js';
+import { realmToDungeon, dungeonToRealm, SD_REALM_ORIGIN } from '../sdBrain.js';
 import { courseOf } from '../eliteGates/egSpanLaw.js';
 import { shDisc, shLane } from '../eliteGates/egShape.js';
 import { wrapAngle } from '../../world/mat4.js';   // ONCRASH1: the port's one angle wrap (net/wire.js imports it too)

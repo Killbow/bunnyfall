@@ -17,7 +17,7 @@
 // The two buttons and the card's Claim are the readout's only clicks.
 //
 // Not a DFU member. Ledger A (EVERY PALACE A SEAT's row).
-import { siegeHudModel } from '../net/siege/siegeLink.js';   // the lines (pure, beside the fold - net/siege/siegeSession.js draws through it)
+import { siegeHudModel } from '../net/siegeLink.js';   // the lines (pure, beside the fold - net/siege/siegeSession.js draws through it)
 import { paintSwatch } from './heraldrySwatch.js';   // HERALDRY-SHOWN (Seats-Arc 8.1): each side's shield on the bar
 export { siegeHudModel };
 

@@ -8,8 +8,8 @@
 // ui/yesNoBox.js lays it), so it stands indoors, in ground view and over any window. It takes no key and is no modal
 // window: a player mid-fight keeps playing, and only the OK button closes it - nothing is focused, so a key pressed in
 // play (Space, Enter) can never close it unread.
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { t } from '../systems/textManager.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { t } from './textManager.js';
 
 export const STAFF_MESSAGE_BOX_ID = 'staff-message-box';
 /** The box up now, if any - one at a time. */

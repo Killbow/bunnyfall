@@ -16,15 +16,15 @@
 // Both models are pure - the link's state (net/ketch/ketchLink.js) and the relay's clock in. Not a DFU member. Ledger A
 // (KETCH).
 import { KT_STAGE, KT_CREW_MAX, KT_WATCH_WAVES, ketchVoyageOf } from '../../net/ketch/ketchLaw.js';
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { KT_WORDS, ketchWhen, ketchStageName, ketchPhaseName, ketchBlowName, ketchKindName } from '../../systems/ketch/ketchWords.js';
 import { KT_KIND_BY_K } from '../../net/ketch/ketchConstructs.js';
 import { KW_PHASE_AT, KW_BLOW_BY_A, KW_BLOWS, KW_FORKS_CLOSE_MS } from '../../net/ketch/ketchWarden.js';
 import { ktBlowDone } from '../../net/ketch/ketchLink.js';
-import { countdownText } from '../../net/gate/gateLaw.js';
-import { FELL_HOLD_MS, FELL_FADE_MS } from '../gate/gateBossBar.js';
-import { LOW_HEALTH } from '../../world/gate/gateBoss.js';
-import { FRAME_TONES } from '../enhanced/enhancedFrame.js';
+import { countdownText } from '../../net/gateLaw.js';
+import { FELL_HOLD_MS, FELL_FADE_MS } from '../gateBossBar.js';
+import { LOW_HEALTH } from '../../world/gateBoss.js';
+import { FRAME_TONES } from '../enhancedFrame.js';
 import { PIXEL_FONT_CSS } from '../pixelifyFive.js';
 
 /** The words - each read through the text core when the HUD reads it (L10N4). */

@@ -2,13 +2,13 @@
 // BUNNYFALL (2026-11-05, Phase 5): THE ACCOUNT VAULT'S WINDOW - opened from the bank (scenes/worldModes.js openBank), in the
 // Sigil Broker's own dress (ui/brokerWindow.js's sheet) like Nyx's: the vault's purse and shelf on top, the pack's pieces
 // under them, each row with its Put in or Take out. Everything it shows and does is handed in (`deps`).
-import { registerOverlay, closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { registerOverlay, closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { injectBrokerSkinStyle } from './brokerWindow.js';
-import { itemLongName } from '../systems/item/itemInfo.js';
+import { itemLongName } from '../items/itemInfo.js';
 import { vaultWords } from '../net/accountVaultBook.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {
@@ -91,7 +91,7 @@ export function createAccountVaultOverlay(deps) {
     // the purse
     body.append(el('div', 'av-head', t('avault.goldHead', 'Gold')));
     const g = el('div', 'av-gold');
-    const input = el('input'); input.type = 'number'; input.min = '1'; input.placeholder = t('avault.amount', 'Amount'); input.value = amount;
+    const input = /** @type {HTMLInputElement} */ (el('input')); input.type = 'number'; input.min = '1'; input.placeholder = t('avault.amount', 'Amount'); input.value = amount;
     input.oninput = () => { amount = input.value; };
     input.onkeydown = (e) => e.stopPropagation();
     const n = () => Math.trunc(Number(amount));
@@ -136,7 +136,7 @@ export function createAccountVaultOverlay(deps) {
   closeBtn.onclick = (e) => { e.stopPropagation(); close(); };
   const onKey = (/** @type {KeyboardEvent} */ e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.target?.tagName === 'INPUT') { if (e.key === 'Escape') close(); return; }
+    if (/** @type {HTMLElement} */ (e.target)?.tagName === 'INPUT') { if (e.key === 'Escape') close(); return; }
     if (overlayAction(e) === 'back') { e.preventDefault(); e.stopPropagation(); close(); }
   };
   globalThis.addEventListener('keydown', onKey, { capture: true });

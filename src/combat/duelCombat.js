@@ -20,17 +20,17 @@
 //
 // Not a DFU member: Daggerfall Unity has no other players. Ledger A (ONLINE).
 import { calculateAttackDamage, baseDamageMax, damageModifier, WEAPON_MATERIAL_MODIFIER } from './formulas.js';
-import { weaponDamageMods } from '../systems/entityMods.js';
+import { weaponDamageMods } from '../characters/entityMods.js';
 import { SWING_MODS, WEAPON_REACH } from './playerWeapon.js';
 import { createWeapon } from './enemyEquipment.js';
-import { SKILLS, skillValue } from '../systems/skills.js';
-import { liveStat } from '../systems/statMods.js';
+import { SKILLS, skillValue } from '../characters/skills.js';
+import { liveStat } from '../characters/statMods.js';
 import { offHandToHit, OFF_HAND_BLOW } from './twoHands/handsLaw.js';   // TWO-HANDS (AUDIT): the off hand's terms on a blow between players
-import { STAT_KEYS_ORDER } from '../systems/chargen.js';
+import { STAT_KEYS_ORDER } from '../characters/chargen.js';
 import { weaponSkillUsed } from '../characters/weapons.js';
-import { armorValuesOf } from '../systems/equip.js';   // AUDIT C&C H5: the stand-in's unarmoured table, DFU's own 100s
+import { armorValuesOf } from '../characters/equip.js';   // AUDIT C&C H5: the stand-in's unarmoured table, DFU's own 100s
 import { clawMetalDamage, CLAW_METAL_MAX } from './clawMetal.js';   // AUDIT CLAWS A1: the beast's claws' metal rides the sheet
-import { breakNormalPowerConcealment } from '../systems/concealment.js';   // RPT1026-FIGHTS (STRIKE-UNVEILS): the striker's own concealment, on its blow that lands
+import { breakNormalPowerConcealment } from '../magic/concealment.js';   // RPT1026-FIGHTS (STRIKE-UNVEILS): the striker's own concealment, on its blow that lands
 import { DUEL_LEVEL_MAX, DUEL_STAT_MAX, DUEL_SKILL_MAX, DUEL_RACE_MAX, DUEL_TEMPLATE_MAX, DUEL_MATERIAL_MAX, CARD_VITAL_MAX, CAST_EFFECTS_MAX, DUEL_SWINGS } from '../net/wire.js';
 
 /** The four skills a blow reads, in the order the wire carries them (`sk`): the weapon's own (Archery for a bow, the

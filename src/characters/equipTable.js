@@ -17,10 +17,10 @@
 // Items here are the data shape {group, templateIndex}; equip/unequip
 // mechanics (unequip lists, prohibitions) are Systems-arc territory.
 
-import { EQUIP_SLOTS } from './paperdoll/paperdoll.js';
+import { EQUIP_SLOTS } from './paperdoll.js';
 import { ITEM_GROUPS, SLOT_RULES, WEAPON_HANDS, SHIELD_INDICES } from './equipRules.js';
-import { getBool } from '../systems/settings/settings.js';
-import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: GetItemHands / GetEquipSlot are virtuals a custom class answers   // AUDIT 58: ItemEquipTable.cs:635 reads BowLeftHandWithSwitching
+import { getBool } from '../platform/settings.js';
+import { customItemClass } from '../mods/rriItems.js';   // RRI1: GetItemHands / GetEquipSlot are virtuals a custom class answers   // AUDIT 58: ItemEquipTable.cs:635 reads BowLeftHandWithSwitching
 import { GRAPPLE_TEMPLATE } from './heavyGearIds.js';   // BUNNYFALL: the grappling hook - a leaf, no cycle
 import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from './thunderlockIds.js';   // FIELD-GUN2: the departure below - a leaf with no imports, so this cannot cycle
 

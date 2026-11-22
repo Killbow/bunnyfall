@@ -41,14 +41,14 @@
 // flags the action system's box passes (:107-122): no parchment, and
 // shown at the TOP of the screen.
 
-import { nativeMetrics, shadowText, NATIVE_W } from './native/nativePanel.js';
+import { nativeMetrics, shadowText, NATIVE_W } from './nativePanel.js';
 import { layoutMessageBox, drawMessageBox, messageBoxArtLoaded } from './messageBox.js';
 import { drawText, measureText } from './text.js';
 import { typedChar } from './input.js';
-import { normalizeCode } from '../systems/dialogShortcuts.js';
+import { normalizeCode } from './dialogShortcuts.js';
 import { noteInputBoxClosed } from '../player/pointerLock.js';   // PL1: ReturnPlayerInputEvent's stamp (DaggerfallInputMessageBox.cs:301)
-import { isEnhanced } from '../systems/uiSkin.js';
-import { drawEnhancedInputBox, releaseEnhancedInputBox } from './enhanced/enhancedInputBox.js';   // AUDIT HCC U5: the enhanced skin's face - the field's own window
+import { isEnhanced } from './uiSkin.js';
+import { drawEnhancedInputBox, releaseEnhancedInputBox } from './enhancedInputBox.js';   // AUDIT HCC U5: the enhanced skin's face - the field's own window
 
 /** AUDIT HCC U5: the caption under the enhanced face - what closes THIS box (Return raises, Escape cancels); never
  *  the notice's "click or press a key", which a field does not keep (a click reaches nothing, a key types). */

@@ -22,7 +22,7 @@ import { feltNow } from '../systems/survival/env.js';
 import { temperatureBreakdown, signedDegrees } from '../systems/survival/temperature.js';
 import { temperatureReadout, HUD_BOON_WORDS, boonEffect, restedLeft, levelSaid } from '../systems/survival/status.js';
 import { survivalRules } from '../systems/survival/switch.js';
-import { equipTableOf, isEquipped } from '../systems/equip.js';
+import { equipTableOf, isEquipped } from '../characters/equip.js';
 import { modsForSlots } from './armourCard.js';
 
 const el = (tag, cls = null, text = null) => {

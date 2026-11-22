@@ -21,7 +21,7 @@
 //       pest    giant scorpion - the blight warden (Phase 6): it stands; nothing yet
 //   Crops pause and animals never die (design rule 4): a stationed beast is never lost - it only works or idles.
 // Pure: no clock, no network. Every number is balance, tunable here.
-import { MOBILE_TYPES as M } from '../../characters/mobile/mobileTypes.js';
+import { MOBILE_TYPES as M } from '../../characters/mobileTypes.js';
 
 // 2026-11-20, a player (relayed by the owner: "a collaborative effort, maybe 4 people, should reach the cap"): four a character, so five
 // people fill a Company's eighteen posts; the retinue's six still counts them, so a player keeps at least two sworn beasts with them

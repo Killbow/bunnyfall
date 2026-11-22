@@ -118,43 +118,43 @@
 // paint.
 
 import { drawText, measureText } from './text.js';
-import { getBool, getInt, getString } from '../systems/settings/settings.js';
-import { hexColor32 } from './automap/automapWindow.js';
+import { getBool, getInt, getString } from '../platform/settings.js';
+import { hexColor32 } from './automapWindow.js';
 // EM7: the byte groups and DFU's own four colours have ONE HOME, and
 // the enhanced town sheet reads them there too - they sat in this file
 // and in ui/ink/inkTown.js at once, which is how the same building could
 // have come to be drawn as a shop on one map and a house on the next.
 import {
   QUARTERS, quarterOf, isShowAllByte, CLASSIC_ARGB, CLASSIC_SETTING,
-} from './town/townQuarters.js';
-import { shortcutOrFallback, exteriorAutomapTooltipFor } from './automap/automapText.js';
+} from './townQuarters.js';
+import { shortcutOrFallback, exteriorAutomapTooltipFor } from './automapText.js';
 import { bindings } from './input.js';
-import { getBinding } from '../systems/inputActions.js';
-import { normalizeCode, keyboardModifiers, checkSetModifiers } from '../systems/dialogShortcuts.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { getBinding } from './inputActions.js';
+import { normalizeCode, keyboardModifiers, checkSetModifiers } from './dialogShortcuts.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import { resolveNameplates, nameplateAnchor, WORLD_PER_PX, STAR_PLATE } from './nameplateLayout.js';   // EM4: WORLD_PER_PX has one home there; FB1020c STAR-PLATE: and the surrender's "*"
-import { shownBuildingName } from '../systems/discovery.js';   // EMPIRE-BANK
+import { shownBuildingName } from '../maps/discovery.js';   // EMPIRE-BANK
 import {
   nativeMetrics, drawImg, drawRect, loadImg, NATIVE_W, NATIVE_H, SCREEN_DIM,
-} from './native/nativePanel.js';
+} from './nativePanel.js';
 import {
   AutomapChrome, CHROME_RECTS, CAPTION_STRIP, CAPTION_SWATCHES, EXTERIOR_ACTIONS,
   compassHeading01,
-} from './automap/automapChrome.js';
+} from './automapChrome.js';
 import {
   EXT_SCROLL_LEFT_RIGHT_SPEED, EXT_SCROLL_UP_DOWN_SPEED, EXT_ROTATE_SPEED,
   EXT_ZOOM_SPEED, EXT_ZOOM_SPEED_MOUSE_WHEEL, EXT_DRAG_ROTATE_SPEED,
   EXT_MAX_ZOOM, EXT_MIN_ZOOM, EXT_NUM_MAX_BLOCKS, EXT_LAYOUT_MULTIPLIER,
   computeExteriorZoom, exteriorZoom, exteriorApplyMinZoom, exteriorApplyMaxZoom,
   exteriorRotate, exteriorRotateAroundPlayerPos, exteriorDragPan, getLocationBorderPos,
-} from './automap/automapCamera.js';
+} from './automapCamera.js';
 import { rasterizeTopDown, rasterizeDisc } from './meshStamp.js';
-import { drawCompassStrip } from './hud/hud.js';   // ONE HOME for the strip (hud.js:"HUDCompass.DrawCompass")
+import { drawCompassStrip } from './hud.js';   // ONE HOME for the strip (hud.js:"HUDCompass.DrawCompass")
 import { drawToolTipBox } from './toolTip.js';
 import { GLOBAL_SCALE } from '../world/meshReader.js';
-import { registerCommand } from '../systems/consoleCommands.js';   // E3: the console command database
-import { processGrammar } from '../systems/textManager.js';   // L10N3g: a plate's words through the grammar (:878, :885)
+import { registerCommand } from './consoleCommands.js';   // E3: the console command database
+import { processGrammar } from './textManager.js';   // L10N3g: a plate's words through the grammar (:878, :885)
 
 // E3: RevealUndiscoveredBuildings (:230-234) - the persistent
 // component's flag, set by the console with no window open and read by

@@ -19,9 +19,9 @@
 //
 // Pure but for the one spell door (handed in for the pins), the stand-in and the rolls. Not a DFU member. Ledger A (EVERY
 // PALACE A SEAT's row).
-import { SIEGE_HIT, SIEGE_CASTS } from '../net/siege/siegeRef.js';
+import { SIEGE_HIT, SIEGE_CASTS } from '../net/siegeRef.js';
 import { duelSpellOf } from './duelCombat.js';
-import { applySpell } from '../systems/effects.js';
+import { applySpell } from '../magic/effects.js';
 
 /** A blow's kind on the referee's wire: an arrow's a shaft's, anything else a swing's. */
 export const siegeBlowKind = (by) => (by === 'arrow' ? SIEGE_HIT.Shaft : SIEGE_HIT.Melee);

@@ -32,15 +32,15 @@ import { WAGON_ARCHIVE, TEX, WAGON_TILE, BANDS, wagonArt, CARAVAN_SIDE_WINDOW_U 
 import { dfLook, lookSeed } from './dfLook.js';   // DF-LOOK: the icon's wagon in the colours the world's wears
 import { paintedReplacement, studioLanded } from '../systems/studioArt/studioArt.js';   // STUDIO1: the studio's pictures over the painted ones
 import { toColor32 } from '../formats/color32Order.js';
-import { MeshBench, prism, box, planarUv, sub, add, dot } from './ships/galleonMesh.js';
-import { benchPart } from './ships/galleonModel.js';
+import { MeshBench, prism, box, planarUv, sub, add, dot } from './galleonMesh.js';
+import { benchPart } from './galleonModel.js';
 import { pointsOf, boxOfPoints } from './shipKit.js';
 import { quatAngleAxis, quatRotate, quatMultiply } from './quat.js';
-import { NORMAL_GROUND_OFFSET } from '../systems/horse/horseCartLaw.js';
-import { CARGO_DEFINITIONS } from '../systems/wagon/wagon41214.js';
-import { WAGON_KINDS, activeWagonKind, activeWagonItem } from '../systems/wagon/wagonKinds.js';
-import { wagonLookOf } from '../systems/wagon/wagonLooks.js';   // WAGONS2: the driven wagon's paint
-import { riddenHorseLook } from '../systems/horse/horseCoats.js';   // COATS1: the ridden horse's look
+import { NORMAL_GROUND_OFFSET } from '../travel/horseCartLaw.js';
+import { CARGO_DEFINITIONS } from '../travel/wagon41214.js';
+import { WAGON_KINDS, activeWagonKind, activeWagonItem } from '../travel/wagonKinds.js';
+import { wagonLookOf } from '../travel/wagonLooks.js';   // WAGONS2: the driven wagon's paint
+import { riddenHorseLook } from '../travel/horseCoats.js';   // COATS1: the ridden horse's look
 import { mwViewHorseRig } from '../player/mwView.js';   // COATS3D: the 3D horse rig, on the Morrowind lane
 import { SEATED_HIP_HEIGHT } from '../player/seatPose.js';   // WAGONS3: the seated hips' height over the feet, the measured biped's
 

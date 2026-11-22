@@ -32,7 +32,7 @@
 // language (translationCredits, below the table).
 // ═══════════════════════════════════════════════════════════════════
 
-import { t, availableLocales, intlLocale, BASE_LOCALE, PSEUDO_LOCALE } from '../systems/textManager.js';
+import { t, availableLocales, intlLocale, BASE_LOCALE, PSEUDO_LOCALE } from './textManager.js';
 
 export const CREDITS = Object.freeze({
   builtOn: Object.freeze([

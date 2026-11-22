@@ -12,8 +12,8 @@
 // A LEAF beside infection.js (which reads it): it imports only the switch and the text core, so infection.js keeps its
 // import graph - clanLaw.js imports infection.js, and so this must never import clanLaw.js.
 
-import { contentOn } from '../contentOff.js';
-import { t } from '../textManager.js';
+import { contentOn } from '../../mods/contentOff.js';
+import { t } from '../../ui/textManager.js';
 
 /** The nine clans' faction ids (infection.js VAMPIRE_CLANS, restated so this leaf imports nothing of the curse). */
 const CLAN_IDS = Object.freeze([150, 151, 152, 153, 154, 155, 156, 157, 158]);

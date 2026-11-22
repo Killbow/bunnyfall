@@ -22,8 +22,8 @@
 // front view: every talker in a circle faced the camera, never the one they talked to (88,358 of 88,358 standing
 // frames), and the watch's post the street, never the road. The idle record is the politeness gate's alone - DFU's own
 // use of it: one who stops for the player turns to face them.
-import { MobilePerson, MOVE_RECORDS, MOVE_FLIPS, PERSON_MOVE_FPS, PERSON_IDLE_FPS, PERSON_IDLE_RECORD, PERSON_GUARD_IDLE_RECORD } from './mobile/mobilePerson.js';
-import { mobileOrientation, MobileUnit } from './mobile/mobileUnit.js';
+import { MobilePerson, MOVE_RECORDS, MOVE_FLIPS, PERSON_MOVE_FPS, PERSON_IDLE_FPS, PERSON_IDLE_RECORD, PERSON_GUARD_IDLE_RECORD } from './mobilePerson.js';
+import { mobileOrientation, MobileUnit } from './mobileUnit.js';
 import { FlatAnim } from '../render/flatAnimation.js';
 
 /** LW-TALK: the walk record's frame a standing resident holds. */

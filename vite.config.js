@@ -202,9 +202,9 @@ export default defineConfig({
       // importer - and never a static one too, the mistake mwFirstPerson's was
       // (the filter read any prefix and any static list, and quieted both)
       onLog(level, log, handler) {
-        if (log.code === 'INEFFECTIVE_DYNAMIC_IMPORT' && (log.id ?? '').replace(/\\/g, '/') === `${process.cwd().replace(/\\/g, '/')}/src/ui/revenant/revenantCard.js`
-          && /\bdynamically imported by (?:\.[\\/])?src[\\/]ui[\\/]hud[\\/]hudLayout\.js but\b/.test(log.message)
-          && !/statically imported by [^\n]*\bsrc[\\/]ui[\\/]hud[\\/]hudLayout\.js/.test(log.message)) return;
+        if (log.code === 'INEFFECTIVE_DYNAMIC_IMPORT' && (log.id ?? '').replace(/\\/g, '/') === `${process.cwd().replace(/\\/g, '/')}/src/ui/revenantCard.js`
+          && /\bdynamically imported by (?:\.[\\/])?src[\\/]ui[\\/]hudLayout\.js but\b/.test(log.message)
+          && !/statically imported by [^\n]*\bsrc[\\/]ui[\\/]hudLayout\.js/.test(log.message)) return;
         handler(level, log);
       },
       input: {

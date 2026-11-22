@@ -10,10 +10,10 @@
 
 import { eventActions, isTextEntryTarget, hostPaused } from './input.js';
 import { actionKeyWord } from './quickslotTags.js';
-import { eventBoardOn, EVENT_BOARD_PREF } from '../systems/eventNotices.js';
-import { getPref, setPref } from '../systems/uiPrefs.js';
-import { hudText } from '../systems/notify.js';
-import { t } from '../systems/textManager.js';
+import { eventBoardOn, EVENT_BOARD_PREF } from '../worldEvents/eventNotices.js';
+import { getPref, setPref } from './uiPrefs.js';
+import { hudText } from './notify.js';
+import { t } from './textManager.js';
 
 export const EVENT_BOARD_ACTION = 'EventBoard';
 

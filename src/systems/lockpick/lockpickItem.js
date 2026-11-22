@@ -19,14 +19,14 @@
 // every door that draws an item's picture draws it (Starglass's law, systems/starfall/starglass.js).
 //
 // Not a DFU member. Ledger A (LOCKPICK).
-import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from '../item/itemTemplates.js';
-import { addItem, removeOne } from '../inventory.js';
-import { registerEnemyLootExtra } from '../loot/loot.js';
-import { addVendorTextures } from '../textureReplacement.js';
-import { SKILLS } from '../skills.js';
-import { t } from '../textManager.js';
-import { ENEMY_BASICS } from '../../characters/enemy/enemyBasics.js';
-import { MOBILE_TYPES } from '../../characters/mobile/mobileTypes.js';
+import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from '../../items/itemTemplates.js';
+import { addItem, removeOne } from '../../items/inventory.js';
+import { registerEnemyLootExtra } from '../../items/loot.js';
+import { addVendorTextures } from '../../render/textureReplacement.js';
+import { SKILLS } from '../../characters/skills.js';
+import { t } from '../../ui/textManager.js';
+import { ENEMY_BASICS } from '../../characters/enemyBasics.js';
+import { MOBILE_TYPES } from '../../characters/mobileTypes.js';
 import { LOCKPICK_ART, registerLockpickArt } from './lockpickArt.js';
 import { LOCKPICK_TEMPLATE, LOCKPICK_LAW_ROW } from './lockpickRow.js';
 

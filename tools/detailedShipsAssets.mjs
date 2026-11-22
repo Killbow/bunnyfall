@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { PNG } from 'pngjs';
 import { isMain } from './lib/isMain.mjs';
-import { readUnityBundle } from '../src/formats/unity/unityBundle.js';
+import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { BlocksFile } from '../src/formats/blocksFile.js';
 import { TextureFile } from '../src/formats/textureFile.js';
 import { DFPalette } from '../src/formats/dfPalette.js';

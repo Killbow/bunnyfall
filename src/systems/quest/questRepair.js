@@ -34,9 +34,9 @@
 // Not a DFU member: DFU has no such pass (its quest debugger is a developer's console). Ledger A (QREPAIR).
 import { MARKER_PREFERENCE, SITE_TYPES } from './place.js';
 import { ONLINE_DUNGEONS_STATE, portSize } from '../../world/smallerDungeons.js';   // AUDIT DELVE E1 / ONLINE-PUBLIC: the size a quest's markers know online (the public room's); MEDIUM-DISTINCT: the two stamps whose builds are medium
-import { isOnlinePage } from '../online/onlineLane.js';   // MEDIUM-DISTINCT's audit: offline a dungeon no link holds is built by the settings
+import { isOnlinePage } from '../../platform/onlineLane.js';   // MEDIUM-DISTINCT's audit: offline a dungeon no link holds is built by the settings
 import { isShelved } from './quest.js';   // QUEST-SHELF's audit: the repair mends no quest set aside
-import { t } from '../textManager.js';   // QUEST-ELSEWHERE: its line in the player's language
+import { t } from '../../ui/textManager.js';   // QUEST-ELSEWHERE: its line in the player's language
 
 const PLACEMENTS = Object.freeze({ PlaceNpc: 'npcSymbol', PlaceItem: 'itemSymbol', PlaceFoe: 'foeSymbol', CreateNpc: 'npcSymbol' });
 

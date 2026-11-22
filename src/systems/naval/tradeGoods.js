@@ -26,8 +26,8 @@
 // the exchange signs men on to the ship at the quay and takes them off her (systems/naval/crewTrade.js - her side of it).
 // Never an item, so never in a pack, a hold, a shop or a trade between players: a man is on her deck or he is not.
 
-import { mulberry32 } from '../../combat/blood/bloodArt.js';
-import { registerCustomTemplates, setItemFields, mintCondition } from '../item/itemTemplates.js';
+import { mulberry32 } from '../../combat/bloodArt.js';
+import { registerCustomTemplates, setItemFields, mintCondition } from '../../items/itemTemplates.js';
 import { hashKey } from './harbourBoard.js';
 
 /** The goods' first template index - after the carpenter's stores (navalStores.js STORES_TEMPLATE 1330). */

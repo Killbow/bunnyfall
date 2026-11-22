@@ -4,7 +4,7 @@
 // opaque world, depth-tested, no depth written - the veiled-bodies' slot
 // (scenes/world.js drawVeiledPeerBodies). Not a DFU member.
 import { buildProgram } from './glProgram.js';
-import { pathRibbon } from '../systems/party/partyPing.js';
+import { pathRibbon } from '../party/partyPing.js';
 
 const VS = `#version 300 es
 precision highp float;

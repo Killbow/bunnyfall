@@ -4,7 +4,7 @@
 // Company money would move (shipping an order, buying an improvement) an officer is asked DFU's Y/N question first, and
 // the service judges it as before (the garden route's `deliver` and `upgrade` ops: farmProgress.js). Pure but for the
 // doors it is handed.
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 import { farmCropName } from '../../ui/farmingHud.js';
 import { farmUpgradeName, farmUpgradeEffect } from '../../ui/farmWords.js';
 import { FARM_CROP_TYPES, FARM_UPGRADES, FARM_ARGENTS_PER_WEEK, farmProgress, farmOrder, farmWeek } from '../../net/farmProgressLaw.js';

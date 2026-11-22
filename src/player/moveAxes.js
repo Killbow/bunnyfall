@@ -25,7 +25,7 @@
 // With acceleration both forces sum to zero change and both impulses
 // hold the axis where it is, which is exactly DFU's arithmetic.
 
-import { getBool } from '../systems/settings/settings.js';
+import { getBool } from '../platform/settings.js';
 
 /** InputManager.cs:50. */
 export const MOVE_ACCELERATION_CONST = 9.8;

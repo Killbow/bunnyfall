@@ -1,7 +1,7 @@
 // Where the chat box sits and how big it is: the size presets and Reset in Settings > Chat, and the pointer drags.
 // Those resize the box, move it, and move the drawer's split. A saved place is drawn inside a smaller window without
 // being lost, and the chat's own window keeps its size and place.
-import { getPref, setPref } from '../systems/uiPrefs.js';
+import { getPref, setPref } from './uiPrefs.js';
 import { capturePointer, releasePointer } from './pointerCapture.js';
 
 /** Width x list height in CSS px; Medium is the sheet's own size (no prefs). */

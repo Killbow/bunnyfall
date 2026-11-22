@@ -36,9 +36,9 @@
 // so a relay keeps its last good state); one it takes answers the next state and the events it made.
 //
 // Not a DFU member: Daggerfall Unity has no such game - the mod does. Ledger A row (THE KING'S GAMBIT).
-import { VANILLA_ENEMY_BASICS, enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // DEX1: the vanilla rows by name - a mod that writes the live table's (Daggerfall Enemy Expansion's classic lines) never moves the roster, whenever this module is first read
+import { VANILLA_ENEMY_BASICS, enemyDisplayName } from '../characters/enemyBasics.js';   // DEX1: the vanilla rows by name - a mod that writes the live table's (Daggerfall Enemy Expansion's classic lines) never moves the roster, whenever this module is first read
 import { drawBelow } from './dice.js';
-import { roundToInt } from '../systems/mathf.js';   // Mathf.RoundToInt's one home
+import { roundToInt } from '../world/mathf.js';   // Mathf.RoundToInt's one home
 
 // ── THE MOD'S NUMBERS ─────────────────────────────────────────────────────────────────────────────────────────────
 

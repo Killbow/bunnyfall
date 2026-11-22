@@ -8,8 +8,8 @@
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { createWeapon, randomMaterial, WEAPONS_ENUM as W } from '../../combat/enemyEquipment.js';
-import { mintCondition, setItemFields } from '../item/itemTemplates.js';
-import { applyRarity } from '../loot/lootRarity.js';
+import { mintCondition, setItemFields } from '../../items/itemTemplates.js';
+import { applyRarity } from '../../items/lootRarity.js';
 
 /** Each lord's piece: its name and its base (a weapon template), section 19's table. */
 export const EG_LORD_ARMS = Object.freeze({

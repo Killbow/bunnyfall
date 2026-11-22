@@ -12,7 +12,7 @@
 // them). Row-major 3x3 rotations, column vectors - the rig's own.
 
 import { climbBones, rotFromTo, rotAxisAngle, rotationPart, restAxes } from '../../combat/climbRig.js';
-import { mat33Mul } from '../../formats/morrowind/mwNifMesh.js';
+import { mat33Mul } from '../../formats/mwNifMesh.js';
 import { wrapAngle } from '../../world/mat4.js';
 
 // ---- the small algebra every law here shares ------------------------------------------------------------------------

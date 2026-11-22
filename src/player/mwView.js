@@ -34,11 +34,11 @@
 
 import { mwCamera, MW_UNITS_PER_METER, FOCAL_HEIGHT, PITCH_LIMIT } from './mwCamera.js';
 import { fpArm } from '../combat/fpArm.js';
-import { eotbCamera } from './eyeOfTheBeholder/eotbCamera.js';
-import { eotbBody } from './eyeOfTheBeholder/eotbBody.js';
-import { eotbWagon } from './eyeOfTheBeholder/eotbWagon.js';
-import { modSetting } from '../systems/modSettings.js';
-import { getPref } from '../systems/uiPrefs.js';   // MW-SHOULDER: the player's shoulder
+import { eotbCamera } from './eotbCamera.js';
+import { eotbBody } from './eotbBody.js';
+import { eotbWagon } from './eotbWagon.js';
+import { modSetting } from '../mods/modSettings.js';
+import { getPref } from '../ui/uiPrefs.js';   // MW-SHOULDER: the player's shoulder
 import { horseRigFor, HORSE_SEAT } from '../world/horseRig.js';   // COATS3D: the 3D horse under the Morrowind body
 import { gaitShare } from '../world/horseModel.js';
 import { SEAT_PELVIS_HEIGHT } from './seatPose.js';

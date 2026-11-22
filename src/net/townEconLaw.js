@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { seatTipOf, seatShopFactor, kingdomName, CROWN_SEAT_REGIONS } from './townSeatLaw.js';   // TE0 decision 5: a seat town's card, its area's holder; AUDIT TOWN-ECON UI-4: Market Day on the card's price
-import { t } from '../systems/textManager.js';   // L10N4: the card's words in the player's language, each read when it is said
+import { t } from '../ui/textManager.js';   // L10N4: the card's words in the player's language, each read when it is said
 
 /** The location types that are towns (mapsFile.js LOCATION_TYPES TownCity, TownHamlet, TownVillage). */
 export const TOWN_ECON_TYPES = Object.freeze([0, 1, 2]);

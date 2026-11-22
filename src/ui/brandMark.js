@@ -10,7 +10,7 @@
 // BR7 (the owner, 2026-10-30: "we have a new logo"): the BUNNYFALL wordmark with the bunny peeking round its B - cut to
 // its paint and scaled to 1600 x 382 (4.19:1). A wide mark: every box that drew the dragon at a height now draws this
 // at a width (enhancedStyle.js, introScreen.js, index.html, the launcher).
-import { t } from '../systems/textManager.js';   // L10N4: the mark's alt text in the player's language
+import { t } from './textManager.js';   // L10N4: the mark's alt text in the player's language
 
 export const BRAND_LOGO_URL = new URL('../assets/branding/bunnyfall.png', import.meta.url).href;
 // LOGO-CENTRE (Mac, 2026-10-26: "The main logo is off center"): the file is cut to its paint, and the dragon's wing

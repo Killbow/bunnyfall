@@ -27,9 +27,9 @@
 //
 // Every word through t() (the Port_Strings catalog): a line's title, its lead, its giver, each step's title. A step's
 // title is its quest's DisplayName in English (test/systems/questlines/ql12_lines.test.js holds the two to one word).
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 import { QL_SERVICE_LINES } from '../../net/questlineClaims.js';
-import { REVENANT_MIN_RENOWN } from '../revenant/revenant.js';   // AUDIT QUESTLINES LINES-3: the Renown a revenant comes at, in the window's words
+import { REVENANT_MIN_RENOWN } from '../../revenants/revenant.js';   // AUDIT QUESTLINES LINES-3: the Renown a revenant comes at, in the window's words
 
 /**
  * @typedef {{ quest: string, title: () => string, needs?: ReadonlyArray<LineNeed> }} LineStep

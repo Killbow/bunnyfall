@@ -30,9 +30,9 @@ const KEYS = ['calm', 'open', 'storm', 'night', 'port', 'fight'];
 const CLASSIC = ['SUNNYDAY.HMI', 'GDAY___D.HMI', 'GSUNNY2.HMI', '02.HMI', '29.HMI', 'OVERCAST.HMI', '10.HMI', 'GEERIE.HMI', 'RAINING.HMI'];
 
 const PAGE = `<!doctype html><html><body><script type=module>
-import { SongPlayer } from '/src/systems/song/songPlayer.js';
+import { SongPlayer } from '/src/audio/songPlayer.js';
 import { MidiBsaFile } from '/src/formats/hmiFile.js';
-import { seaScoreSongs } from '/src/systems/soundscape/seaScore.js';
+import { seaScoreSongs } from '/src/audio/soundscape/seaScore.js';
 const RATE = 44100;
 let bsa = null;
 window.loadBsa = async () => {

@@ -45,9 +45,9 @@
 
 import { FACTION_FLAGS } from '../formats/factionFile.js';
 import { POST_BATCH_RE } from './postLaw.js';
-import { creditSave, REALM_EMPIRE_ACCOUNT } from './realm/realmGoldLaw.js';   // STAFF-SET-BANK: and the Empire's account
-import { GOLD_INT_MAX } from '../systems/item/itemLaw.js';   // PURSE-MEND: one letter's worth is one int, as the law reads it
-import { INVITE_SENT, THIEVES_GUILD_TALLY_TARGET, DARK_BROTHERHOOD_TALLY_TARGET, THIEVES_GUILD_INITIATION_QUEST, DARK_BROTHERHOOD_INITIATION_QUEST, THIEVES_GUILD_FACTION_ID, DARK_BROTHERHOOD_FACTION_ID } from '../systems/crimeGuilds.js';   // GUILD-LETTER-FIX: the letters' own law
+import { creditSave, REALM_EMPIRE_ACCOUNT } from './realmGoldLaw.js';   // STAFF-SET-BANK: and the Empire's account
+import { GOLD_INT_MAX } from '../items/itemLaw.js';   // PURSE-MEND: one letter's worth is one int, as the law reads it
+import { INVITE_SENT, THIEVES_GUILD_TALLY_TARGET, DARK_BROTHERHOOD_TALLY_TARGET, THIEVES_GUILD_INITIATION_QUEST, DARK_BROTHERHOOD_INITIATION_QUEST, THIEVES_GUILD_FACTION_ID, DARK_BROTHERHOOD_FACTION_ID } from '../guilds/crimeGuilds.js';   // GUILD-LETTER-FIX: the letters' own law
 
 /** The bits a repair may clear: FactionFile.Flags, every one, and nothing else. @type {readonly number[]} */
 export const REPAIR_FLAGS = Object.freeze(Object.values(FACTION_FLAGS));

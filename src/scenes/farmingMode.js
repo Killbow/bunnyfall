@@ -7,10 +7,10 @@ import { farmGardenSite } from '../world/farmGardenSite.js';
 import { createFarmGardenArt } from '../world/farmGardenArt.js';
 import { createFarmingHud, farmToolName, farmCropName } from '../ui/farmingHud.js';
 import { settleGarden, bedSeconds, FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 import { ChoiceWindow } from '../ui/talkWindow.js';
 import { TITLE_TEXT } from '../ui/playerBadge.js';
-import { holdHotbar } from '../ui/enhanced/enhancedHotbar.js';
+import { holdHotbar } from '../ui/enhancedHotbar.js';
 import { farmToolArea } from '../net/farmProgressLaw.js';
 import { layFarmstead, farmsteadTargets, rayHitsTarget, cargoLevel, farmsteadLamps, LAMP_RANGE } from '../world/farm/farmstead.js';
 import { adoptLight } from '../render/lightId.js';
@@ -35,7 +35,7 @@ import { workshopStages } from '../net/farm/workshopLaw.js';
 import { createStationActs } from './farm/stationActs.js';   // PHASE 5: sworn beasts on the farm
 import { createStationArt } from '../world/farm/stationArt.js';
 import { stationsOf, ploughReady, herdKeep, greenhouse } from '../net/farm/stationLaw.js';
-import { setStationHome } from '../systems/revenant/revenantCompanions.js';
+import { setStationHome } from '../revenants/revenantCompanions.js';
 import { postIndexOf } from '../world/farm/farmstead.js';
 import { FARM_SEEDS } from '../net/farm/cropLaw.js';
 import { createMarketActs } from './farm/marketActs.js';   // PHASE 7: market day

@@ -55,7 +55,7 @@ export const SCENES = {
  *  Process rule), and held to the tree by test/tooling/perfon4_probes.test.js, so a needle a change moves fails the suite and
  *  not the next probe run. The stream's build slice served at 250 ms; the grass field filled at once. */
 export const FRAME_PROBE_EDITS = Object.freeze([
-  { file: 'src/systems/buildBreather.js', edits: [['export const BUILD_SLICE_MS = 6;', 'export const BUILD_SLICE_MS = 250;'], ['export const BUILD_SLICE_FLOOR_MS = 3;', 'export const BUILD_SLICE_FLOOR_MS = 250;']] },
+  { file: 'src/platform/buildBreather.js', edits: [['export const BUILD_SLICE_MS = 6;', 'export const BUILD_SLICE_MS = 250;'], ['export const BUILD_SLICE_FLOOR_MS = 3;', 'export const BUILD_SLICE_FLOOR_MS = 250;']] },
   { file: 'src/render/labGrass.js', edits: [['range = LAB_GRASS.range, perFrame = 2,', 'range = LAB_GRASS.range, perFrame = 1000,']] },
 ]);
 /** A vite plugin making `table`'s edits (FRAME_PROBE_EDITS' shape), each needle asserted. */

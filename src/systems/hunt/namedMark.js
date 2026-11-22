@@ -3,10 +3,10 @@
 // mark is a pure function of the week and the tier (net/huntLaw.js huntMarkOf), so a peer's foe reads as one off what its
 // record already carries - its kind and its traits' mask (net/wire.js validFoeRecord `t`, `bt`). A mate sees the hunter's
 // beast under its name, and the wire carries nothing new.
-import { BOUNTY_TIERS } from '../bounty/bountyBoard.js';
+import { BOUNTY_TIERS } from '../../guilds/bountyBoard.js';
 import { huntMarkOf, huntMarkSeed, huntWeekAt, HUNT_MARK_NAMES } from '../../net/huntLaw.js';
-import { rollBossTraits, bossTraitMask } from '../bossTraits.js';
-import { eliteRng } from '../eliteFoes.js';
+import { rollBossTraits, bossTraitMask } from '../../characters/bossTraits.js';
+import { eliteRng } from '../../characters/eliteFoes.js';
 import { trophyTitle } from './trophies.js';
 
 /** A named mark's boss traits: two, as a raid's leader carries. */

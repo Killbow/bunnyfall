@@ -48,12 +48,12 @@ const gambitCells = [];
 /** Mount one scene's panel on the page, through the real painter and model. */
 async function mount(page, scene) {
   await page.evaluate(async (scene) => {
-    const { newGame, commit, reveal, iliacView } = await import('/src/net/iliac/iliacHand.js');
-    const { STARTER_DECK } = await import('/src/net/iliac/iliacCards.js');
-    const { patronPlays } = await import('/src/systems/iliac/iliacPatrons.js');
+    const { newGame, commit, reveal, iliacView } = await import('/src/net/iliacHand.js');
+    const { STARTER_DECK } = await import('/src/net/iliacCards.js');
+    const { patronPlays } = await import('/src/cards/iliacPatrons.js');
     const ih = await import('/src/ui/iliacTableHud.js');
-    const ch = await import('/src/ui/card/cardTableHud.js');
-    const { CardTableSession } = await import('/src/systems/card/cardTableSession.js');
+    const ch = await import('/src/ui/cardTableHud.js');
+    const { CardTableSession } = await import('/src/cards/cardTableSession.js');
     let x = 7, u = 3;
     const rand32 = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; return x >>>= 0; };
     const unit = () => { u = (u * 1664525 + 1013904223) >>> 0; return u / 4294967296; };
@@ -66,7 +66,7 @@ async function mount(page, scene) {
     if (scene.startsWith('gambit')) {   // KG4: the third panel - its battle is the lab's own, over the leaning board
       if (scene === 'gambit-battle') { window.__panel = null; return; }
       const gh = await import('/src/ui/gambitTableHud.js');
-      const { GAMBIT_TIERS, dealRegular } = await import('/src/systems/gambit/gambitPatrons.js');
+      const { GAMBIT_TIERS, dealRegular } = await import('/src/cards/gambit/gambitPatrons.js');
       const { autoFill } = await import('/src/net/kingsGambit.js');
       document.querySelectorAll('.dfgambit').forEach((n) => n.remove());
       const hud = gh.createGambitTableHud({ onPress: () => {} });

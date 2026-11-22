@@ -26,9 +26,9 @@
 // the gold it cost (half of which comes back when it is removed).
 // ═══════════════════════════════════════════════════════════════════
 import { PROVENANCE_RE, makerName } from './recipeLaw.js';   // PROF4: a crafted piece's id and mark, one home
-import { TEMPLATES } from '../systems/item/itemKinds.js';   // INT9: the kept-back list's templates - a leaf
+import { TEMPLATES } from '../items/itemKinds.js';   // INT9: the kept-back list's templates - a leaf
 import { isNpcFlat } from '../world/npcFlatArchives.js';   // DECOR-FIGURE: a person's flat (RDBLayout.NPCFlatArchives) - a leaf
-import { t } from '../systems/textManager.js';   // DECOR-USE: the cooking station's name in the player's language
+import { t } from '../ui/textManager.js';   // DECOR-USE: the cooking station's name in the player's language
 import { TROPHY_TEMPLATE } from './trophyLaw.js';   // HUNTERS-MARK: a mounted trophy hangs
 
 /** The items kept back by name: paper worth money or a house (a letter of credit, a deed) and the book of the

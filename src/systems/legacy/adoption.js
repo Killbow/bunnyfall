@@ -6,8 +6,8 @@
 // choosing: the person is made to the player's word - gender, race, class, name and face - and not rolled.
 // PURE: no DOM, no storage, no clock. Every roll takes an injected `rng`.
 import { addChild, personOf, isAlive, touch, nameChild, lineSurnameOf, fullNameOf } from './family.js';
-import { CLASS_CAREERS } from '../chargen.js';
-import { RACES, FACES_PER_RACE } from '../races.js';
+import { CLASS_CAREERS } from '../../characters/chargen.js';
+import { RACES, FACES_PER_RACE } from '../../characters/races.js';
 import { startAgeOf } from './age.js';
 
 /** Adopted children waiting at once, for one parent (a house's children are marriage.js CHILDREN_MAX besides). */
@@ -31,7 +31,7 @@ export const waiting = (family, parent) => (family?.people ?? []).filter((p) => 
 export function cleanSpec(spec) {
   const given = String(spec?.given ?? '').trim().replace(/\s+/g, ' ');
   if (!NAME_RE.test(given)) return null;
-  const gender = spec?.gender === 'female' ? 'female' : spec?.gender === 'male' ? 'male' : null;
+  const gender = /** @type {'female' | 'male' | null} */ (spec?.gender === 'female' ? 'female' : spec?.gender === 'male' ? 'male' : null);
   const race = RACE_KEYS.includes(spec?.race) ? spec.race : null;
   const careerIndex = Number.isInteger(spec?.careerIndex) && spec.careerIndex >= 0 && spec.careerIndex < CLASS_CAREERS.length ? spec.careerIndex : null;
   const face = Number.isInteger(spec?.face) && spec.face >= 0 && spec.face < FACES_PER_RACE ? spec.face : 0;
@@ -70,7 +70,7 @@ export function adoptChild(family, parentId, spec, { rng = Math.random, at = 0, 
   person.given = s.given;
   person.surname = lineSurnameOf(family, parent);
   person.minor = true;
-  person.adopted = true;
+  /** @type {any} */ (person).adopted = true;
   touch(family);
   return { ok: true, person, name: fullNameOf(person.given, person.surname) };
 }

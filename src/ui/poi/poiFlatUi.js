@@ -6,14 +6,14 @@
 // no weight to the panel. The game draws flat pictures through the house-decor code (scenes/poiFlats.js), and the
 // schema is poi/poiLawV2.js.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { find, marksOf } from '../../poi/poiScene.js';
 import { POI_V2_LIMITS, POI_V2_PINS as P } from '../../poi/poiLawV2.js';
 import { flatMirrored, setFlatMirrored, flatRoom, isFigureRow, itemHangs, wrapDeg } from '../../poi/poiFlatRows.js';
-import { poiFlatPicture } from '../../scenes/poiFlats.js';
-import { decorFlatLight } from '../../systems/decor/decorCatalogue.js';
-import { templateByIndex, GROUP_TEMPLATE_INDICES } from '../../systems/item/itemTemplates.js';
-import { ITEM_GROUP_NAME_BY_CLASS } from '../../systems/loot/loot.js';
+import { poiFlatPicture } from '../../poi/poiFlats.js';
+import { decorFlatLight } from '../../homes/decorCatalogue.js';
+import { templateByIndex, GROUP_TEMPLATE_INDICES } from '../../items/itemTemplates.js';
+import { ITEM_GROUP_NAME_BY_CLASS } from '../../items/loot.js';
 import { billboardSize } from '../../world/rmbFlats.js';
 
 /** Archives numbered below this one hold mostly wall and model textures, though some show as pictures in the game

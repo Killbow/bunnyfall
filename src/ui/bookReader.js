@@ -61,16 +61,16 @@
 // [/scale=] reach the label (a colour; wrapped at MaxWidth / scale, and
 // as tall as its rows times the scale - TextLabel.cs:604, :708, :789).
 
-import { loadImg, nativeMetrics, drawImg, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, shadowText } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { drawText, measureText, makeFont } from './text.js';
 import { FntFile } from '../formats/fntFile.js';   // ROAD-D D10: FontPrefix's five faces
 import { wrapText } from './talkWindow.js';        // ROAD-D D10: TextLabel's word wrap, one home
 import { RSC, TOKEN_TEXT, RSC_CUSTOM, markupTokens } from '../formats/textRsc.js';
 import { BookFile } from '../formats/bookFile.js';
-import { loadBookPrices } from '../systems/books.js';   // A2: the book-price warm
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { loadBookPrices } from '../items/books.js';   // A2: the book-price warm
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 
 export const BOOK_RECTS = Object.freeze({
   nextPage: [208, 188, 14, 8],

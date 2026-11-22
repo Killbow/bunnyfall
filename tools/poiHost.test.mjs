@@ -1,4 +1,4 @@
-// The game's POI host (src/scenes/poiHost.js) standing documents served by its own feed (src/poi/poiFeed.js), with a
+// The game's POI host (src/poi/poiHost.js) standing documents served by its own feed (src/poi/poiFeed.js), with a
 // stub renderer and an in-process store (no sockets): a v1 POI of uploaded models, a v2 POI that mixes an uploaded
 // model with a Daggerfall model part from the World Builder, parts whose assets the store lacks, fails on, or refuses,
 // parts whose bytes will not read, a new revision, and a builder's draft laid over the feed.
@@ -6,12 +6,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPoiFeed } from '../src/poi/poiFeed.js';
-import { createPoiHost, POI_RETRY_MS } from '../src/scenes/poiHost.js';
+import { createPoiHost, POI_RETRY_MS } from '../src/poi/poiHost.js';
 import { newPoiDoc, newPart, newNpc } from '../src/poi/poiEdit.js';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
 import { encodePoiMesh } from '../src/poi/poiMesh.js';
 import { poiV2Example } from './poiV2Examples.mjs';
-import { DECOR_DRAW } from '../src/scenes/decor/decorRoom.js';
+import { DECOR_DRAW } from '../src/homes/decorRoom.js';
 
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 const shaOf = async (b) => hex(await crypto.subtle.digest('SHA-256', b));

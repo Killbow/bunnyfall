@@ -26,31 +26,31 @@
 // panel ui/gambitTableHud.js over it; `&nohud` none); `&select=<n>` a piece chosen; `&phase=army` the army's screen.
 import { Renderer } from '../render/renderer.js';
 import { perspective, lookAt, mirrorProjectionX } from '../world/mat4.js';
-import { cardTableSeats, tableFrame } from '../world/card/cardTables.js';
-import { tablePlaces, CardScene } from '../world/card/cardScene.js';
-import { CardTableSession } from '../systems/card/cardTableSession.js';
+import { cardTableSeats, tableFrame } from '../world/cardTables.js';
+import { tablePlaces, CardScene } from '../world/cardScene.js';
+import { CardTableSession } from '../cards/cardTableSession.js';
 import { createCardTableDraw } from '../render/cardTableDraw.js';
-import { createCardTableHud, cardHudModel, eventLine } from '../ui/card/cardTableHud.js';
-import { INTERIOR_AMBIENT, INTERIOR_LIGHT_DIR } from '../world/interior/interiorLights.js';
-import { cardTablePropModel, paintFelt, paintWood, CARD_TABLE_BOX, CARD_TABLE_ARCHIVE, FELT_RECORD, WOOD_RECORD, GOLD_FELT_RECORD, GOLD_FELT_RGB } from '../world/card/cardTableProp.js';   // AUDIT TAVERN-TABLE L6: the game's table
-import { heldMatrices, squeezeMatrix, heldFit, heldLift } from '../world/card/cardHand.js';   // CARDS3b: the player's two held before the eye, as the host draws them; CARDS3c: squeezed; AUDIT CARDS-6 E21: fitted and lifted
-import { CARD_W, CARD_L } from '../world/card/cardMotion.js';
+import { createCardTableHud, cardHudModel, eventLine } from '../ui/cardTableHud.js';
+import { INTERIOR_AMBIENT, INTERIOR_LIGHT_DIR } from '../world/interiorLights.js';
+import { cardTablePropModel, paintFelt, paintWood, CARD_TABLE_BOX, CARD_TABLE_ARCHIVE, FELT_RECORD, WOOD_RECORD, GOLD_FELT_RECORD, GOLD_FELT_RGB } from '../world/cardTableProp.js';   // AUDIT TAVERN-TABLE L6: the game's table
+import { heldMatrices, squeezeMatrix, heldFit, heldLift } from '../world/cardHand.js';   // CARDS3b: the player's two held before the eye, as the host draws them; CARDS3c: squeezed; AUDIT CARDS-6 E21: fitted and lifted
+import { CARD_W, CARD_L } from '../world/cardMotion.js';
 import { projectToScreen } from '../player/tapRay.js';
-import { newGame, commit as iliacCommit, reveal as iliacReveal, iliacView, ILIAC_TURNS } from '../net/iliac/iliacHand.js';   // CARDS10: an Iliac game's cloth, for the frame's cost
-import { STARTER_DECK } from '../net/iliac/iliacCards.js';
-import { patronPlays } from '../systems/iliac/iliacPatrons.js';
+import { newGame, commit as iliacCommit, reveal as iliacReveal, iliacView, ILIAC_TURNS } from '../net/iliacHand.js';   // CARDS10: an Iliac game's cloth, for the frame's cost
+import { STARTER_DECK } from '../net/iliacCards.js';
+import { patronPlays } from '../cards/iliacPatrons.js';
 import { iliacPlaces, iliacPoses } from '../world/iliacCloth.js';
 import { createIliacTableDraw } from '../render/iliacTableDraw.js';
 import { createIliacTableHud, iliacHudModel } from '../ui/iliacTableHud.js';   // CARDS-PLUS: Iliac Hand's panel over its cloth
-import { injectEnhancedStyle } from '../ui/enhanced/enhancedStyle.js';
-import { dealRegular, regularStep, GAMBIT_TIERS } from '../systems/gambit/gambitPatrons.js';   // KG4: The King's Gambit's table
+import { injectEnhancedStyle } from '../ui/enhancedStyle.js';
+import { dealRegular, regularStep, GAMBIT_TIERS } from '../cards/gambit/gambitPatrons.js';   // KG4: The King's Gambit's table
 import { finishTurn, autoFill, KG_POINT_BUDGET } from '../net/kingsGambit.js';
 import { gambitPlaces, gambitLean } from '../world/gambitCloth.js';
 import { createGambitMotion } from '../world/gambitMotion.js';
 import { createGambitTableDraw } from '../render/gambitTableDraw.js';
 import { createGambitTableHud, gambitHudModel } from '../ui/gambitTableHud.js';
-import { gambitClear } from '../scenes/gambitTableGame.js';
-import { isEnhancedPlus } from '../systems/uiSkin.js';
+import { gambitClear } from '../cards/gambitTableGame.js';
+import { isEnhancedPlus } from '../ui/uiSkin.js';
 
 const params = new URLSearchParams(location.search);
 const T = Number(params.get('t') ?? 14);

@@ -7,7 +7,7 @@
 // mask Point). Owned by scenes/snowfallHost.js, disposed with it.
 
 import { SNOW_ATTR } from './snowfallGlsl.js';
-import { MID, BLANKET, snowUniforms } from '../systems/snowfallRuntime.js';
+import { MID, BLANKET, snowUniforms } from '../weather/snowfallRuntime.js';
 
 /** The generic values a tier's absent channels read: the local window has no contexts of its own (Excluded), no tier
  *  but the ring has a blanket target. */

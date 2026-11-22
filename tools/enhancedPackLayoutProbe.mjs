@@ -50,9 +50,9 @@ const LIST_FLOOR = 120;
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PACK layout probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#3b4a3a 0 14px,#324031 14px 28px)}</style></head><body>
 <script type="module">
-import { equipItem } from '/src/systems/equip.js';
-import { setItemFields, mintCondition } from '/src/systems/item/itemTemplates.js';
-import { ITEM_TEMPLATES } from '/src/characters/paperdoll/paperdoll.js';
+import { equipItem } from '/src/characters/equip.js';
+import { setItemFields, mintCondition } from '/src/items/itemTemplates.js';
+import { ITEM_TEMPLATES } from '/src/characters/paperdoll.js';
 import { createInventoryWindow } from '/src/ui/inventoryDoor.js';
 
 // the doll's art, stood in wherever the pack draws its Avatar plaque, every render

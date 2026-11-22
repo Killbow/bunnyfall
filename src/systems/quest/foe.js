@@ -22,8 +22,8 @@ import { parseInt as questParseInt } from './parseUtils.js';
 import { foesTable } from './tables.js';
 import { GENDERS, getNameBankOfRegion, fullName, monsterName } from '../../characters/nameHelper.js';
 import { srand, randomRange } from '../../formats/dfRandom.js';
-import { enemyDisplayName, isClassEnemyId } from '../../characters/enemy/enemyBasics.js';
-import { getLocalizedEnemyName } from '../textManager.js';   // L10N3e: the type name shown
+import { enemyDisplayName, isClassEnemyId } from '../../characters/enemyBasics.js';
+import { getLocalizedEnemyName } from '../../ui/textManager.js';   // L10N3e: the type name shown
 
 const MAX_SPAWN_COUNT = 8;
 
@@ -31,7 +31,7 @@ const MAX_SPAWN_COUNT = 8;
 // characters/enemy/enemyBasics.js - the leaf that holds the rows they name,
 // which this file already imports. Re-exported so every existing
 // importer keeps working (ONE DFU MEMBER, ONE EXPORT).
-export { ENEMY_NAMES, isClassEnemyId } from '../../characters/enemy/enemyBasics.js';
+export { ENEMY_NAMES, isClassEnemyId } from '../../characters/enemyBasics.js';
 
 const DECL = [
   /(Foe|foe) (?<symbol>[a-zA-Z0-9_.-]+) is (?<count>\d+) (?<aFoe>\w+)/,

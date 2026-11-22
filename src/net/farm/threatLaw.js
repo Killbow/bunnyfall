@@ -17,7 +17,7 @@
 // keeps the yard; applied the next time the garden is written. The wolf has no sprite: it is told in words.
 // Pure: no clock, no network.
 import { sharedClassicMinutes, wallMsForClassicMinutes } from '../wire.js';
-import { MINUTES_PER_DAY } from '../../systems/gameDate.js';
+import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import { contentAt, kindContent } from './herdLaw.js';
 
 export const BLIGHT_STEP_S = 12 * 3600, BLIGHT_BASE = .012, BLIGHT_STREAK = 3, BLIGHT_ROTATED = .5, SPREAD_EACH = .012, SPREAD_MAX = .1;

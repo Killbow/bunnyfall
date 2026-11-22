@@ -35,7 +35,7 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
     const { GLYPHS } = await import('/src/net/identityToken.js');
     document.body.innerHTML = '';
     document.body.style.cssText = 'margin:0;background:repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px);height:100vh';
-    (await import('/src/ui/enhanced/enhancedStyle.js')).injectEnhancedStyle();
+    (await import('/src/ui/enhancedStyle.js')).injectEnhancedStyle();
     // THE WIDEST LETTERS THE LAW ALLOWS: a full box, every sender at the handle's bound in its widest letter and every
     // glyph, every subject at its bound; the one opened is the body's bound of one unbroken word and the lines' bound.
     const W24 = 'W'.repeat(HANDLE_MAX_LEN);

@@ -3,7 +3,7 @@
 // "Legacy" section (systems/modSettings.js 'project-legacy'), resolved once per read into plain numbers. The mod's
 // `LoadSettings` read them on a settings change; the port reads them at the moment they matter (a birth, a death),
 // so a dial moved mid-game reaches the next birth and never re-rolls one made.
-import { modSetting } from '../modSettings.js';
+import { modSetting } from '../../mods/modSettings.js';
 import { LEGACY_MOD, MODELS } from './family.js';
 
 /** Arkay's toll, as a share of the lifespan, by the "Legacy.Toll" choice (Light, Standard, Heavy). */

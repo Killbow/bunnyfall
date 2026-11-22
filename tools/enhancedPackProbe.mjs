@@ -60,7 +60,7 @@ async function toGamePage(page, skin = 'enhanced') {
 async function openPack(page, extra = {}) {
   await page.evaluate(async (ex) => {
     const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
-    const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll/paperdoll.js');
+    const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll.js');
     const t = (n) => ITEM_TEMPLATES.find((x) => x.name === n);
     const mk = (n, group = 'Weapons') => {
       const tp = t(n);
@@ -222,8 +222,8 @@ async function run(label, opts) {
   await page.evaluate(() => globalThis.__slot.dispose());
   const openUsePack = (kind) => page.evaluate(async (k) => {
     const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
-    const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll/paperdoll.js');
-    const { TEMPLATES } = await import('/src/systems/useItem.js');
+    const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll.js');
+    const { TEMPLATES } = await import('/src/items/useItem.js');
     const t = (n) => ITEM_TEMPLATES.find((x) => x.name === n);
     const book = t('Book') ?? ITEM_TEMPLATES.find((x) => x.name?.includes('Book'));
     const e = { name: 'Aelwyn', career: { name: 'Spellsword' }, stats: { strength: 50, endurance: 48 }, items: [] };

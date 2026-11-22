@@ -41,13 +41,13 @@
 // THE WELCOME TOUR is one box of several pages (addNext, DaggerfallMessageBox.AddNextMessageBox): each dismissal
 // turns the page, and the last closes it and marks every page of it read.
 
-import { hudArranging } from './hud/hudLayout.js';   // BUNNYFALL: the ? is a HUD piece (Alt+U)
+import { hudArranging } from './hudLayout.js';   // BUNNYFALL: the ? is a HUD piece (Alt+U)
 import { ActionTextBox } from './actionText.js';
-import { mountWindow, windowHeld } from '../systems/notify.js';
-import { tutorialById, tutorialDue, tutorialRows, markTutorialsSeen, setTutorialHandler, TUTORIAL_TOUR } from '../systems/tutorials.js';
+import { mountWindow, windowHeld } from './notify.js';
+import { tutorialById, tutorialDue, tutorialRows, markTutorialsSeen, setTutorialHandler, TUTORIAL_TOUR } from './tutorials.js';
 import { bindings } from './input.js';
-import { codeForAction } from '../systems/inputActions.js';
-import { buttonText } from '../systems/controlsConfig.js';
+import { codeForAction } from './inputActions.js';
+import { buttonText } from './controlsConfig.js';
 import { pauseFlowShowing } from './pauseDoor.js';   // a page waits while the menu stands
 import { loadingHeld } from './loadingScreen.js';   // ...and while the loading screen does
 

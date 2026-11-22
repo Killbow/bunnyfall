@@ -50,10 +50,10 @@
 // when the law moves. It moved today.
 
 import { ActionTextBox } from './actionText.js';
-import { statusInfoRows, healthStatusRows } from '../systems/healthStatus.js';
+import { statusInfoRows, healthStatusRows } from './healthStatus.js';
 import { survivalStatusRows } from '../systems/survival/status.js';
 import { survivalRules } from '../systems/survival/switch.js';   // AUDIT C&C S11: the page reads the live tier
-import { statusReadoutHint, holdStatusReadout, forgetStatusReadout, closeStatusReadout } from '../systems/statusReadout.js';
+import { statusReadoutHint, holdStatusReadout, forgetStatusReadout, closeStatusReadout } from './statusReadout.js';
 
 /** DisplayStatusInfo's box, minus the pause and minus the chain. */
 export class StatusReadout extends ActionTextBox {

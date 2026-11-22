@@ -39,21 +39,21 @@
 // at `(Screen.height - largeHUD.Rectangle.height) / 2` under a docked
 // large HUD (vendor .cs:1097-1112) - so ROAD-E E5's law, that a docked
 // bar moves the reticle, moves the plaque with it for free.
-import { injectEnhancedStyle, PLAQUE_MAX_W, STATS_W, STATS_GAP, STATS_MARGIN } from './enhanced/enhancedStyle.js';   // QUICK-LOOT-STATS: the layout numbers live with the dress that draws them
-import { isEnhanced } from '../systems/uiSkin.js';
-import { isTouchDevice } from './touch/touchDevice.js';
-import { crosshairCentreY, CROSSHAIR_ARM } from './hud/hudCrosshair.js';
-import { hudReticle } from './hud/hud.js';   // the reticle's own two terms, from their home
+import { injectEnhancedStyle, PLAQUE_MAX_W, STATS_W, STATS_GAP, STATS_MARGIN } from './enhancedStyle.js';   // QUICK-LOOT-STATS: the layout numbers live with the dress that draws them
+import { isEnhanced } from './uiSkin.js';
+import { isTouchDevice } from './touchDevice.js';
+import { crosshairCentreY, CROSSHAIR_ARM } from './hudCrosshair.js';
+import { hudReticle } from './hud.js';   // the reticle's own two terms, from their home
 import { pickActivatableHit } from '../player/activate.js';
 import { getSeed, setSeed } from '../formats/dfRandom.js';   // CAT-MEOW: the readout keeps the classic stream
-import { frameMark } from '../systems/frameClock.js';   // AUDIT-WH P3: the frame in flight, so the gate's two terms are computed once in it
-import { resolveHover, frameSignature, plaqueWindow } from '../systems/worldHover.js';   // LOOT-SCROLL: the drawn window
-import { foldQuickLoot, quickLootRow, quickLootStats, resetQuickLoot, quickLootOn, plaqueVerbsWanted } from '../systems/quickLoot.js';
-import { decorPressFrame } from '../systems/decor/decorLook.js';   // RPT1026-WORLD DECOR-VERBS: the decorator's frame where no plaque is drawn
-import { setClassicLootFrame } from '../systems/classicLootFrame.js';   // DISC22-C: the classic panel's frame, a leaf hud.js can read   // QUICK-LOOT B3: the highlight is the FEATURE's - this draws it and frees it, it does not own it; QUICK-LOOT-STATS: and the lit row's own numbers
+import { frameMark } from '../platform/frameClock.js';   // AUDIT-WH P3: the frame in flight, so the gate's two terms are computed once in it
+import { resolveHover, frameSignature, plaqueWindow } from '../player/worldHover.js';   // LOOT-SCROLL: the drawn window
+import { foldQuickLoot, quickLootRow, quickLootStats, resetQuickLoot, quickLootOn, plaqueVerbsWanted } from '../items/quickLoot.js';
+import { decorPressFrame } from '../homes/decorLook.js';   // RPT1026-WORLD DECOR-VERBS: the decorator's frame where no plaque is drawn
+import { setClassicLootFrame } from './classicLootFrame.js';   // DISC22-C: the classic panel's frame, a leaf hud.js can read   // QUICK-LOOT B3: the highlight is the FEATURE's - this draws it and frees it, it does not own it; QUICK-LOOT-STATS: and the lit row's own numbers
 import { bodyStackMark, resetBodyStack } from '../player/lootStack.js';   // LOOT-STACK: the plaque counts the pile the pick noted
 import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js'; import { destroyPickupFeed, clearPickupFeed } from './pickupFeed.js';   // DISC29-D: the watchdog counts frames, not milliseconds; PICKUP-FEED: the take's cards, freed with this teardown
-import { PLAQUE_MINE_TAG } from '../systems/roomLoot.js';   // PARTY-LOOT: a row of this player's own bonus says so
+import { PLAQUE_MINE_TAG } from '../items/roomLoot.js';   // PARTY-LOOT: a row of this player's own bonus says so
 
 /** The gap in CSS pixels between the cross's lower arm tip and the
  *  plaque's top edge. Large enough that the two never read as one

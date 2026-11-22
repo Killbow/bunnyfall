@@ -12,8 +12,8 @@
 // Not a DFU member. Ledger A (STARFALL).
 import { skyClassicMinutes } from '../../net/skyLaw.js';
 import { STAR_HOUR_MS, STAR_FALLS_MS, STAR_PER_NIGHT } from '../../net/starfall/starfallLaw.js';
-import { dayOfYearFromMinutes } from '../gameDate.js';
-import { HOLIDAYS, holidayDayOfYear } from '../holidays.js';
+import { dayOfYearFromMinutes } from '../../world/gameDate.js';
+import { HOLIDAYS, holidayDayOfYear } from '../../world/holidays.js';
 
 /** The festival's day of the year - the holiday table's own row (one home: systems/holidays.js). */
 export const WITCHES_FESTIVAL_DAY = /** @type {number} */ (holidayDayOfYear(HOLIDAYS.Witches_Festival));

@@ -23,20 +23,20 @@
 // A horse's breath is kept here, by its seed (no field: a gallop's breath is not a thing to save), and comes back whole
 // over any span of the clock skipped (steedCare.js SKIP_MINUTES - a rest, a wait, a journey, a load).
 
-import { activeHorseItem, birthHorses, isHorseItem, describeHorseLook, horseLookOf } from '../horse/horseCoats.js';
-import { activeWagonItem, wagonHorsesOf, wagonKindOf } from '../wagon/wagonKinds.js';
+import { activeHorseItem, birthHorses, isHorseItem, describeHorseLook, horseLookOf } from '../../travel/horseCoats.js';
+import { activeWagonItem, wagonHorsesOf, wagonKindOf } from '../../travel/wagonKinds.js';
 import {
   steedStats, stepBreath, freshBreath, breathShare, canGallop, steedSpeedScale, teamDraftScale, tendHorses, feedHorse,
   chooseRiddenHorse, horsesIn, steedFoodOf, STEED_TEXT, SKIP_MINUTES, HUNGER, STEED_STATS, STEED_STAT_TEXT, fedUntil,
   FULL_AHEAD, BOND_TIERS,
-} from '../steedCare.js';
+} from '../../travel/steedCare.js';
 import {
   wagonState, wagonSoundness, wagonCondition, wagonConditionMax, rollWear, journeyWear, createWearAccount, wearWagon,
   wagonPace, mendPrice, kitMendWagon, wagonWord, WAGON_UPKEEP_TEXT, THROWN_WEAR, WAGON_KIT_CEILING,
-} from '../wagon/wagonUpkeep.js';
+} from '../../travel/wagonUpkeep.js';
 import { isWagonKitItem, UPKEEP_ITEM } from './upkeepItemRows.js';
-import { registerItemUseHandler } from '../item/itemTemplates.js';
-import { HORSE_MODE, WAGON_MODE, TRANSPORT } from '../horse/horseCartLaw.js';
+import { registerItemUseHandler } from '../../items/itemTemplates.js';
+import { HORSE_MODE, WAGON_MODE, TRANSPORT } from '../../travel/horseCartLaw.js';
 
 /** A breath under this share shows short on the HUD. */
 export const BREATH_LOW = 0.25;

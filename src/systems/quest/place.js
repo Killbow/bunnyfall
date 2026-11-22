@@ -24,23 +24,23 @@ import { QuestResource, matchFirst } from './questResource.js';
 import { Symbol as QuestSymbol } from './symbol.js';
 import { intParse } from './parseUtils.js';   // AUDIT 68 S30-tryparse-dup: the quest layer's one int.Parse
 import { placesTable } from './tables.js';
-import { mergeNamedBuildings, makeBuildingKey, blockBuildingCount } from '../talk/talkTopics.js';
+import { mergeNamedBuildings, makeBuildingKey, blockBuildingCount } from '../../talk/talkTopics.js';
 import { generateBuildingName } from '../../world/buildingNames.js';
 import { surname, firstName, getNameBankOfRegion, GENDERS } from '../../characters/nameHelper.js';
-import { localizedText, getLocalizedLocationName, getLocalizedRegionName } from '../textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: the place names shown
+import { localizedText, getLocalizedLocationName, getLocalizedRegionName } from '../../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: the place names shown
 import { RDB_RESOURCE_TYPES } from '../../formats/blocksFile.js';
-import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack, CLASSIC_LAYOUT } from '../layoutPins.js';   // WD3: a building site keeps its town's layout
+import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack, CLASSIC_LAYOUT } from '../../world/layoutPins.js';   // WD3: a building site keeps its town's layout
 import { curatedMarkerSpot, curateSiteMarkers } from './markerCuration.js';   // FIELD BUGS 2026-10-04d QUEST-MARKERS: the town packs' unreachable markers, on the floor
-import { cromwarkQuestSiteBlocked } from '../wild/cromwarkSettlements.js';
-import { cromwarkDoor } from '../wild/cromwarkTowns.js';
+import { cromwarkQuestSiteBlocked } from '../../world/wild/cromwarkSettlements.js';
+import { cromwarkDoor } from '../../world/wild/cromwarkTowns.js';
 import { questReachOn, questReachPixels, nearbyIndices, indicesWithin, mapTablePixel, mapPixelDistance } from './questReach.js';   // NEARBY-QUESTS
 import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 import { stringHash } from '../../formats/netRuntime.js';   // QUEST-AUDIT II SHARED-SEAT: a shared copy's re-seat, seeded (a leaf)
 import { getSeed, setSeed } from '../../formats/dfRandom.js';   // AUDIT QA2: a shared re-seat's residence name, seeded and the state put back
-import { seededFirst } from '../wind/wind.js';   // QUEST-AUDIT II SHARED-SEAT: the port's one seeded die (imports nothing)
-import { isMainStoryDungeon } from '../../world/dungeon/dungeonTextures.js';   // KVAR-HOLD: the main story's own dungeons are no random quest's
-import { wildMaskOf, wildInside } from '../wild/wildZone.js';   // RPT1026-QUESTS QUEST-ZONE: the open zone's sealed dungeons are no quest's
-import { boundWorldDataBlocks } from '../../formats/worldData/worldDataReplacement.js';   // AUDIT QA2: Daggerfall's own blocks (BLOCKS.BSA, past the door) - what the mods took away
+import { seededFirst } from '../../weather/wind.js';   // QUEST-AUDIT II SHARED-SEAT: the port's one seeded die (imports nothing)
+import { isMainStoryDungeon } from '../../world/dungeonTextures.js';   // KVAR-HOLD: the main story's own dungeons are no random quest's
+import { wildMaskOf, wildInside } from '../../world/wildZone.js';   // RPT1026-QUESTS QUEST-ZONE: the open zone's sealed dungeons are no quest's
+import { boundWorldDataBlocks } from '../../formats/worldDataReplacement.js';   // AUDIT QA2: Daggerfall's own blocks (BLOCKS.BSA, past the door) - what the mods took away
 
 /** QUEST-AUDIT III MARKERLESS-DRAW: how many dungeons of a remote draw's pool are walked before it gives up. */
 const REMOTE_DUNGEON_DRAWS = 6;

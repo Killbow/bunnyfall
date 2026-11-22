@@ -12,7 +12,7 @@
 // same star come down the same way (net/starfall/starfallLaw.js starStreakBearing).
 //
 // Pure where it can be: the path (`streakAt`), the clamp, the ring's reach. Not a DFU member. Ledger A (STARFALL).
-import { BEACON_DRAW_VS, BEACON_DRAW_FS, BEACON_RADIUS_M, beaconVertices, gateClock } from '../gate/gatePass.js';
+import { BEACON_DRAW_VS, BEACON_DRAW_FS, BEACON_RADIUS_M, beaconVertices, gateClock } from '../gatePass.js';
 import { FOG_FACTOR_GLSL } from '../labGrass.js';
 import { buildProgram } from '../glProgram.js';
 import { multiply } from '../../world/mat4.js';

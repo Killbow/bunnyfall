@@ -17,7 +17,7 @@
 // argued around in the first hour.
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** The code's version - its date. A player who agreed to an older one is asked again. */
 export const CONDUCT_VERSION = '2026-10-29';   // BUNNYFALL: the server's own rules - everyone is asked again

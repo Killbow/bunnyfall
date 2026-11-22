@@ -18,8 +18,8 @@
 // foe, and that file must not reach the combat formulas.
 // ═══════════════════════════════════════════════════════════════════
 
-import { modSetting, modSettingIfDeclared } from '../systems/modSettings.js';
-import { meanerMonstersAlone } from '../systems/enemyExpansion/dexSwitches.js';   // MUDEX1: beside DEX, Meaner Monsters is MUDEX
+import { modSetting, modSettingIfDeclared } from '../mods/modSettings.js';
+import { meanerMonstersAlone } from '../mods/enemyExpansion/dexSwitches.js';   // MUDEX1: beside DEX, Meaner Monsters is MUDEX
 
 /** EnemyBasics.Enemies[i] <- {...}, exactly as InitMod writes them. */
 export const MEANER_MONSTERS = Object.freeze({

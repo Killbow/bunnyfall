@@ -20,7 +20,7 @@
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
+import { t } from '../textManager.js';   // L10N4: the words through the text core
 import { createUvEdit } from '../../poi/uv/uvEdit.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI U6: a key typed into the dialog's own fields is the field's
 import { capturePointer } from '../pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown

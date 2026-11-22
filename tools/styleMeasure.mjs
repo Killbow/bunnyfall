@@ -16,26 +16,26 @@
 //   node tools/styleMeasure.mjs            # 600 foes a cell
 //   node tools/styleMeasure.mjs --n 200    # quicker
 import { isMain } from './lib/isMain.mjs';
-import { installRoleplayRealismItems } from '../src/systems/roleplayRealismItems/rriInstall.js';
-import { installRoleplayRealism } from '../src/systems/roleplayRealism/rrInstall.js';
+import { installRoleplayRealismItems } from '../src/mods/rriInstall.js';
+import { installRoleplayRealism } from '../src/mods/rrInstall.js';
 import '../src/combat/swingLaw.js';
 import '../src/combat/meleeRework.js';   // the melee rework's rows, strengths and shield block (the game loads it through the sigil sets)
 import { PlayerWeapon } from '../src/combat/playerWeapon.js';
 import { calculateAttackDamage, weaponKnockbackSpeed, weaponKnockbackApplies, enemyWeightClassicUnits, KB_UNIT } from '../src/combat/formulas.js';
 import { offHandToHit, OFF_HAND_BLOW } from '../src/combat/twoHands/handsLaw.js';
-import { makeEnemyEntity, applyProgressionScaling } from '../src/characters/enemy/enemyEntity.js';
-import { progressionScaling } from '../src/systems/skillSoftcap.js';
-import { heroThreat } from '../src/systems/heroThreat.js';
-import { ENEMY_BASICS } from '../src/characters/enemy/enemyBasics.js';
+import { makeEnemyEntity, applyProgressionScaling } from '../src/characters/enemyEntity.js';
+import { progressionScaling } from '../src/characters/skillSoftcap.js';
+import { heroThreat } from '../src/characters/heroThreat.js';
+import { ENEMY_BASICS } from '../src/characters/enemyBasics.js';
 import { assignEnemyEquipment } from '../src/combat/enemyEquipment.js';
-import { mintCondition } from '../src/systems/item/itemTemplates.js';
-import { EQUIP_SLOTS, equipTableOf, rebuildEquipState } from '../src/systems/equip.js';
-import { SKILLS } from '../src/systems/skills.js';
-import { ENCOUNTER_TABLES } from '../src/systems/encounters.js';
-import { rollAffixes } from '../src/systems/loot/lootRarity.js';
-import { computeEntityMods } from '../src/systems/entityMods.js';
+import { mintCondition } from '../src/items/itemTemplates.js';
+import { EQUIP_SLOTS, equipTableOf, rebuildEquipState } from '../src/characters/equip.js';
+import { SKILLS } from '../src/characters/skills.js';
+import { ENCOUNTER_TABLES } from '../src/characters/encounters.js';
+import { rollAffixes } from '../src/items/lootRarity.js';
+import { computeEntityMods } from '../src/characters/entityMods.js';
 import { buildAt, bandWeights, mulberry } from './heroMeasure.mjs';
-import { EFFECTIVE_SKILL_MAX } from '../src/systems/skillSoftcap.js';
+import { EFFECTIVE_SKILL_MAX } from '../src/characters/skillSoftcap.js';
 
 installRoleplayRealismItems();
 installRoleplayRealism();

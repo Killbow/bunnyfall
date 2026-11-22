@@ -49,7 +49,7 @@ check('the browser has WebGL2 at all', await page.evaluate(() => !!document.crea
 // 1. the PACK lights the torch (the HT2 act), on the same entity the rig will read
 await page.evaluate(async () => {
   const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
-  const { TEMPLATES } = await import('/src/systems/useItem.js');
+  const { TEMPLATES } = await import('/src/items/useItem.js');
   const torch = () => ({ name: 'Torch', group: 'UselessItems2', templateIndex: TEMPLATES.Torch, stackCount: 1, currentCondition: 50, maxCondition: 50 });
   const e = { name: 'Aelwyn', career: { name: 'Spellsword' }, stats: { strength: 50, endurance: 48, speed: 50 }, items: [torch()], activeEffects: [] };
   globalThis.__ent = e;
@@ -66,8 +66,8 @@ check('the pack lit the torch on the shared entity',
 // 2. the MOD then loads its real sprites on a real Renderer and draws one
 await page.evaluate((v) => { globalThis.__spriteOn = v; }, !!process.env.SPRITE_ON);
 const r = await page.evaluate(async () => {
-  const { createHandheldTorches, readTorchSettings, HANDHELD_TORCHES_VENDOR } = await import('/src/systems/handheldTorches.js');
-  const { MOD_SETTINGS } = await import('/src/systems/modSettings.js');
+  const { createHandheldTorches, readTorchSettings, HANDHELD_TORCHES_VENDOR } = await import('/src/items/handheldTorches.js');
+  const { MOD_SETTINGS } = await import('/src/mods/modSettings.js');
   const { Renderer } = await import('/src/render/renderer.js');
   const cv = document.createElement('canvas'); cv.width = 640; cv.height = 400;
   document.body.append(cv);

@@ -81,13 +81,13 @@
 // the pirates bold (BOLD_SHARE), and a boat lying still grappled only after GRAPPLE_STILL_S.
 
 import { classById, batteryOf, hullBuild, GUNS, HULL, SHIP_CLASSES, buildsStamp, SHIP_TOUGHNESS, shipBatteryWeight, flatHull, flatGap } from './navalShips.js';
-import { mulberry32 } from '../../combat/blood/bloodArt.js';   // SEA-PEACE: the temper's draw (navalShips.js names on the same stream kind)
+import { mulberry32 } from '../../combat/bloodArt.js';   // SEA-PEACE: the temper's draw (navalShips.js names on the same stream kind)
 import { createShipDamage, SHIP_STATES, STRUCK_AT, HOLED_BONUS, WATERLINE_BAND } from './navalDamage.js';
 import { createGunDeck, aimSolution, reloadSeconds } from './navalGunnery.js';
 import { NAVAL_DEG, rangeAt, SHOT_GRAVITY } from './navalBallistics.js';
 import { BERTH_GAP } from './navalBoarding.js';
 import { wrapAngle } from '../../world/mat4.js';   // ONCRASH1: the port's one angle wrap, which cannot loop
-import { steerage, HULL_HELM, HELM_WAY, WIND_RATED, WIND_SHARE, windShare } from '../helmWay.js';   // HELM-WAY: the player's own helm, the captains' too; SAIL-FREE: and the wind's share, one home
+import { steerage, HULL_HELM, HELM_WAY, WIND_RATED, WIND_SHARE, windShare } from './helmWay.js';   // HELM-WAY: the player's own helm, the captains' too; SAIL-FREE: and the wind's share, one home
 import { stepErrand, MOOR_EASE_S } from './shipLife.js';   // SHIP-LIFE: a ship going somewhere
 import { nightSight } from './shipWatch.js';   // SHIP-WATCH: by night a lit ship is seen far, a dark one close
 import { legendOfClass, LEGEND_RELOAD_K } from './etherShips.js';   // ETHER-LEGENDS: a `gunnery` legend's quicker guns

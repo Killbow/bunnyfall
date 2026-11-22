@@ -32,7 +32,7 @@ const shoot = async (label, { query = '', wait = 3000 } = {}) => {
   // actually scheduled - a context that exists but schedules nothing is
   // the bug this probe was written for.
   const snd = await page.evaluate(async () => {
-    const aud = await import('/src/systems/audio.js');
+    const aud = await import('/src/audio/audio.js');
     const ctx = aud.audio.ctx;
     if (!ctx) return 'none';
     return `${ctx.state} clips=${window.__vidClips ?? 0}`;

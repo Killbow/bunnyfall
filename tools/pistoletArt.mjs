@@ -126,7 +126,7 @@ export function posed(level, hand, point = null) {
   return rotSprite(flip ? flipAcross(level) : level, turn, point && (flip ? [level.width - point[0], point[1]] : point));
 }
 
-/** Where the band's centre - the fist - lands in a hand's layer, in its pixels. src/systems/pistolet.js
+/** Where the band's centre - the fist - lands in a hand's layer, in its pixels. src/items/pistolet.js
  *  PISTOLET_PAPERDOLL_OFFSET seats this point on each hand's fist. */
 export const dollGrip = (hand = 'left', { w = 24, h = 17, band = BAND } = {}) =>
   posed({ width: w, height: h, data: new Uint8Array(w * h * 4) }, hand, [band.cx * w, band.cy * h]).at;

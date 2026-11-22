@@ -1,6 +1,6 @@
 // Boot work nobody waits on: held until the world has drawn a frame, then run when the browser is idle.
 // The path to the first frame carries only what that frame needs. Outside a browser it runs at once.
-import { framesBegun } from './frameClock.js';
+import { framesBegun } from '../platform/frameClock.js';
 
 export const FIRST_FRAME_WAIT_MS = 15000;
 

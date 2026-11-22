@@ -12,9 +12,9 @@ import { captureRefusal, takePrisoner } from '../../systems/vampire/thralls.js';
 import { subduableFoe, archetypeOfFoe, qualityOfFoe, mobileOfThrall } from '../../systems/vampire/thrallLaw.js';
 import { archetypeName } from '../../systems/vampire/bloodLaw.js';
 import { clanCaptor } from '../../systems/vampire/clanLaw.js';
-import { enemyDisplayName } from '../../characters/enemy/enemyBasics.js';
-import { t } from '../../systems/textManager.js';
-import { revenantGivenName } from '../../systems/revenant/revenant.js';   // the revenants' seeded given name
+import { enemyDisplayName } from '../../characters/enemyBasics.js';
+import { t } from '../../ui/textManager.js';
+import { revenantGivenName } from '../../revenants/revenant.js';   // the revenants' seeded given name
 
 /** A captive's name: a given name from DFU's banks on a seeded side-stream (the revenants' own - the shared DFRandom put
  *  back), else the words for one with no name: "a Nightblade". */

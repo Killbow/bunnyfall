@@ -3,15 +3,15 @@
 // and banked in the Stores. A Magic-or-better piece still gives its Welkynd Shards too (systems/reforge.js). Offline,
 // or for a piece no recipe makes, the old shard-only salvage stands.
 import { salvageRecipeOf, salvageDescriptor, previewSalvage, SALVAGE_BATCH_MAX } from '../net/salvageLaw.js';
-import { salvageShards, salvageRefusal, salvagePiece } from '../systems/reforge.js';
-import { profBookNow } from './professions/profPages.js';
-import { materialLabel } from '../systems/professions/profItems.js';
-import { isBound } from '../systems/item/itemBound.js';
-import { isLocked } from '../systems/item/itemLock.js';
-import { isEquipped } from '../systems/equip.js';
-import { socketGems } from '../systems/loot/lootRarity.js';
-import { welkyndShards } from '../systems/gate/gateSpoils.js';
-import { addItem } from '../systems/inventory.js';
+import { salvageShards, salvageRefusal, salvagePiece } from '../items/reforge.js';
+import { profBookNow } from './profPages.js';
+import { materialLabel } from '../professions/profItems.js';
+import { isBound } from '../items/itemBound.js';
+import { isLocked } from '../items/itemLock.js';
+import { isEquipped } from '../characters/equip.js';
+import { socketGems } from '../items/lootRarity.js';
+import { welkyndShards } from '../worldEvents/gateSpoils.js';
+import { addItem } from '../items/inventory.js';
 
 /** BUNNYFALL AUDIT BF-02: a realm character's act on its record (world.js sets it: `(o) => realmGoldAct({ ...o, session, checkpoint })`), or null. */
 let realmAct = null;

@@ -19,8 +19,8 @@
 //
 // A LEAF on the boot path (test/render/boot2.test.js): the skin and the root are systems/ modules already on the entry's reach.
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { isEnhanced } from './uiSkin.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 
 /** DFU's default cursor: the served file and its hotspot (ProjectSettings `cursorHotspot`). */
 export const DFU_CURSOR_FILE = 'art/dfu-cursor/Cursor2.png';

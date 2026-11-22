@@ -18,9 +18,9 @@
 // A clan's own Court hunting the player (a Blood Hunt) WITHHOLDS its strength until the penance is done; the bane
 // stays.
 
-import { VAMPIRE_CLANS } from '../infection.js';
+import { VAMPIRE_CLANS } from '../../afflictions/infection.js';
 import { huntedBy } from './courtLeaf.js';
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 
 const C = VAMPIRE_CLANS;
 /** The regions each clan holds (blueprint section 5). */

@@ -17,12 +17,12 @@
 //    "The remains of Ysolde Hlaalu"), and a share of their purse.
 //  - THE BLESSING: remains laid to rest give the one who laid them +3 to the fallen's best skill, for good - at most +9
 //    on any one skill (BLESSING_SKILL_MAX).
-import { registerCustomTemplates, setItemFields, mintCondition, itemValueOf, templateByIndex } from '../item/itemTemplates.js';
-import { registerEntityFold, registerWeaponDamageMod, newMods, EMPTY_MODS } from '../entityMods.js';
-import { armorBodyParts } from '../equip.js';
-import { SKILL_COUNT } from '../skills.js';
-import { rarityOf } from '../loot/lootRarity.js';
-import { isSummoned } from '../inventory.js';
+import { registerCustomTemplates, setItemFields, mintCondition, itemValueOf, templateByIndex } from '../../items/itemTemplates.js';
+import { registerEntityFold, registerWeaponDamageMod, newMods, EMPTY_MODS } from '../../characters/entityMods.js';
+import { armorBodyParts } from '../../characters/equip.js';
+import { SKILL_COUNT } from '../../characters/skills.js';
+import { rarityOf } from '../../items/lootRarity.js';
+import { isSummoned } from '../../items/inventory.js';
 import { REMAINS_GOLD_SHARE, REMAINS_GOLD_MAX } from './legacyLaw.js';   // INT18: the remains' ceiling, beside the family law's bounds
 import { houseWord } from './houseName.js';   // LEGACY-NAME: a seat's house says itself once
 

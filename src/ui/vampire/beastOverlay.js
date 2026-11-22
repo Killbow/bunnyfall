@@ -10,8 +10,8 @@
 
 import { vampireStatus } from '../../systems/vampire/vitae.js';
 import { beastStageName } from '../../systems/vampire/bloodLaw.js';
-import { isEnhanced } from '../../systems/uiSkin.js';
-import { hudRenderEnabled } from '../hud/hudShortcuts.js';
+import { isEnhanced } from '../uiSkin.js';
+import { hudRenderEnabled } from '../hudShortcuts.js';
 import { PIXEL_STACK } from '../pixelifyFive.js';
 
 export const BEAST_READ_MS = 400;

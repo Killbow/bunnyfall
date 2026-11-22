@@ -32,10 +32,10 @@ const rows = [
   ['  _candidateQuads', /^_candidateQuads /],
   ['drawBillboards', /^drawBillboards /],
   // SNOW-BUDGET (bible/07-Rendering/Performance-Priority.md): the weather's share of the frame - the snow the ground keeps
-  ['the snow (all its asks)', /^(at|tick|winterAt|winterNear|buries) src\/scenes\/snowCoverHost\.js/],
-  ['  the snowpack advance', /^advance src\/systems\/weather\/snowpack\.js/],
-  ['  the feet\'s snow', /^winterAt src\/scenes\/snowCoverHost\.js/],
-  ['  the grass\'s snow', /^buries src\/scenes\/snowCoverHost\.js/],
+  ['the snow (all its asks)', /^(at|tick|winterAt|winterNear|buries) src\/weather\/snowCoverHost\.js/],
+  ['  the snowpack advance', /^advance src\/weather\/snowpack\.js/],
+  ['  the feet\'s snow', /^winterAt src\/weather\/snowCoverHost\.js/],
+  ['  the grass\'s snow', /^buries src\/weather\/snowCoverHost\.js/],
   ['the falling weather', /^(draw|update) src\/render\/(precipitation|rainCurtains|windWisps|lightningBolts)\.js/],
   ['garbage collector', /^\(garbage collector\)/],
 ];

@@ -14,8 +14,8 @@
 // art-less fallback now, not the plan - the note this file carried
 // about unverified art names shipped out with them.
 
-import { rollStats, rollSkills, STAT_KEYS_ORDER, statTotal, spellPoints, spellPointMultiplier } from '../systems/chargen.js';   // CHAR1: the roll's own total
-import { QUESTION_COUNT, NO_CLASS_INDEX, displayQuestion, pickQuestionIndices, answerWeightIndex, resolveClassIndex } from '../systems/classQuestions.js';   // U18
+import { rollStats, rollSkills, STAT_KEYS_ORDER, statTotal, spellPoints, spellPointMultiplier } from '../characters/chargen.js';   // CHAR1: the roll's own total
+import { QUESTION_COUNT, NO_CLASS_INDEX, displayQuestion, pickQuestionIndices, answerWeightIndex, resolveClassIndex } from '../characters/classQuestions.js';   // U18
 
 // F2 / THE NEVER-UNFINISHABLE GATE. An answer locks the questions
 // screen while its constellation plays, so a host that never ticked
@@ -25,29 +25,29 @@ import { QUESTION_COUNT, NO_CLASS_INDEX, displayQuestion, pickQuestionIndices, a
 // instant advance rather than a dead screen.
 const QANIM_STUCK_MIN_MS = 2000;
 const QANIM_STUCK_PAD_MS = 1000;
-import { ADVANTAGE_KEYS, DISADVANTAGE_KEYS, ONLY_ONE_KEYS, MAX_ITEMS, secondaryListFor, advDisAdjustment, cannotAdd, totalAdjust, parseCareerData } from '../systems/specialAdvantages.js';   // U20b
-import { HP_MIN, HP_MAX, HP_DEFAULT, DIFFICULTY_MIN, DIFFICULTY_MAX, FREE_EDIT_MIN, FREE_EDIT_MAX, STAT_DEFAULT, difficultyPoints, availableSkills, buildCustomCareer, classAffinityIndex, repClick, repStep, repPointsToDistribute, HELP_TOPICS, parseCustomClassDoc } from '../systems/customClass.js';   // U20a; UXB1-H: the class document
+import { ADVANTAGE_KEYS, DISADVANTAGE_KEYS, ONLY_ONE_KEYS, MAX_ITEMS, secondaryListFor, advDisAdjustment, cannotAdd, totalAdjust, parseCareerData } from '../characters/specialAdvantages.js';   // U20b
+import { HP_MIN, HP_MAX, HP_DEFAULT, DIFFICULTY_MIN, DIFFICULTY_MAX, FREE_EDIT_MIN, FREE_EDIT_MAX, STAT_DEFAULT, difficultyPoints, availableSkills, buildCustomCareer, classAffinityIndex, repClick, repStep, repPointsToDistribute, HELP_TOPICS, parseCustomClassDoc } from '../characters/customClass.js';   // U20a; UXB1-H: the class document
 import { damageModifier, maxEncumbrance, magicResist, toHitModifier, hitPointsModifier, healingRateModifier } from '../combat/formulas.js';   // U10: the derived block
-import { tagEffect, biographySkillBonuses, digestRepChanges } from '../systems/biography.js';   // S3e
+import { tagEffect, biographySkillBonuses, digestRepChanges } from '../characters/biography.js';   // S3e
 import { fullName, getNameBank, GENDERS } from '../characters/nameHelper.js';   // U15
 import { srand } from '../formats/dfRandom.js';   // AUDIT 17j F1: the name screen's reseed
 import { buildBackstory, repBoxRows, bonusPointsRows } from './chargenArt.js';   // U13 / U16
 import { necromancerCareer, necromancerDescription, NECROMANCER_NAME } from '../systems/necromancy/necroCareer.js';   // CHEB'S NECROMANCY: the Necromancer
-import { RACE_TEMPLATES } from '../systems/races.js';   // S3c/U9
-import { facesFor } from '../systems/roxArgonians.js';   // ROX: an Argonian has twenty faces
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { SKILL_NAMES } from '../systems/skills.js';
+import { RACE_TEMPLATES } from '../characters/races.js';   // S3c/U9
+import { facesFor } from '../characters/roxArgonians.js';   // ROX: an Argonian has twenty faces
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { SKILL_NAMES } from '../characters/skills.js';
 import { drawText, measureText } from './text.js';
-import { nativeMetrics } from './native/nativePanel.js';
+import { nativeMetrics } from './nativePanel.js';
 import { chargenArtLoaded, drawChargenNative, loadFaceSet, chargenHit, raceDescriptionLines, classDescriptionLines, textRecordLines, DOUBLE_CLICK_DELAY_MS, CLASS_LIST_ROWS, ADV_PICKER_ITEM_COUNT, PLAYER_REFLEXES, REFLEX_COUNT, QUESTION_ROW_H, QSCROLL_H, QSCROLL_TEXT_OFFSET, QSCROLL_FRAMES, PICK_SCROLL_RECT, startConstellationAnim, tickConstellationAnim, stopConstellationAnim } from './chargenArt.js';   // U10 / U17 / U18 / U20a
 
 // AUDIT 24 (wave 24): FormulaHelper.MaxStatValue, one home.
-import { MAX_STAT_VALUE } from '../systems/statMods.js';
-import { hotkeyHit } from '../systems/dialogShortcuts.js';   // ROAD-E2: the DaggerfallShortcut table - the builder's ResetBonusPool
+import { MAX_STAT_VALUE } from '../characters/statMods.js';
+import { hotkeyHit } from './dialogShortcuts.js';   // ROAD-E2: the DaggerfallShortcut table - the builder's ResetBonusPool
 import { VerticalScrollBar } from './verticalScrollBar.js';   // ROAD-E2: DFU's VerticalScrollBar, the picker's bar
-import { localizedStrings, localizedText, processGrammar, GrammarManager } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3g: the grammar and the hero's gender
-import { raceDisplayName } from '../systems/talk/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
+import { localizedStrings, localizedText, processGrammar, GrammarManager } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3g: the grammar and the hero's gender
+import { raceDisplayName } from '../talk/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
 
 export { MAX_STAT_VALUE };
 

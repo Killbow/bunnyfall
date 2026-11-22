@@ -17,8 +17,8 @@ import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CLOUD_REVEAL_TIME, CREST_TIME as TITLE_IMPACT_TIME } from '../src/ui/intro/introCue.js';   // INTRO4: the score's impact is the 19 s beat, the film's crest
-import { introThemeSong, INTRO_CHANNELS, INTRO_SECONDS_PER_TICK } from '../src/systems/introScore.js';
+import { CLOUD_REVEAL_TIME, CREST_TIME as TITLE_IMPACT_TIME } from '../src/ui/introCue.js';   // INTRO4: the score's impact is the 19 s beat, the film's crest
+import { introThemeSong, INTRO_CHANNELS, INTRO_SECONDS_PER_TICK } from '../src/audio/introScore.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
@@ -32,9 +32,9 @@ const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${
 const RECORDING_DB = -22.4;
 
 const PAGE = `<!doctype html><html><body><script type=module>
-import { SongPlayer } from '/src/systems/song/songPlayer.js';
-import { introThemeSong, INTRO_PRESS } from '/src/systems/introScore.js';
-import { INTRO_THEME_GAIN } from '/src/systems/introTheme.js';
+import { SongPlayer } from '/src/audio/songPlayer.js';
+import { introThemeSong, INTRO_PRESS } from '/src/audio/introScore.js';
+import { INTRO_THEME_GAIN } from '/src/audio/introTheme.js';
 const RATE = 44100;
 window.render = async (seconds) => {
   const song = introThemeSong();

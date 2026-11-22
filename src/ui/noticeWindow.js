@@ -48,12 +48,12 @@
 // key and a tap on the scrim leave through the door's own close. On the classic skins the window lays its own sheet,
 // the kit's rules cut to its selectors, so it wears the Enhanced Plus stone whichever UI is chosen (online forces the
 // enhanced lane, never necessarily its Plus face).
-import { closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction, isTextEntryTarget } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { NOTICE_CSS, PROF_CSS } from './enhanced/enhancedPlusStyle.js';
-import { frameCss } from './enhanced/enhancedFrame.js';
-import { isEnhancedPlus } from '../systems/uiSkin.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { NOTICE_CSS, PROF_CSS } from './enhancedPlusStyle.js';
+import { frameCss } from './enhancedFrame.js';
+import { isEnhancedPlus } from './uiSkin.js';
 import { scopeRules } from './brokerWindow.js';
 import {
   NOTE_DAYS, NOTE_BUTTONS, NOTE_BUTTON_LABEL, NOTE_SUBJECT_MAX, NOTE_BODY_MAX, NOTE_LINES_MAX, NOTICE_DAYS_MAX,
@@ -66,13 +66,13 @@ import { hallPosterName, isChapterWrit, meritLineOf, chapterLineOf, chapterFocus
   CHAPTER_FAILING_FALL, CHAPTER_FAILING_MEETS, CHAPTER_EVENT_EFFECTS, CHAPTER_BANDS, CHAPTER_SEATS, SEAT_RANK, SEAT_TENURE_S, SEAT_ACCOUNT_AGE_S,
   SEAT_MERIT_WEEKS, CHAPTER_EVENTS, CHAPTER_PATRON_MIN, CHAPTER_PATRON_BAND, ROLL_BOOK_RANK_MAX, ROLL_GAIN_DAY_MAX, HALL_WRIT_REP, RECEIPT_REP } from '../net/npcChapterLaw.js';   // CHAP7b: a chapter's patron, a guildmaster's bid; GUILD3d: the chapter's card - its band's effects, its duties
 import { chapterSeasonLines, chapterBackChoices, chapterBackedLine } from '../net/chapterEvents.js';   // CHAP6c: a chapter's Season - its lines, a member's choices   // CHAP2a: a hall writ's guild, named; CHAP3a: a member's own writ, its Merit; CHAP3b: a chapter's Strength
-import { t } from '../systems/textManager.js';   // STANDING-WORDS: the guide's rank and standing, in the player's language
+import { t } from './textManager.js';   // STANDING-WORDS: the guide's rank and standing, in the player's language
 import { movedFirstText } from '../net/bagLaw.js';   // AUDIT2 BAG1 K8: what went into the Stores before a refusal
 import { createMarketTab } from './marketTab.js';   // PROF5: the Market tab
 import { craftNeedText, craftMadeText, craftPayText, craftHeldText, craftShortText, craftFilledText } from '../net/craftWritLaw.js';   // CRAFT-WRITS: a crafting writ's card, in words
 import { createWorkTab, writWalledText } from './workTab.js';   // PROF6: the Work tab's guild writs and commissions; WRIT-WALL: what no writ may spend, in words
 import { createSeatTab, boardFold } from './seatTab.js';   // SEAT1b: the Seat tab - a seat town's standings, pledges and Tribute
-import { createVendorTab } from './vendor/vendorTab.js';   // HOME-VENDOR: the Vendors tab, and a trader's stall
+import { createVendorTab } from './vendorTab.js';   // HOME-VENDOR: the Vendors tab, and a trader's stall
 import { bannerSvg } from './heraldryArt.js';   // GUILD1e: a guild's banner over its notes and its posters
 import { freshSift, siftWork, workSiftBar, workSiftFoot, updateSiftBar, wordsOf } from './workSift.js';   // BOARD-SIFT: the Work tab's bar
 
@@ -209,8 +209,8 @@ function injectSkin(doc = document) {
  *   answer?: (note: any) => ({ ok: boolean, text?: string } | void),
  *   character?: () => (string|null),
  *   nowS?: () => number,
- *   onExit?: (() => void) | null,
- *   work?: ({ book: any, region: number, regionName: string, countName: (key: string, n: number) => string,
+ *   onExit?: (() => void) | null, tab?: string, sift?: any, craftKinds?: string[],
+ *   work?: ({ book: any, region: number, regionName: string, climate?: number | null, countName: (key: string, n: number) => string,
  *     onTaken?: (r: any) => (string|void), sayLate?: (text: string) => void, setFocus?: ((faction: number, focus: string) => Promise<any>) | null, back?: ((faction: number, side: number) => Promise<any>) | null, patron?: ((faction: number, marks: number) => Promise<any>) | null, writs?: any, regionNameOf?: (r: number) => string,
  *     pieces?: (c: any) => any[], settle?: () => any, onList?: (data: any) => void, forgetMarket?: () => void,
  *     crafts?: ({ held: (w: any) => { pack: number, made: number, ready: boolean }, deliver: (w: any) => Promise<any> } | null) } | null),

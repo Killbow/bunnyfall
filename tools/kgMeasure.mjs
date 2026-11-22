@@ -20,7 +20,7 @@
 //   node tools/kgMeasure.mjs --player-blunder 0.15    # the player's seat blundering as a Seasoned regular does
 import { isMain } from './lib/isMain.mjs';
 import { KG_POINT_BUDGET, autoFill, finishTurn } from '../src/net/kingsGambit.js';
-import { GAMBIT_TIERS, dealRegular, regularStep } from '../src/systems/gambit/gambitPatrons.js';
+import { GAMBIT_TIERS, dealRegular, regularStep } from '../src/cards/gambit/gambitPatrons.js';
 
 /** A xorshift32 source - the measure's own, seeded. @param {number} seed */
 export const xorshift = (seed) => {

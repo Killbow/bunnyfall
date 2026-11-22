@@ -25,9 +25,9 @@
 //    (`packStaysAshore`, the host's stowPack): nothing he carries leaves the zone but at my side.
 
 import { entityMaxEncumbrance, maxEncumbrance } from '../../combat/formulas.js';   // COMPANION-WEIGHT: DFU's MaxEncumbrance
-import { companionsWithYou, COMPANION_SLOTS } from '../companionSlots.js';   // COMPANION-SLOTS: the crew and the sworn revenants share the player's side
-import { wildHere, wildZoneKind, WILD_TEXT } from '../wild/wildZone.js';   // COMPANION-DROP: the open zone keeps him at my side
-import { ETHER_KIND } from '../wild/etherWild.js';   // ETHER-WILD: but not at sea, where her hold is the shelter
+import { companionsWithYou, COMPANION_SLOTS } from '../../characters/companionSlots.js';   // COMPANION-SLOTS: the crew and the sworn revenants share the player's side
+import { wildHere, wildZoneKind, WILD_TEXT } from '../../world/wildZone.js';   // COMPANION-DROP: the open zone keeps him at my side
+import { ETHER_KIND } from '../../world/wild/etherWild.js';   // ETHER-WILD: but not at sea, where her hold is the shelter
 
 /** How many hands walk ashore with the player at once (Mac: "Up to 2"). */
 export const COMPANION_MAX = 2;

@@ -7,7 +7,7 @@
 // Timers window say where she is.
 //
 // Not a DFU member. Ledger A (KETCH).
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 
 /** The ring's ink and the fill under it - the aether's blue-white (world/ketch/ketchArt.js KT_RAMP.aether), apart from the
  *  gate's red, the serpent's sea-green, the Abyss Dungeon's brass, the arch's gold and the party's green. Her herald's card

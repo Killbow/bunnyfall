@@ -61,7 +61,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { RENOWN_REPORT_MS, RENOWN_COALESCE_MS, RENOWN_XP_REPORT_MAX, renownProgress } from './renown.js';
-import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';
+import { KNIGHT_CITY_WATCH } from '../characters/mobileTypes.js';
 
 /** How recent a blow of yours must be when a foe dies for it to pay you - half a minute of the fight. */
 export const RENOWN_ASSIST_MS = 30_000;

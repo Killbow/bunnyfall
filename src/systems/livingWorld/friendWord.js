@@ -5,7 +5,7 @@
 // list was read, and a player in the classic skin - no regard badge - had no way to know it had happened, nor what had
 // made it. Whatever carries a resident's regard into friendship - a word, its tone, a deed (regardClock.js friendsMade
 // counts them where the regard is written) - is said on the HUD, and where the house can court them, where to ask.
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 import { residentOfId } from './people.js';
 
 const FRIEND_TEXT = '{name} counts you a friend now.';

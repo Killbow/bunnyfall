@@ -38,7 +38,7 @@ for (const [W, H] of [[1440, 900], [480, 800]]) {
     const { worldHoverFrame, destroyWorldPlaque } = await import('/src/ui/worldPlaque.js');
     const { RAY_DISTANCE, CORPSE_ACTIVATION_DISTANCE } = await import('/src/player/activate.js');
     const { setBindings } = await import('/src/ui/input.js');
-    const { createBindings, resetDefaults } = await import('/src/systems/inputActions.js');
+    const { createBindings, resetDefaults } = await import('/src/ui/inputActions.js');
     document.body.innerHTML = '';
     document.body.style.cssText = 'margin:0;background:repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px);height:100vh';
     const store = createBindings(); resetDefaults(store); setBindings(store);

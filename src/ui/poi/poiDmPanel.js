@@ -7,7 +7,7 @@
 // editor host's pickSpot), or taken from the ground under the eye ("Here"). While the panel is open the POI's routes,
 // waypoints, encounter areas, zones, and objects are drawn in the world (poi/poiDmLines.js).
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { POI_ROUTE_MODES, POI_AGGRESSION, POI_RESPAWN, POI_COMPLETE_RULES, POI_INTERACTIVE_KINDS, POI_INTERACTIVE_STATES, POI_VAR_TYPES, POI_VAR_SCOPES, POI_VAR_OPS, POI_LIMIT_MODES, POI_ACTION_KINDS, POI_OPTION_KINDS, POI_TRIGGER_KINDS, POI_V2_LIMITS as LIM } from '../../poi/poiLawV2.js';
 import { poiDocProblems } from '../../poi/poiLaw.js';
 import { poiPayProblems } from '../../poi/poiTradeLaw.js';

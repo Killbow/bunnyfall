@@ -44,7 +44,7 @@ await page.waitForSelector('.px-menu button', { timeout: 20000 });
 const out = await page.evaluate(async (lines) => {
   const { Renderer } = await import('/src/render/renderer.js');
   const text = await import('/src/ui/text.js');
-  const tm = await import('/src/systems/textManager.js');
+  const tm = await import('/src/ui/textManager.js');
   const faces = await import('/src/ui/localeFaces.js');
   const canvas = document.createElement('canvas');
   canvas.width = 960; canvas.height = 720;

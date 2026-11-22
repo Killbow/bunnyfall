@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import zlib from 'node:zlib';
 import { BlocksFile } from '../src/formats/blocksFile.js';
-import { classicIndicesOf } from '../src/formats/worldData/worldDataPack.js';
+import { classicIndicesOf } from '../src/formats/worldDataPack.js';
 import { isMain } from './lib/isMain.mjs';
 
 /** The pack's text with `classicNames` laid in after `bases` (the builder's own order), from `blockName(index)`. */

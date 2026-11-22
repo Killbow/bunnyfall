@@ -5,18 +5,18 @@ on:
     branches: [codex/cinematic-intro-overhaul]
   pull_request:
     paths:
-      - 'src/ui/intro/**'
-      - 'src/systems/introTheme.js'
-      - 'src/systems/introScore.js'
-      - 'src/systems/song/songPlayer.js'
-      - 'src/systems/gmSynth.js'
+      - 'src/ui/**'
+      - 'src/audio/introTheme.js'
+      - 'src/audio/introScore.js'
+      - 'src/audio/songPlayer.js'
+      - 'src/audio/gmSynth.js'
       - 'src/assets/intro/**'
       - 'src/assets/branding/**'
       # INTRO4: the film draws the Imperial City TESA built and the authored continent
       - 'src/world/imperialCity.js'
       - 'src/world/capitalImperial.js'
       - 'src/world/capitalShapes.js'
-      - 'src/world/tamriel/tamrielGeography.js'
+      - 'src/world/tamrielGeography.js'
       - 'test/ui/intro4_film.test.js'
       - 'tools/intro*.mjs'
       - 'test/ui/intro.test.js'

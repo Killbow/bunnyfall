@@ -4,15 +4,15 @@
 // (scenes/huntHost.js). The item carries its beast (`message`) and a mark's name (`variant`), and its own picture: the
 // beast's own front frame of the player's data, which the pack lists and the decorator hangs on a plaque drawn at runtime
 // (scenes/decor/trophyArt.js). Nothing here is a piece of kit: a trophy is decor, and worth little at a counter.
-import { setItemFields, mintCondition } from '../item/itemTemplates.js';
-import { ENEMY_BASICS, enemyDisplayName } from '../../characters/enemy/enemyBasics.js';
-import { getLocalizedEnemyName, t } from '../textManager.js';
+import { setItemFields, mintCondition } from '../../items/itemTemplates.js';
+import { ENEMY_BASICS, enemyDisplayName } from '../../characters/enemyBasics.js';
+import { getLocalizedEnemyName, t } from '../../ui/textManager.js';
 import { TROPHY_TEMPLATE, trophyFoeOf, trophyNameIndexOf } from '../../net/trophyLaw.js';
 import { HUNT_MARK_NAMES } from '../../net/huntLaw.js';
 import { hideOfFoe, HIDES, HIGH_HIDE_TIER } from '../../net/professionLaw.js';
-import { BOUNTY_TIERS } from '../bounty/bountyBoard.js';
+import { BOUNTY_TIERS } from '../../guilds/bountyBoard.js';
 import { noteGathered } from './gatheredLog.js';
-import { addItem } from '../inventory.js';
+import { addItem } from '../../items/inventory.js';
 
 /** The group every custom row mints in (systems/item/itemLaw.js: an index it does not name is UselessItems2's). */
 export const TROPHY_GROUP = 'UselessItems2';

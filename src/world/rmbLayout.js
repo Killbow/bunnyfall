@@ -22,7 +22,7 @@ import { PLACEMENTS as WINDMILL_PLACEMENTS } from './windmillMesh.js';   // WM2d
 import { WINDMILL_INTERIOR } from './windmillInterior.js';   // WM2g: and the inside of one
 import { GLOBAL_SCALE } from './meshReader.js';
 import { trs, multiply } from './mat4.js';
-import { GROUND_RECORD_LIMIT } from './terrain/terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
+import { GROUND_RECORD_LIMIT } from './terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
 
 /** RMBLayout.propsOffsetY (:37): a misc model stands this far (RMB units) under its record - a prefab standing in for
  *  one too, the crop fields' batches among them (world/rmbFlats.js, FIELD BUGS 2026-10-04d CROPS). */

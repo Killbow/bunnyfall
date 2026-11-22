@@ -29,10 +29,10 @@
 //   archive that follows Daggerfall's sprites' outlines and is in neither REPAINTED_ARCHIVES nor SILHOUETTE_ALLOWED
 //   is refused - nothing is written and the check fails - as is a listed archive the measure does not find.
 //   Each directory answers to its own listing (`*.files.json`: every name and its sha256 - the authority
-//   test/tooling/doctrine.test.js reads for what may stand there), and src/systems/enemyExpansion/dexArt.js is
+//   test/tooling/doctrine.test.js reads for what may stand there), and src/mods/enemyExpansion/dexArt.js is
 //   generated beside them: per archive, where its pictures come from, how many frames each record has, which carry an
 //   emission map, and the xml scale of each record.
-// - src/systems/enemyExpansion/dexTableText.js: the bundle's tables, spell records and corpse prefab as TEXT, verbatim,
+// - src/mods/enemyExpansion/dexTableText.js: the bundle's tables, spell records and corpse prefab as TEXT, verbatim,
 //   in the manifest's order (BestiaryMod.GetDBAssets walks its Files) - what the game runs the mod's own parser over
 //   (systems/enemyExpansion/dexTables.js), each string the vendored file's bytes exactly (the DEX0 suite holds them so).
 // - The archives no table draws (1633 Gryphon, 1641 Frost Giant, 1642-1644 the Centaurs, 1645 Shark, 1706 Clannfear -
@@ -46,10 +46,10 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync, exists
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { readUnityBundle } from '../src/formats/unity/unityBundle.js';
+import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { DFPalette } from '../src/formats/dfPalette.js';
 import { composeDerivedPicture, deriveSpec } from '../src/formats/derivedTexture.js';
-import { readCsvTable, parseCsInt } from '../src/systems/enemyExpansion/dexCsv.js';
+import { readCsvTable, parseCsInt } from '../src/mods/enemyExpansion/dexCsv.js';
 import { readPng } from './pngIO.mjs';
 import { encodeSprite, sameOnScreen } from './diverseWeaponsExtract.mjs';
 import { classicRecords, findClassicSource } from './detailedShipsAssets.mjs';
@@ -60,8 +60,8 @@ export const DEX_GUID = '76557441-7025-402e-a145-e3e1a28a093d';
 export const VENDOR_DIR = 'vendor/daggerfall-enemy-expansion';
 export const OWN_DIR = 'public/art/daggerfall-enemy-expansion';
 export const REPAINT_DIR = 'public/art/daggerfall-enemy-expansion-repainted';
-export const ART_INDEX = 'src/systems/enemyExpansion/dexArt.js';
-export const TABLE_TEXT = 'src/systems/enemyExpansion/dexTableText.js';
+export const ART_INDEX = 'src/mods/enemyExpansion/dexArt.js';
+export const TABLE_TEXT = 'src/mods/enemyExpansion/dexTableText.js';
 /** The archives Port-Doctrine's fourth exception carries (Mac, 2026-10-19): the Bounty Hunter (1504, from TEXTURE.482), the
  *  Royal Knight (1505, from 482), the Druid and the Necromancer Acolyte (1509, 1511, from 486), the Rogue Druid (1512, from
  *  490), the four new riders (1530-1533, from 491 and 495) and King Lysandus (1609, from 473) - measured silhouette for

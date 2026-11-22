@@ -24,7 +24,7 @@
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from '../orderedDither.js';
-import { sdSkyBasisInto } from '../superDungeon/sdSky.js';
+import { sdSkyBasisInto } from '../sdSky.js';
 import { EG_SKIES } from '../../world/eliteGates/egLook.js';
 import { EG_DRESS } from '../../world/eliteGates/egBandArt.js';
 import { EG_SKY_MOON } from './egSkyMap.js';   // EG-LOOK: the moon the sky paints

@@ -12,8 +12,8 @@
 // Effect settings are DFU's: duration = durBase + durMod x (level / durPer); magnitude = rand(magLo..magHi) +
 // rand(lvLo..lvHi) x (level / magPer); chance = chBase + chMod x (level / chPer).
 
-import { VAMPIRE_CLANS } from '../infection.js';
-import { t } from '../textManager.js';
+import { VAMPIRE_CLANS } from '../../afflictions/infection.js';
+import { t } from '../../ui/textManager.js';
 
 const C = VAMPIRE_CLANS;
 /** Spell targets and elements (DFU's TargetTypes and ElementTypes as the spell records carry them). */

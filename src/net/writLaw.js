@@ -17,7 +17,7 @@ import { STORES_MAX, looseOnly } from './professionLaw.js';   // CLOTH-GEMS: the
 import { MARKS_MAX } from './marksLaw.js';
 import { marketCatalogue, pieceListable, priceOk, UNYIELDED } from './marketLaw.js';
 import { recipeById, takesQuality, MASTERWORK } from './recipeLaw.js';
-import { RAID_KEY_RE } from './raid/raidLaw.js';   // SILVER-WAYS: a contract's raid, by its key
+import { RAID_KEY_RE } from './raidLaw.js';   // SILVER-WAYS: a contract's raid, by its key
 
 const DAY_S = 86_400;
 

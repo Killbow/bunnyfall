@@ -63,10 +63,10 @@ const out = await page.evaluate(async ({ PEERS, FRAMES, LOOKS, EOTB, SPRITES, NA
   const { getBytes } = await import('/src/scenes/dataSource.js');
   const { createDataPipeline } = await import('/src/scenes/dataPipeline.js');
   const { RemotePlayers } = await import('/src/net/remotePlayers.js');
-  const { createEotbArt, createPeerWalkers } = await import('/src/net/peer/peerRiders.js');
+  const { createEotbArt, createPeerWalkers } = await import('/src/net/peerRiders.js');
   const { createNameLayer } = await import('/src/ui/nameLayer.js');
-  const { audio } = await import('/src/systems/audio.js');
-  const { setPref } = await import('/src/systems/uiPrefs.js');
+  const { audio } = await import('/src/audio/audio.js');
+  const { setPref } = await import('/src/ui/uiPrefs.js');
   setPref('peerClassSprites', SPRITES);
   { const live = window.__glLive = { tex: 0, buf: 0, vao: 0 }; const P = WebGL2RenderingContext.prototype;
     const wrap = (c, d, k) => { const oc = P[c], od = P[d]; P[c] = function (...a) { live[k]++; return oc.apply(this, a); }; P[d] = function (...a) { if (a[0]) live[k]--; return od.apply(this, a); }; };

@@ -39,9 +39,9 @@
 // builds it (world/eliteGates/egCircleParts.js). Deterministic: the same seed lays the same bytes.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { realmToDungeon } from '../../net/superDungeon/sdBrain.js';
+import { realmToDungeon } from '../../net/sdBrain.js';
 import { createMeshKit } from './meshKit.js';
-import { GATE_PART } from '../gate/gateModel.js';
+import { GATE_PART } from '../gateModel.js';
 import { EG_DRESS, EG_KIT_MAP } from './egBandArt.js';   // the ground's records, and how each kit picture is worn
 import { EG_KIT_RECORD, egKitStyle } from './egKit.js';
 import { egRingSideWalls, EG_RING_DOOR } from '../../net/eliteGates/egWalkGraph.js';   // EG-PERFECT (spec law 10): the ring open at an alcove's doorway (THE AUDIT: its doorway alone)

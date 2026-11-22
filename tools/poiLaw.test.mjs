@@ -235,7 +235,7 @@ test('numbers copied into the v2 law still match the laws they come from', async
   const decor = await import('../src/net/decorLaw.js');
   const flats = await import('../src/world/npcFlatArchives.js');
   const trophy = await import('../src/net/trophyLaw.js');
-  const item = await import('../src/systems/item/itemLaw.js');
+  const item = await import('../src/items/itemLaw.js');
   const P = POI_V2_PINS;
   assert.equal(P.decorModelMax, decor.DECOR_MODEL_MAX);
   assert.equal(P.decorArchiveMax, decor.DECOR_ARCHIVE_MAX);
@@ -256,9 +256,9 @@ test('numbers copied into the v2 law still match the laws they come from', async
 });
 
 test('foe ids match the game\'s own tables', async () => {
-  const basics = await import('../src/characters/enemy/enemyBasics.js');
+  const basics = await import('../src/characters/enemyBasics.js');
   for (const id of Object.keys(basics.VANILLA_ENEMY_BASICS).map(Number)) assert.equal(poiFoeIdOk(id), id !== 39, `id ${id}`);
-  const dex = await import('../src/systems/enemyExpansion/dexIds.js');
+  const dex = await import('../src/mods/enemyExpansion/dexIds.js');
   for (const id of dex.DEX_ENEMY_IDS) assert.ok(poiFoeIdOk(id), `dex ${id}`);
   assert.ok(POI_FOE_RANGES.length === 5 && POI_V2_LIMITS.events === 64 && POI_LIMITS.parts === 128);
 });

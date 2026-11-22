@@ -39,12 +39,12 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#333}</style></head><body>
 <script type="module">
 import { createWeapon } from '/src/combat/enemyEquipment.js';
-import { setItemFields, mintCondition } from '/src/systems/item/itemTemplates.js';
-import { ARMOR_MATERIAL } from '/src/systems/armorMaterials.js';
-import { mountEnhancedTrade } from '/src/ui/enhanced/enhancedTrade.js';
-import { mountEnhancedPlayerTrade } from '/src/ui/enhanced/enhancedPlayerTrade.js';
+import { setItemFields, mintCondition } from '/src/items/itemTemplates.js';
+import { ARMOR_MATERIAL } from '/src/items/armorMaterials.js';
+import { mountEnhancedTrade } from '/src/ui/enhancedTrade.js';
+import { mountEnhancedPlayerTrade } from '/src/ui/enhancedPlayerTrade.js';
 import { TradeSession } from '/src/net/tradeSession.js';
-import { createTradePack } from '/src/systems/tradePack.js';
+import { createTradePack } from '/src/trade/tradePack.js';
 
 // _mods.weightMult: the buyer's allowance past any pack laid here (a thousand pieces of armour weigh tonnes, and a
 // strength stops at 100) - the buy window's move is a piece taken, never "You cannot carry any more stuff"

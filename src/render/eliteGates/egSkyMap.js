@@ -33,7 +33,7 @@
 import { buildProgram } from '../glProgram.js';
 import { DEAD_NOISE_GLSL } from '../deadlands.js';
 import { createRenderTarget, withTarget } from '../renderTarget.js';
-import { SD_OCT_GLSL, SD_SKY_PERIOD, SD_SKY_STEPS } from '../superDungeon/sdSky.js';
+import { SD_OCT_GLSL, SD_SKY_PERIOD, SD_SKY_STEPS } from '../sdSky.js';
 import { egAtmosOf } from '../../world/eliteGates/egAtmos.js';
 
 /** The map's side (texels): the Hour's. */

@@ -95,8 +95,8 @@
 // with synthetic wind, no ARENA2 and no GL.
 // ═══════════════════════════════════════════════════════════════════
 
-import { getPref } from '../systems/uiPrefs.js';   // WM3: the pack's own switch
-import { WINDMILLS_KEY } from '../systems/features.js';   // WM3: declared with its row - see the note there for which way the import may point
+import { getPref } from '../ui/uiPrefs.js';   // WM3: the pack's own switch
+import { WINDMILLS_KEY } from '../mods/features.js';   // WM3: declared with its row - see the note there for which way the import may point
 
 /** WM3: whether the mills are drawn at all. The ENHANCED SKIN is the
  *  other half of the gate and stays the caller's
@@ -105,9 +105,9 @@ import { WINDMILLS_KEY } from '../systems/features.js';   // WM3: declared with 
 export const windmillsOn = () => !!getPref(WINDMILLS_KEY);
 
 import { BODY, CLIMATE_SKINS, SKIN_SLOTS } from './windmillMesh.js';
-import { WIND_ROW_CALM, WIND_ROW_FAIR } from '../systems/wind/wind.js';
+import { WIND_ROW_CALM, WIND_ROW_FAIR } from '../weather/wind.js';
 import { multiply, trs, quatToMat4, transformPoint } from './mat4.js';
-import { SOUND } from '../systems/soundClips.js';
+import { SOUND } from '../audio/soundClips.js';
 
 // WM2d RETIRED `WINDMILL_MODELS`, the table of "which classic model id
 // carries a rotor", along with the note that asked for the two ids it

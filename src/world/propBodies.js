@@ -24,7 +24,7 @@
 //     Low or Medium (grass, flowers, ferns, bushes - a jungle of solid ferns could not be walked).
 // bible/03-World/Player-Arc.md (PROP-BODIES), bible/12-Enhanced-AI/Tactics-Arc.md (the index it rides).
 import { NOT_COVER_ARCHIVES, COVER_RADIUS_FRAC, COVER_HEIGHT_FRAC, COVER_TRUNK_R, COVER_CROWN_FROM } from '../ai/cover.js';
-import { responseByte, RESPONSE } from '../systems/windfall.js';
+import { responseByte, RESPONSE } from '../weather/windfall.js';
 import { JUNGLE_MEASURES } from './jungle/jungleModels.js';
 import { isNatureArchive } from './rmbFlats.js';
 import { STEP_OFFSET, CAPSULE_HEIGHT } from '../player/motor.js';

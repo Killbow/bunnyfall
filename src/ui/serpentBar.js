@@ -9,8 +9,8 @@
 //
 // `serpentBarModel` is pure - the host's bar and the clock in, the gate bar's model out. Not a DFU member. Ledger A
 // (SERPENT1).
-import { SERPENT_PHASE_AT } from '../net/serpent/serpentBrain.js';
-import { serpentClock } from '../net/serpent/serpentLaw.js';
+import { SERPENT_PHASE_AT } from '../net/serpentBrain.js';
+import { serpentClock } from '../net/serpentLaw.js';
 
 /** The attacks' colours on the bar (css) - the warning's, the coil's, the venom's, the turns' own. */
 export const SERPENT_CALL_CSS = Object.freeze({

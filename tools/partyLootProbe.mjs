@@ -39,7 +39,7 @@ import { ONLINE_PROBE_EDITS } from './onlineFrameProbe.mjs';
 import { isMain } from './lib/isMain.mjs';
 import { standServices, stopAll, localFetch, botStorage, LOAD_SERVICE } from './loadHarness.mjs';
 import { SESSION_KEY, SERVICE_KEY } from '../src/net/accountClient.js';
-import { realmIo, realmCreate, createRealmSession } from '../src/systems/realmSaves.js';
+import { realmIo, realmCreate, createRealmSession } from '../src/saves/realmSaves.js';
 import { ACCEPTED } from '../src/net/legalLaw.js';
 
 const ROOT = process.env.TREE || fileURLToPath(new URL('..', import.meta.url));
@@ -157,7 +157,7 @@ async function main() {
     console.log(`   one room (${hs.location}), the host holds the seat`);
     // the personal mark the seams read: roomLoot.js's own wherever the tree has it - a mark that did not load would read
     // a player's bonus as the room's (and no run has yet rolled a bonus to show it)
-    const markWant = existsSync(join(ROOT, 'src/systems/roomLoot.js')) ? 'roomLoot.js' : 'none';
+    const markWant = existsSync(join(ROOT, 'src/items/roomLoot.js')) ? 'roomLoot.js' : 'none';
     for (const who of [host, joiner]) {
       const mark = await until(who.page, () => window.__personalMark, null, { what: `the ${who.label}'s personal mark`, timeout: 60000 });
       if (mark !== markWant) throw new Error(`the ${who.label}'s personal mark is ${mark}, not ${markWant}`);

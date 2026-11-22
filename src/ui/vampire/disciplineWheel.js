@@ -10,7 +10,7 @@
 // The casting is systems/vampire/disciplines.js; this file only reads the key and draws the wheel.
 
 import { eventActions, isTextEntryTarget, hostPaused } from '../input.js';
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { knownDisciplines, castDiscipline, cooldownLeft, lastDiscipline } from '../../systems/vampire/disciplines.js';
 import { awakenedVampirism } from '../../systems/vampire/vitae.js';
 import { skinClass, disciplineGlyph, screenFlash, CLAN_COLOUR } from './vampKit.js';   // THE VISUAL PASS

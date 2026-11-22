@@ -9,8 +9,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MapsFile, longitudeLatitudeToMapPixel } from '../src/formats/mapsFile.js';
-import { isMainStoryDungeon } from '../src/world/dungeon/dungeonTextures.js';
-import { WILD_REGION } from '../src/systems/wild/wildZone.js';
+import { isMainStoryDungeon } from '../src/world/dungeonTextures.js';
+import { WILD_REGION } from '../src/world/wildZone.js';
 import { edSiteOk } from '../src/net/eliteDungeonLaw.js';
 
 const A = process.env.ARENA2_PATH;

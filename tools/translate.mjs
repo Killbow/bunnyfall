@@ -26,8 +26,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { loadStringTableCsv, formatStringTableCsv, parseMessage } from '../src/systems/textManager.js';
-import { catalogLocale } from '../src/systems/localeCatalog.js';
+import { loadStringTableCsv, formatStringTableCsv, parseMessage } from '../src/ui/textManager.js';
+import { catalogLocale } from '../src/ui/localeCatalog.js';
 import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');

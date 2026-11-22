@@ -18,13 +18,13 @@
 // A window redesigned on purpose (SCOPE1): it cites this record, not DFU - the classic skin keeps DFU's logbook
 // (ui/quest/questJournal.js). Plain words (bible/10-UI/Plain-Words.md): every heading says what it is, a press explains
 // what a hover would, every number is read off the constant that enforces it (qlRewards.js TIER_FLOORS).
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { TIER_FLOORS, REWARD_CHOICES } from '../../systems/questlines/qlRewards.js';
-import { affixLine } from '../../systems/loot/lootRarity.js';
-import { itemDamageLine, itemArmourLine, itemArmorTypeLine, itemHandsLine, weightString } from '../../systems/item/itemInfo.js';   // AUDIT QUESTLINES UI-11: the pack card's own numbers
+import { affixLine } from '../../items/lootRarity.js';
+import { itemDamageLine, itemArmourLine, itemArmorTypeLine, itemHandsLine, weightString } from '../../items/itemInfo.js';   // AUDIT QUESTLINES UI-11: the pack card's own numbers
 import { getItemHands, ITEM_HANDS } from '../../characters/equipTable.js';   // UI-11: GetItemHands, the one home (itemHandsLine's own read)
 import { accountRefusalText } from '../../net/accountClient.js';   // AUDIT QUESTLINES UI-19: a refused claim, in the service's own words
-import { isEnhanced } from '../../systems/uiSkin.js';   // AUDIT QUESTLINES UI-6: the way to the Quests tab, on the skin worn
+import { isEnhanced } from '../uiSkin.js';   // AUDIT QUESTLINES UI-6: the way to the Quests tab, on the skin worn
 
 /** @param {Document} doc @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (doc, tag, cls = null, text = null) => {

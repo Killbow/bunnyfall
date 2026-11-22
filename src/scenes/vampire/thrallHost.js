@@ -6,9 +6,9 @@
 // and wears the kit the vampire gave it (the sworn revenants' gear law, revenantGear.js applySwornGear). Knocked out, it
 // crawls back to the Haven (the party's knock). The host wires one (world.js) beside the minions: its frame, its clear,
 // its bodies.
-import { createCrewAshore } from '../crewAshore.js';
+import { createCrewAshore } from '../../systems/naval/crewAshore.js';
 import { thrallParty, setThrallPlayer, gearRecord, takeThrallLines, isThrallKey } from '../../systems/vampire/thralls.js';
-import { applySwornGear } from '../../systems/revenant/revenantGear.js';
+import { applySwornGear } from '../../revenants/revenantGear.js';
 
 /**
  * @param {{ place: () => any, leader: () => ({ feet: number[], yaw: number, grounded?: boolean } | null), now: () => number,
@@ -18,7 +18,7 @@ export function createThrallHost(deps) {
   setThrallPlayer(deps.playerEntity);
   const party = thrallParty();
   const ashore = createCrewAshore({
-    party: () => party,
+    party: () => /** @type {any} */ (party),
     place: deps.place,
     leader: deps.leader,
     now: deps.now,

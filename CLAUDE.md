@@ -21,13 +21,13 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   release's patch notes are the lines added since the previous release (`scripts/changelogNotes.mjs`).
 - **Before a push**: lint on the changed files and `npm run build`. There is no CI and no test suite: the old one was
   upstream's and was removed. Check a change by reading it and, when it matters, trying it in the game.
-- **Content switched off** (Phase 2) lives in `src/systems/contentOff.js`: one list the client and the relay both read.
+- **Content switched off** (Phase 2) lives in `src/mods/contentOff.js`: one list the client and the relay both read.
   Flip a flag to bring a piece back.
 - **Adding a DFU mod** (`.dfmod`): `node tools/importDfmod.mjs <file.dfmod>` unpacks it into `vendor/<mod>/` (manifest,
   settings, text and DLLs, textures as PNG, sounds as OGG, `inventory.json`, a README). Asset-only mods are mostly done
   there; a mod's C# (.dll) is ported by hand into `src/`, wired the way the other vendored mods are. Add its licence and
   its authors to `src/ui/credits.js`.
-- **Names** (Phase 3): `src/systems/names.js`. Strangers say title + last name, NPCs who like you your first name;
+- **Names** (Phase 3): `src/characters/names.js`. Strangers say title + last name, NPCs who like you your first name;
   `src/ui/namePicker.js` asks a character without them once, in the world.
 - **Credits stay.** Keep `LICENSE` (AGPLv3 license for Bunnyfall changes) and `LICENSE.VENDORS` (MIT notices for
   original DFO Online repo and Daggerfall Unity) and the authors in `src/ui/credits.js` and `vendor/`.

@@ -12,9 +12,9 @@
 // from a long side's chair.
 //
 // Not a DFU member: Daggerfall Unity has no such game - the mod does. Ledger A row (THE KING'S GAMBIT).
-import { CARD_TABLE_W, CARD_TABLE_D, CARD_TABLE_RAIL } from './card/cardTableProp.js';
+import { CARD_TABLE_W, CARD_TABLE_D, CARD_TABLE_RAIL } from './cardTableProp.js';
 import { KG_COLS, KG_ROWS, KG_TILE } from '../net/kingsGambit.js';
-import { CARD_W, CARD_L } from './card/cardMotion.js';
+import { CARD_W, CARD_L } from './cardMotion.js';
 
 /** The felt inside the rail: its long and its short side, in metres. */
 export const GAMBIT_FELT_LONG = CARD_TABLE_W - 2 * CARD_TABLE_RAIL;

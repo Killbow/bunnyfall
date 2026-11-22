@@ -30,25 +30,25 @@
 // picker's Ship row is dark, which is the truth rather than a button
 // that does nothing.
 
-import { TRANSPORT_MODES, isRiding, hasHorse, hasCart } from '../systems/transport.js';
-import { RidingAnimator, loadRidingArt, ridingRect, ridingLook, RIDING_VOLUME_SCALE } from '../systems/riding.js';
-import { riddenHorseLook } from '../systems/horse/horseCoats.js';   // COATS1: the ridden horse's look, which the sprite wears
+import { TRANSPORT_MODES, isRiding, hasHorse, hasCart } from '../travel/transport.js';
+import { RidingAnimator, loadRidingArt, ridingRect, ridingLook, RIDING_VOLUME_SCALE } from '../travel/riding.js';
+import { riddenHorseLook } from '../travel/horseCoats.js';   // COATS1: the ridden horse's look, which the sprite wears
 import { TransportWindow, transportArtLoaded } from '../ui/transportWindow.js';
-import { enhancedWindow } from '../ui/enhanced/enhancedPorts.js';   // PORT4: the transport picker, in the enhanced skin
-import { ownsShip } from '../systems/banking.js';
-import { horseOffsetHeight, dockedLargeHudHeight } from '../ui/hud/hudLarge.js';   // ROAD-D D10: LargeHUDOffsetHorse; AUDIT-RR F25: EnhancedRiding's own arm asks LargeHUDDocked (EnhancedRiding.cs:256-257)
+import { enhancedWindow } from '../ui/enhancedPorts.js';   // PORT4: the transport picker, in the enhanced skin
+import { ownsShip } from '../trade/banking.js';
+import { horseOffsetHeight, dockedLargeHudHeight } from '../ui/hudLarge.js';   // ROAD-D D10: LargeHUDOffsetHorse; AUDIT-RR F25: EnhancedRiding's own arm asks LargeHUDDocked (EnhancedRiding.cs:256-257)
 import { mwViewHides, mwViewDrawSaddle } from './mwView.js';   // AUDIT-EOTB2: the sprite body on screen hides the FPV horse (Eye Of The Beholder's ToggleBillboard); COATS3D: the 3D horse in its place
-import { SOUND } from '../systems/soundClips.js';
-import { horseVolume } from '../systems/animalVolume.js';   // HORSE-VOL: the mount's neigh, voices and hooves on the Audio tab's Horse Volume
-import { isShipAvailable } from '../systems/ship.js';   // RR1: TransportManager.ShipAvailiable, the delegate
-import { NATIVE_SCREEN_HEIGHT } from '../systems/riding.js';   // RR2: the 200-line native screen the sprite scales by
-import { RR_RIDING, rrTerrainAngle, rrTerrainFollow, rrRidingYAdj, rrRidingNeckBand } from '../systems/roleplayRealism/rrRealism.js';   // RR2: EnhancedRiding's draw laws
+import { SOUND } from '../audio/soundClips.js';
+import { horseVolume } from '../audio/animalVolume.js';   // HORSE-VOL: the mount's neigh, voices and hooves on the Audio tab's Horse Volume
+import { isShipAvailable } from '../systems/naval/ship.js';   // RR1: TransportManager.ShipAvailiable, the delegate
+import { NATIVE_SCREEN_HEIGHT } from '../travel/riding.js';   // RR2: the 200-line native screen the sprite scales by
+import { RR_RIDING, rrTerrainAngle, rrTerrainFollow, rrRidingYAdj, rrRidingNeckBand } from '../mods/rrRealism.js';   // RR2: EnhancedRiding's draw laws
 import { setPitchFloorProvider } from './lookFilter.js';   // RR2: PitchMaxLimit while riding
 import { uiCanvas, onUiScreen } from '../ui/uiScreen.js';   // RETRO-UI: the horse in the pillarbox (TransportManager's CustomScreenRect)
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { noteFirstUse } from '../ui/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { fpLightingOn } from '../combat/fpsWeapon.js';   // HORSE-LIT: the first-person lighting switch the weapon's tint rides
-import { enhancedSoundsOn } from '../systems/enhancedSounds.js';   // HORSE-VOICE: the port's own sounds, the enhanced skin's ES1 switch
-import { createHorseVoice, hoofClipFor, installHorseSounds } from '../systems/horse/horseVoice.js';   // HORSE-VOICE: the horse's voices and its hooves on the ground under it
+import { enhancedSoundsOn } from '../audio/enhancedSounds.js';   // HORSE-VOICE: the port's own sounds, the enhanced skin's ES1 switch
+import { createHorseVoice, hoofClipFor, installHorseSounds } from '../travel/horseVoice.js';   // HORSE-VOICE: the horse's voices and its hooves on the ground under it
 
 /**
  * @param deps {

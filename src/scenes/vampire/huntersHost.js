@@ -6,9 +6,9 @@
 //     five strikes and more).
 // They stand through the game's own loose-foe placement (the host's `stand`: world.js _standLooseFoe, the staff /spawn's),
 // out of sight about the player, and fight as any foe does. The host ticks one each frame (world.js, beside the thralls).
-import { t } from '../../systems/textManager.js';
-import { isDayFromMinutes } from '../../systems/gameDate.js';
-import { skyMinutes } from '../../systems/worldTick.js';
+import { t } from '../../ui/textManager.js';
+import { isDayFromMinutes } from '../../world/gameDate.js';
+import { skyMinutes } from '../../world/worldTick.js';
 import { ambushDue, courtState } from '../../systems/vampire/masquerade.js';
 import { clanName } from '../../systems/vampire/clanLaw.js';
 import { awakenedVampirism } from '../../systems/vampire/vitae.js';

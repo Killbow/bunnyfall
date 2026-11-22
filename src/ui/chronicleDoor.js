@@ -36,12 +36,12 @@
 // so the two faces cannot disagree about which quests are live or what
 // they say. What differs is the drawing, and two faces drawing one
 // model differently is the whole point of having two skins.
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28: Tab puts it away
-import { QuestJournalWindow, questJournalArtLoaded } from './quest/questJournal.js';
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it away
+import { QuestJournalWindow, questJournalArtLoaded } from './questJournal.js';
 import { PlayerHistoryWindow, playerHistoryArtLoaded } from './playerHistory.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { questJournalArtLoaded, playerHistoryArtLoaded };
 
@@ -148,7 +148,7 @@ function enhancedChronicleOverlay(deps, section) {
   unregister = registerOverlay(close);
   // MENU1: the ONE lazy-chunk door (ui/enhanced/enhancedChunk.js).
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedChronicle.js'),
+    load: () => import('./enhancedChronicle.js'),
     mount: ({ mountEnhancedChronicle }) => { view = mountEnhancedChronicle(host, { ...deps, section, onExit: close }); },
     alive: () => !done, host, onDismiss: close, label: 'chronicle',
   });

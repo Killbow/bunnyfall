@@ -3,8 +3,8 @@
 // (systems/features.js), on by default, the enhanced lane's alone (LW0 decision 1): the classic skin, and the row off,
 // keep DFU's PopulationManager walkers 1:1 (systems/town/townPopulation.js). Read where a town is built, so a change takes
 // effect when a town next loads.
-import { getPref } from '../uiPrefs.js';
-import { isEnhanced } from '../uiSkin.js';
+import { getPref } from '../../ui/uiPrefs.js';
+import { isEnhanced } from '../../ui/uiSkin.js';
 
 export const LIVING_WORLD_KEY = 'livingWorld';
 

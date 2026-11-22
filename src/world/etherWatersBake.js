@@ -29,7 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import {
   DeepWatersBake, BAY_FRAME, inFrame, floodSteps, classifyPixel, coarseCandidateBits, pixelWaterSampler, PIXEL_MIXED, PIXEL_SEA, PIXEL_LAND,
-} from './deepWater/deepWatersBake.js';
+} from './deepWatersBake.js';
 import { ETHER_BOX, ISLE_CELL_PX, etherCellOf, etherFrame, isleAt } from './ethericSea.js';
 import { etherTemplateOf } from './etherPlaces.js';
 

@@ -2,7 +2,7 @@
 
 Status: built (2026-11-12). Law `src/net/provision/provisionLaw.js`; service `server-account/src/provisioning.js`
 (routes `/v1/prov/state`, `/v1/prov/make`, `/v1/prov/prepare`, migration 0204); page `src/ui/provisioning/provPage.js`;
-items `src/systems/provItems.js`; The Simmer `src/systems/simmerAct.js`.
+items `src/professions/provItems.js`; The Simmer `src/professions/simmerAct.js`.
 
 As built, where it differs from the design below:
 - Strength grows with rank: a dish's stat trait is +4 at rank 0 and +15 at 100 (The Simmer up to a quarter more); a

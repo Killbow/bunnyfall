@@ -5,8 +5,8 @@
 // the event law bars are left out (net/staffEvent/staffEventLaw.js STAFF_EVENT_KINDS_BARRED). Prints the panel's module.
 //
 //   node tools/eventKinds.mjs > <panel>/lib/pages/eventKinds.js
-import { ENEMY_NAMES } from '../src/characters/enemy/enemyBasics.js';
-import { dexRead } from '../src/systems/enemyExpansion/dexInstall.js';
+import { ENEMY_NAMES } from '../src/characters/enemyBasics.js';
+import { dexRead } from '../src/mods/enemyExpansion/dexInstall.js';
 import { STAFF_EVENT_KINDS_BARRED } from '../src/net/staffEvent/staffEventLaw.js';
 import { isMain } from './lib/isMain.mjs';
 
@@ -25,8 +25,8 @@ export function eventKinds() {
 if (isMain(import.meta.url)) {
   const q = (s) => (s.includes("'") ? JSON.stringify(s) : `'${s}'`);
   const lines = eventKinds().map((g) => `  { group: ${q(g.group)}, kinds: [${g.kinds.map(([i, n]) => `[${i}, ${q(n)}]`).join(', ')}] },`);
-  process.stdout.write(`// STAFF-EVENT: EVERY MONSTER THE GAME STANDS, by its number (src/characters/enemy/enemyBasics.js ENEMY_NAMES: MobileTypes 0-42
-// the monsters, 128-145 the classes; src/systems/enemyExpansion: Enemy Expansion's 256-290 and 384-398, which the game
+  process.stdout.write(`// STAFF-EVENT: EVERY MONSTER THE GAME STANDS, by its number (src/characters/enemyBasics.js ENEMY_NAMES: MobileTypes 0-42
+// the monsters, 128-145 the classes; src/mods/enemyExpansion: Enemy Expansion's 256-290 and 384-398, which the game
 // registers on every load). Horse_Invalid (39) and the City Watch (146) are left out: the event law refuses them
 // (src/net/staffEvent/staffEventLaw.js STAFF_EVENT_KINDS_BARRED). Made by tools/eventKinds.mjs in the game repo - run it again
 // when the game adds a monster.

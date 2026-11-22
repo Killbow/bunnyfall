@@ -37,12 +37,12 @@ import {
   WRIT_UNITS_MAX, writPayMax, commissionable, commissionTakesQuality, COMMISSIONS_MAX, GUILD_WRITS_MAX, writDeliverMay,
   GUILD_CONTRACTS_MAX, CONTRACT_PAY_MAX, CONTRACT_DEEDS_MAX, contractPaidMay,
 } from '../net/writLaw.js';   // SILVER-WAYS: a guild contract's bounds
-import { GUILD_RANK_MASTER } from '../net/guild/guildLaw.js';
+import { GUILD_RANK_MASTER } from '../net/guildLaw.js';
 import { HANDLE_RE } from '../net/handleShape.js';
 import { WRIT_MOVED } from '../net/writBook.js';
 import { FORT_MATERIALS, RAM_KIT_KEY } from '../net/fortLaw.js';   // SEAT2b: what a seat writ may ask; part two: a Siege Camp's Ram Kits
 import { bannerSvg } from './heraldryArt.js';   // AUDIT-SEATS G11: a guild writ's card under its guild's banner
-import { t } from '../systems/textManager.js';   // L10N4: the Work tab's words in the player's language
+import { t } from './textManager.js';   // L10N4: the Work tab's words in the player's language
 
 /** AUDIT 31 U11: how long a Decline stays armed after its first press - the Guild tab's confirm's kind. */
 export const WORK_ARM_MS = 4000;

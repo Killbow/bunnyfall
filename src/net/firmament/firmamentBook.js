@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { unpackTree, packTree, pointsLeft, EMPTY_TREE, FIRM_RESPEC_GOLD } from './firmamentLaw.js';
-import { walletReserve } from '../realm/realmGoldLaw.js';   // a refused respec gives back exactly what it took
+import { walletReserve } from '../realmGoldLaw.js';   // a refused respec gives back exactly what it took
 import { noteAct } from '../../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 
 /** Where this device keeps a change whose answer did not come: { [account|character]: { rid, tree } }. */

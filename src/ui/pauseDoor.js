@@ -50,16 +50,16 @@
 // spells it differently.
 // ═══════════════════════════════════════════════════════════════════
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
 import { growthPageAt } from './growth/growthPages.js';   // GROWTH1: the Growth tab's pages, on either skin (a leaf: the tab is the menu chunk's)
 import { revenantStarsOver } from './firmamentOver.js';   // RVN-STARS: a sworn one's stars, over Companions
 import { levelUpScreenFor } from './charSheetDoor.js';   // GROWTH1: a level owed's rollout, drawn in the Growth tab (the view is the tab's own)
 import { playerEntity } from '../characters/playerEntity.js';   // the shared entity the Stats page already reads (enhancedMenu's sheetModel)
-import { profPagesShown, PROF_PAGE_SECTIONS, professionsKeyAt } from './professions/profPages.js';   // CLASSIC-PAGES: the professions' pages, on either skin
+import { profPagesShown, PROF_PAGE_SECTIONS, professionsKeyAt } from './profPages.js';   // CLASSIC-PAGES: the professions' pages, on either skin
 import { FAMILY_PAGE_SECTIONS, familyTabShown, familyProvider, noFamilyLine } from './familyPages.js';   // LEGACY3: Project Legacy's Family tab, on either skin; FAMILY-TAB: and only where the game is played with it
-import { hudText } from '../systems/notify.js';
-import { t } from '../systems/textManager.js';   // L10N4: the professions' closed line in the player's language
+import { hudText } from './notify.js';
+import { t } from './textManager.js';   // L10N4: the professions' closed line in the player's language
 import { isTextEntryTarget } from './input.js';   // AUDIT PRIVATE-REPORT UI-10: a field's held key is the field's
 import {
   openClassicPauseFlow as openClassicPauseWindow,
@@ -381,7 +381,7 @@ function enhancedPauseOverlay(show, base) {
   // never reports done - which would be a frozen game.
   // MENU1: the ONE lazy-chunk door (ui/enhanced/enhancedChunk.js).
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedMenu.js'),
+    load: () => import('./enhancedMenu.js'),
     mount: (mod) => {
       const { mountEnhancedMenu } = mod;
       seams = mod;

@@ -52,20 +52,20 @@
 // turns off, or the layer is disposed - a held key with no hand on it
 // is the disease the touch layer's `up()` guards against.
 import { bindings, noteHostInput } from './input.js';   // AUDIT FB1018f L2-5: and the host's hooks, noted for the hotbar's keys
-import { getBinding, getAxisBinding, getAxisInversion, getJoystickUIBinding, DEFAULT_SHARES } from '../systems/inputActions.js';
-import { unityAxes, unityButtons, axisNumber, axisKeyDown, axisKeyName, parseAxisKeyName, movementAxes, cameraAxes, controllerLookDegrees, controllerSettings, CURSOR_SPEED, NUM_AXES, AXIS_KEY_BASE } from '../systems/gamepad.js';
-import { getBinding as getBindingOf, isPadCode } from '../systems/inputActions.js';
+import { getBinding, getAxisBinding, getAxisInversion, getJoystickUIBinding, DEFAULT_SHARES } from './inputActions.js';
+import { unityAxes, unityButtons, axisNumber, axisKeyDown, axisKeyName, parseAxisKeyName, movementAxes, cameraAxes, controllerLookDegrees, controllerSettings, CURSOR_SPEED, NUM_AXES, AXIS_KEY_BASE } from './gamepad.js';
+import { getBinding as getBindingOf, isPadCode } from './inputActions.js';
 // PADPLUS1: the Enhanced Plus controller layer - its layout, the crossbar, the menus, the prompts (ui/plus/plusPad.js)
 import {
   plusPadActive, ensurePlusPadLayout, plusToggleRun, crossbarInForce, crossbarApi, crossbarSlot, CROSSBAR_CODES, CROSSBAR_HOLD,
   LOOT_DPAD, HELM_DPAD, lockArm, lockPrompts, plusDpadByCode, NEXT_MODE, HOTBAR_ARRANGE_CODE, plusStickSens, scaleStick, plusBindCapturing, lootPrompts, quickActApi, cycleTab, spatialStep, scrollAt, domTargetAt, domPointer, domHoverChange, interactiveAt, markHover, showPrompts, windowPrompts, activeTabStrip, controlRectNear,
-} from './plus/plusPad.js';
-import { padCursorAssist, createPadCursorState, stepPadCursor, linearPadCursorStep, padCursorCanvasTargets, pullTargetAmong, PAD_CURSOR } from '../systems/padCursor.js';   // PAD-CURSOR: the Destiny feel
-import { GAUNTLET_POINT, GAUNTLET_PRESS } from './plus/plusCursor.js';
+} from './plusPad.js';
+import { padCursorAssist, createPadCursorState, stepPadCursor, linearPadCursorStep, padCursorCanvasTargets, pullTargetAmong, PAD_CURSOR } from './padCursor.js';   // PAD-CURSOR: the Destiny feel
+import { GAUNTLET_POINT, GAUNTLET_PRESS } from './plusCursor.js';
 import { dfuCursorUrl } from './cursor.js';   // CLASSIC-CURSOR: the pad's arrow is DFU's controllerCursorImage, the mouse's own
-import { overlayOpen } from './enhanced/enhancedOverlays.js';   // PADPLUS2: the enhanced doors' registry - a DOM window is up
-import { getInt, getBool } from '../systems/settings/settings.js';
-import { quickLootSelection, quickLootWheel } from '../systems/quickLoot.js';   // PADPLUS6: the loot plaque's list, on the d-pad   // PADPLUS2: the swing mode decides the stroke
+import { overlayOpen } from './enhancedOverlays.js';   // PADPLUS2: the enhanced doors' registry - a DOM window is up
+import { getInt, getBool } from '../platform/settings.js';
+import { quickLootSelection, quickLootWheel } from '../items/quickLoot.js';   // PADPLUS6: the loot plaque's list, on the d-pad   // PADPLUS2: the swing mode decides the stroke
 import { lookScale } from './lookSettings.js';
 import { getInteractionMode, nextInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';   // PADPLUS10: hold up = the next mode
 import { setControllerLook } from '../player/lookFilter.js';
@@ -185,7 +185,7 @@ export function attachGamepad(canvas, hooks = {}, { getPads = null, dispatch = s
   const P = { layout: false, runLatch: false, runPrev: false, runIdle: 0, lbPrev: false, rbPrev: false, setOrder: 0,
     stale: new Set(), lastOverlay: false, lastFreed: false, btnPrev: null, stickPrev: false, handsOff: false, lootUp: false, lootRep: {}, helmUp: false, helm: {}, xbSet: null, xbHeld: new Set(), xbPrev: new Set(), menuPrev: new Set(), placeTaken: new Set(), dh: {}, padMap: null, padMapCode: null, padMapSeen: false, padMapAge: 0, scroll: 0, domOver: null, promptAt: 0, tabs: false, plusCursor: null };
   let paneCapturing = () => false;   // the controls pane's capture (ui/enhanced/enhancedControls.js captureArmed), loaded lazily - no import ring
-  import('./enhanced/enhancedControls.js').then((m) => { if (typeof m.captureArmed === 'function') paneCapturing = m.captureArmed; }).catch(() => {});
+  import('./enhancedControls.js').then((m) => { if (typeof m.captureArmed === 'function') paneCapturing = m.captureArmed; }).catch(() => {});
   const capturing = () => paneCapturing() || plusBindCapturing();   // PADPLUS10: and the Plus bindings window's
   // PADMOUSE (Mac: "when i activate it i cant move the mousepointer and it often doesnt even appear"): freeing the
   // mouse from the pad lets go of the pointer lock, and the browser answers that with a trusted mousemove carrying a

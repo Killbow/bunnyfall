@@ -14,15 +14,15 @@
 //
 // EVERY ALLOCATION HAS AN OWNER: each picture is an object URL, let go when the pane fills again and when the menu
 // unmounts (releaseShotsPane, ui/enhanced/enhancedMenu.js unmount); the gallery's change listener goes with them.
-import { listShots, deleteShot, setShotLoading, keepShot, onGalleryChange, shotCaption, GALLERY_MAX } from '../systems/shotGallery.js';
-import { getPref, setPref } from '../systems/uiPrefs.js';
+import { listShots, deleteShot, setShotLoading, keepShot, onGalleryChange, shotCaption, GALLERY_MAX } from './shotGallery.js';
+import { getPref, setPref } from './uiPrefs.js';
 import { SHOT_DOWNLOAD_PREF, REVOKE_AFTER_MS } from './screenshot.js';
 import { loadingMode } from './loadingScreen.js';
-import { isEnhanced } from '../systems/uiSkin.js';
+import { isEnhanced } from './uiSkin.js';
 import { bindings } from './input.js';
-import { codeForAction } from '../systems/inputActions.js';
-import { buttonText } from '../systems/controlsConfig.js';
-import { optionPath } from './settings/settingsMap.js';   // ORG2
+import { codeForAction } from './inputActions.js';
+import { buttonText } from './controlsConfig.js';
+import { optionPath } from './settingsMap.js';   // ORG2
 
 const el = (t, cls, txt) => {
   const n = document.createElement(t);

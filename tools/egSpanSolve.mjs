@@ -59,17 +59,17 @@ import { egRouted, egRouteRoads, egClimbPitches, egPitchWallS, EG_ROUTE_COURSE_R
 import { egRouteLen } from '../src/net/eliteGates/egRoute.js';
 import { egSynth9Give } from './lib/egLaw9Synth.mjs';   // THE ASCENT: synthetic LAW 9 halls, until THE ROOMS lays them
 import { egCircleColliderTris } from '../src/world/eliteGates/egHall.js';
-import { createEgSpan, egStepKey, EG_FLOOR_KEY, EG_GUST_REACH_M } from '../src/scenes/eliteGates/egSpan.js';
+import { createEgSpan, egStepKey, EG_FLOOR_KEY, EG_GUST_REACH_M } from '../src/systems/eliteGates/egSpan.js';
 import { egGustSections } from '../src/world/eliteGates/egLook.js';
 import { PlayerMotor, walkSpeed } from '../src/player/motor.js';
 import { Collider } from '../src/player/collider.js';
-import { realmToDungeon, dungeonToRealm } from '../src/net/superDungeon/sdBrain.js';
-import { gustAt } from '../src/world/superDungeon/sdSteps.js';
+import { realmToDungeon, dungeonToRealm } from '../src/net/sdBrain.js';
+import { gustAt } from '../src/world/sdSteps.js';
 import { identity } from '../src/world/mat4.js';
 import { egPolyIn } from '../src/net/eliteGates/egShape.js';   // EG-HERO-LAY: a hero's floors, crossed as still ground
 import { isMain } from './lib/isMain.mjs';
 import { loadEgHeroFragMeshes } from '../src/world/eliteGates/egHeroFragModel.js';
-import { madeLevelRule } from '../src/systems/madeLevel.js';   // EG-PERFECT: the Spire's running leap refused, as the game refuses it
+import { madeLevelRule } from '../src/characters/madeLevel.js';   // EG-PERFECT: the Spire's running leap refused, as the game refuses it
 
 await loadEgHeroFragMeshes();
 

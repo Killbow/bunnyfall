@@ -14,7 +14,7 @@
 // machine (Q2).
 
 import { QuestResource, matchFirst } from './questResource.js';
-import { calculateTravelTime } from '../travel/travel.js';
+import { calculateTravelTime } from '../../travel/travel.js';
 import { worldCoordToMapPixel } from '../../formats/mapsFile.js';
 import { Symbol as QuestSymbol } from './symbol.js';
 import { parseInt as questParseInt } from './parseUtils.js';

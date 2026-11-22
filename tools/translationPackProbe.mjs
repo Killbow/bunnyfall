@@ -50,7 +50,7 @@ const open = async () => {
   await page.locator('#enhanced-menu .subbtn').filter({ hasText: /^Interface/ }).first().click();
 };
 const tables = () => page.evaluate(async () => {
-  const tm = await import('/src/systems/textManager.js');
+  const tm = await import('/src/ui/textManager.js');
   return {
     save: tm.tryGetLocalizedText(tm.TextCollections.Internal, 'saveGame') ?? null,
     rsc0: tm.tryGetLocalizedText(tm.TextCollections.TextRSC, '0') ?? null,

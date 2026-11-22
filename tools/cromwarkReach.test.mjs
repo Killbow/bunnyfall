@@ -1,14 +1,14 @@
-import { createCromwarkBlight, cromwarkBlightEliteChance, cromwarkBlightLoot } from '../src/systems/wild/cromwarkBlight.js';
+import { createCromwarkBlight, cromwarkBlightEliteChance, cromwarkBlightLoot } from '../src/world/wild/cromwarkBlight.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { cromwarkSeal, sealCrossed, sealOutside } from '../src/systems/wild/cromwarkBarrier.js';
-import { reachSite, reachDay, reachMemory } from '../src/systems/wild/cromwarkEvents.js';
+import { cromwarkSeal, sealCrossed, sealOutside } from '../src/world/wild/cromwarkBarrier.js';
+import { reachSite, reachDay, reachMemory } from '../src/world/wild/cromwarkEvents.js';
 import { createCromwarkReachHost } from '../src/scenes/cromwarkReachHost.js';
-import { restoreModSaveRecords, modSaveRecords } from '../src/systems/modSaveData.js';
-import { validSites, validSiteTags } from '../src/world/worldOfDaggerfall/wodShared.js';
-import { cromwarkQuestSiteBlocked, cromwarkSettlementRemoved } from '../src/systems/wild/cromwarkSettlements.js';
+import { restoreModSaveRecords, modSaveRecords } from '../src/saves/modSaveData.js';
+import { validSites, validSiteTags } from '../src/world/wodShared.js';
+import { cromwarkQuestSiteBlocked, cromwarkSettlementRemoved } from '../src/world/wild/cromwarkSettlements.js';
 import { nearestTown } from '../src/systems/legacy/places.js';
 import { MapsFile } from '../src/formats/mapsFile.js';
 

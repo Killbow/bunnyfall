@@ -104,12 +104,12 @@ import { EG_BODY_R } from './egSpanLaw.js';   // EG-ZC: a lit branch's top, the 
 import { EG_BALCONY_OUT_CM, EG_BALCONY_R_CM } from './egFragLaw.js';   // EG-PERFECT: a kit chamber's balconies about its court - its Casters' reach
 import { egAnnalsNext, egAnnalsLordPage } from './egAnnals.js';
 import { egFeatBits } from './egFeats.js';   // EG-E: the lords' feats, judged at a lord's fall
-import { arenaWeekOf } from '../arena/arenaLaw.js';   // EG-E: the Proclamation's week, the arena's (Monday to Monday from the season epoch)
+import { arenaWeekOf } from '../arenaLaw.js';   // EG-E: the Proclamation's week, the arena's (Monday to Monday from the season epoch)
 import { EG_HERALD_TELL_MAX } from './egHerald.js';   // EG-E3: the herald's news, kept on the breach for the hub
-import { orreryOf, orreryFresh, orreryJudge, orreryShortest, SD_STONES, SD_HOURS } from '../superDungeon/sdBrain.js';
-import { BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HIT_KINDS,  dpsRef, clampLv } from '../gate/gateBrain.js';
-import { HIT_CAP_X, spendPurse } from '../gate/gateBrain.js';   // AUDIT EG III: Spillover's carry, within its blow's cap and out of the purse
-import { SAP_HEAL, SAP_FEEDS_MAX } from '../gate/gateBrain.js';   // AUDIT EG IV (lane1 #17): a Sapper feeds a lord by the gate's law, its feedings capped
+import { orreryOf, orreryFresh, orreryJudge, orreryShortest, SD_STONES, SD_HOURS } from '../sdBrain.js';
+import { BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HIT_KINDS,  dpsRef, clampLv } from '../gateBrain.js';
+import { HIT_CAP_X, spendPurse } from '../gateBrain.js';   // AUDIT EG III: Spillover's carry, within its blow's cap and out of the purse
+import { SAP_HEAL, SAP_FEEDS_MAX } from '../gateBrain.js';   // AUDIT EG IV (lane1 #17): a Sapper feeds a lord by the gate's law, its feedings capped
 import { EG_LORDS } from './egLaw.js';   // AUDIT EG IV (section 18's strata): a lord's band, for the Twin Court's second
 import { egMoltenRim } from './egLaw.js';   // AUDIT EG V (lane1 #21): THE MOLTEN RIM and its causeways
 import { egFightPieceAt } from './egLaw.js';   // THE ASCENT - HEIGHT: a champion's ring on its own floor
@@ -125,8 +125,8 @@ import { bodyStruck, bodySaid, bodyHealed, bodyLife } from '../bossBody.js';
 import { egFightView, egGroundAt, egAirKeep, EG_STRIKE_PAD_M } from './egWalkGraph.js';
 import { egByHeight, egFeetY, egBears } from './egWalkGraph.js';   // THE ASCENT - HEIGHT: who stands where, by their feet
 import { egTallyWake, egTallyBlow, egTallyFall, egTallyHeal, egChartOf, egTalliesOf } from './egTally.js';   // EG-ZF: the recap's numbers (section 27.6)
-import { healRef } from '../gate/gateBrain.js';   // EG-ZF: a heal's share of the count, at the gate's reference health
-import { BRAIN_TICK_MS } from '../gate/gateBrain.js';   // EG-ZI: Lifeline's look back over the beat a count was last seen low
+import { healRef } from '../gateBrain.js';   // EG-ZF: a heal's share of the count, at the gate's reference health
+import { BRAIN_TICK_MS } from '../gateBrain.js';   // EG-ZI: Lifeline's look back over the beat a count was last seen low
 import { EG_TRAIL_MS } from './egFair.js';   // EG-ZI: a Lifeline window kept while a blow in it may still be judged
 import { egTubeAtMouth } from './egFair.js';   // EG-PERFECT: a routed hall's Collapsing Tube falls from the company's arrival at its mouth
 import { egRouteAlong, egRouteAlongAt, egRouteRoad, egRouteRoadAt, egRouteAhead } from './egRoute.js';   // THE ASCENT (LAW 9): progress along the hall's route

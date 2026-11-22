@@ -36,10 +36,10 @@
 // able to name any value either lane can hold (an imported settings.ini
 // with TerrainDistance 2 shows 2 on the classic skin).
 
-import { getPref, setPref } from '../systems/uiPrefs.js';
-import { getInt, setValue, saveSettings } from '../systems/settings/settings.js';
-import { isEnhanced } from '../systems/uiSkin.js';
-import { registerFeatureLane } from '../systems/features.js';   // RF4: the row's lane is this module's
+import { getPref, setPref } from '../ui/uiPrefs.js';
+import { getInt, setValue, saveSettings } from '../platform/settings.js';
+import { isEnhanced } from '../ui/uiSkin.js';
+import { registerFeatureLane } from '../mods/features.js';   // RF4: the row's lane is this module's
 
 export const LAND_VIEW_MIN = 1;
 export const LAND_VIEW_MAX = 6;         // the enhanced lane's ceiling

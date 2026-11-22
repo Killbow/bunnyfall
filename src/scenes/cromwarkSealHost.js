@@ -1,10 +1,10 @@
 // @ts-check
 // The sealed city of Cromwark as world addon hooks. The barrier check runs before the modal arm and after the motor and
 // turns the player back; the seal and reach beacon draw in the translucent pass.
-import { CROMWARK_ON } from '../systems/wild/cromwark.js';
-import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../systems/wild/cromwarkBarrier.js';
+import { CROMWARK_ON } from '../world/wild/cromwark.js';
+import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../world/wild/cromwarkBarrier.js';
 import { CromwarkSealRenderer } from '../render/cromwarkSeal.js';
-import { HEIGHTMAP_DIMENSION, sampleKernel } from '../world/terrain/terrainSampler.js';
+import { HEIGHTMAP_DIMENSION, sampleKernel } from '../world/terrainSampler.js';
 import { setMidScreenText } from '../ui/midScreenText.js';
 import { surfacePlayer } from '../characters/playerEntity.js';
 

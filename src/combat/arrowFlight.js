@@ -19,30 +19,30 @@
 // player is standing. The player arm and its damage law live here
 // now, one copy for the three hosts that share this flight.
 
-import { MISSILE_SPEED, ARROW_FLIGHT_SPEED, MISSILE_COLLIDER_RADIUS, MISSILE_LIFESPAN_S, playerShotOrigin, missileHitsCapsule, missileReach, PLAYER_BODY_RADIUS } from '../systems/spellcast.js';   // FIELD-GUN17: playerMuzzleOrigin - the gun's own barrel, where GetAimPosition speaks for the bow   // AUDIT 65 CV-2: the player's own controller radius
+import { MISSILE_SPEED, ARROW_FLIGHT_SPEED, MISSILE_COLLIDER_RADIUS, MISSILE_LIFESPAN_S, playerShotOrigin, missileHitsCapsule, missileReach, PLAYER_BODY_RADIUS } from '../magic/spellcast.js';   // FIELD-GUN17: playerMuzzleOrigin - the gun's own barrel, where GetAimPosition speaks for the bow   // AUDIT 65 CV-2: the player's own controller radius
 import { CAPSULE_HEIGHT } from '../player/motor.js';   // ROAD-H tail: the standing capsule, the contact's default height   // ROAD-H H1c: GetAimPosition's player arrow arm
 import { trs } from '../world/mat4.js';
 import { SWING_MODS, foeUnaware } from './playerWeapon.js';   // CalculateSwingModifiers, read live at the arrow's impact (SET2: and whether the shaft's foe had noticed me)
-import { bloodHit } from './blood/bloodDecals.js';   // BLOOD1b: the blow, in the shape the mark's ladder reads
+import { bloodHit } from './bloodDecals.js';   // BLOOD1b: the blow, in the shape the mark's ladder reads
 import { calculateAttackDamage } from './formulas.js';
 import { offHandToHit, OFF_HAND_BLOW } from './twoHands/handsLaw.js';   // AUDIT PISTOLET A1: a pair's off-hand shot, DUAL's terms as its swing's
-import { liveStat } from '../systems/statMods.js';
+import { liveStat } from '../characters/statMods.js';
 import { segmentBoxEntry } from '../systems/naval/navalBallistics.js';   // SERPENT4: a shaft's step through a box - the guns' own test
 import { bowDamageArrow } from './enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
-import { backstabChanceOf, enemyPainVoice } from '../scenes/hostCombat.js';
-import { isBackFacing } from '../characters/enemy/enemyMotor.js';
-import { hitSoundFor, ENEMY_HIT_VOLUME } from '../systems/soundClips.js';
-import { addItem, ARROW_TEMPLATE } from '../systems/inventory.js';
-import { noteShotRecoverable, shotTallyOpen } from '../systems/shotTally.js';   // ARENA-ARROWS: a recoverable shaft is no shot the healers pay; STUCK-ARROWS: nor one stuck on the sand
-import { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS } from '../systems/loot/loot.js';   // STUCK-ARROWS: the stuck shaft's container picture (seedPile's icon)
+import { backstabChanceOf, enemyPainVoice } from './hostCombat.js';
+import { isBackFacing } from '../characters/enemyMotor.js';
+import { hitSoundFor, ENEMY_HIT_VOLUME } from '../audio/soundClips.js';
+import { addItem, ARROW_TEMPLATE } from '../items/inventory.js';
+import { noteShotRecoverable, shotTallyOpen } from './shotTally.js';   // ARENA-ARROWS: a recoverable shaft is no shot the healers pay; STUCK-ARROWS: nor one stuck on the sand
+import { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS } from '../items/loot.js';   // STUCK-ARROWS: the stuck shaft's container picture (seedPile's icon)
 import { orbArchiveFor, ORB_RECORD, noteOrbColour, ORB_SCALE } from '../characters/thunderlockIds.js';   // FIELD-GUN14: what this weapon's shot LOOKS like - the leaf, so no cycle   // FIELD-GUN17: ...and what colour it is, sampled the one moment the texture is in hand   // FIELD-GUN18: ...and how big it is drawn
-import { playerWeaponHitEntity } from '../systems/worldTick.js';   // DISC10-D H1: OnWeaponHitEntity's one dispatcher (worldTick never reaches this module - no cycle)
+import { playerWeaponHitEntity } from '../world/worldTick.js';   // DISC10-D H1: OnWeaponHitEntity's one dispatcher (worldTick never reaches this module - no cycle)
 import { sparedByPlayer } from './friendlyFire.js';   // SHIPMATES: the player's shaft passes their own crew by
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
 import { blowMult, scaleBlowDamage, playerBody, tellTechniqueLanded } from './technique/techniqueBlow.js';   // TECH1: a technique's shaft - its weight, and never a player's body
-import { takeOwed } from '../systems/playerDoor.js';   // AUDIT MARTIAL L2 F5: the follow-ups a shaft owes a body the relay runs
+import { takeOwed } from '../player/playerDoor.js';   // AUDIT MARTIAL L2 F5: the follow-ups a shaft owes a body the relay runs
 import { boltMeta, bendBolt, ballistaBurst } from './ballista/ballistaFlight.js';   // BUNNYFALL: the Royal Ballista's bolt - its arc and its burst
-import { monsterVolume } from '../systems/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
+import { monsterVolume } from '../audio/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
 
 export const ARROW_MODEL_ID = 99800;
 

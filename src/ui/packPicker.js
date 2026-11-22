@@ -26,11 +26,11 @@
 // Not a DFU window: Daggerfall has no market. Drawn in the Notice Board's Plus dress (enhancedPlusStyle.js PROF_CSS).
 // ═══════════════════════════════════════════════════════════════════
 import { storeFilterAccepts, storeRarityAccepts, storeMaterialAccepts, storeQuery, storeFilterOptions, storeRarityOptions, storeMaterialOptions } from './storeFilter.js';
-import { RARITIES, rarityAttr, lootRarityOn } from '../systems/loot/lootRarity.js';
-import { pictureNode } from './menu/menuGlyphs.js';
+import { RARITIES, rarityAttr, lootRarityOn } from '../items/lootRarity.js';
+import { pictureNode } from './menuGlyphs.js';
 import { SLOT_BOX } from './iconFit.js';
 import { typedField } from './workSift.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

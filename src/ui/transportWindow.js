@@ -29,13 +29,13 @@
 // the row is permanently the disabled art, which is exactly what a
 // shipless player sees in DFU.
 
-import { loadImg, drawImg, nativeMetrics } from './native/nativePanel.js';
+import { loadImg, drawImg, nativeMetrics } from './nativePanel.js';
 import { drawScreenDimBackdrop } from './chargenArt.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { TRANSPORT_MODES } from '../systems/transport.js';
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { firstHotkey } from '../systems/dialogShortcuts.js';   // A8: the DaggerfallShortcut table
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { TRANSPORT_MODES } from '../travel/transport.js';
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { firstHotkey } from './dialogShortcuts.js';   // A8: the DaggerfallShortcut table
 
 /** DaggerfallUI.cs:693's localized key, and the English DFU ships. */
 export const CANNOT_CHANGE_INDOORS = 'You cannot change transportation indoors.';

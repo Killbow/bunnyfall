@@ -6,7 +6,7 @@
 // and stay cached until `destroy()`. Model cards and the detail pane show a picture rendered in the page by
 // `poi/poiModelThumbs.js`; a card shows the model number when nothing can be rendered.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { createPoiAssetCatalogue, createPoiAssetPrefs, loadPoiAssetCatalogue, visibleRows, POI_ASSET_CATEGORIES } from '../../poi/poiAssetCatalogue.js';
 import { poiAssetWhyNot } from '../../poi/poiAssetPlace.js';
 import { dfTexturePng } from '../../poi/dfModelImport.js';

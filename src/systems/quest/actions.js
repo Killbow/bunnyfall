@@ -41,27 +41,27 @@
 import { Symbol as QuestSymbol, symbolToSaveData, symbolFromSaveData } from './symbol.js';
 import { parseInt as questParseInt } from './parseUtils.js';
 import { staticMessagesTable, soundsTable, placesTable, spellsTable, diseasesTable } from './tables.js';
-import { dateFromSeconds, SEASON_NAMES, seasonValue } from '../gameDate.js';   // Q5: the Season trigger
-import { SKILLS, skillValue, tallySkill } from '../skills.js';   // Q5: WhenSkillLevel/TrainPc
-import { SKILL_ADVANCEMENT_MULTIPLIER } from '../advancement.js';   // Q5: TrainPc's tally scale
-import { liveStat, FATIGUE_LOSS } from '../statMods.js';   // Q5: WhenAttributeLevel/TrainPc
-import { CRIMES } from '../court.js';   // Q5: SetPlayerCrime's enum
+import { dateFromSeconds, SEASON_NAMES, seasonValue } from '../../world/gameDate.js';   // Q5: the Season trigger
+import { SKILLS, skillValue, tallySkill } from '../../characters/skills.js';   // Q5: WhenSkillLevel/TrainPc
+import { SKILL_ADVANCEMENT_MULTIPLIER } from '../../characters/advancement.js';   // Q5: TrainPc's tally scale
+import { liveStat, FATIGUE_LOSS } from '../../characters/statMods.js';   // Q5: WhenAttributeLevel/TrainPc
+import { CRIMES } from '../../justice/court.js';   // Q5: SetPlayerCrime's enum
 import { makeItemPermanent } from './item.js';
-import { isGoldPieces } from '../inventory.js';   // E4: GetItem's IsOfTemplate(Currency, Gold_pieces) test, one spelling
+import { isGoldPieces } from '../../items/inventory.js';   // E4: GetItem's IsOfTemplate(Currency, Gold_pieces) test, one spelling
 import { QUEST_MESSAGES } from './quest.js';
 import { customParseInt, isPlayerAtBuildingType, isPlayerAtDungeonType, MARKER_PREFERENCE } from './place.js';
 import { getIndividualFactionID, getFactionDataOrThrow } from './person.js';
 import { markerScenePosition } from './sceneMount.js';
-import { isSongFileDefined, songFileToRecordName } from '../song/songFiles.js';
-import { MOBILE_TEAMS } from '../../characters/enemy/enemyTargets.js';   // MT-iii: ChangeFoeTeam's enum door
-import { dfuEffectKeyOf } from '../spell/spellEffects.js';   // QG1: CastEffectDo's key vocabulary, one home
-import { setLocationVariant, setNewLocationVariant, setBlockVariant, setBuildingVariant, makeLocationKey, NO_VARIANT } from '../worldDataVariants.js';   // RR3: WorldUpdate's registry
+import { isSongFileDefined, songFileToRecordName } from '../../audio/songFiles.js';
+import { MOBILE_TEAMS } from '../../characters/enemyTargets.js';   // MT-iii: ChangeFoeTeam's enum door
+import { dfuEffectKeyOf } from '../../magic/spellEffects.js';   // QG1: CastEffectDo's key vocabulary, one home
+import { setLocationVariant, setNewLocationVariant, setBlockVariant, setBuildingVariant, makeLocationKey, NO_VARIANT } from '../../world/worldDataVariants.js';   // RR3: WorldUpdate's registry
 import { ONLINE_GUARD_WINDOWS, guardWindowStep } from './onlineGuard.js';   // GUARD-ONLINE: a guarded quest's window online is its arrival's
-import { localizedText } from '../textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedText } from '../../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { raisedSince } from './questStamps.js';   // TIME3: a wave's interval charges a raise whole
 import { waveIsAwaited, questWaitsShort, ONLINE_DELAY_SECONDS } from './clock.js';   // WAVE-WAIT: a wave the quest waits on comes on the short wait online
 import { stringHash } from '../../formats/netRuntime.js';   // VERMIN-SHARED: a shared copy's pick, seeded (a leaf)
-import { seededFirst } from '../wind/wind.js';   // VERMIN-SHARED: the port's one seeded die (imports nothing)
+import { seededFirst } from '../../weather/wind.js';   // VERMIN-SHARED: the port's one seeded die (imports nothing)
 /** TIME3 (bible/06-Systems/Online-Time-Arc.md 6.3): the SKY a quest reads an hour, a date or a season on - its own
  *  seam, and the quest's clock where none is given (offline, a headless quest: DFU's one clock). */
 const skySecondsOf = (quest) => (quest?.skySeconds ?? quest?.nowSeconds)?.() ?? 0;

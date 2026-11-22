@@ -17,10 +17,10 @@
 // Two halves, like the rest of the sheet (AUDIT-MAP): `paintInfluenceFill` goes on the KEPT layer under the marks (rebuilt
 // only when the territories change or the view moves); `paintLive` is the overlay's, run at a modest rate while any of it
 // stands. `buildInfluence` is pure data in, arrays out (canvases only through `makeCanvas`).
-import { linkSegments, inkChain } from './ink/inkMap.js';
+import { linkSegments, inkChain } from './inkMap.js';
 import { blightDepth } from '../net/blightLaw.js';
 import { territoryReachText } from '../net/territoryLaw.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** The raster is laid at this many pixels per map pixel: a soft edge that does not stair-step when zoomed. */
 export const INFLUENCE_SS = 2;

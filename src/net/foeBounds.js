@@ -1,5 +1,5 @@
 // @ts-check
-import { cromwarkProfile, cromwarkHealth } from '../systems/wild/cromwarkRoster.js';
+import { cromwarkProfile, cromwarkHealth } from '../world/wild/cromwarkRoster.js';
 // FOE-BOUNDS (2026-10-19, Mac: a hand-off spec, "LATTY: REJECT AND REMOVE INVALID ENEMY HANDOFFS; DO NOT RESCALE", then
 // "Spec + B + A" and "The game's own code"; bible/11-Multiplayer/Spawn-Grants.md section 19): THE MOST HEALTH A STREAMED
 // FOE CAN LEGALLY HAVE. Every stage that builds a foe's maximum rounds once and never lowers it (`Math.max(1,
@@ -33,7 +33,7 @@ import { cromwarkProfile, cromwarkHealth } from '../systems/wild/cromwarkRoster.
 // up, whose career the relay does not hold), an ally, a companion or a crewman (the frame's own lists, which the caller
 // leaves out), a boss's relay-kept body (not on this stream). The constants each builder owns are copied here, as net/grantLaw.js copies the elite's and the champion's -
 // the relay cannot import the modules that hold them - and test/net/foebounds_law.test.js holds each equal to its home.
-import { progressionScaling, foeShare, wildernessShare, placeVeteran, wildernessThreat, DUNGEON_SHARE } from '../systems/skillSoftcap.js';
+import { progressionScaling, foeShare, wildernessShare, placeVeteran, wildernessThreat, DUNGEON_SHARE } from '../characters/skillSoftcap.js';
 
 /** The builders' multipliers, each from its home (held equal by the test). */
 export const FOE_BOUND = Object.freeze({

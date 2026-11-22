@@ -16,7 +16,7 @@
 // Nothing here draws a roll: the callers (systems/quest/place.js) draw from the pools this returns with the quest's
 // own injectable roll, so a seeded quest stays seeded. Off, the callers never call in, and every draw is DFU's.
 
-import { getPref } from '../uiPrefs.js';
+import { getPref } from '../../ui/uiPrefs.js';
 import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 
 /** The pref (systems/features.js, the 'nearby-quests' row). */

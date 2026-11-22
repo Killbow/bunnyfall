@@ -51,10 +51,10 @@
 // condition becomes its own switch the day it is integrated, as
 // Meaner Monsters' unleveled-mobs arm does.
 
-import { modSettingsOf } from '../systems/modSettings.js';
-import { getInt } from '../systems/settings/settings.js';
-import { liveStat } from '../systems/statMods.js';
-import { moveTowards, moveTowards2, snap, STEP_CONDITION } from './weapon/weaponWidgetMotion.js';   // AUDIT 68 S09-unused-and-heavy-imports: the leaf built for these, not the component
+import { modSettingsOf } from '../mods/modSettings.js';
+import { getInt } from '../platform/settings.js';
+import { liveStat } from '../characters/statMods.js';
+import { moveTowards, moveTowards2, snap, STEP_CONDITION } from './weaponWidgetMotion.js';   // AUDIT 68 S09-unused-and-heavy-imports: the leaf built for these, not the component
 export { STEP_CONDITION };   // the same enum, one home (the sibling's)
 import { shieldProtectedBodyParts } from './enemyEquipment.js';
 // the classic 320x200 the sprite's scale is measured against (SetGuard
@@ -64,7 +64,7 @@ import { NATIVE_W, NATIVE_H } from './fpsWeapon.js';
 // the rig: weaponWidget.js reads it the same way, and importing
 // ui/hud/hudLarge.js into weaponRig.js directly reorders that module graph
 // enough to break the rig's own boot (the unsheathe went silent).
-import { weaponOffsetHeight } from '../ui/hud/hudLarge.js';
+import { weaponOffsetHeight } from '../ui/hudLarge.js';
 
 export const SHIELD_WIDGET_VENDOR = 'shield-widget';
 

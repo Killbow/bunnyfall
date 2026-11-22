@@ -8,9 +8,9 @@ import { PAY_NAMES } from '../src/systems/questlines/qlSheets.js';
 import { payProfileOf, goldFactor } from '../src/systems/questlines/qlRewards.js';
 import { factionsTable } from '../src/systems/quest/tables.js';
 import { WEAPONS_ENUM, ARMOR_ENUM } from '../src/combat/enemyEquipment.js';
-import { ITEM_GROUPS } from '../src/systems/loot/loot.js';
-import { templateByIndex, setItemFields, isAmmunition } from '../src/systems/item/itemTemplates.js';
-import { wearableItem } from '../src/systems/equip.js';
+import { ITEM_GROUPS } from '../src/items/loot.js';
+import { templateByIndex, setItemFields, isAmmunition } from '../src/items/itemTemplates.js';
+import { wearableItem } from '../src/characters/equip.js';
 
 const ID = /^[a-z][a-zA-Z0-9-]{0,31}$/;
 const isText = (s) => typeof s === 'string' && s.trim().length > 0 && s.length <= 160;

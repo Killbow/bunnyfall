@@ -43,7 +43,7 @@ const check = (name, ok, detail) => {
 // A custom spell record built by the SHIPPED maker, in the page, so
 // the probe cannot drift from the real packing.
 const mkSpell = (slots, rangeType) => page.evaluate(async ([s, rt]) => {
-  const { buildCustomSpell, blankEffectSettings } = await import('/src/systems/spell/spellMaker.js');
+  const { buildCustomSpell, blankEffectSettings } = await import('/src/magic/spellMaker.js');
   return buildCustomSpell({
     slots: s.map((x) => ({ type: x.type, subType: x.subType,
       settings: { ...blankEffectSettings(), ...x.settings } })),
@@ -67,7 +67,7 @@ out.steps.scene = { foes: (await foes()).length, live: (await liveFoes()).length
 // ONTO the nearest undead so the sweeps have something to find - the
 // difference between "correctly empty" and "broken" is exactly this.
 const parked = await page.evaluate(async () => {
-  const nb = await import('/src/systems/nearbyObjects.js');
+  const nb = await import('/src/world/nearbyObjects.js');
   const live = window.__liveFoeRecords() ?? [];
   const undead = live.filter((r) => nb.enemyGroupOf(r.mobileType) === nb.NEARBY.Undead);
   if (!undead.length) return null;
@@ -89,7 +89,7 @@ out.steps.afterPark = { nearest: await dists() };
     (window.__playerEntity.activeEffects ?? []).map((a) => a.kind));
   // the markers come off the LIVE pool through the shipped bridge
   const markers = await page.evaluate(async () => {
-    const nb = await import('/src/systems/nearbyObjects.js');
+    const nb = await import('/src/world/nearbyObjects.js');
     const feet = window.__player.pos;
     const live = window.__liveFoeRecords ? window.__liveFoeRecords() : null;
     if (!live) return { unavailable: true };
@@ -109,7 +109,7 @@ out.steps.afterPark = { nearest: await dists() };
 {
   const before = await liveFoes();
   const undeadIdx = await page.evaluate(async () => {
-    const nb = await import('/src/systems/nearbyObjects.js');
+    const nb = await import('/src/world/nearbyObjects.js');
     const fs = JSON.parse(window.__foes());
     return fs.findIndex((f) => !f.dead && nb.enemyGroupOf(f.type) === nb.NEARBY.Undead);
   });
@@ -118,7 +118,7 @@ out.steps.afterPark = { nearest: await dists() };
   } else {
     const spell = await mkSpell([{ type: 33, subType: 1, settings: { chanceBase: 100, chanceMod: 0 } }], 1);
     const res = await page.evaluate(async ([sp, idx]) => {
-      const { applySpell } = await import('/src/systems/effects.js');
+      const { applySpell } = await import('/src/magic/effects.js');
       const f = window.__foeRecord(idx);
       const wasHostile = f.ai?.isHostile;
       const r = applySpell(sp, 5, f.entity, {}, () => 0, null, {});
@@ -133,7 +133,7 @@ out.steps.afterPark = { nearest: await dists() };
 {
   const beforeLive = (await liveFoes()).length;
   const beforeUndead = await page.evaluate(async () => {
-    const nb = await import('/src/systems/nearbyObjects.js');
+    const nb = await import('/src/world/nearbyObjects.js');
     return JSON.parse(window.__foes()).filter((f) => !f.dead && nb.enemyGroupOf(f.type) === nb.NEARBY.Undead).length;
   });
   const pilesBefore = JSON.parse(await page.evaluate(() => window.__piles()));

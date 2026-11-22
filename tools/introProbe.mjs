@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { chromium, devices } from 'playwright';
 import { createServer } from 'vite';
-import { TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME, CREST_TIME, MAP_TIME, INTRO_NARRATION, introTitleAt } from '../src/ui/intro/introCue.js';
-import { MENU_THEME_GAIN } from '../src/systems/introTheme.js';
+import { TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME, CREST_TIME, MAP_TIME, INTRO_NARRATION, introTitleAt } from '../src/ui/introCue.js';
+import { MENU_THEME_GAIN } from '../src/audio/introTheme.js';
 
 const out = process.argv[2] ?? 'test-harness/intro';
 // BR5: the logo's own size, off its IHDR - this probe wrote BR4's 2112 x 850 in, and a new mark failed it for that alone
@@ -138,7 +138,7 @@ try {
   }, { time: beforeMenuTime, gain: MENU_THEME_GAIN }));
   check('shared supplied logo stands in the landed title', await page.locator('.intro-title .brand-logo').evaluate((img, w) => img.complete && img.naturalWidth === w, LOGO_W));
   await shot(page, '07-main-menu');
-  await page.evaluate(async () => { const { setValue } = await import('/src/systems/settings/settings.js'); setValue('Controls', 'MusicVolume', 0); });
+  await page.evaluate(async () => { const { setValue } = await import('/src/platform/settings.js'); setValue('Controls', 'MusicVolume', 0); });
   await page.waitForFunction(() => window.__intro.theme.gain.gain.value < 0.001);
   check('menu music obeys live volume settings', true);
   await closeAccount(page);
@@ -292,7 +292,7 @@ try {
   // UXB1-A + TITLE-DOOR: the player's Skip start video opens on the title - no gate, no film - and the score waits for a press
   const pref = await browser.newContext({ viewport: { width: 1280, height: 720 } }), pp = await pref.newPage(); follow(pp);
   await pp.goto(`${base}?introdebug`); await pp.waitForSelector('.intro-skip', { timeout: 120000 });
-  await pp.evaluate(async () => { const { setPref } = await import('/src/systems/uiPrefs.js'); setPref('skipStartVideo', true); });
+  await pp.evaluate(async () => { const { setPref } = await import('/src/ui/uiPrefs.js'); setPref('skipStartVideo', true); });
   await pp.reload(); await pp.waitForFunction(() => window.__intro?.state.phase === 'landed', null, { timeout: 120000 }); await doorsLive(pp);
   check('Skip start video opens on the title, no gate and no film before it', await pp.evaluate(() => document.querySelector('.intro-gate').hidden && document.querySelector('.intro-skip').hidden && !!document.querySelector('.px-home.px-title') && !window.__intro.theme.source));
   await pp.mouse.click(4, 360);

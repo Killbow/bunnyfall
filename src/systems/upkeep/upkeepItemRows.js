@@ -10,7 +10,7 @@
 // templates shipped with STEED1/WAGONS4's merge (#791, 2026-10-11) and every release since has carried them, so the
 // switch is ON: online a Stable sells oats and a Wagon Yard its kits, as they did offline from the first.
 
-import { registerCustomTemplates } from '../item/itemTemplates.js';
+import { registerCustomTemplates } from '../../items/itemTemplates.js';
 import { ICON_STAFF } from '../../net/professionLaw.js';
 
 /** The block (1710-1719: the two, the rest spare). */

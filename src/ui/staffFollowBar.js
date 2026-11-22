@@ -9,7 +9,7 @@
 // press (Y frees it, as for every window), and the world under them hears nothing of it.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
 import { STAFF_TAG_COLORS } from './staffTags.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 const BAR_CSS = `position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:13;display:flex;gap:8px;align-items:center;${PIXEL_FONT_CSS}font-size:13px;color:${STAFF_TAG_COLORS.name};background:${STAFF_TAG_COLORS.plate};border:1px solid rgba(127,227,240,0.35);border-radius:3px;padding:3px 6px 3px 10px;text-shadow:${PIXEL_TEXT_SHADOW};pointer-events:auto;`;
 const BUTTON_CSS = `${PIXEL_FONT_CSS}font-size:13px;color:${STAFF_TAG_COLORS.plain};background:rgba(127,227,240,0.12);border:1px solid rgba(127,227,240,0.45);border-radius:3px;padding:1px 8px;cursor:pointer;text-shadow:${PIXEL_TEXT_SHADOW};`;

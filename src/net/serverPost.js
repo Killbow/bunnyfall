@@ -12,9 +12,9 @@
 // holds it.
 import { call, forgetSession } from './accountClient.js';
 import { postHead, postWhole, unclaimedOf, POST_POLL_MS, POST_BOX_MAX } from './postLaw.js';
-import { validLootItem } from '../systems/loot/loot.js';
+import { validLootItem } from '../items/loot.js';
 import { ReportDesk } from './privateReport.js';   // PRIVATE-REPORT: the report form's desk, kept on the box for the sitting
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 /** The box: `{ post: [head...], unread, unclaimed, max }`, newest first. */
 export const postBoxCall = (io) => call(io, '/v1/post/box');

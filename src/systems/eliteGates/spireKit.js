@@ -6,8 +6,8 @@
 // every spell, is untouched. Client-enforced like the Burning Court's no-regeneration rule: systems/useItem.js's potion
 // arm asks first (the bottle is kept on a refusal) and tells after. The count is the breach client's (scenes/eliteGates/egClient.js
 // potionAllowed / potionUsed), registered by the world host. A departure from DFU: Ledger A (ELITE-GATES).
-import { POTION_RECIPES, potionRecipeKey } from '../potionRecipes.js';
-import { madeRuleHere } from '../madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE POTION LAW is a made level's rule - the Spire's ('counted')
+import { POTION_RECIPES, potionRecipeKey } from '../../items/potionRecipes.js';
+import { madeRuleHere } from '../../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE POTION LAW is a made level's rule - the Spire's ('counted')
 
 /** The classic Heal-Health effect key (HealHealth.cs - group 10, subgroup 8). */
 export const SPIRE_RESTORING_EFFECT = '10,8';

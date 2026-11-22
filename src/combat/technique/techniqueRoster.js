@@ -19,8 +19,8 @@
 
 import { weaponSkillUsed } from '../../characters/weapons.js';
 import { isGunTemplate } from '../../characters/thunderlockIds.js';
-import { SKILLS } from '../../systems/skills.js';
-import { RRI_CLASSES } from '../../systems/roleplayRealismItems/rriItems.js';   // AUDIT TECH1: an RRI class answers its family whatever its switch says
+import { SKILLS } from '../../characters/skills.js';
+import { RRI_CLASSES } from '../../mods/rriItems.js';   // AUDIT TECH1: an RRI class answers its family whatever its switch says
 
 /** DFU's Gauntlets (ItemEnums.Armor.Gauntlets) - the one piece a bare-handed fighter's technique rides. */
 export const GAUNTLETS_TEMPLATE = 103;

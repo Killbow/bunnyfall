@@ -34,11 +34,11 @@ const HTML = `<!doctype html><html><head><meta charset="utf-8"><title>pistolet r
 <script type="module">
 import { Renderer } from '/src/render/renderer.js';
 import { perspective, lookAt } from '/src/world/mat4.js';
-import { createWeaponRig } from '/src/combat/weapon/weaponRig.js';
-import { createPistolet, PISTOLET_TEMPLATE } from '/src/systems/pistolet.js';
-import { createPellets } from '/src/systems/thunderlock.js';
-import { equipItem, unequipItem } from '/src/systems/equip.js';
-import { mintGilded, SOVEREIGN_PISTOLET_ERA } from '/src/systems/gilded.js';   // GUNS-UNFOUND: the gold Pistolet is the Sovereign's pistolet era
+import { createWeaponRig } from '/src/combat/weaponRig.js';
+import { createPistolet, PISTOLET_TEMPLATE } from '/src/items/pistolet.js';
+import { createPellets } from '/src/items/thunderlock.js';
+import { equipItem, unequipItem } from '/src/characters/equip.js';
+import { mintGilded, SOVEREIGN_PISTOLET_ERA } from '/src/items/gilded.js';   // GUNS-UNFOUND: the gold Pistolet is the Sovereign's pistolet era
 const canvas = document.getElementById('c');
 canvas.width = innerWidth; canvas.height = innerHeight;
 const renderer = new Renderer(canvas);

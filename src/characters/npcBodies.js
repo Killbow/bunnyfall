@@ -21,9 +21,9 @@
 //     `dd`, the death (playRandomDeath) - see combat/fpArm.js `hurt`/`die`.
 //
 // The populations' adapters (which actor wears what - MWNPC5 onward) fill the actor; this module never reads a host.
-import { PeerBodies, BODY_BUILD_GATE } from '../net/peer/peerBodies.js';
-import { getPref } from '../systems/uiPrefs.js';
-import { isEnhanced } from '../systems/uiSkin.js';
+import { PeerBodies, BODY_BUILD_GATE } from '../net/peerBodies.js';
+import { getPref } from '../ui/uiPrefs.js';
+import { isEnhanced } from '../ui/uiSkin.js';
 import { morrowindDataCount, morrowindDataGeneration } from '../scenes/dataSource.js';
 
 /** The lane's caps by the player's tier: the most bodies, the range they stand to (scene metres), the skins a frame,

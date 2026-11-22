@@ -128,7 +128,7 @@ export class OceanHolesRenderer {
 
   /** BUNNYFALL AUDIT STUT-1c: the holes' two programs, started together at idle (render/warmPrograms.js `{ start, run }`). */
   warmSteps() {
-    const pairs = [[DISC_VS, DISC_FS], [MIASMA_VS, MIASMA_FS]];
+    const pairs = /** @type {[string, string][]} */ ([[DISC_VS, DISC_FS], [MIASMA_VS, MIASMA_FS]]);
     return [{ start: () => startPrograms(this.gl, pairs), run: () => { this._ensure(); }, need: () => !this._res }];
   }
 

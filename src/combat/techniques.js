@@ -31,22 +31,22 @@
 // A host that hands none still swings its techniques; it cannot leap, dash or shoot one (said so).
 
 import { techniqueById, techniqueMult, techniqueFamily, TECHNIQUE_MAX_SPEED, TECHNIQUES, TECHNIQUE_ACTION } from './technique/techniqueRoster.js';
-import { signatureFor, signatureById, SIGNATURE_IDS, SIGNATURE_TECHNIQUES } from '../systems/martialPaths.js';   // MARTIAL3: a martial path's signature - the key's answer when the weapon carries no line
-import { techniqueLineOf, lootRarityOn, rarityKnown } from '../systems/loot/lootRarity.js';
-import { EQUIP_SLOTS } from '../systems/equip.js';
-import { sigilDueling } from '../systems/sigil/sigil.js';
-import { FATIGUE_MULTIPLIER } from '../systems/statMods.js';
-import { spendAmmoFor, ammoCountFor } from '../systems/inventory.js';
-import { tallySwingSkills, SWING_FATIGUE_COST } from '../scenes/hostCombat.js';
-import { playerDoor } from '../systems/playerDoor.js';
+import { signatureFor, signatureById, SIGNATURE_IDS, SIGNATURE_TECHNIQUES } from '../characters/martialPaths.js';   // MARTIAL3: a martial path's signature - the key's answer when the weapon carries no line
+import { techniqueLineOf, lootRarityOn, rarityKnown } from '../items/lootRarity.js';
+import { EQUIP_SLOTS } from '../characters/equip.js';
+import { sigilDueling } from '../items/sigil.js';
+import { FATIGUE_MULTIPLIER } from '../characters/statMods.js';
+import { spendAmmoFor, ammoCountFor } from '../items/inventory.js';
+import { tallySwingSkills, SWING_FATIGUE_COST } from './hostCombat.js';
+import { playerDoor } from '../player/playerDoor.js';
 import { GRAVITY } from '../player/motor.js';
 import { rayHit } from '../player/groundRay.js';   // AUDIT TECH1's march - the mesh ray and the terrain (AUDIT GROUND-BOLT moved it to a leaf)
-import { restoresSoFar } from '../systems/save/save.js';   // AUDIT TECH1: every load passes the one door (PORTAL1's count)
+import { restoresSoFar } from '../saves/save.js';   // AUDIT TECH1: every load passes the one door (PORTAL1's count)
 import { blowSchedule } from '../characters/weaponStates.js';
-import { ARROW_FLIGHT_SPEED } from '../systems/spellcast.js';   // BAL-ARCHERY: a volley's shafts fly at the arrow's speed, the one constant (spellcast.js)
+import { ARROW_FLIGHT_SPEED } from '../magic/spellcast.js';   // BAL-ARCHERY: a volley's shafts fly at the arrow's speed, the one constant (spellcast.js)
 import { WEAPON_REACH, friendlyProtected } from './playerWeapon.js';
 import { playerBody, bodyRadius, tellTechniqueUsed } from './technique/techniqueBlow.js';
-import { madeRuleHere, madeSaysHere, madeOnTraverse } from '../systems/madeLevel.js';   // EG-H2 (bible/11-Multiplayer/Elite-Gates.md section 10.7): the Spire refuses a flight on its traversal ground - the made level's law
+import { madeRuleHere, madeSaysHere, madeOnTraverse } from '../characters/madeLevel.js';   // EG-H2 (bible/11-Multiplayer/Elite-Gates.md section 10.7): the Spire refuses a flight on its traversal ground - the made level's law
 import { techniqueCue, resetTechniqueFx, TECH_FX } from './technique/techniqueFx.js';   // TECH-FX: what each moment looks, moves and sounds like (bible/05-Combat/Weapon-Techniques.md THE FEEL)
 
 /** The registry action (systems/inputActions.js) - the roster's (TECH-CARD: the leaf, so the card names the key). */

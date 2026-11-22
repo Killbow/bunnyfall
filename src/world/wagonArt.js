@@ -17,8 +17,8 @@
 // lays it on the rear face; scenes/caravanRoom.js is what it opens) and a painted roof of boards.
 //
 // Each picture is `{ width, height, data }`, RGBA top-down. Not a DFU member. Ledger A (WAGONS1).
-import { C, picture, put, get, mix, shade, paintNoise as noise, paintBand as band, planks, GALLEON_TEX_SIZE, ironArt } from './ships/galleonArt.js';
-import { mulberry32 } from '../combat/blood/bloodArt.js';
+import { C, picture, put, get, mix, shade, paintNoise as noise, paintBand as band, planks, GALLEON_TEX_SIZE, ironArt } from './galleonArt.js';
+import { mulberry32 } from '../combat/bloodArt.js';
 
 /** The wagons' pseudo-archive: past the large boat's 38171 (38151 collided once - largeBoatArt.js). */
 export const WAGON_ARCHIVE = 38181;

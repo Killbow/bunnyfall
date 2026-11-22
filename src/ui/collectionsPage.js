@@ -26,13 +26,13 @@
 // comes from and how it is had, worn from here), then this character's Codex and Cards. The switch is a row of tiles,
 // each its part's name over its count and a meter of it, so the page opens on how much of everything is collected.
 
-import { codexRows, codexSets, codexCount, codexGilded } from '../systems/loot/lootCodex.js';   // AUDIT WORLD-REWARDS A5: and the Gilded rung's rows
-import { lootRarityOn, powerLine, legendaryById, affixLine, RARITIES } from '../systems/loot/lootRarity.js';
-import { gildedById } from '../systems/gilded.js';
-import { setById } from '../systems/sigil/sigilSets.js';
-import { cardsPartShown, drawCardsPart, resetCardsPart, disarmCardsPart, deckCards } from './card/cardBinderPage.js';
-import { collectionOf } from '../systems/iliac/iliacItems.js';   // COLLECTIONS-II: the Cards tile's count
-import { t } from '../systems/textManager.js';
+import { codexRows, codexSets, codexCount, codexGilded } from '../items/lootCodex.js';   // AUDIT WORLD-REWARDS A5: and the Gilded rung's rows
+import { lootRarityOn, powerLine, legendaryById, affixLine, RARITIES } from '../items/lootRarity.js';
+import { gildedById } from '../items/gilded.js';
+import { setById } from '../items/sigilSets.js';
+import { cardsPartShown, drawCardsPart, resetCardsPart, disarmCardsPart, deckCards } from './cardBinderPage.js';
+import { collectionOf } from '../cards/iliacItems.js';   // COLLECTIONS-II: the Cards tile's count
+import { t } from './textManager.js';
 import { wardrobeCount, wordPair } from './collections/wardrobeCatalogue.js';   // COLLECTIONS-II: the wardrobe's parts
 import { GATHERED_PARTS, isGatheredPart, gatheredCount, drawGatheredPart } from './collections/gatheredPart.js';   // HUNTERS-MARK: the Trophies, the Fish, the Annals
 import { drawWardrobePart, wardrobeAccount, wardrobeOfFlow, resetWardrobePart, rereadWardrobeAccount, WARDROBE_PART_CSS, WARDROBE_THEME_CSS } from './collections/wardrobePart.js';

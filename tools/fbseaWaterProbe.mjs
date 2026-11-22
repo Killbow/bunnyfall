@@ -34,7 +34,7 @@ const out = await page.evaluate(async (solidWaves) => {
   gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);   // the renderer's own (renderer.js, the mirrored lens)
   const { DeepWatersRenderer } = await import('/src/render/deepWatersRender.js');
   const { ComeSailAwayRenderer } = await import('/src/render/comeSailAwayRender.js');
-  const { buildWaveMesh, waveDitherOf, WAVE_SCALE } = await import('/src/systems/comeSailAway/comeSailAwayWaves.js');
+  const { buildWaveMesh, waveDitherOf, WAVE_SCALE } = await import('/src/systems/naval/comeSailAwayWaves.js');
   const { perspective, lookAt, multiply, mirrorProjectionX } = await import('/src/world/mat4.js');
   // the renderer's frame, as the two passes read it
   const r = {

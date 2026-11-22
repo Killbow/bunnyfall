@@ -5,7 +5,7 @@
 // and-brass kit the guild, the bank and the travel map's own warnings wear) and on the classic skin draws DFU's
 // parchment. The window answers the press itself (messageBoxHit), and Y / N as DFU's box does (Return is No).
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';
-import { nativeMetrics, shadowText } from './native/nativePanel.js';
+import { nativeMetrics, shadowText } from './nativePanel.js';
 import { drawScreenDimBackdrop } from './chargenArt.js';
 
 export class DecisionBoxWindow {

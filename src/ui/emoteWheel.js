@@ -3,7 +3,7 @@
 // (or a number key 1-8, Escape to leave) picks one; the host says it on Local. Dressed like the Discipline wheel: stone and
 // brass under the Enhanced skin, dark wood and gold under Classic.
 import { WHEEL_VERBS, TOUCH_FX } from '../net/touchLaw.js';
-import { isEnhanced } from '../systems/uiSkin.js';
+import { isEnhanced } from './uiSkin.js';
 import { PIXEL_STACK } from './pixelifyFive.js';
 
 const LABEL = { hug: 'Hug', pat: 'Pat', kiss: 'Kiss', highfive: 'High five', handshake: 'Handshake', comfort: 'Comfort', wave: 'Wave', bow: 'Bow' };

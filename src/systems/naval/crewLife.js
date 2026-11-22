@@ -31,7 +31,7 @@
 // hauling; the guns or her colours end it.
 
 import { musterOf, MOBILE, CREW_PER_HAND, MUSTER_MIN, MUSTER_MAX } from './navalBoarding.js';
-import { seededRng } from '../wind/wind.js';
+import { seededRng } from '../../weather/wind.js';
 import { mainLevel, DECK_STEP, FLIGHT_OVER } from './navalDeck.js';
 import { watchCount } from './shipWatch.js';
 

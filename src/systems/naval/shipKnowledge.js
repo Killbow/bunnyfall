@@ -24,7 +24,7 @@
 // Pure: the host (scenes/naval/navalHost.js) keeps a ship's knowledge on her entry and asks this module what it has become
 // and what to say; the glass's window is ui/spyglassView.js.
 
-import { mulberry32 } from '../../combat/blood/bloodArt.js';
+import { mulberry32 } from '../../combat/bloodArt.js';
 import { CROWNS, HULL, batteriesOf, GUNS, SHIP_CLASSES } from './navalShips.js';
 import { nightSight } from './shipWatch.js';
 

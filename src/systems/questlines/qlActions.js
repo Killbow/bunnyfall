@@ -40,7 +40,7 @@
 import { ActionTemplate } from '../quest/actions.js';
 import { Symbol as QuestSymbol } from '../quest/symbol.js';
 import { GENDERS } from '../../characters/nameHelper.js';   // STAR8: a foe's gender, named
-import { isClassEnemyId } from '../../characters/enemy/enemyBasics.js';
+import { isClassEnemyId } from '../../characters/enemyBasics.js';
 import { isStamped, isEnding } from './qlLaw.js';
 import { sheetFor } from './qlSheets.js';   // AUDIT QUESTLINES BRANCH-10: an outcome is one its quest's sheet has
 import { addIntoQuestTables } from '../quest/tables.js';   // AUDIT STAR8 S4: the questlines' place rows

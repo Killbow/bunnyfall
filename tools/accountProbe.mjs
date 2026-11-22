@@ -65,7 +65,7 @@ import { verifyToken, importPublicKeyB64 } from '../src/net/identityToken.js';
 import { PBKDF2_ITERS } from '../server-account/src/password.js';
 import { ACCOUNT_VERSION, SHOT_MAX_BYTES } from '../server-account/src/service.js';
 import { ACCEPTED } from '../src/net/legalLaw.js';   // TERMS1: every request that makes an account carries the versions ticked
-import { gzipText, REALM_TEXT_MAX_BYTES } from '../src/net/realm/realmSaveCodec.js';   // REALM-GZIP: a realm save rides packed
+import { gzipText, REALM_TEXT_MAX_BYTES } from '../src/net/realmSaveCodec.js';   // REALM-GZIP: a realm save rides packed
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const acct = join(root, 'server-account');

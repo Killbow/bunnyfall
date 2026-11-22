@@ -51,11 +51,11 @@
 //   (:296-317).
 // - CONTINUE on a valid grid closes; the close APPLIES the staged
 //   dicts and saves (OnPop :163-171).
-import { loadImg, nativeMetrics, drawImg } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';
 import { drawText, measureText } from './text.js';
-import { ACTIONS, PORT_ACTIONS, HIDDEN_ACTIONS, saveKeyBinds } from '../systems/inputActions.js';   // AUDIT SOC D3: the port's own rows YIELD here - this window's art cannot draw them
+import { ACTIONS, PORT_ACTIONS, HIDDEN_ACTIONS, saveKeyBinds } from './inputActions.js';   // AUDIT SOC D3: the port's own rows YIELD here - this window's art cannot draw them
 import { bindings, mouseCode } from './input.js';   // MAC-K1: the ONE crossed-name table, so this grid does not spell it a second time
 import {
   createUnsavedKeybinds, currentDict, setUnsavedBinding, checkDuplicates,
@@ -63,14 +63,14 @@ import {
   INTERNAL_DUPE_COLOR, CROSS_DUPE_COLOR, comboFromEvent, removeKeybindPromptRows,
   bindingHolders, stageReplace,
   canShareKey, stageShare, replacePromptRows, SHARED_KEY_COLOR,
-} from '../systems/controlsConfig.js';
+} from './controlsConfig.js';
 import { ToolTip } from './toolTip.js';
 import { MouseControlsWindow, promptAnswer, PROMPT_YES, PROMPT_NO } from './mouseControlsWindow.js';   // ROAD-G G6: the ADVANCED tab's destination; L10N3f: the prompts' Yes/No
 import { JoystickControlsWindow, createJoystickUnsaved, resetJoystickUnsaved, saveJoystickSettings } from './joystickControlsWindow.js';   // GP2: the JOYSTICK tab's destination
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { gameSettingsText } from '../systems/textDatabases.js';   // L10N3f: DFU's GameSettings text database, a pack's in its language
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { gameSettingsText } from './textDatabases.js';   // L10N3f: DFU's GameSettings text database, a pack's in its language
 
 /** SetupKeybindButtons' nine calls (:146-152): [startIndex, endIndex)
  *  into the Actions enum, and the group's anchor.

@@ -14,7 +14,7 @@
 // back before this is asked: legacy.js withoutRevived).
 // ═══════════════════════════════════════════════════════════════════
 
-import { SKILL_COUNT } from '../skills.js';
+import { SKILL_COUNT } from '../../characters/skills.js';
 
 /** THE BLOOD: a stat's gift is `round((parent - 50) / 10)`, held to 0..3 (family.js bloodOf). */
 export const BLOOD_MAX = 3;

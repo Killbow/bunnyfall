@@ -49,14 +49,14 @@ import {
   loadOrCreateBindings, actionLive,
   getCombo, comboCode, comboModifiers, isPairedCode, modifierHeldFirstDict,
   actionsForCode,
-} from '../systems/inputActions.js';
+} from './inputActions.js';
 // AUDIT 64 F36/F37: DaggerfallHUD.Update's own shortcut arms. A leaf
 // on systems/ alone, so this module can take it without a cycle.
-import { hudShortcutKey, retroToggleKey } from './hud/hudShortcuts.js';
-import { hotbarInForce } from '../systems/uiSkin.js';   // AUDIT CONTRIB H1: the diamond's actions stand down while the hotbar is in force
-import { statusReadoutTakesAction, setStatusBindings } from '../systems/statusReadout.js';   // STATUS-LIVE: the readout yields to whatever wants the slot, and the panel names the live Status key. A LEAF - this module is in ui/actionText.js's own import ring (through ui/inputMessageBox.js), so reaching for the BOX from here put its class body in a temporal dead zone
+import { hudShortcutKey, retroToggleKey } from './hudShortcuts.js';
+import { hotbarInForce } from './uiSkin.js';   // AUDIT CONTRIB H1: the diamond's actions stand down while the hotbar is in force
+import { statusReadoutTakesAction, setStatusBindings } from './statusReadout.js';   // STATUS-LIVE: the readout yields to whatever wants the slot, and the panel names the live Status key. A LEAF - this module is in ui/actionText.js's own import ring (through ui/inputMessageBox.js), so reaching for the BOX from here put its class body in a temporal dead zone
 import { printScreen } from './screenshot.js';   // AUDIT KB1: PrintScreen is routed like every world action, so a window's F8 stays the window's
-import { getInt, getFloat } from '../systems/settings/settings.js';   // SWING-SAY: the swing mode and its threshold, for the boot readout
+import { getInt, getFloat } from '../platform/settings.js';   // SWING-SAY: the swing mode and its threshold, for the boot readout
 
 // The registry singleton - built on first read, so the module can be
 // imported by tests without touching storage until asked.

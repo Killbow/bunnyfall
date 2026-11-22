@@ -27,8 +27,8 @@ const SECONDS = Number(arg('--seconds') ?? 24);
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
 
 const PAGE = `<!doctype html><html><body><script type=module>
-import { SongPlayer } from '/src/systems/song/songPlayer.js';
-import { gateScoreSongs, SCORE_PRESS } from '/src/systems/gate/gateScore.js';
+import { SongPlayer } from '/src/audio/songPlayer.js';
+import { gateScoreSongs, SCORE_PRESS } from '/src/worldEvents/gateScore.js';
 const RATE = 44100;
 window.render = async (key, seconds) => {
   const song = gateScoreSongs()[key];

@@ -6,9 +6,9 @@
 // lock is in the player's hands. Off with the port's own sounds (systems/enhancedSounds.js - the enhanced skin's ES1
 // switch), the window says DFU's button click where a pin sets and DFU's own sounds where a pick slips or snaps, the
 // gathering's classic law (systems/professions/profSounds.js).
-import { APP_ROOT } from '../appRoot.js';
-import { enhancedSoundsOn } from '../enhancedSounds.js';
-import { SOUND } from '../soundClips.js';
+import { APP_ROOT } from '../../platform/appRoot.js';
+import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
+import { SOUND } from '../../audio/soundClips.js';
 
 /** The sounds, each its clips' keys (a sound of several is never the one just heard). */
 export const LOCK_SFX = Object.freeze({

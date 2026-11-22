@@ -8,8 +8,8 @@
 import { registerPlayerStrikeListener } from './formulas.js';
 import { getItemHands, ITEM_HANDS } from '../characters/equipTable.js';
 import { weaponSkillUsed } from '../characters/weapons.js';
-import { SKILLS } from '../systems/skills.js';
-import { cleaveNear } from '../systems/sigil/sigilSetPowers.js';
+import { SKILLS } from '../characters/skills.js';
+import { cleaveNear } from '../items/sigilSetPowers.js';
 import { MELEE_REWORK, cleaveOf } from './meleeRework.js';   // and the whole rework registers through this import (never from formulas.js: entityMods.js is mid-load there)
 
 /** Does `weapon` cleave: a two-handed melee weapon (never a bow). */

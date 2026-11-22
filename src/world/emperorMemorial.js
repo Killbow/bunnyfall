@@ -19,8 +19,8 @@
 import { REGION_NAMES } from '../formats/mapsTables.js';
 import { GLOBAL_SCALE } from './meshReader.js';
 import { BLOCK_FLATS_OFFSET_Y } from './rmbFlats.js';
-import { addVendorTextures, decodePng } from '../systems/textureReplacement.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { addVendorTextures, decodePng } from '../render/textureReplacement.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 
 /** The place: Daggerfall's own city (a pack's read of it keeps both names). */
 export const MEMORIAL_REGION = REGION_NAMES.indexOf('Daggerfall');

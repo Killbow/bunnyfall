@@ -14,10 +14,10 @@
 //
 // The store itself is the data source's (scenes/dataSource.js); everything here is pure but `registerModPacks`.
 
-import { textureEntry } from '../textureReplacement.js';
+import { textureEntry } from '../../render/textureReplacement.js';
 import { setFlatReplacerSources } from '../flatReplacer/flatReplacer.js';
-import { attachedDfmods } from '../dfmodTextures.js';
-import { getPref } from '../uiPrefs.js';
+import { attachedDfmods } from '../../mods/dfmodTextures.js';
+import { getPref } from '../../ui/uiPrefs.js';
 
 export const MOD_PACKS = Object.freeze({
   pde: Object.freeze({ id: 'pde', title: 'Paperdoll Enhanced', stem: 'paperdoll enhanced', guid: 'ed9ba1e2-5971-4b03-9cb8-83a1abb7cb2d', titleWord: /paperdoll\s*enhanced/i }),

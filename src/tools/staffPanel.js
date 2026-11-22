@@ -16,7 +16,7 @@ import { staffDiscord } from './staffDiscord.js';
 import { selfAccountUrl } from '../net/selfHost.js';
 import { STAFF_TABS, showAnswer, buildActs } from './staffPanelActions.js';
 import { reportsView } from './staffReports.js';   // BUNNYFALL: the open reports, readable and closable
-import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
+import { MOBILE_TYPES } from '../characters/mobileTypes.js';
 
 const $ = (/** @type {string} */ id) => /** @type {any} */ (document.getElementById(id));
 const KEY_STORE = 'bunnyfall-staff-key';
@@ -572,7 +572,7 @@ async function quickRefresh(/** @type {any} */ c) { await loadChars(true); const
 
 // ── Events ──
 const MONSTERS = Object.entries(MOBILE_TYPES).filter(([n, v]) => v !== MOBILE_TYPES.None && !/invalid/i.test(n) && v !== 39 && v !== 146)
-  .map(([n, v]) => ({ v, name: pretty(n).replace(/ +/g, ' ').trim() })).concat([{ v: 3072, name: 'Sifrit the Forbidden One' }]).sort((a, b) => a.name.localeCompare(b.name));
+  .map(([n, v]) => ({ v: /** @type {number} */ (v), name: pretty(n).replace(/ +/g, ' ').trim() })).concat([{ v: 3072, name: 'Sifrit the Forbidden One' }]).sort((a, b) => a.name.localeCompare(b.name));
 const monsterName = (/** @type {number} */ v) => MONSTERS.find((m) => m.v === v)?.name ?? `#${v}`;
 function eventRow(/** @type {any} */ e) {
   const ev = e.ev ?? {};

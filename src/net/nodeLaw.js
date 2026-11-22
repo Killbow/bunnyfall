@@ -24,11 +24,11 @@
 // Pure: no clock of its own, no DOM, no network. Both ends read it.
 // ═══════════════════════════════════════════════════════════════════
 
-import { gateHash } from './gate/gateLaw.js';   // the one mix every clock-law in the world rolls with
+import { gateHash } from './gateLaw.js';   // the one mix every clock-law in the world rolls with
 import { skyClassicMinutes } from './skyLaw.js';   // TIME1: a UTC day's season and month are the SKY's (bible/06-Systems/Online-Time-Arc.md section 4)
 import { CLIMATES, REGION_NAMES } from '../formats/mapsTables.js';
-import { SEASONS, seasonValue, dateFromClassicMinutes } from '../systems/gameDate.js';
-import { basketBlock, BASKET_BLOCKS } from '../systems/foraging/foragingCore.js';   // the Basket's blocks and foods - the IL's, one home
+import { SEASONS, seasonValue, dateFromClassicMinutes } from '../world/gameDate.js';
+import { basketBlock, BASKET_BLOCKS } from '../professions/foragingCore.js';   // the Basket's blocks and foods - the IL's, one home
 import {
   herbKey, materialOf, foodKey, WRIT_UNITS, WRIT_TIER_WEIGHTS, writPay, writRenown, minedMaterial, CUT_RATIO,
   DEEP_DELVER_MULT, GEM_CHANCE, PROSPECTOR_GEM, HEARTWOOD_CHANCE, FORESTER_MULT, RESIN_CHANCE, RESIN, HEARTWOOD,
@@ -38,7 +38,7 @@ import {
 import { kingdomOf, FREE_LANDS, MARCH_REGIONS, isMarch } from './kingdomLaw.js';   // SEAT0 4.3's map, one home (PROF2)
 import { onBayOrEther } from '../world/ethericSea.js';   // ETHER-NODES: the Bay's map or the Eltheric Ocean's box, one home (ETHER-OW; pure: formats/ alone)
 import { banthaAreaHas } from '../world/jungle/banthaArea.js';
-import { contentOn } from '../systems/contentOff.js';   // BUNNYFALL: witnessed ground, switched off (a leaf: no cycle)   // JUNGLE-WOODS: the owner's jungle, one home (pure: its rows alone)
+import { contentOn } from '../mods/contentOff.js';   // BUNNYFALL: witnessed ground, switched off (a leaf: no cycle)   // JUNGLE-WOODS: the owner's jungle, one home (pure: its rows alone)
 
 /** The one salt every client stands a day's nodes with. Changing it moves every node in the world. */
 export const NODE_SALT = 0x5e3d;

@@ -32,7 +32,7 @@ import { parseRollSpec, ROLL_DICE_MAX, ROLL_SIDES_MAX } from './dice.js';   // D
 import { LIVE_EVENTS, CHAT_LANGS } from './wire.js';   // EVENT1: the live events a dev may stage; CHAT-LANG: the language channels
 import { HUB_FIND_MAX } from './hubShards.js';   // SCALE5c: a search's bound
 import { rpText } from './chat.js';   // CHAT-RP: the roleplay mark
-import { t } from '../systems/textManager.js';   // CHAT-TRADE: the new rows' words in the player's language, each read when /help is asked; AUDIT EG V (c, L7-21): and /help's line for /breach
+import { t } from '../ui/textManager.js';   // CHAT-TRADE: the new rows' words in the player's language, each read when /help is asked; AUDIT EG V (c, L7-21): and /help's line for /breach
 
 /** The channel commands: each names the tab its text is said on. `wrap` is what the text becomes first. */
 export const CHANNEL_COMMANDS = Object.freeze([

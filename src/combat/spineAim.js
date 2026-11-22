@@ -21,7 +21,7 @@
 // does for the first-person neck (fpArm.js `neckPitch`). A peer's body and a townsperson's stand at pitch 0
 // (net/peer/peerBodies.js: the wire carries no look), so their drawn bows keep the clip's own angle.
 
-import { MW_WEAPON_TYPE, MW_WEAPON_CLASS, weaponClass, rotNegX, applyRotateController } from '../formats/morrowind/mwFirstPerson.js';
+import { MW_WEAPON_TYPE, MW_WEAPON_CLASS, weaponClass, rotNegX, applyRotateController } from '../formats/mwFirstPerson.js';
 
 /** addControllers' two bones (weaponanimation.cpp:175-211), spine1 first - the second hangs off it. */
 export const SPINE_AIM_BONES = Object.freeze(['bip01 spine1', 'bip01 spine2']);

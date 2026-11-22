@@ -10,7 +10,7 @@
 //
 // Pure, a leaf both ends read (the professions' yields and the market's couriers read it too). Not a DFU member:
 // Daggerfall's world has no weekly tides. Ledger A (THE WAR RUNS IN SEASONS' row).
-import { gateHash } from './gate/gateLaw.js';
+import { gateHash } from './gateLaw.js';
 import { kingdomOf, isMarch, isFreeLand, KINGDOMS } from './kingdomLaw.js';
 
 /** The Tides' own salt, beside the gate's (gateLaw.js GATE_SALT) and the nodes' (nodeLaw.js NODE_SALT). */

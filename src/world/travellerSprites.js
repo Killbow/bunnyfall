@@ -27,8 +27,8 @@
 // billboard pass draws the sprites (cast-only where a body stands). Never under the Overworld: the bands' grown,
 // fading sprites are the far view's.
 // ═══════════════════════════════════════════════════════════════════
-import { MobileUnit } from '../characters/mobile/mobileUnit.js';
-import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
+import { MobileUnit } from '../characters/mobileUnit.js';
+import { ENEMY_BASICS } from '../characters/enemyBasics.js';
 import { ResidentWalker } from '../characters/residentWalker.js';
 import { mobileBillboardSize } from './rmbFlats.js';
 import { bandSpriteReach, stepBandAlpha, BAND_SPRITE_FAR_M } from './bandSprites.js';

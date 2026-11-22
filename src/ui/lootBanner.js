@@ -38,27 +38,27 @@
 // over it. Reduced motion: no slide, no sweep, no glow.
 // ═══════════════════════════════════════════════════════════════════
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { createAcquireWatch, setCodexFindPresenter, tierIsBig, tierRank, isAcquired, announces } from '../systems/acquireWatch.js';
-import { tierLabel, RARITIES } from '../systems/loot/lootRarity.js';
-import { isIliacCard } from '../systems/iliac/iliacItems.js';
-import { cardById } from '../net/iliac/iliacCards.js';
-import { itemLongName } from '../systems/item/itemInfo.js';
-import { inventoryItemImage, templateByIndex } from '../systems/item/itemTemplates.js';
+import { isEnhanced } from './uiSkin.js';
+import { createAcquireWatch, setCodexFindPresenter, tierIsBig, tierRank, isAcquired, announces } from '../items/acquireWatch.js';
+import { tierLabel, RARITIES } from '../items/lootRarity.js';
+import { isIliacCard } from '../cards/iliacItems.js';
+import { cardById } from '../net/iliacCards.js';
+import { itemLongName } from '../items/itemInfo.js';
+import { inventoryItemImage, templateByIndex } from '../items/itemTemplates.js';
 import { paintIliacCard, ILIAC_CARD_ASPECT } from '../render/iliacCardFaces.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
 import { screenDpr } from './iconFit.js';
 import { PIXEL_STACK, PIXEL_FONT_CSS, PIXELIFY_FIVE_FACE, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
-import { rarityVarsCss } from './enhanced/enhancedPlusStyle.js';
-import { FRAME_TONES, PLUS_THEMES, hudVeil } from './enhanced/enhancedFrame.js';
+import { rarityVarsCss } from './enhancedPlusStyle.js';
+import { FRAME_TONES, PLUS_THEMES, hudVeil } from './enhancedFrame.js';
 import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js';
-import { sweepHudLayout } from './hud/hudLayout.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { enhancedSoundsOn } from '../systems/enhancedSounds.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { sweepHudLayout } from './hudLayout.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { enhancedSoundsOn } from '../audio/enhancedSounds.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { TITLE_TEXT, AURA_TEXT, AURA_PAINT, titleBadge, titlePaint, gradientAt } from './playerBadge.js';   // HONOUR-BANNER: a title's word and paint
-import { t } from '../systems/textManager.js';   // HONOUR-BANNER: its words in the player's language
+import { t } from './textManager.js';   // HONOUR-BANNER: its words in the player's language
 
 export const LOOT_BANNER_STYLE_ID = 'loot-banner-css';
 export const LOOT_BANNER_STACK_ID = 'loot-banners';

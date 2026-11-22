@@ -24,17 +24,17 @@
 // layout the Plus sheet's LOCK_CSS, so a Plus colour and the Bunnyfall Grimoire dress repaint it; on the classic skin it lays the
 // layout and the kit cut to its own selectors (`lockSkinCss`), the Broker's AUDIT SET U1 way. The pad has an arm of its own
 // (ui/plus/plusPad.js registerLockArm), a refused press says why, and a phone on its side holds the whole of it.
-import { t } from '../systems/textManager.js';
-import { FRAME_TONES as T, frameCss, scopeRules } from './enhanced/enhancedFrame.js';
-import { LOCK_CSS } from './enhanced/enhancedPlusStyle.js';
-import { injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { t } from './textManager.js';
+import { FRAME_TONES as T, frameCss, scopeRules } from './enhancedFrame.js';
+import { LOCK_CSS } from './enhancedPlusStyle.js';
+import { injectEnhancedFonts } from './enhancedStyle.js';
 import { PIXELIFY_FIVE_FACE } from './pixelifyFive.js';
-import { isEnhancedPlus } from '../systems/uiSkin.js';
+import { isEnhancedPlus } from './uiSkin.js';
 import { PIN } from '../systems/lockpick/lockpickAct.js';
 import { overlayAction } from './input.js';
 import { screenDpr } from './iconFit.js';
 import { padFamily } from './padGlyphs.js';
-import { registerLockArm } from './plus/plusPad.js';
+import { registerLockArm } from './plusPad.js';
 
 /** The canvas's own size; the window scales it. */
 export const LOCK_W = 520;

@@ -101,7 +101,7 @@ import { LOT_KEYS, SALVAGE_LOT, isSalvage } from './navalPlunder.js';
 import { NOTORIETY } from './navalLaw.js';
 import { DENSITY_KEYS } from './navalDirector.js';
 import { REGION_NAMES } from '../../formats/mapsFile.js';
-import { HULL_NAMES, HULL_VARIANT_COUNTS } from '../comeSailAway/comeSailAwayBoat.js';
+import { HULL_NAMES, HULL_VARIANT_COUNTS } from './comeSailAwayBoat.js';
 import { TEMPERS } from './navalAI.js';
 import { SHOT_CODES, SHOT_ORDER } from './shotKinds.js';
 

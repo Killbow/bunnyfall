@@ -48,7 +48,7 @@ import { CHAT_CSS } from '../src/ui/chatPanel.js';
 import { SOCIAL_CSS } from '../src/ui/socialPanel.js';
 import { PARTY_CSS } from '../src/ui/partyPanel.js';
 import { SOCIAL_MENU_CSS } from '../src/ui/socialMenu.js';
-import { ENHANCED_CSS, ENHANCED_FONTS_URL } from '../src/ui/enhanced/enhancedStyle.js';
+import { ENHANCED_CSS, ENHANCED_FONTS_URL } from '../src/ui/enhancedStyle.js';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 

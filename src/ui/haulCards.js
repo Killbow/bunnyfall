@@ -23,12 +23,12 @@
 // draws them). Every builder answers [] for an answer it cannot read, and
 // the host then says its lines as it always did.
 // ═══════════════════════════════════════════════════════════════════
-import { t } from '../systems/textManager.js';   // STAR7: a held star's source
+import { t } from './textManager.js';   // STAR7: a held star's source
 import { xpForRank, rankOfXp, professionName, PROF_RANK_MAX } from '../net/professionLaw.js';
 import { material } from '../net/nodeLaw.js';
-import { materialCountLabel, mintMaterialItem } from '../systems/professions/profItems.js';
-import { inventoryItemImage } from '../systems/item/itemTemplates.js';
-import { lootRarityOn } from '../systems/loot/lootRarity.js';
+import { materialCountLabel, mintMaterialItem } from '../professions/profItems.js';
+import { inventoryItemImage } from '../items/itemTemplates.js';
+import { lootRarityOn } from '../items/lootRarity.js';
 import { MARKS_COMBAT, MARKS_FAUCETS } from '../net/marksLaw.js';
 
 /** A strike the day's combat cap refused, as its muted card says it - the chat's own line keeps the whole of it.

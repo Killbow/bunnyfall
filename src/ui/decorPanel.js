@@ -43,20 +43,20 @@
 
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS } from './pixelifyFive.js';
 import { isTextEntryTarget } from './input.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28b: Tab puts it away, as it puts away every enhanced window
-import { DECOR_KINDS, DECOR_SIZES, decorSize, filterDecor } from '../systems/decor/decorCatalogue.js';
-import { loadDecorFavourites, toggleDecorFavourite } from '../systems/decor/decorFavourites.js';
+import { registerOverlay } from './enhancedOverlays.js';   // PX28b: Tab puts it away, as it puts away every enhanced window
+import { DECOR_KINDS, DECOR_SIZES, decorSize, filterDecor } from '../homes/decorCatalogue.js';
+import { loadDecorFavourites, toggleDecorFavourite } from '../homes/decorFavourites.js';
 import { decorRefund, DECOR_FURNITURE_GROUP, DECOR_STATIONS, DECOR_STATION_FEES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
-import { forgeOffered, PROF_STATIONS } from './professions/profPages.js';
+import { forgeOffered, PROF_STATIONS } from './profPages.js';
 import { VENDOR_STATION } from '../net/vendorLaw.js';   // HOME-VENDOR: a hired trader
-import { rentRowSub, rentPriceStep, RENT_PRICE_STEPS, RENT_PRICE_FIRST } from '../systems/homeRent.js';   // HOME-RENT: the owner's rooms
+import { rentRowSub, rentPriceStep, RENT_PRICE_STEPS, RENT_PRICE_FIRST } from '../homes/homeRent.js';   // HOME-RENT: the owner's rooms
 import {
   HOME_LOOK_PARTS, HOME_LOOK_PART_NAMES, HOME_LOOK_CLIMATES, HOME_LOOK_CLIMATE_NAMES, HOME_LOOK_SETS, HOME_LOOK_SET_NAMES, HOME_LOOK_DOOR_KEPT, homeLookOf, homeLookSig,
 } from '../net/homeLaw.js';   // HOME-LOOK: the house outside, painted
 import { homeLookSwatch } from '../world/homeLook.js';
-import { decorIsDoor } from '../systems/decor/decorDoorways.js';   // HOME-DOORS (AUDIT): a door's controls
-import { DFICON_CSS } from './menu/menuGlyphs.js';   // MENU-ORDER: a kind and a press each wear a picture
-import { t } from '../systems/textManager.js';   // L10N4: MENU-ORDER's own words in the player's language
+import { decorIsDoor } from '../homes/decorDoorways.js';   // HOME-DOORS (AUDIT): a door's controls
+import { DFICON_CSS } from './menuGlyphs.js';   // MENU-ORDER: a kind and a press each wear a picture
+import { t } from './textManager.js';   // L10N4: MENU-ORDER's own words in the player's language
 /** The crafts a piece may be made here: every station, the Forge only where it works (AUDIT 29 B2). HOME-VENDOR: and a
  *  trader only where the market trades - online, the trades open (its stock is market listings). */
 /** WAGONS2 (FINAL AUDIT): `trader` - whether the room is a home, where a hired trader trades (the view's `trader`); a

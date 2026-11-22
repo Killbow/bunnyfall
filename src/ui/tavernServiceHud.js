@@ -2,14 +2,14 @@
 // One readout, two existing UI skins. Never a cursor surface or a separate theme.
 // The carried cup is first-person art in the game's native viewport; it animates from the shift's own state changes
 // (a dose poured, the cup lifted, handed over, refused or tipped out), so a reload or a reconnect never replays them.
-import { t } from '../systems/textManager.js';
-import { isEnhanced } from '../systems/uiSkin.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { nativeMetrics, shadowText, drawRect } from './native/nativePanel.js';
+import { t } from './textManager.js';
+import { isEnhanced } from './uiSkin.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { nativeMetrics, shadowText, drawRect } from './nativePanel.js';
 import { wrapText } from './talkWindow.js';
-import { tavernRecipeName, tavernIngredientName } from '../systems/tavern/tavernServiceWords.js';
+import { tavernRecipeName, tavernIngredientName } from '../trade/tavern/tavernServiceWords.js';
 import { tavernRoomAvailable, tavernPatienceSeconds } from '../net/tavernRoomLaw.js';
-import { tavernRoomMood } from '../systems/tavern/tavernRoomWords.js';
+import { tavernRoomMood } from '../trade/tavern/tavernRoomWords.js';
 import { tavernOrder, tavernDoseCount, tavernOpenChores, TAVERN_DOSES, TAVERN_INGREDIENTS } from '../net/tavernServiceLaw.js';
 
 const INK = { wine: [.53, .2, .25, 1], cream: [.86, .79, .64, 1], beer: [.76, .53, .16, 1] };

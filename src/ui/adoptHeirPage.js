@@ -2,8 +2,8 @@
 // BUNNYFALL (2026-11-05, Phase 5): THE HOUSE PAGE'S ADOPTION - a selection of ready-made heirs (a different race, class and sex
 // each) and a custom one the player makes (a name, a sex, a race, a class, a face). Drawn into the House page
 // (ui/familyPages.js drawHousePage); it asks the provider (`adoptionOffers`, `adoptionRefusal`, `adopt`) and touches no runtime.
-import { CLASS_CAREERS } from '../systems/chargen.js';
-import { FACES_PER_RACE } from '../systems/races.js';
+import { CLASS_CAREERS } from '../characters/chargen.js';
+import { FACES_PER_RACE } from '../characters/races.js';
 import { RACE_KEYS } from '../systems/legacy/adoption.js';
 
 let _offers = null, _custom = false, _armed = null, _said = null;

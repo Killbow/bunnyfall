@@ -6,7 +6,7 @@
 // a tenth for the PRIZE POT. The contests are entered at the judging tables and judged at the day's close, once.
 // Pure: no clock, no network. The service (server-account/src/farmMarkets.js) turns its answers into statements.
 import { farmWeek } from '../farmProgressLaw.js';
-import { contentOn } from '../../systems/contentOff.js';
+import { contentOn } from '../../mods/contentOff.js';
 
 const DAY = 86400;
 export const MARKET_STALLS = 4;

@@ -16,23 +16,23 @@
 // the scrim leave by `deps.onExit`. It draws and asks: what the account holds, the sale and the wearing are the host's
 // (scenes/witchesHost.js, systems/festival/festivalClient.js). Every word is the text core's (festivalWords.js, `t`).
 // Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
-import { rarityLines, rarityAttr } from '../systems/loot/lootRarity.js';
-import { inventoryItemImage } from '../systems/item/itemTemplates.js';
+import { rarityLines, rarityAttr } from '../items/lootRarity.js';
+import { inventoryItemImage } from '../items/itemTemplates.js';
 import { setCard } from './setCard.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
 import { SLOT_BOX, screenDpr } from './iconFit.js';
-import { closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { isEnhancedPlus } from '../systems/uiSkin.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { isEnhancedPlus } from './uiSkin.js';
 import { brokerSkinCss, BROKER_SKIN_STYLE_ID, refusePress } from './brokerWindow.js';
 import { paintTitle, titleBadge, TITLE_TEXT, AURA_TEXT, WITCH_FIRE, WITCH_GLOW, WITCH_MOSS, WITCH_VIOLET } from './playerBadge.js';
 import { profileIconNode, ICON_TEXT } from './profileIcons.js';
-import { iliacCardLines } from '../systems/iliac/iliacItems.js';
+import { iliacCardLines } from '../cards/iliacItems.js';
 import { SOUL_CAKE_TEXT } from '../systems/festival/soulCake.js';
 import { cakesText, festivalName, vendorOffice, festivalNightText, festivalRefusalText, findsTodayText, findsTodayFullText } from '../systems/festival/festivalWords.js';
 import { FESTIVAL_WARES, accountWare, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../net/festivalLaw.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

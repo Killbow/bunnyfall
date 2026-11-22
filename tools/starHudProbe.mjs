@@ -34,7 +34,7 @@ for (const skin of ['plus', 'classic']) {
       await page.goto(`http://localhost:${PORT}/play/?skin=${skin === 'plus' ? 'enhanced' : 'classic'}&touch=off&nofonts`);
       await page.waitForTimeout(tries ? 4000 : 1500);
       await page.evaluate(async (skin) => {
-        if (skin === 'plus') (await import('/src/ui/enhanced/enhancedStyle.js')).injectEnhancedStyle(document);
+        if (skin === 'plus') (await import('/src/ui/enhancedStyle.js')).injectEnhancedStyle(document);
         (await import('/src/ui/partyPanel.js')).injectPartyStyle(document);
       }, skin);
       break;
@@ -47,7 +47,7 @@ for (const skin of ['plus', 'classic']) {
       history.replaceState(null, '', `${location.pathname}${location.search.replace(/touch=(on|off)/, `touch=${touch ? 'on' : 'off'}`)}`);
       const { drawStarTracker, destroyStarTracker } = await import('/src/ui/starfall/starTracker.js');
       const { starBarModel } = await import('/src/ui/starfall/starBar.js');
-      const { drawGateBossBar, destroyGateBossBar } = await import('/src/ui/gate/gateBossBar.js');
+      const { drawGateBossBar, destroyGateBossBar } = await import('/src/ui/gateBossBar.js');
       destroyStarTracker(); destroyGateBossBar();
       for (const n of [...document.body.children]) if (n.tagName !== 'SCRIPT') n.remove();
       document.documentElement.style.removeProperty('--dfquest-h');

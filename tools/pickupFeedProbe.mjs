@@ -48,17 +48,17 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
 </style></head><body>
 <div class="world"></div><div class="cross" id="cv"></div><div class="cross h" id="ch"></div>
 <script type="module">
-import { drawEnhancedHud } from '/src/ui/enhanced/enhancedHud.js';
+import { drawEnhancedHud } from '/src/ui/enhancedHud.js';
 import { showWorldPlaque, destroyWorldPlaque, plaqueAnchor } from '/src/ui/worldPlaque.js';
-import { hoverLines } from '/src/systems/worldHover.js';
-import { foldQuickLoot, resetQuickLoot, quickLootWheel } from '/src/systems/quickLoot.js';
-import { setPref } from '/src/systems/uiPrefs.js';
-import { LOOT_RARITY_KEY } from '/src/systems/loot/lootRarity.js';
-import { GOLD_TEMPLATE } from '/src/systems/inventory.js';
+import { hoverLines } from '/src/player/worldHover.js';
+import { foldQuickLoot, resetQuickLoot, quickLootWheel } from '/src/items/quickLoot.js';
+import { setPref } from '/src/ui/uiPrefs.js';
+import { LOOT_RARITY_KEY } from '/src/items/lootRarity.js';
+import { GOLD_TEMPLATE } from '/src/items/inventory.js';
 import { showPickups, showHaul, destroyPickupFeed, _setPickupFeedForTests } from '/src/ui/pickupFeed.js';
 import { harvestHauls, claimHauls } from '/src/ui/haulCards.js';   // HAUL-CARDS: a gather's, a strike's and a claim's cards
-import { drawEnhancedMidText, midTextTopPx } from '/src/ui/enhanced/enhancedHudText.js';
-import { crosshairCentreY } from '/src/ui/hud/hudCrosshair.js';
+import { drawEnhancedMidText, midTextTopPx } from '/src/ui/enhancedHudText.js';
+import { crosshairCentreY } from '/src/ui/hudCrosshair.js';
 
 setPref('quickLoot', true);
 setPref(LOOT_RARITY_KEY, true);

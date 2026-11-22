@@ -30,20 +30,20 @@ import { TitleScreen, loadTitleArt } from '../ui/titleScreen.js';
 import { LoadClassicWindow, LOAD_CLASSIC_IMG } from '../ui/loadClassicWindow.js';
 import { fetchBytes } from './shared.js';
 import { readZipEntries, droppedEntries, walkDroppedEntries } from './dataSource.js';   // OT1: the saves picker's phone path rides the ARENA2 door's zip walk (AUDIT 68: and its drop walk)
-import { music } from '../systems/music.js';
-import { mostRecentRestorable } from '../systems/save/saveSlots.js';   // SAV4: the F2 question, now over the slot store
-import { SaveGames, SAVENAME_TXT, MAPSAVE_FILENAME, RUMOR_FILENAME, BIO_FILENAME } from '../formats/save/saveGames.js';
-import { SAVETREE_FILENAME } from '../formats/save/saveTreeFile.js';
-import { SAVE_IMAGE_FILENAME } from '../formats/save/saveImageFile.js';
-import { SAVEVARS_FILENAME } from '../formats/save/saveVarsFile.js';
-import { setPendingClassicSave } from '../systems/classicSave.js';
+import { music } from '../audio/music.js';
+import { mostRecentRestorable } from '../saves/saveSlots.js';   // SAV4: the F2 question, now over the slot store
+import { SaveGames, SAVENAME_TXT, MAPSAVE_FILENAME, RUMOR_FILENAME, BIO_FILENAME } from '../formats/saveGames.js';
+import { SAVETREE_FILENAME } from '../formats/saveTreeFile.js';
+import { SAVE_IMAGE_FILENAME } from '../formats/saveImageFile.js';
+import { SAVEVARS_FILENAME } from '../formats/saveVarsFile.js';
+import { setPendingClassicSave } from '../saves/classicSave.js';
 import { DFPalette } from '../formats/dfPalette.js';
 import { FntFile } from '../formats/fntFile.js';
-import { loadImg, nativeMetrics, pointToNative } from '../ui/native/nativePanel.js';
+import { loadImg, nativeMetrics, pointToNative } from '../ui/nativePanel.js';
 import { makeFont } from '../ui/text.js';
 import { bitmapToColor32 } from '../formats/color32Order.js';
 import { SaveWindow } from '../ui/saveWindow.js';   // SAV4: the start menu's Load door
-import { t, localizedText } from '../systems/textManager.js';   // L10N4: the window title's step and the classic picker's words in the player's language
+import { t, localizedText } from '../ui/textManager.js';   // L10N4: the window title's step and the classic picker's words in the player's language
 
 const TITLE_SONGS = ['5STRONG.HMI', '03.HMI'];   // DFU start scene song, then the stand-in
 

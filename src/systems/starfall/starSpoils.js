@@ -20,14 +20,14 @@
 // device's record, and the crash's door hands them back.
 //
 // Not a DFU member. Ledger A (STARFALL).
-import { seededRng } from '../wind/wind.js';
-import { spoilsBase, magicOrBetter } from '../gate/gateSpoils.js';
-import { applyRarity, lastPass, techniquePass } from '../loot/lootRarity.js';
-import { rollStarspunPiece } from '../aetheric.js';
-import { RAID_SPOILS_SOURCE } from '../raidSpoils.js';
+import { seededRng } from '../../weather/wind.js';
+import { spoilsBase, magicOrBetter } from '../../worldEvents/gateSpoils.js';
+import { applyRarity, lastPass, techniquePass } from '../../items/lootRarity.js';
+import { rollStarspunPiece } from '../../items/aetheric.js';
+import { RAID_SPOILS_SOURCE } from '../../worldEvents/raidSpoils.js';
 import { starglass } from './starglass.js';
 import { heartStar } from './starfallNight.js';
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** Gold a level of the player's, before the seed's variation (0.8 to 1.2 of it) - under a town's thanks: a star is held
  *  three times an hour. */

@@ -14,7 +14,7 @@
 //
 // Pure (the swap's worker builds it): a spec in, triangles and faces out. Not a DFU member. Ledger A (ELITE-GATES).
 import { egRoomBuild, egRoomTurned } from '../../net/eliteGates/egRoomLaw.js';
-import { realmToDungeon } from '../../net/superDungeon/sdBrain.js';
+import { realmToDungeon } from '../../net/sdBrain.js';
 
 /** A floor's and a ceiling's slab (m): its top or its underside the law's, the rest of it under or over. */
 export const EG_ROOM_SLAB_M = 0.3;

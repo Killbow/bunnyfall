@@ -17,7 +17,7 @@
 // has (twenty-odd sites across the towns, roads, dives and caravans); this seam is the one place the relations are made
 // (THE ONE CONSTRUCTION SEAM), and it counts every regard in the character's own day instead.
 import { createRelations, regardStanding, EASE_PER_DAY } from './relations.js';
-import { skyMinutes } from '../worldTick.js';   // AUDIT FB1021d RO-3: the sky, read once at an old record's load
+import { skyMinutes } from '../../world/worldTick.js';   // AUDIT FB1021d RO-3: the sky, read once at an old record's load
 
 /** A regard's day starts at 04:00, as the living day does (livingTown.js dayOf). */
 export const REGARD_DAY_START_MIN = 240;

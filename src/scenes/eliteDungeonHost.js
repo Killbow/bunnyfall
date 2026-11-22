@@ -5,7 +5,7 @@
 // event pillar's beacon, render/superDungeon/sdOmenPass.js) so it is found from far off. Each rises as the book hears it
 // and fades away as it is cleansed. A module the world host wires (HOST-SPLIT): it hands its doors; nothing here stands a
 // foe. The same on every machine (the dungeon's own pixel and its location's centre).
-import { SdOmenPassRenderer } from '../render/superDungeon/sdOmenPass.js';
+import { SdOmenPassRenderer } from '../render/sdOmenPass.js';
 import { EdCrystalPassRenderer } from '../render/eliteDungeons/edCrystalPass.js';
 import { spawnedLocationCentreLocal } from '../world/spawnedDungeons.js';
 import { ED_SEEN_PX, ED_RGB } from '../net/eliteDungeonLaw.js';
@@ -15,16 +15,9 @@ export const ED_FADE_S = 5;
 export const ED_COLUMN_FADE = 0.4;
 
 /**
- * @param {{
- *   gl: WebGL2RenderingContext | null,
- *   book: () => any,                                      the elite dungeons' book, or null
- *   location: (region: number, location: number) => any, the DFLocation of a dungeon (maps), or null
- *   translation: (px: number, py: number) => number[],    a pixel's place in the scene now
- *   heightAt: (x: number, z: number) => number,           the ground (NaN where none is built)
- *   pixel: () => ({ x: number, y: number }),              the player's travel pixel
- *   outside: () => boolean,                               the world outside is drawn (not a dungeon or a building)
- *   now?: () => number,                                   seconds
- * }} deps
+ * @param {{ gl: WebGL2RenderingContext | null, book: () => any, location: (region: number, location: number) => any,
+ *   translation: (px: number, py: number) => number[], heightAt: (x: number, z: number) => number,
+ *   pixel: () => ({ x: number, y: number }), outside: () => boolean, now?: () => number }} deps
  */
 export function createEliteDungeonPresence(deps) {
   const now = deps.now ?? (() => performance.now() / 1000);

@@ -9,8 +9,8 @@
 // bountyRingTexels), in the POIs' own violet.
 //
 // Not a DFU member. Ledger A (POI).
-import { BOUNTY_RING_R } from '../bounty/bountyMapMark.js';
-import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
+import { BOUNTY_RING_R } from '../bountyMapMark.js';
+import { t } from '../textManager.js';   // L10N4: the words through the text core
 
 /** The held map's ink - a deep violet, read on the parchment as the bounty's black and the lode's teal are, and apart
  *  from every other circle's colour. */

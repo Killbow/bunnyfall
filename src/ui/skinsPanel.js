@@ -57,7 +57,7 @@ export function mountSkinsPanel(box, { io, manage = false, onWorn = () => {}, do
     if (!manage) {
       const none = el('div', '', `card${state.worn == null ? ' worn' : ''}`);
       const m = el('div', '', 'meta'); m.append(el('b', 'The usual paperdoll'), el('div', 'Your character as the game draws it.', 'dim'));
-      const b = el('button', state.worn == null ? 'Worn' : 'Wear'); b.disabled = state.worn == null; b.onclick = () => wear(null);
+      const b = /** @type {HTMLButtonElement} */ (el('button', state.worn == null ? 'Worn' : 'Wear')); b.disabled = state.worn == null; b.onclick = () => wear(null);
       none.append(m, b); list.append(none);
     }
     for (const s of rows) {
@@ -68,7 +68,7 @@ export function mountSkinsPanel(box, { io, manage = false, onWorn = () => {}, do
       if (manage) m.append(el('div', STATUS_TEXT[/** @type {keyof typeof STATUS_TEXT} */ (s.status)] ?? s.status, s.status === 'approved' ? 'ok' : s.status === 'rejected' ? 'bad' : 'dim'));
       if (s.note) m.append(el('div', `Staff: ${s.note}`, 'dim'));
       card.append(img, m);
-      if (s.status === 'approved') { const b = el('button', state.worn === s.id ? 'Worn' : 'Wear online'); b.disabled = state.worn === s.id; b.onclick = () => wear(s.id); card.append(b); }
+      if (s.status === 'approved') { const b = /** @type {HTMLButtonElement} */ (el('button', state.worn === s.id ? 'Worn' : 'Wear online')); b.disabled = state.worn === s.id; b.onclick = () => wear(s.id); card.append(b); }
       if (manage) { const d = el('button', 'Delete'); d.onclick = () => del(s); card.append(d); }
       list.append(card);
     }
@@ -108,7 +108,7 @@ export function mountSkinsPanel(box, { io, manage = false, onWorn = () => {}, do
     const front = mkFile('Front'), back = mkFile('Back');
     const r1 = el('div', '', 'row'); r1.append(name, el('span', 'Height'), height, hl);
     const r2 = el('div', '', 'row'); r2.append(front.w, back.w);
-    const go = el('button', 'Send for review');
+    const go = /** @type {HTMLButtonElement} */ (el('button', 'Send for review'));
     const note = el('div', `PNG, 24 x 48 up to 256 x 512 pixels, under ${Math.round(SKIN_PNG_MAX_BYTES / 1024)} KB each, front and back the same size. Staff look at every skin and approve the ones that fit the world of Tamriel. You may keep ${SKIN_MAX_PER_ACCOUNT}.`, 'dim');
     go.onclick = async () => {
       const n = skinName(name.value), h = skinHeight(Number(height.value));

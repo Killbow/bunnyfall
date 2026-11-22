@@ -48,16 +48,16 @@
 //
 // The enhanced climb only (the motor's hold, a move in flight): DFU's own climb keeps WeaponManager's empty screen.
 
-import { FEEL, tremble } from '../player/climb/climbFeel.js';
+import { FEEL, tremble } from '../player/climbFeel.js';
 import { PARKOUR_GRIP_LOW, PARKOUR_HANG_DROP, PARKOUR_LIP_FOLLOW } from '../player/parkour.js';
-import { POSE, gait, shimmyGait, wallFrame } from '../player/climb/climbPose.js';
-import { decodePng } from '../systems/textureReplacement.js';
+import { POSE, gait, shimmyGait, wallFrame } from '../player/climbPose.js';
+import { decodePng } from '../render/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 import { wrapAngle } from '../world/mat4.js';   // the one home for an angle into (-PI, PI] (audit24's ratchet)
-import { weaponOffsetHeight } from '../ui/hud/hudLarge.js';   // AUDIT CLIMB-HANDS: the large HUD's bar, the classic sprite's own lift
+import { weaponOffsetHeight } from '../ui/hudLarge.js';   // AUDIT CLIMB-HANDS: the large HUD's bar, the classic sprite's own lift
 import { worldRectPx } from '../player/tapRay.js';   // CLIMB-HANDS II: the world's strip in canvas pixels (ROAD-E E5's one home)
-import { SETTINGS_DEFAULTS } from '../systems/settings/settingsDefaults.js';   // CLIMB-HANDS II: DFU's own FieldOfView, the lens a bare law sees through
+import { SETTINGS_DEFAULTS } from '../platform/settingsDefaults.js';   // CLIMB-HANDS II: DFU's own FieldOfView, the lens a bare law sees through
 
 /** DFU's design surface (FPSWeapon's 320x200) - module-local: ui/native/nativePanel.js exports the names (audit24's ratchet). */
 const NATIVE_W = 320;

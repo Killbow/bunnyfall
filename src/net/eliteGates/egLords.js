@@ -54,10 +54,10 @@
 // tethers are the fight's (net/eliteGates/egBodies.js egMark, F.tethers).
 //
 // Pure: a fight and a beat in, frames out. In the relay bundle. Not a DFU member. Ledger A (ELITE-GATES).
-import { PHASE_AT, SHIELD_MS, THREAT_PICK, THREAT_DECAY, HIT_KINDS, STUN_MS, STUN_HIT_X } from '../gate/gateBrain.js';
-import { ATTACKS, POOLS } from '../gate/gateBrain.js';   // AUDIT EG III (section 13.4; ONE DFU MEMBER, ONE EXPORT): the gate's Cleave, Slam, Charge and Meteor read, never copied - the Meteor's burning ground with it
-import { GATE_ASPECTS, gateAspectOf } from '../gate/gateMods.js';   // AUDIT EG III (sections 13.3 and 13.4): a lord's aspect - Garoth's in turn, an earlier band's lord re-aspected
-import { dpsRef, retireShare, restoreShare } from '../gate/gateBrain.js';   // EG-ZQ (section 13.2): a lord's shares - the gate's level claim, its retirement and its return
+import { PHASE_AT, SHIELD_MS, THREAT_PICK, THREAT_DECAY, HIT_KINDS, STUN_MS, STUN_HIT_X } from '../gateBrain.js';
+import { ATTACKS, POOLS } from '../gateBrain.js';   // AUDIT EG III (section 13.4; ONE DFU MEMBER, ONE EXPORT): the gate's Cleave, Slam, Charge and Meteor read, never copied - the Meteor's burning ground with it
+import { GATE_ASPECTS, gateAspectOf } from '../gateMods.js';   // AUDIT EG III (sections 13.3 and 13.4): a lord's aspect - Garoth's in turn, an earlier band's lord re-aspected
+import { dpsRef, retireShare, restoreShare } from '../gateBrain.js';   // EG-ZQ (section 13.2): a lord's shares - the gate's level claim, its retirement and its return
 import { EG_ROLE, EG_FL, EG_GONE, egBodyNew, egWalk, egStop, egPlace, egAim, egGone, egHas, egSetFl, egHpTeam, egBodiesOf, egBodyById, egMark, egUnmark, egMarkOf, egShareX, egCut, egSaid, egObSay, EG_TELL_LEAD_MS, EG_FEINT_AT } from './egBodies.js';   // EG-ZJ: egSaid, egObSay - a body's state kept as said
 import { egHitBody, egFightState } from './egBodies.js';   // EG-ZK: the seam's blow (the gate's hand and purse) and the fight's state
 import { egFace } from './egBodies.js';   // AUDIT EG V (lane1 #7): a lord's turn said
@@ -73,7 +73,7 @@ import { egByHeight, egFeetY, egBears } from './egWalkGraph.js';   // THE ASCENT
 import { egSameStorey } from './egLegion.js';   // THE ASCENT - HEIGHT: a blow only at a member of its own storey
 import { bossSeam } from '../bossSeam.js';   // EG-ZK (section 13.1): the Spire's lords written to the boss seam
 import { judgeShapes } from '../bossRef.js';   // EG-ZK: the seam's judge - the Spire's one (EG-H1)
-import { SD_ECHO_PAIR_MS } from '../superDungeon/sdRemnant.js';   // AUDIT EG IV (lane1 #32; section 13.3): the Twins' window is the Echoes' law, read
+import { SD_ECHO_PAIR_MS } from '../sdRemnant.js';   // AUDIT EG IV (lane1 #32; section 13.3): the Twins' window is the Echoes' law, read
 
 /** Every boss on the wire, by number (`k` of a lord body): the thirteen, then the three champions. */
 export const EG_BOSS_KEYS = Object.freeze(['hound', 'spellmaster', 'armsmaster', 'ilthys', 'cairnkeeper', 'twins', 'morvayn', 'dusk', 'stalker', 'seyth', 'colossus', 'wyrm', 'garoth', 'kynreeve', 'kynmarcher', 'markynaz']);

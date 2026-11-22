@@ -3,9 +3,9 @@
 // was gained and given up, with a way to add gold or an item to try a trade), the enemies the test stood, the run's
 // values, and a log of what fired in the Sandbox's words. Drawn in the editor's right dock while a test runs.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { itemChoices, choiceValue, choiceItem, groupWord, stateWord } from '../../poi/poiDmEdit.js';
-import { itemLongName } from '../../systems/item/itemInfo.js';
+import { itemLongName } from '../../items/itemInfo.js';
 import { logText } from './poiSandbox.js';
 
 /** A pack's records counted by name. @param {any[]} items */

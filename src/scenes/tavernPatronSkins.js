@@ -9,8 +9,8 @@
 // to its figure, upright on the billboard, as tall as the skin's own height says. Until the pictures arrive, or if they never
 // do (withdrawn, switched off, the viewer hid that player's skins), the customer keeps their own figure and only the name.
 import { PEER_ARCHIVE, PEER_HEIGHT, alphaBounds, cropRgba } from '../net/remotePlayers.js';
-import { skinArtOf } from '../systems/online/customSkins.js';
-import { skinShownFor } from '../systems/online/skinHide.js';
+import { skinArtOf } from '../characters/customSkins.js';
+import { skinShownFor } from '../characters/skinHide.js';
 import { skinIdOk } from '../net/skinLaw.js';
 
 /**

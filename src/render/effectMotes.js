@@ -5,7 +5,7 @@
 // every mote placed from the clock and its body's seed (nothing kept between frames); added onto the frame (ONE, ONE),
 // tested against the world's depth and never writing it.
 import { buildProgram } from './glProgram.js';
-import { FX_FIRE, FX_FROST, FX_SHOCK, FX_POISON, FX_BUBBLE, FX_MAGIC } from '../systems/effectVisuals.js';
+import { FX_FIRE, FX_FROST, FX_SHOCK, FX_POISON, FX_BUBBLE, FX_MAGIC } from '../magic/effectVisuals.js';
 
 export const MOTES_MAX = 2048;
 const STRIDE = 9;   // x y z, r g b a, size, shape (0 a soft dot, 1 a ring)

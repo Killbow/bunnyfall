@@ -23,7 +23,7 @@
 // whose draws stop without either (a host that dropped it from its slot by hand) loses the layer after a frame passes
 // undrawn (ui/drawWatchdog.js), as its notice panel does: a layer left behind would take every click on the screen.
 
-import { overlayOpen } from './enhanced/enhancedOverlays.js';
+import { overlayOpen } from './enhancedOverlays.js';
 import { pauseWhileOpen, windowCovered } from './windowStack.js';
 import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js';
 

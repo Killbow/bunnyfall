@@ -39,7 +39,7 @@ import { join } from 'node:path';
 import { reviewAct } from '../server-account/src/review.js';
 import { realmSaveTextOf } from '../server-account/src/realm.js';
 import { wealthOf } from '../server-account/src/judge.js';
-import { REALM_LETTER_TEMPLATE } from '../src/net/realm/realmGoldLaw.js';
+import { REALM_LETTER_TEMPLATE } from '../src/net/realmGoldLaw.js';
 import { wranglerD1, wranglerR2, wranglerExec } from './lib/wranglerBindings.mjs';
 import { isMain } from './lib/isMain.mjs';
 

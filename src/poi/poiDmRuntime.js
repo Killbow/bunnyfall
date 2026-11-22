@@ -9,20 +9,20 @@ import {
   takesOf, branchOf,
 } from './poiDmCore.js';
 import { takeStacks, takeChosen, handRecord, recordAccepts, leavesOf, takeGold, countOf, takeableOf, goldOf, potionKeyOf, eventClaim, recipeClaim, HAND_MAX } from './poiSettle.js';
-import { tradeableRecord, recordIsOffered, recordCount, boundRecord, loadedWagonOf } from '../net/realm/realmTradeLaw.js';
-import { itemLongName, conditionWord } from '../systems/item/itemInfo.js';
-import { stampItemIds } from '../systems/item/itemIds.js';
+import { tradeableRecord, recordIsOffered, recordCount, boundRecord, loadedWagonOf } from '../net/realmTradeLaw.js';
+import { itemLongName, conditionWord } from '../items/itemInfo.js';
+import { stampItemIds } from '../items/itemIds.js';
 import { xform } from './poiRuntime.js';
 import { encounterPacifiable } from './poiLawV2.js';
-import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
-import { lawTemplate, templateGroups, itemFindings, GOLD_INT_MAX } from '../systems/item/itemLaw.js';
-import { isStackable, ARROW_TEMPLATE, GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
-import { createPotion } from '../systems/loot/loot.js';
+import { setItemFields, mintCondition } from '../items/itemTemplates.js';
+import { lawTemplate, templateGroups, itemFindings, GOLD_INT_MAX } from '../items/itemLaw.js';
+import { isStackable, ARROW_TEMPLATE, GLASS_BOTTLE_TEMPLATE } from '../items/inventory.js';
+import { createPotion } from '../items/loot.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
-import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { ARMOR_MATERIAL } from '../items/armorMaterials.js';
 import { createWeapon, weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';
 import { createPoiDmPanel } from '../ui/poiDmPanel.js';
-import { t as tr } from '../systems/textManager.js';
+import { t as tr } from '../ui/textManager.js';
 
 const byKey = (/** @type {any} */ rows, /** @type {string} */ key) => (Array.isArray(rows) ? rows.find((r) => r?.key === key) : undefined);
 

@@ -17,14 +17,14 @@
 // FRAME_ROLES: a card a panel, a picture a well, a state a chip) - this sheet writes geometry and
 // the words' colours alone, as the Companions page's does.
 
-import { stableWagonName, WAGON_KINDS } from '../systems/wagon/wagonKinds.js';   // WAGONS1: the Stable's card names the wagon driven
-import { paintDrivenWagon, outsidePaintRow, LOOK_TEXT } from '../systems/wagon/wagonLooks.js';   // WAGONS2: and paints it
-import { restyleRiddenHorse, horseLookRows, birthHorses, HORSE_LOOK_PARTS } from '../systems/horse/horseCoats.js';   // COATS1: and the horse's look
+import { stableWagonName, WAGON_KINDS } from '../travel/wagonKinds.js';   // WAGONS1: the Stable's card names the wagon driven
+import { paintDrivenWagon, outsidePaintRow, LOOK_TEXT } from '../travel/wagonLooks.js';   // WAGONS2: and paints it
+import { restyleRiddenHorse, horseLookRows, birthHorses, HORSE_LOOK_PARTS } from '../travel/horseCoats.js';   // COATS1: and the horse's look
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
-import { WAGON_MODE, HORSE_MODE, TRANSPORT, HORSE_NAME_MAX } from '../systems/horse/horseCartLaw.js';
-import { optionPath } from './settings/settingsMap.js';   // ORG2: a switch named in a window says where it lives
+import { WAGON_MODE, HORSE_MODE, TRANSPORT, HORSE_NAME_MAX } from '../travel/horseCartLaw.js';
+import { optionPath } from './settingsMap.js';   // ORG2: a switch named in a window says where it lives
 import { upkeepReach } from '../systems/upkeep/upkeepRuntime.js';   // STEED1/WAGONS4: a horse fed by hand only beside it, a kit spent only at the wagon
-import { t } from '../systems/textManager.js';   // HORSE-TIERS: Boons' two hunger lines in the player's language
+import { t } from './textManager.js';   // HORSE-TIERS: Boons' two hunger lines in the player's language
 
 export const STABLE_PAGE_SECTIONS = Object.freeze([Object.freeze(['stable', 'Stable'])]);
 export const HOLDINGS_STYLE_ID = 'holdings-pages-css';

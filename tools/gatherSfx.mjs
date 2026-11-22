@@ -52,7 +52,7 @@ import { join } from 'node:path';
 import { bake, writeWav8, DF_RATE } from './sndify.mjs';
 import { RATE, rng, seconds, buf, decay, attack, biquad, sweepLowpass, noise, mix, softClip, envelope, unit, knock, rough, bandSweep, rub, grit, modes, burst, bubble, leaves, groan, splash, bellNote } from './sfxSynth.mjs';
 import { isMain } from './lib/isMain.mjs';
-import { FALL_S } from '../src/scenes/treeHost.js';   // the felled tree lies flat FALL_S after it begins to go: the fall's ground is struck then
+import { FALL_S } from '../src/professions/treeHost.js';   // the felled tree lies flat FALL_S after it begins to go: the fall's ground is struck then
 
 const OUT = 'public/sfx';
 

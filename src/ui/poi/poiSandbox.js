@@ -6,7 +6,7 @@
 // here touches the character, its save, or the realm, and nothing is given or sent. The counts a realm tracks (once per
 // character, stock) start empty each time the sandbox starts again.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { itemName, itemChoices, choiceValue, choiceItem, stateWord, groupWord, waypointName } from '../../poi/poiDmEdit.js';
 import {
   createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance,

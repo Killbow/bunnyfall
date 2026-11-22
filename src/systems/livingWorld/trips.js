@@ -28,10 +28,10 @@
 // pixel's centre to its edge or corner, travelRoute.js / roadClearance.js), trimmed at each end by the town's own
 // half-width so a party walks out of the town's edge, not its middle.
 import { lwSeed, lwRng, rollInt, pickWeighted } from './seed.js';
-import { seededRng } from '../wind/wind.js';
+import { seededRng } from '../../weather/wind.js';
 import { DAY_MIN, DAY_START_MIN } from './dayPlan.js';
 import { WORLD_MAP_TERRAIN_DIM as NATIVE_PIXEL } from '../../formats/mapsFile.js';
-import { NATIVE_PER_M } from '../travel/travelDungeons.js';
+import { NATIVE_PER_M } from '../../travel/travelDungeons.js';
 import { CITY_COURT_BLOCKS } from './census.js';
 import { companiesOf, companyOfPlace, namedIn, COMPANY_DIVE_CHANCE, holyDayOf, holyDepartMin, holyDraw } from './companies.js';   // LW13: the companies, the pilgrims' holy day
 

@@ -31,7 +31,7 @@
 // 500 every track: Smithing's 500, Outfitting's 511, Building's 1,823, Provisioning's 3,155 - each the least that brings
 // its track to Master in Smithing's crafts - and every line below says the recipe's own. The share says how much a first
 // pays, CLOTH-GEMS whether. bible/06-Systems/Professions-Arc.md 52.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { craftXp, firstCraftPays, counterMade, firstCraftXp, workFirstXp, masonXp } from '../net/recipeLaw.js';
 import { creditedXp, MASON_RECIPES } from '../net/professionLaw.js';   // FIRST-BUDGET: the bench's two works, each its first's share
 import { scaleXp } from '../net/firmament/firmamentLaw.js';

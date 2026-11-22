@@ -122,9 +122,9 @@ const PASSES = `async (started) => {
     out[name] = { waitMs: +waits.reduce((s, w) => s + w.ms, 0).toFixed(1), worstMs: +Math.max(0, ...waits.map((w) => w.ms)).toFixed(1), frames, wallMs: +(performance.now() - t).toFixed(0) };
     gl.getExtension('WEBGL_lose_context')?.loseContext();
   };
-  const gp = await import('/src/render/gate/gatePass.js'), gm = await import('/src/world/gate/gateModel.js');
-  const gt = await import('/src/render/gate/gateTelegraph.js'), gf = await import('/src/render/gate/gateFx.js');
-  const gv = await import('/src/render/gate/gateVeil.js'), no = await import('/src/render/nodeGlint.js');
+  const gp = await import('/src/render/gatePass.js'), gm = await import('/src/world/gateModel.js');
+  const gt = await import('/src/render/gateTelegraph.js'), gf = await import('/src/render/gateFx.js');
+  const gv = await import('/src/render/gateVeil.js'), no = await import('/src/render/nodeGlint.js');
   const profile = gm.gateArchProfile(gm.buildGateModel());
   await build('gate fire', () => gp.GATE_PASS_PROGRAMS, (gl) => new gp.GatePassRenderer(gl, profile));
   await build('gate telegraph', () => gt.telegraphPrograms(false), (gl) => new gt.GateTelegraphRenderer(gl));

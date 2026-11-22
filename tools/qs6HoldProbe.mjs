@@ -39,8 +39,8 @@ const PAGE_PATH = join(ROOT, PAGE_REL);
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>QS6 hold probe</title></head>
 <body><script type="module">
 import { held, actionOf, routeAction, POLLED_ACTIONS, QUICKSLOT_ACTIONS, setBindings, isTextEntryTarget } from '/src/ui/input.js';
-import { createBindings, resetDefaults, setBinding } from '/src/systems/inputActions.js';
-import * as QS from '/src/systems/quickslots.js';
+import { createBindings, resetDefaults, setBinding } from '/src/ui/inputActions.js';
+import * as QS from '/src/items/quickslots.js';
 
 const store = createBindings();
 resetDefaults(store);

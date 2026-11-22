@@ -17,7 +17,7 @@ export function fixture() {
     judged_seq INTEGER, clean_obj TEXT, clean_seq INTEGER, bytes INTEGER, updated_at INTEGER, witnessed INTEGER DEFAULT 0, svc_seq INTEGER);
     CREATE TABLE realm_tx_guard (moved INTEGER, expected INTEGER, CHECK(moved = expected));`);
   sql.exec(readFileSync(new URL('../server-account/migrations/0210_tavern_service.sql', import.meta.url), 'utf8'));
-  for (const migration of ['0213_discord_integration.sql', '0214_discord_tavern_patrons.sql']) {
+  for (const migration of ['0192_skins.sql', '0213_discord_integration.sql', '0214_discord_tavern_patrons.sql']) {
     sql.exec(readFileSync(new URL(`../server-account/migrations/${migration}`, import.meta.url), 'utf8'));
   }
   const stmt = (text, args = []) => ({

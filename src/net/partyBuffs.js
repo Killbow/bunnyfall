@@ -14,7 +14,7 @@
 //
 // The pose's bounds are net/wire.js validPartyPose's (PARTY_FX_MAX entries, a name of PARTY_FX_NAME_MAX, rounds to
 // PARTY_FX_ROUNDS_MAX); this module composes within them so an honest pose is never trimmed by the wire.
-import { liveBundles } from '../systems/mysticism.js';
+import { liveBundles } from '../magic/mysticism.js';
 import { PARTY_FX_MAX, PARTY_FX_NAME_MAX, PARTY_FX_ROUNDS_MAX, CAST_ICON_MAX } from './wire.js';
 
 /** My live spell effects for the party pose: the buffs first (my own casts and other players' gifts - the HUD's buff

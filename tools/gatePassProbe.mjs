@@ -19,9 +19,9 @@ const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.ind
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
 
 const PAGE = `<!doctype html><html><body style="margin:0;background:#000"><canvas id=c width=640 height=480></canvas><script type=module>
-import { buildGateModel, gateArchProfile } from '/src/world/gate/gateModel.js';
-import { gateArt } from '/src/world/gate/gateArt.js';
-import { GatePassRenderer } from '/src/render/gate/gatePass.js';
+import { buildGateModel, gateArchProfile } from '/src/world/gateModel.js';
+import { gateArt } from '/src/world/gateArt.js';
+import { GatePassRenderer } from '/src/render/gatePass.js';
 const m = buildGateModel();
 const gl = document.getElementById('c').getContext('webgl2', { alpha: false, preserveDrawingBuffer: true });
 const vs = \`#version 300 es

@@ -9,10 +9,10 @@
 // sixteenth of a turn at a time (Q and E, or the buttons), takes it away (Delete); and Fits her out - the ledger keeps
 // them (scenes/fleetHost.js `deck`), and every player who sights her sees them, stood in her own tree. Close leaves her
 // as she was.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { boxesMeet } from '../systems/naval/shipLife.js';   // AUDIT 2: two turned boxes' overlap - the berths' own law (QUAY-CROSSING)
 import { DECK_FITTINGS, DECK_FITTINGS_MAX, FITTING_GAP, YAW_STEPS, fittingsOf, fittingKind } from '../systems/naval/deckFittings.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { capturePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
 
 export const DECK_PLAN_STYLE_ID = 'deck-plan-style';

@@ -10,7 +10,7 @@
 // the altar's face and the opening in the faithful's ring are toward it, their camp behind. Pure.
 //
 // Not a DFU member. Ledger A (WB).
-import { faces, GATE_ARCHIVE, GATE_STONE_RECORD, RITE_SIGIL_RECORD } from './gate/gateModel.js';
+import { faces, GATE_ARCHIVE, GATE_STONE_RECORD, RITE_SIGIL_RECORD } from './gateModel.js';
 
 /** The sigil burned into the earth: its radius, and how far over the ground it lies (no fighting the terrain). */
 export const RITE_SIGIL_R = 6.5;

@@ -18,16 +18,16 @@
 // onDoor(door) - a summons' placing to run once the window is down, onExit(reason) - 'close', or 'door' after onDoor }.
 //
 // Not a DFU member. Ledger A (SHIPYARDS).
-import { closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { injectNavalKit } from './naval/navalHud.js';
-import { injectNavalWindowStyle } from './naval/navalPlunderWindow.js';
-import { yardText, yardNote } from './naval/navalYardWindow.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { injectNavalKit } from './navalHud.js';
+import { injectNavalWindowStyle } from './navalPlunderWindow.js';
+import { yardText, yardNote } from './navalYardWindow.js';
 import { whereWords, refitLine, refitRowWords } from './fleetPage.js';
-import { SHIP_NAME_MAX, REFIT_NUMERALS } from '../systems/fleet.js';
+import { SHIP_NAME_MAX, REFIT_NUMERALS } from '../systems/naval/fleet.js';
 import { CREW_ROLES } from '../systems/naval/shipCrew.js';
-import { CREW_SIGN_TEXT } from '../systems/crewHall.js';
+import { CREW_SIGN_TEXT } from '../systems/naval/crewHall.js';
 
 export const SHIPYARD_STYLE_ID = 'dagger-shipyard-style';
 /** The tabs, in the host's page order (scenes/shipyardHost.js SHIPYARD_PAGES). */

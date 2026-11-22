@@ -14,10 +14,10 @@
 import { startStamp, isStamped, observe, readObjectives, outcomeOf, outcomeNow, fallbackOutcome, questTierOf, holds, isCatchAll } from './qlLaw.js';
 import { sheetFor } from './qlSheets.js';
 import { scaleGold, goldFactor, goldStillOwed, rewardTier, payProfileOf, rollRewardChoice, rewardSeed, standingMovesOf } from './qlRewards.js';
-import { isGoldPieces } from '../inventory.js';
-import { t, textRevision } from '../textManager.js';   // REWARD-3: the settled gold's line; LAW-11: a row read again when the words could read otherwise
+import { isGoldPieces } from '../../items/inventory.js';
+import { t, textRevision } from '../../ui/textManager.js';   // REWARD-3: the settled gold's line; LAW-11: a row read again when the words could read otherwise
 import { createLineRunner } from './qlLineRunner.js';
-import { noteFirstUse } from '../tutorials.js';   // QL2: the Tutorials' Questlines page, the first quest stamped
+import { noteFirstUse } from '../../ui/tutorials.js';   // QL2: the Tutorials' Questlines page, the first quest stamped
 
 /** How many rewards may wait to be chosen at once - a player who never chooses keeps the last few, never a hoard. */
 export const OFFERS_MAX = 12;

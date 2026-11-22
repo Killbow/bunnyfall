@@ -8,13 +8,13 @@
 // and hands it here; which window that becomes is this file's answer
 // alone, exactly as inventoryDoor.js's is for the pack.
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { NativeTradeWindow, preloadTradeArt, tradeArtLoaded } from './native/nativeTrade.js';
-import { racialSuppressInventory } from '../systems/lycanthropy.js';   // DISC10-E L3: the trade window's inherited refusal
-import { messageBox } from '../systems/notify.js';   // DISC10-E L3: DaggerfallUI.MessageBox
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { registerOverlay } from './enhancedOverlays.js';
+import { NativeTradeWindow, preloadTradeArt, tradeArtLoaded } from './nativeTrade.js';
+import { racialSuppressInventory } from '../afflictions/lycanthropy.js';   // DISC10-E L3: the trade window's inherited refusal
+import { messageBox } from './notify.js';   // DISC10-E L3: DaggerfallUI.MessageBox
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { windowCovered } from './windowStack.js';   // BOX-ON-TOP: a box over the counter has its keys
 
 export { preloadTradeArt };
@@ -106,7 +106,7 @@ function enhancedTradeOverlay(hooks) {
   hooks.covered = () => windowCovered(overlay);
 
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedTrade.js'),
+    load: () => import('./enhancedTrade.js'),
     mount: ({ mountEnhancedTrade }) => {
       view = mountEnhancedTrade(host, hooks);
     },

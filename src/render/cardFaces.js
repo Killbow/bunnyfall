@@ -26,7 +26,7 @@
 // painting needs a page (the probe's shots look at it).
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { RANKS, rankOf, suitOf, isCard } from '../net/card/cardLaw.js';
+import { RANKS, rankOf, suitOf, isCard } from '../net/cardLaw.js';
 
 /** The courts' ranks (cardLaw's RANKS index): the Jack (the crown's heir, champion or mage), the Queen, the King; the ace is 12. */
 export const RANK_JACK = 9;

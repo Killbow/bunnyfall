@@ -41,8 +41,8 @@ import { shDisc, shLaneAt, shCone, egChainGapMs } from './egShape.js';
 import { egKeepOnFight, egOnFight } from './egLaw.js';
 import { egWalkNext, egAirNext, egAirKeep, egArchCut, egGroundAt, egWalkFeet, egFeetAt, egWayOn, EG_PIECE_TOUCH_M } from './egWalkGraph.js';   // EG-ZB: the walk graph and the air; EG-ZJ: the feet on it; EG-ZQ: the way on kept only while walked
 import { egByHeight, egFeetY, egOneStorey, egStoreyY } from './egWalkGraph.js';   // THE ASCENT - HEIGHT: the legion keeps to its own storey
-import { harrierCountFor } from '../gate/gateBrain.js';
-import { ATTACKS, POOLS, HARRIER_S, HOST_RETARGET_MS, HARRIER_BITE_REACH } from '../gate/gateBrain.js';   // AUDIT EG IV (lane1 #16; ONE DFU MEMBER, ONE EXPORT): the gate's rows read, never copied - the Daedra Lord's Cleave, the Caster's burning ground, the Harrier's health, mark and bite
+import { harrierCountFor } from '../gateBrain.js';
+import { ATTACKS, POOLS, HARRIER_S, HOST_RETARGET_MS, HARRIER_BITE_REACH } from '../gateBrain.js';   // AUDIT EG IV (lane1 #16; ONE DFU MEMBER, ONE EXPORT): the gate's rows read, never copied - the Daedra Lord's Cleave, the Caster's burning ground, the Harrier's health, mark and bite
 import { wrapAngle } from '../../world/mat4.js';   // the one wrap (ONCRASH1 C2) - already in the relay's graph
 import { egRouteAlong } from './egRoute.js';   // THE ASCENT (LAW 9): the island ahead along the hall's route
 

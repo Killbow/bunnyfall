@@ -28,16 +28,16 @@ import {
   WEAPONS_ENUM, ARMOR_ENUM, ARROW_TEMPLATE,
 } from './enemyEquipment.js';
 import { dice100 } from './formulas.js';
-import { mintCondition, setItemFields, templateByIndex, itemBaseValue } from '../systems/item/itemTemplates.js';
-import { markFound } from '../systems/item/foundMark.js';   // AUDIT MEND-THIRD L3-2: a worn kit's piece handed over marked
-import { rriModule, customItemClass } from '../systems/roleplayRealismItems/rriItems.js';
-import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
+import { mintCondition, setItemFields, templateByIndex, itemBaseValue } from '../items/itemTemplates.js';
+import { markFound } from '../items/foundMark.js';   // AUDIT MEND-THIRD L3-2: a worn kit's piece handed over marked
+import { rriModule, customItemClass } from '../mods/rriItems.js';
+import { MOBILE_TYPES } from '../characters/mobileTypes.js';
 import { DYE_COLORS } from '../characters/dyes.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
-import { ARMOR_MATERIAL as ARMOR_MATERIALS } from '../systems/armorMaterials.js';
-import { equipTableOf, getEquipSlot, wearLeavers, EQUIP_SLOTS } from '../systems/equip.js';   // AUDIT DEX E2: EquipItem's slot and what it takes off, one home
-import { rollEnemyWeaponPoison } from '../systems/poisons.js';   // AUDIT DEX E3: ItemHelper's poison, rolled inside its arm
-import { MENS_PLAIN_ROBES, WOMENS_PLAIN_ROBES } from '../systems/createItem.js';   // MensClothing / WomensClothing.Plain_robes, one home
+import { ARMOR_MATERIAL as ARMOR_MATERIALS } from '../items/armorMaterials.js';
+import { equipTableOf, getEquipSlot, wearLeavers, EQUIP_SLOTS } from '../characters/equip.js';   // AUDIT DEX E2: EquipItem's slot and what it takes off, one home
+import { rollEnemyWeaponPoison } from '../afflictions/poisons.js';   // AUDIT DEX E3: ItemHelper's poison, rolled inside its arm
+import { MENS_PLAIN_ROBES, WOMENS_PLAIN_ROBES } from '../items/createItem.js';   // MensClothing / WomensClothing.Plain_robes, one home
 
 const M = MOBILE_TYPES;
 const W = WEAPONS_ENUM;

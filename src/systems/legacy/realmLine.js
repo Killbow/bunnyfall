@@ -12,7 +12,7 @@
 // realm kept the founding copy and the heir's birth was refused for a reason that was not the reason.
 import { readFamily } from './family.js';
 import { loadFamily, storeFamily, mergeFacts, rekeyClashes } from './store.js';
-import { realmLineages, realmLineagePut } from '../realmSaves.js';
+import { realmLineages, realmLineagePut } from '../../saves/realmSaves.js';
 
 /** How many times a stale write is merged and tried again before it waits for the next. */
 export const PUSH_TRIES = 4;

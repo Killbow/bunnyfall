@@ -32,7 +32,7 @@ import {
 } from './ketchDeck.js';
 import { KT_KINDS, KT_FLOORS, newConstruct, constructHp, bodyWord, beatConstruct, hitConstruct, stepWalk, mvWord, clearOf } from './ketchConstructs.js';
 import { KETCH_SEAM, KW_ID, KW_FORK_ID0, retune, applyForkHit } from './ketchWarden.js';
-import { dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HP_SEND_MS, STATE_SEND_MS, STEP_MAX_MS, THREAT_DECAY, spendBlow, spendPurse, hasPart, freeSeat } from '../gate/gateBrain.js';
+import { dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HP_SEND_MS, STATE_SEND_MS, STEP_MAX_MS, THREAT_DECAY, spendBlow, spendPurse, hasPart, freeSeat } from '../gateBrain.js';
 
 // ── the numbers ────────────────────────────────────────────────────────
 /** The Watch: the first wave this long after the first member boards if none has stepped into the waist; each wave this

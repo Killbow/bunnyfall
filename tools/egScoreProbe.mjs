@@ -26,7 +26,7 @@ const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${
 const KEYS = ['hall', 'yard', 'set', 'lord1', 'lord2', 'lord3', 'valk', 'redoubt', 'count', 'end'];
 
 const PAGE = `<!doctype html><html><body><script type=module>
-import { SongPlayer } from '/src/systems/song/songPlayer.js';
+import { SongPlayer } from '/src/audio/songPlayer.js';
 import { spireScoreSongs, SPIRE_END_MS } from '/src/systems/eliteGates/egScore.js';
 const RATE = 44100, CTX = { band: ${BAND}, motif: ${BAND * 3}, valk: ${BAND * 3 + 3}, seed: 1 };
 window.endS = SPIRE_END_MS / 1000;

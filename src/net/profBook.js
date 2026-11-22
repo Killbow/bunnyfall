@@ -66,7 +66,7 @@ import { MASTER_CATALYSTS, masterDayOf } from './masterLaw.js';   // MASTER-ART:
 import { pixelKey, parseNodeKey } from './nodeLaw.js';
 import { accountRefusalText } from './accountClient.js';
 import { ASK_AGAIN_NOW, jittered } from './backoff.js';   // SCALE1: asks again spread out, and never at once into a minute's refusal
-import { t } from '../systems/textManager.js';   // L10N4: the Stores' words in the player's language
+import { t } from '../ui/textManager.js';   // L10N4: the Stores' words in the player's language
 import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 import { turnedDayOf } from './dayTurn.js';   // DAY-TURN: a page's day turns at its own moment past midnight
 import { PREPARES } from './provision/provisionLaw.js';   // BUNNYFALL PROVISIONING: milling and setting, moved in from the pack first
@@ -960,8 +960,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
         // BAG1: what the Stores lack, from the bag and the pack first - the anvil's route spends the Stores
         const r0 = recipeById(recipe);
         const plan = form ? planOf(form, picks) : null;   // BUNNYFALL CRAFTING REWORK: a craft by form and picks - the plan's inputs, the legacy recipe its id
-        if (form && (!plan?.ok || plan.legacy?.id !== recipe)) return { ok: false, error: plan?.error ?? 'craft-recipe' };
-        const inputs = plan ? inputsOf(plan, { joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true }) : !r0 ? [] : Array.isArray(master) ? recipeInputs(r0)   // MASTER-ART: a Master's work spends its recipe's own goods, no stand-in
+        if (form && (!plan?.ok || plan.legacy?.id !== recipe)) return { ok: false, error: /** @type {any} */ (plan)?.error ?? 'craft-recipe' };
+        const inputs = plan ? inputsOf(/** @type {any} */ (plan), { joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true }) : !r0 ? [] : Array.isArray(master) ? recipeInputs(r0)   // MASTER-ART: a Master's work spends its recipe's own goods, no stand-in
           : recipeInputs(r0, { heartwood: heartwood === true, joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true });
         // CRAFT1: the chain's works first, their products kept in the Stores for the craft
         /** @type {{ id: string, count: number, xp: number, made: number }[]} */
@@ -998,7 +998,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
           ...(lines ? { master: lines } : {}),   // MASTER-ART: a Master's work, its lines chosen
           fee: Number.isSafeInteger(fee) && fee > 0 ? fee : 0, ...(Number.isInteger(dye) ? { dye } : {}),   // PROF7: a garment's dye
           ...(Number.isSafeInteger(seat) && seat >= 0 ? { seat } : {}),   // SEAT2b part two: the held town the station stands in (its crafting halls' steps)
-          ...(plan ? { form, picks: plan.picks, ...(Number.isInteger(look) ? { look } : {}), ...(Number.isSafeInteger(inspired) && inspired > 0 ? { inspired } : {}) } : {}),   // BUNNYFALL CRAFTING REWORK: kept with the craft, asked again as made
+          ...(plan ? { form, picks: /** @type {any} */ (plan).picks, ...(Number.isInteger(look) ? { look } : {}), ...(Number.isSafeInteger(inspired) && inspired > 0 ? { inspired } : {}) } : {}),   // BUNNYFALL CRAFTING REWORK: kept with the craft, asked again as made
           ...(cracked === true ? { cracked: true } : {}) };   // PROF10: a Lapidary's Siege-cracked Gem for the piece's gem
         const kept = keptOf(key);
         kept.crafts.push(w);

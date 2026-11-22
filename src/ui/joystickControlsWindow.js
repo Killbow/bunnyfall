@@ -74,26 +74,26 @@
 // JoystickAxisNButtonM as synthetic keydowns, the host's ladder hands
 // them to the overlay, and `input(code)` here is the capture.
 
-import { nativeMetrics, drawRect } from './native/nativePanel.js';
+import { nativeMetrics, drawRect } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { drawText, measureText } from './text.js';
 import { layoutMessageBox, drawMessageBox } from './messageBox.js';
 import {
   getAxisBinding, getJoystickUIBinding, getAxisInversion, setAxisBinding, setJoystickUIBinding, setAxisInversion, saveKeyBinds,
-} from '../systems/inputActions.js';
-import { AXIS_ACTIONS, JOYSTICK_UI_ACTIONS, parseAxisKeyName, axisOfKey } from '../systems/gamepad.js';
-import { getDuplicates, buttonText, ELONGATED_TEXT, INTERNAL_DUPE_COLOR } from '../systems/controlsConfig.js';
+} from './inputActions.js';
+import { AXIS_ACTIONS, JOYSTICK_UI_ACTIONS, parseAxisKeyName, axisOfKey } from './gamepad.js';
+import { getDuplicates, buttonText, ELONGATED_TEXT, INTERNAL_DUPE_COLOR } from './controlsConfig.js';
 import {
   makeSlider, setScrollIndex, sliderClick, sliderDrag, sliderGetValue, sliderScroll,
   sliderThumb, indicatorText, SLIDER_HEIGHT, SLIDER_INDICATOR_OFFSET, TROUGH_COLOR, TINT,
 } from './horizontalSlider.js';
 import { ToolTip } from './toolTip.js';
-import { getBool, getFloat, setValue, saveSettings } from '../systems/settings/settings.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { getBool, getFloat, setValue, saveSettings } from '../platform/settings.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import { MOUSE_PANEL, PANEL_COLOR, KEYBIND_BG, CONTINUE_BG, CONTINUE_RECT, TITLE_Y, ROW_SIZE, ROW_LABEL, ROW_BUTTON, SLIDER_PANEL, CHECK_SIZE, CHECK_TEXT_OFFSET, toNative } from './mouseControlsWindow.js';
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { gameSettingsText } from '../systems/textDatabases.js';   // L10N3f: DFU's GameSettings text database, a pack's in its language
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { gameSettingsText } from './textDatabases.js';   // L10N3f: DFU's GameSettings text database, a pack's in its language
 
 /** The same 318x170 panel at the same place (:115-118) - and so the
  *  mouse window's toNative is this window's (AUDIT 24: one home). */

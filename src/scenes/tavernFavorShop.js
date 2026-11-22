@@ -1,8 +1,8 @@
 // @ts-check
 import { FAVOR_OFFERS } from '../net/tavernFavorLaw.js';
-import { tavernProgress, restoreTavernProgress } from '../systems/guild/bunnyMembership.js';
-import { addItem } from '../systems/inventory.js';
-import { t } from '../systems/textManager.js';
+import { tavernProgress, restoreTavernProgress } from '../guilds/bunnyMembership.js';
+import { addItem } from '../items/inventory.js';
+import { t } from '../ui/textManager.js';
 
 /** @param {any} deps */
 export function createTavernFavorShop(deps) {

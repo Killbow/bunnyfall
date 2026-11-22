@@ -22,7 +22,7 @@ const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${
 
 const PAGE = `<!doctype html><html><body style="margin:0;background:#000"><canvas id=c width=640 height=480></canvas><script type=module>
 import { buildRiteModel } from '/src/world/riteModel.js';
-import { gateArt, riteArt } from '/src/world/gate/gateArt.js';
+import { gateArt, riteArt } from '/src/world/gateArt.js';
 import { RiteSmokeRenderer } from '/src/render/riteSmoke.js';
 const m = buildRiteModel(${FACING}, () => 0);
 const gl = document.getElementById('c').getContext('webgl2', { alpha: false, preserveDrawingBuffer: true });

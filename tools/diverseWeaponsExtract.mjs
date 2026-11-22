@@ -22,7 +22,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readUnityBundle } from '../src/formats/unity/unityBundle.js';
+import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { readPng, writePng, writeIndexedPng } from './pngIO.mjs';
 import { MANIFEST, manifestSpriteNames } from './diverseWeaponsIndex.mjs';
 import { isMain } from './lib/isMain.mjs';

@@ -31,10 +31,10 @@
 // (PENDING_HANDLERS) - the coverage-ordered doctrine, the action
 // registry's guard precedent.
 
-import { cromwarkQuestSiteBlocked } from '../wild/cromwarkSettlements.js';
+import { cromwarkQuestSiteBlocked } from '../../world/wild/cromwarkSettlements.js';
 import { srand, randomRangeInclusive } from '../../formats/dfRandom.js';
-import { liveStat } from '../statMods.js';                       // M-X: %mad's MagicResist read
-import { permanentSkillValue, SKILL_NAMES } from '../skills.js'; // M-X: %ski
+import { liveStat } from '../../characters/statMods.js';                       // M-X: %mad's MagicResist read
+import { permanentSkillValue, SKILL_NAMES } from '../../characters/skills.js'; // M-X: %ski
 import { entityMaxEncumbrance, damageModifier, toHitModifier, hitPointsModifier, healingRateModifier } from '../../combat/formulas.js'; // M-X: %enc (FormulaHelper.MaxEncumbrance over LiveStrength); ATTRMACRO1: and the four DERIVED modifiers
 import { surname, getRandomNameBank } from '../../characters/nameHelper.js';   // M-X: %ln (E-fix: GetRandomNameBank)
 import { GENDERS, getNameBankOfRegion, fullName, getNameBank, getRandomFullName } from '../../characters/nameHelper.js';   // AUDIT 58: GetRandomFullName's one home
@@ -46,14 +46,14 @@ const FACTION_RACE_KEYS = Object.freeze({
   0: 'Nord', 1: 'Khajiit', 2: 'Redguard', 3: 'Breton',
   4: 'Argonian', 5: 'WoodElf', 6: 'HighElf', 7: 'DarkElf',
 });
-import { dateFromSeconds, dateString, dayName, monthName, birthSignName, seasonName, CLASSIC_EPOCH_IN_SECONDS } from '../gameDate.js';
-import { skySecondsOfEvent } from '../skyCalendar.js';   // TIME3: a journal date (the event clock's) on the sky's calendar
+import { dateFromSeconds, dateString, dayName, monthName, birthSignName, seasonName, CLASSIC_EPOCH_IN_SECONDS } from '../../world/gameDate.js';
+import { skySecondsOfEvent } from '../../weather/skyCalendar.js';   // TIME3: a journal date (the event clock's) on the sky's calendar
 import { REGION_TEMPLES, LOCATION_TYPES } from '../../formats/mapsFile.js';
 import { factionRaceFromRace } from '../../characters/staticNpc.js';
 import { rulerTitle } from '../../world/buildingNames.js';   // AUDIT 68 S30-ruler-divine-tables-dup: GetRulerTitle's one home
-import { localizedStrings, localizedTable, localizedText, getLocalizedLocationName, getLocalizedRegionName } from '../textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: the place names shown
-import { getLocalizedFactionName, processGrammar } from '../textManager.js';   // L10N3e: the faction names shown; L10N3g: the language's grammar over a finished message
-import { legalStandingWord } from '../legalBands.js';   // %ltn's fourteen bands, one home
+import { localizedStrings, localizedTable, localizedText, getLocalizedLocationName, getLocalizedRegionName } from '../../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: the place names shown
+import { getLocalizedFactionName, processGrammar } from '../../ui/textManager.js';   // L10N3e: the faction names shown; L10N3g: the language's grammar over a finished message
+import { legalStandingWord } from '../../justice/legalBands.js';   // %ltn's fourteen bands, one home
 
 export const MACRO_TYPES = Object.freeze({
   None: 0, NameMacro1: 1, NameMacro2: 2, NameMacro3: 3, NameMacro4: 4,

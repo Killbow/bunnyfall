@@ -42,7 +42,7 @@
 // The story's own record (storyStarted) is the guard for a save from before the record: a backbone that ended ended
 // the main quest, and a main quest ends only past the courts' first quests.
 
-import { contentOn } from '../contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
+import { contentOn } from '../../mods/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** The backbone, and the quest that starts it. */
 export const SPINE = 'S0000999';

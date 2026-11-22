@@ -32,19 +32,19 @@
 // pass draws water the player swims). The coverage inside a tile is
 // the bilinear blend of its corners - the diagonal the shore tile's own
 // art follows - feathered by SHORE_SOFTNESS.
-import { WATER_DRAW_MASK_TABLE } from '../world/water/waterCorners.js';
+import { WATER_DRAW_MASK_TABLE } from '../world/waterCorners.js';
 import { snowCoreGlsl } from './snowCoverGlsl.js';   // AUDIT PRECIP GROUND-5: the ground's snow, for a puddle's mask under it
 import { PUDDLE_RECORDS } from '../world/puddleMask.js';   // WATER-PUDDLE: the records whose water is their art's   // MAC2: the corner table is a leaf the player's feet share; WATER-DRAW1: the DRAW's half of it - the feet's is the law's own table, and the two are not the same question
-import { WIND_ROW_CALM, WIND_ROW_SPAN } from '../systems/wind/wind.js';
-import { getPref } from '../systems/uiPrefs.js';   // FT6: the switch, read here alone
-import { isEnhanced } from '../systems/uiSkin.js';
+import { WIND_ROW_CALM, WIND_ROW_SPAN } from '../weather/wind.js';
+import { getPref } from '../ui/uiPrefs.js';   // FT6: the switch, read here alone
+import { isEnhanced } from '../ui/uiSkin.js';
 import { FOG_GLSL } from './fogGlsl.js';   // AUDIT 68 S17-fog-glsl-dup: the fog every world pass takes, one home
 import { SEA_LOOK_GLSL, SEA_HAZE_BAND } from './horizonHaze.js';   // FAR-SEA1: the sea takes the far ring's haze; AUDIT FAR-SEA1 C12: and the open sea's light is one text with the ring's sea
 import { AIR_ADAPT_GLSL } from './airPass.js';
 import { EL_TONEMAP_GLSL, EL_CODEC_GLSL } from './enhancedLighting.js';
-import { pageParam } from '../systems/pageQuery.js';
-import { RIPPLE_CELLS, RIPPLE_SCALE } from '../world/water/waterRipples.js';
-import { NO_BED_DEPTH, SHELF_SHEET_DEPTH } from '../world/water/waterCorners.js';   // AUDIT WATER-NEXT H2: its one home, the water's leaf (the kernel's worker writes it)   // WATER-NEXT 4: the ripple field the shader reads   // PERF-URL: the page's query, parsed once a search
+import { pageParam } from '../platform/pageQuery.js';
+import { RIPPLE_CELLS, RIPPLE_SCALE } from '../world/waterRipples.js';
+import { NO_BED_DEPTH, SHELF_SHEET_DEPTH } from '../world/waterCorners.js';   // AUDIT WATER-NEXT H2: its one home, the water's leaf (the kernel's worker writes it)   // WATER-NEXT 4: the ripple field the shader reads   // PERF-URL: the page's query, parsed once a search
 
 /** FT6 (2026-09-14, the Features arc): THE SWITCH, ONE HOME. Both
  *  exterior hosts composed "the enhanced skin, the pref, the kill door"

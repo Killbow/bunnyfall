@@ -7,8 +7,8 @@
 // Host-split: world.js constructs it and travelViewMarks.js adds its marks; it holds no state but a cache of who each
 // static building is (the lookup is per building, the discovery read per frame).
 import { BUILDING_TYPES, isResidence } from '../world/buildingNames.js';
-import { bunnyGuildOfFaction } from '../systems/guild/bunnyGuilds.js';
-import { getDiscoveredBuilding, shownBuildingName } from '../systems/discovery.js';
+import { bunnyGuildOfFaction } from '../guilds/bunnyGuilds.js';
+import { getDiscoveredBuilding, shownBuildingName } from '../maps/discovery.js';
 
 /** How far over a building's roof its name stands, metres. */
 export const BUILDING_MARK_LIFT = 4;

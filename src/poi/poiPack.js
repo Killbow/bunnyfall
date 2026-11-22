@@ -21,7 +21,7 @@
 // Pure but for the hash (crypto.subtle). Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { zipStore } from '../systems/save/saveTransfer.js';
+import { zipStore } from '../saves/saveTransfer.js';
 import { poiDocProblems, poiShelfProblems, poiAssetsOf, poiAssetProblems, poiDocBytesOf } from './poiLaw.js';
 import { decodePoiMesh, poiMeshFacts, POI_MESH_LIMITS } from './poiMesh.js';
 import { poiImageMetaOf, POI_IMAGE_LIMITS } from './poiImage.js';

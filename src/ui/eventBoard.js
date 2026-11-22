@@ -41,18 +41,18 @@
 // leaves the plate at once (the source read again, its rows dropped before the cut), its lines still waiting are let go
 // and a news of it standing is taken down (its lines are in the journal, where the door filed them). Nothing is
 // announced for what stood while it was off: the announcements' memory reads every kind.
-import { eventBoardModel, eventAnnouncements, createEventToasts, EVENT_KIND_TEXT, EVENT_BOARD_TEXT, EVENT_BOARD_ROWS, EVENT_SINGLE_KINDS } from '../systems/eventBoard.js';
-import { takeEventNotices, eventBoardSource, eventBoardOn, eventNoticeElsewhere, eventHudLine, eventKindShown, EVENT_NOTICE_KINDS } from '../systems/eventNotices.js';
-import { timerText } from '../systems/eventTimers.js';
+import { eventBoardModel, eventAnnouncements, createEventToasts, EVENT_KIND_TEXT, EVENT_BOARD_TEXT, EVENT_BOARD_ROWS, EVENT_SINGLE_KINDS } from '../worldEvents/eventBoard.js';
+import { takeEventNotices, eventBoardSource, eventBoardOn, eventNoticeElsewhere, eventHudLine, eventKindShown, EVENT_NOTICE_KINDS } from '../worldEvents/eventNotices.js';
+import { timerText } from '../worldEvents/eventTimers.js';
 import { installEventBoardKey } from './eventBoardKey.js';   // EVENT-BOARD-KEY: the key that shows or hides the board
-import { t } from '../systems/textManager.js';
-import { FRAME_TONES, frameCss, scopeRules } from './enhanced/enhancedFrame.js';
-import { injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { isEnhancedPlus } from '../systems/uiSkin.js';
+import { t } from './textManager.js';
+import { FRAME_TONES, frameCss, scopeRules } from './enhancedFrame.js';
+import { injectEnhancedFonts } from './enhancedStyle.js';
+import { isEnhancedPlus } from './uiSkin.js';
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
 import { STAR_VIOLET_CSS } from './starfall/starMapMark.js';
 import { SERPENT_RING_MAP_CSS } from './serpentMapMark.js';
-import { SD_RING_MAP_CSS } from './superDungeon/sdMapMark.js';
+import { SD_RING_MAP_CSS } from './sdMapMark.js';
 
 export const EVENT_BOARD_STYLE_ID = 'dagger-event-board-style';
 export const EVENT_BOARD_KIT_ID = 'dagger-event-board-kit';

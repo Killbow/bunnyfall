@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'n
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'acorn';
-import { parseMessage, formatStringTableCsv } from '../src/systems/textManager.js';
+import { parseMessage, formatStringTableCsv } from '../src/ui/textManager.js';
 import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');

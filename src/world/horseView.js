@@ -26,7 +26,7 @@
 // The pose is the gait's clock alone (horseModel.js writeHorsePalette), so a horse posed on any frame shows the very
 // palette an every-frame horse shows on it. Not a DFU member: Daggerfall's horse is a sprite, and the 3D horse is the
 // port's own (world/horseRig.js).
-import { poseCadenceFor, cadenceD2 } from '../net/peer/peerBodies.js';
+import { poseCadenceFor, cadenceD2 } from '../net/peerBodies.js';
 
 /**
  * Is a 3D horse's pose due this frame - its cadence at how far it looks from `cam`, staggered by its phase?

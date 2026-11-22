@@ -34,9 +34,9 @@
 // Pure: no clock (every `now` an argument), no socket, no storage - the relay's room keeps it in its memory (a room that
 // restarts mid-fight forgets its ships; a wreck awaiting its boarding is kept in its storage, as a fall is).
 // ═════════════════════════════════════════════════════════════════════
-import { SHIP_REF, clampHull } from '../serpent/serpentBrain.js';
-import { WILD_REF } from '../wild/wildRef.js';
-import { SIEGE_UNITS_PER_M } from '../siege/siegeRef.js';
+import { SHIP_REF, clampHull } from '../serpentBrain.js';
+import { WILD_REF } from '../wildRef.js';
+import { SIEGE_UNITS_PER_M } from '../siegeRef.js';
 
 /** THE BASE STRENGTH OF A PLAYER'S HULL, by hull (navalShips.js HULL_BUILDS' hullHp - the rowboat, the Large Boat, the
  *  Small Ship, the galley, the carrack - pinned equal), and of her canvas (their sailHp). */

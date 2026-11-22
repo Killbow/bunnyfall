@@ -1,10 +1,10 @@
 // @ts-check
-import { reachSite, reachDay, reachMemory } from '../systems/wild/cromwarkEvents.js';
+import { reachSite, reachDay, reachMemory } from '../world/wild/cromwarkEvents.js';
 import { CAMP_REACH } from '../systems/survival/camp.js';
 import { RAY_DISTANCE } from '../player/activate.js';
-import { t } from '../systems/textManager.js';
-import { CROMWARK_WARDKEEPER, cromwarkWardRole } from '../systems/wild/cromwarkWards.js';
-import { wildInside, wildRingAt } from '../systems/wild/wildZone.js';
+import { t } from '../ui/textManager.js';
+import { CROMWARK_WARDKEEPER, cromwarkWardRole } from '../world/wild/cromwarkWards.js';
+import { wildInside, wildRingAt } from '../world/wildZone.js';
 // Shared WOD sites arbitrate competing owners. Character memory records observed
 // deaths, never a disappeared foe: leaving the area is not a victory.
 export function createCromwarkReachHost(d) {

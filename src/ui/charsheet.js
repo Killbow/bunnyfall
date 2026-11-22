@@ -26,43 +26,43 @@
 // a later U8 slice).
 
 import { statUp, statDown, allStatsMax } from './chargen.js';   // LV1's audit: DaggerfallStats.IsAllMax has ONE home now (and MAX_STAT_VALUE left with the copy that used it - this file's last reader was that copy)
-import { codeMeans } from '../systems/inputActions.js';   // MAC-C: the sheet's toggle key is the registry's; UXB1-S: shared or not
+import { codeMeans } from './inputActions.js';   // MAC-C: the sheet's toggle key is the registry's; UXB1-S: shared or not
 import { bindings } from './input.js';
-import { carriedWeight } from '../systems/inventory.js';   // AUDIT 17e F30; E4: PlayerEntity.CarriedWeight, one home
-import { totalGoldAmount } from '../systems/court.js';   // PlayerEntity.GetGoldAmount - coins plus letters of credit
+import { carriedWeight } from '../items/inventory.js';   // AUDIT 17e F30; E4: PlayerEntity.CarriedWeight, one home
+import { totalGoldAmount } from '../justice/court.js';   // PlayerEntity.GetGoldAmount - coins plus letters of credit
 import { entityMaxEncumbrance, handToHandMinDamage, handToHandMaxDamage } from '../combat/formulas.js';   // U10; AUDIT 63 F34: CalculateHandToHandMin/MaxDamage
-import { STAT_KEYS_ORDER } from '../systems/chargen.js';
-import { statDescriptionRows } from '../systems/talk/talkMacros.js';   // ATTRMACRO1: SetTextTokens' macro pass over TEXT.RSC records 0..7
-import { SKILLS, SKILL_NAMES, skillValue, skillValueText, getSkillRecentlyIncreased, resetSkillsRecentlyRaised } from '../systems/skills.js';
-import { applyLevelUp, bonusPoolFor, LEVELUP_SKILL_SUM_PER_LEVEL } from '../systems/advancement.js';
-import { refreshOnlineLayer } from '../systems/renownLayer.js';   // AUDIT LEVEL-EVEN L2-2: the rollout's points reach the online floor
-import { usesVirtueLeveling, levelBarProgress, LEVELUP_TOTAL } from '../systems/oblivionLeveling.js';   // ORL1: whose law levels this character
-import { LEVEL_CAP, atLevelCap, releaseCapLatch } from '../systems/levelCap.js';   // LEVEL-45: the Level box at the cap
+import { STAT_KEYS_ORDER } from '../characters/chargen.js';
+import { statDescriptionRows } from '../talk/talkMacros.js';   // ATTRMACRO1: SetTextTokens' macro pass over TEXT.RSC records 0..7
+import { SKILLS, SKILL_NAMES, skillValue, skillValueText, getSkillRecentlyIncreased, resetSkillsRecentlyRaised } from '../characters/skills.js';
+import { applyLevelUp, bonusPoolFor, LEVELUP_SKILL_SUM_PER_LEVEL } from '../characters/advancement.js';
+import { refreshOnlineLayer } from '../characters/renownLayer.js';   // AUDIT LEVEL-EVEN L2-2: the rollout's points reach the online floor
+import { usesVirtueLeveling, levelBarProgress, LEVELUP_TOTAL } from '../characters/oblivionLeveling.js';   // ORL1: whose law levels this character
+import { LEVEL_CAP, atLevelCap, releaseCapLatch } from '../characters/levelCap.js';   // LEVEL-45: the Level box at the cap
 import { ActionTextBox } from './actionText.js';   // the mustDistributeBonusPoints refusal, ClickAnywhereToClose
-import { OGHMA_BONUS_POOL } from '../systems/artifactEffects.js';   // AUDIT 39: the sheet's oghmaBonusPool (:44)
+import { OGHMA_BONUS_POOL } from '../items/artifactEffects.js';   // AUDIT 39: the sheet's oghmaBonusPool (:44)
 import { drawText, measureText } from './text.js';
-import { loadImg, nativeMetrics, drawImg, drawRect, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, drawRect, shadowText } from './nativePanel.js';
 import { drawScreenDimBackdrop } from './chargenArt.js';
 import { drawPaperDoll, refreshPaperDoll, PAPERDOLL_ORIGIN } from './paperDoll.js';
-import { maxFatigue, liveStat, FATIGUE_MULTIPLIER } from '../systems/statMods.js';   // U52: the /64 display divisor has a name and one home
-import { templateByIndex } from '../systems/item/itemTemplates.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { bankingStatusRows } from '../systems/banking.js';   // AUDIT 64 F28: CreateBankingStatusBox's rows
-import { ownTimeLeftShort } from '../systems/worldTick.js';   // AUDIT LIVED1 Q: online, a loan's due as the time left on the character's clock
+import { maxFatigue, liveStat, FATIGUE_MULTIPLIER } from '../characters/statMods.js';   // U52: the /64 display divisor has a name and one home
+import { templateByIndex } from '../items/itemTemplates.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { bankingStatusRows } from '../trade/banking.js';   // AUDIT 64 F28: CreateBankingStatusBox's rows
+import { ownTimeLeftShort } from '../world/worldTick.js';   // AUDIT LIVED1 Q: online, a loan's due as the time left on the character's clock
 import { REGION_NAMES } from '../formats/mapsFile.js';       // GetLocalizedRegionName
 import { InputMessageBoxWindow } from './inputMessageBox.js';   // CM4: the Name button's DaggerfallInputMessageBox
-import { enterNewNameLabel } from './item/itemMakerWindow.js';       // CM4: Internal_Strings.enterNewName, homed with its first reader
-import { localizedText, formatText, processGrammar, t } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3g: the race label's grammar
-import { healthStatusRows } from '../systems/healthStatus.js';   // CM4: CreateHealthStatusBox's rows
-import { affiliations } from '../systems/affiliations.js';   // CM4: ShowAffiliationsDialog's book - GUILD-REP: one model, both skins
-import { firstHotkey } from '../systems/dialogShortcuts.js';   // CM4: the four buttons' DaggerfallShortcut bindings
+import { enterNewNameLabel } from './itemMakerWindow.js';       // CM4: Internal_Strings.enterNewName, homed with its first reader
+import { localizedText, formatText, processGrammar, t } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3g: the race label's grammar
+import { healthStatusRows } from './healthStatus.js';   // CM4: CreateHealthStatusBox's rows
+import { affiliations } from '../guilds/affiliations.js';   // CM4: ShowAffiliationsDialog's book - GUILD-REP: one model, both skins
+import { firstHotkey } from './dialogShortcuts.js';   // CM4: the four buttons' DaggerfallShortcut bindings
 import { YesNoBoxWindow } from './yesNoBox.js';   // SOFTCAP3: the Master Skills switch asks in DFU's own Yes/No box
-import { masterSkillsActive, masterSkillsSwitchable, masterSkillsBlockReason, masterSkillsStatusText, setMasterSkills, MASTER_SKILLS_OFFER_ROWS, MASTER_SKILLS_INFO_ROWS, MASTERY_GROUP_NAMES, masterySlots, masteryCandidates, masteryChoiceRows, masterSkill, isMasteredSkill, careerGroupOf } from '../systems/masterSkills.js';   // SOFTCAP3/4
-import { pathOf, pathChoices, pathChoiceRows, pathAboutRows, choosePath, pathPossible } from '../systems/arcanePaths.js';   // SCHOOLS1: the specialisation row
-import { martialPathOf, martialChoices, martialChoiceRows, martialAboutRows, chooseMartialPath, martialPossible } from '../systems/martialPaths.js';   // MARTIAL1: and the martial one
-import { computeEntityMods } from '../systems/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now, not at the next round
-import { liveRaceTemplate, liveRaceName } from '../systems/vampirism.js';   // DISC10-D V5: the live race the sheet names
+import { masterSkillsActive, masterSkillsSwitchable, masterSkillsBlockReason, masterSkillsStatusText, setMasterSkills, MASTER_SKILLS_OFFER_ROWS, MASTER_SKILLS_INFO_ROWS, MASTERY_GROUP_NAMES, masterySlots, masteryCandidates, masteryChoiceRows, masterSkill, isMasteredSkill, careerGroupOf } from '../characters/masterSkills.js';   // SOFTCAP3/4
+import { pathOf, pathChoices, pathChoiceRows, pathAboutRows, choosePath, pathPossible } from '../characters/arcanePaths.js';   // SCHOOLS1: the specialisation row
+import { martialPathOf, martialChoices, martialChoiceRows, martialAboutRows, chooseMartialPath, martialPossible } from '../characters/martialPaths.js';   // MARTIAL1: and the martial one
+import { computeEntityMods } from '../characters/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now, not at the next round
+import { liveRaceTemplate, liveRaceName } from '../afflictions/vampirism.js';   // DISC10-D V5: the live race the sheet names
 /** AUDIT LIVED1 Q: the sheet's due column online - "in 359 days" / "due now"; null offline, where DFU's date stands. */
 const loanDueShort = (due) => { const s = ownTimeLeftShort(due); return s == null ? null : s === 'now' ? 'due now' : `in ${s}`; };
 

@@ -11,9 +11,9 @@
 //
 // A coven's names are the game's (its location's and its faction's), shown through the text core's own lookups; what a
 // member is called is the port's own, through t(). Not a DFU member. Ledger A (STARFALL).
-import { gateHash } from '../../net/gate/gateLaw.js';
+import { gateHash } from '../../net/gateLaw.js';
 import { STAR_SALT } from '../../net/starfall/starfallLaw.js';
-import { t, getLocalizedFactionName } from '../textManager.js';
+import { t, getLocalizedFactionName } from '../../ui/textManager.js';
 
 /**
  * @typedef {{ id: string, region: number, location: string, place: string|null, factionId: number, witches: string,

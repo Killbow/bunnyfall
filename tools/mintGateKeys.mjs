@@ -13,7 +13,7 @@
 // missing, so nobody has to; by hand it is the same two `secret put`s.
 //
 //   GATE_SIGNING_KEY  the RELAY's secret, base64 PKCS8 - the key a kill
-//                     receipt is signed with (src/net/gate/gateReceipt.js).
+//                     receipt is signed with (src/net/gateReceipt.js).
 //                     `npx wrangler secret put GATE_SIGNING_KEY` from
 //                     server/. NEVER into a file, a toml, or a command
 //                     line a shell will remember.

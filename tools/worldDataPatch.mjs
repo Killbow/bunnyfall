@@ -22,8 +22,8 @@ import { basename, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { isMain } from './lib/isMain.mjs';
 import { BlocksFile } from '../src/formats/blocksFile.js';
-import { blockToDfuJson, buildingToDfuJson, diffJson, canonicalJson } from '../src/formats/worldData/worldDataJson.js';
-import { PATCH_FORMAT, rebuildWorldDataPatch } from '../src/formats/worldData/worldDataPatch.js';
+import { blockToDfuJson, buildingToDfuJson, diffJson, canonicalJson } from '../src/formats/worldDataJson.js';
+import { PATCH_FORMAT, rebuildWorldDataPatch } from '../src/formats/worldDataPatch.js';
 
 /** What a world-data asset name says it is: a block (with its variant) or a building record of a block. */
 export function parseWorldDataName(name) {

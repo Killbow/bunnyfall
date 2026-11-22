@@ -15,7 +15,7 @@
 // BROWSER-ONLY glob (as scenes/modWorldData.js): node tests hand `registerEditorModel` their JSON.
 
 import { registerCustomModel } from './customModels.js';
-import { modSetting } from '../systems/modSettings.js';
+import { modSetting } from '../mods/modSettings.js';
 
 export const EDITOR_MODEL_FORMAT = 'bunnyfall-dungeon-model/1';
 export const FIRST_EDITOR_MODEL_ID = 7000001;

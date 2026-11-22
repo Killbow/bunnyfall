@@ -21,8 +21,8 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseStringTableCsv } from '../src/systems/textManager.js';
-import { classifyPackFile, PACK_KIND } from '../src/systems/translationPacks.js';
+import { parseStringTableCsv } from '../src/ui/textManager.js';
+import { classifyPackFile, PACK_KIND } from '../src/ui/translationPacks.js';
 import { isMain } from './lib/isMain.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');

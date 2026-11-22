@@ -16,7 +16,7 @@
 // she is gone LEGEND_RISE_DAYS - then the aether raises her again. The harbourmasters of the isles say where each was
 // last seen (`rumourOf`).
 
-import { mulberry32 } from '../../combat/blood/bloodArt.js';
+import { mulberry32 } from '../../combat/bloodArt.js';
 import { classById, shipNames } from './navalShips.js';
 import { BANDS, LEAGUE_PX, VEIL_X, veilhaven, etherHash, etherRng, inEther, compassPoint } from '../../world/ethericSea.js';
 

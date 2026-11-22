@@ -35,16 +35,16 @@
 // hand-off left it standing over the view with nothing painting it.
 // ═══════════════════════════════════════════════════════════════════
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28: Tab puts it away
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it away
 import { requestLook } from '../player/pointerLock.js';   // MAC1: the relock rides the closing gesture
 import { BookReaderWindow } from './bookReader.js';
 import { BookFile } from '../formats/bookFile.js';
-import { getBookFileName } from '../systems/books.js';
-import { openPortBook } from '../systems/portBooks.js';   // WB12c: the port's own books, read before any file
-import { setBookAuthor } from '../systems/item/itemInfo.js';   // IM1: the %ba cache
-import { openLocalizedBookFile } from '../systems/localizedBook.js';   // L10N3f: LocalizedBook.OpenBookFile's first arm
+import { getBookFileName } from '../items/books.js';
+import { openPortBook } from '../items/portBooks.js';   // WB12c: the port's own books, read before any file
+import { setBookAuthor } from '../items/itemInfo.js';   // IM1: the %ba cache
+import { openLocalizedBookFile } from './localizedBook.js';   // L10N3f: LocalizedBook.OpenBookFile's first arm
 
 /** Build the reader this skin wears over an opened BookFile - or
  *  (L10N3f) the language's LocalizedBook. */
@@ -137,7 +137,7 @@ function enhancedBookOverlay(model) {
     unregister = registerOverlay(exit);
     // MENU1: the ONE lazy-chunk door (ui/enhanced/enhancedChunk.js).
     mountEnhancedChunk({
-      load: () => import('./enhanced/enhancedBook.js'),
+      load: () => import('./enhancedBook.js'),
       mount: ({ mountEnhancedBook }) => { view = mountEnhancedBook(el, { model, onExit: teardown, relock }); },
       alive: () => !torn, host: el, onDismiss: exit, label: 'book',
     });

@@ -20,7 +20,7 @@
 import { fitSprite, meadowSpriteBox, buildMeadowAtlas, buildMeadowMips, cardMeasures, MEADOW_SLOTS, MEADOW_GREEN, MEADOW_LUSH, MEADOW_PATCH_SCALE, MEADOW_BLADES_PER_TUFT } from './grassMeadow.js';
 import { MEADOW_SPRITES } from './meadowArt.js';
 import { ladderPick, heightFloor, heightSpan, LAB_GRASS } from './labGrass.js';
-import { smoothstep } from '../systems/mathf.js';
+import { smoothstep } from '../world/mathf.js';
 
 /** The rainforest's archive: its low cover (TREE_RECORDS' others - world/terrain/terrainNature.js). */
 export const JUNGLE_FLOOR_ARCHIVE = 500;

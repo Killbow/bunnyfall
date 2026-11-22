@@ -14,7 +14,7 @@ const paper = (view, x, y) => [(x - view.ox) * view.scale, (y - view.oy) * view.
  * @param {CanvasRenderingContext2D} ctx
  * @param {{ ox: number, oy: number, scale: number }} view
  * @param {{ x: number, y: number, r: number, fill: string, ring: string, tag?: string, mine?: boolean }[]} marks
- * @param {{ paperW: number, paperH: number, far?: boolean }} opts
+ * @param {{ paperW: number, paperH: number, far?: boolean, charters?: any[], farms?: any[] }} opts
  */
 export function paintTerritories(ctx, view, marks, { paperW, paperH, far = false, charters = [], farms = [] }) {
   if ((!marks?.length && !charters?.length && !farms?.length) || !view) return;

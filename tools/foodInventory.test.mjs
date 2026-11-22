@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createSurvivalItem } from '../src/systems/survival/items.js';
 import { TEMPLATE, rotFoodDay, FOOD_STAGE, removePutridFood } from '../src/systems/survival/food.js';
 import { tidyFoodInventory } from '../src/systems/survival/foodInventory.js';
-import { addItem } from '../src/systems/inventory.js';
+import { addItem } from '../src/items/inventory.js';
 import { cookFood } from '../src/systems/survival/camp.js';
 
 test('raw and cooked meat stack separately while preserving freshness and rot protection', () => {

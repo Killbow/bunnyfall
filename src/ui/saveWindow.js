@@ -144,7 +144,7 @@
 //                             pushed - there is nothing left under it.
 // } - absent hooks dim their doors, the pause window's own posture.
 
-import { nativeMetrics, drawRect, shadowText, pointToNative } from './native/nativePanel.js';
+import { nativeMetrics, drawRect, shadowText, pointToNative } from './nativePanel.js';
 import { measureText } from './text.js';
 // DaggerfallUI.cs:62's DaggerfallDefaultSelectedTextColor, which
 // ListBox hands every selected row (ListBox.cs:43) - one home for the
@@ -153,15 +153,15 @@ import { SELECTED_TEXT_COLOR } from './listPicker.js';
 import { InputMessageBoxWindow } from './inputMessageBox.js';   // CM10: the rename is a pushed DaggerfallInputMessageBox
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';
 import { typedChar } from './input.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { dateFromClassicMinutes, midDateTimeString } from '../systems/gameDate.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { dateFromClassicMinutes, midDateTimeString } from '../world/gameDate.js';
 import { packColourTexture } from './packArt.js';   // OVH2: a worn UI pack's panel and button textures
-import { localizedStrings } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedStrings } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import {
   enumerateSaves, findSave, findMostRecentSave, saveInfoOf, screenshotOf,
   deleteSave, renameSave, characterNames,
-} from '../systems/save/saveSlots.js';
+} from '../saves/saveSlots.js';
 
 /** The window rects, panel-relative [x, y, w, h] (:34-270). The main
  *  panel centers in the 320x200 native space. */

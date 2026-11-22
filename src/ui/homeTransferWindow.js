@@ -4,8 +4,8 @@
 
 import { ChoiceWindow } from './talkWindow.js';
 import { InputMessageBoxWindow } from './inputMessageBox.js';
-import { walletReserve } from '../net/realm/realmGoldLaw.js';
-import { t } from '../systems/textManager.js';
+import { walletReserve } from '../net/realmGoldLaw.js';
+import { t } from './textManager.js';
 
 const NAME_RE = /^[A-Za-z0-9]{3,16}$/;
 const PRICE_MAX = 100_000_000;

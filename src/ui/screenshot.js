@@ -28,7 +28,7 @@
 // which was always taken this way): every host draws the frame first, and a frame that draws nothing never reaches
 // a foot, so the shot waits for the next one that does.
 
-import { getPref } from '../systems/uiPrefs.js';   // LOAD1: the download's switch - already on the entry's graph (main.js reads it), so it adds no file there
+import { getPref } from './uiPrefs.js';   // LOAD1: the download's switch - already on the entry's graph (main.js reads it), so it adds no file there
 
 // LOAD1 (2026-10-05): THE SHOT IS KEPT, TOO. The same PNG goes to the gallery (systems/shotGallery.js) - a JPEG in
 // this browser's own IndexedDB, never the repository (Port-Doctrine: a render of game data is game data) - where the
@@ -37,14 +37,14 @@ import { getPref } from '../systems/uiPrefs.js';   // LOAD1: the download's swit
 // static graph (main.js), which BOOT2 holds at its ceiling.
 export const SHOT_DOWNLOAD_PREF = 'shotDownload';
 /** LOAD1: the gallery's door - the PNG, and the place the world says the player stands. */
-const keepInGallery = (blob, place) => import('../systems/shotGallery.js').then((g) => g.keepShot(blob, { place }));
+const keepInGallery = (blob, place) => import('./shotGallery.js').then((g) => g.keepShot(blob, { place }));
 /** LOAD1: what the HUD says once the gallery has answered - the id kept, 'full', or null (not kept). */
 export function keptLine(kept, downloaded) {
   if (kept === 'full') return downloaded ? 'Screenshot saved. The gallery is full. Delete some under Screenshots.' : 'The gallery is full. Delete some under Screenshots.';
   if (kept == null) return downloaded ? 'Screenshot saved.' : 'The screenshot could not be kept.';
   return 'Screenshot added to Screenshots in the menu.';
 }
-const sayOnHud = (line) => import('../systems/notify.js').then((n) => n.hudText(line)).catch(() => {});
+const sayOnHud = (line) => import('./notify.js').then((n) => n.hudText(line)).catch(() => {});
 
 /** `dfo-20260923-141502.png` - local time, sortable, no characters a filesystem refuses. */
 export function screenshotName(d = new Date()) {

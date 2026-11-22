@@ -16,10 +16,10 @@
 // brief - sigilSets.js BRIEF_MAX), the sentence under the pointer; a set piece's card was 1,000 px tall in a 660 px
 // window, the three sentences alone 250 of it. The INFO box asks `{ full: true }` and says everything: the Prince and
 // the role, the stage's whole line, every tier's sentence and its Ascendant numbers.
-import { setCardView, setSleepText, wornSets, wornSetPieces, setIdOf, setById, SET_PLACES, catchUpText } from '../systems/sigil/sigilSets.js';
-import { SIGIL_STAGES } from '../systems/sigil/sigil.js';
+import { setCardView, setSleepText, wornSets, wornSetPieces, setIdOf, setById, SET_PLACES, catchUpText } from '../items/sigilSets.js';
+import { SIGIL_STAGES } from '../items/sigil.js';
 import { sigilRuneTileUrl } from './sigilRune.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

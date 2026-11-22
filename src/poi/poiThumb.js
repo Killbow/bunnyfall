@@ -24,7 +24,7 @@
 import { applyTextureTransform } from './gltfImport.js';
 import { mat4FromQuatPosScale } from '../world/quat.js';   // Unity's T * R(q) * S, column-major
 import { deflateRaw } from '../formats/rawDeflate.js';
-import { crc32 } from '../systems/save/saveTransfer.js';
+import { crc32 } from '../saves/saveTransfer.js';
 
 /** The library's picture side, in pixels. */
 export const POI_THUMB_SIZE = 128;

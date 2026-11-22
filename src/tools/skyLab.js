@@ -5,10 +5,10 @@
 // for the probe, and `?still` freezes the clouds' drift.
 import { EnhancedSkyRenderer, skyState, WEATHER_SKY, WIND_SECONDS_PER_MINUTE } from '../render/enhancedSky.js';
 import { cloudsStateUnderMod, dynamicMoonState } from '../render/dynamicSkiesBridge.js';   // DS2: the clouds' state under the mod, as the game builds it
-import { MINUTES_PER_DAY, lunarPhaseFractionsFromMinutes } from '../systems/gameDate.js';   // CLK3: the clock's own fraction, as the dome takes it
+import { MINUTES_PER_DAY, lunarPhaseFractionsFromMinutes } from '../world/gameDate.js';   // CLK3: the clock's own fraction, as the dome takes it
 import { DynamicSkiesRenderer } from '../render/dynamicSkiesRenderer.js';   // DS1: the mod's pass in the lab too - ?sky=dynamic
-import { DynamicSkies } from '../systems/dynamicSkies/dynamicSkiesRuntime.js';
-import { dynamicSkiesAssets, loadDynamicSkiesTexture, DYNAMIC_SKIES_TEXTURES } from '../systems/dynamicSkies/dynamicSkiesAssets.js';
+import { DynamicSkies } from '../weather/dynamicSkiesRuntime.js';
+import { dynamicSkiesAssets, loadDynamicSkiesTexture, DYNAMIC_SKIES_TEXTURES } from '../weather/dynamicSkiesAssets.js';
 import { weatherSunlightScale } from '../world/weather.js';
 import { CloudNoise } from '../render/cloudNoise.js';   // VC2: the noise volumes' slice viewer - ?noise=shape|detail&z=&ch=&tiles=
 import { VolumetricClouds, QUALITY as CLOUD_QUALITY } from '../render/volumetricClouds.js';   // VC3: the clouds over the dome - ?clouds=off|lo|hi

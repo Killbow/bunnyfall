@@ -10,7 +10,7 @@ Regenerate:  python3 tools/roadsOracle.py > test/fixtures/roads-oracle.json
 
 MODS AUDIT (2026-09-08): PaintPathWithSubPathJoins' centre-join body
 below is GENERATED from the C# by tools/roadsJoins.py, which emits the
-same tree for src/world/road/roadPainter.js - the two are one reading of the
+same tree for src/world/roadPainter.js - the two are one reading of the
 source. The first transliteration carried four of his seventy-six
 statements and the painter the same four, so the fixture could not see
 the other seventy-two.

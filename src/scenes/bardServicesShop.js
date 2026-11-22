@@ -8,10 +8,10 @@ import {
   bardItemNameOf, bardHomeNameOf, bardBuffOf, bardWritable,
 } from '../net/bardServiceLaw.js';
 import { accountRefusalText } from '../net/accountClient.js';
-import { createTradePack } from '../systems/tradePack.js';
-import { tavernProgress, restoreTavernProgress } from '../systems/guild/bunnyMembership.js';
-import { itemLongName } from '../systems/item/itemInfo.js';
-import { t } from '../systems/textManager.js';
+import { createTradePack } from '../trade/tradePack.js';
+import { tavernProgress, restoreTavernProgress } from '../guilds/bunnyMembership.js';
+import { itemLongName } from '../items/itemInfo.js';
+import { t } from '../ui/textManager.js';
 
 /**
  * @param {{ entity: () => any, act: ((body: any, apply: (r: any) => void) => Promise<any>) | null, homes: (() => Promise<any[]>) | null,

@@ -12,7 +12,7 @@
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { t, intlLocale } from '../systems/textManager.js';   // L10N4: the words through the text core
+import { t, intlLocale } from '../ui/textManager.js';   // L10N4: the words through the text core
 import { POI_MESH_LIMITS } from './poiMesh.js';
 import { POI_IMAGE_LIMITS } from './poiImage.js';
 

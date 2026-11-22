@@ -28,7 +28,7 @@ import { CREW, exchangeOf } from './tradeGoods.js';
 import { yardOffer } from './navalYard.js';
 import { playerCrewCount } from './crewLife.js';
 import { FIRST_MATE, serviceOf } from './shipCrew.js';
-import { t } from '../textManager.js';   // the exchange's words in the player's language
+import { t } from '../../ui/textManager.js';   // the exchange's words in the player's language
 
 /** The fewest men a ship keeps aboard: her last is never signed off. */
 export const CREW_LEAST = 1;

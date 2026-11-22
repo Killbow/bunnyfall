@@ -14,7 +14,7 @@
 // Who is staff is the account service's word (/v1/staffcmd/vanish answers `staff-only` to anyone else): the dock asks it
 // once a minute until it knows, and never makes the button or the iframe for a player.
 import { staffVanish } from '../net/accountClient.js';
-import { hudArranging } from './hud/hudLayout.js';
+import { hudArranging } from './hudLayout.js';
 import { pauseFlowShowing } from './pauseDoor.js';
 import { loadingHeld } from './loadingScreen.js';
 

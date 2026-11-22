@@ -24,27 +24,27 @@
 //   THE RANKS   a rank-5 takes about 2.5 times a rank-1's time (2 to 3).
 // `--tell` measures TELL's alone, `--feud` RVN's alone. A class foe needs its CLASS*.CFG (ARENA2's data, not in the
 // repository), so the class Warrior's cells are measured where the game's data is. Exit 1 when a target is missed.
-import { MOD_SETTINGS, setModSetting, _resetModSettings } from '../src/systems/modSettings.js';
-import { setPref, getPref, _resetForTests } from '../src/systems/uiPrefs.js';
+import { MOD_SETTINGS, setModSetting, _resetModSettings } from '../src/mods/modSettings.js';
+import { setPref, getPref, _resetForTests } from '../src/ui/uiPrefs.js';
 import { setTacticsClock, resetTactics, noteLocalPlayer, windupStruck, LOCAL_TARGET } from '../src/ai/tactics.js';
 import { resetBlows, inBlow, BLOW_TIER_LEVEL } from '../src/ai/foeBlows.js';
 import { blowK, blowWeight, behind, poiseOf, weightClass, TELL } from '../src/ai/tells.js';
-import { EnemyAI } from '../src/characters/enemy/enemyMotor.js';
-import { EnemyAttack } from '../src/characters/enemy/enemyAttack.js';
+import { EnemyAI } from '../src/characters/enemyMotor.js';
+import { EnemyAttack } from '../src/characters/enemyAttack.js';
 import { Collider } from '../src/player/collider.js';
 import { calculateAttackDamage, enemyWeightClassicUnits, chooseEnemyWeapon, weaponKnockbackApplies, weaponKnockbackSpeed } from '../src/combat/formulas.js';
-import { makeEnemyEntity } from '../src/characters/enemy/enemyEntity.js';
-import { ENEMY_BASICS } from '../src/characters/enemy/enemyBasics.js';
-import { MOBILE_TYPES as M } from '../src/characters/mobile/mobileTypes.js';
+import { makeEnemyEntity } from '../src/characters/enemyEntity.js';
+import { ENEMY_BASICS } from '../src/characters/enemyBasics.js';
+import { MOBILE_TYPES as M } from '../src/characters/mobileTypes.js';
 import { WEAPONS } from '../src/characters/weapons.js';
 import { createWeapon } from '../src/combat/enemyEquipment.js';
-import { promoteEliteFoe } from '../src/systems/eliteFoes.js';
+import { promoteEliteFoe } from '../src/characters/eliteFoes.js';
 import { getMeleeWeaponAnimTime, MELEE_NUM_FRAMES, HIT_FRAME_MELEE, CLASSIC_UPDATE_INTERVAL } from '../src/characters/weaponStates.js';
-import { liveStat } from '../src/systems/statMods.js';   // AUDIT FEUD 2: the foe's live Speed, as the pools hand it (phase two's +20)
-import { blowEffectOf, BLOW_EFFECT } from '../src/systems/blowEffects.js';   // AUDIT FEUD 2: what a landing does to me
+import { liveStat } from '../src/characters/statMods.js';   // AUDIT FEUD 2: the foe's live Speed, as the pools hand it (phase two's +20)
+import { blowEffectOf, BLOW_EFFECT } from '../src/combat/blowEffects.js';   // AUDIT FEUD 2: what a landing does to me
 import '../src/combat/swingLaw.js';   // registers the reader: the swing reads the weapon in the hand
 import { weaponTypeForItem } from '../src/combat/fpsWeapon.js';
-import { EQUIP_SLOTS } from '../src/systems/equip.js';
+import { EQUIP_SLOTS } from '../src/characters/equip.js';
 import { getSeed, setSeed } from '../src/formats/dfRandom.js';   // AUDIT FEUD: DFU's shared stream (the hit roll, the attack's reflex gate) - each fight's own seed
 import { isMain } from './lib/isMain.mjs';   // AUDIT 68: the one "am I the program" test
 
@@ -279,11 +279,11 @@ export function measureAll({ fights = 1000, seconds = 30 } = {}) {
 // first). Never modelled: the player's own health (the band's plain blows - under the tier - land on nobody here), a
 // kin's spells (an Orc Shaman's), the foes' bodies against each other, the pools' placement probes (flat ground).
 globalThis.localStorage ??= (() => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, removeItem: (k) => { m.delete(k); }, clear: () => m.clear(), key: (i) => [...m.keys()][i] ?? null, get length() { return m.size; } }; })();
-const RV = await import('../src/systems/revenant/revenant.js');
-const FATE = await import('../src/systems/revenant/revenantFate.js');
-const { windupDoor } = await import('../src/scenes/hostCombat.js');
+const RV = await import('../src/revenants/revenant.js');
+const FATE = await import('../src/revenants/revenantFate.js');
+const { windupDoor } = await import('../src/combat/hostCombat.js');
 const { beginRoar } = await import('../src/ai/tactics.js');
-const { weaponFeudClass, drawSignature, SIG_RANK, bandMembers, RALLY_KIN, BAND_SCATTER_S, BAND_SPACING } = await import('../src/systems/revenant/revenantFeud.js');
+const { weaponFeudClass, drawSignature, SIG_RANK, bandMembers, RALLY_KIN, BAND_SCATTER_S, BAND_SPACING } = await import('../src/revenants/revenantFeud.js');
 const { walkSpeed, runSpeed } = await import('../src/player/motor.js');
 const { releaseTactics } = await import('../src/ai/tactics.js');
 

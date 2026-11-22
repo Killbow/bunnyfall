@@ -1,7 +1,7 @@
 // BUNNYFALL: the two tavern chores as short hands-on games, in a low panel so the room (and the mess in it) stays in view.
 // Sweeping: alternate left and right strokes. Clearing a table: gather each empty, then wipe in circles.
 // The work is reported as it happens (the mess shrinks, the cups leave the table); only the finish is sent to the law.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { windowShell, el } from './tavernServiceWindow.js';
 
 export const SWEEP_STROKES = 8;

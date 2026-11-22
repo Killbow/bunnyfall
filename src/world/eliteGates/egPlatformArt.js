@@ -19,11 +19,11 @@
 //
 // Pure: the same pixels every call (the paint box - world/superDungeon/sdPixelKit.js - quantized to the band's palette). Not a DFU
 // member. Ledger A (ELITE-GATES).
-import { SD_RAMP, SD_LIGHT } from '../superDungeon/sdLook.js';
-import { image, putTexel, scale, ramp, step, noiseField, quantize } from '../superDungeon/sdPixelKit.js';
-import { SD_STEPS_ATLAS, SD_STEP_BEVEL, SD_CRACK_STAGES, SD_STEPS_GLOW, SD_CRUMBLE_CRACKS, crackDistance } from '../superDungeon/sdStepsArt.js';
-import { SD_CRUMBLE_SIZE } from '../superDungeon/sdSteps.js';
-import { SD_BEAT_DISSOLVE } from '../superDungeon/sdStepsModel.js';
+import { SD_RAMP, SD_LIGHT } from '../sdLook.js';
+import { image, putTexel, scale, ramp, step, noiseField, quantize } from '../sdPixelKit.js';
+import { SD_STEPS_ATLAS, SD_STEP_BEVEL, SD_CRACK_STAGES, SD_STEPS_GLOW, SD_CRUMBLE_CRACKS, crackDistance } from '../sdStepsArt.js';
+import { SD_CRUMBLE_SIZE } from '../sdSteps.js';
+import { SD_BEAT_DISSOLVE } from '../sdStepsModel.js';
 import { EG_BAND_RAMPS, EG_BEAT_TELL_RECORDS, EG_DRESS, egBandArtOf, egBandPalette, egDissolveArt } from './egBandArt.js';
 import { EG_KIT_RECORD } from './egKit.js';
 

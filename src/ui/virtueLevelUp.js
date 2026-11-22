@@ -36,16 +36,16 @@
 // systems/oblivionLeveling.js's commitVirtueLevelUp owns the change.
 // Nothing below writes entity.level, entity.maxHealth or entity.stats.
 
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { STAT_KEYS_ORDER } from '../systems/chargen.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { STAT_KEYS_ORDER } from '../characters/chargen.js';
 import { drawText, measureText } from './text.js';
-import { t } from '../systems/textManager.js';   // AUDIT GROWTH LANE5-1: the purse's label, read in the player's language
-import { nativeMetrics, NATIVE_W } from './native/nativePanel.js';
+import { t } from './textManager.js';   // AUDIT GROWTH LANE5-1: the purse's label, read in the player's language
+import { nativeMetrics, NATIVE_W } from './nativePanel.js';
 import {
   levelingSettings, virtuePurse, canRaiseAttribute, canLowerAttribute,
   attributeOffset, commitVirtueLevelUp, virtueSpendPlan, LEVELUP_TOTAL, levelBarProgress,
-} from '../systems/oblivionLeveling.js';
+} from '../characters/oblivionLeveling.js';
 
 /** l10n/en.yaml:34 remaining_points_error, the author's own words. */
 export const REMAINING_POINTS_ERROR = 'You must distribute all your points to continue.';

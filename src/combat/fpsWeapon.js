@@ -23,19 +23,19 @@
 // symmetric states, as FPSWeapon :378-388 and :459-464 have them.
 
 import { CifRciFile } from '../formats/cifRciFile.js';
-import { getInt } from '../systems/settings/settings.js';   // AUDIT 28 W13: Controls/Handedness
-import { getPref } from '../systems/uiPrefs.js';   // MAC-I: the first-person lighting switch
-import { isEnchanted } from '../systems/inventory.js';   // AUDIT 17e C2
+import { getInt } from '../platform/settings.js';   // AUDIT 28 W13: Controls/Handedness
+import { getPref } from '../ui/uiPrefs.js';   // MAC-I: the first-person lighting switch
+import { isEnchanted } from '../items/inventory.js';   // AUDIT 17e C2
 import { WEAPONS, WEAPON_MATERIALS, weaponDyeColor } from '../characters/weapons.js';
-import { atlasFileName } from './diverseWeapons/diverseWeapons.js';   // DW1: FPSWeapon.cs:637-644 - the per-template name under Diverse Weapons' flag
-import { customWeaponImage } from './diverseWeapons/diverseWeaponsAssets.js';   // DW1: TryImportCifRci's answer, off the player's own bundles
-import { MATERIAL_NAMES } from '../systems/item/itemInfo.js';   // MetalTypes' names, for GetNameCifRci's suffix
-import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: GetWeaponType is a virtual a custom class answers
+import { atlasFileName } from './diverseWeapons.js';   // DW1: FPSWeapon.cs:637-644 - the per-template name under Diverse Weapons' flag
+import { customWeaponImage } from './diverseWeaponsAssets.js';   // DW1: TryImportCifRci's answer, off the player's own bundles
+import { MATERIAL_NAMES } from '../items/itemInfo.js';   // MetalTypes' names, for GetNameCifRci's suffix
+import { customItemClass } from '../mods/rriItems.js';   // RRI1: GetWeaponType is a virtual a custom class answers
 import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';   // BUNNYFALL: the crossbow swings the bow's machine
 import { BALLISTA_TEMPLATE, GRAPPLE_TEMPLATE } from '../characters/heavyGearIds.js';   // BUNNYFALL: the Royal Ballista and the grappling hook
 import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from '../characters/thunderlockIds.js';   // the port's own weapon (a leaf - see the file)
-import { THUNDERLOCK_STRIP } from './gun/thunderlockStrip.js';   // THUNDERLOCK-ART2: each gun's cycle its strip's own frame count - leaves both
-import { PISTOL_STRIP } from './gun/pistolStrip.js';
+import { THUNDERLOCK_STRIP } from './thunderlockStrip.js';   // THUNDERLOCK-ART2: each gun's cycle its strip's own frame count - leaves both
+import { PISTOL_STRIP } from './pistolStrip.js';
 import { applyDyeToIndex, DYE_TARGETS } from '../characters/dyes.js';
 
 // WeaponTypes (DaggerfallUnityEnums), the animation-set ids.
@@ -84,15 +84,15 @@ export const WEAPON_FILE = Object.freeze({
 // WeaponBasics' Alignment - a leaf now (combat/weapon/weaponAlign.js), so a
 // reader that wants only the enum does not take this module's world
 // with it. Re-exported here: this is still the enum's front door.
-export { ALIGN } from './weapon/weaponAlign.js';
-import { ALIGN } from './weapon/weaponAlign.js';
+export { ALIGN } from './weaponAlign.js';
+import { ALIGN } from './weaponAlign.js';
 
 // The classic 320x200 design surface every weapon image overlays.
 // AUDIT 24 (wave 24): the classic 320x200 panel has one home in
 // ui/native/nativePanel.js.
-import { NATIVE_W, NATIVE_H } from '../ui/native/nativePanel.js';
-import { weaponOffsetHeight } from '../ui/hud/hudLarge.js';   // ROAD-D D10: LargeHUDUndockedOffsetWeapon / the docked force
-import { pageParam } from '../systems/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
+import { NATIVE_W, NATIVE_H } from '../ui/nativePanel.js';
+import { weaponOffsetHeight } from '../ui/hudLarge.js';   // ROAD-D D10: LargeHUDUndockedOffsetWeapon / the docked force
+import { pageParam } from '../platform/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
 
 export { NATIVE_W, NATIVE_H };
 

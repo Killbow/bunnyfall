@@ -1,11 +1,11 @@
 // PEERMENU1: THE PLAYER MENU'S BIND, ON THE CONTROLS PAGE - Enhanced and Enhanced Plus (online is always one of the
 // two). Two rows, keyboard and controller: the button, and whether it is a PRESS or a HOLD. It is the port's own pref
 // (systems/peerMenuBind.js), not a registry row, so it saves at once rather than with the page's Confirm.
-import { peerMenuBind, setPeerMenuBind, resetPeerMenuBinds, PEER_MENU_DEFAULTS } from '../systems/peerMenuBind.js';
-import { buttonText } from '../systems/controlsConfig.js';
+import { peerMenuBind, setPeerMenuBind, resetPeerMenuBinds, PEER_MENU_DEFAULTS } from './peerMenuBind.js';
+import { buttonText } from './controlsConfig.js';
 import { hdGlyphName } from './padGlyphsHD.js';
 import { padFamily } from './padGlyphs.js';
-import { setPlusBindCapture } from './plus/plusPad.js';
+import { setPlusBindCapture } from './plusPad.js';
 
 let armed = null;          // 'key' | 'pad' | null
 let quietUntil = 0;        // a captured pad B still sends its Back a moment later - it is swallowed, not a back-out

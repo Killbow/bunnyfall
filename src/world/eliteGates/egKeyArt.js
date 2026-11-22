@@ -16,7 +16,7 @@
 // shell in, and the swap arm uploads this picture (systems/eliteGates/weirKey.js registers it at its import).
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { image, putTexel, ramp, paletteOf, quantize } from '../superDungeon/sdPixelKit.js';
+import { image, putTexel, ramp, paletteOf, quantize } from '../sdPixelKit.js';
 import { EG_BAND_RAMPS } from './egBandArt.js';
 import { EG_ARCH_BLOCK } from './pseudoArchives.js';
 

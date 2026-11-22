@@ -36,7 +36,7 @@
 // Not a DFU member: Daggerfall Unity has no other players. Ledger A row (ONLINE).
 // ═══════════════════════════════════════════════════════════════════
 import { pageLaw, PAGE_LINES_MAX } from './wire.js';
-import { breakableNote } from '../systems/notebook.js';
+import { breakableNote } from '../ui/notebook.js';
 
 /** @typedef {{ head: string, lines: string[] }} Page */
 /** @typedef {{ formatting: string, text: string }} NoteToken */

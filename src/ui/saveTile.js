@@ -43,7 +43,7 @@
 // law ("NEVER TRAPS"), on a surface a player reaches far more often.
 // ═══════════════════════════════════════════════════════════════════
 
-import { t, localizedText } from '../systems/textManager.js';   // L10N4: the tile's words in the player's language (a leaf - it imports nothing)
+import { t, localizedText } from './textManager.js';   // L10N4: the tile's words in the player's language (a leaf - it imports nothing)
 
 /** The cloud states a tile can be in. `off` draws no cloud line at all
  *  - ACC0's wall is at cloud saves, and a player with no account is not

@@ -27,7 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { sanitizeName } from './wire.js';
-import { t } from '../systems/textManager.js';   // L10N4: the command's words in the moderator's language (the account Worker bundles the text core already)
+import { t } from '../ui/textManager.js';   // L10N4: the command's words in the moderator's language (the account Worker bundles the text core already)
 
 /** The longest one mute may run, in minutes: a week. Longer is a ban,
  *  which is a different decision and not one Mac has asked for. The

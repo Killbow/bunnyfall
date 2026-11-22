@@ -64,7 +64,7 @@
 // Not a DFU member: Daggerfall Unity is not deployed to anybody.
 // Ledger A row (ONLINE).
 import { relayVersionOf } from './wire.js';
-import { t } from '../systems/textManager.js';   // L10N4: the two notices in the player's language
+import { t } from '../ui/textManager.js';   // L10N4: the two notices in the player's language
 
 /** What a relay restart says. Deliberately about the RELAY and not the
  *  game: nothing the player has is lost, and a notice that sounds like

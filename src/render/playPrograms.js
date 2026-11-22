@@ -16,9 +16,9 @@
 // Loaded by the renderer's idle warm (lazyWarmSteps), off the boot's static graph - the passes' own modules are the
 // hosts' already.
 import { parallelCompile, startPrograms } from './glProgram.js';
-import { GATE_PASS_PROGRAMS } from './gate/gatePass.js';
-import { telegraphPrograms } from './gate/gateTelegraph.js';
-import { GATE_FX_PROGRAMS } from './gate/gateFx.js';
+import { GATE_PASS_PROGRAMS } from './gatePass.js';
+import { telegraphPrograms } from './gateTelegraph.js';
+import { GATE_FX_PROGRAMS } from './gateFx.js';
 import { CRYSTAL_PROGRAMS } from './courtCrystals.js';
 import { NODE_GLINT_PROGRAMS } from './nodeGlint.js';
 import { AURA_PROGRAMS } from './auraRing.js';

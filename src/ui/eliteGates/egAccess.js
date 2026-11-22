@@ -20,7 +20,7 @@
 // words go to a polite live region for a screen reader.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { getPref } from '../../systems/uiPrefs.js';
+import { getPref } from '../uiPrefs.js';
 import { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS, egPaletteOf } from '../../world/eliteGates/egDangerPalettes.js';
 
 export { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS, egPaletteOf };

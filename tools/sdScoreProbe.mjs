@@ -25,8 +25,8 @@ const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${
 const KEYS = ['hollow', 'hall', 'steps', 'war1', 'war2', 'war3', 'last', 'fell', 'gone'];
 
 const PAGE = `<!doctype html><html><body><script type=module>
-import { SongPlayer } from '/src/systems/song/songPlayer.js';
-import { sdScoreSongs, HOUR_PRESS, SD_SCORE_STING_MS } from '/src/systems/superDungeon/sdScore.js';
+import { SongPlayer } from '/src/audio/songPlayer.js';
+import { sdScoreSongs, HOUR_PRESS, SD_SCORE_STING_MS } from '/src/worldEvents/sdScore.js';
 const RATE = 44100;
 window.stingS = SD_SCORE_STING_MS / 1000;
 window.render = async (key, seconds) => {

@@ -8,7 +8,7 @@
 //
 // Client only - the relay never imports this file, so nothing here moves RELAY_VERSION. Not a DFU member (DFU has no Spire,
 // no Athenaeum and no Orrery). Ledger A (ELITE-GATES).
-import { orreryOf, SD_STONES, sdHourShown } from '../../net/superDungeon/sdBrain.js';
+import { orreryOf, SD_STONES, sdHourShown } from '../../net/sdBrain.js';
 import { egOrreryTurns } from '../../net/eliteGates/egBrain.js';
 import { egSeed } from '../../net/eliteGates/egLaw.js';
 

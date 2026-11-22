@@ -7,7 +7,7 @@
 // keeper's is) rather than through the archive door, which knows nothing of a mod-only archive's records.
 
 import { billboardSize } from '../world/rmbFlats.js';
-import { hasTextureReplacement, preloadTextureRecord, decodedTexture } from '../systems/textureReplacement.js';
+import { hasTextureReplacement, preloadTextureRecord, decodedTexture } from '../render/textureReplacement.js';
 import { LAST_CLASSIC_TEXTURE_ARCHIVE } from '../formats/textureFile.js';
 import { flatNameBank } from '../systems/flatReplacer/flatReplacerLaw.js';
 

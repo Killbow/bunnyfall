@@ -83,18 +83,18 @@
 
 import { ControlsWindow, preloadControlsArt, controlsArtLoaded } from './controlsWindow.js';
 import { SaveWindow } from './saveWindow.js';   // SAV4: the slot window rides the pause seam
-import { loadImg, nativeMetrics, drawImg, drawRect, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, drawRect, shadowText } from './nativePanel.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { measureText } from './text.js';
-import { getFloat, effectiveSettings, setValue, saveSettings } from '../systems/settings/settings.js';
-import { ENUM_LAW } from './settings/settingsLaw.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { getFloat, effectiveSettings, setValue, saveSettings } from '../platform/settings.js';
+import { ENUM_LAW } from './settingsLaw.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import { BUILD_TAG, UPDATE } from '../buildTag.js';
 import { bindings, eventMeans } from './input.js';   // KB1: the live registry, for the toggle-close binding; AUDIT DISC28 UI-1: the event's own read of it
-import { getBinding } from '../systems/inputActions.js';   // KB1: InputManager.GetBinding(Actions.Escape)
-import { localizedText, t } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { getBinding } from './inputActions.js';   // KB1: InputManager.GetBinding(Actions.Escape)
+import { localizedText, t } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 
 /** barMaxLength (:28). */
 export const BAR_MAX = 109.1;

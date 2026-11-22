@@ -1,6 +1,6 @@
 // @ts-check
 import { TEMPLATE, removePutridFood } from './food.js';
-import { addItem } from '../inventory.js';
+import { addItem } from '../../items/inventory.js';
 /** Run below index-based save relinks, so removed food cannot shift equipment references. */
 export function tidyFoodInventory(list) {
   if (!Array.isArray(list)) return;

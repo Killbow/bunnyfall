@@ -17,10 +17,10 @@
 // Not a DFU member: Daggerfall's ship passage is a fast travel (DaggerfallTravelPopUp's "By ship"), priced by
 // TravelTimeCalculator.CalculateTripCost - and this passage is priced by it too (passageFare). Ledger A (PASSAGE).
 import { HULL } from './navalShips.js';
-import { calculateTripCost } from '../travel/travel.js';
-import { sceneCompassWord } from '../compassWords.js';
-import { VOYAGE_LANDFALL_PX } from '../travel/travelRoute.js';   // AUDIT PASSAGE A1: a port within its landfall's reach is no voyage
-import { t } from '../textManager.js';   // L10N4: every word of the passage in the player's language
+import { calculateTripCost } from '../../travel/travel.js';
+import { sceneCompassWord } from '../../ui/compassWords.js';
+import { VOYAGE_LANDFALL_PX } from '../../travel/travelRoute.js';   // AUDIT PASSAGE A1: a port within its landfall's reach is no voyage
+import { t } from '../../ui/textManager.js';   // L10N4: every word of the passage in the player's language
 
 /** The hulls a passenger is carried in: a sail to cross a sea (OWS2's law, world.js tvSeaCrosses) - never the Rowboat,
  *  whose lone rower tires a kilometre out; never the Large Galley, which never moors (shipLife.js BERTH_HULLS). */

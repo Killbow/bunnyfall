@@ -29,20 +29,20 @@
 // createChargenWindow's own onDone does: AUDIT 17f found that law
 // broken there by a key repeat inside one frame.
 
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import { drawText, measureText } from './text.js';
-import { nativeMetrics, NATIVE_W } from './native/nativePanel.js';
+import { nativeMetrics, NATIVE_W } from './nativePanel.js';
 import {
   LEVELUP_BONUS_POOL_MIN, LEVELUP_BONUS_POOL_MAX, LEVELUP_SKILL_SUM_PER_LEVEL,
-} from '../systems/advancement.js';
+} from '../characters/advancement.js';
 import {
   LEVELING_CLASSIC, LEVELING_VIRTUE, levelingSettings, LEVELUP_TOTAL, ONLINE_LEVELING_SYSTEM,
-} from '../systems/oblivionLeveling.js';
-import { isEnhanced } from '../systems/uiSkin.js';   // LEVEL-PLUS: the Enhanced Plus face
-import { drawLevelingFace, releaseLevelingFace } from './enhanced/enhancedLevelingChoice.js';
-import { ONLINE_BONUS_POOL } from '../systems/levelEven.js';   // LEVEL-EVEN: online, every level's five
-import { t } from '../systems/textManager.js';
+} from '../characters/oblivionLeveling.js';
+import { isEnhanced } from './uiSkin.js';   // LEVEL-PLUS: the Enhanced Plus face
+import { drawLevelingFace, releaseLevelingFace } from './enhancedLevelingChoice.js';
+import { ONLINE_BONUS_POOL } from '../characters/levelEven.js';   // LEVEL-EVEN: online, every level's five
+import { t } from './textManager.js';
 
 /** LEVEL-ONLINE-2: why Oblivion's option is shut on the online page (oblivionLeveling.js newCharacterLevelingSystem). */
 export const LEVELING_OFFLINE_ONLY_NOTE = 'Offline characters only';

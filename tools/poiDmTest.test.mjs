@@ -8,7 +8,7 @@ import { poiV2Example } from './poiV2Examples.mjs';
 import { createPoiDm, mintStack } from '../src/poi/poiDmRuntime.js';
 import { createPoiTest, purseOf, testable } from '../src/poi/poiDmTest.js';
 import { npcsOf } from '../src/poi/poiRuntime.js';
-import { groundRefusalOf } from '../src/systems/inventorySession.js';
+import { groundRefusalOf } from '../src/items/inventorySession.js';
 import { createPoiTestPanel } from '../src/ui/poi/poiTestPanel.js';
 
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);

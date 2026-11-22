@@ -8,7 +8,7 @@
 // GL texture made once and OWNED here, so the release frees exactly what this made and nothing a neighbour shares.
 // The arm (combat/fpArm.js, VFX_Hands on the hands) and the world layer (scenes/mwMagicFx.js) both drive one.
 
-import { wrapModes } from '../formats/morrowind/mwTexture.js';
+import { wrapModes } from '../formats/mwTexture.js';
 
 /** A stream's floats a vertex (render/renderer.js createParticleEffect's layout) and where its colour starts in them
  *  (`aColor`, location 3, at byte 28). */

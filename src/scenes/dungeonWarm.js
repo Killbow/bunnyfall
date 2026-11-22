@@ -7,9 +7,9 @@ let warmed = null;
 /** @returns {Promise<unknown>} */
 export function warmDungeonModules() {
   warmed ??= Promise.all([
-    import('../characters/enemy/enemyMotor.js'), import('../characters/enemy/enemyAttack.js'),
-    import('../characters/enemy/enemyEntity.js'), import('../characters/enemy/enemyCasting.js'),
-    import('../characters/enemy/enemyTargets.js'), import('../combat/formulas.js'), import('../characters/anims.js'),
+    import('../characters/enemyMotor.js'), import('../characters/enemyAttack.js'),
+    import('../characters/enemyEntity.js'), import('../characters/enemyCasting.js'),
+    import('../characters/enemyTargets.js'), import('../combat/formulas.js'), import('../characters/anims.js'),
     import('../formats/bsaFile.js'), import('../formats/classFile.js'), import('../render/characterSprite.js'),
   ]).catch((e) => { warmed = null; console.warn('[dungeon] warm', e?.message ?? e); });
   return warmed;

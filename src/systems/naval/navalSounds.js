@@ -9,7 +9,7 @@
 // 300 m would reach the ear at a three-hundredth of its level, and a broadside across the bay - the sound Black Flag's
 // open sea is made of - would be silence. Each key here says how far off it still carries (`refDistance`: full level
 // inside it, inverse beyond; `maxDistance`: gone past it); the host passes them to audio.play3d.
-import { APP_ROOT } from '../appRoot.js';
+import { APP_ROOT } from '../../platform/appRoot.js';
 
 /** The keys the naval host plays. */
 export const NAVAL_SFX = Object.freeze({

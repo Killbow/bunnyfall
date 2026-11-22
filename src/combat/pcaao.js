@@ -80,21 +80,21 @@
 // console line. Recorded in Combat-Arc PCO1.
 // ═══════════════════════════════════════════════════════════════════
 
-import { modSetting, modSettingIfDeclared } from '../systems/modSettings.js';
-import { liveStat } from '../systems/statMods.js';
-import { skillValue, SKILLS } from '../systems/skills.js';
-import { RACES } from '../systems/races.js';
-import { SPECIAL_ABILITY_BITS } from '../systems/specialAdvantages.js';
+import { modSetting, modSettingIfDeclared } from '../mods/modSettings.js';
+import { liveStat } from '../characters/statMods.js';
+import { skillValue, SKILLS } from '../characters/skills.js';
+import { RACES } from '../characters/races.js';
+import { SPECIAL_ABILITY_BITS } from '../characters/specialAdvantages.js';
 import { WEAPONS, weaponMinDamage, weaponMaxDamage, weaponSkillUsed, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';
-import { equipTableOf, lowerCondition, blowWear, slotForBodyPart, EQUIP_SLOTS, weaponProficiencyFlag } from '../systems/equip.js';
-import { SHIELD_PARTS, isShieldTemplate, itemArmorValue } from '../systems/armorMaterials.js';
-import { conditionPercentage, itemLongName, shownItemName } from '../systems/item/itemInfo.js';   // L10N3e: and the short name, as shown
-import { effectiveUnitWeightInKg } from '../systems/inventory.js';
-import { templateByIndex } from '../systems/item/itemTemplates.js';
-import { enchantChanceToHitMod, isEnchantedItem, entityImprovedAdrenalineRush } from '../systems/enchantments.js';
-import { stampedTier } from '../systems/rarityTier.js';   // RARE-BREAK1: a piece off the rarity ladder, which the fading rule leaves alone (the leaf - RF1: no formula reads the ladder)
+import { equipTableOf, lowerCondition, blowWear, slotForBodyPart, EQUIP_SLOTS, weaponProficiencyFlag } from '../characters/equip.js';
+import { SHIELD_PARTS, isShieldTemplate, itemArmorValue } from '../items/armorMaterials.js';
+import { conditionPercentage, itemLongName, shownItemName } from '../items/itemInfo.js';   // L10N3e: and the short name, as shown
+import { effectiveUnitWeightInKg } from '../items/inventory.js';
+import { templateByIndex } from '../items/itemTemplates.js';
+import { enchantChanceToHitMod, isEnchantedItem, entityImprovedAdrenalineRush } from '../magic/enchantments.js';
+import { stampedTier } from '../items/rarityTier.js';   // RARE-BREAK1: a piece off the rarity ladder, which the fading rule leaves alone (the leaf - RF1: no formula reads the ladder)
 import { armorPierceShare } from './armorPierce.js';   // BUNNYFALL (melee rework): a leaf seam
-import { entityEnchantArmorMod, entityArmorPoints, weaponDamageMods, weaponBlowMods } from '../systems/entityMods.js';   // RF1: the enchantment channels and the port's points (AUDIT SET P-M1: read apart) (SET2: and the weapon's own and the blow's, read here too)
+import { entityEnchantArmorMod, entityArmorPoints, weaponDamageMods, weaponBlowMods } from '../characters/entityMods.js';   // RF1: the enchantment channels and the port's points (AUDIT SET P-M1: read apart) (SET2: and the weapon's own and the blow's, read here too)
 import { getItemHands, ITEM_HANDS } from '../characters/equipTable.js';
 import { createWeapon } from './enemyEquipment.js';
 import { clawMetalDamage } from './clawMetal.js';   // BAL6-GAUNTLETS: the beast's claws take its gauntlets' metal
@@ -106,7 +106,7 @@ import {
   silverDoubles,     // RVN2: a Silver-scarred revenant's double gone, in this core as in the stock's
 } from './formulas.js';
 import { meanerMonstersOn } from './pcaaoMeanerMonsters.js';
-import { RR_VENDOR, rrAdjustWeaponHitChanceMod, rrAdjustWeaponAttackDamage } from '../systems/roleplayRealism/rrRealism.js';   // AUDIT 68 S08-pcaao-archery-duplicate: RR's two archery members, one export
+import { RR_VENDOR, rrAdjustWeaponHitChanceMod, rrAdjustWeaponAttackDamage } from '../mods/rrRealism.js';   // AUDIT 68 S08-pcaao-archery-duplicate: RR's two archery members, one export
 
 export { MEANER_MONSTERS, meanerMonstersRow, meanerMonstersOn } from './pcaaoMeanerMonsters.js';
 

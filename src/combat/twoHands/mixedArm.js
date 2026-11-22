@@ -14,7 +14,7 @@
 //   - THE GUN IS HELD AS A GUN, ON ITS OWN HAND ALONE: the pistol stance (combat/gun/pistolStance.js) solves the gun hand
 //     only (`only`), its aim raised by that hand's own shot; the blade's arm is the composition's.
 
-import { holdsGun } from '../gun/gunHold.js';
+import { holdsGun } from '../gunHold.js';
 
 /**
  * Which arm of a pair holds a gun beside a blade: 'R', 'L', or null (two blades, two guns, one weapon). `weapon` is the

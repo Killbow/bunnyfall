@@ -9,7 +9,7 @@
 //     (territoryLaw.js), and its members gather and loot TERRITORY_YIELD_PCT more anywhere inside it.
 //
 // Pure: no clock, no DOM, no network. Both ends read it.
-import { guildNameOf } from './guild/guildLaw.js';
+import { guildNameOf } from './guildLaw.js';
 import { territoryRadius, TERRITORY_R_MAX } from './territoryLaw.js';
 
 /** The most Companies a Charter holds, its members and its invitations together. */

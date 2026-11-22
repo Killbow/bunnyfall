@@ -14,13 +14,13 @@
 // Holdings provider (ui/holdingsPages.js setHoldingsProvider); dressed by the kit's roles as the Stable's cards are.
 
 import { holdingsProvider, ensureHoldingsStyle, holdingArt, holdingMeter, farWords } from './holdingsPages.js';
-import { SHIP_NAME_MAX, UPGRADE_LINES, REFIT_NUMERALS } from '../systems/fleet.js';
+import { SHIP_NAME_MAX, UPGRADE_LINES, REFIT_NUMERALS } from '../systems/naval/fleet.js';
 import { CREW_ROLES, veteranOf, postsOf, postWords } from '../systems/naval/shipCrew.js';   // CAPT-CREW: a hand's rank, his post's worth
 import { HERALDRY_COLOURS, HERALDRY_DEVICES, HERALDRY_DIVISIONS, HERALDRY_DIVISION_NAMES, heraldryDeviceName, heraldryOf } from '../net/heraldryLaw.js';   // SHIP-COLOURS
 import { FLAG_SHAPES, FLAG_DEFAULT, fitFlag, flownFlag } from '../systems/naval/shipFlag.js';   // SHIP-COLOURS: her flag's law
 import { flagSvg } from './flagArt.js';   // SHIP-COLOURS: and its picture
 import { SHIP_PAINTS, LIVERY_PARTS, liveryOf } from '../systems/naval/shipLivery.js';   // SHIP-LIVERY: her paint's law
-import { t } from '../systems/textManager.js';   // SHIP-COLOURS: the designer's words in the player's language
+import { t } from './textManager.js';   // SHIP-COLOURS: the designer's words in the player's language
 
 export const FLEET_PAGE_SECTIONS = Object.freeze([Object.freeze(['fleet', 'Fleet'])]);
 /** Come Sail Away's two items' pictures: a deed's (209/5) for a ship whose title is held, her parts' (212/11) packed. */

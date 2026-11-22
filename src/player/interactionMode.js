@@ -8,7 +8,7 @@
 // one player - the worldTick-clock idiom. townTalk keeps the F1-F4
 // keydown and the mode-change HUD line; the door ladders read it here.
 
-import { localizedText, localizedTable } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedText, localizedTable } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 
 export const MODES = ['steal', 'grab', 'info', 'dialogue'];
 

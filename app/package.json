@@ -42,7 +42,7 @@
       "launcherPreload.cjs",
       "launcher/**",
       {
-        "from": "../src/ui/menu",
+        "from": "../src/ui",
         "to": "launcher",
         "filter": [
           "menuPad.js"

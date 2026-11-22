@@ -144,25 +144,25 @@
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
 import { isTextEntryTarget, swallowBrowserKey, bindings, neverTheFocus } from './input.js';   // FB1020h HUD-FOCUS: the controls over the world keep no focus
-import { actionForCode, codeMeans } from '../systems/inputActions.js';
-import { overlayOpen } from './enhanced/enhancedOverlays.js';
+import { actionForCode, codeMeans } from './inputActions.js';
+import { overlayOpen } from './enhancedOverlays.js';
 import { claimCursorKey } from '../player/pointerLock.js';   // KB1: while the panel stands, ActivateCursor's key is its open key and not the cursor toggle
-import { isTouchDevice } from './touch/touch.js';
+import { isTouchDevice } from './touch.js';
 import { CHAT_MAX, CHAT_ITEMS_MAX } from '../net/wire.js';
 import { tagOf, findQuery, findLines, playerFound, CHAT_FIND_MAX, copyText } from '../net/chat.js';   // CHAT-FIND: the search's own law
-import { guildTagText } from '../net/guild/guildLaw.js';   // GUILD1c: the guild's tag beside a name, as over a head
+import { guildTagText } from '../net/guildLaw.js';   // GUILD1c: the guild's tag beside a name, as over a head
 import { glyphBadges, glyphSvgNode, cssRgba, TITLE_RGBA } from './playerBadge.js';   // ACC3c: the same table the name over a head reads - a name wears its glyphs everywhere it is drawn (TITLE-C: its title over the head alone, never in the chat); cssRgba comes from HERE and not ui/nameLayer.js, which would pull the whole remote-player pass into this panel
 import { rosterRows, rosterTitle } from '../net/roster.js';   // CHAT-R1: who is online, in order (the cap is the model's own - AUDIT-CHATR F4: this file imported it and never used it, and lint could not see that: no-unused-vars is on for server/src and not for src)
 import { PARTY_GREEN_CSS } from '../net/social.js';   // CHAT-CHAN: the Party tab's mark wears the party's one green
 import { SHORTCODE_LIST, findCommandOf } from '../net/chatCommands.js';   // EMOTE1: the picker offers the shortcodes' own emoji, in their order, so a pick and a :code: say the same thing
-import { getPref, setPref } from '../systems/uiPrefs.js';   // CHAT-R2: the hidden state outlives the session
+import { getPref, setPref } from './uiPrefs.js';   // CHAT-R2: the hidden state outlives the session
 import { CHANNEL_COLOURS, NAME_COLOURS, PING_COLOURS, RP_COLOURS, channelRules, pipRules } from './chatColours.js';   // CHAT-COLOURS, NAME-INK, PING1
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';   // FONT1: the enhanced skin's own face, unsmoothed, with Silkscreen's five
-import { t } from '../systems/textManager.js';   // CHAT-TRADE: the channel picker's words in the player's language
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { t } from './textManager.js';   // CHAT-TRADE: the channel picker's words in the player's language
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { voiceMeText, voiceRedText } from '../net/chatVoice.js';   // STAFF-CHAT-RED: the voice switch's two words
 import { chatItemsOf, chatItemLink, chatTextParts, hideChatItemTip, openLinkQuery, matchBagItems, takePendingLinks, prunePendingLinks } from './chatItemLink.js';   // CHAT-POST: coloured [Name] + the pack's hover card; `[` opens a bag picker in the field
-import { itemChatLabel, itemLine, linePictureUrl } from './enhanced/enhancedInventory.js';   // CHAT-POST: label + pack icon for the [ picker
+import { itemChatLabel, itemLine, linePictureUrl } from './enhancedInventory.js';   // CHAT-POST: label + pack icon for the [ picker
 import { createChatMenu, CHAT_MENU_CSS } from './chatMenu.js';   // CHAT-REWORK: the player menu, a popover under a name
 import { smoothWheel } from './chatScroll.js';   // CHAT-REWORK: eased wheel scrolling
 import { createChatPopout } from './chatPopout.js';   // CHAT-REWORK: the chat in its own window

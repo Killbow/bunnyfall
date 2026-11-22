@@ -26,12 +26,12 @@
 // The skin fork is charSheetDoor's, for the reason that door gives:
 // the classic window survives a failed art load and the enhanced one
 // reads no ARENA2 at all, so the readiness gate differs by skin.
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28: Tab puts it away
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it away
 import { SpellbookWindow, spellbookArtLoaded } from './spellbookWindow.js';
-import { setSpellQuickslot } from '../systems/quickslots.js';   // QS8 (the drop's QS7, renamed - QS7 is one mode, one dispatch): a spell readied from the book becomes the spell slot's
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { setSpellQuickslot } from '../items/quickslots.js';   // QS8 (the drop's QS7, renamed - QS7 is one mode, one dispatch): a spell readied from the book becomes the spell slot's
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { spellbookArtLoaded };
 
@@ -119,7 +119,7 @@ function enhancedSpellbookOverlay(shared, onClose) {
     // MENU1: the ONE lazy-chunk door (ui/enhanced/enhancedChunk.js) - retried
     // once, then SPOKEN rather than closed in silence.
     mountEnhancedChunk({
-      load: () => import('./enhanced/enhancedSpellbook.js'),
+      load: () => import('./enhancedSpellbook.js'),
       mount: ({ mountEnhancedSpellbook }) => { view = mountEnhancedSpellbook(host, { ...shared, onExit: close }); },
       alive: () => !done, host, onDismiss: close, label: 'spellbook',
     });

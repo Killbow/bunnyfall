@@ -5,7 +5,7 @@
 // inspector's rows for the people a POI already has. A look is a Daggerfall sprite picked from a grid of the game's own
 // flats, or a picture the builder uploads. The panel hands its helpers in, so this file adds no weight to it
 // (scenes/poiNpcs.js is where they stand in the world, poi/poiLaw.js what the store accepts).
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { lawName } from '../../poi/poiEdit.js';
 import { marksOf } from '../../poi/poiScene.js';
 import { POI_LIMITS } from '../../poi/poiLaw.js';
@@ -127,7 +127,7 @@ export function createPoiNpcUi(c) {
         if (!file) return;
         try {
           const bytes = await c.readFile(file);
-          const meta = poiImageMetaOf(bytes);
+          const meta = /** @type {{ format?: string, w?: number, h?: number, type?: string, error?: string }} */ (poiImageMetaOf(bytes));
           if (meta?.error) { picInfo.textContent = t('poi.editor.picBad', 'That picture cannot be used.'); return; }
           if (!mine()) return;
           pic = { bytes, url: URL.createObjectURL(new Blob([bytes], { type: meta.type ?? 'image/png' })) };

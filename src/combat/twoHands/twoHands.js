@@ -33,7 +33,7 @@
 // go down out of the view as the run starts and the arms come up from under it, and back when it ends; a punch thrown on
 // the run takes the fist at once.
 
-import { createWeaponWidget } from '../weapon/weaponWidget.js';
+import { createWeaponWidget } from '../weaponWidget.js';
 import { fpsWeaponQuad, getWeaponAnims, STATE_INDEX, WEAPON_TYPES, NATIVE_W, NATIVE_H } from '../fpsWeapon.js';
 import {
   HANDS_MODE, twoHanded, otherHand, mirrorRect, MIRROR_UV, handOnLeft, MELEE_PAINTED_ARM, strikePicture,

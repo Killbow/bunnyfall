@@ -52,16 +52,16 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
   const timing = await page.evaluate(async () => {
     const { mountNoticeBoard } = await import('/src/ui/noticeWindow.js');
     const NB = await import('/src/net/noticeBook.js');
-    const { materialLabel, materialCountLabel } = await import('/src/systems/professions/profItems.js');
+    const { materialLabel, materialCountLabel } = await import('/src/professions/profItems.js');
     const { WEAVERS_STOCK, APOTHECARY_STOCK } = await import('/src/net/professionLaw.js');
     // PACK-PICK: a realm character's pack as the producers mint it - a body's loot, two pieces rolled up the ladder, a
     // potion and a gem (the Stores' - refused), a quest's piece (refused) - and the pictures from the player's own data
-    const { generateRandomLoot, LOOT_MATRICES } = await import('/src/systems/loot/loot.js');
-    const { applyRarity, LOOT_RARITY_KEY } = await import('/src/systems/loot/lootRarity.js');
-    const { seededRng } = await import('/src/systems/wind/wind.js');
-    const { setPref } = await import('/src/systems/uiPrefs.js');
-    const { createMarketGoods } = await import('/src/systems/tradePack.js');
-    const { itemPicture } = await import('/src/ui/menu/menuPicture.js');
+    const { generateRandomLoot, LOOT_MATRICES } = await import('/src/items/loot.js');
+    const { applyRarity, LOOT_RARITY_KEY } = await import('/src/items/lootRarity.js');
+    const { seededRng } = await import('/src/weather/wind.js');
+    const { setPref } = await import('/src/ui/uiPrefs.js');
+    const { createMarketGoods } = await import('/src/trade/tradePack.js');
+    const { itemPicture } = await import('/src/ui/menuPicture.js');
     setPref(LOOT_RARITY_KEY, true);
     // AUDIT PACK-PICK: twelve bodies' loot, enough that a desktop's tiles scroll too
     const loot = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].flatMap((s) => generateRandomLoot({ ...LOOT_MATRICES['-'], MinGold: 0, MaxGold: 0, WP: 100, AM: 100, MI: 100, CL: 60, C1: 60, P1: 40 }, { level: 12, gender: 'male' }, seededRng(s)))

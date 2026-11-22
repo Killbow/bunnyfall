@@ -5,7 +5,7 @@
 // ED_FOE_DAMAGE_MULT over what the dungeon makes them; SIFRIT, stood in one, is the Forbidden One boosted (ED_SIFRIT_*).
 // Two calls the dungeon host makes (scenes/dungeonContext.js): `edLayoutFoes` over its layout's list, `edFoeStood` on each
 // foe it builds. Not a DFU member.
-import { wildHallFoes } from '../wild/wildDungeons.js';
+import { wildHallFoes } from '../../world/wildDungeons.js';
 import { SIFRIT_ID } from '../sifrit/sifritLaw.js';
 import { makeSifrit } from '../sifrit/sifritFight.js';
 import { ED_FOE_RING, ED_FOE_HEALTH_MULT, ED_FOE_DAMAGE_MULT, ED_SIFRIT_HEALTH_MULT, ED_SIFRIT_DAMAGE_MULT } from '../../net/eliteDungeonLaw.js';

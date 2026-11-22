@@ -1,6 +1,6 @@
 // @ts-check
 // BUNNYFALL: the server restart warning on the player's screen (net/restartLaw.js has the rules).
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { RESTART_REMINDERS_S } from '../net/restartLaw.js';
 
 const STYLE_ID = 'bf-restart-style';

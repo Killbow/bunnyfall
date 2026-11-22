@@ -11,7 +11,7 @@
 // current locale's Internal_Quests, as DFU's into its selected one. English has no -LOC file, so nothing here ever
 // speaks for it: its quests read their own source, byte for byte.
 
-import { localeDocument, localeTable, tryGetLocalizedText, runtimeCollectionName, currentLocale, textRevision, TextCollections } from '../textManager.js';
+import { localeDocument, localeTable, tryGetLocalizedText, runtimeCollectionName, currentLocale, textRevision, TextCollections } from '../../ui/textManager.js';
 import { staticMessagesTable } from './tables.js';
 import { splitField, getFieldStringValue } from './parseUtils.js';
 

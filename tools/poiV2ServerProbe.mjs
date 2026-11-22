@@ -13,7 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { poiV2Example } from './poiV2Examples.mjs';
 import { mintGift } from '../server-account/src/staffGive.js';
-import { itemFindings } from '../src/systems/item/itemLaw.js';
+import { itemFindings } from '../src/items/itemLaw.js';
 import { handRecord } from '../src/poi/poiSettle.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');

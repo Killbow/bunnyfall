@@ -21,7 +21,7 @@
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { EG_ABSENT_TRIAL_MS } from '../../net/eliteGates/egLaw.js';
 import { EG_PRES_TEXT } from './egBeats.js';
-import { t } from '../../systems/textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
+import { t } from '../textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
 
 /** The numerals (section 6.1 - the company's own, I to VIII). */
 export const EG_NUMERALS = Object.freeze(['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']);

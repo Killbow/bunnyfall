@@ -99,7 +99,7 @@ import { BAYER_GLSL, BAYER_MEAN } from './orderedDither.js';   // EL6: the port'
 import { spherePlanes, recordVisible, subMeshVisible, batchVisible, ZERO_ORIGIN } from './bounds.js';   // EL5: the emission replay culls by the records' spheres too (a leaf's import: bounds.js touches no GL)
 import { billboardKey } from './billboardKey.js';   // AUDIT 68 S16-bbkey-stale-shadow-reach: re-keyed here, however the batch reached the records
 import { windfallLawOn, swayShare } from './windfallSway.js';   // WINDFALL1: a flat's lean under Windfall's law, as the main pass drew it
-import { pageParam } from '../systems/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
+import { pageParam } from '../platform/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
 import { GLASS_INTERIOR, GLASS_EXTERIOR, RW_SEED_GLSL } from './realWindows.js';   // RW1: an interior's declared glass, which the emission replay never blooms - FINAL AUDIT: nor a dark room's
 
 /** The kill door: `?air=off` keeps EL1 and EL2 and drops the three effects. */

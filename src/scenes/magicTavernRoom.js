@@ -13,10 +13,10 @@
 
 import { BUILDING_TYPES } from '../world/buildingNames.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
-import { blockBuildingCount, makeBuildingKey } from '../systems/talk/talkTopics.js';
+import { blockBuildingCount, makeBuildingKey } from '../talk/talkTopics.js';
 import { magicTavernsOn, magicTavernKeyOf, MAGIC_ROOM, MAGIC_HALL_BLOCKS, MAGIC_KEEPER } from '../systems/magicTavern.js';
 import { magicGlassRestyle } from '../render/magicTavernLook.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 /** The line said as the portal lets a player in. */
 export const magicHallGreeting = () => t('magictavern.enter', 'The portal closes behind you. Stars wheel beyond the windows, and Nyx polishes a glass at the bar.');

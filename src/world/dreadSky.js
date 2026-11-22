@@ -39,8 +39,8 @@
 // asks the hub link, and there is none.
 // ═══════════════════════════════════════════════════════════════════
 
-import { seededRng } from '../systems/wind/wind.js';
-import { thunderOf } from '../systems/distantStorms.js';
+import { seededRng } from '../weather/wind.js';
+import { thunderOf } from '../weather/distantStorms.js';
 
 /** The live event this file draws (net/wire.js LIVE_EVENTS). */
 export const DREAD_EVENT = 'dread';

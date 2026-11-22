@@ -17,11 +17,11 @@ import {
 } from '../../net/eliteDungeonLaw.js';
 import { SIFRIT_ID } from '../sifrit/sifritLaw.js';
 import { sifritBarOf } from '../sifrit/sifritFight.js';
-import { WILD_HALL_FOES } from '../wild/wildDungeons.js';
-import { setEliteDungeonInside } from '../wild/cromwark.js';
+import { WILD_HALL_FOES } from '../../world/wildDungeons.js';
+import { setEliteDungeonInside } from '../../world/wild/cromwark.js';
 import { beginRoar } from '../../ai/tactics.js';
 import { bossifyBlow } from '../../ai/blowShapes.js';
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** How often a game waiting on a summon asks again while no Sifrit stands (ms). */
 const ASK_AGAIN_MS = 60_000;
@@ -30,19 +30,9 @@ const CLAIM_RETRY_MS = 15_000;
 const CLAIM_TRIES = 30;
 
 /**
- * @param {{
- *   io: () => any,                                          the account door, or null offline
- *   book: () => any,                                        the elite dungeons' book (edBook.js)
- *   loc: () => any,                                         the dungeon's DFLocation while one is mounted, else null
- *   foes: () => any[],                                      the dungeon's foe pool
- *   standNear: (mobileType: number) => any,                 stand a foe near the player (the loose placement) - a promise of it
- *   standAt: (mobileType: number, at: number[]) => any,     stand a foe at a point - a promise of it
- *   feet: () => number[] | null,                            the player's feet
- *   say: (text: string) => void,                            a line in the chat
- *   bar: (b: { name: string, frac: number } | null) => void,   her boss bar (null: none)
- *   now?: () => number,                                     seconds
- *   nowMs?: () => number,
- * }} deps
+ * @param {{ io: () => any, book: () => any, loc: () => any, foes: () => any[], standNear: (mobileType: number) => any,
+ *   standAt: (mobileType: number, at: number[]) => any, feet: () => number[] | null, say: (text: string) => void,
+ *   bar: (b: { name: string, frac: number } | null) => void, now?: () => number, nowMs?: () => number }} deps
  */
 export function createEliteDungeonFight(deps) {
   const now = deps.now ?? (() => performance.now() / 1000);

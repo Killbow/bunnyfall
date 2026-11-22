@@ -15,7 +15,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'acorn';
-import { DEFAULT_COLLECTION_NAMES, loadStringTableCsv } from '../src/systems/textManager.js';
+import { DEFAULT_COLLECTION_NAMES, loadStringTableCsv } from '../src/ui/textManager.js';
 import { isMain } from './lib/isMain.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -46,7 +46,7 @@ const collectionOf = (n) => (n?.type === 'MemberExpression' && n.object?.name ==
 function* coreCallers(root, names) {
   for (const path of walk(join(root, 'src'))) {
     const file = relative(root, path).split('\\').join('/');
-    if (file === 'src/systems/textManager.js') continue;
+    if (file === 'src/ui/textManager.js') continue;
     const text = readFileSync(path, 'utf8');
     if (![...names].some((r) => text.includes(r))) continue;
     const ast = parse(text, { ecmaVersion: 'latest', sourceType: 'module', locations: true });

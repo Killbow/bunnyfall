@@ -23,7 +23,7 @@
 // item table's JSON - DFU's enchantment budgets, one home - and the
 // recipe leaf); the client draws and mints by it.
 // ═══════════════════════════════════════════════════════════════════
-import { POTION_RECIPES, potionRecipeKey, potionKeyFromCauldron } from '../systems/potionRecipes.js';   // DFU's twenty, one home (law 1)
+import { POTION_RECIPES, potionRecipeKey, potionKeyFromCauldron } from '../items/potionRecipes.js';   // DFU's twenty, one home (law 1)
 import {
   TIER_RANKS, topTierOf, JOURNEYMAN_RANK, PROF_RANK_MAX, ingredientKeys, keyTemplate,
 } from './professionLaw.js';

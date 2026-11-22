@@ -20,9 +20,9 @@
 // on the boxes it holds - a nudge for a sixth answered the five still up, and nothing asked for it after.
 import { call, storedSession, serviceBase } from './accountClient.js';
 import { staffCopyShown } from './staffChat.js';
-import { appStorage } from '../systems/appStorage.js';
+import { appStorage } from '../platform/appStorage.js';
 import { showStaffMessageBox } from '../ui/staffMessageBox.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 import { STAFF_TAB } from './staffChat.js';
 
 /** The chat tab a message's copy lands on: the freeze slice's Staff tab, declared in its one home (net/staffChat.js - AUDIT 24's one export a name, test/systems/talk/audit24_onehome.test.js). */

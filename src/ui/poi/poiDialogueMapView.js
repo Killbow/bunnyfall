@@ -4,7 +4,7 @@
 // render, so pan, zoom, and the picked line live in the state it is given. Below 60 percent zoom, boxes show only keys
 // and answer counts.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { dialogueMap, MAP_HEAD, MAP_PAD, MAP_W, MAP_GAP_X, MAP_COMPACT_W, MAP_COMPACT_GAP_X } from '../../poi/poiDialogueMap.js';
 import { conditionText } from '../../poi/poiDmEdit.js';
 import { poiDocProblems } from '../../poi/poiLaw.js';

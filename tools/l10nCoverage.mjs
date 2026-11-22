@@ -18,8 +18,8 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseStringTableCsv } from '../src/systems/textManager.js';
-import { LOCALE_CATALOG } from '../src/systems/localeCatalog.js';
+import { parseStringTableCsv } from '../src/ui/textManager.js';
+import { LOCALE_CATALOG } from '../src/ui/localeCatalog.js';
 import { planRun } from './translate.mjs';
 import { readBundledPack } from './l10nPack.mjs';
 import { isMain } from './lib/isMain.mjs';

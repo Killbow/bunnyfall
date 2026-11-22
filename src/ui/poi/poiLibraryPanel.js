@@ -17,14 +17,14 @@
 // Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
+import { t } from '../textManager.js';   // L10N4: the words through the text core
 import { mintShelfId, POI_LIMITS } from '../../poi/poiLaw.js';
 import { lawName } from '../../poi/poiEdit.js';
 import { problemText, problemWhere } from '../../poi/poiText.js';
 import { poiShelf, poiShelfEntry, poiShelve, poiUnshelve, poiPutAsset } from '../../poi/poiService.js';
 import { decodePoiMesh } from '../../poi/poiMesh.js';
 import { shelfEntryOf, putOnShelf, shelfDropsOf } from '../../poi/poiShelf.js';
-import { bytesToBase64 } from '../../systems/save/saveTransfer.js';   // the port's one base64 (no atob/btoa in every host)
+import { bytesToBase64 } from '../../saves/saveTransfer.js';   // the port's one base64 (no atob/btoa in every host)
 
 export const POI_LIBRARY_STYLE_ID = 'dfpoi-library-style';
 export const POI_LIBRARY_CSS = `

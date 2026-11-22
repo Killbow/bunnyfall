@@ -24,7 +24,7 @@
 // - two whole points of mouse sensitivity per click, which is DFU's
 // feel and not a rounding of ours.
 //
-import { roundToInt } from '../systems/mathf.js';
+import { roundToInt } from '../world/mathf.js';
 import { clampScrollIndex } from './verticalScrollBar.js';
 
 // TWO PIECES OF DFU ART THE PORT HAS NO BYTES FOR, both recorded the

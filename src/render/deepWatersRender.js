@@ -47,7 +47,7 @@ import { buildProgram, startPrograms } from './glProgram.js';
 import { FOG_GLSL } from './fogGlsl.js';
 import { COLUMN_GLSL } from './columnGlsl.js';   // DW-F: the column's share, one home (the renderer's billboards take it too)
 import { WATER_LAYER_UNITS } from './waterSurface.js';   // FIELD BUGS 2026-09-29 (the sea) #4: the top's place in the sea's stack
-import { SURFACE_TEXTURE_TILING, SURFACE_SCROLL, FLOOR_TEXTURE_WORLD_SCALE, FLOOR_SHADER_DEFAULTS } from '../world/deepWater/deepWaterLook.js';
+import { SURFACE_TEXTURE_TILING, SURFACE_SCROLL, FLOOR_TEXTURE_WORLD_SCALE, FLOOR_SHADER_DEFAULTS } from '../world/deepWaterLook.js';
 
 // THE COLUMN'S SHARE (the top's alpha, split - see above): columnGlsl.js,
 // one home - the floor and the decorations take it here, DFU's billboards a
@@ -420,7 +420,7 @@ export class DeepWatersRenderer {
   /** BUNNYFALL AUDIT STUT-1c: the sea's seven programs, named so the idle warm starts them all together (render/warmPrograms.js
    *  `{ start, run }`) - run as one plain step they were seven compiles in one 115-130 ms task. */
   warmSteps() {
-    const pairs = [[FLOOR_VS, FLOOR_FS], [SURFACE_VS, TOP_FS], [SURFACE_VS, TOP_FAR_FS], [SURFACE_VS, UNDERSIDE_FS], [SKY_FOG_VS, SKY_FOG_FS], [DECOR_VS, DECOR_FS], [SKY_FOG_VS, UNDER_LOOK_FS]];
+    const pairs = /** @type {[string, string][]} */ ([[FLOOR_VS, FLOOR_FS], [SURFACE_VS, TOP_FS], [SURFACE_VS, TOP_FAR_FS], [SURFACE_VS, UNDERSIDE_FS], [SKY_FOG_VS, SKY_FOG_FS], [DECOR_VS, DECOR_FS], [SKY_FOG_VS, UNDER_LOOK_FS]]);
     return [{ start: () => startPrograms(this.gl, pairs), run: () => { this._ensure(); }, need: () => !this._programs }];
   }
 

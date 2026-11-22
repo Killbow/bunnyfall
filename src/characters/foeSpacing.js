@@ -9,7 +9,7 @@
 // _fallCheck). A departure: DFU's controllers block, the port's pools push.
 import { worldAabb } from '../player/activate.js';   // AUDIT TACT C6: an action door's box
 import { CAPSULE_HEIGHT, CAPSULE_RADIUS, STEP_OFFSET } from '../player/motor.js';   // FIELD BUGS 2026-10-04d CRATE-FREE: a freed body keeps its own floor, a step at most
-import { FALL_CHECK_DROP } from './enemy/enemyMotor.js';
+import { FALL_CHECK_DROP } from './enemyMotor.js';
 
 /** How fast a body is pushed out of another, metres a second. */
 export const FOE_SPACING_SPEED = 3;

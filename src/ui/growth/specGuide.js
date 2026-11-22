@@ -13,20 +13,20 @@
 // The model is pure (specGuideModel - the laws' tables and this entity, nothing drawn); the page draws it with the menu's
 // kit. The words are the laws' own (their passives, riders and choice boxes) and this page's in growth.spec.*.
 
-import { PATHS, pathOf, pathChoices, pathPossible, pathSchoolsText, choosePath, pathChoiceRows, isSignatureSpell, SPEC_RESET_GOLD } from '../../systems/arcanePaths.js';
-import { MARTIAL_PATHS, MARTIAL_SKILLS, MARTIAL_FAMILY, martialPathOf, martialChoices, martialPossible, martialSkillsText, chooseMartialPath, martialChoiceRows, signatureById } from '../../systems/martialPaths.js';
-import { MAGIC_SKILLS, SKILL_NAMES } from '../../systems/skills.js';
-import { masterSkillsActive, masterSkillsSwitchable, isMasteredSkill, careerGroupOf, masterySlots, masterableCount, masterCappedSkill } from '../../systems/masterSkills.js';
-import { signatureSpell } from '../../systems/signatureSpells.js';
-import { specResetRefusal, resetSpec, resetField } from '../../systems/specReset.js';   // SPEC-RESET: a held path given up, for gold
-import { SKILL_SWAP_GOLD, swapOutChoices, swapInChoices, skillSwapRefusal, swapGroupOf, swapSkill, swappedCareer, swapOpens, swapShortfall } from '../../systems/skillSwap.js';   // SKILL-SWAP: a class skill given up for another, for gold
-import { alreadyMasteredASkill } from '../../systems/advancement.js';   // AUDIT SUGGESTIONS-1019 L5-2: the 95 lock a swap moves
-import { usesVirtueLeveling } from '../../systems/oblivionLeveling.js';   // SWAP-CYCLE: the skill sum levels nothing on Oblivion's bar
-import { computeEntityMods } from '../../systems/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now
-import { sigilDueling } from '../../systems/sigil/sigil.js';
-import { lootRarityOn } from '../../systems/loot/lootRarity.js';
-import { effectWords, spellFrame } from '../enhanced/enhancedSpellbook.js';   // the spellbook's own reading of an effect (SB-FX)
-import { t } from '../../systems/textManager.js';
+import { PATHS, pathOf, pathChoices, pathPossible, pathSchoolsText, choosePath, pathChoiceRows, isSignatureSpell, SPEC_RESET_GOLD } from '../../characters/arcanePaths.js';
+import { MARTIAL_PATHS, MARTIAL_SKILLS, MARTIAL_FAMILY, martialPathOf, martialChoices, martialPossible, martialSkillsText, chooseMartialPath, martialChoiceRows, signatureById } from '../../characters/martialPaths.js';
+import { MAGIC_SKILLS, SKILL_NAMES } from '../../characters/skills.js';
+import { masterSkillsActive, masterSkillsSwitchable, isMasteredSkill, careerGroupOf, masterySlots, masterableCount, masterCappedSkill } from '../../characters/masterSkills.js';
+import { signatureSpell } from '../../magic/signatureSpells.js';
+import { specResetRefusal, resetSpec, resetField } from '../../characters/specReset.js';   // SPEC-RESET: a held path given up, for gold
+import { SKILL_SWAP_GOLD, swapOutChoices, swapInChoices, skillSwapRefusal, swapGroupOf, swapSkill, swappedCareer, swapOpens, swapShortfall } from '../../characters/skillSwap.js';   // SKILL-SWAP: a class skill given up for another, for gold
+import { alreadyMasteredASkill } from '../../characters/advancement.js';   // AUDIT SUGGESTIONS-1019 L5-2: the 95 lock a swap moves
+import { usesVirtueLeveling } from '../../characters/oblivionLeveling.js';   // SWAP-CYCLE: the skill sum levels nothing on Oblivion's bar
+import { computeEntityMods } from '../../characters/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now
+import { sigilDueling } from '../../items/sigil.js';
+import { lootRarityOn } from '../../items/lootRarity.js';
+import { effectWords, spellFrame } from '../enhancedSpellbook.js';   // the spellbook's own reading of an effect (SB-FX)
+import { t } from '../textManager.js';
 
 /** The two families, in the page's order. */
 export const SPEC_FAMILIES = Object.freeze(['arcane', 'martial']);

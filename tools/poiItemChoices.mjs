@@ -10,13 +10,13 @@ const OUT = fileURLToPath(new URL('../src/poi/poiItemChoices.js', import.meta.ur
 
 /** Returns the `[template, group, name]` rows allowed by the item and trade laws, sorted by group and name. */
 export async function lawItemChoices() {
-  const { lawTemplate, templateGroups } = await import('../src/systems/item/itemLaw.js');
-  const { ITEM_TEMPLATES } = await import('../src/systems/item/itemTemplates.js');
+  const { lawTemplate, templateGroups } = await import('../src/items/itemLaw.js');
+  const { ITEM_TEMPLATES } = await import('../src/items/itemTemplates.js');
   const { POI_V2_PINS } = await import('../src/poi/poiLawV2.js');
   const { mintGift } = await import('../server-account/src/staffGive.js');
   const { poiTradeProblems } = await import('../src/poi/poiTradeLaw.js');
-  const { GLASS_BOTTLE_TEMPLATE } = await import('../src/systems/inventory.js');
-  const { POTION_RECIPE_TEMPLATE_INDEX } = await import('../src/systems/loot/loot.js');
+  const { GLASS_BOTTLE_TEMPLATE } = await import('../src/items/inventory.js');
+  const { POTION_RECIPE_TEMPLATE_INDEX } = await import('../src/items/loot.js');
   const rows = [];
   for (let i = 0; i <= POI_V2_PINS.decorTemplateMax; i++) {
     if (i === GLASS_BOTTLE_TEMPLATE || i === POTION_RECIPE_TEMPLATE_INDEX) continue;

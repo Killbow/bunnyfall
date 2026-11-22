@@ -40,8 +40,8 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { PNG } from 'pngjs';
-import { decodeTextureArray } from '../src/formats/unity/unityBundle.js';
-import { DFMOD_INDEX_VERSION, manifestDeps, dfmodStoreKey } from '../src/systems/dfmodTextures.js';
+import { decodeTextureArray } from '../src/formats/unityBundle.js';
+import { DFMOD_INDEX_VERSION, manifestDeps, dfmodStoreKey } from '../src/mods/dfmodTextures.js';
 import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');

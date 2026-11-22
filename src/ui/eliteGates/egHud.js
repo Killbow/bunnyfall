@@ -38,12 +38,12 @@ import { egCardAccords } from '../../net/eliteGates/egVestige.js';   // EG-ZS (s
 import { egResonance, egRankOf, EG_ACCORDS, EG_CAPSTONES, EG_V_FAMILY_NAMES } from '../../net/eliteGates/egVestige.js';   // AUDIT EG III: the capstone a card completes, what an Accord does
 import { EG_CANTRIPS } from '../../net/eliteGates/egRun.js';
 import { egTwistShown } from '../../net/eliteGates/egRun.js';   // AUDIT EG V (L2-4): no Bargain's name when no family is free
-import { FRAME_TONES } from '../enhanced/enhancedFrame.js';   // EG-PLUS: the kit's brass for the tracker's head
+import { FRAME_TONES } from '../enhancedFrame.js';   // EG-PLUS: the kit's brass for the tracker's head
 import { PIXEL_FONT_CSS } from '../pixelifyFive.js';   // EG-PLUS: the game's face
 import { dressEgKit, egEl, egHead, egSection } from './egKit.js';   // EG-PLUS: the breach windows' chrome and the kit's classic copy
-import { chartShare, chartNumber } from '../gate/gateDamageChart.js';   // EG-ZF: the share and the numbers as the gate's chart says them
+import { chartShare, chartNumber } from '../gateDamageChart.js';   // EG-ZF: the share and the numbers as the gate's chart says them
 import { EG_PRES_TEXT } from './egBeats.js';   // EG-ZF: the board's line and the chart's words
-import { t } from '../../systems/textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
+import { t } from '../textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
 
 /** Under this, THE COUNT burns red; under this it pulses; above this it is gold (ms). */
 export const EG_HUD_LOW_MS = 2 * 60_000;

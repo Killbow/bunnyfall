@@ -88,15 +88,15 @@ import { reconnectWave } from '../src/net/reconnectWave.js';   // AUDIT SCALE II
 import { inboxCall, MAIL_POLL_MS, MailBox } from '../src/net/mail.js';
 import { createNoticeBook } from '../src/net/noticeBook.js';
 import { startPlayClock } from '../src/net/playClock.js';
-import { realmIo, realmCreate, createRealmSession } from '../src/systems/realmSaves.js';
+import { realmIo, realmCreate, createRealmSession } from '../src/saves/realmSaves.js';
 import { worldRoom, cellHaloFor, CHAT_WORLD_ROOM, chatRegionRoom, PIXEL_UNITS, POSE_TS_MOD } from '../src/net/wire.js';
 import { ACCEPTED } from '../src/net/legalLaw.js';
 import { PLAY_BEAT_S } from '../src/net/playClock.js';
 import { RENOWN_REPORT_MS } from '../src/net/renown.js';
 import { renownRid } from '../src/net/renownTracker.js';
 import { BOARD_CACHE_MS } from '../src/net/boardLaw.js';
-import { YARD_TOWN_TTL_MS } from '../src/scenes/homeYards.js';
-import { ONLINE_CHECKPOINT_MS } from '../src/systems/online/onlineCheckpoint.js';
+import { YARD_TOWN_TTL_MS } from '../src/homes/homeYards.js';
+import { ONLINE_CHECKPOINT_MS } from '../src/saves/onlineCheckpoint.js';
 import { SEAT_RED_READ_MS } from '../src/net/townSeatBook.js';
 import { MOTHERLODE_READ_MS } from '../src/net/motherlodeBook.js';
 import { PROF_CLOSED_RECHECK_MS } from '../src/net/profBook.js';

@@ -6,7 +6,7 @@
 //   what it costs; once chosen, what came of it, the Vitae and the Beast after, and a red flash at the bite.
 // The choices and their consequences are the feeding's own; this file only draws and asks.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { openVampWindow, el, art, bloodGlyph, disciplineGlyph, chip, meter, button, section, screenFlash, BLOOD_COLOUR, STAGE_COLOUR } from './vampKit.js';
 import { archetypeName, resonanceWords, beastStageName, VITAE_MAX } from '../../systems/vampire/bloodLaw.js';
 

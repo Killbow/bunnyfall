@@ -8,7 +8,7 @@
 // location) mint the record here.
 import { isNpcFlat } from './npcFlatArchives.js';
 import { isStandingHorseFlat, standingHorseYaw, standingHorseSeed } from './standingHorses.js';
-import { strangerHorseLook } from '../systems/horse/horseCoats.js';
+import { strangerHorseLook } from '../travel/horseCoats.js';
 
 /** Does this flat stand for a body - a town horse, or a person's flat (one a StaticNPC holds is the NPC pass's, never
  *  asked here)? */

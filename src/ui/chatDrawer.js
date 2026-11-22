@@ -1,8 +1,8 @@
 // The drawer at the side of the chat window, opened by the Social button: Online (the chat's own roster), Friends, and
 // Party. Also the Letters view, which takes the message area. The friends panel (ui/socialPanel.js) draws Friends,
 // Party, and Letters into the slots made here, finding the live chat's dock through `chatDock()` below.
-import { getPref, setPref } from '../systems/uiPrefs.js';
-import { t } from '../systems/textManager.js';
+import { getPref, setPref } from './uiPrefs.js';
+import { t } from './textManager.js';
 
 export const DRAWER_TABS = Object.freeze(['online', 'friends', 'party']);
 

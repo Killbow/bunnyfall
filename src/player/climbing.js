@@ -27,8 +27,8 @@
 // the wall probe live in the motor - they own the capsule.
 
 import { SYSTEM_TIMER_UPDATES_DIVISOR } from './motor.js';
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { overcapClimbSpeed } from '../systems/skillSoftcap.js';   // CLIMB-PAST: a leaf (its one import, masterSkills.js, imports nothing)
+import { localizedText } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { overcapClimbSpeed } from '../characters/skillSoftcap.js';   // CLIMB-PAST: a leaf (its one import, masterSkills.js, imports nothing)
 
 // ClimbingMotor.cs:75-84, verbatim.
 export const CONTINUE_CLIMBING_SKILL_CHECK_FREQUENCY = 15;

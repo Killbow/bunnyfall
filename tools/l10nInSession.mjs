@@ -16,7 +16,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseStringTableCsv, formatStringTableCsv } from '../src/systems/textManager.js';
+import { parseStringTableCsv, formatStringTableCsv } from '../src/ui/textManager.js';
 import { checkDraft, hash, planRun } from './translate.mjs';
 import { isMain } from './lib/isMain.mjs';
 

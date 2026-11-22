@@ -1,7 +1,7 @@
 // @ts-check
 // The size of the canvas in CSS pixels, read once a frame. A read after the HUD writes to the page forces a layout.
 
-import { framesBegun } from '../systems/frameClock.js';
+import { framesBegun } from '../platform/frameClock.js';
 
 /** @param {{ clientWidth: number, clientHeight: number }} canvas */
 export function createCanvasFrameSize(canvas) {

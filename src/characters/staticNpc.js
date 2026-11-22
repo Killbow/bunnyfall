@@ -13,11 +13,11 @@
 
 import { srand } from '../formats/dfRandom.js';
 import { fullName, monsterName, getNameBankOfRegion, BANK_TYPES, GENDERS } from './nameHelper.js';
-import { RACES } from '../systems/races.js';
+import { RACES } from './races.js';
 // ONE HOME for FactionFile.FactionTypes (FactionFile.cs:530-546) - the
 // enum the parser already mints. Individual is 4; 3 is Subgroup.
 import { FACTION_TYPES } from '../formats/factionFile.js';
-import { getLocalizedFactionName } from '../systems/textManager.js';   // L10N3e: a named NPC's faction name, shown in the player's language
+import { getLocalizedFactionName } from '../ui/textManager.js';   // L10N3e: a named NPC's faction name, shown in the player's language
 
 // RR2: `flatsDict[flatId] = new FlatsFile.FlatData { faceIndex }`
 // (RoleplayRealism.cs:1017-1023) - a mod rewrites FLATS.CFG's face for a

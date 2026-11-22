@@ -41,7 +41,7 @@
 // door was never what was wrong: see bible/05-Combat/Shield-Widget.md.
 
 import { toScreenOrder } from '../formats/color32Order.js';
-import { decodePng } from '../systems/textureReplacement.js';
+import { decodePng } from '../render/textureReplacement.js';
 import { SHIELD_TEXTURE_COUNT, shieldTextureName } from './shieldWidget.js';
 import { cachedLoad } from '../assets/loadCache.js';
 

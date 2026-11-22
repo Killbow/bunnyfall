@@ -48,7 +48,7 @@ const mulberry = (a) => () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.i
 /** The laws a run reads - this tree's, or `root`'s. */
 export async function lawsOf(root = ROOT) {
   const at = (p) => pathToFileURL(join(resolve(root), p)).href;
-  return { B: await import(at('src/net/serpent/serpentBrain.js')), S: await import(at('src/systems/serpent/serpentStrike.js')), N: await import(at('src/systems/naval/navalShips.js')) };
+  return { B: await import(at('src/net/serpentBrain.js')), S: await import(at('src/worldEvents/serpentStrike.js')), N: await import(at('src/systems/naval/navalShips.js')) };
 }
 
 /**

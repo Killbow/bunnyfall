@@ -66,9 +66,9 @@
 // exported from here, and scenes/townTalk.js calls it on every directory
 // rebuild.
 
-import { cromwarkSettlementRemoved, filterCromwarkSettlementLookups } from '../systems/wild/cromwarkSettlements.js';
+import { cromwarkSettlementRemoved, filterCromwarkSettlementLookups } from '../world/wild/cromwarkSettlements.js';
 import { BsaFile, DIRECTORY_TYPES } from './bsaFile.js';
-import { worldDataDoor } from './worldData/worldDataDoor.js';   // RR3b: WorldDataReplacement's three asks (MapsFile.cs:984, :999, :1027)
+import { worldDataDoor } from './worldDataDoor.js';   // RR3b: WorldDataReplacement's three asks (MapsFile.cs:984, :999, :1027)
 import { PakFile } from './pakFile.js';
 import { readBuildingData, BUILDING_DATA_SIZE } from './blocksFile.js';
 import { HeldRecords } from './heldRecords.js';

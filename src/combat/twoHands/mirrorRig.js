@@ -72,7 +72,7 @@
 // hand, in the frame the hands' skin is bound in - so the left hand's weapon is the right's in the glass, its grip in
 // the left fist as the right's is in the right, on every skeleton.
 
-import { mat33Mul } from '../../formats/morrowind/mwNifMesh.js';
+import { mat33Mul } from '../../formats/mwNifMesh.js';
 import { HELD_BONE_ALIASES } from '../heldPose.js';
 import { rotAxisAngle } from '../climbRig.js';
 

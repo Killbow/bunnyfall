@@ -36,21 +36,21 @@
 // forwarded here and every arm is pinned.
 // ═══════════════════════════════════════════════════════════════════
 
-import { isEnhanced } from '../systems/uiSkin.js';
+import { isEnhanced } from './uiSkin.js';
 import { PIXEL_FAMILIES } from './pixelifyFive.js';   // FONT3: the wait card names the enhanced face first
 import { eventActions } from './input.js';   // MAC-C: the REGISTRY's answer for the two window keys
-import { mountEnhancedChunk, paintChunkNotice } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door, and the notice it paints when a chunk is gone
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28: Tab puts it away
+import { mountEnhancedChunk, paintChunkNotice } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door, and the notice it paints when a chunk is gone
+import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it away
 import { revenantStarsOver } from './firmamentOver.js';   // RVN-STARS: a sworn one's stars, over Companions
 import { pauseMenuHooks, pauseMenuAct, openPauseFlow } from './pauseDoor.js';   // F5-QUESTS: the pause window's own hooks and act - a cycle (pauseDoor imports this door), read only at call time
 import { CharSheet, LevelUpScreen, charSheetArtLoaded } from './charsheet.js';
 import { charSheetHooks } from './charSheetNav.js';
 import { VirtueLevelUpScreen } from './virtueLevelUp.js';   // ORL1
-import { levelNotices } from './levelUp/levelNotice.js';   // LV2: who already played the fanfare
-import { usesVirtueLeveling } from '../systems/oblivionLeveling.js';   // ORL1
-import { releaseCapLatch } from '../systems/levelCap.js';   // AUDIT FB1026d C1: F5 at the cap opens the sheet, never a level-up with no level
-import { spendPoolLowest } from '../systems/chargen.js';   // LV1: the headless pool policy, for the font-less escape
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { levelNotices } from './levelNotice.js';   // LV2: who already played the fanfare
+import { usesVirtueLeveling } from '../characters/oblivionLeveling.js';   // ORL1
+import { releaseCapLatch } from '../characters/levelCap.js';   // AUDIT FB1026d C1: F5 at the cap opens the sheet, never a level-up with no level
+import { spendPoolLowest } from '../characters/chargen.js';   // LV1: the headless pool policy, for the font-less escape
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { charSheetArtLoaded };
 
@@ -91,7 +91,7 @@ export function warmLevelUpWindow() {
   // a screen that failed" - and a warm is precisely that. Nothing
   // waits on it; the MOUNT still goes through the one home below, with
   // its retry, its notice and its refusal to hand the keys back.
-  return import('./enhanced/enhancedLevelUp.js').catch(() => null);
+  return import('./enhancedLevelUp.js').catch(() => null);
 }
 
 /** The gate a host asks before it opens the sheet. The classic window
@@ -362,7 +362,7 @@ function enhancedSheetPageOverlay(hooks, entity = null, pause = null) {
   function remountPage(at = 'stats') {
     landing = at;
     mountEnhancedChunk({
-      load: () => import('./enhanced/enhancedMenu.js'),
+      load: () => import('./enhancedMenu.js'),
       alive: () => !fired, host, onDismiss: close, label: 'charsheet',
       mount: (mod) => { seams = mod; view = mod.mountEnhancedMenu(host, pageOpts()); },
     });
@@ -377,7 +377,7 @@ function enhancedSheetPageOverlay(hooks, entity = null, pause = null) {
   // had NO catch at all - a deploy that moved `enhancedMenu` left an
   // unhandled rejection and a dial arm that did nothing.
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedMenu.js'),
+    load: () => import('./enhancedMenu.js'),
     alive: () => !fired, host, onDismiss: close, label: 'charsheet',
     mount: (mod) => { seams = mod; view = mod.mountEnhancedMenu(host, pageOpts()); },
   });
@@ -499,7 +499,7 @@ function enhancedLevelUpOverlay(screen, entity) {
   // discarded BonusPool draw, which AUDIT 23 minds about the RNG
   // stream and which no player can observe).
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedLevelUp.js'),
+    load: () => import('./enhancedLevelUp.js'),
     alive: () => !fired, host, onDismiss: close, label: 'levelup',
     mount: ({ mountEnhancedLevelUp }) => {
       stopWaiting();   // the window is the wait's successor, and takes the slot before it is torn down

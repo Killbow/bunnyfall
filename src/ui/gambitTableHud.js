@@ -27,16 +27,16 @@ import {
   KG_COLS, KG_ROWS, KG_POINT_BUDGET, KG_MAX_UNITS, KG_ACTIONS_PER_TURN, KG_POTION_HEAL, KG_ROSTER, KG_TILE, warningsArmAt,
   rosterUnit, armyCost, canRecruit, reachable, foesInRange, pieceById, pieceAt, hazardAt, tileAt, distance, rangeOf, hasLineOfSight,
 } from '../net/kingsGambit.js';
-import { GAMBIT_STAKE_MULTS, GAMBIT_CROWNS, crownIndex, stakeOf } from '../systems/gambit/gambitTableSession.js';
-import { FOE_CARDS } from '../systems/card/cardSources.js';
-import { cardById } from '../net/iliac/iliacCards.js';
+import { GAMBIT_STAKE_MULTS, GAMBIT_CROWNS, crownIndex, stakeOf } from '../cards/gambit/gambitTableSession.js';
+import { FOE_CARDS } from '../cards/cardSources.js';
+import { cardById } from '../net/iliacCards.js';
 import { ILIAC_CARD_ASPECT } from '../render/iliacCardFaces.js';
 import { paintFace, SUIT_CROWNS, RANK_KING } from '../render/cardFaces.js';
-import { cardCanvasCopy } from './card/cardBinderPage.js';
-import { cardPanelChromeCss, dressCardPanel, foldWords } from './card/cardPanelKit.js';
+import { cardCanvasCopy } from './cardBinderPage.js';
+import { cardPanelChromeCss, dressCardPanel, foldWords } from './cardPanelKit.js';
 import { PIXELIFY_FIVE_FACE } from './pixelifyFive.js';
-import { noteFirstUse } from '../systems/tutorials.js';
-import { DPAD_CODES } from './plus/plusPad.js';
+import { noteFirstUse } from './tutorials.js';
+import { DPAD_CODES } from './plusPad.js';
 import {
   unitName, kingName, pieceName, regularLines, stakeLabel, stakeWhat, stakePurse, stakeNight,
   kingLine, unitLine, unitCost, unitChips, armyPointsLeft, unitsHeld, armyKingLine, actionsLeft, refusalWords, cellWords,

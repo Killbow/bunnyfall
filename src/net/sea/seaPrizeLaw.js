@@ -18,10 +18,10 @@
 //
 // Pure: the numbers, and the take over a save as the service holds it.
 // ═══════════════════════════════════════════════════════════════════
-import { itemWorth, classicPiece } from '../../systems/item/itemLaw.js';
-import { isLocked } from '../../systems/item/itemLock.js';
-import { wildTookOf } from '../../systems/wild/wildDropLaw.js';
-import { tradeableRecord } from '../realm/realmTradeLaw.js';
+import { itemWorth, classicPiece } from '../../items/itemLaw.js';
+import { isLocked } from '../../items/itemLock.js';
+import { wildTookOf } from '../../world/wild/wildDropLaw.js';
+import { tradeableRecord } from '../realmTradeLaw.js';
 
 /** The share of her hold's worth a boarded wreck gives up. */
 export const SEA_PRIZE_SHARE = 1 / 3;

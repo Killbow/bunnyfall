@@ -13,8 +13,8 @@
 // a monster takes the +40 (overhaul +50) adjustment and its per-part armour value; a class foe takes neither, and
 // the overhaul reads a flat 60 off it whatever it wears (pcaaoArmorToHit). Damage is shown BEFORE the foe's armour
 // reduces it (the overhaul's reduction depends on the foe's materials and the blow's weight, applied after these figures).
-import { liveStat } from '../systems/statMods.js';
-import { skillValue, SKILLS } from '../systems/skills.js';
+import { liveStat } from '../characters/statMods.js';
+import { skillValue, SKILLS } from '../characters/skills.js';
 import {
   formulaOverride, damageModifier, handToHandMinDamage, handToHandMaxDamage, baseDamageMin, baseDamageMax,
   WEAPON_MATERIAL_MODIFIER, STRUCK_BODY_PARTS, proficiencyModifiers, racialModifiers, adjustWeaponHitChanceMod,
@@ -27,11 +27,11 @@ import {
   PCAAO_BODY_PARTS, unityRound, pcaaoArmorToHit,
 } from './pcaao.js';
 import { SWING_MODS } from './playerWeapon.js';
-import { enchantChanceToHitMod } from '../systems/enchantments.js';
-import { weaponDamageMods, weaponBlowMods } from '../systems/entityMods.js';
+import { enchantChanceToHitMod } from '../magic/enchantments.js';
+import { weaponDamageMods, weaponBlowMods } from '../characters/entityMods.js';
 import { weaponSkillUsed, WEAPONS } from '../characters/weapons.js';
-import { skillsLevel } from '../characters/enemy/enemyEntity.js';
-import { equipTableOf, EQUIP_SLOTS } from '../systems/equip.js';
+import { skillsLevel } from '../characters/enemyEntity.js';
+import { equipTableOf, EQUIP_SLOTS } from '../characters/equip.js';
 import { getItemHands, ITEM_HANDS } from '../characters/equipTable.js';
 import { clawMetalDamage } from './clawMetal.js';   // BAL6-GAUNTLETS: the beast's claws take its gauntlets' metal
 

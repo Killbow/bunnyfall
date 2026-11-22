@@ -17,7 +17,7 @@
 // pixel's), so a recentre moves the cover as it moves the meshes, and a felled tree sunk in its batch sinks its
 // cover with it.
 
-import { getPref } from '../systems/uiPrefs.js';
+import { getPref } from '../ui/uiPrefs.js';
 
 /** A flat lower than this, or narrower, is clutter, not cover (grass, flowers, a bottle, a candle). Metres. */
 export const COVER_MIN_H = 1.2;

@@ -13,10 +13,10 @@
 // what any owner would.
 //
 // Pure. Not a DFU member. Ledger A (STARFALL).
-import { MOBILE_TYPES as M } from '../../characters/mobile/mobileTypes.js';
-import { enemyDisplayName } from '../../characters/enemy/enemyBasics.js';
+import { MOBILE_TYPES as M } from '../../characters/mobileTypes.js';
+import { enemyDisplayName } from '../../characters/enemyBasics.js';
 import { starRoll, STAR_WAVES } from '../../net/starfall/starfallLaw.js';
-import { getLocalizedEnemyName, t } from '../textManager.js';
+import { getLocalizedEnemyName, t } from '../../ui/textManager.js';
 
 /** The coven's members: Mage, Sorcerer, Battlemage, Nightblade - its witches. */
 export const STAR_MEMBERS = Object.freeze([M.Mage, M.Sorcerer, M.Battlemage, M.Nightblade]);

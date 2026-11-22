@@ -29,7 +29,7 @@
 // Not a DFU member: Daggerfall has no market between players.
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 /** The first sweep, after the host is made (ms) - and how often a sweep not yet `ready` looks again. */
 export const ARRIVALS_FIRST_MS = 15_000;

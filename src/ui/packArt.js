@@ -6,7 +6,7 @@
 //
 // A picture the pack does not carry, or one that does not load, answers null and the classic art stands - a missing
 // file must never cost a player a window.
-import { packImgUrl, packCifRciUrl, packColourUrl, packBytes } from '../systems/uiPack.js';
+import { packImgUrl, packCifRciUrl, packColourUrl, packBytes } from './uiPack.js';
 
 const _byRenderer = new WeakMap();   // renderer -> Map<url, Promise<tex|null>>
 let _decode = null;                  // test seam: bytes -> { width, height, data }
@@ -20,7 +20,7 @@ export function packTexture(renderer, url) {
   if (!p) {
     p = (async () => {
       const { toScreenOrder } = await import('../formats/color32Order.js');
-      const decode = _decode ?? (await import('../systems/textureReplacement.js')).decodePng;
+      const decode = _decode ?? (await import('../render/textureReplacement.js')).decodePng;
       const px = toScreenOrder(await decode(await packBytes(url)));
       return renderer.uploadTexture('pack', url, px, { smooth: true, alpha: true });
     })().catch((e) => { console.warn(`[ui pack] ${url} did not load - the classic art stands:`, e?.message ?? e); return null; });

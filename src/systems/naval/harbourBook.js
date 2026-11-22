@@ -29,8 +29,8 @@
 // Not a DFU member. Ledger A (QUAYS).
 import { findHarbour, offsetHarbour, HARBOUR_REACH } from './shipLife.js';
 import { SEA_RING } from '../../world/portSites.js';
-import { TERRAIN_SIZE, sampleKernel, HEIGHTMAP_DIMENSION } from '../../world/terrain/terrainSampler.js';
-import { sampleHeight, isWaterHeight } from '../../world/terrain/terrainTiles.js';
+import { TERRAIN_SIZE, sampleKernel, HEIGHTMAP_DIMENSION } from '../../world/terrainSampler.js';
+import { sampleHeight, isWaterHeight } from '../../world/terrainTiles.js';
 import { locationWorldRect } from '../../world/streamingWorld.js';
 
 /** AUDIT SHIP-LIFE B7: a port whose shore gave no harbour is sounded again after this (s) - the terrain streams in

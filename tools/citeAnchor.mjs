@@ -77,7 +77,7 @@ export const SELF_DOCS = Object.freeze([...SHIFT_SELF_DOCS, 'tools/citeAnchor.mj
  *  src/ui/launcher.js - app/launcher/launcher.js came later). Held as written: nothing they name can move. */
 export const FOREIGN = Object.freeze([
   ['src/ai/enhancedMotor.js', 'main.js'],
-  ['src/ai/nav/navBake.js', 'main.js'],
+  ['src/ai/navBake.js', 'main.js'],
   ['test/ai/nav/enhancedAI.test.js', 'main.js'],
   ['bible/12-Enhanced-AI/Enhanced-AI-Arc.md', 'main.js'],
   ['bible/10-UI/Settings-Screen-Spec.md', 'launcher.js'],

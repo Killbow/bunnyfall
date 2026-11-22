@@ -28,13 +28,13 @@
 //                      inside a wooden one (a press, a shelf box, a band, a socket), where Plus's light words stand on
 //                      the dark wood as the pack's own gold-on-wood labels do.
 // The pictures are the pack's, cut at run time (ui/grimoireArt.js) - nothing new is committed.
-import { FRAME_ROLES, FRAME_CSS } from './enhanced/enhancedFrame.js';
+import { FRAME_ROLES, FRAME_CSS } from './enhancedFrame.js';
 import { CHANNEL_COLOURS, NAME_COLOURS, PING_COLOURS, RP_COLOURS, channelRules, pipRules } from './chatColours.js';   // CHAT-COLOURS, NAME-INK, PING1: the chat's colours on the page
 import { tierMarkCss } from './lootTierMarks.js';   // LOOT-MARKS: the quick loot's tier gem and wash, on the page
 import { buildGrimoireArt, grimoireFontUrl, grimoireImg, artVar, FRAME_ART, nativeSize, BOOK_SLICE, PLATE_SLICE,
   VIAL_CUT, DIAL_ICONS, dialIconSize, dialArtName, grimoireDeskUrl } from './grimoireArt.js';
-import { getPref, setPref } from '../systems/uiPrefs.js';
-import { pageParam } from '../systems/pageQuery.js';
+import { getPref, setPref } from './uiPrefs.js';
+import { pageParam } from '../platform/pageQuery.js';
 
 export const GRIMOIRE_DRESS = 'grimoire';
 /** The scope every rule of the dress sits under. */
@@ -409,7 +409,7 @@ export function bookSound(was, now, t = nowMs()) {
 let _audio = null;
 /** Play one of the game's clips, at the player's own volume (lazily: the sound system loads with the game). */
 function playClip(name) {
-  (_audio ??= Promise.all([import('../systems/audio.js'), import('../systems/soundClips.js')]).catch(() => null))
+  (_audio ??= Promise.all([import('../audio/audio.js'), import('../audio/soundClips.js')]).catch(() => null))
     .then((m) => { if (m) m[0].audio?.playOneShot?.(m[1].SOUND[name], 1); })
     .catch(() => {});
 }

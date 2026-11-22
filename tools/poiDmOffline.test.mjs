@@ -11,8 +11,8 @@ import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
 import { createPoiDm, mintStack, deviceClaims } from '../src/poi/poiDmRuntime.js';
 import { createWeapon } from '../src/combat/enemyEquipment.js';
-import { ARROW_TEMPLATE } from '../src/systems/inventory.js';
-import { GOLD_INT_MAX } from '../src/systems/item/itemLaw.js';
+import { ARROW_TEMPLATE } from '../src/items/inventory.js';
+import { GOLD_INT_MAX } from '../src/items/itemLaw.js';
 import { mintGift } from '../server-account/src/staffGive.js';
 
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);

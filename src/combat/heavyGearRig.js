@@ -9,8 +9,8 @@
 //     rope and rest are drawn.
 
 import { registerFootSpeedMod } from '../player/motor.js';
-import { betterAmbience } from '../systems/betterAmbience.js';
-import { SOUND } from '../systems/soundClips.js';
+import { betterAmbience } from '../audio/betterAmbience.js';
+import { SOUND } from '../audio/soundClips.js';
 import { isBallistaItem, isGrappleItem, BALLISTA_FOOT_MULT, BALLISTA_KICK } from '../characters/heavyGearIds.js';
 import { predictArc, bindBallistaFx } from './ballista/ballistaFlight.js';
 import { setGrappleHeld, grappleClick, grappleFrame, grappleView, bindGrappleSay } from './grapple/grapple.js';

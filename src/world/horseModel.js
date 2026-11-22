@@ -20,8 +20,8 @@
 //    (systems/horse/horseCoats.js recolorHorseTexels) lays a look by - the sprites' law, on the horse's own surface.
 //
 // Pure: no DOM, no GL, no clock. Not a DFU member: Daggerfall's horse is a sprite. Ledger A (COATS3D).
-import { texelPlanes } from '../systems/horse/horseCoats.js';
-import { SKIN_STATIC_FLOATS, skinStreamFloats } from '../formats/morrowind/mwGpuSkin.js';
+import { texelPlanes } from '../travel/horseCoats.js';
+import { SKIN_STATIC_FLOATS, skinStreamFloats } from '../formats/mwGpuSkin.js';
 import { SKIN_PAL_ROW } from '../render/skinPalette.js';
 
 /** The bake and its two pictures (the body's, the mane and tail cards'). */

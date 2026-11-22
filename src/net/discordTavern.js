@@ -1,5 +1,5 @@
 import { call } from './accountClient.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 const path = '/v1/integrations/discord/game';
 

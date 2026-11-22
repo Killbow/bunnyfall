@@ -36,7 +36,7 @@ import {
   YARD_ART_KIT, SIGN_EMBLEM, SIGN_ART_H,
   yardWoodArt, yardPlankArt, yardShingleArt, yardHayArt, yardDirtArt, yardGravelArt, yardWaterArt, yardIronArt, YARD_REC, YARD_ART_SIZE,
 } from './merchantYards/merchantYardArt.js';
-import { PORT_PLACES } from '../systems/portPlaces.js';
+import { PORT_PLACES } from '../travel/portPlaces.js';
 
 const { rng, noiseField, image, put, get, mix, IRON_DARK, IRON_LIGHT, board, paintWord } = YARD_ART_KIT;   // the yards' painting tools
 

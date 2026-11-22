@@ -31,7 +31,7 @@
 //   node tools/peerRangeProbe.mjs
 // ═══════════════════════════════════════════════════════════════════
 import { RemotePlayers } from '../src/net/remotePlayers.js';
-import { createPeerRange, PEER_RANGE_TIERS } from '../src/net/peer/peerRange.js';
+import { createPeerRange, PEER_RANGE_TIERS } from '../src/net/peerRange.js';
 import { Renderer } from '../src/render/renderer.js';
 
 function countingRenderer() {

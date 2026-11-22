@@ -9,7 +9,7 @@
 // here key for key, ketchRefusal), the blows' and the constructs' names its records carry (net/ketch/ketchWarden.js,
 // net/ketch/ketchConstructs.js - the page reads them by key, never by those words) and the herald's Discord cards
 // (net/ketch/ketchHerald.js). The relay sets no locale; this file is what the page says. Not a DFU member. Ledger A (KETCH).
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 import { KT_TEXT, ketchVoyageAt } from '../../net/ketch/ketchLaw.js';
 
 /** THE VOYAGE'S AND THE SHIP'S LINES. */

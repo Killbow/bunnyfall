@@ -17,9 +17,9 @@
 // tier reads as the default, the same rule the Features bar draws it by
 // (ui/enhanced/enhancedMenu.js tileStates, BLOOD AUDIT 5), and the shelf's load
 // drops it (uiPrefs.js loadPrefs), so the bar and the laws never disagree.
-import { getPref } from '../uiPrefs.js';
+import { getPref } from '../../ui/uiPrefs.js';
 import { SURVIVAL_OFF, tierOfStored, rulesForTier } from './difficulty.js';
-import { isOnlinePage } from '../online/onlineLane.js';   // CORPSE-FOOD: a leaf too - it imports nothing
+import { isOnlinePage } from '../../platform/onlineLane.js';   // CORPSE-FOOD: a leaf too - it imports nothing
 
 export const SURVIVAL_PREF = 'survival';
 /** 'off', 'boons', 'casual' or 'hard' (SURV-BOONS). */

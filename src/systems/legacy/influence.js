@@ -12,8 +12,8 @@
 //    resident's regard ("your mother saved my son"; and a grudge is half a grudge).
 //  - THE HOUSE'S NEWS (`noteNews`, `newsFor`): a death, a laying to rest, a wedding and a birth are told for HOUSE_NEWS_DAYS in
 //    the town where they happened and in the family's seat - by name and by house.
-import { LEGAL_REP_MIN, LEGAL_REP_MAX } from '../court.js';
-import { changeReputation } from '../faction/factionRep.js';
+import { LEGAL_REP_MIN, LEGAL_REP_MAX } from '../../justice/court.js';
+import { changeReputation } from '../../guilds/factionRep.js';
 import { houseWord } from './houseName.js';   // LEGACY-NAME: "House Sentinel", never "House of Sentinel"
 
 export const STANDING_SHARE = 0.25;

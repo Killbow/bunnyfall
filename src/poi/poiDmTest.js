@@ -8,7 +8,7 @@
 // run nothing (poiHost.js `dmHeld`). Persistent variables and claims live in memory; nothing goes to the service.
 
 import { giveGoods, goldOf } from './poiSettle.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 /** Whether a document has DM content a test can run (the POI host's own rule). @param {any} doc */
 export const testable = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length)

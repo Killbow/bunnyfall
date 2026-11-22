@@ -50,9 +50,9 @@
 
 import { rand, srand, randomRangeInclusive } from '../formats/dfRandom.js';
 import { REGION_RACES } from '../formats/mapsFile.js';
-import { RACES } from '../systems/races.js';
-import { localeDocument, localizedText } from '../systems/textManager.js';   // L10N3f: a pack's NameGen.txt and the Nord suffix
-import { PACK_KIND } from '../systems/translationPacks.js';
+import { RACES } from './races.js';
+import { localeDocument, localizedText } from '../ui/textManager.js';   // L10N3f: a pack's NameGen.txt and the Nord suffix
+import { PACK_KIND } from '../ui/translationPacks.js';
 import nameGen from './nameGen.json' with { type: 'json' };
 
 export const BANK_TYPES = Object.freeze({

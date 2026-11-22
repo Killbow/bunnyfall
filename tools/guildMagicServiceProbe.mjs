@@ -115,7 +115,7 @@ out.steps.membership = JSON.parse(await page.evaluate(() => window.__joinGuild(u
   // Stage every item the mode will accept, then read the cost. Only
   // the enchanted one may be taken, so the cost is ONE item's.
   const staged = await page.evaluate(async () => {
-    const tm = await import('/src/systems/tradeModes.js');
+    const tm = await import('/src/trade/tradeModes.js');
     const e = window.__playerEntity;
     const pack = e.items.filter((i) => i.group === 'Weapons' && i.templateIndex === 118);
     return pack.map((it) => ({

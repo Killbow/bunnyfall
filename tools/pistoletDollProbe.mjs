@@ -35,11 +35,11 @@ import { DFPalette } from '/src/formats/dfPalette.js';
 import { fetchBytes } from '/src/scenes/shared.js';
 import { createDataPipeline } from '/src/scenes/dataPipeline.js';
 import { preloadPaperDollArt, refreshPaperDoll, paperDollPixels } from '/src/ui/paperDoll.js';
-import { createPistolet, installPistoletIcons } from '/src/systems/pistolet.js';
-import { installThunderlockIcons } from '/src/systems/thunderlock.js';
-import { equipItem } from '/src/systems/equip.js';
+import { createPistolet, installPistoletIcons } from '/src/items/pistolet.js';
+import { installThunderlockIcons } from '/src/items/thunderlock.js';
+import { equipItem } from '/src/characters/equip.js';
 import { createWeapon } from '/src/combat/enemyEquipment.js';
-import { mintGilded, SOVEREIGN_PISTOLET_ERA } from '/src/systems/gilded.js';   // GUNS-UNFOUND: the gold Pistolet is the Sovereign's pistolet era
+import { mintGilded, SOVEREIGN_PISTOLET_ERA } from '/src/items/gilded.js';   // GUNS-UNFOUND: the gold Pistolet is the Sovereign's pistolet era
 const renderer = new Renderer(document.getElementById('gl'));
 const palette = new DFPalette();
 palette.load(await fetchBytes('ART_PAL.COL'), 'ART_PAL.COL');

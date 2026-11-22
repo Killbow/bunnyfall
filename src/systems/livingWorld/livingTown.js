@@ -42,14 +42,14 @@
 //    (`WITNESS_M`, a clear line - `o.sees`) counts it a crime; so does every one who saw a hand caught in a purse, and
 //    one of the watch STRUCK (`struck`) remembers the blow. A word's tone (`toned`) moves a regard once a day. The town
 //    talks of it for NEWS_DAYS (`deedNews`): one of its own struck down - and, seen, by whom.
-import { POP_RECYCLE_DISTANCE, maxPopulationFor, popAllowChange } from '../town/townPopulation.js';
-import { PERSON_MOVE_SPEED } from '../../characters/mobile/mobilePerson.js';
+import { POP_RECYCLE_DISTANCE, maxPopulationFor, popAllowChange } from '../../characters/townPopulation.js';
+import { PERSON_MOVE_SPEED } from '../../characters/mobilePerson.js';
 import { townPlaces, exitToward, harbourDock, streetGeometry } from './places.js';
 import { townCensus, isHome, watchShiftSize } from './census.js';
 import { dayPlan, entryAt, isOutdoor, walkMinutes, DAY_START_MIN, DAY_MIN, GUILD_DAY_OFFSETS } from './dayPlan.js';
 import { townClassOf, stillRoleOf, stillFlatOf } from './looks.js';
 import { BUILDING_TYPES } from '../../world/buildingNames.js';
-import { NAV_CELL } from '../../world/city/cityNavigation.js';   // LW-DAWN: a berth's cell
+import { NAV_CELL } from '../../world/cityNavigation.js';   // LW-DAWN: a berth's cell
 import { createPathBook, pointOnLine } from './townPaths.js';
 import { spotCircles, spotRound, circleLine, circlesStands, aloneStand, aloneStands, ROUND_S, GATHER_BEAT_S, lineMinutes, ALONE_FAR_M, SPACE_M } from './meetups.js';
 import { spotIncidents, stirLine, stirLoud, smallVoice, gateWord } from './stir.js';
@@ -59,7 +59,7 @@ import { lwSeed, textSeed } from './seed.js';
 import { placeKeyOf } from './lives.js';
 import { NEWS_DAYS } from './trips.js';
 import { patronVisits, patronOf, PATRON_DELAY_DAYS } from './patrons.js';   // LW15: a patron's errand to a player's trader
-import { tavernProgress } from '../guild/bunnyMembership.js';
+import { tavernProgress } from '../../guilds/bunnyMembership.js';
 import { carriedNews, reputeOf, reputeKind, regardWithRepute, heardOf } from './carried.js';   // LW16: the word carried, the character's repute
 
 /** AUDIT LEGACY II B2: whose household a resident is of - their own `household` when they live here beyond the census

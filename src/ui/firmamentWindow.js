@@ -23,24 +23,24 @@
 // here decides what may be allocated - it asks the law, and the service asks it again.
 // ═══════════════════════════════════════════════════════════════════
 
-import { t, localizedTable } from '../systems/textManager.js';   // UI-CALM: the read's failure, said; AUDIT GROWTH LANE5-1: every word the window says
+import { t, localizedTable } from './textManager.js';   // UI-CALM: the read's failure, said; AUDIT GROWTH LANE5-1: every word the window says
 import { FIRM_NODES, FIRM_EDGES, SIGNS, SERPENT, FIRM_RADII, signById } from '../net/firmament/firmamentTree.js';
 import {
   pathTo, refundTakes, firmCostOf, fits, pointsLeft, treeDiff, refundSilver, statWords, statDef, overCap, treeStats, treeParts, FIRM_RESPEC_GOLD,
   buildCode, treeOfCode, treeFault,
 } from '../net/firmament/firmamentLaw.js';
 import { firmamentBook } from '../net/firmament/firmamentBook.js';
-import { firmamentStatus, onFirmamentChange } from '../systems/firmamentLive.js';   // FIRM-STATUS: whether the stars act now, said on the side panel
-import { sigilDueling } from '../systems/sigil/sigil.js';
+import { firmamentStatus, onFirmamentChange } from '../characters/firmamentLive.js';   // FIRM-STATUS: whether the stars act now, said on the side panel
+import { sigilDueling } from '../items/sigil.js';
 import { accountRefusalText } from '../net/accountClient.js';   // AUDIT UICALM-FIRM1 L4 L4: a refusal the window has no words for, in the account's
-import { FRAME_TONES } from './enhanced/enhancedFrame.js';
+import { FRAME_TONES } from './enhancedFrame.js';
 import { GRIM_TONES, GRIMOIRE_STACK, px } from './grimoireDress.js';
 import { artVar } from './grimoireArt.js';
 import { wrapAngle } from '../world/mat4.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { audio } from '../systems/audio.js';   // the UI's own click, for a press on the sky (its buttons click through ui/uiClickSound.js)
-import { SOUND } from '../systems/soundClips.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { registerOverlay } from './enhancedOverlays.js';
+import { audio } from '../audio/audio.js';   // the UI's own click, for a press on the sky (its buttons click through ui/uiClickSound.js)
+import { SOUND } from '../audio/soundClips.js';
 import { capturePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
 
 export const FIRM_STYLE_ID = 'firmament-window-css';

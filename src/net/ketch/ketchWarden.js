@@ -39,7 +39,7 @@ import {
   dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HIT_KINDS, MELEE_REACH, POSE_SLACK, ABSENT_RETIRE_MS, THREAT_PICK, THREAT_DECAY,
   STEP_MAX_MS, HP_SEND_MS, STATE_SEND_MS, REPEAT_MAX, TARGET_HOLD_MS, BREATH_MS, MOVE_RESAY_M, MOVE_RESAY_MS,
   standsAt, retireShare, restoreShare, freeSeat, topDealers, damageChart, chooseAttack, wrapYaw, earned,
-} from '../gate/gateBrain.js';
+} from '../gateBrain.js';
 import { egBlowOf, egFloorWindup, egInShape, shDisc, shLaneAt, shCone, shRing, shAll } from '../eliteGates/egShape.js';
 import { bossSeam } from '../bossSeam.js';
 import { posAt, posAfter } from '../bossRef.js';

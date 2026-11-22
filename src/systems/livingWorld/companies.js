@@ -18,8 +18,8 @@
 //  - THE PILGRIMS' HOLY DAY (`holyDayOf`): a temple town's region's own holy day (holidays.js holidayOn, a day only
 //    its region keeps) inside a pilgrim's cycle draws them to it - out to arrive by its morning, home the next.
 import { lwSeed, lwRng, rollInt, pickOf, textSeed } from './seed.js';
-import { holidayOn, holidayKeptIn } from '../holidays.js';
-import { dayOfYearFromMinutes } from '../gameDate.js';
+import { holidayOn, holidayKeptIn } from '../../world/holidays.js';
+import { dayOfYearFromMinutes } from '../../world/gameDate.js';
 import { DAY_MIN } from './dayPlan.js';
 
 /** A company's size (its first place's draw), and the most a town of that many adventurers keeps together. */

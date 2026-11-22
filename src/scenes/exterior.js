@@ -4,72 +4,72 @@
 // selectable with ?region=<name>&loc=<name>. Ground archive comes from the
 // location's climate (CLIMATE.PAK -> GetWorldClimateSettings).
 
-import { artRaceOf } from '../systems/races.js';   // BUNNYFALL: the race a character is drawn as
-import { setAirGround } from '../systems/weather/airTemperature.js';   // PRECIP1: the air's map (none here)
+import { artRaceOf } from '../characters/races.js';   // BUNNYFALL: the race a character is drawn as
+import { setAirGround } from '../weather/airTemperature.js';   // PRECIP1: the air's map (none here)
 import { walkModeOn, bindWalkMode } from '../player/walkMode.js';   // PADWALK: walk mode, one button on and off
 import { YesNoBoxWindow } from '../ui/yesNoBox.js';   // SOFTCAP3: the Master Skills offer
-import { effectiveLevel } from '../systems/mentorMode.js';   // SOFTCAP2: mentor mode - the level the world is built around
-import { dfmodGroundLayers } from '../systems/dfmodTextures.js';   // GROUND1: an attached mod's terrain tile set
-import { getFloat } from '../systems/settings/settings.js';   // AUDIT 28 W1: NightAmbientLightScale
+import { effectiveLevel } from '../characters/mentorMode.js';   // SOFTCAP2: mentor mode - the level the world is built around
+import { dfmodGroundLayers } from '../mods/dfmodTextures.js';   // GROUND1: an attached mod's terrain tile set
+import { getFloat } from '../platform/settings.js';   // AUDIT 28 W1: NightAmbientLightScale
 import { markPuddleWater, carryPuddleMask } from '../world/puddleMask.js';   // WATER-PUDDLE: the puddle is the art's
-import { dilateCoastalClimate } from '../world/terrain/terrainHelper.js';   // AUDIT C&C (lens T): ReadyCheck's coastal repair, as the streaming host runs it
+import { dilateCoastalClimate } from '../world/terrainHelper.js';   // AUDIT C&C (lens T): ReadyCheck's coastal repair, as the streaming host runs it
 import { WORLD_FRAME } from '../render/renderer.js';   // AUDIT-EL F5
 import { windmillsOn } from '../world/windmills.js';   // WM3: the Windmills pack's switch
-import { wodOn, wodLightColors } from '../world/worldOfDaggerfall/worldOfDaggerfall.js';   // WOD4: the mod's switch and its per-light colours
-import { PRIVATEERS_HOLD_BLOCK, HOLD_MODELS, HOLD_FLATS, holdModelMatrix, holdFireLights, rollHoldFoes } from '../world/worldOfDaggerfall/wodPrivateersHold.js';   // WOD4: the camp at Privateer's Hold
-import { frameBegin, frameEnd, frameAbort } from '../systems/frameClock.js';   // PERF1: the frame's script time; AUDIT-WH2 L1-F4: and the door an early return takes
-import { frameCapSkip } from '../systems/frameCap.js';   // FPS-CAP1: DFU's TargetFrameRate - a held frame re-arms before the clock and the input frame
+import { wodOn, wodLightColors } from '../world/worldOfDaggerfall.js';   // WOD4: the mod's switch and its per-light colours
+import { PRIVATEERS_HOLD_BLOCK, HOLD_MODELS, HOLD_FLATS, holdModelMatrix, holdFireLights, rollHoldFoes } from '../world/wodPrivateersHold.js';   // WOD4: the camp at Privateer's Hold
+import { frameBegin, frameEnd, frameAbort } from '../platform/frameClock.js';   // PERF1: the frame's script time; AUDIT-WH2 L1-F4: and the door an early return takes
+import { frameCapSkip } from '../platform/frameCap.js';   // FPS-CAP1: DFU's TargetFrameRate - a held frame re-arms before the clock and the input frame
 import { deliverOwedShots } from '../ui/screenshot.js';   // SHOT1: a PrintScreen shot is read at this host's frame foot, after its last draw
-import { SKY_CLEAR } from '../render/renderer.js'; import { centreFromFeet } from '../characters/enemy/enemyAnchor.js';   // REVIEW 2026-09-05: one line, so the cites below it hold
+import { SKY_CLEAR } from '../render/renderer.js'; import { centreFromFeet } from '../characters/enemyAnchor.js';   // REVIEW 2026-09-05: one line, so the cites below it hold
 import { FlatAnimator, armFlatAnim } from '../render/flatAnimation.js';   // FA1: the flats that move
-import { racialSuppressPopulationSpawns, racialSuppressTalk, lycanthropeMoveSound } from '../systems/lycanthropy.js';   // V4: the transformed gates; LM1: the 4-20s move-sound loop; DISC10-E L3: the inventory refusal moved INTO the window door
+import { racialSuppressPopulationSpawns, racialSuppressTalk, lycanthropeMoveSound } from '../afflictions/lycanthropy.js';   // V4: the transformed gates; LM1: the 4-20s move-sound loop; DISC10-E L3: the inventory refusal moved INTO the window door
 import { Arch3dFile } from '../formats/arch3dFile.js';
 import { requestLook, makeLookGate, bindCursorToggle, cursorActive } from '../player/pointerLock.js';   // U45: bindCursorToggle is PlayerMouseLook.cursorActive
-import { attachTouch } from '../ui/touch/touch.js';
+import { attachTouch } from '../ui/touch.js';
 import { quickslotHand } from '../ui/quickslotTags.js';   // DISC21-C: an empty quickslot press reads the hand
 import { attachGamepad } from '../ui/gamepadInput.js';   // GP1: the pad speaks the same hooks
 import { BlocksFile } from '../formats/blocksFile.js';
-import { bindWorldDataBlocks } from '../formats/worldData/worldDataReplacement.js';   // RR3b
-import { loadModWorldData } from './modWorldData.js';   // RR3b
+import { bindWorldDataBlocks } from '../formats/worldDataReplacement.js';   // RR3b
+import { loadModWorldData } from '../mods/modWorldData.js';   // RR3b
 import { DFPalette } from '../formats/dfPalette.js';
 import { MapsFile, longitudeLatitudeToMapPixel, REGION_RACES, LOCATION_TYPES, REGION_NAMES } from '../formats/mapsFile.js';   // QX1: GetRaceOfCurrentRegion   // AUDIT 58: LOCATION_TYPES for the graveyard ambient arm
-import { isPlayerInTown } from '../systems/nearbyObjects.js';   // PlayerGPS.IsPlayerInTown, both optional flags
+import { isPlayerInTown } from '../world/nearbyObjects.js';   // PlayerGPS.IsPlayerInTown, both optional flags
 import { giveOffer } from '../ui/pendingOffer.js';   // AUDIT 58: DaggerfallUI.GiveOffer, the rung in front of the rest press
-import { convertTilemap, isOutdoorWaterTile } from '../world/terrain/terrainSurface.js';   // FD1: PlayerTileMapIndex == 0
+import { convertTilemap, isOutdoorWaterTile } from '../world/terrainSurface.js';   // FD1: PlayerTileMapIndex == 0
 import { waterUniforms, tilemapRectHasWater, waterSwitchOn, buildWaterIndices } from '../render/waterSurface.js';   // WATER1: the enhanced water surface over the town's ground; WATER-AUDIT: asked over the real extent
-import { waterBedOf, flatGrid } from '../world/water/waterBed.js';   // WATER-NEXT 2: the town's grid and the bed under its water
-import { createRipples, createRippleStir, RIPPLE_SPAN, RIPPLE_CELLS } from '../world/water/waterRipples.js';   // AUDIT WATER-NEXT m12: the rings round a wading player, the streaming world's own stir
+import { waterBedOf, flatGrid } from '../world/waterBed.js';   // WATER-NEXT 2: the town's grid and the bed under its water
+import { createRipples, createRippleStir, RIPPLE_SPAN, RIPPLE_CELLS } from '../world/waterRipples.js';   // AUDIT WATER-NEXT m12: the rings round a wading player, the streaming world's own stir
 import { GROUND_OFFSET, GROUND_TILE_DIM } from '../world/rmbLayout.js';
-import { GROUND_RECORD_LIMIT } from '../world/terrain/terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
-import { climbRigInput } from '../player/climb/climbPose.js';   // CLIMB6: the body's limbs on the climb
+import { GROUND_RECORD_LIMIT } from '../world/terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
+import { climbRigInput } from '../player/climbPose.js';   // CLIMB6: the body's limbs on the climb
 import { PlayerMotor, startRestGroundedCheck, motionBagOf, CAPSULE_RADIUS } from '../player/motor.js';   // the rest gate's grounded input, one home; WW2: the one motion bag
 import { exteriorSurfaces, downProbe, rayDistanceFor, ON_EXTERIOR_WATER, exteriorSwimming } from '../player/exteriorSurface.js';   // ROAD-B (b3): PlayerMotor's three exterior surface methods; OT1: IsPlayerSwimming above ground
-import { isOnFoot, TRANSPORT_MODES, hasHorse, hasCart } from '../systems/transport.js';   // HCC: TransportManager.HasHorse / HasCart   // TransportManager.IsOnFoot - the raycast's reach and the mounted footstep gate
-import { jumpSpeedMultiplier, isEnhancedJumping, tallySkill, SKILLS } from '../systems/skills.js';   // AUDIT 64 F2: CheckAirControl's IsEnhancedJumping disjunct
-import { createWeaponRig, autoBuildArms, sheetHolderOf } from '../combat/weapon/weaponRig.js';   // MWA1: the arms at boot
+import { isOnFoot, TRANSPORT_MODES, hasHorse, hasCart } from '../travel/transport.js';   // HCC: TransportManager.HasHorse / HasCart   // TransportManager.IsOnFoot - the raycast's reach and the mounted footstep gate
+import { jumpSpeedMultiplier, isEnhancedJumping, tallySkill, SKILLS } from '../characters/skills.js';   // AUDIT 64 F2: CheckAirControl's IsEnhancedJumping disjunct
+import { createWeaponRig, autoBuildArms, sheetHolderOf } from '../combat/weaponRig.js';   // MWA1: the arms at boot
 import { weaponPoseOf, applyWeaponPose } from '../combat/playerWeapon.js';   // JAN1: the pose crosses the doors
-import { racialRestBlock } from '../systems/vampirism.js';   // V2b: the vampire's rest gate
+import { racialRestBlock } from '../afflictions/vampirism.js';   // V2b: the vampire's rest gate
 import { ArrowFlight, playerArrowHitFoe } from '../combat/arrowFlight.js';   // C13: visible exterior arrows; AUDIT 39 (#64): and the shaft that LANDS
-import { inflictPoison } from '../systems/poisons.js';   // AUDIT 39 (#64): a poisoned shaft doses its mark
+import { inflictPoison } from '../afflictions/poisons.js';   // AUDIT 39 (#64): a poisoned shaft doses its mark
 import { PLAYED_STEP_MAX_SECONDS } from '../systems/quest/clock.js';   // WORLD7: the quest clocks' played step online
-import { isOnlinePage } from '../systems/online/onlineLane.js';   // QUEST-POPUP-PAUSE: a quest box holds the foes offline only
-import { addItem, spendAmmoFor, carriedWeight, isEnchanted } from '../systems/inventory.js';   // E4: PlayerEntity.CarriedWeight carries the gold counter's own term; ROAD-G G2: BowDamage's recoverable shaft
+import { isOnlinePage } from '../platform/onlineLane.js';   // QUEST-POPUP-PAUSE: a quest box holds the foes offline only
+import { addItem, spendAmmoFor, carriedWeight, isEnchanted } from '../items/inventory.js';   // E4: PlayerEntity.CarriedWeight carries the gold counter's own term; ROAD-G G2: BowDamage's recoverable shaft
 import { calculateAttackDamage } from '../combat/formulas.js';   // ROAD-G G2: enemy-arrow impacts
 import { bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
 import { flashPlayerDamage } from '../ui/damageFlash.js';   // ROAD-G G2: an arrow owes the flash too (AUDIT 24 wave 46)
-import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no swing
+import { knockedDown } from '../combat/blowEffects.js';   // TELL6e: knocked down, no swing
 import { weaponTypeForItem, WEAPON_TYPES } from '../combat/fpsWeapon.js';
-import { targetAimPoint, missileAimDirection } from '../characters/enemy/enemyTargets.js';   // AUDIT WORLD6b-iii(a) C3: the ONE aim law for an enemy missile (the peer's transform, mine otherwise)
+import { targetAimPoint, missileAimDirection } from '../characters/enemyTargets.js';   // AUDIT WORLD6b-iii(a) C3: the ONE aim law for an enemy missile (the peer's transform, mine otherwise)
 import { playerEntity, surfacePlayer, hurtPlayer, setDeathPresenter, setAvoidDeathHook, playerBlowCameToNothing, staffFrozen } from '../characters/playerEntity.js';
-import { heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js';   // AUDIT SETS L3: a guard's blow the arrest flow holds back
-import { SOUND } from '../systems/soundClips.js';
+import { heldPlayerBlow, remarkPlayerBlow } from '../items/sigilSetPowers.js';   // AUDIT SETS L3: a guard's blow the arrest flow holds back
+import { SOUND } from '../audio/soundClips.js';
 import { Collider } from '../player/collider.js';
 import { worldHoverFrame, hideWorldPlaque, destroyWorldPlaque, worldPlaqueOn } from '../ui/worldPlaque.js';   // WORLD-HOVER: the one seam each host calls, its hide door for the branches that return above it, and the teardown
-import { quickLootWheel, quickLootTake, quickLootArm, plaqueActionFor } from '../systems/quickLoot.js'; import { showPickups } from '../ui/pickupFeed.js';   // QUICK-LOOT B4: the wheel, the take, and the two keys that arm what the next activate means; PICKUP-FEED: what a take moved, as cards (the take's `took`)
+import { quickLootWheel, quickLootTake, quickLootArm, plaqueActionFor } from '../items/quickLoot.js'; import { showPickups } from '../ui/pickupFeed.js';   // QUICK-LOOT B4: the wheel, the take, and the two keys that arm what the next activate means; PICKUP-FEED: what a take moved, as cards (the take's `took`)
 import { lootPile } from '../player/lootStack.js';   // LOOT-STACK: the pile under the reticle, as the loot window's tabs
-import { composeContents } from '../systems/worldHover.js';   // WORLD-HOVER: the contents ladder's one law (AUDIT-WH H3)
-import { mobilePersonName, lootPileName } from '../systems/worldTooltips.js';   // WORLD-HOVER H2: MobilePersonNPC.NameNPC (.cs:299-302); M5: a dropped pile's word (.cs:534-548), outdoors too
-import { wagonHoverName } from '../player/eyeOfTheBeholder/eotbWagon.js';   // WORLD-HOVER M6: the cart's word, beside its producer
+import { composeContents } from '../player/worldHover.js';   // WORLD-HOVER: the contents ladder's one law (AUDIT-WH H3)
+import { mobilePersonName, lootPileName } from '../ui/worldTooltips.js';   // WORLD-HOVER H2: MobilePersonNPC.NameNPC (.cs:299-302); M5: a dropped pile's word (.cs:534-548), outdoors too
+import { wagonHoverName } from '../player/eotbWagon.js';   // WORLD-HOVER M6: the cart's word, beside its producer
 import { waterSourceHoverName } from '../systems/survival/items.js';   // WORLD-HOVER M6: a water source's word, beside its producer
 import { mwViewFrame, mwViewWheel, mwViewDrawBody, mwViewFootstep, mwViewAttachWagon, mwViewDrawWagon, mwViewWagonTargets, setEotbCartYields, mwViewWagonActivate, mwViewFirstPerson } from '../player/mwView.js';   // MW-D25: the Morrowind camera; AUDIT-EOTB2: the sprite's stride
 import { mwViewAttachHorse, mwViewSaddle, mwViewHorseRig } from '../player/mwView.js';   // COATS3D: the 3D horse under the Morrowind body - its rig, the saddle the body sits
@@ -77,172 +77,172 @@ import { PITCH_LIMIT } from '../player/mwCamera.js';   // MW-D30: camera.cpp:323
 import { getStaticDoors } from '../world/staticDoors.js';
 import { createDataPipeline } from './dataPipeline.js';
 import { createWorldModes } from './worldModes.js';
-import { setAmbientTextHost, tickAmbientText } from '../systems/ambientText.js';   // AT2: Ambient Text's one component - this host claims it and feeds it the frame
-import { setDefaultEnchantCtx } from '../systems/enchantments.js';   // AUDIT 58 (f2/hosts): the session's ONE enchant ctx - this host mounted none
-import { createEnchantCtx, standLooseFoe, LOOSE_FOE_PLACE_ATTEMPTS } from './hostEnchant.js';   // FS1 (wave D): the ONE ctx body + SD1's loose-foe placement
+import { setAmbientTextHost, tickAmbientText } from '../mods/ambientText.js';   // AT2: Ambient Text's one component - this host claims it and feeds it the frame
+import { setDefaultEnchantCtx } from '../magic/enchantments.js';   // AUDIT 58 (f2/hosts): the session's ONE enchant ctx - this host mounted none
+import { createEnchantCtx, standLooseFoe, LOOSE_FOE_PLACE_ATTEMPTS } from '../magic/hostEnchant.js';   // FS1 (wave D): the ONE ctx body + SD1's loose-foe placement
 import { windowEmissionRGB } from '../render/windowEmission.js';
 import { realWindowsMode, clockFogColor } from '../render/realWindows.js';   // RW1: the rooms behind the glass, and the street a building's glass looks out on
-import { CITY_LIGHT_COLOR, CITY_LIGHT_RANGE, LIGHTS_ARCHIVE, collectCityLights, nearestLights } from '../world/city/cityLights.js';
+import { CITY_LIGHT_COLOR, CITY_LIGHT_RANGE, LIGHTS_ARCHIVE, collectCityLights, nearestLights } from '../world/cityLights.js';
 import { isHearthFlat } from '../systems/survival/hearth.js';   // HEARTH1: which of those lanterns is a fire you could cook on
 import { syncLightingLane, lanternColor } from '../render/enhancedLighting.js';   // EL1
-import { withPlayerLights } from './magicCandle.js';   // X11/T1: the lights the PLAYER carries
-import { playerTorchLight } from '../systems/playerTorch.js';   // T1
-import { thunderlockMuzzleLight } from '../systems/thunderlock.js';   // FIELD-GUN13: the muzzle flash is a light the player carries, the torch's own shape
+import { withPlayerLights } from '../magic/magicCandle.js';   // X11/T1: the lights the PLAYER carries
+import { playerTorchLight } from '../player/playerTorch.js';   // T1
+import { thunderlockMuzzleLight } from '../items/thunderlock.js';   // FIELD-GUN13: the muzzle flash is a light the player carries, the torch's own shape
 import { applyClimate, getTerrainGroundArchive, getNatureArchive, climateSeasonFromMinutes, INTERIOR_SEASON } from '../world/climateSwaps.js';   // A1: the season is the calendar's, and an interior's is Summer whatever the date
 import { RMB_SIDE, layoutLocation, hasCustomLocationPosition } from '../world/locationLayout.js';
 import { lookAt, multiply, perspective, mirrorProjectionX, transformPoint, trs, UP_Y } from '../world/mat4.js';   // HANDEDNESS: the one mirror (mat4's law)
 import { frustumPlanes, aabbOutside, localAabb, transformedAabb, flatBatchAabb, cullDisabled } from '../render/frustum.js';   // EV3: the frustum
-import { decorCullVerdict, DECOR_DRAW } from './decor/decorRoom.js';   // PERF-WAGON: the street's verdict on a cart's, a wagon's and a tent's box
+import { decorCullVerdict, DECOR_DRAW } from '../homes/decorRoom.js';   // PERF-WAGON: the street's verdict on a cart's, a wagon's and a tent's box
 import { withMoonAmbient } from '../render/enhancedSky.js';   // EV5: secunda rides the ambient
 import { drawCharacterSprite } from '../render/characterSprite.js';
 import { memorialFlatsFor } from '../world/emperorMemorial.js';   // BUNNYFALL: the Emperor's memorial at Daggerfall's gate
 import { collectBlockFlats, billboardSize, mobileBillboardSize, centredBase, isNatureArchive, NATURE_FLATS_Y } from '../world/rmbFlats.js'; import { blockHillSeat, seatNatureFlat, blockHillPatch } from '../world/townStandIns.js';   // TREES-SEATED: a block's trees on the hills drawn under them; FIELD BUGS 2026-10-13e HILL-SEAT: and the pads under what its author stood on them
 import { blockSolids } from '../world/flatFields.js';   // FIELD BUGS 2026-10-04d CROPS: a crop field keeps a metre off the block's solids
-import { modSetting, modSettingsOf } from '../systems/modSettings.js';
-import { timeScale as hccTimeScale } from '../systems/timeScale.js';   // AUDIT HCC: the runtime's Time.deltaTime rides Time.timeScale, as the motor's does   // SIB1: the mod's own switch; HCC: Horse Cart and Cargo's eight
+import { modSetting, modSettingsOf } from '../mods/modSettings.js';
+import { timeScale as hccTimeScale } from '../world/timeScale.js';   // AUDIT HCC: the runtime's Time.deltaTime rides Time.timeScale, as the motor's does   // SIB1: the mod's own switch; HCC: Horse Cart and Cargo's eight
 import { horseNameTooltip } from '../ui/horseNameTooltip.js';   // AUDIT HCC U6: the mod's HUD label, both skins
-import { createHorseCartPool } from './horseCartPool.js';   // HCC: the presentation, world.js's twin on this host
+import { createHorseCartPool } from '../travel/horseCartPool.js';   // HCC: the presentation, world.js's twin on this host
 import { wagonPoolDeps } from '../world/wagonModels.js';   // WAGONS1: the pool's two words, one seam for both hosts
-import { birthHorses, riddenHorseLook } from '../systems/horse/horseCoats.js';   // COATS1: the horses born; COATS3D: and the ridden one's look, for the 3D horse
-import { createHorseCartRuntime } from '../systems/horse/horseCart.js';   // HCC: TrailingWagonRuntime over this host's seams
+import { birthHorses, riddenHorseLook } from '../travel/horseCoats.js';   // COATS1: the horses born; COATS3D: and the ridden one's look, for the 3D horse
+import { createHorseCartRuntime } from '../travel/horseCart.js';   // HCC: TrailingWagonRuntime over this host's seams
 import { setHoldingsProvider, stableProviderFor } from '../ui/holdingsPages.js';   // HOLDINGS: the Stable page over this host's horse and wagon (no boats here)
-import { isQualifyingThreatState } from '../systems/horse/horseFollow.js';   // HCC: CollectThreats' qualification
-import { totalWeight } from '../systems/inventory.js';   // HCC: PlayerEntity.WagonWeight
+import { isQualifyingThreatState } from '../travel/horseFollow.js';   // HCC: CollectThreats' qualification
+import { totalWeight } from '../items/inventory.js';   // HCC: PlayerEntity.WagonWeight
 import { createUpkeep, horseWhereOf, upkeepReach, registerUpkeepUses } from '../systems/upkeep/upkeepRuntime.js';   // STEED1/WAGONS4: world.js's twin
-import { createSaddleHost } from './saddleHost.js';   // STEED-UI: world.js's twin - the saddle panel
-import { getBinding } from '../systems/inputActions.js';   // STEED-UI: the saddle panel's keys, named as the helm names them
-import { buttonText } from '../systems/controlsConfig.js';
+import { createSaddleHost } from '../travel/saddleHost.js';   // STEED-UI: world.js's twin - the saddle panel
+import { getBinding } from '../ui/inputActions.js';   // STEED-UI: the saddle panel's keys, named as the helm names them
+import { buttonText } from '../ui/controlsConfig.js';
 import { horseCareRules, wagonUpkeepRules } from '../systems/upkeep/upkeepSwitch.js';   // HORSE-TIERS / WAGON-TIERS: each upkeep's tier through its one accessor
-import { setGallopGate, setRideWalk } from '../systems/transport.js';   // HORSE-WALK: horse care's walk beside its gallop
-import { wagonKgFor, activeWagonKind, horseCountOf, wagonTeamShort } from '../systems/wagon/wagonKinds.js';   // HCC: ItemHelper.WagonKgLimit - WAGONS1: the driven wagon's
+import { setGallopGate, setRideWalk } from '../travel/transport.js';   // HORSE-WALK: horse care's walk beside its gallop
+import { wagonKgFor, activeWagonKind, horseCountOf, wagonTeamShort } from '../travel/wagonKinds.js';   // HCC: ItemHelper.WagonKgLimit - WAGONS1: the driven wagon's
 import { SEATED_EYE_HEIGHT } from '../player/seatPose.js';   // WAGONS3: the driver's seated eye
 import { InputMessageBoxWindow } from '../ui/inputMessageBox.js';   // HCC: the horse's name
-import { isLocalPlayerTarget } from '../characters/enemy/enemyTargets.js';   // HCC: CollectThreats' `senses.Target == player`
-import { SeasonHelper, archivePrefix as seasonPrefixOf } from '../systems/seasonsIliacBay.js';   // SIB1: Seasons of the Iliac Bay's SeasonHelper; WINDFALL1: and its atlases' prefixes, which Windfall's own tables key on
-import { loadSeasonsTextures, seasonsInstalled } from '../systems/seasonsIliacBayAssets.js';   // SIB1: its textures, from the player's own copy of the mod
+import { isLocalPlayerTarget } from '../characters/enemyTargets.js';   // HCC: CollectThreats' `senses.Target == player`
+import { SeasonHelper, archivePrefix as seasonPrefixOf } from '../mods/seasonsIliacBay.js';   // SIB1: Seasons of the Iliac Bay's SeasonHelper; WINDFALL1: and its atlases' prefixes, which Windfall's own tables key on
+import { loadSeasonsTextures, seasonsInstalled } from '../mods/seasonsIliacBayAssets.js';   // SIB1: its textures, from the player's own copy of the mod
 import { sightMarksOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign stops a body where it stands, never where it hangs
 import { isBulletinBoard, isCityGate, CITY_GATE_OPEN_MODEL_ID, CITY_GATE_CLOSED_MODEL_ID } from '../world/rmbLayout.js';   // RMBLayout.cs:1013-1017 - the one model id a town sign wears; :1007-1011 - the two a city gate wears
-import { makeCityGate, updateCityGate } from '../world/city/cityGate.js';   // AUDIT 64 F14: DaggerfallCityGate
+import { makeCityGate, updateCityGate } from '../world/cityGate.js';   // AUDIT 64 F14: DaggerfallCityGate
 import { staticBuildingBox, staticBuildingWorldAabb } from '../world/staticBuildings.js';   // AUDIT 64 F11: RMBLayout's StaticBuilding array
 import { collectExteriorNpcs, exteriorNpcRecord } from '../characters/exteriorNpcs.js';
 import { createStandingHorses, isStandingHorseFlat } from '../world/standingHorses.js';   // STAND-HORSE: the location's town horses as the 3D horse
 import { isStandFlat, standFlatId, standFlatRecord } from '../world/standFlats.js';   // STAND-FLAT: a town horse and a person's flat no StaticNPC holds, a batch each   // C2 / AUDIT 26: RMBLayout's street StaticNPCs
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { CityLightAnimator, SUN_RIG_COLOR, INDIRECT_LIGHT_COLOR, INDIRECT_LIGHT_RANGE, exteriorAmbient, indirectLightScale, isCityLightsOn, isNight, parseTimeOfDay, sunDirection, sunScale, windowStyleForTime, viewOutLight } from '../world/worldClock.js';
-import { audio } from '../systems/audio.js';
-import { AmbientEffects, EXTERIOR_AMBIENT_WAITS, presetForExterior } from '../systems/ambientEffects.js';
-import { createWeatherFront, blendTerms, soundWeather, fallTerms } from '../systems/weather/weatherFront.js';   // WX2: the front reaches the ground; RAIN-SPRINKLE: the look of what falls
-import { createAnimalAmbience } from '../systems/animalAmbience.js';   // A4
-import { CityNavigation } from '../world/city/cityNavigation.js';   // T1 towns
-import { TownPopulation } from '../systems/town/townPopulation.js';
-import { GUARD_TEXTURE, MobilePerson, PERSON_TEXTURES, personWantsToStop, walkerRace } from '../characters/mobile/mobilePerson.js';
-import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // T3b   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
-import { createPlayerMagic, CAST_PRESS, liveCollider } from './hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
+import { audio } from '../audio/audio.js';
+import { AmbientEffects, EXTERIOR_AMBIENT_WAITS, presetForExterior } from '../audio/ambientEffects.js';
+import { createWeatherFront, blendTerms, soundWeather, fallTerms } from '../weather/weatherFront.js';   // WX2: the front reaches the ground; RAIN-SPRINKLE: the look of what falls
+import { createAnimalAmbience } from '../audio/animalAmbience.js';   // A4
+import { CityNavigation } from '../world/cityNavigation.js';   // T1 towns
+import { TownPopulation } from '../characters/townPopulation.js';
+import { GUARD_TEXTURE, MobilePerson, PERSON_TEXTURES, personWantsToStop, walkerRace } from '../characters/mobilePerson.js';
+import { createTownTalk, rayPersonDistance, nearestPerson } from '../talk/townTalk.js';   // T3b   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
+import { createPlayerMagic, CAST_PRESS, liveCollider } from '../magic/hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
 import { preloadSpellbookArt, spellbookArtLoaded } from '../ui/spellbookWindow.js';   // U42: the classic art window (retires M2's keyed stand-in)
 import { createSpellbookWindow } from '../ui/spellbookDoor.js';   // PX23: the book's one door
-import { worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, sharedClockOn, trustedWorldMinutes, raisedMinutes } from '../systems/worldTick.js';   // AUDIT 23 (C2): the ONE clock; AUDIT WORLD5 C10 / WORLD7: the quest clocks' played step, this host's word too
-import { tallySwingSkills, SWING_FATIGUE_COST, playerPainVoice, playPlayerVoice, makeEnemiesHostile, isBowWeapon, playerClimbStrain } from './hostCombat.js';   // AUDIT 23 (C14); QX1: GameManager.MakeEnemiesHostile, the quest action's door
-import { exhaustionOutcome } from '../systems/rest/rest.js';   // AUDIT 23 (C5); SWIM-SPENT: the water's line is the outcome's
+import { worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, sharedClockOn, trustedWorldMinutes, raisedMinutes } from '../world/worldTick.js';   // AUDIT 23 (C2): the ONE clock; AUDIT WORLD5 C10 / WORLD7: the quest clocks' played step, this host's word too
+import { tallySwingSkills, SWING_FATIGUE_COST, playerPainVoice, playPlayerVoice, makeEnemiesHostile, isBowWeapon, playerClimbStrain } from '../combat/hostCombat.js';   // AUDIT 23 (C14); QX1: GameManager.MakeEnemiesHostile, the quest action's door
+import { exhaustionOutcome } from '../player/rest.js';   // AUDIT 23 (C5); SWIM-SPENT: the water's line is the outcome's
 import { preloadRestArt } from '../ui/restWindow.js';   // S40: rest above ground   // D3: REST00I0/01I0/02I0
 import { createRestWindow } from '../ui/restDoor.js';   // RESTDOOR1: the enhanced/native fork, same law as ui/tradeDoor.js
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
-import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN: the fourth host's rest asks too
-import { setEnemyAlert, areEnemiesNearby, intermittentEnemySpawn, fightNear } from '../systems/encounters.js';
-import { revenantToReturn, revenantSpawnOptions, revenantPresence, takeRevenantNotice, revenantSay, releaseRevenantStand, revenantRoutSweep, revenantRoutedEvent } from '../systems/revenant/revenant.js';   // REVENANT: the world host's twin - who comes back, and what the player is told
-import { createStandingWatch, installLegalNotices } from './standingHost.js';   // REP1: the watch's stop; REP5: the law's notices
-import { setForagingHost } from '../systems/foraging/foragingInstall.js';   // FORAGE1: Foraging's reaches into the world, this host's answers
+import { restAilmentLines } from '../player/restWarning.js';   // REST-WARN: the fourth host's rest asks too
+import { setEnemyAlert, areEnemiesNearby, intermittentEnemySpawn, fightNear } from '../characters/encounters.js';
+import { revenantToReturn, revenantSpawnOptions, revenantPresence, takeRevenantNotice, revenantSay, releaseRevenantStand, revenantRoutSweep, revenantRoutedEvent } from '../revenants/revenant.js';   // REVENANT: the world host's twin - who comes back, and what the player is told
+import { createStandingWatch, installLegalNotices } from '../justice/standingHost.js';   // REP1: the watch's stop; REP5: the law's notices
+import { setForagingHost } from '../professions/foragingInstall.js';   // FORAGE1: Foraging's reaches into the world, this host's answers
 import { questActionsExtensionTemplates } from '../systems/quest/questActionsExtension.js';   // FORAGE1: QAE's four actions
 import { entityMaxEncumbrance } from '../combat/formulas.js';   // FORAGE1: PlayerEntity.MaxEncumbrance
-import { rollCampEncounter, campAnchorSpot, CAMP_SIGHT_RADIUS } from '../systems/campEncounters.js';   // CAMP1: the group-encounter roll - camps and packs, riding the same tick   // ROAD-G TAIL: the catch-up loop's two rolls   // the enemy arm RAISES the alert before refusing; the RESTING variant asks the pool, the STRICT one gates the townsfolk idle
+import { rollCampEncounter, campAnchorSpot, CAMP_SIGHT_RADIUS } from '../characters/campEncounters.js';   // CAMP1: the group-encounter roll - camps and packs, riding the same tick   // ROAD-G TAIL: the catch-up loop's two rolls   // the enemy arm RAISES the alert before refusing; the RESTING variant asks the pool, the STRICT one gates the townsfolk idle
 import { ActionTextBox } from '../ui/actionText.js';   // AUDIT 23 (C5): the collapse box
 import { toggleStatusReadout } from '../ui/statusBox.js';   // STATUS-LIVE: the Status readout, one composer for all four hosts
-import { statusReadoutTakesAction } from '../systems/statusReadout.js';   // STATUS-LIVE: ...and the yield this host's own key ladder owes, which never reaches routeAction
-import { liveStat } from '../systems/statMods.js';
-import { maxFatigue, clampFatigue } from '../systems/statMods.js';   // AUDIT 23 (C5); AUDIT C&C N5: SetFatigue's clamp
-import { FootstepMachine, pickFootstepSet, pickFootstepKind } from '../systems/footsteps.js';   // FS-slice; HORSE-VOICE: the kind the hooves read
-import { immersiveFootsteps } from '../systems/immersiveFootsteps.js';
-import { betterAmbience, classicFootstepAllowed } from '../systems/betterAmbience.js';   // BA1: Better Ambience - the shake, the dungeon's fog and light, the reverb, the indoor rain, its own stride   // IF1: Immersive Footsteps owns the stride and the three landing sounds once its clips are in (DisableVanillaFootsteps)
-import { calculateCastCost } from '../systems/spellcost.js';   // M2
-import { rangedDamageSpells } from '../systems/spellcast.js';   // U42: the flight probe's picker
-import { seasonValue, dateFromClassicMinutes, dateTimeString, midDateTimeString } from '../systems/gameDate.js';   // AUDIT 23 (wts-1); QX1: the notebook's header shapes
+import { statusReadoutTakesAction } from '../ui/statusReadout.js';   // STATUS-LIVE: ...and the yield this host's own key ladder owes, which never reaches routeAction
+import { liveStat } from '../characters/statMods.js';
+import { maxFatigue, clampFatigue } from '../characters/statMods.js';   // AUDIT 23 (C5); AUDIT C&C N5: SetFatigue's clamp
+import { FootstepMachine, pickFootstepSet, pickFootstepKind } from '../audio/footsteps.js';   // FS-slice; HORSE-VOICE: the kind the hooves read
+import { immersiveFootsteps } from '../audio/immersiveFootsteps.js';
+import { betterAmbience, classicFootstepAllowed } from '../audio/betterAmbience.js';   // BA1: Better Ambience - the shake, the dungeon's fog and light, the reverb, the indoor rain, its own stride   // IF1: Immersive Footsteps owns the stride and the three landing sounds once its clips are in (DisableVanillaFootsteps)
+import { calculateCastCost } from '../magic/spellcost.js';   // M2
+import { rangedDamageSpells } from '../magic/spellcast.js';   // U42: the flight probe's picker
+import { seasonValue, dateFromClassicMinutes, dateTimeString, midDateTimeString } from '../world/gameDate.js';   // AUDIT 23 (wts-1); QX1: the notebook's header shapes
 import { getNameBankOfRegion } from '../characters/nameHelper.js';   // AUDIT 23 (characters-5)
-import { createHitEffects } from './hitEffects.js';
-import { createTownScratch, createPersonTextureKeys } from './townScratch.js';   // PERF-TOWN1: the town loop's per-frame seats, and the memoised texture key
-import { createDroppedTorches } from './droppedTorches.js';
-import { createLefayMonument } from './lefayMonumentHost.js'; import { isLefayTown, lefaySpotOf, lefayExitOf, carveLefay } from '../world/lefayMonument.js'; import { dungeonEntranceLanding } from '../player/enterExit.js';   // LEFAY1: the monument to Julian LeFay, when the place on the bench is Privateer's Hold (HOLD-MONUMENT)
-import { createCamps } from './camps.js'; import { PORTAL_TEXT } from '../systems/portalStone.js';   // SURV3: the camps this host stands; PORTAL1: the street's own refusal
+import { createHitEffects } from '../combat/hitEffects.js';
+import { createTownScratch, createPersonTextureKeys } from '../world/townScratch.js';   // PERF-TOWN1: the town loop's per-frame seats, and the memoised texture key
+import { createDroppedTorches } from '../items/droppedTorches.js';
+import { createLefayMonument } from '../world/lefayMonumentHost.js'; import { isLefayTown, lefaySpotOf, lefayExitOf, carveLefay } from '../world/lefayMonument.js'; import { dungeonEntranceLanding } from '../player/enterExit.js';   // LEFAY1: the monument to Julian LeFay, when the place on the bench is Privateer's Hold (HOLD-MONUMENT)
+import { createCamps } from '../systems/survival/camps.js'; import { PORTAL_TEXT } from '../travel/portalStone.js';   // SURV3: the camps this host stands; PORTAL1: the street's own refusal
 import { drinkAtSource, isWaterSourceFlat, isDrySourceFlat, WATER_SOURCE_MODELS, DRY_SOURCE_TEXT } from '../systems/survival/items.js';   // SURV3: the mod's water sources
 import { survivalOn } from '../systems/survival/switch.js';   // HT1: Handheld Torches' dropped lights, thrown torches and burning foes   // AUDIT 24 (wave 39): EnemyBlood.ShowBloodSplash
 import { sunlit } from '../systems/survival/temperature.js';   // AUDIT C&C: the sun's one law - this reader's minute, and a jump's replay its own
 import { markOutCold } from '../systems/survival/needs.js';   // AUDIT C&C N2: the collapse's hour a night on the ground
-import { liveLycanthropy } from '../systems/lycanthropy.js';   // SURV7: the env's lycanthrope and beast-form flags
-import { elementalResistanceChance, ELEMENTS } from '../systems/spellcast.js';   // SURV7: the env's fire and frost resistances
-import { createCityGuards } from './cityGuards.js';   // G1
+import { liveLycanthropy } from '../afflictions/lycanthropy.js';   // SURV7: the env's lycanthrope and beast-form flags
+import { elementalResistanceChance, ELEMENTS } from '../magic/spellcast.js';   // SURV7: the env's fire and frost resistances
+import { createCityGuards } from '../characters/cityGuards.js';   // G1
 // ROAD-G G2: the encounter pool's ONE factory - the same one the
 // streaming world host and the interior host mount. See the mount
 // below for what stands foes in it on this route.
-import { createExteriorFoes } from './exteriorFoes.js';
+import { createExteriorFoes } from '../characters/exteriorFoes.js';
 import { createPopulationLane } from '../characters/npcBodies.js'; import { folkActor } from '../characters/folkBodies.js';   // MWNPC7: the walkers in Morrowind bodies
 import { personLook, personActor, figureLook } from '../characters/peopleBodies.js'; import { staticNpcData } from '../characters/staticNpc.js';   // MWNPC8c: and its standing people
-import { createNpcMarks } from './npcMarksHost.js';   // NPC-MARKS: the marks over its people who do something
-import { createArrestFlow } from './arrestFlow.js';   // G2
+import { createNpcMarks } from '../characters/npcMarksHost.js';   // NPC-MARKS: the marks over its people who do something
+import { createArrestFlow } from '../justice/arrestFlow.js';   // G2
 import { makeInView } from '../player/cameraView.js';   // AUDIT 17e F24
 import { pickActivatableHit, pickQuestFoe, pickFoe, peacefulFoePass } from '../player/activate.js';   // G3: corpse loot; QG1/ROAD-G G2: the foe-click door; TI1: the lock-on pick
 import { raceActivation } from '../player/activationRace.js';   // HARD2: one home for "the nearest thing under the one ray takes the click"
 import { RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE, MOBILE_NPC_ACTIVATION_DISTANCE, tooFarAwayText } from '../player/activate.js';   // AUDIT 63 F33: ActivateMobileEnemy (PlayerActivate.cs:800-841); AUDIT 65 MC-2: the loot handlers' refusal
 import { setMidScreenText } from '../ui/midScreenText.js';   // AUDIT 64 F34: DaggerfallHUD's centred label, where PlayerActivate's refusals go
 import { tryMobileEnemyActivate } from '../player/mobileEnemyActivate.js';
-import { FOUND_NOTHING_VALUABLE_TEXT_ID } from '../systems/talk/talk.js';   // GetRandomText(8999)
+import { FOUND_NOTHING_VALUABLE_TEXT_ID } from '../talk/talk.js';   // GetRandomText(8999)
 import { preloadCharSheetArt } from '../ui/charsheet.js';   // AUDIT 44 (a11): a level-up opens the SHEET (dfuiOpenCharacterSheetWindow), through this host's makeCharSheetWindow
 import { createCharSheetWindow, charSheetDoorReady, warmLevelUpWindow } from '../ui/charSheetDoor.js';
-import { announceLevelUp, levelOwed, announceQuestFoeSlain, questFoeName } from '../ui/levelUp/levelNotice.js';   // LV2: the level-up notification, and the skin fork over whether the window opens itself   // U52: the sheet's ONE seam, and the skin fork in front of it
-import { restDecision, getPreventedRestMessage } from '../systems/rest/restSession.js';   // U48: the DISPATCH (DaggerfallUI.cs:651-688) above the rest window   // ROAD-B B5: GetPreventedRestMessage
-import { preloadQuestJournalArt } from '../ui/quest/questJournal.js';   // U43: the LogBook and NoteBook doors   // QX1 dropped the unused `QuestJournalWindow` beside it - the classic window is reached through the chronicle door, never constructed here
+import { announceLevelUp, levelOwed, announceQuestFoeSlain, questFoeName } from '../ui/levelNotice.js';   // LV2: the level-up notification, and the skin fork over whether the window opens itself   // U52: the sheet's ONE seam, and the skin fork in front of it
+import { restDecision, getPreventedRestMessage } from '../player/restSession.js';   // U48: the DISPATCH (DaggerfallUI.cs:651-688) above the rest window   // ROAD-B B5: GetPreventedRestMessage
+import { preloadQuestJournalArt } from '../ui/questJournal.js';   // U43: the LogBook and NoteBook doors   // QX1 dropped the unused `QuestJournalWindow` beside it - the classic window is reached through the chronicle door, never constructed here
 import { createChronicleWindow } from '../ui/chronicleDoor.js';   // QX1/PX24d: the chronicle's ONE door - the skin fork lives behind it, and its classic arm IS the art gate
 import { preloadBookArt } from '../ui/bookReader.js'; import { makeOpenBookHook } from '../ui/bookDoor.js';   // B1; EB1: the reader's ONE door
 import { DeathScreen } from '../ui/deathScreen.js';   // AUDIT 21 hosts F6: dying above ground
-import { loadHud, drawHud } from '../ui/hud/hud.js';   // AUDIT 21 hosts F7: the classic HUD, which this host did not draw
-import { largeHudOptions, routeLargeHudClick, hudLargeNextMode, hudLargePrevMode, activeMouseOverLargeHUD, trackLargeHudPointer } from '../ui/hud/hudLarge.js';   // U45: the classic bottom bar and its eleven panels; ROAD-Ar: and the guard that stops them being world clicks too
-import { worldViewportRect, largeHudWorldAspect } from '../ui/hud/hudLarge.js';   // ROAD-E E5: ViewportChanger - the docked bar shrinks the world pass (RETRO1: and retro mode's aspect correction pillarboxes it)
+import { loadHud, drawHud } from '../ui/hud.js';   // AUDIT 21 hosts F7: the classic HUD, which this host did not draw
+import { largeHudOptions, routeLargeHudClick, hudLargeNextMode, hudLargePrevMode, activeMouseOverLargeHUD, trackLargeHudPointer } from '../ui/hudLarge.js';   // U45: the classic bottom bar and its eleven panels; ROAD-Ar: and the guard that stops them being world clicks too
+import { worldViewportRect, largeHudWorldAspect } from '../ui/hudLarge.js';   // ROAD-E E5: ViewportChanger - the docked bar shrinks the world pass (RETRO1: and retro mode's aspect correction pillarboxes it)
 import { createMountRig } from '../player/mountRig.js';
-import { rrRidingOn, rrRidingSetting } from '../systems/roleplayRealism/rrRealism.js';   // RR2: EnhancedRiding's switches
-import { createRrRidingContacts } from '../systems/roleplayRealism/rrRidingHost.js';   // AUDIT-RR F15: the trample and the charge on this host too
-import { LETHAL_HIT } from '../combat/blood/bloodDecals.js';   // the trample's splash hands its blow over - a civilian, from the player, gone in one contact
-import { setRrHostSeams } from '../systems/roleplayRealism/rrInstall.js';   // AUDIT-RR F15: what CanRun and the axis limits read off this scene
-import { enemyHeavyPainVoice, aimedBlowInfo, playerBlowFrame } from './hostCombat.js';   // AUDIT-RR F18; TELL6d: an aimed shot's weight
-import { RIDING_VOLUME_SCALE } from '../systems/riding.js';
-import { setLastLocationKeyTo } from '../systems/worldDataVariants.js';   // AUDIT-RR F32   // MAC-K3: this host had NO transport surface at all - see the note at the build
+import { rrRidingOn, rrRidingSetting } from '../mods/rrRealism.js';   // RR2: EnhancedRiding's switches
+import { createRrRidingContacts } from '../mods/rrRidingHost.js';   // AUDIT-RR F15: the trample and the charge on this host too
+import { LETHAL_HIT } from '../combat/bloodDecals.js';   // the trample's splash hands its blow over - a civilian, from the player, gone in one contact
+import { setRrHostSeams } from '../mods/rrInstall.js';   // AUDIT-RR F15: what CanRun and the axis limits read off this scene
+import { enemyHeavyPainVoice, aimedBlowInfo, playerBlowFrame } from '../combat/hostCombat.js';   // AUDIT-RR F18; TELL6d: an aimed shot's weight
+import { RIDING_VOLUME_SCALE } from '../travel/riding.js';
+import { setLastLocationKeyTo } from '../world/worldDataVariants.js';   // AUDIT-RR F32   // MAC-K3: this host had NO transport surface at all - see the note at the build
 import { preloadTransportArt } from '../ui/transportWindow.js';   // MAC-K3: MOVE00I0 + MOVE01I0, the picker's art
 import { createLockOn, LOCK_PICK_DISTANCE } from '../player/lockOn.js';   // TI1: touch lock-on
 import { rayDirFromScreen, projectToScreen, ndcFromScreen } from '../player/tapRay.js';   // TI1: the finger's ray and the dot
-import { trackHudPointer } from '../ui/hud/hudActiveSpells.js';   // U46: the spell-icon rows' pointer
+import { trackHudPointer } from '../ui/hudActiveSpells.js';   // U46: the spell-icon rows' pointer
 import { getInteractionMode, MODE_ACTIONS } from '../player/interactionMode.js';   // U45: the mode panel's cycle reads it; MODE-WHEEL: the pad's unbound mode actions
 import { modeWheel } from '../ui/modeWheel.js';   // MODE-WHEEL: the mouse steers it while it is open
-import { randomEpitaph } from '../systems/gravestoneLore.js';   // GRAVE1: Info mode's graveyard flavour line
+import { randomEpitaph } from '../world/gravestoneLore.js';   // GRAVE1: Info mode's graveyard flavour line
 import { ImgFile } from '../formats/imgFile.js';   // AUDIT 21 hosts F7: loadHud's reader
-import { preloadInventoryArt } from '../ui/native/nativeInventory.js';   // U8d: the native inventory
+import { preloadInventoryArt } from '../ui/nativeInventory.js';   // U8d: the native inventory
 import { createInventoryWindow, inventoryDoorReady } from '../ui/inventoryDoor.js';   // U53: the pack's ONE seam, and the skin fork in front of it
-import { bloodDecalDeps } from '../combat/blood/bloodSwitch.js';
-import { createBloodMarks } from '../combat/blood/bloodMarks.js';   // BLOOD1a: the ring, owned by this host and ended by its own name   // BLOOD1a
-import { createDroppedLoot, droppedLootHooks, containerDropPos } from './droppedLoot.js';   // U8e: the ground piles; G5: the pile's DaggerfallLoot identity
+import { bloodDecalDeps } from '../combat/bloodSwitch.js';
+import { createBloodMarks } from '../combat/bloodMarks.js';   // BLOOD1a: the ring, owned by this host and ended by its own name   // BLOOD1a
+import { createDroppedLoot, droppedLootHooks, containerDropPos } from '../items/droppedLoot.js';   // U8e: the ground piles; G5: the pile's DaggerfallLoot identity
 import { preloadPaperDollArt } from '../ui/paperDoll.js';   // U8f: the avatar base
-import { seedStartingEquipment, EQUIP_SLOTS } from '../systems/equip.js';   // U8h: the worn-weapon binding
-import { createChargenFlow, createChargenWindow, finishChargen, loadSpellIndex, applyHeadlessChargen } from '../systems/chargenSession.js';   // S3c/U9
+import { seedStartingEquipment, EQUIP_SLOTS } from '../characters/equip.js';   // U8h: the worn-weapon binding
+import { createChargenFlow, createChargenWindow, finishChargen, loadSpellIndex, applyHeadlessChargen } from '../characters/chargenSession.js';   // S3c/U9
 import { preloadChargenArt } from '../ui/chargenArt.js';   // U10
 import { preloadMessageBoxArt, tokenRows } from '../ui/messageBox.js';   // U11; AUDIT 64 F10: MultiFormatTextLabel's row law for the holiday parchment
-import { messageBox, mountWindow } from '../systems/notify.js';   // ENH-NOTICE3: DaggerfallUI.MessageBox, the ONE door - this host's seams name the KIND and never the window
-import { expandMessageBoxTokens } from '../systems/talk/talkMacros.js';   // AUDIT 64 F10: SetTextTokens' null-mcp ExpandMacros pass
-import { HolidayTextTimer, holidayTextPrimesFor } from '../systems/holidays.js';   // AUDIT 64 F10: PlayerEnterExit.ShowHolidayText and its prime/drain
-import { buildingDataForDoor, locationBuildings } from '../systems/talk/talkTopics.js';   // E2: the shop identity   // AUDIT 64 F26: BuildingDirectory's real building list in this host too
-import { homeTownBlocks } from '../systems/online/onlineHomes.js';   // HOME-PRICE: a town's size prices its homes
-import { hitSoundFor, swingSoundFor, ENEMY_HIT_VOLUME, PLAYER_HIT_VOLUME } from '../systems/soundClips.js';   // AUDIT 58: DFU's two hit volumes
-import { isInvisible, entityIsParalyzed } from '../systems/effects.js';   // AUDIT 39: the S19 gate is host-agnostic in DFU
-import { ANIMALS_ARCHIVE, ANIMAL_SOUND_BY_RECORD } from '../systems/soundClips.js';
+import { messageBox, mountWindow } from '../ui/notify.js';   // ENH-NOTICE3: DaggerfallUI.MessageBox, the ONE door - this host's seams name the KIND and never the window
+import { expandMessageBoxTokens } from '../talk/talkMacros.js';   // AUDIT 64 F10: SetTextTokens' null-mcp ExpandMacros pass
+import { HolidayTextTimer, holidayTextPrimesFor } from '../world/holidays.js';   // AUDIT 64 F10: PlayerEnterExit.ShowHolidayText and its prime/drain
+import { buildingDataForDoor, locationBuildings } from '../talk/talkTopics.js';   // E2: the shop identity   // AUDIT 64 F26: BuildingDirectory's real building list in this host too
+import { homeTownBlocks } from '../homes/onlineHomes.js';   // HOME-PRICE: a town's size prices its homes
+import { hitSoundFor, swingSoundFor, ENEMY_HIT_VOLUME, PLAYER_HIT_VOLUME } from '../audio/soundClips.js';   // AUDIT 58: DFU's two hit volumes
+import { isInvisible, entityIsParalyzed } from '../magic/effects.js';   // AUDIT 39: the S19 gate is host-agnostic in DFU
+import { ANIMALS_ARCHIVE, ANIMAL_SOUND_BY_RECORD } from '../audio/soundClips.js';
 import { ChoiceWindow } from '../ui/talkWindow.js';   // V1: the infection popup's box
-import { startInfection, liveInfection } from '../systems/infection.js';   // V1 probe surface: the bite and the lifecycle
-import { diseaseCount } from '../systems/diseases.js';
-import { MINUTES_PER_DAY } from '../systems/gameDate.js';
-import { spellRecordOfIndex } from '../systems/loot/loot.js';   // QG1: CastSpellDo's classic-record read (the G4 registry) - world.js:"import { FOUND_NOTHING_VALUABLE_TEXT_ID }"'s import
+import { startInfection, liveInfection } from '../afflictions/infection.js';   // V1 probe surface: the bite and the lifecycle
+import { diseaseCount } from '../afflictions/diseases.js';
+import { MINUTES_PER_DAY } from '../world/gameDate.js';
+import { spellRecordOfIndex } from '../items/loot.js';   // QG1: CastSpellDo's classic-record read (the G4 registry) - world.js:"import { FOUND_NOTHING_VALUABLE_TEXT_ID }"'s import
 import { fetchBytes, loadMagicRegistries, seasonOverride, createSkyController, createPlayerTicker, createRestDeps, plainLines, wireInfectionVideos, createMusicDirector, motorStats, climbingDeps, parkourDeps, createDetectFeed, foeNearbyRecord, lootNearbyRecord, nearbyLootRecords, claimFrame, frameAlive, frameHeld, applyFallLanding, ensureAudio, applyMotorEffectFlags, populatesWanderingNpcs, endRunToTitleMenu, exitToTitleMenu, subscribeFoePools, sensesContext, routeMouseDrag, liveEnchantFoes, liveEnchantFoeSinks, enchantFoeHost, liveCastEngine } from './shared.js';   // AUDIT 58 (f2/hosts): the live enchant pool, its sinks router and the membership question
 import {
   WEATHER_TYPES, fogForWeather, skyOffsetForWeather, weatherSunlightScale,
@@ -253,104 +253,104 @@ import {
 import { ROTOR_HUB, rotorPhase, advanceRotor, mountRotor, MILL_SOUND, millSoundPosition } from '../world/windmills.js';   // WM4c: and the hum
 import { BODY } from '../world/windmillMesh.js';   // WM2d: the tower, for the collider
 import { remapSubMeshes } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam
-import { isEnhanced, isEnhancedPlus } from '../systems/uiSkin.js';
-import { getPref } from '../systems/uiPrefs.js';   // WATER1: the water's switch
-import { monsterVolume } from '../systems/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
+import { isEnhanced, isEnhancedPlus } from '../ui/uiSkin.js';
+import { getPref } from '../ui/uiPrefs.js';   // WATER1: the water's switch
+import { monsterVolume } from '../audio/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
 import { createCoverIndex, isCoverFlat, coverProxies } from '../ai/cover.js';   // TACT1: billboards are cover
 import { flatBodies } from '../world/propBodies.js';   // PROP-BODIES: the solid flats' bodies, beside their cover
-import { createLowPolyTrees } from '../systems/lowPolyTreesAssets.js';   // LPT1: Low Poly Trees - the host's one door (as world.js)
+import { createLowPolyTrees } from '../mods/lowPolyTreesAssets.js';   // LPT1: Low Poly Trees - the host's one door (as world.js)
 import { LPT_SCALE_MAX, buildTreeSet } from '../world/lowPolyTrees.js'; import { naturePicture } from '../world/naturePicture.js';   // LPT1; AUDIT 05b A12: which picture a nature flat stands as, every host's one choice
 import { spherePlanes } from '../render/bounds.js';   // LPT1 (AUDIT LPT B4): the near trees' sphere test reads normalised planes
-import { isTreeRecord } from '../world/terrain/terrainNature.js';   // AUDIT TACT B2: a tree is a trunk and a crown
+import { isTreeRecord } from '../world/terrainNature.js';   // AUDIT TACT B2: a tree is a trunk and a crown
 import { noteLocalPlayer, tacticsNow, tickTactics } from '../ai/tactics.js';   // TACT2/TACT4; AUDIT TACT: the clock's tick
-import { foeFrameDt } from '../characters/enemy/enemyMotor.js';   // AUDIT TACT: the foes' own step, for the brain's clock
+import { foeFrameDt } from '../characters/enemyMotor.js';   // AUDIT TACT: the foes' own step, for the brain's clock
 import { drawableBlows, registerBlowDodgedListener } from '../ai/foeBlows.js';   // TACT4; AUDIT ARENA-LADDER: a dodge told
 import { techniqueMarksNow } from '../combat/techniques.js';   // TECH1: the player's own marks on the ground, after the foes'
-import { windDrive, floraSwayOf, floraSwayOn } from '../systems/wind/windDrive.js';   // WIND3: the one wind in every consumer's units (GR2's slider inside it); the flats' sway
+import { windDrive, floraSwayOf, floraSwayOn } from '../weather/windDrive.js';   // WIND3: the one wind in every consumer's units (GR2's slider inside it); the flats' sway
 import { WindWispsRenderer, wispsOn, SAND_LOOK } from '../render/windWisps.js';   // WIND3: the wind, seen; WEATHER2d: the sandstorm's sand in the same program
 import { HeatHazeRenderer } from '../render/heatHaze.js';   // HAZE1: Heat Haze's ring, drawn
-import { createHeatHaze, hazeFrameSettings } from '../systems/heatHaze.js';   // HAZE1: Heat Haze's law (demifiend000, vendor/heat-haze/)
-import { createWindfallHost } from './windfallHost.js';   // WINDFALL1: Windfall (demifiend000, vendor/windfall/) - world.js's twin
-import { createSnowfallHost, settlementsIn } from './snowfallHost.js';   // SNOWFALL1: Snowfall (demifiend000, vendor/snowfall/) - world.js's twin
-import { getLocationTerrainTileOrigin } from '../world/terrain/terrainTiles.js';   // SNOWFALL1: the town's tiles in its map pixel, where the streamed world lays them
-import { gridValueAt } from '../world/terrain/terrainSurface.js';   // SNOWFALL1: the bed carved under the town's water, off the snow's ground
-import { BODY_CAPSULE_RADIUS } from '../systems/spellcast.js';   // SNOWFALL1: a foe's controller, as its track's width reads it
-import { windfallResponse } from '../systems/windfall.js';   // WINDFALL1: a flora batch's share of the mod's lean
-import { createWindAudio, windSoundOn } from '../systems/wind/windAudio.js';   // WIND3: the wind, heard
+import { createHeatHaze, hazeFrameSettings } from '../weather/heatHaze.js';   // HAZE1: Heat Haze's law (demifiend000, vendor/heat-haze/)
+import { createWindfallHost } from '../weather/windfallHost.js';   // WINDFALL1: Windfall (demifiend000, vendor/windfall/) - world.js's twin
+import { createSnowfallHost, settlementsIn } from '../weather/snowfallHost.js';   // SNOWFALL1: Snowfall (demifiend000, vendor/snowfall/) - world.js's twin
+import { getLocationTerrainTileOrigin } from '../world/terrainTiles.js';   // SNOWFALL1: the town's tiles in its map pixel, where the streamed world lays them
+import { gridValueAt } from '../world/terrainSurface.js';   // SNOWFALL1: the bed carved under the town's water, off the snow's ground
+import { BODY_CAPSULE_RADIUS } from '../magic/spellcast.js';   // SNOWFALL1: a foe's controller, as its track's width reads it
+import { windfallResponse } from '../weather/windfall.js';   // WINDFALL1: a flora batch's share of the mod's lean
+import { createWindAudio, windSoundOn } from '../weather/windAudio.js';   // WIND3: the wind, heard
 import { PrecipitationRenderer } from '../render/precipitation.js';
 import { warmPrograms } from '../render/warmPrograms.js';
-import { setWeather, setHeardWeather, heardWeather, fallingWeather, currentWeather, currentWeatherRaw, tickWeather, weatherJumpStamp, sampleWeatherField, weatherCrossingStamp, currentFieldCells, currentWeatherIntensity, currentCloudBase, currentWindApproach, currentMapSystems, sampleWeatherIndoors, weatherArrivalStamp, mapGround } from '../systems/weather/weatherSim.js';   // W1: the live weather state; WEATHER2b: the field; WEATHER3b: the map's intensity; WEATHER3c: its sky and wind
-import { createDistantStorms, thunderSourceAt, THUNDER_SOURCE_M } from '../systems/distantStorms.js';   // WEATHER3d: the storms at a distance
-import { createStormLights } from '../systems/lightning.js';   // BOLT: the strikes themselves (world.js's twin note)
+import { setWeather, setHeardWeather, heardWeather, fallingWeather, currentWeather, currentWeatherRaw, tickWeather, weatherJumpStamp, sampleWeatherField, weatherCrossingStamp, currentFieldCells, currentWeatherIntensity, currentCloudBase, currentWindApproach, currentMapSystems, sampleWeatherIndoors, weatherArrivalStamp, mapGround } from '../weather/weatherSim.js';   // W1: the live weather state; WEATHER2b: the field; WEATHER3b: the map's intensity; WEATHER3c: its sky and wind
+import { createDistantStorms, thunderSourceAt, THUNDER_SOURCE_M } from '../weather/distantStorms.js';   // WEATHER3d: the storms at a distance
+import { createStormLights } from '../weather/lightning.js';   // BOLT: the strikes themselves (world.js's twin note)
 import { LightningBoltsRenderer } from '../render/lightningBolts.js';   // BOLT: the channels, drawn
-import { fieldOfPixelLocal, pixelLocalOfField } from '../systems/weather/weatherField.js';
-import { TERRAIN_SIZE } from '../world/terrain/terrainSampler.js';   // AUDIT WEATHER3 R3: a pixel's centre, the place the indoor sample reads   // WEATHER2b: this host's pixel-local frame to the field's metres, and back
+import { fieldOfPixelLocal, pixelLocalOfField } from '../weather/weatherField.js';
+import { TERRAIN_SIZE } from '../world/terrainSampler.js';   // AUDIT WEATHER3 R3: a pixel's centre, the place the indoor sample reads   // WEATHER2b: this host's pixel-local frame to the field's metres, and back
 import { cellOfField } from '../render/volumetricClouds.js';   // WEATHER2c: the field's cells as the clouds' cells
 import { SEASON } from '../world/climateSwaps.js';
-import { addGold, goldAmount, totalGoldAmount, deductGold, deductGoldPieces, setCrimeCommitted, legalRepOf, changeLegalRep, CRIMES } from '../systems/court.js';   // U10 probe surface; V4: the one crime setter; QX1: the quest layer's gold, legal-rep and crime doors
+import { addGold, goldAmount, totalGoldAmount, deductGold, deductGoldPieces, setCrimeCommitted, legalRepOf, changeLegalRep, CRIMES } from '../justice/court.js';   // U10 probe surface; V4: the one crime setter; QX1: the quest layer's gold, legal-rep and crime doors
 import { lookScale, lookInvert, keyboardLookRate } from '../ui/lookSettings.js';   // SETT: MouseLookSensitivity + InvertMouseVertical
 import { LookFilter, swingSuppressesLook } from '../player/lookFilter.js';   // AUDIT 28 W7: MouseLookSmoothingFactor; MAC-O2: PlayerMouseLook.Update's swing suppression (:246-248)
 import { MoveAxes } from '../player/moveAxes.js';   // AUDIT 28 W8: MovementAcceleration
 import { CameraRecoiler } from '../player/cameraRecoiler.js';   // AUDIT 28 W9: CameraRecoilStrength
 import { HeadBobber } from '../player/headBobber.js';   // AUDIT 28 W10: HeadBobbing
-import { createClimbFeelHost } from '../player/climb/climbFeel.js';   // CLIMB4: the climb's camera
-import { lastHealthLost, lastHealthLostPercent } from '../ui/hud/hudVitals.js';   // AUDIT 28 W9: the detector's loss
+import { createClimbFeelHost } from '../player/climbFeel.js';   // CLIMB4: the climb's camera
+import { lastHealthLost, lastHealthLostPercent } from '../ui/hudVitals.js';   // AUDIT 28 W9: the detector's loss
 import { fieldOfView } from '../ui/viewSettings.js';   // MENU: Video/FieldOfView, one home for five hosts
 import { keyEdges, noteKeyDown, noteKeyUp, beginInputFrame, pressed, released, actionsOf, held, moveHeld, anyMove, swallowBrowserKey, isTextEntryTarget, mouseCode, isSwingButton, keyboardLook, routeAction, installContextMenuGuard, POLLED_ACTIONS, QUICKSLOT_ACTIONS, swingKeyHeld, bindings } from '../ui/input.js';
 import { releaseHeldOnFocusLoss } from '../ui/focusRelease.js';
-import { useQuickslot, swapQuickslot, offHandQuickslot, spellQuickslotPress, offHandOffersSwap, tickQuickslotHold } from '../systems/quickslots.js';   // QS2/QS4: the diamond's performers   // QS6: the spell slot, the off hand's swap question, and the hold machine
-import { armUnloadGuard, releaseUnloadGuard } from '../systems/unloadGuard.js';   // MAC-L3: one door in front of every way out of a running game; AUDIT-MACL F3: ...and down for a door the game opened itself   // I2: the rebindable registry; AUDIT 39r: the mouse half of the held set
-import { hudShortcutKey, retroToggleKey, hudRenderEnabled } from '../ui/hud/hudShortcuts.js';   // AUDIT 64 F36/F37: DaggerfallHUD.Update's LargeHUDToggle / HUDToggle arms; AUDIT PRE-MERGE 1003 U8: the arena's HUD hides with the toggle
-import { createActivateGate, activateFrame, setClickDelay } from '../systems/activateGate.js';   // A8: PlayerActivate's ActivateCenterObject frame
+import { useQuickslot, swapQuickslot, offHandQuickslot, spellQuickslotPress, offHandOffersSwap, tickQuickslotHold } from '../items/quickslots.js';   // QS2/QS4: the diamond's performers   // QS6: the spell slot, the off hand's swap question, and the hold machine
+import { armUnloadGuard, releaseUnloadGuard } from '../platform/unloadGuard.js';   // MAC-L3: one door in front of every way out of a running game; AUDIT-MACL F3: ...and down for a door the game opened itself   // I2: the rebindable registry; AUDIT 39r: the mouse half of the held set
+import { hudShortcutKey, retroToggleKey, hudRenderEnabled } from '../ui/hudShortcuts.js';   // AUDIT 64 F36/F37: DaggerfallHUD.Update's LargeHUDToggle / HUDToggle arms; AUDIT PRE-MERGE 1003 U8: the arena's HUD hides with the toggle
+import { createActivateGate, activateFrame, setClickDelay } from '../player/activateGate.js';   // A8: PlayerActivate's ActivateCenterObject frame
 import { openPauseFlow, preloadPauseFlowArt, pauseDoorReady, pauseOpts } from '../ui/pauseDoor.js';   // I3/I4; U51 picks the skin; MAC-L1: pauseOpts is the ONE reader of the door's options
 import { openPixelDial } from '../ui/pixelDial.js';   // PX15b: the Tab compass rose
 import { stampResidenceQuestNames, registerExteriorAutomapConsoleCommands } from '../ui/exteriorAutomapWindow.js';   // QX1/ROAD-D D5: the quest-residence plate name; E3: ExteriorAutoMapConsoleCommands
-import { createTownMapWindow, townMapDoorReady } from '../ui/town/townMapDoor.js';   // EM4: the skin fork
-import { WORLD_PER_PX } from '../ui/ink/inkTown.js';   // EM4: the town plan's own scale
-import { installConsoleProbe } from '../systems/consoleCommands.js';   // E3: the console's door
+import { createTownMapWindow, townMapDoorReady } from '../ui/townMapDoor.js';   // EM4: the skin fork
+import { WORLD_PER_PX } from '../ui/inkTown.js';   // EM4: the town plan's own scale
+import { installConsoleProbe } from '../ui/consoleCommands.js';   // E3: the console's door
 import { buildingSummaries } from '../world/buildingSummaries.js';   // ROAD-C c2/S10: the plate anchor's Position-bearing walk
 import { ServiceFlowWindow } from '../ui/guildServiceWindows.js';   // ROAD-C c2/S10: the plate rename's input box
-import { discoveredBuildings, setDiscoveredBuildingCustomName, discoverLocation, undiscoverBuilding } from '../systems/discovery.js';   // A2: the nameplates' gate; c2/S10: the plate rename; QX1: RevealLocation's filing
-import { activeMemberships } from '../systems/guild/guilds.js';   // F117
-import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
-import { avoidDeath, avoidDeathText } from '../systems/guild/guildServices.js';   // F117: Stendarr
+import { discoveredBuildings, setDiscoveredBuildingCustomName, discoverLocation, undiscoverBuilding } from '../maps/discovery.js';   // A2: the nameplates' gate; c2/S10: the plate rename; QX1: RevealLocation's filing
+import { activeMemberships } from '../guilds/guilds.js';   // F117
+import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../guilds/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
+import { avoidDeath, avoidDeathText } from '../guilds/guildServices.js';   // F117: Stendarr
 import { dungeonLocationFor } from '../world/smallerDungeons.js';   // QX1/AUDIT 28 F-B2: the quest layer sees the SIZED dungeon
-import { ensureFactionRep, getReputation, changeReputation } from '../systems/faction/factionRep.js';   // QX1: the quest layer's reputation doors
-import { findFactions, findFactionByTypeAndRegion, getPeopleOfCurrentRegion, getCourtOfCurrentRegion } from '../systems/talk/talk.js';   // QX1 review: Person.cs's faction-type reads, over the PERSISTENT store
+import { ensureFactionRep, getReputation, changeReputation } from '../guilds/factionRep.js';   // QX1: the quest layer's reputation doors
+import { findFactions, findFactionByTypeAndRegion, getPeopleOfCurrentRegion, getCourtOfCurrentRegion } from '../talk/talk.js';   // QX1 review: Person.cs's faction-type reads, over the PERSISTENT store
 import { FACTION_TYPES } from '../formats/factionFile.js';   // QX1 review: GetRegionFaction's Province filter
-import { liveVampirism } from '../systems/racialLive.js';   // QX1 review: the PC's clan, off the curse entry
-import { mintQuestFoeWave, placeFoeEnv, entityOccupancy, questFoeGender, heldSpots, holdSpotWhile, questBoxHoldsFoes } from './quest/questFoeHost.js';   // QX1 review/B1: the data side of CreateFoeGameObjects; ROAD-G G2: and the placement side
+import { liveVampirism } from '../afflictions/racialLive.js';   // QX1 review: the PC's clan, off the curse entry
+import { mintQuestFoeWave, placeFoeEnv, entityOccupancy, questFoeGender, heldSpots, holdSpotWhile, questBoxHoldsFoes } from '../systems/quest/questFoeHost.js';   // QX1 review/B1: the data side of CreateFoeGameObjects; ROAD-G G2: and the placement side
 import { placeFoeFreely } from '../systems/quest/sceneMount.js';   // ROAD-G G2: CreateFoe's raycast ring
 import { isShelved } from '../systems/quest/quest.js';   // QUEST-SHELF: a quest set aside
-import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';   // ROAD-G G2: FinalizeFoe's Flying lift reads the behaviour flag
-import { isHouseOwned } from '../systems/banking.js';   // QX1/H1: Place.SetupSites' residence filter
+import { ENEMY_BASICS } from '../characters/enemyBasics.js';   // ROAD-G G2: FinalizeFoe's Flying lift reads the behaviour flag
+import { isHouseOwned } from '../trade/banking.js';   // QX1/H1: Place.SetupSites' residence filter
 import { generateBuildingName } from '../world/buildingNames.js';   // QX1/IH1: %cbd regenerates the current building's name
-import { createQuestBridge, tokensToRows, choiceDoor } from './quest/questBridge.js';   // QX1: THE QUEST MACHINE, in the fixed-city host
-import { QuestAudioSource } from '../systems/audio.js';   // QX1/E6: PlaySound's ONE source per machine
-import { WORLD_CONTEXT, makeAnchor, teleportPlan, ANCHOR_MUST_BE_SET } from '../systems/teleportAnchor.js';   // TP2/A10: the Recall anchor's law - shape, IsSameInterior, the plan, and the 4001 record id
-import { STREAMING_TERRAIN_SCALE } from '../world/terrain/terrainSampler.js';   // TERRAIN-SCALE1: the anchor's stamp
+import { createQuestBridge, tokensToRows, choiceDoor } from '../systems/quest/questBridge.js';   // QX1: THE QUEST MACHINE, in the fixed-city host
+import { QuestAudioSource } from '../audio/audio.js';   // QX1/E6: PlaySound's ONE source per machine
+import { WORLD_CONTEXT, makeAnchor, teleportPlan, ANCHOR_MUST_BE_SET } from '../travel/teleportAnchor.js';   // TP2/A10: the Recall anchor's law - shape, IsSameInterior, the plan, and the 4001 record id
+import { STREAMING_TERRAIN_SCALE } from '../world/terrainSampler.js';   // TERRAIN-SCALE1: the anchor's stamp
 import { locationWorldRect } from '../world/streamingWorld.js';   // TP2: the native frame this host's origin stands at
 import { GLOBAL_SCALE, DOOR_TYPE } from '../world/meshReader.js';   // TP2: scene units <-> native world units; ARENA1: the undercroft's stair
 import { isHouseSign } from '../world/houseSigns.js';   // HOUSE-SIGN: a shop's sign at a house's door does not stand
 import { isClimateFreeModel, NO_CLIMATE_REMAP } from '../world/customModels.js';   // ARENA1: the colosseum wears its own pictures
-import { isUndercroftDoor, isArenaCity, undercroftLocation, ARENA_BLOCK, ARENA_GATE_PEOPLE, arenaTownLandmark } from '../world/arena/arenaCity.js';   // ARENA1: the undercroft below the city; ARENA-FIX 12: the colosseum's block and its Herald; ARENA-MAP: its name on the town map
-import { createArenaBouts } from './arena/arenaBouts.js';   // ARENA-FIX 12: THE FOUR HOSTS - the bout driver on this host too
-import { createArenaSound } from '../systems/arena/arenaSound.js';
-import { drawArenaHud } from '../ui/arena/arenaHud.js';
-import { createArenaGate, nearArenaGate } from './arena/arenaGate.js';   // ARENA3: the recruiters (and the bookmaker) at the gate; ARENA4b: the Herald's choice and the pause door's banner too
-import { exhibitionFor, nextLadderBout, arenaLadderRestore, practiceBout } from '../systems/arena/arenaLadder.js';
-import { arenaReplaysRestore } from '../systems/arena/arenaReplay.js';   // ARENA5: your ladder replay
-import { cityFloorCentre } from '../world/arena/arenaFloor.js';
-import { setPlayerBout, inBout } from '../characters/enemy/enemyTargets.js';   // AUDIT ARENA-LADDER A2: a fighter on the sand is its bout's
-import { ARENA_TEXT } from '../systems/arena/arenaText.js';   // AUDIT ARENA-LADDER A5: the bout's refusal
-import { keptOffArenaGround, ARENA_GROUND_M } from '../systems/arena/arenaGround.js';   // CURSE-OFF-SAND: the curse's dead keep off the arena's grounds
+import { isUndercroftDoor, isArenaCity, undercroftLocation, ARENA_BLOCK, ARENA_GATE_PEOPLE, arenaTownLandmark } from '../world/arenaCity.js';   // ARENA1: the undercroft below the city; ARENA-FIX 12: the colosseum's block and its Herald; ARENA-MAP: its name on the town map
+import { createArenaBouts } from '../arena/arenaBouts.js';   // ARENA-FIX 12: THE FOUR HOSTS - the bout driver on this host too
+import { createArenaSound } from '../arena/arenaSound.js';
+import { drawArenaHud } from '../ui/arenaHud.js';
+import { createArenaGate, nearArenaGate } from '../arena/arenaGate.js';   // ARENA3: the recruiters (and the bookmaker) at the gate; ARENA4b: the Herald's choice and the pause door's banner too
+import { exhibitionFor, nextLadderBout, arenaLadderRestore, practiceBout } from '../arena/arenaLadder.js';
+import { arenaReplaysRestore } from '../arena/arenaReplay.js';   // ARENA5: your ladder replay
+import { cityFloorCentre } from '../world/arenaFloor.js';
+import { setPlayerBout, inBout } from '../characters/enemyTargets.js';   // AUDIT ARENA-LADDER A2: a fighter on the sand is its bout's
+import { ARENA_TEXT } from '../arena/arenaText.js';   // AUDIT ARENA-LADDER A5: the bout's refusal
+import { keptOffArenaGround, ARENA_GROUND_M } from '../arena/arenaGround.js';   // CURSE-OFF-SAND: the curse's dead keep off the arena's grounds
 import { registerAttackResolutionListener } from '../combat/formulas.js';
 import { registerPlayerSwingListener } from '../combat/playerWeapon.js';
-import { raceDisplayName } from '../systems/talk/talkSession.js';   // MACRO-ONE: %ra's display name, as world.js reads it
-import { localizedText, getLocalizedLocationName, getLocalizedRegionName, getLocalizedFactionName } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the place names shown
+import { raceDisplayName } from '../talk/talkSession.js';   // MACRO-ONE: %ra's display name, as world.js reads it
+import { localizedText, getLocalizedLocationName, getLocalizedRegionName, getLocalizedFactionName } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the place names shown
 import { startTutorialTour } from '../ui/tutorialPopup.js';   // TUT1: the welcome tour - and the popups' handler, registered by this host (the four hosts' rule)
 import { autorunCancel } from '../player/autorunCancel.js';
-import { registerPlace } from '../systems/placeClimate.js';
+import { registerPlace } from '../weather/placeClimate.js';
 
 export async function bootExterior(canvas, renderer, params, status) {
   const regionName = params.get('region') || 'Daggerfall';
@@ -399,7 +399,7 @@ export async function bootExterior(canvas, renderer, params, status) {
   // and the test written after a boot failure that every text pin
   // missed. world.js is on that exclusion list for exactly this import;
   // one line of `await import` keeps this host off it.
-  const { loadQuestPack } = await import('./quest/questData.js');
+  const { loadQuestPack } = await import('../systems/quest/questData.js');
   const questPack = await loadQuestPack();
 
   // Assemble the location.

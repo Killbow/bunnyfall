@@ -16,12 +16,12 @@
 //
 // Slot ids are the town's and the slot's: `L<mapId>.<slot>` for a household, `L<mapId>.t<slot>` for a traveller,
 // `L<mapId>.w<slot>` for the watch - the same person for every reader, the key a relation is saved under (relations.js).
-import { PERSON_TEXTURES, PERSON_FACE_RECORDS, NUM_PERSON_FACE_VARIANTS, GUARD_TEXTURE, walkerRace } from '../../characters/mobile/mobilePerson.js';
+import { PERSON_TEXTURES, PERSON_FACE_RECORDS, NUM_PERSON_FACE_VARIANTS, GUARD_TEXTURE, walkerRace } from '../../characters/mobilePerson.js';
 import { fullName, getNameBankOfRegion, GENDERS } from '../../characters/nameHelper.js';
 import { srand, getSeed, setSeed } from '../../formats/dfRandom.js';
 import { BUILDING_TYPES } from '../../world/buildingNames.js';
-import { MOBILE_TYPES } from '../../characters/mobile/mobileTypes.js';
-import { seededRng } from '../wind/wind.js';
+import { MOBILE_TYPES } from '../../characters/mobileTypes.js';
+import { seededRng } from '../../weather/wind.js';
 import { lwSeed, rollInt, pickOf, pickWeighted } from './seed.js';
 
 /** The most residents one town keeps - the households trimmed past it, plain hands first (a city's two hundred houses
@@ -29,7 +29,7 @@ import { lwSeed, rollInt, pickOf, pickWeighted } from './seed.js';
 export const CENSUS_MAX = 260;
 
 /** The climate's People -> the billboard tables' race: the walkers' one table (characters/mobile/mobilePerson.js, REGIONAL-FOLK). */
-export { RACE_OF_PEOPLE, raceOfPeople } from '../../characters/mobile/mobilePerson.js';
+export { RACE_OF_PEOPLE, raceOfPeople } from '../../characters/mobilePerson.js';
 
 /** What a resident does - the day's plan reads it (dayPlan.js), the lines read it (lines.js). */
 export const JOBS = Object.freeze({

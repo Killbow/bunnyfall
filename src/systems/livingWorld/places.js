@@ -23,7 +23,7 @@
 //    reaches no edge at all, the farthest it reaches toward it.
 //
 // PURE: the doors, the grid and the types in; plain records out.
-import { NAV_CELL, HALF_CELL } from '../../world/city/cityNavigation.js';
+import { NAV_CELL, HALF_CELL } from '../../world/cityNavigation.js';
 import { BUILDING_TYPES } from '../../world/buildingNames.js';
 import { hasShopJob } from './census.js';
 

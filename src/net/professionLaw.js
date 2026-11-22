@@ -28,9 +28,9 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { REGION_RACES } from '../formats/mapsTables.js';
-import { attributeBand } from '../systems/foraging/foragingCore.js';   // Foraging's bands, one home (FORAGE0 14.4)
+import { attributeBand } from '../professions/foragingCore.js';   // Foraging's bands, one home (FORAGE0 14.4)
 import { renownRate } from './renown.js';   // MERGE 2: a writ's Renown at every source's rate (RENOWN-ACCOUNT)
-import { GEM_IDS, GEM_ROW_GRADES, GEM_NAMES, gemId, gemGrade, gemTemplateOf, gradedGemPrice } from '../systems/loot/gemGrades.js';   // CLOTH-GEMS: a gem's kind and grade, one home (a leaf)
+import { GEM_IDS, GEM_ROW_GRADES, GEM_NAMES, gemId, gemGrade, gemTemplateOf, gradedGemPrice } from '../items/gemGrades.js';   // CLOTH-GEMS: a gem's kind and grade, one home (a leaf)
 
 // ─── THE TEN (PROF0 3.1; CRAFT3, Professions-Arc 41.6) ───────────────
 

@@ -31,10 +31,10 @@
 // - the colours are DaggerfallUI's own (:68-69), and the port reads
 //   them from the four GUI/ToolTip* settings, which ship those exact
 //   values and were stored-tier with no consumer until now.
-import { drawRect, NATIVE_W, NATIVE_H } from './native/nativePanel.js';   // ONE home for the virtual canvas size
+import { drawRect, NATIVE_W, NATIVE_H } from './nativePanel.js';   // ONE home for the virtual canvas size
 import { drawText, measureText } from './text.js';
-import { getBool, getFloat, getString } from '../systems/settings/settings.js';
-import { processGrammar } from '../systems/textManager.js';   // L10N3g: each row through the grammar as it is drawn (:215)
+import { getBool, getFloat, getString } from '../platform/settings.js';
+import { processGrammar } from './textManager.js';   // L10N3g: each row through the grammar as it is drawn (:215)
 
 /** defaultMarginSize (:30). */
 export const TOOLTIP_MARGIN = 2;

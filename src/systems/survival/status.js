@@ -9,8 +9,8 @@
 // keeps the words its own, plus a HUD strip the mod never had - one
 // chip a need, shown only while the need is felt.
 import { survivalOf, hungerStage, thirstStage, sleepStage, wetStage, hungerMinutes, NEED, BOON, warmedByFire, wakingHeld, heartyMealLeft } from './needs.js';   // HEARTY-MEAL: the tavern meal's hold
-import { t } from '../textManager.js';   // L10N4: the Well Fed tile's word in the player's language
-import { STAT_KEYS_ORDER } from '../statMods.js';   // AUDIT SURV-BOONS C11: the attributes, named as the sheet names them
+import { t } from '../../ui/textManager.js';   // L10N4: the Well Fed tile's word in the player's language
+import { STAT_KEYS_ORDER } from '../../characters/statMods.js';   // AUDIT SURV-BOONS C11: the attributes, named as the sheet names them
 import { temperatureWord, signedDegrees } from './temperature.js';
 import { isStiff } from './rest.js';
 import { SURVIVAL_RULES, SURVIVAL_DEFAULT } from './difficulty.js';   // AUDIT C&C S5: the tier a chip's level is read by

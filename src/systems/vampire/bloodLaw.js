@@ -19,8 +19,8 @@
 //
 // Kept on the curse entry (systems/vampirism.js createVampirismCurse's `activeEffects` row), so it rides the save.
 
-import { t } from '../textManager.js';
-import { SKILLS } from '../skills.js';
+import { t } from '../../ui/textManager.js';
+import { SKILLS } from '../../characters/skills.js';
 
 /** The most Vitae a vampire holds. */
 export const VITAE_MAX = 100;
@@ -213,7 +213,7 @@ export function vitaeAfterFeed(vitae, gain, { fresh = true } = {}) {
 
 /** The blood a feed leaves the vampire with: the new blood when its quality beats the faded one held, else the one held.
  *  @param {{ type: string, quality: number } | null} held @param {string} type @param {number} quality
- *  @param {{ fresh?: boolean }} [o] */
+ *  @param {{ fresh?: boolean, staleCap?: number }} [o] */
 export function bloodAfterFeed(held, type, quality, { fresh = true, staleCap = STALE_QUALITY_CAP } = {}) {
   const q = Math.max(1, Math.min(fresh ? 100 : staleCap, Math.round(quality)));
   if (!held || q >= (held.quality ?? 0)) return { type, quality: q };

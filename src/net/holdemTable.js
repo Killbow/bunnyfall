@@ -19,7 +19,7 @@
 // room or a player's id for that player alone; the relay stamps each with `t: 'holdem'`, the table's index and its clock.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { newHand, act, foldSeat, legalActions, viewFor, timeoutAction, shuffleDeck, HOLDEM_SEATS_MIN, HOLDEM_SEATS_MAX } from './card/cardLaw.js';
+import { newHand, act, foldSeat, legalActions, viewFor, timeoutAction, shuffleDeck, HOLDEM_SEATS_MIN, HOLDEM_SEATS_MAX } from './cardLaw.js';
 import { STAKE_ID_RE } from './identityToken.js';   // CARDS6: a stake's id, the service's shape
 
 /** MEASURE (CARDS5, section 5's 30 s): a seat's clock - checked if it can be, folded if not, when it runs out. */

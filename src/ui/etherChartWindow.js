@@ -39,21 +39,21 @@
 // `toChart`, `chartZoomAt`), the chart's model (`chartModel`), the scale (`scaleBar`), a name's two sides
 // (`labelBoxes`) and the edge's pointer (`edgePointer`). The painters are handed their contexts: `paintChart` the
 // chart, `paintRuler` the ruler, `paintScale` the key's bar, `paintMark` and `paintKey` a mark and a key's mark.
-import { closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction, bindings } from './input.js';
-import { actionsForCode } from '../systems/inputActions.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { injectNavalKit } from './naval/navalHud.js';
-import { injectNavalWindowStyle } from './naval/navalPlunderWindow.js';
+import { actionsForCode } from './inputActions.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { injectNavalKit } from './navalHud.js';
+import { injectNavalWindowStyle } from './navalPlunderWindow.js';
 import { PIXEL_STACK } from './pixelifyFive.js';
-import { TRAVEL_VIEW_BUTTON } from '../scenes/travelView.js';   // ETHER-OW: the Overworld door's words, the held map's own
-import { t } from '../systems/textManager.js';   // L10N4 (at the merge of main): the chart's words in the player's language, read when they are drawn
+import { TRAVEL_VIEW_BUTTON } from '../travel/travelView.js';   // ETHER-OW: the Overworld door's words, the held map's own
+import { t } from './textManager.js';   // L10N4 (at the merge of main): the chart's words in the player's language, read when they are drawn
 import { isleByKey, BANDS, VEIL_X, LEAGUE_PX, KIND_WORDS, ETHER_BOX, compassPoint, veilhaven, ETHER_SEA_NAME } from '../world/ethericSea.js';
 import { hauntOf, legendById, HAUNT_PX } from '../systems/naval/etherShips.js';
 import { isleGood, goodById } from '../systems/naval/tradeGoods.js';   // ISLE-TRADE: a port isle's own good of the Bay, on its card
-import { ETHER_PEACE_PX, etherWayWord } from '../systems/wild/etherWild.js';   // ETHER-WILD: Veilhaven's peace, drawn where the open sea's fights begin
-import { paintWildCrows, paintWildLocks } from './wild/wildMapInk.js';   // SEA-VAULTS: the mountains' crows and padlock, on the chart's paper
-import { HALL_INK } from './ink/inkMap.js';   // SEA-VAULTS: a vault's oxblood, the halls' own
+import { ETHER_PEACE_PX, etherWayWord } from '../world/wild/etherWild.js';   // ETHER-WILD: Veilhaven's peace, drawn where the open sea's fights begin
+import { paintWildCrows, paintWildLocks } from './wildMapInk.js';   // SEA-VAULTS: the mountains' crows and padlock, on the chart's paper
+import { HALL_INK } from './inkMap.js';   // SEA-VAULTS: a vault's oxblood, the halls' own
 import { capturePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
 
 /** The zooms: screen pixels a map pixel (819.2 m). */

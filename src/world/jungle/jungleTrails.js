@@ -19,8 +19,8 @@
 // bible/03-World/Bantha-Jungle.md "The trails".
 import { ecoHash } from '../ecotone.js';
 import { jungleDepthAt, JUNGLE_EDGE, JUNGLE_WANDER_MAX } from './jungleRegion.js';
-import { TERRAIN_SIZE } from '../terrain/terrainSampler.js';
-import { WORLD_MAP_TILE_DIM, WATER, DIRT } from '../terrain/terrainTiles.js';
+import { TERRAIN_SIZE } from '../terrainSampler.js';
+import { WORLD_MAP_TILE_DIM, WATER, DIRT } from '../terrainTiles.js';
 
 /** The trails' numbers, in one place. Tiles are DFU's (6.4 m), on the world's lattice (x east, z north). */
 export const JUNGLE_TRAILS = Object.freeze({

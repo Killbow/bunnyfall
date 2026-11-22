@@ -29,11 +29,11 @@
 // and MouseMove's highlightedIndex feeds DecideTextColor's two hover
 // arms (:360-380).
 
-import { loadImg, nativeMetrics, drawImg, shadowText, DEFAULT_TEXT_COLOR } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, shadowText, DEFAULT_TEXT_COLOR } from './nativePanel.js';
 import { drawMenuBackdrop, DOUBLE_CLICK_DELAY_MS } from './chargenArt.js';
 import { VerticalScrollBar, drawScrollThumb } from './verticalScrollBar.js';
 import { FntFile } from '../formats/fntFile.js';   // AUDIT 58: FONT0002, DaggerfallUI.SmallFont
-import { makeFont } from './text.js';  import { isEnhancedPlus } from '../systems/uiSkin.js';  import { drawEnhancedPicker } from './enhanced/enhancedPicker.js';   // PORT3: the list, in the enhanced skin
+import { makeFont } from './text.js';  import { isEnhancedPlus } from './uiSkin.js';  import { drawEnhancedPicker } from './enhancedPicker.js';   // PORT3: the list, in the enhanced skin
 
 /** pickerPanel.Size = the texture's size (:73), Center/Middle (:74-75). */
 export const PICKER_W = 200, PICKER_H = 128;

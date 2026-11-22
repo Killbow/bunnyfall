@@ -2,7 +2,7 @@
 
 The brief a routing batch follows. The port's own words - the enhanced interface, the online game, the port's
 systems, every notice Daggerfall Unity does not have - reach a player in their language only through the text core:
-`t(key, en, args)` (`src/systems/textManager.js`), whose English lands in `locales/en/Port_Strings.csv`
+`t(key, en, args)` (`src/ui/textManager.js`), whose English lands in `locales/en/Port_Strings.csv`
 (`node tools/l10nExtract.mjs`) and is drafted into every language (`tools/l10n/TRANSLATE-BRIEF.md`). English must stay
 byte for byte what it was: `t` answers the English pattern while no table has the key. Worked example:
 `src/ui/statsCard.js` (the pilot).

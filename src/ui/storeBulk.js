@@ -1,9 +1,9 @@
 // @ts-check
 // LOOT-BULK (2026-10-16): Take all and Stash all walk the list the player is looking at, top to bottom, through the
 // same plan a single click uses. One click. The room still hears a container when its window closes, not per item.
-import { stacksWith } from '../systems/inventory.js';
-import { LOOT_LIST_MAX } from '../systems/loot/loot.js';
-import { t } from '../systems/textManager.js';
+import { stacksWith } from '../items/inventory.js';
+import { LOOT_LIST_MAX } from '../items/loot.js';
+import { t } from './textManager.js';
 
 /** A room container's list, past which a close cannot be said (systems/loot/loot.js LOOT_LIST_MAX). */
 export const CONTAINER_LIST_CAP = LOOT_LIST_MAX;

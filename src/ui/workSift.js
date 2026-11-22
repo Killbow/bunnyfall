@@ -17,7 +17,7 @@
 // the window's) - never the bar, so the field typed in is never taken from under the keys; a word composed (an IME's, a
 // phone keyboard's) is read once it is whole (`typedField`, and the window's paint waits on it); the kinds' counts are
 // those the search and "Only what I can fill" leave, in the player's language's numbers.
-import { t, currentLocale } from '../systems/textManager.js';
+import { t, currentLocale } from './textManager.js';
 import { searchWords, wordsIn } from '../net/marketLaw.js';   // AUDIT BOARD-SIFT: one law of a search's words, the market's too
 
 /** The kinds of work, in the bar's order. */

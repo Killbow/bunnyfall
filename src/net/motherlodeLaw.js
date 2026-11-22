@@ -27,7 +27,7 @@
 // in the MOTHERLODE_WATCH_S before the act's end. A pose is the client's
 // claim, so this is a bound, not a proof (PROF0 6) - the cap is the rest.
 // ═══════════════════════════════════════════════════════════════════
-import { gateHash } from './gate/gateLaw.js';   // the one mix every clock-law rolls with
+import { gateHash } from './gateLaw.js';   // the one mix every clock-law rolls with
 import { VEIN_TABLES, regionSignature } from './nodeLaw.js';
 import { CLIMATES } from '../formats/mapsTables.js';
 import { MARKS_FAUCETS } from './marksLaw.js';

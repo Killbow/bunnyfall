@@ -4,7 +4,7 @@
 // under it, edged like Rodney's blight. Under the territories and the place marks, beside the blight. The book is
 // systems/eliteDungeons/edBook.js.
 import { ED_CSS, ED_REWARD_NYX, edGraceLeft } from '../net/eliteDungeonLaw.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 const paper = (view, x, y) => [(x - view.ox) * view.scale, (y - view.oy) * view.scale];
 

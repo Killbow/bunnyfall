@@ -25,7 +25,7 @@
 //
 // A foreign pass: it owns its program, its state and its map; the host marks it. Not a DFU member. Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
-import { sdSkyBasisInto, SD_OCT_GLSL } from '../superDungeon/sdSky.js';
+import { sdSkyBasisInto, SD_OCT_GLSL } from '../sdSky.js';
 import { DITHER_GLSL, SD_PIXEL_GLSL } from '../orderedDither.js';
 import { SKY_ANGLE_PER_PIXEL } from '../skyRenderer.js';
 import { EgSkyMap, EG_SKY_MAP, EG_SKY_STEPS } from './egSkyMap.js';

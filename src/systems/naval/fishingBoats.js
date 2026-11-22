@@ -6,7 +6,7 @@
 // ANCHOR in the roads inside the mouth and works her GROUND off it. She puts out when the town's lanterns go out and
 // comes home when they are lit. Not a DFU member: Daggerfall has no sea traffic. Ledger A (FISH-BOATS).
 import { hash32 } from '../../world/spawnedDungeons.js';
-import { mulberry32 } from '../../combat/blood/bloodArt.js';
+import { mulberry32 } from '../../combat/bloodArt.js';
 import { keyHash } from './quays.js';
 import { footprintClear, berthSize, REACH_M } from './shipLife.js';
 import { SWEEP_WAY } from './navalAI.js';   // her sweeps out on the way, as a merchantman's into a harbour

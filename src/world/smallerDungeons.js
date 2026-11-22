@@ -22,15 +22,15 @@
 // and block array, and the caller hands THAT to the dungeon context.
 
 import { setSeed, randomRange } from '../formats/dfRandom.js';
-import { getBool } from '../systems/settings/settings.js';
+import { getBool } from '../platform/settings.js';
 import { SITE_TYPES } from '../systems/quest/place.js';
-import { isMainStoryDungeon } from './dungeon/dungeonTextures.js';
-import { isArenaUndercroft } from './arena/arenaCity.js';   // ARENA5: the fighters' hall keeps its blocks
-import { isEnhanced } from '../systems/uiSkin.js';   // DSIZE1: the medium size is the enhanced skin's
-import { getPref } from '../systems/uiPrefs.js';   // DSIZE1: ...and the player's ask (the `medium-dungeons` row)
-import { isOnlinePage } from '../systems/online/onlineLane.js';   // AUDIT DELVE E4 / SD-ONLINE: online the quest's stamp is the world's sizes
-import { seededFirst } from '../systems/wind/wind.js';   // SD-ONLINE: the port's one seeded die - a dungeon's online size, the same on every client
-import { dungeonTier } from '../systems/dungeon/dungeonTier.js';   // AUDIT SD: a Hollow, by the one tier law
+import { isMainStoryDungeon } from './dungeonTextures.js';
+import { isArenaUndercroft } from './arenaCity.js';   // ARENA5: the fighters' hall keeps its blocks
+import { isEnhanced } from '../ui/uiSkin.js';   // DSIZE1: the medium size is the enhanced skin's
+import { getPref } from '../ui/uiPrefs.js';   // DSIZE1: ...and the player's ask (the `medium-dungeons` row)
+import { isOnlinePage } from '../platform/onlineLane.js';   // AUDIT DELVE E4 / SD-ONLINE: online the quest's stamp is the world's sizes
+import { seededFirst } from '../weather/wind.js';   // SD-ONLINE: the port's one seeded die - a dungeon's online size, the same on every client
+import { dungeonTier } from './dungeonTier.js';   // AUDIT SD: a Hollow, by the one tier law
 
 /** QuestSmallerDungeonsState (DaggerfallUnityEnums.cs:758-763) -
  *  NotSet, DISABLED, ENABLED, in that order. F-B3 (self-audit 2): the

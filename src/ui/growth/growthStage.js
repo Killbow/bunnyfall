@@ -9,7 +9,7 @@
 // A face is `{ destroy(), resize?(refit), back?() }` - the windows' own (their `embed` mode). One stands at a time: a
 // new page's drops the last, and leaving the tab or the window drops it (releaseGrowthTab).
 
-import { isChunkLoadError, RELOAD_TEXT } from '../enhanced/enhancedChunk.js';   // MENU1's word for a chunk a deploy took
+import { isChunkLoadError, RELOAD_TEXT } from '../enhancedChunk.js';   // MENU1's word for a chunk a deploy took
 
 /** The face standing: `{ key, host, face, full, box }`, or null. */
 let live = /** @type {null | { key: string, host: HTMLElement, face: any, full: boolean, box: HTMLElement|null, sized: boolean, el?: any, words?: { full: string, leave: string }, guard?: any }} */ (null);

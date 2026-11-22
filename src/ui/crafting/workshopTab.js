@@ -1,7 +1,7 @@
 // @ts-check
-import { t } from '../../systems/textManager.js';
-import { drawOverviewPage, drawStoresPage, drawWorkshopStation, takeCraftStationFocus, stationHere, stationsHere, profPagesShown, profProvider, profActUnderWay, setDownProfAct, workshopStationBusy } from '../professions/profPages.js';
-import { drawCraftWindow, craftWindowBusy, setDownCraftWork } from '../professions/craftWindow.js';
+import { t } from '../textManager.js';
+import { drawOverviewPage, drawStoresPage, drawWorkshopStation, takeCraftStationFocus, stationHere, stationsHere, profPagesShown, profProvider, profActUnderWay, setDownProfAct, workshopStationBusy } from '../profPages.js';
+import { drawCraftWindow, craftWindowBusy, setDownCraftWork } from '../craftWindow.js';
 import { drawProvPage, provisioningBusy, selectProvisioningKind, setDownProv } from '../provisioning/provPage.js';
 import { mountReforgeWindow } from '../reforgeWindow.js';
 import { ensureGrowthStyle } from '../growth/growthTab.js';

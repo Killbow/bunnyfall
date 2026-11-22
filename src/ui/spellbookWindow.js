@@ -126,35 +126,35 @@
 // STILL DEPARTED: DFU's double-click-to-buy on the list (the port's
 // list picks straight through, U24's own recorded departure).
 
-import { nativeMetrics, drawImg, drawRect, shadowText, loadImg, DEFAULT_TEXT_COLOR } from './native/nativePanel.js';
+import { nativeMetrics, drawImg, drawRect, shadowText, loadImg, DEFAULT_TEXT_COLOR } from './nativePanel.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS, messageBoxArtLoaded } from './messageBox.js';
-import { noticeFrame, noticeRelease } from './enhanced/enhancedNotice.js';   // SPELLSHOP-SAID: the window's own click-anywhere box, as the enhanced panel (ENH-NOTICE2)
+import { noticeFrame, noticeRelease } from './enhancedNotice.js';   // SPELLSHOP-SAID: the window's own click-anywhere box, as the enhanced panel (ENH-NOTICE2)
 import { drawText } from './text.js';
 import { bindings } from './input.js';
 import { InputMessageBoxWindow } from './inputMessageBox.js';   // CM6: the rename is a pushed DaggerfallInputMessageBox
-import { codeMeans } from '../systems/inputActions.js';   // UXB1-S: its own key, shared or not
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { codeMeans } from './inputActions.js';   // UXB1-S: its own key, shared or not
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import {
   preloadSpellIcons, drawSpellIcon, drawTargetIcon, drawElementIcon,
   TARGET_DESCRIPTIONS, ELEMENT_DESCRIPTIONS,
-} from './spell/spellIcons.js';
-import { effectByKey, spellBookDescriptionId, effectMacroSource, portEffectDescription } from '../systems/spell/spellEffects.js';
+} from './spellIcons.js';
+import { effectByKey, spellBookDescriptionId, effectMacroSource, portEffectDescription } from '../magic/spellEffects.js';
 import { expandRowValues, sourceValues } from '../systems/quest/questMacros.js';   // MACRO-5: the effect popup's source
-import { calculateTradePrice } from '../systems/shopStock.js';
+import { calculateTradePrice } from '../trade/shopStock.js';
 import { ROW_SPACING, SELECTED_TEXT_COLOR } from './listPicker.js';   // ListBox.cs:36-37 and DaggerfallUI.cs:62 - one home each
 import { VerticalScrollBar, drawScrollThumb } from './verticalScrollBar.js';   // ROAD-D2: DFU's own VerticalScrollBar, art and all - and ROAD-G G4: the LIVE component, drag included
 import { ALT_SHADOW_1, DOUBLE_CLICK_DELAY_MS } from './chargenArt.js';   // DaggerfallAlternateShadowColor1, already homed; OT1: the ListBox double-click window
 import { ToolTip } from './toolTip.js';   // U37's shared component - SetupIcons points three panels at it
-import { SpellIconPickerWindow } from './spell/spellIconPickerWindow.js';   // MC1: the window the icon panel's click pushes
+import { SpellIconPickerWindow } from './spellIconPickerWindow.js';   // MC1: the window the icon panel's click pushes
 import {
   expandGuildMacros, TRADE_MESSAGE_BASE_ID, NOT_ENOUGH_GOLD_ID, cureOfferMessageOffset,
-} from '../systems/guild/guildServiceActions.js';   // DaggerfallTradeWindow's shared ids (:33-34) and the three haggle BANDS, all already homed
-import { getHolidayId, HOLIDAYS } from '../systems/holidays.js';
-import { NO_SPELLBOOK_ID, SPELLBOOK_TEMPLATE_INDEX, MAX_SPELL_NAME, purchaseSpell } from '../systems/spell/spellMaker.js';
-import { shownSpellName } from '../systems/loot/loot.js';   // L10N3e: a stock spell's name in the player's language
-import { totalGoldAmount } from '../systems/court.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+} from '../guilds/guildServiceActions.js';   // DaggerfallTradeWindow's shared ids (:33-34) and the three haggle BANDS, all already homed
+import { getHolidayId, HOLIDAYS } from '../world/holidays.js';
+import { NO_SPELLBOOK_ID, SPELLBOOK_TEMPLATE_INDEX, MAX_SPELL_NAME, purchaseSpell } from '../magic/spellMaker.js';
+import { shownSpellName } from '../items/loot.js';   // L10N3e: a stock spell's name in the player's language
+import { totalGoldAmount } from '../justice/court.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 
 /** The window's rects, verbatim (:33-55). */
 export const SPELLBOOK_RECTS = Object.freeze({
@@ -220,7 +220,7 @@ export const selectIconTip = () => localizedText('selectIcon', SELECT_ICON_TIP);
  *  their HOME to systems/lycanthropy.js (the producer that grants the
  *  tagged spells lives there now); imported and re-exported so this
  *  window's own laws and its consumers keep one spelling. */
-import { VAMPIRE_SPELL_TAG, LYCANTHROPY_SPELL_TAG } from '../systems/lycanthropy.js';
+import { VAMPIRE_SPELL_TAG, LYCANTHROPY_SPELL_TAG } from '../afflictions/lycanthropy.js';
 import { chapterPriced } from '../net/npcChapterLaw.js';   // CHAP3c / AUDIT CHAP3 R12: a hall's band laid over a spell's price
 export { VAMPIRE_SPELL_TAG, LYCANTHROPY_SPELL_TAG };
 /** ListItem's desaturation toward grey when the spell is unaffordable

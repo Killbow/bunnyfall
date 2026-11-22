@@ -22,7 +22,7 @@
 // prefers is DFU's particle prefab's, which the port's precipitation does not have.
 
 import { buildProgram } from './glProgram.js';
-import { WINDFALL_PARTICLE_SYSTEMS, WINDFALL_EMITTER } from '../systems/windfallEffects.js';
+import { WINDFALL_PARTICLE_SYSTEMS, WINDFALL_EMITTER } from '../weather/windfallEffects.js';
 
 const VS = `#version 300 es
 layout(location=0) in vec2 aCorner;   // 0..1

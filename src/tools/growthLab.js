@@ -5,11 +5,11 @@
 //   ?at=level | specs | specs:arcane | specs:martial | firmament | captain   the landing (default: the tab's first)
 //   ?owed=1      a level waiting          ?offline=1   no Firmament book (the page says why)
 //   ?nocaptain=1 no ships to captain      ?dress=grimoire   the Grimoire skin
-import { mountEnhancedMenu } from '../ui/enhanced/enhancedMenu.js';
+import { mountEnhancedMenu } from '../ui/enhancedMenu.js';
 import { playerEntity } from '../characters/playerEntity.js';
-import { SKILLS } from '../systems/skills.js';
+import { SKILLS } from '../characters/skills.js';
 import { setFirmamentBook } from '../net/firmament/firmamentBook.js';
-import { setFirmamentOnline, setFirmamentTree } from '../systems/firmamentLive.js';
+import { setFirmamentOnline, setFirmamentTree } from '../characters/firmamentLive.js';
 import { starsFor, craftPointsFor } from '../net/firmament/firmamentLaw.js';
 import { setHoldingsProvider } from '../ui/holdingsPages.js';
 import { createCaptainLedger } from '../systems/naval/captainLedger.js';

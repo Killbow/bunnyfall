@@ -10,14 +10,14 @@
 //     their one change of blood, asked twice.
 // The acts are the Courts' own (systems/vampire/masquerade.js, bloodlineLeaf.js, vampirism.js).
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { awakenedVampirism } from '../../systems/vampire/vitae.js';
 import { clanName, clanIdentityWords, CLAN_RIVAL, CLAN_TERRITORY, CLANS } from '../../systems/vampire/clanLaw.js';
 import { courtState, payTithe, askPenance, askCourtWork, heatList, tierName, regionName, titheInVitae, HUNT_STRIKES, TIER_FLOOR } from '../../systems/vampire/masquerade.js';
-import { startClanQuest } from '../../systems/racialQuests.js';
+import { startClanQuest } from '../../afflictions/racialQuests.js';
 import { vampirismInfection, claimBloodline } from '../../systems/vampire/bloodlineLeaf.js';
-import { clanRepickLeft, changeVampireClan } from '../../systems/vampirism.js';
-import { liveVampirism } from '../../systems/racialLive.js';
+import { clanRepickLeft, changeVampireClan } from '../../afflictions/vampirism.js';
+import { liveVampirism } from '../../afflictions/racialLive.js';
 import { DISCIPLINES } from '../../systems/vampire/disciplineLaw.js';
 import { openVampWindow, el, art, clanCrest, disciplineGlyph, chip, meter, button, pips, section, CLAN_COLOUR } from './vampKit.js';
 

@@ -28,7 +28,7 @@ await page.waitForSelector('.px-menu button', { timeout: 15000 });
 // ── MAC-F: the chronicle's cards fold ────────────────────────────
 const fold = await page.evaluate(async () => {
   const T = (text) => ({ formatting: 'text', text });
-  const m = await import('/src/ui/enhanced/enhancedChronicle.js');
+  const m = await import('/src/ui/enhancedChronicle.js');
   const host = document.createElement('div');
   host.id = 'probe-chronicle';
   // the probe mounts OVER the live title page, so it has to sit above it
@@ -88,7 +88,7 @@ check('MAC-F: a fold survives walking to another tab and back', fold.afterTabRou
 // ── MAC-G: the stats page lists what the career carries ──────────
 const specials = await page.evaluate(async () => {
   const { playerEntity } = await import('/src/characters/playerEntity.js');
-  const { parseCareerData, DEFAULT_MAGERY_BITS } = await import('/src/systems/specialAdvantages.js');
+  const { parseCareerData, DEFAULT_MAGERY_BITS } = await import('/src/characters/specialAdvantages.js');
   const career = {
     name: 'Spellsword', resistanceFlags: 0, immunityFlags: 0, lowToleranceFlags: 0,
     criticalWeaknessFlags: 0, abilityFlagsAndSpellPointsBitfield: DEFAULT_MAGERY_BITS << 8,
@@ -106,7 +106,7 @@ const specials = await page.evaluate(async () => {
   playerEntity.career = career;
   playerEntity.race = 'Breton';
   playerEntity.name = 'Janome';
-  const menu = await import('/src/ui/enhanced/enhancedMenu.js');
+  const menu = await import('/src/ui/enhancedMenu.js');
   const host = document.createElement('div');
   host.id = 'probe-stats';
   host.style.cssText = 'position:fixed; inset:0; z-index:99999;';

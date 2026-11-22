@@ -7,10 +7,10 @@ import assert from 'node:assert/strict';
 import { recordMatches, recordAccepts, countOf, takeableOf, takeStacks, takeChosen, handRecord, potionKeyOf, eventClaim, recipeClaim } from '../src/poi/poiSettle.js';
 import { recipeWhy, gateCtx, createDm, branchOf } from '../src/poi/poiDmCore.js';
 import { mintGift } from '../server-account/src/staffGive.js';
-import { createPotion } from '../src/systems/loot/loot.js';
-import { POTION_RECIPES, potionRecipeKey } from '../src/systems/potionRecipes.js';
-import { itemFindings } from '../src/systems/item/itemLaw.js';
-import { itemNameParts } from '../src/systems/item/itemInfo.js';
+import { createPotion } from '../src/items/loot.js';
+import { POTION_RECIPES, potionRecipeKey } from '../src/items/potionRecipes.js';
+import { itemFindings } from '../src/items/itemLaw.js';
+import { itemNameParts } from '../src/items/itemInfo.js';
 
 const keyOf = (/** @type {string} */ name) => potionRecipeKey(/** @type {any} */ (POTION_RECIPES.find((r) => r.name === name)).ingredients);
 const potion = (/** @type {string} */ name, n = 1, extra = {}) => ({ ...createPotion(keyOf(name)), ...(n > 1 ? { stackCount: n } : {}), ...extra });

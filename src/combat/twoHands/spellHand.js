@@ -26,7 +26,7 @@
 
 import { dualEligible, otherHand, GUARD } from './handsLaw.js';
 import { spellHandRects, RIGHT_HAND_UV } from '../fpsSpellCasting.js';
-import { weaponOffsetHeight } from '../../ui/hud/hudLarge.js';
+import { weaponOffsetHeight } from '../../ui/hudLarge.js';
 
 /** @typedef {import('./handsLaw.js').HandDesc} HandDesc */
 

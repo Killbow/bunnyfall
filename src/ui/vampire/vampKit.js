@@ -13,12 +13,12 @@
 // layer over the canvas, Escape and a tap outside close it, registered with the overlay stack, its `render` called again
 // on every change.
 
-import { registerOverlay, closeOnOutsideTap } from '../enhanced/enhancedOverlays.js';
+import { registerOverlay, closeOnOutsideTap } from '../enhancedOverlays.js';
 import { overlayAction } from '../input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from '../enhanced/enhancedStyle.js';
-import { isEnhanced } from '../../systems/uiSkin.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from '../enhancedStyle.js';
+import { isEnhanced } from '../uiSkin.js';
 import { PIXEL_STACK } from '../pixelifyFive.js';
-import { VAMPIRE_CLANS as C } from '../../systems/infection.js';
+import { VAMPIRE_CLANS as C } from '../../afflictions/infection.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 export const el = (tag, cls = null, text = null) => {
@@ -213,7 +213,7 @@ function injectKit() {
 // ── the pieces ─────────────────────────────────────────────────────────────────────────
 /** A button. `cost` a small figure after its label; `why` disables it and says why on hover. */
 export function button(label, onClick, { kind = '', cost = null, why = null } = {}) {
-  const b = el('button', `vk-btn ${kind}`.trim(), label);
+  const b = /** @type {HTMLButtonElement} */ (el('button', `vk-btn ${kind}`.trim(), label));
   b.type = 'button';
   if (cost != null) b.append(el('span', 'vk-cost', String(cost)));
   if (why) { b.disabled = true; b.title = why; }
@@ -267,7 +267,7 @@ export function openVampWindow({ id, title, sub = () => '', crest = () => '', ac
   const h = el('h2', 'vk-title');
   const s = el('p', 'vk-sub');
   titles.append(h, s);
-  const x = el('button', 'vk-x', '✕');
+  const x = /** @type {HTMLButtonElement} */ (el('button', 'vk-x', '✕'));
   x.type = 'button';
   x.setAttribute('aria-label', 'Close');
   head.append(crestBox, titles, x);

@@ -237,7 +237,7 @@ export function planDoc({ docText, target, oldLines, newLines, map, moveStruck =
       for (const m of l.matchAll(re)) {
         // AUDIT 68 X5-citeshift-foreign-path-and-ambiguous-basename: a
         // directory written before the basename names ONE file - `ui/chargen.js`
-        // is not a cite into src/systems/chargen.js, and the content check
+        // is not a cite into src/characters/chargen.js, and the content check
         // cannot tell (a pure shift passes it whatever file the cite names).
         const dir = spelling !== 'ledger' && citedPath(m[0]);
         if (dir && dir !== target && !target.endsWith('/' + dir) && !dir.endsWith('/' + target)) continue;
@@ -307,7 +307,7 @@ function main(argv) {
   const targets = (only.length ? only : changed).filter((f) => /\.(js|mjs|md)$/.test(f));
   const docs = git('ls-files', 'bible', 'test', 'src', 'tools').split('\n').filter((f) => /\.(js|mjs|md|sh)$/.test(f) && !SELF_DOCS.includes(f));   // RF3: the tools' own fixtures are not docs
   let moved = 0, applied = 0, held = 0;
-  // AUDIT 68: two targets with one basename (src/systems/loot/loot.js and
+  // AUDIT 68: two targets with one basename (src/items/loot.js and
   // survival/loot.js) - a bare `loot.js:N` is neither's to move, where it was
   // moved once by each, the second time off the first one's rewrite.
   const sharedBase = new Set(targets.map((t) => basename(t)).filter((b, i, all) => all.indexOf(b) !== i));

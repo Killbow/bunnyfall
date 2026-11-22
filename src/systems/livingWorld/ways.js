@@ -25,7 +25,7 @@
 // pair about 180 (its land pieces folded, once) - so a frame's asking can run past the time by one pair, as LW3's two
 // could. The same pairs, planned by the same planner on the same network in the same direction - every way the one it
 // was - known in a tenth of the frames.
-import { planRoute } from '../travel/travelRoute.js';
+import { planRoute } from '../../travel/travelRoute.js';
 
 /** New pairs asked a frame - at the least (LW3). */
 export const WAYS_PER_FRAME = 2;

@@ -15,8 +15,8 @@
 // foe there carries `elite`.
 //
 // Of the leaves only - the kills', the tier's and the acts' - so the dungeon host imports nothing of the layer.
-import { registerPlayerKillListener } from '../playerKills.js';
-import { dungeonTier } from '../dungeon/dungeonTier.js';
+import { registerPlayerKillListener } from '../../player/playerKills.js';
+import { dungeonTier } from '../../world/dungeonTier.js';
 import { noteAct } from './qlActs.js';
 
 /** The kill listener's name (playerKills.js registerPlayerKillListener) - QL11's own, kept. */

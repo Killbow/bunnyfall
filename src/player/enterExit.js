@@ -13,8 +13,8 @@
 // numerically: model 444's door centre lands halfway up its 14.45-unit
 // gate only without re-scaling).
 
-import { CAPSULE_RADIUS, CAPSULE_HEIGHT } from '../player/motor.js';
-import { t } from '../systems/textManager.js';   // VOID-DUNGEON: the failsafe's line underground, in the player's language
+import { CAPSULE_RADIUS, CAPSULE_HEIGHT } from './motor.js';
+import { t } from '../ui/textManager.js';   // VOID-DUNGEON: the failsafe's line underground, in the player's language
 
 export const ENTER_DOOR_OFFSET = CAPSULE_RADIUS + 0.4; // 0.75
 export const EXIT_DOOR_OFFSET = CAPSULE_RADIUS * 3; // 1.05

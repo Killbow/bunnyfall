@@ -41,19 +41,19 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [480, 800, 'narrow'], [390,
     const { createProfileWindow, profileView, GEAR_ROWS } = await import('/src/ui/profileWindow.js');
     const { NAME_MAX, CARD_LEVEL_MAX, CARD_STAT_MAX, CARD_VITAL_MAX } = await import('/src/net/wire.js');
     const { TITLES, GLYPHS, RENOWN_MAX } = await import('/src/net/identityToken.js');
-    const { itemLongName } = await import('/src/systems/item/itemInfo.js');
+    const { itemLongName } = await import('/src/items/itemInfo.js');
     document.body.innerHTML = '';
     document.body.style.cssText = 'margin:0;background:repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px);height:100vh';
     // online is the enhanced lane (systems/online/onlineLane.js forces the skin), so the card stands over the enhanced sheet in
     // play; bare, it must stand as well - it leans on none of the sheet's global rules (a `* { box-sizing }` among them)
-    if (sheet === 'enhanced') (await import('/src/ui/enhanced/enhancedStyle.js')).injectEnhancedStyle();
+    if (sheet === 'enhanced') (await import('/src/ui/enhancedStyle.js')).injectEnhancedStyle();
     // THE WIDEST OUTFIT A PLAYER CAN WEAR: for every slot, the longest name the pack gives an item that EQUIPS there -
     // every template of the look's groups in every material its group takes, placed by DFU's own GetEquipSlot
     // (systems/equip.js) and named by the pack's own namer (itemLongName). The second of a pair wears what the first can;
     // a slot nothing equips stays bare, as it is on a real player.
-    const { groupTemplates } = await import('/src/systems/item/itemTemplates.js');
-    const { getEquipSlot } = await import('/src/systems/equip.js');
-    const { EQUIP_SLOTS } = await import('/src/characters/paperdoll/paperdoll.js');
+    const { groupTemplates } = await import('/src/items/itemTemplates.js');
+    const { getEquipSlot } = await import('/src/characters/equip.js');
+    const { EQUIP_SLOTS } = await import('/src/characters/paperdoll.js');
     const MATERIALS = { Weapons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], Armor: [0, 0x0100, 0x0200, 0x0201, 0x0202, 0x0203, 0x0204, 0x0205, 0x0206, 0x0207, 0x0208, 0x0209] };
     const best = new Map();
     for (const group of ['Armor', 'Weapons', 'Jewellery', 'MensClothing', 'WomensClothing']) {
