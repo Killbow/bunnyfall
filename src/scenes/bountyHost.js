@@ -27,7 +27,7 @@ import {
   BOUNTY_VENDOR, bountyDay, bountySites, boardPostings, postingFromId, parseBountyId, postingState,
   bountyDungeons, newBountyLedger, readBountyLedger, takeBounty, dropBounty, payBounty, lapseBounties, pruneBountyLedger,
   bountyPoseField, bountyPackOwner, bountyHuntKey, bountyTierFits, bountyMinutesLeft, rewardStory, BOUNTY_REWARD_TITLE, BOUNTY_ACTIVE_MAX,
-  MINUTES_PER_DAY, bountyIdAtLevel, bountyPartyKills, bountyClearPays, restampNeverLapsed,
+  MINUTES_PER_DAY, bountyIdAtLevel, bountyPartyKills, bountyClearPays, restampNeverLapsed, bountyHeldDungeonAt,
 } from '../systems/bounty/bountyBoard.js';
 import { mintBountyItem, bountyItemName, bountyRewardRows } from '../systems/bounty/bountyReward.js';
 import { registerModSaveData } from '../systems/modSaveData.js';
@@ -559,6 +559,7 @@ export function createBountyHost(deps) {
     /** My pose's `bq` - a row's `a` while its pack stands here. */
     poseField: () => bountyPoseField(ledger, paidIds, { standing: (id) => packs.has(id) }),
     held: () => heldRows(),
+    heldDungeonAt: (x, y) => bountyHeldDungeonAt(ledger, postingOf, x, y),
     pendingNotices: () => notices.length,
     /** AUDIT 28 H12: a notice taken down unread goes back to the front of the queue - never dropped. */
     requeue: (n) => { if (n && !notices.includes(n)) notices.unshift(n); },

@@ -23190,8 +23190,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wildHallHere = () => { const a = wildActiveNow(), p = playerTravelPixel(); return seaVentures.vaultHere() ?? (a && p ? wildHallAt(a, p.x, p.y) : null); };   // SEA-VAULTS: a vault of the deep is a hall of its own
   const wildDungeonIsOpenHere = () => !!wildHallHere();
   const wdKey = () => { const p = playerTravelPixel(); return seaVentures.vaultHere()?.key ?? `${p.x},${p.y}`; };   // SEA-VAULTS: a vault of the deep's own key (a death after a load, which ran no gate)
-  /** May I go down into the dungeon at this door. In the zone only the day's halls open, and the hub says whether my
-   *  hour's lock still holds (lifted while my own remains lie inside); with no hub, this session's own lock. */
+  /** May I go down into the dungeon at this door. In the zone only the day's halls and a held bounty's dungeon open.
+   *  A hall's hourly lock comes from the hub (lifted while my remains lie inside), else from this session. */
   const wildDungeonGate = async (hit, fromLoad = false) => {
     const mask = wildMapMask();
     if (!mask || fromLoad) return true;
@@ -23202,7 +23202,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // owner: "i can still leave and reenter the dungeon as much as i want in the zone" - god mode skipped the whole gate,
     // so no hall was ever marked as entered, and nothing locked behind it)
     if (!hall) {
-      if (TEST_GODMODE && staffPowers().god) return true;
+      if ((TEST_GODMODE && staffPowers().god) || bountyHost?.heldDungeonAt(p.x, p.y)) return true;
       townTalk.say('The way in is sealed. Only the halls marked on the map are open today.'); return false;
     }
     const lockSay = (left) => setMidScreenText(`You cannot enter this hall again for ${Math.max(1, Math.ceil(left / 60000))} minute${Math.ceil(left / 60000) === 1 ? '' : 's'}.`, 4);

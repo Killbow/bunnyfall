@@ -403,6 +403,16 @@ export function postingFromId(id, { name = '', sites = [], dungeons = [] } = {})
   return bountyPosting({ day: b.day, px: b.px, py: b.py, name, slot: b.slot, level: b.level, sites, dungeons });
 }
 
+// A graveyard bounty is fought outside the graveyard, so it opens no door.
+/**
+ * @param {{ held: Array<{ id: string }> }} ledger @param {(id: string) => any} postingOf
+ * @param {number} x @param {number} y
+ */
+export const bountyHeldDungeonAt = (ledger, postingOf, x, y) => ledger.held.some((h) => {
+  const p = postingOf(h.id);
+  return p?.kind === 'dungeon' && !p.graveyard && p.target.px === x && p.target.py === y;
+});
+
 /** The words the reward notice speaks. `h` picks the story (a roll the host makes). */
 export function rewardStory({ town = 'town', gold, itemName }, h = 0) {
   return fillStory(pick(BOUNTY_REWARD_STORIES, h >>> 0), { town, gold, item: itemName || 'a small trinket' });
