@@ -32,6 +32,7 @@ import { RDB_RESOURCE_TYPES } from '../../formats/blocksFile.js';
 import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack, CLASSIC_LAYOUT } from '../layoutPins.js';   // WD3: a building site keeps its town's layout
 import { curatedMarkerSpot, curateSiteMarkers } from './markerCuration.js';   // FIELD BUGS 2026-10-04d QUEST-MARKERS: the town packs' unreachable markers, on the floor
 import { cromwarkQuestSiteBlocked } from '../wild/cromwarkSettlements.js';
+import { cromwarkDoor } from '../wild/cromwarkTowns.js';
 import { questReachOn, questReachPixels, nearbyIndices, indicesWithin, mapTablePixel, mapPixelDistance } from './questReach.js';   // NEARBY-QUESTS
 import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 import { stringHash } from '../../formats/netRuntime.js';   // QUEST-AUDIT II SHARED-SEAT: a shared copy's re-seat, seeded (a leaf)
@@ -1092,6 +1093,7 @@ export class Place extends QuestResource {
       if (world.isHouseOwned?.(buildingKey)) continue;
       if (world.isPlayerHome?.(location.mapTableData?.mapId, buildingKey)) continue;   // HOME1: nor a player's online home (a departure: DFU has one player)
       if (this._isBuildingAssigned(activeQuestSites, parentQuestPlaces, location, summary, buildingKey)) continue;
+      if (cromwarkDoor(world.maps, location, b.dfBlock.index, i) === 'boarded') continue;
 
       const { questSpawnMarkers, questItemMarkers } = this._enumerateBuildingQuestMarkers(b.dfBlock, i);
       if (!validateQuestMarkers(questSpawnMarkers, questItemMarkers)) continue;

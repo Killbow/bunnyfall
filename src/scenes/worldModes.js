@@ -8008,8 +8008,8 @@ export function createWorldModes(host) {
     if (!isBash && (hit.door.doorType === DOOR_TYPE.DUNGEON_ENTRANCE || hit.door.doorType === DOOR_TYPE.BUILDING) && host.duelHolds?.()) { setMidScreenText(DUEL_DOOR_TEXT); return true; }
     if (hit.door.doorType === DOOR_TYPE.DUNGEON_ENTRANCE) return enterDungeonDoor(hit, entries);   // ONLINE-PUBLIC: the door opens the public room
     if (hit.door.doorType !== DOOR_TYPE.BUILDING || hit.recordIndex === undefined) return false;
-    // BUNNYFALL (Cromwark, systems/wild/cromwarkTowns.js): a desolate town's door is boarded up, or opens on nobody
-    if (cromwarkDoor(null, hit.dfLocation, hit.dfBlock?.index, hit.recordIndex) === 'boarded') { setMidScreenText(cromwarkTownText('boarded')); return true; }
+    if (cromwarkDoor(null, hit.dfLocation, hit.dfBlock?.index, hit.recordIndex) === 'boarded'
+      && !questBridge?.machine.isActiveQuestBuilding(hit.dfLocation?.mapTableData?.mapId, buildingDataForDoor?.(hit)?.buildingKey, null, false)) { setMidScreenText(cromwarkTownText('boarded')); return true; }
     // R1: THE EXTERIOR DOOR LOCK (ActivateStaticDoor, PlayerActivate.cs
     // :512-568). Closed hours lock the town: the unlocked ladder runs
     // first, and its top two rungs - owned houses and active-quest

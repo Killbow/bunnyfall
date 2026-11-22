@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-21
 
+- Fixed: Quests no longer send players to boarded-up buildings in Cromwark's ruined towns, and players on a quest that already targets one can now go inside.
 - Fixed: Smiths, furniture stores, and clothiers in Cromwark's ruined towns no longer offer their forge, workbench, or loom.
 - Fixed: Apart from player homes, open buildings in Cromwark's ruined towns now hold little or nothing, taking items or forcing a door is not a crime, and no guards spawn.
 - The chat now has its own font and text size from 85% to 150%, set in Settings > Chat or with the A- and A+ buttons in its top bar. The chat's own window uses them too, and it now shows the game text font by default instead of the pixel font.
