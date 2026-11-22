@@ -74,7 +74,7 @@ import { homeOutsideKept, homeYardWhere, homeCandidate } from './onlineHomes.js'
 import { homeDecorShown } from '../net/homeVoteLaw.js';
 import { homeDecorSeenByMe } from './homeDecorHide.js';   // DECOR-HIDE   // HOME-VOTE: a shunned home's yard stands for its insiders alone
 import { createYardNature, isNaturePiece, yardNatureFlat, yardTreeSet } from './yardNature.js';   // DECOR-OUTDOOR: a yard's trees and plants, in its town's season; DECOR-LPT: as Low Poly Trees' own
-import { campsWhereWords } from '../ui/campsPage.js';   // HOLDINGS: the limit's refusal names the camps kept
+import { campsWhereWords, setCampPacker } from '../ui/campsPage.js';
 import { CAMP_CAP, CAMP_RADIUS, CAMP_PIXEL_M, campOf, campKitPieces } from '../net/campLaw.js';   // BUNNYFALL CAMPS: a kit's camp, kept and furnished
 import { CAMP_KIND } from '../systems/survival/camp.js';
 import { remapSubMeshes } from '../world/texRemap.js';   // DECOR-OUTDOOR: a yard's models in its town's climate
@@ -755,6 +755,14 @@ export function createHomeYards(deps) {
       settleOwed(rec.id);
     },
   });
+  // Also packs this character's tent for the camp, so the line-up does not pitch it again.
+  setCampPacker((c) => Promise.resolve(deps.api.campStrike(c.id)).then((res) => {
+    if (!res?.ok && res?.error !== 'no-camp') return res;
+    campsById.delete(c.id);
+    campRefused.clear();
+    if (c.char === deps.character?.()) deps.campPool?.()?.packTent?.(c.rec);
+    return res;
+  }));
   /** The pieces a camp stands: its own, and the kit's tent and fire while nobody's live record of them stands. */
   const campPiecesOf = (c) => (!c.mine && !kitStands(c.rec) ? [...c.pieces, ...campKitPieces(c.yaw)] : c.pieces);
 

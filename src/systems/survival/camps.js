@@ -618,7 +618,7 @@ export function createCamps({
     if (showOverlay) showOverlay(win); else act(c, rows[0]?.key);
     return win;
   }
-  function act(c, key) {
+  function act(c, key, tell = true) {
     if (!camps.includes(c)) return;
     if (key === 'rest') {
       // AUDIT SURV-TIERS (the third pass): THE REST IS THE FIRE'S, AND SO IS ITS REACH. The menu opens from a tent's
@@ -644,10 +644,15 @@ export function createCamps({
       const r = packCamp(c.rec);
       if (r.item && entity) (entity.items ??= []).push(r.item);
       drop(c); say(r.text); onChanged?.();
-      if (c.rec.kind === CAMP_KIND.Tent) keeper?.struck?.(c.rec);
+      if (tell && c.rec.kind === CAMP_KIND.Tent) keeper?.struck?.(c.rec);
       return;
     }
     if (key === 'cook') openCook(c);
+  }
+  function packTent(id) {
+    const c = camps.find((x) => mine(x) && x.rec.id === id && x.rec.kind === CAMP_KIND.Tent);
+    if (c) act(c, 'pack', false);
+    return !!c;
   }
   /** The cooking list. HEARTH1: `c` is the camp whose fire this is, or
    *  NULL for one of the world's own - a brazier burns for ever and
@@ -873,6 +878,7 @@ export function createCamps({
     destroyAll, dropOwn, collectPixel, offsetAll, groundMoved, snapshot, restore, wireRecords, applyOwner, sweepOwners, sweepColdAbsent,
     get camps() { return camps; }, own,
     keepCamps: (k) => { keeper = k; },
+    packTent,
     usable,   // AUDIT DECOR-USE D6: whether the world's fires answer here - a placed one too (systems/decor/decorUse.js)
   };
 }
