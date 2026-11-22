@@ -11581,11 +11581,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  it, DFU's own quirk); a civilian who can starts the 5-10 second
    *  arrival countdown the pool's update already consumes. */
   /** ROAD-B: the ONE entry to PlayerEntity.SpawnCityGuards for this
-   *  host, both arms. The INDOOR arm (:628-642) runs first and, when
-   *  it takes the call, RETURNS - a crime in an open shop, a tavern or
-   *  a residence is answered at that building's own lowest outer door
-   *  by the interior's own watch pool, and the street law below never
-   *  runs. Every other case falls through here exactly as C# falls
+   *  host, both arms. In a desolate Cromwark town the call returns before either arm.
+   *  The INDOOR arm (:628-642) runs next; when it takes the call, it RETURNS.
+   *  A crime in an open shop, tavern, or residence is answered at the building's
+   *  lowest outer door by its interior watch pool, and the street law below
+   *  never runs. Every other case falls through here exactly as C# falls
    *  through the `if`. The note this host used to carry (below, at
    *  the mode machine's `spawnCityGuards` key, where its retirement is
    *  written) said the arm was unreachable because "this host's pool
@@ -11613,7 +11613,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   function rrRidingContacts() { rrRiding.contacts(); }
   function _spawnGuards(immediate) {
-    if (modes?.spawnCityGuardsInside?.(immediate)) return;
+    if (cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y) || modes?.spawnCityGuardsInside?.(immediate)) return;
     const feet = walkMode && playerSpawned ? player.pos : cam.pos;
     const fwd = [Math.sin(cam.yaw), 0, Math.cos(cam.yaw)];
     cityGuards.spawnCityGuards(!!immediate, { playerFeet: [...feet], playerFwd: fwd, pool: _guardPool() }).catch((e) => console.error('[guards]', e));
@@ -23190,8 +23190,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wildHallHere = () => { const a = wildActiveNow(), p = playerTravelPixel(); return seaVentures.vaultHere() ?? (a && p ? wildHallAt(a, p.x, p.y) : null); };   // SEA-VAULTS: a vault of the deep is a hall of its own
   const wildDungeonIsOpenHere = () => !!wildHallHere();
   const wdKey = () => { const p = playerTravelPixel(); return seaVentures.vaultHere()?.key ?? `${p.x},${p.y}`; };   // SEA-VAULTS: a vault of the deep's own key (a death after a load, which ran no gate)
-  /** May I go down into the dungeon at this door. In the zone only the day's halls open, and the hub says whether my
-   *  hour's lock still holds (lifted while my own remains lie inside); with no hub, this session's own lock. */
+  /** May I go down into the dungeon at this door. In the zone only the day's halls and a held bounty's dungeon open.
+   *  A hall's hourly lock comes from the hub (lifted while my remains lie inside), else from this session. */
   const wildDungeonGate = async (hit, fromLoad = false) => {
     const mask = wildMapMask();
     if (!mask || fromLoad) return true;
@@ -23202,7 +23202,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // owner: "i can still leave and reenter the dungeon as much as i want in the zone" - god mode skipped the whole gate,
     // so no hall was ever marked as entered, and nothing locked behind it)
     if (!hall) {
-      if (TEST_GODMODE && staffPowers().god) return true;
+      if ((TEST_GODMODE && staffPowers().god) || bountyHost?.heldDungeonAt(p.x, p.y)) return true;
       townTalk.say('The way in is sealed. Only the halls marked on the map are open today.'); return false;
     }
     const lockSay = (left) => setMidScreenText(`You cannot enter this hall again for ${Math.max(1, Math.ceil(left / 60000))} minute${Math.ceil(left / 60000) === 1 ? '' : 's'}.`, 4);

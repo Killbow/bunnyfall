@@ -9,6 +9,11 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-21
 
+- Fixed: Revenants near the reach of Cromwark no longer make lairs in its sealed dungeons, and an existing lair there moves to the nearest open dungeon in range.
+- Fixed: Sealed dungeons in the reach of Cromwark now open for players holding a bounty that sends them there.
+- Fixed: Quests no longer send players to boarded-up buildings in Cromwark's ruined towns, and players on a quest that already targets one can now go inside.
+- Fixed: Smiths, furniture stores, and clothiers in Cromwark's ruined towns no longer offer their forge, workbench, or loom.
+- Fixed: Apart from player homes, open buildings in Cromwark's ruined towns now hold little or nothing, taking items or forcing a door is not a crime, and no guards spawn.
 - The chat now has its own font and text size from 85% to 150%, set in Settings > Chat or with the A- and A+ buttons in its top bar. The chat's own window uses them too, and it now shows the game text font by default instead of the pixel font.
 - On a computer, the chat box now resizes from its right and bottom edges as well as its corner, and Settings > Chat has Small, Medium, and Large sizes. A new Reset chat size button in Settings resets the chat to its usual size and place.
 - On a computer, the chat can now be moved by the empty part of its top bar as well as its handle. Making the window smaller pulls the chat back on screen, and it returns to its place when the window grows.
