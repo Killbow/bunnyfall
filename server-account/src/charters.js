@@ -7,7 +7,7 @@
 // names as its hall region's hub, one a region. A friends' server takes it.
 import { keptWorld, dropWorld } from './worldCache.js';
 import { guildActorOf } from './guilds.js';
-import { GUILD_RANK_MASTER, guildTagOf } from '../../src/net/guild/guildLaw.js';
+import { GUILD_RANK_MASTER, guildTagOf } from '../../src/net/guildLaw.js';
 import { CHARTER_COMPANIES_MAX, CHARTER_INVITE_TTL_S, charterNameOf } from '../../src/net/charterLaw.js';
 
 const regionOk = (r) => Number.isSafeInteger(r) && r >= 0 && r <= 61;

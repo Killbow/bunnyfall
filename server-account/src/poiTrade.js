@@ -12,7 +12,7 @@ import { mintGift } from './staffGive.js';
 import { POI_ID_RE } from '../../src/poi/poiLaw.js';
 import { evalWhen, varsRead, persists, claimRule, eventRule, recipeWhy, takesOf, gateCtx } from '../../src/poi/poiDmCore.js';
 import { takeStacks, takeChosen, takeGold, giveGoods, countOf, takeableOf, goldOf, eventClaim, recipeClaim, HAND_MAX } from '../../src/poi/poiSettle.js';
-import { GOLD_INT_MAX } from '../../src/systems/item/itemLaw.js';
+import { GOLD_INT_MAX } from '../../src/items/itemLaw.js';
 
 /** How long a settled act's answer is kept for a client asking again (cron.js poi-txn-log). */
 export const POI_TXN_KEEP_S = 30 * 24 * 3600;

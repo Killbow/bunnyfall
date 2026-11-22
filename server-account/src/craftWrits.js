@@ -24,7 +24,7 @@ import { RENOWN_XP_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import { PROF_OPS_MAX, PROF_OPS_WINDOW_S, PROF_XP_MAX, rankOfXp } from '../../src/net/professionLaw.js';
 import { halfXp } from '../../src/net/craft/craftLaw.js';
 import { HALL_WRIT_REP } from '../../src/net/npcChapterLaw.js';
-import { MAX_REPUTATION } from '../../src/systems/guild/guildFactions.js';
+import { MAX_REPUTATION } from '../../src/guilds/guildFactions.js';
 import { COOKING_RECIPES, DISHES } from '../../src/net/recipeLaw.js';
 import { craftWritsFor, craftWritId, CRAFT_WRIT_ID_RE, CRAFT_WRITS_PER_DAY, CRAFT_WRIT_SLOTS, craftProductOf, takeCraftGoods } from '../../src/net/craftWritLaw.js';
 

@@ -20,7 +20,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { egStartsFrom } from '../../src/net/eliteGates/egStartLaw.js';
-import { arenaSeasonOf, ARENA_SEASON_EPOCH_S, ARENA_SEASON_S } from '../../src/net/arena/arenaLaw.js';
+import { arenaSeasonOf, ARENA_SEASON_EPOCH_S, ARENA_SEASON_S } from '../../src/net/arenaLaw.js';
 import { ID_RE } from '../../src/net/identityToken.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 

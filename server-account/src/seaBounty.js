@@ -22,7 +22,7 @@
 // batch. Not a DFU member: Daggerfall Unity has no players to hunt.
 // ═══════════════════════════════════════════════════════════════════
 import { realmActFirst, prepareRealmRecord, mustChange, dropIfUnnamed, recordMovedOf, dropObjects } from './realm.js';
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 import { regionOk } from '../../src/net/nodeLaw.js';
 import { seaRoomOf } from '../../src/net/wire.js';
 import { REALM_CHARACTER_RE } from '../../src/net/identityToken.js';

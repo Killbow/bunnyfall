@@ -33,10 +33,10 @@
 // (past the window, past the account's bound) into a second copy in the
 // pack. A place is under LOST_INDEX_MAX, so no kill holds more.
 // ═══════════════════════════════════════════════════════════════════
-import { itemFindings } from '../../src/systems/item/itemLaw.js';
+import { itemFindings } from '../../src/items/itemLaw.js';
 import { LOST_BATCH, LOST_WINDOW_S, LOST_WAITING_MAX, lostKillOf, lostBatchOf, lostPiecesOf } from '../../src/net/lostLaw.js';
 import { isGunTemplate } from '../../src/characters/thunderlockIds.js';
-import { GILDED, HOURLOCK, DRAGONFIRE_OATH } from '../../src/systems/gilded.js';
+import { GILDED, HOURLOCK, DRAGONFIRE_OATH } from '../../src/items/gilded.js';
 
 /** Who the Lost and Found's pieces are from, as the box shows them (src/net/postLaw.js postHead's 40). */
 export const LOST_SENDER = 'Lost and Found';

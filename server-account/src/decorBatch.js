@@ -3,7 +3,7 @@
 // A guild hall does too: the keeper pays for what is placed, and what comes back goes to the guild's treasury.
 // A palace keeps the one-piece writes (seat-batch).
 import { accountKind, displayName } from './accounts.js';
-import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';
+import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
 import { CHAR_ID_RE } from './service.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import {
@@ -14,7 +14,7 @@ import { OWNS, provenOf, vendorStocked } from './decor.js';
 import {
   dropIfUnnamed, dropObjects, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmSaveTextOf, realmSideOf, REALM_ID_RE,
 } from './realm.js';
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 
 const placeJson = ({ pos, rot, scale, light, storage, paid, station, name }) => JSON.stringify({ pos, rot, scale, light, storage, paid, ...(station ? { station } : {}), ...(name ? { name } : {}) });
 

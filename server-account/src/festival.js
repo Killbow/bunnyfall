@@ -38,7 +38,7 @@ import { CHAR_ID_RE } from './service.js';
 import { dice } from './unitRoll.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { skyClassicMinutes } from '../../src/net/skyLaw.js';
-import { dayOfYearFromMinutes } from '../../src/systems/gameDate.js';
+import { dayOfYearFromMinutes } from '../../src/world/gameDate.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import {
   festivalOpen, isFindSource, FIND_SOURCES, findCount, FIND_ASKS_PER_DAY, FIND_CAKES_PER_DAY,

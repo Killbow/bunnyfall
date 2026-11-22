@@ -56,13 +56,13 @@
 // out. A seizure takes them whatever is said: no game applies it (its fallen plays a record that moved under it, and
 // its next join reads it) - so a fall at another's hand that the old tab is refused is still taken whole, by its killer
 // once the grace is gone; a death to a foe takes nothing (FOE-KEEPS).
-import { verifyWildReceipt, verifyWildCollect, wildFallGraceS, WILD_COLLECT_TTL_S } from '../../src/net/wild/wildReceipt.js';
+import { verifyWildReceipt, verifyWildCollect, wildFallGraceS, WILD_COLLECT_TTL_S } from '../../src/net/wildReceipt.js';
 import { mintRemainsOrder, remainsDigest, ORDER_TTL_S } from '../../src/net/identityToken.js';
 import { streamsFoes, WILD_REMAINS_MS } from '../../src/net/wire.js';
-import { GUILD_ID_RE } from '../../src/net/guild/guildLaw.js';
-import { takeWildDeath, wildDropCandidates, wildTookOf, wildCartRecordOf, wildCartMayBeAway, WILD_FALL_PACKS, WILD_FALL_LETTERS, wildTakesPacks } from '../../src/systems/wild/wildDropLaw.js';
-import { mintItemId } from '../../src/systems/item/itemIds.js';
-import { giveTradeGoods } from '../../src/net/realm/realmTradeLaw.js';
+import { GUILD_ID_RE } from '../../src/net/guildLaw.js';
+import { takeWildDeath, wildDropCandidates, wildTookOf, wildCartRecordOf, wildCartMayBeAway, WILD_FALL_PACKS, WILD_FALL_LETTERS, wildTakesPacks } from '../../src/world/wild/wildDropLaw.js';
+import { mintItemId } from '../../src/items/itemIds.js';
+import { giveTradeGoods } from '../../src/net/realmTradeLaw.js';
 import { prepareRealmRecord, seizeRealmRecord, realmAtOf, realmActFirst, recordMovedOf, mustChange, dropIfUnnamed, dropObjects, realmSaveTextOf, holdRefusal, REALM_ID_RE } from './realm.js';
 import { ledgerKeyOf } from './judge.js';
 import { piecesBarred, knownCopySteps } from './ledger.js';

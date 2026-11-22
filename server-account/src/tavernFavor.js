@@ -1,7 +1,7 @@
 // @ts-check
 import { FAVOR_OFFERS, tavernProgressOf } from '../../src/net/tavernFavorLaw.js';
-import { favorReward } from '../../src/systems/tavern/favorRewards.js';
-import { addItem } from '../../src/systems/inventory.js';
+import { favorReward } from '../../src/trade/tavern/favorRewards.js';
+import { addItem } from '../../src/items/inventory.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, mustChange, recordMovedOf } from './realm.js';
 
 /** The realm checkpoint, debit, delivered item/title and receipt commit together. */

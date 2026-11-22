@@ -39,7 +39,7 @@
 // record, which holds it.
 // ═══════════════════════════════════════════════════════════════════
 import { realmActFirst, prepareRealmRecord, mustChange, dropObjects, dropIfUnnamed, recordMovedOf, REALM_ID_RE } from './realm.js';
-import { giveTradeGoods } from '../../src/net/realm/realmTradeLaw.js';
+import { giveTradeGoods } from '../../src/net/realmTradeLaw.js';
 import { POST_ID_RE, POST_BOX_MAX, postItemHead } from '../../src/net/postLaw.js';
 import { isLostBatch } from '../../src/net/lostLaw.js';   // LOST-SPOILS: the Lost and Found's pieces, charged to the budget
 import { isReportReader, reportCountsOf } from './reports.js';   // PRIVATE-REPORT: a reader's box counts the reports waiting

@@ -64,7 +64,7 @@ import { utcDay } from '../../src/net/marksLaw.js';
 import { egHonourStatements, egHonoursAnswer, egRecordStmts, egRecordFrom } from './egHonours.js';   // EG-E2: the feats, the Annals, the honours
 import { egStandingOf, egFirstPost, egBoardsMoved } from './egHonours.js';   // EG-ZF: the recap's board line; First of the Spire's letter; AUDIT EG III: the boards' kept rankings forgotten at a claim
 import { egRedoubtPay, egReliquariesOf, egSinkStmt, egSinkFrom } from './egEconomy.js';   // EG-E1: what a Redoubt pays, the sink
-import { arenaWeekOf } from '../../src/net/arena/arenaLaw.js';   // EG-E3: the week a find's keys are capped by, the arena's
+import { arenaWeekOf } from '../../src/net/arenaLaw.js';   // EG-E3: the week a find's keys are capped by, the arena's
 import { egMayStart, egWagerOf } from '../../src/net/eliteGates/egStartLaw.js';   // EG-F: the start Redoubt and the Wager, held at the open and every admission
 import { egStartsFor } from './egStarts.js';
 import { egSpoilsSeed } from '../../src/net/eliteGates/egPay.js';   // AUDIT EG V (L8-5): the spoils' seed, the receipt's mixed with the claim's own draw

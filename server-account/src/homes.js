@@ -48,7 +48,7 @@
 import { accountKind, displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE, DB_ROOT } from './service.js';
 import { prepareRealmRecord, realmActFirst, realmAtOf, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE, getRealmBlob, realmSaveTextOf, realmHoldOf } from './realm.js';   // REALM P2.2b; AUDIT REALM L1-F2: the record asked first; AUDIT REALM2 S3: a landed batch's object kept; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed read off the record
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';   // REALM P2.2b: the wallet's own order, over the record
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';   // REALM P2.2b: the wallet's own order, over the record
 import {
   HOME_CAP, HOME_ENTRY_DEFAULT, HOME_CLAIMS_MAX, HOME_CLAIMS_WINDOW_S, HOME_TOWN_MAX, HOME_LAYOUTS_MAX,
   HOME_KEYS_MAX,   // FIELD BUGS 2026-10-14 QUEST-HOME: the homes the layouts read names by building
@@ -59,7 +59,7 @@ import {
 } from '../../src/net/homeLaw.js';
 import { PATRON_HOUR_S } from '../../src/net/patronLaw.js';   // AUDIT LW-II P7: a door opened marks its trader's patrons' hours
 import { reckonPatrons } from './market.js';   // AUDIT LW-II-2 S4: a door leaving public reckons its town first
-import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';   // ARENA4b: a hall's pieces paid back, into a treasury under its cap
+import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';   // ARENA4b: a hall's pieces paid back, into a treasury under its cap
 import { DECOR_OPS_MAX, DECOR_OPS_WINDOW_S } from '../../src/net/decorLaw.js';   // HOME-LOOK: a repaint counts as a decorator's write
 import { hallMay } from '../../src/net/hallLaw.js';   // GUILD1d: a hall's keepers
 import { heraldryOfRow } from './halls.js';   // GUILD1d: a hall's heraldry, on its door

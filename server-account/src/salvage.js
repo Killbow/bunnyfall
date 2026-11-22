@@ -12,7 +12,7 @@ import { halfXp } from '../../src/net/craft/craftLaw.js';
 import { STORES_MAX, PROF_XP_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
 import { rollSalvage, descriptorOk, salvageRecipeOf, salvageDescriptor, SALVAGE_BATCH_MAX } from '../../src/net/salvageLaw.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed } from './realm.js';
-import { tradeableRecord, realmTradePickOf } from '../../src/net/realm/realmTradeLaw.js';
+import { tradeableRecord, realmTradePickOf } from '../../src/net/realmTradeLaw.js';
 
 /**
  * BUNNYFALL AUDIT BF-02: THE RECORD'S OWN PIECES. A realm character's salvage names where each piece stands in its

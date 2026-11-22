@@ -10,10 +10,10 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 import { displayName, overRate } from './accounts.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE } from './realm.js';
-import { takeTradeGoods, giveTradeGoods, recordCount, REALM_TRADE_RECORD_MAX } from '../../src/net/realm/realmTradeLaw.js';
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
-import { wagonItemName } from '../../src/systems/wagon/wagonKinds.js';
-import { lawfulItem } from '../../src/systems/item/itemLaw.js';
+import { takeTradeGoods, giveTradeGoods, recordCount, REALM_TRADE_RECORD_MAX } from '../../src/net/realmTradeLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
+import { wagonItemName } from '../../src/travel/wagonKinds.js';
+import { lawfulItem } from '../../src/items/itemLaw.js';
 
 /** The shelves' count, the purse's ceiling, one act's gold, the acts allowed a minute. */
 export const ACCOUNT_VAULT_SLOTS = 60;

@@ -41,15 +41,15 @@
 //     piles it dropped - picked up again, a pile is no gain). INT5's budget reads it.
 // ═══════════════════════════════════════════════════════════════════
 
-import { itemFindings, itemWorth, lawTemplate, classicPiece, PROVENANCE_RE, ITEM_LAW_VERSION, GOLD_INT_MAX } from '../../src/systems/item/itemLaw.js';
-import { ledgerKeyOf } from '../../src/systems/item/itemIds.js';
-import { armsOf } from '../../src/net/siege/siegeRef.js';   // INT7: the arms the token signs
-import { liquidWorthOf, deedsOf } from '../../src/net/realm/realmGoldLaw.js';
-import { possessedItemLists } from '../../src/systems/item/possessedItems.js';   // AUDIT AUTO-HOLD: one home, the client's shelf reads it too
-import { MAX_STAT_VALUE } from '../../src/systems/statMods.js';
-import { SKILL_HARD_CAP } from '../../src/systems/skillSoftcap.js';
-import { STAT_KEYS_ORDER } from '../../src/systems/statMods.js';
-import { pathFindings } from '../../src/systems/arcanePaths.js';   // SCHOOLS5: a save's specialisation
+import { itemFindings, itemWorth, lawTemplate, classicPiece, PROVENANCE_RE, ITEM_LAW_VERSION, GOLD_INT_MAX } from '../../src/items/itemLaw.js';
+import { ledgerKeyOf } from '../../src/items/itemIds.js';
+import { armsOf } from '../../src/net/siegeRef.js';   // INT7: the arms the token signs
+import { liquidWorthOf, deedsOf } from '../../src/net/realmGoldLaw.js';
+import { possessedItemLists } from '../../src/items/possessedItems.js';   // AUDIT AUTO-HOLD: one home, the client's shelf reads it too
+import { MAX_STAT_VALUE } from '../../src/characters/statMods.js';
+import { SKILL_HARD_CAP } from '../../src/characters/skillSoftcap.js';
+import { STAT_KEYS_ORDER } from '../../src/characters/statMods.js';
+import { pathFindings } from '../../src/characters/arcanePaths.js';   // SCHOOLS5: a save's specialisation
 import { isMasterWork, masterSignature, masterLinesOfRecord } from '../../src/net/masterLaw.js';   // MASTER-ART: a Master's work's lines, its record's
 import { readProductRecord } from '../../src/net/productRecord.js';
 

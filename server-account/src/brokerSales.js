@@ -11,7 +11,7 @@
 // client asked "does the account hold a sale like this one?" - by the week and the piece - and an earlier honest sale,
 // or the week turning, answered for a press that never landed (AUDIT FB1024 lanes B and C).
 
-import { arenaWeekOf } from '../../src/net/arena/arenaLaw.js';
+import { arenaWeekOf } from '../../src/net/arenaLaw.js';
 import { BROKER_RID_RE } from '../../src/net/insignia.js';
 
 /** A request id the law accepts. */

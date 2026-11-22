@@ -48,8 +48,8 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═══════════════════════════════════════════════════════════════════
 
-import { verifyRaidReceipt } from '../../src/net/raid/raidReceipt.js';
-import { raidDayOfKey } from '../../src/net/raid/raidLaw.js';
+import { verifyRaidReceipt } from '../../src/net/raidReceipt.js';
+import { raidDayOfKey } from '../../src/net/raidLaw.js';
 import { renownForXp, renownRaidXp, RENOWN_XP_MAX, RENOWN_XP_HOUR_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import { renownCharacterOk, renownNameOf, renownTrackOf, renownHeldSql } from './renownTracks.js';
 

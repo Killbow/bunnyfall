@@ -11,7 +11,7 @@ import { stepFarmHerdAction, kindContent } from '../../src/net/farm/herdLaw.js';
 import { stepFarmWorkshop } from '../../src/net/farm/workshopLaw.js';   // PHASE 4: the workshops
 import { farmWeek } from '../../src/net/farmProgressLaw.js';
 import { stepFarmStation, stationDaily, pruneStations, characterStationed } from '../../src/net/farm/stationLaw.js';   // PHASE 5: sworn beasts on the farm
-import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';
+import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
 
 export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const { character, mapId, op = 'read', version } = body;

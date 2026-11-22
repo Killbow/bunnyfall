@@ -32,8 +32,8 @@ import { mustChange } from './realm.js';
 import { gatherStandings } from './seatInfluence.js';   // AUDIT-SEATS S8: a Tourney's dead heat as the Turning counted it
 import { utcDay, MARKS_MAX } from '../../src/net/marksLaw.js';
 import { mintSiegeOrder, siegeFieldValid } from '../../src/net/identityToken.js';
-import { SIEGE_RAMS_MAX } from '../../src/net/siege/siegeRef.js';   // SEAT2b part two (b): the most Rams a pass carries
-import { verifySiegeReceipt, SIEGE_RECEIPT_TTL_S } from '../../src/net/siege/siegeReceipt.js';   // AUDIT-SEATS R6: a late pass lives the receipt's week
+import { SIEGE_RAMS_MAX } from '../../src/net/siegeRef.js';   // SEAT2b part two (b): the most Rams a pass carries
+import { verifySiegeReceipt, SIEGE_RECEIPT_TTL_S } from '../../src/net/siegeReceipt.js';   // AUDIT-SEATS R6: a late pass lives the receipt's week
 import { RENOWN_XP_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import {
   seatWeekOf, seatKeyOk, settleField, passWindowEnds, passOpens, siegeWinner, siegeAftermath, spoilsOf, SIEGE_HONOURS,

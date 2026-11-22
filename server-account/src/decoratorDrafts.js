@@ -11,7 +11,7 @@ import { decoratorPieceOk, templatePaidOf } from '../../src/net/decoratorLaw.js'
 import { chargeOps } from './decorBatch.js';
 import { DECORATES, HOME_OWNER, draftPieceOf } from './decorators.js';
 import { dropIfUnnamed, dropObjects, mustChange, prepareRealmRecord, realmActFirst, recordMovedOf, REALM_ID_RE } from './realm.js';
-import { payFromSave } from '../../src/net/realm/realmGoldLaw.js';
+import { payFromSave } from '../../src/net/realmGoldLaw.js';
 import { HANDLE_RE } from '../../src/net/handleShape.js';
 
 const placeJson = ({ pos, rot, scale, light, storage, paid }) => JSON.stringify({ pos, rot, scale, light, storage, paid });

@@ -27,8 +27,8 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═══════════════════════════════════════════════════════════════════
 
-import { verifySdReceipt } from '../../src/net/superDungeon/sdReceipt.js';
-import { seededRng } from '../../src/systems/wind/wind.js';
+import { verifySdReceipt } from '../../src/net/sdReceipt.js';
+import { seededRng } from '../../src/weather/wind.js';
 
 /** The account's grants on its row (`players.sd_honours`, migration 0088), bit by bit. */
 export const SD_HONOUR_TITLE = 1;

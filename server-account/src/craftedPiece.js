@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { prepareRealmRecord } from './realm.js';
-import { takeTradeGoods, tradeableRecord } from '../../src/net/realm/realmTradeLaw.js';
+import { takeTradeGoods, tradeableRecord } from '../../src/net/realmTradeLaw.js';
 
 /**
  * THE RECORD'S OWN CRAFTED PIECE, taken out of a realm record `save` - the piece of `provenance` loose in its pack (the trade's

@@ -1,7 +1,7 @@
 // Purchases and bulk orders join the garden's revision claim in the same D1 transaction.
 import { mustChange } from './realm.js';
 import { marksOpenFor } from './marks.js';
-import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';
+import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
 import { MARKS_MAX } from '../../src/net/marksLaw.js';
 import { materialOf } from '../../src/net/professionLaw.js';
 import { herbTier } from '../../src/net/nodeLaw.js';

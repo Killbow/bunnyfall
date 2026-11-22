@@ -13,7 +13,7 @@ import { ED_SITES_TEXT } from './eliteDungeonSites.js';
 import {
   ED_FIGHT_MIN_S, ED_RESUMMON_S, ED_REWARD_NYX, ED_BATCH_MAX, edKey, edKeyOf, edPickSites, edBatchOf, edBatchSlot0, edWantBatch, edSpreadPx,
 } from '../../src/net/eliteDungeonLaw.js';
-import { contentOn } from '../../src/systems/contentOff.js';
+import { contentOn } from '../../src/mods/contentOff.js';
 
 const DAY_S = 86400;
 /** Cleansed ones are told for this long (s), so every game can say so. */

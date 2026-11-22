@@ -54,8 +54,8 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { JUDGE_VERSION } from './judge.js';
-import { rehomedPrint } from '../../src/systems/loot/lootRarity.js';   // AUDIT FB1018f L1-1: the one move a load's repair makes to a print
-import { LOCKED_SAID_MAX } from '../../src/net/realm/realmTradeLaw.js';   // AUTO-HOLD: the locked pieces an answer names - one number with the session's
+import { rehomedPrint } from '../../src/items/lootRarity.js';   // AUDIT FB1018f L1-1: the one move a load's repair makes to a print
+import { LOCKED_SAID_MAX } from '../../src/net/realmTradeLaw.js';   // AUTO-HOLD: the locked pieces an answer names - one number with the session's
 
 /** How long a claim waits for its holder's checkpoint before the holder's still having the piece proves it a copy - two
  *  checkpoints, every five minutes (systems/online/onlineCheckpoint.js ONLINE_CHECKPOINT_MS, CHECKPOINT-5), and half of

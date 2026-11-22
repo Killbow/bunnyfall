@@ -20,10 +20,10 @@
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
 import { realmActFirst, prepareRealmRecord, mustChange, dropIfUnnamed, recordMovedOf, dropObjects } from './realm.js';
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 import { regionOk } from '../../src/net/nodeLaw.js';
 import { mintStakeOrder, STAKE_ROOM_RE } from '../../src/net/identityToken.js';
-import { verifyCardReceipt, CARD_RECEIPT_TTL_S } from '../../src/net/card/cardReceipt.js';
+import { verifyCardReceipt, CARD_RECEIPT_TTL_S } from '../../src/net/cardReceipt.js';
 import { HOLDEM_BBS, HOLDEM_STAKE_MIN_BB, HOLDEM_STAKE_MAX_BB, HOLDEM_TABLES_MAX, HOLDEM_TOPUP_MIN_BB, holdemGoldTable } from '../../src/net/holdemTable.js';
 import { GAMBIT_STAKE_BB, gambitStakeOk } from '../../src/net/gambit/gambitStakes.js';   // KG6: The King's Gambit's stakes, an arm of their own (AUDIT KG C24)
 

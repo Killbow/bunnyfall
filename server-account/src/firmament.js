@@ -21,7 +21,7 @@
 
 import { mintId, overRate } from './accounts.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed } from './realm.js';   // the respec's gold, on a realm character's record
-import { payFromSave } from '../../src/net/realm/realmGoldLaw.js';
+import { payFromSave } from '../../src/net/realmGoldLaw.js';
 import { isDeveloper } from './titles.js';
 import { marksOpenFor, balanceOf } from './marks.js';
 import { renownTrackOf, renownCharacterOk } from './renownTracks.js';
