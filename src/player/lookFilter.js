@@ -22,26 +22,15 @@
 // to the TARGET as :142 does, so the camera never overshoots the range.
 
 import { getFloat, getInt } from '../platform/settings.js';   // MAC-O2: Controls/WeaponSwingMode, the term the swing suppression was missing
-import { PITCH_LIMIT } from './mwCamera.js';
+import { PITCH_LIMIT } from './pitchLimit.js';
 
 /** PlayerMouseLook.SmoothingMax (:45): the setter clamps to it. */
 export const SMOOTHING_MAX = 0.9;
-// MW-D30's clamp survives the filter takeover: the pitch range is the
-// REFERENCE's +/-(PI/2 - 1e-6) (camera.cpp:323-331), one home in
-// mwCamera - the 1.5 literal this filter briefly re-minted was the
-// exact divergence MW-D30 removed from the four hosts.
 export { PITCH_LIMIT };
 
-/** MAC1 (Mac, 2026-09-10): "Looking straight down and moving is
- *  jarring. Add a stopper so the player's camera can not go down past a
- *  certain threshold." DFU's PlayerMouseLook clamps both ways at 90
- *  degrees (PitchMinLimit / PitchMaxLimit); the port keeps the
- *  reference CEILING (PITCH_LIMIT above) and takes the owner's FLOOR:
- *  75 degrees below the horizon, which keeps the ground under a walk in
- *  view without the view turning perpendicular to the motion. Ledger A,
- *  MAC1 - the number is Mac's to tune. Applied where the reference
- *  clamp is applied, to the TARGET, so a pitch restored from a save
- *  below the floor glides up to it rather than snapping. */
+/** The ceiling is PITCH_LIMIT. The floor is the owner's 75 degrees below the horizon, which keeps the ground in
+ *  view while walking. It clamps the target, so a pitch restored from a save below the floor eases up instead of
+ *  snapping. */
 export const PITCH_FLOOR = (75 * Math.PI) / 180;
 // RR2: `playerMouseLook.PitchMaxLimit = terrainAngle + 18` (EnhancedRiding.cs
 // :288) - a mod lowers how far DOWN the rider may look. DFU's Pitch is
@@ -185,7 +174,8 @@ export class LookFilter {
    */
   tick(dt, cam, { smoothing = getFloat('Controls', 'MouseLookSmoothingFactor', 0, SMOOTHING_MAX) } = {}) {
     // Clamp the TARGET pitch to the range, then owe only what remains.
-    const targetPitch = Math.max(-pitchFloor(), Math.min(PITCH_LIMIT, cam.pitch + this.residualPitch));   // RR2: a mod's PitchMaxLimit rides the floor   // MAC1: the floor is the owner's, the ceiling the reference's
+    // The floor is the owner's, lowered by a mod's PitchMaxLimit; the ceiling is PITCH_LIMIT.
+    const targetPitch = Math.max(-pitchFloor(), Math.min(PITCH_LIMIT, cam.pitch + this.residualPitch));
     this.residualPitch = targetPitch - cam.pitch;
     const s = frameSmoothing(_controllerLook && smoothing < 0.5 ? 0.5 : smoothing, dt);   // GP1: the controller's floor
     const stepYaw = this.residualYaw * (1 - s);

@@ -9,7 +9,7 @@ import { iilActive, iilInteriorLights, iilSyncLane } from '../render/improvedInt
 import { Arch3dFile } from '../formats/arch3dFile.js';
 import { WORLD_FRAME } from '../render/renderer.js';   // AUDIT-EL F5
 import { INTERIOR_CLEAR } from '../render/renderer.js';
-import { PITCH_LIMIT } from '../player/mwCamera.js';   // MW-D30: camera.cpp:323-331's own clamp
+import { PITCH_LIMIT } from '../player/mwCamera.js';
 import { requestLook, makeLookGate } from '../player/pointerLock.js';   // AUDIT-AMAP H8: the lock gate the other hosts run
 import { attachTouch } from '../ui/touch.js';
 import { attachGamepad } from '../ui/gamepadInput.js';   // GP1: the pad speaks the same hooks

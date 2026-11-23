@@ -1270,7 +1270,7 @@
   "src/player/lateSolid.js": 60,
   "src/player/layeredArmor.js": 27,
   "src/player/lockOn.js": 18,
-  "src/player/lookFilter.js": 48,
+  "src/player/lookFilter.js": 46,
   "src/player/lootStack.js": 33,
   "src/player/mobileEnemyActivate.js": 100,
   "src/player/motor.js": 399,

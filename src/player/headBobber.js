@@ -22,6 +22,7 @@
 
 import { getBool } from '../platform/settings.js';
 import { WALK_STEP_INTERVAL } from '../audio/footsteps.js';
+import { clampPitch } from './pitchLimit.js';
 
 /** bobSpeed = WalkStepInterval / 2 (:41). */
 export const BOB_SPEED = WALK_STEP_INTERVAL / 2;
@@ -129,8 +130,10 @@ export class HeadBobber {
     posY = this._applySimpleBouncing(dt, posY, { grounded, swimming, climbing, levitating });
     this.offset = [posX, posY];
     // Rotate(newRotation): x pitches down in Unity's frame, y turns right.
-    this.nod = [rotX, rotY];
-    cam.pitch -= rotX * DEG;
+    // Clamp at the pitch limit and record only what moved; the undo above takes back exactly that, unclamped.
+    const pitchBefore = cam.pitch;
+    cam.pitch = clampPitch(pitchBefore - rotX * DEG);
+    this.nod = [(pitchBefore - cam.pitch) / DEG, rotY];
     cam.yaw += rotY * DEG;
     return this.offset;
   }
