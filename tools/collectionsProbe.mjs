@@ -98,7 +98,7 @@ for (const [label, opts] of [['desktop', { viewport: { width: 1280, height: 860 
       check(`${tag}: a held row offers its press`, (await page.locator('.coll-wear').count()) === 1);
       // the pad: a step down from the opened row reaches its press (the press centred in the box's foot)
       const reached = await page.evaluate(async () => {
-        const { spatialStep } = await import('/src/ui/plus/plusPad.js');
+        const { spatialStep } = await import('/src/ui/plusPad.js');
         const r = document.querySelector('[data-wardrobe="title:gatebreaker"]').getBoundingClientRect();
         const to = spatialStep([r.left + r.width / 2, r.top + r.height / 2], 'down');
         const w = document.querySelector('.coll-wear').getBoundingClientRect();

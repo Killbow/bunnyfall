@@ -6,7 +6,7 @@
 // `f<flat>:<archive>.<record>`, at most DECOR_HIDDEN_CAP of them, none twice.
 
 import { DECOR_BASE_KEY_RE, DECOR_HIDDEN_CAP, decorBaseWhat, DECOR_MOUNT_LIFT } from '../../../src/net/decorLaw.js';
-import { decorFlameLift } from '../../../src/systems/decor/decorFlame.js';
+import { decorFlameLift } from '../../../src/homes/decorFlame.js';
 import { POI_V2_LIMITS } from '../../../src/poi/poiLawV2.js';
 
 const r3 = (v) => Math.round(v * 1000) / 1000;

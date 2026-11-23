@@ -18,7 +18,7 @@
 //     drawn as one quad at their own height, never clipped onto a fight floor near them.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { telegraphBounds, telegraphField, telegraphStrip, TELEGRAPH_KIND, TELEGRAPH_NOW_MS } from '../../render/gate/gateTelegraph.js';
+import { telegraphBounds, telegraphField, telegraphStrip, TELEGRAPH_KIND, TELEGRAPH_NOW_MS } from '../../render/gateTelegraph.js';
 import { egInShape, segDist, egPieceIn } from '../../net/eliteGates/egShape.js';
 import { egHazardParts, EG_HAZARDS } from '../../net/eliteGates/egFragLaw.js';
 import { egFightFloorAt } from '../../net/eliteGates/egFair.js';
@@ -26,9 +26,9 @@ import { egOneStorey } from '../../net/eliteGates/egWalkGraph.js';   // THE ASCE
 import { EG_FL } from '../../net/eliteGates/egBodies.js';
 import { EG_ECLIPSE_NM } from '../../net/eliteGates/egLords.js';   // EG-PERFECT: a lord's own Eclipse, by its name
 import { EG_VESTIGES } from '../../net/eliteGates/egVestige.js';
-import { gateHitFlash } from '../gate/gateBoss.js';
+import { gateHitFlash } from '../gateBoss.js';
 import { EG_BAND_RAMPS } from './egBandArt.js';
-import { SD_ISLAND_SIDES } from '../superDungeon/sdRealm.js';
+import { SD_ISLAND_SIDES } from '../sdRealm.js';
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 

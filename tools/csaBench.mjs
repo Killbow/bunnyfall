@@ -9,8 +9,8 @@
 //                                                        steps each every frame within NEAR_LIFE_M) - every one of them, standing
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createComeSailAwayPool } from '../src/scenes/comeSailAway/comeSailAwayPool.js';
-import { Boat, boatAnimators } from '../src/systems/comeSailAway/comeSailAwayBoat.js';
+import { createComeSailAwayPool } from '../src/systems/naval/comeSailAwayPool.js';
+import { Boat, boatAnimators } from '../src/systems/naval/comeSailAwayBoat.js';
 
 const fileFetch = async (url) => {
   const bytes = readFileSync(fileURLToPath(url));

@@ -17,8 +17,8 @@ try {
   await page.evaluate(async () => {
     const { createTavernServiceHud } = await import('/src/ui/tavernServiceHud.js');
     const { createTavernShift } = await import('/src/net/tavernServiceLaw.js');
-    const { setUiSkin } = await import('/src/systems/uiSkin.js');
-    const { setPlusTheme } = await import('/src/ui/enhanced/enhancedPlusStyle.js');
+    const { setUiSkin } = await import('/src/ui/uiSkin.js');
+    const { setPlusTheme } = await import('/src/ui/enhancedPlusStyle.js');
     const state = createTavernShift({ keeper: 'keeper', patrons: ['guest'], where: '17:42', seed: 1, nowS: 100 });
     state.orders[0].recipe = 'dibella'; state.mix.cream = 1;
     const hud = createTavernServiceHud();

@@ -4,7 +4,7 @@
 // piece ends). Buffers only grow; batches can be raised `lift` m in Y and draw `onTop`, depth-tested (pulled `toEye` m
 // toward the eye), or `hidden` (`gl.GEQUAL`), never writing depth, and restore GL state for the foreign-pass check.
 import { buildProgram } from './glProgram.js';
-import { telegraphLineW } from './gate/gateTelegraph.js';
+import { telegraphLineW } from './gateTelegraph.js';
 
 const FLOATS = 20;
 const VERTS = 6;

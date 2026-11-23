@@ -14,7 +14,7 @@
 //
 // Pure: the numbers, the reading of a save's figures, and the board's shape.
 // ═══════════════════════════════════════════════════════════════════
-import { arenaSeasonOf, ARENA_SEASON_EPOCH_S, ARENA_SEASON_S } from '../arena/arenaLaw.js';
+import { arenaSeasonOf, ARENA_SEASON_EPOCH_S, ARENA_SEASON_S } from '../arenaLaw.js';
 import { wallMsForClassicMinutes, ONLINE_MINUTES_PER_MS } from '../wire.js';
 
 /** The captain's ledger's record in a save's modData (systems/naval/captainLedger.js CAPTAIN_SAVE_VENDOR - pinned equal;

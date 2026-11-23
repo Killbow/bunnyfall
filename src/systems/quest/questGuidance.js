@@ -19,9 +19,9 @@
 //
 // Not a DFU member.
 
-import { isEnhanced } from '../uiSkin.js';
-import { getPref } from '../uiPrefs.js';
-import { clairvoyantNow } from '../spell/clairvoyance.js';   // BUNNY-SPELLS: Clairvoyance
+import { isEnhanced } from '../../ui/uiSkin.js';
+import { getPref } from '../../ui/uiPrefs.js';
+import { clairvoyantNow } from '../../magic/clairvoyance.js';   // BUNNY-SPELLS: Clairvoyance
 
 /** The prefs key (the `quest-guidance` Features row, which holds its tiers). */
 export const GUIDANCE_PREF = 'questGuidance';

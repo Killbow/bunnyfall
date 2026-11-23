@@ -33,7 +33,7 @@
 // `scenes/dataSource.js`, which is the port's one data door.
 // ═══════════════════════════════════════════════════════════════════
 
-import { dfmodGeneration } from '../systems/dfmodTextures.js';   // DFMOD1-E: the icon cache keys on the attached-mod set
+import { dfmodGeneration } from '../mods/dfmodTextures.js';   // DFMOD1-E: the icon cache keys on the attached-mod set
 import { studioGeneration } from '../systems/studioArt/studioArt.js';   // STUDIO1: and on the studio's pictures
 import { bitmapCanvas, color32Canvas, fitCanvas } from './bitmapCanvas.js';
 import { clampDpr, ICON_CAP } from './iconFit.js';   // UI1: the fit law's numbers, for requestFittedPicture's key
@@ -41,7 +41,7 @@ import { clampDpr, ICON_CAP } from './iconFit.js';   // UI1: the fit law's numbe
 // (scenes/dataPipeline.js getTexture). A vendored archive has no
 // TEXTURE.### to fetch, so `getArchive` below cached it as a miss and
 // every DOM screen drew initials where the mod's art should be.
-import { isVendorArchive, vendorRecordCount, hasTextureReplacement, preloadTextureRecord } from '../systems/textureReplacement.js';
+import { isVendorArchive, vendorRecordCount, hasTextureReplacement, preloadTextureRecord } from '../render/textureReplacement.js';
 import { dyeToken, changeDyeBitmap } from '../characters/dyes.js';   // DW3: the dye is part of the ask, so it is part of the key; DYE-ICON: and the classic arm dyes by it
 // The name rule lives with the READER (U54 moved it there): both this
 // module and scenes/shared.js need it, and neither can import the

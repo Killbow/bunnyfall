@@ -18,7 +18,7 @@ const jsFiles = (dir) => readdirSync(join(root, dir)).flatMap((n) => {
   return n.endsWith('.js') ? [p] : [];
 });
 
-const handled = new Set(paths(read('server-account/src/index.js')));
+const handled = new Set(['server-account/src/index.js', ...jsFiles('server-account/src/routes')].flatMap((f) => paths(read(f))));
 const missing = [...handled].filter((p) => !ROUTES.has(p));
 
 const relay = new Set(jsFiles('server/src').flatMap((f) => paths(read(f))));

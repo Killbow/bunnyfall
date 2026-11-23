@@ -29,7 +29,7 @@
 // ENHANCED ONLY: the hosts build it on the enhanced lane (sky.enhanced) and draw it while the mod's switch is on.
 
 import { buildProgram } from './glProgram.js';
-import { HAZE, hazeNoise } from '../systems/heatHaze.js';
+import { HAZE, hazeNoise } from '../weather/heatHaze.js';
 
 /** The two noise reads' world axes and scales (HeatHaze.glsl, verbatim). */
 export const HAZE_AXES = Object.freeze({ a: [0.9239, 0.3827], b: [-0.4226, 0.9063], up: 1.5, scale: 0.0022, k1: 3.6, k2: 7.2 });

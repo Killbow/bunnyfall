@@ -28,7 +28,7 @@
 // Not a DFU member: Daggerfall Unity has no friends, no parties and no online. Ledger A row (ONLINE).
 import { NOTE_CODES, INVITE_TTL_MS, PARTY_MAX, PENDING_MAX } from './wire.js';
 import { keptToken } from './online.js';
-import { appStorage } from '../systems/appStorage.js';   // the app's own storage - localStorage in a browser, the shell's file store on the desktop
+import { appStorage } from '../platform/appStorage.js';   // the app's own storage - localStorage in a browser, the shell's file store on the desktop
 
 /** SOC2 (Mac: "friend other users"): THE ACCOUNT - the id a FRIEND is. A peer id is a tab's (TABS1, net/online.js
  *  peerId) and dies with it, which is exactly wrong for a friend list: a friend is a person, and here a person is a

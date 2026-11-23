@@ -28,23 +28,23 @@
 // well, the rank and the personality chips, the acts buttons (Release the warn) - this sheet writes geometry and the
 // words' colours alone.
 
-import { retinue, revenantsWithYou, revenantsAway, callRevenant, callRefusal, sendRevenantAway, leaveRefusal, releaseRevenant, restUntil, REVENANT_RETINUE_MAX } from '../systems/revenant/revenantCompanions.js';
-import { companionsWithYou, companionRoster, COMPANION_SLOTS } from '../systems/companionSlots.js';
-import { revenantPortrait, revenantRankNumeral } from '../systems/revenant/revenant.js';
-import { PERSONALITIES } from '../systems/revenant/revenantPersonality.js';
-import { loyaltyLabel } from '../systems/revenant/revenantFeud.js';   // RVN11 (bible/12-Enhanced-AI/Feud-Arc.md 22.4): its loyalty's word
-import { ownMinutes, sharedClockOn } from '../systems/worldTick.js';
+import { retinue, revenantsWithYou, revenantsAway, callRevenant, callRefusal, sendRevenantAway, leaveRefusal, releaseRevenant, restUntil, REVENANT_RETINUE_MAX } from '../revenants/revenantCompanions.js';
+import { companionsWithYou, companionRoster, COMPANION_SLOTS } from '../characters/companionSlots.js';
+import { revenantPortrait, revenantRankNumeral } from '../revenants/revenant.js';
+import { PERSONALITIES } from '../revenants/revenantPersonality.js';
+import { loyaltyLabel } from '../revenants/revenantFeud.js';   // RVN11 (bible/12-Enhanced-AI/Feud-Arc.md 22.4): its loyalty's word
+import { ownMinutes, sharedClockOn } from '../world/worldTick.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
-import { giftablePieces, giveSwornGear, takeSwornGear, sendOnErrand, recallFromErrand, errandRefusal, abroadWords } from '../systems/revenant/revenantCompanions.js';   // RVN-GEAR, RVN-ERRAND
-import { GEAR_SLOTS, GEAR_KEYS, GEAR, metalName, tierWord, armedKind, gearKeyOf, gearRefusal, gearLabel, gearPower, gearTier, gearItems, wornGear, brokenPiece } from '../systems/revenant/revenantGear.js';
-import { ERRAND, ERRAND_PLACES, VENTURES, VENTURE_KEYS, errandOdds, oddsWord, oddsKind, errandMinutes, ERRAND_REAL_HOURS_A_DAY } from '../systems/revenant/revenantErrands.js';
-import { rvnStarsOf } from '../systems/revenant/revenantStars.js';   // RVN-STARS: its level and its stars to set
-import { MINUTES_PER_DAY } from '../systems/gameDate.js';
-import { t } from '../systems/textManager.js';   // L10N4: RVN-GEAR's and RVN-ERRAND's words through the text core
-import { artWords } from '../systems/revenant/revenantArts.js';   // RVN-ARTS: its art, for me
-import { itemLongName } from '../systems/item/itemInfo.js';
-import { itemValueOf } from '../systems/item/itemTemplates.js';
-import { rarityOf, RARITIES } from '../systems/loot/lootRarity.js';
+import { giftablePieces, giveSwornGear, takeSwornGear, sendOnErrand, recallFromErrand, errandRefusal, abroadWords } from '../revenants/revenantCompanions.js';   // RVN-GEAR, RVN-ERRAND
+import { GEAR_SLOTS, GEAR_KEYS, GEAR, metalName, tierWord, armedKind, gearKeyOf, gearRefusal, gearLabel, gearPower, gearTier, gearItems, wornGear, brokenPiece } from '../revenants/revenantGear.js';
+import { ERRAND, ERRAND_PLACES, VENTURES, VENTURE_KEYS, errandOdds, oddsWord, oddsKind, errandMinutes, ERRAND_REAL_HOURS_A_DAY } from '../revenants/revenantErrands.js';
+import { rvnStarsOf } from '../revenants/revenantStars.js';   // RVN-STARS: its level and its stars to set
+import { MINUTES_PER_DAY } from '../world/gameDate.js';
+import { t } from './textManager.js';   // L10N4: RVN-GEAR's and RVN-ERRAND's words through the text core
+import { artWords } from '../revenants/revenantArts.js';   // RVN-ARTS: its art, for me
+import { itemLongName } from '../items/itemInfo.js';
+import { itemValueOf } from '../items/itemTemplates.js';
+import { rarityOf, RARITIES } from '../items/lootRarity.js';
 import { minionRows, setMinionWaiting, releaseMinion } from '../systems/necromancy/necromancy.js';
 import { servants as thrallServants, socials as thrallSocials, setDuty as setThrallDuty } from '../systems/vampire/thralls.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2
 import { thrallRank, DUTIES as THRALL_DUTIES } from '../systems/vampire/thrallLaw.js';

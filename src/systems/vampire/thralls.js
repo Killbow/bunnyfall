@@ -15,20 +15,20 @@
 //     costs the vampire's name in its region. Prisoners sicken and despair, and may escape (never under a guard).
 // Nothing here runs for a vampire the Elder has not awakened (vitae.js awakenedVampirism).
 
-import { t } from '../textManager.js';
-import { registerModSaveData } from '../modSaveData.js';
-import { registerCompanionCount, registerCompanionRoster, companionSlotFree, COMPANION_SLOTS_FULL } from '../companionSlots.js';
-import { registerCustomTemplates, registerTemplateLore, setItemFields, mintCondition, registerItemUseHandler, ITEM_TEMPLATES } from '../item/itemTemplates.js';
-import { addItem, addGoldPieces } from '../inventory.js';
-import { goldAmount, deductGoldPieces, lowerRepForCrime, CRIMES } from '../court.js';
-import { equipTableOf } from '../equip.js';
-import { MINUTES_PER_DAY, isDayFromMinutes } from '../gameDate.js';
-import { worldMinutes, skyMinutes, ownMinutes } from '../worldTick.js';
+import { t } from '../../ui/textManager.js';
+import { registerModSaveData } from '../../saves/modSaveData.js';
+import { registerCompanionCount, registerCompanionRoster, companionSlotFree, COMPANION_SLOTS_FULL } from '../../characters/companionSlots.js';
+import { registerCustomTemplates, registerTemplateLore, setItemFields, mintCondition, registerItemUseHandler, ITEM_TEMPLATES } from '../../items/itemTemplates.js';
+import { addItem, addGoldPieces } from '../../items/inventory.js';
+import { goldAmount, deductGoldPieces, lowerRepForCrime, CRIMES } from '../../justice/court.js';
+import { equipTableOf } from '../../characters/equip.js';
+import { MINUTES_PER_DAY, isDayFromMinutes } from '../../world/gameDate.js';
+import { worldMinutes, skyMinutes, ownMinutes } from '../../world/worldTick.js';
 import { awakenedVampirism, feedVampire, spendVitae } from './vitae.js';
 import { archetypeName, STALE_QUALITY_CAP } from './bloodLaw.js';
 import { noteBreach } from './masquerade.js';   // PHASE 3: a thrall broken free talks
 import { clanExtraSlots, clanGentle, clanStaleCap, clanFortress, clanSocialUpkeep } from './clanLaw.js';   // PHASE 3: the nine bloodlines
-import { gearRefusal, gearKeyOf, sanitizeGear, gearItems, wornGear, gearLabel } from '../revenant/revenantGear.js';
+import { gearRefusal, gearKeyOf, sanitizeGear, gearItems, wornGear, gearLabel } from '../../revenants/revenantGear.js';
 import {
   bloodSlots, PRISONERS_MAX, SERVANT_UPKEEP, SOCIAL_UPKEEP, LOYALTY_START, LOYALTY_UNPAID, LOYALTY_PAID, BIND_COST,
   ENTHRALL_COST, PRISONER_DAY, TAP, BOTTLE, TEND, TEND_GOLD, deathChance, thrallRank, DUTIES, ERRANDS, MERCHANT,
@@ -65,7 +65,7 @@ export const servants = () => _s.servants;
 export const socials = () => _s.socials;
 export const provisions = () => _s.provisions;
 
-/** Slots used, and the vampire's slots. @param {any} entity */
+/** Slots used, and the vampire's slots. */
 export function slotsUsed() { return _s.prisoners.length + _s.servants.length + _s.socials.length; }
 export function slotsOf(entity) { return bloodSlots(entity?.level ?? 1) + clanExtraSlots(clanOf(entity)); }   // PHASE 3: Lyrezi keep one more
 /** The vampire's clan (faction id), or null. @param {any} entity */

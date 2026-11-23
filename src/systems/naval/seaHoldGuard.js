@@ -9,8 +9,8 @@
 // (comeSailAway.js OpenCargo, PackBoat, LayUpBoat; holdDoor.js). Kept in the page's storage across a reload.
 // A modified page holds its own save between checkpoints: named in the record (KNOWN, NAMED).
 // ═══════════════════════════════════════════════════════════════════
-import { appStorage } from '../appStorage.js';
-import { t } from '../textManager.js';
+import { appStorage } from '../../platform/appStorage.js';
+import { t } from '../../ui/textManager.js';
 
 /** The hold is shut this long at most (ms): the boarding window (seaRef.js SEA_REF.boardMs, 180 s) and a minute for her
  *  carry - it opens at once when her carry lands. */

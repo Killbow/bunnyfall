@@ -47,7 +47,7 @@ import { SEIZED, ownCopiesLiftable, ownCopyLiftSteps } from './ledger.js';   // 
 import { budgetConfig, bandOf } from './budget.js';
 import { progressConfig } from './progress.js';
 import { DB_ROOT } from './service.js';
-import { itemWorth } from '../../src/systems/item/itemLaw.js';
+import { itemWorth } from '../../src/items/itemLaw.js';
 import { giveCatalogue, mintGift, giftWorth, GIVE_REASONS } from './staffGive.js';
 
 /** Rows one page answers. */

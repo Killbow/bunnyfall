@@ -4,7 +4,7 @@
 // set, the batch's state), its INPUT CRATE (starts a batch of the set recipe from the Company Stores) and its OUTPUT SHELF
 // (collects a finished batch into the Stores). The order post's weekly PRODUCT ORDER is read here too. Words go to the HUD's
 // message line; Company gold moves only after DFU's Y/N. Pure but for the doors it is handed.
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 import { pantryOf, CLOTHS } from '../../net/professionLaw.js';
 import { WORKSHOPS, WORKSHOP_IDS, stageOf, batchState, recipeOf, productOrder, productOpen } from '../../net/farm/workshopLaw.js';
 import { farmWeek } from '../../net/farmProgressLaw.js';

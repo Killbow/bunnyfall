@@ -9,14 +9,14 @@
 //   - if VISIBLE and seen by townsfolk (the host's `seenBy`), heats the region's Masquerade (masquerade.js, `power`).
 // The cooldowns are real seconds, kept for the page's life; the last cast is remembered (the key's tap casts it again).
 
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 import { awakenedVampirism, spendVitae, beastStageNow } from './vitae.js';
 import { BEAST } from './bloodLaw.js';
 import { strengthOn } from './clanLaw.js';
 import { noteBreach } from './masquerade.js';
 import { DISCIPLINES, disciplinesFor, disciplineById } from './disciplineLaw.js';
-import { buildCustomSpell } from '../spell/spellMaker.js';
-import { castFreeForPlayer } from '../enchantments.js';
+import { buildCustomSpell } from '../../magic/spellMaker.js';
+import { castFreeForPlayer } from '../../magic/enchantments.js';
 
 /** id -> the real ms it is ready again. */
 const _ready = new Map();

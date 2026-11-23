@@ -1,7 +1,7 @@
 import { upgradeArgents } from '../net/gearUpgradeLaw.js';
 import { upgradeSelect } from './upgradeSelect.js';
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';
-import { enchantmentName, enchantmentParamName } from '../systems/enchantmentCatalogue.js';
+import { enchantmentName, enchantmentParamName } from '../magic/enchantmentCatalogue.js';
 // @ts-check
 // LOOT9 (2026-10-01, the Loot arc - bible/06-Systems/Loot-Arc.md section 11; Mac: "Do you wanna turn this into an arc
 // and do all of the above?" - "spend it at the Mages Guild to reroll one affix"): THE REFORGE'S WINDOW.
@@ -19,28 +19,28 @@ import { enchantmentName, enchantmentParamName } from '../systems/enchantmentCat
 // dress it as they dress his (the classic skin lays the Broker's own sheet, `brokerSkinCss`). Everything the window does
 // to the world is handed in: the pack, the payer, the reforge and the salvage (systems/reforge.js, which the host
 // calls) - this file draws and asks, and never touches a pack.
-import { rarityAttr, affixLine, reforgeableLines, RARITIES, tierLabel, imprintLine, powerLine, powerOf, legendaryById, curseLine, honeableLines, reforgeChoices, affixBand } from '../systems/loot/lootRarity.js';
-import { cursedKnown, liftPrice, liftRefusal } from '../systems/loot/lootCurse.js';   // LOOT16: the temple's lifting
-import { SCRY_FAMILIES, SCRY_FAMILY_WORDS, SCRY_PRICE, familyPlaces, scryRefusal } from '../systems/loot/lootScry.js';   // LOOT19: scrying
-import { foundAmong, hasSocket, socketsOf, emptySockets, gemLine, affixLabel, ALL_GEM_IDS, GEM_NAMES, SOCKET_EMPTY } from '../systems/loot/lootRarity.js';   // LOOT20: the sockets; GEM1: a list of them, every grade of gem
-import { gemsHeld, setGemRefusal, unsetGemRefusal, extractGemRefusal, extractPrice } from '../systems/reforge.js';   // GEM1: and the extraction
-import { codexRows, codexSets, codexCount, codexGilded, imprintChoices, imprintRefusal, IMPRINT_PRICE } from '../systems/loot/lootCodex.js';   // LOOT10: the codex's page and the imprint's - GILDED1: and the Gilded rung's rows
-import { gildedById } from '../systems/gilded.js';
-import { setById } from '../systems/sigil/sigilSets.js';
-import { itemIsIdentified } from '../systems/tradeModes.js';
-import { reforgePrice, reforgeRefusal, salvageShards, salvageRefusal, shardsHeld, shardsText, honePrice, honeRefusal } from '../systems/reforge.js';   // LOOT17: and the hone
-import { imbueTarget, imbuePrice, imbueRefusal, imbueBonusCount, imbueBonusChoices, imbueFlavours, imbueKeptBonuses } from '../systems/reforge.js';   // LOOT-GATE: the Imbue
-import { inventoryItemImage } from '../systems/item/itemTemplates.js';
+import { rarityAttr, affixLine, reforgeableLines, RARITIES, tierLabel, imprintLine, powerLine, powerOf, legendaryById, curseLine, honeableLines, reforgeChoices, affixBand } from '../items/lootRarity.js';
+import { cursedKnown, liftPrice, liftRefusal } from '../items/lootCurse.js';   // LOOT16: the temple's lifting
+import { SCRY_FAMILIES, SCRY_FAMILY_WORDS, SCRY_PRICE, familyPlaces, scryRefusal } from '../items/lootScry.js';   // LOOT19: scrying
+import { foundAmong, hasSocket, socketsOf, emptySockets, gemLine, affixLabel, ALL_GEM_IDS, GEM_NAMES, SOCKET_EMPTY } from '../items/lootRarity.js';   // LOOT20: the sockets; GEM1: a list of them, every grade of gem
+import { gemsHeld, setGemRefusal, unsetGemRefusal, extractGemRefusal, extractPrice } from '../items/reforge.js';   // GEM1: and the extraction
+import { codexRows, codexSets, codexCount, codexGilded, imprintChoices, imprintRefusal, IMPRINT_PRICE } from '../items/lootCodex.js';   // LOOT10: the codex's page and the imprint's - GILDED1: and the Gilded rung's rows
+import { gildedById } from '../items/gilded.js';
+import { setById } from '../items/sigilSets.js';
+import { itemIsIdentified } from '../trade/tradeModes.js';
+import { reforgePrice, reforgeRefusal, salvageShards, salvageRefusal, shardsHeld, shardsText, honePrice, honeRefusal } from '../items/reforge.js';   // LOOT17: and the hone
+import { imbueTarget, imbuePrice, imbueRefusal, imbueBonusCount, imbueBonusChoices, imbueFlavours, imbueKeptBonuses } from '../items/reforge.js';   // LOOT-GATE: the Imbue
+import { inventoryItemImage } from '../items/itemTemplates.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
 import { SLOT_BOX, screenDpr } from './iconFit.js';
-import { closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { brokerSkinCss, BROKER_SKIN_STYLE_ID, refusePress } from './brokerWindow.js';   // MENU-ORDER: and a refused press that says why
-import { techniqueDetail } from '../systems/loot/lootRarity.js';   // AUDIT TECH1: a technique line's "what a press does", as the card says it
-import { REFORGE_CSS } from './enhanced/enhancedPlusStyle.js';   // AUDIT LOOT F6: the window's own rules, beside the Broker's sheet
-import { isEnhancedPlus } from '../systems/uiSkin.js';
-import { t } from '../systems/textManager.js';   // REFORGE-REPLACE: the Reforge's new words in the player's language; LOOT-GATE: the Imbue's, read when they are said
+import { techniqueDetail } from '../items/lootRarity.js';   // AUDIT TECH1: a technique line's "what a press does", as the card says it
+import { REFORGE_CSS } from './enhancedPlusStyle.js';   // AUDIT LOOT F6: the window's own rules, beside the Broker's sheet
+import { isEnhancedPlus } from './uiSkin.js';
+import { t } from './textManager.js';   // REFORGE-REPLACE: the Reforge's new words in the player's language; LOOT-GATE: the Imbue's, read when they are said
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

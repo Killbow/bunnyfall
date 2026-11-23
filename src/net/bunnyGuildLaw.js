@@ -21,7 +21,7 @@ export const BUNNY_GUILD_LAW = Object.freeze([
 
 /** Their factions, ascending. */
 export const BUNNY_FACTIONS = Object.freeze(BUNNY_GUILD_LAW.map((g) => g.factionId).sort((a, b) => a - b));
-const BY_FACTION = new Map(BUNNY_GUILD_LAW.map((g) => [g.factionId, g]));
+const BY_FACTION = new Map(BUNNY_GUILD_LAW.map((g) => [/** @type {number} */ (g.factionId), g]));
 
 /** Whether a faction id is one of Bunnyfall's guilds. */
 export const isBunnyFaction = (/** @type {unknown} */ id) => typeof id === 'number' && BY_FACTION.has(id);

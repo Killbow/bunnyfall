@@ -26,8 +26,8 @@
 import { ImgFile } from '../formats/imgFile.js';
 import { DFPalette } from '../formats/dfPalette.js';
 import { seaIndices } from './provinceMap.js';
-import { RACE_TEMPLATES } from '../systems/races.js';
-import { IMPERIAL_ID } from '../world/tamriel/tamrielLand.js';
+import { RACE_TEMPLATES } from '../characters/races.js';
+import { IMPERIAL_ID } from '../world/tamrielLand.js';
 
 /** A land piece smaller than this (picture pixels) is a painted word over the sea, not an island. */
 export const SPECK_PX = 12;

@@ -6,7 +6,7 @@
 // It mounts itself: main.js imports this file, and a light check every couple of seconds asks whether the character in
 // play still needs names. No host wires it (the hosts do not grow).
 import { playerEntity } from '../characters/playerEntity.js';
-import { needsNames, setNames, splitName, NAME_PART_MAX } from '../systems/names.js';
+import { needsNames, setNames, splitName, NAME_PART_MAX } from '../characters/names.js';
 
 const CHECK_MS = 2000;
 const ID = 'bf-name-picker';

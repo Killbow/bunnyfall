@@ -3,7 +3,7 @@
 // (unturned) frame, as caravanVisit.js documents them. Pure: no DOM, no network, no clock.
 import { decorGoldMove, decorPieceOf, decorPrice, mintDecorId, DECOR_PRICE_MIN, DECOR_PRICE_MAX } from '../net/decorLaw.js';
 import { decoratorPieceOk, templateBaseOf } from '../net/decoratorLaw.js';
-import { decorDelta } from './decor/decorDraft.js';
+import { decorDelta } from '../homes/decorDraft.js';
 
 /** The hash a template is made against: the caravan's pieces as a visitor reads them. @param {any[]} pieces */
 export const caravanBaseOf = (pieces) => templateBaseOf(JSON.stringify((pieces ?? []).map(decorPieceOf).filter(Boolean)));

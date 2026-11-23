@@ -24,8 +24,8 @@
 import { egCircleSpecs, egBandOfCircle, EG_BRINK_HALLS } from '../../net/eliteGates/egLaw.js';
 import { egMistAt } from '../../net/eliteGates/egFragLaw.js';
 import { egTubeBand, egWallBand, egIsleDisc, egToDungeon, egLaneOpenEnds } from './egHall.js';
-import { SD_ISLAND_SIDES } from '../superDungeon/sdRealm.js';
-import { SD_STEP_THICK, breathSeen } from '../superDungeon/sdSteps.js';
+import { SD_ISLAND_SIDES } from '../sdRealm.js';
+import { SD_STEP_THICK, breathSeen } from '../sdSteps.js';
 import { createMeshKit } from './meshKit.js';
 import { EG_DRESS, egBandArchive } from './egBandArt.js';
 import { EG_CVD } from '../../ui/eliteGates/egAccess.js';

@@ -69,11 +69,11 @@ import {
   rollBookCap, rollSeatsOf, ROLL_SEATS_MS, ROLL_BOOK_RANK_MAX, rollPromoteCeiling, rollPaceWait,   // ROLL-PACE
   rollMovesOf,   // STANDING-WORDS
 } from './npcChapterLaw.js';
-import { setReputation } from '../systems/faction/factionRep.js';
-import { MAX_REPUTATION } from '../systems/guild/guildFactions.js';   // BUNNYFALL: the most a standing holds
-import { bunnyRollMembers } from '../systems/guild/bunnyMembership.js';   // BUNNY-GUILDS: their members on the Roll
-import { setStandingOwed } from '../systems/standingOwed.js';   // STANDING-WORDS: the owed, kept for the windows
-import { carryInvitationOnly } from '../systems/guild/guilds.js';   // CURSE-CARRY: the underworld guilds read where the curse reads
+import { setReputation } from '../guilds/factionRep.js';
+import { MAX_REPUTATION } from '../guilds/guildFactions.js';   // BUNNYFALL: the most a standing holds
+import { bunnyRollMembers } from '../guilds/bunnyMembership.js';   // BUNNY-GUILDS: their members on the Roll
+import { setStandingOwed } from '../justice/standingOwed.js';   // STANDING-WORDS: the owed, kept for the windows
+import { carryInvitationOnly } from '../guilds/guilds.js';   // CURSE-CARRY: the underworld guilds read where the curse reads
 
 /** The refusals that end the tracker for this page - the Roll shut, the character no longer this tab's, the account
  *  gone, or a shape the service will not take (a build to update). Every other is asked again. */

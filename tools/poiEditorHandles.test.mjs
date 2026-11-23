@@ -1,14 +1,14 @@
-// Tests the in-game editor host (src/scenes/poiEditorHost.js) with a stub world: clicking a handle after the camera
+// Tests the in-game editor host (src/poi/poiEditorHost.js) with a stub world: clicking a handle after the camera
 // moves without the mouse, caching selection box outlines across frames, and picking DM spots on deep snow.
 //   node --test tools/poiEditorHandles.test.mjs
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPoiEdit } from '../src/poi/poiEdit.js';
-import { createPoiEditorHost } from '../src/scenes/poiEditorHost.js';
+import { createPoiEditorHost } from '../src/poi/poiEditorHost.js';
 import { gizmoSize } from '../src/poi/poiGizmo.js';
 import { GIZMO_ARM_PX } from '../src/poi/poiGizmoLook.js';
-import { lookDir } from '../src/scenes/decor/decorTool.js';
+import { lookDir } from '../src/homes/decorTool.js';
 import { perspective, lookAt } from '../src/world/mat4.js';
 import { projectToScreen } from '../src/player/tapRay.js';
 

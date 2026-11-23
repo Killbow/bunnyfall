@@ -29,9 +29,9 @@
 //
 // Not a DFU member: the port's own presentation (Port-Doctrine, the renderer rebuilt on our stack).
 
-import { getPref } from '../systems/uiPrefs.js';
-import { isEnhanced } from '../systems/uiSkin.js';
-import { pageParam } from '../systems/pageQuery.js';
+import { getPref } from '../ui/uiPrefs.js';
+import { isEnhanced } from '../ui/uiSkin.js';
+import { pageParam } from '../platform/pageQuery.js';
 import {
   ROOM_TEXELS_PER_M, ROOM_STYLES, ROOM_PIECES, ROOM_FABRICS, ROOM_LIT_SHARE, ROOM_CURTAIN_SHARE, ROOM_HEARTH_GLOW,
   roomColorTable,

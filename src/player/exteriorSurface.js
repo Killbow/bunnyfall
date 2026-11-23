@@ -104,8 +104,8 @@
 // what reads as water swims. The hosts hand the fraction over beside the
 // raw byte (world.js / exterior.js playerGroundSample).
 
-import { playerTileMapIndex, WATER_TILE_INDEX, convertTile } from '../world/terrain/terrainSurface.js';
-import { waterCorners, waterCoverage } from '../world/water/waterCorners.js';   // MAC2: the surface pass's own corner table
+import { playerTileMapIndex, WATER_TILE_INDEX, convertTile } from '../world/terrainSurface.js';
+import { waterCorners, waterCoverage } from '../world/waterCorners.js';   // MAC2: the surface pass's own corner table
 
 /** PlayerMotor.OnExteriorWaterMethod (:79-87). "Defines the way
  *  player can interact with exterior water tiles. Unrelated to deep

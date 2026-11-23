@@ -34,11 +34,11 @@
 // ChoiceWindow, and the panel wants them.
 // ═══════════════════════════════════════════════════════════════════
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28: Tab puts it away
-import { NativeTalkWindow, talkArtLoaded } from './native/nativeTalk.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it away
+import { NativeTalkWindow, talkArtLoaded } from './nativeTalk.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** The gate a host asks before it opens a conversation window. The
  *  classic face needs TALK01I0 and its strips; the panel reads none
@@ -96,7 +96,7 @@ function enhancedTalkOverlay(model, hooks) {
   unregister = registerOverlay(goodbye);
   // MENU1: the ONE lazy-chunk door (ui/enhanced/enhancedChunk.js).
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedTalk.js'),
+    load: () => import('./enhancedTalk.js'),
     mount: ({ mountEnhancedTalk }) => { view = mountEnhancedTalk(host, { model, onExit: teardown, relock: () => hooks.relock?.() }); },
     alive: () => !torn, host, onDismiss: goodbye, label: 'talk',
   });

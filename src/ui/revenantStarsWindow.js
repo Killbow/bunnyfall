@@ -11,11 +11,11 @@
 // and its three ties to the aspects. Nothing here decides what may be set - the law is revenantStars.js, and the oath's
 // keeper (revenantCompanions.js setSwornStars) asks it again, and refuses while it is abroad.
 
-import { t, formatNumber } from '../systems/textManager.js';
-import { RVN_STARS, RVN_STAR_EDGES, RVN_STAR_STATS, rvnStarOf, rvnHeldStars, rvnWayTo, rvnTakesBack, rvnStarStats } from '../systems/revenant/revenantStars.js';
-import { swornStarsBook } from '../systems/revenant/revenantCompanions.js';
-import { artOf, drawArt, taughtArt, ART_NAMES } from '../systems/revenant/revenantArts.js';
-import { ERRAND } from '../systems/revenant/revenantErrands.js';
+import { t, formatNumber } from './textManager.js';
+import { RVN_STARS, RVN_STAR_EDGES, RVN_STAR_STATS, rvnStarOf, rvnHeldStars, rvnWayTo, rvnTakesBack, rvnStarStats } from '../revenants/revenantStars.js';
+import { swornStarsBook } from '../revenants/revenantCompanions.js';
+import { artOf, drawArt, taughtArt, ART_NAMES } from '../revenants/revenantArts.js';
+import { ERRAND } from '../revenants/revenantErrands.js';
 import { mountSkyWindow } from './skyWindow.js';
 import { GRIM_TONES } from './grimoireDress.js';
 

@@ -25,7 +25,7 @@ await page.mouse.click(500, 320);                       // a gesture, so audio m
 await page.waitForTimeout(2500);
 
 const read = () => page.evaluate(async () => ({
-  song: (await import('/src/systems/music.js')).music.current,
+  song: (await import('/src/audio/music.js')).music.current,
   ctx: window.__musicCtx ?? null,
   mode: window.__mode?.() ?? 'n/a',
 }));

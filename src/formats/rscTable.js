@@ -31,7 +31,7 @@
 // systems/textManager.js); textRsc.js encodes the rows into the file's
 // own byte shape (encodeRscRecord) and reads them first.
 
-import { loadStringTableCsv } from '../systems/textManager.js';
+import { loadStringTableCsv } from '../ui/textManager.js';
 
 /** DFU's Internal_RSC rows the port carries, by record id: each a
  *  list of the record's SubrecordSeparator-split variants as plain

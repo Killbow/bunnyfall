@@ -60,13 +60,13 @@
 // book's key and bound in npcHallBook.js) live with them.
 // ═══════════════════════════════════════════════════════════════════
 
-import { GUILD_FACTION_IDS, DIVINES, ORDERS, MIN_REPUTATION, MAX_REPUTATION, RANK_REQ_REPUTATION } from '../systems/guild/guildFactions.js';
+import { GUILD_FACTION_IDS, DIVINES, ORDERS, MIN_REPUTATION, MAX_REPUTATION, RANK_REQ_REPUTATION } from '../guilds/guildFactions.js';
 import { MARKS_RID_RE, utcDay } from './marksLaw.js';   // ROLL-PACE: the Roll's day, the claims' own
-import { gateHash } from './gate/gateLaw.js';   // CHAP2a: a hall writ's own dice
+import { gateHash } from './gateLaw.js';   // CHAP2a: a hall writ's own dice
 import { courtWrits, material, regionOk } from './nodeLaw.js';   // CHAP2a: the Court's writ law, the material families, a region
 import { REGION_NAMES } from '../formats/mapsTables.js';   // CHAP4b: a seat's region, named
 import { seatWeekOf, chronicleWhen, seatSeasonName } from './townSeatLaw.js';   // CHAP3a: Merit's week is the seats' (the Turning settles both); CHAP4d: the Chronicle's when; CHAP6a: a Season's name
-import { GUILD_ID_RE, GUILD_NAME_MAX, GUILD_TAG_RE } from './guild/guildLaw.js';   // CHAP7a: a patron is a player guild
+import { GUILD_ID_RE, GUILD_NAME_MAX, GUILD_TAG_RE } from './guildLaw.js';   // CHAP7a: a patron is a player guild
 import { MARKS_MAX } from './marksLaw.js';   // CHAP7a: a bid held under the one cap every treasury keeps
 import { REALM_CHARACTER_RE } from './identityToken.js';
 import { BUNNY_FACTIONS, bunnyLawOf } from './bunnyGuildLaw.js';   // BUNNY-GUILDS: Bunnyfall's guilds on the Roll and in the Chapters   // CHAP3a: a member's own writ is drawn over its realm id

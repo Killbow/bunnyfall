@@ -41,10 +41,10 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import zlib from 'node:zlib';
 import { isMain } from './lib/isMain.mjs';
-import { readUnityFs, readSerializedFile, decodeTexture2D, CLASS_ID } from '../src/formats/unity/unityBundle.js';
+import { readUnityFs, readSerializedFile, decodeTexture2D, CLASS_ID } from '../src/formats/unityBundle.js';
 import { fsb5ToOgg } from './lib/fsb5Vorbis.mjs';
 import { writePng } from './pngIO.mjs';
-import { dfmodStoreKey, DFMOD_INDEX_VERSION, manifestDeps } from '../src/systems/dfmodTextures.js';
+import { dfmodStoreKey, DFMOD_INDEX_VERSION, manifestDeps } from '../src/mods/dfmodTextures.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLASS_AUDIO_CLIP = 83;

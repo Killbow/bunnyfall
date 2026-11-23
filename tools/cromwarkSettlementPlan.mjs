@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MapsFile, longitudeLatitudeToMapPixel } from '../src/formats/mapsFile.js';
-import { wildMaskOf, wildInside, wildRingAt } from '../src/systems/wild/wildZone.js';
+import { wildMaskOf, wildInside, wildRingAt } from '../src/world/wildZone.js';
 
 export const CIVILIAN_TYPES = new Set([0, 1, 2, 3, 5, 6, 8, 9, 11]);
 export const CROMWARK_HAMLET_ID = 505449455;
@@ -55,7 +55,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   maps.load(...['MAPS.BSA', 'CLIMATE.PAK', 'POLITIC.PAK'].map((n) => new Uint8Array(readFileSync(resolve(arg('--arena2'), n)))));
   const locations = settlementInventory(maps), plan = chooseCromwarkSettlements(locations);
   if (process.argv.includes('--write')) {
-    const path = new URL('../src/systems/wild/cromwarkSettlements.js', import.meta.url);
+    const path = new URL('../src/world/wild/cromwarkSettlements.js', import.meta.url);
     const source = readFileSync(path, 'utf8');
     const ids = plan.removed.map((l) => l.mapId).sort((a, b) => a - b);
     const rows = Array.from({ length: Math.ceil(ids.length / 8) }, (_, i) => `  ${ids.slice(i * 8, i * 8 + 8).join(', ')},`);

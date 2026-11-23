@@ -24,10 +24,10 @@
 import { srand, randomRangeInclusive } from '../formats/dfRandom.js';
 import { ENCOUNTER_TABLES } from './encounterTables.js';
 import { encounterTable } from './encounterTableDoor.js';   // DEX3: the dungeon's tables as a mod's pick left them
-import { MOBILE_TYPES } from './mobile/mobileTypes.js';
-import { markerTooStrong, bandedPick } from '../systems/encounterLevel.js';   // ENCOUNTER-LEVEL: a fixed marker too strong for the level is a banded draw of the table
-import { ENEMY_BASICS } from './enemy/enemyBasics.js';
-import { getBool } from '../systems/settings/settings.js';   // AUDIT 28 W3: AlternateRandomEnemySelection
+import { MOBILE_TYPES } from './mobileTypes.js';
+import { markerTooStrong, bandedPick } from './encounterLevel.js';   // ENCOUNTER-LEVEL: a fixed marker too strong for the level is a banded draw of the table
+import { ENEMY_BASICS } from './enemyBasics.js';
+import { getBool } from '../platform/settings.js';   // AUDIT 28 W3: AlternateRandomEnemySelection
 
 const EDITOR_FLATS_ARCHIVE = 199;   // TextureReader.EditorFlatsTextureArchive
 const FIXED_RECORD = 16;

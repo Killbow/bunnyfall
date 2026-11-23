@@ -4,7 +4,7 @@
 // about her, without end, from her owner's machine - the foes ride to every peer as any foe does) and her BOSS BAR's reading
 // (`sifritBarOf`: the nearest of her, her name and the health she stands at). The blows are the overworld's own
 // telegraphed ones made hers (ai/blowShapes.js bossifyBlow). Not a DFU member.
-import { promoteStaffBoss } from '../eliteFoes.js';
+import { promoteStaffBoss } from '../../characters/eliteFoes.js';
 import {
   SIFRIT_ID, SIFRIT_NAME, SIFRIT_HP, SIFRIT_SIZE_PCT, SIFRIT_MUMMY, SIFRIT_SUMMON_EVERY_S, SIFRIT_SUMMON_N, SIFRIT_SUMMONS_MAX, SIFRIT_SUMMON_RING,
 } from './sifritLaw.js';

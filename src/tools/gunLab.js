@@ -45,8 +45,8 @@
 // reads them from there.
 export {
   SHEET_GRID, FIRE_FRAMES, cellRect, keyBackground, contentBox, unionBox, unionDrawRect,
-} from '../combat/gun/gunSheet.js';
-import { SHEET_GRID, FIRE_FRAMES, cellRect, keyBackground, contentBox, unionBox, unionDrawRect } from '../combat/gun/gunSheet.js';
+} from '../combat/gunSheet.js';
+import { SHEET_GRID, FIRE_FRAMES, cellRect, keyBackground, contentBox, unionBox, unionDrawRect } from '../combat/gunSheet.js';
 
 // ONE HOME: the alignment enum is FPSWeapon's own, imported rather
 // than restated, so an offset tuned in the lab means in the lab
@@ -63,26 +63,26 @@ import { SHEET_GRID, FIRE_FRAMES, cellRect, keyBackground, contentBox, unionBox,
 // the game needs the SAME frame and five rounds of "it still isn't
 // 1:1" is what two copies of it cost. The lab is no longer a thing
 // the game resembles - it is a thing the game runs.
-export { placeSprite } from '../combat/gun/gunPlacement.js';
+export { placeSprite } from '../combat/gunPlacement.js';
 export {
   createGunRig as createWidgetRig, gunRigStep as widgetRigStep,
   gunMotion as labMotion, gunWidgetSettings as labWidgetSettings,
   widgetDefaults, gunFrameRect,
-} from '../combat/gun/gunViewmodel.js';
-export { ALIGN } from '../combat/weapon/weaponAlign.js';
-import { ALIGN } from '../combat/weapon/weaponAlign.js';
-import { placeSprite } from '../combat/gun/gunPlacement.js';
+} from '../combat/gunViewmodel.js';
+export { ALIGN } from '../combat/weaponAlign.js';
+import { ALIGN } from '../combat/weaponAlign.js';
+import { placeSprite } from '../combat/gunPlacement.js';
 
 // THE MOD'S OWN MODULES (WW1's 1:1 port of FPSWeaponClone) - run, not
 // imitated. The arrow points one way, as it does for ALIGN.
 import {
   WEAPON_WIDGET_VENDOR, readWidgetSettings, offsetStep, bobStep, inertiaStep, widgetTransformRect,
-} from '../combat/weapon/weaponWidgetMotion.js';
-import { MOD_SETTINGS } from '../systems/modSettings.js';
+} from '../combat/weaponWidgetMotion.js';
+import { MOD_SETTINGS } from '../mods/modSettings.js';
 import { walkSpeed, runSpeed } from '../player/motor.js';   // GetBaseSpeed's walk arm, the bob's baseSpeed
-export { createRecoil, createScreenShake, shakeNoise, GUN_FEEL } from '../combat/gun/gunFeel.js';   // FIELD-GUN6: the one home
-export { MUZZLE_CURVE, muzzleGlow } from '../combat/gun/gunFeel.js';   // FIELD-GUN13: the flash's curve, the same way
-import { muzzleGlow, THUNDERLOCK_MUZZLE_CURVE } from '../combat/gun/gunFeel.js';
+export { createRecoil, createScreenShake, shakeNoise, GUN_FEEL } from '../combat/gunFeel.js';   // FIELD-GUN6: the one home
+export { MUZZLE_CURVE, muzzleGlow } from '../combat/gunFeel.js';   // FIELD-GUN13: the flash's curve, the same way
+import { muzzleGlow, THUNDERLOCK_MUZZLE_CURVE } from '../combat/gunFeel.js';
 export { widgetTransformRect };
 
 // FIELD-GUN12: placeSprite moved to combat/gun/gunPlacement.js, which
@@ -90,7 +90,7 @@ export { widgetTransformRect };
 
 // PISTOL-PORT: THE MACHINE IS THE GAME'S NOW (combat/gun/gunMachine.js) - the Dwarven Pistolet fires on it - and this lab
 // reads it back, gunSheet.js's arrow.
-export { createGunMachine } from '../combat/gun/gunMachine.js';
+export { createGunMachine } from '../combat/gunMachine.js';
 
 // THUNDERLOCK-LAB (2026-10-25): the page draws the owner's seven-frame strip, cut as the game cuts it
 // (combat/thunderlockArt.js), and lights the room on the Thunderlock's own curve (gunFeel.js THUNDERLOCK_MUZZLE_CURVE).

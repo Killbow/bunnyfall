@@ -13,8 +13,8 @@
 
 import { crashText } from './ui/crashText.js';   // the crash line, pinned in its own module
 import { Renderer } from './render/renderer.js';
-import { retroFrameConfig } from './systems/retroMode.js';   // RETRO1: the renderer's retro source - the settings are read here, not in render/
-import { renderScaleSetting } from './systems/renderScale.js';   // PERF-SCALE: the renderer's render-scale source, read the same way
+import { retroFrameConfig } from './render/retroMode.js';   // RETRO1: the renderer's retro source - the settings are read here, not in render/
+import { renderScaleSetting } from './render/renderScale.js';   // PERF-SCALE: the renderer's render-scale source, read the same way
 import { windowEmissionRGB } from './render/windowEmission.js';
 // BOOT1 (2026-09-20, Mac: "overall performance improvements"): THE GAME
 // HOSTS ARE BEHIND A DOOR, NOT ON THE ENTRY. These four were static
@@ -42,14 +42,14 @@ const bootWorld = (...a) => import('./scenes/world.js').then((m) => m.bootWorld(
 import { ensureArena2, getBytes } from './scenes/dataSource.js';
 import { installCursor } from './ui/cursor.js';
 import { mountFpsCounter } from './ui/fpsCounter.js';   // FPS1: the counter, over every host
-import { installFramePacer } from './systems/frameCap.js';   // FPS-VSYNC (AUDIT 28e): the desktop app's lifted wait, paced by the cap
+import { installFramePacer } from './platform/frameCap.js';   // FPS-VSYNC (AUDIT 28e): the desktop app's lifted wait, paced by the cap
 import { setScreenshotCanvas } from './ui/screenshot.js';   // KB1: the PrintScreen action's canvas - the key itself is routed by the hosts (AUDIT KB1)
-import { getPref } from './systems/uiPrefs.js';   // FPS1: its switch
-import { publishBootParams, BOOT_DOOR_KEYS } from './systems/online/onlineLane.js';   // MAC-N3: the boot's params are the URL, or the online lane reads nothing
+import { getPref } from './ui/uiPrefs.js';   // FPS1: its switch
+import { publishBootParams, BOOT_DOOR_KEYS } from './platform/onlineLane.js';   // MAC-N3: the boot's params are the URL, or the online lane reads nothing
 // The deployed site is redeployed several times a day and every deploy
 // renames chunks, so a page held open across one is holding a map of a
 // build that is gone. Recoverable, and the law of that is its own file.
-import { staleChunkAction, RELOAD_KEY, STALE_CHUNK_TEXT } from './systems/staleChunk.js';
+import { staleChunkAction, RELOAD_KEY, STALE_CHUNK_TEXT } from './platform/staleChunk.js';
 import { loseGlContext, onPageGone, releaseGlContexts } from './render/glRelease.js';   // GL-LEAK: a leaf - the entry's reach is unchanged
 import './ui/namePicker.js';   // BUNNYFALL PHASE 3: a character without a first and last name is asked for them in the world
 
@@ -72,18 +72,18 @@ async function boot() {
   // draws text, so the chosen language's tables are patched in before any of them runs (?lang= for one visit, else
   // the player's choice). A failure leaves English standing; nothing here can stop the game. Loaded behind a door
   // (BOOT2's ceiling on the entry's static graph), awaited before every other one.
-  await import('./scenes/localeData.js').then(({ initLocale }) => initLocale(params)).catch((err) => console.error('[text] the language module could not load; English stands:', err?.message ?? err));
+  await import('./ui/localeData.js').then(({ initLocale }) => initLocale(params)).catch((err) => console.error('[text] the language module could not load; English stands:', err?.message ?? err));
   setScreenshotCanvas(canvas);   // KB1: once, beside the counter - the hosts' routeAction arm shoots it (AUDIT KB1: a window's F8 stays the window's)
   // AUDIT KB1 F3: the keybinding carry's report, told on the HUD the moment a scene can speak. Loaded OFF the entry's
   // static graph (BOOT2): the notice door reaches the box's whole import ring, and the input readers load with the
   // first scene anyway; the sink delivers whichever of it and the registry comes first (ui/input.js).
-  Promise.all([import('./ui/input.js'), import('./systems/controlsConfig.js'), import('./systems/notify.js')])
+  Promise.all([import('./ui/input.js'), import('./ui/controlsConfig.js'), import('./ui/notify.js')])
     .then(([input, cfg, notify]) => input.setKeybindNoticeSink((report) => { for (const line of cfg.keybindCarryNotes(report)) notify.hudTextWhenShown(line, 12); }))
     .catch((err) => console.warn('[keybinds] the carry notice could not load:', err?.message ?? err));
   // DA8: the desktop shell's "an update is ready", through the same door and OFF the entry's static graph, as the
   // carry above (BOOT2 holds that graph's ceiling). A tab has no shell and loads neither.
   if (typeof globalThis.daggerShell?.onUpdateReady === 'function') {
-    Promise.all([import('./systems/shellUpdates.js'), import('./systems/notify.js')])
+    Promise.all([import('./platform/shellUpdates.js'), import('./ui/notify.js')])
       .then(([updates, notify]) => updates.listenForShellUpdates(globalThis.daggerShell, (text) => notify.hudTextWhenShown(text, 12)))
       .catch((err) => console.warn('[update] the update notice could not load:', err?.message ?? err));
   }
@@ -186,15 +186,15 @@ async function boot() {
     // every door below sets or deletes each one again (F12's law).
     for (const k of BOOT_DOOR_KEYS) params.delete(k);
     publishBootParams(params);
-    const { runEnhancedMenu } = await import('./ui/enhanced/enhancedMenu.js');
-    const { runCinematicFrontDoor } = await import('./ui/intro/introScreen.js');
+    const { runEnhancedMenu } = await import('./ui/enhancedMenu.js');
+    const { runCinematicFrontDoor } = await import('./ui/introScreen.js');
     // PAD-DOOR (2026-09-27, Discord - an AYN Thor: "unable to select online, load game anything"): the intro, the menu
     // and its windows answer a controller - the d-pad moves, A presses, B backs out (ui/menu/menuPad.js) - until a game is
     // chosen, when the scene's own pad layer takes over.
     // PAD-CURSOR: and the stick is the game's own cursor here - its law and the gauntlet handed in, because the
     // door's loop is a leaf the desktop launcher serves alone (DA12)
     const [{ attachMenuPad }, { padDoorCursorLaw }, { GAUNTLET_POINT }] = await Promise.all([
-      import('./ui/menu/menuPad.js'), import('./systems/padCursor.js'), import('./ui/plus/plusCursor.js'),
+      import('./ui/menuPad.js'), import('./ui/padCursor.js'), import('./ui/plusCursor.js'),
     ]);
     const detachMenuPad = attachMenuPad({ cursor: { law: padDoorCursorLaw, art: GAUNTLET_POINT } });
     // SND2: the door's presses sound as the game's do - the click's sound bank read through this file's data gate, the
@@ -235,7 +235,7 @@ async function boot() {
     else params.delete('online');
     // SLOTS1: the Load and Online panes pick a slot; the boot's load arm
     // reads the key (world.js, the SAV4 arm). The same SET-or-DELETE law.
-    const { takePickedSaveKey, takePickedRealmId } = await import('./ui/enhanced/enhancedMenu.js');
+    const { takePickedSaveKey, takePickedRealmId } = await import('./ui/enhancedMenu.js');
     const picked = takePickedSaveKey();
     if (choice === 'load' && picked != null) params.set('loadkey', String(picked));   // REALM P1.3: never online - a local slot is not the realm's
     else params.delete('loadkey');
@@ -243,7 +243,7 @@ async function boot() {
     // boot, which joins it and reads its save from the service; a character born online boots the online lane with no
     // save, its chargen, and the realm makes it (world.js realmBirth). The same SET-or-DELETE law.
     const realmId = choice === 'online' ? takePickedRealmId() : null;
-    const { takePickedRealmRestore } = await import('./ui/enhanced/enhancedMenu.js');
+    const { takePickedRealmRestore } = await import('./ui/enhancedMenu.js');
     const realmRestore = !!realmId && takePickedRealmRestore();
     if (realmId) params.set('realm', realmId);
     else params.delete('realm');
@@ -251,7 +251,7 @@ async function boot() {
     else params.delete('realmnew');
     // HOUSE-WAITS (FIELD BUGS 2026-10-09f): a waiting house answered on the Online page - its member is born online
     // through the world host's own birth door (`legacyborn`, in the seat the line keeps). The same SET-or-DELETE law.
-    const { takePickedLegacyBirth } = await import('./ui/enhanced/enhancedMenu.js');
+    const { takePickedLegacyBirth } = await import('./ui/enhancedMenu.js');
     const legacyBirth = choice === 'online-new' ? takePickedLegacyBirth() : null;
     if (legacyBirth) {
       params.set('legacyborn', String(legacyBirth.personId));
@@ -274,7 +274,7 @@ async function boot() {
     // exterior) and never asks for the classic path. Every other menu
     // door still begins where Daggerfall begins.
     // FIELD BUGS 2026-09-29 (the sea) #5: the sea battle is a spawn outdoors too - the room's own list (testStartsOutdoors)
-    const { testStartsOutdoors } = await import('./systems/testRoom.js');
+    const { testStartsOutdoors } = await import('./characters/testRoom.js');
     if (testStartsOutdoors(params.get('test'))) params.delete('classic');
     else params.set('classic', '1');
     // FB1012d BIRTH-START (Discord, "Odd family tree behavior": "the game spat them out near Privateer's Hold instead of

@@ -21,7 +21,7 @@
 // Pure - the call, the store and the clocks are handed in. Not a DFU member. Ledger A (KETCH).
 import { readKetchReceipt } from './ketchReceipt.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';   // the questline's act: the Warden felled, counted once
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** The device's Ketch receipts not yet settled with the account service: `[{ r, cid, a? }]` - the receipt, its claim id,
  *  and whether its act was said. */

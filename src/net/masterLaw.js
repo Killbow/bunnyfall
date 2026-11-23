@@ -8,9 +8,9 @@
 import { PROF_RANK_MAX, HEARTWOOD, PEARL, ARCANE_ESSENCE, trackOf } from './professionLaw.js';
 import { rollsQuality } from './recipeLaw.js';
 import { utcDay } from './marksLaw.js';
-import { AFFIX_IDS, AFFIX_KINDS, AFFIX_RANGES, kindParams } from '../systems/loot/lootRarity.js';
-import { wearableItem } from '../systems/equip.js';
-import { seededRng } from '../systems/wind/wind.js';
+import { AFFIX_IDS, AFFIX_KINDS, AFFIX_RANGES, kindParams } from '../items/lootRarity.js';
+import { wearableItem } from '../characters/equip.js';
+import { seededRng } from '../weather/wind.js';
 
 /** The rank a Master's work asks of the recipe's craft: Master. */
 export const MASTER_RANK = PROF_RANK_MAX;

@@ -6,10 +6,10 @@
 // from `POI_MOD_FLAT_FAMILIES`, item templates, and spawnable DM encounter creatures, flagging duplicate IDs and
 // missing asset references.
 
-import { decorKey, collectDecor, decorCatalogue, addDecorNature, DECOR_FURNITURE_FIRST, DECOR_FURNITURE_LAST } from '../systems/decor/decorCatalogue.js';
-import { addDecorMods, decorModNaming, decorModFlatSource } from '../systems/decor/decorMods.js';
+import { decorKey, collectDecor, decorCatalogue, addDecorNature, DECOR_FURNITURE_FIRST, DECOR_FURNITURE_LAST } from '../homes/decorCatalogue.js';
+import { addDecorMods, decorModNaming, decorModFlatSource } from '../homes/decorMods.js';
 import { dfModelCatalog, DF_MODEL_KINDS } from './dfModelImport.js';
-import { HOUSE_CONTAINER_NAMES, ACTION_MODEL_NAMES } from '../systems/worldTooltips.js';
+import { HOUSE_CONTAINER_NAMES, ACTION_MODEL_NAMES } from '../ui/worldTooltips.js';
 import { NPC_FLAT_ARCHIVES } from '../world/npcFlatArchives.js';
 import { EDITOR_FLATS_ARCHIVE, isNatureArchive } from '../world/rmbFlats.js';
 import { DET_MODELS, DET_TOWN_MODELS, DET_FLAT_STAND_INS, DET_FLAT_DRAWINGS, DET_TOWN_FLATS, DET_DOLPHIN_RECORDS } from '../world/detStandIns.js';

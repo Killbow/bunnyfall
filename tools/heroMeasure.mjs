@@ -23,15 +23,15 @@
 //   node tools/heroMeasure.mjs --n 400      # a quicker sample
 import { isMain } from './lib/isMain.mjs';
 import { pcaaoModules, pcaaoAttackDamage } from '../src/combat/pcaao.js';
-import { makeEnemyEntity, applyProgressionScaling } from '../src/characters/enemy/enemyEntity.js';
-import { ENEMY_BASICS } from '../src/characters/enemy/enemyBasics.js';
+import { makeEnemyEntity, applyProgressionScaling } from '../src/characters/enemyEntity.js';
+import { ENEMY_BASICS } from '../src/characters/enemyBasics.js';
 import { assignEnemyEquipment } from '../src/combat/enemyEquipment.js';
-import { mintCondition } from '../src/systems/item/itemTemplates.js';
-import { EQUIP_SLOTS, equipTableOf } from '../src/systems/equip.js';
-import { SKILLS } from '../src/systems/skills.js';
-import { ENCOUNTER_TABLES } from '../src/systems/encounters.js';
-import { progressionScaling } from '../src/systems/skillSoftcap.js';
-import { heroThreat } from '../src/systems/heroThreat.js';
+import { mintCondition } from '../src/items/itemTemplates.js';
+import { EQUIP_SLOTS, equipTableOf } from '../src/characters/equip.js';
+import { SKILLS } from '../src/characters/skills.js';
+import { ENCOUNTER_TABLES } from '../src/characters/encounters.js';
+import { progressionScaling } from '../src/characters/skillSoftcap.js';
+import { heroThreat } from '../src/characters/heroThreat.js';
 
 const OVERHAUL = { Enabled: true, equipmentDamageEnhanced: false, fadingEnchantedItems: false, fixedStrengthDamageModifier: true, armorHitFormulaRedone: true, criticalStrikesIncreaseDamage: true, conditionBasedEffectiveness: true, softMaterialRequirements: true };
 const MODS = pcaaoModules((k) => OVERHAUL[k], () => undefined);

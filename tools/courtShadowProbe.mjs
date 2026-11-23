@@ -23,9 +23,9 @@
 import { Renderer, WORLD_FRAME } from '../src/render/renderer.js';
 import { EL_LANE } from '../src/render/enhancedLighting.js';
 import { SHADOW_TUNING } from '../src/render/shadowPass.js';
-import { courtLightsNear, withCourtLights, courtToDungeon, buildCourtModel } from '../src/world/gate/gateArena.js';
-import { GLOW_RANGE, LANDING_LIGHT_Y } from '../src/world/gate/gateBoss.js';
-import { FX_KINDS, FX_LIGHT_MS } from '../src/render/gate/gateFx.js';
+import { courtLightsNear, withCourtLights, courtToDungeon, buildCourtModel } from '../src/world/gateArena.js';
+import { GLOW_RANGE, LANDING_LIGHT_Y } from '../src/world/gateBoss.js';
+import { FX_KINDS, FX_LIGHT_MS } from '../src/render/gateFx.js';
 import { lookAt, perspective, mirrorProjectionX } from '../src/world/mat4.js';
 import { isMain } from './lib/isMain.mjs';
 

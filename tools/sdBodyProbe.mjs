@@ -23,11 +23,11 @@ const ROWS = Math.ceil(POSES.length / COLS);
 const PAGE_NAME = 'sdbody-probe.tmp.html', PAGE_PATH = join(ROOT, 'tools', PAGE_NAME);
 
 const PAGE = `<!doctype html><html><body style="margin:0;background:#000"><canvas id=c width=${TW * COLS} height=${TH * ROWS}></canvas><script type=module>
-import { buildRemnantParts, SD_REMNANT_PARTS } from '/src/world/superDungeon/sdRemnantModel.js';
-import { remnantRig, rigMatrices, arenaBase, sdBeamDraws, gearFlightOf, SD_WAKE_MS, SD_SLIP_EVERY_MS } from '/src/scenes/superDungeon/sdRemnantRig.js';
-import { SdBeamRenderer } from '/src/render/superDungeon/sdBeam.js';
-import { SD_BLOWS, SD_BODY } from '/src/net/superDungeon/sdRemnant.js';
-import { SD_ARENA, realmToDungeon } from '/src/net/superDungeon/sdBrain.js';
+import { buildRemnantParts, SD_REMNANT_PARTS } from '/src/world/sdRemnantModel.js';
+import { remnantRig, rigMatrices, arenaBase, sdBeamDraws, gearFlightOf, SD_WAKE_MS, SD_SLIP_EVERY_MS } from '/src/worldEvents/sdRemnantRig.js';
+import { SdBeamRenderer } from '/src/render/sdBeam.js';
+import { SD_BLOWS, SD_BODY } from '/src/net/sdRemnant.js';
+import { SD_ARENA, realmToDungeon } from '/src/net/sdBrain.js';
 const gl = document.getElementById('c').getContext('webgl2', { alpha: false, preserveDrawingBuffer: true, antialias: true });
 const VS = \`#version 300 es
 layout(location=0) in vec3 aP; layout(location=1) in vec3 aN;

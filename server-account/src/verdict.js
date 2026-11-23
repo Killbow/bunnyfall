@@ -46,9 +46,9 @@
 import { judgeSave, judgeProducts, STRIKES_FOR_TIMED, JUDGE_VERSION, FINDINGS_KEPT, WEALTH_VERSION, goodsOf, lawValuesOf, LAW_VALUES_CUT } from './judge.js';
 import { ledgerStep, chargeSteps } from './ledger.js';
 import { budgetConfig, bandOf, stepBudget } from './budget.js';
-import { customsAllowance } from '../../src/net/realm/realmGoldLaw.js';
-import { lawfulItem } from '../../src/systems/item/itemLaw.js';   // BUNNYFALL AUDIT BF-01
-import { armsOf } from '../../src/net/siege/siegeRef.js';   // BUNNYFALL: the arms the identity mint signs, off the pack alone
+import { customsAllowance } from '../../src/net/realmGoldLaw.js';
+import { lawfulItem } from '../../src/items/itemLaw.js';   // BUNNYFALL AUDIT BF-01
+import { armsOf } from '../../src/net/siegeRef.js';   // BUNNYFALL: the arms the identity mint signs, off the pack alone
 import { censusStep } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the census's tally, on the hour's row and the character's latest
 
 /** INT2's cutover (Mac: "Items judged, wealth baselined"): a character whose first judged wealth stands past this many

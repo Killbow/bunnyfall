@@ -3,7 +3,7 @@
 // looks for them (ui/marketTab.js's List form, ui/socialPanel.js's guild Stores). The walls are the service's
 // (server-account/src/professions.js spendableSql: WRIT_ORIGINS; market.js listGood's currency), unchanged; this only
 // names what stands behind them.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { LOOSE_ORIGIN } from '../net/bagLaw.js';
 
 /** How many materials one line names; the rest are counted. */

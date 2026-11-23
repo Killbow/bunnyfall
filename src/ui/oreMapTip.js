@@ -19,9 +19,9 @@
 import { VEIN_TABLES, DUNGEON_VEINS, deepClimateOres, regionSignature, UNCONFIRMED_VEIN_TIER, WITNESS, groundConfirmed } from '../net/nodeLaw.js';
 import { kingdomOf, KINGDOMS } from '../net/kingdomLaw.js';
 import { minedMaterial } from '../net/professionLaw.js';
-import { materialLabel } from '../systems/professions/profItems.js';
+import { materialLabel } from '../professions/profItems.js';
 import { REGION_NAMES } from '../formats/mapsTables.js';
-import { t, formatMessage, intlLocale } from '../systems/textManager.js';
+import { t, formatMessage, intlLocale } from './textManager.js';
 
 export const ORE_TIP_TITLE = 'Ore here';
 /** The rule the state line rests on, said where the ground is not yet witnessed - its English (`{n}` WITNESS.confirm). */

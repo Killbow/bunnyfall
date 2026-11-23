@@ -11,11 +11,11 @@
 // Drawn on the canvas as the other windows are (townTalk's overlay slot, so the world stands still under it).
 
 import { drawText, measureText } from './text.js';
-import { nativeMetrics, drawRect, shadowText, NATIVE_W } from './native/nativePanel.js';   // BUNNYFALL: drawn on the game's own native screen
+import { nativeMetrics, drawRect, shadowText, NATIVE_W } from './nativePanel.js';   // BUNNYFALL: drawn on the game's own native screen
 import { drawParchment } from './messageBox.js';   // BUNNYFALL: on Daggerfall's parchment, as its own windows are
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { tuneFromMidi, houseTune, chartOf, encodeTune, validTune, LANES, MIDI_FILE_MAX } from '../net/bardTune.js';
-import { appStorage } from '../systems/appStorage.js';
+import { appStorage } from '../platform/appStorage.js';
 
 /** What a performance pays by: the College's notes (systems/guild/bunnyServices.js BARD_NOTE_GOLD). */
 export const NOTES = 6;

@@ -31,9 +31,9 @@
 // the OPEN helm's lift alone - the one helm with a head under it. `wornSet('open')` wears it, and the shipped open helm
 // is what the head must stay inside.
 import { readFileSync } from 'node:fs';
-import { assembleFirstPersonArm } from '../src/formats/morrowind/mwFirstPerson.js';
-import { composeWornArmor } from '../src/formats/morrowind/mwItemMap.js';
-import { ARMOR_MATERIAL } from '../src/systems/armorMaterials.js';
+import { assembleFirstPersonArm } from '../src/formats/mwFirstPerson.js';
+import { composeWornArmor } from '../src/formats/mwItemMap.js';
+import { ARMOR_MATERIAL } from '../src/items/armorMaterials.js';
 import { HELM_LIFT, SCENE_BODY, RETAIL_SKELETON, PIECES, plateBind } from './bakeSteelPlate.mjs';
 import { isMain } from './lib/isMain.mjs';
 

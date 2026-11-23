@@ -5,7 +5,7 @@ import { createTavernShift, stepTavernShift, tavernOrder, TAVERN_RECIPES, TAVERN
 import { realmAtOf, recordMovedOf, prepareRealmRecord, dropIfUnnamed, dropObjects, realmSaveTextOf, mustChange } from './realm.js';
 import { tavernProgressOf, tavernReputation } from '../../src/net/tavernFavorLaw.js';
 import { tavernDiscordNames, discordServeStatement, pendingDiscordTips, collectDiscordTips, TAVERN_DISCORD_TIP } from './discordTavernPatrons.js';
-import { creditSave } from '../../src/net/realm/realmGoldLaw.js';
+import { creditSave } from '../../src/net/realmGoldLaw.js';
 
 const keyOk = (s) => typeof s === 'string' && /^[A-Za-z0-9:._-]{1,100}$/.test(s);
 const parse = (text) => { try { return JSON.parse(text); } catch { return null; } };

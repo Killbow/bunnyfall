@@ -14,9 +14,9 @@
 // the two outputs are filled in place, and the step returns at once when every spring is still. A moment allocates at
 // the moment (its place, its burst's sparks under the impact engine's caps, a sound) - never a frame.
 
-import { getPref } from '../../systems/uiPrefs.js';
-import { enhancedSoundsOn } from '../../systems/enhancedSounds.js';
-import { SOUND } from '../../systems/soundClips.js';
+import { getPref } from '../../ui/uiPrefs.js';
+import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
+import { SOUND } from '../../audio/soundClips.js';
 
 const DEG = Math.PI / 180;
 

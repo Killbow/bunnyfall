@@ -36,7 +36,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { color32Canvas } from './bitmapCanvas.js';
-import { WAGON_KINDS } from '../systems/wagon/wagonKinds.js';
+import { WAGON_KINDS } from '../travel/wagonKinds.js';
 import { cachedLoad } from '../assets/loadCache.js';
 
 /** WAGONS1: THE PORT'S OWN MODELS. Mac's wagons (world/wagonModels.js) are no ARCH3D record, so their pictures are
@@ -180,7 +180,7 @@ function arena2Source() {
       import('../formats/arch3dFile.js'),
       import('../world/meshReader.js'),
       import('./textureCanvas.js'),
-      import('../systems/textureReplacement.js'),
+      import('../render/textureReplacement.js'),
     ]);
     const a = await cachedLoad(arch, 'ARCH3D.BSA', () => getBytes('ARCH3D.BSA').then((bytes) => { const a = new Arch3dFile(); return a.load(bytes) ? a : null; }));
     const index = a ? a.getRecordIndex(id) : -1;

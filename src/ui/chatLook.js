@@ -1,7 +1,7 @@
 // The chat font and the chat text size, set in Settings > Chat and by the A- / A+ buttons in the chat top bar.
 // The font is a small sheet that beats the game text-font sheet inside the chat only. The size is the
 // `--dfchat-scale` value the chat sheet multiplies its text sizes by. Both go on every page that shows the chat.
-import { getPref, setPref } from '../systems/uiPrefs.js';
+import { getPref, setPref } from './uiPrefs.js';
 import { TEXT_FONTS, wordStack, textFontSystem, fontFaceCss, mountTextFont } from './textFont.js';
 import { PIXEL_STACK } from './pixelifyFive.js';
 

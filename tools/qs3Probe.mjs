@@ -3,8 +3,8 @@
 // Node has no layout engine, so "the diamond clears the vitals column"
 // and "it does not stand under the phone's jump button" are claims the
 // suite cannot check. This is the artifact that checks them: a page
-// over the REAL modules (src/ui/enhanced/enhancedHud.js and
-// src/ui/enhanced/enhancedStyle.js, imported rather than re-implemented), a fake
+// over the REAL modules (src/ui/enhancedHud.js and
+// src/ui/enhancedStyle.js, imported rather than re-implemented), a fake
 // player carrying a weapon, a shield and two potions, and every box
 // read back off the live engine at three sizes, two HUD scales and both
 // virtual-stick anchors.
@@ -43,10 +43,10 @@ const PAGE_PATH = join(ROOT, PAGE_REL);
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QS3 probe</title>
 <style>html,body{margin:0;height:100%;background:#12141a;overflow:hidden}</style></head><body>
 <script type="module">
-import { drawEnhancedHud } from '/src/ui/enhanced/enhancedHud.js';
-import { assignQuickslot, clearQuickslots, setSpellQuickslot } from '/src/systems/quickslots.js';   // QS6
-import { setPref } from '/src/systems/uiPrefs.js';
-import { EQUIP_SLOTS } from '/src/characters/paperdoll/paperdoll.js';
+import { drawEnhancedHud } from '/src/ui/enhancedHud.js';
+import { assignQuickslot, clearQuickslots, setSpellQuickslot } from '/src/items/quickslots.js';   // QS6
+import { setPref } from '/src/ui/uiPrefs.js';
+import { EQUIP_SLOTS } from '/src/characters/paperdoll.js';
 
 const q = new URLSearchParams(location.search);
 setPref('hudScale', Number(q.get('scale') ?? 1));

@@ -35,7 +35,7 @@
 // of the dark, where the last ships in of the evening pass.
 
 import { hash32 } from '../../world/spawnedDungeons.js';
-import { mulberry32 } from '../../combat/blood/bloodArt.js';
+import { mulberry32 } from '../../combat/bloodArt.js';
 import { hullBuild, MOD_CARRACK_BUILD } from './navalShips.js';
 import { stepFishing, fishingHeld } from './fishingBoats.js';   // FISH-BOATS: a fishing boat's day, an errand of her own
 

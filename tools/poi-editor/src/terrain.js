@@ -8,8 +8,8 @@
 // ground at all, and `heightAt` answers null: the viewport then draws the plain metre grid and says that.
 
 import { WoodsFile } from '../../../src/formats/woodsFile.js';
-import { generateSamples, HEIGHTMAP_DIMENSION, TERRAIN_SIZE } from '../../../src/world/terrain/terrainSampler.js';
-import { surfaceHeightAt } from '../../../src/world/terrain/terrainSurface.js';
+import { generateSamples, HEIGHTMAP_DIMENSION, TERRAIN_SIZE } from '../../../src/world/terrainSampler.js';
+import { surfaceHeightAt } from '../../../src/world/terrainSurface.js';
 
 export const FIDELITY = Object.freeze({
   level: 'base',

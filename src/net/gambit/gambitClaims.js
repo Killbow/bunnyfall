@@ -5,7 +5,7 @@
 // once and again while kept, let go once the service settles it.
 //
 // Not a DFU member: Daggerfall Unity has no such game - the mod does. Ledger A row (THE KING'S GAMBIT).
-import { createIliacClaims } from '../iliac/iliacClaims.js';
+import { createIliacClaims } from '../iliacClaims.js';
 import { readGambitReceipt } from './gambitReceipt.js';
 
 /** The device's King's Gambit results not yet settled. */

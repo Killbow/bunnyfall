@@ -17,7 +17,7 @@ import { GENDERS } from './nameHelper.js';
 import { isChildNPCData, isChildNPCTexture } from './staticNpc.js';   // MWNPC18: and a child's picture, a figure's
 import { flatGender } from '../formats/flatsFile.js';   // MWNPC18: a figure's sex, FLATS.CFG's column
 import { textSeed } from '../systems/livingWorld/seed.js';   // MWNPC18: a figure's seed, its piece's id
-import { RACES } from '../systems/races.js';
+import { RACES } from './races.js';
 import { SOCIAL_GROUPS, GUILD_GROUPS, FACTION_TYPES } from '../formats/factionFile.js';
 import { isNpcFlat } from '../world/npcFlatArchives.js';   // STALL-FLATS: RDBLayout.NPCFlatArchives, the people's pictures
 import { dressPerson } from './wardrobe.js';   // MWNPC17: the wardrobe's roles

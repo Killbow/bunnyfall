@@ -15,8 +15,8 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseStringTableCsv, formatStringTableCsv } from '../src/systems/textManager.js';
-import { catalogLocale } from '../src/systems/localeCatalog.js';
+import { parseStringTableCsv, formatStringTableCsv } from '../src/ui/textManager.js';
+import { catalogLocale } from '../src/ui/localeCatalog.js';
 import { checkDraft, hash, planRun } from './translate.mjs';
 import { isMain } from './lib/isMain.mjs';
 

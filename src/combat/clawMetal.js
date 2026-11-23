@@ -15,9 +15,9 @@
 // trusted on a load - a cuirass, or a mod's gloves after the mod is off, is no gauntlet), its metal the class's own
 // (RRI's Brigandine Gloves are leather by their class, whatever metal they name: rriItems.js rriNativeMaterialValue, the
 // port's one reader of it), and a broken one is no metal.
-import { equipTableOf, getEquipSlot, isBrokenItem, EQUIP_SLOTS } from '../systems/equip.js';
-import { plateMetal } from '../systems/armorMaterials.js';
-import { rriNativeMaterialValue } from '../systems/roleplayRealismItems/rriItems.js';
+import { equipTableOf, getEquipSlot, isBrokenItem, EQUIP_SLOTS } from '../characters/equip.js';
+import { plateMetal } from '../items/armorMaterials.js';
+import { rriNativeMaterialValue } from '../mods/rriItems.js';
 import { weaponMaterialModifier, WEAPON_MATERIALS } from '../characters/weapons.js';
 
 /** The most the claws take: Daedric's modifier. */

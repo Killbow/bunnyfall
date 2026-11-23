@@ -17,7 +17,7 @@
 // 17i), the law (the words, the cap, the parse) in systems/item/itemTransfer.js.
 // ═══════════════════════════════════════════════════════════════════
 
-import { HOW_MANY_ITEMS, SPLIT_INPUT_MAX } from '../systems/item/itemTransfer.js';
+import { HOW_MANY_ITEMS, SPLIT_INPUT_MAX } from '../items/itemTransfer.js';
 
 /**
  * A labelled numeric field: "How many [text] of max". `onInput(text)` hears every keystroke; the window keeps the text

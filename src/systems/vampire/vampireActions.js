@@ -11,8 +11,8 @@
 //   vamp awaken          the Elder's gift: the Beast awakened (vitae.js awakenVampire)
 
 import { ActionTemplate } from '../quest/actions.js';
-import { isDayFromMinutes } from '../gameDate.js';
-import { skyMinutes, ownMinutes } from '../worldTick.js';
+import { isDayFromMinutes } from '../../world/gameDate.js';
+import { skyMinutes, ownMinutes } from '../../world/worldTick.js';
 import { awakenVampire, deedCount } from './vitae.js';
 import { penanceDone, courtWorkDone } from './masquerade.js';   // PHASE 3
 

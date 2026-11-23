@@ -4,7 +4,7 @@
 // 3E 398 the account keeps (the wardrobe's `annals`, server-account/src/index.js). Each lists the whole set, held or
 // not, and says how the rest is had. A horse's coats are no part: the stable keeps the horses a character has now, never
 // the coats it has owned, so such a list would forget a coat sold.
-import { t, getLocalizedItemName } from '../../systems/textManager.js';
+import { t, getLocalizedItemName } from '../textManager.js';
 import { gatheredOf } from '../../systems/hunt/gatheredLog.js';
 import { TROPHY_BEASTS, trophyBeastName } from '../../systems/hunt/trophies.js';
 import { PASSIVE_FISH_SPECIES } from '../../world/passiveFish.js';

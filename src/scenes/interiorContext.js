@@ -16,40 +16,40 @@
 //   - a fresh Collider over every placement and action-door mesh,
 //   - enter markers and interior static doors for the landing math.
 
-import { IIL_FIREPLACE_MODELS } from '../systems/improvedInteriorLighting.js';   // IIL1
+import { IIL_FIREPLACE_MODELS } from '../render/improvedInteriorLighting.js';   // IIL1
 import { FlatAnimator, armFlatAnim } from '../render/flatAnimation.js';   // FA1: the flats that move
-import { layoutInterior, INTERIOR_MARKER, PROP_MODEL_TYPE } from '../world/interior/interiorLayout.js';
+import { layoutInterior, INTERIOR_MARKER, PROP_MODEL_TYPE } from '../world/interiorLayout.js';
 import { multiply, transformPoint, identity } from '../world/mat4.js';
 import { StaticBatchBuilder, keyResolver } from '../render/staticBatch.js';   // PERF6: the room's static models as one mesh
-import { collectInteriorLights } from '../world/interior/interiorLights.js';
-import { sealDoorsToNowhere, sealedDoorText } from '../world/interior/doorsToNowhere.js';   // FIELD BUGS 2026-10-25 DOOR-VOID
+import { collectInteriorLights } from '../world/interiorLights.js';
+import { sealDoorsToNowhere, sealedDoorText } from '../world/doorsToNowhere.js';   // FIELD BUGS 2026-10-25 DOOR-VOID
 import { setMidScreenText } from '../ui/midScreenText.js';   // DOOR-VOID: the sealed door's line, where a locked door's is said
 import { applyClimate } from '../world/climateSwaps.js';
 import { remapSubMeshes, markRemapLaw } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam; AUDIT MENU-ORDER C3: a table named by its law
-import { unityMaterialName } from '../systems/immersiveFootsteps.js';   // IF1: MaterialReader's material name, for the mod's floor walk
+import { unityMaterialName } from '../audio/immersiveFootsteps.js';   // IF1: MaterialReader's material name, for the mod's floor walk
 import { billboardSize } from '../world/rmbFlats.js';
-import { preloadTextureRecord } from '../systems/textureReplacement.js';   // LAMP-KEEPER: a re-materialised person's art, decoded before it is drawn
-import { LAMP_ARCHIVE, LAMP_CLASSIC } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a keeper standing as the lamp, on purpose
+import { preloadTextureRecord } from '../render/textureReplacement.js';   // LAMP-KEEPER: a re-materialised person's art, decoded before it is drawn
+import { LAMP_ARCHIVE, LAMP_CLASSIC } from '../world/lampKeeper.js';   // LAMP-KEEPER II: a keeper standing as the lamp, on purpose
 import { isChairModel } from '../world/chairSeat.js';   // SIT1: the seats a player sits on
 import { Collider } from '../player/collider.js';
-import { isHouseContainerModel } from '../systems/containers.js';
-import { isShopShelfModel } from '../systems/shopStock.js';   // E2
-import { isBedModel } from '../systems/roleplayRealism/rrRealism.js';   // RR1: the three bed models a click may rest on
+import { isHouseContainerModel } from '../items/containers.js';
+import { isShopShelfModel } from '../trade/shopStock.js';   // E2
+import { isBedModel } from '../mods/rrRealism.js';   // RR1: the three bed models a click may rest on
 import { placedTableSpot, TAVERN_CARD_TABLES } from '../world/placedCardTable.js';   // TAVERN-TABLE: where a tavern's card table stands; TAVERN-TABLES: and how many
-import { cardTablePropModel, paintFelt, paintWood, CARD_TABLE_BOX, CARD_TABLE_ARCHIVE, FELT_RECORD, WOOD_RECORD, FELT_RGB, GOLD_FELT_RECORD, GOLD_FELT_RGB } from '../world/card/cardTableProp.js';   // TAVERN-TABLE: the card table's own prop; TAVERN-TABLES: the gold table's red felt
+import { cardTablePropModel, paintFelt, paintWood, CARD_TABLE_BOX, CARD_TABLE_ARCHIVE, FELT_RECORD, WOOD_RECORD, FELT_RGB, GOLD_FELT_RECORD, GOLD_FELT_RGB } from '../world/cardTableProp.js';   // TAVERN-TABLE: the card table's own prop; TAVERN-TABLES: the gold table's red felt
 import { holdemGoldTable } from '../net/holdemTable.js';   // TAVERN-TABLES: which of them plays for gold - the relay's own index
 import { classicModelIdOf } from '../world/customModels.js';   // WD3: an alias is its classic model to the beds' test
 import { LADDER_MODEL_ID, doorWorldPosition } from '../player/enterExit.js';   // TAVERN-TABLE: a static door's place, for the card table to keep clear of
 import { MACHINERY_MODEL_ID } from '../world/windmillMesh.js';   // WM4b: the mill's machinery and its moving parts
-import { createBaseRoom, baseBucketOf, isBasePieceModel } from './decor/decorBase.js';   // BASE-HIDE: a furnishable room's own pieces, one at a time
-import { createInteriorDoors } from '../systems/decor/decorInteriorDoors.js';   // a room door taken out, its opening left
+import { createBaseRoom, baseBucketOf, isBasePieceModel } from '../homes/decorBase.js';   // BASE-HIDE: a furnishable room's own pieces, one at a time
+import { createInteriorDoors } from '../homes/decorInteriorDoors.js';   // a room door taken out, its opening left
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
 import { seatMagicFolk } from './magicTavernRoom.js';   // MAGIC-TAVERN: the shared hall's people, its keeper Nyx
-import { furnishBunnyHall, isHouseFurniture, stripHallFlats } from './bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall stripped of the house, and furnished for its guild
-import { markGuildClerkArt, standGuildClerkArt } from '../systems/guild/guildClerkArt.js';
-import { ensureBunnyClerk } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
+import { furnishBunnyHall, isHouseFurniture, stripHallFlats } from '../guilds/bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall stripped of the house, and furnished for its guild
+import { markGuildClerkArt, standGuildClerkArt } from '../guilds/guildClerkArt.js';
+import { ensureBunnyClerk } from '../guilds/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { trs } from '../world/mat4.js';
 import { buildRaceCharacter, raceOfArchive } from '../characters/raceCharacter.js';
@@ -58,18 +58,18 @@ import { IDLE, WALK, POSE_L } from '../characters/animate.js';
 import { ImgFile } from '../formats/imgFile.js';
 import { fetchBytes } from './shared.js';
 import { ActionSystem } from '../world/actionSystem.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import { worldAabb } from '../player/activate.js';   // ROAD-C c2/S9: the automap rows' world bounds
-import { enterInteriorAutomap, exitInteriorAutomap, buildRevealIndex, bindAutomapLayout, automapRevealTick, automapEntranceTick, automapTrailTick, SCAN_INTERVAL_S, registerAutomapConsoleCommands, capsuleCentreFromEye } from '../systems/automap/automap.js';   // ROAD-C c2/S9; ROAD-E E3 the console verbs
-import { INTERIOR_ELEMENT_NAMES } from '../systems/automap/automapModel.js';   // ROAD-C c2/S9
+import { enterInteriorAutomap, exitInteriorAutomap, buildRevealIndex, bindAutomapLayout, automapRevealTick, automapEntranceTick, automapTrailTick, SCAN_INTERVAL_S, registerAutomapConsoleCommands, capsuleCentreFromEye } from '../maps/automap.js';   // ROAD-C c2/S9; ROAD-E E3 the console verbs
+import { INTERIOR_ELEMENT_NAMES } from '../maps/automapModel.js';   // ROAD-C c2/S9
 // AUDIT 63 F22: AddFlats' own RandomTreasure arm - the gate, the
 // picture and the table index all live with the walk that finds the
 // markers, which is the member DFU puts them in.
 import { BUILDING_TYPES } from '../world/buildingNames.js';
-import { THIEVES_GUILD_FACTION_ID, DARK_BROTHERHOOD_FACTION_ID } from '../systems/crimeGuilds.js';   // FactionFile.cs:91/:135
-import { rollLootRarity, pileSource, INTERIOR_RARITY_TIER, stampWonWeapons } from '../systems/loot/lootRarity.js';   // LR1: a tavern's pile rolls at the town's tier; SIGIL1: its weapons' sigils
-import { generateItems as generateLootItems, addPileLootExtras, DUNGEON_LOOT_KEYS, DROP_ICON_ARCHIVES } from '../systems/loot/loot.js';
+import { THIEVES_GUILD_FACTION_ID, DARK_BROTHERHOOD_FACTION_ID } from '../guilds/crimeGuilds.js';   // FactionFile.cs:91/:135
+import { rollLootRarity, pileSource, INTERIOR_RARITY_TIER, stampWonWeapons } from '../items/lootRarity.js';   // LR1: a tavern's pile rolls at the town's tier; SIGIL1: its weapons' sigils
+import { generateItems as generateLootItems, addPileLootExtras, DUNGEON_LOOT_KEYS, DROP_ICON_ARCHIVES } from '../items/loot.js';
 import { createCoverIndex, isCoverFlat, coverProxy } from '../ai/cover.js';   // TACT1: billboards are cover
 import { flatBodies } from '../world/propBodies.js';   // PROP-BODIES: the solid flats' bodies, beside their cover
 import { standFlatSwap } from './flatReplacerStand.js';   // WEEB1: an NPC stood as Flat Replacer's picture (Weeberfall)

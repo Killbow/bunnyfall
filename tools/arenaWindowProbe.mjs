@@ -36,12 +36,12 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
   page.on('pageerror', (e) => errors.push(String(e.message)));
   await page.goto(`http://localhost:5244/play/?skin=${skin}&touch=off`);
   await page.evaluate(async () => {
-    const LG = await import('/src/systems/arena/arenaLeague.js');
-    const BK = await import('/src/systems/arena/arenaBook.js');
-    const AL = await import('/src/systems/arena/arenaLadder.js');
-    const AB = await import('/src/systems/arena/arenaBoard.js');
-    const RP = await import('/src/systems/arena/arenaReplay.js');   // ARENA5
-    const { mountArenaWindow } = await import('/src/ui/arena/arenaWindow.js');
+    const LG = await import('/src/arena/arenaLeague.js');
+    const BK = await import('/src/arena/arenaBook.js');
+    const AL = await import('/src/arena/arenaLadder.js');
+    const AB = await import('/src/arena/arenaBoard.js');
+    const RP = await import('/src/arena/arenaReplay.js');   // ARENA5
+    const { mountArenaWindow } = await import('/src/ui/arenaWindow.js');
     document.body.innerHTML = '';
     document.body.style.cssText = 'margin:0;background:repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px);height:100vh';
     // a save with something on every page: noon of day 200 of 3E 405, the Red Banner, in the laurel
@@ -85,9 +85,9 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     if (online && !(await page.evaluate(() => !!window.__online))) {
       // ARENA4b: the window remounted over a realm's board - the account's record and last bouts, the realm's Hall
       await page.evaluate(async () => {
-        const AB = await import('/src/systems/arena/arenaBoard.js');
-        const { mountArenaWindow } = await import('/src/ui/arena/arenaWindow.js');
-        const L = await import('/src/net/arena/arenaLaw.js');
+        const AB = await import('/src/arena/arenaBoard.js');
+        const { mountArenaWindow } = await import('/src/ui/arenaWindow.js');
+        const L = await import('/src/net/arenaLaw.js');
         window.__arenaView.unmount();
         const atS = (n, d) => L.ARENA_SEASON_EPOCH_S + (n - 1) * L.ARENA_SEASON_S + (d - 1) * 86400 + 3600;
         const climb = (n) => L.arenaLadderOf(Array.from({ length: n }, (_, k) => ({ tier: Math.floor(k / 4), bout: k % 4 })), { wins: n, losses: 3, best: 5 });

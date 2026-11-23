@@ -16,7 +16,7 @@
 //
 // Dressed by the kit's roles (ui/enhanced/enhancedFrame.js FRAME_ROLES): the filters are tiles, a row a list line, a row
 // opened a panel, a tag a chip, Wear the kit's button - this sheet writes geometry and the words' colours alone.
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { titleBadge, paintTitle, glyphBadges, glyphSvgNode, TITLE_RGBA, TITLE_GRADIENT, AURA_PAINT, cssRgba } from '../playerBadge.js';
 import { profileIconNode } from '../profileIcons.js';
 import { inkColour, GRIMOIRE_DRESS } from '../grimoireDress.js';   // AUDIT COLLECTIONS-II (lane 3): a painted word inked on the Grimoire's page

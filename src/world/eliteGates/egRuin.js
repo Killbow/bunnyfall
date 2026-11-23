@@ -41,10 +41,10 @@
 // Pure: no DOM, no GL. Not a DFU member. Ledger A (ELITE-GATES).
 import { egCircleSpecs, egBandOfHall, EG_BRINK_HALLS, egSeed } from '../../net/eliteGates/egLaw.js';
 import { egRouteAlongAt, egRouteLen } from '../../net/eliteGates/egRoute.js';   // THE ASCENT (LAW 9): a Brink's thirds along its route
-import { SD_REALM_ORIGIN } from '../../net/superDungeon/sdBrain.js';
-import { SD_LIP, SD_ISLAND_SIDES } from '../superDungeon/sdRealm.js';
-import { hangPlan, SD_HANG } from '../superDungeon/sdIslandModel.js';
-import { rng } from '../superDungeon/sdPixelKit.js';
+import { SD_REALM_ORIGIN } from '../../net/sdBrain.js';
+import { SD_LIP, SD_ISLAND_SIDES } from '../sdRealm.js';
+import { hangPlan, SD_HANG } from '../sdIslandModel.js';
+import { rng } from '../sdPixelKit.js';
 import { EG_KIT_RECORD, egKitStyle } from './egKit.js';
 import { egBandArchive, EG_DRESS, EG_KIT_MAP } from './egBandArt.js';
 import { egAtmosOf } from './egAtmos.js';

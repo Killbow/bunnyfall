@@ -11,11 +11,11 @@
 // The art is LGBK00I0.IMG - the LOGBOOK background, shared with the
 // quest journal. That is DFU's own choice (:26), not a stand-in: in
 // classic your history and your log are the same book.
-import { loadImg, nativeMetrics, drawImg, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, shadowText } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { processGrammar } from '../systems/textManager.js';   // L10N3g: each BackStory line through the grammar (:152)
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { processGrammar } from './textManager.js';   // L10N3g: each BackStory line through the grammar (:152)
 
 let _art = null;
 export async function preloadPlayerHistoryArt(deps) {

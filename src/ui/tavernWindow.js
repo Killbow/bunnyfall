@@ -55,15 +55,15 @@
 //   E the port had assumed.
 
 import { drawText } from './text.js';   // BUNNYFALL: the house's rows under the panel
-import { loadImg, nativeMetrics, drawImg } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { ServiceFlowWindow, macroRows } from './guildServiceWindows.js';
-import { goldAmount, totalGoldAmount, deductGold } from '../systems/court.js';
-import { dayOfYearFromMinutes } from '../systems/gameDate.js';
-import { raceDisplayName, honorificOf } from '../systems/talk/talkSession.js';
-import { audio } from '../systems/audio.js';   // F145: the ButtonClick roster
-import { SOUND } from '../systems/soundClips.js';
-import { firstHotkey } from '../systems/dialogShortcuts.js';   // A8: the DaggerfallShortcut table
+import { goldAmount, totalGoldAmount, deductGold } from '../justice/court.js';
+import { dayOfYearFromMinutes } from '../world/gameDate.js';
+import { raceDisplayName, honorificOf } from '../talk/talkSession.js';
+import { audio } from '../audio/audio.js';   // F145: the ButtonClick roster
+import { SOUND } from '../audio/soundClips.js';
+import { firstHotkey } from './dialogShortcuts.js';   // A8: the DaggerfallShortcut table
 import { survivalOn, survivalRules } from '../systems/survival/switch.js';   // SURV5: the mod's menu stands in for DFU's while the arc is on; SURV-TIERS: the tier prices the drink
 import { tavernMenu, tavernEat, tavernDrink, tavernOrder, tavernWater, tavernRefresh, blackout, blackoutWaking, TAVERN_MENU_TEXT } from '../systems/survival/tavernMenu.js';   // INN-WATER: tavernWater, the fountain's law at the bar; AUDIT C&C I6: tavernRefresh, the drink's fatigue and magicka; I4: blackoutWaking, the line under the sky
 import { survivalOf } from '../systems/survival/needs.js';
@@ -74,7 +74,7 @@ import {
   roomFreeForKnightText, roomFreeHeartsDayText, youAreNotHungryText,   // L10N3d: the lines in the player's language
   tavernMenuLabels, removeExpiredRooms, findRentedRoom, roomRemainingHours,
   rentalDecision, rentRoom, canEat, eatOrDrink,
-} from '../systems/tavern.js';
+} from '../trade/tavern.js';
 
 /** mainPanel.Size (:100) - and the size TVRN00I0.IMG actually ships. */
 export const TAVERN_PANEL_W = 130, TAVERN_PANEL_H = 44;

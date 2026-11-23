@@ -48,7 +48,7 @@
 // with the motor are restated and pinned equal (test/auditclimb1, test/climb2).
 
 import { KHAJIIT_CLIMBING_BONUS, climbingSpeed } from './climbing.js';
-import { overcapClimbSpeed } from '../systems/skillSoftcap.js';   // CLIMB-PAST: the climb's pace past 100 (a leaf)
+import { overcapClimbSpeed } from '../characters/skillSoftcap.js';   // CLIMB-PAST: the climb's pace past 100 (a leaf)
 
 /** The lip height above the feet a standing body reaches with its hands, at
  *  Climbing 0 and at Climbing 100: a ledge at the chest, and one at the full

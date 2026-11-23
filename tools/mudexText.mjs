@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// MUDEX1 (2026-10-20): writes src/systems/enemyExpansion/mudexTableText.js - MUDEX's two tables as TEXT, each the bytes
+// MUDEX1 (2026-10-20): writes src/mods/enemyExpansion/mudexTableText.js - MUDEX's two tables as TEXT, each the bytes
 // of the vendored file of the same name under vendor/mudex/ exactly, in the manifest's order (BestiaryMod.GetDBAssets
 // walks an enabled mod's Files). `--check` fails when the module and the vendored files part.
 //
@@ -12,7 +12,7 @@ import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const VENDOR = join(ROOT, 'vendor/mudex');
-export const MUDEX_TEXT_MODULE = 'src/systems/enemyExpansion/mudexTableText.js';
+export const MUDEX_TEXT_MODULE = 'src/mods/enemyExpansion/mudexTableText.js';
 
 /** The module's source: the manifest's files, in its order, as their bytes. */
 export function mudexTextSource() {

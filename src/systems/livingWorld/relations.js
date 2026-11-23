@@ -24,8 +24,8 @@
 // road's dice never held, so the lives take the place from that minute (lives.js handDeath) and the road keeps the rest
 // of the day as it was; the town talks of them by name (livingTown.js deedNews).
 
-import { CRIMES } from '../crimes.js';
-import { REGION_COUNT } from '../region/regionConditions.js';
+import { CRIMES } from '../../justice/crimes.js';
+import { REGION_COUNT } from '../../world/regionConditions.js';
 
 /** The save's record's vendor (modSaveData): the character's regards ride their save under it. */
 export const LIVING_WORLD_VENDOR = 'LivingWorld';

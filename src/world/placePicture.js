@@ -5,8 +5,8 @@
 import { getWorldClimateSettings } from '../formats/mapsFile.js';
 import { getTerrainGroundArchive, SEASON } from './climateSwaps.js';
 import { toColor32 } from '../formats/color32Order.js';
-import { dfmodGroundLayers } from '../systems/dfmodTextures.js';
-import { hasTextureReplacement, decodedTextureTopDown, preloadTextureArchive } from '../systems/textureReplacement.js';
+import { dfmodGroundLayers } from '../mods/dfmodTextures.js';
+import { hasTextureReplacement, decodedTextureTopDown, preloadTextureArchive } from '../render/textureReplacement.js';
 
 export const GROUND_TILE_M = 6.4, ROCK_TILE_M = 3.2;
 
@@ -34,7 +34,7 @@ export async function placePicture(src, getTexture) {
   } else if (hasTextureReplacement(src.archive, src.record)) {
     await preloadTextureArchive(src.archive);
     const d = decodedTextureTopDown(src.archive, src.record);
-    if (d?.rgba) return toColor32({ width: d.width, height: d.height, data: d.rgba });
+    if (d?.rgba) return toColor32({ width: d.width, height: d.height, data: /** @type {any} */ (d.rgba) });
   }
   const bm = tex?.getDFBitmap?.(src.record, 0);
   return bm?.data ? tex.getColor32(bm) : null;

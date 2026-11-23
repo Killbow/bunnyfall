@@ -40,11 +40,11 @@ import { Renderer, WORLD_FRAME, INTERIOR_CLEAR } from '../render/renderer.js';
 import { EL_LANE, dungeonFog, dungeonTrilight, exposureFor } from '../render/enhancedLighting.js';
 import { applyFog } from '../render/underwaterFog.js';
 import { skyGain } from '../render/deadlands.js';
-import { GateTelegraphRenderer, TELEGRAPH_KIND, TELEGRAPH_STYLE, TELEGRAPH_EDGE_DAGON, TELEGRAPH_EDGE_SAFE, TELEGRAPH_POOL } from '../render/gate/gateTelegraph.js';
-import { realmArt } from '../world/superDungeon/sdRealmArt.js';
-import { SD_REALM_ARCHIVE } from '../world/superDungeon/sdRealm.js';
+import { GateTelegraphRenderer, TELEGRAPH_KIND, TELEGRAPH_STYLE, TELEGRAPH_EDGE_DAGON, TELEGRAPH_EDGE_SAFE, TELEGRAPH_POOL } from '../render/gateTelegraph.js';
+import { realmArt } from '../world/sdRealmArt.js';
+import { SD_REALM_ARCHIVE } from '../world/sdRealm.js';
 import { buildEgCircleModel, egCircleLights, egLightsWith, egHallLighting, egHallFog, egHallGrade, egToDungeon, egHallCentre } from '../world/eliteGates/egHall.js';
-import { createEgGroundLook } from '../scenes/eliteGates/egGroundLook.js';   // EG-LOOK: the ruin and the wreck, as the circle's host stands them
+import { createEgGroundLook } from '../systems/eliteGates/egGroundLook.js';   // EG-LOOK: the ruin and the wreck, as the circle's host stands them
 import { EG_VISTA_PLACES, EG_VISTA_REACH } from '../world/eliteGates/egVista.js';   // EG-LOOK (THE WRECK): where a wing hangs, for ?wing
 import { egRuinBands } from '../world/eliteGates/egRuin.js';   // EG-LOOK (THE RUIN): the bands a circle's ruin wears
 import { egBandArt, egBandArchive, EG_BAND_RECORDS, EG_KIT_MAP, EG_DRESS } from '../world/eliteGates/egBandArt.js';
@@ -52,15 +52,15 @@ import { createMeshKit } from '../world/eliteGates/meshKit.js';   // EG-LOOK: th
 import { egAtmosOf } from '../world/eliteGates/egAtmos.js';
 import { buildEgLookModel, egMistSheets } from '../world/eliteGates/egLook.js';
 import { egPaletteOf, egFillOf } from '../ui/eliteGates/egAccess.js';   // the shelf's palette and fill, their one home
-import { createEgSpan } from '../scenes/eliteGates/egSpan.js';
-import { createEgLookDraw } from '../scenes/eliteGates/egLookDraw.js';
-import { egLookShapes } from '../scenes/eliteGates/egFight.js';
+import { createEgSpan } from '../systems/eliteGates/egSpan.js';
+import { createEgLookDraw } from '../systems/eliteGates/egLookDraw.js';
+import { egLookShapes } from '../systems/eliteGates/egFight.js';
 import { egCircleSpecs, egFirstHallOf, egBandOfCircle } from '../net/eliteGates/egLaw.js';
 import { egPieceAt } from '../net/eliteGates/egSpanLaw.js';   // EG-LOOK: a piece's view at a moment it stands
 import { egIsleDisc } from '../world/eliteGates/egHall.js';
 import { egMistAt } from '../net/eliteGates/egFragLaw.js';
 import { EG_LIGHT_KIND, EG_DOOR_BEAM } from '../world/eliteGates/egLights.js';   // EG-LOOK: ?door - the beam and its foot's halo
-import { INTERIOR_LIGHT_DIR } from '../world/interior/interiorLights.js';
+import { INTERIOR_LIGHT_DIR } from '../world/interiorLights.js';
 import { perspective, lookAt, identity, mirrorProjectionX, ortho, multiply } from '../world/mat4.js';
 import { egMapDraw, egRoomViews } from './spireMap.js';   // THE ASCENT: the map's route, the rooms' views
 import { loadEgHeroFragMeshes, egHeroFragIdsOf } from '../world/eliteGates/egHeroFragModel.js';

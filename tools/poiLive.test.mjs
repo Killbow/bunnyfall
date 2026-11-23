@@ -1,6 +1,6 @@
 // The live view's game half: a draft is laid over the feed, a bad one is ignored, `go` moves the body, clear takes it down.
 import assert from 'node:assert/strict';
-import { createPoiLive, liveDraftOk } from '../src/scenes/poiLive.js';
+import { createPoiLive, liveDraftOk } from '../src/poi/poiLive.js';
 
 const seen = []; const moves = [];
 const feed = { setOverlay: (m) => seen.push([...m.keys()]) };

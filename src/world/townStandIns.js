@@ -26,7 +26,7 @@
 // for the game, or for a save whose towns are pinned to it), and costs a game that has neither mod nothing.
 
 import { registerCustomModel, registerModelAlias, customModelFor } from './customModels.js';
-import { addVendorTextures } from '../systems/textureReplacement.js';
+import { addVendorTextures } from '../render/textureReplacement.js';
 import { buildDerivedPicture } from '../formats/derivedTexture.js';
 import { installDetStandIns, MeshBuilder } from './detStandIns.js';
 import { TOWN_PICTURE_ARCHIVE, PICTURE } from './townPictures.js';
@@ -34,7 +34,7 @@ import { registerFlatField } from './flatFields.js';
 import { RMBRP_HILL_SHAPES, SHAPE_BEARINGS, SHAPE_RINGS } from './rmbrpHillShapes.js';   // FIELD BUGS 2026-10-05 HILL-SHAPES: the pack's hills, measured
 import { wrapAngle } from './mat4.js';   // FIELD BUGS 2026-10-13e HILL-SEAT: a pad corner's turn, in one step
 import { DOOR_APPROACH_M } from './curatedPlacements.js';   // FIELD BUGS 2026-10-15f TEMPLE-STEPS: a door's approach, HILL-HOUSE's rule
-import { shareDetailedShipsArt } from '../systems/detailedShips.js';   // Cliffworms' Items (archive 1210): his pictures, the towns' too
+import { shareDetailedShipsArt } from '../systems/naval/detailedShips.js';   // Cliffworms' Items (archive 1210): his pictures, the towns' too
 
 const U = 0.025;   // MeshReader.GlobalScale: one classic unit in metres
 

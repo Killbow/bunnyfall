@@ -17,9 +17,9 @@
 
 import { GLOBAL_SCALE } from '../world/meshReader.js';
 import { BUILDING_TYPES } from '../world/buildingNames.js';
-import { isShop } from '../systems/shopStock.js';
-import { isBuildingOpen } from '../systems/buildingLocks.js';
-import { isBunnyHall } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: a converted house that is a guild's hall
+import { isShop } from '../trade/shopStock.js';
+import { isBuildingOpen } from '../world/buildingLocks.js';
+import { isBunnyHall } from '../guilds/bunnyGuilds.js';   // BUNNY-GUILDS: a converted house that is a guild's hall
 
 /**
  * Collect the people of one building interior.

@@ -21,8 +21,8 @@ const { DFPalette } = await import(SRC('formats/dfPalette.js'));
 const { FlatsFile } = await import(SRC('formats/flatsFile.js'));
 const { encodePng } = await import(SRC('poi/poiThumb.js'));
 const { NPC_FLAT_ARCHIVES } = await import(SRC('world/npcFlatArchives.js'));
-const { ITEM_TEMPLATES, GROUP_TEMPLATE_INDICES } = await import(SRC('systems/item/itemTemplates.js'));
-const { ENEMY_BASICS, ENEMY_NAMES } = await import(SRC('characters/enemy/enemyBasics.js'));
+const { ITEM_TEMPLATES, GROUP_TEMPLATE_INDICES } = await import(SRC('items/itemTemplates.js'));
+const { ENEMY_BASICS, ENEMY_NAMES } = await import(SRC('characters/enemyBasics.js'));
 const { DECOR_STATIONS } = await import(SRC('net/decorLaw.js'));
 
 const entries = [];

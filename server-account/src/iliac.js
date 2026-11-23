@@ -41,11 +41,11 @@
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
 // ═══════════════════════════════════════════════════════════════════
-import { verifyIliacReceipt } from '../../src/net/iliac/iliacReceipt.js';
+import { verifyIliacReceipt } from '../../src/net/iliacReceipt.js';
 import { mintDeckOrder, deckDigest } from '../../src/net/identityToken.js';
-import { arenaSeasonOf, arenaSeasonEndsS, arenaSeasonDay, eloAfter, ARENA_ELO_START, ARENA_ELO_MIN, ARENA_ELO_MAX, arenaRatingOk, ARENA_PAIR_DAY_MAX, ARENA_PAIR_SEASON_MAX } from '../../src/net/arena/arenaLaw.js';
-import { deckShortOf } from '../../src/net/card/cardWorthLaw.js';
-import { deckValid } from '../../src/net/iliac/iliacHand.js';   // the rules' own deck law (iliacHand.js imports cardLaw.js, dice.js and iliacCards.js - the bundle's already)
+import { arenaSeasonOf, arenaSeasonEndsS, arenaSeasonDay, eloAfter, ARENA_ELO_START, ARENA_ELO_MIN, ARENA_ELO_MAX, arenaRatingOk, ARENA_PAIR_DAY_MAX, ARENA_PAIR_SEASON_MAX } from '../../src/net/arenaLaw.js';
+import { deckShortOf } from '../../src/net/cardWorthLaw.js';
+import { deckValid } from '../../src/net/iliacHand.js';   // the rules' own deck law (iliacHand.js imports cardLaw.js, dice.js and iliacCards.js - the bundle's already)
 import { realmActFirst, getRealmBlob, realmSaveTextOf } from './realm.js';
 import { boardNamesOf } from './boardNames.js';   // AUDIT CARDS-6 D3: a board's names wear every honour, the arena's too
 

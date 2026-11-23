@@ -43,9 +43,9 @@
 // A town with no room for one stands none of it - said once, in the console - never over a house, a road or a lot.
 //
 // Pure: no renderer, no GL, no clock. Not a DFU member. Ledger A (SHIPYARDS).
-import { NAV_CELL, NAV_CELLS_PER_BLOCK, tileWeight } from './city/cityNavigation.js';
+import { NAV_CELL, NAV_CELLS_PER_BLOCK, tileWeight } from './cityNavigation.js';
 import { summed, frontStrip, closeSite, YARD_PAD_M, YARD_TURNS, NO_ROAD_COST } from './merchantYards/merchantYardSites.js';
-import { PORT_SITE_ORDER, portPlaceName, portTownByData } from '../systems/portPlaces.js';
+import { PORT_SITE_ORDER, portPlaceName, portTownByData } from '../travel/portPlaces.js';
 import { longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';
 import { SEA_RING, seaBears } from '../net/fortLaw.js';   // FB1020c BERTH-RING: the ring and the sea's bearing, the coast law's own
 

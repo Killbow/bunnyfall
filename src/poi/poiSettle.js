@@ -5,10 +5,10 @@
 // uses the same ones, so a requirement means the same item in both places. Nothing here changes the save's shape: items
 // are the records the save already holds, gold is its `goldPieces`.
 
-import { templateGroups } from '../systems/item/itemLaw.js';
-import { tradeableRecord, loadedWagonOf, recordCount, recordIsOffered, TRADE_VOLATILE_FIELDS, VALUE_IS_IDENTITY_TEMPLATES, REALM_TRADE_RECORD_MAX } from '../net/realm/realmTradeLaw.js';
-import { GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
-import { POTION_RECIPES, potionRecipeKey } from '../systems/potionRecipes.js';
+import { templateGroups } from '../items/itemLaw.js';
+import { tradeableRecord, loadedWagonOf, recordCount, recordIsOffered, TRADE_VOLATILE_FIELDS, VALUE_IS_IDENTITY_TEMPLATES, REALM_TRADE_RECORD_MAX } from '../net/realmTradeLaw.js';
+import { GLASS_BOTTLE_TEMPLATE } from '../items/inventory.js';
+import { POTION_RECIPES, potionRecipeKey } from '../items/potionRecipes.js';
 
 /** The group an item stack names: its own, or its template's first. @param {any} s */
 const groupOf = (s) => s.group ?? templateGroups(s.template)[0];

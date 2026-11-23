@@ -42,7 +42,7 @@
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { createMeshKit, meshKitBounds } from './meshKit.js';
-import { rng } from '../superDungeon/sdPixelKit.js';
+import { rng } from '../sdPixelKit.js';
 import { egBandArchive, EG_KIT_MAP } from './egBandArt.js';
 import { EG_KIT_RECORD } from './egKit.js';
 import { buildEgUndersideModel, EG_UNDERSIDE } from './egUndersideModel.js';

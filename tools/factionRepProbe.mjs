@@ -3,10 +3,10 @@
 // Usage: ARENA2_PATH=... node tools/factionRepProbe.mjs
 import { readFileSync } from 'node:fs';
 import { FactionFile } from '../src/formats/factionFile.js';
-import { finishChargen, loadCareers } from '../src/systems/chargenSession.js';
-import { lowerRepForCrime, REPUTATION_LOSS_PER_CRIME, CRIMES } from '../src/systems/court.js';
-import { getReputation } from '../src/systems/faction/factionRep.js';
-import { getPeopleOfCurrentRegion } from '../src/systems/talk/talk.js';
+import { finishChargen, loadCareers } from '../src/characters/chargenSession.js';
+import { lowerRepForCrime, REPUTATION_LOSS_PER_CRIME, CRIMES } from '../src/justice/court.js';
+import { getReputation } from '../src/guilds/factionRep.js';
+import { getPeopleOfCurrentRegion } from '../src/talk/talk.js';
 
 const A = process.env.ARENA2_PATH;
 const careers = await loadCareers(async (n) => readFileSync(A + '/' + n));

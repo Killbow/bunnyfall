@@ -10,10 +10,10 @@
 // PURE: no DOM, no storage, no clock. Every roll takes an injected `rng` (a [0,1) function), and the name banks'
 // DFRandom stream is seeded from it and put back, so a family is a function of its seed and nothing else draws
 // differently for its being there.
-import { CLASS_CAREERS } from '../chargen.js';
-import { RACES, FACES_PER_RACE } from '../races.js';
-import { STAT_KEYS_ORDER } from '../statMods.js';
-import { SKILL_COUNT } from '../skills.js';
+import { CLASS_CAREERS } from '../../characters/chargen.js';
+import { RACES, FACES_PER_RACE } from '../../characters/races.js';
+import { STAT_KEYS_ORDER } from '../../characters/statMods.js';
+import { SKILL_COUNT } from '../../characters/skills.js';
 import { firstName, surname as bankSurname, getNameBank, GENDERS } from '../../characters/nameHelper.js';
 import { getSeed, setSeed } from '../../formats/dfRandom.js';
 import { startAgeOf } from './age.js';

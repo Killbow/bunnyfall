@@ -9,7 +9,7 @@
 // host's (`onPick`, its menu); the sheet's presses never reach the world. Drawn again only when what it shows changed.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
 import { STAFF_TAG_COLORS } from './staffTags.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 const SHEET_CSS = `position:fixed;inset:4% 4%;z-index:14;display:flex;flex-direction:column;${PIXEL_FONT_CSS}font-size:13px;color:${STAFF_TAG_COLORS.name};background:rgba(10,12,15,0.95);border:1px solid rgba(127,227,240,0.45);border-radius:4px;text-shadow:${PIXEL_TEXT_SHADOW};pointer-events:auto;`;
 const HEAD_CSS = 'display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid rgba(127,227,240,0.25);';

@@ -8,7 +8,7 @@
 //
 // Both skins open it - a lock is picked offline on the classic skin as online on the enhanced - so it is no lazy chunk of
 // the enhanced skin's: the window is small and imported whole. A page with no document answers null.
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
+import { registerOverlay } from './enhancedOverlays.js';
 import { mountLockpickWindow, lockKeyAct } from './lockpickWindow.js';
 
 /** The overlay standing now, or null. */

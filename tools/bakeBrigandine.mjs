@@ -55,7 +55,7 @@ import { meshToNif } from './nifWrite.mjs';
 import { previewSheet } from './meshSheets.mjs';
 import { readPng, writePng } from './pngIO.mjs';
 import { isMain } from './lib/isMain.mjs';
-import { BRIGANDINE_METALS } from '../src/characters/ownModels/ownArmorModels.js';
+import { BRIGANDINE_METALS } from '../src/characters/ownArmorModels.js';
 
 /** Mac's Blender export and the texture it names, committed so the bake
  *  is reproducible. (The FBX points at the PNG as "Steel.png"; it is

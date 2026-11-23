@@ -35,7 +35,7 @@
 // Not a DFU member: Daggerfall Unity lights on Unity's forward renderer, which culls its own lights per object.
 // Ledger A row (ENHANCED).
 
-import { pageParam } from '../systems/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
+import { pageParam } from '../platform/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
 
 /** The grid: 16 tiles across, 9 down (a 16:9 tile is square at 16:9), 24 depth slices. 3456 cells. */
 export const CLUSTER_X = 16;

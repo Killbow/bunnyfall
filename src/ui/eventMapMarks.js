@@ -15,7 +15,7 @@
 // window: it draws the gate's ring, as it did, and no raids and no card (the native-window rule).
 //
 // Not a DFU member. Ledger A (EVENT-TIP).
-import { raidActive, raidKey, raidTypeName } from '../systems/raidingParties.js';
+import { raidActive, raidKey, raidTypeName } from '../worldEvents/raidingParties.js';
 import { MAP_WIDTH, MAP_HEIGHT } from '../formats/woodsFile.js';
 
 /** The bay, when a caller does not say. */

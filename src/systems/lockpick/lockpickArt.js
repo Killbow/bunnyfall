@@ -10,7 +10,7 @@
 // registers it at its import.
 //
 // Pure but for its registration. Not a DFU member. Ledger A (LOCKPICK).
-import { image, putTexel, ramp, paletteOf, quantize } from '../../world/superDungeon/sdPixelKit.js';
+import { image, putTexel, ramp, paletteOf, quantize } from '../../world/sdPixelKit.js';
 
 /** The lockpick's pseudo-archive (registered in world/eliteGates/pseudoArchives.js), its one record. */
 export const LOCKPICK_ARCHIVE = 38321;

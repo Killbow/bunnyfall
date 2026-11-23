@@ -26,8 +26,8 @@
 //
 // Not a DFU member: Daggerfall's horse is a sprite. Ledger A (COATS3D).
 import { poseWhereSeen } from './horseView.js';   // HORSE-VIEW II: the pool's law
-import { lensOf } from '../net/peer/peerBodies.js';
-import { ANIMALS_ARCHIVE, ANIMAL_SOUND_BY_RECORD, SOUND } from '../systems/soundClips.js';
+import { lensOf } from '../net/peerBodies.js';
+import { ANIMALS_ARCHIVE, ANIMAL_SOUND_BY_RECORD, SOUND } from '../audio/soundClips.js';
 
 /** The most standing horses a host stands in 3D at once, nearest first (a town's square holds a handful). */
 export const STANDING_HORSES_MAX = 8;

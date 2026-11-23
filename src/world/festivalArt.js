@@ -12,7 +12,7 @@
 // and a billboard batch ask `getTexture(archive)` as they ask any of Daggerfall's (world/eliteGates/egKeyArt.js's law).
 //
 // Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
-import { image, putTexel, ramp, paletteOf, quantize } from './superDungeon/sdPixelKit.js';
+import { image, putTexel, ramp, paletteOf, quantize } from './sdPixelKit.js';
 
 /** The festival's archive: a block of nine, its records the pictures below (the rest held). */
 export const FESTIVAL_ARCHIVE = 38291;

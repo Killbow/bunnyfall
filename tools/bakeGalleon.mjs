@@ -38,7 +38,7 @@
 // polygon work; this is the bake for a SCENE OF PARTS rather than one mesh.
 // It does three things and nothing else, and leaves everything that is art
 // (which face wears which texture, how a texture lies on it, what a part is
-// hung from) to src/world/ships/galleonModel.js, where a test can read it:
+// hung from) to src/world/galleonModel.js, where a test can read it:
 //
 // 1. EACH OBJECT INTO THE BOAT'S FRAME. A Blender export carries its axis
 //    conversion on every object (Lcl Rotation -90 about X, Lcl Scaling 100,

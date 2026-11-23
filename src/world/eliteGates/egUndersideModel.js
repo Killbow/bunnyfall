@@ -22,7 +22,7 @@
 // Pure: no DOM, no GL. Not a DFU member. Ledger A (ELITE-GATES).
 import { createMeshKit } from './meshKit.js';
 import { EG_DRESS, egBandArchive, egBandArtOf } from './egBandArt.js';
-import { rng } from '../superDungeon/sdPixelKit.js';
+import { rng } from '../sdPixelKit.js';
 
 /** THE UNDERSIDE (m, its own frame: the torn floor's top at y 0, its axis at x = z = 0): the floor's radius, its rim's
  *  corners (the rock's rings have as many), how ragged its rim is (a share of r, either way), the floor's thickness, how

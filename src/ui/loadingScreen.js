@@ -34,12 +34,12 @@
 // ASIDE, NEVER OVER (AUDIT LOAD1 2): a window the player must act on - the chargen at a new game's boot, a pause, a
 // level-up box - and a full-screen film own the screen while they stand; the loading screen hides under them, its
 // holds untouched, and comes back only if the load is still going when they close.
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { drawPixelGround } from './pixelGround.js';
-import { isEnhanced } from '../systems/uiSkin.js';
-import { pageHas } from '../systems/pageQuery.js';
-import { getPref } from '../systems/uiPrefs.js';
-import { loadingShot, shotCaption, GALLERY_MAX } from '../systems/shotGallery.js';
+import { isEnhanced } from './uiSkin.js';
+import { pageHas } from '../platform/pageQuery.js';
+import { getPref } from './uiPrefs.js';
+import { loadingShot, shotCaption, GALLERY_MAX } from './shotGallery.js';
 
 export const LOADING_ID = 'enhanced-loading';
 /** The Features row's key (systems/features.js `loading-screen`): 'shots', 'art' or 'off'. */

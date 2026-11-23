@@ -2,11 +2,11 @@
 // BUNNYFALL (2026-11-05): THE GREAT CANNON'S WINDOW (scenes/cannonHost.js) - the build by Wayrest that the whole realm gives
 // to. Nyx's dress (ui/nyxWindow.js, the Broker's sheet) in the colours of iron and fire: a row a material with what the
 // build has of it and still needs, what the player carries of it, and a Give. Everything is handed in (`deps`).
-import { registerOverlay, closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { registerOverlay, closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { injectBrokerSkinStyle } from './brokerWindow.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 const el = (/** @type {string} */ tag, /** @type {string|null} */ cls = null, /** @type {string|null} */ text = null) => {
   const n = document.createElement(tag);

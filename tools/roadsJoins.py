@@ -5,7 +5,7 @@ PaintPathWithSubPathJoins carries seventy-six centre-join statements
 chains; the port and the oracle used to carry four of them, hand
 transliterated, and shared the omission. This script parses the C#
 block by indentation into a tree and emits it twice - as JS for
-src/world/road/roadPainter.js (paintPathWithSubPathJoins' centre-join body)
+src/world/roadPainter.js (paintPathWithSubPathJoins' centre-join body)
 and as Python for tools/roadsOracle.py - so the two are one reading of
 the source and cannot drift from each other by hand.
 

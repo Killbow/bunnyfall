@@ -15,16 +15,16 @@
 // gives the penance (quest QLVA02: `vamp penance` ends the hunt) and its work (QLVA03, or Daggerfall's own clan quests:
 // `vamp courtwork` forgives a strike). A Court left in peace QUIET_DAYS forgives a strike.
 
-import { t } from '../textManager.js';
-import { registerModSaveData } from '../modSaveData.js';
-import { MINUTES_PER_DAY } from '../gameDate.js';
+import { t } from '../../ui/textManager.js';
+import { registerModSaveData } from '../../saves/modSaveData.js';
+import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import { REGION_NAMES } from '../../formats/mapsFile.js';
-import { goldAmount, deductGoldPieces } from '../court.js';
+import { goldAmount, deductGoldPieces } from '../../justice/court.js';
 import { awakenedVampirism, spendVitae, beastStageNow } from './vitae.js';
 import { BEAST } from './bloodLaw.js';
 import { clanOfRegion, clanName, clanStrikeWeight, CLANS } from './clanLaw.js';
 import { setHunts, huntedBy } from './courtLeaf.js';
-import { startNamedRacialQuest, racialQuestLive } from '../racialQuests.js';
+import { startNamedRacialQuest, racialQuestLive } from '../../afflictions/racialQuests.js';
 
 export const MASQUERADE_SAVE_VENDOR = 'Bunnyfall Masquerade';
 /** What each breach adds to its region's heat. */
@@ -122,7 +122,7 @@ export function noteBreach(entity, region, kind, now) {
   const h = Math.min(100, (_s.heat[region] ?? 0) + add);
   _s.heat[region] = h;
   const tier = tierOf(h);
-  if (tier > (_s.said[region] ?? 0)) { _s.said[region] = tier; note(TIER_LINES[tier]?.()?.replace('{region}', regionName(region)) ?? ''); }
+  if (tier > (_s.said[region] ?? 0)) { _s.said[region] = tier; note(/** @type {(() => string) | null} */ (TIER_LINES[tier])?.()?.replace('{region}', regionName(region)) ?? ''); }
   const clan = clanOfRegion(region);
   if (clan != null && STRIKING.has(kind)) {
     const c = courtOf(clan, now);

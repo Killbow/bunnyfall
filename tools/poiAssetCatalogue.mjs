@@ -27,16 +27,16 @@ const { Arch3dFile } = await src('formats/arch3dFile.js');
 const { TextureFile } = await src('formats/textureFile.js');
 const { FlatsFile } = await src('formats/flatsFile.js');
 const { BlocksFile } = await src('formats/blocksFile.js');
-const { ITEM_TEMPLATES, GROUP_TEMPLATE_INDICES } = await src('systems/item/itemTemplates.js');
+const { ITEM_TEMPLATES, GROUP_TEMPLATE_INDICES } = await src('items/itemTemplates.js');
 const { ITEM_GROUPS } = await src('characters/equipRules.js');
-const { RRI_TEMPLATES, RRI_CLASSES } = await src('systems/roleplayRealismItems/rriItems.js');
+const { RRI_TEMPLATES, RRI_CLASSES } = await src('mods/rriItems.js');
 const { TROPHY_ROW } = await src('net/trophyLaw.js');
-const { ENEMY_BASICS, enemyDisplayName } = await src('characters/enemy/enemyBasics.js');
-const { installEnemyExpansion } = await src('systems/enemyExpansion/dexInstall.js');
+const { ENEMY_BASICS, enemyDisplayName } = await src('characters/enemyBasics.js');
+const { installEnemyExpansion } = await src('mods/enemyExpansion/dexInstall.js');
 const { buildPoiAssetCatalogue, packPoiAssetCatalogue } = await src('poi/poiAssetCatalogueBuild.js');
 const { FESTIVAL_ARCHIVE, FESTIVAL_ART } = await src('world/festivalArt.js');
 const { SOUL_CAKE_ROW, HEARTH_OFFERING_ROW } = await src('systems/festival/soulCake.js');
-const { DECORATION_POOLS, WATER_BIOME } = await src('world/underwater/underwaterDecorations.js');
+const { DECORATION_POOLS, WATER_BIOME } = await src('world/underwaterDecorations.js');
 
 // the files
 const arch3d = new Arch3dFile(); arch3d.load(rd('ARCH3D.BSA'));

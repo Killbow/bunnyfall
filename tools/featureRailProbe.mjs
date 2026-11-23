@@ -17,7 +17,7 @@
 // same guard test/systems/features.test.js holds in characters, in the unit the
 // player actually sees.
 import { chromium } from 'playwright';
-import { FEATURES } from '../src/systems/features.js';
+import { FEATURES } from '../src/mods/features.js';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const SHOTS = process.env.PROBE_SHOTS ?? '/tmp';

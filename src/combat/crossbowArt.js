@@ -5,9 +5,9 @@
 // Same shape loadFpsWeaponArt answers, with the bow's anim table moved to the screen's middle (the art is symmetric).
 
 import { WEAPON_TYPES, BOW_ANIMS, ALIGN } from './fpsWeapon.js';
-import { decodePng } from '../systems/textureReplacement.js';
+import { decodePng } from '../render/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 
 const FILES = Object.freeze({ idle: 'art/crossbow-idle.png', draw: 'art/crossbow-draw.png', loaded: 'art/crossbow-loaded.png' });
 /** The seven bow frames, as indices into [idle, draw, loaded]. */

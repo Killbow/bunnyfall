@@ -13,7 +13,7 @@
 // texel's place, its normal, its occlusion): brass with its Dwemer engraving, brushed steel, teal enamel with the brass
 // scrollwork, the dark bore. The Sunken Sovereign's is the same paint in gold leaf.
 //
-// THE FRAME is the one the arm already holds (src/characters/ownModels/ownWeaponModels.js PISTOL_GRIP_ATTITUDE): +Y the
+// THE FRAME is the one the arm already holds (src/characters/ownWeaponModels.js PISTOL_GRIP_ATTITUDE): +Y the
 // barrel, +Z up, +X the gun's right, the grip raked GRIP_RAKE degrees back from square to the barrel, its middle - where
 // the fist closes - at the origin. Morrowind units (tools/bakeThunderlock.mjs MW_UNITS_PER_METRE). Deterministic: the same
 // code bakes the same bytes; test/systems/pistolet.test.js re-runs it against what ships.

@@ -9,10 +9,10 @@
 // Not a DFU member. Ledger A (SWING-LAW).
 import { registerSwingReader } from '../characters/weaponStates.js';
 import { WEAPON_TYPES } from './fpsWeapon.js';
-import { EQUIP_SLOTS } from '../systems/equip.js';
+import { EQUIP_SLOTS } from '../characters/equip.js';
 import { getItemHands, ITEM_HANDS } from '../characters/equipTable.js';
-import { templateByIndex } from '../systems/item/itemTemplates.js';
-import { liveStat } from '../systems/statMods.js';
+import { templateByIndex } from '../items/itemTemplates.js';
+import { liveStat } from '../characters/statMods.js';
 import { techniqueFamily } from './technique/techniqueRoster.js';   // BAL10, MARTIAL2: the family a swing is made with (its skill's, an RRI class's own)
 
 /**

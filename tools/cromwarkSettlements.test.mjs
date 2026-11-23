@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chooseCromwarkSettlements, CIVILIAN_TYPES, CROMWARK_HAMLET_ID, settlementInventory } from './cromwarkSettlementPlan.mjs';
-import { CROMWARK_REMOVED_SETTLEMENT_IDS, cromwarkSettlementRemoved, filterCromwarkSettlementLookups } from '../src/systems/wild/cromwarkSettlements.js';
+import { CROMWARK_REMOVED_SETTLEMENT_IDS, cromwarkSettlementRemoved, filterCromwarkSettlementLookups } from '../src/world/wild/cromwarkSettlements.js';
 import { MapsFile } from '../src/formats/mapsFile.js';
-import { buildMapDict, hasLocation } from '../src/systems/map/mapDirectory.js';
+import { buildMapDict, hasLocation } from '../src/maps/mapDirectory.js';
 import { settlementsOf } from '../src/world/roadsProducer.js';
-import { scryRows } from '../src/systems/loot/lootScry.js';
-import { nearestSafeLocation } from '../src/systems/deathRespawn.js';
+import { scryRows } from '../src/items/lootScry.js';
+import { nearestSafeLocation } from '../src/player/deathRespawn.js';
 import { nearestTown, townAt } from '../src/systems/legacy/places.js';
 
 test('selection keeps one third of each civilian kind and never removes outside locations or dungeons', () => {

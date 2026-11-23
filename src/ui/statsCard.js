@@ -12,12 +12,12 @@
 // you - the flip animation plays only on the press.
 import { computeCombatStats, signed } from '../combat/combatStats.js';
 import { dollArmour, overallArmour, tenth, PART_NAMES } from './armourCard.js';
-import { SKILL_NAMES, SKILLS } from '../systems/skills.js';
-import { itemLongName } from '../systems/item/itemInfo.js';
+import { SKILL_NAMES, SKILLS } from '../characters/skills.js';
+import { itemLongName } from '../items/itemInfo.js';
 import { PIXEL_STACK } from './pixelifyFive.js';   // the Enhanced Plus face: Pixelify Sans, its 5 from Silkscreen
 import { temperatureStatRows, boonStatRows } from './temperatureCard.js';   // TEMP-UI: the felt temperature's parts; AUDIT SURV-BOONS C13: and the boons
-import { savingChance, elementalResistanceChance, ELEMENTS, EFFECT_FLAGS } from '../systems/spellcast.js';   // STATS-RESIST: the saving throw's own law
-import { t, localizedText } from '../systems/textManager.js';   // L10N4: the card's words in the player's language; the attributes are DFU's own
+import { savingChance, elementalResistanceChance, ELEMENTS, EFFECT_FLAGS } from '../magic/spellcast.js';   // STATS-RESIST: the saving throw's own law
+import { t, localizedText } from './textManager.js';   // L10N4: the card's words in the player's language; the attributes are DFU's own
 
 const FLIP_MS = 900;
 // THE TURN, one set of numbers for the keyframes and for FIREFOX-FLIP's face swap below: the first leg runs to FLIP_MID

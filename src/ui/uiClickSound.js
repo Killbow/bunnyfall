@@ -13,9 +13,9 @@
 //
 // Enhanced skin only. The classic windows keep DFU's own per-button
 // calls, untouched.
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
-import { isEnhanced } from '../systems/uiSkin.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
+import { isEnhanced } from './uiSkin.js';
 
 /** What is "something you click" - buttons and the things that act
  *  like them. An empty hotbar socket is not one; the game canvas never. */

@@ -5,8 +5,8 @@
 //
 // A cue with no reach is heard everywhere it is said (the omen's whine, the fall's roar - the sky's); the rest at the
 // star, by distance. Not a DFU member. Ledger A (STARFALL).
-import { SOUND } from '../soundClips.js';
-import { SPEED_OF_SOUND } from '../distantStorms.js';
+import { SOUND } from '../../audio/soundClips.js';
+import { SPEED_OF_SOUND } from '../../weather/distantStorms.js';
 
 const cue = (clip, pitch, volume, refDistance = 0, maxDistance = 0) => Object.freeze({ clip, pitch, volume, refDistance, maxDistance });
 

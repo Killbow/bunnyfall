@@ -65,8 +65,8 @@ async function press(p, sel, words = '') {
 for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['phone', { width: 393, height: 851 }]]) {
   const p = await page(viewport);
   await p.evaluate(async () => {
-    const { mountEnhancedSpellbook } = await import('/src/ui/enhanced/enhancedSpellbook.js');
-    const { buildCustomSpell, blankEffectSettings } = await import('/src/systems/spell/spellMaker.js');
+    const { mountEnhancedSpellbook } = await import('/src/ui/enhancedSpellbook.js');
+    const { buildCustomSpell, blankEffectSettings } = await import('/src/magic/spellMaker.js');
     const spells = Array.from({ length: 40 }, (_, i) => buildCustomSpell({ slots: [{ type: 0, subType: 0, settings: blankEffectSettings() }], name: `Spell ${String(i).padStart(2, '0')}` }));
     window.__host = Object.assign(document.createElement('div'), { style: 'position:fixed;inset:0' });
     document.body.append(window.__host);
@@ -92,8 +92,8 @@ for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['pho
 {
   const p = await page({ width: 1280, height: 720 });
   await p.evaluate(async () => {
-    const { mountEnhancedChronicle } = await import('/src/ui/enhanced/enhancedChronicle.js');
-    const { PlayerNotebook } = await import('/src/systems/notebook.js');
+    const { mountEnhancedChronicle } = await import('/src/ui/enhancedChronicle.js');
+    const { PlayerNotebook } = await import('/src/ui/notebook.js');
     const nb = new PlayerNotebook();
     for (let i = 0; i < 30; i++) nb.addMessage(`Message ${i}: a courier says the Baron wants a word, and the word is ${i}.`);
     for (let i = 0; i < 30; i++) nb.addNote(`Note number ${i}: the road north of Daggerfall bends at the old mill, and the miller owes me ${i} gold.`);
@@ -118,10 +118,10 @@ for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['pho
   const p = await page({ width: 1280, height: 720 });
   await p.evaluate(async () => {
     const { mountReforgeWindow } = await import('/src/ui/reforgeWindow.js');
-    const { applyRarity } = await import('/src/systems/loot/lootRarity.js');
+    const { applyRarity } = await import('/src/items/lootRarity.js');
     const { weaponOfMaterial } = await import('/src/combat/enemyEquipment.js');
-    const { seededRng } = await import('/src/systems/wind/wind.js');
-    const { salvagePiece } = await import('/src/systems/reforge.js');
+    const { seededRng } = await import('/src/weather/wind.js');
+    const { salvagePiece } = await import('/src/items/reforge.js');
     const items = Array.from({ length: 30 }, (_, i) => { const it = weaponOfMaterial(120, 1); applyRarity(it, 'magic', seededRng(100 + i)); it.isIdentified = true; return it; });
     window.__host = Object.assign(document.createElement('div'), { style: 'position:fixed;inset:0;overflow:hidden' });
     document.body.append(window.__host);
@@ -138,10 +138,10 @@ for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['pho
 {
   const p = await page({ width: 1280, height: 720 });
   await p.evaluate(async () => {
-    const { mountEnhancedInventory } = await import('/src/ui/enhanced/enhancedInventory.js');
-    const { applyRarity } = await import('/src/systems/loot/lootRarity.js');
+    const { mountEnhancedInventory } = await import('/src/ui/enhancedInventory.js');
+    const { applyRarity } = await import('/src/items/lootRarity.js');
     const { weaponOfMaterial } = await import('/src/combat/enemyEquipment.js');
-    const { seededRng } = await import('/src/systems/wind/wind.js');
+    const { seededRng } = await import('/src/weather/wind.js');
     const items = Array.from({ length: 40 }, (_, i) => { const it = weaponOfMaterial(113 + (i % 8), 1 + (i % 5)); applyRarity(it, 'magic', seededRng(300 + i)); it.isIdentified = true; return it; });
     const e = { name: 'P', items, goldPieces: 0, stats: { strength: 50 } };
     window.__host = Object.assign(document.createElement('div'), { style: 'position:fixed;inset:0' });

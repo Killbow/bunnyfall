@@ -27,8 +27,8 @@ import { survivalOf, feltCtx } from './needs.js';
 import { temperatureWord, feltTemperature, temperatureBreakdown } from './temperature.js';
 import { installSurvivalRestGate } from './rest.js';
 import { survivalRules } from './switch.js';
-import { liveVampirism } from '../racialLive.js';
-import { raceById } from '../races.js';
+import { liveVampirism } from '../../afflictions/racialLive.js';
+import { raceById } from '../../characters/races.js';
 
 /** TEMP-UI: the last feed built for each entity (feltNow, at the end of this file) - weak, never on the entity. */
 const LAST_FEED = new WeakMap();

@@ -8,7 +8,7 @@
 // Online only: offline `io` answers nothing and the book stays empty (no crystal, no spread, no elite dungeon).
 import { eliteDungeonsRead } from '../../net/accountClient.js';
 import { edEntryOf, edPlaceKey } from '../../net/eliteDungeonLaw.js';
-import { contentOn } from '../contentOff.js';
+import { contentOn } from '../../mods/contentOff.js';
 
 export const ED_REFRESH_MS = 5 * 60_000;
 export const ED_RETRY_MS = 60_000;

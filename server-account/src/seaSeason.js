@@ -19,7 +19,7 @@
 // service cannot replay (bible: KNOWN, NAMED).
 // ═══════════════════════════════════════════════════════════════════
 import { REALM_CHARACTER_RE } from '../../src/net/identityToken.js';
-import { arenaSeasonOf, arenaSeasonEndsS } from '../../src/net/arena/arenaLaw.js';
+import { arenaSeasonOf, arenaSeasonEndsS } from '../../src/net/arenaLaw.js';
 import { seaSeasonFigures, SEA_SEASON_ROWS, SEA_SEASON_LAST_ROWS } from '../../src/net/sea/seaSeasonLaw.js';
 
 /**

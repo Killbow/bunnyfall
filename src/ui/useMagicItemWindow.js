@@ -44,16 +44,16 @@
 
 import { ListPickerWindow } from './listPicker.js';
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';
-import { isPotion } from '../systems/useItem.js';
-import { isEnchanted as defaultIsEnchanted } from '../systems/inventory.js';
-import { itemLongName } from '../systems/item/itemInfo.js';   // UMI-NAMES: Refresh's LongName (:50-57); L10N3e: its names in the player's language
-import { audio } from '../systems/audio.js';   // AUDIT 64 F43: MagicItemPicker_OnItemPicked's ButtonClick
-import { SOUND } from '../systems/soundClips.js';
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { isPotion } from '../items/useItem.js';
+import { isEnchanted as defaultIsEnchanted } from '../items/inventory.js';
+import { itemLongName } from '../items/itemInfo.js';   // UMI-NAMES: Refresh's LongName (:50-57); L10N3e: its names in the player's language
+import { audio } from '../audio/audio.js';   // AUDIT 64 F43: MagicItemPicker_OnItemPicked's ButtonClick
+import { SOUND } from '../audio/soundClips.js';
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { bindings } from './input.js';
-import { codeMeans } from '../systems/inputActions.js';   // UXB1-S: its own key, shared or not
-import { normalizeCode } from '../systems/dialogShortcuts.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { codeMeans } from './inputActions.js';   // UXB1-S: its own key, shared or not
+import { normalizeCode } from './dialogShortcuts.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /**
  * UpdateUsableMagicItems (:58-81), verbatim: walk the pack in order;

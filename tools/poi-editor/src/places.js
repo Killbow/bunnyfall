@@ -8,8 +8,8 @@
 import { MapsFile, longitudeLatitudeToMapPixel } from '../../../src/formats/mapsFile.js';
 import { BlocksFile } from '../../../src/formats/blocksFile.js';
 import { layoutLocation, RMB_SIDE } from '../../../src/world/locationLayout.js';
-import { getLocationTerrainTileOrigin, calcAvgMaxHeight } from '../../../src/world/terrain/terrainTiles.js';
-import { generateSamples, HEIGHTMAP_DIMENSION, TERRAIN_SIZE, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE } from '../../../src/world/terrain/terrainSampler.js';
+import { getLocationTerrainTileOrigin, calcAvgMaxHeight } from '../../../src/world/terrainTiles.js';
+import { generateSamples, HEIGHTMAP_DIMENSION, TERRAIN_SIZE, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE } from '../../../src/world/terrainSampler.js';
 import { multiply } from '../../../src/world/mat4.js';
 
 const TILE_SIDE = TERRAIN_SIZE / 128;

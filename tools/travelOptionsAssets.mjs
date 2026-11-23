@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { readUnityBundle } from '../src/formats/unity/unityBundle.js';
+import { readUnityBundle } from '../src/formats/unityBundle.js';
 
 const CRC = (() => {
   const t = new Int32Array(256);

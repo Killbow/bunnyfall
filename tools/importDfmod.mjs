@@ -22,7 +22,7 @@ import { join, dirname, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { isMain } from './lib/isMain.mjs';
-import { readUnityFs, readSerializedFile, decodeTexture2D, CLASS_ID } from '../src/formats/unity/unityBundle.js';
+import { readUnityFs, readSerializedFile, decodeTexture2D, CLASS_ID } from '../src/formats/unityBundle.js';
 import { fsb5ToOgg } from './lib/fsb5Vorbis.mjs';
 import { writePng } from './pngIO.mjs';
 

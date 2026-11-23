@@ -39,7 +39,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 400, height: 300 } });
 await page.goto('http://localhost:5301/play/');
 const out = await page.evaluate(async () => {
-  const { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE } = await import('/src/world/terrain/terrainSampler.js');
+  const { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE } = await import('/src/world/terrainSampler.js');
   const hDim = HEIGHTMAP_DIMENSION;                  // 129
   const cell = TERRAIN_SIZE / (hDim - 1);            // 6.4
   const worldH = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;   // 1923.75 - the game scene's scale (TERRAIN-SCALE1)

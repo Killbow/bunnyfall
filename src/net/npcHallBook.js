@@ -22,9 +22,9 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { BUILDING_TYPES } from '../world/buildingNames.js';
-import { GUILD_FACTION_IDS } from '../systems/guild/guildFactions.js';
-import { guildGroupOfFaction } from '../systems/guild/guilds.js';
-import { createGuildForGroup } from '../systems/guild/guildVariants.js';
+import { GUILD_FACTION_IDS } from '../guilds/guildFactions.js';
+import { guildGroupOfFaction } from '../guilds/guilds.js';
+import { createGuildForGroup } from '../guilds/guildVariants.js';
 import { isRollFaction, hallReportOf } from './npcChapterLaw.js';
 import { isBunnyFaction } from './bunnyGuildLaw.js';   // BUNNY-GUILDS: their halls are witnessed as any guild's
 import { turnedDayOf } from './dayTurn.js';   // DAY-TURN

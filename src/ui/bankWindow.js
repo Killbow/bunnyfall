@@ -36,13 +36,13 @@
 // DaggerfallShortcut hotkey; the accelerators here are the port's own
 // (Ledger A).
 
-import { loadImg, nativeMetrics, drawImg, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, shadowText } from './nativePanel.js';
 import { drawScreenDimBackdrop } from './chargenArt.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';
-import { noticeFrame, noticeRelease } from './enhanced/enhancedNotice.js';   // ENH-NOTICE2: the window's own click-anywhere box, as the enhanced panel
+import { noticeFrame, noticeRelease } from './enhancedNotice.js';   // ENH-NOTICE2: the window's own click-anywhere box, as the enhanced panel
 import { typedChar } from './input.js';
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import {
   TRANSACTION_TYPE, TRANSACTION_RESULT,
   bankButtonEnabled, toggleTransactionInput, parseTransactionAmount,
@@ -52,11 +52,11 @@ import {
   repayLoan, borrowLoan, shipSellPrice,
   empireRefusalLines, empireDefaultOwed, empireGarnishLines,   // REALM P0.3: online, the Empire is one lender
   goldRegion,   // EMPIRE-ACCOUNT: online, one account at every branch
-} from '../systems/banking.js';
+} from '../trade/banking.js';
 import { REGION_NAMES } from '../formats/mapsFile.js';   // REALM P0.3: the branch another loan or default stands in
 import { expandMacroValues } from '../systems/quest/questMacros.js';   // MH1: the ONE walk
-import { localizedText, getLocalizedRegionName } from '../systems/textManager.js';   // L10N3d: the TOO_HEAVY line; L10N3e: %reg's region shown
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { localizedText, getLocalizedRegionName } from './textManager.js';   // L10N3d: the TOO_HEAVY line; L10N3e: %reg's region shown
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** mainPanel.Size (:77) - and the size BANK00I0.IMG ships. */
 export const BANK_PANEL_W = 225, BANK_PANEL_H = 181;

@@ -12,7 +12,7 @@
 // THE LAYOUT IS PURE (iliacAtlasCell, iliacCellUv): pinned by test/systems/cards10_table.test.js; only the painting needs a page.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { ILIAC_CARDS, ILIAC_LOCATIONS, cardById } from '../net/iliac/iliacCards.js';
+import { ILIAC_CARDS, ILIAC_LOCATIONS, cardById } from '../net/iliacCards.js';
 import { plateModel, cardMatrix } from './cardTableDraw.js';
 import { paintIliacCard, paintIliacBack } from './iliacCardFaces.js';
 import { toColor32 } from '../formats/color32Order.js';

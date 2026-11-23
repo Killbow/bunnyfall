@@ -9,7 +9,7 @@ import { displayName } from './accounts.js';
 import { mustChange } from './realm.js';
 import { heraldryOfRow } from './halls.js';
 import { farmInReach } from './territory.js';
-import { GUILD_RANK_OFFICER } from '../../src/net/guild/guildLaw.js';
+import { GUILD_RANK_OFFICER } from '../../src/net/guildLaw.js';
 import { FARMS_MAX, FARM_PRICE, FARM_DAYS_MAX, CROP_KEYS, cropMaterial, dayYield } from '../../src/net/farmLaw.js';
 
 const DAY_S = 86400;

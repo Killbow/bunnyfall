@@ -12,7 +12,7 @@
 // And predictArc(...) integrates the same law from the same origin for the aiming arc (ui/heavyGearOverlay.js), so the
 // arc drawn is the path flown.
 
-import { ARROW_FLIGHT_SPEED, MISSILE_LIFESPAN_S, playerShotOrigin } from '../../systems/spellcast.js';
+import { ARROW_FLIGHT_SPEED, MISSILE_LIFESPAN_S, playerShotOrigin } from '../../magic/spellcast.js';
 import { sparedByPlayer } from '../friendlyFire.js';
 import {
   isBallistaItem, BOLT_SPEED, BOLT_GRAVITY, BURST_RADIUS, BURST_FLASH_ARCHIVE, BURST_FLASH_SCALE,

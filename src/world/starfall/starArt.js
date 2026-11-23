@@ -10,7 +10,7 @@
 // it goes dark and its light all but out.
 //
 // Pure. Not a DFU member. Ledger A (STARFALL).
-import { image, putTexel, noiseField, ramp, paletteOf, quantize } from '../superDungeon/sdPixelKit.js';
+import { image, putTexel, noiseField, ramp, paletteOf, quantize } from '../sdPixelKit.js';
 
 /** The star's pseudo-archive (registered in world/eliteGates/pseudoArchives.js). */
 export const STAR_ARCHIVE = 38301;

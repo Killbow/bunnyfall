@@ -18,7 +18,7 @@
 // OFFLINE ONLY until mob tries it live.
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 import { untilText } from './safety/safetyLaw.js';
 import { accountRefusalText } from './accountClient.js';
 

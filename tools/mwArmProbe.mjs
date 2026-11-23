@@ -168,7 +168,7 @@ async function boot(bsaB64, { esm = FIX.esm, weapon = null } = {}) {
     const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
     const [{ Renderer }, { MwBsaFile }, fp] = await Promise.all([
       import('/src/render/renderer.js'),
-      import('/src/formats/morrowind/mwBsaFile.js'),
+      import('/src/formats/mwBsaFile.js'),
       import('/src/combat/fpArm.js'),
     ]);
     let cv = document.getElementById('armcv');
@@ -346,7 +346,7 @@ ok(by('left hand') && by('right hand'),
 // would be a statement about the pose and simply false.
 const restRows = await page.evaluate(async () => {
   const [mwfp, mwanim] = await Promise.all([
-    import('/src/formats/morrowind/mwFirstPerson.js'), import('/src/formats/morrowind/mwAnim.js')]);
+    import('/src/formats/mwFirstPerson.js'), import('/src/formats/mwAnim.js')]);
   const arm = window.__armRaw;
   mwfp.poseAssembly(arm, {});            // rest pose: no tracks, t=0
   return mwfp.armPieceRows(arm.pieces).map((r) => ({ bone: r.bone, minX: r.bounds.minX, maxX: r.bounds.maxX }));
@@ -549,7 +549,7 @@ const thirdShot = async (weapon) => {
     // lens's SHAPE is the host's law verbatim - mirrorProjectionX over
     // a standard perspective (dungeon.js:"+ climbFeel.fovRad") - only near/far/distance
     // are fitted, and a mirror does not care about metres.
-    const { MW_UNITS_PER_METER } = await import('/src/formats/morrowind/mwFirstPerson.js');
+    const { MW_UNITS_PER_METER } = await import('/src/formats/mwFirstPerson.js');
     const u = 1 / MW_UNITS_PER_METER;
     let mnZ = Infinity, mxZ = -Infinity, mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
     for (const row of arm.rows()) {

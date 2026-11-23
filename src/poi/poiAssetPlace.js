@@ -5,7 +5,7 @@
 // in ui/poi/poiFlatUi.js); modes without a registered placer are listed and previewed only. 'encounter' (an enemy) is
 // chosen in a DM encounter, never placed directly from the browser.
 
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 /**
  * `editor` is `scenes/poiEditorHost.js`, `edit` is `poi/poiEdit.js`, `at` is the drop point in CSS pixels (null for

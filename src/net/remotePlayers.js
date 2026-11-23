@@ -21,9 +21,9 @@
 // the singleton and could hand the inventory a stranger's doll, or the
 // stranger the player's, panel and all.
 import { composePaperDollPixels } from '../ui/paperDoll.js';
-import { skinShownFor } from '../systems/online/skinHide.js';   // CUSTOM-SKIN: my own switches (all, or one player)
-import { skinArtOf, wornSkinId } from '../systems/online/customSkins.js';   // CUSTOM-SKIN: the pictures a look's `sk` names
-import { equipTableOf } from '../systems/equip.js';
+import { skinShownFor } from '../characters/skinHide.js';   // CUSTOM-SKIN: my own switches (all, or one player)
+import { skinArtOf, wornSkinId } from '../characters/customSkins.js';   // CUSTOM-SKIN: the pictures a look's `sk` names
+import { equipTableOf } from '../characters/equip.js';
 import { createEquipTable } from '../characters/equipTable.js';
 import { CAPSULE_HEIGHT } from '../player/motor.js';
 import { drawText, measureText } from '../ui/text.js';
@@ -31,9 +31,9 @@ import { titleBadge, glyphMarks, gradientAt } from '../ui/playerBadge.js';   // 
 import { projectToScreen } from '../player/tapRay.js'; import { multiply } from '../world/mat4.js';   // one home (audit24 onehome): the touch layer's own projection
 import { LOOK_ITEM_FIELDS, LOOK_GROUPS, LOOK_GLOW_SLOTS, lookGlowOk } from './wire.js';   // the look's vocabulary: the wire's own; WEAPON-GLOW1: and a weapon's glow
 import { appearanceOf, validWireAppearance } from './appearanceLaw.js';   // APPEARANCES: a worn piece's look, said and read
-import { meshGlow, glowWord } from '../systems/weaponGlow.js';   // WEAPON-GLOW1: a held weapon's glow, said on the look
+import { meshGlow, glowWord } from '../combat/weaponGlow.js';   // WEAPON-GLOW1: a held weapon's glow, said on the look
 import { renownText } from './renown.js';   // RENOWN1: Renown's words, left of the name in the bitmap face too
-import { guildTagText } from './guild/guildLaw.js';   // GUILD1c: the guild's tag, right of the name in the bitmap face too
+import { guildTagText } from './guildLaw.js';   // GUILD1c: the guild's tag, right of the name in the bitmap face too
 import { ribbonRgba } from './heraldryLaw.js';   // SEASON1 part two: a Season's banner ribbon, under the name in the bitmap face too
 /** AUDIT-SEATS C12: each ribbon's two tints, parsed once - by its claim's two colour indexes (one number, no string made),
  *  for every ribboned name every frame; anything that is no claim is asked of the law itself (it answers null). */
@@ -49,30 +49,30 @@ export function ribbonTints(rb) {
 // the same class-enemy sprite classic dungeon humanoids already use (Warrior, Mage, Knight, ...), driven by simple
 // moving/striking flags off the peer's synced pose instead of AI - the reusable pieces dungeonContext.js already
 // builds a foe's OWN mobile unit from (MobileUnit.update takes the same flags EnemyMotor's AI would set).
-import { MobileUnit } from '../characters/mobile/mobileUnit.js';
-import { ENEMY_BASICS, ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
-import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';   // DISC12: the beast a peer in beast form stands as
+import { MobileUnit } from '../characters/mobileUnit.js';
+import { ENEMY_BASICS, ENEMY_NAMES } from '../characters/enemyBasics.js';
+import { MOBILE_TYPES } from '../characters/mobileTypes.js';   // DISC12: the beast a peer in beast form stands as
 import { mobileBillboardSize } from '../world/rmbFlats.js';
 import { quadHalfDiagonal } from '../render/bounds.js';   // OW-PEERS: a grown sprite's reach, as the batch is made with
-import { LAYERED_OWN } from '../player/eyeOfTheBeholder/layeredArmor.js';   // LAYERED-GEAR-ON: the own-body choice, resolved before it is sent
-import { modSetting, storedModSetting } from '../systems/modSettings.js';   // DISC23-B: the Eye Of The Beholder set the look carries
-import { getPref } from '../systems/uiPrefs.js';   // 2026-09-17: the 'peerClassSprites' on/off, read once a sync (Other players, enhancedMenu.js peerSpritesCard)
-import { CLASS_CAREERS } from '../systems/chargen.js';   // 2026-09-17 (bugfix): a stock class's CFG-loaded career carries no `.name` of its own - chargenSession.js's own class list already falls back to this array by careerIndex (`cf.career.name || CLASS_CAREERS[i]`), and composeLook needs the same fallback or every stock-class peer sends class:null
-import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';   // AUDIT DROPS E6: the hand a swing sound is read off
-import { FootstepMachine, FOOTSTEP_CLIP_SETS } from '../systems/footsteps.js';   // PEER-FS1: peer footsteps off the pose's own `fk`
-import { RidingAnimator, RIDING_VOLUME_SCALE, nextNeighDelay } from '../systems/riding.js';   // RIDE-SOUND: a peer's hooves are TransportManager's own loop, clip swap and neigh
-import { hoofClipFor, installHorseSounds } from '../systems/horse/horseVoice.js';   // HORSE-VOICE: and on the ground under them, off their pose's `fk`
-import { enhancedSoundsOn } from '../systems/enhancedSounds.js';   // HORSE-VOICE: the port's own sounds, the listener's switch
-import { TRANSPORT_MODES } from '../systems/transport.js';   // RIDE-SOUND: the pose's `rd` as the animator's mode
-import { horseVolume } from '../systems/animalVolume.js';   // HORSE-VOL: a peer's mount on the Audio tab's Horse Volume
-import { swingSoundFor, SOUND } from '../systems/soundClips.js';   // PEER-FS2: a peer's own swing sound, off the pose's `an` edge and their equipped weapon
+import { LAYERED_OWN } from '../player/layeredArmor.js';   // LAYERED-GEAR-ON: the own-body choice, resolved before it is sent
+import { modSetting, storedModSetting } from '../mods/modSettings.js';   // DISC23-B: the Eye Of The Beholder set the look carries
+import { getPref } from '../ui/uiPrefs.js';   // 2026-09-17: the 'peerClassSprites' on/off, read once a sync (Other players, enhancedMenu.js peerSpritesCard)
+import { CLASS_CAREERS } from '../characters/chargen.js';   // 2026-09-17 (bugfix): a stock class's CFG-loaded career carries no `.name` of its own - chargenSession.js's own class list already falls back to this array by careerIndex (`cf.career.name || CLASS_CAREERS[i]`), and composeLook needs the same fallback or every stock-class peer sends class:null
+import { EQUIP_SLOTS } from '../characters/paperdoll.js';   // AUDIT DROPS E6: the hand a swing sound is read off
+import { FootstepMachine, FOOTSTEP_CLIP_SETS } from '../audio/footsteps.js';   // PEER-FS1: peer footsteps off the pose's own `fk`
+import { RidingAnimator, RIDING_VOLUME_SCALE, nextNeighDelay } from '../travel/riding.js';   // RIDE-SOUND: a peer's hooves are TransportManager's own loop, clip swap and neigh
+import { hoofClipFor, installHorseSounds } from '../travel/horseVoice.js';   // HORSE-VOICE: and on the ground under them, off their pose's `fk`
+import { enhancedSoundsOn } from '../audio/enhancedSounds.js';   // HORSE-VOICE: the port's own sounds, the listener's switch
+import { TRANSPORT_MODES } from '../travel/transport.js';   // RIDE-SOUND: the pose's `rd` as the animator's mode
+import { horseVolume } from '../audio/animalVolume.js';   // HORSE-VOL: a peer's mount on the Audio tab's Horse Volume
+import { swingSoundFor, SOUND } from '../audio/soundClips.js';   // PEER-FS2: a peer's own swing sound, off the pose's `an` edge and their equipped weapon
 import { billboardSize } from '../world/rmbFlats.js';   // PCORPSE1: a corpse stands as the dungeon's own corpses stand
-import { raceGenderPain3Sound, CLASSIC_PLAYER_DEATH_SOUND } from '../systems/playerDeath.js';   // PCORPSE1: the fallen player's own cry
+import { raceGenderPain3Sound, CLASSIC_PLAYER_DEATH_SOUND } from '../player/playerDeath.js';   // PCORPSE1: the fallen player's own cry
 import { SEAT_HIP_DROP } from '../player/seatPose.js';   // CARDS2c: a seated sprite sinks by the seat's own drop
-import { RACES, artRaceOf } from '../systems/races.js'; import { PeerClimbSounds, peerBodyYaw, peerMoving } from './peer/peerClimb.js';   // CLIMB5: a peer on the wall faces it, takes no stride, and is heard climbing
-import { shownEquipTable } from '../systems/lookHidden.js';   // BUNNYFALL: a hidden piece is in no look
-import { peerHeard } from './peer/peerFx.js';   // EG-ZH: every peer sound through the place's scope (Elite-Gates.md section 26)
-import { PeerGatherSounds, peerGatherSwing, peerKneeling } from './peer/peerGather.js';   // PEER-ACTS: a peer gathering is seen at it and heard
+import { RACES, artRaceOf } from '../characters/races.js'; import { PeerClimbSounds, peerBodyYaw, peerMoving } from './peerClimb.js';   // CLIMB5: a peer on the wall faces it, takes no stride, and is heard climbing
+import { shownEquipTable } from '../characters/lookHidden.js';   // BUNNYFALL: a hidden piece is in no look
+import { peerHeard } from './peerFx.js';   // EG-ZH: every peer sound through the place's scope (Elite-Gates.md section 26)
+import { PeerGatherSounds, peerGatherSwing, peerKneeling } from './peerGather.js';   // PEER-ACTS: a peer gathering is seen at it and heard
 
 // ── PCORPSE1: THE FALLEN ──────────────────────────────────────────
 //

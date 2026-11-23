@@ -34,10 +34,10 @@ import { possessedItemLists, ledgerKeyOf } from './judge.js';
 import { receiptOf } from './review.js';
 import { lawExcused } from './verdict.js';   // RPT1026-LEDGERLAW: an excuse is of the values the law found too
 import { REALM_TRADE_KEEP_S } from './realmTrade.js';
-import { itemWorth } from '../../src/systems/item/itemLaw.js';
-import { liquidWorthOf, REALM_LETTER_TEMPLATE } from '../../src/net/realm/realmGoldLaw.js';
+import { itemWorth } from '../../src/items/itemLaw.js';
+import { liquidWorthOf, REALM_LETTER_TEMPLATE } from '../../src/net/realmGoldLaw.js';
 import { bankTotalOf } from '../../src/net/repairLaw.js';   // STAFF-SET-BANK: the profile's bank, the one sum a bank set reads
-import { STAT_KEYS_ORDER } from '../../src/systems/statMods.js';
+import { STAT_KEYS_ORDER } from '../../src/characters/statMods.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';
 import { BAN_FOREVER } from '../../src/net/safety/safetyLaw.js';
 import { isHandleShaped } from '../../src/net/handleShape.js';

@@ -6,7 +6,7 @@
 // part of the living world rolls on Math.random or on DFRandom's global stream (a name draw puts that stream back as it
 // stood, `census.js residentName`).
 import { hash32 } from '../../world/spawnedDungeons.js';
-import { seededRng } from '../wind/wind.js';
+import { seededRng } from '../../weather/wind.js';
 
 /** The living world's salt: changing it re-rolls every resident in the world. */
 export const LW_SALT = 0x11fe;

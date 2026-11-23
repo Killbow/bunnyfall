@@ -25,14 +25,14 @@ import { titleBadge, glyphBadges, glyphSvgNode, paintTitle } from './playerBadge
 import { profileIconNode } from './profileIcons.js';   // WITCH1: the profile icon a player wears
 import { readIcon } from '../net/wire.js';   // WITCH1: read by the wire's own law - a word the vocabulary holds, or none
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS } from './pixelifyFive.js';
-import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';
-import { itemLongName } from '../systems/item/itemInfo.js';
-import { raceDisplayName } from '../systems/talk/talkSession.js';
-import { STAT_KEYS_ORDER } from '../systems/chargen.js';
-import { duelRecordText } from '../net/duel/duelRecord.js';   // DUEL1: the duelling record's words, the account card's own
+import { EQUIP_SLOTS } from '../characters/paperdoll.js';
+import { itemLongName } from '../items/itemInfo.js';
+import { raceDisplayName } from '../talk/talkSession.js';
+import { STAT_KEYS_ORDER } from '../characters/chargen.js';
+import { duelRecordText } from '../net/duelRecord.js';   // DUEL1: the duelling record's words, the account card's own
 import { renownText } from '../net/renown.js';   // RENOWN1: Renown, left of the name
-import { guildTagText } from '../net/guild/guildLaw.js';   // GUILD1c: the guild's tag, right of the name
-import { localizedStrings, t } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; STAR7: the stars' line through the core
+import { guildTagText } from '../net/guildLaw.js';   // GUILD1c: the guild's tag, right of the name
+import { localizedStrings, t } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; STAR7: the stars' line through the core
 import { houseLine } from '../net/houseLaw.js';   // LEGACY7: the house, under the name
 
 export const PROFILE_STYLE_ID = 'dagger-profile-style';

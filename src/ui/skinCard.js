@@ -60,11 +60,11 @@
 // sprites are the vendored mod's (vendor/eye-of-the-beholder).
 // ═══════════════════════════════════════════════════════════════════
 
-import { MOD_SETTINGS, modSetting, setModSetting, storedModSetting } from '../systems/modSettings.js';
-import { spriteFor, eotbSpriteUrl } from '../player/eyeOfTheBeholder/eotbSprite.js';
+import { MOD_SETTINGS, modSetting, setModSetting, storedModSetting } from '../mods/modSettings.js';
+import { spriteFor, eotbSpriteUrl } from '../player/eotbSprite.js';
 import { EOTB_FOOT_SET_COUNT } from '../player/classSkins.js';
-import { layeredPreviewUrl, layeredGenderOf, LAYERED_OWN } from '../player/eyeOfTheBeholder/layeredArmor.js';   // LAYERED-GEAR
-import { t } from '../systems/textManager.js';
+import { layeredPreviewUrl, layeredGenderOf, LAYERED_OWN } from '../player/layeredArmor.js';   // LAYERED-GEAR
+import { t } from './textManager.js';
 
 const VENDOR = 'eye-of-the-beholder';
 const FOOT = 'Graphics.OnFoot';

@@ -44,8 +44,8 @@ async function toGamePage(page) {
 async function openPack(page, { wear = null, loot = false } = {}) {
   await page.evaluate(async ({ wear: w, loot: l }) => {
     const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
-    const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll/paperdoll.js');
-    const { equipItem } = await import('/src/systems/equip.js');
+    const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll.js');
+    const { equipItem } = await import('/src/characters/equip.js');
     const t = (n) => ITEM_TEMPLATES.find((x) => x.name === n);
     const mk = (n, group = 'Weapons') => {
       const tp = t(n);

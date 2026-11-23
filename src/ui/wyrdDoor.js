@@ -4,8 +4,8 @@
 // home (ui/enhanced/enhancedChunk.js), in a host of its own, wrapped in the overlay every host's frame drives - `done` once
 // shut, `dispose` to shut it - and registered with the overlay stack. One stands at a time. A page with no document
 // answers null. Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';
+import { registerOverlay } from './enhancedOverlays.js';
 
 /** The overlay standing now, or null. */
 let _open = null;

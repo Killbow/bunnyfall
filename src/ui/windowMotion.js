@@ -22,7 +22,7 @@
 // motion is OFF, so every geometry and "the window is gone" probe
 // measures the same page it always did; `?motion` turns it back on for
 // a screenshot. Reduced motion keeps only a short fade.
-import { pageHas } from '../systems/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
+import { pageHas } from '../platform/pageQuery.js';   // PERF-URL: the page's query, parsed once a search
 
 /** The window roles that open and close with motion. */
 export const MOTION_WINDOWS = ['.px-win', '.pack-win', '.loot-win', '.px-about', '.px-profile', '.px-support', '.hmbox', '.inputbox', '.dlg-win'];   // SUPPORT1: the door's asks unfold with its other two corner marks

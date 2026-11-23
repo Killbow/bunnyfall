@@ -9,7 +9,7 @@ import { displayName } from './accounts.js';
 import { mustChange } from './realm.js';
 import { heraldryOfRow } from './halls.js';
 import { blightNudge } from './blight.js';
-import { GUILD_RANK_OFFICER } from '../../src/net/guild/guildLaw.js';
+import { GUILD_RANK_OFFICER } from '../../src/net/guildLaw.js';
 import { BLIGHT_SECTORS } from '../../src/net/blightLaw.js';
 import { keptWorld, dropWorld } from './worldCache.js';
 import {

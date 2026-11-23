@@ -27,19 +27,19 @@
 // real quickload binding (InputManager.SetupDefaults: F9/F11).
 
 import { drawText, measureText } from './text.js';
-import { PlayerDeathSequence, DEATH_TIME_BEFORE_RESET } from '../systems/playerDeath.js';   // D1
+import { PlayerDeathSequence, DEATH_TIME_BEFORE_RESET } from '../player/playerDeath.js';   // D1
 import { playerEntity } from '../characters/playerEntity.js';   // D1: the death clip's race/gender
-import { audio } from '../systems/audio.js';
-import { cromwarkPeace } from '../systems/wild/cromwark.js';   // BUNNYFALL: the mountains' dead wait as anywhere
-import { isEnhanced } from '../systems/uiSkin.js';   // DEATH2: the enhanced skin paints its own
-import { drawEnhancedDeath, removeEnhancedDeath } from './enhanced/enhancedDeath.js';
+import { audio } from '../audio/audio.js';
+import { cromwarkPeace } from '../world/wild/cromwark.js';   // BUNNYFALL: the mountains' dead wait as anywhere
+import { isEnhanced } from './uiSkin.js';   // DEATH2: the enhanced skin paints its own
+import { drawEnhancedDeath, removeEnhancedDeath } from './enhancedDeath.js';
 import { EYE_HEIGHT } from '../player/motor.js';   // DEATH3: the standing eye the fall starts from
-import { isOnlinePage } from '../systems/online/onlineLane.js';   // DEATH4: the online screen counts down, the offline one waits
-import { stateDeathLoss, deathGoldLoss, deathPenaltyLine } from '../systems/deathPenalty.js';   // DEATH-PENALTY: the screen says what the respawn is about to take
-import { goldPiecesOf } from '../systems/inventory.js';   // DEATH-PENALTY: the purse the loss is read off
-import { wildDeath, wildDeathLines, WILD_DEATH_HOLD_S } from '../systems/wild/wildZone.js';   // WILD1: a death in the open zone holds two minutes, Enter or not
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
-import { t } from '../systems/textManager.js';   // L10N4: the classic face's words in the player's language
+import { isOnlinePage } from '../platform/onlineLane.js';   // DEATH4: the online screen counts down, the offline one waits
+import { stateDeathLoss, deathGoldLoss, deathPenaltyLine } from '../player/deathPenalty.js';   // DEATH-PENALTY: the screen says what the respawn is about to take
+import { goldPiecesOf } from '../items/inventory.js';   // DEATH-PENALTY: the purse the loss is read off
+import { wildDeath, wildDeathLines, WILD_DEATH_HOLD_S } from '../world/wildZone.js';   // WILD1: a death in the open zone holds two minutes, Enter or not
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { t } from './textManager.js';   // L10N4: the classic face's words in the player's language
 
 /** L10N4: what a host's hint SAYS. The hosts hand the English hint - FIX-E's law is in it (no F11 where there is no
  *  quickload) and the enhanced face reads its keys off it - so the screen keeps it as given and shows its words; a

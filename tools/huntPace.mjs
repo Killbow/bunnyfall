@@ -9,12 +9,12 @@
 //   ARENA2_PATH=/path/to/arena2 node tools/huntPace.mjs [--json]
 import { readFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
-import { BOUNTIES_PER_DAY, BOUNTY_ACTIVE_MAX, bountySites, bountyDungeons, boardPostings, MINUTES_PER_DAY } from '../src/systems/bounty/bountyBoard.js';
+import { BOUNTIES_PER_DAY, BOUNTY_ACTIVE_MAX, bountySites, bountyDungeons, boardPostings, MINUTES_PER_DAY } from '../src/guilds/bountyBoard.js';
 import { ONLINE_MINUTES_PER_MS, sharedClassicMinutes } from '../src/net/wire.js';
-import { PIXEL_M } from '../src/net/gate/gateLaw.js';
+import { PIXEL_M } from '../src/net/gateLaw.js';
 import { runSpeed } from '../src/player/motor.js';
-import { DF_RIDE_BASE } from '../src/systems/transport.js';
-import { steedSpeedScale } from '../src/systems/steedCare.js';
+import { DF_RIDE_BASE } from '../src/travel/transport.js';
+import { steedSpeedScale } from '../src/travel/steedCare.js';
 
 /** THE FASTEST LEGAL RIDE (m/s): the motor's run on the ride base (GetRunSpeed's riding arm) at live Speed's cap and
  *  Running at its top with every buff (siegeRef.js SIEGE_SPEED's terms: 185), on the swiftest horse (steedCare.js, Speed
@@ -129,9 +129,9 @@ export async function huntPaceCities(/** @type {string} */ A2) {
   const { WoodsFile } = await import('../src/formats/woodsFile.js');
   const { layoutLocation } = await import('../src/world/locationLayout.js');
   const { boardTally } = await import('./boardCount.mjs');
-  const { gateSeaPixel } = await import('../src/systems/gate/gateSite.js');
+  const { gateSeaPixel } = await import('../src/worldEvents/gateSite.js');
   const { spawnsDungeon, WORLD_SALT } = await import('../src/world/spawnedDungeons.js');
-  const { TV_MOUNTAIN_CLIMATE } = await import('../src/systems/travel/travelRoute.js');
+  const { TV_MOUNTAIN_CLIMATE } = await import('../src/travel/travelRoute.js');
   const bytes = (/** @type {string} */ n) => new Uint8Array(readFileSync(`${A2}/${n}`));
   const blocks = new BlocksFile(); blocks.load(bytes('BLOCKS.BSA'));
   const maps = new MapsFile(); maps.load(bytes('MAPS.BSA'), bytes('CLIMATE.PAK'), bytes('POLITIC.PAK'));

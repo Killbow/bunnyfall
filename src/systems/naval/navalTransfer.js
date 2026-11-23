@@ -1,6 +1,6 @@
-import { addItem, isGoldPieces, addGoldPieces } from '../inventory.js';
-import { itemValueOf } from '../item/itemTemplates.js';
-import { planTake, applyTransfer } from '../item/itemTransfer.js';
+import { addItem, isGoldPieces, addGoldPieces } from '../../items/inventory.js';
+import { itemValueOf } from '../../items/itemTemplates.js';
+import { planTake, applyTransfer } from '../../items/itemTransfer.js';
 
 /** Plunder and returning crew use the same carry rules; forced returns keep every item. */
 export function giveNavalItems(items, boat, entity, { force = false } = {}) {

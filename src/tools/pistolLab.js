@@ -38,8 +38,8 @@ export {
 // THE STRIP AND ITS CUT ARE THE GAME'S NOW (PISTOLET, 2026-10-21). They were written here while this page was the only
 // thing that had them; combat/gun/pistolStrip.js is their home since the Dwarven Pistolet became a weapon, and the lab
 // reads them from there - gunSheet.js's one-way arrow for the Thunderlock's sheet, one weapon along.
-export { PISTOL_STRIP, stripCellRect, hardenAlpha, pistolFrameSet, cropImage, PISTOL_BLEED } from '../combat/gun/pistolStrip.js';   // the leaf combat/gun/pistoletArt.js reads too; PISTOL-EDGE: the frame set both draw
-import { PISTOLET_FEEL } from '../combat/gun/gunFeel.js';
+export { PISTOL_STRIP, stripCellRect, hardenAlpha, pistolFrameSet, cropImage, PISTOL_BLEED } from '../combat/pistolStrip.js';   // the leaf combat/gun/pistoletArt.js reads too; PISTOL-EDGE: the frame set both draw
+import { PISTOLET_FEEL } from '../combat/gunFeel.js';
 
 /**
  * NATIVE SIZE. The Thunderlock's art was a 1790px painting and had to
@@ -74,10 +74,10 @@ export const PISTOL_OPENING = Object.freeze({
 export {
   PISTOL_HANDS, PISTOL_PANEL, createPistolHands, pistolHandFired, pistolHandsStep, pistolReloadVoice, pistolHandRect,
   pistolDrawOrder, pistolWidgetSettings,
-} from '../combat/gun/pistolViewmodel.js';
+} from '../combat/pistolViewmodel.js';
 // PISTOL-PORT: THE PAIR IS THE GAME'S NOW (combat/gun/pistolPair.js) - the Dwarven Pistolet fires on it - and the page
 // reads it back from there.
-export { PAIR_TRIGGER, createPair } from '../combat/gun/pistolPair.js';
+export { PAIR_TRIGGER, createPair } from '../combat/pistolPair.js';
 
 // AUDIT PISTOL-PORT D7: THE PAGE'S WIRING, IN A MODULE. The page composes no frame, but it does say what its panel feeds
 // the game's: and while that lived in the page's own <script>, nothing the suite runs could see it - the port's pins ran
@@ -85,9 +85,9 @@ export { PAIR_TRIGGER, createPair } from '../combat/gun/pistolPair.js';
 // So the page's opening state and the three calls it makes from its panel are here, and the page and the port's pins
 // both run them.
 import { SFX_CANDIDATES } from './gunLab.js';
-import { gunMotion } from '../combat/gun/gunViewmodel.js';
-import { pistolHandsStep, pistolReloadVoice, pistolHandRect, pistolWidgetSettings } from '../combat/gun/pistolViewmodel.js';
-import { PAIR_TRIGGER } from '../combat/gun/pistolPair.js';
+import { gunMotion } from '../combat/gunViewmodel.js';
+import { pistolHandsStep, pistolReloadVoice, pistolHandRect, pistolWidgetSettings } from '../combat/pistolViewmodel.js';
+import { PAIR_TRIGGER } from '../combat/pistolPair.js';
 import { JUMP_SPEED, GRAVITY } from '../player/motor.js';
 
 /** The panel the page opens on, as its `state`: every number the opening row's (PISTOL_OPENING), each sound pick proven

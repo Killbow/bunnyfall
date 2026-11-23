@@ -20,4 +20,4 @@
 // working unchanged - both import behaviourally, neither greps this
 // path - and so the move is reviewable as a move rather than as a
 // rewrite. `export *` cannot drift from what it forwards.
-export * from '../formats/morrowind/mwFirstPerson.js';
+export * from '../formats/mwFirstPerson.js';

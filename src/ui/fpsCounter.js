@@ -56,8 +56,8 @@
 // The pure half (`fpsStats`) is executed by test/ui/enhanced/mwarms_fps.test.js;
 // the DOM half runs against the same stub document AUDIT 62 built.
 
-import { frameCpu, frameSampleAt } from '../systems/frameClock.js';   // PERF1: the hosts' script time; FB1018D HITCH-KEEP: one frame's
-import { frameCapSkip, frameCapFps } from '../systems/frameCap.js';   // FPS-CAP1: the frames the cap held back are not counted; PASS-COUNT: and the cap said
+import { frameCpu, frameSampleAt } from '../platform/frameClock.js';   // PERF1: the hosts' script time; FB1018D HITCH-KEEP: one frame's
+import { frameCapSkip, frameCapFps } from '../platform/frameCap.js';   // FPS-CAP1: the frames the cap held back are not counted; PASS-COUNT: and the cap said
 
 const PERIOD_MS = 1000;
 /** FB1018D HITCH-KEEP: a frame this long is a hitch - three of a 60 Hz screen's frames, seven of a 144's. */

@@ -27,7 +27,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isMain } from './lib/isMain.mjs';
 import { loadData, RECORD_DUNGEONS } from './climbDungeonProbe.mjs';
-import { layoutDungeon } from '../src/world/dungeon/dungeonLayout.js';
+import { layoutDungeon } from '../src/world/dungeonLayout.js';
 import { Collider } from '../src/player/collider.js';
 import { trs, multiply } from '../src/world/mat4.js';
 import { classifyPlacementAction } from '../src/world/actionSystem.js';
@@ -35,7 +35,7 @@ import { TextureFile, texName } from '../src/formats/textureFile.js';
 import { classicBillboardSize } from '../src/world/rmbFlats.js';
 import { dfMeshToModel } from '../src/world/meshReader.js';
 import { patchSeams } from '../src/world/arch3dSeams.js';
-import { colliderFireProbe, dungeonFirePlan, layoutFireCount, isBorderBlock, fireLayoutInputs } from '../src/world/dungeon/dungeonFires.js';
+import { colliderFireProbe, dungeonFirePlan, layoutFireCount, isBorderBlock, fireLayoutInputs } from '../src/world/dungeonFires.js';
 import { isHearthFlat } from '../src/systems/survival/hearth.js';
 
 /**

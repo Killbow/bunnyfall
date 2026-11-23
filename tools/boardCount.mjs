@@ -15,8 +15,8 @@ import { BlocksFile } from '../src/formats/blocksFile.js';
 import { MapsFile } from '../src/formats/mapsFile.js';
 import { layoutLocation } from '../src/world/locationLayout.js';
 import { isBulletinBoard } from '../src/world/rmbLayout.js';
-import { pickRegionHubs } from '../src/systems/region/regionHubs.js';
-import { questBoardIndices } from '../src/systems/bounty/bountyBoard.js';
+import { pickRegionHubs } from '../src/world/regionHubs.js';
+import { questBoardIndices } from '../src/guilds/bountyBoard.js';
 
 /**
  * A laid-out location's boards: every placed model the town sign wears (rmbLayout isBulletinBoard), and how BOUNTY1

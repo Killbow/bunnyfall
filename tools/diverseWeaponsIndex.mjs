@@ -24,7 +24,7 @@ import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const MANIFEST = 'vendor/diverse-weapons/diverse-weapons.dfmod.json';
-export const INDEX_FILE = 'src/combat/diverseWeapons/diverseWeaponsIndex.js';
+export const INDEX_FILE = 'src/combat/diverseWeaponsIndex.js';
 /** MetalTypes' order - itemInfo.js MATERIAL_NAMES, restated so the tool needs no src import. */
 export const METALS = Object.freeze(['Iron', 'Steel', 'Silver', 'Elven', 'Dwarven', 'Mithril', 'Adamantium', 'Ebony', 'Orcish', 'Daedric']);
 export const BARE_BIT = 1 << METALS.length;

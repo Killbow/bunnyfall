@@ -35,16 +35,16 @@
 // classic window runs.
 // ═══════════════════════════════════════════════════════════════════
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';   // MENU1: the one lazy-chunk door
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28: Tab puts it away
-import { NativeInventoryWindow, inventoryArtLoaded } from './native/nativeInventory.js';
-import { closeSession, holdChestSave } from '../systems/inventorySession.js';
-import { immersiveFootsteps } from '../systems/immersiveFootsteps.js';   // AUDIT-IF F5: the enhanced skin's close refreshes the mod's armour slots too
-import { racialSuppressInventory } from '../systems/lycanthropy.js';   // DISC10-E L3: GetSuppressInventory, in the window itself
-import { messageBox } from '../systems/notify.js';   // DISC10-E L3: DaggerfallUI.MessageBox, the refusal's voice
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';   // MENU1: the one lazy-chunk door
+import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it away
+import { NativeInventoryWindow, inventoryArtLoaded } from './nativeInventory.js';
+import { closeSession, holdChestSave } from '../items/inventorySession.js';
+import { immersiveFootsteps } from '../audio/immersiveFootsteps.js';   // AUDIT-IF F5: the enhanced skin's close refreshes the mod's armour slots too
+import { racialSuppressInventory } from '../afflictions/lycanthropy.js';   // DISC10-E L3: GetSuppressInventory, in the window itself
+import { messageBox } from './notify.js';   // DISC10-E L3: DaggerfallUI.MessageBox, the refusal's voice
 import { ChoiceWindow } from './talkWindow.js';   // REVENANT-FATE: the classic skin's keyed box
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { inventoryArtLoaded };
 
@@ -183,7 +183,7 @@ function enhancedInventoryOverlay(deps) {
   // module keeps its own optional catch - a missing fpArm is a feature
   // that is off, not a screen that failed.
   mountEnhancedChunk({
-    load: () => Promise.all([import('./enhanced/enhancedInventory.js'), import('../combat/fpArm.js').catch(() => null)]),
+    load: () => Promise.all([import('./enhancedInventory.js'), import('../combat/fpArm.js').catch(() => null)]),
     mount: ([{ mountEnhancedInventory }, armMod]) => {
       view = mountEnhancedInventory(host, { ...deps, onExit: close, fpArm: armMod?.fpArm ?? null });
     },

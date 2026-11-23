@@ -27,7 +27,7 @@
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
 import { CHAT_WORLD_ROOM, CHAT_TRADE_ROOM, CHAT_LFG_ROOM } from './wire.js';
 import { validRoll, rollText } from './dice.js';   // DICE1: a roll's line is the dice's own words
-import { t } from '../systems/textManager.js';   // CHAT-TRADE: the new tabs' and notices' words in the player's language, each read when it is shown
+import { t } from '../ui/textManager.js';   // CHAT-TRADE: the new tabs' and notices' words in the player's language, each read when it is shown
 import { REPORT_PICK_AGE_MS, REPORT_LINES_MAX } from './safety/safetyLaw.js';   // AUDIT SAFE CLIENT-5: what a report may carry, from the law's home
 
 /** The tabs, in bar order. A tab is {id, label, room, link, hint}.

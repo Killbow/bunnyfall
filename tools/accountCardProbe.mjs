@@ -91,7 +91,7 @@ await page.goto('http://probe.invalid/', { waitUntil: 'domcontentloaded' });
 // the page needs no network and the probe stays hermetic. A modern
 // User-Agent is sent because Google serves ttf to anything it does not
 // recognise and woff2 to a browser.
-const { ENHANCED_CSS, ENHANCED_FONTS_URL } = await import('../src/ui/enhanced/enhancedStyle.js');
+const { ENHANCED_CSS, ENHANCED_FONTS_URL } = await import('../src/ui/enhancedStyle.js');
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 let fontCss = await (await fetch(ENHANCED_FONTS_URL, { headers: { 'user-agent': UA } })).text();
 const urls = [...new Set([...fontCss.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g)].map((m) => m[1]))];
@@ -118,7 +118,7 @@ const STAGES = [
 
 const measured = await page.evaluate(async (stages) => {
   const { AccountFlow } = await import('/src/ui/accountFlow.js');
-  const { accountCard } = await import('/src/ui/enhanced/enhancedAccount.js');
+  const { accountCard } = await import('/src/ui/enhancedAccount.js');
   const app = document.getElementById('app');
   app.style.cssText = 'padding:24px;max-width:640px;margin:0 auto;';
   const out = [];
@@ -202,7 +202,7 @@ const measured = await page.evaluate(async (stages) => {
 
 // THE SKIN'S OWN TOKENS, so the probe compares against the source of
 // truth rather than against hexes typed here.
-const { ENHANCED_TOKENS } = await import('../src/ui/enhanced/enhancedStyle.js');
+const { ENHANCED_TOKENS } = await import('../src/ui/enhancedStyle.js');
 const token = (name) => ENHANCED_TOKENS.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1]?.trim();
 const rgb = (hex) => {
   const h = hex.replace('#', '');

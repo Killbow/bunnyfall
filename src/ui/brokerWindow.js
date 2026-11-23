@@ -20,20 +20,20 @@
 // window needs from the world is handed in: the stock and the day, the purse and the record, the sale (the host takes
 // the stones, gives the piece and marks it - in that order), and the wearer whose sets the set block reads - so this
 // file draws and asks, and never touches a pack.
-import { rarityLines, rarityAttr, RARITIES } from '../systems/loot/lootRarity.js';
-import { brokerOfferState, BROKER_REFUSALS, offerSetName, brokerTurnsIn, stonesText } from '../systems/sigil/sigilBroker.js';
-import { inventoryItemImage } from '../systems/item/itemTemplates.js';
+import { rarityLines, rarityAttr, RARITIES } from '../items/lootRarity.js';
+import { brokerOfferState, BROKER_REFUSALS, offerSetName, brokerTurnsIn, stonesText } from '../worldEvents/sigilBroker.js';
+import { inventoryItemImage } from '../items/itemTemplates.js';
 import { sigilCard } from './sigilCard.js';
 import { setCard, markSetFrame } from './setCard.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
 import { SLOT_BOX, screenDpr } from './iconFit.js';   // UI1: the offer's picture box
-import { closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
-import { rarityVarsCss, SIGIL_VARS_CSS, SIGIL_KEYFRAMES_CSS, SIGIL_BLOCK_CSS, SET_BLOCK_CSS, BROKER_CSS } from './enhanced/enhancedPlusStyle.js';
-import { frameCss, scopeRules } from './enhanced/enhancedFrame.js';
-import { isEnhancedPlus } from '../systems/uiSkin.js';
-import { isBound, BOUND_LINE } from '../systems/item/itemBound.js';   // SS4: the wares are bound, and the card says so
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { rarityVarsCss, SIGIL_VARS_CSS, SIGIL_KEYFRAMES_CSS, SIGIL_BLOCK_CSS, SET_BLOCK_CSS, BROKER_CSS } from './enhancedPlusStyle.js';
+import { frameCss, scopeRules } from './enhancedFrame.js';
+import { isEnhancedPlus } from './uiSkin.js';
+import { isBound, BOUND_LINE } from '../items/itemBound.js';   // SS4: the wares are bound, and the card says so
 import { paintTitle, titleBadge } from './playerBadge.js';   // WB9g: the Gatebreaker's word, in its own fire
 import { EG_SINK_EMBERS, EG_PANOPLY_IDS } from '../net/eliteGates/egPay.js';   // EG-E1: the Panoply sink's price and its nine pieces
 

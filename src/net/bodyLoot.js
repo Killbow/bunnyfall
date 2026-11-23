@@ -30,9 +30,9 @@
 // ledger and the constants. The block that runs it is scenes/bodyLootHost.js. It reaches NOTHING the relay does and is never
 // imported by anything in the relay's graph (test/importGraph.mjs; net/wire.js is not edited - a digest is a top-level frame
 // field, the `qf`/`dz` pattern, never a field of validFoeRecord). Not a DFU member: Daggerfall has one player.
-import { validLootList, LOOT_STACK_MAX } from '../systems/loot/loot.js';
-import { neverPeerHanded, peerHanded } from '../systems/peerWord.js';
-import { ROOM_BASE_MAX, ROOM_CLAIMS_MAX, validRoomId, claimOf } from '../systems/roomLoot.js';
+import { validLootList, LOOT_STACK_MAX } from '../items/loot.js';
+import { neverPeerHanded, peerHanded } from './peerWord.js';
+import { ROOM_BASE_MAX, ROOM_CLAIMS_MAX, validRoomId, claimOf } from '../items/roomLoot.js';
 import { FOE_SEQ_MAX } from './wire.js';
 
 /** WORLD6b-iii(c): a grant frame's ceiling, under the wire's MAX_FRAME_BYTES with the envelope's room (the relay refuses a larger one whole). */

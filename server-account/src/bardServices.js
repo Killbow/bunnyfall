@@ -8,7 +8,7 @@
 // receipt (tavern_service_txns, the tavern's own table) makes a request asked again after a lost answer answer the same.
 import { bardServicePrice, bardItemNameOf, bardHomeNameOf, bardBuffOf, bardWritable } from '../../src/net/bardServiceLaw.js';
 import { tavernProgressOf } from '../../src/net/tavernFavorLaw.js';
-import { recordIsOffered } from '../../src/net/realm/realmTradeLaw.js';
+import { recordIsOffered } from '../../src/net/realmTradeLaw.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import { overRate } from './accounts.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, mustChange, recordMovedOf } from './realm.js';

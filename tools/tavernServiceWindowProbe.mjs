@@ -19,7 +19,7 @@ try {
   await page.evaluate(async () => {
     const { createTavernServiceHost } = await import('/src/scenes/tavernServiceHost.js');
     const { createTavernShift, stepTavernShift } = await import('/src/net/tavernServiceLaw.js');
-    const { overlayOpen } = await import('/src/ui/enhanced/enhancedOverlays.js');
+    const { overlayOpen } = await import('/src/ui/enhancedOverlays.js');
     const keeper = { key: 'keeper' }, guest = { key: 'guest' };
     const p = window.probe = { state: null, version: 0, requests: [], current: null, hold: false, overlayOpen };
     p.host = createTavernServiceHost({

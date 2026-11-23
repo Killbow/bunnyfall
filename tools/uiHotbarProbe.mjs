@@ -32,13 +32,13 @@ const OUT = process.env.SHOT_DIR ?? join(ROOT, 'tools/shots');
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>UI2 probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#3b4a3a 0 14px,#324031 14px 28px)}</style></head><body>
 <script type="module">
-import { setPref } from '/src/systems/uiPrefs.js';
-import { setItemFields, mintCondition } from '/src/systems/item/itemTemplates.js';
+import { setPref } from '/src/ui/uiPrefs.js';
+import { setItemFields, mintCondition } from '/src/items/itemTemplates.js';
 import { createWeapon } from '/src/combat/enemyEquipment.js';
-import { ARMOR_MATERIAL } from '/src/systems/armorMaterials.js';
-import { potionRecipeKeys } from '/src/systems/potions.js';
-import * as HB from '/src/systems/quickslots.js';
-import { drawEnhancedHud } from '/src/ui/enhanced/enhancedHud.js';
+import { ARMOR_MATERIAL } from '/src/items/armorMaterials.js';
+import { potionRecipeKeys } from '/src/items/potions.js';
+import * as HB from '/src/items/quickslots.js';
+import { drawEnhancedHud } from '/src/ui/enhancedHud.js';
 
 setPref('lootRarity', true);
 const armour = (t) => mintCondition(setItemFields({ group: 'Armor', templateIndex: t, material: ARMOR_MATERIAL.Steel, flags: 0 }));

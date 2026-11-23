@@ -22,8 +22,8 @@ const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${
 const W = 640, H = 400;
 
 const PAGE = `<!doctype html><html><body style="margin:0;background:#000"><canvas id=c width=${W} height=${H}></canvas><script type=module>
-import { buildCourtModel, courtToDungeon, courtBraziers, COURT_FOG, LAVA_Y } from '/src/world/gate/gateArena.js';
-import { gateArt, courtArt } from '/src/world/gate/gateArt.js';
+import { buildCourtModel, courtToDungeon, courtBraziers, COURT_FOG, LAVA_Y } from '/src/world/gateArena.js';
+import { gateArt, courtArt } from '/src/world/gateArt.js';
 import { DeadlandsRenderer, SIGIL_TOWER, VORTEX_ELEV } from '/src/render/deadlands.js';
 import { buildDeadlandsLand, buildShardModel, deadlandsShards, shardMatrix } from '/src/world/deadlandsLand.js';
 // the court, the land and each shard at its matrix, as one stand-in model (the host draws them as the court's draws)

@@ -71,7 +71,7 @@ out.steps.tipShort = await page.evaluate(() => {
   return w?.tip?.text ?? null;
 });
 await page.evaluate(async () => {
-  const cc = await import('/src/systems/controlsConfig.js');
+  const cc = await import('/src/ui/controlsConfig.js');
   const w = window.__overlayWindow();
   cc.setUnsavedBinding(w.unsaved, 'MoveForwards', 'SomethingVeryLongIndeed');
   w.hover(57 + 2, 13 + 2); w.tick(1);

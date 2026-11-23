@@ -23,9 +23,9 @@
 //     race's heads times its hairs, where the face index named one pair of ten). A player's look carries no `npc`: the
 //     player and every peer are resolved exactly as before.
 // Pure: no clock, no randomness but the seed's - every machine that sees the same person dresses them the same.
-import { EQUIP_SLOTS } from '../systems/equip.js';
+import { EQUIP_SLOTS } from './equip.js';
 import { ARMOR_ENUM } from '../combat/enemyEquipment.js';
-import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { ARMOR_MATERIAL } from '../items/armorMaterials.js';
 
 /** A 32-bit mix (splitmix's finaliser) - the wardrobe's every draw. */
 export function wmix(h) {

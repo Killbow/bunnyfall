@@ -17,8 +17,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { MapsFile } from '../src/formats/mapsFile.js';
 import { ImgFile } from '../src/formats/imgFile.js';
-import { raidRegions } from '../src/systems/raidingParties.js';
-import { raidTownsCanon, raidTownsHash, readRaidTowns } from '../src/net/raid/raidLaw.js';
+import { raidRegions } from '../src/worldEvents/raidingParties.js';
+import { raidTownsCanon, raidTownsHash, readRaidTowns } from '../src/net/raidLaw.js';
 import { isMain } from './lib/isMain.mjs';
 
 /** The towns table of the game files in `arena2`, in its one spelling, and its hash - what the game's own

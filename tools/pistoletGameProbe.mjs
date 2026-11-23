@@ -33,9 +33,9 @@ const waitFrames = async (n) => {
 };
 
 const worn = await page.evaluate(async () => {
-  const P = await import('/src/systems/pistolet.js');
-  const T = await import('/src/systems/thunderlock.js');
-  const { equipItem } = await import('/src/systems/equip.js');
+  const P = await import('/src/items/pistolet.js');
+  const T = await import('/src/items/thunderlock.js');
+  const { equipItem } = await import('/src/characters/equip.js');
   const e = window.__playerEntity;
   const a = P.createPistolet(), b = P.createPistolet();
   e.items.push(a, b, T.createPellets(30));

@@ -49,15 +49,15 @@
 // because a member panel drops Join and because Spymaster's S and
 // SellMagicItems' S sit under a Talk that is T, never colliding.
 
-import { loadImg, nativeMetrics, drawImg, drawRect, shadowText, DEFAULT_TEXT_COLOR } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, drawRect, shadowText, DEFAULT_TEXT_COLOR } from './nativePanel.js';
 import { drawScreenDimBackdrop } from './chargenArt.js';
-import { audio } from '../systems/audio.js';   // F141: the ButtonClick roster
-import { SOUND } from '../systems/soundClips.js';
+import { audio } from '../audio/audio.js';   // F141: the ButtonClick roster
+import { SOUND } from '../audio/soundClips.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS, latchBoxRows, fitBoxRows } from './messageBox.js';
-import { noticeFrame, noticeRelease } from './enhanced/enhancedNotice.js';   // ENH-NOTICE2: the window's own click-anywhere box, as the enhanced panel
+import { noticeFrame, noticeRelease } from './enhancedNotice.js';   // ENH-NOTICE2: the window's own click-anywhere box, as the enhanced panel
 import { drawText, measureText } from './text.js';
-import { serviceLabel, serviceShortcutButton, isServiceBox } from '../systems/guild/guildServiceFlow.js';
-import { firstHotkey } from '../systems/dialogShortcuts.js';   // A8: the DaggerfallShortcut table
+import { serviceLabel, serviceShortcutButton, isServiceBox } from '../guilds/guildServiceFlow.js';
+import { firstHotkey } from './dialogShortcuts.js';   // A8: the DaggerfallShortcut table
 
 /** mainPanel.Size (:124) - and the size of both IMGs. */
 export const PANEL_W = 130, PANEL_H = 51;
@@ -93,13 +93,13 @@ export const LIFT_ROW = 'Lift Curse';
 export const LIFT_KEY = 'KeyL';
 /** HEAL-CURSE: the temple's second row, under its Cure Disease (systems/healCurse.js) - the Reforge's shape, a row lower
  *  when the popup carries the Reforge's row or LOOT16's Lift Curse in that place (an item's curse there, the blood's here). */
-export { HEAL_CURSE_ROW, HEAL_CURSE_KEY } from '../systems/healCurse.js';
-import { HEAL_CURSE_ROW, HEAL_CURSE_KEY } from '../systems/healCurse.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+export { HEAL_CURSE_ROW, HEAL_CURSE_KEY } from '../afflictions/healCurse.js';
+import { HEAL_CURSE_ROW, HEAL_CURSE_KEY } from '../afflictions/healCurse.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 const healCurseRect = (reforge) => Object.freeze([REFORGE_RECT[0], REFORGE_RECT[1] + (reforge ? REFORGE_RECT[3] + 2 : 0), REFORGE_RECT[2], REFORGE_RECT[3]]);
 /** BUNNYFALL GUILD-LEAVE: a member's Leave row (systems/guild/guildLeave.js), the Reforge's shape, under every other port row. */
-export { LEAVE_ROW, LEAVE_KEY } from '../systems/guild/guildLeave.js';
-import { LEAVE_ROW, LEAVE_KEY } from '../systems/guild/guildLeave.js';
+export { LEAVE_ROW, LEAVE_KEY } from '../guilds/guildLeave.js';
+import { LEAVE_ROW, LEAVE_KEY } from '../guilds/guildLeave.js';
 const leaveRect = (above) => Object.freeze([REFORGE_RECT[0], REFORGE_RECT[1] + above * (REFORGE_RECT[3] + 2), REFORGE_RECT[2], REFORGE_RECT[3]]);
 
 let _art = null;

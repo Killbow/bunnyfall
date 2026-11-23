@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { emptyGarden, stepFarmGarden, stepFarmGardenAction, gardenGrowth, gardenStage, FARM_WATER_S, validGarden as validGardenLaw } from '../src/net/farmGardenLaw.js';
 import { emptyFarmProgress, stepFarmDelivery, stepFarmUpgrade } from '../src/net/farmProgressLaw.js';
 import { farmGarden } from '../server-account/src/farmGardens.js';
-import { createFarmDoor } from '../src/systems/farmDoor.js';
+import { createFarmDoor } from '../src/guilds/farmDoor.js';
 import { farmGardenField, farmGardenSite } from '../src/world/farmGardenSite.js';
 import { registerFlatField } from '../src/world/flatFields.js';
 import { createFarmGardenArt } from '../src/world/farmGardenArt.js';
@@ -292,7 +292,7 @@ import { stepFarmStation, validStations, stationDaily, herdKeep, birdsWarded, tr
 import { stepFarmPlough, validGarden } from '../src/net/farmGardenLaw.js';
 import { createFarmGame, ploughLine } from '../src/net/farm/farmGameLaw.js';
 import { contentAt, kindContent } from '../src/net/farm/herdLaw.js';
-import { MOBILE_TYPES as MT } from '../src/characters/mobile/mobileTypes.js';
+import { MOBILE_TYPES as MT } from '../src/characters/mobileTypes.js';
 
 const WOLF = 262, BOAR = 278, DEXBAT = 260;
 const beast = (kind, over = {}) => ({ player: 'tester', character: 'char1', revenantId: `r${kind}`, kind, name: 'Grushnak the Scarred', rank: 3, art: null, post: 0, since: 50, ...over });

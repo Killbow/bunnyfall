@@ -6,7 +6,7 @@
 // the toolbar so buttons remain visible. Also saves and restores the editor's snap steps and camera speed, falling back
 // to defaults when storage is unavailable.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { pageStorage } from './poiStorage.js';
 
 /** localStorage keys for saved panel sizes, snap steps, and camera speed. */

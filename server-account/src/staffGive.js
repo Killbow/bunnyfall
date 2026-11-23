@@ -18,20 +18,20 @@
 // valuable piece is given its ledger id (itemIds.js) and the ledger enters it as the record's own. Preview first (no
 // `confirm`: the piece as it will be, its findings, its enchantment cost against its power, its worth, whether they are
 // playing); then, `confirm: true` with a reason and a note and the `seq` staff looked at, given.
-import { itemFindings, itemWorth, lawTemplate, templateGroups, GOLD_INT_MAX } from '../../src/systems/item/itemLaw.js';
-import { customTemplateRows, setItemFields, mintCondition } from '../../src/systems/item/itemTemplates.js';
-import { GROUP_TEMPLATE_INDICES } from '../../src/systems/item/itemTemplatesData.js';
+import { itemFindings, itemWorth, lawTemplate, templateGroups, GOLD_INT_MAX } from '../../src/items/itemLaw.js';
+import { customTemplateRows, setItemFields, mintCondition } from '../../src/items/itemTemplates.js';
+import { GROUP_TEMPLATE_INDICES } from '../../src/items/itemTemplatesData.js';
 import { createWeapon, weaponOfMaterial, armorOfMaterial, ARROW_TEMPLATE } from '../../src/combat/enemyEquipment.js';
-import { applyEnchantments, itemEnchantmentPower, MAX_ENCHANTMENTS } from '../../src/systems/enchanting.js';
+import { applyEnchantments, itemEnchantmentPower, MAX_ENCHANTMENTS } from '../../src/magic/enchanting.js';
 import {
   pickEnchantment, enchantmentTypes, enchantmentName, enchantmentParamValues, enchantmentParamName, enchantmentCost, isSideEffect,
   hasItemMakerFlag, ITEM_MAKER_FLAGS,
-} from '../../src/systems/enchantmentCatalogue.js';
+} from '../../src/magic/enchantmentCatalogue.js';
 import { WEAPON_MATERIALS } from '../../src/characters/weapons.js';
-import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
-import { isStackable, LETTER_OF_CREDIT_TEMPLATE } from '../../src/systems/inventory.js';
-import { valuablePiece, mintItemId } from '../../src/systems/item/itemIds.js';
-import { createPotion, POTION_TEMPLATE_INDEX } from '../../src/systems/loot/loot.js';
+import { ARMOR_MATERIAL } from '../../src/items/armorMaterials.js';
+import { isStackable, LETTER_OF_CREDIT_TEMPLATE } from '../../src/items/inventory.js';
+import { valuablePiece, mintItemId } from '../../src/items/itemIds.js';
+import { createPotion, POTION_TEMPLATE_INDEX } from '../../src/items/loot.js';
 import { potionById } from '../../src/net/alchemyLaw.js';
 
 /** Why staff give: a reward a bug ate, an event's prize, amends for a staff mistake, a test, or another (said in the note). */

@@ -16,9 +16,9 @@
 // off and on again gets the sky they had. The mod's OTHER knobs (fog
 // density, pixel snow) are the mod's own and open in this row's tile (FT14 took the Mods page away).
 
-import { getPref, setPref } from '../systems/uiPrefs.js';
-import { modSetting, setModSetting } from '../systems/modSettings.js';
-import { registerFeatureLane } from '../systems/features.js';   // RF4: the row's lane is this module's
+import { getPref, setPref } from '../ui/uiPrefs.js';
+import { modSetting, setModSetting } from '../mods/modSettings.js';
+import { registerFeatureLane } from '../mods/features.js';   // RF4: the row's lane is this module's
 
 /** The row's tiers: value and label. FT18: the labels are a bar's segments now (FT14), and DISC23-C reads a switch
  *  by the segment that SAYS Off - 'Off - Daggerfall’s outdoors' did not, so this tile never read off and never

@@ -15,7 +15,7 @@
 //     npx vite --port 5199 &
 //     node tools/featuresProbe.mjs
 import { chromium } from 'playwright';
-import { FEATURES } from '../src/systems/features.js';
+import { FEATURES } from '../src/mods/features.js';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const SHOTS = process.env.PROBE_SHOTS ?? null;
@@ -68,8 +68,8 @@ const preset = () => page.$$eval('#enhanced-menu .opt-preset .ft-segb', (bs) => 
 check('a fresh shelf reads High - how the game ships', (await preset()) === 'Low Medium High* Ultra', await preset());
 await page.locator('#enhanced-menu .opt-preset .ft-segb', { hasText: /^Low$/ }).click(); await page.waitForTimeout(150);
 const stores = await page.evaluate(async () => {
-  const p = await import('/src/systems/uiPrefs.js'); p._resetForTests();
-  const s = await import('/src/systems/settings/settings.js'); s._resetForTests();
+  const p = await import('/src/ui/uiPrefs.js'); p._resetForTests();
+  const s = await import('/src/platform/settings.js'); s._resetForTests();
   return { view: p.getPref('landViewDistance'), ini: s.getInt('Experimental', 'TerrainDistance', 1, 4), grass: p.getPref('grassDensity'), water: p.getPref('waterQuality') };
 });
 check('Low wrote every row it sets, the view distance in BOTH stores', stores.view === 3 && stores.ini === 3 && stores.grass === 0.25 && stores.water === 'simple', JSON.stringify(stores));

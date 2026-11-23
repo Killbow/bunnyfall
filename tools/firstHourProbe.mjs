@@ -35,7 +35,7 @@ const TAVERN = 15;
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 // HMR OFF, WATCHER OFF. The first draft died at "page reload
-// src/systems/booksData.js": vite's watcher decided a module had no
+// src/items/booksData.js": vite's watcher decided a module had no
 // HMR boundary and full-reloaded the page mid-chargen, destroying the
 // execution context under the probe. A playthrough must not race the
 // dev server - nothing here edits src/ while it runs.

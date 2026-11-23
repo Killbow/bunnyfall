@@ -138,9 +138,9 @@ try {
   // Without this the checks above pass for a build that simply never
   // had the problem, which is the vacuous shape this repo keeps
   // finding.
-  const src = readFileSync('src/systems/staleChunk.js', 'utf8');
+  const src = readFileSync('src/platform/staleChunk.js', 'utf8');
   try {
-    writeFileSync('src/systems/staleChunk.js',
+    writeFileSync('src/platform/staleChunk.js',
       src.replace("  if (!isStaleChunk(err)) return 'rethrow';\n  return reloaded ? 'explain' : 'reload';",
         "  return 'rethrow';   // control"));
     const dOld = join(work, 'deployOld');
@@ -162,7 +162,7 @@ try {
     check('CONTROL: ...with the exact error that was reported',
       /Failed to fetch dynamically imported module/i.test(control.body), control.body.slice(0, 100));
   } finally {
-    writeFileSync('src/systems/staleChunk.js', src);
+    writeFileSync('src/platform/staleChunk.js', src);
   }
 } finally {
   writeFileSync(TAG, savedTag);

@@ -26,9 +26,9 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { hash32 } from '../../world/spawnedDungeons.js';
-import { mulberry32 } from '../../combat/blood/bloodArt.js';
+import { mulberry32 } from '../../combat/bloodArt.js';
 import { classFor, HULL } from './navalShips.js';
-import { nativeOfPixel, NATIVE_PIXEL } from '../seaRaiders.js';
+import { nativeOfPixel, NATIVE_PIXEL } from './seaRaiders.js';
 
 /** How far from its town a port's roadstead may lie (map pixels), and how many ports a port runs packets to, within how
  *  far of it (map pixels between roadsteads: about 25 km). */

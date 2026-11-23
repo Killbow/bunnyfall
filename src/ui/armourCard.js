@@ -16,18 +16,18 @@
 //   - the overall figure weighs the seven by the struck-part table of the combat core in force (formulas.js).
 // What this file adds is the reading: which numbers stand where, and the one figure made of them (overallArmour, and
 // why it is that figure).
-import { BODY_PARTS, NUMBER_BODY_PARTS } from '../systems/armorMaterials.js';
+import { BODY_PARTS, NUMBER_BODY_PARTS } from '../items/armorMaterials.js';
 import {
   getEquipSlot, wearLeavers, equipTableOf, armorValuesOf, updateEquippedArmorValues, armorBodyParts,
   isEquipped, isBrokenItem, isForbiddenEquip, EQUIP_SLOTS,
-} from '../systems/equip.js';
+} from '../characters/equip.js';
 import { createEquipTable } from '../characters/equipTable.js';
-import { computeEntityMods, entityArmorDisplayMod } from '../systems/entityMods.js';
+import { computeEntityMods, entityArmorDisplayMod } from '../characters/entityMods.js';
 import { struckBodyPartTable } from '../combat/formulas.js';
-import { itemDamageLine, weaponDamageRange } from '../systems/item/itemInfo.js';
-import { itemIsIdentified } from '../systems/tradeModes.js';
-import { armorLabelValue } from './native/nativeInventory.js';
-import { lineComparison, lootRarityOn } from '../systems/loot/lootRarity.js';   // LOOT18: the lines against what a wear replaces
+import { itemDamageLine, weaponDamageRange } from '../items/itemInfo.js';
+import { itemIsIdentified } from '../trade/tradeModes.js';
+import { armorLabelValue } from './nativeInventory.js';
+import { lineComparison, lootRarityOn } from '../items/lootRarity.js';   // LOOT18: the lines against what a wear replaces
 
 /** The seven parts in DFU's BodyParts order (ItemEnums.cs:140-150), named off the enum's own members ("RightArm" says
  *  "Right arm"), so no second list of them stands anywhere. No lookbehind in the split (SAFARI1: a Safari before 16.4

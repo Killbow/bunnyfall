@@ -14,7 +14,7 @@
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
 import { conductTitle, conductRules, conductConsequence, conductAgreeLabel, conductLaterLabel } from '../net/safety/conduct.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';   // AUDIT SAFE CLIENT-10: the stack every enhanced window stands on
+import { registerOverlay } from './enhancedOverlays.js';   // AUDIT SAFE CLIENT-10: the stack every enhanced window stands on
 import { overlayAction } from './input.js';   // AUDIT SAFE CLIENT-10: Escape as the windows read it ('back')
 
 export const CONDUCT_STYLE_ID = 'dagger-conduct-style';

@@ -17,7 +17,7 @@
 // earners (net/eliteGates/egBrain.js keeps its own `dc`), no threat.
 //
 // Pure: the breach's record in, the wire's compact tables out. Not a DFU member. Ledger A (ELITE-GATES).
-import { healRef, HEAL_REFILL_S, HEAL_DEPTH_X } from '../gate/gateBrain.js';
+import { healRef, HEAL_REFILL_S, HEAL_DEPTH_X } from '../gateBrain.js';
 
 /** The most rows a chart or a tally carries: the company's eight (net/wire.js EG_COMPANY_MAX). */
 export const EG_TALLY_ROWS = 8;

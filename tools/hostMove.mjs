@@ -2,7 +2,7 @@
 // bible/01-Overview/Host-Split.md, MOVE, DON'T REWRITE).
 //
 //   node tools/hostMove.mjs src/scenes/world.js --group tvBadgeOf,TV_PEER_HEAD_M,travelViewMarks \
-//        --to src/scenes/travelViewMarks.js --name createTravelViewMarks            the plan, nothing written
+//        --to src/travel/travelViewMarks.js --name createTravelViewMarks            the plan, nothing written
 //   ... --write                                                                      the move
 //
 // A move by hand of a block that reads sixty names of its host's scope is where a silent change hides - a `let` read

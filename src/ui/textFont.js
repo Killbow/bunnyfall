@@ -8,8 +8,8 @@
 // One sheet says it: every element under the body in the chosen face, but the wordmark. Canvas text (the classic
 // windows, the world) is drawn by the game and keeps its own font. (A player's name stands apart from what they write
 // by its COLOUR, not its face - ui/chatColours.js.)
-import { getPref, setPref } from '../systems/uiPrefs.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { getPref, setPref } from './uiPrefs.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 
 export const TEXT_FONT_STYLE_ID = 'dfo-text-font';
 export const TEXT_FONTS = Object.freeze({ book: 'Book', game: 'Pixel', sans: 'Sans', mono: 'Monospace', dyslexic: 'Dyslexic', system: 'My font' });

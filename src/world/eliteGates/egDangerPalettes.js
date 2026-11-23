@@ -1,7 +1,7 @@
 // @ts-check
 // The Spire's danger palettes (Elite-Gates.md section 25.7), kept apart from ui/eliteGates/egAccess.js so the swap
 // worker can paint band art without loading the settings code. egAccess.js exports the same objects.
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** Each palette sets the danger edge, the safety gold, and the hazard color. `keyline` 2 asks for the double keyline
  *  and `hatch` 1 for the 45-degree hatch (world/eliteGates/egLook.js egPaletteBits). Standard uses the default

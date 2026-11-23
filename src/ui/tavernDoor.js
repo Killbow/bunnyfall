@@ -6,11 +6,11 @@
 // the hooks bag once (see the doc comment above `TavernWindow` in
 // tavernWindow.js) and hands it here.
 
-import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
+import { isEnhanced } from './uiSkin.js';
+import { mountEnhancedChunk } from './enhancedChunk.js';
+import { registerOverlay } from './enhancedOverlays.js';
 import { TavernWindow, preloadTavernArt, tavernArtLoaded } from './tavernWindow.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { preloadTavernArt };
 
@@ -73,7 +73,7 @@ function enhancedTavernOverlay(hooks) {
   };
 
   mountEnhancedChunk({
-    load: () => import('./enhanced/enhancedTavern.js'),
+    load: () => import('./enhancedTavern.js'),
     mount: ({ mountEnhancedTavern }) => {
       view = mountEnhancedTavern(host, hooks);
     },

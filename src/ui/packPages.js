@@ -42,13 +42,13 @@
 // in test/systems/item/packPages.test.js over a bag with one of everything. Worn
 // items leave the list, as FilterLocalItems drops them (U53).
 
-import { isEquipped } from '../systems/equip.js';
-import { isEnchanted, LETTER_OF_CREDIT_TEMPLATE } from '../systems/inventory.js';
-import { isIngredientTemplate } from './native/nativeInventory.js';
-import { SPELLBOOK_TEMPLATE_INDEX } from '../systems/spell/spellMaker.js';
-import { POTION_TEMPLATE_INDEX } from '../systems/loot/loot.js';
-import { isCardBinder, isIliacCard } from '../systems/iliac/iliacItems.js';   // CARDS8: the binder and its cards
-import { isWalletItem } from '../systems/walletItem.js';   // WALLET1: the wallet is a valuable
+import { isEquipped } from '../characters/equip.js';
+import { isEnchanted, LETTER_OF_CREDIT_TEMPLATE } from '../items/inventory.js';
+import { isIngredientTemplate } from './nativeInventory.js';
+import { SPELLBOOK_TEMPLATE_INDEX } from '../magic/spellMaker.js';
+import { POTION_TEMPLATE_INDEX } from '../items/loot.js';
+import { isCardBinder, isIliacCard } from '../cards/iliacItems.js';   // CARDS8: the binder and its cards
+import { isWalletItem } from '../items/walletItem.js';   // WALLET1: the wallet is a valuable
 
 /** The pages, in the order the spine shows them: [id, label]. */
 export const PACK_PAGES = Object.freeze([

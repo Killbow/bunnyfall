@@ -24,8 +24,8 @@
 // And one tail: an action bound ONLY to the pad still shows its glyph
 // with the keyboard live, because there is no key to name and a blank
 // corner would be a lie of a different kind.
-import { getBinding, isCombo, getCombo } from '../systems/inputActions.js';
-import { buttonText } from '../systems/controlsConfig.js';
+import { getBinding, isCombo, getCombo } from './inputActions.js';
+import { buttonText } from './controlsConfig.js';
 import { unityButtonGlyph, padFamily } from './padGlyphs.js';
 import { controllerLook } from '../player/lookFilter.js';   // AUDIT DUEL1 D3: GP1's latch - the chip a pad player sees is a glyph
 import { bindings } from './input.js';   // DISC21-C: the live store, for quickslotHand's default

@@ -14,12 +14,12 @@
 //
 // Their pictures are the festival's own (world/festivalArt.js), put on the texture door at this file's import.
 // Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
-import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from '../item/itemTemplates.js';
-import { addVendorTextures } from '../textureReplacement.js';
+import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from '../../items/itemTemplates.js';
+import { addVendorTextures } from '../../render/textureReplacement.js';
 import { FESTIVAL_ARCHIVE, FESTIVAL_ART, registerFestivalArt } from '../../world/festivalArt.js';
 import { SOUL_CAKE_LAW_ROW, HEARTH_OFFERING_LAW_ROW } from './festivalRows.js';
 import { SOUL_CAKE_TEMPLATE, HEARTH_OFFERING_TEMPLATE } from '../../net/festivalLaw.js';
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 
 export { SOUL_CAKE_TEMPLATE, HEARTH_OFFERING_TEMPLATE };
 /** Their rows: the leaf's (bound, stacked) with their names - an item's name is its row's, as every port item's is

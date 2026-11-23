@@ -17,10 +17,10 @@
 // GetClassCareerTemplate), which a module-level literal cannot await
 // - and nothing reads these once chargen resolves. armor 0 until
 // player equipment. LiveSpeed lives in PlayerMotor stats.
-import { SKILL_COUNT, SKILLS_RECENTLY_RAISED_WORDS } from '../systems/skills.js';
+import { SKILL_COUNT, SKILLS_RECENTLY_RAISED_WORDS } from './skills.js';
 import { SOCIAL_GROUP_COUNT } from '../formats/factionFile.js';   // AUDIT 65 SL-4: PlayerEntity.cs:128's socialGroupCount = 11
-import { pageHas } from '../systems/pageQuery.js';   // AUDIT ANTICHEAT A1: the probe gate's one parse a search
-import { openGuardCeiling, closeGuardCeiling } from '../systems/powerCeiling.js';   // POWER-CEILING: the guards composed, held to one share kept
+import { pageHas } from '../platform/pageQuery.js';   // AUDIT ANTICHEAT A1: the probe gate's one parse a search
+import { openGuardCeiling, closeGuardCeiling } from './powerCeiling.js';   // POWER-CEILING: the guards composed, held to one share kept
 
 export const playerEntity = {
   isPlayer: true,

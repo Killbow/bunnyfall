@@ -13,9 +13,9 @@
 // stand-in, so every door that draws an item's picture draws it (the Weir Key's law, systems/eliteGates/weirKey.js).
 //
 // Not a DFU member. Ledger A (STARFALL).
-import { registerCustomTemplates, setItemFields, mintCondition } from '../item/itemTemplates.js';
-import { t } from '../textManager.js';
-import { addVendorTextures } from '../textureReplacement.js';
+import { registerCustomTemplates, setItemFields, mintCondition } from '../../items/itemTemplates.js';
+import { t } from '../../ui/textManager.js';
+import { addVendorTextures } from '../../render/textureReplacement.js';
 import { STARGLASS_ART, registerStarglassArt } from '../../world/starfall/starglassArt.js';
 import { STARGLASS_TEMPLATE, STARGLASS_LAW_ROW } from './starglassRow.js';
 export { STARGLASS_TEMPLATE };

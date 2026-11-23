@@ -31,10 +31,10 @@ import { FESTIVAL_ARCHIVE, FESTIVAL_ART } from './festivalArt.js';
 import { festivalOpen } from '../net/festivalLaw.js';
 import { CLIMATES, REGION_RACES } from '../formats/mapsTables.js';
 import { isResidence } from './buildingNames.js';
-import { homeCandidate } from '../systems/online/onlineHomes.js';
-import { doorFace } from '../systems/siegeField.js';
+import { homeCandidate } from '../homes/onlineHomes.js';
+import { doorFace } from '../worldEvents/siegeField.js';
 import { RMB_SIDE } from './locationLayout.js';
-import { tileWeight } from './city/cityNavigation.js';
+import { tileWeight } from './cityNavigation.js';
 
 /** The Wyrd Sister's picture: FLATS.CFG's "mysterious woman" (179.2), the covens' own witch, dressed - NUDE-FLATS'
  *  stand-in for the coven's (characters/nudeFlats.js). */

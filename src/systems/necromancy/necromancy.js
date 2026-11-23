@@ -18,17 +18,17 @@ import {
   CORPSE_WEIGHT_KG, REAGENT, dropsCorpse, robGrave, NECRO_SPELLS, NECRO_SPELL_INDEX_BASE, NECRO_SPELL_SETTINGS, NECRO_SPELL_ICON,
   NECROMANCER_NAME,
 } from './necroLaw.js';
-import { ITEM_TEMPLATES, registerCustomTemplates, registerTemplateLore, setItemFields, mintCondition } from '../item/itemTemplates.js';
-import { addItem, getItem, removeOne } from '../inventory.js';
-import { registerModSaveData } from '../modSaveData.js';
-import { registerCompanionCount, registerCompanionRoster, companionSlotFree, COMPANION_SLOTS_FULL } from '../companionSlots.js';
-import { chanceValue } from '../effects.js';
-import { rollMagnitude } from '../spellcast.js';
-import { skillValue, SKILLS } from '../skills.js';
-import { liveStat } from '../statMods.js';
-import { registerEnemyLootExtra, keepLoot } from '../loot/loot.js';
-import { registerGraveSearchListener } from '../searchables.js';
-import { buildCustomSpell } from '../spell/spellMaker.js';
+import { ITEM_TEMPLATES, registerCustomTemplates, registerTemplateLore, setItemFields, mintCondition } from '../../items/itemTemplates.js';
+import { addItem, getItem, removeOne } from '../../items/inventory.js';
+import { registerModSaveData } from '../../saves/modSaveData.js';
+import { registerCompanionCount, registerCompanionRoster, companionSlotFree, COMPANION_SLOTS_FULL } from '../../characters/companionSlots.js';
+import { chanceValue } from '../../magic/effects.js';
+import { rollMagnitude } from '../../magic/spellcast.js';
+import { skillValue, SKILLS } from '../../characters/skills.js';
+import { liveStat } from '../../characters/statMods.js';
+import { registerEnemyLootExtra, keepLoot } from '../../items/loot.js';
+import { registerGraveSearchListener } from '../../items/searchables.js';
+import { buildCustomSpell } from '../../magic/spellMaker.js';
 
 export const NECRO_SAVE_VENDOR = "Cheb's Necromancy";
 
@@ -242,8 +242,8 @@ registerGraveSearchListener((kind) => {
 /** The mod's ready-made spells, made fresh each call (a record is the player's once bought). */
 export function necroSpells() {
   return NECRO_SPELLS.map(([name, type], i) => buildCustomSpell({
-    name, element: 4, rangeType: 0, icon: NECRO_SPELL_ICON, index: NECRO_SPELL_INDEX_BASE - i,
-    slots: [{ type, subType: 255, settings: { ...NECRO_SPELL_SETTINGS } }],
+    name: /** @type {string} */ (name), element: 4, rangeType: 0, icon: NECRO_SPELL_ICON, index: NECRO_SPELL_INDEX_BASE - i,
+    slots: [{ type: /** @type {number} */ (type), subType: 255, settings: { ...NECRO_SPELL_SETTINGS } }],
   }));
 }
 /** Is `career` the mod's Necromancer. */

@@ -14,7 +14,7 @@
 import { pathHash } from './unityAnimator.js';
 import { mat4FromQuatPosScale } from './quat.js';
 import { multiply } from './mat4.js';
-import { colliderOf } from './ships/galleonMesh.js';
+import { colliderOf } from './galleonMesh.js';
 
 /** @typedef {{ p?: readonly number[], r?: readonly number[], s?: readonly number[], c?: number[], kids?: any[], active?: boolean }} NodeOpts */
 /** A node as Come Sail Away's prefabs hold one: its name, active flag, local transform, components and children.

@@ -35,9 +35,9 @@ await page.goto('http://localhost:5206/play/');
 await page.mouse.click(200, 200);          // the gesture that allows audio
 
 const result = await page.evaluate(async () => {
-  const mod = await import('/src/systems/music.js');
-  const aud = await import('/src/systems/audio.js');
-  const { DUNGEON_SONGS } = await import('/src/systems/song/songManager.js');
+  const mod = await import('/src/audio/music.js');
+  const aud = await import('/src/audio/audio.js');
+  const { DUNGEON_SONGS } = await import('/src/audio/songManager.js');
   const { fetchBytes } = await import('/src/scenes/shared.js');
 
   await aud.audio.ensure(fetchBytes);

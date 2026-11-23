@@ -21,7 +21,7 @@
 // entryTarget); the rest of the trail is DFU's. A quest saved past the reveal keeps the actions it was saved with
 // (task.js restoreSaveData restores them whole) - the entry reaches a quest begun after the deploy.
 
-import { t } from '../textManager.js';   // the entry is the port's own words
+import { t } from '../../ui/textManager.js';   // the entry is the port's own words
 
 /** @typedef {{ old: string, new: string, count: number }} TextPatch */
 

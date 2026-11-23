@@ -20,7 +20,7 @@
 // revenant's sky came (ui/revenantStarsWindow.js), one home for both; this file is the captain's sky as that window
 // draws it (its words, its tones, its wheel).
 
-import { t, formatNumber } from '../systems/textManager.js';
+import { t, formatNumber } from './textManager.js';
 import {
   CAPTAIN_STARS, CAPTAIN_EDGES, CAPTAIN_STATS, starOf, heldStars, wayTo, takesBack, starStats, captainOf,
 } from '../systems/naval/captainTree.js';

@@ -3,7 +3,7 @@
 // are the guild vault's (net/guild/guildBook.js vaultPut / vaultTake / deposit / withdraw), one owner: the save is
 // checkpointed and held, the piece (or the gold) leaves the pack at once, the service moves it on the realm record, and a
 // refusal puts it back. Everything it touches is handed in, so this file asks and never reaches a pack.
-import { walletReserve } from './realm/realmGoldLaw.js';
+import { walletReserve } from './realmGoldLaw.js';
 
 /** The one gold move allowed in an act (the service's own bound). */
 export const VAULT_MOVE_MAX = 1_000_000;
@@ -28,7 +28,7 @@ export function createAccountVaultBook(deps) {
       const my = ++gen;
       const r = await deps.door.read();
       if (my !== gen) return r;
-      if (r?.ok) { view = r.data?.vault ?? null; error = null; } else { view = null; error = r?.error ?? 'server'; }
+      if (r?.ok) { view = /** @type {any} */ (r).data?.vault ?? null; error = null; } else { view = null; error = r?.error ?? 'server'; }
       return r;
     },
     /** A piece in: the pack's own record, `count` of its stack (all where absent). */

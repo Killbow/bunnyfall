@@ -7,9 +7,9 @@
 // made. A face a DFU pack registered for the same font and locale (L10N3b) is never replaced - the pack's own letters
 // win. English registers nothing and keeps Daggerfall's pixel fonts, byte for byte.
 
-import { registerLocalizedFont, hasLocalizedFont, setSdfForcer, localeInfo, BASE_LOCALE, PSEUDO_LOCALE } from '../systems/textManager.js';
-import { setValue } from '../systems/settings/settings.js';
-import { catalogLocale } from '../systems/localeCatalog.js';
+import { registerLocalizedFont, hasLocalizedFont, setSdfForcer, localeInfo, BASE_LOCALE, PSEUDO_LOCALE } from './textManager.js';
+import { setValue } from '../platform/settings.js';
+import { catalogLocale } from './localeCatalog.js';
 import { createGlyphFace, canRasterise } from './glyphFace.js';
 
 /** DaggerfallFont.FontName: the five classic fonts a locale's face stands in for. */

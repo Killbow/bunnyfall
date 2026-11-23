@@ -6,7 +6,7 @@
 // A followed waypoint's flag stands on a ring.
 //
 // Not a DFU member.
-import { waypointCss } from '../systems/map/mapWaypoints.js';
+import { waypointCss } from '../maps/mapWaypoints.js';
 
 /** The flag's size, px: the pole's height and the pennant's length. */
 export const FLAG_POLE_PX = 19;

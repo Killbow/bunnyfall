@@ -119,7 +119,7 @@ export function createSkin(ctx) {
     const R = RACES[getRaceIx()];
     let name;
     try {
-      const { raceArt } = await import('../../systems/races.js');
+      const { raceArt } = await import('../../characters/races.js');
       name = raceArt(RACE_KEY[R], getGender()).heads;
     } catch { return; }
     if (faceCache.has(name)) { faceSet = faceCache.get(name); onReady(); return; }

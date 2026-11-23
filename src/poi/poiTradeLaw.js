@@ -8,10 +8,10 @@
 // values of the fields the shape law knows only by key (a stack's `recipe`, an encounter's `pacifiable`).
 // Everything imported here lives under src/, so the account service, the editor, and an offline game can all load it.
 
-import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
-import { isStackable, GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
+import { lawTemplate, templateGroups } from '../items/itemLaw.js';
+import { isStackable, GLASS_BOTTLE_TEMPLATE } from '../items/inventory.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
-import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { ARMOR_MATERIAL } from '../items/armorMaterials.js';
 import { varsRead, persists, needsService } from './poiDmCore.js';
 import { potionKeyOf } from './poiSettle.js';
 

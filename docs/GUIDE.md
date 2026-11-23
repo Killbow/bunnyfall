@@ -64,7 +64,7 @@ rebuilds `dist/`. Never edit files on the box itself.
 - **Test a server feature against the real service, not only its functions.** `BUNNYFALL_DATA=/tmp/bf node
   selfhost/start.mjs` runs both servers locally (migrations included); make a guest with
   `POST /v1/auth/guest {"terms":true,"privacy":true}` and call the route with its `secret` as a Bearer token.
-- **Content switched off** (Phase 2) is one list, `src/systems/contentOff.js`, read by the client and the relay. Flip
+- **Content switched off** (Phase 2) is one list, `src/mods/contentOff.js`, read by the client and the relay. Flip
   a flag to bring a piece back.
 - **Credits stay:** `LICENSE`, the authors in `src/ui/credits.js` and `vendor/`.
 - **Fork changes are tagged.** `grep -rn BUNNYFALL src server server-account app` finds them. Comments quoting "Mac"
@@ -79,11 +79,11 @@ Most online features follow the same path. The guestbook is the plainest example
 2. **Server**, in `server-account/src/`: `guestbook.js` holds the rules, a route in `index.js`
    (`/v1/homes/guestbook/sign` and `/read`), and a migration (`0186_guestbook.sql`).
 3. **Client API**, in `src/net/accountClient.js`: one method per route, plus the words for each refusal.
-4. **Client module**, in `src/systems/online/guestbook.js`: the door rows and what pressing them does.
+4. **Client module**, in `src/homes/guestbook.js`: the door rows and what pressing them does.
 5. **Wiring**: a line in `world.js` (passes the api) and in `worldModes.js` (adds the door rows). Nothing more.
 
-Features with no server part skip steps 2 and 3. The tavern is `tavernLaw.js` (in `src/systems/tavern/`) plus
-`src/scenes/tavernSocial.js`, with its pose fields added to the wire.
+Features with no server part skip steps 2 and 3. The tavern is `tavernLaw.js` (in `src/trade/tavern/`) plus
+`src/trade/tavernSocial.js`, with its pose fields added to the wire.
 
 Adding a DFU mod: `node tools/importDfmod.mjs <file.dfmod>` unpacks it into `vendor/<mod>/`. Asset-only mods are mostly
 done by that. A mod's C# is ported by hand into `src/` and wired like the other vendored mods. Add its licence and
@@ -93,55 +93,55 @@ authors to `src/ui/credits.js`.
 
 | Feature | Files |
 |---|---|
-| Camps: a camping kit's tent kept as a camp and decorated (100 pieces, free, until packed) | `src/net/campLaw.js`, `server-account/src/camps.js` (migration 0207), stood and furnished through `src/scenes/homeYards.js` |
-| Seven new guilds and their halls (online only) | `src/net/bunnyGuildLaw.js`, `src/systems/guild/bunny*.js`, `src/scenes/bunnyHallBanners.js`, `src/ui/town/hallAutomap.js` |
-| Guild hall interiors (house stripped, each guild's trade furnished about the clerk) | `src/scenes/bunnyHallFurnish.js`, wired in `src/scenes/interiorContext.js` |
-| Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/systems/raidMuster.js`, `src/scenes/raidMusterHost.js`, wired in `src/systems/raidingParties.js` and `world.js` |
+| Camps: a camping kit's tent kept as a camp and decorated (100 pieces, free, until packed) | `src/net/campLaw.js`, `server-account/src/camps.js` (migration 0207), stood and furnished through `src/homes/homeYards.js` |
+| Seven new guilds and their halls (online only) | `src/net/bunnyGuildLaw.js`, `src/systems/guild/bunny*.js`, `src/guilds/bunnyHallBanners.js`, `src/ui/hallAutomap.js` |
+| Guild hall interiors (house stripped, each guild's trade furnished about the clerk) | `src/guilds/bunnyHallFurnish.js`, wired in `src/scenes/interiorContext.js` |
+| Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/worldEvents/raidMuster.js`, `src/worldEvents/raidMusterHost.js`, wired in `src/worldEvents/raidingParties.js` and `world.js` |
 | Emperor's statue at Daggerfall's north gate | `src/world/emperorMemorial.js`, `public/art/bunnyfall-npcs/` |
-| Wrothgarian Mountains as the reach of Cromwark (no PvP, haze counter, desolate towns, Dusk Tokens and shop, purple border) | `src/systems/wild/cromwark.js` (switch and numbers), `cromwarkTowns.js`, `nyxShop.js`, `src/scenes/cromwarkHost.js`, `src/ui/nyxWindow.js`, `server-account/src/nyx.js` |
-| Company territories on the held map, +10% yield inside your own (grown by members' Renown in the hall's region) | `src/net/territoryLaw.js` (numbers), `src/systems/companyTerritory.js`, `src/ui/territoryMapInk.js`, `server-account/src/territory.js`, migration `0197_company_territory.sql` |
-| City Charters (up to 3 Companies holding a regional capital; outline on the held map, Charter section on the Company page) | `src/net/charterLaw.js`, `server-account/src/charters.js`, migration `0198_city_charters.sql`, `src/systems/companyTerritory.js`, `src/ui/socialPanel.js` (guildCharterNodes) |
-| Rodney's blight (spreads daily round Cromwark, held by territories, pushed back by raids; purple foes +25% damage and Dusk Tokens inside) | `src/net/blightLaw.js` (numbers), `src/systems/rodneyBlight.js`, `server-account/src/blight.js`, migration `0199_rodney_blight.sql`, `src/ui/territoryMapInk.js` (paintBlight), `src/systems/wild/cromwark.js` (blightHere, foeDamageMult) |
-| Garrisons and patrols (Company guard, Charter garrison; daily upkeep from the Company Stores; patrol walkers on set routes; march pushes the blight) | `src/net/garrisonLaw.js` (numbers), `server-account/src/garrisons.js`, migration `0200_garrisons.sql`, `src/systems/garrisonBook.js`, `src/scenes/garrisonPatrols.js`, `src/ui/socialPanel.js` (guildGarrisonNodes) |
-| Company farms (map farms bought inside the territory, daily harvest into the Company Stores, member chores at the farmhouse door, lost when the territory shrinks) | `src/net/farmLaw.js` (numbers), `server-account/src/farms.js`, migration `0201_company_farms.sql`, `src/systems/farmBook.js`, `src/systems/farmDoor.js` (the door's chore row and question), `src/ui/socialPanel.js` (guildFarmsNodes), `src/ui/territoryMapInk.js` (the marks) |
-| Staff chat commands /vanish, /spawn, /greed | `src/scenes/staffCommandsHost.js`, `server-account/src/staffCommands.js`, migration `0202_staff_commands.sql`, `server-account/src/staffHidden.js` (hiddenToken reads `vanish_on`) |
+| Wrothgarian Mountains as the reach of Cromwark (no PvP, haze counter, desolate towns, Dusk Tokens and shop, purple border) | `src/world/wild/cromwark.js` (switch and numbers), `cromwarkTowns.js`, `nyxShop.js`, `src/world/wild/cromwarkHost.js`, `src/ui/nyxWindow.js`, `server-account/src/nyx.js` |
+| Company territories on the held map, +10% yield inside your own (grown by members' Renown in the hall's region) | `src/net/territoryLaw.js` (numbers), `src/guilds/companyTerritory.js`, `src/ui/territoryMapInk.js`, `server-account/src/territory.js`, migration `0197_company_territory.sql` |
+| City Charters (up to 3 Companies holding a regional capital; outline on the held map, Charter section on the Company page) | `src/net/charterLaw.js`, `server-account/src/charters.js`, migration `0198_city_charters.sql`, `src/guilds/companyTerritory.js`, `src/ui/socialPanel.js` (guildCharterNodes) |
+| Rodney's blight (spreads daily round Cromwark, held by territories, pushed back by raids; purple enemies +25% damage and Dusk Tokens inside) | `src/net/blightLaw.js` (numbers), `src/guilds/rodneyBlight.js`, `server-account/src/blight.js`, migration `0199_rodney_blight.sql`, `src/ui/territoryMapInk.js` (paintBlight), `src/world/wild/cromwark.js` (blightHere, foeDamageMult) |
+| Garrisons and patrols (Company guard, Charter garrison; daily upkeep from the Company Stores; patrol walkers on set routes; march pushes the blight) | `src/net/garrisonLaw.js` (numbers), `server-account/src/garrisons.js`, migration `0200_garrisons.sql`, `src/justice/garrisonBook.js`, `src/justice/garrisonPatrols.js`, `src/ui/socialPanel.js` (guildGarrisonNodes) |
+| Company farms (map farms bought inside the territory, daily harvest into the Company Stores, member chores at the farmhouse door, lost when the territory shrinks) | `src/net/farmLaw.js` (numbers), `server-account/src/farms.js`, migration `0201_company_farms.sql`, `src/guilds/farmBook.js`, `src/guilds/farmDoor.js` (the door's chore row and question), `src/ui/socialPanel.js` (guildFarmsNodes), `src/ui/territoryMapInk.js` (the marks) |
+| Staff chat commands /vanish, /spawn, /greed | `src/tools/staffCommandsHost.js`, `server-account/src/staffCommands.js`, migration `0202_staff_commands.sql`, `server-account/src/staffHidden.js` (hiddenToken reads `vanish_on`) |
 | Staff panel (in game and staff.html) | `staff.html`, `src/tools/staffPanel.js` (sign-in, picks, the game hook's half: Follow, live map, Hide me, tags), `src/tools/staffPanelActions.js` (More > All tools: every staff route as a form), `server-account/src/staffPanelDesk.js` (`/v1/staff/chars`, `/v1/staff/greed`), `src/ui/staffDock.js` (the ST button, the window, the message relay to `src/net/staffHook.js`) |
-| /dm banner (coloured line across the top of every screen; developers and Dungeon Masters) | `src/net/dmLaw.js` (colours), `src/ui/dmBanner.js`, the narrate arm in `server/src/index.js` and `src/net/wire.js` |
-| The chat window (look, scrolling, the player menu under a name, popping it out into its own window) | `src/ui/chatPanel.js` (the panel and its sheet), `src/ui/chatMenu.js` (the popover; rows with a `group` fold behind one entry), `src/ui/chatScroll.js`, `src/ui/chatPopout.js` + `public/chat-popout.html` (the box itself is moved into that window); `src/ui/chatLook.js` (the chat font and text size); `src/ui/chatPlace.js` (size presets, edge drags, moving, and the popped-out window's size and place); `src/ui/chatDrawer.js` (the drawer with its Online, Friends, and Party tabs, its width limits, and the Letters view; `src/ui/socialPanel.js` draws Friends, Party, and Letters into it through its `dock`); the rows come from `socialRowActions` in `world.js` and `src/scenes/chatSafetyHost.js` |
+| /dm banner (coloured line across the top of every screen; developers and Dungeon Masters) | `src/net/dmLaw.js` (colours), `src/ui/dmBanner.js`, the narrate arm in `server/src/message/frames/narrate.js` and `src/net/wire.js` |
+| The chat window (look, scrolling, the player menu under a name, popping it out into its own window) | `src/ui/chatPanel.js` (the panel and its sheet), `src/ui/chatMenu.js` (the popover; rows with a `group` fold behind one entry), `src/ui/chatScroll.js`, `src/ui/chatPopout.js` + `public/chat-popout.html` (the box itself is moved into that window); `src/ui/chatLook.js` (the chat font and text size); `src/ui/chatPlace.js` (size presets, edge drags, moving, and the popped-out window's size and place); `src/ui/chatDrawer.js` (the drawer with its Online, Friends, and Party tabs, its width limits, and the Letters view; `src/ui/socialPanel.js` draws Friends, Party, and Letters into it through its `dock`); the rows come from `socialRowActions` in `world.js` and `src/net/chatSafetyHost.js` |
 | Royal Ballista and Grappling Hook (items 564 and 565: rows, shops, loot, icons; the ballista's arced bolt and burst; the hook's throw and pull; the aiming arc, the rope and the hook's rest on screen) | `src/characters/heavyGearIds.js` (all the numbers), `src/systems/heavyGear.js`, `src/combat/ballista/ballistaFlight.js` (hooks in `arrowFlight.js` and `dungeonContext.js`), `src/combat/grapple/grapple.js` (one hook in `player/motor.js` `_step`), `src/combat/heavyGearRig.js` + `heavyGearArt.js` (wired in `weapon/weaponRig.js`), `src/ui/heavyGearOverlay.js`, the pose's `bl` in `net/wire.js`, art in `public/art/bunnyfall-ballista/` and `bunnyfall-grapple/` |
-| Names (first and last, how NPCs address you) | `src/systems/names.js`, `src/ui/namePicker.js` |
-| Content switched off | `src/systems/contentOff.js` |
+| Names (first and last, how NPCs address you) | `src/characters/names.js`, `src/ui/namePicker.js` |
+| Content switched off | `src/mods/contentOff.js` |
 | Vampire expansion, phase 1 (Vitae, the Beast's stages, Blood Sight, feeding in Steal mode on townsfolk and sleepers, the Clan Elder's summons; switch `vampireBlood` in contentOff) | `src/systems/vampire/bloodLaw.js` (numbers), `vitae.js` (the curse's state, the HUD tile, the Elder's letter), `vampireActions.js` (the quest's `vamp` lines), `src/systems/questlines/quests/QLVA01.txt`, `src/scenes/vampire/vampireFeed.js`; hooks in `vampirism.js`, `townTalk.js` (steal arm), `worldModes.js` (bed rows), `livingTown.js` (`sleepersAt`) |
 | Vampire expansion, phase 2: thralls (Blood Slots, upkeep, prisoners and vials, servants with gear, errands and the follower, social thralls and their perks, the Haven at an owned home's door) | `src/systems/vampire/thrallLaw.js` (numbers), `thralls.js` (state, acts, daily round, the vial item, the follower's party, save), `src/scenes/vampire/thrallCapture.js` (subdue, one line in each foe pool's death arm), `thrallHost.js` (the follower over `crewAshore.js`), `vampireFeed.js` (take and enthrall rows), `src/ui/vampire/havenWindow.js`; the Thralls section in `src/ui/companionRoster.js` |
 | Vampire expansion, phase 3: the Masquerade (per-character heat by region), the nine clans' strengths and banes, the Clan Courts (strikes, tithe, Blood Hunts, penance and Court work), witch hunters and assassins | `src/systems/vampire/clanLaw.js` (territories, seats, rivals, every clan rule), `courtLeaf.js` (who hunts the player), `masquerade.js` (heat, Courts, ambush rolls, save), `courtDoor.js` (the tavern row by night), `src/ui/vampire/courtWindow.js`, `src/scenes/vampire/huntersHost.js`, quests `QLVA02` (penance) and `QLVA03` (Court work) |
 | Vampire Disciplines (3 shared + 2 per clan, Vitae and cooldown, one key: tap the last, hold the wheel) | `src/systems/vampire/disciplineLaw.js` (every power's effects and numbers), `disciplines.js` (the cast: free through `enchantments.js castFreeForPlayer`), `src/ui/vampire/disciplineWheel.js` (the `Discipline` action, Numpad0); installed in `world.js` |
 | Vampire bloodline chosen before the turn (claimed at a Court while infected; the turn waits for it; one re-pick for existing vampires) | `src/systems/vampire/bloodlineLeaf.js` (a leaf read by `infection.js`), `vampirism.js changeVampireClan`, the bitten's and the re-pick's rows in `src/ui/vampire/courtWindow.js`, `courtDoor.js courtCanSee` |
-| Vampire windows and screen effects (both skins) | `src/ui/vampire/vampKit.js` (the two dresses, the window shell, meters, buttons, the clans' crests and the bloods' and Disciplines' glyphs), `bloodSightCard.js`, `havenWindow.js`, `courtWindow.js`, `disciplineWheel.js`, `beastOverlay.js` (the vignette, Classic's vial); the Vitae bar in `src/ui/enhanced/enhancedHud.js` |
-| Homes: buying, votes, who may enter | `src/net/homeLaw.js`, `server-account/src/homes.js`, `homeVotes.js`, `src/systems/online/onlineHomes.js` |
-| Decor: caps, placing, nudging, panel | `src/net/decorLaw.js`, `server-account/src/decor.js`, `src/systems/decor/`, `src/scenes/decor/`, `src/ui/decorPanel.js` |
-| Yards and their edges | `src/scenes/homeYards.js` |
-| Hiding another home's decor (only you) | `src/systems/online/homeDecorHide.js` |
+| Vampire windows and screen effects (both skins) | `src/ui/vampire/vampKit.js` (the two dresses, the window shell, meters, buttons, the clans' crests and the bloods' and Disciplines' glyphs), `bloodSightCard.js`, `havenWindow.js`, `courtWindow.js`, `disciplineWheel.js`, `beastOverlay.js` (the vignette, Classic's vial); the Vitae bar in `src/ui/enhancedHud.js` |
+| Homes: buying, votes, who may enter | `src/net/homeLaw.js`, `server-account/src/homes.js`, `homeVotes.js`, `src/homes/onlineHomes.js` |
+| Decor: caps, placing, nudging, panel | `src/net/decorLaw.js`, `server-account/src/decor.js`, `src/homes/`, `src/ui/decorPanel.js` |
+| Yards and their edges | `src/homes/homeYards.js` |
+| Hiding another home's decor (only you) | `src/homes/homeDecorHide.js` |
 | Guestbook | see the list above |
-| Player festivals (hosted at an innkeeper, map pennant, chat line, Festival Cheer buff) | `src/net/playerFestivalLaw.js`, `server-account/src/playerFestival.js`, `src/systems/online/playerFestivals.js`, the `festivals` marks in `src/ui/heldMap.js` and `src/ui/ink/inkMap.js` |
+| Player festivals (hosted at an innkeeper, map pennant, chat line, Festival Cheer buff) | `src/net/playerFestivalLaw.js`, `server-account/src/playerFestival.js`, `src/systems/festival/playerFestivals.js`, the `festivals` marks in `src/ui/heldMap.js` and `src/ui/inkMap.js` |
 | Magical taverns (one blue tavern per town with two or more; its portal door opens one shared hall: the biggest tavern interior in the game, Nyx at the bar, star windows; switch `magicTaverns` in contentOff) | `src/systems/magicTavern.js` (the rule and the shared room's numbers), `src/scenes/magicTavernRoom.js` (the door's swap, the people, the room's identity), `src/render/magicTavernLook.js` (blue pictures, portal, star glass); a line each in `pixelBuild.js`, `worldModes.js` (`interiorTransition`), `interiorContext.js`, `world.js` (room key and pose offset) |
-| Bards' Guild services paid in Favor (rename an item, cosmetic flourish on an item, rename a home) | `src/net/bardServiceLaw.js` (prices, limits, word filter), `server-account/src/bardServices.js` (route `/v1/bards/service`, migration `0212_home_titles.sql`), `src/scenes/bardServicesShop.js` (the window, opened from the Favor shop), item fields `bardName`/`bardBuff` in `src/systems/item/itemFields.js`, the name read in `itemInfo.js` |
-| Hired-trader stacks (a stack listed by the unit, bought in chosen amounts) | `server-account/src/market.js` (`stackedListing`, `buyWithGold`; a trader's listing keeps its count in `own` and `item.stackCount`), `src/ui/vendor/vendorTab.js`, `src/scenes/vendorHost.js` |
-| Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` (`bunnyTavernRows`: the rows the tavern window carries beside Daggerfall's own) |
+| Bards' Guild services paid in Favor (rename an item, cosmetic flourish on an item, rename a home) | `src/net/bardServiceLaw.js` (prices, limits, word filter), `server-account/src/bardServices.js` (route `/v1/bards/service`, migration `0212_home_titles.sql`), `src/scenes/bardServicesShop.js` (the window, opened from the Favor shop), item fields `bardName`/`bardBuff` in `src/items/itemFields.js`, the name read in `itemInfo.js` |
+| Hired-trader stacks (a stack listed by the unit, bought in chosen amounts) | `server-account/src/marketShared.js` (`stackedListing`) and `server-account/src/market.js` (`buyWithGold`; a trader's listing keeps its count in `own` and `item.stackCount`), `src/ui/vendorTab.js`, `src/trade/vendorHost.js` |
+| Tavern rounds, busking, tips | `src/trade/tavern/tavernLaw.js`, `src/trade/tavernSocial.js`, `src/guilds/bunnyServices.js` (`bunnyTavernRows`: the rows the tavern window carries beside Daggerfall's own) |
 | Other players' paperdolls, seen from behind | `src/ui/paperDollBack.js`, `src/ui/paperDoll.js`, `src/net/remotePlayers.js` |
-| Your own third-person body as a paperdoll (the `Graphics.Paperdoll` setting) | `src/player/eyeOfTheBeholder/eotbDoll.js`, the draw in `eotbBody.js`, the source wired in `world.js` |
-| Paperdoll Enhanced and Weeberfall attached from their downloads (.zip/.7z read in the browser; Weeberfall over PDE; PDE's missing metals recoloured, missing styles borrowed) | `src/systems/modPacks/` (`archiveReader.js`, `lzma.js`, `modPacks.js`, `pdeGapFill.js`), `storeModPackFiles`/`pickModPack`/`removeModPack` in `src/scenes/dataSource.js`, `modPackSections` in `src/ui/enhanced/enhancedMenu.js`, the gap fill in `src/ui/paperDoll.js` (`loadRecord`) |
+| Your own third-person body as a paperdoll (the `Graphics.Paperdoll` setting) | `src/player/eotbDoll.js`, the draw in `eotbBody.js`, the source wired in `world.js` |
+| Paperdoll Enhanced and Weeberfall attached from their downloads (.zip/.7z read in the browser; Weeberfall over PDE; PDE's missing metals recoloured, missing styles borrowed) | `src/systems/modPacks/` (`archiveReader.js`, `lzma.js`, `modPacks.js`, `pdeGapFill.js`), `storeModPackFiles`/`pickModPack`/`removeModPack` in `src/scenes/dataSource.js`, `modPackSections` in `src/ui/enhancedMenu.js`, the gap fill in `src/ui/paperDoll.js` (`loadRecord`) |
 | Flat Replacer (Weeberfall's townsfolk, the Dibellan Degeneracy switch; one add-on entry deliberately left out) | `src/systems/flatReplacer/` (`flatReplacerLaw.js` the matching, `flatReplacer.js` the records and switch), `src/scenes/flatReplacerStand.js` (the stand), a line each in `interiorContext.js`, `worldModes.js` (pick, portrait, body), `staticNpc.js` (name bank) |
-| Custom paperdolls (upload, staff review, worn online, drawn for everyone) | `src/net/skinLaw.js`, `server-account/src/skins.js`, `src/systems/online/customSkins.js`, `src/ui/skinsPanel.js`, `skins.html`, the Skins tab of `staff.html`; hooks in `src/ui/paperDoll.js` and `src/net/remotePlayers.js` |
-| Crafting rework (salvage, upgrades) | `src/net/salvageLaw.js`, `src/net/upgradeLaw.js`, `src/ui/professions/` |
+| Custom paperdolls (upload, staff review, worn online, drawn for everyone) | `src/net/skinLaw.js`, `server-account/src/skins.js`, `src/characters/customSkins.js`, `src/ui/skinsPanel.js`, `skins.html`, the Skins tab of `staff.html`; hooks in `src/ui/paperDoll.js` and `src/net/remotePlayers.js` |
+| Crafting rework (salvage, upgrades) | `src/net/salvageLaw.js`, `src/net/upgradeLaw.js`, `src/ui/` |
 | Server switches for a small server | `server-account/src/bunnyfall.js`, `selfhost/accounts.toml` |
 | Self-host, updates, the ↻ button | `selfhost/`, `src/ui/ownerUpdate.js` |
 | Desktop app | `app/`, `.github/workflows/release-desktop.yml` |
 | Logo and brand mark | `src/assets/branding/`, `src/ui/brandMark.js`, `public/icons/` |
-| World Builder live view (`/play/?live`: the open draft over the real world) | `src/scenes/poiLive.js` (game half), `tools/poi-editor/src/liveLink.js` (builder half) |
+| World Builder live view (`/play/?live`: the open draft over the real world) | `src/poi/poiLive.js` (game half), `tools/poi-editor/src/liveLink.js` (builder half) |
 | World Builder (POIs: build, review, DM content, Sandbox) | `tools/poi-editor/` (the editor, see its README), `src/poi/` (the law, `poiLawV2.js`; the game logic, `poiDmCore.js`) |
-| POI trades and events in the world, paid by the server | `src/poi/poiDmRuntime.js`, `src/scenes/poiHost.js`, `server-account/src/poiTrade.js` |
-| What level a fight is built at (party level, dungeon session, wilds, quests) | `src/systems/encounterLevel.js` (all the numbers), `dungeonLevel.js`, `wildLevel.js`, `mentorMode.js` `partyLevel` |
-| The air's small life: fireflies, butterflies, petals, dust, sun shafts, far birds (visual only, OFF unless `?atmo=on`) | `src/render/atmosphere.js` (sim and draw), `src/scenes/atmosphereHost.js` (the host), six lines in `world.js` marked `ATMO1` |
+| POI trades and events in the world, paid by the server | `src/poi/poiDmRuntime.js`, `src/poi/poiHost.js`, `server-account/src/poiTrade.js` |
+| What level a fight is built at (party level, dungeon session, wilds, quests) | `src/characters/encounterLevel.js` (all the numbers), `dungeonLevel.js`, `wildLevel.js`, `mentorMode.js` `partyLevel` |
+| The air's small life: fireflies, butterflies, petals, dust, sun shafts, far birds (visual only, OFF unless `?atmo=on`) | `src/render/atmosphere.js` (sim and draw), `src/weather/atmosphereHost.js` (the host), six lines in `world.js` marked `ATMO1` |
 
 ## Folders in `src/`
 
@@ -156,7 +156,7 @@ Checked against the real data, so worth trusting:
 
 - Every town with a palace and at least 40 houses keeps all seven Bunnyfall guilds. Smaller towns hold fewer.
 - Guild halls are converted houses (House1 to House4), so they read as houses until a banner and the map colour mark them.
-- Lantern flame heights on chain lights are measured per texture in `src/systems/decor/decorFlame.js`.
+- Lantern flame heights on chain lights are measured per texture in `src/homes/decorFlame.js`.
 
 ## Open work
 

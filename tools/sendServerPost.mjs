@@ -14,7 +14,7 @@
 //   node tools/sendServerPost.mjs --sql <handles> <batch> <item> <subject> <message>       the send's statement
 //
 // `handles` is comma-separated, as the config's lists are; `item` is one of POST_ITEMS - an item is MINTED here by the
-// game's own code (the Hourlock as its drop mints it, src/systems/gilded.js), never typed into a workflow; `message`
+// game's own code (the Hourlock as its drop mints it, src/items/gilded.js), never typed into a workflow; `message`
 // takes `\n` for a line break. Every word reaches the statement through sqlText, quotes doubled.
 //
 // HOURS-FIRST (2026-10-08, Mac: "for all the accounts here I want to grant them ... each the gilded gun"): the post's
@@ -28,7 +28,7 @@ import { readFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 import { HANDLE_RE } from '../src/net/handleShape.js';
 import { POST_BATCH_RE, POST_SENDER, POST_SUBJECT_MAX, POST_BODY_MAX } from '../src/net/postLaw.js';
-import { mintHourlock } from '../src/systems/gilded.js';
+import { mintHourlock } from '../src/items/gilded.js';
 
 /** THE ITEMS A PIECE MAY HOLD, by name - each minted by the game's own code. `none` a message alone. */
 export const POST_ITEMS = Object.freeze({

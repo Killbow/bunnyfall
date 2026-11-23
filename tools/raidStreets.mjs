@@ -10,17 +10,17 @@
 //
 //   ARENA2_PATH=/path/to/arena2 node tools/raidStreets.mjs [--dry]
 //
-// writes src/systems/raidStreetless.js (`--dry`: prints the count alone).
+// writes src/worldEvents/raidStreetless.js (`--dry`: prints the count alone).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MapsFile } from '../src/formats/mapsFile.js';
 import { BlocksFile } from '../src/formats/blocksFile.js';
 import { ImgFile } from '../src/formats/imgFile.js';
 import { layoutLocation } from '../src/world/locationLayout.js';
-import { CityNavigation } from '../src/world/city/cityNavigation.js';
-import { gridStreets, streetEdgeCell, RAID_WAY_EXPANSIONS } from '../src/scenes/raidSitesHost.js';
+import { CityNavigation } from '../src/world/cityNavigation.js';
+import { gridStreets, streetEdgeCell, RAID_WAY_EXPANSIONS } from '../src/worldEvents/raidSitesHost.js';
 import { findTownPath } from '../src/systems/livingWorld/townPaths.js';
-import { raidRegions } from '../src/systems/raidingParties.js';
+import { raidRegions } from '../src/worldEvents/raidingParties.js';
 
 const A2 = process.env.ARENA2_PATH;
 if (!A2) { console.error('set ARENA2_PATH'); process.exit(2); }
@@ -71,6 +71,6 @@ if (!process.argv.includes('--dry')) {
 // table (systems/raidingParties.js raidRegions) strikes them off, so the day's roll picks another town.
 export const RAID_STREETLESS = new Set(${JSON.stringify(out)});
 `;
-  writeFileSync(new URL('../src/systems/raidStreetless.js', import.meta.url), body);
-  console.log('wrote src/systems/raidStreetless.js');
+  writeFileSync(new URL('../src/worldEvents/raidStreetless.js', import.meta.url), body);
+  console.log('wrote src/worldEvents/raidStreetless.js');
 }

@@ -27,9 +27,9 @@
 import { ImgFile } from '../formats/imgFile.js';
 import { CifRciFile } from '../formats/cifRciFile.js';
 import { bitmapToColor32 } from '../formats/color32Order.js';
-import { raceArt, artRaceOf } from '../systems/races.js';
-import { classicFaceRecord } from '../systems/roxArgonians.js';   // ROX
-import { racialOverrideHeadArt } from '../systems/vampirism.js';
+import { raceArt, artRaceOf } from '../characters/races.js';
+import { classicFaceRecord } from '../characters/roxArgonians.js';   // ROX
+import { racialOverrideHeadArt } from '../afflictions/vampirism.js';
 import { playerHeadImage, playerHeadKey } from '../characters/headPortraits.js';   // PORTRAIT3D
 
 /** The bar the three icons are cut from, and each icon's box on it [x, y, w, h] and its pixels' spans along each row

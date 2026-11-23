@@ -14,7 +14,7 @@
 // card stays the voxel rigs', the Billboard Look's and the travel view's.
 import { multiply, ortho, lookAt, perspective, transformPoint, trs } from '../world/mat4.js';
 import { CHAR_PIXEL, CHAR_SPRITE_RT_SIZE, MW_ARM_PIXEL } from './renderer.js';
-import { getPref } from '../systems/uiPrefs.js';   // BODY-CARD: the billboard look, read where the card is stood
+import { getPref } from '../ui/uiPrefs.js';   // BODY-CARD: the billboard look, read where the card is stood
 import { glowPad } from './weaponGlowGlsl.js';   // WEAPON-GLOW1 (AUDIT MW-3): a glowing weapon's outline's room - a leaf
 
 /** World up - landAnchor's vertical when it is handed none, and the upright card's (BODY-CARD). */

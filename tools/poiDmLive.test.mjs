@@ -9,7 +9,7 @@ import { poiV2Example } from './poiV2Examples.mjs';
 import { createPoiDm, mintStack } from '../src/poi/poiDmRuntime.js';
 import { createDm, fire, runEvent } from '../src/poi/poiDmCore.js';
 import { npcsOf } from '../src/poi/poiRuntime.js';
-import { createPoiNpcs } from '../src/scenes/poiNpcs.js';
+import { createPoiNpcs } from '../src/poi/poiNpcs.js';
 
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const tick = () => new Promise((r) => setTimeout(r, 0));

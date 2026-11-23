@@ -17,12 +17,12 @@
 // No piece is made or lost here: a prize is pieces a record held, held by the service until one of the two takes them.
 // Not a DFU member: Daggerfall Unity has no players to wreck.
 // ═══════════════════════════════════════════════════════════════════
-import { verifySeaWreck, SEA_WRECK_GRACE_S } from '../../src/net/wild/wildReceipt.js';
+import { verifySeaWreck, SEA_WRECK_GRACE_S } from '../../src/net/wildReceipt.js';
 import { prepareRealmRecord, seizeRealmRecord, realmActFirst, realmAtOf, recordMovedOf, mustChange, dropIfUnnamed, dropObjects, realmSaveTextOf, holdRefusal } from './realm.js';
 import { piecesBarred, knownCopySteps } from './ledger.js';
 import { ledgerKeyOf } from './judge.js';
 import { seaKillSteps } from './seaBounty.js';
-import { giveTradeGoods } from '../../src/net/realm/realmTradeLaw.js';
+import { giveTradeGoods } from '../../src/net/realmTradeLaw.js';
 import { seaHoldOf, seaPrizePlaces, takeSeaPrize, seaPrizeTook, SEA_PRIZE_HOLD_S } from '../../src/net/sea/seaPrizeLaw.js';
 
 /** The most held prizes one collect or reclaim moves (a captain owed more collects again). */

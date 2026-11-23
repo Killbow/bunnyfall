@@ -24,7 +24,7 @@ page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 await page.setContent(`<!doctype html><body style="margin:0;background:#000"><canvas id="c" width="1600" height="900" style="width:1600px;height:900px"></canvas>
 <script type="module">
 import { Renderer } from 'http://localhost:${PORT}/src/render/renderer.js';
-import { glowSpec } from 'http://localhost:${PORT}/src/systems/weaponGlow.js';
+import { glowSpec } from 'http://localhost:${PORT}/src/combat/weaponGlow.js';
 
 const canvas = document.getElementById('c');
 const renderer = new Renderer(canvas);

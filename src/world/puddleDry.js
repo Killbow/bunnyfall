@@ -26,10 +26,10 @@
 // the feet, the grass and the paths follow it with no seam of their own. readClassicBlock (a mod's diff base) stays
 // BLOCKS.BSA's bytes.
 // ═══════════════════════════════════════════════════════════════════
-import { waterCorners, WATER_DRAW_MASK_TABLE } from './water/waterCorners.js';
+import { waterCorners, WATER_DRAW_MASK_TABLE } from './waterCorners.js';
 import { PUDDLE_RECORDS } from './puddleMask.js';   // the shallow-water art's records, one list (WATER-PUDDLE's)
-import { convertTile } from './terrain/terrainSurface.js';
-import { GROUND_RECORD_LIMIT as RECORD_LIMIT } from './terrain/terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
+import { convertTile } from './terrainSurface.js';
+import { GROUND_RECORD_LIMIT as RECORD_LIMIT } from './terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
 
 /** The shallow-water art: a patch made of these alone is a puddle, whatever its size. */
 const PUDDLE = new Set(PUDDLE_RECORDS);

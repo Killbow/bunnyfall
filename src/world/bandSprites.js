@@ -14,9 +14,9 @@
 // Only under the Overworld: on the ground the band is the real foes it stands as (world.js bandStand).
 // Pointer-free and outside the overlay stack, as every mark of the view.
 // ═══════════════════════════════════════════════════════════════════
-import { MobileUnit } from '../characters/mobile/mobileUnit.js';
-import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
-import { setupFoeLook } from '../characters/enemy/foeLook.js';   // AUDIT DEX B6: SetupDemoEnemy.cs:129-151, the mobile's renderer
+import { MobileUnit } from '../characters/mobileUnit.js';
+import { ENEMY_BASICS } from '../characters/enemyBasics.js';
+import { setupFoeLook } from '../characters/foeLook.js';   // AUDIT DEX B6: SetupDemoEnemy.cs:129-151, the mobile's renderer
 import { mobileBillboardSize } from './rmbFlats.js';
 
 /** Past this (m) a band is only its mark. */

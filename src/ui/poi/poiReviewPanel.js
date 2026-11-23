@@ -19,7 +19,7 @@
 // Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
+import { t } from '../textManager.js';   // L10N4: the words through the text core
 import { POI_LIMITS, poiDocProblems } from '../../poi/poiLaw.js';
 import { poiDiff } from '../../poi/poiDiff.js';
 import { comparableRevs, compareRevisions, defaultPair } from '../../poi/poiRevCompare.js';

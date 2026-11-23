@@ -5,10 +5,10 @@
 // registered with the overlay stack, and handed to the host's overlay slot (townTalk.showOverlay) - so the game stands
 // still while it is up. THE SLOT IS EMPTIED BEFORE THE OCCUPANT IS TOLD: `done` reads true only once the DOM is gone,
 // and the host's `onClose` runs last.
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
-import { lineBoard } from '../scenes/quest/questlineOffers.js';   // QL-OFFERED: the questlines on offer, posted on every town's board
+import { mountEnhancedChunk } from './enhancedChunk.js';
+import { registerOverlay } from './enhancedOverlays.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { lineBoard } from '../systems/quest/questlineOffers.js';   // QL-OFFERED: the questlines on offer, posted on every town's board
 
 /** @type {any} */ let _open = null;
 /** Is the board up. */

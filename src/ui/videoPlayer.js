@@ -43,17 +43,17 @@
 //     Open lets it escape; the READER still throws verbatim, and next()/draw()
 //     are inert until a file has opened.
 
-import { getFloat } from '../systems/settings/settings.js';   // SETT: DaggerfallVideo reads SoundVolume per clip
+import { getFloat } from '../platform/settings.js';   // SETT: DaggerfallVideo reads SoundVolume per clip
 import { UP_Y } from '../world/mat4.js';   // EV2: the shared billboard up axis
 import { VidFile, VID_BLOCK_TYPES } from '../formats/vidFile.js';
-import { NATIVE_W, NATIVE_H, drawImg, nativeMetrics } from './native/nativePanel.js';
+import { NATIVE_W, NATIVE_H, drawImg, nativeMetrics } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
-import { audio } from '../systems/audio.js';
+import { audio } from '../audio/audio.js';
 // AUDIT 64 F41: the two global events DaggerfallVidPlayerWindow raises
 // and their only two subscribers - DaggerfallSongPlayer.cs:76-77 and
 // AmbientEffectsPlayer.cs:92-93.
-import { music } from '../systems/music.js';
-import { muteAmbientForVideo, unmuteAmbientForVideo } from '../systems/ambientEffects.js';
+import { music } from '../audio/music.js';
+import { muteAmbientForVideo, unmuteAmbientForVideo } from '../audio/ambientEffects.js';
 
 const VIDEO_BLOCKS = [
   VID_BLOCK_TYPES.Video_StartFrame,

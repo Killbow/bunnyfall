@@ -16,8 +16,8 @@
 import { KT_STAGE } from './ketchLaw.js';
 import { KW_ID, KW_FORK_ID0, KW_BLOWS } from './ketchWarden.js';
 import { KT_KIND_BY_K } from './ketchConstructs.js';
-import { STATE_SEND_MS } from '../gate/gateBrain.js';
-import { t } from '../../systems/textManager.js';
+import { STATE_SEND_MS } from '../gateBrain.js';
+import { t } from '../../ui/textManager.js';
 import { KT_WORDS, ketchPhaseName } from '../../systems/ketch/ketchWords.js';
 
 /**

@@ -4,11 +4,11 @@
 // its corpse and its sounds), her own health, damage and picture; the Mummy's career (its resistances and weaknesses);
 // her name; and her one picture on the texture door as a stand-in archive (SIFRIT_ARCHIVE, 25 records of one frame -
 // every pose the tables ask of a mobile is the picture the owner gave). Once, before the archives load. Not a DFU member.
-import { ENEMY_BASICS, registerEnemyRows } from '../../characters/enemy/enemyBasics.js';
-import { registerCustomCareerTemplate, registerCustomEnemyName } from '../../characters/enemy/customEnemies.js';
-import { loadMonsterCareer } from '../../characters/enemy/enemyEntity.js';
-import { addVendorTextures } from '../textureReplacement.js';
-import { APP_ROOT } from '../appRoot.js';
+import { ENEMY_BASICS, registerEnemyRows } from '../../characters/enemyBasics.js';
+import { registerCustomCareerTemplate, registerCustomEnemyName } from '../../characters/customEnemies.js';
+import { loadMonsterCareer } from '../../characters/enemyEntity.js';
+import { addVendorTextures } from '../../render/textureReplacement.js';
+import { APP_ROOT } from '../../platform/appRoot.js';
 import { SIFRIT_ID, SIFRIT_NAME, SIFRIT_MUMMY, SIFRIT_ARCHIVE, SIFRIT_RECORDS } from './sifritLaw.js';
 
 /** The shipped picture's URL, off the app root as the other shipped art is. */
@@ -17,7 +17,7 @@ export const sifritArtUrl = (root = APP_ROOT ?? globalThis.document?.baseURI ?? 
 /** Her row: the Mummy's, as it stands in the table now (any mod's edits of it are hers too), made hers. */
 export function sifritRow(mummy = ENEMY_BASICS[SIFRIT_MUMMY]) {
   const row = { ...structuredClone(mummy) };
-  delete row.id;
+  delete /** @type {any} */ (row).id;
   return Object.assign(row, {
     maleTexture: SIFRIT_ARCHIVE, femaleTexture: SIFRIT_ARCHIVE,
     minHealth: 8400, maxHealth: 8400,   // a staff event's own health multiplier reads it; her own health is promoteStaffBoss's (SIFRIT_HP)

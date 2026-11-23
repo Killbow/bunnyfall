@@ -33,11 +33,11 @@
 // one judge for every FULL shape stamp, per fight floor, on SHARED-TIME trails (net/eliteGates/egFair.js's time law - `[t, x, y, z, h]`,
 // `t` the pose's own send time on the relay's clock), and judgePlace, the hall's own hazards at their landing. The three
 // above keep their arrival-timed trails: their enforcement is off (BODY_DEFAULT.enforce), so their error was never paid.
-import { ATTACK_BY_ID, ATTACKS, profileOf, flameProfileOf, hostBlowUnder, screenJudged, wardTakes } from './gate/gateBrain.js';
-import { inAttack, chargeStrikes, wheelStrikes, blowOf } from './gate/gateStrike.js';
-import { SD_BLOW_BY_ID, SD_BLOWS, SD_RESET_PCT, SD_END_PCT, SD_ARENA_SLACK, blowShape, pulsePctOf, handSwept, behindPillar, inArena } from './superDungeon/sdRemnant.js';
-import { SERPENT_ATTACK_BY_ID, SERPENT_ATTACK_TABLE, GRIP, CRUSH, MAEL_GRIND, MAEL_EYE_R, coilHolds, serpentShipsFighting, serpentOnShip } from './serpent/serpentBrain.js';
-import { shapeMeets, fleetShare } from '../systems/serpent/serpentStrike.js';
+import { ATTACK_BY_ID, ATTACKS, profileOf, flameProfileOf, hostBlowUnder, screenJudged, wardTakes } from './gateBrain.js';
+import { inAttack, chargeStrikes, wheelStrikes, blowOf } from './gateStrike.js';
+import { SD_BLOW_BY_ID, SD_BLOWS, SD_RESET_PCT, SD_END_PCT, SD_ARENA_SLACK, blowShape, pulsePctOf, handSwept, behindPillar, inArena } from './sdRemnant.js';
+import { SERPENT_ATTACK_BY_ID, SERPENT_ATTACK_TABLE, GRIP, CRUSH, MAEL_GRIND, MAEL_EYE_R, coilHolds, serpentShipsFighting, serpentOnShip } from './serpentBrain.js';
+import { shapeMeets, fleetShare } from '../worldEvents/serpentStrike.js';
 import { deepIn, BODY_AFTER_MS } from './bossBody.js';
 import { egInBlow, egInShape } from './eliteGates/egShape.js';   // EG-H1: the Spire's FULL shape stamps, one judge for them all
 import { egTrailAt, egTrailAfter, egTrailNear, egTrailReady, egFightFloorAt, EG_POSE_WAIT_MS, EG_POSE_NEAR_MS, EG_TS_LAG_MAX_MS } from './eliteGates/egFair.js';   // EG-H1: THE TIME LAW's trails; AUDIT EG V: the edge a trail is whole to

@@ -29,10 +29,10 @@ const OUT = process.env.SHOT_DIR ?? join(ROOT, 'tools/shots');
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TEMP-UI probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#3b4a3a 0 14px,#324031 14px 28px)}</style></head><body>
 <script type="module">
-import { setPref } from '/src/systems/uiPrefs.js';
-import { drawEnhancedHud } from '/src/ui/enhanced/enhancedHud.js';
+import { setPref } from '/src/ui/uiPrefs.js';
+import { drawEnhancedHud } from '/src/ui/enhancedHud.js';
 import { survivalOf } from '/src/systems/survival/needs.js';
-import { worldMinutes } from '/src/systems/worldTick.js';
+import { worldMinutes } from '/src/world/worldTick.js';
 const q = new URLSearchParams(location.search);
 setPref('survival', 'casual');
 if (q.get('dress') === 'grimoire') { setPref('plusDress', 'grimoire'); document.documentElement.dataset.plusDress = 'grimoire'; }
@@ -93,7 +93,7 @@ try {
     page.on('pageerror', (err) => fails.push(`${tag0}: page error ${err.message}`));
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced&dress=${dress}${foe ? '&foe' : ''}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => typeof globalThis.__measure === 'function' && document.querySelector('.hud-temp'), null, { timeout: 60000 });
-    if (v.scale) await page.evaluate(async (sc) => { (await import('/src/systems/uiPrefs.js')).setPref('hudScale', sc); }, v.scale);
+    if (v.scale) await page.evaluate(async (sc) => { (await import('/src/ui/uiPrefs.js')).setPref('hudScale', sc); }, v.scale);
     for (const [felt, word, side] of READINGS) {
       await page.evaluate((f) => globalThis.__felt(f), felt);
       await settle(page);

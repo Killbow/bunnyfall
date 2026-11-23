@@ -38,7 +38,7 @@
 import { displayName } from './accounts.js';
 import { possessedItemLists, goldOf } from './judge.js';
 import { realmSaveTextOf, REALM_ID_RE } from './realm.js';
-import { lawTemplate, itemWorth, ITEM_UID_RE } from '../../src/systems/item/itemLaw.js';
+import { lawTemplate, itemWorth, ITEM_UID_RE } from '../../src/items/itemLaw.js';
 import { MINED_KEYS, minedMaterial, PLANT_GROUP_TEMPLATES } from '../../src/net/professionLaw.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { kept as keptAnswer } from './staffEconomy.js';   // Home's watch kept as the economy's own is

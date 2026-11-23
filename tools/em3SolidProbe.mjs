@@ -17,7 +17,7 @@ await page.goto('http://127.0.0.1:5241/menu.html?skin=enhanced&dungeonmap=flat',
 await page.evaluate(async () => {
   document.getElementById('enhanced-menu')?.remove();
   const { HeldMapWindow } = await import('/src/ui/heldMap.js');
-  const am = await import('/src/systems/automap/automap.js');
+  const am = await import('/src/maps/automap.js');
   const rows = [];
   const quad = (key, y, x0, z0, x1, z1) => rows.push({ key, positions: new Float32Array([x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1]), indices: new Uint16Array([0, 1, 2, 0, 2, 3]), matrix: null });
   // a round room as a fan of thin triangles, the shape that pocks the raster

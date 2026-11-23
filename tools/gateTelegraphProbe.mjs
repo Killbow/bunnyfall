@@ -19,10 +19,10 @@ const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.ind
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
 
 const PAGE = `<!doctype html><html><body style="margin:0;background:#000"><canvas id=c width=640 height=480></canvas><script type=module>
-import { buildCourtModel, courtToDungeon } from '/src/world/gate/gateArena.js';
-import { courtArt, gateArt } from '/src/world/gate/gateArt.js';
-import { GateTelegraphRenderer, telegraphShape } from '/src/render/gate/gateTelegraph.js';
-import { ATTACKS } from '/src/net/gate/gateBrain.js';
+import { buildCourtModel, courtToDungeon } from '/src/world/gateArena.js';
+import { courtArt, gateArt } from '/src/world/gateArt.js';
+import { GateTelegraphRenderer, telegraphShape } from '/src/render/gateTelegraph.js';
+import { ATTACKS } from '/src/net/gateBrain.js';
 const m = buildCourtModel();
 const gl = document.getElementById('c').getContext('webgl2', { alpha: false, preserveDrawingBuffer: true });
 const vs = \`#version 300 es

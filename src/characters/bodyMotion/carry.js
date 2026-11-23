@@ -22,7 +22,7 @@
 // bow, a crossbow, a thrown weapon, a readied spell - the clip's own arms, which already carry them).
 // Every row is the RIGHT arm's; the left is its mirror. Pure.
 
-import { MW_WEAPON_TYPE } from '../../formats/morrowind/mwFirstPerson.js';
+import { MW_WEAPON_TYPE } from '../../formats/mwFirstPerson.js';
 import { rotAxisAngle, rotFromTo, rotFraction } from '../../combat/climbRig.js';
 import { algebra, clamp01, apply, RAD, reflect, fromColumns, mul, transpose } from './bodyKit.js';
 import { gripRequest } from './bodySolve.js';

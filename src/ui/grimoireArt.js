@@ -50,8 +50,8 @@
 //   vials     the HUD's three glass vials (MAIN03I0-05I0, green, red, blue): upright for the corner, on their side for
 //             the row, each with a drained twin; and cut into a cork and a seamless length of tube, so a bar of any
 //             length is the vial at its own pixels, never stretched
-import { UI_PACKS, packUrl } from '../systems/uiPack.js';
-import { APP_ROOT } from '../systems/appRoot.js';
+import { UI_PACKS, packUrl } from './uiPack.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 /** GRIM6: a dial symbol shipped as its own file under public/art (the chest), served beside the app. */
 export const dialFileUrl = (file, doc = globalThis.document) => new URL(`art/${file}`, APP_ROOT ?? doc?.baseURI ?? 'http://localhost/').href;
 

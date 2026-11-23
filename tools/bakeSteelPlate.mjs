@@ -114,8 +114,8 @@ import { jointWeights } from './skinWeights.mjs';
 import { previewSheet } from './meshSheets.mjs';
 import { readPng, writePng } from './pngIO.mjs';
 import { isMain } from './lib/isMain.mjs';
-import { parseNif } from '../src/formats/morrowind/mwNifFile.js';
-import { affineOfTransform } from '../src/formats/morrowind/mwAffine.js';
+import { parseNif } from '../src/formats/mwNifFile.js';
+import { affineOfTransform } from '../src/formats/mwAffine.js';
 
 /** Mac's exports, as committed (MW-STEEL5): the whole set with the closed helm, as it came, and the open helm alone,
  *  out of MW-STEEL1's export. */

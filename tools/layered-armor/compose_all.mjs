@@ -5,7 +5,7 @@
 // usage: node compose_all.mjs <repo> <out> [<record>-<frame>,...]   (needs pngjs)
 import fs from 'fs'; import path from 'path'; import { PNG } from 'pngjs';
 const [X, OUT, ONLY] = process.argv.slice(2);
-const LA = await import(path.resolve(X, 'src/player/eyeOfTheBeholder/layeredArmor.js'));
+const LA = await import(path.resolve(X, 'src/player/layeredArmor.js'));
 const V = path.join(X, 'vendor/layered-armor');
 const man = JSON.parse(fs.readFileSync(`${V}/manifest.json`)), cman = JSON.parse(fs.readFileSync(`${V}/cloak/manifest.json`));
 const dec = (p) => { const b = PNG.sync.read(fs.readFileSync(p)); return { width: b.width, height: b.height, data: b.data }; };

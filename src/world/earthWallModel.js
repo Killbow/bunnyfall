@@ -2,7 +2,7 @@
 // Builds Wall of Earth's drawn mound, one seeded, closed mesh about the size of WALL_SIZE. It is in meters with y up, x
 // across the aim, and z along it, and the ground under its middle is at y = 0. It reaches WALL_SKIRT_M below the
 // ground, so a slope leaves no gap.
-import { WALL_SIZE } from '../systems/spell/bunnySpellLaw.js';
+import { WALL_SIZE } from '../magic/bunnySpellLaw.js';
 import { flatMesh, flatModel, seededRandom } from './flatMesh.js';
 
 export const WALL_SKIRT_M = 1.0;

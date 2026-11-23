@@ -38,24 +38,24 @@
 // rises toward the crosshair; a band too short for every card shows the newest (pickupFeedLayout). Measured each frame
 // a card stands, so a plaque that grows or shrinks as the player looks along a pile carries the feed with it rather
 // than covering it. tools/pickupFeedProbe.mjs photographed the first cut's fourth card under the hotbar at 1280x800.
-import { isEnhanced } from '../systems/uiSkin.js';
-import { itemNameParts } from '../systems/item/itemInfo.js';   // RF6: the long name's name part - the word the plaque's row and the take's line both wear
-import { rarityAttr } from '../systems/loot/lootRarity.js';   // LR1: the tier the plaque's row wears
-import { announces, isAcquired } from '../systems/acquireWatch.js';   // LOOT-BANNER: a new rare-or-better piece is the banner's
-import { isGoldPieces } from '../systems/inventory.js';
-import { inventoryItemImage } from '../systems/item/itemTemplates.js';
+import { isEnhanced } from './uiSkin.js';
+import { itemNameParts } from '../items/itemInfo.js';   // RF6: the long name's name part - the word the plaque's row and the take's line both wear
+import { rarityAttr } from '../items/lootRarity.js';   // LR1: the tier the plaque's row wears
+import { announces, isAcquired } from '../items/acquireWatch.js';   // LOOT-BANNER: a new rare-or-better piece is the banner's
+import { isGoldPieces } from '../items/inventory.js';
+import { inventoryItemImage } from '../items/itemTemplates.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';   // UI1: the pack's own fitted, cached icon door - decoded once, never per frame
 import { screenDpr } from './iconFit.js';
 import { PIXEL_STACK, PIXEL_FONT_CSS, PIXELIFY_FIVE_FACE, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
-import { rarityVarsCss } from './enhanced/enhancedPlusStyle.js';   // RARITY-UI: the tiers' colours, the one table
-import { FRAME_TONES, PLUS_THEMES, hudVeil, HUD_VEIL_LIGHT } from './enhanced/enhancedFrame.js';   // LOOT-BANNER: the veil's law, shared
+import { rarityVarsCss } from './enhancedPlusStyle.js';   // RARITY-UI: the tiers' colours, the one table
+import { FRAME_TONES, PLUS_THEMES, hudVeil, HUD_VEIL_LIGHT } from './enhancedFrame.js';   // LOOT-BANNER: the veil's law, shared
 import { midScreenText } from './midScreenText.js';
-import { ENHANCED_MID_TEXT_ID, midTextTopPx } from './enhanced/enhancedHudText.js';
-import { crosshairCentreY, CROSSHAIR_ARM } from './hud/hudCrosshair.js';
-import { hudReticle } from './hud/hud.js';   // the reticle's own two terms, from their home (the plaque's anchor reads the same)
+import { ENHANCED_MID_TEXT_ID, midTextTopPx } from './enhancedHudText.js';
+import { crosshairCentreY, CROSSHAIR_ARM } from './hudCrosshair.js';
+import { hudReticle } from './hud.js';   // the reticle's own two terms, from their home (the plaque's anchor reads the same)
 import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js';
 import { haulWords, HAUL_ICON_BOX, LODE_ICON_BOX } from './haulCards.js';   // HAUL-CARDS: a gather's, a strike's and a claim's cards - their words
-import { argentUrl } from '../systems/currencyUrls.js';   // BUNNYFALL: the Imperial Argent's coin on a feed card
+import { argentUrl } from '../trade/currencyUrls.js';   // BUNNYFALL: the Imperial Argent's coin on a feed card
 
 /** Four cards at most (the oldest goes past four). */
 export const PICKUP_FEED_MAX = 4;

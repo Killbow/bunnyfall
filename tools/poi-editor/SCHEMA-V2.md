@@ -78,7 +78,7 @@ weapon (not arrows), a piece of armour or a trophy. A `paperdoll` is any other i
 (`NPC_FLAT_ARCHIVES`) keeps scale 1. Other scales run 0.25 to 4.
 
 An item stack is `{ template, group?, material?, count, recipe? }`. `recipe` names one of the game's 20 potions by its
-recipe name (`healing`, `healTrue`: the `name` field in `src/systems/potionRecipes.js`) and goes only on the Glass Bottle
+recipe name (`healing`, `healTrue`: the `name` field in `src/items/potionRecipes.js`) and goes only on the Glass Bottle
 (template 83). The service, offline play, and the in-game editor's Test mint that potion with the game's own potion
 maker. In the game and on the service, a stack with a `recipe` counts that recipe's plain and Potent potions, and a
 hand-over may name either. A Glass Bottle stack without a `recipe` matches only empty bottles. The Sandbox tells

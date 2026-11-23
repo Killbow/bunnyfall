@@ -51,16 +51,16 @@ import { DISHES, recipeById, RECIPES } from './recipeLaw.js';
 import { material } from './nodeLaw.js';
 import { TIER_RANKS, topTierOf, professionName, COUNTER_ONLY, EMBER_MADE } from './professionLaw.js';   // DAEDRIC-SMELT: the ember's metal
 import { renownRate } from './renown.js';
-import { gateHash } from './gate/gateLaw.js';
-import { GUILD_FACTION_IDS, DIVINES } from '../systems/guild/guildFactions.js';
-import { takeTradeGoods, tradeableRecord, recordCount } from './realm/realmTradeLaw.js';
+import { gateHash } from './gateLaw.js';
+import { GUILD_FACTION_IDS, DIVINES } from '../guilds/guildFactions.js';
+import { takeTradeGoods, tradeableRecord, recordCount } from './realmTradeLaw.js';
 import { PROVENANCE_RE } from './recipeLaw.js';
 import { MARKS_FAUCETS } from './marksLaw.js';
 import { hallPosterName } from './npcChapterLaw.js';
 import { UNYIELDED } from './marketLaw.js';
-import { GROUP_TEMPLATE_INDICES } from '../systems/item/itemTemplatesData.js';
-import { isLocked } from '../systems/item/itemLock.js';
-import { t } from '../systems/textManager.js';
+import { GROUP_TEMPLATE_INDICES } from '../items/itemTemplatesData.js';
+import { isLocked } from '../items/itemLock.js';
+import { t } from '../ui/textManager.js';
 
 /** Crafting writs an account fills a UTC day - their own allowance, beside the Court's three: the faucet's cap. */
 export const CRAFT_WRITS_PER_DAY = MARKS_FAUCETS.craftWrit.perDay;

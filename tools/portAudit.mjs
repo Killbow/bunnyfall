@@ -13,8 +13,8 @@ import { MapsFile, longitudeLatitudeToMapPixel } from '../src/formats/mapsFile.j
 import { WoodsFile, MAP_WIDTH, MAP_HEIGHT } from '../src/formats/woodsFile.js';
 import { isWaterPixel } from '../src/ui/overworldModel.js';
 import { openSeaOf, portTownOnSea } from '../src/world/portSites.js';
-import { portTownByData, isPortTownType } from '../src/systems/portPlaces.js';
-import { hasPort } from '../src/systems/travel/travelPorts.js';
+import { portTownByData, isPortTownType } from '../src/travel/portPlaces.js';
+import { hasPort } from '../src/travel/travelPorts.js';
 import { LOCATION_TYPES } from '../src/formats/mapsFile.js';
 
 const TYPE_NAME = Object.fromEntries(Object.entries(LOCATION_TYPES).map(([k, v]) => [v, k]));

@@ -109,24 +109,24 @@
 // has no port counterpart and needs none: every one of these ten
 // settings is read at its point of use, so a write is already live.
 
-import { nativeMetrics, drawRect } from './native/nativePanel.js';
+import { nativeMetrics, drawRect } from './nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { drawText, measureText } from './text.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';
-import { onSavedKeyBinds, PORT_ACTIONS, HIDDEN_ACTIONS } from '../systems/inputActions.js';   // AUDIT SOC D3: the port's own rows YIELD here too - the ADVANCED popup is DFU's six and no more
+import { onSavedKeyBinds, PORT_ACTIONS, HIDDEN_ACTIONS } from './inputActions.js';   // AUDIT SOC D3: the port's own rows YIELD here too - the ADVANCED popup is DFU's six and no more
 import {
   currentDict, setUnsavedBinding, checkDuplicates, buttonText, ELONGATED_TEXT,
   INTERNAL_DUPE_COLOR, CROSS_DUPE_COLOR, removeKeybindPromptRows, comboFromEvent,
   bindingHolders, stageReplace, canShareKey, stageShare, replacePromptRows, SHARED_KEY_COLOR,
-} from '../systems/controlsConfig.js';
+} from './controlsConfig.js';
 import {
   makeSlider, setScrollIndex, sliderClick, sliderDrag, sliderGetValue, sliderScroll,
   sliderThumb, indicatorText, SLIDER_HEIGHT, SLIDER_INDICATOR_OFFSET, TROUGH_COLOR, TINT,
 } from './horizontalSlider.js';
 import { ToolTip } from './toolTip.js';
-import { getBool, getFloat, getInt, setValue, saveSettings, effectiveSettings } from '../systems/settings/settings.js';
-import { localizedText, localizedTextList, localizedStrings, TextCollections } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Settings, read in the player's language
-import { hotkeyHit } from '../systems/dialogShortcuts.js';   // L10N3f: the prompts' Yes/No are DaggerfallShortcut's
+import { getBool, getFloat, getInt, setValue, saveSettings, effectiveSettings } from '../platform/settings.js';
+import { localizedText, localizedTextList, localizedStrings, TextCollections } from './textManager.js';   // L10N3d: DFU's Internal_Settings, read in the player's language
+import { hotkeyHit } from './dialogShortcuts.js';   // L10N3f: the prompts' Yes/No are DaggerfallShortcut's
 
 /** L10N3f: a click on a prompt's Yes or No button, handed to input() -
  *  never a key, so it answers whatever letters the language gives them.
@@ -154,8 +154,8 @@ export function promptAnswer(code, e = null) {
 // here instead, so a corrupt value still lands on a real slider stop.
 const effInt = (sec, key, min, max) =>
   Math.min(max, Math.max(min, Number(effectiveSettings()[sec]?.[key] ?? min) || min));
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 
 /** mainPanelSize (:89) at Center/Middle over the 320x200 native panel. */
 export const MOUSE_PANEL = Object.freeze([1, 15, 318, 170]);

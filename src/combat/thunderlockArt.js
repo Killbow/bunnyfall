@@ -16,15 +16,15 @@
 // file once sliced (FIELD-GUN's) is the gun lab's now (src/tools/gunLab.js,
 // combat/gun/gunSheet.js), kept for it.
 
-import { contentBox } from './gun/gunSheet.js';
-import { stripCellRect, hardenAlpha, cropImage } from './gun/pistolStrip.js';   // THUNDERLOCK-ART2: the strip's cut - the Pistolet's laws, a leaf's
-import { THUNDERLOCK_STRIP } from './gun/thunderlockStrip.js';   // the strip's shape, a leaf's (the anim table and the machine read it too)
-import { FLASH_LUMA, flashMask, flashBodyPoint } from './gun/gunFlash.js';   // the flash's laws, the Pistolet's too - one home
-import { decodePng } from '../systems/textureReplacement.js';
+import { contentBox } from './gunSheet.js';
+import { stripCellRect, hardenAlpha, cropImage } from './pistolStrip.js';   // THUNDERLOCK-ART2: the strip's cut - the Pistolet's laws, a leaf's
+import { THUNDERLOCK_STRIP } from './thunderlockStrip.js';   // the strip's shape, a leaf's (the anim table and the machine read it too)
+import { FLASH_LUMA, flashMask, flashBodyPoint } from './gunFlash.js';   // the flash's laws, the Pistolet's too - one home
+import { decodePng } from '../render/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';   // FIELD-GUN3: HT3's law - a SCREEN QUAD's PNG keeps its rows
 import { WEAPON_TYPES, getWeaponAnims } from './fpsWeapon.js';
-import { GUN_FEEL } from './gun/gunFeel.js';   // FIELD-GUN7: the lab's settled pose, one home
-import { APP_ROOT } from '../systems/appRoot.js';   // AUDIT-THUNDERLOCK F7: the SITE root, not the document's
+import { GUN_FEEL } from './gunFeel.js';   // FIELD-GUN7: the lab's settled pose, one home
+import { APP_ROOT } from '../platform/appRoot.js';   // AUDIT-THUNDERLOCK F7: the SITE root, not the document's
 
 /** The art, off the SITE ROOT rather than the document.
  *

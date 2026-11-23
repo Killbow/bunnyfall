@@ -6,7 +6,7 @@ import { HOME_CAP, homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.
 import { decorRefund } from '../../src/net/decorLaw.js';
 import { decorHeldBlocks } from './decorBatch.js';
 import { dropIfUnnamed, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmHoldOf, realmSaveTextOf, seizeRealmRecord } from './realm.js';
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 
 const OFFER_S = 3 * 24 * 60 * 60;
 const PRICE_MAX = 100_000_000;

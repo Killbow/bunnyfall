@@ -22,7 +22,7 @@
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { duelClock } from './duelWall.js';
-import { RARITIES } from '../systems/loot/lootRarity.js';
+import { RARITIES } from '../items/lootRarity.js';
 
 /** The most pieces one frame draws (three pieces, a Regalia piece when one drops, the gold and the Sigil Stone - and
  *  room for more). */

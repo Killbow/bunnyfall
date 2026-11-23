@@ -11,16 +11,16 @@
 import { POI_V2_LIMITS as L, POI_INTERACTIVE_STATES, POI_FOE_RANGES } from './poiLawV2.js';
 import { POI_ITEM_CHOICES } from './poiItemChoices.js';
 import { reachOf, WALK_NEAR } from './poiDmCore.js';
-import { ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
-import { dexEnemyNameText } from '../systems/enemyExpansion/dexNames.js';
-import { ITEM_TEMPLATES } from '../systems/item/itemTemplates.js';
-import { POTION_RECIPES } from '../systems/potionRecipes.js';
-import { GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
-import { templateGroups } from '../systems/item/itemLaw.js';
-import { tradeableRecord } from '../net/realm/realmTradeLaw.js';
+import { ENEMY_NAMES } from '../characters/enemyBasics.js';
+import { dexEnemyNameText } from '../mods/enemyExpansion/dexNames.js';
+import { ITEM_TEMPLATES } from '../items/itemTemplates.js';
+import { POTION_RECIPES } from '../items/potionRecipes.js';
+import { GLASS_BOTTLE_TEMPLATE } from '../items/inventory.js';
+import { templateGroups } from '../items/itemLaw.js';
+import { tradeableRecord } from '../net/realmTradeLaw.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
-import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
-import { t } from '../systems/textManager.js';
+import { ARMOR_MATERIAL } from '../items/armorMaterials.js';
+import { t } from '../ui/textManager.js';
 import { freshKey } from './poiScene.js';
 import { POI_PART_KEY_RE } from './poiLaw.js';
 

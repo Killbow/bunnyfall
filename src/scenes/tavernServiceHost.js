@@ -1,20 +1,20 @@
 // @ts-check
 // BUNNYFALL: service over the room's existing NPCs; the counter uses the normal held overlay slot.
 import { createTavernShift, stepTavernShift, tavernOrder, tavernOpenChores, tavernDoseCount, TAVERN_RECIPES, TAVERN_INGREDIENTS, TAVERN_BARDS_FACTION, TAVERN_SHIFT_MAX_S } from '../net/tavernServiceLaw.js';
-import { tavernRecipeName, tavernIngredientName, tavernServiceError, tavernOrderLine, tavernThanksLine, tavernRefusedLine } from '../systems/tavern/tavernServiceWords.js';
+import { tavernRecipeName, tavernIngredientName, tavernServiceError, tavernOrderLine, tavernThanksLine, tavernRefusedLine } from '../trade/tavern/tavernServiceWords.js';
 import { tavernRoomAvailable, tavernRoomEvent, tavernRoomMusicShare, tavernRoomPatron } from '../net/tavernRoomLaw.js';
-import { tavernRoomCue, tavernRoomChoice, tavernRoomResult, tavernRoomMood } from '../systems/tavern/tavernRoomWords.js';
+import { tavernRoomCue, tavernRoomChoice, tavernRoomResult, tavernRoomMood } from '../trade/tavern/tavernRoomWords.js';
 import { createTavernServiceHud } from '../ui/tavernServiceHud.js';
 import { createTavernMixWindow, createTavernRecipeWindow } from '../ui/tavernServiceWindow.js';
 import { createTavernChoreWindow } from '../ui/tavernChoreWindow.js';
 import { createTavernChores } from './tavernChores.js';
 import { createTavernPatronSkins } from './tavernPatronSkins.js';
-import { t } from '../systems/textManager.js';
-import { addGoldPieces } from '../systems/inventory.js';
-import { changeReputation } from '../systems/faction/factionRep.js';
+import { t } from '../ui/textManager.js';
+import { addGoldPieces } from '../items/inventory.js';
+import { changeReputation } from '../guilds/factionRep.js';
 import { tavernReputation } from '../net/tavernFavorLaw.js';
-import { tavernProgress } from '../systems/guild/bunnyMembership.js';
-import { bunnyMembershipOf } from '../systems/guild/bunnyMembership.js';
+import { tavernProgress } from '../guilds/bunnyMembership.js';
+import { bunnyMembershipOf } from '../guilds/bunnyMembership.js';
 
 /** @param {any} deps */
 export function createTavernServiceHost(deps) {

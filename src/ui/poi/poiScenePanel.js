@@ -7,7 +7,7 @@
 // so where the mark is set. A locked row is not picked in the world, moved, or deleted; the outliner still selects it,
 // so it can be unlocked.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { selItems, selectionOf } from '../../poi/poiEdit.js';
 import { buildTree, find, marksOf, nameMaxOf, parseId, rangeIds, GROUP_NAME_MAX } from '../../poi/poiScene.js';
 

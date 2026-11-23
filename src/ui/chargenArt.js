@@ -37,24 +37,24 @@ import { FlcFile } from '../formats/flcFile.js';   // F2: the constellation CELs
 import { FlcPlayer } from './flcPlayer.js';
 import { DFPalette } from '../formats/dfPalette.js';   // U18: CHGN00I0's own palette
 import { TextRsc } from '../formats/textRsc.js';   // U11: the race description
-import { generateBackstory } from '../systems/biography.js';   // U13
+import { generateBackstory } from '../characters/biography.js';   // U13
 import { bitmapToColor32, toScreenOrder } from '../formats/color32Order.js';   // PORTRAIT3D: toScreenOrder - a head's picture is top-down
-import { drawImg, drawRect, shadowText, DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR, SCREEN_DIM } from './native/nativePanel.js';
+import { drawImg, drawRect, shadowText, DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR, SCREEN_DIM } from './nativePanel.js';
 import { thumbSpan, drawScrollThumb } from './verticalScrollBar.js';   // ROAD-D2: the list picker's thumb, DFU's own slices
 import { drawText, measureText, makeFont } from './text.js';   // U15: the RANDOM button label; U18: the black scroll text; AUDIT 18: SmallFont
 import { FntFile } from '../formats/fntFile.js';   // AUDIT 18: FONT0002, DaggerfallUI.SmallFont
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';   // U11
-import { facesFor, classicFaceRecord } from '../systems/roxArgonians.js';   // ROX
+import { facesFor, classicFaceRecord } from '../characters/roxArgonians.js';   // ROX
 import { roxRgba, roxHeadUrl } from './roxArgonianArt.js';
-import { FACES_PER_RACE, raceById, raceArt } from '../systems/races.js';
-import { SKILL_NAMES } from '../systems/skills.js';
-import { reviseClassDescription } from '../systems/stockClasses.js';   // CLASS-USE: the description names the revised skills
-import { daggerY, tickDaggerTrails, REP_GREEN, REP_RED, REP_EXIT, REP_BAR_TOP, REP_BAR_BOTTOM, REP_GROUPS, HELP_TOPICS } from '../systems/customClass.js';   // U20a; CG1 the trail machine
-import { labelRows, labelFor, LABEL_ORIGIN, LABEL_HIT_HEIGHT } from '../systems/specialAdvantages.js';   // U20b
-import { STAT_KEYS_ORDER } from '../systems/chargen.js';
+import { FACES_PER_RACE, raceById, raceArt } from '../characters/races.js';
+import { SKILL_NAMES } from '../characters/skills.js';
+import { reviseClassDescription } from '../characters/stockClasses.js';   // CLASS-USE: the description names the revised skills
+import { daggerY, tickDaggerTrails, REP_GREEN, REP_RED, REP_EXIT, REP_BAR_TOP, REP_BAR_BOTTOM, REP_GROUPS, HELP_TOPICS } from '../characters/customClass.js';   // U20a; CG1 the trail machine
+import { labelRows, labelFor, LABEL_ORIGIN, LABEL_HIT_HEIGHT } from '../characters/specialAdvantages.js';   // U20b
+import { STAT_KEYS_ORDER } from '../characters/chargen.js';
 import { packImgTexture } from './packArt.js';   // OVH2: the worn UI pack's picture
-import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { raceDisplayName } from '../systems/talk/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { raceDisplayName } from '../talk/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
 
 // DaggerfallUI.cs:52-62 - the colours these windows actually use.
 /** CreateCharNameSelect.cs:79-81 - the RANDOM button's own colours. */

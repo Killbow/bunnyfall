@@ -1,14 +1,14 @@
-import { cromwarkWardRole, cromwarkWardSource, cromwarkWardDamage } from '../src/systems/wild/cromwarkWards.js';
+import { cromwarkWardRole, cromwarkWardSource, cromwarkWardDamage } from '../src/world/wild/cromwarkWards.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CROMWARK_ROSTER, cromwarkHealth, cromwarkSpecies, cromwarkPack, cromwarkTitanheart, cromwarkTitanDamage } from '../src/systems/wild/cromwarkRoster.js';
-import { cromwarkPattern, inCromwarkMark, shotHits } from '../src/systems/wild/cromwarkPatterns.js';
-import { createCromwarkCombat } from '../src/systems/wild/cromwarkCombat.js';
+import { CROMWARK_ROSTER, cromwarkHealth, cromwarkSpecies, cromwarkPack, cromwarkTitanheart, cromwarkTitanDamage } from '../src/world/wild/cromwarkRoster.js';
+import { cromwarkPattern, inCromwarkMark, shotHits } from '../src/world/wild/cromwarkPatterns.js';
+import { createCromwarkCombat } from '../src/world/wild/cromwarkCombat.js';
 import { validFoeRecord } from '../src/net/wire.js';
 import { foeStatsRefusal } from '../src/net/foeBounds.js';
-import { setWildHere, applyWildFoe, setWildMask } from '../src/systems/wild/wildZone.js';
-import { createHazeClock, foeDamageMult, setBlightProbe } from '../src/systems/wild/cromwark.js';
-import { grantSpecies } from '../src/scenes/grantHost.js';
+import { setWildHere, applyWildFoe, setWildMask } from '../src/world/wildZone.js';
+import { createHazeClock, foeDamageMult, setBlightProbe } from '../src/world/wild/cromwark.js';
+import { grantSpecies } from '../src/net/grantHost.js';
 
 const origin = [0, 0, 0];
 const foe = (id = 3138, puppet = null) => ({ mobileType: id, puppet, entity: { health: 100, eliteFoe: false },

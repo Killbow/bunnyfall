@@ -77,15 +77,15 @@ import {
 } from '../net/marketLaw.js';
 import { QUALITY_NAMES, MASTERWORK } from '../net/recipeLaw.js';
 import { marksText, MARK_WORTH_GOLD } from '../net/marksLaw.js';
-import { pictureNode, frameWake } from './menu/menuGlyphs.js';   // MENU-ORDER: a row's picture, the host's
-import { t, currentLocale } from '../systems/textManager.js';   // BOARD-SIFT: the pages' and the orders' words in the player's language
-import { mintPiece, asMinted } from '../systems/smithItems.js';   // AUDIT BOARD-SIFT: a recipe's piece minted as its row mints it; AUDIT MAKER-RARE B2: and whether a piece still is
-import { itemLongName } from '../systems/item/itemInfo.js';
+import { pictureNode, frameWake } from './menuGlyphs.js';   // MENU-ORDER: a row's picture, the host's
+import { t, currentLocale } from './textManager.js';   // BOARD-SIFT: the pages' and the orders' words in the player's language
+import { mintPiece, asMinted } from '../professions/smithItems.js';   // AUDIT BOARD-SIFT: a recipe's piece minted as its row mints it; AUDIT MAKER-RARE B2: and whether a piece still is
+import { itemLongName } from '../items/itemInfo.js';
 import { walledText } from './storesWalled.js';   // RPT1026-MARKET STORES-SAID: what a listing may not take, said
-import { isStolen, stolenTag, stolenLine } from '../systems/stolenGoods.js';   // RPT1026-LEDGERLAW: a stolen piece said so where another player buys it
+import { isStolen, stolenTag, stolenLine } from '../justice/stolenGoods.js';   // RPT1026-LEDGERLAW: a stolen piece said so where another player buys it
 import { typedField } from './workSift.js';   // AUDIT BOARD-SIFT: a search read once its word is whole
 import { packPickerNode, packCardNode, freshPackSift, packTierWord } from './packPicker.js';   // PACK-PICK: a piece chosen from its picture
-import { itemLookRows } from '../systems/item/itemLook.js';   // PACK-PICK: and looked at before it is listed
+import { itemLookRows } from '../items/itemLook.js';   // PACK-PICK: and looked at before it is listed
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

@@ -10,7 +10,7 @@
 // alone, its rows while the pointer is over it or once it is clicked. One canvas, for an Admin's monster
 // lines on the Overworld and a line to each flagged player (STAFF-FLAG-LINES: a report's, red), drawn again only when a line moved.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** The mockup's look (In game board): the name in the Ember look's cyan on a dark plate, a flag by its urgency - High
  *  red, Medium amber, Low grey; an Admin's monster lines in the enemy's red. */

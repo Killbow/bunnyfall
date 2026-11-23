@@ -3,7 +3,7 @@
 // THE ESTATE LEDGER, OPENED AT ONCE - one read-only page over the world, styled as the farming HUD is (classic or enhanced). It
 // shows a model the farm's acts build (scenes/farm/farmsteadActs.js overview) and has NO controls but a close: the farm is still
 // worked by clicking things on it, never from this page. Esc, the Close button or a click on the ground closes it.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /**
  * @param {HTMLElement} host the farming HUD's root

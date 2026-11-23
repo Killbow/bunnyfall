@@ -3,7 +3,7 @@
 // visible focus to the nearest control (plusPad.js's d-pad law), Tab walks them in order, Enter and Space press the
 // focused one; Escape stays the window's. A window that moves its own choice with the arrows keeps them (its capture
 // handler stops the key first, or OWN_ARROWS names it). The HUD is never walked, and a held pointer means play keys.
-import { FRAME_ROLES } from './enhanced/enhancedFrame.js';
+import { FRAME_ROLES } from './enhancedFrame.js';
 
 /** Where a window is: the kit's window roles, the menus' homes and the shells every enhanced window stands in. */
 export const NAV_ROOTS = [...FRAME_ROLES.window, '.px-home', '.px-sys', '.cw', '.shell', '[class*="-shell"]', '[data-dom-focus]', '[role="dialog"]'].join(', ');

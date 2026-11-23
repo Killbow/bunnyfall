@@ -9,7 +9,7 @@
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { skyState } from '../src/render/enhancedSky.js';
-import { MINUTES_PER_DAY } from '../src/systems/gameDate.js';
+import { MINUTES_PER_DAY } from '../src/world/gameDate.js';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const shots = process.env.PROBE_SHOTS ?? '/tmp';

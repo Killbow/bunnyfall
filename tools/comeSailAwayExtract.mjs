@@ -63,7 +63,7 @@ import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { isMain } from './lib/isMain.mjs';
-import { readUnityFs, readSerializedFile, decodeTexture2D, CLASS_ID } from '../src/formats/unity/unityBundle.js';
+import { readUnityFs, readSerializedFile, decodeTexture2D, CLASS_ID } from '../src/formats/unityBundle.js';
 import { DFPalette } from '../src/formats/dfPalette.js';
 import { TextureFile } from '../src/formats/textureFile.js';
 import { ImgFile } from '../src/formats/imgFile.js';

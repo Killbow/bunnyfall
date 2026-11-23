@@ -4,9 +4,9 @@
 // (ui/enhanced/enhancedChunk.js), in a host of its own, wrapped in the overlay shape every host's frame drives - `done`
 // once it is shut, `dispose` to shut it - and registered with the overlay stack, so the QuickDial key puts it away.
 // On either skin: a shop's popup row opens it (scenes/wardrobeCounter.js). A page with no document answers null.
-import { mountEnhancedChunk } from '../enhanced/enhancedChunk.js';
-import { registerOverlay } from '../enhanced/enhancedOverlays.js';
-import { noteFirstUse } from '../../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { mountEnhancedChunk } from '../enhancedChunk.js';
+import { registerOverlay } from '../enhancedOverlays.js';
+import { noteFirstUse } from '../tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** The overlay standing now, or null. */
 let _open = /** @type {any} */ (null);

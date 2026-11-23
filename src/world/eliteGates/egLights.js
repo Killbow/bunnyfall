@@ -32,7 +32,7 @@ import { egToDungeon } from './egHall.js';
 import { EG_STAIR, egStairOf } from './egLook.js';
 import { EG_DANGER_PALETTES } from '../../ui/eliteGates/egAccess.js';
 import { EG_SCORE_BAND_MOTIFS } from '../../systems/eliteGates/egScore.js';
-import { midiNote } from '../../systems/gate/gateScore.js';
+import { midiNote } from '../../worldEvents/gateScore.js';
 
 // ── THE STAIR DRAWN (section 7) ─────────────────────────────────────────────────────────────────────────────────
 /** THE STAIR'S CLOCK on the veil (s): the dither closing and opening (EG_STAIR.dither each way), and the least the full

@@ -20,7 +20,7 @@
 // Pure: numbers in, a model out. Not a DFU member. Ledger A (WAGONS2).
 import { MEASURED, LIFT, caravanSideU } from './wagonModels.js';
 import { WAGON_ARCHIVE, TEX, WAGON_TILE, SIDE_Y0, SIDE_Y1 } from './wagonArt.js';
-import { planarUv } from './ships/galleonMesh.js';
+import { planarUv } from './galleonMesh.js';
 
 const M = MEASURED.caravan;
 /** The boards' thickness: how far the room's walls stand in from the body's outside (m). */

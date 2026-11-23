@@ -36,12 +36,12 @@
 // STEP 4, THE TWO-HANDER'S CLEAVE: combat/meleeCleave.js, by TWO_HANDED_CLEAVE - the claymore's by CLAYMORE_CLEAVE.
 // The always-on strengths (steady, pierce, the whip, the finisher over a fight) are inside each row's band - the rows were
 // measured again with them on - the rest are the family's edge where it applies.
-import { registerWeaponBlowMod } from '../systems/entityMods.js';
-import { registerBlowTakenMod } from '../systems/blowTaken.js';
+import { registerWeaponBlowMod } from '../characters/entityMods.js';
+import { registerBlowTakenMod } from './blowTaken.js';
 import { registerSwingBurden } from '../characters/weaponStates.js';
-import { equipTableOf, EQUIP_SLOTS } from '../systems/equip.js';
-import { isShieldTemplate } from '../systems/armorMaterials.js';
-import { registerWeaponDamageMod } from '../systems/entityMods.js';
+import { equipTableOf, EQUIP_SLOTS } from '../characters/equip.js';
+import { isShieldTemplate } from '../items/armorMaterials.js';
+import { registerWeaponDamageMod } from '../characters/entityMods.js';
 import { registerArmorPierce } from './armorPierce.js';
 import { weaponMinDamage, weaponMaxDamage, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';
 import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';

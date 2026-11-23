@@ -14,9 +14,9 @@
 
 import { srand, rand, randomRange } from '../formats/dfRandom.js';
 import { firstName, GENDERS } from '../characters/nameHelper.js';
-import { localizedText, localizedTable, localizedTextList } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { getLocalizedFactionName } from '../systems/textManager.js';   // L10N3e: a guild hall's and a temple's faction names, as shown
-import { isOnlinePage } from '../systems/online/onlineLane.js';   // EMPIRE-BANK: online, every bank is the Empire's
+import { localizedText, localizedTable, localizedTextList } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { getLocalizedFactionName } from '../ui/textManager.js';   // L10N3e: a guild hall's and a temple's faction names, as shown
+import { isOnlinePage } from '../platform/onlineLane.js';   // EMPIRE-BANK: online, every bank is the Empire's
 
 /** EMPIRE-BANK (2026-09-27, Discord: "For online mode, the bank of daggerfall becomes the bank of the empire"): what an
  *  online page's banks are "of" - every one of them, whatever region it stands in ("The Bank of the Empire"). A

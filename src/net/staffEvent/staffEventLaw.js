@@ -107,7 +107,7 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
 /**
  * @typedef {{ id: string, rg: number, loc: number, px: number, py: number, nm: string, ct: 0|1, mt: number[], n: number, m: number,
  *   b: number, bs: number, bh: number, hp: number, at: number, ue: number, eb: 0|1, fb: number, by: string,
- *   an: 0|1, tx: string, bl: string, el: string, lb: string, bn: string, rk: number, gd: number, sv: number }} StaffEvent
+ *   an: 0|1, tx: string, bl: string, el: string, lb: string, bn: string, rk: number, gd: number, sv: number, mb: number, wv: number }} StaffEvent
  *   `loc` -1 for an area (the pixel alone); `ct` 1 when the place is a city (a town on the game's own map - the panel's
  *   pick), never for an area, so its lines say a city or an area; `ue` the end it was set to (ms, 0 none); `eb` 1 ends it at the boss's fall;
  *   `bh` the mini boss's health, times its kind's; `hp` BOSS-HP's exact health, which wins over `bh` (0 none);
@@ -258,7 +258,7 @@ function nextStaffBoss(led) {
  * One word folded in: the account's record and its deaths - the most it has said, credited as far as the cap and the
  * event's total let them - and the boss's moments (stood once called; fell once stood). Answers what moved.
  * @param {StaffEventLedger} led @param {StaffEvent} e @param {string} acct @param {string} name
- * @param {{ n: number, s?: number, bu?: number, bk?: number, fb?: number, h?: number }} w @param {number} nowMs
+ * @param {{ n: number, s?: number, bu?: number, bk?: number, fb?: number, h?: number, mu?: number }} w @param {number} nowMs
  */
 export function foldStaffWord(led, e, acct, name, w, nowMs) {
   const out = { credited: 0, known: false, boss: false };

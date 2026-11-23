@@ -23,7 +23,7 @@
 // API ClimateBaseType values (Desert 0 / Mountain 100 / Temperate 300 /
 // Swamp 400) directly - the exact integers DFU's conversion produces.
 
-import { SEASONS, seasonValue, dateFromClassicMinutes } from '../systems/gameDate.js';
+import { SEASONS, seasonValue, dateFromClassicMinutes } from './gameDate.js';
 
 export const SEASON = { Summer: 0, Winter: 1, Rain: 2 };
 

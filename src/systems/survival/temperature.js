@@ -19,10 +19,10 @@
 // retuned where the IL showed a cliff (a naked Argonian doubling its heat
 // loss above 30, a dungeon always below -20 in a desert); the tables'
 // spirit is kept.
-import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
+import { EQUIP_SLOTS } from '../../characters/paperdoll.js';
 import { CLIMATES } from '../../formats/mapsFile.js';
-import { RACES } from '../races.js';
-import { monthNames, DAWN_HOUR, DUSK_HOUR } from '../gameDate.js';   // TEMP-UI: the breakdown names the month (an import-free leaf; L10N3e: in the player's language); AUDIT C&C: the sun's hours
+import { RACES } from '../../characters/races.js';
+import { monthNames, DAWN_HOUR, DUSK_HOUR } from '../../world/gameDate.js';   // TEMP-UI: the breakdown names the month (an import-free leaf; L10N3e: in the player's language); AUDIT C&C: the sun's hours
 import { precipitationForWeather } from '../../world/weather.js';   // WET-FALL: which words fall (an import-free leaf but for UMRandom)
 
 /** spellcast.js's EFFECT_FLAGS.Fire and .Frost (DFCareer.EffectFlags),

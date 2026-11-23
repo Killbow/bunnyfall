@@ -1,0 +1,105 @@
+// The world's shot-mode test helpers: the test room's entry and preset, and the sea test that takes
+// her to open water and her helm. It also holds the ride-out to the next pixel's edge and the door
+// spots shifted through the floating origin. The window hooks that use them stay in the world.
+import { doorSpotsNear } from '../characters/foeSpacing.js';
+import { floorLanding } from '../player/enterExit.js';
+import { playerEntity } from '../characters/playerEntity.js';
+import { TEST_SEA, TEST_SEA_TEXT, testEntryById } from '../characters/testRoom.js';
+import { TRANSPORT_MODES } from '../travel/transport.js';
+
+/** @param {any} shared */
+export function createWorldProbes(shared) {
+  const {
+    _teleportToPixel, buildingDoors, cam, collider, heightAt, inFlight, locationLandingFor, params, player, queue,
+    setTransportModeHere, startPixel, state, townTalk, tvSeaLandAlong, tvSeaY,
+  } = shared;
+  // TR3: THE TEST ROOM's boot - the same headless seam as ?class=
+  // below, with the preset's identity seeded first (applyCharacter
+  // honors it) and the armory landing after the class kit. The preset
+  // resolves BEFORE the branch so an unknown id really does fall
+  // through to the wizard rather than stranding the interim entity:
+  // the never-traps law, at the front door.
+  const testEntry = !playerEntity.chargenDone && params.has('test') ? testEntryById(params.get('test')) : null;
+  const testPreset = testEntry?.preset ?? null;
+
+  let rideOutEdge = null;   // resolved once the start pixel stands (its locOrigin exists by then); false = no location
+
+  const seaTest = () => {
+    if (shared.seaTestStage === 0) {
+      if (!shared.navalOn()) { shared.seaTestWanted = false; townTalk.say(TEST_SEA_TEXT.refused); return; }
+      shared.seaTestStage = 1;
+      _teleportToPixel(TEST_SEA.pixel.x, TEST_SEA.pixel.y).then(() => { shared.seaTestStage = 2; }, (e) => { shared.seaTestWanted = false; console.warn('[testroom] sea battle: the Bay was not reached', e); });
+      return;
+    }
+    if (shared.seaTestStage === 1 || !shared.csa.ready()) return;   // the Bay still standing, or her hulls still loading
+    if (shared.seaTestStage === 2) {
+      const at = [player.pos[0], tvSeaY(), player.pos[2]];
+      let bow = [0, 0, 1], sea = -1;
+      for (let k = 0; k < 8; k++) {   // the way with the most sea before land
+        const a = (k * Math.PI) / 4, run = tvSeaLandAlong(at, Math.sin(a), Math.cos(a));
+        if (run > sea) { sea = run; bow = [Math.sin(a), 0, Math.cos(a)]; }
+      }
+      let boat = null;
+      shared.csaCall(() => { boat = shared.csaRuntime.PlaceBoat(at, bow, TEST_SEA.hull, 0, shared.csaTerrainOf(shared.csaPixelAt(at[0], at[2]))); });
+      if (!boat) { shared.seaTestWanted = false; townTalk.say(TEST_SEA_TEXT.refused); return; }
+      shared.csaCall(() => shared.csaRuntime.StartSailing(boat));
+      shared.seaTestStage = 3;
+      return;
+    }
+    if (!shared.csaRuntime?.isSailing() || !shared.naval) return;   // at her helm first
+    shared.seaTestWanted = false;
+    const f = player.pos, heading = Math.atan2(shared.csaRuntime.state.CurrentBoat.GameObject.worldMatrix()[8], shared.csaRuntime.state.CurrentBoat.GameObject.worldMatrix()[10]);
+    for (const off of [0.6, -0.6, 1.1, -1.1, 0, 1.6, -1.6, Math.PI]) {   // off her bow, on open water
+      const b = heading + off;
+      if (!shared.navalIsWater(f[0] + Math.sin(b) * TEST_SEA.range, f[2] + Math.cos(b) * TEST_SEA.range, TEST_SEA.hull)) continue;
+      shared.naval.spawnShip(TEST_SEA.foe, { range: TEST_SEA.range, bearing: b });
+      townTalk.say(TEST_SEA_TEXT.begun);
+      return;
+    }
+    townTalk.say(TEST_SEA_TEXT.noRoom);
+  };
+  const rideOut = () => {
+    if (rideOutEdge === null) rideOutEdge = locationLandingFor(startPixel.x, startPixel.y, { noMarkers: true }) ?? false;
+    const edge = rideOutEdge;
+    const groundThere = !!edge && Number.isFinite(heightAt(edge.pos[0], edge.pos[2]));
+    if (edge && !groundThere && (shared.building || queue.length || inFlight.size)) return;   // the neighbour is still coming - next frame
+    shared.rideOutWanted = false;
+    if (groundThere) {
+      const pos = floorLanding(collider, edge.pos, shared.ARRIVAL_REACH, shared.ARRIVAL_LIFT);
+      player.spawn(pos[0], pos[1], pos[2]);
+      cam.yaw = edge.yaw;
+    } else if (edge) {
+      console.warn('[testroom] ride out: no terrain under the edge landing after the ring built - mounting where you stand');
+    }
+    setTransportModeHere(TRANSPORT_MODES.Horse);
+    console.log(`[testroom] ride out: mounted ${groundThere ? 'outside the location, facing it' : 'where you stand'}`);
+  };
+
+  // P3-P6 mode machine (worldModes.js, extracted at P7): the frame
+  // pipeline swaps to a built interior/dungeon context and back.
+  // Doors are stored pixel-local and shifted through the LIVE
+  // floating-origin translation for the machine's world-space math
+  // (translations freeze while a mode is active - the modal frame
+  // returns before the streaming step).
+  // AUDIT TACT C4: THE STREET'S DOORWAYS, ONCE A GENERATION. Mapping every streamed door through shiftedDoor each frame
+  // was the WORLD-HOVER cost all over again (0.1-1.1 ms a frame); the world spots move only when a door arrives or leaves
+  // or the origin moves - each of which bumps doorGeneration - so they are mapped then, and a frame only filters them.
+  let _tactDoorGen = -1, _tactDoorWorld = [];
+  const _tactDoorSpots = (near, range = 40) => {
+    if (_tactDoorGen !== shared.doorGeneration) { _tactDoorGen = shared.doorGeneration; _tactDoorWorld = doorSpotsNear(buildingDoors, null, Infinity, shiftedDoor); }
+    const out = [];
+    for (const d of _tactDoorWorld) if (Math.hypot(d.pos[0] - near[0], d.pos[2] - near[2]) <= range) out.push(d);
+    return out;
+  };
+  const shiftedDoor = (entry) => {
+    const [px, py] = entry.pixelKey.split(',').map(Number);
+    const t = state.pixelTranslation(px, py);
+    const m = entry.door.matrix;
+    const matrix = m.slice();
+    matrix[12] = m[12] + t[0];
+    matrix[13] = m[13] + t[1];
+    matrix[14] = m[14] + t[2];
+    return { ...entry.door, matrix };
+  };
+  return { _tactDoorSpots, rideOut, seaTest, shiftedDoor, testEntry, testPreset };
+}

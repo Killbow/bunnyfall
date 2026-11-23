@@ -68,16 +68,16 @@
 //
 // Not a DFU member: Daggerfall Unity has no parties. Ledger A row (ONLINE).
 import { CifRciFile } from '../formats/cifRciFile.js';
-import { raceArt } from '../systems/races.js';
-import { classicFaceRecord } from '../systems/roxArgonians.js';   // ROX
+import { raceArt } from '../characters/races.js';
+import { classicFaceRecord } from '../characters/roxArgonians.js';   // ROX
 import { bitmapToColor32 } from '../formats/color32Order.js';   // the same indexed-to-RGBA door every classic screen reads
-import { isTouchDevice } from './touch/touch.js';
+import { isTouchDevice } from './touch.js';
 import { PARTY_GREEN_CSS, lastOnlineText } from '../net/social.js';   // one home for the green - "should turn green"
 import { PARTY_MAX } from '../net/wire.js';   // PARTY8: the seat count in the title
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';   // FONT1: the enhanced skin's own face, unsmoothed, with Silkscreen's five
 import { partyFxKey, partyFxAbbrev, partyHealOf } from '../net/partyBuffs.js';   // PARTY-BUFFS: a member's own effects, and the heal they gained
 import { portraitRenderer } from '../render/portraitRenderer.js';   // PORTRAIT3D: the renderer a Morrowind head is taken with (a leaf)
-import { spellIconUrl } from './enhanced/enhancedArt.js';   // PARTY-BUFFS: the spell's own icon, cut from ICON00I0 as the enhanced spellbook cuts it
+import { spellIconUrl } from './enhancedArt.js';   // PARTY-BUFFS: the spell's own icon, cut from ICON00I0 as the enhanced spellbook cuts it
 
 export const PARTY_STYLE_ID = 'dagger-party-style';
 

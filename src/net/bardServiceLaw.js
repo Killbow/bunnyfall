@@ -10,7 +10,7 @@
 // A BARD'S BUFF IS COSMETIC. It changes no stat, no spell, no enchantment: it is words on the item's card, so it can
 // carry no balance risk. Every window that offers it says so.
 import { textCaught } from './nameFilter.js';
-import { BOAT_TEMPLATES } from './realm/realmTradeLaw.js';
+import { BOAT_TEMPLATES } from './realmTradeLaw.js';
 
 /** Favor Tokens each service costs. A song minute or a finished shift earns one (tavernFavorLaw songFavor). */
 export const BARD_SERVICE_PRICES = Object.freeze({ 'item-name': 10, 'item-buff': 30, 'home-name': 25 });

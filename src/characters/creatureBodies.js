@@ -6,8 +6,8 @@
 // ids are the records' own, read off UESP's creature tables (2026-10-09), never recalled: Morrowind.esm's, Tribunal's
 // (lich) and Bloodmoon's (BM_spriggan, BM_bear_black, bm_frost_giant, draugr); a master that lacks one refuses the
 // build and the sprite stands, as for any refused body.
-import { MOBILE_TYPES as M } from './mobile/mobileTypes.js';
-import { ENEMY_BASICS, isClassEnemyId } from './enemy/enemyBasics.js';   // MWNPC13: a spectral's own archive (a named one keeps its sprite); DEX7: a mod's row a monster's, never a class's
+import { MOBILE_TYPES as M } from './mobileTypes.js';
+import { ENEMY_BASICS, isClassEnemyId } from './enemyBasics.js';   // MWNPC13: a spectral's own archive (a named one keeps its sprite); DEX7: a mod's row a monster's, never a class's
 import { BaseImageFile } from '../formats/baseImageFile.js';   // MWNPC13: the spectral sprite's opacity
 
 /** The match: mobile type -> `{ creature: [CREA ids, first carried wins] }` or `{ miss: reason }`. Every creature

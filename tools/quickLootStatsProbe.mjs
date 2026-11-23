@@ -32,7 +32,7 @@ import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENHANCED_CSS, ENHANCED_TOKENS } from '../src/ui/enhanced/enhancedStyle.js';
+import { ENHANCED_CSS, ENHANCED_TOKENS } from '../src/ui/enhancedStyle.js';
 
 const ROOT = normalize(join(fileURLToPath(import.meta.url), '..', '..'));
 /** The page imports the REAL modules, so the plaque it draws is the
@@ -96,10 +96,10 @@ for (const [W, H, label] of [[1280, 720, 'desktop'], [1024, 640, 'narrow'], [420
   // plaque is raised through the real seam.
   for (let row = 0; row < ITEMS.length; row++) {
     const side = await p.evaluate(async ({ items, row, W }) => {
-      const hv = await import('/src/systems/worldHover.js');
-      const ql = await import('/src/systems/quickLoot.js');
+      const hv = await import('/src/player/worldHover.js');
+      const ql = await import('/src/items/quickLoot.js');
       const wp = await import('/src/ui/worldPlaque.js');
-      const pf = await import('/src/systems/uiPrefs.js');
+      const pf = await import('/src/ui/uiPrefs.js');
       pf.setPref('quickLoot', true);
       wp.destroyWorldPlaque();
       ql.resetQuickLoot();

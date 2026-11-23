@@ -37,13 +37,13 @@ import { WoodsFile } from '../src/formats/woodsFile.js';
 import { PakFile } from '../src/formats/pakFile.js';
 import { TextureFile } from '../src/formats/textureFile.js';
 import { DFPalette } from '../src/formats/dfPalette.js';
-import { generatePixelTerrain } from '../src/world/terrain/terrainGen.js';
-import { surfaceHeightAt, surfaceNormalAt, TERRAIN_TILE_DIM } from '../src/world/terrain/terrainSurface.js';
-import { TERRAIN_SIZE, SCALED_OCEAN_ELEVATION, STREAMING_TERRAIN_SCALE } from '../src/world/terrain/terrainSampler.js';
+import { generatePixelTerrain } from '../src/world/terrainGen.js';
+import { surfaceHeightAt, surfaceNormalAt, TERRAIN_TILE_DIM } from '../src/world/terrainSurface.js';
+import { TERRAIN_SIZE, SCALED_OCEAN_ELEVATION, STREAMING_TERRAIN_SCALE } from '../src/world/terrainSampler.js';
 import { StreamingWorldState, mapPixelToWorldCoords } from '../src/world/streamingWorld.js';
-import { waterCorners, WATER_DRAW_MASK_TABLE } from '../src/world/water/waterCorners.js';
+import { waterCorners, WATER_DRAW_MASK_TABLE } from '../src/world/waterCorners.js';
 import { CLASSIC_TO_UNITY_RATIO, DF_WALK_BASE } from '../src/player/motor.js';
-import { DF_RIDE_BASE, DF_CART_BASE } from '../src/systems/transport.js';
+import { DF_RIDE_BASE, DF_CART_BASE } from '../src/travel/transport.js';
 import { isMain } from './lib/isMain.mjs';
 
 // GRASS_MODULE names another copy of labGrass.js to measure, saved beside it so its own imports resolve - the record's

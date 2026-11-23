@@ -53,7 +53,7 @@
 // are world/townPictures.js.
 
 import { registerCustomModel } from './customModels.js';
-import { addVendorTextures } from '../systems/textureReplacement.js';
+import { addVendorTextures } from '../render/textureReplacement.js';
 import { buildDerivedPicture } from '../formats/derivedTexture.js';
 import { TOWN_PICTURE_ARCHIVE, PICTURE, townPictureEntries } from './townPictures.js';   // WD3: the cloth the tapestries wear
 import { STAND_IN_SPRITES } from './standInSprites.js';   // WD3: the flats Daggerfall draws nothing like

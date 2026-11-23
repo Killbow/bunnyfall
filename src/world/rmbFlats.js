@@ -38,10 +38,10 @@
 import { RMB_DIMENSION, SCALE_DIVISOR } from '../formats/blocksFile.js';
 import { GLOBAL_SCALE } from './meshReader.js';
 import { applyBillboardXml, billboardXmlScaleOf, billboardXmlGeneration } from './billboardXml.js';   // MM1: the xml scale registry (a leaf)
-import { textureReplacementEnabled, hasTextureReplacement } from '../systems/textureReplacement.js';   // AUDIT MM1: DFU's two gates on the xml scale
+import { textureReplacementEnabled, hasTextureReplacement } from '../render/textureReplacement.js';   // AUDIT MM1: DFU's two gates on the xml scale
 import { flatFieldFor, sowField } from './flatFields.js';   // WD3: a scene model that is a field of flats (the town mods' crops)
 import { PROPS_OFFSET_Y } from './rmbLayout.js';   // FIELD BUGS 2026-10-04d CROPS: a field's batch stands where its misc model does
-import { quarterOf } from '../ui/town/townQuarters.js';   // HOUSE-BUSH: an automap byte's building, by the town map's own ladder
+import { quarterOf } from '../ui/townQuarters.js';   // HOUSE-BUSH: an automap byte's building, by the town map's own ladder
 
 /** RMBLayout's blockFlatsOffsetY: a block's flats stand this far (native units) below their records - and their lights
  *  do not (AddLight hangs at the record's -YPos plus the picture's height - world/city/cityLights.js). AUDIT YARD-LIGHT: so a

@@ -31,7 +31,7 @@
 //
 // Pure - the call, the store and the clocks are handed in. Not a DFU member. Ledger A (STARFALL).
 import { readStarReceipt } from './starReceipt.js';
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';
 import { heartStar } from '../../systems/starfall/starfallNight.js';
 

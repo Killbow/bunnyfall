@@ -65,7 +65,7 @@ const RED_BRICK_DOOR_MODEL_ID = 72100;
 const MIN_TAPESTRY_ID = 42500;
 const MAX_TAPESTRY_ID = 42571;
 const EDITOR_FLATS_ARCHIVE = 199;
-import { RANDOM_TREASURE_ARCHIVE as FIXED_TREASURE_FLATS_ARCHIVE } from '../systems/loot/loot.js';   // single source (DaggerfallLootDataTables; audit 2026-07-06b)
+import { RANDOM_TREASURE_ARCHIVE as FIXED_TREASURE_FLATS_ARCHIVE } from '../items/loot.js';   // single source (DaggerfallLootDataTables; audit 2026-07-06b)
 
 // DFBlock.RdbActionFlags, defined members only (Enum.IsDefined parity).
 // RDBLayout.NPCFlatArchives / IsNPCFlat (RDBLayout.cs:1250-1254) - their one home is the leaf world/npcFlatArchives.js

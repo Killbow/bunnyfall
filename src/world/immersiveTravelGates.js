@@ -14,7 +14,7 @@
 // editor leaves (DFU lays a block out by its arrays). Where the mod's own patch is what is served it already carries
 // them, and the layer stands aside.
 
-import { registerWorldDataLayer } from '../formats/worldData/worldDataReplacement.js';
+import { registerWorldDataLayer } from '../formats/worldDataReplacement.js';
 
 /** The four gate blocks the mod edits, and Beautiful Cities' composites on them: `WALLAA08.RMB.json`,
  *  `WALLAA08.FARMAA00.RMB.json` - the gate is the name's first part. */

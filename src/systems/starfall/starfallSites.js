@@ -11,10 +11,10 @@
 //
 // Not a DFU member. Ledger A (STARFALL).
 import { starRoll, starTimes, starSpotLocal, STAR_PER_NIGHT } from '../../net/starfall/starfallLaw.js';
-import { gameDayAt } from '../../net/gate/gateLaw.js';
+import { gameDayAt } from '../../net/gateLaw.js';
 import { REGION_NAMES } from '../../formats/mapsFile.js';
 import { starCovenOf } from './starfallCovens.js';
-import { starSiteId } from '../../world/worldOfDaggerfall/wodShared.js';
+import { starSiteId } from '../../world/wodShared.js';
 
 const W = 1000;
 /** How far apart a night's stars stand, and how far from the gate's site, map pixels (Chebyshev) - about four km. */
@@ -35,7 +35,7 @@ const apart = (a, px, py) => Math.max(Math.abs(a.px - px), Math.abs(a.py - py)) 
  * near, spot, times }`. `gateSiteOf(day)` answers the gate's site of a game day (systems/gate/gateSite.js findGateSite) or
  * null. Pure over the scan.
  * @param {number} n the night
- * @param {import('../gate/gateSite.js').GateScan} scan
+ * @param {import('../../worldEvents/gateSite.js').GateScan} scan
  * @param {{ gateSiteOf?: (day: number) => ({px: number, py: number}|null) }} [o]
  * @returns {StarSite[]}
  */

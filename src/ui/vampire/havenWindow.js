@@ -9,8 +9,8 @@
 //   A SOCIAL     its post, its town, its perk, LOYALTY; release (asked twice)
 // Every act is the thralls' own (systems/vampire/thralls.js); what it says goes on the window's line.
 
-import { t } from '../../systems/textManager.js';
-import { itemLongName } from '../../systems/item/itemInfo.js';
+import { t } from '../textManager.js';
+import { itemLongName } from '../../items/itemInfo.js';
 import { requestFittedIcon, fittedImg } from '../textureCanvas.js';
 import { awakenedVampirism, vitaeNow } from '../../systems/vampire/vitae.js';
 import { archetypeName, beastStageOf, beastStageName, VITAE_MAX } from '../../systems/vampire/bloodLaw.js';
@@ -21,8 +21,8 @@ import {
   socialPerk, buyFromMerchant, releaseSocial, isVial,
 } from '../../systems/vampire/thralls.js';
 import { thrallRank, DUTIES, ERRANDS, ERRAND_KEYS, BIND_COST, TEND_GOLD, MERCHANT } from '../../systems/vampire/thrallLaw.js';
-import { gearLabel } from '../../systems/revenant/revenantGear.js';
-import { worldMinutes } from '../../systems/worldTick.js';
+import { gearLabel } from '../../revenants/revenantGear.js';
+import { worldMinutes } from '../../world/worldTick.js';
 import { openVampWindow, el, art, clanCrest, bloodGlyph, disciplineGlyph, meter, button, chip, pips, section, CLAN_COLOUR, BLOOD_COLOUR, STAGE_COLOUR } from './vampKit.js';
 
 export const HAVEN_VERB = 'home-vampire-haven';

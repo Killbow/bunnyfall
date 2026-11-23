@@ -6,10 +6,10 @@
 // the window's own; registered with the overlay stack, so the QuickDial key puts it away as it does every enhanced
 // window. The Mages Guild's Identify service opens it (scenes/worldModes.js openGuildService - the popup's fourth row on
 // either skin). A page with no document answers null. One stands at a time.
-import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { imbuePiece } from '../systems/reforge.js';   // LOOT-GATE: the Imbue, on the payer the host hands in
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { mountEnhancedChunk } from './enhancedChunk.js';
+import { registerOverlay } from './enhancedOverlays.js';
+import { imbuePiece } from '../items/reforge.js';   // LOOT-GATE: the Imbue, on the payer the host hands in
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** The overlay standing now, or null. */
 let _open = null;

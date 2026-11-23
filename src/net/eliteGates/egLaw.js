@@ -82,7 +82,7 @@
 // Laws 4-8 keep their halls byte for byte (their 800 halls hashed whole - test/net/eliteGates/egaudit5_f.test.js).
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { sdSeed, sdRng } from '../superDungeon/sdBrain.js';
+import { sdSeed, sdRng } from '../sdBrain.js';
 import { egSpanProof, egRoadCross, EG_MEDIAN_X, egJumpReach, EG_SPAN_RUN_MPS, EG_JUMP_MPS, EG_JUMP_FWD, EG_JUMP_G } from './egSpanLaw.js';   // EG-FULL: THE TIMED SOLVER - a course it refuses is laid again
 import { EG_SINK_MPS, EG_SINK_ON_S } from './egSpanLaw.js';   // AUDIT EG V (spec law 8): the Sinking Stair's last leap's height
 import { egSpanOf, egDieBetween, EG_GAP_MIN_CM, EG_GAP_MAX_CM, EG_BEAT_HALF_MS, EG_STEP_DOWN_CM, EG_DROP_CM } from './egSpanLaw.js';   // EG6a: THE SPAN GENERATOR - every course laid by it, through courseOf
@@ -92,7 +92,7 @@ import { egFragInPoly, egFragApart, egFragBoxAt, egFragSwept, EG_SET_PIECES, EG_
 import { EG_HERO_FRAGS, egHeroFragLaws } from './egHeroFrags.js';   // EG-HERO-LAY: the hero fragments' law halves (the relay's since spec law 7)
 import { egPieceIn, egPolyIn, egPolyKeep } from './egShape.js';   // EG-HERO-LAY: a hero's fight floors are polygons
 import { egInShape, shRing, shLane } from './egShape.js';   // AUDIT EG V (lane1 #21): THE MOLTEN RIM's magma and its ways across
-import { gateTrialOf } from '../gate/gateMods.js';   // EG5: the gate's boss-general trials the lord family recasts (a leaf - it imports nothing)
+import { gateTrialOf } from '../gateMods.js';   // EG5: the gate's boss-general trials the lord family recasts (a leaf - it imports nothing)
 import { egAscentLay, egAscentSane, egAscentNote, egTape, EG_ASCENT_FRAGS_MAX, EG_BROKEN_LAW } from './egAscent.js';   // THE ASCENT (spec law 9): the route planner
 import { egRoomHero, EG_ROOM_NAMES } from './egRoomLaw.js';   // THE ASCENT: a room laid as a hero
 import { egRouteInHall } from './egRoute.js';   // THE ASCENT (LAW 9): a hall's ground is its route's bound (a leaf - it imports nothing)

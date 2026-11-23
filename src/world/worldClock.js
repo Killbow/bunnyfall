@@ -36,7 +36,7 @@ export const LIGHTS_OFF_HOUR = 8;
 // one home in systems/gameDate.js. V1 moved DAWN_HOUR and DUSK_HOUR
 // there too - they are the same class's members, and the vampire
 // turn's raise needs dusk from outside the light rig.
-import { MINUTES_PER_HOUR, MINUTES_PER_DAY, DAWN_HOUR, DUSK_HOUR } from '../systems/gameDate.js';
+import { MINUTES_PER_HOUR, MINUTES_PER_DAY, DAWN_HOUR, DUSK_HOUR } from './gameDate.js';
 
 export { MINUTES_PER_HOUR, MINUTES_PER_DAY, DAWN_HOUR, DUSK_HOUR };
 

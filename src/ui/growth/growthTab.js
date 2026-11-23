@@ -16,14 +16,14 @@
 // drops the face when the tab or the window goes.
 
 import { drawSpecGuide, resetSpecGuide, SPEC_GUIDE_CSS } from './specGuide.js';
-import { pathChoices } from '../../systems/arcanePaths.js';
-import { martialChoices } from '../../systems/martialPaths.js';
+import { pathChoices } from '../../characters/arcanePaths.js';
+import { martialChoices } from '../../characters/martialPaths.js';
 import { drawStage, dropStage, stageBack, stageAsks, stageLive, STAGE_CSS } from './growthStage.js';
 import { firmamentBook } from '../../net/firmament/firmamentBook.js';
 import { pointsLeft } from '../../net/firmament/firmamentLaw.js';   // FIRM-STARS: the stars not yet placed, on the rail
-import { t } from '../../systems/textManager.js';
-import { atLevelCap, LEVEL_CAP } from '../../systems/levelCap.js';   // LEVEL-45 (AUDIT FB1026d II C3): the Level page at the cap
-import { usesVirtueLeveling } from '../../systems/oblivionLeveling.js';   // ORL1: which bar the view of the stars reads
+import { t } from '../textManager.js';
+import { atLevelCap, LEVEL_CAP } from '../../characters/levelCap.js';   // LEVEL-45 (AUDIT FB1026d II C3): the Level page at the cap
+import { usesVirtueLeveling } from '../../characters/oblivionLeveling.js';   // ORL1: which bar the view of the stars reads
 import { GROWTH_PAGE_SECTIONS, SPEC_LANDINGS, growthPageAt } from './growthPages.js';   // the leaf the boot doors read
 
 export { GROWTH_PAGE_SECTIONS, growthPageAt };
@@ -146,7 +146,7 @@ function levelPage(detail, ctx) {
   const owed = !!entity?.readyToLevelUp && !!open;
   if (!entity) { dropStage(); detail.append(divider(t('growth.level.title', 'Level')), el('p', 'px-note', t('growth.level.none', 'Your level isn\'t available here.'))); return; }
   detail.append(divider(t('growth.level.title', 'Level')));
-  drawStage(detail, `level:${owed ? 'owed' : 'view'}:${entity.level ?? 0}`, (host) => import('../enhanced/enhancedLevelUp.js').then(({ mountEnhancedLevelUp, viewOnlyScreen }) =>
+  drawStage(detail, `level:${owed ? 'owed' : 'view'}:${entity.level ?? 0}`, (host) => import('../enhancedLevelUp.js').then(({ mountEnhancedLevelUp, viewOnlyScreen }) =>
     mountEnhancedLevelUp(host, { screen: (owed && open()) || viewOnlyScreen(entity, usesVirtueLeveling(entity)), entity, embed: true, onExit: () => { dropStage(); ctx.render(); } })), {
     el, ...stageWords(),
     door: levelDoor(),

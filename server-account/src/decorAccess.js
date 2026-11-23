@@ -11,11 +11,11 @@ import { DECOR_ID_RE } from '../../src/net/decorLaw.js';
 import { OWNS } from './decor.js';
 import { dropIfUnnamed, dropObjects, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmSaveTextOf, realmSideOf, recordMovedOf, REALM_ID_RE } from './realm.js';
 import { HANDLE_RE } from '../../src/net/handleShape.js';
-import { ITEM_UID_RE, lawfulItem } from '../../src/systems/item/itemLaw.js';
-import { absorbStack, stacksWith } from '../../src/systems/inventory.js';
-import { mintItemId } from '../../src/systems/item/itemIds.js';
-import { GUILD_RANK_RECRUIT, guildRankOk } from '../../src/net/guild/guildLaw.js';
-import { creditSave } from '../../src/net/realm/realmGoldLaw.js';
+import { ITEM_UID_RE, lawfulItem } from '../../src/items/itemLaw.js';
+import { absorbStack, stacksWith } from '../../src/items/inventory.js';
+import { mintItemId } from '../../src/items/itemIds.js';
+import { GUILD_RANK_RECRUIT, guildRankOk } from '../../src/net/guildLaw.js';
+import { creditSave } from '../../src/net/realmGoldLaw.js';
 
 const KINDS = new Set(['storage', 'station']);
 const MODES = new Set(['private', 'guild', 'friends', 'party', 'chosen_friends']);

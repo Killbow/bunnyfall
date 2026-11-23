@@ -20,8 +20,8 @@
 // not pose still walks) and laid on the pose on the frames that pose (`apply`). The switch is the viewer's (`on`):
 // systems/features.js 'mw-body-motion' - off, the body moves as Morrowind's clips move it.
 
-import { MW_WEAPON_TYPE, MW_UNITS_PER_METER } from '../../formats/morrowind/mwFirstPerson.js';
-import { getPref } from '../../systems/uiPrefs.js';
+import { MW_WEAPON_TYPE, MW_UNITS_PER_METER } from '../../formats/mwFirstPerson.js';
+import { getPref } from '../../ui/uiPrefs.js';
 import { algebra, ease, clamp01, RAD, bodyOf, bodyKindOf, reflect, bodyTurn, mul, transpose } from './bodyKit.js';
 import { rotAxisAngle, rotFraction } from '../../combat/climbRig.js';
 import { createGaitState, stepGait, gaitPose, TURN } from './gait.js';

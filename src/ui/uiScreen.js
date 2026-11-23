@@ -14,7 +14,7 @@
 // drawHud take it themselves, so the four hosts change nothing. A click on the 2D layer comes back through `toUiPoint`.
 // The client size stays the screen's (a swing's gesture reads the screen, not the picture).
 
-import { retroScreenRect } from '../systems/retroMode.js';
+import { retroScreenRect } from '../render/retroMode.js';
 
 let _rect = null;   // the frame's UI rect, canvas pixels (null: the whole canvas) - the last `uiCanvas` asked of a canvas
 

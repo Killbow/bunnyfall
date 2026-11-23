@@ -36,7 +36,7 @@ import { EG_OBJ } from '../../net/eliteGates/egLords.js';
 import { EG_ROLE } from '../../net/eliteGates/egBodies.js';
 import { egResonance, EG_CAPSTONES, EG_V_FAMILY_NAMES, EG_ACCORDS } from '../../net/eliteGates/egVestige.js';   // AUDIT EG III: resonance's beat, the Accords' chips
 import { egRunOfMember, egMemberOf } from '../../net/eliteGates/egLink.js';
-import { t } from '../../systems/textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
+import { t } from '../textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
 import { EG_BOSS_KEYS, egBossName } from '../../net/eliteGates/egLords.js';   // AUDIT EG V (c, L7-16): the lord a wake names
 import { EG_FL } from '../../net/eliteGates/egBodies.js';
 

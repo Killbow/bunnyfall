@@ -45,7 +45,7 @@
 // midnight as at noon - and the node an act works is quiet under it as under the glints (nodeGlows).
 import { bbVertexShader, FLAT_LIGHT_FLOOR } from './renderer.js';
 import { buildProgram, startPrograms, releasePrograms } from './glProgram.js';
-import { getPref } from '../systems/uiPrefs.js';   // RESOURCE-HIGHLIGHTS: the player's choice, read as the pass draws
+import { getPref } from '../ui/uiPrefs.js';   // RESOURCE-HIGHLIGHTS: the player's choice, read as the pass draws
 import { BAYER_GLSL } from './orderedDither.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { billboardKey } from './billboardKey.js';

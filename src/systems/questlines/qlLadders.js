@@ -8,8 +8,8 @@
 // swap and all), the classic lists' rows by guild group (quest/questLists.js - each row's rank floor), the sheets' branches
 // (a flagship quest is one with a branch - qlSheets.js), and the layer's record of what it saw finished well (qlLayer.js
 // `history`). Pure: the bridge hands it each.
-import { GUILDS, isMember, questRankFor } from '../guild/guilds.js';
-import { templeOf, orderOf } from '../guild/guildVariants.js';
+import { GUILDS, isMember, questRankFor } from '../../guilds/guilds.js';
+import { templeOf, orderOf } from '../../guilds/guildVariants.js';
 import { MEMBERSHIP_STATUS } from '../quest/questLists.js';
 import { sheetFor } from './qlSheets.js';
 

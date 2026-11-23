@@ -13,10 +13,10 @@
 // awake), the feeding is a crime: Assault, or Murder for a death - and the watch comes (the host's onCrime, the
 // pickpocket's own). Each person feeds once a day (FED_TODAY), as a purse is picked once.
 
-import { t } from '../../systems/textManager.js';
-import { setCrimeCommitted, CRIMES } from '../../systems/court.js';
-import { skillValue, SKILLS } from '../../systems/skills.js';
-import { MINUTES_PER_DAY } from '../../systems/gameDate.js';
+import { t } from '../../ui/textManager.js';
+import { setCrimeCommitted, CRIMES } from '../../justice/court.js';
+import { skillValue, SKILLS } from '../../characters/skills.js';
+import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import { awakenedVampirism, feedVampire, spendMindCloud, beastStageNow, vampireStatus } from '../../systems/vampire/vitae.js';
 import { openBloodSight } from '../../ui/vampire/bloodSightCard.js';   // THE VISUAL PASS: the Blood Sight card
 import {
@@ -80,7 +80,7 @@ function afterRows(fed, lead) {
  * `onSeen(kind)` the crime's own consequence ('assault' | 'murder'), `onReported()` a victim who cried out, `onDrain()`
  * the death, null where no death can be had. Answers the boxes to show after the pick.
  */
-function resolveChoice(entity, id, victim, { now, rolls, onSeen, onReported, onDrain, reportChance, onBreach = () => {} }) {
+function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () => number, onSeen: (kind: string) => void, onReported: () => void, onDrain?: ((seen: boolean) => void) | null, reportChance: number, onBreach?: (kind: any) => any }} */ { now, rolls, onSeen, onReported, onDrain, reportChance, onBreach = () => {} }) {
   if (id === 'leave') return [];
   const seenThen = onSeen, reportedThen = onReported;
   onSeen = (kind) => { onBreach(kind === 'murder' ? 'murder' : 'seen'); seenThen(kind); };   // PHASE 3: every breach heats the region
@@ -124,7 +124,7 @@ const crimeArm = (entity, onCrime) => (kind) => {
  * STEAL MODE ON A TOWNSPERSON (townTalk.js's steal arm). Answers true when the vampire took the activation - an awakened
  * vampire always does (no purse is picked); false lets the pickpocket run.
  * @param {{ entity: any, target: { person: any, pos: number[] }, persons?: { person: any, pos: number[] }[], now: number,
- *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
+ *   showBox: (box: any) => void, showWindow?: any, say: (line: string) => void, onCrime?: () => void, rolls?: () => number, regionIndex?: number }} o
  */
 export function feedOnPerson({ entity, target, persons = [], now, showBox, showWindow = null, say, onCrime, rolls = Math.random, regionIndex = 0 }) {
   if (!awakenedVampirism(entity)) return false;
@@ -231,8 +231,8 @@ export function sleeperHere(entity, building) {
  * STEAL MODE ON A BED (worldModes.js's bed rows): the first sleeper of the building not fed on today. The room's waking
  * people are the witnesses - each one a chance to be seen, less the vampire's Stealth. Answers true when it took the
  * activation.
- * @param {{ entity: any, building: { key: number, town: any } | null, now: number, showBox: (box: any) => void,
- *   say: (line: string) => void, onCrime?: () => void, rolls?: () => number }} o
+ * @param {{ entity: any, building: { key: number, town: any } | null, now: number, showBox: (box: any) => void, showWindow?: any,
+ *   say: (line: string) => void, onCrime?: () => void, rolls?: () => number, regionIndex?: number }} o
  */
 export function feedOnSleeper({ entity, building, now, showBox, showWindow = null, say, onCrime, rolls = Math.random, regionIndex = -1 }) {
   if (!awakenedVampirism(entity) || !building?.town?.sleepersAt) return false;
@@ -271,7 +271,7 @@ export function feedOnSleeper({ entity, building, now, showBox, showWindow = nul
  * the host's current building and its Living World town ({ key, town }, null outside one or in the player's own room).
  * `live()` is asked as the room's targets are drawn, so it is read at most once a REAL second.
  * @param {{ entity: any, building: () => ({ key: number, town: any } | null), mode: () => string, now: () => number,
- *   showBox: (box: any) => void, say: (line: string) => void, onCrime?: () => void }} o
+ *   showBox: (box: any) => void, showWindow?: any, say: (line: string) => void, onCrime?: () => void, region?: () => number }} o
  */
 export function createVampireBeds({ entity, building, mode, now, showBox, showWindow = null, say, onCrime, region = () => -1 }) {
   let at = -Infinity, was = false;

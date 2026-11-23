@@ -21,10 +21,10 @@
 //
 // Not a DFU member: Daggerfall's horse is a sprite. Ledger A (COATS3D).
 import { HORSE_MODEL_URL, HORSE_PICTURE_URLS, horseSkinStream, horsePaletteShape, horsePoseScratch, horseGait, stepHorseGait, writeHorsePalette, startTexelMap, rgbaMips, horseHide } from './horseModel.js';
-import { dyeHorseTexelRows, horseLookCode, horseLookOfCode } from '../systems/horse/horseCoats.js';
+import { dyeHorseTexelRows, horseLookCode, horseLookOfCode } from '../travel/horseCoats.js';
 import { drawBodyPicture, mwModelPixel } from '../render/characterSprite.js';
 import { CHAR_SPRITE_RT_SIZE } from '../render/renderer.js';
-import { decodePng } from '../systems/textureReplacement.js';
+import { decodePng } from '../render/textureReplacement.js';
 import { multiply, trs, transformPoint } from './mat4.js';
 
 /** Dyed looks kept on the GPU (the bay's is always kept). */

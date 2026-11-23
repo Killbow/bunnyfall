@@ -3,12 +3,12 @@
 // in the Sigil Broker's own dress (ui/brokerWindow.js's sheet, its classes): her gear, her dyed garments and her two titles,
 // each a row with its price in Dusk Tokens and a Buy that says why it cannot. The purse in the header, the last sale's word
 // under it. Everything it shows and does is handed in (`deps`), so this file draws and asks, and never touches a pack.
-import { registerOverlay, closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
+import { registerOverlay, closeOnOutsideTap } from './enhancedOverlays.js';
 import { overlayAction } from './input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { injectBrokerSkinStyle } from './brokerWindow.js';
 import { paintTitle, titleBadge } from './playerBadge.js';
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

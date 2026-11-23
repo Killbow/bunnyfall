@@ -48,11 +48,11 @@
 
 import { trs, multiply } from './mat4.js';
 import { ACTION_FLAGS, TRIGGER_FLAGS, MOVE_ACTION_FLAGS } from './rdbLayout.js';
-import { CASTSPELL_COOLDOWN_TICK } from '../systems/spellcast.js';   // single source (DaggerfallAction 45.454546)
+import { CASTSPELL_COOLDOWN_TICK } from '../magic/spellcast.js';   // single source (DaggerfallAction 45.454546)
 import { flashPlayerDamage } from '../ui/damageFlash.js';   // AUDIT 24 (wave 39): ShowPlayerDamage
-import { triggerOpen, triggerLock } from '../systems/mysticism.js';   // X1: the Open/Lock door laws live there, not here
+import { triggerOpen, triggerLock } from '../magic/mysticism.js';   // X1: the Open/Lock door laws live there, not here
 import { dice100 } from '../combat/formulas.js';   // PT1: Dice100 has ONE home, and it is not this file
-import { localizedText, localizedTextList } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedText, localizedTextList } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { moverSteps, meetBody } from '../player/moverBody.js';   // MOVER-BODY: a mover never closes on the body
 
 // The RDB effect-action family (DaggerfallAction delegates that hurt

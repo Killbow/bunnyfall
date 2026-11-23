@@ -11,12 +11,12 @@
 // street are one person twice. A walker re-rolled at a respawn is a new person: a new id (a body built for them, never
 // the last one re-dressed) and a new look.
 import { GENDERS } from './nameHelper.js';
-import { PERSON_TEXTURES, GUARD_TEXTURE } from './mobile/mobilePerson.js';
-import { EQUIP_SLOTS } from '../systems/equip.js';
+import { PERSON_TEXTURES, GUARD_TEXTURE } from './mobilePerson.js';
+import { EQUIP_SLOTS } from './equip.js';
 import { ARMOR_ENUM } from '../combat/enemyEquipment.js';
-import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';   // MWNPC12: steel is ARMOR_MATERIAL.Steel - a look's armour is resolved by it (mwItemMap.js mwArmorRecords)
+import { ARMOR_MATERIAL } from '../items/armorMaterials.js';   // MWNPC12: steel is ARMOR_MATERIAL.Steel - a look's armour is resolved by it (mwItemMap.js mwArmorRecords)
 import { dressPerson, npcHint, WARDROBE_BEAST_RACES } from './wardrobe.js';   // MWNPC17
-import { townsfolkOutfitOf } from './ownModels/ownClothingModels.js';   // MW-FOLK1: the outfits the walkers' pictures wear, made for the body
+import { townsfolkOutfitOf } from './ownClothingModels.js';   // MW-FOLK1: the outfits the walkers' pictures wear, made for the body
 
 /** MWNPC17: what each outfit variant is, by gender, in PERSON_TEXTURES' variant order - the wardrobe's role and the cut
  *  their sprite shows (characters/wardrobe.js WARDROBE_ROLES, SILHOUETTES). */

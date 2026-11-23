@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
 import * as dmRuntime from '../src/poi/poiDmRuntime.js';
-import { tryLanguagePacification } from '../src/scenes/hostCombat.js';
+import { tryLanguagePacification } from '../src/combat/hostCombat.js';
 
 const { createPoiDm, mintStack } = dmRuntime;
 const poolFoes = (/** @type {any} */ pool) => dmRuntime.poolFoes(pool);

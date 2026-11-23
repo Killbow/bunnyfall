@@ -17,7 +17,7 @@
 import {
   TUTORIALS, TUTORIAL_GROUPS, tutorialById, tutorialText, seenTutorials, markTutorialsSeen, forgetTutorialsSeen,
   tutorialPopupsOn, setTutorialPopups,
-} from '../systems/tutorials.js';
+} from './tutorials.js';
 import { boundKeyName, clearTutorialLine } from './tutorialPopup.js';
 
 const el = (t, cls, txt) => {

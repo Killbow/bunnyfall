@@ -84,45 +84,45 @@
 
 import { MAP_WIDTH, MAP_HEIGHT } from '../formats/woodsFile.js';
 import { REGION_NAMES, longitudeLatitudeToMapPixel, getPixelFromPixelID, patchRegionIndex } from '../formats/mapsFile.js';
-import { locationSummaryAt } from '../systems/map/mapDirectory.js';
-import { calculateTravelTime, calculateTripCost, travelDays } from '../systems/travel/travel.js';
-import { guildFastTravel } from '../systems/guild/guildVariants.js';   // TP1: GuildManager.FastTravel
+import { locationSummaryAt } from '../maps/mapDirectory.js';
+import { calculateTravelTime, calculateTripCost, travelDays } from '../travel/travel.js';
+import { guildFastTravel } from '../guilds/guildVariants.js';   // TP1: GuildManager.FastTravel
 import {
   travelMapFilters, freshTravelMapFilters, travelMapPopUpState, freshTravelMapPopUpState, setTravelMapPopUpState, travelMapSaveData,
   travelMapMarkedMapId, setTravelMapMarkedMapId,   // MAP2: the mod's mark outlives the window (AUDIT-TO1 G4)
-} from '../systems/travel/travelMapState.js';
+} from '../travel/travelMapState.js';
 // AUDIT-TO1 C1/C2/C3: the mod's laws on the DEFAULT skin, as the pure
 // functions the popup itself calls, so the two skins cannot drift.
-import { isPlayerControlledTravel, enforceShipRestriction, shipTravelRefusal, scaleTripCost, SHIP_REFUSAL_TEXT, ONLINE_TRAVEL_LINE } from './travel/travelPopUp.js';
+import { isPlayerControlledTravel, enforceShipRestriction, shipTravelRefusal, scaleTripCost, SHIP_REFUSAL_TEXT, ONLINE_TRAVEL_LINE } from './travelPopUp.js';
 // MAP2: the mod's map additions, through the SAME functions the classic
 // window calls (ui/travel/travelMapOptions.js), so the two skins cannot drift.
-import { teleportCost, teleportCostPrompt, portsFilterAllows, locationInfoRows, resumePrompt } from './travel/travelMapOptions.js';
-import { hasPortFor as hasPort } from '../systems/travel/travelPorts.js';   // SEAT2b part two: HasPort, or a members' Harbour at a seat (travelPorts.js hasPortFor)
-import { noticeHold, noticeRelease } from './enhanced/enhancedNotice.js';   // ENH-NOTICE3: this window's own click-anywhere boxes, as the enhanced panel
-import { TRAVEL_OPTIONS_TEXT as TO_TEXT, format as toFormat } from '../systems/travel/travelOptionsText.js';
-import { getDaggerfallDistance, MatchesCutOff } from '../systems/editDistance.js';
-import { checkLocationDiscovered, flipTravelMapFilter, travelMapDotColors } from './travel/travelMapWindow.js';   // MAP-KEY: the classic's filter flip and its dots' colours
-import { readGateMark, gateMarkKey, GATE_RING_CSS, GATE_LEGEND_TEXT } from './gate/gateMapMark.js';   // WB1: the Oblivion Gate's ring, read as the party is (SERPENT1: and the serpent's, by the same reader)
+import { teleportCost, teleportCostPrompt, portsFilterAllows, locationInfoRows, resumePrompt } from './travelMapOptions.js';
+import { hasPortFor as hasPort } from '../travel/travelPorts.js';   // SEAT2b part two: HasPort, or a members' Harbour at a seat (travelPorts.js hasPortFor)
+import { noticeHold, noticeRelease } from './enhancedNotice.js';   // ENH-NOTICE3: this window's own click-anywhere boxes, as the enhanced panel
+import { TRAVEL_OPTIONS_TEXT as TO_TEXT, format as toFormat } from '../travel/travelOptionsText.js';
+import { getDaggerfallDistance, MatchesCutOff } from './editDistance.js';
+import { checkLocationDiscovered, flipTravelMapFilter, travelMapDotColors } from './travelMapWindow.js';   // MAP-KEY: the classic's filter flip and its dots' colours
+import { readGateMark, gateMarkKey, GATE_RING_CSS, GATE_LEGEND_TEXT } from './gateMapMark.js';   // WB1: the Oblivion Gate's ring, read as the party is (SERPENT1: and the serpent's, by the same reader)
 import { SERPENT_RING_MAP_CSS, SERPENT_LEGEND_TEXT } from './serpentMapMark.js';
 import { paintTerritories } from './territoryMapInk.js';
 import { buildInfluence, paintInfluenceFill, paintLive, liveStands, createLiveLayer, territoryTipAt, LIVE_HZ } from './territoryLive.js';   // BUNNYFALL: the living territory map   // BUNNYFALL COMPANIES: the Companies' territories   // SERPENT1: the sea serpent's ring, in the sea's colours
 import { paintEliteDungeons, eliteDungeonTipAt } from './eliteDungeonMapInk.js';   // BUNNYFALL: the daily elite dungeons' crystals and their spread
-import { SD_RING_MAP_CSS, SD_LEGEND_TEXT } from './superDungeon/sdMapMark.js';   // SD2c: the Super dungeon's ring once it is found, in its omen's brass
+import { SD_RING_MAP_CSS, SD_LEGEND_TEXT } from './sdMapMark.js';   // SD2c: the Super dungeon's ring once it is found, in its omen's brass
 import { EG_ARCH_RING_CSS, EG_ARCH_LEGEND_TEXT } from './eliteGates/egArchMapMark.js';   // EG-F: my company's Elite arch, in its gold
 import { KT_RING_CSS, ketchLegendText } from './ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch over Daggerfall
 import { LODE_RING_CSS, LODE_LEGEND_TEXT, lodeLegendText } from './lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's day's Motherlodes, read by the bounty's reader
 import { POI_RING_CSS, POI_MARKS_MAX, poiLegendText } from './poi/poiMapMark.js';   // POI-2: the approved POIs' marks, read by the bounty's reader
-import { readBountyMarks, bountyMarksKey, BOUNTY_RING_CSS, BOUNTY_LEGEND_TEXT, BOUNTY_LEGEND_RIM_CSS, REVENANT_RING_CSS, REVENANT_LEGEND_TEXT } from './bounty/bountyMapMark.js';   // BOUNTY1: held bounties' black circles, read as the gate's ring is
+import { readBountyMarks, bountyMarksKey, BOUNTY_RING_CSS, BOUNTY_LEGEND_TEXT, BOUNTY_LEGEND_RIM_CSS, REVENANT_RING_CSS, REVENANT_LEGEND_TEXT } from './bountyMapMark.js';   // BOUNTY1: held bounties' black circles, read as the gate's ring is
 import { readRaidMarks, raidMarksKey, placeTip, tipKey, readTip, RAID_MARK_CSS, RAID_LEGEND_TEXT, FESTIVAL_MARK_CSS, FESTIVAL_LEGEND_TEXT, RAID_HIT_PX, SEAT_TIP_TEXT_MAX, TOWN_TIP_LINES_MAX } from './eventMapMarks.js';   // EVENT-TIP: the raided towns, and the card a world event answers a hover with
-import { readVendorMark, vendorMarkKey, VENDOR_MARK_CSS, VENDOR_RIM_CSS, VENDOR_LEGEND_TEXT } from './vendor/vendorMapMark.js';   // HOME-VENDOR: the trader's waypoint
-import { readQuestMarks, questMarksKey, QUEST_MARK_CSS, QUEST_LEGEND_TEXT, QUEST_HIT_PX, QUEST_MARK_LIFT, QUEST_RAID_LIFT, QUEST_FOLLOWED_TEXT } from './quest/questMarks.js';   // GUIDE5: where the quests point
+import { readVendorMark, vendorMarkKey, VENDOR_MARK_CSS, VENDOR_RIM_CSS, VENDOR_LEGEND_TEXT } from './vendorMapMark.js';   // HOME-VENDOR: the trader's waypoint
+import { readQuestMarks, questMarksKey, QUEST_MARK_CSS, QUEST_LEGEND_TEXT, QUEST_HIT_PX, QUEST_MARK_LIFT, QUEST_RAID_LIFT, QUEST_FOLLOWED_TEXT } from './questMarks.js';   // GUIDE5: where the quests point
 import {
   buildInkModel, buildInkMarks, paintInkStatic, paintInkOverlay, zoomBand, clampView, scaleMinOf, SCALE_MAX,   // MAP-FIELD2: placeNames is inkMap's law still, but this sheet no longer inks the names
   syncMarksLayer,   // MAP-PAN: the place marks, one layer, shifted while the view pans
   viewCentredOn, zoomAt, toPaper, toMap, BAND_MARKS, PARTY_LABEL_STACK, GATE_RING_MIN_PX,
   markKind, markInks, mapKeyGroups, KIND_WORD, paintKeyChip, KEY_CHIP_PX,   // MAP-KEY: the key, and each kind in its classic hue
   PEN,   // AUDIT GUIDE U16: the followed quest's diamond is the pen's ink, in the legend as on the sheet
-} from './ink/inkMap.js';
+} from './inkMap.js';
 // SOC6: the party's marks, read the one way both maps read them.
 import {
   readPartyMarks, partyMarksKey, partyHoverText, partyLabelText,
@@ -134,17 +134,17 @@ import {
 // the host already keeps into the place the tabs are gated by.
 import {
   createSheetSlot, stripLayout, stripHit, paintStrip, stripFont,
-} from './map/mapStrip.js';
-import { mapContextOf } from '../systems/map/mapTabs.js';
-import { createAutomapSheet } from './automap/automapSheet.js';
-import { dungeonMap3dOn, tamrielMapOn } from './map/mapSkin.js';   // EM3-3D: the solid dungeon map's switch; TAMRIEL1: the continent's
+} from './mapStrip.js';
+import { mapContextOf } from '../maps/mapTabs.js';
+import { createAutomapSheet } from './automapSheet.js';
+import { dungeonMap3dOn, tamrielMapOn } from './mapSkin.js';   // EM3-3D: the solid dungeon map's switch; TAMRIEL1: the continent's
 // TAMRIEL1 (2026-10-08, Mac: "the entirety of tamriel ... connected as a gigantic map ... seen by players ingame"): the
 // continent inked round the Bay on the world sheet - the sheet's pan box grows to the whole frame, the home view stays
 // the Bay's own fit, and past that fit the sheet is on the continent (ui/tamrielInk.js; bible/03-World/Tamriel.md)
 import { tamrielInkFor, paintTamrielInk, tamrielPlaceAt, onContinent } from './tamrielInk.js';
-import { tamrielFrameInBay } from '../world/tamriel/tamrielFrame.js';
-import { tamrielLandVersion } from '../world/tamriel/tamrielLand.js';   // TAMRIEL3: the trace's version, in the static key
-import { NOTE_MAX_CHARACTERS } from '../systems/automap/automap.js';
+import { tamrielFrameInBay } from '../world/tamrielFrame.js';
+import { tamrielLandVersion } from '../world/tamrielLand.js';   // TAMRIEL3: the trace's version, in the static key
+import { NOTE_MAX_CHARACTERS } from '../maps/automap.js';
 /** PLUS-MAP: the 3D map's tool glyphs - line drawings in the button's own colour (currentColor). */
 const TOOL_SVG = (d) => `<svg class="hmtoolicon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter">${d}</svg>`;
 export const TOOL_ICONS = Object.freeze({
@@ -169,37 +169,37 @@ export const TAP_TIP_S = 4;
 /** ORBIT-FREE: how far (px) a locked drag must go the other way - past its drift - before it turns and tilts at once;
  *  and the drift itself: off-axis travel under ORBIT_DRIFT of the locked axis's, the slope the lock's own 2:1 forgives. */
 export const ORBIT_FREE_PX = 24, ORBIT_DRIFT = 0.5;
-import { createTownSheet } from './town/townSheet.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { createTownSheet } from './townSheet.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { quadPlacement } from './quadMap.js';   // MAP3: the sheet over the held paper's corners
 import { bindings } from './input.js';
-import { actionsForCode } from '../systems/inputActions.js';   // UXB1-S: every action its key carries, shared or not
-import { smoothstep } from '../systems/mathf.js';   // MAP-FIELD7: the ONE easing, so the sheet travels like everything else in the port
-import { hubMapWord, hubTitle } from '../systems/region/regionHubs.js';   // HUB1: a region hub's word on the label and its title in the box
-import { tierPhrase } from '../systems/dungeon/dungeonTier.js';   // TIER1: a dungeon's tier and size on the label and in the box, online
-import { TV_WHO_GROUPS, TV_WHO_TEXT, TV_KIN_COLORS, TV_KIN_LEGEND, travelViewWho, toggleTravelViewWho, cycleTravelViewRenown, playerShown, playersOnMaps, toggleTravelViewFilter } from '../systems/travel/travelViewFilters.js';   // OW-WHO / OW-KIN: the players' filters and colours, the Overworld's own
+import { actionsForCode } from './inputActions.js';   // UXB1-S: every action its key carries, shared or not
+import { smoothstep } from '../world/mathf.js';   // MAP-FIELD7: the ONE easing, so the sheet travels like everything else in the port
+import { hubMapWord, hubTitle } from '../world/regionHubs.js';   // HUB1: a region hub's word on the label and its title in the box
+import { tierPhrase } from '../world/dungeonTier.js';   // TIER1: a dungeon's tier and size on the label and in the box, online
+import { TV_WHO_GROUPS, TV_WHO_TEXT, TV_KIN_COLORS, TV_KIN_LEGEND, travelViewWho, toggleTravelViewWho, cycleTravelViewRenown, playerShown, playersOnMaps, toggleTravelViewFilter } from '../travel/travelViewFilters.js';   // OW-WHO / OW-KIN: the players' filters and colours, the Overworld's own
 import { seatInfoLine, seatTipOf } from '../net/townSeatLaw.js';   // SEAT1a: a seat's Charter in the box
 
 // ── THE SPRITE (Mac's, public/art/held-map.png) ──────────────────
 // THE SITE ROOT lives in systems/appRoot.js now (AUDIT-THUNDERLOCK
 // F7: the port's own weapon needed the same law and could not import
 // this module to get it). Re-exported here, where MAP-FIELD put it.
-export { appRootFrom, APP_ROOT } from '../systems/appRoot.js';
-import { APP_ROOT } from '../systems/appRoot.js';
-import { IT_POPUP, IT_TEXT, itMapRefusal, itMapPaths, itPopUpDefaults, itTogglePress, itTrip, playerPopUpRefusal, seafarerDiscovered } from '../systems/immersiveTravel.js';   // IT1: Immersive Travel's maps and popups, on this sheet
+export { appRootFrom, APP_ROOT } from '../platform/appRoot.js';
+import { APP_ROOT } from '../platform/appRoot.js';
+import { IT_POPUP, IT_TEXT, itMapRefusal, itMapPaths, itPopUpDefaults, itTogglePress, itTrip, playerPopUpRefusal, seafarerDiscovered } from '../travel/immersiveTravel.js';   // IT1: Immersive Travel's maps and popups, on this sheet
 import {
   WAYPOINT_KINDS, WAYPOINT_TEXT, shownWaypoints, onWaypoints, isWaypointFollowed, waypointKindsShown, toggleWaypointKind, listWaypoints,
-} from '../systems/map/mapWaypoints.js';   // WAYPOINTS: the flags on the sheet, and their key row
+} from '../maps/mapWaypoints.js';   // WAYPOINTS: the flags on the sheet, and their key row
 import { openWaypointMenu, closeWaypointMenu } from './waypointMenu.js';   // WAYPOINTS: the right-click menu
-import { courtPosts } from '../systems/wild/cromwarkCourts.js';   // BUNNYFALL: the courts' posts at the reach's border
-import { wildInk, paintWildZone, paintWildRemains, paintWildKeyChip, paintWildCrows, paintWildFlames, paintWildLocks, paintWildGiants, paintCourtPosts } from './wild/wildMapInk.js';   // WILD1: the open zone's fog, red line and my remains
-import { WILD_TEXT, wildInside, wildRingAt } from '../systems/wild/wildZone.js';   // WILD1: the zone's words on the map
-import { zoneMapInk, paintWildRings, paintZoneMapStatic, zoneMapView, zoneMapLimits, buildZoneLegend } from './wild/wildZoneMap.js';   // WILD2: the rings, and the zone's own map
+import { courtPosts } from '../world/wild/cromwarkCourts.js';   // BUNNYFALL: the courts' posts at the reach's border
+import { wildInk, paintWildZone, paintWildRemains, paintWildKeyChip, paintWildCrows, paintWildFlames, paintWildLocks, paintWildGiants, paintCourtPosts } from './wildMapInk.js';   // WILD1: the open zone's fog, red line and my remains
+import { WILD_TEXT, wildInside, wildRingAt } from '../world/wildZone.js';   // WILD1: the zone's words on the map
+import { zoneMapInk, paintWildRings, paintZoneMapStatic, zoneMapView, zoneMapLimits, buildZoneLegend } from './wildZoneMap.js';   // WILD2: the rings, and the zone's own map
 import { paintWaypointFlag, flagBox } from './waypointFlags.js';   // WAYPOINTS: the small flags
-import { mapUiScale } from './map/mapScale.js';   // FIELD BUGS 2026-10-09e MAP-SCALE: the map's interface at the screen's size
-import { getPref } from '../systems/uiPrefs.js';
-import { retroScreenRect } from '../systems/retroMode.js';   // DISC25-B: DFU's CustomScreenRect, the pillarbox's screen
-import { TRAVEL_VIEW_BUTTON } from '../scenes/travelView.js';   // TV1: the Overworld door's words (ETHER-OW: one home with the Eltheric chart's)
+import { mapUiScale } from './mapScale.js';   // FIELD BUGS 2026-10-09e MAP-SCALE: the map's interface at the screen's size
+import { getPref } from './uiPrefs.js';
+import { retroScreenRect } from '../render/retroMode.js';   // DISC25-B: DFU's CustomScreenRect, the pillarbox's screen
+import { TRAVEL_VIEW_BUTTON } from '../travel/travelView.js';   // TV1: the Overworld door's words (ETHER-OW: one home with the Eltheric chart's)
 import { STAR_VIOLET_CSS } from './starfall/starMapMark.js';   // STAR6: a fallen star's violet
 import { STAR_CARD_TEXT } from '../systems/starfall/starWords.js';   // STAR6: its legend's word
 import { capturePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown

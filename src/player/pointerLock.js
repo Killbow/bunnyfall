@@ -37,8 +37,8 @@
 // (`shellRelock` below, app/main.cjs).
 
 import { isTextEntryTarget } from '../ui/input.js';   // PL2: a typed field's Enter is the field's (CG2)
-import { overlayOpen } from '../ui/enhanced/enhancedOverlays.js';   // PL3: an enhanced overlay up (the dial, the pack) owns Enter too
-import { isTouchDevice } from '../ui/touch/touchDevice.js';   // RPT1026-MISC TOUCH-NO-LOCK: a finger never takes the lock
+import { overlayOpen } from '../ui/enhancedOverlays.js';   // PL3: an enhanced overlay up (the dial, the pack) owns Enter too
+import { isTouchDevice } from '../ui/touchDevice.js';   // RPT1026-MISC TOUCH-NO-LOCK: a finger never takes the lock
 
 let _errBound = false;
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());

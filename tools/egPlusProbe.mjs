@@ -25,7 +25,7 @@ const server = await createServer({
   server: { port: 5244, strictPort: true, watch: null }, logLevel: 'error',   // no watcher: a file saved mid-run never invalidates an import in flight
   // the page is served by the plugin below, so the optimiser is told the scenes' modules up front - a dependency found on
   // a dynamic import mid-run re-optimises and answers the imports in flight "outdated"
-  optimizeDeps: { entries: ['src/ui/eliteGates/*.js', 'src/ui/enhanced/enhancedStyle.js', 'src/ui/grimoireDress.js'] },
+  optimizeDeps: { entries: ['src/ui/eliteGates/*.js', 'src/ui/enhancedStyle.js', 'src/ui/grimoireDress.js'] },
   plugins: [{ name: 'eg-probe-page', configureServer(s) { s.middlewares.use((req, res, next) => { if (!req.url?.startsWith('/egprobe.html')) return next(); res.setHeader('Content-Type', 'text/html'); res.end(PAGE); }); } }],
 });
 await server.listen();
@@ -38,8 +38,8 @@ const check = (ok, what) => { checks++; if (!ok) { failed++; console.log(`FAIL $
 /** Lay the skin and draw one scene's window through its real painter. Answers the window's selector. */
 async function mount(page, scene, look) {
   return page.evaluate(async ({ scene, look }) => {
-    const { injectEnhancedStyle, injectEnhancedFonts } = await import('/src/ui/enhanced/enhancedStyle.js');
-    const { isEnhancedPlus } = await import('/src/systems/uiSkin.js');
+    const { injectEnhancedStyle, injectEnhancedFonts } = await import('/src/ui/enhancedStyle.js');
+    const { isEnhancedPlus } = await import('/src/ui/uiSkin.js');
     if (isEnhancedPlus()) injectEnhancedStyle(document);
     injectEnhancedFonts(document);
     if (look === 'stone') document.documentElement.setAttribute('data-plus-theme', 'stone');
@@ -102,8 +102,8 @@ async function warm() {
     await page.goto(`${BASE}/egprobe.html?nofonts`, { waitUntil: 'load', timeout: 120000 });
     const ok = await page.evaluate(async () => {
       try {
-        await Promise.all(['/src/ui/enhanced/enhancedStyle.js', '/src/ui/grimoireDress.js', '/src/ui/eliteGates/egHud.js', '/src/ui/eliteGates/egBeats.js',
-          '/src/ui/eliteGates/egBoardWindow.js', '/src/ui/eliteGates/egStartPanel.js', '/src/systems/uiSkin.js'].map((m) => import(m)));
+        await Promise.all(['/src/ui/enhancedStyle.js', '/src/ui/grimoireDress.js', '/src/ui/eliteGates/egHud.js', '/src/ui/eliteGates/egBeats.js',
+          '/src/ui/eliteGates/egBoardWindow.js', '/src/ui/eliteGates/egStartPanel.js', '/src/ui/uiSkin.js'].map((m) => import(m)));
         return true;
       } catch { return false; }
     });

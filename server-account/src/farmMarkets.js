@@ -13,8 +13,8 @@
 import { guildActorOf } from './guilds.js';
 import { accountKind, displayName, mintId, overRate } from './accounts.js';
 import { mustChange, prepareRealmRecord, realmActFirst, recordMovedOf, dropObjects, dropIfUnnamed, REALM_ID_RE } from './realm.js';
-import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
-import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
+import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
 import { emptyGarden, validGarden, gardenStage } from '../../src/net/farmGardenLaw.js';
 import { clampCare } from '../../src/net/farm/careLaw.js';
 import { contentAt } from '../../src/net/farm/herdLaw.js';

@@ -16,8 +16,8 @@
 // bar, the one it is growing into filled as far as it has drunk (the five gems and the bar under them were two rows
 // saying one thing) - and a weapon's blow in one line, the Renown's hold when it holds it. The explanations (what a
 // set's sigil is, how it grows, the fight it was won in) are the INFO box's, `{ full: true }`, which draws it whole.
-import { sigilView, sigilProgressText } from '../systems/sigil/sigil.js';
-import { setIdOf, setsSleep } from '../systems/sigil/sigilSets.js';
+import { sigilView, sigilProgressText } from '../items/sigil.js';
+import { setIdOf, setsSleep } from '../items/sigilSets.js';
 import { SIGIL_RUNE_SVG } from './sigilRune.js';
 
 export { SIGIL_RUNE_SVG, SIGIL_RUNE_TILE_SVG, SIGIL_RUNE_TILE_URL } from './sigilRune.js';

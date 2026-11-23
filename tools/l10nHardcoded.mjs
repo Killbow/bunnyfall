@@ -23,7 +23,7 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ROUTED = new Set(['t', 'tIn', 'localizedText', 'localizedTextList', 'localizedStrings', 'localizedTable', 'formatText',
   'getLocalizedText', 'getLocalizedTextWithReversion', 'getLocalizedTextList', 'databaseText', 'gameSettingsText']);
 /** Files the scan skips: the text core itself (its English is the fallback law's own) and the grammar rules (French). */
-const SKIP = [/^src\/systems\/textManager\.js$/, /^src\/systems\/grammar\//];
+const SKIP = [/^src\/ui\/textManager\.js$/, /^src\/systems\/grammar\//];
 
 const walk = (d, out = []) => {
   for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p, out); else if (p.endsWith('.js')) out.push(p); }

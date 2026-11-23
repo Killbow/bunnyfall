@@ -3,7 +3,7 @@
 // the scythe's wind-up with its bright band, the weeds and the birds popping up to be clicked. The game itself is
 // net/farm/farmGameLaw.js; this draws its state and turns the pointer and the keys into its input. Styled by the farming
 // HUD's skin (classic or enhanced), as the tool belt is.
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 import { SOW, SCYTHE, WEED, BIRDS, MILK, PLOUGH, ploughLine } from '../net/farm/farmGameLaw.js';
 
 const HINT = {

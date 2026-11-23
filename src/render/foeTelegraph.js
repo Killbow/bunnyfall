@@ -11,7 +11,7 @@ import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';   // AUDIT TACT D9: the renderer's one fog block
 import { BLOW, TELL_NOW, blowDimOf } from '../ai/blowShapes.js';   // the leaf - the brain stays off the renderer's boot graph
 import { TELEGRAPH_STYLE_GLSL } from './telegraphStyle.js';   // TELL2: the boss's readable line, at a foe's scale (a leaf)
-import { getPref } from '../systems/uiPrefs.js';   // TELL9: the telegraph contrast, the player's own
+import { getPref } from '../ui/uiPrefs.js';   // TELL9: the telegraph contrast, the player's own
 
 /** TELL9 (bible/12-Enhanced-AI/Feud-Arc.md 11.3): the player's telegraph contrast - thicker lines, a white keyline, a
  *  pattern for every guard. Read each draw: the switch flips the next frame. */

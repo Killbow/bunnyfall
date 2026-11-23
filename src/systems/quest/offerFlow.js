@@ -62,7 +62,7 @@ import { MEMBERSHIP_STATUS } from './questLists.js';
 import { QUEST_MESSAGES } from './quest.js';
 import { GUILD_GROUPS } from '../../formats/factionFile.js';
 import { GENDERS } from '../../characters/nameHelper.js';
-import { localizedText } from '../textManager.js';   // L10N3d: the wait box's two lines
+import { localizedText } from '../../ui/textManager.js';   // L10N3d: the wait box's two lines
 import { reputeGated } from './onlineRepute.js';   // REPUTE-GATE: online, two quests wait for their headers' standing
 
 /** DaggerfallQuestPopupWindow.cs:92 - TEXT.RSC's "You're too late, I

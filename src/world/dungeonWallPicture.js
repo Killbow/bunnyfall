@@ -2,7 +2,7 @@
 // Finds the dungeon wall picture at a point, the one most of SIGHT_RAYS level sight lines meet first. A count of nearby
 // faces would reach through walls into the next room. Its repeat sizes (`tile`, `tileV`) are area-weighted medians
 // over that picture's nearby faces, so a few odd faces do not move them.
-import { rayTriangle } from '../systems/automap/automapPick.js';
+import { rayTriangle } from '../maps/automapPick.js';
 
 const UPRIGHT = 0.2;
 const MIN_FACE_M2 = 0.05;

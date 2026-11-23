@@ -1,17 +1,17 @@
-// Tests v2 POI flat pictures (src/scenes/poiFlats.js): converting `flats` rows into decor pieces (transformed position,
+// Tests v2 POI flat pictures (src/poi/poiFlats.js): converting `flats` rows into decor pieces (transformed position,
 // rotated billboard yaw and mirroring, fixed scale for person sprites, fallback world and inventory sprites for items,
 // rotated mount frames, and scaled lights) and rendering them through the POI host's decor room (billboards, decals,
 // lights, single-row updates, and teardown).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { poiFlatPiece, poiFlatPicture, flatYawThrough, mountRotThrough, createPoiFlats } from '../src/scenes/poiFlats.js';
-import { createPoiHost } from '../src/scenes/poiHost.js';
+import { poiFlatPiece, poiFlatPicture, flatYawThrough, mountRotThrough, createPoiFlats } from '../src/poi/poiFlats.js';
+import { createPoiHost } from '../src/poi/poiHost.js';
 import { createPoiFeed } from '../src/poi/poiFeed.js';
 import { newPoiDoc } from '../src/poi/poiEdit.js';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
 import { decorMountFrame, decorFlatMirrored, decorIsMount } from '../src/net/decorLaw.js';
-import { decorStandsOwn } from '../src/scenes/decor/decorRoom.js';
+import { decorStandsOwn } from '../src/homes/decorRoom.js';
 import { quatAngleAxis, quatMultiply, quatRotate } from '../src/world/quat.js';
 
 const near = (a, b, eps = 1e-3) => a.every((v, i) => Math.abs(v - b[i]) < eps);

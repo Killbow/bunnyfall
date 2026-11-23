@@ -30,9 +30,9 @@ import {
   GRADED_GEMS, gemGradeOfKey,   // CLOTH-GEMS: and every grade of them
   WORK_RECIPES, trackOf, ingredientKeys,   // FIRST-BUDGET: a mason's works and a brew among the first-makes, each its track's
 } from './professionLaw.js';
-import { GEM_GRADE_PRICE } from '../systems/loot/gemGrades.js';   // CLOTH-GEMS: a grade's ladder, one home (a leaf)
-import { POTION_RECIPES } from '../systems/potionRecipes.js';   // FIRST-BUDGET: DFU's twenty, a brew's first-makes (the leaf imports nothing)
-import { GROUP_TEMPLATE_INDICES } from '../systems/item/itemTemplatesData.js';   // PROF10: DFU's Jewellery enum, one home
+import { GEM_GRADE_PRICE } from '../items/gemGrades.js';   // CLOTH-GEMS: a grade's ladder, one home (a leaf)
+import { POTION_RECIPES } from '../items/potionRecipes.js';   // FIRST-BUDGET: DFU's twenty, a brew's first-makes (the leaf imports nothing)
+import { GROUP_TEMPLATE_INDICES } from '../items/itemTemplatesData.js';   // PROF10: DFU's Jewellery enum, one home
 import { CLOTHING_DYES } from '../characters/dyes.js';   // DFU's ten clothing dyes (DyeColors 0-9), one home
 import { textCaught } from './nameFilter.js';   // TEXT-F1: a mark's words, read as a name's (nameFilter.js imports nothing)
 

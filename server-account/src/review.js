@@ -65,7 +65,7 @@ import { isHandleShaped } from '../../src/net/handleShape.js';   // SUMMON-REPAI
 import { wealthOf, goldOf } from './judge.js';   // STAFF-SET-BANK: and a bank's gold as the judge counts it
 import { grantsMeasure } from './grants.js';   // GRANT2: the spawn grants' measure (bible/11-Multiplayer/Spawn-Grants.md section 12)
 import { progressConfig, progressConfigOf, forgetProgressConfig, PROGRESS_LINE, PROGRESS_STREAMS } from './progress.js';   // INT17: the progression claims' line
-import { REALM_LETTER_TEMPLATE } from '../../src/net/realm/realmGoldLaw.js';   // HACKED-GOLD: a trade's letters, at their worth
+import { REALM_LETTER_TEMPLATE } from '../../src/net/realmGoldLaw.js';   // HACKED-GOLD: a trade's letters, at their worth
 
 /** How long the judge's findings are kept (the hourly sweep, cron.js). */
 export const REALM_FINDINGS_KEEP_S = 90 * 24 * 3600;

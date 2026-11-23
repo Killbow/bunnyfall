@@ -4,7 +4,7 @@
 // load). The law (net/festivalLaw.js) is both ends' and shows no word. Kept short: what a player needs, nothing more.
 //
 // Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
-import { t, intlLocale } from '../textManager.js';
+import { t, intlLocale } from '../../ui/textManager.js';
 
 export const festivalName = () => t('festival.name', "The Witches' Festival");
 export const vendorOffice = () => t('festival.vendor.office', 'Wyrd Sister');

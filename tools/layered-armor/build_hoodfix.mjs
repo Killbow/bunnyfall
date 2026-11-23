@@ -22,7 +22,7 @@ import { pathToFileURL } from 'node:url';
 import { PNG } from 'pngjs';
 
 const [root, framesRoot] = process.argv.slice(2);
-const LA = await import(pathToFileURL(`${root}/src/player/eyeOfTheBeholder/layeredArmor.js`).href);
+const LA = await import(pathToFileURL(`${root}/src/player/layeredArmor.js`).href);
 const V = `${root}/vendor/layered-armor`;
 const man = JSON.parse(readFileSync(`${V}/manifest.json`, 'utf8'));
 const cman = JSON.parse(readFileSync(`${V}/cloak/manifest.json`, 'utf8'));

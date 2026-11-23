@@ -32,9 +32,9 @@ const PAGE_NAME = 'macr-hudtap.tmp.html';
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MAC-R2 probe</title>
 <style>html,body{margin:0;height:100%;background:#12141a;overflow:hidden;overscroll-behavior:none}</style></head><body>
 <script type="module">
-import { drawEnhancedHud } from '/src/ui/enhanced/enhancedHud.js';
-import { ITEM_TEMPLATES } from '/src/characters/paperdoll/paperdoll.js';
-import { equipItem } from '/src/systems/equip.js';
+import { drawEnhancedHud } from '/src/ui/enhancedHud.js';
+import { ITEM_TEMPLATES } from '/src/characters/paperdoll.js';
+import { equipItem } from '/src/characters/equip.js';
 const t = (n) => ITEM_TEMPLATES.find((x) => x.name === n);
 const mk = (n, group = 'Weapons') => { const tp = t(n); return tp && {
   name: tp.name, templateIndex: tp.index, group, stackCount: 1,

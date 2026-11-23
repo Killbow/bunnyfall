@@ -7,7 +7,7 @@
 // Every line goes through the text core (`t`, Port_Strings - L10N4), its names as arguments: a town and a coven's
 // witches are the game's own (MAPS.BSA, FACTION.TXT), shown as the player's language has them. Not a DFU member.
 // Ledger A (STARFALL).
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** Who held a star, as a line says it: the first few by name, and how many more. */
 export function heldBy(top, c) {

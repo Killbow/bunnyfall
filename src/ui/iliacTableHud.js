@@ -22,14 +22,14 @@
 // refuse; the rules themselves (the session's commit, the relay's) still decide.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { cardById } from '../net/iliac/iliacCards.js';
-import { cardRules } from '../systems/iliac/iliacCardWords.js';   // KG-SET: a card's rules, in the player's language
-import { ILIAC_HAND_MAX, ILIAC_HOLDINGS, ILIAC_MAGICKA_MAX, ILIAC_ROOM, ILIAC_TURNS } from '../net/iliac/iliacHand.js';
+import { cardById } from '../net/iliacCards.js';
+import { cardRules } from '../cards/iliacCardWords.js';   // KG-SET: a card's rules, in the player's language
+import { ILIAC_HAND_MAX, ILIAC_HOLDINGS, ILIAC_MAGICKA_MAX, ILIAC_ROOM, ILIAC_TURNS } from '../net/iliacHand.js';
 import { ILIAC_CARD_ASPECT } from '../render/iliacCardFaces.js';
-import { cardCanvasCopy } from './card/cardBinderPage.js';   // CARDS-PLUS: the binder's own painting of a face, at its CSS size
-import { cardPanelChromeCss, dressCardPanel, foldWords } from './card/cardPanelKit.js';   // CARDS-PLUS: the kit and the face, both panels' one home
+import { cardCanvasCopy } from './cardBinderPage.js';   // CARDS-PLUS: the binder's own painting of a face, at its CSS size
+import { cardPanelChromeCss, dressCardPanel, foldWords } from './cardPanelKit.js';   // CARDS-PLUS: the kit and the face, both panels' one home
 import { PIXELIFY_FIVE_FACE } from './pixelifyFive.js';   // FIX-D: the face's five, carried by every sheet that sets it
-import { t, localizedText } from '../systems/textManager.js';   // CARDS-PLUS (L10N4): the words this panel's look added, in the player's language
+import { t, localizedText } from './textManager.js';   // CARDS-PLUS (L10N4): the words this panel's look added, in the player's language
 import { playGambitWord } from './gambitTableWords.js';   // KG3: the third game's press, in the player's language
 
 /** A temper as the panel names it. */

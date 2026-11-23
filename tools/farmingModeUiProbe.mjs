@@ -27,9 +27,9 @@ try {
     const { projectToScreen } = await import('/src/player/tapRay.js');
     const { DFPalette } = await import('/src/formats/dfPalette.js');
     const { TextureFile } = await import('/src/formats/textureFile.js');
-    const { hotbarHeld } = await import('/src/ui/enhanced/enhancedHotbar.js');
-    const { setUiSkin } = await import('/src/systems/uiSkin.js');
-    const { setPlusTheme } = await import('/src/ui/enhanced/enhancedPlusStyle.js');
+    const { hotbarHeld } = await import('/src/ui/enhancedHotbar.js');
+    const { setUiSkin } = await import('/src/ui/uiSkin.js');
+    const { setPlusTheme } = await import('/src/ui/enhancedPlusStyle.js');
     registerFlatField(999102, { rangeX: 35, rangeZ: 35, spacing: 4, noise: 0 });
     const canvas = document.querySelector('canvas'), renderer = new Renderer(canvas);
     const matrix = Array(16).fill(0); matrix[12] = matrix[14] = 12;
@@ -238,7 +238,7 @@ try {
   await useFixture('beastPost0');
   assert.ok((await page.locator('.farm-message').textContent()).includes('sworn beast'), 'With no beast at my side the post says so');
   await page.evaluate(async () => {
-    const R = await import('/src/systems/revenant/revenant.js'), C = await import('/src/systems/revenant/revenantCompanions.js');
+    const R = await import('/src/revenants/revenant.js'), C = await import('/src/revenants/revenantCompanions.js');
     const player = { characterId: 'probe-char', name: 'Tester', items: [] }; window.probe.sworn = { R, C, player };
     const rec = (id, mobileType) => ({ id, rev: 1, mobileType, gender: 'male', given: id === 'w1' ? 'Fang' : 'Bruin', epithet: 'the Scarred', name: `${id === 'w1' ? 'Fang' : 'Bruin'} the Scarred`, rank: 3, born: 1, sworn: true, fate: 'sworn', swornAt: 5, companion: { state: 'with', loyalty: 90 }, history: [] });
     localStorage.setItem('dagger.revenant.probe-char', JSON.stringify({ v: 1, lastDay: 3, list: [rec('w1', 262), rec('b1', 4)] }));

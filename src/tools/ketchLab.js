@@ -28,14 +28,14 @@
 import { Renderer, WORLD_FRAME } from '../render/renderer.js';
 import { EL_LANE, exposureFor } from '../render/enhancedLighting.js';
 import { AIR_ADAPT_OPEN, AIR_ADAPT_CLOSE } from '../render/airPass.js';
-import { createSdSteps } from '../scenes/superDungeon/sdSteps.js';
-import { createKetchDeck, ketchFrameLook, ketchApplyLook, ketchHalosInto } from '../scenes/ketch/ketchDeckHost.js';
-import { SdHaloRenderer, SD_HALO_GAIN } from '../render/superDungeon/sdHalo.js';
+import { createSdSteps } from '../worldEvents/sdSteps.js';
+import { createKetchDeck, ketchFrameLook, ketchApplyLook, ketchHalosInto } from '../systems/ketch/ketchDeckHost.js';
+import { SdHaloRenderer, SD_HALO_GAIN } from '../render/sdHalo.js';
 import { KtGaugeRenderer, KT_GAUGE_KIND, KT_GAUGE_FLOATS, ktGaugePut } from '../render/ketch/ktGaugePass.js';
 import { KT_COURSE, KT_BRIDGE, deckToDungeon } from '../net/ketch/ketchDeck.js';
 import { KT_GROUP } from '../world/ketch/ketchStates.js';
 import { createKetchLabLink, KT_LAB_EPOCH } from './ketchLabLink.js';
-import { KT_WARDEN_LOOK, ktWardenDye } from '../scenes/ketch/ketchFight.js';
+import { KT_WARDEN_LOOK, ktWardenDye } from '../systems/ketch/ketchFight.js';
 import { TextureFile } from '../formats/textureFile.js';
 import { DFPalette } from '../formats/dfPalette.js';
 import { mobileBillboardSize } from '../world/rmbFlats.js';

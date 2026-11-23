@@ -23,7 +23,7 @@
 //
 // Not a DFU member: Daggerfall has no other players and no airship. Ledger A (KETCH).
 import { INSTANCE_OWNER_HEX } from '../instanceRoom.js';
-import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
+import { contentOn } from '../../mods/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** KETCH-EVERY: her round - a voyage every ten hours, ms. */
 export const KT_EVERY_MS = 10 * 3600 * 1000;

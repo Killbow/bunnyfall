@@ -24,7 +24,7 @@ import { accountKind, overRate } from './accounts.js';
 import { seatsOpenFor, confirmedSeats } from './townSeats.js';
 import { utcDay, MARKS_MAX } from '../../src/net/marksLaw.js';
 import { mintSiegeOrder, siegeFieldValid } from '../../src/net/identityToken.js';
-import { verifyRoyalReceipt } from '../../src/net/siege/siegeReceipt.js';
+import { verifyRoyalReceipt } from '../../src/net/siegeReceipt.js';
 import {
   seatWeekOf, seatWeekStartMs, seatKeyOk, SEAT_WEEK_MS, ROYAL_PAIR_DAY, ROYAL_LADDER_ROWS, settleRing, royalStandings, CROWN_SEAT_REGIONS, seasonOf,
 } from '../../src/net/townSeatLaw.js';

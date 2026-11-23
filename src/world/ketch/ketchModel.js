@@ -28,7 +28,7 @@ import {
   KT_CABIN_DOOR, KT_VAULT, KT_STERN_LIFT, KT_WAIST_COVER, KT_WARDEN_POSTS, KT_ENGINE, KT_SOCKETS, KT_CRADLES, KT_VENTS, KT_HAMMER, KT_STEAM,
   KT_ARCS, KT_DECK_H, KT_MAIN_MAST, KT_BOW, deckToDungeon,
 } from '../../net/ketch/ketchDeck.js';
-import { faces } from '../gate/gateModel.js';
+import { faces } from '../gateModel.js';
 import { ketchKit, packKetchFaces, packKetchHit, KT_TILE_M } from './ketchKit.js';
 import { KT_REC as R, KT_NET_M } from './ketchArt.js';
 

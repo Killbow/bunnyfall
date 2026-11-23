@@ -12,7 +12,7 @@
 //
 // Pure. Not a DFU member. Ledger A (KETCH).
 import { deckToDungeon } from '../../net/ketch/ketchDeck.js';
-import { faces } from '../gate/gateModel.js';
+import { faces } from '../gateModel.js';
 import { KT_ARCHIVE, KT_NET_M } from './ketchArt.js';
 
 /** A tile's side (m). */

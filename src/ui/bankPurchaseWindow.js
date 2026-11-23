@@ -38,16 +38,16 @@
 // binds each button to a DaggerfallShortcut hotkey; the accelerators
 // here are ours.
 
-import { loadImg, nativeMetrics, drawImg, drawImgCrop, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, drawImgCrop, shadowText } from './nativePanel.js';
 import { drawScreenDimBackdrop } from './chargenArt.js';
 import { VerticalScrollBar, drawScrollThumb } from './verticalScrollBar.js';   // G5: SetupScrollBar (:303-314)
-import { audio } from '../systems/audio.js';
-import { SOUND } from '../systems/soundClips.js';
+import { audio } from '../audio/audio.js';
+import { SOUND } from '../audio/soundClips.js';
 import {
   TRANSACTION_RESULT, housePrice,
   SHIP_TYPES, shipPrice, shipModelId, shipCameraDist,
-} from '../systems/banking.js';
-import { localizedText } from '../systems/textManager.js';   // L10N3d: the price row
+} from '../trade/banking.js';
+import { localizedText } from './textManager.js';   // L10N3d: the price row
 
 /** mainPanel.Size (:125) - and the size BANK01I0.IMG ships. */
 export const PURCHASE_PANEL_W = 225, PURCHASE_PANEL_H = 129;

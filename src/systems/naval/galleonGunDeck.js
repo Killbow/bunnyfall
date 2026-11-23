@@ -22,7 +22,7 @@
 // It reads nothing but node names and moves nothing but those nodes (the gun's local position along its own +x; the
 // shutter's Opened), so a hull without them is left alone. Pure but for those nodes: the clock is the caller's.
 // Not a DFU member. Ledger A (GALLEON).
-import { GUN } from '../../world/ships/galleonModel.js';
+import { GUN } from '../../world/galleonModel.js';
 
 /** The ship's two broadsides, as the nodes spell them. */
 export const GUN_DECK_SIDES = Object.freeze({ starboard: 'Starboard', port: 'Port' });

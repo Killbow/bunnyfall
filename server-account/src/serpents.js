@@ -53,11 +53,11 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═══════════════════════════════════════════════════════════════════
 
-import { verifySerpentReceipt } from '../../src/net/serpent/serpentReceipt.js';
-import { SERPENT_EMBERS } from '../../src/net/serpent/serpentHoardLaw.js';   // SERPENT-SET: the embers a receipt's hoard pays
+import { verifySerpentReceipt } from '../../src/net/serpentReceipt.js';
+import { SERPENT_EMBERS } from '../../src/net/serpentHoardLaw.js';   // SERPENT-SET: the embers a receipt's hoard pays
 import { renownForXp, renownSerpentXp, RENOWN_XP_MAX, RENOWN_XP_HOUR_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import { renownCharacterOk, renownNameOf, renownTrackOf, renownHeldSql } from './renownTracks.js';
-import { seededRng } from '../../src/systems/wind/wind.js';   // SERPENT5: the honours' own stream
+import { seededRng } from '../../src/weather/wind.js';   // SERPENT5: the honours' own stream
 
 /** A device's claim id - the key a serpent's hoard is given under (the raids' RAID_CID_RE). */
 export const SERPENT_CID_RE = /^[0-9a-f]{16}$/;

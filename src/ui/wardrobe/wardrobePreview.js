@@ -4,13 +4,13 @@
 // Plus where one stands for the player (ui/enhanced/enhancedInventory.js modelFigure), else the paper doll. Both are
 // drawn off a stand-in (systems/appearances.js previewWearer) through net/appearanceLaw.js drawnPiece, so the piece and
 // the player's own doll and body are never touched. The body is a rig of the preview's own, unloaded with the window.
-import { previewWearer } from '../../systems/appearances.js';
+import { previewWearer } from '../../items/appearances.js';
 import { appearanceSig } from '../../net/appearanceLaw.js';
 import { composeDollFor, paperDollArtLoaded } from '../paperDoll.js';
 import { createFpArm, fpArm } from '../../combat/fpArm.js';
-import { armBuildOptsOf, armRenderer } from '../../combat/weapon/weaponRig.js';
-import { isEnhancedPlus } from '../../systems/uiSkin.js';
-import { equipTableOf } from '../../systems/equip.js';
+import { armBuildOptsOf, armRenderer } from '../../combat/weaponRig.js';
+import { isEnhancedPlus } from '../uiSkin.js';
+import { equipTableOf } from '../../characters/equip.js';
 
 /** The body's figure height in pixels - the pack's own (enhancedInventory.js modelFigureImage). */
 export const PREVIEW_FIGURE_H = 384;

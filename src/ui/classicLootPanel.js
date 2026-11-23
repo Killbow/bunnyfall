@@ -17,13 +17,13 @@
 // cut at the rules into three so it grows and shrinks with the rows - the body stretched, the curls and the rules
 // kept whole. Without the pack it is DFU's own tooltip box (ToolTip.cs: the settings' ToolTipBackgroundColor and
 // ToolTipTextColor, a bare DrawText), the classic HUD's only word-in-a-box.
-import { APP_ROOT } from '../systems/appRoot.js';
-import { NATIVE_W, NATIVE_H, drawImgCrop, drawRect } from './native/nativePanel.js';
+import { APP_ROOT } from '../platform/appRoot.js';
+import { NATIVE_W, NATIVE_H, drawImgCrop, drawRect } from './nativePanel.js';
 import { drawText, measureText } from './text.js';
-import { getString } from '../systems/settings/settings.js';
+import { getString } from '../platform/settings.js';
 import { parseHexColor, DEFAULT_TOOLTIP_TEXT_BG, DEFAULT_TOOLTIP_TEXT_FG, TOOLTIP_MARGIN } from './toolTip.js';
-import { activeUiPack } from '../systems/uiPack.js';
-import { PLAQUE_MINE_TAG } from '../systems/roomLoot.js';   // PARTY-LOOT: a row of this player's own bonus says so
+import { activeUiPack } from './uiPack.js';
+import { PLAQUE_MINE_TAG } from '../items/roomLoot.js';   // PARTY-LOOT: a row of this player's own bonus says so
 
 /** Mac's sheet: its size, and the rows its two gold rules sit on (38 and 141, each with a shadow row beside it). */
 export const PARCHMENT = Object.freeze({
@@ -57,7 +57,7 @@ export function parchmentImage(renderer) {
     _byRenderer.set(renderer, slot);
     (async () => {
       const { toScreenOrder } = await import('../formats/color32Order.js');
-      const decode = _decode ?? (await import('../systems/textureReplacement.js')).decodePng;
+      const decode = _decode ?? (await import('../render/textureReplacement.js')).decodePng;
       const px = toScreenOrder(await decode(await _fetch(lootPanelUrl())));
       slot.img = { tex: renderer.uploadTexture('art', PARCHMENT.file, px, { alpha: true }), w: px.width, h: px.height };
       slot.state = 'ready';

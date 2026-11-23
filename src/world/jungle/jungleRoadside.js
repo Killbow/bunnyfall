@@ -26,12 +26,12 @@
 // worker reads its measures.
 // ═══════════════════════════════════════════════════════════════════
 import { parseObj, parseMtl, objMesh, eachDrawn, FOOT_TOP, JUNGLE_SPECIES } from './jungleModels.js';
-import { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE } from '../terrain/terrainSampler.js';
-import { WORLD_MAP_TILE_DIM } from '../terrain/terrainTiles.js';
-import { surfaceHeightAt } from '../terrain/terrainSurface.js';
-import { ARMS, roadRoom, PATH_HALF_M } from '../road/roadBand.js';
-import { pathsDataPoint } from '../road/pathData.js';
-import { tileDraw } from '../terrain/terrainNature.js';
+import { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE } from '../terrainSampler.js';
+import { WORLD_MAP_TILE_DIM } from '../terrainTiles.js';
+import { surfaceHeightAt } from '../terrainSurface.js';
+import { ARMS, roadRoom, PATH_HALF_M } from '../roadBand.js';
+import { pathsDataPoint } from '../pathData.js';
+import { tileDraw } from '../terrainNature.js';
 
 /**
  * THE OWNER'S THREE PAIRS. `file` the OBJ's name under src/assets/jungle/source/ (its MTL the same name's); `trees` the

@@ -20,7 +20,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { MODELS, isAlive, personOf, fullNameOf, setCurrent, touch, newbornAllowed, addChild, rollSiblings } from './family.js';
 import { loadFamily, storeFamily, leaveBirth } from './store.js';
-import { t } from '../textManager.js';   // RPT1026-MISC HEIR-WAITS: the newborn's door, in the player's language
+import { t } from '../../ui/textManager.js';   // RPT1026-MISC HEIR-WAITS: the newborn's door, in the player's language
 //
 // RPT1026-MISC HEIR-WAITS (a private report: a high-level Bloodline character's death offered an heir, the game went back
 // to the menu before one was chosen, and the parent was gone from the realm). THE NEWBORN'S DOOR. The Succession the fall offers is every living member of the blood

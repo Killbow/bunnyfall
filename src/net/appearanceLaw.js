@@ -5,7 +5,7 @@
 // number still reads the piece itself. Both ends read this file - the client draws a look, the relay keeps one on a
 // look's item only of the piece's kind (net/wire.js validLookItem) - and its one import is a leaf, so the relay's graph
 // stays flat. Not a DFU member: Daggerfall Unity has none (Port-Ledger section A, APPEARANCES).
-import { clampArmorVariant, ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { clampArmorVariant, ARMOR_MATERIAL } from '../items/armorMaterials.js';
 
 /** THE KINDS. A piece takes a look of its own kind only, decided by what every renderer draws it with: an armour
  *  piece's slot (the doll's layer, the Morrowind part, Layered Gearing's strip), a shield, and a weapon's classic

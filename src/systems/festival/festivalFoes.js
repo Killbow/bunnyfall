@@ -6,7 +6,7 @@
 // (systems/sigil/sigilSets.js 'wyrd') bites the same two kinds.
 //
 // Pure. Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
-import { MOBILE_TYPES as M } from '../../characters/mobile/mobileTypes.js';
+import { MOBILE_TYPES as M } from '../../characters/mobileTypes.js';
 
 /** The walking dead (DaggerfallUnityEnums MobileTypes). */
 export const FESTIVAL_UNDEAD = Object.freeze([M.SkeletalWarrior, M.Zombie, M.Ghost, M.Mummy, M.Wraith, M.Vampire, M.VampireAncient, M.Lich, M.AncientLich]);

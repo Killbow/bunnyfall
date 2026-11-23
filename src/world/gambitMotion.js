@@ -43,8 +43,8 @@
 // Not a DFU member: Daggerfall Unity has no such game - the mod does. Ledger A row (THE KING'S GAMBIT).
 import { KG_COLS, KG_ROWS, reachPath } from '../net/kingsGambit.js';
 import { ILIAC_THROW_S } from './iliacCloth.js';
-import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
-import { SOUND } from '../systems/soundClips.js';
+import { ENEMY_BASICS } from '../characters/enemyBasics.js';
+import { SOUND } from '../audio/soundClips.js';
 
 /** MoveSpeed: cells a second. */
 export const GAMBIT_WALK_CELLS_S = 3.5;

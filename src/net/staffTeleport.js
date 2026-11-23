@@ -5,8 +5,8 @@ import { privateInteriorOf } from './privateInterior.js';
 import { boatUid, readSailingCabin } from './boatIdentity.js';
 import { instanceOfWord, instanceOf, instanceWord } from './instanceRoom.js';   // INSTANCES (the audit): a place's instance, where the player stands in one
 import { validPartyPose } from './wire.js';   // STAFF-PANEL5-FOLLOW: a where note, as the hub keeps it
-import { GATE_COURTS_MAX } from './gate/gateCourts.js';   // AUDIT GATE-COURTS C6: a court's number on a staff landing - gateCourts.js imports nothing
-import { t } from '../systems/textManager.js';   // STAFF-PANEL5-FOLLOW-FIX: a finished /tp's line in the player's language (L10N4)
+import { GATE_COURTS_MAX } from './gateCourts.js';   // AUDIT GATE-COURTS C6: a court's number on a staff landing - gateCourts.js imports nothing
+import { t } from '../ui/textManager.js';   // STAFF-PANEL5-FOLLOW-FIX: a finished /tp's line in the player's language (L10N4)
 export const STAFF_TP_RELAY_MIN = 159;   // world156 now belongs to upstream's arena; unpublished local candidates through 158 are superseded by the combined law.
 export const STAFF_TP_TIMEOUT_MS = 8000;
 export const STAFF_TP_ERRORS = Object.freeze(['offline', 'ambiguous', 'busy', 'private', 'battle', 'unavailable', 'denied']);

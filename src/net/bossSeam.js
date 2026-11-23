@@ -32,9 +32,9 @@
 // contract the director calls, not a second host.
 //
 // Pure: a plug board, no state. Not a DFU member. Ledger A (ELITE-GATES).
-import { newFight, joinFight, applyHit, stepBrain, stateOf, earned } from './gate/gateBrain.js';
-import { newRemnantFight, joinRemnant, applyRemnantHit, stepRemnant, remnantStateOf } from './superDungeon/sdRemnant.js';
-import { newSerpentFight, joinSerpentFight, applySerpentHit, stepSerpentBrain, serpentStateOf, serpentEarned } from './serpent/serpentBrain.js';
+import { newFight, joinFight, applyHit, stepBrain, stateOf, earned } from './gateBrain.js';
+import { newRemnantFight, joinRemnant, applyRemnantHit, stepRemnant, remnantStateOf } from './sdRemnant.js';
+import { newSerpentFight, joinSerpentFight, applySerpentHit, stepSerpentBrain, serpentStateOf, serpentEarned } from './serpentBrain.js';
 import { judgeGate, judgeRemnant, judgeSerpent } from './bossRef.js';
 
 /** The contract's members, in the page's order. */

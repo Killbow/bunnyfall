@@ -53,7 +53,7 @@ import { openScene, bundleContainer, decodeMesh, UCLASS } from './lib/unityScene
 import { Arch3dFile } from '../src/formats/arch3dFile.js';
 import { TextureFile } from '../src/formats/textureFile.js';
 import { dfMeshToModel } from '../src/world/meshReader.js';
-import { ARENA_MODEL_ID, PIECE_TURNS, pieceTransform } from '../src/world/arena/arenaModel.js';
+import { ARENA_MODEL_ID, PIECE_TURNS, pieceTransform } from '../src/world/arenaModel.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLASS_TEXT_ASSET = 49;

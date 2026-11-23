@@ -48,7 +48,7 @@
 // THE SPIRE MIX is systems/eliteGates/egMix.js. Measured through the real player in a browser by tools/egScoreProbe.mjs (the Hour's
 // probe's law). Pure: the breach's state in, a song's name (or SPIRE_SCORE_SILENCE, or null) out.
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { midiNote, SCORE_TPQ, SCORE_STING_LEAD_MS } from '../gate/gateScore.js';
+import { midiNote, SCORE_TPQ, SCORE_STING_LEAD_MS } from '../../worldEvents/gateScore.js';
 
 /** The songs' names - 8-character stems as every made song's (GATEWAR1, HOURWAR1). */
 export const SPIRE_SONGS = Object.freeze({

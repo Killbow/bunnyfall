@@ -19,10 +19,10 @@
 // every second.
 //
 // Not a DFU member. Ledger A (STARFALL).
-import { FRAME_TONES, frameCss, scopeRules } from '../enhanced/enhancedFrame.js';
-import { injectEnhancedFonts } from '../enhanced/enhancedStyle.js';
-import { isEnhancedPlus } from '../../systems/uiSkin.js';
-import { isTouchDevice } from '../touch/touchDevice.js';
+import { FRAME_TONES, frameCss, scopeRules } from '../enhancedFrame.js';
+import { injectEnhancedFonts } from '../enhancedStyle.js';
+import { isEnhancedPlus } from '../uiSkin.js';
+import { isTouchDevice } from '../touchDevice.js';
 import { PIXEL_FONT_CSS } from '../pixelifyFive.js';
 import { STAR_CARD_TEXT } from '../../systems/starfall/starWords.js';
 import { STAR_VIOLET_CSS, STAR_GOLD_CSS } from './starMapMark.js';

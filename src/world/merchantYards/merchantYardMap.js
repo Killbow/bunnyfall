@@ -19,10 +19,10 @@
 //
 // Pure: the host's rows in, new rows out (a block a yard touches has its bytes copied, never written in place - the
 // block's own bytes are the navgrid's and the next build's). Not a DFU member. Ledger A (YARDS-FOUND).
-import { NAV_CELL, NAV_CELLS_PER_BLOCK } from '../city/cityNavigation.js';
+import { NAV_CELL, NAV_CELLS_PER_BLOCK } from '../cityNavigation.js';
 import { BUILDING_TYPES } from '../buildingNames.js';
-import { yardName, validYardKind } from '../../systems/merchantYards.js';
-import { validPortSite, portPlaceName } from '../../systems/portPlaces.js';
+import { yardName, validYardKind } from './merchantYards.js';
+import { validPortSite, portPlaceName } from '../../travel/portPlaces.js';
 
 /** The type a yard is drawn and lettered as: the General Store's - a shop's quarter, its colour and its ink. */
 export const YARD_MAP_TYPE = BUILDING_TYPES.GeneralStore;

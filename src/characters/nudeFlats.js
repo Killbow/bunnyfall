@@ -44,7 +44,7 @@
 // billboard is named there - one that draws a person asks drawnFlat, any
 // other says why it draws none.
 
-import { getBool } from '../systems/settings/settings.js';
+import { getBool } from '../platform/settings.js';
 
 /** `archive_record` -> the clothed stand-in [archive, record]. The
  *  captions are FLATS.CFG's; where they stand is BLOCKS.BSA's. */

@@ -29,14 +29,14 @@
 // `embers`, the row's `stones`), which the Broker's insignia and the Panoply's sink take from the pack (lane8 L8-2).
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { seededRng } from '../wind/wind.js';
-import { spoilsBase, magicOrBetter, sigilStone, SPOILS_SOURCE } from '../gate/gateSpoils.js';
-import { applyRarity, lastPass, socketPass, weaponSocketPass, techniquePass } from '../loot/lootRarity.js';
-import { bossGems } from '../gems.js';
-import { bossCardRoll } from '../bossCards.js';
-import { mintPanoplyPiece } from '../aetheric.js';   // EG15: THE BATTLEMAGE'S PANOPLY's nine records - which piece, one draw
+import { seededRng } from '../../weather/wind.js';
+import { spoilsBase, magicOrBetter, sigilStone, SPOILS_SOURCE } from '../../worldEvents/gateSpoils.js';
+import { applyRarity, lastPass, socketPass, weaponSocketPass, techniquePass } from '../../items/lootRarity.js';
+import { bossGems } from '../../items/gems.js';
+import { bossCardRoll } from '../../cards/bossCards.js';
+import { mintPanoplyPiece } from '../../items/aetheric.js';   // EG15: THE BATTLEMAGE'S PANOPLY's nine records - which piece, one draw
 import { egLordArm } from './egLordArms.js';
-import { RANDOM_TREASURE_ICONS } from '../loot/loot.js';
+import { RANDOM_TREASURE_ICONS } from '../../items/loot.js';
 import { egSpoilsPasses, egPassSeed, egPanoplyHit, egLegendaryShare, EG_LORD_ARM_IN } from '../../net/eliteGates/egPay.js';
 import { egPanoplyDraw, egPanoplyIn } from '../../net/eliteGates/egPay.js';   // AUDIT EG III: a Reliquary's Panoply, twice the chance
 

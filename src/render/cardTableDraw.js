@@ -13,8 +13,8 @@
 // only the painting needs a page.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { rankOf, suitOf, isCard } from '../net/card/cardLaw.js';
-import { CARD_W, CARD_L, CARD_T, CHIP_R, CHIP_T, CHIP_VALUES } from '../world/card/cardMotion.js';
+import { rankOf, suitOf, isCard } from '../net/cardLaw.js';
+import { CARD_W, CARD_L, CARD_T, CHIP_R, CHIP_T, CHIP_VALUES } from '../world/cardMotion.js';
 import { trs } from '../world/mat4.js';
 import { toColor32 } from '../formats/color32Order.js';
 import { paintFace, paintBack, STOCK } from './cardFaces.js';   // the suits' one home - the panel's and the cloth's alike

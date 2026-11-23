@@ -15,11 +15,11 @@
 //    CHILDREN_MAX - each a member of the house, a minor until the mantle passes to them (they come of age in the
 //    telling, section 10's departure), born through family.js addChild from both parents.
 import { FRIEND_AT } from '../livingWorld/relations.js';
-import { RACE_KEYS } from '../races.js';
+import { RACE_KEYS } from '../../characters/races.js';
 import { personOf, isAlive, touch, newPerson, addChild, fullNameOf } from './family.js';
 import { readHouse } from '../../net/houseLaw.js';   // LEGACY7 part three: the other player's house, held to its law
 import { houseWord } from './houseName.js';   // LEGACY-NAME: a seat's house said once
-import { t } from '../textManager.js';   // TONE-TASTE: the cooled courtship's line, said in the player's language
+import { t } from '../../ui/textManager.js';   // TONE-TASTE: the cooled courtship's line, said in the player's language
 
 export const AFFECTION_MAX = 100;
 /** A day's courtship: the base, a point per twenty of Personality and of Etiquette, and the tone's as the resident took

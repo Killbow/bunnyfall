@@ -12,7 +12,7 @@
 //
 // The prefabs are copied byte for byte. The instance lists are not
 // carried as XML (61.0 MB); each region folder becomes ONE pack of the
-// ported reader's output (src/world/worldOfDaggerfall/wodLocationPack.js explains the
+// ported reader's output (src/world/wodLocationPack.js explains the
 // layout and why it is a cache of the author's files rather than a
 // re-authoring of them), and locations.json records every source file
 // the packs were read from - name, byte size, sha256, instance count.
@@ -26,9 +26,9 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { readUnityBundle } from '../src/formats/unity/unityBundle.js';
-import { loadLocationInstance, loadLocationPrefab, ntfsCompare } from '../src/world/worldOfDaggerfall/wodLocationData.js';
-import { encodeRegionPack, decodeRegionPack, WOD_PACK_VERSION } from '../src/world/worldOfDaggerfall/wodLocationPack.js';
+import { readUnityBundle } from '../src/formats/unityBundle.js';
+import { loadLocationInstance, loadLocationPrefab, ntfsCompare } from '../src/world/wodLocationData.js';
+import { encodeRegionPack, decodeRegionPack, WOD_PACK_VERSION } from '../src/world/wodLocationPack.js';
 import { isMain } from './lib/isMain.mjs';
 
 /** The bundle's text assets, by the name they carry inside it, mapped

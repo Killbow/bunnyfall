@@ -2,7 +2,7 @@
 // A POI's talk, trade, and hand-over panel at the bottom of the screen (src/poi/poiDmRuntime.js). Plain DOM with no
 // state of its own: the runtime calls `dialogue`, `trade`, or `hand` again after every change, and `close` when done.
 
-import { t } from '../systems/textManager.js';
+import { t } from './textManager.js';
 
 const HAND_ARM_MS = 500;
 

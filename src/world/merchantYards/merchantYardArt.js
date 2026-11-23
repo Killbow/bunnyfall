@@ -22,7 +22,7 @@
 // (its own mulberry32 on fixed seeds): every client's yard is the same timber.
 //
 // Not a DFU member. Ledger A (MERCHANT-YARDS).
-import { YARD_KINDS } from '../../systems/merchantYards.js';
+import { YARD_KINDS } from './merchantYards.js';
 
 /** The pseudo-archive the yards' pictures stand under (world/lefayMonument.js LEFAY_ARCHIVE's neighbour). */
 export const YARD_ARCHIVE = 38221;

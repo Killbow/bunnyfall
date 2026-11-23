@@ -39,12 +39,12 @@
 // is ChatLog's law (ui/chatPanel.js paintWho) applied before it can be missed.
 //
 // Not a DFU member: Daggerfall Unity has no friends and no parties. Ledger A row (ONLINE).
-import { overlayOpen } from './enhanced/enhancedOverlays.js';
+import { overlayOpen } from './enhancedOverlays.js';
 import { isTextEntryTarget, swallowBrowserKey } from './input.js';   // DISC25-E: a letter's keys are the letter's
-import { isTouchDevice } from './touch/touch.js';
+import { isTouchDevice } from './touch.js';
 import { PARTY_MAX } from '../net/wire.js';
-import { customSkinsOn, skinHiddenFor, setSkinHidden } from '../systems/online/skinHide.js';   // CUSTOM-SKIN: my own switches
-import { setPref } from '../systems/uiPrefs.js';
+import { customSkinsOn, skinHiddenFor, setSkinHidden } from '../characters/skinHide.js';   // CUSTOM-SKIN: my own switches
+import { setPref } from './uiPrefs.js';
 import { lastOnlineText, PARTY_GREEN_CSS, FRIEND_CSS } from '../net/social.js';
 import { NAME_ORDER } from '../net/roster.js';   // AUDIT 637 A11: the roster's name order, one collator
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS } from './pixelifyFive.js';   // FONT1: the enhanced skin's own face, unsmoothed, with Silkscreen's five
@@ -55,14 +55,14 @@ import {
   GUILD_FOUND_GOLD, GUILD_FOUND_RENOWN, GUILD_MEMBERS_MAX, GUILD_NAME_MAX, GUILD_RANK_NAME_MAX, GUILD_RANK_NAMES,
   guildMay, guildMayMove, guildOutranks, guildNameOf, guildTagOf, guildRankNamesOf, GUILD_MOVE_MAX,
   GUILD_RANK_MASTER, GUILD_RANK_OFFICER, GUILD_RANK_RECRUIT, GUILD_RENAME_GOLD,   // GUILD2a: a new name, for a price
-} from '../net/guild/guildLaw.js';   // GUILD1b: the Guild tab's rules are the service's
-import { VAULT_RANK_DEFAULTS, VAULT_LIMIT_CHOICES, GUILD_VAULT_SLOTS, vaultStandingText, vaultMayTake, vaultMayPut } from '../net/guild/guildVaultLaw.js';   // GUILD2b: the vault
-import { tradeRefusal } from '../systems/tradePack.js';   // GUILD2b: what may leave a pack, for the vault as for a trade
-import { isLocked } from '../systems/item/itemLock.js';   // AUDIT2 GUILD2 U4: a locked piece stays in the pack
-import { GUILD_DEPOSIT_UNSURE, guildMemberOnline, guildSeenText } from '../net/guild/guildBook.js';   // GUILD-SEEN: a member's "last online"
-import { LETTER_OF_CREDIT_TEXT } from '../systems/tradeModes.js';   // GUILD-LETTER: the trade window's own line for a letter of credit
+} from '../net/guildLaw.js';   // GUILD1b: the Guild tab's rules are the service's
+import { VAULT_RANK_DEFAULTS, VAULT_LIMIT_CHOICES, GUILD_VAULT_SLOTS, vaultStandingText, vaultMayTake, vaultMayPut } from '../net/guildVaultLaw.js';   // GUILD2b: the vault
+import { tradeRefusal } from '../trade/tradePack.js';   // GUILD2b: what may leave a pack, for the vault as for a trade
+import { isLocked } from '../items/itemLock.js';   // AUDIT2 GUILD2 U4: a locked piece stays in the pack
+import { GUILD_DEPOSIT_UNSURE, guildMemberOnline, guildSeenText } from '../net/guildBook.js';   // GUILD-SEEN: a member's "last online"
+import { LETTER_OF_CREDIT_TEXT } from '../trade/tradeModes.js';   // GUILD-LETTER: the trade window's own line for a letter of credit
 import { writMay, guildMoveOk, writBudgetOk, GUILD_STORES_MAX, WRIT_BUDGET_MAX } from '../net/writLaw.js';   // PROF6: the guild Stores' and the writ budget's ranks and bounds
-import { guildRankLines, GUILD_RANK_ACTS_NOTE } from '../net/guild/guildPowers.js';   // GUILD3c: what each rank may do, in words
+import { guildRankLines, GUILD_RANK_ACTS_NOTE } from '../net/guildPowers.js';   // GUILD3c: what each rank may do, in words
 import { STORES_MAX } from '../net/professionLaw.js';   // AUDIT 31 U8: a character's Stores' most of a material
 import { marksText, MARKS_FAUCETS, MARKS_MAX } from '../net/marksLaw.js';   // MARKS1: the Marks treasury's words   // MAIL1: the form's caps are the service's
 import { glyphBadges, glyphSvgNode, titleBadge } from './playerBadge.js';   // MAIL1: a sender's glyphs, in the one drawing every DOM face uses
@@ -75,18 +75,18 @@ import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the
 import { CHARTER_COMPANIES_MAX, charterNameOf, charterWordText } from '../net/charterLaw.js';   // BUNNYFALL COMPANIES: City Charters
 import { TERRITORY_YIELD_PCT, territoryKeepXp } from '../net/territoryLaw.js';
 import { TROOPS, ROUTES, SUPPLIES, ROUTE_KEYS, garrisonWordText, troopOf, dismissFit, orderedTotal } from '../net/garrisonLaw.js';
-import { farmChoreDoneText } from '../systems/farmDoor.js';
+import { farmChoreDoneText } from '../guilds/farmDoor.js';
 import { CROPS, CHORE_BONUS, farmWordText, cropOf } from '../net/farmLaw.js';   // BUNNYFALL COMPANIES: farms   // BUNNYFALL COMPANIES: garrisons
-import { wagonItemName } from '../systems/wagon/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
-import { t } from '../systems/textManager.js';
+import { wagonItemName } from '../travel/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { t } from './textManager.js';
 import { companyRenameCost } from '../net/bunnyGuildLaw.js';   // BUNNY-GUILDS: the Adventurers Guild's rank perk
-import { bunnyMembershipOf } from '../systems/guild/bunnyMembership.js';   // GUILD-UX: the storage pages' new words in the player's language
+import { bunnyMembershipOf } from '../guilds/bunnyMembership.js';   // GUILD-UX: the storage pages' new words in the player's language
 import { storeFilterAccepts, storeRarityAccepts, storeQuery, storeFilterOptions, storeRarityOptions } from './storeFilter.js';   // GUILD-UX: the stores' one filter
-import { showItemHover, hideItemHover } from './enhanced/enhancedInventory.js';   // GUILD-UX: the pack's one item card
+import { showItemHover, hideItemHover } from './enhancedInventory.js';   // GUILD-UX: the pack's one item card
 import { playerEntity } from '../characters/playerEntity.js';   // GUILD-UX: the card's comparison is against what I wear
-import { isEnhanced } from '../systems/uiSkin.js';   // AUDIT SUGGESTIONS-1019 L4-4: the card is the enhanced skin's
-import { itemLongName } from '../systems/item/itemInfo.js';   // AUDIT SUGGESTIONS-1019 L4-6: a row named as the pack names the piece
+import { isEnhanced } from './uiSkin.js';   // AUDIT SUGGESTIONS-1019 L4-4: the card is the enhanced skin's
+import { itemLongName } from '../items/itemInfo.js';   // AUDIT SUGGESTIONS-1019 L4-6: a row named as the pack names the piece
 import { LOOSE_ORIGIN } from '../net/bagLaw.js';   // AUDIT SUGGESTIONS-1019 L4-1: the loose units the service's room counts
 import { walledText } from './storesWalled.js';   // RPT1026-MARKET STORES-SAID: what the guild Stores may not take, said
 import { chatDock } from './chatDrawer.js';

@@ -16,8 +16,8 @@
 //
 // A leaf but for the holiday tables (systems/holidayTables.js, itself a leaf). Not a DFU member: DFU has no live events.
 // Ledger A (THE WITCHES' FESTIVAL).
-import { HOLIDAYS, holidayDayOfYear } from '../systems/holidayTables.js';
-import { contentOn } from '../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
+import { HOLIDAYS, holidayDayOfYear } from '../world/holidayTables.js';
+import { contentOn } from '../mods/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** THE FESTIVALS, one a year: its id (the service's rows carry it), its first and its end instant (UTC ms; the end is
  *  not inside), and its own night's (`eveFromMs`, `eveToMs` - All Hallows' Eve's whole UTC day). 2026's opens 20 October

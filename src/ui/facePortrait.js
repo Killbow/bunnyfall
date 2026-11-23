@@ -92,11 +92,11 @@ export async function loadFaceCanvases(raceKey, gender, { scale = 2 } = {}) {
   const classic = await classicFaceCanvases(raceKey, gender, { scale });
   // PORTRAIT3D: with Morrowind's data attached, each face is the Morrowind head that portrait wears - the classic
   // record where no head is drawn, so the index still addresses the same face
-  const races = await import('../systems/races.js');
+  const races = await import('../characters/races.js');
   const set = [];
   for (let i = 0; i < Math.max(classic.length, races.FACES_PER_RACE); i++) set.push(await headFace(raceKey, gender, scale, i, classic[i] ?? null));
   // ROX (systems/roxArgonians.js): an Argonian's faces 10..19 are Rox's own pictures, after the classic ten
-  const { facesFor, CLASSIC_FACES } = await import('../systems/roxArgonians.js');
+  const { facesFor, CLASSIC_FACES } = await import('../characters/roxArgonians.js');
   if (facesFor(raceKey) > CLASSIC_FACES) {
     const { roxFaceCanvases } = await import('./roxArgonianArt.js');
     set.length = CLASSIC_FACES;
@@ -116,7 +116,7 @@ async function classicFaceCanvases(raceKey, gender, { scale = 2 } = {}) {
     const palette = await artPalette();
     if (!palette) return [];
     const [{ CifRciFile }, races, { bitmapCanvas }, { getBytes }] = await Promise.all([
-      import('../formats/cifRciFile.js'), import('../systems/races.js'),
+      import('../formats/cifRciFile.js'), import('../characters/races.js'),
       import('./bitmapCanvas.js'), import('../scenes/dataSource.js'),
     ]);
     const name = races.raceArt(raceKey, gender).heads;

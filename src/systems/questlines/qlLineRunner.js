@@ -33,12 +33,12 @@
 import { QL_LINES, lineById, lineStepOf, lineOpens, opensWords, witnessOf, lineServiceOf, unmetNeeds } from './qlLines.js';
 import { QL_SERVICE_LINES, qlStepClaimed } from '../../net/questlineClaims.js';
 import { questlinesOn } from './qlLaw.js';
-import { t } from '../textManager.js';
-import { lootRarityOn } from '../loot/lootRarity.js';
-import { getPref } from '../uiPrefs.js';
-import { KINGS_GAMBIT_KEY } from '../features.js';
-import { modSetting } from '../modSettings.js';
-import { revenantHeld } from '../revenant/revenant.js';
+import { t } from '../../ui/textManager.js';
+import { lootRarityOn } from '../../items/lootRarity.js';
+import { getPref } from '../../ui/uiPrefs.js';
+import { KINGS_GAMBIT_KEY } from '../../mods/features.js';
+import { modSetting } from '../../mods/modSettings.js';
+import { revenantHeld } from '../../revenants/revenant.js';
 import { starfallRuns } from '../../net/starfall/starfallLaw.js';   // STAR8: the Witches' Festival's stars falling
 
 /** AUDIT QUESTLINES ACTS-2, LINES-3, LINES-6: WHAT A STEP'S DEED NEEDS, read where the game reads it - Loot rarity's own

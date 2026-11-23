@@ -51,10 +51,10 @@
 // the same reason HudText's does: a DOM line is not repainted, so a
 // frame that must not show it has to SAY so (AUDIT 64 F37).
 import { drawText, measureText } from './text.js';
-import { nativeMetrics, NATIVE_W, DEFAULT_TEXT_COLOR } from './native/nativePanel.js';
-import { isEnhanced } from '../systems/uiSkin.js';
-import { drawEnhancedMidText, midTextTopPx } from './enhanced/enhancedHudText.js';
-import { timeScale } from '../systems/timeScale.js';   // CSA-G: the timer adds Time.deltaTime, which the time scale scales
+import { nativeMetrics, NATIVE_W, DEFAULT_TEXT_COLOR } from './nativePanel.js';
+import { isEnhanced } from './uiSkin.js';
+import { drawEnhancedMidText, midTextTopPx } from './enhancedHudText.js';
+import { timeScale } from '../world/timeScale.js';   // CSA-G: the timer adds Time.deltaTime, which the time scale scales
 
 /** DaggerfallHUD.cs:25 `const int midScreenTextDefaultY = 146`, the
  *  label's Position.y on the 320x200 NativePanel (:176). */

@@ -22,16 +22,16 @@
 //     Ketchmaster's Word, KETCH_GILDED_CHANCE each), so no roll before them ever moves.
 //
 // Not a DFU member. Ledger A (KETCH).
-import { seededRng } from '../wind/wind.js';
-import { spoilsBase } from '../gate/gateSpoils.js';
-import { applyRarity, lastPass, socketPass, weaponSocketPass, techniquePass } from '../loot/lootRarity.js';
-import { rareOrBetter } from '../superDungeon/sdSpoils.js';
-import { createThunderlock, createPellets } from '../thunderlock.js';
-import { createPistolet } from '../pistolet.js';
-import { rollKetchGilded } from '../gilded.js';
-import { GUNS_OFF } from '../gunsOff.js';   // BUNNYFALL: guns switched off
-import { RANDOM_TREASURE_ICONS } from '../loot/loot.js';
-import { t } from '../textManager.js';
+import { seededRng } from '../../weather/wind.js';
+import { spoilsBase } from '../../worldEvents/gateSpoils.js';
+import { applyRarity, lastPass, socketPass, weaponSocketPass, techniquePass } from '../../items/lootRarity.js';
+import { rareOrBetter } from '../../worldEvents/sdSpoilsRoll.js';
+import { createThunderlock, createPellets } from '../../items/thunderlock.js';
+import { createPistolet } from '../../items/pistolet.js';
+import { rollKetchGilded } from '../../items/gilded.js';
+import { GUNS_OFF } from '../../mods/gunsOff.js';   // BUNNYFALL: guns switched off
+import { RANDOM_TREASURE_ICONS } from '../../items/loot.js';
+import { t } from '../../ui/textManager.js';
 
 /** Gold a level of the member's, before the seed's variation. */
 export const KT_SPOILS_GOLD_PER_LEVEL = 450;

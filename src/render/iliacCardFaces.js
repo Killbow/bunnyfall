@@ -36,8 +36,8 @@
 // pale rims are 1.1:1 against the stock without one), and the digits sit wholly on the gem's dark facets.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { RARITIES } from '../systems/loot/lootRarity.js';
-import { cardWords } from '../systems/iliac/iliacCardWords.js';
+import { RARITIES } from '../items/lootRarity.js';
+import { cardWords } from '../cards/iliacCardWords.js';
 import { STOCK } from './cardFaces.js';
 
 /** The card's shape, width over height: the house deck's poker proportion, a little narrower. */

@@ -4,7 +4,7 @@
 // the bed's own seed, grow smoothly with their crop instead of in three jumps; a bed left dry a day sprouts weeds; and
 // irrigation, once the farm has it, runs as water channels along the worked rows. Every picture is in the art register.
 import { gardenStage, gardenGrowth, farmSeed, bedSeconds, FARM_BED_SIZE, FARM_WATER_S } from '../net/farmGardenLaw.js';
-import { writeDecalQuad, DECAL_FLOATS } from '../combat/blood/bloodDecals.js';
+import { writeDecalQuad, DECAL_FLOATS } from '../combat/bloodDecals.js';
 import { bedWeedy, WEED_DRY_S } from '../net/farm/careLaw.js';   // PHASE 2: weeds are the law's, so weeding clears them
 export const FARM_ART = Object.freeze({ soil: [302, 54], water: [302, 0],
   grain: { seedling: [301, 23], growing: [301, 21], ripe: [301, 19] },

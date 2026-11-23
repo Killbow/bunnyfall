@@ -11,10 +11,10 @@
 //   - Where: the Royal Ballista on a good Weapon Smith's shelf, now and then, and rarely in a deep dungeon pile; the
 //     hook on a General Store's and a Pawn Shop's shelf, and now and then in a dungeon pile.
 
-import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerTemplateLore, registerOwnItemImage } from './item/itemTemplates.js';
-import { registerTabledLootHandler } from './loot/loot.js';
-import { addVendorTextures } from './textureReplacement.js';
-import { APP_ROOT } from './appRoot.js';
+import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerTemplateLore, registerOwnItemImage } from '../items/itemTemplates.js';
+import { registerTabledLootHandler } from '../items/loot.js';
+import { addVendorTextures } from '../render/textureReplacement.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 import { BALLISTA_TEMPLATE, GRAPPLE_TEMPLATE, BALLISTA_ARCHIVE, GRAPPLE_ARCHIVE } from '../characters/heavyGearIds.js';
 
 export { BALLISTA_TEMPLATE, GRAPPLE_TEMPLATE };

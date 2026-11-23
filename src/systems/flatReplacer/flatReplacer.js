@@ -10,8 +10,8 @@
 // stand, among them the Nord trainer over the same flat.
 
 import { parseFlatRecords, indexFlatRecords, chooseFlatReplacement, flatPortrait, flatNameBank, LOCATION } from './flatReplacerLaw.js';
-import { getPref, setPref } from '../uiPrefs.js';
-import { textureReplacementEnabled } from '../textureReplacement.js';
+import { getPref, setPref } from '../../ui/uiPrefs.js';
+import { textureReplacementEnabled } from '../../render/textureReplacement.js';
 
 export const DIBELLAN_PREF = 'weeberfallDibellan';
 

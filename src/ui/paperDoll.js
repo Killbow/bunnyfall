@@ -39,30 +39,30 @@
 // Breton/male/face 0 is only the PRE-CHARGEN default (chargen fronts
 // identity and this file reloads on identity change - AUDIT 23).
 
-import { shownEquipTable } from '../systems/lookHidden.js';   // BUNNYFALL: hidden gear draws nowhere
+import { shownEquipTable } from '../characters/lookHidden.js';   // BUNNYFALL: hidden gear draws nowhere
 import { createDollTracker, dollBackPixels, dollPieceKind } from './paperDollBack.js';   // DOLL-BACK: the doll seen from behind
 import { ImgFile } from '../formats/imgFile.js';
 import { packImgTexture } from './packArt.js';   // OVH2: a worn UI pack's backdrop
-import { racialPaperDollBackground, racialOverrideHeadArt, racialSuppressPaperDollBodyAndItems } from '../systems/vampirism.js';   // V5: the curse art laws, both curses' one switch
+import { racialPaperDollBackground, racialOverrideHeadArt, racialSuppressPaperDollBodyAndItems } from '../afflictions/vampirism.js';   // V5: the curse art laws, both curses' one switch
 import { CifRciFile } from '../formats/cifRciFile.js';
-import { getBool } from '../systems/settings/settings.js';   // UI3: EnableGeographicBackgrounds; ChildGuard/PlayerNudity gates the welds
-import { EQUIP_SLOTS, equipTableOf, getItemHands, ITEM_HANDS } from '../systems/equip.js';
-import { getTemplate, paperdollOrder } from '../characters/paperdoll/paperdoll.js';
+import { getBool } from '../platform/settings.js';   // UI3: EnableGeographicBackgrounds; ChildGuard/PlayerNudity gates the welds
+import { EQUIP_SLOTS, equipTableOf, getItemHands, ITEM_HANDS } from '../characters/equip.js';
+import { getTemplate, paperdollOrder } from '../characters/paperdoll.js';
 import { applyDyeToIndex, DYE_TARGETS, DYE_COLORS, CLOTHING_DYES } from '../characters/dyes.js';
-import { decodedTextureTopDown, preloadTextureRecord, textureReplacementRect, hasTextureReplacement } from '../systems/textureReplacement.js';
+import { decodedTextureTopDown, preloadTextureRecord, textureReplacementRect, hasTextureReplacement } from '../render/textureReplacement.js';
 import { pdeGapFillOn } from '../systems/modPacks/modPacks.js';   // MODPACK1: Paperdoll Enhanced's missing pieces
 import { pdeGap, recolourMetal, learnMetalRamp, PDE_REFERENCE_RECORDS } from '../systems/modPacks/pdeGapFill.js';
-import { dfmodImgImage, dfmodCifRciImage, dfmodCifRciRect, dfmodGeneration, resampleRgba, dfmodCarriesDollArt } from '../systems/dfmodTextures.js';   // DFMOD1: an attached mod's backdrop, body, head and hi-res items   // DW3: GetItemImage's import arm, by the item's dye; AUDIT-DW F1: decoded when the doll asks
-import { itemDyeColor, itemDyeTarget } from '../systems/item/itemDye.js';   // DW3: DaggerfallUnityItem.dyeColor, as the port's items carry it
-import { ARTIFACT_MALE_TEXTURE_ARCHIVE, ARTIFACT_FEMALE_TEXTURE_ARCHIVE } from '../systems/loot/loot.js';   // ART-DOLL: an artifact's own doll archive
-import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: a custom class's own archive and record on the doll
-import { ownItemImage } from '../systems/item/itemTemplates.js';   // THUNDERLOCK-ART: a weapon of the port's own wears its own doll layer
-import { clampArmorVariant, armorArchive, HUMAN_MORPHOLOGY, ARMOR_MATERIAL } from '../systems/armorMaterials.js';
-import { isRoxFace, wearsRox, classicFaceRecord, ROX_HEAD_RECT } from '../systems/roxArgonians.js';   // ROX: an Argonian's extra ten faces
+import { dfmodImgImage, dfmodCifRciImage, dfmodCifRciRect, dfmodGeneration, resampleRgba, dfmodCarriesDollArt } from '../mods/dfmodTextures.js';   // DFMOD1: an attached mod's backdrop, body, head and hi-res items   // DW3: GetItemImage's import arm, by the item's dye; AUDIT-DW F1: decoded when the doll asks
+import { itemDyeColor, itemDyeTarget } from '../items/itemDye.js';   // DW3: DaggerfallUnityItem.dyeColor, as the port's items carry it
+import { ARTIFACT_MALE_TEXTURE_ARCHIVE, ARTIFACT_FEMALE_TEXTURE_ARCHIVE } from '../items/loot.js';   // ART-DOLL: an artifact's own doll archive
+import { customItemClass } from '../mods/rriItems.js';   // RRI1: a custom class's own archive and record on the doll
+import { ownItemImage } from '../items/itemTemplates.js';   // THUNDERLOCK-ART: a weapon of the port's own wears its own doll layer
+import { clampArmorVariant, armorArchive, HUMAN_MORPHOLOGY, ARMOR_MATERIAL } from '../items/armorMaterials.js';
+import { isRoxFace, wearsRox, classicFaceRecord, ROX_HEAD_RECT } from '../characters/roxArgonians.js';   // ROX: an Argonian's extra ten faces
 import { roxRgba, roxHeadUrl, roxBodyUrl } from './roxArgonianArt.js';
-import { raceArt, FACES_PER_RACE, raceByKey, artRaceOf } from '../systems/races.js';   // S3c/U9: all eight races
+import { raceArt, FACES_PER_RACE, raceByKey, artRaceOf } from '../characters/races.js';   // S3c/U9: all eight races
 import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
-import { ownSkinArt } from '../systems/online/customSkins.js';   // CUSTOM-SKIN: the pictures of the skin this player wears
+import { ownSkinArt } from '../characters/customSkins.js';   // CUSTOM-SKIN: the pictures of the skin this player wears
 
 export const PAPERDOLL_W = 110;
 export const PAPERDOLL_H = 184;

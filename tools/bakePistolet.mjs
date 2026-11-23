@@ -6,7 +6,7 @@
 // the first bake, the inventory sprite extruded a block deep: "Uhhh can you make an actual 3d model and texture it. This
 // is bad"), and written by the same NIF and DDS writers the Thunderlock's bake uses (tools/nifWrite.mjs,
 // tools/meshTexture.mjs). The frame is the one the arm holds: +Y the barrel, +Z up, +X the gun's right, the grip's middle
-// at the origin (src/characters/ownModels/ownWeaponModels.js PISTOL_GRIP_ATTITUDE).
+// at the origin (src/characters/ownWeaponModels.js PISTOL_GRIP_ATTITUDE).
 //
 // Deterministic: the same code bakes the same bytes; test/systems/pistolet.test.js re-runs it and compares.
 import { writeFileSync, mkdirSync } from 'node:fs';

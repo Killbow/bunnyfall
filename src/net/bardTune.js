@@ -1,5 +1,5 @@
 // @ts-check
-/* global btoa, atob, Buffer */
+/* global btoa, atob */
 // BARDS' COLLEGE (2026-11-02): THE TUNE - a bard's MIDI, read, shrunk to what the relay will carry, and turned into the
 // chart the rhythm game plays. A leaf, shared by the client and the relay (the relay validates every tune it fans).
 //
@@ -123,7 +123,7 @@ export function encodeTune(tune) {
   }
   let s = '';
   for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-  return { n: clean(tune.title), d: typeof btoa === 'function' ? btoa(s) : Buffer.from(buf).toString('base64') };
+  return { n: clean(tune.title), d: typeof btoa === 'function' ? btoa(s) : /** @type {any} */ (globalThis).Buffer.from(buf).toString('base64') };
 }
 
 /** A wire form -> a tune, or null where any part of it is out of law. The relay and every listener both run this.
@@ -135,7 +135,7 @@ export function validTune(w) {
   /** @type {Uint8Array} */ let buf;
   try {
     if (typeof atob === 'function') { const s = atob(o.d); buf = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) buf[i] = s.charCodeAt(i); }
-    else buf = new Uint8Array(Buffer.from(o.d, 'base64'));
+    else buf = new Uint8Array(/** @type {any} */ (globalThis).Buffer.from(o.d, 'base64'));
   } catch { return null; }
   if (buf.length < 5 || buf[0] !== TUNE_VERSION || (buf.length - 1) % 4 !== 0) return null;
   const n = (buf.length - 1) / 4;

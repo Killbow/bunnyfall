@@ -4,10 +4,10 @@
 // its post and answer Y/N: it comes back. The service (the garden's `station` and `recall` ops) is asked first; the
 // character's own record (revenantCompanions.js) is written when it says yes. Also here: the ploughing row (a stationed
 // grizzly's game) and the reconcile that lets the service's word win for where a beast stands. Wired by farmingMode.js.
-import { t } from '../../systems/textManager.js';
-import { revenantsWithYou, stationRevenant, recallStationed, reconcileStations } from '../../systems/revenant/revenantCompanions.js';
-import { swornRevenants } from '../../systems/revenant/revenant.js';
-import { artOf } from '../../systems/revenant/revenantArts.js';
+import { t } from '../../ui/textManager.js';
+import { revenantsWithYou, stationRevenant, recallStationed, reconcileStations } from '../../revenants/revenantCompanions.js';
+import { swornRevenants } from '../../revenants/revenant.js';
+import { artOf } from '../../revenants/revenantArts.js';
 import { stationKind, stationsOf, isStationBeast, KIND_WORDS, ROLE_WORDS, PLOUGH_BEDS } from '../../net/farm/stationLaw.js';
 import { postIndexOf } from '../../world/farm/farmstead.js';
 import { FARM_BED_SPACING } from '../../net/farmGardenLaw.js';

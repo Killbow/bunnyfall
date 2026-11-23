@@ -24,7 +24,7 @@ test('every listed item is minted by the service and taken by the trade law', ()
 });
 
 test('the list leaves out gold, bound items, and templates the service does not know', async () => {
-  const { lawTemplate } = await import('../src/systems/item/itemLaw.js');
+  const { lawTemplate } = await import('../src/items/itemLaw.js');
   const listed = new Set(POI_ITEM_CHOICES.map((r) => r[0]));
   assert.ok(!POI_ITEM_CHOICES.some((r) => r[1] === 'Currency'));
   assert.ok(![...listed].some((i) => lawTemplate(i)?.bound));

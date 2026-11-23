@@ -22,13 +22,13 @@ import { drawAdoptSection, resetAdoptPage } from './adoptHeirPage.js';   // BUNN
 import { layoutTree } from '../systems/legacy/tree.js';
 import { MODELS, NO_LINEAGE, personOf, currentOf, isAlive, parentsOf, childrenOf, siblingsOf, fullNameOf, BLOOD_MAX, HEARTH_MAX, ESTATE_SHARE, ESTATE_MAX } from '../systems/legacy/family.js';
 import { ageOf, spanOf, isElder, isSpent, ELDER_SHARE } from '../systems/legacy/age.js';
-import { SKILL_NAMES } from '../systems/skills.js';
-import { STAT_KEYS_ORDER } from '../systems/statMods.js';
+import { SKILL_NAMES } from '../characters/skills.js';
+import { STAT_KEYS_ORDER } from '../characters/statMods.js';
 import { homeOf, familyHome, sameHouse } from '../systems/legacy/household.js';   // LEGACY-HOME: where each of the line lives
 import { houseLine } from '../net/houseLaw.js';   // LEGACY7 part three: a player spouse's own house on their card
 import { houseWord } from '../systems/legacy/houseName.js';   // LEGACY-NAME: a seat's house said once
 import { facePose } from '../systems/legacy/facePose.js';   // AUDIT LEGACY III P17: a person's portrait, asked one way
-import { optionPath } from './settings/settingsMap.js';   // ORG2
+import { optionPath } from './settingsMap.js';   // ORG2
 // PLAIN-UI: How it works says the law's own numbers
 import { HEIRLOOM_DAMAGE_PER_GEN, HEIRLOOM_ARMOR_PER_GEN, HEIRLOOM_GEN_MAX, REMAINS_GOLD_SHARE, REMAINS_GOLD_MAX, BLESSING_POINTS, BLESSING_SKILL_MAX } from '../systems/legacy/heirloom.js';
 import { AFFECTION_MAX, CHILD_DAYS, CHILD_CHANCE, CHILDREN_MAX } from '../systems/legacy/marriage.js';

@@ -13,7 +13,7 @@
 // size is each picture's OWN (the `out size` of GetTextureFromResources), which is why the loader answers w and h.
 // GetTextureFromResources samples with the GUI filter, Point by default (GUIFilterMode 0): NEAREST, and a string-keyed
 // upload carries no mip chain (renderer.js uploadTexture) - UI art's single level, as ImageReader's is.
-import { APP_ROOT } from '../systems/appRoot.js';
+import { APP_ROOT } from '../platform/appRoot.js';
 
 /** LoadAssets' switch: the setting's word -> the file-name prefix of its set. */
 export function modeIconSet(style) {
@@ -44,7 +44,7 @@ function load(renderer, cache, file) {
   cache.set(file, slot);
   (async () => {
     const { toScreenOrder } = await import('../formats/color32Order.js');
-    const decode = _decode ?? (await import('../systems/textureReplacement.js')).decodePng;
+    const decode = _decode ?? (await import('../render/textureReplacement.js')).decodePng;
     const px = toScreenOrder(await decode(await _fetch(modeIconUrl(file))));
     slot.icon = { tex: renderer.uploadTexture('dfu-icon', file, px, { alpha: true }), w: px.width, h: px.height };
     slot.state = 'ready';

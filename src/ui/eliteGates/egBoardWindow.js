@@ -18,9 +18,9 @@
 // Not a DFU member: Daggerfall Unity has no Elite Breach. Ledger A (ELITE-GATES).
 import { egBandOfHall, EG_BAND_NAMES, EG_DECREES, EG_TEXT } from '../../net/eliteGates/egLaw.js';   // AUDIT EG V (L8-9): a Wager's decrees by name, in the start window's own words
 import { ListPickerWindow } from '../listPicker.js';
-import { registerOverlay } from '../enhanced/enhancedOverlays.js';   // AUDIT EG III: on the enhanced doors' stack
+import { registerOverlay } from '../enhancedOverlays.js';   // AUDIT EG III: on the enhanced doors' stack
 import { overlayAction } from '../input.js';   // AUDIT EG III: the doors' own Back
-import { t } from '../../systems/textManager.js';   // AUDIT EG V (c, L7-19): the last runs' words, in the player's language
+import { t } from '../textManager.js';   // AUDIT EG V (c, L7-19): the last runs' words, in the player's language
 import { dressEgKit, egEl, egHead, egSection } from './egKit.js';   // EG-PLUS: the breach windows' chrome
 
 /** The tabs, in their order: the Descent's three brackets (server-account/src/egHonours.js EG_BRACKETS), the Depths and

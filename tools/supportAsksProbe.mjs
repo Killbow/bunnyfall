@@ -30,7 +30,7 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
-import { OUTSET } from '../src/ui/enhanced/enhancedFrame.js';
+import { OUTSET } from '../src/ui/enhancedFrame.js';
 import { SUPPORT_ASKS } from '../src/ui/supportAsks.js';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';

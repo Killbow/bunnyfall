@@ -14,8 +14,8 @@ import { isMain } from './lib/isMain.mjs';
 import { BlocksFile } from '../src/formats/blocksFile.js';
 import { MapsFile } from '../src/formats/mapsFile.js';
 import { layoutLocation } from '../src/world/locationLayout.js';
-import { pickRegionHubs } from '../src/systems/region/regionHubs.js';
-import { deriveTownSeats, seatTotals } from '../src/systems/town/townSeats.js';
+import { pickRegionHubs } from '../src/world/regionHubs.js';
+import { deriveTownSeats, seatTotals } from '../src/guilds/townSeats.js';
 import { boardTally } from './boardCount.mjs';
 
 /** The game's own rows, as the world host's boot pass collects them (a mod's appended rows never count). */

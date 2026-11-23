@@ -16,8 +16,8 @@
 // ACCESSOR: the upkeep's wear (the road, a journey, the watch's throw), the ride's pace, the Stable page, the saddle panel
 // and the kit's Use (systems/upkeep/upkeepRuntime.js, handed this by the two hosts that ride), a Wagon Yard's wright
 // (scenes/world.js mendAtYard) and a counter's price for a wagon (systems/tradeModes.js saleConditionPercentage).
-import { isEnhanced } from '../uiSkin.js';
-import { getPref } from '../uiPrefs.js';
+import { isEnhanced } from '../../ui/uiSkin.js';
+import { getPref } from '../../ui/uiPrefs.js';
 import { horseCareTierOfStored, horseCareRulesForTier, wagonUpkeepTierOfStored, wagonUpkeepRulesForTier } from './upkeepTiers.js';
 
 export const HORSE_CARE_PREF = 'horseCare';

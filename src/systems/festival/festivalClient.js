@@ -22,19 +22,19 @@
 //
 // Not a DFU member. Ledger A (THE WITCHES' FESTIVAL).
 import { accountFestival, equipTitle, equipAura, equipIcon, adoptIdentity, storedSession, serviceBase, readAccount, accountRefusalText } from '../../net/accountClient.js';
-import { appStorage } from '../appStorage.js';
-import { registerPlayerKillListener } from '../playerKills.js';
+import { appStorage } from '../../platform/appStorage.js';
+import { registerPlayerKillListener } from '../../player/playerKills.js';
 import { hearActs, ACT_KINDS } from '../questlines/qlActs.js';
-import { registerModSaveData } from '../modSaveData.js';
-import { KNIGHT_CITY_WATCH } from '../../characters/mobile/mobileTypes.js';
+import { registerModSaveData } from '../../saves/modSaveData.js';
+import { KNIGHT_CITY_WATCH } from '../../characters/mobileTypes.js';
 import { festivalOpen, isFindSource, wareById, accountWare, bowlWare, festivalWaresHeld, SALE_RID_RE, FIND_CAKES_PER_DAY } from '../../net/festivalLaw.js';
 import { utcDay } from '../../net/marksLaw.js';   // CAKE-CAP-SAID: the service's own day (server-account/src/festival.js)
 import { restackSoulCakes, restackHearthOfferings, isHearthOffering } from './soulCake.js';
 import { foeFindSource } from './festivalFoes.js';
 import { cakesFoundText, festivalRefusalText, isFestivalRefusal, findsFullText } from './festivalWords.js';
-import { wyrdPieceById } from '../aetheric.js';
-import { mintIliacCard } from '../iliac/iliacItems.js';
-import { addItem } from '../inventory.js';
+import { wyrdPieceById } from '../../items/aetheric.js';
+import { mintIliacCard } from '../../cards/iliacItems.js';
+import { addItem } from '../../items/inventory.js';
 
 /** The kill listener's and the act hearer's name. */
 export const FESTIVAL_FIND = 'festival-find';

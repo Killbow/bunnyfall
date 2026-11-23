@@ -3,7 +3,7 @@
 // judging tables do when clicked, in the HUD's message line and DFU's own choice boxes (money and Company goods only move
 // behind one). The law is net/farm/marketLaw.js; the service (server-account/src/farmMarkets.js) judges every act. This
 // holds the last read of the farm's market and speaks it. Pure but for the doors it is handed.
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 import { farmCropName } from '../../ui/farmingHud.js';
 import { MARKET_FIXTURES } from '../../world/farm/farmstead.js';
 import { marketToday, marketTomorrow, marketWeekday, MARKET_STALLS, STALL_LOT, BUY_MAX, stallPrice, saleOf, CONTESTS, RIBBON_WORK } from '../../net/farm/marketLaw.js';

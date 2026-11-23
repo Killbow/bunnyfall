@@ -28,7 +28,7 @@
 // the draw and the law are two questions). This is the picture only.
 // ═══════════════════════════════════════════════════════════════════
 
-import { SHALLOW_WHOLE, SHALLOW_DRAWN, WATER_DRAW_MASK_TABLE } from './water/waterCorners.js';
+import { SHALLOW_WHOLE, SHALLOW_DRAWN, WATER_DRAW_MASK_TABLE } from './waterCorners.js';
 
 /** The records the pass drew whole, in order: record 9 and DFU's shallow-water tiles. */
 export const PUDDLE_RECORDS = Object.freeze([...new Set([...SHALLOW_DRAWN, ...SHALLOW_WHOLE])].sort((a, b) => a - b));

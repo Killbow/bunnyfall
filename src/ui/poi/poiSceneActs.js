@@ -6,7 +6,7 @@
 // and written to the system clipboard when permitted. Paste reads the saved copy, or the copy this page holds when none
 // is saved, and with neither, the system clipboard.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 import { pageStorage } from './poiStorage.js';
 import { selItems, selectionOf } from '../../poi/poiEdit.js';
 import { find, groupNodes, marksOf, movable, moveToGroup, parseId, removeNodes, renameNode, reorderNode, setFlag, ungroup } from '../../poi/poiScene.js';

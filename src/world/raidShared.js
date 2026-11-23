@@ -14,7 +14,7 @@
 // runner alone.
 
 import { FOE_SEQ_MAX } from '../net/wire.js';
-import { RAID_KEY_RE } from '../net/raid/raidLaw.js';   // RAID3: a raid's key has one home, the relay's law beside it
+import { RAID_KEY_RE } from '../net/raidLaw.js';   // RAID3: a raid's key has one home, the relay's law beside it
 import { STAFF_EVENT_KEY_RE, STAFF_BOSS_SIZE_MIN, STAFF_BOSS_SIZE_MAX } from '../net/staffEvent/staffEventLaw.js';   // STAFF-EVENT: an event runs as a raid, under its own key
 /** A raid's key, or a staff event's (net/staffEvent/staffEventLaw.js - it runs as a raid: its raiders tagged, its words
  *  said, its runner elected by the raid's own law). @param {unknown} key */

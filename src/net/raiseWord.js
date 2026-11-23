@@ -6,7 +6,7 @@
 // when a living friend's spell was cast at it; anywhere else this says nothing, and the party pose's call (systems/
 // resurrect.js `rz`) is the raise, the fallen's own page deciding. The world host calls it from its Resurrect's door
 // (scenes/world.js raiseFallenDoor).
-import { isSdRoom } from './superDungeon/sdLaw.js';
+import { isSdRoom } from './sdLaw.js';
 import { isEgRoom } from './eliteGates/egLaw.js';
 import { isKetchRoom } from './ketch/ketchLaw.js';
 

@@ -50,7 +50,7 @@ const NOTED = Symbol('staff-noted');
 
 /** The game's own minter, every token handed on as it came, each one's hidden mark said to `heard` - so the game knows
  *  whether its links are hidden now (Hide me) without asking the panel. Marked, so it is wrapped once. Its keeping is the
- *  minter's own. @param {any} minter @param {(hidden: boolean) => void} heard */
+ *  minter's own. @param {any} minter @param {(hidden: boolean, vanished?: boolean) => void} heard */
 export function noteHidden(minter, heard) {
   if (minter?.[NOTED]) return minter;
   const mint = async (/** @type {string|null} */ room) => { const tok = await minter(room); if (tok) heard(tokenHidden(tok), tokenVanished(tok)); return tok; };   // BUNNYFALL /vanish: and the vanish mark

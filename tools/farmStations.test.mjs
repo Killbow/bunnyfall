@@ -5,8 +5,8 @@ globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v
 const rec = (id, mobileType, over = {}) => ({ id, rev: 1, mobileType, gender: 'male', given: 'Grushnak', epithet: 'the Scarred', name: 'Grushnak the Scarred', rank: 3, born: 1, sworn: true, fate: 'sworn', swornAt: 5, companion: { state: 'with', loyalty: 95 }, history: [], ...over });
 const player = { characterId: 'cx1', name: 'Tester', items: [] };
 store.set('dagger.revenant.cx1', JSON.stringify({ v: 1, lastDay: 3, list: [rec('wolf1', 262), rec('orc1', 6000 > 0 ? 8 : 8), rec('bear1', 4), rec('spider1', 6), rec('bat1', 3)] }));
-const R = await import('../src/systems/revenant/revenant.js');
-const C = await import('../src/systems/revenant/revenantCompanions.js');
+const R = await import('../src/revenants/revenant.js');
+const C = await import('../src/revenants/revenantCompanions.js');
 C.setRetinuePlayer(player);
 const heard = []; C.setRetinueListener((k, r) => heard.push([k, r.id]));
 R.revenantsFor(player);

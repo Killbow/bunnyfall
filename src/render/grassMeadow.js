@@ -48,7 +48,7 @@
 // GRASSMEADOW_VS_EDITS), and test/render/grassmeadow.test.js holds the two
 // together.
 import { MEADOW_SPRITES, MEADOW_ALPHABET } from './meadowArt.js';
-import { smoothstep } from '../systems/mathf.js';
+import { smoothstep } from '../world/mathf.js';
 
 /** the atlas's cells side by side - a power of two so every mip level halves exactly; the five sprites take the
  *  first five and the last three are air the shader never picks */

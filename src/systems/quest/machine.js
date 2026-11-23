@@ -297,11 +297,11 @@ import { defaultActionTemplates, heldPromptPlaces } from './actions.js';   // AU
 import { receivedState, mergeSharedState, freshState, QL_STAMP } from '../questlines/qlState.js';   // QL1: a shared copy's questline state (decision 7); AUDIT QUESTLINES BRANCH-14: a restart's stamp
 import { QuestResourceBehaviour } from './resourceBehaviour.js';
 import { FACTION_TYPES } from '../../formats/factionFile.js';
-import { SECONDS_PER_WEEK } from '../gameDate.js';
+import { SECONDS_PER_WEEK } from '../../world/gameDate.js';
 import { Quest, nextUid, isShelved } from './quest.js';   // QUEST-SHELF: a quest set aside
 import { localizedQuestDisplayName } from './localizedQuest.js';   // L10N3c: ParseQuest's -LOC DisplayName
 import { Task, TaskType } from './task.js';   // QUEST-AUDIT III PROGRESS-KEPT: a copy's own tasks set, by kind
-import { isGoldPieces } from '../inventory.js';   // QUEST-AUDIT III RESTART-PAID: a quest's gold, paid
+import { isGoldPieces } from '../../items/inventory.js';   // QUEST-AUDIT III RESTART-PAID: a quest's gold, paid
 import { Person } from './person.js';
 import { Place, SITE_TYPES } from './place.js';   // QUEST-HOME: a building site, reached
 import { Item } from './item.js';

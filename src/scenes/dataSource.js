@@ -13,10 +13,10 @@
 // it 404s and the picker is the source. Names are normalized to
 // UPPERCASE basenames - real ARENA2 ships uppercase, user folders vary.
 
-import { isTouchDevice } from '../ui/touch/touchDevice.js';   // TI3
-import { isEnhanced } from '../systems/uiSkin.js';   // FONT3: the asset picker's face follows the skin
+import { isTouchDevice } from '../ui/touchDevice.js';   // TI3
+import { isEnhanced } from '../ui/uiSkin.js';   // FONT3: the asset picker's face follows the skin
 import { PIXEL_FONT_CSS } from '../ui/pixelifyFive.js';   // FONT3
-import { optionPath } from '../ui/settings/settingsMap.js';   // ORG2
+import { optionPath } from '../ui/settingsMap.js';   // ORG2
 
 const DB_NAME = 'project-dagger';
 /** The lowest version this build opens the database at (R6's derived store); a newer one is used as it stands. */
@@ -483,7 +483,7 @@ async function deleteAssets(store, names) {
 }
 
 export async function storeMusicFiles(files) {
-  const { replacementEntry } = await import('../systems/musicReplacement.js');
+  const { replacementEntry } = await import('../audio/musicReplacement.js');
   return storeAssets(MUSIC_STORE, files, (n) => !!replacementEntry(n));
 }
 export const storedMusicNames = () => assetNames(MUSIC_STORE);
@@ -493,14 +493,14 @@ export const loadMusicFile = (fileName) => assetBytes(MUSIC_STORE, fileName);
  *  with the music pack's own lifecycle, and a store of its own would be a database version bump for two files. The
  *  two packs cannot collide: each registration reads only the names it knows (song_*.ogg / AmbientCrickets.wav). */
 export async function storeSoundFiles(files) {
-  const { soundEntry } = await import('../systems/soundReplacer.js');
+  const { soundEntry } = await import('../audio/soundReplacer.js');
   return storeAssets(MUSIC_STORE, files, (n) => !!soundEntry(n));
 }
 /** SNDREP1: REMOVE THE SOUND PACK - its WAVs leave the music store and the music pack beside them stays, which is
  *  why this deletes by name rather than clearing the store. The registry is emptied with it, so the next night's
  *  crickets are Daggerfall's own again. Answers how many files went. */
 export async function clearStoredSounds() {
-  const { soundEntry, setSoundReplacements } = await import('../systems/soundReplacer.js');
+  const { soundEntry, setSoundReplacements } = await import('../audio/soundReplacer.js');
   const names = (await storedMusicNames()).filter((n) => soundEntry(n));
   if (names.length) {
     const d = await getDb();
@@ -518,7 +518,7 @@ export async function clearStoredSounds() {
 /** DFMOD1: REMOVE THE MUSIC PACK - the song files leave the music store; a sound pack stored beside them stays
  *  (clearStoredSounds' mirror). The registry is emptied, so the next song is Daggerfall's own. */
 export async function clearStoredMusic() {
-  const { replacementEntry, setMusicReplacements } = await import('../systems/musicReplacement.js');
+  const { replacementEntry, setMusicReplacements } = await import('../audio/musicReplacement.js');
   const n = await deleteAssets(MUSIC_STORE, (await storedMusicNames()).filter((k) => replacementEntry(k)));
   setMusicReplacements([], null);
   return n;
@@ -715,7 +715,7 @@ export const loadMorrowindArmRecords = async (fileName) => {
   if (cache.files.has(fileName)) return cache.files.get(fileName);
   const blob = await assetBlob(MW_STORE, fileName);
   if (!blob) return null;
-  const { extractArmRecords, isArmRecords, ARM_RECORDS_VERSION } = await import('../formats/morrowind/mwFirstPerson.js');
+  const { extractArmRecords, isArmRecords, ARM_RECORDS_VERSION } = await import('../formats/mwFirstPerson.js');
   const key = `${ARM_RECORDS_PREFIX}:v${ARM_RECORDS_VERSION}:${fileName}:${blob.size}:${await sampleStamp(blob)}`;
   const cached = await loadDerivedJson(key);
   let records = isArmRecords(cached) ? cached : null;
@@ -752,7 +752,7 @@ export async function loadMorrowindArchives() {
 }
 
 async function _openMorrowindArchives(gen) {
-  const { MwBsaFile } = await import('../formats/morrowind/mwBsaFile.js');
+  const { MwBsaFile } = await import('../formats/mwBsaFile.js');
   const names = (await storedMorrowindNames()).filter((n) => /\.bsa$/i.test(n));
   const rank = (n) => {
     const l = n.toLowerCase();
@@ -783,7 +783,7 @@ async function _openMorrowindArchives(gen) {
   // the player's own loose files (a replacer wins) and before every
   // .bsa (retail carries none of these names).
   try {
-    const ws = await import('../systems/weaponSheathingAssets.js');
+    const ws = await import('../combat/weaponSheathingAssets.js');
     archives.push(ws.weaponSheathingArchive());
   } catch (err) {
     console.warn(`weapon sheathing assets: ${err.message}`);
@@ -795,7 +795,7 @@ async function _openMorrowindArchives(gen) {
   // his own texture in REPLACES ours without a rebuild, and before
   // every .bsa, where these names do not exist.
   try {
-    const own = await import('../systems/ownMwAssets.js');
+    const own = await import('../formats/ownMwAssets.js');
     archives.push(own.ownMwArchive());
   } catch (err) {
     console.warn(`own morrowind assets: ${err.message}`);
@@ -991,8 +991,8 @@ export function textureStoreKey(file, { textureEntry, seasonsAssetKey }) {
 const DFMOD_KEY_OF = (base) => `dfmod/${String(base).split('/').pop().toLowerCase()}`;   // dfmodTextures.dfmodStoreKey's spelling, kept import-free for the pin
 
 export async function storeTextureFiles(files) {
-  const { textureEntry } = await import('../systems/textureReplacement.js');
-  const { seasonsAssetKey } = await import('../systems/seasonsIliacBayAssets.js');
+  const { textureEntry } = await import('../render/textureReplacement.js');
+  const { seasonsAssetKey } = await import('../mods/seasonsIliacBayAssets.js');
   const deps = { textureEntry, seasonsAssetKey };
   const keyed = [...files].map((f) => [f, textureStoreKey(f, deps)]).filter(([, k]) => k);
   const keyOf = new Map(keyed);
@@ -1120,7 +1120,7 @@ async function pickAssetFolder({ title, blurb, store, register, zip = null, dire
  *  how many of its files the game will use. */
 export async function pickTranslationPack(code, languageName = code) {
   const [{ installTranslationPack }, { packEntriesFromFiles }, { classifyPackFile }] = await Promise.all([
-    import('./localeData.js'), import('./translationStore.js'), import('../systems/translationPacks.js'),
+    import('../ui/localeData.js'), import('../ui/translationStore.js'), import('../ui/translationPacks.js'),
   ]);
   let used = 0;
   return pickAssetFolder({
@@ -1139,7 +1139,7 @@ export async function pickTranslationPack(code, languageName = code) {
 }
 
 export async function pickMusicFolder() {
-  const { setMusicReplacements } = await import('../systems/musicReplacement.js');
+  const { setMusicReplacements } = await import('../audio/musicReplacement.js');
   return pickAssetFolder({
     title: 'Your own music',
     blurb: `<p>Pick a folder of audio to play instead of the original game's
@@ -1154,7 +1154,7 @@ export async function pickMusicFolder() {
 }
 
 export async function pickSoundFolder() {
-  const { setSoundReplacements } = await import('../systems/soundReplacer.js');
+  const { setSoundReplacements } = await import('../audio/soundReplacer.js');
   return pickAssetFolder({
     title: 'Your own sounds',
     blurb: `<p>Pick a folder of WAVs to play instead of the original game's
@@ -1167,7 +1167,7 @@ export async function pickSoundFolder() {
     store: storeSoundFiles,
     register: async () => {
       const n = setSoundReplacements(await storedMusicNames(), loadMusicFile);
-      if (n) (await import('../systems/audio.js')).audio.preloadReplacements?.();   // the next night's crickets are the pack's
+      if (n) (await import('../audio/audio.js')).audio.preloadReplacements?.();   // the next night's crickets are the pack's
       return n;
     },
   });
@@ -1207,13 +1207,13 @@ async function registerTextureStoreNow({ warm }) {
     { getPref },
     { registerModPacks },
   ] = await Promise.all([
-    import('../systems/textureReplacement.js'),
-    import('../systems/seasonsIliacBayAssets.js'),
-    import('../combat/weapon/weaponWidgetAssets.js'),
-    import('../combat/diverseWeapons/diverseWeaponsAssets.js'),
-    import('../systems/dfmodTextures.js'),
-    import('../systems/vanillaEnhanced/vanillaEnhancedPack.js'),
-    import('../systems/uiPrefs.js'),
+    import('../render/textureReplacement.js'),
+    import('../mods/seasonsIliacBayAssets.js'),
+    import('../combat/weaponWidgetAssets.js'),
+    import('../combat/diverseWeaponsAssets.js'),
+    import('../mods/dfmodTextures.js'),
+    import('../mods/vanillaEnhancedPack.js'),
+    import('../ui/uiPrefs.js'),
     import('../systems/modPacks/modPacks.js'),   // MODPACK1
   ]);
   setDfmodDetailSource(() => getPref('dfmodTextureDetail'));   // DFMOD2: the packs card's detail choice
@@ -1241,7 +1241,7 @@ export async function saveTextureJson(key, json) {
 /** DFMOD1: store picked `.dfmod` bundles and index each once (opened in a worker, names written beside it), so a
  *  boot registers from the index and opens a bundle only when one of its pictures is drawn. */
 export async function storeDfmodFiles(files, progress = null) {
-  const { dfmodStoreKey, dfmodIndexKey, indexDfmodBytes, hasOwnDoor, forgetDfmodOff, noteDfmodAttached } = await import('../systems/dfmodTextures.js');
+  const { dfmodStoreKey, dfmodIndexKey, indexDfmodBytes, hasOwnDoor, forgetDfmodOff, noteDfmodAttached } = await import('../mods/dfmodTextures.js');
   const picked = [...files].filter((f) => dfmodStoreKey(f.name));
   let kept = 0;
   for (const f of picked) {
@@ -1268,8 +1268,8 @@ export async function storeDfmodFiles(files, progress = null) {
 /** IIL3: the packs card's "Attach lighting mod" - the same store as the texture mods, one file, and it must BE the
  *  lighting mod: anything else is taken back out, with a word, so the button never quietly attaches a texture pack. */
 export async function pickLightingModFiles() {
-  const { dfmodStoreKey, dfmodIndexKey } = await import('../systems/dfmodTextures.js');
-  const { isIilMod } = await import('../systems/improvedInteriorLighting.js');
+  const { dfmodStoreKey, dfmodIndexKey } = await import('../mods/dfmodTextures.js');
+  const { isIilMod } = await import('../render/improvedInteriorLighting.js');
   return pickAssetFolder({
     title: 'Attach lighting mod',
     blurb: `<p>Pick the <b>Improved Interior Lighting</b> <b>.dfmod</b> file.
@@ -1327,7 +1327,7 @@ async function loadTextureJson(key) {
 export async function storeModPackFiles(id, files, progress = null) {
   const packs = await import('../systems/modPacks/modPacks.js');
   const { readArchive } = await import('../systems/modPacks/archiveReader.js');
-  const { dfmodIndexKey } = await import('../systems/dfmodTextures.js');
+  const { dfmodIndexKey } = await import('../mods/dfmodTextures.js');
   const pack = packs.MOD_PACKS[id];
   const other = Object.values(packs.MOD_PACKS).filter((p) => p.id !== id && p.guid);
   const add = { dfmods: [], loose: [], flat: [], addon: [] };
@@ -1398,7 +1398,7 @@ export async function pickModPack(id) {
 /** MODPACK1: take a pack out - everything its manifest names, and (Paperdoll Enhanced) its .dfmod however attached. */
 export async function removeModPack(id) {
   const packs = await import('../systems/modPacks/modPacks.js');
-  const { dfmodIndexKey, forgetDfmodOff, attachedDfmods } = await import('../systems/dfmodTextures.js');
+  const { dfmodIndexKey, forgetDfmodOff, attachedDfmods } = await import('../mods/dfmodTextures.js');
   const pack = packs.MOD_PACKS[id];
   const m = (await loadTextureJson(packs.modPackManifestKey(id))) ?? packs.emptyManifest(id);
   const dfmods = new Set(m.dfmods ?? []);
@@ -1411,7 +1411,7 @@ export async function removeModPack(id) {
 
 /** DFMOD1: remove one attached bundle (and its index). */
 export async function removeStoredDfmod(key) {
-  const { dfmodIndexKey, forgetDfmodOff } = await import('../systems/dfmodTextures.js');
+  const { dfmodIndexKey, forgetDfmodOff } = await import('../mods/dfmodTextures.js');
   await deleteAssets(TEXTURE_STORE, [key, dfmodIndexKey(key)]);
   forgetDfmodOff(key);   // VE3: a removed mod is not remembered switched off
   return registerTextureStore();
@@ -1420,7 +1420,7 @@ export async function removeStoredDfmod(key) {
 export async function clearStoredDfmods() {
   const names = (await storedTextureNames()).filter((n) => n.startsWith('dfmod/') || n.startsWith('dfmod-index/'));
   await deleteAssets(TEXTURE_STORE, names);
-  (await import('../systems/dfmodTextures.js')).forgetDfmodOff(names);   // VE3
+  (await import('../mods/dfmodTextures.js')).forgetDfmodOff(names);   // VE3
   await registerTextureStore();
   return names.length;
 }

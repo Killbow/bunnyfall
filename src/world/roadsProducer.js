@@ -3,11 +3,11 @@
 // WOODS.WLD for the ground between them - and the reason roadNetwork.js
 // could stay pure. Nothing here is Hazelnut's; see bible/03-World/Roads.md.
 
-import { cromwarkSettlementRemoved } from '../systems/wild/cromwarkSettlements.js';
+import { cromwarkSettlementRemoved } from './wild/cromwarkSettlements.js';
 import { longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';
 import { MAP_WIDTH, MAP_HEIGHT } from '../formats/woodsFile.js';
-import { BASE_HEIGHT_SCALE, SCALED_BEACH_ELEVATION } from './terrain/terrainSampler.js';
-import { buildRoadNetwork } from './road/roadNetwork.js';
+import { BASE_HEIGHT_SCALE, SCALED_BEACH_ELEVATION } from './terrainSampler.js';
+import { buildRoadNetwork } from './roadNetwork.js';
 
 /** Water, in the small heightmap's own units: the sampler calls a
  *  height at or below the beach elevation water, and a WOODS byte

@@ -16,7 +16,7 @@
 // LATCHED (section 2.2). What the layer has once seen stays seen: an objective done, a choice taken, an outcome reached
 // are written into the quest's `ql` state, so a task a script clears again (M0B00Y06's `_clearclick_`) never un-does
 // an objective, and the save carries what the player has already been told.
-import { getPref } from '../uiPrefs.js';
+import { getPref } from '../../ui/uiPrefs.js';
 import { getInnerSymbolName } from '../quest/symbol.js';
 import { QL_STAMP, freshState } from './qlState.js';
 

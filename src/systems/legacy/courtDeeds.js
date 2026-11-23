@@ -26,7 +26,7 @@
 // Living World's relations, takes the gold and keeps the affection in the house's record (marriage.js warmCourtship).
 import { FRIEND_AT, EVENTS } from '../livingWorld/relations.js';
 import { AFFECTION_MAX, courtable, spouseOf, residentInHouse, betrothedElsewhere } from './marriage.js';
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 
 /** The deeds, in the page's order. */
 export const DEEDS = Object.freeze(['compliment', 'gift', 'embrace', 'kiss']);

@@ -35,7 +35,7 @@
 // BODY-MOTION (characters/bodyMotion/bodySolve.js) poses the walking, carrying and striking body on the same algebra -
 // `rotationPart`, `restAxes` and `orthonormal` are exported for it beside the solves it already took.
 
-import { mat33Mul } from '../formats/morrowind/mwNifMesh.js';
+import { mat33Mul } from '../formats/mwNifMesh.js';
 import { HELD_BONE_ALIASES } from './heldPose.js';
 
 // ---- small vector and rotation algebra (row-major 3x3, column vectors - the rig's own) ---------------------------------

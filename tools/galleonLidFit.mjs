@@ -13,7 +13,7 @@
 // in from outboard. Over a port's opening (the knuckle row's inner stations) there is no planking: the station is the
 // line between the row's outer ones. Pure: the bake in, numbers out. Not a DFU member. Ledger A (GALLEON).
 import { readFileSync } from 'node:fs';
-import { MEASURED, LID } from '../src/world/ships/galleonModel.js';
+import { MEASURED, LID } from '../src/world/galleonModel.js';
 import { isMain } from './lib/isMain.mjs';
 
 /** The hull's triangles of a bake, each with its bounds in y and z (a ray's quick reject). */

@@ -26,14 +26,14 @@ const OUT = process.env.SHOT_DIR ?? join(ROOT, 'tools/shots');
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>gun slots probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#3b4a3a 0 14px,#324031 14px 28px)}#dock{position:fixed;left:0;right:0;bottom:12px;display:flex;justify-content:center}</style></head><body><div id="dock"></div>
 <script type="module">
-import { createThunderlock, createPellets, installThunderlockIcons } from '/src/systems/thunderlock.js';
-import { inventoryItemImage } from '/src/systems/item/itemTemplates.js';
-import { equipItem } from '/src/systems/equip.js';
-import { setPref } from '/src/systems/uiPrefs.js';
+import { createThunderlock, createPellets, installThunderlockIcons } from '/src/items/thunderlock.js';
+import { inventoryItemImage } from '/src/items/itemTemplates.js';
+import { equipItem } from '/src/characters/equip.js';
+import { setPref } from '/src/ui/uiPrefs.js';
 import { createInventoryWindow } from '/src/ui/inventoryDoor.js';
-import { mountHotbarDock, drawEnhancedHotbar, hotbarDropItem, HOTBAR_PREF } from '/src/ui/enhanced/enhancedHotbar.js';
+import { mountHotbarDock, drawEnhancedHotbar, hotbarDropItem, HOTBAR_PREF } from '/src/ui/enhancedHotbar.js';
 let gilded = null;
-try { gilded = await import(/* @vite-ignore */ ['', 'src', 'systems', 'gilded.js'].join('/')); } catch { gilded = null; }   // THE GILDED RUNG, where it exists
+try { gilded = await import(/* @vite-ignore */ ['', 'src', 'items', 'gilded.js'].join('/')); } catch { gilded = null; }   // THE GILDED RUNG, where it exists
 
 setPref('lootRarity', true);
 setPref(HOTBAR_PREF, 'hotbar');

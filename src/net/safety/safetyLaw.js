@@ -8,7 +8,7 @@
 // nothing a player's could not. Pure, and every side effect is the caller's.
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
-import { t, intlLocale } from '../../systems/textManager.js';
+import { t, intlLocale } from '../../ui/textManager.js';
 import { ID_RE, _b64url } from '../identityToken.js';
 import { STAMP_RE, stampableLine } from './chatStamp.js';
 

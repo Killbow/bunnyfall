@@ -78,13 +78,13 @@ async function run(label, opts) {
 
   // a real write, read back through the store
   const before = await page.evaluate(async () => {
-    const s = await import('/src/systems/settings/settings.js');
+    const s = await import('/src/platform/settings.js');
     return s.effectiveSettings().Enhancements.LoiterLimitInHours;
   });
   await page.locator('#enhanced-menu .row', { hasText: 'Maximum Wait Time' })
     .locator('.step').last().click();
   const after = await page.evaluate(async () => {
-    const s = await import('/src/systems/settings/settings.js');
+    const s = await import('/src/platform/settings.js');
     s._resetForTests();
     return s.effectiveSettings().Enhancements.LoiterLimitInHours;
   });
@@ -148,7 +148,7 @@ async function run(label, opts) {
   // the bar's OFF segment is the pref off - pressed by name, where the old list stepped a cycling button
   await skyTile.locator('.ft-segb', { hasText: /^Off/ }).first().click();
   const skyOff = await page.evaluate(async () => {
-    const m = await import('/src/systems/uiPrefs.js');
+    const m = await import('/src/ui/uiPrefs.js');
     m._resetForTests();
     return m.getPref('enhancedEnvironments');   // EE1
   });
@@ -221,7 +221,7 @@ await run('phone', { ...devices['Pixel 5'] });
   const picked = await page.waitForSelector('#pick', { timeout: 15000 }).then(() => true, () => false);
   check('use Classic on the UI card: the classic door opens, data first', picked && (await page.locator('#enhanced-menu').count()) === 0);
   check('use Classic: the URL carries no override - the choice is STORED', !new URL(page.url()).searchParams.has('skin'));
-  const stored = await page.evaluate(async () => { const { uiSkin } = await import('/src/systems/uiSkin.js'); return uiSkin(''); });
+  const stored = await page.evaluate(async () => { const { uiSkin } = await import('/src/ui/uiSkin.js'); return uiSkin(''); });
   check('use Classic: uiSkin reads classic with no URL at all', stored === 'classic');
   await page.evaluate(() => localStorage.clear());
   await ctx.close();

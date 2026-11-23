@@ -29,7 +29,7 @@
 // flag, read once at scene build, so a wrong bound in the field is a
 // URL away from proof rather than a rebuild.
 
-import { pageParam } from '../systems/pageQuery.js';   // AUDIT PERF-URL A3: the ?cull=off hatch reads the page's one parse
+import { pageParam } from '../platform/pageQuery.js';   // AUDIT PERF-URL A3: the ?cull=off hatch reads the page's one parse
 
 /** The six planes of clip space, as 24 floats [a,b,c,d] x 6, from a
  *  column-major combined projection*view matrix. Order: left, right,

@@ -25,7 +25,7 @@ import {
   pickActivatableHit, liveFoeTargets, foeAabb, rayAabb,
   RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE,
 } from '../src/player/activate.js';
-import { resolveHover, frameSignature, composeNamer, composeContents } from '../src/systems/worldHover.js';
+import { resolveHover, frameSignature, composeNamer, composeContents } from '../src/player/worldHover.js';
 import { raceWinner } from '../src/player/activationRace.js';
 
 const OPEN = { raycast: () => Infinity };

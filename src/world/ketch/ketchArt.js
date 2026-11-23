@@ -38,8 +38,8 @@
 //   glass  a port's glass, lit from within (the hull's portholes, the superstructure's windows)
 //
 // Not a DFU member. Ledger A (KETCH).
-import { rng, noiseField, image, putTexel, ramp, step, bevel, rivet, scale, quantizeIndexed } from '../superDungeon/sdPixelKit.js';
-import { realmEdgeArt } from '../superDungeon/sdRealmArt.js';
+import { rng, noiseField, image, putTexel, ramp, step, bevel, rivet, scale, quantizeIndexed } from '../sdPixelKit.js';
+import { realmEdgeArt } from '../sdRealmArt.js';
 import { KT_PAL } from './ketchLook.js';
 
 /** The Ketch's pseudo-archive (world/eliteGates/pseudoArchives.js holds it taken). */
@@ -371,7 +371,7 @@ export function ketchGlassArt() {
 }
 
 /** EVERY TEXTURE THE KETCH WEARS, by record: `[record, { albedo, emission, index }]` - the index image ART_PAL's. */
-/** @returns {Array<[number, { albedo: import('../superDungeon/sdPixelKit.js').Img, emission: import('../superDungeon/sdPixelKit.js').Img, index: Uint8Array }]>} */
+/** @returns {Array<[number, { albedo: import('../sdPixelKit.js').Img, emission: import('../sdPixelKit.js').Img, index: Uint8Array }]>} */
 export const ketchArt = () => [
   [KT_REC.deck, ketchDeckArt()], [KT_REC.hull, ketchHullArt()], [KT_REC.brass, ketchBrassArt()], [KT_REC.iron, ketchIronArt()],
   [KT_REC.copper, ketchCopperArt()], [KT_REC.grate, ketchGrateArt()], [KT_REC.aether, ketchAetherArt()], [KT_REC.ember, ketchEmberArt()],
@@ -389,7 +389,7 @@ export const KT_PUFF_RECORDS = Object.freeze([KT_REC.cloud, KT_REC.steam]);
  * emission each channel the same share of its new colour as of its fallback (a lit texel is its colour times its glow) -
  * written into fresh pictures; `rgb` the palette's 256 colours (768 bytes, formats/dfPalette.js's). With no palette the
  * record as it stands (its fallback colours). Pure.
- * @param {{ albedo: import('../superDungeon/sdPixelKit.js').Img, emission: import('../superDungeon/sdPixelKit.js').Img, index: Uint8Array }} art
+ * @param {{ albedo: import('../sdPixelKit.js').Img, emission: import('../sdPixelKit.js').Img, index: Uint8Array }} art
  * @param {ArrayLike<number> | null} rgb
  */
 export function resolveKetchArt(art, rgb) {

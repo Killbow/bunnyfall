@@ -26,10 +26,10 @@ import { EG_TEXT, EG_BANDS, EG_DECREES, egBandOfHall, egStartHall } from '../../
 import { egMayStart, EG_WAGER_MAX } from '../../net/eliteGates/egStartLaw.js';
 import { egWagerToggle, egNamesText, EG_WAGER_FAMILY_WORDS, EG_START_TICK, EG_START_CROSS } from './egStartWindow.js';
 import { EG_BOARD_TEXT } from './egBoardWindow.js';
-import { registerOverlay } from '../enhanced/enhancedOverlays.js';
+import { registerOverlay } from '../enhancedOverlays.js';
 import { overlayAction } from '../input.js';
 import { dressEgKit, egEl, egHead, egSection } from './egKit.js';
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 
 /** The window's id on the page - an enhanced door's, so the pad's poller counts it as a window (ui/gamepadInput.js). */
 export const EG_START_PANEL_ID = 'enhanced-egstart';

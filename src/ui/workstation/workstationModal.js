@@ -3,9 +3,9 @@
 // to fit the screen (letterboxed), so its layout does not depend on the UI scale. Each list scrolls on its own, and the
 // Craft and Cook buttons stay in view. The pages draw their own content (craftWindow.js drawBench,
 // provisioning/provPage.js drawProvPage), and this file restyles and frames them.
-import { drawBench } from '../professions/craftWindow.js';
+import { drawBench } from '../craftWindow.js';
 import { drawProvPage, setDownProv } from '../provisioning/provPage.js';
-import { profProvider, stationHere, stationsHere } from '../professions/profPages.js';
+import { profProvider, stationHere, stationsHere } from '../profPages.js';
 import { overlayAction } from '../input.js';
 
 const ID = 'bf-workstation';

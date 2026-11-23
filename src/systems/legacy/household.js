@@ -1,10 +1,10 @@
 // @ts-check
-import { CLASS_CAREERS } from '../chargen.js';
+import { CLASS_CAREERS } from '../../characters/chargen.js';
 import { isAlive, personOf, fullNameOf, isCustomCareer } from './family.js';
-import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobile/mobilePerson.js';
+import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobilePerson.js';
 import { GENDERS } from '../../characters/nameHelper.js';
-import { raceArt } from '../races.js';
-import { classicFaceRecord } from '../roxArgonians.js';
+import { raceArt } from '../../characters/races.js';
+import { classicFaceRecord } from '../../characters/roxArgonians.js';
 
 /**
  * @param {string | number} familyId

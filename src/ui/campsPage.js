@@ -12,12 +12,12 @@
 // Self-contained: it asks the account service itself (accountDecor's `campsMine`) and reads the game's maps off
 // net/staffPlaces.js keptMaps, so no host wires it. Dressed by the Holdings kit's roles (ui/holdingsPages.js).
 import { accountDecor, storedSession } from '../net/accountClient.js';
-import { appStorage } from '../systems/appStorage.js';
+import { appStorage } from '../platform/appStorage.js';
 import { ensureHoldingsStyle } from './holdingsPages.js';
 import { keptMaps, staffPlaces } from '../net/staffPlaces.js';
 import { campMapPoint, CAMPS_MAX } from '../net/campLaw.js';
-import { addWaypoint, listWaypoints, removeWaypoint, setWaypointFollowed, cleanWaypointName } from '../systems/map/mapWaypoints.js';
-import { t } from '../systems/textManager.js';
+import { addWaypoint, listWaypoints, removeWaypoint, setWaypointFollowed, cleanWaypointName } from '../maps/mapWaypoints.js';
+import { t } from './textManager.js';
 
 export const CAMPS_PAGE_SECTIONS = Object.freeze([Object.freeze(['camps', 'Camps'])]);
 /** The page stands for a signed-in account (a camp is a linked account's), in a game that has its maps. */

@@ -15,7 +15,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { isMain } from './lib/isMain.mjs';
 import { TextureFile } from '../src/formats/textureFile.js';
-import { isInteriorGlassArchive, interiorWindowOf, interiorGlassMask, GLASS_INDEX } from '../src/world/interior/interiorGlass.js';
+import { isInteriorGlassArchive, interiorWindowOf, interiorGlassMask, GLASS_INDEX } from '../src/world/interiorGlass.js';
 
 /** One archive's window wall and the glass the rule finds in it ({ glass: 0 } when it finds none), or null when the
  *  archive is not a building set or its set has no window. Pure over a TextureFile. */

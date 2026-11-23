@@ -18,10 +18,10 @@
 //   says so, staying in the field - the relay would drop it without a word.
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
-import { getPref, setPref } from '../systems/uiPrefs.js';
+import { getPref, setPref } from '../ui/uiPrefs.js';
 import { PUBLIC_TABS } from './safety/chatStamp.js';
 import { staffShowMe } from './staffHook.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 
 /** The uiPrefs key the voice is kept under. */
 export const VOICE_PREF = 'chatAs';

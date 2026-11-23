@@ -1,26 +1,26 @@
 #!/usr/bin/env node
 // POWER-CEILING (2026-10-27, bible/05-Combat/Power-Ceiling.md): THE CEILINGS, MEASURED. A blow's powers and a hurt's
 // guards each come from a few registries; this reads every registry's own most from the records and laws the code reads,
-// so the two composite ceilings in src/systems/powerCeiling.js are a product of today's tops, not a guess.
+// so the two composite ceilings in src/characters/powerCeiling.js are a product of today's tops, not a guess.
 // test/combat/powerceiling.test.js runs the same functions: a record that raises a registry's top fails it.
 //
 //   node tools/powerCeiling.mjs        the tops, the ceilings and the kit each top is reached with
 import { isMain } from './lib/isMain.mjs';
-import { AFFIX_RANGES, allLegendaries, powerOf } from '../src/systems/loot/lootRarity.js';
-import '../src/systems/thunderlock.js';   // registers The Last Lock, a Legendary record of its own
-import { GILDED_RECORDS } from '../src/systems/gilded.js';
-import { SIGIL_POWER_MAX, SIGIL_STAGES } from '../src/systems/sigil/sigil.js';
-import { SIGIL_SETS, tierValues, SET_STAGE_MAX, RAMPAGE_STACKS, BLOOD_STACKS, COIL_STACKS, UNBROKEN_LESS } from '../src/systems/sigil/sigilSets.js';
+import { AFFIX_RANGES, allLegendaries, powerOf } from '../src/items/lootRarity.js';
+import '../src/items/thunderlock.js';   // registers The Last Lock, a Legendary record of its own
+import { GILDED_RECORDS } from '../src/items/gilded.js';
+import { SIGIL_POWER_MAX, SIGIL_STAGES } from '../src/items/sigil.js';
+import { SIGIL_SETS, tierValues, SET_STAGE_MAX, RAMPAGE_STACKS, BLOOD_STACKS, COIL_STACKS, UNBROKEN_LESS } from '../src/items/sigilSets.js';
 import {
   STAT_DEFS, BLOW_CAP, BLOW_TOTAL_CAP, CAST_COST_CAP, blowPct, statDef, ATTRIBUTES, COMBAT_SKILLS, LIFE_SKILLS, FIRM_ELEMENTS, SCHOOLS, GATHERING,
   CRAFTING, ACTS,
 } from '../src/net/firmament/firmamentLaw.js';
 import { FIRM_NODES } from '../src/net/firmament/firmamentTree.js';
-import { WEAPON_POTENCY_PER_POINT, WEAPON_HALF_PER_POINT } from '../src/systems/weaponMastery.js';
-import { EFFECTIVE_SKILL_MAX, SKILL_SOFT_CAP } from '../src/systems/skillSoftcap.js';
-import { MARTIAL_BLOW_MOST } from '../src/systems/martialPowers.js';
-import { MARTIAL_NUMBERS } from '../src/systems/martialPaths.js';
-import { PATH_NUMBERS } from '../src/systems/arcanePaths.js';
+import { WEAPON_POTENCY_PER_POINT, WEAPON_HALF_PER_POINT } from '../src/characters/weaponMastery.js';
+import { EFFECTIVE_SKILL_MAX, SKILL_SOFT_CAP } from '../src/characters/skillSoftcap.js';
+import { MARTIAL_BLOW_MOST } from '../src/characters/martialPowers.js';
+import { MARTIAL_NUMBERS } from '../src/characters/martialPaths.js';
+import { PATH_NUMBERS } from '../src/characters/arcanePaths.js';
 import { WEAPON_HANDS } from '../src/characters/equipRules.js';
 
 /** The places a set is worn (sigilSets.js SET_PLACES: seven body pieces, the shield, one weapon). */

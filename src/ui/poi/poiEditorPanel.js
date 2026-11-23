@@ -35,7 +35,7 @@
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
+import { t } from '../textManager.js';   // L10N4: the words through the text core
 import { accountRefusalText } from '../../net/accountClient.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI U1: a dock held while a field in it is typed in, and then alone
 import { poiDocProblems, poiAssetProblems, POI_SHA_RE, POI_LIMITS, POI_ALPHA, POI_WRAP, POI_FILTER } from '../../poi/poiLaw.js';
@@ -281,7 +281,7 @@ export function createAssetFacts(fetchAsset, onLearned = () => {}, { timer = glo
 
 /**
  * @param {{
- *   doc?: Document, edit: any, editor: any, feed: any,
+ *   doc?: Document, edit: any, editor: any, feed: any, dfModels?: any,
  *   io: () => (import('../../poi/poiService.js').PoiIo | null), me: { handle: string | null, builder: boolean, approver: boolean },
  *   onExit: (how: 'back' | 'here') => void, onEnter?: () => void, onJump?: () => void, readFile?: (f: any) => Promise<Uint8Array>,
  *   decodeImage?: ((bytes: Uint8Array) => Promise<{ width: number, height: number, data: Uint8Array | Uint8ClampedArray }>) | null,
@@ -1216,7 +1216,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       if (chosen !== id || dialog !== box) return;
       if (!got) { info.textContent = t('poi.editor.dfModelNone', 'The game has no model {id}.', { id }); pic.removeAttribute('src'); return; }
       // a model that renders nothing even two-sided shows no picture; the line below it still describes the model
-      try { const img = renderThumbShown(got.thumb, { size: 192 }); if (img) pic.src = URL.createObjectURL(new Blob([encodePng(img)], { type: 'image/png' })); else pic.removeAttribute('src'); } catch { pic.removeAttribute('src'); }
+      try { const img = renderThumbShown(got.thumb, { size: 192 }); if (img) pic.src = URL.createObjectURL(new Blob([/** @type {any} */ (encodePng(img))], { type: 'image/png' })); else pic.removeAttribute('src'); } catch { pic.removeAttribute('src'); }
       prep = prepareImport(got.model, got.baked);
       const p = prep.parts[0];
       info.textContent = p ? t('poi.editor.dfModelInfo', 'Model {id}: {v} vertices, {tri} triangles, {pics} pictures', { id, v: p.vertices, tri: p.triangles, pics: got.model.images.length })
@@ -1281,7 +1281,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     dialogsClosed();
     const box = el('div', 'dfpoi-dialog');
     for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) box.addEventListener(ty, swallow);
-    let file = null, bytes = null, img = null, uploading = false, heightM = PICTURE_HEIGHT_M, alpha = 'cutout', crisp = true;
+    let file = null, bytes = null, img = null, uploading = false, heightM = PICTURE_HEIGHT_M, alpha = /** @type {'cutout' | 'blend' | 'opaque'} */ ('cutout'), crisp = true;
     const pic = el('img'); pic.style.cssText = 'max-width:192px;max-height:192px;image-rendering:pixelated;background:#0003;border-radius:4px';
     const info = el('div', 'dfpoi-sub');
     const place = btn(t('poi.editor.uploadPlace', 'Upload and place'), () => upload());
@@ -1289,7 +1289,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const cancel = btn(t('poi.editor.cancel', 'Cancel'), () => closeDialog());
     const acts = el('div', 'dfpoi-row'); acts.append(place, cancel);
     const hIn = numberInput(heightM, (v) => { if (v > 0) heightM = v; }, { step: 0.5, min: 0.1 });
-    const alphaSel = select(alpha, [['cutout', t('poi.editor.picCutout', 'Hard edge (cutout)')], ['blend', t('poi.editor.picBlend', 'Soft edge (blend)')], ['opaque', t('poi.editor.picOpaque', 'Solid')]], (v) => { alpha = v; });
+    const alphaSel = select(alpha, [['cutout', t('poi.editor.picCutout', 'Hard edge (cutout)')], ['blend', t('poi.editor.picBlend', 'Soft edge (blend)')], ['opaque', t('poi.editor.picOpaque', 'Solid')]], (v) => { alpha = /** @type {'cutout' | 'blend' | 'opaque'} */ (v); });
     const crispChk = check(crisp, (v) => { crisp = v; });
     const choose = btn(t('poi.editor.picChoose', 'Choose a picture...'), () => {
       const input = el('input');
@@ -1301,7 +1301,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
         info.textContent = t('poi.editor.picReading', 'Reading the picture...');
         try {
           bytes = await readFile(f);
-          const meta = poiImageMetaOf(bytes);
+          const meta = /** @type {{ format?: string, w?: number, h?: number, type?: string, error?: string }} */ (poiImageMetaOf(bytes));
           if (meta?.error) { info.textContent = t('poi.editor.picBad', 'That picture cannot be used.'); return; }
           img = decodeImage ? await decodeImage(bytes) : null;
           if (!img) { info.textContent = t('poi.editor.picBad', 'That picture cannot be used.'); return; }

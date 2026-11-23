@@ -3,7 +3,7 @@
 // ui/credits.js). Each picture is fetched once off vendor/roxs-new-argonians/ and answered as the top-down RGBA
 // `{ width, height, data }` the paper doll's mod pictures are (ui/paperDoll.js dfmodAlt), or as a canvas for the face
 // grid. Browser only; anywhere else (or on a failed fetch) null, and the classic face stands in.
-import { roxIndex } from '../systems/roxArgonians.js';
+import { roxIndex } from '../characters/roxArgonians.js';
 
 const g = (gender) => (gender === 'female' ? 1 : 0);
 /** The picture's URL: a head (`vampire` its cursed face), or a body layer (`clothed` the second). */

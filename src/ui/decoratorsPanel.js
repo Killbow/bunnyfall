@@ -3,8 +3,8 @@
 // bar shown while a template is previewed. The surfaces decide nothing; the host's controller acts on each press
 // (systems/decor/decoratorHome.js).
 import { PIXEL_FONT_CSS } from './pixelifyFive.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { t } from '../systems/textManager.js';
+import { registerOverlay } from './enhancedOverlays.js';
+import { t } from './textManager.js';
 
 export const DECORATORS_STYLE_ID = 'dagger-decorators-style';
 const CSS = `

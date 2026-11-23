@@ -21,11 +21,11 @@ import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import zlib from 'node:zlib';
 import { isMain } from './lib/isMain.mjs';
-import { readUnityFs, readSerializedFile, CLASS_ID } from '../src/formats/unity/unityBundle.js';
+import { readUnityFs, readSerializedFile, CLASS_ID } from '../src/formats/unityBundle.js';
 import { BlocksFile } from '../src/formats/blocksFile.js';
 import { MapsFile } from '../src/formats/mapsFile.js';
-import { blockToDfuJson, locationToDfuJson, diffJson, canonicalJson } from '../src/formats/worldData/worldDataJson.js';
-import { PACK_FORMAT, ROW_ENCODERS, runLength, openWorldDataPack, classicIndicesOf } from '../src/formats/worldData/worldDataPack.js';
+import { blockToDfuJson, locationToDfuJson, diffJson, canonicalJson } from '../src/formats/worldDataJson.js';
+import { PACK_FORMAT, ROW_ENCODERS, runLength, openWorldDataPack, classicIndicesOf } from '../src/formats/worldDataPack.js';
 
 /** FullSerializer's string escapes that JSON lacks (fsJsonParser.UnescapeChar: `\0`, `\a`), rewritten, then parsed. */
 export function parseFullSerializerJson(text) {

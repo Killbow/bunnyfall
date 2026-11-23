@@ -10,7 +10,7 @@
 // hundredth); over the world's labels (the tags, the names and the wild marks stand at z-index 3), under the HUD.
 
 import { PIXEL_FONT_CSS } from './pixelifyFive.js';
-import { injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { injectEnhancedFonts } from './enhancedStyle.js';
 
 export const SPYGLASS_STYLE_ID = 'dfglass-style';
 /** The glass's own field: the share of the view's shorter side its circle spans. */

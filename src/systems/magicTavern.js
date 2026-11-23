@@ -18,7 +18,7 @@
 // MAPS.BSA's, well under 4 billion and none of them this; the key is past every real building key, 8 digits), so
 // players from every town meet there with the relay as it is.
 
-import { contentOn } from './contentOff.js';
+import { contentOn } from '../mods/contentOff.js';
 
 /** Whether the feature is on at all (systems/contentOff.js). */
 export const magicTavernsOn = () => contentOn('magicTaverns');

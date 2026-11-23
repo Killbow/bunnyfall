@@ -2,8 +2,8 @@ import { LivingTown } from '../src/systems/livingWorld/livingTown.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { songFavor } from '../src/net/tavernFavorLaw.js';
-import { bunnyTavernRows } from '../src/systems/guild/bunnyServices.js';
-import { _setBunnyBook, tavernProgress } from '../src/systems/guild/bunnyMembership.js';
+import { bunnyTavernRows } from '../src/guilds/bunnyServices.js';
+import { _setBunnyBook, tavernProgress } from '../src/guilds/bunnyMembership.js';
 import { createTavernFavorShop } from '../src/scenes/tavernFavorShop.js';
 
 test('only full minutes count, and completing music pays Favor and local reputation', async () => {

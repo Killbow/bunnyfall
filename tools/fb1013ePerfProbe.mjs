@@ -56,9 +56,9 @@ try {
   await page.goto(`http://localhost:${PORT}/mw-inspect.html`);
   const out = await page.evaluate(async ({ W, H, FRAMES, LANE, ONLY, BEFORE }) => {
     const [{ Renderer, WORLD_FRAME }, m, el, ga, gart, gt, gb, gh, hr, pr, dl, old] = await Promise.all([
-      import('/src/render/renderer.js'), import('/src/world/mat4.js'), import('/src/render/enhancedLighting.js'), import('/src/world/gate/gateArena.js'),
-      import('/src/world/gate/gateArt.js'), import('/src/render/gate/gateTelegraph.js'), import('/src/net/gate/gateBrain.js'), import('/src/scenes/gate/gateHost.js'),
-      import('/src/world/horseRig.js'), import('/src/net/peer/peerRiders.js'), import('/src/render/deadlands.js'), BEFORE ? import(`/${BEFORE}`) : null,
+      import('/src/render/renderer.js'), import('/src/world/mat4.js'), import('/src/render/enhancedLighting.js'), import('/src/world/gateArena.js'),
+      import('/src/world/gateArt.js'), import('/src/render/gateTelegraph.js'), import('/src/net/gateBrain.js'), import('/src/worldEvents/gateHost.js'),
+      import('/src/world/horseRig.js'), import('/src/net/peerRiders.js'), import('/src/render/deadlands.js'), BEFORE ? import(`/${BEFORE}`) : null,
     ]);
     const cv = document.createElement('canvas');
     cv.style.width = `${W}px`; cv.style.height = `${H}px`; cv.width = W; cv.height = H;

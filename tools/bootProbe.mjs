@@ -44,16 +44,16 @@ await page.mouse.click(640, 400);
 await page.waitForTimeout(3000);
 // Optional: walk into a building and report the song on each side.
 if (process.env.PROBE_ENTER) {
-  const before = await page.evaluate(async () => (await import('/src/systems/music.js')).music.current);
+  const before = await page.evaluate(async () => (await import('/src/audio/music.js')).music.current);
   const what = await page.evaluate(process.env.PROBE_ENTER);
   await page.waitForTimeout(Number(process.env.PROBE_ENTER_WAIT ?? 2500));
-  const after = await page.evaluate(async () => (await import('/src/systems/music.js')).music.current);
+  const after = await page.evaluate(async () => (await import('/src/audio/music.js')).music.current);
   console.log(`ENTER[${what}]: ${before} -> ${after} | mode=${await page.evaluate(() => window.__mode?.() ?? 'n/a')}`);
 }
 
 const state = await page.evaluate(async () => {
-  const mod = await import('/src/systems/music.js');
-  const aud = await import('/src/systems/audio.js');
+  const mod = await import('/src/audio/music.js');
+  const aud = await import('/src/audio/audio.js');
   // Diagnose the archive directly through the app's own data seam.
   let probe = 'ok';
   try {

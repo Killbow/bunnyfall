@@ -22,12 +22,12 @@
 // A town with no room for one stands none of it (said once, in the console), never a yard over a house, a road or a lot.
 //
 // Pure: no renderer, no GL, no clock. Not a DFU member. Ledger A (MERCHANT-YARDS).
-import { CityNavigation, NAV_CELL, NAV_CELLS_PER_BLOCK } from '../city/cityNavigation.js';
+import { CityNavigation, NAV_CELL, NAV_CELLS_PER_BLOCK } from '../cityNavigation.js';
 import { trs, multiply } from '../mat4.js';   // AUDIT MERCHANT-YARDS R2: the blocks' measures, here where they are pinned
 import { staticBuildingBox, staticBuildingWorldAabb } from '../staticBuildings.js';
 import { localAabb, transformedAabb } from '../../render/frustum.js';
-import { ROAD_WEIGHT } from '../../systems/gothwayBoards.js';
-import { YARD_KIND_ORDER, CRAFT_YARD_ORDER } from '../../systems/merchantYards.js';
+import { ROAD_WEIGHT } from '../gothwayBoards.js';
+import { YARD_KIND_ORDER, CRAFT_YARD_ORDER } from './merchantYards.js';
 
 /** Each yard's ground, metres: half its width (x) and half its depth (z) - its fence and the apron before its gate
  *  where its sign and its keeper stand (world/merchantYards/merchantYardModels.js lays both out inside it). */

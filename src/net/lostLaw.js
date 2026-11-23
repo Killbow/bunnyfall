@@ -25,7 +25,7 @@
 //
 // Not a DFU member: Daggerfall Unity has no boss spoils and no post. Ledger A row (ONLINE).
 import { postItemHead, POST_BATCH_RE } from './postLaw.js';
-import { sdSpoilsSlot } from '../systems/superDungeon/sdSpoils.js';
+import { sdSpoilsSlot } from '../worldEvents/sdSpoilsRoll.js';
 import { egSpoilsOf } from '../systems/eliteGates/egSpoils.js';
 
 /** Every batch the Lost and Found writes begins so - and none the operator's workflow or the Spire's letters write. */

@@ -6,21 +6,21 @@
 // shape in the Broker's classes, so both skins dress it - the Plus sheet carries its rules (enhancedPlusStyle.js
 // WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/wardrobeDoor.js) mounts it;
 // everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
-import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName, lookLine } from '../../systems/appearances.js';
+import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName, lookLine } from '../../items/appearances.js';
 import { appearanceOf, lookOfPiece, lookCode } from '../../net/appearanceLaw.js';
-import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
-import { totalGoldAmount } from '../../systems/court.js';
+import { inventoryItemImage } from '../../items/itemTemplates.js';
+import { totalGoldAmount } from '../../justice/court.js';
 import { requestFittedIcon, fittedImg } from '../textureCanvas.js';
 import { SLOT_BOX, screenDpr } from '../iconFit.js';
-import { closeOnOutsideTap } from '../enhanced/enhancedOverlays.js';
+import { closeOnOutsideTap } from '../enhancedOverlays.js';
 import { overlayAction } from '../input.js';
-import { injectEnhancedStyle, injectEnhancedFonts } from '../enhanced/enhancedStyle.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from '../enhancedStyle.js';
 import { brokerSkinCss, BROKER_SKIN_STYLE_ID, refusePress } from '../brokerWindow.js';
-import { WARDROBE_CSS } from '../enhanced/enhancedPlusStyle.js';
-import { isEnhancedPlus } from '../../systems/uiSkin.js';
+import { WARDROBE_CSS } from '../enhancedPlusStyle.js';
+import { isEnhancedPlus } from '../uiSkin.js';
 import { repaintKeepingScroll } from '../domRepaint.js';
 import { createWardrobePreview } from './wardrobePreview.js';   // APPEARANCES-II: the character in a look before it is paid
-import { t } from '../../systems/textManager.js';
+import { t } from '../textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

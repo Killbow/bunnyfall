@@ -53,8 +53,8 @@ import { readAll, DB_ROOT } from './service.js';
 import { canModerate } from './titles.js';
 import { medianOf, MARKET_MEDIAN_DAYS } from '../../src/net/marketLaw.js';
 import { MARK_WORTH_GOLD, utcDay } from '../../src/net/marksLaw.js';
-import { liquidWorthOf } from '../../src/net/realm/realmGoldLaw.js';
-import { itemWorth } from '../../src/systems/item/itemLaw.js';
+import { liquidWorthOf } from '../../src/net/realmGoldLaw.js';
+import { itemWorth } from '../../src/items/itemLaw.js';
 
 const DAY_S = 86_400;
 

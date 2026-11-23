@@ -48,9 +48,9 @@ import { HARD_RULES } from './difficulty.js';
 import { isWaterskin, waterIn, WATERSKIN_CAPACITY_KG } from './food.js';
 import { drinkAtSource } from './items.js';   // INN-WATER: the fountain's own law, filled at the bar
 import { CLIMATES, REGION_NAMES } from '../../formats/mapsFile.js';   // MENU-CLIMATE: the menus keyed by the enum's names; AUDIT C&C I8: and the regions by theirs
-import { essentialPrice } from '../shopStock.js';   // ESSENTIALS-HALF: online, the menu costs half
-import { getHolidayId, HOLIDAYS } from '../holidays.js';   // AUDIT C&C I8: Drinks_OnItemPicked's holidays, GetHolidayId's
-import { maxFatigue, FATIGUE_MULTIPLIER } from '../statMods.js';   // AUDIT C&C I6: the drink's fatigue, in the pool's own units
+import { essentialPrice } from '../../trade/shopStock.js';   // ESSENTIALS-HALF: online, the menu costs half
+import { getHolidayId, HOLIDAYS } from '../../world/holidays.js';   // AUDIT C&C I8: Drinks_OnItemPicked's holidays, GetHolidayId's
+import { maxFatigue, FATIGUE_MULTIPLIER } from '../../characters/statMods.js';   // AUDIT C&C I6: the drink's fatigue, in the pool's own units
 
 /** AUDIT C&C I8: regionMenuDay's FIRST switch, over PlayerGPS.CurrentRegionIndex - the mod's own six keys by REGION
  *  ("0 = Balfiera, 1 = North, 2 = NorthEast, 3 = South, 4 = SouthEast, 5 = Orisium and Wrothgarian", its comment), read

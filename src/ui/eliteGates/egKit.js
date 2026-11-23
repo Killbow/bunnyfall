@@ -23,11 +23,11 @@
 //     inks (ui/grimoireDress.js INK_ROOTS, WOOD_ROOTS).
 //
 // Not a DFU member: Daggerfall Unity has no Elite Breach. Ledger A (ELITE-GATES).
-import { frameCss, scopeRules, FRAME_TONES } from '../enhanced/enhancedFrame.js';
-import { injectEnhancedFonts } from '../enhanced/enhancedStyle.js';
-import { STONE_DIM, STONE_WORD, STONE_RED } from '../enhanced/enhancedPlusStyle.js';
+import { frameCss, scopeRules, FRAME_TONES } from '../enhancedFrame.js';
+import { injectEnhancedFonts } from '../enhancedStyle.js';
+import { STONE_DIM, STONE_WORD, STONE_RED } from '../enhancedPlusStyle.js';
 import { PIXEL_FONT_CSS } from '../pixelifyFive.js';
-import { isEnhancedPlus } from '../../systems/uiSkin.js';
+import { isEnhancedPlus } from '../uiSkin.js';
 
 /** The classic skin's copy of the kit, cut to the breach's windows. */
 export const EG_KIT_STYLE_ID = 'dagger-eg-kit-style';

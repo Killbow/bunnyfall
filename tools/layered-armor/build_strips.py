@@ -3,7 +3,7 @@
 One PNG STRIP per (gender, outfit, frame): tile 0 the base (cleanup applied), tile 1 the SLOT MAP (red head, green top,
 blue legs - every plate pixel of the outfit and its trim), tiles 2-8 the seven metals (iron steel mithril adamantium
 ebony orcish daedric) over every plate pixel, tile 9 the full gold trim, tile 10 the wrist-cuff trim. An outfit with no
-plate piece is tile 0 alone. src/player/eyeOfTheBeholder/layeredArmor.js composes any helmet / chest / legs metal from one strip.
+plate piece is tile 0 alone. src/player/layeredArmor.js composes any helmet / chest / legs metal from one strip.
 
 usage: python -I build_strips.py <plate_materials_fixed> <repo>/vendor/layered-armor [<male_mixes_v66>]
 The optional male_mixes_v66 adds the male outfits without a knight piece (all leather / chain).

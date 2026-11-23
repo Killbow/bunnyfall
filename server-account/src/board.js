@@ -48,7 +48,7 @@ import { withEgHonoursAll } from './egHonours.js';   // EG-E2: and the Spire Cha
 import { withMasteryMarksAll } from './hunts.js';   // AUDIT HORIZONTAL F5: and the Marks of Mastery
 import { guildActorOf } from './guilds.js';
 import { heraldryOfRow } from './halls.js';   // GUILD1e: a recruitment note's guild's banner
-import { guildMay } from '../../src/net/guild/guildLaw.js';
+import { guildMay } from '../../src/net/guildLaw.js';
 import { maskText } from '../../src/net/nameFilter.js';   // TEXT-F1: a note kept before the filter, starred as it is read
 import {
   NOTES_LIVE_MAX, NOTE_DAY_S, BOARD_NOTES_SHOWN, BOARD_NOTICES_SHOWN, NOTES_PINNED_MAX, BOARD_OPS_MAX, BOARD_WINDOW_S,

@@ -12,8 +12,8 @@
 // one opens the gems the pack holds, a set one asks first and shatters its gem. The facts and the presses are
 // systems/loot/lootRarity.js's and systems/reforge.js's; this file draws them, and owns its sheet (one style tag, both
 // skins), so no other dress has to know a socket exists.
-import { socketsOf, gemLine, affixLabel, GEM_NAMES, SOCKET_EMPTY, gemGrade, gemKindOf, lootRarityOn } from '../systems/loot/lootRarity.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { socketsOf, gemLine, affixLabel, GEM_NAMES, SOCKET_EMPTY, gemGrade, gemKindOf, lootRarityOn } from '../items/lootRarity.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {

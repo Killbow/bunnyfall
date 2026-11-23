@@ -13,7 +13,7 @@
 // crossing out set sail from (the ledger's), or the open Abecean off the Bay's mouth.
 
 import { crossingWaters, inVeil, inEtherLaw, landfall, HOME_WATERS, ETHER_WORD, ETHER_SEA_NAME, CROSS_LAND_PX } from '../../world/ethericSea.js';
-import { t } from '../textManager.js';   // ETHER-WILD: the open sea's warning, in the player's language (L10N4)
+import { t } from '../../ui/textManager.js';   // ETHER-WILD: the open sea's warning, in the player's language (L10N4)
 
 /** The voyage, either way (days). */
 export const CROSS_DAYS = 3;

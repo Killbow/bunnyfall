@@ -25,8 +25,8 @@
 // Pure: no clock, no network, no DOM.
 // ═══════════════════════════════════════════════════════════════════
 
-import { foundSalePercentage } from '../systems/item/foundMark.js';   // AUDIT MEND-THIRD L1-4: the condition a counter's sale reads
-import { conditionCostBase } from '../systems/roleplayRealismItems/rriRealism.js';   // AUDIT MEND-THIRD L1-4: and the mod's price for it
+import { foundSalePercentage } from '../items/foundMark.js';   // AUDIT MEND-THIRD L1-4: the condition a counter's sale reads
+import { conditionCostBase } from '../mods/rriRealism.js';   // AUDIT MEND-THIRD L1-4: and the mod's price for it
 
 /** A patron pays at most this share of a piece's worth. */
 export const PATRON_PAY_SHARE = 0.6;

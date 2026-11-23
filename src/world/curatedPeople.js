@@ -18,7 +18,7 @@
 // stands one keeps its own). Daggerfall's own blocks, and any other pack's, are as they were. A curation of the mod's
 // data (Port-Ledger A, TEMPLE-SUMMONER); DFU with the mod stands none.
 
-import { NPC_SERVICE } from '../systems/guild/guildNpcServices.js';
+import { NPC_SERVICE } from '../guilds/guildNpcServices.js';
 
 export const TEMPLE_SUMMONER_VENDOR = 'beautiful-villages';
 /** The Mages Guild's summoner - a DaedraSummoning person of no temple. */

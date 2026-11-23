@@ -23,18 +23,18 @@
 // The switch is CONTENT.vampireBlood (systems/contentOff.js): off, no letter comes and an awakened vampire lives by
 // Daggerfall's rules again (the state stays in the save).
 
-import { contentOn } from '../contentOff.js';
-import { liveVampirism } from '../racialLive.js';
-import { MINUTES_PER_DAY } from '../gameDate.js';
+import { contentOn } from '../../mods/contentOff.js';
+import { liveVampirism } from '../../afflictions/racialLive.js';
+import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import {
   VITAE_MAX, VITAE_AWAKENED, VITAE_DRAIN_PER_DAY, BEAST, beastStageOf, beastStageLine, BEAST_STAT_MODS,
   resonanceTier, RESONANCE_STAT_MODS, RESONANCE_SKILL_MODS, BLOOD_FADE_PER_DAY, vitaeAfterFeed, bloodAfterFeed, FEEDS,
   MIND_CLOUD_COST, beastStageName, archetypeName,
 } from './bloodLaw.js';
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 import { STALE_QUALITY_CAP } from './bloodLaw.js';
 import { clanDrainMul, clanFeedMul, clanStaleCap, clanKissCost, clanStageShift, clanSkillMods } from './clanLaw.js';   // PHASE 3: the nine bloodlines
-import { VAMPIRE_AWAKENING_QUEST, startNamedRacialQuest, racialQuestLive } from '../racialQuests.js';
+import { VAMPIRE_AWAKENING_QUEST, startNamedRacialQuest, racialQuestLive } from '../../afflictions/racialQuests.js';
 
 /** Days after the turning before the Elder writes (own clock); a vampire already standing hears in ELDER_FIRST_DAYS. */
 export const ELDER_DELAY_DAYS = 3;

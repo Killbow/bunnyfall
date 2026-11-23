@@ -66,13 +66,13 @@ import { egObjectiveText } from './egHud.js';   // FIELD BUGS 2026-10-19f GAUNTL
 import { egTwistShown } from '../../net/eliteGates/egRun.js';   // AUDIT EG V (L2-4): no Bargain's line when no family is free
 import { EG_PRES_TEXT, EG_BAND_LINES } from './egBeats.js';
 import { EG_PARTY_CSS } from './egParty.js';
-import { titleCardModel, TITLE_CARD_CSS, TITLE_CARD_STYLE_ID } from '../gate/gateTitleCard.js';
-import { BOSS_BAR_TEXT } from '../gate/gateBossBar.js';   // FB1018D WARD-BAR: the gate bar's word for a warded lord
-import { DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR } from '../native/nativePanel.js';
+import { titleCardModel, TITLE_CARD_CSS, TITLE_CARD_STYLE_ID } from '../gateTitleCard.js';
+import { BOSS_BAR_TEXT } from '../gateBossBar.js';   // FB1018D WARD-BAR: the gate bar's word for a warded lord
+import { DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR } from '../nativePanel.js';
 import { PIXEL_FONT_CSS } from '../pixelifyFive.js';
-import { injectEnhancedFonts } from '../enhanced/enhancedStyle.js';
+import { injectEnhancedFonts } from '../enhancedStyle.js';
 import { egSigilsOf, egEclipseAt, egEclipseChip, egEclipseOfBlows } from '../../world/eliteGates/egTelegraph.js';   // EG-ZG: the marks' sigils, the Eclipse's chip
-import { t } from '../../systems/textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
+import { t } from '../textManager.js';   // AUDIT EG V (c): the words this audit adds, in the player's language
 import { egStakeText } from './egHud.js';   // AUDIT EG V (c, NEW-1): the rest card's stake, on the Spire's own HUD
 import { EG_TIDE_NAMES } from '../../net/eliteGates/egRun.js';   // AUDIT EG V (c, L2-9): the Hungering Dark, named on the rest card
 import { spireOrreryOf, spireRiddleLines } from '../../systems/eliteGates/spireOrrery.js';   // FIELD BUGS 2026-10-17e (ORRERY-SIGHT): an Athenaeum's riddles

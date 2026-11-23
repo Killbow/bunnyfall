@@ -83,8 +83,8 @@ const PAGE = '<!doctype html><html lang="en"><head><meta charset="utf-8">'
 // Self-contained: Playwright ships the function's source, so nothing here may close over the module.
 async function setup() {
   const { ChargenFlow } = await import('/src/ui/chargen.js');
-  const { mountEnhancedChargen } = await import('/src/ui/enhanced/enhancedChargen.js');
-  const { RACE_TEMPLATES } = await import('/src/systems/races.js');
+  const { mountEnhancedChargen } = await import('/src/ui/enhancedChargen.js');
+  const { RACE_TEMPLATES } = await import('/src/characters/races.js');
   window.__errors = [];
   addEventListener('error', (e) => window.__errors.push(String(e.message)));
   addEventListener('unhandledrejection', (e) => window.__errors.push(`rejection: ${e.reason}`));

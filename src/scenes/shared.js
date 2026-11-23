@@ -5,11 +5,11 @@
 // feature can never land in one host and miss its three siblings -
 // the shape that has recurred at every audit since 17h.
 
-import { installCromwarkRoster } from '../systems/wild/cromwarkInstall.js';
+import { installCromwarkRoster } from '../world/wild/cromwarkInstall.js';
 import { installSifrit } from '../systems/sifrit/sifritInstall.js';   // SIFRIT: a custom enemy of Bunnyfall's own
 import { stepAsideLoading, syncLoading } from '../ui/loadingScreen.js';   // LOAD1: a full-screen film's hold takes the loading screen aside; a claimed loop lets its hold go
 import { DFPalette } from '../formats/dfPalette.js';
-import '../systems/item/itemLaw.js';   // INT1 (bible/06-Systems/Integrity-Arc.md): the item law, installed on the wire's door (systems/loot/loot.js setItemLaw) in every host
+import '../items/itemLaw.js';   // INT1 (bible/06-Systems/Integrity-Arc.md): the item law, installed on the wire's door (systems/loot/loot.js setItemLaw) in every host
 import { NetRandom } from '../formats/netRuntime.js';   // HAZE1: System.Random's one port (the stars' generator)
 import { swingHeld } from '../ui/input.js';   // FIX-F: the swing button through the registry
 import { ImgFile } from '../formats/imgFile.js';
@@ -17,107 +17,107 @@ import { SkyFile } from '../formats/skyFile.js';
 import { SkyRenderer, buildDaySkyPanorama, buildNightSkyPanorama, buildFallbackSkyPanorama, nightSkyImageName } from '../render/skyRenderer.js';
 import { SEASON } from '../world/climateSwaps.js';
 import { skyFrameForTime, isNight, setLightCurve, daylightScale } from '../world/worldClock.js';   // DS1: isNight for the mod's moonlight, setLightCurve for the mod's own curve; CLK3 review: daylightScale for its moonlight's ramp
-import { createWindModel } from '../systems/wind/wind.js';   // WIND1; WEATHER2b: the lead is the front's own (leadMinutes)
-import { systemWordOf } from '../systems/weather/weatherSim.js';   // AUDIT PRECIP FALL-2: a weather is its system on the precipitation law's lane
-import { releaseUnloadGuard } from '../systems/unloadGuard.js';   // MAC-L3: a door the game opened is not a door to warn about
+import { createWindModel } from '../weather/wind.js';   // WIND1; WEATHER2b: the lead is the front's own (leadMinutes)
+import { systemWordOf } from '../weather/weatherSim.js';   // AUDIT PRECIP FALL-2: a weather is its system on the precipitation law's lane
+import { releaseUnloadGuard } from '../platform/unloadGuard.js';   // MAC-L3: a door the game opened is not a door to warn about
 import { EnhancedSkyRenderer, skyState, easeWeather, weatherRow, CLOUD_SHADOW, moonlightTerm, masserKey, WEATHER_EASE_MINUTES, WIND_SECONDS_PER_MINUTE } from '../render/enhancedSky.js';   // ES1: the enhanced sky, behind the skin; EV5: its moons light the world
 import { meterFor } from '../render/perfMeter.js';   // VC6d: `?perf=zones` - the sky's own span
 import { dreadGrade, DREAD_SKY_WORD } from '../world/dreadSky.js';   // EVENT1: the live event's grade and the sky it wears
 import { sunbabyHaze, sunbabyWaterSky } from '../world/sunbabySky.js';   // SUNBABY1: the sun baby's haze and the sky the water mirrors under it
-import { sdBrassGrade } from '../systems/superDungeon/sdOmen.js';   // SD19: the brass air near a standing Hollow
+import { sdBrassGrade } from '../worldEvents/sdOmen.js';   // SD19: the brass air near a standing Hollow
 import { SunbabySkyRenderer } from '../render/sunbabySkyRenderer.js';   // SUNBABY1: its flower sky, over every sky
 import { VolumetricClouds, QUALITY as CLOUD_QUALITY } from '../render/volumetricClouds.js';   // VC3: the clouds over the dome
 import { cloudsStateUnderMod, dynamicMoonState, dynamicMoonlight } from '../render/dynamicSkiesBridge.js';   // DS1/DS2: the mod's state in the port's shapes - the moons, the clouds, and the moons' own term (AUDIT 65 MC-3: the bridge's third export had no caller and this file carried its body inline)
-import { isEnhanced } from '../systems/uiSkin.js';
+import { isEnhanced } from '../ui/uiSkin.js';
 import { createSeaNightSky } from '../render/seaNight.js';
-import { getPref } from '../systems/uiPrefs.js';   // RA1: the Enhanced pane's sky switch
-import { pageParam } from '../systems/pageQuery.js';   // CLIMB1: `?parkour=off`, the enhanced climb's kill door
-import { isOnlinePage, onlineForcedPref } from '../systems/online/onlineLane.js';   // CLIMB1: online the skin is not asked, and the row is the lane's
-import { madeRuleHere } from '../systems/madeLevel.js';   // EG-PERFECT: the made level's law refuses the running leap on its proven ways
-import { carriedWeight } from '../systems/inventory.js';   // CLIMB2: a heavy pack cuts the enhanced climb's reach
+import { getPref } from '../ui/uiPrefs.js';   // RA1: the Enhanced pane's sky switch
+import { pageParam } from '../platform/pageQuery.js';   // CLIMB1: `?parkour=off`, the enhanced climb's kill door
+import { isOnlinePage, onlineForcedPref } from '../platform/onlineLane.js';   // CLIMB1: online the skin is not asked, and the row is the lane's
+import { madeRuleHere } from '../characters/madeLevel.js';   // EG-PERFECT: the made level's law refuses the running leap on its proven ways
+import { carriedWeight } from '../items/inventory.js';   // CLIMB2: a heavy pack cuts the enhanced climb's reach
 import { entityMaxEncumbrance } from '../combat/formulas.js';   // CLIMB2: ...over what the body can carry
 import { DynamicSkiesRenderer } from '../render/dynamicSkiesRenderer.js';   // DS1: Dynamic Skies' skybox, the mod's own pass
-import { DynamicSkies } from '../systems/dynamicSkies/dynamicSkiesRuntime.js';   // DS1: BLBSkybox's instance
-import { MAX_DELTA_SECONDS } from '../systems/dynamicSkies/dynamicSkies.js';   // Time.maximumDeltaTime, the mod's frame clamp
-import { dynamicSkiesAssets, loadDynamicSkiesTexture, dynamicSkiesTextureUrl, DYNAMIC_SKIES_TEXTURES } from '../systems/dynamicSkies/dynamicSkiesAssets.js';   // DS1: the vendored files
-import { modSetting, modSettingsOf } from '../systems/modSettings.js';   // DS1: the mod's own switches
+import { DynamicSkies } from '../weather/dynamicSkiesRuntime.js';   // DS1: BLBSkybox's instance
+import { MAX_DELTA_SECONDS } from '../weather/dynamicSkies.js';   // Time.maximumDeltaTime, the mod's frame clamp
+import { dynamicSkiesAssets, loadDynamicSkiesTexture, dynamicSkiesTextureUrl, DYNAMIC_SKIES_TEXTURES } from '../weather/dynamicSkiesAssets.js';   // DS1: the vendored files
+import { modSetting, modSettingsOf } from '../mods/modSettings.js';   // DS1: the mod's own switches
 import { weatherSunlightScale } from '../world/weather.js';   // DS1: WeatherManager's ScaleFactor, for the skybox's _LightColor0
-import { seasonValue, SEASONS, dateFromClassicMinutes } from '../systems/gameDate.js';   // DS1: the winter arm of that scale
-import { hasActiveEffect, isEntityWaterWalking, isBlending, isInvisible, isAShade } from '../systems/effects.js';
-import { skillValue, displaySkillValue, tallySkill, tallyMovementSkill, SKILLS, SKILL_NAMES } from '../systems/skills.js';   // MOVE-REAL: the climb's check is a motion tally
+import { seasonValue, SEASONS, dateFromClassicMinutes } from '../world/gameDate.js';   // DS1: the winter arm of that scale
+import { hasActiveEffect, isEntityWaterWalking, isBlending, isInvisible, isAShade } from '../magic/effects.js';
+import { skillValue, displaySkillValue, tallySkill, tallyMovementSkill, SKILLS, SKILL_NAMES } from '../characters/skills.js';   // MOVE-REAL: the climb's check is a motion tally
 import { expandRowValues } from '../systems/quest/questMacros.js';   // MACRO-3: the mastery box's %pcn and %ski
 // LV2: the level-up notification's seams. The CLASSIC lane's line and
 // box are still this file's - the seam takes them and uses them - so
 // nothing about the old skin is decided in a UI module.
-import { announceSkillRaise, announceMastery, announceSkillMilestone } from '../ui/levelUp/levelNotice.js';
-import { masterSkillsBoxDue, setMasterSkills, MASTER_SKILLS_OFFER_ROWS, MASTER_SKILLS_INFO_ROWS, MASTER_SKILLS_DECLINED_TEXT, MASTER_SKILLS_INTRO_ROWS, nextMasteryChoice, masteryChoiceRows, masterSkill } from '../systems/masterSkills.js';   // SOFTCAP3/4
-import { nextPathChoice, pathChoices, pathChoiceRows, pathsOpenRows, choosePath, pathDeclinedText, pathDeclinedGrowthText } from '../systems/arcanePaths.js';   // SCHOOLS1: the specialisation's one ask - GROWTH4: its words, the Growth tab's where it stands
-import { nextMartialChoice, martialChoices, martialChoiceRows, martialOpenRows, chooseMartialPath, martialDeclinedText, martialDeclinedGrowthText } from '../systems/martialPaths.js';   // MARTIAL1: the martial specialisation's one ask
-import { computeEntityMods } from '../systems/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now, not at the next round
-import { DOOR_SPELL_TEXT, castBySkeletonKey } from '../systems/mysticism.js';   // X1: the door-spell alert lines; D9: Open.CheckCastByItem
-import { raiseSkills } from '../systems/advancement.js';   // AUDIT 23 (entity-1): the rest-end raise
-import { tickPlayerMinutes, runMagicRoundsFor, worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, advanceOwnMinutes, tickInFlight, MINUTES_PER_DAY, CLASSIC_MINUTES_PER_SECOND, sharedClockOn } from '../systems/worldTick.js';
+import { announceSkillRaise, announceMastery, announceSkillMilestone } from '../ui/levelNotice.js';
+import { masterSkillsBoxDue, setMasterSkills, MASTER_SKILLS_OFFER_ROWS, MASTER_SKILLS_INFO_ROWS, MASTER_SKILLS_DECLINED_TEXT, MASTER_SKILLS_INTRO_ROWS, nextMasteryChoice, masteryChoiceRows, masterSkill } from '../characters/masterSkills.js';   // SOFTCAP3/4
+import { nextPathChoice, pathChoices, pathChoiceRows, pathsOpenRows, choosePath, pathDeclinedText, pathDeclinedGrowthText } from '../characters/arcanePaths.js';   // SCHOOLS1: the specialisation's one ask - GROWTH4: its words, the Growth tab's where it stands
+import { nextMartialChoice, martialChoices, martialChoiceRows, martialOpenRows, chooseMartialPath, martialDeclinedText, martialDeclinedGrowthText } from '../characters/martialPaths.js';   // MARTIAL1: the martial specialisation's one ask
+import { computeEntityMods } from '../characters/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now, not at the next round
+import { DOOR_SPELL_TEXT, castBySkeletonKey } from '../magic/mysticism.js';   // X1: the door-spell alert lines; D9: Open.CheckCastByItem
+import { raiseSkills } from '../characters/advancement.js';   // AUDIT 23 (entity-1): the rest-end raise
+import { tickPlayerMinutes, runMagicRoundsFor, worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, advanceOwnMinutes, tickInFlight, MINUTES_PER_DAY, CLASSIC_MINUTES_PER_SECOND, sharedClockOn } from '../world/worldTick.js';
 import { REST_KIND, REST_TEXT_SURVIVAL, restCost, restHour, stiffen } from '../systems/survival/rest.js';   // SURV4: the rest law - a bed and a fire sleep, the window alone is rough
 import { survivalRules } from '../systems/survival/switch.js';   // SURV-TIERS: the rest's price is the tier's, read at the open
 import { sleepStage } from '../systems/survival/needs.js';   // AUDIT SURV-TIERS (the third pass): the rough night's lesser sleep, said
-import { setSyntheticTimeIncrease } from '../systems/effectBroker.js';   // AUDIT 63 F13: VampirismInfection.cs:161-162
-import { setInfectionHost, vampireClanForFaction } from '../systems/infection.js';   // V1: the host seam for the dream/death videos and the turn's clock raise
-import { findFactions } from '../systems/talk/talk.js';   // V1: GetRegionFaction's FindFactions(Province, region)
+import { setSyntheticTimeIncrease } from '../magic/effectBroker.js';   // AUDIT 63 F13: VampirismInfection.cs:161-162
+import { setInfectionHost, vampireClanForFaction } from '../afflictions/infection.js';   // V1: the host seam for the dream/death videos and the turn's clock raise
+import { findFactions } from '../talk/talk.js';   // V1: GetRegionFaction's FindFactions(Province, region)
 import { FACTION_TYPES } from '../formats/factionFile.js';
-import { killIfAnyLiveStatZero } from '../systems/statMods.js';   // AUDIT 24 (wave 32): the per-entity laws a foe pool owes
-import { hasSpecialAbility, SPECIAL_ABILITY, healthRecoveryRate, fatigueRecoveryRate, spellPointRecoveryRate, restIgnoresNoRegen } from '../systems/rest/rest.js';
-import { entityImprovedAthleticism } from '../systems/enchantments.js';   // AUDIT 26 F044: the ImprovesTalents fatigue arm   // the rested hour's three rates, one home for every host (V5 + S40, same line from two lanes)
-import { getPreventedRestMessage } from '../systems/rest/restSession.js';
-import { nightDue, nightRealMinutesLeft, stampNight, runRestNight, topUpRest, sleepShortRest, spendRoomNight, roomNightsLeft, heardNight, REST_CHANNEL_SECONDS, REST_ACT_TEXT, NIGHT_HOURS, openChannelHeal, stepChannelHeal } from '../systems/rest/restAct.js';   // REST1: the rest act online
-import { registerPreventRestCondition } from '../systems/rest/restSession.js';   // SURV7: the survival rest gate's seam
-import { quietNights } from '../systems/encounters.js';   // CAMP-ROLL: a camp mate's night rolls nothing of mine
-import { carriedRestKind } from '../systems/party/partyRestLaw.js';   // CAMP-ROLL: and is slept at the better of their spot and mine
+import { killIfAnyLiveStatZero } from '../characters/statMods.js';   // AUDIT 24 (wave 32): the per-entity laws a foe pool owes
+import { hasSpecialAbility, SPECIAL_ABILITY, healthRecoveryRate, fatigueRecoveryRate, spellPointRecoveryRate, restIgnoresNoRegen } from '../player/rest.js';
+import { entityImprovedAthleticism } from '../magic/enchantments.js';   // AUDIT 26 F044: the ImprovesTalents fatigue arm   // the rested hour's three rates, one home for every host (V5 + S40, same line from two lanes)
+import { getPreventedRestMessage } from '../player/restSession.js';
+import { nightDue, nightRealMinutesLeft, stampNight, runRestNight, topUpRest, sleepShortRest, spendRoomNight, roomNightsLeft, heardNight, REST_CHANNEL_SECONDS, REST_ACT_TEXT, NIGHT_HOURS, openChannelHeal, stepChannelHeal } from '../systems/survival/restAct.js';   // REST1: the rest act online
+import { registerPreventRestCondition } from '../player/restSession.js';   // SURV7: the survival rest gate's seam
+import { quietNights } from '../characters/encounters.js';   // CAMP-ROLL: a camp mate's night rolls nothing of mine
+import { carriedRestKind } from '../party/partyRestLaw.js';   // CAMP-ROLL: and is slept at the better of their spot and mine
 import { survivalFeed, installSurvivalGate } from '../systems/survival/env.js';   // SURV7: the needs' feed and the gate, composed from the entity   // ROAD-B B5: TickRest's per-frame poll (:357-360, :407-410)
-import { createNearbyScan, updateNearbyObjects, detectedMarkers, hasLiveDetector } from '../systems/nearbyObjects.js';   // X4: the Detect scan
-import { liveStat, maxFatigue, clampFatigue } from '../systems/statMods.js';
+import { createNearbyScan, updateNearbyObjects, detectedMarkers, hasLiveDetector } from '../world/nearbyObjects.js';   // X4: the Detect scan
+import { liveStat, maxFatigue, clampFatigue } from '../characters/statMods.js';
 import { FALL_DAMAGE_THRESHOLD, FALL_HP_PER_METRE, CAPSULE_HEIGHT } from '../player/motor.js';   // AUDIT 62 F23: the standing capsule, the senses context's headless default
-import { FOOTSTEP_VOLUME } from '../systems/footsteps.js';   // AUDIT 58: PlayerFootsteps.FootstepVolumeScale (:30), which its one-shots carry too
+import { FOOTSTEP_VOLUME } from '../audio/footsteps.js';   // AUDIT 58: PlayerFootsteps.FootstepVolumeScale (:30), which its one-shots carry too
 import { flashPlayerDamage } from '../ui/damageFlash.js';   // AUDIT 24 (wave 39): ShowPlayerDamage
-import { SOUND } from '../systems/soundClips.js';
+import { SOUND } from '../audio/soundClips.js';
 import { surfacePlayer, hurtPlayer, duelSpare, staffFly, levitateWarded, freeFlight } from '../characters/playerEntity.js';   // DUEL1: the duel's floor, for its damage over time   // AUDIT-SEATS G5: a siege's ward on Levitate   // AUDIT-SEATS G4: a spectator's flight
-import { standardSpellsByIndex } from '../systems/spell/standardSpells.js';   // G4: the two magic registries, one home; DEX4a: a mod's SpellRecords.json merged, as RebuildClassicSpellsDict merges it
+import { standardSpellsByIndex } from '../magic/standardSpells.js';   // G4: the two magic registries, one home; DEX4a: a mod's SpellRecords.json merged, as RebuildClassicSpellsDict merges it
 import { readMagicDef } from '../formats/magicDef.js';
-import { setMagicItemTemplates, setSpellRecordsByIndex } from '../systems/loot/loot.js';
+import { setMagicItemTemplates, setSpellRecordsByIndex } from '../items/loot.js';
 import { PaintFile } from '../formats/paintFile.js';   // F156: PAINT.DAT, the painting descriptions' file
-import { setPaintFile } from '../systems/item/itemInfo.js';
-import { music } from '../systems/music.js';
-import { setMusicReplacements } from '../systems/musicReplacement.js';   // M-EXT: SoundReplacement's registry
-import { setSoundReplacements } from '../systems/soundReplacer.js';   // SNDREP1: the player's sound pack, on the same seam
+import { setPaintFile } from '../items/itemInfo.js';
+import { music } from '../audio/music.js';
+import { setMusicReplacements } from '../audio/musicReplacement.js';   // M-EXT: SoundReplacement's registry
+import { setSoundReplacements } from '../audio/soundReplacer.js';   // SNDREP1: the player's sound pack, on the same seam
 import { installEmperorMemorial } from '../world/emperorMemorial.js';
-import { installBunnyNpcArt } from '../systems/bunnyNpcArt.js';
-import { installDiverseWeaponsIcons } from '../combat/diverseWeapons/diverseWeaponsIcons.js';
-import { installRoleplayRealismItems } from '../systems/roleplayRealismItems/rriInstall.js';
-import { installDetailedShipsArt } from '../systems/detailedShips.js';   // DS1: Detailed Ships' pictures and xml scales
+import { installBunnyNpcArt } from '../characters/bunnyNpcArt.js';
+import { installDiverseWeaponsIcons } from '../combat/diverseWeaponsIcons.js';
+import { installRoleplayRealismItems } from '../mods/rriInstall.js';
+import { installDetailedShipsArt } from '../systems/naval/detailedShips.js';   // DS1: Detailed Ships' pictures and xml scales
 import { installStudioArt } from '../systems/studioArt/studioArt.js';   // STUDIO1: the game's artists' own pictures
-import { installWarmAshesShips } from '../systems/warmAshesShips.js';   // WA1: Warm Ashes - Ships' quest list and save slot
+import { installWarmAshesShips } from '../systems/naval/warmAshesShips.js';   // WA1: Warm Ashes - Ships' quest list and save slot
 import { installScrollLoot } from '../systems/scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls
-import { installCrossbowLoot } from '../systems/crossbow.js';   // BUNNYFALL: the crossbow
+import { installCrossbowLoot } from '../items/crossbow.js';   // BUNNYFALL: the crossbow
 import { installHeavyGear } from '../systems/heavyGear.js';   // BUNNYFALL: the Royal Ballista and the grappling hook
-import { installRestItemLoot, litCandle, meditate, snuffCandle, draughtTaken, spendDraught, DRAUGHT_SPENT_MINUTES } from '../systems/rest/restItems.js';   // REST6: the seven that fill the gaps
-import { installForaging } from '../systems/foraging/foragingInstall.js';   // FORAGE1: Foraging's quest list, tools, foods, pictures and console command
-import { installSmithing } from '../systems/smithItems.js';   // PROF3: the Repair Kit's use
-import { installCooking, dishStaminaFactor } from '../systems/cookItems.js';   // PROF9: a dish eaten, and the Tart's stamina
-import { installHealingSupply } from '../systems/healingSupply.js';   // POTION-COMMON: Potions of Healing in the loot
-import { installRaidingParties } from '../systems/raidingParties.js';   // RAID1: World Events - Raiding Parties' save slot
-import '../systems/wild/nyxShop.js';   // BUNNYFALL: the Dusk Token's row and Nyx's Legendary records, before a save holding one loads
-import '../systems/gate/gateSpoils.js'; import '../systems/portalStone.js'; import '../systems/gems.js'; import '../systems/eliteGates/weirKey.js'; import '../systems/festival/soulCake.js';   // WITCH1: and the Witches' Festival's two (2000, 2001); EG-PLAY: and the Weir Key's (575) - its Use the world host's opener, every other host's 'cold'
+import { installRestItemLoot, litCandle, meditate, snuffCandle, draughtTaken, spendDraught, DRAUGHT_SPENT_MINUTES } from '../systems/survival/restItems.js';   // REST6: the seven that fill the gaps
+import { installForaging } from '../professions/foragingInstall.js';   // FORAGE1: Foraging's quest list, tools, foods, pictures and console command
+import { installSmithing } from '../professions/smithItems.js';   // PROF3: the Repair Kit's use
+import { installCooking, dishStaminaFactor } from '../professions/cookItems.js';   // PROF9: a dish eaten, and the Tart's stamina
+import { installHealingSupply } from '../items/healingSupply.js';   // POTION-COMMON: Potions of Healing in the loot
+import { installRaidingParties } from '../worldEvents/raidingParties.js';   // RAID1: World Events - Raiding Parties' save slot
+import '../world/wild/nyxShop.js';   // BUNNYFALL: the Dusk Token's row and Nyx's Legendary records, before a save holding one loads
+import '../worldEvents/gateSpoils.js'; import '../travel/portalStone.js'; import '../items/gems.js'; import '../systems/eliteGates/weirKey.js'; import '../systems/festival/soulCake.js';   // WITCH1: and the Witches' Festival's two (2000, 2001); EG-PLAY: and the Weir Key's (575) - its Use the world host's opener, every other host's 'cold'
    // WB5: the Sigil Stone's own template (570) registers in every host, so a save carrying one loads it in any of the four; PORTAL1: and the Portal Stone's Use (572)
-import '../systems/sigil/sigilBroker.js';   // SET7: the Broker's record (what this character bought today) registers its save slot in every host, so a save made anywhere carries it
-import { installImmersiveTravel } from '../systems/immersiveTravel.js';   // IT1: Immersive Travel's Init - the drivers' and sailors' factions, their Fast Travel services
-import { installRoleplayRealism } from '../systems/roleplayRealism/rrInstall.js';   // RR1: Roleplay & Realism's InitMod - after Items', as DFU loads them (Items is the one it looks up)   // RRI1: the templates, the patches, the art - the same seam, the same reason   // DW3: its icons, on the replacement door - here and not at worldTick's module scope, where the mod's law sits in an import cycle (a TDZ)
-import { installBunnyGuilds } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: their factions
-import { registerBunnyMembership } from '../systems/guild/bunnyMembership.js';   // BUNNY-GUILDS: who belongs
-import { installEnemyExpansion } from '../systems/enemyExpansion/dexInstall.js';   // DEX1: Daggerfall Enemy Expansion's fifty enemies, their careers and the classic edits, once at boot
-import { getBool, getInt } from '../systems/settings/settings.js';   // M-FM: Audio/AlternateMusic, read once for all three hosts; MAC-O4: Controls/WeaponSwingMode, the drag route's own missing term
-import { SongManager, musicEnvironment, holdEnvironment } from '../systems/song/songManager.js';
-import { festivalEnvironment } from './seatFestival.js';   // FESTIVAL-STAGE: a Festival town's streets hear the tavern
-import { audio } from '../systems/audio.js';
-import { messageBox } from '../systems/notify.js';   // ENH-NOTICE3: the one door every DaggerfallUI.MessageBox goes through - the infection's popup names the KIND, never the host's window
+import '../worldEvents/sigilBroker.js';   // SET7: the Broker's record (what this character bought today) registers its save slot in every host, so a save made anywhere carries it
+import { installImmersiveTravel } from '../travel/immersiveTravel.js';   // IT1: Immersive Travel's Init - the drivers' and sailors' factions, their Fast Travel services
+import { installRoleplayRealism } from '../mods/rrInstall.js';   // RR1: Roleplay & Realism's InitMod - after Items', as DFU loads them (Items is the one it looks up)   // RRI1: the templates, the patches, the art - the same seam, the same reason   // DW3: its icons, on the replacement door - here and not at worldTick's module scope, where the mod's law sits in an import cycle (a TDZ)
+import { installBunnyGuilds } from '../guilds/bunnyGuilds.js';   // BUNNY-GUILDS: their factions
+import { registerBunnyMembership } from '../guilds/bunnyMembership.js';   // BUNNY-GUILDS: who belongs
+import { installEnemyExpansion } from '../mods/enemyExpansion/dexInstall.js';   // DEX1: Daggerfall Enemy Expansion's fifty enemies, their careers and the classic edits, once at boot
+import { getBool, getInt } from '../platform/settings.js';   // M-FM: Audio/AlternateMusic, read once for all three hosts; MAC-O4: Controls/WeaponSwingMode, the drag route's own missing term
+import { SongManager, musicEnvironment, holdEnvironment } from '../audio/songManager.js';
+import { festivalEnvironment } from '../guilds/seatFestival.js';   // FESTIVAL-STAGE: a Festival town's streets hear the tavern
+import { audio } from '../audio/audio.js';
+import { messageBox } from '../ui/notify.js';   // ENH-NOTICE3: the one door every DaggerfallUI.MessageBox goes through - the infection's popup names the KIND, never the host's window
 
 import { getBytes, forgetBytes, storedMusicNames, loadMusicFile, registerTextureStore, registerMorrowindData } from './dataSource.js';   // M-EXT/M-TEX: the player's own packs
 

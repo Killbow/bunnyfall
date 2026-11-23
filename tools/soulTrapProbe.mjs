@@ -38,8 +38,8 @@ const check = (name, ok, detail) => { out.steps[name] = { ok, ...detail }; if (!
 
 // ---- the GEM comes off X6's real shelf, not a hand-built fixture ----
 out.steps.gems = await page.evaluate(async () => {
-  const { stockSoulGems } = await import('/src/systems/shopStock.js');
-  const { ENEMY_BASICS } = await import('/src/characters/enemy/enemyBasics.js');
+  const { stockSoulGems } = await import('/src/trade/shopStock.js');
+  const { ENEMY_BASICS } = await import('/src/characters/enemyBasics.js');
   const shelf = stockSoulGems({ quality: 20, gameMinutes: 0 },
     { soulPointsOf: (t) => ENEMY_BASICS[t]?.soulPts ?? 0 });
   const empty = shelf.filter((g) => g.trappedSoulType === null);
@@ -61,7 +61,7 @@ if (!target) { console.log(JSON.stringify(out, null, 2)); await browser.close();
 out.steps.target = target;
 
 const trapSpell = () => page.evaluate(async () => {
-  const { buildCustomSpell, blankEffectSettings } = await import('/src/systems/spell/spellMaker.js');
+  const { buildCustomSpell, blankEffectSettings } = await import('/src/magic/spellMaker.js');
   return buildCustomSpell({ slots: [{ type: 12, subType: 255,
     settings: { ...blankEffectSettings(), durationBase: 30, chanceBase: 100, chanceMod: 0 } }], rangeType: 1 });
 });
@@ -70,7 +70,7 @@ const trapSpell = () => page.evaluate(async () => {
 {
   const sp = await trapSpell();
   const armed = await page.evaluate(async ([spell, i]) => {
-    const { applySpell } = await import('/src/systems/effects.js');
+    const { applySpell } = await import('/src/magic/effects.js');
     const f = window.__foeRecord(i);
     const r = applySpell(spell, 5, f.entity, {}, () => 0, null, {});
     return { alert: r.trapAlert, kinds: (f.entity.activeEffects ?? []).map((a) => a.kind),
@@ -114,7 +114,7 @@ const trapSpell = () => page.evaluate(async () => {
   } else {
     const sp = await trapSpell();
     await page.evaluate(async ([spell, i]) => {
-      const { applySpell } = await import('/src/systems/effects.js');
+      const { applySpell } = await import('/src/magic/effects.js');
       applySpell(spell, 5, window.__foeRecord(i).entity, {}, () => 0, null, {});
     }, [sp, second.i]);
     // Every gem in the pack is now full, so a successful roll has
@@ -124,7 +124,7 @@ const trapSpell = () => page.evaluate(async () => {
       { ...tethered, type: second.type });
     // Free a gem and the next blow lands.
     await page.evaluate(async () => {
-      const { createEmptySoulTrap } = await import('/src/systems/shopStock.js');
+      const { createEmptySoulTrap } = await import('/src/trade/shopStock.js');
       window.__playerEntity.items.push(createEmptySoulTrap());
     });
     const freed = JSON.parse(await page.evaluate(([i]) => window.__damageFoe(i, 9999), [second.i]));

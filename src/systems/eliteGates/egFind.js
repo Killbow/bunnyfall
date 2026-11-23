@@ -29,9 +29,9 @@
 //
 // PURE OF THE HOSTS: `registerEgFind` takes its doors as arguments, so it runs without world.js. Not a DFU member: DFU has
 // no Weir Key and no online. Ledger A (ELITE-GATES).
-import { registerEnemyDeathHandler } from '../../scenes/corpseMarker.js';
+import { registerEnemyDeathHandler } from '../../characters/corpseMarker.js';
 import { restackWeirKeys, throwWeirKeyFace, setWeirKeyFacesHere } from './weirKey.js';   // RPT1026-CLIENT: the face thrown is kept as lying
-import { DUNGEON_TIERS, dungeonTier } from '../dungeon/dungeonTier.js';
+import { DUNGEON_TIERS, dungeonTier } from '../../world/dungeonTier.js';
 
 /** The death handler's name (corpseMarker.js registerEnemyDeathHandler). */
 export const EG_FIND_HANDLER = 'eg-find';

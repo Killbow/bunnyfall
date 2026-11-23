@@ -19,7 +19,7 @@
 // Wardens and the Captain times the crew aboard, a share each (`crewX`); the frail ones by how many come.
 //
 // Not a DFU member. Ledger A (KETCH).
-import { dpsRef, MELEE_REACH, POSE_SLACK, HIT_KINDS, THREAT_PICK, TARGET_HOLD_MS, BREATH_MS, MOVE_RESAY_M, MOVE_RESAY_MS, REPEAT_MAX, chooseAttack, wrapYaw, spendBlow, spendPurse } from '../gate/gateBrain.js';
+import { dpsRef, MELEE_REACH, POSE_SLACK, HIT_KINDS, THREAT_PICK, TARGET_HOLD_MS, BREATH_MS, MOVE_RESAY_M, MOVE_RESAY_MS, REPEAT_MAX, chooseAttack, wrapYaw, spendBlow, spendPurse } from '../gateBrain.js';
 import { egBlowOf, egFloorWindup, shDisc, shLaneAt, shCone, shRing } from '../eliteGates/egShape.js';
 import { KT_ANCHOR, KT_WAIST, KT_LANDING, KT_GALLERY, KT_HOLD, KT_BRIDGE, KT_WAIST_COVER, KT_ENGINE, KT_CONSOLE, KT_LIFT, KT_MAIN_MAST, KT_BRIDGE_CRADLES, KT_HELM, KT_HELM_PEDESTAL_R, KT_GUN_ZS, KT_GUN_DEPTH, KT_SOCKET_R, KT_CRADLES, KT_ARCS, ketchBowHalf } from './ketchDeck.js';
 

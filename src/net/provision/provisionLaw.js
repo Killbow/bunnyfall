@@ -7,7 +7,7 @@
 // twenty classic potions (systems/potionRecipes.js), so a trait drinks as its classic potion at the make's strength.
 
 import { FOOD_KEYS, INGREDIENT_KEYS, keyTemplate, PLANT_GROUP_TEMPLATES, PANTRY_KEYS } from '../professionLaw.js';
-import { POTION_RECIPES } from '../../systems/potionRecipes.js';
+import { POTION_RECIPES } from '../../items/potionRecipes.js';
 
 // ─── THE PANTRY: the new foods live in the material law (professionLaw.js PANTRY), so the Stores know them ───
 export { PANTRY, PANTRY_KEYS, pantryOf, GROCER_STOCK } from '../professionLaw.js';

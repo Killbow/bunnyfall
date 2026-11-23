@@ -39,7 +39,7 @@ try {
       import('/src/render/renderer.js'),
       import('/src/combat/fpArm.js'),
       import('/src/world/mat4.js'),
-      import('/src/formats/morrowind/mwFirstPerson.js'),
+      import('/src/formats/mwFirstPerson.js'),
       import('/test/fixtures/mw/bodyRigBrowser.mjs'),
     ]);
     const cv = document.createElement('canvas');

@@ -18,8 +18,8 @@
 // 59, and six of the Test Room's twelve detail cards scrolled; the glyph says what it is, as the HUD's chip does). The
 // INFO box's, `{ full: true }`, sets the word "Technique" over the name and adds the sentences - how the power was
 // rolled onto the technique's own blow, and how the key is pressed.
-import { techniqueCardView } from '../systems/loot/lootRarity.js';
-import { sigilDueling } from '../systems/sigil/sigil.js';
+import { techniqueCardView } from '../items/lootRarity.js';
+import { sigilDueling } from '../items/sigil.js';
 import { TECHNIQUE_GLYPH_SVG } from './techniqueGlyph.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */

@@ -19,7 +19,7 @@
 //   - THE REST: GRAPPLE_COOLDOWN_S after a throw that caught, GRAPPLE_MISS_COOLDOWN_S after one that did not, counted
 //     on the motor's own clock (a paused game does not count it down). ui/heavyGearOverlay.js shows it, and the rope.
 
-import { t } from '../../systems/textManager.js';
+import { t } from '../../ui/textManager.js';
 import { capsuleFits } from '../../player/parkour.js';
 import {
   GRAPPLE_RANGE, HOOK_SPEED, PULL_SPEED, GRAPPLE_COOLDOWN_S, GRAPPLE_MISS_COOLDOWN_S, PULL_ARRIVE, FLOOR_NORMAL_Y,

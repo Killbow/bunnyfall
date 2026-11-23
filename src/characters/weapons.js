@@ -10,12 +10,12 @@
 // CalculateWeaponToHit (modifier * 10). Constants byte-exact.
 import templates from './itemTemplates.json' with { type: 'json' };
 import { DYE_COLORS, DYE_TARGETS, getDyeColorTable } from './dyes.js';
-import { SKILLS } from '../systems/skills.js';   // GetWeaponSkillIDAsShort's return set
-import { SOUND } from '../systems/soundClips.js';   // F023: GetEquipSound's clips (soundClips is a leaf)
+import { SKILLS } from './skills.js';   // GetWeaponSkillIDAsShort's return set
+import { SOUND } from '../audio/soundClips.js';   // F023: GetEquipSound's clips (soundClips is a leaf)
 import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE, PISTOLET_SPAN } from './thunderlockIds.js';
 import { CROSSBOW_TEMPLATE, CROSSBOW_SPAN } from './crossbowIds.js';   // BUNNYFALL: the crossbow
 import { BALLISTA_TEMPLATE, BALLISTA_SPAN, GRAPPLE_TEMPLATE } from './heavyGearIds.js';   // BUNNYFALL: the Royal Ballista and the grappling hook
-import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: a custom weapon class answers its own skill, damage and equip sound (virtuals)   // the port's own weapon - a leaf, so no cycle (see the file)
+import { customItemClass } from '../mods/rriItems.js';   // RRI1: a custom weapon class answers its own skill, damage and equip sound (virtuals)   // the port's own weapon - a leaf, so no cycle (see the file)
 
 export const WEAPONS = Object.freeze({
   Dagger: 113, Tanto: 114, Staff: 115, Shortsword: 116, Wakazashi: 117,

@@ -13,7 +13,7 @@ try{
  await page.route('**/__guild_clerks',r=>r.fulfill({contentType:'text/html',body:'<body style="background:#27211b;color:#eddbba;display:flex;gap:12px;padding:12px;margin:0;font:14px sans-serif"></body>'}));
  await page.goto(server.resolvedUrls.local[0]+'__guild_clerks');
  const result=await page.evaluate(async()=>{
-  const {GUILD_CLERK_ART,markGuildClerkArt,loadGuildClerkArt,standGuildClerkArt,clerkRaster}=await import('/src/systems/guild/guildClerkArt.js');
+  const {GUILD_CLERK_ART,markGuildClerkArt,loadGuildClerkArt,standGuildClerkArt,clerkRaster}=await import('/src/guilds/guildClerkArt.js');
   const {personLook}=await import('/src/characters/peopleBodies.js');
   const {color32Canvas}=await import('/src/ui/bitmapCanvas.js');
   const check=(ok,message)=>{if(!ok)throw Error(message);};

@@ -50,7 +50,7 @@
 // asynchronous where TeleportToCoordinates is not - the black has to
 // hold over the streamer's rebuild, which is the frame DFU is hiding.
 
-import { loadImg, nativeMetrics, drawImg, drawRect, shadowText } from './native/nativePanel.js';
+import { loadImg, nativeMetrics, drawImg, drawRect, shadowText } from './nativePanel.js';
 import { hudFade } from './fadeLayer.js';   // D4: FadeBehaviour
 
 /** TELE00I0's own size, which IS mainPanelRect's (:21). */

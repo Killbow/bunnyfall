@@ -25,15 +25,15 @@
 // the roll drew - "Oathkeeper's Dragon Helm" a pair of Gauntlets, a weapon's name on a Left Pauldron).
 //
 // Not a DFU member: DFU's quests pay what their scripts say and nothing more. Port-Ledger A (QL3).
-import { seededRng } from '../wind/wind.js';
-import { spoilsBase } from '../gate/gateSpoils.js';
-import { applyRarity } from '../loot/lootRarity.js';
-import { isForbiddenEquip, wearableItem } from '../equip.js';
-import { ITEM_GROUPS } from '../loot/loot.js';   // REWARD-5: the jewels the roll makes (gateSpoils.js makeBase's own list)
+import { seededRng } from '../../weather/wind.js';
+import { spoilsBase } from '../../worldEvents/gateSpoils.js';
+import { applyRarity } from '../../items/lootRarity.js';
+import { isForbiddenEquip, wearableItem } from '../../characters/equip.js';
+import { ITEM_GROUPS } from '../../items/loot.js';   // REWARD-5: the jewels the roll makes (gateSpoils.js makeBase's own list)
 import { createWeapon, randomMaterial, randomArmorMaterial, WEAPONS_ENUM, ARMOR_ENUM } from '../../combat/enemyEquipment.js';   // REWARD-5: a named base, made as ItemBuilder makes its kind
-import { setItemFields, mintCondition, templateByIndex } from '../item/itemTemplates.js';
+import { setItemFields, mintCondition, templateByIndex } from '../../items/itemTemplates.js';
 import { weaponSkillUsed } from '../../characters/weapons.js';
-import { SKILLS, skillValue } from '../skills.js';
+import { SKILLS, skillValue } from '../../characters/skills.js';
 import { factionsTable } from '../quest/tables.js';
 import { PAY_NAMES } from './qlSheets.js';
 

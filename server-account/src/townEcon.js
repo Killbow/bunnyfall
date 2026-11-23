@@ -29,7 +29,7 @@ import { witnessOf } from './townSeats.js';
 import { witnessedFact, factConfirmed } from '../../src/net/nodeLaw.js';
 import { verifyWatchReceipt, WATCH_RECEIPT_TTL_S } from '../../src/net/watchReceipt.js';
 import { isDeveloper } from './titles.js';   // AUDIT TOWN-ECON 2 SVC-1: a false town struck, the registry audited - a developer's
-import { RAID_KEY_RE } from '../../src/net/raid/raidLaw.js';
+import { RAID_KEY_RE } from '../../src/net/raidLaw.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import {
   TOWN_ECON_CAPS, TOWN_ECON_DAYS, TOWN_ECON_KEPT_S, TOWN_ECON_SHARE_LEAST, TOWN_WATCH_CLAIM_MAX, TOWN_WITNESS_KIND,

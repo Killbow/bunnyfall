@@ -9,7 +9,7 @@
 //
 // PURE but for its scratch: each grid keeps one set of search arrays (a stamp per search, so nothing is cleared), so
 // a town's thousand walks a day allocate nothing past the first.
-import { NAV_CELL, HALF_CELL } from '../../world/city/cityNavigation.js';
+import { NAV_CELL, HALF_CELL } from '../../world/cityNavigation.js';
 
 /** A step's cost by its tile's weight: a road (15) 1, grass (12) 1.3, the average (7) 1.8, dirt (6) 1.9, stone (4) 2.1. */
 export const stepCost = (weight) => 1 + (15 - weight) / 10;

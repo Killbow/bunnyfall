@@ -3,15 +3,15 @@
 // hub city of the clan's first seat region) keeps that clan's Court in its back room, and by night an awakened vampire
 // sees it on the door: "The <clan> Court (back room)". The door's host (scenes/worldModes.js, beside the farm door's rows
 // and press) asks here; the window is ui/vampire/courtWindow.js.
-import { t } from '../textManager.js';
+import { t } from '../../ui/textManager.js';
 import { BUILDING_TYPES } from '../../world/buildingNames.js';
-import { isDayFromMinutes } from '../gameDate.js';
-import { skyMinutes } from '../worldTick.js';
-import { HOME_VERB } from '../online/onlineHomes.js';
+import { isDayFromMinutes } from '../../world/gameDate.js';
+import { skyMinutes } from '../../world/worldTick.js';
+import { HOME_VERB } from '../../homes/onlineHomes.js';
 import { awakenedVampirism } from './vitae.js';
 import { clanName } from './clanLaw.js';
 import { vampirismInfection, bloodlineChoiceOn } from './bloodlineLeaf.js';
-import { clanRepickLeft } from '../vampirism.js';
+import { clanRepickLeft } from '../../afflictions/vampirism.js';
 
 /** Who the Courts let in: an awakened vampire, one bitten and not yet turned (to be claimed), and a vampire who has not
  *  yet used their one change of blood. @param {any} entity */

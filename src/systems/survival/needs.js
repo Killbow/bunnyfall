@@ -42,11 +42,11 @@
 // loan: a tier without boons carries neither.
 import { feltTemperature, temperatureWord, wardrobeCtx, sunlit } from './temperature.js';
 import { drinkFrom, findDrink, waterskinName, DRINK_RELIEF, TEMPLATE, isFood, foodStage, FOOD_STAGE, rotFoodDay, rotWeight, ROT_DAY_MINUTES } from './food.js';
-import { STAT_KEYS_ORDER, maxFatigue, liveStat, FATIGUE_MULTIPLIER } from '../statMods.js';
+import { STAT_KEYS_ORDER, maxFatigue, liveStat, FATIGUE_MULTIPLIER } from '../../characters/statMods.js';
 import { HARD_RULES } from './difficulty.js';
 /** SURV4: speed and agility down by this while stiff (survival/rest.js's STIFF_PENALTY, restated here so rest.js may import this module). */
 const STIFF_PENALTY = 5;
-import { MINUTES_PER_DAY, dateFromClassicMinutes } from '../gameDate.js';
+import { MINUTES_PER_DAY, dateFromClassicMinutes } from '../../world/gameDate.js';
 
 /** RATIONS-HUNGRY: the hunger stages a sack of rations in the pack is eaten at by itself (Starving alone until
  *  2026-10-03). Peckish is not one - a sack is a full meal, and Peckish is a rumble, not a need. */

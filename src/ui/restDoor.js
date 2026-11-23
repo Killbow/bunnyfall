@@ -20,11 +20,11 @@
 // the chat's own open-key law see it) and `dispose` is wrapped to unregister it - enhancedRest.js's own close()
 // calls the wrapped `dispose` on EVERY exit precisely so that registration never outlives the window
 // (ENHANCED-REST-DISPOSE1, its own doc comment).
-import { isEnhanced } from '../systems/uiSkin.js';
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
+import { isEnhanced } from './uiSkin.js';
+import { registerOverlay } from './enhancedOverlays.js';
 import { RestWindow, preloadRestArt } from './restWindow.js';
-import { openEnhancedRest } from './enhanced/enhancedRest.js';
-import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { openEnhancedRest } from './enhancedRest.js';
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { preloadRestArt };
 

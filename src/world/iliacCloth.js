@@ -15,7 +15,7 @@
 // owner's discard - the panel counts it). Closed-form in time: a skipped frame lands on the same pose.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
-import { CARD_W, CARD_L, CARD_T, ARC_HEIGHT } from './card/cardMotion.js';
+import { CARD_W, CARD_L, CARD_T, ARC_HEIGHT } from './cardMotion.js';
 
 /** MEASURE (CARDS10): the holdings' spacing across the table, a side's first card off its holding toward its owner, the
  *  step between a side's cards, and each card's rise over the one before. */

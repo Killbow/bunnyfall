@@ -17,10 +17,10 @@
 // week's end - a player who pressed "Watch the Royal Tourney" on a Monday no longer stands in its room all week, the
 // city's peers and its Watch gone; the HUD drawn only in its room. C2 - the one mint slot cleared only while it is this
 // session's own. C3 - an unsettled ring said once and asked again on the siege's backing-off wait.
-import { royalRoomKey, ROYAL_RING } from './siege/siegeRef.js';
+import { royalRoomKey, ROYAL_RING } from './siegeRef.js';
 import { foldRoyal, royalHudModel, royalAskStands, ROYAL_STATE_EMPTY } from './royalLink.js';
-import { readRoyalReceipt } from './siege/siegeReceipt.js';
-import { passRetryMs, BATTLE_AWAY_MS } from './siege/siegeSession.js';
+import { readRoyalReceipt } from './siegeReceipt.js';
+import { passRetryMs, BATTLE_AWAY_MS } from './siegeSession.js';
 
 /** How long an unsettled ring waits before the pass is asked again, ms - the first wait (AUDIT-SEATS C3: doubling to
  *  siegeSession.js PASS_RETRY_MAX_MS). */

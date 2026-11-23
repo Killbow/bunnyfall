@@ -38,7 +38,7 @@ const shots = await page.evaluate(async () => {
   const W = 480, H = 270;
   const { Renderer, WORLD_FRAME } = await import('/src/render/renderer.js');
   const { EL_LANE, EL_EXPOSURE, interiorLightColor, interiorGrade } = await import('/src/render/enhancedLighting.js');
-  const { INTERIOR_AMBIENT, INTERIOR_LIGHT_DIR, interiorLightProperties } = await import('/src/world/interior/interiorLights.js');
+  const { INTERIOR_AMBIENT, INTERIOR_LIGHT_DIR, interiorLightProperties } = await import('/src/world/interiorLights.js');
   const { perspective, lookAt, mirrorProjectionX, identity } = await import('/src/world/mat4.js');
   const tex = (base, spread) => {
     const w = 32, h = 32, colors = new Uint8Array(w * h * 4);

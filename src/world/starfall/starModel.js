@@ -16,7 +16,7 @@
 // crater for the same star. Pure.
 //
 // Not a DFU member. Ledger A (STARFALL).
-import { faces } from '../gate/gateModel.js';
+import { faces } from '../gateModel.js';
 import { STAR_ARCHIVE, STAR_EARTH_RECORD, STAR_RIM_RECORD, STAR_GLASS_RECORD, STAR_THREAD_RECORD } from './starArt.js';
 import { starRoll } from '../../net/starfall/starfallLaw.js';
 

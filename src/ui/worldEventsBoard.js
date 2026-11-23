@@ -7,14 +7,14 @@
 // in the game's own wood and parchment (public/art) with its own item pictures (a Dusk Token, an ingot, a plank). It
 // opens itself once a session (sessionStorage), and a notice tab at the screen's edge opens it again. A plain DOM layer:
 // it takes no host slot, and Esc, its Close or a click outside put it away.
-import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { itemIconUrl } from './enhanced/enhancedArt.js';
-import { nyxCoins } from '../systems/wild/nyxShop.js';
-import { mintMaterialItem } from '../systems/professions/profItems.js';
+import { registerOverlay } from './enhancedOverlays.js';
+import { itemIconUrl } from './enhancedArt.js';
+import { nyxCoins } from '../world/wild/nyxShop.js';
+import { mintMaterialItem } from '../professions/profItems.js';
 import { dialFileUrl } from './grimoireArt.js';
 import { pauseFlowShowing } from './pauseDoor.js';
 import { loadingHeld } from './loadingScreen.js';
-import { hudArranging } from './hud/hudLayout.js';   // the tab is a HUD piece (Alt+U): moved, sized and hidden there   // the public art, addressed as the game's other windows address it
+import { hudArranging } from './hudLayout.js';   // the tab is a HUD piece (Alt+U): moved, sized and hidden there   // the public art, addressed as the game's other windows address it
 
 export const DISCORD_URL = 'https://discord.gg/eNGsgr8BZt';
 const ID = 'bf-events-board', TAB_ID = 'bf-events-tab', SEEN_KEY = 'bunnyfall.eventsBoard.shown';

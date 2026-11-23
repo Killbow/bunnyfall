@@ -23,7 +23,7 @@ import { guildActorOf } from './guilds.js';
 import { seatsOpenFor } from './townSeats.js';
 import { mustChange } from './realm.js';
 import { utcDay } from '../../src/net/marksLaw.js';
-import { GUILD_RANK_MASTER } from '../../src/net/guild/guildLaw.js';
+import { GUILD_RANK_MASTER } from '../../src/net/guildLaw.js';
 import {
   seatWeekOf, seatWeekStartMs, seatPhaseOf, seatKeyOk, siegeWindowOk, SEAT_LEVER_RANKS, SEAT_EDICTS_HOUR, SEAT_MEMBER_WAIT_S,
   SIEGE_SIDE_MAX, SELLSWORDS_MAX, SIGN_CLOSES_MS, SELLSWORD_COOL_WEEKS, sellswordFeeOk, sideOf,

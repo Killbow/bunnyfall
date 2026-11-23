@@ -16,10 +16,10 @@
 //   - PRICE: the item's value is the enchantment worth a magic item of that spell has (legacyEnchantmentValue).
 //   - Indices are held to 0..127: a Cast When Used row's param is a signed byte in the item law.
 
-import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerValueLaw } from '../item/itemTemplates.js';
+import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerValueLaw } from '../../items/itemTemplates.js';
 import { ENCHANTMENT_TYPES } from '../../formats/magicDef.js';
-import { legacyEnchantmentValue, DURABILITY_LOSS_ON_USE } from '../enchantments.js';
-import { registerTabledLootHandler, registerEnemyLootExtra } from '../loot/loot.js';
+import { legacyEnchantmentValue, DURABILITY_LOSS_ON_USE } from '../../magic/enchantments.js';
+import { registerTabledLootHandler, registerEnemyLootExtra } from '../../items/loot.js';
 
 export const SCROLL_TEMPLATE = 1820;
 export const SCROLL_GROUP = 'UselessItems2';

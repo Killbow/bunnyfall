@@ -43,9 +43,9 @@
 // walls every floor edge its law does not open.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
-import { realmToDungeon, dungeonToRealm } from '../../net/superDungeon/sdBrain.js';
-import { faces } from '../gate/gateModel.js';
-import { realmIsland, packRealmFaces, SD_REALM_FLOOR_RECORD, SD_REALM_BRASS_RECORD, SD_REALM_ROOT_RECORD, SD_REALM_ARENA_RECORD, SD_REALM_EDGE_RECORD, SD_REALM_PILLAR_RECORD, SD_REALM_COBBLE_RECORD, SD_ISLAND_SIDES, SD_LIP } from '../superDungeon/sdRealm.js';
+import { realmToDungeon, dungeonToRealm } from '../../net/sdBrain.js';
+import { faces } from '../gateModel.js';
+import { realmIsland, packRealmFaces, SD_REALM_FLOOR_RECORD, SD_REALM_BRASS_RECORD, SD_REALM_ROOT_RECORD, SD_REALM_ARENA_RECORD, SD_REALM_EDGE_RECORD, SD_REALM_PILLAR_RECORD, SD_REALM_COBBLE_RECORD, SD_ISLAND_SIDES, SD_LIP } from '../sdRealm.js';
 import { egCircleSpecs, egBandOfCircle, egBandOfHall, EG_TEXT } from '../../net/eliteGates/egLaw.js';
 import { EG_FRAGS } from '../../net/eliteGates/egFragLaw.js';
 import { egSlagX, EG_SLAG_SPOUTS } from '../../net/eliteGates/egSpanLaw.js';   // EG-ZC: the slag's spouts
@@ -56,7 +56,7 @@ import { egAtmosOf } from './egAtmos.js';   // EG-LOOK (Elite-Gates-Look.md sect
 import { FIRE_WALLS_ARCHIVE } from '../emissiveTextures.js';   // EG-ZH: the Caverns' fire falls wear Daggerfall's own fire
 import { egHeroFragInto, egHeroFragCollider, egHeroFragRegistry } from './egHeroFragModel.js';   // EG-HERO-LAY: a hall's hero, drawn and collided
 import { egRoomModelInto, egRoomColliderInto, egClimbZones, egClimbKeep } from './egRoomModel.js';   // THE ASCENT (spec law 9): the rooms built, the climbs' clamp
-import { GATE_PART } from '../gate/gateModel.js';
+import { GATE_PART } from '../gateModel.js';
 import { egPolyIn, segDist } from '../../net/eliteGates/egShape.js';   // EG-HERO-LAY: the hero's clamp
 import { egRingSideWalls, EG_RING_DOOR } from '../../net/eliteGates/egWalkGraph.js';   // EG-PERFECT (spec law 10): a ring open at an alcove's doorway (THE AUDIT: its doorway alone)
 import { lightList, lightListView, packLight, copyLights } from '../../render/lightId.js';   // LIGHT-ID (main's, at the merge into PR #800): the circle's lamps into the frame's list through the one seam (pure - the swap's worker may read it)

@@ -4,11 +4,11 @@
 // After Climates & Calories' EnemyDeath_OnEnemyDeath (GetMeatAmount,
 // FoodLoot - the IL, Systems-Arc SURV), on the port's own death
 // registry (scenes/corpseMarker.js raiseEnemyDeath, the UL1 seam).
-import { registerEnemyDeathHandler } from '../../scenes/corpseMarker.js';
-import { MOBILE_TYPES } from '../../characters/mobile/mobileTypes.js';
+import { registerEnemyDeathHandler } from '../../characters/corpseMarker.js';
+import { MOBILE_TYPES } from '../../characters/mobileTypes.js';
 import { TEMPLATE } from './food.js';
 import { createSurvivalItem, spoilFood } from './items.js';
-import { isClassEnemyId } from '../../characters/enemy/enemyBasics.js';   // DEX1: DFU's class test (DaggerfallEntity.IsClassEnemyId) - a mod's monster past 255 is no class
+import { isClassEnemyId } from '../../characters/enemyBasics.js';   // DEX1: DFU's class test (DaggerfallEntity.IsClassEnemyId) - a mod's monster past 255 is no class
 
 export const SURVIVAL_LOOT_HANDLER = 'survival';
 /** [min, max] raw meat by mobile type; the max grows by the luck mod. */

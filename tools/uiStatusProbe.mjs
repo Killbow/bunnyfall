@@ -35,15 +35,15 @@ const OUT = process.env.SHOT_DIR ?? join(ROOT, 'tools/shots');
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>UI3 probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#3b4a3a 0 14px,#324031 14px 28px)}</style></head><body>
 <script type="module">
-import { setPref } from '/src/systems/uiPrefs.js';
-import { drawEnhancedHud, setHudSetChips } from '/src/ui/enhanced/enhancedHud.js';
-import { setHudRenown } from '/src/ui/hud/hudRenown.js';
+import { setPref } from '/src/ui/uiPrefs.js';
+import { drawEnhancedHud, setHudSetChips } from '/src/ui/enhancedHud.js';
+import { setHudRenown } from '/src/ui/hudRenown.js';
 import { renownXpFor } from '/src/net/renown.js';
 import { CHAT_CSS } from '/src/ui/chatPanel.js';
-import { POISONS } from '/src/systems/poisons.js';
-import { DISEASES } from '/src/systems/diseases.js';
+import { POISONS } from '/src/afflictions/poisons.js';
+import { DISEASES } from '/src/afflictions/diseases.js';
 import { survivalOf } from '/src/systems/survival/needs.js';
-import { worldMinutes } from '/src/systems/worldTick.js';
+import { worldMinutes } from '/src/world/worldTick.js';
 
 setPref('survival', 'casual');
 const spell = (id, name, icon, self, rounds, type = 'Spell') => ({ kind: 'shield', bundleId: id, bundleName: name, bundleIcon: icon, bundleSelfCast: self, bundleType: type, roundsRemaining: rounds });
@@ -150,7 +150,7 @@ try {
     await page.route('**/tools/arena2/**', (route) => route.continue({ url: route.request().url().replace('/tools/arena2/', '/arena2/') }));
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced${v.offline ? '&offline' : ''}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => typeof globalThis.__measure === 'function' && document.querySelectorAll('.hst-cell').length > 0, null, { timeout: 60000 });
-    if (v.scale) await page.evaluate(async (sc) => { (await import('/src/systems/uiPrefs.js')).setPref('hudScale', sc); }, v.scale);
+    if (v.scale) await page.evaluate(async (sc) => { (await import('/src/ui/uiPrefs.js')).setPref('hudScale', sc); }, v.scale);
     // the spell icons land from ICON00I0 async: wait for every picture
     await page.waitForFunction(() => [...document.querySelectorAll('.hst-pic')].every((p) => p.complete && p.naturalWidth > 0), null, { timeout: 30000 }).catch(() => {});
     await settle(page);

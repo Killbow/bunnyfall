@@ -30,16 +30,16 @@
 //
 // One registry of tokens, by target: the local player is one key, every other target its own object.
 
-import { getPref } from '../systems/uiPrefs.js';
-import { ENEMY_BASICS, isClassEnemyId } from '../characters/enemy/enemyBasics.js';
-import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
+import { getPref } from '../ui/uiPrefs.js';
+import { ENEMY_BASICS, isClassEnemyId } from '../characters/enemyBasics.js';
+import { MOBILE_TYPES } from '../characters/mobileTypes.js';
 import { throwsBlows, blowShapesOf, blowFamily, makeBlow, fitBlowToGround, inBlow, setLiveBlow, shatterBlow, windupNear, offsetBlows, BLOW, BLOW_CHANCE, BLOW_COLOR, IRON_COLOR, BLOW_VERDICT_LIFE, BLOW_STALE, setBlowTargetOf, bossifyBlow } from './foeBlows.js';   // TACT4; TELL3: iron; TELL5: the family, the shapes' lengths
 import { coverDistance } from './cover.js';   // TELL6: a charge's lane must be free of cover
 import { GRAVITY } from '../player/motor.js';   // TELL6c: a leap's hop on the motor's own gravity
 import { tacticsNow, setTacticsClock, tickTactics } from './tacticsClock.js';   // AUDIT TACT D10/A3
 import { TELL, poiseOf, staggerSeconds, glintStrength, blowGuard, punishSeconds, windupSeconds, feints, chains, chainShape, trackYaw, blowCooldown, wholeSet, feintChance, trackShare, chainMax } from './tells.js';   // TELL1: poise and the stagger (bible/12-Enhanced-AI/Feud-Arc.md section 3); TELL3: a blow's guard; TELL4: the punish window; TELL5: patterns; TELL7: the cooldowns
-import { registerBlowTakenMod } from '../systems/blowTaken.js';   // TELL1: a staggered foe takes more - the leaf the formulas read
-import { noteFeud } from '../systems/feudLedger.js';   // RVN1: a blow of its I dodged, in its fight's ledger (a leaf - the brain brings no revenant system)
+import { registerBlowTakenMod } from '../combat/blowTaken.js';   // TELL1: a staggered foe takes more - the leaf the formulas read
+import { noteFeud } from '../revenants/feudLedger.js';   // RVN1: a blow of its I dodged, in its fight's ledger (a leaf - the brain brings no revenant system)
 
 export const tacticsSwitchOn = () => getPref('enhancedAI') === true;
 

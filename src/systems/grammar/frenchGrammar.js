@@ -26,7 +26,7 @@
 // flag whatever the vowel (the C#'s unbraced else). Where the C# would throw on malformed input (an empty or unclosed
 // token, a word list too short), this answers the text as it stands instead.
 
-import { GrammarRules, GrammarManager, registerGrammarRules } from '../textManager.js';
+import { GrammarRules, GrammarManager, registerGrammarRules } from '../../ui/textManager.js';
 
 const GENDER_NUMS = ['MS', 'MP', 'FS', 'FP'];
 const isUpper = (c) => !!c && c !== c.toLowerCase() && c === c.toUpperCase();

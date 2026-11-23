@@ -5,10 +5,10 @@
 // yet collected dimmed (the wardrobe part's law). A row opened says how the look is had and where it is worn. The
 // character's own (systems/appearances.js, in the save) - no account is read. Dressed by the kit's roles as the wardrobe's
 // parts are: a filter a tile, a row a list line, a row opened a panel, a tag a chip.
-import { t } from '../../systems/textManager.js';
-import { lookGroups, looksCount, lookName, kindName, lookStub, wardrobeFee, wardrobePieces } from '../../systems/appearances.js';
+import { t } from '../textManager.js';
+import { lookGroups, looksCount, lookName, kindName, lookStub, wardrobeFee, wardrobePieces } from '../../items/appearances.js';
 import { appearanceOf, lookCode, lookVariant } from '../../net/appearanceLaw.js';
-import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
+import { inventoryItemImage } from '../../items/itemTemplates.js';
 import { requestFittedIcon, fittedImg } from '../textureCanvas.js';
 import { SLOT_BOX, screenDpr } from '../iconFit.js';
 import { wordPair } from './wardrobeCatalogue.js';

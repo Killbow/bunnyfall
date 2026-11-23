@@ -3,7 +3,7 @@
 // please!"; bible/06-Systems/Bounty-Boards.md section 12): THE HUNT'S LAW, both ends'. A paid bounty is reported to the
 // account service and kept in its ledger; the hunter's rank is read off a character's clears, and its rewards are
 // sideways - titles, a weekly named beast, a trophy, a little seat influence - never gear. Pure: no clock, no DOM.
-import { BOUNTY_TIERS, BOUNTY_FULL_PURSE, BOUNTY_LEVEL_MAX, bountyTierIndex, parseBountyId, bountyHash, MINUTES_PER_DAY } from '../systems/bounty/bountyBoard.js';
+import { BOUNTY_TIERS, BOUNTY_FULL_PURSE, BOUNTY_LEVEL_MAX, bountyTierIndex, parseBountyId, bountyHash, MINUTES_PER_DAY } from '../guilds/bountyBoard.js';
 import { sharedClassicMinutes, ONLINE_MINUTES_PER_MS } from './wire.js';
 import { seatWeekOf } from './townSeatLaw.js';
 import { PROFESSIONS } from './professionLaw.js';

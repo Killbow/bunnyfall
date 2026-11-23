@@ -25,7 +25,7 @@ const waitFrames = async (n) => {
   await page.waitForFunction(([f0, k]) => window.__frame > f0 + k, [f, n], { timeout: 60000 });
 };
 const boot = await page.evaluate(async () => {
-  const { EQUIP_SLOTS } = await import('/src/systems/equip.js');
+  const { EQUIP_SLOTS } = await import('/src/characters/equip.js');
   const p = window.__playerEntity;
   return { hand: p.equip?.slots?.[EQUIP_SLOTS.RightHand]?.name ?? null };
 });

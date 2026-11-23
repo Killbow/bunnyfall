@@ -23,7 +23,7 @@ import { VirtueLevelUpScreen } from '../ui/virtueLevelUp.js';
 import { createCharSheetWindow } from '../ui/charSheetDoor.js';
 // HOTFIX (2026-09-19): STATIC, AND THE REASON IS A BLACK SCREEN.
 //
-// This lane used to `await import('../ui/enhanced/enhancedHud.js')`. A DYNAMIC
+// This lane used to `await import('../ui/enhancedHud.js')`. A DYNAMIC
 // import makes the bundler build a NAMESPACE OBJECT for the target, and
 // a namespace object reads EVERY binding the module exports the moment
 // it is built - including the ones a module re-exports from somewhere
@@ -40,12 +40,12 @@ import { createCharSheetWindow } from '../ui/charSheetDoor.js';
 // it up here. The cycle underneath is older than this arc and is not
 // what changed; what changed is that something asked for a namespace
 // over one end of it.
-import { drawEnhancedHud } from '../ui/enhanced/enhancedHud.js';
+import { drawEnhancedHud } from '../ui/enhancedHud.js';
 // ...and NAMED here too, for the same reason: `import * as` is a
 // namespace object as surely as a dynamic import is.
-import { announceLevelUp, announceSkillRaise, announceMastery, drawLevelNotices } from '../ui/levelUp/levelNotice.js';
-import { SKILLS } from '../systems/skills.js';
-import { LEVELUP_TOTAL } from '../systems/oblivionLeveling.js';
+import { announceLevelUp, announceSkillRaise, announceMastery, drawLevelNotices } from '../ui/levelNotice.js';
+import { SKILLS } from '../characters/skills.js';
+import { LEVELUP_TOTAL } from '../characters/oblivionLeveling.js';
 
 /** A character who has just earned a level. Every field is one a real
  *  entity carries; the numbers are invented, which is the only thing
@@ -158,7 +158,7 @@ export async function mount(lane = 'classic') {
   // wait could never be seen - the probe's first run read a green
   // "never blank" against a gap that had been closed by the lab
   // itself.
-  const { mountEnhancedLevelUp } = await import('../ui/enhanced/enhancedLevelUp.js');
+  const { mountEnhancedLevelUp } = await import('../ui/enhancedLevelUp.js');
   const screen = lane === 'virtue' ? new VirtueLevelUpScreen(entity) : new LevelUpScreen(entity);
   // THE DOOR'S OWN onExit IS A CLOSE (ui/charSheetDoor.js's
   // enhancedLevelUpOverlay), so the lab's must be too - the first

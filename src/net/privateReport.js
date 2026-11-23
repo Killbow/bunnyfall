@@ -8,7 +8,7 @@
 // - a lost answer (`offline`, `server`) asked again is answered the report it made (server-account/src/reports.js
 // sendReport's `repeat`) - and a draft changed after a failure is a new send, never the old one's answer.
 import { call, forgetSession } from './accountClient.js';
-import { t } from '../systems/textManager.js';
+import { t } from '../ui/textManager.js';
 import { BUILD_TAG, UPDATE } from '../buildTag.js';
 import { reportWordsOf, reportContextOf, reportHead, reportInboxHead, reportWhole, REPORT_INBOX_MAX } from './reportLaw.js';
 

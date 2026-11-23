@@ -13,16 +13,16 @@
 // holds it to the service's own table, so the two cannot drift apart unnoticed.
 //
 // Pure but for the text core: no DOM. Not a DFU member - Daggerfall Unity has no accounts. Ledger A (COLLECTIONS-II).
-import { t, intlLocale } from '../../systems/textManager.js';
+import { t, intlLocale } from '../textManager.js';
 import { TITLES, AURAS, ICONS, GLYPHS } from '../../net/identityToken.js';
 import { TITLE_TEXT, AURA_TEXT } from '../playerBadge.js';
 import { ICON_TEXT } from '../profileIcons.js';
-import { GLYPH_LABEL } from '../enhanced/enhancedAccount.js';
+import { GLYPH_LABEL } from '../enhancedAccount.js';
 import { insigniaById } from '../../net/insignia.js';
 import { wareById, festivalAt, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../net/festivalLaw.js';
 import { QL_LINES } from '../../systems/questlines/qlLines.js';
 import { QL_SERVICE_LINES } from '../../net/questlineClaims.js';
-import { ARENA_CHAMPION_MIN_BOUTS, ARENA_CHAMPION_MIN_FOES } from '../../net/arena/arenaLaw.js';   // AUDIT COLLECTIONS-II (lane 1): the laurel's floor
+import { ARENA_CHAMPION_MIN_BOUTS, ARENA_CHAMPION_MIN_FOES } from '../../net/arenaLaw.js';   // AUDIT COLLECTIONS-II (lane 1): the laurel's floor
 import { HUNT_TITLES, MASTERY_TITLES, SEA_TITLES } from '../../net/huntLaw.js';   // HUNTERS-MARK, MARKS-OF-MASTERY: each title's count, the service's own law
 import { professionName } from '../../net/professionLaw.js';
 

@@ -15,7 +15,7 @@
 import { CLIMATES } from '../formats/mapsTables.js';
 import { inEther } from './ethericSea.js';
 import { spawnsDungeon, pathFreePixel, WORLD_SALT } from './spawnedDungeons.js';
-import { wildMaskOf, wildInside } from '../systems/wild/wildZone.js';
+import { wildMaskOf, wildInside } from './wildZone.js';
 
 /**
  * What the host holds that the law reads.
