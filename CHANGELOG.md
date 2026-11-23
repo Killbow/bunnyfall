@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-23
 
+- Fixed: Spells still in flight when you leave a building no longer keep flying outside.
+- Fixed: Switching to another window while drawing a bow or aiming a ship's guns now lowers them instead of firing.
 - Fixed: Head bob and hit recoil no longer flip the view upside down at steep look angles.
 
 ## 2026-11-22

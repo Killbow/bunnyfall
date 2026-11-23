@@ -24,7 +24,7 @@ import { openPauseFlow, pauseDoorReady, pauseOpts } from './pauseDoor.js';
 import { openPixelDial } from './pixelDial.js';
 import { ownMinutes } from '../world/worldTick.js';
 import { playerEntity } from '../characters/playerEntity.js';
-import { releaseHeldOnFocusLoss } from './focusRelease.js';
+import { cancelHeldAttacks, releaseHeldOnFocusLoss } from './focusRelease.js';
 import { releaseLook, requestLook, setCursorActive } from '../player/pointerLock.js';
 import { survivalOn } from '../systems/survival/switch.js';
 import { toggleStatusReadout } from './statusBox.js';
@@ -155,7 +155,7 @@ export function createWorldKeys(shared) {
   for (const kind of ['mousedown', 'mouseup']) addEventListener(kind, (e) => { if (e.button === 3 || e.button === 4) e.preventDefault(); });
   // A release is never gated, so a window opened mid-swing still lets go.
   addEventListener('mouseup', (e) => { if (isSwingButton(e.button)) shared.rightHeld = false; const mc = mouseCode(e.button); if (mc) { keys.delete(mc); noteKeyUp(latch.edge, mc); } if (isSwingButton(e.button) && walkMode && modeNow() === 'exterior') weaponRig.attackInput(0, 0, false); if (isSwingButton(e.button)) navalRelease(); });
-  releaseHeldOnFocusLoss(globalThis, keys);
+  releaseHeldOnFocusLoss(globalThis, keys, () => cancelHeldAttacks(keys, [weaponRig, shared.modes?.liveArm?.()?.rig], shared.naval));
   const inputHooks = {
     look: (dx, dy) => {
       lookFilter.add(dx * lookScale() * glassLookScale(spyglass.lens), -dy * lookScale() * lookInvert() * glassLookScale(spyglass.lens));
