@@ -74,7 +74,7 @@ import { homeOutsideKept, homeYardWhere, homeCandidate } from './onlineHomes.js'
 import { homeDecorShown } from '../net/homeVoteLaw.js';
 import { homeDecorSeenByMe } from './homeDecorHide.js';   // DECOR-HIDE   // HOME-VOTE: a shunned home's yard stands for its insiders alone
 import { createYardNature, isNaturePiece, yardNatureFlat, yardTreeSet } from './yardNature.js';   // DECOR-OUTDOOR: a yard's trees and plants, in its town's season; DECOR-LPT: as Low Poly Trees' own
-import { campsWhereWords } from '../ui/campsPage.js';   // HOLDINGS: the limit's refusal names the camps kept
+import { campsWhereWords, setCampPacker } from '../ui/campsPage.js';
 import { CAMP_CAP, CAMP_RADIUS, CAMP_PIXEL_M, campOf, campKitPieces } from '../net/campLaw.js';   // BUNNYFALL CAMPS: a kit's camp, kept and furnished
 import { CAMP_KIND } from '../systems/survival/camp.js';
 import { remapSubMeshes } from '../world/texRemap.js';   // DECOR-OUTDOOR: a yard's models in its town's climate
@@ -621,6 +621,8 @@ export function createHomeYards(deps) {
   const campAsking = new Set(), campStriking = new Set();
   /** @type {Map<string, number>} a kit's record the service refused a camp for, and when - asked again after CAMP_REFUSED_MS */
   const campRefused = new Map();
+  // Strike a camp only once its tent was seen since the last load; loading an older save leaves it alone.
+  const seenRecs = new Set();
   /** The map pixel a scene point stands in, and its place in it (pixel-local metres) - of the pixels built, or null. */
   function campPixelOf(pos) {
     if (!Array.isArray(pos)) return null;
@@ -666,12 +668,14 @@ export function createHomeYards(deps) {
   const kitStands = (rec) => !!rec && !!deps.campPool?.()?.camps?.some?.((x) => x?.rec?.id === rec);
   /** MY KIT'S TENTS AND MY CAMPS BROUGHT IN LINE, near me, for the character I play. */
   function lineUpCamps() {
+    for (const id of campOwed.keys()) settleOwed(id);
     const pool = deps.campPool?.();
     const char = deps.character?.() ?? null;
     const feet = deps.feet?.() ?? null;
     if (!pool?.own || !char || !feet || !campRead.ready || !deps.api?.campPitch || !deps.outside?.()) return;
     const tents = pool.own().filter((r) => r?.kind === CAMP_KIND.Tent && !r.deck && Array.isArray(r.pos) && typeof r.id === 'string');
     const recs = new Set(tents.map((r) => r.id));
+    for (const id of recs) seenRecs.add(id);
     const mine = [...campsById.values()].filter((c) => c.mine && c.char === char);
     for (const r of tents) {
       if (Math.hypot(r.pos[0] - feet[0], r.pos[2] - feet[2]) > CAMP_LINE_M || mine.some((c) => c.rec === r.id) || campAsking.has(r.id)) continue;
@@ -684,7 +688,7 @@ export function createHomeYards(deps) {
         const c = res?.ok ? campOf(res.data?.camp) : null;
         if (c) {
           campsById.set(c.id, c);
-          if (!res.data?.repeat) deps.say?.(`Your camp will stay when you leave. Stand in it to decorate it (up to ${CAMP_CAP} pieces).`);
+          if (!res.data?.repeat && !campOwed.has(r.id)) deps.say?.(`Your camp will stay when you leave. Stand in it to decorate it (up to ${CAMP_CAP} pieces).`);
           return;
         }
         campRefused.set(r.id, now());
@@ -696,17 +700,69 @@ export function createHomeYards(deps) {
       }, () => {}).finally(() => { campAsking.delete(r.id); });
     }
     for (const c of mine) {
-      if (!c.rec || recs.has(c.rec) || campStriking.has(c.id)) continue;
+      if (!c.rec || recs.has(c.rec) || campStriking.has(c.id) || campOwed.has(c.rec)) continue;
       const o = campOriginOf(c);
       if (!o || Math.hypot(o[0] - feet[0], o[2] - feet[2]) > CAMP_LINE_M) continue;
-      campStriking.add(c.id);
-      Promise.resolve(deps.api.campStrike(c.id)).then((res) => {
-        if (!res?.ok && res?.error !== 'no-camp') return;
-        campsById.delete(c.id);
-        if (c.pieces.length) deps.say?.('Your camp is packed up, and its decorations with it.');
-      }, () => {}).finally(() => { campStriking.delete(c.id); });
+      if (seenRecs.has(c.rec)) strikeKept(c.id, c.pieces.length);
     }
   }
+  function strikeKept(id, pieces) {
+    if (campStriking.has(id)) return Promise.resolve(null);
+    campStriking.add(id);
+    return Promise.resolve(deps.api.campStrike(id)).then((res) => {
+      if (!res?.ok && res?.error !== 'no-camp') return res;
+      campsById.delete(id);
+      if (pieces) deps.say?.('Your camp is packed up, and its decorations with it.');
+      return res;
+    }, () => null).finally(() => { campStriking.delete(id); });
+  }
+  // Packed tents whose camp still has to be struck, retried each line-up until the service answers; dropped when a
+  // load brings the tent back or another character plays. Memory only.
+  /** @type {Map<string, { char: string|null, at: { px: number, py: number } | null, busy: boolean }>} */
+  const campOwed = new Map();
+  const owedAgain = (res) => !res || res.error === 'offline' || res.error === 'server';
+  function settleOwed(recId) {
+    const o = campOwed.get(recId);
+    if (!o || o.busy || campAsking.has(recId)) return;
+    if (o.char !== (deps.character?.() ?? null) || kitStands(recId)) { campOwed.delete(recId); return; }
+    o.busy = true;
+    Promise.resolve(keptCampOf({ id: recId }, o.at)).then((k) => {
+      if (!k) return true;
+      return k.id ? strikeKept(k.id, k.pieces).then((res) => !owedAgain(res)) : false;
+    }).then((done) => { if (done) campOwed.delete(recId); }, () => {}).finally(() => { o.busy = false; });
+  }
+  function scenePixelOf(pos) {
+    const t = deps.translation(0, 0);
+    return { px: Math.floor((pos[0] - t[0]) / CAMP_PIXEL_M), py: -Math.floor((pos[2] - t[2]) / CAMP_PIXEL_M) };
+  }
+  /** @returns {{ id: string|null, pieces: number } | null | Promise<{ id: string|null, pieces: number } | null>} */
+  function keptCampOf(rec, at = Array.isArray(rec.pos) ? scenePixelOf(rec.pos) : null) {
+    const hit = (list) => list.find((c) => c?.mine && c.rec === rec.id) ?? null;
+    const near = hit([...campsById.values()]);
+    if (near || !deps.api?.campsNear || !at) return near ? { id: near.id, pieces: near.pieces.length } : null;
+    return Promise.resolve(deps.api.campsNear(at.px, at.py)).then((r) => {
+      if (!r?.ok) return { id: null, pieces: 1 };
+      const c = hit((r.data?.camps ?? []).map(campOf));
+      return c ? { id: c.id, pieces: c.pieces.length } : null;
+    });
+  }
+  deps.campPool?.()?.keepCamps?.({
+    loaded: () => seenRecs.clear(),
+    free: () => deps.slotFree?.() ?? true,
+    kept: keptCampOf,
+    struck: (rec) => {
+      campOwed.set(rec.id, { char: deps.character?.() ?? null, at: Array.isArray(rec.pos) ? scenePixelOf(rec.pos) : null, busy: false });
+      settleOwed(rec.id);
+    },
+  });
+  // Also packs this character's tent for the camp, so the line-up does not pitch it again.
+  setCampPacker((c) => Promise.resolve(deps.api.campStrike(c.id)).then((res) => {
+    if (!res?.ok && res?.error !== 'no-camp') return res;
+    campsById.delete(c.id);
+    campRefused.clear();
+    if (c.char === deps.character?.()) deps.campPool?.()?.packTent?.(c.rec);
+    return res;
+  }));
   /** The pieces a camp stands: its own, and the kit's tent and fire while nobody's live record of them stands. */
   const campPiecesOf = (c) => (!c.mine && !kitStands(c.rec) ? [...c.pieces, ...campKitPieces(c.yaw)] : c.pieces);
 
