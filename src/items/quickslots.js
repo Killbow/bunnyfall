@@ -45,7 +45,7 @@ import { TEMPLATES } from './itemKinds.js';
 // takes, around the one equip it makes.
 import { ABILITIES, abilityById } from '../combat/abilities/registry.js';
 import { abilitiesEnabled, learnedAbility } from '../combat/abilities/progress.js';
-import { abilityCooldown, abilityInHand, abilityPlayable, abilityRefusalText, requestHotbarAbility } from '../combat/abilities/rig.js';
+import { activeAbilityWeapon, abilityCooldown, abilityInHand, abilityPlayable, abilityRefusalText, requestHotbarAbility } from '../combat/abilities/rig.js';
 import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
 import { requestUtility } from '../combat/abilities/utility.js';
 import { isPotion, isDrug, isLightSource, useItem, USE_PENDING } from './useItem.js';   // ...and the ladder's own stand-ins for a host that handed no hook
@@ -986,7 +986,7 @@ let hotbarRev = 0;   // bumped on every write, so a view can tell "changed" in o
 function savedHotbarEntry(e) {
   if (!e || typeof e !== 'object' || typeof e.name !== 'string') return null;
   if (e.type === 'ability') return hotbarEntryForAbility(e.id);
-  if (e.type === 'hand-ability') return hotbarEntryForHandAbility(e.hand, e.rank);
+  if (e.type === 'weapon-rank' || e.type === 'hand-ability') return hotbarEntryForWeaponRank(e.rank);
   if (e.type === 'spell' && Number.isFinite(e.index)) return { type: 'spell', index: e.index, name: e.name, ...iconOf(e) };   // UI2: and its icon
   if (e.type === 'item' && typeof e.key === 'string' && !retiredItemKey(e.key) && HOTBAR_KINDS.includes(e.kind)) {
     if (OLD_BOOK_KEY.test(e.key)) _oldBookKeys = true;
@@ -1111,18 +1111,16 @@ export function hotbarEntryForAbility(id) {
   return ability ? { type: 'ability', id, name: ability.name } : null;
 }
 
-export function hotbarEntryForHandAbility(hand, rank) {
-  if (!['left', 'right'].includes(hand) || ![25, 50, 75, 100].includes(rank)) return null;
-  return { type: 'hand-ability', hand, rank, key: hand + ':' + rank,
-    name: (hand === 'left' ? 'Left Hand' : 'Right Hand') + ' · Rank ' + rank };
+export function hotbarEntryForWeaponRank(rank) {
+  if (![25, 50, 75, 100].includes(rank)) return null;
+  return { type: 'weapon-rank', rank, key: 'weapon-rank:' + rank,
+    name: rank === 100 ? 'Weapon Capstone' : 'Weapon Rank ' + rank };
 }
 
-function handAbility(entity, entry) {
+function activeRankAbility(entity, entry) {
   if (!entity) return null;
-  const worn = equipTableOf(entity);
-  const right = worn[EQUIP_SLOTS.RightHand];
-  const item = entry.hand === 'right' ? right : worn[EQUIP_SLOTS.LeftHand];
-  if (entry.hand === 'left' && !item && right && getItemHands(right) === ITEM_HANDS.Both) return null;
+  const active = activeAbilityWeapon(entity);
+  const item = active === undefined ? equipTableOf(entity)[EQUIP_SLOTS.RightHand] : active;
   if (item && (item.group !== 'Weapons' || isBrokenItem(item))) return null;
   const template = item?.templateIndex ?? 'bare';
   return ABILITIES.find(ability => ability.category === 'weapon' && ability.rank === entry.rank
@@ -1220,11 +1218,11 @@ export function hotbarView(entity, { readiedIndex = null, size = HOTBAR_CAPACITY
   }
   return hotbar.slice(0, size).map((e, i) => {
     if (!e) return { slot: i, empty: true };
-    if (e.type === 'hand-ability') {
-      const ability = handAbility(entity, e);
+    if (e.type === 'weapon-rank') {
+      const ability = activeRankAbility(entity, e);
       const cooldown = ability ? Math.ceil(abilityCooldown(entity, ability.id) / 1000) : 0;
-      return { slot: i, type: 'ability', id: ability?.id, name: ability ? ability.name + ' · ' + e.name : e.name,
-        hand: e.hand, rank: e.rank,
+      return { slot: i, type: 'ability', id: ability?.id, name: ability?.name ?? e.name,
+        rank: e.rank,
         count: cooldown || null, ghost: !ability || !abilitiesEnabled() || !learnedAbility(entity, ability.id) || cooldown > 0 };
     }
     if (e.type === 'ability') {
@@ -1308,10 +1306,10 @@ export function hotbarPress(i, { entity = null, doors = {}, say = null } = {}) {
   if (_oldBookKeys) rekeyOldBooks(entity);
   const e = hotbar[i];
   if (!e) { say?.(HOTBAR_TEXT.emptySlot); return { kind: 'empty' }; }
-  if (e.type === 'hand-ability') {
-    const ability = handAbility(entity, e);
+  if (e.type === 'weapon-rank') {
+    const ability = activeRankAbility(entity, e);
     const result = ability && learnedAbility(entity, ability.id)
-      ? requestHotbarAbility(entity, ability.id, e.hand) : { ok: false, why: 'unavailable' };
+      ? requestHotbarAbility(entity, ability.id) : { ok: false, why: 'unavailable' };
     if (!result.ok) say?.(result.message ?? abilityRefusalText(result.why));
     return { kind: result.ok ? 'ability' : 'refused', name: ability?.name ?? e.name };
   }

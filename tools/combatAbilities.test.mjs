@@ -24,7 +24,7 @@ import { createWeapon } from '../src/combat/enemyEquipment.js';
 import { liveStat } from '../src/characters/statMods.js';
 import { consumeDoorSpell, doorSpellFor } from '../src/scenes/shared.js';
 import { setPlayerDoor } from '../src/player/playerDoor.js';
-import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForHandAbility, hotbarPress, hotbarView, quickslotSaveData, restoreQuickslotSaveData, setHotbarSlot } from '../src/items/quickslots.js';
+import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, hotbarPress, hotbarView, quickslotSaveData, restoreQuickslotSaveData, setHotbarSlot } from '../src/items/quickslots.js';
 
 const longsword = { templateIndex: 120, group: 'Weapons' };
 const makeEntity = () => ({ isPlayer: true, race: 'Nord', skills: [], fatigue: 1000, health: 100 });
@@ -396,23 +396,31 @@ test('ability slots save, move and refuse activation while the feature is off', 
   assert.equal(hotbarPress(2, { entity: makeEntity() }).kind, 'refused');
 });
 
-test('saved hand bindings follow equipment without moving spell bindings', (t) => {
+test('the same four saved hotbar slots follow the active weapon', (t) => {
   const previous = quickslotSaveData();
-  t.after(() => restoreQuickslotSaveData(previous));
+  const oldLocation = globalThis.location;
+  globalThis.location = { search: '?abilities' };
+  t.after(() => {
+    restoreQuickslotSaveData(previous);
+    if (oldLocation === undefined) delete globalThis.location;
+    else globalThis.location = oldLocation;
+  });
   const entity = makeEntity();
   const worn = equipTableOf(entity);
-  const right = hotbarEntryForHandAbility('right', 25);
-  const left = hotbarEntryForHandAbility('left', 25);
+  const ranks = [25, 50, 75, 100].map(hotbarEntryForWeaponRank);
   const spell = { type: 'spell', index: 12, name: 'Heal' };
-  restoreQuickslotSaveData({ hotbar: [right, left, spell] });
+  const capstone = hotbarEntryForAbility('weapon.longsword.kings-measure');
+  restoreQuickslotSaveData({ hotbar: [...ranks, spell, capstone] });
   worn[EQUIP_SLOTS.RightHand] = longsword;
-  assert.equal(hotbarView(entity)[0].id, PREVIEW_THRUST);
-  assert.match(hotbarView(entity)[1].id, /^weapon\.hand-to-hand\./);
-  worn[EQUIP_SLOTS.LeftHand] = longsword;
-  worn[EQUIP_SLOTS.RightHand] = null;
-  assert.equal(hotbarView(entity)[1].id, PREVIEW_THRUST);
-  assert.match(hotbarView(entity)[0].id, /^weapon\.hand-to-hand\./);
-  assert.deepEqual(quickslotSaveData().hotbar.slice(0, 3), [right, left, spell]);
+  const pw = new PlayerWeapon({});
+  pw.weapon = longsword;
+  const tc = { entity, pw, rig: {} };
+  const ids = style => ABILITIES.filter(ability => ability.id.startsWith('weapon.' + style + '.')).map(ability => ability.id);
+  assert.deepEqual(hotbarView(entity).slice(0, 4).map(slot => slot.id), ids('longsword'));
+  stepAbilityRig(0, tc);
+  pw.weapon = { templateIndex: 113, group: 'Weapons' };
+  assert.deepEqual(hotbarView(entity).slice(0, 4).map(slot => slot.id), ids('dagger'));
+  assert.deepEqual(quickslotSaveData().hotbar.slice(0, 6), [...ranks, spell, capstone]);
 });
 
 test('offline preview reaches the weapon machine and restores cleanly between saves', (t) => {
@@ -430,11 +438,9 @@ test('offline preview reaches the weapon machine and restores cleanly between sa
   const tc = {
     entity, pw, rig: {}, ready: true, cam: { feet: [0, 0, 0], yaw: 0 },
     startSwing: strike => pw.techniqueStrike(strike),
-    selectHand: () => { pw.usingRightHand = false; return true; },
   };
   stepAbilityRig(0, tc);
-  assert.ok(requestHotbarAbility(entity, PREVIEW_THRUST, 'left').ok);
-  assert.equal(pw.usingRightHand, false);
+  assert.ok(requestHotbarAbility(entity, PREVIEW_THRUST).ok);
   assert.equal(pw.machine.state, 'Idle');
   assert.ok(stepAbilityRig(0.25, tc));
   assert.equal(pw.machine.state, 'StrikeUp');

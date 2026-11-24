@@ -1437,7 +1437,6 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       _techCtx ??= {
         rig: _techRig, entity, pw: playerWeapon, cam: null, collider: null, held: false, ready: false, cancel: false, paralyzed: false, blocked: false, holding: false,
         startSwing: (s, offhand) => { if (!playerWeapon.techniqueStrike(s, offhand)) return false; fpAttack(s, _techDt); return true; },
-        selectHand: () => this.switchHand(),
         door: technique, say, noteShot: noteShotHere,
       };
       const tc = _techCtx;
