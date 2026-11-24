@@ -535,7 +535,7 @@ function paintSlot(s, v, entity) {
       s.icon.style.display = v.id ? '' : 'none';
     }
     s.glyph.textContent = v.id ? '' : '–';
-    s.count.textContent = v.count ? String(v.count) : '';
+    s.count.textContent = v.count ? v.count + 's' : '';
     s.pip.textContent = v.rank ? String(v.rank) : '';
     n.classList.remove('hb-hasbar', 'hb-worn');
     return;
