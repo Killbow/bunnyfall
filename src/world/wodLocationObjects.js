@@ -61,6 +61,29 @@ export const WOD_ROCK_SEAT_M = 0.5;
  *  it is `ground` - zero for a piece already in the ground, never positive. */
 export const rockSeatDrop = (ground, bottom) => (Number.isFinite(ground) && Number.isFinite(bottom) && bottom > ground - WOD_ROCK_SEAT_M ? ground - WOD_ROCK_SEAT_M - bottom : 0);
 
+/** @param {Array<{matrix: ArrayLike<number>}>} models @returns {Array<any>} */
+export const supportsFirst = (models) => [...models].sort((a, b) => a.matrix[13] - b.matrix[13]);
+
+const WOD_PERCH_GAP_M = 2;
+/**
+ * @param {ArrayLike<number>} box @param {{positions: ArrayLike<number>, indices: ArrayLike<number>, floorAt?: number}} cpu
+ * @param {ArrayLike<number>} m @param {(x: number, z: number) => number} groundAt @param {Array<ArrayLike<number>>} cleared
+ * @param {number} size @returns {boolean}
+ */
+export function hangsOffCleared(box, cpu, m, groundAt, cleared, size) {
+  if (box[1] < groundAt((box[0] + box[3]) / 2, (box[2] + box[5]) / 2) || cpu.floorAt == null) return false;
+  if (!cleared.some((c) => box[0] < c[3] && box[3] > c[0] && box[2] < c[5] && box[5] > c[2] && box[1] >= c[1] && box[1] <= c[4] + WOD_ROCK_SEAT_M)) return false;
+  const P = cpu.positions;
+  // The floor wodRockFloor adds is the pebble's open rim loop.
+  const rim = [...new Set(Array.from(cpu.indices).slice(cpu.floorAt))].map((i) => {
+    const x = P[i * 3], y = P[i * 3 + 1], z = P[i * 3 + 2];
+    return [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+  });
+  const own = rim.filter(([x, , z]) => x >= 0 && z >= 0 && x <= size && z <= size);
+  // Ground past the pixel edge is clamped, so judge only the rim over this pixel when any.
+  return (own.length ? own : rim).some(([x, y, z]) => y - groundAt(x, z) > WOD_PERCH_GAP_M);
+}
+
 /** LocationEnemySpawner.SpawnType (LocationEnemySpawner.cs:28-35). */
 export const WOD_SPAWN_TYPE = Object.freeze({ Quest: 0, BillboardPerson: 1, Enemy: 2, Loot: 3, Good: 4 });
 /** LocationEnemySpawner.enemyID (:37-40). */

@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: Boulders that rested on rocks cleared off a road no longer float in the air, such as outside the east gate of Knightsmore.
+- Fixed: Rock outcrops now have a solid underside, so you can no longer see the sky through them or walk inside them and get stuck.
 - Fixed: The Camps page in Holdings now has Pack up, so a camp left behind can be packed up from anywhere.
 - Fixed: Packing up a tent now removes its camp from the Camps page at once, even if you cast Recall, mount, go indoors, or leave the game right after.
 - Fixed: When decorating a yard, home, or caravan, Place now says how much more gold you need once your unconfirmed pieces use it up.
