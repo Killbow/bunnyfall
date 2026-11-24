@@ -29,6 +29,7 @@
 // that reorders a list you are looking at is a worse answer than the
 // order being right.
 import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { animateSpellPreview } from './expanderArt.js';
 import { repaintKeepingScroll } from './domRepaint.js';   // FB1018f SPELL-SCROLL: a pick keeps the list where it was
 import { closeOnOutsideTap } from './enhancedOverlays.js';   // OT1
 import { abilitiesEnabled } from '../combat/abilities/progress.js';
@@ -184,10 +185,12 @@ function render() {
   if (host) repaintKeepingScroll(host, paint);
 }
 
+let spellQuery = '';
 function paint() {
   if (!host) return;
   host.innerHTML = '';
   const shell = el('div', 'px-home px-over sb-shell');
+  if (pageHas('bankart')) shell.classList.add('sb-art-layout');
   const win = el('div', 'px-win');
   for (const c of ['tl', 'tr', 'bl', 'br']) win.append(el('span', `px-gem px-corner px-${c}`));
 
@@ -195,10 +198,31 @@ function paint() {
   // at the right - the pack window's own three-zone head (PX19/PX21d),
   // which is the shape every framed window in this UI already wears.
   const head = el('header', 'sb-top');
+  if (pageHas('bankart')) {
+    head.classList.add('sb-illustrated');
+    head.style.setProperty('--service-art', `url("${grimoireDeskUrl()}")`);
+  }
   const who = el('div', 'sb-who');
   who.append(el('h2', null, 'Spellbook'));
   const magicka = deps.entity?.magicka;
-  if (Number.isFinite(magicka)) who.append(el('p', 'sb-magicka', `${magicka} magicka`));
+  if (Number.isFinite(magicka)) {
+    const balance = el('p', 'sb-magicka', `${magicka} magicka`);
+    if (pageHas('bankart')) {
+      const icon = el('img', 'sb-mana-icon');
+      icon.alt = '';
+      icon.src = dialFileUrl('dfo-expander/mana.svg');
+      balance.prepend(icon);
+    }
+    who.append(balance);
+  }
+  const capacity = deps.entity?.maxMagicka;
+  if (pageHas('bankart') && capacity > 0 && Number.isFinite(magicka)) {
+    const gauge = el('meter', 'sb-magicka-gauge');
+    gauge.max = capacity;
+    gauge.value = magicka;
+    gauge.setAttribute('aria-label', 'Magicka');
+    who.append(gauge);
+  }
   head.append(el('span', 'sb-spacer'), who);
   const close = el('button', 'act', 'Close');
   close.onclick = () => onExit();
@@ -235,12 +259,26 @@ function paint() {
     return;
   }
   if (picked >= rows.length) picked = rows.length - 1;
-  const wrap = el('div', 'px-journal');
-  const rail = el('div', 'px-qrail');
+  const illustrated = pageHas('bankart');
+  const wrap = el('div', illustrated ? 'sb-catalogue' : 'px-journal');
+  const rail = el('div', illustrated ? 'sb-catalogue-list' : 'px-qrail');
+  if (illustrated) rail.setAttribute('data-scroll-key', 'spell catalogue');
+  const search = illustrated ? el('input', 'sb-spell-search') : null;
+  let selectedRow;
+  let expanded;
+  if (search) {
+    search.type = 'search';
+    search.value = spellQuery;
+    search.placeholder = 'Find a spell or effect';
+    search.setAttribute('aria-label', search.placeholder);
+    body.append(search);
+  }
   for (const r of rows) {
     if (hotbarAcceptsDrops()) spellIconPicture(r.spell?.icon, { box: SPELL_DRAG_BOX });   // UI2: warmed, so a drag starts with it
-    const b = el('button', `px-qrow sb-row${r.i === picked ? ' on' : ''}`);
-    b.append(el('span', 'px-c', '\u25c6'), document.createTextNode(r.name));
+    const b = el('button', `${illustrated ? 'sb-catalogue-row' : 'px-qrow'} sb-row${r.i === picked ? ' on' : ''}`);
+    if (illustrated) b.setAttribute('aria-expanded', String(r.i === picked));
+    if (r.i === picked) selectedRow = b;
+    b.append(el('span', 'px-c', '\u25c6'), el('span', 'sb-row-name', r.name));
     b.append(el('span', 'sb-cost', String(r.cost)));
     b._hotbarSpell = r.spell;   // DIAMOND-HB: point at it and press a hotbar key
     // HB1: a rail row DRAGS onto the hotbar under the window. A mouse
@@ -256,11 +294,22 @@ function paint() {
       picked = r.i; notice = null; deleting = null; choosingIcon = false; render();
     };
     rail.append(b);
+    if (search) {
+      b.dataset.spellSearch = [r.name, r.frame.target, r.frame.element,
+        ...r.effects.flatMap(effect => [effect.group, effect.subgroup])].filter(Boolean).join(' ').toLowerCase();
+      b.hidden = !b.dataset.spellSearch.includes(spellQuery.trim().toLowerCase());
+    }
   }
+  if (search) search.oninput = () => {
+    spellQuery = search.value;
+    const query = search.value.trim().toLowerCase();
+    for (const row of rail.children) row.hidden = !row.dataset.spellSearch.includes(query);
+  };
   wrap.append(rail);
 
   const sel = rows[picked];
-  const detail = el('div', 'px-qdetail');
+  const detail = el('div', illustrated ? 'sb-inline-effects' : 'px-qdetail');
+  const parameters = illustrated ? el('div', 'sb-inline-parameters') : detail;
   // FB1018f SPELL-SCROLL: another spell's page starts at its top; the list keeps its place. AUDIT FB1018f L2-2: THE KEY
   // IS THE SPELL, NOT ITS ROW - it was `picked`, and a delete keeps `picked` (confirmDelete: the row gone, the next spell
   // takes its place), so the spell after a deleted one opened at the deleted one's offset. The spell's index is the port's
@@ -269,14 +318,34 @@ function paint() {
   detail.setAttribute('data-scroll-key', `spell ${sel.spell?.index}`);
   const name = el('div', 'px-qname');
   name.append(el('span', 'px-qwing'), el('h3', null, sel.name), el('span', 'px-qwing px-flip'));
-  detail.append(name);
+  if (!illustrated) detail.append(name);
+  if (illustrated) {
+    const illustration = el('div', 'sb-spell-illustration');
+    illustration.style.setProperty('--service-art', `url("${grimoireDeskUrl()}")`);
+    const sigil = el('img', 'sb-preview-sigil sb-preview-emblem');
+    sigil.alt = '';
+    sigil.src = dialFileUrl('dfo-expander/power.svg');
+    illustration.append(sigil);
+    const preview = el('canvas', 'sb-animated-preview');
+    preview.hidden = true;
+    preview.setAttribute('aria-hidden', 'true');
+    illustration.append(preview);
+    animateSpellPreview(preview, sel.spell).catch(() => {});
+    const previewPanel = el('div', 'sb-preview-panel');
+    previewPanel.append(illustration);
+    expanded = el('section', 'sb-inline-expanded');
+    expanded.dataset.spellSearch = selectedRow.dataset.spellSearch;
+    expanded.hidden = selectedRow.hidden;
+    expanded.append(previewPanel, detail, parameters);
+  }
   const meta = el('div', 'px-qmeta');
   // AFFORDABLE OR NOT, which is the question a player opens this book
   // with. The classic answers it only by failing at the cast.
   const short = Number.isFinite(magicka) && sel.cost > magicka;
   meta.append(el('span', `px-qtimer${short ? ' urgent' : ''}`,
     short ? `${sel.cost} spell points. Not enough magicka` : `${sel.cost} spell points`));
-  detail.append(meta);
+  if (illustrated) parameters.append(el('h3', 'sb-inline-heading', 'Spell details'));
+  parameters.append(meta);
   // THE TWO ICONS THE CLASSIC DRAWS, as the words they mean. This
   // window reads no ARENA2, and the classic only tells you these on
   // hover - so printing them is strictly more than it says.
@@ -284,9 +353,9 @@ function paint() {
     const frame = el('div', 'sb-frame');
     if (sel.frame.target) frame.append(el('span', 'sb-chip', sel.frame.target));
     if (sel.frame.element) frame.append(el('span', 'sb-chip', sel.frame.element));
-    detail.append(frame);
+    parameters.append(frame);
   }
-  detail.append(pxDivider('Effects'));
+  detail.append(illustrated ? el('h3', 'sb-inline-heading', 'Effects') : pxDivider('Effects'));
   if (!sel.effects.length) {
     detail.append(el('p', 'px-note', 'No effects.'));
   } else {
@@ -375,7 +444,7 @@ function paint() {
     render();
   };
   acts.append(del);
-  detail.append(acts);
+  parameters.append(acts);
   if (choosingIcon) {
     const grid = el('div', 'sb-icons');
     grid.setAttribute('role', 'listbox');
@@ -395,7 +464,7 @@ function paint() {
       };
       grid.append(c);
     }
-    detail.append(grid);
+    parameters.append(grid);
     // the sheet may still be loading the first time: paint again once it lands
     if (Array.from({ length: SPELL_ICON_TOTAL }, (_, n) => spellIconUrl(n)).some((u) => !u)) {
       setTimeout(() => { if (host && choosingIcon) render(); }, 400);
@@ -421,10 +490,11 @@ function paint() {
       render();
     };
     form.append(el('span', 'sb-renamelabel', enterSpellNameLabel().trim()), input, ok);
-    detail.append(form);
+    parameters.append(form);
   }
-  if (notice) detail.append(el('p', 'sheet-notice', notice));
-  wrap.append(detail);
+  if (notice) parameters.append(el('p', 'sheet-notice', notice));
+  if (expanded) selectedRow.after(expanded);
+  else wrap.append(detail);
   body.append(wrap);
   win.append(body);
   // AUDIT-39r R22: AND THE PROMPT IS A PUSHED WINDOW, not a card
@@ -529,6 +599,7 @@ function onKey(e) {
 }
 
 export function mountEnhancedSpellbook(hostEl, d = {}) {
+  spellQuery = '';
   injectEnhancedStyle();
   injectEnhancedFonts();
   host = hostEl;
@@ -557,3 +628,5 @@ export function mountEnhancedSpellbook(hostEl, d = {}) {
     },
   };
 }
+import { pageHas } from '../platform/pageQuery.js';
+import { dialFileUrl, grimoireDeskUrl } from './grimoireArt.js';

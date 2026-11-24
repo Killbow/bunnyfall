@@ -225,6 +225,14 @@ function blockNode(doc, b, acts, canvases) {
       const n = el(doc, 'div', `port-picture${b.cls ? ` ${b.cls}` : ''}`);
       if (b.src) { const img = el(doc, 'img'); img.src = b.src; img.alt = b.alt ?? ''; n.append(img); }
       else n.append(el(doc, 'span', 'port-pictureword', b.alt ?? ''));
+      if (b.paint) {
+        const cv = el(doc, 'canvas', 'port-picture-animation');
+        cv.width = 260;
+        cv.height = 110;
+        cv.setAttribute('aria-hidden', 'true');
+        n.append(cv);
+        canvases.push({ cv, paint: b.paint });
+      }
       return n;
     }
     case 'canvas': {
