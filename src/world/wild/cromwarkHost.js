@@ -73,23 +73,24 @@ export function createCromwarkHost(deps) {
   // the board of the realm's events, once a session as the world stands (ui/worldEventsBoard.js)
   const board = createWorldEventsBoard({ cannon: () => cannon.progress(), askCannon: () => cannon.ask(), cromwark: CROMWARK_ON, ready: () => !!deps.boardReady?.() });
   let lastT = null, heartS = 0;
-  let hud = null;
+  let hud = null, hudShown = false, hudText = '';
 
   // ── THE HAZE ──────────────────────────────────────────────────────────────────────────────────────────────────
   const hazeRing = () => (cromwarkPeace(deps.kind?.()) && deps.alive?.() ? (deps.ring?.() ?? 0) : 0);
   function hudFrame() {
     if (typeof document === 'undefined') return;
     const show = clock.on && deps.mode?.() !== 'interior';
-    if (!show) { if (hud) hud.style.display = 'none'; return; }
+    if (!show) { if (hud && hudShown) { hud.style.display = 'none'; hudShown = false; } return; }
     if (!hud) {
       hud = document.createElement('div');
       hud.id = 'cromwark-haze';
       hud.style.cssText = `position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;font:600 18px 'Cormorant',Georgia,serif;letter-spacing:0.12em;color:${HAZE_CSS};text-shadow:0 0 6px #000,0 0 12px rgba(120,40,200,0.8);text-align:center;white-space:nowrap`;
       document.body.append(hud);
     }
-    hud.style.display = '';
+    if (!hudShown) { hud.style.display = ''; hudShown = true; }
     const pct = Math.round((clock.mult - 1) * 100);
-    hud.textContent = `${t('cromwark.haze', 'PURPLE HAZE')} ${hazeClockText(clock.seconds)}${pct > 0 ? `  ·  ${t('cromwark.hazeHarder', '+{pct}% damage taken', { pct })}` : ''}`;
+    const text = `${t('cromwark.haze', 'PURPLE HAZE')} ${hazeClockText(clock.seconds)}${pct > 0 ? `  ·  ${t('cromwark.hazeHarder', '+{pct}% damage taken', { pct })}` : ''}`;
+    if (text !== hudText) { hud.textContent = text; hudText = text; }
   }
   function frame() {
     const now = performance.now() / 1000;
