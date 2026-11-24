@@ -3,6 +3,11 @@
 // by a reach encounter. Horizontal exclusion also covers flight and underground saves.
 export const CROMWARK_CITY = Object.freeze({ px: 823, py: 35, mapId: 505449455, region: 16, location: 482 });
 export const BARRIER_MARGIN = 12;
+/** Map pixels from the city, on the larger axis. Past SEAL_REACH_PX a frame's step cannot reach the seal. Past
+ *  SEAL_SIGHT_PX the seal is out of its draw reach (a city of at most 8x8 blocks, plus 6,000 m), with a spare pixel. */
+export const SEAL_REACH_PX = 2, SEAL_SIGHT_PX = 10;
+/** @param {{ x: number, y: number }} p */
+export const sealPixelsAway = (p) => Math.max(Math.abs(p.x - CROMWARK_CITY.px), Math.abs(p.y - CROMWARK_CITY.py));
 export function cromwarkSeal(data) {
   const w = data?.width, h = data?.height;
   if (!(w > 0 && h > 0)) return null;

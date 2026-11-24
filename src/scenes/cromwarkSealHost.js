@@ -2,7 +2,7 @@
 // The sealed city of Cromwark as world addon hooks. The barrier check runs before the modal arm and after the motor and
 // turns the player back; the seal and reach beacon draw in the translucent pass.
 import { CROMWARK_ON } from '../world/wild/cromwark.js';
-import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../world/wild/cromwarkBarrier.js';
+import { cromwarkSeal, sealCrossed, CROMWARK_CITY, sealPixelsAway, SEAL_REACH_PX, SEAL_SIGHT_PX } from '../world/wild/cromwarkBarrier.js';
 import { CromwarkSealRenderer } from '../render/cromwarkSeal.js';
 import { HEIGHTMAP_DIMENSION, sampleKernel } from '../world/terrainSampler.js';
 import { setMidScreenText } from '../ui/midScreenText.js';
@@ -33,7 +33,7 @@ export function createCromwarkSealHost(d) {
   }
   function enforceCitySeal() {
     if (sealPending) return true;
-    if (!CROMWARK_ON || !citySeal || !d.walkMode || !d.playerSpawned() || !d.bootLoaded() || d.loading() || d.modes()?.transitioning || d.teleporting()) { sealSafe = null; return false; }
+    if (!CROMWARK_ON || !citySeal || !d.walkMode || !d.playerSpawned() || !d.bootLoaded() || d.loading() || d.modes()?.transitioning || d.teleporting() || sealPixelsAway(d.state.current) > SEAL_REACH_PX) { sealSafe = null; return false; }
     const seal = sealInScene(), feet = d.player.feetAt();
     const old = sealSafe ? d.state.localFromWorld(sealSafe.x, sealSafe.z) : null;
     let previous = null;
@@ -62,7 +62,7 @@ export function createCromwarkSealHost(d) {
   }
   function drawSeal(proj, view, eye, now) {
     if (CROMWARK_ON && d.mode() === 'exterior') {
-      const seal = sealInScene(), beacons = d.beacons();
+      const seal = sealPixelsAway(d.state.current) > SEAL_SIGHT_PX ? null : sealInScene(), beacons = d.beacons();
       eye32[0] = eye[0]; eye32[1] = eye[1]; eye32[2] = eye[2];
       if (seal) drawShape(seal, proj, view, eye, now);
       for (const shape of beacons) drawShape(shape, proj, view, eye, now);
