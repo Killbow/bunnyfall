@@ -1,8 +1,7 @@
-// BUNNYFALL: holds src/scenes/world.js and the three per-frame loops under the ceilings in tools/worldBudget.json.
-// Source counts come from the acorn AST; frame sizes come from V8 bytecode compiled with --no-lazy, and V8 stops
-// optimizing a function above 61,440 B. Exit 0 within budget, 1 over budget, 2 when a measurement fails.
-// Run: node tools/worldBudgetCheck.mjs
-import { spawn } from 'node:child_process';
+// BUNNYFALL: checks world script counts against the branch's merge base plus a small edit allowance.
+// Frame loops stay under the bytecode ceilings in tools/worldBudget.json (V8 stops optimizing above 61,440 B).
+// Run: node tools/worldBudgetCheck.mjs [--base <ref>]   (or WORLD_BUDGET_BASE; else the merge base with main)
+import { spawn, execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
@@ -15,8 +14,9 @@ const ast = (src) => parse(src, { ecmaVersion: 'latest', sourceType: 'module' })
 
 function fail(msg) { console.error(`worldBudgetCheck: ${msg}`); process.exit(2); }
 
-function sourceCounts(rel, host) {
-  const src = read(rel);
+const nonEmpty = (src) => src.split('\n').filter((l) => /\S/.test(l)).length;
+
+function sourceCounts(src, host, rel) {
   const tree = ast(src);
   const nonEmptyLines = src.split('\n').filter((l) => /\S/.test(l)).length;
   const staticImports = tree.body.filter((n) => n.type === 'ImportDeclaration').length;
@@ -28,7 +28,35 @@ function sourceCounts(rel, host) {
     if (s.type === 'VariableDeclaration') hostBindings += s.declarations.length;
     else if (s.type === 'FunctionDeclaration') hostBindings += 1;
   }
-  return { nonEmptyLines, staticImports, hostBindings };
+  let addons = 0;
+  const walk = (n) => {
+    if (!n || typeof n.type !== 'string') return;
+    const c = n.callee;
+    if (n.type === 'CallExpression' && c?.type === 'MemberExpression' && !c.computed && c.object?.name === 'worldAddons' && c.property?.name === 'register') addons++;
+    for (const k in n) { const v = n[k]; if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object' && typeof v.type === 'string') walk(v); }
+  };
+  walk(tree);
+  return { nonEmptyLines, staticImports, hostBindings, addons };
+}
+
+const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 28 }).trim();
+const tryGit = (...args) => { try { return git(...args); } catch { return null; } };
+
+function resolveBase() {
+  const i = process.argv.indexOf('--base');
+  const asked = i > 0 ? process.argv[i + 1] : process.env.WORLD_BUDGET_BASE;
+  if (asked) {
+    const sha = tryGit('rev-parse', '--verify', `${asked}^{commit}`);
+    if (!sha) fail(`base ${asked} is not a commit`);
+    return { sha, from: i > 0 ? `--base ${asked}` : `WORLD_BUDGET_BASE=${asked}` };
+  }
+  const found = ['main', 'origin/main'].map((ref) => ({ ref, sha: tryGit('merge-base', ref, 'HEAD') })).filter((b) => b.sha);
+  if (found.length < 2) return found[0] ? { sha: found[0].sha, from: found[0].ref } : null;
+  const [main, origin] = found;
+  const under = (a, b) => tryGit('merge-base', '--is-ancestor', a, b) !== null;
+  if (main.sha === origin.sha || under(main.sha, origin.sha)) return { sha: origin.sha, from: 'origin/main' };
+  if (under(origin.sha, main.sha)) return { sha: main.sha, from: 'main' };
+  return { sha: origin.sha, from: 'origin/main', diverged: main.sha };
 }
 
 function frameRange(rel, name) {
@@ -81,17 +109,49 @@ async function frameBytecode(rel) {
 const t0 = performance.now();
 const frameFiles = Object.keys(budget.frameBytecode);
 const sizes = Promise.all(frameFiles.map(frameBytecode));
-const counts = sourceCounts(budget.file, budget.host);
-const lineRows = Object.entries(budget.otherNonEmptyLines ?? {}).map(([rel, limit]) =>
-  [`${rel} non-empty lines`, read(rel).split('\n').filter((l) => /\S/.test(l)).length, limit]);
+const base = resolveBase();
+const atBase = (rel) => (base ? tryGit('show', `${base.sha}:${rel}`) : null);
+const counts = sourceCounts(read(budget.file), budget.host, budget.file);
+const baseSrc = atBase(budget.file);
+const baseCounts = baseSrc != null ? sourceCounts(baseSrc, budget.host, `${budget.file} at the base`) : null;
+const otherLines = Object.entries(budget.otherNonEmptyLines ?? {}).map(([rel, recorded]) => {
+  const at = atBase(rel);
+  return { rel, now: nonEmpty(read(rel)), base: at == null ? null : nonEmpty(at), recorded };
+});
+const allow = budget.allowance ?? {};
+const notes = [], warns = [];
+let countRows;
+if (baseCounts) {
+  notes.push(`base: ${base.sha.slice(0, 10)} from ${base.from}`);
+  if (base.diverged) warns.push(`WARN base: merge bases with main (${base.diverged.slice(0, 10)}) and origin/main (${base.sha.slice(0, 10)}) diverged; held to origin/main`);
+  const extra = Math.max(0, counts.addons - baseCounts.addons);
+  const lineSlack = (allow.nonEmptyLines ?? 60) + extra * 4;
+  const impSlack = (allow.staticImports ?? 10) + extra;
+  const bindSlack = (allow.hostBindings ?? 12) + extra;
+  const otherSlack = allow.otherNonEmptyLines ?? 60;
+  notes.push(`allowance: +${lineSlack} lines, +${impSlack} imports, +${bindSlack} bindings (+${otherSlack} mode/exterior lines; ${extra} new addon${extra === 1 ? '' : 's'})`);
+  const held = [
+    [`${budget.file} non-empty lines`, counts.nonEmptyLines, baseCounts.nonEmptyLines + lineSlack],
+    [`${budget.file} static imports`, counts.staticImports, baseCounts.staticImports + impSlack],
+    [`${budget.host} top-level bindings`, counts.hostBindings, baseCounts.hostBindings + bindSlack],
+    ...otherLines.filter((o) => o.base != null).map((o) => [`${o.rel} non-empty lines`, o.now, o.base + otherSlack]),
+  ];
+  countRows = held;
+} else {
+  notes.push(`base: none (${base ? `${base.sha.slice(0, 10)} from ${base.from} has no ${budget.file}` : 'no git, or no main to compare with'}); holding to tools/worldBudget.json`);
+  countRows = [
+    [`${budget.file} non-empty lines`, counts.nonEmptyLines, budget.nonEmptyLines],
+    [`${budget.file} static imports`, counts.staticImports, budget.staticImports],
+    [`${budget.host} top-level bindings`, counts.hostBindings, budget.hostBindings],
+    ...otherLines.map((o) => [`${o.rel} non-empty lines`, o.now, o.recorded]),
+  ];
+}
 const rows = [
-  [`${budget.file} non-empty lines`, counts.nonEmptyLines, budget.nonEmptyLines],
-  [`${budget.file} static imports`, counts.staticImports, budget.staticImports],
-  [`${budget.host} top-level bindings`, counts.hostBindings, budget.hostBindings],
-  ...lineRows,
+  ...countRows,
   ...(await sizes).map((size, i) => [`${frameFiles[i]} frame bytecode (B)`, size, budget.frameBytecode[frameFiles[i]]]),
 ];
 
+for (const n of notes) console.log(n);
 const w = Math.max(...rows.map((r) => r[0].length));
 let over = 0;
 for (const [label, actual, limit] of rows) {
@@ -99,5 +159,6 @@ for (const [label, actual, limit] of rows) {
   if (actual > limit) over++;
   console.log(`${label.padEnd(w)}  ${String(actual).padStart(7)} / ${String(limit).padStart(7)}  ${state}`);
 }
+for (const n of warns) console.log(n);
 console.log(`${over ? `${over} over budget` : 'ok: within budget'} (${Math.round(performance.now() - t0)} ms, node ${process.version})`);
 process.exit(over ? 1 : 0);

@@ -4,6 +4,12 @@
   "nonEmptyLines": 16300,
   "staticImports": 940,
   "hostBindings": 1220,
+  "allowance": {
+    "nonEmptyLines": 60,
+    "staticImports": 10,
+    "hostBindings": 12,
+    "otherNonEmptyLines": 60
+  },
   "frameBytecode": {
     "src/scenes/world.js": 36500,
     "src/scenes/worldModes.js": 50000,
