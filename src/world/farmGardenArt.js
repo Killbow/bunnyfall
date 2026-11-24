@@ -4,7 +4,7 @@
 // the bed's own seed, grow smoothly with their crop instead of in three jumps; a bed left dry a day sprouts weeds; and
 // irrigation, once the farm has it, runs as water channels along the worked rows. Every picture is in the art register.
 import { gardenStage, gardenGrowth, farmSeed, bedSeconds, FARM_BED_SIZE, FARM_WATER_S } from '../net/farmGardenLaw.js';
-import { writeDecalQuad, DECAL_FLOATS } from '../combat/bloodDecals.js';
+import { writeDecalQuad, DECAL_FLOATS, DECAL_FLOATS_PER_VERTEX } from '../combat/bloodDecals.js';
 import { bedWeedy, WEED_DRY_S } from '../net/farm/careLaw.js';   // PHASE 2: weeds are the law's, so weeding clears them
 export const FARM_ART = Object.freeze({ soil: [302, 54], water: [302, 0],
   grain: { seedling: [301, 23], growing: [301, 21], ripe: [301, 19] },
@@ -63,6 +63,7 @@ export function plantHeight(bed, now) {
 
 export function createFarmGardenArt(renderer, assets = {}) {
   let decals=null, capacity=0, signature='', crops=[],ready=false,pending=null,soil=null,water=null,lastSite=null,mark=null,channels=null,channelCount=0;
+  let markAt=null,decalValues=null,channelValues=null,cropCenters=[];
   const files=new Map(); let lastGarden=null,lastSecond=-1;
   async function prepare(){
     if(ready)return;if(pending)return pending;
@@ -77,12 +78,8 @@ export function createFarmGardenArt(renderer, assets = {}) {
   }
   function update(site,garden,now,selected){
     if(!ready)return;
-    if(selected>=0){
-      mark??=renderer.createDecalBatch(1);
-      const values=new Float32Array(DECAL_FLOATS),pos=site.beds[selected];
-      writeDecalQuad(values,0,{pos:[pos[0],pos[1]+.045,pos[2]],right:[1,0,0],up:[0,0,-1],size:FARM_BED_SIZE,tint:[1,.87,.38,.6],wet:0});
-      renderer.writeDecalSlot(mark,0,values);
-    }
+    const pos=selected>=0?site.beds[selected]:null;
+    if(pos&&!(markAt&&markAt[0]===pos[0]&&markAt[1]===pos[1]&&markAt[2]===pos[2])){markAt=[...pos];writeMark();}
     const second=Math.floor(now);
     if(lastGarden===garden&&lastSite===site.beds&&lastSecond===second)return;
     lastGarden=garden;lastSecond=second;
@@ -92,7 +89,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
     const sig=JSON.stringify([entries.map(([id,b])=>[id,b.crop,b.crop?plantHeight(b,now):0,gardenStage(b,now),b.wetUntil>now?Math.ceil((b.wetUntil-now)/(FARM_WATER_S/4)):0,b.quality??0,weedy(b),Number.isSafeInteger(b.blight)]),irrigation]);
     if(signature===sig&&lastSite===site.beds)return;
     signature=sig;lastSite=site.beds;
-    crops.forEach(b=>renderer.destroyBillboardBatch(b));crops=[];
+    crops.forEach(b=>renderer.destroyBillboardBatch(b));crops=[];cropCenters=[];decalValues=channelValues=null;
     if(channels){renderer.destroyDecalBatch(channels);channels=null;channelCount=0;}
     if(!entries.length){if(decals)renderer.destroyDecalBatch(decals);decals=null;capacity=0;return;}
     if(capacity!==entries.length){if(decals)renderer.destroyDecalBatch(decals);capacity=entries.length;decals=renderer.createDecalBatch(capacity);}
@@ -117,21 +114,35 @@ export function createFarmGardenArt(renderer, assets = {}) {
         put(archive,record,.35,[[pos[0]-x*.9,pos[1]+.04,pos[2]+z*.9]]);
       }
     });
-    renderer.writeDecalSlot(decals,0,values);
+    renderer.writeDecalSlot(decals,0,values);decalValues=values;
     // IRRIGATION CHANNELS (section 3.6): a strip of water along each worked bed's south edge - worked rows join up
     if(irrigation>0&&water){
       channelCount=entries.length;channels=renderer.createDecalBatch(channelCount);
       const strips=new Float32Array(channelCount*DECAL_FLOATS),tint=irrigation>1?[.9,1,1,.95]:[.75,.85,.9,.85];
       entries.forEach(([id],slot)=>{const pos=site.beds[Number(id)];writeDecalQuad(strips,slot*DECAL_FLOATS,{pos:[pos[0],pos[1]+.04,pos[2]+FARM_BED_SIZE/2+.12],right:[1,0,0],up:[0,0,-1],size:.24,stretch:(FARM_BED_SIZE+.36)/.24,tint,wet:0});});
-      renderer.writeDecalSlot(channels,0,strips);
+      renderer.writeDecalSlot(channels,0,strips);channelValues=strips;
     }
     for(const {archive,record,height,sway,centers}of groups.values()){
       assets.uploadRecord(archive,record);const size=files.get(archive).getSize(record);
-      crops.push(setFarmSway(renderer.createBillboardBatch(archive,record,{w:height*size.width/size.height,h:height},centers,{dynamic:true}),sway));
+      crops.push(setFarmSway(renderer.createBillboardBatch(archive,record,{w:height*size.width/size.height,h:height},centers,{dynamic:true}),sway));cropCenters.push(centers);
     }
   }
-  return{prepare,update,get ready(){return ready;},
+  function writeMark(){
+    mark??=renderer.createDecalBatch(1);
+    const values=new Float32Array(DECAL_FLOATS);
+    writeDecalQuad(values,0,{pos:[markAt[0],markAt[1]+.045,markAt[2]],right:[1,0,0],up:[0,0,-1],size:FARM_BED_SIZE,tint:[1,.87,.38,.6],wet:0});
+    renderer.writeDecalSlot(mark,0,values);
+  }
+  const shift=(batch,values,delta)=>{for(let o=0;o<values.length;o+=DECAL_FLOATS_PER_VERTEX)for(let i=0;i<3;i++)values[o+i]+=delta[i];renderer.writeDecalSlot(batch,0,values);};
+  // site.beds moves in place on an origin shift, so update() keeps these batches: rebase the site and the art together.
+  function rebase(delta){
+    if(decals&&decalValues)shift(decals,decalValues,delta);
+    if(channels&&channelValues)shift(channels,channelValues,delta);
+    cropCenters.forEach((centers,n)=>{for(const c of centers)for(let i=0;i<3;i++)c[i]+=delta[i];renderer.moveBillboardBatch(crops[n],centers);});
+    if(markAt){for(let i=0;i<3;i++)markAt[i]+=delta[i];if(mark)writeMark();}
+  }
+  return{prepare,update,rebase,get ready(){return ready;},
     draw(right,up,selected=-1){if(decals)renderer.drawDecalPicture(decals,soil);if(channels)renderer.drawDecalPicture(channels,water);if(crops.length)renderer.drawBillboards(crops,right,up);if(mark&&selected>=0)renderer.drawDecalPicture(mark,soil);},
-    dispose(){if(decals)renderer.destroyDecalBatch(decals);if(mark)renderer.destroyDecalBatch(mark);if(channels)renderer.destroyDecalBatch(channels);decals=mark=channels=null;capacity=channelCount=0;crops.forEach(b=>renderer.destroyBillboardBatch(b));crops=[];signature='';lastSite=null;lastGarden=null;lastSecond=-1;}
+    dispose(){if(decals)renderer.destroyDecalBatch(decals);if(mark)renderer.destroyDecalBatch(mark);if(channels)renderer.destroyDecalBatch(channels);decals=mark=channels=markAt=decalValues=channelValues=null;capacity=channelCount=0;crops.forEach(b=>renderer.destroyBillboardBatch(b));crops=[];cropCenters=[];signature='';lastSite=null;lastGarden=null;lastSecond=-1;}
   };
 }
