@@ -35,6 +35,8 @@ import { intoDeck, outOfDeck } from '../naval/navalDeck.js';   // DECK-CAMP: a c
 import { localAabb, transformedAabb } from '../../render/frustum.js';
 import { drawSeen } from '../../homes/decorRoom.js';   // PERF-WAGON: a tent by the street's view test
 import { ListPickerWindow } from '../../ui/listPicker.js';
+import { DecisionBoxWindow } from '../../ui/decisionBox.js';
+import { t } from '../../ui/textManager.js';
 import { survivalOn } from './switch.js';   // AUDIT SURV-TIERS: Off keeps what stands and uses none of it (shown, below); SURV-OFFSIGHT: it sees another's (seen)
 import {
   TENT_MODEL, FIRE_FLAT, FIRE_LIGHT_RANGE, CAMP_REACH, CAMP_KIND, CAMP_TEXT, CAMPS_PER_OWNER,
@@ -43,7 +45,7 @@ import {
   strikeCamp,   // FIELD BUGS 2026-10-04d CAMP-CAP: a placing at the cap strikes the oldest
   validDeck, deckYaw, TENT_BEHIND,
 } from './camp.js';
-import { isCampfireKit, CAMPFIRE_USES } from './items.js';   // REST2: the Campfire is online's for everyone
+import { isCampfireKit, isCampingEquipment, CAMPFIRE_USES } from './items.js';   // REST2: the Campfire is online's for everyone
 import { isBedroll, isEmberJar, isFirewood, spendCharge, REST_ITEM_TEXT, FIREWOOD_NIGHTS, BEDROLL_CHANNEL_SECONDS } from './restItems.js';   // REST6: the Bedroll, the Ember Jar, Firewood
 import { REST_KIND } from './rest.js';   // AUDIT SURV-TIERS (the third pass): a camp's rest tends its tent's fire
 import { hearthNear, hearthAabb } from './hearth.js';   // HEARTH1: the world's own fires answer the same question this pool does
@@ -108,6 +110,9 @@ export function createCamps({
   // entry with no owner is this player's - placed here or restored from their own save - and every camp a peer's
   // word stands carries its sender (applyOwner, below).
   const mine = (c) => c.owner == null;
+  let keeper = null;
+  // Set while the cap question is pending; another placing at the cap is refused until it clears.
+  let capAsk = null;
 
   function ensureFire() {
     if (_fire || _fireLoading || !getTexture) return;
@@ -197,10 +202,41 @@ export function createCamps({
   const seen = () => camps.filter(visible);
 
   /** THE PLACING: the pack's use of Camping Equipment or a Campfire Kit lands here (useItem's 'pitchCamp' / 'placeFire'). */
-  function placeItem(item, list) {
+  function placeItem(item, list, cleared = null) {
     // REST6: the Bedroll and Firewood are uses, not camps - the Bedroll's spot and its rest, Firewood's fire
     if (isFirewood(item)) return feedFire(item, list);
     if (isBedroll(item)) return layBedroll(item, list);
+    if (cleared != null && (!list?.includes(item) || !((item.stackCount ?? 1) >= 1))) return false;
+    const oldTent = keeper && (isCampingEquipment(item) || isCampfireKit(item) || isEmberJar(item))
+      ? camps.filter(mine).slice(0, Math.max(0, own().length - CAMPS_PER_OWNER + 1)).find((c) => c.rec.kind === CAMP_KIND.Tent) : null;
+    if (oldTent && oldTent.rec.id !== cleared) {
+      if (capAsk) { if (!capAsk.shown) say(t('camp.capWarn.wait', 'Still checking your oldest camp.')); return false; }
+      const ask = { shown: false };
+      const go = () => { if (capAsk === ask) capAsk = null; return placeItem(item, list, oldTent.rec.id); };
+      const decide = (kept) => {
+        if (!(kept?.pieces > 0) || !showOverlay) return go();
+        // A question that opens late must not replace a window the player opened meanwhile.
+        if (keeper.free && !keeper.free()) {
+          if (capAsk === ask) capAsk = null;
+          say(t('camp.capWarn.notPlaced', 'Placing this would pack up your oldest camp and its decorations, so nothing was placed. Use it again to decide.'));
+          return false;
+        }
+        capAsk = ask;
+        ask.shown = true;
+        const win = new DecisionBoxWindow({
+          rows: [t('camp.capWarn.oldest', 'Placing this will pack up your oldest camp.'), t('camp.capWarn.decorations', 'Its decorations will be lost.'), t('camp.capWarn.ask', 'Place it anyway?')],
+          onYes: go,
+        });
+        win.dispose = () => { if (capAsk === ask) capAsk = null; };
+        showOverlay(win);
+        return false;
+      };
+      const kept = keeper.kept(oldTent.rec);
+      if (typeof kept?.then !== 'function') return decide(kept);
+      capAsk = ask;
+      kept.catch(() => ({ pieces: 1 })).then(decide);
+      return false;
+    }
     // ENDLESS PROVISIONS: no arc gate - a camp is stood in every tier (`seen`, above); the camp law's own checks below
     // CAMP-SILENT (2026-09-22, DragynDance on Discord: "camp kits don't
     // work for me"). USING AN ITEM ALWAYS SAYS SOMETHING. Every other
@@ -271,6 +307,7 @@ export function createCamps({
       const r = strikeCamp(c.rec);
       if (r.item && entity) (entity.items ??= []).push(r.item);   // CAMP-CAP: home as act's Pack hands it
       drop(c);
+      if (c.rec.kind === CAMP_KIND.Tent) keeper?.struck?.(c.rec);
       line = r.text;
     }
     return line;
@@ -581,7 +618,7 @@ export function createCamps({
     if (showOverlay) showOverlay(win); else act(c, rows[0]?.key);
     return win;
   }
-  function act(c, key) {
+  function act(c, key, tell = true) {
     if (!camps.includes(c)) return;
     if (key === 'rest') {
       // AUDIT SURV-TIERS (the third pass): THE REST IS THE FIRE'S, AND SO IS ITS REACH. The menu opens from a tent's
@@ -607,9 +644,15 @@ export function createCamps({
       const r = packCamp(c.rec);
       if (r.item && entity) (entity.items ??= []).push(r.item);
       drop(c); say(r.text); onChanged?.();
+      if (tell && c.rec.kind === CAMP_KIND.Tent) keeper?.struck?.(c.rec);
       return;
     }
     if (key === 'cook') openCook(c);
+  }
+  function packTent(id) {
+    const c = camps.find((x) => mine(x) && x.rec.id === id && x.rec.kind === CAMP_KIND.Tent);
+    if (c) act(c, 'pack', false);
+    return !!c;
   }
   /** The cooking list. HEARTH1: `c` is the camp whose fire this is, or
    *  NULL for one of the world's own - a brazier burns for ever and
@@ -755,6 +798,7 @@ export function createCamps({
     let n = 0;
     for (let i = camps.length - 1; i >= 0; i--) if (mine(camps[i])) { drop(camps[i]); n++; }
     _bedroll = null;   // AUDIT REST F10
+    keeper?.loaded?.();
     if (n) onChanged?.();   // AUDIT REST II H1: the room hears they went, as packOwnFires' walk out says it - never a peer's ghost fire
   }
   /** AUDIT REST F1: leaving a scene that keeps nothing of mine (a dungeon): my own Campfires back into the pack with the
@@ -833,6 +877,8 @@ export function createCamps({
     restPointAt, bedrollNear, packOwnFires,   // REST6; AUDIT REST F1
     destroyAll, dropOwn, collectPixel, offsetAll, groundMoved, snapshot, restore, wireRecords, applyOwner, sweepOwners, sweepColdAbsent,
     get camps() { return camps; }, own,
+    keepCamps: (k) => { keeper = k; },
+    packTent,
     usable,   // AUDIT DECOR-USE D6: whether the world's fires answer here - a placed one too (systems/decor/decorUse.js)
   };
 }

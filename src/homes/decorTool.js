@@ -902,12 +902,13 @@ export function createDecorTool(deps) {
       hot: hotSlots.filter(Boolean),
       entries: decorRoomEntries(s.entries(), r, null, liveMods()),   // HOME-YARD: a door hangs in a doorway, never in a yard; GUILD1e: a hall's board in a hall alone; AUDIT 05b A3: a mod's piece while it stands
       yard: !!r?.yard,
+      camp: !!r?.camp,
       progress: s.progress(),
       ready: s.phase() === 'done',
       sized: s.lateSized(),   // AUDIT 05b A3: a piece measured since - its price, listed
       radiusOf: (e) => s.radiusOf(e),
-      priceOf: (e) => { const rad = s.radiusOf(e); return rad ? decorPrice(rad, 1) : null; },
-      gold: deps.wallet?.().gold ?? 0,
+      priceOf: (e) => { if (r?.free) return 0; const rad = s.radiusOf(e); return rad ? decorPrice(rad, 1) : null; },
+      gold: (deps.wallet?.().gold ?? 0) + draftGoldNow(),
       count: pool.size(),
       cap: capHere(r),
       doorways: freeDoorways()?.length ?? null,   // HOME-DOORS: how many doorways a door may hang in, once found
@@ -2482,12 +2483,12 @@ export function createDecorTool(deps) {
     if (lotWhy) return lotWhy;
     if (p.editing) {   // a move is never refused for the room's count; a resize may be for the gold
       const { pay } = deps.room?.()?.free ? { pay: 0 } : decorEditPrice(p.radius, p.editing, p.door ? p.piece.scale : p.placer.state().scale);
-      const gold = deps.wallet?.().gold ?? 0;
+      const gold = (deps.wallet?.().gold ?? 0) + draftGoldNow();
       if (pay > gold) return `You need ${pay - gold} more gold.`;
       return !deps.touch && !deps.locked?.() ? 'Click to look around again.' : null;
     }
-    if (p.free && !deps.packHas?.(p.entry.own)) return p.entry.furnishing ? 'It is no longer among your things.' : 'It is no longer in your pack.';   // DECOR2a (DECOR2b: furniture)
-    const why = decorWhyNot({ price, ready: true, gold: deps.wallet?.().gold ?? 0, count: pool.size(), cap: capHere(deps.room?.()), yard: !!deps.room?.()?.yard, hall: !!deps.room?.()?.hall });
+    if (p.entry.kind === 'own' && !deps.packHas?.(p.entry.own)) return p.entry.furnishing ? 'It is no longer among your things.' : 'It is no longer in your pack.';
+    const why = decorWhyNot({ price, ready: true, gold: (deps.wallet?.().gold ?? 0) + draftGoldNow(), count: pool.size(), cap: capHere(deps.room?.()), yard: !!deps.room?.()?.yard, hall: !!deps.room?.()?.hall, camp: !!deps.room?.()?.camp });
     if (why) return why;
     return !deps.touch && !deps.locked?.() ? 'Click to look around again.' : null;
   }

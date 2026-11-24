@@ -327,6 +327,7 @@ export function createFoesWorld(shared) {
     trees: lowPolyTrees ? { door: lowPolyTrees, sway: (proto, share) => _lptSway.set(proto, Math.max(_lptSway.get(proto) ?? 0, share)), windfall: (proto, share) => _lptWindfall.set(proto, Math.max(_lptWindfall.get(proto) ?? 0, share)) } : null,
     character: () => characterIdOf(playerEntity),
     campPool: () => camps,
+    slotFree: () => !townTalk.overlayActive || townTalk.overlayDone,
     realm: () => (realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => shared.onlineCheckpoint(), ...o }) : null),
     wallet: (region) => homeYardWallet(playerEntity, region), regionOf: (y) => built.get(`${y.px},${y.py}`)?.homeRegion ?? 0,
     doc: typeof document !== 'undefined' ? document : null, win: typeof window !== 'undefined' ? window : null, canvas, touch: isTouchDevice(),
