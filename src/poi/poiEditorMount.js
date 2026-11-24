@@ -32,7 +32,7 @@ export function startPoiEditor(world) {
   poiMe(first).then((r) => {
     if (!r.ok) { world.townTalk.say(accountRefusalText(r.error)); return; }
     if (!r.data.builder) { world.townTalk.say(accountRefusalText('poi-not-builder')); return; }
-    openPoiEditorWhenStanding({ entity: () => playerEntity, standing: () => (world.playerSpawned || !world.walkMode) && !world.townTalk.overlayActive, open: () => mountPoiEditor(world, r.data, io), say: (line) => world.townTalk.say(line) });
+    openPoiEditorWhenStanding({ entity: () => playerEntity, standing: () => (world.playerSpawned || !world.walkMode) && !world.townTalk.overlayActive, open: () => { if (world.alive()) mountPoiEditor(world, r.data, io); }, say: (line) => world.townTalk.say(line) });
   }, (e) => console.warn('[poi] the editor\'s door', e?.message ?? e));
 }
 /** While the editor is open the body stays where the builder left it, with its motor held and no damage taken. The

@@ -58,9 +58,9 @@ export function createSkyFrame(shared) {
     csaSeaReach, distantStorms, dread, dreadStorm, dwPlayer, dwPlaying, egWitnessEye, etherSea, eventPillar,
     FALL_LIGHT, fieldCellsHere, fieldXZ, gamePaused, gateOmen, gateSkyTranslate, gateStorm, hcc, hccActionPressed,
     hccTick, jungle, magic, mapGroundHere, maps, minuteNow, modes, params, peerGrow, player, playerTicker,
-    playerTravelPixel, refreshHomeLooks, renderer, sdAirNow, sdHost, seasons, seaVentures, shownWeather, sky,
+    playerTravelPixel, refreshHomeLooks, renderer, roadSweep, sdAirNow, sdHost, seasons, seaVentures, shownWeather, sky,
     snowBodies, snowCover, snowfall, snowNpcs, snowPlayer, soundscape, spyglass, spyglassStep, state, stormLights,
-    sunbaby, sunbabyGround, sunbabyRain, sweepGateClear, sweepRoadless, sweepSdLate, sweepWodLate, tickCityGates,
+    sunbaby, sunbabyGround, sunbabyRain, sweepGateClear, sweepSdLate, sweepWodLate, tickCityGates,
     tickSeason, tickWodSpawners, touch, townTalk, tvBandSpritesStep, tvJourneyUp, walkMode, weatherFront,
     weatherOverride, weatherStale, weatherTerms, windAudio, windfall, yards,
   } = shared;
@@ -171,8 +171,9 @@ export function createSkyFrame(shared) {
     // exterior frame with the weather drain - the reference runs it in
     // the location's own Update, which is the same place.
     tickSeason();
-    if (shared.roadsSweepDue && !shared.building) { shared.roadsSweepDue = false; sweepRoadless(); }   // FIX-C: the roads sweep, on the frame, between builds
-    if (_wodLate.size && !shared.building) sweepWodLate();   // WOD6: a late region's pixels, the same way
+    roadSweep.frame(shared.building);
+    // A late region's pixels, also on a frame between builds.
+    if (_wodLate.size && !shared.building) sweepWodLate();
     if (!shared.building) sweepGateClear();   // GATE-CLEAR: the gate the clock is about turned - its clearing in, the last one's rock back
     if (_sdLate.size && !shared.building) sweepSdLate();   // SD2b: the Hollow's pixel, the same way
     if (shared.seasonsActive) seasons.tick();   // SIB1: RefreshSeasonAfterLoad's second half, the frame after a load

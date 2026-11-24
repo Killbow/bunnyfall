@@ -30,11 +30,11 @@ import { timeScale as worldTimeScale } from '../../world/timeScale.js';
 export function createIndoorsFrame(shared) {
   const {
     _bandChase, _dwSwimSound, _fr, _snowPixels, ambience, bandDrop, built, canvas, caravanStep, crewAshoreTick,
-    crewFlatDrawn, csa, dwFish, dwFishFrame, dwLoot, dwLootLetGoVelocity, dwPlayer, dwPlaying, folkStreet,
+    crewFlatDrawn, csa, dwFish, dwFishFrame, dwLoot, dwLootLetGoVelocity, dwPlayer, dwPlaying,
     foragingWait, frame, gamePaused, gateVeil, hccTick, heatHaze, legacyStep, LIVING_CARRIED_SLICE_MS,
     livingCarriedStep, livingDiversStep, livingIndoorsStep, livingMemoFresh, livingRemainsStep, livingWays, maps,
     minuteNow, modes, player, playerTravelPixel, renderer, revenantAshoreTick, sky, snowBodies, snowCover, snowfall,
-    soundscape, standingHorses, streetPeople, townTalk, windAudio, windfall, wodArrivalOf, worldMoveBusy,
+    soundscape, townTalk, windAudio, windfall, wodArrivalOf, worldAddons, worldMoveBusy,
   } = shared;
   function frameIndoorsPhase(now, dt) {
     if (modes.frame(dt, now)) {
@@ -54,8 +54,7 @@ export function createIndoorsFrame(shared) {
       // front's 0.15) louder in a tavern than in the street - the Discord report itself - and a dungeon 6.7x.
       ambience.setPreset(presetForExterior(heardWeather(), isNight(minuteNow()), cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y)));   // DISC9: the word the street last heard - the one truth Better Ambience's indoor rain reads too
       ambience.update(dt, { inside: true, underground: modes.mode === 'dungeon', indoorRainSource: betterAmbience.rainPlaying() });
-      if (shared.livingRoads) shared.livingRoads.clear();   // LW3: indoors, underground - the road's bodies freed with the open world they stood in
-      shared.familyStreet?.clear();   // AUDIT LEGACY III W6: the line's street rigs too
+      worldAddons.run('indoorFrame');
       livingWays.frame(); livingMemoFresh();   // AUDIT-E2: the ways asked indoors too - a load made in a tavern or below asked once and never again
       try { livingDiversStep(now); } catch (e) { console.warn('[divers] step', e); }   // LW6: underground, the companies diving here met (AUDIT LW-II-2: wrapped as its neighbours are - a throw never kills the frame loop)
       try { livingRemainsStep(now); } catch (e) { console.warn('[remains] step', e); }   // LW6b: ...and the dead the deep kept there
@@ -114,10 +113,8 @@ export function createIndoorsFrame(shared) {
       caravanStep(dt);   // AUDIT LW-II C5b: the reports carried in and the escort, indoors and below too
       if (livingWorldOn()) livingCarriedStep(LIVING_CARRIED_SLICE_MS);   // AUDIT LW-II-2 H7: the word carried worked indoors and below too - a town first asked from a room (a save loaded in its tavern, a day begun abed) told none all its stay
       try { shared.eliteDungeonFight?.frame(); } catch (e) { console.warn('[elite dungeon] frame', e?.message ?? e); }   // BUNNYFALL: the elite dungeon's series, Sifrit and the cleanse (systems/eliteDungeons/edFight.js)
-      folkStreet.destroy();   // MWNPC7: indoors, the walkers' bodies let go with the street they walked
-      streetPeople.destroy();   // MWNPC8b: and the standing people's
-      standingHorses.destroy();   // STAND-HORSE: and the standing horses'
-      csa.people(crewFlatDrawn);   // STAND-FLAT: and a boat's crew drawn as their flats again - they still stand where a boat does indoors (extraBillboards)
+      // Indoors, a boat's crew is drawn as flats again (extraBillboards).
+      csa.people(crewFlatDrawn);
       heatHaze.suppress();   // HAZE1: inside is no exterior - the strength is 0 at once (HeatHazeMod.Update), and eases up again outside
       { const _wfPx = playerTravelPixel(); windfall.frame({ dt: gamePaused() ? 0 : dt * worldTimeScale(), outside: false, weather: shared.weather, minutes: skyMinutes(), climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), mapPixel: _wfPx, feet: player.pos, height: player.height }); }   // WINDFALL1: WindMod.Update indoors - the gust eases out, the sources fade, the leaves stop (AUDIT ENVIRONS W1: on the game's seconds)
       { const _snPx = playerTravelPixel(); _snowPixels.clear(); snowfall.frame({ now: now / 1000, inside: true, player: null, weather: shared.weather, seconds: worldMinutes() * 60, winter: snowCover.winterNear(shared.season === SEASON.Winter), climate: maps.getClimateIndex(_snPx.x, _snPx.y), corpses: snowBodies }); }   // SNOWFALL1: DynamicSnowController.Update indoors - the surfaces hidden, the snowpack and the refill kept by the event clock

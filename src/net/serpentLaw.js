@@ -67,6 +67,8 @@ export function serpentTimes(day) {
   return t;
 }
 const _timesOf = new Map();
+/** @type {ReturnType<typeof serpentTimes>|null} */
+let OFF_SERPENT_TIMES = null;
 
 /**
  * The serpent the clock is about at `nowMs`: today's while it has not yet gone (its sounding and its last dive), else
@@ -75,7 +77,8 @@ const _timesOf = new Map();
  */
 export function serpentAt(nowMs) {
   let day = serpentDayAt(nowMs);
-  if (!contentOn('seaSerpent')) return serpentTimes(Math.max(0, day) + EVENT_OFF_DAYS);   // BUNNYFALL PHASE 2: switched off, no serpent day ever comes - a far day, never a search (it would never end)
+  // Switched off, no serpent day ever comes: one far day, never a search (it would never end).
+  if (!contentOn('seaSerpent')) return (OFF_SERPENT_TIMES ??= serpentTimes(EVENT_OFF_DAYS));
   if (isSerpentDay(day) && nowMs < serpentTimes(day).soundAt + SERPENT_DIVE_MS) return serpentTimes(day);
   day++;
   while (!isSerpentDay(day)) day++;

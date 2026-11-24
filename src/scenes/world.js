@@ -45,7 +45,7 @@ import { DFPalette } from '../formats/dfPalette.js';
 import { MapsFile, getWorldClimateSettings, longitudeLatitudeToMapPixel, getPixelFromPixelID, REGION_RACES, LOCATION_TYPES, CLIMATES, REGION_NAMES } from '../formats/mapsFile.js';   // SPAWNED-DUNGEONS1: the ocean gate and the synthesized location's region name
 import { questTracker } from '../ui/questTracker.js';   // GUIDE5: the quest the player follows - its places, marked
 import { marksOn, questMapMarks } from '../ui/questMarks.js';    // GUIDE5: where the quests point, on the held map and the compass; BOAT-MARK: where my boats lie, on the compass
-import { settlementsOf, retryModRoads, WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
+import { WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
 import { modSetting, modSettingsGeneration, latchModLoaded } from '../mods/modSettings.js';   // ROADS 24; HCC: the mod's eight switches; CSA-D: a mod's title for the load's failure line; AUDIT PRE-MERGE 0928 S4: the next-load mods latched at mount
 import { hasPortFor, hasPort, PORT_LOCATION_IDS, maskMapId } from '../travel/travelPorts.js';   // AUDIT-RR2 G22: Travel Options' port list for RR's ship gate; SEAT2b part two: a members' Harbour among them (hasPortFor)
 import { WoodsFile } from '../formats/woodsFile.js';
@@ -225,11 +225,9 @@ import { findGateSite } from '../worldEvents/gateSite.js';   // WB1: where the d
 import { createGatePool, GATE_TEXT } from '../worldEvents/gatePool.js';   // WB2: the gate the world stands - its stone, its fire and beacon, its collider and its door
 import { createStarfallHost } from '../systems/starfall/starfallHost.js';   // STAR4-STAR6: the Witches' Festival's fallen stars - in the sky, in the world, defended
 import { createRiteHost } from '../worldEvents/riteHost.js';   // WB12d: the faithful's rite - its circle, its smoke, its faithful, its word and its chest
-import { createSdHost } from '../worldEvents/sdHost.js';   // SD2b: the Hollow in the world - the hub's record in, the Hollow stood at its pixel, the find, the lines
+import { arcOn, loadArc } from '../systems/offArcs.js';
 import { SD_CAST_OUT_LINE, isSdRoom } from '../net/sdLaw.js';   // SD2d: a Hollow's end said to whoever it casts out; SD5a: the Hour's room; SD9e: a receipt from my realm's
-import { createEgClient } from '../systems/eliteGates/egClient.js';   // EG-PLAY: the breach on this screen - the key, the call, the halls, the receipts
 import { createEgArchPool } from '../systems/eliteGates/egArch.js';   // EG-F: the Elite Breach's arch - its pool, its place, its site; a Dagon's Breach near
-import { createEgCallPortal, createEgCallPrompt } from '../systems/eliteGates/egCall.js';   // EG-F: the call's portal at my feet, and its prompt
 import { gateClearMemo } from '../world/gateClearance.js';   // EG-F: the gate's clearing and every standing arch's, one set - STAR-CLEAR: and every fallen star's
 import { EG_LAST_WORD_MIN } from '../net/eliteGates/egLaw.js';   // EG-F: a quest falling due inside a breach's last word
 import { createEgFight } from '../systems/eliteGates/egFight.js';   // EG-PLAY: a hall's fight
@@ -255,7 +253,6 @@ import { sdVeilModelOf, sdRingsFarFirst } from '../worldEvents/sdThrough.js';   
 import { sdSlotsKept } from '../worldEvents/sdSlots.js';   // SD-ONELIFE: the Hollows' slots kept on the device, by the account
 import { sdCities, sdTemplates } from '../worldEvents/sdSite.js';   // SD2b: the Hollow's cities and templates, over the game's own rows
 import { RANDOM_TREASURE_ARCHIVE } from '../items/lootDataTables.js';   // WB12d: the casket's pile, undrawn
-import { createSigilBroker } from '../worldEvents/sigilBrokerPool.js';
 import { createCromwarkHost } from '../world/wild/cromwarkHost.js';   // BUNNYFALL (Cromwark): the haze's counter, the Dusk Tokens, the Guild camp and Nyx   // SET7: the Sigil Broker - her body, her box and name, her press; BROKER-CAGE: caged at the faithful's circle
 import { closeBrokerDoor } from '../ui/brokerDoor.js';   // SET7: her window, a lazy chunk behind its door
 import { panoplyPieceById } from '../items/aetheric.js';   // EG15: a Panoply piece minted by its id - the sink's
@@ -411,7 +408,7 @@ import { isEntityWaterWalking, assignModBundle, removeBundleNamed, WATER_WALKING
 import { gateClearFor, createGateClearSweep } from '../world/gateClearance.js';   // GATE-CLEAR: WoD's rock off the day's Oblivion Gate
 import { staffMapMarks } from '../worldEvents/staffEvents.js';   // EVENT-EXTRAS: the staff events' map marks
 import { raidMapMarks } from '../ui/eventMapMarks.js';   // EVENT-TIP: the towns under attack, on the held map
-import { StreamingWorldState, TerrainSlots, worldCoordToMapPixel, locationWorldRect, mapPixelToWorldCoords, SCENE_MAP_RATIO, nearestFirstFrom } from '../world/streamingWorld.js';   // HCC: StreamingWorld.SceneMapRatio; AUDIT BRANCH (WoD) L1-3: DFU's terrain array; AUDIT 68 S22: the load list's one order
+import { StreamingWorldState, TerrainSlots, worldCoordToMapPixel, locationWorldRect, mapPixelToWorldCoords, SCENE_MAP_RATIO } from '../world/streamingWorld.js';   // HCC: StreamingWorld.SceneMapRatio; AUDIT BRANCH (WoD) L1-3: DFU's terrain array; AUDIT 68 S22: the load list's one order
 import { createPeerRiders, createPeerWalkers, createEotbArt } from '../net/peerRiders.js';   // RIDE: another player in the saddle   // HCC: Horse Cart and Cargo's presentation - the wagon's five pieces, the horse's eight views, the peers' teams
 import { createHorseCartRuntime } from '../travel/horseCart.js';   // HCC: TrailingWagonRuntime over this host's seams
 import { registerContainerLootHandler } from '../items/containerLoot.js';   // THE MERGE: CSA-H's shelf subscriber, by its mod's name, on PlayerActivate.OnLootSpawned's one home
@@ -682,6 +679,8 @@ import { drawGateBossBar } from '../ui/gateBossBar.js';
 import { sifritBarModel } from '../ui/sifritBar.js';
 import { createWorldAddons } from './worldAddons.js';
 import { createCromwarkSealHost } from './cromwarkSealHost.js';
+import { createRoadSweep } from './roadSweep.js';
+import { createStreetRigs } from './streetRigs.js';
 import { createCromwarkBlight } from '../world/wild/cromwarkBlight.js';
 import { createCromwarkReachHost } from './cromwarkReachHost.js';
 import { DuelWallRenderer } from '../render/duelWall.js';   // DUEL1: the ring's holographic wall
@@ -1366,73 +1365,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // roadless world - it is the port's own network (ROADS 3), the same
   // fallback a map his arrays cannot load already takes.
   const basicRoadsOn = modSetting('roads-hazelnut', 'Enabled');
-  // ROADS 25 (Mac: "some roads are missing even though they show on
-  // the map"): the network arrives AFTER the world has started
-  // building, so the first pixels - the ones around the spawn - were
-  // painted with no network and then kept. The map rebuilt itself on
-  // arrival; the terrain never did. Every pixel painted without a
-  // network is torn down here, and the stream rebuilds it with one.
-  // Called on BOTH arrival paths - the mod's data and our own network.
-  //
-  // FIX-C (2026-09-08, Mac: "players on first start either spawn in the
-  // ground or the sky"): THIS SWEEP WAS THE FIRST START'S BUG. It tore
-  // the pixels down and re-queued NOTHING - `destroyPixel` deletes the
-  // terrain, the collider bucket and the `built` entry, and the stream
-  // never asks for a key it still holds in `loaded` - so the start pixel
-  // could not come back until the player walked four pixels away. The
-  // boot walk is the one arrival that never re-inits the streamer (every
-  // load, travel and teleport goes through _teleportToPixel, which
-  // does), so only a NEW GAME saw it, and it saw it two ways on one
-  // race: the network landing before the first frame emptied `built`
-  // of the start key and the boot gate below never fired - the camera
-  // stood forty units up over a hole, the motor frozen (the sky); the
-  // network landing after the stand deleted the ground and the collider
-  // from under a standing player with nothing to bring them back (the
-  // ground). The season re-skin (tickSeason) is the same teardown done
-  // right: destroy, re-queue nearest-first, hold the motor on the
-  // player's own pixel until it stands again. This is that shape. And
-  // it runs on the FRAME rather than in the fetch's `.then`, for the
-  // reason the season's does: a pixel in flight must publish before its
-  // key is torn down (`building`), and the hold reads state the boot
-  // walk has not declared while the fetch can still resolve.
-  let roadsSweepDue = false;
-  function rebuildRoadless() { roadsSweepDue = true; }
-  function sweepRoadless() {
-    _dropRoadedSpawns();   // SPAWN-ROADS: before the rebuild, so a crossed pixel comes back without its ruin
-    const again = [];
-    for (const [, p] of [...built]) if (!p.withRoads) again.push({ px: p.px, py: p.py });
-    if (!again.length) return;
-    const under = `${state.current.x},${state.current.y}`;
-    if (walkMode && playerSpawned && again.some((k) => `${k.px},${k.py}` === under)) _seasonHoldKey = under;
-    for (const k of again) destroyPixel(k.px, k.py, { collectLoose: false });
-    queue.push(...again.sort(nearestFirstFrom(state.current)));
-    console.log(`[roads] ${again.length} pixel(s) built before the network landed - rebuilt with roads`);
-  }
-  bootReads().roads.then((his) => {
-    if (!basicRoadsOn) {
-      console.log('[roads] Basic Roads off in the Mods pane - generating the port\'s own network');
-      terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
-      rebuildRoadless();
-      return;
-    }
-    if (his) { terrainGen.setRoadsData({ ...his, ...roadSwitches }, (st) => console.log(`[roads] Basic Roads, 1:1: ${st.roadPixels ?? '?'} road pixels (Hazelnut)${roadSwitches.water ? ', rivers and streams on' : ''}${roadSwitches.smooth ? '' : ', smoothing off'}`)); rebuildRoadless(); return; }
-    // AUDIT LANDFORMS C3: ONLINE, HIS NETWORK OR NONE YET. The room's ground is cut along his arrays (the lane forces the
-    // mod, onlineLane.js), and one failed fetch stood this client on the port's own network - other roads, no rivers: with
-    // the Landforms row a river pixel's ground a median 4.8 m off its peers'. Asked again (retryModRoads, WOD6's backoff);
-    // the pixels stand roadless meanwhile and ROADS 25 rebuilds them when the arrays land - the port's own network only
-    // once every try has failed.
-    if (params.has('online')) {
-      retryModRoads({ onTry: (n, ms) => console.warn(`[roads] Basic Roads data did not load - asking again in ${ms / 1000} s (online: the room's network)`) }).then((late) => {
-        if (late) { terrainGen.setRoadsData({ ...late, ...roadSwitches }, (st) => console.log(`[roads] Basic Roads, 1:1, landed late: ${st.roadPixels ?? '?'} road pixels (Hazelnut)`)); rebuildRoadless(); return; }
-        console.warn('[roads] Basic Roads data did not load on any try - generating our own network');
-        terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
-        rebuildRoadless();
-      });
-      return;
-    }
-    console.warn('[roads] Basic Roads data did not load - generating our own network');
-    terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
-    rebuildRoadless();
+  const roadSweep = createRoadSweep({
+    dropRoadedSpawns: () => _dropRoadedSpawns(), built: () => built, state: () => state, walkMode: () => walkMode, playerSpawned: () => playerSpawned,
+    holdSeason: (key) => { _seasonHoldKey = key; }, destroyPixel, queue: () => queue, basicRoadsOn, terrainGen, maps, logRoads, roadSwitches, params,
   });
   // WOD2: WORLD OF DAGGERFALL (Kamer, vendor/world-of-daggerfall/) - the
   // page's one LocationLoader, opened as the world mounts:
@@ -12809,23 +12744,23 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     get playerSpawned() { return playerSpawned; },
     get social() { return social; },
   });
-  const egArchPool = params.has('online') ? createEgArchPool({
+  const egArchPool = params.has('online') && arcOn('eliteBreach') ? createEgArchPool({
     renderer, collider: () => collider, pixelTranslation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => heightAt(x, z), now: egNow,
     feet: egFeet, me: () => _accountEg.me(), say: (text) => setMidScreenText(text), onStep: (b) => egClient?.archStep(b), landAt: (l) => egLandAt(l),
     verifyKey: () => egClient?.relayKey() ?? Promise.resolve(null),
   }) : null;
-  const _egCallPortal = params.has('online') ? createEgCallPortal({
+  const _egCallPortal = params.has('online') && arcOn('eliteBreach') ? (await loadArc('eliteBreach')).createEgCallPortal({
     renderer, audio, toScene: (p) => campToScene(p), toWire: (p) => campToWire(p), hold: () => portalHoldNow(),
     groundAt: (s) => { const d = collider.surfaceHit([s[0], s[1] + PORTAL_REGROUND, s[2]], [0, -1, 0], PORTAL_REGROUND * 2)?.dist; return Number.isFinite(d) ? s[1] + PORTAL_REGROUND - d : null; },
     onEnter: () => egClient?.portalEntered(), onRefused: (hold) => townTalk.say(PORTAL_HOLD_TEXT[hold]),
   }) : null;
   if (_egCallPortal) portalGates.drawAlso(() => _egCallPortal.batches());   // EG-F: the call's portal drawn with the Portal Stone's, on the flats' axis
-  const egCallPrompt = params.has('online') ? createEgCallPrompt({ onAnswer: () => egClient?.command(''), touch: isTouchDevice(), doc: document }) : null;
+  const egCallPrompt = params.has('online') && arcOn('eliteBreach') ? (await loadArc('eliteBreach')).createEgCallPrompt({ onAnswer: () => egClient?.command(''), touch: isTouchDevice(), doc: document }) : null;
   const egBoardDoor = createEgBoardDoor({
     open: (o) => openEgBoard({ doc: document, classic: !isEnhancedPlus(), fetchBoard: () => _accountEg.board(), listPickerReady: listPickerArtLoaded, runs: () => egRecapsKept(appStorage()), ...o }),   // AUDIT EG V (c, L7-19): and the last runs
     slot: egWindowSlot,
   });
-  const egClient = params.has('online') ? createEgClient({
+  const egClient = params.has('online') && arcOn('eliteBreach') ? (await loadArc('eliteBreach')).createEgClient({
     modes: () => modes, online: () => online, hub: () => socialLink(), account: { ..._accountEg, claim: (r) => _accountEg.claim(r, characterIdOf(playerEntity)).then(weirHeard) }, now: egNow, entity: playerEntity, player, cam,   // EG-E1: a claim carries the claiming character (its guild's deed) and its Weir Key restacks
     keyFacts: egKeyFacts, startWindow: egStartWindow, arches: egArchPool, callPortal: _egCallPortal, prompt: egCallPrompt, feet: egFeet, probes: egProbes,   // EG-F
     party: () => (social?.party?.members ?? []).map((m) => ({ sub: m.acct, name: m.name, h: m.p?.h, hm: m.p?.hm })), windowUp: () => gamePaused(),   // EG-F: the start window's ticks; the prompt under a window; AUDIT EG V (c, L7-7): a witness's watched member's health, the party's pose
@@ -12890,7 +12825,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */
   const _egLightList = [], NO_EG_LIGHTS = Object.freeze([]);
   let _omenClockAt = null;   // AUDIT WB C4: when the relay's clock was first read this session (the omen's fallback wait)
-  const gateOmen = params.has('online') ? createGateOmen({
+  const gateOmen = params.has('online') && arcOn('dagonBreaches') ? createGateOmen({
     now: () => Date.now() + _sharedOffsetMs,
     site: (day) => {
       if (!maps) return null;
@@ -12959,7 +12894,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // my receipt: to the account service, with the character that fought and the level it was admitted at
     onReceipt: (r) => { const c = readSerpentReceipt(r); serpentClaims?.add(r, characterIdOf(playerEntity), typeof playerEntity?.name === 'string' ? playerEntity.name : null, c?.l ?? playerEntity.level ?? 1); },
   }) : null;
-  const serpentOmen = serpentLink ? createSerpentOmen({
+  const serpentOmen = serpentLink && arcOn('seaSerpent') ? createSerpentOmen({
     now: () => Date.now() + _sharedOffsetMs,
     // the day's site off the packet lanes - every client's the same lanes, the same ways, the same open sea; none before
     // the map's data has come (asked again - systems/serpent/serpentOmen.js SITE_RETRY_MS)
@@ -13135,7 +13070,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  rises or goes on ground that stands (sweepSdLate) - the find said at its mouth to the cell its pixel is in, and the
    *  lines for its find, its kill and its fading (the event board's news since EVENTS1). */
   let _sdDoorAt = null;
-  const sdHost = params.has('online') ? createSdHost({
+  const sdHost = params.has('online') && arcOn('abyssDungeons') ? (await loadArc('abyssDungeons')).createSdHost({
     now: () => Date.now() + _sharedOffsetMs,
     scan: () => gateScanOf(_sdScanRow),
     warmScan: () => warmGateScan(),
@@ -13285,7 +13220,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _eventClaimed = new Set();
   connectSkins(insigniaIo); onSkinsChange(() => { try { refreshPaperDoll(playerEntity); } catch { /* the doll redraws on its next ask */ } });   // BUNNYFALL: the worn custom paperdoll, read from the account; the inventory doll redraws when its pictures land
   const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById, insigniaIo, settleBrokerSale);   // BROKER-RID (AUDIT FB1024): her sales by their request ids - an unheard one owed, settled as her window opens
-  const sigilBroker = gateOmen ? createSigilBroker({
+  const sigilBroker = gateOmen ? (await loadArc('dagonBreaches')).createSigilBroker({
     renderer, getTexture, uploadRecordFrame, collider: () => collider,
     site: () => gateOmen.cageSite(),   // BROKER-CAGE: the breach the clock is about, omen to midnight - a Warden fallen early never takes her
     pixelTranslation: (px, py, out) => state.pixelTranslation(px, py, out),
@@ -13303,6 +13238,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Dusk Tokens, the Guild camp and Nyx
   const worldAddons = createWorldAddons();
+  worldAddons.register(createStreetRigs({ livingRoads: () => livingRoads, familyStreet: () => familyStreet, folkStreet, streetPeople, standingHorses }));
   const sealHost = createCromwarkSealHost({
     exteriorData: locationIndex.get('823,35')?.exterior?.exteriorData, state, built, worldHeight, landformsHere, player, cam, walkMode, renderer,
     woods: () => woods, playerSpawned: () => playerSpawned, bootLoaded: () => _bootLoaded, loading: () => _loading,
@@ -13491,6 +13427,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _mode, _teleportToPixel, arch, blocks, buildTravelMapWindow, built, cam, canvas, climbFeel, collider, cpuModels,
     csaRuntime, deepWaters, exteriorFoes, gamePaused, getGpuMesh, getTexture, keys, latch, palette, pipeline, player,
     playerTicker, pointerSurfaces, renderer, state, surfaceAt, townTalk, tvSeaY, walkMode,
+    // Before this boot claims the frame loop its token is not set (a TDZ throw), and nothing can have taken the loop.
+    alive: () => { try { return frameAlive(_frameToken); } catch { return true; } },
     get _lastProj() { return _lastProj; },
     get _lastView() { return _lastView; },
     get _traveling() { return _traveling; },
@@ -13963,7 +13901,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // The building the player stands in is drawn with the rest: its walls seen from inside are back faces, and what stands
   // on the room's side of a pane the renderer leaves out (PANE-CLIP, FIELD BUGS 2026-10-12g - its model's box left out
   // its own other wing and a neighbour's wall against it, "Wall missing through window").
-  const { outsideView } = createOutsideViewWorld({
+  const { outsideView } = await createOutsideViewWorld({
     _mode, built, cam, chatNotice, CITY_LIGHT_COLOR_F32, deepWaters, drawDeepWatersFloors, drawDeepWatersSurfaces,
     ecoDraw, lightsOnAt, minuteNow, onlineHomes, pipeline, player, renderer, saveSoon, sky, snowCover, state,
     townTalk, waterOn, weatherTerms, worldLightAnimator,
@@ -15492,11 +15430,11 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   });
   const { frameIndoorsPhase, frameStreetPhase } = createIndoorsFrame({
     _bandChase, _dwSwimSound, _fr, _snowPixels, ambience, bandDrop, built, canvas, caravanStep, crewAshoreTick,
-    crewFlatDrawn, csa, dwFish, dwFishFrame, dwLoot, dwLootLetGoVelocity, dwPlayer, dwPlaying, folkStreet,
+    crewFlatDrawn, csa, dwFish, dwFishFrame, dwLoot, dwLootLetGoVelocity, dwPlayer, dwPlaying,
     foragingWait, frame, gamePaused, gateVeil, hccTick, heatHaze, legacyStep, LIVING_CARRIED_SLICE_MS,
     livingCarriedStep, livingDiversStep, livingIndoorsStep, livingMemoFresh, livingRemainsStep, livingWays, maps,
     minuteNow, modes, player, playerTravelPixel, renderer, revenantAshoreTick, sky, snowBodies, snowCover, snowfall,
-    soundscape, standingHorses, streetPeople, townTalk, windAudio, windfall, wodArrivalOf, worldMoveBusy,
+    soundscape, townTalk, windAudio, windfall, wodArrivalOf, worldAddons, worldMoveBusy,
     get _dwFishInside() { return _dwFishInside; }, set _dwFishInside(v) { _dwFishInside = v; },
     get _farmSyncT() { return _farmSyncT; }, set _farmSyncT(v) { _farmSyncT = v; },
     get _wodArrival() { return _wodArrival; }, set _wodArrival(v) { _wodArrival = v; },
@@ -15504,9 +15442,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get bountyFarms() { return bountyFarms; },
     get bountyHost() { return bountyHost; },
     get eliteDungeonFight() { return eliteDungeonFight; },
-    get familyStreet() { return familyStreet; },
     get gatherHost() { return gatherHost; },
-    get livingRoads() { return livingRoads; },
     get oceanHoles() { return oceanHoles; },
     get questBridge() { return questBridge; },
     get season() { return season; },
@@ -15611,9 +15547,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     csaSeaReach, distantStorms, dread, dreadStorm, dwPlayer, dwPlaying, egWitnessEye, etherSea, eventPillar,
     FALL_LIGHT, fieldCellsHere, fieldXZ, gamePaused, gateOmen, gateSkyTranslate, gateStorm, hcc, hccActionPressed,
     hccTick, jungle, magic, mapGroundHere, maps, minuteNow, modes, params, peerGrow, player, playerTicker,
-    playerTravelPixel, refreshHomeLooks, renderer, sdAirNow, sdHost, seasons, seaVentures, shownWeather, sky,
+    playerTravelPixel, refreshHomeLooks, renderer, roadSweep, sdAirNow, sdHost, seasons, seaVentures, shownWeather, sky,
     snowBodies, snowCover, snowfall, snowNpcs, snowPlayer, soundscape, spyglass, spyglassStep, state, stormLights,
-    sunbaby, sunbabyGround, sunbabyRain, sweepGateClear, sweepRoadless, sweepSdLate, sweepWodLate, tickCityGates,
+    sunbaby, sunbabyGround, sunbabyRain, sweepGateClear, sweepSdLate, sweepWodLate, tickCityGates,
     tickSeason, tickWodSpawners, touch, townTalk, tvBandSpritesStep, tvJourneyUp, walkMode, weatherFront,
     weatherOverride, weatherStale, weatherTerms, windAudio, windfall, yards,
     get _driverBodySeat() { return _driverBodySeat; }, set _driverBodySeat(v) { _driverBodySeat = v; },
@@ -15636,7 +15572,6 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get naval() { return naval; },
     get playerSpawned() { return playerSpawned; },
     get poiEditor() { return poiEditor; },
-    get roadsSweepDue() { return roadsSweepDue; }, set roadsSweepDue(v) { roadsSweepDue = v; },
     get season() { return season; },
     get seasonsActive() { return seasonsActive; },
     get seenArrival() { return seenArrival; }, set seenArrival(v) { seenArrival = v; },
