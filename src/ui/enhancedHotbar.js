@@ -527,16 +527,16 @@ function paintSlot(s, v, entity) {
     return;
   }
   if (v.type === 'ability') {
-    const key = v.id ?? 'hand:' + v.hand;
+    const key = v.id ?? 'weapon-rank';
     if (iconKeys[v.slot] !== key) {
       iconKeys[v.slot] = key;
       const size = slotFit(true).box;
       if (v.id) showFitted(s.icon, { src: abilityIcon(v.id), w: size, h: size, smooth: true });
       s.icon.style.display = v.id ? '' : 'none';
     }
-    s.glyph.textContent = v.id ? '' : v.hand === 'left' ? 'L' : 'R';
+    s.glyph.textContent = v.id ? '' : '–';
     s.count.textContent = v.count ? String(v.count) : '';
-    s.pip.textContent = v.hand ? (v.hand === 'left' ? 'L' : 'R') + v.rank : '';
+    s.pip.textContent = v.rank ? String(v.rank) : '';
     n.classList.remove('hb-hasbar', 'hb-worn');
     return;
   }

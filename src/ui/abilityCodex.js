@@ -9,7 +9,7 @@ import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
 import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
 import { combinationDescription } from '../combat/abilities/combinations.js';
 import { templateByIndex } from '../items/itemTemplates.js';
-import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForHandAbility, setHotbarSlot } from '../items/quickslots.js';
+import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot } from '../items/quickslots.js';
 
 const styleNames = {
   'archers-axe': 'Archer’s Axe',
@@ -61,7 +61,7 @@ export function buildAbilityCodex(entity, size) {
   function selectedEntry() {
     return binding.value === 'manual'
       ? hotbarEntryForAbility(selected.ability.id)
-      : hotbarEntryForHandAbility(binding.value, selected.ability.rank);
+      : hotbarEntryForWeaponRank(selected.ability.rank);
   }
 
   function refreshSlots(preferred = '') {
@@ -158,18 +158,15 @@ export function buildAbilityCodex(entity, size) {
           controls.hidden = !learned;
           binding.replaceChildren();
           if (kind === 'weapon') {
-            for (const hand of ['right', 'left']) {
-              const entry = hotbarEntryForHandAbility(hand, ability.rank);
-              const option = element('option', entry.name);
-              option.value = hand;
-              binding.append(option);
-            }
+            const option = element('option', 'Follow active weapon · Rank ' + ability.rank);
+            option.value = 'weapon';
+            binding.append(option);
           }
           if (kind !== 'weapon' || ability.rank === 100) {
             const manual = element('option', 'Specific ability');
             manual.value = 'manual';
             binding.append(manual);
-            binding.value = 'manual';
+            if (kind !== 'weapon') binding.value = 'manual';
           }
           binding.hidden = kind !== 'weapon';
           control.after(assignment);

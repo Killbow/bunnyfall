@@ -34,7 +34,7 @@ import { setNames } from './names.js';
 import { COMBAT_PREVIEW_PRESET, syncAbilityUnlocks } from '../combat/abilities/progress.js';
 import { DAGGER_MILESTONES, TANTO_MILESTONES } from '../combat/abilities/milestones.js';
 import { ABILITIES } from '../combat/abilities/registry.js';
-import { hotbarEntryForAbility, setHotbarSlot, switchHotbarPreset } from '../items/quickslots.js';
+import { hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot, switchHotbarPreset } from '../items/quickslots.js';
 import { BLADE_WEAVE, THOUSAND_CUTS, HUNTING_LINE, PREDATORS_CROSSING, KNOCKOUT_CHAIN, TITANS_HANDS } from '../combat/abilities/combinations.js';
 import { addItem } from '../items/inventory.js';
 import { equipItem } from './equip.js';
@@ -246,8 +246,7 @@ export function testItemOf(row) {
 }
 
 const COMBAT_PREVIEW_SLOTS = [
-  'weapon.longsword.extended-thrust', 'weapon.longsword.keep-away', 'weapon.longsword.piercing-line',
-  'weapon.longsword.kings-measure', 'weapon.long-bow.skyfall', 'weapon.crossbow.final-verdict',
+  'weapon.long-bow.skyfall', 'weapon.crossbow.final-verdict',
   'weapon.ballista.siege-of-heaven', 'weapon.hand-to-hand.hundred-fist-ascension',
   'utility.wayfarers-anchor-mark', 'utility.wayfarers-anchor-recall',
 ];
@@ -290,7 +289,8 @@ export function seedCombatPreview(entity) {
     if (i === 0 || row.kind === 'armor') equipItem(entity, item);
   }
   syncAbilityUnlocks(entity);
-  COMBAT_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
+  [25, 50, 75, 100].forEach((rank, i) => setHotbarSlot(i, hotbarEntryForWeaponRank(rank)));
+  COMBAT_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i + 4, hotbarEntryForAbility(id)));
   switchHotbarPreset(1);
   COMBINATION_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
   switchHotbarPreset(2);

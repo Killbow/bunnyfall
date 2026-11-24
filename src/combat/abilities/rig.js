@@ -403,19 +403,6 @@ export function stepAbilityRig(dt, tc) {
   };
   state.rig = rig;
   state.ctx = ctx;
-  const pending = state.handAbility;
-  if (pending) {
-    pending.remaining -= dt;
-    if (pending.remaining <= 0 || interrupted || tc.blocked || pending.owner !== rig
-      || pw.usingRightHand !== pending.right
-      || !abilityById(pending.id)?.templates.includes(weapon?.templateIndex ?? 'bare')) {
-      state.handAbility = null;
-    } else if (ctx.ready) {
-      state.handAbility = null;
-      const result = requestHotbarAbility(entity, pending.id);
-      if (!result.ok) tc.say?.(result.message ?? abilityRefusalText(result.why));
-    }
-  }
   if (rig.follow && canStart && !interrupted) {
     const chain = rig.follow;
     const advance = chain.cast.delivery.stages?.[chain.next]?.advance;
@@ -528,17 +515,15 @@ export function abilityRigBusy(entity, owner) {
   return !!state && state.rig === rigs.get(owner) && occupied(state);
 }
 
-export function requestHotbarAbility(entity, id, hand = null) {
+export function activeAbilityWeapon(entity) {
+  const state = sessions.get(entity);
+  return state?.ctx && state.load === abilityLoad(entity) ? state.ctx.tc.pw.restingWeapon ?? null : undefined;
+}
+
+export function requestHotbarAbility(entity, id) {
   if (!abilitiesEnabled() || entity?._online) return { ok: false, why: 'unavailable' };
   const state = sessions.get(entity);
   if (!state?.ctx || state.load !== abilityLoad(entity)) return { ok: false, why: 'busy' };
-  state.handAbility = null;
-  const { tc } = state.ctx;
-  if (hand && tc.pw.usingRightHand !== (hand === 'right')) {
-    if (!state.ctx.ready || occupied(state) || !tc.selectHand?.()) return { ok: false, why: 'busy' };
-    state.handAbility = { id, right: hand === 'right', owner: state.rig, remaining: 3 };
-    return { ok: true };
-  }
   const result = state.engine.request(id, state.ctx);
   if (result.ok && state.rig.rhythm?.id !== id) state.rig.rhythm = null;
   return result;
