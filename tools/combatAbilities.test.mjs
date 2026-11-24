@@ -444,7 +444,7 @@ test('offline preview reaches the weapon machine and restores cleanly between sa
   assert.equal(pw.machine.state, 'Idle');
   assert.ok(stepAbilityRig(0.25, tc));
   assert.equal(pw.machine.state, 'StrikeUp');
-  assert.equal(entity.fatigue, 744);
+  assert.equal(entity.fatigue, 936);
   assert.ok(abilityCooldown(entity, PREVIEW_THRUST) > 0);
   assert.deepEqual(pw.resolveHit([{ entity: { isPlayer: true } }, { entity: {}, puppet: true }], entity,
     () => assert.fail('A player or puppet reached the ability hit test')), []);

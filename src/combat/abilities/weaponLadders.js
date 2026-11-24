@@ -94,10 +94,10 @@ export const expandedWeaponLadders = [
     ['heaven-splitting-draw', 'Hold your ground through a long wind-up, then split the line with an armor-piercing strike.', { stance: rooted, ...wind(1280, 1550), rangeM: 5.4, halfWidthM: .55, targetCap: 3, strike: 'StrikeDown', armorPierce: .5, capstone: cap(55, 'strength'), fx: 'measureFinish' }],
   ]),
   ...ladder('battle-axe', [
-    ['hunters-hook', 'Aim at a nearby foe and rush into a hooked strike that opens it to follow-ups.', { advance: chase, opening: trail('hunt', .38, 7), fx: 'lunge' }],
-    ['blood-trail', 'Cut a wounded foe for bonus damage and refresh the opening for another attack.', { lowHealthBonus: .9, opening: trail('hunt', .48, 8), fx: 'execute' }],
-    ['relentless-pursuit', 'Rush a nearby foe and hammer the opening. A finishing hit makes the same ability recover sooner.', { advance: chase, exploit: 'hunt', takedownCooldownMs: 2800, fx: 'lunge' }],
-    ['no-escape', 'Rush into three hits against one target. Weakened and opened targets take extra damage.', { ...combo(3, 1.28), advance: chase, exploit: 'hunt', lowHealthBonus: .95, capstone: cap(42, 'strength'), fx: 'lunge', finishFx: 'execute' }],
+    ['hunters-hook', 'Aim at a nearby foe and rush into a hooked strike that marks it for 7 seconds. Hit it with Relentless Pursuit to consume the mark for bonus damage.', { advance: chase, opening: trail('hunt', .38, 7), fx: 'lunge' }],
+    ['blood-trail', 'Cut a foe and mark it for Relentless Pursuit for 8 seconds. The cut deals extra damage below 40% health.', { lowHealthBonus: .9, opening: trail('hunt', .48, 8), fx: 'execute' }],
+    ['relentless-pursuit', 'Rush a nearby foe and consume its Hunter’s Hook or Blood Trail mark for extra damage. A finishing hit makes the same ability recover sooner.', { advance: chase, exploit: 'hunt', takedownCooldownMs: 2800, fx: 'lunge' }],
+    ['no-escape', 'Rush into three hits against one target. Hits gain bonus damage below 40% health. The first hit can consume a Hunter’s Hook or Blood Trail mark for extra damage.', { ...combo(3, 1.28), advance: chase, exploit: 'hunt', lowHealthBonus: .95, capstone: cap(42, 'strength'), fx: 'lunge', finishFx: 'execute' }],
   ]),
   ...ladder('archers-axe', [
     ['quick-draw-cleave', 'Cut a path through up to two foes and knock them away.', { ...cleave(2, 1.4, 1.8), ...wind(145, 330), fx: 'sweep' }],

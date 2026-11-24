@@ -1,13 +1,14 @@
+import { activeAbilityWeapon } from '../combat/abilities/rig.js';
 import { abilityIcon } from './abilityIcon.js';
 import { CAPSTONE_RECOVERY_MS } from '../combat/abilities/engine.js';
 import { SKILL_NAMES } from '../characters/skills.js';
 import { raceByKey } from '../characters/races.js';
-import { ABILITIES, PHYSICAL_SKILLS } from '../combat/abilities/registry.js';
+import { ABILITIES, abilityById, PHYSICAL_SKILLS } from '../combat/abilities/registry.js';
 import { learnedAbility } from '../combat/abilities/progress.js';
 import { milestoneDelivery } from '../combat/abilities/milestones.js';
 import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
 import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
-import { combinationDescription } from '../combat/abilities/combinations.js';
+import { combinationDelivery, combinationDescription } from '../combat/abilities/combinations.js';
 import { templateByIndex } from '../items/itemTemplates.js';
 import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot } from '../items/quickslots.js';
 
@@ -48,6 +49,12 @@ export function buildAbilityCodex(entity, size) {
   const binding = element('select');
   binding.setAttribute('aria-label', 'Ability binding');
   const description = element('p');
+  const details = element('dl', null, 'sb-ability-details');
+  function detail(label, value) {
+    const group = element('div');
+    group.append(element('dt', label), element('dd', value));
+    details.append(group);
+  }
   const status = element('p');
   status.setAttribute('role', 'status');
   const assign = element('button', 'Assign', 'act');
@@ -55,7 +62,7 @@ export function buildAbilityCodex(entity, size) {
   const assignment = element('div', null, 'sb-assignment');
   const controls = element('div', null, 'sb-assignment-controls');
   controls.append(binding, slots, assign);
-  assignment.append(description, controls, status);
+  assignment.append(description, details, controls, status);
   let selected = null;
 
   function selectedEntry() {
@@ -150,8 +157,16 @@ export function buildAbilityCodex(entity, size) {
           selected = { ability, button: control };
           control.setAttribute('aria-expanded', 'true');
           description.textContent = profile.description ?? '';
+          details.replaceChildren();
+          if (profile.spend != null) detail('Activation fatigue', String(profile.spend) + (profile.kind === 'self' ? '' : ' + swing cost'));
+          if (kind !== 'utility' && profile.cooldownMs) detail('Reuse', profile.cooldownMs / 1000 + ' s');
+          const effects = [].concat(profile.selfEffect ?? []);
+          const shield = effects.find(effect => effect?.type === 35);
+          if (shield) detail('Shield', shield.magnitude + ' points · ' + shield.rounds + (shield.rounds === 1 ? ' magic round' : ' magic rounds'));
+          if (profile.weakPointBonus) description.textContent += ' A weak point is a hit in the top 22% of the foe’s height.';
+          if (profile.counterBonus) description.textContent += ' Counter during an enemy wind-up or its overreach after an attack.';
           if (ability.rank === 100 && (kind === 'weapon' || kind === 'combination')) {
-            description.textContent += ' Other capstones recover for ' + CAPSTONE_RECOVERY_MS / 1000 + ' seconds.';
+            detail('Other capstones', CAPSTONE_RECOVERY_MS / 1000 + ' s');
           }
           description.hidden = !description.textContent;
           status.textContent = '';
@@ -208,7 +223,11 @@ export function buildAbilityCodex(entity, size) {
   for (const [key, abilities] of pairs) {
     addLadder(combinations, key, abilities, id => {
       const description = combinationDescription(id);
-      return description ? { description } : null;
+      const ability = abilityById(id);
+      const active = activeAbilityWeapon(entity);
+      const template = ability.templates.find(value => value !== 'bare');
+      const weapon = ability.templates.includes(active?.templateIndex ?? 'bare') ? active : { templateIndex: template };
+      return description ? { ...combinationDelivery(id, weapon), description } : null;
     }, 'combination');
   }
 
@@ -220,9 +239,9 @@ export function buildAbilityCodex(entity, size) {
     const trait = RACIAL_TRAITS[ability.race];
     addLadder(racial, raceByKey(ability.race)?.name ?? ability.race, [ability], id => {
       const delivery = racialDelivery(id);
-      return { description: [
-        delivery.description,
-        favorites.join(' and ') + ' gain 4 weapon accuracy at half health or higher.',
+      return { ...delivery, description: [
+        'Active: ' + delivery.description,
+        'Passive: ' + favorites.join(' and ') + ' gain 4 weapon accuracy at half health or higher.',
         trait.passive + (trait.passive.endsWith('.') ? '' : '.'),
         trait.movement,
       ].join(' ') };

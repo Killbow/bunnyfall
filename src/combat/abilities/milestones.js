@@ -74,14 +74,14 @@ const loadout = new Map([
   [PREVIEW_JAB, { kind: 'melee', strike: 'StrikeRight', rangeM: 2, arcRad: Math.PI * 0.24, potency: 0.98, beats: 3,
     strikes: ['StrikeRight', 'StrikeLeft', 'StrikeDown'],
     control: { poiseShare: 0.05 },
-    spend: 4, cooldownMs: 6000, windUpMs: 180, activeMs: 160, recoveryMs: 330 }],
+    spend: 4, cooldownMs: 6000, windUpMs: 180, activeMs: 160, recoveryMs: 330, description: "Aim three quick punches at one foe. Each landed punch chips away at its poise." }],
   [PREVIEW_POWER_DRAW, { kind: 'ranged', strike: 'StrikeDown', rangeM: 34, projectileSpeed: 34, potency: 1.1, pierce: 2,
-    spend: 4, ammo: 1, cooldownMs: 7000, windUpMs: 340, activeMs: 320, recoveryMs: 440 }],
+    spend: 4, ammo: 1, cooldownMs: 7000, windUpMs: 340, activeMs: 320, recoveryMs: 440, description: "Loose one piercing arrow through enemies lined up behind the first." }],
   [PREVIEW_DEADEYE, { kind: 'ranged', strike: 'StrikeDown', rangeM: 38, projectileSpeed: 48, potency: 1.15,
     weakPointBonus: 0.25,
-    spend: 4, ammo: 1, cooldownMs: 8000, windUpMs: 500, activeMs: 190, recoveryMs: 720 }],
+    spend: 4, ammo: 1, cooldownMs: 8000, windUpMs: 500, activeMs: 190, recoveryMs: 720, description: "Fire a precise bolt. Aim at the upper part of the target for bonus damage." }],
   [PREVIEW_SIEGE_BOLT, { kind: 'ranged', strike: 'StrikeDown', rangeM: 38, potency: 1.25, burstCap: 3,
-    spend: 5, ammo: 1, cooldownMs: 8000, windUpMs: 650, activeMs: 240, recoveryMs: 1100 }],
+    spend: 5, ammo: 1, cooldownMs: 8000, windUpMs: 650, activeMs: 240, recoveryMs: 1100, description: "Fire a heavy bolt that can also damage nearby foes at impact." }],
   [PREVIEW_KEEP_AWAY, { kind: 'melee', strike: 'StrikeUp', rangeM: 3.3, halfWidthM: 0.55, potency: 0.65, beats: 1,
     counterBonus: 0.65, control: { poiseShare: 0.55, shove: 1.65 },
     spend: 5, cooldownMs: 7500, windUpMs: 150, activeMs: 180, recoveryMs: 400,
@@ -150,8 +150,14 @@ const loadout = new Map([
     strikes: ['StrikeRight', 'StrikeLeft', 'StrikeRight', 'StrikeDown', 'StrikeLeft', 'StrikeRight', 'StrikeDown'],
     control: { poiseShare: 0.26, shove: 0.45 }, finishControl: { poiseShare: 1, shove: 1.65 },
     fx: 'flurry', finishFx: 'flurryFinish', spend: 15, cooldownMs: 38000, windUpMs: 420, activeMs: 1350, recoveryMs: 1100,
-    description: 'Commit to seven rapid strikes on one foe, wearing down its poise before a heavy finishing blow.' }],
+    description: 'Commit to seven rapid strikes on one foe, wearing down its poise before a heavy finishing blow. Once a punch connects, the remaining punches can only hit that foe.' }],
 ]);
+// Weapon techniques share fatigue with ordinary swings and dungeon traversal.
+for (const [id, profile] of loadout) {
+  if (profile.capstone) continue;
+  loadout.set(id, { ...profile, spend: Math.max(1, Math.round(profile.spend / 3)),
+    potency: profile.kind === 'melee' ? profile.potency + .35 : profile.potency });
+}
 export const milestoneDelivery = (id) => loadout.get(id) ?? null;
 export const abilityPlayable = (id) => loadout.has(id);
 export const milestoneShotSpeedScale = (delivery) => delivery.projectileSpeed ? delivery.projectileSpeed / ARROW_FLIGHT_SPEED : null;
