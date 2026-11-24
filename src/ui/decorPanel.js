@@ -337,12 +337,11 @@ export function decorFiltersText({ kinds, size, storage, light, fav = false }) {
 export const decorPriceText = (price) => (price == null ? '...' : `${price} gold`);
 
 /**
- * WHY A PIECE CANNOT BE PLACED, or null when it can: its size is still being read (or could not be), the room is
- * full, or the gold is short. AUDIT GUILD-YARD: `hall` - a guild hall's yard is the hall's, never "your yard".
- * @param {{ price: number|null, ready: boolean, gold: number, count: number, cap: number, yard?: boolean, hall?: boolean }} v
+ * @param {{ price: number|null, ready: boolean, gold: number, count: number, cap: number, yard?: boolean, hall?: boolean, camp?: boolean }} v
  */
-export function decorWhyNot({ price, ready, gold, count, cap, yard = false, hall = false }) {
+export function decorWhyNot({ price, ready, gold, count, cap, yard = false, hall = false, camp = false }) {
   if (price == null) return ready ? 'Its size cannot be read, so it has no price.' : 'Its size is still being read.';
+  if (count >= cap && camp) return t('decor.why.campFull', 'Your camp already holds {cap} pieces.', { cap });
   if (count >= cap) return `${yard ? (hall ? "The hall's yard" : 'Your yard') : 'This room'} already holds ${cap} pieces.`;   // HOME-YARD (AUDIT): a yard said "this room"; AUDIT GUILD-YARD: a hall's yard is nobody's own
   if (price > gold) return `You need ${price - gold} more gold.`;
   return null;
@@ -1053,7 +1052,7 @@ export function createDecorPanel({
     const main = el('span', 'dfdecor-row-main');
     main.append(el('div', 'dfdecor-row-name', e.name), el('div', 'dfdecor-row-sub', decorRowSub(e, radiusOf(e))),
       badges({ storage: !!e.storage, light: e.light != null }));   // MENU-ORDER
-    const priceEl = el('span', 'dfdecor-row-price', look ? 'free' : decorPriceText(price));
+    const priceEl = el('span', 'dfdecor-row-price', price === 0 ? 'free' : decorPriceText(price));
     if (look) r.append(thumb, main, priceEl);
     else {
       const on = loadDecorFavourites().has(e.key);
@@ -1227,7 +1226,7 @@ export function createDecorPanel({
     } else {
       pickName.textContent = e.name;
       pickLine.textContent = e.kind === 'door' && mode === 'catalogue' ? `${decorRowSub(e, radiusOf(e))} - ${decorDoorLine(view?.doorways ?? null)}` : decorRowSub(e, radiusOf(e));   // HOME-DOORS
-      pickPrice.textContent = decorPriceText(priceOf(e));
+      pickPrice.textContent = priceOf(e) === 0 ? t('decor.panel.free', 'Free') : decorPriceText(priceOf(e));
       if (e.flat && !thumbs.has(thumbKeyOf(e))) askThumb(e);   // chosen out of view: its picture all the same
       const url = e.flat ? thumbs.get(thumbKeyOf(e)) : null;
       if (url) previewImg.setAttribute('src', url); else previewImg.removeAttribute?.('src');
@@ -1252,7 +1251,7 @@ export function createDecorPanel({
       paintBaseSide();
     } else {
       const free = sel?.kind === 'own' || mode === 'look' || !!view?.template;   // DECOR2a: one's own costs nothing (DECOR2b: nor its look)
-      const why = sel ? decorWhyNot({ price: free ? 0 : priceOf(sel), ready: free || !!view?.ready, gold: view?.gold ?? 0, count: view?.count ?? 0, cap: view?.cap ?? 0, yard: !!view?.yard, hall: !!view?.hall }) : null;
+      const why = sel ? decorWhyNot({ price: free ? 0 : priceOf(sel), ready: free || !!view?.ready, gold: view?.gold ?? 0, count: view?.count ?? 0, cap: view?.cap ?? 0, yard: !!view?.yard, hall: !!view?.hall, camp: !!view?.camp }) : null;
       pickWhy.textContent = why ?? '';
       place.disabled = !sel || why !== null;
       const label = mode === 'own' && sel?.looks ? DECOR_LOOK_BUTTON : 'Place';   // DECOR2b: furniture chooses its look first

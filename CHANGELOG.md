@@ -6,6 +6,14 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-24
 
 - Fixed: Starting a game no longer downloads about 2 MB of unused model files, so the first load after an update is faster.
+- Fixed: Boulders that rested on rocks cleared off a road no longer float in the air, such as outside the east gate of Knightsmore.
+- Fixed: Rock outcrops now have a solid underside, so you can no longer see the sky through them or walk inside them and get stuck.
+- Fixed: The Camps page in Holdings now has Pack up, so a camp left behind can be packed up from anywhere.
+- Fixed: Packing up a tent now removes its camp from the Camps page at once, even if you cast Recall, mount, go indoors, or leave the game right after.
+- Fixed: When decorating a yard, home, or caravan, Place now says how much more gold you need once your unconfirmed pieces use it up.
+- Fixed: Decorating a camp no longer asks for gold or says a piece has left your pack, and a full camp is no longer called your yard.
+- Fixed: Placing a fifth tent or fire now asks first when it would pack up your oldest camp and its decorations.
+- Fixed: Camps and their decorations are no longer deleted when you load a save made before the tent was pitched.
 - The combat playtest adds weapon, combination, racial, and utility abilities, with a dedicated Spellbook tab and weapon-following hotbar bindings.
 - Dwarven firearms and Dwemer Pellets have been removed. Existing copies and their hotbar entries are cleared when a character loads.
 
