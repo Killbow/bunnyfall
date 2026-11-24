@@ -14,7 +14,7 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 export const materialName = (m) => { const id = String(m).replace(/^food:/, ''), crop = { sunseed: 'sunflower', root: 'root' }[id] ?? id; return farmCropName(crop) ?? id; };
 const contestName = (c) => ({ sheaf: t('farm.market.sheaf', 'the heaviest sheaf'), show: t('farm.market.show', 'best in show') })[c] ?? c;
 const ribbonName = (r) => ({ blue: t('farm.market.blue', 'blue'), red: t('farm.market.red', 'red'), white: t('farm.market.white', 'white') })[r] ?? r;
-const WEEKDAYS = () => [t('farm.market.d0', 'Morndas'), t('farm.market.d1', 'Tirdas'), t('farm.market.d2', 'Middas'), t('farm.market.d3', 'Turdas'), t('farm.market.d4', 'Fredas'), t('farm.market.d5', 'Loredas'), t('farm.market.d6', 'Sundas')];
+export const WEEKDAYS = () => [t('farm.market.d0', 'Morndas'), t('farm.market.d1', 'Tirdas'), t('farm.market.d2', 'Middas'), t('farm.market.d3', 'Turdas'), t('farm.market.d4', 'Fredas'), t('farm.market.d5', 'Loredas'), t('farm.market.d6', 'Sundas')];
 
 /** What a refusal of the market says. */
 export const marketRefusal = (error) => ({

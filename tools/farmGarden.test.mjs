@@ -203,6 +203,17 @@ test('bulk orders consume stock and credit both treasuries once, even on a race 
   f.sql.close();
 });
 
+test('a plain member ships a bulk order that passes every check',async()=>{
+  const f=fixture();
+  f.sql.exec("UPDATE guild_members SET rank=2; INSERT INTO guild_members VALUES ('captain','captainchar','guild1',0,'Captain',1)");
+  f.sql.prepare('INSERT INTO company_farm_gardens VALUES (42,0,?)').run(JSON.stringify(estate(1000)));
+  f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',1000,'Farm',100)");
+  const r=await farmGarden(f.ctx,f.player,{character:'char1',mapId:42,op:'deliver',crop:'grain',version:0});
+  assert.ok(r.ok,JSON.stringify(r));
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1002000);
+  f.sql.close();
+});
+
 test('bought stock cannot replace farm-grown milestones; officers and the Argent switch are enforced',async()=>{
   const f=fixture();f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',10000,'Bought',100)");
   let body={character:'char1',mapId:42,op:'deliver',crop:'grain',version:0};
@@ -291,7 +302,7 @@ test('prowlers: an unchased wolf frightens the herd once it has gone; a click ch
 import { stepFarmStation, validStations, stationDaily, herdKeep, birdsWarded, truffleChance, harvestExtras, guanoCare, rankScale, pruneStations } from '../src/net/farm/stationLaw.js';
 import { stepFarmPlough, validGarden } from '../src/net/farmGardenLaw.js';
 import { createFarmGame, ploughLine } from '../src/net/farm/farmGameLaw.js';
-import { contentAt, kindContent } from '../src/net/farm/herdLaw.js';
+import { contentAt, kindContent, droverVisit, droverWeekday } from '../src/net/farm/herdLaw.js';
 import { MOBILE_TYPES as MT } from '../src/characters/mobileTypes.js';
 
 const WOLF = 262, BOAR = 278, DEXBAT = 260;
@@ -448,5 +459,11 @@ test('every crop the farm grows can be drawn, as a plant at every stage and as a
   for (const when of [0, 3 * 3600, 99 * 3600]) {   // seedling, growing, ripe
     const beds = {}; FARM_SEED_IDS.forEach((crop, i) => { beds[i] = { crop, grown: when, tick: T, wetUntil: T, quality: 0, care: 0 }; });
     art.update(site, { beds }, T, -1);
+  }
+});
+
+test('the drover keeps one weekday at each farm, the one the ledger names', () => {
+  for (const mapId of [0, 42, 123456, 0xffffffff]) for (const week of [2900, 2901, 2950]) {
+    assert.equal(droverVisit(mapId, week).day - (week * 7 - 3), droverWeekday(mapId));
   }
 });

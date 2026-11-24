@@ -404,7 +404,8 @@ export function createFarmingMode(deps) {
       'farm-station-theirs':t('farm.beast.theirs','That beast is another\'s to call.'),
       'farm-station-bad':t('farm.beast.bad','The farm will not take that beast.'),
       'farm-plough-none':t('farm.beast.noPlough','No ploughing beast is stationed here.'),
-      'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds.'),
+      'farm-rank':t('farm.progress.rankNeeded','Only the Captain and the Officers may spend farm funds.'),
+      'farm-gold':t('farm.progress.noGold','The Company treasury does not hold enough gold for this.'),
       ...workshopErrors(),   // PHASE 4
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
     }[error];
@@ -435,7 +436,7 @@ export function createFarmingMode(deps) {
   const market = createMarketActs({ mapId: () => farm?.mapId ?? 0, now, garden: () => garden, mine: () => ownHere()?.mapId === farm?.mapId, say: notice,
     ask: (lines, options) => { deps.show?.(new ChoiceWindow({ lines, options })); }, call: (body) => deps.farms().market(farm.mapId, body), busy: () => busy });
   const acts = createFarmsteadActs({ postNote: () => market.postNote(),
-    garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
+    garden: () => garden, now, mapId: () => farm?.mapId ?? 0, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
     setSeed: (id) => { crop = id; tool = 'plant'; }, held: () => crop,
     ask: askYN,
     act: (action) => perform(action),
