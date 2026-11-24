@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: Boulders that rested on rocks cleared off a road no longer float in the air, such as outside the east gate of Knightsmore.
 - Fixed: Rock outcrops now have a solid underside, so you can no longer see the sky through them or walk inside them and get stuck.
 - The combat playtest adds weapon, combination, racial, and utility abilities, with a dedicated Spellbook tab and weapon-following hotbar bindings.
 - Dwarven firearms and Dwemer Pellets have been removed. Existing copies and their hotbar entries are cleared when a character loads.

@@ -61,7 +61,7 @@ import { isStandingHorseFlat } from './standingHorses.js';
 import { isTombstoneModel } from '../items/searchables.js';
 import { FOREST_STAMP, isTreeRecord, sinkFelled } from '../professions/treeHost.js';   // AUDIT PRECIP HOST-7: a re-skin's felled trees lie as they lay
 import { isWardenTown } from '../travel/wagonWarden.js';
-import { isWodShrub, rockSeatDrop, WOD_ROCK_SITES, wodLightPosition, wodLightProperties } from './wodLocationObjects.js';
+import { hangsOffCleared, isWodShrub, rockSeatDrop, supportsFirst, WOD_ROCK_SITES, wodLightPosition, wodLightProperties } from './wodLocationObjects.js';
 import { isYardTown } from './merchantYards/merchantYards.js';
 import { keyResolver, StaticBatchBuilder } from '../render/staticBatch.js';
 import { knownCriminal } from '../justice/standing.js';
@@ -968,10 +968,11 @@ export function createPixelBuild(host) {
       const place = wod.placements(stood, wodAverages.filter((_, i) => !wodHeld[i]));
       const rockPick = (i) => WOD_ROCK_SITES.includes(stood[i]?.name);   // PROF2's rock sites; ROCK-SUNK: and the sites whose 60610 is a boulder
       const _roadsNow = terrainGen.roads();   // ROADS-CLEAR: null until the network lands - the roads sweep rebuilds this pixel then
-      let _wodOffRoad = 0, _wodOffGate = wodPicks.length - stood.length;
+      let _wodOffRoad = 0, _wodOffGate = wodPicks.length - stood.length, _wodCleared = [];
       if (place.stopped) console.warn(`[wod] pixel ${key}: a negative model name stopped the loader here, as uint.Parse throws in the C#`);
       const wodBucket = onFloatingFrame(host.state, ((o) => () => host.state.pixelTranslation(px, py, o))([0, 0, 0]));   // BLOOD1 AUDIT 3: one array a bucket; PERF-COL2: riding the floating origin
-      for (const m of place.models) {
+      const groundAt = (x, z) => surfaceHeightAt(samples, Math.max(0, Math.min(TERRAIN_SIZE, x)), Math.max(0, Math.min(TERRAIN_SIZE, z)));
+      for (const m of supportsFirst(place.models)) {
         const gpu = await getGpuMesh(m.modelId);
         if (!gpu) continue;   // a model ARCH3D does not carry stands empty in DFU (no mesh, no collider)
         const cpu = wodRockUvs(wodRockFloor(cpuModels.get(m.modelId), m.modelId), m.matrix, m.modelId);
@@ -990,14 +991,13 @@ export function createPixelBuild(host) {
         // under it is lowered into the ground - its open underside never stands in the air; one in the ground stays put
         // - and only a piece SET into it (its foot under the ground at its middle): one the mod rests on another's crown keeps its height
         if (rockPick(m.pick) && box[1] < surfaceHeightAt(samples, Math.max(0, Math.min(TERRAIN_SIZE, (box[0] + box[3]) / 2)), Math.max(0, Math.min(TERRAIN_SIZE, (box[2] + box[5]) / 2)))) { const dy = rockSeatDrop(lowestGroundUnder(samples, box), box[1]); if (dy < 0) { m.matrix[13] += dy; box[1] += dy; box[4] += dy; } }
-        // ROADS-CLEAR (2026-09-25, Mac: "Camps, mountains from WOD, shouldnt be placed on roads"): a piece whose own
-        // mesh box reaches a road - here or in the pixel it spills into - is not stood: no mesh, no collider. The rock
-        // fields and mountains lose the pieces over the road and keep the rest; a whole site was asked at its pick.
-        if (boxNearPath(_roadsNow, px, py, box[0] * UNITS_PER_METRE, box[2] * UNITS_PER_METRE, box[3] * UNITS_PER_METRE, box[5] * UNITS_PER_METRE, WOD_PIECE_ROAD_CLEAR)) { _wodOffRoad++; continue; }
+        // No mesh or collider for a piece whose box reaches a road here or in the next pixel. Pieces run lowest
+        // first, so a perched rock resting on one left out goes too when it hangs over the ground.
+        if (boxNearPath(_roadsNow, px, py, box[0] * UNITS_PER_METRE, box[2] * UNITS_PER_METRE, box[3] * UNITS_PER_METRE, box[5] * UNITS_PER_METRE, WOD_PIECE_ROAD_CLEAR) || (rockPick(m.pick) && hangsOffCleared(box, cpu, m.matrix, groundAt, _wodCleared, TERRAIN_SIZE))) { _wodOffRoad++; _wodCleared.push(box); continue; }
         // GATE-CLEAR (2026-09-28, Mac: "the gate can spawn inside the rock geometry from world of daggerfall"): nor one
         // whose box reaches the Oblivion Gate's clearing (world/gate/gateClearance.js) - a gate risen inside a boulder is out
         // of reach of the press and the step. What stands goes in the reach, for the next gate's sweep to ask.
-        if (boxNearGate(gateClear, px, py, box[0], box[2], box[3], box[5])) { gateLedger.refused = true; _wodOffGate++; continue; }
+        if (boxNearGate(gateClear, px, py, box[0], box[2], box[3], box[5])) { gateLedger.refused = true; _wodOffGate++; _wodCleared.push(box); continue; }
         gateLedger.reach.push(box[0], box[2], box[3], box[5], 0);
         unionBox(box);
         if (rockPick(m.pick)) { const foot = rockFootprint(cpu.positions, cpu.indices, m.matrix, samples); if (foot) pixelRocks.push(foot); }   // PROF2: a rock piece that stood - a vein's foot or a boulder; ROCK-FOOT: as it stands out of the ground, never its whole mesh's box (none if wholly under it)

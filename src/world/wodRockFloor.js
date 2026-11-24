@@ -14,7 +14,7 @@ const turn = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] 
 
 /**
  * @template {{positions: Float32Array, normals?: Float32Array, uvs?: Float32Array, indices: Uint32Array, subMeshes: Array<any>}} M
- * @param {M} cpu @param {?number} modelId @returns {M}
+ * @param {M} cpu @param {?number} modelId @returns {M & {floorAt?: number}}
  */
 export function wodRockFloor(cpu, modelId) {
   if (!cpu?.normals || !cpu.uvs || !WOD_ROCK_MODELS.has(modelId)) return cpu;
@@ -91,5 +91,6 @@ function withFloor(cpu) {
     indices: grow(I, idx, Uint32Array),
     subMeshes: [...cpu.subMeshes,
       { textureArchive: sm.textureArchive, textureRecord: sm.textureRecord, startIndex: I.length, primitiveCount: idx.length / 3 }],
+    floorAt: I.length,
   };
 }
