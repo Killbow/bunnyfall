@@ -95,7 +95,7 @@ test('Jab Chain uses three ordinary animation hit frames and keeps the first tar
     assert.equal(blow.chain, chain);
     if (beats > 0) assert.equal(blow.chain.target, primary.entity);
     else blow.chain.target = primary.entity;
-    assert.equal(previewDamage(blow, 100, primary), 66);
+    assert.equal(previewDamage(blow, 100, primary), 78);
     beats++;
   }
   assert.equal(beats, 3);
@@ -290,8 +290,8 @@ test('Keep Away rewards a telegraph and Shoulder Break respects iron and stagger
   });
   const counter = milestoneDelivery(PREVIEW_KEEP_AWAY);
   const counterBlow = { mult: 1 + counter.potency, counterBonus: counter.counterBonus };
-  assert.equal(previewDamage(counterBlow, 100, foe('open')), 230);
-  assert.equal(previewDamage(counterBlow, 100, {}), 165);
+  assert.equal(previewDamage(counterBlow, 100, foe('open')), 265);
+  assert.equal(previewDamage(counterBlow, 100, {}), 200);
   assert.ok(counter.control.shove > 1);
   const control = milestoneDelivery(PREVIEW_SHOULDER_BREAK).control;
   const hit = (target, damage = 1) => windupDoor(target, damage, { abilityControl: control, weight: 150 });
@@ -501,7 +501,7 @@ test('Marked for Silence primes Nightfall on one foe and its five beats share th
   assert.ok(requestHotbarAbility(entity, mark).ok);
   const opening = nextBlow();
   assert.equal(previewDamage(opening, 0, other), 0);
-  assert.equal(previewDamage(opening, 100, target), 210);
+  assert.equal(previewDamage(opening, 100, target), 245);
   for (let i = 0; i < 28; i++) frame();
   assert.ok(requestHotbarAbility(entity, nightfall).ok);
   const damage = [];
@@ -526,8 +526,8 @@ test('Veil Cut applies concealment and adds damage against an unaware target', (
   assert.ok(hit);
   assert.ok(hasActiveEffect(entity, 'chameleonNormal'));
   const foe = hostile(0, 1);
-  assert.equal(previewDamage(hit, 100, foe), 165);
-  assert.equal(previewDamage(hit, 100, foe, { unaware: true }), 245);
+  assert.equal(previewDamage(hit, 100, foe), 200);
+  assert.equal(previewDamage(hit, 100, foe, { unaware: true }), 280);
 });
 
 test('Kidney Step aims at a hostile foe and uses its rear landing for the strike', (t) => {
@@ -550,7 +550,7 @@ test('Kidney Step aims at a hostile foe and uses its rear landing for the strike
   let hit;
   for (let i = 0; i < 60 && !hit; i++) if (frame().includes('hit')) hit = pw.techniqueBlow;
   assert.equal(hit?.chain.target, target.entity);
-  assert.equal(previewDamage(hit, 100, target), 245);
+  assert.equal(previewDamage(hit, 100, target), 280);
 });
 
 test('Piercing Line strikes only the traveled lane in order, with a shared target cap', (t) => {

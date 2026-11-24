@@ -1,10 +1,14 @@
 // @ts-check
 // Ordered hooks the world host runs at fixed points of its frame, so a feature registers here instead of growing it.
 // Hooks run in registration order; a throw is logged and the next hook still runs. dispose() runs when the loop ends.
-// Wired so far: preModal (before the modal arm), postMotor (after the player's motor), translucentDraw, and dispose.
+// The host calls preModal, postMotor, indoorFrame, translucentDraw, and dispose. Registering any other listed hook
+// throws until its call site is wired into world.js or scenes/frame/, and the hook taken off UNWIRED, in one change.
 
 export const WORLD_ADDON_HOOKS = Object.freeze(['preModal', 'postMotor', 'exteriorSim', 'exteriorDraw', 'translucentDraw',
   'indoorFrame', 'originRebase', 'modeChange', 'dispose']);
+
+/** Listed, but not yet called by the host. */
+const UNWIRED = new Set(['exteriorSim', 'exteriorDraw', 'originRebase', 'modeChange']);
 
 export function createWorldAddons() {
   /** @type {Record<string, Function[]>} */
@@ -19,7 +23,11 @@ export function createWorldAddons() {
   return {
     /** @param {Record<string, any>} addon */
     register(addon) {
-      for (const k of WORLD_ADDON_HOOKS) if (typeof addon[k] === 'function') hooks[k].push(addon[k]);
+      for (const k of WORLD_ADDON_HOOKS) {
+        if (typeof addon[k] !== 'function') continue;
+        if (UNWIRED.has(k)) throw new Error(`worldAddons: the world host does not call the ${k} hook yet; wire its call site in world.js or scenes/frame/ in the same change`);
+        hooks[k].push(addon[k]);
+      }
     },
     run,
     /** @returns {boolean} */

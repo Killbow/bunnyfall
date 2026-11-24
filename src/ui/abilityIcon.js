@@ -99,9 +99,12 @@ export function abilityIcon(id) {
   const emblem = kind === 'combination'
     ? '<path transform="translate(-1 3) scale(.75)" d="'+marks[families[style]]+'"/><path transform="translate(31 3) scale(-.75 .75)" d="'+marks[families[second]]+'"/>'
     : '<path d="'+marks[mark]+'"/>';
-  const action = (kind === 'weapon' || kind === 'combination') && actionMarks[abilityArt(id)?.form];
+  const art = abilityArt(id);
+  const action = (kind === 'weapon' || kind === 'combination') && actionMarks[art?.form];
+  const enamel = { shadow:'#c895f4', gold:'#ffd578', steel:'#8ad7ff', moon:'#c8cfff',
+    stone:'#d1b49b', ember:'#ffa174', leaf:'#a5d993', wind:'#b1eee7', tide:'#82cfe5' };
   const badge = action
-    ? '<g transform="translate(17 15)" stroke="'+color+'"><circle cx="6.5" cy="6.5" r="6.6" fill="#201e21"/><path transform="translate(1.3 1.3) scale(.8)" d="'+action+'" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></g>'
+    ? '<g transform="translate(17 15)" stroke="'+(enamel[art.material] ?? color)+'"><circle cx="6.5" cy="6.5" r="6.6" fill="#171a20"/><path transform="translate(1.3 1.3) scale(.8)" d="'+action+'" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g>'
     : '';
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="5" fill="#201e21" stroke="'+color+'" stroke-opacity="'+(capstone ? '.9' : '.35')+'"/><g transform="translate(2 1) scale(.87)" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">'+emblem+'<path d="'+accent+'"/></g>'+badge+'<g fill="'+color+'">'+detail+'</g></svg>';
   const url = 'data:image/svg+xml,' + encodeURIComponent(svg);

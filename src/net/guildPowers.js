@@ -29,16 +29,12 @@ import { VAULT_RANK_DEFAULTS } from './guildVaultLaw.js';
 
 /** The four tables by the name a row gives them; `levers` the seat's levers (SEAT_LEVER_RANKS, one list of ranks). */
 const TABLES = Object.freeze({ guild: GUILD_POWERS, hall: HALL_POWERS, writ: WRIT_POWERS, seat: SEAT_POWERS });
-/** AUDIT GUILD3 W3: the acts the writs' law gives a rank by a rule, not a table - read off the rule at the call. */
-const RULES = Object.freeze({ deliver: writDeliverMay, paid: contractPaidMay });
+// The `farm` rule repeats the farm rank checks in server-account farms.js and farmGardens.js; change them together.
+const RULES = Object.freeze({ deliver: writDeliverMay, paid: contractPaidMay, farm: (/** @type {number} */ r) => r <= GUILD_RANK_OFFICER });
 const RANKS = Object.freeze([GUILD_RANK_MASTER, GUILD_RANK_OFFICER, GUILD_RANK_MEMBER, GUILD_RANK_RECRUIT]);
 
-/** EVERY RANK'S ACTS, in the order a member meets them - `{ table, power, words }`; `{ any: true, words }` for what every
- *  member may do whatever the tables say (pin a note: guildBoard.js; put materials into the guild Stores and take one's
- *  own back: writLaw.js guildTakeMay); `{ rule, words }` an act a writ law's rule gives (RULES); `{ master: true, words }`
- *  an act the service gives the guildmaster by rank alone (a Charter given up: seatTurning.js relinquishSeat; a Sellsword
- *  hired: seatBattles.js hireSellsword; any writ or contract withdrawn: writs.js and contracts.js mayWithdraw); and
- *  `{ vault: true }` the rank's place at the vault by default (VAULT_RANK_DEFAULTS - its own words, guildVaultActsOf). */
+// `any` and `master` rows and the `farm` rule restate rank checks made elsewhere, such as in guildBoard.js,
+// seatBattles.js, and farms.js; update a row when its check changes.
 /** @type {readonly Readonly<{ table?: string, power?: string, any?: boolean, master?: boolean, rule?: string, vault?: boolean, words?: string }>[]} */
 export const GUILD_RANK_ACTS = Object.freeze([
   Object.freeze({ table: 'guild', power: 'deposit', words: 'put gold and Imperial Argents into the treasuries' }),
@@ -50,6 +46,8 @@ export const GUILD_RANK_ACTS = Object.freeze([
   Object.freeze({ table: 'guild', power: 'invite', words: 'invite new members, and pin the guild\'s call for them on a town\'s Notice Board' }),
   Object.freeze({ table: 'guild', power: 'promote', words: 'promote and demote the ranks below their own' }),
   Object.freeze({ table: 'guild', power: 'remove', words: 'remove a member of a lower rank' }),
+  Object.freeze({ rule: 'farm', words: 'buy Company farms, choose their crops, and let them go' }),
+  Object.freeze({ rule: 'farm', words: 'buy a farm\'s animals, order its workshops and improvements, and burn seeds off its shelf' }),
   Object.freeze({ table: 'hall', power: 'hallEntry', words: 'choose who may enter the hall' }),
   Object.freeze({ table: 'hall', power: 'decorate', words: 'decorate the hall, its yard and its outside' }),
   Object.freeze({ table: 'hall', power: 'notes', words: 'take down anyone\'s note on the guild\'s board' }),

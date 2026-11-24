@@ -3199,6 +3199,10 @@ button.sb-milestone:is(:hover, :focus-visible, [aria-expanded="true"]) {
 .sb-assignment p { margin: 0 0 .4rem; }
 .sb-assignment p:empty { display: none; }
 .sb-assignment-controls { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sb-ability-details { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: .6rem 0 .75rem; }
+.sb-ability-details:empty { display: none; }
+.sb-ability-details dt { color: var(--brass, #e5c488); font-size: 12px; }
+.sb-ability-details dd { margin: .12rem 0 0; font-variant-numeric: tabular-nums; }
 .sb-assignment select { max-width: 100%; padding: .42rem; color: inherit; background: #211a15; border: 1px solid #a48252; }
 .sb-assignment [role="status"] { margin: .4rem 0 0; }
 @media (max-width: 700px) {

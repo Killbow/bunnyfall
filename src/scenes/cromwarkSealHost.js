@@ -72,6 +72,7 @@ export function createCromwarkSealHost(d) {
     preModal: enforceCitySeal,
     postMotor: enforceCitySeal,
     translucentDraw: drawSeal,
+    dispose() { sealPass?.dispose(); sealPass = null; },
     sealInScene,
     pending: () => sealPending,
     clearSafe() { sealSafe = null; },

@@ -14,8 +14,9 @@ import { FARM_SEED_IDS, farmSeed, farmSeason, seasonPace, SEASON_OFF } from '../
 import { strainOf } from '../../net/farm/strainLaw.js';
 import { TITLE_TEXT } from '../../ui/playerBadge.js';
 import { WORKSHOP_IDS, stageOf, batchState } from '../../net/farm/workshopLaw.js';   // the ledger's yard
-import { contentAt, CONTENT_GOOD } from '../../net/farm/herdLaw.js';
+import { contentAt, CONTENT_GOOD, droverVisit, droverWeekday } from '../../net/farm/herdLaw.js';
 import { workshopName } from './workshopActs.js';
+import { WEEKDAYS } from './marketActs.js';
 
 /** A strain trait in words. */
 export const traitWord = (k) => ({ quick: t('farm.trait.quick', 'quick'), hardy: t('farm.trait.hardy', 'hardy'), heavy: t('farm.trait.heavy', 'heavy'), showy: t('farm.trait.showy', 'showy'), sweet: t('farm.trait.sweet', 'sweet') })[k] ?? k;
@@ -24,7 +25,7 @@ export const FIXTURE_UPGRADE = Object.freeze({ toolRack: 'tools', well: 'irrigat
 const fmt = (n) => Number(n).toLocaleString('en-US');
 
 /**
- * @param {{ garden: () => any, now: () => number, mayManage: () => boolean, busy: () => boolean, economy: () => any,
+ * @param {{ garden: () => any, now: () => number, mapId: () => number, mayManage: () => boolean, busy: () => boolean, economy: () => any,
  *   work: () => ({ total: number, today: number } | null), say: (s: string) => void, setSeed: (id: string) => void, ask: (lines: string[], yes: () => void) => void,
  *   act: (action: any) => any, wantFunds: () => void, held?: () => string, postNote?: () => (string | null), ledger?: (model: any) => void }} d
  */
@@ -82,8 +83,9 @@ export function createFarmsteadActs(d) {
     }) });
     const herd = g.herd ?? [], built = WORKSHOP_IDS.filter((id) => stageOf(g, id, now) === 2);
     sections.push({ title: t('farm.ledger.yard', 'The yard'), rows: [
-      { label: t('farm.ledger.herd', 'Animals'), text: herd.length ? t('farm.ledger.herdText', '{n} ({m} content)', { n: herd.length, m: herd.filter((a) => contentAt(a, now) >= CONTENT_GOOD).length }) : t('farm.ledger.noHerd', 'none yet: a drover visits one day a week') },
-      { label: t('farm.ledger.workshops', 'Workshops'), text: built.length ? built.map((id) => workshopName(id) + (batchState(g, id, now) === 1 ? t('farm.ledger.working', ' (at work)') : batchState(g, id, now) === 2 ? t('farm.ledger.shelf', ' (goods on the shelf)') : '')).join(', ') : t('farm.ledger.noShops', 'none built: officers order them on the staked plots') },
+      { label: t('farm.ledger.herd', 'Animals'), text: herd.length ? t('farm.ledger.herdText', '{n} ({m} content)', { n: herd.length, m: herd.filter((a) => contentAt(a, now) >= CONTENT_GOOD).length }) : t('farm.ledger.none', 'none yet') },
+      { label: t('farm.ledger.drover', 'The drover'), text: droverVisit(d.mapId(), week).day === Math.floor(now / 86400) ? t('farm.ledger.droverHere', 'Here today with animals for sale') : t('farm.ledger.droverDay', 'Comes every {day} with animals for sale', { day: WEEKDAYS()[droverWeekday(d.mapId())] }) },
+      { label: t('farm.ledger.workshops', 'Workshops'), text: built.length ? built.map((id) => workshopName(id) + (batchState(g, id, now) === 1 ? t('farm.ledger.working', ' (at work)') : batchState(g, id, now) === 2 ? t('farm.ledger.shelf', ' (goods on the shelf)') : '')).join(', ') : t('farm.ledger.noShops', 'none built: a Captain or an Officer orders them on the staked plots') },
     ] });
     return { title: t('farm.ledger.title', 'The estate ledger'), sections,
       note: t('farm.ledger.note', 'Harvests go into the Company Stores at once. "Harvested here" counts the crops harvested by hand at this farm; shipping an order takes that many out of the Stores.') };

@@ -62,9 +62,12 @@ export function ketchVoyageOf(n) {
  */
 /** BUNNYFALL PHASE 2: a voyage thousands of years out, the one 'away' points at while the Ketch is switched off. */
 export const KT_NEVER_N = 10_000_000;
+/** @type {ReturnType<typeof ketchVoyageOf> & { phase: 'away' } | null} */
+let OFF_KETCH_VOYAGE = null;
 
 export function ketchVoyageAt(now) {
-  if (!contentOn('skyKetch')) return { ...ketchVoyageOf(KT_NEVER_N), phase: 'away' };   // BUNNYFALL PHASE 2 (systems/contentOff.js): the next voyage never comes
+  // Switched off: the next voyage never comes.
+  if (!contentOn('skyKetch')) return (OFF_KETCH_VOYAGE ??= Object.freeze({ ...ketchVoyageOf(KT_NEVER_N), phase: /** @type {'away'} */ ('away') }));
   const t = Number(now);
   if (!Number.isFinite(t)) return { ...ketchVoyageOf(0), phase: 'away' };
   const n = Math.floor((t - (KT_EPOCH_MS - KT_SIGHT_MS)) / KT_EVERY_MS);

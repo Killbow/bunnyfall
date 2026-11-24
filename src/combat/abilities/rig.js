@@ -1,3 +1,5 @@
+import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
+import { SOUND } from '../../audio/soundClips.js';
 import { showAbilityArt } from './abilityArt.js';
 import { strikeMotionKind } from './strikeMotion.js';
 import { ABILITY_REFUSAL, createAbilityEngine } from './engine.js';
@@ -81,7 +83,12 @@ function startMelee(chain, { rig, tc, entity }) {
     beatShare: stage.share ?? (1 / profile.beats),
     armorPierce: stage.armorPierce, toHit: stage.toHit, opening: stage.opening, exploit: stage.exploit,
   };
+  let sounded = false;
   blow.noteDamage = foe => {
+    if (!sounded && (final || next === 0) && enhancedSoundsOn()) {
+      sounded = true;
+      tc.door?.sound?.(final ? SOUND.Hit4 : SOUND.Hit2, final ? .7 : .45, final ? .78 : .95);
+    }
     const feet = foe.ai?.feet;
     if (feet) showAbilityArt(tc.door, cast.ability.id, 'impact',
       [feet[0], feet[1] + (foe.ai.height ?? 1.6) * .55, feet[2]], { yaw });
@@ -166,7 +173,7 @@ function stepAdvance(dt, ctx, canStart) {
   if (!canStart || !ctx.tc.cam) return;
   const feet = ctx.tc.cam.feet;
   if (foe) {
-    if (!abilityMayStrike(foe) || Math.hypot(feet[0] - point[0], feet[1] - point[1], feet[2] - point[2]) > .85) return;
+    if (!abilityMayStrike(foe) || Math.hypot(feet[0] - point[0], feet[1] - point[1], feet[2] - point[2]) > 1.1) return;
     const target = foe.ai?.feet;
     if (!target) return;
     ctx.tc.door?.face?.(target, feet);
@@ -177,7 +184,7 @@ function stepAdvance(dt, ctx, canStart) {
   }
   const len = Math.min(lane.len, (feet[0] - origin[0]) * lane.dir[0] + (feet[2] - origin[2]) * lane.dir[1]);
   if (len < 0.25) return;
-  chain.lane = { ...lane, len };
+  chain.lane = { ...lane, len, halfW: (lane.halfW ?? .55) + .25 };
   chain.origin = origin;
   startMelee(chain, ctx);
   cue('lunge', 'hit', ctx.tc.door, { at: origin, to: [...feet], ground: origin[1], yaw: lane.yaw });

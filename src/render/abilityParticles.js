@@ -39,18 +39,65 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
   const path = paths[form];
   if (!path || !look) return false;
   if (phase === 'flight') {
-    for (let i=0;i<2;i++) fx._part(look, at, [fx.r(-.35,.35),fx.r(.05,.45),fx.r(-.35,.35)],
-      { life:.22, w:.035, g:0, drag:1, I:1, streak:.08 });
+    const angle = fx.r(0,turn);
+    for (const side of [-1,1]) fx._part(look, at, [side*cos(angle)*1.4,.45+side*sin(angle),side*sin(angle)*1.4],
+      { life:.24, w:.07, g:1, drag:3, I:1.5, streak:.14 });
     return true;
   }
   const finish = phase === 'finish';
   const impact = phase === 'impact' || finish, self = phase === 'self', charging = phase === 'wind-up';
-  const scale = finish ? .4 : impact ? .58 : charging ? .45 : 1;
+  const scale = finish ? .68 : impact ? .88 : charging ? .62 : 1.32;
   const reach = impact ? .28 : self ? 1.1 : Math.max(.1,Math.min(4,len));
   const dx = dir?.[0] ?? sin(yaw), dz = dir?.[2] ?? cos(yaw);
   const horizontal = Math.hypot(dx,dz);
   const rightX = horizontal > .001 ? dz/horizontal : cos(yaw);
   const rightZ = horizontal > .001 ? -dx/horizontal : -sin(yaw);
+  // Build the large silhouettes from rings and moving particles, so they can
+  // still play when a neighbouring strike has filled the line-segment pool.
+  if (phase === 'stroke' || self) {
+    const along = distance => [at[0]+dx*distance, at[1]+(dir?.[1] ?? 0)*distance, at[2]+dz*distance];
+    const plane = [dx,dir?.[1] ?? 0,dz];
+    if (['helix','needle','dash','braid','return'].includes(form)) {
+      for (let j=0; j<3; j++) {
+        fx._decal(look, along(reach*(.24+j*.32)), { n:plane, r0:.58-j*.09, r1:.08,
+          band:.095, delay:j*.055, life:.22, I:1.7 });
+      }
+    } else if (['crack','fracture','roots','claw','rain'].includes(form)) {
+      for (let j=0; j<3; j++) {
+        const point = along(reach*(.24+j*.32));
+        point[1] -= .58;
+        if (form === 'fracture' || form === 'rain') {
+          const side = j % 2 ? -.45 : .45;
+          const peak = [point[0]+rightX*side,point[1]+1.5,point[2]+rightZ*side];
+          fx._bolt(look, peak, point, { w:.075, delay:j*.05, life:.21 });
+        }
+        fx._decal(look, point, { r0:.08, r1:.52+j*.12, band:.10, delay:j*.05, life:.25, I:1.5 });
+        for (const side of [-1,1]) fx._part(look, point, [rightX*side*2,3+j*.7,rightZ*side*2],
+          { delay:j*.05, life:.33, w:.085, g:13, drag:1, streak:.19, maxLen:.65, I:1.6 });
+      }
+    } else if (self || ['ward','crown','orbit','halo','eye','mark'].includes(form)) {
+      const center = along(self ? .95 : reach*.65);
+      fx._decal(look, center, { n:plane, r0:.15, r1:.95, band:.075, life:.39, I:1.45 });
+      for (let j=0; j<8; j++) {
+        const a = j*turn/8, lateral = cos(a)*.84, height = sin(a)*.84;
+        fx._part(look, [center[0]+rightX*lateral,center[1]+height,center[2]+rightZ*lateral],
+          [-rightX*height*3,lateral*3,-rightZ*height*3], { life:.34, w:.065, delay:.055,
+            g:0, drag:3, streak:.15, maxLen:.45, I:1.45 });
+      }
+    } else {
+      // Shed sparks along the outside edge of a cut in the direction of travel.
+      for (let j=1; j<=5; j++) {
+        const [x,y,z] = path(j/6,0);
+        const point = along(z*reach);
+        point[0] += rightX*x*scale*spin;
+        point[1] += y*scale;
+        point[2] += rightZ*x*scale*spin;
+        fx._part(look, point, [rightX*spin*2.5,1.6-j*.25,rightZ*spin*2.5],
+          { delay:j*.021, life:.26, w:.075, g:5, drag:2, streak:.18, I:1.6 });
+      }
+    }
+    fx._light({ ...look, light:look.main }, along(reach*.55), .65, { life:.23 });
+  }
   // A drilling blow leaves two expanding collars at the contact plane. A shattered
   // guard throws fragments downward; rain scatters upward where the shafts land.
   if (impact && (form === 'helix' || form === 'needle')) {
@@ -64,7 +111,7 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
   // Keep the contact accent stronger than the trail and the preparatory motes.
   const duration = charging ? .08 : self ? .28 : impact ? .07 : .13;
   const steps = impact ? 6 : 10;
-  const ribbonLife = self ? .28 : impact ? .18 : .14;
+  const ribbonLife = self ? .36 : impact ? .20 : .29;
   const moteLife = charging ? .11 : self ? .25 : impact ? .21 : .15;
   for (let k=0; k<(strands[form] ?? 2); k++) {
     let previous;
@@ -76,10 +123,15 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
       const point = [at[0]+rightX*side+dx*forward, at[1]+y*scale+(dir?.[1] ?? 0)*forward,
         at[2]+rightZ*side+dz*forward];
       if (previous) {
-        const delay = (finish ? .095 : 0) + duration*(i-1)/steps;
+        const progress = (i-1)/steps;
+        // The tell gathers slowly, the stroke snaps through contact, and the
+        // finishing trace draws out as the sparks settle.
+        const timing = charging ? Math.sqrt(progress) : impact ? progress*progress : progress;
+        const delay = (finish ? .095 : 0) + duration*timing;
         if (!charging) {
           const taper = Math.sin(Math.PI * (i-.5)/steps);
-          fx._ribbon(look, previous, point, .014+.029*taper, delay, ribbonLife);
+          const width = phase === 'impact' ? .05+.105*taper : .032+.092*taper;
+          fx._ribbon(look, previous, point, width, delay, ribbonLife * (.75 + .25*u));
         }
         if (impact || i % 2 === 1) {
           const velocity = point.map((v,j)=>(v-previous[j])/.075);

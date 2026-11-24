@@ -97,6 +97,11 @@ test('the workshop handler spends gold and Stores exactly once, pays one product
   const denied = await farmGarden({ ...m.ctx, nowS: T }, m.player, { character: 'char1', mapId: 42, op: 'workshop', act: 'build', workshop: 'press', version: 0 });
   assert.equal(denied.error, 'farm-rank', 'Building is an officer\'s');
   m.sql.close();
+  const p = fixture(); p.sql.exec('UPDATE guilds SET treasury = 100');
+  const poor = await farmGarden({ ...p.ctx, nowS: T }, p.player, { character: 'char1', mapId: 42, op: 'workshop', act: 'build', workshop: 'press', version: 0 });
+  assert.equal(poor.error, 'farm-gold', 'A treasury short of the price is refused as gold, not a version clash');
+  assert.equal(p.sql.prepare('SELECT version FROM company_farm_gardens').get().version, 0);
+  p.sql.close();
 });
 
 test('the apiary makes honey from nothing; the loom and the press have recipes a desert farm can run', async () => {
