@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- New: The main owner of a house can add their other characters as co-owners at its door. If the main owner is deleted, the first co-owner with room for another house takes over, or deletion is refused if none has room.
+- New: Transferring a house now asks for a character name instead of an account name, and lists the matches when several share it. Naming one of your own characters makes it the main owner at once, and the old main owner becomes a co-owner.
 - Fixed: Bench crafts with swapped parts, such as Lodestone as flux, now use your bag or pack instead of saying "Your Stores do not hold that many".
 - Fixed: The Company window's list of what each rank may do now shows that only the Captain and the Officers buy farms and animals and order workshops and improvements.
 - Fixed: The estate ledger on a farm now says which day the drover comes with animals for sale, or that he is there today.

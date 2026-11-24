@@ -2,10 +2,11 @@
 // A house changes hands as one write. The homes row is updated, never deleted, so nobody can claim it in between.
 import { accountKind, displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE } from './service.js';
+import { HOME_OWNERS_MAX } from './homeOwners.js';
 import { HOME_CAP, homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import { decorRefund } from '../../src/net/decorLaw.js';
 import { decorHeldBlocks } from './decorBatch.js';
-import { dropIfUnnamed, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmHoldOf, realmSaveTextOf, seizeRealmRecord } from './realm.js';
+import { REALM_ID_RE, REALM_NAME_MAX, dropIfUnnamed, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmHoldOf, realmSaveTextOf, seizeRealmRecord } from './realm.js';
 import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 
 const OFFER_S = 3 * 24 * 60 * 60;
@@ -67,22 +68,106 @@ async function heldGoods(ctx, home, pieceIds) {
   return { goods };
 }
 
-async function offerHome(ctx, player, body) {
+const PICK_MAX = 9;
+
+async function namedCharacters(db, name, toChar, seller) {
+  if (toChar != null) {
+    if (typeof toChar !== 'string' || !REALM_ID_RE.test(toChar)) return [];
+    const one = await db.prepare(`SELECT c.id, c.name, c.player, p.handle, p.guest_name FROM realm_characters c JOIN players p ON p.id = c.player
+      WHERE c.id = ? AND c.name = ? COLLATE NOCASE AND c.dead_at IS NULL AND p.handle IS NOT NULL AND NOT (c.origin_id IS NOT NULL AND c.bytes = 0)`).bind(toChar, name).first();
+    return one && one.id !== seller ? [one] : [];
+  }
+  const rows = (await db.prepare(`SELECT c.id, c.name, c.player, p.handle, p.guest_name FROM realm_characters c JOIN players p ON p.id = c.player
+    WHERE c.name = ? COLLATE NOCASE AND c.dead_at IS NULL AND p.handle IS NOT NULL AND NOT (c.origin_id IS NOT NULL AND c.bytes = 0) AND c.id != ? ORDER BY c.id LIMIT ?`).bind(name, seller, PICK_MAX + 1).all())?.results ?? [];
+  return rows;
+}
+
+// A move to another character on the same account skips the offer; the old main stays on as a co-owner, added last.
+async function moveMain(ctx, player, home, target) {
   const { db, nowS } = ctx;
-  const { mapId, buildingKey, character, to, price, keepDecor, keepItems } = body ?? {};
+  const at = [home.map_id, home.building_key];
+  const listed = Number((await db.prepare('SELECT COUNT(*) AS n FROM home_owners WHERE map_id = ? AND building_key = ? AND char_id != ?').bind(...at, target.id).first())?.n) || 0;
+  if (listed >= HOME_OWNERS_MAX) return { error: 'home-owners-full' };
+  try {
+    await db.batch([
+      db.prepare(`UPDATE homes SET char_id = ?1 WHERE map_id = ?2 AND building_key = ?3 AND player = ?4 AND char_id = ?5 AND guild_id IS NULL AND deed = 0
+        AND EXISTS (SELECT 1 FROM realm_characters WHERE id = ?1 AND player = ?4 AND dead_at IS NULL)
+        AND (SELECT COUNT(*) FROM homes WHERE player = ?4 AND char_id = ?1 AND guild_id IS NULL AND deed = 0) < ?6`)
+        .bind(target.id, ...at, player.id, home.char_id, HOME_CAP),
+      mustChange(db),
+      db.prepare('DELETE FROM home_owners WHERE map_id = ? AND building_key = ? AND char_id IN (?, ?)').bind(...at, target.id, home.char_id),
+      db.prepare(`INSERT INTO home_owners (map_id, building_key, char_id, player, added_at) SELECT ?1, ?2, ?3, ?4, ?5
+        WHERE (SELECT COUNT(*) FROM home_owners WHERE map_id = ?1 AND building_key = ?2) < ?6`).bind(...at, home.char_id, player.id, nowS, HOME_OWNERS_MAX),
+      mustChange(db),
+      db.prepare(`UPDATE home_offers SET state = 'cancelled' WHERE map_id = ? AND building_key = ? AND state = 'open'`).bind(...at),
+    ]);
+  } catch {
+    const now = await houseOf(db, ...at, player.id);
+    if (now?.char_id === target.id) return { ok: true, moved: true, repeat: true, character: target.id, name: target.name };
+    if (!now || now.char_id !== home.char_id) return { error: 'no-home' };
+    const alive = await db.prepare('SELECT 1 AS y FROM realm_characters WHERE id = ? AND player = ? AND dead_at IS NULL').bind(target.id, player.id).first();
+    return { error: alive ? 'home-cap' : 'home-no-char' };
+  }
+  return { ok: true, moved: true, character: target.id, name: target.name };
+}
+
+/** The living characters a name points at, before a price is asked: `own` marks the seller's account. */
+async function resolveHome(ctx, player, body) {
+  const { db } = ctx;
+  const { mapId, buildingKey, character, toName } = body ?? {};
   if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };
   if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey) || typeof character !== 'string' || !CHAR_ID_RE.test(character)) return { error: 'no-home' };
-  if (!Number.isSafeInteger(price) || price < 0 || price > PRICE_MAX || typeof keepDecor !== 'boolean' || typeof keepItems !== 'boolean') return { error: 'bad-offer' };
-  if (keepItems && !keepDecor) return { error: 'bad-offer' };
-  if (typeof to !== 'string' || !/^[A-Za-z0-9]{3,16}$/.test(to)) return { error: 'no-reader' };
+  if (toName === undefined) return { error: 'home-update' };
+  const name = typeof toName === 'string' ? toName.trim() : '';
+  if (!name || name.length > REALM_NAME_MAX || /[\u0000-\u001f\u007f]/.test(name)) return { error: 'home-no-char' };
+  if (await overRate(ctx, `homeresolve:${player.id}`, 60, 3600)) return { error: 'home-rate' };
+  const home = await houseOf(db, mapId, buildingKey, player.id);
+  if (!home || home.char_id !== character) return { error: 'no-home' };
+  if (home.deed === 1) return { error: 'home-deed' };
+  const rows = (await db.prepare(`SELECT c.id, c.name, c.player, c.summary, p.handle, p.guest_name FROM realm_characters c JOIN players p ON p.id = c.player
+    WHERE c.name = ?1 COLLATE NOCASE AND c.dead_at IS NULL AND p.handle IS NOT NULL AND NOT (c.origin_id IS NOT NULL AND c.bytes = 0) AND c.id != ?2
+    ORDER BY (c.player = ?3) DESC, c.id LIMIT ?4`).bind(name, character, player.id, PICK_MAX + 1).all())?.results ?? [];
+  if (!rows.length) return { error: 'home-no-char' };
+  const matches = rows.slice(0, PICK_MAX).map((r) => {
+    const own = r.player === player.id;
+    return { char: r.id, name: r.name, account: displayName(r), own, note: own ? noteOf(r.summary) : '' };
+  });
+  return { ok: true, matches, ...(rows.length > PICK_MAX ? { more: true } : {}) };
+}
+
+function noteOf(summary) {
+  let s = null;
+  try { s = summary ? JSON.parse(summary) : null; } catch { s = null; }
+  const level = Number.isSafeInteger(s?.level) ? `level ${s.level}` : '';
+  const cls = typeof s?.className === 'string' ? s.className : '';
+  return [level, cls].filter(Boolean).join(' ');
+}
+
+async function offerHome(ctx, player, body) {
+  const { db, nowS } = ctx;
+  const { mapId, buildingKey, character, toName, toChar, price, keepDecor, keepItems } = body ?? {};
+  if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };
+  if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey) || typeof character !== 'string' || !CHAR_ID_RE.test(character)) return { error: 'no-home' };
+  // Older builds send an account name instead of a character name.
+  if (toName === undefined) return { error: 'home-update' };
+  const name = typeof toName === 'string' ? toName.trim() : '';
+  if (!name || name.length > REALM_NAME_MAX || /[\u0000-\u001f\u007f]/.test(name)) return { error: 'home-no-char' };
   if (await overRate(ctx, `hometransfer:${player.id}`, 30, 3600)) return { error: 'home-rate' };
   const home = await houseOf(db, mapId, buildingKey, player.id);
   if (!home || home.char_id !== character) return { error: 'no-home' };
   if (home.deed === 1) return { error: 'home-deed' };
+  const found = await namedCharacters(db, name, toChar, character);
+  if (!found.length) return { error: 'home-no-char' };
+  if (found.length > 1) {
+    return { error: 'home-pick', matches: found.slice(0, PICK_MAX).map((r) => ({ char: r.id, name: r.name, account: displayName(r) })), ...(found.length > PICK_MAX ? { more: true } : {}) };
+  }
+  const target = found[0];
+  if (target.player === player.id) return moveMain(ctx, player, home, target);
+  if (!Number.isSafeInteger(price) || price < 0 || price > PRICE_MAX || typeof keepDecor !== 'boolean' || typeof keepItems !== 'boolean') return { error: 'bad-offer' };
+  if (keepItems && !keepDecor) return { error: 'bad-offer' };
   const why = await blocked(db, mapId, buildingKey, nowS);
   if (why) return { error: why };
-  const buyer = await db.prepare('SELECT id, handle FROM players WHERE handle_lc = ?').bind(to.toLowerCase()).first();
-  if (!buyer?.handle || buyer.id === player.id) return { error: 'no-reader' };
+  const buyer = { id: target.player };
   const pieces = (await db.prepare('SELECT id, place FROM home_decor WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).all())?.results ?? [];
   const bin = Number((await db.prepare('SELECT COUNT(*) AS n FROM decor_bin WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first())?.n) || 0;
   const held = await heldGoods(ctx, home, pieces.map((p) => p.id));
@@ -93,8 +178,8 @@ async function offerHome(ctx, player, body) {
   const until = nowS + OFFER_S;
   await db.prepare(`UPDATE home_offers SET state = 'expired' WHERE map_id = ? AND building_key = ? AND state = 'open' AND until <= ?`).bind(mapId, buildingKey, nowS).run();
   try {
-    const wrote = await db.prepare(`INSERT INTO home_offers (id, map_id, building_key, seller, seller_char, buyer, price, keep_decor, keep_items, rev, state, at, until)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`).bind(id, mapId, buildingKey, player.id, character, buyer.id, price, keepDecor ? 1 : 0, keepItems ? 1 : 0, rev, nowS, until).run();
+    const wrote = await db.prepare(`INSERT INTO home_offers (id, map_id, building_key, seller, seller_char, buyer, buyer_char, price, keep_decor, keep_items, rev, state, at, until)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`).bind(id, mapId, buildingKey, player.id, character, buyer.id, target.id, price, keepDecor ? 1 : 0, keepItems ? 1 : 0, rev, nowS, until).run();
     if (!wrote?.meta?.changes) return { error: 'offer-open' };
   } catch {
     return { error: 'offer-open' };
@@ -118,6 +203,7 @@ async function acceptHome(ctx, player, body) {
   if (typeof character !== 'string' || !CHAR_ID_RE.test(character)) return { error: 'no-home' };
   const offer = await db.prepare('SELECT * FROM home_offers WHERE id = ?').bind(id).first();
   if (!offer || offer.buyer !== player.id) return { error: 'offer-closed' };
+  if (offer.state === 'open' && offer.buyer_char != null && offer.buyer_char !== character) return { error: 'offer-wrong-char' };
   if (offer.state === 'accepted' && offer.result) return { ...JSON.parse(offer.result), repeat: true };
   if (offer.state !== 'open' || offer.until <= nowS) {
     if (offer.state === 'open') await db.prepare(`UPDATE home_offers SET state = 'expired' WHERE id = ? AND state = 'open'`).bind(id).run();
@@ -193,6 +279,7 @@ async function acceptHome(ctx, player, body) {
       AND NOT EXISTS (SELECT 1 FROM home_decorators WHERE map_id = ?4 AND building_key = ?5)`)
       .bind(player.id, character, displayName(player), offer.map_id, offer.building_key, offer.seller, offer.seller_char, HOME_CAP),
     mustChange(db),
+    db.prepare('DELETE FROM home_owners WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key),
     db.prepare('DELETE FROM decor_access WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key),
   ];
   if (!keepDecor) {
@@ -234,6 +321,7 @@ async function acceptHome(ctx, player, body) {
 /** Offer, accept, decline or cancel. The client names none of the gold, the owner, or the goods. */
 export async function homeTransfer(ctx, player, body = {}) {
   if (body.op === 'offer') return offerHome(ctx, player, body);
+  if (body.op === 'resolve') return resolveHome(ctx, player, body);
   if (body.op === 'decline') return closeOffer(ctx.db, body.id, player.id, 'declined');
   if (body.op === 'cancel') return closeOffer(ctx.db, body.id, player.id, 'cancelled');
   if (body.op === 'accept') return acceptHome(ctx, player, body);

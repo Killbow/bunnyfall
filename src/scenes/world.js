@@ -14513,6 +14513,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     accountVaultPack: () => ({ pack: () => (playerEntity.items ??= []), refuses: (it) => !!packTradeRefusal(it, playerEntity) }),
     saveSoon: () => saveSoon.changed(),   // PROF-SAVE: a Marks sale's gold in the Bank's account saved soon
     homeDecor,   // DECOR1c: an online home's placed pieces (null offline - the house's and the ship's are the save's)
+    accountCharacters: homesApi ? async () => { const r = await realmList(realmIoNow()); return r.ok ? r.characters : []; } : null,
     decorCharacter: () => characterIdOf(playerEntity),   // DECOR1d: the character an online home's placements are written as
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,

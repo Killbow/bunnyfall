@@ -50,6 +50,7 @@ import { muteRangeText } from './moderation.js';   // AUDIT 68 S14-mute-range-te
 import { GUESTBOOK_TEXT_MAX } from './guestbookLaw.js';   // GUESTBOOK: its bound, in its refusal
 import { FEST_NAME_MAX, FEST_TEXT_MAX } from './playerFestivalLaw.js';   // PLAYER-FESTIVALS: their bounds, in the refusals
 import { HOME_CAP, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_DAYS_MAX } from './homeLaw.js';   // HOME1: the cap a refusal names; HOME-RENT: and the rooms'
+import { HOME_OWNERS_MAX } from '../homes/homeOwnerLaw.js';
 import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY, DECOR_YARDS_TOWN_MAX } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's; YARD-TOWN: a town's
 import { MARKS_MAX, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
 import { NOTES_LIVE_MAX, NOTE_DAYS, NOTICE_DAYS_MAX } from './boardLaw.js';   // NOTICE1: the bounds its refusals name
@@ -384,6 +385,11 @@ const REFUSAL_WORDS = {
   'home-deed': () => t('account.refusal.homeDeed', 'A house given by a knightly order cannot be transferred.'),
   'offer-open': () => t('account.refusal.offerOpen', 'An offer for this house is already out.'),
   'offer-closed': () => t('account.refusal.offerClosed', 'That offer is no longer open.'),
+  'offer-wrong-char': () => t('account.refusal.offerWrongChar', 'This offer is for another of your characters.'),
+  'home-heir-full': () => t('account.refusal.homeHeirFull', 'Every co-owner of one of this character\'s houses already holds {max} houses. Transfer that house first, or sell or transfer one of a co-owner\'s houses.', { max: HOME_CAP }),
+  'home-plan-changed': () => t('account.refusal.homePlanChanged', 'This character\'s houses changed during the delete. Nothing was deleted. Try again.'),
+  'home-owners-full': () => t('housing.owners.full', 'This house already has {max} co-owners.', { max: HOME_OWNERS_MAX }),
+  'home-no-char': () => t('account.refusal.homeNoChar', 'No character has that name.'),
   'offer-stale': () => t('account.refusal.offerStale', 'The room changed. Make the offer again.'),
   // A home's or a caravan's decorators (server-account/src/decorators.js, decoratorDrafts.js, caravanTemplates.js)
   'decor-revoked': () => t('account.refusal.decorRevoked', 'You can no longer decorate this home.'),
@@ -1246,6 +1252,7 @@ export async function call({ fetch, base = DEFAULT_ACCOUNT_SERVICE, secret = nul
       ...(Number.isSafeInteger(data?.position) ? { position: data.position } : {}), ...(Number.isSafeInteger(data?.wait) ? { wait: data.wait } : {}),   // AUDIT SCALE II L4a: the sign-in line's place and its wait (ADMIT-LINE's `queue`)
       ...(Array.isArray(data?.keeps) ? { keeps: data.keeps.filter((k) => typeof k === 'string').slice(0, 16) } : {}),   // GUILD3c: and everything that holds a guild that would go
       ...(Number.isSafeInteger(data?.cakes) ? { cakes: data.cakes } : {}), ...(Number.isSafeInteger(data?.bowls) ? { bowls: data.bowls } : {}),   // WITCH1: a festival refusal's counts, the pack's faces
+      ...(Array.isArray(data?.matches) ? { matches: data.matches.slice(0, 9), ...(data.more === true ? { more: true } : {}) } : {}),
       ...(data?.error === 'banned' ? heardBan(data) : {}),   // AUDIT SAFE CLIENT-2: a ban's end and its reason
       status: res.status };
   }
@@ -2200,6 +2207,7 @@ export function accountHomes({ fetch, storage }) {
     layouts: () => post('/v1/homes/layouts', {}),   // WD3: every town holding a home, and the layout it keeps
     release: (mapId, buildingKey, realm = null) => post('/v1/homes/release', { mapId, buildingKey, ...(realm ? { realm } : {}) }),
     transfer: (body) => post('/v1/homes/transfer', body),
+    owners: (body) => post('/v1/homes/owners', body),
     entry: (mapId, buildingKey, entry) => post('/v1/homes/entry', { mapId, buildingKey, entry }),
     // HOME-RENT: a home's rooms (server-account/src/rent.js) - read at its door, offered and withdrawn by its owner, rented
     // by another player's realm character on its record, and the rent collected by the owner on theirs
