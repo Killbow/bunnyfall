@@ -302,7 +302,7 @@ test('prowlers: an unchased wolf frightens the herd once it has gone; a click ch
 import { stepFarmStation, validStations, stationDaily, herdKeep, birdsWarded, truffleChance, harvestExtras, guanoCare, rankScale, pruneStations } from '../src/net/farm/stationLaw.js';
 import { stepFarmPlough, validGarden } from '../src/net/farmGardenLaw.js';
 import { createFarmGame, ploughLine } from '../src/net/farm/farmGameLaw.js';
-import { contentAt, kindContent } from '../src/net/farm/herdLaw.js';
+import { contentAt, kindContent, droverVisit, droverWeekday } from '../src/net/farm/herdLaw.js';
 import { MOBILE_TYPES as MT } from '../src/characters/mobileTypes.js';
 
 const WOLF = 262, BOAR = 278, DEXBAT = 260;
@@ -459,5 +459,11 @@ test('every crop the farm grows can be drawn, as a plant at every stage and as a
   for (const when of [0, 3 * 3600, 99 * 3600]) {   // seedling, growing, ripe
     const beds = {}; FARM_SEED_IDS.forEach((crop, i) => { beds[i] = { crop, grown: when, tick: T, wetUntil: T, quality: 0, care: 0 }; });
     art.update(site, { beds }, T, -1);
+  }
+});
+
+test('the drover keeps one weekday at each farm, the one the ledger names', () => {
+  for (const mapId of [0, 42, 123456, 0xffffffff]) for (const week of [2900, 2901, 2950]) {
+    assert.equal(droverVisit(mapId, week).day - (week * 7 - 3), droverWeekday(mapId));
   }
 });

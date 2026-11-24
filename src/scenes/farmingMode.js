@@ -436,7 +436,7 @@ export function createFarmingMode(deps) {
   const market = createMarketActs({ mapId: () => farm?.mapId ?? 0, now, garden: () => garden, mine: () => ownHere()?.mapId === farm?.mapId, say: notice,
     ask: (lines, options) => { deps.show?.(new ChoiceWindow({ lines, options })); }, call: (body) => deps.farms().market(farm.mapId, body), busy: () => busy });
   const acts = createFarmsteadActs({ postNote: () => market.postNote(),
-    garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
+    garden: () => garden, now, mapId: () => farm?.mapId ?? 0, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
     setSeed: (id) => { crop = id; tool = 'plant'; }, held: () => crop,
     ask: askYN,
     act: (action) => perform(action),

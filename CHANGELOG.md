@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: The estate ledger on a farm now says which day the drover comes with animals for sale, or that he is there today.
 - Fixed: Company members below Officer can now ship the week's farm orders, instead of getting a message that a friend changed the bed.
 - Fixed: Buying a farm animal or ordering a workshop without enough Company gold now says the treasury is short, instead of saying a friend changed the bed.
 - Fixed: The Overworld now causes fewer brief stutters while stopped on slower computers.

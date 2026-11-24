@@ -51,9 +51,11 @@ export const contentIn = (garden, a, nowS) => contentAt(a, nowS, herdKeep(garden
 export const sackLifeOf = (garden, nowS, base) => (kindContent(garden, 'cat', nowS) ? SACK_LIFE_CAT : base);
 
 // ─── THE DROVER ────────────────────────────────────────────────────────
+/** The drover's UTC weekday at a farm, 0 (Monday, shown as Morndas) to 6 (Sunday, shown as Sundas). */
+export const droverWeekday = (mapId) => hash(mapId >>> 0, 77) % 7;
 /** The drover's day at a farm in week `week` (farmWeek), as a UTC day number, and the three kinds he brings. */
 export function droverVisit(mapId, week) {
-  const dayOfWeek = hash(mapId >>> 0, 77) % 7, day = week * 7 - 3 + dayOfWeek;   // farmWeek's Monday is day week*7-3
+  const dayOfWeek = droverWeekday(mapId), day = week * 7 - 3 + dayOfWeek;   // farmWeek's Monday is day week*7-3
   const kinds = [0, 1, 2].map((k) => ANIMAL_KINDS[hash(mapId >>> 0, week, k) % ANIMAL_KINDS.length]);
   return { day, kinds };
 }
