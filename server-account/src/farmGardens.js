@@ -51,7 +51,7 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const statements = [db.prepare(`UPDATE company_farm_gardens SET garden = ?1, version = version + 1
     WHERE map_id = ?2 AND version = ?3 AND EXISTS (SELECT 1 FROM company_farms WHERE map_id = ?2 AND guild_id = ?4)
       AND EXISTS (SELECT 1 FROM guild_members WHERE player = ?5 AND char_id = ?6 AND guild_id = ?4 AND (?7 = 0 OR rank <= 1))`)
-    .bind(JSON.stringify(step.garden), mapId, version, actor.me.guild_id, player.id, character, management?1:0), mustChange(db)];
+    .bind(JSON.stringify(step.garden), mapId, version, actor.me.guild_id, player.id, character, op === 'upgrade' ? 1 : 0), mustChange(db)];
   if (management) statements.push(...step.statements);
   // PHASE 3: the herd's money and food - an animal bought from the treasury, a feed from the communal Stores
   if (op === 'herd' && step.gold) {

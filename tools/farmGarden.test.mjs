@@ -203,6 +203,17 @@ test('bulk orders consume stock and credit both treasuries once, even on a race 
   f.sql.close();
 });
 
+test('a plain member ships a bulk order that passes every check',async()=>{
+  const f=fixture();
+  f.sql.exec("UPDATE guild_members SET rank=2; INSERT INTO guild_members VALUES ('captain','captainchar','guild1',0,'Captain',1)");
+  f.sql.prepare('INSERT INTO company_farm_gardens VALUES (42,0,?)').run(JSON.stringify(estate(1000)));
+  f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',1000,'Farm',100)");
+  const r=await farmGarden(f.ctx,f.player,{character:'char1',mapId:42,op:'deliver',crop:'grain',version:0});
+  assert.ok(r.ok,JSON.stringify(r));
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1002000);
+  f.sql.close();
+});
+
 test('bought stock cannot replace farm-grown milestones; officers and the Argent switch are enforced',async()=>{
   const f=fixture();f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',10000,'Bought',100)");
   let body={character:'char1',mapId:42,op:'deliver',crop:'grain',version:0};
