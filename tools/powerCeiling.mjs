@@ -7,7 +7,6 @@
 //   node tools/powerCeiling.mjs        the tops, the ceilings and the kit each top is reached with
 import { isMain } from './lib/isMain.mjs';
 import { AFFIX_RANGES, allLegendaries, powerOf } from '../src/items/lootRarity.js';
-import '../src/items/thunderlock.js';   // registers The Last Lock, a Legendary record of its own
 import { GILDED_RECORDS } from '../src/items/gilded.js';
 import { SIGIL_POWER_MAX, SIGIL_STAGES } from '../src/items/sigil.js';
 import { SIGIL_SETS, tierValues, SET_STAGE_MAX, RAMPAGE_STACKS, BLOOD_STACKS, COIL_STACKS, UNBROKEN_LESS } from '../src/items/sigilSets.js';
@@ -63,7 +62,6 @@ export const POWER_BLOW = Object.freeze({
   firstblood: { pct: (p) => p.pct, moment: 'fresh' },
   toll: { pct: (p) => p.pct, moment: 'any' },           // the third shot of the weapon, at any foe
   undertow: { pct: (p) => p.pct * p.max, moment: 'struck' },
-  broadside: { pct: (p) => p.pct, moment: 'struck' },   // the other hand's mark: the pistol's shot landed on this foe
 });
 /** A power's share off a hurt - lootPowers.js lootDamageMod. Dawnward and the Raven turn a blow aside whole (an
  *  avoidance), Bulwark takes points, Unyielding caps a hit by health: none is a share, all stand outside. */
@@ -193,7 +191,7 @@ export const SET_TIER_OTHER = Object.freeze(['orc-hide', 'spite', 'ravager', 'sh
   'battlemages-bearing', 'battlemages-reprieve', 'wyrd-sight', 'soul-harvest', 'spinners-thread', 'mephalas-veil', 'stormwrack', 'captains-due']);
 export const POWER_OTHER = Object.freeze(['chain', 'unyielding', 'dawnward', 'fortune', 'tribute', 'mastery', 'venom', 'quake', 'conduit', 'siphon',
   'echo', 'vigil', 'haste', 'fists', 'evade', 'bulwark', 'grace', 'regen', 'absorb', 'climate', 'school', 'longroad', 'bearing', 'hood',
-  'pierce', 'attune', 'surge', 'dragonfire', 'hammerfall']);
+  'pierce', 'attune', 'surge', 'dragonfire']);
 /** A number's role by its field's name; `kind.field` (a power's kind, a tier's key) where one name means two things. A
  *  `line:` role is a line's kind, held to the Legendary band's top; `id` names a thing, not an amount. */
 export const FIELD_ROLES = Object.freeze({

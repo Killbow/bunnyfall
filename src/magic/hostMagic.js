@@ -71,7 +71,6 @@ import { getPref } from '../ui/uiPrefs.js';   // RPT1026-CLIENT: another player'
 import { SpellImpactFx, SpellImpactPass, SPELL_IMPACT_PROGRAMS, elementFxKind, IMPACT_FX_KINDS } from '../render/spellImpactFx.js';
 import { warmPrograms } from '../render/warmPrograms.js';   // PERF-COMPILE1: the impact pass at idle
 import { startPrograms } from '../render/glProgram.js';   // SHADER-STALL: and built once its compile is done
-import { orbColourFrom } from '../characters/thunderlockIds.js';   // ART-COLOUR: a missile archive's own colour, the Thunderlock orb's sampler   // IMPACTFX: a landing spell in light - its element's spray, a heal's rising lines
 import { createSpellImpactSounds } from './spellImpactSound.js';   // IMPACTFX: ...and heard
 import { createMagicCandle } from './magicCandle.js';   // X11: the Light effect's candle
 import { CAPSULE_HEIGHT } from '../player/motor.js';   // PlayerController.height, the candle's y term
@@ -138,6 +137,29 @@ export const GROUND_TOUCH_M = 0.02;
  * `reach` the step's reach along the unit ray, `stepLen` the step's length on it (so the radius is reach - stepLen).
  * @param {any} collider @param {number[]} pos @param {number[]} unit @param {number} reach @param {number} stepLen
  */
+/** Chroma-weighted colour of a missile sprite, normalized for lighting. */
+function missileSpriteColour(color32) {
+  const d = color32?.colors;
+  if (!d || !d.length) return null;
+  let r = 0, g = 0, b = 0, w = 0;          // chroma-weighted
+  let pr = 0, pg = 0, pb = 0, pw = 0;      // plain alpha-weighted, for the greyscale fallback
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3];
+    if (!a) continue;
+    const R = d[i], G = d[i + 1], B = d[i + 2];
+    pr += R * a; pg += G * a; pb += B * a; pw += a;
+    const chroma = Math.max(R, G, B) - Math.min(R, G, B);
+    if (!chroma) continue;
+    const k = a * chroma;
+    r += R * k; g += G * k; b += B * k; w += k;
+  }
+  if (!w) { r = pr; g = pg; b = pb; w = pw; }   // nothing chromatic: the old answer, on purpose
+  if (!w) return null;
+  const peak = Math.max(r, g, b);
+  if (peak <= 0) return null;
+  return [r / peak, g / peak, b / peak];
+}
+
 export function flightStop(collider, pos, unit, reach, stepLen) {
   const radius = reach - stepLen;
   const cs = coverStep(coverDistance(collider, pos, unit, reach), collider.raycast(pos, unit, reach), reach, radius, stepLen);
@@ -352,11 +374,32 @@ export function createPlayerMagic({
   // reach (the town's defenders passed by, as my spells pass them); a hurt is my hurt through the foe's own sinks - its
   // pool's door, a kill mine and a puppet's hit its owner's - and a spell on me is a potion's (no save, no chance roll).
   let _doorFeet = null;
+  let doorForward = null;
   const _door = Object.freeze({
     foes: () => playerTargets().filter((t) => t && !t.dead && t.entity),
     feet: () => _doorFeet,
+    facingYaw: () => doorForward ? Math.atan2(doorForward[0], doorForward[2]) : 0,
     hurtFoe: (t, n) => { if (t && !t.dead && n > 0) foeSinks(t, true)?.hurt?.(Math.round(n), { fromPlayer: true }); },
-    castOnPlayer: (bundle, { power = false } = {}) => { if (bundle) applySpellToPlayer(bundle, effectiveLevel(playerEntity) ?? 1, null, { bypassSavingThrows: true, bypassChance: true, ...(power ? { powerCast: true } : {}) }); },   // AUDIT SCHOOLS: `power` - a path's rider: a merge with it takes the larger pool or chance (effects.js powerCast)
+    castOnPlayer: (bundle, { power = false, placement = null, companionRange = 0 } = {}) => {
+      if (!bundle) return;
+      applySpellToPlayer(bundle, effectiveLevel(playerEntity) ?? 1, null, {
+        bypassSavingThrows: true, bypassChance: true, ...(power ? { powerCast: true } : {}),
+      });
+      if (placement) bunny.cast(bundle, placement.eye, placement.dir);
+      if (companionRange > 0 && _doorFeet) {
+        const nearby = companionMarksFor(bundle, false).filter(({ ai }) =>
+          Math.hypot(ai.feet[0] - _doorFeet[0], ai.feet[1] - _doorFeet[1], ai.feet[2] - _doorFeet[2]) <= companionRange
+          && burstClear(collider, _doorFeet, ai.feet));
+        giveToCompanions(nearby, bundle);
+      }
+    },
+    utilityTravel: (action) => {
+      if (!onTeleport) return false;
+      const refusal = spellRefusal?.({ effects: [{ type: 43, subType: 255 }] });
+      if (refusal) { say?.(refusal); return false; }
+      return onTeleport(action);
+    },
+    previewUtilityRefusal: bundle => spellRefusal?.(bundle) ?? sandSpellRefusal(bundle),
     player: () => playerEntity,
     clear: (a, b) => burstClear(collider, a, b),   // AUDIT SET M4
     say: (line) => say?.(line),   // RVN3: a line the scene's HUD speaks (a revenant's weakness found, on the classic skin)
@@ -701,7 +744,7 @@ export function createPlayerMagic({
     _artAsked.add(el);
     Promise.resolve().then(() => getTexture(missileArchive(el))).then((t) => {
       if (!t?.getColor32 || !t?.getDFBitmap) return;
-      const sample = (rec) => { try { return (t.recordCount == null || rec < t.recordCount) ? orbColourFrom(t.getColor32(t.getDFBitmap(rec, 0), 0)) : null; } catch { return null; } };
+      const sample = (rec) => { try { return (t.recordCount == null || rec < t.recordCount) ? missileSpriteColour(t.getColor32(t.getDFBitmap(rec, 0), 0)) : null; } catch { return null; } };
       const c = sample(1) ?? sample(0);
       if (c) fx.setArtColour(elementFxKind(el), c);
     }).catch(() => { /* the first guess stands */ });
@@ -1536,6 +1579,7 @@ export function createPlayerMagic({
     // SET2: THIS host is the scene now - its live foes, my feet in its frame, and its own doors for a hurt and a spell
     // (systems/playerDoor.js: what a set's power reaches past the one blow through)
     _doorFeet = playerFeet ?? null;
+    doorForward = forward;
     setPlayerDoor(_door);
     stepSparks(dt);   // IMPACTFEEL (after the door: SET2 publishes it first thing each frame): the chunks' flight
     fx.step(dt);      // IMPACTFX: the light's

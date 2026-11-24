@@ -75,6 +75,7 @@
 
 import { PARTY_MAX } from '../net/wire.js';
 import { registerWeaponBlowMod } from '../characters/entityMods.js';
+import { setSigilDueling, sigilDueling } from './sigilDuelState.js';
 import { blowRoom } from '../characters/powerCeiling.js';   // POWER-CEILING: the blow's one product
 
 /** The power band per tier, per cent at full rank: [min, max] inclusive. */
@@ -188,9 +189,7 @@ let _renown = null;
  *  between players on a relay's sand, where the opponent is a Daedra Lord's stand-in for the formulas and no player, so
  *  the gates that refuse a blow at a player never saw one. Every power that sleeps in a duel reads it here: the sets and
  *  the loot's powers (sigilSets.js setsDueling) and the weapon's own blow below. */
-let _dueling = false;
-export function setSigilDueling(on) { _dueling = !!on; }
-export const sigilDueling = () => _dueling;
+export { setSigilDueling, sigilDueling };
 /** The host's word: this session plays online (stamps are minted) or not. */
 export function setSigilOnline(on) { _online = !!on; if (!_online) _renown = null; }
 /** The host's word: the Renown the wielder has, null while unknown. Offline it is always null. */
@@ -242,7 +241,7 @@ let _carry = new WeakMap();
  * here, a hand without a sigil, or a session with no Renown.
  */
 export function sigilBlow(weapon, damage, attacker, target, info = null) {
-  if (!(damage > 0) || !weapon || !attacker?.isPlayer || attacker.peer || !target || target.isPlayer || _dueling) return damage;
+  if (!(damage > 0) || !weapon || !attacker?.isPlayer || attacker.peer || !target || target.isPlayer || sigilDueling()) return damage;
   const pct = blowRoom(sigilPercent(weapon.sigil, _renown), 'sigil');   // POWER-CEILING: its room under the blow's one product
   if (!(pct > 0)) return damage;
   const exact = (damage * pct) / 100 + (_carry.get(weapon) ?? 0);
@@ -319,4 +318,4 @@ export function sigilProgressText(v) {
 }
 
 /** Tests only: forget the session and every weapon's carried fraction. */
-export function _resetSigilForTests() { _online = false; _renown = null; _dueling = false; _carry = new WeakMap(); }
+export function _resetSigilForTests() { _online = false; _renown = null; setSigilDueling(false); _carry = new WeakMap(); }

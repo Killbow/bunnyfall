@@ -72,7 +72,10 @@ export function countSrcLines(read = (p) => readFileSync(p, 'utf8')) {
   }
   files = files.filter((f) => f.endsWith('.js'));
   let n = 0;
-  for (const f of files) n += read(f).split('\n').length - 1;
+  for (const f of files) {
+    try { n += read(f).split('\n').length - 1; }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+  }
   return n;
 }
 

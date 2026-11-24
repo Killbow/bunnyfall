@@ -53,7 +53,7 @@ export const WEAPON_HALF_LINE = 0.5;
  *  own included): the bare hand Hand-to-Hand, the Thunderlock Archery (it is scored on it). Null for anything else. */
 const SKILL_OF_FAMILY = Object.freeze({
   longBlade: SKILLS.LongBlade, shortBlade: SKILLS.ShortBlade, axe: SKILLS.Axe, blunt: SKILLS.BluntWeapon,
-  archery: SKILLS.Archery, thunderlock: SKILLS.Archery, handToHand: SKILLS.HandToHand,
+  archery: SKILLS.Archery, handToHand: SKILLS.HandToHand,
 });
 export const blowSkillOf = (weapon) => (weapon ? SKILL_OF_FAMILY[techniqueFamily(weapon) ?? ''] ?? null : SKILLS.HandToHand);
 

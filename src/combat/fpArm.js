@@ -45,7 +45,7 @@ import { ClimbPose, POSE } from '../player/climbPose.js';   // CLIMB6: the climb
 import { runWeightStep, runPhaseFollow, pumpTarget3D, RUN_3D, mirrorStrike, guardStep, GUARD, pairSpreadAngle, PAIR_SPREAD, easeTo } from './twoHands/handsLaw.js';   // TWO-HANDS: the run's pump, the sprite lane's stroke on the 3D body; a mirrored blow's way across the screen; the guard's weight; TWO-HANDS SPREAD: the pair's arms turned out
 import { strikingSide, mirrorPlan, counterpartName } from './twoHands/mirrorRig.js';   // TWO-HANDS: which fist a hand-to-hand clip throws; the wrists, for the pins; a blade's own bone across
 import { createHeldClips, spellHandLimbs, spellHandStanceStep, drawsIntoSpellHand } from './twoHands/spellHandArm.js';   // SPELL-HAND: a spell in the free hand beside the weapon - the arm it lends, the stance it keeps
-import { gunArmOf, blowTypeOf, gunHoldOf, offStanceTypeOf, gunAimShooting, blowWeaponOf, muzzlePieceOf } from './twoHands/mixedArm.js';   // MIXED-PAIR: a blade and a Pistolet - each hand's blow in its own group, the gun held as a gun
+import { blowWeaponOf } from './twoHands/mixedArm.js';   // MIXED-PAIR: a blade and a Pistolet - each hand's blow in its own group, the gun held as a gun
 import { climbRequestToRig, climbRequestToFirstPerson } from './climbRig.js';   // CLIMB6: ...and in each rig's space
 import { seatRequestFor, seatedCamera, saddleRequestFor } from '../player/seatPose.js';   // CARDS2b: the seat in the rig's space; WAGONS3: and the body still on it; COATS3D: and astride
 import { fieldOfView } from '../ui/viewSettings.js';   // CLIMB6: the world lens the arm's hands are matched to
@@ -103,10 +103,6 @@ import { injectSkeletonNodes } from '../formats/mwSkin.js';   // WS1: the dry in
 // MAP3: THE HELD SHEET - the pose deltas over the idle, the paper piece
 // the hands hold, and where its corners land on the composite
 import { deltaTracks, heldSampler, paperPiece, refreshPaperSource, projectPaperCorners, normaliseHeldPose, HELD_POSE_DEFAULT } from './heldPose.js';
-import { farthestVertexIndex, posedVertex, viewOffsetOf, worldPointOf } from './rigMuzzle.js';   // AUDIT FIELD-GUN-MW F2: where the barrel ends, off the posed piece
-import { armKickMatrix } from './gunFeel.js';   // MW-GUN-FEEL: the gun's recoil and reload, as one pose over the viewmodel
-import { rifleStanceStep } from './rifleStance.js';   // RIFLE-STANCE: a long gun held in the hands - the low ready, the aim
-import { applyGunStance } from './gunHold.js';   // PISTOL-STANCE: the hold by the gun's kind - the rifle's or the pistol's
 import { createHipLantern, HIP_LANTERN_HEIGHT } from '../player/lanternSwing.js';   // HT-WAIST: the one swing law both bodies feed (BODY-MOTION: its rider moved there); HT-WAIST-SIZE: the one height they hang
 import { createBodyMotion, motionWord } from '../characters/bodyMotion/bodyMotion.js';   // BODY-MOTION: the third-person body's gait, carry and blows
 import { spinePitchFactor, spineAimSlot } from './spineAim.js';   // BOW-AIM: the third-person body's ranged aim follows the look
@@ -115,7 +111,7 @@ import { spellFxPlan } from '../formats/mwSpellFx.js';   // MW-SPELLFX1: which v
 import { effectSchool } from '../magic/spellcost.js';   // MW-SPELLFX1: a family the mapping does not name is drawn as its school
 import { createVfxGpu } from '../render/vfxGpu.js';   // MW-SPELLFX1: an effect's streams on the GPU
 import { validCastRate } from '../magic/castSpeed.js';   // CAST-SPEED: the rate a cast is handed, made safe
-import { skinLayout, skinSamePieces, packSkinStream, writeSkinPalette, skinnedVertex, restreamMovedRows } from '../formats/mwGpuSkin.js';   // MWNPC1: the third body's skin, on the GPU
+import { skinLayout, skinSamePieces, packSkinStream, writeSkinPalette, restreamMovedRows } from '../formats/mwGpuSkin.js';   // MWNPC1: the third body's skin, on the GPU
 import { pageParam } from '../platform/pageQuery.js';   // MWNPC1: the GPU skin's bisect door
 import { t } from '../ui/textManager.js';   // L10N4: AUDIT MW-FOLK1's note in the player's language
 
@@ -1556,13 +1552,6 @@ export const hasAmmoFor = (items, weapon) => ammoCountFor(items, weapon) > 0;
  */
 export function weaponPartPaths({ weapon, hasAmmo = false, allWeapons, has = null }) {
   const paths = [];
-  // FIELD-GUN-MW2: the same first question resolveWeaponParts asks, in
-  // the same order. A preload that skipped this would leave the read
-  // below it calling `arc.get` on a lazy archive that had not loaded -
-  // which MW-LOAD's findLoaded exists to catch and name, and which is a
-  // defect in THIS file every time it fires.
-  const own = ownWeaponModelFor(weapon);
-  if (own) return [`meshes/${own.model}`];
   const mwType = dfWeaponToMw(weapon, WEAPONS);
   if (mwType === MW_WEAPON_TYPE.None) return paths;
   const rec = pickWeaponRecord(allWeapons, mwType, weapon ? materialName(weapon) : null, { has, shape: dfWeaponShape(weapon, WEAPONS) });   // MW-D50: a record the archives carry
@@ -1744,7 +1733,6 @@ export const archiveHas = (archives) => (p) => (archives ?? []).some((a) => a.ha
  *  a fault the player sees from the chair and could not name - the
  *  card's note is the same sentence, but the card is a menu away. */
 import { ammoCountFor } from '../items/inventory.js';   // AUDIT 68 S27-ammoCount-dup: the ammunition count's one home, beside the spend law
-import { ownWeaponModelFor } from '../characters/ownWeaponModels.js';   // FIELD-GUN-MW2: the weapons Morrowind does not have - a leaf too
 import { glowUnit } from '../render/weaponGlowGlsl.js';   // WEAPON-GLOW1: the glow's unit off the lens's rows - a leaf
 import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look - a leaf
 
@@ -1962,44 +1950,6 @@ export function resolveWeaponParts({ weapon, hasAmmo = false, allWeapons, find, 
   let weaponInfo = null;
   let arrowInfo = null;
   const mwType = dfWeaponToMw(weapon, WEAPONS);
-  // FIELD-GUN-MW2: THE PORT'S OWN WEAPONS FIRST, because Morrowind has
-  // no record for them and no type to look one up by. This arm cannot
-  // shadow a Morrowind weapon - `ownWeaponModelFor` answers only for
-  // template indices `registerCustomTemplates` minted, which are past
-  // every DFU index - and it returns before the type lookup rather than
-  // after it, so the note below ("Morrowind has no weapon type for what
-  // you are holding") stays true of the items it is actually about.
-  const own = ownWeaponModelFor(weapon);
-  if (own) {
-    const path = `meshes/${own.model}`;
-    const arc = find(path);
-    if (!arc) {
-      // Not "your archives do not carry it": ours is SHIPPED, so a miss
-      // here is the build's fault and not the player's, and saying so
-      // is the difference between a bug report and a wild goose chase.
-      notes.push(`weapon: ${path} comes with the game and did not load. This is a game problem, not your files`);
-    } else if (!skeletonHasBone(skeletonBytes, own.bone)) {
-      notes.push(noBoneNote('weapon', own.bone, own.name));
-    } else {
-      // RIFLE-STANCE: the row's attitude on the bone (a pistol grip through the fist - ownWeaponModels.js GUN_GRIP_ATTITUDE),
-      // and how the arms hold it (combat/gun/rifleStance.js)
-      parts.push({ slot: 'weapon', bones: [own.bone], bytes: nifBytes(arc, path), ...(own.attitude ? { preTransform: own.attitude } : {}) });
-      weaponInfo = { id: own.id, name: own.name, model: own.model, type: own.animateAs, bone: own.bone, speed: own.speed, own: true, holdAs: own.holdAs ?? null, attitude: own.attitude ?? null };
-    }
-    // THE BORROWED TYPE IS WHAT GOES BACK, not None, and it is the
-    // difference between a rig and a mesh on a bone: every caller of
-    // this function's `mwType` is an ANIMATION question - the stance
-    // group, the wind-up and release keys, whether the left hand
-    // carries anything - and `animWeaponType` turns None into
-    // HandToHand, so the arms would punch while holding the gun.
-    //
-    // ITS AMMUNITION IS NOT BORROWED. `ammoTypeFor` of a crossbow is
-    // Bolt, and the arm below would instance a Morrowind quarrel on
-    // the arrow bone. Returning here is what stops it, and `borrowsAmmo`
-    // on the row says so where somebody deciding to change this will
-    // read it.
-    return { mwType: own.animateAs, parts, weaponInfo, arrowInfo, notes };
-  }
   if (mwType !== MW_WEAPON_TYPE.None) {
     const rec = pickWeaponRecord(allWeapons, mwType, weapon ? materialName(weapon) : null, { has, shape: dfWeaponShape(weapon, WEAPONS) });   // MW-D38; MW-D50: a record the archives carry
     if (!rec) {
@@ -3674,7 +3624,6 @@ export function createFpArm() {
   let upper = UPPER_BODY.None;
   let spellReady = false;        // MW-D39: a spell is readied (the stance)
   let spellHand = false, spellInHand = false;   // SPELL-HAND: the spell goes in the free hand beside the weapon (the rig's word), and one is readied there
-  let blowType = null;   // MIXED-PAIR: the blow in flight plays in the striking hand's own group (mixedArm.js blowTypeOf) - null, the arm's
   let unreadyAfterCast = false;  // MW-CAST1: the spell went (its ready cleared) mid-cast - the stance drops when the cast ends
   let castReleased = false;      // MW-CAST1: the cast crossed its "<type> release" - consumed by takeCastRelease
   let castRate = 1;              // CAST-SPEED: the rate this cast's spellcast group plays at (systems/castSpeed.js)
@@ -3768,20 +3717,7 @@ export function createFpArm() {
   let pairSpread = 0, spreadMemo = null;   // TWO-HANDS SPREAD: the first-person pair's arms' turn out this frame, eased; and what its blades ask, per rig and bound blades (stepPairSpread)
   let heldMemo = null;           // { base, spec, inner, tracks, sampler }
   let lastFrame = null;          // { model, view, proj, rect } - what draw() last composed with
-  /** MW-GUN-FEEL: the gun's kick and reload this frame - `{ pitch, back, down }` (combat/gun/gunFeel.js armGunPose), set by
-   *  the rig (weaponRig.js thunderlockFeel) - or null. */
-  let gunFeel = null;
-  /** RIFLE-STANCE (combat/gun/rifleStance.js): the long gun's hold - its weight, the aim's share, the seconds since a shot -
-   *  stepped once a frame (stepRifle); and the fight's own signal the rig hands it (setCombatReady: a foe's harm). */
-  let rifle = { w: 0, ready: 0, since: Infinity };
-  let rifleCombat = false;
-  let lastThirdModel = null;   // AUDIT FIELD-GUN-MW F2: drawThird's model matrix, for the muzzle in the world
   let drawnArm = null, drawnMats = null;   // SHADOW-CLOAK (AUDIT): the arm and the pose drawThird last drew - a host that poses again before the auras (the dungeon) never hands a cape the next frame's
-  /** The muzzle vertex of a weapon piece, found once off its unposed source and kept on the piece. */
-  const muzzleIndexOf = (piece) => {
-    if (piece.muzzleIndex == null) piece.muzzleIndex = farthestVertexIndex(piece.source);
-    return piece.muzzleIndex;
-  };
   let drewLast = false;          // AUDIT-MAP2: whether the LAST draw() call composed the arm
   /** Put (or re-put) the sheet on the rig at the camera node's translation.
    *  The reach - which sets the pass's far plane (rule 54: the planes come
@@ -4096,12 +4032,6 @@ export function createFpArm() {
   function iconRecordOf(cat, item) {
     try {
       if (item.group === 'Weapons') {
-        // MW-ASSIGN (2026-09-27, Discord: "Some sprites not assigned morrowind skin"): a weapon of the port's OWN (the
-        // Thunderlock) is its own shipped model on the icon and hung on a wall, as it is in the hand
-        // (resolveWeaponParts) - Morrowind's records hold no type for it, so the ask below answered none and the
-        // classic picture stood
-        const own = ownWeaponModelFor(item);
-        if (own) return { id: own.id, model: own.model };
         const mwType = dfWeaponToMw(item, WEAPONS);
         return mwType !== MW_WEAPON_TYPE.None ? pickWeaponRecord(cat.weapons, mwType, materialName(item), { shape: dfWeaponShape(item, WEAPONS) }) : null;
       }
@@ -4443,29 +4373,6 @@ export function createFpArm() {
   // ---- TWO-HANDS: the second hand on the body (combat/twoHands/mirrorRig.js) and the run's pump -----------------------------
   const attackingNow = () => upper === UPPER_BODY.AttackWindUp || upper === UPPER_BODY.AttackRelease || upper === UPPER_BODY.AttackEnd;
   // ---- RIFLE-STANCE: the long gun in the hands (combat/gun/rifleStance.js) ---------------------------------------------------
-  /** The rig holds its weapon in a gun's own stance (the row's `holdAs` - the Thunderlock's long gun; PISTOL-STANCE: the
-   *  Pistolet's pistol, combat/gun/gunHold.js). */
-  const holdsRifle = (r) => !!gunHold(r);
-  /** MIXED-PAIR / SPELL-HAND (combat/twoHands/mixedArm.js gunHoldOf): the gun stance's hand on rig `r` - the right's, a pair's
-   *  two, a mixed pair's gun alone, or the one gun beside a spell hand's spell - or null with no gun held. */
-  const gunHold = (r) => (r ? gunHoldOf({ weapon: r.weapon, offWeapon: r.offWeapon, dual: handsMode === 'dual', offShown: offShown(r), spellHand }) : null);
-  /** The hold's state for the frame: wanted while the gun is in the hands and nothing else has them - not the draw or
-   *  the sheathe (the clip carries the gun from the holster and back), not the stone, a seat, a saddle, a sheet, a spell
-   *  or the dead; up to the aim while it shoots, for RIFLE_EASE.hold after, and while the fight's signal stands. */
-  function stepRifle(cam, dt) {
-    const wanted = holdsRifle(built) && weaponInHand() && !climbHands && !held && !deathState
-      && upper !== UPPER_BODY.Equipping && upper !== UPPER_BODY.Unequipping && !(cam && (cam.seat || cam.saddle));
-    const g = wanted ? gunHold(built) : null;
-    // MIXED-PAIR: the gun's aim comes up for its own hand's shot, never the blade's swing beside it
-    rifle = rifleStanceStep(rifle, { wanted, shooting: gunAimShooting({ attacking: attackingNow(), hold: g, dual: handsMode === 'dual', hand: attackHand }), combat: rifleCombat, free: !spellHand, dt });
-  }
-  /** The hold for rig `r` in `view` (poseAssembly's `hold`), or null while it weighs nothing. */
-  const rifleHold = (view, r) => {
-    const g = rifle.w > 0 ? gunHold(r) : null;
-    // PISTOL-STANCE: a pair's left hand on its second pistol; MIXED-PAIR: a blade-and-gun pair's gun hand alone, on its own
-    // row; SPELL-HAND: one gun's free hand left to the spell (mixedArm.js gunHoldOf)
-    return g ? (sk, pose, root, sm) => applyGunStance(g.row.holdAs, sk, pose, root, sm, { w: rifle.w, ready: rifle.ready, view, eyeRef: view === 'first' ? r.cameraRef : null, attitude: g.row.attitude, pair: g.pair, only: g.lone ? 'R' : g.only, free: g.lone ? (rifle.free ?? 1) : 0 }) : null;
-  };
   /** The left hand's weapon shows on rig `r`: a pair is held, a weapon is in hand (drawn, no spell), and the rig bound
    *  one on its Weapon Bone Left. The blade's alone - the arm's composition is pairHeld's. */
   const offShown = (r) => handsMode === 'dual' && weaponInHand() && !!(r && r.offWeapon);
@@ -4557,26 +4464,22 @@ export function createFpArm() {
     if (req.plane && pairSpread > 0) req.spread = pairSpread;
     const idle = idleClip();
     if (pairHeld()) {   // TWO-HANDS AUDIT: the pair in the hands, not the left blade bound - a rig that cannot hang it still holds two
-      // MIXED-PAIR (combat/twoHands/mixedArm.js): a blade-and-gun pair's left arm holds ITS weapon's own stance idle, in the
-      // mirror - never the right weapon's
-      const offType = r ? offStanceTypeOf(r) : null;
-      const offIdle = offType != null ? heldClips.clip(r, stanceIdle(r, offType), dt) : null;
       if (attackingNow() && attackHand === 'L') {
         req.full = true;
         if (idle) req.limbs = { R: { clip: idle, side: 'R', mirror: false } };
         req.carry.key = 'dual:L';
       } else if (attackingNow()) {
-        const offClip = offIdle ?? idle;
+        const offClip = idle;
         req.limbs = { L: offClip ? { clip: offClip, side: 'R', mirror: true } : { pose: null, side: 'R', mirror: true } };
         req.carry.key = 'dual:R';
       } else {
         // TWO-HANDS FIELD (Mac: "Both arms swing the same direction"): on the move the left arm is the right's mirror
         // HALF A STRIDE ON (strideOpposite) - the arms swing against each other as the clip's own two do, each blade
         // still carried as the right carries its own. The frame's own right arm, mirrored, swung both arms together
-        const stride = offIdle ? null : strideOpposite();
-        const offClip = offIdle ?? stride;
+        const stride = strideOpposite();
+        const offClip = stride;
         req.limbs = { L: offClip ? { clip: offClip, side: 'R', mirror: true } : { pose: null, side: 'R', mirror: true } };
-        req.carry.key = offIdle ? 'dual:mixed' : stride ? 'dual:stride' : 'dual';
+        req.carry.key = stride ? 'dual:stride' : 'dual';
       }
       return req;
     }
@@ -4967,7 +4870,7 @@ export function createFpArm() {
    *  and attack sections all live in it. */
   function refreshWeaponGroup() {
     if (!built || !built.ok) { weaponGroup = null; return; }
-    const type = animWeaponType(blowType ?? built.mwType, sheathed, spellReady);   // MIXED-PAIR: a blow of the other kind plays its own hand's group
+    const type = animWeaponType(built.mwType, sheathed, spellReady);   // MIXED-PAIR: a blow of the other kind plays its own hand's group
     weaponGroup = composeWeaponGroup(type, hasGroup).group;
   }
 
@@ -5051,12 +4954,8 @@ export function createFpArm() {
     attackType = null;
     attackHand = null;   // TWO-HANDS
     blowPlan = null;
-    if (blowType != null) { blowType = null; refreshWeaponGroup(); }   // MIXED-PAIR: the arm's own group again
     if (resetIdleOnAttackEnd) { resetIdleOnAttackEnd = false; resetIdle(); }
   }
-  /** MIXED-PAIR: and a blow cut short by something else - a sheathe, a weapon swapped in the hand, a death - hands the arm
-   *  its own group back as its end does, so the stance that follows is never the struck hand's. */
-  function dropBlowType() { if (blowType != null) { blowType = null; refreshWeaponGroup(); } }
 
   /**
    * MWNPC9: A NON-BIPED CREATURE'S BLOW (character.cpp:1355-1363 and :1529-1532): "Randomize attacks for non-bipedal
@@ -5284,7 +5183,7 @@ export function createFpArm() {
         jumpState = null; jumpGroup = null; jumpSource = null; jumpStance = null; jumpKind = null;   // MW-D39
         lastYaw = null; turnDir = 0; turnHold = 0;
         upper = UPPER_BODY.None; attackType = null; holdWindUp = false;
-        blowType = null; attackHand = null;   // AUDIT MIXED-PAIR L3-7: a blow a rebuild cuts takes its hand and group with it
+        attackHand = null;   // AUDIT MIXED-PAIR L3-7: a blow a rebuild cuts takes its hand and group with it
         weaponShown = false; arrowShown = false; notes.length = 0; aimFactor = 0; sneaking = false;
         idleSource = null; actionSource = null; poseSource = null;
         // A REBUILT ARM STARTS SHEATHED, whatever the last one was doing.
@@ -5344,7 +5243,7 @@ export function createFpArm() {
       lastYaw = null; turnDir = 0; turnHold = 0;
       idleState = null; actionState = null; idleGroup = null; weaponGroup = null; weaponClock = { group: null, value: 0 };   // MW-BOW1: no group, no state
       upper = UPPER_BODY.None; attackType = null; holdWindUp = false;
-      blowType = null; attackHand = null;   // AUDIT MIXED-PAIR L3-7
+      attackHand = null;   // AUDIT MIXED-PAIR L3-7
       weaponShown = false; arrowShown = false;
       notes.length = 0; aimFactor = 0; sneaking = false;
       idleSource = null; actionSource = null; poseSource = null;
@@ -5394,7 +5293,6 @@ export function createFpArm() {
         // per-frame sync starts the unequip on the next frame, exactly
         // as the reference's per-frame updateWeaponState does.
         if (upper === UPPER_BODY.AttackRelease || upper === UPPER_BODY.AttackEnd) return false;
-        dropBlowType();   // MIXED-PAIR: a wind-up put away unequips in the arm's own group
         if (upper === UPPER_BODY.None || !weaponGroup) {
           sheathed = true; weaponShown = false; arrowShown = false;
           refreshWeaponGroup(); refreshIdle(true);
@@ -5651,7 +5549,6 @@ export function createFpArm() {
           packed = null;
           // The old action clip belonged to the old weapon's group.
           actionState = null; actionSource = null; attackType = null; holdWindUp = false;
-          blowType = null;   // MIXED-PAIR: and the blow's group with it (both branches below re-resolve the group)
           wornKey = key;
           wornWeaponKey = fpWeaponKey(item, false);   // WEAPON-GLOW1 (AUDIT NET-1): the hand the mesh now holds
           if (lastBuildOpts) { lastBuildOpts.weapon = item; lastBuildOpts.hasAmmo = hasAmmo; lastBuildOpts.ammoCount = ammoCount; }   // AUDIT MW-TORCH F5: setWorn's rebuild carries the hand that is IN it (AUDIT 68 S08-fparm-ammocount-dropped: and its quiver)
@@ -5759,12 +5656,10 @@ export function createFpArm() {
       const blowHand = hand === 'L' || hand === 'R' ? hand : leadHand;   // TWO-HANDS: the blow's hand - the clip's, or its mirror's
       // MIXED-PAIR (combat/twoHands/mixedArm.js): a blade-and-gun pair's left hand strikes in ITS weapon's group - a shot's
       // "shoot" and its release, a swing's own hit - for the blow's length (endAttack hands the arm its own back)
-      const bt = blowTypeOf({ gunArm: gunArmOf({ dual: handsMode === 'dual', weapon: built.weapon, offWeapon: built.offWeapon }), hand: blowHand, offType: built.offWeapon?.type });
-      if (bt !== blowType) { blowType = bt; refreshWeaponGroup(); }
       const type = mwAttackType(strike, {
-        bow: shootsRatherThanSwings(animWeaponType(blowType ?? built.mwType, sheathed)),
+        bow: shootsRatherThanSwings(animWeaponType(built.mwType, sheathed)),
       });
-      if (!type) { if (blowType != null) { blowType = null; refreshWeaponGroup(); } return null; }
+      if (!type) return null;
       attackType = type;
       attackHand = blowHand;
       attackStrength = 1;
@@ -5812,7 +5707,6 @@ export function createFpArm() {
         attackHand = null;
         holdWindUp = false;
         blowPlan = null;
-        if (blowType != null) { blowType = null; refreshWeaponGroup(); }   // MIXED-PAIR
         return null;
       }
       blowPlan = blowPace(blow, k);
@@ -5880,30 +5774,6 @@ export function createFpArm() {
      *  held map draws the arms whatever the WEAPON's own `shown()` says. */
     holdingPaper() { return !!held; },
     setHeldPose(spec) { return held ? api.holdPaper(spec, { aspect: held.aspect }) : false; },
-    /** AUDIT FIELD-GUN-MW F2: WHERE THE BARREL ENDS, off the posed weapon
-     *  piece - the vertex farthest from the grip (the bake's origin),
-     *  through the pass the last draw of THIS view composed. First person
-     *  answers the classic muzzle's own shape, a lens-local offset in
-     *  metres ({ right, up, forward }); third person answers the world
-     *  point ({ world }), because the camera is behind the body and a lens
-     *  offset would put the orb in the air beside it. Null before a draw,
-     *  without a weapon piece, or under a rig that has not built. */
-    weaponMuzzle(hand = 'R') {
-      // AUDIT MIXED-PAIR L3-6: a pair's LEFT hand shoots from its own piece (mixedArm.js muzzlePieceOf) - a gun beside a
-      // blade, a gun pair's left pistol - never the right weapon's tip
-      if (viewMode === 'third') {
-        const t = thirdBuilt;
-        const piece = t && t.ok ? muzzlePieceOf(t.arm.pieces, hand) : null;
-        if (!piece || !piece.positions || !piece.source || !lastThirdModel) return null;
-        // MWNPC1: a GPU-skinned body has no posed vertices on the CPU - the one point is skinned by the shader's law
-        const at = thirdMesh && thirdMesh.skin && thirdSkin ? skinnedVertex(thirdSkin, piece, muzzleIndexOf(piece)) : posedVertex(piece.positions, muzzleIndexOf(piece));
-        if (!at) return null;
-        return { world: worldPointOf(at, lastThirdModel) };
-      }
-      const piece = built && built.ok ? muzzlePieceOf(built.arm.pieces, hand) : null;
-      if (!piece || !piece.positions || !piece.source || !lastFrame) return null;
-      return viewOffsetOf(posedVertex(piece.positions, muzzleIndexOf(piece)), lastFrame.model, lastFrame.view, MW_UNITS_PER_METER);
-    },
     /** MAP3: the sheet's four corners on the composite, in CSS px of the
      *  canvas (top-left, top-right, bottom-right, bottom-left), through
      *  the model, view and projection the last draw composed with - or
@@ -6222,7 +6092,6 @@ export function createFpArm() {
       const pick = g ? pickAnimSource(rig().sources, g, resetClip, { startPoint, loopCount: 0 }) : null;   // playDeath's loops: 0
       dead = true;
       actionState = null; actionSource = null; holdWindUp = false; attackType = null; blowPlan = null;
-      dropBlowType();   // MIXED-PAIR
       upper = sheathed ? UPPER_BODY.None : UPPER_BODY.WeaponEquipped;
       movementState = null; movementSource = null; movementGroup = null;
       jumpState = null; jumpSource = null; jumpKind = null;
@@ -6398,7 +6267,6 @@ export function createFpArm() {
       stepRunPump(dt);   // TWO-HANDS: the running hands' weight and stride
       stepPairGuard(dt);   // TWO-HANDS AUDIT: the pair's guard
       stepPairSpread(dt);   // TWO-HANDS SPREAD: the pair's arms turned out
-      stepRifle(cam, dt);   // RIFLE-STANCE: the long gun's hold
       // refreshCurrentAnims' order, and it is not arbitrary: the weapon
       // state is stepped FIRST because the idle refresh below depends on
       // it - "idle handled last as it can depend on the other states"
@@ -6459,7 +6327,7 @@ export function createFpArm() {
       motion.step(dt, motionWord({
         cam, third: viewMode === 'third', rig: thirdBuilt, built, dead, hit: !!hitState && !actionState, climb: climbWorld.w, upper: UPPER_BODY_NAME[upper],
         attackType, reversed: attackReversed, hand: attackHand, progress: actionState ? clipCompletion(actionState) : 0, strength: attackStrength,
-        shown: weaponInHand(), hands: handsMode, torch: torchVisible(), spell: spellStance(), spellHand: spellHand && spellInHand, rifle: rifle.w, guard: pairDip(),
+        shown: weaponInHand(), hands: handsMode, torch: torchVisible(), spell: spellStance(), spellHand: spellHand && spellInHand, guard: pairDip(),
       }));
       if (!actionState && !movementState && !jumpState && !idleState && !hitState && !deathState) return;
       // THE WINNER, not a blend. See the two-slot note above: in first
@@ -6510,7 +6378,6 @@ export function createFpArm() {
             accumRoot: t.accumRoot,
             climb: thirdClimb(climbWorld, cam),   // CLIMB6
             mirror: mirrorFor('third', t, dt),   // TWO-HANDS: the second hand - the pair's left arm, a left-hand blow
-            hold: rifleHold('third', t),   // RIFLE-STANCE: the long gun in the hands
             motion: motion.slot,   // BODY-MOTION: the gait, the carry and a blow's body over the clip's
             // BOW-AIM (combat/spineAim.js): a ranged weapon drawn, the spine pitched by the look - rot[0] is + down, cam.pitch + up.
             // Asked only while the look pitches and the upper body is past WeaponEquipped (the factor's own first test): every
@@ -6579,7 +6446,6 @@ export function createFpArm() {
         // hands were dropped whole - a wrist 1.0 units in a frame where the stroke moves it 0.08 - and came back whole
         run: firstRun(cam),
         mirror: mirrorFor('first', built, dt),   // TWO-HANDS: the second hand - the pair's left arm, a left-hand blow
-        hold: rifleHold('first', built),   // RIFLE-STANCE: the long gun in the hands, the low ready or the aim
         // Rule 56's accum root is STICKY and rig-wide, so it does not
         // follow the source the way the tracks do.
         accumRoot: built.accumRoot,
@@ -6720,7 +6586,7 @@ export function createFpArm() {
       // and nothing else in the pass does. Not through the neck (poseAssembly's neckPitch/neckOffset): glued arms take
       // no look there by IG4's construction, and a kick is not a look. The frame record below carries it, so the muzzle
       // (weaponMuzzle) and a held sheet's corners stand where the eye sees them.
-      const view = gunFeel ? multiply(armKickMatrix(gunFeel, MW_UNITS_PER_METER), lens, new Float32Array(16)) : lens;
+      const view = lens;
 
       // MW-D23: NO MIRROR. THIS PASS IS ALREADY CHIRALITY-TRUE, and the
       // mirror MW-D9 borrowed from the world pass is what put Mac's
@@ -6820,7 +6686,7 @@ export function createFpArm() {
       }
       viewMode = want;
       actionState = null; actionSource = null; attackType = null; holdWindUp = false;
-      blowType = null; attackHand = null;   // AUDIT MIXED-PAIR L3-7: the blow the switch cut takes its hand's group with it (refreshWeaponGroup below)
+      attackHand = null;   // AUDIT MIXED-PAIR L3-7: the blow the switch cut takes its hand's group with it (refreshWeaponGroup below)
       // TWO-HANDS AUDIT: each rig's carry starts afresh - the rig now drawn was not drawn in the other view, so there is
       // nothing on the screen for a composition change to carry from (a carry kept across the switch eased the arms in
       // from where they stood when the player LEFT this view); a fresh carry takes its first composition as it stands
@@ -6841,15 +6707,6 @@ export function createFpArm() {
     followCamera: () => followCam,
     /** WW1: the rig sets the weapon widget's transform over the composite (null: the fullscreen overlay). */
     setScreenTransform(fn) { screenTransform = typeof fn === 'function' ? fn : null; },
-    /** MW-GUN-FEEL: the gun's kick and reload for the next first-person draw (combat/gun/gunFeel.js armGunPose) - a pose
-     *  that moves nothing is none. */
-    setGunFeel(pose) { gunFeel = pose && (pose.pitch || pose.back || pose.down) ? { pitch: +pose.pitch || 0, back: +pose.back || 0, down: +pose.down || 0 } : null; },
-    /** RIFLE-STANCE: the fight's own signal for a long gun's aim (weaponRig.js: a foe's harm on the player stands), every
-     *  frame; a peer's body is never handed one - its own shots raise its aim. */
-    setCombatReady(on) { rifleCombat = !!on; },
-    /** RIFLE-STANCE: the long gun's hold as it stands - `{ w, ready, since }`. */
-    rifleState: () => ({ ...rifle }),
-    gunFeel: () => gunFeel,
     screenTransform: () => screenTransform,
     setFollowCamera(v) {
       followCam = !!v;
@@ -6956,7 +6813,6 @@ export function createFpArm() {
       // Rx(-90)) and local y is the MW vertical.
       const rs = (built && built.raceScale) || { weight: 1, height: 1 };
       const model = thirdModel(feet, yaw, grow);   // MWNPC16: one home with castThird's
-      lastThirdModel = model;   // AUDIT FIELD-GUN-MW F2: the body's frame, for the muzzle behind the camera
       drawnArm = t.arm; drawnMats = t.arm.mats;   // SHADOW-CLOAK (AUDIT): the pose this body was drawn in
       // The box the sprite law needs, measured off the POSED pieces in
       // MW axes and mapped: MW z is world up, MW x/y are the horizontal

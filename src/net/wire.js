@@ -1,4 +1,5 @@
 // @ts-check
+import { isRetiredItem } from '../items/retiredItems.js';
 import { dmColourOf } from './dmLaw.js';   // BUNNYFALL /dm: the Dungeon Master's colours
 import { FACE_INDEX_MAX } from '../characters/roxArgonians.js';   // ROX: the extra Argonian faces
 import { validStaffEventIn } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT: a staff event's word in
@@ -2236,7 +2237,7 @@ const rideOf = (rd, rv, hs, rc) => {
 
 /** One equipped item as the look carries it - the six fields, clamped, a weapon's glow and a look worn over it - or null. */
 export function validLookItem(it) {
-  if (!it || typeof it !== 'object') return null;
+  if (!it || typeof it !== 'object' || isRetiredItem(it)) return null;
   const templateIndex = uint(it.templateIndex, 65535), equipSlot = uint(it.equipSlot, 1e6);
   if (templateIndex == null || equipSlot == null || equipSlot >= MAX_LOOK_ITEMS || !LOOK_GROUPS.includes(it.group)) return null;   // a slot past the table is no item, not another slot's
   const out = { templateIndex, group: it.group, equipSlot };

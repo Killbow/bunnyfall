@@ -13,7 +13,6 @@
 import { WEAPON_TYPES, BOW_ANIMS, ALIGN, getWeaponAnims } from './fpsWeapon.js';
 import { decodePng } from '../render/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';
-import { cropImage } from './pistolStrip.js';
 import { APP_ROOT } from '../platform/appRoot.js';
 
 export const BALLISTA_STRIP = Object.freeze({ file: 'art/bunnyfall-ballista/ballista-frames.png', cells: 5 });
@@ -36,6 +35,17 @@ async function cells(renderer, strip, key, { fetchBytes = null, decode = decodeP
   for (let i = 0; i < strip.cells; i++) tex.push(renderer.uploadTexture('img', `${key}:${i}`, toScreenOrder(cropImage(img, { x: i * w, y: 0, w, h }))));
   return { tex, width: w, height: h };
 }
+
+/** An image cropped to `box`. Pure. */
+function cropImage(img, box) {
+  const out = new Uint8ClampedArray(box.w * box.h * 4);
+  for (let y = 0; y < box.h; y++) {
+    const src = ((y + box.y) * img.width + box.x) * 4;
+    for (let k = 0; k < box.w * 4; k++) out[y * box.w * 4 + k] = img.data[src + k];
+  }
+  return { width: box.w, height: box.h, data: out };
+}
+
 
 export async function loadBallistaArt(renderer, opts = {}) {
   const { tex, width, height } = await cells(renderer, BALLISTA_STRIP, 'ballista', opts);

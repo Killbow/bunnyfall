@@ -51,7 +51,6 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { WEAPONS, WEAPON_MATERIALS } from '../characters/weapons.js';
-import { OWN_MW_MODELS } from '../characters/ownWeaponModels.js';   // FIELD-GUN-MW2: the weapons Morrowind does not have
 import { OWN_MW_ARMOR, ownArmorModelFor, ownArmorParts } from '../characters/ownArmorModels.js';   // MW-BRIG1: the armour Morrowind does not have; MW-STEEL1: and its styles
 import { CLOAK_NAMES, CLOAK_PAINTINGS, cloakModel, ownCloakFor, ownOutfitFor } from '../characters/ownClothingModels.js';   // MW-CLOAK1: and the clothing; MW-FOLK1: and the townsfolk's outfits
 import { t } from '../ui/textManager.js';   // L10N4: MW-FOLK1's notes in the player's language
@@ -357,25 +356,6 @@ export function mwArmorRecords(armorRecords, templateIndex, material) {
  */
 export function itemMapCoverage() {
   const out = [];
-  // FIELD-GUN-MW2: THE PORT'S OWN WEAPONS, and the reason they are
-  // FIRST is the hole they were found in.
-  //
-  // This walk's population was `WEAPONS` alone - DFU's frozen eighteen
-  // - and the Dwarven Thunderlock is template 560, minted at runtime by
-  // registerCustomTemplates. So the one weapon in the whole port that
-  // genuinely had no Morrowind model was the one weapon this census
-  // never asked about: it reported total coverage while the gun drew
-  // EMPTY HANDS in Morrowind first person, for every player, for the
-  // life of the arc. The guarantee in this file's header says a row
-  // "must SAY it, never fall through silently"; an item outside the
-  // population cannot even fall through.
-  //
-  // A row per model, not per material: the port's own weapons have no
-  // material ladder to walk - `pickWeaponRecord` is not reached at all
-  // - and inventing one would be a census that reports work nobody did.
-  for (const [index, own] of Object.entries(OWN_MW_MODELS)) {
-    out.push({ kind: 'own', item: own.name, material: 'n/a', via: 'ownWeaponModels', index: Number(index), model: own.model });
-  }
   for (const [wName] of Object.entries(WEAPONS)) {
     for (const [mName, m] of Object.entries(WEAPON_MATERIALS)) {
       if (m === WEAPON_MATERIALS.None) continue;

@@ -1,3 +1,4 @@
+import { TEMPLATES } from './itemKinds.js';
 // QS1 - THE QUICKSLOTS: the model behind the enhanced HUD's diamond.
 //
 // Mac's reference is the bottom-left diamond of the Demon's Souls
@@ -42,6 +43,11 @@
 // that swapped for free would be the exploit the pause exists to
 // stop - so the swap takes the same snapshot-and-bill the window
 // takes, around the one equip it makes.
+import { ABILITIES, abilityById } from '../combat/abilities/registry.js';
+import { abilitiesEnabled, learnedAbility } from '../combat/abilities/progress.js';
+import { abilityCooldown, abilityInHand, abilityPlayable, abilityRefusalText, requestHotbarAbility } from '../combat/abilities/rig.js';
+import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
+import { requestUtility } from '../combat/abilities/utility.js';
 import { isPotion, isDrug, isLightSource, useItem, USE_PENDING } from './useItem.js';   // ...and the ladder's own stand-ins for a host that handed no hook
 import { walletContents, walletLines, refreshWalletSilver } from './walletItem.js';   // WALLET1: the wallet pressed says what it holds
 import { equipItem, equipTableOf, EQUIP_SLOTS, isBrokenItem, isForbiddenEquip, isEquipped, unequipSlot, oneEquipAct,
@@ -54,6 +60,7 @@ import { isEnchanted } from './inventory.js';   // UI2: an enchanted piece shows
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';   // RPT1026-PROGRESS: a worn piece's Cast When Used
 import { isPower } from '../magic/enchantmentCatalogue.js';   // AUDIT RPT1026 F2: a power beside Cast When Used, never a side effect's cost
 import { shownSpellName } from './loot.js';   // L10N3e: a slotted spell's name as the book shows it - the stored name stays the canonical one
+import { retiredItemKey } from './retiredItems.js';
 import { isAmmunition } from './itemTemplates.js';   // THUNDERLOCK-ART: a stack of shot shows its count, never a wear bar (the pack's rule)
 
 import { expandRowValues } from '../systems/quest/questMacros.js';   // MACROS1: a used item's record through its own context (%map)
@@ -266,7 +273,7 @@ export function quickslotView(entity, { weapon = null, sheathed = false, readied
   let off;
   const lit = entity?.lightSource ?? null;
   const left = entity ? (equipTableOf(entity)[EQUIP_SLOTS.LeftHand] ?? null) : null;
-  if (lit) off = cell(lit, { kind: 'torch' });
+  if (lit) off = cell(lit, { kind: 'torch', ...(lit.templateIndex === TEMPLATES.Lantern ? { condition: null } : {}) });
   else if (left && isShieldTemplate(left.templateIndex)) off = cell(left, { kind: 'shield' });
   // AUDIT QS F4: anything else on the left hand - a bow under
   // Enhancements.BowLeftHandWithSwitching - is IN the off hand, and the
@@ -921,7 +928,7 @@ export function restoreQuickslotSaveData(data) {
   if (!data || typeof data !== 'object') return;
   for (const s of QUICKSLOTS) {
     const e = data[s];
-    if (e && typeof e.key === 'string' && typeof e.name === 'string') state[s] = { key: e.key, name: e.name };
+    if (e && typeof e.key === 'string' && !retiredItemKey(e.key) && typeof e.name === 'string') state[s] = { key: e.key, name: e.name };
   }
   const sp = data.spell;
   if (sp && Number.isFinite(sp.index) && typeof sp.name === 'string') spellState = { index: sp.index, name: sp.name };
@@ -978,8 +985,10 @@ let hotbarRev = 0;   // bumped on every write, so a view can tell "changed" in o
 /** A saved hotbar entry made safe to put on the bar, or null. */
 function savedHotbarEntry(e) {
   if (!e || typeof e !== 'object' || typeof e.name !== 'string') return null;
+  if (e.type === 'ability') return hotbarEntryForAbility(e.id);
+  if (e.type === 'hand-ability') return hotbarEntryForHandAbility(e.hand, e.rank);
   if (e.type === 'spell' && Number.isFinite(e.index)) return { type: 'spell', index: e.index, name: e.name, ...iconOf(e) };   // UI2: and its icon
-  if (e.type === 'item' && typeof e.key === 'string' && HOTBAR_KINDS.includes(e.kind)) {
+  if (e.type === 'item' && typeof e.key === 'string' && !retiredItemKey(e.key) && HOTBAR_KINDS.includes(e.kind)) {
     if (OLD_BOOK_KEY.test(e.key)) _oldBookKeys = true;
     return { type: 'item', kind: e.kind, key: e.key, name: e.name };
   }
@@ -1097,8 +1106,31 @@ export function hotbarEntryForSpell(sp) {
   return { type: 'spell', index: sp.index, name: String(sp.name ?? ''), ...iconOf(sp) };
 }
 
+export function hotbarEntryForAbility(id) {
+  const ability = abilityById(id);
+  return ability ? { type: 'ability', id, name: ability.name } : null;
+}
+
+export function hotbarEntryForHandAbility(hand, rank) {
+  if (!['left', 'right'].includes(hand) || ![25, 50, 75, 100].includes(rank)) return null;
+  return { type: 'hand-ability', hand, rank, key: hand + ':' + rank,
+    name: (hand === 'left' ? 'Left Hand' : 'Right Hand') + ' · Rank ' + rank };
+}
+
+function handAbility(entity, entry) {
+  if (!entity) return null;
+  const worn = equipTableOf(entity);
+  const right = worn[EQUIP_SLOTS.RightHand];
+  const item = entry.hand === 'right' ? right : worn[EQUIP_SLOTS.LeftHand];
+  if (entry.hand === 'left' && !item && right && getItemHands(right) === ITEM_HANDS.Both) return null;
+  if (item && (item.group !== 'Weapons' || isBrokenItem(item))) return null;
+  const template = item?.templateIndex ?? 'bare';
+  return ABILITIES.find(ability => ability.category === 'weapon' && ability.rank === entry.rank
+    && ability.templates.includes(template)) ?? null;
+}
+
 const sameEntry = (a, b) => !!a && !!b && a.type === b.type
-  && (a.type === 'spell' ? a.index === b.index : a.key === b.key);
+  && (a.type === 'spell' ? a.index === b.index : a.type === 'ability' ? a.id === b.id : a.key === b.key);
 
 const assertHot = (i) => { if (!Number.isInteger(i) || i < 0 || i >= HOTBAR_CAPACITY) throw new Error(`hotbar: no slot ${i}`); };
 
@@ -1112,11 +1144,10 @@ export const hotbarRevision = () => hotbarRev;
  *  never shows one potion twice. */
 export function setHotbarSlot(i, entry) {
   assertHot(i);
-  if (!entry || (entry.type !== 'item' && entry.type !== 'spell')) return false;
-  for (let j = 0; j < HOTBAR_CAPACITY; j++) if (j !== i && sameEntry(hotbar[j], entry)) hotbar[j] = null;
-  hotbar[i] = entry.type === 'spell'
-    ? { type: 'spell', index: entry.index, name: String(entry.name ?? ''), ...iconOf(entry) }
-    : { type: 'item', kind: entry.kind, key: entry.key, name: String(entry.name ?? '') };
+  const record = savedHotbarEntry(entry);
+  if (!record) return false;
+  for (let j = 0; j < HOTBAR_CAPACITY; j++) if (j !== i && sameEntry(hotbar[j], record)) hotbar[j] = null;
+  hotbar[i] = record;
   hotbarRev++;
   return true;
 }
@@ -1175,7 +1206,7 @@ export function hotbarView(entity, { readiedIndex = null, size = HOTBAR_CAPACITY
   // JSON.stringify calls) - ten slots over a late-game pack was hundreds of keyings a frame. Each record is keyed
   // once now, into the kinds the bar holds.
   const want = new Set();
-  for (const e of hotbar) if (e && e.type !== 'spell') want.add(e.key);
+  for (const e of hotbar) if (e?.type === 'item') want.add(e.key);
   const byKey = new Map();
   if (want.size) {
     for (const it of pack) {
@@ -1189,6 +1220,19 @@ export function hotbarView(entity, { readiedIndex = null, size = HOTBAR_CAPACITY
   }
   return hotbar.slice(0, size).map((e, i) => {
     if (!e) return { slot: i, empty: true };
+    if (e.type === 'hand-ability') {
+      const ability = handAbility(entity, e);
+      const cooldown = ability ? Math.ceil(abilityCooldown(entity, ability.id) / 1000) : 0;
+      return { slot: i, type: 'ability', id: ability?.id, name: ability ? ability.name + ' · ' + e.name : e.name,
+        hand: e.hand, rank: e.rank,
+        count: cooldown || null, ghost: !ability || !abilitiesEnabled() || !learnedAbility(entity, ability.id) || cooldown > 0 };
+    }
+    if (e.type === 'ability') {
+      const ability = abilityById(e.id);
+      const cooldown = Math.ceil(abilityCooldown(entity, e.id) / 1000);
+      const usable = abilitiesEnabled() && (abilityPlayable(e.id) || utilityProfile(e.id)) && learnedAbility(entity, e.id) && abilityInHand(entity, ability?.templates, e.id);
+      return { slot: i, type: 'ability', id: e.id, name: e.name, count: cooldown || null, ghost: !usable || cooldown > 0 };
+    }
     if (e.type === 'spell') {
       const spell = book.find((sp) => sp?.index === e.index) ?? null;
       return { slot: i, type: 'spell', name: shownSpellName(spell) || shownSpellName(e), index: e.index, spell,   // L10N3e: drawn, so as shown
@@ -1216,7 +1260,7 @@ export function hotbarView(entity, { readiedIndex = null, size = HOTBAR_CAPACITY
  *  a gem, a book or a potion - a bar on everything is the noise the bar exists to cut. THUNDERLOCK-ART: and never
  *  ammunition, the pack's own word (ui/enhanced/enhancedInventory.js wearPct: "an arrow is spent, not worn") - a stack of arrows
  *  or pellets slotted as a weapon drew a bar under its count, the two on top of each other. */
-const showsWear = (kind, item) => !isAmmunition(item) && (kind === 'weapon' || kind === 'shield' || kind === 'light'
+const showsWear = (kind, item) => !isAmmunition(item) && (kind === 'weapon' || kind === 'shield' || (kind === 'light' && item.templateIndex !== TEMPLATES.Lantern)
   || item.group === 'Armor' || isEnchanted(item));   // AUDIT UI B6: anything enchanted - the Sanguine Rose spends its condition as a ring does (the pack's wearPct)
 
 /** Point one of the diamond's own slots at `entry` for the length of
@@ -1264,6 +1308,18 @@ export function hotbarPress(i, { entity = null, doors = {}, say = null } = {}) {
   if (_oldBookKeys) rekeyOldBooks(entity);
   const e = hotbar[i];
   if (!e) { say?.(HOTBAR_TEXT.emptySlot); return { kind: 'empty' }; }
+  if (e.type === 'hand-ability') {
+    const ability = handAbility(entity, e);
+    const result = ability && learnedAbility(entity, ability.id)
+      ? requestHotbarAbility(entity, ability.id, e.hand) : { ok: false, why: 'unavailable' };
+    if (!result.ok) say?.(result.message ?? abilityRefusalText(result.why));
+    return { kind: result.ok ? 'ability' : 'refused', name: ability?.name ?? e.name };
+  }
+  if (e.type === 'ability') {
+    const result = utilityProfile(e.id) ? requestUtility(entity, e.id) : requestHotbarAbility(entity, e.id);
+    if (!result.ok) say?.(result.message ?? abilityRefusalText(result.why));
+    return { kind: result.ok ? 'ability' : 'refused', name: e.name };
+  }
   // AUDIT CONTRIB H3: each arm answers what its PERFORMER did, not that the door was reached - the doors answer
   // `true` to the route whatever happened, and a refused press flashed gold with the item's name
   const through = (slot, entry, door, done) => {

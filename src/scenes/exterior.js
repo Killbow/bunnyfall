@@ -87,7 +87,6 @@ import { isHearthFlat } from '../systems/survival/hearth.js';   // HEARTH1: whic
 import { syncLightingLane, lanternColor } from '../render/enhancedLighting.js';   // EL1
 import { withPlayerLights } from '../magic/magicCandle.js';   // X11/T1: the lights the PLAYER carries
 import { playerTorchLight } from '../player/playerTorch.js';   // T1
-import { thunderlockMuzzleLight } from '../items/thunderlock.js';   // FIELD-GUN13: the muzzle flash is a light the player carries, the torch's own shape
 import { applyClimate, getTerrainGroundArchive, getNatureArchive, climateSeasonFromMinutes, INTERIOR_SEASON } from '../world/climateSwaps.js';   // A1: the season is the calendar's, and an interior's is Summer whatever the date
 import { RMB_SIDE, layoutLocation, hasCustomLocationPosition } from '../world/locationLayout.js';
 import { lookAt, multiply, perspective, mirrorProjectionX, transformPoint, trs, UP_Y } from '../world/mat4.js';   // HANDEDNESS: the one mirror (mat4's law)
@@ -1302,7 +1301,7 @@ export async function bootExterior(canvas, renderer, params, status) {
   let _shotPosed = false;   // DS1: set by window.__pose - the scout's fixed framing gives way to the posed camera
   // P1: grounded first-person is the default; ?fly restores the fly cam.
   const walkMode = params.has('play') || (!params.has('fly') && !shotMode);
-  const player = new PlayerMotor(collider, motorStats(playerEntity), { jumpBoost: () => jumpSpeedMultiplier(playerEntity), enhancedJumping: () => isEnhancedJumping(playerEntity), carriedWeight: () => carriedWeight(playerEntity), climbing: climbingDeps(playerEntity, (l) => townTalk?.say(l)), parkour: parkourDeps(playerEntity, (l) => townTalk?.say(l)) });   // AcrobatMotor skill jump (P14) + M3 climbing; motorStats = the LIVE entity (PlayerSpeedChanger reads LiveSpeed/Running/Swimming every step)
+  const player = new PlayerMotor(collider, motorStats(playerEntity, () => (modes?.mode ?? 'exterior') === 'exterior'), { jumpBoost: () => jumpSpeedMultiplier(playerEntity), enhancedJumping: () => isEnhancedJumping(playerEntity), carriedWeight: () => carriedWeight(playerEntity), climbing: climbingDeps(playerEntity, (l) => townTalk?.say(l)), parkour: parkourDeps(playerEntity, (l) => townTalk?.say(l)) });   // AcrobatMotor skill jump (P14) + M3 climbing; motorStats = the LIVE entity (PlayerSpeedChanger reads LiveSpeed/Running/Swimming every step)
   // AUDIT 21 (hosts lane, F3): onLevelUp. Without it advancement.js takes its
   // HEADLESS arm - `spendPoolLowest`, which dumps every point into your LOWEST
   // stats with no message and no choice. Cross a level threshold walking a
@@ -2668,7 +2667,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     // its arrow lane (a Volley's shafts from the sky), its fatigue door, the view turned on a foe
     technique: {
       motor: () => player,
-      fireArrow: (from, dir, o) => arrows.fire(from, dir, { fromPlayer: true, weapon: o?.weapon ?? weaponRig.playerWeapon.weapon, muzzle: o?.sky ? { world: [...from] } : weaponRig.thunderlockMuzzle(fieldOfView()), technique: o?.technique ?? null, ...(o?.speedScale ? { speedScale: o.speedScale } : {}), ...(o?.summoned ? { summoned: true } : {}) }),   // STUCK-ARROWS: a conjured round's shaft is never given back
+      fireArrow: (from, dir, o) => arrows.fire(from, dir, { fromPlayer: true, weapon: o?.weapon ?? weaponRig.playerWeapon.weapon, muzzle: o?.sky ? { world: [...from] } : null, technique: o?.technique ?? null, ...(o?.speedScale ? { speedScale: o.speedScale } : {}), ...(o?.summoned ? { summoned: true } : {}) }),   // STUCK-ARROWS: a conjured round's shaft is never given back
       drainFatigue: (n) => drainExteriorFatigue(n),
       face: (p, from) => { if (!Array.isArray(p)) return; const o = Array.isArray(from) ? from : player.pos; cam.yaw = Math.atan2(p[0] - o[0], p[2] - o[2]); lookFilter.settle(); },   // AUDIT TECH1: from where the body lands
       blocked: () => gamePaused(),   // AUDIT TECH1: a window holds the world - and the technique's key (the mouse's side button reaches `keys` under any window)
@@ -2740,7 +2739,7 @@ export async function bootExterior(canvas, renderer, params, status) {
   /** SetAnchor (:100-117): the outer host's world half, the mounted
    *  mode's inside half, one record. Works in EVERY mode this route can
    *  stand in, which is why it is not the flagged half. */
-  function setRecallAnchor() {
+  function setRecallAnchor(key = 'anchorPosition') {
     const inside = modes?.anchorContext?.() ?? { worldContext: WORLD_CONTEXT.Exterior, local: null, buildingKey: 0, interior: null };
     const pf = walkMode ? player.pos : cam.pos;
     // A DUNGEON's local frame is its own, so its world coordinates are
@@ -2748,7 +2747,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     // map pixel allowed" (:211) makes the pixel the whole identity.
     const inDungeon = inside.worldContext === WORLD_CONTEXT.Dungeon;
     const wc = inDungeon ? null : _anchorNative(pf);
-    playerEntity.anchorPosition = makeAnchor({
+    playerEntity[key] = makeAnchor({
       worldContext: inside.worldContext,
       pixel: _locPixel,
       nativeX: wc ? wc.x : _anchorRect.minX,
@@ -2760,14 +2759,15 @@ export async function bootExterior(canvas, renderer, params, status) {
       buildingKey: inside.buildingKey,
       interior: inside.interior,
     });
+    return true;
   }
   let _recalling = false;
   /** TeleportPlayer (:119-164) + the respawner's tail (:228-256), the
    *  arms that land inside this route's one loaded city. */
-  async function recallToAnchor() {
+  async function recallToAnchor(key = 'anchorPosition') {
     if (_recalling) return;
     if (arenaBouts.holds()) { townTalk.say(ARENA_TEXT.refuse.travel); return; }   // AUDIT ARENA-LADDER A5: no Recall off the sand (world.js's twin)
-    const anchor = playerEntity.anchorPosition;
+    const anchor = playerEntity[key];
     const plan = teleportPlan(anchor, {
       ...(modes?.insideContext?.() ?? { insideBuilding: false, insideDungeon: false, buildingKey: 0 }),
       pixel: _locPixel,
@@ -2789,7 +2789,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       modes?.setPlayerLocalPosition?.(anchorLanding(anchor));
       cam.yaw = plan.yaw; cam.pitch = plan.pitch;
       playerEntity.playerTeleportedIntoDungeon = plan.teleportedIntoDungeon;
-      playerEntity.anchorPosition = null;   // consumed on arrival, both DFU arms (:133)
+      playerEntity[key] = null;   // consumed on arrival, both DFU arms (:133)
       surfacePlayer();
       return;
     }
@@ -2849,7 +2849,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       // rides the transform, exactly as RestorePosition sets it.
       cam.yaw = a.yaw ?? cam.yaw; cam.pitch = a.pitch ?? cam.pitch;
       playerEntity.playerTeleportedIntoDungeon = plan.teleportedIntoDungeon;   // :246
-      playerEntity.anchorPosition = null;   // consumed on arrival
+      playerEntity[key] = null;   // consumed on arrival
       surfacePlayer();
     } finally {
       _recalling = false;
@@ -2861,7 +2861,17 @@ export async function bootExterior(canvas, renderer, params, status) {
    *  routes its INTERIOR and DUNGEON modes here too (the createWorldModes
    *  bag's `onTeleport`), so a Recall cast in a shop raises the same box
    *  as one cast in the street. */
-  function teleportPrompt() {
+  function teleportPrompt(action) {
+    if (action === 'mark' || action === 'recall') {
+      if (_recalling || arenaBouts.holds() || modes?.transitioning) { townTalk.say('Travel is already in progress.'); return false; }
+      if (action === 'recall') {
+        if (!playerEntity.wayfarerAnchor) { townTalk.say('Set a Wayfarer’s Anchor first.'); return false; }
+        return recallToAnchor('wayfarerAnchor');
+      }
+      const marked = setRecallAnchor('wayfarerAnchor');
+      if (marked) townTalk.say('Wayfarer’s Anchor set.');
+      return !!marked;
+    }
     townTalk.showOverlay(new ChoiceWindow({
       lines: ['Do you want to Teleport or Set an Anchor?'],
       options: [
@@ -2887,7 +2897,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     say: (l) => townTalk.say(l),
   };
   const magic = createPlayerMagic({
-    onTeleport: () => teleportPrompt(),   // TP2: the 4000 box, the arms this host can take
+    onTeleport: (action) => teleportPrompt(action),   // TP2: the 4000 box, the arms this host can take
     // X11b: the Create Item picker, through the same worldModes opener
     // the streaming host uses - which mounts into whichever slot the
     // current mode actually draws.
@@ -4546,7 +4556,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     // 4000 box, exactly as world.js hands its own prompt down. Without
     // it the mounted dungeon context kept its standalone refusal and a
     // cast underground did nothing at all.
-    onTeleport: () => teleportPrompt(),
+    onTeleport: (action) => teleportPrompt(action),
     standLooseFoe: (mobileType, opts) => _standLooseFoe(mobileType, opts),   // AUDIT 68 S23-coven-punishment-interior-only: CreateFoeSpawner stands wherever the player is - the summoning punishments ride the enchantments' mode-routed stand
     // U39: this host never passed a scene context, so every consumer
     // of questSceneCtx().mapId read the `?? 0` fallback - which the
@@ -5902,7 +5912,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     const lit = withPlayerLights(holdSel ? holdSel.data : lightsOn
       ? nearestLights(cityLights, eye, renderer.maxPointLights, lightAnimator.ranges)   // EL1: the installed set's cap
       : new Float32Array(0),
-    magic?.candleLight(), playerTorchLight(playerEntity, player.feetAt(), cam.yaw), thunderlockMuzzleLight(playerEntity, player.feetAt(), cam.yaw), ...camps.lights(), ...droppedTorches.lights());   // X11: the candle burns by day too - the effect has no time gate; T1: so does the torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
+    magic?.candleLight(), playerTorchLight(playerEntity, player.feetAt(), cam.yaw), ...camps.lights(), ...droppedTorches.lights());   // X11: the candle burns by day too - the effect has no time gate; T1: so does the torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
     // WOD4: what withPlayerLights prepended wears the shared colour, the selection its own (world.js's _wodSetLights)
     renderer.setPointLights(lit, CITY_LIGHT_COLOR_F32,
       holdSel ? wodLightColors(lit.length / 4, lit.length / 4 - holdSel.data.length / 4, holdSel.colors, CITY_LIGHT_COLOR_F32) : null);
@@ -6060,8 +6070,8 @@ export async function bootExterior(canvas, renderer, params, status) {
       onPlayerArrowHitFoe: (m, t) => playerArrowHitFoe(m, t, {
         playerEntity, playerWeapon: weaponRig.playerWeapon, playerFeet: player.pos,
         dealDamage: (f, d) => (cityGuards.guards.includes(f)
-          ? cityGuards.hurtGuard(f, d, player.pos, m.dir, { kind: 'arrow' })   // AUDIT-39r: WeaponManager's KnockbackDirection, the missile's forward; TELL1: a shaft's weight on a wind-up
-          : exteriorFoes.damageFoe(f, d, player.pos, m.dir, { kind: 'arrow', weapon: m.weapon ?? null })),   // AUDIT FEUD 2: the bow (a metal weakness rides to a puppet's owner)   // WORLD6b-iii(e): the kind rides the hit - a puppet's owner lands the shaft (ar), as the dungeon's host has since WORLD3
+          ? cityGuards.hurtGuard(f, d, player.pos, m.dir, { kind: 'arrow', abilityControl: m.technique?.control })   // AUDIT-39r: WeaponManager's KnockbackDirection, the missile's forward; TELL1: a shaft's weight on a wind-up
+          : exteriorFoes.damageFoe(f, d, player.pos, m.dir, { kind: 'arrow', weapon: m.weapon ?? null, abilityControl: m.technique?.control })),   // AUDIT FEUD 2: the bow (a metal weakness rides to a puppet's owner)   // WORLD6b-iii(e): the kind rides the hit - a puppet's owner lands the shaft (ar), as the dungeon's host has since WORLD3
         audio, hitEffects, say: (l) => townTalk.say(l),
         onInflictPoison: (att, tgt, pt) => (cityGuards.guards.includes(t) ? inflictPoison(tgt, pt, false, { currentMinute: Math.floor(playerTicker.ownMinutes) }) : exteriorFoes.poisonFoe(t, pt)),   // WORLD6b-iii(e): the pool's one poison door - a puppet's dose rides the hit to its owner; the watch is dosed here (the player's own)
         // AUDIT 58: WeaponManager.cs:630's HandleAttackFromSource sits
@@ -6316,7 +6326,7 @@ export async function bootExterior(canvas, renderer, params, status) {
             // CriticalStrike) - this arm tallied Archery alone, free.
             drainExteriorFatigue(SWING_FATIGUE_COST);
             tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);   // AUDIT PISTOLET A2: an off-hand shot counts as its blow weighs, as the other two hosts count it (THE FOUR HOSTS RULE)
-            arrows.fire(eye, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, muzzle: weaponRig.thunderlockMuzzle(fieldOfView()), summoned: shot.summoned });   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
+            arrows.fire(eye, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, summoned: shot.summoned });   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           }
           continue;
         }
@@ -6343,7 +6353,7 @@ export async function bootExterior(canvas, renderer, params, status) {
           if (exteriorFoes.resolvePlayerHit(weaponRig.playerWeapon, eye, fwd, player.pos, makeInView(proj, view, multiply), guardHitSound, { swing })) {
             tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);
             surfacePlayer();
-          } else
+          } else if (!weaponRig.playerWeapon.techniqueBlow?.ability)
           cityGuards.resolveCivilianHit(weaponRig.playerWeapon, eye, fwd, player.pos, _guardPool(),
             { onMurder: () => _crimeResponse(), onHitSound: guardHitSound, swing }).then((r) => {
             if (r?.carriedHit) tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);

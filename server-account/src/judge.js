@@ -41,6 +41,7 @@
 //     piles it dropped - picked up again, a pile is no gain). INT5's budget reads it.
 // ═══════════════════════════════════════════════════════════════════
 
+import { isRetiredItem } from '../../src/items/retiredItems.js';
 import { itemFindings, itemWorth, lawTemplate, classicPiece, PROVENANCE_RE, ITEM_LAW_VERSION, GOLD_INT_MAX } from '../../src/items/itemLaw.js';
 import { ledgerKeyOf } from '../../src/items/itemIds.js';
 import { armsOf } from '../../src/net/siegeRef.js';   // INT7: the arms the token signs
@@ -103,7 +104,7 @@ const worthless = (/** @type {any} */ it) => it?.bound === true || lawTemplate(i
 /** The pieces wealthOf counts - every one the character holds or laid on the ground - and each as it counts it: a coin or
  *  a letter at its gold (`liquid`), a bound or quest piece at nothing, any other at its worth. */
 const wealthLists = (/** @type {any} */ save) => [...possessedItemLists(save), ...groundItemLists(save)];
-const pieceWealth = (/** @type {any} */ it, liquid = liquidWorthOf(it)) => (liquid > 0 ? liquid : worthless(it) ? 0 : itemWorth(it));
+const pieceWealth = (/** @type {any} */ it, liquid = liquidWorthOf(it)) => (isRetiredItem(it) ? 0 : liquid > 0 ? liquid : worthless(it) ? 0 : itemWorth(it));
 
 /**
  * THE CHARACTER'S WEALTH: the purse, every bank account less what it owes (the debt counted no further than
@@ -226,6 +227,7 @@ export function judgeSave(save, summary = null, o = {}) {
   const provenances = [];
   possessedItemLists(save).forEach((list, li) => {
     list.forEach((/** @type {any} */ it, /** @type {number} */ i) => {
+      if (isRetiredItem(it)) return;
       items++;
       for (const code of findingsOf(it)) keep({ code, list: li, at: i, t: it?.templateIndex ?? null });
       if (typeof it?.provenance === 'string' && PROVENANCE_RE.test(it.provenance)) provenances.push({ provenance: it.provenance, t: it.templateIndex, m: it.material, q: it.quality, w: worthless(it) ? 0 : itemWorth(it), ...(isMasterWork(it) ? { l: masterSignature(it.affixes) } : {}) });   // MASTER-ART: a Master's work's lines
@@ -255,6 +257,7 @@ export function ledgerPieces(/** @type {any} */ save) {
   const out = [];
   for (const list of possessedItemLists(save)) {
     for (const it of list) {
+      if (isRetiredItem(it)) continue;
       const key = ledgerKeyOf(it);
       if (key) out.push({ key, fp: ledgerPrintOf(it) });
     }

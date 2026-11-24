@@ -84,6 +84,7 @@ import { modSetting, modSettingIfDeclared } from '../mods/modSettings.js';
 import { liveStat } from '../characters/statMods.js';
 import { skillValue, SKILLS } from '../characters/skills.js';
 import { RACES } from '../characters/races.js';
+import { previewRacialModifiers } from './abilities/racialIdentity.js';
 import { SPECIAL_ABILITY_BITS } from '../characters/specialAdvantages.js';
 import { WEAPONS, weaponMinDamage, weaponMaxDamage, weaponSkillUsed, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';
 import { equipTableOf, lowerCondition, blowWear, slotForBodyPart, EQUIP_SLOTS, weaponProficiencyFlag } from '../characters/equip.js';
@@ -255,6 +256,8 @@ export function pcaaoProficiencyModifiers(attacker, weapon) {
  *  takes the second arm, an Argonian with anything but a short blade
  *  takes nothing). Weaponless: Khajiit and Nord. */
 export function pcaaoRacialModifiers(attacker, weapon, player) {
+  const preview = previewRacialModifiers(attacker, weapon);
+  if (preview) return preview;
   const mods = { damageMod: 0, toHitMod: 0 };
   const S = (k) => stat(attacker, k);
   const race = player?.raceId ?? attacker.raceId;
@@ -1051,7 +1054,7 @@ export function pcaaoAttackDamage(attacker, target, {
   weapon: weaponIn = null, damageMod = 0, toHitMod = 0, backstabChance = 0, weaponAnimTime = 0,
   rolls = Math.random, dfRand = () => Math.floor(Math.random() * 32768), onMonsterHit = null, onInflictPoison = null,
   say = null, playerReflexes = null, notes = null, modules = pcaaoModules(), unaware = false, onStruck = null,
-  blowShare = null,
+  blowShare = null, armorPierce = 0,
 } = {}) {
   if (!attacker || !target) return 0;
   let weapon = weaponIn;
@@ -1214,7 +1217,8 @@ export function pcaaoAttackDamage(attacker, target, {
     damage = pcaaoArmorDamageReductionWithWeapon(attacker, target, damage, weapon, struckBodyPart, naturalDamResist, modules);
   }
   if (weaponAttack && damage < unreduced) {
-    const p = armorPierceShare(attacker, target, weapon);   // BUNNYFALL (melee rework): blunt and the crossbow pierce (combat/armorPierce.js)
+    const basePierce = armorPierceShare(attacker, target, weapon);
+    const p = shieldBlockSuccess ? basePierce : basePierce + (1 - basePierce) * armorPierce;
     if (p > 0) damage = Math.round(damage + (unreduced - damage) * p);
   }
   damage = shared(damage);

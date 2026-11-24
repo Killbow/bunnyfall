@@ -8,6 +8,7 @@
 // original-archive sizes while pixels come from the table archive,
 // which is exactly the dungeon convention already on record.
 
+import { abilityArrowAllowed, abilityFlightStep, settleAbilityArrow } from '../combat/abilities/previewHits.js';
 import { subdueFoe } from './vampire/thrallCapture.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: subdue in Steal mode
 import { blightFoeTint, CROMWARK_FOE_TINT } from '../world/wild/cromwark.js';   // BUNNYFALL: the purple monsters
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
@@ -131,7 +132,7 @@ import { setDefaultEnchantCtx } from '../magic/enchantments.js';   // FS1 (wave 
 import { createEnchantCtx, standLooseFoe } from '../magic/hostEnchant.js';   // FS1 (wave D): the ONE ctx body + SD1's loose-foe placement
 import { boltMeta, bendBolt, ballistaBurst } from '../combat/ballista/ballistaFlight.js';   // BUNNYFALL: the Royal Ballista's arc and burst - one hook each below
 import { playerArrowHitFoe } from '../combat/arrowFlight.js';   // AUDIT 39 (#64) wave D: the FOURTH host calls the shared player-arrow law rather than carrying a fourth body of it
-import { techniquePierces, shaftSequence, stickable, stickArrow, syncStuckArrowDraws, ARROW_MODEL_ID } from '../combat/arrowFlight.js';   // STUCK-ARROWS: a player's shaft that meets the walls stays there, a pile of this host's, drawn in dynamicDraws   // TECH1: a piercing technique shaft flies on (bible/05-Combat/Weapon-Techniques.md)
+import { techniquePierces, shaftSequence, stickable, stickArrow, syncStuckArrowDraws, sweepLinearAbility, arrowMatrix as projectileArrowMatrix, ARROW_MODEL_ID } from '../combat/arrowFlight.js';
 import {
   hasBowAttack, isBowWeapon, backstabChanceOf,
   tallySwingSkills, zeroDamageHitSound, SWING_FATIGUE_COST,
@@ -295,7 +296,6 @@ import { createPortalSet } from '../travel/portalFx.js';   // COMPANION-PORTAL  
 import { bloodDecalDeps } from '../combat/bloodSwitch.js';   // BLOOD1a
 import { createBloodMarks } from '../combat/bloodMarks.js';   // BLOOD1a: HARD1 - the ring is this context's to own and to end
 import { createHitEffects, bloodCentre } from '../combat/hitEffects.js';
-import { orbArchiveFor, ORB_RECORD, noteOrbColour, ORB_SCALE } from '../characters/thunderlockIds.js';   // FIELD-GUN14: what this weapon's shot LOOKS like - the leaf, so no cycle   // FIELD-GUN17: ...and its colour   // FIELD-GUN18: ...and how big it is drawn
 import { bloodHit } from '../combat/bloodDecals.js';   // BLOOD1b: the blow, in the shape the mark's ladder reads
 import { createDroppedTorches } from '../items/droppedTorches.js';
 import { createCamps, FIRE_LIGHT_UP } from '../systems/survival/camps.js';   // REST3: a placed fire's light stands where a camp's does   // SURV3: a fire on the dungeon floor (no tent below - the camp law says so)
@@ -3605,9 +3605,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // for the first Recall cast in a standalone dungeon. Every other
     // line in this file speaks through hudText, including the one four
     // below it.
-    onTeleport: () => {
-      if (opts.onTeleport) { opts.onTeleport(); return; }
-      hudText.add('(Recall pends in the standalone dungeon - the anchor machinery lives in the streaming ?world host)');
+    onTeleport: (action) => {
+      if (opts.onTeleport) return opts.onTeleport(action);
+      hudText.add('(Recall pends in the standalone dungeon - the anchor machinery lives in the streaming ?world host)'); return false;
     },
     // X9: the creature dispel. This host is where undead and daedra
     // actually live, so it is the one that matters. removeFoe IS
@@ -3930,7 +3930,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const pos = fromPlayer
       ? playerShotOrigin(from, dir, muzzle)   // AUDIT FIELD-GUN-MW F2: the one fork, so a world muzzle lands here too
       : [...from];
-    missiles.push({ arrow: true, flatArchive: orbArchiveFor(weapon), weapon, fromPlayer, shooterFoe, aimFoe, pos, dir: [...dir], age: 0, batch: null, draw: null, ...(extra ?? {}), ...(fromPlayer ? boltMeta(weapon, dir) : null) });   // ROAD-H H1c: a PLAYER shaft leaves the BOW HAND - GetAimPosition (DaggerfallMissile.cs:540-550) offsets the camera position 0.11 DOWN the camera's own up and 0.15 to the hand (the other way under FPSWeapon.FlipHorizontal), and it runs INSIDE the missile in DFU (:471), so it runs here rather than at each host's loose; an ENEMY shaft arrives with its own origin already applied (enemyTargets.enemyArrowOrigin)
+    const arc = fromPlayer && !extra?.technique?.linearRadius ? boltMeta(weapon, dir) : null;
+    missiles.push({ arrow: true, weapon, fromPlayer, shooterFoe, aimFoe, pos, dir: [...dir], age: 0, batch: null, draw: null, ...extra, ...arc });
   }
   // S16: the enemy cast - "enemies always cast ready spell instantly
   // once queued" (EntityEffectManager.Update): spend the S10 cost
@@ -3994,9 +3995,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     dynamicDraws.push(m.draw);
   }
   function arrowMatrix(m) {
-    const yaw = Math.atan2(m.dir[0], m.dir[2]) * 180 / Math.PI;
-    const pitch = Math.asin(-Math.max(-1, Math.min(1, m.dir[1]))) * 180 / Math.PI;
-    return trs(m.pos[0], m.pos[1], m.pos[2], pitch, yaw, 0);
+    return projectileArrowMatrix(m.pos, m.dir, m.technique);
   }
   // M3: applySpellToPlayer / explodeAt / tallyCastSkills / the four
   // cast arms live in the ONE engine (scenes/hostMagic.js); the enemy
@@ -4314,7 +4313,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     technique: {
       motor: () => opts.technique?.motor?.() ?? null,
       face: (p, from) => opts.technique?.face?.(p, from),   // AUDIT TECH1: from where the body lands
-      fireArrow: (from, dir, o) => fireArrow(from, dir, o?.weapon ?? playerWeapon.weapon, true, null, null, o?.sky ? { world: [...from] } : weaponRig.thunderlockMuzzle(fieldOfView()), { technique: o?.technique ?? null, ...(o?.speedScale ? { speedScale: o.speedScale } : {}), ...(o?.summoned ? { summoned: true } : {}) }),   // STUCK-ARROWS: a conjured round's shaft is never given back
+      fireArrow: (from, dir, o) => fireArrow(from, dir, o?.weapon ?? playerWeapon.weapon, true, null, null, o?.sky ? { world: [...from] } : null, { technique: o?.technique ?? null, ...(o?.speedScale ? { speedScale: o.speedScale } : {}), ...(o?.summoned ? { summoned: true } : {}) }),   // STUCK-ARROWS: a conjured round's shaft is never given back
       drainFatigue,
       // AUDIT RPT1026 E1: A WINDOW HOLDS THE KEY UNDERGROUND TOO (AUDIT TECH1's law - the street's door is `blocked: () =>
       // gamePaused()`). This door had none because this rig never stepped under a window of this context's: drawFoes did not
@@ -4560,7 +4559,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   function resolvePlayerHit(eye, inViewFn, playerFeet, lookDir) {
     // PVPDUNGEON (the owner: "players should be able to attack each other in dungeons too in the pvp zone"): a fair player of
     // the zone in reach, in view and in sight takes the swing before any foe does - INT9: the relay referees it (net/wild/wildRef.js)
-    if (opts.wildBodies && opts.wildStrike) {
+    const abilityBlow = playerWeapon.techniqueBlow?.ability;
+    if (!abilityBlow && opts.wildBodies && opts.wildStrike) {
       let best = null, bestD = Infinity;
       for (const b of opts.wildBodies() ?? []) {
         const c = [b.feet[0], b.feet[1] + (b.height ?? CAPSULE_HEIGHT) / 2, b.feet[2]];
@@ -4581,7 +4581,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // Receive(Attack) lets it continue, geometry occludes - and the
     // foe-less contexts (mobile, foe deps still loading - the
     // 2026-08-17 live crash) fall straight to the fallback below.
-    if (!foeDeps) return lookDir ? (envAttack(actions, collider, eye, lookDir, Math.random), false) : false;
+    if (!foeDeps) return !abilityBlow && lookDir ? (envAttack(actions, collider, eye, lookDir, Math.random), false) : false;
     // E3d: backstab facing per foe, verbatim IsBackFacing (records
     // 3/4 of the 8-orientation wheel); the chance = the player's
     // Backstabbing skill, tallied inside CalculateBackstabChance
@@ -4662,12 +4662,12 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // the time (heavyDamage = a quarter of max health in one hit).
       const pain = enemyPainVoice(foe, damage);
       if (pain && pain.clip >= 0) audio.play3d(pain.clip, [foe.ai.feet[0], foe.ai.feet[1] + 0.9, foe.ai.feet[2]], monsterVolume(), { maxDistance: 16, pitch: 1 + pain.pitchLift });   // AUDIT 58: EnemySounds.cs:172-175
-      damageFoe(foe, damage, playerFeet, lookDir, { weapon: playerWeapon.strikingWeapon });   // C15: the attack ray knocks back; rigs also stagger (HurtFront/Back); TELL1: the blow's weapon weighs it on a wind-up's poise
+      damageFoe(foe, damage, playerFeet, lookDir, { weapon: playerWeapon.strikingWeapon, abilityControl: playerWeapon.techniqueBlow?.control });   // C15: the attack ray knocks back; rigs also stagger (HurtFront/Back); TELL1: the blow's weapon weighs it on a wind-up's poise
       playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
     }
     // combat-14: the no-entity fallback - only a swing that connected
     // with NO foe may bash the environment.
-    if (!hitEnemy && lookDir) envAttack(actions, collider, eye, lookDir, Math.random);
+    if (!hitEnemy && !abilityBlow && lookDir) envAttack(actions, collider, eye, lookDir, Math.random);
     return hitEnemy;
   }
   // S3b: the classic clock for skill-raise checks - dt * TimeScale
@@ -4706,8 +4706,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // element, as it always has. ORB_RECORD is 0, which is also the
     // record every spell missile flies on, so the two agree by
     // construction rather than by coincidence.
-    const archive = m.flatArchive ?? missileArchive(m.spell.element);
-    const record = m.flatArchive ? ORB_RECORD : 0;
+    const archive = missileArchive(m.spell.element);
+    const record = 0;
     const t = await getTexture(archive);
     if (!t) return;
     // The arrow's bug, twice more: this is async and `m.batch = false`
@@ -4723,7 +4723,6 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // flash would stay white while the other three took the orb's own
     // colour. `noteOrbColour` is once-only, so whichever host fires
     // first answers for all of them.
-    if (m.flatArchive) noteOrbColour(t.getColor32(t.getDFBitmap(record, 0), 0));
     // FIELD-GUN18 (Mac: "shrink the projectile orb slighty"). The
     // FOURTH HOST again: its missiles build their own batch and never
     // touch hitEffects' pool, so the pool's `scale` cannot reach them
@@ -4731,7 +4730,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // untouched - this is the orb's arm, gated on the same
     // `flatArchive` the picture and the colour fork on.
     const raw = billboardSize(t, record);
-    const size = m.flatArchive ? { w: raw.w * ORB_SCALE, h: raw.h * ORB_SCALE } : raw;
+    const size = raw;
     m.firePos = [...m.pos];
     m.batch = renderer.createBillboardBatch(archive, record, size, [centredBase(m.firePos, size)]);   // FIELD-GUN20: a missile is CENTRED on its position (DaggerfallMissile.cs:601-602, no AlignToBase) - the base is half a height under it, for the orb and every spell
     // FA1 slice 2: the missile flat ANIMATES while it flies -
@@ -4749,7 +4748,10 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     hitEffects?.showImpactFlash(missileArchive(m.spell.element), pos);
   }
   function retireMissile(m) {
-    if (m.arc && !m.burst) ballistaBurst(m, { targets: foes.filter((f) => f.companion == null), hit: (b, f) => playerArrowHitFoe(b, f, { playerEntity, playerWeapon, playerFeet: lastPlayerFeet, audio, hitEffects, say: (l) => hudText.add(l), dealDamage: (t, d) => damageFoe(t, d, lastPlayerFeet, b.dir, { kind: 'arrow', weapon: b.weapon ?? null }), onInflictPoison: (att, tgt, pt) => poisonFoe(f, pt), onAttackFromPlayer: (t, landed) => attackFromPlayer(t, lastPlayerFeet, 'arrow', landed) }), effects: hitEffects });   // BUNNYFALL: a landed ballista bolt bursts, each blow through the shaft's own door (combat/ballista/ballistaFlight.js)
+    if (m.arc && !m.burst) ballistaBurst(m, {
+      targets: foes.filter(f => f.companion == null),
+      hit: (bolt, foe) => hitDungeonArrowFoe(bolt, foe, lastPlayerFeet), effects: hitEffects, collider,
+    });
     if (m.draw && m.draw.object) {
       const di = dynamicDraws.indexOf(m.draw);
       if (di >= 0) dynamicDraws.splice(di, 1);
@@ -4760,6 +4762,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (bi >= 0) billboardBatches.splice(bi, 1);
       renderer.destroyBillboardBatch(m.batch);
     }
+    settleAbilityArrow(m);
     m.dead = true;
   }
   /** AUDIT 68 S19-restore-missiles-survive: every flight THIS context owns - enemy spells, both sides' arrows, trap
@@ -4771,6 +4774,34 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     missiles.length = 0;
     _pendingCasts.length = 0;
   }
+  function hitDungeonArrowFoe(m, foe, playerFeet) {
+    playerArrowHitFoe(m, foe, {
+      playerEntity, playerWeapon, playerFeet,
+      dealDamage: (t, d) => damageFoe(t, d, lastPlayerFeet, m.dir, {
+        kind: 'arrow', weapon: m.weapon ?? null, abilityControl: m.technique?.control,
+      }),
+      audio, hitEffects, say: (l) => hudText.add(l),
+      onInflictPoison: (att, tgt, pt) => poisonFoe(foe, pt),
+      onAttackFromPlayer: (t, landed) => attackFromPlayer(t, lastPlayerFeet, 'arrow', landed),
+    });
+  }
+
+  function hitDungeonLinearAbility(m, foe, playerFeet) {
+    if (!foe.boss && foe.crystal == null && foe.host == null) {
+      hitDungeonArrowFoe(m, foe, playerFeet);
+      return;
+    }
+    playerArrowHitFoe(m, foe, {
+      playerEntity, playerWeapon, playerFeet: foe.boss ? playerFeet : null, audio,
+      hitEffects: foe.crystal == null ? hitEffects : null, say: (l) => hudText.add(l),
+      dealDamage: (t, d) => {
+        if (t.boss) return landOnBoss(t, bossStrikeAt(t.entity, d, 'arrow', null, null, false, (n) => hurtPlayer(n)), HIT_KINDS.Shaft);
+        if (t.crystal != null) return landOnCrystal(t, d, HIT_KINDS.Shaft);
+        return landOnHost(t, d, HIT_KINDS.Shaft);
+      },
+    });
+  }
+
   function updateMissiles(dt, playerFeet, playerHeight = CAPSULE_HEIGHT) {
     while (_pendingCasts.length) { const c = _pendingCasts.shift(); fireCast(c.index, c.origin); }
     syncStuckArrowDraws(droppedLoot, dynamicDraws, _stuckDraws, stuckArrowMesh);   // STUCK-ARROWS: before the no-missile return - a stuck shaft outlives every flight
@@ -4778,7 +4809,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const target = [playerFeet[0], playerFeet[1] + playerHeight / 2, playerFeet[2]];   // AUDIT 62 F21 (review): the PLAYER arm of the aim is the foe arm's law - LastKnownTargetPos is target.transform.position (DaggerfallMissile.cs:571-581 -> EnemySenses.cs:453), and the player's is feet + the LIVE height/2 (no controller centre offset; PlayerHeightChanger.cs:477-478 plants the capsule bottom and moves the transform by heightChange/2). The hardcoded 0.9 made a crouched player a standing target.
     for (const m of missiles) {
       if (m.dead) continue;
-      if (!m.arrow || m.flatArchive) ensureMissileBatch(m);   // arrows render as the 99800 model, not an element billboard - unless the weapon brought its own flat (FIELD-GUN14)
+      if (!m.arrow) ensureMissileBatch(m);   // arrows render as the 99800 model, not an element billboard - unless the weapon brought its own flat (FIELD-GUN14)
       if (!m.dir) {   // verbatim: normalized (target - object), locked at fire time
         // MT-iv: DaggerfallMissile aims at its CASTER'S TARGET, which
         // was the player and only the player until targeting armed.
@@ -4803,12 +4834,19 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       m.age += dt;
       if (m.age > MISSILE_LIFESPAN_S) { retireMissile(m); continue; }
       bendBolt(m, dt);   // BUNNYFALL: a ballista's bolt falls as it flies
-      const step = (m.arrow && !m.flatArchive ? ARROW_FLIGHT_SPEED : MISSILE_SPEED) * (m.speedScale ?? 1) * dt;   // TELL6d: an aimed shot flies x1.3 as fast; BAL-ARCHERY: a shaft, not a spell or an orb
+      const step = abilityFlightStep(m, (m.arrow ? ARROW_FLIGHT_SPEED : MISSILE_SPEED) * (m.speedScale ?? 1) * dt);
+      if (m.technique?.ability && dt > 0 && step <= 0) { m.burst = true; retireMissile(m); continue; }   // TELL6d: an aimed shot flies x1.3 as fast; BAL-ARCHERY: a shaft, not a spell or an orb
       const { unit: _unit, reach } = missileReach(m.dir, step);   // ROAD-H tail: DaggerfallMissile.cs:333/:337-339's reach along the normalised direction
       // TACT1: cover stops a bolt, and an area spell bursts on it; AUDIT TACT B5: by touch, the bodies before it tested first
       const _len = Math.hypot(m.dir[0], m.dir[1], m.dir[2]) || 1;
       const _cs = flightStop(collider, m.pos, _unit, reach, step * _len);   // AUDIT GROUND-BOLT C6: the cast engine's one flight law (no terrain underground: the meshes and cover)
       const hitWall = _cs.stop;
+      if (m.technique?.linearRadius && sweepLinearAbility(m, _unit, step * _len * _cs.advance,
+        [gateBossBody(), ...gateCrystalBodies(), ...gateHostBodies(), ...foes],
+        (shot, foe) => hitDungeonLinearAbility(shot, foe, playerFeet), hitWall)) {
+        retireMissile(m);
+        continue;
+      }
       if (Number.isFinite(hitWall) && hitWall <= reach) {
         // AUDIT 23 (magic-2) - DaggerfallMissile.cs:399-402 DoCollision:
         // an AreaAtRange payload explodes AT THE IMPACT POINT whatever
@@ -4825,6 +4863,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         // DFU flashes on ANY wall hit, so `impact` is hoisted out of
         // the AoE branch above rather than computed inside it.
         showImpactFlash(m, impact);
+        if (m.technique?.ability && m.arc) m.pos = impact.map((v, i) => v - _unit[i] * 0.02);
         if (m.arrow && stickable(m)) stickArrow(droppedLoot, impact, _unit);   // STUCK-ARROWS: DFU's shaft is LOST here; the player's stays where it struck
         retireMissile(m);
         continue;
@@ -4834,12 +4873,12 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // The batch was built ONCE at the fire position; flight rides
       // the batch's origin uniform (zero GL churn - the same thrash
       // class the engine audit killed stays killed).
-      if ((!m.arrow || m.flatArchive) && m.batch) m.batch.origin = [m.pos[0] - m.firePos[0], m.pos[1] - m.firePos[1], m.pos[2] - m.firePos[2]];   // FIELD-GUN14: an orb flies the way a spell does
+      if ((!m.arrow) && m.batch) m.batch.origin = [m.pos[0] - m.firePos[0], m.pos[1] - m.firePos[1], m.pos[2] - m.firePos[2]];   // FIELD-GUN14: an orb flies the way a spell does
       if (m.arrow) {
         // FIELD-GUN14: ...and it is NOT also a mesh. The flat is the
         // whole picture; fetching 99800 beside it would draw a shaft
         // through the middle of the orb.
-        if (!m.flatArchive) ensureArrowModel(m);
+        ensureArrowModel(m);
         if (m.draw && m.draw.object) m.draw.object.matrix = arrowMatrix(m);
         // SPELLFX1: A PEER'S SHAFT, DRAWN - it stops on me or a foe and applies nothing (their game dealt it)
         if (m.visual) {
@@ -4847,11 +4886,12 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
           continue;
         }
         if (m.fromPlayer) {
+          if (m.technique?.linearRadius) continue;
           // WB4b: the court's boss meets a shaft with the whole of his body (his own radius) - the one player-arrow law
           // against his stand-in, the number to the relay; the ward turns it
           // TECH1 (bible/05-Combat/Weapon-Techniques.md): a technique's shaft - a Volley's, a Piercing Shot's - strikes each body
           // once (`struck`), a piercing one flying on through (combat/arrowFlight.js techniquePierces, the street's own law)
-          const struckBy = (b) => !!m.technique?.struck?.includes(b);
+          const struckBy = (b) => !abilityArrowAllowed(m, b) || !!m.technique?.struck?.includes(b);
           const boss = struckBy(gateBossBody()) ? null : gateBossBody();
           if (boss && missileHitsCapsule(m.pos, boss.ai.feet, boss.ai.height, boss.ai.radius)) {
             if (boss.warded) { wardTurns(boss); reportPlayerAttack({ hit: true, damage: 0, target: boss.entity }); }   // AUDIT FB1018f L3-7: a shaft his ward turns says "Warded", as a swing's formula does on his stand-in (WB13d)
@@ -4890,44 +4930,11 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
           }
           for (const f of foes) {
             if (f.dead || f.companion != null) continue;   // AUDIT CC-B1: the player's shaft flies past a companion (the street's and a building's spare him already)
-            if (struckBy(f)) continue;   // TECH1: a piercing shot flies past a foe it has struck
+            if (!abilityArrowAllowed(m, f) || struckBy(f)) continue;   // TECH1: a piercing shot flies past a foe it has struck
             if (missileHitsFoe(m.pos, f)) {   // ROAD-H tail: DaggerfallMissile.cs:339's SphereCast meets the foe's CAPSULE (REVIEW 2026-09-05 had its centre as a point)
               nextArenaQ();   // ARENA4b: each shaft its own blow to the referee (a relay's fighter's puppet - damageFoe's lane)
               _arenaQ = shaftSequence(m, _arenaQ);   // AUDIT TECH1: a piercing shaft's later bodies ride its first one's sequence while it is the newest - one shaft, one blow
-              // AUDIT 39 (#64) / THE FOUR HOSTS RULE - SHIPPED (wave D):
-              // this host was the FOURTH BODY of the player-arrow law
-              // and is now the fourth CALLER. combat/arrowFlight.js's
-              // playerArrowHitFoe is the one copy world.js:"onPlayerArrowHitFoe",
-              // exterior.js:"onPlayerArrowHitFoe" and worldModes.js:"onPlayerArrowHitFoe" already ran;
-              // the flag said the divergence would bite and it already
-              // had. This copy splashed at the ARROW TIP
-              // (`[m.pos[0], m.pos[1], m.pos[2]]`) on the claim that
-              // "the missile's own position IS DFU's impactPosition".
-              // It is not: AssignBowDamageToTarget's player arm hands
-              // WeaponDamage `hitTransform.position`
-              // (DaggerfallMissile.cs:679-687) - the struck entity's
-              // own transform origin, which is `foe.ai.feet` - and
-              // WeaponManager.cs:568-571 passes whatever it got
-              // straight to ShowBloodSplash. Only the MELEE callers
-              // pass a contact point (WeaponManager.cs:1054
-              // ClosestPoint, :1068 hit.point). AUDIT 39r/R16 fixed
-              // the shared copy; this one kept the bug for want of a
-              // call. Everything else the block carried - the swing
-              // mods, the backstab arc, the poisoned shaft, the
-              // equipment-break line, the hit sound before the pain
-              // voice, the recoverable Arrow - is that function's own
-              // body now, verbatim.
-              playerArrowHitFoe(m, f, {
-                playerEntity, playerWeapon, playerFeet,
-                dealDamage: (t, d) => damageFoe(t, d, lastPlayerFeet, m.dir, { kind: 'arrow', weapon: m.weapon ?? null }),   // AUDIT FEUD 2: the bow (a metal weakness rides to the host)   // WORLD2: the kind rides the hit; C15: arrows knock along their flight; MT-iv: the player arm keys on the feet, so an arrow kill reverts a struck ally too
-                audio,
-                hitEffects,
-                say: (l) => hudText.add(l),   // C-slice: equipment breaks speak
-                onInflictPoison: (att, tgt, pt) => poisonFoe(f, pt),   // C2-slice (combat-11): a poisoned arrow doses ITS mark; WORLD6b-iii(e): through the one poison door (a puppet's rides the hit)
-                // AUDIT 58: WeaponManager.cs:630 runs for every shaft that
-                // CONNECTED, damage or none.
-                onAttackFromPlayer: (t, landed) => attackFromPlayer(t, lastPlayerFeet, 'arrow', landed),   // AUDIT WORLD6b-iii(e) C2: the one door, the shaft's kind on the zero blow (its Arrow lands in the host's copy)
-              });
+              hitDungeonArrowFoe(m, f, playerFeet);
               if (techniquePierces(m, f)) continue;   // TECH1: a piercing shot flies on
               retireMissile(m);
               break;
@@ -6818,7 +6825,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const coop = coopHit(foe, damage, knockDir, kind, striker);
     if (coop?.al === 1) opts.onFoeHit?.({ ...(foe._encId != null ? { i: foe._encId, xs: 1 } : { i: foe._surI ?? pi }), ...coop });
   }
-  function damageFoe(foe, damage, playerFeet = null, knockDir = null, { fromPlayer = true, bypassShield = false, kind = 'melee', peer = false, peerId = null, whole = false, spell = null, striker = null, weapon = null, round = false, wc = null, element = null } = {}) {   // TELL8: `wc` a joiner's blow's class (net/wire.js hitClassOf); RVN3: `element` a spell landing's (its weakness's weight)   // AUDIT CC-E1: `striker` the foe whose blow it is (hurtFromFoe's); TELL1: `weapon` the player's striking item, `round` a spell's later round (the poise meter's weight)
+  function damageFoe(foe, damage, playerFeet = null, knockDir = null, { fromPlayer = true, bypassShield = false, kind = 'melee', peer = false, peerId = null, whole = false, spell = null, striker = null, weapon = null, round = false, wc = null, element = null, abilityControl = null } = {}) {   // TELL8: `wc` a joiner's blow's class (net/wire.js hitClassOf); RVN3: `element` a spell landing's (its weakness's weight)   // AUDIT CC-E1: `striker` the foe whose blow it is (hurtFromFoe's); TELL1: `weapon` the player's striking item, `round` a spell's later round (the poise meter's weight)
     // AUDIT 68 S19-damagefoe-dead-reentry: a corpse takes no blow. EnemyDeath runs once; the round sinks tick on
     // after the killing tick inside one window, and each re-ran the whole death arm (trap, chime, OnEnemyDeath).
     if (foe.dead || (fromPlayer && !peer && foe.companion != null)) return;   // CREW-COMPANIONS: and my companion takes no blow of mine (exteriorFoes' AUDIT NAV2 F55 gate) - it turned him
@@ -7052,7 +7059,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // blow's shove written half again as hard. Not winding up, this answers null and DFU's knockback stands (the
     // street's door, hostCombat.windupDoor's one law)
     const _tell = (foe.ai?._tac?.state !== 'windup' && foe.ai?._tac?.state !== 'overreach') ? null : windupDoor(foe, damage, {   // only a foe winding up (TELL4: or overreached) builds the blow's bag
-      kind, weapon, round, peer, striker, from: striker?.ai?.feet ?? playerFeet, wc, fromPlayer, element,   // TELL8: a joiner's blow's class; AUDIT TELL U6: whose blow; RVN3: a spell's element
+      kind, weapon, round, peer, striker, from: striker?.ai?.feet ?? playerFeet, wc, fromPlayer, element, abilityControl,   // TELL8: a joiner's blow's class; AUDIT TELL U6: whose blow; RVN3: a spell's element
       claws: fromPlayer && !peer && !weapon && !!playerEntity?.isInBeastForm,
       weight: () => enemyWeightClassicUnits(!!foe.entity.isClass, foe.gender, ENEMY_BASICS[foe.mobileType]?.weight ?? 0, foe.entity?.items),
     }, { audio, hitEffects, shake: fromPlayer && !peer && !striker ? opts.shakeCamera : null });   // AUDIT TELL H6: my own blow's kick alone
@@ -7074,7 +7081,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (weaponKnockbackApplies(foe.ai.knockbackSpeed, isClass, mobileWeight)) {
         // EW1: the foe's own kit is half of DFU's weight
         const w = enemyWeightClassicUnits(isClass, foe.gender, mobileWeight, foe.entity?.items);
-        foe.ai.knockbackSpeed = weaponKnockbackSpeed(damage, w) * (_tell === 'stagger' ? TELL.STAGGER_KNOCK : 1);
+        foe.ai.knockbackSpeed = weaponKnockbackSpeed(damage, w) * (_tell === 'stagger' ? TELL.STAGGER_KNOCK : 1) * (abilityControl?.shove ?? 1);
         foe.ai.knockbackDir = [knockDir[0], knockDir[1], knockDir[2]];
       }
     }
@@ -7731,10 +7738,10 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
           const lookDir = [-aimed[2], -aimed[6], -aimed[10]];   // the view-matrix forward this file already uses for the viewmodel
           // one round per loose, verbatim (the ammo guard normally
           // pre-sheathes at zero). WHICH round is the weapon's answer:
-          // a bow spends an Arrow, the Thunderlock a Dwemer Pellet.
+          // A bow-class shot spends an arrow.
           const shot = { summoned: false };   // STUCK-ARROWS: DFU's isArrowSummoned, carried by the shaft
           if (!spendAmmoFor(playerEntity.items, playerWeapon.weapon, shot)) continue;
-          fireArrow(eye, lookDir, playerWeapon.weapon, true, null, null, weaponRig.thunderlockMuzzle(fieldOfView()), shot.summoned ? { summoned: true } : null); weaponRig.noteShot?.(playerWeapon.weapon);   // SPELLFX1: the peers draw it   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // ROAD-H H1c: fireArrow applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
+          fireArrow(eye, lookDir, playerWeapon.weapon, true, null, null, null, shot.summoned ? { summoned: true } : null); weaponRig.noteShot?.(playerWeapon.weapon);   // SPELLFX1: the peers draw it   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // ROAD-H H1c: fireArrow applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           // WeaponManager.cs:419-436, in DFU's order: the swing costs
           // fatigue whatever it hits, and a BOW always takes the tally
           // arm (`!hitEnemy && WeaponType != Bow` is false for a bow),
@@ -9439,7 +9446,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     conjured: magic.conjured,
     peerCandles: (list, dt) => magic.peerCandles(list, dt),   // PEERLIGHT2: the others' Light spells, in this dungeon's own engine
     /** SPELLFX1: a peer's arrow, drawn: this pool's own shaft, flagged visual - it stops on a wall or a body and lands nothing. */
-    visualArrow: (from, dir, bolt = false) => { missiles.push({ arrow: true, visual: true, flatArchive: null, weapon: null, fromPlayer: false, shooterFoe: null, aimFoe: null, pos: [...from], dir: [...dir], age: 0, batch: null, draw: null, ...boltMeta(null, dir, bolt) }); return true; },   // BUNNYFALL: a peer's ballista bolt arcs
+    visualArrow: (from, dir, bolt = false) => { missiles.push({ arrow: true, visual: true, weapon: null, fromPlayer: false, shooterFoe: null, aimFoe: null, pos: [...from], dir: [...dir], age: 0, batch: null, draw: null, ...boltMeta(null, dir, bolt) }); return true; },   // BUNNYFALL: a peer's ballista bolt arcs
     // V3 probe surface: the ONE foe damage door. Soul Trap's kill
     // intercept lives inside it, so a probe that killed a foe any
     // other way would be testing a path the game never takes.

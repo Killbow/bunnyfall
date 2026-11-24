@@ -33,7 +33,7 @@ import { fullName, getNameBank, GENDERS } from '../characters/nameHelper.js';   
 import { srand } from '../formats/dfRandom.js';   // AUDIT 17j F1: the name screen's reseed
 import { buildBackstory, repBoxRows, bonusPointsRows } from './chargenArt.js';   // U13 / U16
 import { necromancerCareer, necromancerDescription, NECROMANCER_NAME } from '../systems/necromancy/necroCareer.js';   // CHEB'S NECROMANCY: the Necromancer
-import { RACE_TEMPLATES } from '../characters/races.js';   // S3c/U9
+import { EXTRA_RACE_TEMPLATES, PLAYABLE_RACE_TEMPLATES, RACE_TEMPLATES } from '../characters/races.js';
 import { facesFor } from '../characters/roxArgonians.js';   // ROX: an Argonian has twenty faces
 import { audio } from '../audio/audio.js';
 import { SOUND } from '../audio/soundClips.js';
@@ -178,6 +178,8 @@ export class ChargenFlow {
     this.name = '';
     this.gender = 'male';
     this.raceIndex = 0;      // RACE_TEMPLATES order (Breton first)
+    this.extraRacesOpen = false;
+    this.extraRaceCursor = 0;
     this.faceIndex = 0;      // characterDocument.faceIndex - 0..9 within the race/gender FACE CIF
     this.lookRace = null;    // BUNNYFALL: the Nord look (a Redguard drawn as a Nord - systems/races.js artRaceOf), the owner's alone
     // AUDIT 18: the FACE SCREEN's own picker value, which DFU keeps
@@ -364,7 +366,7 @@ export class ChargenFlow {
    *  on the Custom row and the raw read throwing, which the live probe
    *  caught - can no longer reach it. */
   get career() { return this.customCareer ?? this._questionCareer ?? this.careers[this.classIndex]?.career ?? null; }
-  get race() { return RACE_TEMPLATES[this.raceIndex]; }
+  get race() { return PLAYABLE_RACE_TEMPLATES[this.raceIndex]; }
 
   /** AUDIT 17j F7: these REROLLED on every entry, so walking back a
    *  screen and forward again threw away the roll AND everything the
@@ -1664,8 +1666,21 @@ export class ChargenFlow {
         else if (action === 'back') { audio.playOneShot(SOUND.ButtonClick, 1); this.raceConfirm = null; }
         return;
       }
-      if (action === 'up') this.raceIndex = (this.raceIndex + RACE_TEMPLATES.length - 1) % RACE_TEMPLATES.length;
-      else if (action === 'down') this.raceIndex = (this.raceIndex + 1) % RACE_TEMPLATES.length;
+      if (this.extraRacesOpen) {
+        const count = EXTRA_RACE_TEMPLATES.length;
+        if (action === 'up') this.extraRaceCursor = (this.extraRaceCursor + count - 1) % count;
+        else if (action === 'down') this.extraRaceCursor = (this.extraRaceCursor + 1) % count;
+        else if (action === 'confirm') this.applyHit({ setRace: EXTRA_RACE_TEMPLATES[this.extraRaceCursor].key });
+        else if (action === 'back' || action.toLowerCase() === 'char:x') this.applyHit({ extraRaces: false });
+        return;
+      }
+      if (action.toLowerCase() === 'char:x') this.applyHit({ extraRaces: true });
+      else if (action === 'up' || action === 'down') {
+        const count = RACE_TEMPLATES.length;
+        const direction = action === 'up' ? -1 : 1;
+        const cursor = this.raceIndex < count ? this.raceIndex : direction === 1 ? -1 : 0;
+        this.raceIndex = (cursor + count + direction) % count;
+      }
       else if (action === 'confirm') {
         // AUDIT 17g F5: a keyboard confirm walked straight past the
         // race DESCRIPTION box a click opens, so a keyboard player
@@ -2103,25 +2118,33 @@ export class ChargenFlow {
    *  (DaggerfallAudioSource.PlayOneShot(uint), :232-238) rather than a
    *  private getRecordIndex here - ONE DFU MEMBER, ONE EXPORT. */
   _playRaceClip() {
-    audio.playOneShotId(RACE_TEMPLATES[this.raceIndex]?.clipId, 1);
+    if (this.race.clipId != null) audio.playOneShotId(this.race.clipId, 1);
   }
 
   applyHit(hit) {
     if (!hit) return false;
     if (typeof hit === 'string') { this.input(hit); return true; }
+    if (hit.extraRaces != null && this.state === 'race' && !this.raceConfirm) {
+      this.extraRacesOpen = hit.extraRaces;
+      return true;
+    }
     if (hit.setRace != null) {
-      this.raceIndex = RACE_TEMPLATES.findIndex((r) => r.key === hit.setRace);
+      const index = PLAYABLE_RACE_TEMPLATES.findIndex(r => r.key === hit.setRace);
+      if (index < 0) return false;
+      this.raceIndex = index;
+      this.extraRacesOpen = index >= RACE_TEMPLATES.length;
+      if (this.extraRacesOpen) this.extraRaceCursor = index - RACE_TEMPLATES.length;
       this._playRaceClip();
       // U11: the province click OPENS the confirm box (Yes accepts,
       // No returns to the map) rather than accepting outright.
-      this.raceConfirm = hit.describe?.length ? hit.describe : null;
+      this.raceConfirm = this.race.description ? [this.race.description] : hit.describe?.length ? hit.describe : null;
       return true;
     }
     // AUDIT 64 F32: the race box's YES is its own hit now. It used to
     // ride the shared 'confirm' action, which made the mouse Yes and
     // a bare Return the same door - and DFU's Return is inert on this
     // box (no default button, CreateCharRaceSelect.cs:107-108).
-    if (hit.confirmRace) { this.raceConfirm = null; this.state = 'gender'; return true; }
+    if (hit.confirmRace) { this.raceConfirm = null; this.extraRacesOpen = false; this.state = 'gender'; return true; }
     if (hit.cancelRace) { this.raceConfirm = null; return true; }
     if (hit.setGender != null) {
       // U14: the Male/Female BUTTON sets the gender AND closes the
@@ -2314,7 +2337,10 @@ export class ChargenFlow {
       line('M male, F female', 4, dim);   // AUDIT 64 F32 (review round): the hotkeys AddButton binds (DaggerfallMessageBox.cs:377); this box has no default button, so ENTER is inert
     } else if (this.state === 'race') {
       title('CHOOSE YOUR RACE');
-      RACE_TEMPLATES.forEach((r, i) => line((i === this.raceIndex ? '> ' : '  ') + r.name, i, i === this.raceIndex ? hot : white));
+      const choices = this.extraRacesOpen ? EXTRA_RACE_TEMPLATES : RACE_TEMPLATES;
+      const cursor = this.extraRacesOpen ? this.extraRaceCursor : this.raceIndex;
+      choices.forEach((r, i) => line((i === cursor ? '> ' : '  ') + r.name, i, i === cursor ? hot : white));
+      line(this.extraRacesOpen ? 'Esc: return to the map' : 'X: Extra Races', choices.length, white);
     } else if (this.state === 'face') {
       title('CHOOSE YOUR FACE');
       line(`${raceDisplayName(this.race.key)} ${this.gender}`, 0, white);

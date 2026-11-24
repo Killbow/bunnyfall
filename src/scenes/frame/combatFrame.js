@@ -7,7 +7,6 @@ import { audio } from '../../audio/audio.js';
 import { bowDamageArrow } from '../../combat/enemyEquipment.js';
 import { calculateAttackDamage } from '../../combat/formulas.js';
 import { ENEMY_HIT_VOLUME, hitSoundFor, PLAYER_HIT_VOLUME, SOUND, swingSoundFor } from '../../audio/soundClips.js';
-import { fieldOfView } from '../../ui/viewSettings.js';
 import { flashPlayerDamage } from '../../ui/damageFlash.js';
 import { hurtPlayer, playerBlowCameToNothing, playerEntity, surfacePlayer } from '../../characters/playerEntity.js';
 import { inflictPoison } from '../../afflictions/poisons.js';
@@ -84,8 +83,8 @@ export function createCombatFrame(shared) {
       onPlayerArrowHitFoe: (m, t) => (t?.duel ? duelStrikeOut('arrow', m.weapon ?? null, 'StrikeDown', weaponRig.playerWeapon?.lastDrawMs ?? 0, t.id, { off: !!weaponRig.playerWeapon?.isOffHandItem?.(m.weapon) }) : playerArrowHitFoe(m, t, {   // DUEL1: my shaft on my duel opponent is a strike their client resolves   // AUDIT-SEATS G5: on a battle's foe (`t.id`), a shaft to the referee
         playerEntity, playerWeapon: weaponRig.playerWeapon, playerFeet: player.pos,
         dealDamage: (f, d) => (cityGuards.guards.includes(f)
-          ? cityGuards.hurtGuard(f, d, player.pos, m.dir, { kind: 'arrow' })   // AUDIT-39r: the shaft shoves the watch too (WeaponManager.cs:576-595); TELL1: a shaft's weight on a wind-up
-          : exteriorFoes.damageFoe(f, d, player.pos, m.dir, { kind: 'arrow', weapon: m.weapon ?? null })),   // AUDIT FEUD 2: the bow (a metal weakness rides to a puppet's owner)   // WORLD6b-iii(e): the kind rides the hit - a puppet's owner lands the shaft (ar), as the dungeon's host has since WORLD3
+          ? cityGuards.hurtGuard(f, d, player.pos, m.dir, { kind: 'arrow', abilityControl: m.technique?.control })   // AUDIT-39r: the shaft shoves the watch too (WeaponManager.cs:576-595); TELL1: a shaft's weight on a wind-up
+          : exteriorFoes.damageFoe(f, d, player.pos, m.dir, { kind: 'arrow', weapon: m.weapon ?? null, abilityControl: m.technique?.control })),   // AUDIT FEUD 2: the bow (a metal weakness rides to a puppet's owner)   // WORLD6b-iii(e): the kind rides the hit - a puppet's owner lands the shaft (ar), as the dungeon's host has since WORLD3
         audio, hitEffects, say: (l) => townTalk.say(l),
         onInflictPoison: (att, tgt, pt) => (cityGuards.guards.includes(t) ? inflictPoison(tgt, pt, false, { currentMinute: Math.floor(playerTicker.ownMinutes) }) : exteriorFoes.poisonFoe(t, pt)),   // WORLD6b-iii(e): the pool's one poison door - a puppet's dose rides the hit to its owner; the watch is dosed here (the player's own)
         // AUDIT 58: WeaponManager.cs:630's HandleAttackFromSource sits
@@ -159,7 +158,7 @@ export function createCombatFrame(shared) {
             drainExteriorFatigue(SWING_FATIGUE_COST);
             tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);   // AUDIT PISTOLET A2: an off-hand shot counts as its blow weighs, as the other two hosts count it (THE FOUR HOSTS RULE)
             const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
-            arrows.fire(cam.pos, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, muzzle: weaponRig.thunderlockMuzzle(fieldOfView()), summoned: shot.summoned }); weaponRig.noteShot?.(weaponRig.playerWeapon.weapon);   // SPELLFX1: the peers draw it   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
+            arrows.fire(cam.pos, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, summoned: shot.summoned }); weaponRig.noteShot?.(weaponRig.playerWeapon.weapon);   // SPELLFX1: the peers draw it   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           }
           continue;
         }
@@ -181,7 +180,8 @@ export function createCombatFrame(shared) {
         const swing = {};
         // DUEL1: my duel opponent first - a swing that reaches them is theirs (their client resolves it: net/duel/duelSession.js),
         // tallied as a connect, and no pool, civilian or door hears it
-        if (duelMeleeHit(cam.pos, makeInView(proj, view, multiply))) {
+        const abilityBlow = weaponRig.playerWeapon.techniqueBlow?.ability;
+        if (!abilityBlow && duelMeleeHit(cam.pos, makeInView(proj, view, multiply))) {
           tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);
           surfacePlayer();
         } else if (!cityGuards.resolvePlayerHit(weaponRig.playerWeapon, cam.pos, lookFwd, player.pos, makeInView(proj, view, multiply), guardHitSound, { swing })) {
@@ -189,7 +189,7 @@ export function createCombatFrame(shared) {
           if (exteriorFoes.resolvePlayerHit(weaponRig.playerWeapon, cam.pos, lookFwd, player.pos, makeInView(proj, view, multiply), guardHitSound, { swing })) {
             tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);
             surfacePlayer();
-          } else
+          } else if (!abilityBlow)
           cityGuards.resolveCivilianHit(weaponRig.playerWeapon, cam.pos, lookFwd, player.pos, livingStruckPool(_guardPool()),
             { onMurder: () => _crimeResponse(), onHitSound: guardHitSound, swing }).then((r) => {
             if (r?.carriedHit) tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);

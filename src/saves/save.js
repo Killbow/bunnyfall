@@ -12,6 +12,7 @@
 // mid-flight Move-door tween fields (Ledger C) and cross-location
 // travel-on-load. Versioned envelope; a mismatch refuses loudly.
 
+import { restoreAbilityProgress, saveAbilityProgress } from '../combat/abilities/progress.js';
 import { readBankCabinLink } from '../net/boatIdentity.js';
 import { clampLegalReputations } from '../justice/court.js';   // AUDIT 23 (C4)
 import { releaseCapLatch } from '../characters/levelCap.js';   // AUDIT FB1026d C1: a level a save owes past the cap let go at the load
@@ -56,6 +57,7 @@ import { repairRarityNames, repairRarityBases, repairCraftedNames } from '../ite
 import { SOCIAL_GROUPS } from '../formats/factionFile.js';   // AUDIT 24
 import { travelMapSaveData, restoreTravelMapSaveData } from '../travel/travelMapState.js';   // U41: TravelMapSaveData
 import { getEscortFacesSaveData, restoreEscortFacesSaveData } from '../ui/hudEscortFaces.js';   // FE1: SaveData_v1.escortingFaces
+import { removeRetiredItems } from '../items/retiredItems.js';
 import { quickslotSaveData, restoreQuickslotSaveData } from '../items/quickslots.js';   // QS1: the quickslot diamond rides the one composer
 import { resetMagicRoundMarker, sharedClockOn, worldMinutes, alignEntityClocks, setOwnMinutes, ownMinutes, normalizeAcross, payAbsenceWhenHeard, worldMinutesToSave } from '../world/worldTick.js';   // EntityEffectBroker.InitMagicRoundTimer, on the LOAD arm (:230-233); AUDIT WORLD5 C4: a load online is an arrival; AUDIT LIVED1b P4: its absence on the relay's clock
 import { questBlockOnOwnClock } from '../systems/quest/questStamps.js';   // TIME3: an online save from before TIME3, its quest countdowns onto the character's clock
@@ -361,6 +363,8 @@ export function snapshotPlayer(entity, { position = null, pose = null, classicMi
   // round-trips BOTH shapes, and restore reads back whichever it
   // wrote. The stand-in columns themselves are that file's to retire.
   snap.skills = Array.isArray(entity.skills) ? [...entity.skills] : entity.skills;
+  const abilities = saveAbilityProgress(entity);
+  if (abilities) snap.combatAbilities = abilities;
   snap.skillUses = [...(entity.skillUses ?? [])];
   // SOFTCAP1: the climb past 100 - the fractional real-use remainders
   // (skills.js tallySkill) and the banked progress toward the next dear point
@@ -447,6 +451,7 @@ export function snapshotPlayer(entity, { position = null, pose = null, classicMi
   // TP-slice: the Recall anchor (PlayerEntity.AnchorPosition - the
   // Teleport effect stores it on the entity, Teleport.cs:35).
   snap.anchorPosition = entity.anchorPosition ? { ...entity.anchorPosition } : null;
+  if (entity.wayfarerAnchor) snap.wayfarerAnchor = { ...entity.wayfarerAnchor };
   // V1: the turn's marker. The infection itself rides activeEffects
   // like any disease, but the moment it DEPLOYS the disease ends and
   // the only record left is this - so a save between the turn and V2's
@@ -747,6 +752,7 @@ export const savedItemLists = (snap, own = snap) => [...listsOf(own?.items, own?
  * @param {any[][]} repairLists
  */
 export function repairItemLists(repairLists) {
+  for (const list of repairLists) removeRetiredItems(list);
   // DISC21-A: a biography item was minted with no condition until DISC21, and Roleplay & Realism wore the questions'
   // ebony dagger to 20% of nothing - broken, and undamaged to the repairer. Minted now, by the law it missed.
   for (const list of repairLists) {
@@ -859,7 +865,8 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
   // (Str + End) x 64) - the additive-field shape DFU's serializer
   // gives missing members, so the envelope version holds at 1.
   if (entity.fatigue == null) entity.fatigue = ((snap.stats?.strength ?? 0) + (snap.stats?.endurance ?? 0)) * 64;
-  entity.skills = Array.isArray(snap.skills) ? [...snap.skills] : snap.skills;   // AUDIT 17e: pre-chargen skills is a flat number
+  entity.skills = Array.isArray(snap.skills) ? [...snap.skills] : snap.skills;
+  restoreAbilityProgress(entity, snap.combatAbilities);   // AUDIT 17e: pre-chargen skills is a flat number
   entity.skillUses = [...snap.skillUses];
   entity.skillUseFrac = Array.isArray(snap.skillUseFrac) ? [...snap.skillUseFrac] : null;   // SOFTCAP1
   entity.skillProgress = Array.isArray(snap.skillProgress) ? [...snap.skillProgress] : null;   // SOFTCAP1
@@ -931,6 +938,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
   entity.binderGift = Number.isSafeInteger(snap.binderGift) ? snap.binderGift : 0;   // CARDS8
   entity.boardShipPosition = snap.boardShipPosition ?? null;   // TR4 (:425)
   entity.anchorPosition = snap.anchorPosition ? { ...snap.anchorPosition } : null;   // TP-slice
+  entity.wayfarerAnchor = snap.wayfarerAnchor ? { ...snap.wayfarerAnchor } : null;
   // A4: the three stragglers' restore arms (see the snapshot side).
   // SerializablePlayer.cs:292 is the ONLY one of the three DFU guards -
   // `(data...skillsRecentlyRaised != null ? it : new uint[2])` - and a

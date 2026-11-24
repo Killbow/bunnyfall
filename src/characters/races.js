@@ -92,6 +92,8 @@ const build = (key, artIndex) => Object.freeze({
   artIndex,
   descriptionId: DESCRIPTION_ID[key],
   clipId: CLIP_ID[key],
+  description: null,
+  artRace: null,
   morphology: MORPHOLOGY_OF[key],
   morphologyIndex: BODY_MORPHOLOGY[MORPHOLOGY_OF[key]],
   background: `SCBG${two(artIndex)}I0.IMG`,
@@ -110,15 +112,28 @@ const build = (key, artIndex) => Object.freeze({
 export const RACE_TEMPLATES = Object.freeze(
   Object.keys(RACES).map((key, i) => build(key, i)));
 
-export const RACE_KEYS = Object.freeze(RACE_TEMPLATES.map((r) => r.key));
-export const raceByKey = (key) => RACE_TEMPLATES.find((r) => r.key === key) ?? null;
-export const raceById = (id) => RACE_TEMPLATES.find((r) => r.id === id) ?? null;
+// Bunnyfall IDs live outside the classic race and transformation range.
+const extraRace = (key, id, artRace, description) => Object.freeze({
+  ...RACE_TEMPLATES.find(race => race.key === artRace), key, name: key, id, artRace,
+  description, descriptionId: null, clipId: null, resistanceFlags: 0, immunityFlags: 0,
+});
+
+export const EXTRA_RACE_TEMPLATES = Object.freeze([
+  extraRace('Imperial', 100, 'Breton', 'Imperials favor the broadsword and mace.'),
+  extraRace('Lilmothit', 101, 'Khajiit', 'Lilmothit are foxfolk who favor the wakizashi and short bow.'),
+  extraRace('Lungaris', 102, 'Khajiit', 'Lungaris are harefolk who favor the shortsword and crossbow.'),
+]);
+export const PLAYABLE_RACE_TEMPLATES = Object.freeze([...RACE_TEMPLATES, ...EXTRA_RACE_TEMPLATES]);
+export const RACE_KEYS = Object.freeze(PLAYABLE_RACE_TEMPLATES.map((r) => r.key));
+export const raceByKey = (key) => PLAYABLE_RACE_TEMPLATES.find((r) => r.key === key) ?? null;
+export const raceById = (id) => PLAYABLE_RACE_TEMPLATES.find((r) => r.id === id) ?? null;
 
 /** BUNNYFALL (2026-11-04, the owner: "a special option only for killbunny if selecting redguard as a race, but the body
  *  uses nord 9 as a skin color and head"): THE RACE A CHARACTER IS DRAWN AS - its `lookRace` where it has one (a Redguard
  *  drawn with a Nord's body and head), else its race. Every picture of a character reads this; every rule reads `race`. */
 export const LOOK_RACES = Object.freeze(['Nord']);
-export const artRaceOf = (/** @type {any} */ e) => (e?.lookRace && LOOK_RACES.includes(e.lookRace) ? e.lookRace : e?.race ?? 'Breton');
+export const artRaceOf = (/** @type {any} */ e) => (e?.lookRace && LOOK_RACES.includes(e.lookRace)
+  ? e.lookRace : raceByKey(e?.race)?.artRace ?? e?.race ?? 'Breton');
 /** The Nord look's face: the ninth of the ten (records 0-9). */
 export const NORD_LOOK_FACE = 8;
 

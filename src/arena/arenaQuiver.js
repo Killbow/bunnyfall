@@ -16,10 +16,9 @@
 // the lists in, the count handed back out. Not a DFU member - Ledger A (ARENA-ARROWS).
 
 import { ARROW_TEMPLATE, isSummoned, addItem } from '../items/inventory.js';
-import { PELLET_TEMPLATE } from '../characters/thunderlockIds.js';
 
 /** The ammunition a bout's quiver counts - every template inventory.js's spendAmmoFor can spend. */
-export const QUIVER_TEMPLATES = Object.freeze([ARROW_TEMPLATE, PELLET_TEMPLATE]);
+export const QUIVER_TEMPLATES = Object.freeze([ARROW_TEMPLATE]);
 
 /** @param {any} it @param {number} template */
 const counted = (it, template) => it?.templateIndex === template && !isSummoned(it) && !it.questItem;

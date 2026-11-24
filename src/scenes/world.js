@@ -3857,7 +3857,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const shotMode = params.has('shot');
   const walkMode = params.has('play') || (!params.has('fly') && !shotMode);
   const startKey = `${startPixel.x},${startPixel.y}`;
-  const player = new PlayerMotor(collider, motorStats(playerEntity), { jumpBoost: () => jumpSpeedMultiplier(playerEntity), enhancedJumping: () => isEnhancedJumping(playerEntity), carriedWeight: () => carriedWeight(playerEntity), travelling: () => travellingOutdoors(), climbing: climbingDeps(playerEntity, (l) => townTalk?.say(l)), parkour: parkourDeps(playerEntity, (l) => townTalk?.say(l), { hold: () => !!gatherHost && (gatherHost.acting() || !!gatherHost.target) }) });   // CLIMB-NODE: a node under the look, or an act, holds the free climb's walk-in start (the street's, the dungeon's and a building's - one motor); CLIMB-TRAVEL: no climb of either lane while a journey or the keys' travel runs (the thunk runs in the frame, after wildTravelling is declared)   // AcrobatMotor skill jump (P14) + M3 climbing; motorStats = the LIVE entity (PlayerSpeedChanger reads LiveSpeed/Running/Swimming every step)
+  const player = new PlayerMotor(collider, motorStats(playerEntity, () => (modes?.mode ?? 'exterior') === 'exterior'), { jumpBoost: () => jumpSpeedMultiplier(playerEntity), enhancedJumping: () => isEnhancedJumping(playerEntity), carriedWeight: () => carriedWeight(playerEntity), travelling: () => travellingOutdoors(), climbing: climbingDeps(playerEntity, (l) => townTalk?.say(l)), parkour: parkourDeps(playerEntity, (l) => townTalk?.say(l), { hold: () => !!gatherHost && (gatherHost.acting() || !!gatherHost.target) }) });   // CLIMB-NODE: a node under the look, or an act, holds the free climb's walk-in start (the street's, the dungeon's and a building's - one motor); CLIMB-TRAVEL: no climb of either lane while a journey or the keys' travel runs (the thunk runs in the frame, after wildTravelling is declared)   // AcrobatMotor skill jump (P14) + M3 climbing; motorStats = the LIVE entity (PlayerSpeedChanger reads LiveSpeed/Running/Swimming every step)
   // AUDIT 21 (hosts lane, F3): onLevelUp. Without it advancement.js takes its
   // HEADLESS arm - `spendPoolLowest`, which dumps every point into your LOWEST
   // stats with no message and no choice. Cross a level threshold walking a
@@ -6456,7 +6456,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // modes hand their own rigs their own doors (worldModes.js).
     technique: {
       motor: () => player,
-      fireArrow: (from, dir, o) => arrows.fire(from, dir, { fromPlayer: true, weapon: o?.weapon ?? weaponRig.playerWeapon.weapon, muzzle: o?.sky ? { world: [...from] } : weaponRig.thunderlockMuzzle(fieldOfView()), technique: o?.technique ?? null, ...(o?.speedScale ? { speedScale: o.speedScale } : {}), ...(o?.summoned ? { summoned: true } : {}) }),   // STUCK-ARROWS: a conjured round's shaft is never given back
+      fireArrow: (from, dir, o) => arrows.fire(from, dir, { fromPlayer: true, weapon: o?.weapon ?? weaponRig.playerWeapon.weapon, muzzle: o?.sky ? { world: [...from] } : null, technique: o?.technique ?? null, ...(o?.speedScale ? { speedScale: o.speedScale } : {}), ...(o?.summoned ? { summoned: true } : {}) }),   // STUCK-ARROWS: a conjured round's shaft is never given back
       drainFatigue: (n) => drainExteriorFatigue(n),
       face: (p, from) => { if (!Array.isArray(p)) return; const o = Array.isArray(from) ? from : player.pos; cam.yaw = Math.atan2(p[0] - o[0], p[2] - o[2]); lookFilter.settle(); },   // AUDIT TECH1: from where the body lands
       blocked: () => gamePaused(),   // AUDIT TECH1: a window holds the world - and the technique's key (the mouse's side button reaches `keys` under any window)
@@ -6659,7 +6659,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         townTalk.say('You cannot concentrate on that right now.');
       }
     },
-    onTeleport: () => teleportPrompt(),
+    onTeleport: (action) => teleportPrompt(action),
   });
   // EC1 - THE LIVE FOE POOL. This answered `[]` in every mode but
   // exterior, which is the mode the player does not fight in. DFU has
@@ -14389,7 +14389,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // host mounts raises the same 4000 box (Teleport.cs:81-98) rather
     // than its standalone refusal. The cast engine in THIS host
     // already routes to it; dungeon mode runs the context's own.
-    onTeleport: () => teleportPrompt(),
+    onTeleport: (action) => teleportPrompt(action),
     standLooseFoe: (mobileType, opts) => _standLooseFoe(mobileType, opts),   // AUDIT 68 S23-coven-punishment-interior-only: CreateFoeSpawner stands wherever the player is - the summoning punishments ride the enchantments' mode-routed stand
     canvas, renderer, player, cam, keys, latch, blocks,
     // V5: PlayerGPS, for CanRest. Only this host knows what kind of

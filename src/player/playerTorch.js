@@ -128,7 +128,8 @@ export function tickPlayerTorch(entity, dtSeconds, { fromItems = null, say = nul
   }
   let lit = true;
   let died = null;
-  st.tickTimeBuffer += dtSeconds;
+  const lantern = source.templateIndex === LANTERN_TEMPLATE;
+  st.tickTimeBuffer = lantern ? 0 : st.tickTimeBuffer + dtSeconds;
   if (st.tickTimeBuffer > TORCH_TICK_SECONDS) {
     st.tickTimeBuffer = 0;
     if ((source.currentCondition ?? 0) > 0) source.currentCondition--;
@@ -140,19 +141,16 @@ export function tickPlayerTorch(entity, dtSeconds, { fromItems = null, say = nul
       say?.(expandItemMacro(localizedText('lightDies', LIGHT_DIES_TEXT), source, nameOf?.(source)));
       lit = false;
       setLightSource(entity, null);   // DISC7: the one door
-      // A LANTERN survives its own death - it is the one that refuels.
-      if (!(source.group === 'UselessItems2' && source.templateIndex === LANTERN_TEMPLATE)) {
-        const items = entity.items ?? [];
-        const i = items.indexOf(source);
-        if (i >= 0) items.splice(i, 1);
-      }
+      const items = entity.items ?? [];
+      const i = items.indexOf(source);
+      if (i >= 0) items.splice(i, 1);
       died = source;
     }
   }
   if (!lit) { st.guttering = 0; st.range = 0; return { lit: false, range: 0, died }; }
   // The guttering band, and the steady value above it.
   let mod = ITEM_BASED_TORCH_INTENSITY;
-  if ((source.currentCondition ?? 0) < GUTTERING_CONDITION) {
+  if (!lantern && (source.currentCondition ?? 0) < GUTTERING_CONDITION) {
     mod = GUTTER_BASE + Math.cos(st.guttering) * GUTTER_SWING;
     st.guttering += GUTTER_STEP_LOW + rolls() * (GUTTER_STEP_HIGH - GUTTER_STEP_LOW);
   } else {
@@ -273,7 +271,7 @@ export function torchPoseByte(entity) {
   const st = entity?._torch, src = entity?.lightSource;
   if (!st || !(st.range > 0) || !src) return undefined;
   const r = Math.max(1, Math.min(PEER_LIGHT_RADIUS_MAX, Math.round(torchRange(src))));
-  return r * 2 + ((src.currentCondition ?? 0) < GUTTERING_CONDITION ? 1 : 0);
+  return r * 2 + (src.templateIndex !== LANTERN_TEMPLATE && (src.currentCondition ?? 0) < GUTTERING_CONDITION ? 1 : 0);
 }
 
 /** A peer's torch as a light record (the hosts' shape), off their drawn pose and feet, or null. `phase` the reader's

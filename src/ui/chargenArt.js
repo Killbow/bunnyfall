@@ -46,7 +46,7 @@ import { FntFile } from '../formats/fntFile.js';   // AUDIT 18: FONT0002, Dagger
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';   // U11
 import { facesFor, classicFaceRecord } from '../characters/roxArgonians.js';   // ROX
 import { roxRgba, roxHeadUrl } from './roxArgonianArt.js';
-import { FACES_PER_RACE, raceById, raceArt } from '../characters/races.js';
+import { EXTRA_RACE_TEMPLATES, FACES_PER_RACE, raceById, raceArt } from '../characters/races.js';
 import { SKILL_NAMES } from '../characters/skills.js';
 import { reviseClassDescription } from '../characters/stockClasses.js';   // CLASS-USE: the description names the revised skills
 import { daggerY, tickDaggerTrails, REP_GREEN, REP_RED, REP_EXIT, REP_BAR_TOP, REP_BAR_BOTTOM, REP_GROUPS, HELP_TOPICS } from '../characters/customClass.js';   // U20a; CG1 the trail machine
@@ -519,6 +519,7 @@ export const faceSetLoaded = () => !!_faces;
 /** RaceTemplate.DescriptionID through TEXT.RSC, split to rows
  *  (CreateCharRaceSelect.cs:104-106). */
 export function raceDescriptionLines(race) {
+  if (race?.description) return [race.description];
   const t = _art?.textRsc;
   if (!t || !race) return [];
   // AUDIT 17g F2: the ROWS, with the record's own per-row alignment -
@@ -705,6 +706,15 @@ export function bonusPointsRows() {
   return _art?.textRsc?.linesById(SUMMARY_BONUS_TEXT_ID) ?? [''];
 }
 
+const EXTRA_RACES_BUTTON = [224, 176, 85, 16];
+const extraRaceRow = i => [102, 73 + i * 18, 116, 16];
+
+function drawRaceChoice(renderer, m, font, text, [x, y, w, h], selected = false) {
+  drawRect(renderer, m, x, y, w, h, [0.12, 0.08, 0.04, 0.93]);
+  shadowText(renderer, font, text, m, x, y + 4, { align: 'center', w,
+    color: selected ? [1, .82, .46, 1] : [1, .93, .78, 1] });
+}
+
 function drawRace(renderer, m, font, flow) {
   drawImg(renderer, img('TMAP00I0.IMG'), m, 0, 0);
   // promptLabel (0,16) CENTERED, default colour + default shadow
@@ -714,6 +724,13 @@ function drawRace(renderer, m, font, flow) {
   // seam has to be legible without a click (phone + probe drive it by
   // key). Under the prompt, not over the banner at the map's foot.
   shadowText(renderer, font, raceDisplayName(flow.race.key), m, 0, 26, { align: 'center', w: 320, color: SELECTED_TEXT });
+  if (flow.extraRacesOpen) {
+    drawRect(renderer, m, 94, 64, 132, 86, [0.28, 0.19, 0.10, 1]);
+    EXTRA_RACE_TEMPLATES.forEach((race, i) => drawRaceChoice(renderer, m, font, race.name, extraRaceRow(i), flow.extraRaceCursor === i));
+    drawRaceChoice(renderer, m, font, 'Back', extraRaceRow(EXTRA_RACE_TEMPLATES.length));
+  } else {
+    drawRaceChoice(renderer, m, font, 'Extra Races (X)', EXTRA_RACES_BUTTON);
+  }
   // U11: a province click opens the race's DESCRIPTION in a Yes/No
   // box (CreateCharRaceSelect.cs:100-112) - Yes accepts the race and
   // leaves the screen, No returns to the map.
@@ -1310,6 +1327,12 @@ export function chargenHit(flow, vx, vy) {
       if (hit === MB_BUTTONS.No) return { cancelRace: true };   // CancelWindow - back to the map
       return null;   // the box is modal: the map underneath is dead
     }
+    if (flow.extraRacesOpen) {
+      const choice = EXTRA_RACE_TEMPLATES.find((_, i) => inRect(extraRaceRow(i)));
+      if (choice) return { setRace: choice.key };
+      return inRect(extraRaceRow(EXTRA_RACE_TEMPLATES.length)) ? { extraRaces: false } : null;
+    }
+    if (inRect(EXTRA_RACES_BUTTON)) return { extraRaces: true };
     const r = raceAtProvince(vx, vy);
     if (!r) return null;
     return { setRace: r.key, describe: raceDescriptionLines(r) };

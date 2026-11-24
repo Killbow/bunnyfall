@@ -37,7 +37,6 @@ import { spherePlanes } from '../../render/bounds.js';
 import { sunDirection } from '../../world/worldClock.js';
 import { tacticsNow } from '../../ai/tactics.js';
 import { techniqueMarksNow } from '../../combat/techniques.js';
-import { thunderlockMuzzleLight } from '../../items/thunderlock.js';
 import { frame as warmAshesFrame } from '../../systems/naval/warmAshesShips.js';
 import { waterUniforms } from '../../render/waterSurface.js';
 import { wildZoneKind } from '../../world/wildZone.js';
@@ -133,7 +132,7 @@ export function createSceneFrame(shared) {
       // DW-D: UnderwaterPresentationEffects.SuppressPlayerTorch - EnablePlayerTorch's light dark under the fog (the fuel burns on, the light is the only thing it takes)
       meterFor(renderer.gl)?.markCpu('lightset');   // PERF-SIM3: the hand lights, the peers' torches, the camps' fires added, the set handed to the renderer
       const lit = withPlayerLights(wodSel ? wodSel.data : _lanterns,   // EL1: the installed set's cap (16 classic, 48 on the lane); PERF-LIGHTS: `n` is how much of the pool is live
-        magic?.candleLight(), shared._dwFogP?.under ? null : playerTorchLight(playerEntity, player.feetAt(), cam.yaw), thunderlockMuzzleLight(playerEntity, player.feetAt(), cam.yaw), ...(shared.naval?.enabled ? shared.naval.lights() : []), ...peerTorchLights(), ...(gatePool?.lights() ?? []), ...(riteHost?.lights() ?? []), ...(starfall?.lights() ?? []), ...camps.lights(), ...droppedTorches.lights(), ...(shared.farmingMode?.lights() ?? []));   // PEERLIGHT1: the others' torches, right after my own hand lights   // X11 candle; T1 torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does; NAV-B the broadsides' flashes and the burning decks beside the Thunderlock's own flash - the brightest things for a frame, cut last by the cap
+        magic?.candleLight(), shared._dwFogP?.under ? null : playerTorchLight(playerEntity, player.feetAt(), cam.yaw), ...(shared.naval?.enabled ? shared.naval.lights() : []), ...peerTorchLights(), ...(gatePool?.lights() ?? []), ...(riteHost?.lights() ?? []), ...(starfall?.lights() ?? []), ...camps.lights(), ...droppedTorches.lights(), ...(shared.farmingMode?.lights() ?? []));   // PEERLIGHT1: the others' torches, right after my own hand lights   // X11 candle; T1 torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does; NAV-B the broadsides' flashes and the burning decks beside the Thunderlock's own flash - the brightest things for a frame, cut last by the cap
       if (wodSel) _wodSetLights(lit, wodSel);
       else renderer.setPointLights(lit, CITY_LIGHT_COLOR_F32, renderer.lightingLane ? capFadeColors(lit, lit.length / 4 - _lanterns.length / 4, cam.pos, renderer.maxPointLights, CITY_LIGHT_COLOR_F32) : null);   // LA-LIGHTS2
     } else {
@@ -144,7 +143,7 @@ export function createSceneFrame(shared) {
       // WOD2: ...and the mod's lights, which burn at every hour.
       const wodSel = wodLit || csaLit.length ? _wodSelect(0, _csaFill(wodLit ? _wodFill(0) : 0, csaLit)) : null;   // AUDIT PRE-MERGE 0928 R2: the boats' lanterns by day too (DungeonLightHandler lights them near)
       const lit = withPlayerLights(wodSel ? wodSel.data : new Float32Array(0),
-        magic?.candleLight(), shared._dwFogP?.under ? null : playerTorchLight(playerEntity, player.feetAt(), cam.yaw), thunderlockMuzzleLight(playerEntity, player.feetAt(), cam.yaw), ...(shared.naval?.enabled ? shared.naval.lights() : []), ...peerTorchLights(), ...(gatePool?.lights() ?? []), ...(riteHost?.lights() ?? []), ...(starfall?.lights() ?? []), ...camps.lights(), ...droppedTorches.lights());   // PEERLIGHT1: the others' torches, right after my own hand lights   // HT1; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does; NAV-B the flashes by day too
+        magic?.candleLight(), shared._dwFogP?.under ? null : playerTorchLight(playerEntity, player.feetAt(), cam.yaw), ...(shared.naval?.enabled ? shared.naval.lights() : []), ...peerTorchLights(), ...(gatePool?.lights() ?? []), ...(riteHost?.lights() ?? []), ...(starfall?.lights() ?? []), ...camps.lights(), ...droppedTorches.lights());   // PEERLIGHT1: the others' torches, right after my own hand lights   // HT1; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does; NAV-B the flashes by day too
       if (wodSel) _wodSetLights(lit, wodSel);
       else renderer.setPointLights(lit, CITY_LIGHT_COLOR_F32);
     }

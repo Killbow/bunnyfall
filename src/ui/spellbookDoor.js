@@ -32,13 +32,14 @@ import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab puts it 
 import { SpellbookWindow, spellbookArtLoaded } from './spellbookWindow.js';
 import { setSpellQuickslot } from '../items/quickslots.js';   // QS8 (the drop's QS7, renamed - QS7 is one mode, one dispatch): a spell readied from the book becomes the spell slot's
 import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
+import { abilitiesEnabled } from '../combat/abilities/progress.js';
 
 export { spellbookArtLoaded };
 
 /** The gate a host asks before it opens the book. Same law as
  *  ui/charSheetDoor.js and ui/pauseDoor.js. */
 export function spellbookDoorReady() {
-  return isEnhanced() || spellbookArtLoaded();
+  return isEnhanced() || (typeof document !== 'undefined' && abilitiesEnabled()) || spellbookArtLoaded();
 }
 
 /**
@@ -79,7 +80,7 @@ export function createSpellbookWindow(deps = {}) {
     },
     rows: rows ?? (() => []),
   };
-  if (isEnhanced() && typeof document !== 'undefined') {
+  if ((isEnhanced() || abilitiesEnabled()) && typeof document !== 'undefined') {
     // `document` for the reason charSheetDoor and pauseDoor give: node
     // drives these hosts headless and keeps the canvas window rather
     // than having a special case written for it.

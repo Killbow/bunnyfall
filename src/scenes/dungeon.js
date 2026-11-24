@@ -44,7 +44,6 @@ import { INTERIOR_LIGHT_DIR } from '../world/interiorLights.js';
 import { nearestLights, capFadeColors } from '../world/cityLights.js';   // LA-AUDIT A5: the dungeon's cap fades
 import { withPlayerLights } from '../magic/magicCandle.js';   // X11/T1
 import { playerTorchLight } from '../player/playerTorch.js';   // T1
-import { thunderlockMuzzleLight } from '../items/thunderlock.js';   // FIELD-GUN13: the muzzle flash is a light the player carries, the torch's own shape
 import { lookAt, perspective, mirrorProjectionX, identity, UP_Y } from '../world/mat4.js';   // HANDEDNESS: the one mirror (mat4's law)
 const BATCH_IDENTITY = identity();   // PERF5: the merged level is in world space already
 import { climbRigInput } from '../player/climbPose.js';   // CLIMB6: the body's limbs on the climb
@@ -1130,7 +1129,7 @@ export async function bootDungeon(canvas, renderer, params, status) {
     const _iilDg = _iilOn ? iilDungeonLights(ctx.iilLightFlats ?? []) : null;
     const _near = _iilDg ? nearestLights(_iilDg.lights, cam.pos, renderer.maxPointLights, _iilDg.ranges, _iilDg.colorOf) : nearestLights(ctx.lights, cam.pos, renderer.maxPointLights + (renderer.lightingLane ? 1 : 0), ctx.flicker.ranges, null, DUNGEON_LIGHT_BLOCK_RANGE);   // EL1: the installed set's cap
     const _lit = withPlayerLights(_near,
-      ctx.candleLight?.(), (_iilOn ? iilTorch : (l) => l)(playerTorchLight(playerEntity, player.feetAt(), cam.yaw)), thunderlockMuzzleLight(playerEntity, player.feetAt(), cam.yaw), ...ctx.campLights(), ...ctx.torchLights());   // X11 candle; T1 torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
+      ctx.candleLight?.(), (_iilOn ? iilTorch : (l) => l)(playerTorchLight(playerEntity, player.feetAt(), cam.yaw)), ...ctx.campLights(), ...ctx.torchLights());   // X11 candle; T1 torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
     if (_iilDg) renderer.setPointLights(_lit.data, null, _lit.colors);   // IIL1: every light its own warm, flickering colour
     else renderer.setPointLights(_lit, DUNGEON_LANTERN_F32, renderer.lightingLane ? capFadeColors(_lit, _lit.length / 4 - _near.length / 4, cam.pos, renderer.maxPointLights, DUNGEON_LANTERN_F32) : null);
     renderer.everyLightCasts();   // LA-SHADOW3: the level is drawn whole below - every torch keeps a shadow map (worldModes.js's dungeon arm)

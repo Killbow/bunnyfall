@@ -52,7 +52,7 @@ export function blowReaches(blow, foe, sight) {
     const L = blow.lane, rx = f[0] - L.from[0], rz = f[2] - L.from[1];
     const along = rx * L.dir[0] + rz * L.dir[1];
     const across = Math.abs(rx * L.dir[1] - rz * L.dir[0]);
-    return along >= -0.5 && along <= L.len + r && across <= L.halfW + r;
+    return along >= (blow.ability ? 0 : -0.5) && along <= L.len + r && across <= L.halfW + r;
   }
   // AUDIT TECH1: a blow with a TARGET (Shadowstep's) is that foe's alone, all round within its reach - the dash lands it
   // behind the foe, and no view or other body decides it

@@ -1,3 +1,4 @@
+import { abilityIcon } from './abilityIcon.js';
 // HB1 - THE ENHANCED HOTBAR.
 //
 // Discord, 2026-09-23. LostMyLeg: "what do you think of a traditional
@@ -522,6 +523,20 @@ function paintSlot(s, v, entity) {
     s.glyph.textContent = '';
     s.count.textContent = '';
     s.pip.textContent = '';
+    n.classList.remove('hb-hasbar', 'hb-worn');
+    return;
+  }
+  if (v.type === 'ability') {
+    const key = v.id ?? 'hand:' + v.hand;
+    if (iconKeys[v.slot] !== key) {
+      iconKeys[v.slot] = key;
+      const size = slotFit(true).box;
+      if (v.id) showFitted(s.icon, { src: abilityIcon(v.id), w: size, h: size, smooth: true });
+      s.icon.style.display = v.id ? '' : 'none';
+    }
+    s.glyph.textContent = v.id ? '' : v.hand === 'left' ? 'L' : 'R';
+    s.count.textContent = v.count ? String(v.count) : '';
+    s.pip.textContent = v.hand ? (v.hand === 'left' ? 'L' : 'R') + v.rank : '';
     n.classList.remove('hb-hasbar', 'hb-worn');
     return;
   }

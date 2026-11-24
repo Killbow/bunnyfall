@@ -1,3 +1,4 @@
+import { TEMPLATES } from './itemKinds.js';
 // E1 economy: item templates (DFU ItemHelper over ItemTemplates.txt,
 // MIT Daggerfall Workshop). The 288-template table and the per-group
 // template-index arrays live in itemTemplatesData.js (GENERATED - see
@@ -82,22 +83,8 @@ export function groupTemplates(group) {
   return (GROUP_TEMPLATE_INDICES[group] ?? []).map((i) => _overrides.get(i) ?? ITEM_TEMPLATES[i]);   // AUDIT-RR2 G9: the shelf's rarity gate (DaggerfallLoot.cs:219-222) reads the patched row
 }
 
-/** AMMUNITION SKIPS THE MATERIAL LADDER. CreateWeapon's arrow arm never
- *  runs ApplyWeaponMaterial - no material weight or value, no material
- *  name, the ammunition info record - and the port's own ammunition (the
- *  Dwemer Pellet) is the same kind of thing, so every reader asks this
- *  rather than "is it the Arrow". A mod that adds ammunition registers it
- *  (thunderlock.js), since this file has no business knowing what a
- *  Dwemer Pellet is. AUDIT 68 S27-ammo-arrow-only: the registry lived in
- *  lootRarity.js, which no weight, value or name reader imports, and six
- *  of them spelled it "is the Arrow" - the pellet weighed nothing, cost
- *  three times its price and read "Iron Dwemer Pellet". */
-const _ammunition = new Set([WEAPONS.Arrow]);
-export function registerAmmunition(templateIndex) {
-  if (Number.isFinite(templateIndex)) _ammunition.add(templateIndex);
-  return _ammunition.size;
-}
-export const isAmmunition = (item) => _ammunition.has(item?.templateIndex);
+/** Ammunition skips the weapon material ladder. */
+export const isAmmunition = (item) => item?.templateIndex === WEAPONS.Arrow;
 
 /** SetItemPropertiesByMaterial's value line (ItemBuilder.cs:649) over
  *  SetItem's `value = itemTemplate.basePrice` (DaggerfallUnityItem.cs
@@ -151,6 +138,10 @@ export function itemBaseValue(item, lookup = templateByIndex) {
  *  and answers a COPY, as the copies it replaces did. */
 export function setItemFields(item) {
   const named = { ...item, name: item.name ?? templateByIndex(item.templateIndex)?.name };
+  if (named.templateIndex === TEMPLATES.Lantern && !named.enchantments?.length && !named.customEnchantments?.length) {
+    named.maxCondition = 0;
+    named.currentCondition = 0;
+  }
   // RRI1: a custom class's CurrentVariant setter runs ONCE at the mint
   // (ApplyArmorSettings -> SetVariant): the name's prefix, and for fur
   // the material folded to Leather with `message` 1. Marked, so a

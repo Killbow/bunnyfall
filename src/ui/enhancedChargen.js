@@ -40,7 +40,7 @@
 // province you can see.
 // ═══════════════════════════════════════════════════════════════════
 
-import { RACE_TEMPLATES } from '../characters/races.js';
+import { EXTRA_RACE_TEMPLATES, RACE_TEMPLATES, raceByKey } from '../characters/races.js';
 import { CLASS_DESCRIPTION_TEXT_ID, SUMMARY_BONUS_TEXT_ID, PLAYER_REFLEXES, repBoxRowsFrom } from './chargenArt.js';   // ONE DFU MEMBER, ONE EXPORT
 import { generateBackstory } from '../characters/biography.js';
 import { necromancerCareer } from '../systems/necromancy/necroCareer.js';   // CHEB'S NECROMANCY: the Necromancer's profile
@@ -266,7 +266,7 @@ function refreshHover() {
  *  accept a homeland on the click (CreateCharRaceSelect's Yes/No), and
  *  neither do we. Only the shape of the box is ours. */
 function pick(raceKey) {
-  const race = RACE_TEMPLATES.find((r) => r.key === raceKey);
+  const race = raceByKey(raceKey);
   flow.applyHit({ setRace: raceKey, describe: flow.describeRace?.(race) ?? null });
   paint();
 }
@@ -289,14 +289,19 @@ function raceStage() {
   // slot and set its prose one word per line. The codebase has paid
   // this exact generic-name toll twice before (.detail, .packcol);
   // the state class is now the wizard's own word.
-  const detail = el('div', `detail${flow.raceConfirm ? ' wizsheet open' : ''}`);
+  const detail = el('div', `detail${flow.raceConfirm || flow.extraRacesOpen ? ' wizsheet open' : ''}`);
   const close = el('button', 'sheet-close', 'Back to the map');
-  close.onclick = () => { flow.applyHit({ cancelRace: true }); paint(); };
+  close.onclick = () => {
+    flow.applyHit(flow.raceConfirm ? { cancelRace: true } : { extraRaces: false });
+    paint();
+  };
   detail.append(close);
 
   if (flow.raceConfirm) {
     const d = el('div', 'dcard');
-    d.append(el('h3', null, `${PROVINCE_NAMES[flow.race.key] ?? flow.race.name} \u00b7 ${raceDisplayName(flow.race.key)}`));
+    const name = raceDisplayName(flow.race.key);
+    const province = PROVINCE_NAMES[flow.race.key];
+    d.append(el('h3', null, province ? `${province} \u00b7 ${name}` : name));
     // PX17a (Mac: the right-hand text smooshed): TEXT.RSC hands lines
     // HARD-WRAPPED for the classic 320px screen; rendering each as
     // its own paragraph fights every other viewport - ragged on a
@@ -327,6 +332,19 @@ function raceStage() {
     a.append(yes, no);
     d.append(a);
     detail.append(d);
+  } else if (flow.extraRacesOpen) {
+    const d = el('div', 'dcard');
+    d.append(el('h3', null, 'Extra Races'));
+    const list = el('div', 'racegrid');
+    for (const race of EXTRA_RACE_TEMPLATES) {
+      const button = el('button', 'racecell', race.name);
+      button.onclick = () => pick(race.key);
+      list.append(button);
+    }
+    const back = el('button', 'act', 'Back to the map');
+    back.onclick = () => { flow.applyHit({ extraRaces: false }); paint(); };
+    d.append(list, back);
+    detail.append(d);
   } else {
     // The MAP says the place; the readout says the people. Naming both
     // in one line is what makes "Hammerfell" and "Redguard" the same
@@ -334,7 +352,9 @@ function raceStage() {
     const d = el('div', 'dcard');
     hoverTitle = el('h3', null, '');
     hoverBody = el('p', null, '');
-    d.append(hoverTitle, hoverBody);
+    const extras = el('button', 'act', 'Extra Races');
+    extras.onclick = () => { flow.applyHit({ extraRaces: true }); paint(); };
+    d.append(hoverTitle, hoverBody, extras);
     detail.append(d);
     refreshHover();
   }
@@ -1722,7 +1742,7 @@ function paintInto() {
   const bar = el('div', 'actionbar');
   const back = el('button', 'act', here <= 0 ? 'Cancel' : 'Back');
   back.onclick = () => {
-    if (here <= 0 && !flow.raceConfirm) { onExit('cancel'); return; }
+    if (here <= 0 && !flow.raceConfirm && !flow.extraRacesOpen) { onExit('cancel'); return; }
     flow.input('back');
     paint();
   };
