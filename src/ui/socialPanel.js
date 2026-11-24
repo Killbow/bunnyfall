@@ -275,7 +275,7 @@ export function armsWhy(h) {
   return 'arms the rules allow';
 }
 /** AUDIT SILVER-WAYS A3: the day's guild deeds, as the Guild tab says them (marksLaw.js MARKS_FAUCETS.deed). */
-export const guildDeedsText = (n, max) => `Company deeds today: ${Math.max(0, Number(n) || 0)} of ${max}. When ${MARKS_FAUCETS.deed.members} members who joined at least ${Math.round(MARKS_FAUCETS.deed.tenureS / 86_400)} days ago defend the same town or close the same gate, the treasury earns ${marksText(MARKS_FAUCETS.deed.amount)}.`;
+export const guildDeedsText = (n) => `Company deeds today: ${Math.max(0, Number(n) || 0)}. When ${MARKS_FAUCETS.deed.members} members who joined at least ${Math.round(MARKS_FAUCETS.deed.tenureS / 86_400)} days ago defend the same town or close the same gate, the treasury earns ${marksText(MARKS_FAUCETS.deed.amount)}.`;
 /** GUILD1d: a treasury ledger line's verb - a deposit and a withdrawal, and the hall's own moves (0043's `moved_kind`). */
 export const GUILD_LEDGER_WORDS = Object.freeze({ garrison: 'recruited soldiers for', farm: 'bought a farm for', 'farm-upgrade':t('farm.progress.goldUpgrade','improved a farm for'), 'farm-order':t('farm.progress.goldOrder','filled a bulk crop order for'), deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the company for', grant: 'awarded the company' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
 /** AUDIT GUILD1d R5: a Drakes ledger line's verb - a heraldry changed is the treasury paying, never a deposit. */
@@ -1982,7 +1982,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (g.marks?.state?.open === true) {
       out.push(el('div', 'dfsocial-sec', 'Argents treasury'));
       out.push(el('div', 'dfsocial-note', `The treasury holds ${marksText(Number(v.marks ?? 0))}. You hold ${marksText(Number(g.marks.state.balance ?? 0))}.`));
-      if (Number.isSafeInteger(v.deedsMax)) out.push(el('div', 'dfsocial-note', guildDeedsText(v.deeds, v.deedsMax)));   // AUDIT SILVER-WAYS A3
+      if (Number.isSafeInteger(v.deeds)) out.push(el('div', 'dfsocial-note', guildDeedsText(v.deeds)));   // AUDIT SILVER-WAYS A3
       const mform = el('div', 'dfsocial-form');
       guildField(mform, 'Argents', d.marks ?? '', 7, (x) => { d.marks = x; });
       out.push(mform);

@@ -49,7 +49,7 @@
 // it without a network.
 // ═══════════════════════════════════════════════════════════════════
 import { t } from '../ui/textManager.js';   // STAR7: the held star's capped line
-import { MARKS_BANK, MARKS_COMBAT, MARKS_MOVE_MAX, marksAmountOk, marksText, exchangeGold, FIND_KINDS, utcDay, MARKS_RID_RE } from './marksLaw.js';
+import { MARKS_MAX, MARKS_MOVE_MAX, marksAmountOk, marksText, exchangeGold, FIND_KINDS, utcDay, MARKS_RID_RE } from './marksLaw.js';
 import { accountRefusalText } from './accountClient.js';
 import { jittered } from './backoff.js';   // SCALE1: a press's asks spread out
 
@@ -93,11 +93,6 @@ export const MARKS_TEXT = Object.freeze({
   struck: (n, balance) => `${marksText(n)} added to your account. You now hold ${marksText(balance)}.`,
   // WB12a; WB13b: the record's own line says it is recorded; SILVER: the currency's name; SILVER-WAYS: the day's cap is
   // the gates' and the raids' together - SERPENT-SET: and the serpents' - EG-E1: and the Spire's Redoubts'
-  capped: `No Imperial Argents for this breach. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
-  cappedRaid: `No Imperial Argents for this town. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
-  cappedSerpent: `No Imperial Argents for this serpent. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
-  cappedEg: `No Imperial Argents for this Redoubt. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,   // EG-E1: a Redoubt of the Elite Breach
-  cappedStar: () => t('marks.capped.star', 'No Imperial Argents for this star. You\'ve reached today\'s limit of {cap, number} Imperial Argents.', { cap: MARKS_COMBAT.perDay }),   // STAR7: a held star, through the text core; AUDIT STAR (W2): the number handed in, the language's own words round it
   /** SILVER-WAYS: a guild deed this claim completed - three of the guild's accounts on one raid or gate. */
   deed: (n, guild) => `A deed for ${guild?.name ?? 'your guild'}: three of its members fought together. ${marksText(n)} added to its treasury.`,
   /** SILVER-WAYS: a guild contract's pay for a town defended. */
@@ -224,9 +219,9 @@ export function createMarksBook({ door, store = null, character = () => null, ri
       if (!marks || typeof marks !== 'object') return null;
       if (Number.isSafeInteger(marks.balance)) this.set(marks.balance);
       // SILVER-WAYS: the day's combat silver as the strike answered it - the Bank's card reads it
-      if (Number.isSafeInteger(marks.combat?.earned)) state.today = { ...(state.today ?? {}), combat: marks.combat.earned, combatMax: marks.combat.max };
+      if (Number.isSafeInteger(marks.combat?.earned)) state.today = { ...(state.today ?? {}), combat: marks.combat.earned };
       if (marks.struck > 0) return MARKS_TEXT.struck(marks.struck, marks.balance);
-      return marks.why === 'cap' ? (kind === 'raid' ? MARKS_TEXT.cappedRaid : kind === 'serpent' ? MARKS_TEXT.cappedSerpent : kind === 'eg' ? MARKS_TEXT.cappedEg : kind === 'star' ? MARKS_TEXT.cappedStar() : MARKS_TEXT.capped) : null;
+      return null;
     },
     /** SILVER-WAYS: every silver line a counted claim's answer says - its strike (strikeLine), the guild deed it
      *  completed, the contracts that paid it - in that order; none for a service from before them. */
@@ -249,7 +244,7 @@ export function createMarksBook({ door, store = null, character = () => null, ri
       if (Number.isSafeInteger(found.balance)) this.set(found.balance);
       const day = found.today;
       if (Number.isSafeInteger(day?.found)) {
-        state.today = { ...(state.today ?? {}), ...(kind === 'gather' ? { gathered: day.found, gatherMax: day.max } : { found: day.found, findMax: day.max }) };
+        state.today = { ...(state.today ?? {}), ...(kind === 'gather' ? { gathered: day.found } : { found: day.found }) };
       }
       return Number.isSafeInteger(found.struck) && found.struck > 0 ? MARKS_TEXT.found(found.struck, found.balance, kind) : null;
     },
@@ -287,7 +282,6 @@ export function createMarksBook({ door, store = null, character = () => null, ri
         const error = r?.ok ? null : (r?.error ?? 'offline');
         if (!error) {
           const found = r.data ?? {};
-          if (Number.isSafeInteger(found.today?.found) && found.today.found >= found.today.max) findsMet = { account: me, day };
           out.push({ kind: f.kind, found, line: this.findLine(found, f.kind) });
         } else if (FIND_DROPS.includes(error)) {
           findsMet = { account: me, day };   // AUDIT 625 S1: none of its finds struck today - none asked again until the day turns
@@ -311,7 +305,7 @@ export function createMarksBook({ door, store = null, character = () => null, ri
      * @returns {Promise<{ ok: boolean, text: string, gold?: number }>}
      */
     async sell(marks, credit, where = null) {
-      if (!marksAmountOk(marks, MARKS_BANK.perDay)) return { ok: false, text: accountRefusalText('bad-marks') };
+      if (!marksAmountOk(marks, MARKS_MAX)) return { ok: false, text: accountRefusalText('bad-marks') };
       if (!account()) return { ok: false, text: accountRefusalText('no-session') };
       const run = once(async () => {
         if (kept()) return { ok: false, text: MARKS_TEXT.kept };   // this account's and character's last sale must settle first

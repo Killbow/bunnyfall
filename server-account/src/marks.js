@@ -148,22 +148,15 @@ const CLAIM_GUARDS = Object.freeze({
   star: (p) => `EXISTS (SELECT 1 FROM stars_held WHERE star = ?${p} AND account = ?1 AND nonce = ?${p + 1})`,
 });
 
-/**
- * A COMBAT STRIKE: `kind`'s amount (MARKS_FAUCETS - SERPENT-SET: or the claim's own, `amount`) to the account, or what
- * the day's combat cap has left of it (MARKS_COMBAT - the gates', the raids' and the serpents' together, a UTC day),
- * never past MARKS_MAX; `rid` the claim's own, so one gate, raid or serpent strikes once whatever asks; written only
- * while the claim's own row stands (CLAIM_GUARDS).
- */
+/** Mint the full activity reward once while its claim stands and the wallet has room. */
 function combatStrikeStatement({ db, nowS }, player, kind, rid, guard, amount = MARKS_FAUCETS[kind].amount) {
   const day = utcDay(nowS);
-  const pay = `MIN(?2, ?6 - ${combatEarnedSql('?1', '?3')})`;
   return db.prepare(`${INSERT_LINE}
-    SELECT 'mint', NULL, 'account', ?1, '${kind}', ${pay}, ?3, ?4, ?1, NULL, ?5
-    WHERE ${combatEarnedSql('?1', '?3')} < ?6
-      AND COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + ${pay} <= ?7
+    SELECT 'mint', NULL, 'account', ?1, '${kind}', ?2, ?3, ?4, ?1, NULL, ?5
+    WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + ?2 <= ?6
       AND NOT EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?1 AND rid = ?5)
-      AND ${CLAIM_GUARDS[kind](8)}`)
-    .bind(player.id, amount, day, nowS, rid, MARKS_COMBAT.perDay, MARKS_MAX, ...guard);
+      AND ${CLAIM_GUARDS[kind](7)}`)
+    .bind(player.id, amount, day, nowS, rid, MARKS_MAX, ...guard);
 }
 /** Whether Marks are this account's to be struck: registered, and the switch. */
 const strikesFor = (player, env) => accountKind(player) === 'linked' && marksOpenFor(player, env);
@@ -224,15 +217,15 @@ export function serpentStrikeStatement(ctx, player, env, day, nonce, earned) {
 /** What a combat strike answers: `{ struck, balance, combat }`, `struck` 0 with a `why` (`cap` - the day's combat cap
  *  met; `full` - the balance at the most), or null where Marks are not this account's. `struck` says whether the
  *  statement wrote its line; the amount is the line's own (the day's last strike may be less than the faucet's).
- *  `combat` the day's combat silver and its cap, for the line the client says. */
+ *  `combat` the day's combat silver, for the line the client says. */
 export async function combatStrikeAnswer({ db, nowS }, player, env, struck, rid) {
   if (!strikesFor(player, env)) return null;
   const balance = await balanceOf(db, player.id);
   const today = await todayOf(db, player.id, utcDay(nowS));
-  const combat = { earned: today.combat, max: MARKS_COMBAT.perDay };
+  const combat = { earned: today.combat };
   const line = struck ? await lineOf(db, player.id, rid) : null;
   if (line) return { struck: Number(line.amount), balance, combat };
-  return { struck: 0, balance, combat, why: today.combat >= MARKS_COMBAT.perDay ? 'cap' : 'full' };
+  return { struck: 0, balance, combat, why: 'full' };
 }
 /** The gate's answer (combatStrikeAnswer, under the gate's line id). */
 export const gateStrikeAnswer = (ctx, player, env, struck, gameDay) => combatStrikeAnswer(ctx, player, env, struck, gateStrikeRid(gameDay));
@@ -276,7 +269,7 @@ export const deedRid = (event) => `deed:${event}`;
  *      character in each of three guilds marked all three, and its gate struck their deeds. One account, one guild an
  *      event: the migration's unique (event, account), which this INSERT OR IGNORE meets.
  *   2. THE STRIKE: where that guild now has `members` (3) accounts' marks on the event, 25 silver into its treasury -
- *      once an event a guild (the line's id the deed's, the guild its actor), at most `perDay` (4) a guild a UTC day,
+ *      once an event a guild (the line's id the deed's, the guild its actor),
  *      never past MARKS_MAX. A strike the day's cap refused is struck by the next member's COUNTED claim of that event:
  *      AUDIT SILVER-WAYS A2 - by the claim's own row as the mark is (a refused re-send of a week-old receipt the next
  *      day struck a deed its answer never said).
@@ -284,7 +277,7 @@ export const deedRid = (event) => `deed:${event}`;
  */
 export function deedStatements({ db, nowS }, player, env, { kind, event, character, guard }) {
   if (!strikesFor(player, env) || typeof character !== 'string' || !character || !CLAIM_GUARDS[kind]) return null;
-  const { amount, perDay, members, tenureS } = MARKS_FAUCETS.deed;
+  const { amount, members, tenureS } = MARKS_FAUCETS.deed;
   return [
     db.prepare(`INSERT OR IGNORE INTO guild_deed_marks (guild_id, event, account, char_id, at)
       SELECT m.guild_id, ?2, ?1, ?3, ?4 FROM guild_members m
@@ -295,11 +288,10 @@ export function deedStatements({ db, nowS }, player, env, { kind, event, charact
       FROM guild_deed_marks d
       WHERE d.event = ?7 AND d.account = ?1
         AND (SELECT COUNT(*) FROM guild_deed_marks x WHERE x.guild_id = d.guild_id AND x.event = ?7) >= ?8
-        AND (SELECT COUNT(*) FROM marks_ledger l WHERE l.dst_kind = 'guild' AND l.dst_id = d.guild_id AND l.kind = 'guild-deed' AND l.day = ?3) < ?9
-        AND COALESCE((SELECT balance FROM guild_marks WHERE guild_id = d.guild_id), 0) + ?2 <= ?10
+        AND COALESCE((SELECT balance FROM guild_marks WHERE guild_id = d.guild_id), 0) + ?2 <= ?9
         AND NOT EXISTS (SELECT 1 FROM marks_ledger l WHERE l.actor = d.guild_id AND l.rid = ?6)
-        AND ${CLAIM_GUARDS[kind](11)}`)
-      .bind(player.id, amount, utcDay(nowS), nowS, displayName(player), deedRid(event), event, members, perDay, MARKS_MAX, ...guard),
+        AND ${CLAIM_GUARDS[kind](10)}`)
+      .bind(player.id, amount, utcDay(nowS), nowS, displayName(player), deedRid(event), event, members, MARKS_MAX, ...guard),
   ];
 }
 /** SILVER-WAYS: the claim's deed, as its answer says it - `{ struck, guild: { name, tag } }` where THIS claim's batch
@@ -314,7 +306,7 @@ export async function deedAnswer(db, player, event, struck) {
 export async function guildDeedsToday(db, guildId, nowS) {
   const r = await db.prepare("SELECT COUNT(*) AS n FROM marks_ledger WHERE dst_kind = 'guild' AND dst_id = ?1 AND kind = 'guild-deed' AND day = ?2")
     .bind(guildId, utcDay(nowS)).first();
-  return { deeds: Number(r?.n ?? 0), deedsMax: MARKS_FAUCETS.deed.perDay };
+  return { deeds: Number(r?.n ?? 0) };
 }
 
 // ─── SILVER-FINDS: A GATHERING'S, A LOOT'S ──────────────────────────
@@ -324,19 +316,15 @@ export async function guildDeedsToday(db, guildId, nowS) {
 /** SILVER-FINDS: a harvest's find's line id - the harvest's own request id, under the service's own `:` (a client's id
  *  never carries one), so a harvest finds once whatever asks. */
 export const gatherStrikeRid = (rid) => `gather:${rid}`;
-/** A find faucet's strike (`gather` or `find`): `amount` to the account, or what the faucet's day (its perDay, a UTC
- *  day) has left of it, never past MARKS_MAX, once a line id - and only where `guard` (SQL over ?8, ?9) holds. */
+/** Mint a full find once where its receipt guard holds and the wallet has room. */
 function findStrikeStatement({ db, nowS }, player, kind, rid, amount, guard = '1', guardArgs = []) {
   const day = utcDay(nowS);
-  const earned = findsEarnedSql('?1', '?3', kind);
-  const pay = `MIN(?2, ?6 - ${earned})`;
   return db.prepare(`${INSERT_LINE}
-    SELECT 'mint', NULL, 'account', ?1, '${kind}', ${pay}, ?3, ?4, ?1, NULL, ?5
-    WHERE ${earned} < ?6
-      AND COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + ${pay} <= ?7
+    SELECT 'mint', NULL, 'account', ?1, '${kind}', ?2, ?3, ?4, ?1, NULL, ?5
+    WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + ?2 <= ?6
       AND NOT EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?1 AND rid = ?5)
       AND ${guard}`)
-    .bind(player.id, amount, day, nowS, rid, MARKS_FAUCETS[kind].perDay, MARKS_MAX, ...guardArgs);
+    .bind(player.id, amount, day, nowS, rid, MARKS_MAX, ...guardArgs);
 }
 /**
  * SILVER-FINDS: A HARVEST'S FIND, for harvestNode's own batch (professions.js) - `amount` the service's dice
@@ -347,9 +335,9 @@ function findStrikeStatement({ db, nowS }, player, kind, rid, amount, guard = '1
 export function gatherStrikeStatement(ctx, player, env, { rid, nonce, amount }) {
   if (!strikesFor(player, env) || !findsOpenFor(player, ctx.nowS) || !(amount > 0) || typeof rid !== 'string' || typeof nonce !== 'string') return null;   // AUDIT 625 S1: a week registered
   return findStrikeStatement(ctx, player, 'gather', gatherStrikeRid(rid), amount,
-    'EXISTS (SELECT 1 FROM node_harvests WHERE player = ?1 AND rid = ?8 AND n = ?9)', [rid, nonce]);
+    'EXISTS (SELECT 1 FROM node_harvests WHERE player = ?1 AND rid = ?7 AND n = ?8)', [rid, nonce]);
 }
-/** SILVER-FINDS: a find's line as its answer says it - `{ struck, balance, today: { found, max } }` for the faucet the
+/** SILVER-FINDS: a find's line as its answer says it - `{ struck, balance, today: { found } }` for the faucet the
  *  line is (`gather`'s or `find`'s day), or null for no line (none found, the day's cap met, a purse at its most, or
  *  Marks not this account's). A line made is answered WHATEVER THE SWITCH SAYS NOW (AUDIT 28 M2's law, the exchange's
  *  own): a request asked again after the switch shut is told the find it made, never "none". */
@@ -373,14 +361,14 @@ export function findLineFrom(/** @type {any[][]} */ [lines = [], finds = [], bal
   if (!line || (line.kind !== 'gather' && line.kind !== 'find')) return null;
   const f = finds[0];
   return { struck: Number(line.amount), balance: balances[0] ? Number(balances[0].balance) : 0,
-    today: { found: Number((line.kind === 'gather' ? f?.gathered : f?.found) ?? 0), max: MARKS_FAUCETS[line.kind].perDay } };
+    today: { found: Number((line.kind === 'gather' ? f?.gathered : f?.found) ?? 0) } };
 }
 
 /**
  * SILVER-FINDS: A LOOT FIND (`/v1/marks/find`) - `{ kind, rid }`: `kind` one of FIND_KINDS (a foe's body, a treasure
  * pile, a searched thing), `rid` the device's id for it. THE DEVICE ROLLED THE FIND (marksLaw.js findChanceOf: the
  * service cannot see a body), so it is bounded, not witnessed: the SERVICE rolls what it strikes (lootFindOf) and holds
- * the day - MARKS_FAUCETS.find.perDay an account a UTC day, the day's last find what it has left - and its hour (the
+ * the wallet limit and the request budget (the
  * Marks acts' own rate). A request asked twice is one line (`repeat`), answered before the switch. Answers
  * `{ ok, struck, balance, today: { found, max } }`, `struck` 0 with `why` ('cap' - the day's met; 'full' - the purse
  * at its most), or `{ error }`: marks-need-account, marks-rid, marks-closed, bad-find, marks-young (AUDIT 625 S1: an
@@ -394,8 +382,7 @@ export async function findMarks(ctx, player, env, { kind, rid } = {}) {
     const a = await findLineAnswer(ctx, player, env, rid);
     if (a) return { ok: true, ...extra, ...a };
     const today = await todayOf(db, player.id, utcDay(nowS));
-    const max = MARKS_FAUCETS.find.perDay;
-    return { ok: true, ...extra, struck: 0, balance: await balanceOf(db, player.id), today: { found: today.found, max }, why: today.found >= max ? 'cap' : 'full' };
+    return { ok: true, ...extra, struck: 0, balance: await balanceOf(db, player.id), today: { found: today.found }, why: 'full' };
   };
   const prior = await lineOf(db, player.id, rid);
   if (prior) return prior.kind === 'find' ? answer({ repeat: true }) : { error: 'marks-rid' };   // AUDIT 28 M2: before the switch
@@ -419,8 +406,8 @@ export async function marksOf({ db, nowS }, player, env) {
   return {
     balance: await balanceOf(db, player.id),
     today: {
-      gate: today.gate, combat: today.combat, combatMax: MARKS_COMBAT.perDay, exchanged: today.exchanged, exchangeMax: MARKS_BANK.perDay,
-      gathered: today.gathered, gatherMax: MARKS_FAUCETS.gather.perDay, found: today.found, findMax: MARKS_FAUCETS.find.perDay,   // SILVER-FINDS
+      gate: today.gate, combat: today.combat, exchanged: today.exchanged,
+      gathered: today.gathered, found: today.found,   // SILVER-FINDS
     },
     bank: { goldPerMark: MARKS_BANK.goldPerMark },
   };
@@ -433,10 +420,7 @@ export async function marksCardOf(ctx, player, env) {
 
 // ─── THE BANK: MARKS FOR GOLD, NEVER GOLD FOR MARKS ─────────────────
 
-/**
- * SELL MARKS TO THE BANK OF THE EMPIRE: `marks` burnt, `gold` = marks x 8 for the client to put in the purse, at most
- * 300 Marks a UTC day. The gold is the save's (it always is); the service's part is the burn and its cap.
- */
+/** Exchange Argents at the Bank of the Empire. The ledger burns the sale once. */
 export async function exchangeMarks(ctx, player, env, { marks, rid } = {}) {
   const { db, nowS } = ctx;
   const refused = whoAsks(player, rid);
@@ -450,17 +434,16 @@ export async function exchangeMarks(ctx, player, env, { marks, rid } = {}) {
   if (prior) return repeat(prior);   // AUDIT 28 M2: before the switch - a sale made is a sale answered
   const closed = shut(player, env);
   if (closed) return closed;
-  if (!marksAmountOk(marks, MARKS_BANK.perDay)) return { error: 'bad-marks' };
+  if (!marksAmountOk(marks, MARKS_MAX)) return { error: 'bad-marks' };
   if (await overRate(ctx, `marks:${player.id}`, MARKS_OPS_MAX, MARKS_OPS_WINDOW_S)) return { error: 'marks-rate' };
   const made = await decide(db.prepare(`${INSERT_LINE}
     SELECT 'account', ?1, 'burn', NULL, 'exchange', ?2, ?3, ?4, ?1, NULL, ?5
-    WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) >= ?2
-      AND COALESCE((SELECT SUM(amount) FROM marks_ledger WHERE src_id = ?1 AND kind = 'exchange' AND day = ?3), 0) + ?2 <= ?6`)
-    .bind(player.id, marks, day, nowS, rid, MARKS_BANK.perDay));
+    WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) >= ?2`)
+    .bind(player.id, marks, day, nowS, rid));
   if (!made) {
     const again = await lineOf(db, player.id, rid);
     if (again) return repeat(again);   // the same request, racing itself - or an id another act already took, which is never a sale
-    return { error: (await sold()) + marks > MARKS_BANK.perDay ? 'marks-bank-cap' : 'marks-short' };
+    return { error: 'marks-short' };
   }
   return { ok: true, marks, gold: exchangeGold(marks), balance: await balanceOf(db, player.id), exchangedToday: await sold() };
 }
@@ -576,25 +559,11 @@ export async function marksReport({ db, nowS }, player, env) {
       SUM(CASE WHEN dst_kind = 'burn' THEN amount ELSE 0 END) AS burnt
     FROM marks_ledger WHERE day >= ? GROUP BY day ORDER BY day`).bind(from).all())?.results ?? [])
     .map((r) => ({ day: Number(r.day), minted: Number(r.minted), burnt: Number(r.burnt) }));
-  // AUDIT 28 M10: the ACCOUNTS that reached a cap (each once, however many of the days), and the account-days beside it -
-  // SILVER-WAYS: the day's combat cap (the gates' and the raids' together) where the gate's two a day stood
-  const combatCapped = await db.prepare(`SELECT COUNT(DISTINCT dst_id) AS n, COUNT(*) AS d FROM (SELECT dst_id FROM marks_ledger
-    WHERE dst_kind = 'account' AND kind IN (${COMBAT_KINDS_SQL}) AND day >= ? GROUP BY dst_id, day HAVING SUM(amount) >= ?)`).bind(from, MARKS_COMBAT.perDay).first();
-  const bankCapped = await db.prepare(`SELECT COUNT(DISTINCT src_id) AS n, COUNT(*) AS d FROM (SELECT src_id FROM marks_ledger WHERE kind = 'exchange' AND day >= ?
-    GROUP BY src_id, day HAVING SUM(amount) >= ?)`).bind(from, MARKS_BANK.perDay).first();
-  // AUDIT 625 S6: and SILVER-FINDS' two faucets - bounded, not witnessed, the day their one bound - so the accounts at
-  // their caps are the signal a scripted client leaves
-  const faucetCapped = (kind) => db.prepare(`SELECT COUNT(DISTINCT dst_id) AS n, COUNT(*) AS d FROM (SELECT dst_id FROM marks_ledger
-    WHERE dst_kind = 'account' AND kind = ?1 AND day >= ?2 GROUP BY dst_id, day HAVING SUM(amount) >= ?3)`).bind(kind, from, MARKS_FAUCETS[kind].perDay).first();
-  const gatherCapped = await faucetCapped('gather');
-  const findCapped = await faucetCapped('find');
   const m = sum(minted), b = sum(burnt);
   return {
     from, to: today, minted, burnt, moved, mintedTotal: m, burntTotal: b, ratio: b > 0 ? Math.round((m / b) * 100) / 100 : null,
     circulation: { accounts: Number(acc?.s ?? 0), guilds: Number(gld?.s ?? 0), escrow: Number(esc?.s ?? 0), holders: Number(acc?.n ?? 0) },
     days,
-    capped: { combat: Number(combatCapped?.n ?? 0), bank: Number(bankCapped?.n ?? 0), gather: Number(gatherCapped?.n ?? 0), find: Number(findCapped?.n ?? 0) },
-    cappedDays: { combat: Number(combatCapped?.d ?? 0), bank: Number(bankCapped?.d ?? 0), gather: Number(gatherCapped?.d ?? 0), find: Number(findCapped?.d ?? 0) },
     medians,
   };
 }

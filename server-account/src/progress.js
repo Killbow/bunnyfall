@@ -34,7 +34,6 @@ import { RENOWN_XP_HOUR_MAX } from '../../src/net/renown.js';
 import { WATCH_DAY_CAP, BOUNTY_CAMPS_DAY } from '../../src/net/townSeatLaw.js';
 import { WATCH_TICK_MS } from '../../src/net/watchReceipt.js';
 import { TIDE_EFFECTS } from '../../src/net/tideLaw.js';
-import { MARKS_FAUCETS } from '../../src/net/marksLaw.js';
 import { writXp } from '../../src/net/professionLaw.js';
 
 /** A raid's game day is two real hours (systems/raidingParties.js GAME_DAY_REAL_HOURS - the test holds the two equal). */
@@ -52,8 +51,8 @@ export const PROGRESS_LINE = Object.freeze({
     bounty: Object.freeze({ rate: BOUNTY_CAMPS_DAY, cap: BOUNTY_CAMPS_DAY }),   // a seat's Bounty camps, and (HUNTERS-MARK) the boards' clears
     camp: Object.freeze({ rate: TIDE_EFFECTS.orcsCampsDay, cap: TIDE_EFFECTS.orcsCampsDay }),   // an Orc Raid's camps
     watch: Object.freeze({ rate: 3_600_000 / WATCH_TICK_MS, cap: WATCH_DAY_CAP }),   // a tick for each two minutes stood
-    find: Object.freeze({ rate: MARKS_FAUCETS.find.perDay, cap: MARKS_FAUCETS.find.perDay }),   // silver finds
-    gather: Object.freeze({ rate: MARKS_FAUCETS.gather.perDay, cap: MARKS_FAUCETS.gather.perDay }),   // a harvest's silver
+    find: Object.freeze({ rate: 20, cap: 20 }),   // silver finds
+    gather: Object.freeze({ rate: 30, cap: 30 }),   // a harvest's silver
     prof: Object.freeze({ rate: 10_000, cap: 20_000 }),   // profession XP - no route bounded it by the hour; a guess
   }),
 });

@@ -29,7 +29,6 @@ import { material } from '../net/nodeLaw.js';
 import { materialCountLabel, mintMaterialItem } from '../professions/profItems.js';
 import { inventoryItemImage } from '../items/itemTemplates.js';
 import { lootRarityOn } from '../items/lootRarity.js';
-import { MARKS_COMBAT, MARKS_FAUCETS } from '../net/marksLaw.js';
 
 /** A strike the day's combat cap refused, as its muted card says it - the chat's own line keeps the whole of it.
  *  SERPENT-SET: the serpents strike under the same cap; EG-E1: and the Spire's Redoubts; STAR7: and the held stars.
@@ -141,7 +140,7 @@ export function silverHaul(marks, { source = '', combat = false, cappedText = nu
   if (n <= 0) {
     return marks.why === 'cap' && cappedText ? { key: 'silver\u0002capped', haul: 'note', text: cappedText, count: 1, hold: HAUL_HOLD_MS } : null;
   }
-  const c = combat && Number.isSafeInteger(marks.combat?.earned) ? { earned: marks.combat.earned, max: marks.combat.max ?? MARKS_COMBAT.perDay, text: COMBAT_BAR_TEXT }
+  const c = combat && Number.isSafeInteger(marks.combat?.earned) && marks.combat.max > 0 ? { earned: marks.combat.earned, max: marks.combat.max, text: COMBAT_BAR_TEXT }
     : day && Number.isSafeInteger(day.earned) && day.max > 0 ? day : null;
   return {
     key: `silver\u0002${source}`, haul: 'silver', count: n, source, balance: Number.isSafeInteger(marks.balance) ? marks.balance : null,
@@ -168,7 +167,7 @@ export function findHaul(found, kind) {
   const t = found.today;
   return silverHaul(found, {
     source: FIND_SOURCE[kind] ?? FIND_SOURCE.pile,
-    day: Number.isSafeInteger(t?.found) ? { earned: t.found, max: Number.isSafeInteger(t.max) ? t.max : MARKS_FAUCETS[faucet].perDay, text: FIND_BAR_TEXT[faucet] } : null,
+    day: Number.isSafeInteger(t?.found) && t.max > 0 ? { earned: t.found, max: t.max, text: FIND_BAR_TEXT[faucet] } : null,
   });
 }
 

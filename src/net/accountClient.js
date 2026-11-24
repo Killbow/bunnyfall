@@ -51,7 +51,7 @@ import { GUESTBOOK_TEXT_MAX } from './guestbookLaw.js';   // GUESTBOOK: its boun
 import { FEST_NAME_MAX, FEST_TEXT_MAX } from './playerFestivalLaw.js';   // PLAYER-FESTIVALS: their bounds, in the refusals
 import { HOME_CAP, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_DAYS_MAX } from './homeLaw.js';   // HOME1: the cap a refusal names; HOME-RENT: and the rooms'
 import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY, DECOR_YARDS_TOWN_MAX } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's; YARD-TOWN: a town's
-import { MARKS_MAX, MARKS_BANK, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
+import { MARKS_MAX, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
 import { NOTES_LIVE_MAX, NOTE_DAYS, NOTICE_DAYS_MAX } from './boardLaw.js';   // NOTICE1: the bounds its refusals name
 import { SIGN_WHY, SIEGE_WHY, ROYAL_WHY, FEALTY_WHY, SELLSWORD_FEE_MAX } from './townSeatLaw.js';   // SEAT2a: the rosters' refusals in the board's own words; the fee's bound
 import {
@@ -454,9 +454,9 @@ const REFUSAL_WORDS = {
   'marks-need-account': () => t('account.refusal.marksNeedAccount', 'Imperial Argents are kept by registered accounts. Add a username to hold them.'),
   'marks-closed': () => t('account.refusal.marksClosed', 'Imperial Argents are not available yet.'),
   'marks-rid': () => t('account.refusal.marksRid', 'That request could not be read. Try again.'),
-  'bad-marks': () => t('account.refusal.badMarks', 'Imperial Argents move 1 to {max, number} at a time, and the Bank buys at most {perDay} a day.', { max: MARKS_MOVE_MAX, perDay: MARKS_BANK.perDay }),
+  'bad-marks': () => t('account.refusal.badMarks', 'Enter a valid amount of Imperial Argents.', {}),
   'marks-short': () => t('account.refusal.marksShort', 'You do not hold that many Imperial Argents.'),
-  'marks-bank-cap': () => t('account.refusal.marksBankCap', 'The Bank buys at most {perDay} Imperial Argents from you a day.', { perDay: MARKS_BANK.perDay }),
+  'marks-bank-cap': () => t('account.refusal.marksBankCap', 'This bank is still enforcing a daily Argent limit.'),
   'marks-full': () => t('account.refusal.marksFull', 'An account holds at most {max, number} Imperial Argents.', { max: MARKS_MAX }),
   'guild-marks-short': () => t('account.refusal.guildMarksShort', 'The treasury does not hold that many Imperial Argents.'),
   'guild-marks-full': () => t('account.refusal.guildMarksFull', 'A company\'s treasury holds at most {max, number} Imperial Argents.', { max: MARKS_MAX }),
