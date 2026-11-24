@@ -82,17 +82,20 @@ const t0 = performance.now();
 const frameFiles = Object.keys(budget.frameBytecode);
 const sizes = Promise.all(frameFiles.map(frameBytecode));
 const counts = sourceCounts(budget.file, budget.host);
+const lineRows = Object.entries(budget.otherNonEmptyLines ?? {}).map(([rel, limit]) =>
+  [`${rel} non-empty lines`, read(rel).split('\n').filter((l) => /\S/.test(l)).length, limit]);
 const rows = [
-  [`${budget.file} non-empty lines`, counts.nonEmptyLines, budget.nonEmptyLines, true],
-  [`${budget.file} static imports`, counts.staticImports, budget.staticImports, true],
-  [`${budget.host} top-level bindings`, counts.hostBindings, budget.hostBindings, true],
-  ...(await sizes).map((size, i) => [`${frameFiles[i]} frame bytecode (B)`, size, budget.frameBytecode[frameFiles[i]], false]),
+  [`${budget.file} non-empty lines`, counts.nonEmptyLines, budget.nonEmptyLines],
+  [`${budget.file} static imports`, counts.staticImports, budget.staticImports],
+  [`${budget.host} top-level bindings`, counts.hostBindings, budget.hostBindings],
+  ...lineRows,
+  ...(await sizes).map((size, i) => [`${frameFiles[i]} frame bytecode (B)`, size, budget.frameBytecode[frameFiles[i]]]),
 ];
 
 const w = Math.max(...rows.map((r) => r[0].length));
 let over = 0;
-for (const [label, actual, limit, ratchet] of rows) {
-  const state = actual > limit ? 'OVER' : ratchet && actual < limit ? 'ok, lower the budget' : 'ok';
+for (const [label, actual, limit] of rows) {
+  const state = actual > limit ? 'OVER' : 'ok';
   if (actual > limit) over++;
   console.log(`${label.padEnd(w)}  ${String(actual).padStart(7)} / ${String(limit).padStart(7)}  ${state}`);
 }
