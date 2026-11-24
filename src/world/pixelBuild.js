@@ -101,6 +101,7 @@ import { TownPopulation } from '../characters/townPopulation.js';
 import { windfallResponse } from '../weather/windfall.js';
 import { colliderBlocked, dryGround, witchesDressingBreathing } from './witchesDecor.js';   // WITCH1: the Witches' Festival's dressing and its Wyrd Sisters
 import { wodRockUvs } from './wodRockUv.js';
+import { wodRockFloor } from './wodRockFloor.js';
 import { WodSpawner } from './wodSpawner.js';
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel's statics built round a body already standing are withheld until it is clear
 import { cromwarkDesolateAt } from './wild/cromwarkTowns.js';
@@ -973,7 +974,7 @@ export function createPixelBuild(host) {
       for (const m of place.models) {
         const gpu = await getGpuMesh(m.modelId);
         if (!gpu) continue;   // a model ARCH3D does not carry stands empty in DFU (no mesh, no collider)
-        const cpu = wodRockUvs(cpuModels.get(m.modelId), m.matrix, m.modelId);   // FB1001-WODROCK (Mac: "Retexture them to be as detailed as possible"): a piece stretched 4x or more draws its planes unfolded at its pebble's own texel density (world/worldOfDaggerfall/wodRockUv.js) - new UVs only, its positions and indices the model's own arrays; a camp or a house is the same object
+        const cpu = wodRockUvs(wodRockFloor(cpuModels.get(m.modelId), m.modelId), m.matrix, m.modelId);
         const box = transformedAabb(archAabb(m.modelId, cpu.positions), m.matrix);
         // WOD-BUSH (2026-10-01, Mac: "World of daggerfall bush props float above the ground in bandit camps"): the
         // layouts' shrub stands on the DRAWN ground. The mod stands every object on the site's average plus the
