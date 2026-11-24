@@ -47,6 +47,7 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
     : op === 'station' || op === 'recall' ? stepFarmStation(garden, { act: op, who: player.id, character, revenantId: body.revenantId, kind: body.kind, name: body.name, rank: body.rank, art: body.art, post: body.post, elsewhere: op === 'station' ? await stationedElsewhere(db, actor.me.guild_id, mapId, character) : 0 }, nowS)
     : stepFarmGardenAction(garden, { ...body, climate: Number(farm.climate), who: player.id }, nowS);   // the farm's own climate and the account's own id, never the client's
   if ('error' in step) return step;
+  if ((op === 'herd' || op === 'workshop') && step.gold && Number((await db.prepare('SELECT treasury FROM guilds WHERE id = ?').bind(actor.me.guild_id).first())?.treasury ?? 0) < step.gold) return { error: 'farm-gold' };
   const statements = [db.prepare(`UPDATE company_farm_gardens SET garden = ?1, version = version + 1
     WHERE map_id = ?2 AND version = ?3 AND EXISTS (SELECT 1 FROM company_farms WHERE map_id = ?2 AND guild_id = ?4)
       AND EXISTS (SELECT 1 FROM guild_members WHERE player = ?5 AND char_id = ?6 AND guild_id = ?4 AND (?7 = 0 OR rank <= 1))`)
