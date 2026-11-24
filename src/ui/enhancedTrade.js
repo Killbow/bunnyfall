@@ -41,7 +41,7 @@ import { itemLine, linePicture, markItemFrame, wearBar, showItemHover, hideItemH
 import { SLOT_BOX } from './iconFit.js';   // UI1: the row's picture box
 import { fittedImg } from './textureCanvas.js';   // UI1: the fitted picture's element
 import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
-import { pageHas } from '../platform/pageQuery.js';
+import { illustratedUiOn } from './expanderArt.js';
 import { dialFileUrl } from './grimoireArt.js';
 import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { landingTiles } from './landingTiles.js';   // TRADE-VIRT: a picture into its tile, not a repaint of the counter
@@ -1078,7 +1078,7 @@ function render() {
   const body = el('div', 'px-body trade-body');
   const lists = el('div', 'packlists');
   lists.append(localCol());
-  if (pageHas('bankart') && (mode === 'Buy' || mode === 'Sell')) {
+  if (illustratedUiOn() && (mode === 'Buy' || mode === 'Sell')) {
     lists.classList.add('trade-with-summary');
     const summary = el('div', 'trade-art-summary');
     const picture = el('img');

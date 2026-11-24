@@ -141,7 +141,7 @@ import { liveStat } from '../characters/statMods.js';
 import { conditionWord, conditionPercentage, itemNameParts, itemLongName, itemDamageLine, itemArmourLine, itemArmorTypeLine, itemHandsLine } from '../items/itemInfo.js';   // RF6: the long name's two parts, ResolveItemLongName's arms once
 import { weaponSkillUsed, WEAPONS } from '../characters/weapons.js';
 import { SKILL_NAMES } from '../characters/skills.js';
-import { pageHas } from '../platform/pageQuery.js';
+import { illustratedUiOn } from './expanderArt.js';
 import { survivalInfoTokens, potionMacroName, potionRecipeIngredientNames } from '../items/itemInfo.js'; import { isPortalStone } from '../worldEvents/gateSpoils.js';   // AUDIT SURV C: the survival items' tokens on this skin's card too
 import { isStarglass } from '../systems/starfall/starglass.js';   // AUDIT STAR I2: Starfall Glass's lines on this skin's card
 import { isLockpick } from '../systems/lockpick/lockpickItem.js';   // AUDIT LOCKPICK B2: the Lockpick's lines on this skin's card
@@ -3486,7 +3486,7 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   if (body && picked !== wellPick) { wellOpen = null; wellAsk = null; gemTargets = null; wellPick = picked; }
   const line = itemLine(picked, deps.entity);
   const c = el('div', 'card');
-  const illustrated = pageHas('bankart');
+  const illustrated = illustratedUiOn();
   if (illustrated) c.classList.add('card-illustrated');
   const into = body ? el('div', 'card-body') : c;
   if (body) c.append(into);
@@ -3538,7 +3538,7 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   // thing is swung - and above the weight, which is not. Null for
   // everything that is not a weapon, so no book grows an empty row.
   pair('Hands', line.hands);
-  if (pageHas('bankart') && picked.group === 'Weapons' && picked.templateIndex !== WEAPONS.Arrow) {
+  if (illustratedUiOn() && picked.group === 'Weapons' && picked.templateIndex !== WEAPONS.Arrow) {
     pair('Weapon skill', SKILL_NAMES[weaponSkillUsed(picked.templateIndex)]);
   }
   for (const t of line.survival ?? []) {   // AUDIT SURV C: the classic popup's tokens, each under a word of its own

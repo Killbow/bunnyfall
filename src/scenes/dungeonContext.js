@@ -89,7 +89,9 @@ import { useQuickslot, swapQuickslot, offHandQuickslot, spellQuickslotPress, off
 import { worldAabb, objectAabb, peacefulFoePass, doorDistanceOf } from '../player/activate.js';   // AUDIT 63 F37/F38: objectAabb is the LIVE box a ray or a collision meets
 import { getInteractionMode, interactionModeAsks } from '../player/interactionMode.js';   // AUDIT TACT C5: a pickpocket's plaque names the mark; SENSE1: the asks for Info, the look round's cue
 import { SENSE_PREF, senseTier, senseFinds, senseSecrets, senseRound, senseMarks, senseFlat, inPlainSight, createSensePulse, senseCard, boxDistance } from '../world/dungeonSense.js';   // SENSE1 (the delve arc): the look round
-import { WAY_PREF, createWayOut, stepHitCuts } from '../player/wayOut.js';   // WAYOUT1 (the delve arc): the way out on the compass
+import { WAY_PREF, WAY_LINE_PREF, createWayOut, stepHitCuts } from '../player/wayOut.js';   // WAYOUT1 (the delve arc): the way out on the compass
+import { PartyPingDraw } from '../render/partyPingDraw.js';
+import { pageHas } from '../platform/pageQuery.js';
 import { ECHO_PREF, ECHO_NEAR_M, ECHO_FIND_M, ECHO_LOOK_S, isEchoMover, echoState, echoMoved, echoLine, examineLine, boxMiddle, createEchoBook } from '../world/dungeonEcho.js';   // ECHO1 (the delve arc): the chain's echo, and its examine
 import { questCompassPick } from '../systems/quest/questGuidance.js';   // AUDIT DELVE C6: the Exact tier's compass pick
 import { createNodeGlowPass } from '../render/nodeGlow.js';   // SENSE1: the professions' glow, for what the look round finds
@@ -8248,6 +8250,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // before the water and the screen quads that end the world pass (WATER-D1's law, below)
     _npcLane?.drawVeiled();   // MWNPC5b: the concealed foes' bodies, translucent - after the last opaque flat, as the peers' below
     opts.lateWorldDraw?.();
+    drawWayOutLine(playerFeet, eye);
     senseFrame(eye);   // SENSE1: the look round - asked for (Info mode), then lit; after the last opaque flat, as the nodes' glow is
     // WATER-D1 (2026-09-21, LostMyLeg: "you can see 2 Watertiles/textures
     // floating around ... the console says 2 Water in every dungeon";
@@ -8780,6 +8783,17 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // walked back to the way in (the start marker, the map's own beacon), once the way in has been found; the farthest
   // cell along it the eye can see, a few times a second. Enhanced skin only, the `dungeon-way-out` row.
   const wayOut = createWayOut();
+  let wayLinePass = null;
+  function drawWayOutLine(feet, eye) {
+    if (!(pageHas('dungeonroute') || getPref(WAY_LINE_PREF) === true) || !wayOutMark(feet, eye)) return;
+    const pts = wayOut.line(feet);
+    if (pts.length < 2) return;
+    wayLinePass ??= new PartyPingDraw(renderer.gl);
+    wayLinePass.draw(renderer, [], [
+      { pts, color: [.08,.5,.75], alpha: .55, style: { dash: 100, gap: 0, lift: .07, half: .16 } },
+      { pts, color: [.38,.85,1], alpha: .95, style: { dash: 100, gap: 0, lift: .075, half: .045 } },
+    ]);
+  }
   let _wayAt = null, _wayT = -Infinity;
   function wayOutMark(feet, eye) {
     const sm = dungeon.startMarker;
@@ -10837,6 +10851,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // the map the moment you leave (Automap.cs:2530-2534).
       exitDungeonAutomap(classicMinutesRef.value);   // AUDIT-AMAP F11: stamped with the EXIT time (:2155)
       _unregisterHolds();   // TUT1 audit: the holds-only presenter leaves with the context too (below the exit law: test/systems/save/automap.test.js measures the walk to it)
+      wayLinePass?.dispose(); wayLinePass = null;
       senseGlow.dispose(); sensePulse.clear(); echoPulse.clear(); echoBook.clear(); wayOut.reset(); actions.onPlayed = null;   // SENSE1/ECHO1: the look round's glow is OURS - its program ends with the context
       lockpick.dispose();   // LOCKPICK: a lock's window still up is shut with the context, its success tail never run
       bloodMarks.dispose();   // BLOOD1a (HARD1): the ring is OURS - a vertex buffer and a VAO handed to nobody - so it ends here, by its own name and not through the hand-off pool
