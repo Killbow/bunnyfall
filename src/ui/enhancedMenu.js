@@ -133,7 +133,7 @@ import { waitingHouses, takeUpLine, houseWaitsTitle, houseWaitsLine, heirButtonL
 import { legacySettings } from '../systems/legacy/settings.js';   // RPT1026-MISC HEIR-WAITS: the Descendants dial a newborn heir is offered by
 import { mintCharacterId } from '../characters/characterId.js';   // REALM P1.4: a copy to offline is a new offline character
 import { exportSavesZip, collectSlots, importSlots, entriesFromFiles, slotPathOf, TRANSFER_ZIP_NAME } from '../saves/saveTransfer.js';   // SP1: saves move between the website and the app
-import { appStorage, tabStorage } from '../platform/appStorage.js';   // SP1: the store under this build - the browser's on the site, the file store in the app   // SAV4: the slot store; SLOTS1: every slot
+import { appStorage, tabStorage, rescanSaves } from '../platform/appStorage.js';   // SP1: the store under this build - the browser's on the site, the file store in the app   // SAV4: the slot store; SLOTS1: every slot
 import { uiSkin, SKIN_NAMES, isEnhanced } from './uiSkin.js';   // FD1: which boot rail
 import { getPref, setPref, isOpen, setOpen, PREF_DEFAULTS } from './uiPrefs.js';
 import { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS } from './eliteGates/egAccess.js';   // EG-G1: the Spire's danger palettes, named once
@@ -576,6 +576,7 @@ function saveOf(entry) {
 
 /** SLOTS1: every restorable slot, most recent first (systems/save/saveSlots.js restorableSaves). */
 function savedGames() {
+  rescanSaves();
   try { return restorableSaves().map(saveOf); } catch { return []; }
 }
 

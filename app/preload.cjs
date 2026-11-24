@@ -25,6 +25,8 @@ const { createFileStorage } = require('./lib/fileStorage.cjs');
 
 const root = ipcRenderer.sendSync('dagger:user-data-path');
 const store = createFileStorage(root);
+// A save copied into the Saves folder while the window was in the background is listed when the window regains focus.
+window.addEventListener('focus', () => store.rescan());
 
 // DA8: an update that arrived while the game runs (app/main.cjs tellGame).
 // Heard HERE, before any game script, and kept - the page subscribes from
@@ -65,5 +67,6 @@ contextBridge.exposeInMainWorld('daggerShell', {
     getItem: (k) => store.getItem(k),
     setItem: (k, v) => store.setItem(k, v),
     removeItem: (k) => store.removeItem(k),
+    rescan: () => store.rescan(),
   },
 });

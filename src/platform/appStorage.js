@@ -58,6 +58,10 @@ export function tabStorage() {
   try { return globalThis.sessionStorage ?? null; } catch { return null; }
 }
 
+export function rescanSaves() {
+  try { globalThis.daggerShell?.storage?.rescan?.(); } catch { /* a store that cannot list keeps its index */ }
+}
+
 /** The one storage question. Storage-shaped object or null. */
 export function appStorage() {
   try {
