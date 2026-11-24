@@ -24,7 +24,7 @@ import { serviceLabel } from '../guilds/guildServiceFlow.js';
 import { GUILD_RECTS, PANEL_X as GUILD_X, PANEL_Y as GUILD_Y, REFORGE_ROW, LIFT_ROW, HEAL_CURSE_ROW, LEAVE_ROW } from './guildServiceWindow.js';
 import { COVEN_RECTS, COVEN_PANEL_X, COVEN_PANEL_Y } from './covenWindow.js';
 import { BANK_RECTS, BANK_PANEL_X, BANK_PANEL_Y, MARKS_ENTRY } from './bankWindow.js';
-import { MARKS_BANK, MARKS_COMBAT, MARKS_FAUCETS, marksText } from '../net/marksLaw.js';   // MARKS1: the Bank's Marks, online; SILVER-WAYS: the day's combat cap; SILVER-FINDS: the finds' days
+import { MARKS_BANK, marksText } from '../net/marksLaw.js';   // MARKS1: the Bank's Marks, online; SILVER-WAYS: the day's combat cap; SILVER-FINDS: the finds' days
 import { TRANSACTION_TYPE, goldRegion, EMPIRE_ACCOUNT_REGION } from '../trade/banking.js';   // EMPIRE-ACCOUNT: online, the one account
 import { REGION_NAMES } from '../formats/mapsFile.js';   // BANK-REGION: the account's region, by the index its row reads
 import { PURCHASE_RECTS, PURCHASE_PANEL_X, PURCHASE_PANEL_Y } from './bankPurchaseWindow.js';
@@ -167,9 +167,9 @@ const bank = {
         w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Imperial Argents', cls: 'port-argent', blocks: [
           { type: 'stats', items: [
             ['Argents held', marksText(w.hooks.marks.balance() ?? 0)],
-            ['Sold today', `${(w.hooks.marks.today()?.exchanged ?? 0)} of ${MARKS_BANK.perDay}`],
+            ['Sold today', marksText(w.hooks.marks.today()?.exchanged ?? 0)],
           ] },
-          { type: 'text', rows: [`Today: combat ${(w.hooks.marks.today()?.combat ?? 0)} of ${w.hooks.marks.today()?.combatMax ?? MARKS_COMBAT.perDay}, loot ${(w.hooks.marks.today()?.found ?? 0)} of ${w.hooks.marks.today()?.findMax ?? MARKS_FAUCETS.find.perDay}, gathering ${(w.hooks.marks.today()?.gathered ?? 0)} of ${w.hooks.marks.today()?.gatherMax ?? MARKS_FAUCETS.gather.perDay}. The Bank pays ${MARKS_BANK.goldPerMark} gold for each Imperial Argent.`] },
+          { type: 'text', rows: [`Today: combat ${(w.hooks.marks.today()?.combat ?? 0)}, loot ${(w.hooks.marks.today()?.found ?? 0)}, gathering ${(w.hooks.marks.today()?.gathered ?? 0)}. The Bank pays ${MARKS_BANK.goldPerMark} gold for each Imperial Argent.`] },
           { type: 'actions', layout: 'column', items: [
             { label: w.hooks.marks.pending() ? 'Counting a sale...' : 'Sell Imperial Argents', act: () => w._button('sellMarks'), disabled: !w.enabled('sellMarks') },
           ] },

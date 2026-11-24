@@ -79,29 +79,19 @@ export const MARKS_FAUCETS = Object.freeze({
   gate: Object.freeze({ amount: 50 }),
   raid: Object.freeze({ amount: 30 }),
   writ: Object.freeze({ perDay: 3 }),   // PROF1: the pay is each writ's own (professionLaw.js writPay)
-  deed: Object.freeze({ amount: 25, perDay: 4, members: 3, tenureS: 7 * 86_400 }),
-  motherlode: Object.freeze({ amount: 10, perDay: 1 }),
+  deed: Object.freeze({ amount: 25, members: 3, tenureS: 7 * 86_400 }),
+  motherlode: Object.freeze({ amount: 10 }),
   serpent: Object.freeze({ amount: 40, stood: 0.5 }),
-  gather: Object.freeze({ chance: 0.1, amount: Object.freeze([2, 5]), perDay: 30 }),
-  find: Object.freeze({ chance: Object.freeze({ corpse: 0.05, pile: 0.12, search: 0.15 }), amount: Object.freeze([1, 4]), perDay: 20 }),
+  gather: Object.freeze({ chance: 0.1, amount: Object.freeze([2, 5]) }),
+  find: Object.freeze({ chance: Object.freeze({ corpse: 0.05, pile: 0.12, search: 0.15 }), amount: Object.freeze([1, 4]) }),
   eg: Object.freeze({ amount: EG_PAY_MARKS }),   // EG-E1: a Redoubt the week pays (server-account/src/egEconomy.js)
   star: Object.freeze({ amount: 30 }),   // STAR7: a fallen star held (server-account/src/stars.js)
   craftWrit: Object.freeze({ perDay: 3 }),   // CRAFT-WRITS: the pay is each writ's own (craftWritLaw.js craftWritOf)
 });
-/**
- * SILVER-WAYS: THE DAY'S COMBAT CAP - what the gates and the raids strike an account together, a UTC day. The gate was
- * two a day of its own (100); a fighter now earns by raids too, and the day's ceiling rose by one raid's worth and a
- * little (150 = three gates, or five raids, or two gates and a raid and part of another). The strike that meets the cap
- * pays what the day has left of it (`combatStrike`), never nothing for a few silver short. SERPENT-SET: a serpent slain
- * strikes under the same cap - a sailor reaches the day's silver at sea too, and the ceiling does not rise. EG-E1: and a
- * Redoubt of the Elite Breach taken (`eg`) - the Spire's fighter reaches it there, and the ceiling still does not rise. STAR7:
- * and a fallen star held (`star`), under the same ceiling.
- */
-export const MARKS_COMBAT = Object.freeze({ kinds: Object.freeze(['gate', 'raid', 'serpent', 'eg', 'star']), perDay: 150 });
-/** What a combat faucet's `amount` strikes when `earned` is the day's combat silver so far: the amount, or the day's last. */
-export const combatStrike = (amount, earned) => Math.max(0, Math.min(amount, MARKS_COMBAT.perDay - Math.max(0, earned)));
+/** Combat sources grouped in daily activity totals. */
+export const MARKS_COMBAT = Object.freeze({ kinds: Object.freeze(['gate', 'raid', 'serpent', 'eg', 'star']) });
 /** The Bank of the Empire's exchange: Marks for gold, never the other way. */
-export const MARKS_BANK = Object.freeze({ goldPerMark: 8, perDay: 300 });
+export const MARKS_BANK = Object.freeze({ goldPerMark: 8 });
 /** One guild deposit or withdrawal of Marks, at most. */
 export const MARKS_MOVE_MAX = 1_000_000;
 /** The ledger lines a guild's view shows. */
