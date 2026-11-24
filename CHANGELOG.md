@@ -3,6 +3,12 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-23
+
+- Fixed: Spells still in flight when you leave a building no longer keep flying outside.
+- Fixed: Switching to another window while drawing a bow or aiming a ship's guns now lowers them instead of firing.
+- Fixed: Head bob and hit recoil no longer flip the view upside down at steep look angles.
+
 ## 2026-11-22
 
 - Fixed: The desktop app no longer shows a black game window before the game appears.
@@ -73,7 +79,6 @@ the last release (scripts/changelogNotes.mjs).
 - New warm gestures for roleplay: /hug, /embrace, /pat, /headpat, /kiss, /handkiss, /cuddle, /comfort, /highfive, /handshake, /fistbump, /poke, /tickle, /nuzzle, /hold, /bump, /toast and /wink. Add a name to aim one at someone ("/hug Ann"), and players nearby see it as an action line with little hearts and sparkles floating over you both. /emotes lists them all.
 - Touch gestures ask first, once: when you hug, pat or kiss someone they get a question; /accept lets you do it any time from then on, /decline says no this time, /untouch <name> takes the leave back, and /touchlist shows who has it. Blocked players are never answered.
 - An Emotes row on the player menu (hold the interact key on someone) opens a wheel of eight gestures: hug, pat, kiss, high five, handshake, comfort, wave and bow. Click one or press 1 to 8.
-
 
 ## 2026-11-20
 

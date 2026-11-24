@@ -212,7 +212,7 @@ export function _resetWorldDataReplacement({ assets = true } = {}) {
   regions = new Map(); locations = new Map(); blocks = new Map(); buildings = new Map();
   nextBlockIndex = 0; newBlockNames = new Map(); newBlockIndices = new Map(); _blocksFile = null;
   _refused.clear(); _quietLocations = false; _doorLatched = null;
-  if (assets) { _assets.clear(); _portBlocks.clear(); _locationEdits.length = 0; _layers.length = 0; }   // IT1: the layers with the assets
+  if (assets) { _assets.clear(); _portBlocks.clear(); _portNameByIndex = null; _locationEdits.length = 0; _layers.length = 0; }
 }
 
 // ---- ARENA1: THE PORT'S OWN WORLD DATA - not a mod's, so behind no switch ----
@@ -222,13 +222,24 @@ export function _resetWorldDataReplacement({ assets = true } = {}) {
 // any BSA (world/gate/gateArena.js's made block is the precedent), so the first block a mod's file names still takes
 // BsaFile.Count (DFU's AssignBlockIndices, RR3b) and no pack's new block moves.
 const _portBlocks = new Map();   // name -> { index, json, block }
+// Every write to _portBlocks resets this to null; the next lookup rebuilds it.
+/** @type {Map<number, string> | null} */
+let _portNameByIndex = null;
 /** A block of the port's own, by name, at a fixed index (>= 900000). */
 export function registerPortBlock(name, json, index) {
   if (!name || json == null || !Number.isSafeInteger(index)) return false;
   _portBlocks.set(name, { index, json, block: null });
+  _portNameByIndex = null;
   return true;
 }
-const portBlockByIndex = (index) => { for (const [name, b] of _portBlocks) if (b.index === index) return name; return null; };
+/** @param {number} index */
+function portBlockByIndex(index) {
+  if (!_portNameByIndex) {
+    _portNameByIndex = new Map();
+    for (const [name, b] of _portBlocks) if (!_portNameByIndex.has(b.index)) _portNameByIndex.set(b.index, name);
+  }
+  return _portNameByIndex.get(index) ?? null;
+}
 function portBlock(name) {
   const b = _portBlocks.get(name);
   if (!b) return null;

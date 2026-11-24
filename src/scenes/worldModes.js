@@ -9366,7 +9366,7 @@ export function createWorldModes(host) {
     dropViewOut();   // RW1 (AUDIT)
     _intShared = null;
     interiorFoes?.destroy?.();   // IF: OnTransitionExterior tears the interior's enemies down with it
-    magic?.clearEnemyMissiles?.();
+    magic?.clearFlyingMissiles?.();
     interiorFoes = null;
     interiorGuards?.clearLive?.();   // ROAD-B: the watch are enemies too - same transition, same teardown
     interiorGuards = null;
@@ -13891,7 +13891,7 @@ export function createWorldModes(host) {
         interiorCtx.destroy();
         dropViewOut();   // RW1 (AUDIT): the forced way out too
         interiorFoes?.destroy?.();
-        magic?.clearEnemyMissiles?.();
+        magic?.clearFlyingMissiles?.();
         interiorFoes = null;
         interiorGuards?.clearLive?.();   // ROAD-B: same teardown, the quest-teleport / load arm
         interiorGuards = null;

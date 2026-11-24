@@ -27,6 +27,7 @@
 // have no fixed Update order either.
 
 import { getInt } from '../platform/settings.js';
+import { clampPitch } from './pitchLimit.js';
 
 /** CameraRecoiler.cs:33. */
 export const BASE_MAX_RECOIL_SEVERITY = 50;
@@ -88,9 +89,12 @@ export class CameraRecoiler {
     const scalar = recoilRotationScalar(setting, healthLost, this.timer, this.timerStart);
     const xAngle = Math.sin(this.timer) * scalar * this.swayAxis[0];
     const yAngle = Math.sin(this.timer) * scalar * this.swayAxis[1];
-    cam.pitch -= xAngle * DEG;   // Rotate(+x) pitches DOWN in Unity's frame; the port's +pitch looks up
+    // Rotate(+x) pitches down in Unity's frame; here +pitch looks up.
+    // Clamp at the pitch limit and record only what moved; the undo above takes back exactly that, unclamped.
+    const pitchBefore = cam.pitch;
+    cam.pitch = clampPitch(pitchBefore - xAngle * DEG);
     cam.yaw += yAngle * DEG;     // Rotate(+y) turns right, as the port's +yaw does
-    this.applied = [xAngle, yAngle];
+    this.applied = [(pitchBefore - cam.pitch) / DEG, yAngle];
     this.swaying = this.timer > 0;
     return true;
   }

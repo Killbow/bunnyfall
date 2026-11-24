@@ -137,10 +137,8 @@ export function createFocalOffset() {
   };
 }
 
-/** MW-D30 / camera.cpp:323-331 - setPitch clamps to +/-(PI/2 - epsilon)
- *  with epsilon 0.000001f. The hosts had a hand-rolled +/-1.5, which
- *  stops the look ~4 degrees short of straight up and down. */
-export const PITCH_LIMIT = Math.PI / 2 - 0.000001;
+/** Daggerfall Unity's limit, not the reference's: it is minted in pitchLimit.js. */
+export { PITCH_LIMIT } from './pitchLimit.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 

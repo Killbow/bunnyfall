@@ -67,6 +67,7 @@ import { BAYER_GLSL, DISSOLVE_GLSL } from './orderedDither.js';   // AUDIT BAY A
 import { windfallLawOn, swayShare, windfallLeanMax, windfallAnchorAfterShift } from './windfallSway.js';   // WINDFALL1: the flora's lean while Windfall's law stands
 import { SKIN_PALETTE_UNIT } from './skinPalette.js';   // MWNPC16: a skinned body's palette, read where the lit draw reads it
 import { meterFor } from './perfMeter.js';
+import { spheresTouch, foldSignature, LoLampSignatures } from './shadowSignatures.js';
 import { NO_LIGHT_ID } from './lightId.js';   // LIGHT-ID: a light's identity, its producer's (renderer.js lifts it off the frame's list)
 
 /** The sun map: two cascades of this size, as a depth texture array. */
@@ -436,17 +437,6 @@ export const SHADOW_LO_REBUILDS_STEADY = 6;
  *  draw now; with the cache off every lamp replayed its whole room six faces a frame. */
 export function shadowCacheOn(search = globalThis.location?.search ?? '') {
   return pageParam('shadowcache', search) !== 'off';   // PERF-URL
-}
-/** SC1: are two spheres touching - a record's against a lantern's reach. */
-export function spheresTouch(ax, ay, az, ar, bx, by, bz, br) {
-  const dx = ax - bx, dy = ay - by, dz = az - bz, r = ar + br;
-  return dx * dx + dy * dy + dz * dz <= r * r;
-}
-/** SC1: a 32-bit fold for the static signature - order-independent (a sum and a rotate-xor), so the hosts' draw
- *  order, which the culling shuffles, cannot change it. */
-export function foldSignature(h, v) {
-  const x = (v | 0) * 0x9e3779b1 | 0;
-  return (h + ((x << 13) | (x >>> 19))) | 0;
 }
 let _shId = 0;
 /** SC1: a stable identity for a mesh, a surface or a batch, minted on first sight. */
@@ -1172,13 +1162,11 @@ export class ShadowPass {
     this._selfHeld = new Float64Array(4 * SHADOW_POINT_CASTERS); this._selfHeldN = 0;
     this._selfNext = new Float64Array(4 * SHADOW_POINT_CASTERS);
     this._slotTakenScratch = new Uint8Array(SHADOW_POINT_CASTERS);
-    // PERF-EXT3: the static signatures' inputs and answers - (x, y, z, far) and (hash, count) per ranked caster, one
-    // walk filling all of them (_staticSignatures); and one light's, for DISC15's lo tier (_staticSignature)
+    // Inputs and outputs of the ranked casters' signature walk: (x, y, z, far) and (hash, count) per caster.
     this._sigCasters = new Float64Array(4 * SHADOW_POINT_CASTERS);
     this._sigOut = new Int32Array(2 * SHADOW_POINT_CASTERS);
     this._farOf = new Float64Array(SHADOW_POINT_CASTERS);   // LA-SHADOW4: each rank's far this frame
-    this._sigOne = new Float64Array(4);
-    this._sigOneOut = new Int32Array(2);
+    this._loSigs = new LoLampSignatures(SHADOW_CASTER_TABLE, heldShadowFar, shadowFarFor);
     // PERF-SHADOW1: each ranked lantern's candidates this frame (_casterCandidates) - the records that can reach its
     // cube (indices, in record order) and, of a billboard list, the flats that can (`bb`, a list a candidate) - with the
     // lanterns' (x, y, z, far, slack), per lantern the slot the record in hand holds in its list (-1: none yet), and
@@ -1289,6 +1277,12 @@ export class ShadowPass {
     }
     for (let j = 0; j < cap; j++) if (!taken[j]) { sl[j * 4] = NaN; this._loBuilt[j] = 0; unminded[j] = 0; }   // a light gone: its slot is drawn afresh for the next
     let rebuilds = SHADOW_TUNING.steady ? SHADOW_LO_REBUILDS_STEADY : SHADOW_LO_REBUILDS;   // FLICKER-FIX: more per frame, never all at once (a door in a twenty-lamp room is a hitch)
+    const sigs = this._loSigs;
+    // Animated flats count at their current place, as the lo-tier replay draws them.
+    sigs.gather({
+      lights: L, lightCount: n, slotOf, readsFullMap: hi, slotLight: sl, slotBuilt: this._loBuilt,
+      walk: (cp, nC, out) => this._staticSignatures(cp, nC, out, false, true),
+    });
     for (let i = 0; i < n; i++) {
       const j = slotOf[i];
       if (j < 0) continue;
@@ -1304,14 +1298,13 @@ export class ShadowPass {
       // a kept map its light did not read (it held a 512 slot) is asked at once, outside the budget: it is read this frame
       const minded = unminded[j] === 0;
       unminded[j] = 0;
-      let sig = null, draw = fresh;
+      const sigHash = sigs.hash(i), sigCount = sigs.count(i);
+      let draw = fresh;
       if (!fresh && (!minded || rebuilds > 0)) {
-        sig = this._staticSignature(pos, far);
-        if (this._loSlotSig[j * 2] !== sig[0] || this._loSlotSig[j * 2 + 1] !== sig[1]) { draw = true; if (minded) rebuilds--; }
+        if (this._loSlotSig[j * 2] !== sigHash || this._loSlotSig[j * 2 + 1] !== sigCount) { draw = true; if (minded) rebuilds--; }
       }
       if (draw) {
-        if (!sig) sig = this._staticSignature(pos, far);
-        this._loSlotSig[j * 2] = sig[0]; this._loSlotSig[j * 2 + 1] = sig[1];
+        this._loSlotSig[j * 2] = sigHash; this._loSlotSig[j * 2 + 1] = sigCount;
         pointFaceMatrices(pos, far, this.faceVP);
         for (let face = 0; face < 6; face++) {
           gl.bindFramebuffer(gl.FRAMEBUFFER, this._loFbos[j * 6 + face]);
@@ -2114,15 +2107,6 @@ export class ShadowPass {
         out[k * 2] = foldSignature(foldSignature(out[k * 2], id), at); out[k * 2 + 1]++;
       }
     }
-  }
-  /** DISC15: one light's signature, (hash, count), for the lo tier - which asks light by light, EVERY light that is
-   *  not fresh every frame while SHADOW_LO_REBUILDS lasts, and a still room never spends it (the review); the walk is
-   *  _staticSignatures', by the sphere alone, because the lo tier runs only in a room drawn whole. */
-  _staticSignature(pos, far) {
-    const cp = this._sigOne;
-    cp[0] = pos[0]; cp[1] = pos[1]; cp[2] = pos[2]; cp[3] = far;
-    this._staticSignatures(cp, 1, this._sigOneOut, false, true);   // DISC29-E: with the flats animating in place, as REPLAY_LO draws them
-    return this._sigOneOut;
   }
   /** DISC29-E: where the player's own card (DISC24-C's SELF CARD) stands this frame - its sphere's centre into `out` -
    *  or null when none is drawn. The lamps it casts into are ranked from here.

@@ -346,7 +346,7 @@ async function locateArena2(win) {
 // imports and workers behave exactly as they do over https.
 protocol.registerSchemesAsPrivileged([{
   scheme: 'dagger',
-  privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, codeCache: true },
 }]);
 
 const MIME = {

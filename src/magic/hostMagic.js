@@ -1523,6 +1523,10 @@ export function createPlayerMagic({
     }
     m.dead = true;
   }
+  function retireAllMissiles() {
+    for (const m of missiles) retireMissile(m);
+    missiles.length = 0;
+  }
 
   /** PLAYER spell missile flight: lifespan, the wall raycast (an
    *  AreaAtRange payload explodes AT THE IMPACT POINT - AUDIT 23
@@ -1889,23 +1893,16 @@ export function createPlayerMagic({
       for (const b of batches) { flatAnims.remove(b); renderer.destroyBillboardBatch(b); }
       batches.length = 0;
     },
+    /** Interior teardown does not end its missiles, so every missile still in flight is retired before the street
+     *  runs. */
+    clearFlyingMissiles: retireAllMissiles,
     /** AUDIT 39: CleanupUntrackedObjects' MISSILE half
      *  (StreamingWorld.cs:1633-1636) - "Destroy loose missiles" on a
      *  load or a teleport. destroy() above is terminal and takes the
      *  candle and the impact batches with it; the engine outlives a
      *  fast travel, so this frees the flights alone. */
-    /** Removes in-flight enemy missiles when leaving an interior, since destroyed interior
-     *  foes are not marked dead and their bolts would otherwise keep flying outdoors. */
-    clearEnemyMissiles() {
-      for (let i = missiles.length - 1; i >= 0; i--) {
-        if (missiles[i].fromPlayer !== false) continue;
-        retireMissile(missiles[i]);
-        missiles.splice(i, 1);
-      }
-    },
     clearMissiles() {
-      for (const m of missiles) retireMissile(m);
-      missiles.length = 0;
+      retireAllMissiles();
       clearSparks(); fx.clear();   // IMPACTFX: a load or a teleport leaves no burst behind in the old place
       bunny.clearAll();   // BUNNY-SPELLS: nor a wall, a decoy or a well
       mwFx.clear();   // MW-SPELLFX1: nor a Morrowind effect
