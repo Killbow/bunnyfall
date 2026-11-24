@@ -29,7 +29,7 @@
 // that reorders a list you are looking at is a worse answer than the
 // order being right.
 import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
-import { animateSpellPreview } from './expanderArt.js';
+import { animateSpellPreview, illustratedUiOn } from './expanderArt.js';
 import { repaintKeepingScroll } from './domRepaint.js';   // FB1018f SPELL-SCROLL: a pick keeps the list where it was
 import { closeOnOutsideTap } from './enhancedOverlays.js';   // OT1
 import { abilitiesEnabled } from '../combat/abilities/progress.js';
@@ -190,7 +190,7 @@ function paint() {
   if (!host) return;
   host.innerHTML = '';
   const shell = el('div', 'px-home px-over sb-shell');
-  if (pageHas('bankart')) shell.classList.add('sb-art-layout');
+  if (illustratedUiOn()) shell.classList.add('sb-art-layout');
   const win = el('div', 'px-win');
   for (const c of ['tl', 'tr', 'bl', 'br']) win.append(el('span', `px-gem px-corner px-${c}`));
 
@@ -198,7 +198,7 @@ function paint() {
   // at the right - the pack window's own three-zone head (PX19/PX21d),
   // which is the shape every framed window in this UI already wears.
   const head = el('header', 'sb-top');
-  if (pageHas('bankart')) {
+  if (illustratedUiOn()) {
     head.classList.add('sb-illustrated');
     head.style.setProperty('--service-art', `url("${grimoireDeskUrl()}")`);
   }
@@ -207,7 +207,7 @@ function paint() {
   const magicka = deps.entity?.magicka;
   if (Number.isFinite(magicka)) {
     const balance = el('p', 'sb-magicka', `${magicka} magicka`);
-    if (pageHas('bankart')) {
+    if (illustratedUiOn()) {
       const icon = el('img', 'sb-mana-icon');
       icon.alt = '';
       icon.src = dialFileUrl('dfo-expander/mana.svg');
@@ -216,7 +216,7 @@ function paint() {
     who.append(balance);
   }
   const capacity = deps.entity?.maxMagicka;
-  if (pageHas('bankart') && capacity > 0 && Number.isFinite(magicka)) {
+  if (illustratedUiOn() && capacity > 0 && Number.isFinite(magicka)) {
     const gauge = el('meter', 'sb-magicka-gauge');
     gauge.max = capacity;
     gauge.value = magicka;
@@ -259,7 +259,7 @@ function paint() {
     return;
   }
   if (picked >= rows.length) picked = rows.length - 1;
-  const illustrated = pageHas('bankart');
+  const illustrated = illustratedUiOn();
   const wrap = el('div', illustrated ? 'sb-catalogue' : 'px-journal');
   const rail = el('div', illustrated ? 'sb-catalogue-list' : 'px-qrail');
   if (illustrated) rail.setAttribute('data-scroll-key', 'spell catalogue');

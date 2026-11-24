@@ -1688,6 +1688,15 @@ export const FEATURES = Object.freeze([
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'dungeonWayOut', initial: true, online: 'player' }),   // systems/wayOut.js WAY_PREF
   }),
+  Object.freeze({
+    id: 'dungeon-route-line',
+    group: 'interface',
+    title: 'Dungeon exit route',
+    note: 'Draw a blue floor line along the explored route back to the dungeon entrance. Requires Way out.',
+    effect: 'Takes effect at once.',
+    kinds: Object.freeze(['enhanced']),
+    control: Object.freeze({ store: 'prefs', key: 'dungeonWayOutLine', initial: false, online: 'player' }),
+  }),
   // CAMP1 (2026-09-17, Mac: camps and roaming packs in the wilderness):
   // an original addition, not a DFU classic feature - the classic game
   // spawns wandering monsters one at a time. This is a second roll

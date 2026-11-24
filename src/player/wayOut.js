@@ -25,6 +25,7 @@ import { TRAIL_CELL } from '../maps/automap.js';   // AUDIT DELVE C8: the trail'
 
 /** The prefs key (the `dungeon-way-out` Features row). */
 export const WAY_PREF = 'dungeonWayOut';
+export const WAY_LINE_PREF = 'dungeonWayOutLine';
 /** The compass mark's colour: the parchment's own light, an arrow pointing up and out - clear of the quest's gold, the
  *  party's green, the boats' teal, the Detect red and the professions' five (ui/enhanced/enhancedHud.js drawWayOutMark). */
 export const WAY_MARK_CSS = '#efe6cf';
@@ -295,6 +296,21 @@ export function createWayOut({ fieldEvery = WAY_FIELD_S, refieldEvery = WAY_REFI
       }
       const p = field && from >= 0 ? wayPoint(c, field, from, sees) : null;
       return p ? [p[0], p[2]] : [exitAt[0], exitAt[2]];   // no walked way: the way in, as the crow flies
+    },
+    /** A bounded floor ribbon over verified, walked edges. Teleports and drops
+     * remain compass cues because their endpoints have no continuous floor. */
+    line(feet) {
+      if (!cells || !field || !feet) return [];
+      let from = nearestCell(cells, feet);
+      if (from < 0 || field.next[from] < 0) return [];
+      const points = [cells.pts[from]];
+      for (let step = 0; step < 24; step++) {
+        const next = field.next[from];
+        if (next < 0 || next === from || field.jump[from] || asked.get(stepKey(from, next)) !== true) break;
+        points.push(cells.pts[next]);
+        from = next;
+      }
+      return points;
     },
     reset,
     /** How many times the whole field has been built (the tests', and a probe's). */

@@ -15,7 +15,7 @@ import { isEnhancedPlus } from './uiSkin.js';   // PLUS1: the ported windows are
 import { isOnlinePage } from '../platform/onlineLane.js';   // EMPIRE-BANK
 import { pageHas } from '../platform/pageQuery.js';
 import { dialFileUrl, grimoireDeskUrl } from './grimoireArt.js';
-import { paintBankArt } from './expanderArt.js';
+import { illustratedUiOn, paintBankArt } from './expanderArt.js';
 import { GUILD_CLERK_ART } from '../guilds/guildClerkArt.js';
 import { EMPIRE_BANK_OF } from '../world/buildingNames.js';
 import { portWindow, centreOf } from './enhancedPort.js';
@@ -56,7 +56,7 @@ const guild = {
     // PROMO-NOW: what the next rank asks, online; WAY-BACK (FIELD BUGS 2026-10-16d): a stranger below the join, the way in
     const needs = member ? (w.hooks.rankNeeds?.() ?? null) : (w.hooks.wayBack?.() ?? null);
     const title = w.hooks.title?.() ?? 'Guild Hall';
-    const clerk = serviceArtEnabled() && Object.keys(GUILD_CLERK_ART)
+    const clerk = illustratedUiOn() && Object.keys(GUILD_CLERK_ART)
       .find(key => title.toLowerCase().includes(key));
     return {
       title, sub: member ? 'Member' : 'Not a member', size: 'narrow',
@@ -112,7 +112,7 @@ const bank = {
     const city = w.hooks.cityName?.();
     // EMPIRE-BANK: online, every bank is the Empire's - the branch's town beneath it
     const empire = isOnlinePage();
-    const illustrated = serviceArtEnabled();
+    const illustrated = illustratedUiOn();
     // BANK-REGION (FIELD BUGS 2026-09-30b, Guppy in #support: "is it normal when u become a werewolf you loose the gold
     // in your bank"): the Empire is one name and one lender, but a deposit stays in its region's account (systems/
     // banking.js, THE STORE IS PER REGION), and nothing online said so - the teller in another region read "Account
@@ -129,7 +129,7 @@ const bank = {
         illustrated ? { type: 'cols', cls: 'port-bank-illustrations', cols: [
           [{ type: 'group', cls: 'port-bank-art-card', title: 'Account ledger', blocks: [
             { ...servicePicture(grimoireDeskUrl(), 'port-bank-ledger'), paint: cv => paintBankArt(cv, false) },
-            { type: 'stats', items: [[here ? `Account in ${here}` : 'Account balance', L.account], ...elsewhere] },
+            { type: 'stats', items: [[one ? 'Empire account' : here ? `Account in ${here}` : 'Account balance', L.account], ...elsewhere] },
             { type: 'actions', layout: 'column', items: [btn('withdrawGold', 'Withdraw gold'), btn('withdrawLetter', 'Letter of credit')] },
           ] }],
           [{ type: 'group', cls: 'port-bank-art-card', title: 'Cash on hand', blocks: [
@@ -191,7 +191,7 @@ const bankPurchase = {
     const items = w.items();
     return {
       title: w.isShips ? 'Ships for sale' : 'Houses for sale', size: 'narrow',
-      blocks: [serviceArtEnabled() ? servicePicture(dialFileUrl('grimoire-dial-chest.png'), 'port-property-art') : null,
+      blocks: [illustratedUiOn() ? servicePicture(dialFileUrl('grimoire-dial-chest.png'), 'port-property-art') : null,
       { type: 'rows', key: 'sale', maxHeight: 320, empty: 'Nothing is for sale here.',
         items: items.map((it, i) => ({ label: w.priceText(it), on: i === w.selected, act: () => { w.selected = i; } })) }],
       foot: [

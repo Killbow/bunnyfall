@@ -1,5 +1,9 @@
 import { dialFileUrl } from './grimoireArt.js';
 import { effectSchool } from '../magic/spellcost.js';
+import { pageParam } from '../platform/pageQuery.js';
+import { isEnhanced } from './uiSkin.js';
+
+export const illustratedUiOn = () => isEnhanced() && pageParam('bankart') !== 'off';
 
 const loadArt = file => import(/* @vite-ignore */ dialFileUrl('dfo-expander/' + file));
 const motionAllowed = () => !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

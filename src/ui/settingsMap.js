@@ -137,7 +137,7 @@ export const CATEGORIES = Object.freeze([
     sec("quests", "Quest help", [
       "feat:quest-herald", "feat:quest-tracker", "feat:quest-marks", "feat:quest-guidance"]),
     sec("dungeons", "Dungeon help", [
-      "feat:dungeon-sense", "feat:dungeon-echoes", "feat:dungeon-way-out"]),
+      "feat:dungeon-sense", "feat:dungeon-echoes", "feat:dungeon-way-out", "feat:dungeon-route-line"]),
     sec("maps", "Maps", [
       "port:mapScale", "feat:enhanced-map", "feat:dungeon-map-3d", "feat:tamriel-map", "GUI/TravelMapLocationsOutline", "GUI/EnableGeographicBackgrounds"]),
     sec("townmap", "Town map", [
