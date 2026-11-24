@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: The Overworld now causes fewer brief stutters while stopped on slower computers.
 - Fixed: Starting a game no longer downloads about 2 MB of unused model files, so the first load after an update is faster.
 - Fixed: Boulders that rested on rocks cleared off a road no longer float in the air, such as outside the east gate of Knightsmore.
 - Fixed: Rock outcrops now have a solid underside, so you can no longer see the sky through them or walk inside them and get stuck.
