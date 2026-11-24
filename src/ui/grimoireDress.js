@@ -2006,6 +2006,42 @@ ${G} .dlg-win .dlg-btn[data-grim-cancel] { color: ${T.red} !important; text-shad
 ${G} [data-grim="ink"] .port-row:not(.on) .port-rowname, ${G} [data-grim="ink"] .port-row:not(.on) .port-rowvalue { color: ${T.ink} !important; text-shadow: none !important; }
 ${G} [data-grim="ink"] .port-row.on, ${G} [data-grim="ink"] .port-row.on *, ${G} [data-grim="ink"] .pick-row.on, ${G} [data-grim="ink"] .pick-row.on * { color: ${T.red} !important; text-shadow: none !important; }
 
+/* Illustrated service menus and item stat rows use solid ink on textured paper. */
+${G} .sb-art-layout :is(.sb-catalogue,.sb-catalogue-list,.sb-inline-expanded) {
+  background: #1a1714 !important; color: #f5e7cf !important;
+}
+${G} .sb-art-layout :is(.sb-catalogue-row,.sb-inline-effects,.sb-inline-parameters) {
+  background: #29231c !important; color: #f5e7cf !important;
+}
+${G} .sb-art-layout .sb-catalogue-row.on { background: #493729 !important; }
+${G} .sb-art-layout :is(.sb-catalogue-row,.sb-inline-expanded) :is(.sb-row-name,.sb-cost,.sb-group,.sb-sub,.sb-num,.sb-inline-heading,.px-qtimer) {
+  color: #f5e7cf !important; -webkit-text-fill-color: currentColor !important; text-shadow: none !important;
+}
+${G} .sb-art-layout .sb-inline-expanded .act {
+  background: #483425 !important; color: #fff1d2 !important; -webkit-text-fill-color: currentColor !important;
+  border: 1px solid #9e7948 !important; text-shadow: none !important;
+}
+${G} .sb-art-layout .sb-inline-expanded .act:is(:hover,:focus-visible) { background: #665038 !important; }
+${G} .port-win:has(.port-picture:is(.port-bank-ledger, .port-clerk-portrait, .port-property-art))
+  :is(.port-stat dt, .port-stat dd, .port-rowname, .port-rowvalue),
+${G} .card.card-illustrated dl.stats > .pair > :is(dt, dd) {
+  color: #281608 !important; -webkit-text-fill-color: currentColor !important;
+  font-weight: 700; text-shadow: none !important;
+}
+${G} .port-win:has(.port-picture:is(.port-bank-ledger, .port-clerk-portrait, .port-property-art))
+  .port-head :is(.port-title, .port-sub) {
+  color: #ffebc7 !important; -webkit-text-fill-color: currentColor !important;
+  font-weight: 700; text-shadow: 0 2px 3px #110a05 !important;
+}
+${G} .port-win:has(.port-property-art) .port-row.on {
+  background: #f6dea89e !important;
+  box-shadow: inset 3px 0 #754125;
+}
+${G} .port-win:has(.port-property-art) .port-foot .port-btn.primary:not(:disabled) {
+  color: #fff3d1 !important; -webkit-text-fill-color: currentColor !important;
+  background: #5c2d17 !important; text-shadow: none !important; font-weight: 700;
+}
+
 /* THE ITEM SCROLLS - what an item is and what you can do with it (the hover card, the right-click menu, the Info box,
    the bindings card) is a little scroll of the list picker's, its rods drawn smaller, held over the shelves */
 /* (one picture edge to edge - its own parchment filled in, no second paper laid inside it: Dudey, "in both of them is

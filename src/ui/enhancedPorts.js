@@ -13,6 +13,10 @@
 
 import { isEnhancedPlus } from './uiSkin.js';   // PLUS1: the ported windows are Enhanced Plus's
 import { isOnlinePage } from '../platform/onlineLane.js';   // EMPIRE-BANK
+import { pageHas } from '../platform/pageQuery.js';
+import { dialFileUrl, grimoireDeskUrl } from './grimoireArt.js';
+import { paintBankArt } from './expanderArt.js';
+import { GUILD_CLERK_ART } from '../guilds/guildClerkArt.js';
 import { EMPIRE_BANK_OF } from '../world/buildingNames.js';
 import { portWindow, centreOf } from './enhancedPort.js';
 import { itemIconUrl, itemName, spellIconUrl, paintFrame } from './enhancedArt.js';
@@ -40,6 +44,8 @@ import { SPELL_ICON_TOTAL } from './spellIcons.js';
 
 /** Press the classic window at a rect's centre (panel-relative rects take their panel's origin). */
 const at = (win, rect, ox = 0, oy = 0) => () => { const [x, y] = centreOf(rect, ox, oy); win.click(x, y); };
+const serviceArtEnabled = () => !isOnlinePage() && pageHas('bankart');
+const servicePicture = (src, cls) => ({ type: 'picture', src, cls, alt: '' });
 
 // ── GUILD ──────────────────────────────────────────────────────────
 const guild = {
@@ -49,10 +55,14 @@ const guild = {
     const press = (r) => at(w, r, GUILD_X, GUILD_Y);
     // PROMO-NOW: what the next rank asks, online; WAY-BACK (FIELD BUGS 2026-10-16d): a stranger below the join, the way in
     const needs = member ? (w.hooks.rankNeeds?.() ?? null) : (w.hooks.wayBack?.() ?? null);
+    const title = w.hooks.title?.() ?? 'Guild Hall';
+    const clerk = serviceArtEnabled() && Object.keys(GUILD_CLERK_ART)
+      .find(key => title.toLowerCase().includes(key));
     return {
-      title: w.hooks.title?.() ?? 'Guild Hall', sub: member ? 'Member' : 'Not a member', size: 'narrow',
+      title, sub: member ? 'Member' : 'Not a member', size: 'narrow',
       // AUDIT GUILD-WORDS II F-1: the line in its own scrolling well, the actions always in view under it
-      blocks: [...(needs ? [{ type: 'text', rows: needs, scroll: true }] : []), { type: 'actions', layout: 'column', items: [
+      blocks: [clerk ? servicePicture(dialFileUrl(GUILD_CLERK_ART[clerk].url.slice('./art/'.length)), 'port-clerk-portrait') : null,
+        ...(needs ? [{ type: 'text', rows: needs, scroll: true }] : []), { type: 'actions', layout: 'column', items: [
         ...(member ? [] : [{ label: 'Join guild', act: press(GUILD_RECTS.join), primary: true }]),
         { label: 'Talk', act: press(GUILD_RECTS.talk) },
         { label: serviceLabel(w.hooks.service?.()) || 'Service', act: press(GUILD_RECTS.service), primary: member },
@@ -102,6 +112,7 @@ const bank = {
     const city = w.hooks.cityName?.();
     // EMPIRE-BANK: online, every bank is the Empire's - the branch's town beneath it
     const empire = isOnlinePage();
+    const illustrated = serviceArtEnabled();
     // BANK-REGION (FIELD BUGS 2026-09-30b, Guppy in #support: "is it normal when u become a werewolf you loose the gold
     // in your bank"): the Empire is one name and one lender, but a deposit stays in its region's account (systems/
     // banking.js, THE STORE IS PER REGION), and nothing online said so - the teller in another region read "Account
@@ -115,18 +126,30 @@ const bank = {
     return {
       title: empire ? `Bank of ${EMPIRE_BANK_OF}` : city ? `Bank of ${city}` : 'The Bank', sub: (empire ? city || w.hooks.regionName?.() : w.hooks.regionName?.()) ?? '', size: 'medium',
       blocks: [
+        illustrated ? { type: 'cols', cls: 'port-bank-illustrations', cols: [
+          [{ type: 'group', cls: 'port-bank-art-card', title: 'Account ledger', blocks: [
+            { ...servicePicture(grimoireDeskUrl(), 'port-bank-ledger'), paint: cv => paintBankArt(cv, false) },
+            { type: 'stats', items: [[here ? `Account in ${here}` : 'Account balance', L.account], ...elsewhere] },
+            { type: 'actions', layout: 'column', items: [btn('withdrawGold', 'Withdraw gold'), btn('withdrawLetter', 'Letter of credit')] },
+          ] }],
+          [{ type: 'group', cls: 'port-bank-art-card', title: 'Cash on hand', blocks: [
+            { ...servicePicture(dialFileUrl('grimoire-dial-chest.png'), 'port-bank-vault'), paint: cv => paintBankArt(cv, true) },
+            { type: 'stats', items: [['Gold carried', L.inventory]] },
+            { type: 'actions', layout: 'column', items: [btn('depositGold', 'Deposit gold'), btn('depositLetters', 'Deposit letters')] },
+          ] }],
+        ] } : null,
         { type: 'stats', items: [
-          [one ? 'Empire account' : here ? `Account in ${here}` : 'Account balance', L.account], ...elsewhere, ['Gold carried', L.inventory],
+          ...(illustrated ? [] : [[one ? 'Empire account' : here ? `Account in ${here}` : 'Account balance', L.account], ...elsewhere, ['Gold carried', L.inventory]]),
           ['Loan owed', L.loanDue, Number(L.loanDue) > 0 ? 'warn' : ''], [empire ? 'Loan due' : 'Loan due by', L.loanByFull ?? L.loanBy],   // AUDIT LIVED1b U4 (O1): AUDIT LIVED1 S's "Loan due" is the online row's (a time left, not a date) - offline the row reads a date, as it always did
         ] },
         // BANK-FIT: an amount being typed sits right under the figures, so it and the buttons below never scroll away
         busy ? { type: 'field', label: BANK_FIELD_LABEL[w.transactionType] ?? 'Amount', value: w.value, active: true, numeric: true } : null,   // RPT1026-MISC TOUCH-FIELD: an amount, the number pad o
         // BANK-FIT: three short columns instead of two long ones - the ten buttons take four rows, not six
-        { type: 'cols', cols: [
-          [{ type: 'group', title: 'Gold', blocks: [{ type: 'actions', layout: 'column', items: [
+        { type: 'cols', cls: illustrated ? 'port-bank-services' : '', cols: [
+          ...(!illustrated ? [[{ type: 'group', title: 'Gold', blocks: [{ type: 'actions', layout: 'column', items: [
             btn('depositGold', 'Deposit gold'), btn('withdrawGold', 'Withdraw gold'),
             btn('depositLetters', 'Deposit letters'), btn('withdrawLetter', 'Letter of credit'),
-          ] }] }],
+          ] }] }]] : []),
           [{ type: 'group', title: 'Loans', blocks: [{ type: 'actions', layout: 'column', items: [
             btn('loanRepay', 'Repay loan'), btn('loanBorrow', 'Borrow'),
           ] }] }],
@@ -168,7 +191,8 @@ const bankPurchase = {
     const items = w.items();
     return {
       title: w.isShips ? 'Ships for sale' : 'Houses for sale', size: 'narrow',
-      blocks: [{ type: 'rows', key: 'sale', maxHeight: 320, empty: 'Nothing is for sale here.',
+      blocks: [serviceArtEnabled() ? servicePicture(dialFileUrl('grimoire-dial-chest.png'), 'port-property-art') : null,
+      { type: 'rows', key: 'sale', maxHeight: 320, empty: 'Nothing is for sale here.',
         items: items.map((it, i) => ({ label: w.priceText(it), on: i === w.selected, act: () => { w.selected = i; } })) }],
       foot: [
         { label: 'Buy', key: 'B', primary: true, disabled: w.selected < 0, act: press(PURCHASE_RECTS.buy) },

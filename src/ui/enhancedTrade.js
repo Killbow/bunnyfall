@@ -41,6 +41,8 @@ import { itemLine, linePicture, markItemFrame, wearBar, showItemHover, hideItemH
 import { SLOT_BOX } from './iconFit.js';   // UI1: the row's picture box
 import { fittedImg } from './textureCanvas.js';   // UI1: the fitted picture's element
 import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
+import { pageHas } from '../platform/pageQuery.js';
+import { dialFileUrl } from './grimoireArt.js';
 import { closeOnOutsideTap } from './enhancedOverlays.js';
 import { landingTiles } from './landingTiles.js';   // TRADE-VIRT: a picture into its tile, not a repaint of the counter
 import { virtualRows } from './virtualRows.js';   // TRADE-VIRT: a long list draws the rows on screen
@@ -1075,7 +1077,18 @@ function render() {
 
   const body = el('div', 'px-body trade-body');
   const lists = el('div', 'packlists');
-  lists.append(localCol(), remoteCol());
+  lists.append(localCol());
+  if (pageHas('bankart') && (mode === 'Buy' || mode === 'Sell')) {
+    lists.classList.add('trade-with-summary');
+    const summary = el('div', 'trade-art-summary');
+    const picture = el('img');
+    picture.alt = '';
+    picture.src = dialFileUrl('dfo-expander/trade-scales.svg');
+    const count = stagedForCost().length;
+    summary.append(picture, el('strong', null, count + (count === 1 ? ' item staged' : ' items staged')));
+    lists.append(summary);
+  }
+  lists.append(remoteCol());
   body.append(lists);
   // TRADE-STEADY (2026-10-08, the owner: "when you click on an item a bar with info appears.... its super annoying when you
   // try to sell the buttom items cause clicking them causes the bar to appear over them"): the strip's room is ALWAYS
@@ -1084,7 +1097,11 @@ function render() {
   const detail = detailStrip() ?? (() => { const b = el('div', 'trade-detail trade-detail-empty'); b.append(el('p', 'meta', 'Click an item to see it and its price here. Double-click to move it.')); return b; })();
   body.append(detail);
   win.append(body);
-  win.append(footer());
+  const footerBar = footer();
+  const summary = lists.querySelector('.trade-art-summary');
+  const clearButton = Array.from(footerBar.querySelectorAll('button')).find(button => button.textContent === 'Clear');
+  if (summary && clearButton) summary.append(clearButton);
+  win.append(footerBar);
 
   if (box) {
     for (const b of win.querySelectorAll('button')) b.disabled = true;

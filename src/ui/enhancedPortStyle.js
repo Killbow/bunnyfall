@@ -111,7 +111,39 @@ button.port-row:hover .port-rowmark, .port-row.on .port-rowmark { visibility: vi
   padding-right: 4px; }
 @media (max-height: 480px) { .port-text.scroll { max-height: 20dvh; } }
 .port-picture { display: flex; justify-content: center; }
+.port-picture:has(.port-picture-animation) { position: relative; overflow: hidden; }
+.port-picture-animation { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .port-picture img { width: 48px; height: 48px; image-rendering: pixelated; border: 2px solid rgba(125,116,96,0.55); }
+.port-bank .port-bank-ledger {
+  overflow: hidden; height: clamp(56px, 13vh, 135px); flex: 0 0 auto;
+  border: 1px solid #8d7448; background: #211912;
+}
+.port-bank .port-bank-ledger img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center 48%;
+  image-rendering: auto; border: 0;
+}
+.port-bank .port-bank-vault {
+  height: clamp(56px, 13vh, 135px); border: 1px solid #8d7448;
+  background: radial-gradient(ellipse at 50% 48%, #54412a, #1c1511 76%);
+}
+.port-bank .port-bank-vault img {
+  width: 100%; height: 100%; object-fit: contain; image-rendering: auto; border: 0;
+}
+.port-bank-art-card { padding: .5rem; border: 1px solid #8d7448; }
+.port-bank-art-card .port-stats { grid-template-columns: minmax(0, 1fr); }
+.port-bank-services .port-group {
+  padding: .6rem; border: 1px solid #6d593c;
+  background: linear-gradient(155deg, #36291d, #201814);
+}
+.port-picture:is(.port-clerk-portrait, .port-property-art) {
+  height: clamp(92px, 24vh, 210px); flex: 0 0 auto;
+  border: 1px solid #8d7448;
+  background: radial-gradient(ellipse at 50% 45%, #57402b, #18130f 76%);
+}
+.port-picture:is(.port-clerk-portrait, .port-property-art) img {
+  height: 100%; width: 100%; object-fit: contain; border: 0;
+  image-rendering: auto;
+}
 .port-pictureword { min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(125,116,96,0.55); }
 .port-icongrid { display: grid; grid-template-columns: repeat(auto-fill, 46px); gap: 6px; max-height: 56dvh; overflow-y: auto; padding: 4px; }
 .port-iconcell { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; padding: 0;

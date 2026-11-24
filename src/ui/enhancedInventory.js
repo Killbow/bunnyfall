@@ -139,6 +139,9 @@ import { bulkVerdict, runBulk, listAtCap, CONTAINER_LIST_CAP, containerFull } fr
 import { entityMaxEncumbrance } from '../combat/formulas.js';   // AUDIT 26: PlayerEntity.MaxEncumbrance, enchantment allowance and all
 import { liveStat } from '../characters/statMods.js';
 import { conditionWord, conditionPercentage, itemNameParts, itemLongName, itemDamageLine, itemArmourLine, itemArmorTypeLine, itemHandsLine } from '../items/itemInfo.js';   // RF6: the long name's two parts, ResolveItemLongName's arms once
+import { weaponSkillUsed, WEAPONS } from '../characters/weapons.js';
+import { SKILL_NAMES } from '../characters/skills.js';
+import { pageHas } from '../platform/pageQuery.js';
 import { survivalInfoTokens, potionMacroName, potionRecipeIngredientNames } from '../items/itemInfo.js'; import { isPortalStone } from '../worldEvents/gateSpoils.js';   // AUDIT SURV C: the survival items' tokens on this skin's card too
 import { isStarglass } from '../systems/starfall/starglass.js';   // AUDIT STAR I2: Starfall Glass's lines on this skin's card
 import { isLockpick } from '../systems/lockpick/lockpickItem.js';   // AUDIT LOCKPICK B2: the Lockpick's lines on this skin's card
@@ -3483,6 +3486,8 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   if (body && picked !== wellPick) { wellOpen = null; wellAsk = null; gemTargets = null; wellPick = picked; }
   const line = itemLine(picked, deps.entity);
   const c = el('div', 'card');
+  const illustrated = pageHas('bankart');
+  if (illustrated) c.classList.add('card-illustrated');
   const into = body ? el('div', 'card-body') : c;
   if (body) c.append(into);
   // The detail draws it BIGGER - this is the one place there is room
@@ -3490,6 +3495,8 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   // UI1: fitted to the card's box, as every slot's picture is (a staff was a 408px canvas squeezed into 96)
   const big = modelPicture(line.item, SLOT_BOX.card)
     || linePicture(line, { box: SLOT_BOX.card, onReady: ready });
+  const title = el('h3', null, line.name);
+  if (illustrated) into.append(title);
   if (big) {
     const fig = markItemFrame(el('div', 'bigicon'), picked);   // RARITY-UI: the big picture's frame wears the tier too
     fig.append(fittedImg(big));
@@ -3497,18 +3504,19 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   }
   // GEM3: the piece's sockets as wells under its picture - pressable on the pack's own piece's detail card
   { const w = socketBlock(picked, side === 'local' && body, ready); if (w) into.append(...w); }
-  into.append(el('h3', null, line.name));
+  if (!illustrated) into.append(title);
   { const r = rarityAttr(picked); if (r) c.dataset.rarity = r; }   // LR1: the card's heading wears the tier too
   const meta = [line.material, line.stack ? `${line.stack} of them` : null].filter(Boolean).join(' · ');
   if (meta) into.append(el('p', 'meta', meta));
+  const effects = illustrated ? el('div', 'card-item-effects') : into;
   // LR1: the tier, then each affix as a line, then the enchantment - or
   // "Unidentified" until the Identify spell or the guild reads it.
-  { const lines = itemPowerLines(picked, deps, { set: false, lore: false, technique: false }); if (lines.length) { const ul = el('ul', 'rarity'); for (const l of lines) ul.append(el('li', null, l)); into.append(ul); } }   // TRADE-INFO: and a DFU magic item's powers; SET5: the set draws its own block below; CARD-FIT: the lore is the Info box's
+  { const lines = itemPowerLines(picked, deps, { set: false, lore: false, technique: false }); if (lines.length) { const ul = el('ul', 'rarity'); for (const l of lines) ul.append(el('li', null, l)); effects.append(ul); } }   // TRADE-INFO: and a DFU magic item's powers
   { const tb = techniqueCard(picked, { keyWord: techniqueKeyWord() }); if (tb) into.append(tb); }   // TECH-CARD: a technique's own block - the piece's own line, so first of the blocks
   // SIGIL-UI: the sigil as its own block - the rune, the stage it wakes to in my hand, its five stages and the bar of
   // what it has drunk toward the next (ui/sigilCard.js); the tier list above no longer carries it as three more lines
-  { const sb = sigilCard(picked); if (sb) into.append(sb); }
-  { const set = setCard(picked, deps.entity, itemLongName); if (set) into.append(set); }   // SET5: its set - the places worn, the stage, its tiers (ui/setCard.js)
+  { const sb = sigilCard(picked); if (sb) effects.append(sb); }
+  { const set = setCard(picked, deps.entity, itemLongName); if (set) effects.append(set); }
   if (isLocked(picked)) into.append(el('p', 'lockline', LOCKED_LINE));   // LOCK1
   if (isJunk(picked)) into.append(el('p', 'boundline junkline', JUNK_LINE));   // LOOT18: the lock's line style, without its padlock
   const bline = boundLine(picked);   // AUDIT AUTO-HOLD: a piece the realm locked says so in its own words
@@ -3530,6 +3538,9 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   // thing is swung - and above the weight, which is not. Null for
   // everything that is not a weapon, so no book grows an empty row.
   pair('Hands', line.hands);
+  if (pageHas('bankart') && picked.group === 'Weapons' && picked.templateIndex !== WEAPONS.Arrow) {
+    pair('Weapon skill', SKILL_NAMES[weaponSkillUsed(picked.templateIndex)]);
+  }
   for (const t of line.survival ?? []) {   // AUDIT SURV C: the classic popup's tokens, each under a word of its own
     const i = t.indexOf(': ');
     if (i > 0) pair(t.slice(0, i), t.slice(i + 2));
@@ -3551,6 +3562,12 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   }
   else if (side !== 'shop') pair('Where', remote?.title ?? '');   // SHOP-HOVER: a shelf's piece says no Where (the counter is the where)
   into.append(dl);
+  if (illustrated && effects.childElementCount) {
+    const columns = el('div', 'card-item-columns');
+    effects.prepend(el('h4', 'card-item-effects-title', 'Properties'));
+    dl.before(columns);
+    columns.append(dl, effects);
+  }
   // AC-COMPARE: WHAT WEARING IT WOULD CHANGE, under its own stats - the card is the hover's and the pick's alike (the
   // pack's one way of showing an item), so the comparison needs no key: what it would replace, then its damage and the
   // armour a wear moves, each set against what is worn now in green or red (ui/armourCard.js). A pack piece or a loot
