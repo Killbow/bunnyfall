@@ -364,6 +364,7 @@ import { takeOwed } from '../player/playerDoor.js';   // FIELD BUGS 2026-10-12g 
 import { createRoomLoot } from '../items/roomLootHost.js';   // HOST-SPLIT
 import { createSearchRoom } from '../items/searchRoom.js';   // GRAVE-PARTY: whose a searched object's word is - the searcher's party's, never a stranger's
 import { monsterVolume } from '../audio/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
+import { prefetchDungeonAssets } from './dungeonPrefetch.js';
 
 
 
@@ -1714,6 +1715,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (!flatGroups.has(key)) flatGroups.set(key, []);
     flatGroups.get(key).push(Object.assign([e.x, e.y, e.z], { noCover: true }));   // AUDIT TACT B3: a foe's stand-in is no cover
   }
+  await prefetchDungeonAssets(enemies, { basicsOf: (m) => ENEMY_BASICS[m], getTexture, archives: [RANDOM_TREASURE_ARCHIVE],
+    loadCareer: foeDeps ? (m) => foeDeps.loadEnemyCareer(m, foeDeps.fetchBytes) : null });
   for (const e of enemies) await buildFoeAt(e);
   // ONLINE-DUNGEON-FOES (2026-09-20, Mac: "Issues with non-reactive enemies in dungeons in the
   // online mode" and "The lysander ghost enemy isn't synced online between players"). BOTH
@@ -8960,7 +8963,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       (dfLocation?.dungeon?.recordElement?.header?.unknown2 ?? 0) & 0xffff,
       dfLocation?.regionIndex ?? 0),
     drawList,
-    get staticBatch() {   // PERF5: merged and uploaded once, on the first frame that asks
+    // Merged and uploaded once, on the first read (the door transition reads it under the load screen).
+    get staticBatch() {
       if (!staticBuilt) { staticBuilt = true; const m = staticBuilder.finish(); staticBatch = m ? renderer.createMesh(m) : null; }
       return staticBatch;
     },

@@ -77,12 +77,19 @@ export function caravanRoomPictures(look) {
   return out;
 }
 
+/** The inside look last painted on each renderer. */
+const _painted = new WeakMap();
 /** THE ROOM PAINTED: the live records given `look`'s pictures on the renderer - each let go first (the renderer keeps
  *  the first picture asked under a key) and uploaded again, opaque, a cut-out where the glass is. DF-LOOK: grained and
  *  snapped to Daggerfall's palette, by its built record's seed (scenes/horseCartPool.js uploadWagonPicture's). STUDIO1:
- *  the studio's picture of the record it is, where an artist drew one, as drawn. */
+ *  the studio's picture of the record it is, where an artist drew one, as drawn. Skipped when the look is unchanged and
+ *  the renderer still holds every live record. */
 export function paintCaravanRoom(renderer, look) {
   if (!renderer?.uploadTexture) return;
+  const sig = JSON.stringify(readWagonLook(look));
+  const live = Object.values(caravanRoomRecords());
+  if (_painted.get(renderer) === sig && live.every((r) => renderer.heldTexture?.(WAGON_ARCHIVE, r, isGlassRecord(r) ? {} : { opaque: true }))) return;
+  _painted.set(renderer, sig);
   for (const [rec, pic, from] of caravanRoomPictures(look)) {
     const key = `${WAGON_ARCHIVE}_${rec}`;
     wearPainted(WAGON_ARCHIVE, from, () => toColor32(dfLook(pic, lookSeed(WAGON_ARCHIVE, rec % LOOK_RECORD_STRIDE))), (c32) => {

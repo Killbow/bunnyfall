@@ -30,13 +30,18 @@ export { KNIGHT_CITY_WATCH as KNIGHT_CITYWATCH_ID } from './mobileTypes.js';   /
  *  name = ENEMY{monster:000}.CFG, record parsed by ClassFile). One BSA
  *  parse per session, careers cached by index. */
 let _monsterBsa = null;
+let _monsterBsaRead = null;
 const _monsterCareers = new Map();
 export async function loadMonsterCareer(careerIndex, fetchBytes) {
   const hit = _monsterCareers.get(careerIndex);
   if (hit) return hit;
   if (!_monsterBsa) {
-    const { BsaFile } = await import('../formats/bsaFile.js');
-    _monsterBsa = new BsaFile(await fetchBytes('MONSTER.BSA'));
+    // Careers asked at the same time share one read and parse of the file; a failed read is tried again next time.
+    _monsterBsaRead ??= (async () => {
+      const { BsaFile } = await import('../formats/bsaFile.js');
+      return (_monsterBsa = new BsaFile(await fetchBytes('MONSTER.BSA')));
+    })().finally(() => { _monsterBsaRead = null; });
+    _monsterBsa = await _monsterBsaRead;
   }
   const name = `ENEMY${String(careerIndex).padStart(3, '0')}.CFG`;
   const idx = _monsterBsa.getRecordIndex(name);

@@ -36,7 +36,8 @@ import { isHouseContainerModel } from '../items/containers.js';
 import { isShopShelfModel } from '../trade/shopStock.js';   // E2
 import { isBedModel } from '../mods/rrRealism.js';   // RR1: the three bed models a click may rest on
 import { placedTableSpot, TAVERN_CARD_TABLES } from '../world/placedCardTable.js';   // TAVERN-TABLE: where a tavern's card table stands; TAVERN-TABLES: and how many
-import { cardTablePropModel, paintFelt, paintWood, CARD_TABLE_BOX, CARD_TABLE_ARCHIVE, FELT_RECORD, WOOD_RECORD, FELT_RGB, GOLD_FELT_RECORD, GOLD_FELT_RGB } from '../world/cardTableProp.js';   // TAVERN-TABLE: the card table's own prop; TAVERN-TABLES: the gold table's red felt
+// The card table's own prop, and the gold table's red felt.
+import { cardTablePropModel, CARD_TABLE_BOX, FELT_RECORD, FELT_RGB, GOLD_FELT_RECORD, GOLD_FELT_RGB, uploadCardTableArt } from '../world/cardTableProp.js';
 import { holdemGoldTable } from '../net/holdemTable.js';   // TAVERN-TABLES: which of them plays for gold - the relay's own index
 import { classicModelIdOf } from '../world/customModels.js';   // WD3: an alias is its classic model to the beds' test
 import { LADDER_MODEL_ID, doorWorldPosition } from '../player/enterExit.js';   // TAVERN-TABLE: a static door's place, for the card table to keep clear of
@@ -571,8 +572,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       const gold = holdemGoldTable(tables.length), felt = gold ? GOLD_FELT_RECORD : FELT_RECORD;
       const spot = enter ? placedTableSpot(CARD_TABLE_BOX, [enter.x, enter.y, enter.z], probe, avoid) : null;
       if (!spot) { console.warn(`[interior] no ${gold ? 'gold ' : ''}card table stood: ` + (!enter ? 'the room has no enter marker' : `no clear floor near the entrance${gold ? ' for a second' : ''} out of the way`)); break; }
-      if (!propMeshes.length) renderer.uploadTexture(CARD_TABLE_ARCHIVE, WOOD_RECORD, paintWood(), { mips: true, opaque: true });   // a model's material: opaque, with its mip chain, as a TEXTURE archive's
-      renderer.uploadTexture(CARD_TABLE_ARCHIVE, felt, paintFelt(gold ? GOLD_FELT_RGB : FELT_RGB), { mips: true, opaque: true });
+      uploadCardTableArt(renderer, felt, gold ? GOLD_FELT_RGB : FELT_RGB, { wood: !propMeshes.length });
       const cpu = cardTablePropModel({ felt });
       const mesh = renderer.createMesh(cpu);
       propMeshes.push(mesh);
@@ -853,7 +853,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   if (opts.bunnyHall) {   // BUNNY-GUILDS: the hall's furnishing about its clerk (scenes/bunnyHallFurnish.js), the doorways and the way in kept clear
     const enter = interior.markers.find((m) => m.type === INTERIOR_MARKER.ENTER) ?? interior.markers.find((m) => m.type === INTERIOR_MARKER.REST);
     await furnishBunnyHall({
-      key: opts.bunnyHall, people, collider, origin,
+      key: opts.bunnyHall, people, collider, origin, building: dfBlock.name ? `${dfBlock.name}:${recordIndex}` : null, layout: drawList.map((d) => d.key).join(),
       avoid: [...interior.doors.map((d) => [...doorWorldPosition(d), 1.4]).map(([x, y, z, r]) => [...parentPt(x, y, z), r]), ...interior.actionDoors.map((d) => [...parentPt(d.matrix[12], d.matrix[13], d.matrix[14]), 1.4])],
       way: enter ? [parentPt(enter.x, enter.y, enter.z)] : [],
       renderer, getTexture, uploadRecord, billboardSize, getGpuMesh, cpuModels, drawList, billboardBatches, lights, trs, worldAabb,
@@ -946,7 +946,8 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   placeHold?.settle();   // FIELD BUGS 2026-10-04d PLACE-LRU: built - the keep of this building's last visit goes
   return {
     drawList,
-    get staticBatch() {   // PERF6: merged and uploaded once, on the first frame that asks
+    // Merged and uploaded once, on the first read (the door transition reads it under the load screen).
+    get staticBatch() {
       if (!staticBuilt) { staticBuilt = true; const m = staticBuilder.finish(); staticBatch = m ? renderer.createMesh(m) : null; }
       return staticBatch;
     },

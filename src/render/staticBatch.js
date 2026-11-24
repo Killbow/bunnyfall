@@ -205,7 +205,7 @@ export class StaticBatchBuilder {
    * ms, and it hands the spheres over (`bounds`) so createMesh does not
    * walk the vertices again. The arrays and every sphere are the bytes
    * finish() and createMesh make. The interior and the dungeon merge once,
-   * at their first frame, and keep finish().
+   * under the load screen as their door opens, and keep finish().
    * @param {() => Promise<void>} breathe the build's breather
    */
   async finishSliced(breathe) {

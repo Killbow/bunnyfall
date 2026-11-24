@@ -37,12 +37,14 @@ export function cabinRestyle(paint) {
       const key = texRemap.get(own) ?? own;
       if (renderer.windowMasks?.has?.(key) || renderer.glassMasks?.has?.(key)) continue;   // glass: lit as built
       const [archive, record] = key.split('_').map(Number);
-      const pic = await classicPictureOf(getTexture, palette, archive, record);
-      if (!pic) continue;
       const k = `${key}|${paint}`;
       let rec = _records.get(k);
-      if (rec == null) { rec = _next++; _records.set(k, rec); }
-      renderer.uploadTexture(CABIN_ARCHIVE, rec, toColor32(dfLook(tintPicture(pic, rgb, CABIN_STAIN), lookSeed(archive, record))), { opaque: true });
+      if (rec == null || !renderer.heldTexture?.(CABIN_ARCHIVE, rec, { opaque: true })) {
+        const pic = await classicPictureOf(getTexture, palette, archive, record);
+        if (!pic) continue;
+        if (rec == null) { rec = _next++; _records.set(k, rec); }
+        renderer.uploadTexture(CABIN_ARCHIVE, rec, toColor32(dfLook(tintPicture(pic, rgb, CABIN_STAIN), lookSeed(archive, record))), { opaque: true });
+      }
       texRemap.set(own, `${CABIN_ARCHIVE}_${rec}`);
     }
   };

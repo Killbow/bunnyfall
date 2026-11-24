@@ -1592,7 +1592,8 @@ export function createDecorTool(deps) {
       }
       if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkeptRoom', 'The changes could not be kept.')); return false; }
       d.before = new Map(roomPieces().map((p) => [p.id, snapPiece(p)]));
-      if (Number.isSafeInteger(res.data?.rev)) d.rev = res.data.rev;
+      // The service moves the revision only from the one this Confirm named, so the new one is this room as saved.
+      if (Number.isSafeInteger(res.data?.rev)) d.rev = heardRev = res.data.rev;
       d.txn = mintDecorTxn();
       d.moves = [];
       d.owns = pool.ownSnapshot?.() ?? null;

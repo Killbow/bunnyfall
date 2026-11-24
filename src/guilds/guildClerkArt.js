@@ -34,7 +34,9 @@ export function clerkRaster(image) {
 const pictures=new Map();
 export function loadGuildClerkArt(key) {
   const art=GUILD_CLERK_ART[key];if(!art)return Promise.resolve(null);
-  if(!pictures.has(key))pictures.set(key,(async()=>{try{const response=await fetch(new URL(art.url,APP_ROOT??globalThis.document?.baseURI??'http://localhost/').href);if(!response.ok)return null;return clerkRaster(await decodePng(new Uint8Array(await response.arrayBuffer())));}catch(error){console.warn('[guild clerk] artwork unavailable',key,error);return null;}})());
+  // A missing file stays missing. A fetch the network dropped is asked again next time.
+  if(!pictures.has(key))pictures.set(key,(async()=>{let bytes;try{const response=await fetch(new URL(art.url,APP_ROOT??globalThis.document?.baseURI??'http://localhost/').href);if(!response.ok)return null;bytes=new Uint8Array(await response.arrayBuffer());}catch(error){pictures.delete(key);console.warn('[guild clerk] artwork unavailable',key,error);return null;}
+    try{return clerkRaster(await decodePng(bytes));}catch(error){console.warn('[guild clerk] artwork unreadable',key,error);return null;}})());
   return pictures.get(key);
 }
 

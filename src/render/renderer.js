@@ -1662,6 +1662,12 @@ export function buildWireIndices(triIndices, subMeshes) {
 }
 
 
+/** The cache key uploadTexture files a picture under, its options included. A sampler keys apart. So does the
+ *  un-mipped UI variant of a world archive (item icons). `variant: ''` gives world art uploaded without a mip chain
+ *  (a mod atlas built with mipChain false) the plain key. */
+export const textureKeyOf = (archive, record, opts = {}) =>
+  `${archive}_${record}${opts.smooth ? '#smooth' : ''}${opts.opaque ? '#opaque' : ''}${opts.mips === false ? (opts.variant ?? '#ui') : ''}${opts.alpha ? '#alpha' : ''}${opts.clamp && !opts.smooth ? '#clamp' : ''}${opts.sampler && !opts.smooth ? samplerKey(opts.sampler) : ''}`;
+
 export class Renderer {
   // HARD3: two fields this class mints LAZILY, with `??=` at their point
   // of use, and so never declares anywhere a reader or a checker can see
@@ -5359,13 +5365,11 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
    *  the billboard shader discards on it - so one GL texture cannot carry
    *  both treatments and the -1 (mesh) and 0 (flat) uploads must key
    *  apart. The '#ui' variant is the same argument for the mip chain. */
-  /** GATE-MIX (2026-10-20, the owner: "the game hitches"): whether the PLAIN picture under (archive, record) - the key
-   *  uploadTexture makes when no option is asked - already stands, a real one and not a stand-in's placeholder; and when
-   *  it does, it is held for the place asking exactly as an uploadTexture hit holds it (PLACE-LRU). A caller asks this
-   *  before decoding a picture uploadTexture would only turn away (scenes/dataPipeline.js uploadRecordFrame: a hit's
-   *  splash decoded its frames again on every hit). */
-  heldTexture(archive, record) {
-    const key = `${archive}_${record}`;
+  /** Whether a real picture, not a placeholder, already stands under the key uploadTexture makes for these arguments.
+   *  A hit is held for the place asking, as an uploadTexture hit is. Callers ask before decoding or painting a picture
+   *  that uploadTexture would turn away. */
+  heldTexture(archive, record, opts = {}) {
+    const key = textureKeyOf(archive, record, opts);
     if (!this.textures.has(key) || this._placeholders?.has(key)) return false;
     this._uploadSink?.(false, key);
     return true;
@@ -5378,7 +5382,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
     // hand back the wrong sampling silently. Only the logo asks for smooth
     // today and its key is unique, so nothing was broken - but a cache
     // that quietly ignores an argument is a trap, not a cache.
-    const key = `${archive}_${record}${opts.smooth ? '#smooth' : ''}${opts.opaque ? '#opaque' : ''}${opts.mips === false ? (opts.variant ?? '#ui') : ''}${opts.alpha ? '#alpha' : ''}${opts.clamp && !opts.smooth ? '#clamp' : ''}${opts.sampler && !opts.smooth ? samplerKey(opts.sampler) : ''}`;   // POI-2: a sampler asked for keys apart too (render/meshAlpha.js samplerKey)   // INCIDENT 2026-09-04: DFU caches materials per alphaIndex; REVIEW 2026-09-05: the un-mipped UI variant of a world archive (item icons) keys apart too; AUDIT 61: `variant: ''` keeps the plain batch key for world art uploaded without a chain (a mod atlas built mipChain:false - SIB1)
+    const key = textureKeyOf(archive, record, opts);
     this._uploadSink?.(false, key);   // FIELD BUGS 2026-10-04d PLACE-LRU: a hit is asked for too - the place asking holds it
     if (opts.cutout) this._markCutout(this.textures.get(key));   // RW1: a cutout ask cuts the picture the key already holds, too
     // AUDIT DEX B5: a picture on its way (systems/textureReplacement.js pendingPicture - a readOnly picture let go once on
