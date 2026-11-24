@@ -16,11 +16,10 @@
 //     are [pixelId, xMin, xMax, yMin, yMax] rows, SetLocationTiles' answer
 //     for every classic location whose pixel the bound cannot settle - the
 //     main thread reads MAPS.BSA and BLOCKS.BSA, this thread cannot.
-//     ETHER-DEEP: `ether` the Eltheric Ocean's places' rects (etherWatersBake.js etherPlaceRects) when it stands - its
-//     bake is built beside the Bay's, over the sea composed on this thread's reader (as the terrain worker composes it).
 //   {t: 'pixel', id, job, centre?} - a pixel to promote (deepWatersPixel.js
 //     buildDeepWatersPixel's job); held until the bake is in. `centre`
 //     ([px, py], the player's pixel) bounds this thread's plane caches.
+//   {t: 'ether', rects} - the Eltheric Ocean place rects, sent before the first pixel job inside that ocean.
 // Messages out:
 //   {t: 'built', record} - the bake's global record, arrays copied (this
 //     thread keeps its own to answer pixels), or {t: 'error', message};
@@ -41,11 +40,13 @@ import { etherWoods } from './ethericSea.js';
 let bake = null;            // this thread's DeepWatersBake, once built
 let failed = null;          // the build's error message, when it failed
 const waiting = [];         // pixel messages that arrived before the bake
+let etherRects = null;
 
 globalThis.onmessage = (ev) => { handle(ev.data ?? {}); };
 
 async function handle(m) {
   if (m.t === 'build') return build(m);
+  if (m.t === 'ether') { etherRects = m.rects ?? null; return; }
   if (m.t === 'pixel') {
     if (bake) return pixel(m);
     if (failed) return globalThis.postMessage({ t: 'pixel', id: m.id, error: failed });
@@ -62,7 +63,7 @@ async function build(m) {
     const locationRectAt = rectsLookup(rows);
     const g = await cachedBake({ key, build: () => buildGlobal(woods, { locationRectAt }) });
     if (!g) throw new Error('deep waters bake produced nothing');
-    bake = worldBakes(new DeepWatersBake({ woods, global: g, locationRectAt }), { woods: m.ether ? etherWoods(woods) : woods, ether: m.ether ?? null });
+    bake = worldBakes(new DeepWatersBake({ woods, global: g, locationRectAt }), { woods: m.ether ? etherWoods(woods) : woods, ether: m.ether ? () => etherRects : null });
     // the main thread's copy crosses; this thread's arrays stay behind for the pixels
     const record = { state: g.state.slice(), classes: g.classes.slice(), partialIndex: g.partialIndex.slice(), partialBits: g.partialBits.slice(), stats: { ...g.stats, cached: !!g.cached } };
     globalThis.postMessage({ t: 'built', record }, [record.state.buffer, record.classes.buffer, record.partialIndex.buffer, record.partialBits.buffer]);

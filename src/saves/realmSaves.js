@@ -73,10 +73,10 @@ export function realmIo({ fetch, storage }) {
  * packed (REALM-GZIP); a raw answer comes back as its `bytes` with the service's sequence. Never throws: a network
  * failure is `{ ok: false, error: 'offline' }`.
  * @param {any} io @param {string} path
- * @param {{ method?: string, json?: any, raw?: string | Uint8Array | null, headers?: Record<string, string>, keepalive?: boolean }} [opts]
+ * @param {{ method?: string, json?: any, raw?: string | Uint8Array | null, headers?: Record<string, string>, keepalive?: boolean, waitMs?: number }} [opts]
  * @returns {Promise<any>}
  */
-async function realmAsk(io, path, { method = 'GET', json = null, raw = null, headers: extra = {}, keepalive = false } = {}) {
+async function realmAsk(io, path, { method = 'GET', json = null, raw = null, headers: extra = {}, keepalive = false, waitMs = 0 } = {}) {
   if (!io) return { ok: false, error: 'signed-out' };
   /** @type {Record<string, string>} */
   const headers = { accept: 'application/json', authorization: `Bearer ${io.secret}`, ...extra };
@@ -90,15 +90,21 @@ async function realmAsk(io, path, { method = 'GET', json = null, raw = null, hea
   // primary, never at a position from before it)
   const writes = method !== 'GET';
   if (writes) forgetD1Bookmark();
+  // The limit covers the wait for the response headers only: a body already arriving may finish.
+  const gate = waitMs > 0 && typeof globalThis.AbortController === 'function' ? new globalThis.AbortController() : null;
+  const timer = gate ? setTimeout(() => gate.abort(), waitMs) : null;
   let res;
   try {
     res = await io.fetch(`${io.base}${path}`, {
       method, headers, body: json ? JSON.stringify(json) : (raw ?? undefined), ...(keepalive ? { keepalive: true } : {}),
+      ...(gate ? { signal: gate.signal } : {}),
     });
   } catch (e) {
     if (writes) forgetD1Bookmark();
     if (!passKeptThrough(e)) forgetSessionPass();   // SESSION-SIGN: a call that could not be made forgets the pass (accountClient.js call's law)
     return { ok: false, error: 'offline' };
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   if (writes) forgetD1Bookmark();
   noteSessionPass(io.secret, res);
@@ -120,10 +126,11 @@ async function realmAsk(io, path, { method = 'GET', json = null, raw = null, hea
 }
 
 const realmSavePath = (/** @type {string} */ id) => `/v1/realm/${encodeURIComponent(id)}/data`;
+export const REALM_BOOT_WAIT_MS = 30_000;
 
 /** Every realm character of the account, the one played last first. */
-export const realmList = async (/** @type {any} */ io) => {
-  const r = await realmAsk(io, '/v1/realm');
+export const realmList = async (/** @type {any} */ io, { waitMs = 0 } = {}) => {
+  const r = await realmAsk(io, '/v1/realm', { waitMs });
   return r.ok ? { ok: true, characters: Array.isArray(r.data?.characters) ? r.data.characters : [], max: r.data?.max ?? 0 } : r;
 };
 /** A character born online: `{ ok, data: { id, lease, seq, gzip } }` - `gzip` the service's word that it opens a packed save.
@@ -131,8 +138,8 @@ export const realmList = async (/** @type {any} */ io) => {
 export const realmCreate = (/** @type {any} */ io, /** @type {string} */ name, /** @type {any} */ summary = null, /** @type {{ lineage: string, person: number } | null} */ born = null) =>
   realmAsk(io, '/v1/realm/create', { method: 'POST', json: born ? { name, summary, lineage: born.lineage, person: born.person } : { name, summary } });
 /** LEGACY7: the account's Project Legacy lines - `{ ok, lineages: [{ id, surname, model, rev, record }] }`. */
-export const realmLineages = async (/** @type {any} */ io) => {
-  const r = await realmAsk(io, '/v1/realm/lineages', { method: 'POST', json: {} });
+export const realmLineages = async (/** @type {any} */ io, { waitMs = 0 } = {}) => {
+  const r = await realmAsk(io, '/v1/realm/lineages', { method: 'POST', json: {}, waitMs });
   return r.ok ? { ok: true, lineages: Array.isArray(r.data?.lineages) ? r.data.lineages : [] } : r;
 };
 /** LEGACY7: a line written past its rev - `{ ok, data: { rev } }`, or `{ ok: false, error: 'lineage-stale', data: { rev, record } }`
@@ -165,7 +172,7 @@ export const realmUnions = async (/** @type {any} */ io) => {
 /** An offline character brought in through customs, once: `{ ok, data: { id, lease, seq, gzip } }`. */
 export const realmCustoms = (/** @type {any} */ io, /** @type {string} */ origin, /** @type {string} */ name, /** @type {any} */ summary = null) => realmAsk(io, '/v1/realm/customs', { method: 'POST', json: { origin, name, summary } });
 /** A join: a new lease - `{ ok, data: { id, lease, seq, bytes, gzip } }`. */
-export const realmJoin = (/** @type {any} */ io, /** @type {string} */ id) => realmAsk(io, '/v1/realm/join', { method: 'POST', json: { id } });
+export const realmJoin = (/** @type {any} */ io, /** @type {string} */ id, { waitMs = 0 } = {}) => realmAsk(io, '/v1/realm/join', { method: 'POST', json: { id }, waitMs });
 /** A leave: the lease given up. `keepalive` for the page's going. */
 export const realmLeave = (/** @type {any} */ io, /** @type {string} */ id, /** @type {string} */ lease, { keepalive = false } = {}) => realmAsk(io, '/v1/realm/leave', { method: 'POST', json: { id, lease }, keepalive });
 /** The player's own delete - and the device's copy of an unsent save with it (RESCUE-SAVE). */
@@ -180,8 +187,8 @@ export const realmUndo = (/** @type {any} */ io, /** @type {string} */ id) => re
 /** The save as it stands: `{ ok, text, seq }` - a join's load, or a copy to offline. REALM-GZIP: asked for as stored
  *  when this tab can open a packed save (a service from before answers the text either way), and opened here; bytes
  *  that will not open are `no-data`, as a save that is not there. */
-export const realmFetch = async (/** @type {any} */ io, /** @type {string} */ id) => {
-  const r = await realmAsk(io, `${realmSavePath(id)}${canGunzip() ? '?enc=gzip' : ''}`);
+export const realmFetch = async (/** @type {any} */ io, /** @type {string} */ id, { waitMs = 0 } = {}) => {
+  const r = await realmAsk(io, `${realmSavePath(id)}${canGunzip() ? '?enc=gzip' : ''}`, { waitMs });
   if (!r.ok) return r;
   const text = await saveTextOf(r.bytes, Infinity);
   return text == null ? { ok: false, error: 'no-data' } : { ok: true, text, ...(r.seq != null ? { seq: r.seq } : {}) };
@@ -921,7 +928,7 @@ export function realmRowAsSave(row, { dateText = () => null } = {}) {
 }
 
 /**
- * THE BOOT'S JOIN: a new lease on the character, then its save read from the service - never a local slot - and
+ * The boot's join: a new lease on the character and its save read from the service - never a local slot - and
  * parsed as a slot load parses. The character's id in the save is the realm's (a customs character's save still names
  * the offline id it came from). Answers `{ ok, snap, lease, seq, origin, gzip }` - `origin` the offline id a customs
  * character came from, from the join (RESTORE); `gzip` the join's word that the service opens a packed save
@@ -946,7 +953,11 @@ function heldOut(/** @type {any} */ r) {
 async function joinRealmBoot(/** @type {{ io: any, id: string }} */ { io, id }) {
   if (!io) return { ok: false, error: 'signed-out' };
   if (typeof id !== 'string' || !REALM_ID_SHAPE.test(id)) return { ok: false, error: 'no-realm-character' };
-  const joined = await realmJoin(io, id);
+  // The early save read is used only at the join's sequence. A network failure or timeout ends the boot;
+  // any other answer is read again after the join.
+  const early = realmFetch(io, id, { waitMs: REALM_BOOT_WAIT_MS });
+  early.catch(() => {});
+  const joined = await realmJoin(io, id, { waitMs: REALM_BOOT_WAIT_MS });
   if (!joined.ok) {
     if (joined.error === 'no-realm-character') dropUnsent(io.storage, id);   // AUDIT RESCUE-SAVE A2: deleted elsewhere - its copy goes too
     return { ok: false, error: joined.error };
@@ -962,7 +973,8 @@ async function joinRealmBoot(/** @type {{ io: any, id: string }} */ { io, id }) 
     if (snap) { snap.characterId = id; return { ok: true, snap, lease, seq, origin: typeof origin === 'string' ? origin : null, restored: true, missed: kept.missed, gzip: joined.data?.gzip === true }; }
     forgetUnsent(io.storage, id);   // a copy that will not open is dropped
   }
-  const got = await realmFetch(io, id);
+  let got = await early;
+  if (!(got.ok && got.seq === seq) && got.error !== 'offline') got = await realmFetch(io, id, { waitMs: REALM_BOOT_WAIT_MS });
   if (!got.ok) return { ok: false, error: got.error };   // a copy behind the record stays for the next join to settle
   // STRANDED: a copy behind the record is never played - set aside when a put of it failed and the realm does not hold it
   const stranded = kept && kept.seq !== seq ? await settleMovedCopy(io.storage, id, kept, got.text, got.seq ?? seq) : false;

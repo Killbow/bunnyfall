@@ -1548,14 +1548,15 @@ export const FEATURES = Object.freeze([
   // it where people can also use screenshots for the loading screen and a way to access them in the menu"): THE
   // LOADING SCREEN (ui/loadingScreen.js) - the place, the step and a running bar over one of the player's own
   // screenshots (systems/shotGallery.js; the menu's Screenshots pane decides which) or the menu's night sky. DFU has
-  // none - its loads are the fade - so Off is Daggerfall's. The player's own online: it is a picture, nobody else's.
+  // none - its loads are the fade - so Off is Daggerfall's, apart from the screen while a game starts.
+  // The player's own online: it is a picture, nobody else's.
   Object.freeze({
     id: 'loading-screen',
     group: 'interface',
     title: 'Loading screens',
     note: 'While the world loads, a screen shows where you are going over one of your screenshots or the menu\u2019s '
       + 'night sky. Choose the screenshots under Screenshots in the menu. '
-      + 'Off keeps the classic load, with no screen.',
+      + 'Off shows no screen, except when a game starts from the menu.',
     effect: 'Takes effect at the next load.',
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({

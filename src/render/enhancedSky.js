@@ -688,6 +688,9 @@ void main() {
  *  after beginFrame; fogMix / fogColor set by the host; clearColor /
  *  fillColor read by the host for the haze. */
 export class EnhancedSkyRenderer {
+  /** @returns {[string, string][]} */
+  static bootPrograms() { return [[VS, FS]]; }
+
   constructor(gl) {
     this.gl = gl;
     const prog = buildProgram(gl, VS, FS);

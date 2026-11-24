@@ -45,7 +45,7 @@ import { DFPalette } from '../formats/dfPalette.js';
 import { MapsFile, getWorldClimateSettings, longitudeLatitudeToMapPixel, getPixelFromPixelID, REGION_RACES, LOCATION_TYPES, CLIMATES, REGION_NAMES } from '../formats/mapsFile.js';   // SPAWNED-DUNGEONS1: the ocean gate and the synthesized location's region name
 import { questTracker } from '../ui/questTracker.js';   // GUIDE5: the quest the player follows - its places, marked
 import { marksOn, questMapMarks } from '../ui/questMarks.js';    // GUIDE5: where the quests point, on the held map and the compass; BOAT-MARK: where my boats lie, on the compass
-import { settlementsOf, loadModRoads, retryModRoads, WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
+import { settlementsOf, retryModRoads, WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
 import { modSetting, modSettingsGeneration, latchModLoaded } from '../mods/modSettings.js';   // ROADS 24; HCC: the mod's eight switches; CSA-D: a mod's title for the load's failure line; AUDIT PRE-MERGE 0928 S4: the next-load mods latched at mount
 import { hasPortFor, hasPort, PORT_LOCATION_IDS, maskMapId } from '../travel/travelPorts.js';   // AUDIT-RR2 G22: Travel Options' port list for RR's ship gate; SEAT2b part two: a members' Harbour among them (hasPortFor)
 import { WoodsFile } from '../formats/woodsFile.js';
@@ -575,7 +575,7 @@ import { SPELL_CAST_SOUND } from '../characters/enemySpells.js';   // SET3: the 
 import { itemLongName } from '../items/itemInfo.js';   // SIGIL1: the weapon's name as its tooltip reads it
 import { trivialOnRoad, roadCompany, wandererCount } from '../characters/roadEncounters.js';   // WILD-ROAD: the road's wanderers - a rat passed by, a patrol now and then
 import { partyExtraFoes } from '../party/partyScale.js';   // PSCALE1: a fight weighs the party - its count, and the foes more an outdoor encounter stands
-import { realmIo, openRealmBoot, placeRestored, createRealmSession, realmSummaryOf, setRealmNotice, realmBootSearch, realmRefusalText, REALM_OFFLINE_TEXT, REALM_EXIT_WAIT_MS, whenPageHides, whenPageGoes, realmTradeEscrow, realmGoldAct, REALM_RESTORED_TEXT, realmStrandedText, realmSaveWithHeld, realmList } from '../saves/realmSaves.js';   // REALM P1.3: an online character is the realm's - joined, loaded and checkpointed through the service
+import { realmIo, openRealmBoot, placeRestored, createRealmSession, realmSummaryOf, setRealmNotice, realmBootSearch, realmRefusalText, REALM_OFFLINE_TEXT, REALM_EXIT_WAIT_MS, whenPageHides, whenPageGoes, realmTradeEscrow, realmGoldAct, REALM_RESTORED_TEXT, realmStrandedText, realmSaveWithHeld, realmList, REALM_BOOT_WAIT_MS } from '../saves/realmSaves.js';   // REALM P1.3: an online character is the realm's - joined, loaded and checkpointed through the service
 import { createRealmLine } from '../systems/legacy/realmLine.js';   // LEGACY7: online, Project Legacy's lines are the realm's
 import { reclaimFromDevice, reclaimLines, crossLeveling, LEVELING_CROSS_LINE } from '../saves/realmCustoms.js';   // RESTORE: what customs once kept back, given back at the boot; LEVEL-ONLINE-3: the realm's one leveling
 import { appStorage } from '../platform/appStorage.js';   // ACC1d: where that session lives - the app's store, not the tab's (a second tab is the same player)
@@ -694,7 +694,7 @@ import { isTouchDevice } from '../ui/touchDevice.js';   // JOURNAL1: ...or a tap
 import { composeCard, createCardAnswerGate } from '../net/profileCard.js';   // INSPECT1: my card when asked, and how often one asker is answered
 import { morrowindDataCount, morrowindDataGeneration } from './dataSource.js';   // MWBODY1: the bodies' gate - Morrowind data attached - and its generation
 // Q4-v: THE QUEST BRIDGE - the machine goes live in this host.
-import { loadQuestPack } from '../systems/quest/questData.js';
+import { startBootPrograms, warmMenuChunks, startBootReads, bootReads, bootFrameDrawn } from './bootReads.js';
 import { getReputation } from '../guilds/factionRep.js';
 import { changeLegalRep, legalRepOf, CRIMES, setCrimeCommitted, lowerRepForCrime } from '../justice/court.js';   // the region's LegalRep: the status box, the quest actions, the crimes (REP1 retired :498-511's levy)
 import { isEquipped, unequipItem } from '../characters/equip.js';   // HACKED-GOLD: a worn offer holds what can be worn
@@ -834,7 +834,7 @@ import { rayUprightCapsule } from '../world/passiveFish.js';   // DW-E3: a fish'
 import { installDeepWatersFishIcons, createFishItem, normalizeFishItems, fishPictureUrl } from '../underwater/deepWatersFishItems.js';   // DW-E3: the fish as items
 import { clearEdgeBlackPixels } from '../world/underwaterDecorations.js';   // DW-E3: a fish's picture, edge-cleaned   // DW-E2: the seafloor's decorations   // DW-D: DeepWaterRuntime's load grace
 import { carvedFloorLocalY } from '../underwater/deepWatersHost.js';   // DW-D: the shore probes see no terrain over a carved cell
-import { etherPlaceRects } from '../world/etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's places' rects, for its own bake
+import { slicedEtherRects } from '../world/etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's places' rects, for its own bake
 import { setWaterBreathingRule } from '../underwater/breath.js';   // DW-D: the dungeon's breath law, on the open sea; ApplyArgonianInfiniteBreath
 import { RACES } from '../characters/races.js';   // DW-D: ArgonianInfiniteBreath
 import { localizedStrings, localizedText, getLocalizedLocationName, t } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the names shown
@@ -990,21 +990,14 @@ export const BOSS_COUNT_FELL_TEXT = 'The fight counts you fallen.';
 // streamingWorld.js). Everything is stored pixel-local; per-frame
 // placement is pixelTranslation(px, py) under the current compensation.
 export async function bootWorld(canvas, renderer, params, status) { handHeroGenderToGrammar(playerEntity);   // L10N3g: StartGameBehaviour.cs:147 - every start, a load included, hands the grammar the live hero's gender
-  // MENU1-WARM: the seven enhanced menus are lazy chunks, each fetched
-  // the first time its door opens - which is mid-play, on the frame the
-  // key was pressed. Asked for idly instead, so no door pays for its
-  // bytes at the moment it is wanted. Fire and forget: it waits for the
-  // browser's own idle answer, swallows every failure (MENU1's notice is
-  // the door's to show), and boots nothing if the player never opens one.
-  void import('../ui/enhancedChunk.js').then((m) => m.warmEnhancedChunks()).catch(() => {});
+  startBootPrograms(renderer, params);
+  warmMenuChunks();   // the enhanced menus' code, fetched at idle after the first frame
   const _canvasSize = createCanvasFrameSize(canvas);
-  // LOAD1 (2026-10-05, ui/loadingScreen.js): THE BOOT'S FACE. From the menu's choice to the first frame the player saw
-  // a bare canvas, the boot's steps named only on the window's title. Every step `status` names is the loading screen's
-  // line too, from here - the realm's join, the data, the first pixel's people, the save - until the boot hands the
-  // first frame its turn (`status(null)`, below). Up at once: no boot is shorter than the screen's delay.
-  const bootLoading = beginLoading({ delay: 0, line: 'Opening the world', maxMs: BOOT_HOLD_MAX_MS, why: 'the boot' });
+  // The boot hold shows each `status` step and stays up until the first world frame draws (`frame`, below), under
+  // either skin and with Off. Its delay is 0 because every boot outlasts the usual appear delay.
+  const bootLoading = beginLoading({ delay: 0, boot: true, line: 'Opening the world', maxMs: BOOT_HOLD_MAX_MS, why: 'the boot' });
   const titleStatus = status;
-  status = (msg) => { if (msg == null) bootLoading.end(); else bootLoading.line(bootLine(msg)); titleStatus(msg); };
+  status = (msg) => { if (msg != null) bootLoading.line(bootLine(msg)); titleStatus(msg); };
   // REALM P1.3 (bible/06-Systems/Realm-Arc.md section 2): AN ONLINE CHARACTER IS THE REALM'S. The Online door boots one
   // with ?realm=<id>: joined under a new lease and its save read from the service before anything below reads a save -
   // never a local slot. A join that fails says why at the door; an online boot with no realm character in it (a stale
@@ -1012,6 +1005,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // lane for its chargen and no relay until the realm holds it (realmBirth).
   const realmNew = params.has('online') && params.has('realmnew');
   const realmIoNow = () => realmIo({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() });
+  startBootReads();
   const realmBoot = params.has('online') && params.has('realm') && params.has('load') ? await openRealmBoot({ io: realmIoNow(), id: params.get('realm') }) : null;
   if (realmBoot && !realmBoot.ok) { setRealmNotice(globalThis.sessionStorage, realmRefusalText(realmBoot.error)); exitToTitleMenu(); return; }
   const realmRefused = params.has('online') && !realmBoot && !realmNew;
@@ -1035,8 +1029,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // further down), which waits for them where it is made - still before any save is restored.
   let legacyRealmHeard = !legacyRealmLine;
   const legacyRealmRead = legacyRealmLine ? Promise.all([
-    legacyRealmLine.pull().catch((e) => console.warn('[legacy] the realm\'s lines were not read', e)),
-    realmList(realmIoNow()).catch(() => null).then((listed) => { if (listed?.ok) legacyRealmRoster = new Set(listed.characters.map((c) => String(c.id))); }),
+    legacyRealmLine.pull({ waitMs: REALM_BOOT_WAIT_MS }).catch((e) => console.warn('[legacy] the realm\'s lines were not read', e)),
+    realmList(realmIoNow(), { waitMs: REALM_BOOT_WAIT_MS }).catch(() => null).then((listed) => { if (listed?.ok) legacyRealmRoster = new Set(listed.characters.map((c) => String(c.id))); }),
   ]).then(() => { legacyRealmHeard = true; }) : null;
   // REALM P1.3: a realm checkpoint that LANDS is a save that lands - the gate's spoils it was composed holding are then
   // safe on the service, and their device record goes (scenes/spoilsPool.js saved, as onSlotSaved tells it for a slot).
@@ -1049,7 +1043,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     return realmSession.checkpoint(realmSaveWithHeld(snap, holding), realmSummaryOf(playerEntity)).then((r) => { if (r?.ok && holding?.length) _realmSaveHooks.landed(who, holding); return r; }).catch(() => ({ ok: false, error: 'server' }));   // AUDIT REALM2 C2: the outcome answered back - F9's word is the realm's answer
   });
   const {
-    bootLoadPick, bootSnap, checkpointGateOpen, classicLoadBoot, exitAutosave, onlineCheckpoint,
+    bootLoad, bootLoadPick, bootSnap, checkpointGateOpen, classicLoadBoot, exitAutosave, onlineCheckpoint,
     onlineCheckpointLanded, realmBirth, realmCreateLegacy, realmFirstSave, worldQuickLoad, worldQuickSave,
   } = createWorldSaveLoad({
     _teleportToPixel, closeWindowsForLoad, enterLinkedBankCabin, legacyRealmLine, params, playerTravelPixel,
@@ -1283,16 +1277,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const homesApi = params.has('online') ? accountHomes({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }) : null;
   const bootHomeLayoutsAsk = homesApi ? homesApi.layouts().catch(() => null) : null;
   status('loading data');
-  const [palBytes, blocksBytes, archBytes, mapsBytes, climateBytes, politicBytes, woodsBytes] =
-    await Promise.all([
-      fetchBytes('ART_PAL.COL'),
-      fetchBytes('BLOCKS.BSA'),
-      fetchBytes('ARCH3D.BSA'),
-      fetchBytes('MAPS.BSA'),
-      fetchBytes('CLIMATE.PAK'),
-      fetchBytes('POLITIC.PAK'),
-      fetchBytes('WOODS.WLD'),
-    ]);
+  const [palBytes, blocksBytes, archBytes, mapsBytes, climateBytes, politicBytes, woodsBytes] = await bootReads().core;
   const palette = new DFPalette();
   palette.load(palBytes, 'ART_PAL.COL');
   const blocks = new BlocksFile();
@@ -1423,7 +1408,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     queue.push(...again.sort(nearestFirstFrom(state.current)));
     console.log(`[roads] ${again.length} pixel(s) built before the network landed - rebuilt with roads`);
   }
-  (basicRoadsOn ? loadModRoads() : Promise.resolve(null)).then((his) => {
+  bootReads().roads.then((his) => {
     if (!basicRoadsOn) {
       console.log('[roads] Basic Roads off in the Mods pane - generating the port\'s own network');
       terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
@@ -2097,15 +2082,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   if (!startLoc) throw new Error(`location not found: ${regionName}/${locationName}`);
   const startPixel = longitudeLatitudeToMapPixel(
     startLoc.mapTableData.longitude, startLoc.mapTableData.latitude);
-  // BOOT-OVERLAP: THE TOWNS THE BOOT WAITS ON AS IT BUILDS THEM - the start's (the first build) and a realm save's own
-  // place (the load's arrival) - each waited on up to HOME_LOOK_BUILD_WAIT_MS at its build, one after the other (1.4 s and
-  // 0.7 s of nothing but the network). Asked now, both at once, as the realm's character the save is (`characterId`, the
-  // realm's id - the one playing once it is restored): its own tenancies ride the answer, as they would at the arrival.
+  // A load that moves the player to the saved place builds no start pixel first.
+  if (bootLoad({ locationIndex, toPixel: (mt) => longitudeLatitudeToMapPixel(mt.longitude, mt.latitude),
+    online: params.has('online') && !realmNew, startCell: { x: getInt('Startup', 'StartCellX'), y: getInt('Startup', 'StartCellY') } }).place) setLoadingPlace(bootLoad().place);
+  // Online, the boot asks for the homes in the start place and the saved place together, not at each build.
+  // A load that moves the player skips the start place, since nothing is built there.
   if (onlineHomes && realmBoot && bootSnapRead) {
     const at = bootSnapRead.locationKey === 'world' ? bootSnapRead.world?.pixel : null;
     const saved = at ? locationIndex.get(`${at.x},${at.y}`) : null;
     const as = typeof bootSnapRead.characterId === 'string' ? bootSnapRead.characterId : null;
-    for (const loc of new Set([startLoc, saved])) if (loc?.mapTableData) onlineHomes.ensure(loc.mapTableData.mapId, { character: as }).catch(() => {});
+    for (const loc of new Set(bootLoad().teleports ? [saved] : [startLoc, saved])) if (loc?.mapTableData) onlineHomes.ensure(loc.mapTableData.mapId, { character: as }).catch(() => {});
   }
 
   const CITY_LIGHT_COLOR_F32 = lanternColor(lightingOn, new Float32Array(CITY_LIGHT_COLOR));   // EL1: the lane's flame over the classic white
@@ -2965,7 +2951,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // - its places' rects read off the isles' templates once, as the Bay's are off its locations: a template's rect is
     // its blocks' alone, read as a clone reads them (the isles' region and an isle's own index - WD3 names the town
     // whose blocks come next, and no variant names a clone)
-    ether: etherSea ? etherPlaceRects(_etherTemplates, locationRectReader(maps, blocks, { regionIndex: ETHER_REGION, locationIndex: -1000 })) : null,   // AUDIT ETHER-OW C1-4: one tilemap for the walk; BOOT-RECTS: and each block parsed once (terrainTiles.js locationRectReader)
+    ether: etherSea ? slicedEtherRects(_etherTemplates, locationRectReader(maps, blocks, { regionIndex: ETHER_REGION, locationIndex: -1000 })) : null,   // AUDIT ETHER-OW C1-4: one tilemap for the walk; BOOT-RECTS: and each block parsed once (terrainTiles.js locationRectReader)
   }) : null;
   /** OH-B: THERE'S A HOLE IN THE BOTTOM OF THE OCEAN 1.1.0 (jet082, vendor/ocean-holes/) - made below, after the decorations its
    *  pits keep out; the sea's floor builds are late-bound to it (a promote lands only after the world is up). */
@@ -3393,9 +3379,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // `state.init` has just filled starts the new ring, and every slice
   // after the arrival's first was sized for the stream - 3 ms on a 144 Hz
   // display, the arrival up to twice as late. The boot and the teleport
-  // build through here now, and while one is in flight every slice on the
-  // one breather has the whole 6 ms, whichever build is breathing - the
-  // flat slice PERF7 gave all of them, for the moments nobody is playing.
+  // build through here now. While one is in flight, every slice on the one breather gets at least 6 ms
+  // (48 ms until the boot ends), whichever build is breathing.
   let _awaitedBuilds = 0;   // builds in flight that something waits on - this door's, and only its
   async function awaitedBuild(px, py) {
     _awaitedBuilds++;
@@ -3446,10 +3431,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // to the frame clock and the `?perf=cpu` meter as `build`: until now
   // neither saw the stream at all.
   let _streamSince = null;   // PERF-EXT24: when the pump's current run of builds began; null while it is idle
+  // Declared above the breather, which reads it as soon as it is created.
+  let _worldKeysLive = false;
   const breather = createBreather({   // PERF7: one slice clock for the stream; each build resets it
     budget: () => frameFitBudget({ intervalMs: frameInterval(), busyMs: lastBusy(), streamingMs: _streamSince == null ? 0 : performance.now() - _streamSince, awaited: _awaitedBuilds > 0, overworld: !!travelView?.active }),   // OW-BUILD: the Overworld's ground first
     onSlice: (ms) => { lendFrame(ms); meterFor(renderer.gl)?.addCpu('build', ms); },
     frames: framesBegun,   // PERF-EXT24 (the review): a slice a frame ran inside held a wait, and is not lent
+    booting: () => !_worldKeysLive,
   });
   const { buildPixelNow } = createPixelBuild({   // HOST-SPLIT: src/scenes/pixelBuild.js
     MILL_SAIL_PAD, TERRAIN_INDICES, TERRAIN_INDICES_LOD, _building, _dwRubble, _dwRubbleCarry, _groundBefore,
@@ -3811,12 +3799,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
 
   let _seasonHoldKey = null;
 
-  status(`building player pixel ${startPixel.x},${startPixel.y}`);
-  const first = queue.shift();
-  const playerPixel = await awaitedBuild(first.px, first.py);
+  const first = bootLoad().teleports ? null : queue.shift();
+  if (first) status(`building player pixel ${startPixel.x},${startPixel.y}`);
+  const playerPixel = first ? await awaitedBuild(first.px, first.py) : null;
 
   // Camera: at the start location's origin, or the pixel centre.
-  const cam = { pos: [TERRAIN_SIZE / 2, playerPixel.centerHeight + 40, TERRAIN_SIZE / 2], yaw: Math.PI, pitch: -0.1 };
+  const cam = { pos: [TERRAIN_SIZE / 2, (playerPixel?.centerHeight ?? 0) + 40, TERRAIN_SIZE / 2], yaw: Math.PI, pitch: -0.1 };
   const lookFilter = new LookFilter();   // AUDIT 28 W7: one filter per camera
   const moveAxes = new MoveAxes();   // AUDIT 28 W8: MovementAcceleration
   const cameraRecoiler = new CameraRecoiler(); const doorToken = createDoorToken({ minter: () => identityMinter, session: () => online, modes: () => modes, player: () => player });   // AUDIT 28 W9: CameraRecoilStrength   // DOOR-TOKEN: declared beside the recoiler `_teleportToPixel` resets, so no jump reads it before it stands (its seams are read lazily, any not yet standing answering none)
@@ -4212,7 +4200,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // declared below, so the read is deferred (the regionIndex idiom).
     otherOverlayActive: () => modes?.overlayHeld ?? false,
     otherHudCovered: () => modes?.hudCovered ?? false,   // AUDIT ENH-NOTICE3 C2: the previousWindow chain on the mode host's stack, for the toasts
-    keysLive: () => _worldKeysLive,   // MODE-WHEEL (AUDIT): KEY-BOOT's gate, for the wheel this rung opens above it - declared below, read deferred
+    keysLive: () => _worldKeysLive,
     vampireFeed: { showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w) },   // THE VISUAL PASS: the Blood Sight card   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire, in the quest box (declared below, read deferred)
   });
   townTalk.ensureLoaded();
@@ -4373,7 +4361,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // written back out by the next save. "Something causes spells to
   // disappear from the spellbook" (bigdaddywetwet, 2026-09-16) is that
   // race. A load waits for the table it needs to READ the save.
-  const _magicRegistries = loadMagicRegistries(fetchBytes).then((r) => {
+  const _magicRegistries = loadMagicRegistries(bootReads().fetchBytes).then((r) => {
     spellsByIndex = spellsByIndex ?? r.spellsByIndex;
     // AUDIT-MACL F1: ...AND THE HELD SPELLS COME BACK HERE. MAC-L4 wrote
     // `resolvePendingSpells` and then called it from NOWHERE but its own
@@ -8812,7 +8800,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // gives it - and a held frame is DFU's paused InputManager, which
   // DROPS the edge rather than banking it for whenever the video ends.
   const latch = { edge: keyEdges() };   // audit 16f: jump is HELD since P14 - the latch slot was dead
-  if (playerPixel.location) {
+  if (playerPixel?.location) {
     const tilePos = getLocationTerrainTileOrigin(startLoc);
     const extentZ = startLoc.exterior.exteriorData.height * RMB_SIDE;
     // Clamp inside the start pixel - the streaming state derives the
@@ -8889,7 +8877,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  initialization" into the crash banner, which stood over the whole session. Until the boot is past its last await
    *  (where the title loses its loading step), a key fills the held ring (its keyup clears it) and acts on nothing; a
    *  window's own keys (townTalk, above the ladder) are its as ever. */
-  let _worldKeysLive = false;
   addEventListener('keydown', (e) => {
     if (peerMenuReader && !isTextEntryTarget(e.target)) peerMenuReader.down(e.code, e.repeat);   // PEERMENU1: hears the key, never eats it (a tap of E still interacts)
     // FIX-E: QUICKLOAD WORKS FROM UNDER THE DEATH SCREEN - its
@@ -9233,7 +9220,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // method - `modes.pointerdown?.(e)` - which reads like a guard and is
   // not one.
   // A click during the one await in that window
-  // (`await loadQuestPack()`) threw
+  // (the quest pack's await) threw
   //     TypeError: can't access property "pointerdown", it is undefined
   // and took the whole scene down. Reported from the deployed build.
   // test/scenes/audit24_wave37.test.js holds both halves of the cure: `modes?.`
@@ -9399,9 +9386,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     get travelView() { return travelView; },
   });
 
-  const initialCount = queue.length + 1;
+  const initialCount = queue.length + (first ? 1 : 0);
   console.log(`world: streaming from ${startPixel.x},${startPixel.y}, ${initialCount} initial pixels, ` +
-    `player pixel ${playerPixel.location || 'wilderness'}, ${playerPixel.natureCount} nature flats`);
+    `player pixel ${playerPixel ? playerPixel.location || 'wilderness' : 'skipped for the load'}, ${playerPixel?.natureCount ?? 0} nature flats`);
   status(`streaming world - ${locationName}`);
   if (!params.has('load') && !(params.has('classicload') && peekPendingClassicSave())) setLoadingPlace(startLoc?.name || locationName);   // AUDIT LOAD1 8: a stale ?classicload imports nothing - the start is the place   // LOAD1: where the boot is opening onto - a load's teleport names the save's place itself
 
@@ -9882,7 +9869,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // ABSENT and the law modules idle loudly - the headless charter.
   // Port-Ledger Q4-v records the pending list (talk seams, videos,
   // faces, the disease seams, dungeon-mode popups, quest foes).
-  const questPack = await loadQuestPack();
+  const questPack = await bootReads().quest;
   console.log(`[quest] pack loaded: ${questPack.questCount} quests`);
   // OH-D: ...under There's a Hole in the Bottom of the Ocean's RenameGpsLocation while it holds for this pixel - the GPS's
   // copy of the location renamed (Name, MapTableData.MapId), the location itself untouched
@@ -9897,10 +9884,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // is -1 across the whole wilderness. That -1 fell through
   // getNameBankOfRegion to Breton, so every quest humanoid named
   // outdoors was a Breton whatever province he stood in.
-  // FIELD 2026-09-27 (a player's console: "[town] FACTION.TXT unavailable: Cannot access 'Ut' before initialization"):
-  // A DECLARATION, not a const. townTalk's load (built far above) resumes after its FACTION.TXT fetch and reads
-  // the region through this - and bootWorld is suspended at `await loadQuestPack()` just above, before a const
-  // here would exist, so the read threw and the region's people never loaded. Everything the body reads
+  // This is a function declaration, not a const. The townTalk load (built far above) resumes after its FACTION.TXT
+  // fetch and reads the region through this while bootWorld waits for the quest pack just above. A const here would
+  // not exist yet, so the read would throw and the region's people would not load. Everything the body reads
   // (playerTravelPixel, maps, state, cam, player, walkMode, modes) is declared before townTalk is built.
   function _questRegionIndex() {
     if (_questRegionPin != null) return _questRegionPin;   // AUDIT NAV1 (B2): only for the length of a raid's parse
@@ -15830,6 +15816,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // AUDIT DEEP X-1: and the travel view is CUT - its readout stood over the film, its listeners on the canvas, until
     // its heartbeat noticed the frames had stopped
     if (frameHeld()) { frameAbort(); hideWorldPlaque(); last = now; requestAnimationFrame(frame); drawGateBanner(null); drawGateMarksCard(null); drawGateDamageChart(null); drawGateGround(null); travelView?.exit('video', true); if (spyglass.up) lowerGlass(); return; }   // AUDIT CAPTAIN'S SEA S15: the glass's DOM never frozen over the video
+    // The boot plate leaves on the first frame that draws. A film or a door build draws nothing.
+    bootFrameDrawn(bootLoading);
     const dt = Math.min(0.1, (now - last) / 1000);
     if (worldAddons.preModal()) { last = now; requestAnimationFrame(frame); return; }
     farmingMode?.frame();

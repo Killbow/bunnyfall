@@ -34,16 +34,53 @@ export function dynamicSkiesTextureUrl(name) {
   return textureUrls[name] ?? null;
 }
 
-/** Decode one vendored texture; resolves with the image for
- *  texImage2D. Rejects on a missing or unreadable file, and the caller
- *  warns - a slot keeps the shader's own default meanwhile. */
-export function loadDynamicSkiesTexture(name) {
-  const url = dynamicSkiesTextureUrl(name);
+function loadImage(name, url) {
   return new Promise((resolve, reject) => {
-    if (!url) { reject(new Error(`Dynamic Skies: no texture named ${name}`)); return; }
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Dynamic Skies: ${name} failed to load from ${url}`));
     img.src = url;
   });
+}
+
+const BITMAP_OPTIONS = { imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' };
+let bitmapDecode = null;
+
+// A browser that ignores the flip or alpha options fails this probe and keeps the image path.
+function canDecodeFlipped() {
+  bitmapDecode ??= (async () => {
+    if (typeof createImageBitmap !== 'function' || typeof ImageData === 'undefined') return false;
+    // Top: half transparent. Bottom: blue.
+    const px = new Uint8ClampedArray([200, 100, 50, 128, 0, 0, 255, 255]);
+    const bmp = await createImageBitmap(new ImageData(px, 1, 2), BITMAP_OPTIONS);
+    const gl = document.createElement('canvas').getContext('webgl2');
+    if (!gl) { bmp.close?.(); return false; }
+    const t = gl.createTexture(), fb = gl.createFramebuffer(), out = new Uint8Array(8);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    gl.readPixels(0, 0, 1, 2, gl.RGBA, gl.UNSIGNED_BYTE, out);
+    bmp.close?.();
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    // Flipped: blue first. Unpremultiplied: the half-transparent red stays near 200, not 100.
+    return out[2] === 255 && out[3] === 255 && out[7] === 128 && Math.abs(out[4] - 200) <= 2;
+  })().catch(() => false);
+  return bitmapDecode;
+}
+
+/** Decode one vendored texture; resolves with the image for
+ *  texImage2D (an already flipped ImageBitmap where the browser can).
+ *  Rejects on a missing or unreadable file, and the caller warns - a slot
+ *  keeps the shader's own default meanwhile. */
+export async function loadDynamicSkiesTexture(name) {
+  const url = dynamicSkiesTextureUrl(name);
+  if (!url) throw new Error(`Dynamic Skies: no texture named ${name}`);
+  if (await canDecodeFlipped()) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return await createImageBitmap(await res.blob(), BITMAP_OPTIONS);
+    } catch { /* the image path below reports a real failure */ }
+  }
+  return loadImage(name, url);
 }

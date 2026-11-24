@@ -5,6 +5,12 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-22
 
+- Fixed: The desktop app no longer shows a black game window before the game appears.
+- Fixed: With the Enhanced skin in browsers that compile shaders in parallel, entering the world pauses less while the game prepares its lighting, shadow, sky, and cloud graphics.
+- Fixed: Loading into the world is faster and continues while the game is in a background browser tab.
+- Fixed: Continue, Load Game, and Play on the Online page no longer load the area around Privateer's Hold before the place you saved in.
+- Fixed: Online characters load faster and no longer hang on the loading screen when the account service stops answering. If joining a character gets no answer after 30 seconds, you return to the menu and the Online page explains why.
+- Fixed: After you start or load a game from the menu, the loading screen stays up until the world appears, even with Loading screens Off or the Classic skin.
 - Fixed: Buttons inside the chat drawer's Party and Friends lists now work when clicked.
 
 ## 2026-11-21

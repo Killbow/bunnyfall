@@ -431,6 +431,9 @@ export function ringDisabled(search = globalThis.location?.search) {
 }
 
 export class FarRingRenderer {
+  /** @param {any} [lane] @returns {[string, string][]} */
+  static bootPrograms(lane = null) { return [[VS, lane ? lane.farRingFs : FS]]; }
+
   /** EL1: `opts.lane` (render/enhancedLighting.js's EL_LANE, or null) picks
    *  the lane's fragment shader over the classic one - two programs, never
    *  one with a switch - and decodes the scene colours draw() takes.

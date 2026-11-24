@@ -8,6 +8,7 @@ import { autoBuildArms } from '../combat/weaponRig.js';
 import { bankCabinCandidates, readBankCabinLink } from '../systems/naval/boatCabinOwnership.js';
 import { betterAmbience } from '../audio/betterAmbience.js';
 import { BOOT_DOOR_KEYS, isOnlinePage } from '../platform/onlineLane.js';
+import { bootLoadPlan } from '../saves/bootLoadPlan.js';
 import { cabinSceneName, savedCabinBoat } from '../systems/naval/sailingCabin.js';
 import { CAMP_TEXT, packSavedFires } from '../systems/survival/camp.js';
 import { CARAVAN_TEXT } from '../travel/caravanRoom.js';
@@ -75,6 +76,9 @@ export function createWorldSaveLoad(shared) {
       : { mostRecent: true };
 
   const bootSnap = () => (shared.bootSnapRead === undefined ? (shared.bootSnapRead = pickedSaveSnap(bootLoadPick ?? {})) : shared.bootSnapRead);
+  let _bootLoad = null;
+  // The first call, with the deps, makes the boot's load plan; later calls return that plan.
+  const bootLoad = (deps) => (_bootLoad ??= bootLoadPlan(bootLoadPick ? bootSnap() : null, deps));
 
   /** Save(name, saveName) over the host's own envelope; F9 is the
    *  QuickSave name (QuickSave() = Save(Name, quickSaveName)) and the
@@ -850,7 +854,7 @@ export function createWorldSaveLoad(shared) {
     return realmPut(io, made.data.id, { lease: made.data.lease, seq: 1, summary: realmSummaryOf(playerEntity) }, text, { gzip: made.data.gzip === true });
   }
   return {
-    bootLoadPick, bootSnap, checkpointGateOpen, classicLoadBoot, exitAutosave, onlineCheckpoint,
+    bootLoad, bootLoadPick, bootSnap, checkpointGateOpen, classicLoadBoot, exitAutosave, onlineCheckpoint,
     onlineCheckpointLanded, realmBirth, realmCreateLegacy, realmFirstSave, worldQuickLoad, worldQuickSave,
   };
 }

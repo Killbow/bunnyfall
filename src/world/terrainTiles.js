@@ -313,8 +313,8 @@ export function setLocationTiles(dfLocation, mapsFile, blocksFile, tilemapData) 
 }
 
 /**
- * SetLocationTiles' rect for many locations in one walk. The boot runs two: the Eltheric isles' templates
- * (etherWatersBake.js etherPlaceRects, 7,538 of them) and the Bay's coastal towns for Deep Waters
+ * SetLocationTiles' rect for many locations in one walk. Two callers run it: the Eltheric isles' templates
+ * (etherWatersBake.js slicedEtherRects, 7,538 of them) and the Bay's coastal towns for Deep Waters
  * (deepWatersClient.js deepWatersLocationRects). BlocksFile holds only the BLOCKS_HELD_MAX most recent parsed blocks,
  * and the isles' templates name 384 blocks. Without a copy of its own, a walk would parse a block again, and dry its
  * puddles again (puddleDry.js), each time its name came round. The walk keeps each block's

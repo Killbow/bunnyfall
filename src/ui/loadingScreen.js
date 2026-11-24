@@ -5,9 +5,9 @@
 // The game's loads had no face. The boot from the menu into the world ran behind a bare canvas for seconds (the only
 // word of it was the window's title, main.js `status`), and a dungeon's door, a fast travel, a save loaded in play
 // all held the last frame or black until the next one stood. DFU has no loading screen either - its loads are the
-// fade (ui/fadeLayer.js) - so this is the port's own, drawn only under the enhanced skin and only on the player's
-// switch (the Features row `loading-screen`, systems/features.js). The classic skin never mounts it: Daggerfall's
-// loads look the way they always did there.
+// fade (ui/fadeLayer.js) - so this is the port's own. It is drawn under the enhanced skin on the player's switch (the
+// Features row `loading-screen`, systems/features.js). In play the classic skin never mounts it: Daggerfall's loads
+// look the way they always did there. The boot plate is the exception: it shows under either skin and switch.
 //
 // WHAT IT SHOWS. The place being loaded, large, over the skin's rule and gem; the step the load is on (the same words
 // the window's title carries); a bar that runs while the load does - no percentage, because no load in the port
@@ -96,10 +96,10 @@ const el = (tag, cls, text) => {
 /**
  * Begin a hold: the screen stands (after `delay`) until every hold has ended.
  * `place` is the big line (the town, the dungeon, the character's last stand); `line` is the step.
- * @param {{ place?: string, line?: string, delay?: number, maxMs?: number, why?: string }} [opts]
+ * @param {{ place?: string, line?: string, delay?: number, maxMs?: number, why?: string, boot?: boolean }} [opts]
  * @returns {{ end: () => void, line: (text: string) => void, place: (text: string) => void, readonly open: boolean }}
  */
-export function beginLoading({ place: p = '', line: l = '', delay = APPEAR_MS, maxMs = HOLD_MAX_MS, why = 'a load' } = {}) {
+export function beginLoading({ place: p = '', line: l = '', delay = APPEAR_MS, maxMs = HOLD_MAX_MS, why = 'a load', boot = false } = {}) {
   let open = true;
   let ceiling = null;
   const hold = {
@@ -114,7 +114,9 @@ export function beginLoading({ place: p = '', line: l = '', delay = APPEAR_MS, m
     place(text) { if (open) setLoadingPlace(text); },
     get open() { return open; },
   };
-  if (typeof document === 'undefined' || loadingMode() === 'off') { open = false; return hold; }
+  // The boot plate ignores this: it shows under Off and the classic skin.
+  const bootPlate = boot && !pageHas('shot') && !pageHas('noloading');
+  if (typeof document === 'undefined' || (loadingMode() === 'off' && !bootPlate)) { open = false; return hold; }
   // the first hold of a load sets both words afresh; a hold inside it adds only what it names
   if (!holds.size) { place = String(p ?? ''); line = String(l ?? ''); }
   else { if (p) place = String(p); if (l) line = String(l); }
@@ -126,7 +128,7 @@ export function beginLoading({ place: p = '', line: l = '', delay = APPEAR_MS, m
   if (node) { node._keepHidden = false; paint(); paintAside(); }
   else if (!appearTimer) {
     if (delay > 0) appearTimer = setTimeout(() => { appearTimer = null; if (holds.size && !node) build(); }, delay);
-    else build();
+    else build(boot);
   }
   return hold;
 }
@@ -227,6 +229,14 @@ export function bootLine(step) {
 /** The boot's hold's ceiling: a first boot on a slow phone is minutes, never ten. */
 export const BOOT_HOLD_MAX_MS = 600_000;
 
+/** @returns {Promise<ReturnType<typeof beginLoading>>} */
+export async function raiseBootPlate() {
+  const hold = beginLoading({ delay: 0, boot: true, line: 'Opening the world', maxMs: BOOT_HOLD_MAX_MS, why: 'the menu door' });
+  // Waits for one painted frame before the boot takes the main thread. The timer covers a window that draws no frames.
+  if (hold.open) await new Promise((r) => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 100); });
+  return hold;
+}
+
 function settle() {
   if (appearTimer) { clearTimeout(appearTimer); appearTimer = null; }
   if (!node) { place = ''; line = ''; return; }
@@ -294,7 +304,7 @@ function groundFor(w, h) {
   return c;
 }
 
-function build() {
+function build(instant = false) {
   injectEnhancedStyle();
   injectEnhancedFonts();
   injectLoadingStyle();
@@ -305,6 +315,7 @@ function build() {
   root.setAttribute('aria-live', 'polite');
   const still = typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (still) root.classList.add('still');
+  if (instant) root.classList.add('instant');
   if (hiddenNow()) root.classList.add('aside');
 
   // THE GROUND: the menu's own night (PX1), the screen's floor whatever stands on it - drawn once per window size and
@@ -364,6 +375,7 @@ export const LOADING_CSS = `
 .ld { position: fixed; inset: 0; z-index: ${LOADING_Z}; overflow: hidden; background: var(--ink, #0e1013);
   color: #d8cfae; font-family: var(--data); pointer-events: auto; cursor: progress; user-select: none;
   animation: ld-in ${LOADING_FADE_MS}ms steps(4, end) both; }
+.ld.instant { animation: none; opacity: 1; }
 .ld.aside { visibility: hidden; pointer-events: none; }
 body.ld-up .wb-gate-banner, body.ld-up .wb-title-card, body.ld-up .wb-dmg-chart, body.ld-up .sg-hud,
 body.ld-up .arena-hud, body.ld-up .rvncard-stack, body.ld-up #plus-pad-prompts { visibility: hidden !important; }

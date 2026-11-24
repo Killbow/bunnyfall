@@ -8,10 +8,10 @@
 // runs in one task, and the frame loop waits hundreds of milliseconds
 // for it. That is the hitch on the road into a town.
 //
-// The breather is a cooperative yield: the build calls it between
-// models, and when the current slice has used its budget it awaits the
-// next animation frame - the frame loop runs, draws, and the build
-// resumes after. The pixel appears a few frames later than it would
+// The breather is a cooperative yield. The build calls it between
+// models, and when the slice has used its budget it awaits the
+// next animation frame (while booting, often a posted message instead).
+// The frame loop runs, draws, and the build resumes after. The pixel appears a few frames later than it would
 // have and every frame in between is drawn. Nothing about the pixel
 // changes; a partially built pixel is not in `built` and draws
 // nothing, as a cold-load pixel never did either.
@@ -39,6 +39,16 @@ export const BUILD_STREAM_AGE_MS = 2000;
 export const BUILD_OVERWORLD_FRAME_MS = 1000 / 30;
 /** OW-BUILD: the most an Overworld slice lends - a light frame still draws at 30 a second or better. */
 export const BUILD_SLICE_OVERWORLD_MS = 20;
+export const BOOT_SLICE_MS = 48;
+/** While booting, the target time between animation frames, so the loading screen still paints. */
+export const BOOT_PAINT_INTERVAL_MS = 100;
+
+const postTask = (fn) => {
+  const { port1, port2 } = new globalThis.MessageChannel();
+  port1.onmessage = () => { port1.close(); fn(); };
+  port2.postMessage(0);
+};
+const pageHidden = () => typeof document !== 'undefined' && document.hidden === true;
 
 /**
  * PERF-EXT24 (2026-09-25, the players: "fps issues in the exterior but
@@ -80,10 +90,10 @@ export function frameFitBudget({ intervalMs, busyMs, streamingMs = 0, awaited = 
 }
 
 /**
- * @param {{now?: () => number, raf?: (fn: () => void) => unknown, sliceMs?: number, budget?: ?(() => number), onSlice?: ?((ms: number) => void), frames?: ?(() => number)}} [opts]
- *   PERF-EXT24: `budget` answers each slice's milliseconds as the slice
- *   begins (frameFitBudget, in the world host); absent, every slice is
- *   `sliceMs`, as before. `onSlice` hears a slice's milliseconds when it
+ * @param {{now?: () => number, raf?: (fn: () => void) => unknown, sliceMs?: number, budget?: ?(() => number), onSlice?: ?((ms: number) => void), frames?: ?(() => number), booting?: ?(() => boolean), post?: (fn: () => void) => unknown, hidden?: () => boolean}} [opts]
+ *   `budget` returns each slice's milliseconds as the slice begins (frameFitBudget, in the world host);
+ *   absent, every slice is `sliceMs`. While `booting` returns true, every slice is BOOT_SLICE_MS instead.
+ *   `onSlice` hears a slice's milliseconds when it
  *   ends in a yield - the host lends them to the frame clock and the
  *   `?perf=cpu` meter, which had never seen the stream at all.
  *
@@ -112,26 +122,35 @@ export function createBreather({
   budget = null,
   onSlice = null,
   frames = null,
+  booting = null,
+  post = postTask,
+  hidden = pageHidden,
 } = {}) {
+  const budgetNow = () => (booting?.() ? BOOT_SLICE_MS : budget ? budget() : sliceMs);
   let sliceStart = now();
-  let sliceBudget = budget ? budget() : sliceMs;   // PERF-EXT24: asked once a slice, not once a breath
+  let sliceBudget = budgetNow();   // PERF-EXT24: asked once a slice, not once a breath
+  let paintedAt = sliceStart;
   const framesNow = frames ?? (() => 0);
   let sliceFrame = null;   // PERF-EXT24 (the review): the frame count at this slice's resume; null for a slice a reset (or the breather's birth) began
   const b = {
     yields: 0,
-    /** Call between units of work. Resolves at once while the slice has budget; otherwise on the next frame. */
+    /** Call between units of work. Resolves at once while the slice has budget; otherwise on the next frame, or while
+     *  booting on a posted message when no paint is due or the tab is hidden. */
     async breathe() {
       const spent = now() - sliceStart;
       if (spent < sliceBudget) return;
       b.yields++;
       if (sliceFrame !== null && sliceFrame === framesNow()) onSlice?.(spent);   // PERF-EXT24 (the review): a resumed slice no frame ran inside
-      await new Promise((resolve) => raf(resolve));
+      // A hidden tab runs no animation frames, so a booting breather there never waits for one.
+      const toTask = booting?.() && (hidden() || now() + BOOT_SLICE_MS - paintedAt <= BOOT_PAINT_INTERVAL_MS);
+      await new Promise((resolve) => (toTask ? post(resolve) : raf(resolve)));
       sliceStart = now();
+      if (!toTask) paintedAt = sliceStart;
       sliceFrame = framesNow();
-      sliceBudget = budget ? budget() : sliceMs;
+      sliceBudget = budgetNow();
     },
     /** A new build starts a fresh slice (the awaits before it were someone else's). */
-    reset() { sliceStart = now(); sliceFrame = null; sliceBudget = budget ? budget() : sliceMs; },
+    reset() { sliceStart = now(); sliceFrame = null; sliceBudget = budgetNow(); },
     /** AUDIT PRECIP HOST-N2: the milliseconds the slice has left - a unit of work sized to the frame (the snow's
      *  integration, scenes/snowCoverHost.js settle) asks it, never a fixed slice of its own over the frame's. */
     left() { return Math.max(0, sliceBudget - (now() - sliceStart)); },

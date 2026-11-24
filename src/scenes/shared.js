@@ -37,10 +37,11 @@ import { madeRuleHere } from '../characters/madeLevel.js';   // EG-PERFECT: the 
 import { carriedWeight } from '../items/inventory.js';   // CLIMB2: a heavy pack cuts the enhanced climb's reach
 import { entityMaxEncumbrance } from '../combat/formulas.js';   // CLIMB2: ...over what the body can carry
 import { DynamicSkiesRenderer } from '../render/dynamicSkiesRenderer.js';   // DS1: Dynamic Skies' skybox, the mod's own pass
+import { skyChoice } from '../render/bootPrograms.js';
 import { DynamicSkies } from '../weather/dynamicSkiesRuntime.js';   // DS1: BLBSkybox's instance
 import { MAX_DELTA_SECONDS } from '../weather/dynamicSkies.js';   // Time.maximumDeltaTime, the mod's frame clamp
 import { dynamicSkiesAssets, loadDynamicSkiesTexture, dynamicSkiesTextureUrl, DYNAMIC_SKIES_TEXTURES } from '../weather/dynamicSkiesAssets.js';   // DS1: the vendored files
-import { modSetting, modSettingsOf } from '../mods/modSettings.js';   // DS1: the mod's own switches
+import { modSettingsOf } from '../mods/modSettings.js';   // DS1: the mod's own switches
 import { weatherSunlightScale } from '../world/weather.js';   // DS1: WeatherManager's ScaleFactor, for the skybox's _LightColor0
 import { seasonValue, SEASONS, dateFromClassicMinutes } from '../world/gameDate.js';   // DS1: the winter arm of that scale
 import { hasActiveEffect, isEntityWaterWalking, isBlending, isInvisible, isAShade } from '../magic/effects.js';
@@ -244,7 +245,7 @@ export function createSkyController(gl, params) {
   // fogMix and fogColor on it without knowing which pass it is.
   // EE1: one switch for the whole outdoors. ?sky=classic stays the URL
   // door and still forces the panorama, so every probe riding it works.
-  const enhancedLane = isEnhanced() && params.get('sky') !== 'classic' && getPref('enhancedEnvironments');
+  const { enhancedLane, dynamicOn, clouds: cloudsOn } = skyChoice(params);
   // DS1: DYNAMIC SKIES (BadLuckBurt and carademono, vendored 1:1 with
   // permission - Mac, 2026-09-04) is the enhanced lane's sky while the
   // mod's own `Enabled` switch is on (Mods pane; on by default until
@@ -256,8 +257,6 @@ export function createSkyController(gl, params) {
   // SunlightManager.LightCurve for the whole world while it is the sky
   // (BLBSkybox.SetLightCurve), and the rig's own curve comes back when
   // it is not.
-  const skyDoor = params.get('sky');
-  const dynamicOn = enhancedLane && (skyDoor === 'dynamic' || (skyDoor === null && modSetting('dynamic-skies', 'Enabled')));
   const enhancedSky = enhancedLane && !dynamicOn ? new EnhancedSkyRenderer(gl) : null;
   // VC3: THE VOLUMETRIC CLOUDS ride the port's own dome - never the mod's
   // sky - behind the one switch; `?clouds=off` is the kill switch and
@@ -274,7 +273,7 @@ export function createSkyController(gl, params) {
   // cloud is drawn over either sky and the ground takes its shadow from
   // the same map. `?clouds=off` gives the mod its own sheets back.
   const cloudsDoor = params.get('clouds');
-  const clouds = enhancedLane && cloudsDoor !== 'off'
+  const clouds = cloudsOn
     ? new VolumetricClouds(gl, Object.hasOwn(CLOUD_QUALITY, cloudsDoor) ? cloudsDoor : (Object.hasOwn(CLOUD_QUALITY, getPref('cloudQuality')) ? getPref('cloudQuality') : 'default'), [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]) : null;
   if (clouds && enhancedSky) enhancedSky.cloudsExternal = true;
   if (clouds) clouds.testCellSpec = params.get('cloudcell');   // WEATHER2c: `?cloudcell=<weather>[,<ahead>[,<radius>]]` - one static cell, for the eye and the probe

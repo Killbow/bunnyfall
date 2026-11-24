@@ -210,8 +210,7 @@ export function wallColliderIndices(floor) {
  *   is built and before OnFloorRefreshed (There's a Hole in the Bottom of the Ocean cuts its pit there)
  * @param {() => boolean} [deps.canMutateTerrainData] - OH-B: DeepWaterRuntime.CanMutateTerrainData, RefreshLoadedTile's gate
  * @param {() => number} [deps.clock] - milliseconds (performance.now), for the promote timing
- * @param {?object|boolean} [deps.ether] - ETHER-DEEP: the Eltheric Ocean stands - its places' rects (etherWatersBake.js
- *   etherPlaceRects), or true for none known: its box is carved by its own bake
+ * @param {?object|Function|boolean} [deps.ether]
  */
 export function createDeepWatersHost({ woods, woodsBytes = null, locations = [], maps = null, blocks = null, built, climateAt, currentPixel, collider = null, pixelTranslation = null, floatingFrame = null, gpu = null, client = null,
   canRunHeavy = () => true, onFloorRefreshed = null, onSeafloorBuilt = null, canMutateTerrainData = () => true, clock = () => performance.now(), ether = null }) {

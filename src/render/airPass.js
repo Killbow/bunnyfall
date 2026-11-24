@@ -1278,6 +1278,20 @@ void main() {
  * renderer's own vertex shaders for the emission replay.
  */
 export class AirPass {
+  /** @param {any} gl @param {any} opts @returns {[string, string][]} */
+  static bootPrograms(gl, opts) {
+    /** @type {[string, string][]} */
+    const pairs = [AO_FS, BOX_FS, GAUSS_FS, SHAFT_FS, LUM_FS, ADAPT_FS, brightFs(0), brightFs(1), VOLBLUR_FS,
+      resolveFs(0, 0), resolveFs(0, 1), resolveFs(1, 0), resolveFs(1, 1)].map((fs) => [QUAD_VS, fs]);
+    pairs.push([opts.vs.mesh, EMIT_MESH_FS], [opts.vs.bb, EMIT_BB_FS], [GLARE_VS, GLARE_FS]);
+    if (opts.glsl) {
+      const volLinear = !!(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'));
+      pairs.push([QUAD_VS, volFs(opts.glsl, opts.maxLights ?? 48, volLinear)]);
+      if (volLinear) pairs.push([QUAD_VS, volToneFs(opts.glsl)]);
+    }
+    return pairs;
+  }
+
   constructor(gl, opts) {
     this.gl = gl;
     this.meter = null;

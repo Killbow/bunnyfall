@@ -19,10 +19,9 @@
 //               cell, and the kernel's window carries none of them to the ring (measured over every cell of three of
 //               the box's rows, test/world/deepWater/ether_deep.test.js) - so the rings are one sea that reaches the box's edge, any
 //               water in a cell that reaches the open sea reaches its ring, and the cell's flood IS the box's.
-//   RECTS     - an isle's place (world/etherPlaces.js: a port's town, a ruin's dungeon) blends its pixel's ground as a
-//               classic location's (the streamed build's own order), so its pixel is sampled with its template's rect -
-//               the rects the host reads off the templates once (`etherPlaceRects`), picked by the place's own law
-//               (etherTemplateOf: the same template every client clones).
+//   RECTS     - An isle place (world/etherPlaces.js: a town or a ruin) blends its ground like a classic
+//               location, so its pixel is sampled with the rect of its template. The host reads these rects off the
+//               templates once (`slicedEtherRects`), and etherTemplateOf picks the same template on every client.
 // Pure and worker-safe (formats/ and world/ alone): the Deep Waters worker and this thread build the same planes, and
 // a pixel the worker built hands its 3 x 3's back with its geometry (exportPlanes, `sea` and `cls` beside the planes)
 // so this thread's queries never flood a cell twice.
@@ -53,15 +52,44 @@ export function etherPlaceRects(templates, rectOf) {
 }
 
 /**
+ * etherPlaceRects in slices of about `sliceMs` each. The returned function gives the rects and finishes any slices
+ * still left at once; its `ready()` starts the slices.
+ * @param {{ towns?: any[], havens?: any[], ruins?: any[] } | null} templates
+ * @param {(template: any) => { xMin: number, xMax: number, yMin: number, yMax: number }} rectOf
+ */
+export function slicedEtherRects(templates, rectOf, { sliceMs = 6, now = () => performance.now(), later = (fn) => setTimeout(fn, 0) } = {}) {
+  const lists = ['towns', 'havens', 'ruins'], out = { towns: [], havens: [], ruins: [] };
+  let li = 0, i = 0, done = null, started = false, resolve = null;
+  const ready = new Promise((r) => { resolve = r; });
+  const step = (until) => {
+    for (; li < lists.length; li++, i = 0) {
+      const list = templates?.[lists[li]] ?? [];
+      for (; i < list.length; i++) {
+        if (now() > until) return;
+        const r = rectOf(list[i]);
+        out[lists[li]].push([r.xMin, r.xMax, r.yMin, r.yMax]);
+      }
+    }
+    done = out;
+    resolve(out);
+  };
+  const pump = () => { if (!done) { step(now() + sliceMs); if (!done) later(pump); } };
+  const rects = () => { if (!done) step(Infinity); return done; };
+  rects.ready = () => { if (!started) { started = true; pump(); } return ready; };
+  return rects;
+}
+
+/**
  * The rect a pixel's place blends, or null: an isle's centre pixel whose kind stands a place, its rect the one its
  * template's own pick names (etherTemplateOf over the rects, list for list).
- * @param {{ towns: number[][], havens: number[][], ruins: number[][] } | null} rects
+ * @param {{ towns: number[][], havens: number[][], ruins: number[][] } | (() => any) | null} rects
  */
 export function etherRectAt(rects) {
+  const read = typeof rects === 'function' ? rects : () => rects;
   return (px, py) => {
     const isle = rects ? isleAt(px, py) : null;
     if (!isle || isle.px !== px || isle.py !== py) return null;
-    const r = etherTemplateOf(rects, isle);
+    const r = etherTemplateOf(read(), isle);
     return r ? { xMin: r[0], xMax: r[1], yMin: r[2], yMax: r[3] } : null;
   };
 }
@@ -71,7 +99,8 @@ export class EtherWatersBake extends DeepWatersBake {
   /**
    * @param {object} deps
    * @param {object} deps.woods - the composed ground (world/ethericSea.js etherWoods over the world's reader)
-   * @param {{ towns: number[][], havens: number[][], ruins: number[][] } | null} [deps.rects] - etherPlaceRects'
+   * @param {{ towns: number[][], havens: number[][], ruins: number[][] } | (() => any) | null} [deps.rects] -
+   *   the rects from etherPlaceRects, or a function that returns them (slicedEtherRects)
    */
   constructor({ woods, rects = null }) {
     super({ woods, global: null, frame: ETHER_FRAME, locationRectAt: etherRectAt(rects) });
@@ -185,7 +214,8 @@ export class DeepWatersBakes {
 }
 
 /**
- * The world's bakes: the Bay's alone, or with the Eltheric's beside it (`ether` its rects, or true for none known).
+ * The Iliac Bay bake alone, or with the Eltheric Ocean bake beside it. `ether` is the place rects, a function that
+ * returns them, or true when none are known.
  * @param {any} bay
  * @param {{ woods?: any, ether?: any }} [opts]
  */
