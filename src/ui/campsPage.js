@@ -1,16 +1,8 @@
 // @ts-check
-// BUNNYFALL CAMPS IN HOLDINGS (player feedback: "guys I may forget 2 other camps ages ago, but I cannot find anything on
-// the map, any suggestion how to find it?" - after "You already keep 3 camps. Pick one up first"): THE CAMPS PAGE on the
-// pause menu's Holdings rail (ui/enhanced/enhancedMenu.js) - every camp the account keeps, wherever it stands: its name,
-// where it is (the region, the nearest town, the map pixel), when it was pitched, how furnished - and a button to MARK it
-// on the map (a followed personal waypoint, systems/map/mapWaypoints.js, drawn by the held map and the Overworld alike).
-//
-// Packing a camp up stays where it always was - at its tent, in the world (scenes/homeYards.js strikes a camp whose tent is
-// gone): striking one from here would leave its tent standing and pitch it again. So this page finds camps; it does not
-// strike them.
-//
-// Self-contained: it asks the account service itself (accountDecor's `campsMine`) and reads the game's maps off
-// net/staffPlaces.js keptMaps, so no host wires it. Dressed by the Holdings kit's roles (ui/holdingsPages.js).
+// The Camps page on the Holdings rail lists every camp the account keeps, with Mark on the map and Pack up.
+// Pack up goes through scenes/homeYards.js (setCampPacker) when wired, so this character's tent is packed too and
+// the line-up does not pitch it again. The page reads the account service itself (accountDecor's `campsMine`) and
+// the game's maps off net/staffPlaces.js keptMaps.
 import { accountDecor, storedSession } from '../net/accountClient.js';
 import { appStorage } from '../platform/appStorage.js';
 import { ensureHoldingsStyle } from './holdingsPages.js';
@@ -29,8 +21,12 @@ const READ_KEEP_MS = 20_000;
 let _read = { status: 'idle', camps: [], at: 0, error: '' };
 let _api = /** @type {any} */ (null);
 const api = () => (_api ??= accountDecor({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }));
+let _asking = '', _packing = false, _note = '';
+let _packer = /** @type {((c: any) => Promise<any>) | null} */ (null);
 /** Forget what was read (a sign-out, a new visit): the next draw asks again. */
-export function resetCampsPage() { _read = { status: 'idle', camps: [], at: 0, error: '' }; _api = null; }
+export function resetCampsPage() { _read = { status: 'idle', camps: [], at: 0, error: '' }; _api = null; _asking = ''; _note = ''; }
+/** @param {((c: any) => Promise<any>) | null} fn */
+export function setCampPacker(fn) { _packer = fn; }
 
 /** The place words of a camp: `{ region, town, pixels }` - the region it stands in, the town nearest its pixel and how many map
  *  pixels off (null where the game's maps are not loaded). Pure over `maps` (a MapsFile). */
@@ -74,7 +70,8 @@ export function drawCampsPage(detail, rerender, { el, divider } = /** @type {any
   if (_read.status === 'loading' && !_read.at) { detail.append(el('p', 'px-note', t('camps.page.loading', 'Looking for your camps...'))); return; }
   if (_read.status === 'fail') { detail.append(el('p', 'px-note', t('camps.page.fail', 'Your camps could not be read just now. Try again in a moment.'))); return; }
   const camps = _read.camps;
-  detail.append(el('p', 'px-note', t('camps.page.intro', 'A tent pitched outdoors with the camping kit stays as a camp until its tent is packed up. You may keep {max} at once. Mark one to follow it on your map; to pack one up, go to it and pick up its tent.', { max: CAMPS_MAX })));
+  detail.append(el('p', 'px-note', t('camps.page.intro', 'A tent pitched outdoors with the camping kit stays as a camp until its tent is packed up. You may keep {max} at once. Mark one to follow it on your map, or pack one up from here.', { max: CAMPS_MAX })));
+  if (_note) detail.append(el('p', 'px-note', _note));
   if (!camps.length) { detail.append(el('p', 'px-note', t('camps.page.none', 'You keep no camps.'))); return; }
   const maps = keptMaps();
   const list = el('div', 'hld-list');
@@ -94,11 +91,37 @@ export function drawCampsPage(detail, rerender, { el, divider } = /** @type {any
       else { const p = campMapPoint(c); const got = addWaypoint({ kind: 'personal', mx: p.mx, my: p.my, name: markName(c), color: 'gold' }); if (got) setWaypointFollowed(got.waypoint.id, true); }
       rerender();
     };
-    acts.append(b);
+    const pack = el('button', 'act', t('camps.page.pack', 'Pack up'));
+    pack.onclick = () => { _asking = c.id; _note = ''; rerender(); };
+    if (_asking === c.id) {
+      card.append(el('span', 'hld-sub', t('camps.page.packAsk', 'Pack up this camp? Any decorations in it will be lost.')));
+      const yes = el('button', 'act primary', t('camps.page.yes', 'Yes')), no = el('button', 'act', t('camps.page.no', 'No'));
+      yes.disabled = no.disabled = _packing;
+      yes.onclick = () => packUp(c, rerender);
+      no.onclick = () => { _asking = ''; rerender(); };
+      acts.append(yes, no);
+    } else acts.append(b, pack);
     card.append(acts);
     list.append(card);
   });
   detail.append(list);
+}
+
+function packUp(c, rerender) {
+  if (_packing) return;
+  _packing = true;
+  rerender();
+  Promise.resolve((_packer ?? ((x) => api().campStrike(x.id)))(c)).catch(() => null).then((r) => {
+    const done = r?.ok || r?.error === 'no-camp';
+    if (done) {
+      const m = markOf(c);
+      if (m) removeWaypoint(m.id, { quiet: true });
+      _read = { ..._read, camps: _read.camps.filter((x) => x.id !== c.id) };
+    }
+    _note = done ? '' : t('camps.page.packFail', 'That camp could not be packed up just now. Try again in a moment.');
+    _asking = ''; _packing = false;
+    rerender();
+  });
 }
 
 /** The camps' names and places as one sentence for the limit's refusal - "Camp A (near X, Region), Camp B (...)" - or '' for none. */

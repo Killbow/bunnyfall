@@ -20,7 +20,8 @@ import { modSetting } from '../mods/modSettings.js';
 export const EDITOR_MODEL_FORMAT = 'bunnyfall-dungeon-model/1';
 export const FIRST_EDITOR_MODEL_ID = 7000001;
 
-const globModels = () => import.meta.glob('../../vendor/*/Models/*.json', { import: 'default' });
+// Editor models are <id>.json (ids from 7,000,001), so other Models files such as the Come Sail Away ones are skipped.
+const globModels = () => import.meta.glob('../../vendor/*/Models/[0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.json', { import: 'default' });
 const vendorOf = (path) => /vendor\/([^/]+)\/Models\//.exec(path)?.[1] ?? '';
 
 /** Why a model file cannot be used, or null when it can. */
@@ -64,7 +65,7 @@ export function registerEditorModel(json, isOn = () => true) {
 }
 
 let _loaded = null;
-/** Every vendored mod's Models/*.json, each behind its mod's Enabled. Once; resolves to how many registered. */
+/** Each vendored editor model file, behind its mod's Enabled switch. Once; resolves to the number registered. */
 export function loadEditorModels() {
   _loaded ??= (async () => {
     let n = 0;
