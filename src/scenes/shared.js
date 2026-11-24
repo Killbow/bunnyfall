@@ -82,6 +82,7 @@ import { flashPlayerDamage } from '../ui/damageFlash.js';   // AUDIT 24 (wave 39
 import { SOUND } from '../audio/soundClips.js';
 import { surfacePlayer, hurtPlayer, duelSpare, staffFly, levitateWarded, freeFlight } from '../characters/playerEntity.js';   // DUEL1: the duel's floor, for its damage over time   // AUDIT-SEATS G5: a siege's ward on Levitate   // AUDIT-SEATS G4: a spectator's flight
 import { standardSpellsByIndex } from '../magic/standardSpells.js';   // G4: the two magic registries, one home; DEX4a: a mod's SpellRecords.json merged, as RebuildClassicSpellsDict merges it
+import { racialPace } from '../combat/abilities/racialIdentity.js';
 import { readMagicDef } from '../formats/magicDef.js';
 import { setMagicItemTemplates, setSpellRecordsByIndex } from '../items/loot.js';
 import { PaintFile } from '../formats/paintFile.js';   // F156: PAINT.DAT, the painting descriptions' file
@@ -836,11 +837,12 @@ export function createSkyController(gl, params) {
  *  CharacterDocument and always has a Speed, so for any chargen'd or
  *  loaded entity the LIVE arm is the only one taken - and that arm is
  *  :389/:400/:418 verbatim. Nothing diverges here. */
-export function motorStats(entity) {
+export function motorStats(entity, isOutdoors = () => false) {
   return {
     get speed() { return entity.stats?.speed != null ? liveStat(entity, 'speed') : 50; },
     get running() { return skillValue(entity, SKILLS.Running); },
     get swimming() { return skillValue(entity, SKILLS.Swimming); },
+    racialPace: (mode, motor) => racialPace(entity, mode, motor, isOutdoors()),
   };
 }
 

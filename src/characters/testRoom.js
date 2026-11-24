@@ -26,6 +26,16 @@
 import { RACES } from './races.js';
 import { resurrectionSpell } from '../magic/resurrect.js';   // RESURRECT1: the sorceress carries one, to test with
 import { applyHeadlessChargen } from './chargenSession.js';
+import { hitPointsPerLevelUp, spellPointMultiplier, spellPoints } from './chargen.js';
+import { LEVEL_CAP } from './levelCap.js';
+import { SKILL_HARD_CAP } from './skills.js';
+import { fillVitalSigns } from './statMods.js';
+import { setNames } from './names.js';
+import { COMBAT_PREVIEW_PRESET, syncAbilityUnlocks } from '../combat/abilities/progress.js';
+import { DAGGER_MILESTONES, TANTO_MILESTONES } from '../combat/abilities/milestones.js';
+import { ABILITIES } from '../combat/abilities/registry.js';
+import { hotbarEntryForAbility, setHotbarSlot, switchHotbarPreset } from '../items/quickslots.js';
+import { BLADE_WEAVE, THOUSAND_CUTS, HUNTING_LINE, PREDATORS_CROSSING, KNOCKOUT_CHAIN, TITANS_HANDS } from '../combat/abilities/combinations.js';
 import { addItem } from '../items/inventory.js';
 import { equipItem } from './equip.js';
 import { mintCondition, templateByIndex, itemBaseValue, setItemFields } from '../items/itemTemplates.js';   // MAC-N1: SetItem's name + value, the one export
@@ -42,14 +52,14 @@ import { AETHERIC_RECORDS, mintAetheric } from '../items/aetheric.js';   // SET6
 import { mintHourlock, mintGilded, GILDED_RECORDS } from '../items/gilded.js';   // GILDED1: the top rung's first record, to be seen and fired (its shot: arrows since GUNS-UNFOUND, below); GILDED2: and the world's two
 import { welkyndStone, varlaStone } from '../items/ayleidStones.js';   // LOOT21: the Ayleid stones
 import { mintGem } from '../items/gems.js';   // GEM2: the graded gems
-import { createThunderlock, createPellets, THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE } from '../items/thunderlock.js';   // TSR-GUN: the port's own weapon, and the import IS its registration
-import { createPistolet, PISTOLET_TEMPLATE } from '../items/pistolet.js';   // PISTOLET: the second gun, the same way
 
 /** The prebuilt characters. `race` is the DF race key (races.js RACES
  *  spelling - mwRaceId derives the Morrowind id from it), `classIndex`
  *  indexes CLASS_CAREERS (chargen.js), `faceIndex` is the classic
  *  portrait pick the Morrowind head/hair law also reads. */
 export const TEST_PRESETS = Object.freeze([
+  { id: COMBAT_PREVIEW_PRESET, label: 'Combat Preview', race: 'Nord', gender: 'male', faceIndex: 0, classIndex: 16,
+    blurb: 'A max-level character with Daedric gear and the offline combat preview loadout.' },
   { id: 'nord-warrior', label: 'Nord Warrior', race: 'Nord', gender: 'male', faceIndex: 0, classIndex: 16,
     blurb: 'A plain human male in steel, with a longsword.' },
   { id: 'breton-sorceress', label: 'Breton Sorceress', race: 'Breton', gender: 'female', faceIndex: 2, classIndex: 3,
@@ -180,11 +190,7 @@ export function testGearRows(gender) {
   // lucky. It rides with a stack of pellets for the same reason the
   // bow rides with a quiver: a ranged weapon with no ammunition
   // tests the refusal, not the weapon.
-  rows.push({ kind: 'thunderlock', label: 'Dwarven Thunderlock', templateIndex: THUNDERLOCK_TEMPLATE });
-  rows.push({ kind: 'pellets', label: 'Dwemer Pellets (30)', templateIndex: PELLET_TEMPLATE, stackCount: 30 });
   // PISTOLET: two of them - one-handed, so the pair (one in each hand) is what wants testing, and the Pellets above feed both
-  rows.push({ kind: 'pistolet', label: 'Dwarven Pistolet', templateIndex: PISTOLET_TEMPLATE });
-  rows.push({ kind: 'pistolet', label: 'Dwarven Pistolet (a pair\'s second)', templateIndex: PISTOLET_TEMPLATE });
   // The full steel suit - every armor slot.
   for (const [name, t] of Object.entries(A)) rows.push({ kind: 'armor', label: `Steel ${name.replace(/_/g, ' ')}`, templateIndex: t, material: M.Steel });
   // Material rows that change the Morrowind mapping.
@@ -225,9 +231,6 @@ export function testItemOf(row) {
   // TSR-GUN: through the weapon's OWN constructors, the same two the
   // find and the legendary mint with - a second literal here is how
   // the test character's gun and the found one drift apart.
-  if (row.kind === 'thunderlock') return createThunderlock();
-  if (row.kind === 'pistolet') return createPistolet();
-  if (row.kind === 'pellets') return createPellets(row.stackCount);
   if (row.kind === 'armor') {
     // MAC-N1: through SetItem's value write - this armor was minted
     // with a name and NO value, the corpse's shape exactly.
@@ -240,6 +243,64 @@ export function testItemOf(row) {
     group: row.group, templateIndex: row.templateIndex, dye: 0, variant: 0,
     name: templateByIndex(row.templateIndex)?.name ?? row.label, flags: 0,
   });
+}
+
+const COMBAT_PREVIEW_SLOTS = [
+  'weapon.longsword.extended-thrust', 'weapon.longsword.keep-away', 'weapon.longsword.piercing-line',
+  'weapon.longsword.kings-measure', 'weapon.long-bow.skyfall', 'weapon.crossbow.final-verdict',
+  'weapon.ballista.siege-of-heaven', 'weapon.hand-to-hand.hundred-fist-ascension',
+  'utility.wayfarers-anchor-mark', 'utility.wayfarers-anchor-recall',
+];
+const COMBINATION_PREVIEW_SLOTS = [
+  BLADE_WEAVE, THOUSAND_CUTS, HUNTING_LINE, PREDATORS_CROSSING, KNOCKOUT_CHAIN, TITANS_HANDS,
+  'combination.archery.short-blade.hidden-relay', 'combination.archery.axe.felling-volley',
+  'combination.axe.long-blade.rallying-ruin', 'combination.axe.blunt.earthsplitter',
+];
+const EXTRA_UTILITY_PREVIEW_SLOTS = [
+  'utility.trailblazer', 'utility.featherstep', 'utility.hunters-awareness', 'utility.deepwater-training',
+  'utility.riverstride', 'utility.breakaway', 'utility.skyward-ascent', 'utility.field-antidote', 'utility.lockbreaker',
+];
+
+export function seedCombatPreview(entity) {
+  setNames(entity, 'Combat', 'Preview');
+  entity.level = LEVEL_CAP;
+  entity.skills.fill(SKILL_HARD_CAP);
+  entity.masterSkills = true;
+  entity.masterSkillsAsked = true;
+  entity.masteredSkills = Array.from(entity.skills, (_, id) => id);
+  for (const key of Object.keys(entity.stats)) entity.stats[key] = 100;
+  entity.maxHealth += (LEVEL_CAP - 1) * hitPointsPerLevelUp(entity.career, entity.stats.endurance, () => 0.5);
+  entity.maxMagicka = spellPoints(entity.stats.intelligence,
+    spellPointMultiplier(entity.career.abilityFlagsAndSpellPointsBitfield ?? 0x1000));
+  fillVitalSigns(entity);
+
+  const templates = ABILITIES.filter(ability => ability.category === 'weapon' && ability.rank === 25
+    && typeof ability.templates[0] === 'number').map(ability => ability.templates[0]);
+  const rows = [...new Set([WEAPONS_ENUM.Longsword, ...templates])]
+    .map(templateIndex => ({ kind: 'weapon', templateIndex, material: 9 }));
+  for (const [name, templateIndex] of Object.entries(ARMOR_ENUM)) {
+    if (!/shield|buckler/i.test(name)) rows.push({
+      kind: 'armor', templateIndex, material: ARMOR_MATERIAL.Daedric, label: 'Daedric ' + name.replace(/_/g, ' '),
+    });
+  }
+  rows.push({ kind: 'arrows', stackCount: 240 });
+  for (const [i, row] of rows.entries()) {
+    const item = testItemOf(row);
+    addItem(entity.items, item);
+    if (i === 0 || row.kind === 'armor') equipItem(entity, item);
+  }
+  syncAbilityUnlocks(entity);
+  COMBAT_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
+  switchHotbarPreset(1);
+  COMBINATION_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
+  switchHotbarPreset(2);
+  setHotbarSlot(0, hotbarEntryForAbility('racial.nord.frostborn-charge'));
+  EXTRA_UTILITY_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i + 1, hotbarEntryForAbility(id)));
+  switchHotbarPreset(3);
+  [...DAGGER_MILESTONES, ...TANTO_MILESTONES].forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
+  switchHotbarPreset(0);
+  setPref('quickbarStyle', 'hotbar');
+  return rows.length;
 }
 
 /** Fill the pack. Runs AFTER the class kit so the spellbook stays
@@ -451,6 +512,7 @@ export async function applyTestCharacter(playerEntity, preset, { fetchBytes, spe
   await applyHeadlessChargen(playerEntity, preset.classIndex, { fetchBytes, spellsByIndex });
   playerEntity.testRoom = true;   // AUDIT SET D4: after the chargen, which builds the character afresh - the mark rides every save of it
   if (preset.id === 'breton-sorceress') addTestMissileSpells(playerEntity, spellsByIndex);   // SPELLFX1: something that FLIES, to test with
+  if (preset.id === COMBAT_PREVIEW_PRESET) return { added: seedCombatPreview(playerEntity) };
   const added = seedTestGear(playerEntity);
   // Dress the baseline so the room opens with something ON: the steel
   // suit's cuirass and a longsword in hand - through the real equip

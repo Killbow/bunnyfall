@@ -35,7 +35,7 @@ import '../professions/fletching.js';   // FLETCH: the pack's arrow craft - its 
 import { doItemEnchantmentPayloads, PAYLOAD } from '../magic/enchantments.js';   // E2: the Used payload arm
 import { inflictPoison } from '../afflictions/poisons.js';
 import { inflictDisease } from '../afflictions/diseases.js';   // SURV2: a bad meal's sickness, handed to the food law
-import { getItem, isEnchanted as hasEnchantments } from './inventory.js';   // D9: ItemCollection.GetItem - the oil arm's lantern lookup (:1791); the card's usable predicate
+import { isEnchanted as hasEnchantments } from './inventory.js';   // D9: ItemCollection.GetItem - the oil arm's lantern lookup (:1791); the card's usable predicate
 import { isSurvivalItem, useSurvivalItem } from '../systems/survival/items.js';   // SURV2: food, water, camp gear
 import { survivalRules } from '../systems/survival/switch.js';   // SURV-TIERS: a meal's sickness is the tier's
 import { SURVIVAL_RULES } from '../systems/survival/difficulty.js';   // AUDIT SURV-TIERS: and with the arc off, Casual's - none
@@ -126,7 +126,6 @@ export function usableItem(item) {
   const handler = itemUseHandler(item.templateIndex);
   if (handler && (handler.usable?.(item) ?? true)) return true;
   if (isSurvivalItem(item) || isBook(item) || isPotion(item) || isMap(item) || isSpellbook(item) || isDrug(item) || isLightSource(item)) return true;
-  if (item.group === 'UselessItems2' && item.templateIndex === TEMPLATES.Oil) return true;
   if (hasEnchantments(item)) return true;
   return VARIANT_CHANGEABLE.has(item.templateIndex) && (templateByIndex(item.templateIndex)?.variants ?? 0) > 1;
 }
@@ -414,7 +413,7 @@ export function useItem(item, collection, {
   }
 
   else if (isLightSource(item)) {
-    if ((item.currentCondition ?? 0) <= 0) out = { kind: 'empty', text: named('lightEmpty') };
+    if (item.templateIndex !== TEMPLATES.Lantern && (item.currentCondition ?? 0) <= 0) out = { kind: 'empty', text: named('lightEmpty') };
     // PlayerEntity.LightSource is a single slot: using the one already
     // lit DOUSES it, using another one SWAPS.
     else if (entity?.lightSource === item) {
@@ -424,26 +423,6 @@ export function useItem(item, collection, {
       setLightSource(entity, item);   // DISC7
       out = { kind: 'lit', text: named('lightLight') };
     }
-  }
-
-  else if (item.group === 'UselessItems2' && item.templateIndex === TEMPLATES.Oil && collection) {
-    // The oil refuels a LANTERN in the LOCAL pack, and only if the
-    // whole bottle fits - DFU adds the oil's condition to the
-    // lantern's and refuses when it would overflow. D9: the lookup is
-    // ItemCollection.GetItem verbatim now, allowQuestItem: false
-    // included (:1791) - the port grew quest items (item.questItem,
-    // read at :211) and inventory.getItem already ports that filter
-    // (inventory.js:"if (!allowQuestItem && item.questItem)"), so a quest lantern is invisible to the oil
-    // exactly as it is in DFU and the bottle refuses instead.
-    const lantern = getItem(bag ?? [], 'UselessItems2', TEMPLATES.Lantern, { allowQuestItem: false });
-    const oil = item.currentCondition ?? 0;
-    if (lantern && (lantern.currentCondition ?? 0) <= (lantern.maxCondition ?? 0) - oil) {
-      lantern.currentCondition = (lantern.currentCondition ?? 0) + oil;
-      // A STACK splits one off; a single leaves entirely.
-      if ((item.stackCount ?? 1) > 1) item.stackCount--;
-      else { const i = collection.indexOf(item); if (i >= 0) collection.splice(i, 1); }
-      out = { kind: 'refuelled', text: expandItemMacro(USE_TEXT.lightRefuel, lantern, nameOf?.(lantern)) };
-    } else out = { kind: 'full', text: expandItemMacro(USE_TEXT.lightFull, lantern ?? item, nameOf?.(lantern ?? item)) };
   }
 
   else {

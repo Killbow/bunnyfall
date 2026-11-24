@@ -24,6 +24,7 @@
 // verbatim (CreateBook / CreateRandomBook out of systems/books.js),
 // so a quest book carries its id and the book FILE's price.
 
+import { isRetiredItem } from '../../items/retiredItems.js';
 import { QuestResource, matchFirst } from './questResource.js';
 import { Symbol as QuestSymbol } from './symbol.js';
 import { parseInt as questParseInt } from './parseUtils.js';
@@ -357,7 +358,7 @@ export class Item extends QuestResource {
     this.allowDrop = dataIn.allowDrop;
     this.playerDropped = dataIn.playerDropped;
     this.madePermanent = dataIn.madePermanent;
-    this.daggerfallUnityItem = dataIn.item ? structuredClone(dataIn.item) : null;
+    this.daggerfallUnityItem = dataIn.item && !isRetiredItem(dataIn.item) ? structuredClone(dataIn.item) : null;
     this.goldPaid = dataIn.goldPaid === true;
   }
 }

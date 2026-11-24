@@ -930,7 +930,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
    *  watchman, an ungated crime FRAMES THE PLAYER for a murder they
    *  did not commit, and the watch responds to that crime, so the
    *  town turns on them for a rat's work. */
-  function damageGuard(g, damage, playerFeet, knockDir, { fromPlayer = true, bypassShield = false, peer = false, kind = 'melee', weapon = null, round = false, striker = null, wc = null } = {}) {   // TELL8: `wc` a peer's blow's class   // TELL1: the blow's kind, the player's weapon, a spell's later round and the striking foe - its weight on a wind-up's poise
+  function damageGuard(g, damage, playerFeet, knockDir, { fromPlayer = true, bypassShield = false, peer = false, kind = 'melee', weapon = null, round = false, striker = null, wc = null, abilityControl = null } = {}) {   // TELL8: `wc` a peer's blow's class   // TELL1: the blow's kind, the player's weapon, a spell's later round and the striking foe - its weight on a wind-up's poise
     if (g.dead) return;   // AUDIT 68 S20-foe-dies-twice: a corpse takes no blow - a magic round after the killing one tallied a second Murder and minted a second body
     if (fromPlayer && !peer && g.defender && raidHere()) return;   // RAID-GUARDS: whatever road a blow of the player's takes to the door, a raid's defender takes none of it - and no Assault comes of one
     // AUDIT WATCH1 A4: a PEER's blow (WATCH1's net seam) is the encounter pool's peer law (AUDIT WORLD6b B2): no
@@ -1054,7 +1054,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
     // Hurt - and the blow weighs on his poise; past it the wind-up breaks and he is staggered, the breaking blow's shove
     // half again as hard. Not winding up, this answers null and DFU's knockback stands (hostCombat.windupDoor's one law)
     const _tell = (g.ai?._tac?.state !== 'windup' && g.ai?._tac?.state !== 'overreach') ? null : windupDoor(g, damage, {   // only a watchman winding up (TELL4: or overreached) builds the blow's bag
-      kind, weapon, round, peer, striker, from: striker?.ai?.feet ?? playerFeet, wc, fromPlayer,   // TELL8: a peer's blow's class; AUDIT TELL U6: whose blow
+      kind, weapon, round, peer, striker, from: striker?.ai?.feet ?? playerFeet, wc, fromPlayer, abilityControl,   // TELL8: a peer's blow's class; AUDIT TELL U6: whose blow
       claws: fromPlayer && !peer && !weapon && !!playerEntity?.isInBeastForm,
       weight: () => enemyWeightClassicUnits(true, 'male', guardWeight, g.entity?.items),
     }, { audio, hitEffects, shake: fromPlayer && !peer && !striker ? shake : null });   // AUDIT TELL H6: the watch's stagger kicks my camera as every pool's does
@@ -1064,7 +1064,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
       // watch spawns armed and armoured, so this is the call site
       // where the missing item term moved the answer most.
       const w = enemyWeightClassicUnits(true, 'male', guardWeight, g.entity?.items);
-      g.ai.knockbackSpeed = weaponKnockbackSpeed(damage, w) * (_tell === 'stagger' ? TELL.STAGGER_KNOCK : 1);
+      g.ai.knockbackSpeed = weaponKnockbackSpeed(damage, w) * (_tell === 'stagger' ? TELL.STAGGER_KNOCK : 1) * (abilityControl?.shove ?? 1);
       g.ai.knockbackDir = [knockDir[0], knockDir[1], knockDir[2]];
     }
   }
@@ -1567,7 +1567,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
         // C2-slice (combat-17): the struck watchman cries out 40%
         const pain = enemyPainVoice(foe, damage);
         if (pain && pain.clip >= 0) audio?.play3d?.(pain.clip, [foe.ai.feet[0], foe.ai.feet[1] + 0.9, foe.ai.feet[2]], 1, { maxDistance: 16, pitch: 1 + pain.pitchLift });   // AUDIT 58: EnemySounds.cs:172-175
-        damageGuard(foe, damage, playerFeet, lookDir, { weapon: playerWeapon.strikingWeapon });   // TELL1: the blow's weapon weighs it on a wind-up's poise
+        damageGuard(foe, damage, playerFeet, lookDir, { weapon: playerWeapon.strikingWeapon, abilityControl: playerWeapon.techniqueBlow?.control });   // TELL1: the blow's weapon weighs it on a wind-up's poise
       } else {
         // WeaponManager.cs:609-615: a connecting swing that dealt
         // nothing still makes a noise. The exterior hosts played

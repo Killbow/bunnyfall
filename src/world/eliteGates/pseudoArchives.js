@@ -58,9 +58,6 @@ const K = (key, owner, name, what) => Object.freeze({ key, owner, name, what });
  *  names its first number there (the Spire's and the reserved blocks name the registry's own), its kind and what it
  *  holds. @type {ReadonlyArray<PseudoArchiveRange>} */
 export const PSEUDO_ARCHIVES = Object.freeze([
-  N(560, 'characters/thunderlockIds.js', 'THUNDERLOCK_ARCHIVE', 'mod', "the Thunderlock's weapon art"),
-  N(561, 'characters/thunderlockIds.js', 'PELLET_ARCHIVE', 'mod', "the Thunderlock's pellets"),
-  N(562, 'characters/thunderlockIds.js', 'PISTOLET_ARCHIVE', 'mod', "the Dwarven Pistolet's art"),
   N(10035, 'world/townStandIns.js', 'TOWN_GARDEN_ARCHIVE', 'data', "the temples' gardens Daggerfall's blocks name"),
   N(38001, 'combat/blood/bloodArt.js', 'BLOOD_ATLAS_ARCHIVE', 'port', 'the blood atlas'),
   N(38101, 'world/gate/gateModel.js', 'GATE_ARCHIVE', 'port', "Dagon's Breach's gate stone"),

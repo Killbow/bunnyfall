@@ -31,6 +31,7 @@ import { skillValue, SKILLS } from '../characters/skills.js';
 import { noteSkillChallenge } from '../characters/skillSoftcap.js';   // SOFTCAP1: the foe a blow was traded with, for the real-use law
 import { mentorArmorValue, mentorGearScale, mentorDamageTakenMult } from '../characters/mentorMode.js';   // SOFTCAP1: mentor mode's overlay   // S3: real skills (enemies stay flat, verbatim)
 import { RACES } from '../characters/races.js';   // CalculateRacialModifiers reads the DFU-numbered race id
+import { previewPhysicalActor, previewRacialModifiers, racialGuardDamage } from './abilities/racialIdentity.js';
 import { SPECIAL_ABILITY_BITS, PROFICIENCY_BITS } from '../characters/specialAdvantages.js';   // AUDIT 21 F2: the Adrenaline Rush bit; CF1: the HandToHand expertise bit
 // NOT from rest.js, which re-exports healingRateModifier FROM here - importing
 // hasSpecialAbility back out of it makes a cycle, and the ESM binding lands in
@@ -290,6 +291,8 @@ export function proficiencyModifiers(attacker, weapon) {
 }
 
 export function racialModifiers(attacker, weapon) {
+  const preview = previewRacialModifiers(attacker, weapon);
+  if (preview) return preview;
   const mods = { damageMod: 0, toHitMod: 0 };
   if (!weapon) return mods;
   const set = (n) => { mods.damageMod = n; mods.toHitMod = n; };
@@ -382,7 +385,7 @@ export function adrenalineRushToHit(attacker, target) {
 }
 
 // ---- CalculateSuccessfulHit (clamp 3..97) ----
-export function calculateSuccessfulHit(attacker, target, chanceToHitMod, struckBodyPart, rolls = Math.random, notes = null) {
+export function calculateSuccessfulHit(attacker, target, chanceToHitMod, struckBodyPart, rolls = Math.random, notes = null, armorPierce = 0) {
   let chance = chanceToHitMod;
   // CalculateArmorToHit (FormulaHelper.cs:1149-1161): the per-part
   // table, always. Increased/DecreasedArmorValueModifier channels pend
@@ -399,7 +402,8 @@ export function calculateSuccessfulHit(attacker, target, chanceToHitMod, struckB
   // channels are the enchantment fold's (Strengthens/WeakensArmor,
   // BadReactionsFrom) - the audit-F5 zeros, live at last.
   // SOFTCAP1: a mentored target's armour keeps its gear-scale share of its protection (mentorMode.js)
-  chance += mentorArmorValue(target, target.armorValues?.[struckBodyPart] ?? 0) + entityArmorMod(target, struckBodyPart);   // RF1: the enchantment channels and the port's points on the struck part, one read
+  const armor = mentorArmorValue(target, target.armorValues?.[struckBodyPart] ?? 0) + entityArmorMod(target, struckBodyPart);
+  chance += armor + (armorPierce > 0 ? Math.max(0, 100 - armor) * armorPierce : 0);
   // AUDIT 21 F2: the adrenaline rush is APPLIED now, in DFU's own slot
   // (FormulaHelper.cs:811, between the armour term and the stats term).
   chance += adrenalineRushToHit(attacker, target);
@@ -595,7 +599,7 @@ export function damageEquipment(attacker, target, damage, weapon, struckBodyPart
   }
 }
 
-export function calculateAttackDamage(attacker, target, { weapon = null, damageMod = 0, toHitMod = 0, backstabChance = 0, weaponAnimTime = 0, rolls = Math.random, dfRand = rand, onMonsterHit = null, onInflictPoison = null, say = null, enchantCtx = null, playerReflexes = null, unaware = false, blowInfo = null, blowShare = null, blowWeight = 1 } = {}) {
+export function calculateAttackDamage(attacker, target, { weapon = null, damageMod = 0, toHitMod = 0, backstabChance = 0, weaponAnimTime = 0, rolls = Math.random, dfRand = rand, onMonsterHit = null, onInflictPoison = null, say = null, enchantCtx = null, playerReflexes = null, unaware = false, blowInfo = null, blowShare = null, blowWeight = 1, armorPierce = 0 } = {}) {
   if (!attacker || !target) return 0;
   // SOFTCAP1: THE FOE THIS BLOW WAS TRADED WITH, remembered on the player
   // for the tallies that follow it (hit or miss - a swing at a tough foe is
@@ -635,7 +639,7 @@ export function calculateAttackDamage(attacker, target, { weapon = null, damageM
   // WIDGET-RECOIL (FIELD BUGS 2026-10-03, SlipperyPeasant: "I think the recoil module isnt working either"): a core
   // that rolls its own part hands it back (`onStruck`) - PCAAO's, on by default, rolled one the tail never saw, so the
   // struck hook said -1 on every blow and the Shield Widget's "Attack On Shield" Recoil (its default) never fired
-  const overridden = core ? core(attacker, target, { weapon, damageMod, toHitMod, backstabChance, weaponAnimTime, rolls, dfRand, onMonsterHit, onInflictPoison, say, playerReflexes, notes, onStruck: (part) => (struckPart = part), unaware, blowShare }) : undefined;
+  const overridden = core ? core(attacker, target, { weapon, damageMod, toHitMod, backstabChance, weaponAnimTime, rolls, dfRand, onMonsterHit, onInflictPoison, say, playerReflexes, notes, onStruck: (part) => (struckPart = part), unaware, blowShare, armorPierce }) : undefined;
   let damage = 0;
   // TWO-HANDS (AUDIT, bible/05-Combat/Two-Hands.md): THE BLOW'S SHARE - the off hand's (handsLaw.js offHandDamage), a
   // function of the rolled damage - laid where the blow is rolled, before anything reads it: in the stock core ahead of
@@ -731,7 +735,7 @@ export function calculateAttackDamage(attacker, target, { weapon = null, damageM
       if (before > 0 && damage === before * 3) notes.backstab = true;
     }
   } else {
-    if (calculateSuccessfulHit(attacker, target, chanceToHitMod, struck, rolls, notes)) {
+    if (calculateSuccessfulHit(attacker, target, chanceToHitMod, struck, rolls, notes, armorPierce)) {
       notes.hit = true;
       damage = weaponAttackDamage(attacker, target, damageModifiers, weapon, rolls, weaponAnimTime, { unaware: !!unaware });   // SET2: the host's word the foe had not noticed me, for the blow's port modifiers
       const before = damage;
@@ -762,6 +766,10 @@ export function calculateAttackDamage(attacker, target, { weapon = null, damageM
   // the clamped value, whatever the hit rolled.
   damageEquipment(attacker, target, damage, weapon, struck, { rolls, say });
   }   // PCO1: the stock core ends here; the tail is the callers' law
+  // The offline combat preview scales the resolved physical hit once for either combat core.
+  if (damage > 0 && !target.isPlayer && !target.peer && previewPhysicalActor(attacker)) {
+    damage = Math.round(damage * 1.20);
+  }
   // ELITE DUNGEONS: an elite foe's blows land at `damageScale` times (scenes/dungeonContext.js
   // applyEliteScaling). After either core - stock or a mod's override - so the multiplier holds
   // whichever formula rolled the hit; the concealment break and the HUD below see the real number.
@@ -784,7 +792,9 @@ export function calculateAttackDamage(attacker, target, { weapon = null, damageM
   }
   // TELL1 (bible/12-Enhanced-AI/Feud-Arc.md 3.2): what the TARGET takes - a staggered foe a quarter more - after either
   // core and every scale of the striker's, before the reports below, so they say what landed (systems/blowTaken.js)
-  damage = blowTaken(damage, attacker, target, weapon, { kind: weapon && weaponSkillUsed(weapon.templateIndex) === SKILLS.Archery ? 'arrow' : 'melee', ...(blowInfo ?? {}) });   // TELL6d: what the blow was (an aimed shot's)
+  const takenInfo = { kind: weapon && weaponSkillUsed(weapon.templateIndex) === SKILLS.Archery ? 'arrow' : 'melee', ...(blowInfo ?? {}) };
+  damage = blowTaken(damage, attacker, target, weapon, takenInfo);   // TELL6d: what the blow was (an aimed shot's)
+  damage = racialGuardDamage(damage, attacker, target, takenInfo.kind);
   // AUDIT 24 (wave 31) - A LANDED HIT ENDS THE ATTACKER'S NORMAL-POWER
   // CONCEALMENT, and it was unported at every door.
   //

@@ -31,6 +31,9 @@
 import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { repaintKeepingScroll } from './domRepaint.js';   // FB1018f SPELL-SCROLL: a pick keeps the list where it was
 import { closeOnOutsideTap } from './enhancedOverlays.js';   // OT1
+import { abilitiesEnabled } from '../combat/abilities/progress.js';
+import { buildAbilityCodex } from './abilityCodex.js';
+import { hotbarSize } from './enhancedHotbar.js';
 import { overlayAction, eventMeans } from './input.js';   // KB1: and the registry's answer for the book's own key
 import {
   spellEffects, spellPointCost, effectNotFoundText, enterSpellNameLabel,
@@ -60,6 +63,7 @@ const el = (tag, cls, text) => {
 };
 
 let host = null;
+let abilityPage = false;
 let deps = {};
 let onExit = () => {};
 let picked = 0;
@@ -202,6 +206,25 @@ function paint() {
   win.append(head);
 
   const body = el('div', 'px-body');
+  if (abilitiesEnabled() && deps.entity) {
+    const tabs = el('nav', 'sb-page-tabs');
+    tabs.setAttribute('aria-label', 'Spellbook pages');
+    for (const [label, active] of [['Spells', false], ['Abilities', true]]) {
+      const button = el('button', 'act', label);
+      button.setAttribute('aria-pressed', String(active === abilityPage));
+      button.onclick = () => { abilityPage = active; notice = null; render(); };
+      tabs.append(button);
+    }
+    win.append(tabs);
+    if (abilityPage) {
+      body.append(buildAbilityCodex(deps.entity, hotbarSize()));
+      win.append(body);
+      shell.append(win);
+      host.append(shell);
+      closeOnOutsideTap(shell, '.px-win', () => onExit());
+      return;
+    }
+  }
   const rows = bookModel(deps.spells?.() ?? [], deps.castCost);
   if (!rows.length) {
     body.append(el('p', 'px-note', 'No spells yet.'));
@@ -484,7 +507,7 @@ function onKey(e) {
     confirmDelete(yes);
     return;
   }
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+  if (!abilityPage && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
     if (!rows.length) return;
     e.preventDefault(); e.stopPropagation();
     picked = (picked + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length;
@@ -511,6 +534,7 @@ export function mountEnhancedSpellbook(hostEl, d = {}) {
   host = hostEl;
   deps = d;
   onExit = d.onExit ?? (() => {});
+  abilityPage = false;
   picked = 0;
   notice = null;
   renaming = null;
@@ -521,7 +545,7 @@ export function mountEnhancedSpellbook(hostEl, d = {}) {
   setHotbarDropMode('book', true, d.entity ?? null);   // HB1: the bar comes up under the book as a drop target
   // DIAMOND-HB: a hotbar key pressed while hovering a spell (or else the selected spell) puts it on that slot
   setHotbarPick('book', {
-    selected: () => { const sp = host && deleting === null ? bookModel(deps.spells?.() ?? [], deps.castCost)[picked]?.spell : null; return sp ? { kind: 'spell', spell: sp } : null; },
+    selected: () => { const sp = host && !abilityPage && deleting === null ? bookModel(deps.spells?.() ?? [], deps.castCost)[picked]?.spell : null; return sp ? { kind: 'spell', spell: sp } : null; },
     changed: () => { if (host) render(); },
   });
   return {

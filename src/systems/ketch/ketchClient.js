@@ -39,8 +39,7 @@ import { bodySayer } from '../../net/bossBody.js';
 import { createKetchFight } from './ketchFight.js';
 import { createKetchSky, ketchSkyPose } from './ketchSky.js';
 import { bosunLineAt } from '../../world/ketch/ketchModel.js';
-import { ketchSpoilsOf, KT_SPOILS_TEXT, KT_SPOILS_KEYS, KT_SPOILS_RECORDS_MAX, KT_SPOILS_GATHERED, ketchConstructPellets, ketchPelletsDue, KT_PELLETS_KEY } from './ketchSpoils.js';
-import { createPellets } from '../../items/thunderlock.js';   // KETCH-PELLETS: what her constructs drop
+import { ketchSpoilsOf, KT_SPOILS_TEXT, KT_SPOILS_KEYS, KT_SPOILS_RECORDS_MAX, KT_SPOILS_GATHERED } from './ketchSpoils.js';
 import { createSpoilsPool, recoverSpoils } from '../../worldEvents/spoilsPool.js';
 import { createKetchShares, ketchChestMouth } from './ketchShares.js';
 import { addItem, addGoldPieces } from '../../items/inventory.js';
@@ -203,34 +202,8 @@ export function createKetchClient(deps) {
     renderer: deps.renderer, gl: deps.gl, getTexture: deps.getTexture, uploadRecordFrame: deps.uploadRecordFrame, audio: deps.audio, link, now,
     cam: () => cam.pos, feet: () => (onShip() ? player.feetAt() : null), grounded: () => !!player.grounded, player: () => entity,
     save: deps.save, strike: (d, how) => modes()?.dungeonCtx?.strikePlayer?.(d, how), say: (t) => mid(t),
-    sendHit: (h) => !!online()?.sendKetch?.('hit', h), onStruck: () => struck(), fell: (kind, id, at) => constructFell(kind, id, at),
+    sendHit: (h) => !!online()?.sendKetch?.('hit', h), onStruck: () => struck(),
   });
-  // KETCH-PELLETS (2026-10-25, the owner: "We need more aquireable sources of deeamer pellets"): A CONSTRUCT DOWNED LAYS
-  // ITS PELLETS ON HER DECK where it fell - on this screen, for me (each hand aboard its own pile, as the share is): once a
-  // body (its id, the ship's), a voyage's capped (KT_CONSTRUCT_PELLETS_MAX), on the dungeon's own dropped loot
-  // (dungeonContext.js layRemains); with no deck to lay them on, into the pack. AUDIT KETCH II L3-1: the cap her voyage's
-  // (`ship().n`), kept on the device (KT_PELLETS_KEY) - a reload or a second crew's ship that voyage tallied on, never afresh -
-  // and a body once a ship (its room's key in its own); L3-2: the bosses pay their own (ketchPelletsDue)
-  const pelletDrops = { n: -1, ids: new Set(), given: 0 };
-  function constructFell(kind, id, at) {
-    const sh = ship();
-    if (!sh) return;
-    if (pelletDrops.n !== sh.n) {
-      let kept = null;
-      try { kept = deps.store?.get?.(KT_PELLETS_KEY) ?? null; } catch { /* none kept */ }
-      pelletDrops.n = sh.n; pelletDrops.ids.clear();
-      pelletDrops.given = kept?.n === sh.n && Number.isFinite(kept.given) ? kept.given : 0;
-    }
-    const key = `${sh.key}:${kind}:${id}`;
-    if (pelletDrops.ids.has(key)) return;
-    pelletDrops.ids.add(key);
-    const due = ketchPelletsDue(kind, ketchConstructPellets(kind), pelletDrops.given), n = due.n;
-    if (due.given !== pelletDrops.given) { pelletDrops.given = due.given; try { deps.store?.set?.(KT_PELLETS_KEY, { n: sh.n, given: due.given }); } catch { /* memory holds it */ } }
-    if (!(n > 0)) return;
-    const shot = createPellets(n);
-    try { if (modes()?.dungeonCtx?.layRemains?.([shot], [at[0], at[1], at[2]])) return; } catch (e) { console.warn('[kt] pellets', e?.message ?? e); }
-    entity.items?.push?.(shot);
-  }
   // DAGGERFALL IN THE SCENE: its own row read once (formats/mapsFile.js), its centre in its pixel (the spawns' law -
   // world/spawnedDungeons.js spawnedLocationCentreLocal), its pixel where the streaming frame stands it now
   let cityRow;

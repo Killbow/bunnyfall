@@ -1,3 +1,4 @@
+import { TEMPLATES } from '../items/itemKinds.js';
 // E1 economy: shop shelf stock + cost math (DFU DaggerfallLoot.
 // StockShopShelf / DaggerfallLootDataTables / FormulaHelper.
 // CalculateCost, MIT Daggerfall Workshop). Node-pure; the interior
@@ -54,7 +55,6 @@ import { ILIAC_CARD_TEMPLATE, CARD_PACK_TEMPLATE } from '../cards/iliacItems.js'
 import { goodOfTemplate } from '../systems/naval/tradeGoods.js';   // AUDIT CAPTAIN'S SEA B2: the exchange's goods, which no shop buys
 import { landSold } from '../justice/stolenGoods.js';   // AUDIT UPDATE II B2: the sale's own door, for the counter's arrows
 import { OIL_TEMPLATE, ARROW_TEMPLATE, addItem } from '../items/inventory.js';   // SHOP-ARROWS: the counter's quiver   // AUDIT-RR2 G10: the shelf's AddItem   // AUDIT 58: UselessItems2.Oil (ItemEnums.cs:357) - one home for the id
-import { getBool } from '../platform/settings.js';   // AUDIT 58: DaggerfallUnity.Settings.PlayerTorchFromItems, read where DFU reads it
 import { FACTION_TYPES } from '../formats/factionFile.js';        // S41: UpdateRegionalPrices' type-7 region walk
 import { findFactionByTypeAndRegion } from '../talk/talk.js';           // S41: PersistentFactionData.FindFactionByTypeAndRegion, one home
 import { MERCHANTS_FACTION_ID } from '../guilds/guilds.js';               // S41: FactionIDs.The_Merchants, one home
@@ -352,16 +352,8 @@ export function restockEndless(shelfItems, bought, buildingType = null) {
   return n;
 }
 
-/** StockShopShelf, verbatim. Returns the item list; every item
- *  carries value = its DaggerfallUnityItem base value.
- *
- *  AUDIT 58: `torchesFromItems` ports DaggerfallUnity.Settings.
- *  PlayerTorchFromItems for the oil-bottle stack clause below. Like
- *  startingGear.assignStartingGear and playerTorch.tickPlayerTorch,
- *  the DEFAULT is a point-of-use store read - a parameter with a
- *  `false` default would have been a switch every caller can forget -
- *  and an explicit argument still overrides it (the tests do). */
-export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { rolls = Math.random, torchesFromItems = getBool('Enhancements', 'PlayerTorchFromItems'), shelfIndex = 0 } = {}) {
+/** Generate shelf stock for this shop and quality. */
+export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { rolls = Math.random, shelfIndex = 0 } = {}) {
   const items = [];
   // DaggerfallUnityItem.ItemName is the TEMPLATE's name for every
   // plain item; AUDIT 18: the shelf minted rows with none, so the
@@ -469,7 +461,10 @@ export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { r
     for (let j = 0; j < metas.length; ++j) {
       const t = metas[j];
       if (t.rarity > quality) continue;
-      const stockChance = Math.trunc(chanceMod * 5 * (21 - t.rarity) / 100);
+      const template = GROUP_TEMPLATE_INDICES[group]?.[j];
+      if (group === 'UselessItems2' && template === OIL_TEMPLATE) continue;
+      const lanternBonus = group === 'UselessItems2' && template === TEMPLATES.Lantern ? 10 : 0;
+      const stockChance = lanternBonus + Math.trunc(chanceMod * 5 * (21 - t.rarity) / 100);
       if (!dice100(stockChance, rolls())) continue;
       if (group === 'Weapons') {
         // A2: `CreateWeapon(j + Weapons.Dagger, RandomMaterial(level))`
@@ -507,21 +502,6 @@ export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { r
       } else {
         const templateIndex = GROUP_TEMPLATE_INDICES[group][j];
         const it = { group, templateIndex };
-        // AUDIT 58: DaggerfallLoot.cs:246-248 - the generic mint's
-        // SECOND statement, which the port had dropped:
-        //   if (DaggerfallUnity.Settings.PlayerTorchFromItems &&
-        //       item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Oil))
-        //       item.stackCount = Random.Range(5, 20 + 1);  // Shops stock 5-20 bottles
-        // UselessItems2 rides the General Store (chance 0x32) and Pawn
-        // Shop (0x14) pair tables, so a lit-from-items player was
-        // buying single bottles where classic sells a case - and the
-        // shelf PRICE is value x stackCount, so both the cost and the
-        // lantern fuel were off by that factor. The roll is drawn ONLY
-        // when the setting is on AND the item is oil, which is C#'s
-        // own short-circuit: with the setting off the day-seeded
-        // stream is untouched.
-        if (torchesFromItems && group === 'UselessItems2' && templateIndex === OIL_TEMPLATE)
-          it.stackCount = 5 + Math.floor(rolls() * 16);   // UnityEngine.Random.Range(5, 20 + 1) - 5..20 inclusive
         add(it);
       }
     }

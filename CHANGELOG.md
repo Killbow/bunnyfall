@@ -3,6 +3,11 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-24
+
+- The combat playtest adds weapon, combination, racial, and utility abilities, with a dedicated Spellbook tab and weapon-following hotbar bindings.
+- Dwarven firearms and Dwemer Pellets have been removed. Existing copies and their hotbar entries are cleared when a character loads.
+
 ## 2026-11-23
 
 - Fixed: Spells still in flight when you leave a building no longer keep flying outside.

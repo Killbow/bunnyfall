@@ -208,10 +208,6 @@ export const BOW_NUM_FRAMES = { Idle: 1, StrikeUp: 4, StrikeDown: 7 };
  *  smoke, and three settling (THUNDERLOCK-ART2, the owner's seven; it was
  *  the sheet's six) - on every strike direction, because a gun does not
  *  care which way you dragged. */
-const TL_N = 7;   // THUNDERLOCK-ART2: the strip's frame count (combat/gun/thunderlockStrip.js) - a literal, because this leaf imports nothing (SWING-LAW: tools/neutral/build-viewer.mjs pastes it); thunderlockart2.test.js holds the two equal
-export const THUNDERLOCK_NUM_FRAMES = Object.freeze({
-  Idle: 1, StrikeDown: TL_N, StrikeDownLeft: TL_N, StrikeLeft: TL_N, StrikeRight: TL_N, StrikeDownRight: TL_N, StrikeUp: TL_N,
-});
 
 // Fix to keep unarmed attack speed consistent.
 // Previous comment referenced this being for left arm, but this is only applying to left direction attack not dual wielding unarmed left arm attacks.
@@ -311,9 +307,9 @@ export function machineCancelBowDraw(m, liveSpeed = 50) {
  * pace.
  * @returns {{ seconds: number, hitAt: number, step: number } | null}
  */
-export function blowSchedule(m, liveSpeed, animCtx = null, dt = 0) {
+export function blowSchedule(m, liveSpeed, animCtx = null, dt = 0, tempo = 1) {
   if (!m || m.state === 'Idle' || (m.ranged ?? m.isBow)) return null;
-  const tick = m.tick ?? getMeleeWeaponAnimTime(liveSpeed, animCtx);
+  const tick = (m.tick ?? getMeleeWeaponAnimTime(liveSpeed, animCtx)) / tempo;
   if (!(tick > 0) || !Number.isFinite(tick)) return null;
   const step = dt > 0 ? Math.max(1, Math.ceil(tick / dt - 1e-9)) * dt : tick;
   if (m.isUnarmed && m.state === 'StrikeLeft') {
@@ -334,7 +330,7 @@ export function strikeTicks(m) {
 }
 const holdOf = (m) => (m.hold > 0 ? m.hold | 0 : 0);
 
-export function machineStep(m, dt, liveSpeed, animCtx = null) {   // AUDIT-RR F1: the rig's { entity, weaponType, usingRightHand } for a registered GetMeleeWeaponAnimTime override
+export function machineStep(m, dt, liveSpeed, animCtx = null, tempo = 1) {   // AUDIT-RR F1: the rig's { entity, weaponType, usingRightHand } for a registered GetMeleeWeaponAnimTime override
   m.now += dt;
   const events = [];
   if (m.state === 'Idle') {
@@ -375,7 +371,7 @@ export function machineStep(m, dt, liveSpeed, animCtx = null) {   // AUDIT-RR F1
   // A gun's mechanism does not care how agile you are. Drawing a
   // bowstring does, and swinging a blade does, so both classic
   // formulas stay exactly where they were for everything else.
-  const tick = m.tick ?? (m.isBow ? CLASSIC_UPDATE_INTERVAL : getMeleeWeaponAnimTime(liveSpeed, animCtx));   // AUDIT-RR F1: FPSWeapon's own animTickTime asks FormulaHelper's override (FormulaHelper.cs:830-838); without the ctx the two mods' arms were inert on the swing that lands
+  const tick = m.isBow ? (m.tick ?? CLASSIC_UPDATE_INTERVAL) : (m.tick ?? getMeleeWeaponAnimTime(liveSpeed, animCtx)) / tempo;
   m.acc += dt;
   while (m.acc >= tick) {
     // ARROW2: ONE step per resume, the remainder dropped - FPSWeapon.

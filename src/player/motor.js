@@ -3166,7 +3166,7 @@ export class PlayerMotor {
             && this.pos[1] + this.height / 2 + 50 * 0.025 - 0.93 >= this.waterSurfaceY) {
           my = 0;
         }
-        speed = this.swimSpeedNow();
+        speed = this.swimSpeedNow() * (this.stats.racialPace?.('swim', this) ?? 1);
       } else {
         // neither swim arm: the field's resting value, levitateMoveSpeed
         speed = LEVITATE_MOVE_SPEED;
@@ -3320,6 +3320,9 @@ export class PlayerMotor {
     // while DFU's own gate, the host flag, stays true, and a proxy on
     // `sunk` would walk the swimmer at the full ground speed.
     if (this.isPlayerSwimming && !this.waterWalking) speed = swimSpeed(speed, this.stats.swimming ?? 0);
+    const pace = this.isPlayerSwimming && !this.waterWalking ? 'swim'
+      : this.isRunning ? 'run' : this.isSneaking ? 'sneak' : 'walk';
+    if (!isRiding(this.transportMode)) speed *= this.stats.racialPace?.(pace, this) ?? 1;
     if (this._rattleLeft > 0) speed *= this._rattleShare;   // TELL6e: a slam, a ring or a leap that landed rattles the walk
     this.speed = speed;   // UpdateSpeed writes the field the getter reads
     this._trackHalfSpeed(input, speed);
@@ -3435,7 +3438,7 @@ export class PlayerMotor {
         && this.transportMode !== TRANSPORT_MODES.Cart) {
       const boost = this.transportMode === TRANSPORT_MODES.Horse
         ? HORSE_JUMP_MULTIPLIER
-        : (this.jumpBoost ? this.jumpBoost() : 1);
+        : (this.jumpBoost ? this.jumpBoost() : 1) * (this.stats.racialPace?.('jump', this) ?? 1);
       this.velY = JUMP_SPEED * boost;
       if (this.crouching) this.velY *= CROUCH_JUMP_DELTA;
       if (input.forward !== 0 || input.strafe !== 0) {

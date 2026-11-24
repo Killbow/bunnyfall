@@ -12,6 +12,10 @@
 // And predictArc(...) integrates the same law from the same origin for the aiming arc (ui/heavyGearOverlay.js), so the
 // arc drawn is the path flown.
 
+import { abilityArrowAllowed } from '../abilities/previewHits.js';
+import { coverDistance } from '../../ai/cover.js';
+import { rayHit } from '../../player/groundRay.js';
+import { techniqueMotion } from '../technique/techniqueFx.js';
 import { ARROW_FLIGHT_SPEED, MISSILE_LIFESPAN_S, playerShotOrigin } from '../../magic/spellcast.js';
 import { sparedByPlayer } from '../friendlyFire.js';
 import {
@@ -62,26 +66,47 @@ export const burstMayStrike = (ref) => !!ref && !ref.dead && !sparedByPlayer(ref
  * The blast's blow is the bolt's own (the same roll a shaft makes), carried by a copy that lodges no arrow (`summoned`)
  * and pushes each body away from the spot. Answers how many it struck.
  */
-export function ballistaBurst(m, { targets = [], hit = null, effects = null } = {}) {
+export function ballistaBurst(m, { targets = [], hit = null, effects = null, collider = null } = {}) {
   if (!m?.arc || m.burst) return 0;
   m.burst = true;
   if (!(m.age <= MISSILE_LIFESPAN_S)) return 0;
   const at = [m.pos[0], m.pos[1], m.pos[2]];
-  try { effects?.showImpactFlash?.(BURST_FLASH_ARCHIVE, at, BURST_FLASH_SCALE); } catch { /* the picture is not the blow's problem */ }
+  const ability = m.technique?.ability ? m.technique : null;
+  const scale = ability?.burstScale ?? 1;
+  const radius = ability?.burstRadius ?? BURST_RADIUS;
+  try { effects?.showImpactFlash?.(BURST_FLASH_ARCHIVE, at, BURST_FLASH_SCALE * scale); } catch { /* the picture is not the blow's problem */ }
   try { _fx.play?.(at); } catch { /* nor the sound */ }
   const eye = _fx.eye?.();
   if (eye && Math.hypot(eye[0] - at[0], eye[1] - at[1], eye[2] - at[2]) < BURST_SHAKE_RANGE) {
-    try { _fx.shake?.(BURST_KICK); } catch { /* nor the shake */ }
+    try { _fx.shake?.(BURST_KICK * (ability?.burstScale ? Math.min(scale, 1.4) * techniqueMotion() : 1)); } catch { /* nor the shake */ }
   }
   if (m.visual || !m.fromPlayer || typeof hit !== 'function') return 0;
-  let n = 0;
-  for (const t of [...targets]) {
+  const candidates = [];
+  for (const t of targets) {
     const ref = t?.ref ?? t;
     const feet = t?.feet ?? ref?.ai?.feet;
-    if (!feet || !burstMayStrike(ref)) continue;
-    if (reachTo(at, feet, ref.ai?.height ?? 1.8, ref.ai?.radius ?? 0.4) > BURST_RADIUS) continue;
+    if (!feet) continue;
+    const reach = reachTo(at, feet, ref.ai?.height ?? 1.8, ref.ai?.radius ?? 0.4);
+    if (reach <= radius) candidates.push({ ref, feet, reach });
+  }
+  if (ability?.burstRadius) candidates.sort((a, b) => a.reach - b.reach);
+  const limit = ability ? Math.max(0, ability.burstCap - ability.targets.size) : Infinity;
+  let n = 0;
+  for (const { ref, feet, reach } of candidates) {
+    if (n >= limit) break;
+    if (!burstMayStrike(ref) || !abilityArrowAllowed(m, ref)) continue;
+    if (ability && collider) {
+      const to = [feet[0] - at[0], feet[1] + (ref.ai?.height ?? 1.8) / 2 - at[1], feet[2] - at[2]];
+      const distance = Math.hypot(...to);
+      const dir = unit(to);
+      const wall = ability.burstRadius
+        ? Math.min(rayHit(at, dir, distance, collider), coverDistance(collider, at, dir, distance))
+        : collider.raycast(at, dir, distance);
+      if (Number.isFinite(wall) && wall < distance - 0.05) continue;
+    }
     const away = unit([feet[0] - at[0], 0.15, feet[2] - at[2]]);
-    try { hit({ ...m, pos: at, dir: away, summoned: true, splash: true }, ref); n++; } catch (e) { console.warn('[ballista] a burst blow threw', e); }
+    const splashShare = ability?.burstRadius ? 0.66 - 0.3 * Math.max(0, reach) / radius : null;
+    try { hit({ ...m, pos: at, dir: away, summoned: true, splash: true, splashShare }, ref); n++; } catch (e) { console.warn('[ballista] a burst blow threw', e); }
   }
   return n;
 }

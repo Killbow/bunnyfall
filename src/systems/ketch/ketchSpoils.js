@@ -26,10 +26,6 @@ import { seededRng } from '../../weather/wind.js';
 import { spoilsBase } from '../../worldEvents/gateSpoils.js';
 import { applyRarity, lastPass, socketPass, weaponSocketPass, techniquePass } from '../../items/lootRarity.js';
 import { rareOrBetter } from '../../worldEvents/sdSpoilsRoll.js';
-import { createThunderlock, createPellets } from '../../items/thunderlock.js';
-import { createPistolet } from '../../items/pistolet.js';
-import { rollKetchGilded } from '../../items/gilded.js';
-import { GUNS_OFF } from '../../mods/gunsOff.js';   // BUNNYFALL: guns switched off
 import { RANDOM_TREASURE_ICONS } from '../../items/loot.js';
 import { t } from '../../ui/textManager.js';
 
@@ -39,46 +35,6 @@ export const KT_SPOILS_GOLD_PER_LEVEL = 450;
 export const KT_SPOILS_LEGENDARY = 0.25;
 /** The source the second piece is laddered at: a boss past the ladder's top, a lucky hand. */
 export const KT_SPOILS_SOURCE = Object.freeze({ boss: true, tier: 22, luck: 65 });
-/** The Pellets the Ketch's foundry pays, always: from `min` to `max`, one draw. */
-export const KT_SPOILS_PELLETS = Object.freeze({ min: 20, max: 40 });
-/** KETCH-PELLETS (2026-10-25, the owner: "We need more aquireable sources of deeamer pellets"): WHAT HER CONSTRUCTS DROP -
- *  each construct downed lays Pellets on her deck where it fell, for every hand aboard (each screen its own pile, as the
- *  share is), `{ min, max, p }` a kind: `p` the chance it drops any. The spiders pour from the vents while the engine
- *  starves, so theirs is a chance of one; the Wardens' and the Captain's a fistful. And a voyage's construct Pellets are
- *  capped (KT_CONSTRUCT_PELLETS_MAX) so no hand farms the vents. */
-export const KT_CONSTRUCT_PELLETS = Object.freeze({
-  sphere: Object.freeze({ min: 2, max: 4, p: 1 }),
-  sentry: Object.freeze({ min: 3, max: 5, p: 1 }),
-  spider: Object.freeze({ min: 1, max: 1, p: 0.35 }),
-  warden: Object.freeze({ min: 8, max: 12, p: 1 }),
-  captain: Object.freeze({ min: 10, max: 15, p: 1 }),
-  tonal: Object.freeze({ min: 15, max: 25, p: 1 }),
-});
-export const KT_CONSTRUCT_PELLETS_MAX = 90;
-/** AUDIT KETCH II L3-2: THE BOSSES PAY THEIR OWN - the Hammer Wardens, the Watch-Captain and the Tonal Warden, each once a
- *  ship: the cap holds the Watch's and the vents' alone (the farmable - the Watch's five waves and the Wardens spent it
- *  before the vents opened, and the Tonal Warden's 15 to 25 paid at a crew's fall nowhere). */
-export const KT_PELLETS_OWN = Object.freeze(['warden', 'captain', 'tonal']);
-/** AUDIT KETCH II L3-1: the device's tally of a voyage's capped Pellets - `{ n, given }`, her voyage's number - so a reload, or
- *  a second crew's ship that voyage, is never a fresh KT_CONSTRUCT_PELLETS_MAX. */
-export const KT_PELLETS_KEY = 'ketch.pellets';
-/** What construct `kind`'s `rolled` Pellets pay with `given` of the cap already paid this voyage: `{ n, given }` after. Pure. */
-export function ketchPelletsDue(kind, rolled, given) {
-  const r = Math.max(0, rolled | 0), g = Math.max(0, given | 0);
-  if (KT_PELLETS_OWN.includes(kind)) return { n: r, given: g };
-  const n = Math.min(r, Math.max(0, KT_CONSTRUCT_PELLETS_MAX - g));
-  return { n, given: g + n };
-}
-/** KETCH-PELLETS: how many Pellets construct `kind` drops on one roll source (0 for none, or an unknown kind). Pure. */
-export function ketchConstructPellets(kind, rolls = Math.random) {
-  if (GUNS_OFF) return 0;   // BUNNYFALL: no Pellets
-  const D = KT_CONSTRUCT_PELLETS[kind];
-  if (!D || !(rolls() < D.p)) return 0;
-  return D.min + Math.floor(rolls() * (D.max - D.min + 1));
-}
-/** THE GUNS: each its own draw (rare - a share a voyage at most, every ten hours: net/ketch/ketchLaw.js's voyage). */
-export const KT_THUNDERLOCK_CHANCE = 1 / 10;
-export const KT_PISTOLET_CHANCE = 1 / 8;
 /** The device's record of spoils no save holds yet, and the receipts spent - the spoils pool's two keys, the Ketch's own. */
 export const KT_SPOILS_KEYS = Object.freeze({ store: 'kt.spoils', day: 'kt.spoilsDay' });
 export const KT_SPOILS_RECORDS_MAX = 8;
@@ -108,7 +64,7 @@ function graded(item, tier, rolls) {
 }
 
 /**
- * THE SHARE for one member: `{ gold, pieces: [{ item, tier }], pellets, guns: [item], gilded: [item] }` - the same seed,
+ * THE SHARE for one member: `{ gold, pieces: [{ item, tier }] }` - the same seed,
  * level and world answer the same share.
  * @param {number} seed the receipt's `c` @param {number} level the level it fought at
  */
@@ -120,29 +76,21 @@ export function rollKetchSpoils(seed, level) {
   pieces.push(graded(spoilsBase(lv, rolls), rolls() < KT_SPOILS_LEGENDARY ? 'legendary' : 'rare', rolls));
   pieces.push(graded(spoilsBase(lv, rolls), rareOrBetter(rolls, KT_SPOILS_SOURCE), rolls));
   lastPass(pieces.map((p) => p.item), rolls);
-  const P = KT_SPOILS_PELLETS;
-  const pellets = P.min + Math.min(P.max - P.min, Math.floor(rolls() * (P.max - P.min + 1)));
-  const guns = [];
-  if (rolls() < KT_THUNDERLOCK_CHANCE && !GUNS_OFF) guns.push(createThunderlock());   // BUNNYFALL: drawn, never minted
-  if (rolls() < KT_PISTOLET_CHANCE && !GUNS_OFF) guns.push(createPistolet());
+  // Retain the reserved draws so existing receipts keep their equipment rolls.
+  rolls(); rolls(); rolls();
   socketPass(pieces.map((p) => p.item), rolls);
   weaponSocketPass(pieces.map((p) => p.item), rolls);
   techniquePass(pieces.map((p) => p.item), rolls);
-  const gilded = rollKetchGilded(rolls).filter(() => !GUNS_OFF);   // LAST OF ALL (BUNNYFALL: both are guns)
-  return { gold, pieces, pellets, guns, gilded };
+  return { gold, pieces };
 }
 
-/** The share as the pool throws it (scenes/spoilsPool.js's pieces): the pieces, the guns, the Gilded, the Pellets, then the
- *  gold - each dressed in the treasure flat the seed chooses. Pure. */
+/** The share as the pool throws it (scenes/spoilsPool.js's pieces): the equipment, then the gold - each dressed in the treasure flat the seed chooses. Pure. */
 export function ketchSpoilsList(seed, level) {
   const look = seededRng(((seed >>> 0) ^ 0x6b74) >>> 0);
   const flat = () => RANDOM_TREASURE_ICONS[Math.floor(look() * RANDOM_TREASURE_ICONS.length)];
   const s = rollKetchSpoils(seed, level);
   return [
     ...s.pieces.map((p) => ({ kind: 'item', item: p.item, tier: p.tier, record: flat() })),
-    ...s.guns.map((g) => ({ kind: 'item', item: g, tier: 'common', record: flat() })),
-    ...s.gilded.map((g) => ({ kind: 'item', item: g, tier: g.rarity ?? 'gilded', record: flat() })),
-    ...(GUNS_OFF ? [] : [{ kind: 'item', item: createPellets(s.pellets), tier: 'common', record: flat() }]),
     { kind: 'gold', gold: s.gold, tier: 'common', record: flat() },
   ];
 }

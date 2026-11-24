@@ -4972,7 +4972,7 @@
         "index": 248,
         "name": "Lantern",
         "baseWeight": 1,
-        "hitPoints": 100,
+        "hitPoints": 0,
         "capacityOrTarget": 16,
         "basePrice": 40,
         "enchantmentPoints": 600,

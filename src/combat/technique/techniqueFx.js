@@ -111,6 +111,65 @@ export const TECH_FX = f({
     release: f({ cam: f({ fov: 7, pitch: -0.6 }), sound: f(['SwingMediumPitch', 0.9, 1.1]) }),
     hit: f({ cam: f({ pitch: -1.4, fov: -3 }), hands: f({ y: 0.06 }), shake: 1.2, burst: 'trail' }),
   }),
+  skyfall: f({
+    'wind-up': f({ cam: f({ fov: -1 }), burst: 'gather' }),
+    release: f({ cam: f({ pitch: 0.6 }), hands: f({ y: 0.025 }) }),
+    loose: f({ burst: 'shock', r: 3.3, shake: 0.65 }),
+    shaft: f({ burst: 'tracer' }),
+  }),
+  verdict: f({
+    'wind-up': f({ cam: f({ fov: -3 }), hands: f({ y: 0.035 }), burst: 'gather' }),
+    loose: f({ cam: f({ pitch: 1.9, fov: -3.5 }), hands: f({ y: 0.06 }), shake: 1.5, burst: 'tracer' }),
+  }),
+  siege: f({
+    'wind-up': f({ cam: f({ fov: -2 }), hands: f({ y: 0.09 }), burst: 'gather', r: 2.2 }),
+    loose: f({ cam: f({ pitch: 2, fov: 2 }), hands: f({ y: 0.10 }), shake: 1.6, burst: 'muzzle-wave' }),
+  }),
+  flurry: f({
+    'wind-up': f({ cam: f({ fov: -1.5 }), burst: 'gather' }),
+    hit: f({ cam: f({ pitch: -0.45 }), hands: f({ y: 0.02 }), shake: 0.35, burst: 'punch' }),
+  }),
+  measure: f({
+    'wind-up': f({ cam: f({ fov: -2 }), burst: 'gather', r: 2 }),
+    release: f({ cam: f({ roll: -2.5 }), sound: f(['SwingMediumPitch', 1, 0.8]) }),
+    hit: f({ cam: f({ roll: 2.5, pitch: -0.8 }), shake: 0.8, burst: 'arc', r: 4.25 }),
+  }),
+  measureFinish: f({
+    release: f({ cam: f({ fov: 2 }), hands: f({ y: 0.04 }) }),
+    hit: f({ cam: f({ fov: -3, pitch: -1 }), shake: 1.35, burst: 'tracer' }),
+  }),
+  flurryFinish: f({
+    release: f({ cam: f({ fov: 2 }), hands: f({ y: 0.04 }) }),
+    hit: f({ cam: f({ pitch: -1.5, fov: -2 }), shake: 1.35, burst: 'muzzle-wave' }),
+  }),
+  markTarget: f({
+    hit: f({ burst: 'close', r: 1.15 }),
+  }),
+  rally: f({
+    'wind-up': f({ cam: f({ fov: -2 }), hands: f({ y: .06 }), burst: 'gather', r: 2.5 }),
+    release: f({ cam: f({ fov: 2 }), burst: 'land', r: 2.6 }),
+    hit: f({ cam: f({ fov: 1 }), burst: 'shock', r: 2.3 }),
+  }),
+  sweep: f({
+    'wind-up': f({ cam: f({ roll: -1.4 }), hands: f({ y: .045 }) }),
+    release: f({ cam: f({ roll: 1.5 }) }),
+    hit: f({ burst: 'sweep', shake: 1.1 }),
+  }),
+  quake: f({
+    'wind-up': f({ cam: f({ fov: -2.3 }), hands: f({ y: .07 }), burst: 'gather' }),
+    release: f({ cam: f({ pitch: 2, fov: 2 }) }),
+    hit: f({ burst: 'shock', shake: 2.1 }),
+  }),
+  frostRush: f({
+    'wind-up': f({ cam: f({ fov: -2 }), hands: f({ y: 0.04 }), burst: 'gather', r: 1.5 }),
+    release: f({ cam: f({ fov: 4, pitch: -0.8 }), burst: 'frost-rush', r: 1.4 }),
+    hit: f({ cam: f({ pitch: -1.1 }), shake: 0.8, burst: 'frost-rush', r: 1.9 }),
+  }),
+  ashRush: f({
+    'wind-up': f({ cam: f({ fov: -1.4 }), hands: f({ y: 0.035 }) }),
+    release: f({ cam: f({ fov: 3, roll: -1.4 }), burst: 'ash-rush', r: 1.6 }),
+    hit: f({ cam: f({ roll: 1.4 }), shake: 0.5, burst: 'ash-rush', r: 1.5 }),
+  }),
 });
 
 /** How much a technique moves the screen: the player's own "Technique camera motion" (0..1, systems/uiPrefs.js

@@ -316,7 +316,7 @@ export function createStreamWorld(shared) {
 
   /** SetAnchor (:100-117): the outer host's world half, the mounted
    *  mode's inside half, one record. */
-  function setRecallAnchor() {
+  function setRecallAnchor(key = 'anchorPosition') {
     if (madeRuleHere('mark') === 'refused') { madeSay('mark'); return; }   // WB3b: a mark in a place that ends with the day; SD5a: nor in the Hour; EG-PLAY: nor in the Spire - EG-H2: the made level's law, each in its own words
     if (shared.modes?.dungeonLocation?.superTier) { shared.sdSay(SD_NO_MARK); return; }   // AUDIT SD IV (F2): nor in a Hollow - a later one may stand on its pixel
     const inside = shared.modes?.anchorContext?.() ?? { worldContext: WORLD_CONTEXT.Exterior, local: null, buildingKey: 0, interior: null };
@@ -330,7 +330,7 @@ export function createStreamWorld(shared) {
     const wc = inDungeon ? null : state.worldCoords(pf);
     const pixel = inDungeon ? { x: state.current.x, y: state.current.y } : playerTravelPixel();
     const corner = mapPixelToWorldCoords(pixel.x, pixel.y);
-    playerEntity.anchorPosition = makeAnchor({
+    playerEntity[key] = makeAnchor({
       worldContext: inside.worldContext,
       pixel,
       nativeX: wc ? wc.x : corner.x,
@@ -353,6 +353,7 @@ export function createStreamWorld(shared) {
       buildingKey: inside.buildingKey,
       interior: inside.interior, dungeon: inside.dungeon ?? null,   // INSTANCES (the audit): a dungeon's room and layout, which the Recall hands back
     });
+    return true;
   }
 
   /** RestorePosition's landing, in the frame the arrival speaks.
@@ -374,14 +375,14 @@ export function createStreamWorld(shared) {
   };
 
   /** TeleportPlayer (:119-164) + the respawner's tail (:228-256). */
-  async function recallToAnchor() {
+  async function recallToAnchor(key = 'anchorPosition') {
     if (worldMoveBusy()) return;   // AUDIT 68 S22
     if (shared._recalling) return;
     // AUDIT ARENA-LADDER A5: NO RECALL OFF THE SAND - my bout holds me as its doors do (the duel's law: no door, no rest, no
     // travel). Recall tore the floor down under a losing bout, which went unsaid: no loss, no run lost, the climb untouched.
     if (shared.arenaBouts.holds()) { shared.townTalk.say(ARENA_TEXT.refuse.travel); return; }
     if (madeRuleHere('recall') === 'refused') { madeSay('recall'); return; }   // SD5a (Super-Dungeons.md section 7): nothing answers a Recall in the Hour - its ways are the Rift's; EG-PLAY: the Spire holds you - EG-H2: the made level's law (the court refuses the Mark alone)
-    const anchor = playerEntity.anchorPosition;
+    const anchor = playerEntity[key];
     const plan = teleportPlan(anchor, {
       ...(shared.modes?.insideContext?.() ?? { insideBuilding: false, insideDungeon: false, buildingKey: 0 }),
       pixel: playerTravelPixel(),
@@ -402,7 +403,7 @@ export function createStreamWorld(shared) {
         shared.modes?.setPlayerLocalPosition?.(anchorLanding(anchor));
         shared.cam.yaw = plan.yaw; shared.cam.pitch = plan.pitch;
         playerEntity.playerTeleportedIntoDungeon = plan.teleportedIntoDungeon;   // :216, the dungeon arm alone
-        playerEntity.anchorPosition = null;   // consumed on arrival, both DFU arms (:133)
+        playerEntity[key] = null;   // consumed on arrival, both DFU arms (:133)
         surfacePlayer();
         return;
       }
@@ -488,7 +489,7 @@ export function createStreamWorld(shared) {
       // restoreInterior runs RestoreCachedScene itself, at the moment
       // the building's key is known (PlayerEnterExit.cs:804).
       if (!landed) restoreExteriorScene(a.pixel);
-      playerEntity.anchorPosition = null;   // consumed on arrival, both DFU arms
+      playerEntity[key] = null;   // consumed on arrival, both DFU arms
       surfacePlayer();
     } finally {
       shared._recalling = false;
@@ -501,7 +502,17 @@ export function createStreamWorld(shared) {
    *  `teleportOrSetAnchor` is a TEXT.RSC ID (:32), not a localization
    *  key, so the box's line is record 4000 verbatim - Internal_RSC.csv
    *  :4819, whose one [/center] is the centring ChoiceWindow does. */
-  function teleportPrompt() {
+  function teleportPrompt(action) {
+    if (action === 'mark' || action === 'recall') {
+      if (worldMoveBusy() || shared._recalling || shared.arenaBouts.holds()) { shared.townTalk.say('Travel is already in progress.'); return false; }
+      if (action === 'recall') {
+        if (!playerEntity.wayfarerAnchor) { shared.townTalk.say('Set a Wayfarer’s Anchor first.'); return false; }
+        return recallToAnchor('wayfarerAnchor');
+      }
+      const marked = setRecallAnchor('wayfarerAnchor');
+      if (marked) shared.townTalk.say('Wayfarer’s Anchor set.');
+      return !!marked;
+    }
     shared.townTalk.showOverlay(new ChoiceWindow({
       lines: ['Do you want to Teleport or Set an Anchor?'],
       options: [

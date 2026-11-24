@@ -1,3 +1,4 @@
+import { poseStrikeRect } from './abilities/strikeMotion.js';
 // WW1 (2026-09-14, Mac: "This is our next mod I want to add 1:1 while
 // also having it work with morrowind's first person view"): WEAPON
 // WIDGET 1.6 by RedRoryOTheGlen - FPSWeaponClone, ported 1:1.
@@ -753,7 +754,7 @@ export function createWeaponWidget({
   /** OnGUI's repaint (IL 0x1424-0x1582): with the Offset module the
    *  sprite draws whatever the show clocks say (the slide takes it off
    *  screen); without it, only while the rig would show it. */
-  function draw(renderer, canvas, tint = null, { transform = null, mirror = false } = {}) {   // MAC-I: the room's light, as the sprite this clone stands in for takes it; TWO-HANDS: a pair's hand - its guard (`transform`, on the rect) and the mirror
+  function draw(renderer, canvas, tint = null, { transform = null, mirror = false, pose = null } = {}) {   // MAC-I: the room's light, as the sprite this clone stands in for takes it; TWO-HANDS: a pair's hand - its guard (`transform`, on the rect) and the mirror
     if (!ctx || !w.art || !renderer || !canvas) return false;
     if (ctx.weaponType === T.None) return false;
     // WW4 (Mac's curated fix, 2026-09-16): an applicable clone that
@@ -778,7 +779,7 @@ export function createWeaponWidget({
     if (!rec) return false;
     const tex = w.curCustomTexture?.tex ?? rec.frames[Math.min(Math.max(0, w.currentFrame), rec.frames.length - 1)];
     if (!tex) return false;
-    if (!transform && !mirror) {
+    if (!transform && !mirror && !pose) {
       renderer.drawScreenQuad(tex, getWeaponRect(), w.curAnimRect, tint ?? undefined);
       if (ctx.glow) renderer.drawScreenQuadGlow?.(tex, getWeaponRect(), w.curAnimRect, ctx.glow, { art: [rec.width, rec.height], view: [canvas.width, canvas.height] });   // WEAPON-GLOW1: the element's outline, as the sprite it stands in for draws it (the rig's ctx says it each frame), in the record's own pixels
       return true;
@@ -788,6 +789,7 @@ export function createWeaponWidget({
     let rect = pairRect(mirror);
     if (transform) rect = transform(rect);
     if (mirror) rect = mirrorRect(rect, w.screenRect.width, w.screenRect.x);
+    rect = poseStrikeRect(rect, pose, canvas.height, mirror);
     const uv = mirror ? { u0: w.curAnimRect.u1, v0: w.curAnimRect.v0, u1: w.curAnimRect.u0, v1: w.curAnimRect.v1 } : w.curAnimRect;
     renderer.drawScreenQuad(tex, rect, uv, tint ?? undefined);
     if (ctx.glow) renderer.drawScreenQuadGlow?.(tex, rect, uv, ctx.glow, { art: [rec.width, rec.height], view: [canvas.width, canvas.height] });   // WEAPON-GLOW1: this hand's own element, on its own rect and source

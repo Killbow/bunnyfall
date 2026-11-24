@@ -37,7 +37,8 @@ page.on('pageerror', (e) => errors.push(e.message));
 // effect pool are plain modules, and the page is only here to be an
 // ORIGIN the dev server will serve them from with a real WebGL2 context
 // behind it.
-await page.goto(`${BASE}/gun-proto.html`, { waitUntil: 'domcontentloaded' });
+await page.route('**/__blood_probe__', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><body></body>' }));
+await page.goto(`${BASE}/__blood_probe__`, { waitUntil: 'domcontentloaded' });
 
 const out = await page.evaluate(async () => {
   const { Renderer } = await import('/src/render/renderer.js');

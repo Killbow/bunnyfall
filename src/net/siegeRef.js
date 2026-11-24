@@ -95,7 +95,7 @@ export const SIEGE_FIGHTERS_MAX = 48;
 
 // ─── THE BUCKET (6.1: "DFU's own damage range for that weapon at that material, doubled for a critical") ───
 
-/** DFU's weapon templates (characters/weapons.js WEAPONS), and the port's own Thunderlock (its 7-26 span). */
+/** Weapon templates covered by the siege referee. */
 export const SIEGE_WEAPONS = Object.freeze({
   Dagger: 113, Tanto: 114, Staff: 115, Shortsword: 116, Wakazashi: 117, Broadsword: 118, Saber: 119, Longsword: 120,
   Katana: 121, Claymore: 122, Dai_Katana: 123, Mace: 124, Flail: 125, Warhammer: 126, Battle_Axe: 127, War_Axe: 128,
@@ -107,11 +107,6 @@ export const SIEGE_WEAPON_MAX = Object.freeze({
   113: 6, 114: 8, 115: 8, 116: 8, 117: 10, 118: 12, 119: 12, 120: 16, 121: 16, 122: 18, 123: 21, 124: 12, 125: 14,
   126: 18, 127: 12, 128: 16, 129: 17, 130: 19,
 });
-/** The Thunderlock's template and span (characters/thunderlockIds.js, weapons.js THUNDERLOCK_SPAN - pinned equal). */
-export const SIEGE_THUNDERLOCK = Object.freeze({ template: 560, max: 26 });
-/** PISTOLET: the Dwarven Pistolet's template and span (characters/thunderlockIds.js PISTOLET_SPAN - pinned equal). A gun's
- *  blow is a shot, as the Thunderlock's is (siegeIsBow). */
-export const SIEGE_PISTOLET = Object.freeze({ template: 562, max: 15 });
 /** DaggerfallUnityItem.GetWeaponMaterialModifier by material, Iron to Daedric (characters/weapons.js, pinned equal). */
 export const SIEGE_MATERIAL_MOD = Object.freeze([-1, 0, 0, 1, 2, 3, 3, 4, 5, 6]);
 /** Hand-to-hand's most at the skill's top (combat/formulas.js handToHandMaxDamage(100), pinned equal). */
@@ -142,16 +137,16 @@ export function siegeBlowMax(w, m, wa = null) {
 
 // ─── INT7: THE ARMS SIGNED (bible/06-Systems/Integrity-Arc.md, lane 2) ───
 
-/** A weapon's REACH: its top (SIEGE_WEAPON_MAX, the Thunderlock's span) plus its material's modifier (Iron's -1 to
+/** A weapon's REACH: its top (SIEGE_WEAPON_MAX) plus its material's modifier (Iron's -1 to
  *  Daedric's 6) - the one number both referees' caps grow with (arenaLaw.js arenaBlowCap's table is this one, pinned
  *  equal). Null for a template neither names. */
 export function armsTop(w, m) {
-  const top = w === SIEGE_THUNDERLOCK.template ? SIEGE_THUNDERLOCK.max : w === SIEGE_PISTOLET.template ? SIEGE_PISTOLET.max : SIEGE_WEAPON_MAX[/** @type {any} */ (w)];
+  const top = SIEGE_WEAPON_MAX[/** @type {any} */ (w)];
   if (!top) return null;
   return top + (Number.isInteger(m) && m >= 0 && m < SIEGE_MATERIAL_MOD.length ? SIEGE_MATERIAL_MOD[m] : 0);
 }
-/** The most reach a weapon has: a Daedric Thunderlock's (26 + 6) - net/identityToken.js TOKEN_ARMS_TOP_MAX, pinned equal. */
-export const ARMS_TOP_MAX = SIEGE_THUNDERLOCK.max + SIEGE_MATERIAL_MOD[SIEGE_MATERIAL_MOD.length - 1];
+/** Upper bound for the signed arms field, pinned to TOKEN_ARMS_TOP_MAX. */
+export const ARMS_TOP_MAX = 32;
 /** A signed arms claim's shape (identityToken.js `wa`): `[reach, bow]` - the reach a whole number 0..ARMS_TOP_MAX (0: no
  *  weapon), the bow 0 or 1. */
 export const armsOk = (wa) => Array.isArray(wa) && wa.length === 2 && Number.isInteger(wa[0]) && wa[0] >= 0 && wa[0] <= ARMS_TOP_MAX && (wa[1] === 0 || wa[1] === 1);
@@ -177,7 +172,7 @@ export function armsOf(items, lawful) {
   return [reach, bow];
 }
 /** Whether a template is a bow (its blow a shaft's). */
-export const siegeIsBow = (w) => w === SIEGE_WEAPONS.Short_Bow || w === SIEGE_WEAPONS.Long_Bow || w === SIEGE_THUNDERLOCK.template || w === SIEGE_PISTOLET.template;
+export const siegeIsBow = (w) => w === SIEGE_WEAPONS.Short_Bow || w === SIEGE_WEAPONS.Long_Bow;
 /** AUDIT-SEATS R8: THE HANDS - the look's two slots a weapon is wielded from (DFU's EquipSlots RightHand 19 and LeftHand
  *  21: characters/paperdoll/paperdoll.js EQUIP_SLOTS, pinned equal - this leaf imports nothing; net/remotePlayers.js composeLook
  *  writes each item's `equipSlot` off the equip table's own index). */

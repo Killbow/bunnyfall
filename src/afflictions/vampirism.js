@@ -86,7 +86,7 @@ import { spellRecordOfIndex } from '../items/loot.js';
 import { SKILLS } from '../characters/skills.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { VAMPIRE_SPELL_TAG, endOldLifeEffects, liveLycanthropy } from './lycanthropy.js';
-import { RACES, RACE_TEMPLATES, raceById } from '../characters/races.js';        // V5: the BIRTH race id keys the VAMP00I0 head; DISC10-D V5: and the birth template the compound race clones
+import { RACES, PLAYABLE_RACE_TEMPLATES, raceById, raceByKey } from '../characters/races.js';        // V5: the BIRTH race id keys the VAMP00I0 head; DISC10-D V5: and the birth template the compound race clones
 import { raceDisplayName } from '../talk/talkSession.js';   // L10N3d: the birth race's shown name
 import { EFFECT_BITS, SPECIAL_ABILITY_BITS } from '../characters/specialAdvantages.js';   // DISC10-D V5: DFCareer.EffectFlags / SpecialAbilityFlags, for CreateCompoundRace
 import { SOUND } from '../audio/soundClips.js';   // V5: the gendered attack voices
@@ -335,7 +335,8 @@ export function racialOverrideHeadArt(entity) {
     return { file: lyc.infectionType === LYCANTHROPY_TYPES.Wereboar ? 'WERE00I0.IMG' : 'WERE01I0.IMG', record: 0 };
   }
   if (liveVampirism(entity)) {
-    const raceId = RACES[entity?.race] ?? 1;   // entity.race stays the BIRTH race; the curse only overrides the NAME
+    const raceKey = raceByKey(entity?.race)?.artRace ?? entity?.race;
+    const raceId = RACES[raceKey] ?? 1;   // entity.race stays the BIRTH race; the curse only overrides the NAME
     return { file: 'VAMP00I0.CIF', record: (entity?.gender === 'female' ? 0 : 8) + raceId - 1 };
   }
   return null;
@@ -380,7 +381,7 @@ export function vampireAttackVoice(entity, rolls = Math.random) {
  *  enhanced sheet's MAC-G reader, homed here with its one consumer). */
 export function birthRaceTemplate(entity) {
   if (!entity) return null;
-  return RACE_TEMPLATES.find((r) => r.key === entity.race || r.name === entity.race)
+  return PLAYABLE_RACE_TEMPLATES.find((r) => r.key === entity.race || r.name === entity.race)
     ?? raceById(entity.raceId)
     ?? null;
 }

@@ -45,7 +45,7 @@ export function spellHandOf({ lead = 'R', right = null, left = null, leftBusy = 
   if (leftBusy) return null;
   const weaponHand = lead === 'L' ? 'L' : 'R', spellHand = otherHand(weaponHand);
   const weapon = weaponHand === 'R' ? right : left, free = spellHand === 'R' ? right : left;
-  if (!dualEligible(weapon)) return null;   // a one-handed weapon fights: a blade or a Pistolet (never a bow's, a staff's)
+  if (!dualEligible(weapon)) return null;   // a one-handed weapon fights: eligible one-handed melee weapons
   if (free?.item) return null;   // a weapon or a shield in the free hand
   return { weaponHand, spellHand };
 }

@@ -1,3 +1,4 @@
+import { drawAbilityArt } from './abilityParticles.js';
 // @ts-check
 // IMPACTFX (2026-10-05, the player: "give it a high quality effect that suits the game and the spell that sprays to the
 // ground based on the element, you have to see that it is shock and fire, water and heal like green heal lineish
@@ -65,10 +66,16 @@ export const TECH_FX_LOOK = Object.freeze({
   energy: Object.freeze({ hot: [0.92, 0.98, 1.0], main: [0.35, 0.78, 1.0], end: [0.06, 0.2, 0.55], light: [0.55, 1.1, 1.9], range: 6, lightS: 0.32 }),
   stone: Object.freeze({ hot: [1.0, 0.93, 0.78], main: [0.82, 0.62, 0.4], end: [0.22, 0.15, 0.09], light: [1.2, 0.9, 0.6], range: 4, lightS: 0.3 }),
 });
+const abilityMaterials = {
+  shadow: { ...FX_LOOK.shock, main: [.62,.27,.85], end: [.18,.05,.33] },
+  gold: { ...TECH_FX_LOOK.stone, main: [1,.76,.25] }, steel: TECH_FX_LOOK.energy,
+  moon: { ...FX_LOOK.frost, main: [.79,.72,1] }, stone: TECH_FX_LOOK.stone,
+  ember: FX_LOOK.fire, leaf: FX_LOOK.heal, wind: FX_LOOK.magic, tide: FX_LOOK.frost,
+};
 /** TECH-FX: a point - an Array or a typed array - of three finite numbers. */
 const vec3 = (v) => v != null && v.length >= 3 && Number.isFinite(v[0]) && Number.isFinite(v[1]) && Number.isFinite(v[2]);
 /** TECH-FX: the recipes `technique` knows. */
-export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close']);
+export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close', 'capstone-bloom', 'ability-art', 'strike-sweep', 'strike-thrust', 'strike-jab', 'strike-lash', 'strike-chop', 'frost-rush', 'ash-rush']);
 
 
 /**
@@ -188,6 +195,12 @@ export class SpellImpactFx {
     this.lights.push({ at: [at[0], at[1] + 0.5, at[2]], age: -(o.delay ?? 0), life: o.life ?? look.lightS, range: look.range * s, color: look.light, flick: o.flick ?? 0, fadeIn: o.fadeIn ?? 0 });
     if (this.lights.length > 8) this.lights.shift();
   }
+  _ribbon(look, from, to, width, delay, life) {
+    if (this.bolts.length >= 48) return;
+    this.bolts.push({ look, from: [...from], to: [...to], pts: [[...from], [...to]], fork: [],
+      next: Infinity, age: -delay, life, flash: .92, w: width });
+  }
+
   _bolt(look, from, to, o = {}) {
     if (this.bolts.length > 48) return;
     this.bolts.push({ look, from: [...from], to: [...to], age: -(o.delay ?? 0), life: o.life ?? 0.3, next: 0, flash: 1, w: o.w ?? 0.08, pts: [], fork: [] });
@@ -459,7 +472,7 @@ export class SpellImpactFx {
    * landings are made of, in the technique's blue and its warm stone-dust, under this engine's own caps. Answers
    * whether it drew anything.
    */
-  technique(recipe, at, { ground = null, yaw = 0, r = 2.5, dir = null, len = 0, to = null, spin = 1, half = 80 * Math.PI / 180 } = {}) {
+  technique(recipe, at, { phase = null, form = null, material = null, ground = null, yaw = 0, r = 2.5, dir = null, len = 0, to = null, spin = 1, half = 80 * Math.PI / 180 } = {}) {
     if (!vec3(at)) return false;
     if (!Number.isFinite(yaw)) yaw = 0;   // AUDIT TECH-FX: a lost facing faces +z rather than writing NaN instances
     const E = TECH_FX_LOOK.energy, S = TECH_FX_LOOK.stone;
@@ -491,6 +504,86 @@ export class SpellImpactFx {
       }
     };
     switch (recipe) {
+      case 'frost-rush': {
+        this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.15, r1: reach, life: 0.4, band: 0.1, I: 1.25 });
+        racers(12, reach * 1.4);
+        this._light(E, at, 0.6, { life: 0.2 });
+        return true;
+      }
+      case 'ash-rush': {
+        this._decal(S, floor, { shape: FX_SHAPE.ring, r0: 0.32, r1: reach, life: 0.5, band: 0.16, I: 0.65 });
+        for (let i = 0; i < 12; i++) {
+          const a = R(0, TAU), speed = R(0.9, 2.6);
+          this._part(S, floor, [Math.cos(a) * speed, R(0.35, 1.6), Math.sin(a) * speed],
+            { life: R(0.42, 0.74), w: R(0.018, 0.052), g: 0, drag: 1.8, streak: 0.045, I: R(0.6, 1.1) });
+        }
+        return true;
+      }
+      case 'ability-art': return drawAbilityArt(this, abilityMaterials[material], at, { phase, form, yaw, len, spin, dir });
+      case 'strike-thrust':
+      case 'strike-jab':
+      case 'strike-lash':
+      case 'strike-chop':
+      case 'strike-sweep': {
+        // Tapered strips are revealed in stroke order. Each strip has two fixed endpoints.
+        const count = recipe === 'strike-jab' ? 4 : 10;
+        const sign = spin < 0 ? -1 : 1;
+        const point = t => {
+          const angle = (t - .5) * 2.35;
+          let across, forward, height;
+          if (recipe === 'strike-thrust' || recipe === 'strike-jab') {
+            across = sign * (.32 - .29 * t);
+            forward = .55 + (Math.min(reach, recipe === 'strike-jab' ? 1.35 : 3) - .55) * t;
+            height = 1.08 + .2 * t;
+          } else if (recipe === 'strike-chop') {
+            across = sign * (.34 - .56 * t);
+            forward = .65 + Math.sin(t * 1.75) * reach * .6;
+            height = 1.98 - 1.58 * t * t;
+          } else {
+            across = sign * Math.sin(angle) * reach * .7;
+            forward = .3 + Math.cos(angle) * reach * .66;
+            height = 1.2 + (recipe === 'strike-lash' ? .35 * Math.sin(t * TAU) : .5 * (.5 - t));
+          }
+          return [at[0] + fx * forward + fz * across, gy + height, at[2] + fz * forward - fx * across];
+        };
+        let from = point(0);
+        for (let i = 1; i <= count && this.bolts.length < 48; i++) {
+          const t = i / count, to = point(t);
+          const look = recipe === 'strike-chop' || recipe === 'strike-jab' ? S : E;
+          this._ribbon(look, from, to, .016 + .035 * Math.sin(Math.PI * t), t * .1, .13);
+          from = to;
+        }
+        return true;
+      }
+      case 'capstone-bloom': {
+        this._decal(S, floor, { shape: FX_SHAPE.ring, r0: .35, r1: reach, life: .48, band: .07, I: 1 });
+        for (let i = 0; i < 12; i++) {
+          const a = yaw + i * TAU / 12, x = Math.sin(a), z = Math.cos(a);
+          this._part(E, [at[0] + x * .65, gy + .12, at[2] + z * .65],
+            [x * 1.4 + z, 1.8, z * 1.4 - x], { delay: (i % 3) * .045, life: .45, w: .028, g: 1, streak: .09, I: 1 });
+        }
+        return true;
+      }
+      case 'gather': {
+        this._decal(E, floor, { shape: FX_SHAPE.ring, r0: reach * 0.72, r1: 0.25, life: 0.62, band: 0.08, I: 0.9 });
+        for (let i = 0; i < 16; i++) {
+          const a = i / 16 * TAU, d = reach * R(0.4, 0.75);
+          this._part(E, [at[0] + Math.sin(a) * d, gy + R(0.2, 0.45), at[2] + Math.cos(a) * d],
+            [-Math.sin(a) * 2, R(1, 2.4), -Math.cos(a) * 2],
+            { delay: i * 0.024, life: 0.35, w: 0.025, streak: 0.09, maxLen: 0.5, g: 0, I: 1.1 });
+        }
+        return true;
+      }
+      case 'muzzle-wave': {
+        star(at, 0.55);
+        for (let i = 0; i < 2; i++) {
+          const p = at.map((n, j) => n + D[j] * i * 0.7);
+          this._decal(E, p, { n: D, shape: FX_SHAPE.ring, r0: 0.07, r1: 0.9 + i * 0.25, delay: i * 0.06, life: 0.33, band: 0.09, I: 1.3 });
+        }
+        spray(at, 14, 2, 5, 0.35);
+        this._light(E, at, 0.7, { life: 0.22 });
+        return true;
+      }
       case 'shock': {   // Ground Slam: the floor struck - two rings to its reach, a glow, the most stone and blue
         flare([at[0], gy + 0.35, at[2]], 0.9, 0.2, 1.6);
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.3, r1: reach, life: 0.45, band: 0.16, I: 1.5, hot: true });

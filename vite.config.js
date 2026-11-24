@@ -260,17 +260,6 @@ export default defineConfig({
         // the tileset tools/groundProto.mjs writes into
         // public/prototype/ground/.
         grassProto: 'grass-proto.html',
-        // THE GUN LAB (Mac, 2026-09-19): a NEW WEAPON TYPE prototyped
-        // before a line of the game changes. Its own page over our own
-        // art (public/art/gun-*), the classic 320x200 placement law and
-        // nothing else borrowed; combat/fpsWeapon.js is untouched and
-        // nothing the game runs imports src/tools/gunLab.js.
-        gunProto: 'gun-proto.html',
-        // THE PISTOL LAB (2026-10-21): the second new weapon type through
-        // the gun lab's door - a dwarven flintlock pistol, one in either
-        // hand. Our own art (public/art/pistol-frames.png); nothing the
-        // game runs imports src/tools/pistolLab.js.
-        pistolProto: 'pistol-proto.html',
         // LV1: THE ASCENSION LAB - the enhanced level-up window over a
         // made-up character, so the screen a player sees once a level
         // can be opened on demand, at any size, with no ARENA2 on disk.

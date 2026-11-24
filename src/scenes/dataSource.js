@@ -788,12 +788,7 @@ async function _openMorrowindArchives(gen) {
   } catch (err) {
     console.warn(`weapon sheathing assets: ${err.message}`);
   }
-  // FIELD-GUN-MW2: THE PORT'S OWN Morrowind assets - the Dwarven
-  // Thunderlock's mesh and texture, which no player's archives can
-  // carry because Morrowind has no firearm. Same rank and the same
-  // reason as the line above: after the loose files, so Mac dropping
-  // his own texture in REPLACES ours without a rebuild, and before
-  // every .bsa, where these names do not exist.
+  // The port's shipped Morrowind art has the same precedence as the scabbards above.
   try {
     const own = await import('../formats/ownMwAssets.js');
     archives.push(own.ownMwArchive());

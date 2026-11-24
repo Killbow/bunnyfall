@@ -1,6 +1,7 @@
 import { SKILLS, SKILL_COUNT, SKILLS_RECENTLY_RAISED_WORDS, levelUpSkillSum } from './skills.js';
 import { spellPointsFor } from '../combat/formulas.js';   // U10
 import { mintCharacterId } from './characterId.js';   // CHARID1
+import { restoreAbilityProgress } from '../combat/abilities/progress.js';
 import { CLASSIC_GAME_START_TIME } from '../world/gameDate.js';   // AUDIT 23: the skill-check anchor
 import { liveStat, STAT_KEYS_ORDER, FATIGUE_MULTIPLIER } from './statMods.js';   // wave 28: MaxMagicka reads LiveIntelligence
 import { renownHpOf, renownMpOf, foldMpOf, spireHpOf } from './renownLayer.js';   // RENOWN1: Renown's online health and magicka, on top of both live maximums; EG15: and the folds' magicka; EG-ZR: and the Spire's Stoneskin
@@ -277,6 +278,7 @@ export function applyCharacter(playerEntity, career, careerIndex, { name = caree
     // full 360-minute interval instead of passing immediately at 0.
     lastSkillCheckTime: CLASSIC_GAME_START_TIME,
     chargenDone: true,
+    wayfarerAnchor: null,
     characterId: mintCharacterId(),   // CHARID1: born with an id - a namesake can never write over this character's slot
   });
   // S3b: the level-up sums anchor at creation (SetCurrentLevelUpSkillSum
@@ -285,6 +287,7 @@ export function applyCharacter(playerEntity, career, careerIndex, { name = caree
   playerEntity.currentLevelUpSkillSum = playerEntity.startingLevelUpSkillSum;
   defineLiveMaxMagicka(playerEntity);
   defineLiveMaxHealth(playerEntity);   // DISC10-E L4: DaggerfallEntity.MaxHealth, the limiter applied
+  restoreAbilityProgress(playerEntity, null);
   return playerEntity;
 }
 

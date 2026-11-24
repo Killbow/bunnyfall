@@ -86,7 +86,6 @@ import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';
 import { enchantmentName, enchantmentParamName } from '../magic/enchantmentCatalogue.js';
 import { rollSigil, sigilOnline, SIGIL_BANDS } from './sigil.js';   // SIGIL1: a weapon won online may carry a sigil
 import { SLOT_RULES, WEAPON_HANDS } from '../characters/equipRules.js';   // LOOT14: a garment's slot - the feet lean to the feet's skills; GEM1: a weapon's hands, its sockets
-import { THUNDERLOCK_TEMPLATE } from '../characters/thunderlockIds.js';   // GEM1: the Thunderlock holds a two-hander's sockets - a leaf with no imports
 import { dressClassOf } from '../justice/clothingStanding.js';   // LOOT14: a garment's standing leans to its dress
 import { survivalOn } from '../systems/survival/switch.js';   // LOOT14: the warmth and weatherproof lines' reader - a leaf
 import { hoodCapable } from '../systems/survival/temperature.js';   // LOOT15: Unseen answers a hood (HOOD-SAID's one law)
@@ -2007,7 +2006,7 @@ export function socketMax(item) {
   if (isAmmunition(item)) return 0;
   const t = item.templateIndex;
   if (weaponSkillUsed(t) === SKILLS.ShortBlade) return WEAPON_SOCKETS.short;
-  return WEAPON_HANDS[t] === 'Both' || t === THUNDERLOCK_TEMPLATE ? WEAPON_SOCKETS.two : WEAPON_SOCKETS.one;
+  return WEAPON_HANDS[t] === 'Both' ? WEAPON_SOCKETS.two : WEAPON_SOCKETS.one;
 }
 /** GEM1: how many this piece may carry at its tier - a Rare's or a Legendary's its size; a Magic WEAPON one (the weapons'
  *  pass gives it); none else. */

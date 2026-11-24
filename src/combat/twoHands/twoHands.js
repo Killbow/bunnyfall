@@ -1,3 +1,4 @@
+import { poseStrikeRect } from '../abilities/strikeMotion.js';
 // TWO-HANDS (2026-10-16): THE SPRITE LANE'S TWO HANDS - both fists up, a pair of weapons, and the hands that run.
 // Design and record: bible/05-Combat/Two-Hands.md; the law (which hand strikes, the mirror, the guard, the pump):
 // combat/twoHands/handsLaw.js. Wired by combat/weapon/weaponRig.js, the one surface all four hosts mount (THE FOUR HOSTS RULE: world.js,
@@ -144,12 +145,13 @@ export function createTwoHands({ audio = null, envHit = null, missEffect = null,
    * One hand of a pair through the CLASSIC sprite - FPSWeapon's own placement of its picture's frame, unflipped, the
    * mirror over it when the picture asks one and the guard on the screen. Returns the rect it drew, or null.
    */
-  function drawClassicHand(renderer, canvas, hand, art, { tint = null, offsetHeight = 0, glow = null } = {}) {
+  function drawClassicHand(renderer, canvas, hand, art, { tint = null, offsetHeight = 0, glow = null, pose = null } = {}) {
     const v = views[hand];
     const q = fpsWeaponQuad(canvas, art, v.state, v.frame, { flipHorizontal: false, offsetHeight });
     if (!q) return null;
     const mirror = mirrorOf(hand, painted(v.state));
-    const rect = moved(mirror ? mirrorRect(q.rect, canvas.width) : q.rect, nudge(hand, canvas, q.rect.h, v.state !== 'Idle'));
+    const base = moved(mirror ? mirrorRect(q.rect, canvas.width) : q.rect, nudge(hand, canvas, q.rect.h, v.state !== 'Idle'));
+    const rect = poseStrikeRect(base, pose, canvas.height, mirror);
     const uv = mirror ? MIRROR_UV : q.uv;
     renderer.drawScreenQuad(q.tex, rect, uv, tint ?? undefined);
     // WEAPON-GLOW1 (bible/05-Combat/Weapon-Glow.md): this hand's own weapon's element, its outline over its own picture -
@@ -167,7 +169,7 @@ export function createTwoHands({ audio = null, envHit = null, missEffect = null,
    * to any picture that takes the hands). `only` draws that one hand alone (MIXED-PAIR: a blade-and-gun pair's blade - its
    * gun is drawn on the gun's own frame, in this order: combat/weapon/weaponRig.js). True when it owned the seam.
    */
-  function drawPair(renderer, canvas, { widget = null, widgetOn = false, artFor, glowFor = () => null, shown = true, tint = null, offsetHeight = 0, running = st.run.w > 0, only = null } = {}) {
+  function drawPair(renderer, canvas, { widget = null, widgetOn = false, artFor, glowFor = () => null, shown = true, tint = null, offsetHeight = 0, running = st.run.w > 0, pose = null, only = null } = {}) {
     if (!renderer || !canvas || !twoHanded(st.mode)) return false;
     // the running hands own the fists (drawRun, before this) - all but a punch thrown on the run, drawn here over them
     for (const hand of drawOrder()) {
@@ -175,8 +177,9 @@ export function createTwoHands({ audio = null, envHit = null, missEffect = null,
       const clone = hand === 'R' ? widget : offWidget;
       const shows = clone?.state ?? 0;   // the record the clone draws - it plays its strike a frame behind the machine
       const mirror = mirrorOf(hand, paintedAt(shows));
-      if (widgetOn && clone?.draw(renderer, canvas, tint, { transform: (r) => moved(r, nudgeBefore(hand, canvas, mirror, r.h, shows !== 0)), mirror })) continue;
-      if (shown) drawClassicHand(renderer, canvas, hand, artFor(hand), { tint, offsetHeight, glow: glowFor(hand) });
+      const strikePose = hand === st.strikeHand ? pose : null;
+      if (widgetOn && clone?.draw(renderer, canvas, tint, { pose: strikePose, transform: (r) => moved(r, nudgeBefore(hand, canvas, mirror, r.h, shows !== 0)), mirror })) continue;
+      if (shown) drawClassicHand(renderer, canvas, hand, artFor(hand), { tint, offsetHeight, glow: glowFor(hand), pose: strikePose });
     }
     return true;
   }

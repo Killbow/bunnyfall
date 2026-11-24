@@ -18,7 +18,6 @@
 // Physical Combat overhaul's model when it is on) - never a flat damage. A miss is still a miss.
 
 import { weaponSkillUsed } from '../../characters/weapons.js';
-import { isGunTemplate } from '../../characters/thunderlockIds.js';
 import { SKILLS } from '../../characters/skills.js';
 import { RRI_CLASSES } from '../../mods/rriItems.js';   // AUDIT TECH1: an RRI class answers its family whatever its switch says
 
@@ -28,7 +27,7 @@ export const GAUNTLETS_TEMPLATE = 103;
 /** The families a piece belongs to, by the skill it swings with - DaggerfallUnityItem.GetWeaponSkillUsed's answer
  *  (characters/weapons.js weaponSkillUsed, an RRI custom class's own included). The Thunderlock is scored on Archery
  *  (its departure) but is a gun: it has a family of its own, so a volley of pellets never rains. */
-export const TECHNIQUE_FAMILIES = Object.freeze(['archery', 'thunderlock', 'longBlade', 'shortBlade', 'axe', 'blunt', 'handToHand']);
+export const TECHNIQUE_FAMILIES = Object.freeze(['archery', 'longBlade', 'shortBlade', 'axe', 'blunt', 'handToHand']);
 const FAMILY_OF_SKILL = new Map([
   [SKILLS.Archery, 'archery'], [SKILLS.LongBlade, 'longBlade'], [SKILLS.ShortBlade, 'shortBlade'],
   [SKILLS.Axe, 'axe'], [SKILLS.BluntWeapon, 'blunt'], [SKILLS.HandToHand, 'handToHand'],
@@ -40,7 +39,6 @@ export function techniqueFamily(item) {
   if (!item || typeof item !== 'object') return null;
   if (item.group === 'Armor') return item.templateIndex === GAUNTLETS_TEMPLATE ? 'handToHand' : null;
   if (item.group !== 'Weapons' || !Number.isInteger(item.templateIndex)) return null;
-  if (isGunTemplate(item.templateIndex)) return 'thunderlock';   // PISTOLET: the guns' family - the Pistolet takes the Thunderlock's Piercing Shot, never a volley
   // AUDIT TECH1: a Roleplay & Realism class is its class with its switch off too - the piece in the pack is still that
   // weapon, and a family that came and went with a mod's switch made its line read as a forgery and its Reforge refuse
   const rri = RRI_CLASSES[item.templateIndex];
@@ -96,7 +94,7 @@ const DEG = Math.PI / 180;
 export const TECHNIQUES = Object.freeze({
   volley: Object.freeze({ name: 'Volley', families: Object.freeze(['archery']), mech: 'rain', aim: 'ground', base: 0.5, fatigue: 6, cooldown: 16,
     arrows: 6, radius: 3.5, range: Object.freeze([6, 28]), height: 16, delay: 0.55, spread: 1.35 }),   // AUDIT TECH1: 0.27 s a shaft - never five in a second (an arena's referee lands four: net/arena/arenaLaw.js ARENA_HIT_HZ_MAX)
-  pierce: Object.freeze({ name: 'Piercing Shot', families: Object.freeze(['archery', 'thunderlock']), mech: 'pierce', aim: 'lane', base: 1.2, fatigue: 4, cooldown: 10,
+  pierce: Object.freeze({ name: 'Piercing Shot', families: Object.freeze(['archery']), mech: 'pierce', aim: 'lane', base: 1.2, fatigue: 4, cooldown: 10,
     through: 5, length: 30, speed: 1.6 }),
   leap: Object.freeze({ name: 'Leap Strike', families: Object.freeze(['longBlade']), mech: 'leap', aim: 'target', base: 1.4, fatigue: 5, cooldown: 12,
     range: Object.freeze([3, 9]), apex: 1.6, radius: 2.5, strike: 'StrikeDown', toHit: 20 }),
