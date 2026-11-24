@@ -17,10 +17,11 @@
 // The streaming host constructs it (scenes/world.js) - the one host with the Overworld; scenes/exterior.js,
 // scenes/worldModes.js and scenes/dungeonContext.js raise no Overworld.
 import { weatherAt, forecastAt } from './weatherMap.js';
-import { weatherMapOn } from './weatherSim.js';
+import { weatherMapOn, precipLawOn } from './weatherSim.js';
 import { fieldFromNative } from './weatherField.js';
 import { wayStillToWalk } from '../travel/travelRoute.js';
 import { samplesAlong, routeForecast, routeLine, hereLine, paceMeter, wayMinuteAt, FORECAST_NOTABLE, HERE_HOURS, HERE_STEP_MIN } from './owForecast.js';
+import { textRevision } from '../ui/textManager.js';
 
 /** How often a new pass over the way is begun, real milliseconds. */
 export const FORECAST_EVERY_MS = 2000;
@@ -84,6 +85,13 @@ export function createOverworldForecast(host) {
     if (k >= 0) fc.steps[k] = { ...fc.steps[k], at: changeAt(x, z, k ? fc.steps[k - 1].at : m, fc.steps[k].at, k ? fc.steps[k - 1].word : fc.now.word, (px, pz, mm) => wordAt(px, pz, mm, a)) };
     return hereLine(fc);
   };
+  // Any new input to hereAt must join this key, or the standing line goes stale.
+  let hereKept = { key: '', line: '' };
+  const hereNow = (n, minute, a) => {
+    const key = `${n.x},${n.z},${a},${Math.floor(minute)},${textRevision()},${precipLawOn()}`;
+    if (key !== hereKept.key) hereKept = { key, line: hereAt(n, minute, a) };
+    return hereKept.line;
+  };
   const off = () => { pace.reset(); pass = null; kept = { at: -Infinity, line: '', plan: null, route: false }; return ''; };
   /** A pass over the way ahead begun now, or null where the way cannot be read (no journey, no pace yet). */
   function begin(n, minute, fx, fz) {
@@ -119,7 +127,7 @@ export function createOverworldForecast(host) {
         pass = driving ? begin(n, minute, fx, fz) : null;
         // standing, stopped, or the pace not yet measured: here - and here too while a new journey's first pass reads its
         // way, so the line of the journey that ended is never said of the next (AUDIT OW-REVISITED L3-8)
-        if (!pass || changed) kept = { at: nowMs, line: hereAt(n, minute, alt()), plan, route: false };
+        if (!pass || changed) kept = { at: nowMs, line: hereNow(n, minute, alt()), plan, route: false };
         if (!pass) return kept.line;
       }
       if (pass) {

@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: The Overworld now causes fewer brief stutters while stopped on slower computers.
 - The combat playtest adds weapon, combination, racial, and utility abilities, with a dedicated Spellbook tab and weapon-following hotbar bindings.
 - Dwarven firearms and Dwemer Pellets have been removed. Existing copies and their hotbar entries are cleared when a character loads.
 
