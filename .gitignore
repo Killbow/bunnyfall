@@ -130,3 +130,5 @@ devenv.local.yaml
 # pre-commit
 .pre-commit-config.yaml
 
+# Local codex index and DFU C# reference cache
+.cache/

@@ -9,18 +9,21 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   kept as reference: change the `selfhost/` ones.
 - **The client finds its servers** through `src/net/selfHost.js`: from the page's own address, else the domain.
 - **Start with `docs/GUIDE.md`**: the short, Bunnyfall-only map of the repo, the rules and where each feature lives.
-- **The bible is upstream reference.** `bible/` describes DFO Online and keeps its name. Read it to understand a
-  system, but it does not bind this fork's process (no patch notes, no STE, no upstream CI).
+- **Query `codex` before grepping large files.** The `codex` MCP server (`.mcp.json`) and `npm run codex -- <cmd>`
+  index modules, HTTP routes, WebSocket frames, save hooks, and SQLite migrations live and serve 798 reference cards in
+  `tools/codex/cards/` (pass any older `bible/...` comment path to `npm run codex -- bible <path>`). Run
+  `npm run codex -- diff main HEAD` before finishing a branch, update or add a `<= 250`-word card when changing rules or
+  adding a subsystem, and verify with `npm run codex:check`.
 - **ARENA2 is freeware**: `sh tools/fetch-data.sh` puts it at `/home/claude/dfdata/arena2` (never in the repo). Set
   `ARENA2_PATH` to it before work that reads the game's files.
-- **The hosts do not grow** (`bible/01-Overview/Host-Split.md`): new behaviour goes into a module the host wires, never
-  into `bootWorld`, `createWorldModes`, `buildDungeonContext`, `bootExterior` and the other hosts listed there.
+- **Keep host files small**: put new subsystems into dedicated modules wired by `bootWorld`, `createWorldModes`,
+  `buildDungeonContext`, `bootExterior`, or `Room`, and check `node tools/worldBudgetCheck.mjs`.
 - **New account-service route**: add it to `ROUTES` in `server-account/src/service.js` as well as the handler in
   `index.js`, or the service answers `not-found`. Check with `node tools/routesCheck.mjs` (see `docs/GUIDE.md`).
 - **Changelog**: a change players will notice gets a plain-words line in `CHANGELOG.md` (newest day first). Each desktop
   release's patch notes are the lines added since the previous release (`scripts/changelogNotes.mjs`).
-- **Before a push**: lint on the changed files and `npm run build`. There is no CI and no test suite: the old one was
-  upstream's and was removed. Check a change by reading it and, when it matters, trying it in the game.
+- **Before a push**: run `npm run check` (lint, `worldBudgetCheck.mjs`, `routesCheck.mjs`, `codex:check`, type checks,
+  and `vite build`), and test gameplay changes in the browser.
 - **Content switched off** (Phase 2) lives in `src/mods/contentOff.js`: one list the client and the relay both read.
   Flip a flag to bring a piece back.
 - **Adding a DFU mod** (`.dfmod`): `node tools/importDfmod.mjs <file.dfmod>` unpacks it into `vendor/<mod>/` (manifest,

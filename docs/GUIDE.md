@@ -1,7 +1,7 @@
 # Bunnyfall guide
 
-The short version of how this repo works. It replaces the bible for day-to-day work: read this first, grep the code
-second, and open `bible/` only when a comment points you there.
+The short version of how this repo works. Read this first, query `npm run codex` (or the `codex` MCP server in
+`.mcp.json`) second, and inspect the target modules from there.
 
 Bunnyfall is a self-hosted fork of DFO Online (Daggerfall in the browser) for a small group of friends. It is live at
 https://dagg.campfirerp.com/play/ and runs on the owner's Linux box.
@@ -29,6 +29,19 @@ The client finds the servers from the page's own address (`src/net/selfHost.js`)
   anything that reads the game's files. It never goes in the repo.
 - There is no test suite and no CI gate. Check a change by reading it and, when it matters, trying it in the game.
   `tools/*Probe.mjs` are small browser or node probes if you want one.
+
+## Using and updating codex
+
+`tools/codex/` exposes the same live index and 798 reference cards over MCP (`.mcp.json`, server name `codex`) and the terminal (`npm run codex -- <cmd>`):
+
+- `npm run codex -- module <path>`: exports, imports, inbound callers, and line or binding counts.
+- `npm run codex -- routes [filter]`: `/v1/*` HTTP routes, WebSocket room frames, and save hooks with `file:line`.
+- `npm run codex -- schema [filter]`: SQLite D1 tables, columns, indexes, triggers, migrations, and room keys.
+- `npm run codex -- cards <query>` / `npm run codex -- card <slug>`: search or read `<= 250`-word reference cards (or pass an older `bible/...` comment path to `npm run codex -- bible <path>`).
+- `npm run codex -- dfu-fetch` then `dfu-search <query>` / `dfu-read <File.cs:start-end>`: search or read classic Daggerfall Unity C# scripts in `.cache/dfu-scripts/`.
+- `npm run codex -- diff main HEAD`: list cards affected by your branch (`impactedCards`) and new modules without a card (`uncoveredFiles`).
+
+When your PR changes an invariant, route, SQLite table, or file path covered by a card (or adds a new subsystem), update or create `tools/codex/cards/<slug>.md` via `codex_card` (`action: "write"`) or `npm run codex -- card <slug> --write <draft.md>`, then run `npm run codex:check`.
 
 ## Shipping
 

@@ -82,5 +82,5 @@ export default [
     },
   },
   // generated and gitignored trees the lint paths above reach into
-  { ignores: ['app/release/**', 'tools/parity/dfu/**', 'tools/parity/cs/api/**', 'tools/parity/out/**'] },
+  { ignores: ['app/release/**', 'tools/parity/dfu/**', 'tools/parity/cs/api/**', 'tools/parity/out/**', '.cache/**'] },
 ];
