@@ -3,6 +3,17 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-25
+
+- Abilities now aim for you a little: they lock onto the enemy you are looking at, so swings turn toward it, leaps and dashes land on it, and ability arrows bend toward it.
+- Leaping abilities now land on their target and strike it even if it moved. Falling Moon, Vault Strike, Harebound, Predator's Pounce and Judgement Bastion leap farther and higher, and Vaulting Riposte, Untouchable Waltz and Chain Flicker hop to the enemy's side.
+- Every hit of a normal weapon or combination ability now deals clearly more than a plain attack, including abilities with several hits.
+- Wayfarer's Anchor Mark leaves a lit lantern on the ground where you set it, until Recall takes you back.
+- Abilities have their own weapon swings and new sounds.
+- The spellbook's Abilities page is now a book: a searchable list on the left and the chosen ability on the right, with its cost, recovery and damage, and one click to put it on the hotbar.
+- The Spells page now shows the spell list, the spell's animation and its details side by side, and the list scrolls on its own.
+- Standing still, your weapon now breathes a little more visibly.
+
 ## 2026-11-24
 
 - New: The main owner of a house can add their other characters as co-owners at its door. If the main owner is deleted, the first co-owner with room for another house takes over, or deletion is refused if none has room.
