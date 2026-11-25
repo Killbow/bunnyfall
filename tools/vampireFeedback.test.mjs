@@ -39,6 +39,12 @@ test('a Garlythi always gains real Vitae from poor blood', () => {
   assert.ok(fed.vitae - 20 >= Math.ceil(FEEDS.sip.vitae * 0.5), `a poor feed gives at least half (got ${fed.vitae - 20})`);
 });
 
+test('a landed blow lifts a Starving vampire out of the Starving band', () => {
+  const v = vampire(150, 0);
+  for (let i = 0; i < 8; i++) feedVampire(v, { kind: 'wound', type: 'beast', quality: 40, now: 0 });
+  assert.ok(vitaeNow(v, 0) >= 25, 'eight blows reach Hungry');
+});
+
 test('blood at a glance: a quality word and a tag', () => {
   assert.equal(bloodQualityName(10), 'thin');
   assert.equal(bloodQualityName(99), 'potent');

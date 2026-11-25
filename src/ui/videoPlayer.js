@@ -278,6 +278,23 @@ function defaultListen(onAnyKey) {
   return () => { for (const ev of events) window.removeEventListener(ev, handler); };
 }
 
+/** A full-screen video owns the screen: the page's DOM overlays (hotbar, chat, buffs, trackers, notices) are hidden for
+ *  its length (the vampire's burial scene played under them). */
+const VIDEO_CLASS = 'vid-playing';
+const VIDEO_HIDES = ['.hud', '.dfchat', '.qtrack', '.dfparty', '.notice-stack', '.wb-boss-bar', '.rvncard-stack', '.lootbanner-stack'];
+function coverOverlays(on) {
+  if (typeof document === 'undefined' || !document.documentElement) return;
+  try {
+    if (on && !document.getElementById('vid-playing-style')) {
+      const style = document.createElement('style');
+      style.id = 'vid-playing-style';
+      style.textContent = `${VIDEO_HIDES.map((s) => `html.${VIDEO_CLASS} ${s}`).join(',')} { visibility: hidden !important; }`;
+      document.head?.append(style);
+    }
+    document.documentElement.classList.toggle(VIDEO_CLASS, on);
+  } catch { /* a page without a DOM has nothing to hide */ }
+}
+
 /**
  * Play one VID over the whole screen and resolve when it is done - the
  * DaggerfallVidPlayerWindow shape: it owns the frame loop for its lifetime,
@@ -300,6 +317,7 @@ export function playVideo(canvas, renderer, bytes, {
     // the `player.play` guard above resolves WITHOUT going through
     // finish(), so a mute raised before it would never be lifted and
     // one undecodable VID would silence the game for good.
+    coverOverlays(true);
     music.setMuted(true);        // DaggerfallSongPlayer.cs:356-362
     muteAmbientForVideo();       // AmbientEffectsPlayer.cs:536-549
 
@@ -314,6 +332,7 @@ export function playVideo(canvas, renderer, bytes, {
       // (:134 any key / back button, :150 end of file). Here it heads
       // finish(), which is the one door all three exits take: end of
       // file, any key/back, and the AUDIT 19 error boundary.
+      coverOverlays(false);
       music.setMuted(false);     // DaggerfallSongPlayer.cs:364-369
       unmuteAmbientForVideo();   // AmbientEffectsPlayer.cs:551-554
       detach();

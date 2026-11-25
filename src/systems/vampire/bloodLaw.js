@@ -27,8 +27,8 @@ export const VITAE_MAX = 100;
 /** The Vitae an awakened vampire starts with (the Elder's gift). */
 export const VITAE_AWAKENED = 75;
 /** Vitae lost per day of the character's own clock (online: a day is one real hour). Full to empty in five days (it was
- *  30 a day, three: the playtest found a vampire forever scrambling to feed). */
-export const VITAE_DRAIN_PER_DAY = 20;
+ *  30 a day, three, then 20; a second playtest still found adventuring too costly, so 12: eight days). */
+export const VITAE_DRAIN_PER_DAY = 12;
 /** TIME SKIPPED (a journey, a loiter, a rest: the clock raised in one jump). Only a span up to TRAVEL_SPAN_DAYS drains
  *  at the full rate; the rest of a longer jump drains at TRAVEL_DRAIN_MUL of it, and never takes the Vitae under
  *  TRAVEL_DRAIN_FLOOR (the Hungry stage's floor): a carriage ride no longer arrives Starving. */
@@ -219,7 +219,7 @@ export const FEEDS = Object.freeze({
   /** PHASE 2: a bottled vial drunk - stale blood (thrallLaw.js VIAL_VITAE). */
   vial: Object.freeze({ vitae: 18, relief: false }),
   /** A landed blow on a creature or a foe: a mouthful in the fight. */
-  wound: Object.freeze({ vitae: 2, relief: false }),
+  wound: Object.freeze({ vitae: 4, relief: true }),
 });
 
 /** Whether a Ravenous or Starving Beast lets you feed with a cool head: at those stages the Kiss is harder. The chance

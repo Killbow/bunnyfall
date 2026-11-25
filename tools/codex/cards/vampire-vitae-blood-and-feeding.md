@@ -20,7 +20,7 @@ related:
   - online-time-lycanthropy-and-vampire-nights
   - quest-guide-herald-and-tracker
 invariants:
-  - "Vitae drains `VITAE_DRAIN_PER_DAY` (20) per own-clock day. In `settle`, only the first `TRAVEL_SPAN_DAYS` (0.1) of one jump drains at full rate; the rest drains at `TRAVEL_DRAIN_MUL` (0.25) and never below `TRAVEL_DRAIN_FLOOR` (25)."
+  - "Vitae drains `VITAE_DRAIN_PER_DAY` (12) per own-clock day. In `settle`, only the first `TRAVEL_SPAN_DAYS` (0.1) of one jump drains at full rate; the rest drains at `TRAVEL_DRAIN_MUL` (0.25) and never below `TRAVEL_DRAIN_FLOOR` (25)."
   - "`spendMindCloud` always lets an awakened vampire give the Kiss, spending whatever Vitae is left (0 allowed); the Beast's `KISS_SLIP` is the price."
   - "`feedVampire` gives at least `BANE_FLOOR` (half) of a feed of 10+ Vitae unless the clan's bane multiplier is exactly 0 (Anthotis on beast blood). Garlythi poor blood is `GARLYTHI_POOR` (0.6)."
   - "`FED_TODAY` marks a person only through `onFed`, after `feedVampire` ran: Leave never marks, and a feed is per person (a sleeper's own id), never per house."

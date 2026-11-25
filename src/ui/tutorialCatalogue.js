@@ -602,9 +602,9 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'vampire-awakened', group: 'vampire', title: 'Vitae and the Beast', trigger: 'When the Elder awakens the Beast in you.',
     body: [
-      'Vitae is your blood, from 0 to 100. It drains slowly with time, about 20 a day, and faster in a Haarvenu. Journeys and loitering drain it gently. The Kiss, thralls and your powers spend it.',
+      'Vitae is your blood, from 0 to 100. It drains slowly with time, about 12 a day, and faster in a Haarvenu. Journeys and loitering drain it gently. The Kiss, thralls and your powers spend it.',
       'As Vitae falls the Beast rises: Sated from 70, Thirsty from 45, Hungry from 25, Ravenous from 10, Starving at 0. A Starving vampire cannot rest or use powers, and the Beast makes you strong but hard to talk to.',
-      'Feed to fill it. A drink gives about 30 Vitae and a drain about 60. Landing blows on foes gives only a mouthful.',
+      'Feed to fill it. A drink gives about 30 Vitae and a drain about 60. Landing blows on foes gives a few Vitae, and works even when Starving, so a fight can pull you back.',
     ],
   }),
   page({
