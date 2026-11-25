@@ -5,6 +5,7 @@ import { abilityLoad, learnedAbility } from './progress.js';
 import { utilityProfile } from './utilityProfiles.js';
 import { playerDoor } from '../../player/playerDoor.js';
 import { removeBundleNamed } from '../../magic/effects.js';
+import { placeWayfarerLantern, stepWayfarerLantern } from './wayfarerLantern.js';
 
 const timers = new WeakMap();
 const trailName = abilityById('utility.trailblazer').name;
@@ -21,6 +22,7 @@ export function utilityCooldown(entity, id) {
 }
 
 export function stepUtilityTimers(entity, dt) {
+  stepWayfarerLantern(entity, dt);
   if (localAbilityActor(entity, abilityLoad(entity)) && entity.activeEffects?.some(effect => effect.bundleName === trailName)) {
     const door = playerDoor();
     if (door?.player?.() === entity && hostileNearby(door)) removeBundleNamed(entity, trailName);
@@ -68,6 +70,7 @@ export function requestUtility(entity, id, door = playerDoor()) {
     if (result === false) return { ok: false, why: 'unavailable' };
     const state = startCooldown(entity, id, profile.cooldownMs);
     const travelArt = () => {
+      if (profile.travel === 'mark') placeWayfarerLantern(entity, door);
       const at = door.feet?.();
       if (at) showAbilityArt(door, id, 'self', [at[0],at[1]+1,at[2]], { yaw: door.facingYaw?.() ?? 0 });
     };

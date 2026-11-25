@@ -455,3 +455,41 @@ test('offline preview reaches the weapon machine and restores cleanly between sa
   stepAbilityRig(0, tc);
   assert.equal(pw.techniqueBlow.cancelled, true);
 });
+
+test('Wayfarer’s Anchor Mark leaves a lantern on the ground there until Recall consumes the anchor', (t) => {
+  const old = globalThis.location;
+  globalThis.location = { search: '?abilities' };
+  t.after(() => { if (old) globalThis.location = old; else delete globalThis.location; setPlayerDoor(null); });
+  const entity = { ...makeEntity(), items: [], magicka: 0 };
+  entity.skills[SKILLS.Archery] = 30;
+  restoreAbilityProgress(entity, null, true);
+  syncAbilityUnlocks(entity);
+  let feet = [4, 1, 9];
+  const lanterns = [];
+  const door = {
+    player: () => entity, feet: () => feet, fx: (recipe, at) => { if (recipe === 'wayfarer-lantern') lanterns.push([...at]); },
+    utilityTravel: action => {
+      if (action === 'mark') entity.wayfarerAnchor = makeAnchor({ pixel: { x: 1, y: 1 }, nativeX: 4, nativeZ: 9, y: 1 });
+      else entity.wayfarerAnchor = null;
+      return true;
+    },
+  };
+  setPlayerDoor(door);
+  assert.equal(requestUtility(entity, 'utility.wayfarers-anchor-mark', door).ok, true);
+  feet = [20, 1, 30];
+  for (let i = 0; i < 8; i++) stepUtilityTimers(entity, .25);
+  assert.ok(lanterns.length >= 3, 'the lantern keeps burning while the player is near');
+  assert.ok(lanterns.every(at => at[0] === 4 && at[1] === 1 && at[2] === 9), 'at the marked spot, not the player');
+  feet = [400, 1, 30];
+  const seen = lanterns.length;
+  for (let i = 0; i < 8; i++) stepUtilityTimers(entity, .25);
+  assert.equal(lanterns.length, seen, 'not drawn from far away');
+  setPlayerDoor({ ...door });
+  feet = [4, 1, 9];
+  for (let i = 0; i < 8; i++) stepUtilityTimers(entity, .25);
+  assert.equal(lanterns.length, seen, 'not drawn in another scene');
+  setPlayerDoor(door);
+  assert.equal(requestUtility(entity, 'utility.wayfarers-anchor-recall', door).ok, true);
+  for (let i = 0; i < 8; i++) stepUtilityTimers(entity, .25);
+  assert.equal(lanterns.length, seen, 'Recall puts the lantern out');
+});
