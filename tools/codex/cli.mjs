@@ -49,6 +49,7 @@ function parseArgs(argv) {
     route: null,
     table: null,
     domain: null,
+    fields: null,
   };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
@@ -65,6 +66,7 @@ function parseArgs(argv) {
     else if (a === '--route' && argv[i + 1]) flags.route = argv[++i];
     else if (a === '--table' && argv[i + 1]) flags.table = argv[++i];
     else if (a === '--domain' && argv[i + 1]) flags.domain = argv[++i];
+    else if (a === '--fields' && argv[i + 1]) flags.fields = argv[++i];
     else positional.push(a);
   }
   return { cmd: positional[0] ?? 'help', rest: positional.slice(1), flags };
@@ -81,7 +83,7 @@ function usage() {
     '  cards [query]                      List all concept cards or search by keyword',
     '  card <slug> [--write <file>]       Read a concept card or validate and write one from a file',
     '  bible <path>                       Resolve a legacy bible/*.md citation path to concept cards',
-    '  invariants [query]                 Query card invariants and traps (--file, --route, --table, --domain)',
+    '  invariants [query]                 Query card invariants and traps (--file, --route, --table, --domain, --limit, --fields slugs|full)',
     '  moved <path-or-substr>             Resolve pre-PR-#130 paths via tools/moveLedger.json',
     '  diff [baseRef] [headRef]           Show concept cards impacted by changed files in git diff or status',
     '  dfu-fetch [--force]                Shallow sparse checkout of Daggerfall Unity Assets/Scripts',
@@ -268,7 +270,7 @@ export function runCli(argv = process.argv.slice(2)) {
       out(saved, (s) => `Wrote ${s.path} (${s.wordCount} body words)`);
       return 0;
     }
-    const card = codex.readCard(slug);
+    const card = codex.readCard(slug, { includeContent: true });
     if (!card) {
       console.error(`Card not found: ${slug}`);
       return 1;
@@ -304,15 +306,18 @@ export function runCli(argv = process.argv.slice(2)) {
       table: flags.table ?? undefined,
       domain: flags.domain ?? undefined,
       query: rest.join(' ').trim() || undefined,
+      limit: flags.limit,
+      fields: flags.fields ?? undefined,
     });
     out(res, (r) => {
       if (!r.results.length) return 'No matching cards found.';
-      const lines = [`Invariants and traps (${r.matchedCount} cards, layout=${r.layout}):`];
+      const shown = r.truncated ? `${r.results.length} of ${r.total} cards` : `${r.total} cards`;
+      const lines = [`Invariants and traps (${shown}, layout=${r.layout}):`];
       for (const c of r.results) {
         lines.push(`\n${c.slug} [${c.domain}] - ${c.title}`);
         for (const inv of c.invariants) lines.push(`  invariant: ${inv}`);
         for (const trap of c.traps) lines.push(`  trap: ${trap}`);
-        if (!c.invariants.length && !c.traps.length) lines.push(`  summary: ${c.summary}`);
+        if (!c.invariants.length && !c.traps.length && c.summary) lines.push(`  summary: ${c.summary}`);
       }
       return lines.join('\n');
     });
