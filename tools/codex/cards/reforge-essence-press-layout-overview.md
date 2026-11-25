@@ -33,16 +33,17 @@ tags:
   - css
 ---
 
-# Essence Reforge Multi-Press Layout and Smelt Grid Tracks
+# Essence Reforge Layout and Pickers
 
-Reforge with Essence is a Bunnyfall profession station screen with no classic Daggerfall counterpart, implemented across `src/ui/profPages.js`, `src/ui/enhancedPlusStyle.js`, and `src/ui/reforgeWindow.js`.
+Reforge with Essence is a Bunnyfall station screen (`src/ui/profPages.js` `drawEssenceReforge`, `src/ui/enhancedPlusStyle.js`, `src/ui/reforgeWindow.js`).
 
-## Smelt Grid Action Pinning (`PROF_CSS`)
+## Layout
 
-- **Fixed action cell:** In `PROF_CSS` (`src/ui/enhancedPlusStyle.js`), `.prof-smelt .act` stays pinned to `grid-column: 3` and `grid-row: 1`. Because of this track pinning, multi-button reforge actions must never append directly into `.prof-smelt`; doing so stacks every button inside cell `(3, 1)` and collapses the item name column to `0` px.
-- **Full-width line container:** To prevent track collisions, `drawEssenceReforge` (`src/ui/profPages.js`) wraps press rows inside `.prof-smelt > .prof-lines`, which spans `grid-column: 1 / -1` and stacks each action row vertically using `flex-direction: column`.
+- `.prof-smelt .act` stays pinned to grid cell `(3, 1)`, so a piece's presses live in `.prof-smelt > .prof-lines` (full width, a column), never straight in the grid.
+- `.prof-short` warnings span the row under their line.
 
-## Shortage Warnings and Affix Lines
+## Pools and pickers
 
-- **Shortage placement:** Any `.prof-short` shortage warning renders explicitly below its corresponding action line inside the column layout rather than flowing horizontally into the count column.
-- **Reforge window rows:** In `src/ui/reforgeWindow.js`, individual `.reforge-line` rows render through `affixLine` to keep affix previews aligned with the station press controls.
+- `reforgeChoices` (`src/items/lootRarity.js`) gives a line its replacements: the item's group and number-or-proc class, minus the line's own kind and any kind or param another line holds. Pools follow the item and the line, not the line's category. `tools/essenceReforgePools.test.mjs` pins this.
+- `upgradeSelect` (`src/ui/upgradeSelect.js`) is an in-window list (`.choice-list`, 220px, scrolls on its own) with a select-like `.value`, `.onchange` and `.disabled`.
+- Do not bring back a native `<select>` (the desktop app clips its popup) or a `size > 1` listbox in the pane (it swallows the wheel). Long pools looked cut off.
