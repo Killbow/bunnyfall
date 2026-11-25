@@ -53,15 +53,26 @@ export function createFarmingHud({ tool, leave, careful }) {
   const target = document.createElement('div'); target.className = 'wplaque on farm-target'; target.hidden = true; root.append(target);
   for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click']) root.addEventListener(type, (e) => e.stopPropagation());
   document.body.append(root);
+  const put = (el, text) => { if (el.textContent !== text) el.textContent = text; };
+  let shownTool = null, shownCareful = null, left = '', top = '';
   return {
     update(farm, selected, crop, status, blocked, carefulOn = false) {
-      care.setAttribute('aria-pressed', String(carefulOn)); care.classList.toggle('on', carefulOn);
-      root.hidden = blocked; name.textContent = farm.name; message.textContent = status;
-      root.dataset.skin = isEnhanced() ? 'enhanced' : 'classic';
-      buttons.forEach((b, i) => { const on = ['hoe', 'plant', 'water', 'harvest'][i] === selected; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
-      seeds.textContent = t('farm.mode.seedHeld', 'Seed: {crop}', { crop: farmCropName(crop) ?? crop });   // a strain comes already named
+      if (shownCareful !== carefulOn) { shownCareful = carefulOn; care.setAttribute('aria-pressed', String(carefulOn)); care.classList.toggle('on', carefulOn); }
+      if (root.hidden !== !!blocked) root.hidden = !!blocked;
+      put(name, farm.name); put(message, status);
+      const skin = isEnhanced() ? 'enhanced' : 'classic';
+      if (root.dataset.skin !== skin) root.dataset.skin = skin;
+      if (shownTool !== selected) { shownTool = selected; buttons.forEach((b, i) => { const on = ['hoe', 'plant', 'water', 'harvest'][i] === selected; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); }); }
+      put(seeds, t('farm.mode.seedHeld', 'Seed: {crop}', { crop: farmCropName(crop) ?? crop }));   // a strain comes already named
     },
-    target(text, at) { target.hidden = !at?.front; if (!at?.front) return; target.textContent = text; target.style.left = `${at.x}px`; target.style.top = `${at.y}px`; },
+    target(text, at) {
+      if (target.hidden !== !at?.front) target.hidden = !at?.front;
+      if (!at?.front) return;
+      put(target, text);
+      const x = `${at.x}px`, y = `${at.y}px`;
+      if (x !== left) target.style.left = left = x;
+      if (y !== top) target.style.top = top = y;
+    },
     dispose() { root.remove(); },
   };
 }

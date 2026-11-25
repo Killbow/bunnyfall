@@ -44,7 +44,7 @@
 import { SAVE_VERSION, QUICKSAVE_KEY } from './save.js';
 import { SAVE_DATA_PREFIX, SAVE_INFO_PREFIX, SAVE_SHOT_PREFIX, characterIdOf, adoptLegacyCards, mintCharacterId } from '../characters/characterId.js';   // CHARID1: the prefixes and the id, the one module save.js and this both read
 import { BUILD_TAG } from '../buildTag.js';
-import { appStorage } from '../platform/appStorage.js';   // DA1: localStorage in a browser, real save files in the desktop shell
+import { appStorage, rescanSaves } from '../platform/appStorage.js';   // DA1: localStorage in a browser, real save files in the desktop shell
 
 // SaveLoadManager's names (:42-44), as storage-key prefixes.
 export { SAVE_DATA_PREFIX, SAVE_INFO_PREFIX, SAVE_SHOT_PREFIX, characterIdOf, adoptLegacyCards, mintCharacterId };   // CHARID1: still this module's words to every caller
@@ -222,6 +222,7 @@ export function saveSlot(characterName, saveName, snap, { screenshot = null, sto
   // mints one onto a character that has none), and the slot it
   // overwrites is ITS OWN slot of that name - never a namesake's.
   const characterId = typeof snap.characterId === 'string' && snap.characterId ? snap.characterId : null;
+  rescanSaves();
   let key = findSave(characterName, saveName, storage, characterId);
   if (key === -1) key = firstFreeKey(storage);
   const saveInfo = {
@@ -357,26 +358,34 @@ let _pendingShot = null;               // { key, frames }
 export function requestScreenshot(key) {
   _pendingShot = Number.isInteger(key) && key >= 0 ? { key, frames: 2 } : null;
 }
-/** The host frame loop's delivery - call after the frame's last draw.
- *  True only on the frame the shot lands. A slot deleted while the
- *  countdown ran captures nothing (the info-must-exist law), and a
- *  failure of any kind leaves the slot shotless - the window's bare
- *  panel is GetSaveScreenshot -> null's own look. */
+/** Call after the frame's last draw. True only on the frame the shot is taken; the JPEG is encoded after the frame
+ *  and stored only if the slot is unchanged by then. */
 export function capturePendingScreenshot(canvas, storage = store()) {
   if (!_pendingShot || !canvas || !storage) return false;
   if (--_pendingShot.frames > 0) return false;   // the two WaitForEndOfFrame yields
   const { key } = _pendingShot;
   _pendingShot = null;                           // one save, one shot
   try {
-    if (!saveInfoOf(key, storage)) return false;
+    const info = saveInfoOf(key, storage);
+    if (!info) return false;
+    const realTime = info.dateAndTime?.realTime;
     const off = document.createElement('canvas');
     off.width = SCREENSHOT_W; off.height = SCREENSHOT_H;
     off.getContext('2d').drawImage(canvas, 0, 0, SCREENSHOT_W, SCREENSHOT_H);
-    const url = off.toDataURL('image/jpeg', 0.7);   // EncodeToJPG
-    if (!url || !url.startsWith('data:image/')) return false;
-    storage.setItem(SAVE_SHOT_PREFIX + key, url);
+    off.toBlob((blob) => {   // EncodeToJPG
+      if (!blob) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = reader.result;
+        if (typeof url !== 'string' || !url.startsWith('data:image/')) return;
+        const latest = saveInfoOf(key, storage);
+        if (!latest || latest.dateAndTime?.realTime !== realTime) return;
+        try { storage.setItem(SAVE_SHOT_PREFIX + key, url); } catch { /* quota: the slot stays shotless */ }
+      };
+      reader.readAsDataURL(blob);
+    }, 'image/jpeg', 0.7);
     return true;
-  } catch { return false; }   // quota, tainted canvas, headless - never a thrown frame
+  } catch { return false; }   // tainted canvas, headless - never a thrown frame
 }
 
 /** DeleteSaveFolder: the known files only, then the caller

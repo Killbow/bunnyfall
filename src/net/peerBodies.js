@@ -642,7 +642,7 @@ export class PeerBodies {
       const spare = this._takeSpare(w.key);   // WB9h: a body given up for this one's, built - no build
       // AUDIT WB9 (bodies F3): the look its key names, read NOW - the queue reaches its build later, and a look changed
       // meanwhile was built under the old key (a spare the next wearer of the old look stood in, in the wrong armour)
-      const look = peer.look, shown = peer.shown, glyphs = peer.glyphs;
+      const look = peer.look, shown = { ...peer.shown }, glyphs = peer.glyphs;
       const b = { id: peer.id, key: w.key, wolf: peerIsWolf(shown), rig: spare ? spare.rig : this._createRig(), state: spare ? 'ok' : 'building', cam: null, feet: null, yaw: peerBodyYaw(shown), speed: 0, goneAt: null, far: false, d2: w.d2, pri: w.pri, builtAt: now, born: now, byForm: this._flipped.delete(peer.id), swing: null, cast: null, pending: null, held: false, ammo: spare ? spare.ammo : null, weapon: spare ? spare.weapon : null,
         posed: false, phase: this._phase++, bank: 0,   // PEER-CADENCE
         posedAt: 0, rank: 0, inView: true, stale: false, owed: false, peer: null,   // WB9h

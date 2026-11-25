@@ -52,7 +52,7 @@ import { foldQuickLoot, quickLootRow, quickLootStats, resetQuickLoot, quickLootO
 import { decorPressFrame } from '../homes/decorLook.js';   // RPT1026-WORLD DECOR-VERBS: the decorator's frame where no plaque is drawn
 import { setClassicLootFrame } from './classicLootFrame.js';   // DISC22-C: the classic panel's frame, a leaf hud.js can read   // QUICK-LOOT B3: the highlight is the FEATURE's - this draws it and frees it, it does not own it; QUICK-LOOT-STATS: and the lit row's own numbers
 import { bodyStackMark, resetBodyStack } from '../player/lootStack.js';   // LOOT-STACK: the plaque counts the pile the pick noted
-import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js'; import { destroyPickupFeed, clearPickupFeed } from './pickupFeed.js';   // DISC29-D: the watchdog counts frames, not milliseconds; PICKUP-FEED: the take's cards, freed with this teardown
+import { armDrawWatchdog, disarmDraw, refreshDraw } from './drawWatchdog.js'; import { destroyPickupFeed, clearPickupFeed } from './pickupFeed.js';   // DISC29-D: the watchdog counts frames, not milliseconds; PICKUP-FEED: the take's cards, freed with this teardown
 import { PLAQUE_MINE_TAG } from '../items/roomLoot.js';   // PARTY-LOOT: a row of this player's own bonus says so
 
 /** The gap in CSS pixels between the cross's lower arm tip and the
@@ -116,6 +116,9 @@ function windowOf(frame, lit) {
 let _faults = 0;        // AUDIT-WH L1: contained frames, counted
 let _faultSaid = false; // ...and said once, not once a frame
 let _watchdog = null;   // AUDIT-WH2 L3-F2: the heartbeat's handle - owned here, freed at every door out
+// Hover picks run at most 60 times a second; click and Activate do their own pick when pressed.
+const HOVER_PICK_MS = 1000 / 60;
+let _hit = null, _hitAt = -Infinity, _hitCollider = null;
 let _schedule = (fn, ms) => (typeof setTimeout === 'function' ? setTimeout(fn, ms) : null);
 let _cancel = (t) => { if (t != null && typeof clearTimeout === 'function') clearTimeout(t); };
 /** Tests replace the two clocks so a stranded plaque can be observed at
@@ -420,7 +423,7 @@ export function showWorldPlaque(frame, anchor = null) {
   if (!worldPlaqueOn()) { hideWorldPlaque(); return; }
   const n = ensure();
   if (!n) return;
-  // AUDIT-WH2 L3-F2: THE HEARTBEAT, re-armed by every draw - and armed
+  // THE HEARTBEAT, refreshed by every draw - and armed
   // ABOVE the signature short-circuit below, because a plaque standing
   // still on one name returns there and that is still a live frame.
   //
@@ -433,8 +436,7 @@ export function showWorldPlaque(frame, anchor = null) {
   // painted unless it is told otherwise (AUDIT 64 F37); nothing else in
   // this module can tell it once the frames stop coming.
   // DISC29-D: a frame that came and went without a draw, never a frame slower than the timer (ui/drawWatchdog.js)
-  disarmDraw(_watchdog);
-  _watchdog = armDrawWatchdog(PLAQUE_WATCHDOG_MS, () => { _watchdog = null; hideWorldPlaque(); }, { schedule: _schedule, cancel: _cancel });
+  if (!refreshDraw(_watchdog)) _watchdog = armDrawWatchdog(PLAQUE_WATCHDOG_MS, () => { _watchdog = null; hideWorldPlaque(); }, { schedule: _schedule, cancel: _cancel });
   if (anchor && (anchor.x !== lastX || anchor.top !== lastTop)) {
     lastX = anchor.x; lastTop = anchor.top;
     n.style.setProperty('--wp-x', `${anchor.x.toFixed(1)}px`);
@@ -573,7 +575,11 @@ export function worldHoverFrame({
   // back after them, whatever they drew or threw.
   const classicSeed = getSeed();
   try {
-    const hit = pick ? pick() : pickActivatableHit(eye, dir, targets?.() ?? [], collider);
+    const now = performance.now();
+    if (now - _hitAt >= HOVER_PICK_MS || _hitCollider !== collider) {
+      _hitAt = -Infinity; _hit = pick ? pick() : pickActivatableHit(eye, dir, targets?.() ?? [], collider); _hitAt = now; _hitCollider = collider;
+    }
+    const hit = _hit;
     const frame = markBodyStack(resolveHover(hit, { name, contents }));
     // QUICK-LOOT B3: the highlight is folded HERE, inside the
     // containment, because `nextSelection` reads the frame a host
@@ -634,6 +640,7 @@ export function destroyWorldPlaque() {
   lastTop = null;
   _faults = 0;
   _faultSaid = false;
+  _hit = null; _hitAt = -Infinity; _hitCollider = null;
   _gateMark = null;
   _gateOn = false;
   // QUICK-LOOT B3: the highlight dies with the host that raised it. A

@@ -6567,14 +6567,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // lives in worldModes with the rest of the overlay stack, so this
     // routes exactly as onTeleport does. A refusal (no art, or an
     // overlay already open) says so rather than eating the cast.
-    // X9: the creature dispel, exterior arm. The encounter pool is
-    // the one that can hold undead or daedra above ground; guards are
-    // class enemies and carry no group bit at all, so they are exempt
-    // by the same table that exempts them from Pacify Humanoid.
     onDispel: ({ group, chance, targets = null }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
       const gone = dispelNearby(list.map((no) => no.ref).filter((f) => (!targets || targets.includes(f)) && !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
-      for (const f of gone) exteriorFoes.removeFoe(f);
+      for (const f of gone) (_mode() === 'interior' ? modes?.interiorPool?.() : exteriorFoes)?.removeFoe(f);
       if (gone.length) townTalk.say(`${gone.length} dispelled.`);
     },
     // X10: the Dispel Magic picker, routed like onIdentify.
@@ -6672,7 +6668,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   function travelEnemiesLine() { return blockerLine(localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT), exteriorFoePool(), player.feetAt()); }
   const detectFeed = createDetectFeed(playerEntity, {
-    entities: () => exteriorFoePool().filter((f) => !f.dead && f.ai).map(foeNearbyRecord),
+    entities: () => (_mode() === 'interior' ? _insidePool() : exteriorFoePool()).filter((f) => !f.dead && f.ai).map(foeNearbyRecord),
     // FX1 (F207): UpdateNearbyObjects walks EVERY active DaggerfallLoot
     // with no scene gate (PlayerGPS.cs:747, :766-776) - the world piles
     // the player drops and the lootable corpse containers both mark

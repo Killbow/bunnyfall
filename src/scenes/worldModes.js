@@ -82,7 +82,7 @@ import { caravanPaintRows } from '../travel/wagonLooks.js';   // WAGONS2: the ca
 import { caravanDecorDoc, readCaravanDecor, readCaravanHidden } from '../travel/caravanVisit.js';   // WAGONS2-VISIT: what a caravan's owner placed, said to its room and stood for its visitor
 import { caravanKeyOf } from '../net/privateInterior.js';   // WAGONS2-VISIT: a caravan's own room
 import { INTERIOR_SHELL_BUCKET } from '../homes/decorBase.js';   // HOME-DOORS: a doorway is an opening in the shell's walls   // AUDIT 63 F22: AddFlats' RandomTreasure arm lives with the walk that finds its markers
-import { advanceMachinery, mountMachineryChild, machineryChildPos, MILL_SOUND } from '../world/windmills.js';   // WM4b: the machinery's moving parts; WM4c: its hum
+import { poseCourtShards, poseCourtSlabs, drawDungeonLevel, drawDungeonMovers, drawInteriorLevel, turnInteriorRotors, drawInteriorMovers, drawInteriorCharacters, drawCardWatches, drawGambitWatches } from './modeDraws.js';
 import { buildDungeonContext } from './dungeonContext.js';
 import { ambushNight } from '../systems/survival/restAct.js';   // AUDIT REST II P3: a quest's CreateFoe reaches the act's night, window or none
 import { holdStreet } from './streetHold.js';
@@ -125,7 +125,7 @@ import { FootstepMachine, pickFootstepSet, pickFootstepKind } from '../audio/foo
 import { immersiveFootsteps } from '../audio/immersiveFootsteps.js';
 import { betterAmbience, classicFootstepAllowed } from '../audio/betterAmbience.js';   // BA1: Better Ambience - the shake, the dungeon's fog and light, the reverb, the indoor rain, its own stride   // IF1: Immersive Footsteps owns the stride and the three landing sounds once its clips are in (DisableVanillaFootsteps)
 import { applyFog, DUNGEON_FOG } from '../render/underwaterFog.js';
-import { gateArenaLocation, gateArenaBlocks, isGateArena, slabMatrix, courtLightsNear, withCourtLights, courtDoorAabb, planOfDay, COURT_FOG } from '../world/gateArena.js';   // WB3b: the Burning Court - a level made in code on this host's dungeon arm
+import { gateArenaLocation, gateArenaBlocks, isGateArena, courtLightsNear, withCourtLights, courtDoorAabb, planOfDay, COURT_FOG } from '../world/gateArena.js';   // WB3b: the Burning Court - a level made in code on this host's dungeon arm
 import { isSdRealm, sdRealmLocation, sdRealmBlocks, buildRealmModel, realmColliderTris, realmLightsWith, realmLighting, SD_REALM_ARCHIVE, SD_REALM_FOG } from '../world/sdRealm.js';   // SD5a: the Shattered Hour, a made level as the court is
 import { realmArt } from '../world/sdRealmArt.js';   // SD5a: its art, made in code
 import { isEgHall, egHallLocation, egHallBlocks, egLightsWith, egHallLighting, egHallFog, egHallGrade } from '../world/eliteGates/egHall.js';   // EG-PLAY: an Elite Breach's circle, a made level as the Hour is
@@ -138,15 +138,11 @@ import { KT_ARRIVE } from '../net/ketch/ketchDeck.js';   // KETCH: where the anc
 import { EG_OCCLUDE_CHEST_M } from '../systems/eliteGates/egOcclude.js';   // EG-ZN (section 11.8): the occluders between the camera and the body dithered out
 import { madeLevelOf } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): which made level stands under the player - one law
 import { SD_HOUR_GRADE } from '../world/sdLook.js';   // SD-LOOK: the Hour's grade on the lane
-/** SD-LOOK: the dungeon arm's two draw options for its dynamic draws (render/renderer.js drawMesh), made once - the hot
- *  loop makes nothing. */
-const DRAW_NO_SHADOW = Object.freeze({ noShadow: true }), DRAW_SHADOW = Object.freeze({ noShadow: false });
 import { sdRoomKey } from '../net/sdLaw.js';   // SD5a: its room, the relay's realm
 import { isBound } from '../items/itemBound.js';   // AUDIT SS: the keyed shelf sells no bound piece
 import { lockRefuses } from '../items/itemLock.js';   // AUDIT SS: nor a locked one
 import { courtLighting, deadlandsFlash } from '../render/deadlands.js';   // WB6a: the court's own light - the Deadlands' red from above, the fire's from below, the vortex's from behind the boss   // WB6b: and a strike's, flaring over it
-import { shardMatrix } from '../world/deadlandsLand.js';   // WB6b: the floor's broken shards over the fire round the court
-import { createGateStand, NO_XA } from '../worldEvents/gateStand.js';   // WB3b/WB6b: the court and its land stood into the context - WB14b: the night's (out of this host)   // ROAD-B (b3): UnderwaterFog + WeatherManager.DungeonFogSettings
+import { createGateStand } from '../worldEvents/gateStand.js';   // WB3b/WB6b: the court and its land stood into the context - WB14b: the night's (out of this host)   // ROAD-B (b3): UnderwaterFog + WeatherManager.DungeonFogSettings
 import { createWeaponRig, envAttack, sheetHolderOf } from '../combat/weaponRig.js';   // MW-MAP1: the held map's holder, off the interior arm
 import { fpArm } from '../combat/fpArm.js';   // MW-MOUNT: a displayed item's Morrowind picture, from the build that stands
 import { ArrowFlight, playerArrowHitFoe } from '../combat/arrowFlight.js';   // C13: visible interior arrows; AUDIT 39 (#64): and the shaft that LANDS
@@ -11100,9 +11096,9 @@ export function createWorldModes(host) {
       if (!overlayHeld) dungeonCtx.automapTick?.(dt, cam.pos, fwd);   // A1: the 5 Hz reveal probes ride the same gate
       dungeonCtx.flicker.tick(dt);
       const _deadS = isGateArena(dungeonLoc) ? (host.deadlandsSeconds?.() ?? performance.now() / 1000) : 0;   // WB6b: the sky's clock, for the court's flash and its shards
-      if (isGateArena(dungeonLoc)) for (const d of dungeonCtx.dynamicDraws) if (d.shard) shardMatrix(d.shard, _deadS, d.object.matrix);   // WB6b: the floor's shards, bobbing and turning where the sky's clock has them (before the frame's draws, which the shadows record)
+      if (isGateArena(dungeonLoc)) poseCourtShards(dungeonCtx.dynamicDraws, _deadS);   // WB6b: the floor's shards, bobbing and turning where the sky's clock has them (before the frame's draws, which the shadows record)
       // WB9b: and each walkway's stones rising as it is laid - the fight's crossings on the relay's clock (host.gateFloor)
-      if (isGateArena(dungeonLoc)) { const _floor = host.gateFloor?.() ?? null; for (const d of dungeonCtx.dynamicDraws) if (d.slab) slabMatrix(d.slab, _floor?.xa ?? NO_XA, _floor?.now ?? 0, d.object.matrix); }
+      if (isGateArena(dungeonLoc)) poseCourtSlabs(dungeonCtx.dynamicDraws, host.gateFloor?.() ?? null);
       if (isSdRealm(dungeonLoc) && !windowHoldsDungeon(dungeonCtx.uiOverlayActive, aliveUnder())) dungeonCtx.sdPose?.(dt, player.pos);   // AUDIT SD II (L2 F10): the Hour's hall and arena posed BEFORE the frame's draws, as the Steps are before the motor - posed in drawFoes, after the world pass, its hands and bodies were drawn a frame late (the Remnant behind its own telegraph); no window up, as drawFoes was
       // AUDIT 26 F183: castle blocks and the one special area take
       // 0.58 where a plain dungeon takes 0.12 (PlayerAmbientLight.cs
@@ -11198,8 +11194,8 @@ export function createWorldModes(host) {
       if (isEgHall(dungeonLoc)) dungeonCtx.egSpanCull?.(proj, view);   // EG-G2: the Spire's pieces batched a kind and culled against this frame's frustum (scenes/eliteGates/egPieceBatch.js) - every one noShadow, so the shadow record never moves with a cull
       if (isEgHall(dungeonLoc)) egOccludeFrame(mwv, dt);   // EG-ZN (section 11.8): the rock between the camera and my body dithered out
       if (dungeonCtx.staticBatch) renderer.drawMesh(dungeonCtx.staticBatch, BATCH_IDENTITY, null);   // PERF5: the level's static models, one call per texture
-      for (const d of dungeonCtx.drawList) if (!d._batched) renderer.drawMesh(d.mesh, d.matrix, d.texRemap ?? dungeonCtx.texRemap);   // AUDIT PRE-MERGE 1003 W4: a climate-free model's own table
-      for (const d of dungeonCtx.dynamicDraws) if (!d.hidden && !d.culled) renderer.drawMesh(d.gpu, d.object.matrix, d.texRemap ?? dungeonCtx.texRemap, d.noShadow ? DRAW_NO_SHADOW : DRAW_SHADOW);   // AUDIT SD II (L2 F11): a draw that says it is hidden (the Hour's gone steps and bodies) is no draw, and no shadow's record; SD-LOOK: a draw's own texRemap (a state's records), `noShadow` (a part that turns rebuilds no cube) and `culled` (a stage out of sight) - each read only where a draw carries it
+      drawDungeonLevel(renderer, dungeonCtx);   // AUDIT PRE-MERGE 1003 W4: a climate-free model's own table
+      drawDungeonMovers(renderer, dungeonCtx);   // AUDIT SD II (L2 F11): a draw that says it is hidden (the Hour's gone steps and bodies) is no draw, and no shadow's record; SD-LOOK: a draw's own texRemap (a state's records), `noShadow` (a part that turns rebuilds no cube) and `culled` (a stage out of sight) - each read only where a draw carries it
       host.drawModeMeshes?.();   // CSA-C: a boat on the dungeon's water
       drawCrownHall({ proj, view, eye: mwv.eye });   // CROWN-HALL: the throne room's board, chest and banners - opaque, before the flats
       drawArenaWall(); if (isArenaFloor(dungeonLoc) || isKetchShip(dungeonLoc)) host.drawSky?.(cam.yaw, cam.pitch + (host.climbFeel?.pitch?.() ?? 0), fieldOfView() + (host.climbFeel?.fovRad() ?? 0), largeHudWorldAspect(canvas.clientWidth, canvas.clientHeight), renderer.worldViewportPx ?? [0, 0, renderer.gl.drawingBufferWidth, renderer.gl.drawingBufferHeight]);   // ARENA5: the Hall of Champions' plaques - opaque, before the flats; HOTFIX 1003l (live: "the private sessions are missing the sky and the entrance is black"): the floor is drawn as a dungeon, cleared to black - the world's own sky over it now, after the opaque level (it shades only what nothing nearer claimed) and before the flats
@@ -11341,18 +11337,11 @@ export function createWorldModes(host) {
       host.drawCardRegulars?.({ proj, view, eye: mwv.eye });   // CARDS4b: the card table's regulars, in their chairs
     } finally { renderer.flushCharacterSpriteBatch?.(); }   // MWNPC2: every body's picture in one bind of the sprite target
     if (interiorCtx.staticBatch) renderer.drawMesh(interiorCtx.staticBatch, BATCH_IDENTITY, null);   // PERF6: the room's static models, one call per texture
-    for (const d of interiorCtx.drawList) if (!d._batched) renderer.drawMesh(d.mesh, d.matrix, interiorCtx.texRemap);
+    drawInteriorLevel(renderer, interiorCtx);
     if (interiorHallBanners.length) host.drawDungeonBanners?.({ proj, view, eye: mwv.eye, banners: interiorHallBanners });   // BUNNY-GUILDS: the hall's arms - opaque, before the flats
     // WM4b: the mill's machinery turns at Kamer's rate, in here too.
-    for (const r of interiorCtx.rotors) {
-      // #33: the rotors are movers too - the DRAW below still paints them
-      if (!overlayHeld) advanceMachinery(r.state, dt, r.child);
-      renderer.drawMesh(r.gpu, mountMachineryChild(r.parent, r.child, r.state.angle), interiorCtx.texRemap);
-      // WM4c: the part that carries Spin_Up hums (the gear; the roller's
-      // script adds no source). Retried until the context is up.
-      if (r.child.loopsSound && !r.hum) r.hum = audio.loop3d(MILL_SOUND.clip, machineryChildPos(r.parent, r.child), MILL_SOUND.volume, MILL_SOUND);
-    }
-    for (const d of interiorCtx.dynamicDraws) renderer.drawMesh(d.gpu, d.object.matrix, interiorCtx.texRemap);
+    turnInteriorRotors(renderer, interiorCtx, overlayHeld, dt);
+    drawInteriorMovers(renderer, interiorCtx);
     // C13: interior arrows fly and draw with the meshes; a new
     // interior (different ctx) drops the stale flights.
     // FIELD-GUN14: through the flight's own door, not by emptying the
@@ -11442,8 +11431,8 @@ export function createWorldModes(host) {
     if (cardGame?.scene) cardDrawGame(cardGame, proj, view, mwv.eye);   // CARDS3: the cards and chips on the cloth - CARDS3b: the player's own two held before the eye
     iliacGame?.draw(performance.now());   // CARDS10: an Iliac game's cards on the cloth
     gambitGame?.draw(performance.now(), { proj, view, eye: mwv.eye });   // KG3: The King's Gambit's board - and the lens its next press is read through
-    for (const w of cardWatches.values()) if (w.remote.state) w.draw.draw(w.scene.poses(performance.now() / 1000, w.remote.view()));   // CARDS5: and the tables this player watches
-    for (const [i, w] of gambitWatches) gambitWatchDraw(i, w, mwv.eye);   // KG5: and the King's Gambit boards
+    drawCardWatches(cardWatches);   // CARDS5: and the tables this player watches
+    drawGambitWatches(gambitWatches, gambitWatchDraw, mwv.eye);   // KG5: and the King's Gambit boards
     interiorCtx.flatAnims.tick(dt);   // FA1
     // MWNPC8a: the standing people offered their bodies, before the room's billboards draw (cast-only where one stands)
     const _peopleOn = peopleBodies.frame();
@@ -11550,7 +11539,7 @@ export function createWorldModes(host) {
     // makes its noise whether or not a cast engine was built.
     { const mv = lycanthropeMoveSound(playerEntity, dt); if (mv != null) audio.playOneShot(mv, 1); }
     if (interiorCtx.animateChars) interiorCtx.animateChars((performance.now() - _charT0) / 1000, _charAnimMode);
-    for (const d of interiorCtx.charDraws) renderer.drawCharacter(d.mesh, d.matrix);
+    drawInteriorCharacters(renderer, interiorCtx);
     host.drawVeiledPeerBodies?.();   // INVIS-LOOK: the concealed peers' bodies, translucent - after the room's opaque draws, before the weapon's screen quads
     interiorFoes?.drawVeiledBodies();   // MWNPC5c: the concealed foes' bodies, beside the peers'
     interiorGuards?.drawVeiledBodies();   // MWNPC6: and the watch's

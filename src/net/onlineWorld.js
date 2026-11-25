@@ -2417,7 +2417,7 @@ export function createOnlineWorld(shared) {
     // whose halo is still connecting (net/online.js `crossesNow` - the join waits for it, my pose sent meanwhile, where
     // the hold sent none); otherwise the hold
     else if (key !== shared.online.room) { if (!shared.online.room || isWorldRoom(key) || isWorldRoom(shared.online.room) || (isGateRoom(key) && isGateRoom(shared.online.room)) || (isCellRoom(key) && shared.online.crossesNow(key)) || now - shared._onlineKeySince >= ROOM_HOLD_MS) { shared.online.setLook(composeLook(playerEntity)); shared.online.layerHint = shared.partyLayerAt(key); shared.online.join(key, { ...pose, ...arm }); } }   // the look re-composed: the next room's hello carries the gear worn now (PROFILE2: through setLook, so a halo the join PROMOTES - no hello of its own - is told too)
-    else shared.online.sendPose({ ...pose, ...arm, ...poseFx() });   // PEERFX1: and my landed blows and the blows I took
+    else shared.online.sendPose(pose, arm, poseFx);   // PEERFX1: and my landed blows and the blows I took
     shared.siegeSession?.tick();   // SEAT2a part four: the battle's pass, its `in`, its HUD, its window
     if (shared.siegeNpcs) { if (inSiegeRoom()) shared.siegeNpcs.frame(shared.siegeSession.npcs(), battleNowMs()); else shared.siegeNpcs.leave(); }   // SEAT2b part two (c): the relay's own fighters, in its room alone
     shared.royalSession?.tick();   // CROWN1 part two: the tourney's pass, its `in`, its HUD, its week

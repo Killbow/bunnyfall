@@ -380,39 +380,47 @@ export { poseChanged };
 // besides (net/wire.js validPose).
 const lerpAngle = (a, b, t) => a + wrapAngle(b - a) * t;
 
-/** The pose between two, t in 0..1 (the yaw by the shorter arc). */
-export function lerpPose(from, to, t) {
+/** The pose between two, t in 0..1 (the yaw by the shorter arc). Written into `out` when `from` and `out` are given. */
+export function lerpPose(from, to, t, out = null) {
   if (!from) return { ...to };
   // CARDS2b (AUDIT CARDS D6): a sit or a stand is a place taken, not a walk - the seated body drawn sliding to its chair
   // (the seat on at once, the feet still easing) was neither
   const k = (!!from.st !== !!to.st) || t > 1 ? 1 : t < 0 ? 0 : t;
-  return {
-    x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k, z: from.z + (to.z - from.z) * k,
-    yaw: lerpAngle(from.yaw, to.yaw, k), pitch: from.pitch + (to.pitch - from.pitch) * k, mv: to.mv,
-    wd: to.wd ?? 0, an: to.an ?? 0, as: to.as ?? 0,   // MAC7 #1: the arm's three ride the drawn pose whole - nothing to ease
-    am: to.am ?? 0, sr: to.sr ?? 0, cn: to.cn ?? 0, cr: to.cr ?? 0,   // MAC7 #2: and the other four
-    ce: to.ce ?? 4,   // SPELLFX1: the cast's element, whole
-    ar: to.ar ?? 0,   // SPELLFX1: and the arrows loosed
-    ...(to.bl ? { bl: 1 } : {}),   // BUNNYFALL: the last a Royal Ballista's bolt - discrete, omitted otherwise
-    fk: to.fk ?? 0,   // PEER-FS1: the footstep-sound kind - discrete, rides the drawn pose whole like the rest
-    ...(to.rd ? { rd: to.rd, rv: to.rv ?? 0, ...(to.hs ? { hs: 1 } : {}), ...(to.rc ? { rc: to.rc } : {}) } : {}),   // COATS1: the horse's coat with it   // RIDE: the mount, discrete, omitted on foot as the wire omits it; DISC7: the half-speed bit with it
-    ...(to.lh ? { lh: 1 } : {}),   // DISC12: the LEFT hand in use - discrete, omitted on the right as the wire omits it
-    ...(to.ah ? { ah: 1 } : {}),   // AUDIT MIXED-PAIR L4-3: a pair's left hand struck last - discrete, omitted otherwise
-    ...(to.wb ? { wb: to.wb } : {}),   // DISC12: the beast form - discrete, omitted in human form
-    ...(to.hk ? { hk: to.hk, hp: to.hp, hb: to.hb ?? 0, hq: to.hq ?? 0 } : {}),   // PEERFX1: the landed blows, whole - a count and its point
-    ...(to.hu ? { hu: to.hu, uq: to.uq ?? 20 } : {}),   // PEERFX1: and the times struck; PEERFX2: and what it cost
-    ...(to.lc ? { lc: 1 } : {}),   // PEERLIGHT2: the Light spell's candle - discrete, omitted while none burns
-    ...(to.lt ? { lt: to.lt } : {}),   // PEERLIGHT1: the torch's light - discrete, omitted while nothing burns
-    ...(to.tq ? { tq: to.tq } : {}), ...(to.bp ? { bp: 1 } : {}), ...(to.tt ? { tt: to.tt, tn: to.tn ?? 0, tg: to.tg ?? 0 } : {}),   // BUNNYFALL TAVERN-SOCIAL: a round, a song, a tip ride the drawn pose whole - the smoothing dropped them, so no one ever heard a round
-    ...(to.hl ? { hl: 1 } : {}),   // HT-WAIST-NET: the lantern at the waist - discrete, omitted without one as the wire omits it
-    ...(to.st ? { st: to.st } : {}),   // CARDS2b: the seat - discrete, omitted standing as the wire omits it
-    ...(to.cv ? { cv: to.cv } : {}),   // INVIS-NET: the concealment - discrete, omitted when there is none as the wire omits it
-    ...(to.cl ? { cl: to.cl, ...(Number.isFinite(to.cw) ? { cw: to.cw } : {}), ...(to.ck ? { ck: to.ck, ...(Number.isFinite(to.cy) ? { cy: to.cy } : {}), ...(to.cd ? { cd: to.cd } : {}) } : {}) } : {}),   // CLIMB6: the move's kind, lip and time, whole   // CLIMB5: the climb and its facing - whole (the body eases its own yaw), omitted off the wall as the wire omits it
-    ...(to.ga ? { ga: to.ga, ...(to.gm ? { gm: to.gm } : {}) } : {}), ...(to.gb ? { gb: to.gb } : {}),   // PEER-ACTS: the gathering act and the net's throw, and the beats on their own - discrete, omitted at none as the wire omits them
-    ...(to.ab ? { ab: aboardAlong(from.ab, to.ab, k) } : {}),   // DECK-POSE: the place aboard, eased along its deck as the feet are - omitted ashore as the wire omits it
-    ...(to.pl ? { pl: rideAlong(from.pl, to.pl, k) } : {}),   // EG-H1 (RIDE-PLAY): the ride on a breach's moving piece, eased on one piece as the feet are - dropped here, no ridden peer ever reached rideAt
-  };
+  const p = out ?? blankPose();
+  // A reused pose clears the discrete fields to undefined, never deletes them, so the object keeps its shape.
+  if (out) for (let i = 0; i < DISCRETE_POSE.length; i++) if (p[DISCRETE_POSE[i]] !== undefined) p[DISCRETE_POSE[i]] = undefined;
+  p.x = from.x + (to.x - from.x) * k; p.y = from.y + (to.y - from.y) * k; p.z = from.z + (to.z - from.z) * k;
+  p.yaw = lerpAngle(from.yaw, to.yaw, k); p.pitch = from.pitch + (to.pitch - from.pitch) * k; p.mv = to.mv;
+  p.wd = to.wd ?? 0; p.an = to.an ?? 0; p.as = to.as ?? 0;
+  p.am = to.am ?? 0; p.sr = to.sr ?? 0; p.cn = to.cn ?? 0; p.cr = to.cr ?? 0;
+  p.ce = to.ce ?? 4;
+  p.ar = to.ar ?? 0;
+  if (to.bl) p.bl = 1;
+  p.fk = to.fk ?? 0;
+  if (to.rd) { p.rd = to.rd; p.rv = to.rv ?? 0; if (to.hs) p.hs = 1; if (to.rc) p.rc = to.rc; }
+  if (to.lh) p.lh = 1;
+  if (to.ah) p.ah = 1;
+  if (to.wb) p.wb = to.wb;
+  if (to.hk) { p.hk = to.hk; p.hp = to.hp; p.hb = to.hb ?? 0; p.hq = to.hq ?? 0; }
+  if (to.hu) { p.hu = to.hu; p.uq = to.uq ?? 20; }
+  if (to.lc) p.lc = 1;
+  if (to.lt) p.lt = to.lt;
+  if (to.tq) p.tq = to.tq;
+  if (to.bp) p.bp = 1;
+  if (to.tt) { p.tt = to.tt; p.tn = to.tn ?? 0; p.tg = to.tg ?? 0; }
+  if (to.hl) p.hl = 1;
+  if (to.st) p.st = to.st;
+  if (to.cv) p.cv = to.cv;
+  if (to.cl) { p.cl = to.cl; if (Number.isFinite(to.cw)) p.cw = to.cw; if (to.ck) { p.ck = to.ck; if (Number.isFinite(to.cy)) p.cy = to.cy; if (to.cd) p.cd = to.cd; } }
+  if (to.ga) { p.ga = to.ga; if (to.gm) p.gm = to.gm; }
+  if (to.gb) p.gb = to.gb;
+  if (to.ab) p.ab = aboardAlong(from.ab, to.ab, k);
+  if (to.pl) p.pl = rideAlong(from.pl, to.pl, k);
+  return p;
 }
+const blankPose = () => ({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0, mv: 0, wd: 0, an: 0, as: 0, am: 0, sr: 0, cn: 0, cr: 0, ce: 0, ar: 0 });
+const DISCRETE_POSE = ['bl', 'rd', 'rv', 'hs', 'rc', 'lh', 'ah', 'wb', 'hk', 'hp', 'hb', 'hq', 'hu', 'uq', 'lc', 'lt', 'tq', 'bp', 'tt', 'tn', 'tg',
+  'hl', 'st', 'cv', 'cl', 'cw', 'ck', 'cy', 'cd', 'ga', 'gm', 'gb', 'ab', 'pl'];
 /** DECK-POSE (net/wire.js validAboard): a place aboard drawn between two poses' - on one deck, the feet in her frame eased
  *  as the pose's own place is; onto a deck, or onto another, the newer whole (a place in one boat's frame is no place in
  *  another's). Pure. */
@@ -544,17 +552,17 @@ export function segmentFor(since, cadence, wasMoving) {
  *  PLAY_RATE_MAX. A steady stream plays at exactly 1. A slower rate's segment (longer than the cadence: half its silence,
  *  already up to twice the pace) is never played faster than 1. Pure. */
 export const rateFor = (ahead, cushion, cadence, segment) => Math.max(PLAY_RATE_MIN, Math.min(segment > cadence ? 1 : PLAY_RATE_MAX, (ahead - cushion) / Math.max(cadence, segment)));
-/** NET-SMOOTH 4: the pose drawn at `c` along a path of waypoints `{ pose, c }` (c ascending): the first before it
- *  starts, the last once it is walked, eased between the two it falls between. Pure. */
-export function poseAlong(path, c) {
+/** The pose at `c` along waypoints `{ pose, c }` (c ascending): the first before the path, the last after it, and
+ *  eased between the two around `c`. Written into `out` when given. */
+export function poseAlong(path, c, out = null) {
   if (!Array.isArray(path) || !path.length) return null;
-  if (c <= path[0].c) return lerpPose(path[0].pose, path[0].pose, 0);
+  if (c <= path[0].c) return lerpPose(path[0].pose, path[0].pose, 0, out);
   const last = path[path.length - 1];
-  if (c >= last.c) return lerpPose(last.pose, last.pose, 1);
+  if (c >= last.c) return lerpPose(last.pose, last.pose, 1, out);
   let i = 0;
   while (i < path.length - 2 && path[i + 1].c <= c) i++;
   const a = path[i], b = path[i + 1];
-  return lerpPose(a.pose, b.pose, (c - a.c) / (b.c - a.c));
+  return lerpPose(a.pose, b.pose, (c - a.c) / (b.c - a.c), out);
 }
 
 /** A token minted once and kept in storage under `key`, or fresh when storage will not keep it. */
@@ -2635,12 +2643,18 @@ export class OnlineSession {
     return this._tsLast % POSE_TS_MOD;
   }
 
+  // The whole pose is built from its parts only when a send is due or it is read; visible() reads the base pose.
+  get _pose() { return this._poseWhole ??= this._posed ? { ...this._posed, ...this._posedArm, ...this._posedFx?.() } : null; }
+  set _pose(v) { this._posed = v; this._posedArm = this._posedFx = null; this._poseWhole = v; }
+
   /** The frame's pose: sent at POSE_HZ when it moved, and every HEARTBEAT_MS regardless. A channel session refuses it (AUDIT CHAT D3). */
-  sendPose(pose) {
+  sendPose(pose, arm = null, fx = null) {
     if (!this.presence) return false;
     this._pose = pose; this._dead = false;   // AUDIT ONLINE 3 (the second read) A7: a pose said is a life
+    if (arm || fx) { this._posedArm = arm; this._posedFx = fx; this._poseWhole = null; }
     const now = this._now();
     if (now - this._lastSentAt < 1000 / poseHzFor(this.peers.size)) return false;   // SLAM3: a crowd is spoken to less often
+    pose = this._pose;
 
     let refereed = this.haloWhole;
     if (!refereed && this._ws && this._rfOn.get(this._ws)) refereed = true;
@@ -4518,7 +4532,8 @@ export class OnlineSession {
       // seed at 0 stood the next pose its whole send time away: the peer drawn frozen at PLAY_RATE_MAX for minutes, then snapped
       if (!p.path?.length) { const c = p.timed ? (p.tsU ?? 0) : 0; p.path = [{ pose: { ...(p.shown ?? p.pose) }, c }]; p.cur = c; p.rate = 1; p.playAt = now; }
       this._play(p, now);
-      const was = p.drawn, s = poseAlong(p.path, p.cur);
+      // Poses alternate between two reused objects so `was` holds the last frame's pose. Only this loop writes `drawn`.
+      const was = p.drawn, s = poseAlong(p.path, p.cur, was === p.drawA ? (p.drawB ??= blankPose()) : (p.drawA ??= blankPose()));
       // RUN-IN-PLACE: THE BODY WALKS WHILE IT IS DRAWN WALKING - a drawn place that has not moved for SHOWN_MOVE_HOLD_MS
       // reads standing, whatever the last pose said; the first drawn step after reads the pose's own `mv` again.
       // AUDIT 637 C1: measured against the place THIS law last drew (`drawn`), never `shown` - an introduction (`_peer`)
@@ -4538,7 +4553,7 @@ export class OnlineSession {
   visible(p, now = this._now(), evenVanished = false) {
     if (p.vn && !evenVanished) return false;   // BUNNYFALL /vanish: a vanished staff member is never drawn (`peersNear` alone asks who is there)
     if (!p.shown || now - p.seenAt > (p.shown.bp === 1 ? BARD_TIMEOUT_MS : PEER_TIMEOUT_MS)) return false;   // BUNNYFALL: a bard performing is never timed out mid-song
-    return inRange(this.room, this._pose, p.shown);
+    return inRange(this.room, this._posed, p.shown);
   }
 
   /** The peers to draw, as an array. */

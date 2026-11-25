@@ -7,6 +7,7 @@ the last release (scripts/changelogNotes.mjs).
 
 - New: The main owner of a house can add their other characters as co-owners at its door. If the main owner is deleted, the first co-owner with room for another house takes over, or deletion is refused if none has room.
 - New: Transferring a house now asks for a character name instead of an account name, and lists the matches when several share it. Naming one of your own characters makes it the main owner at once, and the old main owner becomes a co-owner.
+- Fixed: Spells that dispel undead or daedra now work inside buildings.
 - Fixed: Damage ranges on the Combat Stats page are now rounded to at most two decimal places instead of showing long decimal tails.
 - Fixed: Gravity Well now pulls enemies on a ship's deck.
 - Fixed: Online standing messages now name every guild whose standing changed, and count Bunnyfall guilds such as the Bards' College as yours.

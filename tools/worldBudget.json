@@ -12,9 +12,14 @@
   },
   "frameBytecode": {
     "src/scenes/world.js": 36500,
-    "src/scenes/worldModes.js": 50000,
+    "src/scenes/worldModes.js": 40000,
     "src/scenes/exterior.js": 57000
   },
+  "frameRegisters": {
+    "src/scenes/world.js": 130,
+    "src/scenes/worldModes.js": 130
+  },
+  "framePhases": { "dir": "src/scenes/frame", "bytecode": 45000, "registers": 130 },
   "otherNonEmptyLines": {
     "src/scenes/worldModes.js": 15000,
     "src/scenes/exterior.js": 7000
