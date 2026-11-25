@@ -271,7 +271,6 @@ function paint() {
     search.value = spellQuery;
     search.placeholder = 'Find a spell or effect';
     search.setAttribute('aria-label', search.placeholder);
-    body.append(search);
   }
   for (const r of rows) {
     if (hotbarAcceptsDrops()) spellIconPicture(r.spell?.icon, { box: SPELL_DRAG_BOX });   // UI2: warmed, so a drag starts with it
@@ -346,10 +345,13 @@ function paint() {
     animateSpellPreview(preview, sel.spell).catch(() => {});
     const previewPanel = el('div', 'sb-preview-panel');
     previewPanel.append(illustration);
-    expanded = el('section', 'sb-inline-expanded');
-    expanded.dataset.spellSearch = selectedRow.dataset.spellSearch;
-    expanded.hidden = selectedRow.hidden;
-    expanded.append(previewPanel, detail, parameters);
+    // BUNNYFALL: three columns - the searchable list, the spell's animation, and its effects, details and buttons
+    expanded = el('section', 'sb-spell-side');
+    expanded.setAttribute('data-scroll-key', `spell side ${sel.spell?.index}`);
+    expanded.append(detail, parameters);
+    const stage = el('div', 'sb-spell-stage');
+    stage.append(previewPanel, el('h3', 'sb-stage-name', sel.name));
+    expanded._stage = stage;
   }
   const meta = el('div', 'px-qmeta');
   // AFFORDABLE OR NOT, which is the question a player opens this book
@@ -506,8 +508,11 @@ function paint() {
     parameters.append(form);
   }
   if (notice) parameters.append(el('p', 'sheet-notice', notice));
-  if (expanded) selectedRow.after(expanded);
-  else wrap.append(detail);
+  if (expanded) {
+    const column = el('div', 'sb-spell-column');
+    column.append(search, rail);
+    wrap.replaceChildren(column, expanded._stage, expanded);
+  } else wrap.append(detail);
   body.append(wrap);
   win.append(body);
   // AUDIT-39r R22: AND THE PROMPT IS A PUSHED WINDOW, not a card

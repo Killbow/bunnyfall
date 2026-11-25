@@ -3411,6 +3411,44 @@ button.sb-milestone:is(:hover, :focus-visible, [aria-expanded="true"]) {
 .sb-shell .sb-row-icon { display: grid; place-items: center; flex: 0 0 24px; height: 24px; font-size: 10px; }
 .sb-shell .sb-row-icon img { width: 24px; height: 24px; image-rendering: pixelated; }
 .sb-art-layout .sb-inline-expanded { grid-column: 1 / -1; }
+/* BUNNYFALL: the illustrated Spells page in three columns - list, animation, details - each scrolling on its own. */
+.sb-art-layout .sb-catalogue { display: grid; grid-template-columns: minmax(11rem, 27%) minmax(0, 1fr) minmax(13rem, 32%);
+  gap: .6rem; padding: .6rem; }
+.sb-art-layout .sb-spell-column { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.sb-art-layout .sb-spell-column .sb-spell-search { margin: 0 0 .4rem; width: 100%; box-sizing: border-box; }
+:root .sb-shell.sb-art-layout .sb-spell-column .sb-catalogue-list { display: block; flex: 1 1 auto; min-height: 0; padding: 0 .35rem 0 0;
+  overflow-y: scroll; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #c29a5a #1a130d; }
+.sb-art-layout .sb-catalogue-row { min-height: 40px; margin-top: 0; margin-bottom: .3rem; padding: .35rem .55rem; }
+.sb-art-layout .sb-spell-stage { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; min-height: 0; min-width: 0; }
+.sb-art-layout .sb-spell-stage .sb-preview-panel { width: 100%; }
+.sb-art-layout .sb-stage-name { margin: 0; text-align: center; color: #f0c582; font-size: 20px; letter-spacing: .06em; }
+.sb-art-layout .sb-spell-side { display: flex; flex-direction: column; gap: .6rem; min-height: 0; min-width: 0;
+  overflow-y: auto; padding-right: .3rem; scrollbar-width: thin; scrollbar-color: #c29a5a #1a130d; color: #fff0d2; }
+.sb-art-layout .sb-spell-side .sb-acts { display: flex; flex-wrap: wrap; gap: .35rem; }
+.sb-art-layout .sb-spell-side .act { background: #4b3423; color: #fff0d2; border: 1px solid #9e7948; }
+@media (max-width: 780px) {
+  .sb-art-layout .sb-catalogue { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .sb-art-layout .sb-spell-column { max-height: 40vh; }
+}
+/* One dark theme for the whole Spells page: every skin's page ink is set aside for light ink on the dark panels. */
+:root .sb-shell.sb-art-layout .sb-spell-side :is(.sb-inline-effects, .sb-inline-parameters) { background: #30231a; border: 1px solid #745535; }
+:root .sb-shell.sb-art-layout :is(.sb-spell-side, .sb-spell-stage) { color: #fff0d2 !important; }
+:root .sb-shell.sb-art-layout :is(.sb-spell-side .sb-inline-heading, .sb-stage-name) { color: #f0c582 !important; text-shadow: 0 1px 2px #000; }
+:root .sb-shell.sb-art-layout .sb-spell-side :is(.sb-effect, .sb-group, .px-qtimer, .px-qmeta) { color: #f6e4c0 !important; text-shadow: none; }
+:root .sb-shell.sb-art-layout .sb-spell-side :is(.sb-sub, .sb-nums, .sb-num, .px-c) { color: #cdb68c !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .px-qtimer.urgent { color: #ff9a7a !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act { color: #fff0d2 !important; background: #4b3423 !important; border: 1px solid #9e7948 !important;
+  border-radius: 2px; min-height: 0; padding: .32rem .7rem !important; text-decoration: none !important; box-shadow: none !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act:is(:hover, :focus-visible) { background: #634529 !important; border-color: #d8b06a !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act.primary { background: #7a2a17 !important; border-color: #d0884a !important; color: #fff4dc !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act.on { outline: 1px solid #f0c582; }
+:root .sb-shell.sb-art-layout .sb-spell-side .sheet-notice { color: #f0c582 !important; }
+/* The abilities rail stays one column: the spells layout above turns every rail into a grid. */
+:root .sb-shell .px-qrail.sb-ability-rail { display: flex; flex-direction: column; grid-template-columns: none; }
+:root .sb-shell .sb-abilities .sb-ability-search { background: rgba(255,248,230,.6) !important; color: #2b1a0c !important;
+  border: 1px solid rgba(110,70,30,.6) !important; }
+:root .sb-shell .sb-abilities .sb-ability-search::placeholder { color: #6b5232; opacity: 1; }
+:root .sb-shell .sb-abilities :is(.sb-filter, .sb-hand) { min-height: 0 !important; padding: .12rem .5rem !important; font-size: 13px; line-height: 1.3; }
 @media (min-width: 781px) {
   .sb-shell .px-qrail { flex: 0 1 54%; min-width: 0; }
   .sb-shell :is(.px-qrail, .sb-catalogue-list) {
