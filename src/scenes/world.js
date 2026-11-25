@@ -235,6 +235,7 @@ import { registerSpirePotionLaw, registerSpireFooting, registerSpireWake, regist
 import { accountEg } from '../net/accountClient.js';   // EG-PLAY: the Weir Keys, the open, the admission, the claims
 import { accountKetch } from '../net/accountClient.js';   // KETCH: the Ketchmaster's hold - a Tonal Warden's receipt carried to the service
 import { createKetchClient } from '../systems/ketch/ketchClient.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen - the sky over Daggerfall, the anchor-lift, the ship aboard, the hold
+import { createMineMouths } from '../systems/mine/mineMouths.js';   // BUNNYFALL (2026-11-25, caverns): mine mouths in the wilds
 import { registerPlayerDeathSave } from '../characters/playerEntity.js';   // EG-FULL: the fall's death save (the witness's damage mod rides main's import of registerPlayerDamageMod, below) (EG-H2: the Spire's Levitate ward is the one ward's, by the made level's law)
 import { registerMadeLevelHere, madeRuleHere, madeSaysHere } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every per-level door below asks the one law
 import { registerJumpForgiveness } from '../player/motor.js';   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press, the made level's law's
@@ -9340,6 +9341,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     window.__look = (yaw, pitch) => { cam.yaw = yaw; cam.pitch = pitch; lookFilter.settle(); };   // CSA-F probe: the view turned in place (the helm pins the body, not the look)
     window.__streamIdle = () => queue.length === 0 && !building && inFlight.size === 0;   // AUDIT EV: teleport builds count too - the probe told the truth only for pump's
     window.__builtCount = () => built.size;
+    window.__mine = (px, py) => (px === undefined ? mines?.stood() ?? [] : modes?.enterMine?.({ px, py, reset: 0, site: egSiteNow() }));   // BUNNYFALL (2026-11-25, caverns) probe: the mouths stood, or into one
     window.__cromwarkEnvironment = () => [...built.values()].filter((p) => p.wasteR).map((p) => ({ px: p.px, py: p.py, damage: p.cromwarkDamage, models: p.models.length, lights: p.lights.length, animals: p.animals?.length ?? 0,
       ruins: p.models.filter((m) => m._ruin).map((m) => { const t = state.pixelTranslation(p.px, p.py); return { kind: m._ruin, box: m._box.map((v, i) => v + t[i % 3]) }; }) }));
     window.__cromwark = () => cromwark;   // BUNNYFALL probe: the reach's host (its camp, its haze)
@@ -11259,6 +11261,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     get gateFrame() { return gateFrame; },
     get gateLink() { return gateLink; },
     get gatherHost() { return gatherHost; },
+    get mines() { return mines; },   // BUNNYFALL (2026-11-25, caverns)
     get guildBook() { return guildBook; }, set guildBook(v) { guildBook = v; },
     get ketch() { return ketch; },
     get legacyHost() { return legacyHost; },
@@ -12818,6 +12821,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     maps, state, heightAt: (x, z) => heightAt(x, z), collider: () => collider, feetOutside: egFeet, site: egSiteNow, peers: () => egPeers(),
     say: (text) => chatNotice(text), mid: egMid, save: egSave, store: _spoilsStore, hudHidden: () => gamePaused() || !!townTalk.hudHidden,
     spent: (n) => socialLink()?.sendKetchSpent?.(n) === true, changed: () => saveSoon.changed(),   // AUDIT KETCH L1-2: a voyage's share given, said to the hub; L3-13: a save asked for
+  }) : null;
+  // BUNNYFALL (2026-11-25, caverns): MINE MOUTHS IN THE WILDS (systems/mine/mineMouths.js) - online alone, walked into to enter
+  const mines = (params.has('online') && bunnyGuildsOn()) || shotMode ? createMineMouths({   // shot mode: the dev probes' (offline)
+    renderer, getTexture, uploadRecord, billboardSize, flatBatchAabb, built: () => built, climateAt: (x, y) => maps?.getClimateIndex(x, y) ?? -1,
+    occupiedAt: (x, y) => locationIndex.has(`${x},${y}`), pixelTranslation: (x, y, out) => state.pixelTranslation(x, y, out),
+    feet: () => player.feetAt?.() ?? null, outside: () => (modes?.mode ?? 'exterior') === 'exterior' && !gamePaused(),
+    enter: (px, py) => { void modes?.enterMine?.({ px, py, reset: 0, site: egSiteNow() }); }, sealedFor: () => 0, say: (text) => chatNotice(text),
   }) : null;
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */
   const _egLightList = [], NO_EG_LIGHTS = Object.freeze([]);

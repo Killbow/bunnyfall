@@ -32,9 +32,9 @@ export function mineExitDoor(mouth) {
 }
 
 /**
- * @param {{ renderer: any, uploadRecord?: ((archive: number, record: number) => any) | null }} deps
+ * @param {{ renderer: any, getTexture?: ((archive: number) => Promise<any>) | null, uploadRecord?: ((archive: number, record: number) => any) | null }} deps
  */
-export function createMineHost({ renderer, uploadRecord = null }) {
+export function createMineHost({ renderer, getTexture = null, uploadRecord = null }) {
   /** @type {any} */
   let mesh = null, standCtx = null, layout = null;
   return {
@@ -44,7 +44,9 @@ export function createMineHost({ renderer, uploadRecord = null }) {
       const mine = loc.mine;
       layout = mineLayout(mine.id, mine.reset ?? 0);
       const tex = mineTextures(loc.climate?.worldClimate ?? 0);
-      for (const rec of new Set([tex.wall, tex.floor, tex.ceiling])) { try { uploadRecord?.(tex.archive, rec); } catch (e) { console.warn('[mine] a texture', e?.message ?? e); } }
+      // the archive read first (the pipeline uploads a record of a file it holds), then its three records
+      const up = () => { for (const rec of new Set([tex.wall, tex.floor, tex.ceiling])) { try { uploadRecord?.(tex.archive, rec); } catch (e) { console.warn('[mine] a texture', /** @type {any} */ (e)?.message ?? e); } } };
+      Promise.resolve(getTexture?.(tex.archive)).then(up, (e) => console.warn('[mine] the cave textures', e?.message ?? e));
       try { mesh = renderer?.createMesh ? renderer.createMesh(buildMineModel(layout, tex)) : null; } catch (e) { console.warn('[mine] the cave would not build', e?.message ?? e); mesh = null; }
       if (mesh) ctx.dynamicDraws?.push({ gpu: mesh, object: { matrix: identity() }, hidden: false, noShadow: false, texRemap: null });
       const tris = mineColliderTris(layout), idx = new Uint32Array(tris.length / 3);

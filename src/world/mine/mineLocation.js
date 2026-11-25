@@ -13,6 +13,9 @@ export const MINE_BLOCK = 'MINE.RDB';
 export const MINE_BLOCK_INDEX = 900500;
 /** Daggerfall's natural cave dungeon type. */
 export const MINE_DUNGEON_TYPE = 6;
+/** A chamber's lamp: Daggerfall's standing torch (TEXTURE.210 record 6), and how far its light reaches (m). */
+export const MINE_TORCH = Object.freeze({ archive: 210, record: 6 });
+export const MINE_LAMP_M = 14;
 /** Classic units a metre. */
 const UNITS_PER_M = 40;
 
@@ -47,7 +50,24 @@ export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, res
     xPos: Math.round((x + fx * step) * UNITS_PER_M), yPos: 0, zPos: Math.round((z + fz * step) * UNITS_PER_M),
     resources: { flatResource: { textureArchive: 199, textureRecord: 10, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
   };
-  return { name: MINE_BLOCK, position: 0, rdbBlock: { modelReferenceList: [], objectRootList: [{ rdbObjects: [marker] }] } };
+  // the lamps: a light over each chamber's floor (and one inside the mouth), its standing torch on the nearest wall slot -
+  // RDB light and flat objects as the dungeon builder reads them (world/dungeonLights.js: y is flipped, range = radius x 3)
+  const objs = [marker];
+  const flat = (/** @type {number[]} */ p) => ({
+    type: 0x03, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-p[1] * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
+    resources: { flatResource: { textureArchive: MINE_TORCH.archive, textureRecord: MINE_TORCH.record, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
+  });
+  const light = (/** @type {number[]} */ p, /** @type {number} */ up) => ({
+    type: 0x02, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-(p[1] + up) * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
+    resources: { lightResource: { unknown1: 0, unknown2: 0, radius: Math.round(MINE_LAMP_M / (3 / UNITS_PER_M)) } },
+  });
+  objs.push(light([x + fx * 3, L.mouth.at[1], z + fz * 3], 2.5));
+  for (const s of L.sections) for (const ch of s.chambers) {
+    const w = ch.walls.find((q) => !q.weak) ?? ch.walls[0];
+    const foot = w ? [w.at[0] + w.n[0] * 0.6, ch.c[1], w.at[2] + w.n[2] * 0.6] : [ch.c[0], ch.c[1], ch.c[2]];
+    objs.push(flat(foot), light([foot[0], ch.c[1], foot[2]], 2.2));
+  }
+  return { name: MINE_BLOCK, position: 0, rdbBlock: { modelReferenceList: [], objectRootList: [{ rdbObjects: objs }] } };
 }
 
 /** THE BLOCKS FILE THE MINE IS LAID FROM: the real one, answering one name more. */

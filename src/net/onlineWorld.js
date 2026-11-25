@@ -2220,6 +2220,7 @@ export function createOnlineWorld(shared) {
     sdFrame();   // SD2b: the Hollow stood or taken down, its find, its lines - SD2d: in every mode, so its end reaches a player inside it
     shared.egFrame();   // EG-PLAY: an Elite Breach - its call, its halls, its fight, its tracker, its receipts - in every mode
     try { shared.ketch?.frame(); } catch (e) { console.warn('[kt] frame', e?.message ?? e); }   // KETCH: the voyage's words, the sky, the ship aboard, the receipts - in every mode
+    try { shared.mines?.frame(); } catch (e) { console.warn('[mine] frame', e?.message ?? e); }   // BUNNYFALL (2026-11-25, caverns): mine mouths
     renownTracker?.tick();   // RENOWN1: what this character earned, to the account service when a report is due
     rollTracker?.tick();   // CHAP1: this character's standing with the guilds - read once, then what moved claimed when due
     peerMenuFrame();   // PEERMENU1: the bind's hold timer

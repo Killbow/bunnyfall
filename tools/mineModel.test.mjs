@@ -64,3 +64,46 @@ test('the model has a wall, a floor and a ceiling, and no NaN', () => {
   assert.ok(model.positions.every((x) => Number.isFinite(x)));
   assert.equal(mineTextures(CLIMATES.Mountain).archive, 322);
 });
+
+test('floors face up and ceilings face down, so neither is culled from inside', () => {
+  const tex = mineTextures(CLIMATES.Woodlands);
+  for (const layout of LAYOUTS.slice(0, 4)) {
+    const m = buildMineModel(layout, tex), P = m.positions;
+    for (const s of m.subMeshes) {
+      const kind = s.textureRecord === tex.floor ? 'floor' : null;
+      const isCeiling = m.subMeshes.indexOf(s) === 2;
+      if (!kind && !isCeiling) continue;
+      for (let t = 0; t < s.primitiveCount; t++) {
+        const i = (s.startIndex + t * 3) * 3;
+        const a = [P[i], P[i + 1], P[i + 2]], b = [P[i + 3], P[i + 4], P[i + 5]], c = [P[i + 6], P[i + 7], P[i + 8]];
+        const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+        const ny = e1[2] * e2[0] - e1[0] * e2[2];
+        if (isCeiling) assert.ok(ny <= 1e-9, `a ceiling face looks up (${ny})`);
+        else assert.ok(ny >= -1e-9, `a floor face looks down (${ny})`);
+      }
+    }
+  }
+});
+
+test("a body walks through every doorway: from the room's middle to where its tunnel starts, then along the tunnel", { todo: "a doorway lip still stops a 1.8 m ray in mine 4242 s0c1-s0c2" }, () => {
+  const clear = (tris, a, b, up) => {
+    const o = [a[0], a[1] + up, a[2]], d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], len = Math.hypot(...d);   // level with the body: a to b, both at `up`
+    return len < 1e-6 || rayHit(tris, o, d.map((v) => v / len)) >= len;
+  };
+  for (const layout of LAYOUTS.slice(0, 5)) {
+    const tris = mineColliderTris(layout);
+    const chambers = new Map(layout.sections.flatMap((s) => s.chambers).map((c) => [c.id, c]));
+    for (const t of layout.tunnels) for (const end of [t.from, t.to]) {
+      const ch = chambers.get(end);
+      if (!ch) continue;
+      const seq = end === t.from ? t.pts : [...t.pts].reverse();
+      const inside = (p) => ((p[0] - ch.c[0]) / ch.rx) ** 2 + ((p[2] - ch.c[2]) / ch.rz) ** 2 < 0.8;
+      const start = seq.filter(inside).pop() ?? seq[0];   // the last point well inside the room
+      for (const up of [0.6, 1.8]) {
+        assert.ok(clear(tris, [ch.c[0], ch.c[1], ch.c[2]], start, up), `${ch.id}: the room to its ${t.from}-${t.to} doorway at ${up} m`);
+        const k = seq.indexOf(start);
+        for (let q = k; q < Math.min(seq.length - 1, k + 6); q++) assert.ok(clear(tris, seq[q], seq[q + 1], up), `${t.from}-${t.to} step ${q} at ${up} m`);
+      }
+    }
+  }
+});

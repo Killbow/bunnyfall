@@ -29,9 +29,12 @@ test('its one block holds a start marker a step inside the mouth', () => {
   const blocks = mineBlocks(null, loc.mine);
   assert.equal(blocks.getBlockIndex(MINE_BLOCK), MINE_BLOCK_INDEX);
   const objs = blocks.getBlock(MINE_BLOCK_INDEX).rdbBlock.objectRootList[0].rdbObjects;
-  assert.equal(objs.length, 1);
+  const markers = objs.filter((o) => o.type === 0x03 && o.resources.flatResource.textureArchive === 199);
+  assert.equal(markers.length, 1);
   const L = mineLayout(loc.mine.id, 2);
-  const d = Math.hypot(objs[0].xPos / 40 - L.mouth.at[0], objs[0].zPos / 40 - L.mouth.at[2]);
+  const chambers = L.sections.reduce((n, s) => n + s.chambers.length, 0);
+  assert.equal(objs.filter((o) => o.type === 0x02).length, chambers + 1);   // a lamp a chamber, and the mouth's
+  const d = Math.hypot(markers[0].xPos / 40 - L.mouth.at[0], markers[0].zPos / 40 - L.mouth.at[2]);
   assert.ok(d > 1 && d < 2, `marker ${d.toFixed(2)} m from the mouth`);
   assert.equal(blocks.getBlock(5), null);
 });
