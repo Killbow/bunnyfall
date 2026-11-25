@@ -133,7 +133,9 @@ import { edAtmosFrame, edLampTint } from '../systems/eliteDungeons/edAtmos.js'; 
 import { egRoomKey } from '../net/eliteGates/egLaw.js';   // EG-PLAY: its room, its halls, its words
 import { createEgCircleHost } from '../systems/eliteGates/egCircleHost.js';   // HOST-SPLIT (EG-LOOK): an Elite Breach's circle on this screen, moved out of this host
 import { createKetchDeckHost, ketchShipHit } from '../systems/ketch/ketchDeckHost.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen's dungeon host - its set, its seams, its look, its door
-import { isKetchShip } from '../world/ketch/ketchShip.js';   // KETCH: the sky-ketch, a made level as the Hour is
+import { isKetchShip } from '../world/ketch/ketchShip.js';
+import { createMineHost } from '../systems/mine/mineHost.js';   // BUNNYFALL (2026-11-25, caverns): a mine, a made level
+import { mineHit } from '../world/mine/mineLocation.js';   // BUNNYFALL (2026-11-25, caverns)   // KETCH: the sky-ketch, a made level as the Hour is
 import { KT_ARRIVE } from '../net/ketch/ketchDeck.js';   // KETCH: where the anchor-lift sets a crew down, and its facing
 import { EG_OCCLUDE_CHEST_M } from '../systems/eliteGates/egOcclude.js';   // EG-ZN (section 11.8): the occluders between the camera and the body dithered out
 import { madeLevelOf } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): which made level stands under the player - one law
@@ -9498,6 +9500,12 @@ export function createWorldModes(host) {
    *  client rides it - scenes/ketch/ketchClient.js board). `r` is { n: the voyage, owner: the captain's digest, site: the
    *  climate and region at Daggerfall }. The ship's room is the relay's `kt:<voyage>.<owner>`; where I stood is every way
    *  down's landing (returnLanding's `from`). */
+  /** BUNNYFALL (2026-11-25, caverns): INTO A MINE (world/mine/mineLocation.js) - a made level, the Ketch's way. `r` is
+   *  { px, py, reset, site }; its room is the mine's own dungeon room. */
+  async function enterMine(r) {
+    const hit = mode === 'exterior' && playerEntity.health > 0 ? mineHit(r, blocks) : null;
+    return hit ? gatedTransition((live) => dungeonTransition(hit, [], true, live)) : false;
+  }
   async function enterKetch(r) {
     const hit = mode === 'exterior' && playerEntity.health > 0 ? ketchShipHit(r, blocks) : null;   // the made location and its blocks (scenes/ketch/ketchDeckHost.js)
     return hit ? gatedTransition((live) => dungeonTransition(hit, [], true, live)) : false;
@@ -9712,6 +9720,7 @@ export function createWorldModes(host) {
   /** KETCH (bible/11-Multiplayer/Sky-Ketch.md sections 3 and 11): A CREW'S SHIP on this screen - its set, its seams routed to the
    *  world's client (`host.ketch`), its look (scenes/ketch/ketchDeckHost.js - HOST-SPLIT: built there, its reads here). */
   const ketchDeck = createKetchDeckHost({ renderer, host, wm: _madeView });
+  const mineHost = createMineHost({ renderer, uploadRecord });   // BUNNYFALL (2026-11-25, caverns)
   /** EG-ZN (2026-10-12, Elite-Gates.md section 11.8): THE OCCLUDERS DITHERED, this frame - after its beginFrame (the shadow
    *  record open) and before the dynamic draws: the circle's rock a ray from the third-person eye to my body (its pivot and
    *  its chest) crosses dithered out, the rest of the circle drawn whole (scenes/eliteGates/egOcclude.js). First person, a witness's
@@ -10110,6 +10119,7 @@ export function createWorldModes(host) {
       if (hit.sdRealm != null) standSdRealm(ctx);   // SD5a: the Hour, before the start marker is read
       if (hit.egHall) standEgHall(ctx, hit.egHall);   // EG-PLAY: an Elite Breach's circle, the same
       if (hit.ketch) ketchDeck.stand(ctx);   // KETCH: a crew's ship, the same
+      if (hit.mine) mineHost.stand(ctx, hit.dfLocation);   // BUNNYFALL (2026-11-25, caverns): a mine, the same
       if (hit.arenaFloor) standArenaFloor(ctx);   // ARENA2: the floor's gates, before any namer
       // OH-D: DaggerfallDungeon.OnSetDungeon - SetDungeon raises it after LayoutDungeon, before TransitionDungeonInterior
       // reads the start marker. A listener may hand back the work it started (the port's foe rebuilds - DFU's are
@@ -13519,6 +13529,7 @@ export function createWorldModes(host) {
     egHallCircle: () => (mode === 'dungeon' && isEgHall(dungeonLoc) ? dungeonLoc.egCircle : null),   // EG-PLAY: and which circle it is
     enterEgHall,   // EG-PLAY: into a breach's circle (the world host steps the veil)
     enterKetch,   // KETCH: up the anchor-lift onto a crew's ship (the world's client rides it)
+    enterMine,   // BUNNYFALL (2026-11-25, caverns): into a mine from its mouth
     ktShip: () => (mode === 'dungeon' && isKetchShip(dungeonLoc) ? dungeonLoc.ketch : null),   // KETCH: the crew's ship under this player - its voyage, its captain, its room
     ktLeave: () => { if (mode !== 'dungeon' || !isKetchShip(dungeonLoc) || !dungeonCtx) return false; pendingDungeonExit = true; return true; },   // KETCH: down at the top of the next frame, to where I boarded (returnLanding's `from`)
     ktPlace: egPlace,   // KETCH: stood elsewhere on the ship - the bosun's line's ride
