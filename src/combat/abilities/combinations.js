@@ -102,8 +102,8 @@ export function combinationDelivery(id, weapon) {
         { ...opening, targetCap: 3, share: .4 },
         { ...cut, strike: 'StrikeLeft', share: .25 },
         { ...cut, share: .35 },
-      ], { advance: advance(short ? 3.8 : 4.8, .62), redirect: true, capstone: { base: 22, stat: 'speed' },
-        potency: 1.6, spend: 14, cooldownMs: 38000, windUpMs: 420, activeMs: 1000, recoveryMs: 1000 });
+      ], { advance: advance(short ? 3.8 : 4.8, .62), redirect: true, capstone: { base: 34, stat: 'speed' },
+        potency: 2, spend: 14, cooldownMs: 38000, windUpMs: 420, activeMs: 1000, recoveryMs: 1000 });
     case HUNTING_LINE:
     case PREDATORS_CROSSING:
       return huntingDelivery(id === PREDATORS_CROSSING, skill, template);

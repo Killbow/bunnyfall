@@ -525,8 +525,10 @@ test('Veil Cut applies concealment and adds damage against an unaware target', (
   for (let i = 0; i < 60 && !hit; i++) if (frame().includes('hit')) hit = pw.techniqueBlow;
   assert.ok(hit);
   breakNormalPowerConcealment(entity);
-  assert.ok(hasActiveEffect(entity, 'chameleonTrue'));
-  tickActiveEffects(entity, {}, () => 0);
+  for (let round = 0; round < 10; round++) {
+    assert.ok(hasActiveEffect(entity, 'chameleonTrue'));
+    tickActiveEffects(entity, {}, () => 0);
+  }
   assert.ok(!hasActiveEffect(entity, 'chameleonTrue'));
   const foe = hostile(0, 1);
   assert.equal(previewDamage(hit, 100, foe), 165);
