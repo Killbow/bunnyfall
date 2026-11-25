@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: Spells that dispel undead or daedra now work inside buildings.
 - Fixed: Damage ranges on the Combat Stats page are now rounded to at most two decimal places instead of showing long decimal tails.
 - Fixed: Gravity Well now pulls enemies on a ship's deck.
 - Fixed: Online standing messages now name every guild whose standing changed, and count Bunnyfall guilds such as the Bards' College as yours.
