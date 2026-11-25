@@ -3093,6 +3093,7 @@ gather.stop.gone,"This spot is gone for now, so the gathering stopped. Nothing w
 grapple.cannot,"You cannot throw the hook now."
 grapple.coiling,"The rope is still being coiled."
 grapple.noHold,"The hook catches, but there is no footing for you there."
+grapple.noHook,"You carry no grappling hook."
 grapple.nothing,"The hook finds nothing to catch."
 growth.captain.lead,"Master stars improve sailing, cargo and trade. Commander stars improve guns and boarding."
 growth.captain.none,"Your captain's stars aren't available here."

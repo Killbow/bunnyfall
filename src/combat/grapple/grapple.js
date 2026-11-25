@@ -1,9 +1,10 @@
 // BUNNYFALL: THE GRAPPLING HOOK. The owner: "the grappling hook, wich can be used to fire in a direction and be pulled
 // there with a cooldown".
 //
-// Held in the hand like a dagger (combat/fpsWeapon.js weaponTypeForItem) and never swung: the weapon rig hands the click
-// here (grappleClick) instead of to the machine, and plays the hook's own frames (grappleFrame). The throw leaves on the
-// throw frame. From there the PLAYER MOTOR runs it (player/motor.js `_step`, one hook: grappleStep), because the motor
+// A TOOL EVERY BODY CARRIES, not a weapon: no item, no skill, no ammo, no hand. Its own key (the GrapplingHook action)
+// is handed here by the weapon rig (grappleClick), which plays the hook's own frames (grappleFrame) in the hand for the
+// throw's length and starts no swing meanwhile; the weapon and the shield stay as they are. (It was item 565, held like a
+// dagger, until 2026-11-25; items/retiredItems.js clears the old item from saves.) The throw leaves on the throw frame. From there the PLAYER MOTOR runs it (player/motor.js `_step`, one hook: grappleStep), because the motor
 // is the one thing in every host that knows the eye, the look, the collider and the body:
 //   - THE THROW: a ray along the look from the eye, GRAPPLE_RANGE long, against the meshes and (outdoors) the terrain.
 //     What it meets is the mark; nothing met, the hook flies out, falls short and is reeled in.
@@ -41,7 +42,6 @@ const G = {
   clock: 0,            // the motor's clock, seconds
   readyAt: 0,          // when the next throw may leave
   restLen: 0,          // the rest the last throw left (for the ring)
-  held: false,         // the hook is in the hand, drawn
   anim: -1,            // the hand's clock (seconds since the click), -1 at rest
   released: false,     // the throw has left this animation
   wanted: false,       // a throw is owed to the next motor step
@@ -54,16 +54,16 @@ const G = {
 export function bindGrappleSay(say) { G.say = typeof say === 'function' ? say : null; }
 const say = (line) => { try { G.say?.(line); } catch { /* words are not the hook's problem */ } };
 
-/** The rig, every frame: is the hook in the hand and drawn? */
-export function setGrappleHeld(held) { G.held = !!held; if (!held && !G.released) G.anim = -1; }
+/** Is the throw's animation playing (the hook is in the hand)? */
+export const grappleThrowing = () => G.anim >= 0;
 /** Seconds of rest left, and the whole rest it is part of. */
 export const grappleCooldownLeft = () => Math.max(0, G.readyAt - G.clock);
 export const grappleCooldownTotal = () => G.restLen;
 const busy = () => !!(G.hook || G.pull);
 
-/** The rig, on the attack button: `pressed` the button's press edge. Starts the throw's animation when the hook may go. */
+/** The rig, on the hook's key: `pressed` the key's press edge. Starts the throw's animation when the hook may go. */
 export function grappleClick(pressed) {
-  if (!pressed || !G.held) return false;
+  if (!pressed) return false;
   if (G.anim >= 0 || busy()) return false;
   if (grappleCooldownLeft() > 0) { say(t('grapple.coiling', 'The rope is still being coiled.')); return false; }
   G.anim = 0; G.released = false;
@@ -84,7 +84,7 @@ export function grappleFrame(dt) {
 /** What the overlay draws: the hook's place (null when it is in the hand), whether it pulls, and the rest. */
 export function grappleView() {
   return {
-    held: G.held,
+    held: G.anim >= 0 || busy() || grappleCooldownLeft() > 0,
     hook: G.hook ? G.hook.pos : G.pull ? G.pull.anchor : null,
     pulling: !!G.pull,
     cooldownLeft: grappleCooldownLeft(),
@@ -93,7 +93,7 @@ export function grappleView() {
 }
 
 /** End it all at once (a scene torn down, a death). */
-export function cancelGrapple() { G.hook = null; G.pull = null; G.wanted = false; }
+export function cancelGrapple() { G.hook = null; G.pull = null; G.wanted = false; G.anim = -1; G.released = false; }
 
 const unit = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];

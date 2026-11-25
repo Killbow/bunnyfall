@@ -4,8 +4,8 @@
 //   - The Royal Ballista (564): a heavier crossbow on the bow's own machine. It spends arrows and is scored on Archery;
 //     its bolt flies on an arc and bursts where it lands (combat/ballista/ballistaFlight.js); drawn, it slows its bearer.
 //     A Weapons row copied from the Long Bow (so the paperdoll shows a bow, as the crossbow's does), in the metal ladder.
-//   - The Grappling Hook (565): held in the hand like a dagger, never swung. A click throws it; what it catches the
-//     bearer is pulled to (combat/grapple/grapple.js). Iron only.
+//   - The Grappling Hook (565): a tool carried in the pack, never held or swung, and open to every character. The
+//     GrapplingHook key throws it; what it catches the bearer is pulled to (combat/grapple/grapple.js). Iron only.
 //   - First-person art: combat/heavyGearArt.js. The owner's own art lives in public/art/bunnyfall-ballista/ and
 //     public/art/bunnyfall-grapple/ (the originals under owner/).
 //   - Where: the Royal Ballista on a good Weapon Smith's shelf, now and then, and rarely in a deep dungeon pile; the
@@ -33,7 +33,7 @@ export const BALLISTA_ROW = Object.freeze({
   rarity: 1,
   isOneHanded: false,
 });
-/** The hook's row: the Dagger's place in the hand, an iron tool's weight and price. */
+/** The hook's row: a Dagger's template with no hand given it (characters/equipTable.js), an iron tool's weight and price. */
 export const GRAPPLE_ROW = Object.freeze({
   ...ITEM_TEMPLATES[DAGGER],
   index: GRAPPLE_TEMPLATE,
@@ -47,7 +47,7 @@ export const GRAPPLE_ROW = Object.freeze({
 });
 registerCustomTemplates([BALLISTA_ROW, GRAPPLE_ROW]);
 registerTemplateLore(BALLISTA_TEMPLATE, 'A siege engine cut down to a soldier\'s arms, crowned on the stock. It lobs its bolt high and the bolt bursts where it lands, striking all about it. It is a slow thing to carry and slower to wind.');
-registerTemplateLore(GRAPPLE_TEMPLATE, 'Three iron prongs on a pole and a long rope. Throw it at a wall, a ledge or the ground ahead and it hauls you there. The rope needs a moment to be coiled again.');
+registerTemplateLore(GRAPPLE_TEMPLATE, 'Three iron prongs on a pole and a long rope. Keep it in your pack, and with its key throw it at a wall, a ledge or the ground ahead and it hauls you there. The rope needs a moment to be coiled again.');
 
 /** Mint a Royal Ballista. Material rides the weapon metal ladder (0 Iron .. 9 Daedric). */
 export function createBallista({ material = 0 } = {}) {

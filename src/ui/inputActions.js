@@ -215,6 +215,9 @@ export const ACTIONS = Object.freeze([
   // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire's Disciplines - tap casts the last, hold opens their wheel
   // (ui/vampire/disciplineWheel.js). Numpad0: every letter and digit is spent, and nothing in play reads it.
   'Discipline',
+  // BUNNYFALL GRAPPLING-HOOK: the grappling hook, a tool every character carries (combat/grapple/grapple.js). Numpad1:
+  // every letter and digit is spent, and nothing in play reads it.
+  'GrapplingHook',
 ]);
 
 /** AUDIT SOC D3: THE PORT'S OWN ROWS, NAMED SO THE CLASSIC WINDOWS CAN YIELD THEM.
@@ -232,7 +235,7 @@ export const PORT_ACTIONS = Object.freeze(['SocialInteract', 'QuickUse1', 'Quick
   'TorchToggleLight', 'TorchDrop', 'TorchThrow', 'ShoulderSwitch', 'AutoPerspective', 'FollowPaths', 'HorseMount', 'HorseSummon', 'DebugOverlay',
   'BoatDisembark', 'BoatToggleLight', 'BoatToggleSail', 'BoatTrimRight', 'BoatTrimLeft', 'BoatTrimModifier',
   'BoatTimeScaleUp', 'BoatTimeScaleDown', 'BoatTimeScaleReset', 'TravelView', 'WalkMode', 'TogglePerspective', 'ActChoice', 'BoatSailUp', 'BoatSailDown', 'Professions',
-  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset', 'EventBoard', 'Discipline']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
+  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset', 'EventBoard', 'Discipline', 'GrapplingHook']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
 
 const ACTION_SET = new Set(ACTIONS);
 
@@ -382,6 +385,7 @@ export const DEFAULT_BINDINGS = Object.freeze([
   ['Digit9', 'Hotbar9'],
   ['Digit0', 'Hotbar10'],
   ['Equal', 'EventBoard'],   // BUNNYFALL EVENT-BOARD-KEY: free on every count (DFU, the port, the vendored mods); the map's zoom reads it only inside the map
+  ['Numpad1', 'GrapplingHook'],   // BUNNYFALL GRAPPLING-HOOK: free on every count; rebindable in Controls
   ['Numpad0', 'Discipline'],   // BUNNYFALL VAMPIRE EXPANSION: free on every count; a vampire rebinds it in Controls
   ['Minus', 'HotbarPreset'],   // BUNNYFALL HOTBAR-PRESETS: free on every count (DFU, the port, the vendored mods)
   ['KeyO', 'TorchToggleLight'],
@@ -562,6 +566,7 @@ export const ACTION_GROUPS = Object.freeze([
   g('Combat', [
     ['ReadyWeapon', 'Ready or sheathe weapon'], ['SwingWeapon', 'Swing weapon'], ['SwitchHand', 'Switch hand'],
     ['WeaponTechnique', 'Weapon technique (hold to aim)'],   // TECH1
+    ['GrapplingHook', t('input.action.grapplingHook', 'Throw the grappling hook (carried)')],   // BUNNYFALL GRAPPLING-HOOK
     ['ShotCycle', 'Shot (aboard)'],   // SHOT-KINDS: the guns' load at a helm, stepped on
   ]),
   g('Magic', [

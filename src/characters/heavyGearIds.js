@@ -9,12 +9,16 @@
 /** The custom template indices, past the crossbow's 563. Their pictures are archives of the same numbers (the Pistolet's
  *  rule): no TEXTURE.564 or 565 exists in ARENA2, so the art is registered as stand-ins (systems/heavyGear.js). */
 export const BALLISTA_TEMPLATE = 564;
+/** The hook's item: carried in the pack, never equipped (no hand: characters/equipTable.js), and the GrapplingHook key
+ *  throws it for any body that carries one (combat/grapple/grapple.js). */
 export const GRAPPLE_TEMPLATE = 565;
-export const BALLISTA_ARCHIVE = 564;
 export const GRAPPLE_ARCHIVE = 565;
+export const BALLISTA_ARCHIVE = 564;
 
 export const isBallistaItem = (item) => item?.templateIndex === BALLISTA_TEMPLATE;
 export const isGrappleItem = (item) => item?.templateIndex === GRAPPLE_TEMPLATE;
+/** The hook is no item now (565 is retired, items/retiredItems.js): this stands in the hand for the throw's art only. */
+export const GRAPPLE_HAND_ITEM = Object.freeze({ group: 'Weapons', templateIndex: GRAPPLE_TEMPLATE, material: 0 });
 
 // ── THE ROYAL BALLISTA ───────────────────────────────────────────────
 // A bow-class weapon on the bow's own machine, as the crossbow is: it spends arrows and is scored on Archery.
