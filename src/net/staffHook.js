@@ -190,7 +190,7 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
       const v = peer();
       // STAFF-PANEL5-FOLLOW-R2: a pose leads only in the frame of the room the hub names (an interior's own pose names no
       // outdoor cell), and only while they stand in the room I saw them in - gone from it, the hub's word leads
-      if (v && (eye.room === room || (isCellRoom(eye.room) && isCellRoom(room)))) { seen = v; seenIn = eye.room; }
+      if (v && (eye.room === room || (isCellRoom(eye.room) && isCellRoom(room)))) { seen = { ...v }; seenIn = eye.room; }
       else if (!v && eye?.room === seenIn) seen = null;
       // outdoors the target's own pose names the next cell before their note does (a crossing is not a door)
       const want = seen && room && isCellRoom(room) ? cellRoomOfWire(seen.x, seen.z) ?? room : room;

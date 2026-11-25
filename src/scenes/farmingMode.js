@@ -42,6 +42,7 @@ import { createMarketActs } from './farm/marketActs.js';   // PHASE 7: market da
 import { marketToday } from '../net/farm/marketLaw.js';
 
 const TOOLS = ['hoe', 'plant', 'water', 'harvest'];
+export const FARM_WORK_MS = 1000, FARM_WATCH_MS = 12000;
 /** The farmyard's lanterns lit at night: within this reach of me, m, and at most this many (the town's lamps keep the rest). */
 const FARM_LAMP_REACH = 60, FARM_LAMPS_MAX = 3;
 export function createFarmingMode(deps) {
@@ -111,7 +112,7 @@ export function createFarmingMode(deps) {
       if (!accept(r, token) && ['farm-not-ours', 'no-guild', 'guilds-need-account'].includes(r?.error)) { leave(); site?.restore(); art.dispose(); garden = emptyGarden(); version = -1; }
       else if (!r?.ok) notice(t('farm.mode.loadFailed', 'The farm could not be read. Try again in a moment.'));
     } catch { if (token === epoch) notice(t('farm.mode.loadFailed', 'The farm could not be read. Try again in a moment.')); }
-    finally { if (token === epoch) { reading = false; nextRead = Date.now() + (version < 0 ? 5000 : 1000); } }
+    finally { if (token === epoch) { reading = false; nextRead = Date.now() + (version < 0 ? 5000 : active ? FARM_WORK_MS : FARM_WATCH_MS); } }
   }
   function notice(text) { message = text; noticeUntil = Date.now() + 4000; }
   function leave() {
@@ -594,7 +595,7 @@ export function createFarmingMode(deps) {
       return farmsteadLamps(site.farmstead).map((l) => [l, Math.hypot(l.pos[0] - feet[0], l.pos[2] - feet[2])]).filter(([, d]) => d <= FARM_LAMP_REACH)
         .sort((a, b) => a[1] - b[1]).slice(0, FARM_LAMPS_MAX).map(([l]) => adoptLight({ x: l.pos[0], y: l.pos[1], z: l.pos[2], range: LAMP_RANGE }, l.key));
     },
-    rebase(delta) { if (eye) eye = eye.map((v, i) => v + delta[i]); site?.rebase(delta);for(const observer of observers.values())observer.rebase(delta); },
+    rebase(delta) { if (eye) eye = eye.map((v, i) => v + delta[i]); site?.rebase(delta); art.rebase(delta);for(const observer of observers.values())observer.rebase(delta); },
     dispose() { leave(); clear();for(const observer of observers.values())observer.dispose();observers.clear(); disposed = true; },
     leave,
   };

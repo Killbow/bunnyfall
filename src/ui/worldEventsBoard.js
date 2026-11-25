@@ -92,7 +92,7 @@ const el = (/** @type {string} */ tag, /** @type {string|null} */ cls = null, /*
  */
 export function createWorldEventsBoard(deps = {}) {
   if (typeof document === 'undefined') return { frame() {}, open() {}, close() {} };
-  let root = null, offOverlay = null, tick = null;
+  let root = null, offOverlay = null, tick = null, tab = null, tabShown = null, seen = false;
   const pics = (() => {
     const mk = () => ({ coin: itemIconUrl(nyxCoins(1)), ingot: itemIconUrl(mintMaterialItem('ingot:iron')), plank: itemIconUrl(mintMaterialItem('plank:oak')) });
     let got = mk();
@@ -162,6 +162,7 @@ export function createWorldEventsBoard(deps = {}) {
     for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'wheel', 'contextmenu', 'touchstart', 'keydown']) root.addEventListener(ty, (e) => e.stopPropagation());
     root.addEventListener('click', (e) => { if (e.target === root) closeBoard(); else e.stopPropagation(); });
     document.body.append(root);
+    globalThis.addEventListener?.('keydown', onKey, { capture: true });
     offOverlay = registerOverlay(closeBoard);
     try { deps.askCannon?.(); } catch { /* the board stands without the build */ }
     render();
@@ -170,15 +171,18 @@ export function createWorldEventsBoard(deps = {}) {
   function closeBoard() {
     if (!root) return;
     clearInterval(tick); tick = null;
+    globalThis.removeEventListener?.('keydown', onKey, { capture: true });
     try { offOverlay?.(); } catch { /* gone already */ }
     offOverlay = null;
     root.remove(); root = null;
   }
   function onKey(/** @type {KeyboardEvent} */ e) { if (root && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeBoard(); } }
-  globalThis.addEventListener?.('keydown', onKey, { capture: true });
   function drawTab(show) {
-    let b = document.getElementById(TAB_ID);
-    if (!show) { if (b) b.style.display = 'none'; return; }
+    if (!tab?.isConnected) { tab = document.getElementById(TAB_ID); tabShown = null; }
+    const want = show && !root;
+    if (tab && want === tabShown) return;
+    let b = tab;
+    if (!show) { if (b) { b.style.display = 'none'; tabShown = false; } return; }
     if (!b) {
       style();
       b = el('button', null, '📜');
@@ -188,15 +192,18 @@ export function createWorldEventsBoard(deps = {}) {
       for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) b.addEventListener(ty, (e) => { if (!hudArranging()) e.stopPropagation(); });
       b.addEventListener('click', (e) => { e.preventDefault(); if (hudArranging()) return; e.stopPropagation(); openBoard(); });
       document.body.append(b);
+      tab = b;
     }
     b.style.display = root ? 'none' : '';
+    tabShown = want;
   }
   return {
     /** Each world frame: the board opens itself once a session, once the world stands; the tab stands beside play. */
     frame() {
       const ok = (deps.ready?.() ?? true) && !pauseFlowShowing() && !loadingHeld();
       drawTab(ok);
-      if (ok && store.get(SEEN_KEY) !== '1') { store.set(SEEN_KEY, '1'); openBoard(); }
+      if (ok && !seen && store.get(SEEN_KEY) !== '1') { store.set(SEEN_KEY, '1'); openBoard(); }
+      if (ok) seen = true;
     },
     open: openBoard,
     close: closeBoard,
