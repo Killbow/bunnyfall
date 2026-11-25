@@ -8,6 +8,7 @@ import { nearestPerson } from '../talk/townTalk.js';
 import { peerRayPick, SOCIAL_REACH } from '../player/socialPick.js';
 import { wagonHoverName } from '../player/eotbWagon.js';
 import { waterSourceHoverName } from '../systems/survival/items.js';
+import { bloodHoverLine } from '../scenes/vampire/vampireFeed.js';   // a vampire's Blood Sight, at a glance
 
 /** @param {any} shared */
 export function createHoverPickersWorld(shared) {
@@ -83,8 +84,10 @@ export function createHoverPickersWorld(shared) {
     (key) => shared.cityGuards.liveHoverName?.(key) ?? null,
     (key) => {
       if (typeof key !== 'string' || !key.startsWith('mobileNpc:')) return null;
-      const t = mobilePersonName(_talkPersons()[Number(key.split(':')[1])]?.person?.nameNPC);   // LW3: a traveller's name too
-      return t ? { title: t } : null;
+      const person = _talkPersons()[Number(key.split(':')[1])]?.person;
+      const t = mobilePersonName(person?.nameNPC);   // LW3: a traveller's name too
+      const blood = t ? bloodHoverLine(person) : null;   // a vampire reads their blood from the plaque
+      return t ? (blood ? { title: t, subs: [blood] } : { title: t }) : null;
     },
   ];
   /** WORLD-HOVER H2: the nearest townsperson as a RAY PICK - the
