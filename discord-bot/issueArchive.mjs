@@ -38,7 +38,7 @@ export function createIssueArchive(root, { fetchImage = globalThis.fetch } = {})
     return results.sort((a, b) => b.closedAt.localeCompare(a.closedAt));
   }
 
-  async function save(guild, thread, { reporter, kind, closedBy = null, starter = null }) {
+  async function save(guild, thread, { reporter, kind, closedBy = null, starter = null, live = false }) {
     if (!snowflake.test(thread.id)) throw new Error('Invalid Discord thread ID.');
     const dir = starter ? join(folder(guild), '.open') : folder(guild);
     const final = join(dir, thread.id);
@@ -84,7 +84,7 @@ export function createIssueArchive(root, { fetchImage = globalThis.fetch } = {})
       }
       const record = { id: thread.id, title: oneLine(thread.name), kind, reporter, closedBy,
         openedAt: new Date(thread.createdTimestamp ?? Date.now()).toISOString(),
-        closedAt: starter ? null : new Date().toISOString(), messages: messages.length, images };
+        closedAt: starter || live ? null : new Date().toISOString(), messages: messages.length, images };
       const header = [record.title, `Ticket: ${record.id}`, `Type: ${record.kind}`,
         `Reporter: ${reporter}`, `Opened: ${record.openedAt}`,
         ...(record.closedAt ? [`Closed by: ${closedBy}`, `Closed: ${record.closedAt}`] : []), '', ''];
@@ -97,10 +97,15 @@ export function createIssueArchive(root, { fetchImage = globalThis.fetch } = {})
     }
   }
 
-  async function zip(guild, results, send) {
+  async function zip(guild, results, send, open = []) {
     const temp = await mkdtemp(join(tmpdir(), 'bunnyfall-issues-'));
     const path = join(temp, 'bunnyfall-issues.zip');
     try {
+      const snapshot = createIssueArchive(join(temp, 'live'), { fetchImage });
+      const liveTickets = [];
+      for (const { thread, ...ticket } of open) {
+        liveTickets.push(await snapshot.save(guild, thread, { ...ticket, live: true }));
+      }
       const archive = new ZipFile();
       archive.on('error', (error) => archive.outputStream.destroy(error));
       const output = createWriteStream(path, { flags: 'wx' });
@@ -108,9 +113,9 @@ export function createIssueArchive(root, { fetchImage = globalThis.fetch } = {})
       // Observe failures while input files are being enumerated.
       complete.catch(() => {});
       try {
-        for (const ticket of results) {
+        for (const ticket of [...results, ...liveTickets]) {
           if (!snowflake.test(ticket.id)) throw new Error('Invalid archived ticket ID.');
-          const source = join(folder(guild), ticket.id);
+          const source = join(ticket.closedAt ? folder(guild) : join(temp, 'live', guild), ticket.id);
           const imageFiles = ticket.images ? await readdir(join(source, 'images')) : [];
           for (const file of ['ticket.json', 'transcript.txt', ...imageFiles.map((name) => `images/${name}`)]) {
             archive.addFile(join(source, file), `${ticket.id}/${file}`);

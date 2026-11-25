@@ -41,10 +41,10 @@ export const bugReportCommand = new SlashCommandBuilder()
       .addChannelTypes(ChannelType.GuildText).setRequired(true)));
 
 export const issueCommand = new SlashCommandBuilder()
-  .setName('issue').setDescription('Manage saved Bunnyfall tickets')
+  .setName('issue').setDescription('Manage Bunnyfall tickets')
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageThreads)
-  .addSubcommand((c) => c.setName('report').setDescription('List saved bug reports and suggestions'))
-  .addSubcommand((c) => c.setName('export').setDescription('Download saved tickets as a ZIP'))
+  .addSubcommand((c) => c.setName('report').setDescription('List open and archived bug reports and suggestions'))
+  .addSubcommand((c) => c.setName('export').setDescription('Download open and archived tickets as a ZIP'))
   .addSubcommand((c) => c.setName('clear').setDescription('Permanently clear saved ticket files'));
 
 export function createBugReports(db, dataDir, { archive = createIssueArchive(join(dataDir, 'issue-exports')) } = {}) {
@@ -64,6 +64,7 @@ export function createBugReports(db, dataDir, { archive = createIssueArchive(joi
     ON CONFLICT(guild) DO UPDATE SET channel = excluded.channel, message = excluded.message`);
   const saveThread = db.prepare('INSERT INTO bug_report_threads (id, reporter, kind) VALUES (?, ?, ?)');
   const threadFor = db.prepare('SELECT reporter, kind FROM bug_report_threads WHERE id = ?');
+  const openThreads = db.prepare('SELECT id, reporter, kind FROM bug_report_threads ORDER BY id DESC');
   const deleteThread = db.prepare('DELETE FROM bug_report_threads WHERE id = ?');
   const opening = new Set();
   const closing = new Set();
@@ -232,20 +233,37 @@ export function createBugReports(db, dataDir, { archive = createIssueArchive(joi
     if (!canModerate(i)) return privately(i, 'Manage Threads permission is required to access saved tickets.');
     await i.deferReply({ flags: MessageFlags.Ephemeral });
     return withArchive(async () => {
-      const tickets = await archive.tickets(i.guildId);
-      if (!tickets.length) return i.editReply('There are no saved tickets.');
-      const count = tickets.length;
+      const tracked = openThreads.all();
+      const member = tracked.length ? await i.guild.members.fetch(i.user.id) : null;
+      const open = [];
+      const permissions = PermissionFlagsBits.ViewChannel | PermissionFlagsBits.ReadMessageHistory;
+      for (const ticket of tracked) {
+        const thread = await i.guild.channels.fetch(ticket.id).catch((error) => {
+          if ([RESTJSONErrorCodes.UnknownChannel, RESTJSONErrorCodes.MissingAccess].includes(error.code)) return null;
+          throw error;
+        });
+        if (!thread?.isThread() || !thread.permissionsFor(member)?.has(permissions)
+          || !thread.permissionsFor(i.guild.members.me)?.has(permissions)) continue;
+        open.push({ ...ticket, thread });
+      }
+      const openIds = new Set(open.map(({ id }) => id));
+      const tickets = (await archive.tickets(i.guildId)).filter(({ id }) => !openIds.has(id));
+      const count = open.length + tickets.length;
+      if (!count) return i.editReply('There are no accessible open or archived tickets.');
+      const summary = `${open.length} open, ${tickets.length} archived`;
       if (command === 'export') {
         return archive.zip(i.guildId, tickets, (attachment, size) =>
           size > (i.attachmentSizeLimit ?? 10 * 1024 * 1024)
-            ? i.editReply('The ZIP is larger than Discord’s upload limit. The saved tickets are still in the bot’s issue-exports folder.')
-            : i.editReply({ content: `Exported ${count} saved ticket(s).`, files: [{ attachment, name: 'bunnyfall-issues.zip' }] }));
+            ? i.editReply('The ZIP is larger than Discord’s upload limit. The archived tickets are still in the bot’s issue-exports folder.')
+            : i.editReply({ content: `Exported ${count} ticket(s) (${summary}).`, files: [{ attachment, name: 'bunnyfall-issues.zip' }] }), open);
       }
-      const report = [`Saved tickets: ${count}`, '', ...tickets.map((ticket) =>
-        `${ticket.closedAt} | ${kinds[ticket.kind]?.title ?? 'Ticket'} | ${ticket.title} | ID ${ticket.id} | ${ticket.messages} messages, ${ticket.images} images`,
-      )].join('\n');
-      // A text attachment keeps every archived ticket in the report without hitting Discord's message limit.
-      return i.editReply({ content: `Saved tickets: ${count}. See the attached report for the full list.`,
+      const report = [`Tickets: ${count} (${summary})`, '',
+        ...open.map(({ kind, id, thread }) =>
+          `OPEN | ${kinds[kind]?.title ?? 'Ticket'} | ${thread.name} | ID ${id}`),
+        ...tickets.map((ticket) =>
+          `ARCHIVED | ${ticket.closedAt} | ${kinds[ticket.kind]?.title ?? 'Ticket'} | ${ticket.title} | ID ${ticket.id} | ${ticket.messages} messages, ${ticket.images} images`),
+      ].join('\n');
+      return i.editReply({ content: `Tickets: ${count} (${summary}). See the attached report for the full list.`,
         files: [{ attachment: Buffer.from(report), name: 'bunnyfall-issue-report.txt' }] });
     });
   }

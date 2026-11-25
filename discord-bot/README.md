@@ -32,8 +32,8 @@ Run `/bugreport setup channel:#bug-reports` with **Manage Server** permission. T
 
 The bot saves an opening snapshot as soon as it posts the questions. The reporter or a moderator with **Manage Threads** can click **Close Ticket** and confirm. The bot saves the complete transcript and Discord-hosted image attachments before it deletes the thread. If saving fails, the thread is kept.
 
-- `/issue report` sends a private list of every saved, closed ticket.
-- `/issue export` sends a private ZIP with the transcripts, ticket details, and images. If it exceeds Discord's upload limit, the files are still available under `issue-exports` next to the bot's SQLite database.
+- `/issue report` sends a private list of open tickets you can view and saved, closed tickets.
+- `/issue export` sends a private ZIP with current transcripts and images for open tickets you can view, plus the saved archive. If it exceeds Discord's upload limit, the files are still available under `issue-exports` next to the bot's SQLite database.
 - `/issue clear` requires **Manage Server** as well as access to `/issue`. Confirm to permanently delete the server's saved, closed tickets. Open threads and their opening snapshots are kept.
 
 Report and export require **Manage Threads**. The bot needs **View Channel**, **Send Messages**, **Create Public Threads**, **Send Messages in Threads**, **Read Message History**, and **Manage Threads** in the selected channel. Players need **Send Messages in Threads** to answer. People with access to the channel can see the open threads, and moderators can export closed tickets. Keep the bot's data directory private and persistent across restarts.
