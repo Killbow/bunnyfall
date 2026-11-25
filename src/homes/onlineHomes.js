@@ -64,6 +64,7 @@ import { takeSceneOwn, removePermanentScene } from '../world/sceneCache.js';   /
 import { ownBackLines } from './decorFurnish.js';   // ACCOUNT-HOMES: what is said of one's own things come back
 import { t } from '../ui/textManager.js';   // ACCOUNT-HOMES, GUILD-HALL-SALE: their words in the player's language
 import { createTownBatch } from './homeTownBatch.js';
+import { homeOwnerFieldsOf, homeMayTransfer, homeHasOwners } from './homeOwnerLaw.js';
 
 /** How long a town's answer is believed before a door asks again. */
 export const HOME_TOWN_TTL_MS = 60_000;
@@ -274,7 +275,7 @@ export const homeShortLine = (price) => `You need ${gold(price)} gold, in your p
  * screen, World Tooltips off) the click itself offers, once a house a session (worldModes.js).
  */
 export const HOME_BUY_ARM_MS = 5_000;
-export const HOME_VERB = Object.freeze({ enter: 'home-enter', buy: 'home-buy', entry: 'home-entry', sell: 'home-sell', give: 'home-give', take: 'home-take', refuse: 'home-refuse', rent: RENT_VERB, decorators: 'home-decorators' });   // HOME-RENT: a room rented at the door; a house offered to one account
+export const HOME_VERB = Object.freeze({ enter: 'home-enter', buy: 'home-buy', entry: 'home-entry', sell: 'home-sell', give: 'home-give', take: 'home-take', refuse: 'home-refuse', rent: RENT_VERB, decorators: 'home-decorators', owners: 'home-owners' });
 /** HOME-VOTE: the town's word on another's home - the vote's own verbs beside a home's, as a hall's are. AUDIT B3: taking
  *  one's vote back is a verb of its own, so a press sends what the row it pressed says - two quick presses on Vote up are
  *  two votes up, never a vote and its taking back. */
@@ -287,13 +288,12 @@ export const homeBuyRows = (price, armed = false) => [
   { id: HOME_VERB.enter, label: 'Go in' },
   { id: HOME_VERB.buy, label: armed ? `Click again to buy: ${gold(price)} gold` : `Buy it: ${gold(price)} gold` },
 ];
-/** The rows over my own home: go in, who may enter (a press moves it on), sell it (its own window - the warning
- *  that what is inside is lost is not a row's to say). */
-export const homeOwnerRows = (entry) => [
+export const homeOwnerRows = (entry, home = null) => [
   { id: HOME_VERB.enter, label: 'Go in' },
   { id: HOME_VERB.entry, label: `Who may enter: ${HOME_ENTRY_WORDS[entry] ?? HOME_ENTRY_WORDS[HOME_ENTRY_DEFAULT]}` },
   { id: HOME_VERB.sell, label: 'Sell it' },
-  { id: HOME_VERB.give, label: t('housing.door.transfer', 'Transfer Ownership') },
+  ...(home && !homeMayTransfer(home) ? [] : [{ id: HOME_VERB.give, label: t('housing.door.transfer', 'Transfer Ownership') }]),
+  ...(home && homeHasOwners(home) ? [{ id: HOME_VERB.owners, label: t('housing.door.owners', 'Co-owners') }] : []),
   { id: HOME_VERB.decorators, label: t('decor.decorators.row', 'Decorators') },
 ];
 /**
@@ -545,6 +545,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
             deed: h.deed === true,   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed the service holds for its knight, never bought
             offer: h.offer && typeof h.offer.id === 'string' && Number.isSafeInteger(h.offer.price) ? { id: h.offer.id, price: h.offer.price, keepDecor: h.offer.keepDecor === true, keepItems: h.offer.keepItems === true } : null,
             giving: typeof h.giving === 'string' ? h.giving : null,
+            ...homeOwnerFieldsOf(h),
             score: homeScoreOf(h.score), myVote: homeMyVoteOf(h.vote),   // HOME-VOTE: its votes summed, and this account's own
             insider: h.insider === true,   // AUDIT HOME-VOTE A5: a hall of a guild this account has any character in
             decorator: h.decorator === true,
@@ -681,7 +682,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
 
   /** REALM P2.2b: a refusal's sequence rides out with it (a realm act reads one a step on as its own, landed), and an
    *  answer's record sequence (data.realm) - neither there for any other character. */
-  const refused = (r) => ({ ok: false, error: r?.error ?? 'server', ...(Number.isSafeInteger(r?.seq) ? { seq: r.seq } : {}) });
+  const refused = (r) => ({ ok: false, error: r?.error ?? 'server', ...(Number.isSafeInteger(r?.seq) ? { seq: r.seq } : {}), ...(Array.isArray(r?.matches) ? { matches: r.matches, more: r.more === true } : {}) });
   const realmOf = (r) => (r?.data?.realm ? { data: { realm: r.data.realm } } : {});
 
   async function claim({ mapId, buildingKey, region, price, realm = null, layout = null }) {
@@ -786,7 +787,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
   /** A house offered to one account, or that account's answer. The service decides the gold and the goods. */
   async function transfer(body) {
     const r = await api.transfer?.({ ...body, character: body.character ?? character() });
-    if (r?.ok) { ensure(body.mapId, { force: true }); return r.data ? r : { ...r, data: r }; }
+    if (r?.ok) { if (body.op !== 'resolve') ensure(body.mapId, { force: true }); return r.data ? r : { ...r, data: r }; }
     return refused(r);
   }
 

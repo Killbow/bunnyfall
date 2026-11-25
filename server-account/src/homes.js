@@ -269,11 +269,16 @@ export async function inheritHome({ db }, player, body = {}) {
       WHERE h.id = ? AND d.id = ? AND h.player = ? AND h.lineage_id IS NOT NULL AND h.dead_at IS NULL AND d.dead_at IS NOT NULL AND d.dead_why = 'fell'`)
     .bind(character, from, player.id).first();
   if (!kin) return { error: 'not-heir' };
-  const took = await db.prepare('UPDATE homes SET char_id = ? WHERE map_id = ? AND building_key = ? AND player = ? AND char_id = ? AND guild_id IS NULL')
-    .bind(character, mapId, buildingKey, player.id, from).run();
+  const was = await db.prepare('SELECT char_id FROM homes WHERE map_id = ? AND building_key = ? AND player = ? AND guild_id IS NULL').bind(mapId, buildingKey, player.id).first();
+  await db.batch([
+    db.prepare('UPDATE homes SET char_id = ? WHERE map_id = ? AND building_key = ? AND player = ? AND char_id = ? AND guild_id IS NULL')
+      .bind(character, mapId, buildingKey, player.id, from),
+    db.prepare('DELETE FROM home_owners WHERE map_id = ? AND building_key = ? AND char_id = ? AND EXISTS (SELECT 1 FROM homes WHERE map_id = ? AND building_key = ? AND char_id = ?)')
+      .bind(mapId, buildingKey, character, mapId, buildingKey, character),
+  ]);
   const row = await db.prepare('SELECT * FROM homes WHERE map_id = ? AND building_key = ? AND player = ? AND char_id = ? AND guild_id IS NULL').bind(mapId, buildingKey, player.id, character).first();
   if (!row) return { error: 'no-home' };
-  return { ok: true, home: homeOf(row), ...(took?.meta?.changes ? {} : { repeat: true }) };
+  return { ok: true, home: homeOf(row), ...(was?.char_id === from ? {} : { repeat: true }) };
 }
 
 /** DECOR1e: a home's placed pieces and half of what they cost - what its sale gives back for them. */
@@ -477,8 +482,10 @@ function townRead(db, nowS, player, mapId, character, seats) {
       EXISTS (SELECT 1 FROM realm_characters rc WHERE rc.id = ?3 AND rc.player = ?2) AS me_realm,
       (SELECT v.vote FROM home_votes v WHERE v.map_id = h.map_id AND v.building_key = h.building_key AND v.player = ?2) AS my_vote,
       (h.guild_id IS NOT NULL AND EXISTS (SELECT 1 FROM guild_members k WHERE k.guild_id = h.guild_id AND k.player = ?2)) AS kin,
+      (SELECT c.name FROM realm_characters c WHERE c.id = h.char_id AND c.player = h.player) AS main_name,
+      EXISTS (SELECT 1 FROM home_owners w WHERE w.map_id = h.map_id AND w.building_key = h.building_key AND w.char_id = ?3) AS co_me,
       (SELECT o.id || ':' || o.price || ':' || o.keep_decor || ':' || o.keep_items FROM home_offers o
-        WHERE o.map_id = h.map_id AND o.building_key = h.building_key AND o.buyer = ?2 AND o.state = 'open' AND o.until > ?1 LIMIT 1) AS offer_for,
+        WHERE o.map_id = h.map_id AND o.building_key = h.building_key AND o.buyer = ?2 AND (o.buyer_char IS NULL OR o.buyer_char = ?3) AND o.state = 'open' AND o.until > ?1 LIMIT 1) AS offer_for,
       (SELECT o.id FROM home_offers o WHERE o.map_id = h.map_id AND o.building_key = h.building_key AND o.seller = ?2 AND o.state = 'open' AND o.until > ?1 LIMIT 1) AS giving,
       EXISTS (SELECT 1 FROM home_decorators d WHERE d.map_id = h.map_id AND d.building_key = h.building_key AND d.player = ?2) AS decorates
     FROM homes h LEFT JOIN guilds g ON g.id = h.guild_id WHERE h.map_id = ?4 ORDER BY h.building_key LIMIT ?5`).bind(nowS, player.id, me, mapId, HOME_TOWN_MAX);
@@ -538,6 +545,7 @@ function townRead(db, nowS, player, mapId, character, seats) {
         ...lookFor(h, mine),   // HOME-LOOK: how its owner painted it (AUDIT HOME-VOTE A3: a shunned home's to its owner alone)
         ...(h.guildmate === 1 ? { guildmate: true } : {}),   // GUILD1d: the named character is in the guild of one of the owner's characters (ACCOUNT-HOMES: any of the account's)
         ...(h.deed === 1 ? { deed: true } : {}),   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held, never bought
+        ...(mine && !deedRow ? { main: !!me && h.char_id === me, coOwner: h.co_me === 1, mainName: String(h.main_name ?? '') } : {}),
         ...offerFor(h),
         ...votesOf(h),   // HOME-VOTE
         ...(h.decorates === 1 && !mine && !deedRow ? { decorator: true } : {}),
@@ -730,6 +738,8 @@ export async function arenaMoveHome(ctx, player, { mapId, from, to, character, r
     db.prepare(`INSERT INTO homes (map_id, building_key, ${cols}, guild_id) SELECT map_id, ?, ${cols}, NULL FROM homes
         WHERE map_id = ? AND building_key = ? AND ${OWNS}`).bind(to, mapId, from, mapId, from, player.id, character),
     mustChange(db),
+    ...(gid == null ? [db.prepare(`INSERT INTO home_owners (map_id, building_key, char_id, player, added_at) SELECT map_id, ?, char_id, player, added_at
+        FROM home_owners WHERE map_id = ? AND building_key = ?`).bind(to, mapId, from)] : []),
     // a tenancy running is carried, offered to nobody, its point the old building's no more
     db.prepare('UPDATE home_rooms SET building_key = ?, listed = 0, anchor = ? WHERE map_id = ? AND building_key = ? AND tenant IS NOT NULL AND until > ?')
       .bind(to, RENT_ANCHOR_MOVED, mapId, from, nowS),

@@ -408,6 +408,8 @@ import {
 import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
 import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest, openOwnChest } from '../homes/decorGrants.js';   // DECOR-ACCESS
 import { openHomeTransfer, answerHomeTransfer } from '../ui/homeTransferWindow.js';
+import { openHomeOwners } from '../ui/homeOwnersWindow.js';
+import { homeMayTransfer } from '../homes/homeOwnerLaw.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
 import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, stationDoorAt, stationActLabel } from '../ui/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
 import { FORGE_FEE, WORKBENCH_FEE, LOOM_FEE, MASON_FEE, COOK_FIRE, JEWEL_FEE, ALCHEMY_FEE, ENCHANT_FEE } from '../net/professionLaw.js';   // PROF2: a smith's forge's use fee; PROF4: a furnisher's workbench's; PROF7: a tailor's loom's; PROF11: a General Store's mason's bench's; PROF10: a Pawn Shop's or a Gem Store's jeweller's bench's
@@ -7784,7 +7786,7 @@ export function createWorldModes(host) {
   /** The door's verbs, or null: my own home's, or a house's I could buy (homeOfferPrice), in any mode but Steal. */
   function homeDoorVerbs(bd, home) {
     if (!host.onlineHomes || getInteractionMode() === 'steal') return null;
-    if (home?.own) return [...homeOwnerRows(home.entry), ...(host.guestbookApi ? guestbookRows(home) : []), ...(host.haven?.rows() ?? [])];   // GUESTBOOK: the owner reads it; BUNNYFALL VAMPIRE EXPANSION: and a vampire's Haven
+    if (home?.own) return [...homeOwnerRows(home.entry, home), ...(host.guestbookApi ? guestbookRows(home) : []), ...(host.haven?.rows() ?? [])];
     if (home) {
       // HOME-RENT: a tenant's own room, or a room to rent; GUILD1d: a hall's members go in, its keepers say who may;
       // HOME-VOTE: and the town's word on it, under whatever else the door does, to anyone who is not its insider - where the plaque DRAWS a list (AUDIT HOME-VOTE II D1: the classic face folds a door's rows it never draws, and a wheel notch lit a vote the click cast unseen; there the Info box asks)
@@ -8085,7 +8087,8 @@ export function createWorldModes(host) {
             if (verb === HOME_VERB.entry && door === 'own') { turnHomeEntry(bd, home); return true; }
             if (verb === HOME_VERB.sell && door === 'own') { openHomeSale(bd); return true; }
             if (verb === HOME_VERB.decorators && door === 'own') { decorators.openPanel({ mapId: homeTownOf(bd), buildingKey: bd.buildingKey, inside: false, show: (w) => townTalk?.showOverlay?.(w) }); return true; }
-            if (verb === HOME_VERB.give && door === 'own') { openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)); return true; }
+            if (verb === HOME_VERB.owners && door === 'own') { void openHomeOwners(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, (w) => townTalk?.showOverlay?.(w)); return true; }
+            if (verb === HOME_VERB.give && door === 'own' && home?.isMain !== false) { openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)); return true; }
             if (verb === HALL_VERB.buy && price) { pressHallBuy(bd, price); return true; }   // GUILD1d: the house bought as the guild's hall
             if (verb === HALL_VERB.entry && hallEntryTurnable(home)) { turnHallEntry(bd, home); return true; }   // GUILD1d: who may walk into the hall; AUDIT PROF-541 G2: as the service lets set it (R2-H1: the row's own gate)
             if (verb === HALL_VERB.sell && hallSellable(home)) { openHallSale(bd, home); return true; }   // GUILD-HALL-SALE: sold at its door, as the service lets sell it
@@ -8423,7 +8426,8 @@ export function createWorldModes(host) {
         { code: 'KeyG', label: 'G: go in', action: homeOnward(hit, entries) },
         { code: 'KeyW', label: 'W: who may enter', action: () => openHomeEntryMenu(bd, home.entry) },
         { code: 'KeyS', label: 'S: sell it', action: () => openHomeSale(bd) },
-        { code: 'KeyT', label: t('housing.transfer.transferIt', 'T: transfer it'), action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
+        ...(homeMayTransfer(home) ? [{ code: 'KeyT', label: t('housing.transfer.transferIt', 'T: transfer it'), action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) }] : []),
+        ...(home?.own && !home.deed && !home.hall ? [{ code: 'KeyC', label: t('housing.owners.coOwnersKey', 'C: co-owners'), action: () => { void openHomeOwners(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, (w) => townTalk?.showOverlay?.(w)); } }] : []),
         { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     }));

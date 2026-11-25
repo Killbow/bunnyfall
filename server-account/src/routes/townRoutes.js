@@ -18,6 +18,7 @@ import {
   arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome
 } from '../homes.js';
 import { homeTransfer } from '../homeTransfer.js';
+import { homeOwners } from '../homeOwners.js';
 import { roomsOf, offerRoom, withdrawRoom, rentRoom, collectRent } from '../rent.js';
 import {
   foundGuild, guildOf, invitesOf, inviteToGuild, answerInvite, leaveGuild, removeFromGuild, rankGuildMember,
@@ -235,13 +236,19 @@ export async function townRoutes({ request, env, subtle, nowS, origin, path, ctx
       const status = r.error === 'home-taken' || r.error === 'home-cap' || r.error === 'home-arena' ? 409 : r.error === 'home-rate' ? 429 : r.error === 'home-update' ? 426 : 400;   // AUDIT WD3 B2: a build from before the town mods   // WD3: a town kept in another layout   // ARENA4b: the arena stands there
       return no(r.error, status, origin);
     }
+    if (path === '/v1/homes/owners') {
+      const r = await homeOwners(hctx, who.player, body);
+      if (!('error' in r)) return json(r, 200, origin);
+      return no(r.error, r.error === 'home-rate' ? 429 : r.error === 'no-home' ? 404 : r.error === 'bad-owner' || r.error === 'homes-need-account' ? 400 : 409, origin);
+    }
     if (path === '/v1/homes/transfer') {
       const r = await homeTransfer(hctx, who.player, body);
       if (!('error' in r)) return json(r, 200, origin);
       const said = realmNo(r);
       if (said) return said;
-      const conflict = r.error === 'home-decorators' || r.error === 'home-cap' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'offer-open' || r.error === 'offer-closed' || r.error === 'offer-stale' || r.error === 'home-deed';
-      return no(r.error, r.error === 'home-rate' ? 429 : conflict ? 409 : r.error === 'no-home' ? 404 : 400, origin);
+      if (r.error === 'home-pick') return json({ error: 'home-pick', matches: r.matches, ...(r.more ? { more: true } : {}) }, 409, origin);
+      const conflict = r.error === 'home-decorators' || r.error === 'home-cap' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'offer-open' || r.error === 'offer-closed' || r.error === 'offer-stale' || r.error === 'home-deed' || r.error === 'offer-wrong-char' || r.error === 'home-no-char';
+      return no(r.error, r.error === 'home-rate' ? 429 : r.error === 'home-update' ? 426 : conflict ? 409 : r.error === 'no-home' ? 404 : 400, origin);
     }
     const r = path === '/v1/homes/release' ? await releaseHome(hctx, who.player, body) : await setHomeEntry(hctx, who.player, body, env);   // AUDIT LW-II-2 S4: a door leaving public reckons its patrons, by the service's secret
     if ('error' in r) return realmNo(r) ?? no(r.error, r.error === 'bad-entry' || r.error === 'realm-needed' ? 400 : r.error === 'home-crossed' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'home-decorators' ? 409 : 404, origin);

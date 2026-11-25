@@ -47,7 +47,7 @@
 
 import { SAVE_MAX_BYTES } from './service.js';
 import { GUILD_RANK_MASTER } from '../../src/net/guildLaw.js';   // AUDIT REALM L1-F7: a deleted guildmaster hands the guild over first
-import { homeMoved } from '../../src/net/homeLaw.js';   // QUEST-HOME: the homes a deleted character took with it
+import { HOME_CAP, homeMoved } from '../../src/net/homeLaw.js';   // QUEST-HOME: the homes a deleted character took with it
 import { liquidWealthOf, customsAllowance, REALM_BIRTH_LEVEL, REALM_BIRTH_WEALTH_MAX } from '../../src/net/realmGoldLaw.js';
 import { cardWorthOf, cardPacksOf, customsCardAllowance, STARTER_DECK_WORTH } from '../../src/net/cardWorthLaw.js';   // CARDS9: the cards' customs - the client's law   // AUDIT REALM2 S1: the first save, measured as customs measures it
 import { ID_RE, armsIssuable } from '../../src/net/identityToken.js';   // CUSTOMS-PASS: an account named by its id; INT7: the arms' claim
@@ -856,16 +856,10 @@ export async function leaveRealm({ db }, /** @type {string} */ playerId, /** @ty
   return { ok: true, released: r.meta.changes > 0 };
 }
 
-/** THE PLAYER'S OWN DELETE: its objects - the two the row names, and anything else under its prefix a lost write left
- *  - then the row: saves.js's order, so a failure halfway leaves a row whose bytes lie rather than objects nothing
- *  names. AUDIT REALM L1-F7 / L3-F5: AND ITS ONLINE LIFE WITH IT, as the door promises ("its home and its guild place
- *  with it"): the row's delete carries its homes (their pieces and hidden furniture go by the tables' own cascade), its
- *  guild place and its Renown track in ONE batch. ACCOUNT-HOMES (2026-10-06; asked: "Deleted characters should remove
- *  their houses from online", beside "House ownership should be account bound"): the homes are the ones it BOUGHT -
- *  every character of the account owns them while it stands, and they go with it, whatever another of them placed in
- *  them; goods another stocked at their traders wait ('home-vendor-stocked'). They stood under a dead id: a house nobody could buy again nor its
- *  owner sell, a guild whose master could never be succeeded, a track that counted against the account's sixty
- *  (RENOWN-CHAR: the character's Renown goes with it again, as the door said before RENOWN-ACCOUNT).
+/** The player's own delete: the row, its homes, guild place and Renown track go in one batch, then its objects, so a
+ *  refused delete leaves the save whole. A house it holds as main owner passes to the earliest-added living co-owner
+ *  with room under the cap ('home-heir-full' when none has). Every other house goes with it, whatever another character
+ *  of the account placed in it, and goods another stocked at its traders wait ('home-vendor-stocked').
  *  A guildmaster with members hands the guild over first ('guild-master-leaves', the guild's own word for leaving).
  *  AUDIT REALM2 S8: AND A LONE ONE EMPTIES THE TREASURY FIRST ('guild-treasury'), as leaving asks (guilds.js leaveGuild).
  *  The delete let it go with gold inside: a guild nobody is in, holding what its records paid in, until the next founder
@@ -907,10 +901,10 @@ export async function deleteRealm({ db, bucket, nowS = Math.floor(Date.now() / 1
   // out, kept from going by them (guildKeepsSql), its name and tag held for good (guilds.js disband and leave ask it too)
   if (master?.vault) return { error: 'guild-vault' };
   if (Number((await db.prepare(REALM_MARKET_OPEN_SQL).bind(playerId, id).first())?.n ?? 0) > 0) return { error: 'realm-market-open' };
-  // ACCOUNT-HOMES (2026-10-06): the homes it bought go with it ("Deleted characters should remove their houses from
-  // online"), and any character of the account may stock a trader in one now - so goods another of them has standing at
-  // one wait, as a sale waits for them (homes.js releaseHome): the delete would leave them for sale at a trader gone
-  if (Number((await db.prepare(HOME_VENDOR_STOCK_SQL).bind(playerId, id).first())?.n ?? 0) > 0) return { error: 'home-vendor-stocked' };
+  // Each house passes to a co-owner with room or goes with it.
+  // One that goes waits for its tenants, rent and traders' goods.
+  const stand = await homesStand(db, playerId, id, nowS);
+  if (stand.error) return { error: stand.error };
   // AUDIT CARDS-4 A3: a card table's stake still held comes home to this character first (cards.js cashoutCards)
   if (await db.prepare(`SELECT 1 FROM card_stakes WHERE player = ? AND char_id = ? AND status = 'held' LIMIT 1`).bind(playerId, id).first()) return { error: 'cards-held' };
   // AUDIT SEA VENTURES B4: gold owed it at sea, a wreck's goods held for it, and its own hold's goods due back come home
@@ -918,27 +912,18 @@ export async function deleteRealm({ db, bucket, nowS = Math.floor(Date.now() / 1
   if (await db.prepare(`SELECT 1 FROM sea_bounty_owed WHERE killer = ?1 AND killer_char = ?2 AND paid_at IS NULL
     UNION ALL SELECT 1 FROM sea_prizes WHERE killer = ?1 AND killer_char = ?2 AND state = 'held' AND until_s > ?3
     UNION ALL SELECT 1 FROM sea_prizes WHERE victim = ?1 AND victim_char = ?2 AND state = 'held' AND until_s <= ?3 LIMIT 1`).bind(playerId, id, nowS).first()) return { error: 'sea-held' };
-  // HOME-RENT: a room another player is renting in its home waits for its days to run out, and rent held for it waits to
-  // be collected - the delete takes the home with it. AUDIT: then no room of it is offered any more, and both are asked
-  // again - a rent landing between the first asking and the delete's batch was deleted with the home (a rent needs its
-  // room offered, so none can land after the offers go)
-  const homeHeld = async () => {
-    if (Number((await db.prepare(HOME_TENANTS_SQL).bind(playerId, id, nowS).first())?.n ?? 0) > 0) return { error: 'home-tenants' };
-    if (Number((await db.prepare(HOME_RENT_DUE_SQL).bind(playerId, id).first())?.due ?? 0) > 0) return { error: 'home-rent-due' };
-    return null;
-  };
-  const held = await homeHeld();
-  if (held) return held;
-  await db.prepare(`UPDATE home_rooms SET listed = 0 WHERE EXISTS (SELECT 1 FROM homes h WHERE h.map_id = home_rooms.map_id
-    AND h.building_key = home_rooms.building_key AND h.player = ? AND h.char_id = ?)`).bind(playerId, id).run();
-  const late = await homeHeld();
-  if (late) return late;
-  await dropCharacterObjects(bucket, playerId, id, [row.obj, row.prev]);
-  // QUEST-HOME (Mac, 2026-10-15: "Close both"): the homes the delete takes, a house again to every page online - read
-  // with the delete in one batch, so the answer names exactly what went
-  const [gone] = await db.batch([
-    db.prepare('SELECT map_id, building_key FROM homes WHERE player = ? AND char_id = ? ORDER BY map_id, building_key').bind(playerId, id),
-    db.prepare('DELETE FROM homes WHERE player = ? AND char_id = ?').bind(playerId, id),
+  // A room rented in a house the delete removes waits for its days, and its rent waits for collection.
+  // Its rooms are unlisted and the refusals asked again, since a rent needs an offered room.
+  await unlistRooms(db, stand.plan);
+  const late = await homesStand(db, playerId, id, nowS);
+  if (late.error) return { error: late.error };
+  // The houses it holds pass or go in the one batch; its guards fail the batch when the plan no longer holds.
+  /** @type {any} */
+  let plan = late.plan;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await db.batch([
+        ...homeSteps(db, playerId, id, nowS, plan),
     db.prepare('DELETE FROM guild_members WHERE player = ? AND char_id = ?').bind(playerId, id),
     db.prepare('DELETE FROM renown_tracks WHERE player = ? AND char_id = ?').bind(playerId, id),
     db.prepare('DELETE FROM prof_stores WHERE player = ? AND char_id = ?').bind(playerId, id),   // PROF-DELETE
@@ -957,24 +942,107 @@ export async function deleteRealm({ db, bucket, nowS = Math.floor(Date.now() / 1
     ...releaseSteps(db, id, nowS, { deleted: true }),   // INT4: its pieces no record's, its claims and copies gone with it
     endUnionsOf(db, id, nowS, 'gone'),   // LEGACY7 part three: a union ends with the character
     db.prepare('DELETE FROM realm_wed_halves WHERE char_id = ?').bind(id),
-  ]);
+      ]);
+      break;
+    } catch (e) {
+      // A failed batch is planned again. A refusal answers; an unchanged plan means another fault;
+      // a changed plan retries once.
+      const again = await homesStand(db, playerId, id, nowS);
+      if (again.error) return { error: again.error };
+      if (JSON.stringify(again.plan) === JSON.stringify(plan)) throw e;
+      if (attempt) return { error: 'home-plan-changed' };
+      plan = again.plan;
+      await unlistRooms(db, plan);
+    }
+  }
+  await dropCharacterObjects(bucket, playerId, id, [row.obj, row.prev]);
   /** @type {Map<number, number[]>} */
   const towns = new Map();
-  for (const h of gone?.results ?? []) towns.set(h.map_id, [...(towns.get(h.map_id) ?? []), h.building_key]);
-  return { ok: true, ...(towns.size ? { moved: [...towns].flatMap(([mapId, keys]) => homeMoved(mapId, [], keys)) } : {}) };
+  for (const h of plan) if (h.heir == null) towns.set(h.map_id, [...(towns.get(h.map_id) ?? []), h.building_key]);
+  const passed = plan.filter((h) => h.heir != null).map((h) => ({ mapId: h.map_id, buildingKey: h.building_key, char: h.heir }));
+  return { ok: true, ...(towns.size ? { moved: [...towns].flatMap(([mapId, keys]) => homeMoved(mapId, [], keys)) } : {}), ...(passed.length ? { passed } : {}) };
 }
 
-/** HOME-RENT (2026-09-30): THE TENANCIES STILL RUNNING in a character's homes - a sale (homes.js) or the character's
- *  delete waits for them: another player paid for those days. `?1` the account, `?2` the character, `?3` now; `n`. */
-export const HOME_TENANTS_SQL = `SELECT COUNT(*) AS n FROM home_rooms r JOIN homes h ON h.map_id = r.map_id AND h.building_key = r.building_key
-  WHERE h.player = ?1 AND h.char_id = ?2 AND r.tenant IS NOT NULL AND r.until > ?3`;
-/** HOME-RENT: the rent held on a character's homes, not yet collected (`due`) - its delete waits for it too. */
-export const HOME_RENT_DUE_SQL = 'SELECT COALESCE(SUM(rent_due), 0) AS due FROM homes WHERE player = ?1 AND char_id = ?2';
-/** ACCOUNT-HOMES: the goods standing for sale at the traders of the homes a character bought, whoever of the account
- *  stocked them (`n`) - its delete takes those homes and their traders, so it waits for them. `?1` the account, `?2` the
- *  character. */
+/** Running tenancies (`n`) in house `?1`,`?2`; `?3` is now. */
+export const HOME_TENANTS_SQL = `SELECT COUNT(*) AS n FROM home_rooms WHERE map_id = ?1 AND building_key = ?2 AND tenant IS NOT NULL AND until > ?3`;
+/** Uncollected rent (`due`) on house `?1`,`?2`. */
+export const HOME_RENT_DUE_SQL = `SELECT COALESCE(SUM(rent_due), 0) AS due FROM homes WHERE map_id = ?1 AND building_key = ?2`;
+/** Open listings (`n`) at traders in house `?1`,`?2`, whoever stocked them. */
 export const HOME_VENDOR_STOCK_SQL = `SELECT COUNT(*) AS n FROM market_listings l JOIN home_decor d ON d.map_id = l.vendor_map AND d.id = l.vendor_id
-  JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key WHERE l.state = 'open' AND h.player = ?1 AND h.char_id = ?2 AND h.guild_id IS NULL`;
+  WHERE l.state = 'open' AND d.map_id = ?1 AND d.building_key = ?2 AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = ?1 AND h.building_key = ?2 AND h.guild_id IS NULL)`;
+const PLAIN_HOME_SQL = 'EXISTS (SELECT 1 FROM homes h WHERE h.map_id = ?1 AND h.building_key = ?2 AND h.deed = 0 AND h.guild_id IS NULL)';
+const GUARD_SQL = 'INSERT INTO realm_tx_guard (moved, expected) SELECT 1, 0 WHERE';
+const LIVING_OWNER_SQL = `SELECT 1 FROM home_owners o JOIN realm_characters c ON c.id = o.char_id AND c.player = o.player AND c.dead_at IS NULL
+  WHERE o.map_id = ?1 AND o.building_key = ?2`;
+
+/**
+ * The fate of each house the character holds, in (map, building) order. `heir` is the earliest-added living co-owner
+ * who stays under HOME_CAP with the houses already given to it in this plan, or null where the house goes.
+ * A house with co-owners and no such heir refuses the delete ('home-heir-full'). A house that goes is refused while a
+ * tenancy, rent or a stocked trader holds it.
+ * @param {any} db @param {string} playerId @param {string} id @param {number} nowS
+ */
+async function homesStand(db, playerId, id, nowS) {
+  const houses = (await db.prepare('SELECT map_id, building_key, deed, guild_id FROM homes WHERE player = ? AND char_id = ? ORDER BY map_id, building_key').bind(playerId, id).all())?.results ?? [];
+  /** @type {Map<string, number>} */
+  const held = new Map();
+  const plan = [];
+  for (const h of houses) {
+    let heir = null;
+    if (h.deed === 0 && h.guild_id == null) {
+      const cands = (await db.prepare(`SELECT o.char_id FROM home_owners o JOIN realm_characters c ON c.id = o.char_id AND c.player = o.player AND c.dead_at IS NULL
+        WHERE o.map_id = ? AND o.building_key = ? AND o.char_id != ? ORDER BY o.added_at, o.char_id`).bind(h.map_id, h.building_key, id).all())?.results ?? [];
+      for (const c of cands) {
+        if (!held.has(c.char_id)) held.set(c.char_id, Number((await db.prepare('SELECT COUNT(*) AS n FROM homes WHERE player = ? AND char_id = ? AND guild_id IS NULL AND deed = 0').bind(playerId, c.char_id).first())?.n) || 0);
+        if ((held.get(c.char_id) ?? 0) < HOME_CAP) { heir = c.char_id; held.set(c.char_id, (held.get(c.char_id) ?? 0) + 1); break; }
+      }
+      if (heir == null && cands.length) return { error: 'home-heir-full' };
+    }
+    plan.push({ map_id: h.map_id, building_key: h.building_key, heir });
+  }
+  for (const h of plan) {
+    if (h.heir != null) continue;
+    if (Number((await db.prepare(HOME_VENDOR_STOCK_SQL).bind(h.map_id, h.building_key).first())?.n ?? 0) > 0) return { error: 'home-vendor-stocked' };
+    if (Number((await db.prepare(HOME_TENANTS_SQL).bind(h.map_id, h.building_key, nowS).first())?.n ?? 0) > 0) return { error: 'home-tenants' };
+    if (Number((await db.prepare(HOME_RENT_DUE_SQL).bind(h.map_id, h.building_key).first())?.due ?? 0) > 0) return { error: 'home-rent-due' };
+  }
+  return { plan };
+}
+
+const unlistRooms = (/** @type {any} */ db, /** @type {any[]} */ plan) => Promise.all(plan.filter((h) => h.heir == null)
+  .map((h) => db.prepare('UPDATE home_rooms SET listed = 0 WHERE map_id = ? AND building_key = ?').bind(h.map_id, h.building_key).run()));
+
+/** The batch's home steps: guards first, so a plan that no longer holds fails the whole delete, then the hand-overs. */
+function homeSteps(/** @type {any} */ db, /** @type {string} */ playerId, /** @type {string} */ id, /** @type {number} */ nowS, /** @type {any[]} */ plan) {
+  const steps = [db.prepare(`${GUARD_SQL} (SELECT COUNT(*) FROM homes WHERE player = ?1 AND char_id = ?2) != ?3`).bind(playerId, id, plan.length)];
+  for (const h of plan) {
+    steps.push(db.prepare(`${GUARD_SQL} NOT EXISTS (SELECT 1 FROM homes WHERE map_id = ?1 AND building_key = ?2 AND player = ?3 AND char_id = ?4)`)
+      .bind(h.map_id, h.building_key, playerId, id));
+  }
+  for (const h of plan.filter((x) => x.heir == null)) {
+    steps.push(
+      db.prepare(`${GUARD_SQL} EXISTS (${LIVING_OWNER_SQL} AND o.char_id != ?4 AND ${PLAIN_HOME_SQL})
+        OR (${HOME_TENANTS_SQL}) > 0 OR (${HOME_RENT_DUE_SQL}) > 0 OR (${HOME_VENDOR_STOCK_SQL}) > 0`).bind(h.map_id, h.building_key, nowS, id),
+      db.prepare('UPDATE home_rooms SET listed = 0 WHERE map_id = ? AND building_key = ?').bind(h.map_id, h.building_key),
+    );
+  }
+  for (const h of plan.filter((x) => x.heir != null)) {
+    steps.push(
+      db.prepare(`${GUARD_SQL} NOT EXISTS (${LIVING_OWNER_SQL} AND o.char_id = ?3)
+        OR (SELECT COUNT(*) FROM homes WHERE player = ?4 AND char_id = ?3 AND guild_id IS NULL AND deed = 0) >= ?5`).bind(h.map_id, h.building_key, h.heir, playerId, HOME_CAP),
+      db.prepare('UPDATE homes SET char_id = ? WHERE map_id = ? AND building_key = ? AND player = ? AND char_id = ?').bind(h.heir, h.map_id, h.building_key, playerId, id),
+      mustChange(db),
+    );
+  }
+  steps.push(
+    db.prepare(`DELETE FROM home_owners WHERE player = ?1 AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = home_owners.map_id
+      AND h.building_key = home_owners.building_key AND h.char_id = home_owners.char_id)`).bind(playerId),
+    db.prepare('DELETE FROM home_owners WHERE player = ? AND char_id = ?').bind(playerId, id),
+    db.prepare(`UPDATE home_offers SET state = 'cancelled' WHERE state = 'open' AND ((seller = ?1 AND seller_char = ?2) OR (buyer = ?1 AND buyer_char = ?2))`).bind(playerId, id),
+    db.prepare('DELETE FROM homes WHERE player = ? AND char_id = ?').bind(playerId, id),
+  );
+  return steps;
+}
 
 /** PROF-DELETE: A CHARACTER'S MARKET BUSINESS STILL OPEN (`?1` the account, `?2` the character) - each a thing another
  *  player is part of whose goods, piece or Marks' worth would come to this character: a listing or an auction still
