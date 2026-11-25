@@ -26,15 +26,19 @@ Standard paperdolls use saved body and face details. Custom paperdolls use the a
 
 When players enter a tavern or start a shift, some patrons take the display names of people who spoke in the connected Discord channel in the past hour. A correctly served drink for one of these patrons posts an embed in that channel. Anyone can react with 🪙 to award the serving character 5 house-funded gold, once per Discord account per post, within 24 hours. Tips are paid on the next tavern service action or through **Collect Discord tips** at the innkeeper.
 
-## Bug reports
+## Bug reports and suggestions
 
-Run `/bugreport setup channel:#bug-reports` with **Manage Server** permission. The bot posts a **Report a Bug** button in the selected text channel. Run setup again to move the button. The panel and report ownership survive bot restarts in the same SQLite database as the LFG rosters.
+Run `/bugreport setup channel:#bug-reports` with **Manage Server** permission. The selected text channel gets **Report a Bug** and **Suggest a Feature** buttons. Each button opens a public thread and posts five questions tailored to the ticket type. Run setup again to move the panel.
 
-Players click **Report a Bug** and follow the private link to a public thread. The bot posts standard questions about what happened, how to reproduce it, where and when it happened, the player's platform, and any screenshots or error messages. Players answer in the thread. The reporter or a moderator with **Manage Threads** can click **Close and Delete Report** and confirm to permanently delete the thread and all its messages. Older **Archive Report** buttons also ask for confirmation before deleting.
+The bot saves an opening snapshot as soon as it posts the questions. The reporter or a moderator with **Manage Threads** can click **Close Ticket** and confirm. The bot saves the complete transcript and Discord-hosted image attachments before it deletes the thread. If saving fails, the thread is kept.
 
-In the selected channel, the bot needs **View Channel**, **Send Messages**, **Create Public Threads**, **Send Messages in Threads**, and **Manage Threads**. Players need access to the channel and **Send Messages in Threads** to fill out a report. People with access to the channel can see the reports.
+- `/issue report` sends a private list of every saved, closed ticket.
+- `/issue export` sends a private ZIP with the transcripts, ticket details, and images. If it exceeds Discord's upload limit, the files are still available under `issue-exports` next to the bot's SQLite database.
+- `/issue clear` requires **Manage Server** as well as access to `/issue`. Confirm to permanently delete the server's saved, closed tickets. Open threads and their opening snapshots are kept.
 
-For existing Discord forum posts, moderators can still run `/closeissue` inside the post to lock and archive it. Both the moderator and the bot need **Manage Threads** there.
+Report and export require **Manage Threads**. The bot needs **View Channel**, **Send Messages**, **Create Public Threads**, **Send Messages in Threads**, **Read Message History**, and **Manage Threads** in the selected channel. Players need **Send Messages in Threads** to answer. People with access to the channel can see the open threads, and moderators can export closed tickets. Keep the bot's data directory private and persistent across restarts.
+
+For existing Discord forum posts, moderators can still run `/closeissue` inside a post to lock and archive it. Both the moderator and the bot need **Manage Threads** there.
 
 ## Server status panel
 
