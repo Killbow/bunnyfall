@@ -168,8 +168,8 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
   const extra = [];
   const clan = awakenedVampirism(entity)?.clan ?? null;
   const kissAwake = clanKissesAwake(clan), kissCost = clanKissCost(clan, MIND_CLOUD_COST);   // PHASE 3: the clan's Kiss
-  if (kissAwake && !victim.seen && res && canDrain && !captureRefusal(entity)) extra.push({ id: 'take', label: t('thrall.feed.take', 'Kiss them and take them to your Haven (-{cost} Vitae)', { cost: kissCost }) });
-  if (!victim.seen && res && role && !slotRefusal(entity) && !isSocialThrall(res.id)) extra.push({ id: 'enthrall', label: t('thrall.feed.enthrall', 'Enthrall them, your {role} in this town (-{cost} Vitae)', { role: roleWord(role), cost: ENTHRALL_COST }) });
+  if (kissAwake && !victim.seen && res && canDrain && !captureRefusal(entity)) extra.push({ id: 'take', label: t('thrall.feed.take', 'Kiss them and take them to your Haven (work in progress, -{cost} Vitae)', { cost: kissCost }) });
+  if (!victim.seen && res && role && !slotRefusal(entity) && !isSocialThrall(res.id)) extra.push({ id: 'enthrall', label: t('thrall.feed.enthrall', 'Enthrall them, your {role} in this town (work in progress, -{cost} Vitae)', { role: roleWord(role), cost: ENTHRALL_COST }) });
   const list = choices(canDrain, extra, { kiss: kissAwake, kissCost });
   const onBreach = (kind) => noteBreach(entity, regionIndex, kind, now);   // PHASE 3: the region's Masquerade
   const watch = victim.seen ? 0 : watcherChance(regionIndex, now);

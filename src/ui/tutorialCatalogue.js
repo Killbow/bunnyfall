@@ -625,8 +625,9 @@ export const TUTORIALS = Object.freeze([
     ],
   }),
   page({
-    id: 'vampire-thralls', group: 'vampire', title: 'Prisoners and Thralls', trigger: 'When you first take or bind a thrall.',
+    id: 'vampire-thralls', group: 'vampire', title: 'Prisoners and Thralls (Work in Progress)', trigger: 'When you first take or bind a thrall.',
     body: [
+      'Prisoners, thralls and enthralling are still a work in progress. They work, but expect rough edges, and they may change.',
       'Kiss someone unseen and take them to your Haven. A prisoner can be tapped for stale blood, bottled into a vial, tended, or bound as a servant.',
       'A servant costs a little Vitae a day, and so does a social thrall such as a loyal innkeeper or watchman. If they go unpaid their loyalty falls. A long trip or a loiter costs them one day at most, so travel will not make them leave.',
     ],

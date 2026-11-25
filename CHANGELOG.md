@@ -11,6 +11,7 @@ the last release (scripts/changelogNotes.mjs).
 - Changed: Pointing at someone now shows their blood type and quality, such as "Noble blood, rich (72%)", under their name, for vampires, including townsfolk altered by mods. The Blood Sight card names the quality too.
 - Changed: The word on where a bite victim goes to be claimed by a bloodline now stays in a box until you close it, the Elder's letter now says where to meet them in a box, and quest notices stay up for 12 seconds instead of 7.
 - Changed: Landing blows on foes now give 4 Vitae and can pull a Starving vampire back up, instead of stopping just under Hungry.
+- Changed: Prisoners, thralls and enthralling are now labeled as a work in progress in the Haven, the feeding choices and the tutorial.
 - Fixed: The hotbar, chat, buffs and trackers no longer draw over the vampire's burial cutscene or any other full-screen video.
 - Fixed: A Kiss you could not afford, or a feeding you backed out of, no longer counts as a feeding and blocks drinking from that person or sleeper later. Each sleeper is tracked on their own, and a bed tells you how many more sleep in the house.
 
