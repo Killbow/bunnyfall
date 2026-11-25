@@ -1,4 +1,4 @@
-import { isGrappleItem } from '../characters/heavyGearIds.js';
+import { isGrappleItem, GRAPPLE_TEMPLATE } from '../characters/heavyGearIds.js';
 
 const RETIRED_TEMPLATES = new Set([560, 561, 562]);
 
@@ -11,8 +11,14 @@ export function retiredItemKey(key) {
   return group === 'Weapons' && material !== undefined && RETIRED_TEMPLATES.has(Number(template));
 }
 
-/** Remove retired records from placeable and carried item lists on hydration. A Grappling Hook saved as held (it was a
- *  held weapon until 2026-11-25, a carried tool now) is put back in the pack. */
+/** A Grappling Hook's quickslot key. The hook has its own key, so a load drops it from the swap slot and the bar. */
+export function hookItemKey(key) {
+  const [group, template, material] = key.split('|', 3);
+  return group === 'Weapons' && material !== undefined && Number(template) === GRAPPLE_TEMPLATE;
+}
+
+/** Remove retired records from placeable and carried item lists on hydration, and move a hook saved as equipped back
+ *  to the pack. */
 export function removeRetiredItems(list) {
   for (let i = list.length - 1; i >= 0; i--) {
     if (isRetiredItem(list[i])) list.splice(i, 1);
