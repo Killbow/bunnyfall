@@ -491,6 +491,7 @@ export class QuestMachine {
     this._behaviourSweepAt = BEHAVIOUR_SWEEP_MIN;   // AUDIT 68 S29-behaviour-registry-leak: the size that prunes it next
     this.beat = 0;   // AUDIT STAR8 S1: the ticks this machine has run - a behaviour's own `beat` is the last it was driven at
     this.questsToInvoke = [];
+    this.unrestored = [];   // quests whose saved data would not restore: kept as saved and written back, never dropped (restoreSaveData)
     // QUEST1: quest names currently kept in LIVE sync with a party -
     // set on both a fresh receive AND on a manual share (bidirectional:
     // either side's later progress should resync the other), read by
@@ -1178,6 +1179,7 @@ export class QuestMachine {
       // up holds the tick (S0000012's hand-in: its reward box, then `start quest 20 20`), and a save then lost the child
       // for good, its `start quest` spent. Written only when one waits, so a save with none is the shape it always was
       ...(this.questsToInvoke.length ? { toInvoke: this.questsToInvoke.map((q) => q.getSaveData()) } : {}),
+      ...(this.unrestored.length ? { unrestored: this.unrestored.map((q) => structuredClone(q)) } : {}),   // a quest that would not restore keeps its saved data, tried again at the next load
       ...this._spineData(),   // MAIN-SPINE: written once the opener begins
       ...this._shareMemoryData(),
     };
@@ -1235,6 +1237,7 @@ export class QuestMachine {
     this.storyStarted.clear();   // STORY-AGAIN: the loaded game's story is its own
     this.storyEnded.clear();
     this.questsToInvoke = [];
+    this.unrestored = [];
     this.lastNPCClicked = null;
     this.lastNPCClickedHost = null;   // AUDIT 68 S29-behaviour-registry-leak: the click's scene half goes with it
   }
@@ -1249,7 +1252,9 @@ export class QuestMachine {
     // MAIN-SPINE: the record as saved, and what the saved table says - a backbone that will not rebuild below ran all the same
     this.spine = spineRecord(data.spine, (data.quests ?? []).map((q) => q?.questName));
     const clocks = this._questClocks();   // TIME3
-    for (const questData of data.quests ?? []) {
+    this.unrestored = [];
+    // a quest set aside by an earlier load is tried again first: whatever stopped it may be fixed now
+    for (const questData of [...(Array.isArray(data.unrestored) ? data.unrestored : []), ...(data.quests ?? [])]) {
       try {
         const quest = new Quest({ ...clocks, actionFactory: this._actionFactory, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });   // WORLD7: the clocks charge played time online
         quest.restoreSaveData(questData, this._saveResolvers());
@@ -1267,7 +1272,8 @@ export class QuestMachine {
         // is the four-letter string "null" (wave 26).
         const dn = questData.displayName ?? '';
         console.warn(`[quest] Failed to load quest data for '${dn} [${questData.questName}]' with UID ${questData.uid}. This is expected after removing a mod with custom quest actions. Exception message is '${e?.message ?? e}'`);
-        this.deps.addHUDText?.(`Failed to load quest '${dn} [${questData.questName}]'. This is expected if quest mod removed.`);
+        this.unrestored.push(structuredClone(questData));   // kept as saved, so no progress is lost
+        this.deps.addHUDText?.(`Quest '${dn} [${questData.questName}]' could not be loaded and was set aside with its progress kept. It is tried again at the next load.`);
       }
     }
     // QUEST-AUDIT III START-HELD: the scheduled children, each started by the next tick as it would have been
