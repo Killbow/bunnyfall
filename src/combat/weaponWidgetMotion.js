@@ -129,6 +129,9 @@ export function offsetStep({
  *  `doubleScaleIdle` is the mod's `doubleScale && state == Idle` arm,
  *  which moves the bob's rest corner. Answers the next moveSmooth and
  *  bobSmooth, and the position delta (screen pixels). */
+/** BUNNYFALL: the idle breath's tempo (a share of the walking bob's) and its size (a share of the walking bob's reach). */
+export const IDLE_BREATH = Object.freeze({ rate: 0.1, size: 0.4 });
+
 export function bobStep({ moveSmooth, bobSmooth, time, screenRect, doubleScaleIdle = false }, s, m, dt) {
   const shape = s.bobShape;
   const moveMul = m.grounded === false ? 0 : 1;
@@ -136,12 +139,15 @@ export function bobStep({ moveSmooth, bobSmooth, time, screenRect, doubleScaleId
   let sp = Number.isFinite(m.speedRatio) ? m.speedRatio : 1;
   if (m.crouching) sp *= 0.5;
   if (m.riding) sp *= 0.5;
-  if (m.standing) sp = s.bobWhileIdle ? 0.1 : 0;
+  // BUNNYFALL: standing still, the weapon breathes - the mod's slow idle tempo, at a size the eye can see (the mod's own
+  // 0.1 of the walk was a twitch). IDLE_BREATH says how slow and how large.
+  let reach = sp;
+  if (m.standing) { sp = s.bobWhileIdle ? IDLE_BREATH.rate : 0; reach = s.bobWhileIdle ? IDLE_BREATH.size : 0; }
   const baseSpeed = Number.isFinite(m.baseSpeed) ? m.baseSpeed : 1;
   const rate = baseSpeed * 1.25 * sp * s.bobLength;
   const rate2 = rate * 2;
   const amp = 0.01;
-  const size = [screenRect.width * amp * sp * s.bobSizeXMod, screenRect.height * amp * sp * s.bobSizeYMod];
+  const size = [screenRect.width * amp * reach * s.bobSizeXMod, screenRect.height * amp * reach * s.bobSizeYMod];
   let xMin = -1, yMax = 1;
   if (doubleScaleIdle) { xMin = 0; yMax = 0; }
   const target = [
