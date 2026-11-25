@@ -155,7 +155,8 @@ export function mineLayout(mineId, reset) {
     /** @param {number} hd @param {number} step */
     const reach = (hd, step) => {
       const ux = Math.cos(hd), uz = Math.sin(hd);
-      const insets = INSET * ((from ? rim(from.rx, from.rz, ux, uz) : 0) + rim(shape.rx, shape.rz, ux, uz));
+      // the whole rim, not the inset: a tunnel stays level inside its chambers, so its slope is all outside them
+      const insets = (from ? rim(from.rx, from.rz, ux, uz) : 0) + rim(shape.rx, shape.rz, ux, uz);
       return Math.max(step, (from ? widest(from) : 0) + R + CLEAR_M + 0.01, drop / MAX_GRADE + insets, MIN_CHORD_M + insets);
     };
     let pick = null;
@@ -225,10 +226,14 @@ export function mineLayout(mineId, reset) {
     sectionCells.push(here);
   }
 
-  // The tunnels' floors: a Catmull-Rom curve through wobbling points, a point every 2 m, sloping evenly along its length.
+  // The tunnels' floors: a Catmull-Rom curve through wobbling points, a point every 2 m, level inside the chambers it joins
+  // (their floors are flat) and sloping evenly along the run between their rims.
+  const cellById = new Map(cells.map((c) => [c.id, c]));
+  const within = (/** @type {Cell|undefined} */ c, /** @type {number[]} */ q) => !!c && ((q[0] - c.x) / c.rx) ** 2 + ((q[1] - c.z) / c.rz) ** 2 < 1;
   /** @param {Bore} bore @returns {number[][]} */
   const boreFloor = (bore) => {
     const { a, b } = bore;
+    const cFrom = cellById.get(bore.from), cTo = cellById.get(bore.to);
     const dx = b[0] - a[0], dz = b[2] - a[2], chord = Math.hypot(dx, dz);
     const nx = -dz / chord, nz = dx / chord;
     const m = Math.floor(chord / 8);
@@ -252,6 +257,11 @@ export function mineLayout(mineId, reset) {
     const along = [0];
     for (let q = 1; q < dense.length; q++) along.push(along[q - 1] + Math.hypot(dense[q][0] - dense[q - 1][0], dense[q][1] - dense[q - 1][1]));
     const total = along[along.length - 1];
+    let sA = 0, sB = total;   // the run between the rims
+    for (let q = 0; q < dense.length; q++) if (within(cFrom, dense[q])) sA = along[q];
+    for (let q = dense.length - 1; q >= 0; q--) if (within(cTo, dense[q])) sB = along[q];
+    if (sB <= sA) { sA = 0; sB = total; }
+    const yAt = (/** @type {number} */ w) => a[1] + (b[1] - a[1]) * Math.min(1, Math.max(0, (w - sA) / (sB - sA)));
     const n = Math.max(1, Math.round(total / PT_STEP_M));
     const out = [a.slice()];
     let q = 1;
@@ -259,7 +269,7 @@ export function mineLayout(mineId, reset) {
       const want = total * s / n;
       while (along[q] < want) q++;
       const f = (want - along[q - 1]) / (along[q] - along[q - 1]);
-      out.push([dense[q - 1][0] + (dense[q][0] - dense[q - 1][0]) * f, a[1] + (b[1] - a[1]) * want / total, dense[q - 1][1] + (dense[q][1] - dense[q - 1][1]) * f]);
+      out.push([dense[q - 1][0] + (dense[q][0] - dense[q - 1][0]) * f, yAt(want), dense[q - 1][1] + (dense[q][1] - dense[q - 1][1]) * f]);
     }
     out.push(b.slice());
     return out.map(cmAll);
