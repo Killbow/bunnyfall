@@ -495,6 +495,15 @@ export function addTestMissileSpells(entity, spellsByIndex = null) {
   return entity.spells;
 }
 
+/** BUNNYFALL: `count` spells picked at random from the loaded SPELLS.STD, none twice and none already known. */
+export function addRandomTestSpells(entity, spellsByIndex = null, count = 8, random = Math.random) {
+  entity.spells ??= [];
+  const pool = [...(spellsByIndex?.values?.() ?? [])].filter(sp => sp?.name
+    && !entity.spells.some(known => known?.index === sp.index && known?.name === sp.name));
+  for (let i = 0; i < count && pool.length; i++) entity.spells.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
+  return entity.spells;
+}
+
 /**
  * A preset to a live character: the identity FIRST, because
  * applyCharacter honors pre-seeded race/gender/faceIndex over its
@@ -512,7 +521,12 @@ export async function applyTestCharacter(playerEntity, preset, { fetchBytes, spe
   await applyHeadlessChargen(playerEntity, preset.classIndex, { fetchBytes, spellsByIndex });
   playerEntity.testRoom = true;   // AUDIT SET D4: after the chargen, which builds the character afresh - the mark rides every save of it
   if (preset.id === 'breton-sorceress') addTestMissileSpells(playerEntity, spellsByIndex);   // SPELLFX1: something that FLIES, to test with
-  if (preset.id === COMBAT_PREVIEW_PRESET) return { added: seedCombatPreview(playerEntity) };
+  if (preset.id === COMBAT_PREVIEW_PRESET) {
+    // BUNNYFALL: a handful of spells too, so both spellbook pages have something on them to test
+    addTestMissileSpells(playerEntity, spellsByIndex);
+    addRandomTestSpells(playerEntity, spellsByIndex, 8);
+    return { added: seedCombatPreview(playerEntity) };
+  }
   const added = seedTestGear(playerEntity);
   // Dress the baseline so the room opens with something ON: the steel
   // suit's cuirass and a longsword in hand - through the real equip

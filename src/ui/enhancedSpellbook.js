@@ -231,10 +231,10 @@ function paint() {
 
   const body = el('div', 'px-body');
   if (abilitiesEnabled() && deps.entity) {
-    const tabs = el('nav', 'sb-page-tabs');
+    const tabs = el('nav', 'px-tabs sb-page-tabs');   // BUNNYFALL: the window's own tab plates
     tabs.setAttribute('aria-label', 'Spellbook pages');
     for (const [label, active] of [['Spells', false], ['Abilities', true]]) {
-      const button = el('button', 'act', label);
+      const button = el('button', 'act' + (active === abilityPage ? ' on' : ''), label);
       button.setAttribute('aria-pressed', String(active === abilityPage));
       button.onclick = () => { abilityPage = active; notice = null; render(); };
       tabs.append(button);
