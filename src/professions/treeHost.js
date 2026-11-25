@@ -29,6 +29,7 @@ import { trees, nodeKey, WOOD_TABLES } from '../net/nodeLaw.js';
 import { FELLED } from '../ai/cover.js';   // AUDIT TACT B1: a felled tree is no cover
 import { tierOpen, TIER_RANKS, woodAxeBand, chopsFor, storesFullIn, goneIn, fullWordsIn, GROUND_WHERE, GROUND_WHERE_WORDS } from '../net/professionLaw.js';
 import { createChopAct } from './chopAct.js';
+import { groveHeart } from './groves.js';   // CAVERNS-MINING-LOGGING: the day's trees stand in groves
 import { FT } from './foragingLaw.js';
 import { foragingActRefusal, foragingToolIn, actChecksRefusal } from './foragingInstall.js';
 import { materialLabel } from './profItems.js';
@@ -98,8 +99,10 @@ export function standTrees({ px, py, day, climate, confirmed = false, forest = n
   // flat, not once a flat a tree (JUNGLE-WOODS: the jungle's 48 trees a day over its ~5,400 tree flats)
   const flats = (woods.length ? woods : all).filter((f) => !insideRocks(rocks, f.x, f.z));
   const claimed = new Set();
-  for (const t of trees({ x: px, y: py, day, climate, confirmed })) {
-    const lx = t.u * TERRAIN_SIZE, lz = t.v * TERRAIN_SIZE;
+  const law = trees({ x: px, y: py, day, climate, confirmed });
+  for (const t of law) {
+    const heart = groveHeart(law, t);   // CAVERNS-MINING-LOGGING: a grove's trees take the flats nearest one point
+    const lx = heart.u * TERRAIN_SIZE, lz = heart.v * TERRAIN_SIZE;
     let best = null, bestD = Infinity;
     for (const f of flats) {
       if (claimed.has(f.id)) continue;
