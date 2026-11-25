@@ -14,6 +14,7 @@ the last release (scripts/changelogNotes.mjs).
 - Changed: Prisoners, thralls and enthralling are now labeled as a work in progress in the Haven, the feeding choices and the tutorial.
 - Fixed: The hotbar, chat, buffs and trackers no longer draw over the vampire's burial cutscene or any other full-screen video.
 - Fixed: A Kiss you could not afford, or a feeding you backed out of, no longer counts as a feeding and blocks drinking from that person or sleeper later. Each sleeper is tracked on their own, and a bed tells you how many more sleep in the house.
+- Changed: The Grappling Hook is now a tool, not a weapon. Keep one in your pack and press its own key (Numpad1 by default, rebindable in Controls under Combat, and a touch button) to throw it. Any character can use it, whatever their class or weapon skills, and it no longer takes your weapon hand or shield. Range, rest time and the pull are the same. A hook you were holding goes back to your pack.
 
 ## 2026-11-24
 

@@ -40,7 +40,7 @@ import { loadFpsWeaponArt, drawFpsWeapon, fpsWeaponQuad, weaponTypeForItem, WEAP
 import { spriteGlow, meshGlow } from './weaponGlow.js';   // WEAPON-GLOW1: the held weapon's element, as each hand shows it
 import { loadCrossbowArt } from './crossbowArt.js';   // BUNNYFALL: the crossbow's own first-person frames
 import { loadBallistaArt, loadGrappleArt } from './heavyGearArt.js';   // BUNNYFALL: the Royal Ballista's and the grappling hook's
-import { isBallistaItem, isGrappleItem } from '../characters/heavyGearIds.js';
+import { isBallistaItem, isGrappleItem, GRAPPLE_HAND_ITEM } from '../characters/heavyGearIds.js';
 import { stepHeavyGear, noteHeavyShot } from './heavyGearRig.js';   // BUNNYFALL: their frame and their loose, one call each
 import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';
 import { readWidgetSettings } from './weaponWidgetMotion.js';   // FIELD-GUN8: the mod's own reader, so the Thunderlock's Inertia rides its multipliers   // FIELD-GUN6: the lab's own feel, in the game at last
@@ -836,6 +836,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
   const heldType = (item) => (glowOf(item) ? plainWeaponType(weaponTypeForItem(item)) : weaponTypeForItem(item));
   let _dx = 0, _dy = 0, _held = false;
   let _hookFrame = 0;   // BUNNYFALL: the grappling hook's frame (combat/grapple/grapple.js grappleFrame)
+  let _hooking = false;   // BUNNYFALL: the hook's throw is in the hand: its art stands in the weapon's place
   const _gearToken = {};   // BUNNYFALL: this rig, to the heavy gear's bindings
   let wolfForm = false, wolfSkin = null;   // WEREWOLF1 / SHADOW-FANG (AUDIT D5): the form handed to the rig last, and the skin read at its change
 
@@ -1427,8 +1428,10 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // BOW-CLOCK: no shot starts the arm cannot draw (armLoosing, above) - gesture() is not asked, so its button
       // latch keeps the press made while waiting.
       const armLoosing = armCannotDraw();
-      const gear = stepHeavyGear(_gearToken, { dt, weapon: playerWeapon.weapon, sheathed: playerWeapon.sheathed, held: _held, canAttack, paralyzed, camera, collider, canvas: c, renderer, flip: handedFlip(), audio, say });   // BUNNYFALL: the Royal Ballista's slow and arc, the hook's throw (combat/heavyGearRig.js)
+      const hookReady = !paralyzed && !!c && !armLoosing && !_heldHit && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && playerWeapon.machine.state === 'Idle' && (entity?.equipCountdown ?? 0) <= 0;   // BUNNYFALL: the hook has its own key; it waits on a swing or a draw in progress, nothing else
+      const gear = stepHeavyGear(_gearToken, { dt, weapon: playerWeapon.weapon, sheathed: playerWeapon.sheathed, held: _held, canAttack, paralyzed, hookDown: !!actionDown?.('GrapplingHook'), canHook: hookReady, hasHook: (entity?.items ?? []).some(isGrappleItem), camera, collider, canvas: c, renderer, flip: handedFlip(), audio, say });   // BUNNYFALL: the Royal Ballista's slow and arc, the hook's throw (combat/heavyGearRig.js)
       _hookFrame = gear.hookFrame;
+      _hooking = gear.grappling;
       // TECH1 (bible/05-Combat/Weapon-Techniques.md): THE TECHNIQUE KEY, stepped by the rig that owns the frame - every
       // host's - AHEAD of the gesture: a technique's strike and a click's are one machine, and the first to start it holds
       // it. Its gate is the swing's own (drawn, no spell, no cast, no climb, no equip pause, no act's tool, no arm still
@@ -2085,7 +2088,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // is. A no-op for every path that predates it - `torchOnly` has
       // returned, `sheetOnly` needs `fpArm.active()` which returned at the
       // seam - so this line stops the shield-only frame and nothing else.
-      if (!shown()) return;   // FIELD-GUN13: ...and the gun's own sheathe leg, eased rather than cut
+      if (!shown() && !_hooking) return;   // BUNNYFALL: ...but the hook's throw draws sheathed too   // FIELD-GUN13: ...and the gun's own sheathe leg, eased rather than cut
       // FIELD-GUN12 (Mac, the sixth time: "Port the god damn prototype
       // verbatim"). THE GUN TAKES THE PROTOTYPE'S OWN FRAME, not the
       // classic rect-builder and not the mod's clone.
@@ -2107,11 +2110,11 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       if (widgetOn() && c && widget.draw(renderer, c, fpTint, {
         transform: _spellGuard.weapon > 0 ? r => ({ ...r, y: r.y + guardDrop(_spellGuard.weapon, r.h) }) : null, pose,
       })) return;
-      const art = c && artFor(playerWeapon.weapon);
+      const art = c && artFor(_hooking ? GRAPPLE_HAND_ITEM : playerWeapon.weapon);   // BUNNYFALL: the hook's throw stands in the weapon's place
       const m = playerWeapon.machine, offsetHeight = c ? weaponOffsetHeight() - climbDrop(_climbLower, c.height) : 0;
-      const mf = isGrappleItem(playerWeapon.weapon) ? _hookFrame : m.frame;   // BUNNYFALL: the hook's frame is its own clock's
+      const mf = _hooking ? _hookFrame : m.frame;   // BUNNYFALL: the hook's frame is its own clock's
       const spellDrop = art && _spellGuard.weapon > 0 ? guardDrop(_spellGuard.weapon, fpsWeaponQuad(c, art, m.state, mf, { offsetHeight })?.rect.h ?? 0) : 0;
-      if (art && spriteShown()) drawFpsWeapon(renderer, c, art, m.state, mf, { pose, tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow() });   // CLIMB4: lowered for the climb (0: OnGUI's own offset); WEAPON-GLOW1: the element's outline, the held weapon's own
+      if (art && (_hooking || spriteShown())) drawFpsWeapon(renderer, c, art, m.state, mf, { pose, tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow() });   // CLIMB4: lowered for the climb (0: OnGUI's own offset); WEAPON-GLOW1: the element's outline, the held weapon's own
     }
   }
 }
