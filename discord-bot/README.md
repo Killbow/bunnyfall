@@ -26,9 +26,15 @@ Standard paperdolls use saved body and face details. Custom paperdolls use the a
 
 When players enter a tavern or start a shift, some patrons take the display names of people who spoke in the connected Discord channel in the past hour. A correctly served drink for one of these patrons posts an embed in that channel. Anyone can react with 🪙 to award the serving character 5 house-funded gold, once per Discord account per post, within 24 hours. Tips are paid on the next tavern service action or through **Collect Discord tips** at the innkeeper.
 
-## Close a bug report
+## Bug reports
 
-Run `/closeissue` inside a Discord forum post after fixing the issue. The command locks and archives the current post. Grant **Manage Threads** to the bot in the bug report forum. The moderator running the command also needs **Manage Threads**.
+Run `/bugreport setup channel:#bug-reports` with **Manage Server** permission. The bot posts a **Report a Bug** button in the selected text channel. Run setup again to move the button. The panel and report ownership survive bot restarts in the same SQLite database as the LFG rosters.
+
+Players click **Report a Bug** and follow the private link to a public thread. The bot posts standard questions about what happened, how to reproduce it, where and when it happened, the player's platform, and any screenshots or error messages. Players answer in the thread. The reporter or a moderator with **Manage Threads** can click **Archive Report** to lock and archive it.
+
+In the selected channel, the bot needs **View Channel**, **Send Messages**, **Create Public Threads**, **Send Messages in Threads**, and **Manage Threads**. Players need access to the channel and **Send Messages in Threads** to fill out a report. People with access to the channel can see the reports.
+
+For existing Discord forum posts, moderators can still run `/closeissue` inside the post to lock and archive it. Both the moderator and the bot need **Manage Threads** there.
 
 ## Server status panel
 
