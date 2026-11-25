@@ -611,6 +611,7 @@ export const TUTORIALS = Object.freeze([
     id: 'vampire-blood', group: 'vampire', title: 'Blood Types and Quality', trigger: 'When you first look at someone\'s blood.',
     body: [
       'Everyone has a blood type: Scholar, Warrior, Rogue, Noble, Worker or Beast. A priest or clerk is a Scholar, a guard or smith a Warrior, a courier or minstrel a Rogue, and a merchant or innkeeper a Noble. Most others are Workers.',
+      'Blood and Vitae are two different numbers. Vitae is how full you are, and it drains. Blood quality is how good the last blood you drank was, and it fades 10 percent a day. The T on your blood chip is its tier, from T1 (25 percent or better) to T4 (95 percent or better).',
       'Quality is a percentage. Fresh, good blood gives you resonance in tiers at 25, 50, 75 and 95 percent: a few points to the stats and skills of its type, such as Scholar for spells, Warrior for blades and Rogue for stealth. Resonance fades 10 percent a day.',
       'Point at anyone and their blood type and quality show under their name. Merchants, nobles and guildsmen usually have the richest blood. Stale blood from a prisoner or a vial is capped at 65 percent and cannot calm a Ravenous Beast.',
     ],

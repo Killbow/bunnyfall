@@ -231,7 +231,7 @@ export function vampireHudChips(entity, nowMinutes) {
   // where it says more than the bar - a Ravenous or Starving Beast, red
   const out = st.stage >= BEAST.Ravenous ? [{ key: 'vitae', text: t('vampire.hud.beast', '{stage} (Vitae {vitae})', { stage: beastStageName(st.stage), vitae: st.vitae }), level, glyph: 'bleed', foot: String(st.vitae) }] : [];
   if (st.blood?.tier > 0) {
-    out.push({ key: 'boon:blood', text: t('vampire.hud.blood', '{type} blood, {quality}%', { type: archetypeName(st.blood.type), quality: Math.round(st.blood.quality) }), level: 'boon', glyph: 'bleed', foot: `T${st.blood.tier}` });
+    out.push({ key: 'boon:blood', text: t('vampire.hud.blood', '{type} blood, {quality}% (tier {tier} of 4)', { type: archetypeName(st.blood.type), quality: Math.round(st.blood.quality), tier: st.blood.tier }), level: 'boon', glyph: 'bleed', foot: `T${st.blood.tier}` });
   }
   return out;
 }
