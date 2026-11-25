@@ -8,7 +8,7 @@
 //   THE HOLD. The book held at 7 was one chat line once a hold, and an Archmage who missed it found a Wizard (Discord:
 //   "why did my rank on mages guild fall if i got max reputation"). The line stands, and the Chapters tutorial page
 //   pops with it - a box, read once on this device and always again from the menu.
-//   THE FIRST WORD. A member of any of the twenty-two coming online is shown the same page the first time.
+//   A member of any guild on the Roll who comes online sees the same page the first time.
 //   THE STANDING. Nothing said a guild's standing moved: a quest's +5, a crime's loss through the faction tree, a hall
 //   writ's +2, the owed paid on a later day. Every adoption now says what the Roll's word moved since its last, one line
 //   - "Standing: Mages Guild +25 (now 40, 10 more to come)" - its names the port's own, in the player's language (AUDIT
@@ -25,6 +25,7 @@ import { bookCappedLine, ROLL_FACTIONS, rollFactionOfGuild } from '../net/npcCha
 import { t, intlLocale } from '../ui/textManager.js';
 import { noteFirstUse } from '../ui/tutorials.js';
 import { activeMemberships } from './guilds.js';
+import { bunnyRollMembers } from './bunnyMembership.js';
 import { GUILD_FACTION_IDS as G, DIVINES as D, ORDERS as O, MAX_REPUTATION } from './guildFactions.js';
 import { standingOwedOf } from '../justice/standingOwed.js';
 
@@ -67,11 +68,11 @@ const listOf = (/** @type {string[]} */ items) => {
   try { return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(items); } catch { return items.join(', '); }
 };
 
-/** The twenty-two the character belongs to, by the active book (DFU's - a vampire's mortal guilds lie dormant). */
-export const rollMembershipsOf = (/** @type {any} */ entity) => new Set(Object.values(activeMemberships(entity) ?? {})
-  .map((m) => rollFactionOfGuild(m?.guild)).filter((f) => /** @type {readonly unknown[]} */ (ROLL_FACTIONS).includes(f)));
+// Daggerfall guilds come from the active book, so a vampire's mortal guilds do not count; Bunnyfall guilds always do.
+export const rollMembershipsOf = (/** @type {any} */ entity) => new Set([...Object.values(activeMemberships(entity) ?? {})
+  .map((m) => rollFactionOfGuild(m?.guild)).filter((f) => /** @type {readonly unknown[]} */ (ROLL_FACTIONS).includes(f)),
+  ...bunnyRollMembers().map((m) => m.f)]);
 
-/** Whether the character belongs to any of the twenty-two the Roll keeps. */
 export const holdsRollMembership = (/** @type {any} */ entity) => rollMembershipsOf(entity).size > 0;
 
 /** One move, said (npcChapterLaw.js rollMovesOf's `{ f, delta?, paid?, now, owed }` - both where both moved, II B-4). */
@@ -90,18 +91,12 @@ function standingItem(/** @type {any} */ entity, /** @type {{ f: number, delta?:
     : t('chapters.standing.paid', '{name}: {paid} of what was owed arrived (now {now})', args);
 }
 
-/** THE STANDING'S LINE: one line for an adoption's moves - or null when nothing moved. The guilds the character belongs
- *  to are named; the rest are counted (AUDIT GUILD-WORDS L2-3: DFU's drift and REP4's recovery move every standing a
- *  point, and a line of twenty-two names said nothing). */
 export function standingLine(/** @type {any} */ entity, /** @type {{ f: number, delta?: number, paid?: number, now: number, owed: number }[]} */ changes) {
   const moved = (changes ?? []).filter((c) => (Number.isSafeInteger(c?.delta) && c.delta !== 0) || (Number.isSafeInteger(c?.paid) && c.paid !== 0));
   if (!moved.length) return null;
   const mine = rollMembershipsOf(entity);
-  const named = moved.filter((c) => mine.has(c.f)).map((c) => standingItem(entity, c));
-  const others = moved.length - named.length;
-  if (!named.length) return t('chapters.standing.othersOnly', 'Standing moved with {n, plural, one {# guild} other {# guilds}} you do not belong to.', { n: others });
-  const list = others ? [...named, t('chapters.standing.others', '{n, plural, one {# other guild} other {# other guilds}}', { n: others })] : named;
-  return t('chapters.standing.line', 'Standing: {list}', { list: listOf(list) });
+  const ordered = [...moved.filter((c) => mine.has(c.f)), ...moved.filter((c) => !mine.has(c.f))];
+  return t('chapters.standing.line', 'Standing: {list}', { list: listOf(ordered.map((c) => standingItem(entity, c))) });
 }
 
 /**
