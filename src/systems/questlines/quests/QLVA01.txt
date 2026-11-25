@@ -102,6 +102,13 @@ Message:  1020
 <ce>         A pale child hands you a letter sealed
 <ce>         with dark wax, and is gone.
 
+Message:  1021
+<ce>         Meet _elder_ at __haven_
+<ce>         in ___haven_.
+<ce>
+<ce>         Go after dark, and speak to them there.
+<ce>         Your journal keeps this note.
+
 QBN:
 Item _letter_ letter used 1011
 Item _gold_ gold range 300 to 600
@@ -114,6 +121,7 @@ Clock _wait_ 14.00:00 0 flag 1 range 0 1
 --	Quest start-up:
 	_letter_ used do _readletter_
 	give pc _letter_ notify 1020
+	say 1021
 	place npc _elder_ at _haven_
 	start timer _wait_
 
