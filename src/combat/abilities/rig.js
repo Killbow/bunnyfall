@@ -41,8 +41,13 @@ function deliveryFor(id, ctx) {
   return { ...profile, spend, fatigue: spend + SWING_FATIGUE_COST * swings + 1, impactsMs: [] };
 }
 
+const REGULAR_ABILITY_DAMAGE_SCALE = 1.25;
+
 function markers(cast, entity) {
-  return { id: cast.ability.id, ability: true, actor: entity, load: abilityLoad(entity), weapon: cast.weapon };
+  const { id, rank, category } = cast.ability;
+  const regular = rank < 100 && !cast.delivery.capstone && (category === 'weapon' || category === 'combination');
+  return { id, ability: true, actor: entity, load: abilityLoad(entity), weapon: cast.weapon,
+    damageScale: regular ? REGULAR_ABILITY_DAMAGE_SCALE : 1 };
 }
 
 function canPlant(tc) {
