@@ -1,10 +1,11 @@
 import {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, MessageFlags,
-  PermissionFlagsBits, SlashCommandBuilder, ThreadAutoArchiveDuration,
+  PermissionFlagsBits, RESTJSONErrorCodes, SlashCommandBuilder, ThreadAutoArchiveDuration,
 } from 'discord.js';
 
 const OPEN = 'bugs:open';
-const ARCHIVE = 'bugs:archive';
+const CLOSE = 'bugs:archive'; // Existing report buttons keep working.
+const CONFIRM_DELETE = 'bugs:confirm-delete';
 const required = PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages
   | PermissionFlagsBits.CreatePublicThreads | PermissionFlagsBits.SendMessagesInThreads
   | PermissionFlagsBits.ManageThreads;
@@ -94,7 +95,7 @@ export function createBugReports(db) {
             'This thread is public to people who can see the channel. Keep account secrets and personal information out of your report.',
           ].join('\n'),
           allowedMentions: { parse: [], users: [i.user.id] },
-          components: [button(ARCHIVE, 'Archive Report', ButtonStyle.Secondary)],
+          components: [button(CLOSE, 'Close and Delete Report', ButtonStyle.Danger)],
         });
       } catch (error) {
         deleteThread.run(thread.id);
@@ -107,31 +108,40 @@ export function createBugReports(db) {
     }
   }
 
-  async function archive(i) {
+  async function close(i) {
     const thread = i.channel;
     const report = thread?.isThread() && threadFor.get(thread.id);
     if (!report || i.message.author.id !== i.client.user.id) {
       return privately(i, 'This button only works inside a Bunnyfall bug report.');
     }
     if (report.reporter !== i.user.id && !i.memberPermissions?.has(PermissionFlagsBits.ManageThreads)) {
-      return privately(i, 'Only the reporter or a moderator can archive this report.');
+      return privately(i, 'Only the reporter or a moderator can delete this report.');
     }
     if (!i.appPermissions?.has(PermissionFlagsBits.ManageThreads)) {
-      return privately(i, 'The bot needs Manage Threads permission to archive this report.');
+      return privately(i, 'The bot needs Manage Threads permission to delete this report.');
+    }
+    if (i.customId === CLOSE) {
+      return i.reply({
+        content: 'Delete this bug report and all messages in its thread? This is permanent.',
+        flags: MessageFlags.Ephemeral,
+        components: [button(CONFIRM_DELETE, 'Permanently Delete', ButtonStyle.Danger)],
+      });
     }
     await i.deferReply({ flags: MessageFlags.Ephemeral });
-    await thread.edit({
-      archived: true,
-      locked: true,
-      reason: `Bug report archived by Discord user ${i.user.id}`,
-    });
-    return i.editReply('Bug report locked and archived.');
+    try {
+      await thread.delete(`Bug report closed by Discord user ${i.user.id}`);
+    } catch (error) {
+      if (error.code !== RESTJSONErrorCodes.UnknownChannel) throw error; // Discord already removed the channel.
+    }
+    deleteThread.run(thread.id);
+    // Discord may remove the interaction's reply along with its thread.
+    return i.editReply('Bug report deleted.').catch(() => {});
   }
 
   return function handle(i) {
     if (i.isChatInputCommand() && i.commandName === 'bugreport') return setup(i);
     if (i.isButton() && i.customId === OPEN) return open(i);
-    if (i.isButton() && i.customId === ARCHIVE) return archive(i);
+    if (i.isButton() && (i.customId === CLOSE || i.customId === CONFIRM_DELETE)) return close(i);
     return null;
   };
 }
