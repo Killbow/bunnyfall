@@ -3332,11 +3332,123 @@ button.sb-milestone:is(:hover, :focus-visible, [aria-expanded="true"]) {
   .sb-abilities .sb-milestones { grid-template-columns: minmax(0, 1fr); }
   .sb-assignment-controls select { flex: 1 1 100%; }
 }
+/* BUNNYFALL: the Abilities page as a journal - a dense rail of every ability and the chosen one beside it. */
+.sb-abilities.px-journal { flex: 1 1 auto; min-height: 0; flex-direction: row; }
+/* Both pages of the book: a rail wide enough that a name reads on one line. */
+:root .sb-shell > .px-win > .px-body > .px-journal > .px-qrail { width: 38%; max-width: 46%; flex: 0 0 auto; }
+:root .sb-shell > .px-win > .px-body > .px-journal > .px-qrail .px-qrow { overflow-wrap: normal; font-size: 15px; letter-spacing: .04em; }
+.sb-ability-rail { display: flex; flex-direction: column; overflow: hidden !important; }
+.sb-rail-head { flex: none; display: flex; flex-direction: column; gap: .3rem; padding: .3rem .55rem .45rem .2rem;
+  border-bottom: 1px solid rgba(125,96,56,.35); }
+.sb-rail-top { display: flex; align-items: center; gap: .4rem; }
+.sb-rail-count { flex: 1 1 auto; font-size: 13px; letter-spacing: .06em; opacity: .85; font-variant-numeric: tabular-nums; }
+.sb-abilities .sb-filter { padding: .15rem .5rem; font-size: 13px; }
+.sb-abilities .sb-filter[aria-pressed="true"] { background: rgba(160,110,50,.28); outline: 1px solid currentColor; }
+.sb-abilities .sb-ability-search { margin: 0; width: 100%; box-sizing: border-box; padding: .3rem .45rem; font-size: 14px;
+  color: inherit; background: rgba(255,250,235,.18); border: 1px solid rgba(125,96,56,.5); }
+.sb-rail-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: .2rem .35rem .6rem .1rem; }
+.sb-fold { margin: 0; }
+.sb-fold-head { display: flex; align-items: baseline; gap: .4rem; padding: .32rem .25rem; cursor: pointer; list-style: none;
+  font-size: 15px; font-weight: bold; letter-spacing: .03em; border-bottom: 1px solid rgba(125,96,56,.25); }
+.sb-fold-head::-webkit-details-marker { display: none; }
+.sb-fold-head::before { content: "+"; font-size: 13px; width: .7rem; opacity: .7; }
+.sb-fold[open] > .sb-fold-head::before { content: "-"; }
+.sb-fold-name { flex: 1 1 auto; }
+.sb-fold-count { flex: none; font-size: 12px; font-weight: normal; opacity: .75; font-variant-numeric: tabular-nums; }
+.sb-fold-sub { padding: .35rem .3rem .1rem 1.1rem; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+.sb-arow { display: flex; align-items: center; gap: .45rem; width: 100%; box-sizing: border-box; margin: 0; padding: .16rem .3rem .16rem 1rem;
+  font: inherit; font-size: 15px; line-height: 1.2; color: inherit; text-align: left; background: none; border: 0;
+  border-left: 3px solid transparent; cursor: pointer; touch-action: pan-y; }
+.sb-arow:hover, .sb-arow:focus-visible { background: rgba(160,110,50,.14); outline: none; }
+.sb-arow.on { background: rgba(160,110,50,.26); border-left-color: currentColor; font-weight: bold; }
+.sb-arow-icon { width: 24px; height: 24px; flex: none; }
+.sb-arow-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-arow-rank { flex: none; font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
+.sb-arow.sb-locked { opacity: .55; }
+.sb-arow.sb-locked .sb-arow-icon { filter: grayscale(.9); }
+.sb-arow.sb-capstone .sb-arow-name { letter-spacing: .02em; }
+.sb-ability-detail { padding: .4rem .4rem .6rem 1.1rem; }
+.sb-adetail-head { display: flex; align-items: center; gap: .7rem; margin: 0 0 .55rem; }
+.sb-adetail-icon { width: 52px; height: 52px; flex: none; }
+.sb-adetail-words h3 { margin: 0; font-size: 21px; line-height: 1.15; }
+.sb-adetail-kind { margin: .15rem 0 0; font-size: 14px; opacity: .8; }
+.sb-adetail-lock { margin: 0 0 .5rem; font-size: 14px; font-style: italic; }
+.sb-adetail-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .6rem; }
+.sb-achip { display: flex; gap: .3rem; align-items: baseline; padding: .12rem .45rem; font-size: 13px;
+  border: 1px solid rgba(125,96,56,.45); border-radius: 2px; background: rgba(255,250,235,.14); }
+.sb-achip dt { opacity: .75; }
+.sb-achip dd { margin: 0; font-weight: bold; font-variant-numeric: tabular-nums; }
+.sb-adetail-text { margin: 0 0 .7rem; font-size: 15px; line-height: 1.45; }
+.sb-bind { padding-top: .55rem; border-top: 1px solid rgba(125,96,56,.35); }
+.sb-hands { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.sb-abilities .sb-hand { padding: .2rem .5rem; font-size: 13px; }
+.sb-abilities .sb-hand[aria-pressed="true"] { background: rgba(160,110,50,.28); outline: 1px solid currentColor; }
+.sb-bind-note { margin: .3rem 0 .45rem; font-size: 13px; opacity: .8; }
+.sb-slots-label { margin: 0 0 .35rem; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.sb-slots { display: grid; grid-template-columns: repeat(var(--cols, 5), minmax(0, 2.9rem)); gap: .3rem; }
+.sb-abilities .sb-slotkey { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1;
+  min-height: 0 !important; min-width: 0; padding: 0 !important; font-size: 14px; line-height: 1; text-align: center; }
+.sb-slotnum { position: absolute; top: 2px; left: 4px; font-size: 11px; opacity: .8; font-variant-numeric: tabular-nums; }
+.sb-slotkey:not(.full):not(.on) .sb-slotnum { position: static; font-size: 15px; opacity: .55; }
+.sb-slotimg { width: 62%; height: 62%; margin-top: 18%; }
+.sb-slotmark { margin-top: 14%; font-size: 12px; font-weight: bold; text-transform: uppercase; opacity: .7; }
+.sb-abilities .sb-slotkey.on { background: rgba(160,110,50,.4); outline: 2px solid currentColor; opacity: 1; }
+/* The skins strip a plain .act down to its word; these are pressable boxes, so they keep a frame. */
+:root .sb-shell .sb-abilities :is(.sb-slotkey, .sb-hand, .sb-filter) { border: 1px solid rgba(110,70,30,.6) !important; border-radius: 2px;
+  background: rgba(255,250,235,.22) !important; box-shadow: none !important; text-decoration: none !important; }
+:root .sb-shell .sb-abilities :is(.sb-slotkey, .sb-hand, .sb-filter):is(:hover, :focus-visible) { background: rgba(160,110,50,.25) !important; }
+:root .sb-shell .sb-abilities .sb-slotkey.on, :root .sb-shell .sb-abilities :is(.sb-hand, .sb-filter)[aria-pressed="true"] { background: rgba(142,26,16,.16) !important;
+  border-color: currentColor !important; outline: 1px solid currentColor; }
+
+.sb-bind-status { min-height: 1.2em; margin: .35rem 0 0; font-size: 13px; }
+@media (max-width: 560px) {
+  .sb-abilities.px-journal { flex-direction: column; }
+  :root .sb-shell > .px-win > .px-body > .px-journal.sb-abilities > .px-qrail { width: auto; max-width: none; flex: 0 0 46%; }
+  .sb-ability-detail { padding: .5rem .2rem; }
+}
 .sb-shell .sb-row { display: flex; align-items: center; }
 .sb-shell .sb-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .sb-shell .sb-row-icon { display: grid; place-items: center; flex: 0 0 24px; height: 24px; font-size: 10px; }
 .sb-shell .sb-row-icon img { width: 24px; height: 24px; image-rendering: pixelated; }
 .sb-art-layout .sb-inline-expanded { grid-column: 1 / -1; }
+/* BUNNYFALL: the illustrated Spells page in three columns - list, animation, details - each scrolling on its own. */
+.sb-art-layout .sb-catalogue { display: grid; grid-template-columns: minmax(11rem, 27%) minmax(0, 1fr) minmax(13rem, 32%);
+  gap: .6rem; padding: .6rem; }
+.sb-art-layout .sb-spell-column { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.sb-art-layout .sb-spell-column .sb-spell-search { margin: 0 0 .4rem; width: 100%; box-sizing: border-box; }
+:root .sb-shell.sb-art-layout .sb-spell-column .sb-catalogue-list { display: block; flex: 1 1 auto; min-height: 0; padding: 0 .35rem 0 0;
+  overflow-y: scroll; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #c29a5a #1a130d; }
+.sb-art-layout .sb-catalogue-row { min-height: 40px; margin-top: 0; margin-bottom: .3rem; padding: .35rem .55rem; }
+.sb-art-layout .sb-spell-stage { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; min-height: 0; min-width: 0; }
+.sb-art-layout .sb-spell-stage .sb-preview-panel { width: 100%; }
+.sb-art-layout .sb-stage-name { margin: 0; text-align: center; color: #f0c582; font-size: 20px; letter-spacing: .06em; }
+.sb-art-layout .sb-spell-side { display: flex; flex-direction: column; gap: .6rem; min-height: 0; min-width: 0;
+  overflow-y: auto; padding-right: .3rem; scrollbar-width: thin; scrollbar-color: #c29a5a #1a130d; color: #fff0d2; }
+.sb-art-layout .sb-spell-side .sb-acts { display: flex; flex-wrap: wrap; gap: .35rem; }
+.sb-art-layout .sb-spell-side .act { background: #4b3423; color: #fff0d2; border: 1px solid #9e7948; }
+@media (max-width: 780px) {
+  .sb-art-layout .sb-catalogue { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .sb-art-layout .sb-spell-column { max-height: 40vh; }
+}
+/* One dark theme for the whole Spells page: every skin's page ink is set aside for light ink on the dark panels. */
+:root .sb-shell.sb-art-layout .sb-spell-side :is(.sb-inline-effects, .sb-inline-parameters) { background: #30231a; border: 1px solid #745535; }
+:root .sb-shell.sb-art-layout :is(.sb-spell-side, .sb-spell-stage) { color: #fff0d2 !important; }
+:root .sb-shell.sb-art-layout :is(.sb-spell-side .sb-inline-heading, .sb-stage-name) { color: #f0c582 !important; text-shadow: 0 1px 2px #000; }
+:root .sb-shell.sb-art-layout .sb-spell-side :is(.sb-effect, .sb-group, .px-qtimer, .px-qmeta) { color: #f6e4c0 !important; text-shadow: none; }
+:root .sb-shell.sb-art-layout .sb-spell-side :is(.sb-sub, .sb-nums, .sb-num, .px-c) { color: #cdb68c !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .px-qtimer.urgent { color: #ff9a7a !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act { color: #fff0d2 !important; background: #4b3423 !important; border: 1px solid #9e7948 !important;
+  border-radius: 2px; min-height: 0; padding: .32rem .7rem !important; text-decoration: none !important; box-shadow: none !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act:is(:hover, :focus-visible) { background: #634529 !important; border-color: #d8b06a !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act.primary { background: #7a2a17 !important; border-color: #d0884a !important; color: #fff4dc !important; }
+:root .sb-shell.sb-art-layout .sb-spell-side .act.on { outline: 1px solid #f0c582; }
+:root .sb-shell.sb-art-layout .sb-spell-side .sheet-notice { color: #f0c582 !important; }
+/* The abilities rail stays one column: the spells layout above turns every rail into a grid. */
+:root .sb-shell .px-qrail.sb-ability-rail { display: flex; flex-direction: column; grid-template-columns: none; }
+:root .sb-shell .sb-abilities .sb-ability-search { background: rgba(255,248,230,.6) !important; color: #2b1a0c !important;
+  border: 1px solid rgba(110,70,30,.6) !important; }
+:root .sb-shell .sb-abilities .sb-ability-search::placeholder { color: #6b5232; opacity: 1; }
+:root .sb-shell .sb-abilities :is(.sb-filter, .sb-hand) { min-height: 0 !important; padding: .12rem .5rem !important; font-size: 13px; line-height: 1.3; }
 @media (min-width: 781px) {
   .sb-shell .px-qrail { flex: 0 1 54%; min-width: 0; }
   .sb-shell :is(.px-qrail, .sb-catalogue-list) {

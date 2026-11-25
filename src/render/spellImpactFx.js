@@ -1,4 +1,5 @@
 import { drawAbilityArt } from './abilityParticles.js';
+import { drawWayfarerLantern } from './wayfarerLanternFx.js';
 // @ts-check
 // IMPACTFX (2026-10-05, the player: "give it a high quality effect that suits the game and the spell that sprays to the
 // ground based on the element, you have to see that it is shock and fire, water and heal like green heal lineish
@@ -75,7 +76,7 @@ const abilityMaterials = {
 /** TECH-FX: a point - an Array or a typed array - of three finite numbers. */
 const vec3 = (v) => v != null && v.length >= 3 && Number.isFinite(v[0]) && Number.isFinite(v[1]) && Number.isFinite(v[2]);
 /** TECH-FX: the recipes `technique` knows. */
-export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close', 'capstone-bloom', 'ability-art', 'strike-sweep', 'strike-thrust', 'strike-jab', 'strike-lash', 'strike-chop', 'frost-rush', 'ash-rush']);
+export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close', 'capstone-bloom', 'ability-art', 'strike-sweep', 'strike-thrust', 'strike-jab', 'strike-lash', 'strike-chop', 'frost-rush', 'ash-rush', 'wayfarer-lantern']);
 
 
 /**
@@ -519,6 +520,7 @@ export class SpellImpactFx {
         }
         return true;
       }
+      case 'wayfarer-lantern': return drawWayfarerLantern(this, at, gy);
       case 'ability-art': return drawAbilityArt(this, abilityMaterials[material], at, { phase, form, yaw, len, spin, dir });
       case 'strike-thrust':
       case 'strike-jab':

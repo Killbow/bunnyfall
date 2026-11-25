@@ -832,6 +832,7 @@ export function hotbarPointedThing(at = pointerAt) {
   for (let n = document.elementFromPoint?.(at.x, at.y) ?? null; n && n !== document.body; n = n.parentNode) {
     if (n._hotbarItem) return { kind: 'item', item: n._hotbarItem };
     if (n._hotbarSpell) return { kind: 'spell', spell: n._hotbarSpell };
+    if (n._hotbarEntry) return { kind: 'entry', entry: n._hotbarEntry };
   }
   return null;
 }
@@ -842,7 +843,7 @@ export function hotbarPickNow() {
   for (const p of [...pickers.values()].reverse()) {
     let got = null;
     try { got = p.selected(); } catch { got = null; }
-    if (got && (got.kind === 'item' ? !!got.item : got.kind === 'spell' && !!got.spell)) return got;
+    if (got && (got.kind === 'item' ? !!got.item : got.kind === 'entry' ? !!got.entry : got.kind === 'spell' && !!got.spell)) return got;
   }
   return null;
 }
@@ -857,7 +858,8 @@ function pickKey(e) {
   e.preventDefault();
   e.stopImmediatePropagation();   // the window does not also handle this key
   if (e.repeat) return;
-  const ok = pick.kind === 'spell' ? hotbarDropSpell(i, pick.spell) : hotbarDropItem(i, pick.item);
+  const ok = pick.kind === 'entry' ? hotbarDropEntry(i, pick.entry)
+    : pick.kind === 'spell' ? hotbarDropSpell(i, pick.spell) : hotbarDropItem(i, pick.item);
   if (ok) for (const p of pickers.values()) { try { p.changed?.(); } catch (err) { console.warn('[hotbar] pick', err?.message ?? err); } }
 }
 
@@ -901,6 +903,13 @@ export function hotbarDropItem(i, item) {
   if (!e || !setHotbarSlot(i, e)) return false;
   lastSig = null; paint(); strike(i, true);
   showCaption(HOTBAR_TEXT.added(e.name, i + 1));
+  return true;
+}
+/** BUNNYFALL: a ready-made entry (an ability from the spellbook's Abilities page) onto slot `i`. */
+export function hotbarDropEntry(i, e) {
+  if (!e || !setHotbarSlot(i, e)) return false;
+  lastSig = null; paint(); strike(i, true);
+  showCaption(HOTBAR_TEXT.added(entryName(e), i + 1));
   return true;
 }
 export function hotbarDropSpell(i, sp) {
@@ -1062,6 +1071,7 @@ function dragEnd(commit) {
   if (!commit) return;
   const i = dropAt;
   if (d.payload.kind === 'spell') { if (i >= 0) hotbarDropSpell(i, d.payload.spell); return; }
+  if (d.payload.kind === 'entry') { if (i >= 0) hotbarDropEntry(i, d.payload.entry); return; }
   if (d.payload.kind === 'slot') {
     const from = d.payload.slot;
     if (i < 0) {

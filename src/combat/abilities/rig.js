@@ -1,7 +1,7 @@
 import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
 import { SOUND } from '../../audio/soundClips.js';
 import { showAbilityArt } from './abilityArt.js';
-import { strikeMotionKind } from './strikeMotion.js';
+import { strikeMotionKind, strikeMotionPath } from './strikeMotion.js';
 import { ABILITY_REFUSAL, createAbilityEngine } from './engine.js';
 import { abilitiesEnabled, abilityLoad, syncAbilityUnlocks } from './progress.js';
 import { abilityMayStrike, beginEdgeRitual, clearEdgeRitual, clearWeaponOpenings, localAbilityActor,
@@ -23,6 +23,11 @@ import { racialDelivery, racialKey } from './racialProfiles.js';
 import { clearRacialAccuracy, noteRacialReadiness, setRacialAccuracy, stepRacialAccuracy } from './racialIdentity.js';
 import { playerDoor } from '../../player/playerDoor.js';
 import { assignModBundle, hasActiveEffect } from '../../magic/effects.js';
+import { bodyRadius } from '../technique/techniqueBlow.js';
+import { AUTOAIM, advanceReach, autoaimFoe, camToward, huntableFoes, lockedLanding, lockedReach, sideHop, sideOf,
+  yawToward } from './autoaim.js';
+import { meleeBeatMult, shotMult } from './damage.js';
+import { playAbilitySfx } from '../../audio/abilitySfx.js';
 
 export { PREVIEW_THRUST } from './milestones.js';
 export const abilityPlayable = id => weaponAbilityPlayable(id) || combinationPlayable(id) || !!racialDelivery(id);
@@ -71,11 +76,24 @@ function startMelee(chain, { rig, tc, entity }) {
   if (!cam || pw.techniqueBlow || pw.restingWeapon !== cast.weapon) return false;
   const offhand = (profile.alternateHands && (next + (profile.openOffhand ? 1 : 0)) % 2) ? pw.pairedShortBlade : null;
   const feet = [...cam.feet];
-  const { yaw } = cam;
+  // Autoaim: a swing turns to the foe it already struck, else the foe nearest the crosshair, and reaches a little
+  // farther for it. A swing a dash carried keeps its lane.
+  let { yaw } = cam;
+  let reach = stage.rangeM;
+  if (!chain.lane) {
+    const struck = chain.target ? huntableFoes(foe => foe.entity === chain.target)[0] : null;
+    const lock = (struck && flatTo(feet, struck) - 0.5 <= stage.rangeM + AUTOAIM.meleeSlackM ? struck : null)
+      ?? autoaimFoe(cam, tc.collider, stage.rangeM + AUTOAIM.meleeSlackM);
+    if (lock) {
+      yaw = yawToward(feet, lock);
+      tc.door?.face?.(lock.ai.feet, feet);
+      reach = lockedReach(cam, lock, stage.rangeM);
+    }
+  }
   const blow = {
     ...markers(cast, entity), weapon: offhand ?? cast.weapon, chain,
-    mult: (1 + profile.potency + (cast.standBonus ?? 0)) * (stage.share ?? (1 / profile.beats)),
-    reach: stage.rangeM, arc: stage.arcRad ?? 'view', single: !stage.targetCap, feet, yaw,
+    mult: meleeBeatMult(cast.ability, profile.potency, stage.share ?? (1 / profile.beats), cast.standBonus ?? 0),
+    reach: Math.max(reach, chain.reach ?? 0), arc: stage.arcRad ?? 'view', single: !stage.targetCap, feet, yaw,
     control: (final && stage.finishControl) || stage.control, counterBonus: stage.counterBonus,
     targetCap: stage.targetCap, redirect: profile.redirect || !!stage.targetCap, damageMod: cast.power, tempo: stage.tempo,
     hitFx: (final && stage.finishFx) || stage.fx || (profile.beats > 1 ? 'haymaker' : null),
@@ -89,6 +107,7 @@ function startMelee(chain, { rig, tc, entity }) {
       sounded = true;
       tc.door?.sound?.(final ? SOUND.Hit4 : SOUND.Hit2, final ? .7 : .45, final ? .78 : .95);
     }
+    playAbilitySfx(cast.ability.id, 'impact');
     const feet = foe.ai?.feet;
     if (feet) showAbilityArt(tc.door, cast.ability.id, 'impact',
       [feet[0], feet[1] + (foe.ai.height ?? 1.6) * .55, feet[2]], { yaw });
@@ -116,8 +135,9 @@ function startMelee(chain, { rig, tc, entity }) {
     blow.feet = chain.origin;
     chain.lane = null;
   } else if (stage.halfWidthM) {
-    blow.lane = { from: [feet[0], feet[2]], dir: [Math.sin(yaw), Math.cos(yaw)], len: stage.rangeM, halfW: stage.halfWidthM };
+    blow.lane = { from: [feet[0], feet[2]], dir: [Math.sin(yaw), Math.cos(yaw)], len: blow.reach, halfW: stage.halfWidthM };
   }
+  chain.reach = 0;
   if (blow.targetCap) blow.struck = new Set();
   pw.techniqueBlow = blow;
   const strike = profile.stages?.[next]?.strike ?? profile.strikes?.[next] ?? stage.strike;
@@ -127,6 +147,7 @@ function startMelee(chain, { rig, tc, entity }) {
   }
   const timing = pw.strikeSchedule?.();
   blow.motion = { kind: strikeMotionKind(cast.ability.id, stage, strike, cast.weapon),
+    path: strikeMotionPath(cast.ability.id, next, final && profile.beats > 1),
     side: strike?.includes('Left') ? -1 : 1, start: pw.machine.now,
     hit: timing?.hitAt ?? .2, duration: timing?.seconds ?? .5 };
   rig.blow = blow;
@@ -136,20 +157,42 @@ function startMelee(chain, { rig, tc, entity }) {
   return true;
 }
 
+const flatTo = (feet, foe) => Math.hypot(foe.ai.feet[0] - feet[0], foe.ai.feet[2] - feet[2]);
+
+/** Where a dash or leap lands: at the foe it locked (the one a chain already struck, else the one under the
+ *  crosshair), beside it for a side hop, else where the plain aim says. */
+function advanceAim(cast, chain, advance, { cam, collider }) {
+  const foes = huntableFoes(foe => !cast.link || foe.entity === cast.link.target);
+  const range = advanceReach(advance) + AUTOAIM.leapSlackM;
+  const held = chain.target ? foes.find(foe => foe.entity === chain.target && flatTo(cam.feet, foe) <= range) : null;
+  const lock = held ?? autoaimFoe(cam, collider, range, foes);
+  if (advance.aim === 'side') {
+    const side = sideOf(advance, chain.next);
+    const landed = lock ? lockedLanding(advance, cam, collider, lock, side) : null;
+    return landed?.ok ? landed : sideHop(advance, cam, collider, side);
+  }
+  if (!lock) return aimFor(advance, cam, collider, advance.aim === 'lane' ? undefined : foes);
+  if (advance.aim === 'lane') {
+    const landed = lockedLanding(advance, cam, collider, lock);
+    return landed.ok ? landed : aimFor(advance, cam, collider);
+  }
+  const locked = aimFor(advance, camToward(cam, lock), collider, [lock]);
+  return locked.ok ? locked : aimFor(advance, cam, collider, foes);
+}
+
 function startAdvance(cast, { rig, tc }, chain, advance) {
   const motor = tc.door?.motor?.();
   const refusal = techniqueFlightRefusal(motor);
   if (refusal) { tc.say?.(refusal); return false; }
   if (!tc.cam || !tc.collider) return false;
-  const targeted = advance.aim !== 'lane';
-  const foes = targeted ? (playerDoor()?.foes?.() ?? []).filter(foe =>
-    abilityMayStrike(foe) && (!cast.link || foe.entity === cast.link.target)) : undefined;
-  const { ok, point, apex, lane, foe, why } = aimFor(advance, tc.cam, tc.collider, foes);
+  const targeted = advance.aim === 'target' || advance.aim === 'foe';
+  const { ok, point, apex, lane, foe, why } = advanceAim(cast, chain, advance, tc);
   if (!ok || (targeted && !foe)) { tc.say?.(targeted && !foe ? 'Aim at a nearby foe' : why); return false; }
   const origin = [...tc.cam.feet];
   const flight = launchTo(origin, point, apex);
   if (!motor.techniqueLaunch(flight.dir, flight.along, flight.up)) return false;
-  rig.advance = { cast, chain, lane, origin, motor, foe, point, elapsed: 0, timeout: flight.time + 0.75 };
+  rig.advance = { cast, chain, lane, origin, motor, foe, point, elapsed: 0, timeout: flight.time + 0.75,
+    reach: (cast.delivery.stages?.[chain.next] ?? cast.delivery).rangeM ?? 2.25 };
   const dx = point[0] - origin[0], dz = point[2] - origin[2];
   showAbilityArt(tc.door, cast.ability.id, 'stroke', [origin[0],origin[1]+.7,origin[2]],
     { yaw: Math.atan2(dx,dz), len: Math.hypot(dx,dz) });
@@ -170,16 +213,27 @@ function stepAdvance(dt, ctx, canStart) {
   }
   if (!motor.grounded) return;
   ctx.rig.advance = null;
+  playAbilitySfx(chain.cast.ability.id, 'land');
   if (!canStart || !ctx.tc.cam) return;
   const feet = ctx.tc.cam.feet;
-  if (foe) {
-    if (!abilityMayStrike(foe) || Math.hypot(feet[0] - point[0], feet[1] - point[1], feet[2] - point[2]) > 1.1) return;
-    const target = foe.ai?.feet;
-    if (!target) return;
+  // A locked foe takes the strike wherever it moved while the body flew, as long as it stands within reach.
+  const target = foe?.ai?.feet;
+  if (target && abilityMayStrike(foe) && flatTo(feet, foe) - bodyRadius(foe) <= advance.reach + AUTOAIM.landReachM) {
     ctx.tc.door?.face?.(target, feet);
-    const yaw = Math.atan2(target[0] - feet[0], target[2] - feet[2]);
+    const yaw = yawToward(feet, foe);
     chain.target = foe.entity;
-    startMelee(chain, { ...ctx, tc: { ...ctx.tc, cam: { ...ctx.tc.cam, yaw } } });
+    const cam = { ...ctx.tc.cam, yaw };
+    const dx = target[0] - origin[0], dz = target[2] - origin[2], d = Math.hypot(dx, dz);
+    if (lane && d > .3) {
+      chain.lane = { ...lane, dir: [dx / d, dz / d], len: d + bodyRadius(foe) + .3 };
+      chain.origin = origin;
+    } else chain.reach = lockedReach(cam, foe, advance.reach, AUTOAIM.landReachM);
+    startMelee(chain, { ...ctx, tc: { ...ctx.tc, cam } });
+    if (chain.origin === origin) cue('lunge', 'hit', ctx.tc.door, { at: origin, to: [...feet], ground: origin[1], yaw });
+    return;
+  }
+  if (!lane) {
+    if (Math.hypot(feet[0] - point[0], feet[2] - point[2]) <= 1.5) startMelee(chain, ctx);
     return;
   }
   const len = Math.min(lane.len, (feet[0] - origin[0]) * lane.dir[0] + (feet[2] - origin[2]) * lane.dir[1]);
@@ -250,7 +304,10 @@ function release(cast, ctx) {
   }
   const { rig, tc } = ctx;
   if (cast.continuingRhythm && cast.continuingRhythm !== rig.rhythm) return false;
-  const rain = delivery.rain ? skyfallPattern(tc.cam, tc.collider, delivery) : null;
+  // Arrow rain centres on the foe under the crosshair (its feet), else on the ground the look meets.
+  const rainLock = delivery.rain && tc.cam ? autoaimFoe(tc.cam, tc.collider, Math.min(delivery.rangeM, AUTOAIM.rangedM)) : null;
+  const rain = delivery.rain ? (rainLock && skyfallPattern(camToward(tc.cam, rainLock, 0), tc.collider, delivery))
+    || skyfallPattern(tc.cam, tc.collider, delivery) : null;
   if (delivery.rain && !rain) { tc.say?.('Aim at visible ground in range'); return false; }
   if (!tc.door?.fireArrow || !tc.cam || !tc.pw.machine.isBow || !tc.startSwing(cast.delivery.strike)) return false;
   applyEffect();
@@ -287,6 +344,8 @@ function stateFor(entity) {
     release,
     canRepeat,
     event: (moment, cast) => {
+      if (moment === 'wind-up') playAbilitySfx(cast.ability.id, 'wind-up');
+      if (moment === 'release') playAbilitySfx(cast.ability.id, cast.delivery.kind === 'self' ? 'self' : 'release');
       if (moment === 'wind-up' || (moment === 'release' && cast.delivery.kind === 'self')) {
         const { cam, door } = state.ctx.tc;
         if (cam?.feet) showAbilityArt(door, cast.ability.id, moment === 'release' ? 'self' : 'wind-up',
@@ -427,7 +486,8 @@ export function claimAbilityEvents(events, tc) {
   if (!events.includes('hit')) return events;
   if (rig?.blow?.cancelled) return events.filter(event => event !== 'hit');
   if (rig?.blow?.motion && tc.cam) {
-    const { feet, yaw } = tc.cam;
+    const { feet } = tc.cam;
+    const yaw = rig.blow.yaw ?? tc.cam.yaw;
     const { motion, reach } = rig.blow;
     motion.contact = Math.max(.001, tc.pw.machine.now - motion.start);
     const origin = [feet[0],feet[1]+1.1,feet[2]];
@@ -437,8 +497,9 @@ export function claimAbilityEvents(events, tc) {
     showAbilityArt(tc.door, rig.blow.id, 'stroke', origin, { dir: direction, yaw, spin: motion.side, len: Math.min(wall,reach) });
   }
   if (rig?.blow?.hitFx && tc.cam) {
-    const { feet, yaw } = tc.cam;
     const blow = rig.blow;
+    const { feet } = tc.cam;
+    const yaw = blow.yaw ?? tc.cam.yaw;
     const r = Math.min(blow.reach, 1.05);
     const at = [feet[0] + Math.sin(yaw) * r, feet[1] + 1.1, feet[2] + Math.cos(yaw) * r];
     const dir = [Math.sin(yaw), 0, Math.cos(yaw)];
@@ -475,6 +536,7 @@ export function claimAbilityEvents(events, tc) {
     } : null;
   const onResolve = (damage, foe) => {
     resolveGameplay?.(damage, foe);
+    if (damage > 0) playAbilitySfx(cast.ability.id, 'impact');
     if (damage > 0 && foe?.ai?.feet) {
       const [x,y,z] = foe.ai.feet;
       showAbilityArt(door, cast.ability.id, 'impact', [x,y+(foe.ai.height ?? 1.6)*.55,z], { yaw: cam.yaw });
@@ -484,18 +546,21 @@ export function claimAbilityEvents(events, tc) {
       && (!rhythm || rig.rhythm === rhythm)
       && pw.restingWeapon === weapon && (!cast.stance || holdsStance(cast.stance, tc))
       && ammoCountFor(entity.items, weapon, { usableOnly: true }) >= count) {
-    const look = abilityLook(cam);
-    showAbilityArt(door, cast.ability.id, 'stroke', cam.pos, { dir: look, yaw: cam.yaw, len: 2.4 });
+    // Autoaim: the shot bends toward the foe nearest the crosshair, in sight and in range.
+    const lock = shot.rain ? null : autoaimFoe(cam, tc.collider, Math.min(profile.rangeM, AUTOAIM.rangedM));
+    const aim = lock ? camToward(cam, lock) : cam;
+    const look = abilityLook(aim);
+    showAbilityArt(door, cast.ability.id, 'stroke', cam.pos, { dir: look, yaw: aim.yaw, len: 2.4 });
     const trail = pos => showAbilityArt(door, cast.ability.id, 'flight', pos);
     const rainTargets = shot.rain ? new Map() : null;
     for (let i = 0; i < count; i++) {
       if (!spendAmmoFor(entity.items, weapon, shot)) break;
       const spread = (i - (profile.ammo - 1) / 2) * (profile.spreadRad ?? 0);
       const shaft = shot.rain?.shots[i];
-      door.fireArrow(shaft?.from ?? cam.pos, shaft?.dir ?? (spread ? abilityLook(cam, cam.yaw + spread) : look), {
+      door.fireArrow(shaft?.from ?? cam.pos, shaft?.dir ?? (spread ? abilityLook(aim, aim.yaw + spread) : look), {
         sky: !!shaft, weapon, summoned: shot.summoned, speedScale: milestoneShotSpeedScale(profile),
         technique: {
-          ...markers(cast, entity), mult: (1 + profile.potency + (rhythm?.streak ?? 0) * (profile.rhythm?.bonus ?? 0)) / profile.ammo,
+          ...markers(cast, entity), mult: shotMult(cast.ability, profile.potency + (rhythm?.streak ?? 0) * (profile.rhythm?.bonus ?? 0), profile.ammo),
           rangeM: shaft?.rangeM ?? profile.rangeM, weakPointBonus: profile.weakPointBonus, armorPierce: profile.armorPierce,
           linearRadius: profile.linearRadius, control: profile.control, onResolve, trail, damageMod: cast.power,
           execution: profile.execution, projectileScale: profile.projectileScale,

@@ -35,7 +35,7 @@ export const meleeCombinations = new Map([
     smash(2.8, .62, { armorPierce: .42 }),
   ], { fx: 'measure' })],
   ['combination.blunt.long-blade.judgement-bastion', melee(100, 'Raise a shield as you leap into two heavy blows. The final hit scatters nearby foes.', [
-    smash(4.2, .43, { advance: leap(4.2), targetCap: 2, control: { poiseShare: .65 } }),
+    smash(4.2, .43, { advance: leap(5.6, 2.2), targetCap: 2, control: { poiseShare: .65 } }),
     sweep(3.25, .57, 4, 1.65, { fx: 'quake' }),
   ], { ...capstone(44, 'endurance'), selfEffect: guard(24), redirect: true, fx: 'rally' })],
   ['combination.hand-to-hand.long-blade.reversal-step', melee(75, 'Interrupt an exposed foe at close range, then lunge into a second strike.', [

@@ -3,7 +3,8 @@ import test from 'node:test';
 import { ABILITIES } from '../src/combat/abilities/registry.js';
 import { showAbilityArt } from '../src/combat/abilities/abilityArt.js';
 import { SpellImpactFx } from '../src/render/spellImpactFx.js';
-import { poseStrikeRect, strikePose } from '../src/combat/abilities/strikeMotion.js';
+import { poseStrikeRect, strikeMotionPath, strikePose } from '../src/combat/abilities/strikeMotion.js';
+import { abilityVoice, MOMENTS, playAbilitySfx, VOICES } from '../src/audio/abilitySfx.js';
 
 test('every registered ability has renderable art with finite geometry and a bounded lifetime', () => {
   for (const ability of ABILITIES) {
@@ -49,4 +50,44 @@ test('strike poses accent contact, mirror the striking hand and settle at recove
     assert.equal(strikePose(motion,.3,0),null);
   }
   assert.equal(contacts.size,kinds.length);
+});
+
+test('striking abilities swing on their own code-made paths, distinct from each other and settling to rest', () => {
+  const paths = new Set();
+  const striking = ABILITIES.filter(ability => ability.category !== 'utility');
+  for (const ability of striking) {
+    const path = strikeMotionPath(ability.id, 0);
+    if (!path) continue;
+    paths.add(JSON.stringify(path));
+    const motion = { kind: 'sweep', path, start: 0, hit: .3, duration: .8, side: 1 };
+    for (let t = 0; t < .8; t += .02) {
+      const pose = strikePose(motion, t, 1);
+      if (!pose) break;
+      assert.ok([pose.x, pose.y, pose.scale].every(Number.isFinite), ability.id);
+      assert.ok(Math.abs(pose.x) < .35 && Math.abs(pose.y) < .3 && pose.scale > .7 && pose.scale < 1.5, ability.id + ' stays restrained');
+    }
+    assert.equal(strikePose(motion, .81, 1), null, ability.id);
+  }
+  assert.ok(paths.size >= striking.length * .9, 'nearly every ability has its own swing');
+  for (const id of ['racial.khajiit.predators-pounce', 'racial.lungaris.harebound', 'racial.breton.wardbreaker']) {
+    assert.ok(strikeMotionPath(id, 0), id);
+  }
+});
+
+test('every ability has a synthesized voice for each moment, silent with no audio context', () => {
+  for (const ability of ABILITIES) assert.ok(Object.values(VOICES).includes(abilityVoice(ability.id)), ability.id);
+  for (const moment of ['wind-up', 'release', 'impact', 'self', 'land']) {
+    assert.ok(MOMENTS[moment], moment);
+    assert.equal(playAbilitySfx('weapon.claymore.wide-arc', moment), false);
+  }
+});
+
+test('the Wayfarer lantern draws finite, quiet geometry that fades out on its own', () => {
+  const fx = new SpellImpactFx({ rng: () => .4 });
+  assert.ok(fx.technique('wayfarer-lantern', [3, 1, -2], { ground: 1 }));
+  fx.step(.2);
+  assert.ok(fx.build() > 0);
+  assert.ok(fx.buf.every(Number.isFinite));
+  for (let i = 0; i < 90; i++) fx.step(1 / 60);
+  assert.equal(fx.live, false);
 });

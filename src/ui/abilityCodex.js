@@ -1,16 +1,21 @@
-import { activeAbilityWeapon } from '../combat/abilities/rig.js';
+// The spellbook's Abilities page. BUNNYFALL: laid out like the Spells page - a compact scrolling rail of every ability
+// on the left, grouped and folded by skill, and the chosen ability on the right with its numbers and one-click hotbar
+// slots. A rail row also drags onto the hotbar, or takes a slot key while pointed at, as a spell row does.
 import { abilityIcon } from './abilityIcon.js';
+import { beginHotbarDrag, hotbarAcceptsDrops, takeHotbarDragClick } from './enhancedHotbar.js';
 import { CAPSTONE_RECOVERY_MS } from '../combat/abilities/engine.js';
-import { SKILL_NAMES } from '../characters/skills.js';
+import { SKILL_NAMES, skillValue } from '../characters/skills.js';
 import { raceByKey } from '../characters/races.js';
-import { ABILITIES, abilityById, PHYSICAL_SKILLS } from '../combat/abilities/registry.js';
+import { ABILITIES, PHYSICAL_SKILLS } from '../combat/abilities/registry.js';
 import { learnedAbility } from '../combat/abilities/progress.js';
 import { milestoneDelivery } from '../combat/abilities/milestones.js';
 import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
 import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
 import { combinationDelivery, combinationDescription } from '../combat/abilities/combinations.js';
+import { meleeBeatMult, shotMult } from '../combat/abilities/damage.js';
 import { templateByIndex } from '../items/itemTemplates.js';
 import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot } from '../items/quickslots.js';
+import { activeAbilityWeapon } from '../combat/abilities/rig.js';
 
 const styleNames = {
   'archers-axe': 'Archer’s Axe',
@@ -21,6 +26,9 @@ const styleNames = {
 };
 const customStyleNames = { 513: styleNames['archers-axe'], 514: styleNames['light-flail'], 563: styleNames.crossbow };
 
+// Kept across repaints of the book, so a pick or an assignment never moves the page.
+const memory = { picked: null, open: new Set(), hand: 'weapon', learnedOnly: false, query: '' };
+
 function element(tag, text, className) {
   const node = document.createElement(tag);
   if (text) node.textContent = text;
@@ -28,174 +36,46 @@ function element(tag, text, className) {
   return node;
 }
 
-export function buildAbilityCodex(entity, size) {
-  const panel = element('div', null, 'sb-abilities');
-  panel.setAttribute('aria-label', 'Abilities');
-  const nav = element('nav', null, 'sb-skill-nav');
-  nav.setAttribute('aria-label', 'Jump to a skill');
-  const roster = element('div', null, 'sb-roster');
-  const search = element('input', null, 'sb-ability-search');
-  search.type = 'search';
-  search.placeholder = 'Find a weapon, ability, or rank';
-  search.setAttribute('aria-label', search.placeholder);
-  const empty = element('p', 'No matching abilities.', 'sb-roster-note');
-  empty.setAttribute('role', 'status');
-  empty.hidden = true;
-  roster.append(empty);
-  const sections = [];
-
-  const slots = element('select');
-  slots.setAttribute('aria-label', 'Hotbar slot');
-  const binding = element('select');
-  binding.setAttribute('aria-label', 'Ability binding');
-  const description = element('p');
-  const details = element('dl', null, 'sb-ability-details');
-  function detail(label, value) {
-    const group = element('div');
-    group.append(element('dt', label), element('dd', value));
-    details.append(group);
+/** The numbers a player weighs before binding an ability, in plain words. */
+export function abilityStatChips(ability, profile = null) {
+  const delivery = profile?.kind ? profile : milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, null) ?? racialDelivery(ability.id);
+  const chips = [];
+  if (delivery?.spend != null) chips.push(['Cost', delivery.spend + ' fatigue' + (delivery.kind === 'self' ? '' : ' + swing')]);
+  const shield = [].concat(delivery?.selfEffect ?? []).find(effect => effect?.type === 35);
+  if (shield) chips.push(['Shield', shield.magnitude + ' for ' + shield.rounds + (shield.rounds === 1 ? ' round' : ' rounds')]);
+  const recovery = (delivery ?? profile)?.cooldownMs;
+  if (recovery) chips.push(['Recovers', Math.round(recovery / 100) / 10 + ' s']);
+  if (delivery?.kind === 'melee') {
+    const beats = delivery.beats ?? 1;
+    if (beats > 1) chips.push(['Hits', String(beats)]);
+    const shares = Array.from({ length: beats }, (_, beat) => delivery.stages?.[beat]?.share ?? 1 / beats);
+    const each = Math.min(...shares.map(share => meleeBeatMult(ability, delivery.potency, share)));
+    chips.push([beats > 1 ? 'Each hit' : 'Damage', '×' + each.toFixed(1) + ' a plain swing']);
+    const advance = delivery.stages?.[0]?.advance ?? delivery.advance;
+    if (advance) chips.push(['Moves', advance.mech === 'leap' ? 'Leap' : advance.aim === 'side' ? 'Side hop' : 'Dash']);
+  } else if (delivery?.kind === 'ranged') {
+    const arrows = delivery.ammo ?? 1;
+    chips.push(['Arrows', String(arrows)]);
+    chips.push(['Each arrow', '×' + shotMult(ability, delivery.potency, arrows).toFixed(1) + ' a plain shot']);
   }
-  const status = element('p');
-  status.setAttribute('role', 'status');
-  const assign = element('button', 'Assign', 'act');
-  assign.type = 'button';
-  const assignment = element('div', null, 'sb-assignment');
-  const controls = element('div', null, 'sb-assignment-controls');
-  controls.append(binding, slots, assign);
-  assignment.append(description, details, controls, status);
-  let selected = null;
+  return chips;
+}
 
-  function selectedEntry() {
-    return binding.value === 'manual'
-      ? hotbarEntryForAbility(selected.ability.id)
-      : hotbarEntryForWeaponRank(selected.ability.rank);
-  }
-
-  function refreshSlots(preferred = '') {
-    slots.replaceChildren();
-    const prompt = element('option', 'Choose a hotbar slot');
-    prompt.value = '';
-    prompt.disabled = true;
-    slots.append(prompt);
-    let free = '', assigned = '';
-    const entry = selectedEntry();
-    for (let i = 0; i < size; i++) {
-      const held = hotbarEntry(i);
-      const option = element('option', (i + 1) + (held ? ' · ' + held.name : ' · Empty'));
-      option.value = String(i);
-      if (!held && free === '') free = option.value;
-      if (held && held.type === entry.type && (entry.id ? held.id === entry.id : held.key === entry.key)) assigned = option.value;
-      slots.append(option);
-    }
-    slots.value = preferred || assigned || free;
-    assign.disabled = slots.value === '';
-  }
-
-  slots.addEventListener('change', () => { assign.disabled = slots.value === ''; });
-  binding.addEventListener('change', () => refreshSlots());
-  assign.addEventListener('click', () => {
-    if (!selected || slots.value === '' || !learnedAbility(entity, selected.ability.id)) return;
-    const index = Number(slots.value);
-    const entry = selectedEntry();
-    if (!setHotbarSlot(index, entry)) return;
-    status.textContent = entry.name + ' assigned to slot ' + (index + 1);
-    refreshSlots(String(index));
-  });
-
-  function addSection(label) {
-    const section = element('section', null, 'sb-skill-section');
-    const heading = element('h3', label);
-    heading.tabIndex = -1;
-    section.append(heading);
-    roster.append(section);
-    const jump = element('button', label, 'act');
-    jump.type = 'button';
-    jump.onclick = () => {
-      heading.focus({ preventScroll: true });
-      roster.scrollTop += section.getBoundingClientRect().top - roster.getBoundingClientRect().top - 8;
-    };
-    nav.append(jump);
-    sections.push({ section, jump, label, ladders: [] });
-    return section;
-  }
-
-  function addLadder(section, name, abilities, profileFor, kind = 'utility') {
-    const ladder = element('div', null, 'sb-weapon-ladder');
-    if (name) {
-      const title = element('h4', name);
-      ladder.append(title);
-    }
-    const list = element('ol', null, 'sb-milestones');
-    const entries = abilities.map(ability => ({ ability, profile: profileFor(ability.id) }));
-    const rows = [];
-    sections.at(-1).ladders.push({ ladder, name, rows });
-    const planned = entries.every(entry => !entry.profile);
-    if (planned) ladder.append(element('p', 'Planned', 'sb-roster-note'));
-    for (const { ability, profile } of entries) {
-      const row = element('li');
-      const learned = profile && learnedAbility(entity, ability.id);
-      const control = element(profile ? 'button' : 'div', null, 'sb-milestone');
-      const rank = kind === 'combination' ? ability.rank + '/' + ability.rank + (ability.rank === 100 ? ' · Capstone' : '')
-        : kind === 'racial' ? 'Racial ability'
-        : kind === 'weapon' && ability.rank === 100 ? 'Rank 100 · Capstone' : 'Rank ' + ability.rank;
-      const icon = element('img', null, 'sb-ability-icon');
-      icon.src = abilityIcon(ability.id);
-      icon.alt = '';
-      control.classList.toggle('sb-capstone', ability.rank === 100);
-      control.append(icon, element('span', ability.name, 'sb-milestone-name'), element('span', rank, 'sb-milestone-rank'));
-      if (!learned && !planned) control.append(element('span', profile ? 'Locked' : 'Planned', 'sb-roster-note'));
-      if (profile) {
-        control.type = 'button';
-        control.setAttribute('aria-expanded', 'false');
-        control.onclick = () => {
-          selected?.button.setAttribute('aria-expanded', 'false');
-          if (selected?.button === control) {
-            assignment.remove();
-            selected = null;
-            return;
-          }
-          selected = { ability, button: control };
-          control.setAttribute('aria-expanded', 'true');
-          description.textContent = profile.description ?? '';
-          details.replaceChildren();
-          if (profile.spend != null) detail('Activation fatigue', String(profile.spend) + (profile.kind === 'self' ? '' : ' + swing cost'));
-          if (kind !== 'utility' && profile.cooldownMs) detail('Reuse', profile.cooldownMs / 1000 + ' s');
-          const effects = [].concat(profile.selfEffect ?? []);
-          const shield = effects.find(effect => effect?.type === 35);
-          if (shield) detail('Shield', shield.magnitude + ' points · ' + shield.rounds + (shield.rounds === 1 ? ' magic round' : ' magic rounds'));
-          if (profile.weakPointBonus) description.textContent += ' A weak point is a hit in the top 22% of the foe’s height.';
-          if (profile.counterBonus) description.textContent += ' Counter during an enemy wind-up or its overreach after an attack.';
-          if (ability.rank === 100 && (kind === 'weapon' || kind === 'combination')) {
-            detail('Other capstones', CAPSTONE_RECOVERY_MS / 1000 + ' s');
-          }
-          description.hidden = !description.textContent;
-          status.textContent = '';
-          controls.hidden = !learned;
-          binding.replaceChildren();
-          if (kind === 'weapon') {
-            const option = element('option', 'Follow active weapon · Rank ' + ability.rank);
-            option.value = 'weapon';
-            binding.append(option);
-          }
-          if (kind !== 'weapon' || ability.rank === 100) {
-            const manual = element('option', 'Specific ability');
-            manual.value = 'manual';
-            binding.append(manual);
-            if (kind !== 'weapon') binding.value = 'manual';
-          }
-          binding.hidden = kind !== 'weapon';
-          control.after(assignment);
-          if (learned) refreshSlots();
-        };
-      }
-      rows.push({ row, label: ability.name + ' ' + rank });
-      row.append(control);
-      list.append(row);
-    }
-    ladder.append(list);
-    section.append(ladder);
-  }
-
+/** Every ability in its group, with what the page shows for it. */
+function catalog(entity) {
+  const groups = [];
+  const add = (label, kind, skill = null) => {
+    const group = { label, kind, skill, items: [] };
+    groups.push(group);
+    return group;
+  };
+  const push = (group, ability, profile, sub = null) => {
+    const kind = group.kind;
+    const rank = kind === 'combination' ? ability.rank + '/' + ability.rank
+      : kind === 'racial' ? 'Racial' : kind === 'utility' ? 'Rank ' + ability.rank : 'Rank ' + ability.rank;
+    group.items.push({ ability, profile, sub, kind, rank, capstone: ability.rank === 100 && kind !== 'utility',
+      learned: !!profile && learnedAbility(entity, ability.id) });
+  };
   const weaponsBySkill = new Map(PHYSICAL_SKILLS.map(skill => [skill, new Map()]));
   for (const ability of ABILITIES) {
     if (ability.category !== 'weapon') continue;
@@ -205,67 +85,266 @@ export function buildAbilityCodex(entity, size) {
     weapons.get(style).push(ability);
   }
   for (const [skill, weapons] of weaponsBySkill) {
-    const section = addSection(SKILL_NAMES[skill]);
+    const group = add(SKILL_NAMES[skill], 'weapon', skill);
     for (const [style, abilities] of weapons) {
       const name = styleNames[style] ?? templateByIndex(abilities[0].templates[0])?.name ?? style;
-      addLadder(section, name, abilities, milestoneDelivery, 'weapon');
+      for (const ability of abilities) push(group, ability, milestoneDelivery(ability.id), name);
     }
   }
-
-  const combinations = addSection('Combinations');
-  const pairs = new Map();
+  const combinations = add('Combinations', 'combination');
   for (const ability of ABILITIES) {
     if (ability.category !== 'combination') continue;
-    const key = ability.skills.map(id => SKILL_NAMES[id]).join(' + ');
-    if (!pairs.has(key)) pairs.set(key, []);
-    pairs.get(key).push(ability);
+    const text = combinationDescription(ability.id);
+    const active = activeAbilityWeapon(entity);
+    const template = ability.templates.find(value => value !== 'bare');
+    const weapon = ability.templates.includes(active?.templateIndex ?? 'bare') ? active : { templateIndex: template };
+    push(combinations, ability, text ? { ...combinationDelivery(ability.id, weapon), description: text } : null,
+      ability.skills.map(id => SKILL_NAMES[id]).join(' + '));
   }
-  for (const [key, abilities] of pairs) {
-    addLadder(combinations, key, abilities, id => {
-      const description = combinationDescription(id);
-      const ability = abilityById(id);
-      const active = activeAbilityWeapon(entity);
-      const template = ability.templates.find(value => value !== 'bare');
-      const weapon = ability.templates.includes(active?.templateIndex ?? 'bare') ? active : { templateIndex: template };
-      return description ? { ...combinationDelivery(id, weapon), description } : null;
-    }, 'combination');
-  }
-
-  const racial = addSection('Racial abilities');
+  const racial = add('Racial abilities', 'racial');
   for (const ability of ABILITIES) {
     if (ability.category !== 'racial') continue;
     const favorites = RACIAL_FAVORITES[ability.race].map(id =>
       id === 'bare' ? styleNames['hand-to-hand'] : customStyleNames[id] ?? templateByIndex(id)?.name);
     const trait = RACIAL_TRAITS[ability.race];
-    addLadder(racial, raceByKey(ability.race)?.name ?? ability.race, [ability], id => {
-      const delivery = racialDelivery(id);
-      return { ...delivery, description: [
-        'Active: ' + delivery.description,
-        'Passive: ' + favorites.join(' and ') + ' gain 4 weapon accuracy at half health or higher.',
-        trait.passive + (trait.passive.endsWith('.') ? '' : '.'),
-        trait.movement,
-      ].join(' ') };
-    }, 'racial');
+    push(racial, ability, { ...racialDelivery(ability.id), description: [
+      'Active: ' + racialDelivery(ability.id).description,
+      'Passive: ' + favorites.join(' and ') + ' gain 4 weapon accuracy at half health or higher.',
+      trait.passive + (trait.passive.endsWith('.') ? '' : '.'),
+      trait.movement,
+    ].join(' ') }, raceByKey(ability.race)?.name ?? ability.race);
+  }
+  const utilities = add('Universal utilities', 'utility');
+  for (const ability of ABILITIES) if (utilityProfile(ability.id)) push(utilities, ability, utilityProfile(ability.id));
+  return groups;
+}
+
+/** The hotbar entry a row binds by default: a weapon rank follows the hand, everything else is itself. */
+function entryFor(item, hand = memory.hand) {
+  return item.kind === 'weapon' && hand !== 'manual'
+    ? hotbarEntryForWeaponRank(item.ability.rank) : hotbarEntryForAbility(item.ability.id);
+}
+
+const sameEntry = (held, entry) => !!held && held.type === entry.type && (entry.id ? held.id === entry.id : held.key === entry.key);
+
+export function buildAbilityCodex(entity, size) {
+  const groups = catalog(entity);
+  const all = groups.flatMap(group => group.items);
+  const playable = all.filter(item => item.profile);
+  const learnedCount = playable.filter(item => item.learned).length;
+  let picked = all.find(item => item.ability.id === memory.picked)
+    ?? all.find(item => item.learned && item.kind === 'racial') ?? all.find(item => item.learned) ?? all[0];
+  if (!memory.open.size) {
+    const home = groups.find(group => group.items.includes(picked));
+    if (home) memory.open.add(home.label);
   }
 
-  const utilities = addSection('Universal utilities');
-  addLadder(utilities, null, ABILITIES.filter(ability => utilityProfile(ability.id)), utilityProfile);
-  utilities.append(element('p', entity.wayfarerAnchor ? 'Wayfarer’s Anchor is set.' : 'Wayfarer’s Anchor is unset.', 'sb-roster-note'));
-  search.addEventListener('input', () => {
-    const terms = search.value.trim().toLowerCase().split(/\s+/);
-    for (const { section, jump, label, ladders } of sections) {
-      for (const { ladder, name, rows } of ladders) {
-        for (const entry of rows) {
-          const haystack = [label, name, entry.label].join(' ').toLowerCase();
-          entry.row.hidden = !terms.every(term => haystack.includes(term));
-        }
-        ladder.hidden = rows.every(entry => entry.row.hidden);
+  const panel = element('div', null, 'sb-abilities px-journal');
+  panel.setAttribute('aria-label', 'Abilities');
+  const rail = element('div', null, 'px-qrail sb-ability-rail');
+  const detail = element('div', null, 'px-qdetail sb-ability-detail');
+
+  // The rail's head: the count, the search and the learned filter, kept above the scrolling list.
+  const head = element('div', null, 'sb-rail-head');
+  const count = element('span', learnedCount + ' / ' + playable.length + ' learned', 'sb-rail-count');
+  const learnedOnly = element('button', 'Learned', 'act sb-filter');
+  learnedOnly.type = 'button';
+  learnedOnly.setAttribute('aria-pressed', String(memory.learnedOnly));
+  learnedOnly.title = 'Show only the abilities you have learned';
+  const search = element('input', null, 'sb-ability-search');
+  search.type = 'search';
+  search.placeholder = 'Find an ability or weapon';
+  search.setAttribute('aria-label', search.placeholder);
+  search.value = memory.query;
+  const top = element('div', null, 'sb-rail-top');
+  top.append(count, learnedOnly);
+  head.append(top, search);
+  const list = element('div', null, 'sb-rail-list');
+  const empty = element('p', 'No matching abilities.', 'px-note');
+  empty.hidden = true;
+  rail.append(head, list);
+  list.append(empty);
+
+  const rows = [];
+  const folds = [];
+  for (const group of groups) {
+    const fold = element('details', null, 'sb-fold');
+    fold.open = memory.open.has(group.label);
+    fold.addEventListener('toggle', () => {
+      if (fold.open) memory.open.add(group.label);
+      else memory.open.delete(group.label);
+    });
+    const summary = element('summary', null, 'sb-fold-head');
+    const learned = group.items.filter(item => item.learned).length;
+    const total = group.items.filter(item => item.profile).length;
+    summary.append(element('span', group.label, 'sb-fold-name'), element('span', learned + '/' + total, 'sb-fold-count'));
+    if (group.skill != null) summary.title = SKILL_NAMES[group.skill] + ' ' + Math.round(skillValue(entity, group.skill));
+    fold.append(summary);
+    let sub = null;
+    const groupRows = [];
+    for (const item of group.items) {
+      if (item.sub && item.sub !== sub && group.kind !== 'racial') {
+        sub = item.sub;
+        const label = element('div', sub, 'sb-fold-sub');
+        fold.append(label);
+        groupRows.push({ label, sub });
       }
-      jump.hidden = section.hidden = ladders.every(entry => entry.ladder.hidden);
+      const row = element('button', null, 'sb-arow');
+      row.type = 'button';
+      row.classList.toggle('on', item === picked);
+      row.classList.toggle('sb-locked', !item.learned);
+      row.classList.toggle('sb-capstone', item.capstone);
+      const icon = element('img', null, 'sb-arow-icon');
+      icon.src = abilityIcon(item.ability.id);
+      icon.alt = '';
+      icon.draggable = false;
+      row.append(icon, element('span', item.ability.name, 'sb-arow-name'),
+        element('span', item.kind === 'racial' ? item.sub : item.rank.replace('Rank ', ''), 'sb-arow-rank'));
+      if (item.learned) {
+        row._hotbarEntry = entryFor(item);
+        row.onpointerdown = (e) => {
+          if (!hotbarAcceptsDrops()) return;
+          beginHotbarDrag(e, { kind: 'entry', entry: entryFor(item) }, { iconSrc: icon.src, label: item.ability.name });
+        };
+      }
+      row.onclick = () => {
+        if (takeHotbarDragClick()) return;
+        picked = item;
+        memory.picked = item.ability.id;
+        for (const other of rows) other.row.classList.toggle('on', other.item === item);
+        showDetail();
+      };
+      fold.append(row);
+      const entry = { row, item, group, sub: item.sub, fold };
+      rows.push(entry);
+      groupRows.push(entry);
     }
-    empty.hidden = sections.some(entry => !entry.section.hidden);
-    roster.scrollTop = 0;
+    list.append(fold);
+    folds.push({ fold, group, groupRows });
+  }
+
+  function filter() {
+    const terms = memory.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let any = false;
+    for (const { fold, group, groupRows } of folds) {
+      let shown = 0;
+      const subsShown = new Set();
+      for (const entry of groupRows) {
+        if (!entry.row) continue;
+        const text = [group.label, entry.sub, entry.item.ability.name, entry.item.rank].join(' ').toLowerCase();
+        entry.row.hidden = (memory.learnedOnly && !entry.item.learned) || !terms.every(term => text.includes(term));
+        if (!entry.row.hidden) { shown++; subsShown.add(entry.sub); }
+      }
+      for (const entry of groupRows) if (entry.label) entry.label.hidden = !subsShown.has(entry.sub);
+      fold.hidden = !shown;
+      if (terms.length && shown) fold.open = true;
+      any ||= shown > 0;
+    }
+    empty.hidden = any;
+  }
+  search.addEventListener('input', () => { memory.query = search.value; filter(); });
+  learnedOnly.addEventListener('click', () => {
+    memory.learnedOnly = !memory.learnedOnly;
+    learnedOnly.setAttribute('aria-pressed', String(memory.learnedOnly));
+    filter();
   });
-  panel.append(search, nav, roster);
+  filter();
+
+  function showDetail() {
+    const item = picked;
+    detail.replaceChildren();
+    if (!item) return;
+    const { ability, profile, kind } = item;
+    const title = element('div', null, 'sb-adetail-head');
+    const icon = element('img', null, 'sb-adetail-icon');
+    icon.src = abilityIcon(ability.id);
+    icon.alt = '';
+    const words = element('div', null, 'sb-adetail-words');
+    words.append(element('h3', ability.name), element('p', [
+      kind === 'combination' ? 'Combination ' + item.rank : kind === 'racial' ? 'Racial ability' : item.rank,
+      item.sub && kind !== 'racial' ? item.sub : null,
+      item.capstone ? 'Capstone' : null,
+    ].filter(Boolean).join(' · '), 'sb-adetail-kind'));
+    title.append(icon, words);
+    detail.append(title);
+    if (!item.learned) detail.append(element('p', profile ? 'Not learned yet' + (ability.rank ? ': reach ' + ability.rank + ' in '
+      + ability.skills.map(id => SKILL_NAMES[id]).join(' and ') + '.' : '.') : 'Planned.', 'sb-adetail-lock'));
+    const chips = abilityStatChips(ability, profile);
+    if (chips.length) {
+      const grid = element('dl', null, 'sb-adetail-chips');
+      for (const [label, value] of chips) {
+        const chip = element('div', null, 'sb-achip');
+        chip.append(element('dt', label), element('dd', value));
+        grid.append(chip);
+      }
+      detail.append(grid);
+    }
+    let text = profile?.description ?? '';
+    if (profile?.weakPointBonus) text += ' A weak point is a hit in the top 22% of the foe’s height.';
+    if (profile?.counterBonus) text += ' Counter during an enemy wind-up or its overreach after an attack.';
+    if (item.capstone && (kind === 'weapon' || kind === 'combination')) {
+      text += ' Other capstones recover for ' + CAPSTONE_RECOVERY_MS / 1000 + ' seconds.';
+    }
+    if (text) detail.append(element('p', text, 'sb-adetail-text'));
+    if (!item.learned) return;
+
+    const bind = element('div', null, 'sb-bind');
+    if (kind === 'weapon') {
+      const hands = element('div', null, 'sb-hands');
+      hands.setAttribute('role', 'group');
+      hands.setAttribute('aria-label', 'Binding');
+      for (const [hand, label] of [['weapon', 'Follow active weapon · Rank ' + ability.rank], ['manual', 'This ability']]) {
+        const button = element('button', label, 'act sb-hand');
+        button.type = 'button';
+        button.setAttribute('aria-pressed', String(memory.hand === hand));
+        button.onclick = () => { memory.hand = hand; showDetail(); };
+        hands.append(button);
+      }
+      bind.append(hands);
+      bind.append(element('p', memory.hand === 'manual' ? 'The slot always uses this ability.'
+        : 'The slot uses the rank ' + ability.rank + ' ability of whatever weapon you hold.', 'sb-bind-note'));
+    }
+    const entry = entryFor(item);
+    const slots = element('div', null, 'sb-slots');
+    slots.setAttribute('role', 'group');
+    slots.setAttribute('aria-label', 'Put on hotbar slot');
+    slots.style.setProperty('--cols', String(size > 6 ? Math.ceil(size / 2) : size));
+    const status = element('p', null, 'sb-bind-status');
+    status.setAttribute('role', 'status');
+    const label = element('p', 'Put on the hotbar', 'sb-slots-label');
+    const paintSlots = () => {
+      slots.replaceChildren();
+      for (let i = 0; i < size; i++) {
+        const held = hotbarEntry(i);
+        const here = sameEntry(held, entry);
+        const button = element('button', null, 'act sb-slotkey');
+        button.type = 'button';
+        button.append(element('span', String(i + 1), 'sb-slotnum'));
+        const heldIcon = held?.type === 'ability' ? abilityIcon(held.id) : '';
+        if (heldIcon) {
+          const img = element('img', null, 'sb-slotimg');
+          img.src = heldIcon;
+          img.alt = '';
+          button.append(img);
+        } else if (held) button.append(element('span', held.type === 'weapon-rank' ? 'R' + held.rank : held.name.slice(0, 2), 'sb-slotmark'));
+        button.classList.toggle('on', here);
+        button.classList.toggle('full', !!held && !here);
+        button.title = here ? 'Already here' : held ? 'Replace ' + held.name : 'Empty';
+        button.onclick = () => {
+          if (here || !setHotbarSlot(i, entry)) return;
+          status.textContent = entry.name + ' is on slot ' + (i + 1) + '.';
+          paintSlots();
+        };
+        slots.append(button);
+      }
+    };
+    paintSlots();
+    bind.append(label, slots, status);
+    detail.append(bind);
+  }
+  showDetail();
+
+  panel.append(rail, detail);
+  requestAnimationFrame?.(() => rows.find(entry => entry.item === picked)?.row.scrollIntoView?.({ block: 'nearest' }));
   return panel;
 }
