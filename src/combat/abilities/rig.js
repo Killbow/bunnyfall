@@ -1,4 +1,4 @@
-import { showAbilityArt } from './abilityArt.js';
+import { abilityArt, showAbilityArt } from './abilityArt.js';
 import { strikeMotionKind } from './strikeMotion.js';
 import { ABILITY_REFUSAL, createAbilityEngine } from './engine.js';
 import { abilitiesEnabled, abilityLoad, syncAbilityUnlocks } from './progress.js';
@@ -41,8 +41,13 @@ function deliveryFor(id, ctx) {
   return { ...profile, spend, fatigue: spend + SWING_FATIGUE_COST * swings + 1, impactsMs: [] };
 }
 
+const REGULAR_ABILITY_DAMAGE_SCALE = 1.25;
+
 function markers(cast, entity) {
-  return { id: cast.ability.id, ability: true, actor: entity, load: abilityLoad(entity), weapon: cast.weapon };
+  const { id, rank, category } = cast.ability;
+  const regular = rank < 100 && !cast.delivery.capstone && (category === 'weapon' || category === 'combination');
+  return { id, ability: true, actor: entity, load: abilityLoad(entity), weapon: cast.weapon,
+    damageScale: regular ? REGULAR_ABILITY_DAMAGE_SCALE : 1 };
 }
 
 function canPlant(tc) {
@@ -70,10 +75,11 @@ function startMelee(chain, { rig, tc, entity }) {
   const offhand = (profile.alternateHands && (next + (profile.openOffhand ? 1 : 0)) % 2) ? pw.pairedShortBlade : null;
   const feet = [...cam.feet];
   const { yaw } = cam;
+  const contactShape = !cast.ability.id.startsWith('racial.');
   const blow = {
     ...markers(cast, entity), weapon: offhand ?? cast.weapon, chain,
     mult: (1 + profile.potency + (cast.standBonus ?? 0)) * (stage.share ?? (1 / profile.beats)),
-    reach: stage.rangeM, arc: stage.arcRad ?? 'view', single: !stage.targetCap, feet, yaw,
+    reach: stage.rangeM, arc: stage.arcRad ?? (contactShape ? Math.PI * .3 : 'view'), single: !stage.targetCap, feet, yaw, contactShape,
     control: (final && stage.finishControl) || stage.control, counterBonus: stage.counterBonus,
     targetCap: stage.targetCap, redirect: profile.redirect || !!stage.targetCap, damageMod: cast.power, tempo: stage.tempo,
     hitFx: (final && stage.finishFx) || stage.fx || (profile.beats > 1 ? 'haymaker' : null),
@@ -105,6 +111,7 @@ function startMelee(chain, { rig, tc, entity }) {
     };
   }
   if (chain.lane) {
+    blow.fixedLane = true;
     blow.lane = chain.lane;
     blow.feet = chain.origin;
     chain.lane = null;
@@ -143,9 +150,11 @@ function startAdvance(cast, { rig, tc }, chain, advance) {
   const flight = launchTo(origin, point, apex);
   if (!motor.techniqueLaunch(flight.dir, flight.along, flight.up)) return false;
   rig.advance = { cast, chain, lane, origin, motor, foe, point, elapsed: 0, timeout: flight.time + 0.75 };
-  const dx = point[0] - origin[0], dz = point[2] - origin[2];
-  showAbilityArt(tc.door, cast.ability.id, 'stroke', [origin[0],origin[1]+.7,origin[2]],
-    { yaw: Math.atan2(dx,dz), len: Math.hypot(dx,dz) });
+  if (cast.ability.id.startsWith('racial.')) {
+    const dx = point[0] - origin[0], dz = point[2] - origin[2];
+    showAbilityArt(tc.door, cast.ability.id, 'stroke', [origin[0],origin[1]+.7,origin[2]],
+      { yaw: Math.atan2(dx,dz), len: Math.hypot(dx,dz) });
+  }
   rig.follow = null;
   cue(cast.delivery.fx ?? 'lunge', 'release', tc.door,
     { at: origin, ground: origin[1], yaw: tc.cam.yaw });
@@ -211,6 +220,7 @@ function release(cast, ctx) {
     const placement = effects.some(effect => effect.placed) && cam ? { eye: cam.pos, dir: abilityLook(cam) } : undefined;
     const payload = effects.map(effect => ({
       type: effect.type, subType: effect.subType, durationBase: effect.rounds, durationMod: 0, durationPerLevel: 1,
+      ...(effect.raiseStatCap ? { raiseStatCap: true } : {}),
       ...(effect.magnitude == null ? {} : {
         magnitudeBaseLow: effect.magnitude, magnitudeBaseHigh: effect.magnitude,
         magnitudeLevelBase: 0, magnitudeLevelHigh: 0, magnitudePerLevel: 1,
@@ -413,13 +423,56 @@ export function stepAbilityRig(dt, tc) {
   return occupied(state);
 }
 
+// Resolve and draw the same world-space shape on the weapon's contact frame.
+function showMeleeContact(blow, tc) {
+  const { cam, collider, door, pw } = tc;
+  blow.motion.contact = Math.max(.001, pw.machine.now - blow.motion.start);
+  if (!blow.fixedLane) {
+    blow.feet = [...cam.feet];
+    blow.yaw = cam.yaw;
+    if (blow.lane) {
+      blow.lane.from = [cam.feet[0], cam.feet[2]];
+      blow.lane.dir = [Math.sin(cam.yaw), Math.cos(cam.yaw)];
+    }
+  }
+  const { feet, yaw, reach, arc, lane } = blow;
+  const height = feet[1] + .8;
+  const points = [];
+  const add = (x, z) => {
+    const point = [x, height, z];
+    const ray = point.map((v, i) => v - cam.pos[i]);
+    const dist = Math.hypot(...ray);
+    const wall = dist > 0 ? collider?.raycast?.(cam.pos, ray.map(v => v / dist), dist) : null;
+    if (wall == null || wall >= dist) points.push(point);
+  };
+  if (lane) {
+    const [x, z] = lane.from, [dx, dz] = lane.dir;
+    const lanePoint = (along, across) => add(x + along * dx + across * dz, z + along * dz - across * dx);
+    for (let i = 0; i <= 10; i++) {
+      lanePoint(lane.len * i / 10, -lane.halfW);
+      lanePoint(lane.len * i / 10, lane.halfW);
+      if (i > 0 && i < 10) lanePoint(lane.len, lane.halfW * (i / 5 - 1));
+    }
+  } else {
+    for (let i = 0; i <= 24; i++) {
+      const angle = yaw + arc * (i / 12 - 1);
+      add(feet[0] + Math.sin(angle) * reach, feet[2] + Math.cos(angle) * reach);
+    }
+  }
+  door?.fx?.('ability-contact', feet, { points, material: abilityArt(blow.id)?.material });
+  // Keep the strike's sound and camera feedback, with the shared shape as its contact effect.
+  cue(blow.hitFx, 'hit', door);
+}
+
 /** An ability owns its bow's hit event and spends one arrow per projectile. */
 export function claimAbilityEvents(events, tc) {
   const rig = tc && rigs.get(tc.rig);
   const shot = rig?.shot;
   if (!events.includes('hit')) return events;
   if (rig?.blow?.cancelled) return events.filter(event => event !== 'hit');
-  if (rig?.blow?.motion && tc.cam) {
+  if (rig?.blow?.contactShape && tc.cam) {
+    showMeleeContact(rig.blow, tc);
+  } else if (rig?.blow?.motion && tc.cam) {
     const { feet, yaw } = tc.cam;
     const { motion, reach } = rig.blow;
     motion.contact = Math.max(.001, tc.pw.machine.now - motion.start);
@@ -429,7 +482,7 @@ export function claimAbilityEvents(events, tc) {
     const wall = tc.collider?.raycast?.(origin,direction,reach) ?? Infinity;
     showAbilityArt(tc.door, rig.blow.id, 'stroke', origin, { dir: direction, yaw, spin: motion.side, len: Math.min(wall,reach) });
   }
-  if (rig?.blow?.hitFx && tc.cam) {
+  if (rig?.blow?.hitFx && tc.cam && !rig.blow.contactShape) {
     const { feet, yaw } = tc.cam;
     const blow = rig.blow;
     const r = Math.min(blow.reach, 1.05);

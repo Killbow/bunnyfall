@@ -103,6 +103,7 @@ export function abilityMayStrike(foe) {
  * split between animation beats, so another beat cannot duplicate the budget. */
 export function previewDamage(blow, rolled, foe, { distance = 0, pos = null, secondary = false, splashShare = null, unaware = false } = {}) {
   if (rolled <= 0) return rolled;
+  const damageScale = blow.damageScale ?? 1;
   let bonus = 0;
   if (blow.id === PREVIEW_THRUST && distance > 2.8) bonus = 0.15;
   if (blow.weakPointBonus && pos && foe.ai?.feet && Number.isFinite(foe.ai.height)
@@ -123,10 +124,10 @@ export function previewDamage(blow, rolled, foe, { distance = 0, pos = null, sec
   if (blow.lowHealthBonus && (healthShare(foe.entity) ?? 1) < .4) bonus += blow.lowHealthBonus * blow.beatShare;
   bonus += blow.markDamage?.(foe) ?? 0;
   if (blow.opening || blow.exploit) bonus += weaponOpening(blow.actor, foe, {
-    opening: blow.opening, exploit: blow.exploit, woundDamage: rolled * blow.mult,
+    opening: blow.opening, exploit: blow.exploit, woundDamage: rolled * blow.mult * damageScale,
   });
   const share = splashShare ?? (secondary ? 0.55 : 1);
-  return Math.max(1, Math.round(rolled * (blow.mult + bonus) * share));
+  return Math.max(1, Math.round(rolled * (blow.mult + bonus) * share * damageScale));
 }
 
 export function abilityArrowAllowed(m, foe) {

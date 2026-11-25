@@ -18,7 +18,7 @@ import { abilityLoad, restoreAbilityProgress } from '../src/combat/abilities/pro
 import { windupDoor } from '../src/combat/hostCombat.js';
 import { getPref, setPref } from '../src/ui/uiPrefs.js';
 import { calculateSuccessfulHit, racialModifiers } from '../src/combat/formulas.js';
-import { applySpell, hasActiveEffect, tickActiveEffects } from '../src/magic/effects.js';
+import { applySpell, breakNormalPowerConcealment, hasActiveEffect, tickActiveEffects } from '../src/magic/effects.js';
 import { playerDoor, setPlayerDoor } from '../src/player/playerDoor.js';
 import { createPlayerMagic } from '../src/magic/hostMagic.js';
 import { liveStat } from '../src/characters/statMods.js';
@@ -95,7 +95,7 @@ test('Jab Chain uses three ordinary animation hit frames and keeps the first tar
     assert.equal(blow.chain, chain);
     if (beats > 0) assert.equal(blow.chain.target, primary.entity);
     else blow.chain.target = primary.entity;
-    assert.equal(previewDamage(blow, 100, primary), 66);
+    assert.equal(previewDamage(blow, 100, primary), 82);
     beats++;
   }
   assert.equal(beats, 3);
@@ -501,7 +501,7 @@ test('Marked for Silence primes Nightfall on one foe and its five beats share th
   assert.ok(requestHotbarAbility(entity, mark).ok);
   const opening = nextBlow();
   assert.equal(previewDamage(opening, 0, other), 0);
-  assert.equal(previewDamage(opening, 100, target), 210);
+  assert.equal(previewDamage(opening, 100, target), 263);
   for (let i = 0; i < 28; i++) frame();
   assert.ok(requestHotbarAbility(entity, nightfall).ok);
   const damage = [];
@@ -524,10 +524,15 @@ test('Veil Cut applies concealment and adds damage against an unaware target', (
   let hit;
   for (let i = 0; i < 60 && !hit; i++) if (frame().includes('hit')) hit = pw.techniqueBlow;
   assert.ok(hit);
-  assert.ok(hasActiveEffect(entity, 'chameleonNormal'));
+  breakNormalPowerConcealment(entity);
+  for (let round = 0; round < 10; round++) {
+    assert.ok(hasActiveEffect(entity, 'chameleonTrue'));
+    tickActiveEffects(entity, {}, () => 0);
+  }
+  assert.ok(!hasActiveEffect(entity, 'chameleonTrue'));
   const foe = hostile(0, 1);
-  assert.equal(previewDamage(hit, 100, foe), 165);
-  assert.equal(previewDamage(hit, 100, foe, { unaware: true }), 245);
+  assert.equal(previewDamage(hit, 100, foe), 206);
+  assert.equal(previewDamage(hit, 100, foe, { unaware: true }), 306);
 });
 
 test('Kidney Step aims at a hostile foe and uses its rear landing for the strike', (t) => {
@@ -550,7 +555,7 @@ test('Kidney Step aims at a hostile foe and uses its rear landing for the strike
   let hit;
   for (let i = 0; i < 60 && !hit; i++) if (frame().includes('hit')) hit = pw.techniqueBlow;
   assert.equal(hit?.chain.target, target.entity);
-  assert.equal(previewDamage(hit, 100, target), 245);
+  assert.equal(previewDamage(hit, 100, target), 306);
 });
 
 test('Piercing Line strikes only the traveled lane in order, with a shared target cap', (t) => {
@@ -629,7 +634,7 @@ test("Eagle's Rhythm rewards consecutive hits and resets on a cover impact", (t)
       for (let j = 0; j < 61; j++) frame();
       if (i < 2) assert.equal(abilityCooldown(entity, PREVIEW_EAGLES_RHYTHM), 0);
     }
-    assert.deepEqual(shots.map(s => Math.round(100 * s.technique.mult)), [135, 180, middleHit ? 225 : 135]);
+    assert.deepEqual(shots.map(s => previewDamage(s.technique, 100, {})), [169, 225, middleHit ? 281 : 169]);
     assert.equal(entity.items[0].stackCount, 1);
     assert.equal(requestHotbarAbility(entity, PREVIEW_EAGLES_RHYTHM).why, 'cooldown');
   }
@@ -838,6 +843,43 @@ test('capstone power grows with skill, level, weapon material and style attribut
   assert.ok(power(high, 0) > power(low, 0));
 });
 
+test('Blade Weave draws the opening lane at contact and hits an enemy overlapping its edge', (t) => {
+  offline(t);
+  const { entity, pw, frame, tc } = fighter(120, SKILLS.LongBlade, 75);
+  entity.skills[SKILLS.ShortBlade] = 75;
+  let points;
+  tc.door.fx = (recipe, _origin, options) => {
+    if (recipe === 'ability-contact') points = options.points;
+  };
+  frame();
+  assert.ok(requestHotbarAbility(entity, BLADE_WEAVE).ok);
+  for (let i = 0; i < 60 && !points; i++) frame();
+  assert.equal(pw.techniqueBlow.damageScale, 1.25);
+  assert.ok(points?.some(([x, , z]) => x === .75 && z === 3.4));
+  const graze = hostile(1.12, 2);
+  const outside = hostile(1.25, 2);
+  const blocked = hostile(.7, 1);
+  const hits = pw.resolveHit([outside, blocked, graze], entity,
+    foe => ({ ...clearSight(), losClear: foe !== blocked }), () => 0);
+  assert.deepEqual(hits.map(hit => hit.foe), [graze]);
+});
+
+test('Shared Resolve raises capped Endurance temporarily without raising the base stat', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const { entity, frame } = fighter(114, SKILLS.ShortBlade, 75);
+  entity.stats.endurance = 100;
+  setPlayerDoor({ player: () => entity, castOnPlayer: bundle => applySpell(bundle, 1, entity, {}, () => 0) });
+  frame();
+  assert.ok(requestHotbarAbility(entity, 'weapon.tanto.shared-resolve').ok);
+  for (let i = 0; i < 15; i++) frame();
+  assert.equal(liveStat(entity, 'endurance'), 108);
+  assert.equal(entity.stats.endurance, 100);
+  tickActiveEffects(entity, {}, () => 0);
+  tickActiveEffects(entity, {}, () => 0);
+  assert.equal(liveStat(entity, 'endurance'), 100);
+});
+
 test('Blade Weave learns from both blades and works independently of the legacy path', (t) => {
   offline(t);
   for (const [template, skill, other] of [[120, SKILLS.LongBlade, SKILLS.ShortBlade], [113, SKILLS.ShortBlade, SKILLS.LongBlade]]) {
@@ -883,6 +925,7 @@ test('Thousand Cuts uses the traveled lane for the opening hit and fresh aim for
   const lanes = [];
   for (let i = 0; i < 90; i++) {
     if (!frame().includes('hit')) continue;
+    assert.equal(pw.techniqueBlow.damageScale, 1);
     lanes.push(pw.techniqueBlow.lane?.len ?? null);
   }
   assert.deepEqual(lanes, [1.9, null, null]);

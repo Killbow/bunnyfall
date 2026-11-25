@@ -5320,6 +5320,11 @@ ${paceControlsCss('tview')}
 .pack-shell .packtip.packdetail .card .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px;
   margin: 8px 0 0; }
 .pack-shell .packtip.packdetail .card .stats .pair { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.pack-shell .packtip.packdetail .card .cmp-rows { display: grid; grid-template-columns: minmax(0, 1fr); }
+.pack-shell .packtip.packdetail .card .cmp-rows .pair {
+  display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere;
+}
 .pack-shell .packtip.packdetail .card .stats dt { font-size: 11px; letter-spacing: 0.12em; }
 .pack-shell .packtip.packdetail .card .stats dd { font-size: 13px; white-space: normal; }
 .pack-shell .packtip.packdetail .card > .acts { gap: 6px; }

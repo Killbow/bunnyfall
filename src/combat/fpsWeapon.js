@@ -404,8 +404,9 @@ export function fpsWeaponQuad(canvas, art, state, frame, {
   const tex = rec.frames[f];
   const scaleX = canvas.width / NATIVE_W;
   const scaleY = canvas.height / NATIVE_H;
-  const w = rec.width * scaleX;
-  const h = rec.height * scaleY;
+  const drawScale = art.drawScale ?? 1;
+  const w = rec.width * scaleX * drawScale;
+  const h = rec.height * scaleY * drawScale;
   let x;
   // AlignRight's flip arm (:459-464) is AlignLeft; AlignLeft itself is
   // not swapped (:439-446).

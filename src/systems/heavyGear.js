@@ -27,7 +27,7 @@ export const BALLISTA_ROW = Object.freeze({
   index: BALLISTA_TEMPLATE,
   name: 'Royal Ballista',
   baseWeight: 9,
-  basePrice: 160,
+  basePrice: 100,
   hitPoints: 160,
   enchantmentPoints: 450,
   rarity: 1,

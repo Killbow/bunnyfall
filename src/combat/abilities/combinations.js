@@ -96,7 +96,7 @@ export function combinationDelivery(id, weapon) {
     share: .66, control: { poiseShare: .45 }, fx: 'crush' };
   switch (id) {
     case BLADE_WEAVE:
-      return melee([opening, cut], { potency: 1.25, spend: 6, cooldownMs: 10500, windUpMs: 150, activeMs: 550, recoveryMs: 420 });
+      return melee([{ ...opening, halfWidthM: .75, toHit: 12 }, cut], { potency: 1.25, spend: 6, cooldownMs: 10500, windUpMs: 150, activeMs: 550, recoveryMs: 420 });
     case THOUSAND_CUTS:
       return melee([
         { ...opening, targetCap: 3, share: .4 },

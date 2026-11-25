@@ -75,7 +75,7 @@ const abilityMaterials = {
 /** TECH-FX: a point - an Array or a typed array - of three finite numbers. */
 const vec3 = (v) => v != null && v.length >= 3 && Number.isFinite(v[0]) && Number.isFinite(v[1]) && Number.isFinite(v[2]);
 /** TECH-FX: the recipes `technique` knows. */
-export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close', 'capstone-bloom', 'ability-art', 'strike-sweep', 'strike-thrust', 'strike-jab', 'strike-lash', 'strike-chop', 'frost-rush', 'ash-rush']);
+export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close', 'capstone-bloom', 'ability-art', 'ability-contact', 'strike-sweep', 'strike-thrust', 'strike-jab', 'strike-lash', 'strike-chop', 'frost-rush', 'ash-rush']);
 
 
 /**
@@ -472,7 +472,7 @@ export class SpellImpactFx {
    * landings are made of, in the technique's blue and its warm stone-dust, under this engine's own caps. Answers
    * whether it drew anything.
    */
-  technique(recipe, at, { phase = null, form = null, material = null, ground = null, yaw = 0, r = 2.5, dir = null, len = 0, to = null, spin = 1, half = 80 * Math.PI / 180 } = {}) {
+  technique(recipe, at, { phase = null, form = null, material = null, points = null, ground = null, yaw = 0, r = 2.5, dir = null, len = 0, to = null, spin = 1, half = 80 * Math.PI / 180 } = {}) {
     if (!vec3(at)) return false;
     if (!Number.isFinite(yaw)) yaw = 0;   // AUDIT TECH-FX: a lost facing faces +z rather than writing NaN instances
     const E = TECH_FX_LOOK.energy, S = TECH_FX_LOOK.stone;
@@ -519,6 +519,11 @@ export class SpellImpactFx {
         }
         return true;
       }
+      case 'ability-contact':
+        for (const p of points ?? []) {
+          this._part(abilityMaterials[material] ?? E, p, [0, 0, 0], { life: 0.19, w: 0.065, w1: 0.4, g: 0, shape: FX_SHAPE.flare, I: 1.15 });
+        }
+        return true;
       case 'ability-art': return drawAbilityArt(this, abilityMaterials[material], at, { phase, form, yaw, len, spin, dir });
       case 'strike-thrust':
       case 'strike-jab':
