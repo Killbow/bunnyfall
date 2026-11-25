@@ -38,6 +38,7 @@ import {
 import { kingdomOf, FREE_LANDS, MARCH_REGIONS, isMarch } from './kingdomLaw.js';   // SEAT0 4.3's map, one home (PROF2)
 import { onBayOrEther } from '../world/ethericSea.js';   // ETHER-NODES: the Bay's map or the Eltheric Ocean's box, one home (ETHER-OW; pure: formats/ alone)
 import { banthaAreaHas } from '../world/jungle/banthaArea.js';
+import { cveinKey, MINE_RESET_MAX } from './mine/mineVeins.js';   // BUNNYFALL (2026-11-25, caverns): a cave vein's id, one home
 import { contentOn } from '../mods/contentOff.js';   // BUNNYFALL: witnessed ground, switched off (a leaf: no cycle)   // JUNGLE-WOODS: the owner's jungle, one home (pure: its rows alone)
 
 /** The one salt every client stands a day's nodes with. Changing it moves every node in the world. */
@@ -46,7 +47,7 @@ export const NODE_SALT = 0x5e3d;
 export const WRIT_SALT = 0x3c17;
 /** A node's kind, as its id and its hash write it. A dungeon's vein is its own kind: its id names a dungeon, not a
  *  pixel (PROF2). */
-export const NODE_KINDS = Object.freeze({ tree: 1, herb: 2, vein: 3, boulder: 4, dvein: 5 });
+export const NODE_KINDS = Object.freeze({ tree: 1, herb: 2, vein: 3, boulder: 4, dvein: 5, cvein: 6 });
 
 // ─── HOW MANY (PROF0 6) ──────────────────────────────────────────────
 
@@ -155,6 +156,7 @@ export const bodyKey = ({ day, id }) => `body:${day}:${id}`;
 export const BODY_ID_RE = /^[0-9a-f]{12}$/;
 const NODE_KEY_RE = /^(tree|herb|vein|boulder):(-?\d{1,4}):(-?\d{1,4}):(\d{1,6}):(\d{1,2})$/;   // ETHER-NODES: the Eltheric's x to 8127 and its y north of the map's 0
 const DVEIN_KEY_RE = /^dvein:(\d{1,7}):(\d{1,6}):(\d{1,2})$/;
+const CVEIN_KEY_RE = /^cvein:(\d{1,6}):(\d{1,5}):(\d{1,2})$/;   // BUNNYFALL (2026-11-25, caverns)
 const BODY_KEY_RE = /^body:(\d{1,6}):([0-9a-f]{12})$/;
 /** PROF8: a haul's id - `haul:<x>:<y>:<day>:<id>`, the map pixel the net was cast from, its UTC day and twelve hex
  *  digits the angler's client drew at the cast (scenes/fishHost.js). Fishing is bounded, not witnessed (PROF0 6): the
@@ -176,6 +178,11 @@ export function parseNodeKey(s) {
   if (h) {
     const [x, y, day] = [Number(h[1]), Number(h[2]), Number(h[3])];
     return pixelOk(x, y) && haulKey({ x, y, day, id: h[4] }) === s ? { kind: 'haul', x, y, day, id: h[4] } : null;
+  }
+  const cv = CVEIN_KEY_RE.exec(s);
+  if (cv) {
+    const [mine, reset, slot] = [Number(cv[1]), Number(cv[2]), Number(cv[3])];
+    return reset <= MINE_RESET_MAX && cveinKey({ mine, reset, slot }) === s ? { kind: 'cvein', mine, reset, slot } : null;
   }
   const d = DVEIN_KEY_RE.exec(s);
   if (d) {

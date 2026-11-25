@@ -8,6 +8,7 @@ import { readAll } from './service.js';
 import { utcDay, gatherFindOf } from '../../src/net/marksLaw.js';
 import { PROFESSIONS, rankOfXp, tierOpen, harvestXp, specsAt, STORES_MAX, WITHDRAW_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, HARVEST_LATE_S, HARVEST_EARLY_S, PROF_XP_MAX, basketStep, herbKey, COURT_WRITS_PER_DAY, glintsMax, DEEP_UNCONFIRMED_PER_DAY, cutsMax, hideOfFoe, HIGH_HIDES_PER_DAY, HIGH_HIDE_TIER, HAUL_YIELD, FISH_KEY, haulTier, herbXpTier, SCHOOL_HAULS_DAY } from '../../src/net/professionLaw.js';
 import { parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield, basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, WITNESS, VEIN_TABLES, vein, boulder, dungeonVein, dungeonOk, veinYield, boulderYield, VEIN_YIELD, BOULDER_YIELD, veinGem, veinSlots, treeSlots, WOOD_TABLES, tree, TREE_YIELD, treeYield, treeFinds, hideYield, bodyFinds, haulYield, haulFinds, haulAtSea } from '../../src/net/nodeLaw.js';
+import { mineVeinOf, MINE_VEINS_PER_DAY } from '../../src/net/mine/mineVeins.js';   // BUNNYFALL (2026-11-25, caverns)
 import { CLIMATES } from '../../src/formats/mapsTables.js';
 import { seatsOpenFor } from './townSeats.js';
 import { levyAt } from './seatHolding.js';
@@ -213,6 +214,7 @@ export const NODE_HARVESTS = Object.freeze({
   vein: Object.freeze({ kinds: Object.freeze(['ore']), profession: 'mining' }),
   boulder: Object.freeze({ kinds: Object.freeze(['stone']), profession: 'mining' }),
   dvein: Object.freeze({ kinds: Object.freeze(['ore']), profession: 'mining' }),
+  cvein: Object.freeze({ kinds: Object.freeze(['ore']), profession: 'mining' }),   // BUNNYFALL (2026-11-25, caverns): a mine's vein, the same for everyone
   haul: Object.freeze({ kinds: Object.freeze(['fish']), profession: 'fishing' }),   // PROF8: a haul's Raw Fish
 });
 /** Whether a climate may hold the node kind: a patch where herbs grow, a vein where veins run, a boulder where the
@@ -307,9 +309,15 @@ export async function harvestNode(ctx, player, env, body = {}) {
   if (!law.kinds.includes(kind)) return { error: 'prof-kind' };
   const isBody = n.kind === 'body';   // PROF7: a body names no ground (PROF0 6)
   const isHaul = n.kind === 'haul';   // PROF8: a haul names its pixel, and no slot
-  if (!isBody && (!climateHolds(n.kind, climate) || !regionOk(region))) return { error: 'prof-pixel' };
+  const isCave = n.kind === 'cvein';   // BUNNYFALL (2026-11-25, caverns): a mine's vein names no pixel and no UTC day
+  const noGround = isBody || isCave;
+  const cave = isCave ? mineVeinOf(n.mine, n.reset, n.slot) : null;
+  if (isCave && !cave) return { error: 'no-node' };
+  if (!noGround && (!climateHolds(n.kind, climate) || !regionOk(region))) return { error: 'prof-pixel' };
   const day = utcDay(nowS);
-  if (n.day !== day) return { error: 'prof-day' };   // PROF0 19: a node whose UTC day has ended lapses
+  // BUNNYFALL (2026-11-25, caverns): a day's cave veins, per account
+  if (isCave && Number((await db.prepare("SELECT COUNT(*) AS n FROM node_harvests WHERE player = ?1 AND day = ?2 AND node LIKE 'cvein:%'").bind(player.id, day).first())?.n ?? 0) >= MINE_VEINS_PER_DAY) return { error: 'day-full' };
+  if (!isCave && n.day !== day) return { error: 'prof-day' };   // PROF0 19: a node whose UTC day has ended lapses
   if (!Number.isSafeInteger(at) || at < nowS - HARVEST_LATE_S || at > nowS + HARVEST_EARLY_S || utcDay(at) !== day) return { error: 'prof-late' };
   const deep = n.kind === 'dvein';
   // ANY-HOUR (2026-10-01, Mac: "Remove the time limit for professions. Should be available at any time"): no node keeps
@@ -320,7 +328,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
   if (isBody && !hide) return { error: 'prof-foe' };
   // THE GROUND, as the witnesses say it is - a pixel's, or a dungeon's; a body's none
   const wkind = deep ? 'dungeon' : 'pixel';
-  const key = deep ? String(n.dungeon) : isBody ? null : pixelKey(n.x, n.y);
+  const key = deep ? String(n.dungeon) : noGround ? null : pixelKey(n.x, n.y);
   const profession = law.profession;
   // GATHER-SPEED: the hour's acts counted, the ground and the track read, and (SEAT1d) the Levy's seat asked - AT ONCE,
   // three asks in flight together where they were four trips in a row. None reads what another writes; the hour's
@@ -331,12 +339,12 @@ export async function harvestNode(ctx, player, env, body = {}) {
     readAll(db, [...(key === null ? [] : [factsStatement(db, [key], wkind)]), trackStatement(db, player.id, character, profession), firmStatement(db, player.id, character)])
       .then((rows) => (key === null ? [[], ...rows] : rows)),
     // A dungeon's vein and a body name no ground of a town
-    !deep && !isBody && seatsOpenFor(player, env) ? levyAt(db, nowS, region, [n.x, n.y]) : null,
+    !deep && !noGround && seatsOpenFor(player, env) ? levyAt(db, nowS, region, [n.x, n.y]) : null,
   ]);
   if (over) return { error: 'prof-rate' };
   const fact = key === null ? null : factsFrom([key], factRows).get(key);
   const confirmed = groundConfirmed(fact);   // BUNNYFALL WITNESSED-GROUND: off, the harvester's own ground counts
-  const witness = !isBody && Number.isSafeInteger(player.registered_at) && player.registered_at <= nowS - WITNESS.ageS ? 1 : 0;
+  const witness = !noGround && Number.isSafeInteger(player.registered_at) && player.registered_at <= nowS - WITNESS.ageS ? 1 : 0;
   if (factConfirmed(fact) && (fact.climate !== climate || fact.region !== region)) {
     // AUDIT 29 A4: refused - and, from an account that may witness, written down: a dissent is what a dispute is made
     // of (SEAT0 3.2), and a refusal that kept no report let the first three words stand for good
@@ -349,16 +357,16 @@ export async function harvestNode(ctx, player, env, body = {}) {
   // a vein's slots are its climate's and, on confirmed ground, its region's signature beside them (AUDIT 29 A6); a tree's
   // its climate's, and the jungle's in the owner's area (JUNGLE-WOODS); a body has none (AUDIT 32 S2: its unchecked
   // ground is never read)
-  if (!deep && !isBody && !isHaul && n.slot >= (n.kind === 'vein' ? veinSlots({ climate, region, confirmed }) : n.kind === 'tree' ? treeSlots({ x: n.x, y: n.y, climate }) : nodeCount(climate, n.kind))) return { error: 'bad-node' };
+  if (!deep && !noGround && !isHaul && n.slot >= (n.kind === 'vein' ? veinSlots({ climate, region, confirmed }) : n.kind === 'tree' ? treeSlots({ x: n.x, y: n.y, climate }) : nodeCount(climate, n.kind))) return { error: 'bad-node' };
 
   // THE TRACK it is worked under
   const row = trackRows[0] ?? null;
   const rank = rankOfXp(Number(row?.xp ?? 0));
   const specs = specsAt(row, nowS);
-  const march = !deep && !isBody && confirmed && isMarch(region);
+  const march = !deep && !noGround && confirmed && isMarch(region);
   // SEASON1 part two (9.3): the land's Tide this week, on confirmed ground alone - as the March's, so a region named
   // falsely earns no Harvest and dodges no Blight
-  const tide = !deep && !isBody && confirmed ? tideNow(env, nowS, region) : 'calm';
+  const tide = !deep && !noGround && confirmed ? tideNow(env, nowS, region) : 'calm';
   const roll = (lo, hi) => lo + Math.floor(dice(rand) * (hi - lo + 1));
   let tier, key2, qty, clean, gem = null, extra = null, extraQty = 1, trophy = 0, schooled = 0;
   let xpTier = /** @type {number|null} */ (null);   // HERB-XP: the tier the XP is reckoned at, where it is not the node's
@@ -442,7 +450,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
     // climate's whole table - their word its witness, for their own veins alone; never a signature (veinSlots above
     // counted none), never the March's or a Tide's (named by the region, on confirmed ground alone)
     const surveyed = n.kind === 'vein' && !confirmed && specs[100] === SURVEYOR;
-    const found = n.kind === 'vein' ? vein({ x: n.x, y: n.y, day, slot: n.slot, climate, region, confirmed, surveyed })
+    const found = isCave ? cave : n.kind === 'vein' ? vein({ x: n.x, y: n.y, day, slot: n.slot, climate, region, confirmed, surveyed })
       : n.kind === 'boulder' ? boulder({ x: n.x, y: n.y, day, slot: n.slot, climate })
         : dungeonVein({ dungeon: n.dungeon, day, slot: n.slot, climate, confirmed });
     if (!found) return { error: 'bad-node' };
@@ -459,7 +467,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
       qty = veinYield({ roll: roll(VEIN_YIELD[0], VEIN_YIELD[1]), deep, deepDelver: specs[50] === 'deep-delver', march, tideMult: tideYield(tide, 'vein') }, dice(rand));
       // a gem: each strike on the glint a chance (a Prospector's x1.1), on ground the witnesses confirmed - one at most
       // (MINE-PERKS: or a Surveyor's own)
-      gem = veinGem({ kind: n.kind, climate, glints: s.glints, confirmed: confirmed || surveyed, prospector: specs[50] === 'prospector' }, () => dice(rand));
+      gem = isCave ? null : veinGem({ kind: n.kind, climate, glints: s.glints, confirmed: confirmed || surveyed, prospector: specs[50] === 'prospector' }, () => dice(rand));
     }
   }
   if (!key2) return { error: 'bad-node' };
@@ -547,7 +555,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
       .bind(player.id, rid, nonce, PROF_XP_MAX, nowS),
     // THE WITNESS: the ground as this client derived it, once an account - an account a week registered; a body none
     // (AUDIT 32 S2: its ground is never checked, and a hand-built one was bound here - a 500 and an hour's act spent)
-    ...(isBody ? [] : [db.prepare(`INSERT OR IGNORE INTO world_witness (kind, key, account, report, region, at)
+    ...(noGround ? [] : [db.prepare(`INSERT OR IGNORE INTO world_witness (kind, key, account, report, region, at)
       SELECT ?9, ?4, ?1, ?5, ?6, ?7 WHERE ?8 = 1 AND EXISTS (SELECT 1 FROM node_harvests WHERE ${mine})`)
       .bind(player.id, rid, nonce, key, pixelReport(climate, region), region, nowS, witness, wkind)]),
     ...(find ? [find] : []),   // SILVER-FINDS: the find, last
