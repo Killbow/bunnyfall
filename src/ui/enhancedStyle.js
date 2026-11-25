@@ -3149,7 +3149,6 @@ html.plus-pad-prompts-visible .px-over > .px-stage.px-timersstage > .px-win { ma
    The fourth shared-part fault of this arc, so it is fixed for the
    FAMILY rather than for the window that was reported. */
 .sb-shell, .cr-shell { display: flex; align-items: center; justify-content: center; }
-.sb-shell .px-win { width: min(920px, 94vw); height: min(620px, 86dvh); }
 /* FB1018f SPELL-SCROLL: THE BOOK'S LIST SCROLLS IN ITS OWN COLUMN, as DFU's does (its ListBox in its own rect, the
    chosen spell's panels standing beside it). The journal grew with its rows (min-height: 100%), so the one scroll was the
    body's: a spell picked down the list had its page scrolled away above it, and a phone's page stood under every row.
@@ -3200,7 +3199,6 @@ html.plus-pad-prompts-visible .px-over > .px-stage.px-timersstage > .px-win { ma
 }
 .sb-animated-preview { display: block; width: 100%; height: clamp(125px, 30vh, 281px); object-fit: contain; }
 .sb-spell-illustration > [hidden] { display: none; }
-.sb-art-layout .px-win { width: min(1200px, 95vw); }
 .sb-art-layout .sb-catalogue { flex: 1 1 auto; min-height: 0; display: flex; background: #211710; }
 .sb-art-layout .sb-catalogue-list {
   box-sizing: border-box; width: 100%; min-height: 0; padding: .7rem;
@@ -3335,6 +3333,17 @@ button.sb-milestone:is(:hover, :focus-visible, [aria-expanded="true"]) {
   .sb-assignment-controls select { flex: 1 1 100%; }
 }
 .sb-shell .sb-row { display: flex; align-items: center; }
+.sb-shell .sb-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sb-shell .sb-row-icon { display: grid; place-items: center; flex: 0 0 24px; height: 24px; font-size: 10px; }
+.sb-shell .sb-row-icon img { width: 24px; height: 24px; image-rendering: pixelated; }
+.sb-art-layout .sb-inline-expanded { grid-column: 1 / -1; }
+@media (min-width: 781px) {
+  .sb-shell .px-qrail { flex: 0 1 54%; min-width: 0; }
+  .sb-shell :is(.px-qrail, .sb-catalogue-list) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 4px 8px;
+  }
+}
+
 .sb-shell .sb-cost, .cr-shell .sb-cost { margin-left: auto; color: var(--brass); font-size: 13px;
   font-variant-numeric: tabular-nums; }
 .sb-shell .sb-row.on .sb-cost { color: rgb(243,239,44); text-shadow: 2px 2px 0 rgb(93,77,12); }

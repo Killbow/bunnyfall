@@ -14003,6 +14003,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       cardRegularBodies.end(dt, eye);
       _cardBarks = list.filter((m) => m.say).map((m) => ({ id: m.res.id, name: m.res.name, feet: m.feet, text: m.say }));
     },
+    livingInteriorWitnesses: () => livingIndoors?.seats() ?? [],
     livingPersonsAct: (eye, dir, nearer) => !!livingIndoors?.size && townTalk.tryActivate(eye, dir, livingIndoors.seats(), Math.min(nearer, modes?.interiorCollider?.raycast(eye, dir, 80) ?? Infinity)),   // LW8: ...and the street's own talk ray on them - AUDIT LW-ROOMS: never through the room's walls (a bare wall is nothing to press, so the ray reached a drinker behind it)
     vampireBeds: createVampireBeds({ entity: playerEntity, mode: getInteractionMode, now: ownMinutes, showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w), say: (l) => townTalk.say(l), onCrime: () => _crimeResponse(), region: () => _questRegionIndex(),   // BUNNYFALL VAMPIRE EXPANSION: a sleeper fed on through their bed (scenes/vampire/vampireFeed.js)
       building: () => { const b = modes?.interiorBuilding; const town = b && !modes?.interiorCtx?.ownedRoom ? livingTownOfMap(b.townMapId ?? 0) : null; return town ? { key: b.buildingKey, town } : null; } }),

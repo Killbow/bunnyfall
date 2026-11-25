@@ -130,7 +130,7 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
   if (!awakenedVampirism(entity)) return false;
   const person = target?.person;
   if (!person) return false;
-  const id = String(person.living?.id ?? person.nameNPC ?? '');
+  const id = String(person.living?.id ?? person.interactionId ?? person.nameNPC ?? '');
   if (FED_TODAY.has(fedKey(id, now))) { say(t('vampire.feed.already', 'They are still pale from your last visit.')); return true; }
   const town = person.living?.town ?? null;
   const pos = target.pos ?? person.pos;

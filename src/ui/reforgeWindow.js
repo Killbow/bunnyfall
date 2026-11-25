@@ -339,7 +339,9 @@ export function mountReforgeWindow(host, deps) {
       const text = el('div', 'broker-offer-body');
       text.append(el('span', 'broker-name', nameOf(it)), el('span', 'broker-set', tierLabel(it) || RARITIES[r ?? 'common']?.label || ''));
       if (page === 'reforge') {
-        row.append(frameOf(it, picture), text, el('span', 'broker-price', reforgePriceText(onlinePrice(reforgePrice(it), 'reforge', it.exalted ? 'exalted' : it.rarity))));
+        text.append(el('span', 'broker-price', reforgePriceText(onlinePrice(reforgePrice(it), 'reforge', it.exalted ? 'exalted' : it.rarity))));
+        row.classList.add('reforge-item-row');
+        row.append(frameOf(it, picture), text);
         pressable(row, () => { picked = it; render(); });
       } else {
         const n = salvageShards(it, selfName);
