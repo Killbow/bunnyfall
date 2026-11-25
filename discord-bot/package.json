@@ -4,5 +4,5 @@
   "type": "module",
   "engines": { "node": ">=22.13" },
   "scripts": { "start": "node --env-file-if-exists=.env bot.mjs" },
-  "dependencies": { "discord.js": "^14.26.0", "pngjs": "^7.0.0" }
+  "dependencies": { "discord.js": "^14.26.0", "pngjs": "^7.0.0", "yazl": "^3.3.1" }
 }
