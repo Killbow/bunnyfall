@@ -335,7 +335,7 @@ export function cycleTab(dir, d = doc()) {
   return next ?? null;
 }
 
-const INTERACTIVE = 'button, a[href], input, select, textarea, [role="button"], [role="tab"], [role="option"], [role="menuitem"], [role="checkbox"], [role="switch"], [tabindex]:not([tabindex="-1"]), .itemrow, .hb-slot, .px-qrow';
+const INTERACTIVE = 'button, a[href], input, select, textarea, [role="button"], [role="tab"], [role="option"], [role="menuitem"], [role="checkbox"], [role="switch"], [tabindex]:not([tabindex="-1"]), .sb-fold-head, .itemrow, .hb-slot, .px-qrow';
 /** The control a point is over (the element itself or its interactive ancestor), or null. */
 export function interactiveAt(x, y, d = doc()) {
   const n = d?.elementFromPoint?.(x, y);

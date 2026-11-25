@@ -28,6 +28,7 @@ import { AUTOAIM, advanceReach, autoaimFoe, camToward, huntableFoes, lockedLandi
   yawToward } from './autoaim.js';
 import { meleeBeatMult, shotMult } from './damage.js';
 import { playAbilitySfx } from '../../audio/abilitySfx.js';
+import { offsetWayfarerLantern } from './wayfarerLantern.js';
 
 export { PREVIEW_THRUST } from './milestones.js';
 export const abilityPlayable = id => weaponAbilityPlayable(id) || combinationPlayable(id) || !!racialDelivery(id);
@@ -76,8 +77,8 @@ function startMelee(chain, { rig, tc, entity }) {
   if (!cam || pw.techniqueBlow || pw.restingWeapon !== cast.weapon) return false;
   const offhand = (profile.alternateHands && (next + (profile.openOffhand ? 1 : 0)) % 2) ? pw.pairedShortBlade : null;
   const feet = [...cam.feet];
-  // Autoaim: a swing turns to the foe it already struck, else the foe nearest the crosshair, and reaches a little
-  // farther for it. A swing a dash carried keeps its lane.
+  // Autoaim: a swing turns to the enemy it already struck, else the enemy nearest the crosshair, and reaches a little
+  // farther for it. A swing that follows a dash keeps the dash's lane.
   let { yaw } = cam;
   let reach = stage.rangeM;
   if (!chain.lane) {
@@ -159,17 +160,22 @@ function startMelee(chain, { rig, tc, entity }) {
 
 const flatTo = (feet, foe) => Math.hypot(foe.ai.feet[0] - feet[0], foe.ai.feet[2] - feet[2]);
 
-/** Where a dash or leap lands: at the foe it locked (the one a chain already struck, else the one under the
- *  crosshair), beside it for a side hop, else where the plain aim says. */
+/** Where a dash or leap lands: at the locked enemy, beside it for a side hop, else where the plain aim says.
+ *  Hops and targeted advances keep the enemy the chain struck; lane advances lock the one in the crosshair. */
 function advanceAim(cast, chain, advance, { cam, collider }) {
   const foes = huntableFoes(foe => !cast.link || foe.entity === cast.link.target);
   const range = advanceReach(advance) + AUTOAIM.leapSlackM;
-  const held = chain.target ? foes.find(foe => foe.entity === chain.target && flatTo(cam.feet, foe) <= range) : null;
+  const held = chain.target && advance.aim !== 'lane'
+    ? foes.find(foe => foe.entity === chain.target && flatTo(cam.feet, foe) <= range) : null;
   const lock = held ?? autoaimFoe(cam, collider, range, foes);
   if (advance.aim === 'side') {
     const side = sideOf(advance, chain.next);
-    const landed = lock ? lockedLanding(advance, cam, collider, lock, side) : null;
-    return landed?.ok ? landed : sideHop(advance, cam, collider, side);
+    const toward = chain.hop?.foe === lock ? chain.hop.toward : null;
+    const landed = lock ? lockedLanding(advance, cam, collider, lock, side, toward) : null;
+    if (!landed?.ok) return sideHop(advance, cam, collider, side);
+    chain.hop = { foe: lock, toward: landed.toward };
+    // The strike resolves from where the hop lands, not along a lane from the take-off.
+    return { ...landed, lane: null };
   }
   if (!lock) return aimFor(advance, cam, collider, advance.aim === 'lane' ? undefined : foes);
   if (advance.aim === 'lane') {
@@ -187,7 +193,7 @@ function startAdvance(cast, { rig, tc }, chain, advance) {
   if (!tc.cam || !tc.collider) return false;
   const targeted = advance.aim === 'target' || advance.aim === 'foe';
   const { ok, point, apex, lane, foe, why } = advanceAim(cast, chain, advance, tc);
-  if (!ok || (targeted && !foe)) { tc.say?.(targeted && !foe ? 'Aim at a nearby foe' : why); return false; }
+  if (!ok || (targeted && !foe)) { tc.say?.(targeted && !foe ? 'Aim at a nearby enemy' : why); return false; }
   const origin = [...tc.cam.feet];
   const flight = launchTo(origin, point, apex);
   if (!motor.techniqueLaunch(flight.dir, flight.along, flight.up)) return false;
@@ -216,7 +222,7 @@ function stepAdvance(dt, ctx, canStart) {
   playAbilitySfx(chain.cast.ability.id, 'land');
   if (!canStart || !ctx.tc.cam) return;
   const feet = ctx.tc.cam.feet;
-  // A locked foe takes the strike wherever it moved while the body flew, as long as it stands within reach.
+  // A locked enemy takes the strike wherever it moved during the flight, as long as it is within reach.
   const target = foe?.ai?.feet;
   if (target && abilityMayStrike(foe) && flatTo(feet, foe) - bodyRadius(foe) <= advance.reach + AUTOAIM.landReachM) {
     ctx.tc.door?.face?.(target, feet);
@@ -304,7 +310,7 @@ function release(cast, ctx) {
   }
   const { rig, tc } = ctx;
   if (cast.continuingRhythm && cast.continuingRhythm !== rig.rhythm) return false;
-  // Arrow rain centres on the foe under the crosshair (its feet), else on the ground the look meets.
+  // Arrow rain centers on the enemy under the crosshair (its feet), else on the ground the look meets.
   const rainLock = delivery.rain && tc.cam ? autoaimFoe(tc.cam, tc.collider, Math.min(delivery.rangeM, AUTOAIM.rangedM)) : null;
   const rain = delivery.rain ? (rainLock && skyfallPattern(camToward(tc.cam, rainLock, 0), tc.collider, delivery))
     || skyfallPattern(tc.cam, tc.collider, delivery) : null;
@@ -546,7 +552,7 @@ export function claimAbilityEvents(events, tc) {
       && (!rhythm || rig.rhythm === rhythm)
       && pw.restingWeapon === weapon && (!cast.stance || holdsStance(cast.stance, tc))
       && ammoCountFor(entity.items, weapon, { usableOnly: true }) >= count) {
-    // Autoaim: the shot bends toward the foe nearest the crosshair, in sight and in range.
+    // Autoaim: the shot bends toward the enemy nearest the crosshair, in sight and in range.
     const lock = shot.rain ? null : autoaimFoe(cam, tc.collider, Math.min(profile.rangeM, AUTOAIM.rangedM));
     const aim = lock ? camToward(cam, lock) : cam;
     const look = abilityLook(aim);
@@ -580,6 +586,28 @@ export function claimAbilityEvents(events, tc) {
       { at: shot.rain?.centre ?? cam.pos, dir: look, len, ground: shot.rain?.centre[1], r: profile.rain?.radius });
   } else onResolve?.(0);
   return events.filter(event => event !== 'hit');
+}
+
+export function offsetAbilities(offset, entity) {
+  if (!offset || !entity) return;
+  offsetWayfarerLantern(entity, offset);
+  const state = sessions.get(entity), rig = state?.rig;
+  const moved = new Set();
+  const move = (p, flat = false) => {
+    if (!p || moved.has(p)) return;
+    moved.add(p);
+    p[0] += offset[0];
+    if (flat) p[1] += offset[2];
+    else { p[1] += offset[1]; p[2] += offset[2]; }
+  };
+  move(state?.stance?.feet);
+  if (!rig) return;
+  const { advance, blow, shot } = rig;
+  move(advance?.origin); move(advance?.point); move(advance?.lane?.from, true);
+  for (const chain of [advance?.chain, blow?.chain, rig.follow]) { move(chain?.origin); move(chain?.lane?.from, true); }
+  move(blow?.feet); move(blow?.lane?.from, true);
+  move(shot?.cast.stance?.feet); move(shot?.rain?.centre);
+  for (const shaft of shot?.rain?.shots ?? []) move(shaft.from);
 }
 
 export function abilityRigBusy(entity, owner) {

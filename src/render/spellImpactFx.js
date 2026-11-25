@@ -1,6 +1,6 @@
+// @ts-check
 import { drawAbilityArt } from './abilityParticles.js';
 import { drawWayfarerLantern } from './wayfarerLanternFx.js';
-// @ts-check
 // IMPACTFX (2026-10-05, the player: "give it a high quality effect that suits the game and the spell that sprays to the
 // ground based on the element, you have to see that it is shock and fire, water and heal like green heal lineish
 // sparkles that rise up"): A LANDING SPELL, SEEN. The classic impact flash (record 1 of the element's own archive,

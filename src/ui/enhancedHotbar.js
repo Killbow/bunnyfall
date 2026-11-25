@@ -819,14 +819,15 @@ function onMouse(e) {
 }
 
 // ── DIAMOND-HB: hover an item or spell and press a slot key ───────
-/** A window registers what is selected in it (`selected()` -> { kind: 'item', item } | { kind: 'spell', spell } | null)
- *  and how to redraw after a slot changed (`changed()`). Same owners as setHotbarDropMode; null removes it. */
+/** A window registers what is selected in it (`selected()` -> { kind: 'item', item } | { kind: 'spell', spell } |
+ *  { kind: 'entry', entry } | null) and how to redraw after a slot changed (`changed()`). Same owners as
+ *  setHotbarDropMode; null removes it. */
 export function setHotbarPick(owner, picker) {
   if (picker && typeof picker.selected === 'function') pickers.set(owner, picker);
   else pickers.delete(owner);
 }
-/** The item or spell under the mouse: the nearest element carrying `_hotbarItem` or `_hotbarSpell` (pack rows, worn
- *  panels, spellbook rows), or null. */
+/** The thing under the mouse: the nearest element carrying `_hotbarItem`, `_hotbarSpell`, or `_hotbarEntry` (pack rows,
+ *  worn panels, spellbook rows, ability rows), or null. */
 export function hotbarPointedThing(at = pointerAt) {
   if (!at || typeof document === 'undefined') return null;
   for (let n = document.elementFromPoint?.(at.x, at.y) ?? null; n && n !== document.body; n = n.parentNode) {
@@ -860,7 +861,10 @@ function pickKey(e) {
   if (e.repeat) return;
   const ok = pick.kind === 'entry' ? hotbarDropEntry(i, pick.entry)
     : pick.kind === 'spell' ? hotbarDropSpell(i, pick.spell) : hotbarDropItem(i, pick.item);
-  if (ok) for (const p of pickers.values()) { try { p.changed?.(); } catch (err) { console.warn('[hotbar] pick', err?.message ?? err); } }
+  if (ok) pickedChanged();
+}
+function pickedChanged() {
+  for (const p of pickers.values()) { try { p.changed?.(); } catch (err) { console.warn('[hotbar] pick', err?.message ?? err); } }
 }
 
 // ── THE DROP ──────────────────────────────────────────────────────
@@ -1070,8 +1074,8 @@ function dragEnd(commit) {
   hbDragged = true;   // the click the release raises is not a pick
   if (!commit) return;
   const i = dropAt;
-  if (d.payload.kind === 'spell') { if (i >= 0) hotbarDropSpell(i, d.payload.spell); return; }
-  if (d.payload.kind === 'entry') { if (i >= 0) hotbarDropEntry(i, d.payload.entry); return; }
+  if (d.payload.kind === 'spell') { if (i >= 0 && hotbarDropSpell(i, d.payload.spell)) pickedChanged(); return; }
+  if (d.payload.kind === 'entry') { if (i >= 0 && hotbarDropEntry(i, d.payload.entry)) pickedChanged(); return; }
   if (d.payload.kind === 'slot') {
     const from = d.payload.slot;
     if (i < 0) {
@@ -1080,6 +1084,7 @@ function dragEnd(commit) {
       if (name) showCaption(HOTBAR_TEXT.removed(name));
     } else if (i !== from) { swapHotbarSlots(from, i); strike(i, true); }
     lastSig = null; paint();
+    pickedChanged();
   }
 }
 

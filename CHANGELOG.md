@@ -5,6 +5,15 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-25
 
+- New: In the Combat Preview, abilities lock onto the enemy you look at: swings turn toward it, leaps and dashes land on it, and ability arrows bend toward it.
+- Changed: In the Combat Preview, leaping abilities land on their target and strike it even if it moved, some leap farther and higher, and side hops land beside the enemy.
+- Changed: In the Combat Preview, each hit of a weapon or combination ability below rank 100 deals at least 30 percent more than a plain attack, even with several hits.
+- New: In the Combat Preview, Wayfarer's Anchor Mark leaves a lit lantern on the ground where you set it, until you Recall or set a new mark.
+- Changed: In the Combat Preview, abilities have their own weapon swings and sounds.
+- Changed: In the Combat Preview, the Abilities page of the spellbook shows a searchable list beside the chosen ability's details, and one click puts it on the hotbar.
+- Changed: The Spells page now shows the spell list, the spell's animation, and its details side by side, and the list and details scroll separately.
+- Changed: Your weapon, shield, and torch now sway more visibly while you stand still.
+- Fixed: With the grimoire look and illustrated menus on, the spellbook now plays its opening and closing sounds.
 - New: Vampires now have a short Vampirism tutorial, from the first bite to the Clan Gift. Each page appears once when relevant, and you can reread it under Menu > Tutorials.
 - Changed: Vitae now drains 12 a game day instead of 30. Resting, loitering, and fast travel drain it at a quarter rate and never take you below Hungry.
 - Changed: A rest, a loiter, or a fast travel trip now costs your thralls one day of upkeep at most, and unpaid thralls lose less loyalty each day.

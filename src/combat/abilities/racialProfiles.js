@@ -55,11 +55,11 @@ const pilots = new Map([
     description: 'Enter a nine-second stance that improves weapon accuracy by 5 points.' }],
   ['racial.nord.frostborn-charge', melee({
     advance: launch(4.2, .73), rangeM: 4.2, targetCap: 3, potency: 1.05, control: { poiseShare: .85, shove: 1.3 }, fx: 'frostRush',
-    description: 'Rush forward and disrupt up to three foes in the path you travel.',
+    description: 'Rush forward and disrupt up to three enemies in the path you travel.',
   })],
   ['racial.dark-elf.ashstep', melee({
     advance: launch(3.8, .63), rangeM: 3.8, targetCap: 3, potency: .85, windUpMs: 155, tempo: 1.35, fx: 'ashRush',
-    description: 'Step through a short lane and cut up to three foes in your path, leaving an ash trail.',
+    description: 'Step through a short lane and cut up to three enemies in your path, leaving an ash trail.',
   })],
   ['racial.high-elf.perfect-focus', { ...common, kind: 'self', accuracy: { bonus: 7, seconds: 6 },
     selfEffect: { type: 26, subType: 255, rounds: 1 }, fx: 'verdict',
@@ -75,12 +75,12 @@ const pilots = new Map([
       { strike: 'StrikeRight', rangeM: 3.4, control: { poiseShare: .45, shove: .35 }, fx: 'flurry' },
       { strike: 'StrikeLeft', rangeM: 2, arcRad: Math.PI * .28, tempo: 1.45, control: { poiseShare: .55 }, fx: 'flurryFinish' },
     ],
-    description: 'Pounce onto the foe under your aim and rake it with a two-hit combo.',
+    description: 'Pounce onto the enemy under your aim and rake it with a two-hit combo.',
   })],
   ['racial.argonian.marsh-coil', melee({
     advance: launch(2.8, .54), rangeM: 2.8, targetCap: 2, potency: .75, windUpMs: 170,
     control: { poiseShare: .7, shove: 1.2 }, selfEffect: { type: 30, subType: 255, rounds: 2 }, fx: 'frostRush',
-    description: 'Slip forward, shove up to two foes, and gain a short Water Breathing effect.',
+    description: 'Slip forward, shove up to two enemies, and gain a short Water Breathing effect.',
   })],
   ['racial.imperial.commanders-call', { ...common, kind: 'self', accuracy: { bonus: 4, seconds: 7 }, fx: 'measure',
     selfEffect: { type: 9, subType: 6, rounds: 2, magnitude: 6, companionRange: 9 },
@@ -92,7 +92,7 @@ const pilots = new Map([
   })],
   ['racial.lungaris.harebound', melee({
     advance: { ...launch(6.6, .45), mech: 'leap', apex: 2.6 }, rangeM: 4.3, potency: 1.2, windUpMs: 175, fx: 'lunge',
-    description: 'Spring in a long, high hare leap onto the foe under your aim and strike where you land.',
+    description: 'Spring in a long, high hare leap onto the enemy under your aim and strike where you land.',
   })],
 ]);
 
