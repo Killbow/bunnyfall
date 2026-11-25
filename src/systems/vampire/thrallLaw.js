@@ -29,7 +29,7 @@ export const SERVANT_UPKEEP = 4;
 export const SOCIAL_UPKEEP = 3;
 /** Loyalty (0-100): a new thrall's, a day unpaid's cost, a day paid's gain. */
 export const LOYALTY_START = 70;
-export const LOYALTY_UNPAID = 25;
+export const LOYALTY_UNPAID = 15;
 export const LOYALTY_PAID = 5;
 
 /** What making a servant or a social thrall costs in Vitae. */

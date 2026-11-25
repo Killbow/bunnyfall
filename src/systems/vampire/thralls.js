@@ -28,6 +28,7 @@ import { awakenedVampirism, feedVampire, spendVitae } from './vitae.js';
 import { archetypeName, STALE_QUALITY_CAP } from './bloodLaw.js';
 import { noteBreach } from './masquerade.js';   // PHASE 3: a thrall broken free talks
 import { clanExtraSlots, clanGentle, clanStaleCap, clanFortress, clanSocialUpkeep } from './clanLaw.js';   // PHASE 3: the nine bloodlines
+import { noteFirstUse } from '../../ui/tutorials.js';   // the vampire's pages
 import { gearRefusal, gearKeyOf, sanitizeGear, gearItems, wornGear, gearLabel } from '../../revenants/revenantGear.js';
 import {
   bloodSlots, PRISONERS_MAX, SERVANT_UPKEEP, SOCIAL_UPKEEP, LOYALTY_START, LOYALTY_UNPAID, LOYALTY_PAID, BIND_COST,
@@ -92,6 +93,7 @@ export function takePrisoner(entity, p) {
   const pr = { id: newId(), name: String(p.name || t('thrall.captive', 'a captive')).slice(0, 40), gender: p.gender === 'female' ? 'female' : 'male',
     type: p.type, quality: clamp(p.quality, 1, 100), health: clamp(p.health ?? 40), misery: 30, mobile: p.mobile | 0, source: p.source };
   _s.prisoners.push(pr);
+  noteFirstUse('vampire-thralls');
   return pr;
 }
 
@@ -105,6 +107,7 @@ export function enthrallSocial(entity, p, now) {
   /** @type {Social} */
   const s = { id: String(p.id), name: String(p.name).slice(0, 40), role: p.role, town: p.town >>> 0, townName: String(p.townName ?? '').slice(0, 40), region: p.region | 0, loyalty: LOYALTY_START };
   _s.socials.push(s);
+  noteFirstUse('vampire-thralls');
   return s;
 }
 /** Is this living resident already a social thrall. @param {string} id */
@@ -343,7 +346,9 @@ export function thrallRound(entity, now, say = () => {}, rolls = Math.random) {
   for (const sv of _s.servants) if (sv.errand && w >= sv.errand.until) errandHome(entity, sv);
   const day = Math.floor(now / MINUTES_PER_DAY);
   if (_s.upkeepDay == null) _s.upkeepDay = day;
-  const days = Math.min(7, day - _s.upkeepDay);
+  // a journey or a loiter jumps the clock many days at once: the thralls are paid (or fail) ONE day for the lot, so a
+  // carriage trip alone never makes a servant leave or a social thrall break free (the playtest)
+  const days = Math.min(1, day - _s.upkeepDay);
   if (days > 0) {
     _s.upkeepDay = day;
     for (let d = 0; d < days; d++) oneDay(entity, now, rolls);

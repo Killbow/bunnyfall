@@ -29,11 +29,12 @@ import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import {
   VITAE_MAX, VITAE_AWAKENED, VITAE_DRAIN_PER_DAY, BEAST, beastStageOf, beastStageLine, BEAST_STAT_MODS,
   resonanceTier, RESONANCE_STAT_MODS, RESONANCE_SKILL_MODS, BLOOD_FADE_PER_DAY, vitaeAfterFeed, bloodAfterFeed, FEEDS,
-  MIND_CLOUD_COST, beastStageName, archetypeName,
+  MIND_CLOUD_COST, beastStageName, archetypeName, TRAVEL_SPAN_DAYS, TRAVEL_DRAIN_MUL, TRAVEL_DRAIN_FLOOR,
 } from './bloodLaw.js';
 import { t } from '../../ui/textManager.js';
 import { STALE_QUALITY_CAP } from './bloodLaw.js';
-import { clanDrainMul, clanFeedMul, clanStaleCap, clanKissCost, clanStageShift, clanSkillMods } from './clanLaw.js';   // PHASE 3: the nine bloodlines
+import { BANE_FLOOR, clanDrainMul, clanFeedMul, clanStaleCap, clanKissCost, clanStageShift, clanSkillMods } from './clanLaw.js';   // PHASE 3: the nine bloodlines
+import { noteFirstUse } from '../../ui/tutorials.js';   // the vampire's pages
 import { VAMPIRE_AWAKENING_QUEST, startNamedRacialQuest, racialQuestLive } from '../../afflictions/racialQuests.js';
 
 /** Days after the turning before the Elder writes (own clock); a vampire already standing hears in ELDER_FIRST_DAYS. */
@@ -68,6 +69,9 @@ export function awakenVampire(entity, nowMinutes) {
   entry.blood = null;
   entry.stageSaid = beastStageOf(VITAE_AWAKENED);
   deedsOf(entry);
+  noteFirstUse('vampire-awakened');
+  noteFirstUse('vampire-blood');
+  noteFirstUse('vampire-gift');
   return true;
 }
 
@@ -78,7 +82,14 @@ function settle(entry, nowMinutes) {
   const days = Math.max(0, nowMinutes - from) / MINUTES_PER_DAY;
   entry.vitaeAt = Math.max(from, nowMinutes);
   if (!(days > 0)) return;
-  entry.vitae = Math.max(0, (Number(entry.vitae) || 0) - days * VITAE_DRAIN_PER_DAY * clanDrainMul(entry.clan));   // PHASE 3: Haarvenu's fever
+  // A jump of the clock (a journey, a loiter) drains gently: the first TRAVEL_SPAN_DAYS at the full rate, the rest at a
+  // quarter of it, and never down past the Hungry floor - the playtest arrived Starving from every carriage trip
+  const full = Math.min(days, TRAVEL_SPAN_DAYS), skipped = days - full;
+  const rate = VITAE_DRAIN_PER_DAY * clanDrainMul(entry.clan);   // PHASE 3: Haarvenu's fever
+  const before = Number(entry.vitae) || 0;
+  let v = Math.max(0, before - full * rate);
+  if (skipped > 0) v = Math.max(Math.min(v, TRAVEL_DRAIN_FLOOR), v - skipped * rate * TRAVEL_DRAIN_MUL);
+  entry.vitae = v;
   if (entry.blood) {
     entry.blood.quality = Math.max(0, entry.blood.quality - days * BLOOD_FADE_PER_DAY);
     if (entry.blood.quality <= 0) entry.blood = null;
@@ -108,7 +119,7 @@ export function beastStageNow(entity, nowMinutes) {
 export function vitaeRound(entity, nowMinutes, say = () => {}) {
   const live = liveVampirism(entity);
   if (!live) return;
-  if (!live.awakened) { elderLetterDue(live, nowMinutes); return; }
+  if (!live.awakened) { noteFirstUse('vampire-bitten'); elderLetterDue(live, nowMinutes); return; }
   const entry = awakenedVampirism(entity);
   if (!entry) return;
   settle(entry, nowMinutes);
@@ -138,7 +149,9 @@ export function feedVampire(entity, { kind, type, quality, fresh = true, now, de
   if (!entry) return null;
   settle(entry, now);
   const feed = FEEDS[kind] ?? FEEDS.sip;
-  const gain = Math.round(feed.vitae * clanFeedMul(entry.clan, kind, type, quality));   // PHASE 3: the clan's strength and bane
+  const mul = clanFeedMul(entry.clan, kind, type, quality);   // PHASE 3: the clan's strength and bane
+  let gain = Math.round(feed.vitae * mul);
+  if (mul > 0 && mul < BANE_FLOOR && feed.vitae >= 10) gain = Math.max(gain, Math.ceil(feed.vitae * BANE_FLOOR));   // a bane never leaves a real feed worth nothing
   entry.vitae = vitaeAfterFeed(entry.vitae, gain, { fresh: fresh && feed.relief });
   if (gain > 0 && (kind !== 'wound' || !entry.blood || entry.blood.type === type)) entry.blood = bloodAfterFeed(entry.blood, type, quality, { fresh, staleCap: clanStaleCap(entry.clan, STALE_QUALITY_CAP) });
   if (deed) { const d = deedsOf(entry); d[deed] = (d[deed] ?? 0) + 1; }
@@ -147,14 +160,15 @@ export function feedVampire(entity, { kind, type, quality, fresh = true, now, de
   return { vitae: entry.vitae, stage: entry.stageSaid, blood: entry.blood };
 }
 
-/** The Kiss's price: answers whether the Vitae was there to spend. @param {any} entity @param {number} now */
+/** The Kiss's price. A vampire short of it still gives the Kiss on whatever Vitae is left (a Starving one could never
+ *  work back up to one: the playtest) - the Beast's slip (KISS_SLIP) is the price of that. Answers whether the vampire
+ *  was awakened to give it. @param {any} entity @param {number} now */
 export function spendMindCloud(entity, now) {
   const entry = awakenedVampirism(entity);
   if (!entry) return false;
   settle(entry, now);
   const cost = clanKissCost(entry.clan, MIND_CLOUD_COST);   // PHASE 3: Montalion's half
-  if (entry.vitae < cost) return false;
-  entry.vitae -= cost;
+  entry.vitae = Math.max(0, entry.vitae - cost);
   return true;
 }
 

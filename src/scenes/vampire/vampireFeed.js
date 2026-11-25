@@ -11,16 +11,19 @@
 //   Leave them be
 // Seen by anyone (the Living World's witnesses: on the street within its WITNESS_M with a clear line, in a room anyone
 // awake), the feeding is a crime: Assault, or Murder for a death - and the watch comes (the host's onCrime, the
-// pickpocket's own). Each person feeds once a day (FED_TODAY), as a purse is picked once.
+// pickpocket's own). Each person feeds once a day (FED_TODAY), as a purse is picked once - and only a feed that happened
+// counts: a Leave, a refused Kiss or a box closed never uses the person up (the playtest's "you wipe your mouth" bug).
+// FED_TODAY is kept per PERSON (a sleeper's own id), never per house: each bed press takes the next sleeper not yet fed.
 
 import { t } from '../../ui/textManager.js';
 import { setCrimeCommitted, CRIMES } from '../../justice/court.js';
 import { skillValue, SKILLS } from '../../characters/skills.js';
 import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import { awakenedVampirism, feedVampire, spendMindCloud, beastStageNow, vampireStatus } from '../../systems/vampire/vitae.js';
+import { noteFirstUse } from '../../ui/tutorials.js';   // the vampire's pages
 import { openBloodSight } from '../../ui/vampire/bloodSightCard.js';   // THE VISUAL PASS: the Blood Sight card
 import {
-  archetypeOfPerson, archetypeName, qualityOfPerson, resonanceWords, resonanceTier, beastStageName, beastStageOf,
+  archetypeOfPerson, qualityOfPerson, resonanceWords, resonanceTier, beastStageName, beastStageOf, archetypeName, bloodTag,
   MIND_CLOUD_COST, KISS_SLIP,
 } from '../../systems/vampire/bloodLaw.js';
 import { captureRefusal, takePrisoner, enthrallSocial, slotRefusal, isSocialThrall, socialPerk, guardHushes, thrallState, takeScouted } from '../../systems/vampire/thralls.js';   // PHASE 2
@@ -39,11 +42,23 @@ export const NEAR_WITNESS_M = 6;
 const FED_TODAY = new Set();
 const fedKey = (/** @type {string} */ id, /** @type {number} */ now) => `${id}@${Math.floor(now / MINUTES_PER_DAY)}`;
 
+/** BLOOD AT A GLANCE: the vampire whose Blood Sight the hover tags read (set once by the host). */
+let _sense = null;
+/** @param {any} entity */
+export const setBloodSense = (entity) => { _sense = entity; };
+/** The hover's line under an NPC's name for an awakened vampire - "Noble blood, rich (72%)" - or null for anyone else. The
+ *  person is the one feeding reads (a Living World person, or a static one with its `interactionId`), so the tag is the
+ *  very blood the Blood Sight card will show. @param {any} person */
+export function bloodHoverLine(person) {
+  if (!person || !_sense || !awakenedVampirism(_sense)) return null;
+  return bloodTag(archetypeOfPerson(person), qualityOfPerson(person));
+}
+
 /** The rows Blood Sight shows of a victim. */
 function sightRows(name, type, quality, seenCount) {
   const rows = [
     t('vampire.feed.lean', 'You lean close to {name}.', { name }),
-    t('vampire.feed.sight', 'Blood Sight: {type} blood, {quality}%. Resonance: {gift}.', { type: archetypeName(type), quality, gift: resonanceWords(type) }),
+    t('vampire.feed.sight', 'Blood Sight: {tag}. Resonance: {gift}.', { tag: bloodTag(type, quality), gift: resonanceWords(type) }),
   ];
   if (seenCount > 0) rows.push(t('vampire.feed.seen', 'Careful: {n} could see you.', { n: seenCount }));
   else rows.push(t('vampire.feed.unseen', 'No one is watching.'));
@@ -80,7 +95,7 @@ function afterRows(fed, lead) {
  * `onSeen(kind)` the crime's own consequence ('assault' | 'murder'), `onReported()` a victim who cried out, `onDrain()`
  * the death, null where no death can be had. Answers the boxes to show after the pick.
  */
-function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () => number, onSeen: (kind: string) => void, onReported: () => void, onDrain?: ((seen: boolean) => void) | null, reportChance: number, onBreach?: (kind: any) => any }} */ { now, rolls, onSeen, onReported, onDrain, reportChance, onBreach = () => {} }) {
+function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () => number, onSeen: (kind: string) => void, onReported: () => void, onDrain?: ((seen: boolean) => void) | null, reportChance: number, onBreach?: (kind: any) => any, onFed?: () => void }} */ { now, rolls, onSeen, onReported, onDrain, reportChance, onBreach = () => {}, onFed = () => {} }) {
   if (id === 'leave') return [];
   const seenThen = onSeen, reportedThen = onReported;
   onSeen = (kind) => { onBreach(kind === 'murder' ? 'murder' : 'seen'); seenThen(kind); };   // PHASE 3: every breach heats the region
@@ -91,6 +106,7 @@ function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () =
     if (!spendMindCloud(entity, now)) return [{ rows: [t('vampire.feed.noVitae', 'You have too little Vitae for the Kiss.')] }];
     const slip = Math.floor(rolls() * 100) < (KISS_SLIP[beastStageNow(entity, now)] ?? 0);
     const fed = feedVampire(entity, { ...base, kind: 'sip', deed: seen || slip ? 'seen' : 'clouded' });
+    if (fed) onFed();
     if (seen) onSeen('assault');
     else if (slip) onReported();
     const lead = slip ? t('vampire.feed.slip', 'The Beast is too loud: the Kiss slips, and they remember.') : t('vampire.feed.kissed', 'You drink, and their memory clouds over.');
@@ -98,6 +114,7 @@ function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () =
   }
   if (id === 'drink') {
     const fed = feedVampire(entity, { ...base, kind: 'drink', deed: seen ? 'seen' : 'drunk' });
+    if (fed) onFed();
     const cries = !seen && Math.floor(rolls() * 100) < reportChance;
     if (seen) onSeen('assault');
     else if (cries) onReported();
@@ -106,6 +123,7 @@ function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () =
   }
   if (id === 'drain' && onDrain) {
     const fed = feedVampire(entity, { ...base, kind: 'drain', deed: seen ? 'seen' : 'drained' });
+    if (fed) onFed();
     onDrain(seen);
     if (!seen) onBreach('body');   // PHASE 3: a drained body is found
     if (seen) onSeen('murder');
@@ -166,16 +184,15 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
     rows: [...sightRows(victim.name, victim.type, victim.quality, victim.seen), ...(watch ? [t('masq.feed.wary', 'This region is wary of your kind. There may be eyes you cannot see.')] : [])],
     pick: (i) => {
         const c = list[i];
-        if (c && c.id !== 'leave') FED_TODAY.add(fedKey(id, now));
-        if (c && c.id !== 'leave' && scouted) takeScouted();
+        const markFed = () => { FED_TODAY.add(fedKey(id, now)); if (scouted) takeScouted(); };   // only a feed that happened uses them up
         // PHASE 3: a hidden watcher - a window, a doorway - in a wary region
         const spotted = !!c && c.id !== 'leave' && c.id !== 'enthrall' && watch > 0 && Math.floor(rolls() * 100) < watch;
         if (spotted) victim.seen = 1;
         const lead = spotted ? [{ rows: [t('masq.feed.spotted', 'A shutter bangs. Someone was watching.')] }] : [];
-        if (c?.id === 'take') { if (spotted) { onSeen('assault'); onBreach('seen'); return lead; } onBreach('taken'); return takeToHaven(entity, person, victim, now); }
+        if (c?.id === 'take') { if (spotted) { onSeen('assault'); onBreach('seen'); return lead; } onBreach('taken'); markFed(); return takeToHaven(entity, person, victim, now); }
         if (c?.id === 'enthrall') return enthrallHere(entity, person, role, now, regionIndex);
         return [...lead, ...resolveChoice(entity, c?.id ?? 'leave', victim, {
-          now, rolls, onSeen, reportChance: REPORT_CHANCE, onBreach,
+          now, rolls, onSeen, reportChance: REPORT_CHANCE, onBreach, onFed: markFed,
           onReported: () => { town?.caught?.(person); crimeArm(entity, onCrime)('assault'); },
           onDrain: canDrain ? () => { town.slain(person); town.retire(person); } : null,
         })];
@@ -190,6 +207,7 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
  * answering the boxes the chain would show (their rows are the card's words after).
  */
 function present({ showBox, showWindow, entity, now, list, view, rows, pick }) {
+  noteFirstUse('vampire-feeding');
   if (showWindow) {
     const win = openBloodSight({
       victim: view, choices: list,
@@ -239,8 +257,10 @@ export function feedOnSleeper({ entity, building, now, showBox, showWindow = nul
   const { town, key } = building;
   const sleepers = town.sleepersAt(key);
   if (!sleepers.length) return false;
-  const res = sleepers.find((r) => !FED_TODAY.has(fedKey(r.id, now)));
+  const fresh = sleepers.filter((r) => !FED_TODAY.has(fedKey(r.id, now)));
+  const res = fresh[0];
   if (!res) { say(t('vampire.feed.allPale', 'Everyone asleep here is already pale.')); return true; }
+  if (fresh.length > 1) say(t('vampire.feed.moreAsleep', '{n} more sleep in this house.', { n: fresh.length - 1 }));
   const awake = town.insideAt?.(key, town._now)?.length ?? 0;
   const stealth = skillValue(entity, SKILLS.Stealth) ?? 0;
   const seenChance = Math.min(90, (awake > 0 ? Math.max(5, awake * 20 - Math.floor(stealth / 3)) : 0) + watcherChance(regionIndex, now));   // PHASE 3: a wary region keeps a lamp lit
@@ -255,9 +275,8 @@ export function feedOnSleeper({ entity, building, now, showBox, showWindow = nul
     view: { name: res.name, type: victim.type, quality: victim.quality, seen: 0, sleeper: true, wary: watcherChance(regionIndex, now) > 0 || awake > 0 },
     pick: (i) => {
         const c = list[i];
-        if (c && c.id !== 'leave') FED_TODAY.add(fedKey(res.id, now));
         return resolveChoice(entity, c?.id ?? 'leave', victim, {
-          now, rolls, onSeen, reportChance: SLEEPER_WAKES, onBreach: (kind) => noteBreach(entity, regionIndex, kind, now),   // PHASE 3
+          now, rolls, onSeen, reportChance: SLEEPER_WAKES, onFed: () => FED_TODAY.add(fedKey(res.id, now)), onBreach: (kind) => noteBreach(entity, regionIndex, kind, now),   // PHASE 3
           onReported: () => { town.wokeBitten?.(res); crimeArm(entity, onCrime)('assault'); },
           onDrain: (wasSeen) => { town.slainAsleep?.(res, wasSeen); },
         });
@@ -274,6 +293,7 @@ export function feedOnSleeper({ entity, building, now, showBox, showWindow = nul
  *   showBox: (box: any) => void, showWindow?: any, say: (line: string) => void, onCrime?: () => void, region?: () => number }} o
  */
 export function createVampireBeds({ entity, building, mode, now, showBox, showWindow = null, say, onCrime, region = () => -1 }) {
+  setBloodSense(entity);   // the plaques read this vampire's Blood Sight
   let at = -Infinity, was = false;
   const stamp = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   return {

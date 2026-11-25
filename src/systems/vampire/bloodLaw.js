@@ -26,8 +26,15 @@ import { SKILLS } from '../../characters/skills.js';
 export const VITAE_MAX = 100;
 /** The Vitae an awakened vampire starts with (the Elder's gift). */
 export const VITAE_AWAKENED = 75;
-/** Vitae lost per day of the character's own clock (online: a day is one real hour). Full to empty in about three days. */
-export const VITAE_DRAIN_PER_DAY = 30;
+/** Vitae lost per day of the character's own clock (online: a day is one real hour). Full to empty in five days (it was
+ *  30 a day, three: the playtest found a vampire forever scrambling to feed). */
+export const VITAE_DRAIN_PER_DAY = 20;
+/** TIME SKIPPED (a journey, a loiter, a rest: the clock raised in one jump). Only a span up to TRAVEL_SPAN_DAYS drains
+ *  at the full rate; the rest of a longer jump drains at TRAVEL_DRAIN_MUL of it, and never takes the Vitae under
+ *  TRAVEL_DRAIN_FLOOR (the Hungry stage's floor): a carriage ride no longer arrives Starving. */
+export const TRAVEL_SPAN_DAYS = 0.1;
+export const TRAVEL_DRAIN_MUL = 0.25;
+export const TRAVEL_DRAIN_FLOOR = 25;
 /** The Kiss (Mind-Cloud): Vitae spent to cloud a victim's memory. */
 export const MIND_CLOUD_COST = 8;
 
@@ -127,6 +134,23 @@ export function qualityOfPerson(person) {
   let q = 15 + (h % 71) + (job ? JOB_QUALITY_BONUS[job] ?? 0 : 0);
   if (((h >>> 8) % 100) < GEM_CHANCE) q += 25;
   return Math.max(1, Math.min(100, q));
+}
+
+/** A blood quality's plain word, from its resonance tier (0 thin ... 4 potent). @param {number} quality */
+export function bloodQualityName(quality) {
+  switch (resonanceTier(quality)) {
+    case 0: return t('vampire.quality.thin', 'thin');
+    case 1: return t('vampire.quality.fair', 'fair');
+    case 2: return t('vampire.quality.good', 'good');
+    case 3: return t('vampire.quality.rich', 'rich');
+    default: return t('vampire.quality.potent', 'potent');
+  }
+}
+
+/** One short tag for a hover or a card: "Noble blood, rich (72%)". @param {string} type @param {number} quality */
+export function bloodTag(type, quality) {
+  const q = Math.round(quality);
+  return t('vampire.bloodTag', '{type} blood, {word} ({quality}%)', { type: archetypeName(type), word: bloodQualityName(q), quality: q });
 }
 
 /** A creature's blood quality from its level: 30 at level 1, to 90. @param {number} level */
