@@ -1,0 +1,59 @@
+---
+slug: raiding-parties-relay-ledger-and-receipts
+title: "Raid Runner Election, Relay Ledger, Day-Roll Check, and Renown Claims"
+domain: multiplayer
+kind: subcard
+parent: raiding-parties-overview
+files:
+  - src/world/raidShared.js
+  - src/net/raidLaw.js
+  - src/net/raidReceipt.js
+  - src/net/wire.js
+  - server/src/world/raid.js
+  - server/src/message/frames/raid.js
+  - server/src/message/frames/raidtowns.js
+  - server-account/src/raids.js
+  - server-account/src/progress.js
+  - server-account/migrations/0016_raid_cleanses.sql
+  - server-account/migrations/0017_raid_spoils.sql
+  - selfhost/relay.toml
+routes:
+  - "/v1/raid/claim"
+  - "/internal/raid/clean"
+  - "/internal/raid/day"
+tables:
+  - raid_cleanses
+  - raid_spoils
+replacesBible:
+  - "03-World/Raiding-Parties.md"
+related:
+  - raiding-parties-overview
+  - world-events-and-signed-receipts
+  - room-engine-and-hub-sharding
+  - loot-arc-drop-rates-renown-and-loot-lines
+invariants:
+  - "A ledger is opened only by a word from a socket whose pose is on the raid's pixel and whose st/tg/ty sits on raidDaySlots(day); with a pinned towns table its raidLedgerId must also be in raidDayIds."
+  - "Kill credit is capped at RAID_KILLS_BURST 3 plus one per RAID_KILL_MS 1000 from the ledger's first word."
+  - "Receipts are minted once at the cleanse, only for accounts that struck a raider and spoke within RAID_PRESENT_MS 15000; `id:` guests get none."
+  - "One db.batch per claim: the raid_cleanses row (PK raid, account) is inserted with a fresh nonce under RAID_CLAIMS_DAY_MAX 6 per game day, and Renown credits only where that nonce's row exists."
+traps:
+  - "Layer rooms (`a.ly`) silently ignore raid words so a layer cannot count or mint a second time."
+  - "Empty RAID_TOWNS_SHA256 in selfhost/relay.toml disables the full towns-table check."
+  - "Raid Renown is charged to the account's hourly Renown bound (AUDIT RAID R5)."
+dfu: []
+tags:
+  - raids
+  - relay
+  - receipts
+  - ed25519
+  - renown
+  - election
+---
+
+# Raid Runner Election, Relay Ledger, Day-Roll Check, and Renown Claims
+
+Online town raids separate peer runner election (`src/world/raidShared.js`) from relay ledger authority (`server/src/world/raid.js`) and account claims (`server-account/src/raids.js`).
+
+- **Runner election and frames (`src/net/wire.js`):** Clients send `raid` frames (`k: 'w'`) every `RAID_WORD_MS` (`5000` ms) and receive `RAID_OUT_KINDS` (`st`, `cl`, `rc`, `cls`, `tw`). `raidRunnerOf` elects the oldest claim unless a smaller id claims within `RAID_CLAIM_WINDOW_MS` (`5000` ms), falling back after `RAID_CLAIM_GRACE_MS` (`10000` ms) or `RAID_WORD_STALE_MS` (`6000` ms); peers render up to `RAID_PUPPETS_MAX` (`40`) puppets.
+- **Day-roll verification and cell ledger:** Clients upload the towns table via `raidtowns` frames (`server/src/message/frames/raidtowns.js`) in `RAID_TOWNS_CHUNK` (`12` KiB) chunks, verified against `RAID_TOWNS_SHA256` (`selfhost/relay.toml`), while cells query `/internal/raid/day` (`RAID_DAY_ASK_MS` `60` s). Cell ledgers under `raid:<raidLedgerId>` check `raidDaySlots(day)` (`src/net/raidLaw.js`) with `RAID_SLACK_MINUTES` (`2`), live until window end plus `RAID_KEEP_MS` (`10` min) under `RAID_LEDGERS_MAX` (`8`) and `RAID_LEDGERS_BY_MAX` (`2`), and cap kills at `RAID_KILLS_BURST` (`3`) plus one per `RAID_KILL_MS` (`1000` ms).
+- **Receipts and D1 claims:** On cleanse, the cell mints 7-day `w1` receipts (`src/net/raidReceipt.js`, `RAID_RECEIPT_TTL_S`) for eligible accounts (`RAID_PRESENT_MS` `15000` ms) and posts `/internal/raid/clean` (`RAID_TELL_RETRY_MS` `5000` ms) so the hub fans out `cls` and stores `raidrc:<account>`. Clients keep `RAID_RECEIPTS_KEPT` (`32`) receipts and redeem `POST /v1/raid/claim` to record `raid_cleanses` and `raid_spoils` (`0016_raid_cleanses.sql`, `0017_raid_spoils.sql`) and credit `renownRaidXp` (`server-account/src/progress.js`) under `RAID_CLAIMS_DAY_MAX` (`6`).

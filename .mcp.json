@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "codex": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "--disable-warning=ExperimentalWarning",
+        "tools/codex/mcp.mjs"
+      ],
+      "env": {
+        "CODEX_ALLOW_WRITE": "1"
+      }
+    }
+  }
+}
