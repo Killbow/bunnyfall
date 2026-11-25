@@ -7,7 +7,7 @@
 // (systems/region/regionHubs.js) of the first of CLAN_SEATS' regions that has one.
 // IDENTITY: each clan a STRENGTH and a BANE, read where the rule they bend is kept:
 //   Anthotis   + vials keep better blood and give more        - beast blood gives nothing, any not Scholar's 3/4
-//   Garlythi   + prisoners never escape, despair slower         - poor (<35%), Worker or Beast blood gives 2/5
+//   Garlythi   + prisoners never escape, despair slower         - poor (<35%), Worker or Beast blood gives 3/5
 //   Haarvenu   + a blow drinks twice the blood                  - the Vitae burns away a fifth faster
 //   Khulari    + captives come in healthier, their blood richer - no Kiss on one awake (sleepers only), no taking after it
 //   Lyrezi     + a Blood Slot more, social thralls cheaper      - the Beast's tells show a stage early
@@ -88,6 +88,11 @@ export function courtSeats(hubOfRegion) {
 export const strengthOn = (clan) => !huntedBy(clan);
 
 // ── the rules each clan bends ─────────────────────────────────────────────────────────
+/** The share of a feed that poor, Worker or Beast blood gives a Garlythi (was 2/5: the playtest found them fed on nothing). */
+export const GARLYTHI_POOR = 0.6;
+/** The least share of a feed's Vitae any clan's bane leaves a vampire whose bane does not forbid it outright (Anthotis on
+ *  beast blood gives none, by design): a feed is never worth nothing. */
+export const BANE_FLOOR = 0.5;
 /**
  * A feed's Vitae, by the clan: `kind` a FEEDS key, `type` the blood, `quality` its %. Answers the multiplier.
  * @param {number} clan @param {string} kind @param {string} type @param {number} quality
@@ -101,7 +106,7 @@ export function clanFeedMul(clan, kind, type, quality) {
       if (s && kind === 'vial') m *= 1.35;
       break;
     case C.Garlythi:
-      if (quality < 35 || type === 'worker' || type === 'beast') m *= 0.4;
+      if (quality < 35 || type === 'worker' || type === 'beast') m *= GARLYTHI_POOR;
       break;
     case C.Haarvenu:
       if (s && kind === 'wound') m *= 2;
@@ -151,7 +156,7 @@ export const clanStrikeWeight = (clan) => (clan === C.Montalion ? 2 : 1);
 export function clanIdentityWords(clan) {
   switch (clan) {
     case C.Anthotis: return [t('clan.anthotis.s', 'Strength: your vials keep better blood and give more.'), t('clan.anthotis.b', 'Bane: beast blood gives you nothing, and any but a Scholar\'s less.')];
-    case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape, and despair slower.'), t('clan.garlythi.b', 'Bane: poor, Worker or Beast blood barely feeds you.')];
+    case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape, and despair slower.'), t('clan.garlythi.b', 'Bane: poor, Worker or Beast blood feeds you only three fifths.')];
     case C.Haarvenu: return [t('clan.haarvenu.s', 'Strength: your blows drink twice the blood.'), t('clan.haarvenu.b', 'Bane: a fever in your veins burns your Vitae faster.')];
     case C.Khulari: return [t('clan.khulari.s', 'Strength: captives come in healthier, their blood richer.'), t('clan.khulari.b', 'Bane: you cannot give the Kiss to anyone awake.')];
     case C.Lyrezi: return [t('clan.lyrezi.s', 'Strength: one more Blood Slot, and your enthralled cost less.'), t('clan.lyrezi.b', 'Bane: the Beast shows in you a stage early.')];

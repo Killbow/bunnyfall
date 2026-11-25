@@ -29,7 +29,7 @@ export const HAVEN_VERB = 'home-vampire-haven';
 export const isHavenVerb = (/** @type {unknown} */ v) => v === HAVEN_VERB;
 /** The door's row at a home of the player's own, for an awakened vampire. @param {any} entity */
 export function havenDoorRows(entity) {
-  return awakenedVampirism(entity) ? [{ id: HAVEN_VERB, label: t('haven.row', 'Your Haven (thralls)') }] : [];
+  return awakenedVampirism(entity) ? [{ id: HAVEN_VERB, label: t('haven.row', 'Your Haven (thralls, work in progress)') }] : [];
 }
 
 const dutyWord = (d) => (d === DUTIES.Follow ? t('haven.duty.follow', 'following you') : d === DUTIES.Guard ? t('haven.duty.guard', 'guarding the Haven')
@@ -55,7 +55,7 @@ export function openHavenWindow({ entity, now, onClose }) {
   return openVampWindow({
     id: 'vamp-haven',
     title: () => t('haven.title', 'Your Haven'),
-    sub: () => t('haven.sub', 'A {clan} lair - Blood Slots {used} of {max}', { clan: clanName(clan() ?? 153), used: slotsUsed(), max: slotsOf(entity) }),
+    sub: () => t('haven.sub', 'Work in progress - A {clan} lair - Blood Slots {used} of {max}', { clan: clanName(clan() ?? 153), used: slotsUsed(), max: slotsOf(entity) }),
     crest: () => clanCrest(clan() ?? 153, 52),
     accent: () => CLAN_COLOUR[clan() ?? 153] ?? '#b02a35',
     onClose,

@@ -388,6 +388,7 @@ import {
   homeStationsServe,   // FB1018D HOME-BENCH: a home's stations serve its owner's account, as its door does
 } from '../homes/onlineHomes.js';
 import { guestbookRows, isGuestbookVerb, pressGuestbook } from '../homes/guestbook.js';   // GUESTBOOK: signed at the door, read by its people
+import { bloodHoverLine } from './vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: Blood Sight on the plaque
 import { HAVEN_VERB } from '../ui/vampire/havenWindow.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: the Haven's door row
 import { HOME_HIDE_VERB, homeHideRows, homeHideLine, homeHideVersion, homeDecorSeenByMe, toggleHomeDecorHidden } from '../homes/homeDecorHide.js';   // DECOR-HIDE: another's home's decorations hidden for me alone
 import { homeDecorShown, homeVotedLine, homeVotesLine, homeVoteRefusalLine, decorStaysShunned, HOME_VOTE_GONE_LINE } from '../net/homeVoteLaw.js';   // HOME-VOTE: a shunned home's decor stands for its insiders alone
@@ -4411,12 +4412,23 @@ export function createWorldModes(host) {
     return officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(data);
   }
 
+  /** The person feeding and the blood tag read for a static NPC (one id, so the hover's blood is the card's). */
+  function staticFeedPerson(pn, data) {
+    return {
+      interactionId: `static:${data.mapID}:${data.context}:${data.buildingKey}:${data.hash}:${data.nameSeed}:${data.factionID}`,
+      nameNPC: staticPersonName(pn, data),
+    };
+  }
+
   function staticPersonHover(pn) {
     const data = staticNpcData(pn, staticNpcSceneCtx(pn));
     const title = npcHoverName(staticPersonName(pn, data), {
       archive: data.billboardArchiveIndex, record: data.billboardRecordIndex,
     });
-    return title ? { title } : null;
+    // BLOOD AT A GLANCE: a vampire's Blood Sight under the name - mod-altered (Flat Replacer) people too, as the feed reads them
+    let blood = null;
+    try { if (title && !isChildNPCData(data) && data.billboardArchiveIndex !== DAEDRA_ARCHIVE) blood = bloodHoverLine(staticFeedPerson(pn, data)); } catch { /* the plaque never fails on a tag */ }
+    return title ? (blood ? { title, subs: [blood] } : { title }) : null;
   }
 
   // Info only names the NPC. Steal gives awakened vampires the shared feeding action before ordinary NPC services.
@@ -4426,13 +4438,7 @@ export function createWorldModes(host) {
     if (interactionMode === 'steal' && townTalk?.canFeed?.()) {
       const data = staticNpcData(pn, staticNpcSceneCtx(pn));
       if (!isChildNPCData(data) && data.billboardArchiveIndex !== DAEDRA_ARCHIVE) {
-        const target = {
-          person: {
-            interactionId: `static:${data.mapID}:${data.context}:${data.buildingKey}:${data.hash}:${data.nameSeed}:${data.factionID}`,
-            nameNPC: staticPersonName(pn, data),
-          },
-          pos: [pn.x, pn.y, pn.z],
-        };
+        const target = { person: staticFeedPerson(pn, data), pos: [pn.x, pn.y, pn.z] };
         const witnesses = people.filter((other) => other !== pn && other.active !== false && !other.dead)
           .map((other) => ({ person: other, pos: [other.x, other.y, other.z] }));
         if (mode === 'interior') witnesses.push(...(host.livingInteriorWitnesses?.() ?? []));

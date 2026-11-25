@@ -8,7 +8,7 @@
 
 import { t } from '../textManager.js';
 import { openVampWindow, el, art, bloodGlyph, disciplineGlyph, chip, meter, button, section, screenFlash, BLOOD_COLOUR, STAGE_COLOUR } from './vampKit.js';
-import { archetypeName, resonanceWords, beastStageName, VITAE_MAX } from '../../systems/vampire/bloodLaw.js';
+import { archetypeName, bloodQualityName, resonanceWords, beastStageName, VITAE_MAX } from '../../systems/vampire/bloodLaw.js';
 
 /** Each choice's glyph (a Discipline's - vampKit.js DISCIPLINE_GLYPH) and its line. */
 const CHOICE = Object.freeze({
@@ -62,7 +62,7 @@ export function openBloodSight({ victim, choices, status, onPick, onClose }) {
       const big = el('div', 'vk-row');
       const q = el('span', 'vk-quality', `${victim.quality}%`);
       q.style.color = colour;
-      big.append(q, el('span', 'vk-big', t('sight.blood', '{type} blood', { type: archetypeName(victim.type) })));
+      big.append(q, el('span', 'vk-big', t('sight.blood', '{type} blood, {word}', { type: archetypeName(victim.type), word: bloodQualityName(victim.quality) })));
       info.append(big, meter(victim.quality, 100, colour, t('sight.quality', 'Quality')));
       info.append(el('p', null, t('sight.resonance', 'Resonance: {gift}.', { gift: resonanceWords(victim.type) })));
       const chips = el('div', 'vk-chips');

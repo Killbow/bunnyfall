@@ -53,7 +53,7 @@ export const HERALD_PREF = 'questHerald';
 /** The toasts' owner in the notice stack. */
 export const HERALD_OWNER = 'quest-herald';
 /** How long a notice holds, in real seconds the HUD is showing. */
-export const HERALD_SECONDS = 7;
+export const HERALD_SECONDS = 12;   // 7 until a playtest could not read where the Elder waited
 /** The most quests the herald speaks for at once; past it the least news
  *  goes first (AUDIT GUIDE H5: an entry before a deadline, a deadline
  *  before a new quest or an ending, the oldest among equals). Every word

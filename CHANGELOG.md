@@ -5,6 +5,15 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-25
 
+- Changed: Vampires have a short Vampirism tutorial, from the first bite to the Clan Gift. It pops once as each part matters, and you can read it again under Menu > Tutorials.
+- Changed: Vitae drains more slowly (a day's play costs 12, not 30). Carriage trips, loitering and other long jumps drain it at a quarter rate and never leave you Starving, and a trip costs your thralls one day of upkeep at most, so they no longer break away from travel alone. Unpaid thralls lose a bit less loyalty a day.
+- Changed: The Kiss now works on whatever Vitae you have left, so a Starving vampire can still feed quietly (the Beast may slip). Garlythi get at least half of any feed, and 3/5 from poor blood instead of 2/5.
+- Changed: Pointing at someone now shows their blood type and quality, such as "Noble blood, rich (72%)", under their name, for vampires, including townsfolk altered by mods. The Blood Sight card names the quality too.
+- Changed: The word on where a bite victim goes to be claimed by a bloodline now stays in a box until you close it, the Elder's letter now says where to meet them in a box, and quest notices stay up for 12 seconds instead of 7.
+- Changed: Landing blows on foes now give 4 Vitae and can pull a Starving vampire back up, instead of stopping just under Hungry.
+- Changed: Prisoners, thralls and enthralling are now labeled as a work in progress in the Haven, the feeding choices and the tutorial.
+- Fixed: The hotbar, chat, buffs and trackers no longer draw over the vampire's burial cutscene or any other full-screen video.
+- Fixed: A Kiss you could not afford, or a feeding you backed out of, no longer counts as a feeding and blocks drinking from that person or sleeper later. Each sleeper is tracked on their own, and a bed tells you how many more sleep in the house.
 - Changed: The Grappling Hook is now a tool, not a weapon. Keep one in your pack and press its own key (Numpad1 by default, rebindable in Controls under Combat, and a touch button) to throw it. Any character can use it, whatever their class or weapon skills, and it no longer takes your weapon hand or shield. Range, rest time and the pull are the same. A hook you were holding goes back to your pack.
 - Abilities now aim for you a little: they lock onto the enemy you are looking at, so swings turn toward it, leaps and dashes land on it, and ability arrows bend toward it.
 - Leaping abilities now land on their target and strike it even if it moved. Falling Moon, Vault Strike, Harebound, Predator's Pounce and Judgement Bastion leap farther and higher, and Vaulting Riposte, Untouchable Waltz and Chain Flicker hop to the enemy's side.
