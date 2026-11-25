@@ -21,7 +21,6 @@ import { EQUIP_SLOTS } from './paperdoll.js';
 import { ITEM_GROUPS, SLOT_RULES, WEAPON_HANDS, SHIELD_INDICES } from './equipRules.js';
 import { getBool } from '../platform/settings.js';
 import { customItemClass } from '../mods/rriItems.js';   // RRI1: GetItemHands / GetEquipSlot are virtuals a custom class answers   // AUDIT 58: ItemEquipTable.cs:635 reads BowLeftHandWithSwitching
-import { GRAPPLE_TEMPLATE } from './heavyGearIds.js';   // BUNNYFALL: the grappling hook - a leaf, no cycle
 
 export const ITEM_HANDS = Object.freeze({ None: 0, RightOnly: 1, LeftOnly: 2, Either: 3, Both: 4 });
 /** Weapons.Short_Bow / Weapons.Long_Bow - the one switch case in
@@ -49,9 +48,6 @@ export function getItemHands(item, { bowLeftHand = getBool('Enhancements', 'BowL
   if (group === ITEM_GROUPS.Weapons && BOW_HAND_TEMPLATES.includes(item.templateIndex)) {
     return bowLeftHand ? ITEM_HANDS.LeftOnly : ITEM_HANDS.Both;
   }
-  // BUNNYFALL (the owner: "cant seem to be able to equip the grappling hook"): FIELD-GUN2's hole again - 565 is past
-  // WEAPON_HANDS, so it had no hand, no slot, and every equip (the pack, the hotbar) refused it. A dagger's hand: Either.
-  if (group === ITEM_GROUPS.Weapons && item.templateIndex === GRAPPLE_TEMPLATE) return ITEM_HANDS.Either;
   const cls = customItemClass(item.templateIndex);   // RRI1: ItemArchersAxe / ItemLightFlail answer Either
   if (cls?.itemHands) return ITEM_HANDS[cls.itemHands];
   const w = WEAPON_HANDS[item.templateIndex];

@@ -5,22 +5,23 @@
 //     combat/ballista/ballistaFlight.js predictArc integrates by the flight's own law);
 //   - the ballista LOOSED kicks the camera (Better Ambience's shaker, the Thunderlock's door) and thumps, and says so on
 //     the wire (`shot.bl`, net/wire.js validPose `bl`) so peers draw the bolt on its arc;
-//   - the HOOK in the hand takes the click (combat/grapple/grapple.js) instead of a swing, plays its own frames, and its
-//     rope and rest are drawn.
+//   - the HOOK (a tool every body carries, on its own key, GrapplingHook) is thrown by combat/grapple/grapple.js: it plays
+//     its own frames in the hand, and its rope and rest are drawn.
 
 import { registerFootSpeedMod } from '../player/motor.js';
 import { betterAmbience } from '../audio/betterAmbience.js';
 import { SOUND } from '../audio/soundClips.js';
-import { isBallistaItem, isGrappleItem, BALLISTA_FOOT_MULT, BALLISTA_KICK } from '../characters/heavyGearIds.js';
+import { t } from '../ui/textManager.js';
+import { isBallistaItem, BALLISTA_FOOT_MULT, BALLISTA_KICK } from '../characters/heavyGearIds.js';
 import { predictArc, bindBallistaFx } from './ballista/ballistaFlight.js';
-import { setGrappleHeld, grappleClick, grappleFrame, grappleView, bindGrappleSay } from './grapple/grapple.js';
+import { grappleClick, grappleFrame, grappleView, grappleThrowing, bindGrappleSay } from './grapple/grapple.js';
 import { drawHeavyGearOverlay } from '../ui/heavyGearOverlay.js';
 
 let _ballistaDrawn = false;
 registerFootSpeedMod('royal-ballista', () => (_ballistaDrawn ? BALLISTA_FOOT_MULT : 1));
 
 let _rig = null;
-let _wasHeld = false;
+let _hookWas = false;
 
 /** The rig's sounds and words, bound to the rig that steps (four hosts, four rigs; the stepping one owns them). */
 function bindRig(rig, { audio, say, camera }) {
@@ -35,21 +36,19 @@ function bindRig(rig, { audio, say, camera }) {
 }
 
 /**
- * Once a frame. Answers `{ grappling, hookFrame }`: whether the hand holds the hook (the rig then starts no swing and no
- * technique) and the hook's frame to draw.
+ * Once a frame. `hookDown` the hook key's state, `canHook` whether a throw may start now, `hasHook` whether the pack holds a hook. Answers `{ grappling, hookFrame }`:
+ * whether the hook's throw is in the hand (the rig then starts no swing and no technique) and the hook's frame to draw.
  */
-export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, paralyzed, camera, collider, canvas, renderer, flip, audio, say }) {
+export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, paralyzed, hookDown, canHook, hasHook, camera, collider, canvas, renderer, flip, audio, say }) {
   bindRig(rig, { audio, say, camera });
   const drawn = !sheathed && !paralyzed;
   _ballistaDrawn = drawn && isBallistaItem(weapon);
-  const grappling = isGrappleItem(weapon);
-  setGrappleHeld(grappling && drawn);
-  let hookFrame = 0;
-  if (grappling) {
-    grappleClick(held && !_wasHeld && canAttack && !paralyzed);
-    hookFrame = grappleFrame(dt);
-  }
-  _wasHeld = !!held;
+  const edge = !!hookDown && !_hookWas && !!canHook && !paralyzed;
+  if (edge && !hasHook) say?.(t('grapple.noHook', 'You carry no grappling hook.'));
+  else grappleClick(edge);
+  _hookWas = !!hookDown;
+  const hookFrame = grappleFrame(dt);
+  const grappling = grappleThrowing();
   let arc = null;
   const cam = camera?.() ?? null;
   if (_ballistaDrawn && held && canAttack && cam?.pos) {
@@ -57,7 +56,7 @@ export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, para
     try { arc = predictArc(cam.pos, look, collider?.() ?? null); } catch { arc = null; }
   }
   if (canvas) {
-    try { drawHeavyGearOverlay({ canvas, renderer, arc, grapple: grappling && drawn ? grappleView() : null, flip }); } catch (e) { console.warn('[heavyGear] overlay', e); }
+    try { drawHeavyGearOverlay({ canvas, renderer, arc, grapple: grappleView(), flip }); } catch (e) { console.warn('[heavyGear] overlay', e); }
   }
   return { grappling, hookFrame };
 }
