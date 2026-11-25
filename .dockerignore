@@ -11,3 +11,4 @@ dist-poi-editor
 **/.env
 **/.env.*
 **/data
+.cache

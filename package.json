@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": "^22.16.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "vite",
@@ -14,9 +14,10 @@
     "build:poi-editor": "vite build --config tools/poi-editor/vite.config.js",
     "lint": "eslint --cache --cache-strategy content --cache-location node_modules/.cache/eslint/ src/ server/src/ server-account/src/ tools/ scripts/ app/ *.config.js",
     "types": "tsc -p tsconfig.json",
-    "check": "npm run lint && node tools/worldBudgetCheck.mjs && npm run types && npm run build",
+    "check": "npm run lint && node tools/worldBudgetCheck.mjs && node tools/routesCheck.mjs && npm run codex:check && npm run types && npm run build",
     "budget": "node tools/worldBudgetCheck.mjs",
-    "cites": "node tools/citeAnchor.mjs",
+    "codex": "node --disable-warning=ExperimentalWarning tools/codex/cli.mjs",
+    "codex:check": "node --disable-warning=ExperimentalWarning tools/codex/cli.mjs check",
     "prebuild": "node scripts/buildTag.mjs",
     "postbuild": "git checkout -- src/buildTag.js",
     "probes": "node tools/enhancedMenuProbe.mjs && node tools/featureRailProbe.mjs",

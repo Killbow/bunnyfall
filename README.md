@@ -17,16 +17,17 @@ docker compose up -d --build
 
 ## Development
 
-Node 20.19+ or 22.12+.
+Node 22.16+ or 24+.
 
 - `npm run dev`: the game with hot reload. Start `node selfhost/start.mjs` beside it for the servers.
 - `npm run build`: production build into `dist/`
 - `npm run lint`: eslint
+- `npm run codex -- <cmd>`: query the live module graph, routes, SQLite schema, DFU C# scripts, and 798 reference cards (`tools/codex/`)
 - `npm run poi-editor` / `npm run build:poi-editor`: the World Builder, the standalone POI and DM editor (`tools/poi-editor/`)
 
 Game data (ARENA2) is never committed. Point tests at it with `ARENA2_PATH`.
 
-[`docs/GUIDE.md`](docs/GUIDE.md) is the short guide to the code. The `bible/` folder holds the original project's design docs, kept as reference.
+[`docs/GUIDE.md`](docs/GUIDE.md) is the short guide to the code, and `tools/codex/` (`npm run codex` and `.mcp.json`) provides the searchable reference cards and live codebase index.
 
 ## Credits
 

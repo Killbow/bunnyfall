@@ -54,7 +54,7 @@ Status (2026-11-19): **built** - Phase 1 (the farmyard, fixtures, sacks and the 
 5. **The server keeps time and truth.** Growth, workshops, livestock and stations run on the account service's clock,
    as beds do. Laws are pure files in `src/net/farm/` that both ends read.
 6. **The hosts do not grow.** Each piece is a module `farmingMode.js` (or the world's existing farm observer) wires;
-   nothing new in `bootWorld`, `bootExterior` or the other hosts (`bible/01-Overview/Host-Split.md`).
+   nothing new in `bootWorld`, `bootExterior` or the other hosts (`tools/worldBudgetCheck.mjs`).
 7. **Every piece can be switched off** in `src/systems/contentOff.js` (`farmLivestock`, `farmBeasts`, `farmWorkshops`,
    `farmThreats`, `farmMarkets`, `farmMinigames`), so a phase can ship and be pulled back alone.
 
