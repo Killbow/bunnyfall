@@ -25,7 +25,10 @@ import { consumeVampirismPending, vampirismMagicRound } from '../afflictions/vam
 import { updatePoisons } from '../afflictions/poisons.js';
 import { tickActiveEffects } from '../magic/effects.js';
 import { skillValue, tallyMovementSkill, SKILLS } from '../characters/skills.js';   // MOVE-REAL: the motion tallies' own door
-import { timeScale } from './timeScale.js';   // RPT1026-PROGRESS: a journey's acceleration, which trains at the real clock
+import { noteSkippedSpan, dropSkippedAfter } from './skippedTime.js';
+import { ENEMY_BASICS } from '../characters/enemyBasics.js';
+import { marksBlood } from '../combat/bloodDecals.js';
+import { timeScale, timeAccelerated } from './timeScale.js';   // RPT1026-PROGRESS: a journey's acceleration, which trains at the real clock
 import { FATIGUE_LOSS, FATIGUE_DRAIN_SCALE, killIfAnyLiveStatZero } from '../characters/statMods.js';
 import { decayEnemyAlert } from '../characters/encounters.js';   // PlayerEntity.Update:380-384, the 8-hour alert decay
 import { dice100, setPlayerStruckHook } from '../combat/formulas.js';
@@ -65,11 +68,14 @@ import { onPlayerStruckByEnemy } from '../items/artifactEffects.js';   // V3: th
  * @param {boolean} [o.isCivilian] EntityTypes.CivilianNPC
  * @param {number|null} [o.mobileType] MobileEnemy.ID - the city watch is an innocent
  */
-export function playerWeaponHitEntity(player, target, { nowMinutes = Math.floor(ownMinutes()), isCivilian = false, mobileType = null } = {}) {   // LIVED1: the feeding and the kill stamp the character's own clock
+export function playerWeaponHitEntity(player, target, { nowMinutes = Math.floor(ownMinutes()), isCivilian = false, mobileType = null, damage = 0 } = {}) {   // LIVED1: the feeding and the kill stamp the character's own clock
   if (!player?.racialOverride) return;   // `if (racialOverride != null)` (WeaponManager.cs:632-634)
-  onVampireHit(player, nowMinutes, { target, isCivilian });   // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire's blow reads whom it struck
+  const bleeds = marksBlood(target?.basics?.bloodIndex ?? ENEMY_BASICS[mobileType ?? target?.mobileType]?.bloodIndex);
+  onVampireHit(player, nowMinutes, { target, isCivilian, damage: bleeds ? damage : 0 });   // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire's blow reads whom it struck
   onLycanthropeHit(player, target, { nowMinutes, isCivilian, mobileType: mobileType ?? target?.mobileType ?? null });
 }
+/** The damage a blow on a hit record feeds a vampire with: none for a crystal or a warded stand-in. */
+export const blowFeedDamage = (rec, damage) => (rec?.crystal != null || rec?.warded || rec?.entity?.warded ? 0 : damage);
 /**
  * DISC10-E online: OnWeaponHitEntity's DEATH, reported. DFU reads the
  * target's health after DecreaseHealth, in the same call; online a peer's
@@ -661,11 +667,14 @@ function tickPlayerMinutesOnce({
     classicMinutes = _ownMinutes ?? worldFrom;
     _ownMinutes = classicMinutes + (worldTo - worldFrom) + (raiseMinutes > 0 ? raiseMinutes : 0);
     if (raiseMinutes > 0) _raisedMinutes += raiseMinutes;   // TIME3: the raise, counted - a quest charges it whole
+    if (raiseMinutes > 0) noteSkippedSpan(_ownMinutes - raiseMinutes, _ownMinutes);
   }
   // AUDIT LIVED1 I: the world's arms walk no world minute twice - AUDIT LIVED1b P3: and lose none lived; they walk the
   // parts of the reading's window no walk this session covered (worldArmsPieces)
   const worldPieces = _sharedClock ? worldArmsPieces(Math.floor(worldFrom), Math.floor(worldTo)) : null;
   const next = _sharedClock ? _ownMinutes : classicMinutes + dt * CLASSIC_MINUTES_PER_SECOND;
+  // An accelerated journey (Travel Options, or a sea helm) skips time as a fast travel does.
+  if (!_sharedClock && timeAccelerated()) noteSkippedSpan(classicMinutes, next);
   // AUDIT 39: the clock as it stood when this tick began. A sink can move
   // the WORLD clock from inside this call (the exhaustion collapse -
   // PlayerEntity.cs:2429's RaiseTime(1 hour), which the hosts fire out of
@@ -1305,6 +1314,7 @@ export const ownMinutes = () => (_sharedClock ? (_ownMinutes ?? _sharedClock()) 
 /** LIVED1: set the character's own clock - a load restores it. Offline it is the world's clock (setWorldMinutes). */
 export function setOwnMinutes(v) {
   if (!_sharedClock) return setWorldMinutes(v);
+  if (v < ownMinutes()) dropSkippedAfter(v);
   _ownMinutes = Number.isFinite(v) ? v : _sharedClock();
   return _ownMinutes;
 }
@@ -1313,6 +1323,7 @@ export function setOwnMinutes(v) {
  *  walks the span (the broker, the per-minute loop, the needs), exactly as the offline tick walks a raised clock. */
 export function advanceOwnMinutes(delta) {
   const d = Number(delta) || 0;
+  if (d > 0) noteSkippedSpan(ownMinutes(), ownMinutes() + d);
   if (!_sharedClock) return setWorldMinutes(_worldMinutes + d);
   if (!Number.isFinite(d)) return ownMinutes();   // AUDIT LIVED1b F3: an Infinity would set a clock the calendar loop never ends on
   _ownMinutes = ownMinutes() + d;
@@ -1420,6 +1431,7 @@ export const skyMinutes = () => (_sharedClock ? (_skySource ? _skySource() : _sh
 /** Set the clock - a load restores it, a rest or a court sentence jumps it. WORLD5: refused under the shared clock. */
 export function setWorldMinutes(v) {
   if (_sharedClock) return _sharedClock();
+  if (v < _worldMinutes) dropSkippedAfter(v);
   _worldMinutes = Number.isFinite(v) ? v : 0;
   return _worldMinutes;
 }

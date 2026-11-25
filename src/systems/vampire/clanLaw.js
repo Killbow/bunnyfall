@@ -5,16 +5,16 @@
 // TERRITORY: each clan holds the Iliac Bay regions the blueprint gives it (CLAN_TERRITORY, region indices of
 // formats/mapsFile.js REGION_NAMES); a region in none answers no clan. Its COURT sits in its SEAT - the hub city
 // (systems/region/regionHubs.js) of the first of CLAN_SEATS' regions that has one.
-// IDENTITY: each clan a STRENGTH and a BANE, read where the rule they bend is kept:
-//   Anthotis   + vials keep better blood and give more        - beast blood gives nothing, any not Scholar's 3/4
-//   Garlythi   + prisoners never escape, despair slower         - poor (<35%), Worker or Beast blood gives 3/5
-//   Haarvenu   + a blow drinks twice the blood                  - the Vitae burns away a fifth faster
-//   Khulari    + captives come in healthier, their blood richer - no Kiss on one awake (sleepers only), no taking after it
-//   Lyrezi     + a Blood Slot more, social thralls cheaper      - the Beast's tells show a stage early
-//   Montalion  + the Kiss costs half                            - a breach counts twice with the Court
-//   Selenu     + the sun takes half                             - stale blood (a prisoner, a vial) gives half
-//   Thrafey    + prisoners suffer half, tending heals more      - a lethal drain gives a quarter (revulsion)
-//   Vraseth    + Running and Jumping +10                         - wounded below half, the Beast reads a stage worse
+// IDENTITY: each clan has a STRENGTH and a BANE, applied where the rule they bend lives.
+//   Anthotis   + vials keep better blood and give more        - beast blood gives nothing, any not Scholar's 3/4.
+//   Garlythi   + prisoners never escape, despair slower         - poor (<35%), Worker, or Beast blood gives 3/5.
+//   Haarvenu   + a blow drinks twice the blood                  - the Vitae burns away a fifth faster.
+//   Khulari    + captives come in healthier, their blood richer - no Kiss on anyone awake, so no taking after it.
+//   Lyrezi     + a Blood Slot more, social thralls cheaper      - the Beast's tells show a stage early.
+//   Montalion  + the Kiss costs half                            - a breach counts twice with the Court.
+//   Selenu     + the sun takes half                             - stale blood (a prisoner, a vial) gives half.
+//   Thrafey    + prisoners suffer half, tending heals more      - a lethal drain gives half (revulsion).
+//   Vraseth    + Running and Jumping +10                         - wounded below half, the Beast reads a stage worse.
 // A clan's own Court hunting the player (a Blood Hunt) WITHHOLDS its strength until the penance is done; the bane
 // stays.
 
@@ -88,10 +88,10 @@ export function courtSeats(hubOfRegion) {
 export const strengthOn = (clan) => !huntedBy(clan);
 
 // ── the rules each clan bends ─────────────────────────────────────────────────────────
-/** The share of a feed that poor, Worker or Beast blood gives a Garlythi (was 2/5: the playtest found them fed on nothing). */
+/** The share of a feed that Worker blood, Beast blood, or blood under 35% quality gives a Garlythi. */
 export const GARLYTHI_POOR = 0.6;
-/** The least share of a feed's Vitae any clan's bane leaves a vampire whose bane does not forbid it outright (Anthotis on
- *  beast blood gives none, by design): a feed is never worth nothing. */
+/** The least share of a feed of 10 or more Vitae that a bane leaves, unless the bane gives nothing (Anthotis on beast
+ *  blood). */
 export const BANE_FLOOR = 0.5;
 /**
  * A feed's Vitae, by the clan: `kind` a FEEDS key, `type` the blood, `quality` its %. Answers the multiplier.
@@ -156,13 +156,13 @@ export const clanStrikeWeight = (clan) => (clan === C.Montalion ? 2 : 1);
 export function clanIdentityWords(clan) {
   switch (clan) {
     case C.Anthotis: return [t('clan.anthotis.s', 'Strength: your vials keep better blood and give more.'), t('clan.anthotis.b', 'Bane: beast blood gives you nothing, and any but a Scholar\'s less.')];
-    case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape, and despair slower.'), t('clan.garlythi.b', 'Bane: poor, Worker or Beast blood feeds you only three fifths.')];
+    case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape, and despair slower.'), t('clan.garlythi.b', 'Bane: Worker blood, Beast blood, and any blood under 35% quality give you only three fifths of the usual Vitae.')];
     case C.Haarvenu: return [t('clan.haarvenu.s', 'Strength: your blows drink twice the blood.'), t('clan.haarvenu.b', 'Bane: a fever in your veins burns your Vitae faster.')];
     case C.Khulari: return [t('clan.khulari.s', 'Strength: captives come in healthier, their blood richer.'), t('clan.khulari.b', 'Bane: you cannot give the Kiss to anyone awake.')];
     case C.Lyrezi: return [t('clan.lyrezi.s', 'Strength: one more Blood Slot, and your enthralled cost less.'), t('clan.lyrezi.b', 'Bane: the Beast shows in you a stage early.')];
     case C.Montalion: return [t('clan.montalion.s', 'Strength: the Kiss costs you half.'), t('clan.montalion.b', 'Bane: every breach counts twice with the Court.')];
     case C.Selenu: return [t('clan.selenu.s', 'Strength: the sun takes only half from you.'), t('clan.selenu.b', 'Bane: stale blood, from prisoners and vials, gives you half.')];
-    case C.Thrafey: return [t('clan.thrafey.s', 'Strength: your prisoners suffer less, and tending heals them more.'), t('clan.thrafey.b', 'Bane: a killing feed sickens you, and gives little.')];
+    case C.Thrafey: return [t('clan.thrafey.s', 'Strength: your prisoners suffer less, and tending heals them more.'), t('clan.thrafey.b', 'Bane: a killing feed sickens you, and gives only half the usual Vitae.')];
     case C.Vraseth: return [t('clan.vraseth.s', 'Strength: Running and Jumping +10.'), t('clan.vraseth.b', 'Bane: wounded below half, the Beast pulls harder.')];
     default: return [];
   }

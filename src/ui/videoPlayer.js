@@ -278,8 +278,7 @@ function defaultListen(onAnyKey) {
   return () => { for (const ev of events) window.removeEventListener(ev, handler); };
 }
 
-/** A full-screen video owns the screen: the page's DOM overlays (hotbar, chat, buffs, trackers, notices) are hidden for
- *  its length (the vampire's burial scene played under them). */
+/** A full-screen video hides the page's DOM overlays (hotbar, chat, buffs, trackers, and notices) for its length. */
 const VIDEO_CLASS = 'vid-playing';
 const VIDEO_HIDES = ['.hud', '.dfchat', '.qtrack', '.dfparty', '.notice-stack', '.wb-boss-bar', '.rvncard-stack', '.lootbanner-stack'];
 function coverOverlays(on) {

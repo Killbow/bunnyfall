@@ -37,7 +37,7 @@ import { hitSoundFor, ENEMY_HIT_VOLUME } from '../audio/soundClips.js';
 import { addItem, ARROW_TEMPLATE } from '../items/inventory.js';
 import { noteShotRecoverable, shotTallyOpen } from './shotTally.js';   // ARENA-ARROWS: a recoverable shaft is no shot the healers pay; STUCK-ARROWS: nor one stuck on the sand
 import { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS } from '../items/loot.js';   // STUCK-ARROWS: the stuck shaft's container picture (seedPile's icon)
-import { playerWeaponHitEntity } from '../world/worldTick.js';   // DISC10-D H1: OnWeaponHitEntity's one dispatcher (worldTick never reaches this module - no cycle)
+import { playerWeaponHitEntity, blowFeedDamage } from '../world/worldTick.js';   // DISC10-D H1: OnWeaponHitEntity's one dispatcher (worldTick never reaches this module - no cycle)
 import { sparedByPlayer } from './friendlyFire.js';   // SHIPMATES: the player's shaft passes their own crew by
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
 import { blowMult, scaleBlowDamage, playerBody, tellTechniqueLanded } from './technique/techniqueBlow.js';   // TECH1: a technique's shaft - its weight, and never a player's body
@@ -560,6 +560,7 @@ export function playerArrowHitFoe(m, foe, {
   // (DaggerfallMissile.cs:680-687 -> WeaponManager.cs:627-635), so its last
   // line is OnWeaponHitEntity - after the door took the health, whatever the
   // damage. The one dispatcher, for every host's arrow.
-  playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType ?? null });
+  // An arena rival is a player: no hit dispatch, as a melee blow on one has none.
+  if (foe.rival == null) playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType ?? null, damage: blowFeedDamage(foe, dmg) });
   return dmg;
 }

@@ -39,6 +39,8 @@ import { isPathId, pathWitnessed, pathFindings } from '../characters/arcanePaths
 import { isMartialPathId } from '../characters/martialPaths.js';   // MARTIAL1: the martial specialisation's id, read through its own table
 import { seedBundleSeq, effectKindLoaded } from '../magic/effects.js';   // X10: the live-bundle counter's restore half; AUDIT PRE-MERGE 0928 S3: a mod's effect restores only while its mod is loaded
 import { repairLostCurses } from '../afflictions/curseRepair.js';   // CURSE-REPAIR1: a curse the round clock pruned, given back
+import { normalizeFedToday } from '../systems/vampire/fedToday.js';
+import { clearSkippedSpans } from '../world/skippedTime.js';
 import { repairUnmintedConditions, repoolWeaponConditions } from '../items/conditionRepair.js';   // DISC21-A: a wearable minted with no condition, minted; WEAPON-POOL: a weapon on its row's pool, moved to the one pool
 import { tidyFoodInventory } from '../systems/survival/foodInventory.js';
 import { restackStones, nameEmbers, PORTAL_GIFT, givePortalGift } from '../worldEvents/gateSpoils.js';   // SS1: Sigil Stones saved before they stacked, folded into one stack; WB12a: and named Deadlands Embers
@@ -814,7 +816,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
   }
   // PORTAL1: a load that lands - the world host ends its portals on the count's move; the POI editor's Test putting its
   // character back (`load: false`) is not a load
-  if (load) _restores++;
+  if (load) { _restores++; clearSkippedSpans(); }
   // AUDIT LIVED1b F3 (S4): THE ENVELOPE'S CLOCKS ARE READ ONCE, HERE. A clock is an unsigned minute count (DFU's
   // ToClassicDaggerfallTime answers a uint), and nothing legitimate writes another - but a tampered or corrupted one
   // reached every reader raw: at 2^53 the calendar loop's `i++` stands still and the page froze for good, a
@@ -1040,6 +1042,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
   // marker and the entry can never disagree (the gates - a second
   // infection, the disease immunity - read the marker).
   entity.racialOverride = entity.activeEffects.find((a) => a.kind === 'racialOverride' && !a.ended) ?? null;
+  normalizeFedToday(entity, Math.floor(snap.classicMinutes ?? 0));
   // AUDIT CLAWS A2: and the beast-form flag, the curse entry's mirror (lycanthropy.js writes it from `isTransformed` at
   // each change and each round) - a load onto the same entity left the last game's: a man loaded over a transformed
   // werewolf kept it (the round returns at once for a character with no curse), and a transformed save on a fresh page

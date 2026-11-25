@@ -5765,7 +5765,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     get social() { return social; },
     get travelView() { return travelView; },
     get wagonRiders() { return wagonRiders; },
-    get showQuestBox() { return showQuestBox; },   // BUNNYFALL VAMPIRE EXPANSION: the bloodline's word stays up in a box
+    get showQuestBox() { return showQuestBox; },
   });
   const { foragingWait, keptBox } = createForagingWorld({
     duelEnemyNear, townTalk,
