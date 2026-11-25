@@ -92,6 +92,7 @@ export const TONE_NAMES = ['Polite', 'Normal', 'Blunt'];   // T3f: TalkTone -> i
 // currentMode is GLOBAL - the dungeon door ladder reads it too);
 // townTalk keeps the keydown, the HUD line and these re-exports.
 export { MODES, nextInteractionMode } from '../player/interactionMode.js';
+import { awakenedVampirism } from '../systems/vampire/vitae.js';
 import { feedOnPerson } from '../scenes/vampire/vampireFeed.js';   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire
 import { ownMinutes } from '../world/worldTick.js';   // BUNNYFALL VAMPIRE EXPANSION: the feeding stamps the character's own clock
 import { MODES, MODE_ACTIONS, getInteractionMode, setInteractionMode, nextInteractionMode, interactionModeText, askInteractionMode } from '../player/interactionMode.js';
@@ -769,7 +770,6 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     // 3.2 alone). The old 6.4 pre-gate answered a person down a long
     // street with SILENCE and let E fall through to a door behind them.
     if (!best || bestDist > RAY_DISTANCE || !(bestDist < nearerThan)) return false;   // MC-2: :412 is reached for the ray's OWN hit
-    _feedPersons = persons;   // BUNNYFALL VAMPIRE EXPANSION: the street the feeding's witnesses are read from
     // AUDIT 64 F34: PlayerActivate.cs:780 - SetMidScreenText, not the popup queue.
     if (getInteractionMode() !== 'steal' && bestDist > MOBILE_NPC_ACTIVATION_DISTANCE) { setMidScreenText(tooFarAwayText()); return true; }
     // AUDIT 26 F048: ActivateMobileNPC NESTS the steal distance test
@@ -777,21 +777,32 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     // (PlayerActivate.cs:785-795), so an already-attempted townsperson
     // produces NO output at any range - the port gated distance first
     // and printed a line DFU never shows.
-    if (getInteractionMode() === 'steal' && !best.person?.pickpocketAttempted
+    if (getInteractionMode() === 'steal' && (canFeed() || !best.person?.pickpocketAttempted)
         && bestDist > PICKPOCKET_DISTANCE) { setMidScreenText(tooFarAwayText()); return true; }   // AUDIT 64 F34: :790, the same surface
-    ensureLoaded().then(() => activate(best, bestDist));
+    ensureLoaded().then(() => activate(best, bestDist, persons));
     return true;
   }
 
-  /** BUNNYFALL VAMPIRE EXPANSION: the persons the last activation ray was cast over (the feeding's witnesses). */
-  let _feedPersons = [];
-  function activate(target, dist) {
+  const canFeed = () => !!vampireFeed && !!awakenedVampirism(playerEntity);
+
+  function tryFeed(target, persons, distance) {
+    if (!canFeed()) return false;
+    if (distance > PICKPOCKET_DISTANCE) { setMidScreenText(tooFarAwayText()); return true; }
+    return feedOnPerson({
+      entity: playerEntity, target, persons, now: Math.floor(ownMinutes()),
+      showBox: vampireFeed.showBox, showWindow: vampireFeed.showWindow ?? null,
+      say: (line) => hud.add(line), onCrime, rolls,
+      regionIndex: typeof regionIndex === 'function' ? regionIndex() : regionIndex,
+    });
+  }
+
+  function activate(target, dist, persons) {
     if (getInteractionMode() === 'steal') {
       // PlayerActivate: pickpocket once per person, 3.2 max - and
       // F048's nesting, so the already-attempted arm is SILENT here
       // too, whatever the range.
       // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire feeds where a mortal picks a purse
-      if (vampireFeed && dist <= PICKPOCKET_DISTANCE && feedOnPerson({ entity: playerEntity, target, persons: _feedPersons, now: Math.floor(ownMinutes()), showBox: (b) => vampireFeed.showBox(b), showWindow: vampireFeed.showWindow ?? null, say: (line) => hud.add(line), onCrime, rolls, regionIndex: typeof regionIndex === 'function' ? regionIndex() : regionIndex })) return;
+      if (tryFeed(target, persons, dist)) return;
       if (target.person.pickpocketAttempted) return;
       if (dist > PICKPOCKET_DISTANCE) { setMidScreenText(tooFarAwayText()); return; }   // AUDIT 64 F34: :790, the same surface
       target.person.pickpocketAttempted = true;
@@ -1489,7 +1500,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
   });
   registerPresenter({ holds: (win) => windows.containsWindow(win) });   // TUT1 audit: whether this host's stack still holds a window (systems/notify.js windowHeld) - a registration of its own, no `mount`, so the presenter above keeps its shape
   return {
-    keydown, keyup, tryActivate, frame, ensureLoaded, nextMode, setMode, pickMode, showOverlay, pushOverlay, setTopics, setPorts, pointerdown, pointer, wheel, hover,   // ROAD-B B1: pushOverlay is the stacking door beside the replacing one   // U45: setMode is the large HUD's mode panel, whose cycle is not nextMode's   // c2/S10: `pointer` is the RELEASE route (down rides pointerdown, move rides hover)
+    keydown, keyup, tryActivate, tryFeed, canFeed, frame, ensureLoaded, nextMode, setMode, pickMode, showOverlay, pushOverlay, setTopics, setPorts, pointerdown, pointer, wheel, hover,   // ROAD-B B1: pushOverlay is the stacking door beside the replacing one   // U45: setMode is the large HUD's mode panel, whose cycle is not nextMode's   // c2/S10: `pointer` is the RELEASE route (down rides pointerdown, move rides hover)
     openTalkWindow,   // B7: TalkToStaticNPC's window push routes here (worldModes' click + the guild popup's TALK)
     /** TK-v: the two halves of the tone the ENGINE asks the host for -
      *  which tone button is selected, and the tier computation for a

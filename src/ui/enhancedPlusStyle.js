@@ -1099,12 +1099,12 @@ export const REFORGE_CSS = `/* ── LOOT9/LOOT10: THE REFORGE'S WINDOW (ui/ref
    over the press beside it: the Scry word (or its "Need 378 more gold") drawn on top of the price, neither readable.
    A row of the Reforge's sizes its price and its press to their words, and the row's own words give way. A family's row
    has no picture, so its words take the first column alone. */
-.reforge-shell .broker-offer:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row) { grid-template-columns: 48px minmax(0, 1fr) max-content minmax(112px, max-content); }
+.reforge-shell .broker-offer:where(:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row):not(.reforge-item-row)) { grid-template-columns: 48px minmax(0, 1fr) max-content minmax(112px, max-content); }
 .reforge-shell .broker-offer.scry-row { grid-template-columns: minmax(0, 1fr) max-content minmax(112px, max-content); }
 .reforge-shell .broker-offer.scry-row > .broker-offer-body { grid-column: 1; }
 .reforge-shell .broker-offer .broker-price { text-align: right; }
 @media (max-width: 720px) {
-  .reforge-shell .broker-offer:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row) { grid-template-columns: 44px minmax(0, 1fr) minmax(112px, max-content); }
+  .reforge-shell .broker-offer:where(:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row):not(.reforge-item-row)) { grid-template-columns: 44px minmax(0, 1fr) minmax(112px, max-content); }
   .reforge-shell .broker-offer.scry-row { grid-template-columns: minmax(0, 1fr) minmax(112px, max-content); }
   .reforge-shell .broker-offer.scry-row .broker-price { grid-column: 1; grid-row: 2; text-align: left; }
   .reforge-shell .broker-offer.scry-row .broker-buy { grid-column: 2; grid-row: 1 / span 2; }
@@ -1121,8 +1121,14 @@ export const REFORGE_CSS = `/* ── LOOT9/LOOT10: THE REFORGE'S WINDOW (ui/ref
 /* MENU-ORDER (2026-10-12): a piece's name whole, on two lines if it needs them - SCRY-FIT's price sized to its words and
    a press's column kept for a row with no press had cut every name on the Reforge's page to "Warrior..." - so a row with
    no press of its own gives that column to its name */
-.reforge-shell .broker-offer:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row):not(:has(> button)) { grid-template-columns: 48px minmax(0, 1fr) max-content; }
-.reforge-shell .broker-name { white-space: normal; line-height: 1.25; }`;
+.reforge-shell .broker-offer:where(:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row):not(.reforge-item-row)):not(:has(> button)) { grid-template-columns: 48px minmax(0, 1fr) max-content; }
+.reforge-shell .broker-name { white-space: normal; line-height: 1.25; }
+.reforge-shell .broker-offer.reforge-item-row { grid-template-columns: auto minmax(0, 1fr); }
+.reforge-item-row .broker-offer-body { min-width: 0; }
+.reforge-item-row .broker-offer-body :is(.broker-name, .broker-price) {
+  text-align: start; white-space: normal; overflow-wrap: anywhere;
+}
+`;
 /** APPEARANCES (bible/04-Characters/Wardrobe.md): THE WARDROBE'S WINDOW (ui/wardrobe/wardrobeWindow.js) - the Broker's shape,
  *  so his sheet lays it; these are its own rules: a worn piece's row with no price, and the card's looks, a line each.
  *  Geometry and the words' colours alone - the kit dresses the rest. APPEARANCES-II: the preview at the card's head (the
@@ -1826,6 +1832,14 @@ button.prof-track:hover, button.prof-track:focus-visible { border-color: var(--b
    the piece: in the button track's one cell every press drew on the first and the name was squeezed to nothing */
 .prof-smelt > .prof-short { grid-column: 1 / -1; }
 .prof-smelt > .prof-lines { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; }
+.prof-reforge-picker { min-width: 0; }
+.prof-reforge-picker summary { cursor: pointer; white-space: normal; }
+.prof-reforge-picker select {
+  display: block; box-sizing: border-box; width: 100%; max-width: 100%; margin-top: 4px;
+  border: 1px solid var(--brass, #846b45); color: var(--bone, #e9e4d9);
+  background: #171b20; font: inherit; color-scheme: dark;
+}
+
 /* PROF3: the anvil - its recipes, a recipe's inputs, and the heat (a bar the glow's marker runs along, the band on it) */
 .prof-metals { margin-top: 4px; }
 .prof-recipe { display: grid; grid-template-columns: 1fr auto; width: 100%; gap: 2px 8px; padding: 4px 8px; margin: 2px 0; text-align: left; font: inherit;

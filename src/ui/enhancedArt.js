@@ -126,9 +126,9 @@ export function spellIconPicture(index, { box, dpr = screenDpr(), onReady = null
 
 /** Spell icon `index` from ICON00I0 (20 to a row, square - the classic
  *  sheet's own 16px). */
-export function spellIconUrl(index) {
+export function spellIconUrl(index, onReady = null) {
   const rect = spellIconRect(index | 0);
-  return rect ? sheetCutUrl(spellIconSheet(index | 0), rect, 2) : null;
+  return rect ? sheetCutUrl(spellIconSheet(index | 0), rect, 2, onReady) : null;
 }
 
 /** Paint a raw { width, height, colors } frame into `cv`, once per frame object. */

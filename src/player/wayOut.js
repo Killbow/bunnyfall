@@ -37,6 +37,7 @@ export const WAY_STEP_DY = 1;
 export const WAY_SNAP_M = 2.5;
 /** How many cells along the path the compass looks for the farthest it can see. */
 export const WAY_LOOK_CELLS = 14;
+const WAY_LINE_CELLS = 24;
 /** Within this of the way in the mark is gone: the door is in front of the player (m). */
 export const WAY_HERE_M = 3;
 /** While the player stands off the field, it is built again at most this often (s). */
@@ -283,14 +284,30 @@ export function createWayOut({ fieldEvery = WAY_FIELD_S, refieldEvery = WAY_REFI
       // the steps taken as clear, asked as the budget allows - a walled one the field walks builds it again
       if (stepClear && field) {
         const f = /** @type {{ next: Int32Array, jump: Uint8Array }} */ (field);
-        while (pendingAt < pending.length && spend()) {
-          const i = pending[pendingAt], j = pending[pendingAt + 1];
-          pendingAt += 2;
+        const verify = (/** @type {number} */ i, /** @type {number} */ j) => {
           const k = stepKey(i, j);
-          if (asked.has(k)) continue;
+          const known = asked.get(k);
+          if (known !== undefined) return known;
           const ok = stepClear(c.pts[i], c.pts[j]) !== false;
           asked.set(k, ok);
           if (!ok && (f.next[j] === i || f.next[i] === j)) walled = true;
+          return ok;
+        };
+        // The field is built from the exit, but the ribbon starts at the player.
+        // Check this local segment first, with its own small budget, even after a large field build.
+        let local = from;
+        const localUntil = clock() + WAY_ASK_MS;
+        for (let step = 0; step < WAY_LINE_CELLS && local >= 0 && local < f.next.length; step++) {
+          const next = f.next[local];
+          if (next < 0 || next === local || f.jump[local]) break;
+          if (!asked.has(stepKey(local, next)) && clock() >= localUntil && step > 0) break;
+          if (!verify(local, next)) break;
+          local = next;
+        }
+        while (pendingAt < pending.length && spend()) {
+          const i = pending[pendingAt], j = pending[pendingAt + 1];
+          pendingAt += 2;
+          verify(i, j);
         }
         if (pendingAt >= pending.length) { pending = []; pendingAt = 0; }
       }
@@ -304,7 +321,7 @@ export function createWayOut({ fieldEvery = WAY_FIELD_S, refieldEvery = WAY_REFI
       let from = nearestCell(cells, feet);
       if (from < 0 || field.next[from] < 0) return [];
       const points = [cells.pts[from]];
-      for (let step = 0; step < 24; step++) {
+      for (let step = 0; step < WAY_LINE_CELLS; step++) {
         const next = field.next[from];
         if (next < 0 || next === from || field.jump[from] || asked.get(stepKey(from, next)) !== true) break;
         points.push(cells.pts[next]);

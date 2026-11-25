@@ -208,7 +208,7 @@ import { quickLootTake, quickLootSpend, plaqueActionFor } from '../items/quickLo
 import { plaqueListing } from '../items/quickLoot.js';   // AUDIT HOME-VOTE B1: whether the plaque lists verbs - the Info box only where none is drawn
 import { lootPile } from '../player/lootStack.js';   // LOOT-STACK: the pile under the reticle, as the loot window's tabs
 import { silverFindAt } from '../items/silverFinds.js';   // SILVER-FINDS (AUDIT 625 S2): an interior's treasure pile rolls its find too
-import { staticDoorName, npcHoverName, questResourceName, questStandItem, worldTooltipsOn, hideInteractTooltip,
+import { staticDoorName, npcHoverName, DAEDRA_ARCHIVE, questResourceName, questStandItem, worldTooltipsOn, hideInteractTooltip,
   houseContainerName, houseContainerHover, actionObjectName, lootPileName, indoorDecorHover,
   BOOKSHELF_TEXT, SHOP_SHELF_TEXT, LADDER_TEXT, BULLETIN_BOARD_TEXT, mobileEntityName, liveEntityName } from '../ui/worldTooltips.js'; import { questFoeSubs } from '../systems/quest/questFoeLine.js';   // WORLD-HOVER: the mod's ladder for the families THIS host stands; QUEST-FOE-LINE: a quest's foe says whose it is   // WORLD-HOVER: the mod's ladder for the families THIS host stands
 import { LOCATION_TYPES, REGION_NAMES, REGION_RACES } from '../formats/mapsFile.js';   // WORLD-HOVER: .cs:777-782 - a dungeon exit names its town, or the region   // WORLD-HOVER: the texture record is DERIVED at its one reader, off the stored model id
@@ -3471,7 +3471,7 @@ export function createWorldModes(host) {
     // (PlayerActivate.cs:87), twice a door's, and a person with no
     // billboard size resolved is not a target at all.
     interiorCtx.people.forEach((pn, i) => {
-      if (!pn.width || pn.active === false) return;   // SetActive(false) takes the collider too
+      if (!(pn.interactionSize?.w ?? pn.width) || pn.active === false) return;   // SetActive(false) takes the collider too
       targets.push({ key: `person:${i}`, aabb: personAabb(pn), distance: STATIC_NPC_ACTIVATION_DISTANCE });
     });
     // Q4-v: quest stands activate like StaticNPCs - a click routes
@@ -3508,7 +3508,12 @@ export function createWorldModes(host) {
   const ownsThisInterior = (b = interiorBuilding) => !privateVisitRoom && ((!!interiorCabin && b === interiorBuilding) || (b?.buildingType === BUILDING_TYPES.Ship && ownsShip(playerEntity))
     || (interiorHome && b === interiorBuilding ? interiorHome.own : houseOwnedAt(b, b?.buildingKey)));   // HOME1: my online home's cupboards are my storage, and another's are not
   const interiorHoverName = composeNamer([
-    (key) => tavernService.hoverName(key),
+    (key) => {
+      if (typeof key !== 'string') return null;
+      if (key.startsWith('tchore:')) return tavernService.choreHover(key);
+      if (key.startsWith('person:')) return tavernService.personHover(interiorCtx?.people[Number(key.slice(7))]);
+      return null;
+    },
     (key) => host.profHoverName?.(key) ?? null,   // INDOOR-SKIN (PROF-MENU): a profession node's acts first (a body's knife and search), as underground
     (key) => interiorCabin && typeof key === 'string' && key.startsWith('exit:') ? { title: isCaravanRoom(interiorCabin) ? CARAVAN_TEXT.exit : 'Return to deck' } : null,   // WAGONS1: the caravan's door
     (key) => {
@@ -3597,9 +3602,7 @@ export function createWorldModes(host) {
       if (key.startsWith('person:')) {
         const pn = interiorCtx.people[Number(key.split(':')[1])];
         if (!pn) return null;
-        const display = officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2/4: an office's name where one stands; L10N3e: else as shown (StaticNPC.cs:321)
-        const t = npcHoverName(display, { archive: pn.archive ?? -1, record: pn.record ?? -1 });
-        return t ? { title: t } : null;
+        return staticPersonHover(pn);
       }
       // .cs:483-512 - a quest ITEM stand; a foe stand answers nothing,
       // as the mod's `is Item` gate does. A quest PERSON is the StaticNPC
@@ -4340,10 +4343,11 @@ export function createWorldModes(host) {
   //
   // The routing law is systems/guild/guildServiceFlow.js; this end owns only
   // the geometry, the faction lookups and the window.
-  const personAabb = (pn) => ({
-    min: [pn.x - pn.width / 2, pn.y, pn.z - pn.width / 2],
-    max: [pn.x + pn.width / 2, pn.y + pn.height, pn.z + pn.width / 2],
-  });
+  const personAabb = (pn) => {
+    const radius = (pn.interactionSize?.w ?? pn.width) / 2;
+    const height = pn.interactionSize?.h ?? pn.height;
+    return { min: [pn.x - radius, pn.y, pn.z - radius], max: [pn.x + radius, pn.y + height, pn.z + radius] };
+  };
 
   /** The live date the guild rank gate reads (S28). AUDIT 21 F2 made
    *  every ticker a VIEW on one absolute world clock, so this reads
@@ -4403,31 +4407,45 @@ export function createWorldModes(host) {
   }
 
 
-  /** AUDIT 58 (talk lane) - ActivateStaticNPC's OWN switch
-   *  (PlayerActivate.cs:753-768). The static-NPC arm had no
-   *  interaction-mode test at all, in either ray: `case Info:
-   *  PresentNPCInfo(npc); break;` (:755-757) is the whole of that mode
-   *  and it reaches NOTHING else - only Grab, Talk and Steal fall to
-   *  StaticNPCClick (:758-767). So in Info mode a shop clerk opened the
-   *  guild-service popup, the merchant/repair/tavern/bank popup, a quest
-   *  offer or the talk window, where DFU prints one HUD line and stops.
-   *
-   *  The gate sits HERE rather than at the two call sites (the exterior
-   *  ray's `person:` arm and the interior ray's) so both rays inherit
-   *  it, which is the four-hosts rule: one law, one place.
-   *
-   *  The mobile arm is NOT this arm and must not be aligned to it -
-   *  ActivateMobileNPC (:773-784) genuinely falls Info, Grab and Talk
-   *  through to one TalkToMobileNPC call, which is the law
-   *  scenes/townTalk.js's header records. */
-  function activateStaticNpc(pn) {
+  function staticPersonName(pn, data = staticNpcData(pn, staticNpcSceneCtx(pn))) {
+    return officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(data);
+  }
+
+  function staticPersonHover(pn) {
+    const data = staticNpcData(pn, staticNpcSceneCtx(pn));
+    const title = npcHoverName(staticPersonName(pn, data), {
+      archive: data.billboardArchiveIndex, record: data.billboardRecordIndex,
+    });
+    return title ? { title } : null;
+  }
+
+  // Info only names the NPC. Steal gives awakened vampires the shared feeding action before ordinary NPC services.
+  function activateStaticNpc(pn, { key = null, distance = Infinity, people = [] } = {}) {
     if (!pn) return;
-    if (mode === 'interior' && getInteractionMode() !== 'info' && getInteractionMode() !== 'steal' && tavernService.activate(pn, plaqueActionFor(`person:${interiorCtx?.people?.indexOf(pn)}`))) return;
+    const interactionMode = getInteractionMode();
+    if (interactionMode === 'steal' && townTalk?.canFeed?.()) {
+      const data = staticNpcData(pn, staticNpcSceneCtx(pn));
+      if (!isChildNPCData(data) && data.billboardArchiveIndex !== DAEDRA_ARCHIVE) {
+        const target = {
+          person: {
+            interactionId: `static:${data.mapID}:${data.context}:${data.buildingKey}:${data.hash}:${data.nameSeed}:${data.factionID}`,
+            nameNPC: staticPersonName(pn, data),
+          },
+          pos: [pn.x, pn.y, pn.z],
+        };
+        const witnesses = people.filter((other) => other !== pn && other.active !== false && !other.dead)
+          .map((other) => ({ person: other, pos: [other.x, other.y, other.z] }));
+        if (mode === 'interior') witnesses.push(...(host.livingInteriorWitnesses?.() ?? []));
+        if (townTalk.tryFeed(target, witnesses, distance)) return;
+      }
+    }
+    if (mode === 'interior' && interactionMode !== 'info' && interactionMode !== 'steal'
+      && tavernService.activate(pn, plaqueActionFor(key))) return;
     // ASYNC NEVER DROPS: FACTION.TXT may still be loading on the first
     // click of a session. ensureFactions coalesces, so the click lands
     // when the file does rather than being swallowed. Info needs the
     // dict too - StaticNPC.DisplayName reads the NPC's faction.
-    const info = getInteractionMode() === 'info';
+    const info = interactionMode === 'info';
     // ARENA1: the Herald of the Arena at the colosseum's gate (world/arena/arenaCity.js ARENA_GATE_PEOPLE) - until the bouts
     // are fought (ARENA2) and the Arena window opens (ARENA3), his word through the one box: the enhanced skin's notice
     // panel, the classic skin's parchment. The recruiters, the bookmaker and the wardens talk as the city's people do.
@@ -4480,7 +4498,7 @@ export function createWorldModes(host) {
    *  default-off state. */
   function presentNpcInfo(pn) {
     const npcSceneCtx = staticNpcSceneCtx(pn);
-    const displayName = officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(staticNpcData(pn, npcSceneCtx));   // ARENA-FIX 2; L10N3e: else npc.DisplayName as shown (StaticNPC.cs:321)
+    const displayName = staticPersonName(pn, staticNpcData(pn, npcSceneCtx));   // ARENA-FIX 2; L10N3e: else npc.DisplayName as shown (StaticNPC.cs:321)
     townTalk?.say?.(presentNpcInfoText(displayName));
   }
 
@@ -4694,7 +4712,7 @@ export function createWorldModes(host) {
       // after the session's first question opened on the follow-up
       // record. talkToNpc is TalkToNpc alone; this is the other member.
       npcSession?.startNewConversation();
-      townTalk.openTalkWindow(talk.greeting, { npcSeed: npcData.nameSeed, npcName: officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(npcData), portrait: staticNpcPortrait(npcData) });   // the DERIVED seed (StaticNPC.Data), as the engine's own reads are; ARENA-FIX 2: an office's name where one stands; L10N3e: else the plate shows TalkManager.NameNPC, the name as shown (DaggerfallTalkWindow.cs:390) - the partner's nameNPC above stays canonical
+      townTalk.openTalkWindow(talk.greeting, { npcSeed: npcData.nameSeed, npcName: staticPersonName(pn, npcData), portrait: staticNpcPortrait(npcData) });   // the DERIVED seed (StaticNPC.Data), as the engine's own reads are; ARENA-FIX 2: an office's name where one stands; L10N3e: else the plate shows TalkManager.NameNPC, the name as shown (DaggerfallTalkWindow.cs:390) - the partner's nameNPC above stays canonical
       return;
     }
     townTalk?.say?.(localizedText('youGetNoResponse', 'You get no response.'));
@@ -7716,9 +7734,7 @@ export function createWorldModes(host) {
     if (key.startsWith('person:')) {                                       // .cs:325-393
       const pn = npcs[Number(key.split(':')[1])];
       if (!pn) return null;
-      const display = officeName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2: the gate's people by office; L10N3e: else as shown (StaticNPC.cs:321)
-      const t = npcHoverName(display, { archive: pn.archive ?? -1, record: pn.record ?? -1 });
-      return t ? { title: t } : null;
+      return staticPersonHover(pn);
     }
     return null;
   }
@@ -7950,7 +7966,7 @@ export function createWorldModes(host) {
     // ...and the NPC arm ENDS the activation, exactly as the interior
     // ray's does: an NPC under the ray is not a door.
     if (typeof key === 'string' && key.startsWith('person:')) {
-      activateStaticNpc(npcs[Number(key.split(':')[1])]);
+      activateStaticNpc(npcs[Number(key.split(':')[1])], { key, distance: _hitDist, people: npcs });
       return true;
     }
     if (typeof key === 'string' && key.startsWith('board:')) {
@@ -9151,7 +9167,7 @@ export function createWorldModes(host) {
         return true;
       }
       if (key.startsWith('person:')) {
-        activateStaticNpc(interiorCtx.people[Number(key.split(':')[1])]);   // U23
+        activateStaticNpc(interiorCtx.people[Number(key.split(':')[1])], { key, distance: _pick.distance, people: interiorCtx.people });   // U23
         return true;
       }
       if (key.startsWith('questflat:')) {
@@ -10164,9 +10180,7 @@ export function createWorldModes(host) {
         // The DISPLAY NAME is resolved by the port's own StaticNPC
         // member - the same one the Info click speaks through - so the
         // plaque and the click can never call one person two things.
-        const display = officeName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2/4: an office's name where one stands; L10N3e: else as shown (StaticNPC.cs:321)
-        const t = npcHoverName(display, { archive: pn.archive ?? -1, record: pn.record ?? -1 });
-        return t ? { title: t } : null;
+        return staticPersonHover(pn);
       });
       ctx.addActivationNamer(dungeonQuestFlatName);   // .cs:483-512 - a quest ITEM stand's long name (the namer is hoisted above; GUIDE8's marks ask it too)
       { const held = host.dungeonEntryHold?.() ?? false; ctx.setEntryHold?.(held); _dungeonAuthority = !held && (host.dungeonAuthority?.() ?? true); ctx.setAuthority?.(_dungeonAuthority); }   // WORLD2: a dungeon built while another hosts starts as puppets; ENTRY-HOLD: online, held until the room's host is known
@@ -10435,7 +10449,8 @@ export function createWorldModes(host) {
     // ...and the NPC arm ENDS the activation, as the other two rays' do.
     if (readReadable(dungeonCtx.editorReadables ?? [], key, (line) => townTalk?.say?.(line))) return true;   // BUNNYFALL
     if (key.startsWith('person:')) {
-      activateStaticNpc((dungeonCtx.npcTargets?.() ?? [])[Number(key.split(':')[1])]);   // WORLD-HOVER: the `person:` index is the registered producer's, so the handler reads THAT list - a second local copy is how the two drift
+      const people = dungeonCtx.npcTargets?.() ?? [];
+      activateStaticNpc(people[Number(key.split(':')[1])], { key, distance: _pick.distance, people });   // WORLD-HOVER: the `person:` index is the registered producer's, so the handler reads THAT list - a second local copy is how the two drift
       return true;
     }
     if (key.startsWith('sdrift:') || key.startsWith('sdreturn:') || key.startsWith('sdstone:') || key.startsWith('sdplaque:')) { dungeonCtx.sdPress?.(key); return true; }

@@ -210,11 +210,9 @@ export function createTavernServiceHost(deps) {
       deps.choose({ lines: [name(id(pn))], options: choices.filter((r) => !r.disabled).map((r, i) => ({ code: `Digit${i + 1}`, label: r.label, action: r.id === 'tservice:talk' ? () => deps.talk(pn) : r.run })) });
       return true;
     },
-    hoverName(key) {
-      if (typeof key === 'string' && key.startsWith('tchore:')) return choreHover(key);
-      if (!live() || typeof key !== 'string' || !key.startsWith('person:')) return null;
-      const pn = deps.people()[Number(key.slice(7))];
-      if (!pn) return null;
+    choreHover,
+    personHover(pn) {
+      if (!live() || !pn) return null;
       const actions = rows(pn);
       if (!actions.length && !busy) return null;
       const npc = id(pn);

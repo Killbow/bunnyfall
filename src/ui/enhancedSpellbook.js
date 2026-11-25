@@ -191,7 +191,7 @@ function paint() {
   host.innerHTML = '';
   const shell = el('div', 'px-home px-over sb-shell');
   if (illustratedUiOn()) shell.classList.add('sb-art-layout');
-  const win = el('div', 'px-win');
+  const win = el('div', 'px-win px-win-pause-wide');
   for (const c of ['tl', 'tr', 'bl', 'br']) win.append(el('span', `px-gem px-corner px-${c}`));
 
   // The bar: the title dead centre with the magicka under it, and Close
@@ -278,7 +278,20 @@ function paint() {
     const b = el('button', `${illustrated ? 'sb-catalogue-row' : 'px-qrow'} sb-row${r.i === picked ? ' on' : ''}`);
     if (illustrated) b.setAttribute('aria-expanded', String(r.i === picked));
     if (r.i === picked) selectedRow = b;
-    b.append(el('span', 'px-c', '\u25c6'), el('span', 'sb-row-name', r.name));
+    const icon = el('span', 'sb-row-icon', spellInitials(r.name));
+    icon.setAttribute('aria-hidden', 'true');
+    if (!r.spell?.noIcon && Number.isInteger(r.spell?.icon)) {
+      const paintIcon = () => {
+        const url = spellIconUrl(r.spell.icon);
+        if (!url) return;
+        const img = el('img');
+        img.alt = '';
+        img.src = url;
+        icon.replaceChildren(img);
+      };
+      if (spellIconUrl(r.spell.icon, paintIcon)) paintIcon();
+    }
+    b.append(icon, el('span', 'sb-row-name', r.name));
     b.append(el('span', 'sb-cost', String(r.cost)));
     b._hotbarSpell = r.spell;   // DIAMOND-HB: point at it and press a hotbar key
     // HB1: a rail row DRAGS onto the hotbar under the window. A mouse

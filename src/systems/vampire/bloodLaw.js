@@ -121,7 +121,7 @@ export const GEM_CHANCE = 5;
 /** A townsperson's blood quality, 1-100 - the same for every reader of the same person (their Living World id, else
  *  their name): 15-85 from the roll, their job's bonus, and now and then a gem (+25). @param {any} person */
 export function qualityOfPerson(person) {
-  const key = String(person?.living?.id ?? person?.nameNPC ?? person?.name ?? 'stranger');
+  const key = String(person?.living?.id ?? person?.interactionId ?? person?.nameNPC ?? person?.name ?? 'stranger');
   const h = hash32(`blood:${key}`);
   const job = person?.living?.res?.job ?? null;
   let q = 15 + (h % 71) + (job ? JOB_QUALITY_BONUS[job] ?? 0 : 0);

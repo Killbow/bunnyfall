@@ -27,7 +27,7 @@ import { setMidScreenText } from '../ui/midScreenText.js';   // DOOR-VOID: the s
 import { applyClimate } from '../world/climateSwaps.js';
 import { remapSubMeshes, markRemapLaw } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam; AUDIT MENU-ORDER C3: a table named by its law
 import { unityMaterialName } from '../audio/immersiveFootsteps.js';   // IF1: MaterialReader's material name, for the mod's floor walk
-import { billboardSize } from '../world/rmbFlats.js';
+import { billboardSize, classicBillboardSize } from '../world/rmbFlats.js';
 import { preloadTextureRecord } from '../render/textureReplacement.js';   // LAMP-KEEPER: a re-materialised person's art, decoded before it is drawn
 import { LAMP_ARCHIVE, LAMP_CLASSIC } from '../world/lampKeeper.js';   // LAMP-KEEPER II: a keeper standing as the lamp, on purpose
 import { isChairModel } from '../world/chairSeat.js';   // SIT1: the seats a player sits on
@@ -683,7 +683,13 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   const standPerson = (pn) => {
     if (pn.stood) return null;
     pn.stood = true;
-    if (pn.lamp) return standLamp(pn);   // LAMP-KEEPER II: the lamp, whatever body the room's people wear
+    // Use the native flat for hit testing even when a mod changes its art or scale.
+    const interaction = getTexture(pn.textureArchive).then((texture) => {
+      if (texture && pn.textureRecord < texture.recordCount) {
+        pn.interactionSize = classicBillboardSize(texture, pn.textureRecord);
+      }
+    }).catch(() => null);
+    if (pn.lamp) return Promise.all([interaction, standLamp(pn)]);   // LAMP-KEEPER II: the lamp, whatever body the room's people wear
     if (_rigFor && !pn.guildClerkArt) {
       const rg = _rigFor(raceOfArchive(pn.textureArchive));
       // AUDIT 39 (#76): the person's FLOOR position rides with the draw
@@ -692,6 +698,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       charDraws.push(pn.standDraw);
     }
     return (async () => {
+      await interaction;
       if (await standGuildClerkArt(pn, renderer, billboardBatches, () => peopleBuilt)) return;
       if (pn.flatSwap === undefined) pn.flatSwap = opts.flatReplacement?.(pn) ?? null;   // WEEB1: Flat Replacer's pick (scenes/flatReplacerStand.js), asked once the quest machine has had the person
       const swapped = pn.flatSwap ? await standFlatSwap(pn, { getTexture, renderer, stillWanted: () => peopleBuilt && pn.stood && !pn.standBatch }) : null;
