@@ -11,6 +11,7 @@
 import { registerFootSpeedMod } from '../player/motor.js';
 import { betterAmbience } from '../audio/betterAmbience.js';
 import { SOUND } from '../audio/soundClips.js';
+import { t } from '../ui/textManager.js';
 import { isBallistaItem, BALLISTA_FOOT_MULT, BALLISTA_KICK } from '../characters/heavyGearIds.js';
 import { predictArc, bindBallistaFx } from './ballista/ballistaFlight.js';
 import { grappleClick, grappleFrame, grappleView, grappleThrowing, bindGrappleSay } from './grapple/grapple.js';
@@ -35,14 +36,16 @@ function bindRig(rig, { audio, say, camera }) {
 }
 
 /**
- * Once a frame. `hookDown` the hook key's state, `canHook` whether a throw may start now. Answers `{ grappling, hookFrame }`:
+ * Once a frame. `hookDown` the hook key's state, `canHook` whether a throw may start now, `hasHook` whether the pack holds a hook. Answers `{ grappling, hookFrame }`:
  * whether the hook's throw is in the hand (the rig then starts no swing and no technique) and the hook's frame to draw.
  */
-export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, paralyzed, hookDown, canHook, camera, collider, canvas, renderer, flip, audio, say }) {
+export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, paralyzed, hookDown, canHook, hasHook, camera, collider, canvas, renderer, flip, audio, say }) {
   bindRig(rig, { audio, say, camera });
   const drawn = !sheathed && !paralyzed;
   _ballistaDrawn = drawn && isBallistaItem(weapon);
-  grappleClick(!!hookDown && !_hookWas && !!canHook && !paralyzed);
+  const edge = !!hookDown && !_hookWas && !!canHook && !paralyzed;
+  if (edge && !hasHook) say?.(t('grapple.noHook', 'You carry no grappling hook.'));
+  else grappleClick(edge);
   _hookWas = !!hookDown;
   const hookFrame = grappleFrame(dt);
   const grappling = grappleThrowing();

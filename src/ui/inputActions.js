@@ -566,7 +566,7 @@ export const ACTION_GROUPS = Object.freeze([
   g('Combat', [
     ['ReadyWeapon', 'Ready or sheathe weapon'], ['SwingWeapon', 'Swing weapon'], ['SwitchHand', 'Switch hand'],
     ['WeaponTechnique', 'Weapon technique (hold to aim)'],   // TECH1
-    ['GrapplingHook', t('input.action.grapplingHook', 'Grappling hook')],   // BUNNYFALL GRAPPLING-HOOK
+    ['GrapplingHook', t('input.action.grapplingHook', 'Throw the grappling hook (carried)')],   // BUNNYFALL GRAPPLING-HOOK
     ['ShotCycle', 'Shot (aboard)'],   // SHOT-KINDS: the guns' load at a helm, stepped on
   ]),
   g('Magic', [

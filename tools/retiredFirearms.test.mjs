@@ -15,7 +15,7 @@ const weapon = (templateIndex) => ({ group: 'Weapons', templateIndex, material: 
 const slot = (template) => ({ type: 'item', kind: 'weapon', key: 'Weapons|' + template + '|0||||||', name: 'Saved weapon' });
 
 test('retired templates are unavailable to the current item and relay laws', () => {
-  for (const template of [560, 561, 562, 565]) {   // 565 the grappling hook, a tool now
+  for (const template of [560, 561, 562]) {
     assert.equal(lawTemplate(template), null);
     assert.equal(lawfulItem(weapon(template)), false);
     assert.equal(validLookItem({ ...weapon(template), equipSlot: 19 }), null);

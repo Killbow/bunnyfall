@@ -5,7 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-25
 
-- Changed: The Grappling Hook is now a tool every character has, on its own key (Numpad1 by default, rebindable in Controls under Combat, and a touch button). You no longer need to buy it, equip it or hold it, it does not replace your weapon or shield, and it works for every class. Range, rest time and the pull are the same. Old Grappling Hooks in your pack, storage and hotbar are removed when you load.
+- Changed: The Grappling Hook is now a tool, not a weapon. Keep one in your pack and press its own key (Numpad1 by default, rebindable in Controls under Combat, and a touch button) to throw it. Any character can use it, whatever their class or weapon skills, and it no longer takes your weapon hand or shield. Range, rest time and the pull are the same. A hook you were holding goes back to your pack.
 
 ## 2026-11-24
 

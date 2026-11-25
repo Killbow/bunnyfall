@@ -9,9 +9,10 @@
 /** The custom template indices, past the crossbow's 563. Their pictures are archives of the same numbers (the Pistolet's
  *  rule): no TEXTURE.564 or 565 exists in ARENA2, so the art is registered as stand-ins (systems/heavyGear.js). */
 export const BALLISTA_TEMPLATE = 564;
-/** 565 was the hook's item number; it is retired (items/retiredItems.js) and the hook is no item. The number only names
- *  the hook's art and the stand-in that holds it in the hand for a throw. */
+/** The hook's item: carried in the pack, never equipped (no hand: characters/equipTable.js), and the GrapplingHook key
+ *  throws it for any body that carries one (combat/grapple/grapple.js). */
 export const GRAPPLE_TEMPLATE = 565;
+export const GRAPPLE_ARCHIVE = 565;
 export const BALLISTA_ARCHIVE = 564;
 
 export const isBallistaItem = (item) => item?.templateIndex === BALLISTA_TEMPLATE;

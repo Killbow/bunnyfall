@@ -1429,7 +1429,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // latch keeps the press made while waiting.
       const armLoosing = armCannotDraw();
       const hookReady = !paralyzed && !!c && !armLoosing && !_heldHit && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && playerWeapon.machine.state === 'Idle' && (entity?.equipCountdown ?? 0) <= 0;   // BUNNYFALL: the hook has its own key; it waits on a swing or a draw in progress, nothing else
-      const gear = stepHeavyGear(_gearToken, { dt, weapon: playerWeapon.weapon, sheathed: playerWeapon.sheathed, held: _held, canAttack, paralyzed, hookDown: !!actionDown?.('GrapplingHook'), canHook: hookReady, camera, collider, canvas: c, renderer, flip: handedFlip(), audio, say });   // BUNNYFALL: the Royal Ballista's slow and arc, the hook's throw (combat/heavyGearRig.js)
+      const gear = stepHeavyGear(_gearToken, { dt, weapon: playerWeapon.weapon, sheathed: playerWeapon.sheathed, held: _held, canAttack, paralyzed, hookDown: !!actionDown?.('GrapplingHook'), canHook: hookReady, hasHook: (entity?.items ?? []).some(isGrappleItem), camera, collider, canvas: c, renderer, flip: handedFlip(), audio, say });   // BUNNYFALL: the Royal Ballista's slow and arc, the hook's throw (combat/heavyGearRig.js)
       _hookFrame = gear.hookFrame;
       _hooking = gear.grappling;
       // TECH1 (bible/05-Combat/Weapon-Techniques.md): THE TECHNIQUE KEY, stepped by the rig that owns the frame - every
