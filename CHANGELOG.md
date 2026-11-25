@@ -6,6 +6,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-24
 
 - Fixed: Gravity Well now pulls enemies on a ship's deck.
+- Fixed: Online standing messages now name every guild whose standing changed, and count Bunnyfall guilds such as the Bards' College as yours.
 - Fixed: Bench crafts with swapped parts, such as Lodestone as flux, now use your bag or pack instead of saying "Your Stores do not hold that many".
 - Fixed: The Company window's list of what each rank may do now shows that only the Captain and the Officers buy farms and animals and order workshops and improvements.
 - Fixed: The estate ledger on a farm now says which day the drover comes with animals for sale, or that he is there today.
