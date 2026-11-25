@@ -1,7 +1,7 @@
 import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
 import { SOUND } from '../../audio/soundClips.js';
 import { showAbilityArt } from './abilityArt.js';
-import { strikeMotionKind } from './strikeMotion.js';
+import { strikeMotionKind, strikeMotionPath } from './strikeMotion.js';
 import { ABILITY_REFUSAL, createAbilityEngine } from './engine.js';
 import { abilitiesEnabled, abilityLoad, syncAbilityUnlocks } from './progress.js';
 import { abilityMayStrike, beginEdgeRitual, clearEdgeRitual, clearWeaponOpenings, localAbilityActor,
@@ -27,6 +27,7 @@ import { bodyRadius } from '../technique/techniqueBlow.js';
 import { AUTOAIM, advanceReach, autoaimFoe, camToward, huntableFoes, lockedLanding, lockedReach, sideHop, sideOf,
   yawToward } from './autoaim.js';
 import { meleeBeatMult, shotMult } from './damage.js';
+import { playAbilitySfx } from '../../audio/abilitySfx.js';
 
 export { PREVIEW_THRUST } from './milestones.js';
 export const abilityPlayable = id => weaponAbilityPlayable(id) || combinationPlayable(id) || !!racialDelivery(id);
@@ -106,6 +107,7 @@ function startMelee(chain, { rig, tc, entity }) {
       sounded = true;
       tc.door?.sound?.(final ? SOUND.Hit4 : SOUND.Hit2, final ? .7 : .45, final ? .78 : .95);
     }
+    playAbilitySfx(cast.ability.id, 'impact');
     const feet = foe.ai?.feet;
     if (feet) showAbilityArt(tc.door, cast.ability.id, 'impact',
       [feet[0], feet[1] + (foe.ai.height ?? 1.6) * .55, feet[2]], { yaw });
@@ -145,6 +147,7 @@ function startMelee(chain, { rig, tc, entity }) {
   }
   const timing = pw.strikeSchedule?.();
   blow.motion = { kind: strikeMotionKind(cast.ability.id, stage, strike, cast.weapon),
+    path: strikeMotionPath(cast.ability.id, next, final && profile.beats > 1),
     side: strike?.includes('Left') ? -1 : 1, start: pw.machine.now,
     hit: timing?.hitAt ?? .2, duration: timing?.seconds ?? .5 };
   rig.blow = blow;
@@ -210,6 +213,7 @@ function stepAdvance(dt, ctx, canStart) {
   }
   if (!motor.grounded) return;
   ctx.rig.advance = null;
+  playAbilitySfx(chain.cast.ability.id, 'land');
   if (!canStart || !ctx.tc.cam) return;
   const feet = ctx.tc.cam.feet;
   // A locked foe takes the strike wherever it moved while the body flew, as long as it stands within reach.
@@ -340,6 +344,8 @@ function stateFor(entity) {
     release,
     canRepeat,
     event: (moment, cast) => {
+      if (moment === 'wind-up') playAbilitySfx(cast.ability.id, 'wind-up');
+      if (moment === 'release') playAbilitySfx(cast.ability.id, cast.delivery.kind === 'self' ? 'self' : 'release');
       if (moment === 'wind-up' || (moment === 'release' && cast.delivery.kind === 'self')) {
         const { cam, door } = state.ctx.tc;
         if (cam?.feet) showAbilityArt(door, cast.ability.id, moment === 'release' ? 'self' : 'wind-up',
@@ -530,6 +536,7 @@ export function claimAbilityEvents(events, tc) {
     } : null;
   const onResolve = (damage, foe) => {
     resolveGameplay?.(damage, foe);
+    if (damage > 0) playAbilitySfx(cast.ability.id, 'impact');
     if (damage > 0 && foe?.ai?.feet) {
       const [x,y,z] = foe.ai.feet;
       showAbilityArt(door, cast.ability.id, 'impact', [x,y+(foe.ai.height ?? 1.6)*.55,z], { yaw: cam.yaw });

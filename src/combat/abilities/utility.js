@@ -6,6 +6,7 @@ import { utilityProfile } from './utilityProfiles.js';
 import { playerDoor } from '../../player/playerDoor.js';
 import { removeBundleNamed } from '../../magic/effects.js';
 import { placeWayfarerLantern, stepWayfarerLantern } from './wayfarerLantern.js';
+import { playAbilitySfx } from '../../audio/abilitySfx.js';
 
 const timers = new WeakMap();
 const trailName = abilityById('utility.trailblazer').name;
@@ -71,6 +72,7 @@ export function requestUtility(entity, id, door = playerDoor()) {
     const state = startCooldown(entity, id, profile.cooldownMs);
     const travelArt = () => {
       if (profile.travel === 'mark') placeWayfarerLantern(entity, door);
+      playAbilitySfx(id, 'self');
       const at = door.feet?.();
       if (at) showAbilityArt(door, id, 'self', [at[0],at[1]+1,at[2]], { yaw: door.facingYaw?.() ?? 0 });
     };
@@ -96,6 +98,7 @@ export function requestUtility(entity, id, door = playerDoor()) {
   if (refusal) return { ok: false, why: 'unavailable', message: refusal };
   door.castOnPlayer(bundle);
   startCooldown(entity, id, profile.cooldownMs);
+  playAbilitySfx(id, 'self');
   if (feet) showAbilityArt(door, id, 'self', [feet[0],feet[1]+1,feet[2]], { yaw: door.facingYaw?.() ?? 0 });
   if (profile.effect !== 17) door.say?.(name);
   return { ok: true };
