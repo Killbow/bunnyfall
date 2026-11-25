@@ -7,6 +7,7 @@ import { mkdirSync } from 'node:fs';
 import os from 'node:os';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { bugReportCommand, createBugReports } from './bugReports.mjs';
 import { portraitRenderer } from './portrait.mjs';
 import { buildEmbed, changelogDay, cpuPercent, memory, probeRelay } from './panel.mjs';
 
@@ -19,6 +20,7 @@ const render = await portraitRenderer(ARENA2_PATH);
 const stateFile = process.env.BUNNYFALL_BOT_DB || './data/lfg.sqlite';
 mkdirSync(dirname(stateFile), { recursive: true });
 const db = new DatabaseSync(stateFile);
+const bugReports = createBugReports(db);
 db.exec('CREATE TABLE IF NOT EXISTS lfg (id TEXT PRIMARY KEY, record TEXT NOT NULL)');
 const get = db.prepare('SELECT record FROM lfg WHERE id = ?');
 // the status panel: ONE row, the channel and message it keeps editing (survives restarts with the rest of data/)
@@ -42,6 +44,7 @@ const boards = {
   'descent-company': 'Elite Breach · Company Descent',
 };
 const commands = [
+  bugReportCommand,
   option(command('player', 'Look up a Bunnyfall character'), 'name', 'Exact character name'),
   command('leaderboard', 'Show the top ten Bunnyfall characters').addStringOption((o) => o
     .setName('board').setDescription('Ranking').setRequired(true)
@@ -175,6 +178,8 @@ async function changeLfg(i, action, id) {
 let rosterQueue = Promise.resolve();
 async function interaction(i) {
   if (i.guildId !== DISCORD_GUILD_ID) return;
+  const bugReport = bugReports(i);
+  if (bugReport) return bugReport;
   if (i.isButton() && i.customId.startsWith('lfg:')) {
     const [, action, id] = i.customId.split(':');
     await i.deferUpdate();
@@ -261,7 +266,7 @@ client.on(Events.InteractionCreate, (i) => {
     console.warn('Interaction:', error.message);
     const content = 'Bunnyfall could not complete that request. Try again shortly.';
     try {
-      if (i.isButton() && i.deferred) await i.followUp({ content, flags: MessageFlags.Ephemeral });
+      if (i.isButton() && i.deferred && i.customId.startsWith('lfg:')) await i.followUp({ content, flags: MessageFlags.Ephemeral });
       else if (i.deferred) await i.editReply(content);
       else if (i.isRepliable()) await privateReply(i, content);
     } catch { /* expired interaction */ }
