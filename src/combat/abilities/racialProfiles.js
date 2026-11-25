@@ -70,12 +70,12 @@ const pilots = new Map([
     description: 'Blend briefly into your surroundings and fire one arrow. A landed shot flashes a mark at the target.',
   }],
   ['racial.khajiit.predators-pounce', melee({
-    advance: launch(3.4, .45), rangeM: 3.4, potency: 1.5, beats: 2, fx: 'flurry',
+    advance: { ...launch(4.6, .45), mech: 'leap', apex: 1.6 }, rangeM: 3.4, potency: 1.5, beats: 2, fx: 'flurry',
     stages: [
       { strike: 'StrikeRight', rangeM: 3.4, control: { poiseShare: .45, shove: .35 }, fx: 'flurry' },
       { strike: 'StrikeLeft', rangeM: 2, arcRad: Math.PI * .28, tempo: 1.45, control: { poiseShare: .55 }, fx: 'flurryFinish' },
     ],
-    description: 'Pounce into a short two-hit combo against the same foe.',
+    description: 'Pounce onto the foe under your aim and rake it with a two-hit combo.',
   })],
   ['racial.argonian.marsh-coil', melee({
     advance: launch(2.8, .54), rangeM: 2.8, targetCap: 2, potency: .75, windUpMs: 170,
@@ -91,8 +91,8 @@ const pilots = new Map([
     description: 'Leave a brief decoy and dash into a quick melee strike.',
   })],
   ['racial.lungaris.harebound', melee({
-    advance: { ...launch(4.3, .45), mech: 'leap', apex: 1.55 }, rangeM: 4.3, potency: 1.2, windUpMs: 175, fx: 'lunge',
-    description: 'Leap forward and strike the first foe in your landing lane.',
+    advance: { ...launch(6.6, .45), mech: 'leap', apex: 2.6 }, rangeM: 4.3, potency: 1.2, windUpMs: 175, fx: 'lunge',
+    description: 'Spring in a long, high hare leap onto the foe under your aim and strike where you land.',
   })],
 ]);
 

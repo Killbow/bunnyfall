@@ -26,6 +26,9 @@ import { pcaaoAttackDamage, pcaaoModules } from '../src/combat/pcaao.js';
 import { createWeapon } from '../src/combat/enemyEquipment.js';
 import { capstonePower, skyfallPattern } from '../src/combat/abilities/capstones.js';
 import { blowSchedule } from '../src/characters/weaponStates.js';
+import { AUTOAIM, autoaimFoe } from '../src/combat/abilities/autoaim.js';
+import { ABILITY_DAMAGE, meleeBeatMult, shotMult, tunedAbility } from '../src/combat/abilities/damage.js';
+import { blowReaches } from '../src/combat/technique/techniqueBlow.js';
 import { BLADE_WEAVE, THOUSAND_CUTS, HUNTING_LINE, PREDATORS_CROSSING, KNOCKOUT_CHAIN, TITANS_HANDS, combinationDelivery } from '../src/combat/abilities/combinations.js';
 
 function offline(t) {
@@ -95,7 +98,7 @@ test('Jab Chain uses three ordinary animation hit frames and keeps the first tar
     assert.equal(blow.chain, chain);
     if (beats > 0) assert.equal(blow.chain.target, primary.entity);
     else blow.chain.target = primary.entity;
-    assert.equal(previewDamage(blow, 100, primary), 78);
+    assert.equal(previewDamage(blow, 100, primary), 140);
     beats++;
   }
   assert.equal(beats, 3);
@@ -1089,4 +1092,91 @@ test('Titan’s Hands opens on one target and sweeps multiple foes with blunt or
     }
     assert.deepEqual(hits, [1, 3]);
   }
+});
+
+test('autoaim locks the foe nearest the crosshair, in sight and hostile, and nothing outside its cone', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const cam = { pos: [0, 1.5, 0], feet: [0, 0, 0], pitch: 0, yaw: 0 };
+  const open = { raycast: () => Infinity };
+  const near = hostile(1.2, 6), wide = hostile(5, 5), behind = hostile(0, -4);
+  const ally = hostile(0, 4, { team: 'PlayerAlly' });
+  assert.equal(autoaimFoe(cam, open, 10, [wide, behind, ally, near]), near);
+  assert.equal(autoaimFoe(cam, open, 10, [wide, behind, ally]), null);
+  assert.equal(autoaimFoe(cam, open, 4, [near]), null, 'out of range');
+  const wall = { raycast: (from, dir, reach) => dir[1] > -.5 && reach > 3 ? 2 : Infinity };
+  assert.equal(autoaimFoe(cam, wall, 10, [near]), null, 'behind a wall');
+  // At arm's length the cone opens so a swing sticks to a foe off to the side.
+  assert.equal(autoaimFoe(cam, open, 3, [hostile(1.2, 1.4)])?.ai.feet[0], 1.2);
+  assert.ok(AUTOAIM.coneRad < AUTOAIM.closeConeRad);
+});
+
+test('a locked leap lands at the foe under the crosshair and strikes it even after it moves', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  for (const id of ['weapon.dai-katana.falling-moon', 'racial.lungaris.harebound']) {
+    const ability = ABILITIES.find(entry => entry.id === id);
+    const template = ability.templates?.[0] ?? 123;
+    const { entity, pw, frame, tc } = fighter(template, ability.skills[0] ?? SKILLS.LongBlade, ability.rank || 50);
+    if (ability.race) entity.race = ability.race;
+    const foe = hostile(1.6, 6.5);
+    const land = flatDelivery(entity, tc, [foe]);
+    frame();
+    assert.ok(requestHotbarAbility(entity, id).ok, id);
+    for (let i = 0; i < 20 && !tc.door.motor().techFlight; i++) frame();
+    const landing = tc.door.motor().landing;
+    assert.ok(landing, id + ' takes off');
+    assert.ok(Math.hypot(landing[0] - 1.6, landing[2] - 6.5) < 1.6, id + ' lands at the foe, not past it');
+    foe.ai.feet = [2.3, 0, 7.1];
+    let hit;
+    for (let i = 0; i < 80 && !hit; i++) { land(); if (frame().includes('hit')) hit = pw.techniqueBlow; }
+    assert.equal(hit?.chain.target, foe.entity, id);
+    assert.ok(blowReaches(hit, foe, { dist: 1.2, inView: true, losClear: true }), id + ' reaches the moved foe');
+  }
+});
+
+test('side hops land beside the locked foe, alternating sides, and strike it', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const { entity, pw, frame, tc } = fighter(116, SKILLS.ShortBlade, 100);
+  const foe = hostile(0, 4);
+  const land = flatDelivery(entity, tc, [foe]);
+  frame();
+  assert.ok(requestHotbarAbility(entity, 'weapon.shortsword.untouchable-waltz').ok);
+  const sides = [];
+  let hits = 0;
+  for (let i = 0; i < 200; i++) {
+    const landing = tc.door.motor().landing;
+    if (landing && sides.length < 2) sides.push(Math.sign(landing[0] - foe.ai.feet[0]));
+    land();
+    if (frame().includes('hit')) {
+      hits++;
+      if (hits <= 2) assert.equal(pw.techniqueBlow.chain.target, foe.entity);
+    }
+  }
+  assert.equal(hits, 3);
+  assert.equal(sides.length, 2);
+  assert.ok(sides[0] !== 0 && sides[0] === -sides[1], 'one hop to each side');
+});
+
+test('every beat of a normal weapon or combination ability lands clearly harder than a plain swing', () => {
+  const plain = 1;
+  for (const ability of ABILITIES.filter(entry => tunedAbility(entry))) {
+    const profile = milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, null);
+    if (!profile || profile.kind === 'self') continue;
+    if (profile.kind === 'ranged') {
+      assert.ok(shotMult(ability, profile.potency, profile.ammo) >= ABILITY_DAMAGE.shotFloor, ability.id);
+      continue;
+    }
+    for (let beat = 0; beat < profile.beats; beat++) {
+      const share = profile.stages?.[beat]?.share ?? 1 / profile.beats;
+      assert.ok(meleeBeatMult(ability, profile.potency, share) >= ABILITY_DAMAGE.meleeBeatFloor, ability.id);
+      assert.ok(meleeBeatMult(ability, profile.potency, share) > plain * 1.3, ability.id);
+    }
+  }
+  // Capstones and racial abilities keep their own weights.
+  const capstone = ABILITIES.find(entry => entry.id === DAGGER_MILESTONES[3]);
+  assert.equal(meleeBeatMult(capstone, 3.25, .2), (1 + 3.25) * .2);
+  const racial = ABILITIES.find(entry => entry.race === 'Nord');
+  assert.equal(meleeBeatMult(racial, 1.05, 1), 2.05);
 });

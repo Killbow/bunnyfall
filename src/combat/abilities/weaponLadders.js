@@ -1,6 +1,8 @@
 // The ladder order follows the four proficiency ranks in the registry.
 const dash = (length, halfW = .55) => ({ mech: 'dash', aim: 'lane', length, halfW });
 const leap = (length, apex = 1.3) => ({ ...dash(length), mech: 'leap', apex });
+// A side hop lands beside the locked foe (or sideways from the view), alternating sides unless `side` is set.
+const hop = (length, side = 0, apex = .45) => ({ mech: 'dash', aim: 'side', length, apex, side });
 const chase = { mech: 'dash', aim: 'target', range: [.5, 5] };
 const shield = (magnitude) => ({ type: 35, subType: 255, rounds: 1, magnitude });
 const haste = (magnitude) => ({ type: 9, subType: 6, rounds: 2, magnitude });
@@ -32,14 +34,14 @@ function ladder(style, rows) {
 export const expandedWeaponLadders = [
   ...ladder('shortsword', [
     ['quickstep-slash', 'Dash a short distance and cut along your path.', { advance: dash(2.7), rangeM: 2.7, fx: 'lunge' }],
-    ['vaulting-riposte', 'Vault forward and punish an interruptible wind-up or an overextended foe.', { advance: leap(3.25), rangeM: 3.25, counterBonus: .85, fx: 'shadowstep' }],
+    ['vaulting-riposte', 'Vault to the side of the foe under your aim and punish an interruptible wind-up or an overextended foe.', { advance: hop(2.8, 1, .7), rangeM: 2.4, counterBonus: .85, fx: 'shadowstep' }],
     ['dancing-route', 'Dash through up to two foes, then change direction for a second dash.', { beats: 2, redirect: true, fx: 'lunge', stages: [
       { strike: 'StrikeRight', advance: dash(3.1), rangeM: 3.1, targetCap: 2, share: .46, tempo: 1.45, fx: 'lunge' },
       { strike: 'StrikeLeft', advance: dash(2.8), rangeM: 2.8, targetCap: 2, share: .54, tempo: 1.45, fx: 'lunge' },
     ] }],
-    ['untouchable-waltz', 'Aim between three quick dashes. The final dash disrupts up to three foes in its path.', { beats: 3, redirect: true, cooldownMs: 31500, capstone: cap(42, 'speed'), fx: 'shadowstep', stages: [
-      { strike: 'StrikeRight', advance: dash(2.8), rangeM: 2.8, targetCap: 2, tempo: 1.55, share: .25, fx: 'lunge' },
-      { strike: 'StrikeLeft', advance: dash(2.8), rangeM: 2.8, targetCap: 2, tempo: 1.55, share: .3, fx: 'shadowstep' },
+    ['untouchable-waltz', 'Hop to one side of your foe, then the other, cutting each time. The final dash disrupts up to three foes in its path.', { beats: 3, redirect: true, cooldownMs: 31500, capstone: cap(42, 'speed'), fx: 'shadowstep', stages: [
+      { strike: 'StrikeRight', advance: hop(2.8, 1), rangeM: 2.4, targetCap: 2, tempo: 1.55, share: .25, fx: 'lunge' },
+      { strike: 'StrikeLeft', advance: hop(2.8, -1), rangeM: 2.4, targetCap: 2, tempo: 1.55, share: .3, fx: 'shadowstep' },
       { strike: 'StrikeDown', advance: dash(3.6, .7), rangeM: 3.6, targetCap: 3, tempo: 1.5, share: .45, control: { poiseShare: .8, shove: 1 }, fx: 'flurryFinish' },
     ] }],
   ]),
@@ -89,7 +91,7 @@ export const expandedWeaponLadders = [
   ]),
   ...ladder('dai-katana', [
     ['iron-draw', 'Commit to a slow downward cut that penetrates armor.', { ...wind(480, 680), strike: 'StrikeDown', armorPierce: .3, fx: 'execute' }],
-    ['falling-moon', 'Leap into a heavy cut through the foes in your landing lane.', { advance: leap(4.1, 1.45), rangeM: 4.1, targetCap: 2, strike: 'StrikeDown', fx: 'execute' }],
+    ['falling-moon', 'Bound high onto the foe under your aim and bring a heavy cut down through it and anyone in your landing lane.', { advance: leap(6.4, 2.5), rangeM: 4.1, targetCap: 2, strike: 'StrikeDown', fx: 'execute' }],
     ['execution-stance', 'Stay planted until release, then deliver a heavy cut that punishes a weakened foe.', { stance: rooted, ...wind(680, 750), lowHealthBonus: 1.1, armorPierce: .25, fx: 'execute' }],
     ['heaven-splitting-draw', 'Hold your ground through a long wind-up, then split the line with an armor-piercing strike.', { stance: rooted, ...wind(1280, 1550), rangeM: 5.4, halfWidthM: .55, targetCap: 3, strike: 'StrikeDown', armorPierce: .5, capstone: cap(55, 'strength'), fx: 'measureFinish' }],
   ]),
@@ -119,14 +121,14 @@ export const expandedWeaponLadders = [
   ]),
   ...ladder('light-flail', [
     ['double-lash', 'Strike twice with a fast repeat lash.', { ...combo(2, 1.42), fx: 'flurry' }],
-    ['chain-flicker', 'Dash past your opening, then deliver a second lash in close range.', { ...combo(2, 1.5), advance: dash(2.6), rangeM: 2.6, fx: 'lunge' }],
+    ['chain-flicker', 'Hop to the side of your foe, then deliver a second lash in close range.', { ...combo(2, 1.5), advance: hop(2.6), rangeM: 2.4, fx: 'lunge' }],
     ['storm-of-links', 'Deliver four fast checks that pressure one foe’s poise.', { ...combo(4, 1.55), control: { poiseShare: .2 }, fx: 'flurry' }],
     ['silver-tempest', 'Deliver six rapid lashes, then knock away foes caught by the last swing.', { ...combo(6, 1.72), ...cleave(2, 1.25), finishControl: { poiseShare: .83, shove: 1.25 }, capstone: cap(35, 'speed'), fx: 'flurry', finishFx: 'flurryFinish' }],
   ]),
   ...ladder('staff', [
     ['staff-jab', 'Jab quickly along a narrow line from outside normal melee range.', { strike: 'StrikeUp', ...wind(140, 300), rangeM: 3.55, halfWidthM: .44, fx: 'measureFinish' }],
     ['sweeping-ward', 'Push up to three foes away and gain a brief shield.', { rangeM: 3.1, ...cleave(3, 1.45, 1.6), selfEffect: shield(13), fx: 'sweep' }],
-    ['vault-strike', 'Vault forward and drive a long thrust through up to two foes in your lane.', { advance: leap(4.4, 1.65), rangeM: 4.4, targetCap: 2, strike: 'StrikeUp', fx: 'lunge' }],
+    ['vault-strike', 'Pole-vault high onto the foe under your aim and drive a long thrust through up to two foes in your lane.', { advance: leap(5.8, 2.2), rangeM: 4.4, targetCap: 2, strike: 'StrikeUp', fx: 'lunge' }],
     ['circle-of-the-master', 'Drive two rapid jabs, then knock nearby foes away with a circular sweep.', { ...combo(3, 1.35), capstone: cap(38, 'willpower'), fx: 'measure', stages: [
       { strike: 'StrikeUp', rangeM: 3.15, halfWidthM: .55, share: .24, tempo: 1.5, fx: 'measureFinish' },
       { strike: 'StrikeUp', rangeM: 3.3, halfWidthM: .55, share: .26, tempo: 1.5, fx: 'measureFinish' },
