@@ -18,7 +18,7 @@ import { abilityLoad, restoreAbilityProgress } from '../src/combat/abilities/pro
 import { windupDoor } from '../src/combat/hostCombat.js';
 import { getPref, setPref } from '../src/ui/uiPrefs.js';
 import { calculateSuccessfulHit, racialModifiers } from '../src/combat/formulas.js';
-import { applySpell, hasActiveEffect, tickActiveEffects } from '../src/magic/effects.js';
+import { applySpell, breakNormalPowerConcealment, hasActiveEffect, tickActiveEffects } from '../src/magic/effects.js';
 import { playerDoor, setPlayerDoor } from '../src/player/playerDoor.js';
 import { createPlayerMagic } from '../src/magic/hostMagic.js';
 import { liveStat } from '../src/characters/statMods.js';
@@ -524,7 +524,10 @@ test('Veil Cut applies concealment and adds damage against an unaware target', (
   let hit;
   for (let i = 0; i < 60 && !hit; i++) if (frame().includes('hit')) hit = pw.techniqueBlow;
   assert.ok(hit);
-  assert.ok(hasActiveEffect(entity, 'chameleonNormal'));
+  breakNormalPowerConcealment(entity);
+  assert.ok(hasActiveEffect(entity, 'chameleonTrue'));
+  tickActiveEffects(entity, {}, () => 0);
+  assert.ok(!hasActiveEffect(entity, 'chameleonTrue'));
   const foe = hostile(0, 1);
   assert.equal(previewDamage(hit, 100, foe), 165);
   assert.equal(previewDamage(hit, 100, foe, { unaware: true }), 245);
@@ -836,6 +839,42 @@ test('capstone power grows with skill, level, weapon material and style attribut
   const power = (entity, material) => capstonePower(capstone, entity, SKILLS.Archery, { material });
   assert.ok(power(high, 8) > power(high, 0));
   assert.ok(power(high, 0) > power(low, 0));
+});
+
+test('Blade Weave draws the opening lane at contact and hits an enemy overlapping its edge', (t) => {
+  offline(t);
+  const { entity, pw, frame, tc } = fighter(120, SKILLS.LongBlade, 75);
+  entity.skills[SKILLS.ShortBlade] = 75;
+  let points;
+  tc.door.fx = (recipe, _origin, options) => {
+    if (recipe === 'ability-contact') points = options.points;
+  };
+  frame();
+  assert.ok(requestHotbarAbility(entity, BLADE_WEAVE).ok);
+  for (let i = 0; i < 60 && !points; i++) frame();
+  assert.ok(points?.some(([x, , z]) => x === .75 && z === 3.4));
+  const graze = hostile(1.12, 2);
+  const outside = hostile(1.25, 2);
+  const blocked = hostile(.7, 1);
+  const hits = pw.resolveHit([outside, blocked, graze], entity,
+    foe => ({ ...clearSight(), losClear: foe !== blocked }), () => 0);
+  assert.deepEqual(hits.map(hit => hit.foe), [graze]);
+});
+
+test('Shared Resolve raises capped Endurance temporarily without raising the base stat', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const { entity, frame } = fighter(114, SKILLS.ShortBlade, 75);
+  entity.stats.endurance = 100;
+  setPlayerDoor({ player: () => entity, castOnPlayer: bundle => applySpell(bundle, 1, entity, {}, () => 0) });
+  frame();
+  assert.ok(requestHotbarAbility(entity, 'weapon.tanto.shared-resolve').ok);
+  for (let i = 0; i < 15; i++) frame();
+  assert.equal(liveStat(entity, 'endurance'), 108);
+  assert.equal(entity.stats.endurance, 100);
+  tickActiveEffects(entity, {}, () => 0);
+  tickActiveEffects(entity, {}, () => 0);
+  assert.equal(liveStat(entity, 'endurance'), 100);
 });
 
 test('Blade Weave learns from both blades and works independently of the legacy path', (t) => {

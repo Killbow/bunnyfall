@@ -51,6 +51,7 @@ export async function loadBallistaArt(renderer, opts = {}) {
   const { tex, width, height } = await cells(renderer, BALLISTA_STRIP, 'ballista', opts);
   return {
     weaponType: WEAPON_TYPES.Bow,
+    drawScale: 0.68,
     anims: BALLISTA_ANIMS,
     records: [{ width, height, frames: BALLISTA_FRAME_MAP.map((i) => tex[i]) }],
   };

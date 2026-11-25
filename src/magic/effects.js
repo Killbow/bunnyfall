@@ -1186,10 +1186,15 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
       const rounds = rollDuration(e, casterLevel);
       if (rounds > 0) {
         const stat = STAT_KEYS_ORDER[e.subType];
-        const sKey = settingsKeyOf(e);
+        const sKey = settingsKeyOf(e) + (e.raiseStatCap === true ? ',raiseStatCap' : '');
         const inc = findInc((a) => a.kind === 'fortifyAttribute' && a.stat === stat && a.settingsKey === sKey);
         if (inc) renewRounds(inc, rounds - 1);
-        else pushActive(target, { kind: 'fortifyAttribute', stat, settingsKey: sKey, magnitude: magnitude(e), roundsRemaining: rounds }, sinks, rolls);
+        else {
+          const amount = magnitude(e);
+          pushActive(target, { kind: 'fortifyAttribute', stat, settingsKey: sKey, magnitude: amount, roundsRemaining: rounds,
+            ...(e.raiseStatCap === true ? { statMaxMods: { [stat]: amount } } : {}),
+          }, sinks, rolls);
+        }
         out.fortified = (out.fortified ?? 0) + 1;
       }
       continue;

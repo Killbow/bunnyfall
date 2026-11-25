@@ -52,6 +52,9 @@ export function blowReaches(blow, foe, sight) {
     const L = blow.lane, rx = f[0] - L.from[0], rz = f[2] - L.from[1];
     const along = rx * L.dir[0] + rz * L.dir[1];
     const across = Math.abs(rx * L.dir[1] - rz * L.dir[0]);
+    if (blow.contactShape) {
+      return Math.hypot(Math.max(0, -along, along - L.len), Math.max(0, across - L.halfW)) <= r;
+    }
     return along >= (blow.ability ? 0 : -0.5) && along <= L.len + r && across <= L.halfW + r;
   }
   // AUDIT TECH1: a blow with a TARGET (Shadowstep's) is that foe's alone, all round within its reach - the dash lands it
@@ -61,6 +64,14 @@ export function blowReaches(blow, foe, sight) {
   if (arc === 'view') return !!sight.inView && sight.dist <= blow.reach;
   if (!f || !blow.feet) return sight.dist <= blow.reach;
   const dx = f[0] - blow.feet[0], dz = f[2] - blow.feet[2], d = Math.hypot(dx, dz);
+  if (blow.contactShape) {
+    if (!level(f[1]) || d > blow.reach + r) return false;
+    const angle = Math.atan2(dx, dz) - blow.yaw;
+    const fromEdge = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) - arc;
+    if (fromEdge <= 0) return true;
+    const alongEdge = Math.max(0, Math.min(blow.reach, d * Math.cos(fromEdge)));
+    return Math.hypot(d * Math.sin(fromEdge), d * Math.cos(fromEdge) - alongEdge) <= r;
+  }
   // the capsule's edge within reach on the level - or, a big body (the court's boss), its surface by the host's own sight
   if (!((d - r <= blow.reach && level(f[1])) || sight.dist <= blow.reach)) return false;
   if (arc === 'all' || d < TECH_POINT_BLANK) return true;

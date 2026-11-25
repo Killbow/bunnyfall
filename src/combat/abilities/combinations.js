@@ -96,14 +96,14 @@ export function combinationDelivery(id, weapon) {
     share: .66, control: { poiseShare: .45 }, fx: 'crush' };
   switch (id) {
     case BLADE_WEAVE:
-      return melee([opening, cut], { potency: 1.25, spend: 6, cooldownMs: 10500, windUpMs: 150, activeMs: 550, recoveryMs: 420 });
+      return melee([{ ...opening, halfWidthM: .75, toHit: 12 }, cut], { potency: 1.25, spend: 6, cooldownMs: 10500, windUpMs: 150, activeMs: 550, recoveryMs: 420 });
     case THOUSAND_CUTS:
       return melee([
         { ...opening, targetCap: 3, share: .4 },
         { ...cut, strike: 'StrikeLeft', share: .25 },
         { ...cut, share: .35 },
-      ], { advance: advance(short ? 3.8 : 4.8, .62), redirect: true, capstone: { base: 34, stat: 'speed' },
-        potency: 2, spend: 14, cooldownMs: 38000, windUpMs: 420, activeMs: 1000, recoveryMs: 1000 });
+      ], { advance: advance(short ? 3.8 : 4.8, .62), redirect: true, capstone: { base: 22, stat: 'speed' },
+        potency: 1.6, spend: 14, cooldownMs: 38000, windUpMs: 420, activeMs: 1000, recoveryMs: 1000 });
     case HUNTING_LINE:
     case PREDATORS_CROSSING:
       return huntingDelivery(id === PREDATORS_CROSSING, skill, template);
