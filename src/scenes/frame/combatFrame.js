@@ -23,9 +23,9 @@ import { sunDirection } from '../../world/worldClock.js';
 /** @param {any} shared */
 export function createCombatFrame(shared) {
   const {
-    _crimeResponse, _fr, _guardPool, _underLook, arrows, cam, cityGuards, deepWaters, drainExteriorFatigue,
+    _crimeResponse, _deckBodies, _fr, _guardPool, _underLook, arrows, cam, cityGuards, deepWaters, drainExteriorFatigue,
     duelArrowTargets, duelMeleeHit, duelStrikeOut, dwRender, exteriorFoes, gamePaused, hitEffects, livingStrikeRoad,
-    livingStruckPool, magic, modes, player, playerTicker, renderer, serpentArrowOn, townTalk, walkMode, weaponRig,
+    livingStruckPool, magic, modes, navalLeash, player, playerTicker, renderer, serpentArrowOn, townTalk, walkMode, weaponRig,
   } = shared;
   function frameArrowsPhase(now, dt) {
     const { minute, foeDt } = _fr;
@@ -140,6 +140,8 @@ export function createCombatFrame(shared) {
         const _mfwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
         magic.firePending([...cam.pos], _mfwd, gamePaused());   // AUDIT SPELL-HAND L4-6: a kept press never leaves under a window
         magic.update(dt, player.pos, _mfwd, player.height, player.feetAt());   // X11: the candle hangs off the look direction; DISC13-A off the render feet
+        // Spells such as Gravity Well move deck bodies, so save their spots again or the carry undoes it.
+        if (_deckBodies.size) navalLeash();
         { const mv = lycanthropeMoveSound(playerEntity, dt); if (mv != null) audio.playOneShot(mv, 1); }   // LM1: the beast's own noise while transformed (real time)
       }
       // U8h/AUDIT 17e F17: the worn-weapon bind moved INTO createWeaponRig
