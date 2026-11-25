@@ -15688,9 +15688,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get weather() { return weather; },
   });
   const { frameArrowsPhase, frameRigPhase } = createCombatFrame({
-    _crimeResponse, _fr, _guardPool, _underLook, arrows, cam, cityGuards, deepWaters, drainExteriorFatigue,
+    _crimeResponse, _deckBodies, _fr, _guardPool, _underLook, arrows, cam, cityGuards, deepWaters, drainExteriorFatigue,
     duelArrowTargets, duelMeleeHit, duelStrikeOut, dwRender, exteriorFoes, gamePaused, hitEffects, livingStrikeRoad,
-    livingStruckPool, magic, modes, player, playerTicker, renderer, serpentArrowOn, townTalk, walkMode, weaponRig,
+    livingStruckPool, magic, modes, navalLeash, player, playerTicker, renderer, serpentArrowOn, townTalk, walkMode, weaponRig,
     get _dwFogP() { return _dwFogP; },
     get _dwFrame() { return _dwFrame; },
     get playerSpawned() { return playerSpawned; },

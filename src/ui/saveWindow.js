@@ -162,6 +162,7 @@ import {
   enumerateSaves, findSave, findMostRecentSave, saveInfoOf, screenshotOf,
   deleteSave, renameSave, characterNames,
 } from '../saves/saveSlots.js';
+import { rescanSaves } from '../platform/appStorage.js';
 
 /** The window rects, panel-relative [x, y, w, h] (:34-270). The main
  *  panel centers in the 320x200 native space. */
@@ -275,6 +276,7 @@ export class SaveWindow {
    *  displayMostRecentChar, order the character's saves by realTime
    *  DESCENDING. */
   refresh() {
+    rescanSaves();
     const { info, characterSaves } = enumerateSaves();
     const mostRecent = findMostRecentSave();
     this.characterCount = characterSaves.size;   // CharacterCount, the :449 gate

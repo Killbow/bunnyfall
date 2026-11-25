@@ -64,7 +64,7 @@ const PREFS_DIR = 'Prefs';
 const DATA_FILE = 'SaveData.txt';
 const INFO_FILE = 'SaveInfo.txt';
 // The screenshot's possible spellings. .jpg is what
-// capturePendingScreenshot produces (toDataURL('image/jpeg')); .png
+// capturePendingScreenshot produces (a JPEG blob); .png
 // covers a future capture change; .dataurl is the verbatim fallback
 // for anything else. When more than one exists (a crash between the
 // write and the old spelling's removal), the newest mtime wins - see
@@ -189,7 +189,7 @@ function writeAtomic(file, data, durable = true) {
  *             removeItem:(k:string)=>void,
  *             rescan:()=>void, root:string }}
  */
-function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
+function createFileStorage(root, { readTtlMs = 1000 } = {}) {
   const savesDir = path.join(root, SAVES_DIR);
   const prefsDir = path.join(root, PREFS_DIR);
   const slotDir = (n) => path.join(savesDir, `SAVE${n}`);
@@ -220,34 +220,16 @@ function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
   };
 
   // ---- the live index (the enumeration half of localStorage) ----
-  // Rebuilt from disk on construction and then whenever length() is
-  // asked after scanTtlMs of index age - so a save the player copied
-  // into an OPEN Saves folder (the advertised backup workflow, and
-  // the menu's Open Saves Folder invites it) appears on the next
-  // enumeration sweep instead of waiting for a relaunch. The TTL is
-  // what keeps the consumers' `for (i < length) key(i)` loops
-  // consistent: length() is asked on every iteration, and a rescan
-  // MID-SWEEP could shift key(i) under the caller - one sweep runs
-  // in microseconds, so a fresh scan at its first length() covers it
-  // and the TTL blocks another until long after it ends.
+  // Built from disk on construction and updated on every write. The page rescans when it opens a save list or makes
+  // a save, and the preload rescans on window focus. A sweep must not see keys shift, so length() never rescans.
+
   // ---- the read cache (STORE-CACHE) ----
-  // localStorage answers getItem from memory, and the game's readers
-  // are written against that: the professions' book asks the signed-in
-  // session for every harvest node near the player, every frame, and
-  // the remains waypoint, the claims and the weapon's glyphs each read
-  // their key a frame too. Over files every one of those was a
-  // readFileSync - 19% of the main thread in a town on the live client
-  // (2026-10-11). A pref or slot file's text is kept here as last read
-  // or written, and read from disk again after readTtlMs - so a file
-  // edited or copied in by hand is seen within it, and at once by the
-  // next enumeration sweep, whose rescan empties this. The screenshot
-  // is never kept: it is read only to be shown, and its spelling is
-  // the disk's to say.
-  const read = new Map();   // key -> { value, at }
+  // Several keys are read every frame. Prefs are cached for the session (this store is their only writer while the
+  // game runs), slot files for readTtlMs, and screenshots until a write, remove, or rescan.
+  const read = new Map();   // key -> { value, at, pref, shot }
   let keys = [];
-  let lastScan = 0;
   const rescan = () => {
-    read.clear();
+    for (const [k, kept] of read) if (!kept.pref) read.delete(k);
     keys = [];
     const seen = new Set();
     const push = (k) => { if (!seen.has(k)) { seen.add(k); keys.push(k); } };
@@ -286,7 +268,6 @@ function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
         push(k);
       }
     } catch { /* no Prefs yet */ }
-    lastScan = Date.now();
   };
   rescan();
   const indexAdd = (k) => { if (!keys.includes(k)) keys.push(k); };
@@ -296,30 +277,29 @@ function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
   return {
     root,
     rescan,
-    length: () => {
-      if (Date.now() - lastScan >= scanTtlMs) rescan();   // >=, so scanTtlMs 0 means "every sweep"
-      return keys.length;
-    },
+    length: () => keys.length,
     key: (i) => keys[i] ?? null,
 
     getItem(key) {
       key = String(key);
       const kept = read.get(key);
       const now = Date.now();
-      if (kept && now >= kept.at && now - kept.at < readTtlMs) return kept.value;
+      if (kept && (kept.pref || kept.shot || (now >= kept.at && now - kept.at < readTtlMs))) return kept.value;
       const at = fileOf(key);
       if (at.pref || at.file) {
         let value;
         try { value = fs.readFileSync(at.pref ?? at.file, 'utf8'); } catch { value = null; }   // absent reads as null
-        read.set(key, { value, at: now });
+        read.set(key, { value, at: now, pref: !!at.pref });
         return value;
       }
+      let value = null;   // absent reads as null, localStorage's answer
       try {
         const shot = shotFileOn(at.shotDir);
-        if (!shot) return null;
-        if (!shot.mime) return fs.readFileSync(shot.path, 'utf8');   // the verbatim fallback
-        return `data:${shot.mime};base64,${fs.readFileSync(shot.path).toString('base64')}`;
-      } catch { return null; }   // absent reads as null, localStorage's answer
+        if (shot && !shot.mime) value = fs.readFileSync(shot.path, 'utf8');   // the verbatim fallback
+        else if (shot) value = `data:${shot.mime};base64,${fs.readFileSync(shot.path).toString('base64')}`;
+      } catch { value = null; }
+      read.set(key, { value, at: now, shot: true });
+      return value;
     },
 
     setItem(key, value) {
@@ -329,8 +309,9 @@ function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
       if (at.pref || at.file) {
         read.delete(key);   // a write that throws may still have moved the file: read it again
         writeAtomic(at.pref ?? at.file, value, !at.pref);
-        read.set(key, { value, at: Date.now() });
+        read.set(key, { value, at: Date.now(), pref: !!at.pref });
       } else {
+        read.delete(key);
         // The screenshot: a decodable jpeg/png data URL becomes a
         // real image file; anything else - including image MIMEs we
         // have no honest extension for - is kept VERBATIM in the
@@ -342,8 +323,9 @@ function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
         const target = parsed?.mime === 'image/png' ? 'Screenshot.png'
           : parsed?.mime === 'image/jpeg' ? 'Screenshot.jpg'
           : 'Screenshot.dataurl';
+        // A thumbnail skips the disk flush; if the app crashes, the old or the new file stays whole.
         writeAtomic(path.join(at.shotDir, target),
-          target === 'Screenshot.dataurl' ? value : parsed.bytes);
+          target === 'Screenshot.dataurl' ? value : parsed.bytes, false);
         for (const [name] of SHOT_FILES) {
           if (name === target) continue;
           try { fs.rmSync(path.join(at.shotDir, name), { force: true }); } catch { /* leftover only */ }

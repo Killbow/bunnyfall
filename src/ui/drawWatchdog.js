@@ -42,8 +42,8 @@ function startTicking() {
 /**
  * Arm the watchdog of a draw made now: `release()` runs once the owner has STOPPED drawing - an animation frame came
  * and went without it (DRAW_FRAMES_UNDRAWN ticks past this draw), or no frame at all for DRAW_STALL_MS. A frame
- * slower than `ms` is not a stop: the check re-arms. Every draw disarms the last handle before it arms its own
- * (disarmDraw). `schedule`/`cancel` are the owner's timer seams (a suite's hand-turned clock).
+ * slower than `ms` is not a stop: the check re-arms. A draw disarms the last handle and arms its own (disarmDraw),
+ * or refreshes the live one (refreshDraw). `schedule`/`cancel` are the timer hooks (a test passes a manual clock).
  * @param {number} ms
  * @param {() => void} release
  * @param {{ schedule?: (fn: () => void, ms: number) => any, cancel?: (t: any) => void }} [seams]
@@ -55,6 +55,9 @@ export function armDrawWatchdog(ms, release, { schedule = defaultSchedule, cance
   const check = () => {
     h.t = null;
     if (!h.live) return;
+    // A refreshed draw (refreshDraw) waits out the rest of its own `ms`, as a fresh arm would have.
+    const since = wall() - h.at;
+    if (since < ms) { h.t = schedule(check, ms - since); return; }
     if (ticks - h.mark >= DRAW_FRAMES_UNDRAWN || wall() - h.at >= DRAW_STALL_MS) {
       disarmDraw(h);
       release();
@@ -64,6 +67,13 @@ export function armDrawWatchdog(ms, release, { schedule = defaultSchedule, cance
   };
   h.t = schedule(check, ms);
   return h;
+}
+
+/** @returns {boolean} */
+export function refreshDraw(h) {
+  if (!h || !h.live) return false;
+  h.mark = ticks; h.at = wall();
+  return true;
 }
 
 /** Cancel a draw's watchdog (the next draw's, or the face's own close). Safe on null and twice. */
