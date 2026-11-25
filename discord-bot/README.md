@@ -30,7 +30,7 @@ When players enter a tavern or start a shift, some patrons take the display name
 
 Run `/bugreport setup channel:#bug-reports` with **Manage Server** permission. The bot posts a **Report a Bug** button in the selected text channel. Run setup again to move the button. The panel and report ownership survive bot restarts in the same SQLite database as the LFG rosters.
 
-Players click **Report a Bug** and follow the private link to a public thread. The bot posts standard questions about what happened, how to reproduce it, where and when it happened, the player's platform, and any screenshots or error messages. Players answer in the thread. The reporter or a moderator with **Manage Threads** can click **Archive Report** to lock and archive it.
+Players click **Report a Bug** and follow the private link to a public thread. The bot posts standard questions about what happened, how to reproduce it, where and when it happened, the player's platform, and any screenshots or error messages. Players answer in the thread. The reporter or a moderator with **Manage Threads** can click **Close and Delete Report** and confirm to permanently delete the thread and all its messages. Older **Archive Report** buttons also ask for confirmation before deleting.
 
 In the selected channel, the bot needs **View Channel**, **Send Messages**, **Create Public Threads**, **Send Messages in Threads**, and **Manage Threads**. Players need access to the channel and **Send Messages in Threads** to fill out a report. People with access to the channel can see the reports.
 
