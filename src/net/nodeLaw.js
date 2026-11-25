@@ -24,8 +24,7 @@
 // Pure: no clock of its own, no DOM, no network. Both ends read it.
 // ═══════════════════════════════════════════════════════════════════
 
-import { gateHash } from './gateLaw.js';
-import { seamSlot, richSeam, richOre, seamSecondDraw } from './expeditionLaw.js';   // CAVERNS-MINING-LOGGING: a dungeon's seam   // the one mix every clock-law in the world rolls with
+import { gateHash } from './gateLaw.js';   // the one mix every clock-law in the world rolls with
 import { skyClassicMinutes } from './skyLaw.js';   // TIME1: a UTC day's season and month are the SKY's (bible/06-Systems/Online-Time-Arc.md section 4)
 import { CLIMATES, REGION_NAMES } from '../formats/mapsTables.js';
 import { SEASONS, seasonValue, dateFromClassicMinutes } from '../world/gameDate.js';
@@ -396,18 +395,9 @@ export const dungeonVeinCount = (dungeon, day) => 1 + (nodeRoll('dvein', dungeon
 export function dungeonVein({ dungeon, day, slot, climate, confirmed = false }) {
   if (!dungeonOk(dungeon) || slot >= dungeonVeinCount(dungeon, day)) return null;
   const table = confirmed ? dungeonVeinTable(climate) : DUNGEON_VEINS;
-  let d = drawFromTable(table, unit('dvein', dungeon, 0, day, slot, 3), unit('dvein', dungeon, 0, day, slot, 4));
+  const d = drawFromTable(table, unit('dvein', dungeon, 0, day, slot, 3), unit('dvein', dungeon, 0, day, slot, 4));
   if (!d) return null;
-  let seam = false, rich = false;
-  if (slot === seamSlot(dungeonVeinCount(dungeon, day))) {   // CAVERNS-MINING-LOGGING: the seam - the better of two draws, or a rich magical ore
-    seam = true;
-    if (richSeam(dungeon, day)) { rich = true; const material = richOre(dungeon, day); d = { tier: tierOfKey(material), material }; }
-    else {
-      const d2 = drawFromTable(table, seamSecondDraw(dungeon, day, 0), seamSecondDraw(dungeon, day, 1));
-      if (d2 && d2.tier > d.tier) d = d2;
-    }
-  }
-  return { seam, rich, slot, tier: d.tier, material: d.material, marker: unit('dvein', dungeon, 0, day, slot, 1), bearing: 2 * Math.PI * unit('dvein', dungeon, 0, day, slot, 2) };
+  return { slot, tier: d.tier, material: d.material, marker: unit('dvein', dungeon, 0, day, slot, 1), bearing: 2 * Math.PI * unit('dvein', dungeon, 0, day, slot, 2) };
 }
 export function dungeonVeins(p) {
   const out = [];
