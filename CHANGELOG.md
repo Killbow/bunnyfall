@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-25
+
+- Changed: The Grappling Hook is now a tool every character has, on its own key (Numpad1 by default, rebindable in Controls under Combat, and a touch button). You no longer need to buy it, equip it or hold it, it does not replace your weapon or shield, and it works for every class. Range, rest time and the pull are the same. Old Grappling Hooks in your pack, storage and hotbar are removed when you load.
+
 ## 2026-11-24
 
 - New: The main owner of a house can add their other characters as co-owners at its door. If the main owner is deleted, the first co-owner with room for another house takes over, or deletion is refused if none has room.

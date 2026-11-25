@@ -441,7 +441,6 @@ export const POI_ITEM_CHOICES = Object.freeze(/** @type {[number, string, string
   [113, "Weapons", "Dagger"],
   [123, "Weapons", "Dai-katana"],
   [125, "Weapons", "Flail"],
-  [565, "Weapons", "Grappling Hook"],
   [121, "Weapons", "Katana"],
   [514, "Weapons", "Light Flail"],
   [130, "Weapons", "Long Bow"],

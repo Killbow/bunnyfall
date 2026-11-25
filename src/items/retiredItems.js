@@ -1,4 +1,5 @@
-const RETIRED_TEMPLATES = new Set([560, 561, 562]);
+// 565 the grappling hook, an item until 2026-11-25: it is a tool every character carries now (combat/grapple/grapple.js)
+const RETIRED_TEMPLATES = new Set([560, 561, 562, 565]);
 
 /** Reserved template IDs from older saves. They cannot be used or minted. */
 export const isRetiredItem = (item) => RETIRED_TEMPLATES.has(item?.templateIndex);
