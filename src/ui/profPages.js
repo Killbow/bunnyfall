@@ -2630,13 +2630,9 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
       const b = el('button', 'act', _essReforge.busy === pc.item ? 'Reforging...' : `Reforge: ${line.text}`);
       b.type = 'button';
       const choices = reforgeChoices(pc.item, line.index);
-      const picker = el('details', 'prof-reforge-picker');
-      const summary = el('summary', 'act', `Replace ${line.text}`);
       const select = upgradeSelect(`Replace ${line.text}`, choices, affixLabel);
-      select.size = 8;
+      const summary = el('div', 'prof-reforge-pick', `Replace ${line.text}`);
       select.disabled = !!_essReforge.busy;
-      picker.append(summary, select);
-      picker.addEventListener('toggle', () => { if (picker.open) select.focus(); });
       b.disabled = true;
       select.onchange = () => {
         b.disabled = !!_essReforge.busy || !!short || have < n || select.value === '';
@@ -2654,7 +2650,7 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
           rerender();
         }
       };
-      presses.append(picker, b);
+      presses.append(summary, select, b);
     }
     row.append(presses);
     detail.append(row);
