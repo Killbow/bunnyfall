@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-25
 
+- Fixed: The lockpicking Auto attempt button no longer has a red warning border, and its tooltip no longer says a failed roll snaps a pick.
 - Fixed: The Essence reforge lists (and the Reforge window's replacement list) now scroll inside the window, so every replacement bonus can be reached on every line. They were cut off in the desktop app.
 - Fixed: Logging in no longer fails to load active quests with "this is expected if quest mod removed". The quest list was read before the game had loaded its people, so quests naming a person could not load. The game now waits for that, and a quest that still cannot load is set aside with its progress kept, and tried again at the next login.
 - Changed: Vampires have a short Vampirism tutorial, from the first bite to the Clan Gift. It pops once as each part matters, and you can read it again under Menu > Tutorials.
