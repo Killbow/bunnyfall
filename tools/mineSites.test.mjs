@@ -55,3 +55,19 @@ test('world map reveals distant mine entrances and omits occupied sites', async 
   locations.delete(sites[0] + ',450');
   assert.deepEqual(marks().map(({ x }) => x), sites);
 });
+
+test('orange mine markers appear only in the near zoom band', async () => {
+  const { paintInkOverlay, ZOOM_BANDS } = await import('../src/ui/inkMap.js');
+  let dots = 0;
+  const ctx = { setTransform() {}, save() {}, restore() {}, beginPath() {}, fill() {}, stroke() {}, arc() { dots++; } };
+  const opts = { paperW: 200, paperH: 120, mines: [{ x: 2, y: 2 }] };
+  const draw = (scale) => paintInkOverlay(ctx, { ox: 0, oy: 0, scale }, opts);
+  const near = ZOOM_BANDS.find(({ name }) => name === 'near').min;
+  draw(1);
+  draw(near - 0.01);
+  assert.equal(dots, 0);
+  draw(near);
+  assert.equal(dots, 1);
+  draw(near - 0.01);
+  assert.equal(dots, 1);
+});

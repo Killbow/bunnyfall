@@ -144,3 +144,18 @@ test('stone textures are opaque and give the floor its own palette', () => {
   assert.ok(floor.colors[0] > wall.colors[0]);
   assert.notDeepEqual(wall.colors, floor.colors);
 });
+
+test('tunnel sides do not protrude into the chamber at the portal', () => {
+  const layout = {
+    mineId: 1, reset: 0,
+    sections: [{ chambers: [{ id: 'room', c: [0, 0, 0], rx: 10, rz: 10, h: 6 }] }],
+    tunnels: [{ from: 'room', to: 'outside', r: 2, pts: [[0, 0, 0], [6, 0, 0], [8, 0, 0], [10, 0, 0], [12, 0, 0], [14, 0, 0]] }],
+  };
+  const tris = mineColliderTris(layout);
+  for (const direction of [-1, 1]) {
+    const inside = rayHit(tris, [8, 1.2, 0], [0, 0, direction]);
+    assert.ok(inside > 4 && inside < 8, `chamber wall at ${inside}`);
+    const outside = rayHit(tris, [12, 1.2, 0], [0, 0, direction]);
+    assert.ok(outside > 1 && outside < 3, `tunnel wall at ${outside}`);
+  }
+});

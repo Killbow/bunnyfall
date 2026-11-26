@@ -112,6 +112,7 @@ import { EG_ARCH_RING_CSS, EG_ARCH_LEGEND_TEXT } from './eliteGates/egArchMapMar
 import { KT_RING_CSS, ketchLegendText } from './ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch over Daggerfall
 import { LODE_RING_CSS, LODE_LEGEND_TEXT, lodeLegendText } from './lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's day's Motherlodes, read by the bounty's reader
 import { MINE_MARK_CSS, mineLegendText } from './mineMapMark.js';
+import { t } from './textManager.js';
 import { POI_RING_CSS, POI_MARKS_MAX, poiLegendText } from './poi/poiMapMark.js';   // POI-2: the approved POIs' marks, read by the bounty's reader
 import { readBountyMarks, bountyMarksKey, BOUNTY_RING_CSS, BOUNTY_LEGEND_TEXT, BOUNTY_LEGEND_RIM_CSS, REVENANT_RING_CSS, REVENANT_LEGEND_TEXT } from './bountyMapMark.js';   // BOUNTY1: held bounties' black circles, read as the gate's ring is
 import { readRaidMarks, raidMarksKey, placeTip, tipKey, readTip, RAID_MARK_CSS, RAID_LEGEND_TEXT, FESTIVAL_MARK_CSS, FESTIVAL_LEGEND_TEXT, RAID_HIT_PX, SEAT_TIP_TEXT_MAX, TOWN_TIP_LINES_MAX } from './eventMapMarks.js';   // EVENT-TIP: the raided towns, and the card a world event answers a hover with
@@ -1404,7 +1405,7 @@ export class HeldMapWindow {
           bounties: this._bounties,   // BOUNTY1
           revenants: this._revenants,   // RVN7c
           lodes: this._lodes,   // MINE-PERKS
-          mines: this._mines,
+          mines: this.filters.mines ? undefined : this._mines,
           pois: this._pois,   // POI-2
           raids: this._raids,   // EVENT-TIP: the towns under attack
           stars: this._stars,   // STAR6: the night's fallen stars
@@ -2208,7 +2209,7 @@ export class HeldMapWindow {
     if (!leg) return;
     leg.innerHTML = '';
     const trav = this._trav.filter((t) => playersOnMaps() && playerShown(t));   // OW-WHO; MAP-PLAYERS: the legend speaks for the players the sheet draws
-    if (!this._party.length && !this._gate && !this._serpent && !this._sd && !this._arch && !this._ketch && !this._bounties.length && !this._revenants.length && !this._raids.length && !this._stars.length && !this._festivals.length && !trav.length && !this._quests.length && !this._pois.length && !this._mines?.length && !this._vendor && !this._lodes.length) { leg.classList.toggle('open', false); leg.style.display = 'none'; return; }
+    if (!this._party.length && !this._gate && !this._serpent && !this._sd && !this._arch && !this._ketch && !this._bounties.length && !this._revenants.length && !this._raids.length && !this._stars.length && !this._festivals.length && !trav.length && !this._quests.length && !this._pois.length && !this._vendor && !this._lodes.length) { leg.classList.toggle('open', false); leg.style.display = 'none'; return; }
     if (this._party.length) {
       const dot = el('span', 'hmlegdot');
       dot.style.background = this._party.some((m) => m.online) ? PARTY_MARK_CSS : PARTY_OFFLINE_CSS;
@@ -2266,11 +2267,6 @@ export class HeldMapWindow {
       const dot = el('span', 'hmlegdot');
       dot.style.background = LODE_RING_CSS;
       leg.append(dot, el('span', 'hmlegtext', lodeLegendText()));
-    }
-    if (this._mines?.length) {
-      const dot = el('span', 'hmlegdot');
-      dot.style.background = MINE_MARK_CSS;
-      leg.append(dot, el('span', 'hmlegtext', mineLegendText()));
     }
     if (this._pois.length) {   // POI-2: and a POI's violet circle
       const dot = el('span', 'hmlegdot');
@@ -2347,6 +2343,7 @@ export class HeldMapWindow {
     const who = travelViewWho();
     const wpShown = waypointKindsShown(), wpAll = listWaypoints();
     const sig = [band, inks ? 1 : 0, dpr, ...groups.map((g) => (this.filters[g.filter] ? 1 : 0)),
+      this.filters.mines ? 1 : 0, this.deps.mines ? 1 : 0,
       this._trav.length ? 1 : 0, playersOnMaps() ? 1 : 0, ...TV_WHO_GROUPS.map((g) => (who[g] ? 1 : 0)), who.renown,
       ...WAYPOINT_KINDS.map((k) => `${wpShown[k] ? 1 : 0}:${wpAll.filter((w) => w.kind === k).length}`), this.deps.wildMask?.() ? 1 : 0].join('|');   // OW-WHO: and the players' row; WAYPOINTS: and theirs; WILD1: and the open zone's
     if (sig === this._keySig) return;
@@ -2381,6 +2378,27 @@ export class HeldMapWindow {
         kinds.append(item);
       }
       row.append(b, kinds);
+      box.append(row);
+    }
+    if (this.deps.mines) {
+      const on = !this.filters.mines, visible = band === 'near';
+      const row = el('div', `hmkeyrow${on ? '' : ' off'}`);
+      const button = el('button', `act hmkeyflt${on ? ' on' : ''}`, t('mine.mapToggle', 'Mines'));
+      button.type = 'button';
+      button.tabIndex = -1;
+      button.onpointerdown = (event) => event.preventDefault();
+      button.dataset.filter = 'mines';
+      button.title = visible ? (on ? t('mine.mapHide', 'Hide mines') : t('mine.mapShow', 'Show mines')) : t('mine.mapZoom', 'Zoom in to see mines');
+      button.setAttribute('aria-pressed', String(on));
+      button.onclick = () => this._toggleFilter('mines');
+      const kinds = el('div', 'hmkeykinds');
+      const kind = el('span', `hmkeykind${visible ? '' : ' dim'}`);
+      kind.title = button.title;
+      const dot = el('span', 'hmlegdot');
+      dot.style.background = MINE_MARK_CSS;
+      kind.append(dot, el('span', 'hmkeyname', mineLegendText()));
+      kinds.append(kind);
+      row.append(button, kinds);
       box.append(row);
     }
     // OW-WHO (FIELD BUGS 2026-10-04e, "More filters for players in general ... both in Overworld map and travel map"):

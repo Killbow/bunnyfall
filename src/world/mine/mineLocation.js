@@ -13,9 +13,12 @@ export const MINE_BLOCK = 'MINE.RDB';
 export const MINE_BLOCK_INDEX = 900500;
 /** Daggerfall's natural cave dungeon type. */
 export const MINE_DUNGEON_TYPE = 6;
-/** A chamber's lamp: Daggerfall's standing torch (TEXTURE.210 record 6), and how far its light reaches (m). */
+/** Preset torches mark the walls and entrance. Player lamps light the chamber. */
 export const MINE_TORCH = Object.freeze({ archive: 210, record: 6 });
 export const MINE_LAMP_M = 14;
+export const MINE_PRESET_LIGHT_LEVEL = 0.32;
+const MINE_WALL_TORCH_M = 3;
+const MINE_ENTRY_TORCH_M = 5;
 /** How high over the tunnel's floor the start marker stands (m): the dungeon stands a body's feet on the floor under it. */
 export const MINE_START_UP_M = 0.3;
 /** Classic units a metre. */
@@ -64,15 +67,15 @@ export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, res
     type: 0x03, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-p[1] * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
     resources: { flatResource: { textureArchive: rec.archive, textureRecord: rec.record, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
   });
-  const light = (/** @type {number[]} */ p, /** @type {number} */ up) => ({
+  const light = (/** @type {number[]} */ p, /** @type {number} */ up, /** @type {number} */ range) => ({
     type: 0x02, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-(p[1] + up) * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
-    resources: { lightResource: { unknown1: 0, unknown2: 0, radius: Math.round(MINE_LAMP_M / (3 / UNITS_PER_M)) } },
+    resources: { lightResource: { unknown1: 0, unknown2: 0, radius: Math.round(range / (3 / UNITS_PER_M)) } },
   });
-  { const q = way[Math.min(2, way.length - 1)]; objs.push(light(q, 2.2), flat([q[0] + fz * 1.2, q[1], q[2] - fx * 1.2])); }   // the mouth's lamp: on its tunnel's own floor a few metres in, its torch at the side
+  { const q = way[Math.min(2, way.length - 1)]; objs.push(light(q, 2.2, MINE_ENTRY_TORCH_M), flat([q[0] + fz * 1.2, q[1], q[2] - fx * 1.2])); }   // the mouth's lamp: on its tunnel's own floor a few metres in, its torch at the side
   for (const s of L.sections) for (const ch of s.chambers) {
     const w = ch.walls.find((q) => !q.weak) ?? ch.walls[0];
     const foot = w ? [w.at[0] + w.n[0] * 0.6, ch.c[1], w.at[2] + w.n[2] * 0.6] : [ch.c[0], ch.c[1], ch.c[2]];
-    objs.push(flat(foot), light([foot[0], ch.c[1], foot[2]], 2.2));
+    objs.push(flat(foot), light(foot, 2.2, MINE_WALL_TORCH_M));
   }
   return { name: MINE_BLOCK, position: 0, rdbBlock: { modelReferenceList: [], objectRootList: [{ rdbObjects: objs }] } };
 }
