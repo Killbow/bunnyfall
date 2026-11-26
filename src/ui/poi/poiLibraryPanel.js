@@ -118,22 +118,22 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
   function draw() {
     if (!dialog || dialog.dataset?.kind === 'keep') return;
     const find = el('input', 'dfpoi-grow');
-    find.type = 'search'; find.value = query; find.placeholder = t('poi.library.search', 'Search by name, tag or maker');
+    find.type = 'search'; find.value = query; find.placeholder = t('poi.library.search', 'Search by name, tag, or author');
     const list = el('div', 'dfpoi-shelf-list');
     find.addEventListener('input', () => { query = find.value; shown = SHELF_PAGE; drawList(list); });
     const only = el('input');
     only.type = 'checkbox'; only.checked = mineOnly;
     only.addEventListener('change', () => { mineOnly = !!only.checked; shown = SHELF_PAGE; drawList(list); });
     const top = el('div', 'dfpoi-row');
-    top.append(find, only, el('span', '', t('poi.library.mine', 'Mine')), btn(t('poi.editor.refresh', 'Refresh the list'), () => refresh()), btn(t('poi.editor.cancel', 'Cancel'), () => close()));
-    dialog.replaceChildren(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), el('div', 'dfpoi-sub', t('poi.library.hint', 'Models shared by every builder. Place one, then click where it should stand.')), top, list);
+    top.append(find, only, el('span', '', t('poi.library.mine', 'Mine')), btn(t('poi.editor.refresh', 'Refresh'), () => refresh()), btn(t('poi.editor.cancel', 'Cancel'), () => close()));
+    dialog.replaceChildren(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), el('div', 'dfpoi-sub', t('poi.library.hint', 'Models shared by all builders. Click Place, then click in the world to position the model.')), top, list);
     drawList(list);
   }
   function drawList(list) {
-    if (!items) { list.replaceChildren(el('div', 'dfpoi-sub', t('poi.library.loading', 'Asking the store...'))); return; }
+    if (!items) { list.replaceChildren(el('div', 'dfpoi-sub', t('poi.library.loading', 'Loading...'))); return; }
     const hits = items.filter((it) => (!mineOnly || mine(it)) && shelfMatches(it, query));
     const rows = hits.slice(0, shown).map((it) => (editing?.id === it.id ? editRow(it) : row(it)));
-    if (!rows.length) rows.push(el('div', 'dfpoi-sub', items.length ? t('poi.library.none', 'Nothing on the shelf matches.') : t('poi.library.empty', 'The shelf is empty. Save a model to the library from its inspector, or as you import it.')));
+    if (!rows.length) rows.push(el('div', 'dfpoi-sub', items.length ? t('poi.library.none', 'No matching models in the library.') : t('poi.library.empty', 'The library is empty. Save a model to the library from its inspector or when importing.')));
     if (hits.length > shown) rows.push(btn(t('poi.library.more', 'Show more ({n} more)', { n: hits.length - shown }), () => { shown += SHELF_PAGE; drawList(list); }));
     list.replaceChildren(...rows);
   }
@@ -161,7 +161,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     if (exportGlb) acts.append(btn(t('poi.export.glbShort', 'Save as .glb'), () => saveGlb(it)));
     if (mayChange(it)) {
       acts.append(btn(t('poi.library.change', 'Change...'), () => beginEdit(it)));
-      acts.append(btn(dropping === it.id ? t('poi.library.dropSure', 'Take it off the shelf?') : t('poi.library.drop', 'Take off the shelf'), () => drop(it)));
+      acts.append(btn(dropping === it.id ? t('poi.library.dropSure', 'Remove from library?') : t('poi.library.drop', 'Remove from library'), () => drop(it)));
     }
     r.append(thumbOf(it), words, acts);
     return r;
@@ -177,7 +177,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     const item = r.data.item;
     close();
     editor.placeAsset({ name: item.name, parts: item.parts, lights: item.lights ?? [] }, t('poi.editor.newName', 'New place'));
-    say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+    say(t('poi.editor.placeModel', 'Click where you want to place it. Press Esc to cancel.'));
   }
   /** POI-6: an entry's model as a .glb, by the panel's writer. */
   async function saveGlb(it) {
@@ -233,7 +233,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     const r = await act((i) => poiUnshelve(i, it.id));
     if (!r) return;
     if (!r.ok) { say(refusal(r), 'bad'); return; }
-    say(t('poi.library.dropped', 'Taken off the shelf: {name}.', { name: it.name }));
+    say(t('poi.library.dropped', 'Removed from the library: {name}.', { name: it.name }));
     await refresh();
   }
 
@@ -290,10 +290,10 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     acts.append(go, btn(t('poi.editor.cancel', 'Cancel'), () => close()));
     dialog.append(
       el('div', 'dfpoi-h', t('poi.library.keepTitle', 'Save to library')),
-      el('div', 'dfpoi-sub', t('poi.library.keepHint', 'Every builder can place it. Its picture is drawn from its parts.')),
+      el('div', 'dfpoi-sub', t('poi.library.keepHint', 'Any builder can place this model. Its preview image is generated from its parts.')),
       el('div', 'dfpoi-sub', t('poi.library.keepWhat', '{parts, plural, one {# part} other {# parts}}, {lights, plural, one {# light} other {# lights}}', { parts: source.parts.length, lights: source.lights?.length ?? 0 })),
       // a library entry is v1: the groups, visibility, and locks of a v2 POI's parts and lights stay in the POI only
-      ...(shelfDropsOf(source) ? [el('div', 'dfpoi-sub', t('poi.library.keepDrops', 'The library does not save groups or hidden and locked marks. Only the parts and lights are saved.'))] : []),
+      ...(shelfDropsOf(source) ? [el('div', 'dfpoi-sub', t('poi.library.keepDrops', 'The library does not save groups or hidden and locked states. Only parts and lights are saved.'))] : []),
       field(t('poi.editor.name', 'Name'), name), field(t('poi.editor.tags', 'Tags'), tags), el('div', 'dfpoi-row', t('poi.editor.about', 'Description')), about, said, acts,
     );
     host.append(dialog);

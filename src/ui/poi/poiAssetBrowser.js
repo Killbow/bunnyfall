@@ -274,13 +274,13 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
     nodes.push(kv(t('poi.assets.source', 'From'), a.source));
     if (a.figure) nodes.push(el('div', 'dfpoi-warn', t('poi.assets.figure', 'People are always shown at their default size.')));
     if (a.standIn) nodes.push(el('div', 'dfpoi-warn', t('poi.assets.standIn', 'Built-in fallback: {what}', { what: a.standIn })));
-    if (a.duplicate) nodes.push(el('div', 'dfpoi-problem', t('poi.assets.duplicate', 'The game files repeat this number. The first one is used.')));
+    if (a.duplicate) nodes.push(el('div', 'dfpoi-problem', t('poi.assets.duplicate', 'This ID appears more than once in the game files. The first one is used.')));
     if (a.missing) nodes.push(el('div', 'dfpoi-problem', t('poi.assets.missing', 'Missing from the game files: {why}', { why: a.missing })));
     const why = poiAssetWhyNot(a);
     if (why) nodes.push(el('div', 'dfpoi-warn', why));
     const placeBtn = btn(t('poi.assets.place', 'Place'), () => void doPlace(a, null));
     placeBtn.disabled = !!why;
-    placeBtn.title = why ?? t('poi.assets.placeHint', 'Click Place, then click the ground. Or drag the card onto the world.');
+    placeBtn.title = why ?? t('poi.assets.placeHint', 'Click Place, then click the ground, or drag the card into the world.');
     const fav = btn(prefs.isFavorite(a.id) ? t('poi.assets.unfavorite', 'Remove favorite') : t('poi.assets.favorite', 'Favorite'), () => { prefs.toggleFavorite(a.id); fillFilters(); if (st.source === 'fav') refresh(); else draw(); showInfo(); });
     const acts = el('div', 'dfpoi-row');
     acts.append(placeBtn, fav);

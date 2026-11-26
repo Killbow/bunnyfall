@@ -148,7 +148,7 @@ export function stepText(label) {
     case 'add part': case 'add parts': return t('poi.editor.step.addPart', 'add part');
     case 'remove part': return t('poi.editor.step.removePart', 'remove part');
     case 'duplicate': return t('poi.editor.step.duplicate', 'duplicate');
-    case 'revert': return t('poi.editor.step.revert', 'put back as saved');
+    case 'revert': return t('poi.editor.step.revert', 'revert to saved');
     case 'light': return t('poi.editor.step.light', 'light');
     case 'add person': return t('poi.npc.step.add', 'add person');
     case 'add flat': return t('poi.flat.step.add', 'add flat picture');
@@ -319,10 +319,10 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   const facts = createAssetFacts((sha) => feed.asset(sha, { auth: io()?.secret ?? null }), () => { schedule(); review?.learned(); });
 
   const say = (text, kind = 'ok') => { status.textContent = text; status.dataset.kind = kind; };
-  const refusal = (r) => (r?.error ? accountRefusalText(r.error) : t('poi.editor.failed', 'That did not go through.'));
+  const refusal = (r) => (r?.error ? accountRefusalText(r.error) : t('poi.editor.failed', 'Request failed. Please try again.'));
   editor.placeRefused = (/** @type {string} */ why, /** @type {string} */ id) => {
     const name = edit.docOf(id)?.name ?? '';
-    say(why === 'full' ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats })
+    say(why === 'full' ? t('poi.flat.full', 'This POI has reached the maximum of {max} flat pictures.', { max: POI_V2_LIMITS.flats })
       : why === 'shown' ? t('poi.editor.placeShown', '{name} is open in Approvals, so nothing can be added to it. Select another POI.', { name })
         : t('poi.editor.placeAway', '{name} has not loaded yet. Fly closer to it, or select another POI.', { name }), 'bad');
   };
@@ -356,12 +356,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   const testPanel = test ? createPoiTestPanel({ test, el, btn, redraw: () => schedule(), onStop: stopTest }) : null;
   function startTest() {
     const sel = edit.selection();
-    if (!sel || !testable(edit.docOf(sel.id))) { say(t('poi.test.nothing', 'Select a POI that has DM content to test it.'), 'bad'); return; }
+    if (!sel || !testable(edit.docOf(sel.id))) { say(t('poi.test.nothing', 'Select a POI with DM content to test.'), 'bad'); return; }
     // the runtime's module first: the body is moved only once the test can start
     if (!test.ready()) { test.prepare().then(() => startTest(), () => say(t('poi.test.loadFailed', 'The test could not start. Try again.'), 'bad')); return; }
     const dmOn = dm.isOn();
     dialogsClosed(); dm.close(); assets?.close();
-    if (onTest(sel.id)) { dmWasOn = dmOn; say(t('poi.test.started', 'Testing. Walk, talk, and use things as a player would. Stop test to go back to editing.')); }
+    if (onTest(sel.id)) { dmWasOn = dmOn; say(t('poi.test.started', 'Test started: walk, talk, and interact with objects as a player would. Click Stop test to return to editing.')); }
     else if (dmOn) dm.toggle();
     schedule();
   }
@@ -411,7 +411,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (testing()) {
       bar.replaceChildren(el('span', 'dfpoi-testing', testPanel?.banner() ?? ''), el('span', 'dfpoi-sep'),
         btn(t('poi.test.stop', 'Stop test'), stopTest),
-        btn(t('poi.editor.exitBack', 'Exit to where I stood'), () => { onTest(null); onExit('back'); }));
+        btn(t('poi.editor.exitBack', 'Exit to previous spot'), () => { onTest(null); onExit('back'); }));
       return;
     }
     const tool = (m, text, key) => { const b = btn(`${text} (${key})`, () => editor.setMode(m)); b.setAttribute('aria-pressed', String(editor.mode() === m)); return b; };
@@ -421,24 +421,24 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const redo = btn(t('poi.editor.redo', 'Redo'), () => { edit.redo(); });
     redo.disabled = !edit.canRedo();
     if (edit.canRedo()) redo.title = t('poi.editor.redoWhat', 'Redo {what} (Ctrl+Y)', { what: stepText(edit.redoLabel()) });
-    const space = btn(editor.space() === 'world' ? t('poi.editor.spaceWorld', 'World axes (X)') : t('poi.editor.spaceLocal', 'Own axes (X)'), () => editor.setSpace(editor.space() === 'world' ? 'local' : 'world'));
+    const space = btn(editor.space() === 'world' ? t('poi.editor.spaceWorld', 'World axes (X)') : t('poi.editor.spaceLocal', 'Local axes (X)'), () => editor.setSpace(editor.space() === 'world' ? 'local' : 'world'));
     const snap = btn(t('poi.editor.snap', 'Snap'), () => editor.setSnap(!editor.snapOn()));
     snap.setAttribute('aria-pressed', String(editor.snapOn()));
-    snap.title = t('poi.editor.snapHint', 'Snap to the steps. Hold Ctrl to snap for one drag.');
+    snap.title = t('poi.editor.snapHint', 'Snap Move, Turn, and Size to their steps. Hold Ctrl to snap during a single drag.');
     const steps = editor.snapSteps();
     const stepIn = (k, title) => { const i = numberInput(steps[k], (v) => { if (v > 0) editor.setSnap(editor.snapOn(), { [k]: v }); }, { step: k === 'turn' ? 1 : 0.05, min: 0 }); i.title = title; return i; };
-    const speed = el('span', '', t('poi.editor.speed', 'Eye {speed, number} m/s', { speed: Math.round(editor.eyeSpeed() * 10) / 10 }));   // AUDIT POI U13: a number in the reader's own digits
-    speed.title = t('poi.editor.speedHint', 'Hold the right mouse button to fly. Use your movement keys, Jump and Crouch to go up and down, Run to go faster, and the mouse wheel to set the speed.');
-    const exitBack = btn(t('poi.editor.exitBack', 'Exit to where I stood'), () => onExit('back'));
+    const speed = el('span', '', t('poi.editor.speed', 'Camera {speed, number} m/s', { speed: Math.round(editor.eyeSpeed() * 10) / 10 }));   // AUDIT POI U13: a number in the reader's own digits
+    speed.title = t('poi.editor.speedHint', 'Hold the right mouse button to fly. Use movement keys to steer, Jump and Crouch to move vertically, Run to fly faster, and the mouse wheel to adjust speed.');
+    const exitBack = btn(t('poi.editor.exitBack', 'Exit to previous spot'), () => onExit('back'));
     const exitHere = btn(t('poi.editor.exitHere', 'Exit here'), () => onExit('here'));
-    exitHere.title = t('poi.editor.exitHereHint', 'Leave the editor standing on the ground under the eye.');
+    exitHere.title = t('poi.editor.exitHereHint', 'Exit the editor and place your character on the ground below the camera.');
     bar.replaceChildren(
       tool('select', t('poi.editor.toolSelect', 'Select'), 'Q'), tool('move', t('poi.editor.toolMove', 'Move'), 'W'),
       tool('turn', t('poi.editor.toolTurn', 'Turn'), 'E'), tool('size', t('poi.editor.toolSize', 'Size'), 'R'),
       el('span', 'dfpoi-sep'), space, snap,
       stepIn('move', t('poi.editor.snapMove', 'Move step (m)')), stepIn('turn', t('poi.editor.snapTurn', 'Turn step (degrees)')), stepIn('size', t('poi.editor.snapSize', 'Size step')),
       el('span', 'dfpoi-sep'), undo, redo, el('span', 'dfpoi-sep'), speed, el('span', 'dfpoi-sep'),
-      btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground where it stands. Esc to stop.')); }),
+      btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground to place the POI. Press Esc to cancel.')); }),
       btn(t('poi.editor.import', 'Import model'), () => openImport()),
       ...(dfModels ? [btn(t('poi.editor.dfModel', 'Daggerfall model'), () => openDfModel())] : []),
       (() => { const b = btn(t('poi.assets.button', 'Assets'), () => { void assetBrowser().then((a) => a?.toggle()); }); b.setAttribute('aria-pressed', String(!!assets?.isOpen())); b.title = t('poi.assets.buttonHint', 'Browse the game\'s models, pictures, items, and creatures.'); return b; })(),
@@ -447,8 +447,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       // places a game picture or item as a flat decoration
       ...(dfModels ? [btn(t('poi.flat.button', 'Flat picture'), () => flatUi().openFlat())] : []),
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
-      (() => { const b = btn(t('poi.dm.button', 'DM tools'), () => { dm.toggle(); schedule(); }); b.setAttribute('aria-pressed', String(dm.isOn())); b.title = t('poi.dm.buttonHint', 'The selected POI\'s people, routes, encounters, objects, dialogues, trades, events, variables, and Sandbox.'); return b; })(),
-      ...(test ? [(() => { const b = btn(t('poi.test.button', 'Test'), () => startTest()); b.title = t('poi.test.buttonHint', 'Play the selected POI in the world with its DM content, on a test copy of your gold and items.'); return b; })()] : []),
+      (() => { const b = btn(t('poi.dm.button', 'DM tools'), () => { dm.toggle(); schedule(); }); b.setAttribute('aria-pressed', String(dm.isOn())); b.title = t('poi.dm.buttonHint', 'Edit the selected POI\'s people, routes, encounters, objects, dialogues, trades, events, variables, and Sandbox.'); return b; })(),
+      ...(test ? [(() => { const b = btn(t('poi.test.button', 'Test'), () => startTest()); b.title = t('poi.test.buttonHint', 'Test the selected POI in-game with its DM content using a temporary copy of your gold and items.'); return b; })()] : []),
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
       btn(t('poi.pack.import', 'Import pack...'), () => choosePack()),
@@ -496,13 +496,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     find.addEventListener('input', () => { search = find.value; renderList(listBox); });
     const findRow = el('div', 'dfpoi-row');
     findRow.append(find);
-    out.push(findRow, btn(t('poi.editor.refresh', 'Refresh the list'), () => refreshList()));
+    out.push(findRow, btn(t('poi.editor.refresh', 'Refresh'), () => refreshList()));
     renderList(listBox);
     out.push(listBox);
     left.replaceChildren(...out);
   }
   function renderList(box) {
-    if (!list) { box.replaceChildren(el('div', 'dfpoi-sub', t('poi.editor.listUnasked', 'Press Refresh to see the store\'s POIs.'))); return; }
+    if (!list) { box.replaceChildren(el('div', 'dfpoi-sub', t('poi.editor.listUnasked', 'Press Refresh to load saved POIs.'))); return; }
     const q = search.trim().toLowerCase();
     const rows = list.filter((p) => !q || String(p.name).toLowerCase().includes(q)).slice(0, 200).map((p) => {
       const row = el('div', 'dfpoi-item');
@@ -584,18 +584,18 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     out.push(el('div', 'dfpoi-h', t('poi.editor.place', 'Place')));
     out.push(field(t('poi.editor.mapPixel', 'Map square'), el('span', '', `${p.px}, ${p.py}`)));
     out.push(field(t('poi.editor.spot', 'Spot (m)'), ...vec([p.x, p.z], ([x, z]) => change('move', (doc) => { doc.place.x = Math.min(Math.max(x, 0), 819.19); doc.place.z = Math.min(Math.max(z, 0), 819.19); }))));
-    out.push(field(t('poi.editor.stands', 'Stands'), select(p.ground, [['snap', t('poi.editor.groundSnap', 'on the ground')], ['absolute', t('poi.editor.groundAbsolute', 'at a fixed height')]], (v) => change('ground', (x) => { x.place.ground = v; }))));
+    out.push(field(t('poi.editor.stands', 'Height mode'), select(p.ground, [['snap', t('poi.editor.groundSnap', 'on the ground')], ['absolute', t('poi.editor.groundAbsolute', 'at a fixed height')]], (v) => change('ground', (x) => { x.place.ground = v; }))));
     out.push(field(p.ground === 'snap' ? t('poi.editor.lift', 'Above ground (m)') : t('poi.editor.height', 'Height (m)'), numberInput(p.y, (v) => change('move', (x) => { x.place.y = v; }), { step: 0.05, min: -4000, max: 4000 })));
     out.push(field(t('poi.editor.turn', 'Turn (degrees)'), ...vec(eulerOfQuat(p.r), (e) => change('turn', (x) => { x.place.r = quatOfEuler(e); }), { step: 1 })));
     out.push(field(t('poi.editor.size', 'Size'), numberInput(p.s, (v) => change('size', (x) => { x.place.s = v; }), { step: 0.05, min: 0.01, max: 100 })));
     out.push(el('div', 'dfpoi-h', t('poi.editor.mark', 'On the map')));
     const marker = d.marker ?? { show: false };
-    out.push(field(t('poi.editor.markShow', 'Show a mark'), check(marker.show, (v) => change('mark', (x) => { x.marker = { ...(x.marker ?? {}), show: v }; }))));
+    out.push(field(t('poi.editor.markShow', 'Show map marker'), check(marker.show, (v) => change('mark', (x) => { x.marker = { ...(x.marker ?? {}), show: v }; }))));
     out.push(field(t('poi.editor.markLabel', 'Label'), text(marker.label ?? '', (v) => change('mark', (x) => { const l = lawName(v, POI_LIMITS.label); x.marker = { ...(x.marker ?? { show: false }) }; if (l) x.marker.label = l; else delete x.marker.label; }), POI_LIMITS.label)));
     out.push(el('div', 'dfpoi-h', t('poi.editor.lights', 'Lights')));
     // AUDIT POI U1: bound to the lights it was drawn with - pressed again before the inspector is, it adds no second one
     const lightsDrawn = d.lights?.length ?? 0;
-    out.push(btn(t('poi.editor.addLight', 'Add a light'), () => { if ((edit.docOf(d.id)?.lights?.length ?? 0) === lightsDrawn) edit.edit(d.id, 'light', (x) => { x.lights = [...(x.lights ?? []), newLight()]; }, { id: d.id, part: null, light: lightsDrawn }); }));
+    out.push(btn(t('poi.editor.addLight', 'Add light'), () => { if ((edit.docOf(d.id)?.lights?.length ?? 0) === lightsDrawn) edit.edit(d.id, 'light', (x) => { x.lights = [...(x.lights ?? []), newLight()]; }, { id: d.id, part: null, light: lightsDrawn }); }));
     out.push(...people().peopleRows(d, change));   // BUNNYFALL
     // Its parts and lights kept in the library, from the POI's own origin. Only parts with an uploaded model of their
     // own go to the library and the .glb; a Daggerfall model part from the World Builder is left out, with a note
@@ -608,9 +608,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     more.append(btn(t('poi.editor.duplicatePoi', 'Duplicate this POI'), () => duplicatePoi(d.id)));
     if (ownParts.length) more.append(btn(t('poi.export.glb', 'Export model (.glb)'), () => exportGlb({ name: d.name, parts: ownParts, lights: d.lights ?? [] })));
     out.push(more);
-    if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
+    if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Daggerfall models are not saved to the library or exported.')));
     const flats = Array.isArray(d.flats) ? d.flats.length : 0;
-    if (flats) out.push(el('div', 'dfpoi-sub', t('poi.editor.flatsLeftOut', 'Its {n, plural, one {flat picture is} other {# flat pictures are}} not saved to the library or exported.', { n: flats })));
+    if (flats) out.push(el('div', 'dfpoi-sub', t('poi.editor.flatsLeftOut', '{n, plural, one {# flat picture is} other {# flat pictures are}} not saved to the library or exported.', { n: flats })));
     // what a v2 POI holds that this editor cannot change yet (an interior, the DM fields the DM panel leaves out, and a
     // flat picture's picture and size), read-only, and its size against its version's limit
     const held = heldLines(heldNotEditable(poiHeldOf(d)), dmHeldLines(d));
@@ -637,8 +637,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // UVs, or library entry to edit here: it says what it is instead
     if (!hasOwnModel(part)) {
       out.push(el('div', 'dfpoi-sub', part.arch3d !== undefined
-        ? t('poi.editor.dfModelPart', 'A Daggerfall model ({id}) from the World Builder. Its look cannot be changed here.', { id: String(part.arch3d) })
-        : t('poi.editor.noModelPart', 'It has no model of its own, so its look cannot be changed here.')));
+        ? t('poi.editor.dfModelPart', 'Daggerfall model ({id}) from the World Builder. Its materials cannot be edited here.', { id: String(part.arch3d) })
+        : t('poi.editor.noModelPart', 'This part has no model of its own, so its materials cannot be edited here.')));
     } else out.push(el('div', 'dfpoi-h', t('poi.editor.materials', 'Materials')));
     if (hasOwnModel(part)) part.materials.forEach((m, k) => {
       const mat = (fn) => at((p) => fn(p.materials[k]));
@@ -679,12 +679,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       out.push(btn(t('poi.editor.editUvs', 'Edit UVs...'), () => openUv(sel.id, part.key, k)));
     });
     // POI-4b: the part alone kept in the library - its own turn and size, standing at the entry's origin
-    if (hasOwnModel(part)) out.push(btn(t('poi.library.keepPart', 'Save this part to library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
+    if (hasOwnModel(part)) out.push(btn(t('poi.library.keepPart', 'Save part to library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
     // AUDIT POI U1: the part it was drawn for - it read the selection, and the second press of a double one, the part gone
     // and its POI selected, took the whole new POI
-    out.push(btn(t('poi.editor.copyPart', 'Copy this part (Ctrl+C)'), () => copySelection(false)));
+    out.push(btn(t('poi.editor.copyPart', 'Copy part (Ctrl+C)'), () => copySelection(false)));
     out.push(btn(t('poi.editor.pastePart', 'Paste (Ctrl+V)'), () => pasteSelection()));
-    out.push(btn(t('poi.editor.removePart', 'Remove this part'), () => removePart(sel.id, part.key)));
+    out.push(btn(t('poi.editor.removePart', 'Remove part'), () => removePart(sel.id, part.key)));
     return out;
   }
 
@@ -705,7 +705,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // AUDIT POI U1: the light it was drawn for - by its place in the list, the lights as they were: pressed twice it took
     // the next light too, by then at that place
     const drawn = JSON.stringify(d.lights);
-    out.push(btn(t('poi.editor.removeLight', 'Remove this light'), () => { if (lockedIn(d, [`light:${sel.light}`])) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return; } if (JSON.stringify(edit.docOf(d.id)?.lights) === drawn) edit.edit(d.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: d.id, part: null, light: null }); }));
+    out.push(btn(t('poi.editor.removeLight', 'Remove light'), () => { if (lockedIn(d, [`light:${sel.light}`])) { say(t('poi.scene.deleteLocked', 'Locked items cannot be deleted. Unlock them first.'), 'bad'); return; } if (JSON.stringify(edit.docOf(d.id)?.lights) === drawn) edit.edit(d.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: d.id, part: null, light: null }); }));
     return out;
   }
 
@@ -713,16 +713,16 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   function lockedRows(d, rowId, rows) {
     if (!marksOf(d).get(rowId)?.frozen) return rows;
     for (const r of rows) for (const i of r.querySelectorAll?.('input') ?? []) i.disabled = true;
-    return [el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked: unlock it in the list to move it.')), ...rows];
+    return [el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked. Unlock this item in the list to move it.')), ...rows];
   }
 
   /** The document's problems: the law's, then its assets' once every asset is known. */
   const problemsOf = (d) => facts.check(d, poiPayProblems(d, poiDocProblems(d)));
   function problemRows(d, id) {
     const { list: ps, checking, unchecked, unloaded } = problemsOf(d);
-    const out = [el('div', 'dfpoi-h', t('poi.editor.problems', 'What is wrong'))];
+    const out = [el('div', 'dfpoi-h', t('poi.editor.problems', 'Problems'))];
     if (unchecked) out.push(...uncheckedRows(d, unloaded, el, btn, () => facts.retry()));
-    else if (!ps.length) out.push(el('div', checking ? '' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.editor.noProblems', 'Nothing. It can be saved.')));
+    else if (!ps.length) out.push(el('div', checking ? '' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking models and pictures...') : t('poi.editor.noProblems', 'No problems found. Ready to save.')));
     for (const p of ps.slice(0, 40)) {
       const row = el('div', 'dfpoi-problem');
       const where = problemWhere(p.path, d);
@@ -747,7 +747,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   function refusedRows(d, id) {
     const ps = refused.get(id);
     if (!ps) return [];
-    const out = [el('div', 'dfpoi-h', t('poi.editor.refused', 'Why the store refused it'))];
+    const out = [el('div', 'dfpoi-h', t('poi.editor.refused', 'Refused by the server'))];
     for (const p of ps.slice(0, 12)) {
       const where = problemWhere(p.path, d);
       out.push(el('div', 'dfpoi-problem', where ? `${where}: ${problemText(p)}` : problemText(p)));
@@ -768,13 +768,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     out[1].append(save, submit);
     if (entry.state === 'submitted' && dirty) out.push(el('div', 'dfpoi-warn', withdrawFirstText()));
     const more = el('div', 'dfpoi-row');
-    if (entry.state === 'submitted') more.append(btn(t('poi.editor.withdraw', 'Take back to draft'), () => withdrawPoi(id)));
-    if (entry.base != null) more.append(btn(t('poi.editor.retire', 'Ask to retire it'), () => retirePoi(id)));
-    if (dirty && entry.saved) more.append(btn(t('poi.editor.revert', 'Put back as saved'), () => edit.edit(id, 'revert', (x) => { const s = JSON.parse(entry.saved); for (const k of Object.keys(x)) delete x[k]; Object.assign(x, s); })));
+    if (entry.state === 'submitted') more.append(btn(t('poi.editor.withdraw', 'Return to draft'), () => withdrawPoi(id)));
+    if (entry.base != null) more.append(btn(t('poi.editor.retire', 'Request retirement'), () => retirePoi(id)));
+    if (dirty && entry.saved) more.append(btn(t('poi.editor.revert', 'Revert to saved'), () => edit.edit(id, 'revert', (x) => { const s = JSON.parse(entry.saved); for (const k of Object.keys(x)) delete x[k]; Object.assign(x, s); })));
     // AUDIT POI U1: the press means what its button said - "Close" asks again over unsaved work, and only the question closes
     const asked = closing === id;
     more.append(btn(asked ? t('poi.editor.closeUnsaved', 'Close without saving?') : t('poi.editor.close', 'Close'), () => closePoi(id, asked)));
-    if (entry.state === 'new' && !entry.saved) more.append(btn(t('poi.editor.discard', 'Throw it away'), () => { edit.remove(id); }));
+    if (entry.state === 'new' && !entry.saved) more.append(btn(t('poi.editor.discard', 'Discard draft'), () => { edit.remove(id); }));
     out.push(more);
     if (!me.builder) out.push(el('div', 'dfpoi-warn', accountRefusalText('poi-not-builder')));
     return out;
@@ -795,7 +795,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     going.add(id);
     try { return await fn(); } finally { going.delete(id); }
   }
-  const withdrawFirstText = () => t('poi.editor.withdrawFirst', 'It is waiting for approval: take it back to draft to save these changes.');
+  const withdrawFirstText = () => t('poi.editor.withdrawFirst', 'This POI is waiting for approval. Return it to draft to save your changes.');
   /** AUDIT POI U2: the document the store holds for an entry - what it was last saved as (a send and a take-back move
    *  its state, never the screen's changes into "saved"). */
   const heldDoc = (e) => (e?.saved == null ? undefined : JSON.parse(e.saved));
@@ -811,17 +811,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // beside it, and the submission left waiting to be approved as it was
     if (e.state === 'submitted') { say(withdrawFirstText(), 'bad'); return false; }
     const { list: ps, checking, unchecked } = problemsOf(d);
-    if (ps.length) { say(t('poi.editor.fixFirst', 'Fix what is wrong before saving ({n}).', { n: ps.length }), 'bad'); return false; }
+    if (ps.length) { say(t('poi.editor.fixFirst', 'Fix the remaining problems before saving ({n}).', { n: ps.length }), 'bad'); return false; }
     if (unchecked) { say(assetsUncheckedText(false), 'bad'); return false; }
     // AUDIT POI U5: an asset not yet heard of is not checked - the button waits for it, and so does the key
-    if (checking) { say(t('poi.editor.stillChecking', 'Its models and pictures are still being checked: save it once that is done.'), 'bad'); return false; }
+    if (checking) { say(t('poi.editor.stillChecking', 'Models and pictures are still being checked. Try saving again once the check finishes.'), 'bad'); return false; }
     const sent = structuredClone(d);
     const r = await act((i) => poiSaveDraft(i, sent, e.base));
     if (!r) return false;
     refusedFor(id, r);
     if (!r.ok) { say(refusal(r), 'bad'); return false; }
     edit.markSaved(id, { rev: r.data.rev, state: 'draft', doc: sent });
-    say(t('poi.editor.saved', 'Saved: draft {rev}.', { rev: r.data.rev }));
+    say(t('poi.editor.saved', 'Saved draft {rev}.', { rev: r.data.rev }));
     return true;
   }
   const submitPoi = (id) => once(id, async () => {
@@ -838,7 +838,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     refusedFor(id, r);
     if (!r.ok) { say(refusal(r), 'bad'); return; }
     edit.markSaved(id, { rev, state: 'submitted', doc: held });
-    say(t('poi.editor.submitted', 'Sent for approval. An approver will look at it.'));
+    say(t('poi.editor.submitted', 'Sent for approval. An approver will review it.'));
   });
   const withdrawPoi = (id) => once(id, async () => {
     const e = edit.entryOf(id);
@@ -852,16 +852,16 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // window) - the store closed this one 'withdrawn' and keeps that one; a save puts this document there
     if (r.data?.state === 'withdrawn') {
       edit.markSaved(id, { rev: null, state: 'draft', unheld: true });
-      say(t('poi.editor.withdrawnBeside', 'Taken back. You had another draft of it saved: save to put this one in its place.'));
+      say(t('poi.editor.withdrawnBeside', 'Submission withdrawn. Another saved draft of this POI already exists, so save to replace it with this version.'));
       return;
     }
     edit.markSaved(id, { rev, state: 'draft', doc: held });
-    say(t('poi.editor.withdrawn', 'Taken back: it is a draft again.'));
+    say(t('poi.editor.withdrawn', 'Submission withdrawn and returned to draft.'));
   });
   const retirePoi = (id) => once(id, async () => {
     const r = await act((i) => poiRetire(i, id));
     if (!r) return;
-    say(r.ok ? t('poi.editor.retireAsked', 'Asked: an approver will decide whether it leaves the world.') : refusal(r), r.ok ? 'ok' : 'bad');
+    say(r.ok ? t('poi.editor.retireAsked', 'Retirement requested. An approver will review whether to remove this POI from the world.') : refusal(r), r.ok ? 'ok' : 'bad');
   });
   /** `sure` the question asked and answered (AUDIT POI U1: by the button that said so, not by what `closing` is now). */
   function closePoi(id, sure = false) {
@@ -887,7 +887,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const mine = [...docs].reverse().find((x) => (x.state === 'draft' || x.state === 'submitted') && me.handle && String(x.author).toLowerCase() === me.handle.toLowerCase());
     const live = docs.find((x) => x.rev === h.liveRev);
     const pick = mine ?? live ?? docs.at(-1);
-    if (!pick) { say(t('poi.editor.nothingToOpen', 'It has no document to open.'), 'bad'); return; }
+    if (!pick) { say(t('poi.editor.nothingToOpen', 'This POI has no document to open.'), 'bad'); return; }
     // AUDIT POI U4: none of mine open and none live - the newest revision: my own sent back (said so, as it was saved), or
     // another builder's, a change to save as my own draft (it opened as a clean "draft" of mine with nothing to send)
     const sentBack = !mine && !live && pick.state === 'rejected' && !!me.handle && String(pick.author).toLowerCase() === me.handle.toLowerCase();
@@ -940,7 +940,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     uvOpening = true;
     try { bytes = await feed.asset(part.mesh, { auth }); } catch { bytes = null; }
     uvOpening = false;
-    if (!bytes) { say(t('poi.editor.uvNoMesh', 'The part\'s model would not load.'), 'bad'); return; }
+    if (!bytes) { say(t('poi.editor.uvNoMesh', 'Could not load the model for this part.'), 'bad'); return; }
     // AUDIT POI U7, U8: the editor left, or the part gone or dressed anew, while its model came - nothing opened over it
     if (root.dataset.on !== '1' || !edit.docOf(id)?.parts.some((p) => p.key === key && p.mesh === part.mesh)) return;
     const dm = decodePoiMesh(bytes);
@@ -962,9 +962,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
         if (!r.ok) { say(refusal(r), 'bad'); return false; }
         facts.put(r.data.sha, { kind: 'mesh', ...r.data.meta, bytes: out.byteLength });
         // AUDIT POI U7: the part gone (taken out, its POI closed) - nothing wears it, and nothing is said applied
-        if (!edit.docOf(id)?.parts.some((q) => q.key === key)) { say(t('poi.editor.uvGone', 'The part is gone: the UVs were not applied.'), 'bad'); return true; }
+        if (!edit.docOf(id)?.parts.some((q) => q.key === key)) { say(t('poi.editor.uvGone', 'That part was removed, so the UV changes were not applied.'), 'bad'); return true; }
         edit.edit(id, 'uv', (x) => { const p = x.parts.find((q) => q.key === key); if (p) p.mesh = r.data.sha; });
-        say(t('poi.editor.uvApplied', 'UVs applied. The part now uses its new model.'));
+        say(t('poi.editor.uvApplied', 'UV changes applied to the part.'));
         return true;
       },
       onClose: () => { uvDialog = null; },   // once (AUDIT POI U7: poiUvPanel.js closes once)
@@ -976,7 +976,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   /** AUDIT POI U1: a part taken out by its key - once; gone, the press does nothing. */
   function removePart(id, key) {
     if (!edit.docOf(id)?.parts.some((p) => p.key === key)) return false;
-    if (lockedIn(edit.docOf(id), [`part:${key}`])) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return false; }
+    if (lockedIn(edit.docOf(id), [`part:${key}`])) { say(t('poi.scene.deleteLocked', 'Locked items cannot be deleted. Unlock them first.'), 'bad'); return false; }
     return edit.edit(id, 'remove part', (x) => { x.parts = x.parts.filter((p) => p.key !== key); }, { id, part: null });
   }
   // COPY, CUT, PASTE, DUPLICATE, AND DELETE of the whole selection (ui/poi/poiSceneActs.js): the copy is saved in this
@@ -994,7 +994,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   async function exportGlb(model) {
     const r = await act(() => exportModel(model, fetchAsset));
     if (!r) return false;
-    if (!r.ok) { say(t('poi.export.failed', 'A model or picture would not load: nothing was saved.'), 'bad'); return false; }
+    if (!r.ok) { say(t('poi.export.failed', 'Export failed because a model or picture could not be loaded.'), 'bad'); return false; }
     download(fileNameOf(model.name, 'glb'), r.bytes, 'model/gltf-binary');
     say(t('poi.export.saved', 'Saved {file}.', { file: fileNameOf(model.name, 'glb') }));
     return true;
@@ -1002,11 +1002,11 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   /** Every POI open in the editor, as it stands on this screen, written as a pack. */
   async function exportOpenPack() {
     const pois = edit.ids().map((id) => structuredClone(edit.docOf(id)));
-    if (!pois.length) { say(t('poi.pack.nothingOpen', 'Open the POIs to pack first.'), 'bad'); return false; }
+    if (!pois.length) { say(t('poi.pack.nothingOpen', 'Open at least one POI before exporting a pack.'), 'bad'); return false; }
     const r = await act(() => exportPack({ pois }, fetchAsset));
     if (!r) return false;
     // AUDIT POI C4: a pack refused by its own law said in its words (poiText.js packErrorText); a fetch that failed, as one
-    if (!r.ok) { say(r.code && r.code !== 'export-fetch' ? packErrorText(r) : t('poi.export.failed', 'A model or picture would not load: nothing was saved.'), 'bad'); return false; }
+    if (!r.ok) { say(r.code && r.code !== 'export-fetch' ? packErrorText(r) : t('poi.export.failed', 'Export failed because a model or picture could not be loaded.'), 'bad'); return false; }
     const file = fileNameOf(pois.length === 1 ? pois[0].name : `poi-pack-${pois.length}`, 'zip');
     download(file, r.bytes, 'application/zip');
     say(t('poi.pack.saved', 'Packed {n, plural, one {# POI} other {# POIs}} into {file}.', { n: pois.length, file }));
@@ -1049,7 +1049,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   function packRefusalRows(pack, r) {
     const at = String(r.at ?? '');
     const named = pack.pois.find((d) => d.name === at) ?? pack.shelf.find((d) => d.name === at) ?? null;
-    const where = /^[0-9a-f]{64}$/.test(at) ? t('poi.pack.atAsset', 'A model or picture ({sha})', { sha: at.slice(0, 10) }) : at;
+    const where = /^[0-9a-f]{64}$/.test(at) ? t('poi.pack.atAsset', 'Model or picture ({sha})', { sha: at.slice(0, 10) }) : at;
     const rows = [el('div', 'dfpoi-problem', where ? t('poi.pack.refusedAt', '{where}: {word}', { where, word: refusal(r) }) : refusal(r))];
     for (const p of (r.problems ?? []).slice(0, 12)) {
       const w = problemWhere(p.path, named);
@@ -1071,7 +1071,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       shelfEntry: whileOpen(box, (id) => poiShelfEntry(i, id)),   // AUDIT POI P4: the shelf asked before an entry is put (poiTransfer.js)
       progress: (n, of) => { if (mine()) say(t('poi.editor.uploading', 'Uploading {n} of {of}...', { n, of })); },
     }));
-    if (!mine()) { if (r) say(t('poi.pack.stopped', 'Stopped. Nothing was opened, but files uploaded before the stop stay in the store.')); return false; }
+    if (!mine()) { if (r) say(t('poi.pack.stopped', 'Import canceled. No POIs were opened, though any files already uploaded remain on the server.')); return false; }
     go.disabled = false;
     if (!r) return false;
     if (!r.ok) { say(refusal(r), 'bad'); said.replaceChildren(...packRefusalRows(pack, r)); return false; }
@@ -1086,8 +1086,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     }
     closeDialog();
     if (r.open[0] && edit.has(r.open[0].id)) edit.select({ id: r.open[0].id, part: null });
-    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}}; {entries, plural, one {# library entry is} other {# library entries are}} now in the library. Save each POI as a draft to send it.', { n: opened, entries: r.shelved })
-      + (kept ? ` ${t('poi.pack.keptOpen', '{n, plural, one {# POI was} other {# POIs were}} left as you had them (unsaved changes).', { n: kept })}` : ''));
+    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}}, and {entries, plural, one {# library entry is} other {# library entries are}} now in the library. Save each POI as a draft before submitting it.', { n: opened, entries: r.shelved })
+      + (kept ? ` ${t('poi.pack.keptOpen', '{n, plural, one {# open POI with unsaved changes was left untouched.} other {# open POIs with unsaved changes were left untouched.}}', { n: kept })}` : ''));
     return true;
   }
 
@@ -1102,7 +1102,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     let uploading = false;
     // AUDIT POI (the lead's; lane E's note): a model shown again for another "Make" is read inside the same refusal as
     // the first - a split that cannot be made says so, and the place button is held, never a throw out of the select
-    const splitSel = select(split, [['whole', t('poi.editor.splitWhole', 'One part')], ['nodes', t('poi.editor.splitNodes', 'A part for each object')]], (v) => { split = v; if (lastRead) shown(lastRead); });
+    const splitSel = select(split, [['whole', t('poi.editor.splitWhole', 'One part')], ['nodes', t('poi.editor.splitNodes', 'One part per object')]], (v) => { split = v; if (lastRead) shown(lastRead); });
     const body = el('div');
     let lastRead = null, prep = null;
     const cancel = btn(t('poi.editor.cancel', 'Cancel'), () => closeDialog());
@@ -1112,7 +1112,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     acts.append(place, cancel);
     // POI-4b: kept in the library as it is placed, unless the builder says not
     const keepToo = check(true, () => {});
-    box.append(el('div', 'dfpoi-h', t('poi.editor.importTitle', 'Import a model (glTF 2.0)')), el('div', '', t('poi.editor.importHint', 'Choose a .glb, or a .gltf with its .bin and pictures.')), files, field(t('poi.editor.split', 'Make'), splitSel),
+    box.append(el('div', 'dfpoi-h', t('poi.editor.importTitle', 'Import a model (glTF 2.0)')), el('div', '', t('poi.editor.importHint', 'Choose a .glb file, or a .gltf file along with its .bin and texture files.')), files, field(t('poi.editor.split', 'Make'), splitSel),
       field(t('poi.library.keepImport', 'Save to library too'), keepToo), body, acts);
     files.addEventListener('change', async () => {
       const list = [...(files.files ?? [])];
@@ -1143,7 +1143,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       // AUDIT POI U13: each count in its plural ("1 materials" no more)
       for (const p of prep.parts) rows.push(el('div', 'dfpoi-sub', t('poi.editor.importPart', '{name}: {vertices, plural, one {{vertices, number} vertex} other {{vertices, number} vertices}}, {triangles, plural, one {{triangles, number} triangle} other {{triangles, number} triangles}}, {materials, plural, one {# material} other {# materials}}', { name: p.name || '-', vertices: p.vertices, triangles: p.triangles, materials: p.submeshes })));
       // AUDIT POI G7 (the lead's; lane E's note): the model's lights read from it, placed and kept with it
-      if (prep.lights?.length) rows.push(el('div', 'dfpoi-sub', t('poi.editor.importLights', '{n, plural, one {# light} other {# lights}}, placed with it', { n: prep.lights.length })));
+      if (prep.lights?.length) rows.push(el('div', 'dfpoi-sub', t('poi.editor.importLights', '{n, plural, one {# light} other {# lights}} included', { n: prep.lights.length })));
       for (const r of prep.refused) rows.push(el('div', 'dfpoi-problem', `${r.name || '-'}: ${meshErrorText(r.code)}`));
       for (const w of prep.warnings) rows.push(el('div', 'dfpoi-warn', gltfWarningText(w.code, w)));
       body.replaceChildren(...rows);
@@ -1161,13 +1161,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       const r = await act((i) => uploadImport(parts, whileOpen(box, (bytes, kind) => poiPutAsset(i, bytes, kind)), (n, of) => { if (mine()) say(t('poi.editor.uploading', 'Uploading {n} of {of}...', { n, of })); }));
       uploading = false;
       splitSel.disabled = false; files.disabled = false;
-      if (!mine()) { if (r) say(t('poi.editor.importStopped', 'Stopped: nothing was placed.')); return; }
+      if (!mine()) { if (r) say(t('poi.editor.importStopped', 'Import canceled. Nothing was placed.')); return; }
       if (!r) { place.disabled = false; return; }
       if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return; }
       for (const [sha, meta] of r.metas) facts.put(sha, meta);
       closeDialog();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
-      say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      say(t('poi.editor.placeModel', 'Click where you want to place it. Press Esc to cancel.'));
       if (keepToo.checked) {
         // its meshes as the import holds them - the picture is drawn from them, none fetched back
         const meshes = new Map();
@@ -1207,19 +1207,19 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     async function choose(id) {
       if (uploading || !(id > 0)) return;
       chosen = id; drawList(); prep = null; place.disabled = true;
-      info.textContent = t('poi.editor.dfModelReading', 'Reading model {id}...', { id });
+      info.textContent = t('poi.editor.dfModelReading', 'Loading model {id}...', { id });
       // read through poiModelImportPipe (poi/poiModelThumbs.js) so previewing a model does not upload or retain it on
       // the GPU, falling back to dfModels if arch is missing or the module fails to load
       const pipe = dfModels.arch ? await import('../../poi/poiModelThumbs.js').then((m) => m.poiModelImportPipe(dfModels), () => dfModels) : dfModels;
       const got = await dfModelAsImport(id, pipe).catch(() => null);
       pipe.done?.();
       if (chosen !== id || dialog !== box) return;
-      if (!got) { info.textContent = t('poi.editor.dfModelNone', 'The game has no model {id}.', { id }); pic.removeAttribute('src'); return; }
+      if (!got) { info.textContent = t('poi.editor.dfModelNone', 'Model {id} was not found.', { id }); pic.removeAttribute('src'); return; }
       // a model that renders nothing even two-sided shows no picture; the line below it still describes the model
       try { const img = renderThumbShown(got.thumb, { size: 192 }); if (img) pic.src = URL.createObjectURL(new Blob([/** @type {any} */ (encodePng(img))], { type: 'image/png' })); else pic.removeAttribute('src'); } catch { pic.removeAttribute('src'); }
       prep = prepareImport(got.model, got.baked);
       const p = prep.parts[0];
-      info.textContent = p ? t('poi.editor.dfModelInfo', 'Model {id}: {v} vertices, {tri} triangles, {pics} pictures', { id, v: p.vertices, tri: p.triangles, pics: got.model.images.length })
+      info.textContent = p ? t('poi.editor.dfModelInfo', 'Model {id}: {v} vertices, {tri} triangles, {pics} textures', { id, v: p.vertices, tri: p.triangles, pics: got.model.images.length })
         : prep.refused.map((r) => `${r.name}: ${meshErrorText(r.code)}`).join(' ');
       place.disabled = !prep.parts.length;
     }
@@ -1239,12 +1239,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       const before = partCount();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
       if (spot && editor.standOn(spot)) return true;
-      if (!(spot && editor.refusedLast?.())) say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      if (!(spot && editor.refusedLast?.())) say(t('poi.editor.placeModel', 'Click where you want to place it. Press Esc to cancel.'));
       return placedFrom(editor.placing(), before);
     }
     const pick = el('div', 'dfpoi-row'); pick.append(idIn, go);
-    box.append(el('div', 'dfpoi-h', t('poi.editor.dfModelTitle', 'A Daggerfall model')),
-      el('div', '', t('poi.editor.dfModelHint', 'The buildings and pieces the game\'s towns are built from, by kind. Or type any model number.')),
+    box.append(el('div', 'dfpoi-h', t('poi.editor.dfModelTitle', 'Daggerfall model')),
+      el('div', '', t('poi.editor.dfModelHint', 'Browse built-in Daggerfall buildings and props by category, or enter a model ID directly.')),
       field(t('poi.editor.dfModelKind', 'Kind'), kindSel), list, pick, pic, info, acts);
     drawList();
     dialog = box;
@@ -1263,14 +1263,14 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   }
   // BUNNYFALL: THE SEASON, for working on the ground without the winter's snow (world/seasonView.js - this browser's view only)
   function seasonPicker() {
-    const names = [['clock', t('poi.editor.seasonClock', 'Season: by the clock')], ['summer', t('poi.editor.seasonSummer', 'Season: summer')],
+    const names = [['clock', t('poi.editor.seasonClock', 'Season: game calendar')], ['summer', t('poi.editor.seasonSummer', 'Season: summer')],
       ['winter', t('poi.editor.seasonWinter', 'Season: winter')], ['rain', t('poi.editor.seasonRain', 'Season: rain')]];
     const now = liveSeasonPin();
     const cur = now === SEASON.Summer ? 'summer' : now === SEASON.Winter ? 'winter' : now === SEASON.Rain ? 'rain' : 'clock';
     const s = el('select');
     for (const [v, text] of names) { const o = el('option', '', text); o.value = v; if (v === cur) o.selected = true; s.append(o); }
     s.value = cur;
-    s.title = t('poi.editor.seasonHint', 'Show the world in this season while you work. Only your screen changes.');
+    s.title = t('poi.editor.seasonHint', 'Preview the world in this season while editing. This only affects your view.');
     s.addEventListener('change', () => setLiveSeasonPin(s.value === 'summer' ? SEASON.Summer : s.value === 'winter' ? SEASON.Winter : s.value === 'rain' ? SEASON.Rain : null));
     for (const ty of ['keydown', 'keyup']) s.addEventListener(ty, swallow);
     return s;
@@ -1298,7 +1298,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
         const f = input.files?.[0];
         if (!f) return;
         file = f; place.disabled = true; img = null;
-        info.textContent = t('poi.editor.picReading', 'Reading the picture...');
+        info.textContent = t('poi.editor.picReading', 'Loading image...');
         try {
           bytes = await readFile(f);
           const meta = /** @type {{ format?: string, w?: number, h?: number, type?: string, error?: string }} */ (poiImageMetaOf(bytes));
@@ -1328,10 +1328,10 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       for (const [sha, meta] of r.metas) facts.put(sha, meta);
       closeDialog();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
-      say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      say(t('poi.editor.placeModel', 'Click where you want to place it. Press Esc to cancel.'));
     }
-    box.append(el('div', 'dfpoi-h', t('poi.editor.picTitle', 'A picture, standing')),
-      el('div', '', t('poi.editor.picHint', 'A PNG, JPEG or WebP made into one upright plane. It stands the way you place it and does not turn to face the player.')),
+    box.append(el('div', 'dfpoi-h', t('poi.editor.picTitle', 'Place picture')),
+      el('div', '', t('poi.editor.picHint', 'Places a PNG, JPEG, or WebP image on a flat upright plane. It stays at a fixed angle and does not turn to face the player.')),
       choose, pic, info,
       field(t('poi.editor.picHeight', 'Height (m)'), hIn), field(t('poi.editor.picEdge', 'Edge'), alphaSel), field(t('poi.editor.picCrisp', 'Crisp pixels'), crispChk), acts);
     dialog = box;

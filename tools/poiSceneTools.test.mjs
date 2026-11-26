@@ -244,7 +244,7 @@ test('scene acts: locked rows are not deleted, light reorders keep the selection
   assert.match(said.at(-1), /no turn or size/);
   edit.select({ id: d.id, items: ['light:1'] });
   assert.equal(acts.arrange('ground'), 0);
-  assert.match(said.at(-1), /lights stay/);
+  assert.match(said.at(-1), /lights cannot be dropped/);
   // a flat's reset takes its scale back to one (but a figure's)
   const f = sceneDoc();
   f.flats = [{ key: 'sign', kind: 'billboard', flat: [210, 0], t: [0, 0, 0], rot: [0, 30, 0], scale: 2, layer: 0, collide: false }];
