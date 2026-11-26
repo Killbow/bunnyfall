@@ -3,7 +3,7 @@
 // Effects are injected so tests can exercise mine interactions without a scene.
 import { t } from '../../ui/textManager.js';
 import { MINE_WOOD_STRENGTH } from '../../net/mine/mineBrain.js';
-import { drillReading, mineOreKey, oreRunsLeft } from '../../net/mine/mineDrill.js';
+import { drillReading, mineOreKey, mineOreLeft, oreRunsLeft } from '../../net/mine/mineDrill.js';
 import { accountRefusalText } from '../../net/accountClient.js';   // a refusal in its own words, never the generic one
 
 /** A claim the service could not answer is asked again after these waits (ms). */
@@ -16,7 +16,7 @@ export const MINE_COLLAPSE_S = 2.5;
 const RICH = Object.freeze(['a thin seam', 'a good seam', 'a rich seam']);
 
 export const MINE_CLIENT_TEXT = Object.freeze({
-  hole: (/** @type {string} */ ore, /** @type {number} */ rich, /** @type {number} */ stab) => t('mine.hole', '{ore} below: {seam}. The rock here holds at {stab} of 100.', { ore, seam: RICH[Math.max(0, Math.min(2, rich - 1))], stab: Math.round(stab) }),
+  hole: (/** @type {string} */ ore, /** @type {number} */ rich, /** @type {number} */ stab, /** @type {number} */ cap = 100, /** @type {number} */ left = 0) => t('mine.hole', '{ore} below: {seam}, about {left} ore for a drill. The rock here holds at {stab} of {cap}.', { ore, seam: RICH[Math.max(0, Math.min(2, rich - 1))], left, stab: Math.round(stab), cap: Math.round(cap) }),
   sound: () => t('mine.wallSound', 'Sound rock'),
   weak: () => t('mine.wallWeak', 'Weak rock'),
   shored: () => t('mine.wallShored', 'Shored'),
@@ -182,7 +182,7 @@ export function createMineClient(deps) {
         const h = ch.holes[p.k];
         if (!h) return false;
         // Info, or a relay before drills: the hole examined. Otherwise the drill - set mine here, or empty mine
-        if (mode === 'info' || !deps.drillOk?.()) { deps.say(MINE_CLIENT_TEXT.hole(oreName(h.ore), h.rich, st?.stab?.[p.s] ?? 100)); return true; }
+        if (mode === 'info' || !deps.drillOk?.()) { deps.say(MINE_CLIENT_TEXT.hole(oreName(h.ore), h.rich, st?.stab?.[p.s] ?? 100, st?.cap?.[p.s] ?? 100, mineOreLeft(st?.oreWork, mineOreKey(p.s, p.c, p.k), h.rich))); return true; }
         const d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
         if (d && d.by !== me && !(me && d.crew?.includes(me))) { deps.say(MINE_CLIENT_TEXT.refused('not-yours') ?? ''); return true; }
         if (d) { lastAsk = 'take'; deps.send('take', { s: p.s, c: p.c, h: p.k }); return true; }
@@ -228,6 +228,12 @@ const KEY_RE = /^mine:(hole|wall|lamp):(\d):(\d):(\d{1,2})$/;
 function parseKey(/** @type {string} */ key) {
   const m = KEY_RE.exec(String(key ?? ''));
   return m ? { kind: m[1], s: Number(m[2]), c: Number(m[3]), k: Number(m[4]) } : null;
+}
+/** A Surveyor's survey of a mine (Mining 100): every ore its holes hold, once, the deepest and rarest last. '' for none. */
+export function mineSurveyLine(/** @type {{ sections: Array<{ chambers: Array<{ holes: Array<{ ore: string }> }> }> }} */ layout) {
+  const seen = [...new Set(layout.sections.flatMap((s) => s.chambers.flatMap((c) => c.holes.map((h) => h.ore))))];
+  if (!seen.length) return '';
+  return t('mine.survey', 'Your survey of the rock: {ores}.', { ores: seen.map(oreName).join(', ') });
 }
 /** An ore's name for a hole's words: `metal:iron` -> `Iron`. */
 const oreName = (/** @type {string} */ key) => { const id = String(key).split(':')[1] ?? key; return `${id[0].toUpperCase()}${id.slice(1)}`; };

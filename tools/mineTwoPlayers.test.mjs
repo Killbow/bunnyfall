@@ -43,8 +43,11 @@ test('two players take hauls from one mine: each is paid into their own Stores, 
   const rb = await mintMineReceipt(haul(B.id, 1, { n: 3 }), kp.privateKey, { subtle, nowS });
   const a = await claimMineHaul(ctx, A, env, { receipt: ra, character: 'char-a' }, kp.publicKey);
   const b = await claimMineHaul(ctx, B, env, { receipt: rb, character: 'char-b' }, kp.publicKey);
-  assert.deepEqual(a, { paid: 5, ore: 'metal:iron' });
-  assert.deepEqual(b, { paid: 3, ore: 'metal:iron' });
+  // a haul also answers the mining xp it earned (added with the drill numbers); this test is about who is paid what
+  assert.equal(a.paid, 5);
+  assert.equal(a.ore, 'metal:iron');
+  assert.equal(b.paid, 3);
+  assert.equal(b.ore, 'metal:iron');
   const stores = (p) => sql.prepare("SELECT SUM(qty) AS n FROM prof_stores WHERE player = ? AND material = 'metal:iron'").get(p).n;
   assert.equal(stores(A.id), 5);
   assert.equal(stores(B.id), 3);

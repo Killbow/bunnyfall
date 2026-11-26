@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createMineClient, mineKey, MINE_COLLAPSE_S } from '../src/systems/mine/mineClient.js';
+import { createMineClient, mineKey, MINE_COLLAPSE_S, mineSurveyLine } from '../src/systems/mine/mineClient.js';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
 import { createMineState, stepMine } from '../src/net/mine/mineBrain.js';
 
@@ -136,4 +136,12 @@ test('an exhausted deposit is only targetable while its drill hopper remains', (
   client.heard({ k: 'st', st });
   assert.equal(client.holeAvailable(0, 0, 0), false);
   assert.equal(client.name(mineKey('hole', 0, 0, 0)), null);
+});
+
+test('a Surveyor’s survey names every ore the mine holds once, the rich seam last', () => {
+  const ores = new Set(L.sections.flatMap((s) => s.chambers.flatMap((c) => c.holes.map((h) => h.ore))));
+  const line = mineSurveyLine(L);
+  for (const o of ores) assert.ok(line.includes(o.split(':')[1][0].toUpperCase() + o.split(':')[1].slice(1)), line);
+  assert.equal(line.split(' ').filter((w) => w === 'Iron').length <= 1, true);
+  assert.equal(mineSurveyLine({ sections: [] }), '');
 });

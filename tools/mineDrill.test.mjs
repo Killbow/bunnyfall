@@ -3,7 +3,7 @@ import test from 'node:test';
 import { webcrypto } from 'node:crypto';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
 import { createMineState, stepMine, MINE_ALARM } from '../src/net/mine/mineBrain.js';
-import { MINE_DRILL, mineOreKey, oreRunsLeft, drillHopper } from '../src/net/mine/mineDrill.js';
+import { MINE_DRILL, mineOreKey, oreRunsLeft, drillHopper, drillYield } from '../src/net/mine/mineDrill.js';
 import { mintMineReceipt, readMineReceipt, verifyMineReceipt, mineReceiptId } from '../src/net/mine/mineReceipt.js';
 import { validMineIn, validMineOut } from '../src/net/mine/mineWire.js';
 
@@ -18,7 +18,7 @@ test('a drill set on a hole runs a shift, filling its hopper by the seam’s ric
   assert.deepEqual(r.events, [`drill:${hole.s}:${hole.c}:0`]);
   const d = r.state.drills[0];
   assert.equal(d.until - d.from, MINE_DRILL.shiftS);
-  assert.equal(drillHopper(d, NOW + MINE_DRILL.perOreS * 3), 3 * d.rich);
+  assert.equal(drillHopper(d, NOW + MINE_DRILL.perOreS * 3), 3 * drillYield(d.rich));
   assert.ok(drillHopper(d, NOW + 99999) <= MINE_DRILL.hopperMax);
 });
 
@@ -31,7 +31,7 @@ test('one drill a player, one a hole; only its setter empties it, and the haul n
   assert.equal(stepMine(st, { op: 'take', s: hole.s, c: hole.c, k: 0, by: YOU }, NOW + 60).error, 'not-yours');
   const r = stepMine(st, { op: 'take', s: hole.s, c: hole.c, k: 0, by: ME }, NOW + 60);
   assert.equal(r.haul.ore, hole.h.ore);
-  assert.equal(r.haul.n, 5 * Math.max(1, Math.min(3, hole.h.rich)));
+  assert.equal(r.haul.n, 5 * drillYield(hole.h.rich));
   assert.equal(r.haul.seq, 1);
   st = r.state;
   assert.equal(stepMine(st, { op: 'take', s: hole.s, c: hole.c, k: 0, by: ME }, NOW + 60).error, 'empty');   // taken once
@@ -120,4 +120,43 @@ test('a partly worked deposit survives a stopped drill and breaks after its rema
   const finalHaul = stepMine(finished.state, { op: 'take', ...spot }, NOW + 180);
   assert.ok(finalHaul.haul.n > 0);
   assert.equal(stepMine(finalHaul.state, { op: 'drill', ...spot }, NOW + 180).error, 'depleted');
+});
+
+test('a hole’s examine text names the ore a drill will make, and a drill runs to exactly that', async () => {
+  const { MINE_CLIENT_TEXT } = await import('../src/systems/mine/mineClient.js');
+  const { mineOreLeft } = await import('../src/net/mine/mineDrill.js');
+  const { s, c, k, h } = hole, key = mineOreKey(s, c, k);
+  const total = mineOreLeft({}, key, h.rich);
+  assert.equal(total, (MINE_DRILL.shiftS / MINE_DRILL.perOreS) * drillYield(h.rich));
+  assert.match(MINE_CLIENT_TEXT.hole('Iron', h.rich, 155, 160, total), new RegExp(`${total} ore`));
+  assert.match(MINE_CLIENT_TEXT.hole('Iron', h.rich, 155, 160, total), /155 of 160/);   // shored rock holds past 100
+  // set the drill, empty the hopper whenever it nears its brim, and the hauls add to the number the text showed
+  let st = stepMine(createMineState(L, NOW), { op: 'drill', s, c, k, by: ME }, NOW).state, got = 0, t = NOW;
+  for (let i = 0; i < 200; i++) {
+    t += 20;
+    st = stepMine(st, { op: 'tick', here: [ME] }, t).state;
+    const r = stepMine(st, { op: 'take', s, c, k, by: ME }, t);
+    if (r.haul) { got += r.haul.n; st = r.state; }
+  }
+  assert.equal(got, total);
+  assert.equal(mineOreLeft(st.oreWork, key, h.rich), 0);
+});
+
+test('a drill yields a half more than the seam�s richness, and a full shift fits the hopper', () => {
+  assert.deepEqual([1, 2, 3].map(drillYield), [2, 3, 5]);   // slightly above clicking a node by hand (2 to 4 ore)
+  assert.equal(MINE_DRILL.perOreS, 12);   // speed unchanged
+  assert.ok((MINE_DRILL.shiftS / MINE_DRILL.perOreS) * drillYield(3) <= MINE_DRILL.hopperMax);   // a whole deposit of the richest seam fits
+  assert.equal(MINE_DRILL.hopperMax, 75);
+});
+
+test('a drill haul takes the Firmament’s mining yield and pays a little mining XP, half what a hand node pays per ore', async () => {
+  const { drillHaulPaid, MINE_XP_SHARE } = await import('../src/net/mine/mineHaulLaw.js');
+  assert.equal(MINE_XP_SHARE, 0.5);
+  assert.deepEqual(drillHaulPaid(20, 'metal:iron', {}, 0.5), { qty: 20, xp: 20 * 0.5 * 5 });   // iron tier 1: 5 XP an ore by hand
+  assert.deepEqual(drillHaulPaid(20, 'ore:ebony', {}, 0.5), { qty: 20, xp: 20 * 0.5 * 5 * 6 });
+  assert.equal(drillHaulPaid(20, 'metal:iron', { 'yield.mining': 10 }, 0.99).qty, 22);   // 20 +10%
+  assert.equal(drillHaulPaid(5, 'metal:iron', { 'yield.mining': 10 }, 0.0).qty, 6);   // the fraction (5.5) is a chance
+  assert.equal(drillHaulPaid(5, 'metal:iron', { 'yield.mining': 10 }, 0.99).qty, 5);
+  assert.equal(drillHaulPaid(20, 'metal:iron', { 'xp.mining': 20 }, 0.5).xp, 60);
+  assert.equal(drillHaulPaid(20, 'wood:oak', {}, 0.5).xp, 0);   // not an ore: no mining XP
 });

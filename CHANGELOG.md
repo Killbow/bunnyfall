@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Changed: Drills make a bit more ore (2, 3 or 5 a run by seam richness, up from 1 to 3) and the hopper holds 75. A drill haul now gets your Firmament mining yield and pays some mining XP, half what hand mining gives. A Surveyor is told which ores a mine holds as they walk in.
+- Changed: Mines now hold their region's own ore in some of their deeper holes: mithril in Wayrest, ebony in Sentinel, orichalcum in Orsinium and the Wrothgarian Mountains, adamantium in Balfiera.
+- Fixed: Examining a mine hole now says how much ore a drill will make there, and how far shoring has raised the rock's limit (it used to read 155 of 100). The Cartographers' desk now buys ore in packs of 25 and pays the ore's market value, so a drilled deposit is worth selling (iron 1 Argent, ebony 14).
 - Fixed: Logging out inside a mine no longer drops you in the ocean in the far corner of the world. You wake at the mouth of the mine, and a character already stranded in that corner wakes at the start of the realm.
 - Fixed: Mining with someone else in the same mine no longer loses your ore. A drill haul that matched another miner's is paid to both, a failed claim is asked again, and a refused vein or haul says why instead of "The account service had a problem".
 - Added: A third tier for Company farm tools and soil, at 26,000 of every crop shipped. Legendary tools work a whole 3x3 block of nine beds in one click, with all nine lit up before you swing. Black earth gives 3 extra items a bed and grows crops 50% faster. Farms keep their progress and see the new upgrades at the tool rack and the compost heap.

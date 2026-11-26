@@ -39,4 +39,4 @@ The Cartographers' clerk opens one modal for membership, maps, survey notes, con
 
 The shop (`SOCIETY_WARES`) sells a ladder of titles, each needing the one before (Prospector 150, Delver 400, Deepwarden 900, Master of the Seam 1800), and The Burning Stair aura (4000). `titlesHeld` and `aurasHeld` read the row's wares, so other players see them as any title or aura. The mine kit (`SOCIETY_KIT`: drill, fuel, lamps, Survey Rod) is bought for gold as a realm act (`societyKitBuy`, the record's purse) and kept in `mine_kit` (migration 0224); a member's Seals rise a tenth a rank, read off the realm record (`societyRankOf`).
 
-The desk buys 100 gathered ore at a time for one Imperial Argent per ore tier. The account ledger credits the payout and the same database batch debits the character’s Stores.
+The desk buys 25 gathered ore at a time (about one drilled deposit) for the ore's market value in Imperial Argents (`TIER_VALUES`: iron 1, ebony 14). The account ledger credits the payout and the same database batch debits the character’s Stores.
