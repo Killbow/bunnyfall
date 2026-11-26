@@ -1,8 +1,5 @@
 {
  "strings": {
-  "account.refusal.customsNeverOnline": 14,
-  "account.refusal.marketGoldGoods": 8,
-  "account.refusal.realmMarketOpen": 13,
   "cards.kingsGambit.guide.ground.body": 1,
   "credits.betterAmbience.what": 15,
   "credits.classSkins.what": 5,
@@ -91,11 +88,6 @@
   "tavern.favor.rules": 2
  },
  "sentences": {
-  "account.refusal.badTithe": 6,
-  "account.refusal.customsNeverOnline": 2,
-  "account.refusal.marketGoldGoods": 4,
-  "account.refusal.realmMarketOpen": 4,
-  "account.refusal.storesGold": 3,
   "captain.sky.hint": 7,
   "captain.sky.hintTouch": 1,
   "captain.sky.levelTip": 3,
