@@ -2643,7 +2643,7 @@ export function createWorldModes(host) {
     back: () => favorShop.open(),
   });
   const societyDesk = createSocietyDesk({ call: host.societyCall ?? null, kit: host.societyKit ?? null, stores: host.societyStores ?? null, gold: () => playerEntity?.goldPieces ?? 0,
-    gainRep: (n) => bunnyGainRep(playerEntity, 'cartographers', n), choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });   // BUNNYFALL (2026-11-26, caverns)
+    gainRep: (n) => bunnyGainRep(playerEntity, 'cartographers', n) });   // BUNNYFALL (2026-11-26, caverns)
   const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
@@ -4471,10 +4471,15 @@ export function createWorldModes(host) {
     if (gateRole === 'bookmaker' && host.arenaBookmaker?.()) return;   // ARENA3: the bookmaker's stall (scenes/arena/arenaGate.js)
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
     if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
-      openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
-        entity: playerEntity, openFavor: () => favorShop.open(), openSociety: () => { void societyDesk.open(); }, openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
+      const services = bunnyHallServices({
+        entity: playerEntity, openFavor: () => favorShop.open(), openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
         revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
-      }));
+      });
+      if (pn.bunnyClerk === 'cartographers') {
+        const win = societyDesk.open((show) => { openBunnyHall(pn.bunnyClerk, playerEntity, show, services); });
+        if (win) { townTalk?.showOverlay?.(win); return; }
+      }
+      openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), services);
       return;
     }
     if (!info && pn?.lamp) { lampChoice(pn); return; }   // LAMP-KEEPER II: the lamp's own words, its shop, and its title

@@ -35,7 +35,7 @@ tags:
   - titles
 ---
 
-The Cartographers' hall offers `K - Ore contracts and Survey Seals` (`openSociety`), opening `createSocietyDesk`, a choice box in the Favor shop's manner. The desk reads `/v1/society`: the Survey Seals, the open contract and how much of its ore the Stores hold, or the day's three offers (`SOCIETY_CONTRACTS`: 400 iron for 40 Seals up to 30 adamantium for 130).
+The Cartographers' clerk opens one modal for membership, maps, survey notes, contracts, rewards, mine kit, and ore sales. The desk reads `/v1/society`: the Survey Seals, the open contract and how much of its ore the Stores hold, or the day's three offers (`SOCIETY_CONTRACTS`: 400 iron for 40 Seals up to 30 adamantium for 130).
 
 The shop (`SOCIETY_WARES`) sells a ladder of titles, each needing the one before (Prospector 150, Delver 400, Deepwarden 900, Master of the Seam 1800), and The Burning Stair aura (4000). `titlesHeld` and `aurasHeld` read the row's wares, so other players see them as any title or aura. The mine kit (`SOCIETY_KIT`: drill, fuel, lamps, Survey Rod) is bought for gold as a realm act (`societyKitBuy`, the record's purse) and kept in `mine_kit` (migration 0224); a member's Seals rise a tenth a rank, read off the realm record (`societyRankOf`).
 

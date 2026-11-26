@@ -1,11 +1,8 @@
 // @ts-check
-// BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY'S DESK - opened from its hall (guilds/bunnyServices.js),
-// a choice box in the Favor shop's manner (scenes/tavernFavorShop.js). It reads the desk from the account service
-// (server-account/src/society.js): the Survey Seals, the open contract and how much of its ore the Stores hold, or the
-// day's offers; and it takes a contract, turns one in, or buys a ware from the shop's ladder (net/mine/societyLaw.js).
-// Every number shown is the service's; nothing here decides.
+// The Society's hall and account services share one window.
 import { SOCIETY_ORE_PACK, SOCIETY_WARES, societyBuyRefused, SOCIETY_KIT, SOCIETY_CONTRACT_REP } from '../net/mine/societyLaw.js';
 import { t } from '../ui/textManager.js';
+import { registerOverlay } from '../ui/enhancedOverlays.js';
 
 /** An ore's name for the desk: `metal:iron` -> `Iron Ore`, `ore:mithril` -> `Mithril Ore`. */
 export const societyOreName = (/** @type {string} */ ore) => { const id = String(ore).split(':')[1] ?? ore; return t('society.ore', '{name} Ore', { name: `${id[0].toUpperCase()}${id.slice(1)}` }); };
@@ -37,108 +34,253 @@ const REFUSED = Object.freeze({
   'kit-full': () => t('society.kitFull', 'You cannot carry more of that.'),
 });
 
+const STYLE = `
+.society-backdrop{position:fixed;inset:0;z-index:13;display:grid;place-items:center;padding:clamp(8px,3vw,36px);background:#080b0bd9;pointer-events:auto}
+.society-modal{width:min(900px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;background:#1b2020;color:#f2e8d3;border:1px solid #817352;border-radius:12px;box-shadow:0 18px 70px #000b;font:15px/1.45 system-ui,sans-serif;color-scheme:dark}
+.society-modal *{box-sizing:border-box}
+.society-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px clamp(14px,4vw,30px) 14px;background:#232b29}
+.society-modal h1,.society-modal h2,.society-modal h3,.society-modal p{margin:0}
+.society-modal h1{font:600 clamp(22px,4vw,32px)/1.16 Georgia,serif}
+.society-wallet{margin-top:7px;color:#e9ca86;font-variant-numeric:tabular-nums}
+.society-nav{display:flex;flex-wrap:wrap;gap:5px;padding:8px clamp(14px,4vw,30px);border-block:1px solid #4c4c3f}
+.society-modal button{cursor:pointer;padding:7px 11px;border:1px solid #807154;border-radius:5px;color:inherit;background:#33362e;font:inherit}
+.society-nav button{border-color:transparent;background:none}
+.society-nav button[aria-current=page]{background:#444b3a;border-color:#8f8c64}
+.society-modal button:hover:not(:disabled){background:#4c4e3d}
+.society-modal button:focus-visible{outline:2px solid #f1cf88;outline-offset:2px}
+.society-modal button:disabled{opacity:.58;cursor:default}
+.society-main{overflow:auto;overscroll-behavior:contain;min-height:min(360px,45vh);padding:18px clamp(14px,4vw,30px) 24px;display:grid;gap:10px;align-content:start}
+.society-modal h2{font:600 24px/1.2 Georgia,serif}
+.society-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:9px 16px;padding:12px 14px;background:#272c29;border:1px solid #41463a;border-radius:6px}
+.society-row h3{font-size:16px}
+.society-row p,.society-hint{color:#cfc5b2}
+.society-status{padding:8px clamp(14px,4vw,30px);border-top:1px solid #4c4c3f;color:#f1cf88}
+.society-status:empty{display:none}
+`;
+
+const TABS = /** @type {const} */ ([
+  ['hall', () => t('society.tabHall', 'Guild hall')],
+  ['contracts', () => t('society.tabContracts', 'Contracts')],
+  ['kit', () => t('society.tabKit', 'Mine kit')],
+  ['rewards', () => t('society.tabRewards', 'Rewards')],
+  ['sales', () => t('society.tabSales', 'Ore sales')],
+]);
+
 /**
- * @param {{ call: ((path: string, body?: any) => Promise<any>) | null, choose: (view: any) => void, stores?: (() => void) | null,
- *   kit?: ((body: any, gold: number) => Promise<any>) | null, gold?: (() => number) | null, gainRep?: ((n: number) => void) | null }} deps
- *   `kit` a mine kit bought for gold (a realm act), `gold` the purse, `gainRep` the Society's standing raised
- *   `call` the account service (`{ ok, data }` or `{ ok: false, error }`), null offline; `choose` the host's choice box;
- *   `stores` the Stores read again after a turn-in
+ * @param {{ call: ((path: string, body?: any) => Promise<any>) | null,
+ *   kit?: ((body: any, gold: number) => Promise<any>) | null, gold: () => number, stores?: (() => void) | null,
+ *   gainRep?: ((n: number) => void) | null }} deps
  */
 export function createSocietyDesk(deps) {
-  let busy = false, shopping = false, kitting = false, selling = false, salePage = 0;
   const pendingSales = new Map();
-  const words = (/** @type {any} */ r) => (REFUSED[/** @type {keyof typeof REFUSED} */ (r?.data?.error ?? r?.error)]?.() ?? t('society.failed', 'The Society could not do that just now.'));
+  let active = /** @type {{ dispose: () => void } | null} */ (null);
+  const words = (/** @type {any} */ r) => REFUSED[/** @type {keyof typeof REFUSED} */ (r?.data?.error ?? r?.error)]?.() ?? t('society.failed', 'The Society could not do that just now.');
 
-  async function act(/** @type {string} */ path, /** @type {any} */ body, /** @type {(d: any) => string} */ done) {
-    if (busy || !deps.call) return;
-    busy = true;
-    try {
-      const r = await deps.call(path, body);
-      if (path === '/v1/society/sell-ore' && (r?.ok || r?.data?.error)) pendingSales.delete(body.ore);
-      if (r?.ok) {
-        if (path === '/v1/society/turnin' || path === '/v1/society/sell-ore') deps.stores?.();
-        if (path === '/v1/society/turnin') deps.gainRep?.(SOCIETY_CONTRACT_REP);
-        await open(done(r.data));
-      } else await open(words(r));
-    } catch { await open(t('society.failed', 'The Society could not do that just now.')); } finally { busy = false; }
-  }
+  /** @param {(show: (view: { lines: string[], options: any[] }) => void) => void} hall */
+  function open(hall) {
+    if (typeof document === 'undefined') return null;
+    active?.dispose();
+    let done = false, busy = false, loading = !!deps.call;
+    let tab = /** @type {typeof TABS[number][0]} */ (deps.call ? 'contracts' : 'hall');
+    let data = /** @type {any} */ (null), failure = '';
+    let hallView = /** @type {{lines: string[], options: any[]}} */ ({ lines: [], options: [] });
+    const previousFocus = document.activeElement;
+    const el = (/** @type {string} */ tag, text = '', cls = '') => {
+      const node = document.createElement(tag);
+      if (text) node.textContent = text;
+      if (cls) node.className = cls;
+      return node;
+    };
+    const button = (/** @type {string} */ label, /** @type {() => void} */ action, disabled = false) => {
+      const node = /** @type {HTMLButtonElement} */ (el('button', label));
+      node.type = 'button';
+      node.disabled = disabled;
+      node.onclick = action;
+      return node;
+    };
 
-  async function open(note = '') {
-    if (!deps.call) { deps.choose({ lines: [t('society.heading', 'The Cartographers’ Society'), t('society.online', 'Load an online realm character to take the Society’s contracts.')], options: [{ code: 'Escape', label: t('society.close', 'Leave'), action: () => {} }] }); return; }
-    const r = await deps.call('/v1/society', {});
-    if (!r?.ok) { deps.choose({ lines: [t('society.heading', 'The Cartographers’ Society'), words(r)], options: [{ code: 'Escape', label: t('society.close', 'Leave'), action: () => {} }] }); return; }
-    const d = r.data, lines = [t('society.heading', 'The Cartographers’ Society'), note, t('society.seals', 'Survey Seals: {n}', { n: d.seals })].filter(Boolean);
-    const options = [];
-    if (selling) {
-      const sales = d.oreSales ?? [];
-      const pageSize = 5;
-      salePage = Math.min(salePage, Math.max(0, Math.ceil(sales.length / pageSize) - 1));
-      lines.push(t('society.oreSaleRules', 'Sell {n} gathered ore at a time. Iron pays 1 Argent per pack. Rarer ores pay more.', { n: SOCIETY_ORE_PACK }));
-      if (!sales.length) lines.push(t('society.noOrePacks', 'Your Stores have no full packs of gathered ore to sell.'));
-      sales.slice(salePage * pageSize, (salePage + 1) * pageSize).forEach((/** @type {any} */ row, /** @type {number} */ i) => {
-        options.push({
-          code: `Digit${i + 1}`,
-          label: t('society.sellOrePack', 'Sell {n} {ore} for {argents, plural, one {# Argent} other {# Argents}} ({held} held)', { n: SOCIETY_ORE_PACK, ore: societyOreName(row.ore), argents: row.argents, held: row.held }),
-          action: () => {
+    const root = el('div', '', 'society-backdrop');
+    const modal = el('section', '', 'society-modal');
+    const title = el('h1', t('society.heading', 'The Cartographers’ Society'));
+    title.id = 'society-desk-title';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', title.id);
+    const header = el('header', '', 'society-header');
+    const heading = el('div'), wallet = el('p', '', 'society-wallet');
+    heading.append(title, wallet);
+    const closeButton = button(t('society.closeModal', 'Close'), close);
+    header.append(heading, closeButton);
+    const nav = el('nav', '', 'society-nav');
+    nav.setAttribute('aria-label', title.textContent ?? '');
+    const body = el('div', '', 'society-main');
+    const status = el('div', '', 'society-status');
+    status.setAttribute('role', 'status');
+    modal.append(header, nav, body, status);
+    root.append(el('style', STYLE), modal);
+
+    function close() {
+      if (done) return;
+      done = true;
+      unregister();
+      globalThis.removeEventListener('keydown', onKey, true);
+      root.remove();
+      if (active === windowOverlay) active = null;
+      if (previousFocus instanceof globalThis.HTMLElement && previousFocus.isConnected) previousFocus.focus();
+    }
+
+    function onKey(/** @type {KeyboardEvent} */ event) {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
+      else if (event.key === 'Tab') {
+        const buttons = /** @type {HTMLButtonElement[]} */ ([...modal.querySelectorAll('button:not(:disabled)')]);
+        const index = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
+        buttons[(index + (event.shiftKey ? buttons.length - 1 : 1)) % buttons.length]?.focus();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      } else event.stopPropagation();
+    }
+
+    const windowOverlay = {
+      isChoiceWindow: true,
+      get done() { return done; },
+      input() {}, click() {}, wheel() {}, hover() {}, tick() {}, draw() {},
+      dispose: close,
+    };
+    globalThis.addEventListener('keydown', onKey, true);
+    const unregister = registerOverlay(close);
+    active = windowOverlay;
+    document.body.append(root);
+    const tabs = TABS.map(([id, label]) => {
+      const node = button(label(), () => { tab = id; render(); });
+      nav.append(node);
+      return { id, node };
+    });
+
+    function hint(/** @type {string} */ text) { body.append(el('p', text, 'society-hint')); }
+    function row(/** @type {string} */ name, /** @type {string} */ detail, /** @type {string} */ label, /** @type {() => void} */ action, disabled = false) {
+      const item = el('div', '', 'society-row'), info = el('div');
+      info.append(el('h3', name));
+      if (detail) info.append(el('p', detail));
+      item.append(info, button(label, action, busy || disabled));
+      body.append(item);
+    }
+
+    async function load() {
+      if (!deps.call) return;
+      loading = true;
+      try {
+        const response = await deps.call('/v1/society', {});
+        if (response?.ok) { data = response.data; failure = ''; }
+        else failure = words(response);
+      } catch { failure = words(null); }
+      finally { loading = false; if (!done) render(); }
+    }
+
+    async function act(/** @type {string} */ path, /** @type {any} */ payload, /** @type {(d: any) => string} */ result, /** @type {number | null} */ gold = null) {
+      if (done || busy || !deps.call) return;
+      busy = true;
+      status.textContent = t('society.working', 'Working…');
+      render();
+      try {
+        const r = gold == null ? await deps.call(path, payload) : await deps.kit?.(payload, gold);
+        if (path === '/v1/society/sell-ore' && (r?.ok || r?.data?.error)) pendingSales.delete(payload.ore);
+        if (r?.ok) {
+          if (path === '/v1/society/turnin' || path === '/v1/society/sell-ore') deps.stores?.();
+          if (path === '/v1/society/turnin') { deps.gainRep?.(SOCIETY_CONTRACT_REP); if (!done) readHall(); }
+          status.textContent = result(r.data);
+          if (!done) await load();
+        } else status.textContent = r?.unknown ? t('society.kitRetry', 'The answer was lost. Look at your kit before buying again.') : words(r);
+      } catch { status.textContent = words(null); }
+      finally { busy = false; if (!done) render(); }
+    }
+
+    function render() {
+      const focused = document.activeElement;
+      wallet.textContent = [data && t('society.seals', 'Survey Seals: {n}', { n: data.seals }), t('society.goldBalance', '{n} gold', { n: deps.gold() })].filter(Boolean).join(' · ');
+      for (const { id, node } of tabs) {
+        if (id === tab) node.setAttribute('aria-current', 'page');
+        else node.removeAttribute('aria-current');
+      }
+      body.replaceChildren(el('h2', TABS.find(([id]) => id === tab)?.[1]?.() ?? title.textContent ?? ''));
+      if (tab === 'hall') {
+        for (const line of hallView.lines.filter(Boolean)) hint(line);
+        const actions = el('div', '', 'society-row');
+        for (const option of hallView.options) {
+          if (!option.label || option.code === 'KeyG') continue;
+          actions.append(button(option.label.replace(/^. - /, ''), () => { if (!done && !busy) option.action(); }, busy));
+        }
+        if (actions.childElementCount) body.append(actions);
+      } else if (loading && !data) hint(t('society.loading', 'Loading the Society’s records…'));
+      else if (failure) {
+        hint(failure);
+        body.append(button(t('society.retry', 'Try again'), () => { void load(); render(); }, loading));
+      } else if (!data) hint(t('society.online', 'Load an online realm character to take the Society’s contracts.'));
+      else if (tab === 'contracts') renderContracts();
+      else if (tab === 'kit') renderKit();
+      else if (tab === 'rewards') renderRewards();
+      else renderSales();
+      if (focused instanceof globalThis.HTMLElement && !focused.isConnected) tabs.find(({ id }) => id === tab)?.node.focus();
+    }
+
+    function renderContracts() {
+      const c = data.contract;
+      if (c) {
+        row(t('society.contractTitle', 'Deliver {n} {ore}', { n: c.n, ore: societyOreName(c.ore) }),
+          t('society.contractProgress', '{held} of {n} gathered · {seals} Survey Seals', { held: c.held, n: c.n, seals: c.seals }),
+          t('society.deliver', 'Turn in'), () => { void act('/v1/society/turnin', {}, (x) => t('society.paid', 'The Society takes {n} {ore} and pays {paid} Survey Seals.', { n: x.n, ore: societyOreName(x.ore), paid: x.paid })); }, c.held < c.n);
+      } else {
+        for (const offer of data.offers ?? []) {
+          row(t('society.contractTitle', 'Deliver {n} {ore}', { n: offer.n, ore: societyOreName(offer.ore) }),
+            t('society.sealsReward', '{n} Survey Seals', { n: offer.seals }), t('society.accept', 'Accept contract'),
+            () => { void act('/v1/society/take', { ore: offer.ore }, (x) => t('society.taken', 'Contract taken: deliver {n} {ore}. Any ore you gather counts, in the wilds or in a mine.', { n: x.contract.n, ore: societyOreName(x.contract.ore) })); });
+        }
+      }
+    }
+
+    function renderKit() {
+      hint(t('society.kitRules', 'A drill needs a Drill Fuel each shift. A Mine Lamp lights a chamber and keeps strays out. The Survey Rod tells sound rock from weak.'));
+      for (const kit of SOCIETY_KIT) {
+        const held = data.kit?.[kit.id] ?? 0;
+        const owned = kit.owned && held > 0;
+        const label = owned ? t('society.ownedButton', 'Owned') : t('society.buyGold', 'Buy for {n} gold', { n: kit.gold });
+        row(kitName(kit), t('society.kitStock', '{held} held · {n} per purchase', { held, n: kit.per }), label,
+          () => { void act('/v1/society/kit', { kit: kit.id, txn: globalThis.crypto.randomUUID() }, () => t('society.kitBought', 'Bought: {name}.', { name: kitName(kit) }), kit.gold); },
+          owned || !deps.kit || deps.gold() < kit.gold);
+      }
+    }
+
+    function renderRewards() {
+      for (const ware of SOCIETY_WARES) {
+        const why = societyBuyRefused(ware.id, data.wares, data.seals);
+        const label = why === 'owned' ? t('society.ownedButton', 'Owned') : t('society.redeem', 'Redeem');
+        const price = t('society.sealsReward', '{n} Survey Seals', { n: ware.seals });
+        const previous = SOCIETY_WARES.find((w) => w.id === ware.needs);
+        const detail = why === 'ladder' && previous ? t('society.rewardRequires', '{price} · Requires {title}', { price, title: wareName(previous) }) : price;
+        row(wareName(ware), detail, label, () => { void act('/v1/society/buy', { ware: ware.id }, () => t('society.bought', 'The Society grants you {name}.', { name: wareName(ware) })); }, !!why);
+      }
+    }
+
+    function renderSales() {
+      if (!Array.isArray(data.oreSales)) { hint(t('society.salesClosed', 'Ore sales are currently closed.')); return; }
+      hint(t('society.oreSaleRules', 'Sell {n} gathered ore at a time. Iron pays 1 Argent per pack. Rarer ores pay more.', { n: SOCIETY_ORE_PACK }));
+      if (!data.oreSales.length) hint(t('society.noOrePacks', 'Your Stores have no full packs of gathered ore to sell.'));
+      for (const sale of data.oreSales) {
+        row(societyOreName(sale.ore), t('society.orePackStock', '{held} gathered in your Stores', { held: sale.held }),
+          t('society.sellPack', 'Sell {n} for {argents, plural, one {# Argent} other {# Argents}}', { n: SOCIETY_ORE_PACK, argents: sale.argents }),
+          () => {
             if (busy) return;
-            const txn = pendingSales.get(row.ore) ?? globalThis.crypto.randomUUID();
-            pendingSales.set(row.ore, txn);
-            void act('/v1/society/sell-ore', { ore: row.ore, txn }, (x) => t('society.oreSold', 'Sold {n} {ore} for {argents, plural, one {# Argent} other {# Argents}}.', { n: x.n, ore: societyOreName(x.ore), argents: x.argents }));
-          },
-        });
-      });
-      if (salePage > 0) options.push({ code: 'KeyP', label: t('society.orePrevious', 'P - Previous ores'), action: () => { salePage--; void open(); } });
-      if ((salePage + 1) * pageSize < sales.length) options.push({ code: 'KeyN', label: t('society.oreNext', 'N - Next ores'), action: () => { salePage++; void open(); } });
-      options.push({ code: 'KeyC', label: t('society.backContracts', 'C - Contracts'), action: () => { selling = false; void open(); } });
-    } else if (kitting) {
-      // THE MINE KIT, for gold (the Society's tools: the spec's section 3)
-      const k = d.kit ?? {};
-      lines.push(t('society.kitHeld', 'You hold: drill {drill}, fuel {fuel}, lamps {lamp}, Survey Rod {rod}.', { drill: k.drill ?? 0, fuel: k.fuel ?? 0, lamp: k.lamp ?? 0, rod: k.rod ?? 0 }));
-      lines.push(t('society.kitRules', 'A drill needs a Drill Fuel each shift. A Mine Lamp lights a chamber and keeps strays out. The Survey Rod tells sound rock from weak.'));
-      SOCIETY_KIT.forEach((kit, i) => {
-        const owned = kit.owned && (k[kit.id] ?? 0) > 0;
-        options.push({ code: `Digit${i + 1}`, label: `${kitName(kit)}${kit.per > 1 ? ` x${kit.per}` : ''} - ${kit.gold} ${t('society.goldWord', 'gold')}${owned ? t('society.markOwned', ' (yours)') : ''}`, action: () => { void buyKit(kit); } });
-      });
-      options.push({ code: 'KeyC', label: t('society.backContracts', 'C - Contracts'), action: () => { kitting = false; void open(); } });
-    } else if (shopping) {
-      lines.push(t('society.shopRules', 'Titles are granted in order. The Burning Stair stands apart.'));
-      SOCIETY_WARES.forEach((w, i) => {
-        const why = societyBuyRefused(w.id, d.wares, d.seals);
-        const mark = why === 'owned' ? t('society.markOwned', ' (yours)') : why === 'ladder' ? t('society.markLadder', ' (earn the one before)') : '';
-        options.push({ code: `Digit${i + 1}`, label: `${wareName(w)} - ${w.seals} ${t('society.sealsWord', 'Seals')}${mark}`, action: () => { void act('/v1/society/buy', { ware: w.id }, () => t('society.bought', 'The Society grants you {name}.', { name: w.name })); } });
-      });
-      options.push({ code: 'KeyC', label: t('society.backContracts', 'C - Contracts'), action: () => { shopping = false; void open(); } });
-    } else if (d.contract) {
-      const c = d.contract;
-      lines.push(t('society.contract', 'Your contract: deliver {n} {ore} for {seals} Survey Seals.', { n: c.n, ore: societyOreName(c.ore), seals: c.seals }));
-      lines.push(t('society.held', 'Your Stores hold {held} of it.', { held: c.held }));
-      options.push({ code: 'KeyT', label: t('society.turnIn', 'T - Turn in the contract'), action: () => { void act('/v1/society/turnin', {}, (x) => t('society.paid', 'The Society takes {n} {ore} and pays {paid} Survey Seals.', { n: x.n, ore: societyOreName(x.ore), paid: x.paid })); } });
-    } else {
-      lines.push(t('society.offersHead', 'Today the Society needs:'));
-      d.offers.forEach((/** @type {any} */ o, /** @type {number} */ i) => options.push({
-        code: `Digit${i + 1}`, label: t('society.offer', '{n} {ore} - {seals} Survey Seals', { n: o.n, ore: societyOreName(o.ore), seals: o.seals }),
-        action: () => { void act('/v1/society/take', { ore: o.ore }, (x) => t('society.taken', 'Contract taken: deliver {n} {ore}. Any ore you gather counts, in the wilds or in a mine.', { n: x.contract.n, ore: societyOreName(x.contract.ore) })); },
-      }));
+            const txn = pendingSales.get(sale.ore) ?? globalThis.crypto.randomUUID();
+            pendingSales.set(sale.ore, txn);
+            void act('/v1/society/sell-ore', { ore: sale.ore, txn }, (x) => t('society.oreSold', 'Sold {n} {ore} for {argents, plural, one {# Argent} other {# Argents}}.', { n: x.n, ore: societyOreName(x.ore), argents: x.argents }));
+          });
+      }
     }
-    if (!shopping && !kitting && !selling) {
-      if (Array.isArray(d.oreSales)) options.push({ code: 'KeyO', label: t('society.oreShop', 'O - Sell ore packs for Argents'), action: () => { selling = true; salePage = 0; void open(); } });
-      options.push({ code: 'KeyS', label: t('society.shop', 'S - Spend Survey Seals'), action: () => { shopping = true; void open(); } });
-      options.push({ code: 'KeyG', label: t('society.kitShop', 'G - Buy mine kit for gold'), action: () => { kitting = true; void open(); } });
-    }
-    options.push({ code: 'Escape', label: t('society.close', 'Leave'), action: () => { shopping = false; kitting = false; selling = false; } });
-    deps.choose({ lines, options });
+
+    const readHall = () => hall((view) => { if (!done) { hallView = view; render(); } });
+    readHall();
+    closeButton.focus();
+    void load();
+    return windowOverlay;
   }
-  /** A kit bought for gold: the purse checked here first, the realm act the service's word. */
-  async function buyKit(/** @type {any} */ kit) {
-    if (busy) return;
-    if (!deps.kit) { await open(t('society.online', 'Load an online realm character to take the Society’s contracts.')); return; }
-    if ((deps.gold?.() ?? 0) < kit.gold) { await open(REFUSED['gold-short']()); return; }
-    busy = true;
-    try {
-      const r = await deps.kit({ kit: kit.id, txn: globalThis.crypto.randomUUID() }, kit.gold);
-      busy = false;
-      await open(r?.ok ? t('society.kitBought', 'Bought: {name}.', { name: kit.name }) : r?.unknown ? t('society.kitRetry', 'The answer was lost. Look at your kit before buying again.') : words(r));
-    } catch { busy = false; await open(t('society.failed', 'The Society could not do that just now.')); }
-  }
-  return { open: () => { shopping = false; kitting = false; selling = false; return open(); } };
+  return { open };
 }
