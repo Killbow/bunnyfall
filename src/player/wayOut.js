@@ -100,6 +100,17 @@ export const WAY_STEP_END_M = 0.25;
 /** Does a hit at `hit` (m) along a step `len` long stand across it - a wall between the two cells? Pure. */
 export const stepHitCuts = (hit, len, end = WAY_STEP_END_M) => Number.isFinite(hit) && hit > end && hit < len - end;
 
+/** WAY BACK (cave tiles): a step the player TOOK - two cells stood in one straight after the other, the trail's own order,
+ *  a metre-and-a-half apart at most and within a step's climb - is no wall and is never asked of the geometry. A waist ray
+ *  along a cave's rough wall, or a stair's nosing, answered "wall" for steps the body had just walked, and the way home
+ *  stopped at them (the field, the ribbon). The rays are for the shortcuts between passes alone. Pure. */
+export const WAY_WALKED_M = 1.8;
+export const walkedStep = (cells, i, j) => {
+  if (Math.abs(i - j) !== 1) return false;
+  const p = cells.pts[i], q = cells.pts[j];
+  return !!p && !!q && Math.hypot(p[0] - q[0], p[2] - q[2]) <= WAY_WALKED_M && Math.abs(p[1] - q[1]) <= WAY_STEP_DY;
+};
+
 /** A step between two cells, either way round, as one key (the asked steps, below). */
 export const stepKey = (i, j) => (i < j ? i * 0x1000000 + j : j * 0x1000000 + i);
 
@@ -256,6 +267,7 @@ export function createWayOut({ fieldEvery = WAY_FIELD_S, refieldEvery = WAY_REFI
         const k = stepKey(i, j);
         const known = asked.get(k);
         if (known !== undefined) return known;
+        if (walkedStep(c, i, j)) { asked.set(k, true); return true; }   // a step the player took is no wall: never asked
         if (!spend()) { pending.push(i, j); return true; }   // asked in the aims that follow; clear until then
         const ok = stepClear(c.pts[i], c.pts[j]) !== false;
         asked.set(k, ok);
@@ -288,7 +300,7 @@ export function createWayOut({ fieldEvery = WAY_FIELD_S, refieldEvery = WAY_REFI
           const k = stepKey(i, j);
           const known = asked.get(k);
           if (known !== undefined) return known;
-          const ok = stepClear(c.pts[i], c.pts[j]) !== false;
+          const ok = walkedStep(c, i, j) || stepClear(c.pts[i], c.pts[j]) !== false;
           asked.set(k, ok);
           if (!ok && (f.next[j] === i || f.next[i] === j)) walled = true;
           return ok;

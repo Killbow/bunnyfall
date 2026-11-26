@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Fixed: Way Back and its guide line no longer give out in cave-style and twisting dungeons. The route home now trusts the steps you actually walked instead of being cut by cave walls and stair edges.
 - Changed: Drills make a bit more ore (2, 3 or 5 a run by seam richness, up from 1 to 3) and the hopper holds 75. A drill haul now gets your Firmament mining yield and pays some mining XP, half what hand mining gives. A Surveyor is told which ores a mine holds as they walk in.
 - Changed: Mines now hold their region's own ore in some of their deeper holes: mithril in Wayrest, ebony in Sentinel, orichalcum in Orsinium and the Wrothgarian Mountains, adamantium in Balfiera.
 - Fixed: Examining a mine hole now says how much ore a drill will make there, and how far shoring has raised the rock's limit (it used to read 155 of 100). The Cartographers' desk now buys ore in packs of 25 and pays the ore's market value, so a drilled deposit is worth selling (iron 1 Argent, ebony 14).
