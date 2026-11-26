@@ -116,6 +116,7 @@ import { RING_INK, RING_NUMERALS } from './wildZoneMap.js';   // WILD2: the ring
 import { readGateMark, gateRingKey, gateRingTexels, GATE_DOT_RGB } from './gateMapMark.js';   // WB1: the Oblivion Gate's ring, on the open province's page
 import { readBountyMarks, bountyMarksKey, bountyRingTexels, BOUNTY_DOT_RGB, REVENANT_DOT_RGB, REVENANT_LEGEND_TEXT } from './bountyMapMark.js';   // BOUNTY1: held bounties' black circles on the region page
 import { LODE_DOT_RGB, LODE_LEGEND_TEXT } from './lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's Motherlodes, the same circle in aqua
+import { MINE_MARK_RGB } from './mineMapMark.js';
 import { POI_DOT_RGB, POI_MARKS_MAX, poiLegendText } from './poi/poiMapMark.js';   // POI-2: the approved POIs, the same circle in violet
 import { eliteDungeonRings, ED_TRAVEL_RGB } from './eliteDungeonMapInk.js';   // BUNNYFALL: the daily elite dungeons, a violet circle each
 import { readVendorMark, vendorMarkKey, vendorRingTexels, VENDOR_DOT_RGB } from './vendorMapMark.js';   // HOME-VENDOR: the trader's waypoint's gold ring
@@ -942,6 +943,9 @@ export class TravelMapWindow {
       const poiPx = packRGBA(POI_DOT_RGB[0], POI_DOT_RGB[1], POI_DOT_RGB[2], 255);
       for (const [x, y] of bountyRingTexels(pois, originX, originY, width, height)) plot(x, y, poiPx);
     }
+    this._mineMarks = this.deps.mines?.();
+    const minePx = packRGBA(...MINE_MARK_RGB, 255);
+    for (const { x, y } of this._mineMarks ?? []) plot(x - originX, y - originY, minePx);
     // BUNNYFALL: each daily elite dungeon - the same circle, in its crystal's violet, as wide as its spread
     const eds = readBountyMarks(() => eliteDungeonRings(this.deps.eliteDungeons?.() ?? []), { width: MAP_WIDTH, height: MAP_HEIGHT }, 'Elite dungeon', 64);
     this._edKey = bountyMarksKey(eds);
@@ -1044,6 +1048,7 @@ export class TravelMapWindow {
       && gateRingKey(readGateMark(this.deps.gate, { width: MAP_WIDTH, height: MAP_HEIGHT })) === this._gateKey
       && bountyMarksKey(readBountyMarks(this.deps.bounties, { width: MAP_WIDTH, height: MAP_HEIGHT })) === (this._bountiesKey ?? '')
       && bountyMarksKey(readBountyMarks(this.deps.lodes, { width: MAP_WIDTH, height: MAP_HEIGHT }, LODE_LEGEND_TEXT)) === (this._lodesKey ?? '')   // MINE-PERKS: or a Motherlode Sense's Motherlode rose, went or was spent
+      && this.deps.mines?.() === this._mineMarks
       && bountyMarksKey(readBountyMarks(this.deps.pois, { width: MAP_WIDTH, height: MAP_HEIGHT }, poiLegendText(), POI_MARKS_MAX)) === (this._poisKey ?? '')   // POI-2: or a POI was approved, moved or retired
       && bountyMarksKey(readBountyMarks(() => eliteDungeonRings(this.deps.eliteDungeons?.() ?? []), { width: MAP_WIDTH, height: MAP_HEIGHT }, 'Elite dungeon', 64)) === (this._edKey ?? '')   // BUNNYFALL: or an elite dungeon rose, spread or was cleansed
       && bountyMarksKey(readBountyMarks(this.deps.revenants, { width: MAP_WIDTH, height: MAP_HEIGHT }, REVENANT_LEGEND_TEXT)) === (this._revenantsKey ?? '')

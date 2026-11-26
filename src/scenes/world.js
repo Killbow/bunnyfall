@@ -532,6 +532,7 @@ import { Collider } from '../player/collider.js';
 import { onFloatingFrame } from '../player/collider.js';   // PERF-COL2: a streamed pixel's buckets ride the floating origin
 import { discordTavern } from '../net/discordTavern.js';
 import { call as accountCall } from '../net/accountClient.js';
+import { createMineMapMarks } from '../ui/mineMapMark.js';
 import { poiMapMarks } from '../ui/poi/poiMapMark.js';   // POI-2: their marks on both world maps
 import { createDataPipeline } from './dataPipeline.js';
 import { createWorldModes } from './worldModes.js';
@@ -8631,7 +8632,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // MINE-PERKS (Professions-Arc 43): a Motherlode Sense's day's Motherlodes - each on its pixel from the day's start,
       // its ore and its hour (ui/lodeMapMark.js); none without the Sense, nor with the professions shut
       lodes: () => lodeMapMarksNow(),
-      pois: () => [...poiMapMarks(poiHost?.marks() ?? []), ...poiMapMarks(mines?.mapMarks() ?? [])],   // POI-2: the approved POIs that ask to be marked; BUNNYFALL (caverns): and the mine mouths spotted
+      pois: () => poiMapMarks(poiHost?.marks() ?? []),
+      mines: () => mineMapMarks?.(),
       // HOME-VENDOR: the trader's waypoint - its town's pixel, the house's owner and the town, on both maps (ui/vendor/vendorMapMark.js)
       vendor: () => { const wp = vendorWaypoint(); const t = wp ? _townOfMapId.get(wp.map) : null; return t ? { px: t.px, py: t.py, label: `Trader: ${wp.owner || 'a'}'s house`, town: t.name } : null; },
       // HUB1: each region's hub, marked and named - online alone (systems/region/regionHubs.js); offline the map is DFU's
@@ -12839,6 +12841,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     art: () => _mineArtNow, collider: () => collider, riding: (px, py) => mineRide(px, py), storage: appStorage(),
     enter: (px, py) => { if (online && !online.mnOk) { chatNotice(MOUTH_TEXT.relayOld()); return; } void modes?.enterMine?.({ px, py, reset: mineHeardReset(px, py), site: egSiteNow() }); }, sealedFor: (px, py) => mineSealLeft(px, py, Math.floor(Date.now() / 1000)), say: (text) => chatNotice(text),
   }) : null;
+  const mineMapMarks = mines ? createMineMapMarks(maps, locationIndex) : null;
   /** BUNNYFALL (2026-11-25, caverns): the doors a mine on this page reads (systems/mine/mineHost.js): its room's word out, the
    *  Stores' planks counted and one spent (withdrawn, nothing minted), and every window closed at its collapse. */
   const _mineAccount = accountMine({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() });   // BUNNYFALL (2026-11-26, caverns): a drill's haul paid
