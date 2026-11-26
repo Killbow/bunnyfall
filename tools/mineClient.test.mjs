@@ -96,10 +96,11 @@ test('a strike is told to the room by its section and chamber, but not during a 
   assert.equal(log.sent.length, 1);
 });
 
-test('shared lamp state supplies a stable point light until the mine is left', async () => {
+test('a placed lamp hides its floor marker and supplies a stable point light', async () => {
   const { createMineHost } = await import('../src/systems/mine/mineHost.js');
   const { mineLocation, MINE_LAMP_M } = await import('../src/world/mine/mineLocation.js');
-  const host = createMineHost({ renderer: { createMesh: () => ({}) } });
+  const { MINE_LAMP_MARK_RECORD } = await import('../src/world/mine/mineDrillModel.js');
+  const host = createMineHost({ renderer: { createMesh: (model) => model } });
   const teardown = [];
   const ctx = { dynamicDraws: [], addTeardown: (fn) => teardown.push(fn) };
   host.stand(ctx, mineLocation({ px: 100, py: 100 }));
@@ -108,7 +109,11 @@ test('shared lamp state supplies a stable point light until the mine is left', a
   assert.deepEqual(host.lampLights(eye), []);
 
   const state = { k: 'st', st: { reset: 0, lamps: [{ s: 0, c: 0 }] } };
+  const marker = ctx.dynamicDraws.find((draw) => draw.gpu.subMeshes[0].textureRecord === MINE_LAMP_MARK_RECORD);
+  assert.ok(Math.abs(marker.object.matrix[12] - (x + 1.2)) < 0.001);
+  assert.equal(marker.hidden, false);
   host.heard(state);
+  assert.equal(marker.hidden, true);
   const [light] = host.lampLights(eye);
   assert.equal(light.range, MINE_LAMP_M);
   assert.ok(Math.abs(light.x - (x + 1.56)) < 0.001);
