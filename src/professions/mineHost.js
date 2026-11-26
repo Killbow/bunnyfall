@@ -435,6 +435,9 @@ export const mineNodeName = (n) => (n.what === 'boulder' ? 'Boulder' : n.what ==
 /** The hand's StrikeDown frame for a swing's phase (1 just struck, 0 none) - Idle between swings. */
 export const pickHandFrame = (swing) => (swing > 0 ? { state: 'StrikeDown', frame: Math.min(STRIKE_FRAMES - 1, Math.floor((1 - swing) * STRIKE_FRAMES)) } : { state: 'Idle', frame: 0 });
 
+/** Refusals that close a cave vein for the session: it is gone, or the day's count is spent. */
+const CAVE_CLOSED = new Set(['no-node', 'day-full', 'node-taken', 'bad-node']);
+
 /**
  * MINING'S KIND in the gathering host (scenes/gatherHost.js): the veins and boulders, their pictures, the plan, the act.
  * PROF2b: and the Motherlodes standing (`lodes`, net/motherlodeBook.js), their strike's silver said through `marks`
@@ -445,7 +448,8 @@ export const pickHandFrame = (swing) => (swing > 0 ? { state: 'StrikeDown', fram
 export function mineKind({ book, lodes = null, marks = null, cave = null, struck = null }) {   // BUNNYFALL (2026-11-25, caverns): `cave()` the mine stood in ({ mine, reset }) or null; `struck(node)` told of a cave vein's answered strike
   const harvestOf = (n) => (n.what === 'boulder' ? 'stone' : 'ore');
   let lastCave = /** @type {any} */ (null);
-  const gone = (n) => goneIn(book, n.key, harvestOf(n)) || (n.what === 'motherlode' && !!lodes?.found?.());   // GATHER-SPEED: or being counted   // PROF2b: the account's one found
+  const closedCave = new Set();   // cave veins the service refused for good this session
+  const gone = (n) => closedCave.has(n.key) || goneIn(book, n.key, harvestOf(n)) || (n.what === 'motherlode' && !!lodes?.found?.());   // GATHER-SPEED: or being counted   // PROF2b: the account's one found
   return {
     id: 'mine',
     professions: Object.freeze(['mining']),
@@ -537,6 +541,7 @@ export function mineKind({ book, lodes = null, marks = null, cave = null, struck
      *  again), which stands its pixel again. */
     refused(key, error) {
       if (lastCave?.key === key) lastCave = null;   // BUNNYFALL (2026-11-25, caverns): a refused strike wears nothing
+      if (typeof key === 'string' && key.startsWith('cvein:') && CAVE_CLOSED.has(String(error))) closedCave.add(key);   // BUNNYFALL (2026-11-26): and a vein the service says is gone, or over the day's count, stands no more (no prompt that only refuses)
       if (typeof key === 'string' && key.startsWith('mlode:')) lodes?.refused?.(key, error);
     },
     /** PROF2b: a Motherlode's answer - the find and its count told to the Motherlodes' book, its silver said. QL11: and
