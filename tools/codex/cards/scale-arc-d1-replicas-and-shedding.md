@@ -39,6 +39,7 @@ invariants:
 traps:
   - "Unconstrained polled replica reads (`ANY_REPLICA_ROUTES`, kept empty) cause a bookmark spiral where slow primary responses advance `_d1Era` and force subsequent reads back to primary."
   - "`d1Overloaded` matches error code `7429`, which also fires on Worker CPU-limit resets."
+  - "The blob and double positions of each Analytics Engine data point are the dataset columns, so new fields are appended and existing ones never move."
 tags:
   - account
   - d1

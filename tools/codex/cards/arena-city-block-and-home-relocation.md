@@ -37,6 +37,7 @@ invariants:
 traps:
   - "`ARENADAG.RMB` is a custom block cut from `DFARENA.RMB` and shipped as vendored JSON, not loaded from classic `ARENA2` archives."
   - "Account-server home relocations record once per `(map_id, old_key)` in `home_moves`, and `arenaMoveHome` must stay idempotent across repeated logins."
+  - "An arena move copies only the `HOME_MOVE_CARRIED` columns to the new `homes` row, so a new `homes` column must be added to that list or a move drops it."
 dfu: []
 tags:
   - arena

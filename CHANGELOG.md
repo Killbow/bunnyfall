@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-26
+
+- Changed: Online account, market, customs, and housing messages use plainer words.
+
 ## 2026-11-25
 
 - New: In the Combat Preview, abilities lock onto the enemy you look at: swings turn toward it, leaps and dashes land on it, and ability arrows bend toward it.

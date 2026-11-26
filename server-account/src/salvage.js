@@ -1,10 +1,3 @@
-// BUNNYFALL CRAFTING REWORK, PHASE 1: SALVAGE ANYTHING (the service's side).
-//
-//   POST /v1/prof/salvage { character, rid, pieces: [{ t, m, g, c }] }
-//     -> { ok, pieces, yields: [{ key, n }], xp: { track: n }, stores: [...], tracks: [...] } | { repeat, ... } | { error }
-//
-// Found gear broken into its recipe's materials (salvageLaw.js), into the Stores as OWN, with a little XP. The pieces
-// are the save's word (the service cannot see the pack); the client drops them only on an answer.
 import { mintId, overRate } from './accounts.js';
 import { dice } from './unitRoll.js';
 import { asks, shut, storeOf, trackRow, trackView, focusXpSql } from './professions.js';
@@ -14,13 +7,7 @@ import { rollSalvage, descriptorOk, salvageRecipeOf, salvageDescriptor, SALVAGE_
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed } from './realm.js';
 import { tradeableRecord, realmTradePickOf } from '../../src/net/realmTradeLaw.js';
 
-/**
- * BUNNYFALL AUDIT BF-02: THE RECORD'S OWN PIECES. A realm character's salvage names where each piece stands in its
- * checkpointed record (`picks`); the service reads that piece there, finds it what was claimed (template, material, group and
- * condition) and a plain, unworn, unstacked piece, and takes it out of the record in the salvage's own batch. Nothing is
- * credited for a piece the record does not hold. Answers null, or the refusal.
- * @param {any} save @param {number[]} picks @param {any[]} pieces
- */
+/** @param {any} save @param {number[]} picks @param {any[]} pieces */
 export function takePieces(save, picks, pieces) {
   const items = Array.isArray(save?.items) ? save.items : null;
   if (!items) return 'prof-piece-gone';
@@ -47,12 +34,11 @@ async function salvageAnswer(db, player, row, nowS, extra = {}) {
   };
 }
 
-/** A salvage: the pieces' materials into the Stores, the XP onto their crafts' tracks, all in one batch. */
 export async function salvagePieces(ctx, player, env, { character, rid, pieces, realm = null, picks = null } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
   if (refused) return refused;
-  const side = await realmActFirst(db, player.id, character, realm);   // BF-02: where the record stands, first
+  const side = await realmActFirst(db, player.id, character, realm);
   if (side.error) return side;
   const prior = await db.prepare('SELECT * FROM prof_salvages WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
   if (prior) return salvageAnswer(db, player, prior, nowS, { repeat: true });
@@ -63,7 +49,6 @@ export async function salvagePieces(ctx, player, env, { character, rid, pieces, 
   if (side.at && realmTradePickOf(picks, pieces.length) == null) return { error: 'bad-piece' };
   const roll = rollSalvage(pieces, () => dice(rand));
   if (roll.broken < 1) return { error: 'prof-no-salvage' };
-  // the Stores' room: a material past it keeps only what fits
   const yields = [];
   for (const y of roll.yields) {
     const st = await storeOf(db, player.id, character, y.key);
@@ -71,7 +56,7 @@ export async function salvagePieces(ctx, player, env, { character, rid, pieces, 
     const n = Math.max(0, Math.min(y.n, STORES_MAX - held));
     if (n > 0) yields.push({ key: y.key, n });
   }
-  const prep = side.at ? await prepareRealmRecord(ctx, player.id, side.at, (save) => takePieces(save, /** @type {number[]} */ (picks), pieces), { outbound: true }) : null;   // INT3: the materials go to the Stores, and the market sells them
+  const prep = side.at ? await prepareRealmRecord(ctx, player.id, side.at, (save) => takePieces(save, /** @type {number[]} */ (picks), pieces), { outbound: true }) : null;
   if (prep?.error) return prep;
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_salvages WHERE player = ?1 AND rid = ?2 AND n = ?3)';
@@ -92,14 +77,15 @@ export async function salvagePieces(ctx, player, env, { character, rid, pieces, 
         .bind(player.id, rid, nonce, character, track, xp, nowS);
     }),
   ];
-  if (prep) batch.splice(prep.steps.length + 1, 0, mustChange(db));   // BF-02: no salvage, no piece out of the record - its step rolls back with it
+  // When the salvage row is not written, mustChange fails the batch and the record step rolls back with it.
+  if (prep) batch.splice(prep.steps.length + 1, 0, mustChange(db));
   if (!prep) await db.batch(batch);
   else {
     try {
       await db.batch(batch);
       await dropObjects(ctx.bucket, [prep.prev]);
     } catch {
-      await dropIfUnnamed(db, ctx.bucket, player.id, side.at.id, prep.key);   // a batch that landed keeps its save
+      await dropIfUnnamed(db, ctx.bucket, player.id, side.at.id, prep.key);
       const moved = await recordMovedOf(db, player.id, side.at);
       if (moved && !(moved.error === 'seq' && moved.seq === prep.seq)) return moved;
     }

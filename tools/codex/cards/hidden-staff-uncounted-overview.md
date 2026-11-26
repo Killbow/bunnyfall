@@ -29,6 +29,7 @@ invariants:
   - "Hidden sockets are left out of every relay walk and every count. Hiding does not change the relay version."
   - "`_seatN` is 0 while hidden and 1 otherwise. A hub `{t:'n'}` count is accepted only when `m.n >= _seatN`."
   - "`hidden` is a getter over the `_helloTok` entry on the current socket, decoded once per token, so a halo promoted at a crossing gets the right answer."
+  - "The `hidden-token` audit row is written before the token is minted, and the staff session and Hide me switch are read on the primary, so every hidden token is in the audit log and none is minted from a stale replica read."
 traps:
   - "Do not count a hidden seat as +1 anywhere except in the channel welcome `others.length + 1`."
   - "`staffMap` and `staffHook` must never read counts."

@@ -1,17 +1,10 @@
 // @ts-check
-// BUNNYFALL (2026-11-12, the owner: "the web page is bad, all the go buttons, all the searches manually, this needs a
-// complete rework for ease of use"; asked: "a dashboard home page and lets me search from a list of proper chars",
-// "Events and notices, Give and fix"): THE STAFF PANEL'S OWN DOORS, beside the older ones.
-//   /v1/staff/chars   every realm character with its account - the panel's list to search as you type (any staff)
-//   /v1/staff/greed   gold or Dusk Tokens to an account, waiting for them in game: /greed's own gift (staffCommands.js
-//                     greedGive), from the panel's staff session (Admins)
 import { displayName } from './accounts.js';
 import { REALM_PLAYING_S } from './realm.js';
 import { onlineNow } from './staffPlayers.js';
 import { greedGive } from './staffCommands.js';
 
 export const PANEL_ROUTES = Object.freeze(['/v1/staff/chars', '/v1/staff/greed']);
-/** The most characters the list carries (a friends' server holds far fewer). */
 export const CHARS_LIST_MAX = 5000;
 
 const num = (/** @type {unknown} */ v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -31,7 +24,7 @@ export async function staffPanelDesk(ctx, env, path, body, who, audit) {
     await audit('chars-read', null, null, { onceIn: 10 * 60 }).run();
     return {
       chars: rows.map((/** @type {any} */ c) => {
-        let s = null; try { s = JSON.parse(c.summary ?? 'null'); } catch { /* none */ }
+        let s = null; try { s = JSON.parse(c.summary ?? 'null'); } catch { }
         return {
           id: c.id, name: c.name, level: num(s?.level) ?? c.level_seen ?? null, className: str(s?.className, 40), race: str(s?.race, 24),
           playing: !!c.lease && nowS - c.lease_at < REALM_PLAYING_S, dead: c.dead_at != null, held: c.held ?? null, savedAt: c.updated_at,

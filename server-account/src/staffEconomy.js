@@ -1,51 +1,5 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// STAFF-PANEL3-ECON (2026-10-22; design doc "DFO Staff Panel: design", build step 3: "Market and trades, Node activity,
-// Economy (all read existing data)") - THE PANEL'S ECONOMY SCREENS, an Admin's alone (mob, 03:03Z: Moderators get the
-// chat reports, Mute and Ban; "Admin sees and does everything"). Every answer is a read of what the service already
-// keeps; nothing here writes a game table.
-//
-//   /v1/staff/econ/stream    MARKET AND TRADES: every market sale, order fill, auction bid, settled player trade and
-//                            guild vault move in one stream, newest first, paged (`before`), filtered by player, item,
-//                            price, region, time and kind - each row with its flags (below)
-//   /v1/staff/econ/harvests  NODE ACTIVITY: per player, harvests an hour, which nodes and materials, the gaps between
-//                            harvests and the longest unbroken run, over the last day (node_harvests) and week
-//                            (progress_hours) - the even-gap loops of many hours first; or one player's, by name
-//   /v1/staff/econ/economy   ECONOMY: where gold and Marks sit, Marks minted and burnt, the gold the service saw come
-//                            and go, a day at a time over `days`, and the twenty richest characters and guilds
-//   /v1/staff/econ/guilds    PER GUILD: gold (realm and unverified legacy), Marks and vault contents, sortable, paged
-//
-// ═══ THE FLAGS ON A ROW (design doc, "Market and trades"; weak spot "The market 5x flag compares to the wrong prices") ═══
-//
-// price     a material sold 5x above or below its usual price. The usual price is the median over MARKET_MEDIAN_DAYS of
-//           that material's sales IN THE ROW'S OWN CURRENCY (gold's sales never set a Drakes price, nor the other way),
-//           read from the sales themselves and not the day tables: each pair of accounts counts ONCE, at its own mean
-//           price, and a sale an account made to itself never - so two accounts selling to each other again and again
-//           cannot make their own price the usual one. A crafted piece or a pack item has no usual price: never flagged.
-// repeat    the same two accounts dealing with each other again and again (sales, fills and trades together).
-// new       an account younger than its days taking much more value than it gave: a trade's goods, or a sale's distance
-//           from the usual price.
-// one-sided a trade where one side gave gold or goods and the other gave nothing.
-// The "linked account" flag is dropped (the weak spot: nothing the service keeps links two accounts).
-// Every number is in ECON_LIMITS, one place: starting numbers for Admins to tune, not measured ones.
-//
-// ═══ SERVER LOAD (design doc, "Server load": the existing economy reads cost 37, 56 and 96 serial trips an open, and an
-// unindexed read has reset the live database once) ═══
-//
-// Each read is ONE batch (one trip, service.js readAll) or two where the second needs the first's answer. The stream's
-// span is STREAM_SPAN_DAYS at most and pages STREAM_PAGE rows; the economy reads ECON_DAYS_MAX days at most; node
-// activity is a day and a week. The heavy answers (economy, guilds, node activity, the Home watch, usual prices) are
-// kept in the isolate's memory ECON_KEEP_S (node activity HARVEST_KEEP_S), keyed by the database binding, and an answer
-// says when it was read (`asOf`): the panel never polls them. Every statement stands on an index migration 0153 adds or
-// one already there (test/server/staffpanel3econ.test.js asks EXPLAIN QUERY PLAN).
-//
-// ═══ WHAT THE SERVICE CANNOT SEE ═══
-//
-// A character's purse, bank and letters of credit live inside its save (realm.js, R2); no table holds them. The
-// economy names the places the service holds gold itself, and ranks characters by the judge's wealth at their last
-// checkpoint (purse, bank, deeds and goods - judge.js wealthOf), "as last saved". Totals over every save are the census's
-// (design step 4). A harvest's `at` is the game's own clock, held within HARVEST_LATE_S of the service's; the hours a
-// player harvested (progress_hours) are the service's.
+// Admin economy screens read existing data on indexes from migration 0153 or earlier, and write only audit rows.
 import { displayName } from './accounts.js';
 import { findAccount } from './sanctions.js';
 import { holdStandsSql } from './realm.js';
@@ -58,50 +12,29 @@ import { itemWorth } from '../../src/items/itemLaw.js';
 
 const DAY_S = 86_400;
 
-/** THE FLAGS' AND THE LEVELS' NUMBERS, one place (design doc: "The numbers are starting points for Admins to tune, not
- *  measured values"). Gold throughout; a Drake is MARK_WORTH_GOLD gold. */
 export const ECON_LIMITS = Object.freeze({
-  /** A material's price this many times its usual price, or this many times under it; `high` a far one. A usual price
-   *  needs `pairs` pairs of accounts behind it. */
   price: Object.freeze({ ratio: 5, high: 20, pairs: 3 }),
-  /** The same two accounts dealing `n` times inside `days` (the Home watch: inside one day); `high` many more. */
   repeat: Object.freeze({ days: 7, n: 5, high: 15 }),
-  /** An account younger than `days` taking `gold` more than it gave in one row; `high` far more. */
   fresh: Object.freeze({ days: 7, gold: 5_000, high: 50_000 }),
-  /** A trade one side gave nothing for, the other `gold` or more; `high` far more. */
   oneSided: Object.freeze({ gold: 500, high: 20_000 }),
-  /** NODE ACTIVITY: a gap longer than `breakS` ends a run of harvests. High: a run of `runHigh` hours over `nodesHigh`
-   *  distinct nodes whose gaps vary by `evenHigh` of their mean or less (a coefficient of variation), or `weekHigh` hours
-   *  in a row with harvests this week. Medium: `runMedium` hours at `evenMedium`, or `weekMedium` hours in a row. */
   harvest: Object.freeze({ breakS: 10 * 60, runHigh: 4, runMedium: 2, evenHigh: 0.25, evenMedium: 0.4, nodesHigh: 40, weekHigh: 16, weekMedium: 10 }),
 });
 
-/** The stream's rows a page. */
 export const STREAM_PAGE = 50;
-/** The stream's widest window - a realm trade is kept 7 days (realmTrade.js REALM_TRADE_KEEP_S) and every source is read
- *  newest first inside it, so a filter no index serves walks this much at most. */
 export const STREAM_SPAN_DAYS = 7;
-/** The economy's longest reach, and its default. */
 export const ECON_DAYS_MAX = 14;
 export const ECON_DAYS_DEFAULT = 7;
-/** How long a heavy answer is kept (design doc: "Cache them for 5-10 minutes"); node activity the shorter. */
 export const ECON_KEEP_S = 10 * 60;
 export const HARVEST_KEEP_S = 5 * 60;
-/** Node activity: the day's busiest harvesters ranked, the week's longest unbroken runs beside them, a page. */
 export const HARVEST_DAY_RANKED = 200;
 export const HARVEST_WEEK_RANKED = 50;
 export const HARVEST_PAGE = 50;
-/** One player's own harvests listed, at most. */
 export const HARVEST_ONE_MAX = 500;
-/** The richest characters and guilds named. */
 export const RICHEST = 20;
-/** A character this wealthy or more is in the rich index (migration 0153 idx_realm_characters_rich, whose condition this
- *  literal is - the statement must say it as the index does, or the index is not used). Below it, no list is needed. */
+// This literal must match migration 0153's idx_realm_characters_rich condition, or SQLite skips the index.
 export const RICH_FLOOR = 250_000;
-/** Guilds one ranked list holds; pages of GUILDS_PAGE. */
 export const GUILDS_MAX = 2000;
 export const GUILDS_PAGE = 50;
-/** A read is written in the audit log once in this, a member and a view (staff.js STAFF_READ_ROW_S's reason). */
 const READ_ROW_S = 10 * 60;
 
 export const ECON_ROUTES = Object.freeze(['/v1/staff/econ/stream', '/v1/staff/econ/harvests', '/v1/staff/econ/economy', '/v1/staff/econ/guilds']);
@@ -110,22 +43,13 @@ const STREAM_KINDS = Object.freeze(['sale', 'fill', 'bid', 'trade', 'vault']);
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
 const GUILD_SORTS = Object.freeze({ gold: 'treasury', realm: 'realm_gold', legacy: 'legacy', marks: 'marks', vault: 'vault_items', members: 'members' });
 
-/** ECON-LEFT-OUT (mob, 2026-10-25: "we need to remove gold of banned or trade held player in staff menu data", "economy"):
- *  A CHARACTER THE ECONOMY LEAVES OUT - its account banned now, or a trade hold standing on it (realm.js holdStandsSql) -
- *  as SQL over the character aliased `c` and its account `p`, either of them perhaps missing (a LEFT JOIN). Their gold is
- *  never touched: it is only kept out of the economy's totals and lists, and its sum said beside them. */
 export const leftOutSql = (/** @type {string} */ c, /** @type {string} */ p, /** @type {number} */ nowS) =>
   `(COALESCE(${p}.banned_until, 0) > ${Math.floor(nowS)} OR COALESCE(${holdStandsSql(c, String(Math.floor(nowS)))}, 0))`;
 
-/** The character and the account a row of `t` (a `player` and a `char_id`) names, joined for leftOutSql('c', 'p'). */
 const OUT_JOIN = (/** @type {string} */ t) => `LEFT JOIN realm_characters c ON c.id = ${t}.char_id LEFT JOIN players p ON p.id = ${t}.player`;
-
-// ─── KEPT ANSWERS ────────────────────────────────────────────────────
 
 /** @type {WeakMap<object, Map<string, { until: number, value: Promise<any> }>>} */
 const keptBy = new WeakMap();
-/** An answer kept `ttl` seconds in this isolate, per database binding (a request's counted Proxy names its binding,
- *  service.js DB_ROOT) - the promise itself, so a burst of opens reads once; a failed read is forgotten. */
 export function kept(/** @type {any} */ db, /** @type {string} */ key, /** @type {number} */ nowS, /** @type {number} */ ttl, /** @type {() => Promise<any>} */ make) {
   const root = db?.[DB_ROOT] ?? db;
   let m = keptBy.get(root);
@@ -139,27 +63,18 @@ export function kept(/** @type {any} */ db, /** @type {string} */ key, /** @type
   return value;
 }
 
-// ─── SMALL READERS ───────────────────────────────────────────────────
-
 const int = (/** @type {unknown} */ v, /** @type {number} */ lo, /** @type {number} */ hi) => (Number.isSafeInteger(v) && /** @type {number} */ (v) >= lo && /** @type {number} */ (v) <= hi ? /** @type {number} */ (v) : null);
 const str = (/** @type {unknown} */ v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 64) : null);
 const num = (/** @type {unknown} */ v) => Number(v) || 0;
 const json = (/** @type {unknown} */ t) => { try { return typeof t === 'string' ? JSON.parse(t) : null; } catch { return null; } };
 const ids = (/** @type {Iterable<unknown>} */ list) => JSON.stringify([...new Set([...list].filter((x) => typeof x === 'string' && x))]);
 const nameOf = (/** @type {Map<string, any>} */ who, /** @type {string|null} */ id) => (id && who.has(id) ? displayName(who.get(id)) : null);
-/** An unordered pair of accounts, as one key. */
 const pairKey = (/** @type {string} */ a, /** @type {string} */ b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
-/** A row's level from its flags: high when any flag is a far one or two stand, medium for one, none without. */
 const levelOf = (/** @type {Array<{ high?: boolean }>} */ flags) => (!flags.length ? null : flags.length >= 2 || flags.some((f) => f.high) ? 'high' : 'medium');
 const goldOf = (/** @type {number} */ n, /** @type {string|null} */ currency) => (currency === 'marks' ? n * MARK_WORTH_GOLD : n);
 const fmt = (/** @type {number} */ n) => Math.round(n).toLocaleString('en-US');
 
-/**
- * What one side of a settled trade gave (realmTradeLaw.js settleRealmTrade keeps what each side RECEIVED, so a side gave
- * what the other got): its gold, its goods at their worth (a letter of credit or coins at what they hold, a piece at the
- * item law's worth - judge.js wealthOf's measure), how many pieces, and the first few names.
- * @param {any} got the other side's receipt
- */
+/** @param {any} got */
 export function tradeSideOf(got) {
   const items = Array.isArray(got?.items) ? got.items : [];
   const gold = Number.isSafeInteger(got?.gold) && got.gold > 0 ? got.gold : 0;
@@ -167,15 +82,7 @@ export function tradeSideOf(got) {
   return { gold, value: gold + goods, items: items.length, names: items.slice(0, 5).map((/** @type {any} */ it) => String(it?.name ?? 'an item').slice(0, 64)) };
 }
 
-// ─── MARKET AND TRADES ───────────────────────────────────────────────
-
 /**
- * EACH SOURCE OF THE STREAM, every one answering the same columns (src, a, b, a_char, b_char, a_name, b_name, what,
- * material, provenance, name, units, price, total, cut, currency, region, region2, result, guild, guild_name, state): its rows, its time, its cursor key (unique and ordered within the source, the source's
- * letter first so keys never collide across sources), what a player filter asks of it (one statement a side, each on its
- * own index), and what an item, a price and a region filter ask - a source a filter cannot ask is left out while that
- * filter stands. `a` gives, `b` takes: a sale's seller and buyer, a fill's filler and the order's poster, an auction's
- * seller and its bidder, a trade's first and second sides.
  * @type {Record<string, { from: string, where?: string, at: string, key: string, cols: string, sides: string[], item: string, itemArgs?: number, price: string|null, region: string|null, regionArgs?: number, byName?: boolean }>}
  */
 const SOURCES = {
@@ -212,9 +119,7 @@ const SOURCES = {
     cols: `'trade' AS src, t.a_player AS a, t.b_player AS b, t.a_char, t.b_char, ca.name AS a_name, cb.name AS b_name, 'trade' AS what, NULL AS material, NULL AS provenance,
       NULL AS name, NULL AS units, NULL AS price, NULL AS total, 0 AS cut, 'gold' AS currency, NULL AS region, NULL AS region2, t.result, NULL AS guild, NULL AS guild_name, NULL AS state`,
     sides: ['t.a_player = ?', 't.b_player = ?'],
-    // a piece's name as the trade's receipt writes it (JSON.stringify of the record)
     item: `instr(t.result, '"name":' || json_quote(?)) > 0`,
-    // a trade's price filter is the gold it moved, both ways
     price: "(COALESCE(json_extract(t.result, '$.a.gold'), 0) + COALESCE(json_extract(t.result, '$.b.gold'), 0))", region: null,
   },
   vault: {
@@ -222,17 +127,12 @@ const SOURCES = {
     at: 'v.at', key: "'v:' || printf('%012d', v.seq)",
     cols: `'vault' AS src, NULL AS a, NULL AS b, NULL AS a_char, NULL AS b_char, v.who AS a_name, NULL AS b_name, v.kind AS what, NULL AS material, NULL AS provenance,
       v.name, v.count AS units, NULL AS price, NULL AS total, 0 AS cut, NULL AS currency, NULL AS region, NULL AS region2, NULL AS result, v.guild_id AS guild, g.name AS guild_name, NULL AS state`,
-    // the log keeps the name the member had, never an account (guildVault.js displayName)
     sides: ['v.who = ?'], byName: true,
     item: 'v.name = ?', price: null, region: null,
   },
 };
 
-/**
- * THE STREAM'S VIEW, from the body: the account (resolved), the item, prices, region, kinds and window, and the cursor.
- * `{ error }` for an account no one holds.
- * @param {any} db @param {any} body @param {number} nowS
- */
+/** @param {any} db @param {any} body @param {number} nowS */
 async function streamView(db, body, nowS) {
   let player = null;
   if (body.target != null || body.name != null) {
@@ -251,7 +151,6 @@ async function streamView(db, body, nowS) {
   };
 }
 
-/** The statements one page reads - each source, each side of a player filter, newest first, a row past the page. */
 function streamStatements(/** @type {any} */ db, /** @type {any} */ v) {
   const out = [];
   const priced = v.priceMin != null || v.priceMax != null;
@@ -274,12 +173,7 @@ function streamStatements(/** @type {any} */ db, /** @type {any} */ v) {
   return out;
 }
 
-/**
- * THE USUAL PRICES of `materials` in `currency`: a Map of material to { usual, pairs } - the median of each pair of
- * accounts' mean price over MARKET_MEDIAN_DAYS (each pair once; an account's sale to itself never), null under
- * ECON_LIMITS.price.pairs pairs. Kept ECON_KEEP_S a material.
- * @param {any} db @param {'marks'|'gold'} currency @param {string[]} materials @param {number} nowS
- */
+/** @param {any} db @param {'marks'|'gold'} currency @param {string[]} materials @param {number} nowS */
 export async function usualPrices(db, currency, materials, nowS) {
   const out = new Map();
   const ask = [];
@@ -290,7 +184,6 @@ export async function usualPrices(db, currency, materials, nowS) {
   }
   if (!ask.length) return out;
   const since = nowS - MARKET_MEDIAN_DAYS * DAY_S;
-  // gold's sales only for a gold price, Drakes' sales and fills (an order is Drakes alone) for a Drakes one
   const { results = [] } = await db.prepare(`SELECT material, MIN(buyer, seller) AS x, MAX(buyer, seller) AS y, SUM(units) AS units, SUM(price * units) AS paid FROM (
       SELECT material, buyer, seller, units, price FROM market_sales WHERE material IN (SELECT value FROM json_each(?1)) AND at >= ?2 AND kind = 'material' AND currency = ?3
       UNION ALL
@@ -305,10 +198,7 @@ export async function usualPrices(db, currency, materials, nowS) {
   return out;
 }
 
-/**
- * A PAGE OF THE STREAM, with each row's flags.
- * @param {any} db @param {any} v streamView's @param {number} nowS
- */
+/** @param {any} db @param {any} v @param {number} nowS */
 export async function streamPage(db, v, nowS) {
   const read = await readAll(db, streamStatements(db, v));
   const seen = new Set();
@@ -318,12 +208,10 @@ export async function streamPage(db, v, nowS) {
   const last = page[page.length - 1];
   const next = all.length > STREAM_PAGE && last ? `${last.at}|${last.k}` : null;
 
-  // ─── what the flags need, in one trip: the accounts, how often each pair dealt, and the usual prices ───
   const accounts = new Set(page.flatMap((r) => [r.a, r.b]).filter(Boolean));
   const L = ECON_LIMITS;
   const priced = (/** @type {any} */ r) => (r.src === 'sale' && r.what === 'material') || r.src === 'fill';
   const usualOf = (/** @type {'marks'|'gold'} */ cur) => usualPrices(db, cur, page.filter((r) => priced(r) && r.currency === cur).map((r) => r.material), nowS);
-  // STAFF-PANEL-SPEED: and each currency's usual prices beside them - none waits on another's answer
   const [[who, pairs], marks, gold] = await Promise.all([accounts.size ? readAll(db, [
     db.prepare('SELECT id, handle, guest_name, created_at FROM players WHERE id IN (SELECT value FROM json_each(?1))').bind(ids(accounts)),
     db.prepare(`SELECT MIN(a, b) AS x, MAX(a, b) AS y, COUNT(*) AS n FROM (
@@ -379,7 +267,6 @@ export async function streamPage(db, v, nowS) {
           const far = ratio >= L.price.high || ratio <= 1 / L.price.high;
           flags.push({ flag: 'price', why: ratio >= 1 ? `${ratio.toFixed(1)}x the usual ${fmt(u.usual)} ${cur}` : `a ${(1 / ratio).toFixed(1)}th of the usual ${fmt(u.usual)} ${cur}`, high: far });
         }
-        // what each side took past the usual price: the seller's over it, the buyer's under it
         const over = goldOf((num(r.price) - u.usual) * num(r.units), cur);
         for (const [side, net] of [[row.from, over], [row.to, -over]]) {
           if (fresh(side.id) && net >= L.fresh.gold) flags.push({ flag: 'new', why: `a new account took ${fmt(net)} gold past the usual price`, high: net >= L.fresh.high });
@@ -397,13 +284,7 @@ export async function streamPage(db, v, nowS) {
   return { rows, next, since: v.since, until: v.until };
 }
 
-// ─── NODE ACTIVITY ───────────────────────────────────────────────────
-
 /**
- * A HARVESTER'S LEVEL, and why (design doc, "Node activity": "A bot tends to show the same node loop at even gaps for
- * many hours; the screen puts those players at the top"; weak spot: a node key holds its day, so the loop is a long
- * route of distinct nodes at even gaps). `run` the longest unbroken run of the day (hours, distinct nodes, the gaps'
- * coefficient of variation `even`), `streak` the week's most hours in a row with harvests.
  * @param {{ run: { hours: number, nodes: number, even: number|null }|null, streak: number }} h
  * @returns {{ level: 'high'|'medium'|'low', why: string[], score: number }}
  */
@@ -424,10 +305,9 @@ export function harvestLevel({ run, streak }) {
   return { level: /** @type {'high'|'medium'|'low'} */ (LEVELS[rank]), why, score };
 }
 
-/** The candidates: the day's busiest harvesters and the week's longest unbroken runs. */
 function candidateStatements(/** @type {any} */ db, /** @type {number} */ nowS) {
   return [
-    // `+player`: grouped by the account's index, the planner walked the whole table (carried rows stay 30 days) to spare a sort
+    // `+player` stops the planner from walking the whole table by the account index to avoid a sort.
     db.prepare('SELECT player, COUNT(*) AS n FROM node_harvests WHERE day >= ?1 AND at >= ?2 GROUP BY +player ORDER BY n DESC LIMIT ?3')
       .bind(utcDay(nowS - DAY_S), nowS - DAY_S, HARVEST_DAY_RANKED),
     db.prepare(`WITH h AS (SELECT player, hour / 3600 - ROW_NUMBER() OVER (PARTITION BY player ORDER BY hour) AS grp FROM progress_hours WHERE stream = 'prof' AND hour >= ?1),
@@ -437,9 +317,8 @@ function candidateStatements(/** @type {any} */ db, /** @type {number} */ nowS) 
 }
 
 /**
- * NODE ACTIVITY OF `players`: each one's day (harvests, an hour, distinct nodes, materials, the hour-by-hour line, the
- * longest unbroken run and its gaps) and week (hours with harvests, the longest run of them, claims an hour), levelled.
- * @param {any} db @param {any} env @param {string[]} players @param {number} nowS @param {{ list?: boolean }} [opts]
+ * @param {any} db @param {any} env @param {string[]} players @param {number} nowS
+ * @param {{ list?: boolean }} [opts]
  */
 export async function harvestRows(db, env, players, nowS, { list = false } = {}) {
   if (!players.length) return [];
@@ -447,7 +326,6 @@ export async function harvestRows(db, env, players, nowS, { list = false } = {})
   const day = utcDay(nowS - DAY_S), since = nowS - DAY_S, who = JSON.stringify(players);
   const IN = 'player IN (SELECT value FROM json_each(?3))';
   const [runs, totals, mats, hourly, week, people, own] = await readAll(db, [
-    // the runs: a gap past breakS starts the next (gaps-and-islands over the day's harvests, ordered by time)
     db.prepare(`WITH h AS (SELECT player, node || '/' || kind AS nk, at, at - LAG(at) OVER (PARTITION BY player ORDER BY at) AS gap
           FROM node_harvests WHERE day >= ?1 AND at >= ?2 AND ${IN}),
         r AS (SELECT player, nk, at, gap, SUM(CASE WHEN gap IS NULL OR gap > ?4 THEN 1 ELSE 0 END) OVER (PARTITION BY player ORDER BY at ROWS UNBOUNDED PRECEDING) AS run FROM h)
@@ -457,7 +335,6 @@ export async function harvestRows(db, env, players, nowS, { list = false } = {})
     db.prepare(`SELECT player, COUNT(*) AS n, COUNT(DISTINCT node || '/' || kind) AS nodes, MAX(at) AS last FROM node_harvests WHERE day >= ?1 AND at >= ?2 AND ${IN} GROUP BY player`).bind(day, since, who),
     db.prepare(`SELECT player, material, COUNT(*) AS n, SUM(qty) AS qty FROM node_harvests WHERE day >= ?1 AND at >= ?2 AND ${IN} GROUP BY player, material`).bind(day, since, who),
     db.prepare(`SELECT player, CAST((at - ?2) / 3600 AS INTEGER) AS h, COUNT(*) AS n FROM node_harvests WHERE day >= ?1 AND at >= ?2 AND ${IN} GROUP BY player, h`).bind(day, since, who),
-    // the week, the service's own hours (progress.js: a harvest is the `prof` stream's claim)
     db.prepare(`WITH h AS (SELECT player, claims, played_s, amount, hour / 3600 - ROW_NUMBER() OVER (PARTITION BY player ORDER BY hour) AS grp
           FROM progress_hours WHERE stream = 'prof' AND hour >= ?1 AND player IN (SELECT value FROM json_each(?2))),
         s AS (SELECT player, COUNT(*) AS hours FROM h GROUP BY player, grp),
@@ -465,7 +342,6 @@ export async function harvestRows(db, env, players, nowS, { list = false } = {})
       SELECT h.player, COUNT(*) AS hours, SUM(h.claims) AS claims, SUM(h.played_s) AS played, SUM(h.amount) AS xp, m.streak
       FROM h JOIN m ON m.player = h.player GROUP BY h.player`).bind(nowS - 7 * DAY_S, who),
     db.prepare('SELECT * FROM players WHERE id IN (SELECT value FROM json_each(?1))').bind(who),
-    // one player's own: the day's harvests themselves, which nodes in which order
     ...(list ? [] : [db.prepare(`SELECT node, kind, material, qty, at FROM node_harvests WHERE day >= ?1 AND at >= ?2 AND ${IN} ORDER BY at DESC LIMIT ?4`).bind(day, since, who, HARVEST_ONE_MAX)]),
   ]);
   const by = (/** @type {any[]} */ rows) => { const m = new Map(); for (const r of rows) { const a = m.get(r.player) ?? []; a.push(r); m.set(r.player, a); } return m; };
@@ -497,7 +373,6 @@ export async function harvestRows(db, env, players, nowS, { list = false } = {})
   });
 }
 
-/** THE RANKED LIST, kept HARVEST_KEEP_S: the candidates' rows, most urgent first. */
 function harvestRanked(/** @type {any} */ db, /** @type {any} */ env, /** @type {number} */ nowS) {
   return kept(db, 'harvests', nowS, HARVEST_KEEP_S, async () => {
     const [dayTop, weekTop] = await readAll(db, candidateStatements(db, nowS));
@@ -506,9 +381,6 @@ function harvestRanked(/** @type {any} */ db, /** @type {any} */ env, /** @type 
   });
 }
 
-// ─── ECONOMY ─────────────────────────────────────────────────────────
-
-/** The guilds, one ranked list by `sort` (GUILD_SORTS), kept ECON_KEEP_S. */
 function guildsRanked(/** @type {any} */ db, /** @type {string} */ sort, /** @type {number} */ nowS) {
   return kept(db, `guilds:${sort}`, nowS, ECON_KEEP_S, async () => {
     const { results = [] } = await db.prepare(`SELECT g.id, g.name, g.tag, g.treasury, g.realm_gold, MAX(g.treasury - g.realm_gold, 0) AS legacy, COALESCE(m.balance, 0) AS marks,
@@ -526,19 +398,12 @@ function guildsRanked(/** @type {any} */ db, /** @type {string} */ sort, /** @ty
   });
 }
 
-/**
- * THE ECONOMY over the last `days` UTC days (today the last), kept ECON_KEEP_S a `days`: where the gold the service holds
- * sits, the Marks in circulation and escrow, Marks minted and burnt and gold come and gone by kind and by day, and the
- * richest. ONE trip, then the richest guilds' kept list.
- * @param {any} db @param {number} nowS @param {number} days
- */
+/** @param {any} db @param {number} nowS @param {number} days */
 export function economy(db, nowS, days) {
   return kept(db, `economy:${days}`, nowS, ECON_KEEP_S, async () => {
     const today = utcDay(nowS), fromDay = today - days + 1;
     const out = leftOutSql('c', 'p', nowS);
-    // STAFF-PANEL-SPEED: the richest guilds' kept list asked beside the batch, never after it
     const [[places, accounts, guilds, escrow, ledger, faucets, sales, games, rich, worth], ranked] = await Promise.all([readAll(db, [
-      // ECON-LEFT-OUT: a banned account's or a held character's market gold and rent kept out, and their sums said
       db.prepare(`SELECT (SELECT COALESCE(SUM(CASE WHEN ${out} THEN 0 ELSE m.gold END), 0) FROM market_gold m ${OUT_JOIN('m')}) AS market_gold,
         (SELECT COALESCE(SUM(CASE WHEN ${out} THEN m.gold ELSE 0 END), 0) FROM market_gold m ${OUT_JOIN('m')}) AS market_out,
         (SELECT COALESCE(SUM(realm_gold), 0) FROM guilds) AS guild_realm,
@@ -547,29 +412,18 @@ export function economy(db, nowS, days) {
         (SELECT COALESCE(SUM(CASE WHEN ${out} THEN m.rent_due ELSE 0 END), 0) FROM homes m ${OUT_JOIN('m')}) AS rent_out`),
       db.prepare('SELECT COALESCE(SUM(balance), 0) AS s, COUNT(*) AS n FROM marks WHERE balance > 0'),
       db.prepare('SELECT COALESCE(SUM(balance), 0) AS s FROM guild_marks'),
-      // marks.js marksReport's escrow - the ledger's escrow end, what went in less what came out - on 0153's covering index
       db.prepare(`SELECT COALESCE(SUM(CASE WHEN dst_kind = 'escrow' THEN amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN src_kind = 'escrow' THEN amount ELSE 0 END), 0) AS s
         FROM marks_ledger WHERE dst_kind = 'escrow' OR src_kind = 'escrow'`),
       db.prepare(`SELECT day, kind, CASE WHEN src_kind = 'mint' THEN 1 ELSE 0 END AS minted, SUM(amount) AS s FROM marks_ledger
         WHERE day >= ?1 AND (src_kind = 'mint' OR dst_kind = 'burn') GROUP BY day, kind, minted`).bind(fromDay),
-      // the service's own gold faucets (budget.js FAUCET_KINDS), kept by the hour's number
       db.prepare('SELECT hour / 24 AS day, kind, SUM(gold) AS gold, SUM(n) AS n FROM realm_faucets WHERE hour >= ?1 GROUP BY day, kind').bind(fromDay * 24),
-      // gold's market sales: the tax and the fee are burnt (marketLaw.js goldSaleOf)
       db.prepare("SELECT day, SUM(tax) AS tax, SUM(fee) AS fee, SUM(total) AS total, COUNT(*) AS n FROM market_sales WHERE day >= ?1 AND currency = 'gold' GROUP BY day").bind(fromDay),
-      // made or spent inside players' games: the gain no witness explained and the losses, by the hour (verdict.js)
-      // ECON-LEFT-OUT: a banned account's or a held character's hours kept out
       db.prepare(`SELECT w.hour / 86400 AS day, SUM(w.gain) AS gain, SUM(w.loss) AS loss FROM realm_wealth_hours w
         LEFT JOIN realm_characters c ON c.id = w.char_id LEFT JOIN players p ON p.id = w.player WHERE w.hour >= ?1 AND NOT ${out} GROUP BY day`).bind(fromDay * DAY_S),
       db.prepare(`SELECT c.id, c.name, c.player, c.wealth, c.held, c.updated_at, p.handle, p.guest_name,
           (SELECT m.gold FROM market_gold m WHERE m.player = c.player AND m.char_id = c.id) AS market_gold
         FROM realm_characters c LEFT JOIN players p ON p.id = c.player
         WHERE c.wealth >= ${RICH_FLOOR} AND c.dead_at IS NULL AND NOT ${out} ORDER BY c.wealth DESC LIMIT ${RICHEST}`),
-      // ECON-WORTH (mob, 2026-10-25: "we need a total games worth as well with hover break down on gold held bank held
-      // and item total"): every living character the census has counted, the left out apart - the judge's wealth at
-      // its last checkpoint (judge.js wealthOf), and its census tally's purse and banks (staffCensus.js censusTally).
-      // A tally written before ECON-WORTH has no `b`: its purse and banks are one figure until its next checkpoint. A
-      // character the judge never weighed (no `wealth`) is worth its gold, and no items.
-      // The census's own walk (item_census, each character by its key), kept ECON_KEEP_S as the rest.
       db.prepare(`SELECT CASE WHEN ${out} THEN 1 ELSE 0 END AS left_out, COUNT(*) AS n,
           COALESCE(SUM(COALESCE(c.wealth, CAST(json_extract(i.tally, '$.g') AS INTEGER), 0)), 0) AS wealth,
           COALESCE(SUM(CAST(json_extract(i.tally, '$.g') AS INTEGER)), 0) AS gold,
@@ -605,12 +459,8 @@ export function economy(db, nowS, days) {
     return {
       asOf: nowS, days, from: fromDay, to: today,
       gold: {
-        // where the service itself holds gold; a purse, a bank account and a letter of credit are inside the saves
         held: { market: num(p.market_gold), guildRealm: num(p.guild_realm), guildLegacy: num(p.guild_legacy), rent: num(p.rent_held) },
-        // ECON-LEFT-OUT: what the totals kept out - banned accounts' and held characters' gold, never touched
         leftOut: { market: num(p.market_out), rent: num(p.rent_out), worth: num(apart.wealth), characters: num(apart.n) },
-        // ECON-WORTH: the counted characters' worth. purse + bank + unsplit is their gold; items the rest of their
-        // wealth - their pieces, deeds and ships, less what they owe the banks
         worth: {
           total: num(counted.wealth), characters: num(counted.n), purse: num(counted.gold) - num(counted.bank) - num(counted.unsplit),
           bank: num(counted.bank), unsplit: num(counted.unsplit), items: num(counted.wealth) - num(counted.gold),
@@ -632,11 +482,6 @@ export function economy(db, nowS, days) {
   });
 }
 
-// ─── THE HOME WATCH ──────────────────────────────────────────────────
-
-/** THE MARKET'S WORST OF THE LAST DAY, kept ECON_KEEP_S: the one-sided trades worth a flag, and the pairs of accounts
- *  that dealt ECON_LIMITS.repeat.n times or more in it - two statements, then the names. (A price flag needs every
- *  material's usual price: the stream's rows carry it, the watch does not.) */
 function marketWatch(/** @type {any} */ db, /** @type {number} */ nowS) {
   return kept(db, 'market-watch', nowS, ECON_KEEP_S, async () => {
     const L = ECON_LIMITS, since = nowS - DAY_S;
@@ -675,8 +520,6 @@ function marketWatch(/** @type {any} */ db, /** @type {number} */ nowS) {
   });
 }
 
-/** STAFF-PANEL HOME (the status builder's roll-up, COMMON contract): the market's worst of the day and the bot-like
- *  harvesters, most urgent first - an Admin's alone. */
 export const HOME_WATCH = Object.freeze({
   id: 'economy',
   label: 'Market and harvesting',
@@ -693,10 +536,7 @@ export const HOME_WATCH = Object.freeze({
   },
 });
 
-// ─── THE DOORS ───────────────────────────────────────────────────────
-
 /**
- * THE PANEL'S ECONOMY DOORS - an Admin's alone. Answers the route's body, or `{ error }` (staff.js STAFF_STATUS its status).
  * @param {any} ctx @param {any} env @param {string} path @param {any} body
  * @param {{ player: any, role: string }} who
  * @param {(act: string, target?: string|null, detail?: object|null, how?: object) => any} audit
@@ -711,7 +551,6 @@ export async function staffEconomy(ctx, env, path, body, who, audit) {
   if (path === '/v1/staff/econ/stream') {
     const v = await streamView(db, body, nowS);
     if ('error' in v) return v;
-    // one row a view (its filters), whatever its page or its moving window - STAFF-PANEL-SPEED: sent with the page's first reads
     const [page] = await Promise.all([streamPage(db, v, nowS), audit('market-read', v.player?.id ?? null, {
       item: v.item, priceMin: v.priceMin, priceMax: v.priceMax, region: v.region, kinds: v.kinds.length === STREAM_KINDS.length ? null : v.kinds,
       since: int(body.since, 0, nowS), until: int(body.until, 1, nowS),
@@ -737,7 +576,6 @@ export async function staffEconomy(ctx, env, path, body, who, audit) {
 
   if (path === '/v1/staff/econ/economy') {
     const days = Math.min(int(body.days, 1, Number.MAX_SAFE_INTEGER) ?? ECON_DAYS_DEFAULT, ECON_DAYS_MAX);
-    // STAFF-PANEL-SPEED: the audit row with the economy's reads, one trip
     const [answer] = await Promise.all([economy(db, nowS, days), audit('economy-read', null, { days }, { onceIn: READ_ROW_S }).run()]);
     return answer;
   }

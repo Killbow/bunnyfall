@@ -4,7 +4,7 @@ import { favorReward } from '../../src/trade/tavern/favorRewards.js';
 import { addItem } from '../../src/items/inventory.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, mustChange, recordMovedOf } from './realm.js';
 
-/** The realm checkpoint, debit, delivered item/title and receipt commit together. */
+// The realm checkpoint, the debit, the delivered item or title, and the receipt commit in one batch.
 export async function tavernFavorBuy(ctx, player, body) {
   const { db, bucket, nowS, rand } = ctx;
   const at = realmAtOf(body), offer = FAVOR_OFFERS.find((x) => x.id === body.offer);
