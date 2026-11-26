@@ -55,7 +55,7 @@ export const swapInChoices = (entity) => (entity?.career ? ALL.filter((id) => ca
 export function skillSwapRefusal(entity, out, inn) {
   if (!entity?.career) return t('skillswap.refuse.career', 'You have no class to change.');
   if (!careerGroupOf(entity, out)) return t('skillswap.refuse.out', 'Choose one of your class skills to give up.');
-  if (isMasteredSkill(entity, out)) return t('skillswap.refuse.mastered', 'A mastered skill stays in your class.');
+  if (isMasteredSkill(entity, out)) return t('skillswap.refuse.mastered', 'You cannot swap out a mastered skill.');
   if (!swapInChoices(entity).includes(inn)) return t('skillswap.refuse.in', 'Choose a skill outside your class to take its place.');
   const have = resetGold(entity);
   if (have >= SKILL_SWAP_GOLD) return null;

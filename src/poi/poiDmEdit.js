@@ -32,7 +32,7 @@ export const DM_COLLECTIONS = Object.freeze({
 export const foeName = (id) => (id <= 42 ? ENEMY_NAMES[id] : id >= 128 && id <= 146 ? ENEMY_NAMES[43 + id - 128] : dexEnemyNameText(id)) ?? t('poi.dm.edit.foeN', 'Enemy {id}', { id });
 export const FOES = Object.freeze(POI_FOE_RANGES.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, i) => ({ id: a + i, name: foeName(a + i) }))));
 
-const noRoom = (max) => t('poi.dm.edit.noRoom', 'No room: a POI may hold at most {max, number} of these.', { max });
+const noRoom = (max) => t('poi.dm.edit.noRoom', 'A POI can hold at most {max, number} of these.', { max });
 function room(doc, name, wanted) {
   const rows = list(doc, name);
   const max = DM_COLLECTIONS[/** @type {keyof typeof DM_COLLECTIONS} */ (name)];
@@ -200,7 +200,7 @@ export function setComplete(enc, rule, extra) {
   else enc.complete = { rule, seconds: Number.isFinite(extra) ? extra : 60 };
 }
 function keyProblem(k, taken) {
-  if (!POI_PART_KEY_RE.test(k)) return t('poi.dm.edit.badKey', 'A key is up to 32 lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.');
+  if (!POI_PART_KEY_RE.test(k)) return t('poi.dm.edit.badKey', 'Keys must start with a letter or digit and use up to 32 lowercase letters, digits, hyphens, and underscores.');
   if (taken.has(k)) return t('poi.dm.edit.keyTakenHere', 'Another row here has the key {key}.', { key: k });
   return null;
 }

@@ -45,10 +45,10 @@ const WHY_TEXT = Object.freeze({
   'poi-cooldown': () => tr('poi.dm.refusal.cooldown', 'Not yet.'),
   'poi-stock': () => tr('poi.dm.refusal.stock', 'There is none left.'),
   'poi-not-live': () => tr('poi.dm.refusal.notLive', 'This place has changed. Come back later.'),
-  offline: () => tr('poi.dm.refusal.offline', 'The realm is not answering. Nothing was traded.'),
-  busy: () => tr('poi.dm.refusal.busy', 'Your last dealing with the realm is still being settled. Try again in a moment.'),
+  offline: () => tr('poi.dm.refusal.offline', 'The server is not responding. Nothing was traded.'),
+  busy: () => tr('poi.dm.refusal.busy', 'Your last action is still being processed. Try again in a moment.'),
   lease: () => tr('poi.dm.refusal.lease', 'This character is now being played in another tab or on another device.'),
-  unknown: () => tr('poi.dm.refusal.unknown', 'The realm did not answer, so this may or may not have gone through.'),
+  unknown: () => tr('poi.dm.refusal.unknown', 'The server did not respond, so this may or may not have gone through.'),
   'poi-hand': () => tr('poi.dm.hand.changed', 'Your items changed. Nothing was handed over.'),
   'poi-raced': () => tr('poi.dm.refusal.raced', 'Someone else is doing this right now. Try again.'),
 });
@@ -519,7 +519,7 @@ export function createPoiDm(deps) {
         r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now };
       }
       if (rules.length && !act && !preview) saveClaims(r);
-      say(tr('poi.dm.done', '{name}: done.', { name: rec.name }));
+      say(tr('poi.dm.done', '{name} complete.', { name: rec.name }));
       if (rec.onSuccessEvent) {
         const live = runs.get(r.id);
         const to = live?.rev === r.rev ? live : r;

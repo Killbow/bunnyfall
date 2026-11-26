@@ -127,15 +127,15 @@ export const clanStrikeWeight = (clan) => (clan === C.Montalion ? 2 : 1);
 /** @param {number} clan */
 export function clanIdentityWords(clan) {
   switch (clan) {
-    case C.Anthotis: return [t('clan.anthotis.s', 'Strength: your vials keep better blood and give more.'), t('clan.anthotis.b', 'Bane: beast blood gives you nothing in a feed, and any but a Scholar\'s less. A blow\'s mouthful still feeds you.')];
-    case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape, and despair slower.'), t('clan.garlythi.b', 'Bane: Worker blood, Beast blood, and any blood under 35% quality give you only three fifths of the usual Vitae.')];
-    case C.Haarvenu: return [t('clan.haarvenu.s', 'Strength: your blows drink twice the blood.'), t('clan.haarvenu.b', 'Bane: a fever in your veins burns your Vitae faster.')];
-    case C.Khulari: return [t('clan.khulari.s', 'Strength: captives come in healthier, their blood richer.'), t('clan.khulari.b', 'Bane: you cannot give the Kiss to anyone awake.')];
-    case C.Lyrezi: return [t('clan.lyrezi.s', 'Strength: one more Blood Slot, and your enthralled cost less.'), t('clan.lyrezi.b', 'Bane: the Beast shows in you a stage early.')];
-    case C.Montalion: return [t('clan.montalion.s', 'Strength: the Kiss costs you half.'), t('clan.montalion.b', 'Bane: every breach counts twice with the Court.')];
-    case C.Selenu: return [t('clan.selenu.s', 'Strength: the sun takes only half from you.'), t('clan.selenu.b', 'Bane: stale blood, from prisoners and vials, gives you half.')];
-    case C.Thrafey: return [t('clan.thrafey.s', 'Strength: your prisoners suffer less, and tending heals them more.'), t('clan.thrafey.b', 'Bane: a killing feed sickens you, and gives only half the usual Vitae.')];
-    case C.Vraseth: return [t('clan.vraseth.s', 'Strength: Running and Jumping +10.'), t('clan.vraseth.b', 'Bane: wounded below half, the Beast pulls harder.')];
+    case C.Anthotis: return [t('clan.anthotis.s', 'Strength: your vials store better blood and give you more.'), t('clan.anthotis.b', 'Bane: feeding on beast blood gives you nothing, and any blood other than a Scholar\'s gives less. Blood drawn by your blows still feeds you.')];
+    case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape and despair more slowly.'), t('clan.garlythi.b', 'Bane: Worker blood, Beast blood, and any blood under 35% quality give you only three fifths of the usual Vitae.')];
+    case C.Haarvenu: return [t('clan.haarvenu.s', 'Strength: your blows drain twice as much blood.'), t('clan.haarvenu.b', 'Bane: a fever in your veins burns your Vitae faster.')];
+    case C.Khulari: return [t('clan.khulari.s', 'Strength: captives arrive healthier and with richer blood.'), t('clan.khulari.b', 'Bane: you cannot give the Kiss to anyone awake.')];
+    case C.Lyrezi: return [t('clan.lyrezi.s', 'Strength: you gain one extra Blood Slot, and your enthralled cost less.'), t('clan.lyrezi.b', 'Bane: the Beast shows one stage earlier.')];
+    case C.Montalion: return [t('clan.montalion.s', 'Strength: the Kiss costs half as much.'), t('clan.montalion.b', 'Bane: every breach counts twice with the Court.')];
+    case C.Selenu: return [t('clan.selenu.s', 'Strength: the sun weakens you only half as much.'), t('clan.selenu.b', 'Bane: stale blood from prisoners and vials gives only half the usual Vitae.')];
+    case C.Thrafey: return [t('clan.thrafey.s', 'Strength: your prisoners suffer less, and tending heals them more.'), t('clan.thrafey.b', 'Bane: a killing feed sickens you and gives only half the usual Vitae.')];
+    case C.Vraseth: return [t('clan.vraseth.s', 'Strength: Running and Jumping +10.'), t('clan.vraseth.b', 'Bane: the Beast pulls harder when you are below half health.')];
     default: return [];
   }
 }

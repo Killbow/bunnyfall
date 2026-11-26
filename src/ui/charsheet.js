@@ -502,7 +502,7 @@ export class CharSheet {
   _showLevel() {
     audio.playOneShot(SOUND.ButtonClick, 1);
     // LEVEL-45 (systems/levelCap.js): at the cap there is no next level to measure - the box says the cap
-    this.child = new ActionTextBox([atLevelCap(this.entity) ? t('charsheet.levelCap', 'The highest level is {level, number}: no more levels are gained.', { level: LEVEL_CAP })
+    this.child = new ActionTextBox([atLevelCap(this.entity) ? t('charsheet.levelCap', 'You have reached the maximum level of {level, number}.', { level: LEVEL_CAP })
       : formatText(localizedText('levelProgress', 'Progress made to the next level: {0}%'), levelProgressPercent(this.entity))]);
   }
 

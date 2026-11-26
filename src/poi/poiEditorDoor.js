@@ -16,7 +16,7 @@ export function openPoiEditorWhenStanding({ entity, standing, open, say = () => 
     if (stopped) return;
     if (ready()) { stopped = true; open(); return; }
     waited += every;
-    if (!told && waited >= tellAfter) { told = true; say(t('poi.editor.waitingToOpen', 'The POI editor opens once your character is made and stands in the world.')); }
+    if (!told && waited >= tellAfter) { told = true; say(t('poi.editor.waitingToOpen', 'The POI editor will open once your character is created and in the world.')); }
     id = timer.setTimeout(tick, every);
   };
   tick();

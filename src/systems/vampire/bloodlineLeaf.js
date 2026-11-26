@@ -40,6 +40,6 @@ export function bloodlineNag(entry, currentDay, turnDue) {
   entry.clanNagDay = currentDay;
   const where = _seatsWords();
   _say(turnDue
-    ? t('bloodline.nag.due', 'The turning waits in your veins. No bloodline has claimed you, and none can finish what began. Go by night to a clan\'s Court: {where}.', { where })
+    ? t('bloodline.nag.due', 'The turning waits in your veins. No bloodline has claimed you yet, so the change cannot finish. Go by night to a clan\'s Court: {where}.', { where })
     : t('bloodline.nag.dream', 'Something old is waking in your blood, and it wants a master. By night, the vampire clans hold Court in the back rooms of taverns: {where}. Choose one before the fever ends.', { where }));
 }

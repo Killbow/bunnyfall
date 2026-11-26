@@ -575,7 +575,7 @@ export const ACTION_GROUPS = Object.freeze([
     ['Discipline', t('input.action.discipline', 'Vampire Discipline (tap: last, hold: wheel)')],   // BUNNYFALL VAMPIRE EXPANSION
   ]),
   g('Interaction', [
-    ['ActivateCenterObject', 'Activate (mouse)'], ['Interact', 'Interact'], ['Decorate', t('input.action.decorate', 'Decorate this room')], ['ModeWheel', 'Mode wheel (hold, flick, release)'],
+    ['ActivateCenterObject', 'Activate (mouse)'], ['Interact', 'Interact'], ['Decorate', t('input.action.decorate', 'Decorate room')], ['ModeWheel', 'Mode wheel (hold, flick, release)'],
     ['StealMode', 'Steal mode'], ['GrabMode', 'Grab mode'], ['InfoMode', 'Info mode'], ['TalkMode', 'Talk mode'],
     ['QuickLootAll', 'Take everything'], ['QuickLootOpen', 'Open the container'],
     ['Transport', 'Transport'], ['Rest', 'Rest'],
@@ -587,7 +587,7 @@ export const ACTION_GROUPS = Object.freeze([
     ['LogBook', journalKeyLabel('Quests', 'logbook')], ['NoteBook', journalKeyLabel('Notes', 'notebook')],   // FB1018D KEY-LOGBOOK
     ['AutoMap', 'Map'], ['TravelMap', 'Travel map'],
     ['QuickDial', 'Quick dial'], ['TravelView', 'Overworld (the travel view)'],
-    ['EventBoard', t('input.action.eventBoard', 'World event board: show or hide')],   // BUNNYFALL EVENT-BOARD-KEY
+    ['EventBoard', t('input.action.eventBoard', 'Show or hide world event board')],   // BUNNYFALL EVENT-BOARD-KEY
   ]),
   g('Quickslots and hotbar', [
     ['QuickUse1', 'Use quickslot 1 / hotbar slot 1'], ['QuickUse2', 'Use quickslot 2 / hotbar slot 2'],

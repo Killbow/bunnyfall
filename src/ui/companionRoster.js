@@ -404,7 +404,7 @@ function minionRow(el, m, { rerender, meter }) {
   }
   const acts = el('div', 'cmp-acts');
   if (_confirm === key) {
-    text.append(el('span', 'cmp-confirm', t('necro.roster.releaseAsk', 'Release your {name}? It crumbles back into the dead and frees its slot.', { name: m.name.toLowerCase() })));
+    text.append(el('span', 'cmp-confirm', t('necro.roster.releaseAsk', 'Release your {name}? It will crumble to dust and free its minion slot.', { name: m.name.toLowerCase() })));
     const yes = keyed(el('button', 'act warn', t('necro.roster.release', 'Release')), `cmp-${key}-release-yes`);
     yes.onclick = () => { _confirm = null; releaseMinion(m.id); rerender(); };
     const no = keyed(el('button', 'act', t('necro.roster.keep', 'Keep')), `cmp-${key}-release-no`);
@@ -412,7 +412,7 @@ function minionRow(el, m, { rerender, meter }) {
     acts.append(yes, no);
   } else {
     const b = keyed(el('button', `act${m.waiting ? ' primary' : ''}`, m.waiting ? t('necro.roster.call', 'Call') : t('necro.roster.wait', 'Wait')), `cmp-${key}-wait`);
-    b.title = m.waiting ? t('necro.roster.callTip', 'It comes back to your side') : t('necro.roster.waitTip', 'It holds this spot. Leave the area and it stays behind until you call it');
+    b.title = m.waiting ? t('necro.roster.callTip', 'Call this minion back to your side.') : t('necro.roster.waitTip', 'Have this minion wait here. If you leave the area, it stays behind until you call it.');
     b.onclick = () => { setMinionWaiting(m.id, !m.waiting); rerender(); };
     const rel = keyed(el('button', 'act', t('necro.roster.release', 'Release')), `cmp-${key}-release`);
     rel.onclick = () => { _confirm = key; _notice = null; rerender(); };

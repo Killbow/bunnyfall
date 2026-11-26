@@ -2,8 +2,8 @@
 import { t } from '../../ui/textManager.js';
 import { residentOfId } from './people.js';
 
-const FRIEND_TEXT = '{name} counts you a friend now.';
-const FRIEND_COURT_TEXT = '{name} counts you a friend now. You can court them: ask about Courtship under Tell me about.';
+const FRIEND_TEXT = '{name} now considers you a friend.';
+const FRIEND_COURT_TEXT = '{name} now considers you a friend. You can court them by asking about Courtship under Tell me about.';
 
 /** @param {{ name: string, court: boolean }} who */
 export function friendLine({ name, court }) {

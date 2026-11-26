@@ -67,7 +67,7 @@ export const crossingWords = (way) => (way === 'out'
   ? `Three days out of sight of land, and then the stars came down to meet the sea. You have crossed into ${ETHER_SEA_NAME}. Veilhaven lies ahead.`
   : 'The Veil closes astern, and the air smells of salt and tar again. The Iliac Bay, and home.');
 export const CROSS_REFUSED = Object.freeze({
-  get passengers() { return t('ether.cross.passengers', 'Only your party can cross the Veil with you. The crossing waits until only your party is aboard.'); },
+  get passengers() { return t('ether.cross.passengers', 'Only your party can cross the Veil with you. The crossing is offered again once only your party is aboard.'); },
   hostile: 'Not with an enemy at your heels.',
 });
 export const CROSS_STALE = 'The moment has passed. Return to the crossing waters to be asked again.';

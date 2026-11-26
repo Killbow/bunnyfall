@@ -245,13 +245,13 @@ export function skinCard(doc, { sets: offer = skinSets, gender = () => null } = 
     lookToggle(layeredOn);
     if (layeredOn) {
       // LAYERED-GEAR: the body, drawn in the armor worn - the On foot panel put away, Mounted as ever
-      root.append(el('p', 'meta', t('skin.layered.about', 'On foot you are drawn in the helmet, chest and leg armor you wear. On a horse you are drawn in your mounted skin.')));
+      root.append(el('p', 'meta', t('skin.layered.about', 'On foot, you appear in the helmet, chest, and leg armor you wear. On a horse, you appear in your mounted skin.')));
       const bodyWord = t('skin.layered.body', 'Body');
       root.append(el('span', 'skingroup', bodyWord));
       // LAYERED-GEAR-ON: the character's own body marks the tile it is; a tile pressed is that body from then on
       const worn = own ? (layeredGenderOf(LAYERED_OWN, gender()) === 'female' ? 1 : 2) : w.layered;
       root.append(grid(bodyWord, (sets.layered ?? []).filter((s) => s.index === 1 || s.index === 2), LAYERED, worn));
-      if (own) root.append(el('p', 'meta skinhint', t('skin.layered.own', 'Your character\'s own body, until you choose one.')));
+      if (own) root.append(el('p', 'meta skinhint', t('skin.layered.own', 'Uses your character\'s own body until you choose one.')));
     } else {
       // the look sends only a CHOSEN set, so until one is pressed the others see this player's class
       if (!w.chosen) root.append(el('p', 'meta skinhint', 'Until you choose one, other players see you as your class.'));

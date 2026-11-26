@@ -56,7 +56,7 @@ export function createVendorHost(host) {
     const what = n > 1 ? `${n} × ${vendorNameOf(row.item)}` : vendorNameOf(row.item);
     const r = await marketBook.buy({ region: row.region, listing: row.id, units: n, max: total, hubs: hub ? { [row.region]: hub } : {}, currency: 'gold', vendor }, marketMint);
     if (r?.ok && r.data?.delivery?.id && !(await collectedAtPress(r.data.delivery.id))) {
-      return { ok: true, text: t('vendor.buy.onWay', 'Bought {name} for {price}. It is on its way to your pack and will reach it on its own.', { name: what, price: vendorGoldText(total) }) };
+      return { ok: true, text: t('vendor.buy.onWay', 'Bought {name} for {price}. It will reach your pack on its own.', { name: what, price: vendorGoldText(total) }) };
     }
     return vendorSaid(r, t('vendor.buy.done', 'Bought {name} for {price}.', { name: what, price: vendorGoldText(total) }));
   };
@@ -64,7 +64,7 @@ export function createVendorHost(host) {
   const vendorTake = async (row) => {
     const r = await marketBook.cancel(row.id, marketMint);
     if (r?.ok && r.data?.delivery?.id && !(await collectedAtPress(r.data.delivery.id))) {
-      return { ok: true, text: t('vendor.take.onWay', '{name} is on its way back to your pack and will reach it on its own.', { name: vendorNameOf(row.item) }) };
+      return { ok: true, text: t('vendor.take.onWay', '{name} will return to your pack on its own.', { name: vendorNameOf(row.item) }) };
     }
     return vendorSaid(r, `${vendorNameOf(row.item)} is back in your pack.`);
   };

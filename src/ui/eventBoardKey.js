@@ -23,7 +23,7 @@ export function toggleEventBoard() {
   setPref(EVENT_BOARD_PREF, turnOn);
   if (turnOn) {
     // under Enhanced Plus the HUD editor can also put the piece away - the switch alone does not bring it back
-    hudText(eventBoardOn() ? t('eventBoard.shown', 'Event board shown.') : t('eventBoard.awayInEditor', 'The event board is put away in the HUD editor.'));
+    hudText(eventBoardOn() ? t('eventBoard.shown', 'Event board shown.') : t('eventBoard.awayInEditor', 'The event board is hidden in the HUD editor.'));
   } else {
     hudText(t('eventBoard.hidden', 'Event board hidden. Press {key} to show it again.', { key: actionKeyWord(EVENT_BOARD_ACTION) || '=' }));
   }

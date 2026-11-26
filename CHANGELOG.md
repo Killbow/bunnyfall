@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Changed: POI notices, mod credits, and many other short messages now use plainer wording.
 - Changed: POI editor controls and inspector text use plainer words.
 - Changed: Revenant, home decor, birthsign, growth, collection, and online text uses plainer words.
 - Changed: Iliac Hand, King's Gambit, and tavern text uses plainer words.

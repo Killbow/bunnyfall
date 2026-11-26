@@ -69,7 +69,7 @@ function mountPoiEditor(world, me, io) {
   const worldKeysUp = () => { world.keys.clear(); for (const ring of Object.values(world.latch.edge)) ring.clear(); };
   function enter() {
     if (editor.active()) return;
-    if (world._mode() !== 'exterior' || world.travelView?.active || !isOnFoot(world.player.transportMode) || !!world.csaRuntime?.isSailing?.()) { world.townTalk.say(t('poi.editor.outdoorsOnly', 'The POI editor opens outdoors, on foot.')); return; }
+    if (world._mode() !== 'exterior' || world.travelView?.active || !isOnFoot(world.player.transportMode) || !!world.csaRuntime?.isSailing?.()) { world.townTalk.say(t('poi.editor.outdoorsOnly', 'You can only open the POI editor outdoors while on foot.')); return; }
     from = { yaw: world.cam.yaw, pitch: world.cam.pitch };
     openedAt = restoresSoFar();
     cursorWas = cursorActive(); setCursorActive(true); releaseLook();
@@ -84,7 +84,7 @@ function mountPoiEditor(world, me, io) {
     let landing = null;
     if ((how === 'here' || how === 'test') && world.walkMode) {
       const below = world.surfaceAt(world.cam.pos[0], world.cam.pos[2]);
-      if (!Number.isFinite(below)) { panel.say(t('poi.editor.hereNoGround', 'The ground here has not loaded yet. Fly on, or exit to where you were standing.'), 'bad'); return false; }
+      if (!Number.isFinite(below)) { panel.say(t('poi.editor.hereNoGround', 'The ground here has not loaded yet. Fly on, or choose Exit to previous spot.'), 'bad'); return false; }
       landing = floorLanding(world.collider, [world.cam.pos[0], world.cam.pos[1], world.cam.pos[2]], Math.max(10, world.cam.pos[1] - below + 5), 0);
       if (heldInSolid(world.collider, landing)) landing = openGroundNear(world.collider, landing[0], landing[2], { dry: (floor) => floor >= world.tvSeaY() }) ?? landing;
     }
@@ -110,7 +110,7 @@ function mountPoiEditor(world, me, io) {
   function test(id) {
     if (id) {
       if (!editor.active() || world.poiTest.active() || !world.poiTest.ready() || !edit.docOf(id)) return false;
-      if (!isOnFoot(world.player.transportMode) || !!world.csaRuntime?.isSailing?.()) { panel.say(t('poi.test.onFoot', 'A test starts on foot, not mounted or sailing.'), 'bad'); return false; }
+      if (!isOnFoot(world.player.transportMode) || !!world.csaRuntime?.isSailing?.()) { panel.say(t('poi.test.onFoot', 'You must be on foot to test a POI, not mounted or sailing.'), 'bad'); return false; }
       const back = { body: keepSpot(world.player.pos, sceneToPixel, tr), eye: keepSpot(world.cam.pos, sceneToPixel, tr), yaw: world.cam.yaw, pitch: world.cam.pitch, from, cursorWas, restores: restoresSoFar() };
       if (!exit('test')) return false;
       testBack = back;

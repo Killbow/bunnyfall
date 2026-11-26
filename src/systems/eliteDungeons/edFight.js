@@ -26,7 +26,7 @@ export function createEliteDungeonFight(deps) {
   function begin(loc) {
     const e = loc.eliteDungeon;
     run = { loc, key: e.key, name: e.name, asked: false, askAt: 0, standing: false, seen: false, claimed: false, claimTries: 0, claimAt: 0, told: false, met: false, ringAt: 0, summonAt: 0, summons: new Set(), pending: 0 };
-    deps.say(t('ed.enter', 'An elite dungeon. Cromwark\'s creatures hold it - fell them to call out its keeper.'));
+    deps.say(t('ed.enter', 'An elite dungeon held by Cromwark\'s creatures. Defeat them to draw out its keeper.'));
   }
 
   function tally(foes) {
@@ -51,7 +51,7 @@ export function createEliteDungeonFight(deps) {
       r.standing = true;
       const f = await Promise.resolve(deps.standNear(SIFRIT_ID)).catch(() => null);
       if (run !== r) return;
-      if (f) deps.say(t('ed.sifrit', 'Sifrit the Forbidden One rises to defend the dungeon!'));
+      if (f) deps.say(t('ed.sifrit', 'Sifrit the Forbidden One rises to defend the dungeon.'));
       else r.askAt = 0;
     } else if (res?.ok && !r.told) {
       r.told = true;
@@ -120,7 +120,7 @@ export function createEliteDungeonFight(deps) {
         if (!r.claimed) {
           const { total, dead } = tally(foes);
           const need = edKillsNeeded(total);
-          if (!r.met && total > 0 && dead >= need) { r.met = true; deps.say(t('ed.met', 'The last of the series falls. Something answers from the dark...')); }
+          if (!r.met && total > 0 && dead >= need) { r.met = true; deps.say(t('ed.met', 'Enough defenders have fallen. Something stirs in the dark...')); }
           let sifrit = null;
           for (const f of foes) if (f?.entity?.edSifrit) { if (!f.dead) { sifrit = f; break; } sifrit ??= f; }
           if (sifrit && !sifrit.dead) {

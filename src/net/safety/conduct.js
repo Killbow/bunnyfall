@@ -30,12 +30,12 @@ export const conductTitle = () => t('net.conduct.title', 'Code of Conduct');
 export const conductRules = () => [   // BUNNYFALL: the server's own rules (the Discord's), under keys of their own so no old translation stands in
   t('bf.conduct.r1', '1. 18+ only. This game has adult content. If you’re under 18, you can’t be here, and anyone found to be a minor is removed.'),
   t('bf.conduct.r2', '2. Respect everyone. Trans, queer, every race, every background: everyone is welcome here. Use people’s names and pronouns. Bigotry isn’t a “debate” or an “opinion” here.'),
-  t('bf.conduct.r3', '3. Zero tolerance for hate. No real racism, transphobia, homophobia, antisemitism or other bigotry, including dog whistles and memes. No hate group symbols, propaganda or support.'),
+  t('bf.conduct.r3', '3. Zero tolerance for hate. No real racism, transphobia, homophobia, antisemitism, or other bigotry, including dog whistles and memes. No hate group symbols, propaganda, or support.'),
   t('bf.conduct.r4', '4. Game screenshots go in #pictures. The game has nudity, so all in-game screenshots with nudity go in #pictures or in the bug reports, even the “harmless” ones. That keeps the other channels safe to open anywhere.'),
   t('bf.conduct.r5', '5. Flirting and sexual content. Outright sexual content is currently not allowed, to keep this space friendly for people who do not wish to engage in it. Joking sexually is fine if consensual; please respect boundaries.'),
-  t('bf.conduct.r6', '6. No harassment. No targeting, stalking or pile-ons, and no unwanted DMs, especially sexual ones. If someone says stop, stop.'),
-  t('bf.conduct.r7', '7. Keep private things private. Don’t share anyone’s personal info, photos or DMs without their permission.'),
-  t('bf.conduct.r8', '8. No spam or self-promo. No ads, invite links or repeated messages unless the mods say it’s OK.'),
+  t('bf.conduct.r6', '6. No harassment. No targeting, stalking, or pile-ons, and no unwanted DMs, especially sexual ones. If someone says stop, stop.'),
+  t('bf.conduct.r7', '7. Keep private things private. Don’t share anyone’s personal info, photos, or DMs without their permission.'),
+  t('bf.conduct.r8', '8. No spam or self-promo. No ads, invite links, or repeated messages unless the mods say it’s OK.'),
   t('bf.conduct.r9', '9. Bugs and cheats. Report bugs in the bug channel. Don’t use exploits against other players, and don’t share them publicly.'),
 ];
 /** What follows a broken rule, and who reads a report. */

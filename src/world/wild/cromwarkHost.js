@@ -79,7 +79,7 @@ export function createCromwarkHost(deps) {
     const walk = powerKind(deps.entity, 'hazewalk');
     clock.frame(ring, walk?.step > 0 ? (dt * 60) / walk.step : dt);
     setHazeMult(clock.mult);
-    if (clock.on && clock.minutes > was) deps.mid?.(t('cromwark.hazeRises', 'The haze thickens. Foes hit {pct}% harder.', { pct: Math.round((clock.mult - 1) * 100) }));
+    if (clock.on && clock.minutes > was) deps.mid?.(t('cromwark.hazeRises', 'The haze thickens. Enemies hit {pct}% harder.', { pct: Math.round((clock.mult - 1) * 100) }));
     if (ring === 4) { heartS = clock.seconds; if (heartS >= HEART_WARDEN_S && store.get(HEART_KEY) !== '1') { store.set(HEART_KEY, '1'); deps.say?.(t('cromwark.heartWarden', 'You have endured the Heart. Nyx will sell you the title Warden of the Heart.')); } }
     hudFrame();
     campFrame();
@@ -118,7 +118,7 @@ export function createCromwarkHost(deps) {
     giveNyxCoins(items, 1);
     owed++; store.set(OWED_KEY, String(owed));
     deps.clink?.();
-    deps.say?.(t('cromwark.coin', 'A Dusk Token! You carry {coins}.', { coins: nyxCoinsText(nyxCoinsHeld(items)) }));
+    deps.say?.(t('cromwark.coin', 'A Dusk Token. You carry {coins}.', { coins: nyxCoinsText(nyxCoinsHeld(items)) }));
     deps.saved?.();
   });
 

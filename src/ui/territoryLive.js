@@ -413,13 +413,13 @@ export function territoryTipAt(infl, blight, mx, my) {
   if (m) {
     title = `<${m.tag ?? '?'}> ${m.name ?? ''}`.trim();
     lines.push(territoryReachText(m.strength));
-    lines.push(m.mine ? t('terrmap.mine', 'Your Company holds this ground. Gathering and loot here pay more.') : t('terrmap.theirs', 'The ground this Company holds.'));
+    lines.push(m.mine ? t('terrmap.mine', 'Your Company holds this ground. Gathering and loot here pay more.') : t('terrmap.theirs', 'This Company holds this ground.'));
   }
   const c = infl?.charterRings?.find((r) => Math.hypot(mx - r.charter.x, my - r.charter.y) <= r.charter.r)?.charter ?? null;
   if (c) { if (!title) title = c.name; lines.push(t('terrmap.charter', 'Within the Charter of {0}.').replace('{0}', c.name)); }
   if (blight?.edge?.length && blightDepth(blight.centre, blight.edge, mx, my) > 0) {
     if (!title) title = t('terrmap.blight', "Rodney's blight");
-    lines.push(t('terrmap.blightHere', "Rodney's blight lies over this ground: foes here are tougher."));
+    lines.push(t('terrmap.blightHere', 'Rodney\'s blight covers this ground. Enemies here are tougher.'));
   }
   return title ? { title, lines } : null;
 }

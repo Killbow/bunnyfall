@@ -27,7 +27,7 @@ export function cromwarkDoor(/** @type {any} */ maps, /** @type {any} */ dfLocat
 
 export const cromwarkTownText = (/** @type {'boarded' | 'looted'} */ k) => (k === 'boarded'
   ? t('cromwark.door.boarded', 'The door is boarded up. Nobody has lived here since Cromwark fell.')
-  : t('cromwark.door.looted', 'The house stands open. Almost everything here was taken long ago.'));
+  : t('cromwark.door.looted', 'The house is open. Almost everything here was taken long ago.'));
 
 export function cromwarkLooted(/** @type {any} */ bd) {
   const region = bd?.townMapId != null ? _maps?.getRegion?.(bd.regionIndex ?? -1) : null;

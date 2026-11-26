@@ -192,7 +192,7 @@ export const storesWhereLine = (key, carrying = false) => (carrying ? BAG_WORDS.
 export const ACT_STOPPED_LINE = 'The gathering stopped early. Nothing was taken.';
 /** AUDIT LOCKPICK C14, D3: an act whose spot went from under it - the UTC day's turn, a Motherlode sunk - said why, read
  *  when said. */
-export const ACT_GONE_LINE = () => t('gather.stop.gone', 'This spot is gone for now, so the gathering stopped. Nothing was taken.');
+export const ACT_GONE_LINE = () => t('gather.stop.gone', 'This spot is depleted for now, so gathering stopped. Nothing was taken.');
 /** A harvest the service did not answer, kept and asked again (net/profBook.js PROF_QUEUE_MS: ten minutes). */
 /** AUDIT PACK-OVER C: the over-weight line, said at most once in this long (ms). */
 export const OVER_SAID_MS = 10_000;

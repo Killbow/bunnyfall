@@ -288,7 +288,7 @@ export function sdThroughStands(rec, s, now) {
 export const SD_THROUGH_TEXT = Object.freeze({
   get title() { return t('sd.through.title', 'The Way Through'); },
   get to() { return t('sd.through.to', 'To the Shattered Hour'); },
-  get opens() { return t('sd.through.opens', 'The Rift stands open. The Way Through opens beside you.'); },
+  get opens() { return t('sd.through.opens', 'The Rift is open. The Way Through appears beside you.'); },
 });
 export const SD_THROUGH_SIZE_M = SD_RIFT_MIN_M;
 export const SD_THROUGH_AHEAD_M = 3;

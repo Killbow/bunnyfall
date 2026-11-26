@@ -88,8 +88,8 @@ registerEnemyLootExtra('lockpick', ({ items, basics, rolls }) => { rogueLockpick
 export const LOCKPICK_TEXT = Object.freeze({
   card: () => [
     t('lockpick.item.what', 'A thin steel pick and a tension wrench, for locks that are not yours.'),
-    t('lockpick.item.use', 'In Steal mode, activate a locked door, chest or crate to pick it. A pick can snap.'),
+    t('lockpick.item.use', 'In Steal mode, activate a locked door, chest, or crate to pick it. A pick can snap.'),
   ],
-  use: () => t('lockpick.item.useLine', 'Switch to Steal mode and activate a locked door, chest or crate to pick its lock.'),
+  use: () => t('lockpick.item.useLine', 'Switch to Steal mode and activate a locked door, chest, or crate to pick its lock.'),
 });
 registerItemUseHandler(LOCKPICK_TEMPLATE, () => ({ kind: 'text', text: LOCKPICK_TEXT.use() }));

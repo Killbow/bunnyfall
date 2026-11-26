@@ -248,7 +248,7 @@ export function saddleShown(s, state = {}, mode = 'auto') {
   return (state.since ?? Infinity) < SADDLE_HELLO_MS ? 'hello' : 'none';
 }
 /** UI-CALM: the hello's line under the horse's name - the key that puts the panel up. */
-export const saddleHello = (s, key = '') => (key ? t('saddle.hello.key', '{key}: saddle panel', { key }) : t('saddle.hello.none', 'Saddle panel: give it a key in Controls'));
+export const saddleHello = (s, key = '') => (key ? t('saddle.hello.key', '{key}: saddle panel', { key }) : t('saddle.hello.none', 'Saddle panel: assign a key in Controls'));
 
 /** The layout and the letters; the Plus kit paints the bar and the buttons (enhancedFrame.js FRAME_ROLES). */
 export const SADDLE_CSS = `

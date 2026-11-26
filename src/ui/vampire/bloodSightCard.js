@@ -13,10 +13,10 @@ import { archetypeName, bloodQualityName, resonanceWords, beastStageName, VITAE_
 /** Each choice's glyph (a Discipline's - vampKit.js DISCIPLINE_GLYPH) and its line. */
 const CHOICE = Object.freeze({
   kiss: { glyph: 'lure', hint: () => t('sight.hint.kiss', 'Sip, and cloud their memory. No one will suspect.') },
-  drink: { glyph: 'bloodSiphon', hint: () => t('sight.hint.drink', 'More blood, and no Vitae spent. They may cry for the watch.') },
-  drain: { glyph: 'predator', hint: () => t('sight.hint.drain', 'All of it. The most blood, and a death.'), kind: 'warn' },
-  take: { glyph: 'stalker', hint: () => t('sight.hint.take', 'The Kiss, and they follow you to your Haven.') },
-  enthrall: { glyph: 'courtCommand', hint: () => t('sight.hint.enthrall', 'Bind them where they stand, to serve you here.') },
+  drink: { glyph: 'bloodSiphon', hint: () => t('sight.hint.drink', 'Take more blood without spending Vitae. They may call for the watch.') },
+  drain: { glyph: 'predator', hint: () => t('sight.hint.drain', 'Drain them dry for the most blood, killing them.'), kind: 'warn' },
+  take: { glyph: 'stalker', hint: () => t('sight.hint.take', 'Give them the Kiss so they follow you to your Haven.') },
+  enthrall: { glyph: 'courtCommand', hint: () => t('sight.hint.enthrall', 'Bind them on the spot to serve you here.') },
   leave: { glyph: 'mistForm', hint: () => t('sight.hint.leave', 'Let them be.') },
 });
 const EYE = '<svg width="16" height="16" viewBox="0 0 48 48"><path d="M4 24c7-11 33-11 40 0-7 11-33 11-40 0z" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="24" cy="24" r="6" fill="currentColor"/></svg>';

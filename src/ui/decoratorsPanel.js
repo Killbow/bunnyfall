@@ -52,7 +52,7 @@ const swallowPresses = (node) => {
 export const DECORATORS_TEXT = Object.freeze({
   get title() { return t('decor.decorators.title', 'Decorators'); },
   get empty() { return t('decor.decorators.empty', 'No one else can decorate this home yet.'); },
-  get emptyCaravan() { return t('caravan.decorators.empty', 'Nobody else sends you templates for your caravan.'); },
+  get emptyCaravan() { return t('caravan.decorators.empty', 'No one else is allowed to send templates for your caravan.'); },
   get add() { return t('decor.decorators.add', 'Add decorator'); },
   get nameAsk() { return t('decor.decorators.nameAsk', 'Who may decorate this home? Enter their username.'); },
   get nameAskCaravan() { return t('caravan.decorators.nameAsk', 'Who may send you templates for your caravan? Enter their username.'); },

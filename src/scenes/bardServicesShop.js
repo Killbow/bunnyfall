@@ -37,13 +37,13 @@ export function createBardServices(deps) {
     try {
       const r = await deps.act({ ...body, op, txn }, (reply) => { if (reply?.ok && reply.data) { restoreTavernProgress(reply.data.progress); local(reply.data); } });
       if (r?.ok) { receipts.delete(key); busy = false; menu(t('bard.svc.done', 'Done. {n} Favor Tokens paid.', { n: price(op) })); return; }
-      if (r?.unknown) { busy = false; menu(t('bard.svc.retry', 'The answer was lost. Ask again to finish the same request without paying twice.')); return; }
+      if (r?.unknown) { busy = false; menu(t('bard.svc.retry', 'No response from the server. Try again to complete your request without paying twice.')); return; }
       receipts.delete(key);
       busy = false;
       menu(accountRefusalText(r?.error));
     } catch {
       busy = false;
-      menu(t('bard.svc.retry', 'The answer was lost. Ask again to finish the same request without paying twice.'));
+      menu(t('bard.svc.retry', 'No response from the server. Try again to complete your request without paying twice.'));
     }
   }
 
@@ -64,7 +64,7 @@ export function createBardServices(deps) {
 
   function pickItem(onPicked) {
     const list = writableItems();
-    if (!list.length) { menu(t('bard.svc.noItems', 'Nothing in your pack can carry the Guild’s ink.')); return; }
+    if (!list.length) { menu(t('bard.svc.noItems', 'You have no items in your pack that the Guild can inscribe.')); return; }
     deps.flow([{ picker: list.map((x) => x.label), onPick: (i) => { const item = list[i]?.item; if (item) onPicked(item); return null; }, onCancel: () => { menu(); return null; } }]);
   }
 
@@ -84,7 +84,7 @@ export function createBardServices(deps) {
 
   function writeFlourish() {
     pickItem((item) => {
-      const intro = t('bard.svc.buffIntro', 'A flourish is words on the item’s card. {cosmetic}', { cosmetic: BARD_BUFF_COSMETIC_TEXT });
+      const intro = t('bard.svc.buffIntro', 'A flourish adds custom text to the item\'s card. {cosmetic}', { cosmetic: BARD_BUFF_COSMETIC_TEXT });
       deps.flow([field([intro, t('bard.svc.buffNameAsk', 'Name of the flourish ({n} Favor Tokens). Up to {max} characters.', { n: price('item-buff'), max: BARD_BUFF_NAME_MAX })],
         BARD_BUFF_NAME_MAX, item.bardBuff?.name ?? '', (name) => [field([t('bard.svc.buffTextAsk', 'What does it say? Up to {max} characters.', { max: BARD_BUFF_TEXT_MAX })],
           BARD_BUFF_TEXT_MAX, item.bardBuff?.text ?? '', (text) => {
@@ -100,7 +100,7 @@ export function createBardServices(deps) {
 
   async function renameHome() {
     const homes = deps.homes ? await deps.homes().catch(() => []) : [];
-    if (!homes.length) { menu(t('bard.svc.noHomes', 'You own no home to rename.')); return; }
+    if (!homes.length) { menu(t('bard.svc.noHomes', 'You do not own a home to rename.')); return; }
     const label = (h) => `${h.title || t('bard.svc.homeIn', 'Home in {town}', { town: h.town || t('bard.svc.aTown', 'a town') })}${h.title && h.town ? ` (${h.town})` : ''}`;
     deps.flow([{ picker: homes.map(label), onCancel: () => { menu(); return null; }, onPick: (i) => {
       const home = homes[i];
@@ -117,13 +117,13 @@ export function createBardServices(deps) {
 
   function menu(message = '') {
     deps.choose({
-      lines: [t('bard.svc.heading', 'Bards’ Guild — Services'), message,
+      lines: [t('bard.svc.heading', 'Bards\' Guild: Services'), message,
         t('bard.svc.balance', 'Favor Tokens: {n}', { n: favorNow() }),
-        t('bard.svc.rules', 'The Guild’s scribes work for Favor Tokens. Names and flourishes are words only: they change no stat, spell or enchantment.')].filter(Boolean),
+        t('bard.svc.rules', 'The Guild\'s scribes work for Favor Tokens. Custom names and flourishes are cosmetic only and do not change stats, spells, or enchantments.')].filter(Boolean),
       options: [
-        { code: 'Digit1', label: t('bard.svc.opName', 'Rename an item — {n} Favor Tokens', { n: price('item-name') }), action: renameItem },
-        { code: 'Digit2', label: t('bard.svc.opBuff', 'Write a flourish on an item — {n} Favor Tokens', { n: price('item-buff') }), action: writeFlourish },
-        { code: 'Digit3', label: t('bard.svc.opHome', 'Rename a home you own — {n} Favor Tokens', { n: price('home-name') }), action: () => { void renameHome(); } },
+        { code: 'Digit1', label: t('bard.svc.opName', 'Rename an item ({n} Favor Tokens)', { n: price('item-name') }), action: renameItem },
+        { code: 'Digit2', label: t('bard.svc.opBuff', 'Write a flourish on an item ({n} Favor Tokens)', { n: price('item-buff') }), action: writeFlourish },
+        { code: 'Digit3', label: t('bard.svc.opHome', 'Rename a home you own ({n} Favor Tokens)', { n: price('home-name') }), action: () => { void renameHome(); } },
         { code: 'Escape', label: t('bard.svc.close', 'Back'), action: () => deps.back?.() },
       ],
     });

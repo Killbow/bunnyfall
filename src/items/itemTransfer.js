@@ -256,8 +256,8 @@ export const packFullText = (name) => `${name || 'Your companion'} cannot carry 
 export const packFullGoldText = (name, n) => `${name || 'Your companion'} could only carry ${n} gold pieces.`;
 /** GOLD-WIRE (FIELD BUGS 2026-10-25b): a container the room's word carries (loot/roomCarriedList.js) takes coin up to the
  *  room left on the gold stack it lands on, in its own words - the port's: DFU has no other player to share one with. */
-export const sharedGoldText = (n) => t('items.gold.sharedRoom', 'Only {n, number} more gold pieces fit here. Everyone here shares this container, and one pile of gold in it holds no more than {max, number}.', { n, max: LOOT_STACK_MAX });
-export const sharedGoldFullText = () => t('items.gold.sharedFull', 'No more gold fits here. Everyone here shares this container, and one pile of gold in it holds no more than {max, number}.', { max: LOOT_STACK_MAX });
+export const sharedGoldText = (n) => t('items.gold.sharedRoom', 'Only {n, number} more gold pieces fit in this shared container. Each gold pile can hold up to {max, number} pieces.', { n, max: LOOT_STACK_MAX });
+export const sharedGoldFullText = () => t('items.gold.sharedFull', 'No more gold fits in this shared container. Each gold pile can hold up to {max, number} pieces.', { max: LOOT_STACK_MAX });
 /** GOLD-WIRE: how much more gold the stack a drop lands on may take in a list the room's word carries. The drop's addItem
  *  merges the coin into findExistingStack's answer, and a stack past LOOT_STACK_MAX - the most one stack rides the room's
  *  word in - made that word unreadable to everyone else in the room (portalStone.js portalStoneRoom's law, for coin). */

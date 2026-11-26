@@ -228,8 +228,8 @@ export const LOST_RETRY_MAX_MS = 30 * 60_000;
 export const LOST_FIRST_MS = 20_000;
 /** LOST-SPOILS: the words - what was left went to the mailbox, or could not and is in the pack. */
 export const LOST_TEXT = Object.freeze({
-  mailed: () => t('spoils.lost.mailed', 'What you left on the floor will wait for you in your mailbox, beside the hourglass in the pause menu.'),
-  back: () => t('spoils.lost.back', 'What you left on the floor could not be sent to your mailbox, so it is in your pack.'),
+  mailed: () => t('spoils.lost.mailed', 'Loot you left on the floor will be sent to your mailbox, next to the hourglass in the pause menu.'),
+  back: () => t('spoils.lost.back', 'Loot you left on the floor could not be sent to your mailbox, so it was placed in your pack.'),
 });
 /** LOST-SPOILS: a record's pieces owed to the mailbox - `{ i, piece }`, an item's - or none. */
 export const mailOf = (r) => (Array.isArray(r?.mail) ? r.mail.filter((m) => m && Number.isSafeInteger(m.i) && m.piece?.kind === 'item') : []);

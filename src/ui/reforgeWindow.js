@@ -104,7 +104,7 @@ export const reforgePriceText = (p) => (p ? `${shardsText(p.shards)} and ${p.gol
 export const REFORGE_REFUSALS = Object.freeze({
   choice: 'Choose all upgrade bonuses first', off: 'Loot rarity is off', not: 'Nothing the Reforge can change', unknown: 'Not identified yet. Have the guild identify it first',
   worn: 'Take it off first', shards: 'Not enough Welkynd Shards', gold: 'Not enough gold',
-  get line() { return t('reforge.refusal.line', 'No other kind of line can take its place'); },   // REFORGE-REPLACE: a record's line, or one nothing else can replace - the one-line lock is gone
+  get line() { return t('reforge.refusal.line', 'No other bonus can replace this one'); },   // REFORGE-REPLACE: a record's line, or one nothing else can replace - the one-line lock is gone
   top: 'Already at its highest value',   // LOOT17
   imprinted: 'It already has a power', unfound: 'Your codex has no such power for it',
   none: 'Nothing left to find in this region', nowhere: 'No map to scry here', family: 'No such kin',   // LOOT19
@@ -117,8 +117,8 @@ export const REFORGE_REFUSALS = Object.freeze({
   get cursed() { return t('reforge.refusal.cursed', 'Have the temple lift its curse first'); },   // LOOT-GATE
 });
 /** LOOT-GATE (systems/reforge.js imbuePiece): the Imbue's words, each read when it is said (L10N4). */
-export const IMBUE_SUB = () => t('reforge.imbue.sub', 'Raise a plain piece to Magic, or a Magic piece to Rare. Choose its new bonuses. Shops still pay only what the piece was worth before.');
-export const IMBUE_NONE = () => t('reforge.imbue.none', 'Nothing in your pack can be imbued. Imbue takes plain weapons, armor, jewelry and clothing, and Magic pieces you found.');
+export const IMBUE_SUB = () => t('reforge.imbue.sub', 'Upgrade a plain item to Magic, or a Magic item to Rare, and choose its new bonuses. Imbuing does not increase what shops pay for it.');
+export const IMBUE_NONE = () => t('reforge.imbue.none', 'Nothing in your pack can be imbued. You can imbue plain weapons, armor, jewelry, and clothing, as well as Magic items you have found.');
 export const IMBUE_ASK = (name, tier) => t('reforge.imbue.ask', 'Imbue {name} to {tier}? Choose its new bonuses.', { name, tier });
 export const IMBUED = (name, tier) => t('reforge.imbue.done', 'Imbued: {name}, now {tier}.', { name, tier });
 const TIER_WORD = Object.freeze({ magic: 'Magic', rare: 'Rare' });

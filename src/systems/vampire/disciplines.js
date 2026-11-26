@@ -47,7 +47,7 @@ export function castDiscipline(entity, id, { now, region = -1, seenBy = () => 0 
   if (!spendVitae(entity, d.vitae, now)) return t('discipline.no.vitae', '{name} needs {n} Vitae.', { name: d.name(), n: d.vitae });
   if (!castFreeForPlayer(recordOf(d), entity)) {
     spendVitae(entity, -d.vitae, now);
-    return t('discipline.no.here', 'Your blood will not answer here.');
+    return t('discipline.no.here', 'You cannot use that Discipline here.');
   }
   _ready.set(d.id, nowMs() + d.cooldownS * 1000);
   _last = d.id;
