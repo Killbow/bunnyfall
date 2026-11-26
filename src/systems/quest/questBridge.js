@@ -337,8 +337,8 @@ export function shelfRefusalText(reason) {
     case 'running': return t('pause.journal.shelfRunning', 'That quest is not abandoned.');
     case 'ending': return t('pause.journal.restartEnding', 'That quest is ending.');
     case 'protected': return t('pause.journal.shelfProtected', 'That quest can’t be abandoned.');
-    case 'raid': return t('pause.journal.restartRaid', 'Not while the raid is on.');
-    case 'twin': return t('pause.journal.shelfTwin', 'You’ve taken that quest up again. Finish or abandon it first.');
+    case 'raid': return t('pause.journal.restartRaid', 'You can’t do that during a raid.');
+    case 'twin': return t('pause.journal.shelfTwin', 'You already have an active copy of that quest. Finish or abandon it first.');
     default: return t('pause.journal.restartRefused', 'You can’t do that right now.');
   }
 }
@@ -368,7 +368,7 @@ export function restartRefusalText(reason) {
     case 'paid': return t('pause.journal.restartPaid', 'That quest already paid you, so it can’t be started again.');   // QUEST-AUDIT III RESTART-PAID
     case 'child': return t('pause.journal.restartChild', 'Another quest depends on this one, so it can’t be restarted.');
     case 'started': return t('pause.journal.restartStarted', 'That quest has already started another quest, so restarting it would start that one twice.');   // AUDIT QA3 B1
-    case 'raid': return t('pause.journal.restartRaid', 'Not while the raid is on.');
+    case 'raid': return t('pause.journal.restartRaid', 'You can’t do that during a raid.');
     case 'unparsed': return t('pause.journal.restartUnparsed', 'That quest can’t be restarted here.');
     case 'failed': return t('pause.journal.restartFailed', 'That quest couldn’t be restarted.');
     default: return t('pause.journal.restartRefused', 'You can’t do that right now.');
@@ -872,7 +872,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
         if (r.ok && questTracker.pinned != null && Number(questTracker.pinned) === Number(id)) questTracker.pinned = null;
         // QUEST-AUDIT III SHELF-WORDS: in the player's language, and the door named that both journals can say it beside
         // (the chronicle has no Reclaim of its own)
-        return { ...r, quest: undefined, text: r.ok ? `${t('pause.journal.abandonedSaid', 'Abandoned: {name}. You can reclaim it from the Quests tab.', { name: r.quest.displayName || r.quest.questName })}${r.quest.shelvedItems?.length ? ` ${t('pause.journal.shelfItemsFree', 'You can throw away its items now. They come back if you reclaim it.')}` : ''}` : shelfRefusalText(r.reason) };
+        return { ...r, quest: undefined, text: r.ok ? `${t('pause.journal.abandonedSaid', 'Abandoned: {name}. You can reclaim it from the Quests tab.', { name: r.quest.displayName || r.quest.questName })}${r.quest.shelvedItems?.length ? ` ${t('pause.journal.shelfItemsFree', 'You can discard its items now. They return if you reclaim the quest.')}` : ''}` : shelfRefusalText(r.reason) };
       },
       /** QUEST-SHELF: RECLAIM - the quest back as it was (machine.js reclaimQuest), on the journal's page: one the player
        *  had hidden is shown again (its audit - taken up again, it was put where no row showed it). Answers

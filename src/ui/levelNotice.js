@@ -96,7 +96,7 @@ export const improveTitle = () => t('notice.skills.improve', 'Skills can be impr
 export const improveSub = (n) => t('notice.skills.improveSub', '{n, plural, one {# skill is ready. Rest or travel to raise it} other {# skills are ready. Rest or travel to raise them}}', { n });   // AUDIT SUGGESTIONS-1019 L6-6: the pronoun in each arm
 export const questSlainTitle = () => t('pause.journal.questSlain', 'Quest target slain');   // L10N4: read when it is drawn
 /** QUEST-NOTE: who fell, as the notice and the chat name it - the Foe's own name, else its type's, else the quest's foe. */
-export const questFoeName = (foe) => String(foe?.displayName || foe?.typeName || t('pause.journal.questFoe', 'Your quest\'s foe')).trim();
+export const questFoeName = (foe) => String(foe?.displayName || foe?.typeName || t('pause.journal.questFoe', 'The quest enemy')).trim();
 
 /** How long an announcement holds before it goes (or, for the level,
  *  before it folds down to the standing line). Skyrim's own

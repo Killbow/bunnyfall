@@ -61,7 +61,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
     title: 'Dynamic Skies',
     author: 'BadLuckBurt and carademono',
     keys: Object.freeze({
-      Enabled: Object.freeze({ default: true, get description() { return t('mods.dynamicSkies.Enabled.description', 'A new sky for the enhanced outdoors, with cloud layers for each weather, twinkling stars, both moons, fog colors, longer sunrises and sunsets, and lightning in storms. Off uses the game’s own sky.'); } }),
+      Enabled: Object.freeze({ default: true, get description() { return t('mods.dynamicSkies.Enabled.description', 'Replaces the outdoor sky with layered weather clouds, twinkling stars, both moons, tinted fog, longer sunrises and sunsets, and storm lightning. Turn this off to use the default sky.'); } }),
       densitySetting: Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.dynamicSkies.densitySetting.description', 'Makes fog thicker'); } }),
       ActivatePixelSnow: Object.freeze({ default: false, get description() { return t('mods.dynamicSkies.ActivatePixelSnow.description', 'Turn the pixel snow replacement on or off'); } }),
       MinParticleSize: Object.freeze({ default: 100, min: 100, max: 800, get description() { return t('mods.dynamicSkies.MinParticleSize.description', 'Minimum snow particle size'); } }),
@@ -82,9 +82,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.worldTooltips.Enabled.description', 'Shows the name of what you’re looking at under the crosshair: people, shops and their opening hours, doors '
-            + 'and their locks, where an exit leads, levers, ladders, bookshelves and Daedra waiting to be summoned. Off, '
-            + 'you still see what a chest or body holds.');
+          return t('mods.worldTooltips.Enabled.description', 'Shows crosshair tooltips for NPCs, shops and hours, door locks, exits, levers, ladders, bookshelves, and Daedra you can summon. Chest and corpse contents still appear when turned off.');
         },
       }),
       HideDefaultInteractTooltip: Object.freeze({
@@ -113,8 +111,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.seasonsIliacBay.Enabled.description', 'Trees, rocks and plants change with autumn, spring and winter. Add your own copy of the mod under '
-            + 'Your own textures, or the classic look is used.');
+          return t('mods.seasonsIliacBay.Enabled.description', 'Trees, rocks, and plants change with spring, autumn, and winter. Add your own copy of the mod under Your own textures, or classic textures are used.');
         },
       }),
     }),
@@ -151,8 +148,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.roadsHazelnut.Enabled.description', 'Hazelnut’s roads, tracks, rivers and streams across the whole Iliac Bay, painted onto the land. Off, '
-            + 'the game builds its own roads between the towns on your map.');
+          return t('mods.roadsHazelnut.Enabled.description', 'Paints Hazelnut’s roads, tracks, rivers, and streams across the Iliac Bay terrain. When turned off, the game generates its own roads between towns.');
         },
       }),
       SmoothRoads: Object.freeze({ default: true, get description() { return t('mods.roadsHazelnut.SmoothRoads.description', 'Lightly smooths road surfaces. Turn it off for slightly better performance.'); } }),
@@ -171,8 +167,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.worldOfDaggerfall.Enabled.description', 'More to find in the wilderness: bandit camps and forts, ruins, shrines, mountains and rock fields '
-            + 'across the Iliac Bay, with bandits, bears and treasure, and a camp outside Privateer’s Hold.');
+          return t('mods.worldOfDaggerfall.Enabled.description', 'Adds wilderness landmarks across the Iliac Bay, including bandit camps, forts, ruins, shrines, mountains, and rock fields. Encounter bandits, bears, and treasure, plus a camp outside Privateer’s Hold.');
         },
       }),
       // WOD-PEAKS (2026-10-09, the owner of the pyramid massifs in the Wrothgarian Mountains: "i actually would prefer
@@ -197,8 +192,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.aquaticSprites.Enabled.description', 'Seaweed, coral and shells in 3 flooded dungeon areas. The original game has these sprites but '
-            + 'never uses them.');
+          return t('mods.aquaticSprites.Enabled.description', 'Places seaweed, coral, and shells in 3 flooded dungeon areas. The original game includes these sprites, but never uses them.');
         },
       }),
     }),
@@ -227,9 +221,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.detailedShips.Enabled.description', 'Your ship, rebuilt inside and out. Outside: rigging, crates and barrels, a small boat, a rudder and '
-            + 'railings. Below deck: quarters for you and the crew, a kitchen, a cargo hold, an armory, a shrine to '
-            + 'Kynareth, and sailors to talk to.');
+          return t('mods.detailedShips.Enabled.description', 'Rebuilds your ship with rigging, crates, barrels, a small boat, a rudder, and railings on deck. Below deck adds crew quarters, a kitchen, a cargo hold, an armory, a shrine to Kynareth, and sailors to talk to.');
         },
       }),
     }),
@@ -272,8 +264,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.warmAshesShips.Enabled.description', 'When you travel by ship, 1 trip in 4 is attacked by pirates. You fight them on deck beside your crew, '
-            + 'on a borrowed ship if you don’t own one, then land where you were going.');
+          return t('mods.warmAshesShips.Enabled.description', 'Pirates attack 1 in 4 ship voyages. Fight them on deck alongside your crew (using a chartered ship if you do not own one) before arriving at your destination.');
         },
       }),
     }),
@@ -287,9 +278,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.worldEventsRaidingParties.Enabled.description', 'Knights, bandits or orcs raid towns across the Bay for 2 hours at a time, and the town guard fights '
-            + 'beside you. Beat 15 to 25 raiders to free the town and raise your standing in the region. Online, '
-            + 'everyone in town fights the same raid.');
+          return t('mods.worldEventsRaidingParties.Enabled.description', 'Knights, bandits, or orcs raid towns for 2 hours while guards fight beside you. Defeat 15 to 25 raiders to free the town and gain regional reputation. Online players in town share the raid.');
         },
       }),
     }),
@@ -303,10 +292,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.foraging.Enabled.description', 'Gather in the wilderness: chop wood with a Wood-Axe, mine gems and metals with a Pick-Axe, cut '
-            + 'plants with a Sickle, rob graves with a Spade, fish with a Fishing-Net and forage for food with a '
-            + 'Basket. You gather by day, away from towns and enemies, and your attributes, the climate and the '
-            + 'season decide what you find.');
+          return t('mods.foraging.Enabled.description', 'Use a Wood-Axe, Pick-Axe, Sickle, Spade, Fishing-Net, or Basket in the wilderness to chop wood, mine, cut plants, rob graves, fish, or forage. Gather by day away from towns and enemies, with finds based on your attributes, climate, and season.');
         },
       }),
     }),
@@ -325,8 +311,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.iliacPuddleNoMore.Enabled.description', 'A real sea: the seafloor drops away from every coast to as deep as 250 meters. Swim in open water '
-            + 'with a breath meter among fish, weed, coral, shipwrecks, sunken loot and whatever lives in the deep.');
+          return t('mods.iliacPuddleNoMore.Enabled.description', 'The seafloor drops away from every coast to depths of up to 250 meters. Swim in open water with a breath meter among fish, seaweed, coral, shipwrecks, sunken loot, and creatures of the deep.');
         },
       }),
       'General.WaterDepth': Object.freeze({ default: 250.0, min: 5.0, max: 250.0, float: true, step: 1, get description() { return t('mods.iliacPuddleNoMore.General.WaterDepth.description', 'Maximum water depth'); } }),
@@ -342,9 +327,9 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'General.PassiveFishFrequency': Object.freeze({ default: 0.8, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.iliacPuddleNoMore.General.PassiveFishFrequency.description', 'Fish frequency rate'); } }),
       'General.MaxLiveFish': Object.freeze({ default: 720, min: 0, max: 1080, get description() { return t('mods.iliacPuddleNoMore.General.MaxLiveFish.description', 'Maximum fish at once'); } }),
       'General.SpawnUnderwaterDecorations': Object.freeze({ default: true, get description() { return t('mods.iliacPuddleNoMore.General.SpawnUnderwaterDecorations.description', 'Decorate the seafloor'); } }),
-      'General.DecorationPopulateRadius': Object.freeze({ default: 2, min: 1, max: 3, get description() { return t('mods.iliacPuddleNoMore.General.DecorationPopulateRadius.description', 'How far from you the seafloor is decorated, in map squares. At 3 nothing pops in'); } }),
+      'General.DecorationPopulateRadius': Object.freeze({ default: 2, min: 1, max: 3, get description() { return t('mods.iliacPuddleNoMore.General.DecorationPopulateRadius.description', 'How far around you the seafloor is decorated, in map squares. At 3, decorations do not pop in.'); } }),
       'General.DecorationFrequency': Object.freeze({ default: 0.3, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.iliacPuddleNoMore.General.DecorationFrequency.description', 'Decoration rate'); } }),
-      'General.MaxDecorationsPerTile': Object.freeze({ default: 1080, min: 64, max: 2160, get description() { return t('mods.iliacPuddleNoMore.General.MaxDecorationsPerTile.description', 'Maximum decorations per map square. Lower runs faster'); } }),
+      'General.MaxDecorationsPerTile': Object.freeze({ default: 1080, min: 64, max: 2160, get description() { return t('mods.iliacPuddleNoMore.General.MaxDecorationsPerTile.description', 'Maximum decorations per map square. Lower values improve performance.'); } }),
       'General.SeafloorLootRate': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.iliacPuddleNoMore.General.SeafloorLootRate.description', 'Random loot rate'); } }),
       'General.MaxLiveLootObjects': Object.freeze({ default: 192, min: 0, max: 256, get description() { return t('mods.iliacPuddleNoMore.General.MaxLiveLootObjects.description', 'Maximum loose loot at once'); } }),
       'General.TreasureClusterRate': Object.freeze({ default: 0.3, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.iliacPuddleNoMore.General.TreasureClusterRate.description', 'Wreckage treasure rate'); } }),
@@ -374,12 +359,10 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.oceanHoles.Enabled.description', 'Blue holes in the deep sea lead down to flooded dungeons with better loot. About 1 open-sea square '
-            + 'in 48 has one: a black hole in the seafloor under a cloud of dark mist. Needs Iliac Puddle '
-            + 'No More.');
+          return t('mods.oceanHoles.Enabled.description', 'Adds deep-sea blue holes shrouded in dark mist that lead into flooded dungeons with better loot. Appears in about 1 in 48 open-sea squares and requires Iliac Puddle No More.');
         },
       }),
-      'General.PitSpawnRate': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.oceanHoles.General.PitSpawnRate.description', 'How many blue holes there are: none at 0, 1 square in 48 at the middle, 1 in 24 at most'); } }),
+      'General.PitSpawnRate': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.oceanHoles.General.PitSpawnRate.description', 'Blue hole spawn rate: none at 0, 1 in 48 sea squares at 0.5, and 1 in 24 at 1.0.'); } }),
       'General.SurfaceHoleSize': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.oceanHoles.General.SurfaceHoleSize.description', 'Surface hole size'); } }),
       'General.SeafloorHoleSize': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.oceanHoles.General.SeafloorHoleSize.description', 'Sea floor hole size'); } }),
       'General.MiasmaParticleCount': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.oceanHoles.General.MiasmaParticleCount.description', 'Amount of mist over a hole'); } }),
@@ -410,38 +393,36 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.comeSailAway.Enabled.description', 'Own and sail a boat. Buy parts or a deed at a shipyard, put it in the water (a deed works only near a port) '
-            + 'and take the helm to row, or raise the sails and trim them to the wind. Pack it up to take with you. '
-            + 'It holds what you and your cart carry and shows on the travel map.');
+          return t('mods.comeSailAway.Enabled.description', 'Buy boat parts or a deed at a shipyard. A deed works only near a port. Row or sail, and pack the boat to take along. It holds what you and your cart carry and shows on the travel map.');
         },
       }),
-      'Controls.Disembark': Object.freeze({ default: 'C', text: true, get description() { return t('mods.comeSailAway.Controls.Disembark.description', 'Leave the helm (the Transport key does too).'); } }),   // CSA-D / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'Controls.Disembark': Object.freeze({ default: 'C', text: true, get description() { return t('mods.comeSailAway.Controls.Disembark.description', 'Leave the helm (the Transport key also works).'); } }),   // CSA-D / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
       'Controls.ToggleSail': Object.freeze({ default: 'Space', text: true, get description() { return t('mods.comeSailAway.Controls.ToggleSail.description', 'Raise or stow the sails at the helm.'); } }),   // CSA-E / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
       'Controls.ToggleLight': Object.freeze({ default: 'Period', text: true, get description() { return t('mods.comeSailAway.Controls.ToggleLight.description', 'Light or douse the boat’s lanterns at the helm.'); } }),   // CSA-D / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
       'Controls.IncreaseTimeScale': Object.freeze({ default: 'KeypadPlus', text: true, get description() { return t('mods.comeSailAway.Controls.IncreaseTimeScale.description', 'Speed time up at the helm.'); } }),
       'Controls.DecreaseTimeScale': Object.freeze({ default: 'KeypadMinus', text: true, get description() { return t('mods.comeSailAway.Controls.DecreaseTimeScale.description', 'Slow time back down at the helm.'); } }),
       'Controls.ResetTimeScale': Object.freeze({ default: 'KeypadEnter', text: true, get description() { return t('mods.comeSailAway.Controls.ResetTimeScale.description', 'Return time to normal speed at the helm.'); } }),
-      'Controls.TrimRight': Object.freeze({ default: 'RightBracket', text: true, get description() { return t('mods.comeSailAway.Controls.TrimRight.description', 'Hold to trim the sails to the right (with Sailing Assist’s auto trimming off).'); } }),   // CSA-E / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
-      'Controls.TrimLeft': Object.freeze({ default: 'LeftBracket', text: true, get description() { return t('mods.comeSailAway.Controls.TrimLeft.description', 'Hold to trim the sails to the left (with Sailing Assist’s auto trimming off).'); } }),   // CSA-E / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'Controls.TrimRight': Object.freeze({ default: 'RightBracket', text: true, get description() { return t('mods.comeSailAway.Controls.TrimRight.description', 'Hold to trim the sails to the right (when automatic sail trimming is off).'); } }),   // CSA-E / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'Controls.TrimLeft': Object.freeze({ default: 'LeftBracket', text: true, get description() { return t('mods.comeSailAway.Controls.TrimLeft.description', 'Hold to trim the sails to the left (when automatic sail trimming is off).'); } }),   // CSA-E / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
       'Controls.TrimModifier': Object.freeze({ default: 'Backslash', text: true, get description() { return t('mods.comeSailAway.Controls.TrimModifier.description', 'Hold with a trim key to trim the square sails instead. Hold with Toggle Sail to raise or stow only the square sails.'); } }),   // CSA-E / KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
       'Controls.PortLocationSearchRange': Object.freeze({ default: 3, min: 1, max: 10, get description() { return t('mods.comeSailAway.Controls.PortLocationSearchRange.description', 'How far from you a port can be found'); } }),
       'WindDirectionWidget.Enable': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.WindDirectionWidget.Enable.description', 'Show the wind’s direction on screen at the helm.'); } }),
       'WindDirectionWidget.Position': Object.freeze({ default: Object.freeze([0.5, 0.5]), tuple: 'float', get description() { return t('mods.comeSailAway.WindDirectionWidget.Position.description', 'Where the widget sits on the screen, across and down.'); } }),
       'WindDirectionWidget.Scale': Object.freeze({ default: 1, min: 0, max: 2, float: true, get description() { return t('mods.comeSailAway.WindDirectionWidget.Scale.description', 'The widget’s size.'); } }),
-      'WindDirectionWidget.ScalingMode': Object.freeze({ default: 0, options: lazyWords(() => t('mods.comeSailAway.option.doNotScale', 'DoNotScale'), () => t('mods.comeSailAway.option.screenHeight', 'ScreenHeight'), () => t('mods.comeSailAway.option.screenDimensions', 'ScreenDimensions')), get description() { return t('mods.comeSailAway.WindDirectionWidget.ScalingMode.description', 'Whether the widget grows with the screen.'); } }),
+      'WindDirectionWidget.ScalingMode': Object.freeze({ default: 0, options: lazyWords(() => t('mods.comeSailAway.option.doNotScale', 'DoNotScale'), () => t('mods.comeSailAway.option.screenHeight', 'ScreenHeight'), () => t('mods.comeSailAway.option.screenDimensions', 'ScreenDimensions')), get description() { return t('mods.comeSailAway.WindDirectionWidget.ScalingMode.description', 'How the widget scales with the screen size.'); } }),
       'WindDirectionWidget.Color': Object.freeze({ default: '#ffffffff', color: true, get description() { return t('mods.comeSailAway.WindDirectionWidget.Color.description', 'The widget’s color.'); } }),
       'Waves.Enable': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Waves.Enable.description', 'Draw the waves breaking along the coasts around you, and let the sea carry a boat on its current.'); } }),
       'Waves.Distance': Object.freeze({ default: 2, min: 1, max: 4, get description() { return t('mods.comeSailAway.Waves.Distance.description', 'How many map squares around you have waves, in each direction.'); } }),
       'Waves.Length': Object.freeze({ default: 1.5, min: 0, max: 2, float: true, get description() { return t('mods.comeSailAway.Waves.Length.description', 'How far out the waves reach before they end.'); } }),
-      'Waves.Fade': Object.freeze({ default: 0.8, min: 0, max: 1, float: true, get description() { return t('mods.comeSailAway.Waves.Fade.description', 'Where along their reach the waves start to fade.'); } }),
+      'Waves.Fade': Object.freeze({ default: 0.8, min: 0, max: 1, float: true, get description() { return t('mods.comeSailAway.Waves.Fade.description', 'How far along their path the waves begin to fade.'); } }),
       'Waves.Speed': Object.freeze({ default: 100, min: 0, max: 200, get description() { return t('mods.comeSailAway.Waves.Speed.description', 'How fast the waves move: under 100 is half speed, 100 to 199 is normal, and 200 is fastest.'); } }),
-      'Cargo.CargoThreshold': Object.freeze({ default: 500, min: 0, max: 2000, get description() { return t('mods.comeSailAway.Cargo.CargoThreshold.description', 'The weight a boat carries before it slows.'); } }),
+      'Cargo.CargoThreshold': Object.freeze({ default: 500, min: 0, max: 2000, get description() { return t('mods.comeSailAway.Cargo.CargoThreshold.description', 'How much weight a boat can carry before it slows down.'); } }),
       'Cargo.PlayerCarriedWeight': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Cargo.PlayerCarriedWeight.description', 'Count what you carry as cargo.'); } }),
       'Cargo.CartCarriedWeight': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Cargo.CartCarriedWeight.description', 'Count what your cart carries as cargo.'); } }),
       'Cargo.PlayerWeight': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Cargo.PlayerWeight.description', 'Count your own weight as cargo.'); } }),
       'Cargo.CartItem': Object.freeze({ default: false, get description() { return t('mods.comeSailAway.Cargo.CartItem.description', 'Count the cart itself as cargo.'); } }),
       'Cargo.HorseItem': Object.freeze({ default: false, get description() { return t('mods.comeSailAway.Cargo.HorseItem.description', 'Count the horse itself as cargo.'); } }),
-      'Audio.SoundVolume': Object.freeze({ default: 0.5, min: 0, max: 1, float: true, get description() { return t('mods.comeSailAway.Audio.SoundVolume.description', 'Volume of the boat’s sounds: the hull, the oars and the sea.'); } }),
+      'Audio.SoundVolume': Object.freeze({ default: 0.5, min: 0, max: 1, float: true, get description() { return t('mods.comeSailAway.Audio.SoundVolume.description', 'Volume of the boat’s sounds: the hull, the oars, and the sea.'); } }),
       'Handling.OarMoveSpeed': Object.freeze({ default: 1, min: 0, max: 10, float: true, get description() { return t('mods.comeSailAway.Handling.OarMoveSpeed.description', 'Top speed under oars.'); } }),
       'Handling.OarMoveAcceleration': Object.freeze({ default: 1, min: 0, max: 10, float: true, get description() { return t('mods.comeSailAway.Handling.OarMoveAcceleration.description', 'How quickly you reach top speed under oars.'); } }),
       'Handling.OarTurnSpeed': Object.freeze({ default: 1, min: 0, max: 10, float: true, get description() { return t('mods.comeSailAway.Handling.OarTurnSpeed.description', 'Top turning speed under oars.'); } }),
@@ -460,15 +441,15 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // MOD'S SHIPPED DEFAULT. The mod ships it off, and off a boat placed in a dungeon was destroyed once the player
       // was back outside - a packable one and its hold for good, a crewed one's hold with it (UpdateBoatVisibility).
       // The port ships it ON; the switch stays the player's. Pinned: test/systems/csa_registration.test.js DEPARTED.
-      'Compatibility.PersistentDungeonBoats': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Compatibility.PersistentDungeonBoats.description', 'Keeps a boat you placed indoors or underground when you leave it. Off, the boat is gone once you’re back outside.'); } }),
+      'Compatibility.PersistentDungeonBoats': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Compatibility.PersistentDungeonBoats.description', 'Keeps a boat you placed indoors or underground when you leave. When off, the boat disappears once you go back outside.'); } }),
       'Map.RestrictPositionReadingTime': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Map.RestrictPositionReadingTime.description', 'Position can only be viewed around midday and midnight'); } }),
       'Map.RestrictPositionReadingWeather': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Map.RestrictPositionReadingWeather.description', 'Position can only be viewed in Sunny or Cloudy weather'); } }),
-      'Map.ClickRangeThreshold': Object.freeze({ default: 5, min: 1, max: 10, get description() { return t('mods.comeSailAway.Map.ClickRangeThreshold.description', 'How near the pointer must come to a marker on the position reading, in map pixels, to name it or pick it.'); } }),
+      'Map.ClickRangeThreshold': Object.freeze({ default: 5, min: 1, max: 10, get description() { return t('mods.comeSailAway.Map.ClickRangeThreshold.description', 'How close the cursor must be to a map marker, in pixels, to show its name or select it.'); } }),
       'Map.PositionLineThickness': Object.freeze({ default: 2, min: 0, max: 5, get description() { return t('mods.comeSailAway.Map.PositionLineThickness.description', 'Additional pixels on each side of the position line'); } }),
       'Map.MarkerThickness': Object.freeze({ default: 2, min: 1, max: 5, get description() { return t('mods.comeSailAway.Map.MarkerThickness.description', 'Additional pixels around the map marker'); } }),
       'Map.MarkerOutlineThickness': Object.freeze({ default: 2, min: 0, max: 5, get description() { return t('mods.comeSailAway.Map.MarkerOutlineThickness.description', 'Thickness of the marker outline in pixels'); } }),
-      'Map.BackdropOpacity': Object.freeze({ default: 50, min: 0, max: 100, get description() { return t('mods.comeSailAway.Map.BackdropOpacity.description', 'How dark the screen behind the position reading is, in percent.'); } }),
-      'Debug.ShowValues': Object.freeze({ default: false, get description() { return t('mods.comeSailAway.Debug.ShowValues.description', 'Shows the boat’s speed, the speed it’s heading for and the wind’s strength on screen.'); } }),
+      'Map.BackdropOpacity': Object.freeze({ default: 50, min: 0, max: 100, get description() { return t('mods.comeSailAway.Map.BackdropOpacity.description', 'How much the background darkens behind the position map, in percent.'); } }),
+      'Debug.ShowValues': Object.freeze({ default: false, get description() { return t('mods.comeSailAway.Debug.ShowValues.description', 'Shows boat speed, target speed, and wind strength on screen.'); } }),
     }),
   }),
   // MM1: MEANER MONSTERS 1.5.2 (Ralzar). No modsettings of its own -
@@ -482,10 +463,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.meanerMonsters.Enabled.description', 'Many monsters hit harder and take more to kill, while rats, bats and zombies are weaker. 20 monsters '
-            + 'are changed, and werebeasts and the dragonling are bigger. With Physical Combat And Armor Overhaul '
-            + 'also on, that mod’s version of these changes is used. With Daggerfall Enemy Expansion on, MUDEX, the '
-            + 'author’s version made for it, is used instead.');
+          return t('mods.meanerMonsters.Enabled.description', 'Rebalances 20 monsters: most hit harder and are tougher, while rats, bats, and zombies are weaker. Also enlarges werebeasts and dragonlings, and uses matching presets (including MUDEX) with Physical Combat and Armor Overhaul or Daggerfall Enemy Expansion.');
         },
       }),
     }),
@@ -505,7 +483,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.pcaao.Enabled.description', 'Armor reduces the damage you take instead of your chance to be hit, your skills decide whether you hit, shields block according to their material, and critical hits multiply damage. Off uses Daggerfall Unity’s combat.');
+          return t('mods.pcaao.Enabled.description', 'Armor reduces damage taken instead of hit chance, skills govern accuracy, shields scale with material, and critical hits boost damage. Turn this off to use standard Daggerfall Unity combat.');
         },
       }),
       // WEAR-VANILLA (2026-10-01, the repair triage: "Disable the modded feature that increases durability loss.
@@ -513,13 +491,13 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // at Daggerfall Unity's own rate (combat/formulas.js damageEquipment) and a broken enchanted piece stays,
       // repairable. Online the room reads these defaults (onlineLane.js ONLINE_WHOLE_MODS); offline they stay the
       // player's. A value saved under the old default is let go once (SWITCH_RESETS). Port-Ledger, WEAR-VANILLA.
-      equipmentDamageEnhanced: Object.freeze({ default: false, get description() { return t('mods.pcaao.equipmentDamageEnhanced.description', 'Your equipment wears out much faster, depending on its material, what hit it and more.'); } }),
-      fadingEnchantedItems: Object.freeze({ default: false, get description() { return t('mods.pcaao.fadingEnchantedItems.description', 'Enchanted weapons and armor are destroyed when they break in combat. Needs Equipment Damage Enhanced.'); } }),
+      equipmentDamageEnhanced: Object.freeze({ default: false, get description() { return t('mods.pcaao.equipmentDamageEnhanced.description', 'Your equipment wears out much faster, depending on its material, what hit it, and other factors.'); } }),
+      fadingEnchantedItems: Object.freeze({ default: false, get description() { return t('mods.pcaao.fadingEnchantedItems.description', 'Enchanted weapons and armor are destroyed when they break in combat. Requires Equipment Damage Enhanced.'); } }),
       fixedStrengthDamageModifier: Object.freeze({ default: true, get description() { return t('mods.pcaao.fixedStrengthDamageModifier.description', 'Strength adds 1 damage per 10 points, as in the classic game, instead of 2.'); } }),
       armorHitFormulaRedone: Object.freeze({ default: true, get description() { return t('mods.pcaao.armorHitFormulaRedone.description', 'Armor reduces the damage you take instead of making you harder to hit.'); } }),
-      criticalStrikesIncreaseDamage: Object.freeze({ default: true, get description() { return t('mods.pcaao.criticalStrikesIncreaseDamage.description', 'Critical strikes raise your damage as well as your chance to hit. Needs Armor Hit Formula Redone.'); } }),
-      conditionBasedEffectiveness: Object.freeze({ default: true, get description() { return t('mods.pcaao.conditionBasedEffectiveness.description', 'Worn weapons and armor work less well. Needs Armor Hit Formula Redone.'); } }),
-      softMaterialRequirements: Object.freeze({ default: true, get description() { return t('mods.pcaao.softMaterialRequirements.description', 'Weapons below the material an enemy needs can still hurt it, at a large damage penalty. Needs Armor Hit Formula Redone.'); } }),
+      criticalStrikesIncreaseDamage: Object.freeze({ default: true, get description() { return t('mods.pcaao.criticalStrikesIncreaseDamage.description', 'Critical strikes increase your damage as well as your chance to hit. Requires Armor Hit Formula Redone.'); } }),
+      conditionBasedEffectiveness: Object.freeze({ default: true, get description() { return t('mods.pcaao.conditionBasedEffectiveness.description', 'Weapons and armor lose effectiveness as they wear down. Requires Armor Hit Formula Redone.'); } }),
+      softMaterialRequirements: Object.freeze({ default: true, get description() { return t('mods.pcaao.softMaterialRequirements.description', 'Weapons below an enemy’s required material tier can still damage it, but with a heavy penalty. Requires Armor Hit Formula Redone.'); } }),
     }),
   }),
   // UL1: UNLEVELED LOOT 1.1.2 (Ralzar). Its one section, MaterialSwitching,
@@ -534,9 +512,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.unleveledLoot.Enabled.description', 'Loot and shop stock no longer scale with your level. What materials drop depends on your luck, the '
-            + 'shop’s quality and the type of dungeon, and the gold you find follows your luck. Off uses Daggerfall '
-            + 'Unity’s rolls.');
+          return t('mods.unleveledLoot.Enabled.description', 'Loot and shop stock no longer scale with your level. Material drops depend on your luck, shop quality, and dungeon type, and gold found scales with luck. Turn off to use standard level-scaled loot rolls.');
         },
       }),
       ...Object.fromEntries(['Iron', 'Steel', 'Silver', 'Elven', 'Dwarven', 'Mithril', 'Adamantium', 'Ebony', 'Orcish', 'Daedric'].map((name, i) => [name, Object.freeze({
@@ -582,16 +558,13 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.diverseWeapons.Enabled.description', 'A different first-person look for every weapon in every metal, plain and enchanted, instead of one '
-            + 'per weapon type. A longsword no longer looks like a broadsword. A newer version added under Your own '
-            + 'textures replaces the built-in one.');
+          return t('mods.diverseWeapons.Enabled.description', 'Gives every weapon in every metal its own first-person look, plain and enchanted, so a longsword no longer looks like a broadsword. A newer copy of the mod added under Your own textures overrides the built-in one.');
         },
       }),
       WeaponWidgetPreset: Object.freeze({
         default: false,   // DISC16-B (2026-09-24, Mac: "I just want it how it was before diverse weapons"): OFF, as at DW1 - the mod's sprites move with Weapon Widget's own defaults, as every weapon did before the mod; the preset (its step, inertia, true size and 142 bob) is the player's to choose. DW-CLIP ("mod should be defaulted on") had it on, DISC14-B off with two departures of its own
         get description() {
-          return t('mods.diverseWeapons.WeaponWidgetPreset.description', 'Uses Diverse Weapons’ own Weapon Widget settings while on: larger idle poses, inertia, recoil and '
-            + 'its own bob. Your Weapon Widget settings come back when you turn this off.');
+          return t('mods.diverseWeapons.WeaponWidgetPreset.description', 'Applies the Diverse Weapons preset for Weapon Widget: larger idle poses, inertia, recoil, and custom weapon bob. Turning this off restores your Weapon Widget settings.');
         },
       }),
     }),
@@ -607,20 +580,19 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.roleplayRealismItems.Enabled.description', 'Adds 2 new weapons and light and medium armor sets in every metal, and changes what items weigh and '
-            + 'cost.');
+          return t('mods.roleplayRealismItems.Enabled.description', 'Adds two new weapons, light and medium armor sets in every metal, and rebalanced item weights and prices.');
         },
       }),
       lootRebalance: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.lootRebalance.description', 'Rebalances loot on mobs and in piles'); } }),
       bandaging: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.bandaging.description', 'Allows bandages to stack, and to be used for healing based on medical skill'); } }),
       conditionBasedPrices: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.conditionBasedPrices.description', 'Item prices are based on condition and loot you find can be quite worn out'); } }),
-      storeQualityItemCondition: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.storeQualityItemCondition.description', 'Items in shops can be in a used condition dependent on the quality of the store'); } }),
-      realisticEnemyEquipment: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.realisticEnemyEquipment.description', 'Enemy equipment is realistic for their class and can be variable condition'); } }),
+      storeQualityItemCondition: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.storeQualityItemCondition.description', 'Shop items can be in used condition depending on the quality of the store.'); } }),
+      realisticEnemyEquipment: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.realisticEnemyEquipment.description', 'Enemy equipment matches their class and varies in condition.'); } }),
       skillBasedStartingEquipment: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.skillBasedStartingEquipment.description', 'Player starting equipment is based on skills'); } }),
       skillBasedStartingSpells: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.skillBasedStartingSpells.description', 'Player starting spells are based on skills'); } }),
       weaponBalance: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.weaponBalance.description', 'Balances weapon attack speed and damage ranges against weight to give more valid choices'); } }),
       newWeapons: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.newWeapons.description', 'Adds two new weapons to the game, Archers Axe and Light Flail'); } }),
-      newArmor: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.newArmor.description', 'Adds new chest, arm, leg and foot armor pieces to the game'); } }),
+      newArmor: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.newArmor.description', 'Adds new chest, arm, leg, and foot armor pieces to the game.'); } }),
       alchemistPotions: Object.freeze({ default: true, get description() { return t('mods.roleplayRealismItems.alchemistPotions.description', 'Adds random potions for sale at alchemist stores, for a premium price'); } }),
     }),
   }),
@@ -631,10 +603,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.roleplayRealism.Enabled.description', 'Realism changes: bows by draw weight, no climbing with a weapon out, fairer swing speed and hit '
-            + 'chance, bank loans by level, ships only from ports, a heavy-load '
-            + 'penalty, lights out when you leave a dungeon, purification that cures poison, reworked class '
-            + 'enemies, harsher guild expulsions, and beds you can click to sleep in.');
+          return t('mods.roleplayRealism.Enabled.description', 'Adds realism changes such as draw-based archery, encumbrance and climbing limits, rebalanced weapon speed and accuracy, interactive beds, and level-scaled bank loans. Also includes port-only ship boarding, harsher guild expulsions, reworked class enemies, enhanced horse riding, and expanded skill training.');
         },
       }),
       // the mod's own descriptions (modsettings.json, Modules)
@@ -646,13 +615,13 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       underworldExpulsion: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.underworldExpulsion.description', 'Enables underworld guilds to expel members for poor performance... with prejudice.'); } }),
       climbingRestriction: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.climbingRestriction.description', 'Prevents climbing with a weapon drawn.'); } }),
       weaponSpeed: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.weaponSpeed.description', 'Lowers weapon damage per second for characters with high Speed.'); } }),
-      weaponMaterials: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.weaponMaterials.description', 'Moderates the to-hit bonuses of weapon materials so skill remains key factor'); } }),
+      weaponMaterials: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.weaponMaterials.description', 'Moderates the to-hit bonuses of weapon materials so skill remains the key factor.'); } }),
       equipDamage: Object.freeze({ default: false, get description() { return t('mods.roleplayRealism.equipDamage.description', 'Increases equipment damage proportional to max condition.'); } }),   // WEAR-VANILLA (2026-10-01): the mod ships it ON (armour x5), the port OFF - see the overhaul's wear modules above; the room's too (onlineLane.js)
       enemyAppearance: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.enemyAppearance.description', 'Remixes human enemy appearance based on class'); } }),
       purificationPotion: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.purificationPotion.description', 'Changes purification potion to cure poison rather than grant invisibility'); } }),
       autoExtinguishLight: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.autoExtinguishLight.description', 'Automatically extinguish any light sources when you exit a dungeon'); } }),
       classicStrengthDamageBonus: Object.freeze({ default: false, get description() { return t('mods.roleplayRealism.classicStrengthDamageBonus.description', 'Shows the strength damage bonus at half, as the classic game did.'); } }),
-      variantNpcs: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.variantNpcs.description', 'Enable variant NPC sprites in shops & taverns'); } }),
+      variantNpcs: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.variantNpcs.description', 'Enable variant NPC sprites in shops and taverns'); } }),
       variantResidents: Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.variantResidents.description', 'Fills 80% of houses with the townsfolk you see walking around, instead of random adventurers'); } }),
       // fightersTeachHandToHand RETIRED (FGH2H-R, 2026-09-24, Mac: "retire it") - see RETIRED_KEYS below
       loanAmountPerLevel: Object.freeze({ default: 4, options: Object.freeze(['2000', '4000', '6000', '8000', '10000', '20000', '30000', '40000', '50000']), get description() { return t('mods.roleplayRealism.loanAmountPerLevel.description', 'Sets the maximum amount per level that can be borrowed from banks'); } }),
@@ -662,11 +631,11 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'EnhancedRiding.followTerrainEnabled': Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.EnhancedRiding.followTerrainEnabled.description', 'Enables terrain following when riding.'); } }),
       'EnhancedRiding.followTerrainSoftenFactor': Object.freeze({ default: 8, min: 0, max: 32, get description() { return t('mods.roleplayRealism.EnhancedRiding.followTerrainSoftenFactor.description', 'How much the ride smooths out slopes, from 0 (none) to 32 (most).'); } }),
       'EnhancedRiding.GallopingInTowns': Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.EnhancedRiding.GallopingInTowns.description', 'Enables galloping (sprinting) while riding horses in towns.'); } }),   // TOWN-GALLOP (2026-10-13, Mac: "Remove forced horse walking in towns"): the mod ships this OFF, the port ships it ON - off, the mod's CanRun refused the run in every town, and horse care's horse walked there with Run held (HORSE-WALK); the room's too (onlineLane.js ONLINE_WHOLE_MODS reads this default); no tile ever reached the switch (FT14), so no saved off stands to reset; TrampleCivilians, the mod's own, rides with it; recorded on the RR page
-      'EnhancedRiding.TrampleCivilians': Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.EnhancedRiding.TrampleCivilians.description', 'Enables the crime of trampling innocent townsfolk when galloping in a town. Be careful!'); } }),
+      'EnhancedRiding.TrampleCivilians': Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.EnhancedRiding.TrampleCivilians.description', 'Enables the crime of trampling innocent townsfolk when galloping in a town.'); } }),
       // RefinedTraining (RR2)
       'RefinedTraining.refinedTraining': Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.RefinedTraining.refinedTraining.description', 'Enable refined skill training service.'); } }),
       'RefinedTraining.variableTrainingPrice': Object.freeze({ default: true, get description() { return t('mods.roleplayRealism.RefinedTraining.variableTrainingPrice.description', 'Makes price of training based on skill level as well as player level.'); } }),
-      'RefinedTraining.intensiveTraining': Object.freeze({ default: false, get description() { return t('mods.roleplayRealism.RefinedTraining.intensiveTraining.description', 'Enables intensive training option for a session per day for five days, for extra cost.'); } }),
+      'RefinedTraining.intensiveTraining': Object.freeze({ default: false, get description() { return t('mods.roleplayRealism.RefinedTraining.intensiveTraining.description', 'Enables an intensive training option covering one session a day for five days at extra cost.'); } }),
     }),
   }),
   'shield-widget': Object.freeze({
@@ -676,25 +645,24 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.shieldWidget.Enabled.description', 'See your shield in first person, which the original game never shows. It is drawn in its own metal, '
-            + 'gets battered as it wears, and moves out of the way when you sheathe, swing or cast.');
+          return t('mods.shieldWidget.Enabled.description', 'Shows your equipped shield in first person. It matches its material, shows wear as its condition drops, and lowers when you sheathe, attack, or cast.');
         },
       }),
       'Shield.Scale': Object.freeze({ default: 1.0, min: 0.8, max: 1.2, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Shield.Scale.description', 'Size of the sprite'); } }),
       'Shield.OffsetHorizontal': Object.freeze({ default: 0.5, min: -1.0, max: 1.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Shield.OffsetHorizontal.description', 'Offsets the sprite relative to the left edge of the screen'); } }),
       'Shield.OffsetVertical': Object.freeze({ default: 0.5, min: -1.0, max: 1.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Shield.OffsetVertical.description', 'Offsets the sprite relative to the bottom edge of the screen'); } }),
       'Shield.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Shield.Speed.description', 'Speed of stance transition when attacking'); } }),
-      'Shield.WhenSheathed': Object.freeze({ default: 1, options: SHIELD_STANCES, get description() { return t('mods.shieldWidget.Shield.WhenSheathed.description', 'The shield\'s behavior when sheathing your weapon'); } }),
-      'Shield.WhenAttacking': Object.freeze({ default: 1, options: SHIELD_STANCES, get description() { return t('mods.shieldWidget.Shield.WhenAttacking.description', 'The shield\'s behavior when attacking with a weapon'); } }),
-      'Shield.WhenCasting': Object.freeze({ default: 1, options: SHIELD_STANCES, get description() { return t('mods.shieldWidget.Shield.WhenCasting.description', 'The shield\'s behavior when readying or while casting a spell'); } }),
-      'Shield.LockAspectRatio': Object.freeze({ default: true, get description() { return t('mods.shieldWidget.Shield.LockAspectRatio.description', 'Enable to prevent the sprite from stretching or squishing depending on the screen\'s aspect ratio'); } }),
+      'Shield.WhenSheathed': Object.freeze({ default: 1, options: SHIELD_STANCES, get description() { return t('mods.shieldWidget.Shield.WhenSheathed.description', 'Shield behavior when sheathing your weapon.'); } }),
+      'Shield.WhenAttacking': Object.freeze({ default: 1, options: SHIELD_STANCES, get description() { return t('mods.shieldWidget.Shield.WhenAttacking.description', 'Shield behavior when attacking with a weapon.'); } }),
+      'Shield.WhenCasting': Object.freeze({ default: 1, options: SHIELD_STANCES, get description() { return t('mods.shieldWidget.Shield.WhenCasting.description', 'Shield behavior when readying or casting a spell.'); } }),
+      'Shield.LockAspectRatio': Object.freeze({ default: true, get description() { return t('mods.shieldWidget.Shield.LockAspectRatio.description', 'Prevents the shield sprite from stretching or squishing across different screen aspect ratios.'); } }),
       'Shield.ConditionThresholdUpper': Object.freeze({ default: 75, min: 55, max: 95, get description() { return t('mods.shieldWidget.Shield.ConditionThresholdUpper.description', 'Condition, in percent, below which the shield first looks damaged.'); } }),
       'Shield.ConditionThresholdLower': Object.freeze({ default: 25, min: 5, max: 45, get description() { return t('mods.shieldWidget.Shield.ConditionThresholdLower.description', 'Condition, in percent, below which the shield looks badly damaged.'); } }),
       'Modules.Bob': Object.freeze({ default: true, get description() { return t('mods.shieldWidget.Modules.Bob.description', 'Bob: the shield sways as you walk.'); } }),
       'Modules.Inertia': Object.freeze({ default: false, get description() { return t('mods.shieldWidget.Modules.Inertia.description', 'Inertia: the shield trails behind as you look around and move.'); } }),
       'Modules.Animation': Object.freeze({ default: false, get description() { return t('mods.shieldWidget.Modules.Animation.description', 'Animation: the shield is raised and lowered frame by frame instead of sliding (art by WilhelmBlack).'); } }),
       'Modules.Step': Object.freeze({ default: false, get description() { return t('mods.shieldWidget.Modules.Step.description', 'Step: the shield\u2019s position is rounded so it moves in steps.'); } }),
-      'Modules.Recoil': Object.freeze({ default: false, get description() { return t('mods.shieldWidget.Modules.Recoil.description', 'Recoil: a blow that lands on the shield rocks it and makes it ring. Needs Physical Combat and Armor Overhaul.'); } }),
+      'Modules.Recoil': Object.freeze({ default: false, get description() { return t('mods.shieldWidget.Modules.Recoil.description', 'Recoil: the shield recoils and rings when struck. Requires Physical Combat and Armor Overhaul.'); } }),
       'Bob.Length': Object.freeze({ default: 100, min: 0, max: 200, get description() { return t('mods.shieldWidget.Bob.Length.description', 'Amount of bobs in a single stride'); } }),
       'Bob.Offset': Object.freeze({ default: 0.0, min: 0.0, max: 3.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Bob.Offset.description', 'Advances the bob timing. For use with weapon bob.'); } }),
       'Bob.SizeX': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Bob.SizeX.description', 'Extent of horizontal movement when bobbing'); } }),
@@ -704,16 +672,16 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'Bob.Shape': Object.freeze({ default: 0, options: lazyWords(() => t('mods.shieldWidget.option.u', 'U'), () => t('mods.shieldWidget.option.sideways8', 'Sideways 8'), () => t('mods.shieldWidget.option.invertedU', 'Inverted U')), get description() { return t('mods.shieldWidget.Bob.Shape.description', 'Shape of bob'); } }),
       'Bob.BobWhileIdle': Object.freeze({ default: true, get description() { return t('mods.shieldWidget.Bob.BobWhileIdle.description', 'Whether the shield will slightly bob while stationary'); } }),
       'Inertia.Scale': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Inertia.Scale.description', 'The maximum distance that the sprite will be offset'); } }),
-      'Inertia.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Inertia.Speed.description', 'The speed that the sprite will move at towards the target offset'); } }),
+      'Inertia.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Inertia.Speed.description', 'How fast the sprite moves toward the target offset.'); } }),
       'Inertia.ForwardDepth': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Inertia.ForwardDepth.description', 'Multiplier for the change in scale when moving forward or backward'); } }),
-      'Inertia.ForwardSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Inertia.ForwardSpeed.description', 'The speed that the sprite will scale towards the target depth'); } }),
+      'Inertia.ForwardSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Inertia.ForwardSpeed.description', 'How fast the sprite scales toward the target depth.'); } }),
       'Animation.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Animation.Speed.description', 'Determines how fast the animation plays'); } }),
       'Animation.Direction': Object.freeze({ default: 0, options: lazyWords(() => t('mods.shieldWidget.option.both', 'Both'), () => t('mods.shieldWidget.option.forwardOnly', 'Forward Only'), () => t('mods.shieldWidget.option.reverseOnly', 'Reverse Only')), get description() { return t('mods.shieldWidget.Animation.Direction.description', 'Set which animations will play during actions'); } }),
       'Step.Length': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.shieldWidget.Step.Length.description', 'Size of each step. Higher moves in bigger jumps.'); } }),
-      'Step.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.shieldWidget.option.sheatheAttackOnly', 'Sheathe/Attack Only'), () => t('mods.shieldWidget.option.allTransforms', 'All Transforms')), get description() { return t('mods.shieldWidget.Step.Condition.description', 'Whether the snapping only affects Sheathing or also other options like Bob, Inertia and Recoil'); } }),
+      'Step.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.shieldWidget.option.sheatheAttackOnly', 'Sheathe/Attack Only'), () => t('mods.shieldWidget.option.allTransforms', 'All Transforms')), get description() { return t('mods.shieldWidget.Step.Condition.description', 'Whether step snapping affects only sheathing or also other movements such as Bob, Inertia, and Recoil.'); } }),
       'Recoil.Scale': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Recoil.Scale.description', 'The amount the shield will recoil'); } }),
       'Recoil.Offset': Object.freeze({ default: false, get description() { return t('mods.shieldWidget.Recoil.Offset.description', 'Whether the shield should be moved to the center when recoiling'); } }),
-      'Recoil.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Recoil.Speed.description', 'The speed that the shield recovers from recoil'); } }),
+      'Recoil.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.shieldWidget.Recoil.Speed.description', 'How fast the shield recovers from recoil.'); } }),
       'Recoil.Condition': Object.freeze({ default: 2, options: lazyWords(() => t('mods.shieldWidget.option.hitOnShield', 'Hit On Shield'), () => t('mods.shieldWidget.option.missOnShield', 'Miss On Shield'), () => t('mods.shieldWidget.option.attackOnShield', 'Attack On Shield'), () => t('mods.shieldWidget.option.anyHit', 'Any Hit'), () => t('mods.shieldWidget.option.anyMiss', 'Any Miss'), () => t('mods.shieldWidget.option.anyAttack', 'Any Attack')), get description() { return t('mods.shieldWidget.Recoil.Condition.description', 'Event required for the shield to recoil'); } }),
       'Compatibility.TextureScaleFactor': Object.freeze({ default: 1, min: 0, max: 8, get description() { return t('mods.shieldWidget.Compatibility.TextureScaleFactor.description', 'Divides the sprite\u2019s pixel size. Raise it if a replacement texture pack draws the shield too large.'); } }),
     }),
@@ -725,26 +693,24 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.weaponWidget.Enabled.description', 'Livelier first-person weapons: swings that wind up and recover, the weapon in the hand you swing '
-            + 'with, a sheathe animation, a bob as you walk, sway as you look and a kick when you hit or parry. The '
-            + 'Morrowind arms move the same way.');
+          return t('mods.weaponWidget.Enabled.description', 'Adds first-person weapon animations: wind-up and recovery on swings, left- or right-hand display, sheathing, walking bob, look inertia, and hit or parry recoil. The Morrowind arms follow the same motion.');
         },
       }),
-      'Modules.Swings': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Swings.description', 'Swings: each strike winds up from the idle pose, plays at its own speed and recovers, in reverse after a hit.'); } }),
-      'Modules.Ambidexterity': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Ambidexterity.description', 'Ambidexterity: the weapon shows in the hand you swing with (Switch Hand, H), mirrored for the left.'); } }),
-      'Modules.Offset': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Offset.description', 'Offset: sheathing slides the sprite off the screen and drawing slides it back. A swing comes back up from below.'); } }),
-      'Modules.Bob': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Bob.description', 'Bob: the sprite sways as you walk.'); } }),
-      'Modules.Inertia': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.Inertia.description', 'Inertia: the weapon trails behind as you look around and move. Needs double-scaled weapon textures.'); } }),
-      'Modules.Step': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.Step.description', 'Step: the sprite\u2019s position is rounded so it moves in steps.'); } }),
-      'Modules.DoubleScaleTextures': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.DoubleScaleTextures.description', 'DoubleScaleTextures: draws the idle pose at double size from the mod’s own textures. Add the mod’s .dfmod under Your own textures.'); } }),   // DISC16-B: the mod's own again (DISC14-B had it on)
-      'Modules.TrueTextureSize': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.TrueTextureSize.description', 'TrueTextureSize: a custom texture is drawn at its own pixel size, divided by the scale factor below.'); } }),
-      'Modules.Recoil': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.Recoil.description', 'Recoil: the swing bounces back on a hit, parry or miss, as set below.'); } }),
+      'Modules.Swings': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Swings.description', 'Each strike winds up from the idle pose, plays at its own speed, and recovers in reverse after a hit.'); } }),
+      'Modules.Ambidexterity': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Ambidexterity.description', 'Shows the weapon in your active swing hand (Switch Hand, H), mirrored in the left hand.'); } }),
+      'Modules.Offset': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Offset.description', 'Slides the weapon sprite off-screen when sheathing and back on-screen when drawing or recovering from a swing.'); } }),
+      'Modules.Bob': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Modules.Bob.description', 'Sways the weapon sprite as you walk.'); } }),
+      'Modules.Inertia': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.Inertia.description', 'The weapon trails behind as you look around and move. Requires double-scale weapon textures.'); } }),
+      'Modules.Step': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.Step.description', 'Rounds the weapon sprite position so animations move in discrete steps.'); } }),
+      'Modules.DoubleScaleTextures': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.DoubleScaleTextures.description', 'Draws the idle weapon pose at double size using the mod’s textures. Add its .dfmod file under Your own textures.'); } }),   // DISC16-B: the mod's own again (DISC14-B had it on)
+      'Modules.TrueTextureSize': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.TrueTextureSize.description', 'Draws custom weapon textures at their native pixel size, divided by the scale factor below.'); } }),
+      'Modules.Recoil': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Modules.Recoil.description', 'Bounces the weapon back on a hit, parry, or miss, depending on the settings below.'); } }),
       'Swings.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 5.0, float: true, step: 0.25, get description() { return t('mods.weaponWidget.Swings.Speed.description', 'Speed of the swing animation.'); } }),
       'Swings.Windup': Object.freeze({ default: 1, options: lazyWords(() => t('mods.weaponWidget.option.hide', 'Hide'), () => t('mods.weaponWidget.option.idle', 'Idle'), () => t('mods.weaponWidget.option.firstFrame', 'First Frame')), get description() { return t('mods.weaponWidget.Swings.Windup.description', 'What shows while the swing winds up.'); } }),
       'Swings.Recovery': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.hide', 'Hide'), () => t('mods.weaponWidget.option.lastFrame', 'Last Frame')), get description() { return t('mods.weaponWidget.Swings.Recovery.description', 'What shows while the swing recovers.'); } }),
-      'Swings.VanillaAlignmentOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaAlignmentOverride.description', 'Centers the down and up strikes of the vanilla weapons at the screen’s middle edge.'); } }),
-      'Swings.VanillaRecoveryOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaRecoveryOverride.description', 'Plays the StrikeUp animation in reverse during recovery for some vanilla weapons'); } }),
-      'Swings.NoDaggerMirroredStrikes': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.NoDaggerMirroredStrikes.description', 'Prevents Daggers from using the opposite hand animations'); } }),
+      'Swings.VanillaAlignmentOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaAlignmentOverride.description', 'Centers downward and upward strikes for standard weapons at the center of the screen edge.'); } }),
+      'Swings.VanillaRecoveryOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaRecoveryOverride.description', 'Plays the upward strike animation in reverse during recovery for certain standard weapons.'); } }),
+      'Swings.NoDaggerMirroredStrikes': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.NoDaggerMirroredStrikes.description', 'Prevents daggers from using opposite-hand swing animations.'); } }),
       'Offset.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 5.0, float: true, step: 0.25, get description() { return t('mods.weaponWidget.Offset.Speed.description', 'Speed of the slide on and off the screen.'); } }),
       'Bob.Length': Object.freeze({ default: 100, min: 0, max: 200, get description() { return t('mods.weaponWidget.Bob.Length.description', 'Amount of bobs in a single stride'); } }),
       'Bob.Offset': Object.freeze({ default: 0.0, min: 0.0, max: 1.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Bob.Offset.description', 'Advances the bob timing. For use with weapon bob.'); } }),
@@ -754,23 +720,23 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'Bob.SpeedState': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Bob.SpeedState.description', 'Speed of transition between movement states'); } }),
       'Bob.Shape': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.u', 'U'), () => t('mods.weaponWidget.option.sideways8', 'Sideways 8'), () => t('mods.weaponWidget.option.invertedU', 'Inverted U')), get description() { return t('mods.weaponWidget.Bob.Shape.description', 'Shape of bob'); } }),
       'Bob.BobWhileIdle': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Bob.BobWhileIdle.description', 'Whether the weapon will slightly bob while stationary'); } }),
-      'Step.Length': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.weaponWidget.Step.Length.description', 'Size of each step. Higher moves in bigger jumps.'); } }),
-      'Step.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.sheatheAttackOnly', 'Sheathe/Attack Only'), () => t('mods.weaponWidget.option.allTransforms', 'All Transforms')), get description() { return t('mods.weaponWidget.Step.Condition.description', 'Whether the snapping only affects Sheathing or also other options like Bob, Inertia and Recoil'); } }),
+      'Step.Length': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.weaponWidget.Step.Length.description', 'Size of each position step. Higher values move the weapon in larger jumps.'); } }),
+      'Step.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.sheatheAttackOnly', 'Sheathe/Attack Only'), () => t('mods.weaponWidget.option.allTransforms', 'All Transforms')), get description() { return t('mods.weaponWidget.Step.Condition.description', 'Whether step snapping affects only sheathing or also other options such as Bob, Inertia, and Recoil.'); } }),
       'Inertia.Scale': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Inertia.Scale.description', 'The maximum distance that the sprite will be offset'); } }),   // DISC16-B: the mod's own again (DISC14-B had it at 0)
-      'Inertia.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Inertia.Speed.description', 'The speed that the sprite will move at towards the target offset'); } }),
+      'Inertia.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Inertia.Speed.description', 'How fast the weapon sprite moves toward the target offset.'); } }),
       'Inertia.ForwardDepth': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Inertia.ForwardDepth.description', 'Multiplier for the change in scale when moving forward or backward'); } }),
-      'Inertia.ForwardSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Inertia.ForwardSpeed.description', 'The speed that the sprite will scale towards the target depth'); } }),
+      'Inertia.ForwardSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.weaponWidget.Inertia.ForwardSpeed.description', 'How fast the weapon sprite scales toward the target depth.'); } }),
       'TrueTextureSize.TextureScaleFactor': Object.freeze({ default: 1, min: 1, max: 8, get description() { return t('mods.weaponWidget.TrueTextureSize.TextureScaleFactor.description', 'With True Texture Size on, divides a custom texture’s size. Raise it if the weapon draws too large.'); } }),
       'Recoil.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.hitsOnly', 'Hits Only'), () => t('mods.weaponWidget.option.hitsAndParries', 'Hits and Parries'), () => t('mods.weaponWidget.option.parriesOnly', 'Parries Only'), () => t('mods.weaponWidget.option.parriesAndMisses', 'Parries and Misses'), () => t('mods.weaponWidget.option.missesOnly', 'Misses Only'), () => t('mods.weaponWidget.option.allAttacks', 'All Attacks')), get description() { return t('mods.weaponWidget.Recoil.Condition.description', 'When the swing recoils.'); } }),
       'Recoil.Chance': Object.freeze({ default: 100, min: 0, max: 100, get description() { return t('mods.weaponWidget.Recoil.Chance.description', 'Chance, in percent, of a recoil when the condition is met'); } }),
-      'Recoil.PlayEntityMissEffects': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Recoil.PlayEntityMissEffects.description', 'A clang or a thud at a foe that parried or was missed.'); } }),
+      'Recoil.PlayEntityMissEffects': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Recoil.PlayEntityMissEffects.description', 'Shows an impact effect when an attack is parried or misses an enemy.'); } }),
       'Recoil.DetectEnvironment': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Recoil.DetectEnvironment.description', 'A swing into a wall or a door within reach recoils too.'); } }),
-      'Recoil.PlayEnvironmentMissEffects': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Recoil.PlayEnvironmentMissEffects.description', 'A thud where the swing met the wall.'); } }),
-      'Recoil.MissEffectPlacement': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.target', 'Target'), () => t('mods.weaponWidget.option.crosshair', 'Crosshair')), get description() { return t('mods.weaponWidget.Recoil.MissEffectPlacement.description', 'Where the clang or thud is drawn.'); } }),
+      'Recoil.PlayEnvironmentMissEffects': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Recoil.PlayEnvironmentMissEffects.description', 'Shows an impact effect where a swing hits a wall.'); } }),
+      'Recoil.MissEffectPlacement': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.target', 'Target'), () => t('mods.weaponWidget.option.crosshair', 'Crosshair')), get description() { return t('mods.weaponWidget.Recoil.MissEffectPlacement.description', 'Where parry and miss impact effects appear on screen.'); } }),
       'Miscellaneous.MirrorBows': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Miscellaneous.MirrorBows.description', 'Draws the bow mirrored.'); } }),
       'Miscellaneous.MirrorTwoHandedSwords': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Miscellaneous.MirrorTwoHandedSwords.description', 'Draws a two-handed sword mirrored in the right hand.'); } }),
       'Miscellaneous.MirrorTwoHandedAxes': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Miscellaneous.MirrorTwoHandedAxes.description', 'Draws a two-handed axe mirrored in the right hand.'); } }),
-      'Miscellaneous.MirrorTwoHandedBlunts': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Miscellaneous.MirrorTwoHandedBlunts.description', 'Draws a two-handed staff, hammer or flail mirrored in the right hand.'); } }),
+      'Miscellaneous.MirrorTwoHandedBlunts': Object.freeze({ default: false, get description() { return t('mods.weaponWidget.Miscellaneous.MirrorTwoHandedBlunts.description', 'Draws a two-handed staff, hammer, or flail mirrored in the right hand.'); } }),
     }),
   }),
   // HT1 (2026-09-14): HANDHELD TORCHES 1.4.1 (RedRoryOTheGlen), ported
@@ -787,9 +753,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.handheldTorches.Enabled.description', 'A lit torch, candle or lantern needs a free hand. You get keys to light, drop or throw one (a thrown '
-            + 'torch can set an enemy on fire). You see the light in your hand in first person, and a dropped torch '
-            + 'keeps burning, lights the room and can be picked up again.');
+          return t('mods.handheldTorches.Enabled.description', 'A lit torch, candle, or lantern needs a free hand and shows in first person. Keys light, drop, or throw it, a thrown torch can set an enemy on fire, and a dropped light keeps burning.');
         },
       }),
       // SOC5 (2026-09-16, Mac: "Players should be able to interact with others
@@ -806,7 +770,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // The player may still bind it wherever they like; this is about what
       // SHIPS. test/systems/ht1_handheldtorches.test.js HT4 is the gate that caught it.
       'Handling.ToggleLightInput': Object.freeze({ default: "O", text: true, get description() { return t('mods.handheldTorches.Handling.ToggleLightInput.description', 'Button used to quickly ignite or douse your light source'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
-      'Handling.RememberLastLightSource': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Handling.RememberLastLightSource.description', 'Igniting with the key re-lights the light you last doused, if you still carry one.'); } }),
+      'Handling.RememberLastLightSource': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Handling.RememberLastLightSource.description', 'The toggle key relights the last light source you doused, if you still carry one.'); } }),
       // HT4 (2026-09-15, Mac: "Pressing tab drops torches, tab is reserved
       // for the menu"): THE ONE DEPARTURE FROM THE MOD'S SHIPPED KEYS.
       // Handheld Torches ships Tab, and in Daggerfall Unity that is free.
@@ -866,15 +830,15 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'Throwing.ThrowAngleOffset': Object.freeze({ default: 15.0, min: 0.0, max: 45.0, float: true, step: 0.25, get description() { return t('mods.handheldTorches.Throwing.ThrowAngleOffset.description', 'How many degrees above your aim the torch is thrown.'); } }),
       'Throwing.ThrowDispersion': Object.freeze({ default: 1.0, min: 0.0, max: 3.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Throwing.ThrowDispersion.description', 'Degrees of random spread on the throw.'); } }),
       'Throwing.ThrowScaleSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 10.0, float: true, step: 0.25, get description() { return t('mods.handheldTorches.Throwing.ThrowScaleSpeed.description', 'How fast the wind-up charges while the key is held.'); } }),
-      'Throwing.ShowTrajectory': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Throwing.ShowTrajectory.description', 'Has no effect here: the throw’s arc isn’t drawn in this game.'); } }),
+      'Throwing.ShowTrajectory': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Throwing.ShowTrajectory.description', 'Has no effect in this game: the throwing arc is not shown.'); } }),
       'Throwing.Bounciness': Object.freeze({ default: 0.5, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.handheldTorches.Throwing.Bounciness.description', 'How much speed a thrown torch keeps when it bounces.'); } }),
-      'Throwing.Combustion': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Throwing.Combustion.description', 'A thrown torch that strikes a foe can set it alight.'); } }),
+      'Throwing.Combustion': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Throwing.Combustion.description', 'A thrown torch that hits an enemy can set it on fire.'); } }),
       'Throwing.Accuracy': Object.freeze({ default: 50, min: 0, max: 100, get description() { return t('mods.handheldTorches.Throwing.Accuracy.description', 'The to-hit modifier of the thrown torch.'); } }),
-      'Throwing.Duration': Object.freeze({ default: 3, min: 0, max: 60, get description() { return t('mods.handheldTorches.Throwing.Duration.description', 'Rounds the fire burns on a struck foe.'); } }),
-      'Throwing.Chance': Object.freeze({ default: 50, min: 0, max: 100, get description() { return t('mods.handheldTorches.Throwing.Chance.description', '% chance the fire takes on a struck foe.'); } }),
-      'Throwing.Magnitude': Object.freeze({ default: Object.freeze([1, 2]), tuple: 'int', get description() { return t('mods.handheldTorches.Throwing.Magnitude.description', 'Fire damage per round, lowest and highest.'); } }),
-      'Throwing.Emission': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Throwing.Emission.description', 'A burning foe gives off light.'); } }),
-      'Throwing.EmissionShadows': Object.freeze({ default: false, get description() { return t('mods.handheldTorches.Throwing.EmissionShadows.description', 'Has no effect here: a burning foe’s light casts no shadows in this game.'); } }),
+      'Throwing.Duration': Object.freeze({ default: 3, min: 0, max: 60, get description() { return t('mods.handheldTorches.Throwing.Duration.description', 'Number of rounds an enemy burns after being set on fire.'); } }),
+      'Throwing.Chance': Object.freeze({ default: 50, min: 0, max: 100, get description() { return t('mods.handheldTorches.Throwing.Chance.description', 'Percentage chance that a hit sets an enemy on fire.'); } }),
+      'Throwing.Magnitude': Object.freeze({ default: Object.freeze([1, 2]), tuple: 'int', get description() { return t('mods.handheldTorches.Throwing.Magnitude.description', 'Minimum and maximum fire damage dealt per round.'); } }),
+      'Throwing.Emission': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Throwing.Emission.description', 'A burning enemy gives off light.'); } }),
+      'Throwing.EmissionShadows': Object.freeze({ default: false, get description() { return t('mods.handheldTorches.Throwing.EmissionShadows.description', 'Has no effect in this game: light from a burning enemy does not cast shadows.'); } }),
       // MODS-ON (2026-09-14, Mac: "all mods should be on by default"): the
       // shipped modsettings.json carries `Sprite = False`, so the mod itself
       // ships its first-person hand switched off - and the hand is the mod's
@@ -901,12 +865,12 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'Presentation.Tint': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Presentation.Tint.description', 'Matches the weapon sprite\'s tint when using First-Person-Lighting.'); } }),
       'Presentation.Ambidexterity': Object.freeze({ default: false, get description() { return t('mods.handheldTorches.Presentation.Ambidexterity.description', 'Mirror the first-person graphic depending on the free hand. Recommended when using Shield Widget.'); } }),
       'Presentation.Scale': Object.freeze({ default: 0.8, min: 0.8, max: 1.2, float: true, step: 0.05, get description() { return t('mods.handheldTorches.Presentation.Scale.description', 'Size of the first-person sprite.'); } }),
-      'Presentation.Offset': Object.freeze({ default: Object.freeze([0.5, 0.5]), tuple: 'float', get description() { return t('mods.handheldTorches.Presentation.Offset.description', 'Where your hand rests on screen, across and up.'); } }),
+      'Presentation.Offset': Object.freeze({ default: Object.freeze([0.5, 0.5]), tuple: 'float', get description() { return t('mods.handheldTorches.Presentation.Offset.description', 'Horizontal and vertical screen position of the first-person hand.'); } }),
       'Presentation.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Presentation.Speed.description', 'How fast the sprite slides on and off the screen.'); } }),
       'Presentation.LockAspectRatio': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Presentation.LockAspectRatio.description', 'The sprite scales by the screen\u2019s width alone, keeping its proportions.'); } }),
       'Presentation.PlayerTorchAudio': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Presentation.PlayerTorchAudio.description', 'Plays a burning sound while you hold a torch'); } }),
       'Presentation.AudioVolume': Object.freeze({ default: 0.5, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Presentation.AudioVolume.description', 'Volume of the burning loop and the torch sounds.'); } }),
-      'Bob.Length': Object.freeze({ default: 100, min: 0, max: 200, get description() { return t('mods.handheldTorches.Bob.Length.description', 'Amount of bobs in a single stride'); } }),
+      'Bob.Length': Object.freeze({ default: 100, min: 0, max: 200, get description() { return t('mods.handheldTorches.Bob.Length.description', 'Number of bobs in a single stride.'); } }),
       'Bob.Offset': Object.freeze({ default: 0.0, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.handheldTorches.Bob.Offset.description', 'Advances the bob timing. For use with weapon bob.'); } }),
       'Bob.SizeX': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Bob.SizeX.description', 'Extent of horizontal movement when bobbing'); } }),
       'Bob.SizeY': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Bob.SizeY.description', 'Extent of vertical movement when bobbing'); } }),
@@ -915,11 +879,11 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'Bob.Shape': Object.freeze({ default: 0, options: lazyWords(() => t('mods.handheldTorches.option.u', 'U'), () => t('mods.handheldTorches.option.sideways8', 'Sideways 8'), () => t('mods.handheldTorches.option.invertedU', 'Inverted U')), get description() { return t('mods.handheldTorches.Bob.Shape.description', 'Shape of bob'); } }),
       'Bob.BobWhileIdle': Object.freeze({ default: true, get description() { return t('mods.handheldTorches.Bob.BobWhileIdle.description', 'Whether the light will slightly bob while stationary'); } }),
       'Inertia.Scale': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Inertia.Scale.description', 'The maximum distance that the sprite will be offset'); } }),
-      'Inertia.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Inertia.Speed.description', 'The speed that the sprite will move at towards the target offset'); } }),
+      'Inertia.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Inertia.Speed.description', 'How fast the sprite moves toward the target offset.'); } }),
       'Inertia.ForwardDepth': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Inertia.ForwardDepth.description', 'Multiplier for the change in scale when moving forward or backward'); } }),
-      'Inertia.ForwardSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Inertia.ForwardSpeed.description', 'The speed that the sprite will scale towards the target depth'); } }),
-      'Step.Length': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.handheldTorches.Step.Length.description', 'Size of each step. Higher moves in bigger jumps.'); } }),
-      'Step.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.handheldTorches.option.sheatheAttackOnly', 'Sheathe/Attack Only'), () => t('mods.handheldTorches.option.allTransforms', 'All Transforms')), get description() { return t('mods.handheldTorches.Step.Condition.description', 'Whether the snapping only affects Sheathing or also other options like Bob, Inertia and Recoil'); } }),
+      'Inertia.ForwardSpeed': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.handheldTorches.Inertia.ForwardSpeed.description', 'How fast the sprite scales toward the target depth.'); } }),
+      'Step.Length': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.handheldTorches.Step.Length.description', 'Size of each step. Higher values move in larger jumps.'); } }),
+      'Step.Condition': Object.freeze({ default: 0, options: lazyWords(() => t('mods.handheldTorches.option.sheatheAttackOnly', 'Sheathe/Attack Only'), () => t('mods.handheldTorches.option.allTransforms', 'All Transforms')), get description() { return t('mods.handheldTorches.Step.Condition.description', 'Whether snapping affects only sheathing or also other options such as Bob, Inertia, and Recoil.'); } }),
       'Compatibility.TextureScaleFactor': Object.freeze({ default: 1, min: 0, max: 8, get description() { return t('mods.handheldTorches.Compatibility.TextureScaleFactor.description', 'Divides a custom texture’s size. Raise it if a texture pack draws the hand too large.'); } }),
     }),
   }),
@@ -938,12 +902,10 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.ambientText.Enabled.description', 'Now and then, a short line in the corner about where you are: what a crypt smells like, what a '
-            + 'village sounds like at night, how the desert light looks. It depends on the place, the time and the '
-            + 'weather, and stays quiet indoors.');
+          return t('mods.ambientText.Enabled.description', 'Occasionally shows a short atmospheric line in the corner, such as how a crypt smells or how a village sounds at night. Lines depend on your location, the time, and the weather, and stay quiet indoors.');
         },
       }),
-      textChance: Object.freeze({ default: 33, min: 0, max: 100, get description() { return t('mods.ambientText.textChance.description', 'Chance, in percent, of a line at each check'); } }),
+      textChance: Object.freeze({ default: 33, min: 0, max: 100, get description() { return t('mods.ambientText.textChance.description', 'Percentage chance of showing a line at each check'); } }),
       interval: Object.freeze({ default: 200, min: 60, max: 600, get description() { return t('mods.ambientText.interval.description', 'Real-time seconds between checks for a line'); } }),
       postTextInterval: Object.freeze({ default: 500, min: 60, max: 600, get description() { return t('mods.ambientText.postTextInterval.description', 'Real-time seconds to wait after a line is shown'); } }),
       textDisplayTime: Object.freeze({ default: 3, min: 1, max: 10, get description() { return t('mods.ambientText.textDisplayTime.description', 'Seconds a line stays on screen'); } }),
@@ -966,15 +928,13 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.eyeOfTheBeholder.Enabled.description', 'Third person without Morrowind data. Scroll out and the camera moves behind your shoulder, and you see '
-            + 'yourself as the mod’s character sprite, on foot and on horseback. Off keeps you in first person unless '
-            + 'you use the Morrowind body.');
+          return t('mods.eyeOfTheBeholder.Enabled.description', 'Third-person view without Morrowind data. Scroll out to move the camera behind your shoulder and see your character sprite on foot and on horseback. Off keeps you in first person unless you use the Morrowind body.');
         },
       }),
       'Camera.StartInThirdPerson': Object.freeze({ default: false, get description() { return t('mods.eyeOfTheBeholder.Camera.StartInThirdPerson.description', 'Start in third person when you start or load a game'); } }),
       'Camera.FrontalPlaneOffset': Object.freeze({ default: Object.freeze([0.0, 0.5]), tuple: 'float', get description() { return t('mods.eyeOfTheBeholder.FrontalPlaneOffset.description', 'Moves the camera sideways and up or down'); } }),
       'Camera.LongitudinalDistance': Object.freeze({ default: 2.0, min: 1, max: 10, float: true, get description() { return t('mods.eyeOfTheBeholder.LongitudinalDistance.description', 'How far behind you the camera sits'); } }),
-      'Camera.MinimumDistance': Object.freeze({ default: 0.8, min: 0, max: 1, float: true, get description() { return t('mods.eyeOfTheBeholder.Camera.MinimumDistance.description', 'How close the camera may come to you, as a share of its distance.'); } }),
+      'Camera.MinimumDistance': Object.freeze({ default: 0.8, min: 0, max: 1, float: true, get description() { return t('mods.eyeOfTheBeholder.Camera.MinimumDistance.description', 'How close the camera can get to you, as a fraction of its normal distance.'); } }),
       'Camera.RidingOffset': Object.freeze({ default: 1.0, min: 0, max: 2, float: true, get description() { return t('mods.eyeOfTheBeholder.Camera.RidingOffset.description', 'Raises and pulls back the camera while you ride.'); } }),
       'Camera.Speed': Object.freeze({ default: 10.0, min: 1, max: 20, float: true, get description() { return t('mods.eyeOfTheBeholder.Camera.Speed.description', 'How fast the camera catches up to where it should be.'); } }),
       'Camera.Dampen': Object.freeze({ default: 1.0, min: 0, max: 5, float: true, get description() { return t('mods.eyeOfTheBeholder.Camera.Dampen.description', 'How much the camera lags behind a sudden move.'); } }),
@@ -1019,15 +979,15 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // DOM's, so this is informational here.
       'CameraScrolling.ScrollableZOffsetAxis': Object.freeze({ default: 'Mouse ScrollWheel', text: true, axis: true, get description() { return t('mods.eyeOfTheBeholder.CameraScrolling.ScrollableZOffsetAxis.description', 'Has no effect here: the mouse wheel always moves the camera.'); } }),
       'AutoTogglePerspective.ToggleInput': Object.freeze({ default: 'KeypadPlus', text: true, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.ToggleInput.description', 'Key that turns the automatic view changes below on or off.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
-      'AutoTogglePerspective.OnFoot': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFoot.description', 'Which view to take on foot, with nothing readied.'); } }),
-      'AutoTogglePerspective.OnFootMelee': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFootMelee.description', 'Which view to take on foot with a weapon readied.'); } }),
-      'AutoTogglePerspective.OnFootRanged': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFootRanged.description', 'Which view to take on foot with a bow readied.'); } }),
-      'AutoTogglePerspective.OnFootSpell': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFootSpell.description', 'Which view to take on foot with a spell readied.'); } }),
-      'AutoTogglePerspective.OnHorse': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnHorse.description', 'Which view to take in the saddle.'); } }),
-      'AutoTogglePerspective.OnHorseReady': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnHorseReady.description', 'Which view to take in the saddle with something readied.'); } }),
-      'AutoTogglePerspective.OnLycan': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnLycan.description', 'Which view to take transformed.'); } }),
-      'AutoTogglePerspective.OnTransitionInterior': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnTransitionInterior.description', 'Which view to take on stepping indoors.'); } }),
-      'AutoTogglePerspective.OnTransitionExterior': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnTransitionExterior.description', 'Which view to take on stepping back outside.'); } }),
+      'AutoTogglePerspective.OnFoot': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFoot.description', 'Camera view to use on foot with nothing readied.'); } }),
+      'AutoTogglePerspective.OnFootMelee': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFootMelee.description', 'Camera view to use on foot with a weapon readied.'); } }),
+      'AutoTogglePerspective.OnFootRanged': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFootRanged.description', 'Camera view to use on foot with a bow readied.'); } }),
+      'AutoTogglePerspective.OnFootSpell': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnFootSpell.description', 'Camera view to use on foot with a spell readied.'); } }),
+      'AutoTogglePerspective.OnHorse': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnHorse.description', 'Camera view to use on horseback.'); } }),
+      'AutoTogglePerspective.OnHorseReady': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnHorseReady.description', 'Camera view to use on horseback with something readied.'); } }),
+      'AutoTogglePerspective.OnLycan': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnLycan.description', 'Camera view to use while transformed.'); } }),
+      'AutoTogglePerspective.OnTransitionInterior': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnTransitionInterior.description', 'Camera view to use when going indoors.'); } }),
+      'AutoTogglePerspective.OnTransitionExterior': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnTransitionExterior.description', 'Camera view to use when going outside.'); } }),
       'Graphics.Enable': Object.freeze({ default: true, get description() { return t('mods.eyeOfTheBeholder.Graphics.Enable.description', 'Show your character sprite'); } }),
       // BUNNYFALL PAPERDOLL-SETTINGS: ONE setting for how YOU are drawn in third person - your paperdoll (front and back) or
       // the eight-direction animated sprite. It replaces Graphics.Paperdoll and Graphics.PaperdollBack, which split the front
@@ -1064,10 +1024,10 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // body - the default (LAYERED-GEAR-ON, 2026-10-19, the owner: "Make sure this is on by default"; layeredArmor.js
       // LAYERED_OWN). The look carries the body as `lg` (net/remotePlayers.js composeLook, wire.js validLook), so other
       // players see it too.
-      'Graphics.LayeredGear': Object.freeze({ default: 3, min: 0, max: 3, get description() { return t('mods.eyeOfTheBeholder.Graphics.LayeredGear.description', 'On foot Layered Gearing Skin (WIP): drawn on foot in the helmet, chest and leg armor you wear'); },
+      'Graphics.LayeredGear': Object.freeze({ default: 3, min: 0, max: 3, get description() { return t('mods.eyeOfTheBeholder.Graphics.LayeredGear.description', 'Draws your on-foot sprite wearing your equipped helmet, chest, and leg armor (work in progress).'); },
         labels: lazyWords(() => t('mods.eyeOfTheBeholder.skin.layeredOff', 'Off'), () => t('mods.eyeOfTheBeholder.skin.layeredFemale', 'Female'),
           () => t('mods.eyeOfTheBeholder.skin.layeredMale', 'Male'), () => t('mods.eyeOfTheBeholder.skin.layeredOwn', 'Your own body')) }),
-      'Graphics.ReadyStance': Object.freeze({ default: 2, options: lazyWords(() => t('mods.eyeOfTheBeholder.option.never', 'Never'), () => t('mods.eyeOfTheBeholder.option.whenIdle', 'When Idle'), () => t('mods.eyeOfTheBeholder.option.whenIdleOrMoving', 'When Idle or Moving')), get description() { return t('mods.eyeOfTheBeholder.Graphics.ReadyStance.description', 'Whether the sprite will change states when readying a weapon or spell'); } }),
+      'Graphics.ReadyStance': Object.freeze({ default: 2, options: lazyWords(() => t('mods.eyeOfTheBeholder.option.never', 'Never'), () => t('mods.eyeOfTheBeholder.option.whenIdle', 'When Idle'), () => t('mods.eyeOfTheBeholder.option.whenIdleOrMoving', 'When Idle or Moving')), get description() { return t('mods.eyeOfTheBeholder.Graphics.ReadyStance.description', 'Whether the sprite changes to a ready stance when you ready a weapon or spell.'); } }),
       'Graphics.TurnToView': Object.freeze({ default: 2, options: lazyWords(() => t('mods.eyeOfTheBeholder.option.never', 'Never'), () => t('mods.eyeOfTheBeholder.option.onlyWhenAnimating', 'Only When Animating'), () => t('mods.eyeOfTheBeholder.option.whenWeaponReadied', 'When Weapon Readied'), () => t('mods.eyeOfTheBeholder.option.always', 'Always')), get description() { return t('mods.eyeOfTheBeholder.Graphics.TurnToView.description', 'When the sprite turns to face where you look'); } }),
       'Graphics.AttackStrings': Object.freeze({ default: 3, options: lazyWords(() => localizedText('none', 'None'), () => t('mods.eyeOfTheBeholder.option.mirror', 'Mirror'), () => t('mods.eyeOfTheBeholder.option.pingPong', 'PingPong'), () => t('mods.eyeOfTheBeholder.option.mixed', 'Mixed')), get description() { return t('mods.eyeOfTheBeholder.Graphics.AttackStrings.description', 'Extra attack animations. Here PingPong looks the same as None, and Mixed the same as Mirror.'); } }),
       'Graphics.MirrorTime': Object.freeze({ default: 3.0, min: 1, max: 5, float: true, get description() { return t('mods.eyeOfTheBeholder.Graphics.MirrorTime.description', 'Seconds before a mirrored sprite turns back. 0 turns this off.'); } }),
@@ -1078,7 +1038,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       'Animation.WalkCycleSpeed': Object.freeze({ default: 1.0, min: 0.5, max: 1.5, float: true, get description() { return t('mods.eyeOfTheBeholder.Animation.WalkCycleSpeed.description', 'Multiplier on how fast the walk cycle plays.'); } }),
       'Animation.SyncFootsteps': Object.freeze({ default: true, get description() { return t('mods.eyeOfTheBeholder.Animation.SyncFootsteps.description', 'Footstep sounds match the sprite’s steps.'); } }),
       'Animation.BillboardScale': Object.freeze({ default: 1.0, min: 0, max: 10, float: true, get description() { return t('mods.eyeOfTheBeholder.Animation.BillboardScale.description', 'Size of the player sprite.'); } }),
-      'Animation.FineBillboardScale': Object.freeze({ default: 0.0, min: 0, max: 1, float: true, get description() { return t('mods.eyeOfTheBeholder.Animation.FineBillboardScale.description', 'Added to BillboardScale, for a finer adjustment.'); } }),
+      'Animation.FineBillboardScale': Object.freeze({ default: 0.0, min: 0, max: 1, float: true, get description() { return t('mods.eyeOfTheBeholder.Animation.FineBillboardScale.description', 'Fine adjustment added to the player sprite size.'); } }),
       'Animation.GlobalOffsetScale': Object.freeze({ default: 1.0, min: 0, max: 10, float: true, get description() { return t('mods.eyeOfTheBeholder.Animation.GlobalOffsetScale.description', 'Has no effect: the mod never uses this setting.'); } }),
       'Animation.FineGlobalOffsetScale': Object.freeze({ default: 0.0, min: 0, max: 1, float: true, get description() { return t('mods.eyeOfTheBeholder.Animation.FineGlobalOffsetScale.description', 'Has no effect: the mod never uses this setting.'); } }),
       'Compatibility.Don\'tHideWeapon': Object.freeze({ default: false, get description() { return t('mods.eyeOfTheBeholder.Compatibility.DontHideWeapon.description', 'Keeps the first-person weapon on screen in third person'); } }),
@@ -1104,15 +1064,15 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
         get description() { return t('mods.immersiveFootsteps.Enabled.description', 'Footsteps that match the ground you walk on, and armor that rattles as you move.'); },
       }),
       'AudioQualitySettings.SoundClipQuality': Object.freeze({ default: 0, options: lazyWords(() => t('mods.immersiveFootsteps.option.lowQualityRetro', 'Low-Quality (Retro)'), () => t('mods.immersiveFootsteps.option.highQuality', 'High-Quality')), get description() { return t('mods.immersiveFootsteps.AudioQualitySettings.SoundClipQuality.description', 'Quality of the footstep sounds'); } }),
-      'FootstepSettings.AllowFootstepSounds': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.FootstepSettings.AllowFootstepSounds.description', 'Your footsteps make a sound'); } }),
+      'FootstepSettings.AllowFootstepSounds': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.FootstepSettings.AllowFootstepSounds.description', 'Play footstep sounds'); } }),
       'FootstepSettings.FootstepVolumeMulti': Object.freeze({ default: 1.0, min: 0.0, max: 10.0, float: true, step: 0.1, get description() { return t('mods.immersiveFootsteps.FootstepSettings.FootstepVolumeMulti.description', 'Volume of footstep sounds'); } }),
-      'FootstepSettings.FootstepFrequency': Object.freeze({ default: 0.6, min: 0.3, max: 3.0, float: true, step: 0.1, get description() { return t('mods.immersiveFootsteps.FootstepSettings.FootstepFrequency.description', 'How often footsteps sound. Lower is more often'); } }),
-      'ArmorSwaySettings.AllowArmorSwaySounds': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.ArmorSwaySettings.AllowArmorSwaySounds.description', 'Your armor makes a sound as you move'); } }),
+      'FootstepSettings.FootstepFrequency': Object.freeze({ default: 0.6, min: 0.3, max: 3.0, float: true, step: 0.1, get description() { return t('mods.immersiveFootsteps.FootstepSettings.FootstepFrequency.description', 'How often footstep sounds play. Lower values play more often.'); } }),
+      'ArmorSwaySettings.AllowArmorSwaySounds': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.ArmorSwaySettings.AllowArmorSwaySounds.description', 'Play armor sounds as you move'); } }),
       'ArmorSwaySettings.ArmorSwayVolumeMulti': Object.freeze({ default: 1.0, min: 0.0, max: 10.0, float: true, step: 0.1, get description() { return t('mods.immersiveFootsteps.ArmorSwaySettings.ArmorSwayVolumeMulti.description', 'Volume of armor sounds'); } }),
-      'ArmorSwaySettings.ArmorSwayFrequency': Object.freeze({ default: 0.6, min: 0.3, max: 3.0, float: true, step: 0.1, get description() { return t('mods.immersiveFootsteps.ArmorSwaySettings.ArmorSwayFrequency.description', 'How often armor sounds play. Lower is more often'); } }),
+      'ArmorSwaySettings.ArmorSwayFrequency': Object.freeze({ default: 0.6, min: 0.3, max: 3.0, float: true, step: 0.1, get description() { return t('mods.immersiveFootsteps.ArmorSwaySettings.ArmorSwayFrequency.description', 'How often armor sounds play. Lower values play more often.'); } }),
       'ErrorLoggingAndCompatibilitySettings.AllowModCompatWarnings': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.ErrorLoggingAndCompatibilitySettings.AllowModCompatWarnings.description', 'Warns you when another mod clashes with this one'); } }),
-      'ErrorLoggingAndCompatibilitySettings.AllowVerboseErrorLogging': Object.freeze({ default: false, get description() { return t('mods.immersiveFootsteps.ErrorLoggingAndCompatibilitySettings.AllowVerboseErrorLogging.description', 'Has no effect here: this game keeps no error log.'); } }),
-      'ErrorLoggingAndCompatibilitySettings.DoNotSpamExceptionsLogs': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.ErrorLoggingAndCompatibilitySettings.DoNotSpamExceptionsLogs.description', 'Has no effect here: this game keeps no error log.'); } }),
+      'ErrorLoggingAndCompatibilitySettings.AllowVerboseErrorLogging': Object.freeze({ default: false, get description() { return t('mods.immersiveFootsteps.ErrorLoggingAndCompatibilitySettings.AllowVerboseErrorLogging.description', 'Has no effect. The game does not write an error log.'); } }),
+      'ErrorLoggingAndCompatibilitySettings.DoNotSpamExceptionsLogs': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.ErrorLoggingAndCompatibilitySettings.DoNotSpamExceptionsLogs.description', 'Has no effect. The game does not write an error log.'); } }),
     }),
   }),
   // BA1 (2026-09-16, Mac: "Next mod to integrate 1:1 ensuring compatibility"):
@@ -1148,30 +1108,29 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.betterAmbience.Enabled.description', 'The camera shakes when you’re hurt, each dungeon gets its own fog, light and echo, and you can hear '
-            + 'rain indoors.');
+          return t('mods.betterAmbience.Enabled.description', 'The camera shakes when you’re hurt, each dungeon gets its own fog, lighting, and echo, and you can hear rain indoors.');
         },
       }),
       'Better Footsteps.enable': Object.freeze({ default: false, get description() { return t('mods.betterAmbience.BetterFootsteps.enable.description', 'Plays Better Ambience’s own footstep sounds'); } }),
       'Better Footsteps.armorVolume': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.betterAmbience.BetterFootsteps.armorVolume.description', 'Volume for armor clanking'); } }),
       'Better Footsteps.footstepVolume': Object.freeze({ default: 1.0, min: 0.0, max: 2.0, float: true, step: 0.1, get description() { return t('mods.betterAmbience.BetterFootsteps.footstepVolume.description', 'Volume for footsteps'); } }),
-      'Dungeon Reverb.level': Object.freeze({ default: 1, options: lazyWords(() => localizedText('low', 'Low'), () => localizedText('medium', 'Medium'), () => localizedText('high', 'High')), get description() { return t('mods.betterAmbience.DungeonReverb.level.description', 'How much a dungeon echoes: Low is a cave, Medium a stone room, High a quarry.'); } }),
-      'Camera Shake.shakeAmountAdd': Object.freeze({ default: 0.0, min: 0.0, max: 20.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.shakeAmountAdd.description', 'Shake added to every hit, before the hit\u2019s own share.'); } }),
-      'Camera Shake.shakeAmountMultiplier': Object.freeze({ default: 10.0, min: 0.0, max: 20.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.shakeAmountMultiplier.description', 'Shake per hit, scaled by the damage as a share of your full health.'); } }),
-      'Camera Shake.maxShake': Object.freeze({ default: 10.0, min: 0.1, max: 30.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.maxShake.description', 'The most one hit can shake the camera.'); } }),
+      'Dungeon Reverb.level': Object.freeze({ default: 1, options: lazyWords(() => localizedText('low', 'Low'), () => localizedText('medium', 'Medium'), () => localizedText('high', 'High')), get description() { return t('mods.betterAmbience.DungeonReverb.level.description', 'How much a dungeon echoes: Low is a cave, Medium is a stone room, and High is a quarry.'); } }),
+      'Camera Shake.shakeAmountAdd': Object.freeze({ default: 0.0, min: 0.0, max: 20.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.shakeAmountAdd.description', 'Base camera shake added to every hit, on top of the damage-based shake.'); } }),
+      'Camera Shake.shakeAmountMultiplier': Object.freeze({ default: 10.0, min: 0.0, max: 20.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.shakeAmountMultiplier.description', 'Camera shake per hit, scaled by the damage relative to your maximum health.'); } }),
+      'Camera Shake.maxShake': Object.freeze({ default: 10.0, min: 0.1, max: 30.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.maxShake.description', 'Maximum camera shake from a single hit.'); } }),
       'Camera Shake.roughness': Object.freeze({ default: 10.0, min: 0.1, max: 30.0, float: true, step: 0.5, get description() { return t('mods.betterAmbience.CameraShake.roughness.description', 'How jarring the shake is: lower is smoother.'); } }),
       'Camera Shake.fadeInTime': Object.freeze({ default: 0.3, min: 0.05, max: 3.0, float: true, step: 0.05, get description() { return t('mods.betterAmbience.CameraShake.fadeInTime.description', 'Seconds the shake takes to build.'); } }),
       'Camera Shake.fadeOutTime': Object.freeze({ default: 0.5, min: 0.05, max: 3.0, float: true, step: 0.05, get description() { return t('mods.betterAmbience.CameraShake.fadeOutTime.description', 'Seconds the shake takes to settle.'); } }),
       'Dungeon Fog.enableFog': Object.freeze({ default: true, get description() { return t('mods.betterAmbience.DungeonFog.enableFog.description', 'Gives each dungeon its own random fog'); } }),
-      'Dungeon Fog.maxFogDistance': Object.freeze({ default: 100.0, min: 20.0, max: 200.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.maxFogDistance.description', 'How far past its start the fog can reach, at most'); } }),
-      'Dungeon Fog.minFogDistance': Object.freeze({ default: 80.0, min: 20.0, max: 200.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.minFogDistance.description', 'How far past its start the fog reaches, at least'); } }),
-      'Dungeon Fog.maxFogStart': Object.freeze({ default: 10.0, min: 0.0, max: 100.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.maxFogStart.description', 'Furthest from you the fog can start'); } }),
-      'Dungeon Fog.minFogStart': Object.freeze({ default: 0.0, min: 0.0, max: 100.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.minFogStart.description', 'Nearest to you the fog can start'); } }),
+      'Dungeon Fog.maxFogDistance': Object.freeze({ default: 100.0, min: 20.0, max: 200.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.maxFogDistance.description', 'Maximum distance the fog reaches past its starting point.'); } }),
+      'Dungeon Fog.minFogDistance': Object.freeze({ default: 80.0, min: 20.0, max: 200.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.minFogDistance.description', 'Minimum distance the fog reaches past its starting point.'); } }),
+      'Dungeon Fog.maxFogStart': Object.freeze({ default: 10.0, min: 0.0, max: 100.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.maxFogStart.description', 'Maximum distance from you where the fog can start.'); } }),
+      'Dungeon Fog.minFogStart': Object.freeze({ default: 0.0, min: 0.0, max: 100.0, float: true, step: 1, get description() { return t('mods.betterAmbience.DungeonFog.minFogStart.description', 'Minimum distance from you where the fog can start.'); } }),
       'Dungeon Lighting.enableFogAmbientEffect': Object.freeze({ default: false, get description() { return t('mods.betterAmbience.DungeonLighting.enableFogAmbientEffect.description', 'Lights each dungeon in the color of its fog'); } }),   // BA2: ships off (see above)
       'Dungeon Lighting.dungeonDarkness': Object.freeze({ default: 1.0, min: 0.0, max: 3.0, float: true, step: 0.1, get description() { return t('mods.betterAmbience.DungeonLighting.dungeonDarkness.description', 'The darkness of dungeons'); } }),
       'Dungeon Lighting.fogAmbientEffect': Object.freeze({ default: 0.2, min: 0.0, max: 1.0, float: true, step: 0.05, get description() { return t('mods.betterAmbience.DungeonLighting.fogAmbientEffect.description', 'How much the random dungeon color affects dungeon lighting'); } }),
-      'Better Rain.enableBetterRain': Object.freeze({ default: true, get description() { return t('mods.betterAmbience.BetterRain.enableBetterRain.description', 'Makes rain particles look a bit better'); } }),
-      'Better Rain.enableBetterSnow': Object.freeze({ default: true, get description() { return t('mods.betterAmbience.BetterRain.enableBetterSnow.description', 'Makes snow particles look a bit better'); } }),
+      'Better Rain.enableBetterRain': Object.freeze({ default: true, get description() { return t('mods.betterAmbience.BetterRain.enableBetterRain.description', 'Improves the appearance of rain particles'); } }),
+      'Better Rain.enableBetterSnow': Object.freeze({ default: true, get description() { return t('mods.betterAmbience.BetterRain.enableBetterSnow.description', 'Improves the appearance of snow particles'); } }),
     }),
   }),
   // ORL1 (2026-09-17): OBLIVION-REMASTER-LIKE LEVELING 0.5.3 - the
@@ -1204,8 +1163,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.oblivionRemasterLeveling.Enabled.description', 'Level up like Oblivion Remastered: every skill you raise fills a 100-point bar, and each level gives '
-            + 'you virtues to spend on the attributes you choose. New characters are asked which system they want.');
+          return t('mods.oblivionRemasterLeveling.Enabled.description', 'Level up like Oblivion Remastered: raising skills fills a 100-point bar, and each level grants virtues to spend on attributes. New characters can choose which leveling system to use.');
         },
       }),
       attributePoints: Object.freeze({ default: 12, min: 0, max: 60, get description() { return t('mods.oblivionRemasterLeveling.attributePoints.description', 'Amount of points for increasing attributes'); } }),
@@ -1240,9 +1198,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.travelOptions.Enabled.description', 'Choose between the original game’s fast travel and a journey you make yourself, sped up to 60 times, '
-            + 'with a panel to steer it. Encounters and places along the way stop you, and you can follow the '
-            + 'roads. Off brings back the classic travel map with fast travel only.');
+          return t('mods.travelOptions.Enabled.description', 'Lets you choose classic fast travel or a journey sped up to 60 times, with road following, steering, and stops for places and encounters. Off brings back the classic travel map with fast travel only.');
         },
       }),
       'CautiousTravel.PlayerControlledCautiousTravel': Object.freeze({ default: true, get description() { return t('mods.travelOptions.CautiousTravel.PlayerControlledCautiousTravel.description', "Enables the travel option \"Cautiously\" to initiate time accelerated travel, instead of vanilla fast travel"); } }),
@@ -1264,9 +1220,9 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // mod is opt-in over vanilla; here the walked journey IS the
       // feature, so it is on. The key is still a key: turning it off in
       // the Mods pane restores the mod's own default exactly.
-      'StopAtInnsTravel.PlayerControlledInnsTravel': Object.freeze({ default: true, get description() { return t('mods.travelOptions.StopAtInnsTravel.PlayerControlledInnsTravel.description', "Enables the stop for night travel option \"Inns\" to initiate time accelerated travel, instead of fast travel"); } }),
-      'ShipTravel.OnlyFromPorts': Object.freeze({ default: true, get description() { return t('mods.travelOptions.ShipTravel.OnlyFromPorts.description', "Restricts ship travel to be possible only from places with ports"); } }),
-      'ShipTravel.OnlyToPorts': Object.freeze({ default: false, get description() { return t('mods.travelOptions.ShipTravel.OnlyToPorts.description', "Restricts ship travel to be possible only if destination has a port, if from ports setting is enabled"); } }),
+      'StopAtInnsTravel.PlayerControlledInnsTravel': Object.freeze({ default: true, get description() { return t('mods.travelOptions.StopAtInnsTravel.PlayerControlledInnsTravel.description', 'Makes the "Inns" travel option start time-accelerated travel instead of instant fast travel.'); } }),
+      'ShipTravel.OnlyFromPorts': Object.freeze({ default: true, get description() { return t('mods.travelOptions.ShipTravel.OnlyFromPorts.description', 'Allows ship travel only from locations with a port.'); } }),
+      'ShipTravel.OnlyToPorts': Object.freeze({ default: false, get description() { return t('mods.travelOptions.ShipTravel.OnlyToPorts.description', 'Allows ship travel only to destinations with a port when departing from ports is required.'); } }),
       'GeneralOptions.AllowTargetingMapCoordinates': Object.freeze({ default: true, get description() { return t('mods.travelOptions.GeneralOptions.AllowTargetingMapCoordinates.description', "Allows travel map to target any coordinates using time accelerated travel"); } }),
       'GeneralOptions.LocationPause': Object.freeze({ default: 0, options: lazyWords(() => t('mods.travelOptions.option.off', 'off'), () => t('mods.travelOptions.option.nearby', 'nearby'), () => t('mods.travelOptions.option.entered', 'entered')), get description() { return t('mods.travelOptions.GeneralOptions.LocationPause.description', "Auto pause when encountering a game location during real time accelerated travel"); } }),
       'GeneralOptions.AllowWeather': Object.freeze({ default: false, get description() { return t('mods.travelOptions.GeneralOptions.AllowWeather.description', "Allows weather effects during time accelerated travel"); } }),
@@ -1279,29 +1235,29 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // it and its words say so. ON: a journey steers round buildings,
       // walls and rocks and pauses short of what it cannot pass
       // (systems/travel/travelSteer.js). OFF: the mod's own beeline, exactly.
-      'GeneralOptions.AvoidObstacles': Object.freeze({ default: true, get description() { return t('mods.travelOptions.GeneralOptions.AvoidObstacles.description', 'Steers time accelerated travel around buildings, walls and rocks, and pauses the journey before walking into something it can’t get round.'); } }),
+      'GeneralOptions.AvoidObstacles': Object.freeze({ default: true, get description() { return t('mods.travelOptions.GeneralOptions.AvoidObstacles.description', 'Steers time-accelerated travel around buildings, walls, and rocks, and pauses the journey if an obstacle blocks the path.'); } }),
       // OW-TOGGLE (2026-09-28, Mac: "bring back the original travel option as a toggle. Off by default." - "The normal
       // first person travel accelerated was removed in favor of the overworld travel"): THE PORT'S OWN KEY on the mod's
       // pane, as AvoidObstacles is. ON: a journey is the mod's own, walked in first person as before OW-ONLY - a map
       // pick begins it on the ground, the view does not rise with it and coming down does not stop it
       // (scenes/world.js tvOwnsJourneys, which reads it live - AUDIT OW5 T1). OFF, the default: OW-ONLY.
-      'GeneralOptions.FirstPersonTravel': Object.freeze({ default: false, get description() { return t('mods.travelOptions.GeneralOptions.FirstPersonTravel.description', 'Makes time accelerated journeys in first person, on the ground. Off, the enhanced interface makes them in the Overworld view. Takes effect at once.'); } }),
+      'GeneralOptions.FirstPersonTravel': Object.freeze({ default: false, get description() { return t('mods.travelOptions.GeneralOptions.FirstPersonTravel.description', 'Runs time-accelerated travel in first person on the ground. When off, the enhanced interface uses the Overworld view. Takes effect immediately.'); } }),
       // TO-ROADS (FIELD BUGS 2026-09-29d, SylviaBun on the Discord: "Travel Options First Person doesn't follow roads like
       // Overworld Travel Options does" - "A way to toggle this behavior to match or not would be nice"): THE PORT'S OWN
       // KEY beside First-Person Travel, the same shape - not in the vendored modsettings.json, on the tile, read live. ON,
       // with First-Person Travel on: a journey picked on the travel map is the Overworld's route - its planner, its legs,
       // its refusals (scenes/world.js tvRoutesJourneys) - walked in first person, the view not raised. OFF, the default:
       // First-Person Travel is the mod's own straight journey, the original travel option Mac asked back.
-      'GeneralOptions.FirstPersonTravelFollowsRoads': Object.freeze({ default: false, get description() { return t('mods.travelOptions.GeneralOptions.FirstPersonTravelFollowsRoads.description', 'With First Person Travel on, journeys follow the roads and tracks as Overworld journeys do, and a place with no way there by land can’t be picked. Off, you head straight for your destination. Takes effect at once.'); } }),
+      'GeneralOptions.FirstPersonTravelFollowsRoads': Object.freeze({ default: false, get description() { return t('mods.travelOptions.GeneralOptions.FirstPersonTravelFollowsRoads.description', 'When First Person Travel is enabled, journeys follow roads and tracks, and unreachable destinations cannot be selected. When off, you travel in a straight line. Takes effect immediately.'); } }),
       // RATE-LAW (2026-10-04, Mac: "Remove travel options dials" / "Roads now travel at x100 and non roads at x60"): the
       // mod's TimeAcceleration section (DefaultStartingAcceleration, AlwaysUseStartingAcceleration, AccelerationLimit)
       // is not declared - the spinner it started and bounded is gone, and a journey runs at its ground's rate
       // (systems/timeScale.js travelRateOf). The vendored modsettings.json keeps the three; test/systems/travel/to1_travelOptions.test.js
       // names them as the one section the port leaves out.
-      'Teleportation.EnablePaidTeleportation': Object.freeze({ default: false, get description() { return t('mods.travelOptions.Teleportation.EnablePaidTeleportation.description', "Enable paid Mages teleportation service for all guild members, before rank 8"); } }),
+      'Teleportation.EnablePaidTeleportation': Object.freeze({ default: false, get description() { return t('mods.travelOptions.Teleportation.EnablePaidTeleportation.description', 'Lets Mages Guild members below rank 8 pay for teleportation services.'); } }),
       // the shipped file's spacer section "__" carries no keys
       'RoadsIntegration.Enable': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsIntegration.Enable.description', "Enhances the travel map with larger location dots for cities & towns, and shows roads & tracks with toggle buttons"); } }),
-      'RoadsIntegration.VariableSizeDots': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsIntegration.VariableSizeDots.description', "All locations, except for cities & towns, are rendered as smaller dots"); } }),
+      'RoadsIntegration.VariableSizeDots': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsIntegration.VariableSizeDots.description', 'Draws all locations except cities and towns as smaller dots.'); } }),
       // AUDIT-TO1 I1: the mod ships index 1, "F" - and F is the key SOC5
       // spent on SocialInteract (inputActions.js DEFAULT_BINDINGS), the
       // same collision HT4 moved Handheld Torches' light toggle off.
@@ -1314,21 +1270,21 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       // SHIPS. `keyChoice` DECLARES the kind, the way `axis` does, so
       // the HT4 pin walks this choice list as it walks a TextKey and
       // never has to guess whether "U" is a key or a bob shape.
-      'RoadsIntegration.FollowPathsKey': Object.freeze({ default: 3, keyChoice: true, options: lazyWords(() => localizedText('none', 'None'), 'F', 'G', 'K', 'O', 'X', () => t('mods.travelOptions.option.customKeyBind', 'Custom Key Bind')), get description() { return t('mods.travelOptions.RoadsIntegration.FollowPathsKey.description', 'The key that starts a sped-up journey along roads and tracks, when roads are on'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
-      'RoadsIntegration.FollowPathsCustomKeyBind': Object.freeze({ default: "", text: true, get description() { return t('mods.travelOptions.RoadsIntegration.FollowPathsCustomKeyBind.description', "Custom key bind for following paths used if CustomBind set above"); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
-      'RoadsIntegration.EnableWaterways': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsIntegration.EnableWaterways.description', "Enhances the travel map with rivers and streams with a toggle button"); } }),
-      'RoadsIntegration.EnableStreamsToggle': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsIntegration.EnableStreamsToggle.description', "Adds a streams toggle button separate from rivers button"); } }),
+      'RoadsIntegration.FollowPathsKey': Object.freeze({ default: 3, keyChoice: true, options: lazyWords(() => localizedText('none', 'None'), 'F', 'G', 'K', 'O', 'X', () => t('mods.travelOptions.option.customKeyBind', 'Custom Key Bind')), get description() { return t('mods.travelOptions.RoadsIntegration.FollowPathsKey.description', 'The key that starts time-accelerated travel along roads and tracks when roads are shown.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'RoadsIntegration.FollowPathsCustomKeyBind': Object.freeze({ default: "", text: true, get description() { return t('mods.travelOptions.RoadsIntegration.FollowPathsCustomKeyBind.description', 'Custom key bind for following paths when Custom Key Bind is selected above.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'RoadsIntegration.EnableWaterways': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsIntegration.EnableWaterways.description', 'Shows rivers and streams on the travel map with a toggle button.'); } }),
+      'RoadsIntegration.EnableStreamsToggle': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsIntegration.EnableStreamsToggle.description', 'Adds a streams toggle button separate from the rivers button.'); } }),
       'RoadsIntegration.MarkLocationColor': Object.freeze({ default: '#ffeb05ff', color: true, get description() { return t('mods.travelOptions.RoadsIntegration.MarkLocationColor.description', 'The color of a location you mark with the middle mouse button on the travel map'); } }),
       // the shipped file's spacer section "-" carries no keys
-      'FastTravelCostScaling.FastTravelCostScaleFactor': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.travelOptions.FastTravelCostScaling.FastTravelCostScaleFactor.description', "Scales the cost of inns when using standard fast travel, suggest x4-x6 for Climate & Calories."); } }),
-      'FastTravelCostScaling.ShipTravelCostScaleFactor': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.travelOptions.FastTravelCostScaling.ShipTravelCostScaleFactor.description', "Scales the cost of ships when using standard fast travel, suggest x2-x3 for Climate & Calories."); } }),
+      'FastTravelCostScaling.FastTravelCostScaleFactor': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.travelOptions.FastTravelCostScaling.FastTravelCostScaleFactor.description', 'Scales inn costs during standard fast travel (x4 to x6 recommended for Climate & Calories).'); } }),
+      'FastTravelCostScaling.ShipTravelCostScaleFactor': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.travelOptions.FastTravelCostScaling.ShipTravelCostScaleFactor.description', 'Scales ship travel costs during standard fast travel (x2 to x3 recommended for Climate & Calories).'); } }),
       // the shipped file's spacer section "_" carries no keys
       'RoadsJunctionMap.Enable': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.Enable.description', "Enables the junction mini-map"); } }),
-      'RoadsJunctionMap.PersistentMap': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsJunctionMap.PersistentMap.description', "Set this to have the junction mini-map always displayed when following paths"); } }),
-      'RoadsJunctionMap.ToggleMapOffPaths': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.ToggleMapOffPaths.description', "Set this to have the junction mini-map toggled when follow key pressed and not on a path"); } }),
-      'RoadsJunctionMap.ScreenSize': Object.freeze({ default: 75, min: 40, max: 200, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenSize.description', "The width and height the mini-map is rendered on the screen"); } }),
-      'RoadsJunctionMap.ScreenPositionX': Object.freeze({ default: 235, min: 0, max: 280, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenPositionX.description', "The X coordinate the mini-map is rendered on the screen"); } }),
-      'RoadsJunctionMap.ScreenPositionY': Object.freeze({ default: 10, min: 0, max: 160, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenPositionY.description', "The Y coordinate the mini-map is rendered on the screen"); } }),
+      'RoadsJunctionMap.PersistentMap': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsJunctionMap.PersistentMap.description', 'Keeps the junction mini-map visible while following paths.'); } }),
+      'RoadsJunctionMap.ToggleMapOffPaths': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.ToggleMapOffPaths.description', 'Toggles the junction mini-map when you press the follow key while off a path.'); } }),
+      'RoadsJunctionMap.ScreenSize': Object.freeze({ default: 75, min: 40, max: 200, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenSize.description', 'The width and height of the mini-map on the screen.'); } }),
+      'RoadsJunctionMap.ScreenPositionX': Object.freeze({ default: 235, min: 0, max: 280, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenPositionX.description', 'The X coordinate where the mini-map is drawn on the screen.'); } }),
+      'RoadsJunctionMap.ScreenPositionY': Object.freeze({ default: 10, min: 0, max: 160, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenPositionY.description', 'The Y coordinate where the mini-map is drawn on the screen.'); } }),
       'RoadsJunctionMap.FilterMode': Object.freeze({ default: 0, options: lazyWords(() => t('mods.travelOptions.option.point', 'Point'), () => t('mods.travelOptions.option.bilinear', 'Bilinear'), () => t('mods.travelOptions.option.trilinear', 'Trilinear')), get description() { return t('mods.travelOptions.RoadsJunctionMap.FilterMode.description', "Pixel filtering to use when rendering the mini-map"); } }),
       'RoadsJunctionMap.Circular': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.Circular.description', "Draw the mini-map in a circle around the player"); } }),
       'RoadsJunctionMap.PlayerColor': Object.freeze({ default: '#ff0000ff', color: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.PlayerColor.description', 'The color of your position and facing on the junction map'); } }),
@@ -1630,19 +1586,17 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.horseCartAndCargo.Enabled.description', 'Your horse and cart stay in the world: they wait where you get off, follow you or stay on command, '
-            + 'and you hitch or mount them by walking up to them. Online, other players see them where you left '
-            + 'them.');
+          return t('mods.horseCartAndCargo.Enabled.description', 'Your horse and cart remain in the world where you dismount, and can follow or wait on command. Walk up to mount or hitch them, and other players online see them where you left them.');
         },
       }),
-      'Persistence.PhysicalPersistence': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Persistence.PhysicalPersistence.description', 'Your horse and wagon stay where you leave them. Off, they are always with you, as in the classic game.'); } }),
-      'Presentation.ShowTrailingWagon': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Presentation.ShowTrailingWagon.description', 'Shows the wagon trailing behind you when you ride with your cart. Off hides only that wagon.'); } }),
+      'Persistence.PhysicalPersistence': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Persistence.PhysicalPersistence.description', 'Your horse and wagon stay where you leave them. When disabled, they stay with you at all times, as in the classic game.'); } }),
+      'Presentation.ShowTrailingWagon': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Presentation.ShowTrailingWagon.description', 'Shows the wagon trailing behind you when riding with your cart. When disabled, only the trailing wagon is hidden.'); } }),
       'Following.HorseFollowDistance': Object.freeze({ default: 3, min: 2, max: 8, get description() { return t('mods.horseCartAndCargo.Following.HorseFollowDistance.description', 'How closely a following horse, or horse and wagon, stays behind you.'); } }),
       'Following.AvoidCombat': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Following.AvoidCombat.description', 'A following horse, or horse and wagon, keeps away from enemies in a fight.'); } }),
-      'Following.FollowFastTravel': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Following.FollowFastTravel.description', 'A following horse or wagon comes with you when you fast travel. Off, it waits where it was.'); } }),
+      'Following.FollowFastTravel': Object.freeze({ default: true, get description() { return t('mods.horseCartAndCargo.Following.FollowFastTravel.description', 'A following horse or wagon travels with you when you fast travel. When disabled, it stays where you left it.'); } }),
       'WagonAccess.InteriorAccessDistance': Object.freeze({ default: 50, min: 10, max: 100, get description() { return t('mods.horseCartAndCargo.WagonAccess.InteriorAccessDistance.description', 'How close to a building or dungeon entrance your wagon must be for you to use it from inside.'); } }),
-      'Hotkeys.QuickMountDismount': Object.freeze({ default: 'Alpha5', text: true, get description() { return t('mods.horseCartAndCargo.Hotkeys.QuickMountDismount.description', 'Mounts your last horse or wagon if it’s in reach, or dismounts if you’re riding. Click it and press a key to change it. ✕ clears it.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
-      'Hotkeys.SummonTransport': Object.freeze({ default: 'Alpha6', text: true, get description() { return t('mods.horseCartAndCargo.Hotkeys.SummonTransport.description', 'Brings your horse and wagon to you when you’re outdoors. Click it and press a key to change it. ✕ clears it.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'Hotkeys.QuickMountDismount': Object.freeze({ default: 'Alpha5', text: true, get description() { return t('mods.horseCartAndCargo.Hotkeys.QuickMountDismount.description', 'Mounts your last horse or wagon when in reach, or dismounts while riding. Click and press a key to rebind.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
+      'Hotkeys.SummonTransport': Object.freeze({ default: 'Alpha6', text: true, get description() { return t('mods.horseCartAndCargo.Hotkeys.SummonTransport.description', 'Calls your horse and wagon to you while outdoors. Click and press a key to rebind.'); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
     }),
   }),
   // LEGACY1 (2026-10-05, bible/06-Systems/Legacy-Arc.md, Mac: "this is actually my DFU mod that I want to integrate"):
@@ -1683,7 +1637,7 @@ const DECLARED_MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.daggerfallEnemyExpansion.Enabled.description', 'Fifty new enemies, from goblins, trolls, minotaurs and golems to mounted knights, necromancers and witches, in new encounter tables for every dungeon and climate.');
+          return t('mods.daggerfallEnemyExpansion.Enabled.description', 'Fifty new enemies, from goblins, trolls, minotaurs, and golems to mounted knights, necromancers, and witches, in new encounter tables for every dungeon and climate.');
         },
       }),
       'Cheat.DisableTrollRespawn': Object.freeze({

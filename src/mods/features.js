@@ -353,8 +353,8 @@ export const FEATURES = Object.freeze([
     id: 'smaller-dungeons',
     group: 'world',
     get title() { return t('features.smallerDungeons.title', 'Smaller dungeons'); },
-    get note() { return t('features.smallerDungeons.note', 'Dungeons bigger than five blocks are cut down to five: a center block with four around it, the same every visit. Main-story dungeons keep full size. A quest keeps the size it was set up at. Online every dungeon has its own size instead.'); },
-    get effect() { return t('features.smallerDungeons.effect', 'Takes effect on the next dungeon you enter. A save made at the other size puts you at the dungeon\u2019s start.'); },
+    get note() { return t('features.smallerDungeons.note', 'Shrinks large dungeons to five blocks (one center block with four around it), while main-story dungeons stay full size. Active quests keep their original dungeon size, and online dungeons each use their own fixed size.'); },
+    get effect() { return t('features.smallerDungeons.effect', 'Takes effect on the next dungeon you enter. Loading a save from the other size places you at the dungeon entrance.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Experimental/SmallerDungeons' }),
   }),
@@ -405,7 +405,7 @@ export const FEATURES = Object.freeze([
     id: 'horse-care',
     group: 'world',
     get title() { return t('features.horseCare.title', 'Horse care'); },   // HORSE-TIERS: the row's words in the player's language (L10N4's ratchet)
-    get note() { return t('features.horseCare.note', 'Every horse has its own Speed, Stamina, Endurance and Strength. It walks unless you hold Run to gallop, which tires it, and feeding it builds a bond that makes it better. On Boons, neglect costs nothing and it’s never slower than the classic horse. On Hard, a hungry horse is weaker. Off is the classic horse.'); },
+    get note() { return t('features.horseCare.note', 'Gives each horse Speed, Stamina, Endurance, and Strength, with galloping on Run and bonding when fed. Boons only grants bonuses, Hard penalizes hungry horses, and Off uses the classic horse.'); },
     get effect() { return t('features.horseCare.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -430,7 +430,7 @@ export const FEATURES = Object.freeze([
     id: 'wagon-upkeep',
     group: 'world',
     get title() { return t('features.wagonUpkeep.title', 'Wagon upkeep'); },
-    get note() { return t('features.wagonUpkeep.note', 'Your wagon wears as it rolls and on long journeys, and a Wagon Yard or a Wagon Repair Kit mends it. On Boons, wear costs nothing. On Hard, a worn wagon is slower and sells for less. Off is the classic wagon.'); },
+    get note() { return t('features.wagonUpkeep.note', 'Wagons wear down during travel and can be mended at a Wagon Yard or with a Wagon Repair Kit. Boons has no wear penalty, Hard makes worn wagons slower and worth less, and Off disables wear.'); },
     get effect() { return t('features.wagonUpkeep.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -447,8 +447,7 @@ export const FEATURES = Object.freeze([
     id: 'land-view-distance',
     group: 'sight',
     get title() { return t('features.landViewDistance.title', 'Land view distance'); },
-    get note() { return t('features.landViewDistance.note', 'How far the land around you is drawn, in map squares: up to 6 with the enhanced outdoors, and up to 4 '
-      + 'on the classic UI or with the outdoors off.'); },
+    get note() { return t('features.landViewDistance.note', 'Sets how many map squares of terrain are drawn around you. Allows up to 6 with the enhanced outdoors, and up to 4 on the classic UI or with enhanced outdoors off.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     // LV1 (2026-09-12, Mac: "push the draw distance as far as we can push
@@ -470,7 +469,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-environments',
     group: 'sight',
     get title() { return t('features.enhancedEnvironments.title', 'Enhanced environments'); },
-    get note() { return t('features.enhancedEnvironments.note', 'A living sky with the sun, both moons and stars, clouds that build with the weather and cast shadows, falling rain and snow, and grass that bends in the wind. Off brings back the classic painted sky and weather. The third choice uses Dynamic Skies by BadLuckBurt and carademono, included with permission. Its settings open on this tile.'); },
+    get note() { return t('features.enhancedEnvironments.note', 'Adds a dynamic sky with sun, moons, stars, weather clouds, rain, snow, and windblown grass. Off restores the classic sky, while the third option enables Dynamic Skies by BadLuckBurt and carademono, whose settings open on this tile.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced', 'mod']),
     // EE1: the outdoors as ONE switch (the sky, the ground's surfaces, the
@@ -499,7 +498,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-ai',
     group: 'combat',
     get title() { return t('features.enhancedAi.title', 'Enhanced AI'); },
-    get note() { return t('features.enhancedAi.note', 'Enemies take turns, back off when hurt, and archers keep their distance. Big attacks are marked on the ground: hit hard to stagger them or dodge. Red, hatched attacks can’t be stopped. Trees, rocks and crates block sight and missiles. Pathfinding only works in dungeons for now: towns, interiors and doors come later. Off keeps the classic behavior.'); },
+    get note() { return t('features.enhancedAi.note', 'Enemies take turns, retreat when hurt, and telegraph big attacks on the ground (hit hard to interrupt them, except red hatched ones). Cover blocks sight and missiles. Pathfinding works in dungeons for now, and Off keeps the classic behavior.'); },
     get effect() { return t('features.enhancedAi.effect', 'Takes effect right away. Pathfinding changes from the next dungeon you enter.'); },   // AUDIT TACT D7: the tactics, cover and blows read the switch live
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -520,7 +519,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-climbing',
     group: 'world',
     get title() { return t('features.enhancedClimbing.title', 'Enhanced climbing'); },
-    get note() { return t('features.enhancedClimbing.note', 'Press Jump at a ledge to climb onto or over it, or while moving forward to vault a low wall. Jump at a high ledge to catch it and hang: Forward climbs up, Left and Right move along it, Crouch lets go. Hold Forward against any wall to climb it. Holding on wears out your grip. Your Climbing skill sets how long it lasts, how high you reach and how fast you climb. Off keeps the classic climbing.'); },
+    get note() { return t('features.enhancedClimbing.note', 'Press Jump at ledges to vault or hang (Left and Right shimmy, Forward climbs up, Crouch lets go). Hold Forward on walls to climb. Your Climbing skill sets grip, reach, and speed, and Off keeps classic climbing.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'enhancedClimbing', initial: true, online: true }),
@@ -533,8 +532,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-water',
     group: 'sight',
     get title() { return t('features.enhancedWater.title', 'Enhanced water'); },
-    get note() { return t('features.enhancedWater.note', 'Seas, rivers and ponds you can see into: waves that grow with the wind, foam where they meet the shore, '
-      + 'ripples where things move, the sky and the moon on the surface. Off brings back the classic flat water.'); },   // WATER-NEXT: what the water is now
+    get note() { return t('features.enhancedWater.note', 'Gives seas, rivers, and ponds clear water with wind-driven waves, shore foam, movement ripples, and sky reflections. Off restores the classic flat water.'); },   // WATER-NEXT: what the water is now
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced']),
     // WATER-OFF (FIELD BUGS 2026-10-08, SylviaBun: "an option to disable Enhanced Water would be nice (I prefer the
@@ -563,7 +561,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-lighting',
     group: 'sight',
     get title() { return t('features.enhancedLighting.title', 'Enhanced lighting'); },
-    get note() { return t('features.enhancedLighting.note', 'Warmer, more natural light: lanterns and torches that glow and fade with distance, light through fog, shadows from the sun and your torch, darker corners, a glow on windows and flames, and rays of sunlight. Off is the classic flat lighting. Steady shadows stops shadows flickering, at some cost to frame rate. Calmer eye slows how fast your eyes adjust to light and dark.'); },
+    get note() { return t('features.enhancedLighting.note', 'Adds dynamic torch and sun shadows, glowing windows, fog light, darker corners, and sunbeams, while Off uses classic flat lighting. Steady shadows reduces shadow flicker at some cost to frame rate, and Calmer eye slows brightness adaptation.'); },
     get effect() { return t('features.enhancedLighting.effect', 'Lighting changes when the world next loads. Steady shadows and calmer eye change right away.'); },
     kinds: Object.freeze(['enhanced']),
     // OL-LIGHT (2026-09-24, Mac: "Can we let people disable it online"): THE PLAYER'S, ONLINE TOO. It was forced on
@@ -588,8 +586,7 @@ export const FEATURES = Object.freeze([
     id: 'modded-lighting',
     group: 'sight',
     get title() { return t('features.moddedLighting.title', 'Modded lighting ({mod})', { mod: 'Improved Interior Lighting' }); },
-    get note() { return t('features.moddedLighting.note', 'Needs the Improved Interior Lighting mod. Its warm, flickering lights replace the classic lighting, '
-      + 'and with shadows on, lamps, people and monsters cast soft shadows too.'); },
+    get note() { return t('features.moddedLighting.note', 'Requires the Improved Interior Lighting mod. Its warm, flickering lights replace the classic lighting, and with shadows on, lamps, people, and monsters cast soft shadows too.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     // IIL1-T2 (Mac: "i dont want to [edit the address] thats why i wanted the options added"): the shadows the test
@@ -609,7 +606,7 @@ export const FEATURES = Object.freeze([
     id: 'grass',
     group: 'sight',
     get title() { return t('features.grass.title', 'Grass'); },
-    get note() { return t('features.grass.note', 'How much grass grows in the enhanced outdoors. Grass is the heaviest thing outdoors, so try Half first if the game runs slow. Meadow: hand-drawn tufts, flowers and bushes. Pixel: finer, older tufts. Smooth: soft, shaded blades.'); },
+    get note() { return t('features.grass.note', 'Sets grass density and style in the enhanced outdoors; try Half first if performance drops. Meadow draws tufts, flowers, and bushes, Pixel uses finer pixel-art tufts, and Smooth uses soft shaded blades.'); },
     get effect() { return t('features.grass.effect', 'The amount changes when the world next loads. The style changes right away.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -623,7 +620,7 @@ export const FEATURES = Object.freeze([
     id: 'cloud-quality',
     group: 'sight',
     get title() { return t('features.cloudQuality.title', 'Cloud quality'); },
-    get note() { return t('features.cloudQuality.note', 'How detailed the clouds in the enhanced outdoors are. Low is lighter on your machine, and High looks best if you have power to spare.'); },
+    get note() { return t('features.cloudQuality.note', 'Sets how detailed clouds look in the enhanced outdoors. Low runs faster, while High looks best on stronger hardware.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'cloudQuality', initial: 'default', online: 'player', tiers: Object.freeze([tier('default', () => t('features.cloudQuality.default', 'Default')), tier('lo', () => localizedText('low', 'Low')), tier('hi', () => localizedText('high', 'High'))]) }),   // PERF1: volumetricClouds.js QUALITY; a dial, the player's online
@@ -643,7 +640,7 @@ export const FEATURES = Object.freeze([
     id: 'ground-sharpness',
     group: 'sight',
     get title() { return t('features.groundSharpness.title', 'Ground sharpness'); },
-    get note() { return t('features.groundSharpness.note', 'How sharp the ground looks into the distance. Off is the cheapest and blurs far ground, and Maximum is the sharpest. Turn it down if the outdoors run slow.'); },
+    get note() { return t('features.groundSharpness.note', 'Sets how sharp distant terrain textures look. Off runs fastest but blurs distant ground, while Maximum is sharpest; lower this setting if outdoor performance drops.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     control: Object.freeze({ store: 'prefs', key: 'groundSharpness', initial: 'default', online: 'player', tiers: Object.freeze([tier('off', OFF), tier('default', () => t('features.groundSharpness.default', 'Default (4x)')), tier('max', () => t('features.groundSharpness.max', 'Maximum'))]) }),
@@ -671,7 +668,7 @@ export const FEATURES = Object.freeze([
     id: 'render-scale',
     group: 'sight',
     get title() { return t('features.renderScale.title', 'Render scale'); },
-    get note() { return t('features.renderScale.note', 'Draws the world at a lower resolution and scales it up to fit, but menus and the HUD stay sharp. Try 75% if the outdoors run slow on a big or high-resolution screen. Retro Picture Mode replaces this while it’s on.'); },
+    get note() { return t('features.renderScale.note', 'Renders the world at a lower resolution while keeping menus and the HUD sharp. Try 75% if outdoor areas run slowly on high-resolution screens (overridden while Retro Picture Mode is on).'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     // AUDIT BRANCH-0925 PS-A1: `classic` - the row has no Off, and Daggerfall's own frame is the whole window
@@ -689,8 +686,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-combat-visuals',
     group: 'sight',
     get title() { return t('features.enhancedCombatVisuals.title', 'Enhanced combat visuals'); },
-    get note() { return t('features.enhancedCombatVisuals.note', 'Hidden enemies can be seen: a chameleon shimmers, a shadow is a silhouette, and an invisible enemy '
-      + 'flashes when you hit it. The rules don’t change. Off hides them as the original does.'); },
+    get note() { return t('features.enhancedCombatVisuals.note', 'Shows visual cues for concealed enemies without changing combat rules: chameleons shimmer, shadows become silhouettes, and invisible enemies flash when hit. Off keeps them hidden.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'enhancedCombatVisuals', initial: true, online: true }),   // ECV1: on by default like the other enhanced visuals; the rules are untouched either way
@@ -705,8 +701,8 @@ export const FEATURES = Object.freeze([
   Object.freeze({
     id: 'hotbar-modifiers',
     group: 'interface',
-    get title() { return t('features.hotbarModifiers.title', 'Hotbar sets on Shift, Ctrl and Alt'); },
-    get note() { return t('features.hotbarModifiers.note', 'Hold Shift, Ctrl or Alt with a hotbar key to use that slot of set II, III or IV without switching the bar. Holding Shift to run while pressing a slot uses set II.'); },
+    get title() { return t('features.hotbarModifiers.title', 'Hotbar sets on Shift, Ctrl, and Alt'); },
+    get note() { return t('features.hotbarModifiers.note', 'Hold Shift, Ctrl, or Alt with a hotbar key to trigger that slot from set II, III, or IV without switching bars. Holding Shift to run while pressing a slot triggers set II.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'hotbarModifiers', initial: false, online: 'player' }),
@@ -715,8 +711,7 @@ export const FEATURES = Object.freeze([
     id: 'weapon-glow',
     group: 'sight',
     get title() { return t('features.weaponGlow.title', 'Weapon glow'); },
-    get note() { return t('features.weaponGlow.note', 'A weapon with a fire, frost or shock damage bonus wears a moving outline of its element, '
-      + 'brighter the stronger it is, and an enchanted Morrowind weapon glows. Off draws weapons as before.'); },   // AUDIT WEAPON-GLOW DOC-2: a bonus (a Legendary's power and a cast-when-strikes spell deal elemental damage and show none), and "as before" (the original - OpenMW - glows an enchanted part; off, the port draws it bare)
+    get note() { return t('features.weaponGlow.note', 'Weapons with fire, frost, or shock bonuses show a moving elemental outline that brightens with strength, and enchanted Morrowind weapons glow. When off, weapons appear without glow effects.'); },   // AUDIT WEAPON-GLOW DOC-2: a bonus (a Legendary's power and a cast-when-strikes spell deal elemental damage and show none), and "as before" (the original - OpenMW - glows an enchanted part; off, the port draws it bare)
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'weaponGlow', initial: true, online: 'player' }),   // WEAPON-GLOW1: systems/weaponGlow.js WEAPON_GLOW_PREF
@@ -731,7 +726,7 @@ export const FEATURES = Object.freeze([
     id: 'resource-highlights',
     group: 'sight',
     get title() { return t('features.resourceHighlights.title', 'Resource highlights'); },
-    get note() { return t('features.resourceHighlights.note', 'How herbs, veins, trees and other gathering spots near you stand out. Glint makes them catch the light with sparkles. Outline rings each one in its profession’s color, plain to see day or night. Both does both.'); },
+    get note() { return t('features.resourceHighlights.note', 'Highlights nearby herbs, veins, trees, and other gathering spots. Glint adds a sparkling shimmer, Outline draws a colored rim by profession visible day or night, and Both combines them.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'resourceHighlights', initial: 'glint', online: 'player', tiers: Object.freeze([tier('glint', () => t('features.resourceHighlights.glint', 'Glint')), tier('outline', () => t('features.resourceHighlights.outline', 'Outline')), tier('both', () => t('features.resourceHighlights.both', 'Both'))]) }),   // render/nodeGlint.js RESOURCE_HIGHLIGHT_PREF, RESOURCE_HIGHLIGHTS
@@ -764,7 +759,7 @@ export const FEATURES = Object.freeze([
     id: 'lockpick-minigame',
     group: 'loot',
     get title() { return t('features.lockpickGame.title', 'Lockpicking minigame'); },
-    get note() { return t('features.lockpickGame.note', 'On: a locked door or chest opens the lock window, and you set the pins yourself. Off: the lock is picked at once on your Lockpicking skill, and a failed try never breaks a lockpick, so you can simply try again.'); },
+    get note() { return t('features.lockpickGame.note', 'When On, locked doors and chests open a pin-picking minigame. When Off, locks roll against your Lockpicking skill immediately without breaking lockpicks on a failed attempt.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     control: Object.freeze({ store: 'prefs', key: 'lockpickMinigame', initial: false, online: 'player' }),
@@ -773,8 +768,7 @@ export const FEATURES = Object.freeze([
     id: 'quick-loot',
     group: 'loot',
     get title() { return t('features.quickLoot.title', 'Quick loot'); },
-    get note() { return t('features.quickLoot.note', 'Loot without opening a window: the mouse wheel moves through the list, Activate takes one item, and the Take '
-      + 'everything key takes all but junk (Take gear sets which gear). Off uses the inventory window.'); },   // LOOT18: the take-all's tier and the junk, in the FT15 budget
+    get note() { return t('features.quickLoot.note', 'Loot without opening a window: scroll with the mouse wheel, press Activate to take one item, or use Take everything. Take everything skips junk (filtered by Take gear), and turning this off uses the inventory window.'); },   // LOOT18: the take-all's tier and the junk, in the FT15 budget
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -797,10 +791,7 @@ export const FEATURES = Object.freeze([
     id: 'loot-rarity',
     group: 'loot',
     get title() { return t('features.lootRarity.title', 'Loot rarity'); },
-    get note() { return t('features.lootRarity.note', 'Weapons, armor and jewelry can drop as Magic, Rare or Legendary, with extra bonuses you can read '
-      + 'and compare. The odds depend on what you killed, where, and your luck. Rare and Legendary gear is rarer '
-      + 'early on and becomes more common as you grow. Rare and Legendary items drop unidentified. Off is the classic loot. Online, some weapons carry a '
-      + 'sigil that grows with your Renown.'); },   // SIGIL1; AUDIT UPDATE L8: LOOT-GATE's own words, its numbers never (CLAUDE.md LOOT-GATE)
+    get note() { return t('features.lootRarity.note', 'Weapons, armor, and jewelry can drop as Magic, Rare, or Legendary with bonus stats, scaled by enemy, location, luck, and level. Rare and Legendary items drop unidentified, online weapons can carry Renown sigils, and Off uses classic loot.'); },   // SIGIL1; AUDIT UPDATE L8: LOOT-GATE's own words, its numbers never (CLAUDE.md LOOT-GATE)
     get effect() { return t('features.lootRarity.effect', 'Takes effect on the next drop. Items you’re wearing update within a few seconds.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'lootRarity', initial: true, online: true }),   // LR5: ON by default (Mac) - the ladder is the port's own game, not an opt-in; the lane forces it on online as it always did
@@ -818,8 +809,7 @@ export const FEATURES = Object.freeze([
     id: 'wind',
     group: 'sight',
     get title() { return t('features.wind.title', 'Wind'); },
-    get note() { return t('features.wind.note', 'See the wind in the enhanced outdoors: trees and plants lean and sway with it, and faint streaks of '
-      + 'air show which way it blows and how hard.'); },
+    get note() { return t('features.wind.note', 'Makes wind visible in the enhanced outdoors: trees and plants lean and sway, and faint air streaks show its direction and strength.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -840,11 +830,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-sounds',
     group: 'sound',   // FT18: was world
     get title() { return t('features.enhancedSounds.title', 'Enhanced sounds'); },
-    get note() { return t('features.enhancedSounds.note', 'New sounds on the enhanced UI: wind outdoors that rises and falls with its strength and goes quiet '
-      + 'indoors, a coin clink in the enhanced inventory, hands and boots on stone when you climb, the tools when you '
-      + 'gather, a horse that snorts and breathes, its hooves changing with the ground, the sea under a deck with its '
-      + 'bells and its own music at the helm, surf on the shore, the wild by region and hour, and a town\'s street, '
-      + 'smithies and taverns.'); },   // AUDIT SOUNDSCAPE P1: under FT15's 450 - the rest is bible/08-Audio/Audio.md's
+    get note() { return t('features.enhancedSounds.note', 'Adds ambient and action audio to the enhanced UI, including dynamic wind, coins, climbing, gathering, horses, and ships at sea. Also adds shoreline surf, regional wildlife by time of day, and town streets, smithies, and taverns.'); },   // AUDIT SOUNDSCAPE P1: under FT15's 450 - the rest is bible/08-Audio/Audio.md's
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'soundEnhancements', initial: true, online: 'player' }),   // ES1: systems/enhancedSounds.js enhancedSoundsOn; windAudio.js windSoundOn rides it
@@ -865,8 +851,7 @@ export const FEATURES = Object.freeze([
     id: 'first-person-lighting',
     group: 'sight',
     get title() { return t('features.firstPersonLighting.title', 'First-person lighting'); },
-    get note() { return t('features.firstPersonLighting.note', 'What you hold in first person takes the light of where you stand: your weapon, your spellcasting '
-      + 'hands, the torch in your off hand and the Morrowind arms.'); },
+    get note() { return t('features.firstPersonLighting.note', 'Applies local lighting to your first-person weapon, spellcasting hands, off-hand torch, and Morrowind arms.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     control: Object.freeze({ store: 'prefs', key: 'firstPersonLighting', initial: true, online: 'player' }),   // MAC-I: combat/weapon/weaponRig.js fpLightingOn
@@ -879,8 +864,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-map',
     group: 'interface',   // FT18: was sight
     get title() { return t('features.enhancedMap.title', 'Enhanced map'); },
-    get note() { return t('features.enhancedMap.note', 'One hand-drawn parchment map for the world, towns and dungeons, held in your hands, that you can pan '
-      + 'and zoom. Off uses the classic three map windows.'); },
+    get note() { return t('features.enhancedMap.note', 'Combines the world, towns, and dungeons into one handheld parchment map that you can pan and zoom. Off uses the three classic map windows.'); },
     get effect() { return t('features.effect.nextMap', 'Takes effect the next time a map is opened.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'heldMap', initial: true, online: 'player' }),   // the player's own: what THEIR map looks like
@@ -894,8 +878,7 @@ export const FEATURES = Object.freeze([
     id: 'dungeon-map-3d',
     group: 'interface',
     get title() { return t('features.dungeonMap3d.title', '3D dungeon map'); },
-    get note() { return t('features.dungeonMap3d.note', 'The enhanced map shows dungeons in 3D, hand-drawn: turn, tilt and zoom it, with every floor you’ve '
-      + 'explored at its own height. Off shows one flat floor at a time.'); },
+    get note() { return t('features.dungeonMap3d.note', 'Draws the enhanced dungeon map in 3D so you can turn, tilt, and zoom across every explored floor at its own height. Off shows one flat floor at a time.'); },
     get effect() { return t('features.effect.nextMap', 'Takes effect the next time a map is opened.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'dungeonMap3d', initial: true, online: 'player' }),   // the player's own, as the held map's is
@@ -937,9 +920,8 @@ export const FEATURES = Object.freeze([
   Object.freeze({
     id: 'weather-events',
     group: 'world',
-    get title() { return t('features.weatherEvents.title', 'Weather as places'); },
-    get note() { return t('features.weatherEvents.note', 'Rain, storms and snow move across the land with the wind, so you can see a storm coming, walk into '
-      + 'it and out the other side. Off uses the classic weather, the same everywhere in the region.'); },
+    get title() { return t('features.weatherEvents.title', 'Moving weather'); },
+    get note() { return t('features.weatherEvents.note', 'Rain, storms, and snow move across the land with the wind, so you can see a storm coming and walk through it. When off, classic weather applies uniformly across the region.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'weatherEvents', initial: true, online: true }),   // WEATHER2b: weatherSim.js weatherFieldOn; forced on online - one sky
@@ -954,9 +936,7 @@ export const FEATURES = Object.freeze([
     id: 'real-forests',
     group: 'world',
     get title() { return t('features.realForests.title', 'Real forests'); },
-    get note() { return t('features.realForests.note', 'Trees grow together in forests, with open grassland between them. Dungeons, ruins, shrines and camps '
-      + 'are often hidden in the woods, and towns and farms stand in cleared fields. Deserts are unchanged. '
-      + 'Off spreads the trees evenly, like the original.'); },
+    get note() { return t('features.realForests.note', 'Trees cluster into forests with open grassland between them, hiding dungeons, ruins, shrines, and camps while leaving towns and farms in clearings. Deserts are unchanged, and turning this off spreads trees evenly like the original.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'realForests', initial: true, online: true }),
@@ -972,8 +952,7 @@ export const FEATURES = Object.freeze([
     id: 'bantha-jungle',
     group: 'world',
     get title() { return t('features.banthaJungle.title', 'Jungle of Bantha'); },
-    get note() { return t('features.banthaJungle.note', 'Bantha, from Lainlyn to Mournoth, becomes dense jungle: giant trees overhead, palms, ferns and broad '
-      + 'leaves underfoot, and a humid haze that is thickest at dawn and in rain. Off keeps its original woods.'); },
+    get note() { return t('features.banthaJungle.note', 'Turns Bantha, from Lainlyn to Mournoth, into dense jungle with giant trees, palms, ferns, and humid haze at dawn and in rain. Off keeps the original woods.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'banthaJungle', initial: true, online: true }),
@@ -1050,9 +1029,7 @@ export const FEATURES = Object.freeze([
     // AUDIT QUESTLINES VOICE-QL: since UI-4/REWARD-6 only a quest whose sheet pays gear offers a piece (qlLayer.js rowOf
     // `gear`, which qlJournal.js qlObjectivesBlock reads) - "each one finished offers" was no longer true. Still two
     // sentences and no longer than it was (FT15's note budget)
-    get note() { return t('features.questlines.note', 'Every quest shows its objectives, some let you choose how they end, some offer a piece of gear '
-      + 'fitted to you when done, and questlines lead to the Breaches, the Battlespire and the Abyss. Off is the classic journal '
-      + 'and its rewards, and online it is always on.'); },
+    get note() { return t('features.questlines.note', 'Quests show their objectives, some offer ending choices or fitted gear, and questlines lead to the Breaches, the Battlespire, and the Abyss. When off, quests use the classic journal and rewards (always on online).'); },
     get effect() { return t('features.questlines.effect', 'Takes effect on the next quest you take. Quests you already have keep their rules.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'questlines', initial: true, online: true }),   // systems/questlines/qlLaw.js QUESTLINES_PREF
@@ -1096,8 +1073,7 @@ export const FEATURES = Object.freeze([
     id: 'mod-windmills-kamer',
     group: 'world',
     get title() { return t('features.mod.title', '{title} by {author}', { title: 'Windmills of Daggerfall', author: 'Kamer' }); },
-    get note() { return t('features.mod.windmillsKamer.note', 'Windmills with turning sails on seven farms, with machinery inside and a look for every climate and '
-      + 'season. Off leaves the farms as they were.'); },
+    get note() { return t('features.mod.windmillsKamer.note', 'Adds windmills with turning sails and interior machinery to seven farms, styled for each climate and season. When off, the farms remain unchanged.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['mod']),
     control: Object.freeze({ store: 'prefs', key: WINDMILLS_KEY, initial: true, online: 'player' }),
@@ -1112,7 +1088,7 @@ export const FEATURES = Object.freeze([
     // the mod's own name and its author, as every mod row carries them (AUDIT SURV E) - the bundle names none, so the
     // credits' own unnamed form (ui/credits.js), as Oblivion Remaster Like Leveling's row names its source
     get title() { return t('features.mod.title', '{title} by {author}', { title: 'The King\u2019s Gambit', author: t('credits.author.unnamed', 'Unnamed ({source})', { source: 'thekingsgambit.dfmod' }) }); },
-    get note() { return t('features.mod.kingsGambit.note', 'A game of armies and kings at a tavern\'s card table, against a regular or another player, for gold or for fun. Off, the tables offer only Hold\'em and Iliac Hand.'); },
+    get note() { return t('features.mod.kingsGambit.note', 'Adds a strategy card game of armies and kings to tavern card tables, played against regulars or other players for gold or fun. When Off, tables offer only Hold\'em and Iliac Hand.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['mod']),
     control: Object.freeze({ store: 'prefs', key: KINGS_GAMBIT_KEY, initial: true, online: 'player' }),
@@ -1134,7 +1110,7 @@ export const FEATURES = Object.freeze([
   // IT1 (2026-10-04): IMMERSIVE TRAVEL - `world`, the carriages at the city gates. Its gate blocks and its two factions
   // are laid when the game loads (the world-data door latches its blocks, the faction dictionary is built at the load);
   // its fares and its rules are read as a driver's map opens.
-  modFeature('immersive-travel', () => t('features.mod.immersiveTravel.effect', 'Takes effect the next time you start the game. Loading a save isn’t enough. Fares and rules change at the next map.'), 'world'),
+  modFeature('immersive-travel', () => t('features.mod.immersiveTravel.effect', 'Takes effect the next time you start the game; loading a save is not enough. Fares and travel rules update when you next open a carriage driver’s map.'), 'world'),
   // WOD1 (2026-09-23): WORLD OF DAGGERFALL - `world`, because it is the
   // wilderness itself. Read at the world's mount, like the roads it
   // consults: the loader's list is built once per world.
@@ -1248,8 +1224,7 @@ export const FEATURES = Object.freeze([
     id: 'mod-weapon-sheathing',
     group: 'combat',
     title: 'Weapon Sheathing',
-    get note() { return t('features.mod.weaponSheathing.note', 'With the Morrowind body, a put-away weapon hangs in a scabbard on your hip or back, and a bow gets a '
-      + 'quiver. Off, a put-away weapon disappears, as in Morrowind.'); },
+    get note() { return t('features.mod.weaponSheathing.note', 'With the Morrowind body, sheathed weapons hang in a scabbard on your hip or back, and bows show a quiver. When off, sheathed weapons disappear, as in Morrowind.'); },
     get effect() { return t('features.mod.weaponSheathing.effect', 'Takes effect at once with the Morrowind body.'); },   // FT18: the Mods page it named is gone - the tile rebuilds it (enhancedMenu.js TILE_AFTER)
     kinds: Object.freeze(['mod']),
     control: Object.freeze({ store: 'prefs', key: 'mwSheathing', initial: true, online: 'player' }),
@@ -1277,7 +1252,7 @@ export const FEATURES = Object.freeze([
     id: 'beast-footwear',
     group: 'combat',
     get title() { return t('features.beastFeet.title', 'Beast Footwear'); },
-    get note() { return t('features.beastFeet.note', 'With the Morrowind body, how a Khajiit’s or an Argonian’s boots and shoes are drawn. Shafts only keeps a boot’s shaft over the bare foot and hides shoes. Hidden hides all footwear, as in Morrowind.'); },
+    get note() { return t('features.beastFeet.note', 'Sets how Khajiit and Argonian footwear looks on the Morrowind body. Shafts only shows boot shafts over bare feet and hides shoes, while Hidden hides all footwear.'); },
     get effect() { return t('features.mod.weaponSheathing.effect', 'Takes effect at once with the Morrowind body.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBeastFeet', initial: 'worn', online: 'player',
@@ -1288,7 +1263,7 @@ export const FEATURES = Object.freeze([
     id: 'beast-helmets',
     group: 'combat',
     get title() { return t('features.beastHelm.title', 'Beast Helmets'); },
-    get note() { return t('features.beastHelm.note', 'With the Morrowind body, how a Khajiit’s or an Argonian’s helmets are drawn. Open only hides closed helmets but keeps open ones, like the chain coif, as in Morrowind. Hidden hides them all.'); },
+    get note() { return t('features.beastHelm.note', 'Sets how Khajiit and Argonian helmets look on the Morrowind body. Open only hides closed helmets while showing open ones like the chain coif, and Hidden hides all helmets.'); },
     get effect() { return t('features.mod.weaponSheathing.effect', 'Takes effect at once with the Morrowind body.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBeastHelm', initial: 'worn', online: 'player',
@@ -1319,8 +1294,7 @@ export const FEATURES = Object.freeze([
     id: 'mw-body-motion',
     group: 'combat',
     get title() { return t('features.mwBodyMotion.title', 'Morrowind Body Motion'); },
-    get note() { return t('features.mwBodyMotion.note', 'In third person a Morrowind body walks at the pace you move, carries each weapon its own way, and '
-      + 'swings with its whole body while its legs keep moving. Off plays Morrowind\u2019s own animations.'); },
+    get note() { return t('features.mwBodyMotion.note', 'In third person, the Morrowind body matches your movement speed, holds each weapon differently, and swings with its whole body while moving. When off, it uses Morrowind’s original animations.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBodyMotion', initial: true, online: 'player' }),
@@ -1335,8 +1309,7 @@ export const FEATURES = Object.freeze([
     id: 'mw-shoulder-camera',
     group: 'sight',
     get title() { return t('features.mwShoulder.title', 'Over the Shoulder'); },
-    get note() { return t('features.mwShoulder.note', 'With a Morrowind body in third person, the camera sits behind a shoulder so your head no longer hides '
-      + 'your aim. With a weapon or a spell out it rises over your head instead, so shots land on the crosshair.'); },
+    get note() { return t('features.mwShoulder.note', 'In third person with the Morrowind body, the camera sits over your shoulder so your head never blocks your aim. With a weapon or spell drawn, it rises above your head so shots hit the crosshair.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwShoulderCam', initial: 'off', online: 'player', tiers: Object.freeze([
@@ -1366,8 +1339,7 @@ export const FEATURES = Object.freeze([
     id: 'npc-marks',
     group: 'world',
     get title() { return t('features.npcMarks.title', 'Morrowind People Marks'); },
-    get note() { return t('features.npcMarks.note', 'With Morrowind People on, a small icon bobs over the people worth finding: a yellow mark over someone a '
-      + 'quest needs, a coin over a merchant, and a blue gem over guild trainers, guild quest givers and the arena\u2019s officers.'); },
+    get note() { return t('features.npcMarks.note', 'With Morrowind People on, floating icons mark key townsfolk. Quest targets show a yellow mark, merchants show a coin, and guild trainers, guild quest givers, and arena officers show a blue gem.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'npcMarks', initial: true, online: 'player' }),
@@ -1383,8 +1355,7 @@ export const FEATURES = Object.freeze([
     id: 'mw-billboard-look',
     group: 'world',
     get title() { return t('features.mwBillboardLook.title', 'Billboard Look'); },
-    get note() { return t('features.mwBillboardLook.note', 'With the Morrowind body, bodies and horses stand as flat upright pictures, like the '
-      + 'classic sprites. Off, they are drawn as the camera sees them in 3D.'); },
+    get note() { return t('features.mwBillboardLook.note', 'With the Morrowind body, characters and horses appear as flat camera-facing sprites, like the classic sprites. When off, they render in full 3D.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBillboardLook', initial: false, online: 'player' }),
@@ -1399,8 +1370,7 @@ export const FEATURES = Object.freeze([
     id: 'mw-model-detail',
     group: 'world',
     get title() { return t('features.mwModelDetail.title', 'Morrowind Model Detail'); },
-    get note() { return t('features.mwModelDetail.note', 'With the Morrowind body, Pixelated draws bodies, horses and your arms in large pixels '
-      + 'like the classic sprites. Sharp draws them at your screen’s full resolution and uses more video memory.'); },
+    get note() { return t('features.mwModelDetail.note', 'With the Morrowind body, Pixelated draws characters, horses, and your arms in large pixels like the classic sprites. Sharp draws them at full screen resolution and uses more video memory.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwModelDetail', initial: 'pixel', online: 'player', tiers: Object.freeze([tier('pixel', () => t('features.mwModelDetail.pixel', 'Pixelated')), tier('sharp', () => t('features.mwModelDetail.sharp', 'Sharp'))]) }),
@@ -1428,8 +1398,7 @@ export const FEATURES = Object.freeze([
     id: 'enemy-infighting',
     group: 'combat',
     get title() { return t('features.enemyInfighting.title', 'Enemies Fight Each Other'); },
-    get note() { return t('features.enemyInfighting.note', 'Monsters attack anything they aren’t allied with, not just you: a bear fights a spider, a Daedra '
-      + 'fights a knight. On by default in Daggerfall Unity.'); },
+    get note() { return t('features.enemyInfighting.note', 'Monsters fight enemies from rival factions as well as you, such as bears attacking spiders or Daedra fighting knights. On by default in Daggerfall Unity.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Enhancements/EnemyInfighting' }),
@@ -1448,8 +1417,7 @@ export const FEATURES = Object.freeze([
     id: 'torches-from-items',
     group: 'loot',
     get title() { return t('features.torchesFromItems.title', 'Torches Light Your Way'); },
-    get note() { return t('features.torchesFromItems.note', 'Your light in dungeons comes from a torch, lantern or candle you carry, and it burns down, instead '
-      + 'of a light you always have. Off by default in Daggerfall Unity.'); },
+    get note() { return t('features.torchesFromItems.note', 'Dungeon light comes from torches, lanterns, or candles you carry that burn down over time, instead of a permanent light. Off by default in Daggerfall Unity.'); },
     get effect() { return t('features.torchesFromItems.effect', 'Takes effect right away. New characters and shop stock follow it.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Enhancements/PlayerTorchFromItems' }),
@@ -1476,7 +1444,7 @@ export const FEATURES = Object.freeze([
     id: 'calm-hud',
     group: 'interface',
     get title() { return t('features.calmHud.title', 'Calm HUD'); },
-    get note() { return t('features.calmHud.note', 'Your health, fatigue and magicka bars fade away while all three are full, and come back the moment one changes.'); },
+    get note() { return t('features.calmHud.note', 'Your health, fatigue, and magicka bars fade out while all three are full and return as soon as one changes.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'hudCalm', initial: true, online: 'player' }),
@@ -1515,7 +1483,7 @@ export const FEATURES = Object.freeze([
     id: 'dungeon-wall-style',
     group: 'sight',
     get title() { return t('features.dungeonWallStyle.title', 'Dungeon Wall Style'); },
-    get note() { return t('features.dungeonWallStyle.note', 'Which textures dungeon walls use: Classic, the region’s climate (Climate) or random (Random). Climate and Random keep main-story dungeons classic, while Climate Only and Random Only change them too. Classic by default in Daggerfall Unity.'); },
+    get note() { return t('features.dungeonWallStyle.note', 'Sets dungeon wall textures to Classic (the Daggerfall Unity default), regional (Climate), or random (Random). Climate and Random keep main-story dungeons classic, while Climate Only and Random Only change them too.'); },
     get effect() { return t('features.effect.nextDungeon', 'Takes effect on the next dungeon you enter.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Video/RandomDungeonTextures', classic: 0 }),   // FT18: Classic, what All off sets - a choice with no Off
@@ -1535,7 +1503,7 @@ export const FEATURES = Object.freeze([
     id: 'quick-slots',
     group: 'interface',
     get title() { return t('features.quickSlots.title', 'Quick slots'); },
-    get note() { return t('features.quickSlots.note', 'Diamond puts 4 slots in a diamond at the bottom left, on keys 1 to 4. Hotbar puts 10 above your health bars on keys 1 to 0. Diamonds makes them diamonds. Drag an item or spell onto a slot, or point at it and press the key. Off hides them, but their keys still work.'); },
+    get note() { return t('features.quickSlots.note', 'Diamond shows 4 bottom-left slots (keys 1–4), and Hotbar and Diamonds show 10 above your health bars (keys 1–0). Drag items or spells onto slots, or hover and press a key. Off hides them, but keys still work.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -1576,9 +1544,7 @@ export const FEATURES = Object.freeze([
     // AUDIT EVENTS1 W5: WB13b's rules (no dash aside, no rhythm of three), and the switch's truth (a raid's news goes back to
     // the HUD's line, not the chat)
     // EVENTS2: and what its chips do (a kind turned off leaves the board and its news, and is kept in the journal alone)
-    get note() { return t('features.eventBoard.note', 'A board at the left of the screen lists the world events you can still reach, with how far away each one '
-      + 'is and the time left. Their news opens at the top of the board and is kept in your journal. Turn an event off with its own button and '
-      + 'it leaves the board, its news kept in your journal alone. Off, the news goes back to the chat and the screen\'s message line.'); },
+    get note() { return t('features.eventBoard.note', 'Lists active world events on the left with distance, time left, and updates saved to your journal. You can dismiss single events, or turn the board Off to show updates in chat and HUD messages.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     // EVENTS2 (the players on Discord: "Allow us to filter which events we want to show up in the event tracker", "I
@@ -1599,8 +1565,7 @@ export const FEATURES = Object.freeze([
     id: 'quest-herald',
     group: 'interface',
     get title() { return t('features.questHerald.title', 'Quest news'); },
-    get note() { return t('features.questHerald.note', 'A notice slides in when a quest begins, when its journal gains an entry, when one of its deadlines is '
-      + 'less than a day away, and when it ends. Off updates the journal without a notice.'); },   // AUDIT GUIDE H1
+    get note() { return t('features.questHerald.note', 'Shows an on-screen notice when a quest starts or ends, adds a journal entry, or has less than a day left. When off, the journal updates without a notice.'); },   // AUDIT GUIDE H1
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'questHerald', initial: true, online: 'player' }),   // ui/quest/questHerald.js HERALD_PREF
@@ -1612,8 +1577,7 @@ export const FEATURES = Object.freeze([
     id: 'quest-tracker',
     group: 'interface',
     get title() { return t('features.questTracker.title', 'Quest tracker'); },
-    get note() { return t('features.questTracker.note', 'A card at the top right shows the quest you track from the journal, or else the one it last updated: its '
-      + 'newest entry, where it points and the time left. Off keeps the classic screen, with no quest card.'); },
+    get note() { return t('features.questTracker.note', 'A top-right card shows your tracked or most recently updated quest, including its latest entry, destination, and time left. When off, no quest card is shown.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'questTracker', initial: true, online: 'player' }),   // ui/quest/questTracker.js TRACKER_PREF
@@ -1624,8 +1588,7 @@ export const FEATURES = Object.freeze([
     id: 'quest-marks',
     group: 'interface',
     get title() { return t('features.questMarks.title', 'Quest marks'); },
-    get note() { return t('features.questMarks.note', 'Places your quests send you to are marked on the map once your map knows them, and the quest you follow is '
-      + 'marked on the compass. Off is the classic map and compass, which mark nothing for a quest.'); },
+    get note() { return t('features.questMarks.note', 'Marks known quest destinations on your map and shows your tracked quest on the compass. When off, the map and compass show no quest markers.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'questMarks', initial: true, online: 'player' }),   // ui/quest/questMarks.js MARKS_PREF
@@ -1707,8 +1670,7 @@ export const FEATURES = Object.freeze([
     id: 'wilderness-camps',
     group: 'world',
     get title() { return t('features.wildernessCamps.title', 'Wilderness camps & packs'); },
-    get note() { return t('features.wildernessCamps.note', 'Out in the wilds you sometimes meet a small group of enemies, a camp or a roaming pack, instead of '
-      + 'only one at a time. Off keeps the classic single encounters.'); },
+    get note() { return t('features.wildernessCamps.note', 'In the wilds, you can encounter enemy camps and roaming packs instead of only single enemies at a time. When off, wilderness encounters spawn one enemy at a time.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'wildernessCamps', initial: true, online: 'player' }),
@@ -1735,9 +1697,7 @@ export const FEATURES = Object.freeze([
     id: 'town-watch',
     group: 'world',   // FT18: was combat
     get title() { return t('features.townWatch.title', 'The watch defends the town'); },
-    get note() { return t('features.townWatch.note', 'When a monster attacks you in a town and you’re not wanted, the town guard comes to help, then '
-      + 'leaves once it’s safe. Commit a crime and they come for you as usual. Off keeps the classic guard, '
-      + 'which only shows up for crimes.'); },
+    get note() { return t('features.townWatch.note', 'If a monster attacks you in town while you are not wanted, guards come to help and leave once it is safe. Guards still pursue you for crimes, and when off, they appear only for crimes.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'townWatch', initial: true, online: 'player' }),
@@ -1771,8 +1731,8 @@ export const FEATURES = Object.freeze([
     id: 'blood',
     group: 'combat',
     get title() { return t('features.blood.title', 'Blood'); },
-    get note() { return t('features.blood.note', 'Stains stay on floors and walls where blood lands. A big killing blow sprays it further, and a heavy hit on you splashes a few drops on the screen. The slider sets how much, from Light to Abattoir. Off keeps the classic fading splash.'); },
-    get effect() { return t('features.blood.effect', 'Takes effect right away. How many marks stay changes when the game next loads or you enter a dungeon.'); },
+    get note() { return t('features.blood.note', 'Blood leaves stains on floors and walls, killing blows spray further, and heavy hits on you splash the screen. The slider sets the amount from Light to Abattoir, while Off uses the classic fading splash.'); },
+    get effect() { return t('features.blood.effect', 'Takes effect right away. The stain limit updates the next time you start the game or enter a dungeon.'); },
     kinds: Object.freeze(['enhanced']),
     // FT18: BLOOD, ONE ROW. BLOOD1's marks, BLOOD1b's overkill, BLOOD2e's lens and BLOOD2g's gore were four tiles over
     // one system, and the gore dial had no Off: the one question a player asks - blood or no blood - took three
@@ -1787,9 +1747,9 @@ export const FEATURES = Object.freeze([
         Object.freeze({ store: 'prefs', key: 'blood-screen', initial: true, online: 'player' }),
       ]),
       parts: Object.freeze([
-        Object.freeze({ key: 'blood-marks', get label() { return t('features.blood.marks', 'Marks stay'); } }),
+        Object.freeze({ key: 'blood-marks', get label() { return t('features.blood.marks', 'Lasting stains'); } }),
         Object.freeze({ key: 'blood-overkill', get label() { return t('features.blood.overkill', 'Overkill'); } }),
-        Object.freeze({ key: 'blood-screen', get label() { return t('features.blood.screen', 'On the lens'); } }),
+        Object.freeze({ key: 'blood-screen', get label() { return t('features.blood.screen', 'Screen splash'); } }),
       ]),
     }),
   }),
@@ -1797,7 +1757,7 @@ export const FEATURES = Object.freeze([
     id: 'mod-climates-calories',   // a mod-row id: WM3's law reaches the credits' vendor through it
     group: 'character',
     get title() { return t('features.mod.title', '{title} by {author}', { title: 'Climates & Calories', author: 'Ralzar' }); },   // AUDIT SURV E: the author's name, as every mod row carries it
-    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play, so eat, drink, dress for the climate and rest by a fire or in a bed. Boons only rewards you, Casual borrows a little stamina, Hard can make you sick, and Off is the classic game.'); },
+    get note() { return t('features.mod.climatesCalories.note', 'Adds hunger, thirst, sleep, and weather, so you eat, drink, dress for the climate, and rest. Boons only grants bonuses, Casual costs a little stamina, Hard can make you sick, and Off uses classic rules.'); },
     get effect() { return t('features.mod.climatesCalories.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['mod', 'enhanced', 'classic']),   // AUDIT SURV E: a mod row, under the MOD AUTHORED filter
     // MODS-ONLINE-3 (2026-09-22, Mac): THIS IS A MOD ROW AND IT IS THE
@@ -1856,7 +1816,7 @@ export const FEATURES = Object.freeze([
     id: 'naval-combat',
     group: 'combat',
     get title() { return t('features.navalCombat.title', 'Naval Combat'); },
-    get note() { return t('features.navalCombat.note', 'Ship battles on Come Sail Away’s boats. At the helm, look to one side and hold Attack to aim a broadside, then let go to fire. Pirates, merchant ships and navies sail the Bay. Batter a ship until it surrenders, board it, take its cargo, then sink it or let it go. Piracy is a crime, and pirates can board your ship and fight you on deck. Online, everyone in the room shares one sea.'); },
+    get note() { return t('features.navalCombat.note', 'Fight pirates, merchants, and navies on Come Sail Away ships. At the helm, look to a side, hold Attack to aim, and release to fire. Board surrendered ships for cargo. Piracy is a crime, and pirates can board you.'); },
     get effect() { return t('features.navalCombat.effect', 'Takes effect right away. Ship handling changes the next time you take the helm. Online it’s always on.'); },   // AUDIT NAV2 F14: the helm takes the handling once a session (comeSailAway.js responsive)
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -1877,7 +1837,7 @@ export const FEATURES = Object.freeze([
         Object.freeze({ key: 'naval-aim-camera', get label() { return t('features.navalCombat.aimCamera', 'Broadside camera'); } }),
         Object.freeze({ key: 'naval-handling', get label() { return t('features.navalCombat.handling', 'Ship handling'); },
           tiers: Object.freeze([tier('responsive', () => t('features.navalCombat.handling.responsive', 'Responsive')), tier('classic', () => t('features.navalCombat.handling.classic', 'Classic'))]) }),
-        Object.freeze({ key: 'naval-auto-repair', get label() { return t('features.navalCombat.autoRepair', 'Crew repairs on their own'); } }),
+        Object.freeze({ key: 'naval-auto-repair', get label() { return t('features.navalCombat.autoRepair', 'Automatic crew repairs'); } }),
       ]),
     }),
   }),
