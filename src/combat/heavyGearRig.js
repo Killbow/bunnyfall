@@ -23,7 +23,6 @@ setDeathListener('grapplingHook', () => cancelGrapple());
 export const hookFramesDraw = (hooking, { arms = false, body = false } = {}) => !!hooking && !arms && !body;
 let _hookWas = false;
 
-/** The rig's sounds and words, bound to the rig that steps (four hosts, four rigs; the stepping one owns them). */
 function bindRig(rig, { audio, say, camera }) {
   if (_rig === rig) return;
   _rig = rig;
@@ -35,11 +34,6 @@ function bindRig(rig, { audio, say, camera }) {
   bindGrappleSay(say);
 }
 
-/**
- * Once a frame. `hookDown` is the hook key's state, `canHook` whether a throw may start now, and `hasHook` whether the
- * pack holds a hook. Returns `{ grappling, hookFrame }`: whether the throw is in the hand (the rig then starts no swing
- * and no technique) and the hook's frame to draw.
- */
 export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, paralyzed, hookDown, canHook, hasHook, camera, collider, canvas, renderer, flip, audio, say }) {
   bindRig(rig, { audio, say, camera });
   const drawn = !sheathed && !paralyzed;
@@ -63,12 +57,11 @@ export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, para
   return { grappling, hookFrame };
 }
 
-/** Once a loose (the rig's noteShot - every host's player loose calls it): the ballista's kick and thump, and the
- *  wire's word for the peers. */
 export function noteHeavyShot(weapon, shot, { audio } = {}) {
   const bolt = isBallistaItem(weapon);
+  // The pose wire carries bl so peers draw the ballista bolt on its arc.
   if (shot) shot.bl = bolt ? 1 : 0;
   if (!bolt) return;
-  try { betterAmbience.weaponKick?.(BALLISTA_KICK); } catch { /* the shake is not the shot's problem */ }
-  try { if (SOUND.ArrowShoot != null) audio?.playOneShot?.(SOUND.ArrowShoot, 1, 0.55); } catch { /* nor the sound */ }
+  try { betterAmbience.weaponKick?.(BALLISTA_KICK); } catch { }
+  try { if (SOUND.ArrowShoot != null) audio?.playOneShot?.(SOUND.ArrowShoot, 1, 0.55); } catch { }
 }

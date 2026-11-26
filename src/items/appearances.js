@@ -1,9 +1,6 @@
 // @ts-check
-// APPEARANCES (2026-10-27; bible/04-Characters/Wardrobe.md): A CHARACTER'S LOOKS AND THE WARDROBE'S ACTS. Every look the
-// character holds is remembered on it (`entity.appearances`, keys of net/appearanceLaw.js, in the save); at a Clothing
-// Store, an Armorer or a Weaponsmith a worn piece takes any collected look of its kind for gold, or its own back for
-// nothing. The look is the piece's `appearance` field - the wearer's mark, stripped when the piece changes hands
-// (net/realm/realmTradeLaw.js RECEIVER_MARKS). Cosmetic: the client's word is enough, and nothing rides the service.
+// Collected looks and the Wardrobe. A worn piece takes a collected look of its kind for gold, or its own back free.
+// The `appearance` field is a receiver mark, stripped when the piece changes hands. Looks are cosmetic only.
 import {
   ALL_LOOKS, LOOK_KIND_ORDER, lookCode, lookOfKey, lookOfPiece, appearanceOf, pieceKind, lookVariants, groupOfTemplate,
 } from '../net/appearanceLaw.js';
@@ -14,23 +11,16 @@ import { equipTableOf, EQUIP_SLOTS } from '../characters/equip.js';
 import { totalGoldAmount, deductGold } from '../justice/court.js';
 import { t } from '../ui/textManager.js';
 
-/** The shops that keep a wardrobe: the tailor and the two smiths (DFU's own Clothing Store, Armorer, Weaponsmith). */
 export const WARDROBE_SHOPS = Object.freeze(/** @type {number[]} */ ([BUILDING_TYPES.ClothingStore, BUILDING_TYPES.Armorer, BUILDING_TYPES.WeaponSmith]));
 export const isWardrobeShop = (/** @type {unknown} */ buildingType) => WARDROBE_SHOPS.includes(/** @type {number} */ (buildingType));
 
-/** THE FEE: a twentieth of what a piece of the look is minted at (systems/item/itemTemplates.js itemBaseValue), never
- *  under WARDROBE_FEE_MIN - an iron look is cheap, a Daedric one dear. Its own look back costs nothing. */
 export const WARDROBE_FEE_SHARE = 20;
 export const WARDROBE_FEE_MIN = 25;
-/** A look's stand-in piece: what a renderer or a namer is handed for it. */
 export const lookStub = (/** @type {{ t: number, m: number, v: number }} */ look) => ({ group: groupOfTemplate(look.t), templateIndex: look.t, material: look.m, variant: look.v });
 export const wardrobeFee = (/** @type {{ t: number, m: number, v: number }} */ look) => Math.max(WARDROBE_FEE_MIN, Math.round(itemBaseValue(lookStub(look)) / WARDROBE_FEE_SHARE));
 
-// ── THE COLLECTION ──────────────────────────────────────────────────
-
 /** @type {WeakMap<object, { arr: any, set: Set<string> }>} */
 const _sets = new WeakMap();
-/** The looks a character holds, as a Set of keys - read from its save's list, every key there is a look there is. */
 export function appearancesOf(entity) {
   if (!entity || typeof entity !== 'object') return new Set();
   const arr = entity.appearances;
@@ -40,18 +30,13 @@ export function appearancesOf(entity) {
   _sets.set(entity, { arr, set });
   return set;
 }
-/** Whether the character holds a look. */
 export const holdsLook = (entity, /** @type {{ t: number, m: number, v: number }} */ look) => !!look && appearancesOf(entity).has(lookCode(look));
 
-/** What a piece last read as - so a frame's sweep reads each record once until it changes. @type {WeakMap<object, string>} */
+/** @type {WeakMap<object, string>} */
 const _read = new WeakMap();
 const readSig = (/** @type {any} */ it) => `${it.group}|${it.templateIndex}|${it.material}|${it.variant}|${it.artifact}|${it.rarity}`;
-/**
- * THE SWEEP: every armour piece, shield and weapon in the character's pack, wagon and Materials Bag adds its look -
- * once a frame from the HUD's one call (ui/hud/hud.js drawHud, which every host makes), and when the Wardrobe opens.
- * The list is replaced, never pushed to (a save's copy may share it), and kept in the catalogue's order.
- * @returns {number} the looks added
- */
+// The list is replaced, never pushed to, because a save's copy may share the array.
+/** @returns {number} */
 export function noteHeldLooks(entity) {
   if (!entity || typeof entity !== 'object') return 0;
   /** @type {string[]} */
@@ -76,7 +61,6 @@ export function noteHeldLooks(entity) {
   return new Set(add).size;
 }
 
-/** A kind's looks: `{ kind, held, total, looks }`, the looks in the catalogue's order, each `{ look, held }`. */
 export function lookGroups(entity) {
   const have = appearancesOf(entity);
   return LOOK_KIND_ORDER.map((kind) => {
@@ -84,12 +68,8 @@ export function lookGroups(entity) {
     return { kind, held: looks.filter((l) => l.held).length, total: looks.length, looks };
   });
 }
-/** `{ held, total }` over every look. */
 export const looksCount = (entity) => ({ held: [...appearancesOf(entity)].length, total: ALL_LOOKS.length });
 
-// ── THE WORDS ───────────────────────────────────────────────────────
-
-/** A kind's name, as a page heads its group. */
 export function kindName(/** @type {string} */ kind) {
   switch (kind) {
     case 'head': return t('looks.kind.head', 'Head');
@@ -114,12 +94,10 @@ export function kindName(/** @type {string} */ kind) {
     default: return kind;
   }
 }
-/** A look's style among its material's, 1-based, or 0 where the material draws one style only. */
 export function lookStyle(/** @type {{ t: number, m: number, v: number }} */ look) {
   const vs = lookVariants(look.t, look.m);
   return vs.length > 1 ? vs.indexOf(look.v) + 1 : 0;
 }
-/** A look's name: "Steel Cuirass", "Iron Helm, style 3" - its metal always said (past DFU's helm and shield gate). */
 export function lookName(/** @type {{ t: number, m: number, v: number }} */ look) {
   const { material, name } = lookNameParts(lookStub(look));
   const whole = material ? t('looks.name', '{material} {name}', { material, name }) : name;
@@ -127,27 +105,21 @@ export function lookName(/** @type {{ t: number, m: number, v: number }} */ look
   return style ? t('looks.styled', '{name}, style {n}', { name: whole, n: style }) : whole;
 }
 
-/** What a worn piece looks like, said - "Looks like Ebony Katana" - or '' in its own: the Wardrobe's list and the pack's
- *  Info box say it, so a piece whose picture is its own is never a surprise on the body. */
 export function lookLine(item) {
   const a = appearanceOf(item);
   return a ? t('wardrobe.wearing', 'Looks like {name}', { name: lookName(a) }) : '';
 }
 
-// ── THE WARDROBE ────────────────────────────────────────────────────
-
-/** The worn pieces a look can be laid over, head to foot then the hands: `{ slot, item, kind }`. */
 export function wardrobePieces(entity) {
   let table = [];
   try { table = equipTableOf(entity) ?? []; } catch { table = []; }
   const out = [];
   for (const [slot, item] of table.entries()) {
     const kind = item ? pieceKind(item) : null;
-    if (kind && LOOK_KIND_ORDER.includes(kind)) out.push({ slot, item, kind });   // AUDIT HORIZONTAL E5: a kind no look is of (a Light Flail's) offers none
+    if (kind && LOOK_KIND_ORDER.includes(kind)) out.push({ slot, item, kind });
   }
   return out.sort((a, b) => LOOK_KIND_ORDER.indexOf(a.kind) - LOOK_KIND_ORDER.indexOf(b.kind) || a.slot - b.slot);
 }
-/** The looks a piece can take: every collected look of its kind but its own. */
 export function looksForPiece(entity, item) {
   const kind = pieceKind(item);
   if (!kind) return [];
@@ -155,10 +127,8 @@ export function looksForPiece(entity, item) {
   const have = appearancesOf(entity);
   return ALL_LOOKS.filter((a) => a.kind === kind && a !== own && have.has(lookCode(a)));
 }
-/** Whether a piece is worn by the character now. */
 const isWorn = (entity, item) => { try { return (equipTableOf(entity) ?? []).includes(item); } catch { return false; } };
 
-/** Why a look cannot be laid over a piece now, by its word - or null. */
 export function wearRefusal(entity, item, look) {
   const a = look ? lookOfKey(lookCode(look)) : null;
   if (!a) return 'look';
@@ -170,7 +140,6 @@ export function wearRefusal(entity, item, look) {
   if (totalGoldAmount(entity) < wardrobeFee(a)) return 'gold';
   return null;
 }
-/** LAY A LOOK OVER A WORN PIECE: its fee paid, the look worn. `{ ok, reason, fee }` - refused in a word, nothing taken. */
 export function wearAppearance(entity, item, look) {
   const reason = wearRefusal(entity, item, look);
   if (reason) return { ok: false, reason, fee: 0 };
@@ -180,12 +149,7 @@ export function wearAppearance(entity, item, look) {
   item.appearance = { t: a.t, m: a.m, v: a.v };
   return { ok: true, reason: null, fee };
 }
-/**
- * APPEARANCES-II: THE PREVIEW'S WEARER - the character as it would look with `look` over a worn piece (its own look for
- * null), before Wear is paid. A stand-in that reads as the character in everything but its equip table, whose slot holds
- * a copy of the piece wearing the look; every renderer draws the copy through net/appearanceLaw.js drawnPiece. Neither the
- * piece nor the character is touched, and nothing but a drawing reads it (ui/wardrobe/wardrobePreview.js).
- */
+// A stand-in that differs from the character only in its equip table. Neither the piece nor the character changes.
 export function previewWearer(entity, item, look) {
   let table = [];
   try { table = equipTableOf(entity) ?? []; } catch { table = []; }
@@ -197,14 +161,12 @@ function previewPiece(item, look) {
   void appearance;
   return look ? { ...own, appearance: { t: look.t, m: look.m, v: look.v } } : own;
 }
-/** A WORN PIECE'S OWN LOOK BACK, for nothing. `{ ok, reason }`. */
 export function clearAppearance(entity, item) {
   if (!isWorn(entity, item)) return { ok: false, reason: 'worn' };
   if (!item.appearance) return { ok: false, reason: 'none' };
   delete item.appearance;
   return { ok: true, reason: null };
 }
-/** The slot a piece is worn in, as a page names it (systems/equip.js EQUIP_SLOTS) - an armour slot its kind's word. */
 export function slotName(/** @type {number} */ slot) {
   const S = EQUIP_SLOTS;
   switch (slot) {

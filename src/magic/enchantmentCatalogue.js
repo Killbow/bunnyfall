@@ -1,77 +1,18 @@
-// M4 - THE ENCHANTMENT CATALOGUE: every effect's EnchantmentSettings,
-// gathered from the twenty-four effect classes that declare them
-// (MIT, Daggerfall Workshop).
-//
-// Same shape as M1's potion recipes and gathered the same way: DFU
-// declares each effect's cost inside the effect class, so a port with
-// no broker to register with needs them in one table. All twenty-four
-// are here, the three CastWhen* included - their spell prices are
-// static tables sitting beside the cost tables, not something the
-// spell maker has to supply.
-//
-// THE SIGN IS THE MECHANIC, and M3's own header described it
-// backwards - corrected there and pinned in test/systems/enchanting.test.js.
-// A POWER costs POSITIVE points. A SIDE EFFECT costs NEGATIVE points,
-// so adding one to the total REDUCES it: taking a drawback BUYS you
-// budget. That is the whole trade the item maker offers, and it is
-// why M3 sums the two lists together rather than subtracting them.
-// The gold walk takes the POWERS ONLY, so the budget a drawback buys
-// is free.
-//
-// FOUR SHAPES, NOT ONE, which is the thing this table has to get
-// right, because ClassicParam does not mean the same thing in each:
-//
-//   `costs`  - indexed BY ClassicParam, which runs 0..n-1. Fourteen
-//              effects. (ExtraSpellPts writes its param from a
-//              `classicParams` list rather than the loop counter, but
-//              that list is the identity 0..10, so it indexes too.)
-//   `cost` alone - ONE cost, and the settings it mints carry
-//              ClassicParam = **-1**, not 0. Six effects. A caller
-//              that passes 0 is asking for a param this effect never
-//              mints, and gets null.
-//   `cost` + `domain` - one FLAT cost over a whole param domain.
-//              EnhancesSkill alone: every one of the thirty-five
-//              skills costs the same 900, and the param is the SKILL
-//              id.
-//   `spells` - keyed by classic SPELL id, which is neither an index
-//              nor dense. The three CastWhen*.
-//
-// So `costs[param]` is the wrong lookup for ten of the twenty-four,
-// and enchantmentCost() dispatches on shape instead.
-//
-// THE SPLIT: fifteen powers to nine side effects. Of the fourteen
-// param-table effects it is exactly seven and seven; the six
-// single-cost effects split four to two; EnhancesSkill and all three
-// CastWhen* price positive. No effect mixes a positive with a
-// negative across its own parameters - SoulBound alone mixes zeros in
-// among its negatives, and a zero picks no side - which is what makes
-// "powers" and "side effects" two lists rather than one list with a
-// filter.
-
 import { SKILL_COUNT, SKILL_NAMES } from '../characters/skills.js';
 import { MOBILE_TYPES } from '../characters/mobileTypes.js';
 import { ENEMY_NAMES } from '../characters/enemyBasics.js';
-import { localizedStrings } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { getLocalizedSpellName, getLocalizedEnemyName } from '../ui/textManager.js';   // L10N3e: a spell's and a soul's name, by their own ids
+import { localizedStrings } from '../ui/textManager.js';
+import { getLocalizedSpellName, getLocalizedEnemyName } from '../ui/textManager.js';
 
-/** The ClassicParam a SINGLE-cost effect mints (AbsorbsSpells:45 and
- *  its five siblings all write `ClassicParam = -1`). It is a real
- *  value that reaches the saved item, not a "none" sentinel we
- *  invented, so it has to round-trip. */
+// Single-cost effects store param -1 on the saved item, as classic does, so it must round-trip.
 export const PARAM_NONE = -1;
 
-/** SoulBound enumerates `EnemyBasics.Enemies[i]` for i < 43 (:56-66),
- *  so its params are monster IDs 0-42 and its names are those
- *  enemies' own. */
 export const SOUL_COUNT = 43;
 const SOUL_NAMES = Object.freeze(ENEMY_NAMES.slice(0, SOUL_COUNT));
 
-/** EnchantmentTypes' cost tables (each effect's own
- *  GetEnchantmentSettings). See the header for the four shapes. The
- *  labels are DFU's own trailing comments, kept because they are the
- *  only names these parameters have. */
+// `costs` is indexed by param, and `cost` alone takes param -1. `domain` prices every param below it the same, and
+// `spells` is keyed by sparse spell ID in the classic order the picker shows.
 export const ENCHANTMENT_COSTS = Object.freeze({
-  // --- indexed BY ClassicParam (0..n-1) ---
   BadReactionsFrom: { costs: [-120, -80, -120], labels: ['Humanoids', 'Animals', 'Daedra'] },
   BadRepWith: { costs: [-1000, -1000, -1000, -1000, -1000, -5000], labels: ['Commoners', 'Merchants', 'Scholars', 'Nobility', 'Underworld', 'All'] },
   ExtraSpellPts: { costs: [500, 500, 500, 500, 200, 200, 200, 700, 800, 900, 1000], labels: ['During Winter', 'During Spring', 'During Summer', 'During Fall', 'During Full Moon', 'During Half Moon', 'During New Moon', 'Near Undead', 'Near Daedra', 'Near Humanoids', 'Near Animals'] },
@@ -83,15 +24,11 @@ export const ENCHANTMENT_COSTS = Object.freeze({
   LowDamageVs: { costs: [-800, -900, -1000, -1200], labels: ['Undead', 'Daedra', 'Humanoid', 'Animals'] },
   PotentVs: { costs: [800, 900, 1000, 1200], labels: ['Undead', 'Daedra', 'Humanoid', 'Animals'] },
   RegensHealth: { costs: [4000, 3000, 3000], labels: ['all the time', 'in sunlight', 'in darkness'] },
-  // DRAGON-SOUL (FIELD BUGS 2026-10-11, the owner: "Fuck matching DFU."): the Dragonling every encounter spawns (34)
-  // binds as the quest's (40) does, -5000 - DFU priced it at nothing, a soul the trap took and the picker named
-  // "Dragonling" beside the one worth five thousand. A departure (Port-Ledger A, DRAGON-SOUL); its SoulPts, the gold a
-  // soul adds to a shop's price, stay DFU's
+  // Param 34 (the encounter Dragonling) costs -5000 like param 40, a deliberate change from the classic 0.
   SoulBound: { costs: [0, -10, -20, 0, 0, 0, 0, -10, -30, -90, -100, 0, -10, -30, -140, 0, -30, 0, -300, -100, 0, -30, -30, -300, -10, -500, -500, -100, -700, -1500, -1000, -8000, -1000, -2500, -5000, -300, -300, -300, -300, 0, -5000, -100, -100] },
   UserTakesDamage: { costs: [-6000, -1000], labels: ['in sunlight', 'in holy places'] },
   VampiricEffect: { costs: [2000, 1000], labels: ['at range', 'when strikes'] },
 
-  // --- ONE cost, minted at ClassicParam -1 ---
   AbsorbsSpells: { cost: 1500 },
   ExtraWeight: { cost: -100 },
   FeatherWeight: { cost: 100 },
@@ -99,10 +36,8 @@ export const ENCHANTMENT_COSTS = Object.freeze({
   StrengthensArmor: { cost: 700 },
   WeakensArmor: { cost: -700 },
 
-  // --- one FLAT cost over a param DOMAIN ---
   EnhancesSkill: { cost: 900, domain: SKILL_COUNT },
 
-  // --- keyed by classic SPELL id ---
   CastWhenUsed: {
     spells: [
       [4, 330, 'Levitate'], [5, 250, 'Light'], [6, 540, 'Invisibility'], [7, 480, "Wizard's Fire"],
@@ -136,9 +71,6 @@ export const ENCHANTMENT_COSTS = Object.freeze({
   },
 });
 
-/** Every cost an effect can charge, whatever shape it stores them in
- *  - the one place the four shapes are flattened, so the sign
- *  classification below cannot disagree with the lookup above. */
 function allCosts(row) {
   if (!row) return [];
   if (row.costs) return row.costs;
@@ -146,9 +78,7 @@ function allCosts(row) {
   return [row.cost];
 }
 
-/** The cost of one enchantment at one parameter. An unknown effect or
- *  a parameter this effect never mints answers null rather than 0 - a
- *  missing cost must not read as a free enchantment. */
+// An unknown effect or param returns null, never 0, so a missing cost cannot read as a free enchantment.
 export function enchantmentCost(type, param) {
   const row = ENCHANTMENT_COSTS[type];
   if (!row) return null;
@@ -167,9 +97,6 @@ export function enchantmentCost(type, param) {
   return p === PARAM_NONE ? row.cost : null;
 }
 
-/** Every ClassicParam this effect actually mints, in MINT ORDER -
- *  which for a spell effect is DFU's own list order and not sorted,
- *  because that is the order its picker lists them in. */
 export function enchantmentParamValues(type) {
   const row = ENCHANTMENT_COSTS[type];
   if (!row) return [];
@@ -179,20 +106,8 @@ export function enchantmentParamValues(type) {
   return [PARAM_NONE];
 }
 
-/** The FIRST ClassicParam an effect mints, which is what a caller
- *  that names no parameter is asking for: 0 for a param table or a
- *  domain, -1 for a single-cost effect, and the first SPELL id for a
- *  CastWhen* - Levitate, not spell zero. */
 export const defaultParam = (type) => enchantmentParamValues(type)[0];
 
-/** L10N3d: DFU reads both of an enchantment's names through TextManager
- *  - GroupName is `GetLocalizedText(EffectKey)` (AbsorbsSpells.cs:35 and
- *  every sibling) and each setting's SecondaryDisplayName
- *  `GetLocalizedText(classicTextKeys[i])` (BadRepWith.cs:60 and every
- *  sibling with a param list). These are the rows whose English the port
- *  holds as DFU's table has it; the other names and labels are spelled
- *  their own way here ("Absorbs Spells" for DFU's "Absorbs spells",
- *  "During Winter" for "during Winter") and stay as they are. */
 const ENCHANTMENT_TEXT = localizedStrings({
   FeatherWeight: 'Feather Weight', IncreasedWeightAllowance: 'Increased Weight Allowance',
   commoners: 'Commoners', merchants: 'Merchants', scholars: 'Scholars', nobility: 'Nobility', underworld: 'Underworld', all: 'All',
@@ -201,9 +116,8 @@ const ENCHANTMENT_TEXT = localizedStrings({
   undead: 'Undead', daedra: 'Daedra', humanoid: 'Humanoid', animalsUpper: 'Animals',
   atRange: 'at range', whenStrikes: 'when strikes',
 });
-/** Those effects' classicTextKeys, in ClassicParam order. */
-const REP_KEYS = ['commoners', 'merchants', 'scholars', 'nobility', 'underworld', 'all'];   // BadRepWith.cs / GoodRepWith.cs
-const VS_KEYS = ['undead', 'daedra', 'humanoid', 'animalsUpper'];                         // LowDamageVs.cs / PotentVs.cs
+const REP_KEYS = ['commoners', 'merchants', 'scholars', 'nobility', 'underworld', 'all'];
+const VS_KEYS = ['undead', 'daedra', 'humanoid', 'animalsUpper'];
 const LABEL_KEYS = Object.freeze({
   BadRepWith: REP_KEYS, GoodRepWith: REP_KEYS,
   IncreasedWeightAllowance: ['add25Percent', 'add50Percent'],
@@ -214,23 +128,6 @@ const LABEL_KEYS = Object.freeze({
   VampiricEffect: ['atRange', 'whenStrikes'],
 });
 
-/** The parameter labels DFU comments each cost with. A single-cost
- *  effect has none, and EnhancesSkill's are the skill names, which
- *  skills.js already owns - so it has none here either. */
-/** The names the SECONDARY picker prints, which is what the alpha
- *  sort orders by. Two effects do not own theirs: EnhancesSkill's are
- *  the skill names and SoulBound's are the enemy names, and skills.js
- *  and enemyBasics.js are those names' one home - so they are read
- *  from there rather than copied. (DFU's own trailing comments beside
- *  the SoulBound costs are creature names too, but they are code
- *  comments carrying spawn notes, not what the window prints: two of
- *  them read "Dragonling", and so do the two rows the picker shows.)
- *  L10N3e: a soul's and a spell's name as DFU words them, in the
- *  player's language - GetLocalizedEnemyName(Enemies[i].ID) (SoulBound
- *  .cs:64) and GetLocalizedSpellName(id) (CastWhenUsed.cs:67, and
- *  CastWhenHeld/CastWhenStrikes :67 alike), read here when a list is
- *  asked for, so the picker's alpha sort orders them as it shows them,
- *  as DFU's does. */
 export const enchantmentParams = (type) => {
   const row = ENCHANTMENT_COSTS[type];
   if (!row) return [];
@@ -242,21 +139,11 @@ export const enchantmentParams = (type) => {
 };
 export const enchantmentTypes = () => Object.keys(ENCHANTMENT_COSTS);
 
-/** SecondaryDisplayName for ONE minted param - what the list row
- *  prints under the primary name (EnchantmentListPicker.cs:333-334,
- *  stored per-setting by each effect, e.g. CastWhenUsed.cs:67 from
- *  the classic SPELL id). The param is matched BY VALUE through the
- *  mint order, never used as an index: a CastWhen* param is a sparse
- *  spell id, where the label list is dense. Empty when the effect
- *  mints no label there. */
 export function enchantmentParamName(type, param) {
   const at = enchantmentParamValues(type).indexOf(param);
   return at >= 0 ? (enchantmentParams(type)[at] ?? '') : '';
 }
 
-/** A POWER prices positive, a SIDE EFFECT negative - see the header.
- *  Classified off the table itself rather than from a second list,
- *  so the two can never disagree. */
 export function isSideEffect(type) {
   const costs = allCosts(ENCHANTMENT_COSTS[type]);
   return costs.length > 0 && costs.every((c) => c <= 0) && costs.some((c) => c < 0);
@@ -268,15 +155,7 @@ export function isPower(type) {
 export const powerTypes = () => enchantmentTypes().filter(isPower);
 export const sideEffectTypes = () => enchantmentTypes().filter(isSideEffect);
 
-/** One enchantment as M3's sums consume it. `parent` is the KEY of the
- *  enchantment that dragged this one in, 0 for a chosen one.
- *
- *  DFU marks the parent with EnchantmentSettings.GetHashCode(), whose
- *  inputs - version, effect key, classic type and param, the two
- *  display names, the cost - are every field except ParentEnchantment
- *  itself, and all of them are functions of (type, param). So
- *  `type:param` is the same equivalence class expressed as a string,
- *  and it survives a save where a .NET string hash would not. */
+// Forced rows name their parent by this key, which stands in for the classic settings hash and survives a save.
 export const enchantmentKey = (type, param) => `${type}:${param}`;
 
 export function enchantmentSettings(type, param, { parent = 0 } = {}) {
@@ -286,75 +165,54 @@ export function enchantmentSettings(type, param, { parent = 0 } = {}) {
   return { type, param: p, enchantCost: cost, parentEnchantment: parent, key: enchantmentKey(type, p) };
 }
 
-// SoulBound.MobileForcedEnchantmentSets (:219-332). THE ONLY SOURCE
-// OF FORCED ENCHANTMENTS IN THE GAME - GetForcedEnchantments is
-// overridden by SoulBound and by nothing else, so M3's forced-vs-
-// chosen split exists entirely to serve bound souls. Nine of the
-// forty-three soul types carry one; DFU's own notes say the three
-// atronach crossovers (Air, Earth, Water) are souls classic has and
-// DFU cannot yet trap, and leaves them as TODOs - kept as TODOs here.
 export const SOUL_FORCED_ENCHANTMENTS = Object.freeze({
   [MOBILE_TYPES.DaedraLord]: Object.freeze([
-    { type: 'PotentVs', param: 1 },            // Daedra
-    { type: 'UserTakesDamage', param: 1 },     // InHolyPlaces
+    { type: 'PotentVs', param: 1 },
+    { type: 'UserTakesDamage', param: 1 },
     { type: 'ExtraWeight', param: PARAM_NONE },
   ]),
   [MOBILE_TYPES.DaedraSeducer]: Object.freeze([
-    { type: 'GoodRepWith', param: 5 },         // All
-    { type: 'ItemDeteriorates', param: 1 },    // InSunlight
-    { type: 'UserTakesDamage', param: 1 },     // InHolyPlaces
-    { type: 'HealthLeech', param: 2 },         // UnlessUsedWeekly
-    { type: 'BadReactionsFrom', param: 1 },    // Animals
+    { type: 'GoodRepWith', param: 5 },
+    { type: 'ItemDeteriorates', param: 1 },
+    { type: 'UserTakesDamage', param: 1 },
+    { type: 'HealthLeech', param: 2 },
+    { type: 'BadReactionsFrom', param: 1 },
   ]),
   [MOBILE_TYPES.Daedroth]: Object.freeze([
-    { type: 'LowDamageVs', param: 1 },         // Daedra
-    { type: 'BadReactionsFrom', param: 2 },    // Daedra
-    { type: 'ItemDeteriorates', param: 2 },    // InHolyPlaces
+    { type: 'LowDamageVs', param: 1 },
+    { type: 'BadReactionsFrom', param: 2 },
+    { type: 'ItemDeteriorates', param: 2 },
   ]),
   [MOBILE_TYPES.FireAtronach]: Object.freeze([
-    { type: 'CastWhenUsed', param: 12 },       // Resist Fire
+    { type: 'CastWhenUsed', param: 12 },
   ]),
   [MOBILE_TYPES.FireDaedra]: Object.freeze([
-    { type: 'EnhancesSkill', param: 9 },       // Daedric
-    { type: 'CastWhenUsed', param: 12 },       // Resist Fire
-    { type: 'BadReactionsFrom', param: 1 },    // Animals
+    { type: 'EnhancesSkill', param: 9 },
+    { type: 'CastWhenUsed', param: 12 },
+    { type: 'BadReactionsFrom', param: 1 },
   ]),
   [MOBILE_TYPES.FrostDaedra]: Object.freeze([
-    { type: 'EnhancesSkill', param: 9 },       // Daedric
-    { type: 'CastWhenUsed', param: 11 },       // Resist Cold
-    { type: 'ItemDeteriorates', param: 2 },    // InHolyPlaces
+    { type: 'EnhancesSkill', param: 9 },
+    { type: 'CastWhenUsed', param: 11 },
+    { type: 'ItemDeteriorates', param: 2 },
   ]),
   [MOBILE_TYPES.Ghost]: Object.freeze([
     { type: 'FeatherWeight', param: PARAM_NONE },
-    { type: 'ItemDeteriorates', param: 2 },    // InHolyPlaces
-    { type: 'LowDamageVs', param: 0 },         // Undead
+    { type: 'ItemDeteriorates', param: 2 },
+    { type: 'LowDamageVs', param: 0 },
   ]),
   [MOBILE_TYPES.Lich]: Object.freeze([
-    { type: 'EnhancesSkill', param: 22 },      // Destruction
-    { type: 'ItemDeteriorates', param: 1 },    // InSunlight
-    { type: 'LowDamageVs', param: 0 },         // Undead
+    { type: 'EnhancesSkill', param: 22 },
+    { type: 'ItemDeteriorates', param: 1 },
+    { type: 'LowDamageVs', param: 0 },
   ]),
   [MOBILE_TYPES.Wraith]: Object.freeze([
-    { type: 'RegensHealth', param: 2 },        // InDarkness
-    { type: 'ItemDeteriorates', param: 2 },    // InHolyPlaces
-    { type: 'LowDamageVs', param: 0 },         // Undead
+    { type: 'RegensHealth', param: 2 },
+    { type: 'ItemDeteriorates', param: 2 },
+    { type: 'LowDamageVs', param: 0 },
   ]),
 });
 
-/**
- * SortForcedEnchantments (:562-586). The children a chosen
- * enchantment drags in, already split into the two lists and already
- * marked with their parent's key.
- *
- * THE SPLIT HERE IS `EnchantCost > 0`, NOT the catalogue's sign
- * classification: it reads the child's cost AT ITS OWN PARAM, so a
- * zero lands in SIDE EFFECTS. It is a different question from
- * isPower() - that asks what an effect is, this asks where one
- * instance goes - and DFU asks it with a strict `>`.
- *
- * A child whose effect or param does not resolve is SKIPPED, not
- * defaulted (:571-575: `if (effect == null) continue`).
- */
 export function forcedEnchantments(type, param) {
   if (type !== 'SoulBound') return null;
   const set = SOUL_FORCED_ENCHANTMENTS[param];
@@ -365,35 +223,19 @@ export function forcedEnchantments(type, param) {
   for (const child of set) {
     const settings = enchantmentSettings(child.type, child.param, { parent });
     if (!settings) continue;
+    // A child splits on its own cost with a strict `> 0`, so a zero-cost child is a side effect, as in classic.
     (settings.enchantCost > 0 ? powers : sideEffects).push(settings);
   }
   return { powers, sideEffects };
 }
 
-/** "noRoomInItem" (:892). */
 export const NO_ROOM_IN_ITEM = 'There is no room in the item for these enchantments.';
 
-/**
- * EnchantmentPicker_OnItemPicked's room check (:884-897) as a
- * decision. TWO THINGS ARE OBSERVABLE HERE AND BOTH ARE ODD:
- *
- *   the `+1` is the INCOMING enchantment, which is not in either list
- *   yet - so the check is on what the lists would hold afterwards;
- *
- *   and the whole check sits INSIDE `if (forcedEnchantmentSet !=
- *   null)`. An enchantment with no forced children is never checked
- *   for room at all, so a player can pile plain enchantments past ten
- *   and meet no refusal - M3's SetEnchantments cap is what finally
- *   truncates them, silently. Only a bound soul can be refused for
- *   room.
- *
- * Answers { kind: 'noRoom', text } or { kind: 'add', powers,
- * sideEffects } with the forced children to add alongside.
- */
 export function pickEnchantment(type, param, { powers = [], sideEffects = [] } = {}) {
   const settings = enchantmentSettings(type, param);
   if (!settings) return null;
   const forced = forcedEnchantments(type, param);
+  // Classic checks room only for an enchantment with forced children, so plain enchantments can pass ten here.
   if (forced) {
     const after = powers.length + sideEffects.length
       + forced.powers.length + forced.sideEffects.length + 1;
@@ -407,20 +249,11 @@ export function pickEnchantment(type, param, { powers = [], sideEffects = [] } =
   };
 }
 
-/** RemoveForcedEnchantments (:916-917, EnchantmentListPicker:270).
- *  Removing a PARENT takes its children out of both lists with it. A
- *  child is never removed on its own - the window's click handler
- *  only fires on panels whose ParentEnchantment == 0
- *  (EnchantmentListPicker.cs:266-271). */
+// Match the row, not its key, since a forced soul row can share its key with a chosen row.
 export function removeEnchantment(list, entry) {
-  // Match the row, not its key: a forced soul row can have the same key as a chosen row.
   return list.filter((e) => e !== entry && e.parentEnchantment !== entry.key);
 }
 
-// ── the two pickers' filters (DaggerfallItemMakerWindow:614-700,
-//    :820-866) ──────────────────────────────────────────────────────
-
-/** MagicAndEffectsEnums.ItemMakerFlags (:65-72). */
 export const ITEM_MAKER_FLAGS = Object.freeze({
   None: 0,
   AllowMultiplePrimaryInstances: 1,
@@ -429,23 +262,8 @@ export const ITEM_MAKER_FLAGS = Object.freeze({
   WeaponOnly: 8,
 });
 
-/** Each effect's own SetProperties flags. FOUR of the twenty-four
- *  carry NONE - the two weight effects and the two armor effects -
- *  and IncreasedWeightAllowance sets no flags line at all, which is
- *  the same thing. Those five plus SoulBound are the six that can
- *  appear on an item only ONCE.
- *
- *  SIDE-ONCE (FIELD BUGS 2026-10-19f; the owner, 2026-10-19: "One copy
- *  per setting") - A DEPARTURE, Port-Ledger A. DFU gives UserTakesDamage
- *  and ItemDeteriorates AllowMultipleSecondaryInstances beside the
- *  primary flag (UserTakesDamage.cs:35, ItemDeteriorates.cs:37), so the
- *  secondary picker never left a taken setting out
- *  (DaggerfallItemMakerWindow.cs:849-855): the same setting could be
- *  picked many times, each copy adding its negative cost to the budget.
- *  Here neither carries it - a setting is picked once (primaryPick), two
- *  settings of one effect (in sunlight AND in holy places) still both.
- *  No effect carries the flag now. A piece made before keeps its copies:
- *  the item law counts by effect (itemLaw.js makerFindings, `many`). */
+// UserTakesDamage and ItemDeteriorates drop the classic AllowMultipleSecondaryInstances flag, so each setting is
+// picked once.
 export const ITEM_MAKER_EFFECT_FLAGS = Object.freeze({
   AbsorbsSpells: 1,
   BadReactionsFrom: 1,
@@ -461,43 +279,19 @@ export const ITEM_MAKER_EFFECT_FLAGS = Object.freeze({
   HealthLeech: 1,
   ImprovesTalents: 1,
   IncreasedWeightAllowance: 0,
-  ItemDeteriorates: 1,   // SIDE-ONCE: DFU's 1 | 2 - a setting once
+  ItemDeteriorates: 1,
   LowDamageVs: 1 | 8,
   PotentVs: 1 | 8,
   RegensHealth: 1,
   RepairsObjects: 1,
   SoulBound: 4,
   StrengthensArmor: 0,
-  UserTakesDamage: 1,   // SIDE-ONCE: DFU's 1 | 2 - a setting once
+  UserTakesDamage: 1,
   VampiricEffect: 1,
   WeakensArmor: 0,
 });
 export const hasItemMakerFlag = (type, flag) => ((ITEM_MAKER_EFFECT_FLAGS[type] ?? 0) & flag) !== 0;
 
-/**
- * IsEnchantmentExclusiveTo, gathered from the EIGHT effects that
- * override it. Two kinds, and the difference is observable:
- *
- *   `pairs` - exclusive with NO param test. FeatherWeight/ExtraWeight
- *     and StrengthensArmor/WeakensArmor. One of the pair on the item
- *     bars the other outright.
- *
- *   `sameParam` - exclusive only at the MATCHING param. PotentVs vs
- *     LowDamageVs, GoodRepWith vs BadRepWith. Potent vs Undead bars
- *     Low Damage vs Undead and nothing else, so an item can be potent
- *     against undead and feeble against animals at once.
- *
- * ...and `allParam` is the reputation pair's SELF test: once "All" is
- * on the item that effect is barred entirely, and picking "All" is
- * barred while any single group of it is present.
- *
- * WHICH CLAUSES CAN FIRE DEPENDS ON THE STAGE, because DFU calls this
- * with no comparerParam from the PRIMARY picker (:651-653) and with
- * one from the SECONDARY (:858-860). So at the primary stage only
- * `pairs` and the "self once All" half can fire; every param-matched
- * clause waits for the secondary list. Passing no param here means
- * the primary stage, exactly as a null comparerParam does there.
- */
 export const ENCHANTMENT_EXCLUSIONS = Object.freeze({
   FeatherWeight: { pairs: ['ExtraWeight'] },
   ExtraWeight: { pairs: ['FeatherWeight'] },
@@ -509,6 +303,7 @@ export const ENCHANTMENT_EXCLUSIONS = Object.freeze({
   BadRepWith: { sameParam: ['GoodRepWith'], allParam: 5 },
 });
 
+// No param means the primary picker stage, where only the pair and All clauses can fire.
 export function isExclusiveTo(type, list = [], param) {
   const rule = ENCHANTMENT_EXCLUSIONS[type];
   if (!rule) return false;
@@ -523,80 +318,31 @@ export function isExclusiveTo(type, list = [], param) {
   return false;
 }
 
-/**
- * PowersButton/SideEffectsButton_OnMouseClick's primary list
- * (:637-656). THREE filters, in DFU's order: an effect already on the
- * item unless it allows multiple primaries; a weapon-only effect on a
- * non-weapon; and anything the current lists are exclusive to. And a
- * fourth of ours (SIDE-ONCE): an effect whose chooser would be empty.
- */
 export function primaryPickerList(selectingPowers, { item = null, powers = [], sideEffects = [], souls = null } = {}) {
   const own = selectingPowers ? powers : sideEffects;
   const soulSet = souls === null ? null : new Set(souls);
   return (selectingPowers ? powerTypes() : sideEffectTypes()).filter((type) => {
-    // AUDIT 63 F14: SoulBound is the one effect whose settings are
-    // built from the PACK rather than from a table - GetEnchantmentSettings
-    // enumerates the player's filled traps and emits a row only where
-    // the count is non-zero (SoulBound.cs:51-55), so an empty-handed
-    // player yields ZERO settings and EnumerateEnchantments never adds
-    // the key to groupedSideEffectTemplates at all
-    // (DaggerfallItemMakerWindow.cs:252-274). The effect is then absent
-    // from this list, not merely paramless. `souls: null` means "do not
-    // ask" - every other caller of this seam keeps its old answer.
     if (type === 'SoulBound' && soulSet && soulSet.size === 0) return false;
     if (!hasItemMakerFlag(type, ITEM_MAKER_FLAGS.AllowMultiplePrimaryInstances)
       && own.some((e) => e.type === type)) return false;
     if (hasItemMakerFlag(type, ITEM_MAKER_FLAGS.WeaponOnly) && item?.group !== 'Weapons') return false;
     if (isExclusiveTo(type, powers) || isExclusiveTo(type, sideEffects)) return false;
-    // SIDE-ONCE (FIELD BUGS 2026-10-19f; the owner, 2026-10-19): an effect with no setting left to offer is not listed.
-    // DFU lists it and opens an empty chooser (DaggerfallItemMakerWindow.cs:644/:689 ask of the effect, never of its
-    // settings) - Health Leech with all three of its settings on (HealthLeech.cs:37 allows more than one, never one
-    // setting twice), User Takes Damage with both. A departure, Port-Ledger A, with the flags' above.
+    // An effect with no setting left to offer is left out, where classic opens an empty chooser.
     const pick = primaryPick(type, { powers, sideEffects, selectingPowers, souls });
     return !(pick?.kind === 'choose' && pick.options.length === 0);
   });
 }
 
-/**
- * EnchantmentPrimaryPicker_OnUseSelectedItem (:820-866).
- *
- * THE SINGLETON SHORTCUT (:832-838) comes first: an effect with
- * exactly ONE setting is added straight to the list and no secondary
- * picker opens - which is what the six single-cost effects do. DFU
- * also excludes SoulBound from that shortcut by name, "where player
- * must select soul to correctly assign enforced side-effects" (:833).
- *
- * AUDIT 63 F14 CORRECTED THIS COMMENT. It used to say SoulBound "mints
- * forty-three settings and can never reach a length of one, so the
- * clause is defensive and cannot fire". That was true only because the
- * port read the static cost table where DFU reads the PACK: with
- * exactly one filled soul trap DFU's GetFilteredEnchantments returns
- * length 1 (SoulBound.cs:51-55), and :834's `!= EnchantmentTypes.
- * SoulBound` is precisely what forces the secondary picker open so the
- * forced side-effect set attaches. The clause is live, and `souls`
- * below is what makes it reachable.
- *
- * `souls` (a set/array of trapped soul ids, from mysticism.js's
- * enumerateFilledTraps) filters SoulBound's options to the souls the
- * player actually carries; null means "do not ask", which is what
- * every non-maker caller wants - the COST and NAME seams must keep
- * answering for all 43 params so a looted or imported soul-bound item
- * still prices and still prints its soul.
- *
- * Answers { kind: 'add', settings } or { kind: 'choose', options }.
- */
 export function primaryPick(type, { powers = [], sideEffects = [], selectingPowers = true, souls = null } = {}) {
   const labels = enchantmentParams(type);
-  // The label list is positional over the FULL param list, so it is
-  // paired up BEFORE the soul filter narrows it - a filtered list
-  // re-indexed against the unfiltered labels would print the wrong
-  // creature beside every soul.
+  // Labels are positional over the full param list, so they pair up before the soul filter runs.
   let params = enchantmentParamValues(type).map((param, i) => ({ param, label: labels[i] ?? String(param) }));
   if (type === 'SoulBound' && souls !== null) {
     const soulSet = new Set(souls);
-    params = params.filter((p) => soulSet.has(p.param));   // SoulBound.cs:52-55
+    params = params.filter((p) => soulSet.has(p.param));
   }
   if (params.length === 0) return null;
+  // Soul Bound always opens the chooser, even with one soul, so its forced side effects attach.
   if (params.length === 1 && type !== 'SoulBound') {
     return { kind: 'add', settings: enchantmentSettings(type, params[0].param) };
   }
@@ -615,12 +361,5 @@ export function primaryPick(type, { powers = [], sideEffects = [], selectingPowe
   return { kind: 'choose', options };
 }
 
-/** GroupName - what the PRIMARY picker and the list's first line
- *  print. DFU looks it up by EffectKey through TextManager, and the
- *  EffectKey IS the enum name; its English strings are that name with
- *  a space before each interior capital, which is the same derivation
- *  U10 made for the skill names. Derived rather than listed, so a
- *  name can never drift from the key it belongs to. L10N3d: a name
- *  whose English is DFU's own reads its TextManager row (above). */
 export const enchantmentName = (type) =>
   (Object.hasOwn(ENCHANTMENT_TEXT, type) ? ENCHANTMENT_TEXT[type] : type.replace(/([a-z])([A-Z])/g, '$1 $2'));

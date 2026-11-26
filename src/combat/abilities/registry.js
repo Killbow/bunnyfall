@@ -1,5 +1,3 @@
-// Stable IDs and unlock requirements from the Combat Revolution action roster.
-// A definition becomes executable only when a host registers a delivery.
 import { SKILLS } from '../../characters/skills.js';
 
 const families = Object.freeze({
@@ -8,8 +6,8 @@ const families = Object.freeze({
 });
 export const PHYSICAL_SKILLS = Object.freeze(Object.values(families));
 
+// Saved ability unlocks are restored by id, so renaming an id drops the saved unlock.
 const definitions = [
-  // Weapon
   ["weapon.dagger.veil-cut", "Veil Cut", 25, ["short-blade"], [113], null],
   ["weapon.dagger.kidney-step", "Kidney Step", 50, ["short-blade"], [113], null],
   ["weapon.dagger.marked-for-silence", "Marked for Silence", 75, ["short-blade"], [113], null],
@@ -103,7 +101,6 @@ const definitions = [
   ["weapon.hand-to-hand.flow-state", "Flow State", 75, ["hand-to-hand"], ["bare"], null],
   ["weapon.hand-to-hand.hundred-fist-ascension", "Hundred-Fist Ascension", 100, ["hand-to-hand"], ["bare"], null],
 
-  // Combination
   ["combination.long-blade.short-blade.blade-weave", "Blade Weave", 75, ["long-blade","short-blade"], [118,119,120,121,122,123,113,114,116,117], null],
   ["combination.long-blade.short-blade.thousand-cuts", "Thousand Cuts", 100, ["long-blade","short-blade"], [118,119,120,121,122,123,113,114,116,117], null],
   ["combination.axe.long-blade.warlords-breach", "Warlord's Breach", 75, ["long-blade","axe"], [118,119,120,121,122,123,127,513,128], null],
@@ -135,7 +132,6 @@ const definitions = [
   ["combination.archery.hand-to-hand.windstep-shot", "Windstep Shot", 75, ["archery","hand-to-hand"], [129,130,563,564,"bare"], null],
   ["combination.archery.hand-to-hand.stormrunner", "Stormrunner", 100, ["archery","hand-to-hand"], [129,130,563,564,"bare"], null],
 
-  // Racial
   ["racial.breton.wardbreaker", "Wardbreaker", 0, null, null, "Breton"],
   ["racial.redguard.sword-song", "Sword-Song", 0, null, null, "Redguard"],
   ["racial.nord.frostborn-charge", "Frostborn Charge", 0, null, null, "Nord"],
@@ -148,7 +144,6 @@ const definitions = [
   ["racial.lilmothit.foxfire-feint", "Foxfire Feint", 0, null, null, "Lilmothit"],
   ["racial.lungaris.harebound", "Harebound", 0, null, null, "Lungaris"],
 
-  // Utility
   ["utility.trailblazer", "Trailblazer", 10, null, null, null],
   ["utility.unbound-will", "Unbound Will", 20, null, null, null],
   ["utility.featherstep", "Featherstep", 20, null, null, null],

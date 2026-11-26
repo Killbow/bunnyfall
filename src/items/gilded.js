@@ -1,158 +1,36 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// GILDED1 (2026-10-07) — THE GILDED RUNG, AND THE HOURLOCK.
-//
-// Mac: "I want to add a new weapon of a new rarity. The thunderlock of
-// rarity above atheric. The most rare and gilded item in the entire game
-// with a static role. Ensure its powerful but not overpowered." Design
-// and record: bible/06-Systems/Gilded.md.
-//
-// ═══ GILDED ════════════════════════════════════════════════════════
-//
-// The ladder's TOP rung (systems/loot/lootRarity.js RARITIES: rank 6, over
-// the Artifact's 5): a colour of its own - gold leaf, warm and bright -
-// two stars for pips, a frame, a price. "The most rare ... in the entire
-// game" puts it over DFU's artifacts too: an artifact is a Daedra's gift
-// for a quest done, there to be had by anyone who asks the right Prince;
-// this is one roll in fifty off the hardest fight the port has. NOTHING
-// ROLLS IT: the ladder's roll (applyRarity) takes the rolled tiers alone,
-// so no drop, pile, shelf, Broker or Reforge ever lands on it.
-//
-// ═══ THE HOURLOCK ══════════════════════════════════════════════════
-//
-// One record, and it is a Thunderlock (the port's own weapon, template
-// 560 - systems/thunderlock.js): what the Warp kept of a Dwemer smith's
-// last commission, gilded in the Hour that never ended. A STATIC ROLL -
-// every number is its record's, minted whole and KNOWN, never rolled,
-// reforged, honed, socketed, imprinted, cursed or enchanted - so the
-// wire holds it to its record EXACTLY (validGildedMarks), as no other
-// tier can be held.
-//
-// POWERFUL, NOT OVERPOWERED. Its lines stand at the Legendary band's
-// TOP and no higher (+40% damage, +15 Agility, +30 Archery, +10 shock a
-// shot - the Brass of Numidium's own ceiling), and its power is the one
-// thing nothing else has: THE HOUR TOLLS - every third of its shots that
-// LANDS strikes for double, and a foe it fells gives back the pellet that
-// felled it (systems/loot/lootPowers.js, kind 'toll'). Measured beside the
-// best of the rest (bible/06-Systems/Gilded.md, "The numbers"): about
-// twice The Last Lock a shot and level with a Legendary Daedric
-// dai-katana a second - the gun's 1.7 s reload and its ammunition are
-// still the price, and in a duel it is a plain Thunderlock (a power
-// sleeps there, as a set does).
-//
-// ═══ THE DROP ══════════════════════════════════════════════════════
-//
-// The Brass Remnant's spoils (systems/superDungeon/sdSpoils.js) roll ONE MORE THING
-// after everything they rolled before - so every earlier spoils, gold to
-// the last Numidium piece, stays exactly what it was for its seed: the
-// Hourlock GILDED_CHANCE of the time. Online alone, because the Hour is.
-//
-// ═══ GILDED2: THE WORLD'S TWO ═══════════════════════════════════════
-//
-// GILDED2 (2026-10-15, Mac: "With the introduction of elite dungeons
-// soon. I want to enhance the rewards for each world activety. We need to
-// add a rare gilded weapon to the oblivion gates. A gilded weapon to the
-// serpent"): the rung's second and third records, each the last roll of a
-// world boss's spoils - THE DRAGONFIRE OATH off the gate's Warden
-// (systems/gate/gateSpoils.js), THE SUNKEN SOVEREIGN off the Old Coil's hoard
-// for a ship that dealt (systems/serpent/serpentSpoils.js), each one fight in a
-// hundred (a gate opens every two hours and a serpent rises every four,
-// where an Hour is a few a week). DFU weapons both, minted by the game's
-// own CreateWeapon (combat/enemyEquipment.js createWeapon) - the Hourlock
-// keeps its gun's own mint, so its record and every gift of it stay what
-// they were. Each a STATIC ROLL, its lines the Legendary band's top, and
-// its power the one thing nothing else has (DRAGONFIRE, UNDERTOW below;
-// systems/loot/lootPowers.js does them). Measured: bible/06-Systems/Gilded.md
-// section 7.
-//
-// ═══ GUNS-UNFOUND (2026-10-23) ══════════════════════════════════════
-//
-// The owner: "remove the thunderlock and pistolet from the loot pool and
-// revert the gilded weapon from the serpent. Dont remove them from players
-// who have them, but it should no longer be able to drop" - and of the
-// Hourlock, "Replace it", with a Dwarven Long Bow. So no record mints a gun
-// now: the Hourlock is a gilded Dwarven Long Bow (its id, lines, power and
-// lore kept) and the Sunken Sovereign the Ebony Saber GILDED2 made it. A gun
-// minted under either before stays LAWFUL as its record's era
-// (HOURLOCK_GUN_ERA, SOVEREIGN_PISTOLET_ERA), read through gildedRecordOf as
-// AUDIT PISTOLET's saber era was. bible/06-Systems/Gilded.md section 9.
-//
-// ═══ GILDED-RARER AND THE KETCH'S TWO (2026-10-24) ══════════════════
-//
-// The owner: "Reduce the drop rate of gilded weapons across the board and
-// ensure any gun drop is rare, only found within this activity" - the
-// Dwarven airship's raid (bible/11-Multiplayer/Sky-Ketch.md), which drops
-// "both guns with a gilded version of each gun". Every Gilded drop is
-// rarer: the Hourlock one Remnant in a hundred (was fifty), the Dragonfire
-// Oath one Warden in two hundred and fifty (was a hundred: a gate opens
-// every two hours), the Sunken Sovereign one dealing ship's hoard in two
-// hundred and fifty (was a hundred: a serpent every four). And the rung's
-// fourth and fifth records are the guns, each its own: VOLENDRUNGS_ECHO, a
-// gilded Thunderlock, and THE_KETCHMASTERS_WORD, a gilded Pistolet - each
-// one earner's spoils in a hundred off the Ketch's Tonal Warden, the last
-// draws of those spoils (systems/ketch/ketchSpoils.js). A gun is minted
-// nowhere else. bible/06-Systems/Gilded.md section 10.
-// ═══════════════════════════════════════════════════════════════════
 
 import { WEAPON_MATERIALS, WEAPONS } from '../characters/weapons.js';
-import { createWeapon } from '../combat/enemyEquipment.js';   // GILDED2: a DFU weapon's own mint (CreateWeapon)
+import { createWeapon } from '../combat/enemyEquipment.js';
 import { itemBaseValue } from './itemTemplates.js';
 import { affixesWorth, validAffix, registerGildedRecords } from './lootRarity.js';
 import { SKILLS } from '../characters/skills.js';
 
-/** The tier's id, as `item.rarity` wears it. */
 export const GILDED = 'gilded';
-/** What a Gilded piece adds to its price, over its make and its affixes - the Aetheric's 2500 five times over. */
 export const GILDED_WORTH = 12500;
-/** The share of the Brass Remnant's earned receipts whose spoils carry the Hourlock: one in a hundred (GILDED-RARER; it was
- *  one in fifty). */
 export const GILDED_CHANCE = 1 / 100;
-/** GILDED2: the share of the gate Warden's spoils that carry the Dragonfire Oath - one in two hundred and fifty (a gate every
- *  two hours; GILDED-RARER - it was one in a hundred). */
 export const GATE_GILDED_CHANCE = 1 / 250;
-/** GILDED2: the share of a dealing ship's serpent hoards that carry the Sunken Sovereign - one in two hundred and fifty (a
- *  serpent every four hours, a ship that stood never; GILDED-RARER - it was one in a hundred). */
 export const SERPENT_GILDED_CHANCE = 1 / 250;
 
-/** THE HOUR TOLLS - the Hourlock's power (systems/loot/lootPowers.js does it, kind 'toll'). `every` landed shots, the last
- *  strikes `pct`% harder; `refund`: a foe it fells gives its shot back (GUNS-UNFOUND: an arrow off the bow, a pellet off
- *  the gun era's). Read once at import, frozen. */
 export const HOUR_TOLLS = Object.freeze({
   name: 'The Hour Tolls', kind: 'toll', every: 3, pct: 100, refund: true,
-  brief: 'Every 3rd hit x2; kills refund',   // inside the card's row (sigilSets.js BRIEF_MAX)
+  brief: 'Every 3rd hit x2; kills refund',
   text: 'Every third shot that lands tolls the Hour and deals double damage. A kill returns the shot',
 });
 
-/** GILDED2: DRAGONFIRE - the Dragonfire Oath's power (systems/loot/lootPowers.js, kind 'dragonfire'). A landed blow on a foe of
- *  `group` burns it again for `share`% of the blow, and every OTHER foe of it within `metres` for as much - Akatosh's fire,
- *  which no Daedra resists (no element's share is taken of it). AUDIT WORLD-REWARDS B1: the struck one's burn is what
- *  reaches a body the relay runs (the gate's Warden and his host, an Elite Gate's legion) - owed to its blow's own claim,
- *  as Open Hand's second blow is (playerDoor.js oweFoe); the burst on the others reaches only the foes the world runs.
- *  Read once at import, frozen. */
 export const DRAGONFIRE = Object.freeze({
   name: 'Dragonfire', kind: 'dragonfire', group: 'daedra', share: 33, metres: 3,
-  brief: 'Daedra burn +33%, and all in 3m',   // inside the card's row (sigilSets.js BRIEF_MAX)
+  brief: 'Daedra burn +33%, and all in 3m',
   text: 'Each hit on a Daedra burns it with Dragonfire for a third of the damage, and burns every other Daedra within 3 m for the same. No Daedra resists it',
 });
-/** GILDED2: UNDERTOW - the Sunken Sovereign's power (systems/loot/lootPowers.js, kind 'undertow'). Each of its blows that LANDS on
- *  a foe drags it deeper: its next blows on that foe strike `pct`% harder for each landed before, up to `max`, while the
- *  tide holds - a foe it has not struck for `seconds` is let go (AUDIT WORLD-REWARDS B4: a body kept for a whole fight, a
- *  crystal of the next Reckoning, kept its stacks for good); a foe it fells gives `heal`% of my health back. Read once at
- *  import, frozen. */
 export const UNDERTOW = Object.freeze({
   name: 'Undertow', kind: 'undertow', pct: 10, max: 5, seconds: 6, heal: 10,
-  brief: '+10%/hit on a foe; kills heal',   // inside the card's row (sigilSets.js BRIEF_MAX)
+  brief: '+10%/hit on a foe; kills heal',
   text: 'Each hit drags the foe deeper: +10% damage to your next hits on it for 6 s, up to +50%. A kill heals you for 10% of your health',
 });
 
-
-/** A record's line, frozen. */
 const line = (id, value, param) => Object.freeze(param === undefined ? { id, value } : { id, param, value });
 
-/** THE HOURLOCK - the Gilded rung's first record (GILDED2: the world's two after it). Its make Dwarven brass, gilded; its
- *  lines the Legendary band's top (lootRarity.js AFFIX_RANGES); its power HOUR_TOLLS. GUNS-UNFOUND (2026-10-23, the
- *  owner, of the Thunderlock's Gilded: "Replace it"): a Dwarven LONG BOW, where it was a Thunderlock - the same record
- *  otherwise, its id (the Remnant's spoils, the codex and every save read it), its lines, its power and its lore. */
 export const HOURLOCK = Object.freeze({
   id: 'the-hourlock',
   name: 'The Hourlock',
@@ -169,10 +47,6 @@ export const HOURLOCK = Object.freeze({
   lore: 'Struck in the Hour that never ended, from the brass of a god that walked. Its gilding has never dulled.',
 });
 
-/** GILDED2: THE DRAGONFIRE OATH - the gate Warden's. A Daedric Dai-Katana (two hands, Long Blade): an Akaviri Dragonguard's
- *  blade, carried through the first gate and never carried back. Its lines the Legendary band's top; its power DRAGONFIRE
- *  (AUDIT WORLD-REWARDS B1: its fourth line Endurance, no longer a slayer of the Daedra - the power's burn on the struck
- *  Daedra is its edge there now, and the two together were three quarters over the best of the melee). */
 export const DRAGONFIRE_OATH = Object.freeze({
   id: 'the-dragonfire-oath',
   name: 'The Dragonfire Oath',
@@ -189,11 +63,6 @@ export const DRAGONFIRE_OATH = Object.freeze({
   lore: 'A Dragonguard carried it through the first gate and never carried it back. The Deadlands blackened its steel; the Dragonfire in its gilding never went out.',
   hint: 'Said to fall from the Warden of the Burning Gate, once in a long while',
 });
-/** GILDED2: THE SUNKEN SOVEREIGN - the Old Coil's. An Ebony Saber (one hand, Long Blade - a shield beside it): a Sentinel
- *  admiral's, swallowed with her flagship. PISTOLET (2026-10-21) re-pointed it at the Dwarven Pistolet; GUNS-UNFOUND
- *  (2026-10-23, the owner: "revert the gilded weapon from the serpent") points it back - GILDED2's saber, its id (the
- *  serpent's hoard and every save that holds one read it), its make, its lines, its power UNDERTOW and its lore. A
- *  Pistolet minted between reads its template off the item, as every save's does (SOVEREIGN_PISTOLET_ERA, below). */
 export const SUNKEN_SOVEREIGN = Object.freeze({
   id: 'the-sunken-sovereign',
   name: 'The Sunken Sovereign',
@@ -211,23 +80,19 @@ export const SUNKEN_SOVEREIGN = Object.freeze({
   hint: 'Said to lie in the Old Coil\'s belly, once in a long while',
 });
 
-
-
-/** The Gilded reward records. */
+// Spoils, the codex, and saves read these record ids, so an id never changes when its record does.
 /** @type {readonly GildedRecord[]} */
 export const GILDED_RECORDS = Object.freeze([HOURLOCK, DRAGONFIRE_OATH, SUNKEN_SOVEREIGN]);
 export const gildedById = (id) => GILDED_RECORDS.find((r) => r.id === id) ?? null;
-/** The reward record for a Gilded item. */
 export function gildedRecordOf(item) {
   return gildedById(item?.gilded);
 }
-/** Is this a Gilded piece (its tier's own field)? */
 export const isGilded = (item) => item?.rarity === GILDED;
-// the ladder reads a Gilded piece's power and lore through these (it imports nothing of this file - this file imports it)
-registerGildedRecords({ powerOf: (id) => gildedById(id)?.power ?? null, loreOf: (item) => gildedRecordOf(item)?.lore ?? null });   // AUDIT PISTOLET, GUNS-UNFOUND: an era's piece reads its own lore
+// The ladder imports nothing from this file, so it reads Gilded power and lore through this registration.
+registerGildedRecords({ powerOf: (id) => gildedById(id)?.power ?? null, loreOf: (item) => gildedRecordOf(item)?.lore ?? null });
 
 /** @typedef {{ id: string, name: string, group: string, templateIndex: number, material: number, affixes: readonly any[], power: any, lore: string, hint?: string }} GildedRecord */
-/** Mint a fresh Gilded item from its weapon template. @param {GildedRecord} r */
+/** @param {GildedRecord} r */
 export function mintGilded(r) {
   const item = createWeapon(r.templateIndex, r.material);
   const affixes = r.affixes.filter(validAffix).map((a) => ({ ...a }));
@@ -239,39 +104,27 @@ export function mintGilded(r) {
   item.value = itemBaseValue(item) + affixesWorth(affixes) + GILDED_WORTH;
   return item;
 }
-/** The Hourlock, minted. */
 export const mintHourlock = () => mintGilded(HOURLOCK);
 
-/** THE DROP'S ROLL, the Brass Remnant's spoils' last: null most times; else the Hourlock. One draw, always. */
+// Each roll is one draw and the last of its spoils, so every earlier spoil keeps its seed.
 export function rollHourlock(rolls = Math.random) {
   return rolls() < GILDED_CHANCE ? mintHourlock() : null;
 }
-/** GILDED2: the gate Warden's spoils' last roll - null most times; else the Dragonfire Oath. One draw, always. */
 export function rollDragonfireOath(rolls = Math.random) {
   return rolls() < GATE_GILDED_CHANCE ? mintGilded(DRAGONFIRE_OATH) : null;
 }
-/** GILDED2: a dealing ship's serpent hoard's last roll - null most times; else the Sunken Sovereign. One draw, always. */
 export function rollSunkenSovereign(rolls = Math.random) {
   return rolls() < SERPENT_GILDED_CHANCE ? mintGilded(SUNKEN_SOVEREIGN) : null;
 }
 
-/** The fields a static roll keeps off itself: every mark another door lays on a piece (a sigil, a Legendary's or an
- *  Aetheric's record, the Reforge's line, imprint, hones and socket, a curse, an Exalted's line) - each would make it
- *  something its record is not. */
-const NEVER_ON_GILDED = Object.freeze(['sigil', 'legendary', 'aetheric', 'imprint', 'cursed', 'socket', 'sockets', 'reforged', 'reforges', 'honed', 'exalted']);   // GEM1: nor a socket list; REFORGE-REPLACE: nor the Reforge's count
+const NEVER_ON_GILDED = Object.freeze(['sigil', 'legendary', 'aetheric', 'imprint', 'cursed', 'socket', 'sockets', 'reforged', 'reforges', 'honed', 'exalted']);
 
-/**
- * THE MARKS AGREE WITH THE ITEM (the wire's check - systems/loot/loot.js validLootItem, beside the Aetheric's validSetMarks):
- * a Gilded piece only as its record mints it - a record that exists, its group, its template and its make, its lines
- * EXACTLY its record's (a static roll has no band to sit inside: one number off is a forgery), and nothing else laid on
- * it, no DFU enchantment among it. A piece that names no Gilded record and wears no Gilded tier passes untouched.
- * Answers the item or null.
- * @param {any} item an item whose fields are each their declared kind (itemFields.js validItemFields)
- */
+// A static roll has no band: the wire check holds every line to its record exactly, so one number off fails.
+/** @param {any} item */
 export function validGildedMarks(item) {
   if (!item || typeof item !== 'object') return null;
   if (item.rarity !== GILDED && item.gilded == null) return item;
-  const r = gildedRecordOf(item);   // AUDIT PISTOLET, GUNS-UNFOUND: the record it was minted to - an era's for an old gun
+  const r = gildedRecordOf(item);
   if (!r || item.rarity !== GILDED || r.group !== item.group || r.templateIndex !== item.templateIndex || item.material !== r.material) return null;
   const want = r.affixes, have = Array.isArray(item.affixes) ? item.affixes : [];
   if (have.length !== want.length) return null;

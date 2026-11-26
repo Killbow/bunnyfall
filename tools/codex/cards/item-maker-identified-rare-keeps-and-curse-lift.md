@@ -12,6 +12,8 @@ files:
   - src/items/itemLaw.js
   - src/professions/smithItems.js
   - src/ui/marketTab.js
+  - src/magic/mysticism.js
+  - src/magic/enchantments.js
 routes: []
 tables: []
 replacesBible:
@@ -26,9 +28,11 @@ invariants:
   - "`keptEnchantments` returns `null` for Legendaries and standard enchanted items so `itemMakerFilter` (`src/ui/itemMakerWindow.js`) excludes them."
   - "Pre-existing Rare ladder rows receive `enchantCost = 0` (so curse drawbacks grant zero bonus points) while still counting toward the 10-row limit, whereas newly added rows carry `makerLaid` (`enchantCost` defined)."
   - "`liftCurse` (`src/items/lootCurse.js`) removes the last matching curse row lacking `makerLaid`, preserving forced soul-trap drawbacks."
+  - "The item maker offers only souls the player carries in filled soul traps or Azura's Star (`enumerateFilledTraps`), and Soul Bound spends one through `removeFilledTrap`."
 traps:
   - "Unidentified Rares remain excluded so opening the Item Maker cannot reveal affixes for free."
   - "Enchanting a Masterwork clears `asMinted` and displays `CHANGED_PIECE_WHY` on market listings."
+  - "`src/magic/mysticism.js` registers `removeFilledTrap` into `src/magic/enchantments.js` through `setEnchantmentEffectDoors`, because `mysticism.js` imports `enchantments.js` and the reverse import would make a cycle."
 dfu:
   - Assets/Scripts/Game/UserInterfaceWindows/DaggerfallItemMakerWindow.cs
   - Assets/Scripts/Game/Items/DaggerfallUnityItem.cs

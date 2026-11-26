@@ -12,6 +12,7 @@ files:
   - src/systems/quest/foe.js
   - src/systems/quest/actions.js
   - src/world/gameDate.js
+  - src/magic/hostMagic.js
 routes: []
 tables: []
 replacesBible:
@@ -24,6 +25,7 @@ invariants:
   - "TICKS_PER_SECOND = 10 (machine.js:324). The bridge fires on real time and resets its timer to zero on fire (questBridge.js:649-654)."
   - "Tombstoned quests are removed once nowSeconds - questTombstoneTime > SECONDS_PER_WEEK (7*86400, gameDate.js)."
   - "In a task, the first always-on trigger is PRIMARY (starts and stops the task). Later ones only start it (task.js)."
+  - "Aborting a readied spell (`abortReadySpell` in `src/magic/hostMagic.js`) raises neither `onNewReadySpell` nor `onCastReadySpell`, so the quest machine latches on those two events instead of polling."
 traps:
   - "Popup message chunking splits on `++lineCount > 22` (`src/systems/quest/quest.js`), yielding `23` lines per popup chunk."
   - "`CreateFoe` (`src/systems/quest/actions.js`) backdates its initial spawn by `Random.Range(0, spawnInterval)` with no zero guard, and `src/systems/quest/foe.js` clamps spawn counts to `1..MAX_SPAWN_COUNT` (`8`)."

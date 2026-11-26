@@ -1,18 +1,5 @@
-// STATS-CARD: the numbers behind the paperdoll's flip side (ui/statsCard.js draws them).
-//
-// NOTHING HERE IS A NEW LAW. Every term is read through the member the combat core itself uses, and the two cores the
-// port can run are both modelled: DFU's stock FormulaHelper (combat/formulas.js) and the Physical Combat And Armor
-// Overhaul (combat/pcaao.js, on by default). The dice are replaced by their expectation: a hit chance is the exact
-// probability the core's Dice100 rolls give (clamp 3..97, averaged over the struck-part table and over the critical
-// roll), and a damage figure is the exact mean over the weapon's integer roll range.
-//
-// WHAT A FIGURE IS AGAINST. A blow's odds depend on who takes it, so the card scores the swing against REFERENCE FOES:
-// a foe of the player's own level (skills = min(100, 5 x level + 30), every stat 50 - enemyEntity's own numbers) in
-// four REAL armour classes: three monsters (MobileEnemy.ArmorValue 6, 0 and -10, stored x5 exactly as enemyEntity does -
-// the spread of the shipped bestiary, -12..7) and a human (class) foe. The two kinds are scored by their own rules:
-// a monster takes the +40 (overhaul +50) adjustment and its per-part armour value; a class foe takes neither, and
-// the overhaul reads a flat 60 off it whatever it wears (pcaaoArmorToHit). Damage is shown BEFORE the foe's armour
-// reduces it (the overhaul's reduction depends on the foe's materials and the blow's weight, applied after these figures).
+// Expected hit chance and damage for the stats card, computed through the functions both combat cores use.
+// Damage figures are before the target's armor reduces them.
 import { liveStat } from '../characters/statMods.js';
 import { skillValue, SKILLS } from '../characters/skills.js';
 import {
@@ -33,17 +20,14 @@ import { weaponSkillUsed, WEAPONS } from '../characters/weapons.js';
 import { skillsLevel } from '../characters/enemyEntity.js';
 import { equipTableOf, EQUIP_SLOTS } from '../characters/equip.js';
 import { getItemHands, ITEM_HANDS } from '../characters/equipTable.js';
-import { clawMetalDamage } from './clawMetal.js';   // BAL6-GAUNTLETS: the beast's claws take its gauntlets' metal
+import { clawMetalDamage } from './clawMetal.js';
 
 const int = Math.trunc;
-const clamp = (x) => Math.max(3, Math.min(97, x));   // CalculateSuccessfulHit / pcaaoSuccessfulHit: 3..97
-/** AUDIT MARTIAL L2 F7: the blow modifiers' word that this is the page's estimate - answered, and nothing kept by it
- *  (systems/entityMods.js registerWeaponBlowMod: no fraction carried, no next-blow window spent). */
+const clamp = (x) => Math.max(3, Math.min(97, x));
+// Blow modifiers read estimate and must not spend state, such as a carried fraction or a next-blow window.
 const ESTIMATE = Object.freeze({ unaware: false, estimate: true });
 const STAT_KEYS = Object.freeze(['strength', 'intelligence', 'willpower', 'agility', 'endurance', 'personality', 'speed', 'luck']);
 
-/** The reference foes. A monster's `armorValue` is MobileEnemy.ArmorValue (lower = harder to hit; the part values are that x5,
- *  enemyEntity.js). The human is an EnemyClass entity in mail: 100 - 5 x 8 = 60 on every part. */
 export const REFERENCE_FOES = Object.freeze([
   { id: 'soft', label: 'Soft monster', isClass: false, armorValue: 6, tip: 'A monster with armor value 6 (30 on every part): rats, imps and most of the early bestiary.' },
   { id: 'tough', label: 'Tough monster', isClass: false, armorValue: 0, tip: 'A monster with armor value 0: the middle of the bestiary.' },
@@ -51,7 +35,6 @@ export const REFERENCE_FOES = Object.freeze([
   { id: 'human', label: 'Human foe', isClass: true, armorValue: null, tip: 'A warrior in mail (60 on every part). Human foes get no monster bonus to be hit, and the combat overhaul uses a flat 60 for them.' },
 ]);
 
-/** The swings the melee machine offers, and the single release of a bow (WeaponManager: a bow release is StrikeDown). */
 export const SWING_LIST = Object.freeze([
   { key: 'StrikeLeft', label: 'Sideways' },
   { key: 'StrikeUp', label: 'Thrust up' },
@@ -60,10 +43,9 @@ export const SWING_LIST = Object.freeze([
   { key: 'StrikeDown', label: 'Overhead' },
 ]);
 
-/** A foe of `level` standing as reference foe `def` (a REFERENCE_FOES entry). Skills are enemyEntity's own flat value. */
 export function referenceFoe(level, def) {
   const isClass = !!def.isClass;
-  const av = isClass ? 60 : (def.armorValue ?? 0) * 5;   // EnemyEntity: a monster's ArmorValue x 5; a class foe's worn gear
+  const av = isClass ? 60 : (def.armorValue ?? 0) * 5;
   const stats = Object.fromEntries(STAT_KEYS.map((k) => [k, 50]));
   return {
     isPlayer: false, isClass, level, careerIndex: -1, stats, skills: skillsLevel(level),
@@ -71,12 +53,10 @@ export function referenceFoe(level, def) {
   };
 }
 
-/** Which combat core is in force. The overhaul counts only when its formula is REGISTERED and its armour module is on. */
 export function activeCore(modules = pcaaoModules()) {
   return { overhaul: !!formulaOverride('calculateAttackDamage') && !!modules.armorHitFormulaRedone, modules };
 }
 
-/** The selected hand, including an empty hand used for unarmed combat. */
 export function strikingWeaponOf(entity, usingRightHand = true) {
   const t = equipTableOf(entity);
   const it = t[usingRightHand ? EQUIP_SLOTS.RightHand : EQUIP_SLOTS.LeftHand];
@@ -89,11 +69,10 @@ const weightsOf = (table) => {
   return w.map((n) => n / table.length);
 };
 
-/** The critical roll as the core in force plays it: its chance, what a success adds to the hit chance and to the damage. */
 export function criticalModel(entity, core) {
   const crit = skillValue(entity, SKILLS.CriticalStrike);
   const pct = (n) => Math.max(0, Math.min(100, n)) / 100;
-  if (!core.overhaul) return { chance: pct(crit), hitBonus: int(crit / 10), damageMult: 1, kind: 'hit' };   // CalculateSkillsToHit
+  if (!core.overhaul) return { chance: pct(crit), hitBonus: int(crit / 10), damageMult: 1, kind: 'hit' };
   if (!core.modules.criticalStrikesIncreaseDamage) return { chance: pct(int(crit / 3)), hitBonus: int(crit / 3), damageMult: 1, kind: 'hit' };
   const luckTerm = Math.floor(Math.fround((liveStat(entity, 'luck') - 50) / 25));
   return {
@@ -102,7 +81,6 @@ export function criticalModel(entity, core) {
   };
 }
 
-/** Everything about the swing that does not depend on the foe. */
 function swingContext(entity, weapon, core) {
   const skillId = weapon ? (weaponSkillUsed(weapon.templateIndex) ?? SKILLS.HandToHand) : SKILLS.HandToHand;
   const prof = core.overhaul ? pcaaoProficiencyModifiers(entity, weapon) : proficiencyModifiers(entity, weapon);
@@ -112,7 +90,6 @@ function swingContext(entity, weapon, core) {
   return { entity, weapon, core, skillId, skill: skillValue(entity, skillId), prof, racial, isBow, twoHanded, crit: criticalModel(entity, core) };
 }
 
-/** The chance to hit: exact expectation of the core's roll, for one swing against one foe. */
 function hitModel(ctx, swing, foe) {
   const { entity, weapon, core, skill, prof, racial, crit } = ctx;
   let base; let other;
@@ -133,7 +110,7 @@ function hitModel(ctx, swing, foe) {
   const weights = weightsOf(core.overhaul ? PCAAO_BODY_PARTS : STRUCK_BODY_PARTS);
   let plain = 0; let crit1 = 0; let armourAvg = 0;
   weights.forEach((w, p) => {
-    const a = core.overhaul ? pcaaoArmorToHit(foe, p) : (foe.armorValues[p] ?? 0);   // the overhaul reads a class foe's armour as a flat 60
+    const a = core.overhaul ? pcaaoArmorToHit(foe, p) : (foe.armorValues[p] ?? 0);
     armourAvg += w * a;
     plain += w * clamp(base + a + other) / 100;
     crit1 += w * clamp(base + a + other + crit.hitBonus) / 100;
@@ -144,7 +121,6 @@ function hitModel(ctx, swing, foe) {
   };
 }
 
-/** The blow's damage, mean and span over the weapon's integer roll range. Neutral foe (no career bonus or phobia). */
 function damageModel(ctx, swing, foe) {
   const { entity, weapon, core, skillId, prof, racial, twoHanded, crit } = ctx;
   const str = liveStat(entity, 'strength');
@@ -155,7 +131,7 @@ function damageModel(ctx, swing, foe) {
     const h2h = skillValue(entity, SKILLS.HandToHand);
     for (let r = handToHandMinDamage(h2h); r <= handToHandMaxDamage(h2h); r++) rolls.push(r);
     strMod = core.overhaul ? pcaaoDamageModifier(str) : damageModifier(str);
-    matMod = clawMetalDamage(entity);   // BAL6-GAUNTLETS: both cores add it where a weapon's material stands
+    matMod = clawMetalDamage(entity);
   } else {
     for (let r = baseDamageMin(weapon); r <= baseDamageMax(weapon); r++) rolls.push(weaponDamageMods(weapon, r));
     matMod = WEAPON_MATERIAL_MODIFIER[weapon.material] ?? 0;
@@ -166,7 +142,7 @@ function damageModel(ctx, swing, foe) {
     if (!weapon) {
       if (core.overhaul && d < 1) d = 0;
       d += bonusOrPenaltyByEnemyType(entity, foe);
-      return entity.isInBeastForm ? d : weaponBlowMods(null, d, entity, foe, ESTIMATE);   // BAL10: both cores read the fists' blow modifiers now - never the beast's claws
+      return entity.isInBeastForm ? d : weaponBlowMods(null, d, entity, foe, ESTIMATE);
     }
     if (d < 1) d = 0;
     d += bonusOrPenaltyByEnemyType(entity, foe);
@@ -177,7 +153,7 @@ function damageModel(ctx, swing, foe) {
     if (!core.overhaul) return d;
     d = Math.max(0, d);
     if (critical && crit.damageMult !== 1) d = unityRound(Math.fround(d * crit.damageMult));
-    if (core.modules.conditionBasedEffectiveness && weapon && d >= 1) d = pcaaoAlterDamageBasedOnWepCondition(d, skillId === SKILLS.BluntWeapon, weapon, core.modules.equipmentDamageEnhanced);   // BAL1: the edge rides the mod's wear
+    if (core.modules.conditionBasedEffectiveness && weapon && d >= 1) d = pcaaoAlterDamageBasedOnWepCondition(d, skillId === SKILLS.BluntWeapon, weapon, core.modules.equipmentDamageEnhanced);
     return d;
   };
   const plain = rolls.map((r) => finish(one(r), false));
@@ -190,8 +166,6 @@ function damageModel(ctx, swing, foe) {
   };
 }
 
-/** The whole card's offence data for `entity`. Pure: reads the entity and the formulas, writes nothing.
- *  opts: { core: 'classic'|'overhaul' (tests), foe: REFERENCE_FOES index }. */
 export function computeCombatStats(entity, opts = {}) {
   const modules = opts.modules ?? pcaaoModules();
   const core = opts.core ? { overhaul: opts.core === 'overhaul', modules } : activeCore(modules);

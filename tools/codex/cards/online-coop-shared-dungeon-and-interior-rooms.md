@@ -15,6 +15,7 @@ files:
   - src/items/roomLoot.js
   - src/items/roomLootHost.js
   - src/items/claimLedger.js
+  - src/items/bodyLootHost.js
 routes: []
 tables: []
 replacesBible:
@@ -30,9 +31,19 @@ invariants:
   - "Only layout enemies stream. Quest spawns, summons, and dropped piles stay local to their owner."
   - "When the seat's enemy stream goes silent past FOES_STALE_MS (3 * FOES_FULL_MS), joiners fall back to local simulation, and the relay moves the seat to an active socket."
   - "Each shared container is judged by one authority through take logs (judgeRoomClaim), never by whole-list overwrites. A losing or timed-out claim returns the item to the container view."
+  - "An enemy body is identified by its owner, its body number, and its generation (`bg`). Each body loot host seeds its generation counter from the CSPRNG, and a new claim is judged only when the asker is in reach and names the generation of that body."
+  - "A claim with no verdict is re-sent with the same id, backing off up to `CLAIM_RESEND_MAX_MS`, until it is answered or `CLAIM_KEEP_MS` passes. The owner answers an id it already judged from its verdict ledger, so a lost verdict is recovered and never judged twice."
+  - "A claim id is `<peer>:<stamp>:<count>` (`roomClaimId`), and `claimOf` accepts only an id that starts with the peer id of the sender, so `landRoomWord` drops any claim or put that a peer sends in the name of another peer."
+  - "`bonusShare` returns `(own - base) / (1 - base)`, capped at 1, when the player chance is above the base chance and the base chance is below 1, and 0 otherwise, so the base roll and the bonus roll together give the player their own chance."
+  - "`composeRoomView` puts the base piece objects themselves into the list and sets their `stackCount` in place, so a take holds the same object that the base holds on every later compose."
+  - "Spent bonus places are saved in the character mod save data under `RoomLootBonus`, keyed by `<container name>|<character>` and capped at `ROOM_BONUS_KEPT` (2048) with the oldest dropped, so a reload or a return rolls no bonus again."
+  - "`roomClaimOrder` sorts claims by relay time (`tm`), then by id. `roomTakeSeat` judges the claims that the last host left unanswered in that order, so the result is the same whichever client takes the seat."
+  - "`roomTermsBeat` decides which room terms win: a newer generation (`g`), then the earlier mint time (`tm`), then the lower level, then the lower fighter count (`n`), and only then the lower signature `h`, when both terms carry one."
+  - "`seededRolls` seeds an sfc32 generator from a hash of the container name and warms it with 12 draws, so every client gets the same draws in the same order for the same name."
 traps:
   - "Owned houses and ships never mint a shared interior room (buildingKey 0), which keeps their storage per-player."
   - "Apply stored room loot only after asynchronous enemy retyping completes, or level-mismatched corpses duplicate gold."
+  - "`listMovesSince` matches pieces by object identity, never by row, because row 0 of a filtered window is not place 0. A window that splits a stack lowers the count of that piece, so a partial take reads as a drop in count."
 dfu: []
 tags:
   - dungeon

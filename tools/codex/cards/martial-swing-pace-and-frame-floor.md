@@ -28,6 +28,7 @@ traps:
   - "`readSwing` and `swingFamily` (swingLaw.js) provide the weapon reader, registered by `installSwingLaw`. weaponStates.js stays a leaf module and does not import the equip table."
   - "`swingHandling` multiplies by `SWING_HANDLING[weaponType]`. Short blades use `SWING_SHORT_BLADE` (`SWING_HANDLING[4]`), and two-handed weapons add `SWING_TWO_HANDED` (1.06)."
   - "Pace contributors are Short Blade past 100 (weaponMastery.js) and the martial paths' War Rhythm, Frenzy and Cyclone windows (`martialPace`). The cap applies to their combined total."
+  - "The swing reader (`src/combat/swingLaw.js`) reads `entity.equip?.slots` directly, because `equipOf` would create an empty equip table that `syncWorn` in `src/combat/weaponRig.js` then reads as empty hands."
 dfu: []
 tags:
   - swing-pace

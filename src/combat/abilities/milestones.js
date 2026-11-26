@@ -152,7 +152,6 @@ const loadout = new Map([
     fx: 'flurry', finishFx: 'flurryFinish', spend: 15, cooldownMs: 38000, windUpMs: 420, activeMs: 1350, recoveryMs: 1100,
     description: 'Commit to seven rapid strikes on one enemy, wearing down its poise before a heavy finishing blow. Once a punch connects, the remaining punches can only hit that enemy.' }],
 ]);
-// Weapon techniques share fatigue with ordinary swings and dungeon traversal.
 for (const [id, profile] of loadout) {
   if (profile.capstone) continue;
   loadout.set(id, { ...profile, spend: Math.max(1, Math.round(profile.spend / 3)),

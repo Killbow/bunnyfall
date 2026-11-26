@@ -1,16 +1,4 @@
-// GENERATED from DFU ItemEnums.cs (MIT, Daggerfall Workshop) by
-// scratchpad/extract-item-templates.py. Regenerate rather than
-// hand-edit.
-//
-// AUDIT 17e F9 / ONE DFU MEMBER, ONE EXPORT: the 288-row TEMPLATE_ROWS
-// table that used to live here was a LOSSY second copy of
-// characters/itemTemplates.json (DFU's ItemTemplates.txt verbatim) -
-// it carried only the world texture, so every inventory icon drew the
-// world sprite where DFU draws the player/inventory sprite. The two
-// copies were verified field-for-field identical before this one was
-// deleted; systems/item/itemTemplates.js now reads the JSON directly.
-// What remains here is the ENUM extraction (group -> template
-// indices), which ItemTemplates.txt does not carry.
+// Template indices per item group, from Daggerfall Unity ItemEnums.cs.
 
 export const GROUP_TEMPLATE_INDICES = Object.freeze({
   Drugs: Object.freeze([78, 79, 80, 81]),
@@ -38,14 +26,6 @@ export const GROUP_TEMPLATE_INDICES = Object.freeze({
   Deeds: Object.freeze([0, 1, 2]),
   Jewellery: Object.freeze([133, 134, 135, 136, 137, 138, 139, 140]),
   MiscItems: Object.freeze([132, 274, 275, 276, 278, 281, 285, 286, 287]),
-  // Hand-added at Q2b-ii (the generator script predates the quest
-  // mint and did not extract it; values verbatim from ItemEnums.cs
-  // :580-590 `enum QuestItems`): Telescope, Scales, Globe, Skeleton,
-  // Totem, Dead_body, Mantella, Finger.
   QuestItems: Object.freeze([254, 255, 256, 257, 280, 281, 282, 283]),
-  // Hand-added at the Q2b-ii audit (same generator gap): the 1-entry
-  // Currency enum (ItemEnums.cs:605-608, Gold_pieces = 276) - the
-  // quest mint's "coins" (Quests-Items 28,0) resolves through it
-  // where the port used to throw and C# mints gold pieces.
   Currency: Object.freeze([276]),
 });

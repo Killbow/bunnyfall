@@ -28,6 +28,7 @@ traps:
   - "WPDT mType is int16 at byte 8 and mHealth is uint16 at byte 10. MW-D22 fixed a reader and fixture that had both assumed byte 10."
   - "Retail Nord male hands are b_n_nord_m_hands.1st (plural), so name-guessing fails."
   - "meshes/base_anim.1st.nif is listed only as the name the reverted rig hardcoded."
+  - "On a lazily opened archive, `get()` throws for an entry that was not loaded. Every synchronous archive read in `src/combat/fpArm.js` runs after its path is loaded, either by an earlier `loadFromArchives` call in the same function or by a preload that `findLoaded` checks, and `findLoaded` throws by path when a preload misses."
 dfu: []
 tags:
   - "esm"

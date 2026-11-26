@@ -38,6 +38,7 @@ invariants:
   - "A melee claim requires a position within `DUEL_MELEE_POS_SLACK_M = 3` m and a `DUEL_TRAIL_MS = 500` trail; `duelWearDamage` caps weapon wear at `DUEL_WEAR_MULT` (6) times the top weapon roll."
   - "Results are relay-signed receipts claimed at /v1/duel/claim (claimDuel). Each counts once by bout id. A draw records nothing."
   - "Recording needs two registered accounts, at most DUEL_PAIR_DAY_MAX = 10 per pair and DUEL_WINNER_DAY_MAX = 20 per winner per day, checked inside the single INSERT."
+  - "The duel stand-in (`duelStandIn`, built from `DUEL_STAND_IN`) has every attribute at `DUEL_STAT_MAX / 2`, level 1, race 0, no skills, no career bits, and unarmored part values. Every `stat - 50` and `level / 2` term of the defender reads zero, so the sheet of the real defender never shifts the roll."
 traps:
   - "/v1/duel/loss is retired and answers 410 'retired'. Never rely on the loser's own report."
   - "duel_results has no counter columns. Wins and losses are COUNT(*) over winner and loser rows (duelRecordOf)."

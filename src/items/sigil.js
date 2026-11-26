@@ -1,84 +1,12 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// SIGIL1 (2026-09-25) — SOME WEAPONS WON ONLINE CARRY A SIGIL, AND IT GROWS.
-//
-// Mac: "weapons obtained through online play recieve a sort of sigil
-// power that is only effective online, which also scales with your
-// renown. Sigil power does not work offline. I want this system to
-// really enhance the fantasy but not be insanely overpowered. This
-// links up with both elements we have so far with scaling and renown".
-// Asked, Mac answered: "Bonus damage"; "Magic and up, found online";
-// "Bigger fights, stronger sigils"; "Five named stages". Then, of a
-// sigil fixed at the drop ("Makes sigil a static element"): "What if
-// the sigil is[n']t gaurenteed in of itself" - and chose "Chance at the
-// drop, then grows".
-//
-// ═══ WHAT A SIGIL IS ═══════════════════════════════════════════════
-//
-// A record on the weapon, `item.sigil = { power, party, xp }`:
-//   power - the per cent of damage it adds against a foe at its full
-//           rank, rolled when the weapon is won;
-//   party - the size of the fight that won it (1..8), for the tooltip;
-//   xp    - what it has drunk: every point of Renown XP its wielder
-//           earns with it in hand (a kill, a quest), so a bigger fight
-//           (renownPartyXp's bonus) feeds it faster.
-// Its RANK comes from its xp (Faint, Kindled, Bright, Radiant,
-// Ascendant); what it gives is its power times the share of the LOWER
-// of its rank and the stage its wielder's Renown has opened. A sigil
-// keeps its xp when it changes hands; a new hand's Renown caps it.
-//
-// WHO GETS ONE - NOT EVERY WEAPON: a Magic, Rare or Legendary weapon
-// (never ammunition, armour, jewellery or an artifact) won ONLINE - off
-// a corpse when its foe dies, or out of a treasure pile when it is
-// minted - carries one about one time in five, more in a bigger fight
-// (lootRarity.js stampWonWeapons). Common weapons, shop stock, quest
-// rewards and anything won offline never do; a weapon never gains a
-// sigil after it is won, and never loses one.
-//
-// ═══ HOW STRONG ════════════════════════════════════════════════════
-//
-// THE BAND, per tier, per cent at full rank: Magic 2-5, Rare 4-8,
-// Legendary 7-12 - under half of the tier's own damage affix (5-12,
-// 10-25, 20-40), so a sigil flavours a weapon and never outclasses it.
-//
-// BIGGER FIGHTS, STRONGER SIGILS - the fight's weight is its foe's
-// FIGHTERS (PSCALE1, systems/party/partyScale.js): the chance is
-// SIGIL_CHANCE_BASE per mille alone and SIGIL_CHANCE_PER more a fighter
-// past the first; the power's FLOOR rises a seventh of the band a
-// fighter past the first, so a fight of eight always wins the top.
-//
-// THE STAGES, each a share of the power: Faint 20%, Kindled 40%, Bright
-// 60%, Radiant 80%, Ascendant 100%. The sigil's own rank opens at
-// 0 / 5,000 / 12,500 / 22,500 / 37,500 xp; the wielder's Renown opens
-// the same five at 1 / 10 / 20 / 30 / 40.
-//
-// THE BLOW: the whole weapon blow (FormulaHelper's, after the strength
-// and the material, before DFU's mod hook) times the per cent, its fraction carried
-// per weapon so a Faint 2.4% still lands its share - on blows of ten, a
-// point about every fourth blow. ONLINE ONLY: offline, and online before
-// the page knows its Renown, every sigil is Dormant and adds nothing,
-// and drinks nothing. FOES ONLY: never in a duel, never a blow at a
-// player, never a peer's blow resolved here.
-//
-// ═══ SET1: A SIGIL MAY NAME A SET ══════════════════════════════════
-//
-// Mac (2026-09-26): "sigil armor sets that also come with set builds".
-// The record grows ONE optional field, `set` - the id of the set the
-// piece belongs to (systems/sigil/sigilSets.js holds the sets themselves) - and
-// `power` stops being required: a piece of ARMOUR or a SHIELD in a set
-// carries `{ set, party, xp }` and no blow, a set WEAPON carries both
-// its blow and its set, and one `xp` feeds both so no piece levels
-// twice. Every reader of `power` reads a set piece's absent power as no
-// blow at all. The ids live HERE, beside the record's shape they
-// validate; the sets' names and tiers live in sigilSets.js.
-// ═══════════════════════════════════════════════════════════════════
+// Sigils on weapons and set armor won online: the `{ power, party, xp, set }` record, its five stages, and its
+// bonus to blows against enemies. A sigil is dormant offline and before the page knows its Renown.
 
 import { PARTY_MAX } from '../net/wire.js';
 import { registerWeaponBlowMod } from '../characters/entityMods.js';
 import { setSigilDueling, sigilDueling } from './sigilDuelState.js';
-import { blowRoom } from '../characters/powerCeiling.js';   // POWER-CEILING: the blow's one product
+import { blowRoom } from '../characters/powerCeiling.js';
 
-/** The power band per tier, per cent at full rank: [min, max] inclusive. */
 export const SIGIL_BANDS = Object.freeze({
   magic: Object.freeze([2, 5]),
   rare: Object.freeze([4, 8]),
@@ -86,12 +14,9 @@ export const SIGIL_BANDS = Object.freeze({
 });
 export const SIGIL_POWER_MAX = SIGIL_BANDS.legendary[1];
 
-/** The chance a won weapon carries a sigil, per mille: alone, and more a fighter past the first. */
 export const SIGIL_CHANCE_BASE = 200;
 export const SIGIL_CHANCE_PER = 40;
 
-/** The five stages: the xp the sigil's own rank opens each at, the Renown that opens it for the wielder, its name,
- *  the share of the power it wakes (per cent). */
 export const SIGIL_STAGES = Object.freeze([
   Object.freeze({ xp: 0, renown: 1, name: 'Faint', share: 20 }),
   Object.freeze({ xp: 5000, renown: 10, name: 'Kindled', share: 40 }),
@@ -99,22 +24,14 @@ export const SIGIL_STAGES = Object.freeze([
   Object.freeze({ xp: 22500, renown: 30, name: 'Radiant', share: 80 }),
   Object.freeze({ xp: 37500, renown: 40, name: 'Ascendant', share: 100 }),
 ]);
-/** A sigil drinks no more than its last stage asks. */
 export const SIGIL_XP_MAX = SIGIL_STAGES[SIGIL_STAGES.length - 1].xp;
-/** SET1: the sets a sigil may name (systems/sigil/sigilSets.js SIGIL_SETS, in its order) - the four of the world, then the
- *  gate boss's own, then (RAID4b) the three the raiding parties' raids pay: the knights', the bandits', the orcs' - then
- *  (SERPENT-SET) the sea serpent's own. */
-export const SIGIL_SET_IDS = Object.freeze(['malacath', 'dagon', 'nocturnal', 'mora', 'ruhn', 'oath', 'thieftaker', 'orcsbane', 'coilscale', 'numidium', 'panoply', 'wyrd', 'starspun', 'eltheric']);   // WITCH1: THE WYRD'S RAIMENT, the Witches' Festival's; STAR7: THE STARSPUN WEAVE, the festival's Starfall's; SEA-SET: THE ELTHERIC TIDEMAIL, the deep sea's, last; SD9d: THE BRASS OF NUMIDIUM; EG15: THE BATTLEMAGE'S PANOPLY, last
+// The ids and their order match SIGIL_SETS in sigilSets.js.
+export const SIGIL_SET_IDS = Object.freeze(['malacath', 'dagon', 'nocturnal', 'mora', 'ruhn', 'oath', 'thieftaker', 'orcsbane', 'coilscale', 'numidium', 'panoply', 'wyrd', 'starspun', 'eltheric']);
 
 const partyOf = (n) => (Number.isFinite(n) ? Math.max(1, Math.min(PARTY_MAX, Math.floor(n))) : 1);
-/** A fight's size as a sigil records it: whole, 1..PARTY_MAX (SET4: a set piece's record takes it the same way). */
 export const sigilParty = partyOf;
 
-/** A whole power inside the widest band - a sigil's blow. */
 const validPower = (p) => Number.isInteger(p) && p >= 1 && p <= SIGIL_POWER_MAX;
-/** A valid sigil record: a whole party 1..PARTY_MAX, a whole xp 0..its cap, and a POWER (a weapon's blow, a whole per
- *  cent inside the widest band) or a SET (SET1: one of SIGIL_SET_IDS) or both - never neither, and neither field
- *  present and malformed. */
 export function validSigil(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return false;
   if (!(Number.isInteger(s.party) && s.party >= 1 && s.party <= PARTY_MAX)) return false;
@@ -125,12 +42,9 @@ export function validSigil(s) {
   if (hasSet && !SIGIL_SET_IDS.includes(s.set)) return false;
   return true;
 }
-/** SET1: the set a sigil names, or null (a weapon sigil of no set, or a malformed record). */
 export const sigilSetId = (s) => (validSigil(s) && typeof s.set === 'string' ? s.set : null);
-/** SET1: does the sigil carry a blow - a power? (A set's armour does not.) */
 export const sigilHasBlow = (s) => validSigil(s) && validPower(s.power);
 
-/** The sigil's own rank (0..4) by its xp; 0 for a malformed record. */
 export function sigilRank(sigil) {
   if (!validSigil(sigil)) return 0;
   let r = 0;
@@ -138,7 +52,6 @@ export function sigilRank(sigil) {
   return r;
 }
 
-/** The stage (0..4) a Renown opens, or -1 for no Renown (offline, or not yet known): Dormant. */
 export function renownSigilStage(renown) {
   if (!Number.isSafeInteger(renown) || renown < 1) return -1;
   let r = 0;
@@ -146,32 +59,26 @@ export function renownSigilStage(renown) {
   return r;
 }
 
-/** The stage a sigil stands at in a hand of this Renown: the lower of its rank and the Renown's, -1 dormant. */
 export function sigilStageIn(sigil, renown) {
   if (!validSigil(sigil)) return -1;
   const cap = renownSigilStage(renown);
   return cap < 0 ? -1 : Math.min(sigilRank(sigil), cap);
 }
 
-/** The per cent a sigil adds in a hand of this Renown: its power times its stage's share, 0 dormant, malformed, or a
- *  set piece with no blow (SET1). */
 export function sigilPercent(sigil, renown) {
   if (!sigilHasBlow(sigil)) return 0;
   const st = sigilStageIn(sigil, renown);
   return st < 0 ? 0 : (sigil.power * SIGIL_STAGES[st].share) / 100;
 }
 
-/** The chance (per mille) a weapon won in a fight of `party` fighters carries a sigil. */
 export const sigilChance = (party) => SIGIL_CHANCE_BASE + SIGIL_CHANCE_PER * (partyOf(party) - 1);
 
-/** The floor of a tier's band for a fight of `party`: a seventh of the band a fighter past the first, rounded. */
 export function sigilFloor(tier, party) {
   const band = SIGIL_BANDS[tier];
   if (!band) return 0;
   return Math.min(band[1], band[0] + Math.round(((band[1] - band[0]) * (partyOf(party) - 1)) / (PARTY_MAX - 1)));
 }
 
-/** Roll a won weapon's sigil for a tier and a fight: null most times; else a fresh record at Faint. */
 export function rollSigil(tier, party, rolls = Math.random) {
   const band = SIGIL_BANDS[tier];
   if (!band) return null;
@@ -180,38 +87,19 @@ export function rollSigil(tier, party, rolls = Math.random) {
   return { power: lo + Math.floor(rolls() * (hi + 1 - lo)), party: partyOf(party), xp: 0 };
 }
 
-// ── the session: online, and the wielder's Renown ──────────────────
-// Set by the world host (scenes/world.js): `online` for a session that plays online (a weapon won then is won
-// online), the Renown the page knows (renownAdopt - the token's word and the service's since). Never saved.
+// Set by the world host for the session and never saved.
 let _online = false;
 let _renown = null;
-/** SET2's DUEL WORD (the host's - scenes/world.js duelFrame): the player stands in a duel - or, AUDIT 625 P2, in a bout
- *  between players on a relay's sand, where the opponent is a Daedra Lord's stand-in for the formulas and no player, so
- *  the gates that refuse a blow at a player never saw one. Every power that sleeps in a duel reads it here: the sets and
- *  the loot's powers (sigilSets.js setsDueling) and the weapon's own blow below. */
+// The duel flag also covers arena bouts between players, where the opponent is a stand-in not flagged as a player.
 export { setSigilDueling, sigilDueling };
-/** The host's word: this session plays online (stamps are minted) or not. */
 export function setSigilOnline(on) { _online = !!on; if (!_online) _renown = null; }
-/** The host's word: the Renown the wielder has, null while unknown. Offline it is always null. */
 export function setSigilRenown(level) { _renown = _online && Number.isSafeInteger(level) && level >= 1 ? level : null; }
 export const sigilOnline = () => _online;
 export const sigilRenown = () => _renown;
-/** RENOWN-GATE (2026-10-12, the owner: "gate elite/revenant spawns behind renown level"; asked, offline "Unchanged
- *  offline"): DOES THE PAGE'S RENOWN OPEN WHAT WAITS FOR RENOWN `min`? Offline always - Renown is online's own and
- *  offline earns none, so offline play keeps what it had (RENOWN-LOOT's offline answer). Online once the page's Renown
- *  reaches `min`, and never before the page knows it (the moments before the first token) - nothing opens ahead of the
- *  Renown behind it, RENOWN-LOOT's first-stage law. The one door: eliteFoes.js eliteRenownOpen (Renown 5) and revenant.js
- *  revenantHeld (Renown 10) ask it (`06-Systems/Revenants.md` section 39).
- *  @param {number} min
- *  @param {{ online?: boolean, renown?: number|null }} [o] */
+/** @param {number} min @param {{ online?: boolean, renown?: number|null }} [o] */
 export const renownOpens = (min, { online = _online, renown = _renown } = {}) => !online || (Number.isSafeInteger(renown) && /** @type {number} */ (renown) >= min);
 
-/**
- * THE DRINK: the weapon in my hand drinks `xp`, the Renown XP I just earned with it (a kill, a quest) - online, my
- * Renown known, never past SIGIL_XP_MAX. A NEW record in place of the old, never the old one written: a save's or a
- * stream's copy of the item shares its fields (`{ ...it }`), and a copy taken before the drink keeps what it took.
- * Answers the rank the sigil rose to, else null.
- */
+// Writes a new sigil object, because save and stream copies of the item share the old one.
 export function drinkSigil(item, xp) {
   if (_renown == null || !item || !validSigil(item.sigil) || !(xp > 0)) return null;
   const was = sigilRank(item.sigil);
@@ -220,8 +108,6 @@ export function drinkSigil(item, xp) {
   return now > was ? now : null;
 }
 
-/** What the page says when a sigil in my hand rises to `rank`: its stage, and what my Renown holds it at when that is
- *  lower. `name` is the weapon's, as its tooltip reads it. */
 export function sigilRiseLine(name, rank) {
   const stage = SIGIL_STAGES[rank];
   if (!stage) return null;
@@ -231,38 +117,24 @@ export function sigilRiseLine(name, rank) {
   return `${line} Your Renown limits it to ${SIGIL_STAGES[cap].name} until Renown ${SIGIL_STAGES[cap + 1].renown}.`;
 }
 
-// ── the blow ───────────────────────────────────────────────────────
 /** @type {WeakMap<object, number>} */
 let _carry = new WeakMap();
-/**
- * THE BLOW (entityMods registerWeaponBlowMod, read at the tail of FormulaHelper's weapon damage): my weapon's sigil on
- * my blow at a foe, online - its per cent of the whole blow, the fraction carried on the weapon. Nothing for a duel (a
- * player on either end - AUDIT 625 P2: or the duel's word, an arena bout's stand-in no player), a peer's blow resolved
- * here, a hand without a sigil, or a session with no Renown.
- */
 export function sigilBlow(weapon, damage, attacker, target, info = null) {
   if (!(damage > 0) || !weapon || !attacker?.isPlayer || attacker.peer || !target || target.isPlayer || sigilDueling()) return damage;
-  const pct = blowRoom(sigilPercent(weapon.sigil, _renown), 'sigil');   // POWER-CEILING: its room under the blow's one product
+  const pct = blowRoom(sigilPercent(weapon.sigil, _renown), 'sigil');
   if (!(pct > 0)) return damage;
   const exact = (damage * pct) / 100 + (_carry.get(weapon) ?? 0);
   const more = Math.floor(exact + 1e-9);
-  if (!info?.estimate) _carry.set(weapon, Math.max(0, exact - more));   // AUDIT MARTIAL L2 F7: the Stats page's estimate keeps nothing
+  if (!info?.estimate) _carry.set(weapon, Math.max(0, exact - more));
   return damage + more;
 }
 registerWeaponBlowMod('sigil', sigilBlow);
 
-// ── the words ──────────────────────────────────────────────────────
 const pctText = (p) => (Number.isInteger(p) ? `${p}` : p.toFixed(1));
-/**
- * The lines a tooltip or a card shows for a weapon's sigil, under its tier and affixes: what it gives in MY hand now
- * (online), or that it sleeps (offline); then how far it has grown, and what holds it. Empty for a weapon without one.
- */
 export function sigilLines(item) {
   const s = item?.sigil;
   if (!validSigil(s)) return [];
   const rank = sigilRank(s);
-  // SET1: a set's armour carries no blow - its first line names only the stage; its set says the rest
-  // (systems/sigil/sigilSets.js setLines)
   const blow = sigilHasBlow(s);
   const full = blow ? `: +${s.power}% at Ascendant` : '';
   if (_renown == null) return [`Sigil (Dormant: works online only)${full}`];
@@ -276,14 +148,6 @@ export function sigilLines(item) {
 }
 
 /**
- * SIGIL-UI (2026-09-26, Mac: "sigil weapons need a visible indicator within the info section, something that makes it
- * stand out, along with progress as you use it"): the same facts sigilLines says, as a MODEL a card draws - the
- * stage it stands at in my hand, the five stages with the ones it has grown into, and how far it has drunk toward
- * its next. `rank` is the sigil's own growth (its xp's stage); `stage` is what my Renown lets it wake to (-1 while
- * Dormant); `held` says the Renown is the lower. `frac` is the share of the way from its rank's xp to the next one's
- * (1 at Ascendant). Null for a weapon without a sigil.
- * SET1: `blow` says the sigil carries a power (a set's armour does not: its `pct` is 0 and its `full` null), and `set`
- * names the set it belongs to, or null.
  * @returns {null | { rank: number, stage: number, dormant: boolean, held: boolean, name: string, pct: number,
  *   full: number|null, xp: number, from: number, to: number|null, next: string|null, frac: number, party: number,
  *   unlock: number|null, stages: Array<{ name: string, grown: boolean, awake: boolean }>, blow: boolean,
@@ -305,17 +169,15 @@ export function sigilView(item) {
     xp: s.xp, from, to: next ? next.xp : null, next: next ? next.name : null,
     frac: next ? Math.max(0, Math.min(1, (s.xp - from) / (next.xp - from))) : 1,
     party: s.party,
-    unlock: held ? SIGIL_STAGES[stage + 1].renown : null,   // the Renown that opens its next stage in my hand
+    unlock: held ? SIGIL_STAGES[stage + 1].renown : null,
     stages: SIGIL_STAGES.map((st, i) => ({ name: st.name, grown: i <= rank, awake: !dormant && i <= stage })),
     blow: sigilHasBlow(s), set: sigilSetId(s),
   };
 }
-/** The progress line a card writes under its bar: "7,420 / 12,500 to Bright", or that it is fully grown. */
 export function sigilProgressText(v) {
   if (!v) return '';
   if (v.to == null) return 'Fully grown';
   return `${v.xp.toLocaleString('en-US')} / ${v.to.toLocaleString('en-US')} to ${v.next}`;
 }
 
-/** Tests only: forget the session and every weapon's carried fraction. */
 export function _resetSigilForTests() { _online = false; _renown = null; setSigilDueling(false); _carry = new WeakMap(); }

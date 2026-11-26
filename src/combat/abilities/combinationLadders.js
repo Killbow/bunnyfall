@@ -85,8 +85,6 @@ export const meleeCombinations = new Map([
   ], { ...capstone(44), redirect: true, fx: 'flurry' })],
 ]);
 
-// Ranged openers share target ownership and the normal arrow-spend path.
-// Each entry defines its own ranged shape and the weapon family used to cash in the mark.
 export const rangedCombinations = new Map([
   ['combination.archery.short-blade.hidden-relay', { family: SKILLS.ShortBlade, switchTo: 'a short blade',
     description: 'Blend briefly and mark an enemy with an arrow. Equip a short blade and use the ability again to flank it and strike.',

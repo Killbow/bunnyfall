@@ -1,28 +1,11 @@
 // @ts-check
-// IMPACTFX (2026-10-05, the player: "give the impacts a fitting sound ... make sure the spell impact sound suit the
-// game"): A LANDING SPELL, HEARD. DFU gives a missile no impact clip (its sound is its cast's), so each look gets one
-// made at runtime the way the arena's crowd is (systems/arena/arenaSound.js): out of the player's OWN archive
-// (`audio.samplesOf`) layered with a little synthesis, at DAGGER.SND's own 11025 Hz and folded to 8 bits, so it sits
-// beside the classic clips rather than over them. Registered once (`audio.registerSamples`) and played positionally.
-//
-//   fire    a low whumpf and a roar of flame over Ignite (16), the fire cast, and a crackle that runs on into Burning (420)
-//   frost   SplashLarge (342) with a cold hiss and a scatter of ice tinkles - the player's "water"
-//   poison  SplashSmallLow (334) pitched down, a wet squelch, bubbles and an acid sizzle
-//   shock   StormLightningShort (348): a hard crack, then an electric buzz that stutters out in small crackles
-//   magic   a resonant thoom and a shimmer over the magic cast, pitched down
-//   heal    HEAL-FILE (2026-10-05, the player: "here the perfect heal sound make it softer and smoother"): THE PLAYER'S
-//           OWN HEAL SOUND, public/sfx/spell-heal.wav - their 02_Heal_02 softened (its top tilted down 4.5 dB from
-//           4.5 kHz and rolled off over 9 kHz, a soft bloom under it, its flicker evened out, a long fade) and kept at
-//           22050 Hz 16-bit, NOT the 11025 Hz 8-bit bake: 84% of it lives over 5 kHz, which that bake would delete.
-//           Until the file is in (or if it never comes) the synthesised chime below stands in: a gentle major
-//           arpeggio, never driven, rounded off above 2.6 kHz (HEAL-SOFT).
-//
-// With no archive (or a record missing) the synthesis alone stands. Pure where it can be: `buildImpactSound` takes the
-// voices and a seed and answers the samples. Not a DFU member.
+// Spell impact sounds, built at runtime from DAGGER.SND voices plus synthesis and baked to the archive rate and
+// 8 bits so they match the classic clips. The heal plays public/sfx/spell-heal.wav unbaked; a synthesized chime
+// plays until it loads.
 import { SAMPLE_RATE as SND_RATE } from '../formats/sndFile.js';
-import { APP_ROOT } from '../platform/appRoot.js';   // HEAL-FILE: where public/sfx is served from
-import { addVoice, noise, lowpass } from '../arena/arenaSound.js';   // ONE HOME: the made sounds' mixer, noise and one-pole low-pass (ARENA2)
-import { seededRng } from '../weather/wind.js';   // the port's one seeded die (mulberry32) - one home
+import { APP_ROOT } from '../platform/appRoot.js';
+import { addVoice, noise, lowpass } from '../arena/arenaSound.js';
+import { seededRng } from '../weather/wind.js';
 import { loadEarthWallSounds } from './earthWallSounds.js';
 import { loadMeteorSounds } from './meteorSounds.js';
 import { BAKED_RATE } from '../audio/soundRemix.js';
@@ -34,23 +17,18 @@ const REMIXED = Object.freeze({
   earthRise: { set: 'earth', level: 0.85 }, earthSettle: { set: 'earth', level: 1 }, earthSlide: { set: 'earth', level: 1 },
   meteorFall: { set: 'meteor', level: 1, ref: 12 }, meteorImpact: { set: 'meteor', level: 1, ref: 10 },
 });
-/** DAGGER.SND record INDEXES (systems/soundClips.js, ambientEffects.js, footsteps.js). */
+// DAGGER.SND record indexes; IMPACT_CAST_IDS below are sound IDs, resolved to indexes at build time.
 export const IMPACT_CLIPS = Object.freeze({ ignite: 16, splashSmallLow: 334, splashLarge: 342, lightningShort: 348, burning: 420 });
-/** The element cast clips, by sound ID (systems/enemySpells.js SPELL_CAST_SOUND) - resolved to an index at build. */
 export const IMPACT_CAST_IDS = Object.freeze({ fire: 352, frost: 353, poison: 350, shock: 351, magic: 349 });
 export const IMPACT_SOUND_SECONDS = Object.freeze({ fire: 1.5, frost: 1.3, poison: 1.5, shock: 1.1, magic: 1.3, heal: 1.9 });
-/** Each look's level when it plays, and the least gap between two of one look (an area spell lands many at once). */
-export const IMPACT_SOUND_LEVEL = Object.freeze({ fire: 0.85, frost: 0.8, poison: 0.75, shock: 0.85, magic: 0.75, heal: 0.55 });   // HEAL-FILE: the file's level - 3 dB (A-weighted) under HEAL-SOFT's chime
-/** HEAL-FILE: the heal's own clip (public/sfx), the stand-in chime's key and level, and how far its pitch may wander -
- *  less than the made sounds', so the sound the player chose stays the sound they chose. */
+export const IMPACT_SOUND_LEVEL = Object.freeze({ fire: 0.85, frost: 0.8, poison: 0.75, shock: 0.85, magic: 0.75, heal: 0.55 });
 export const HEAL_SOUND_FILE = 'spell-heal.wav';
 export const HEAL_SYNTH_KEY = 'spellfx:heal-synth';
 export const HEAL_SYNTH_LEVEL = 0.3;
 export const HEAL_PITCH_SPREAD = 0.03;
 export const healSoundUrl = () => new URL(`sfx/${HEAL_SOUND_FILE}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
 
-/** HEAL-FILE: a PCM WAV's samples (8/16/24-bit, any channels - mixed to one) and its rate, or null for anything else.
- *  Read here rather than through decodeAudioData so the clip can be registered the moment it is first played. */
+// Parsed here instead of with decodeAudioData, so the clip can be registered synchronously on its first play.
 export function parseWav(bytes) {
   try {
     const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -87,11 +65,8 @@ const TAU = Math.PI * 2;
 
 const env = (t, atk, dec) => (t < 0 ? 0 : (atk > 0 ? Math.min(1, t / atk) : 1) * Math.exp(-t / dec));
 
-/** A voice from the archive (at R) added into `out` at `offset` s, resampled by `ratio`, at `gain`, cut to `take` s
- *  with a fade-in and a fade-out (`fadeOut` s at its end) - through the made sounds' one mixer (arenaSound addVoice). */
 const voice = (out, src, o) => addVoice(out, R, src, R, { fadeIn: 0.003, fadeOut: 0.15, ...o });
 
-/** A band-pass whose centre moves (`hz(t)`), RBJ's constant-peak form, over `x` in place. */
 function bandpass(x, hz, q) {
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0, b0 = 0, b2 = 0, a1 = 0, a2 = 0;
   for (let i = 0; i < x.length; i++) {
@@ -104,35 +79,29 @@ function bandpass(x, hz, q) {
   }
   return x;
 }
-/** `x` less its one-pole low-pass at `hz`, in place: the gentle low cut these sounds are voiced through (not arenaSound's
- *  `highpass`, a different filter; its low-pass half is arenaSound's `lowpass`, which the low arms call). */
 function lowCut(x, hz) {
   const a = 1 - Math.exp((-hz * TAU) / R);
   let y = 0;
   for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] -= y; }
   return x;
 }
-/** `x` shaped by `e(t)` and added into `out` at `gain`. */
 function addShaped(out, x, e, gain) { for (let i = 0; i < out.length && i < x.length; i++) out[i] += x[i] * e(i / R) * gain; }
-/** A sine (frequency `f(t)`) added under `e(t)`. */
 function addTone(out, f, e, gain, from = 0, to = Infinity) {
   let ph = 0;
   const a = Math.max(0, Math.floor(from * R)), b = Math.min(out.length, Math.floor(to * R));
-  for (let i = a; i < b; i++) { const t = i / R; ph += f(t) / R; const v = Math.sin(TAU * ph); out[i] += v * e(t) * gain; }   // ONCRASH1 C2: the phase in turns, never a value stepped by a turn
+  for (let i = a; i < b; i++) { const t = i / R; ph += f(t) / R; const v = Math.sin(TAU * ph); out[i] += v * e(t) * gain; }
 }
-/** Short clicks of filtered noise, at a rate `rate(t)` a second, each `amp(t)` loud. */
 function addCrackle(out, rng, rate, amp, toneHz, until) {
   const n = Math.min(out.length, Math.floor(until * R));
   for (let i = 0; i < n; i++) {
     const t = i / R;
     if (rng() >= rate(t) / R) continue;
     const len = Math.floor((0.002 + rng() * 0.006) * R), a = amp(t) * (0.4 + 0.6 * rng());
-    let ph = rng();   // the phase in turns (ONCRASH1 C2), from a random point in the cycle
+    let ph = rng();
     for (let k = 0; k < len && i + k < out.length; k++) { ph += (toneHz * (0.7 + 0.6 * rng())) / R; const v = Math.sin(TAU * ph); out[i + k] += (rng() * 2 - 1) * 0.6 * a * Math.exp(-k / (len * 0.35)) + v * 0.4 * a * (1 - k / len); }
   }
 }
 
-/** The finish every sound takes: no DC, levelled, softly saturated, 8 bits - Daggerfall's own grain - and a tail fade. */
 export function finish(out, { soft = false } = {}) {
   lowCut(out, 25);
   let peak = 0;
@@ -140,17 +109,13 @@ export function finish(out, { soft = false } = {}) {
   const g = peak > 1e-6 ? 1.15 / peak : 0, sat = Math.tanh(1.3);
   const tail = Math.floor(0.04 * R);
   for (let i = 0; i < out.length; i++) {
-    let s = soft ? (out[i] * g / 1.15) * 0.9 : Math.tanh(out[i] * g * 1.3) / sat * 0.9;   // HEAL-SOFT: a soft look is levelled, never saturated
+    let s = soft ? (out[i] * g / 1.15) * 0.9 : Math.tanh(out[i] * g * 1.3) / sat * 0.9;
     if (i > out.length - tail) s *= (out.length - i) / tail;
     out[i] = Math.round(s * 127) / 127;
   }
   return out;
 }
 
-/**
- * THE SAMPLES OF ONE LOOK (mono, IMPACT_SOUND_RATE). `voices` the archive's records by name (`ignite`, `splashLarge`,
- * ..., and `cast` the look's element cast clip), any of them null. Pure: the same voices and seed, the same sound.
- */
 export function buildImpactSound(kind, voices = {}, seed = IMPACT_SOUND_SEED) {
   const rng = seededRng(seed ^ (FX_INDEX[kind] ?? 4) * 0x9e3779b1);
   const sec = IMPACT_SOUND_SECONDS[kind] ?? 1.3;
@@ -172,7 +137,7 @@ export function buildImpactSound(kind, voices = {}, seed = IMPACT_SOUND_SEED) {
       else addShaped(out, bandpass(noise(out.length, rng), () => 1400, 1.1), (t) => env(t, 0.003, 0.22), 0.9);
       addTone(out, (t) => 50 + 50 * Math.exp(-t / 0.05), (t) => env(t, 0.003, 0.12), 0.4);
       addShaped(out, lowCut(noise(out.length, rng), 2500), (t) => env(t, 0.01, 0.38), 0.22);
-      for (let i = 0; i < 10; i++) {   // the ice: short glassy pings, some with their bell partial
+      for (let i = 0; i < 10; i++) {
         const t0 = r(0.02, 0.6), f = r(1400, 3900), d = r(0.04, 0.11), a = r(0.06, 0.16);
         addTone(out, () => f, (t) => env(t - t0, 0.001, d), a, t0, t0 + d * 6);
         if (f * 1.38 < R * 0.45) addTone(out, () => f * 1.38, (t) => env(t - t0, 0.001, d * 0.6), a * 0.4, t0, t0 + d * 4);
@@ -183,7 +148,7 @@ export function buildImpactSound(kind, voices = {}, seed = IMPACT_SOUND_SEED) {
     case 'poison': {
       voice(out, V.splashSmallLow, { ratio: 0.72, gain: 0.65, take: 0.9, fadeOut: 0.35 });
       addShaped(out, bandpass(noise(out.length, rng), (t) => 220 + 900 * Math.exp(-t / 0.12), 4), (t) => env(t, 0.005, 0.22), 1.1);
-      for (let i = 0; i < 11; i++) {   // bubbles: a quick upward blip each
+      for (let i = 0; i < 11; i++) {
         const t0 = r(0.05, 1.1), f0 = r(220, 600), d = r(0.04, 0.08), a = r(0.08, 0.2);
         addTone(out, (t) => f0 * (1 + 1.2 * Math.min(1, (t - t0) / d)), (t) => (t < t0 || t > t0 + d ? 0 : Math.sin((Math.PI * (t - t0)) / d) ** 2), a, t0, t0 + d);
       }
@@ -192,16 +157,16 @@ export function buildImpactSound(kind, voices = {}, seed = IMPACT_SOUND_SEED) {
       break;
     }
     case 'shock': {
-      addShaped(out, noise(out.length, rng), (t) => env(t, 0.0005, 0.012), 1.0);   // the crack
+      addShaped(out, noise(out.length, rng), (t) => env(t, 0.0005, 0.012), 1.0);
       if (V.lightningShort) voice(out, V.lightningShort, { ratio: 1.25, gain: 0.8, take: 0.85, fadeOut: 0.55 });
       else addShaped(out, bandpass(noise(out.length, rng), () => 2000, 0.7), (t) => env(t, 0.001, 0.12), 0.9);
-      {   // the buzz: a square that hops pitch and stutters, crushed to a few bits
+      {
         const n = Math.min(out.length, Math.floor(0.75 * R));
         let ph = 0, f = 90, hop = 0, on = 1;
         const nz = noise(n, rng), buzz = new Float32Array(n);
         for (let i = 0; i < n; i++) {
           if (i >= hop) { f = r(55, 140); on = rng() < 0.72 ? 1 : 0; hop = i + Math.floor(r(0.012, 0.03) * R); }
-          ph += f / R;   // the phase in turns (ONCRASH1 C2)
+          ph += f / R;
           const s = (Math.sin(TAU * ph) >= 0 ? 1 : -1) * 0.7 + nz[i] * 0.3;
           buzz[i] = Math.round(s * on * env(i / R, 0.002, 0.3) * 7) / 7;
         }
@@ -215,20 +180,20 @@ export function buildImpactSound(kind, voices = {}, seed = IMPACT_SOUND_SEED) {
     case 'heal': {
       const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51];
       notes.forEach((f, i) => {
-        const t0 = 0.04 + i * 0.085, a = 0.17 * (1 - i * 0.09);   // HEAL-SOFT: the high notes quieter than the low
-        const e = (t) => env(t - t0, 0.035, 0.7);   // HEAL-SOFT: each note swells in (35 ms), no strike
+        const t0 = 0.04 + i * 0.085, a = 0.17 * (1 - i * 0.09);
+        const e = (t) => env(t - t0, 0.035, 0.7);
         const vib = (t) => 1 + 0.003 * Math.sin(TAU * 5 * t);
         addTone(out, (t) => f * vib(t), e, a, t0);
-        addTone(out, (t) => 2 * f * vib(t), e, a * 0.12, t0);   // HEAL-SOFT: a faint octave, and no bright third partial
+        addTone(out, (t) => 2 * f * vib(t), e, a * 0.12, t0);
       });
       addTone(out, () => 220, (t) => Math.min(1, t / 0.25) * Math.exp(-Math.max(0, t - 0.25) / 0.6), 0.1);
       addTone(out, () => 330, (t) => Math.min(1, t / 0.3) * Math.exp(-Math.max(0, t - 0.3) / 0.55), 0.07);
-      addShaped(out, bandpass(noise(out.length, rng), (t) => 500 + 1500 * Math.min(1, t / 1.0), 1.5), (t) => Math.min(1, t / 0.35) * Math.exp(-Math.max(0, t - 0.35) / 0.5), 0.08);   // HEAL-SOFT: a breath, not a hiss
+      addShaped(out, bandpass(noise(out.length, rng), (t) => 500 + 1500 * Math.min(1, t / 1.0), 1.5), (t) => Math.min(1, t / 0.35) * Math.exp(-Math.max(0, t - 0.35) / 0.5), 0.08);
       voice(out, V.cast, { ratio: 1.35, gain: 0.08, take: 0.6, fadeIn: 0.08, fadeOut: 0.35 });
-      lowpass(lowpass(out, R, 2600), R, 2600);   // HEAL-SOFT: rounded off - nothing sharp left on top
+      lowpass(lowpass(out, R, 2600), R, 2600);
       return finish(out, { soft: true });
     }
-    default: {   // magic
+    default: {
       addTone(out, (t) => 70 + 110 * Math.exp(-t / 0.09), (t) => env(t, 0.004, 0.4), 0.6);
       addTone(out, (t) => 1.5 * (70 + 110 * Math.exp(-t / 0.09)), (t) => env(t, 0.004, 0.3), 0.3);
       for (let i = 0; i < 5; i++) {
@@ -243,7 +208,6 @@ export function buildImpactSound(kind, voices = {}, seed = IMPACT_SOUND_SEED) {
 }
 const FX_INDEX = Object.freeze({ fire: 0, frost: 1, poison: 2, shock: 3, magic: 4, heal: 5 });
 
-/** The archive's voices one look is built over (null where a record is missing or there is no archive). */
 export function impactVoices(audio, kind) {
   const at = (i) => { try { return audio?.samplesOf?.(i) ?? null; } catch { return null; } };
   const castId = IMPACT_CAST_IDS[kind === 'heal' ? 'magic' : kind] ?? IMPACT_CAST_IDS.magic;
@@ -259,14 +223,8 @@ export function impactVoices(audio, kind) {
   };
 }
 
-/**
- * THE DRIVER - one per cast engine. `play(kind, pos, { volume, heard })` plays the look's sound from `pos` (scene
- * frame), heard out to `heard` meters; the sounds are built on the first play that finds an archive and a running
- * context, and a play before that is simply silent, as any clip is before the context runs. The Wall of Earth and
- * Meteor sounds start building once the archive is in and the world has drawn a frame, and stay silent until built.
- */
 export function createSpellImpactSounds(audio, { now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), fetchBytes = null, earthWall = loadEarthWallSounds, meteor = loadMeteorSounds } = {}) {
-  const built = new Map();   // kind -> samples (pure, kept even while the context is not yet up)
+  const built = new Map();
   const registered = new Set();
   const last = new Map();
   const builders = { earth: earthWall, meteor };
@@ -277,8 +235,6 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
     new Promise((go) => afterFirstFrame(() => go(null))).then(() => builders[name]({ samplesOf: (i) => audio.samplesOf(i) })).then((s) => { sets[name] = s ?? 'failed'; }, () => { sets[name] = 'failed'; });
   }
   for (const name of Object.keys(builders)) { try { buildSet(name); } catch {} }
-  // HEAL-FILE: the heal's clip, fetched once as the engine is made (a browser's; a test hands `fetchBytes`), so it is in
-  // hand by the first heal. 'pending' while it comes, the parsed clip once in, 'failed' if it never will.
   /** @type {'pending' | 'failed' | { samples: Float32Array, rate: number }} */
   let healClip = 'pending';
   const load = fetchBytes ?? (typeof fetch === 'function' && globalThis.document
@@ -286,7 +242,6 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
     : null);
   if (load) Promise.resolve().then(load).then((bytes) => { healClip = parseWav(bytes) ?? 'failed'; }, () => { healClip = 'failed'; });
   else healClip = 'failed';
-  /** HEAL-FILE: the heal's key to play now - the file's once it is in and registered, the stand-in chime's before. */
   function healKey() {
     if (registered.has('heal')) return IMPACT_SOUND_KEYS.heal;
     if (healClip && typeof healClip === 'object') {
@@ -305,7 +260,7 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
     if (!audio?.registerSamples) return false;
     let x = built.get(kind);
     if (!x) {
-      if (audio.snd == null && audio.samplesOf) { /* no archive yet: build later, with its voices */ return false; }
+      if (audio.snd == null && audio.samplesOf) { return false; }
       x = buildImpactSound(kind, impactVoices(audio, kind));
       built.set(kind, x);
     }
@@ -322,7 +277,7 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
       last.set(k, t);
       try {
         if (!audio?.registerSamples) return false;
-        if (k === 'heal') {   // HEAL-FILE
+        if (k === 'heal') {
           const key = healKey();
           if (!key) return false;
           const file = key === IMPACT_SOUND_KEYS.heal;
@@ -343,7 +298,7 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
         if (!ensure(k)) return false;
         audio.play3d(IMPACT_SOUND_KEYS[k], pos, volume * (IMPACT_SOUND_LEVEL[k] ?? 0.8), { refDistance: 2.5, maxDistance: heard, pitch: 0.94 + Math.random() * 0.12 });
         return true;
-      } catch { return false; }   // a sound never costs the impact
+      } catch { return false; }
     },
   };
 }

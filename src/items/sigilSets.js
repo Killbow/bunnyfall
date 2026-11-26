@@ -1,45 +1,6 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// SET1 (2026-09-26) — SIGIL SETS: ARMOUR THAT ANSWERS TO A DAEDRIC PRINCE.
-//
-// Mac: "I wanna talk about making sigil armor sets that also come with
-// set builds (think having multiple of one set type grants detailed
-// abilities)". Asked, Mac chose: sets "come from any source, just like
-// weapons", a boss's own set at a new rarity (Aetheric), Sigil Stones
-// as a currency at a vendor beside the gate; tiers at 2 / 4 / 6 pieces;
-// "Grow together" - the bonuses scale with the LOWEST stage among the
-// worn pieces; online only, never in duels. Then: "I want you to go all
-// out on this, just like you did with the World Boss". Design, and the
-// record of every slice: bible/11-Multiplayer/Sigil-Sets.md.
-//
-// ═══ THIS FILE IS THE LAW ══════════════════════════════════════════
-//
-// Pure but for the session's two words (online-ness and Renown are
-// systems/sigil/sigil.js's; the duel is set here): the sets, what a set piece
-// is, what an entity wears of each, the stage a set stands at, which of
-// its tiers are awake and what every number in them is - and SET4's
-// two acts, the roll a won piece is stamped with and the drink (which,
-// as SIGIL1's, writes each worn piece a NEW record). What the tiers DO
-// lives in systems/sigil/sigilSetPowers.js (SET3), which reads this.
-//
-// ═══ A SET PIECE ═══════════════════════════════════════════════════
-//
-// An item whose sigil names a set (sigil.js sigilSetId): a piece of
-// armour, a shield, or a weapon (never ammunition) - never jewellery,
-// clothing or anything else, whatever its record says. The places a
-// set is worn are nine: the seven body pieces, the shield, and ONE
-// weapon - Daggerfall readies a weapon in each hand and swings one at
-// a time, so two weapons of a set in the two hands count once.
-//
-// ═══ THE STAGE AND THE NUMBERS ═════════════════════════════════════
-//
-// A piece's stage is its sigil's (sigilStageIn: the lower of its own
-// rank and the stage its wearer's Renown opens); the SET's stage is the
-// lowest of its worn pieces' - "grow together". Every number a tier has
-// is given at Faint and at Ascendant, and a stage between takes its
-// place on the line (stageValue). Asleep (-1): offline, online before
-// the page knows its Renown, and in a duel - no tier wakes.
-// ═══════════════════════════════════════════════════════════════════
+// Sigil set rules: the sets, their pieces, their awake tiers, the set rolls, and the XP drink.
+// The stage of a set is that of its lowest worn piece. The tier effects run in sigilSetPowers.js.
 
 import {
   SIGIL_STAGES, SIGIL_SET_IDS, SIGIL_BANDS, sigilSetId, sigilRank, sigilStageIn, renownSigilStage, sigilRenown, sigilChance,
@@ -49,81 +10,47 @@ import { equipTableOf } from '../characters/equip.js';
 import { isShieldTemplate } from './armorMaterials.js';
 import { isAmmunition } from './itemTemplates.js';
 import { EQUIP_SLOTS } from '../characters/paperdoll.js';
-import { ETHER_WORD } from '../world/ethericSea.js';   // SEA-SET: the sea's name in the Undertow's words (ELTHERIC: one word's home)
-import { noteReach, catchUpXp, recordedReach, reachOfRanks, CATCH_UP_MULT, _resetSetReachForTests } from './setReach.js';   // SET-CATCHUP: a set's reach, and the faster drink below it
+import { ETHER_WORD } from '../world/ethericSea.js';
+import { noteReach, catchUpXp, recordedReach, reachOfRanks, CATCH_UP_MULT, _resetSetReachForTests } from './setReach.js';
 
-/** The pieces a set's tiers wake at. */
 export const SET_TIERS = Object.freeze([2, 4, 6]);
-/** The last stage (Ascendant): the numbers' line runs from 0 to it. */
 export const SET_STAGE_MAX = SIGIL_STAGES.length - 1;
 
-/** The nine places a set is worn - the equip slots of the body pieces and the shield's hand; the weapon is its own
- *  (either hand, once a set). In the order a card lists them. */
 export const SET_BODY_SLOTS = Object.freeze([
   EQUIP_SLOTS.Head, EQUIP_SLOTS.RightArm, EQUIP_SLOTS.LeftArm, EQUIP_SLOTS.ChestArmor,
   EQUIP_SLOTS.Gloves, EQUIP_SLOTS.LegsArmor, EQUIP_SLOTS.Feet,
 ]);
 export const SET_PLACES = Object.freeze(['head', 'right arm', 'left arm', 'chest', 'hands', 'legs', 'feet', 'shield', 'weapon']);
 
-// ── the abilities' own constants (what the tiers' words name; sigilSetPowers.js reads them) ──
-/** Dagon's Brand (6): a Rampage stack lasts this long, a kill refreshing every one, and no more than this many stand. */
 export const RAMPAGE_SECONDS = 12;
 export const RAMPAGE_STACKS = 3;
-/** Malacath's Bulwark (6): Unbroken's half, the share it takes off every hurt while its window holds (POWER-CEILING
- *  names it so the guards' ceiling can count it). */
 export const UNBROKEN_LESS = 50;
-/** Nocturnal's Shroud (6): Eventide's shadow is a Chameleon of whole magic rounds, and online a round is five seconds
- *  of the shared clock (net/wire.js: a classic minute every five real seconds). */
+// Online a magic round is a classic minute, which the shared clock runs every five real seconds.
 export const ROUND_SECONDS = 5;
-/** Ruhn's Regalia (4): Cleave finds the other foe within this many metres of the one struck. */
 export const CLEAVE_METRES = 3;
-/** Ruhn's Regalia (6): the Wrath wakes when a blow leaves you under this share of your health; its Nova reaches this
- *  far; its fury lasts this long. */
 export const WRATH_BELOW = 0.3;
 export const NOVA_METRES = 6;
 export const WRATH_SECONDS = 10;
-/** RAID4b, The Broken Oath (4): Riposte's window, after a foe's blow lands on you, for the one blow it sharpens. */
 export const RIPOSTE_SECONDS = 4;
-/** RAID4b, The Thief-Taker's Garb (6): No Escape marks the nearest other foe within this many metres, for this long. */
 export const MARK_METRES = 12;
 export const MARK_SECONDS = 10;
-/** RAID4b, Orcsbane Harness (4): Blood for Blood's stacks - each foe's blow that lands adds one and refreshes them all. */
 export const BLOOD_SECONDS = 8;
 export const BLOOD_STACKS = 5;
-/** SERPENT-SET, Sethrakul's Coilscale (4): Constrict's coil - each weapon blow of mine that lands on the same foe adds a
- *  stack, up to this many, and they hold this long after the last; a blow that lands on another foe starts it again. */
 export const COIL_STACKS = 5;
 export const COIL_SECONDS = 6;
-/** SERPENT-SET, Sethrakul's Coilscale (6): Shed Skin wakes when a foe's blow takes me below this share of my health. */
 export const SHED_BELOW = 0.35;
-/** STAR7, The Starspun Weave (4): Bound in Silk - every STRAND_HITS-th weapon blow of mine that lands on the same foe is
- *  the one the web holds still; the count falls away STRAND_SECONDS after my last landed blow on it. */
 export const STRAND_HITS = 4;
 export const STRAND_SECONDS = 8;
-/** STAR7, The Starspun Weave (6): Mephala's Veil wakes when a foe's blow takes me below this share of my health. */
 export const VEIL_BELOW = 0.3;
-/** EG15, The Battlemage's Panoply (6): the Reprieve wakes when a foe's blow takes me below this share of my health; its
- *  shield holds this long; my allies within this many metres are shielded too, each for this share of its points. */
 export const REPRIEVE_BELOW = 0.2;
 export const REPRIEVE_SECONDS = 6;
 export const REPRIEVE_METRES = 8;
 export const REPRIEVE_ALLY_SHARE = 0.5;
 
-/** CARD-FIT (2026-09-28, Discord - Cruor: "New sigil items descriptor is a bit long!"): a tier's BRIEF - what it does in
- *  a few words, one line of the card's row, and every line a tooltip, a trade or a chat post prints of it; `text` stays
- *  the whole sentence, which the Info box and a row's hover read. A recovery is never in the brief - it is the tier's
- *  `recover` number, which the card draws as its own tag and a line says after the brief. No brief runs past BRIEF_MAX
- *  at any stage (test/ui/enhanced/cardfit.test.js holds every set's, a new one's too), so a set can never again push a card's
- *  buttons off the screen by its words. */
 export const BRIEF_MAX = 32;
 const tier = (at, key, name, values, text, brief) => Object.freeze({ at, key, name, values: Object.freeze(values), text, brief });
 
-/**
- * THE SETS. Each: its id (the sigil's `set`), its name, its Prince, its colour, the one line that says what it is for,
- * `aetheric` for a boss's own (and a raid's - RAID4b: `raid` names the raiding party whose raids pay it, the receipt's
- * `y`: 0 knights, 1 bandits, 2 orcs), and its three tiers - each `{ at, key, name, values: { name: [faint, ascendant] },
- * text(v) }`, `text` saying the tier with the numbers of a stage.
- */
+// A raid set's `raid` matches the raid receipt's `y`: 0 knights, 1 bandits, and 2 orcs.
 export const SIGIL_SETS = Object.freeze({
   malacath: Object.freeze({
     id: 'malacath', name: "Malacath's Bulwark", prince: 'Malacath', colour: '#a4b84e', aetheric: false,
@@ -200,10 +127,6 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `Under ${Math.round(WRATH_BELOW * 100)}%: Nova ${v.nova}, +${v.more}% damage`),
     ]),
   }),
-  // RAID4b (2026-09-28, Mac on World Events - Raiding Parties online: "3. We can also add renown and it's own atheric +
-  // armor sets"): THE RAIDING PARTIES' OWN - three Aetheric sets no world drop, shelf or Broker rolls; a town defended
-  // pays a piece of the set of the party it was defended against (systems/raidSpoils.js). Their Prince is the Bay's
-  // towns: a raid is fought for them, not for a Daedra.
   oath: Object.freeze({
     id: 'oath', name: 'The Broken Oath', prince: 'The towns of the Bay', colour: '#a9bfd6', aetheric: true, raid: 0,
     role: 'The shield the town stands behind',
@@ -249,10 +172,6 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `A kill: a ${v.ward}-point ward`),
     ]),
   }),
-  // SERPENT-SET (2026-10-05, Mac: "The serpent boss needs to use the currency from oblivion gate and have its own
-  // equipment rewards"): THE OLD COIL'S OWN - an Aetheric set no world drop, shelf or Broker rolls; a ship that dealt
-  // Sethrakul its share may find a piece in its hoard (systems/serpent/serpentSpoils.js). Its patron is no Daedra: Satakal, the
-  // World-Skin the Redguards say sheds the world as a snake sheds its skin (net/serpent/serpentLaw.js SERPENT_BOSSES).
   coilscale: Object.freeze({
     id: 'coilscale', name: "Sethrakul's Coilscale", prince: 'Satakal', colour: '#3a9ad9', aetheric: true,
     role: 'The Old Coil, shed and worn',
@@ -261,17 +180,13 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `+${v.frost} frost resistance, +${v.endurance} Endurance`,
         (v) => `+${v.frost} frost resist, +${v.endurance} Endurance`),
       tier(4, 'constrict', 'Constrict', { stack: [3, 8] },
-        (v) => `Each weapon hit on an enemy adds ${v.stack}% weapon damage against it, up to ${COIL_STACKS} times, lasting ${COIL_SECONDS} s after your last hit. Each enemy keeps its own count`,   // AUDIT 625 P3 (Mac: "A coil per foe")
+        (v) => `Each weapon hit on an enemy adds ${v.stack}% weapon damage against it, up to ${COIL_STACKS} times, lasting ${COIL_SECONDS} s after your last hit. Each enemy keeps its own count`,
         (v) => `+${v.stack}% per hit on a foe, up to ${COIL_STACKS}`),
       tier(6, 'shed-skin', 'Shed Skin', { heal: [10, 30], recover: [240, 120] },
         (v) => `When a hit drops you below ${Math.round(SHED_BELOW * 100)}% health, you shed your skin and heal ${v.heal}% of your health. Recovers in ${v.recover} s`,
         (v) => `Under ${Math.round(SHED_BELOW * 100)}%: shed skin, heal ${v.heal}%`),
     ]),
   }),
-  // SD9d (2026-10-07, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 11): THE BRASS OF NUMIDIUM -
-  // an Aetheric set no world drop, shelf or Broker rolls; the Brass Remnant's spoils carry a piece one time in three
-  // (systems/superDungeon/sdSpoils.js). Its patron is no Daedra: Kagrenac, the Tonal Architect who built the Walking Brass. Its colour
-  // the Hourbreaker's brass (ui/playerBadge.js HOUR_BRASS).
   numidium: Object.freeze({
     id: 'numidium', name: 'The Brass of Numidium', prince: 'Kagrenac', colour: '#b5862f', aetheric: true,
     role: 'What the Warp kept of the Walking Brass',
@@ -287,11 +202,6 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `Death turned back, heal ${v.heal}%`),
     ]),
   }),
-  // EG15 (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section 19): THE BATTLEMAGE'S
-  // PANOPLY - the war-gear the Imperial Battlemages wore in the Spire, taken by the Kyn: an Aetheric set no world drop,
-  // shelf or day's stock rolls; a Redoubt's spoils carry a piece (systems/eliteGates/egSpoils.js) and the Broker's weekly sink sells
-  // one by its id (the account service's). Its patron the Battlemages themselves; its colour Battlemage blue
-  // (Elite-Gates.md section 25.2's [92,124,196]: blue is yours).
   panoply: Object.freeze({
     id: 'panoply', name: "The Battlemage's Panoply", prince: 'The Imperial Battlemages', colour: '#5c7cc4', aetheric: true,
     role: 'What the Kyn took from the Battlemages',
@@ -307,10 +217,6 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `Under ${Math.round(REPRIEVE_BELOW * 100)}%: shield ${v.shield}% of HP`),
     ]),
   }),
-  // WITCH1 (2026-10-20, the owner: "A new armor set, a new weapon"; bible/06-Systems/Witches-Festival.md): THE WYRD'S
-  // RAIMENT - what the Glenmoril Wyrd wear to the Witches' Festival, sold by the Wyrd Sisters at the taverns' doors for
-  // Soul Cakes (systems/aetheric.js WYRD_SET_PIECES), never a drop. Its tiers answer the festival's night: the sight that
-  // sees the summoned, the tallow that wards off the dead, and the souls a kill sends home.
   wyrd: Object.freeze({
     id: 'wyrd', name: "The Wyrd's Raiment", prince: 'The Glenmoril Wyrd', colour: '#8fd16a', aetheric: true,
     role: 'What the Wyrd wear to the Witches\' Festival',
@@ -326,11 +232,6 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `A kill: +${v.heal}% health, magicka`),
     ]),
   }),
-  // STAR7 (2026-10-20, bible/11-Multiplayer/Starfall.md section 6): THE STARSPUN WEAVE - an Aetheric set no world drop,
-  // shelf or Broker rolls; a held star's spoils carry a piece a quarter of the time, the Heart-Star's every time
-  // (systems/starfall/starSpoils.js). Its patron Mephala, the Webspinner, whose covens wind their black thread about a fallen
-  // star to draw its light home: the Weave is that thread, cut from the stars the coven lost. Its colour the star's violet
-  // (ui/starfall/starMapMark.js STAR_VIOLET_CSS).
   starspun: Object.freeze({
     id: 'starspun', name: 'The Starspun Weave', prince: 'Mephala', colour: '#b9a2ff', aetheric: true,
     role: 'The coven\'s thread, turned on the coven',
@@ -346,12 +247,6 @@ export const SIGIL_SETS = Object.freeze({
         (v) => `Under ${Math.round(VEIL_BELOW * 100)}%: Chameleon ${v.rounds * ROUND_SECONDS}s`),
     ]),
   }),
-  // SEA-SET (2026-10-22, the owner: "Build ever single bit of this" - the sea past the Veil's Abyss-only gear;
-  // bible/11-Multiplayer/Sigil-Sets.md section 6h, the sea's page's SEA-SET): THE TIDEMAIL - an Aetheric set
-  // no world drop, shelf or Broker rolls; the Deep Aether's and the Abyss's own: a legend taken or sunk there, a vault of
-  // the deep and a ruin's hoard there carry a piece (systems/aetheric.js rollElthericPiece). Its patron is no Daedra: the
-  // Drowned Queen, Maraveth, Thrice Drowned - the sea's legends are its makers, and every piece was taken off one of them.
-  // Its colour the aether's cold blue (world/ethericSea.js ETHER_LIGHT_TINT's sea).
   eltheric: Object.freeze({
     id: 'eltheric', name: `The ${ETHER_WORD} Tidemail`, prince: 'The Drowned Queen', colour: '#6fcfe6', aetheric: true,
     role: 'What the deep gives back to those who sail it',
@@ -368,44 +263,31 @@ export const SIGIL_SETS = Object.freeze({
     ]),
   }),
 });
-/** The sets of the world (the four any win may roll), and every set, in the registry's order. */
 export const WORLD_SET_IDS = Object.freeze(Object.values(SIGIL_SETS).filter((s) => !s.aetheric).map((s) => s.id));
 export const setById = (id) => (typeof id === 'string' && Object.hasOwn(SIGIL_SETS, id) ? SIGIL_SETS[id] : null);
-/** RAID4b: the set a raiding party's raids pay (the receipt's `y`), or null - only a set that names a party answers
- *  (a world set names none: read bare, `undefined` would have matched every one of them). */
+// World sets have no `raid` field, so the `in` check keeps an undefined party from matching them.
 export const raidSetOf = (party) => Object.values(SIGIL_SETS).find((s) => 'raid' in s && s.raid === party) ?? null;
 
-/** A number of a tier at a stage: its place on the line from Faint to Ascendant, rounded. Stage clamped to 0..4. */
 export function stageValue(pair, stage) {
   const [faint, asc] = pair;
   const s = Math.max(0, Math.min(SET_STAGE_MAX, Math.trunc(Number(stage) || 0)));
   return Math.round(faint + ((asc - faint) * s) / SET_STAGE_MAX);
 }
-/** Every number of a tier at a stage. */
 export function tierValues(t, stage) {
   const out = {};
   for (const [k, pair] of Object.entries(t.values)) out[k] = stageValue(pair, stage);
   return out;
 }
 
-/** The kind of place an item is worn in, if it may be a set piece at all: 'armor' (a body piece), 'shield', 'weapon',
- *  or null (jewellery, clothing, ammunition, anything else). */
 export function setPieceKind(item) {
   if (!item) return null;
   if (item.group === 'Armor') return isShieldTemplate(item.templateIndex) ? 'shield' : 'armor';
   if (item.group === 'Weapons') return isAmmunition(item) ? null : 'weapon';
   return null;
 }
-/** The set an item is a piece of, or null: its sigil names one AND it is a kind a set may be worn as. */
 export const setIdOf = (item) => (setPieceKind(item) ? sigilSetId(item?.sigil) : null);
 export const isSetPiece = (item) => setIdOf(item) != null;
 
-/**
- * THE WORN PIECES, per set: `Map<id, item[]>`, in the registry's order - the body pieces and the shield where they
- * are worn, and one weapon a set (the right hand's before the left's: the first found). An entity that wears no set
- * piece answers an empty map. The table is the entity's equip table (equip.js equipTableOf); a piece in the pack
- * counts for nothing.
- */
 export function wornSetPieces(entity) {
   /** @type {Map<string, any[]>} */
   const out = new Map();
@@ -415,36 +297,27 @@ export function wornSetPieces(entity) {
   for (const slot of SET_BODY_SLOTS) { const it = slots[slot]; if (it && setPieceKind(it) === 'armor') add(it); }
   const left = slots[EQUIP_SLOTS.LeftHand], right = slots[EQUIP_SLOTS.RightHand];
   if (left && setPieceKind(left) === 'shield') add(left);
+  // One weapon counts per set, right hand first, because Daggerfall swings one hand at a time.
   const weaponOf = new Set();
   for (const hand of [right, left]) {
     if (!hand || setPieceKind(hand) !== 'weapon') continue;
     const id = setIdOf(hand);
-    if (!id || weaponOf.has(id)) continue;   // one weapon a set
+    if (!id || weaponOf.has(id)) continue;
     weaponOf.add(id);
     add(hand);
   }
-  // the registry's order, whatever order the table gave
   return new Map([...out.entries()].sort((a, b) => SIGIL_SET_IDS.indexOf(a[0]) - SIGIL_SET_IDS.indexOf(b[0])));
 }
 
-// ── the session: the duel (online-ness and Renown are sigil.js's) ──
-/** The host's word (scenes/world.js, at a duel's start and end): the player is in a duel, and every set sleeps. AUDIT
- *  625 P2: kept by sigil.js (setSigilDueling), where the weapon's own blow reads it too - one word, every power. */
 export function setSetsDueling(on) { setSigilDueling(on); }
 export const setsDueling = () => sigilDueling();
-/** Are sets awake at all: online, my Renown known, not in a duel. */
 export const setsAwake = () => sigilRenown() != null && !sigilDueling();
 
 /**
- * A WORN SET'S STATE for a Renown: how many of its pieces are worn, the stage it stands at (-1 asleep), what holds it
- * there - `heldPiece`, the worn piece of the lowest rank when it is no higher than the Renown's stage (the one to
- * grow), and `heldRenown` when the Renown's stage is no higher than that piece's (both, when they meet; neither at
- * Ascendant or asleep) - and its three tiers, each awake or not with its numbers AT THE SET'S STAGE (Faint's while it
- * sleeps, so a card can still say what it would do).
- * AUDIT SET U3: the piece holding the set is the one FURTHEST BEHIND - the least XP - not the first of the lowest stage
- * in slot order: a helm 100 XP from Kindled and fresh boots are both Faint, and the boots are the ones to grow.
- * AUDIT SET L5: `text: false` leaves the tiers' words unbuilt - the powers and the HUD ask every frame, and read numbers.
- * @param {string} id @param {Array<{ sigil?: any }>} pieces @param {number|null} renown @param {boolean} [awake]
+ * @param {string} id
+ * @param {Array<{ sigil?: any }>} pieces
+ * @param {number|null} renown
+ * @param {boolean} [awake]
  * @param {{ text?: boolean }} [opts]
  */
 export function setState(id, pieces, renown, awake = true, { text = true } = {}) {
@@ -461,28 +334,21 @@ export function setState(id, pieces, renown, awake = true, { text = true } = {})
   const at = Math.max(0, stage);
   return {
     id, set, count, stage, heldPiece, heldRenown,
-    renownNext: heldRenown ? SIGIL_STAGES[stage + 1].renown : null,   // the Renown that opens the next stage
+    renownNext: heldRenown ? SIGIL_STAGES[stage + 1].renown : null,
     stageName: stage < 0 ? 'Dormant' : SIGIL_STAGES[stage].name,
     tiers: set.tiers.map((t) => {
       const values = tierValues(t, at);
       return { at: t.at, key: t.key, name: t.name, awake: stage >= 0 && count >= t.at, values, text: text ? t.text(values) : '',
-        full: text ? t.text(tierValues(t, SET_STAGE_MAX)) : '', brief: text ? t.brief(values) : '',   // CARD-FIT: the card's row
-        recover: Number.isFinite(values.recover) ? values.recover : null };   // ...and its recovery, the card's own tag
+        full: text ? t.text(tierValues(t, SET_STAGE_MAX)) : '', brief: text ? t.brief(values) : '',
+        recover: Number.isFinite(values.recover) ? values.recover : null };
     }),
   };
 }
-/** Every set an entity wears at least one piece of, in the registry's order - what the card, the paperdoll and the
- *  powers read. `renown` and `awake` default to the session's. */
 export function wornSets(entity, renown = sigilRenown(), awake = setsAwake(), opts = undefined) {
   const out = [];
   for (const [id, pieces] of wornSetPieces(entity)) { const st = setState(id, pieces, renown, awake, opts); if (st) out.push(st); }
   return out;
 }
-/**
- * THE POWERS' ONE QUESTION: the numbers of tier `index` (0, 1, 2 - the 2-, 4- and 6-piece) of set `id` if it is awake
- * on this entity now, else null. Only the player's own sets are ever awake (a peer's entity here, or a foe, answers
- * null): the Renown the session knows is mine.
- */
 export function awakeTier(entity, id, index) {
   if (!entity?.isPlayer || entity.peer || !setsAwake()) return null;
   const pieces = wornSetPieces(entity).get(id);
@@ -492,75 +358,40 @@ export function awakeTier(entity, id, index) {
   return t && t.awake ? t.values : null;
 }
 
-// ═══ SET4: WHERE SET PIECES COME FROM, AND HOW THEY GROW ═══════════
-//
-// THE WIN (Mac: sets "come from any source, just like weapons"): when a list is won online - a corpse at its foe's
-// death, a pile when it is minted: every door SIGIL1 stamps at (lootRarity.js stampWonWeapons) - every Magic-or-better
-// piece of armour and every shield rolls a set sigil by SIGIL1's own chance law, one of the four sets of the world at
-// even odds; and a weapon's sigil, when it lands, joins a set one time in three. The Aetheric set is never rolled here:
-// it is the boss's (SET6) and the Broker's (SET7).
-//
-// THE DRINK ("grow together"): every point of Renown XP I earn is drunk by the weapon in my hand (SIGIL1) and by
-// every set piece I wear, each once; a rise is said once for a set, when its own rank - its lowest piece's - rises.
-
-/** A weapon sigil a win stamps joins a set of the world one time in this many. */
 export const SET_WEAPON_JOIN_IN = 3;
-/** One of the four sets of the world, at even odds, off one roll. */
 export const rollWorldSet = (rolls = Math.random) => WORLD_SET_IDS[Math.min(WORLD_SET_IDS.length - 1, Math.floor(rolls() * WORLD_SET_IDS.length))];
-/**
- * A won piece of armour's (or a shield's) set sigil, for its tier and its fight: SIGIL1's own chance law (sigilChance -
- * 200 per mille alone, 40 more a fighter past the first), then one of the four sets of the world. Null most times, and
- * always for a tier with no sigil band (Common, an artifact); else a fresh record at Faint with no blow.
- */
 export function rollSetSigil(tier, party, rolls = Math.random) {
   if (!SIGIL_BANDS[tier]) return null;
   if (rolls() * 1000 >= sigilChance(party)) return null;
   return { set: rollWorldSet(rolls), party: sigilParty(party), xp: 0 };
 }
-/** A fresh weapon sigil's set: one of the four, one time in SET_WEAPON_JOIN_IN; else null. */
 export const rollSetJoin = (rolls = Math.random) => (rolls() * SET_WEAPON_JOIN_IN < 1 ? rollWorldSet(rolls) : null);
 
-/** A set's own rank: its lowest piece's (0..4), whatever the Renown. */
 const lowestRank = (pieces) => pieces.reduce((low, p) => Math.min(low, sigilRank(p.sigil)), SET_STAGE_MAX);
-/** SET-CATCHUP: the ranks of the set pieces an entity WEARS, by set. AUDIT HORIZONTAL D1: a piece in the pack never
- *  counts - two lent pieces carried for one kill made a reach the set never stood at, for good. */
 export function wornSetRanks(entity) {
   return new Map([...wornSetPieces(entity)].map(([id, pieces]) => [id, pieces.map((p) => sigilRank(p.sigil))]));
 }
-/** SET-CATCHUP: the highest stage a set has stood at for this entity - what it wears, or what the save recorded. */
 export const setReachOf = (entity, id) => Math.max(recordedReach(id), reachOfRanks(wornSetRanks(entity).get(id) ?? []));
-/** What the page says when a set I wear rises to `rank`: its stage, and what my Renown holds it at when that is lower
- *  (SIGIL1's line, for a set). */
 export function setRiseLine(id, rank) {
   const set = setById(id), stage = SIGIL_STAGES[rank];
   if (!set || !stage) return null;
-  const line = `${/^The /.test(set.name) ? set.name : `Your ${set.name}`} brightens: ${stage.name}.`;   // AUDIT SETS L2: never "Your The Broken Oath"
+  const line = `${/^The /.test(set.name) ? set.name : `Your ${set.name}`} brightens: ${stage.name}.`;
   const cap = renownSigilStage(sigilRenown());
   if (cap < 0 || cap >= rank) return line;
   return `${line} Your Renown limits it to ${SIGIL_STAGES[cap].name} until Renown ${SIGIL_STAGES[cap + 1].renown}.`;
 }
-/**
- * THE DRINK, WHOLE (scenes/world.js sigilDrinks, at every kill's and quest's Renown XP): the weapon in my hand drinks
- * `xp` (SIGIL1's drinkSigil: online, my Renown known, never past the last stage) and so does every set piece I wear -
- * the counted ones (the body pieces, the shield, one weapon a set), each once, the weapon in hand never twice - while
- * the sets are awake (never in a duel). A rise is said ONCE FOR A SET, when its own rank rises ("Your Dagon's Brand
- * brightens: Kindled."); the weapon in hand's own line is said unless its set has just said one. `nameOf(item)` names
- * the weapon as its tooltip does. Answers the lines, in order, and `rose`: some set's own rank rose, so the numbers of
- * its tiers may have moved (the host recomputes the fold).
- * @returns {{ lines: string[], rose: boolean }}
- */
+/** @returns {{ lines: string[], rose: boolean }} */
 export function drinkWorn(entity, held, xp, nameOf = (it) => String(it?.name ?? 'weapon')) {
   const awake = setsAwake();
   const worn = awake ? wornSetPieces(entity) : new Map();
   const was = new Map([...worn].map(([id, pieces]) => [id, lowestRank(pieces)]));
-  // SET-CATCHUP: each set's reach, recorded as the drink finds it; a piece below it drinks faster until it gets there
+  // Reach is noted before the drink for the catch-up rate and again after, so a rise from this drink counts.
   const reach = awake ? noteReach(wornSetRanks(entity)) : new Map();
   const drink = (p) => { const id = setIdOf(p); return id ? catchUpXp(xp, p.sigil?.xp, reach.get(id) ?? -1) : xp; };
-  // AUDIT SET D8: a set's weapon sleeps with its set in a duel (section 2: "no piece drinks"); a plain sigil weapon
-  // drinks as SIGIL1 says
+  // A set weapon sleeps with its set in a duel, while a plain sigil weapon still drinks.
   const rank = setIdOf(held) && sigilDueling() ? null : drinkSigil(held, drink(held));
   for (const pieces of worn.values()) for (const p of pieces) if (p !== held) drinkSigil(p, drink(p));
-  if (awake) noteReach(wornSetRanks(entity));   // SET-CATCHUP: a rise this drink made is the set's reach from now on
+  if (awake) noteReach(wornSetRanks(entity));
   const risen = [];
   for (const [id, pieces] of worn) { const now = lowestRank(pieces); if (now > was.get(id)) risen.push([id, now]); }
   const lines = [];
@@ -570,20 +401,10 @@ export function drinkWorn(entity, held, xp, nameOf = (it) => String(it?.name ?? 
   return { lines: lines.filter(Boolean), rose: risen.length > 0 };
 }
 
-// ═══ SET5: WHAT THE PAGE SHOWS OF A SET ════════════════════════════
-//
-// The card's set block, the paperdoll's strip and the words a classic tooltip prints all read ONE view of a set for a
-// wearer (setCardView): what it is, how many of its nine places are filled and which, the stage it stands at and
-// what holds it there, why it sleeps, and its three tiers with their numbers at that stage.
-
 let _wearer = () => null;
-/** The host's word (scenes/world.js): whose worn sets a reader with no wearer of its own reads - the classic tooltip,
- *  a plaque - the player's entity. */
 export function setSetsWearer(fn) { _wearer = typeof fn === 'function' ? fn : () => null; }
 export const setsWearer = () => { try { return _wearer() ?? null; } catch { return null; } };
 
-/** Which of the nine places (SET_PLACES' order) a set's pieces fill on an entity - the weapon's place filled by one in
- *  either hand. */
 export function setPlacesWorn(entity, id) {
   const out = new Array(SET_PLACES.length).fill(false);
   const slots = entity?.equip ? equipTableOf(entity) : null;
@@ -594,17 +415,8 @@ export function setPlacesWorn(entity, id) {
   if ([right, left].some((h) => h && setPieceKind(h) === 'weapon' && setIdOf(h) === id)) out[SET_BODY_SLOTS.length + 1] = true;
   return out;
 }
-/** Why every set sleeps now, or null while they wake: 'offline', 'renown' (online, my Renown not yet known), 'duel'. */
 export const setsSleep = () => (!sigilOnline() ? 'offline' : sigilRenown() == null ? 'renown' : sigilDueling() ? 'duel' : null);
 
-/**
- * THE VIEW OF A SET PIECE'S SET for a wearer (the player by default): the set (`name`, `prince`, `role`, `colour`,
- * `aetheric`), `count` of the nine places filled (`of`) and which (`places`), whether this piece is one of them
- * (`worn`), the `stage` the set stands at (-1 asleep or none worn) and its name, `heldPiece` (the worn piece holding the
- * stage back) and `renownNext` (the Renown that opens the next stage, when the Renown holds it), `sleep` (why every set
- * sleeps, or null), and the three `tiers` - each `{ at, key, name, awake, text, full }`, the numbers at the set's stage
- * (Faint's while none can wake). Null for an item that is no set piece.
- */
 export function setCardView(item, wearer = setsWearer()) {
   const id = setIdOf(item);
   const set = setById(id);
@@ -612,7 +424,6 @@ export function setCardView(item, wearer = setsWearer()) {
   const pieces = wornSetPieces(wearer).get(id) ?? [];
   const sleep = setsSleep();
   const st = setState(id, pieces, sigilRenown(), sleep == null);
-  // SET-CATCHUP: the piece holding the set back is below the set's reach - it drinks faster until it gets there
   const reach = st.heldPiece ? setReachOf(wearer, id) : -1;
   const catchUp = st.heldPiece && sigilRank(st.heldPiece.sigil) < reach ? { stage: reach, name: SIGIL_STAGES[reach].name, mult: CATCH_UP_MULT } : null;
   return {
@@ -622,32 +433,20 @@ export function setCardView(item, wearer = setsWearer()) {
     sleep, tiers: st.tiers, catchUp,
   };
 }
-/** SET-CATCHUP: the card's word for the faster drink - "3x XP to Radiant", or "3x XP" beside the stage it leads to.
- *  AUDIT HORIZONTAL D6: English, as the line it sits in - the sets' words are not routed yet (the stage names have no
- *  keys), and a translated pace inside an English line read "grow your Helm (3x EP bis Radiant)". The sets' batch routes
- *  the stage line and the tooltip's head whole, this with them (Sigil-Sets.md SET-CATCHUP). */
+// English on purpose: set lines are not localized yet, and a translated pace inside an English line reads badly.
 export const catchUpText = (c, next = null) => (!c ? '' : c.name === next ? `${c.mult}x XP` : `${c.mult}x XP to ${c.name}`);
 const SLEEP_WORDS = Object.freeze({ offline: 'sets only work online', renown: 'waiting for your Renown', duel: "sets don't work in duels" });
-/** Why the sets sleep, in the page's words, or null. */
 export const setSleepText = (sleep) => SLEEP_WORDS[sleep] ?? null;
-/** AUDIT SET U11: a set piece's sigil in words - a set's ARMOUR asleep in a duel, as its set's own lines say (the
- *  sigil's alone read only the Renown, and called a sleeping set's piece "Sigil (Kindled)"). A set's weapon keeps its
- *  own lines: its blow is SIGIL1's, foes only, and lands on a foe in a duel as any sigil weapon's does. */
 export function setSigilLines(item) {
   const lines = sigilLines(item);
   return lines.length && sigilDueling() && setIdOf(item) && !sigilHasBlow(item.sigil) ? ['Sigil (inactive in a duel)'] : lines;
 }
-/** The set in words, for a tooltip that prints lines (the classic skin's, a plaque's, the trade window's, a chat post):
- *  its name and what is worn, then a line a tier - which are awake, and what each wants. CARD-FIT: each tier by its
- *  BRIEF (a whole sentence a tier ran to 160 characters, and a set piece's lines to four screens' width); the sentence
- *  is the Info box's. [] for no set piece. */
 export function setLines(item, wearer = setsWearer()) {
   const v = setCardView(item, wearer);
   if (!v) return [];
   const why = setSleepText(v.sleep);
-  const head = `${v.name}: ${v.count} of ${v.of} worn${v.stageName ? `, ${v.stageName}` : ''}${why ? ` (${why})` : ''}${v.catchUp ? `, ${catchUpText(v.catchUp)}` : ''}`;   // SET-CATCHUP
+  const head = `${v.name}: ${v.count} of ${v.of} worn${v.stageName ? `, ${v.stageName}` : ''}${why ? ` (${why})` : ''}${v.catchUp ? `, ${catchUpText(v.catchUp)}` : ''}`;
   return [head, ...v.tiers.map((t) => `${t.at} pieces - ${t.name}: ${t.brief}${t.recover != null ? `, every ${t.recover}s` : ''}${t.awake ? '' : v.count < t.at ? ` (${t.at - v.count} more)` : ' (inactive)'}`)];
 }
 
-/** Tests only: forget the duel, the wearer and every set's reach (SET-CATCHUP). */
 export function _resetSigilSetsForTests() { setSigilDueling(false); _wearer = () => null; _resetSetReachForTests(); }

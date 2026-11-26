@@ -1,6 +1,6 @@
 // @ts-check
-// Small stones a spell throws: they fly, bounce once on a hard landing, lie still, then shrink into the ground. They
-// land on the terrain, or on the flat `base` height where there is none, never on meshes. They share one picture.
+// Small stones a spell throws: they fly, bounce once on a hard landing, rest, then shrink into the ground.
+// They land on the collider surface, or on the `base` height where there is none.
 import { groundAt } from '../player/groundRay.js';
 import { flatMesh, flatModel, seededRandom } from '../world/flatMesh.js';
 

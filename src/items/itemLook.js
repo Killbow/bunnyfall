@@ -1,23 +1,13 @@
 // @ts-check
-// PACK-PICK (2026-10-26, feature-feedback "SELLING ITEMS ON THE MARKET IS A PAIN!"): A PIECE LOOKED AT, AWAY FROM THE PACK.
-//
-// The look the home traders' rows showed a picked piece (scenes/vendorHost.js vendorItemStats, HOME-VENDOR), moved here so
-// the Market's List form and the trader's stall read ONE presenter over the same producers (bible/Home.md, ONE DFU
-// MEMBER, ONE EXPORT; THE ONE CONSTRUCTION SEAM): the look panel's own stat rows (itemInfo.js itemStatRows - damage,
-// armour, hands, material, condition, weight) and the magic as the trade window says it (its tier with its affixes and
-// set, and an enchanted piece's powers - or "powers unknown" unidentified). No value row, for itemStatRows' own reason:
-// a base value is no shop's price. Pure; null for no piece.
 import { isEnchanted } from './inventory.js';
 import { itemIsIdentified } from '../trade/tradeModes.js';
 import { itemStatRows } from './itemInfo.js';
 import { lootRarityOn, rarityLines } from './lootRarity.js';
 import { magicPowersLines } from './itemPowers.js';
-import { bardBuffLine } from '../net/bardServiceLaw.js';   // BARDS' GUILD: a piece's cosmetic flourish
-import { isStolen, stolenLine } from '../justice/stolenGoods.js';   // RPT1026-LEDGERLAW: a stolen piece's look says so
+import { bardBuffLine } from '../net/bardServiceLaw.js';
+import { isStolen, stolenLine } from '../justice/stolenGoods.js';
 
 /**
- * A piece's look: `{ rows, magic, stolen }` - each row "Label: text" (or the text alone), each magic line as the card writes
- * it, and RPT1026-LEDGERLAW a stolen piece's card line (systems/stolenGoods.js stolenLine), or null.
  * @param {any} it
  * @returns {{ rows: string[], magic: string[], stolen: string | null } | null}
  */
@@ -30,7 +20,7 @@ export function itemLookRows(it) {
     if (!(it.rarity && lootRarityOn()) && isEnchanted(it)) {
       for (const t of magicPowersLines(it, { identified: itemIsIdentified(it) })) if (t && !magic.includes(t)) magic.push(t);
     }
-  } catch { /* a piece whose powers cannot be read says none */ }
+  } catch { }
   const flourish = bardBuffLine(it);
   if (flourish && !magic.includes(flourish)) magic.push(flourish);
   return { rows, magic, stolen: isStolen(it) ? stolenLine() : null };

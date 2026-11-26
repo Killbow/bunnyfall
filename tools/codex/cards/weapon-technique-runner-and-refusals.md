@@ -32,11 +32,13 @@ invariants:
   - "`TECHNIQUE_MAX_SPEED` is `12` m/s (under arena `ARENA_SPEED_MAX` at `12.5`); `launchTo` raises the arc until horizontal speed fits."
   - "Landing may be at most `TECH_DROP_MAX` (`4` m) below or `TECH_RISE_MAX` (`2.5` m) above the player's feet."
   - "Leaps and dashes launch only while grounded, except roster entries marked `airborne` (Flying Kick)."
+  - "A change in `restoresSoFar()` marks a load, and the runner then clears the aim, the act in flight, every cooldown, and the technique camera and hand offsets (`resetTechniqueFx`)."
 traps:
   - "`ctx.blocked` (an open UI window) clears the aim and returns early from `stepTechnique`, pausing cooldown ticks for that frame."
   - "`flightApex` lowers the arc apex under low ceilings or returns `null` (`NO_ROOM_TEXT`)."
   - "Motor `techFlight` must clear on ground contact, wall grab, and clamber exits, or Slowfall glide misbehaves."
   - "The made-level rule `techFlight: 'refused'` blocks flights on Spire traversal ground."
+  - "`offsetTechniques` must move every stored point on a floating-origin recenter: the aim point and lane; the act point, target point, and lane; the flight start; the blow feet and lane; the volley queue; and each shaft landing point."
 dfu: []
 tags:
   - techniques
