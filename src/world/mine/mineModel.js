@@ -21,7 +21,11 @@ export const MINE_RING_SIDES = 10;
 export const MINE_TUNNEL_WOBBLE = 0.15;
 /** A chamber's rim: its sides round, and how far it bulges past the layout's ellipse (a share, out only, so a wall slot
  *  on the ellipse stands just off the rock). */
-export const MINE_CHAMBER_SIDES = 40;
+export const MINE_CHAMBER_SIDES = Object.freeze([40, 96]);
+/** How wide a chamber wall's quad stands (m): fine enough that a doorway's cut follows its tunnel. */
+export const MINE_WALL_QUAD_M = 0.8;
+/** A chamber's sides round: its perimeter over MINE_WALL_QUAD_M, in MINE_CHAMBER_SIDES. */
+const sidesOf = (/** @type {any} */ ch) => Math.max(MINE_CHAMBER_SIDES[0], Math.min(MINE_CHAMBER_SIDES[1], Math.ceil((Math.PI * (ch.rx + ch.rz) * (1 + MINE_CHAMBER_BULGE)) / MINE_WALL_QUAD_M)));
 export const MINE_CHAMBER_BULGE = 0.12;
 /** A tunnel ring's centre stands this share of its radius over the floor, so the floor is a flat strip. */
 const RING_LIFT = 0.5;
@@ -29,13 +33,15 @@ const RING_LIFT = 0.5;
 const tubeTop = (/** @type {number} */ r) => (RING_LIFT + 1) * r * (1 + MINE_TUNNEL_WOBBLE);
 /** The headroom a tunnel keeps under its lower chamber's height (its doorway's head and the wall over it), and the
  *  least headroom a squashed tunnel keeps over its floor (m). */
-const TUBE_UNDER_M = 0.6, TUBE_MIN_TOP_M = 3;
+const TUBE_UNDER_M = 0.6, TUBE_MIN_TOP_M = 3.6;
 /** How far behind the mouth (m) the mouth's tunnel is closed, so the floor runs under the way out. */
 const MOUTH_BACK_M = 1.5;
 /** Where a tube begins inside a chamber: this share of the rim's radius from the centre (just inside the wall). */
 const STUB_IN = 0.94;
 /** The wall's rows (m) and the gap over a doorway's top. */
 const WALL_ROW_M = 0.6, DOOR_HEAD_M = 0.3;
+/** How far a chamber's wall leans in, a share of its radius each metre it rises. */
+const WALL_LEAN = 0.025;
 /** Texels a metre: a 64-pixel tile every two metres. */
 const UV = 0.5;
 
@@ -80,13 +86,26 @@ function plan(layout) {
       const seq = atStart ? pts : [...pts].reverse();
       let first = seq.findIndex((p) => !inside(ch, p[0], p[2]));
       if (first < 0) first = seq.length - 1;
-      const exit = seq[first];
+      // where the tube crosses the rim (between the last point inside and the first outside), not the first point outside:
+      // a curving tunnel can leave a metre or two along the wall from it
+      let exit = seq[first], along = [0, 0];
+      if (first > 0) along = [seq[first][0] - seq[first - 1][0], seq[first][2] - seq[first - 1][2]];
+      if (first > 0) {
+        const p = seq[first - 1], q = seq[first];
+        let lo3 = 0, hi3 = 1;
+        for (let k = 0; k < 20; k++) { const f = (lo3 + hi3) / 2; if (inside(ch, p[0] + (q[0] - p[0]) * f, p[2] + (q[2] - p[2]) * f)) lo3 = f; else hi3 = f; }
+        exit = [p[0] + (q[0] - p[0]) * hi3, p[1], p[2] + (q[2] - p[2]) * hi3];
+      }
       const a = Math.atan2((exit[2] - ch.c[2]) / ch.rz, (exit[0] - ch.c[0]) / ch.rx);
       const rim = Math.hypot(Math.cos(a) * ch.rx, Math.sin(a) * ch.rz);
       // a doorway: where the tube meets the wall - its heading, the rim's radius there, and the tube's narrowest
       // cross-section (its wobble taken in), so only wall wholly inside the tube is cut and no gap opens round it
       const lo = 1 - MINE_TUNNEL_WOBBLE;
-      rec.doors.push({ a, rim, hw: t.r * lo, hh: t.r * vs * lo, yc: RING_LIFT * t.r * vs, top: tubeTop(t.r) * vs + DOOR_HEAD_M });
+      const speed = Math.hypot(Math.sin(a) * ch.rx, Math.cos(a) * ch.rz);   // metres of rim per radian of the ellipse's angle there
+      // a tube meeting the wall aslant cuts it wider: its width over the cosine of the angle it meets the wall's normal at
+      const nx = Math.cos(a) / ch.rx, nz = Math.sin(a) / ch.rz, nl = Math.hypot(nx, nz), al = Math.hypot(along[0], along[1]);
+      const slant = al > 1e-6 ? Math.max(0.5, Math.abs(along[0] * nx + along[1] * nz) / (al * nl)) : 1;
+      rec.doors.push({ a, rim, speed, hw: (t.r * lo) / slant, hh: t.r * vs * lo, yc: RING_LIFT * t.r * vs, top: tubeTop(t.r) * vs + DOOR_HEAD_M });
       // the run starts just inside the rim (its share STUB_IN of the way in), not at the last point inside, so the tube
       // stands no stub in the chamber for a body coming at the doorway aslant to meet
       const kept = seq.slice(first);
@@ -124,7 +143,7 @@ const angGap = (/** @type {number} */ a, /** @type {number} */ b) => Math.abs(Ma
  * @param {any} rec
  */
 function chamberInto(kit, rec) {
-  const { ch, doors } = rec, { wallTop, top } = heights(rec), n = MINE_CHAMBER_SIDES;
+  const { ch, doors } = rec, { wallTop, top } = heights(rec), n = sidesOf(rec.ch);
   const bulge = (/** @type {number} */ i) => 1 + MINE_CHAMBER_BULGE * unit(ch.c[0] * 100 | 0, ch.c[2] * 100 | 0, i % n);
   const ang = (/** @type {number} */ i) => (2 * Math.PI * i) / n;
   const centre = [ch.c[0], ch.c[1], ch.c[2]];
@@ -140,10 +159,10 @@ function chamberInto(kit, rec) {
     for (let j = 0; j < rows; j++) {
       const y0 = (wallTop * j) / rows, y1 = (wallTop * (j + 1)) / rows;
       if (doors.some((d) => [[ang(i), y0], [ang(i + 1), y0], [ang(i + 1), y1], [ang(i), y1]].every(([q, y]) => {
-        const L = angGap(q, d.a) * d.rim;   // across the doorway, along the rim
+        const L = angGap(q, d.a) * d.speed;   // across the doorway, along the rim
         return (L / d.hw) ** 2 + ((y - d.yc) / d.hh) ** 2 <= 1;
       }))) continue;
-      const s0 = 1 - 0.04 * j, s1 = 1 - 0.04 * (j + 1);
+      const s0 = 1 - WALL_LEAN * y0, s1 = 1 - WALL_LEAN * y1;   // the wall leans in as it rises
       const p = [rimAt(ch, ang(i), bulge(i), s0, y0), rimAt(ch, ang(i + 1), bulge(i + 1), s0, y0), rimAt(ch, ang(i + 1), bulge(i + 1), s1, y1), rimAt(ch, ang(i), bulge(i), s1, y1)];
       const m = [(p[0][0] + p[2][0]) / 2, (p[0][1] + p[2][1]) / 2, (p[0][2] + p[2][2]) / 2];
       const arc = Math.hypot(p[1][0] - p[0][0], p[1][2] - p[0][2]) * UV;
@@ -151,7 +170,7 @@ function chamberInto(kit, rec) {
     }
   }
   // the cap: from the wall's top in to the crown, two rings
-  const s = 1 - 0.04 * rows;
+  const s = 1 - WALL_LEAN * wallTop;
   const ringsY = [wallTop, wallTop + (top - wallTop) * 0.7, top];
   const ringsS = [s, s * 0.6, 0];
   for (let r = 0; r < 2; r++) {

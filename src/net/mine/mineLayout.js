@@ -53,6 +53,9 @@ const FIRST_ROLL = 16;        // rolls 0 to 15 are kept for named rolls (9: rich
 const CLEAR_M = 2.5;          // gap kept between two chambers' widest ellipses (the law asks 2)
 const MOUTH_CLEAR_M = 4;      // no chamber within this of the mouth, past its own width
 const INSET = 0.6;            // a tunnel ends this share of the way from a chamber's center to its rim
+/** A tunnel stays level this share past its chambers' rims (the mesh bulges a chamber's wall up to 12 percent out, and
+ *  its flat floor with it), so its slope begins clear of the room. */
+const LEVEL_PAST = 1.15;
 const MAX_GRADE = 0.55;       // rise over run a tunnel's chord may have (about 29 degrees; the law allows 35)
 const MIN_CHORD_M = 6;        // the shortest tunnel, rim to rim
 const SECTION_STEP_M = Object.freeze([0.5, 2]);   // each main chamber within a section lies this much below the last
@@ -156,7 +159,7 @@ export function mineLayout(mineId, reset) {
     const reach = (hd, step) => {
       const ux = Math.cos(hd), uz = Math.sin(hd);
       // the whole rim, not the inset: a tunnel stays level inside its chambers, so its slope is all outside them
-      const insets = (from ? rim(from.rx, from.rz, ux, uz) : 0) + rim(shape.rx, shape.rz, ux, uz);
+      const insets = LEVEL_PAST * ((from ? rim(from.rx, from.rz, ux, uz) : 0) + rim(shape.rx, shape.rz, ux, uz));
       return Math.max(step, (from ? widest(from) : 0) + R + CLEAR_M + 0.01, drop / MAX_GRADE + insets, MIN_CHORD_M + insets);
     };
     let pick = null;
@@ -229,7 +232,7 @@ export function mineLayout(mineId, reset) {
   // The tunnels' floors: a Catmull-Rom curve through wobbling points, a point every 2 m, level inside the chambers it joins
   // (their floors are flat) and sloping evenly along the run between their rims.
   const cellById = new Map(cells.map((c) => [c.id, c]));
-  const within = (/** @type {Cell|undefined} */ c, /** @type {number[]} */ q) => !!c && ((q[0] - c.x) / c.rx) ** 2 + ((q[1] - c.z) / c.rz) ** 2 < 1;
+  const within = (/** @type {Cell|undefined} */ c, /** @type {number[]} */ q) => !!c && ((q[0] - c.x) / c.rx) ** 2 + ((q[1] - c.z) / c.rz) ** 2 < LEVEL_PAST * LEVEL_PAST;
   /** @param {Bore} bore @returns {number[][]} */
   const boreFloor = (bore) => {
     const { a, b } = bore;

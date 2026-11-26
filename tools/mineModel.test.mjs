@@ -85,12 +85,12 @@ test('floors face up and ceilings face down, so neither is culled from inside', 
   }
 });
 
-test("a body walks through every doorway: from the room's middle to where its tunnel starts, then along the tunnel", { todo: "a doorway lip still stops a 1.8 m ray in mine 4242 s0c1-s0c2" }, () => {
+test("a body walks through every doorway: from the room's middle to where its tunnel starts, then along the tunnel", () => {
   const clear = (tris, a, b, up) => {
     const o = [a[0], a[1] + up, a[2]], d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], len = Math.hypot(...d);   // level with the body: a to b, both at `up`
     return len < 1e-6 || rayHit(tris, o, d.map((v) => v / len)) >= len;
   };
-  for (const layout of LAYOUTS.slice(0, 5)) {
+  for (const layout of LAYOUTS) {
     const tris = mineColliderTris(layout);
     const chambers = new Map(layout.sections.flatMap((s) => s.chambers).map((c) => [c.id, c]));
     for (const t of layout.tunnels) for (const end of [t.from, t.to]) {
