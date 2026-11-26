@@ -57,3 +57,33 @@ test('a sealed mouth says how long it has left and lets nobody in', async () => 
   assert.equal(r.entered.length, 0);
   assert.ok(r.said.some((s) => s.includes('40')));
 });
+
+test("the owner's entrance stands in place of the flats: its rock on the collider, drawn at its pixel, entered at its portal", async () => {
+  const p = minePixel();
+  const entry = { px: p.px, py: p.py, batches: [] };
+  const built = new Map([[`${p.px},${p.py}`, entry]]);
+  const buckets = new Map(), draws = [], entered = [];
+  const E = { gpu: { id: 1 }, positions: new Float32Array(9), indices: new Uint32Array([0, 1, 2]), box: [0, 0, 0, 1, 1, 1], door: { at: [0, 0, 11.42], into: [1, 0, 0] } };
+  let feet = null, clock = 0;
+  const mouths = createMineMouths({
+    renderer: { createBillboardBatch: () => ({}) }, getTexture: async () => ({ recordCount: 40 }), uploadRecord: () => {},
+    billboardSize: () => ({ w: 2, h: 3 }), built: () => built, climateAt: () => CLIMATES.Mountain, occupiedAt: () => false,
+    pixelTranslation: (x, y, out) => { out[0] = 100; out[1] = 0; out[2] = 0; return out; }, feet: () => feet, outside: () => true,
+    enter: (px, py) => entered.push([px, py]), sealedFor: () => 0, say: () => {}, nowMs: () => (clock += 1000),
+    art: () => ({ state: 'ready', art: { entrance: E } }),
+    collider: () => ({ addMesh: (k, pos, idx, m) => buckets.set(k, m), removeBucket: (k) => buckets.delete(k) }), riding: () => null,
+  });
+  mouths.frame();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(entry.batches.length, 0);
+  assert.equal(buckets.size, 1);
+  assert.equal(mouths.draw({ drawMesh: (g, m) => draws.push([g, m[12]]) }), 1);
+  assert.equal(draws[0][0], E.gpu);
+  const at = mouths.stood()[0].local;   // the walk-in point, inside the portal
+  feet = [at[0] + 100, at[1], at[2]];
+  mouths.frame();
+  assert.deepEqual(entered, [[p.px, p.py]]);
+  built.clear();
+  mouths.frame();
+  assert.equal(buckets.size, 0);
+});

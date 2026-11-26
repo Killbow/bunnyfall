@@ -90,6 +90,7 @@ export const PSEUDO_ARCHIVES = Object.freeze([
   N(38311, 'world/ketch/ketchArt.js', 'KT_ARCHIVE', 'port', 'the Sky-Ketch Mzunthar - its decks, hull, brass, the land below and its puffs (KETCH)'),
   N(38321, 'systems/lockpick/lockpickArt.js', 'LOCKPICK_ARCHIVE', 'port', 'the Lockpick - a hook pick over a tension wrench (LOCKPICK)'),
   N(38331, 'systems/currencyArt.js', 'CURRENCY_ARCHIVE', 'port', "the currencies' pictures - the Dusk Token's card at record 0"),
+  N(38341, 'world/mine/mineArt.js', 'MINE_ART_ARCHIVE', 'port', "the mines' own models' textures - the owner's entrance and ores, baked by tools/mineArtBake.mjs (BUNNYFALL caverns)"),
   N(38400, 'world/capitalShapes.js', 'CAPITAL_ARCHIVE', 'port', "the capitals past the Bay - their stone, roofs, domes and statues, painted at run time (TESA10, TESA-LORE)"),
   N(38990, 'tools/abyssLab.js', 'LAB_ARCHIVE', 'port', "the abyss lab's walls and floor"),
   N(56790, 'world/townStandIns.js', 'TOWN_CLUTTER_ARCHIVE', 'data', "the towns' clutter Daggerfall's blocks name"),

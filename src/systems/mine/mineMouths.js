@@ -10,6 +10,7 @@ import { mineAt } from '../../net/mine/mineSites.js';
 import { groundAt } from '../../world/terrainNature.js';
 import { TERRAIN_SIZE } from '../../world/terrainSampler.js';
 import { t } from '../../ui/textManager.js';
+import { multiply, trs, transformPoint } from '../../world/mat4.js';
 
 /** The mountain nature archive and its records: the arched rock, two boulders. The standing torch (TEXTURE.210). */
 export const MOUTH_ROCKS = Object.freeze({ archive: 510, arch: 3, left: 2, right: 6 });
@@ -22,6 +23,10 @@ export const MOUTH_SIDE_M = 4.5;
 export const MOUTH_ENTER_M = 2.2;
 export const MOUTH_REARM_M = 8;
 export const MOUTH_SPOT_M = 120;
+/** The entrance model's walk-in point: this far into its portal from its door (m). */
+export const MOUTH_MODEL_IN_M = 1.6;
+/** The entrance model's turn on a pixel: a quarter turn of four, by the pixel (degrees). */
+export const mouthYaw = (/** @type {number} */ px, /** @type {number} */ py) => (((px * 7 + py * 13) % 4) + 4) % 4 * 90;
 /** How often the streamed pixels are walked for mouths (s). */
 const SCAN_S = 0.5;
 
@@ -54,8 +59,11 @@ export const mouthLocal = (/** @type {any} */ entry) => {
  *   built: () => Map<string, any>, climateAt: (px: number, py: number) => number, occupiedAt: (px: number, py: number) => boolean,
  *   pixelTranslation: (px: number, py: number, out: number[]) => number[], feet: () => (number[]|null), outside: () => boolean,
  *   enter: (px: number, py: number) => void, sealedFor: (px: number, py: number) => number, say: (text: string) => void,
- *   nowMs?: () => number,
+ *   nowMs?: () => number, art?: (() => ({ state: 'loading'|'ready'|'none', art: any })) | null,
+ *   collider?: (() => any) | null, riding?: ((px: number, py: number) => any) | null,
  * }} deps
+ *   `art()` the owner's entrance model (world/mine/mineArt.js), stood in place of the flats once it is ready; `collider` and
+ *   `riding` its rock on the collider, riding its pixel's floating translation (poi/poiHostWorld.js's way)
  */
 export function createMineMouths(deps) {
   const nowMs = deps.nowMs ?? (() => performance.now());
@@ -72,6 +80,18 @@ export function createMineMouths(deps) {
     pending.add(key);
     try {
       const local = mouthLocal(entry);
+      // THE OWNER'S ENTRANCE: its door on the mouth's spot, turned by the pixel, its rock solid; the walk-in point inside its portal
+      const a = deps.art?.() ?? null;
+      if (a?.state === 'ready' && a.art?.entrance) {
+        if (deps.built().get(key) !== entry || stood.has(key)) return;
+        const E = a.art.entrance, d = E.door.at;
+        const L = multiply(trs(local[0], local[1], local[2], 0, mouthYaw(entry.px, entry.py), 0), trs(-d[0], -d[1], -d[2], 0, 0, 0));
+        const trig = transformPoint(L, d[0] + E.door.into[0] * MOUTH_MODEL_IN_M, d[1], d[2] + E.door.into[2] * MOUTH_MODEL_IN_M);
+        const bucket = `mine:mouth:${key}`;
+        try { deps.collider?.()?.addMesh?.(bucket, E.positions, E.indices, L, deps.riding?.(entry.px, entry.py)); } catch (e) { console.warn('[mine] the rock of a mouth', /** @type {any} */ (e)?.message ?? e); }
+        stood.set(key, { entry, px: entry.px, py: entry.py, local: [trig[0], local[1], trig[2]], batches: [], model: { L, W: new Float32Array(16), gpu: E.gpu, bucket } });
+        return;
+      }
       const [rocks, torch] = await Promise.all([deps.getTexture(MOUTH_ROCKS.archive), deps.getTexture(MOUTH_TORCH.archive)]);
       if (deps.built().get(key) !== entry || stood.has(key)) return;
       const batches = [];
@@ -101,7 +121,8 @@ export function createMineMouths(deps) {
 
   function scan() {
     const built = deps.built();
-    for (const [key, s] of stood) if (built.get(key) !== s.entry) stood.delete(key);   // its pixel's teardown took its batches
+    for (const [key, s] of stood) if (built.get(key) !== s.entry) { stood.delete(key); if (s.model) deps.collider?.()?.removeBucket?.(s.model.bucket); }   // its pixel's teardown took its batches
+    if (deps.art && deps.art()?.state === 'loading') return;   // the owner's entrance first, once known - never flats stood a moment before it
     for (const [key, entry] of built) {
       if (stood.has(key) || pending.has(key) || !Number.isSafeInteger(entry?.px)) continue;
       if (!mineAt({ px: entry.px, py: entry.py, climate: deps.climateAt(entry.px, entry.py), occupied: deps.occupiedAt(entry.px, entry.py) })) continue;
@@ -131,6 +152,19 @@ export function createMineMouths(deps) {
       const left = deps.sealedFor(near.px, near.py);
       if (left > 0) { deps.say(MOUTH_TEXT.sealed(Math.max(1, Math.ceil(left / 60)))); return; }
       deps.enter(near.px, near.py);
+    },
+    /** The entrances, with the world (world.js's scene frame): each model at its pixel's translation now. */
+    draw(/** @type {any} */ r) {
+      if (!r?.drawMesh) return 0;
+      let n = 0;
+      for (const s of stood.values()) {
+        if (!s.model?.gpu) continue;
+        const tr = deps.pixelTranslation(s.px, s.py, _t);
+        multiply(trs(tr[0], tr[1], tr[2], 0, 0, 0), s.model.L, s.model.W);
+        r.drawMesh(s.model.gpu, s.model.W, null);
+        n++;
+      }
+      return n;
     },
     /** The mouths stood now (probes). */
     stood: () => [...stood.values()].map((s) => ({ px: s.px, py: s.py, local: [...s.local] })),

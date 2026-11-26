@@ -235,7 +235,8 @@ import { registerSpirePotionLaw, registerSpireFooting, registerSpireWake, regist
 import { accountEg } from '../net/accountClient.js';   // EG-PLAY: the Weir Keys, the open, the admission, the claims
 import { accountKetch } from '../net/accountClient.js';   // KETCH: the Ketchmaster's hold - a Tonal Warden's receipt carried to the service
 import { createKetchClient } from '../systems/ketch/ketchClient.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen - the sky over Daggerfall, the anchor-lift, the ship aboard, the hold
-import { createMineMouths, mineHeardReset, mineSealLeft, MOUTH_TEXT } from '../systems/mine/mineMouths.js';   // BUNNYFALL (2026-11-25, caverns): mine mouths in the wilds
+import { createMineMouths, mineHeardReset, mineSealLeft, MOUTH_TEXT } from '../systems/mine/mineMouths.js';
+import { loadMineArt } from '../world/mine/mineArt.js';   // BUNNYFALL (2026-11-26, caverns): the owner's entrance model   // BUNNYFALL (2026-11-25, caverns): mine mouths in the wilds
 import { registerPlayerDeathSave } from '../characters/playerEntity.js';   // EG-FULL: the fall's death save (the witness's damage mod rides main's import of registerPlayerDamageMod, below) (EG-H2: the Spire's Levitate ward is the one ward's, by the made level's law)
 import { registerMadeLevelHere, madeRuleHere, madeSaysHere } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every per-level door below asks the one law
 import { registerJumpForgiveness } from '../player/motor.js';   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press, the made level's law's
@@ -12824,10 +12825,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     spent: (n) => socialLink()?.sendKetchSpent?.(n) === true, changed: () => saveSoon.changed(),   // AUDIT KETCH L1-2: a voyage's share given, said to the hub; L3-13: a save asked for
   }) : null;
   // BUNNYFALL (2026-11-25, caverns): MINE MOUTHS IN THE WILDS (systems/mine/mineMouths.js) - online alone, walked into to enter
+  // the owner's entrance model (world/mine/mineArt.js), loaded once; the mouths stand Daggerfall's flats where it cannot be read
+  let _mineArtNow = { state: 'loading', art: null };
+  if ((params.has('online') && bunnyGuildsOn()) || shotMode) loadMineArt(renderer).then((art) => { _mineArtNow = { state: art ? 'ready' : 'none', art }; });
+  const _mineRides = new Map();
+  const mineRide = (px, py) => { const k = py * 1000 + px; let r = _mineRides.get(k); if (!r) { const o = [0, 0, 0]; r = onFloatingFrame(state, () => state.pixelTranslation(px, py, o)); _mineRides.set(k, r); } return r; };
   const mines = (params.has('online') && bunnyGuildsOn()) || shotMode ? createMineMouths({   // shot mode: the dev probes' (offline)
     renderer, getTexture, uploadRecord, billboardSize, flatBatchAabb, built: () => built, climateAt: (x, y) => maps?.getClimateIndex(x, y) ?? -1,
     occupiedAt: (x, y) => locationIndex.has(`${x},${y}`), pixelTranslation: (x, y, out) => state.pixelTranslation(x, y, out),
     feet: () => player.feetAt?.() ?? null, outside: () => (modes?.mode ?? 'exterior') === 'exterior' && !gamePaused(),
+    art: () => _mineArtNow, collider: () => collider, riding: (px, py) => mineRide(px, py),
     enter: (px, py) => { if (online && !online.mnOk) { chatNotice(MOUTH_TEXT.relayOld()); return; } void modes?.enterMine?.({ px, py, reset: mineHeardReset(px, py), site: egSiteNow() }); }, sealedFor: (px, py) => mineSealLeft(px, py, Math.floor(Date.now() / 1000)), say: (text) => chatNotice(text),
   }) : null;
   /** BUNNYFALL (2026-11-25, caverns): the doors a mine on this page reads (systems/mine/mineHost.js): its room's word out, the
@@ -15607,7 +15614,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     _camRight, _canvasSize, _csaFill, _fr, _holidayText, _lightT, _mode, _musicInLocationRect, _musicLocationType, _pixelOrder,
     _planes, _pv, _ringOrigin, _sceneLights, _tvDngModel, _waterRows, _wodFill, _wodLitCount, _wodSelect,
     _wodSetLights, _yardRows, ambience, arenaBouts, beginDeepWatersFrame, billboardOutside, bloodMarks, built, cam,
-    camps, canvas, CITY_LIGHT_COLOR_F32, climbFeel, crewAshoreTick, cromwark, csa, csaDrawParticlesOpaque,
+    mines, camps, canvas, CITY_LIGHT_COLOR_F32, climbFeel, crewAshoreTick, cromwark, csa, csaDrawParticlesOpaque,
     csaDrawWaves, csaOn, csaPoolFrame, cullOn, deepWaters, drawDeepWatersDecorations, drawDeepWatersFish,
     drawDeepWatersFloors, drawDeepWatersLoot, drawOceanHolesOpaque, drawPeerBodies, drawReachFires, drawTvDungeonModels,
     droppedTorches, dropTvDungeonModels, dwClipLast, dwDecor, dwFish, dwLoot, dwRender, ecoDraw, etherSea, exteriorFoes, farRing,
