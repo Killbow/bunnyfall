@@ -15,6 +15,7 @@
 // Pure but for the text core: no DOM. Not a DFU member - Daggerfall Unity has no accounts. Ledger A (COLLECTIONS-II).
 import { t, intlLocale } from '../textManager.js';
 import { TITLES, AURAS, ICONS, GLYPHS } from '../../net/identityToken.js';
+import { SOCIETY_WARES } from '../../net/mine/societyLaw.js';   // BUNNYFALL (2026-11-26, caverns)
 import { TITLE_TEXT, AURA_TEXT } from '../playerBadge.js';
 import { ICON_TEXT } from '../profileIcons.js';
 import { GLYPH_LABEL } from '../enhancedAccount.js';
@@ -43,6 +44,7 @@ export const WARDROBE_SOURCES = Object.freeze([
   wordPair('hunt', () => t('coll.src.hunt', 'The Hunt')),   // HUNTERS-MARK: the bounty boards' clears
   wordPair('mastery', () => t('coll.src.mastery', 'Marks of Mastery')),   // MARKS-OF-MASTERY: a profession's Master
   wordPair('festival', () => t('coll.src.festival', 'The Witches’ Festival')),
+  wordPair('society', () => t('coll.src.society', 'The Cartographers’ Society')),   // BUNNYFALL (2026-11-26, caverns): bought with Survey Seals
   wordPair('seats', () => t('coll.src.seats', 'The Seats')),
   wordPair('chapters', () => t('coll.src.chapters', 'The Guild Chapters')),
   wordPair('ranked', () => t('coll.src.ranked', 'The Arena and the Card Tables')),
@@ -127,6 +129,8 @@ const broker = (/** @type {string} */ id) => () => t('coll.how.broker', 'Buy it 
 const wyrd = (/** @type {string} */ id) => () => t('coll.how.wyrdSister', 'Buy it from a Wyrd Sister for {price} Soul Cakes during the Witches’ Festival.', { price: wareById(id)?.price ?? 0 });
 const remnant = (/** @type {keyof typeof REMNANT_ODDS} */ k) => () => t('coll.how.remnant', 'A chance of one in {n} each time you help break the Brass Remnant in an Abyss Dungeon.', { n: REMNANT_ODDS[k] });
 const serpent = (/** @type {keyof typeof SERPENT_ODDS} */ k) => () => t('coll.how.serpent', 'A chance of one in {n} each time a Sea Serpent you fought is slain, if your own fire dealt a real share of your ship’s.', { n: SERPENT_ODDS[k] });   // AUDIT COLLECTIONS-II (lane 1): rolled a player, on a dealing claim alone (serpents.js)
+/** BUNNYFALL (2026-11-26, caverns): a ware of the Cartographers' Society, bought with Survey Seals (net/mine/societyLaw.js). */
+const society = (/** @type {string} */ id) => () => t('coll.how.society', 'Buy it from the Cartographers’ Society for {price} Survey Seals, earned by its ore contracts.', { price: SOCIETY_WARES.find((w) => w.id === id)?.seals ?? 0 });
 const redoubt = (/** @type {keyof typeof REDOUBT_OF} */ k) => () => t('coll.how.redoubt', 'Take Redoubt {n} or a deeper one in the Elite Breach (a Rehearsal does not count).', { n: REDOUBT_OF[k] });
 const hoursFirst = () => t('coll.how.hoursfirst', 'Granted by name to the first company to break an Abyss Dungeon.');
 const spireFirst = () => t('coll.how.spirefirst', 'Granted by name to the first company to take Redoubt 10.');
@@ -242,6 +246,10 @@ export const WARDROBE = Object.freeze({
     skyfarer: E('questlines', 'open', questline('skyfarer')),   // KETCH: the Sky-Ketch's line
     witchwarden: E('festival', 'seasonal', wyrd('title:witchwarden')),
     hearthkeeper: E('festival', 'seasonal', () => t('coll.how.hearthkeeper', 'Set a Hearth Offering at your home’s door during the Witches’ Festival, and have other players take {n} Soul Cakes from it.', { n: HEARTHKEEPER_GIVEN })),   // AUDIT COLLECTIONS-II (lane 1): `fest_given` counts the cakes others take (festival.js takeFromOffering)
+    prospector: E('society', 'open', society('title:prospector')),   // BUNNYFALL (2026-11-26, caverns): the Society's ladder
+    delver: E('society', 'open', society('title:delver')),
+    deepwarden: E('society', 'open', society('title:deepwarden')),
+    masteroftheseam: E('society', 'open', society('title:masteroftheseam')),
     nirnrootsage: E('bestowed', 'bestowed', bestowed, { with: ['aura:sagesmoke', 'glyph:nirnrootsage'] }),   // NIRNROOT-SAGE: Blob-Marley's own
     bloodhound: E('hunt', 'open', hunt('bloodhound')),   // HUNTERS-MARK
     beastbane: E('hunt', 'open', hunt('beastbane')),
@@ -262,7 +270,7 @@ export const WARDROBE = Object.freeze({
     firsthour: E('abyss', 'retired', hoursFirst, { with: ['title:hoursfirst'], look: () => t('coll.look.firsthour', 'The Turning Hour’s wheel in the light of the first dawn.') }),
     maelstrom: E('serpent', 'chance', serpent('maelstrom'), { look: () => t('coll.look.maelstrom', 'A whirlpool of tide and foam about your feet.') }),
     beaconlight: E('world', 'open', () => t('coll.how.heartsfire', 'Included with Legendary Bartender, bought from the Bards’ Guild for 500 Favor Tokens.'), { with: ['title:legendarybartender'], look: () => t('coll.look.beaconlight', 'Gold-white motes rising like a beacon’s sparks.') }),
-    burningstair: E('spire', 'open', redoubt('burningstair'), { with: ['title:wellheadwalker'], look: () => t('coll.look.burningstair', 'Embers falling about you as if down a burning stair.') }),
+    burningstair: E('society', 'open', society('aura:burningstair'), { look: () => t('coll.look.burningstair', 'Embers falling about you as if down a burning stair.') }),   // BUNNYFALL (caverns): the Breach's way is off; the Society's is open
     firstlight: E('world', 'open', () => t('coll.how.firstlightFarm', 'Comes with Sovereign of the Sheaf: 45,000 farm work on a Company farm. (Once First of the Spire’s, while the Elite Breach was open.)'), { with: ['title:sheafsovereign'], look: () => t('coll.look.firstlight', 'A dawn-white ring of light.') }),
     lilacwarren: E('bestowed', 'bestowed', bestowed, { with: ['title:wikimaid', 'glyph:wikimaid'], look: () => t('coll.look.lilacwarren', 'Rabbits hopping round your feet on a ring of lilac light.') }),
     nyxveil: E('broker', 'open', () => t('coll.how.nyxveil', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Dusk Tokens.', { price: insigniaById('aura:nyxveil')?.price ?? 0 }), { look: () => t('coll.look.nyxveil', 'A purple haze drifting about you, stars glinting in it.') }),

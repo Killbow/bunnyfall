@@ -156,6 +156,7 @@ import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice,
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from '../characters/npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
 import { createTavernFavorShop } from './tavernFavorShop.js';
+import { createSocietyDesk } from '../guilds/societyDesk.js';   // BUNNYFALL (2026-11-26, caverns): the Cartographers' ore contracts and Survey Seals
 import { magicHallEntry, magicRoomIdentity, magicHallGreeting } from './magicTavernRoom.js';   // MAGIC-TAVERN: a blue tavern's door opens the shared hall
 import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
@@ -2640,6 +2641,7 @@ export function createWorldModes(host) {
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), flow: (boxes) => townTalk?.showOverlay?.(new ServiceFlowWindow(boxes)),
     back: () => favorShop.open(),
   });
+  const societyDesk = createSocietyDesk({ call: host.societyCall ?? null, stores: host.societyStores ?? null, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });   // BUNNYFALL (2026-11-26, caverns)
   const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
@@ -4468,7 +4470,7 @@ export function createWorldModes(host) {
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
     if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
       openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
-        entity: playerEntity, openFavor: () => favorShop.open(), openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
+        entity: playerEntity, openFavor: () => favorShop.open(), openSociety: () => { void societyDesk.open(); }, openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
         revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
       }));
       return;

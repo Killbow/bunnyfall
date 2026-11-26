@@ -3,6 +3,7 @@ import { duelRecordOf, claimDuel, gateRecordOf, claimGate } from '../accounts.js
 import { mintRenownOrder, ID_RE } from '../../../src/net/identityToken.js';
 import { signingKey, gatePublicKey } from '../signing.js';
 import { claimMineHaul } from '../mineHaul.js';   // BUNNYFALL (2026-11-26, caverns)
+import { societyState, societyTake, societyTurnIn, societyBuy } from '../society.js';   // BUNNYFALL (2026-11-26, caverns)
 import { seaWreck, seaPrizeCollect, seaPrizeReclaim } from '../seaWreck.js';
 import { claimIliac, iliacBoardOf } from '../iliac.js';
 import { claimGambit, gambitBoardOf } from '../gambit.js';
@@ -322,6 +323,17 @@ export async function playRoutes({ request, env, subtle, nowS, origin, path, db,
     const r = await claimMineHaul(ctx, who.player, env, body, await gatePublicKey(env, subtle));
     if (r.error) return json({ error: r.error, ...(r.why ? { why: r.why } : {}) }, r.error === 'no-gate-key' ? 503 : r.error === 'not-yours' ? 403 : 400, origin);
     return json(r, 200, origin);
+  }
+
+  if (path.startsWith('/v1/society') && request.method === 'POST') {
+    // BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY - its desk, a contract taken or turned in, a ware bought
+    // with Survey Seals (society.js; the law is src/net/mine/societyLaw.js). A refusal says its rung.
+    const act = { '/v1/society': societyState, '/v1/society/take': societyTake, '/v1/society/turnin': societyTurnIn, '/v1/society/buy': societyBuy }[path];
+    if (act) {
+      const r = await act(ctx, who.player, body ?? {});
+      if (r.error) return json(r, r.error === 'need-account' ? 403 : r.error === 'busy' ? 409 : 400, origin);
+      return json(r, 200, origin);
+    }
   }
 
   if (path === '/v1/arena/attempt' && request.method === 'POST') {

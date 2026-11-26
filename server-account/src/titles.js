@@ -105,7 +105,8 @@ import { farmTitlesFor, FARM_TITLE_AURA } from '../../src/net/farm/farmWorkLaw.j
 import { EG_HONOUR, EG_HONOUR_TITLES, EG_HONOUR_AURA, EG_CHAMPION_TITLE, EG_FIRST_TITLE, EG_FIRST_AURA } from './egHonours.js';   // EG-E2: the Spire's honours on the row
 import { LAMP_TITLE } from './lamp.js';   // LAMP-KEEPER II: I Love Lamp on the row
 import { QL_TITLES, qlTitleBit } from '../../src/net/questlineClaims.js';   // QL12: the questlines' titles on the row
-import { festivalWaresHeld, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../src/net/festivalLaw.js';   // WITCH1: the Witches' Festival's wares and honours on the row
+import { festivalWaresHeld, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../src/net/festivalLaw.js';
+import { societyWaresHeld } from '../../src/net/mine/societyLaw.js';   // BUNNYFALL (2026-11-26, caverns): the Society's wares on the row   // WITCH1: the Witches' Festival's wares and honours on the row
 import { STAFF_GLYPHS } from '../../src/net/staffCommands.js';   // STAFF-PANEL2-FIX: the glyphs that open the staff's commands, none held while cut off
 import { MASTERY_MARKS } from '../../src/net/huntLaw.js';   // HUNTERS-MARK, MARKS-OF-MASTERY: the hunt's, a Master's and the sea's titles
 
@@ -408,9 +409,13 @@ export function titlesHeld(player, env) {
     if (Array.isArray(player?.masteryMarks)) for (const t of MASTERY_MARKS) if (player.masteryMarks.includes(t) && !held.includes(t)) held.push(t);
     // FARM EXPANSION (docs/FARM-EXPANSION.md 10.2): the farm's three, by the account's farm work (`farm_work`), held for good
     for (const t of farmTitlesFor(player?.farm_work)) if (!held.includes(t)) held.push(t);
+    // BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY'S LADDER - bought with Survey Seals (society.js), held for good
+    for (const t of societyKeys(player, 'title')) if (!held.includes(t)) held.push(t);
   }
   return held;
 }
+/** BUNNYFALL (2026-11-26, caverns): the keys of one kind among the Society's wares a row bought (societyLaw.js SOCIETY_WARES). */
+const societyKeys = (/** @type {any} */ player, /** @type {string} */ kind) => societyWaresHeld(player?.society_wares).filter((id) => id.startsWith(`${kind}:`)).map((id) => id.slice(kind.length + 1));
 /** WITCH1: the title an account's Hearth Offerings earn (net/identityToken.js TITLES's spelling). */
 export const HEARTHKEEPER_TITLE = 'hearthkeeper';
 /** WITCH1: the keys of one kind among the festival's account wares a row bought (festivalLaw.js FESTIVAL_WARES). */
@@ -442,6 +447,7 @@ export function aurasHeld(player, env) {
   // SERPENT5: THE MAELSTROM - the Old Coil's second grant, laid on the row as Coilbreaker is, held for good
   if (typeof player?.handle === 'string' && player.handle && (Number(player?.serpent_honours) & SERPENT_HONOUR_AURA)) held.push('maelstrom');
   if (typeof player?.handle === 'string' && player.handle) for (const a of festivalKeys(player, 'aura')) if (!held.includes(a)) held.push(a);   // WITCH1: Witchfire, bought
+  if (typeof player?.handle === 'string' && player.handle) for (const a of societyKeys(player, 'aura')) if (!held.includes(a)) held.push(a);   // BUNNYFALL (caverns): The Burning Stair, bought with Seals
   // FARM EXPANSION (10.3): First Light with Sovereign of the Sheaf - the breach's dawn ring, given to the farm while the breach is shut
   if (typeof player?.handle === 'string' && player.handle) for (const t of farmTitlesFor(player?.farm_work)) { const a = FARM_TITLE_AURA[t]; if (a && !held.includes(a)) held.push(a); }
   return held;

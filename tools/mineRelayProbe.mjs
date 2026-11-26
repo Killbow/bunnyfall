@@ -6,6 +6,7 @@
 //   1. both say `hi` and hear the same fresh mine
 //   2. A shores a wall; B hears the prop, and B shoring the same wall is refused `taken`
 //   2b. A sets a drill (B sees it, cannot empty it), empties it; the signed haul is paid once into A's Stores, never B's
+//   2c. the Cartographers' Society's desk: the day's offers, a contract taken, a turn-in short, a title too dear
 //   3. both strike one section; the dust, creak and rumble come in order, to both, and the noise calls the same waves
 //   4. the section gives: both hear the collapse, the mine reads sealed for an hour, and a strike after it is refused
 //   5. a newcomer saying `hi` hears the seal (the client puts them out at once)
@@ -89,6 +90,18 @@ try {
   check(again.status === 200 && again.body.paid === 0 && again.body.why === 'claimed', `carried twice, it pays nothing: ${JSON.stringify(again.body)}`);
   const stolen = await B.bot.fetch(`${LOAD_SERVICE}/v1/mine/haul`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${B.bot.account.secret}` }, body: JSON.stringify({ receipt: rc?.r, character: B.bot.realm.id }) });
   check(stolen.status === 403, `B carrying A's receipt is refused (${stolen.status})`);
+
+  // 2c. THE SOCIETY'S DESK on the real service: the day's offers, one taken, a turn-in short (its contract stands), a ware too dear
+  const desk = (path, body = {}) => A.bot.fetch(`${LOAD_SERVICE}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${A.bot.account.secret}` }, body: JSON.stringify({ character: A.bot.realm.id, ...body }) }).then(async (r) => ({ status: r.status, body: await r.json() }));
+  const d0 = await desk('/v1/society');
+  check(d0.status === 200 && d0.body.offers?.length === 3 && d0.body.seals === 0, `the Society's desk offers ${d0.body.offers?.map((o) => `${o.n} ${o.ore}`).join(', ')}`);
+  const took = await desk('/v1/society/take', { ore: d0.body.offers?.[0]?.ore });
+  check(took.status === 200 && took.body.contract?.ore === d0.body.offers?.[0]?.ore, `a contract taken: ${JSON.stringify(took.body.contract)}`);
+  const short = await desk('/v1/society/turnin');
+  const after = await desk('/v1/society');
+  check(short.body.error === 'short' && after.body.contract?.ore === took.body.contract?.ore, `turned in short, it stands (${short.body.held} of ${short.body.n})`);
+  const dear = await desk('/v1/society/buy', { ware: 'title:prospector' });
+  check(dear.status === 400 && dear.body.error === 'seals-short', `a title with no Seals is refused: ${dear.body.error}`);
 
   // 3 and 4. strikes from both, warnings in order, the collapse
   A.heard.length = 0; B.heard.length = 0;

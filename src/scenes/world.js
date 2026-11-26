@@ -14547,6 +14547,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     decorCharacter: () => characterIdOf(playerEntity),   // DECOR1d: the character an online home's placements are written as
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,
+    // BUNNYFALL (2026-11-26, caverns): the Cartographers' Society's desk (guilds/societyDesk.js) - its calls as this character, the Stores read after a turn-in
+    societyCall: realmSession ? (path, body) => accountCall(realmIoNow(), path, { ...body, character: characterIdOf(playerEntity) }) : null,
+    societyStores: () => { void profBook?.refresh?.({ force: true }); },
     favorBuy: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/tavern/favor', { ...body, ...at }) }) : null,
     // BARDS' GUILD services paid in Favor (scenes/bardServicesShop.js): the service charges the Favor and writes the result in one batch
     bardAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/bards/service', { ...body, ...at }) }) : null,

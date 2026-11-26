@@ -142,7 +142,12 @@ export const TITLE_TEXT = Object.freeze({
   // earned by an account's Hearth Offerings giving 25 cakes; both held for good
   witchwarden: 'Witchwarden',
   hearthkeeper: 'Hearthkeeper',
-  nirnrootsage: 'Nirnroot Sage',   // NIRNROOT-SAGE (2026-10-26, for Blob-Marley, an Immortal backer): Blob-Marley's own, the owner's word for it
+  nirnrootsage: 'Nirnroot Sage',
+  // BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY'S LADDER - bought with Survey Seals, held for good
+  prospector: 'Prospector',
+  delver: 'Delver',
+  deepwarden: 'Deepwarden',
+  masteroftheseam: 'Master of the Seam',   // NIRNROOT-SAGE (2026-10-26, for Blob-Marley, an Immortal backer): Blob-Marley's own, the owner's word for it
   // HUNTERS-MARK, MARKS-OF-MASTERY (2026-10-27): the hunt's four by the account's board clears, a profession's Master
   // each, the sea's two by the serpents slain (net/huntLaw.js MASTERY_MARKS)
   bloodhound: 'Bloodhound',
@@ -428,7 +433,12 @@ export const TITLE_RGBA = Object.freeze({
   skyfarer: Object.freeze([0.345, 0.847, 1, 1]),           // #58d8ff - the open sky's blue, brighter than her ring (#7cc4ff), which stood 32 from the Chaptermaster's: a title reads apart from every other title by more than 40
   witchwarden: WITCH_FIRE,     // WITCH1: the coven's green - the colour a face that cannot draw a gradient uses
   hearthkeeper: HEARTH_TALLOW,   // WITCH1: the tallow's amber
-  nirnrootsage: NIRN_GLOW,   // NIRNROOT-SAGE: a nirnroot's glow - the colour a face that cannot draw a gradient uses, and the glyph's
+  nirnrootsage: NIRN_GLOW,
+  // BUNNYFALL (caverns): the Society's ladder, down the seam - copper, slate, deep water, gold
+  prospector: Object.freeze([0.784, 0.478, 0.243, 1]),        // #c87a3e
+  delver: Object.freeze([0.490, 0.541, 0.600, 1]),            // #7d8a99
+  deepwarden: Object.freeze([0.184, 0.561, 0.541, 1]),        // #2f8f8a
+  masteroftheseam: Object.freeze([0.878, 0.690, 0.251, 1]),   // #e0b040   // NIRNROOT-SAGE: a nirnroot's glow - the colour a face that cannot draw a gradient uses, and the glyph's
   // HUNTERS-MARK (no colour named): the hunt's - a hound's russet, a kill's dried blood, the greenwood's, an antler's bone;
   // MARKS-OF-MASTERY: a Master's each its profession's own where the marks' colours left room (ui/nodeMarks.js - the
   // orchid, the sap green, the hide's rose), the ore's brown, a sail-blue, the anvil's iron, a mason's sandstone, a
