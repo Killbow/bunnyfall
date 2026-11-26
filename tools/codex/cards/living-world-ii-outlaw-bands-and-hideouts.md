@@ -24,6 +24,7 @@ invariants:
   - "`bandCount` caps regional outlaw camps at `BANDS_MAX` (`4`) hideouts per region, scaling at one base camp plus one per `BAND_TOWNS_PER` (`40`) towns."
   - "Clearing a hideout leaves it vacant for `BAND_VACANT_DAYS` (`20`) game days before `genAt` and `outlawBandAt` mint a new band generation; unrouted bands also rotate every `BAND_ERA_DAYS` (`60`) days."
   - "Simulated road encounters rout the attacking band at `ROUT_CHANCE` (`0.45` on patrolled roads and `0.15` on unpatrolled wild roads)."
+  - "Hideout people spawn as transient pool enemies and the chest is an unsaved ground pile; only the character's `looted`, `routed`, and `heard` turns persist."
 traps:
   - "Lock hideout chest contents on the first container delta (`bandChest`, budgeted at `CHEST_SLICE_MS` = `3` ms) so players cannot duplicate recovered spoils."
   - "Wait for road path planning to complete before confirming a dry-ground hideout camp position."

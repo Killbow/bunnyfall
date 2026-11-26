@@ -31,6 +31,7 @@ traps:
   - "Hero fragments require `EG_HERO_LAND_ROOM_CM` (40 cm) of landing clearance and spawn only from `EG_HERO_LAW` (7) onward."
   - "`EG_ASCENT_LAW` (9) introduces routed ascent ways and `EG_BROKEN_LAW` (10) adds broken ways; always branch on `egLawOf(spec)` rather than comparing against `EG_SPEC` directly."
   - "Running leap is disabled inside the Spire so player movement physics match the span solver's jump envelope."
+  - "`EG_FLOOR_KEY` (`egSpan.js`) and `EG_BUCKET` (`egCircleHost.js`) are both `'eg:hall'`, and the span sets the cast-back point on that bucket, so they change together."
 tags:
   - procedural
   - generator

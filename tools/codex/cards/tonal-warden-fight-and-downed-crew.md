@@ -31,6 +31,7 @@ traps:
   - "A solo player with no peers aboard skips `lieDown` and falls overboard immediately on fatal damage."
   - "Client hit claims deduplicate through `spendBlow` keyed by target (`'w'` plus body ID) and attack sequence so multi-target swings and network retries apply only once."
   - "When the Warden dies, `ketchBrain.js` clears all carried and loose cells and broadcasts the empty cell state before transitioning to `'vault'`."
+  - "`KT_STOREY_M` duplicates the relay's `KT_STOREY_BAND` (`src/net/ketch/ketchJudge.js`) and `KT_LATE_MS` duplicates `STRIKE_LATE_MS` (`src/net/gateStrike.js`); change each pair together or the client and relay judge blows differently."
 tags:
   - multiplayer
   - sky-ketch

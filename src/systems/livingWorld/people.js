@@ -1,28 +1,15 @@
 // @ts-check
-// LW7c (2026-10-05, bible/06-Systems/Living-World.md "LW7c"): THE PEOPLE WHO KNOW YOU - the character's regards
-// (relations.js) as a page of the chronicle: each resident the player has met, by NAME and TOWN, their standing, and how
-// long since they were last seen - or that they are dead by the player's hand or at their side. Mac: "make friends or
-// enemies"; a friendship nobody can see is not one the player can keep.
-//
-// NOTHING NEW IS SAVED. A resident's id names their town, their roll, their slot and their generation
-// (census.js: `L<map>.<slot>` a household's, `L<map>.t<slot>` a traveller's, `L<map>.w<slot>` the watch's, `~<gen>` a
-// newcomer's), and the census's mint is a pure function of those - a name reads the seed, the region's bank and the
-// sex, and the sex reads no trade but the watch's - so the page mints each one again (`residentOfId`). The dead are the
-// character's own hand deaths (relations.js HAND_KINDS), told by their place and the name they bore.
 import { mintResident, travellerRoster } from './census.js';
-import { companyOfPlace, namedIn } from './companies.js';   // LW13: the companies the known walk with
+import { companyOfPlace, namedIn } from './companies.js';
 import { regardStanding, FRIEND_AT, ENEMY_AT, HOSTILE_AT, REGARD_MAX } from './relations.js';
 import { placeKeyOf } from './lives.js';
 
-/** A resident's id, read: the town's map id, the roll, the slot and the generation (null: the census's own). */
 export const RESIDENT_ID = /^L(\d+)\.([tw]?)(\d+)(?:~(\d+))?$/;
-/** The most of each standing the page shows (the warmest friends, the bitterest enemies, the latest seen). */
 export const PEOPLE_MAX = 60;
 
 /**
- * The resident an id names, minted again from their town (`townOf(mapId)` the host's MAPS-row record, null for one it
- * does not know) - null for an id that is not a resident's, or of a town not known.
- * @param {string} id @param {(mapId: number) => any} townOf
+ * @param {string} id
+ * @param {(mapId: number) => any} townOf
  */
 export function residentOfId(id, townOf) {
   const m = RESIDENT_ID.exec(String(id ?? ''));
@@ -34,18 +21,13 @@ export function residentOfId(id, townOf) {
 }
 
 /**
- * THE PAGE: everyone the character knows, as three lists - FRIENDS (the warmest first), ENEMIES (the hostile and the
- * enemies, the bitterest first) and the KNOWN (the latest seen first) - each to PEOPLE_MAX. Each row: `id`, `name`,
- * `town` (its name, '' unknown), `standing`, `regard` (on `day`, eased), `days` since last seen, `fate` - 'slain' by
- * the player's hand, 'died' at their side, null - and the `words` the page says of them (`personWords`). LW13: `company`
- * the company a traveller walks with ('' none), and the page's COMPANIES - each one any of the known walk with, its
- * town and the known of it.
  * @param {{ entries: () => { id: string, seen: number }[], regard: (id: string, day: number) => number, turns: () => any }} rel
- * @param {number} day @param {(mapId: number) => any} townOf
+ * @param {number} day
+ * @param {(mapId: number) => any} townOf
  * @returns {{ friends: any[], enemies: any[], known: any[], companies: { name: string, town: string, members: string[] }[] }}
  */
 export function peoplePage(rel, day, townOf) {
-  /** @type {Map<number, any[]>} the travellers' rosters, by town (the census's own, made once a page) */
+  /** @type {Map<number, any[]>} */
   const rosters = new Map();
   const companyOf = (/** @type {any} */ res, /** @type {any} */ town) => {
     if (res.roll !== 't' || !town) return '';
@@ -56,7 +38,7 @@ export function peoplePage(rel, day, townOf) {
     return c ? namedIn(c, town.name ?? '').name : '';
   };
   const t = rel.turns?.() ?? {};
-  /** @type {Map<string, 'slain'|'died'>} the hand deaths, by `place|name` */
+  /** @type {Map<string, 'slain'|'died'>} */
   const fates = new Map();
   for (const kind of /** @type {const} */ (['died', 'slain'])) {
     for (const [key, h] of t[kind] ?? []) if (h?.who) fates.set(`${key.slice(0, key.lastIndexOf('@'))}|${h.who}`, kind);
@@ -75,7 +57,6 @@ export function peoplePage(rel, day, townOf) {
   const friends = rows.filter((p) => p.standing === 'friend').sort((a, b) => b.regard - a.regard || a.days - b.days);
   const enemies = rows.filter((p) => p.standing === 'enemy' || p.standing === 'hostile').sort((a, b) => a.regard - b.regard || a.days - b.days);
   const known = rows.filter((p) => p.standing === 'neutral').sort((a, b) => a.days - b.days || (a.name < b.name ? -1 : 1));
-  // LW13: the companies the known walk with, each its town and its known members (by name, in the page's order)
   /** @type {Map<string, { name: string, town: string, members: string[] }>} */
   const companies = new Map();
   for (const p of [...friends, ...enemies, ...known]) {
@@ -87,7 +68,6 @@ export function peoplePage(rel, day, townOf) {
   return { friends: friends.slice(0, PEOPLE_MAX), enemies: enemies.slice(0, PEOPLE_MAX), known: known.slice(0, PEOPLE_MAX), companies: [...companies.values()] };
 }
 
-/** What the page says of one: their fate, else what their standing means to the player, and when they were last seen. */
 export function personWords(p) {
   if (p.fate === 'slain') return 'Slain by your hand.';
   if (p.fate === 'died') return 'Fell fighting at your side.';
@@ -97,25 +77,17 @@ export function personWords(p) {
   return `${said} ${seen}`;
 }
 
-/** PLAIN-UI (bible/10-UI/Plain-Words.md; a player: "Where's the UI for relationship in the talk window?"): each standing's
- *  name on the talk panel's badge. */
-export const STANDING_NAMES = Object.freeze({ friend: 'Friend', neutral: 'Known', enemy: 'Enemy', hostile: 'Hostile' });   // the Chronicle's People page's words
-/**
- * PLAIN-UI: THE TALK PANEL'S REGARD BADGE for a resident spoken with - `card` the town's answer (`{ regard, standing }`,
- * livingTown.js regardCard), null for one the living world does not hold (no badge). `label` the standing's name,
- * `value` the regard signed ("+45"), `share` where it stands from -100 to +100 (0 to 1, the bar), and `words` what it
- * is and what moves it. Pure.
- * @param {{ regard: number, standing: string } | null} card
- */
+export const STANDING_NAMES = Object.freeze({ friend: 'Friend', neutral: 'Known', enemy: 'Enemy', hostile: 'Hostile' });
+/** @param {{ regard: number, standing: string } | null} card */
 export function regardBadge(card) {
   if (!card || !Number.isFinite(card.regard)) return null;
-  // AUDIT PLAIN-UI W6: toward nought, as the standing reads it - a regard of 39.5 (a half day's easing) read "Known +40"
-  // beside "A friend from +40", and Courtship stayed hidden (marriage.js reads the regard unrounded)
+  // Truncates toward zero so the shown value never reaches a standing threshold the unrounded regard has not;
+  // marriage.js reads the unrounded regard.
   const r = Math.trunc(card.regard) || 0;
   const standing = /** @type {keyof typeof STANDING_NAMES} */ (Object.hasOwn(STANDING_NAMES, card.standing) ? card.standing : regardStanding(r));
   return {
     standing, label: STANDING_NAMES[standing], value: `${r > 0 ? '+' : ''}${r}`, share: (r + REGARD_MAX) / (2 * REGARD_MAX),
     words: `How they regard you: ${r > 0 ? '+' : ''}${r}, from -${REGARD_MAX} to +${REGARD_MAX}. A friend from +${FRIEND_AT}; an enemy from ${ENEMY_AT}, who will not speak to you; hostile from ${HOSTILE_AT}. `
-      + 'Talking once a day, speaking in a tone they like and fighting at their side raise it; with Project Legacy, so do the deeds Tell me about offers a townsperson you could court - a compliment, a gift, and a hug once you are friends - each once a day. A tone they dislike, a crime they see, a blow, and worst of all killing one of their own lower it. Townsfolk prefer Blunt to Polite. It fades back toward 0 by half a point for each of your days apart - time away from the game does not count. A townsperson who is your friend - not one of the watch, a traveller or your own blood - can be courted: ask about Courtship under Tell me about.',   // TONE-TASTE; COURT-DEEDS (systems/legacy/courtDeeds.js): the deeds named, as offered (AUDIT FB1026d B4: never promised to the watch, a traveller or kin; II B4: nor without the house that offers them - legacyHost.js topicRows); FIELD BUGS 2026-10-21d REGARD-OWN: the fade in the character's own days, and where a courtship begins (AUDIT FB1021d RO-7: as marriage.js courtable reads it)
+      + 'Talking once a day, speaking in a tone they like and fighting at their side raise it; with Project Legacy, so do the deeds Tell me about offers a townsperson you could court - a compliment, a gift, and a hug once you are friends - each once a day. A tone they dislike, a crime they see, a blow, and worst of all killing one of their own lower it. Townsfolk prefer Blunt to Polite. It fades back toward 0 by half a point for each of your days apart - time away from the game does not count. A townsperson who is your friend - not one of the watch, a traveller or your own blood - can be courted: ask about Courtship under Tell me about.',
   };
 }

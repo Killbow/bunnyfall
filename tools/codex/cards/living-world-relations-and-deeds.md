@@ -33,6 +33,7 @@ invariants:
 traps:
   - "`characterRelations` (`regardClock.js`) measures elapsed days on the character's personal clock; passing the shared online sky clock causes offline time gaps to decay regard erroneously."
   - "`LivingWorld` is a save vendor key (`LIVING_WORLD_VENDOR`), not a SQLite table; the relations system defines no D1 tables or HTTP routes."
+  - "`deedNews` finds deeds by turn-key prefix (`L<mapId>.` for deaths, `O<region>.` for routed bands, `R<region>.` for held parties), so the writers of those turns must keep these prefixes."
 tags:
   - relations
   - regard

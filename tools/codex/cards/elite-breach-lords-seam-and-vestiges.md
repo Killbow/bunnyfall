@@ -14,6 +14,7 @@ files:
   - src/net/eliteGates/egLegion.js
   - src/net/eliteGates/egBrain.js
   - src/systems/eliteGates/egLordFall.js
+  - src/systems/eliteGates/spireVestiges.js
 replacesBible:
   - "11-Multiplayer/Elite-Gates.md"
 related:
@@ -26,6 +27,9 @@ invariants:
   - "Lord health equals `egTtkRef(c)` times reference DPS, scaling from `EG_TTK_S` (180 s) by `EG_TTK_GROWTH` (1.07) per circle through circle 20 and `EG_TTK_GROWTH_DEEP` (1.03) thereafter, while fury starts at `EG_FURY_RATIO` (1.5) times `ttkRef`."
   - "Damage multipliers cap at `EG_BUCKET_X_MAX` (1.25 client), `EG_RELAY_X_MAX` (1.6), and `EG_BUCKET_ALL_MAX` (1.6); enemy share caps at `EG_SHARE_X_MAX` (1.5), and Vestige damage reduction caps at `EG_DR_MAX` (0.3)."
   - "The fair trail (`src/net/eliteGates/egFair.js`) drops poses lagging over `EG_TS_LAG_MAX_MS` (300 ms), and the union floor (`egUnionHolds`) withholds any blow that would leave zero safe floor cells."
+  - "Shieldweaver raises the soak only for a Shield the holder cast on itself (`bundleSelfCast`); a Shield cast by an ally gets no bonus."
+  - "Second Wind heals once per hall (`_wind` keyed `b:h`), only when a hurt crosses `EG_SECOND_WIND_UNDER` of maximum health, and never on a hurt a death save turned aside (`saved`); Rallying Cry clears `_wind` when the hall's door opens, so a spent Second Wind returns."
+  - "Spellweave counts damage spells per breach (`_woven` resets when `_held.b` changes), and every `EG_WEAVE_N`th one costs nothing through `registerSpellFreeCast`."
 traps:
   - "Enemy blows commit `EG_TELL_LEAD_MS` (400 ms) before wind-up, and feints cut at `EG_FEINT_AT` (0.55)."
   - "Downed members can be raised within `EG_DOWN_MS` (60 s) and `EG_REZ_REACH_M` (10 m) at `EG_REZ_PCT` (0.3) via `egLayDown` and `egRezMember`."

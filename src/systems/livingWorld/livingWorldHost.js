@@ -1,7 +1,3 @@
-// Living world in the open world: the town index, roads and trips, and the lives and troubles on
-// them. It also holds the outlaws' hideouts, dungeon divers and their remains, port crews, the
-// caravan door, and the patrons' sales. It builds the street, road, room, and card table talk, and
-// records deeds against residents.
 import { amGroupRollOwner, rollGroupComposition } from '../../characters/campEncounters.js';
 import { areEnemiesNearby, chooseRandomEnemy } from '../../characters/encounters.js';
 import { BAND_KEEP_M, bandChest, createHideoutBook, createHideouts } from './hideouts.js';
@@ -316,7 +312,12 @@ export function createLivingWorldHost(shared) {
     const won = shared.livingRelations.turns().won;
     return { told, whole: _livingToldKept.get(k) === told, news: newsOf(told, t).map((n) => ({ ...n, foe: n.band ?? (n.foe != null ? livingFoeWord(n.foe, 2) : ''), helped: won.has(n.enc) })) };
   };
-  /** @param {any} town @param {number} day @param {any} o @param {boolean} relay */
+  /**
+   * @param {any} town
+   * @param {number} day
+   * @param {any} o
+   * @param {boolean} relay
+   */
   function* livingVisitsGen(town, day, o, relay) {
     /** @type {any[] & { partial?: boolean }} */
     const out = [];

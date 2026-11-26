@@ -42,6 +42,7 @@ invariants:
   - "A company roster freezes at open and caps at `PARTY_MAX` (8 in `src/net/wire.js`) and `EG_PARTY_MAX` (`src/net/eliteGates/egLaw.js`), which are pinned equal."
   - "Relay rooms use `eg:<16hex>` (`EG_ROOM`), and the hub caps concurrent live breaches at `EG_LIVE_MAX` (64 in `src/net/eliteGates/egDurable.js`)."
   - "The relay signs `e1` receipts (`src/net/eliteGates/egReceipt.js`, `EG_RECEIPT_TTL_S` 7 days) that the account service settles via `/v1/eg/claim`."
+  - "The client `requestId` (24 lowercase base-36 characters) must match `EG_RQ_RE` in `server-account/src/eg.js`, which refuses any other request id with `rq`."
 traps:
   - "Player-facing names (Elite Breach, the Spire, and Weir Key) differ from the internal `eg*` code prefix and `eg:` room prefix."
   - "Compatibility checks gate on `EG_RELAY_MIN`, `EG_BRAIN_V`, and `EG_BRAIN_MIN` in `src/net/wire.js`, never on a hardcoded relay version string."
