@@ -352,7 +352,7 @@ protocol.registerSchemesAsPrivileged([{
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.gif': 'image/gif', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.wasm': 'application/wasm',
 };
 const fileResponse = (p, mime) => net.fetch(pathToFileURL(p).toString(), { bypassCustomProtocolHandlers: true })
@@ -372,13 +372,20 @@ const MENU_PAD = app.isPackaged ? path.join(LAUNCHER_DIR, 'menuPad.js') : path.j
 // (src/assets/branding/bunnyfall.png, BR5) - packed beside the launcher's page as the pad module is and read from
 // the source tree unpacked, so the launcher can never draw a logo the game does not.
 const LAUNCHER_LOGO = app.isPackaged ? path.join(LAUNCHER_DIR, 'bunnyfall.png') : path.join(__dirname, '..', 'src', 'assets', 'branding', 'bunnyfall.png');
+// The launcher's decorations (the rabbit, the PLAY badge, the game's own trinkets) are the SITE's too: one folder,
+// public/art/bunnyfall-decor, packed beside the page as launcher/art and read from the source tree unpacked.
+const LAUNCHER_ART = app.isPackaged ? path.join(LAUNCHER_DIR, 'art') : path.join(__dirname, '..', 'public', 'art', 'bunnyfall-decor');
 async function serveLauncherFile(parts) {
+  const art = parts.length === 2 && parts[0] === 'art';
   const p = parts.length === 1 && parts[0] === 'menuPad.js'
     ? MENU_PAD
     : parts.length === 1 && parts[0] === 'bunnyfall.png'
       ? LAUNCHER_LOGO
-      : path.normalize(path.join(LAUNCHER_DIR, parts.length ? parts.join('/') : 'index.html'));
-  if (p !== MENU_PAD && p !== LAUNCHER_LOGO && !p.startsWith(LAUNCHER_DIR + path.sep)) return new Response('forbidden', { status: 403 });
+      : art
+        ? path.normalize(path.join(LAUNCHER_ART, parts[1]))
+        : path.normalize(path.join(LAUNCHER_DIR, parts.length ? parts.join('/') : 'index.html'));
+  if (art ? !p.startsWith(LAUNCHER_ART + path.sep)
+    : p !== MENU_PAD && p !== LAUNCHER_LOGO && !p.startsWith(LAUNCHER_DIR + path.sep)) return new Response('forbidden', { status: 403 });
   try {
     const body = await fs.promises.readFile(p);
     return new Response(body, { headers: { 'Content-Type': MIME[path.extname(p).toLowerCase()] ?? 'application/octet-stream' } });
@@ -1472,7 +1479,7 @@ function openLauncherWindow() {
     maximizable: false,
     fullscreenable: false,
     show: false,
-    backgroundColor: '#0a0c11',
+    backgroundColor: '#c8aa6c',
     title: 'Bunnyfall',
     webPreferences: {
       preload: path.join(__dirname, 'launcherPreload.cjs'),
