@@ -2,6 +2,7 @@
 import { duelRecordOf, claimDuel, gateRecordOf, claimGate } from '../accounts.js';
 import { mintRenownOrder, ID_RE } from '../../../src/net/identityToken.js';
 import { signingKey, gatePublicKey } from '../signing.js';
+import { claimMineHaul } from '../mineHaul.js';   // BUNNYFALL (2026-11-26, caverns)
 import { seaWreck, seaPrizeCollect, seaPrizeReclaim } from '../seaWreck.js';
 import { claimIliac, iliacBoardOf } from '../iliac.js';
 import { claimGambit, gambitBoardOf } from '../gambit.js';
@@ -311,6 +312,15 @@ export async function playRoutes({ request, env, subtle, nowS, origin, path, db,
       const order = key ? await mintRenownOrder({ s: who.player.id, lv: r.renown.level }, key, { subtle, nowS }) : null;   // a rise said in the rooms now
       return json({ ...r, order }, 200, origin);
     }
+    return json(r, 200, origin);
+  }
+
+  if (path === '/v1/mine/haul' && request.method === 'POST') {
+    // BUNNYFALL (2026-11-26, caverns): A DRILL'S HAUL - the relay signed what a drill's setter took from its hopper
+    // (src/net/mine/mineReceipt.js); mineHaul.js verifies it with the gate's key, keeps it once and pays its ore into the
+    // character's Stores. A refusal says its rung: the page keeps a receipt the service may mend and lets go of the rest.
+    const r = await claimMineHaul(ctx, who.player, env, body, await gatePublicKey(env, subtle));
+    if (r.error) return json({ error: r.error, ...(r.why ? { why: r.why } : {}) }, r.error === 'no-gate-key' ? 503 : r.error === 'not-yours' ? 403 : 400, origin);
     return json(r, 200, origin);
   }
 

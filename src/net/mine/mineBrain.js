@@ -12,6 +12,7 @@
 // The state is plain data the relay keeps in its room's storage; stepMine never changes the state it is handed.
 // Imports only pure laws (ruling R2): no clock, no network.
 import { mineLayout } from './mineLayout.js';
+import { MINE_DRILL, drillHopper, drillRunning, drillSecondsBetween } from './mineDrill.js';
 
 /** A pick strike's cost to its section, and how much each unshored weak wall of its chamber multiplies it. */
 export const MINE_COST = Object.freeze({ strike: 0.6, weakMult: 1.5 });
@@ -37,7 +38,7 @@ export const MINE_STRAY = Object.freeze({ chance: 0.3, pair: 0.35 });
 /**
  * @typedef {{ mine: number, reset: number, born: number, sealedUntil: number, stab: number[], cap: number[],
  *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }>,
- *   alarm?: number[], waves?: number, ticked?: number }} MineState
+ *   alarm?: number[], waves?: number, ticked?: number, drills?: import('./mineDrill.js').MineDrillState[], hauls?: number }} MineState
  */
 
 /**
@@ -52,11 +53,31 @@ export function createMineState(layout, nowS) {
     stab: layout.sections.map(() => 100), cap: layout.sections.map(() => 100), warned: layout.sections.map(() => 0),
     weak: layout.sections.map((s) => s.chambers.map((c) => c.walls.map((w, k) => (w.weak ? k : -1)).filter((k) => k >= 0))),
     walls: layout.sections.map((s) => s.chambers.map((c) => c.walls.length)),   // each chamber's wall slots, so a prop is checked without the layout
-    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS,
+    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS, drills: [], hauls: 0,
   };
 }
 
-const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0 });
+const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0, drills: (st.drills ?? []).map((d) => ({ ...d })), hauls: st.hauls ?? 0 });
+
+/** A mine's holes (its layout's, by its reset), kept a mine at a time: the drill reads a hole's ore and seam. */
+const _holes = new Map();
+function holesOf(/** @type {MineState} */ st) {
+  const key = `${st.mine}:${st.reset}`;
+  let h = _holes.get(key);
+  if (!h) { h = mineLayout(st.mine, st.reset).sections.map((s) => s.chambers.map((c) => c.holes)); _holes.clear(); _holes.set(key, h); }
+  return h;
+}
+
+/** Noise in section s (from chamber c): its alarm raised, and a wave called each time it fills. */
+function noise(/** @type {MineState} */ st, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ amount, /** @type {string[]} */ out) {
+  const alarm = /** @type {number[]} */ (st.alarm);
+  alarm[s] += amount;
+  while (alarm[s] >= MINE_ALARM.wave) {
+    alarm[s] -= MINE_ALARM.wave;
+    st.waves = (st.waves ?? 0) + 1;
+    out.push(`wave:${s}:${c}:${Math.min(MINE_ALARM.most, MINE_ALARM.first + Math.floor((st.waves - 1) / 2))}`);
+  }
+}
 const valid = (/** @type {any} */ st, /** @type {any} */ s, /** @type {any} */ c) => Number.isSafeInteger(s) && Number.isSafeInteger(c) && s >= 0 && s < st.stab.length && c >= 0 && c < st.weak[s].length;
 const propped = (/** @type {MineState} */ st, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ w) => st.props.some((p) => p.s === s && p.c === c && p.w === w);
 
@@ -81,7 +102,7 @@ const turnedOver = (/** @type {MineState} */ st, /** @type {number} */ nowS) => 
  * @param {MineState} state
  * @param {any} op
  * @param {number} nowS
- * @returns {{ state: MineState, events: string[], error?: string }}
+ * @returns {{ state: MineState, events: string[], error?: string, haul?: { s: number, c: number, k: number, ore: string, n: number, by: string, seq: number } }}
  */
 export function stepMine(state, op, nowS) {
   const none = (/** @type {string} */ error) => ({ state, events: [], error });
@@ -91,6 +112,21 @@ export function stepMine(state, op, nowS) {
     const st = copy(state), mins = Math.max(0, nowS - (state.ticked ?? nowS)) / 60, events = [];
     st.ticked = nowS;
     st.alarm = /** @type {number[]} */ (st.alarm).map((a) => Math.max(0, a - MINE_ALARM.forgetPerMin * mins));
+    // THE DRILLS: each shift second since the last tick roars in its section and wears it
+    const from = state.ticked ?? nowS, worn = new Set();
+    for (const d of /** @type {any[]} */ (st.drills)) {
+      const secs = drillSecondsBetween(d, from, nowS);
+      if (secs <= 0) continue;
+      noise(st, d.s, d.c, MINE_DRILL.noisePerS * secs, events);
+      st.stab[d.s] = Math.max(0, st.stab[d.s] - MINE_DRILL.wearPerS * secs);
+      worn.add(d.s);
+    }
+    for (const s of worn) {
+      const w = warningsOf(st.warned[s], st.stab[s]);
+      st.warned[s] = w.at;
+      events.push(...w.events);
+      if (st.stab[s] <= 0) { st.sealedUntil = nowS + MINE_SEAL_S; return { state: st, events: [...events.filter((e) => !e.startsWith('wave:')), 'collapse'] }; }
+    }
     if (op.present && Number(op.roll) < MINE_STRAY.chance) {
       const slots = st.walls.flatMap((cs, s) => cs.map((_, c) => [s, c]));
       const [s, c] = slots[Math.min(slots.length - 1, Math.floor(Math.max(0, Number(op.pick) || 0) * slots.length))];
@@ -98,22 +134,16 @@ export function stepMine(state, op, nowS) {
     }
     return { state: st, events };
   }
-  if (op?.op !== 'strike' && op?.op !== 'prop') return none('bad');
+  if (op?.op !== 'strike' && op?.op !== 'prop' && op?.op !== 'drill' && op?.op !== 'take') return none('bad');
   if (state.sealedUntil > 0) return none('sealed');
   const { s, c } = op;
   if (!valid(state, s, c)) return none('bad');
+  if (op.op === 'drill' || op.op === 'take') return drillOp(state, op, nowS, none);
   const st = copy(state), waveEvents = [];
   if (op.op === 'strike') {
     const open = st.weak[s][c].filter((w) => !propped(st, s, c, w)).length;
     st.stab[s] = Math.max(0, st.stab[s] - MINE_COST.strike * MINE_COST.weakMult ** open);
-    // the noise: a wave called each time a section's alarm fills, bigger as the mine calls more
-    const alarm = /** @type {number[]} */ (st.alarm);
-    alarm[s] += MINE_ALARM.strike;
-    if (alarm[s] >= MINE_ALARM.wave) {
-      alarm[s] -= MINE_ALARM.wave;
-      st.waves = (st.waves ?? 0) + 1;
-      waveEvents.push(`wave:${s}:${c}:${Math.min(MINE_ALARM.most, MINE_ALARM.first + Math.floor((st.waves - 1) / 2))}`);
-    }
+    noise(st, s, c, MINE_ALARM.strike, waveEvents);   // a wave called each time a section's alarm fills, bigger as the mine calls more
   } else {
     const strength = MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (op.wood)];
     if (typeof op.wood !== 'string' || !strength) return none('wood');
@@ -132,4 +162,38 @@ export function stepMine(state, op, nowS) {
   if (st.stab[s] <= 0) { st.sealedUntil = nowS + MINE_SEAL_S; events.push('collapse'); }
   else events.push(...waveEvents);   // a mine coming down calls nothing more
   return { state: st, events };
+}
+
+/**
+ * A drill set on hole k of chamber c of section s (`drill`), or its hopper emptied (`take`) - by `by`, the player.
+ * A set drill starts its shift at once; one a player, one a hole (a spent, empty one is cleared for the next). A take is
+ * the setter's alone and answers `haul`: what the relay signs for the account service to pay.
+ * @param {MineState} state
+ * @param {any} op
+ * @param {number} nowS
+ * @param {(e: string) => any} none
+ */
+function drillOp(state, op, nowS, none) {
+  const { s, c } = op, by = String(op.by ?? '').slice(0, 64);
+  const hole = holesOf(state)[s]?.[c]?.[op.k];
+  if (!Number.isSafeInteger(op.k) || !hole || !by) return none('bad');
+  const st = copy(state), drills = /** @type {import('./mineDrill.js').MineDrillState[]} */ (st.drills);
+  const live = (/** @type {any} */ d) => drillRunning(d, nowS) || drillHopper(d, nowS) > 0;
+  st.drills = drills.filter((d) => live(d));   // spent and empty: gone
+  const here = /** @type {any[]} */ (st.drills).find((d) => d.s === s && d.c === c && d.k === op.k);
+  if (op.op === 'drill') {
+    if (here) return none('taken');
+    if (/** @type {any[]} */ (st.drills).some((d) => d.by === by)) return none('one-each');
+    if (/** @type {any[]} */ (st.drills).length >= MINE_DRILL.most) return none('full');
+    /** @type {any[]} */ (st.drills).push({ s, c, k: op.k, by, from: nowS, until: nowS + MINE_DRILL.shiftS, took: 0, rich: Math.max(1, Math.min(3, hole.rich | 0)) });
+    return { state: st, events: [`drill:${s}:${c}:${op.k}`] };
+  }
+  if (!here) return none('no-drill');
+  if (here.by !== by) return none('not-yours');
+  const n = drillHopper(here, nowS);
+  if (n <= 0) return none('empty');
+  here.took += n;
+  st.hauls = (st.hauls ?? 0) + 1;
+  if (!drillRunning(here, nowS)) st.drills = /** @type {any[]} */ (st.drills).filter((d) => d !== here);
+  return { state: st, events: [], haul: { s, c, k: op.k, ore: hole.ore, n, by, seq: st.hauls } };
 }

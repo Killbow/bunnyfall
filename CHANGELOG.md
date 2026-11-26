@@ -6,6 +6,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-26
 
 - Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
+- Added: The mine drill. Press a Minable Ore to set your drill on it: it runs for three minutes, filling its hopper far faster than a pick, but its roar brings waves much sooner and wears the rock. Press it again to haul the hopper into your Stores. Only you can empty your drill, and a collapse buries it. Use Info on the ore to examine it as before.
 - Added: Mines fight back. Mining makes noise, and enough of it draws waves of cave creatures into the chamber, bigger each time; the odd stray wanders in too. Rats, bats and spiders near the top, scorpions, orcs and spriggans further down, skeletons and the dead at the bottom.
 - Changed: Tree stands now grow in groves, so a woodcutter finds several trees together instead of one at a time.
 

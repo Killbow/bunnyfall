@@ -1712,7 +1712,10 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
 // world278: CAVERNS (2026-11-25, BUNNYFALL) - one frame, `mn` (net/mine/mineWire.js validMineIn, validMineOut), in a mine's own
 // dungeon room alone: the relay's part (server/src/world/mine.js) keeps the mine's brain (net/mine/mineBrain.js) in the room's
 // storage and fans its state; a page enters a mine only once its relay says MINE_RELAY_MIN.
-export const RELAY_VERSION = 'world278';
+// world279: CAVERNS' DRILL (2026-11-26, BUNNYFALL) - `mn`'s `drill` and `take` words (a drill set on a hole, its hopper
+// taken), the state's `drills`, and `rc` (a haul's signed receipt, net/mine/mineReceipt.js); a page sends them past it alone
+// (net/mine/mineWire.js relaySupportsDrill).
+export const RELAY_VERSION = 'world279';
 // world277: the pose carries `bl` - the last arrow loosed was a Royal Ballista's bolt, which peers draw on its arc
 // world276: the pose carries Meteor and Wall of Earth (`mt`, `ew`)
 // world275: BUNNYFALL copy pass (staff help and herald words); world274: the relay strips its /relay path prefix

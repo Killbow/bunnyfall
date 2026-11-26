@@ -6,6 +6,7 @@
 import { tokenGate } from '../../../src/net/wire.js';
 import { validMineIn, mineRoomOf, MINE_HZ } from '../../../src/net/mine/mineWire.js';
 import { createMineState, stepMine } from '../../../src/net/mine/mineBrain.js';
+import { mintMineReceipt } from '../../../src/net/mine/mineReceipt.js';
 import { mineLayout } from '../../../src/net/mine/mineLayout.js';
 
 /** The room storage key the mine is kept under. */
@@ -51,11 +52,22 @@ export class MinePart {
       if (!st) { this._junk(ws); return; }
       st = await this._mnTicked(st, nowS);
       if (w.k === 'hi') { this._send(ws, JSON.stringify({ t: 'mn', k: 'st', st })); await this._mnArm(now); return; }
-      const op = w.k === 'strike' ? { op: 'strike', s: w.s, c: w.c } : { op: 'prop', s: w.s, c: w.c, w: w.w, wood: w.wood, by: String(a.sub ?? a.id) };
+      const drilling = w.k === 'drill' || w.k === 'take';
+      if (drilling && !a.sub) { this._send(ws, JSON.stringify({ t: 'mn', k: 'no', e: 'guest' })); return; }   // a drill's ore is an account's: no account, no drill
+      const op = w.k === 'strike' ? { op: 'strike', s: w.s, c: w.c }
+        : drilling ? { op: w.k, s: w.s, c: w.c, k: w.h, by: String(a.sub) }
+          : { op: 'prop', s: w.s, c: w.c, w: w.w, wood: w.wood, by: String(a.sub ?? a.id) };
       const r = stepMine(st, op, nowS);
       if (r.error) { this._send(ws, JSON.stringify({ t: 'mn', k: 'no', e: r.error })); return; }
       await this._mnSave(r.state);
       this._mnFan(r.state, r.events);
+      // A HAUL TAKEN: signed for its taker alone (src/net/mine/mineReceipt.js), carried by their page to the account service
+      if (r.haul) {
+        try {
+          const rc = await mintMineReceipt({ ...r.haul, mine: r.state.mine, reset: r.state.reset }, await this._receiptKeyOf(), { subtle: crypto.subtle, nowS });
+          this._send(ws, JSON.stringify({ t: 'mn', k: 'rc', r: rc }));
+        } catch (e) { console.warn('[mine] haul receipt refused', e?.message ?? e); }
+      }
       await this._mnArm(now);
     } catch (e) { console.warn('[mine] word failed', e?.message ?? e); }
   }

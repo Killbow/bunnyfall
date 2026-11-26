@@ -1,5 +1,5 @@
 // @ts-check
-import { validMineIn, validMineOut, mineRoomOf, relaySupportsMine } from './mine/mineWire.js';   // BUNNYFALL (2026-11-25, caverns): the `mn` frame
+import { validMineIn, validMineOut, mineRoomOf, relaySupportsMine, relaySupportsDrill } from './mine/mineWire.js';   // BUNNYFALL (2026-11-25, caverns): the `mn` frame
 import { dmColourOf } from './dmLaw.js';   // BUNNYFALL /dm: the Dungeon Master's colours
 import { encodeTune, validTune } from './bardTune.js';   // BARDS' COLLEGE
 /** BARDS' COLLEGE: the least gap between my tunes, ms (the relay keeps the same). */
@@ -877,6 +877,7 @@ export class OnlineSession {
     this.onSd = null;             // SD3: (word, room) => void - the hub's word of the Super dungeon (its record), projected by the wire's validSdOut
     this.onSdHall = null;         // SD6b: (word, room) => void - the realm's word of its Orrery (the stones, the fray, the dial, the Concord), from my own realm alone
     this.mnOk = false;            // BUNNYFALL (2026-11-25, caverns): the relay keeps mines (relaySupportsMine) - an older one closes the socket on `mn`
+    this.drillOk = false;         // BUNNYFALL (2026-11-26, caverns): and drills (relaySupportsDrill)
     this.onMine = null;           // BUNNYFALL (2026-11-25, caverns): (word, room) => void - the mine I stand in's word (validMineOut)
     this.ktOk = false;            // KETCH: the relay that welcomed this socket keeps a crew's ship (relaySupportsKetch) - an older one CLOSES the socket on `kt`
     this.onKetch = null;          // KETCH: (word, room) => void - my ship's word (net/wire.js validKetchOut), from the ship I stand on alone
@@ -3628,7 +3629,7 @@ export class OnlineSession {
       if (primary) this.starOk = relaySupportsStar(relayV);   // STAR3: the cell keeps a fallen star - an older relay closes the socket on `star`
       else { const h = this._halo.get(room); if (h) h.starOk = relaySupportsStar(relayV); }
       if (primary) this.egOk = relaySupportsEg(relayV);   // EG-PLAY: a relay that opens Elite Breaches - an older one closes the socket on `eg`
-      if (primary) this.mnOk = relaySupportsMine(relayV);   // BUNNYFALL (2026-11-25, caverns)
+      if (primary) { this.mnOk = relaySupportsMine(relayV); this.drillOk = relaySupportsDrill(relayV); }   // BUNNYFALL (2026-11-25, caverns); the drill (2026-11-26)
       if (primary) this.ktOk = relaySupportsKetch(relayV);   // KETCH: a relay that keeps a crew's ship - an older one closes the socket on `kt`
       if (primary) this.egLandOk = relaySupportsEgLand(relayV);   // FIELD BUGS 2026-10-20f LANDED-WORD: a relay that says what my blows on a breach's bodies land
       if (primary) this.sdOk = relaySupportsSd(relayV);   // SD3: the cell hears a Hollow found - an older relay closes the socket on `sd`

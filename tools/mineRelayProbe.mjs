@@ -5,6 +5,7 @@
 //
 //   1. both say `hi` and hear the same fresh mine
 //   2. A shores a wall; B hears the prop, and B shoring the same wall is refused `taken`
+//   2b. A sets a drill (B sees it, cannot empty it), empties it; the signed haul is paid once into A's Stores, never B's
 //   3. both strike one section; the dust, creak and rumble come in order, to both, and the noise calls the same waves
 //   4. the section gives: both hear the collapse, the mine reads sealed for an hour, and a strike after it is refused
 //   5. a newcomer saying `hi` hears the seal (the client puts them out at once)
@@ -16,11 +17,13 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { standServices, stopAll, makeBot, setUp, localWebSocket, relayTally, poseAt } from './loadHarness.mjs';
+import { standServices, stopAll, makeBot, setUp, localWebSocket, relayTally, poseAt, LOAD_SERVICE } from './loadHarness.mjs';
 import { OnlineSession } from '../src/net/online.js';
 import { mineRoomKey } from '../src/net/mine/mineSites.js';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
 import { MINE_SEAL_S } from '../src/net/mine/mineBrain.js';
+import { MINE_DRILL } from '../src/net/mine/mineDrill.js';
+import { readMineReceipt } from '../src/net/mine/mineReceipt.js';
 
 const PX = 616, PY = 398;
 const PORT = Number(process.env.PORT ?? 8870);
@@ -34,7 +37,7 @@ const state = mkdtempSync(join(tmpdir(), 'mine-probe-'));
 try {
   const svc = await standServices({ port: PORT }, state);
   const ctx = { svc, runTag: Date.now().toString(36).slice(-5), account: { byRoute: new Map(), at: [] } };
-  const o = { cells: 1, edge: 0, registered: 0, fighters: 0, movers: 0, gatherers: 0 };
+  const o = { cells: 1, edge: 0, registered: 1, fighters: 0, movers: 0, gatherers: 0 };   // registered: a drill's ore is an account's
   const WS = localWebSocket({ port: svc.relayPort, tally: relayTally() });
   const room = mineRoomKey(PX, PY);
   const layout = mineLayout(PY * 1000 + PX, 0);
@@ -66,6 +69,26 @@ try {
   check(!!propped, `B hears A's oak prop on wall ${w} (section 0's cap ${propped?.st.cap[0]})`);
   B.s.sendMine('prop', { s: 0, c: 0, w, wood: 'pine' });
   check(!!(await until(() => B.heard.find((x) => x.k === 'no' && x.e === 'taken'))), 'B shoring the same wall is refused: taken');
+
+  // 2b. THE DRILL: A sets one, waits out two pieces, empties it; the signed receipt is paid once into A's Stores
+  const hole = (() => { for (const [s, sec] of layout.sections.entries()) for (const [c, ch] of sec.chambers.entries()) if (ch.holes.length) return { s, c, h: 0, ore: ch.holes[0].ore }; return null; })();
+  A.heard.length = 0; B.heard.length = 0;
+  A.s.sendMine('drill', { s: hole.s, c: hole.c, h: hole.h });
+  check(!!(await until(() => B.heard.find((x) => x.k === 'st' && x.st.drills?.some((d) => d.s === hole.s && d.c === hole.c && d.k === hole.h)))), `B sees A's drill on the ${hole.ore} seam`);
+  B.s.sendMine('take', { s: hole.s, c: hole.c, h: hole.h });
+  check(!!(await until(() => B.heard.find((x) => x.k === 'no' && x.e === 'not-yours'))), "B emptying A's hopper is refused: not-yours");
+  await sleep(MINE_DRILL.perOreS * 2000 + 1500);
+  A.s.sendMine('take', { s: hole.s, c: hole.c, h: hole.h });
+  const rc = await until(() => A.heard.find((x) => x.k === 'rc'), 10000);
+  const claims = readMineReceipt(rc?.r);
+  check(!!claims?.signed && claims.n >= 2 && claims.o === hole.ore, `A's haul is signed: ${claims?.n} ${claims?.o}`);
+  const pay = (body) => A.bot.fetch(`${LOAD_SERVICE}/v1/mine/haul`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${A.bot.account.secret}` }, body: JSON.stringify(body) }).then(async (r) => ({ status: r.status, body: await r.json() }));
+  const first = await pay({ receipt: rc?.r, character: A.bot.realm.id });
+  check(first.status === 200 && first.body.paid === claims?.n, `the account service pays it into the Stores: ${JSON.stringify(first.body)}`);
+  const again = await pay({ receipt: rc?.r, character: A.bot.realm.id });
+  check(again.status === 200 && again.body.paid === 0 && again.body.why === 'claimed', `carried twice, it pays nothing: ${JSON.stringify(again.body)}`);
+  const stolen = await B.bot.fetch(`${LOAD_SERVICE}/v1/mine/haul`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${B.bot.account.secret}` }, body: JSON.stringify({ receipt: rc?.r, character: B.bot.realm.id }) });
+  check(stolen.status === 403, `B carrying A's receipt is refused (${stolen.status})`);
 
   // 3 and 4. strikes from both, warnings in order, the collapse
   A.heard.length = 0; B.heard.length = 0;
@@ -103,7 +126,9 @@ try {
   console.error(e); failed++;
 } finally {
   stopAll();
-  try { rmSync(state, { recursive: true, force: true }); } catch { /* workerd may hold a file a moment */ }
+  // workerd lets go of its files a moment after it stops (Windows holds them): wait, and retry, so no state is left behind
+  await sleep(1500);
+  try { rmSync(state, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }); } catch (e) { console.warn(`left ${state}: ${e?.message ?? e}`); }
 }
 console.log(failed ? `${failed} FAILED` : 'all passed');
 process.exit(failed ? 1 : 0);

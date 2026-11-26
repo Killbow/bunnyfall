@@ -398,10 +398,13 @@ export async function standServices(o, state) {
   console.log('== a throwaway signing pair (never written into the repository)');
   const { stdout } = await run(process.execPath, [join(ROOT, 'tools/mintIdentityKeys.mjs'), '--pipe']);
   const [priv, pub] = stdout.split('\n');
+  // BUNNYFALL (2026-11-26): and the GATE pair - the relay signs made levels' receipts with its private half (a gate's, the
+  // arena's, a mine's haul) and the account service checks them with the public: without it they went out unsigned
+  const gate = (await run(process.execPath, [join(ROOT, 'tools/mintIdentityKeys.mjs'), '--pipe'])).stdout.split('\n');
   const acctEnv = join(state, 'account.env');
-  writeFileSync(acctEnv, `IDENTITY_PRIVATE_KEY=${priv}\nIDENTITY_PUBLIC_KEY=${pub}\n`, { mode: 0o600 });
+  writeFileSync(acctEnv, `IDENTITY_PRIVATE_KEY=${priv}\nIDENTITY_PUBLIC_KEY=${pub}\nGATE_PUBLIC_KEY=${gate[1]}\n`, { mode: 0o600 });
   const relayEnv = join(state, 'relay.env');
-  writeFileSync(relayEnv, `IDENTITY_PUBLIC_KEY=${pub}\n`, { mode: 0o600 });
+  writeFileSync(relayEnv, `IDENTITY_PUBLIC_KEY=${pub}\nGATE_SIGNING_KEY=${gate[0]}\n`, { mode: 0o600 });
 
   console.log('== the account database: every migration, through wrangler\'s ledger');
   const [mb, ma] = wrangler(['d1', 'migrations', 'apply', 'daggerfall-accounts', '--local', '--persist-to', state]);

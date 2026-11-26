@@ -710,6 +710,7 @@ export const ROUTES = new Set([
   // ARENA4: the arena (arena.js) - a bout's receipt the relay signed, carried here by an account it names; the boards,
   // counted from the rows; a banner joined or quit. Every one behind a session; a guest reads the boards and keeps nothing.
   '/v1/arena/claim', '/v1/arena/board', '/v1/arena/team',
+  '/v1/mine/haul',   // BUNNYFALL (2026-11-26, caverns): a drill's signed haul, paid into the Stores (mineHaul.js)
   // AUDIT ARENA-LADDER: a ladder attempt's ticket (arena.js arenaAttempt), behind a session
   '/v1/arena/attempt',
 ]);

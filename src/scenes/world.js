@@ -233,7 +233,7 @@ import { EG_LAST_WORD_MIN } from '../net/eliteGates/egLaw.js';   // EG-F: a ques
 import { createEgFight } from '../systems/eliteGates/egFight.js';   // EG-PLAY: a hall's fight
 import { registerSpirePotionLaw, registerSpireFooting, registerSpireWake, registerSpireObjs, registerSpireAct } from '../systems/eliteGates/spireKit.js';   // EG-FULL: THE POTION LAW (two restoring potions a hall); Iron Footing on the spans
 import { accountEg } from '../net/accountClient.js';   // EG-PLAY: the Weir Keys, the open, the admission, the claims
-import { accountKetch } from '../net/accountClient.js';   // KETCH: the Ketchmaster's hold - a Tonal Warden's receipt carried to the service
+import { accountKetch, accountMine } from '../net/accountClient.js';   // KETCH: the Ketchmaster's hold - a Tonal Warden's receipt carried to the service
 import { createKetchClient } from '../systems/ketch/ketchClient.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen - the sky over Daggerfall, the anchor-lift, the ship aboard, the hold
 import { createMineMouths, mineHeardReset, mineSealLeft, MOUTH_TEXT } from '../systems/mine/mineMouths.js';
 import { loadMineArt } from '../world/mine/mineArt.js';   // BUNNYFALL (2026-11-26, caverns): the owner's entrance model   // BUNNYFALL (2026-11-25, caverns): mine mouths in the wilds
@@ -12841,9 +12841,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   /** BUNNYFALL (2026-11-25, caverns): the doors a mine on this page reads (systems/mine/mineHost.js): its room's word out, the
    *  Stores' planks counted and one spent (withdrawn, nothing minted), and every window closed at its collapse. */
+  const _mineAccount = accountMine({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() });   // BUNNYFALL (2026-11-26, caverns): a drill's haul paid
   const mineDoors = {
     send: (k, f) => online?.sendMine?.(k, f) === true, planks: (m) => profBook?.storesHeld?.(m) ?? 0, closeWindows: () => closeWindowsForLoad(),
     spend: async (m) => { try { return (await profBook?.withdraw?.(m, 1, () => {}))?.ok === true; } catch { return false; } },
+    // the drill (2026-11-26): a relay that keeps drills, my account (a drill and its hopper are its), a haul carried and the Stores read again
+    drillOk: () => online?.drillOk === true, me: () => _mineAccount.me(),
+    claim: async (r) => { const a = await _mineAccount.claim(r, characterIdOf(playerEntity)); if (a?.ok) void profBook?.refresh?.({ force: true }); return a; },
   };
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */
   const _egLightList = [], NO_EG_LIGHTS = Object.freeze([]);

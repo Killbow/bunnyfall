@@ -12,6 +12,7 @@
 // Every effect is a door handed in, so the whole of it runs in a test.
 import { t } from '../../ui/textManager.js';
 import { MINE_WOOD_STRENGTH } from '../../net/mine/mineBrain.js';
+import { drillReading } from '../../net/mine/mineDrill.js';
 
 /** The shakes the warnings give, and the collapse's: how hard, and how long it lasts (s). */
 export const MINE_SHAKE = Object.freeze({ 'warn:dust': 0.02, 'warn:creak': 0.05, 'warn:rumble': 0.1, collapse: 0.3 });
@@ -34,6 +35,22 @@ export const MINE_CLIENT_TEXT = Object.freeze({
   collapsed: () => t('mine.collapsed', 'The mine came down behind you. It reopens in about an hour.'),
   sealed: () => t('mine.sealedInside', 'The mine is sealed.'),
   wave: () => t('mine.wave', 'Something stirs in the dark. The noise has drawn them.'),
+  setDrill: () => t('mine.setDrill', 'Set your drill here'),
+  drillSet: (/** @type {string} */ ore) => t('mine.drillSet', 'Your drill bites into the {ore} seam and roars. It will draw attention.', { ore }),
+  myDrill: (/** @type {number} */ n, /** @type {number} */ left) => (left > 0
+    ? t('mine.myDrill', 'Your drill: {n} in the hopper, {m}:{s} left', { n, m: Math.floor(left / 60), s: String(left % 60).padStart(2, '0') })
+    : t('mine.myDrillDone', 'Your drill has stopped: {n} in the hopper', { n })),
+  theirDrill: () => t('mine.theirDrill', "Someone else's drill"),
+  hauled: (/** @type {number} */ n, /** @type {string} */ ore) => t('mine.hauled', 'You haul {n} {ore} into your Stores.', { n, ore }),
+  haulFailed: () => t('mine.haulFailed', 'The haul could not be banked. Try again in a moment.'),
+  refused: (/** @type {string} */ e) => ({
+    'one-each': t('mine.oneEach', 'You already have a drill running in this mine.'),
+    taken: t('mine.drillTaken', 'A drill already stands on this seam.'),
+    'not-yours': t('mine.notYours', "That drill and its hopper are someone else's."),
+    empty: t('mine.hopperEmpty', 'The hopper is empty. Give the drill time.'),
+    guest: t('mine.drillGuest', 'Only a registered account can run a drill.'),
+    full: t('mine.drillsFull', 'There is no room for another drill in this mine.'),
+  })[e] ?? null,
 });
 
 const WARN_WORDS = Object.freeze({ 'warn:dust': MINE_CLIENT_TEXT.dust, 'warn:creak': MINE_CLIENT_TEXT.creak, 'warn:rumble': MINE_CLIENT_TEXT.rumble });
@@ -49,7 +66,9 @@ const WOODS = Object.freeze(Object.keys(MINE_WOOD_STRENGTH).sort((a, b) => MINE_
  *   shake: (k: number) => void, fade: (on: boolean) => void, closeWindows: () => void, leave: () => void,
  *   woodName?: (wood: string) => string, nowMs?: () => number,
  *   foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null,
+ *   drillOk?: (() => boolean) | null, me?: (() => (string|null)) | null, claim?: ((receipt: string) => Promise<any>) | null,
  * }} deps
+ *   `drillOk` the relay keeps drills, `me` this page's account, `claim` a haul's receipt carried to the account service
  *   `foes` a wave's or a stray's creatures stood (systems/mine/mineFoes.js; the room's host alone stands them)
  */
 export function createMineClient(deps) {
@@ -66,6 +85,19 @@ export function createMineClient(deps) {
   /** The strongest plank the Stores hold, or null. */
   const bestPlank = () => WOODS.map((w) => `plank:${w}`).find((k) => deps.planks(k) > 0) ?? null;
 
+  let lastAsk = '';
+  const nowS = () => Math.floor(Date.now() / 1000);
+  /** The drill on hole k of chamber c of section s, as the room last said it, or null. */
+  const drillAt = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => st?.drills?.find((/** @type {any} */ d) => d.s === s && d.c === c && d.k === k) ?? null;
+  async function haul(/** @type {string} */ r) {
+    try {
+      const a = await deps.claim?.(r);
+      const paid = a?.data?.paid ?? 0;
+      if (a?.ok && paid > 0) deps.say(MINE_CLIENT_TEXT.hauled(paid, oreName(a.data.ore)));
+      else if (!a?.ok) deps.say(MINE_CLIENT_TEXT.haulFailed());
+    } catch { deps.say(MINE_CLIENT_TEXT.haulFailed()); }
+  }
+
   function collapse() {
     if (fall !== null) return;
     fall = nowMs();
@@ -75,7 +107,8 @@ export function createMineClient(deps) {
   return {
     /** The mine as its room says it (`k: 'st'`), or an act refused (`k: 'no'`). */
     heard(/** @type {any} */ m) {
-      if (m?.k === 'no') { if (m.e === 'taken') deps.say(MINE_CLIENT_TEXT.taken()); else if (m.e === 'sealed') deps.say(MINE_CLIENT_TEXT.sealed()); return; }
+      if (m?.k === 'rc' && typeof m.r === 'string') { void haul(m.r); return; }
+      if (m?.k === 'no') { const said = m.e === 'sealed' ? MINE_CLIENT_TEXT.sealed() : lastAsk === 'prop' && m.e === 'taken' ? MINE_CLIENT_TEXT.taken() : MINE_CLIENT_TEXT.refused(m.e); if (said) deps.say(said); return; }
       if (m?.k !== 'st' || !m.st) return;
       st = m.st;
       for (const e of m.ev ?? []) {
@@ -101,7 +134,11 @@ export function createMineClient(deps) {
     name(/** @type {string} */ key) {
       const p = parseKey(key);
       if (!p) return null;
-      if (p.kind === 'hole') { const h = chamber(p.s, p.c)?.holes[p.k]; return { title: t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: oreName(h.ore) } : {}) }; }   // the owner: "turn hole in the rock into Minable Ore"
+      if (p.kind === 'hole') {
+        const h = chamber(p.s, p.c)?.holes[p.k], d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
+        const drill = !deps.drillOk?.() ? null : !d ? MINE_CLIENT_TEXT.setDrill() : d.by === me ? (() => { const r = drillReading(d, nowS()); return MINE_CLIENT_TEXT.myDrill(r.n, r.left); })() : MINE_CLIENT_TEXT.theirDrill();
+        return { title: t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: drill ? `${oreName(h.ore)} - ${drill}` : oreName(h.ore) } : {}) };
+      }   // the owner: "turn hole in the rock into Minable Ore"
       const w = chamber(p.s, p.c)?.walls[p.k];
       if (!w) return null;
       if (propped(p.s, p.c, p.k)) return { title: MINE_CLIENT_TEXT.shored() };
@@ -109,7 +146,7 @@ export function createMineClient(deps) {
       return { title: w.weak ? MINE_CLIENT_TEXT.weak() : MINE_CLIENT_TEXT.sound(), ...(plank ? { sub: MINE_CLIENT_TEXT.shore(woodName(woodOf(plank))) } : {}) };
     },
     /** A press on a hole (examined) or a wall slot (shored). */
-    async press(/** @type {string} */ key) {
+    async press(/** @type {string} */ key, mode = 'grab') {
       const p = parseKey(key);
       if (!p || fall !== null) return false;
       const ch = chamber(p.s, p.c);
@@ -117,7 +154,12 @@ export function createMineClient(deps) {
       if (p.kind === 'hole') {
         const h = ch.holes[p.k];
         if (!h) return false;
-        deps.say(MINE_CLIENT_TEXT.hole(oreName(h.ore), h.rich, st?.stab?.[p.s] ?? 100));
+        // Info, or a relay before drills: the hole examined. Otherwise the drill - set mine here, or empty mine
+        if (mode === 'info' || !deps.drillOk?.()) { deps.say(MINE_CLIENT_TEXT.hole(oreName(h.ore), h.rich, st?.stab?.[p.s] ?? 100)); return true; }
+        const d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
+        if (d && d.by !== me) { deps.say(MINE_CLIENT_TEXT.refused('not-yours') ?? ''); return true; }
+        lastAsk = d ? 'take' : 'drill';
+        if (deps.send(lastAsk, { s: p.s, c: p.c, h: p.k }) && !d) deps.say(MINE_CLIENT_TEXT.drillSet(oreName(h.ore)));
         return true;
       }
       if (!ch.walls[p.k] || shoring) return false;
@@ -127,6 +169,7 @@ export function createMineClient(deps) {
       shoring = true;
       try {
         if (!(await deps.spend(plank))) return true;
+        lastAsk = 'prop';
         if (deps.send('prop', { s: p.s, c: p.c, w: p.k, wood: woodOf(plank) })) deps.say(MINE_CLIENT_TEXT.shoredWith(woodName(woodOf(plank))));
       } finally { shoring = false; }
       return true;

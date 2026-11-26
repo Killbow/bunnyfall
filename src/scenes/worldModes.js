@@ -10471,7 +10471,7 @@ export function createWorldModes(host) {
     }
     if (key.startsWith('sdrift:') || key.startsWith('sdreturn:') || key.startsWith('sdstone:') || key.startsWith('sdplaque:')) { dungeonCtx.sdPress?.(key); return true; }
     if (key.startsWith('kt:')) { host.ketch?.()?.press?.(key); return true; }
-    if (key.startsWith('mine:')) { mineHost.press(key); return true; }   // BUNNYFALL (2026-11-25, caverns): a mine's hole or wall   // KETCH: a crew's ship's - a cell, a socket, a resonator, the bosun's line, a way down, the chest
+    if (key.startsWith('mine:')) { mineHost.press(key, getInteractionMode()); return true; }   // BUNNYFALL (2026-11-25, caverns): a mine's hole or wall   // KETCH: a crew's ship's - a cell, a socket, a resonator, the bosun's line, a way down, the chest
     if (key.startsWith('egstone:') || key.startsWith('egengine:')) { dungeonCtx.egPress?.(key); return true; }   // EG-FULL LAYER THREE: an Elite Breach's Orrery stone, a chamber's engine   // SD4b: a Super dungeon's Rift and Return (Super-Dungeons.md section 6) - the context's own
     if (key.startsWith('questflat:')) {
       // DQ1: buildingKey is 0 down here - StaticNPC reads it from the
