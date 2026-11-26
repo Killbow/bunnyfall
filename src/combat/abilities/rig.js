@@ -27,6 +27,7 @@ import { bodyRadius } from '../technique/techniqueBlow.js';
 import { AUTOAIM, advanceReach, autoaimFoe, camToward, huntableFoes, lockedLanding, lockedReach, sideHop, sideOf,
   yawToward } from './autoaim.js';
 import { meleeBeatMult, shotMult } from './damage.js';
+import { withBuffDuration } from './buffDuration.js';
 import { playAbilitySfx } from '../../audio/abilitySfx.js';
 import { offsetWayfarerLantern } from './wayfarerLantern.js';
 
@@ -42,7 +43,7 @@ function cue(recipe, moment, door, place) {
 }
 
 function deliveryFor(id, ctx) {
-  const profile = milestoneDelivery(id) ?? combinationDelivery(id, ctx?.weapon) ?? racialDelivery(id);
+  const profile = withBuffDuration(abilityById(id), milestoneDelivery(id) ?? combinationDelivery(id, ctx?.weapon) ?? racialDelivery(id));
   if (!profile) return null;
   const spend = profile.spend * FATIGUE_MULTIPLIER;
   const swings = profile.kind === 'self' ? 0 : (profile.beats ?? 1);
@@ -288,7 +289,7 @@ function release(cast, ctx) {
   };
   if (delivery.kind === 'self') {
     if (delivery.accuracy) setRacialAccuracy(ctx.entity, delivery.accuracy);
-    if (delivery.edgeRitual) beginEdgeRitual(ctx.entity, crouching);
+    if (delivery.edgeRitual) beginEdgeRitual(ctx.entity, crouching, delivery.edgeRitualSeconds);
     applyEffect();
     const feet = ctx.tc.cam?.feet;
     if (feet) cue(delivery.fx === 'rally' ? 'rally' : 'markTarget', 'hit', ctx.tc.door, { at: [...feet], ground: feet[1] });
