@@ -121,3 +121,23 @@ test('a partly worked deposit survives a stopped drill and breaks after its rema
   assert.ok(finalHaul.haul.n > 0);
   assert.equal(stepMine(finalHaul.state, { op: 'drill', ...spot }, NOW + 180).error, 'depleted');
 });
+
+test('a hole’s examine text names the ore a drill will make, and a drill runs to exactly that', async () => {
+  const { MINE_CLIENT_TEXT } = await import('../src/systems/mine/mineClient.js');
+  const { mineOreLeft } = await import('../src/net/mine/mineDrill.js');
+  const { s, c, k, h } = hole, key = mineOreKey(s, c, k);
+  const total = mineOreLeft({}, key, h.rich);
+  assert.equal(total, (MINE_DRILL.shiftS / MINE_DRILL.perOreS) * Math.max(1, Math.min(3, h.rich)));
+  assert.match(MINE_CLIENT_TEXT.hole('Iron', h.rich, 155, 160, total), new RegExp(`${total} ore`));
+  assert.match(MINE_CLIENT_TEXT.hole('Iron', h.rich, 155, 160, total), /155 of 160/);   // shored rock holds past 100
+  // set the drill, empty the hopper whenever it nears its brim, and the hauls add to the number the text showed
+  let st = stepMine(createMineState(L, NOW), { op: 'drill', s, c, k, by: ME }, NOW).state, got = 0, t = NOW;
+  for (let i = 0; i < 200; i++) {
+    t += 20;
+    st = stepMine(st, { op: 'tick', here: [ME] }, t).state;
+    const r = stepMine(st, { op: 'take', s, c, k, by: ME }, t);
+    if (r.haul) { got += r.haul.n; st = r.state; }
+  }
+  assert.equal(got, total);
+  assert.equal(mineOreLeft(st.oreWork, key, h.rich), 0);
+});

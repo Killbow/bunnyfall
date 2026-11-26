@@ -11,7 +11,11 @@ export const MINE_ORE_RUNS = MINE_DRILL.shiftS / MINE_DRILL.perOreS;
 export const mineOreKey = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => `${s}:${c}:${k}`;
 export const oreRunsLeft = (/** @type {Record<string, number> | undefined} */ work, /** @type {string} */ key) => MINE_ORE_RUNS - (work?.[key] ?? 0);
 
-export const drillRuns = (/** @type {MineDrillState} */ d, /** @type {number} */ nowS) =>
+/** The ore a deposit still holds for drills: its runs left times its seam's richness (1 to 3). A hole's text names this number. */
+export const mineOreLeft = (/** @type {Record<string, number> | undefined} */ work, /** @type {string} */ key, /** @type {number} */ rich) =>
+  Math.max(0, oreRunsLeft(work, key)) * Math.max(1, Math.min(3, rich | 0));
+
+export const drillRuns =(/** @type {MineDrillState} */ d, /** @type {number} */ nowS) =>
   Math.floor(Math.max(0, Math.min(nowS, d.until) - d.from) / MINE_DRILL.perOreS);
 
 /** Whether a drill runs at `nowS`. */

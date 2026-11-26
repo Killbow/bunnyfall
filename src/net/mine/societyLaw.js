@@ -2,11 +2,12 @@
 // The client and account service share the contract and shop rules.
 // Only gathered ore counts toward contracts, including veins outside mines and drill hauls.
 
-import { METALS, ORES } from '../professionLaw.js';
+import { METALS, ORES, TIER_VALUES } from '../professionLaw.js';
 
-export const SOCIETY_ORE_PACK = 100;
+/** One pack is about what a drilled deposit gives (15 to 45 ore), and pays the ore's market value (TIER_VALUES). */
+export const SOCIETY_ORE_PACK = 25;
 export const SOCIETY_ORE_PRICES = Object.freeze(Object.fromEntries(
-  [...METALS.filter((ore) => ore.key !== 'metal:brass'), ...ORES].map((ore) => [ore.key, ore.tier]),
+  [...METALS.filter((ore) => ore.key !== 'metal:brass'), ...ORES].map((ore) => [ore.key, TIER_VALUES[ore.tier - 1]]),
 ));
 
 /** The contracts by ore: how much is asked, and the Seals it pays. */
