@@ -19,6 +19,8 @@ the last release (scripts/changelogNotes.mjs).
 - Added: Mines fight back. Mining makes noise, and enough of it draws waves of cave creatures into the chamber, bigger each time; the odd stray wanders in too. Rats, bats and spiders near the top, scorpions, orcs and spriggans further down, skeletons and the dead at the bottom.
 - Changed: Tree stands now grow in groves, so a woodcutter finds several trees together instead of one at a time.
 - Changed: Online account, market, customs, and housing messages use plainer words.
+- Changed: A new Vampirism tutorial page explains where the Court is (the tavern door in a clan's seat city, after dark), what raises a region's heat and earns strikes, what starts a Blood Hunt, and how to pay the tithe and do penance. The feeding page now says that fighting feeds you, and that a killing blow in Steal mode sends the person to your Haven as a prisoner.
+- Fixed: Anthotis vampires got no Vitae from landing blows, because beast blood feeds them nothing. A blow's mouthful now feeds them like anyone else.
 
 ## 2026-11-25
 
