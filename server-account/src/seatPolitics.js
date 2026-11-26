@@ -1,26 +1,4 @@
 // @ts-check
-// ═════════════════════════════════════════════════════════════════════
-// CROWN2 (2026-10-01, Mac: "Finish the seats"; "Continue"; "Hurry up") -
-// CROWN POLITICS: fealty and Pacts (bible/11-Multiplayer/Seats-Arc.md
-// 7.8). The law is townSeatLaw.js's (fealtyKingdom, FEALTY, pactUntil,
-// pledgeBarred); what the Turning makes of them is seatTurning.js's.
-//
-//   FEALTY   a guild holding a palace of a crown's kingdom (or a March it
-//            claims) and the crown's holder - offered by either side's
-//            Guildmaster or Officer, sworn when the other side's accepts;
-//            broken by either side, the break taking at the next Turning
-//            (the breaker's Standing -10 at every seat it holds).
-//   PACTS    any two guilds, for the rest of the Season - offered,
-//            signed; broken early by either side at once, and announced
-//            to the whole server in red (the seats' list carries it).
-//
-// Neither a liege and its vassal nor two Pact partners may pledge against
-// a seat the other holds (seatInfluence.js pledgeSeat asks pledgeBarred),
-// and neither may swear or sign while one is pledged against the other's
-// seat this week.
-//
-// EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
-// ═════════════════════════════════════════════════════════════════════
 import { accountKind, overRate } from './accounts.js';
 import { guildActorOf } from './guilds.js';
 import { seatsOpenFor } from './townSeats.js';
@@ -31,7 +9,6 @@ import {
 const weekAt = (nowS) => seatWeekOf(nowS * 1000);
 const pair = (x, y) => (x < y ? [x, y] : [y, x]);
 
-/** The acting Officer or Guildmaster's guild - `{ gid, me }` - or `{ error }`. */
 async function leverActor(db, player, env, character) {
   if (accountKind(player) !== 'linked') return { error: 'seats-need-account' };
   if (!seatsOpenFor(player, env)) return { error: 'seats-closed' };
@@ -40,15 +17,12 @@ async function leverActor(db, player, env, character) {
   if (!SEAT_LEVER_RANKS.includes(Number(a.me.rank))) return { error: 'guild-rank' };
   return { gid: a.me.guild_id, me: a.me };
 }
-/** A guild by its tag (case as written), or null. */
 const guildByTag = async (db, tag) => (typeof tag === 'string' && tag.length > 0 && tag.length <= 8
   ? (await db.prepare('SELECT id, name, tag FROM guilds WHERE tag = ?').bind(tag).first()) ?? null : null);
-/** A guild's Charters, `[{ key, tier, region }]`. */
 async function chartersOf(db, gid) {
   const { results = [] } = await db.prepare('SELECT key, tier, region FROM town_seat_holds WHERE guild_id = ?').bind(gid).all();
   return results.map((h) => ({ key: Number(h.key), tier: h.tier, region: Number(h.region) }));
 }
-/** Whether either guild is pledged this week at a seat the other holds. */
 async function pledgedAgainst(db, week, x, y) {
   return !!(await db.prepare(`SELECT 1 FROM town_seat_pledges p JOIN town_seat_holds h ON h.key = p.key
     WHERE p.week = ?1 AND ((p.guild_id = ?2 AND h.guild_id = ?3) OR (p.guild_id = ?3 AND h.guild_id = ?2)) LIMIT 1`).bind(week, x, y).first());
@@ -58,12 +32,7 @@ const names = async (db, ids) => {
   return new Map(results.map((g) => [g.id, { name: g.name, tag: g.tag }]));
 };
 
-/**
- * OFFER FEALTY (7.8) - `as` 'vassal' (this guild swears to the guild tagged `tag`) or 'liege' (this guild takes the
- * guild tagged `tag` as its vassal); the pair must fit (fealtyKingdom) and neither be pledged against the other's seat.
- * An offer stands until it is accepted, withdrawn, or another replaces it.
- * @param {{db: any, nowS: number}} ctx
- */
+/** @param {{db: any, nowS: number}} ctx */
 export async function offerFealty({ db, nowS }, player, env, { character, tag, as } = {}) {
   const a = await leverActor(db, player, env, character);
   if ('error' in a) return a;
@@ -80,11 +49,7 @@ export async function offerFealty({ db, nowS }, player, env, { character, tag, a
   return r?.meta?.changes ? { ok: true } : { error: 'fealty-sworn' };
 }
 
-/**
- * ACCEPT FEALTY - the other side's offer standing with the guild tagged `tag`: sworn from this week, still fitting, and
- * neither pledged against the other's seat. The Chronicle says so at the liege's crown and the vassal's seats.
- * @param {{db: any, nowS: number}} ctx
- */
+/** @param {{db: any, nowS: number}} ctx */
 export async function acceptFealty({ db, nowS }, player, env, { character, tag } = {}) {
   const a = await leverActor(db, player, env, character);
   if ('error' in a) return a;
@@ -101,20 +66,14 @@ export async function acceptFealty({ db, nowS }, player, env, { character, tag }
   const keys = [...liegeHolds.filter((h) => h.tier === 'crown'), ...vassalHolds].map((h) => h.key);
   const r = await db.batch([
     db.prepare("UPDATE guild_fealty SET state = 'sworn', since_week = ?2, at = ?3 WHERE vassal = ?1 AND state = 'offered'").bind(row.vassal, week, nowS),
-    // each row only after the one before it wrote (changes() is the last statement's): none where another accept won
+    // changes() reports the previous statement, so each history row lands only after the one before it wrote.
     ...keys.map((k) => db.prepare("INSERT INTO town_seat_history (key, week, kind, data, at) SELECT ?1, ?2, 'fealty-sworn', ?3, ?4 WHERE changes() > 0")
       .bind(k, week, JSON.stringify({ vassal: n.get(row.vassal), liege: n.get(row.liege) }), nowS)),
   ]);
   return r?.[0]?.meta?.changes ? { ok: true } : { error: 'fealty-none' };
 }
 
-/**
- * BREAK FEALTY (7.8: "Either side may break fealty at a Turning") - this guild's sworn fealty, as liege of the guild
- * tagged `tag` or vassal of whoever: marked breaking now, ended at the next Turning, the breaker's Standing -10 there.
- * Withdraws an offer of this guild's too - and (AUDIT-SEATS, the Seat tab's Decline) declines the offer the guild tagged
- * `tag` made to this one, at no cost.
- * @param {{db: any, nowS: number}} ctx
- */
+/** @param {{db: any, nowS: number}} ctx */
 export async function breakFealty({ db, nowS }, player, env, { character, tag = null } = {}) {
   const a = await leverActor(db, player, env, character);
   if ('error' in a) return a;
@@ -133,11 +92,7 @@ export async function breakFealty({ db, nowS }, player, env, { character, tag = 
   return r?.meta?.changes ? { ok: true, breaking: true } : { error: 'fealty-none' };
 }
 
-/**
- * OFFER A PACT (7.8) to the guild tagged `tag`, for the rest of the Season - or ACCEPT its standing offer (the same
- * call from the other side signs it). Neither may be pledged against a seat the other holds this week.
- * @param {{db: any, nowS: number}} ctx
- */
+/** @param {{db: any, nowS: number}} ctx */
 export async function offerPact({ db, nowS }, player, env, { character, tag } = {}) {
   const a = await leverActor(db, player, env, character);
   if ('error' in a) return a;
@@ -147,7 +102,7 @@ export async function offerPact({ db, nowS }, player, env, { character, tag } = 
   if (other.id === a.gid) return { error: 'pact-self' };
   const week = weekAt(nowS);
   if (await pledgedAgainst(db, week, a.gid, other.id)) return { error: 'pact-pledged' };
-  const until = pactUntil(week, seasonZeroOf(env?.SEASON_ZERO_WEEK));   // SEASON1: the Season's own end, once one is counted
+  const until = pactUntil(week, seasonZeroOf(env?.SEASON_ZERO_WEEK));
   const [x, y] = pair(a.gid, other.id);
   const was = await db.prepare('SELECT state, offered_by, until_week FROM guild_pacts WHERE a = ? AND b = ?').bind(x, y).first();
   if (was && was.state === 'signed' && Number(was.until_week) > week) return { error: 'pact-signed' };
@@ -161,11 +116,7 @@ export async function offerPact({ db, nowS }, player, env, { character, tag } = 
   return { ok: true, signed: false };
 }
 
-/**
- * BREAK A PACT with the guild tagged `tag` - allowed early, and announced to the whole server in red (7.8); an unsigned
- * offer is simply withdrawn.
- * @param {{db: any, nowS: number}} ctx
- */
+/** @param {{db: any, nowS: number}} ctx */
 export async function breakPact({ db, nowS }, player, env, { character, tag } = {}) {
   const a = await leverActor(db, player, env, character);
   if ('error' in a) return a;
@@ -174,8 +125,7 @@ export async function breakPact({ db, nowS }, player, env, { character, tag } = 
   const [x, y] = pair(a.gid, other.id);
   const was = await db.prepare('SELECT state, until_week FROM guild_pacts WHERE a = ? AND b = ?').bind(x, y).first();
   if (!was) return { error: 'pact-none' };
-  // AUDIT SEATS-3 A4: a guild's breaks rate-limited, the GUILD's key (not the player's - every lever of it shares the
-  // hour), so no guild re-signs and breaks its way to a server's red lines
+  // The rate key is the guild's, so every officer of a guild shares one hour of breaks.
   if (await overRate({ db, nowS }, `seat-pact-break:${a.gid}`, SEAT_EDICTS_HOUR, 3600)) return { error: 'seats-rate' };
   const signed = was.state === 'signed' && Number(was.until_week) > weekAt(nowS);
   const n = await names(db, [a.gid, other.id]);
@@ -186,7 +136,6 @@ export async function breakPact({ db, nowS }, player, env, { character, tag } = 
   return { ok: true, announced: signed };
 }
 
-/** A guild's crown politics as the Seat tab shows them - its liege, its vassals, its Pacts and the offers standing. */
 export async function politicsOf(db, gid, nowS) {
   const week = weekAt(nowS);
   const { results: f = [] } = await db.prepare(`SELECT f.vassal, f.liege, f.state, f.offered_by, v.tag AS vt, v.name AS vn, l.tag AS lt, l.name AS ln
@@ -199,7 +148,6 @@ export async function politicsOf(db, gid, nowS) {
   };
 }
 
-/** The bans a guild's pledges meet (pledgeBarred's): its liege, its vassals, its Pact partners now. */
 export async function bansOf(db, gid, week) {
   const { results: f = [] } = await db.prepare("SELECT vassal, liege FROM guild_fealty WHERE state IN ('sworn', 'breaking') AND (vassal = ?1 OR liege = ?1)").bind(gid).all();
   const { results: p = [] } = await db.prepare("SELECT a, b FROM guild_pacts WHERE state = 'signed' AND until_week > ?2 AND (a = ?1 OR b = ?1)").bind(gid, week).all();
@@ -210,14 +158,10 @@ export async function bansOf(db, gid, week) {
   };
 }
 
-/** AUDIT SEATS-3 A4: the most red lines the seats' list carries - the newest. */
 export const SEAT_RED_MAX = 20;
-/** The red announcements of the last day, oldest first (the seats' list carries them) - AUDIT SEATS-3 A4: the newest
- *  SEAT_RED_MAX of them, never a day's every row on every list. */
 export async function redOf(db, nowS) {
   return redFrom((await redRead(db, nowS).all()).results);
 }
-/** SEAT-BATCH (2026-10-16): redOf's statement and its answer apart, so the seats' list sends it in one batch. */
 export const redRead = (/** @type {any} */ db, /** @type {number} */ nowS) => db.prepare('SELECT seq, text, at FROM (SELECT seq, text, at FROM town_seat_red WHERE at > ? ORDER BY seq DESC LIMIT ?) ORDER BY seq')
   .bind(nowS - SEAT_RED_S, SEAT_RED_MAX);
 export const redFrom = (/** @type {any[]} */ results = []) => results.map((r) => ({ id: Number(r.seq), text: r.text, at: Number(r.at) }));
