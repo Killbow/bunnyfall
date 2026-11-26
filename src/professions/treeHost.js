@@ -25,6 +25,7 @@
 //   THE ACT. Foraging's checks with the Wood-Axe's lines; the machine is
 //   systems/chopAct.js; the Wood-Axe draws DFU's War Axe in the hand.
 // ═══════════════════════════════════════════════════════════════════
+import { t } from '../ui/textManager.js';   // BUNNYFALL (caverns): the timber grade's words
 import { trees, nodeKey, WOOD_TABLES } from '../net/nodeLaw.js';
 import { FELLED } from '../ai/cover.js';   // AUDIT TACT B1: a felled tree is no cover
 import { tierOpen, TIER_RANKS, woodAxeBand, chopsFor, storesFullIn, goneIn, fullWordsIn, GROUND_WHERE, GROUND_WHERE_WORDS } from '../net/professionLaw.js';
@@ -317,7 +318,12 @@ export function treeKind({ book, renderer = null, flatBatchAabb = null, getTextu
     },
     cleanNote: () => ' (every chop a Clean Cut)',
     /** QL11: a tree's logs the service answered (the host's one answer to a harvest: the act's own, or a kept one's). */
-    answered() { noteAct('wood-chopped'); },   // QL11: wood chopped
+    answered(/** @type {any} */ d, /** @type {(t: string) => void} */ say) {
+      noteAct('wood-chopped');   // QL11: wood chopped
+      // BUNNYFALL (2026-11-26, caverns): the felling's timber grade (net/timberLaw.js) - a prime one saws to a plank more, a knotty one to a plank less
+      if (d?.grade === 'prime') say?.(t('prof.timberPrime', 'Prime timber: these logs will saw to an extra plank each.'));
+      else if (d?.grade === 'knotty') say?.(t('prof.timberKnotty', 'Knotty timber: these logs will saw to one plank fewer each. Cleaner chops make better wood.'));
+    },
     title: () => 'Woodcutter',
   };
 }

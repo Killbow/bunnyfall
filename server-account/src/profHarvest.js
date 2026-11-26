@@ -6,6 +6,7 @@ import { gatherStrikeStatement, gatherStrikeRid, findLineStatements, findLineFro
 import { dice } from './unitRoll.js';
 import { readAll } from './service.js';
 import { utcDay, gatherFindOf } from '../../src/net/marksLaw.js';
+import { timberGrade } from '../../src/net/timberLaw.js';   // BUNNYFALL (2026-11-26, caverns): timber grades
 import { PROFESSIONS, rankOfXp, tierOpen, harvestXp, specsAt, STORES_MAX, WITHDRAW_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, HARVEST_LATE_S, HARVEST_EARLY_S, PROF_XP_MAX, basketStep, herbKey, COURT_WRITS_PER_DAY, glintsMax, DEEP_UNCONFIRMED_PER_DAY, cutsMax, hideOfFoe, HIGH_HIDES_PER_DAY, HIGH_HIDE_TIER, HAUL_YIELD, FISH_KEY, haulTier, herbXpTier, SCHOOL_HAULS_DAY } from '../../src/net/professionLaw.js';
 import { parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield, basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, WITNESS, VEIN_TABLES, vein, boulder, dungeonVein, dungeonOk, veinYield, boulderYield, VEIN_YIELD, BOULDER_YIELD, veinGem, veinSlots, treeSlots, WOOD_TABLES, tree, TREE_YIELD, treeYield, treeFinds, hideYield, bodyFinds, haulYield, haulFinds, haulAtSea } from '../../src/net/nodeLaw.js';
 import { mineVeinOf, MINE_VEINS_PER_DAY } from '../../src/net/mine/mineVeins.js';   // BUNNYFALL (2026-11-25, caverns)
@@ -369,6 +370,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
   const tide = !deep && !noGround && confirmed ? tideNow(env, nowS, region) : 'calm';
   const roll = (lo, hi) => lo + Math.floor(dice(rand) * (hi - lo + 1));
   let tier, key2, qty, clean, gem = null, extra = null, extraQty = 1, trophy = 0, schooled = 0;
+  let grade = 'sound';   // BUNNYFALL (2026-11-26, caverns): a felling's timber grade (timberLaw.js), its logs' all
   let xpTier = /** @type {number|null} */ (null);   // HERB-XP: the tier the XP is reckoned at, where it is not the node's
   if (isHaul) {
     // PROF8: THE NET - a haul's Raw Fish, worked at the rank's own tier (Mac: "XP follows your rank"); a full net x1.5
@@ -412,6 +414,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
     if (!tierOpen(rank, tier)) return { error: 'prof-rank' };
     const c = cutsOf(act, tier, specs[50] === 'lumberjack');
     clean = c.clean;
+    grade = timberGrade(c.cuts, cutsMax(tier, specs[50] === 'lumberjack'), c.clean);
     key2 = found.material;
     qty = treeYield({ roll: roll(TREE_YIELD[0], TREE_YIELD[1]), march, tideMult: tideYield(tide, 'tree') }, dice(rand));
     const finds = treeFinds({ cuts: c.cuts, confirmed, forester: specs[50] === 'forester' }, () => dice(rand));
@@ -534,6 +537,13 @@ export async function harvestNode(ctx, player, env, body = {}) {
     ...(kind === 'herbs' && clean === true ? [db.prepare(`INSERT INTO prof_unbruised (player, char_id, material, qty)
       SELECT player, char_id, material, qty FROM node_harvests WHERE ${mine}
       ON CONFLICT (player, char_id, material) DO UPDATE SET qty = MIN(?4, prof_unbruised.qty + excluded.qty)`).bind(player.id, rid, nonce, ROOM)] : []),
+    // BUNNYFALL (2026-11-26, caverns): TIMBER GRADES - a prime or a knotty felling's logs counted beside the Stores
+    // (prof_log_grades, migration 0223; timberLaw.js), the workbench's saw reading them. A carried felling keeps none: the saw
+    // reads the Stores' logs, and a carried log is sound when it gets there
+    ...(n.kind === 'tree' && grade !== 'sound' && !carry ? [db.prepare(`INSERT INTO prof_log_grades (player, char_id, material, prime, knotty)
+      SELECT player, char_id, material, ?4 * qty, ?5 * qty FROM node_harvests WHERE ${mine}
+      ON CONFLICT (player, char_id, material) DO UPDATE SET prime = prof_log_grades.prime + excluded.prime, knotty = prof_log_grades.knotty + excluded.knotty`)
+      .bind(player.id, rid, nonce, grade === 'prime' ? 1 : 0, grade === 'knotty' ? 1 : 0)] : []),
     // the gem beside it - the decision kept it only where its own material had room
     db.prepare(`INSERT INTO ${T} (player, char_id, material, origin, qty)
       SELECT player, char_id, gem, 'own', 1 FROM node_harvests WHERE ${mine} AND gem IS NOT NULL
@@ -563,7 +573,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
   ];
   const rows = await readAll(db, [...decided, ...answer.map(([, st]) => st)]);
   const made = rows[decided.length - 1][0] ?? null;
-  if (made?.n === nonce) return answerOf(made, readsBy(answer, rows, decided.length), nowS, levy > 0 ? { levy: { qty: levy, key: levyKey } } : {}, rank);
+  if (made?.n === nonce) return answerOf(made, readsBy(answer, rows, decided.length), nowS, { ...(levy > 0 ? { levy: { qty: levy, key: levyKey } } : {}), ...(n.kind === 'tree' && !carry ? { grade } : {}) }, rank);   // BUNNYFALL (caverns): a felling's timber grade said
   if (made) return harvestAnswer(db, player, env, made, nowS, { repeat: true });   // the same request, racing itself
   if (await db.prepare('SELECT 1 FROM node_harvests WHERE day = ?1 AND node = ?2 AND kind = ?3 AND player = ?4 AND char_id = ?5')
     .bind(day, node, kind, player.id, character).first()) return { error: 'node-taken' };
