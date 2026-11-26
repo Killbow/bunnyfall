@@ -38,7 +38,8 @@ export function setFarmSway(batch, on = true) {
   if (batch && on) { batch.sway = FARM_SWAY; batch.windfall = FARM_WINDFALL; }
   return batch;
 }
-const SOIL_TINT = [[1, 1, 1, 1], [.88, .84, .8, 1], [.74, .7, .66, 1]];
+const MARK_MAX = 9;   // the most beds one click works (FARM_TOOL_AREAS)
+const SOIL_TINT = [[1, 1, 1, 1], [.88, .84, .8, 1], [.74, .7, .66, 1], [.62, .58, .55, 1]];
 
 /** A stable 0..1 stream for a bed. */
 function bedRand(index) {
@@ -76,10 +77,11 @@ export function createFarmGardenArt(renderer, assets = {}) {
     })();
     try{await pending;}finally{pending=null;}
   }
-  function update(site,garden,now,selected){
+  function update(site,garden,now,selected,marked=[selected]){
     if(!ready)return;
-    const pos=selected>=0?site.beds[selected]:null;
-    if(pos&&!(markAt&&markAt[0]===pos[0]&&markAt[1]===pos[1]&&markAt[2]===pos[2])){markAt=[...pos];writeMark();}
+    // the highlight: every bed the tools will work (a 3x3 block with the best tools), not only the one aimed at
+    const spots=selected>=0?marked.map(i=>site.beds[i]).filter(Boolean):[];
+    if(spots.length&&!(markAt&&markAt.length===spots.length&&spots.every((p,n)=>p[0]===markAt[n][0]&&p[1]===markAt[n][1]&&p[2]===markAt[n][2]))){markAt=spots.map(p=>[...p]);writeMark();}
     const second=Math.floor(now);
     if(lastGarden===garden&&lastSite===site.beds&&lastSecond===second)return;
     lastGarden=garden;lastSecond=second;
@@ -128,9 +130,9 @@ export function createFarmGardenArt(renderer, assets = {}) {
     }
   }
   function writeMark(){
-    mark??=renderer.createDecalBatch(1);
-    const values=new Float32Array(DECAL_FLOATS);
-    writeDecalQuad(values,0,{pos:[markAt[0],markAt[1]+.045,markAt[2]],right:[1,0,0],up:[0,0,-1],size:FARM_BED_SIZE,tint:[1,.87,.38,.6],wet:0});
+    mark??=renderer.createDecalBatch(MARK_MAX);
+    const values=new Float32Array(MARK_MAX*DECAL_FLOATS);   // spare slots stay zero-sized and draw nothing
+    markAt.forEach((p,n)=>writeDecalQuad(values,n*DECAL_FLOATS,{pos:[p[0],p[1]+.045,p[2]],right:[1,0,0],up:[0,0,-1],size:FARM_BED_SIZE,tint:[1,.87,.38,.6],wet:0}));
     renderer.writeDecalSlot(mark,0,values);
   }
   const shift=(batch,values,delta)=>{for(let o=0;o<values.length;o+=DECAL_FLOATS_PER_VERTEX)for(let i=0;i<3;i++)values[o+i]+=delta[i];renderer.writeDecalSlot(batch,0,values);};
@@ -139,7 +141,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
     if(decals&&decalValues)shift(decals,decalValues,delta);
     if(channels&&channelValues)shift(channels,channelValues,delta);
     cropCenters.forEach((centers,n)=>{for(const c of centers)for(let i=0;i<3;i++)c[i]+=delta[i];renderer.moveBillboardBatch(crops[n],centers);});
-    if(markAt){for(let i=0;i<3;i++)markAt[i]+=delta[i];if(mark)writeMark();}
+    if(markAt){for(const p of markAt)for(let i=0;i<3;i++)p[i]+=delta[i];if(mark)writeMark();}
   }
   return{prepare,update,rebase,get ready(){return ready;},
     draw(right,up,selected=-1){if(decals)renderer.drawDecalPicture(decals,soil);if(channels)renderer.drawDecalPicture(channels,water);if(crops.length)renderer.drawBillboards(crops,right,up);if(mark&&selected>=0)renderer.drawDecalPicture(mark,soil);},
