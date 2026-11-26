@@ -1,4 +1,7 @@
 import { raceById, raceByKey } from '../../characters/races.js';
+import { RACIAL_BUFF_ROUNDS, ROUND_SECONDS } from './buffDuration.js';
+
+const racialSeconds = RACIAL_BUFF_ROUNDS * ROUND_SECONDS;
 
 export function racialKey(entity) {
   return raceByKey(entity?.race)?.key ?? raceById(entity?.raceId)?.key ?? null;
@@ -52,7 +55,7 @@ const pilots = new Map([
     description: 'Strike during an interruptible enemy wind-up to break its poise. Works with a melee weapon or empty hands.',
   })],
   ['racial.redguard.sword-song', { ...common, kind: 'self', accuracy: { bonus: 5, seconds: 9 }, fx: 'measure',
-    description: 'Enter a nine-second stance that improves weapon accuracy by 5 points.' }],
+    description: `Enter a ${racialSeconds}-second stance that improves weapon accuracy by 5 points.` }],
   ['racial.nord.frostborn-charge', melee({
     advance: launch(4.2, .73), rangeM: 4.2, targetCap: 3, potency: 1.05, control: { poiseShare: .85, shove: 1.3 }, fx: 'frostRush',
     description: 'Rush forward and disrupt up to three enemies in the path you travel.',
@@ -63,11 +66,11 @@ const pilots = new Map([
   })],
   ['racial.high-elf.perfect-focus', { ...common, kind: 'self', accuracy: { bonus: 7, seconds: 6 },
     selfEffect: { type: 26, subType: 255, rounds: 1 }, fx: 'verdict',
-    description: 'Gain 7 points of weapon accuracy for six seconds and a brief Free Action effect.' }],
+    description: `Gain 7 points of weapon accuracy and a Free Action effect for ${racialSeconds} seconds.` }],
   ['racial.wood-elf.forest-ambush', { ...common, kind: 'ranged', equipment: 'ranged', strike: 'StrikeDown', ammo: 1,
     rangeM: 39, projectileSpeed: 38, potency: .9, weakPointBonus: .55, fx: 'verdict', impactFx: 'markTarget',
     selfEffect: { type: 23, subType: 0, rounds: 1 },
-    description: 'Blend briefly into your surroundings and fire one arrow. A landed shot flashes a mark at the target.',
+    description: 'Blend into your surroundings and fire one arrow. A landed shot flashes a mark at the target.',
   }],
   ['racial.khajiit.predators-pounce', melee({
     advance: { ...launch(4.6, .45), mech: 'leap', apex: 1.6 }, rangeM: 3.4, potency: 1.5, beats: 2, fx: 'flurry',
@@ -80,15 +83,15 @@ const pilots = new Map([
   ['racial.argonian.marsh-coil', melee({
     advance: launch(2.8, .54), rangeM: 2.8, targetCap: 2, potency: .75, windUpMs: 170,
     control: { poiseShare: .7, shove: 1.2 }, selfEffect: { type: 30, subType: 255, rounds: 2 }, fx: 'frostRush',
-    description: 'Slip forward, shove up to two enemies, and gain a short Water Breathing effect.',
+    description: `Slip forward, shove up to two enemies, and gain a Water Breathing effect for ${racialSeconds} seconds.`,
   })],
   ['racial.imperial.commanders-call', { ...common, kind: 'self', accuracy: { bonus: 4, seconds: 7 }, fx: 'measure',
     selfEffect: { type: 9, subType: 6, rounds: 2, magnitude: 6, companionRange: 9 },
-    description: 'Gain 4 weapon accuracy for seven seconds and grant 6 Speed to yourself and nearby companions in sight for two magic rounds.' }],
+    description: `Gain 4 weapon accuracy and grant 6 Speed to yourself and nearby companions in sight for ${RACIAL_BUFF_ROUNDS} magic rounds.` }],
   ['racial.lilmothit.foxfire-feint', melee({
     advance: launch(3.1, .46), rangeM: 3.1, potency: .8, windUpMs: 155, fx: 'ashRush',
     selfEffect: { type: 53, subType: 255, rounds: 1, placed: true },
-    description: 'Leave a brief decoy and dash into a quick melee strike.',
+    description: 'Leave a decoy and dash into a quick melee strike.',
   })],
   ['racial.lungaris.harebound', melee({
     advance: { ...launch(6.6, .45), mech: 'leap', apex: 2.6 }, rangeM: 4.3, potency: 1.2, windUpMs: 175, fx: 'lunge',

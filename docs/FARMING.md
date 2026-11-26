@@ -115,10 +115,12 @@ Harvested-minus-delivered counters limit shipments to real manual harvests recor
 | --- | ---: | ---: | ---: | --- |
 | Tempered tools | 20,000 | 25 | 1,000 | Up to 3 nearby beds per click |
 | Masterwork tools | 100,000 | 150 | 6,000 | Up to 5 nearby beds per click |
+| Legendary tools | 250,000 | 350 | 26,000 | A whole 3x3 block of beds per click (9) |
 | Irrigation channels | 40,000 | 50 | 1,000 | New seeds receive water automatically |
 | Living irrigation | 200,000 | 300 | 26,000 | Harvest replants and waters the same crop |
 | Compost beds | 30,000 | 40 | 1,000 | Newly planted crops yield 1 extra item |
 | Rich loam | 150,000 | 200 | 6,000 | Newly planted crops yield 2 extra items and grow 25% faster |
+| Black earth | 300,000 | 400 | 26,000 | Newly planted crops yield 3 extra items and grow 50% faster |
 
 Each branch must be bought in order. Crops keep the soil quality and growth rate they had when planted; buying an upgrade does not instantly mature an old crop. Living irrigation does not harvest automatically. Larger tools keep the same range and obstruction checks, and only valid bed actions commit. Delivery, currency movement, upgrade purchases and the garden revision claim commit in one transaction, so retries and races cannot pay twice or consume stock without a reward.
 

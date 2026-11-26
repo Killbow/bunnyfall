@@ -7,6 +7,8 @@ the last release (scripts/changelogNotes.mjs).
 
 - Fixed: Logging out inside a mine no longer drops you in the ocean in the far corner of the world. You wake at the mouth of the mine, and a character already stranded in that corner wakes at the start of the realm.
 - Fixed: Mining with someone else in the same mine no longer loses your ore. A drill haul that matched another miner's is paid to both, a failed claim is asked again, and a refused vein or haul says why instead of "The account service had a problem".
+- Added: A third tier for Company farm tools and soil, at 26,000 of every crop shipped. Legendary tools work a whole 3x3 block of nine beds in one click, with all nine lit up before you swing. Black earth gives 3 extra items a bed and grows crops 50% faster. Farms keep their progress and see the new upgrades at the tool rack and the compost heap.
+- Ability buffs now last much longer: at least 10 magic rounds, 13 at rank 50, 16 at rank 75, and 20 for a rank 100 capstone. Racial abilities last 15 rounds, and utilities last 10 to 16 depending on rank. The Abilities page shows how long each one lasts.
 - Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
 - Added: Mine sounds. A running drill grinds at its rig, hauling ore rattles into your sack, shoring hammers home and lamps catch with a flare. Falling dust, creaking timbers and the rumble each have their own sound, the collapse comes down in a crash of rock, and a wave is heralded by a roar from the dark.
 - Added: Mine kit at the Cartographers' desk (press G there): a Mining Drill, Drill Fuel, Mine Lamps and a Survey Rod, bought with gold. A drill now needs one fuel a shift, and stops if you leave the mine.
@@ -21,6 +23,8 @@ the last release (scripts/changelogNotes.mjs).
 - Added: Mines fight back. Mining makes noise, and enough of it draws waves of cave creatures into the chamber, bigger each time; the odd stray wanders in too. Rats, bats and spiders near the top, scorpions, orcs and spriggans further down, skeletons and the dead at the bottom.
 - Changed: Tree stands now grow in groves, so a woodcutter finds several trees together instead of one at a time.
 - Changed: Online account, market, customs, and housing messages use plainer words.
+- Changed: A new Vampirism tutorial page explains where the Court is (the tavern door in a clan's seat city, after dark), what raises a region's heat and earns strikes, what starts a Blood Hunt, and how to pay the tithe and do penance. The feeding page now says that fighting feeds you, and that a killing blow in Steal mode sends the person to your Haven as a prisoner.
+- Fixed: Anthotis vampires got no Vitae from landing blows, because beast blood feeds them nothing. A blow's mouthful now feeds them like anyone else.
 
 ## 2026-11-25
 
