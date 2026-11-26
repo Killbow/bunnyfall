@@ -15309,6 +15309,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get _sharedOffsetMs() { return _sharedOffsetMs; },
     get bountyHost() { return bountyHost; },
     get gatherHost() { return gatherHost; },
+    mines,
     get livingRoads() { return livingRoads; },
     get merchantYards() { return merchantYards; },
     get buildingNames() { return buildingNames; },

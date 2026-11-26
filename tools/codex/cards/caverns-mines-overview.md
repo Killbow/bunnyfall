@@ -17,6 +17,7 @@ files:
   - src/systems/mine/mineClient.js
   - src/systems/mine/mineMouths.js
   - src/ui/mineMapMark.js
+  - src/travel/travelViewMarks.js
   - server/src/world/mine.js
   - src/net/mine/mineDrill.js
   - src/net/mine/mineReceipt.js
@@ -42,7 +43,7 @@ tags:
   - shoring
 ---
 
-Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do. The world maps show orange markers for every eligible mine entrance before discovery.
+Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do. The world maps show orange markers for every eligible mine entrance before discovery. Overworld Travel shows nearby entrances as orange mining markers under the Gathering filter.
 
 Inside, `mineLayout(mineId, reset)` builds sections of domed chambers joined by tubes, made into one virtual RDB block (`MINE_LOCATION_ID`). Holes name their ore and seam; walls are sound or weak.
 
