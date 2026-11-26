@@ -10,6 +10,7 @@ files:
   - src/systems/upkeep/upkeepRuntime.js
   - src/travel/steedCare.js
   - src/mods/features.js
+  - src/travel/horseVoice.js
 routes: []
 tables: []
 replacesBible:
@@ -24,9 +25,11 @@ invariants:
   - "Every reader gets the tier rules through `horseCareRules()` (upkeepSwitch.js). It returns null for Off and for any non-enhanced skin, and it is read live on every call."
   - "A steedCare law handed no rules runs `HORSE_CARE_HARD`, so tests written before the tiers still check Hard behavior."
   - "HORSE_CARE_RULES flags: boons = { hungerCosts: false, bondFades: false, paceFloor: true, draftDrags: false, refusedRunWalks: false }; hard sets every flag the other way."
+  - "`hoofClipFor` plays the classic riding clip for the cart, for hard ground, for an unknown footstep kind, and for any loop not yet loaded."
 traps:
   - "Boons is not Hard with smaller numbers. Stats, bond, food clock, and words are the same in both tiers; only what the horse pays differs. Never fork the world state per tier."
   - "upkeepTiers.js must stay a leaf with no imports, because uiPrefs.js and the account Worker bundle load it."
+  - "`hush()` runs `mount(false)` on the first frame the rig plays the classic sounds, dropping queued voices and any owed whinny, so the voices resume without a backlog."
 dfu: []
 tags:
   - horse

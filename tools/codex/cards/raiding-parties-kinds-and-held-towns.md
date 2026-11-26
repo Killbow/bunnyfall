@@ -13,6 +13,8 @@ files:
   - src/world/raidsWardenWorld.js
   - src/travel/wagon/wagonWardenHost.js
   - src/characters/cityGuards.js
+  - src/worldEvents/raidMuster.js
+  - src/worldEvents/raidMusterHost.js
 routes: []
 tables:
   - raid_spoils
@@ -26,6 +28,7 @@ invariants:
   - "raidKindOf hashes (FNV-1a) the raid key, start, target, and party over RAID_KIND_ORDER [classic, waves, defend, escort], so the relay roll check is unchanged."
   - "Objective state only moves forward: foldObjective keeps the highest wave, leader fall, sacked flag, and refugees saved and lost."
   - "The kind never changes the count or the cleanse; it only changes how raiders stand and whether the town is held."
+  - "`musterSides` hashes only the raid key, start, and party, so the runner's camps and the smoke columns `createRaidSmoke` draws on every other machine sit on the same town sides."
 traps:
   - "The Standard-Bearer (guard flag `raidBearer`) is excluded from the defender count and ignores the player's crimes."
   - "A defend raid counts as held only if the standard was seen standing within RAID_STANDARD_FRESH_MS 60000 at the cleanse."

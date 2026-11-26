@@ -1,26 +1,13 @@
-// Unity Crunch - TextureFormat 28 (DXT1Crunched) and 29 (DXT5Crunched) - back to plain DXT1/DXT5 blocks.
-//
-// Diverse Weapons HD ships every handheld frame (9,400+ of them) crunched: Unity's fork of Rich Geldreich's crnlib
-// (the "unity" crunch, Unity 2017.3+), a static-Huffman stream of palette indices over four small palettes (color
-// endpoints, color selectors, alpha endpoints, alpha selectors). The bundle reader (unityBundle.js) decoded only the
-// plain formats, so the mod was refused. This is the DECODER half of crnd_decode (crn_decomp.h's crn_unpacker: the
-// header, the canonical-Huffman symbol codec, decode_palettes, unpack_dxt1/unpack_dxt5), written from that source and
-// validated block for block against the texture2ddecoder reference (unpack_unity_crunch) on the mod's own textures.
-// Only what DFU mods use is here: the DXT1 and DXT5 families; the ETC/DXN variants throw.
-//
-// Out: the level's DXT blocks, row-major, ready for dxt.js.
 
 const FMT_DXT1 = 0, FMT_DXT5 = 2, FMT_DXT5_CCxY = 3, FMT_DXT5_xGxR = 4, FMT_DXT5_xGBR = 5, FMT_DXT5_AGBR = 6;
 const DXT5_FAMILY = new Set([FMT_DXT5, FMT_DXT5_CCxY, FMT_DXT5_xGxR, FMT_DXT5_xGBR, FMT_DXT5_AGBR]);
 const MAX_SUPPORTED_SYMS = 8192;
-const TOTAL_BITS_MAX_SYMS = 14;   // math::total_bits(8192)
+const TOTAL_BITS_MAX_SYMS = 14;
 const MOST_PROBABLE_CODELENGTH_CODES = [17, 18, 19, 20, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15, 16];
 const DXT5_FROM_LINEAR = [0, 2, 3, 4, 5, 6, 7, 1];
 
-/** Big-endian packed unsigned (crn_packed_uint<N>). */
 const be = (b, o, n) => { let v = 0; for (let i = 0; i < n; i++) v = v * 256 + b[o + i]; return v; };
 
-/** The crn header (crn_defs.h crn_header). */
 function readHeader(b) {
   if (b.length < 62 || be(b, 0, 2) !== ((0x48 << 8) | 0x78)) throw new Error('crunch: not a CRN stream');
   const pal = (o) => ({ ofs: be(b, o, 3), size: be(b, o + 3, 3), num: be(b, o + 6, 2) });
@@ -34,7 +21,6 @@ function readHeader(b) {
   return h;
 }
 
-/** A canonical Huffman model from code sizes (crnlib's decoder_tables: codes by length, then by symbol). */
 function makeModel(sizes) {
   const counts = new Uint32Array(17);
   for (const s of sizes) if (s) counts[s]++;
@@ -48,7 +34,6 @@ function makeModel(sizes) {
   const cursor = offset.slice();
   const sorted = new Uint16Array(used);
   for (let sym = 0; sym < sizes.length; sym++) if (sizes[sym]) sorted[cursor[sizes[sym]]++] = sym;
-  // a fast table for codes up to 10 bits: peek 10 bits -> (sym, len)
   const FAST = 10;
   const fast = new Int32Array(1 << FAST).fill(-1);
   for (let len = 1; len <= FAST; len++) {
@@ -62,14 +47,15 @@ function makeModel(sizes) {
   return { counts, first, offset, sorted, fast, FAST, empty: used === 0 };
 }
 
-/** The symbol codec (crnd symbol_codec): MSB-first bits, bytes past the end read as zero. */
+// MSB-first bit reader. Bytes past the end of the stream read as zero, as in crnlib.
 class Codec {
   constructor(buf, ofs, size) { this.b = buf; this.p = ofs; this.end = ofs + size; this.bits = 0; this.n = 0; }
   fill(k) {
     while (this.n < k) {
       const c = this.p < this.end ? this.b[this.p] : 0;
       this.p++;
-      this.bits = (this.bits * 256 + c) % 4294967296;   // keep 32 bits; `n` never passes 32
+      // Modulo instead of a shift keeps the bit buffer unsigned; `n` never exceeds 32.
+      this.bits = (this.bits * 256 + c) % 4294967296;
       this.n += 8;
     }
   }
@@ -120,10 +106,7 @@ class Codec {
   }
 }
 
-/**
- * Unpack one mip level of a Unity crunch stream to DXT blocks.
- * @returns {{ format: 'DXT1'|'DXT5', width: number, height: number, blocks: Uint8Array }}
- */
+/** @returns {{ format: 'DXT1'|'DXT5', width: number, height: number, blocks: Uint8Array }} */
 export function unpackUnityCrunch(bytes, level = 0) {
   const b = bytes;
   const h = readHeader(b);
@@ -131,14 +114,12 @@ export function unpackUnityCrunch(bytes, level = 0) {
   if (!isDxt1 && !DXT5_FAMILY.has(h.format)) throw new Error(`crunch: format ${h.format} is not a DXT1/DXT5 family this reader decodes`);
   if (level >= h.levels) throw new Error('crunch: no such level');
 
-  // tables
   const t = new Codec(b, h.tablesOfs, h.tablesSize);
   const refModel = t.receiveModel();
   const endpointDelta = [null, null], selectorDelta = [null, null];
   if (h.colorEndpoints.num) { endpointDelta[0] = t.receiveModel(); selectorDelta[0] = t.receiveModel(); }
   if (h.alphaEndpoints.num) { endpointDelta[1] = t.receiveModel(); selectorDelta[1] = t.receiveModel(); }
 
-  // palettes
   let colorEndpoints = new Uint32Array(0), colorSelectors = new Uint32Array(0), alphaEndpoints = new Uint16Array(0), alphaSelectors = new Uint16Array(0);
   if (h.colorEndpoints.num) {
     const c = new Codec(b, h.colorEndpoints.ofs, h.colorEndpoints.size);
@@ -170,7 +151,6 @@ export function unpackUnityCrunch(bytes, level = 0) {
     alphaSelectors = new Uint16Array(h.alphaSelectors.num * 3);
     const fromLinear = new Uint8Array(64);
     for (let i = 0; i < 64; i++) fromLinear[i] = DXT5_FROM_LINEAR[i & 7] | (DXT5_FROM_LINEAR[i >> 3] << 3);
-    // s0/s1 are 24-bit linear selector words; JS numbers hold them exactly
     let s0l = 0, s1l = 0;
     for (let i = 0; i < alphaSelectors.length;) {
       let s0 = 0, s1 = 0;
@@ -182,7 +162,6 @@ export function unpackUnityCrunch(bytes, level = 0) {
     }
   }
 
-  // the level
   const width = Math.max(1, h.width >> level), height = Math.max(1, h.height >> level);
   const bx = (width + 3) >> 2, by = (height + 3) >> 2;
   const blockBytes = isDxt1 ? 8 : 16;
@@ -216,7 +195,9 @@ export function unpackUnityCrunch(bytes, level = 0) {
         }
         const cs = c.decode(selectorDelta[0]);
         const as = isDxt1 ? 0 : c.decode(selectorDelta[1]);
-        if (!visible || f) continue;   // one face: a 2D texture
+        // Padding blocks and extra faces are still decoded to keep the stream in step, but only visible face 0
+        // blocks are written.
+        if (!visible || f) continue;
         const o = (y * bx + x) * blockBytes;
         if (isDxt1) {
           dv.setUint32(o, colorEndpoints[colorIdx], true);

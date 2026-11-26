@@ -1,40 +1,18 @@
 // @ts-check
-// WAGONS3 (2026-10-10, Mac: "Proper animated rope mechanics that connect the horses to the wagon"; asked, "Traces and
-// reins"): THE HARNESS'S ROPES - pure. Each rope is a chain of ROPE.points points stepped by Verlet integration: gravity
-// pulls each loose point, its last step carries on (damped), and ROPE.iterations passes hold every link at its length
-// with both ends pinned where the scene says they are this frame - so a rope sags under its own weight, swings when the
-// wagon turns or jolts, and settles when it stands. Its length is its ends' span times its `slack` (a trace hangs a
-// little, a rein a little more), so a team that walks closer or further keeps the same hang rather than snapping taut or
-// pooling. A rope whose end leapt (a door, a fast travel, a floating-origin shift the caller did not carry, a team first
-// drawn) is laid again where it hangs at rest, never swung across the leap.
-//
-// The tube: each rope drawn as a ring of ROPE.sides faces round each link (`tubeModel` the indices and the strap's
-// picture laid once, `tubeInto` the positions and normals each frame - renderer.updateMeshVertices's two arrays, the
-// count never changing while the harness is the same). Both windings are laid, so a strap reads from either side
-// whatever the lane's culling.
-//
-// Not a DFU member: Horse Cart and Cargo draws no harness. Ledger A (WAGONS3).
 
-/** The law's numbers: points a rope, sides a ring, gravity (m/s^2), the damping kept of a step's velocity, the
- *  constraint passes a step, the longest step (s - a slow frame is stepped as several), how far an end may move in
- *  one step and still be a move (m, times the drawn scale), and the two kinds' slack and radius (m). */
 export const ROPE = Object.freeze({
   points: 9, sides: 4, gravity: 9.81, damping: 0.97, iterations: 10, maxStep: 1 / 60, maxSteps: 4, leap: 3,
   trace: Object.freeze({ slack: 1.02, radius: 0.022 }),
   rein: Object.freeze({ slack: 1.06, radius: 0.011 }),
 });
 
-/** A fresh rope of `kind` ('trace' | 'rein'), unlaid - its first step lays it. */
 export function newRope(kind = 'trace') {
   const n = ROPE.points;
   return { kind, n, p: new Float64Array(n * 3), q: new Float64Array(n * 3), a: [0, 0, 0], b: [0, 0, 0], laid: false };
 }
 
-/** How far a rope of span `d` (m) and `slack` hangs at its middle at rest - the parabola whose arc is `slack` times its
- *  chord: sag = sqrt(3 d (L - d) / 8), L = slack d. */
 export const restSag = (d, slack) => Math.sqrt(Math.max(0, (3 * d * (slack * d - d)) / 8));
 
-/** Lay `rope` at rest between `a` and `b`: along the chord, dropped by the parabola's sag, with no velocity. */
 export function layRope(rope, a, b) {
   const { n, p, q } = rope;
   const d = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
@@ -48,16 +26,8 @@ export function layRope(rope, a, b) {
   rope.a = [a[0], a[1], a[2]]; rope.b = [b[0], b[1], b[2]]; rope.laid = true;
 }
 
-/**
- * One frame of `rope` with its ends at `a` and `b` (scene metres): `dt` seconds (stepped in pieces no longer than
- * ROPE.maxStep, at most ROPE.maxSteps of them - a longer frame's rest is dropped, not caught up), `scale` the drawn
- * scale (the Overworld's grown rig: its gravity and its leap grow with it, so a grown rope hangs as the small one does).
- */
-/** PERF-ROPE (2026-10-12, an allocation profile of a player's live client walking the overworld's coast: the moving
- *  teams' harnesses were some 7% of what the page allocated, ~1 ms a frame): A ROPE STEPS IN PLACE - its ends kept in
- *  its own arrays, each sub-step's ends in one pair for every rope, and a length as a root of its squares (Math.hypot
- *  of three boxed its every answer, ten iterations of eight links a sub-step). The rope is the one it was, to within
- *  a float's rounding (test/systems/wagon/perfrope.test.js holds it to the old law). */
+// A frame longer than `ROPE.maxSteps * ROPE.maxStep` drops the remainder instead of catching up. `scale` multiplies
+// gravity and the leap distance, so a grown rig hangs the same.
 const _ea = [0, 0, 0], _eb = [0, 0, 0];
 const len3 = (x, y, z) => Math.sqrt(x * x + y * y + z * z);
 const keep3 = (to, v) => { to[0] = v[0]; to[1] = v[1]; to[2] = v[2]; };
@@ -106,15 +76,13 @@ function pinEnds(rope, a, b) {
   for (let k = 0; k < 3; k++) { p[k] = q[k] = a[k]; p[e + k] = q[e + k] = b[k]; }
 }
 
-/** The vertex count a harness of `ropes` ropes is drawn with (each its rings, each ring ROPE.sides + 1 - the seam's
- *  vertex twice, so the strap's picture wraps). */
+// Each ring repeats its seam vertex so the strap texture wraps.
 export const tubeVertexCount = (ropes) => ropes * ROPE.points * (ROPE.sides + 1);
 
 /**
- * The harness's model, laid once for `count` ropes: its indices (both windings), its UVs (round the strap, along it at
- * `tile` m a picture - the links' rest length is the ropes' own, so along-it is per link), and the positions and normals
- * arrays `tubeInto` fills - `{ positions, normals, uvs, indices, subMeshes, doors }`, the renderer's createMesh model.
- * @param {number} count @param {number} archive @param {number} record
+ * @param {number} count
+ * @param {number} archive
+ * @param {number} record
  */
 export function tubeModel(count, archive, record) {
   const S = ROPE.sides, n = ROPE.points, ring = S + 1;
@@ -126,26 +94,21 @@ export function tubeModel(count, archive, record) {
     for (let i = 0; i < n; i++) for (let k = 0; k <= S; k++) { const v = base + i * ring + k; uvs[v * 2] = k / S; uvs[v * 2 + 1] = i * 0.5; }
     for (let i = 0; i < n - 1; i++) for (let k = 0; k < S; k++) {
       const a = base + i * ring + k, b = base + (i + 1) * ring + k, c = a + 1, d = b + 1;
-      idx.push(a, b, c, c, b, d);   // one winding
-      idx.push(a, c, b, c, d, b);   // and the other
+      // Both windings are emitted so the strap shows from either side under any face culling.
+      idx.push(a, b, c, c, b, d);
+      idx.push(a, c, b, c, d, b);
     }
   }
   const indices = Uint32Array.from(idx);
   return { name: 'WagonHarness', positions: new Float32Array(verts * 3), normals: new Float32Array(verts * 3), uvs, indices, subMeshes: [{ textureArchive: archive, textureRecord: record, startIndex: 0, primitiveCount: indices.length / 3 }], doors: [] };
 }
 
-/**
- * Rope `r`'s tube into `positions` / `normals` (a tubeModel's): a ring of `radius` round each point, square to the rope
- * there (its tangent the chord through its neighbours), its first side level across it (the world's up crossed with it -
- * a rope hanging straight down takes the world's x).
- */
 export function tubeInto(rope, r, radius, positions, normals) {
   const S = ROPE.sides, n = rope.n, ring = S + 1, p = rope.p;
   for (let i = 0; i < n; i++) {
     const i0 = Math.max(0, i - 1) * 3, i1 = Math.min(n - 1, i + 1) * 3;
     let tx = p[i1] - p[i0], ty = p[i1 + 1] - p[i0 + 1], tz = p[i1 + 2] - p[i0 + 2];
     const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
-    // s = t x up, level; u = s x t
     let sx = -tz, sy = 0, sz = tx;
     let sl = Math.hypot(sx, sy, sz);
     if (sl < 1e-6) { sx = 1; sy = 0; sz = 0; sl = 1; }

@@ -1,51 +1,33 @@
 // @ts-check
-// SEAT2b part two (c) (2026-10-01, Mac: "Finish the seats"; "Let's pick up 482"): THE RELAY'S OWN FIGHTERS ON THIS SCREEN
-// - the Barracks' town guards and a revolt's Rebel Captain and his rebels (bible/11-Multiplayer/Seats-Arc.md 7.5, 7.7)
-// where the siege's field says they stand, doing what it says they do: each Daggerfall's own sprite at its own size
-// (a guard the City Watch, the rebels a Rogue, a Barbarian and a Thief by turns, the Captain a Warrior drawn a fifth
-// taller), walking, winding up and landing its blow, flinching, falling. The gate host's driver's way
-// (scenes/gate/gateHost.js), in the town's own frame; never in `foes` - its bodies are the siege's arms' targets (scenes/
-// world.js), and every blow on one is the referee's (net/siege/siegeSession.js).
-//
-// ONE SOURCE: the siege's state (net/siege/siegeLink.js `npcs`, the field's frames folded). Nothing here is sent. PURE where it
-// can be: who each one is (siegeNpcLook) and what it is doing (siegeNpcAct); this file holds the sprites' textures and
-// batches and what it has already sounded.
-//
-// Not a DFU member. Ledger A (SEAT2b part two (c)).
+// Display only: nothing here is sent. These fighters stay out of `foes`, and the server referees every hit on them.
 import { SIEGE_NPC } from '../net/siegeRef.js';
 import { siegeNpcShown } from '../net/siegeLink.js';
 import { ENEMY_BASICS } from '../characters/enemyBasics.js';
-import { KNIGHT_CITY_WATCH } from '../characters/mobileTypes.js';   // HALT-ONE: the Town Guard's hurt cry is no Halt
+import { KNIGHT_CITY_WATCH } from '../characters/mobileTypes.js';
 import { stateAnims, HURT_ANIMS, HURT_ANIM_SPEED, PRIMARY_ATTACK_ANIM_SPEED } from '../characters/mobileUnit.js';
 import { mobileBillboardSize } from '../world/rmbFlats.js';
 import { bossFrame } from '../world/gateBoss.js';
-import { createPopulationLane } from '../characters/npcBodies.js'; import { rosterLook } from '../characters/foeBodies.js'; import { rosterActor } from '../characters/rosterBodies.js';   // MWNPC10: the siege's fighters in their Morrowind bodies
+import { createPopulationLane } from '../characters/npcBodies.js'; import { rosterLook } from '../characters/foeBodies.js'; import { rosterActor } from '../characters/rosterBodies.js';
 
-/** Who each kind is: its mobile (its sprite and its sounds - enemyBasics.js), its name, how much taller it is drawn. The
- *  rebels take three faces by their number, so an uprising is no row of twins. */
 export const SIEGE_NPC_LOOKS = Object.freeze({
   guard: Object.freeze({ mobiles: Object.freeze([KNIGHT_CITY_WATCH]), name: 'Town Guard', scale: 1 }),
   rebel: Object.freeze({ mobiles: Object.freeze([136, 143, 138]), name: 'Rebel', scale: 1 }),
   captain: Object.freeze({ mobiles: Object.freeze([144]), name: 'Rebel Captain', scale: 1.2 }),
 });
-/** One of them's look - `{ mobile, name, scale }`. Pure. */
 export function siegeNpcLook(n) {
   const L = SIEGE_NPC_LOOKS[n?.kind] ?? SIEGE_NPC_LOOKS.rebel;
   const i = Math.max(0, Number(String(n?.id ?? 'n0').slice(1)) || 0);
   return { mobile: L.mobiles[i % L.mobiles.length], name: L.name, scale: L.scale };
 }
-/** A body my swing, my shaft and my spell meet: a person's capsule. */
 export const SIEGE_NPC_BODY = Object.freeze({ radius: 0.45, height: 1.8 });
-/** A blow of mine flinches one this long; a fall plays out this long, and then the body is gone. */
 export const SIEGE_NPC_FLINCH_MS = 350;
 export const SIEGE_NPC_FALL_MS = 900;
-/** Its blow's swing shown this long after it lands. */
 export const SIEGE_NPC_STRIKE_MS = 600;
 
 /**
- * WHAT ONE OF THEM IS DOING at `now` (the relay's clock, as its state's): `act` one of fall, gone, windup, strike, flinch,
- * walk, idle; `anims` the table that shows it; `frame` and `loop` as world/gate/gateBoss.js bossFrame takes them. Pure.
- * @param {any} n a SiegeNpc @param {number} now @param {{ mobile: number }} look
+ * @param {any} n
+ * @param {number} now
+ * @param {{ mobile: number }} look
  */
 export function siegeNpcAct(n, now, look) {
   const tab = (state) => stateAnims(state, look.mobile, !!ENEMY_BASICS[look.mobile]?.hasIdle, false, false, true, false);
@@ -67,17 +49,10 @@ export function siegeNpcAct(n, now, look) {
   return { act: 'idle', anims: t, frame: Math.floor((now / 1000) * t[0].fps), loop: true };
 }
 
-/**
- * @param {{ renderer?: any, getTexture?: ((archive: number) => Promise<any>)|null,
- *   uploadRecordFrame?: ((archive: number, record: number, frame: number) => void)|null, audio?: any,
- *   cam?: () => number[]|null, toScene?: (x: number, z: number) => number[]|null,
- *   wantBodies?: () => boolean, makeBodies?: (() => any)|null }} deps
- *   `toScene(x, z)` a point of the room's units as this scene's feet (its ground found), or null.
- */
-export function createSiegeNpcs({ renderer = null, getTexture = null, uploadRecordFrame = null, audio = null, cam = () => null, toScene = () => null, wantBodies = undefined, makeBodies = null } = {}) {   // MWNPC10: the body lane's seams
-  const bodiesLane = createPopulationLane({ laneName: 'siege', renderer, ...(wantBodies ? { want: wantBodies } : {}), make: makeBodies });   // MWNPC10 (section 15b)
+/** @param {{ renderer?: any, getTexture?: ((archive: number) => Promise<any>)|null, uploadRecordFrame?: ((archive: number, record: number, frame: number) => void)|null, audio?: any, cam?: () => number[]|null, toScene?: (x: number, z: number) => number[]|null, wantBodies?: () => boolean, makeBodies?: (() => any)|null }} deps */
+export function createSiegeNpcs({ renderer = null, getTexture = null, uploadRecordFrame = null, audio = null, cam = () => null, toScene = () => null, wantBodies = undefined, makeBodies = null } = {}) {
+  const bodiesLane = createPopulationLane({ laneName: 'siege', renderer, ...(wantBodies ? { want: wantBodies } : {}), make: makeBodies });
   const bodies = new Map(), textures = new Map();
-  /** MWNPC10: a body's look seed off its id (FNV-1a), once when it is first stood - never a frame. */
   const idSeed = (id) => [...String(id)].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0, 0x811c9dc5);
   const _targets = [], _batches = [], _live = new Set();
   function texture(mobile) {
@@ -95,11 +70,11 @@ export function createSiegeNpcs({ renderer = null, getTexture = null, uploadReco
   }
   function play(clip, p, volume = 1) {
     if (!audio || !p || clip == null) return;
-    try { audio.play3d?.(clip, p, volume, { maxDistance: 40, distanceModel: 'linear' }); } catch { /* a sound is never the fight */ }
+    try { audio.play3d?.(clip, p, volume, { maxDistance: 40, distanceModel: 'linear' }); } catch { }
   }
   function destroyBatch(b) { if (b?.batch) { renderer?.destroyBillboardBatch?.(b.batch); b.batch = null; } }
   function draw(b, act, feet, yaw) {
-    b.act = act.act;   // MWNPC10: what its body plays
+    b.act = act.act;
     const T = texture(b.look.mobile);
     if (!T || !renderer?.createBillboardBatch || act.act === 'gone') { b.shown = false; return; }
     const fr = bossFrame(/** @type {any} */ (act), yaw, feet, cam() ?? feet, (rec) => T.tex.getFrameCount?.(rec) ?? 1);
@@ -115,8 +90,6 @@ export function createSiegeNpcs({ renderer = null, getTexture = null, uploadReco
   }
   function clear() { for (const b of bodies.values()) destroyBatch(b); bodies.clear(); _targets.length = 0; _batches.length = 0; }
   return {
-    /** One frame: each one drawn where its walk has carried it, its blow and its hurt and its fall heard once, the bodies
-     *  my blows meet refilled. `npcs` the siege's (net/siege/siegeLink.js), `now` the relay's clock. */
     frame(npcs, now) {
       _targets.length = 0; _batches.length = 0; _live.clear();
       for (const n of npcs ?? []) {
@@ -128,8 +101,10 @@ export function createSiegeNpcs({ renderer = null, getTexture = null, uploadReco
         if (!feet) { b.shown = false; continue; }
         const E = ENEMY_BASICS[b.look.mobile];
         if (n.atk && n.atk !== b.atk) play(E?.attackSound, feet);
-        if (n.hurtAt !== b.hurtAt && Number.isFinite(n.hurtAt)) play(b.look.mobile === KNIGHT_CITY_WATCH ? E?.moveSound : E?.barkSound, feet, 0.8);   // HALT-ONE: a beast's hurt is its bark; the watch's bark is "Halt!", so a Town Guard hurt cries his move voice instead
-        if (n.down && !b.down) play(15, feet);   // systems/soundClips.js SOUND.BodyFall
+        // The City Watch bark is the "Halt!" line, so a hurt Town Guard plays its move sound instead.
+        if (n.hurtAt !== b.hurtAt && Number.isFinite(n.hurtAt)) play(b.look.mobile === KNIGHT_CITY_WATCH ? E?.moveSound : E?.barkSound, feet, 0.8);
+        // Clip 15 is `SOUND.BodyFall` in audio/soundClips.js.
+        if (n.down && !b.down) play(15, feet);
         b.atk = n.atk; b.hurtAt = n.hurtAt; b.down = n.down;
         if (Math.hypot(n.tx - x, n.tz - z) > 1) b.yaw = Math.atan2(n.tx - x, n.tz - z);
         else { const c = cam(); if (c) { const to = Math.atan2(c[0] - feet[0], c[2] - feet[2]); b.yaw = to; } }
@@ -144,33 +119,22 @@ export function createSiegeNpcs({ renderer = null, getTexture = null, uploadReco
       }
       for (const [id, b] of bodies) if (!_live.has(id)) { destroyBatch(b); bodies.delete(id); }
     },
-    /** The standing ones as bodies my blows meet - `{ id, feet, height, radius, name }`, one list refilled each frame. */
     targets: () => _targets,
-    /** One standing one's body, by its id, or null. */
     body: (id) => _targets.find((t) => t.id === id) ?? null,
-    /** Their bodies for the town's billboard pass. */
     batches: () => _batches,
-    /**
-     * MWNPC10 (bible/04-Characters/Morrowind-NPCs.md section 15b): THEIR MORROWIND BODIES, before the town's billboard pass
-     * draws theirs - each shown one its look (the watch in its steel, a rebel in its class's, the captain a fifth again a
-     * man as his sprite is), walking as it walks, its blow a swing at the relay's each new attack, hurt a recoil, down dead.
-     */
     drawBodies(canvas, proj, view, eye, dt) {
       bodiesLane.frame();
       for (const b of bodies.values()) {
         if (!b.shown || !b.batch) continue;
         const look = rosterLook(b, { mobileType: b.look.mobile, gender: 'male', seed: b.seed });
         if (!look) continue;
-        bodiesLane.offer(rosterActor(b, { id: b.id, look, feet: b.batch.origin, yaw: b.yaw, moving: b.act === 'walk', swingKey: b.down || !(b.atk > 0) ? null : b.atk, hitKey: b.down ? null : b.hurtAt,   // `atk` 0 is no attack
+        bodiesLane.offer(rosterActor(b, { id: b.id, look, feet: b.batch.origin, yaw: b.yaw, moving: b.act === 'walk', swingKey: b.down || !(b.atk > 0) ? null : b.atk, hitKey: b.down ? null : b.hurtAt,
           dead: b.down ? 1 + (b.seed % 3) : 0, scale: b.look.scale }), b.batch);
       }
       bodiesLane.draw(canvas, proj, view, eye, dt);
     },
-    /** MWNPC10: the floating origin moved - the bodies' feet follow it. */
     offsetBodies(o) { bodiesLane.offsetAll(o); },
-    /** Out of the battle: every body put away (the textures are kept). */
-    leave() { clear(); bodiesLane.destroy(); },   // MWNPC10: and their Morrowind bodies
-    /** What the driver holds, for the tests. */
+    leave() { clear(); bodiesLane.destroy(); },
     state: () => ({ bodies: [...bodies.keys()], shown: _batches.length, targets: _targets.length }),
   };
 }

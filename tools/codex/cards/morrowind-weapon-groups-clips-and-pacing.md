@@ -26,10 +26,13 @@ invariants:
   - "Attack keys are namespaced by the LONG group (WEAPON_LONG_GROUP, e.g. weapononehand, bowandarrow)."
   - "First-person idle loops 1 + rollDice(4), ported as FP_IDLE_LOOPS = 1 + floor(random*4), so the idle plays 2 to 5 times."
   - "A change that arrives while the rig is `busy` (the worn table, the weapon, the off-hand weapon, the torch, the hip light, a form change, or a whole build) is queued before any key compare and applied by `flushPending` when `busy` clears, from every path that holds `busy`."
+  - "`movementAnimState` counts a move as strafing only when the side component is more than twice the forward one, and returns turn states only in third person while not sneaking."
+  - "`MOVEMENT_FALLBACK_SPEED` (sneak 33.5452, run 222.857, walk 154.064 units per second) applies when a clip has no accum-root velocity, as first-person clips have none."
 traps:
   - "MW-PACE1: blowRate clamps melee section rates to BLOW_RATE_MIN 0.1 .. BLOW_RATE_MAX 12. blowPace returns null for shots, held wind-ups and empty schedules."
   - "MS1: REVERSED_STRIKES = ['StrikeRight'] plays the slash backwards through poseTime (startTime + stopTime - time) without mirroring the arm."
   - "Per-bone-group BlendMask priority is deferred; fpArm resolves priority for the whole body."
+  - "`parseAnimGroups` is the viewer's group listing and deliberately differs from `resetClip` (line split, ': ' test, stop-key compare, key order); playback must use `resetClip`."
 dfu:
   - "Assets/Scripts/Game/FPSSpellCasting.cs"
   - "Assets/Scripts/Game/MagicAndEffects/EntityEffectManager.cs"

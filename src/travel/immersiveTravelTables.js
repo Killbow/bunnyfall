@@ -1,13 +1,4 @@
-// IT1 (2026-10-04): IMMERSIVE TRAVEL'S THREE HARD-CODED TABLES, verbatim out of the shipped assembly
-// (vendor/immersive-travel/ImmersiveTravel.dll) - the int32 arrays its static constructors fill with
-// RuntimeHelpers.InitializeArray from <PrivateImplementationDetails> field data. The IL dump shows the ldtoken and the
-// size (il/ImmersiveTravel.il.txt, CarriageMap::.cctor IL_15b0-15c2, SeafarersMap::.cctor IL_1957-1983) but not the
-// bytes; test/systems/guild/it1_immersivetravel.test.js finds each table, byte for byte and whole, in the vendored DLL.
-//
-// A leaf: numbers alone, so the laws (systems/immersiveTravel.js) and a test can read them without the world.
 
-/** CarriageMap.capitalMapIDs (40 ints, 160 bytes, the field data CB08BD93...): MapTable MapIds - compared masked to
- *  the location's map pixel id (isCapital, IL_14bc-14f1). */
 export const CAPITAL_MAP_IDS = Object.freeze([
   82263135, 59881539, 173458441, 629313957, 41340935, 134620179,
   43464047, 120704813, 105975582, 213207, 894921184, 547443168,
@@ -18,16 +9,12 @@ export const CAPITAL_MAP_IDS = Object.freeze([
   275904937, 630439035, 311449835, 374370979,
 ]);
 
-/** SeafarersMap.hardcodedLargeDocksIDs (15 ints, 60 bytes, the field data 159F20DB...): MapTable MapIds of the ports a
- *  village-sized place still sails anywhere from (IsPlayerInTown, IL_18d4-18ea). */
 export const LARGE_DOCK_MAP_IDS = Object.freeze([
   1306739903, 1303690, 20115597, 5405511, 16955879, 11700980,
   150625, 24312929, 263832, 343439, 192035017, 198333451,
   124928606, 276583, 6570357,
 ]);
 
-/** SeafarersMap.dockMapIDs (382 ints, 1528 bytes, the field data 92498FE0...): MAP PIXEL ids (y * 1000 + x) of every
- *  dock - HasDock compares them to a pixel id unmasked (IL_1818-184d), NearDock asks a pixel and its four neighbours. */
 export const DOCK_PIXEL_IDS = Object.freeze([
   5222, 5224, 5229, 8219, 11215, 14210, 22763, 23240, 29347, 34162, 35152, 35449,
   38152, 40361, 41483, 42127, 45124, 49219, 56637, 69406, 73079, 75104, 77077, 83137,

@@ -1,12 +1,6 @@
-// SNOWFALL1 (2026-10-08): RAW DEFLATE (RFC 1951), both ways and in step - what .NET's DeflateStream reads and writes
-// with no zlib or gzip wrapper. Snowfall keeps its persistent tracks in its save record as deflated, base64 bytes
-// (PersistentTrackField.WriteSaveData / RestoreSaveData), and a save is written in step (systems/modSaveData.js
-// GetSaveData), so the platform's CompressionStream - which answers later - cannot pack it.
-//
-// THE WRITER is LZ77 over a 32 KiB window (a hash of three bytes, chains of 32) coded with the fixed Huffman tables, in
-// one final block: any inflater reads it, and the same bytes always pack the same way. .NET's own writer picks its
-// own blocks, so a record packs to different bytes than DFU's - a departure no reader sees (Port-Ledger A, SNOWFALL1).
-// THE READER is the whole format: stored, fixed and dynamic blocks; it throws on a stream that is not deflate.
+// Synchronous raw deflate with no zlib or gzip wrapper, the format .NET's DeflateStream reads and writes. Snowfall
+// stores its tracks deflated in a save that is written synchronously, so the async CompressionStream cannot be
+// used.
 
 const LEN_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
 const LEN_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
@@ -17,14 +11,12 @@ const CL_ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 
 
 const WINDOW = 32768, MIN_MATCH = 3, MAX_MATCH = 258, CHAIN = 32, HASH_BITS = 15;
 
-/** A code's bits reversed, the order deflate puts a Huffman code on the wire. */
 function reverse(code, len) {
   let r = 0;
   for (let i = 0; i < len; i++) { r = (r << 1) | (code & 1); code >>>= 1; }
   return r;
 }
 
-/** The fixed literal/length code of `sym` as `[bits, length]` - RFC 1951 3.2.6. */
 function fixedLit(sym) {
   if (sym < 144) return [reverse(0x30 + sym, 8), 8];
   if (sym < 256) return [reverse(0x190 + sym - 144, 9), 9];
@@ -34,13 +26,11 @@ function fixedLit(sym) {
 const FIXED_LIT = Array.from({ length: 288 }, (_, s) => fixedLit(s));
 const FIXED_DIST = Array.from({ length: 30 }, (_, d) => [reverse(d, 5), 5]);
 
-/** The length code for a match of `len` (3..258): `[symbol, extra bits, extra value]`. */
 function lengthCode(len) {
   let i = LEN_BASE.length - 1;
   while (LEN_BASE[i] > len) i--;
   return [257 + i, LEN_EXTRA[i], len - LEN_BASE[i]];
 }
-/** The distance code for `dist` (1..32768): `[code, extra bits, extra value]`. */
 function distCode(dist) {
   let i = DIST_BASE.length - 1;
   while (DIST_BASE[i] > dist) i--;
@@ -48,7 +38,6 @@ function distCode(dist) {
 }
 
 /**
- * Raw deflate of `input` (a Uint8Array): one final fixed-Huffman block.
  * @param {Uint8Array} input
  * @returns {Uint8Array}
  */
@@ -59,7 +48,7 @@ export function deflateRaw(input) {
     acc |= bits << nbits; nbits += len;
     while (nbits >= 8) { out.push(acc & 255); acc >>>= 8; nbits -= 8; }
   };
-  put(1, 1); put(1, 2);   // BFINAL, BTYPE = 01 (fixed Huffman)
+  put(1, 1); put(1, 2);
   const n = input.length;
   const head = new Int32Array(1 << HASH_BITS).fill(-1);
   const prev = new Int32Array(WINDOW).fill(-1);
@@ -91,12 +80,11 @@ export function deflateRaw(input) {
       i++;
     }
   }
-  put(...FIXED_LIT[256]);   // end of block
+  put(...FIXED_LIT[256]);
   if (nbits > 0) out.push(acc & 255);
   return Uint8Array.from(out);
 }
 
-/** A canonical Huffman decoding table from code lengths: `{ counts, symbols }` (RFC 1951 3.2.2). */
 function huffman(lengths) {
   const counts = new Uint16Array(16), offs = new Uint16Array(16);
   for (const l of lengths) counts[l]++;
@@ -108,7 +96,6 @@ function huffman(lengths) {
 }
 
 /**
- * Inflate a raw deflate stream, to the end of its final block.
  * @param {Uint8Array} input
  * @returns {Uint8Array}
  */
@@ -142,7 +129,7 @@ export function inflateRaw(input) {
     last = bits(1);
     const type = bits(2);
     if (type === 0) {
-      bitBuf = 0; bitCnt = 0;   // to the byte
+      bitBuf = 0; bitCnt = 0;
       if (pos + 4 > input.length) throw new Error('inflateRaw: a stored block ends early');
       const len = input[pos] | (input[pos + 1] << 8), nlen = input[pos + 2] | (input[pos + 3] << 8);
       if ((len ^ 0xffff) !== nlen) throw new Error('inflateRaw: a stored block with a bad length');

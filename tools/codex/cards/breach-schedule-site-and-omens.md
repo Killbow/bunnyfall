@@ -27,6 +27,7 @@ related:
 invariants:
   - "Site selection draws from a deterministic shuffle bag over qualifying regions and hashes land pixels near a town with `gateHash` and `GATE_SALT` (`0x6a7e`), while `gateSeaPixel` rejects ocean climates and low height bytes."
   - "`gateModsOf(day)` returns `[aspect, trial, trial]` from a 144-gate cycle (`gateMarksCycleLength`: 4 aspects times 36 trial pairs across 9 trials, with one trial resting each round) so consecutive gates never share a mark."
+  - "The gate site scan reads only the base game location rows (`baseLocationCount`), so locations a world-data mod appends cannot change the site."
 traps:
   - "`marksCycle` is an internal helper in `src/net/gateLaw.js`; callers must use the exported `gateModsOf` and `gateMarksCycleLength` functions."
   - "Live `GATE_PHASES` are `quiet`, `omen`, `rising`, `sealed`, `open`, `closed`, `collapsing`, and `gone` (never `hidden` or `sealed_after`)."

@@ -1,34 +1,7 @@
-// Morrowind skeleton and CPU skinning - slice 3 of the import arc. Pure
-// data: build the bone hierarchy out of a parsed NIF, pose it from
-// sampled animation tracks, and deform skinned batches on the CPU. The
-// game's GPU path comes later; this is the correctness reference the
-// viewer runs and the tests pin.
-//
-// The composition matches the OpenMW reference exactly (riggeometry.cpp
-// read behaviorally, no code ported):
-//
-//   v' = DataTransform( SkinToSkel( SUM_b w_b * BoneInSkelSpace_b(
-//        InvBind_b( v ) ) ) )
-//
-// where InvBind_b is NiSkinData's per-bone transform (mesh space -> bone
-// space at bind), BoneInSkelSpace_b is the bone's current transform
-// relative to the SKELETON ROOT node, the weighted sum blends the affine
-// matrices (translations included), SkinToSkel cancels the transforms
-// between the skeleton root and the skin's root bone, and DataTransform
-// is NiSkinData's root transform. The skinned shape's own transform
-// IS in the chain when the skin-root lookup falls back to it - the
-// reference cancels "everything up till the trishape" and takes the
-// trishape's parent as the root (riggeometry.cpp:301-307) - which is
-// the law MW-D20 landed below; the old "NetImmerse ignores it" claim
-// was this header's own overstatement.
 
 import { deref } from './mwNifFile.js';
-import { affineOfTransform, affineMul } from './mwAffine.js';   // AUDIT 68 S11-affine-dup: one home
+import { affineOfTransform, affineMul } from './mwAffine.js';
 
-// Every NiNode-derived record, the reference's own membership test
-// (nifloader.cpp:932-937 recurses whatever casts to Nif::NiNode) - a
-// skeleton that stopped at NiSwitchNode/NiLODNode/NiSortAdjustNode/
-// NiCollisionSwitch lost every bone under one.
 const NODE_TYPES = new Set([
   'NiNode',
   'NiBSAnimationNode',
@@ -42,12 +15,9 @@ const NODE_TYPES = new Set([
   'NiCollisionSwitch',
 ]);
 
-// Affine {a: Float32Array(9) row-major rotation*scale, t: [x,y,z]}.
 const IDENT_A = Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
-/** Inverse of a rotation*uniformScale affine. */
 function affineInverse(m) {
-  // a = R*s -> a^-1 = R^T / s^2 * s = R^T / s ... derive via s^2 = |col|^2.
   const s2 = m.a[0] * m.a[0] + m.a[3] * m.a[3] + m.a[6] * m.a[6];
   const inv = new Float32Array(9);
   for (let r = 0; r < 3; r++) {
@@ -61,7 +31,7 @@ function affineInverse(m) {
   return { a: inv, t };
 }
 
-export function quatToMat33(q) {   // MW-SPELLFX1: exported - an effect mesh's keyframed node takes the same rotation
+export function quatToMat33(q) {
   const [w, x, y, z] = q;
   return Float32Array.from([
     1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y),
@@ -70,13 +40,7 @@ export function quatToMat33(q) {   // MW-SPELLFX1: exported - an effect mesh's k
   ]);
 }
 
-/**
- * Build the skeleton: every node in the graph with its rest transform
- * and parent link.
- * @returns {{nodes: Map<number, {ref:number, name:string, parent:number,
- *   rest:{rotation:Float32Array, translation:number[], scale:number}}>,
- *   byName: Map<string, number>}}
- */
+/** @returns {{nodes: Map<number, {ref:number, name:string, parent:number, rest:{rotation:Float32Array, translation:number[], scale:number}}>, byName: Map<string, number>}} */
 export function buildSkeleton(nif) {
   const nodes = new Map();
   const byName = new Map();
@@ -89,12 +53,8 @@ export function buildSkeleton(nif) {
       parent,
       rest: { rotation: rec.rotation, translation: rec.translation, scale: rec.scale },
     });
-    // RULE 16: duplicates go to the FIRST. The reference's bone cache is
-    // an unordered_map filled with emplace (skeleton.cpp:23-29), which
-    // NEVER overwrites - so on a skeleton carrying two nodes of one name
-    // every lookup answers the first in traversal order. A plain
-    // Map.set answered the LAST, which on a retail rig with a
-    // duplicated attach bone hangs the weapon on the wrong copy.
+    // Duplicate names map to the first node in traversal order, matching OpenMW's bone cache, so a duplicated
+    // attach bone resolves to the first copy.
     if (rec.name) {
       const key = rec.name.toLowerCase();
       if (!byName.has(key)) byName.set(key, ref);
@@ -109,13 +69,8 @@ export function buildSkeleton(nif) {
   return { nodes, byName };
 }
 
-/** WS1: an injected node's ref - past any record index a NIF can carry,
- *  so it never collides with the skeleton file's own. */
 export const INJECTED_REF_BASE = 1 << 24;
 
-/** WS1: does a node carry the "BONE" NiStringExtraData the loader turns
- *  into a CustomBone description (nifloader.cpp:630-633)? The extra
- *  chain is walked whole (:618-640 iterates `extra` -> `next`). */
 export function hasBoneMarker(nif, rec) {
   let e = rec?.extra ?? -1;
   let guard = 0;
@@ -129,27 +84,8 @@ export function hasBoneMarker(nif, rec) {
 }
 
 /**
- * WS1 (2026-09-17; AUDIT-WS read it off the source): CUSTOM BONES,
- * OpenMW's `use additional anim sources` (animation.cpp:1306-1322
- * injectCustomBones -> :1284-1304 loadBonesFromFile). Every .nif under
- * `animations/<model>/` is a bone addon. GetExtendedBonesVisitor
- * (:218-236) collects every node carrying the "CustomBone" description
- * - the loader's name for a NiStringExtraData "BONE" (nifloader.cpp
- * :630-633) - together with its PARENT in the addon, and does not
- * descend into a found bone; loadBonesFromFile then looks the parent's
- * NAME up in the actor (FindByNameVisitor) and, when found, adds a deep
- * copy of the bone and its subtree under it. Nothing is checked for
- * already existing: the reference would add a second node of the name,
- * and its bone cache answers the FIRST (rule 16), so the copy is dead -
- * this port skips it and says so in `skipped`, the same observable. An
- * unmarked node is never added, wherever it sits (Weapon Sheathing's
- * `Bip01 AttachWeapon` is exactly that); a marked node whose parent the
- * actor lacks is skipped, silently there, named here.
- *
- * Refs are minted above INJECTED_REF_BASE; `pose.get(ref)` misses them
- * and skeletonSpaceMatrices poses them at rest, which is what an
- * unanimated attach bone is.
- *
+ * Matches OpenMW's custom bone loading: only nodes marked BONE are copied, under the actor node named like their
+ * addon parent. A name the skeleton already has is skipped, since OpenMW never finds that copy.
  * @returns {{added:string[], skipped:string[]}}
  */
 export function injectSkeletonNodes(skeleton, addonNif) {
@@ -157,7 +93,6 @@ export function injectSkeletonNodes(skeleton, addonNif) {
   const skipped = [];
   let next = INJECTED_REF_BASE;
   for (const [ref] of skeleton.nodes) if (ref >= next) next = ref + 1;
-  // the deep copy: a found bone and its whole subtree, under a base ref
   function copy(ref, parentRef) {
     const rec = deref(addonNif, ref);
     if (!rec || !NODE_TYPES.has(rec.type)) return;
@@ -168,11 +103,10 @@ export function injectSkeletonNodes(skeleton, addonNif) {
       rest: { rotation: rec.rotation, translation: rec.translation, scale: rec.scale },
       injected: true,
     });
-    if (key && !skeleton.byName.has(key)) skeleton.byName.set(key, hereRef);   // rule 16: the first of a name answers
+    if (key && !skeleton.byName.has(key)) skeleton.byName.set(key, hereRef);
     added.push(rec.name || '(nameless)');
     for (const child of rec.children ?? []) if (child >= 0) copy(child, hereRef);
   }
-  // the visitor: every marked node, with its addon parent; no descent past a found bone
   function walk(ref, parentRec) {
     const rec = deref(addonNif, ref);
     if (!rec || !NODE_TYPES.has(rec.type)) return;
@@ -191,42 +125,8 @@ export function injectSkeletonNodes(skeleton, addonNif) {
   return { added, skipped };
 }
 
-/**
- * RULE 56: THE ACCUMULATION ROOT IS A TWO-NAME TABLE, not a search.
- *
- * Morrowind animations carry the actor's locomotion in one bone's
- * translation channel (a flight cycle literally contains the flight path
- * - OAAB's bat keys y=1892 into it), and the engine extracts that motion
- * for MOVEMENT while the visual skeleton stays put. The reference
- * accumulates X,Y and leaves Z animated (jumps, hovers). Posing without
- * extraction is the geometry-all-over-the-place bug: every walk loop
- * translates the whole body away.
- *
- * WHICH bone, though, was ported as "the topmost tracked bone" and that
- * is not the rule (Animation::addAnimSource, animation.cpp:712-734):
- *
- *   // Priority matters! bip01 is preferred.
- *   static const std::initializer_list<std::string_view> accumRootNames
- *       = { "bip01", "root bone" };
- *
- * and a candidate is accepted only if BOTH the name resolves in the node
- * map AND the loaded KF drives a controller of that same name
- * (case-insensitively). MW-D14 corrected it, and the difference is not
- * academic: a first-person weapon .kf keys nothing on bip01, so "topmost
- * tracked bone" answered an UPPER ARM - and any translation channel on
- * that bone would then have had its X and Y zeroed, silently deforming
- * the arm rather than moving the actor.
- *
- * With neither name driven the answer is NULL, which is the correct
- * answer and not a failure: an animation with no accum root simply
- * accumulates nothing.
- *
- * STICKINESS IS THE CALLER'S. `if (!mAccumRoot)` guards the whole block,
- * so the choice is made by the FIRST anim source that resolves one and
- * later sources do not re-pick it. This function answers for ONE source;
- * a caller with several must ask them in push order and keep the first
- * non-null answer.
- */
+// Matches OpenMW's addAnimSource: try `bip01`, then `root bone`, and accept a name only when this source animates
+// it. Callers with several sources keep the first non-null answer.
 export const ACCUM_ROOT_NAMES = Object.freeze(['bip01', 'root bone']);
 
 export function accumRootRef(skeleton, tracks) {
@@ -241,20 +141,9 @@ export function accumRootRef(skeleton, tracks) {
 }
 
 /**
- * Pose the skeleton from tracks at a time: local transforms per node,
- * rest values where a channel has no keys. Pass `accumRoot` (from
- * accumRootRef) to extract root motion.
- *
- * MW-D33: the accumulated axes are ZEROED, not pinned to rest -
- * ResetAccumRootCallback multiplies the node's translation by
- * (0,0,1) component-wise ("anything that accumulates (1.f) should be
- * reset in the callback to (0.f)", animation.cpp:515-539), and it does
- * so on WHATEVER the transform holds, keyed or rest alike. Only Z
- * stays, the reference's (1,1,0) accumulation. The port had substituted
- * the bone's rest X,Y, which is only the same thing when the rest
- * translation happens to be zero.
- * @returns {Map<number, {rotation:Float32Array, translation:number[],
- *   scale:number}>}
+ * On the accumulation root, X and Y translation are zeroed rather than reset to rest, as OpenMW's
+ * ResetAccumRootCallback does, and Z stays animated.
+ * @returns {Map<number, {rotation:Float32Array, translation:number[], scale:number}>}
  */
 export function poseSkeleton(skeleton, tracks, sampleTrack, time, opts = {}) {
   const pose = new Map();
@@ -267,7 +156,7 @@ export function poseSkeleton(skeleton, tracks, sampleTrack, time, opts = {}) {
     const s = sampleTrack(track, time);
     let translation = s.translation ?? node.rest.translation;
     if (ref === opts.accumRoot) {
-      translation = [0, 0, translation[2]];   // componentMultiply((0,0,1), trans)
+      translation = [0, 0, translation[2]];
     }
     pose.set(ref, {
       rotation: s.rotation ? quatToMat33(s.rotation) : node.rest.rotation,
@@ -278,27 +167,10 @@ export function poseSkeleton(skeleton, tracks, sampleTrack, time, opts = {}) {
   return pose;
 }
 
-/**
- * MW-D20: THE GRAPH-SPACE SENTINEL. The reference's "skeleton space" is
- * the full path below the SceneUtil::Skeleton GROUP - the file's root
- * node is a CHILD of that group, so the root's own transform (which
- * rule 34 KEEPS when the root is a NiNode named bip01) is INCLUDED in
- * every bone matrix (Bone::update with no parent answers the node's own
- * matrix, skeleton.cpp:171; the loader adopts the root nodes as
- * children, nifloader.cpp:450-480). Pass this as `skeletonRoot` to get
- * that space: no real ref equals it, so no node is zeroed out.
- *
- * Every fixture's root was identity, which is why matrices relative to
- * the root REF (identity AT the root, its own transform excluded) were
- * indistinguishable from the reference for two milestones - and why a
- * retail skeleton whose Bip01 root carries a real transform pulled
- * every skinned piece out from under the rigid ones.
- */
+// Pass as `skeletonRoot` to include the file root's own transform in every bone matrix, as OpenMW's skeleton space
+// does, since a Bip01 root can carry a real transform.
 export const GRAPH_ROOT = -1;
 
-/** Affine per node RELATIVE TO skeletonRoot (root itself = identity);
- *  pass GRAPH_ROOT for the reference's own space, every node's
- *  transform included. */
 export function skeletonSpaceMatrices(skeleton, pose, skeletonRoot) {
   const out = new Map();
   function matOf(ref) {
@@ -318,12 +190,6 @@ export function skeletonSpaceMatrices(skeleton, pose, skeletonRoot) {
   return out;
 }
 
-/**
- * The transform canceling the chain between the skeleton root and the
- * skin's root bone: inverse of the composed locals of every node on that
- * path below the root, root-bone inclusive. Identity when they're the
- * same node.
- */
 export function skinToSkelMatrix(skeleton, pose, skeletonRoot, rootBone) {
   const chain = [];
   let ref = rootBone;
@@ -340,12 +206,6 @@ export function skinToSkelMatrix(skeleton, pose, skeletonRoot, rootBone) {
   return affineInverse(m);
 }
 
-/** PERF-RIG1: the skin loop's scratch, sized to the batch and kept on it.
- *  A batch is one piece's geometry for the life of the assembly, so the
- *  arrays are made once per piece and reused every frame; a batch whose
- *  vertex count changed (none does, but the check is the law) gets a new
- *  set. `collapse` keeps rows 0-8 at zero for the life of the scratch -
- *  only its translation is ever written. */
 function skinScratch(batch, n) {
   const sc = batch._skinScratch;
   if (sc && sc.n === n) return sc;
@@ -362,12 +222,8 @@ function skinScratch(batch, n) {
   return fresh;
 }
 
-/** PERF-RIG1: affineMul's arithmetic, written into `out` instead of a
- *  fresh affine - the same products in the same order into a Float32Array
- *  `a` and a plain-number `t`, so the result is bit-for-bit affineMul's.
- *  MWNPC1: exported - the GPU skin's palette (mwGpuSkin.js) writes each
- *  bone's product through this same function, so the two skins blend the
- *  same per-bone matrices. */
+// Must stay bit-identical to `affineMul`; mwGpuSkin.js builds its bone palette through this function so the CPU and
+// GPU skins agree.
 export function affineMulInto(p, l, out) {
   const a = out.a;
   for (let r = 0; r < 3; r++) {
@@ -382,25 +238,9 @@ export function affineMulInto(p, l, out) {
   return out;
 }
 
-/**
- * The piece's POST: the transform composed ONCE onto a vertex's blended
- * affine (MW-D31) - NiSkinData's root transform after the skin-to-skeleton
- * cancel, and the shape's own transform after that (MW-D20, below).
- * MWNPC1: one home for both skins - the CPU blend below and the GPU
- * palette (mwGpuSkin.js) apply this same affine, so a body drawn either way
- * stands in the same place.
- */
+// NiSkinData's root transform follows the skin-to-skeleton cancel, then the shape's own transform, which OpenMW
+// never cancels. mwGpuSkin.js applies this same affine.
 export function skinPost(skin, skeleton, pose) {
-  // MW-D20: THE SHAPE'S OWN TRANSFORM APPLIES. The blend's output rides
-  // the render chain, and the trishape's own transform node is the one
-  // part of that chain the reference never cancels: the rebound
-  // fallback stops its cancellation AT the trishape's parent
-  // ("cancel out everything up till the trishape",
-  // riggeometry.cpp:303-309), and the same-file path cancels only up
-  // THROUGH the named skin root. "NetImmerse ignores a skinned shape's
-  // own transform" - the sentence that stood in the flattener - is folk
-  // wisdom the reference's own code contradicts. Identity on every
-  // retail shape anyone has measured, which is why nothing saw it.
   let post = affineMul(
     affineOfTransform(skin.transform),
     skinToSkelMatrix(skeleton, pose, skin.skeletonRoot, skin.rootBone),
@@ -409,54 +249,17 @@ export function skinPost(skin, skeleton, pose) {
   return post;
 }
 
-/**
- * CPU-skin one batch (from flattenNif, carrying batch.skin) into out
- * arrays. positionsOut/normalsOut must be sized like the batch's own.
- */
 export function skinBatch(batch, skeleton, pose, skelMats, positionsOut, normalsOut) {
   const skin = batch.skin;
-  const post = skinPost(skin, skeleton, pose);   // MW-D20 / MWNPC1: the one home of the post
+  const post = skinPost(skin, skeleton, pose);
   const n = batch.positions.length / 3;
-  // PERF-RIG1 (2026-09-21, Mac: "continue looking into fixing exterior
-  // performance issues"): THE ACCUMULATORS ARE THE BATCH'S. This runs
-  // once per skinned piece per body per FRAME - the player's arm, the
-  // third-person body, every peer's - and it minted `acc` (12 floats a
-  // vertex), `wsum`, `touched`, two 12-float scratches and one 9-float
-  // affine per bone on every call: ~150 KB of typed-array garbage per
-  // 3,000-vertex piece per frame, which the heap meter never even counts
-  // (backing stores are off-heap) and the collector paid for in the
-  // `world` zone's swing. The same arrays now live on the batch, sized
-  // to it once, and are zeroed rather than replaced. Nothing about the
-  // arithmetic changes: the scratch is Float32Array where the old
-  // temporaries were, so every rounding is the one it was.
   const sc = skinScratch(batch, n);
   const acc = sc.acc; acc.fill(0);
   const wsum = sc.wsum; wsum.fill(0);
   const touched = sc.touched; touched.fill(0);
   const boneMat = sc.boneMat;
-  // Per-vertex blended affines, translations included - 12 floats each.
-  // MW-D31: the blend accumulates ONLY invBind * boneInSkelSpace - the
-  // reference's resultMat starts at zero with its W column pinned to
-  // (0,0,0,1) and sums exactly those per-bone products
-  // (riggeometry.cpp:172-202); `post` is applied ONCE to the blended
-  // result (`resultMat *= transform`, :204), never folded into each
-  // bone term. The difference is the translation column: folded per
-  // bone it comes out (sum w)*post.t, and rule 39 forbids
-  // renormalising, so any vertex whose weights do not sum to 1 - a
-  // missing-bone skip, or a file authored that way - slid toward the
-  // origin by the deficit.
-  // RULE 40: an influence naming a MISSING bone (ref null, from
-  // bindPart) is skipped in the blend - and the remaining weights are
-  // NOT renormalised (rule 39). But the vertex is still marked TOUCHED,
-  // because the reference distinguishes two cases the sum alone cannot:
-  // a vertex with no influences AT ALL keeps its authored position
-  // (rule 39's erased-empty-set), while one weighted ONLY to missing
-  // bones goes through the blend with a ZERO accumulator - rows 0-2
-  // zero, row 3 the skin transform's - and collapses onto that
-  // translation with a zero normal (riggeometry.cpp:191-210, read at
-  // the rule 40 verification). Faithful, and ugly on purpose: papering
-  // it over with bind pose would hide exactly the data problem the
-  // missing-bone note names.
+  // As in OpenMW, `post` applies once to the blended affine, never per bone, and weights are not renormalized.
+  // Influences on missing bones are skipped but still mark the vertex touched.
   for (const bone of skin.bones) {
     if (bone.ref == null) {
       for (let k = 0; k < bone.indices.length; k++) touched[bone.indices[k]] = 1;
@@ -479,15 +282,11 @@ export function skinBatch(batch, skeleton, pose, skelMats, positionsOut, normals
   collapse[9] = post.t[0];
   collapse[10] = post.t[1];
   collapse[11] = post.t[2];
-  // MW-D31: post composed onto the BLENDED affine, once per vertex -
-  // the row-vector `resultMat *= transform` in column terms. The
-  // collapse row is that same law on a zero accumulator: post.a*0 +
-  // post.t, which is why it stays post.t verbatim.
   const composed = sc.composed;
   const pa = post.a;
   const pt = post.t;
   const composePost = (o) => {
-    for (let c = 0; c < 3; c++) {           // three columns of acc's 3x3
+    for (let c = 0; c < 3; c++) {
       const x = acc[o + c]; const y = acc[o + 3 + c]; const z = acc[o + 6 + c];
       composed[c] = pa[0] * x + pa[1] * y + pa[2] * z;
       composed[3 + c] = pa[3] * x + pa[4] * y + pa[5] * z;
@@ -501,8 +300,6 @@ export function skinBatch(batch, skeleton, pose, skelMats, positionsOut, normals
   };
   for (let v = 0; v < n; v++) {
     const o = v * 12;
-    // An untouched vertex keeps its authored position; a touched one
-    // with no surviving weight takes the zero-accumulator collapse.
     const a = wsum[v] > 0 ? composePost(o) : touched[v] ? collapse : null;
     const x = batch.positions[v * 3];
     const y = batch.positions[v * 3 + 1];
@@ -537,26 +334,9 @@ export function skinBatch(batch, skeleton, pose, skelMats, positionsOut, normals
 }
 
 /**
- * MW-D7: WHICH BONES THE CLIP ACTUALLY DRIVES.
- *
- * poseSkeleton above answers a bone with no track by handing back
- * `node.rest` (:151-154). That is correct - it is what the reference
- * does - and it is also the deadliest silent failure in the animation
- * stage: hand it a .kf that keys nothing this skeleton has, and every
- * bone falls through to rest. The result is a clean, plausible, entirely
- * static arm. No error, no warning, no empty picture. A pixel count
- * passes it. A symmetry check passes it. It looks exactly like a working
- * idle that happens to be holding still.
- *
- * So the match has to be reportable, and it has to be reported by THIS
- * file, using the same comparison the poser uses one function up
- * (`node.name.toLowerCase()` against the track map's own lowercased
- * keys). A copy of that comparison in the page could agree with the page
- * and disagree with the pose - which is the one way a binding report can
- * be worse than no report at all.
- *
- * @returns {{matched:{bone:string, ref:number}[], unmatchedTracks:string[],
- *   untrackedBones:string[]}}
+ * Uses the same lowercase name match as `poseSkeleton`. Keep the two in sync, because a clip that matches no bone
+ * silently poses everything at rest.
+ * @returns {{matched:{bone:string, ref:number}[], unmatchedTracks:string[], untrackedBones:string[]}}
  */
 export function trackBinding(skeleton, tracks) {
   const matched = [];

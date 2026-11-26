@@ -24,6 +24,7 @@ invariants:
   - "fpSkeletonPath picks werewolf first, then beast, then female, then male: meshes/wolf/skin.1st.nif, meshes/base_animkna.1st.nif, meshes/base_anim_female.1st.nif, meshes/xbase_anim.1st.nif."
   - "correctActorModelPath adds the x prefix only when the matching .kf exists in the archive."
   - "Short subrecords are refused rather than read past: WPDT < 32 bytes, LHDT < 24 bytes, RADT under 140 bytes."
+  - "`raceRecords` lets the last RACE record of an id win, and `src/combat/fpArm.js` reads .esm files in `esmLoadOrder`, so a later master overrides an earlier one."
 traps:
   - "WPDT mType is int16 at byte 8 and mHealth is uint16 at byte 10. MW-D22 fixed a reader and fixture that had both assumed byte 10."
   - "Retail Nord male hands are b_n_nord_m_hands.1st (plural), so name-guessing fails."

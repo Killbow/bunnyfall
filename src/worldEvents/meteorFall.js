@@ -1,7 +1,6 @@
 // @ts-check
-// Meteor's look and sound: a rock wrapped in its element falls from `from` to `to`, then the flash, stones, dust, and a
-// scorched crater. Nothing here deals damage (the caster's hidden missile does), so another player's game can draw the
-// same fall from the same few numbers.
+// Draws and plays sound only: the caster's hidden missile deals the damage, so another player's game can replay the
+// same fall from the same few inputs.
 import { groundAt } from '../player/groundRay.js';
 import { flatMesh, flatModel, seededRandom } from '../world/flatMesh.js';
 import { placePictureSource, placePicture, rockPictureSource } from '../world/placePicture.js';
@@ -81,11 +80,7 @@ async function elementTint(getTexture, el) {
   } catch { return [255, 160, 90]; }
 }
 
-/**
- * @param {{ collider: any, getTexture?: ((archive: number) => Promise<any>) | null,
- *   flats?: { fly: (archive: number, pos: number[], o?: any) => any, puff: (archive: number, record: number, pos: number[], o?: any) => any } | null,
- *   glow?: ((kind: string, pos: number[], o?: any) => void) | null, thud?: ((pos: number[], o?: any) => void) | null }} deps
- */
+/** @param {{ collider: any, getTexture?: ((archive: number) => Promise<any>) | null, flats?: { fly: (archive: number, pos: number[], o?: any) => any, puff: (archive: number, record: number, pos: number[], o?: any) => any } | null, glow?: ((kind: string, pos: number[], o?: any) => void) | null, thud?: ((pos: number[], o?: any) => void) | null }} deps */
 export function createMeteorFall(deps) {
   const { collider } = deps;
   const falls = [], craters = [], later = [];

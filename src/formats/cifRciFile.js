@@ -1,18 +1,3 @@
-// *.CIF / *.RCI reader. CIF files contain one or more images, including
-// animated weapon records; RCI files contain fixed-size image grids and are
-// never animated.
-// 1:1 translation of Daggerfall Unity's CifRciFile.cs (MIT, Daggerfall
-// Workshop / Gavin Clayton). Quirks kept verbatim:
-//   - FACES.CIF is actually an RCI file and is routed accordingly.
-//   - RCI dimensions come from a per-filename table; record count is
-//     fileLength / (width*height).
-//   - WEAPON*.CIF: a standard "wielding" IMG record first (except
-//     WEAPON09.CIF, the bow), then animation records with a 31-slot frame
-//     offset list where non-zero entries define the frame count.
-// Structural simplification: DFU pre-sizes a fixed 64-record array
-// (503 for TFAC00I0.RCI); we grow a plain array. The 64 is load-bearing
-// for WEAPON*.CIF - see MAX_WEAPON_RECORDS below - because the weapon
-// loop's only stride is a file-supplied TotalSize.
 
 import { BaseImageFile, COMPRESSION_FORMATS, emptyBitmap } from './baseImageFile.js';
 
@@ -21,14 +6,10 @@ const RECORD_TYPES = Object.freeze({
   WeaponAnim: 1,
 });
 
-// CifRciFile.cs:33 `private Record[] records = new Record[64];`. The weapon
-// loop advances by the file's own TotalSize, so a TotalSize of 0 never moves
-// the read head: DFU's 65th write throws IndexOutOfRangeException, Read()'s
-// catch swallows it and Load returns false. Without the bound this loop spins
-// forever.
+// Matches the fixed 64-record array in DFU. The weapon loop advances by the file's own TotalSize, so a TotalSize of
+// 0 would loop forever without this bound.
 const MAX_WEAPON_RECORDS = 64;
 
-// Fixed dimensions for RCI-style files.
 function rciDimensions(filename) {
   switch (filename) {
     case 'FACES.CIF':
@@ -55,7 +36,6 @@ export class CifRciFile extends BaseImageFile {
     this._records = [];
   }
 
-  /** Always ART_PAL.COL for CIF and RCI files. */
   get paletteName() {
     return 'ART_PAL.COL';
   }
@@ -71,11 +51,10 @@ export class CifRciFile extends BaseImageFile {
   }
 
   /**
-   * Loads a CIF or RCI file.
-   * @param {Uint8Array} bytes - full file contents.
-   * @param {string} fileName - drives RCI/weapon routing.
+   * @param {Uint8Array} bytes
+   * @param {string} fileName
    * @param {import('./dfPalette.js').DFPalette} [palette]
-   * @returns {boolean} true if successful.
+   * @returns {boolean}
    */
   load(bytes, fileName, palette = null) {
     const upper = fileName.toUpperCase();
@@ -87,9 +66,6 @@ export class CifRciFile extends BaseImageFile {
     try {
       this._readRecords();
     } catch (e) {
-      // Read()'s catch leaves `totalRecords` at its 0 (CifRciFile.cs:38,
-      // :266-278), so a failed load answers no records at all - never the
-      // half-filled array the walk got to.
       this._records.length = 0;
       return false;
     }
@@ -97,13 +73,11 @@ export class CifRciFile extends BaseImageFile {
     return true;
   }
 
-  /** Number of frames in specified record, or 0 if invalid. */
   getFrameCount(record) {
     if (record < 0 || record >= this._records.length) return 0;
     return this._records[record].header.frameCount;
   }
 
-  /** {width,height} of specified record. All frames share dimensions. */
   getSize(record) {
     if (record < 0 || record >= this._records.length) return { width: 0, height: 0 };
     const r = this._records[record];
@@ -111,7 +85,6 @@ export class CifRciFile extends BaseImageFile {
     return { width: r.header.width, height: r.header.height };
   }
 
-  /** {x,y} offset of specified record (0,0 for animated records). */
   getOffset(record) {
     if (record < 0 || record >= this._records.length) return { x: 0, y: 0 };
     const r = this._records[record];
@@ -119,10 +92,6 @@ export class CifRciFile extends BaseImageFile {
     return { x: r.header.xOffset, y: r.header.yOffset };
   }
 
-  /**
-   * Indexed 8-bit bitmap for specified record and frame:
-   * {width, height, data: Uint8Array, palette}. Decoded lazily, cached.
-   */
   getDFBitmap(record, frame) {
     if (record < 0 || record >= this._records.length || frame >= this.getFrameCount(record)) {
       return emptyBitmap();
@@ -131,24 +100,19 @@ export class CifRciFile extends BaseImageFile {
     return this._records[record].frames[frame];
   }
 
-  // --- Readers ---
-
   _readRecords() {
     const fn = this._fileName;
 
-    // Handle RCI files (FACES.CIF is actually an RCI file).
     if (fn.endsWith('.RCI') || fn === 'FACES.CIF') {
       this._readRci(fn);
       return;
     }
 
-    // Handle WEAPON files.
     if (fn.includes('WEAPO')) {
       this._readWeaponCif(fn);
       return;
     }
 
-    // Plain CIF: a contiguous array of single-frame IMG records.
     let pos = 0;
     do {
       const header = this.readImgFileHeader(pos);
@@ -163,12 +127,10 @@ export class CifRciFile extends BaseImageFile {
     } while (pos < this._bytes.byteLength);
   }
 
-  /** Special handling for RCI files. */
   _readRci(filename) {
     const sz = rciDimensions(filename);
     if (!sz) return;
 
-    // Get image count.
     const count = Math.floor(this._bytes.byteLength / (sz.width * sz.height));
 
     let pos = 0;
@@ -194,12 +156,10 @@ export class CifRciFile extends BaseImageFile {
     }
   }
 
-  /** Special handling for WEAPON CIF files. */
   _readWeaponCif(filename) {
     const v = this._view;
     let pos = 0;
 
-    // Read "wielding" image, except for WEAPON09.CIF (the bow) which has none.
     if (filename !== 'WEAPON09.CIF') {
       const header = this.readImgFileHeader(pos);
       this._records.push({
@@ -227,7 +187,6 @@ export class CifRciFile extends BaseImageFile {
       };
       pos += 12;
 
-      // Frame data offset list: non-zero entries define the frame count.
       let frameCount = 0;
       for (let i = 0; i < 31; i++) {
         animHeader.frameDataOffsetList[i] = v.getUint16(pos, true);
@@ -239,13 +198,8 @@ export class CifRciFile extends BaseImageFile {
       pos += 2;
 
       this._records.push({
-        // AUDIT 24 formats: ReadWeaponCif sets only
-        // `records[count].Header.FrameCount = FrameCount;`
-        // (CifRciFile.cs:456) over a default-initialised
-        // ImgFileHeader STRUCT, so the other fields are 0, not
-        // absent. A single-frame record takes GetSize/GetOffset's
-        // else-arm (:223-226, :240-243) and answers (0,0) there -
-        // where the port answered undefined, and any arithmetic NaN.
+        // DFU sets only the frame count on a weapon record header, so a single-frame weapon record reports a size
+        // and offset of 0.
         header: { frameCount, width: 0, height: 0, xOffset: 0, yOffset: 0 },
         animHeader,
         fileType: RECORD_TYPES.WeaponAnim,
@@ -253,14 +207,13 @@ export class CifRciFile extends BaseImageFile {
         frames: new Array(frameCount).fill(null),
       });
 
-      // Skip over pixel data.
       pos = animHeader.position + animHeader.totalSize;
     } while (pos < this._bytes.byteLength);
   }
 
   _readImageData(record, frame) {
     const rec = this._records[record];
-    if (rec.frames[frame] !== null) return true; // already decoded
+    if (rec.frames[frame] !== null) return true;
 
     if (rec.fileType === RECORD_TYPES.WeaponAnim) return this._readWeaponImage(record, frame);
 
@@ -274,7 +227,6 @@ export class CifRciFile extends BaseImageFile {
     }
   }
 
-  /** Read uncompressed record (raw pixelDataLength bytes). */
   _readImage(record, frame) {
     const rec = this._records[record];
     const data = new Uint8Array(rec.header.pixelDataLength);
@@ -290,7 +242,6 @@ export class CifRciFile extends BaseImageFile {
     return true;
   }
 
-  /** Read weapon frame: classic RLE at animPosition + frame offset. */
   _readWeaponImage(record, frame) {
     const rec = this._records[record];
     const length = rec.animHeader.width * rec.animHeader.height;
@@ -306,7 +257,6 @@ export class CifRciFile extends BaseImageFile {
     return true;
   }
 
-  /** Read a classic-RLE record. */
   _readRleImage(record, frame) {
     const rec = this._records[record];
     const length = rec.header.width * rec.header.height;

@@ -33,6 +33,8 @@ invariants:
 traps:
   - "`STAND_IN_WHOLE` (`src/world/gateBoss.js`) is derived from `HIT_CAP_X * dpsRef(LV_MAX) * EG_BUCKET_X_MAX` (`12 * 65 * 1.25 = 975`) so stand-in Disintegrate claims stay below `GATE_DMG_WIRE_MAX` (100,000)."
   - "Health and magicka regeneration are disabled inside the court, and both the boss and summoned host carry `pacifyImmune`."
+  - "The relay accepts a blow on the boss or a crystal only from inside the boss's court plus `POSE_SLACK`, and a host blow only from that body's floor (`applyHostHit`)."
+  - "Clients identify an attack by index plus landing time and a Reckoning by number plus first crystal spot, because a room restored from a checkpoint reuses attack numbers."
 tags:
   - boss
   - relay

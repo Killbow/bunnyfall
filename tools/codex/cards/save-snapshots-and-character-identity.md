@@ -12,6 +12,7 @@ files:
   - "src/maps/discovery.js"
   - "src/scenes/worldModes.js"
   - "src/world/worldSaveLoad.js"
+  - "src/formats/saveVarsFile.js"
 routes: []
 tables: []
 replacesBible:
@@ -25,6 +26,7 @@ invariants:
   - "Character identity keys on `characterId` rather than character name: `snapshotPlayer` (`src/saves/save.js`) mints missing ids via `characterIdOf` (`src/characters/characterId.js`), and `adoptLegacyCards` stamps matching legacy cards."
   - "restorePlayer (src/saves/save.js:810) re-anchors lastGameMinutes and calls resetMagicRoundMarker to the restored classic minutes, so a load never replays day changes or magic rounds."
   - "restoreSessionState (src/saves/save.js:1474) runs removeAllOrphanedItems after quests restore."
+  - "`SaveVars.climateWeathers` holds the raw classic bytes; the 0x7f fog mask and the 5/6 weather swap happen in `convertClassicClimateWeathers`."
 traps:
   - "Keying save slots by characterName alone collides when characters share a name. quickLoadSlot and hasQuickSave take characterId."
   - "Restoring without resetting the magic-round marker lets the catch-up run up to MAX_CATCHUP_ROUNDS on the first tick."

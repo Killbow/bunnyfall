@@ -1,25 +1,19 @@
 // @ts-check
-// GATE-MIX (2026-10-20, the owner: "in oblivion gates ... the game hitches"): THE NIGHT'S BODIES MADE READY BEFORE THEY
-// COME. His host's, his Flame's and his own sprites were each fetched when their first body was drawn (a wave's first
-// rising, the Sundering) and each frame of them decoded and uploaded the first time it showed (a new angle, a first
-// swing, a first hurt) - work landing in the frames the fight is busiest in. Now the court asks, as I stand in it, for
-// the archive of every body the night can show (`nightMobiles`), and uploads their frames a few a frame
-// (SPRITE_WARM_UPLOADS) until all stand; the draws find them there, and upload whatever they still find missing as before.
-// Design: bible/11-Multiplayer/World-Bosses.md section 28.
 
 import { HOST } from '../net/gateBrain.js';
 import { hasPortent } from '../net/gateMods.js';
 import { bossLookOf, hostLookOf, flameLookOf } from '../world/gateBoss.js';
 import { ENEMY_BASICS } from '../characters/enemyBasics.js';
 
-/** The most frames decoded and uploaded in one frame, and the most looked over (already standing or not). */
 export const SPRITE_WARM_UPLOADS = 4;
 export const SPRITE_WARM_LOOKS = 48;
 
-/** The mobiles a night can show: him, the Tithe-Imp (any night, one in five, unannounced), his host on a Legion-Lord's
- *  night, the Vanguard's kinds on its night, his Flame on a Sundering's and the Gaolers on a Captive's - each kind by his
- *  aspect. Pure.
- *  @param {any} s the court's state @param {any} P its profile (net/gate/gateBrain.js profileOf) @returns {number[]} */
+/**
+ * The Tithe-Imp is always included because it can appear on any night with no portent to announce it.
+ * @param {any} s
+ * @param {any} P
+ * @returns {number[]}
+ */
 export function nightMobiles(s, P) {
   if (!s || s.day === null || s.day === undefined) return [];
   const a = P?.aspect?.id, m = new Set([bossLookOf(s.boss).mobile, hostLookOf(HOST.tithe, a).mobile]);
@@ -30,19 +24,16 @@ export function nightMobiles(s, P) {
   return [...m];
 }
 
-/**
- * The court's warm-up of its bodies' sprites: `want(s, P)` asks for the night's archives (once a night), `step()` uploads
- * the next few frames not yet standing and answers how many, `clear()` forgets it all (the court left - the places'
- * hold lets the pictures go with it).
- * @param {{ getTexture?: ((archive: number) => any)|null, uploadRecordFrame?: ((archive: number, record: number, frame: number) => void)|null,
- *   has?: (archive: number, rkey: string) => boolean }} deps `has`: whether the frame's picture (`${record}#${frame}`) stands
- */
+/** @param {{ getTexture?: ((archive: number) => any)|null, uploadRecordFrame?: ((archive: number, record: number, frame: number) => void)|null, has?: (archive: number, rkey: string) => boolean }} deps */
 export function createSpriteWarm({ getTexture = null, uploadRecordFrame = null, has = () => false } = {}) {
   /** @type {Map<number, { tex: any, r: number, f: number, done: boolean }>} */
   const asked = new Map();
   let night = null;
   return {
-    /** @param {any} s @param {any} P */
+    /**
+     * @param {any} s
+     * @param {any} P
+     */
     want(s, P) {
       if (!getTexture || !uploadRecordFrame) return;
       const key = `${s?.day}|${s?.boss}|${P?.aspect?.id}|${P?.legion ? 1 : 0}|${s?.pt ?? ''}`;

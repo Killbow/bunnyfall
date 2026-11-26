@@ -1,46 +1,10 @@
-// Morrowind BSA container reader (version 0x100) - NOT the Daggerfall BSA
-// (see bsaFile.js for that, entirely different format). Original
-// implementation written against the documented layout; OpenMW's
-// components/bsa/bsafile.cpp used as behavioral reference only (GPL - no
-// code ported). Runtime reads immutable byte buffers only, same doctrine
-// as the ARENA2 readers.
-//
-// Format:
-//   Header (12 bytes): uint32 magic 0x100, uint32 dirSize, uint32 fileCount.
-//     Little-endian throughout.
-//   Directory block (dirSize bytes total):
-//     fileCount x { uint32 size, uint32 offset }   - offset into data buffer
-//     fileCount x uint32 nameOffset                - into the name buffer
-//     name buffer (dirSize - 12*fileCount bytes)   - null-terminated strings
-//   Hash table: fileCount x uint64 - ignored (names are authoritative).
-//   Data buffer: rest of the archive; record offsets are relative to its start.
-//
-// Paths inside the archive use backslashes and mixed case
-// ("meshes\\b\\B_N_Argonian_F_Skins.NIF"); lookups here normalize to
-// lowercase forward-slash so callers never worry about it.
 
-/** Normalize an archive path for lookup: lowercase, backslash to slash. */
 export function normalizeBsaPath(path) {
   return String(path).toLowerCase().replace(/\\/g, '/');
 }
 
-// MW-LOAD (2026-09-08, Mac: "improve the load time when Morrowind
-// assets are enabled"): THE ARCHIVE IS OPENED, NOT READ. A retail set is
-// three archives of 150-300 MB and the store handed each one back as a
-// whole ArrayBuffer - a structured clone of every byte, one to three
-// seconds per archive measured, before a single mesh was asked for -
-// and kept them resident for the session. The first-person arm needs a
-// few dozen entries. So an archive opens off a Blob: the header and the
-// directory come in by RANGE (a few megabytes, ~5 ms measured on a
-// settled store), and an entry's bytes come in by range when it is
-// LOADED (~1 ms each). `get` stays synchronous - it answers from what
-// has been loaded, which is the contract every reader already speaks -
-// and `load` is the one async door in front of it. The whole-buffer
-// constructor stands for the fixtures and any caller that has bytes.
 export class MwBsaFile {
-  /**
-   * @param {Uint8Array} bytes - full BSA file contents.
-   */
+  /** @param {Uint8Array} bytes */
   constructor(bytes) {
     if (!(bytes instanceof Uint8Array)) {
       throw new TypeError('MwBsaFile expects a Uint8Array');
@@ -48,11 +12,10 @@ export class MwBsaFile {
     this._bytes = bytes;
     this._blob = null;
     this._loaded = new Map();
-    this._loading = new Map();   // AUDIT MW-TEXTHREAD F5: the reads in flight, by key
+    this._loading = new Map();
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     if (bytes.byteLength < 12) throw new Error('MwBsaFile: too small to be a BSA');
     const { dirSize, fileCount } = MwBsaFile._header(view);
-    // Each file needs a 12-byte directory footprint plus an 8-byte hash entry.
     if (12 + dirSize + 8 * fileCount > bytes.byteLength || dirSize < 12 * fileCount) {
       throw new Error('MwBsaFile: directory larger than archive');
     }
@@ -68,8 +31,6 @@ export class MwBsaFile {
   }
 
   /**
-   * MW-LOAD: open an archive off a Blob - the header and the directory
-   * by range, the data buffer left where it is. `size` is the blob's.
    * @param {Blob} blob
    * @returns {Promise<MwBsaFile>}
    */
@@ -83,7 +44,6 @@ export class MwBsaFile {
     if (12 + dirSize + 8 * fileCount > blob.size || dirSize < 12 * fileCount) {
       throw new Error('MwBsaFile: directory larger than archive');
     }
-    // the directory block and the hash table, as one range
     const dirBytes = new Uint8Array(await blob.slice(0, 12 + dirSize + 8 * fileCount).arrayBuffer());
     const a = Object.create(MwBsaFile.prototype);
     a._bytes = null;
@@ -124,33 +84,30 @@ export class MwBsaFile {
     return this._names.length;
   }
 
-  /** All archive paths, normalized, in directory order. @returns {string[]} */
+  /** @returns {string[]} */
   list() {
     return this._names.slice();
   }
 
-  /** @param {string} path @returns {boolean} */
+  /**
+   * @param {string} path
+   * @returns {boolean}
+   */
   has(path) {
     return this._entries.has(normalizeBsaPath(path));
   }
 
-  /** MW-LOAD: is this a lazily opened archive (a Blob behind it)? */
   get lazy() {
     return this._blob !== null;
   }
 
-  /** MW-LOAD: are the entry's bytes in hand - always, off a whole buffer;
-   *  off a Blob, once `load` has brought them in. */
   loaded(path) {
     if (this._bytes) return this._entries.has(normalizeBsaPath(path));
     return this._loaded.has(normalizeBsaPath(path));
   }
 
   /**
-   * File bytes as a zero-copy subarray of the archive buffer, or the
-   * loaded copy off a Blob. Synchronous: a lazily opened archive answers
-   * only what `load` has brought in, and says so.
-   * @param {string} path - archive path, any case / slash style.
+   * @param {string} path
    * @returns {Uint8Array}
    */
   get(path) {
@@ -170,15 +127,8 @@ export class MwBsaFile {
   }
 
   /**
-   * MW-LOAD: the entry's bytes, by range off the Blob (cached, so a
-   * second load is the first's answer), or `get`'s answer off a whole
-   * buffer. The one async door.
-   *
-   * AUDIT MW-TEXTHREAD F5: and a load asked while the same entry's read
-   * is IN FLIGHT is that read's answer. The cache above answers only
-   * once the bytes land; MW-TEXTHREAD set the build's measures running
-   * side by side, and two garments or two heads sharing a mesh or a
-   * texture each missed it and read the same range twice.
+   * A load for an entry whose read is still in flight returns that same read, so a shared mesh or texture is
+   * fetched once.
    * @param {string} path
    * @returns {Promise<Uint8Array>}
    */
@@ -199,17 +149,15 @@ export class MwBsaFile {
       const bytes = new Uint8Array(buf);
       this._loaded.set(key, bytes);
       return bytes;
-    }).finally(() => { this._loading.delete(key); });   // a failed read is not kept: the next ask reads again
+    }).finally(() => { this._loading.delete(key); });
     this._loading.set(key, read);
     return read;
   }
 
-  /** MW-LOAD: load every path in `paths` that this archive carries. */
   async loadAll(paths) {
     for (const p of paths) if (this.has(p)) await this.load(p);
   }
 
-  /** MW-LOAD: drop the loaded entries (a rebuild that no longer needs them). */
   release() {
     this._loaded.clear();
   }

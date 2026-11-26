@@ -1,6 +1,3 @@
-// The travel view in the world: its routes and walks, sea crossings and raiders, wilderness bands
-// and their chases, dungeon finds, places, and camps, and the journey's pace. It also holds the sea
-// lanes' ships and the view's ground and water.
 import { areEnemiesNearby, foeAlerted, foeHostile } from '../characters/encounters.js';
 import {
   BAND_CHASE_MPS, BAND_CONTACT_M, BAND_LIFE_MS, BAND_STAND_M, BAND_STAND_MIN_M, BAND_STAND_RETRY_MS, BAND_STAND_TRIES,
@@ -532,7 +529,7 @@ export function createTravelViewWorld(shared) {
     shared.csaJourneyHelm.row = cmd.row;
     if (cmd.sails) shared.csaJourneyHelm.press(CSA_BOAT_ACTIONS.toggleSail);
   }
-  // Runs before Travel Options' frame, so its stops see a launch or landfall made this frame.
+  // Runs before the Travel Options frame, so its stops see a launch or landfall made this frame.
   function tvSeaFrame(dt) {
     const route = shared.travelOptions?.route;
     const live = !!shared.tvSea.means && !!shared.csaRuntime && !!route && !!shared.travelControlUI?.isShowing && !!shared.travelOptions?.state?.autopilot;
@@ -968,7 +965,8 @@ export function createTravelViewWorld(shared) {
       || playerEntity.preventEnemySpawns || shared.player.isPlayerSwimming || aboard
       || shared._inAnyLocationRect(shared.player.feetAt())) { bandDrop(); return; }
     const ms = bandNowMs(), n = shared.state.worldCoords(shared.player.pos), feet = { x: n.x, z: n.z };
-    // A chase waits on its own clock: the shared clock keeps running while a hold pauses the chase.
+    // A chase runs on its own clock, which advances only here, so a hold pauses the chase while the shared clock
+    // keeps running.
     _bandClock += dt * 1000;
     const listed = travelViewBands(), sight = bandSight(shared.tvBandSeen.night);
     for (const [id, c] of _bandChase) {
@@ -1064,7 +1062,7 @@ export function createTravelViewWorld(shared) {
   }
   function raidContact() {
     if (warmAshesRaidRefusal()) return;
-    // The raid teleport is no load: let go of the helm first, or the next sail returns you to it.
+    // The raid teleport is not a load, so stop sailing first or the next sail puts the player back at the helm.
     if (shared.csaRuntime?.isSailing()) shared.csaCall(() => shared.csaRuntime.StopSailing());
     tvSeaRelease();
     const said = warmAshesRaidAtSea();
@@ -1271,7 +1269,8 @@ export function createTravelViewWorld(shared) {
     }
     const walk = travelWalkRate({
       viewUp: shared.travelView?.state === 'up', journey,
-      // A key held as the page loses focus never sends its keyup, so only count it with focus.
+      // A key held when the page loses focus never sends its keyup, so movement counts only while the page has
+      // focus.
       moving: TV_MOVE_ACTIONS.some((a) => held(shared.keys, a)) && (typeof document === 'undefined' || document.hasFocus?.() !== false),
       onFoot: shared.walkMode && shared.playerSpawned && !shared.player.isPlayerSwimming && !shared.csaBoatUnderMe() && !(shared.player.climb?.isClimbing || shared.player.mantling || shared.player.onWall || shared.player.holdPending),
       paused: shared.gamePaused(),

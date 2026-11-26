@@ -14,6 +14,7 @@ files:
   - "vendor/beautiful-villages/README.md"
   - "vendor/beautiful-cities/README.md"
   - "tools/worldDataPackBuild.mjs"
+  - "src/formats/worldDataPack.js"
 routes: []
 tables: []
 replacesBible:
@@ -33,6 +34,7 @@ invariants:
 traps:
   - "A mod switch flipped mid-game reaches nothing until the next load; read `modLatchedOn`, not the live setting."
   - "`BLOCK_CACHE_MAX` (192) evicts the oldest block; do not assume every replaced block stays resident."
+  - "A `b` base, and a `$c` reference when the pack carries `classicNames`, checks the classic block name at its index, so a BLOCKS.BSA in another order makes that file throw and the classic layout shows."
 dfu:
   - "Assets/Scripts/Game/Serialization/SerializableGameObject.cs"
   - "Assets/Scripts/Utility/RMBLayout.cs"

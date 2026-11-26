@@ -14,6 +14,7 @@ files:
   - "src/tools/mwViewer.js"
   - "tools/mwArmProbe.mjs"
   - "tools/mwRigProbe.mjs"
+  - "src/formats/mwCloakFit.js"
 routes: []
 tables: []
 replacesBible:
@@ -33,6 +34,7 @@ invariants:
   - "createWeaponRig (src/combat/weaponRig.js) owns the live first-person arm, and active() gates it on a built arm, a GPU mesh and a camera."
   - "The first-person near plane uses the idle reach (`idleReach / 200`, at least `1e-4`) and the far plane uses the reach swept over every clip (`reach * 4`), so a wide swing does not push the near plane out."
   - "`refreshWorn` (`src/combat/weaponRig.js`) only calls `syncWorn`, which reads the equip table back into the hands, so calling it again in the same frame is safe."
+  - "`followCloak` installs `assembly.afterPose`, so stowed gear re-solves against the cloak after every `poseAssembly`, and a body with no cloak clears the hook."
 traps:
   - "Morrowind modules are flat under src/formats/; there is no src/formats/morrowind/ directory, even though some comments still cite one."
   - "OpenMW class names in comments (NpcAnimation, CharacterController, RotateController) are citations, not port symbols."

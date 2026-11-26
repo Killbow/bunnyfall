@@ -1,19 +1,5 @@
-// DDS texture decoder for the Morrowind data path. Decodes the formats that
-// actually occur in Bethesda's Textures/ set - DXT1 (BC1), DXT3 (BC2),
-// DXT5 (BC3) and uncompressed masked RGB(A) - to flat RGBA8. Original
-// implementation against the DDS/S3TC specs (MS DDS programming guide);
-// strict on anything else so retail oddities surface loudly instead of
-// rendering garbage.
-//
-// Layout:
-//   uint32 magic 'DDS ' (0x20534444)
-//   124-byte DDS_HEADER: uint32 size(124), flags, height, width,
-//     pitchOrLinearSize, depth, mipMapCount, reserved[11],
-//     DDS_PIXELFORMAT (32 bytes: size(32), flags, fourCC, rgbBitCount,
-//     rMask, gMask, bMask, aMask), caps[4], reserved2. Little-endian.
-//   Then mip 0 data, mip 1, ... for each mip level.
 
-const DDS_MAGIC = 0x20534444; // 'DDS '
+const DDS_MAGIC = 0x20534444;
 const DDPF_FOURCC = 0x4;
 const DDPF_RGB = 0x40;
 const DDPF_ALPHAPIXELS = 0x1;
@@ -21,7 +7,6 @@ const FOURCC_DXT1 = 0x31545844;
 const FOURCC_DXT3 = 0x33545844;
 const FOURCC_DXT5 = 0x35545844;
 
-/** Expand a 5.6.5 color to [r,g,b] 0..255 (bit-replicated like GPUs do). */
 function unpack565(c) {
   const r = (c >> 11) & 0x1f;
   const g = (c >> 5) & 0x3f;
@@ -30,22 +15,26 @@ function unpack565(c) {
 }
 
 /**
- * Decode one 4x4 BC1/2/3 block into out (RGBA8, row stride = width*4).
- * @param {DataView} view @param {number} off - block start
- * @param {number} fourCC @param {Uint8Array} out
- * @param {number} bx @param {number} by @param {number} width @param {number} height
+ * @param {DataView} view
+ * @param {number} off
+ * @param {number} fourCC
+ * @param {Uint8Array} out
+ * @param {number} bx
+ * @param {number} by
+ * @param {number} width
+ * @param {number} height
  */
 function decodeBlock(view, off, fourCC, out, bx, by, width, height) {
   let colorOff = off;
-  if (fourCC !== FOURCC_DXT1) colorOff = off + 8; // alpha block first for DXT3/5
+  if (fourCC !== FOURCC_DXT1) colorOff = off + 8;
 
   const c0 = view.getUint16(colorOff, true);
   const c1 = view.getUint16(colorOff + 2, true);
   const bits = view.getUint32(colorOff + 4, true);
   const [r0, g0, b0] = unpack565(c0);
   const [r1, g1, b1] = unpack565(c1);
-  // Palette: DXT1 with c0<=c1 uses the 3-color + transparent mode; DXT3/5
-  // always interpolate 4 colors regardless of ordering.
+  // Only DXT1 with c0 <= c1 uses the 3-color plus transparent mode. DXT3 and DXT5 always interpolate 4 colors,
+  // whatever the endpoint order.
   const pal = [
     [r0, g0, b0, 255],
     [r1, g1, b1, 255],
@@ -59,7 +48,6 @@ function decodeBlock(view, off, fourCC, out, bx, by, width, height) {
     );
   }
 
-  // DXT5 interpolated alpha setup.
   let a0 = 0, a1 = 0, aPal = null, aBitsLo = 0, aBitsHi = 0;
   if (fourCC === FOURCC_DXT5) {
     a0 = view.getUint8(off);
@@ -102,7 +90,6 @@ function decodeBlock(view, off, fourCC, out, bx, by, width, height) {
   }
 }
 
-/** Rightmost set-bit shift and width of a channel mask. */
 function maskShift(mask) {
   if (mask === 0) return { shift: 0, bits: 0 };
   let shift = 0;
@@ -120,14 +107,9 @@ function maskShift(mask) {
 }
 
 /**
- * Decode a DDS file to RGBA8 mip levels.
  * @param {Uint8Array} bytes
- * @param {{levels?:number}} [opts] - MW-LOAD: decode at most this many
- *   levels from the top (default: the whole chain). A measurement that
- *   reads level 0 only (the face match's head and hair candidates)
- *   should not pay for the chain below it - a third again of the work.
- * @returns {{width:number, height:number,
- *   mips:{width:number, height:number, rgba:Uint8Array}[]}}
+ * @param {{levels?:number}} [opts]
+ * @returns {{width:number, height:number, mips:{width:number, height:number, rgba:Uint8Array}[]}}
  */
 export function decodeDds(bytes, { levels = Infinity } = {}) {
   if (!(bytes instanceof Uint8Array)) throw new TypeError('decodeDds expects a Uint8Array');

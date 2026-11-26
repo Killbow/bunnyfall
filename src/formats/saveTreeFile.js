@@ -1,33 +1,3 @@
-// SAVETREE.DAT reader (SAV1) - the fourteenth format reader. 1:1
-// translation of DFU API/Save (MIT, Daggerfall Workshop): SaveTree.cs,
-// SaveTreeHeader.cs, SaveTreeBaseRecord.cs, SaveTreeBuildingRecords.cs,
-// and the small typed records - ItemRecord.cs, GuildMembershipRecord.cs,
-// DiseaseOrPoisonRecord.cs, ContainerRecord.cs, TrappedSoulRecord.cs,
-// SpellRecord.cs (whose parse is DaggerfallSpellReader.ReadSpellData,
-// single-sourced in spellsStd.js). CharacterRecord.cs is big enough to
-// be its own module: characterRecord.js.
-//
-// Layout (SaveTree.Open): 19-byte header (version 0x126, a position
-// triple, mapId, environment), then the building records block (i32
-// length, 26-byte DFLocation.BuildingData records), then RecordElements
-// to end of stream: i32 length + [record root (71 bytes) + record data].
-// ReadRecords' own quirks, preserved verbatim:
-//   - length <= 0 records are SKIPPED (their 4-byte length still
-//     consumed) - "empty records have no data";
-//   - the overflow guard is `position + length >= stream.length`, so a
-//     record that ends EXACTLY at EOF is rejected and reading stops;
-//   - a Light record's stored length is multiplied by 39
-//     (SaveTreeBaseRecord.LightDataLengthMultiplier) before the read;
-//   - a duplicate RecordID is COUNTED and dropped (AddRecord), never
-//     overwritten;
-//   - children link to parents by ParentRecordID after all records are
-//     read (LinkChildren); orphans hang off the root record.
-//
-// Departures (structure only, documented): file-path plumbing dropped -
-// load() takes bytes like every reader here; records are plain objects,
-// not a class hierarchy (the type switch lives in readRecords, as DFU's
-// does); DFU's write-back path is unported because DFU's own
-// SaveTree.Save() writes the header only ("TODO: Write other records").
 
 import { readCStringScan } from './fileProxy.js';
 import { readSpellRecord } from './spellsStd.js';
@@ -36,30 +6,25 @@ import { readBuildingData, BUILDING_DATA_SIZE } from './blocksFile.js';
 
 export const SAVETREE_FILENAME = 'SAVETREE.DAT';
 
-/** SaveTreeHeader consts. */
 export const SAVE_TREE_HEADER_LENGTH = 19;
 export const SAVE_TREE_VERSION = 0x126;
 
-/** SaveTreeBaseRecord consts. */
 export const RECORD_ROOT_LENGTH = 71;
 export const LIGHT_DATA_LENGTH_MULTIPLIER = 39;
 
-/** SaveTree.Environments - player environment in the header. */
 export const ENVIRONMENTS = Object.freeze({
   Outside: 1, Building: 2, Dungeon: 3,
 });
 
-/** SaveTree.RecordTypes - the full classic object-type table ("classic
- *  name" comments preserved in SaveTree.cs; values are FALL.EXE's). */
 export const RECORD_TYPES = Object.freeze({
   Null: 0x00,
   World: 0x01,
   Item: 0x02,
   Character: 0x03,
-  CharacterPositionRecord: 0x04,      // determines player position on load, NOT the header triple
+  CharacterPositionRecord: 0x04,
   CharacterCamera: 0x05,
   Interactable3dObject: 0x06,
-  Light: 0x07,                        // the x39 length record
+  Light: 0x07,
   NPCFlat: 0x08,
   Spell: 0x09,
   GuildMembership: 0x0a,
@@ -79,8 +44,8 @@ export const RECORD_TYPES = Object.freeze({
   BankAccount: 0x19,
   UnusedBankInfo: 0x1a,
   UnusedSafetyBox: 0x1b,
-  OldClass: 0x1c,                     // player's class before vampire/werething transform
-  OldGuild: 0x1d,                     // guild affiliations before transform - parses as GuildMembership
+  OldClass: 0x1c,
+  OldGuild: 0x1d,
   UnusedBless: 0x1e,
   Potion: 0x1f,
   Door: 0x20,
@@ -99,14 +64,13 @@ export const RECORD_TYPES = Object.freeze({
   NPC: 0x2d,
   GenericNPC: 0x2e,
   DungeonAutomapData: 0x33,
-  Container: 0x34,                    // 0 weapons&armor 1 magic 2 clothing&misc 3 ingredients 4 wagon 5 house 6 ship 7 tavern 8 repairer
+  Container: 0x34,
   NPCMobile: 0x35,
   ItemLeftForRepair: 0x36,
   TavernRoom: 0x40,
   QuestNPC: 0x41,
 });
 
-/** ItemRecord.ItemFlags. */
 export const ITEM_FLAGS = Object.freeze({
   None: 0x00,
   IngredientRegular: 0x01,
@@ -116,11 +80,8 @@ export const ITEM_FLAGS = Object.freeze({
   Enchanted: 0x20,
 });
 
-/** FileProxy.ReadCString, both arms - fileProxy.js is their one home
- *  (AUDIT 68); re-exported for the save tree's own readers. */
 export { readCStringFixed, readCStringScan } from './fileProxy.js';
 
-/** SaveTree.ReadPosition - i32 WorldX/WorldY/WorldZ. */
 export function readPosition(view, offset) {
   return {
     worldX: view.getInt32(offset, true),
@@ -129,11 +90,7 @@ export function readPosition(view, offset) {
   };
 }
 
-/**
- * SaveTreeHeader.Read/ReadRawData. Throws on a version other than
- * 0x126, as DFU does ("must be a .175 or later save").
- * @param {Uint8Array} bytes - full SAVETREE.DAT contents.
- */
+/** @param {Uint8Array} bytes */
 export function readSaveTreeHeader(bytes) {
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const version = v.getInt32(0, true);
@@ -142,20 +99,14 @@ export function readSaveTreeHeader(bytes) {
   return {
     rawData: bytes.slice(0, SAVE_TREE_HEADER_LENGTH),
     version,
-    // A CharacterPositionRecord (0x04) later in the file positions the
-    // player on load, not this triple (DFU's own comment).
+    // The player's load position comes from the later CharacterPositionRecord (0x04), not from this header triple.
     characterPosition: { position: readPosition(v, 4) },
     mapId: v.getUint16(16, true),
     environment: bytes[18],
   };
 }
 
-/**
- * SaveTreeBuildingRecords - i32 length then length/26 BuildingData
- * records, read by blocksFile.js's readBuildingData
- * (DFLocation.BuildingData is the one DFU struct behind every list).
- * @returns {{record: object, nextOffset: number}}
- */
+/** @returns {{record: object, nextOffset: number}} */
 export function readBuildingRecords(bytes, offset) {
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const streamPosition = offset;
@@ -173,8 +124,6 @@ export function readBuildingRecords(bytes, offset) {
   };
 }
 
-/** SaveTreeBaseRecord.ReadRecordRoot - the 71-byte record header, at
- *  its exact classic offsets (the gaps are real). */
 export function readRecordRoot(streamData) {
   const v = new DataView(streamData.buffer, streamData.byteOffset, streamData.byteLength);
   return {
@@ -197,9 +146,6 @@ export function readRecordRoot(streamData) {
   };
 }
 
-/** ItemRecord.ReadNativeItemData - the 107-byte native item layout.
- *  The name is scanned to its NUL (ReadCString(reader, 0)) but the
- *  cursor strides the full 32 bytes. */
 export function parseItemRecordData(recordData) {
   const v = new DataView(recordData.buffer, recordData.byteOffset, recordData.byteLength);
   const d = {
@@ -212,7 +158,7 @@ export function parseItemRecordData(recordData) {
     currentCondition: v.getUint16(44, true),
     maxCondition: v.getUint16(46, true),
     unknown2: recordData[48],
-    typeDependentData: recordData[49],     // arrow stack count; potion/recipe id
+    typeDependentData: recordData[49],
     image1: v.getUint16(50, true),
     image2: v.getUint16(52, true),
     material: v.getUint16(54, true),
@@ -233,9 +179,6 @@ export function parseItemRecordData(recordData) {
   return d;
 }
 
-/** GuildMembershipRecord.ReadNativeGuildMembershipData - 12 bytes.
- *  Parses records of type GuildMembership AND OldGuild (SaveTree's
- *  switch routes both here). */
 export function parseGuildMembershipRecordData(recordData) {
   const v = new DataView(recordData.buffer, recordData.byteOffset, recordData.byteLength);
   return {
@@ -250,9 +193,7 @@ export function parseGuildMembershipRecordData(recordData) {
   };
 }
 
-/** DiseaseOrPoisonRecord.ReadNativeDiseaseOrPoisonData - 47 bytes: the
- *  id byte then 23 u16 in DFU's exact order. daysOfSymptomsLeft: 0xFF
- *  never-ending, 0xFE symptoms over. */
+// `daysOfSymptomsLeft` uses 0xFF for never-ending and 0xFE for symptoms over.
 export function parseDiseaseOrPoisonRecordData(recordData) {
   const v = new DataView(recordData.buffer, recordData.byteOffset, recordData.byteLength);
   const u16 = (o) => v.getUint16(o, true);
@@ -270,35 +211,18 @@ export function parseDiseaseOrPoisonRecordData(recordData) {
   };
 }
 
-/** ContainerRecord.WagonCheck - a container whose root SpriteIndex is 4
- *  is the wagon (the Container comment's own slot table). */
+// A container's root `spriteIndex` names its kind, and 4 is the wagon.
 export const isWagonRecord = (record) => record.recordRoot?.spriteIndex === 4;
 
 /**
- * One RecordElement: SaveTreeBaseRecord.Open + ReadRecordRoot, plus the
- * typed parse SaveTree.ReadRecords' switch would run. Returns the
- * record and the offset after its data.
- */
-/**
- * HARD3 - ONE SAVETREE RECORD. The tree's nodes cross into
- * `systems/classicSave.js` as `{object}` before this, which is how a
- * reader of that file cannot tell `recordData` (the bytes after the
- * root) from `parsedData` (the typed parse) without opening this one.
- *
- * `parsedData` is a UNION keyed by `recordType` - the ReadRecords switch
- * below decides which member it is - and JSDoc cannot express that
- * dependency, so it is `any` here and each consumer states which member
- * it asked for. That is honest: the claim lives at the call site, which
- * is where the RECORD_TYPES argument that justifies it lives too.
- *
  * @typedef {object} SaveTreeRecord
  * @property {number} streamPosition
  * @property {number} streamLength
  * @property {Uint8Array|null} streamData
- * @property {number} recordType       one of RECORD_TYPES
- * @property {object|null} recordRoot  the fixed header every record carries
- * @property {Uint8Array|null} recordData  the bytes after the root
- * @property {any} parsedData          the typed parse, keyed by recordType; null for a type with no ReadNative*
+ * @property {number} recordType
+ * @property {object|null} recordRoot
+ * @property {Uint8Array|null} recordData
+ * @property {any} parsedData
  * @property {SaveTreeRecord|null} parent
  * @property {SaveTreeRecord[]} children
  * @property {boolean} failedRecord
@@ -320,19 +244,15 @@ export function readSaveTreeRecord(bytes, offset, length) {
   };
   if (length <= 0) return { record, nextOffset: offset };
 
-  // Peek record type and adjust for light size (Open).
   record.recordType = bytes[offset];
   if (record.recordType === RECORD_TYPES.Light)
     record.streamLength = length * LIGHT_DATA_LENGTH_MULTIPLIER;
 
-  // ReadBytes at EOF returns what remains - a Light record's x39 length
-  // can overrun the stream because ReadRecords' overflow guard checked
-  // the UNmultiplied length. slice clamps the same way.
+  // A Light record's multiplied length can run past the end of the stream, because the overflow guard checks the
+  // stored length. `slice` clamps, as DFU's ReadBytes does.
   record.streamData = bytes.slice(offset, offset + record.streamLength);
 
-  // ReadRecordRoot refuses a record shorter than the root itself; the
-  // C# record then carries its DEFAULT (all-zero) RecordRoot struct,
-  // which AddRecord will key by RecordID 0. Preserved.
+  // A record shorter than its 71-byte root gets an all-zero root, as in DFU, so it is keyed by RecordID 0.
   if (record.streamData.length < RECORD_ROOT_LENGTH) {
     record.failedRecord = true;
     record.recordRoot = {
@@ -347,7 +267,6 @@ export function readSaveTreeRecord(bytes, offset, length) {
   record.recordRoot = readRecordRoot(record.streamData);
   record.recordData = record.streamData.subarray(RECORD_ROOT_LENGTH);
 
-  // The ReadRecords type switch - each typed record's ReadNative* parse.
   switch (record.recordType) {
     case RECORD_TYPES.Item:
       record.parsedData = parseItemRecordData(record.recordData);
@@ -356,9 +275,6 @@ export function readSaveTreeRecord(bytes, offset, length) {
       record.parsedData = parseCharacterRecordData(record.recordData);
       break;
     case RECORD_TYPES.Spell:
-      // SpellRecord.ReadNativeSpellData -> DaggerfallSpellReader.
-      // ReadSpellData; null when the C# would return false and leave
-      // the default (empty) instance.
       record.parsedData = readSpellRecord(record.recordData);
       break;
     case RECORD_TYPES.GuildMembership:
@@ -369,12 +285,9 @@ export function readSaveTreeRecord(bytes, offset, length) {
       record.parsedData = parseDiseaseOrPoisonRecordData(record.recordData);
       break;
     case RECORD_TYPES.TrappedSoul:
-      // TrappedSoulRecord: the monster id rides the ROOT at 0x1B
-      // (spriteIndex); the body "seems always a single byte = 150".
       record.parsedData = { unknown: record.recordData.slice() };
       break;
     case RECORD_TYPES.Container:
-      // ContainerRecord: variable unknown bytes, often just one.
       record.parsedData = { unknown: record.recordData.slice() };
       break;
     default:
@@ -384,13 +297,12 @@ export function readSaveTreeRecord(bytes, offset, length) {
   return { record, nextOffset: offset + record.streamLength };
 }
 
-/** Represents a SAVETREE.DAT file (SaveTree.cs). */
 export class SaveTree {
   constructor() {
     this.header = null;
     this.buildingRecords = null;
     this.rootRecord = this._emptyRecord();
-    /** @type {Map<number, object>} RecordID -> record */
+    /** @type {Map<number, object>} */
     this.recordDictionary = new Map();
     this.duplicateKeysFound = 0;
   }
@@ -404,9 +316,8 @@ export class SaveTree {
   }
 
   /**
-   * SaveTree.Open.
-   * @param {Uint8Array|ArrayBuffer} buffer - full SAVETREE.DAT contents.
-   * @returns {boolean} true (throws on a bad version, as DFU does).
+   * @param {Uint8Array|ArrayBuffer} buffer
+   * @returns {boolean}
    */
   load(buffer) {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
@@ -417,14 +328,11 @@ export class SaveTree {
     return true;
   }
 
-  /** SaveTree.FindRecord - first record of type, or null. */
   findRecord(type, root = null) {
     const records = this.findRecords(type, root);
     return records.length === 0 ? null : records[0];
   }
 
-  /** SaveTree.FindRecords - all records of type under root (depth-first,
-   *  parent before children, as the recursion visits them). */
   findRecords(type, root = null) {
     const list = [];
     const walk = (record) => {
@@ -435,12 +343,10 @@ export class SaveTree {
     return list;
   }
 
-  /** SaveTree.FilterRecordsByParentType. */
   filterRecordsByParentType(source, parentType) {
     return source.filter((r) => r.parent !== null && r.parent.recordType === parentType);
   }
 
-  // SaveTree.ReadRecords + AddRecord + LinkChildren.
   _readRecords(bytes, offset) {
     const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     this.recordDictionary.clear();
@@ -448,22 +354,18 @@ export class SaveTree {
     this.rootRecord = this._emptyRecord();
     let pos = offset;
     while (pos < bytes.length) {
-      // Read record length and skip empty records as they have no data.
-      // A tail shorter than the 4-byte length throws (DFU's ReadInt32
-      // does the same at end of stream) - getInt32 ranges out.
       const length = v.getInt32(pos, true);
       pos += 4;
       if (length <= 0) continue;
 
-      // Handle potential stream overflow (e.g. corrupt save) - `>=`,
-      // so a record ending exactly at EOF is rejected too. Verbatim.
+      // The guard uses `>=` as DFU does, so a record that ends exactly at the end of the file is rejected and
+      // reading stops.
       if (pos + length >= bytes.length) break;
 
       const { record, nextOffset } = readSaveTreeRecord(bytes, pos, length);
       pos = nextOffset;
 
-      // AddRecord: duplicate RecordIDs are counted and dropped. A
-      // failed record keys by its zeroed root's RecordID 0, verbatim.
+      // Duplicate RecordIDs are counted and dropped, never overwritten, as DFU's AddRecord does.
       const key = record.recordRoot.recordId;
       if (this.recordDictionary.has(key)) {
         this.duplicateKeysFound++;
@@ -472,7 +374,6 @@ export class SaveTree {
       this.recordDictionary.set(key, record);
     }
 
-    // LinkChildren: parent by ParentRecordID; orphans go under root.
     for (const record of this.recordDictionary.values()) {
       const parent = this.recordDictionary.get(record.recordRoot.parentRecordId);
       if (parent !== undefined) {

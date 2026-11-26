@@ -40,6 +40,7 @@ traps:
   - "Deaths beyond SD_FIGHTERS_MAX (256) in one window bury the oldest down account rather than leaving it unburied."
   - "Down state clears only after the admission door accepts the raised player."
   - "ONLINE_RESPAWN_SECONDS = 60 lives in src/ui/deathScreen.js; slot timestamp is stamped once at death."
+  - "`courtRules.js` must not import `playerEntity.js`, because the account server bundles it through `itemLaw.js`; the hurt listener is wired in `courtRulesDoor.js`."
 dfu: []
 tags:
   - resurrect

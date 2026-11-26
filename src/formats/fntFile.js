@@ -1,19 +1,10 @@
-// Classic FNT font reader (UI arc, U2a). Verbatim port of DFU
-// FntFile.cs (MIT, Daggerfall Workshop):
-//   header { FixedWidth u16, FixedHeight u16 }
-//   240 glyph table entries { dataOffset u16, glyphWidth u16 }
-//   each glyph = 32 bytes at its offset: 16 rows x 2 bytes in a
-//   16-bit bitfield - and the source reads the LEFT 8 pixels from
-//   byte[y*2 + 1] and the RIGHT 8 from byte[y*2] (the halves are
-//   SWAPPED relative to file order), each byte expanding MSB-first.
-// Glyph 0 maps to ASCII 33 ('!'); codes below asciiStart advance as
-// spaces (DaggerfallFont's rule). Classic glyph spacing is 1px.
+// Glyph 0 is ASCII 33 ('!'), and codes below that advance as spaces, as in DaggerfallFont.
 
 export const FNT_GLYPH_COUNT = 240;
 export const FNT_GLYPH_BYTES = 32;
 export const FNT_GLYPH_DIM = 16;
-export const FNT_ASCII_START = 33;   // DaggerfallFont defaultAsciiStart
-export const FNT_GLYPH_SPACING = 1;  // classicGlyphSpacing
+export const FNT_ASCII_START = 33;
+export const FNT_GLYPH_SPACING = 1;
 
 export class FntFile {
   load(bytes) {
@@ -31,8 +22,6 @@ export class FntFile {
     return this;
   }
 
-  /** 16x16 pixel indices for one glyph: colorIndex where the bit is
-   *  set, 0 elsewhere - the verbatim L/R half swap + MSB-first walk. */
   getGlyphPixels(index, colorIndex = 127) {
     if (index < 0 || index >= FNT_GLYPH_COUNT) return null;
     const g = this.glyphs[index];
@@ -45,8 +34,9 @@ export class FntFile {
       }
     };
     for (let y = 0; y < FNT_GLYPH_DIM; y++) {
-      expand(g.data[y * 2 + 1], y, 0);   // LEFT half from the odd byte
-      expand(g.data[y * 2], y, 8);       // RIGHT half from the even byte
+      // Each row takes its left 8 pixels from the odd byte and its right 8 from the even byte, as in DFU.
+      expand(g.data[y * 2 + 1], y, 0);
+      expand(g.data[y * 2], y, 8);
     }
     return out;
   }

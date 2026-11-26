@@ -1,18 +1,7 @@
 // @ts-check
-// HORSE CART AND CARGO - MODEL 41214, SPLIT (HCC, 2026-09-23): `Wagon41214VisualBuilder` and `WagonCargoVisual`'s
-// table, read off TrailingWagon.dll's IL (vendor/horse-cart-and-cargo/il/). Daggerfall's wagon is ONE mesh; the
-// mod takes it apart so the wheels can turn: every triangle is joined to every other that shares a welded vertex
-// (positions within 1e-4), which yields exactly five connected components - the body (14 triangles), two wheels
-// (10 each, flat discs whose X extent is nil), two shafts (7 each) - verified against that topology and refused
-// otherwise, so a replacement model can never be mistaken for the classic one. Each wheel becomes its own mesh
-// re-based on a pivot at its bounds' centre; the radius is the average of the wheels' (Y + Z extents) / 4.
-//
-// The port's model record is `scenes/dataPipeline.js`'s cpu copy - `{ positions, normals, uvs, indices,
-// subMeshes: [{ textureArchive, textureRecord, startIndex, primitiveCount }] }`, one vertex per plane point as
-// DFU's MeshReader lays them, so the counts the mod verifies (102 vertices, 4 sub-meshes, 48 triangles) are the
-// same counts here. The pieces come out as model records the renderer's createMesh takes; a sub-mesh a piece has
-// no triangles in is left out of that piece (the mod keeps it as an empty sub-mesh with the same material, which
-// draws nothing - the same picture).
+// Splits classic model 41214 into body, wheels, and shafts as the Horse Cart and Cargo mod does. The topology
+// checks need the cpu model record to keep one vertex per plane point as DFU's MeshReader lays them (102 vertices,
+// 48 triangles); any other model is refused.
 
 export const EXPECTED_VERTEX_COUNT = 102, EXPECTED_TRIANGLE_COUNT = 48, EXPECTED_SUBMESH_COUNT = 4, EXPECTED_COMPONENT_COUNT = 5;
 export const BODY_TRIANGLES = 14, WHEEL_TRIANGLES = 10, SHAFT_TRIANGLES = 7;
@@ -20,7 +9,6 @@ export const POSITION_WELD_TOLERANCE = 1e-4;
 export const POSITION_WELD_TOLERANCE_SQUARED = 1e-8;
 export const WHEEL_PLANARITY_TOLERANCE = 0.001;
 
-/** DisjointSet [IL_c844-IL_c934]: union by rank, full path compression. */
 class DisjointSet {
   constructor(n) { this.parent = new Int32Array(n); this.rank = new Uint8Array(n); for (let i = 0; i < n; i++) this.parent[i] = i; }
   find(x) {
@@ -45,7 +33,6 @@ const boundsOfComponent = (positions, verts) => {
   return { min, max, center: [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2], size: [max[0] - min[0], max[1] - min[1], max[2] - min[2]] };
 };
 
-/** ReadTriangles [IL_b58c]: every sub-mesh's triangles as { subMesh, a, b, c }, each index checked. */
 export function readTriangles(model) {
   const vertexCount = model.positions.length / 3;
   const list = [];
@@ -61,9 +48,6 @@ export function readTriangles(model) {
   return list;
 }
 
-/** BuildComponents [IL_b66c]: weld the used vertices by position, join triangles through shared welded vertices,
- *  gather each set's triangles and bounds, sort by CompareComponents (more triangles first, then larger volume,
- *  then the smaller centre x). */
 export function buildComponents(model, triangles) {
   const positions = model.positions;
   const vertexCount = positions.length / 3;
@@ -98,8 +82,6 @@ export function buildComponents(model, triangles) {
   return result;
 }
 
-/** IdentifyVerifiedParts [IL_b92c]: five components - one body of 14, two wheels of 10 planar in X, two shafts of 7;
- *  left is the smaller centre x. */
 export function identifyVerifiedParts(components) {
   if (components.length !== EXPECTED_COMPONENT_COUNT) throw new Error(`Model 41214 produced ${components.length} components instead of ${EXPECTED_COMPONENT_COUNT}.`);
   const bodies = components.filter((c) => c.triangleIndices.length === BODY_TRIANGLES);
@@ -112,8 +94,6 @@ export function identifyVerifiedParts(components) {
   return { body: bodies[0], wheelLeft: wheels[0], wheelRight: wheels[1], shaftLeft: shafts[0], shaftRight: shafts[1] };
 }
 
-/** BuildComponentMesh [IL_bbb4]: the component's triangles, its vertices renumbered in first-use order and
- *  re-based on `pivot`, one sub-mesh per source sub-mesh it has triangles in (the same textures). */
 export function buildComponentModel(model, triangles, component, pivot, name) {
   const remap = new Map(), order = [];
   const remapVertex = (s) => { if (remap.has(s)) return remap.get(s); const i = order.length; remap.set(s, i); order.push(s); return i; };
@@ -141,11 +121,7 @@ export function buildComponentModel(model, triangles, component, pivot, name) {
   return { name: `TrailingWagon41214_${name}`, positions, normals, uvs, indices: new Uint32Array(indexList), subMeshes, doors: [] };
 }
 
-/**
- * TryBuild [IL_b21c]: the five pieces of the classic wagon, or a thrown Error naming what the model failed.
- * @returns {{ body:object, shaftLeft:object, shaftRight:object, wheelLeft:object, wheelRight:object,
- *            wheelLeftPivot:number[], wheelRightPivot:number[], wheelRadius:number, bounds:{min:number[],max:number[],center:number[],size:number[]} }}
- */
+/** @returns {{ body:object, shaftLeft:object, shaftRight:object, wheelLeft:object, wheelRight:object, wheelLeftPivot:number[], wheelRightPivot:number[], wheelRadius:number, bounds:{min:number[],max:number[],center:number[],size:number[]} }} */
 export function buildWagonParts(model) {
   if (!model || !model.positions || !model.indices || !Array.isArray(model.subMeshes)) throw new Error('Model 41214 did not provide its source mesh.');
   const vertexCount = model.positions.length / 3;
@@ -172,8 +148,6 @@ export function buildWagonParts(model) {
   };
 }
 
-/** DeployedWagonVisual.EnsureUsableBoundsSize [IL_10f1]: a collider box no thinner than 0.1 on any axis - the bounds
- *  widened about their centre where the model is flat. */
 export function usableBounds(bounds) {
   const min = [...bounds.min], max = [...bounds.max];
   for (let a = 0; a < 3; a++) {
@@ -185,8 +159,7 @@ export function usableBounds(bounds) {
   return { min, max };
 }
 
-/** WagonCargoVisual's twelve pieces (.cctor [IL_c30c-IL_c5f8]): the fullness threshold, the classic model, and
- *  its local position, rotation (x, y, z, w) and scale in the wagon's frame. Tiers are cumulative. */
+// Rotations are quaternions in (x, y, z, w) order in the wagon's frame. Tiers are cumulative.
 /** @type {ReadonlyArray<{threshold:number, modelId:number, position:number[], rotation:number[], scale:number[]}>} */
 export const CARGO_DEFINITIONS = Object.freeze([
   { threshold: 25, modelId: 41815, position: [-0.4324226379394531, -0.017484188079833984, -1.0604987144470215], rotation: [-0.050840601325035095, -0.5570908188819885, 0.02464766800403595, 0.8285273313522339], scale: [1.4088822603225708, 1.4088822603225708, 1.4088823795318604] },
@@ -202,7 +175,5 @@ export const CARGO_DEFINITIONS = Object.freeze([
   { threshold: 90, modelId: 41829, position: [0.5299999713897705, 0.6119999289512634, -0.33399999141693115], rotation: [0, 0, 0, 1], scale: [0.5192000269889832, 0.5192000269889832, 0.5192000269889832] },
   { threshold: 90, modelId: 41830, position: [0.550000011920929, 0.8439999222755432, -0.7860000133514404], rotation: [-0.0019527215044945478, -0.011217683553695679, 0.0041197012178599834, 0.9999266862869263], scale: [1, 1, 1] },
 ].map((d) => Object.freeze(d)));
-/** The object name the mod gives a piece: Cargo_{threshold}_{ordinal:00}_Model_{id}. */
 export const cargoPieceName = (def, ordinal) => `Cargo_${def.threshold}_${String(ordinal).padStart(2, '0')}_Model_${def.modelId}`;
-/** ApplyTier [IL_c1d4]: which pieces show at a tier - every piece whose threshold the tier reaches. */
 export const cargoPiecesShown = (tier) => CARGO_DEFINITIONS.filter((d) => tier >= d.threshold);
