@@ -23,6 +23,7 @@ invariants:
   - "The way-out field is a breadth-first walk outward from the entrance over trail cells (`8` neighbors plus the vertical column, within `WAY_STEP_DY = 1` m). Teleporters form one-way edges (`teleporterConnection`)."
   - "The field rebuilds immediately when the trail shrinks, the entrance moves, or a teleporter is used. It rebuilds every `WAY_REFIELD_S` (`10` s) while the trail grows under the player, and at most every `WAY_FIELD_S` (`1` s) with backoff while the player is off the field."
   - "Each step is queried via `stepClear` once and cached. `wayStepClear` casts a waist-high (`0.9` m) ray against the dungeon bucket only (`PROF_VEIN_ONLY`), and `stepHitCuts` ignores hits within `WAY_STEP_END_M` (`0.25` m) of either endpoint."
+  - "A step the player walked (`walkedStep`: two trail cells one straight after the other, at most `WAY_WALKED_M` (`1.8`) m apart and within `WAY_STEP_DY`) is never asked of `stepClear`. Waist rays along cave walls and stair nosings had called those steps walls, so the field and the ribbon stopped short in cave-style and rough blocks. Rays now judge only shortcuts between passes."
 traps:
   - "One build queries at most `WAY_STEP_ASKS` (`2000`) steps, paced by `WAY_ASK_MS`. Unqueried steps are assumed clear until checked."
   - "`cellColumn` packs `[x, z]` into one numeric key. Do not build string keys per lookup (dungeon audit B2)."
@@ -44,6 +45,8 @@ tags:
 
 ## Way-Out Field and Raycast Budget
 
-The solver walks outward from the entrance over visited cells (`8` neighbors plus same-column steps within `WAY_STEP_DY` `1` m) and one-way `teleporterConnection` edges. It snaps within `WAY_SNAP_M` (`2.5` m), looks ahead `WAY_LOOK_CELLS` (`14`) cells, hides within `WAY_HERE_M` (`3` m) of the exit, and inks arrows with `WAY_MARK_CSS` (`'#efe6cf'`) and `WAY_BODY_CSS` (`'#2b2418'`).
+The solver walks outward from the entrance over visited cells and one-way `teleporterConnection` edges. It snaps within `WAY_SNAP_M` (`2.5` m), looks ahead `WAY_LOOK_CELLS` (`14`) cells, and inks arrows with `WAY_MARK_CSS` and `WAY_BODY_CSS`. Rebuild timing and the `stepClear` budget are in the invariants above.
 
-Rebuilds fire immediately on trail contraction, entrance moves, or teleporter use, every `WAY_REFIELD_S` (`10` s) as the trail grows, and at most every `WAY_FIELD_S` (`1` s) with backoff when off-field. `stepClear` caches waist-high (`0.9` m) `wayStepClear` rays against `PROF_VEIN_ONLY` (`stepHitCuts` trims `WAY_STEP_END_M` `0.25` m from each end), capped at `WAY_STEP_ASKS` (`2000`) queries per pass and paced by `WAY_ASK_MS`.
+## Offline probe
+
+`tools/wayBackProbe.mjs` (`ARENA2_PATH` set) opens every layout's doors, runs a real `PlayerMotor` out to far cells, lays the trail with `automapTrailTick`, then walks home through `createWayOut`, reporting an unreachable exit, a field that stops, or a ribbon shorter than the walk left. `tools/wayOut.test.mjs` covers a cave layout and long classic ones.
