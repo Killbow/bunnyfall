@@ -1,7 +1,8 @@
 // @ts-check
-// Handle geometry and screen-space hit-testing for the in-game editor; poiGizmo.js and poiGizmoBox.js compute drags,
-// and line and ring hit-tests match render/poiGizmoPass.js. Sizes are in arms (`L` m = `GIZMO_ARM_PX` CSS px), and `F`
-// is CSS px per meter at 1 m. Boxes near the pivot are hidden; `gizmoParts` and `gizmoDraw` reuse their return objects.
+// Handle geometry and screen-space hit-testing for the in-game editor; poiGizmo.js and poiGizmoBox.js compute
+// drags, and line and ring hit-tests match render/poiGizmoPass.js. Sizes are in arms (`L` m = `GIZMO_ARM_PX` CSS
+// px), and `F` is CSS px per meter at 1 m. Boxes near the pivot are hidden; `gizmoParts` and `gizmoDraw` reuse
+// their return objects.
 
 import { END_ON, EDGE_ON, POI_GIZMO_PICK_PX } from './poiGizmo.js';
 
@@ -33,10 +34,8 @@ const GRAY = [0.7, 0.7, 0.7], WHITE = [1, 1, 1];
 const GROW_KEYS = Object.freeze(['x', 'y', 'z', 'xy', 'yz', 'xz', 'view', 'all', 'x+', 'x-', 'y+', 'y-', 'z+', 'z-',
   'corner0', 'corner1', 'corner2', 'corner3', 'corner4', 'corner5', 'corner6', 'corner7']);
 
-/**
- * @typedef {{ key: string, handle: string, kind: string, hidden: boolean, w: number, segs: number[][][],
- *   mesh: GizmoMesh | null, tris: number[][][], solid: boolean, tint?: string[], ring?: { n: number[], R: number } }} GizmoPart
- */
+/** @typedef {{ key: string, handle: string, kind: string, hidden: boolean, w: number, segs: number[][][],
+ *   mesh: GizmoMesh | null, tris: number[][][], solid: boolean, tint?: string[], ring?: { n: number[], R: number } }} GizmoPart */
 
 const sinCos = (n) => { const s = new Float64Array(n + 1), c = new Float64Array(n + 1); for (let k = 0; k <= n; k++) { s[k] = Math.sin((k / n) * 2 * Math.PI); c[k] = Math.cos((k / n) * 2 * Math.PI); } return { s, c }; };
 const CONE_SC = sinCos(CONE_SIDES), RING_SC = sinCos(RING_CHORDS), RULER_SC = sinCos(RULER_CHORDS), DISC_SC = sinCos(DISC_SECTORS);
@@ -95,7 +94,6 @@ function setOf(name) {
     for (const h of AXIS_NAME) for (let s = 0; s < 2; s++) out.push(part(h, h, 'box', W.sizeShaft, 1, meshOf(8, BOX_FACES), true));
     out.push(part('all', 'all', 'all', W.edge, 0, meshOf(8, BOX_FACES), true));
   } else {
-    // Push the outer ring before the axis rings so axis rings draw over it where they overlap.
     const view = ringPart('view');
     view.w = W.view;
     out.push(view);
@@ -120,7 +118,6 @@ function retri(p) {
   if (!M) return;
   for (let i = 0; i < M.f.length; i++) { const t = p.tris[i], f = M.f[i]; t[0] = M.v[f[0]]; t[1] = M.v[f[1]]; t[2] = M.v[f[2]]; }
 }
-// Float arguments to internal helpers go through `ARG` so non-inlined calls do not box numbers every frame.
 const ARG = new Float64Array(4), GROW = new Float64Array(GROW_KEYS.length);
 const GI = Object.freeze(Object.fromEntries(GROW_KEYS.map((k, i) => [k, i])));
 const S_BASE = v3(), S_R = v3(), S_U = v3(), S_N = v3(), S_EYE = v3(), LO = new Float64Array(3), HI = new Float64Array(3);
@@ -283,9 +280,13 @@ function keyChanged(q) {
 let partsLast = [];
 let partsVersion = 0;
 
-/**
- * @param {'move' | 'turn' | 'size'} mode @param {number[]} c @param {number[][]} axes @param {number} L
- * @param {number[]} viewDir @param {{ grow?: Record<string, number> | null, box?: { lo: number[], hi: number[] } | null, eye?: number[] | null }} [opts] @returns {GizmoPart[]}
+/** @param {'move' | 'turn' | 'size'} mode
+ * @param {number[]} c
+ * @param {number[][]} axes
+ * @param {number} L
+ * @param {number[]} viewDir
+ * @param {{ grow?: Record<string, number> | null, box?: { lo: number[], hi: number[] } | null, eye?: number[] | null }} [opts]
+ * @returns {GizmoPart[]}
  */
 export function gizmoParts(mode, c, axes, L, viewDir, opts) {
   return partsOf({ mode, c, axes, L, viewDir, grow: opts?.grow ?? null, box: opts?.box ?? null, eye: opts?.eye ?? null });
@@ -310,7 +311,11 @@ export function createGizmoEase() {
   let at = -1;
   return {
     grow,
-    /** @param {string} mode @param {string | null} hot @param {number} now seconds */
+    /**
+     * @param {string} mode
+     * @param {string | null} hot
+     * @param {number} now
+     */
     step(mode, hot, now) {
       const dt = at < 0 ? 0 : Math.min(0.25, Math.max(0, now - at));
       at = now;
@@ -354,7 +359,6 @@ export function rayLine(o, d, a, b, w, eye, fwd, F) {
   const m = lineMeasure(o, d, a, b, w, eye, fwd, F);
   return m && m.out === 0 ? m.t : null;
 }
-// lineMeasure mutates and returns the shared MEASURE object; read its fields before calling lineMeasure again.
 const MEASURE = { out: 0, center: 0, t: 0 }, L_A = v3(), L_B = v3(), L_P = v3(), L_N = v3(), QUAD = new Float64Array(10);
 const QUAD_SIDE = [-1, 1, 1, -1], QUAD_FAR = [0, 0, 1, 1], Q_R = v3(), Q_U = v3();
 const flatX = (v) => v[0] * Q_R[0] + v[1] * Q_R[1] + v[2] * Q_R[2], flatY = (v) => v[0] * Q_U[0] + v[1] * Q_U[1] + v[2] * Q_U[2];
@@ -442,7 +446,8 @@ export function grabOf(p, o, d, eye, fwd, F, tol = POI_GIZMO_PICK_PX) {
 /**
  * @param {{ mode: 'move' | 'turn' | 'size', c: number[], axes: number[][], L: number, viewDir: number[], pxWorld: number,
  *   eye?: number[], fwd?: number[], F?: number, grow?: Record<string, number> | null, box?: { lo: number[], hi: number[] } | null }} g
- * @param {number[]} o @param {number[]} d
+ * @param {number[]} o
+ * @param {number[]} d
  */
 export function pickGizmo(g, o, d) {
   const eye = g.eye ?? o, fwd = g.fwd ?? g.viewDir;
@@ -535,7 +540,6 @@ function digitsOf(n) {
   return k;
 }
 const S_RIGHT = v3(), S_UP = v3(), S_P = v3(), S_Q = v3();
-/** Uses `Y × viewDir` for screen right (`basisInto` uses the opposite sign and would flip text). */
 function screenInto(viewDir) {
   const v = viewDir, r = S_RIGHT;
   if (Math.abs(v[1]) < 0.99) { r[0] = v[2]; r[1] = 0; r[2] = -v[0]; } else { r[0] = -v[1]; r[1] = v[0]; r[2] = 0; }
@@ -597,7 +601,6 @@ const S_A = v3(), S_B = v3(), S_C = v3(), S_D = v3();
  */
 export function gizmoDraw(g, o) {
   const parts = partsOf(g);
-  // Keep `drawAll` separate so `gizmoDraw`'s cached fast path stays small and free of float math.
   if (!drawChanged(g.eye ?? eyeOf(g), o)) return DRAW;
   return drawAll(g, o, parts, g.eye ?? S_EYE);
 }

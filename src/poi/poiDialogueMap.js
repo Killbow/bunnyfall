@@ -1,7 +1,7 @@
 // @ts-check
-// One dialogue laid out left to right for the DM panel's Map view (src/ui/poi/poiDialogueMapView.js). Each column is
-// one step from the start, unreachable lines get a last column, and the people and events that open it sit on the left.
-// Pure data: it never changes the document and does not throw on a draft that fails validation.
+// One dialogue laid out left to right for the DM panel's Map view (src/ui/poi/poiDialogueMapView.js).
+// Each column is one step from the start, unreachable lines get a last column, and the people and events
+// that open it sit on the left. Pure data: it never changes the document and does not throw on a bad draft.
 
 export const MAP_W = 240;
 export const MAP_GAP_X = 90;
@@ -22,16 +22,14 @@ export const MAP_SOURCE_H = 40;
  * @typedef {{ from: string, i: number, to: string, kind: 'arrow' | 'back' | 'missing' }} MapLink
  */
 const isObj = (/** @type {any} */ v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-/**
- * @typedef {{ id: string, kind: 'npc' | 'event', key: string, name: string,
- *   x: number, y: number, w: number, h: number }} MapSource
- */
+/** @typedef {{ id: string, kind: 'npc' | 'event', key: string, name: string,
+ *   x: number, y: number, w: number, h: number }} MapSource */
 const ENDS = new Set(['close', 'open_trade']);
 
 /**
- * Stacks boxes of heights hs in order, each as close to its wanted top as the boxes above allow. A box with no wanted
- * top goes right below the one above it.
- * @param {number[]} hs @param {(number | null)[]} wants @returns {number[]}
+ * @param {number[]} hs
+ * @param {(number | null)[]} wants
+ * @returns {number[]}
  */
 function pack(hs, wants) {
   /** @type {{ from: number, to: number, sum: number, n: number, top: number }[]} */
@@ -58,8 +56,8 @@ function pack(hs, wants) {
 }
 
 /**
- * Lists the people who use this dialogue and the events whose actions open it.
- * @param {any} doc @param {string} key
+ * @param {any} doc
+ * @param {string} key
  * @returns {{ kind: 'npc' | 'event', key: string, name: string }[]}
  */
 export function dialogueEntries(doc, key) {
@@ -75,7 +73,8 @@ export function dialogueEntries(doc, key) {
 }
 
 /**
- * @param {any} doc @param {string} key
+ * @param {any} doc
+ * @param {string} key
  * @param {{ sources?: boolean, compact?: boolean }} [o]
  * @returns {{ boxes: MapBox[], links: MapLink[], sources: MapSource[], cols: number, unreachableCol: number | null,
  *   width: number, height: number }}
@@ -128,7 +127,6 @@ export function dialogueMap(doc, key, { sources = true, compact = false } = {}) 
     else links.push({ from: n.key, i, to, kind: !col.has(to) || unreachableCol === col.get(n.key) || col.get(to) !== /** @type {number} */ (col.get(n.key)) + 1 ? 'back' : 'arrow' });
   });
 
-  // sorts each column by the mean position of the answers that lead in, then by discovery order, then by document order
   const seq = new Map([...order, ...lost.map((n) => n.key)].map((k, i) => [k, i]));
   /** @type {string[][]} */
   const colKeys = Array.from({ length: cols }, () => []);

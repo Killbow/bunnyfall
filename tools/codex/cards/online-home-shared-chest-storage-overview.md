@@ -25,8 +25,10 @@ invariants:
   - "`homeSceneName(mapId, buildingKey)` (`src/net/homeScene.js`) formats `OnlineHome [MapID=<u32>, BuildingKey=<key>]` so private chest contents persist under the character permanent home scene rather than transient `DaggerfallInterior` scenes."
   - "`moveChest` (`server-account/src/decorAccess.js`) pours returned chest items into `homeSceneName` and registers that key in `sceneCache.permanentScenes` within the same save write, while shared chests store items in `decor_bin`."
   - "`homeSceneName` lives in the zero-relay leaf `src/net/homeScene.js` rather than `src/net/homeLaw.js` so relay bundle hashes stay unaffected."
+  - "`restoreCachedScene` deletes the entry it returns, so a scene restores once per caching, and the non-start `clearSceneCache` keeps only permanent scenes already cached, minus their `CorpseMarker` containers."
 traps:
   - "Storing house chest items under the generic interior building scene causes the next `clearSceneCache` transition to wipe them."
+  - "The `interiorSceneName` and world scene name strings are the cache keys, so any change to their format silently misses every saved or permanent scene."
 dfu: []
 tags:
   - homes

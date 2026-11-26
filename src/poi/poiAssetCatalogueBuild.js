@@ -1,10 +1,4 @@
 // @ts-check
-// Builds the in-game POI editor's asset catalog (`poi/poiAssetCatalogue.js`) from the archive readers and file lists it
-// is given; `tools/poiAssetCatalogue.mjs` loads the game files and writes `public/poi/asset-catalogue.json`. Includes
-// every `ARCH3D` model and DET stand-in model with its game name where available, classic `TEXTURE` flats (excluding
-// editor markers, with Iliac Puddle No More seafloor sprites categorized under `underwater`), mod and built-in sprites
-// from `POI_MOD_FLAT_FAMILIES`, item templates, and spawnable DM encounter creatures, flagging duplicate IDs and
-// missing asset references.
 
 import { decorKey, collectDecor, decorCatalogue, addDecorNature, DECOR_FURNITURE_FIRST, DECOR_FURNITURE_LAST } from '../homes/decorCatalogue.js';
 import { addDecorMods, decorModNaming, decorModFlatSource } from '../homes/decorMods.js';
@@ -20,20 +14,15 @@ import { isNudeFlat } from '../characters/nudeFlats.js';
 import { TOWN_GARDEN_ARCHIVE } from '../world/townStandIns.js';
 import { FESTIVAL_ARCHIVE } from '../world/festivalArt.js';
 
-/** The file format's version. */
 export const POI_ASSET_CATALOGUE_VERSION = 1;
 
-/** The house decorator's kinds as catalog categories. */
 const DECOR_KIND_CATEGORY = Object.freeze({
   bed: 'furniture', storage: 'furniture', shelf: 'furniture', furniture: 'furniture', door: 'furniture', mods: 'furniture',
   light: 'lights', people: 'people', dungeon: 'dungeon', outdoor: 'outdoor', nature: 'nature',
   clothing: 'decor', boxes: 'decor', arms: 'decor', books: 'decor', misc: 'decor', treasure: 'decor', decor: 'decor',
 });
-/** The block kinds as tags, in American spelling; a block whose prefix names no kind is tagged "other town blocks". */
 const KIND_TAG = Object.freeze(Object.fromEntries(Object.entries(DF_MODEL_KINDS).map(([k, v]) => [k, k === 'ARMR' ? 'armorers' : v.toLowerCase()])));
-/** Display tags for item group names that cannot be derived by splitting camelCase and stripping trailing digits. */
 const GROUP_TAG = Object.freeze({ Jewellery: 'jewelry', MensClothing: 'men\'s clothing', WomensClothing: 'women\'s clothing' });
-/** Singular building names by town block prefix, used to name building models that have no house-decorator entry. */
 const KIND_ONE = Object.freeze({
   RESI: 'House', TVRN: 'Tavern', GENR: 'General store', WEAP: 'Weaponsmith', ARMR: 'Armorer', ALCH: 'Alchemist',
   BANK: 'Bank', BOOK: 'Bookstore', CLOT: 'Clothier', FURN: 'Furniture store', GEMS: 'Gem store', LIBR: 'Library',
@@ -42,7 +31,6 @@ const KIND_ONE = Object.freeze({
   THIE: 'Thieves Guild', DARK: 'Dark Brotherhood', FIGH: 'Fighters Guild', CUST: 'Custom building', WALL: 'Town wall',
   MARK: 'Market', SHIP: 'Ship', WITC: 'Witch coven', KNIG: 'Knightly order',
 });
-/** The modded picture families, by archive, as the browser tags them. */
 export const POI_MOD_FLAT_FAMILIES = Object.freeze([
   { tag: 'roleplay-realism-items', name: 'Roleplay & Realism Items', test: (/** @type {number} */ a) => a >= 513 && a <= 526 },
   { tag: 'climates-calories', name: 'Climates & Calories', test: (/** @type {number} */ a) => a >= 532 && a <= 539 },
@@ -53,7 +41,6 @@ export const POI_MOD_FLAT_FAMILIES = Object.freeze([
   { tag: 'foraging', name: 'Foraging', test: (/** @type {number} */ a) => a >= 11600 && a <= 11606 },
 ]);
 const familyOf = (/** @type {number} */ a) => POI_MOD_FLAT_FAMILIES.find((f) => f.test(a)) ?? null;
-/** Builds a map of DET flat archive and record numbers to descriptions of their built-in fallbacks. */
 function detFlatRecords() {
   /** @type {Map<number, Map<number, string>>} */
   const out = new Map();
@@ -67,14 +54,10 @@ function detFlatRecords() {
 const capital = (/** @type {string} */ s) => s.charAt(0).toUpperCase() + s.slice(1);
 const words = (/** @type {string} */ name) => capital(name.replace(/([A-Z])/g, ' $1').toLowerCase().trim());
 
-/**
- * Builds the asset catalog from the game archives, mod texture lists, item rows (with `group`), spawnable creatures,
- * built-in custom models and sprites, and seafloor mappings (`archive.record` to biome names).
- * @param {{ arch3d?: { count: number, getRecordId: (i: number) => number, getMesh?: (i: number) => any, discardRecord?: (i: number) => void } | null,
+/** @param {{ arch3d?: { count: number, getRecordId: (i: number) => number, getMesh?: (i: number) => any, discardRecord?: (i: number) => void } | null,
  *   textures?: Map<number, { recordCount: number }> | null, flatsCfg?: { caption: (a: number, r: number) => string | null } | null, blocks?: any,
  *   modFiles?: { source: string, files: string[] }[], items?: any[], creatures?: { id: number, name: string, texture?: number | null }[], customModels?: number[],
- *   ownFlats?: { archive: number, record: number, name: string, source: string }[], underwater?: Map<string, string[]> }} src
- */
+ *   ownFlats?: { archive: number, record: number, name: string, source: string }[], underwater?: Map<string, string[]> }} src */
 export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCfg = null, blocks = null, modFiles = [], items = [], creatures = [], customModels = [], ownFlats = [], underwater = new Map() }) {
   /** @type {any[]} */
   const entries = [];
@@ -92,8 +75,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
   };
   const miss = (/** @type {any} */ e, /** @type {string} */ why) => { missing.push({ what: e.id, why }); e.missing ??= why; };
 
-  // Collects house-decorator names for room, dungeon, and street props, climate foliage, and town-mod props
-  // (`systems/decor/decorCatalogue.js`, matching `decorScan.js`).
   /** @type {Map<string, any>} */
   const decorNames = new Map();
   if (blocks) {
@@ -104,7 +85,7 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
         if (!/\.(RMB|RDB)$/i.test(ty)) continue;
         const blk = blocks.readClassicBlock ? blocks.readClassicBlock(b) : blocks.getBlock(b);
         if (blk) collectDecor([blk], collected);
-      } catch { /* skip unreadable block */ }
+      } catch { }
     }
     for (const e of decorCatalogue(addDecorMods(addDecorNature(collected)))) decorNames.set(e.key, e);
   } else {
@@ -114,7 +95,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
   const blockKinds = new Map();
   if (blocks) for (const k of dfModelCatalog(blocks)) for (const id of k.ids) { if (!blockKinds.has(id)) blockKinds.set(id, []); blockKinds.get(id)?.push(k.kind); }
 
-  // ── models ──
   const modelIds = [];
   if (arch3d) for (let i = 0; i < arch3d.count; i++) modelIds.push({ id: arch3d.getRecordId(i), i });
   const standIns = new Set([...Object.keys(DET_MODELS), ...Object.keys(DET_TOWN_MODELS)].map(Number));
@@ -144,7 +124,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     if (standIn) tags.push('stand-in');
     const e = { id: `model:${id}`, name: name ?? '', category, tags: [...new Set(tags)], kind: 'model', placing: 'upload', source, model: id, ...(standIn ? { standIn } : {}) };
     if (!name) {
-      // numbered within its first named block kind (stable for the same game data), else "Model <id>"
       const base = KIND_ONE[kinds.find((k) => KIND_ONE[k]) ?? ''] ?? null;
       if (!base) e.name = `Model ${id}`;
       else { if (!numbered.has(base)) numbered.set(base, []); numbered.get(base)?.push(e); }
@@ -152,7 +131,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     return e;
   };
   for (const { id, i } of modelIds) {
-    // a repeated id only marks the first record's entry: it takes no number of its own
     if (seenModel.has(id)) { duplicates.push(`model:${id}`); byId.get(`model:${id}`).duplicate = true; continue; }
     seenModel.add(id);
     const e = add(modelEntry(id, 'ARCH3D.BSA', null));
@@ -176,7 +154,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     list.forEach((e, k) => { e.name = list.length === 1 ? base : `${base} ${k + 1}`; });
   }
 
-  // ── classic flats ──
   const npc = new Set(NPC_FLAT_ARCHIVES);
   const flatTags = (/** @type {number} */ a, /** @type {number} */ r, /** @type {any} */ d) => {
     const tags = [];
@@ -185,7 +162,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     return tags;
   };
   for (const a of [...(textures?.keys() ?? [])].sort((x, y) => x - y)) {
-    // the level editor's markers, never drawn in the game
     if (a === EDITOR_FLATS_ARCHIVE) continue;
     const t = textures?.get(a);
     const n = Math.min(t?.recordCount ?? 0, DECOR_RECORD_MAX + 1);
@@ -196,7 +172,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
       const tags = flatTags(a, r, d);
       if (npc.has(a)) tags.push('scale-locked');
       if (a < 172) tags.push('texture');
-      // Iliac Puddle No More's seafloor pieces: the classic record, or the mod's own picture while its replacements are on
       const sea = underwater.get(`${a}.${r}`);
       if (sea) tags.push('underwater', 'iliac-puddle-no-more', ...sea);
       add({
@@ -206,7 +181,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     }
   }
 
-  // ── the mods' pictures (archives past the classic 511, up to the decor law's limit) ──
   const det = detFlatRecords();
   /** @type {Map<string, string>} */
   const modFlat = new Map();
@@ -220,7 +194,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     }
   }
   for (const [a, recs] of det) for (const r of recs.keys()) if (!modFlat.has(`${a}.${r}`)) modFlat.set(`${a}.${r}`, 'src/world/detStandIns.js');
-  /** names of the built-in custom sprites, keyed by `archive.record` */
   const ownName = new Map();
   for (const f of ownFlats) if (familyOf(f.archive)) { ownName.set(`${f.archive}.${f.record}`, f.name); if (!modFlat.has(`${f.archive}.${f.record}`)) modFlat.set(`${f.archive}.${f.record}`, f.source); }
   for (const k of decorNames.keys()) {
@@ -246,7 +219,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     });
   }
 
-  // ── items ──
   const groupName = new Map(Object.entries(ITEM_GROUPS).map(([k, v]) => [v, k]));
   const flatKnown = (/** @type {number} */ a, /** @type {number} */ r) => byId.has(`flat:${a}.${r}`) || (!textures && a <= 511);
   for (const t of items) {
@@ -264,7 +236,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
     if (e && (wa || wr) && !flatKnown(wa, wr)) miss(e, `world picture ${wa}.${wr} absent`);
   }
 
-  // ── creatures ──
   for (const c of creatures) {
     const e = add({
       id: `creature:${c.id}`, name: c.name, category: c.id >= 128 && c.id < 256 ? 'classes' : 'monsters', tags: ['encounter', ...(c.id >= 256 ? ['enemy-expansion'] : [])],
@@ -272,8 +243,6 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
       ...(Number.isSafeInteger(c.texture) && /** @type {number} */ (c.texture) > 0 ? { flat: [c.texture, 0] } : {}),
     });
     const tx = /** @type {number} */ (c.texture);
-    // a classic creature's pictures are a TEXTURE archive; a mod's are the mod's files, some of them derived at run time
-    // (systems/enemyExpansion/dexArt.js), so only the classic ones are checked
     if (e && textures && Number.isSafeInteger(tx) && tx > 0 && tx <= 511 && !textures.has(tx)) miss(e, `TEXTURE.${tx} absent`);
   }
 
@@ -283,8 +252,7 @@ export function buildPoiAssetCatalogue({ arch3d = null, textures = null, flatsCf
   return { version: POI_ASSET_CATALOGUE_VERSION, counts, missing, duplicates, entries };
 }
 
-/** Packs the catalog for JSON storage as `[id, name, category, tags, extra]` rows, omitting fields that
- *  `hydratePoiAssets` in `poi/poiAssetCatalogue.js` derives from `id`. @param {ReturnType<typeof
+/** @param {ReturnType<typeof
  *  buildPoiAssetCatalogue>} cat */
 export function packPoiAssetCatalogue(cat) {
   const rows = cat.entries.map((e) => {

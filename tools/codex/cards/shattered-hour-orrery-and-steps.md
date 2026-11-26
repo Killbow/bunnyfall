@@ -13,6 +13,7 @@ files:
   - src/worldEvents/sdSteps.js
   - src/net/sdLaw.js
   - src/worldEvents/sdSlots.js
+  - src/world/sdRemnantModel.js
 routes: []
 tables: []
 replacesBible:
@@ -26,6 +27,8 @@ invariants:
 traps:
   - "The player-facing death timer is 60 seconds, while the relay constant `SD_REZ_MS` is 70,000 ms to provide 10 seconds of page-load slack."
   - "Downed players waiting for resurrection cannot be cast out of the realm until they are revived or their timer expires."
+  - "`stoneFrame` sets `R` to `n x up`, the game's camera right, not the `lookAt` right. The projection mirrors x, so the other order turns hands anticlockwise and mirrors handles, signs, and plaques."
+  - "`emitRemnant` puts the right side of the body at +x, because the camera's mirror shows a body's own right on +x. Swapping the sides makes the Hour-Hand point from what the screen shows as the left."
 tags:
   - super-dungeons
   - shattered-hour

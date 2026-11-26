@@ -1,15 +1,7 @@
 // @ts-check
-// A DAGGERFALL MODEL AS AN IMPORT. The game's model (ARCH3D.BSA, through a pipe like the data pipeline's; the editor's
-// own, poi/poiModelThumbs.js poiModelImportPipe, uploads nothing) reaches the POI importer in the glTF reader's shape
-// (poi/poiImport.js prepareImport's `model` and `baked`): one part, one submesh run per texture, and each texture
-// record as a PNG. Like a GLB, it is checked against the mesh limits, uploaded by its hash, placed, approved, and shown
-// in the world by the POI runtime. POI meshes use dfMeshToModel's frame (poi/poiMesh.js) except for V: a game model's V
-// runs negative from the texture's bottom (world/meshReader.js) and a POI's runs down from its top, so V' = 1 - V, and
-// texture rows are written top first. It also builds `dfModelCatalog`: town-block building models by block kind.
 import { encodePng } from './poiThumb.js';
 import { RMB_BLOCK_PREFIXES } from '../formats/mapsFile.js';
 
-/** The block kinds, by BLOCKS.BSA's name prefix, as a builder reads them. */
 export const DF_MODEL_KINDS = Object.freeze({
   RESI: 'Houses', TVRN: 'Taverns', GENR: 'General stores', WEAP: 'Weaponsmiths', ARMR: 'Armourers', ALCH: 'Alchemists',
   BANK: 'Banks', BOOK: 'Bookstores', CLOT: 'Clothiers', FURN: 'Furniture stores', GEMS: 'Gem stores', LIBR: 'Libraries',
@@ -20,11 +12,7 @@ export const DF_MODEL_KINDS = Object.freeze({
 });
 const kindOf = (/** @type {string} */ prefix) => (prefix.startsWith('K') && RMB_BLOCK_PREFIXES.includes(prefix) ? 'KNIG' : prefix);
 
-/**
- * THE CATALOGUE: every model the town blocks stand as a building or a piece of a town, by kind - `[{ kind, name, ids }]`
- * (a model a kind of block stands is in that kind's list, whichever others stand it too). Read off BLOCKS.BSA (formats/blocksFile.js), once.
- * @param {any} blocks a loaded BlocksFile
- */
+/** @param {any} blocks */
 export function dfModelCatalog(blocks) {
   /** @type {Map<string, Set<number>>} */
   const byKind = new Map();
@@ -47,7 +35,6 @@ export function dfModelCatalog(blocks) {
     .map(([kind, ids]) => ({ kind, name: DF_MODEL_KINDS[kind] ?? `Other (${kind})`, ids: [...ids].sort((x, y) => x - y) }));
 }
 
-/** A game texture record as a PNG and as its RGBA, rows top first: `{ png, rgba }`. Null when the archive or the record is not there. */
 export async function dfTexturePng(/** @type {(a: number) => Promise<any>} */ getTexture, /** @type {number} */ archive, /** @type {number} */ record) {
   const t = await getTexture(archive);
   const bm = t?.getDFBitmap?.(record, 0);
@@ -61,14 +48,13 @@ export async function dfTexturePng(/** @type {(a: number) => Promise<any>} */ ge
 }
 
 /**
- * THE IMPORT: model `id` as prepareImport takes a glTF's - `{ model, baked }`, or null when the game has no such model.
- * @param {number} id @param {{ getGpuMesh: (id: number) => any, cpuModels: Map<number, any>, getTexture: (a: number) => Promise<any> }} pipe
+ * @param {number} id
+ * @param {{ getGpuMesh: (id: number) => any, cpuModels: Map<number, any>, getTexture: (a: number) => Promise<any> }} pipe
  */
 export async function dfModelAsImport(id, { getGpuMesh, cpuModels, getTexture }) {
   try { await getGpuMesh(id); } catch { return null; }
   const m = cpuModels.get(id);
   if (!m?.positions?.length || !m.uvs || !m.normals) return null;
-  // one picture a texture record, one material a picture
   const images = [], materials = [], matOf = new Map(), runs = [];
   for (const sm of m.subMeshes ?? []) {
     const key = `${sm.textureArchive}_${sm.textureRecord}`;
@@ -83,7 +69,6 @@ export async function dfModelAsImport(id, { getGpuMesh, cpuModels, getTexture })
     }
     runs.push({ start: sm.startIndex, count: sm.primitiveCount * 3, mi });
   }
-  // the indices reordered a run per material, in order
   const byMat = new Map();
   for (const r of runs) { const l = byMat.get(r.mi) ?? []; l.push(r); byMat.set(r.mi, l); }
   const idx = [], submeshes = [], mats = [];
@@ -100,7 +85,6 @@ export async function dfModelAsImport(id, { getGpuMesh, cpuModels, getTexture })
   return {
     model: { name, images, materials, lights: [], warnings: [] },
     baked: [{ name, position: [0, 0, 0], mesh, materials: mats }],
-    /** for poi/poiThumb.js renderThumb: the model with its pictures */
     thumb: [{ mesh, materials: mats.map((mi) => ({ picture: materials[mi].base ? images[materials[mi].base.image].rgba : null, wrap: ['repeat', 'repeat'] })) }],
   };
 }

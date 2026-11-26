@@ -1,5 +1,3 @@
-// Spawned dungeons in the overworld: the roll and placement on each pixel and their ledger clocks.
-// Also the overworld ledger shared through the cell, ether isle places, and city guard spawns.
 import { BAND_LIFE_MS, bandLifeOf } from '../travel/travelBands.js';
 import { CLIMATES, getWorldClimateSettings, REGION_NAMES } from '../formats/mapsFile.js';
 import {
@@ -32,7 +30,6 @@ export function createOverworldSpawns(shared) {
     const t = shared.state.pixelTranslation(px, py, _announceT);
     const [lx, lz] = spawnedLocationCentreLocal(loc);
     const dx = t[0] + lx - feet[0], dz = t[2] + lz - feet[2];
-    // tvSay keeps the line up for five seconds at the journey's time scale.
     tvSay(dungeonSightLine(Math.hypot(dx, dz), _capitalize(directionHintString(dx, dz)), dungeonTier(loc)), 5);
   }
   let _spawnTemplates = null;
@@ -59,7 +56,6 @@ export function createOverworldSpawns(shared) {
   function overworldLedgerFrame(now) {
     if (!shared.online?.owOk || now - _owSaidAt < OW_SAY_MS || (!_owSay.sp.size && !_owSay.dg.size)) return;
     _owSaidAt = now;
-    // Underground nothing reaches the cell, so owed rows wait and their keep time restarts.
     if (!isCellRoom(shared.online.room)) { for (const k of _owSay.dg.keys()) _owSay.dg.set(k, now); return; }
     const bandLife = Math.floor(shared.bandNowMs() / BAND_LIFE_MS), raidLife = Math.floor(shared.raidNowMs() / RAIDER_LIFE_MS);
     for (const id of [..._owSay.sp.keys()]) if ((id[0] === 'b' ? bandLifeOf(id) < bandLife - 1 : raiderLifeOf(id) < raidLife - 1)) _owSay.sp.delete(id);
@@ -111,10 +107,8 @@ export function createOverworldSpawns(shared) {
       { const _wm = wildMaskOf(maps); if (_wm && wildInside(_wm, px, py)) return shared.wildHallStandOf(_wm, px, py); }
       if (!spawnsDungeon(_spawnSalt, px, py) || maps.getClimateIndex(px, py) === CLIMATES.Ocean || !_spawnGround(px, py)) return null;
       const net = terrainGen.roads();
-      // Before the roads land this is provisional; the roads sweep removes ruins a path crosses.
       if (net && !pathFreePixel(net, px, py)) return null;
       const key = `${px},${py}`;
-      // An expired row stays: the roll is a pure hash and would place the dungeon again.
       if (_spawnLedger.expired(key, shared._spawnClock()) && !_insideSpawn(key)) {
         shared._locIndexGen += 1;
         locationIndex.delete(key);

@@ -12,7 +12,7 @@ export function installCromwarkRoster() {
   if (installed) return;
   installed = true;
   for (const p of CROMWARK_ROSTER) {
-    const row = structuredClone(ENEMY_BASICS[7]); // Orc's ordinary, hittable body; no undead immunity.
+    const row = structuredClone(ENEMY_BASICS[7]);
     delete row.id;
     Object.assign(row, { maleTexture: p.archive, femaleTexture: p.archive, minHealth: p.hp, maxHealth: p.hp,
       level: 8, armorValue: 6, minDamage: 5, maxDamage: 10, hasIdle: false,
@@ -28,7 +28,6 @@ export function installCromwarkRoster() {
       if (!r.ok) throw new Error(`Cromwark ${p.key}: ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     }));
-    // The supplied art is one frame. Every requested facing uses that actual frame.
     addVendorTextures(Array.from({ length: 25 }, (_, record) => ({ archive: p.archive, record, frame: 0,
       map: 'Albedo', standIn: true, readOnly: true, fileName: `${p.archive}_${record}-0`, load })));
   }

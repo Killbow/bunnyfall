@@ -1,6 +1,7 @@
 // The wilderness zone in the world: its halls, giants, and strangers, and the fights between
 // players with their referee, deaths, drops, remains, and rise. It also holds unstuck, the zone's
 // journeys and teleport rules, and what the maps show of players there.
+
 import { setMidScreenText } from '../ui/midScreenText.js';
 import { areEnemiesNearby, foeAlerted } from '../characters/encounters.js';
 import { audio } from '../audio/audio.js';

@@ -1,8 +1,8 @@
 // @ts-check
 // Pure helpers for a POI's flat-picture rows (`flats`, poiLawV2.js), shared by the runtime and the in-game editor.
-// Computes how a row's facing and a mount's frame rotate with the POI's placement (used by scenes/poiFlats.js), and
-// implements editor operations for creating, rotating, scaling, and mirroring rows. The editor runs mutating helpers
-// inside poiEdit's `edit` so each operation is a single undo step. Uses no DOM, WebGL, or item tables.
+// Computes how row facing and mount frames rotate with the POI placement (used by poi/poiFlats.js),
+// and implements editor operations for creating, rotating, scaling, and mirroring rows. The editor runs mutating
+// helpers inside poiEdit's `edit` so each operation is a single undo step. Uses no DOM, WebGL, or item tables.
 
 import { decorMountFrame, decorFlatMirrored } from '../net/decorLaw.js';
 import { quatAngleAxis, quatRotate } from '../world/quat.js';
@@ -18,11 +18,8 @@ const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a
 const conj = (q) => [-q[0], -q[1], -q[2], q[3]];
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-/** Wraps an angle in degrees into the range (-180, 180]. */
 export const wrapDeg = (d) => { let v = d % 360; if (v > 180) v -= 360; if (v <= -180) v += 360; return v; };
 
-/** Rotates a row's horizontal facing (`yaw`, in degrees around the Y axis) by quaternion `q` and returns the new
- *  heading in (-180, 180]. If the rotated forward vector points straight up or down, returns the original `yaw`. */
 export function flatYawThrough(q, yaw) {
   const own = Number.isFinite(yaw) ? yaw : 0;
   const d = quatRotate(q, [Math.sin(own * RAD), 0, Math.cos(own * RAD)]);
@@ -30,11 +27,6 @@ export function flatYawThrough(q, yaw) {
   return r4(wrapDeg(Math.atan2(d[0], d[2]) * DEG));
 }
 
-/**
- * Rotates a mount's `[heading, tilt, spin]` Euler angles (in degrees, net/decorLaw.js decorMountFrame) by quaternion
- * `q`. Computes the exact angles for the rotated frame: heading and tilt come from the rotated normal, and spin comes
- * from the rotated right vector.
- */
 export function mountRotThrough(q, rot) {
   const f = decorMountFrame(rot);
   const n = quatRotate(q, f.normal), right = quatRotate(q, f.right);
@@ -46,33 +38,25 @@ export function mountRotThrough(q, rot) {
   return [r4(yaw * DEG), r4(pitch * DEG), r4(spin * DEG)];
 }
 
-/** Returns whether a row is a billboard from one of Daggerfall's person archives, which the schema holds at scale 1.
- *  @param {any} row */
+/** @param {any} row */
 export const isFigureRow = (row) => row?.kind === 'billboard' && Array.isArray(row.flat) && P.npcFlatArchives.includes(row.flat[0]);
 
-/** Returns whether an item hangs flat as a mount (any weapon except arrows, any armor, or a trophy). @param {any} it */
+/** @param {any} it */
 export const itemHangs = (it) => !!it && (it.t === P.trophyTemplate || (it.g === P.decorWeaponsGroup && it.t !== P.decorArrowTemplate) || it.g === P.decorArmorGroup);
 
-/** Returns whether a row renders horizontally mirrored under POI placement `place`. Billboards and paperdoll items
- *  mirror when their world-space facing exceeds 90 degrees from 0 (net/decorLaw.js decorFlatMirrored); mounts never
- *  mirror. */
 export function flatMirrored(row, place) {
   if (!row || row.kind === 'mount') return false;
   const yaw = flatYawThrough(Array.isArray(place?.r) ? place.r : [0, 0, 0, 1], row.rot?.[0]);
   return decorFlatMirrored({ flat: [0, 0], rot: [yaw, 0, 0] });
 }
 
-/** Default height offset in meters (in POI space) from the clicked ground point to a newly placed mount's center. */
 export const POI_FLAT_MOUNT_LIFT_M = 1;
-/** Returns whether `doc` is below the maximum number of flat-picture rows allowed by the schema. @param {any} doc */
+/** @param {any} doc */
 export const flatRoom = (doc) => (Array.isArray(doc?.flats) ? doc.flats.length : 0) < POI_V2_LIMITS.flats;
 
 /**
- * Builds a new flat row `{ key, name?, kind, flat?, item?, t, rot, scale, layer, collide, light? }` with a unique key
- * for `doc` (without inserting it). Items use kind `'mount'` when they hang and `'paperdoll'` otherwise. A mount starts
- * upright with its center `POI_FLAT_MOUNT_LIFT_M` above the clicked point so it is ready to move onto a wall and is not
- * buried by winter ground snow.
- * @param {any} doc @param {{ kind?: string, flat?: number[] | null, item?: any, name?: string, t: number[], light?: any }} o
+ * @param {any} doc
+ * @param {{ kind?: string, flat?: number[] | null, item?: any, name?: string, t: number[], light?: any }} o
  */
 export function newFlat(doc, { kind = 'billboard', flat = null, item = null, name = '', t, light = null }) {
   const isItem = !!item && kind !== 'billboard';
@@ -92,9 +76,12 @@ export function newFlat(doc, { kind = 'billboard', flat = null, item = null, nam
   return row;
 }
 
-/** Rotates a flat row around world-space `axis` by `deg` degrees. Billboards and paperdoll items rotate only around
- *  the vertical axis (which also controls mirroring); mounts rotate their full 3D frame. @param {any} place @param
- *  {any} row @param {number[]} axis @param {number} deg */
+/**
+ * @param {any} place
+ * @param {any} row
+ * @param {number[]} axis
+ * @param {number} deg
+ */
 export function turnFlatRow(place, row, axis, deg) {
   if (!row || !Number.isFinite(deg) || !deg) return false;
   const local = quatRotate(conj(place.r), axis);
@@ -104,16 +91,21 @@ export function turnFlatRow(place, row, axis, deg) {
   return true;
 }
 
-/** Multiplies a flat row's scale by `k`, clamped to the schema bounds; person sprites stay at scale 1. @param {any}
- *  row @param {number} k */
+/**
+ * @param {any}
+ * @param {number} k
+ */
 export function scaleFlatRow(row, k) {
   if (!row || isFigureRow(row) || !Number.isFinite(k) || k <= 0) return false;
   row.scale = r3(clamp((Number.isFinite(row.scale) ? row.scale : 1) * k, P.decorScaleMin, P.decorScaleMax));
   return true;
 }
 
-/** Sets whether a billboard or paperdoll item is mirrored under placement `place` by rotating its facing 180 degrees
- *  when needed. Mounts cannot be mirrored and return false. @param {any} place @param {any} row @param {boolean} on */
+/**
+ * @param {any} place
+ * @param {any} row
+ * @param {boolean} on
+ */
 export function setFlatMirrored(place, row, on) {
   if (!row || row.kind === 'mount') return false;
   if (flatMirrored(row, place) === on) return true;
@@ -122,11 +114,8 @@ export function setFlatMirrored(place, row, on) {
   return true;
 }
 
-/**
- * A null `sel` makes a new POI; leaving it out uses the selected POI.
- * @param {{ edit: any, originOf: (doc: any) => (number[] | null), at: number[], spot: { px: number, py: number, x: number, z: number },
- *   lift: number, ground: number, want: any, fallbackName?: string, sel?: { id: string } | null }} o
- */
+/** @param {{ edit: any, originOf: (doc: any) => (number[] | null), at: number[], spot: { px: number, py: number, x: number, z: number },
+ *   lift: number, ground: number, want: any, fallbackName?: string, sel?: { id: string } | null }} o */
 export function placeFlatAt({ edit, originOf, at, spot, lift, ground, want, fallbackName = '', sel = edit.selection() }) {
   if (sel ? !originOf(edit.docOf(sel.id)) : !Number.isFinite(ground)) return false;
   let key = null;

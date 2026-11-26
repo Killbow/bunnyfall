@@ -1,6 +1,4 @@
 // @ts-check
-// Deterministic damage to each placed building, never the shared ARCH3D mesh.
-// Original materials/UVs survive; render and collision consume the same result.
 export function ruinHash(...values) {
   let h = 2166136261;
   for (const v of values) { h = Math.imul(h ^ (v | 0), 16777619); h ^= h >>> 13; }
@@ -29,9 +27,6 @@ function clip(poly, field) {
   return out;
 }
 
-/** Clip a building to a ragged, sloping remnant and build fallen masonry from its
- * own materials. Doors retain standing sections around their actual vertices.
- * Small props, dungeon entrances and pathological meshes are left alone. */
 export function ruinBuildingMesh(cpu, plan) {
   if (!plan || !cpu?.normals || !cpu?.uvs || cpu.doors?.some((d) => d.type === 2 || d.type === 3)) return null;
   const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
@@ -51,7 +46,6 @@ export function ruinBuildingMesh(cpu, plan) {
   const field = (v) => {
     let ceiling = lo[1] + Math.max(1.1, height * fraction)
       + ((v[0] - center[0]) * Math.sin(plan.angle) + (v[2] - center[1]) * Math.cos(plan.angle)) * .22;
-    // Position-keyed serration: neighbouring triangles share their edge's answer.
     ceiling += Math.sin(v[0] * 2.3 + plan.seed) * .5 + Math.cos(v[2] * 2.7) * .35;
     for (const d of doorCenters) if (Math.hypot(v[0] - d.x, v[2] - d.z) < 2.4) ceiling = Math.max(ceiling, d.top);
     return ceiling - v[1];
@@ -67,8 +61,6 @@ export function ruinBuildingMesh(cpu, plan) {
   };
   const carve = (g, tri, depth = 0) => {
     const signs = tri.map(field);
-    // Classic walls are huge, sparse triangles. Subdivide only the fracture edge,
-    // so destruction is jagged rather than a clean diagonal cut through a house.
     if (depth < 5 && signs.some((s) => s < 0) && signs.some((s) => s >= 0)) {
       let edge = 0, longest = 0;
       for (let i = 0; i < 3; i++) {
@@ -94,7 +86,6 @@ export function ruinBuildingMesh(cpu, plan) {
   }
   if (!removed) return null;
   let masonry = groups.find((g) => g.textureArchive % 100 !== 74 && g.tris.length) ?? groups[0], roofScore = 0;
-  // Prefer fallen roof material: the first wall texture often contains painted windows.
   for (let i = 0; i < cpu.subMeshes.length; i++) {
     const g = cpu.subMeshes[i]; if (g.textureArchive % 100 === 74) continue;
     let score = 0;

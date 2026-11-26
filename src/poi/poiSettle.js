@@ -1,29 +1,23 @@
 // @ts-check
 
-// What a POI trade or event does to a character's save, as plain functions over the save's data. The account service
-// settles a live POI's trades and events with these (server-account/src/poiTrade.js), and a game that holds a save locally
-// uses the same ones, so a requirement means the same item in both places. Nothing here changes the save's shape: items
-// are the records the save already holds, gold is its `goldPieces`.
+// Plain functions for what a POI trade or event does to a character's save.
+// The account service and local games share them.
 
 import { templateGroups } from '../items/itemLaw.js';
 import { tradeableRecord, loadedWagonOf, recordCount, recordIsOffered, TRADE_VOLATILE_FIELDS, VALUE_IS_IDENTITY_TEMPLATES, REALM_TRADE_RECORD_MAX } from '../net/realmTradeLaw.js';
 import { GLASS_BOTTLE_TEMPLATE } from '../items/inventory.js';
 import { POTION_RECIPES, potionRecipeKey } from '../items/potionRecipes.js';
 
-/** The group an item stack names: its own, or its template's first. @param {any} s */
+/** @param {any} s */
 const groupOf = (s) => s.group ?? templateGroups(s.template)[0];
 
-/** Maps each potion recipe name (`healing`, `healTrue`) to its numeric recipe key. */
 const POTION_KEYS = new Map(POTION_RECIPES.map((r) => [r.name, potionRecipeKey(r.ingredients)]));
-/** Returns the numeric recipe key for a stack's `recipe` name, or null if unknown. @param {unknown} name */
+/** @param {unknown} name */
 export const potionKeyOf = (name) => (typeof name === 'string' ? POTION_KEYS.get(name) ?? null : null);
 
 /**
- * Returns whether a record holds exactly the item a stack names. A material counts only where the stack gives one. For
- * the Glass Bottle, a stack with a `recipe` matches only that recipe's plain potion (recordAccepts also takes its
- * Potent ones), and a stack without one matches only an empty bottle, so a take never removes a potion the stack did
- * not name.
- * @param {any} rec @param {any} s
+ * @param {any} rec
+ * @param {any} s
  */
 export function recordMatches(rec, s) {
   if (!rec || rec.templateIndex !== s.template || rec.group !== groupOf(s)) return false;
@@ -33,18 +27,22 @@ export function recordMatches(rec, s) {
   return potionKeyOf(s.recipe) !== null && rec.potionRecipeKey === potionKeyOf(s.recipe) && !rec.potent;
 }
 
-/** Returns whether `rec` is a Potent potion of the recipe that `s` names. @param {any} rec @param {any} s */
+/**
+ * @param {any} rec
+ * @param {any} s
+ */
 const potentOf = (rec, s) => s.recipe !== undefined && !!rec?.potent && recordMatches({ ...rec, potent: undefined }, s);
 
 /**
- * Returns whether a record may count toward a stack: what recordMatches accepts, and also a Potent potion of the
- * stack's recipe. A Potent potion counts for a condition and a requirement, and a take spends it only after the plain
- * ones (takeStacks).
- * @param {any} rec @param {any} s
+ * @param {any} rec
+ * @param {any} s
  */
 export const recordAccepts = (rec, s) => recordMatches(rec, s) || potentOf(rec, s);
 
-/** @param {any} save @param {any} s */
+/**
+ * @param {any} save
+ * @param {any} s
+ */
 export function countOf(save, s) {
   let n = 0;
   for (const rec of Array.isArray(save?.items) ? save.items : []) if (recordAccepts(rec, s)) n += recordCount(rec);
@@ -54,7 +52,10 @@ export function countOf(save, s) {
 /** @param {any} save */
 export const leavesOf = (save) => { const loaded = loadedWagonOf(save); return (/** @type {any} */ rec) => tradeableRecord(rec) && rec !== loaded; };
 
-/** @param {any} save @param {any} s */
+/**
+ * @param {any} save
+ * @param {any} s
+ */
 export function takeableOf(save, s) {
   const leaves = leavesOf(save);
   let n = 0;
@@ -62,18 +63,16 @@ export function takeableOf(save, s) {
   return n;
 }
 
-/** The gold a save holds. @param {any} save */
+/** @param {any} save */
 export const goldOf = (save) => (Number.isSafeInteger(save?.goldPieces) && save.goldPieces > 0 ? save.goldPieces : 0);
 
 /**
- * Mutate save.items and remaining records in place, because callers hold live references to both.
  * @param {any} save
  * @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks
  */
 export function takeStacks(save, stacks) {
   if (!Array.isArray(save?.items)) return stacks.length ? { ok: false, why: 'items' } : { ok: true };
   const list = save.items;
-  /** what each record has given so far, by index - decided first, applied only when every stack is covered */
   const gives = new Map();
   const leaves = leavesOf(save);
   for (const s of stacks) {
@@ -94,7 +93,7 @@ export function takeStacks(save, stacks) {
     if (n >= recordCount(rec)) list.splice(i, 1);
     else rec.stackCount = recordCount(rec) - n;
   }
-  if (Number.isSafeInteger(save.lightSourceIndex)) save.lightSourceIndex = lit ? list.indexOf(lit) : -1;   // an index into this very list (save.js)
+  if (Number.isSafeInteger(save.lightSourceIndex)) save.lightSourceIndex = lit ? list.indexOf(lit) : -1;
   return { ok: true, picks: picksOf(gives) };
 }
 
@@ -111,7 +110,8 @@ export function handRecord(rec) {
 }
 
 /**
- * @param {any} save @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks
+ * @param {any} save
+ * @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks
  * @param {{ at: number, n: number, rec: any }[][]} hand
  */
 export function takeChosen(save, stacks, hand) {
@@ -146,7 +146,10 @@ export function takeChosen(save, stacks, hand) {
   return { ok: true, picks };
 }
 
-/** Take gold from a save's purse, in place. Answers whether it held that much. @param {any} save @param {number} amount */
+/**
+ * @param {any} save
+ * @param {number} amount
+ */
 export function takeGold(save, amount) {
   const have = goldOf(save);
   if (amount > have) return false;
@@ -154,7 +157,11 @@ export function takeGold(save, amount) {
   return true;
 }
 
-/** Put records and gold into a save, in place. @param {any} save @param {any[]} records @param {number} gold */
+/**
+ * @param {any} save
+ * @param {any[]} records
+ * @param {number} gold
+ */
 export function giveGoods(save, records, gold) {
   if (!Array.isArray(save.items)) save.items = [];
   save.items.push(...records);

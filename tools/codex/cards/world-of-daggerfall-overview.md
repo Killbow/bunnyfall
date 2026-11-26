@@ -30,6 +30,7 @@ invariants:
 traps:
   - "Pixels named by a region that lands late are destroyed and rebuilt via `destroyPixel` so list order stays the law; never patch them in place."
   - "Do not compute site heights with 1.5; the height factor is `MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE` (1923.75)."
+  - "`picksFor` reads each instance's name, prefab, and id from the session it picked from, because a late region landing swaps the list and a build awaits between pick and placement."
 dfu: []
 tags:
   - "world-of-daggerfall"

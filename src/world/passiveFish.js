@@ -1,66 +1,24 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// DW-E3 (2026-09-25): ILIAC PUDDLE NO MORE'S PASSIVE FISH - the species
-// and the laws a fish lives by, as pure functions (jet082, 1.2.2):
-// PassiveFishSpecies.cs, PassiveFishSpeciesCatalog.cs, PassiveFishSchool
-// .cs, PassiveFishBehaviour.cs and the placement half of
-// UnderwaterPassiveFishSpawner.cs. The host half - the spawner's pixel
-// groups, the encounter pulse, the loot, the draw - is scenes/
-// deepWatersFish.js.
-//
-// THE SPECIES. Seven, each an item the player can take (templates 9001 -
-// 9007, the mod's ItemTemplates.json), with a spawn weight, a billboard
-// height and aspect, a school size, the water biomes it lives in and the
-// band of the sea's depth it keeps to (a weight that falls off over 0.18
-// of the depth past either edge).
-//
-// THE SCHOOL. A centre that cruises (0.95 m/s x the species' cruise
-// multiplier) in a direction held 2.2 - 4.4 s, flattened to 0.15 of its
-// climb; a threat turns it away from the player at 1.45 m/s x the flee
-// multiplier for 3 s. It keeps 1.2 m off the floor and 1.4 m under the
-// surface and turns back from water under 2 m deep.
-//
-// THE FISH. Cruises 1.2 m/s x its multiplier, with its school or on its
-// own (a new heading every 5 - 9 s); within 8 m of the player it flees at
-// 3.5 m/s x its flee multiplier, darting 35 - 75 degrees off the line
-// away, held 1.6 - 2.8 s (the species' own hold); it keeps 0.8 m off the
-// floor and 1.4 m under the surface, and a fish in water under 2 m deep
-// goes back where it was and turns round.
-//
-// THE DRAWS. Every one is an unseeded UnityEngine.Random draw, and rides
-// the host's injectable roll (Port-Ledger A, the engine-PRNG rule).
-// ═══════════════════════════════════════════════════════════════════
 
 import { WATER_BIOME, climateToBiome } from './underwaterDecorations.js';
-import { rangeInt, rangeFloat } from '../items/unleveledLoot.js';   // Random.Range(int, int) and (float, float)
-import { insideUnitSphere } from '../magic/magicCandle.js';          // Random.insideUnitSphere
-import { roundToInt } from './mathf.js';                   // Mathf.RoundToInt
+import { rangeInt, rangeFloat } from '../items/unleveledLoot.js';
+import { insideUnitSphere } from '../magic/magicCandle.js';
+import { roundToInt } from './mathf.js';
 
 export { rangeInt, rangeFloat, insideUnitSphere };
 
 const f32 = Math.fround;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-/** The fish items' templates (PassiveFishSpeciesCatalog's *TemplateIndex). */
 export const FISH_TEMPLATE = Object.freeze({
   LongnoseButterflyfish: 9001, LargemouthBass: 9002, CanaryRockfish: 9003, CrucianCarp: 9004,
   Mackerel: 9005, WhiteZebraAngelfish: 9006, Finulon: 9007,
 });
-/** CustomItemTemplateIndices. */
 export const FISH_TEMPLATE_INDICES = Object.freeze([9001, 9002, 9003, 9004, 9005, 9006, 9007]);
-/** FishItemGroup: ItemGroups.UselessItems2 (9), where DFU's custom items live. */
 export const FISH_ITEM_GROUP = 9;
-/** DepthEdgeSoftness. */
 export const DEPTH_EDGE_SOFTNESS = 0.18;
-/** The fish's pictures' archive (PassiveFishSpecies' textureArchive default). */
 export const FISH_TEXTURE_ARCHIVE = 216;
 
-/**
- * PassiveFishSpecies' constructor, its clamps included: at least one in a
- * school and the max no less; a height multiplier of at least 0.05; a dart
- * held at least 0.1 s; no biome is every biome; the depth band in order and
- * inside 0..1.
- */
 export function passiveFishSpecies(templateIndex, itemName, textureRecord, spawnWeight, billboardHeight, billboardAspect, textureName,
   cruiseSpeedMultiplier, fleeSpeedMultiplier, minSchoolSize, maxSchoolSize, biomes, minDepthFraction, maxDepthFraction,
   minHeightMultiplier = 1, maxHeightMultiplier = 1, fleeDartHoldMin = 1.6, fleeDartHoldMax = 2.8, textureArchive = FISH_TEXTURE_ARCHIVE) {
@@ -82,7 +40,6 @@ export function passiveFishSpecies(templateIndex, itemName, textureRecord, spawn
 
 const B = WATER_BIOME;
 const species = passiveFishSpecies;
-/** PassiveFishSpeciesCatalog.All, in its order. */
 export const PASSIVE_FISH_SPECIES = Object.freeze([
   species(9001, 'Longnose Butterflyfish', 42, 10, 0.5, 1.3958334, 'longnose_butterflyfish', 1, 1, 8, 16, B.Tropical, 0, 0.35, 0.85, 1.15, 1.1, 2.2),
   species(9002, 'Largemouth Bass', 43, 4, 1.2, 2.2962964, 'largemouth_bass', 1.3, 1.3, 1, 2, B.Temperate | B.Swamp | B.Desert, 0, 0.45, 0.9, 1.25, 1.8, 3.2),
@@ -93,31 +50,25 @@ export const PASSIVE_FISH_SPECIES = Object.freeze([
   species(9007, 'Finulon', 41, 5, 1.8, 1.7083334, 'finulon', 1.2, 1.2, 1, 1, B.OpenOcean | B.Cold, 0.6, 1, 0.8, 1.1, 1.4, 2.6),
 ]);
 
-/** A species by its item template, or null. */
 export const speciesOfTemplate = (templateIndex) => PASSIVE_FISH_SPECIES.find((s) => s.templateIndex === templateIndex) ?? null;
-/** IsFishTemplateIndex. */
 export const isFishTemplateIndex = (templateIndex) => FISH_TEMPLATE_INDICES.includes(templateIndex);
 
-/** DepthWeight01: 1 inside the band, falling to 0 over DepthEdgeSoftness past either edge. */
 export function depthWeight01(s, depthFraction) {
   if (depthFraction >= s.minDepthFraction && depthFraction <= s.maxDepthFraction) return 1;
   const off = depthFraction < s.minDepthFraction ? f32(s.minDepthFraction - depthFraction) : f32(depthFraction - s.maxDepthFraction);
   return clamp01(f32(1 - f32(off / f32(DEPTH_EDGE_SOFTNESS))));
 }
 
-/** EffectiveWeight: none outside the species' biomes, else its weight x the depth's. */
 export function effectiveWeight(s, biome, depthFraction) {
   if ((s.biomes & biome) === 0) return 0;
   return f32(s.spawnWeight * depthWeight01(s, depthFraction));
 }
 
 /**
- * PickRandom(climateIndex, depthFraction): a species drawn by its
- * effective weight among the spawnable ones (a species with weight and a
- * picture), or by its bare weight when the biome and depth leave none.
- * @param {ReadonlyArray<any>} spawnable - BuildSpawnableCache's list, in the catalog's order
- * @param {number} climateIndex @param {number} depthFraction
- * @param {() => number} roll - Random.value
+ * @param {ReadonlyArray<any>} spawnable
+ * @param {number} climateIndex
+ * @param {number} depthFraction
+ * @param {() => number} roll
  */
 export function pickSpecies(spawnable, climateIndex, depthFraction, roll) {
   const total = spawnable.reduce((t, s) => t + s.spawnWeight, 0);
@@ -136,7 +87,6 @@ export function pickSpecies(spawnable, climateIndex, depthFraction, roll) {
   return spawnable[spawnable.length - 1];
 }
 
-/** PickRandom(): Random.Range(0, totalSpawnWeight) walked down the list; the first when it runs off. */
 export function pickSpeciesByWeight(spawnable, roll) {
   const total = spawnable.reduce((t, s) => t + s.spawnWeight, 0);
   if (total <= 0) return null;
@@ -148,8 +98,6 @@ export function pickSpeciesByWeight(spawnable, roll) {
   return spawnable[0];
 }
 
-// ── the unseeded engine draws (Random.Range's two arms and insideUnitSphere have their homes) ──
-/** Random.insideUnitCircle: a uniform point in the unit disc (rejection - the same distribution). */
 export function insideUnitCircle(roll) {
   for (let i = 0; i < 64; i++) {
     const x = roll() * 2 - 1, y = roll() * 2 - 1;
@@ -158,22 +106,19 @@ export function insideUnitCircle(roll) {
   return [0, 0];
 }
 
-// ── Vector3 the way Unity does it ──────────────────────────────────
 const sqrMag = (v) => v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
 const normalized = (v) => {
   const m = Math.hypot(v[0], v[1], v[2]);
-  return m > 1e-5 ? [v[0] / m, v[1] / m, v[2] / m] : [0, 0, 0];   // Vector3.Normalize: zero under kEpsilon
+  return m > 1e-5 ? [v[0] / m, v[1] / m, v[2] / m] : [0, 0, 0];
 };
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-/** Rodrigues: `v` turned `angle` radians about the unit `axis`. */
 function rotateAbout(v, axis, angle) {
   const c = Math.cos(angle), s = Math.sin(angle), d = dot3(axis, v) * (1 - c), x = cross3(axis, v);
   return [v[0] * c + x[0] * s + axis[0] * d, v[1] * c + x[1] * s + axis[1] * d, v[2] * c + x[2] * s + axis[2] * d];
 }
 const K_EPSILON = 0.00001;
-/** OrthoNormalVectorFast: a unit vector square to the unit `n`. */
 function orthoNormal(n) {
   if (Math.abs(n[2]) > Math.SQRT1_2) {
     const k = 1 / Math.sqrt(n[1] * n[1] + n[2] * n[2]);
@@ -182,12 +127,6 @@ function orthoNormal(n) {
   const k = 1 / Math.sqrt(n[0] * n[0] + n[1] * n[1]);
   return [-n[1] * k, n[0] * k, 0];
 }
-/**
- * Vector3.Slerp: the direction turned from `a` toward `b` by `t` of the
- * angle between them (t clamped to 0..1), the length lerped - a straight
- * lerp when either is zero or they point the same way, a half turn about
- * any square axis when they point apart.
- */
 export function vector3Slerp(a, b, t) {
   t = clamp01(t);
   const am = Math.hypot(a[0], a[1], a[2]), bm = Math.hypot(b[0], b[1], b[2]);
@@ -201,36 +140,37 @@ export function vector3Slerp(a, b, t) {
   else out = rotateAbout(an, normalized(cross3(a, b)), Math.acos(d) * t);
   return [out[0] * len, out[1] * len, out[2] * len];
 }
-/** Vector3.Reflect. */
 export const reflect3 = (dir, n) => { const k = -2 * dot3(n, dir); return [dir[0] + n[0] * k, dir[1] + n[1] * k, dir[2] + n[2] * k]; };
 
 /**
- * The per-frame world a school and its fish read - the host fills it once
- * a frame (PassiveFishBehaviour.PumpAll):
  * @typedef {object} FishFrame
- * @property {number} time - Time.time (s)
- * @property {number} dt - Time.deltaTime (s)
- * @property {number} frame - Time.frameCount
- * @property {() => number} roll - Random.value
- * @property {number[]} playerPos - the player object's position
- * @property {(x: number, z: number) => ?{oceanY: number, seafloorY: number, depth: number, entry: object}} column - DeepWaterWorld.TryGetWaterColumn
- * @property {(column: object, x: number, z: number) => number} renderedSeafloorY - TryGetRenderedSeafloorWorldY (the column's own floor where the mesh has none)
- * @property {number} visibleDistance - UpdateDistanceVisibility's reach this frame
- * @property {(origin: number[], dir: number[], maxDistance: number) => ?{normal: number[]}} raycast - Physics.Raycast, triggers ignored
+ * @property {number} time
+ * @property {number} dt
+ * @property {number} frame
+ * @property {() => number} roll
+ * @property {number[]} playerPos
+ * @property {(x: number, z: number) => ?{oceanY: number, seafloorY: number, depth: number, entry: object}} column
+ * @property {(column: object, x: number, z: number) => number} renderedSeafloorY
+ * @property {number} visibleDistance
+ * @property {(origin: number[], dir: number[], maxDistance: number) => ?{normal: number[]}} raycast
  */
 
-// ── PassiveFishSchool ──────────────────────────────────────────────
 export const SCHOOL_CRUISE_SPEED = 0.95;
 export const SCHOOL_DISRUPTED_SPEED = 1.45;
 export const SCHOOL_DIRECTION_HOLD = Object.freeze([2.2, 4.4]);
 export const SCHOOL_DISRUPTED_MEMORY_SECONDS = 3;
 export const SCHOOL_SEAFLOOR_CLEARANCE = 1.2;
 export const SCHOOL_SURFACE_CLEARANCE = 1.4;
-/** A school turns back from water shallower than this, and a fish from it (both the mod's `< 2f`). */
 export const MINIMUM_SWIM_DEPTH = 2;
 
 export class PassiveFishSchool {
-  /** @param {number[]} startCenter @param {number} schoolRadius @param {number} cruiseMultiplier @param {number} fleeMultiplier @param {{time: number, roll: () => number}} at */
+  /**
+   * @param {number[]} startCenter
+   * @param {number} schoolRadius
+   * @param {number} cruiseMultiplier
+   * @param {number} fleeMultiplier
+   * @param {{time: number, roll: () => number}} at
+   */
   constructor(startCenter, schoolRadius, cruiseMultiplier, fleeMultiplier, at) {
     this.center = [...startCenter];
     this.radius = Math.max(0.1, schoolRadius);
@@ -248,7 +188,6 @@ export class PassiveFishSchool {
   isDisrupted(time) { return time < this.disruptedUntil; }
   currentDirection(time) { return this.isDisrupted(time) ? this.disruptedDirection : this.cruiseDirection; }
 
-  /** ReportThreat: away from the player, flattened to a quarter of its climb, for three seconds. */
   reportThreat(awayFromPlayer, time) {
     const a = [awayFromPlayer[0], awayFromPlayer[1] * 0.25, awayFromPlayer[2]];
     if (sqrMag(a) < 0.01) return;
@@ -256,14 +195,13 @@ export class PassiveFishSchool {
     this.disruptedUntil = time + SCHOOL_DISRUPTED_MEMORY_SECONDS;
   }
 
-  /** GetFleeDirection: from the player, flattened likewise; else the disrupted heading; else the cruise. */
   getFleeDirection(fishPos, playerPos) {
     const v = [fishPos[0] - playerPos[0], (fishPos[1] - playerPos[1]) * 0.25, fishPos[2] - playerPos[2]];
     if (sqrMag(v) > 0.01) return normalized(v);
     return sqrMag(this.disruptedDirection) > 0.01 ? this.disruptedDirection : this.cruiseDirection;
   }
 
-  /** Update: once a frame, whichever of its fish asks first. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   update(f) {
     if (this.lastUpdateFrame === f.frame) return;
     this.lastUpdateFrame = f.frame;
@@ -274,7 +212,6 @@ export class PassiveFishSchool {
     this.moveCenter(normalized(dir), speed, f);
   }
 
-  /** PickCruiseDirection: insideUnitSphere flattened to 0.15 of its climb (forward when nothing is left), held 2.2 - 4.4 s. */
   pickCruiseDirection(at) {
     const c = insideUnitSphere(at.roll);
     c[1] *= 0.15;
@@ -282,7 +219,7 @@ export class PassiveFishSchool {
     this.nextDirectionTime = at.time + rangeFloat(SCHOOL_DIRECTION_HOLD[0], SCHOOL_DIRECTION_HOLD[1], at.roll);
   }
 
-  /** MoveCenter: out of the sea or into water under 2 m, both headings turn about; else the step, kept off the floor and the surface. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   moveCenter(direction, speed, f) {
     const next = [this.center[0] + direction[0] * speed * f.dt, this.center[1] + direction[1] * speed * f.dt, this.center[2] + direction[2] * speed * f.dt];
     const col = f.column(next[0], next[2]);
@@ -307,7 +244,6 @@ export class PassiveFishSchool {
   }
 }
 
-// ── PassiveFishBehaviour ───────────────────────────────────────────
 export const BASE_CRUISE_SPEED = 1.2;
 export const BASE_FLEE_SPEED = 3.5;
 export const FLEE_DISTANCE = 8;
@@ -329,14 +265,8 @@ export const OBSTACLE_PROBE_PLAYER_DISTANCE = 60;
 export const COLLISION_PROBE_DISTANCE = 0.6;
 export const COLLISION_PROBE_MARGIN = 0.15;
 
-/**
- * One fish (PassiveFishBehaviour): its position, headings and clocks, its
- * school (or none), and its loot - `loot.items` the DaggerfallLoot's
- * collection, a fish emptied of its item leaving the world.
- */
 export class PassiveFish {
   /**
-   * Initialize.
    * @param {{position: number[], loot: ?{items: any[]}, cruiseMultiplier: number, fleeMultiplier: number, school: ?PassiveFishSchool, dartHoldMin: number, dartHoldMax: number}} o
    * @param {{time: number, roll: () => number}} at
    */
@@ -366,8 +296,7 @@ export class PassiveFish {
   }
 
   /**
-   * ManagedUpdate. Returns false once the fish is gone (its loot emptied:
-   * the object destroyed). @param {FishFrame} f
+   * @param {FishFrame} f
    */
   managedUpdate(f) {
     if (this.destroyed) return false;
@@ -408,14 +337,14 @@ export class PassiveFish {
     return true;
   }
 
-  /** UpdateDistanceVisibility: drawn and clickable within the frame's reach, flat distance. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   updateDistanceVisibility(f) {
     const dx = this.position[0] - f.playerPos[0], dz = this.position[2] - f.playerPos[2];
     this.visible = dx * dx + dz * dz <= f.visibleDistance * f.visibleDistance;
     return this.visible;
   }
 
-  /** TryAvoidObstacle: every fifth frame within 60 m, a ray ahead; a hit reflects the heading and the step is not taken. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   tryAvoidObstacle(step, f) {
     if (sqrMag(step) < 1e-6) return false;
     const d = this.position.map((c, i) => c - f.playerPos[i]);
@@ -432,7 +361,6 @@ export class PassiveFish {
     return true;
   }
 
-  /** PickWanderDirection: insideUnitSphere flattened to a quarter of its climb, held 5 - 9 s. */
   pickWanderDirection(at) {
     const t = insideUnitSphere(at.roll);
     t[1] *= 0.25;
@@ -441,7 +369,7 @@ export class PassiveFish {
     this.nextTurnTime = at.time + rangeFloat(TURN_INTERVAL[0], TURN_INTERVAL[1], at.roll);
   }
 
-  /** SwimWithSchool: back toward the school past its radius, else with it and gently toward its own place in it; alone, a new heading when its time comes. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   swimWithSchool(f) {
     const s = this.school;
     if (!s) {
@@ -465,7 +393,7 @@ export class PassiveFish {
     }
   }
 
-  /** RefreshFleeDart: when the last dart's hold is out, a new one 35 - 75 degrees off the line away, either side, a little up or down. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   refreshFleeDart(away, f) {
     if (f.time < this.nextFleeDartTime && sqrMag(this.fleeDartDirection) > 0.01) return;
     let side = cross3([0, 1, 0], away);
@@ -479,7 +407,7 @@ export class PassiveFish {
     this.nextFleeDartTime = f.time + rangeFloat(this.fleeDartHoldMin, this.fleeDartHoldMax, f.roll);
   }
 
-  /** ClampToWater: out of the sea or over water under 2 m, back where it was and turned round; else kept off the floor and the surface. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   clampToWater(f) {
     const col = this.currentWaterColumn(f);
     if (!col || col.depth < MINIMUM_SWIM_DEPTH) {
@@ -495,7 +423,7 @@ export class PassiveFish {
     this.hasLastSafePosition = true;
   }
 
-  /** TryGetCurrentWaterColumn: the column under the fish, asked again a quarter-second on. @param {FishFrame} f */
+  /** @param {FishFrame} f */
   currentWaterColumn(f) {
     if (this.cachedColumn && f.time < this.nextWaterColumnRefreshTime) return this.cachedColumn;
     this.nextWaterColumnRefreshTime = f.time + WATER_COLUMN_REFRESH_INTERVAL;
@@ -503,14 +431,12 @@ export class PassiveFish {
     return this.cachedColumn;
   }
 
-  /** A recentre moved the world by `offset`: every world position the fish holds moves with it. */
   shift(offset) {
     for (let i = 0; i < 3; i++) { this.position[i] += offset[i]; this.lastSafePosition[i] += offset[i]; }
     this.cachedColumn = null;
   }
 }
 
-// ── UnderwaterPassiveFishSpawner's placement ───────────────────────
 export const FISH_ATTEMPTS_PER_PIXEL = 90;
 export const PASSIVE_FISH_FREQUENCY_AT_MIDPOINT = 3;
 export const MINIMUM_FISH_COLUMN_DEPTH = 8;
@@ -518,28 +444,22 @@ export const SPAWN_SEAFLOOR_CLEARANCE = 1.2;
 export const SPAWN_SURFACE_CLEARANCE = 1.4;
 export const SCHOOL_MEMBER_RADIUS = Object.freeze([1.2, 5]);
 export const SCHOOL_MEMBER_MIN_SEPARATION = 2.2;
-const SCHOOL_MEMBER_MIN_SEPARATION_SQ = f32(4.84);   // IsFarEnoughFromSchoolmates' literal
+const SCHOOL_MEMBER_MIN_SEPARATION_SQ = f32(4.84);
 export const SCHOOL_POSITION_ATTEMPTS = 24;
 export const DEEP_FISH_FLOOR_BIAS_START = 0.55;
 export const DEEP_FISH_FLOOR_BAND_METERS = 35;
 export const MAX_PENDING_FISH_SPAWNS_PER_FRAME = 5;
-/** MaxLiveFishLimit, and EffectiveFishCap's answer with no mod instance. */
 export const MAX_LIVE_FISH_LIMIT = 1080;
 
-/** ScaledAttemptsPerPixel: 90 x the frequency over its midpoint's 3, in floats, rounded as Mathf.RoundToInt rounds. */
 export function scaledAttemptsPerPixel(frequency) {
   return Math.max(0, roundToInt(f32(FISH_ATTEMPTS_PER_PIXEL * f32(f32(frequency) / PASSIVE_FISH_FREQUENCY_AT_MIDPOINT))));
 }
 
-/** GetSchoolRadius. */
 export const schoolRadius = (schoolSize) => Math.min(5, Math.max(1.2, 2.5 + schoolSize * 0.45));
 
-/** GetFishBillboardSize: the height by the aspect. */
 export const fishBillboardSize = (s, height) => ({ w: height * s.billboardAspect, h: height });
 
 /**
- * TryResolveColumnRange: a column at least 8 m deep, the range between
- * the floor's clearance and the surface's, or null.
  * @param {FishFrame} f
  */
 export function resolveColumnRange(f, x, z, floorClearance, surfaceClearance) {
@@ -550,11 +470,6 @@ export function resolveColumnRange(f, x, z, floorClearance, surfaceClearance) {
   return maxY <= minY ? null : { minY, maxY, oceanY: col.oceanY, column: col };
 }
 
-/**
- * TryPickFishY: a depth inside the species' band of the sea's WaterDepth
- * and inside the column's range; past 0.55 of the depth the pick leans
- * toward the floor's 35 m band. The world height, or null.
- */
 export function pickFishY(minY, maxY, oceanY, s, waterDepth, roll) {
   if (maxY <= minY) return null;
   const depth = Math.max(1, waterDepth);
@@ -568,8 +483,6 @@ export function pickFishY(minY, maxY, oceanY, s, waterDepth, roll) {
 }
 
 /**
- * TryResolveFishPosition (the species'): the clearances at least half the
- * tallest the species draws; the world point, or null.
  * @param {FishFrame} f
  */
 export function resolveFishPosition(f, x, z, s, waterDepth) {
@@ -581,9 +494,6 @@ export function resolveFishPosition(f, x, z, s, waterDepth) {
 }
 
 /**
- * TryPickSchoolmatePosition: 24 tries on the ring 1.2 m .. the school's
- * radius, at a depth within a metre of the centre's (ClampToSchoolDepth),
- * 2.2 m from every schoolmate stood. The world point, or null.
  * @param {FishFrame} f
  */
 export function pickSchoolmatePosition(f, center, radius, existing) {
@@ -596,7 +506,6 @@ export function pickSchoolmatePosition(f, center, radius, existing) {
     const range = resolveColumnRange(f, x, z, SPAWN_SEAFLOOR_CLEARANCE, SPAWN_SURFACE_CLEARANCE);
     if (!range) continue;
     const pos = [x, rangeFloat(range.minY, range.maxY, f.roll), z];
-    // ClampToSchoolDepth
     const col = f.column(x, z);
     if (col) {
       const lo = f.renderedSeafloorY(col, x, z) + SPAWN_SEAFLOOR_CLEARANCE, hi = col.oceanY - SPAWN_SURFACE_CLEARANCE;
@@ -607,13 +516,7 @@ export function pickSchoolmatePosition(f, center, radius, existing) {
   return null;
 }
 
-// ── PassiveFishResources ───────────────────────────────────────────
 /**
- * RestoreIconAspect: the picture Blit (point-sampled) to a width of
- * round(height x the species' aspect), its height kept - Unity's import
- * rounded the author's pictures to powers of two, and the icon takes the
- * drawn fish's shape back. The same picture when the width already
- * agrees. Rows in the picture's own order.
  * @param {{width: number, height: number, data: Uint8Array | Uint8ClampedArray}} src
  * @param {number} aspect
  */
@@ -622,7 +525,7 @@ export function restoreIconAspect(src, aspect) {
   if (w === src.width) return src;
   const data = new Uint8Array(w * src.height * 4);
   for (let x = 0; x < w; x++) {
-    const sx = Math.min(src.width - 1, Math.floor(((x + 0.5) / w) * src.width));   // the Blit's point sample at the pixel's centre
+    const sx = Math.min(src.width - 1, Math.floor(((x + 0.5) / w) * src.width));
     for (let y = 0; y < src.height; y++) {
       const i = (y * w + x) * 4, j = (y * src.width + sx) * 4;
       data[i] = src.data[j]; data[i + 1] = src.data[j + 1]; data[i + 2] = src.data[j + 2]; data[i + 3] = src.data[j + 3];
@@ -631,18 +534,10 @@ export function restoreIconAspect(src, aspect) {
   return { width: w, height: src.height, data };
 }
 
-/**
- * A ray against an upright capsule (a CharacterController: its feet at
- * `feet`, its caps `radius`, its height `height`) - the nearest hit within
- * `maxDist`, with the surface's outward normal, or null. Only the near
- * crossings count, so a ray starting inside it meets nothing (Physics
- * .Raycast's rule: the near crossing is behind it).
- */
 export function rayUprightCapsule(o, d, maxDist, feet, radius, height) {
   const ya = feet[1] + radius, yb = feet[1] + Math.max(radius, height - radius);
   let best = null;
   const take = (t, n) => { if (t >= 0 && t <= maxDist && (!best || t < best.dist)) best = { dist: t, normal: normalized(n) }; };
-  // the side
   const ox = o[0] - feet[0], oz = o[2] - feet[2];
   const a = d[0] * d[0] + d[2] * d[2];
   if (a > 1e-12) {
@@ -654,7 +549,6 @@ export function rayUprightCapsule(o, d, maxDist, feet, radius, height) {
       if (y >= ya && y <= yb) take(t, [ox + d[0] * t, 0, oz + d[2] * t]);
     }
   }
-  // the caps
   for (const cy of [ya, yb]) {
     const lx = o[0] - feet[0], ly = o[1] - cy, lz = o[2] - feet[2];
     const b = lx * d[0] + ly * d[1] + lz * d[2], c = lx * lx + ly * ly + lz * lz - radius * radius;

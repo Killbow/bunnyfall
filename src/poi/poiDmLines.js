@@ -1,10 +1,9 @@
 // @ts-check
-// Builds 3D scene lines (`toScene`) for a POI's DM content, with radii in meters (poiDmRuntime.js) and route `band`
-// records for render/poiGizmoPass.js. Routes and waypoint marks rise with `groundAt` where the ground lies above the
-// walker's path (scenes/poiNpcs.js), and ring chords carry `prev` and `next` for mitered joins. `dmLines` caches its
-// last result because edits create a new `doc` and `epoch` changes when ground is built, evicted, or rebuilt.
+// Builds 3D scene lines (`toScene`) for a POI's DM content, with radii in meters (poiDmRuntime.js) and route
+// `band` records for render/poiGizmoPass.js. Routes and waypoint marks rise with `groundAt` where the ground lies
+// above the walker's path (poi/poiNpcs.js), and ring chords carry `prev` and `next` for mitered joins.
+// `dmLines` caches its last result because edits create a new `doc` and `epoch` changes when ground changes.
 
-/** Colors by kind, and the open row's. */
 export const DM_LINE_COLOR = Object.freeze({
   route: Object.freeze([0.4, 0.85, 0.55, 0.9]), encounter: Object.freeze([0.95, 0.35, 0.3, 0.85]), zone: Object.freeze([0.7, 0.5, 0.95, 0.85]),
   object: Object.freeze([0.95, 0.85, 0.4, 0.9]), open: Object.freeze([1, 0.62, 0.15, 1]),
@@ -14,9 +13,8 @@ const GROUND_STEP = 1, GROUND_CHECKS = 400;
 export const WAYPOINT_MARK = Object.freeze({ w: 4, post: 2, ring: 0.5 });
 
 /**
- * Returns the polyline a person walks along a route: straight from each waypoint to the next (poiDmCore.js stepWalker),
- * and from the last back to the first for a loop. A ping-pong route retraces the same segments.
- * @param {number[][]} pts @param {boolean} closed
+ * @param {number[][]} pts
+ * @param {boolean} closed
  */
 export function walkPath(pts, closed) {
   const out = pts.map((p) => [...p]);
@@ -45,16 +43,24 @@ function stillSame(doc, open, toScene, groundAt, epoch) {
 }
 
 /**
- * @param {any} doc @param {{ tab: string, key: string | null } | null} open @param {(p: number[]) => number[]} toScene
- * @param {((x: number, z: number) => number) | null} [groundAt] @param {number} [epoch] @returns {{ inWorld: DmLine[], onTop: DmLine[] }}
+ * @param {any} doc
+ * @param {{ tab: string, key: string | null } | null} open
+ * @param {(p: number[]) => number[]} toScene
+ * @param {((x: number, z: number) => number) | null} [groundAt]
+ * @param {number} [epoch]
+ * @returns {{ inWorld: DmLine[], onTop: DmLine[] }}
  */
 export function dmLines(doc, open, toScene, groundAt = null, epoch = 0) {
   if (stillSame(doc, open, toScene, groundAt, epoch)) return /** @type {{ inWorld: DmLine[], onTop: DmLine[] }} */ (lastOut);
   return rebuild(doc, open, toScene, groundAt, epoch);
 }
-// Separate from dmLines so the `seen` closure is not allocated on cached frames.
-/** @param {any} doc @param {{ tab: string, key: string | null } | null} open @param {(p: number[]) => number[]} toScene
- *  @param {((x: number, z: number) => number) | null} groundAt @param {number} epoch */
+/**
+ * @param {any} doc
+ * @param {{ tab: string, key: string | null } | null} open
+ * @param {(p: number[]) => number[]} toScene
+ * @param {((x: number, z: number) => number) | null} groundAt
+ * @param {number} epoch
+ */
 function rebuild(doc, open, toScene, groundAt, epoch) {
   groundCount = 0; groundNext = 0;
   const seen = groundAt ? (/** @type {number} */ x, /** @type {number} */ z) => {
@@ -71,21 +77,36 @@ function rebuild(doc, open, toScene, groundAt, epoch) {
   return out;
 }
 
-/** @param {any} doc @param {{ tab: string, key: string | null } | null} open
- *  @param {(p: number[]) => number[]} toScene @param {((x: number, z: number) => number) | null} groundAt */
+/**
+ * @param {any} doc
+ * @param {{ tab: string, key: string | null } | null} open
+ * @param {(p: number[]) => number[]} toScene
+ * @param {((x: number, z: number) => number) | null} groundAt
+ */
 function linesOf(doc, open, toScene, groundAt) {
   /** @type {DmLine[]} */
   const inWorld = [], onTop = [];
   if (!doc || doc.v !== 2) return { inWorld, onTop };
   const isOpen = (/** @type {string} */ tab, /** @type {string} */ key) => open?.tab === tab && open?.key === key;
-  /** @param {number[]} a @param {number[]} b @param {readonly number[]} color @param {object | null} [more] a width or a band */
+  /**
+   * @param {number[]} a
+   * @param {number[]} b
+   * @param {readonly number[]} color
+   * @param {object | null} [more]
+   */
   const seg = (a, b, color, more = null, route = false) => {
     inWorld.push({ a, b, color: [...color], ...more });
     onTop.push({ a, b, color: [color[0], color[1], color[2], route ? 0.6 : 0.25], ...more });
   };
   /** @param {number[]} p */
   const lift = (p) => { const g = groundAt ? groundAt(p[0], p[2]) : NaN; return Number.isFinite(g) && g > p[1] ? [p[0], g, p[2]] : p; };
-  /** @param {number[]} c @param {number} r @param {readonly number[]} color @param {object | null} [more] @param {boolean} [onGround] */
+  /**
+   * @param {number[]} c
+   * @param {number} r
+   * @param {readonly number[]} color
+   * @param {object | null} [more]
+   * @param {boolean} [onGround]
+   */
   const ring = (c, r, color, more = null, onGround = false, route = false) => {
     const pts = [];
     for (let i = 0; i < RING_STEPS; i++) {
@@ -95,7 +116,12 @@ function linesOf(doc, open, toScene, groundAt) {
     const n = pts.length;
     for (let i = 0; i < n; i++) seg(pts[i], pts[(i + 1) % n], color, { ...more, prev: pts[(i + n - 1) % n], next: pts[(i + 2) % n] }, route);
   };
-  /** @param {number[]} c @param {number} h @param {readonly number[]} color @param {object | null} [more] */
+  /**
+   * @param {number[]} c
+   * @param {number} h
+   * @param {readonly number[]} color
+   * @param {object | null} [more]
+   */
   const post = (c, h, color, more = null, route = false) => seg(c, [c[0], c[1] + h, c[2]], color, more, route);
 
   for (const r of doc.routes ?? []) {
@@ -128,7 +154,9 @@ function linesOf(doc, open, toScene, groundAt) {
 }
 
 /**
- * @param {number[]} a @param {number[]} b @param {(p: number[]) => number[]} lift
+ * @param {number[]} a
+ * @param {number[]} b
+ * @param {(p: number[]) => number[]} lift
  * @returns {[number, number, number[], number[]][]}
  */
 export function groundPieces(a, b, lift) {

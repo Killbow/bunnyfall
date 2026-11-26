@@ -1,46 +1,14 @@
-// ═══════════════════════════════════════════════════════════════════
-// WOD1 - WORLD OF DAGGERFALL: ONE REGION FOLDER, PACKED.
-//
-// The mod reads StreamingAssets/Locations/<region>/*.txt at runtime,
-// every file of a folder the moment the player enters that region
-// (LocationLoader.cs:82-88). Those folders are 2,413 XML files and
-// 61.0 MB - more than the port's whole vendor tree - for 227,938
-// instances whose information is six integers and two strings each
-// (LocationHelper.cs:990-997). So the vendored tree carries one file per folder
-// instead: LocationHelper.LoadLocationInstance's OUTPUT (the ported
-// reader, wodLocationData.js), in the folder's load order, as columns.
-//
-// What is kept is exactly what the reader yields and in the order it
-// yields it - which is what makes this a cache of the author's files
-// rather than a re-authoring of them: tools/worldOfDaggerfallAssets.mjs
-// runs the ported reader over the shipped files and writes these, and
-// `locations.json` beside them lists every source file with its sha256
-// and instance count, so anyone holding the archive can re-derive each
-// pack byte for byte.
-//
-// Layout (little-endian):
-//   'WODL'  u16 version  i16 region  u32 count
-//   u16 stringCount, then per string: u16 byteLength + UTF-8 bytes
-//   u16 fileCount, then per file: u16 nameString, u32 instanceCount
-//   u8 width x 8 - bytes per value of each column below (1, 2 or 4,
-//   signed; the encoder takes the narrowest that holds the column)
-//   the columns, `count` values each, in COLUMNS order.
-// A LEAF: no imports.
-// ═══════════════════════════════════════════════════════════════════
+// World of Daggerfall: one region folder, packed.
 
 export const WOD_PACK_MAGIC = 'WODL';
 export const WOD_PACK_VERSION = 1;
-/** The instance fields, in the order the pack stores their columns.
- *  `name` and `prefab` are indices into the pack's string table. */
 export const WOD_PACK_COLUMNS = Object.freeze(['name', 'prefab', 'type', 'worldX', 'worldY', 'terrainX', 'terrainY', 'locationID']);
 
 const fits = (w, lo, hi) => lo >= -(2 ** (8 * w - 1)) && hi <= 2 ** (8 * w - 1) - 1;
 
 /**
- * Encode one region folder.
- * @param {number} region - the folder's name, a region index.
- * @param {Array<{file:string, instances:Array<object>}>} files - in the
- *   folder's load order; each instance a LocationInstance.
+ * @param {number} region
+ * @param {Array<{file:string, instances:Array<object>}>} files
  * @returns {Uint8Array}
  */
 export function encodeRegionPack(region, files) {
@@ -95,8 +63,6 @@ export function encodeRegionPack(region, files) {
 }
 
 /**
- * Decode one region pack into the columns LocationSession.appendRegion
- * takes, plus its file table.
  * @param {Uint8Array} bytes
  * @returns {{region:number, count:number, files:Array<{file:string,count:number}>,
  *   name:string[], prefab:string[], type:Int32Array, worldX:Int32Array,

@@ -1,67 +1,17 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// SUNBABY1 — THE SUN BABY: A SKY OF FLOWERS OVER DAGGERFALL, FOR A LIVE EVENT.
-//
-// The ask (2026-10-04): "develop a command like /event dread that turns the sky into pretty flowers, clears weather
-// and shows the sun as a big laughing baby ... Like teletubbies".
-//
-// EVENT1's door, a second word on it. A dev stages it (`/event sunbaby`, the relay's `stage` frame - net/wire.js
-// LIVE_EVENTS), every player online sees it, and it ends when a dev ends it (`/event off`). This file is what it LOOKS
-// like; the relay carries only the word.
-//
-// ONE PASS OVER EVERY SKY. The dread is a grade, because it keeps the sky's own light. This event replaces the sky:
-// a bright nursery blue full of drifting flowers, and a big baby-faced sun that giggles. So it is ONE fullscreen pass
-// (render/sunbabySkyRenderer.js), drawn over whichever sky the lane has (the classic panorama, the port's dome or
-// Dynamic Skies) and over the volumetric clouds, at the far plane, by the event's weight - the land is drawn over it as
-// over any sky. The shader carries no colour of its own: SUNBABY_GLSL is generated from the tables below, so the JS and
-// the GLSL cannot drift.
-//
-// THE WEATHER CLEARS. While the event is up the land wears SUNBABY_WEATHER ('sunny'): no rain, no snow, no storm and
-// its thunder, no overcast haze - the host's shown weather, never the sim's. The sim's word is the world's (rolled,
-// shared on the weather map, saved), so it goes on underneath and comes back the frame the event ends.
-//
-// IT IS ALWAYS A BRIGHT DAY UNDER IT. The flower sky is a day sky at any hour, so the land's ambient is lifted toward
-// noon's by the weight (sunbabyLight) and its haze is the flower sky's horizon (sunbabyHaze) - the land sits under the
-// sky it sees.
-//
-// THE SUN RISES. A player who watches it begin sees the sun baby rise out of the east over SUNBABY_FADE_S as the
-// flowers bloom in, and set the same way when it ends; a player who joins mid-event has it whole at once.
-//
-// ONLINE ALONE, as the dread: offline there is no hub link, nothing sets the weight, and every path is untouched.
-//
-// SUNBABY2 (2026-10-04, "give it phases where it turns evil and starts raining fireballs upon daggerfall", and "also a
-// phase where it turns into todd howard"): THE SUN HAS PHASES. SUNBABY_PHASES is one cycle - the laughing baby, then
-// the WRATH (the face turns red and horned, glaring and grinning on a furnace mouth, the sky burns to blood and ember and
-// the flowers char), the baby again, then TODD HOWARD (a cartoon of him: swept dark hair, a sure grin, and sixteen times
-// the flowers) - each face morphing into the next over SUNBABY_MORPH_S. It is read off the stage's own moment (the hub's
-// `at`) on the shared clock, so every player online wears the same face in the same second, and a joiner comes in on
-// it; the relay carries nothing new. Under the wrath FIREBALLS FALL: the slots of the shared clock each hold one or
-// none (sunbabyFireballs, the dread's strike law), dropped round each player out of the sun's side of the sky as the
-// spell engine's own drawn fire missiles - DFU's fireball flat, its impact flash and its fire sound where it lands
-// (scenes/hostMagic.js skyFire). DRAWN ONLY: nothing is applied - no player is burned by an event. A watched change of
-// face is said in a line (SUNBABY_FACE_LINES).
-//
-// SUNBABY3 (2026-10-04, "Have it transition much faster and use this for todd howard", with his photograph): the faces
-// turn in SUNBABY_MORPH_S = 1 s, and Todd is THE PHOTOGRAPH Mac supplied (src/assets/sunbaby/todd.jpg, the face's disk
-// - SUNBABY_TODD_PHOTO_FIT - in the sun's rim; render/sunbabySkyRenderer.js loads it), the cartoon below drawn only
-// until it has loaded, or if it never does.
-// ═══════════════════════════════════════════════════════════════════
+// The sun baby event sky: one fullscreen pass of flowers and a sun with phases, staged by `/event sunbaby`.
+// SUNBABY_GLSL is generated from the tables below, so the JS and the GLSL cannot drift.
+// The land wears SUNBABY_WEATHER while the event is up; the sim's own weather continues underneath.
 
-import { seededRng } from '../weather/wind.js';   // SUNBABY2: the fireballs' draws (the dread's)
-import { slotHash } from './dreadSky.js';   // SUNBABY2: one slot hash for the shared clock's schedules
+import { seededRng } from '../weather/wind.js';
+import { slotHash } from './dreadSky.js';
 
-/** The live event this file draws (net/wire.js LIVE_EVENTS). */
 export const SUNBABY_EVENT = 'sunbaby';
-/** Real seconds the sun takes to rise on a player watching the event begin, and to set as it ends. */
 export const SUNBABY_FADE_S = 8;
-/** The weather the land wears while the event is up - the clear day (world/weather.js WEATHER_TYPES). */
 export const SUNBABY_WEATHER = 'sunny';
 
-// ── The sky's colours (display space, 0..1) ────────────────────────
-/** The nursery-blue dome: overhead, and at the horizon. */
 export const SUNBABY_ZENITH = Object.freeze([0.18, 0.52, 0.93]);
 export const SUNBABY_HORIZON = Object.freeze([0.70, 0.88, 1.0]);
-/** The flowers' petals - pink, butter yellow, white, lilac, poppy red, sky blue. */
 export const SUNBABY_PETALS = Object.freeze([
   Object.freeze([1.0, 0.56, 0.74]),
   Object.freeze([1.0, 0.90, 0.36]),
@@ -70,20 +20,13 @@ export const SUNBABY_PETALS = Object.freeze([
   Object.freeze([1.0, 0.36, 0.34]),
   Object.freeze([0.55, 0.80, 1.0]),
 ]);
-/** A flower's heart. */
 export const SUNBABY_HEART = Object.freeze([1.0, 0.72, 0.16]);
-/** How many grid cells of the two flower layers hold a flower. */
 export const SUNBABY_DENSITY = Object.freeze([0.72, 0.6]);
 
-// ── The sun baby ───────────────────────────────────────────────────
-/** The face's angular radius, radians (~11 degrees - the rays reach ~1.8 times it): a BIG sun. */
 export const SUNBABY_SUN_RADIUS = 0.19;
-/** The sun's elevation once risen, and where it waits below the horizon before it rises, degrees. */
 export const SUNBABY_SUN_ELEV_DEG = 30;
 export const SUNBABY_SUN_SET_DEG = -24;
-/** The sun's bearing, radians from +x (map east, where the port's own sun rises) toward +z. */
 export const SUNBABY_SUN_BEARING = 0.4;
-/** The face: skin, its rim of gold, the rays' gold, the blush, the laughing mouth and its tongue, the eyes' brown. */
 export const SUNBABY_SKIN = Object.freeze([1.0, 0.84, 0.70]);
 export const SUNBABY_RIM = Object.freeze([1.0, 0.80, 0.18]);
 export const SUNBABY_RAY = Object.freeze([1.0, 0.86, 0.30]);
@@ -92,39 +35,26 @@ export const SUNBABY_MOUTH = Object.freeze([0.55, 0.12, 0.14]);
 export const SUNBABY_TONGUE = Object.freeze([1.0, 0.45, 0.52]);
 export const SUNBABY_EYE = Object.freeze([0.30, 0.16, 0.10]);
 
-// ── The land under it ──────────────────────────────────────────────
-/** The ambient light the land is lifted toward at full weight - noon's (worldClock EXTERIOR_NOON_AMBIENT), warmed. */
 export const SUNBABY_AMBIENT = Object.freeze([0.95, 0.92, 0.84]);
 
-// ── SUNBABY2: the phases ───────────────────────────────────────────
-/** One cycle of the sun's faces, from the stage's own moment: each phase's face and its real seconds. The baby comes
- *  first (the event rises laughing), and the cycle wraps. */
 export const SUNBABY_PHASES = Object.freeze([
   Object.freeze({ face: 'baby', s: 60 }),
   Object.freeze({ face: 'evil', s: 45 }),
   Object.freeze({ face: 'baby', s: 30 }),
   Object.freeze({ face: 'todd', s: 30 }),
 ]);
-/** A cycle's real seconds. */
 export const SUNBABY_CYCLE_S = SUNBABY_PHASES.reduce((a, p) => a + p.s, 0);
-/** Real seconds one face takes to morph into the next, at the head of the phase it morphs into (SUNBABY3: 6 -> 1). */
 export const SUNBABY_MORPH_S = 1;
-/** What a player watching is told when the face changes. */
 export const SUNBABY_FACE_LINES = Object.freeze({
   evil: 'The sun baby stops laughing. Its eyes burn, and fire rains on Daggerfall!',
   baby: 'The sun baby giggles again.',
   todd: 'The sun baby becomes Todd Howard. Sixteen times the flowers. It just works.',
 });
 
-// ── SUNBABY2: the wrath ────────────────────────────────────────────
-/** The burning dome: overhead, and at the horizon. */
 export const SUNBABY_WRATH_ZENITH = Object.freeze([0.22, 0.02, 0.03]);
 export const SUNBABY_WRATH_HORIZON = Object.freeze([0.92, 0.32, 0.10]);
-/** The flowers in the wrath: charred, and burning. */
 export const SUNBABY_EMBERS = Object.freeze([Object.freeze([0.18, 0.03, 0.02]), Object.freeze([1.0, 0.42, 0.06])]);
 export const SUNBABY_WRATH_HEART = Object.freeze([1.0, 0.86, 0.32]);
-/** The evil face: its skin, rim and rays, the glaring eyes, the dark of its brows and its mouth's pit, the furnace in
- *  the pit, the fangs, the horns. */
 export const SUNBABY_WRATH_SKIN = Object.freeze([0.84, 0.18, 0.12]);
 export const SUNBABY_WRATH_RIM = Object.freeze([0.45, 0.04, 0.03]);
 export const SUNBABY_WRATH_RAY = Object.freeze([1.0, 0.34, 0.06]);
@@ -133,37 +63,25 @@ export const SUNBABY_WRATH_DARK = Object.freeze([0.14, 0.01, 0.01]);
 export const SUNBABY_WRATH_FIRE = Object.freeze([1.0, 0.48, 0.08]);
 export const SUNBABY_WRATH_TOOTH = Object.freeze([1.0, 0.95, 0.82]);
 export const SUNBABY_WRATH_HORN = Object.freeze([0.32, 0.05, 0.04]);
-/** The land's light under the wrath, a channel at a time (its ambient times this at full wrath). */
 export const SUNBABY_WRATH_TINT = Object.freeze([1.0, 0.52, 0.40]);
 
-// ── SUNBABY2: Todd ─────────────────────────────────────────────────
-/** Todd's cartoon face: skin, hair (and brows), eyes, lips, teeth - SUNBABY3: drawn only until his photograph has loaded. */
 export const SUNBABY_TODD_SKIN = Object.freeze([0.96, 0.78, 0.64]);
 export const SUNBABY_TODD_HAIR = Object.freeze([0.25, 0.17, 0.11]);
 export const SUNBABY_TODD_IRIS = Object.freeze([0.35, 0.24, 0.16]);
 export const SUNBABY_TODD_LIP = Object.freeze([0.70, 0.36, 0.34]);
 export const SUNBABY_TODD_TOOTH = Object.freeze([0.98, 0.97, 0.93]);
-/** How many times finer each way the flower grid is under Todd - its square is sixteen times the detail. */
 export const SUNBABY_TODD_DETAIL = 4;
-/** SUNBABY3: the photograph's crop is the face's disk at this many face radii - its circle (half the square) is the
- *  face's edge, inside the rim. */
 export const SUNBABY_TODD_PHOTO_FIT = 0.9;
 
-// ── SUNBABY2: the fireballs ────────────────────────────────────────
-/** The shared clock's slots: each holds one fireball or none, by its seed's first draw under the chance. */
 export const SUNBABY_FIRE_SLOT_MS = 250;
 export const SUNBABY_FIRE_CHANCE = 0.7;
-/** The most slots one frame walks - a tab asleep through the wrath does not drop it all on waking. */
+// A tab asleep through the wrath drops at most this many slots on waking.
 export const SUNBABY_FIRE_SLOTS_MAX = 8;
-/** The fireballs' own schedule beside the dread's (dreadStrikes salts 0). */
 export const SUNBABY_FIRE_SALT = 0x5b0b;
-/** Where they land round each player: near (metres) from NEAR to SPLIT for NEAR_SHARE of them, the rest out to FAR. */
 export const SUNBABY_FIRE_NEAR_M = 8;
 export const SUNBABY_FIRE_SPLIT_M = 30;
 export const SUNBABY_FIRE_FAR_M = 120;
 export const SUNBABY_FIRE_NEAR_SHARE = 0.35;
-/** Where they come from: out of the sun's side of the sky (its bearing, spread either way by SPREAD radians), steep
- *  (ELEV degrees), FALL_M metres up their line - at the engine's missile speed a few seconds' fall. */
 export const SUNBABY_FIRE_SPREAD = 0.6;
 export const SUNBABY_FIRE_ELEV_DEG = Object.freeze([58, 80]);
 export const SUNBABY_FIRE_FALL_M = 90;
@@ -171,15 +89,9 @@ export const SUNBABY_FIRE_FALL_M = 90;
 const clamp01 = (x) => Math.max(0, Math.min(1, Number(x) || 0));
 const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
-/**
- * The event's weight on this client, 0..1 - EVENT1's createDread, for this word. `set(ev, {live})` takes the hub's word
- * (net/online.js onEvent: `{kind, at}` or null); `tick(dtSeconds)` walks the weight toward it and answers it. A change
- * the player watched (`live`) walks over SUNBABY_FADE_S; one they did not (a welcome) is whole. `on` is the word itself
- * - what the weather follows, at once, while the sky fades.
- */
 export function createSunbaby() {
   let target = 0, weight = 0;
-  let at = NaN, seen = null;   // SUNBABY2: the stage's moment (the phases' clock - kept through the end's fade), the face last framed
+  let at = NaN, seen = null;
   return {
     set(ev, { live = false } = {}) {
       target = ev?.kind === SUNBABY_EVENT ? 1 : 0;
@@ -187,9 +99,6 @@ export function createSunbaby() {
       if (target) at = Number(ev.at);
       seen = null;
     },
-    /** SUNBABY2: the phase at `sharedMs` on the shared clock (sunbabyPhase, from the stage's moment), and `line` - the
-     *  words for a face that changed under a player who saw the last one (null on the first frame after any word: a
-     *  joiner is not told of a change they never saw). */
     frame(sharedMs) {
       const p = sunbabyPhase((sharedMs - at) / 1000);
       const line = target === 1 && seen !== null && p.face !== seen ? SUNBABY_FACE_LINES[p.face] : null;
@@ -206,14 +115,7 @@ export function createSunbaby() {
   };
 }
 
-/**
- * SUNBABY2: the sun's face `sinceS` real seconds after the stage (SUNBABY_PHASES, wrapping): `{ index, face, evil,
- * todd, fire }` - `evil` and `todd` the faces' weights 0..1 (the baby the rest), smoothed over SUNBABY_MORPH_S at the
- * head of each phase from the face before it; `fire` while the wrath is whole. The first phase of the first cycle
- * comes whole (the event rises laughing, it does not morph out of Todd); a time before the stage, or none, is its
- * first moment. Pure.
- * @param {number} sinceS
- */
+/** @param {number} sinceS */
 export function sunbabyPhase(sinceS) {
   const n = SUNBABY_PHASES.length;
   const since = Number.isFinite(sinceS) && sinceS > 0 ? sinceS : 0;
@@ -228,12 +130,8 @@ export function sunbabyPhase(sinceS) {
 }
 
 /**
- * SUNBABY2: the fireballs of the slots in (fromMs, toMs] of the shared clock: `[{ atMs, seed, bearing, distance, az,
- * elev }]` - where each lands round the eye (`bearing` radians from +z toward +x, `distance` metres) and the line it
- * falls down (`az` the sky's bearing it comes out of, radians from +x toward +z as the sun's, `elev` radians). The
- * dread's law: a slot holds one when its seed's first draw falls under SUNBABY_FIRE_CHANCE, at a seeded moment in it,
- * so every client online reads the same seconds. At most SUNBABY_FIRE_SLOTS_MAX slots (the latest). Pure.
- * @param {number} fromMs @param {number} toMs
+ * @param {number} fromMs
+ * @param {number} toMs
  */
 export function sunbabyFireballs(fromMs, toMs) {
   const out = [];
@@ -254,11 +152,11 @@ export function sunbabyFireballs(fromMs, toMs) {
   return out;
 }
 
-/** SUNBABY2: one scheduled fireball (sunbabyFireballs) placed round `eye` (host metres): `{ from, to, seed }` - `to`
- *  on the ground `ground(x, z)` answers there (the eye's height where it answers nothing finite), `from` SUNBABY_FIRE_FALL_M
- *  up its line out of the sky. Pure.
- *  @param {{seed: number, bearing: number, distance: number, az: number, elev: number}} s
- *  @param {number[]} eye @param {((x: number, z: number) => number) | null} [ground] */
+/**
+ * @param {{seed: number, bearing: number, distance: number, az: number, elev: number}} s
+ * @param {number[]} eye
+ * @param {((x: number, z: number) => number) | null} [ground]
+ */
 export function sunbabyFireball(s, eye, ground = null) {
   const x = eye[0] + Math.sin(s.bearing) * s.distance, z = eye[2] + Math.cos(s.bearing) * s.distance;
   const g = ground ? ground(x, z) : NaN, y = Number.isFinite(g) ? g : eye[1];
@@ -267,11 +165,6 @@ export function sunbabyFireball(s, eye, ground = null) {
   return { from: [x + up[0] * F, y + up[1] * F, z + up[2] * F], to: [x, y, z], seed: s.seed };
 }
 
-/**
- * SUNBABY2: the fire on this client. `tick({ sharedMs, eye, fire, ground })` once an exterior frame: the fireballs
- * (sunbabyFireball) of the slots since the last tick while `fire` holds - the clock walks on while it does not, so the
- * wrath brings no backlog, and the first tick drops nothing. `reset()` forgets the place (a jump, a load).
- */
 export function createSunbabyRain() {
   /** @type {number | null} */
   let lastMs = null;
@@ -279,7 +172,7 @@ export function createSunbabyRain() {
     /** @param {{sharedMs: number, eye: number[], fire: boolean, ground?: ((x: number, z: number) => number) | null}} o */
     tick({ sharedMs, eye, fire, ground = null }) {
       const out = [];
-      if (lastMs !== null && sharedMs < lastMs) lastMs = null;   // the clock went back (a new offset): start again from now
+      if (lastMs !== null && sharedMs < lastMs) lastMs = null;
       if (lastMs !== null && fire) for (const s of sunbabyFireballs(lastMs, sharedMs)) out.push(sunbabyFireball(s, eye, ground));
       lastMs = sharedMs;
       return out;
@@ -288,8 +181,6 @@ export function createSunbabyRain() {
   };
 }
 
-/** Where the sun baby stands at weight `w`: a unit direction ([x, y, z], y up), risen to SUNBABY_SUN_ELEV_DEG at 1 and
- *  waiting at SUNBABY_SUN_SET_DEG at 0, eased so it slows as it climbs. Pure. */
 export function sunbabySunDir(w) {
   const k = clamp01(w), e = 1 - (1 - k) ** 3;
   const elev = (SUNBABY_SUN_SET_DEG + (SUNBABY_SUN_ELEV_DEG - SUNBABY_SUN_SET_DEG) * e) * Math.PI / 180;
@@ -297,40 +188,25 @@ export function sunbabySunDir(w) {
   return [c * Math.cos(SUNBABY_SUN_BEARING), Math.sin(elev), c * Math.sin(SUNBABY_SUN_BEARING)];
 }
 
-/** The land's haze under the event: the fog colour `rgb` toward the flower sky's horizon by `w` - SUNBABY2: the burning
- *  horizon's by `evil`. A new array. Pure. */
 export const sunbabyHaze = (rgb, w, evil = 0) => mix3(rgb, mix3(SUNBABY_HORIZON, SUNBABY_WRATH_HORIZON, clamp01(evil)), clamp01(w));
 
-/** The land's ambient under the event: `rgb` lifted toward SUNBABY_AMBIENT by `w` (never darkened - a brighter
- *  ambient is kept) - SUNBABY2: and reddened toward SUNBABY_WRATH_TINT by `evil`. A fresh Float32Array, as the renderer
- *  takes a light. Pure. */
 export function sunbabyLight(rgb, w, evil = 0) {
   const k = clamp01(w), e = clamp01(evil) * k;
   return new Float32Array([0, 1, 2].map((i) => (rgb[i] + Math.max(0, SUNBABY_AMBIENT[i] - rgb[i]) * k) * (1 + (SUNBABY_WRATH_TINT[i] - 1) * e)));
 }
 
-/** SUNBABY2: the sun's key light under the wrath - `rgb` reddened toward SUNBABY_WRATH_TINT by `w` x `evil`; a fresh
- *  Float32Array (the colour as given at either 0). Pure. */
 export function sunbabyKey(rgb, w, evil = 0) {
   const e = clamp01(evil) * clamp01(w);
   return new Float32Array([0, 1, 2].map((i) => rgb[i] * (1 + (SUNBABY_WRATH_TINT[i] - 1) * e)));
 }
 
-/** The sky the water mirrors under the event ({zenith, horizon}), toward the flower sky's own by `w` - SUNBABY2: the
- *  burning sky's by `evil`. Pure. */
 export const sunbabyWaterSky = (ws, w, evil = 0) => (clamp01(w) > 0 && ws
   ? { zenith: mix3(ws.zenith, mix3(SUNBABY_ZENITH, SUNBABY_WRATH_ZENITH, clamp01(evil)), clamp01(w)), horizon: mix3(ws.horizon, mix3(SUNBABY_HORIZON, SUNBABY_WRATH_HORIZON, clamp01(evil)), clamp01(w)) }
   : ws);
 
-// ── The GLSL ──────────────────────────────────────────────────────
 const f = (v) => v.toFixed(4);
 const v3 = (c) => `vec3(${c.map(f).join(', ')})`;
 
-/** The flower sky and the sun baby in GLSL, generated from the tables above:
- *  `vec3 sunbabySky(vec3 dir, vec3 sunDir, float t, vec2 face, sampler2D photo, float photoOn)` - the sky's colour along
- *  the unit ray `dir` at `t` seconds, the sun at `sunDir`, wearing `face` (SUNBABY2: x the wrath's weight, y Todd's -
- *  the baby the rest), Todd's `photo` once `photoOn` (SUNBABY3).
- *  Derivatives are taken before any branch (the AA reads them), so it is safe anywhere in main. */
 export const SUNBABY_GLSL = `
 const float SB_PI = 3.14159265;
 float sbHash(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }

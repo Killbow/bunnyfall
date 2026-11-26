@@ -1,43 +1,5 @@
-// ═══════════════════════════════════════════════════════════════════
-// WOD1 - WORLD OF DAGGERFALL: THE DATA SHAPES AND THEIR READERS.
-//
-// "World of Daggerfall" 2.0 (Kamer, Daggerfall Unity mod, GUID
-// 98f05888-989f-4ff1-b455-f4cafedaeb88) ships its whole implementation
-// as C# TextAssets inside `world_of_daggerfall.dfmod`, and its content
-// as ~2,400 XML files under StreamingAssets/Locations/. This module is
-// the port of the two classes that READ that content:
-//
-//   LocationData.cs                   - LocationPrefab / LocationObject /
-//                                       LocationInstance, the shapes
-//   LocationHelper.LoadLocationInstance (LocationHelper.cs:938-975)
-//   LocationHelper.LoadLocationPrefab   (LocationHelper.cs:1010-1052)
-//   LocationHelper.ValidateValue        (LocationHelper.cs:1101-1155)
-//
-// Cites are to vendor/world-of-daggerfall/Scripts/, the author's own
-// source extracted byte for byte by tools/worldOfDaggerfallAssets.mjs.
-//
-// WHAT "THE SAME READER" MEANS HERE. The C# is an XmlDocument walk that
-// indexes every tag list by the same i (`GetElementsByTagName("name")[i]`
-// for the i-th instance), fills each field with .NET's TryParse (whose
-// `out` is ZEROED on failure - not left at the field's default), and
-// skips an instance whose <prefab> is empty. Three consequences of that
-// are live in the shipped data and are kept here on purpose:
-//   - 3,000 instances (regions 5 and 35) carry EMPTY coordinates; they
-//     parse to 0,0 and the loader's terrainX <= 0 guard retires them.
-//   - 155,398 locationIDs do not fit an Int32, are empty, or are not
-//     integers at all ("625450-103"); TryParse fails and they read as 0.
-//     The ID only ever feeds a treasure container's LoadID
-//     (LocationHelper.cs:1534).
-//   - float fields are C# `float`: parsed through double, then narrowed
-//     (Math.fround), which is .NET Framework's Single.TryParse path.
-// The port has no XmlDocument, so `parseXml` below is a strict reader
-// for the subset the files use (elements and text: no attributes,
-// entities, comments, CDATA or declarations - the packer asserts that
-// over every shipped file) that throws on malformed input as
-// XmlDocument.Load does. A LEAF: no imports.
-// ═══════════════════════════════════════════════════════════════════
+// World of Daggerfall data shapes and their readers.
 
-/** LocationData.cs:50-62 - the defaults a fresh LocationInstance carries. */
 export function newLocationInstance() {
   return {
     locationID: 0,
@@ -51,14 +13,10 @@ export function newLocationInstance() {
   };
 }
 
-/** LocationData.cs:9-13 - a fresh LocationPrefab (8x8, no objects). */
 export function newLocationPrefab() {
   return { height: 8, width: 8, obj: [] };
 }
 
-/** LocationData.cs:20-32 - a fresh LocationObject: a mesh (type 0) at
- *  the origin, identity rotation (Quaternion.Euler(0,0,0)), unit scale.
- *  rot is { x, y, z, w } in Unity's own (left-handed) frame. */
 export function newLocationObject() {
   return {
     type: 0,
@@ -70,24 +28,13 @@ export function newLocationObject() {
   };
 }
 
-// ── .NET number parsing ──────────────────────────────────────────────
-
-// NumberStyles.AllowLeadingWhite / AllowTrailingWhite: U+0009-U+000D, U+0020.
 const WS = '[\\t\\n\\v\\f\\r ]*';
 const INT_RE = new RegExp(`^${WS}([+-]?)([0-9]+)${WS}$`);
-// NumberStyles.Float | AllowThousands under an en-US culture: sign,
-// digits with ',' group separators in the integral part, a '.' point,
-// an exponent. (The culture is the author's: a comma-decimal locale
-// fails every one of these files, a machine-dependent DFU hazard the
-// port has no reason to reproduce.)
 const FLOAT_RE = new RegExp(`^${WS}[+-]?(?:[0-9][0-9,]*(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?${WS}$`);
 
-/** int.TryParse(s, out v) - Int32 or 0 (the `out` is zeroed on failure). */
 export function tryParseInt32(s) {
   const m = INT_RE.exec(s);
   if (!m) return 0;
-  // Magnitude check on the digit string itself, so a 30-digit value
-  // cannot round into range through a double.
   const digits = m[2].replace(/^0+(?=\d)/, '');
   const limit = m[1] === '-' ? '2147483648' : '2147483647';
   if (digits.length > limit.length || (digits.length === limit.length && digits > limit)) return 0;
@@ -95,19 +42,14 @@ export function tryParseInt32(s) {
   return m[1] === '-' ? (v === 0 ? 0 : -v) : v;
 }
 
-/** float.TryParse(s, out v) - a C# float (via double, then narrowed) or 0. */
 export function tryParseSingle(s) {
   if (!FLOAT_RE.test(s)) return 0;
   const v = Number(s.trim().replace(/,/g, ''));
   if (!Number.isFinite(v)) return 0;
   const f = Math.fround(v);
-  // .NET Framework's Single.TryParse fails when the value overflows float.
   return Number.isFinite(f) ? f : 0;
 }
 
-/** int.Parse for ValidateValue: the same grammar, but failure THROWS
- *  (FormatException for a bad shape, OverflowException out of range) -
- *  returned here as null so the caller can take ValidateValue's catch. */
 function parseInt32OrNull(s) {
   const m = INT_RE.exec(s);
   if (!m) return null;
@@ -117,15 +59,7 @@ function parseInt32OrNull(s) {
   return tryParseInt32(s);
 }
 
-// ── the XmlDocument subset ───────────────────────────────────────────
-
 /**
- * Parse the element-and-text XML the mod's files use into a tree.
- * Throws on anything malformed or outside the subset. Returns the
- * document's elements in DOCUMENT ORDER (pre-order), each as
- * { tag, text, children } where `text` is the element's own raw text -
- * InnerXml for a leaf element, since the subset has no markup inside
- * a leaf's text.
  * @param {string} xml
  * @returns {{ root: object, elements: object[] }}
  */
@@ -171,9 +105,6 @@ export function parseXml(xml) {
   return { root, elements };
 }
 
-/** XmlDocument.GetElementsByTagName: every element of that name, in
- *  document order. `[i]` past the end is null in .NET (and then
- *  `.InnerXml` throws) - `innerXml` below reproduces the throw. */
 function byTag(doc, tag) {
   return doc.elements.filter((e) => e.tag === tag);
 }
@@ -185,19 +116,14 @@ function innerXml(list, i) {
   function fail() { throw new Error('InnerXml of a non-leaf element is outside the subset'); }
 }
 
-// ── the two loaders ──────────────────────────────────────────────────
-
 /**
- * LocationHelper.LoadLocationInstance (LocationHelper.cs:938-975),
- * over the file's TEXT (the C#'s File.Exists miss is the caller's
- * `null`). Returns null for a file without a <locations> element.
  * @param {?string} xml
  * @returns {?Array<object>}
  */
 export function loadLocationInstance(xml) {
   if (xml == null) return null;
   const doc = parseXml(xml);
-  if (!doc.elements.some((e) => e.tag === 'locations')) return null;   // "Wrong file format"
+  if (!doc.elements.some((e) => e.tag === 'locations')) return null;
   const inst = byTag(doc, 'locationInstance');
   const t = {
     name: byTag(doc, 'name'), locationID: byTag(doc, 'locationID'), type: byTag(doc, 'type'),
@@ -206,8 +132,6 @@ export function loadLocationInstance(xml) {
   };
   const out = [];
   for (let i = 0; i < inst.length; i++) {
-    // :956 - an instance with no prefab is skipped, but its index still
-    // advances every other list (the lists are read by the same i).
     if (innerXml(t.prefab, i) === '') continue;
     const tmp = newLocationInstance();
     tmp.name = innerXml(t.name, i);
@@ -226,15 +150,13 @@ export function loadLocationInstance(xml) {
 const OBJ_INT = ['type', 'objectID'];
 
 /**
- * LocationHelper.LoadLocationPrefab (LocationHelper.cs:1010-1052), over
- * the file's text. Returns null for a file without <locationPrefab>.
  * @param {?string} xml
  * @returns {?{height:number,width:number,obj:Array<object>}}
  */
 export function loadLocationPrefab(xml) {
   if (xml == null) return null;
   const doc = parseXml(xml);
-  if (!doc.elements.some((e) => e.tag === 'locationPrefab')) return null;   // "Wrong file format"
+  if (!doc.elements.some((e) => e.tag === 'locationPrefab')) return null;
   const p = newLocationPrefab();
   p.height = tryParseInt32(innerXml(byTag(doc, 'height'), 0));
   p.width = tryParseInt32(innerXml(byTag(doc, 'width'), 0));
@@ -261,11 +183,6 @@ export function loadLocationPrefab(xml) {
   return p;
 }
 
-/**
- * LocationHelper.ValidateValue (LocationHelper.cs:1101-1155): a mesh
- * (type 0) needs an Int32 name; a flat (type 1) needs exactly
- * "ARCHIVE.RECORD", both Int32; any other type is invalid.
- */
 export function validateValue(type, name) {
   if (type === 0) return parseInt32OrNull(name) !== null;
   if (type === 1) {
@@ -275,15 +192,6 @@ export function validateValue(type, name) {
   return false;
 }
 
-/**
- * Directory.GetFiles' order on the platform the mod was built and
- * played on: NTFS returns a directory's names collated by the volume's
- * upcase table - an ordinal compare of the UPPERCASED UTF-16 names. The
- * order is load-bearing: the loader places the FIRST valid instance
- * that names a map pixel, and 51,355 pixels are named by more than one
- * (a bandit camp and a rock field, say - "Bandits" sorts before "Rocks").
- * The mod's file names are all ASCII (the packer asserts it).
- */
 export function ntfsCompare(a, b) {
   const A = a.toUpperCase();
   const B = b.toUpperCase();

@@ -30,6 +30,7 @@ invariants:
   - "`uploadTileArray` and `uploadTilemapTexture` perform texture uploads only and never draw, bind framebuffers, clear, set viewports, or mutate pipeline state."
   - "The game's grass stages are the lab text with the pixel, fog, lighting, and meadow edit lists applied in that order (`GAME_GRASS_VS` and `GAME_GRASS_FS`), and `applyGrassEdits` throws unless each edit's `from` text occurs exactly once."
   - "A grass blade is `GRASS_PACK_BYTES` (`16`) bytes: the height lane holds the height in its high `GRASS_HEIGHT_BITS` and each slope axis in five bits stored XOR `GRASS_SLOPE_STEPS`, so a zero word decodes as level ground, and `unpackHeightSlope` matches the vertex stage's decode."
+  - "Publishing any pixel invalidates the lab grass field over that pixel's world bounds, because a cell placed earlier read ground that a flatten, road, season, or late pack rebuild has since moved."
 traps:
   - "Do not add an enhanced terrain term without the `isEnhanced()` and `getPref('enhancedEnvironments')` gate."
   - "Calling `createGrassField` before `discSlotCount` warm-up repays the slot sweep mid-frame, and mutating GL state inside upload helpers breaks `exterior.js` frame assumptions."

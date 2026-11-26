@@ -12,6 +12,7 @@ files:
   - src/render/enhancedLighting.js
   - src/weather/wind.js
   - src/audio/ambientEffects.js
+  - src/world/worldClock.js
 invariants:
   - "src/scenes/shared.js eases weather transitions over WEATHER_EASE_MINUTES and exposes shared sky.wind() and sky.cloudShadow state for grass, trees, precipitation, and ground shadows."
   - "Dungeon and interior frames must explicitly clear Renderer moonlight and indirect light globals and set window emission modes so exterior night state cannot leak underground."
@@ -19,6 +20,7 @@ invariants:
 traps:
   - "Classic SkyRenderer caches at most SKY_FILES_KEPT (2) SKY??.DAT panoramas at once, while loads and fast-travel jumps snap weather immediately without easing."
   - "Modal interior frames continue ticking AmbientEffects indoors, so forgetting indoor rain scaling and cricket silencing leaves exterior beds playing at full street gain."
+  - "`exteriorAmbient` multiplies the day curve by the weather scale twice, as Daggerfall Unity does, so a storm noon is dim. The key sun light takes the scale once. Do not collapse the square."
 dfu:
   - Assets/Scripts/Internal/DaggerfallSky.cs
   - Assets/Scripts/Game/WeatherManager.cs

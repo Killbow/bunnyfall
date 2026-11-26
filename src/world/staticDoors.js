@@ -1,23 +1,11 @@
-// StaticDoor triggers from model door data.
-// 1:1 translation of Daggerfall Unity's GameObjectHelper.GetStaticDoors
-// (MIT, Daggerfall Workshop). Verbatim:
-//   - Size from the diagonal verts v0/v2: width |v2.x - v0.x|,
-//     height |v2.y - v0.y|, depth |v2.z - v0.z|; thickness is the larger of
-//     width/depth; size = (thickness, max(height, thickness),
-//     min(height, thickness)).
-//   - centre = (v0 + v2) / 2 and normal stay in MODEL space; the placement
-//     matrix rides along on the door (DFU's DaggerfallStaticDoors transforms
-//     on use). Consumers multiply centre/normal through `matrix` themselves.
-//   - Returns null when the model carries no door array (parity with DFU's
-//     null guard); an empty doors array returns [].
+// StaticDoor triggers from model door data, ported from Daggerfall Unity's GameObjectHelper.GetStaticDoors.
+// Door center and normal stay in model space; consumers apply `matrix` themselves.
 
 /**
- * Build static door triggers for one placed model.
- * @param {object} model - output of dfMeshToModel (carries .doors).
- * @param {number} blockIndex - RMB block index of the owning block.
- * @param {number} recordIndex - building subrecord index within the block.
- * @param {Float32Array|number[]} matrix - the model's placement matrix
- *   (column-major mat4), stored on each door untransformed.
+ * @param {object} model
+ * @param {number} blockIndex
+ * @param {number} recordIndex
+ * @param {Float32Array|number[]} matrix
  * @returns {Array<{matrix,doorType:number,blockIndex:number,recordIndex:number,
  *   doorIndex:number,centre:{x,y,z},normal:{x,y,z},size:{x,y,z}}>|null}
  */
@@ -30,7 +18,6 @@ export function getStaticDoors(model, blockIndex, recordIndex, matrix) {
     const v0 = door.vert0;
     const v2 = door.vert2;
 
-    // Absolute door size; thickness uniform from largest width or depth.
     const width = Math.abs(v2.x - v0.x);
     const height = Math.abs(v2.y - v0.y);
     const depth = Math.abs(v2.z - v0.z);

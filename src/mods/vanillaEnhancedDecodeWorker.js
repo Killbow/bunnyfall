@@ -1,14 +1,3 @@
-// AUDIT VE P1 (2026-10-05, Mac: "performance isn't affected") - THE SHIPPED PACK'S PICTURES, DECODED OFF THE MAIN THREAD.
-//
-// An attached .dfmod decodes in its bundle worker (formats/unity/unityBundleWorker.js). The shipped pack's PNGs were decoded on
-// the page's own thread: createImageBitmap's decode is the browser's, but the readback (drawImage and getImageData, about
-// 1.7 ms for a 256-pixel tile) and the texture detail's box filter (resampleRgba - tens of ms for a 726x941 tree) were the
-// main thread's, in the middle of frames while the world streams. Here they are this worker's: it fetches the file,
-// decodes it, fits it to the detail as a mip chain would (mipFitSize), and hands the pixels back without a copy. The
-// pixels are decodePng's and resampleRgba's, the same as the page's own fallback draws.
-//
-// Protocol: in `{ id, url, maxSize }`; out `{ id, width, height, data, native }` or `{ id, error, unsupported }`.
-// `native` is the file's size. `unsupported`: no OffscreenCanvas in a worker, so the page decodes on its own thread.
 import { resampleRgba, mipFitSize } from '../formats/resample.js';
 
 globalThis.onmessage = async (ev) => {

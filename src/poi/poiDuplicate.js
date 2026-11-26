@@ -1,36 +1,25 @@
 // @ts-check
-// Copies an entire POI into a new v2 document for the in-game editor's "Duplicate this POI" action. Assigns the new
-// `id` and `name`, generates a fresh key for every top-level keyed row (groups, parts, flats, people, routes,
-// encounters, objects, dialogues, trades, variables, and events), and rewrites every reference to those keys (the
-// fields poiLawV2.js reads as references) so the copy works like the original and shares nothing with it. Keys scoped
-// to a single row (a route's waypoints, an encounter's spawns, a dialogue's nodes, and a trade's recipes) stay
-// unchanged, because only their own row reads them. Pure (no DOM).
 
 import { freshKey } from './poiScene.js';
 import { POI_DOC_VERSION, POI_LIMITS } from './poiLaw.js';
 import { lawName } from './poiEdit.js';
 
-/** Top-level collections whose rows have keys, each with its own key namespace. */
 export const POI_KEYED = Object.freeze(['groups', 'parts', 'flats', 'npcs', 'routes', 'encounters', 'interactives', 'dialogues', 'trades', 'variables', 'events']);
 
-/** How far east of the original the copy is placed, in meters (or west if shifting east would cross the map-square
- *  boundary). */
 export const POI_DUPLICATE_SHIFT_M = 8;
 const SQUARE_M = 819.19;
 
-/** Fields of an action, a trigger, or a dialogue reply that name a top-level row, by the collection they name. */
 const LINKS = Object.freeze({ npc: 'npcs', route: 'routes', dialogue: 'dialogues', trade: 'trades', encounter: 'encounters', interactive: 'interactives', event: 'events', var: 'variables' });
 
 /**
- * Returns a deep copy of `src` as a new POI document with fresh row keys.
- * @param {any} src the open POI @param {{ id: string, name: string }} o its new id and name
+ * @param {any} src
+ * @param {{ id: string, name: string }} o
  */
 export function duplicatePoiDoc(src, { id, name }) {
   const doc = structuredClone(src);
   doc.id = id;
   doc.v = POI_DOC_VERSION;
   doc.name = lawName(name) || lawName(src.name) || 'Copy';
-  // a fresh key for each keyed row, never one the original uses
   /** @type {Record<string, Map<string, string>>} */
   const maps = {};
   for (const kind of POI_KEYED) {
@@ -47,9 +36,7 @@ export function duplicatePoiDoc(src, { id, name }) {
     maps[kind] = m;
   }
   const to = (kind, v) => (typeof v === 'string' && maps[kind].has(v) ? maps[kind].get(v) : v);
-  /** rewrites top-level key references on an action, trigger, or dialogue option outcome to point at the copy */
   const links = (o) => { if (o && typeof o === 'object') for (const [f, kind] of Object.entries(LINKS)) if (typeof o[f] === 'string') o[f] = to(kind, o[f]); };
-  /** a condition tree's variables */
   const cond = (c, depth = 0) => {
     if (!c || typeof c !== 'object' || depth > 16) return;
     if (Array.isArray(c.of)) for (const x of c.of) cond(x, depth + 1);
@@ -79,7 +66,6 @@ export function duplicatePoiDoc(src, { id, name }) {
   each(doc.trades, (tr) => each(tr.recipes, (r) => { cond(r.when); if (r.onSuccessEvent !== undefined) r.onSuccessEvent = to('events', r.onSuccessEvent); }));
   each(doc.events, (e) => { links(e.trigger); cond(e.when); each(e.then, links); each(e.else, links); });
 
-  // places the copy beside the original within the same map square
   if (doc.place && Number.isFinite(doc.place.x)) {
     const east = doc.place.x + POI_DUPLICATE_SHIFT_M;
     doc.place.x = east <= SQUARE_M ? east : Math.max(0, doc.place.x - POI_DUPLICATE_SHIFT_M);
@@ -87,9 +73,10 @@ export function duplicatePoiDoc(src, { id, name }) {
   return doc;
 }
 
-/** Builds the copy's name by formatting `name` with `say` (for example, `"{name} (copy)"`), trimming the base name so
- *  the result fits within `POI_LIMITS.name`.
- *  @param {string} name @param {(base: string) => string} say formats the base name as a copy */
+/**
+ * @param {string} name
+ * @param {(base: string) => string} say
+ */
 export function duplicateName(name, say) {
   const max = /** @type {number} */ (POI_LIMITS.name);
   const base = lawName(name) || 'POI';

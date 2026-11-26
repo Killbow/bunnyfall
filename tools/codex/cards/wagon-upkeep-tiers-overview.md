@@ -34,6 +34,7 @@ traps:
   - "Boons and Hard wear the wagon identically; only what wear costs differs. Never skip wear on Boons."
   - "Wagon item value never falls; wear changes `currentCondition` only."
   - "upkeepTiers.js is shared with horse care; keep it an import-free leaf."
+  - "`shelfBandageStack` reproduces Unity's exclusive `Random.Range(1, quality / 2)`: when `quality / 2` is 1 or less (quality 2 or 3), the stack is 1, and the roll otherwise spans 1 to `max - 1` before the clamp to 8."
 dfu: []
 tags:
   - wagon

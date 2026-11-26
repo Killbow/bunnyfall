@@ -6,7 +6,6 @@ export const CROMWARK_WARD_RANGE = 40;
 export const CROMWARK_WARD_GLOW = Object.freeze([.28, 1, .73, .86]);
 export const CROMWARK_WARDED_GLOW = Object.freeze([.28, 1, .73, .32]);
 
-// Roles 1/2 are protected groups, 3/4 are the corresponding wardkeepers.
 export function cromwarkWardRole(ring, slot, count, selected = true) {
   if (ring < 3 || !selected || count < 4) return 0;
   const split = ring >= 4 ? Math.ceil(count / 2) : count;

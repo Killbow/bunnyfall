@@ -16,6 +16,9 @@ files:
   - "src/world/staticBuildings.js"
   - "src/world/texRemap.js"
   - "src/world/cityGate.js"
+  - "src/world/regionConditions.js"
+  - "src/world/regionHubs.js"
+  - "src/world/terrainSurface.js"
 routes: []
 tables: []
 replacesBible:
@@ -34,10 +37,16 @@ invariants:
   - "UMRandom is a verbatim Unity.Mathematics.Random: CreateFromIndex seeds wangHash(index + 62) and steps xorshift 13/17/5."
   - "All four hosts (exterior, world, interiorContext, dungeonContext) route climate/dungeon texture swaps through remapSubMeshes in src/world/texRemap.js."
   - "StaticBuilding boxes are DFMesh.Size * GLOBAL_SCALE, the same units as mesh vertices."
+  - "`pickRegionHubs` counts only base MAPS.BSA locations (`isBase`), so world-data mod additions never change a region's hub and clients with asset injection on or off agree."
+  - "`staticBuildingsHasHit` returns the first building in array order whose box contains the point, as DFU breaks on the first match. Reordering the buildings changes which one is returned."
+  - "`reskinRemap` builds a new remap table and never writes into the current one, because the renderer caches draws by table identity; a half-written table would draw half a season."
 traps:
   - "Terrain tile lookup bytes encode records 0-55 with rotate +64 and flip +128; RMB ground tiles read GroundTiles[x][15 - y] and records >= 56 reset to grass."
   - "Online, updateCityGate holds every gate on CITY_GATE_OPEN_MODEL_ID (446) regardless of night; only offline does the classic isNight toggle to 447 run."
   - "Dungeon layout runs removeOverlappingDoors (verbatim DaggerfallDungeon.RemoveOverlappingDoors) in dungeonLayout.js, not rdbLayout.js."
+  - "`VALUES_WIDTH` and `FLAGS_WIDTH` are 29, `FLAGS2_WIDTH` is 14, and the value min/max tables have 26 entries, copying DFU. Do not equalize them to the 30-member flag enum."
+  - "Water classification compares float32 heights against float32 thresholds, as DFU does; comparing a double product against a double constant fails for every clamped sea sample and draws open ocean as dirt."
+  - "`playerTileMapIndex` is the converted tile byte shifted right two, so the location-zero sentinel reads as record 0, which is water; a town ground tile encoding as zero reads as water, as in DFU. Off-terrain is -1."
 dfu:
   - "Assets/Scripts/Terrain/DefaultTerrainSampler.cs"
   - "Assets/Scripts/Terrain/TerrainNature.cs"

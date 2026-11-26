@@ -1,10 +1,6 @@
 // @ts-check
-// The city's seal is separate from the expanding blight and cannot be dispelled
-// by a reach encounter. Horizontal exclusion also covers flight and underground saves.
 export const CROMWARK_CITY = Object.freeze({ px: 823, py: 35, mapId: 505449455, region: 16, location: 482 });
 export const BARRIER_MARGIN = 12;
-/** Map pixels from the city, on the larger axis. Past SEAL_REACH_PX a frame's step cannot reach the seal. Past
- *  SEAL_SIGHT_PX the seal is out of its draw reach (a city of at most 8x8 blocks, plus 6,000 m), with a spare pixel. */
 export const SEAL_REACH_PX = 2, SEAL_SIGHT_PX = 10;
 /** @param {{ x: number, y: number }} p */
 export const sealPixelsAway = (p) => Math.max(Math.abs(p.x - CROMWARK_CITY.px), Math.abs(p.y - CROMWARK_CITY.py));
@@ -15,7 +11,6 @@ export function cromwarkSeal(data) {
     z: Math.trunc((128 - h * 16) / 2) * 6.4 + h * 51.2,
     radius: Math.hypot(w * 51.2, h * 51.2) + 28, height: 380 };
 }
-/** Stop swept movement too: a fast dash cannot cross the entire seal in a frame. */
 export function sealCrossed(seal, from, to) {
   if (!seal || !to?.every(Number.isFinite)) return false;
   const x = to[0] - seal.x, z = to[2] - seal.z;

@@ -31,6 +31,7 @@ invariants:
 traps:
   - "A mod switch flipped mid-game reaches nothing until the next load; read `modLatchedOn`, not the live setting."
   - "`BLOCK_CACHE_MAX` (192) evicts the oldest block; do not assume every replaced block stays resident."
+  - "`setLocationVariant` returns whether the key existed before the write, the inverse of `setNewLocationVariant`. This matches the C# and is kept on purpose."
 dfu:
   - "Assets/Scripts/Game/Serialization/SerializableGameObject.cs"
   - "Assets/Scripts/Utility/RMBLayout.cs"

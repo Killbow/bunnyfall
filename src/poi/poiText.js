@@ -1,18 +1,6 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// POI-3 (2026-10-14) - WHAT THE EDITOR SAYS, IN THE BUILDER'S LANGUAGE.
-//
-// The law (poi/poiLaw.js), the glTF reader (poi/gltfImport.js), the mesh (poi/poiMesh.js) and the picture header
-// (poi/poiImage.js) speak in CODES - a stable word and the numbers it turns on - so the service, the game and the
-// editor share one law and no reader carries English (L10N4). Here each code is a sentence, through the text core
-// (systems/textManager.js t: the catalog's row in the player's language, the English as written here else), and a
-// problem's PATH (`parts[2].materials[0].alpha`) is where to look, said as the builder sees it - the part by its name.
-// A code this table has not heard of is still said, as itself: never a blank line in a list of what is wrong.
-//
-// Not a DFU member. Ledger A (POI).
-// ═══════════════════════════════════════════════════════════════════
 
-import { t, intlLocale } from '../ui/textManager.js';   // L10N4: the words through the text core
+import { t, intlLocale } from '../ui/textManager.js';
 import { POI_MESH_LIMITS } from './poiMesh.js';
 import { POI_IMAGE_LIMITS } from './poiImage.js';
 
@@ -43,7 +31,6 @@ const PROBLEM = {
   'mesh-ref': () => t('poi.problem.meshRef', 'A part names no model.'),
   offset: (a) => t('poi.problem.offset', 'It is too far from the POI\'s origin (at most {max} m).', a),
   scale: (a) => t('poi.problem.scale', 'Each side\'s scale is between {min} and {max}.', a),
-  // v2: the problems the v2 law adds
   'ref-missing': (a) => t('poi.problem.refMissing', 'It names {key}, which does not exist in this POI.', a),
   model: (a) => t('poi.problem.model', 'The model number must be between 1 and {max}.', a),
   groups: (a) => t('poi.problem.groups', 'At most {max} groups.', a),
@@ -124,7 +111,7 @@ const PROBLEM = {
   uv: () => t('poi.problem.uv', 'A picture\'s placement is out of range.'),
   unknown: () => t('poi.problem.unknown', 'It holds a field the editor does not know.'),
   lights: (a) => t('poi.problem.lights', 'At most {max} lights.', a),
-  npcs: (a) => t('poi.problem.npcs', 'At most {max} people.', a),   // BUNNYFALL
+  npcs: (a) => t('poi.problem.npcs', 'At most {max} people.', a),
   lines: (a) => t('poi.problem.lines', 'At most {max} lines.', a),
   radius: (a) => t('poi.problem.radius', 'A light reaches between {min} and {max} m.', a),
   intensity: (a) => t('poi.problem.intensity', 'A light\'s strength is between 0 and {max}.', a),
@@ -132,9 +119,7 @@ const PROBLEM = {
   'not-uploaded': () => t('poi.problem.notUploaded', 'A model or picture it names has not been uploaded.'),
   'not-a-mesh': () => t('poi.problem.notAMesh', 'It names a picture where a model belongs.'),
   'not-a-texture': () => t('poi.problem.notATexture', 'It names a model where a picture belongs.'),
-  // AUDIT POI U13: the count in its plural ("Its model has 1 materials" no more)
   'material-count': (a) => t('poi.problem.materialCount', 'Its model has {want, plural, one {# material} other {# materials}}, but the part has {have}.', a),
-  // AUDIT POI S6: the POI as a whole (poiLaw.js POI_BUDGET)
   'budget-triangles': (a) => t('poi.problem.budgetTriangles', 'It draws too many triangles ({have, number}, the limit is {max, number}). Simplify a model or use fewer parts.', a),
   'budget-vertices': (a) => t('poi.problem.budgetVertices', 'Its parts have too many vertices together ({have, number}, the limit is {max, number}). Simplify a model or use fewer parts.', a),
   'budget-bytes': (a) => t('poi.problem.budgetBytes', 'Its models and pictures are too large together ({have, number} MB, the limit is {max, number} MB).', { have: Math.ceil(a.have / 1048576), max: Math.floor(a.max / 1048576) }),
@@ -153,13 +138,10 @@ const GLTF = {
   compressed: (a) => t('poi.gltf.compressed', 'This model is compressed ({ext}). Export it again with compression off.', a),
   extension: (a) => t('poi.gltf.extension', 'This model needs {ext}, which the editor does not support.', a),
   'file-missing': (a) => t('poi.gltf.fileMissing', 'This model needs the file {uri}. Choose it together with the .gltf.', a),
-  // AUDIT POI U13: glTF's own object names said as words of each language, never dropped in ("a accessor", in English in
-  // every language)
   missing: (a) => t('poi.gltf.missing', 'This model refers to {what, select, accessor {an accessor} bufferView {a buffer view} buffer {a buffer} image {an image} texture {a texture} node {a node} skin {a skin} joint {a joint} vertex {a vertex} other {a piece of itself}} that is not there.', a),
   'past-end': (a) => t('poi.gltf.pastEnd', 'This model\'s data is cut short: {what, select, accessor {an accessor} bufferView {a buffer view} other {a piece of it}} runs past its end.', a),
   'node-cycle': () => t('poi.gltf.nodeCycle', 'This model\'s node tree loops back on itself.'),
   'accessor-type': () => t('poi.gltf.accessorType', 'This model stores a mesh attribute in a form glTF does not allow.'),
-  // AUDIT POI G3: a file that asks for more than any POI could hold, a node of two parents, and anything else malformed
   'too-large': () => t('poi.gltf.tooLarge', 'This model is too large to import. Simplify it, or import it in pieces.'),
   'node-parents': () => t('poi.gltf.nodeParents', 'An object in this model\'s node tree has two parents.'),
   'too-many-parts': (a) => t('poi.gltf.tooManyParts', 'This model has {n, number} objects, and a POI holds at most {max} parts. Make it one part, or import it in pieces.', a),
@@ -178,7 +160,6 @@ const GLTF_WARN = {
   'no-uvs': () => t('poi.gltfWarn.noUvs', 'A textured material\'s mesh has no UVs: unwrap it in the UV editor.'),
   'emission-uv-set': () => t('poi.gltfWarn.emissionUvSet', 'A glow map uses a second UV set. It’s drawn with the first.'),
   'image-format': () => t('poi.gltfWarn.imageFormat', 'A picture that is not PNG, JPEG or WebP was left out.'),
-  // AUDIT POI G5, G8: a glow placed unlike its picture; an extension used and not read
   'emission-transform': () => t('poi.gltfWarn.emissionTransform', 'A glow map is placed or repeated differently from its picture. It’s drawn as the picture is.'),
   instancing: () => t('poi.gltfWarn.instancing', 'Objects repeated by GPU instancing were imported once each. Export again with GPU instancing off.'),
   'extension-ignored': (a) => t('poi.gltfWarn.extensionIgnored', 'This model uses {ext}, which the editor does not read: what it adds was left out.', a),
@@ -191,7 +172,6 @@ const MESH = {
   'too-many-submeshes': (a) => t('poi.mesh.tooManySubmeshes', 'A part has too many materials (at most {max}).', a),
   'too-large': (a) => t('poi.mesh.tooLarge', 'A part is too large (at most {max} m from its origin).', a),
   'too-many-bytes': () => t('poi.mesh.tooManyBytes', 'A part\'s model is too large a file.'),
-  // AUDIT POI (the lead's; lane E's note): the two an import can meet in a damaged file, said as what they are
   'not-finite': () => t('poi.mesh.notFinite', 'A part\'s model holds an invalid number (NaN or infinity). Export it again.'),
   'index-range': () => t('poi.mesh.indexRange', 'A part\'s model names a vertex it does not have. Export it again.'),
 };
@@ -206,14 +186,12 @@ const IMAGE = {
   webp: () => t('poi.image.webp', 'The WebP file is damaged.'),
 };
 
-/** POI-6: what a submission changes (poi/poiDiff.js codes). @type {Record<string, (a: any) => string>} */
+/** @type {Record<string, (a: any) => string>} */
 const DIFF = {
   new: (a) => t('poi.diff.new', 'A new POI: {parts, plural, one {# part} other {# parts}}, {lights, plural, one {# light} other {# lights}}.', a),
   retire: () => t('poi.diff.retire', 'Takes it out of the world.'),
   name: (a) => t('poi.diff.name', 'Renamed from "{from}" to "{to}".', a),
   about: () => t('poi.diff.about', 'Its description changed.'),
-  // AUDIT POI U13: none left is said in words of its own ("Its tags are now: ." no more); a list of them as the reader's
-  // language lists (poiDiff's `tags`)
   tags: (a) => {
     const to = listText(Array.isArray(a.tags) ? a.tags : []);
     return to ? t('poi.diff.tags', 'Its tags are now: {to}.', { to }) : t('poi.diff.tagsNone', 'Its tags were all taken off.');
@@ -224,7 +202,6 @@ const DIFF = {
   sized: (a) => t('poi.diff.sized', 'Resized from {from, number} to {to, number}.', a),
   'part-added': (a) => t('poi.diff.partAdded', 'Part added: {name}.', a),
   'part-removed': (a) => t('poi.diff.partRemoved', 'Part taken away: {name}.', a),
-  // AUDIT POI U13: what changed listed as the reader's language lists it, not with an English comma
   'part-changed': (a) => t('poi.diff.partChanged', 'Part {name}: {what}.', { name: a.name, what: listText(a.what.map((w) => PART_WHAT[w]?.() ?? w)) }),
   upgraded: (a) => t('poi.diff.upgraded', 'Now saved in format version {to} (it was version {from}). That alone changes nothing in the game.', a),
   interior: () => t('poi.diff.interior', 'Its interior changed.'),
@@ -233,23 +210,23 @@ const DIFF = {
   'item-removed': (a) => t('poi.diff.itemRemoved', '{kind} taken away: {name}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name }),
   'item-changed': (a) => t('poi.diff.itemChanged', '{kind} {name} changed: {what}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name, what: listText(a.what) }),
   lights: (a) => t('poi.diff.lights', 'Its lights changed ({from} to {to}).', a),
-  // AUDIT POI U13: a mark with no label said so (it read 'shown, ""')
   marker: (a) => (!a.show ? t('poi.diff.markerHidden', 'Its mark on the map: hidden.')
     : a.label ? t('poi.diff.markerShown', 'Its mark on the map: shown, "{label}".', a) : t('poi.diff.markerShownBare', 'Its mark on the map: shown, with no label.')),
 };
-/** Words as one list, the reader's language's way (Intl.ListFormat, its separators - ui/credits.js's way); joined with a
- *  comma where the runtime has none. @param {string[]} words */
+/**
+ * @param {string[]} words
+ */
 function listText(words) {
   try { return new Intl.ListFormat(intlLocale(), { type: 'unit', style: 'short' }).format(words); } catch { return words.join(', '); }
 }
-/** Things as one list joined with "and", the reader's language's way (Intl.ListFormat's conjunction, ui/credits.js's
- *  way); "a, b, and c" where the runtime has none. @param {string[]} words */
+/**
+ * @param {string[]} words
+ */
 function andList(words) {
   try { return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(words); } catch {
     return words.length < 3 ? words.join(' and ') : `${words.slice(0, -1).join(', ')}, and ${words[words.length - 1]}`;
   }
 }
-/** The v2 collections, one thing and many, for the diff's lines. */
 const KIND_ONE = {
   npcs: () => t('poi.kind.npc', 'Person'), groups: () => t('poi.kind.group', 'Group'), flats: () => t('poi.kind.flat', 'Picture'),
   routes: () => t('poi.kind.route', 'Route'), encounters: () => t('poi.kind.encounter', 'Encounter'), interactives: () => t('poi.kind.interactive', 'Object'),
@@ -262,7 +239,6 @@ const KIND_WORD = {
   dialogues: (n) => t('poi.kinds.dialogues', '{n, plural, one {dialogue} other {dialogues}}', { n }), trades: (n) => t('poi.kinds.trades', '{n, plural, one {trade} other {trades}}', { n }),
   variables: (n) => t('poi.kinds.variables', '{n, plural, one {variable} other {variables}}', { n }), events: (n) => t('poi.kinds.events', '{n, plural, one {event} other {events}}', { n }),
 };
-/** What changed in a part, in a word each. */
 const PART_WHAT = {
   model: () => t('poi.diff.what.model', 'its model'),
   moved: () => t('poi.diff.what.moved', 'moved'),
@@ -274,7 +250,7 @@ const PART_WHAT = {
   layout: () => t('poi.diff.what.layout', 'its group, visibility or lock'),
 };
 
-/** POI-6: a pack refused (poi/poiPack.js codes). @type {Record<string, (a: any) => string>} */
+/** @type {Record<string, (a: any) => string>} */
 const PACK = {
   'pack-not-a-pack': () => t('poi.pack.notAPack', 'This is not a POI pack.'),
   'pack-version': () => t('poi.pack.version', 'This pack was made by another version of the editor.'),
@@ -284,7 +260,6 @@ const PACK = {
   'pack-asset-hash': () => t('poi.pack.assetHash', 'A model or picture in the pack is not what its name says.'),
   'pack-asset-bad': () => t('poi.pack.assetBad', 'A model or picture in the pack is damaged.'),
   'pack-missing-asset': () => t('poi.pack.missingAsset', 'The pack names a model or picture it does not carry.'),
-  // AUDIT POI P7: an id once in a pack
   'pack-poi-twice': (a) => t('poi.pack.poiTwice', 'The pack holds two POIs under one id ({name}).', a),
   'pack-entry-twice': (a) => t('poi.pack.entryTwice', 'The pack holds two library entries under one id ({name}).', a),
 };
@@ -295,23 +270,20 @@ const said = (table, fallback) => (code, args = {}) => {
 };
 const unknownCode = (code) => t('poi.text.unknownCode', 'Something is wrong ({code}).', { code });
 
-/** A law problem's sentence. @param {{ code: string, [k: string]: any }} p */
+/** @param {{ code: string, [k: string]: any }} p */
 export const problemText = (p) => said(PROBLEM, unknownCode)(p.code, p);
-/** A glTF refusal's sentence (gltfImport.js GltfError's `code` and `args`). */
 export const gltfErrorText = said(GLTF, unknownCode);
-/** A glTF warning's sentence (bakeGltf's `warnings`). */
 export const gltfWarningText = said(GLTF_WARN, unknownCode);
 const MESH_MAX = { 'too-many-vertices': POI_MESH_LIMITS.vertices, 'too-many-indices': POI_MESH_LIMITS.indices / 3, 'too-many-submeshes': POI_MESH_LIMITS.submeshes, 'too-large': POI_MESH_LIMITS.extent };
-/** A mesh's refusal (poiMesh.js poiMeshError / decodePoiMesh's bare code): the limits by name, with their numbers;
- *  every other a damaged model. @param {string} code */
+/**
+ * @param {string} code
+ */
 export const meshErrorText = (code) => said(MESH, () => t('poi.mesh.malformed', 'A part\'s model is malformed.'))(code, { max: MESH_MAX[code] });
-/** POI-6: a change a submission makes, as the approver reads it. @param {{ code: string, [k: string]: any }} c */
+/** @param {{ code: string, [k: string]: any }} c */
 export const diffText = (c) => said(DIFF, unknownCode)(c.code, c);
 /**
- * Formats the read-only summary lines for v2 POI fields that the in-game editor preserves but cannot edit yet
- * (poiEdit.js poiHeldOf), followed by any caller-supplied `more` lines and the read-only notice; returns an empty array
- * when none are present. Flat pictures are editable in the editor and formatted separately by flatCountText.
- * @param {ReturnType<typeof import('./poiEdit.js').poiHeldOf>} h @param {string[]} [more]
+ * @param {ReturnType<typeof import('./poiEdit.js').poiHeldOf>} h
+ * @param {string[]} [more]
  */
 export function heldLines(h, more = []) {
   const word = (k, n) => KIND_WORD[k]?.(n) ?? k;
@@ -324,25 +296,35 @@ export function heldLines(h, more = []) {
   if (out.length) out.push(t('poi.held.kept', 'This editor cannot change these yet. They are left as is when you save.'));
   return out;
 }
-/** Formats a POI's flat-picture count against the schema limit `max`. @param {number} n @param {number} max */
+/**
+ * @param {number} n
+ * @param {number} max
+ */
 export const flatCountText = (n, max) => t('poi.flat.countOf', 'Flat pictures: {n, number} of {max, number}.', { n, max });
-/** A document's size against its version's limit (poiEdit.js poiDocSizeOf). @param {{ bytes: number, max: number }} s @param {number} v */
+/**
+ * @param {{ bytes: number, max: number }} s
+ * @param {number} v
+ */
 export const docSizeText = (s, v) => t('poi.editor.docSize', 'Size: {kib, number} of {max, number} KiB (format version {v}).', { kib: Math.ceil(s.bytes / 102.4) / 10, max: Math.round(s.max / 1024), v });
 
-/** POI-6: a pack's refusal. @param {{ code: string, [k: string]: any }} r */
+/** @param {{ code: string, [k: string]: any }} r */
 export const packErrorText = (r) => said(PACK, unknownCode)(r.code, r);
-/** A picture's refusal (poiImage.js poiImageMetaOf's). @param {string} code */
+/** @param {string} code */
 export const imageErrorText = (code) => said(IMAGE, unknownCode)(code, { max: POI_IMAGE_LIMITS.side });
-/** A model or picture that would not load, so the asset check could not finish: `passes` when it is tried again by
- *  itself (offline, the store busy or failing), else the builder asks again. @param {boolean} passes */
+/**
+ * @param {boolean} passes
+ */
 export const assetsUncheckedText = (passes) => (passes
   ? t('poi.editor.uncheckedRetry', 'Its model or picture would not load, so it could not be checked yet. Trying again shortly.')
   : t('poi.editor.unchecked', 'Its model or picture would not load, so it could not be checked.'));
 
-/** The rows that say which models and pictures would not load: where each is, whether it is tried again by itself, and
- *  Check again when one is not. @param {any} d @param {{ path: string, passes: boolean }[]} unloaded
- *  @param {(tag: string, cls?: string, text?: string | null) => any} el @param {(text: string, fn: () => void) => any} btn
- *  @param {() => void} retry */
+/**
+ * @param {any} d
+ * @param {{ path: string, passes: boolean }[]} unloaded
+ * @param {(tag: string, cls?: string, text?: string | null) => any} el
+ * @param {(text: string, fn: () => void) => any} btn
+ * @param {() => void} retry
+ */
 export function uncheckedRows(d, unloaded, el, btn, retry) {
   const out = unloaded.slice(0, 6).map(({ path, passes }) => el('div', 'dfpoi-warn', `${problemWhere(path, d)}: ${assetsUncheckedText(passes)}`));
   if (unloaded.some((u) => !u.passes)) out.push(btn(t('poi.editor.checkAgain', 'Check again'), retry));
@@ -350,8 +332,8 @@ export function uncheckedRows(d, unloaded, el, btn, retry) {
 }
 
 /**
- * Where a problem is, as the builder sees it - "Part Roof · material 2", "Light 3" - or '' for the POI itself.
- * @param {string} path @param {any} [doc] the document (a part is named by its name, else its key)
+ * @param {string} path
+ * @param {any} [doc]
  */
 export function problemWhere(path, doc = null) {
   const bits = [];

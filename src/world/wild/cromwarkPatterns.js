@@ -1,6 +1,4 @@
 // @ts-check
-// Deterministic patterns. Origins and yaw lock BEFORE the warning begins.
-// Marks are both the renderer's shapes and the collision shapes, in metres/seconds.
 import { cromwarkProfile } from './cromwarkRoster.js';
 const TAU = Math.PI * 2;
 const ATTACK_TIME = .8;
@@ -20,7 +18,6 @@ export function cromwarkPattern(id, origin, yaw, serial = 0, elite = false, aimD
       disc(origin, 1.6, 1.25, .06);
       const n = elite ? 18 : 14;
       for (let wave = 0; wave < 3; wave++) for (let i = 0; i < n; i++) {
-        // Even spacing and a consistent gap between each pair, including at melee range.
         const a = yaw + i * TAU / n + wave * Math.PI / n;
         shots.push({ origin: point(1.8, a), yaw: a, start: 1.25 + wave * .75, speed: 3.2, life: 4.5, r: CROMWARK_ORB_RADIUS, damage: .045 });
       }
@@ -49,7 +46,6 @@ export function cromwarkPattern(id, origin, yaw, serial = 0, elite = false, aimD
       break;
     case 'pain':
       ring(3, 5.5, 1.5);
-      // Alternating spokes leave broad wedges safe; the delayed inner disc stops camping.
       for (let i = 0; i < 4; i++) lane(origin, yaw + serial * .31 + i * TAU / 4, 10, .65, 3, .13);
       ring(6, 9, 4.5);
       disc(origin, 2.4, 4.5);
@@ -90,7 +86,6 @@ export function shotPosition(s, age) {
   const d = Math.max(0, age - s.start) * s.speed;
   return [s.origin[0] + Math.sin(s.yaw) * d, s.origin[1] + .8, s.origin[2] + Math.cos(s.yaw) * d];
 }
-// Swept capsule vs slow projectile; a hitch cannot skip over the player.
 export function shotHits(s, age0, age1, feet, height = 1.8) {
   const a = shotPosition(s, age0), b = shotPosition(s, age1);
   if (a[1] + s.r < feet[1] || a[1] - s.r > feet[1] + height) return false;

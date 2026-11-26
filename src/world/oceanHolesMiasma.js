@@ -1,42 +1,11 @@
-// ═══════════════════════════════════════════════════════════════════
-// OH-C (2026-09-26): THE ABYSS MIASMA - OceanHoles.CreateSurfaceMiasma's
-// ParticleSystem, simulated. What the C# configures, and what a Unity
-// ParticleSystem does with it:
-//
-//   main: loop, prewarm, startLifetime 30 s, startSpeed 0, startSize a
-//     random 3..6 (two constants), startRotation a random 0..2pi,
-//     maxParticles the slider's count (72 at the midpoint, at least 1),
-//     local simulation space; its duration is Unity's default 5 s, and
-//     PREWARM starts the system as though that one loop had already run;
-//   emission: rateOverTime 2 x count / 72 a second (Unity's accumulator:
-//     each frame's share added, a particle born for every whole one), none
-//     past maxParticles;
-//   shape: a Circle of radius (surface hole radius - 1), radiusThickness 1
-//     (the whole disc, uniform by area), turned (90, 0, 0) to lie on the
-//     sea; startSpeed 0, so no velocity from the shape;
-//   velocityOverLifetime: x and z a random -0.12..0.12, y a random 0.85v..v
-//     with v = plume height / 30 - each particle's own constants;
-//   sizeOverLifetime: a curve up to full by 2% of the life, full to 90%,
-//     down to nothing at the end - four keys with zero tangents, so each
-//     span is Unity's Hermite with flat ends (a smoothstep).
-//
-// Unity's particle RNG is its own and unseeded; these are the player's
-// look (the sliders are theirs online), so the draws are Math.random's.
-// ═══════════════════════════════════════════════════════════════════
-
 import { SURFACE_MIASMA_LIFETIME, SURFACE_MIASMA_MAX_PARTICLES, SURFACE_MIASMA_EMISSION_RATE } from './oceanHoles.js';
 
 const f32 = Math.fround;
-/** ParticleSystem.MainModule.duration's default (the loop PREWARM runs once). */
 export const DEFAULT_DURATION = 5;
-/** startSize's upper constant (MinMaxCurve(3, 6)). */
 export const START_SIZE_MAX = 6;
-/** velocityOverLifetime's x and z reach: a random -0.12..0.12 m/s. */
 export const DRIFT = 0.12;
-/** The size-over-lifetime curve's keys. */
 export const SIZE_KEYS = Object.freeze([[0, 0], [0.02, 1], [0.9, 1], [1, 0]]);
 
-/** AnimationCurve.Evaluate over keys with zero tangents: each span a flat-ended Hermite. */
 export function evaluateSizeCurve(t) {
   if (t <= SIZE_KEYS[0][0]) return SIZE_KEYS[0][1];
   for (let i = 1; i < SIZE_KEYS.length; i++) {
@@ -51,8 +20,6 @@ export function evaluateSizeCurve(t) {
 }
 
 /**
- * One pit's miasma. Positions are the system's own (local) space: the
- * disc's centre at the origin, y up.
  * @param {{count: number, height: number, radius: number, roll?: () => number}} o
  */
 export function createMiasma({ count, height, radius, roll = Math.random }) {
@@ -85,18 +52,13 @@ export function createMiasma({ count, height, radius, roll = Math.random }) {
       if (particles.length < max) emit();
     }
   }
-  // PREWARM: one loop's worth, in steps a frame long
   for (let t = 0; t < DEFAULT_DURATION; t += 1 / 60) step(1 / 60);
   return {
     particles, step, rate, max,
-    /** The size a particle draws at now (its start size through the curve). */
     sizeOf: (q) => q.size * evaluateSizeCurve(q.age / q.life),
   };
 }
 
-/** AUDIT OH-F A2: the plume's reach from its emitter, local [minX, minY, minZ, maxX, maxY, maxZ] - what Unity's
- *  renderer culls it by (its particles' own bounds): the disc and a life's drift out, the whole rise (v at most
- *  height / 30 for 30 s) up, and the largest puff's half all round. */
 export function miasmaReach({ height, radius }) {
   const half = START_SIZE_MAX / 2, out = radius + DRIFT * SURFACE_MIASMA_LIFETIME + half;
   return [-out, -half, -out, out, height + half, out];

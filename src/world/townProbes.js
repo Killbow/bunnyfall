@@ -1,7 +1,4 @@
-// HOST-SPLIT: moved verbatim out of src/scenes/world.js's bootWorld (bible/01-Overview/Host-Split.md) by tools/hostMove.mjs.
-// The host constructs it where the code stood. What it reads of the host's scope comes through `host`: the
-// settled names by value at construction, every live one (a `let` someone writes, a `const` made below) read at its
-// use as `host.<name>` - as the code read them where it was.
+// Test probe surfaces for the town loop, built from the world host in src/scenes/world.js.
 import { addGold } from '../justice/court.js';
 import { charSheetDoorReady } from '../ui/charSheetDoor.js';
 import { isNight } from './worldClock.js';
@@ -12,12 +9,8 @@ export function createTownProbes(host) {
   const {
     _crimeResponse, built, cam, cityGuards, droppedLoot, minuteNow, state, townTalk, weaponRig
   } = host;
-  // T2: the townsfolk probe surface - aggregated over built pixels,
-  // positions reported in WORLD space (through the live translation).
-  // Installed AFTER the mode machine exists: modes.installShotProbes()
-  // defines an interior __people hook, and the town surface must win
-  // in this host exactly as it does in the exterior host (the probe
-  // read a null __people for 300s before this ordering was learned).
+  // Install after the mode machine exists: modes.installShotProbes defines an interior __people hook,
+  // and the town surface must win.
   function installTownProbes() {
     window.__people = () => {
       const out = [];
@@ -39,22 +32,18 @@ export function createTownProbes(host) {
       }
       return JSON.stringify(out);
     };
-    window.__talk = () => JSON.stringify(townTalk._debug());   // T3b probe surface
-    // MAP3: the held pose's tuning door - `__heldPose()` reads the pose in
-    // force while the map is up, `__heldPose({ bones: { 'left forearm':
-    // [rx, ry, rz], ... }, paper: { width, forward, drop, tilt } })` re-places
-    // the sheet on the live arm (bible/10-UI/Held-Map-Arc.md, MAP3)
+    window.__talk = () => JSON.stringify(townTalk._debug());
     window.__heldPose = (spec) => (spec ? weaponRig?.setHeldPose?.(spec) : weaponRig?.heldPose?.());
-    window.__chargenRace = () => townTalk._debug().overlayFlow?.race?.key ?? null;   // U10 probe surface
-    window.__chargenConfirm = () => townTalk._debug().overlayFlow?.raceConfirm ?? null;   // U11 probe surface
-    window.__chargenFlow = () => townTalk._debug().overlayFlow ?? null;   // S3e probe surface
-    window.__addGold = (n) => addGold(playerEntity, n);   // U10 probe surface: gold through the real producer
-    window.__guards = () => JSON.stringify(cityGuards._debug());   // G1 probe surface
-    window.__droppedLoot = () => JSON.stringify(droppedLoot._piles.map((pl) => ({ n: pl.items.length, pos: pl.pos.map((v) => +v.toFixed(1)), record: pl.record, flat: !!pl.batch })));   // U8e probe surface
-    window.__crime = () => _crimeResponse();   // G1: force the response without pickpocket RNG
-    window.__guardDamage = (i, dmg) => cityGuards._damage(i, dmg);   // G3: the real death path for loot probes
-    window.__uiArt = () => JSON.stringify({ charsheet: charSheetDoorReady() });   // U8a probe surface; U52: the door, not the art alone
-    window.__attack = () => weaponRig.clickAttack();   // G4: ClickToAttack for swing probes
+    window.__chargenRace = () => townTalk._debug().overlayFlow?.race?.key ?? null;
+    window.__chargenConfirm = () => townTalk._debug().overlayFlow?.raceConfirm ?? null;
+    window.__chargenFlow = () => townTalk._debug().overlayFlow ?? null;
+    window.__addGold = (n) => addGold(playerEntity, n);
+    window.__guards = () => JSON.stringify(cityGuards._debug());
+    window.__droppedLoot = () => JSON.stringify(droppedLoot._piles.map((pl) => ({ n: pl.items.length, pos: pl.pos.map((v) => +v.toFixed(1)), record: pl.record, flat: !!pl.batch })));
+    window.__crime = () => _crimeResponse();
+    window.__guardDamage = (i, dmg) => cityGuards._damage(i, dmg);
+    window.__uiArt = () => JSON.stringify({ charsheet: charSheetDoorReady() });
+    window.__attack = () => weaponRig.clickAttack();
     window.__townDebug = () => {
       const pixels = [];
       for (const p of built.values()) {

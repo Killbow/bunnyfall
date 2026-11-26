@@ -1,6 +1,5 @@
 // @ts-check
 import { cromwarkCombatRing } from './cromwark.js';
-// Cromwark's own cast. A leaf shared by spawning, grants and combat.
 export const CROMWARK_ROSTER = Object.freeze([
   { id: 3136, key: 'judge', name: 'Judge', hp: 118, speed: 35, weight: 2, cooldown: 3, color: [1, .5, .95] },
   { id: 3137, key: 'horror-mite', name: 'Horror Mite', hp: 100, speed: 65, weight: 1, cooldown: 2.2, color: [1, .35, .55] },
@@ -14,7 +13,6 @@ export const CROMWARK_ROSTER = Object.freeze([
 export const cromwarkProfile = (id) => CROMWARK_ROSTER.find((p) => p.id === id) ?? null;
 export const cromwarkHealth = (id, elite = false) => Math.round((cromwarkProfile(id)?.hp ?? 1) * (elite ? 1.6 : 1));
 
-// The elite bit already follows the foe through saves, grants and handoffs.
 export const cromwarkTitanheart = (entity) => !!entity?.eliteFoe && entity.titanheart === true && !!cromwarkProfile(entity.mobileType);
 export const CROMWARK_TITAN_SIZE = 1.15;
 export const CROMWARK_TITAN_GLOW = Object.freeze([1, .08, .06, .85]);
@@ -29,7 +27,6 @@ const RING_FOES = /** @type {readonly (readonly number[])[]} */ (Object.freeze([
 const cromwarkFoes = (ring) => RING_FOES[Math.min(3, Math.max(0, ring | 0))];
 export const cromwarkSpeciesInRing = (id, ring) => cromwarkFoes(ring).includes(id);
 
-// Three custom enemies per five slots, cycling the ring's roster before repeating.
 export function cromwarkPack(types, count, ring = cromwarkCombatRing()) {
   const pool = cromwarkFoes(ring);
   if (!types.length) return types;
@@ -39,7 +36,6 @@ export function cromwarkPack(types, count, ring = cromwarkCombatRing()) {
     : types[support++ % types.length]);
 }
 
-// Deeper rings introduce more pattern combinations.
 export function cromwarkSpecies(normal, ring, die = Math.random) {
   const pool = cromwarkFoes(ring);
   if (!pool.length || normal < 0 || cromwarkProfile(normal) || die() >= .6) return normal;
@@ -55,6 +51,5 @@ export function makeCromwarkEntity(entity, id, own = true) {
   entity.damageScale = 1;
   entity.minMetalToHit = -1;
   entity.spells = [];
-  // Fixed movement: Pain stays slow at every player level.
   if (entity.stats?.speed != null) entity.stats.speed = p.speed;
 }

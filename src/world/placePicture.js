@@ -1,7 +1,4 @@
 // @ts-check
-// Picks the picture for a mesh a spell makes at a place. Outdoors it is the terrain's dirt (record 1). Underground it
-// is the dungeon's wall picture, or the climate's cave rock (climateType + 47, record 0) where there is none. A texture
-// mod's picture is used where one is active.
 import { getWorldClimateSettings } from '../formats/mapsFile.js';
 import { getTerrainGroundArchive, SEASON } from './climateSwaps.js';
 import { toColor32 } from '../formats/color32Order.js';

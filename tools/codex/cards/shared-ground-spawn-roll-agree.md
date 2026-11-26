@@ -23,6 +23,7 @@ invariants:
   - "No ground spawn offline, past the Veil (ether sea), in the open zone, on ocean, wet plateau, or a path-crossed pixel."
   - "Pixel build uses the ground location for blend, tiles and `hasLocation`; `_liftLocationAt` reads it for unbuilt pixels."
   - "Ruin blocks, door, enemies and `tvSpawnGone` still follow TTL1 clocks; a dead spawn keeps its levelled clearing."
+  - "`spawnPlateauFloor` samples the kernel without ground noise, which gives a lower bound on the real plateau. A pixel it admits is dry for certain, so keep the noise out to keep the spawn roll the same on every client."
 traps:
   - "Never read clocks or `_insideSpawn` when shaping ground: clients on either side of a death/return diverge."
 dfu: []

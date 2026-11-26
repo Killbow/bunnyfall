@@ -21,9 +21,11 @@ invariants:
   - "`POI_MESH_LIMITS` enforces 262,144 vertices, 3 x 1,048,576 indices, 64 submeshes, a 2048 m extent, and 24 MiB; any mesh exceeding a bound is rejected rather than truncated."
   - "`POI_IMAGE_LIMITS` accepts only PNG, JPEG, or WebP headers sniffed by `poiImageMetaOf`, up to 4096 px per side and 16 MiB."
   - "`POI_BUDGET` caps the entire scene at 1,048,576 triangles and vertices, 64 MiB of distinct asset bytes, 2 x 4096 x 4096 pixels, and a 2048 m reach."
+  - "The stack check in `poiLawV2.js` treats a potion `recipe` and an encounter `pacifiable` as known keys only; new value checks belong in `poiTradeLaw.js`, so the check the game runs on live POIs refuses nothing new."
 traps:
   - "`POI_LIMITS.docBytes` (`96` KiB) applies only to v1 documents, whereas v2 documents use `POI_V2_LIMITS.docBytes` (`256` KiB); always resolve size limits through `poiDocBytesOf(v)`."
   - "Names, tags, and labels reject C0/C1 control characters, lone surrogates, U+2028/2029, and bidirectional embeds, overrides, or isolates (`UNSAID_RE`); only `about` permits newlines (`PROSE_UNSAID_RE`)."
+  - "The stored bounds check passes only when min and max agree with the header within a tolerance, written as a negated agreement test so NaN bounds fail; a plain greater-than test is false for NaN."
 dfu: []
 tags:
   - poi
