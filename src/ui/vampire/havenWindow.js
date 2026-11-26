@@ -55,7 +55,7 @@ export function openHavenWindow({ entity, now, onClose }) {
   return openVampWindow({
     id: 'vamp-haven',
     title: () => t('haven.title', 'Your Haven'),
-    sub: () => t('haven.sub', 'Work in progress - A {clan} lair - Blood Slots {used} of {max}', { clan: clanName(clan() ?? 153), used: slotsUsed(), max: slotsOf(entity) }),
+    sub: () => t('haven.sub', 'Work in progress · {clan} lair · Blood Slots {used} of {max}', { clan: clanName(clan() ?? 153), used: slotsUsed(), max: slotsOf(entity) }),
     crest: () => clanCrest(clan() ?? 153, 52),
     accent: () => CLAN_COLOUR[clan() ?? 153] ?? '#b02a35',
     onClose,

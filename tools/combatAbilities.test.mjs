@@ -5,7 +5,7 @@ import { equipTableOf, EQUIP_SLOTS } from '../src/characters/equip.js';
 import { ABILITIES, abilityById } from '../src/combat/abilities/registry.js';
 import { learnedAbility, restoreAbilityProgress, saveAbilityProgress, syncAbilityUnlocks } from '../src/combat/abilities/progress.js';
 import { createAbilityEngine } from '../src/combat/abilities/engine.js';
-import { PREVIEW_THRUST, requestHotbarAbility, stepAbilityRig, abilityCooldown } from '../src/combat/abilities/rig.js';
+import { PREVIEW_THRUST, requestHotbarAbility, stepAbilityRig, abilityCooldown, offsetAbilities } from '../src/combat/abilities/rig.js';
 import { PlayerWeapon } from '../src/combat/playerWeapon.js';
 import { requestUtility, stepUtilityTimers, utilityCooldown } from '../src/combat/abilities/utility.js';
 import { utilityProfile } from '../src/combat/abilities/utilityProfiles.js';
@@ -492,4 +492,36 @@ test('Wayfarer’s Anchor Mark leaves a lantern on the ground there until Recall
   assert.equal(requestUtility(entity, 'utility.wayfarers-anchor-recall', door).ok, true);
   for (let i = 0; i < 8; i++) stepUtilityTimers(entity, .25);
   assert.equal(lanterns.length, seen, 'Recall puts the lantern out');
+});
+
+test('the Wayfarer lantern moves with the floating origin of the scene it was set in', (t) => {
+  const old = globalThis.location;
+  globalThis.location = { search: '?abilities' };
+  t.after(() => { if (old) globalThis.location = old; else delete globalThis.location; setPlayerDoor(null); });
+  const entity = { ...makeEntity(), items: [], magicka: 0 };
+  entity.skills[SKILLS.Archery] = 30;
+  restoreAbilityProgress(entity, null, true);
+  syncAbilityUnlocks(entity);
+  let feet = [810, 1, 9];
+  const lanterns = [];
+  const door = {
+    player: () => entity, feet: () => feet, fx: (recipe, at) => { if (recipe === 'wayfarer-lantern') lanterns.push([...at]); },
+    utilityTravel: action => {
+      if (action === 'mark') entity.wayfarerAnchor = makeAnchor({ pixel: { x: 1, y: 1 }, nativeX: 810, nativeZ: 9, y: 1 });
+      return true;
+    },
+  };
+  setPlayerDoor(door);
+  assert.equal(requestUtility(entity, 'utility.wayfarers-anchor-mark', door).ok, true);
+  offsetAbilities([-819.2, 0, 0], entity);
+  feet = [830 - 819.2, 1, 9];
+  for (let i = 0; i < 8; i++) stepUtilityTimers(entity, .25);
+  assert.ok(lanterns.length >= 3, 'still burning 20 m away after the shift');
+  assert.ok(lanterns.every(at => Math.abs(at[0] - (810 - 819.2)) < 1e-9 && at[2] === 9), 'at the shifted mark');
+  setPlayerDoor({ ...door });
+  offsetAbilities([819.2, 0, 0], entity);
+  setPlayerDoor(door);
+  lanterns.length = 0;
+  for (let i = 0; i < 4; i++) stepUtilityTimers(entity, .25);
+  assert.ok(lanterns.every(at => Math.abs(at[0] - (810 - 819.2)) < 1e-9), "another scene's shift leaves it in place");
 });

@@ -106,7 +106,7 @@ export function abilityIcon(id) {
   const badge = action
     ? '<g transform="translate(17 15)" stroke="'+(enamel[art.material] ?? color)+'"><circle cx="6.5" cy="6.5" r="6.6" fill="#171a20"/><path transform="translate(1.3 1.3) scale(.8)" d="'+action+'" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g>'
     : '';
-  // BUNNYFALL: a lit plate behind the emblem in the kind's colour, and a second inner frame for a capstone.
+  // BUNNYFALL: a lit plate behind the emblem in the color of its kind, and a second inner frame for a capstone.
   const plate = '<defs><radialGradient id="g" cx=".5" cy=".38" r=".7"><stop offset="0" stop-color="'+color+'" stop-opacity=".2"/><stop offset="1" stop-color="'+color+'" stop-opacity="0"/></radialGradient></defs>';
   const frame = capstone ? '<rect x="3" y="3" width="26" height="26" rx="3.5" fill="none" stroke="'+color+'" stroke-opacity=".45" stroke-width=".8"/>' : '';
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'+plate+'<rect x="1" y="1" width="30" height="30" rx="5" fill="#201e21" stroke="'+color+'" stroke-opacity="'+(capstone ? '.9' : '.35')+'"/><rect x="1" y="1" width="30" height="30" rx="5" fill="url(#g)"/>'+frame+'<g transform="translate(2 1) scale(.87)" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">'+emblem+'<path d="'+accent+'"/></g>'+badge+'<g fill="'+color+'">'+detail+'</g></svg>';

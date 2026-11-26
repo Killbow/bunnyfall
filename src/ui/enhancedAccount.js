@@ -69,7 +69,7 @@ export const GLYPH_LABEL = localizedTable({   // L10N4: each word a getter, read
   shadowfang: () => t('account.glyph.shadowfang', 'Shadow Fang'),   // SHADOW-FANG: the wolf's head beside SirMcMobdon's name
   penitent: () => t('account.glyph.penitent', 'Penitent'),   // PENITENT: the sword in its lozenge beside Diggleborf's name
   herald: () => t('account.glyph.herald', 'Herald'),   // HERALD: the herald's trumpet and its banner
-  tower: () => t('account.glyph.tower', 'A seat\'s Charter'),   // SEAT1c: the tower of a guild holding a palace seat
+  tower: () => t('account.glyph.tower', 'Seat Charter'),   // SEAT1c: the tower of a guild holding a palace seat
   crownDF: () => t('account.glyph.crownDF', 'The Crown of Daggerfall'),   // SEAT1c: a crown seat's crown, its kingdom's
   crownWR: () => t('account.glyph.crownWR', 'The Crown of Wayrest'),
   crownSN: () => t('account.glyph.crownSN', 'The Crown of Sentinel'),
@@ -133,7 +133,7 @@ export const STAGE_COPY = Object.freeze({   // L10N4: the words are getters, rea
     // without writing them down has a forgotten password away from
     // losing the account. RECOVERY-SET: and the way to more is named,
     // because "only time" is no longer the whole truth.
-    get blurb() { return t('account.card.blurb.code', 'These codes are shown only now. Each works once if you forget your password. You can make new ones from your profile.'); },
+    get blurb() { return t('account.card.blurb.code', 'These codes are shown only once. Each code works once if you forget your password, and you can make new ones from your profile.'); },
   },
   in: { get tag() { return accountTag(); }, get title() { return t('account.card.title.in', 'Signed in'); }, blurb: '' },
   password: {
@@ -147,7 +147,7 @@ export const STAGE_COPY = Object.freeze({   // L10N4: the words are getters, rea
     get tag() { return accountTag(); },
     get title() { return t('account.card.title.codes', 'New recovery codes'); },
     // AUDIT RECOVERY-SET A1: a code the new set replaces is asked for too, and the card says so before the box does
-    get blurb() { return t('account.card.blurb.codes', 'Type your password and one of your current recovery codes. Those codes will stop working.'); },
+    get blurb() { return t('account.card.blurb.codes', 'Enter your password and one of your current recovery codes. Your old recovery codes will stop working.'); },
   },
 });
 
@@ -373,7 +373,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
         b.type = 'button';
         b.disabled = !!flow.busy;
         b.setAttribute('aria-pressed', worn ? 'true' : 'false');
-        b.title = worn ? t('account.wear.worn', 'Worn. Press to take it off.') : t('account.wear.wear', 'Wear {name}', { name: TITLE_TEXT[key] ?? key });   // WB13b
+        b.title = worn ? t('account.wear.worn', 'Worn. Press to remove.') : t('account.wear.wear', 'Wear {name}', { name: TITLE_TEXT[key] ?? key });   // WB13b
         b.onclick = () => flow.equip(key);
         row.append(b);
       }
@@ -391,7 +391,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
         b.type = 'button';
         b.disabled = !!flow.busy;
         b.setAttribute('aria-pressed', worn ? 'true' : 'false');
-        b.title = worn ? t('account.wear.worn', 'Worn. Press to take it off.') : t('account.wear.wear', 'Wear {name}', { name: AURA_TEXT[key] ?? key });
+        b.title = worn ? t('account.wear.worn', 'Worn. Press to remove.') : t('account.wear.wear', 'Wear {name}', { name: AURA_TEXT[key] ?? key });
         b.onclick = () => flow.wearAura(key);
         row.append(b);
       }
@@ -410,7 +410,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
         b.type = 'button';
         b.disabled = !!flow.busy;
         b.setAttribute('aria-pressed', worn ? 'true' : 'false');
-        b.title = worn ? t('account.wear.worn', 'Worn. Press to take it off.') : t('account.wear.wear', 'Wear {name}', { name: ICON_TEXT[key] ?? key });
+        b.title = worn ? t('account.wear.worn', 'Worn. Press to remove.') : t('account.wear.wear', 'Wear {name}', { name: ICON_TEXT[key] ?? key });
         b.onclick = () => flow.wearIcon(key);
         row.append(b);
       }
@@ -428,7 +428,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
         chip.type = 'button';
         chip.disabled = !!flow.busy;
         chip.setAttribute('aria-pressed', shown ? 'true' : 'false');
-        chip.title = shown ? t('account.wear.glyphShown', 'Shown. Press to hide it') : t('account.wear.glyphHidden', 'Hidden. Press to show it');
+        chip.title = shown ? t('account.wear.glyphShown', 'Shown. Press to hide.') : t('account.wear.glyphHidden', 'Hidden. Press to show.');
         chip.onclick = () => flow.toggleGlyph(g.key);
         // SHADOW-FANG: the one drawing's colourless half (ui/playerBadge.js glyphArtNode) - its shapes are
         // currentColor, which this chip's class colours; a gradient glyph brings its own fill and eye
@@ -518,7 +518,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
     const box = el('div', 'acctwear acctpatreon');
     box.append(el('span', 'fieldlabel', 'Patreon'));
     const row = el('div', 'acctwearrow');
-    if (p.linked) row.append(el('span', 'acctpatreonstate', titles.length ? t('account.patreon.linked', 'Linked: {titles}', { titles: titles.map((k) => TITLE_TEXT[k] ?? k).join(', ') }) : t('account.patreon.noTier', 'Linked. No rank yet')));
+    if (p.linked) row.append(el('span', 'acctpatreonstate', titles.length ? t('account.patreon.linked', 'Linked: {titles}', { titles: titles.map((k) => TITLE_TEXT[k] ?? k).join(', ') }) : t('account.patreon.noTier', 'Linked (no title yet)')));
     if (typeof p.link === 'string' && p.link.startsWith('https://')) {
       const a = keyedAs(el('a', 'act', p.linked ? t('account.patreon.refresh', 'Refresh') : t('account.patreon.link', 'Link Patreon')), 'patreon:link');
       a.href = p.link;
@@ -712,7 +712,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
       // with no username attached YET - ACC0's own framing, and the
       // reason registering migrates nothing.
       if (flow.account.handle) row(t('account.card.username', 'Username'), flow.account.handle);
-      else row(t('account.card.name', 'Name'), t('account.card.guestName', '{name} (a guest)', { name: flow.account.guestName ?? flow.account.name }));
+      else row(t('account.card.name', 'Name'), t('account.card.guestName', '{name} (guest)', { name: flow.account.guestName ?? flow.account.name }));
       if (flow.account.kind) row(t('account.card.kind', 'Kind'), flow.account.kind === 'linked' ? t('account.card.kindRegistered', 'Registered') : t('account.card.kindGuest', 'Guest'));
       // ACC4 (Mac: "registered date and time played"). A guest has no
       // registered date and gets no row for it, rather than a dash - the
@@ -777,7 +777,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
       if (flow.account?.handle) {
         acts.append(act(t('account.card.act.changePassword', 'Change password'), () => flow.go('password'), { disabled: busy, key: 'password' }));
       } else {
-        acts.append(act(t('account.card.act.giveUsername', 'Give it a username'), () => flow.go('register'), { primary: true, disabled: busy, key: 'username' }));
+        acts.append(act(t('account.card.act.giveUsername', 'Add username'), () => flow.go('register'), { primary: true, disabled: busy, key: 'username' }));
       }
       acts.append(act(busy ? t('account.card.act.signingOut', 'Signing out…') : t('account.card.act.signOut', 'Sign out'), () => flow.signOut(false), { disabled: busy, key: 'signout' }));
       acts.append(act(t('account.card.act.signOutAll', 'Sign out everywhere'), () => flow.signOut(true), { disabled: busy, key: 'signout-all' }));
@@ -790,7 +790,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
       // THE ONLY WAY OFF THIS STAGE. No cancel, no close, no second
       // route - the codes are dropped when this is pressed and nothing
       // anywhere can print them again.
-      acts.append(act(t('account.card.act.wroteIt', 'I have written them down'), () => flow.acknowledgeCode(), { primary: true, key: 'acknowledge' }));   // AUDIT RECOVERY-SET B5: a set
+      acts.append(act(t('account.card.act.wroteIt', 'I wrote them down'), () => flow.acknowledgeCode(), { primary: true, key: 'acknowledge' }));   // AUDIT RECOVERY-SET B5: a set
     } else if (stage === 'loading') {
       // nothing to press yet
     } else {

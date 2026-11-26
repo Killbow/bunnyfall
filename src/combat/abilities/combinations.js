@@ -15,10 +15,10 @@ export const TITANS_HANDS = 'combination.blunt.hand-to-hand.titans-hands';
 const previews = new Map([
   [BLADE_WEAVE, 'Open with a straight poke, then cut quickly at the same target. Works with either blade family.'],
   [THOUSAND_CUTS, 'Advance through a line of enemies, then redirect two rapid cuts after landing. Works with either blade family.'],
-  [HUNTING_LINE, 'Mark a foe with a ranged hit, equip a long blade, then press again for a thrust. The mark lasts 15 seconds.'],
-  [PREDATORS_CROSSING, 'Mark a foe with a heavy ranged shot, equip a long blade, then press again to pursue it with a forward strike. The mark lasts 15 seconds.'],
-  [KNOCKOUT_CHAIN, 'Wear down a foe’s poise, then follow with a heavier hit. Works with blunt weapons or empty hands.'],
-  [TITANS_HANDS, 'Break an interruptible wind-up with the first hit, then sweep nearby foes with the finisher. Works with blunt weapons or empty hands.'],
+  [HUNTING_LINE, 'Mark an enemy with a ranged hit, equip a long blade, then press again for a thrust. The mark lasts 15 seconds.'],
+  [PREDATORS_CROSSING, 'Mark an enemy with a heavy ranged shot, equip a long blade, then press again to pursue it with a forward strike. The mark lasts 15 seconds.'],
+  [KNOCKOUT_CHAIN, 'Wear down an enemy’s poise, then follow with a heavier hit. Works with blunt weapons or empty hands.'],
+  [TITANS_HANDS, 'Break an interruptible wind-up with the first hit, then sweep nearby enemies with the finisher. Works with blunt weapons or empty hands.'],
 ]);
 
 export const combinationDescription = id => previews.get(id) ?? meleeCombinations.get(id)?.description

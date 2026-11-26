@@ -205,6 +205,85 @@ test('Layer 2 cards: guardrails, structured frontmatter, resolveBible, invariant
   }
 });
 
+test('Layer 2 lean results: content opt-in, invariants limit, total, truncated, ranking, compact mode', () => {
+  const makeCard = (slug, title, line, bodyText) => [
+    '---',
+    `slug: ${slug}`,
+    `title: ${title}`,
+    'domain: combat',
+    'kind: overview',
+    'files:',
+    '  - src/combat/formulas.js',
+    'replacesBible:',
+    `  - 05-Combat/${slug}.md`,
+    'invariants:',
+    `  - "${line}"`,
+    'traps:',
+    '  - "Do not bypass armor mitigation checks."',
+    'tags:',
+    '  - combat',
+    '---',
+    '',
+    `# ${title}`,
+    '',
+    bodyText,
+    '',
+  ].join('\n');
+
+  const tmpCards = mkdtempSync(join(tmpdir(), 'bf-codex-lean-'));
+  try {
+    const rw = createCodex({ root: ROOT, cardsDir: tmpCards, allowWrite: true, cacheDir: TMP_CACHE });
+    rw.writeCard('aa-body-only', makeCard('aa-body-only', 'Aardvark Notes', 'Damage stays integer-clamped.', 'Notes on the quokka rule live here.'));
+    rw.writeCard('zz-title-hit', makeCard('zz-title-hit', 'Quokka Rule', 'Damage stays integer-clamped.', 'Damage helpers keep classic math intact.'));
+    rw.writeCard('mm-invariant-hit', makeCard('mm-invariant-hit', 'Misc Notes', 'The quokka cap never changes.', 'Damage helpers keep classic math intact.'));
+
+    const readLean = rw.readCard('zz-title-hit');
+    assert.equal('content' in readLean, false);
+    assert.equal(readLean.title, 'Quokka Rule');
+    const readFull = rw.readCard('zz-title-hit', { includeContent: true });
+    assert.match(readFull.content, /^---\nslug: zz-title-hit/);
+    assert.equal('absPath' in readFull, false);
+
+    const resLean = rw.resolveBible('05-Combat/zz-title-hit.md');
+    assert.equal(resLean.cards.length, 1);
+    assert.equal('content' in resLean.cards[0], false);
+    const resFull = rw.resolveBible('05-Combat/zz-title-hit.md', { includeContent: true });
+    assert.equal(resFull.cards[0].content, readFull.content);
+
+    const all = rw.queryInvariants({ query: 'quokka' });
+    assert.equal(all.total, 3);
+    assert.equal(all.truncated, false);
+    assert.deepEqual(all.results.map((r) => r.slug), ['zz-title-hit', 'aa-body-only', 'mm-invariant-hit']);
+
+    const cut = rw.queryInvariants({ query: 'quokka', limit: 2 });
+    assert.equal(cut.total, 3);
+    assert.equal(cut.matchedCount, 3);
+    assert.equal(cut.results.length, 2);
+    assert.equal(cut.truncated, true);
+    assert.deepEqual(cut.results.map((r) => r.slug), ['zz-title-hit', 'aa-body-only']);
+
+    const compact = all.results.find((r) => r.slug === 'mm-invariant-hit');
+    assert.deepEqual(Object.keys(compact).sort(), ['domain', 'invariants', 'slug', 'title', 'traps']);
+    assert.deepEqual(compact.invariants, ['The quokka cap never changes.']);
+    assert.deepEqual(compact.traps, []);
+
+    const compactNoQuery = rw.queryInvariants({ domain: 'combat', fields: 'slugs' });
+    assert.ok(compactNoQuery.results.every((r) => r.invariants.length === 1 && r.traps.length === 1 && !('files' in r)));
+
+    const full = rw.queryInvariants({ query: 'quokka', fields: 'full' });
+    assert.ok('files' in full.results[0] && full.results[0].traps.length === 1);
+    const filtered = rw.queryInvariants({ domain: 'combat' });
+    assert.ok('files' in filtered.results[0]);
+    assert.equal(rw.queryInvariants({ domain: 'combat', limit: 1 }).results.length, 1);
+  } finally {
+    rmSync(tmpCards, { recursive: true, force: true });
+  }
+
+  const defaults = codex.queryInvariants({ query: 'revenant' });
+  assert.ok(defaults.results.length <= 25);
+  assert.ok(Buffer.byteLength(JSON.stringify(defaults, null, 2)) < 25 * 1024);
+});
+
 test('Layer 2 queryDiff and resolveAllowedRoot guard', () => {
   const diff = codex.queryDiff('HEAD~1', 'HEAD');
   assert.equal(typeof diff.changedCount, 'number');
@@ -382,6 +461,23 @@ test('MCP stdio server: newline JSON-RPC, Content-Length framing, read-only guar
     const invCall = await rpc(5, 'tools/call', { name: 'codex_invariants', arguments: { file: 'src/scenes/world.js' } });
     const invData = JSON.parse(invCall.msg.result.content[0].text);
     assert.ok(invData.matchedCount >= 1);
+
+    const keywordCall = await rpc(7, 'tools/call', { name: 'codex_invariants', arguments: { query: 'revenant' } });
+    assert.ok(keywordCall.msg.result.content[0].text.length < 25 * 1024);
+    const keywordData = JSON.parse(keywordCall.msg.result.content[0].text);
+    assert.ok(keywordData.total >= keywordData.matchedCount);
+    assert.equal(typeof keywordData.truncated, 'boolean');
+
+    const biblePath = '12-Enhanced-AI/Feud-Arc.md';
+    const leanCall = await rpc(8, 'tools/call', { name: 'codex_card', arguments: { biblePath } });
+    const leanData = JSON.parse(leanCall.msg.result.content[0].text);
+    assert.ok(leanData.cards.length >= 1);
+    assert.ok(leanData.cards.every((c) => !('content' in c)));
+    const fatCall = await rpc(9, 'tools/call', { name: 'codex_card', arguments: { biblePath, includeContent: true } });
+    const fatData = JSON.parse(fatCall.msg.result.content[0].text);
+    assert.ok(fatData.cards.every((c) => typeof c.content === 'string' && c.content.startsWith('---')));
+    const readCall = await rpc(10, 'tools/call', { name: 'codex_card', arguments: { slug: leanData.cards[0].slug } });
+    assert.equal('content' in JSON.parse(readCall.msg.result.content[0].text), false);
 
     const dfuFramed = await rpc(6, 'tools/call', {
       name: 'codex_dfu',

@@ -3518,7 +3518,7 @@ function modPackSections(c, mods, remove) {
     const row = el('div', 'card');
     for (const m of pdeMods) row.append(el('p', null, modLine(m)));
     if (pdeMods.some((m) => m.error)) row.append(el('p', 'meta', t('menu.packs.notWorking', 'Not working: {error}.', { error: pdeMods.find((m) => m.error).error })));
-    row.append(prefRow('pdeFillGaps', t('menu.packs.pdeFill', 'Fill in missing pieces'), t('menu.packs.pdeFillNote', 'Some helmets, shields and chain greaves have no picture in every metal, and two Formal Brassiere styles have none at all. On: they are recoloured from the mod\u2019s own art (the brassieres borrow a neighbouring style). Off: the classic piece is drawn there.'), { home: true }));
+    row.append(prefRow('pdeFillGaps', t('menu.packs.pdeFill', 'Fill in missing pieces'), t('menu.packs.pdeFillNote', 'Some helmets, shields, and chain greaves lack art in some metals, and two Formal Brassiere styles have none at all. On: the mod\u2019s art is recolored to fill them (brassieres borrow a neighboring style). Off: the classic piece is drawn.'), { home: true }));
     row.append(acts([remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: MOD_PACKS.pde.title }), t('menu.packs.removeModBody', 'Removes {mod} from this browser. Takes full effect the next time an area loads.', { mod: MOD_PACKS.pde.title }), (d) => d.removeModPack('pde'))]));
     c.append(row);
   } else c.append(acts([{ label: t('menu.packs.attachPde', 'Attach Paperdoll Enhanced'), primary: true, onClick: pick('pde') }]));
@@ -3526,7 +3526,7 @@ function modPackSections(c, mods, remove) {
   const weeb = modPackManifest('weeberfall');
   const counts = flatReplacerCounts();
   c.append(el('h3', null, t('menu.packs.weeb', 'Weeberfall')));
-  c.append(el('p', 'meta', t('menu.packs.weebBlurb', 'Weeberfall\u2019s art and townsfolk. Where it and Paperdoll Enhanced dress the same thing, Weeberfall\u2019s is drawn. Pick its download (.zip, .7z or .dfmod), and its Flat Replacements download if that came separately.')));
+  c.append(el('p', 'meta', t('menu.packs.weebBlurb', 'Art and townsfolk from Weeberfall. Where it and Paperdoll Enhanced dress the same thing, the Weeberfall version is drawn. Pick its download (.zip, .7z or .dfmod), and the Flat Replacements download if that came separately.')));
   if (weeb) {
     const row = el('div', 'card');
     for (const m of weebMods) row.append(el('p', null, modLine(m)));

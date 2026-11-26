@@ -3,7 +3,7 @@ import test from 'node:test';
 import { SKILLS } from '../src/characters/skills.js';
 import { ABILITIES } from '../src/combat/abilities/registry.js';
 import { PlayerWeapon } from '../src/combat/playerWeapon.js';
-import { abilityCooldown, claimAbilityEvents, requestHotbarAbility, stepAbilityRig } from '../src/combat/abilities/rig.js';
+import { abilityCooldown, claimAbilityEvents, offsetAbilities, requestHotbarAbility, stepAbilityRig } from '../src/combat/abilities/rig.js';
 import {
   abilityPlayable, DAGGER_MILESTONES, milestoneDelivery, PREVIEW_THRUST, PREVIEW_JAB, PREVIEW_POWER_DRAW, PREVIEW_DEADEYE, PREVIEW_SIEGE_BOLT,
   PREVIEW_KEEP_AWAY, PREVIEW_BARRAGE, PREVIEW_ANCHORED_SIGHT, PREVIEW_ANCHOR_FIRE, PREVIEW_SHOULDER_BREAK,
@@ -1111,6 +1111,46 @@ test('autoaim locks the foe nearest the crosshair, in sight and hostile, and not
   assert.ok(AUTOAIM.coneRad < AUTOAIM.closeConeRad);
 });
 
+test('autoaim prefers the nearer of two enemies in a line and locks short enemies at level look', (t) => {
+  offline(t);
+  const cam = { pos: [0, 1.5, 0], feet: [0, 0, 0], pitch: 0, yaw: 0 };
+  const open = { raycast: () => Infinity };
+  for (const [near, far] of [[3, 4.6], [3, 6], [4, 7], [5, 8]]) {
+    assert.equal(autoaimFoe(cam, open, 10, [hostile(0, far), hostile(0, near)])?.ai.feet[2], near, near + ' vs ' + far);
+  }
+  assert.equal(autoaimFoe(cam, open, 10, [hostile(0.5, 7), hostile(0, 3)])?.ai.feet[2], 3);
+  const tall = { ...cam, pos: [0, 1.7, 0] };
+  for (const z of [1.2, 2, 3.5, 4]) {
+    const small = hostile(0, z);
+    small.ai.height = 0.6;
+    assert.equal(autoaimFoe(tall, open, 10, [small]), small, 'a 0.6 m enemy at ' + z + ' m');
+  }
+});
+
+test('a chained dash takes its new direction instead of re-locking the enemy it just struck', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const { entity, frame, tc } = fighter(116, SKILLS.ShortBlade, 75);
+  const land = flatDelivery(entity, tc, [hostile(0, 4)]);
+  const takeoffs = [];
+  const launch = tc.door.motor().techniqueLaunch;
+  tc.door.motor().techniqueLaunch = function (...args) {
+    const ok = launch.apply(this, args);
+    takeoffs.push({ from: [...tc.cam.feet], to: [...this.landing] });
+    return ok;
+  };
+  frame();
+  assert.ok(requestHotbarAbility(entity, 'weapon.shortsword.dancing-route').ok);
+  let hits = 0;
+  for (let i = 0; i < 200; i++) {
+    land();
+    if (frame().includes('hit') && ++hits === 1) tc.cam.yaw = Math.PI / 2;
+  }
+  assert.equal(takeoffs.length, 2);
+  const [, second] = takeoffs;
+  assert.ok(second.to[0] - second.from[0] > 2, 'the second dash runs along the new look');
+});
+
 test('a locked leap lands at the foe under the crosshair and strikes it even after it moves', (t) => {
   offline(t);
   t.after(() => setPlayerDoor(null));
@@ -1143,24 +1183,116 @@ test('side hops land beside the locked foe, alternating sides, and strike it', (
   const land = flatDelivery(entity, tc, [foe]);
   frame();
   assert.ok(requestHotbarAbility(entity, 'weapon.shortsword.untouchable-waltz').ok);
-  const sides = [];
+  const offsets = [];
   let hits = 0;
   for (let i = 0; i < 200; i++) {
     const landing = tc.door.motor().landing;
-    if (landing && sides.length < 2) sides.push(Math.sign(landing[0] - foe.ai.feet[0]));
+    if (landing && offsets.length < 2) offsets.push(landing[0] - foe.ai.feet[0]);
     land();
     if (frame().includes('hit')) {
       hits++;
-      if (hits <= 2) assert.equal(pw.techniqueBlow.chain.target, foe.entity);
+      if (hits <= 2) {
+        const blow = pw.techniqueBlow;
+        assert.equal(blow.chain.target, foe.entity);
+        assert.equal(blow.lane, undefined, 'a hop strikes from where it lands');
+        assert.deepEqual(blow.feet, tc.cam.feet);
+      }
     }
   }
   assert.equal(hits, 3);
-  assert.equal(sides.length, 2);
-  assert.ok(sides[0] !== 0 && sides[0] === -sides[1], 'one hop to each side');
+  assert.equal(offsets.length, 2);
+  assert.ok(offsets.every(x => Math.abs(x) > 0.5), 'each hop lands to the side: ' + offsets);
+  assert.ok(Math.sign(offsets[0]) === -Math.sign(offsets[1]), 'one hop to each side: ' + offsets);
+});
+
+// The hit test measures sight from the eye to the middle of the enemy's height (the scenes' canSee).
+const midSight = (cam, foe) => ({ inView: true, losClear: true,
+  dist: Math.hypot(foe.ai.feet[0] - cam.pos[0], foe.ai.feet[1] + foe.ai.height / 2 - cam.pos[1], foe.ai.feet[2] - cam.pos[2]) });
+
+test('a locked swing, leap, or hop still reaches a short enemy', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const cases = [
+    ['weapon.dagger.marked-for-silence', 113, SKILLS.ShortBlade, 75, [0, 2.35]],
+    ['weapon.dai-katana.falling-moon', 123, SKILLS.LongBlade, 75, [1.6, 6.5]],
+    ['weapon.shortsword.untouchable-waltz', 116, SKILLS.ShortBlade, 100, [0, 4]],
+  ];
+  for (const [id, template, skill, rank, [x, z]] of cases) {
+    const { entity, pw, frame, tc } = fighter(template, skill, rank);
+    const foe = hostile(x, z);
+    foe.ai.height = 1;
+    const land = flatDelivery(entity, tc, [foe]);
+    frame();
+    assert.ok(requestHotbarAbility(entity, id).ok, id);
+    let hit;
+    for (let i = 0; i < 120 && !hit; i++) { land(); if (frame().includes('hit')) hit = pw.techniqueBlow; }
+    assert.equal(hit?.chain.target ?? foe.entity, foe.entity, id);
+    assert.ok(hit && blowReaches(hit, foe, midSight(tc.cam, foe)), id + ' reaches the short enemy');
+  }
+});
+
+test('a re-centre in mid-flight moves the take-off, so the landing strike keeps a short lane', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const { entity, pw, frame, tc } = fighter(116, SKILLS.ShortBlade, 25);
+  const foe = hostile(0, 4);
+  const land = flatDelivery(entity, tc, [foe]);
+  frame();
+  assert.ok(requestHotbarAbility(entity, 'weapon.shortsword.quickstep-slash').ok);
+  for (let i = 0; i < 20 && !tc.door.motor().techFlight; i++) frame();
+  const shift = [-819.2, 0, 0];
+  offsetAbilities(shift, entity);
+  for (const p of [tc.door.motor().landing, foe.ai.feet, tc.cam.feet, tc.cam.pos]) p[0] += shift[0];
+  let hit;
+  for (let i = 0; i < 80 && !hit; i++) { land(); if (frame().includes('hit')) hit = pw.techniqueBlow; }
+  assert.ok(hit?.lane, 'the dash strikes along its lane');
+  assert.ok(hit.lane.len < 10, 'lane ' + hit.lane.len.toFixed(1) + ' m');
+  assert.ok(Math.abs(hit.lane.from[0] - shift[0]) < 1e-9, 'the lane starts at the moved take-off');
+  assert.ok(blowReaches(hit, foe, midSight(tc.cam, foe)));
+});
+
+test('a re-centre moves a braced stance and a chosen arrow rain with the world', (t) => {
+  offline(t);
+  const shift = [-819.2, 0, 0];
+  const recentre = (entity, tc) => {
+    offsetAbilities(shift, entity);
+    for (const p of [tc.cam.feet, tc.cam.pos]) p[0] += shift[0];
+  };
+  for (const change of ['wind-up', 'before-loose']) {
+    const { entity, tc, frame, shots, swings } = fighter(563, SKILLS.Archery, 50);
+    entity.items.push({ templateIndex: 131, group: 'Weapons', stackCount: 2 });
+    tc.cam.move = { grounded: true };
+    frame();
+    assert.ok(requestHotbarAbility(entity, PREVIEW_ANCHORED_SIGHT).ok);
+    if (change === 'before-loose') for (let i = 0; i < 90 && !swings.length; i++) frame(0.02);
+    recentre(entity, tc);
+    for (let i = 0; i < 150; i++) frame();
+    assert.equal(shots.length, 1, 'the stance holds across a re-centre at ' + change);
+  }
+  const { entity, tc, frame, shots } = fighter(130, SKILLS.Archery, 100);
+  tc.cam.pitch = -0.17;
+  tc.collider = { heightAt: () => 0, raycast: (origin, dir) => {
+    if (dir[1] < 0 && origin[1] > 0) return origin[1] / -dir[1];
+    if (dir[1] > 0) return (3 - origin[1]) / dir[1];
+    return Infinity;
+  } };
+  entity.items.push({ templateIndex: 131, group: 'Weapons', stackCount: 7 });
+  frame();
+  assert.ok(requestHotbarAbility(entity, PREVIEW_SKYFALL).ok);
+  let released = false;
+  for (let i = 0; i < 60 && !released; i++) released = frame().includes('bowSound');
+  assert.ok(released && shots.length === 0, 'the rain is chosen and not yet fired');
+  recentre(entity, tc);
+  for (let i = 0; i < 60; i++) frame();
+  assert.equal(shots.length, 7);
+  assert.ok(shots.every(shot => Math.abs(shot.from[0] - shift[0]) < 10), 'every shaft falls in the moved frame');
 });
 
 test('every beat of a normal weapon or combination ability lands clearly harder than a plain swing', () => {
   const plain = 1;
+  assert.equal(ABILITY_DAMAGE.meleeBeatFloor, 1.4);
+  assert.equal(ABILITY_DAMAGE.shotFloor, 1.3);
+  let lifted = 0;
   for (const ability of ABILITIES.filter(entry => tunedAbility(entry))) {
     const profile = milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, null);
     if (!profile || profile.kind === 'self') continue;
@@ -1170,10 +1302,13 @@ test('every beat of a normal weapon or combination ability lands clearly harder 
     }
     for (let beat = 0; beat < profile.beats; beat++) {
       const share = profile.stages?.[beat]?.share ?? 1 / profile.beats;
-      assert.ok(meleeBeatMult(ability, profile.potency, share) >= ABILITY_DAMAGE.meleeBeatFloor, ability.id);
-      assert.ok(meleeBeatMult(ability, profile.potency, share) > plain * 1.3, ability.id);
+      const raw = (1 + profile.potency) * share, weight = meleeBeatMult(ability, profile.potency, share);
+      assert.ok(weight >= 1.4 && weight > plain * 1.3, ability.id);
+      if (raw < 1.4) lifted++;
+      else assert.ok(Math.abs(weight - raw) < 1e-9, ability.id + ' keeps its own weight above the floor');
     }
   }
+  assert.ok(lifted > 10, 'the floor lifts the split beats of multi-hit abilities');
   // Capstones and racial abilities keep their own weights.
   const capstone = ABILITIES.find(entry => entry.id === DAGGER_MILESTONES[3]);
   assert.equal(meleeBeatMult(capstone, 3.25, .2), (1 + 3.25) * .2);

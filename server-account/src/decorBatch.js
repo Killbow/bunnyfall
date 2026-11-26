@@ -1,7 +1,6 @@
 // @ts-check
-// DECOR-BATCH: one Confirm writes a home's final differences, all of them or none.
-// A guild hall does too: the keeper pays for what is placed, and what comes back goes to the guild's treasury.
-// A palace keeps the one-piece writes (seat-batch).
+// One Confirm writes all of a home's or guild hall's decor changes in one batch, or none of them. In a guild
+// hall the keeper pays for placed pieces, and refunds go to the guild treasury. Palaces use single-piece writes.
 import { accountKind, displayName } from './accounts.js';
 import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
 import { CHAR_ID_RE } from './service.js';
@@ -18,7 +17,6 @@ import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 
 const placeJson = ({ pos, rot, scale, light, storage, paid, station, name }) => JSON.stringify({ pos, rot, scale, light, storage, paid, ...(station ? { station } : {}), ...(name ? { name } : {}) });
 
-/** Ids in `save` whose storage still holds something. The record is the authority, not the client's word. */
 export function decorHeldBlocks(save, ids) {
   const want = new Set(ids);
   const blocked = [];
@@ -67,11 +65,7 @@ export async function chargeOps(db, nowS, playerId, n) {
   return (row?.count ?? 0) > DECOR_OPS_MAX;
 }
 
-/**
- * CONFIRM A HOME'S DRAFT. `put` is each piece's final state (new or changed). `drop` is each id that stood at `rev`
- * and must go. The same id is never both. `txn` answered once is answered again and changes nothing.
- * @param {{ db: any, nowS: number, bucket?: any, rand?: any }} ctx
- */
+/** @param {{ db: any, nowS: number, bucket?: any, rand?: any }} ctx */
 export async function commitDecorBatch(ctx, player, body = {}) {
   const { db, nowS } = ctx;
   const { mapId, buildingKey, character, txn, rev } = body;
@@ -156,7 +150,7 @@ export async function commitDecorBatch(ctx, player, body = {}) {
     if (had && !sameWhat(had.piece, p)) return { error: 'bad-decor' };
     if (had?.piece.station === 'vendor' && p.station !== 'vendor' && await vendorStocked(db, mapId, p.id)) return { error: 'vendor-stocked' };
     if (had && had.piece.storage && p.storage === false) {
-      /* emptying the flag does not empty the chest; the drop path is the one that can lose goods */
+      // Clearing the storage flag does not empty the chest, so only the drop path can lose goods.
     }
     const move = decorGoldMove(had?.piece ?? null, p, had ? had.row.paid : 0);
     addGold(move.delta);
@@ -251,7 +245,7 @@ export async function commitDecorBatch(ctx, player, body = {}) {
         : { error: 'seq', seq: prep.seq };
     }
     const again = await db.prepare('SELECT result FROM decor_batch_receipt WHERE txn = ?').bind(txn).first();
-    if (again?.result) { try { return JSON.parse(again.result); } catch { /* the row is the refusal below */ } }
+    if (again?.result) { try { return JSON.parse(again.result); } catch {} }
     const nowRev = Number((await db.prepare('SELECT rev FROM decor_rev WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first())?.rev) || 0;
     if (nowRev !== curRev) return { error: 'decor-rev' };
     const owns = await db.prepare(`SELECT ${OWNS} AS owns`).bind(...ownsTail).first();

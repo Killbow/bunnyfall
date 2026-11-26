@@ -1308,13 +1308,14 @@ export function createCodex(options = {}) {
     }));
   }
 
-  function readCard(slug) {
+  /** @param {string} slug @param {{ includeContent?: boolean }} [opts] */
+  function readCard(slug, opts = {}) {
     const clean = String(slug ?? '').replace(/\.md$/i, '').trim();
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(clean)) return null;
     const found = loadAllCards().find((c) => c.slug === clean);
     if (!found) return null;
-    const { absPath: _ignored, ...pub } = found;
-    return pub;
+    const { absPath: _ignored, content, ...pub } = found;
+    return opts.includeContent ? { ...pub, content } : pub;
   }
 
   function searchCards(q = '') {
@@ -1358,7 +1359,8 @@ export function createCodex(options = {}) {
     return scored;
   }
 
-  function resolveBible(biblePath) {
+  /** @param {string} biblePath @param {{ includeContent?: boolean }} [opts] */
+  function resolveBible(biblePath, opts = {}) {
     const target = normalizeBibleRef(biblePath);
     if (!target.page) {
       return { query: biblePath ?? '', normalized: '', directMatch: false, matchedCount: 0, cards: [], fallbackSearch: [] };
@@ -1377,8 +1379,8 @@ export function createCodex(options = {}) {
         else if (ref.page.includes(target.page) || target.page.includes(ref.page)) best = Math.max(best, 20);
       }
       if (best > 0) {
-        const { absPath: _ignored, ...pub } = card;
-        scored.push({ ...pub, matchScore: best });
+        const { absPath: _ignored, content, ...pub } = card;
+        scored.push({ ...pub, ...(opts.includeContent ? { content } : {}), matchScore: best });
       }
     }
     scored.sort((a, b) => b.matchScore - a.matchScore || a.slug.localeCompare(b.slug));
@@ -1395,7 +1397,7 @@ export function createCodex(options = {}) {
     };
   }
 
-  /** @param {string | { file?: string, route?: string, table?: string, domain?: string, query?: string }} [filter] */
+  /** @param {string | { file?: string, route?: string, table?: string, domain?: string, query?: string, limit?: number, fields?: 'slugs' | 'full' }} [filter] */
   function queryInvariants(filter = {}) {
     const opts = typeof filter === 'string' ? { query: filter } : (filter ?? {});
     const fFile = String(opts.file ?? '').trim().toLowerCase();
@@ -1403,6 +1405,10 @@ export function createCodex(options = {}) {
     const fTable = String(opts.table ?? '').trim().toLowerCase();
     const fDomain = String(opts.domain ?? '').trim().toLowerCase();
     const fQuery = String(opts.query ?? '').trim().toLowerCase();
+    const limitNum = Number(opts.limit ?? 25);
+    const limit = Number.isFinite(limitNum) && limitNum >= 1 ? Math.floor(limitNum) : 25;
+    const keywordOnly = Boolean(fQuery) && !fFile && !fRoute && !fTable && !fDomain;
+    const compact = opts.fields ? opts.fields === 'slugs' : keywordOnly;
 
     const overlay = loadPathOverlay(options.overlayPath);
     const activeLayout = detectLayout(root);
@@ -1414,22 +1420,31 @@ export function createCodex(options = {}) {
       if (fRoute && !card.routes.some((r) => r.toLowerCase().includes(fRoute))) continue;
       if (fTable && !card.tables.some((t) => t.toLowerCase().includes(fTable))) continue;
       if (fDomain && card.domain.toLowerCase() !== fDomain) continue;
+      let score = 0;
       if (fQuery) {
-        const hay = [
-          card.slug,
-          card.title,
-          card.domain,
-          ...card.tags,
-          ...expandedFiles,
-          ...card.routes,
-          ...card.tables,
-          ...card.invariants,
-          ...card.traps,
-          card.body,
-        ].join(' ').toLowerCase();
-        if (!hay.includes(fQuery)) continue;
+        const hit = (parts) => parts.join(' ').toLowerCase().includes(fQuery);
+        if (card.slug === fQuery) score += 20;
+        if (hit([card.slug, card.title, card.domain, ...card.tags])) score += 8;
+        if (hit([...expandedFiles, ...card.routes, ...card.tables])) score += 5;
+        if (hit([...card.invariants, ...card.traps, card.body])) score += 2;
+        if (!score) continue;
       }
-      matched.push({
+      matched.push({ card, score });
+    }
+
+    matched.sort((a, b) => b.score - a.score || a.card.slug.localeCompare(b.card.slug));
+    const results = matched.slice(0, limit).map(({ card }) => {
+      if (compact) {
+        const lines = (list) => (fQuery ? list.filter((l) => l.toLowerCase().includes(fQuery)) : list);
+        return {
+          slug: card.slug,
+          title: card.title,
+          domain: card.domain,
+          invariants: lines(card.invariants),
+          traps: lines(card.traps),
+        };
+      }
+      return {
         slug: card.slug,
         title: card.title,
         domain: card.domain,
@@ -1442,8 +1457,8 @@ export function createCodex(options = {}) {
         traps: card.traps,
         related: card.related,
         summary: card.summary,
-      });
-    }
+      };
+    });
 
     return {
       layout: activeLayout,
@@ -1454,8 +1469,10 @@ export function createCodex(options = {}) {
         domain: fDomain || null,
         query: fQuery || null,
       },
+      total: matched.length,
       matchedCount: matched.length,
-      results: matched,
+      truncated: matched.length > results.length,
+      results,
     };
   }
 

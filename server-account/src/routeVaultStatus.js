@@ -1,2 +1,1 @@
-// The account vault's refusal statuses.
 export const AVAULT_STATUS = Object.freeze({ 'avault-full': 409, 'avault-empty': 404, 'avault-moved': 409, 'avault-gold-full': 409, 'avault-gold-short': 409, 'vault-goods': 409, 'realm-only': 400, 'realm-needed': 409, 'bad-gold': 400, 'bad-vault-item': 400, 'bad-vault-count': 400, 'bad-vault-slot': 400 });

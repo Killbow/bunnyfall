@@ -107,7 +107,7 @@ Message:  1021
 <ce>         in ___haven_.
 <ce>
 <ce>         Go after dark, and speak to them there.
-<ce>         Your journal keeps this note.
+<ce>         Read the letter to note this in your journal.
 
 QBN:
 Item _letter_ letter used 1011

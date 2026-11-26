@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // PLAIN-TEXT (2026-10-26; the owner: "We need a law to reduce over explanatory text + reduce the amount of ai-like
 // crafted text"). Measures the three places text grows: the player's strings, code comments and the bible.
-// The law is bible/Home.md's SAY IT ONCE, PLAINLY; test/tooling/plaintext.test.js enforces it.
+// AGENTS.md sets the comment limit this tool measures.
+//
 //   node tools/plainText.mjs              report what breaks the law, against the baseline
 //   node tools/plainText.mjs --lower      rewrite the baseline to today's excess (never raises one)
 //   node tools/plainText.mjs --seed REF   at a merge from a base without the law: admit REF's own excess, no more
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { join, dirname } from 'node:path';
+import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseStringTableCsv } from '../src/ui/textManager.js';
 import { isMain } from './lib/isMain.mjs';
@@ -113,10 +114,13 @@ export function paragraphExcess(text) {
     .reduce((n, p) => n + Math.max(0, count(p) - PARAGRAPH_WORDS_MAX), 0);
 }
 
+/** A path as the baseline writes it: always with `/`, whatever separator the OS uses. */
+export const baselineKey = (p, separator = sep) => p.split(separator).join('/');
+
 const walk = (root, dir, ext, out = []) => {
   if (!existsSync(join(root, dir))) return out;
   for (const e of readdirSync(join(root, dir), { withFileTypes: true })) {
-    const p = join(dir, e.name);
+    const p = baselineKey(join(dir, e.name));
     if (e.isDirectory()) walk(root, p, ext, out); else if (ext.test(e.name)) out.push(p);
   }
   return out;

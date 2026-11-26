@@ -72,6 +72,7 @@ export function buildTools(allowWrite = false) {
           query: { type: 'string', description: 'Search keywords for "search".' },
           biblePath: { type: 'string', description: 'Legacy bible path (for example "12-Enhanced-AI/Feud-Arc.md") to resolve to clean concept cards.' },
           content: { type: 'string', description: 'Full markdown content (with frontmatter) for "write" when CODEX_ALLOW_WRITE=1.' },
+          includeContent: { type: 'boolean', description: 'For "read" and "resolve-bible": also return each raw markdown card as "content" (off by default; it repeats the parsed fields).' },
           root: ROOT_PROP,
         },
       },
@@ -86,7 +87,9 @@ export function buildTools(allowWrite = false) {
           route: { type: 'string', description: 'HTTP route substring filter.' },
           table: { type: 'string', description: 'SQL table name substring filter.' },
           domain: { type: 'string', description: 'Exact card domain filter (for example "combat", "multiplayer", "account").' },
-          query: { type: 'string', description: 'Free-text keyword filter.' },
+          query: { type: 'string', description: 'Free-text keyword filter. Slug, title, and tag hits rank above body hits.' },
+          limit: { type: 'number', description: 'Maximum cards returned (default 25). The result reports total and truncated.' },
+          fields: { type: 'string', enum: ['slugs', 'full'], description: '"slugs" returns only slug, title, domain, and the invariant and trap lines that match the query. Defaults to "slugs" for a keyword-only query and "full" when file, route, table, or domain is set.' },
           root: ROOT_PROP,
         },
       },
@@ -199,11 +202,11 @@ export function createMcpDispatcher(options = {}) {
         if (action === 'search') return okResult(codex.searchCards(args.query ?? ''));
         if (action === 'resolve-bible') {
           if (!args.biblePath) return errResult('codex_card resolve-bible requires "biblePath".');
-          return okResult(codex.resolveBible(args.biblePath));
+          return okResult(codex.resolveBible(args.biblePath, { includeContent: args.includeContent === true }));
         }
         if (action === 'check') return okResult(codex.checkAllCards());
         if (action === 'read') {
-          const card = codex.readCard(args.slug ?? '');
+          const card = codex.readCard(args.slug ?? '', { includeContent: args.includeContent === true });
           if (!card) return errResult(`Card not found: ${args.slug ?? ''}`);
           return okResult(card);
         }
@@ -226,6 +229,8 @@ export function createMcpDispatcher(options = {}) {
           table: args.table,
           domain: args.domain,
           query: args.query,
+          limit: args.limit,
+          fields: args.fields,
         }));
       }
 

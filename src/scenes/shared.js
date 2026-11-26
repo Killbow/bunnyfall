@@ -58,6 +58,7 @@ import { computeEntityMods } from '../characters/entityMods.js';   // AUDIT SPEC
 import { DOOR_SPELL_TEXT, castBySkeletonKey } from '../magic/mysticism.js';   // X1: the door-spell alert lines; D9: Open.CheckCastByItem
 import { raiseSkills } from '../characters/advancement.js';   // AUDIT 23 (entity-1): the rest-end raise
 import { tickPlayerMinutes, runMagicRoundsFor, worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, advanceOwnMinutes, tickInFlight, MINUTES_PER_DAY, CLASSIC_MINUTES_PER_SECOND, sharedClockOn } from '../world/worldTick.js';
+import { noteSkippedSpan } from '../world/skippedTime.js';
 import { REST_KIND, REST_TEXT_SURVIVAL, restCost, restHour, stiffen } from '../systems/survival/rest.js';   // SURV4: the rest law - a bed and a fire sleep, the window alone is rough
 import { survivalRules } from '../systems/survival/switch.js';   // SURV-TIERS: the rest's price is the tier's, read at the open
 import { sleepStage } from '../systems/survival/needs.js';   // AUDIT SURV-TIERS (the third pass): the rough night's lesser sleep, said
@@ -1816,6 +1817,7 @@ export function createPlayerTicker(entity, { say = () => {}, onLevelUp = null, o
       // Time.deltaTime. The third argument is what the two real-time
       // timers inside the tick (the torch's 20-second burn, refreshMods'
       // 0.2s) are fed, and a rested night must burn neither.
+      noteSkippedSpan(worldMinutes(), worldMinutes() + minutes);
       return this.tick(minutes / CLASSIC_MINUTES_PER_SECOND, undefined, 0);
     },
   };

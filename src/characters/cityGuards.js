@@ -1593,7 +1593,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
         // `damage > 0` fork.
         damageGuard(foe, 0, playerFeet, null);
       }
-      playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: GUARD_MOBILE_TYPE });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
+      playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: GUARD_MOBILE_TYPE, damage });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
     }
     // WeaponManager.cs:419-436: a connecting swing tallies the weapon
     // skill AND CriticalStrike.

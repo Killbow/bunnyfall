@@ -42,6 +42,7 @@ traps:
   - "`hallHidden` (Thieves Guild, Dark Brotherhood) withholds halls and writs from non-members. The Thieves Guild asks for no receipts (`hallReceiptKindsOf`)."
   - "A member writ (`memberWritId` `m:<day>:<region>:<faction>:<char>`) is drawn per member, not raced for. `isChapterWrit` covers 'hall' and 'member'."
   - "Hall reports: `HALL_REPORT_V` 1 and `HALL_WITNESS_HOUR` 24 per account per hour. The client keeps `HALL_REPORTED_KEY` 'chap2.halls' (max `HALL_REPORTED_MAX` 200)."
+  - "A receipt credit moves the Roll head (`npc_roll_heads`) under its own tag, so a claim that read the Roll earlier is refused with `roll-busy` and asked again. The gate or raid claim row is written first and stands even when the credit fails (`counted: false`)."
 dfu: []
 tags:
   - hall-writs

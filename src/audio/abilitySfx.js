@@ -1,14 +1,15 @@
-// BUNNYFALL: ability sounds made in code (Web Audio synthesis, no sound files). Each ability's art material gives it
-// a voice (steel rings, stone thuds, shadow whispers, ...) and each moment of a cast a shape: a soft swell on the
-// wind-up, a whoosh on release, an accent on impact, a chime for a self effect, a thump on landing. Quiet by design,
-// through the game's sound volume bus.
+// BUNNYFALL: ability sounds made in code with Web Audio, with no sound files. Each art material has a voice, such as
+// steel rings or stone thuds, and each cast moment a shape: wind-up swell, release whoosh, impact accent, self chime,
+// and landing thump. Quiet by design, through the game's sound volume bus, and only with Enhanced Sounds on.
 import { audio } from './audio.js';
+import { enhancedSoundsOn } from './enhancedSounds.js';
 import { abilityArt } from '../combat/abilities/abilityArt.js';
 
 export const ABILITY_SFX_LEVEL = 0.22;
-const MIN_GAP_S = 0.05;   // one accent per moment per 50 ms, so a sweep through five foes stays one sound
+// One accent per moment per 50 ms, so a sweep through five enemies plays one sound.
+const MIN_GAP_S = 0.05;
 
-// Each voice: a pitch, a noise colour (bandpass centre), a ring (sine partial ratios) and a body (low thud).
+// Each voice: a pitch, a noise color (bandpass center), a ring (sine partial ratios), and a body (low thud).
 export const VOICES = Object.freeze({
   steel: { pitch: 880, band: 3200, ring: [1, 2.76, 5.4], ringDecay: .32, body: 0, air: .7 },
   shadow: { pitch: 220, band: 900, ring: [], ringDecay: .2, body: .25, air: .9 },
@@ -101,19 +102,20 @@ export function abilityVoice(id) {
   return VOICES[abilityArt(id)?.material] ?? VOICES.steel;
 }
 
-/** Play `moment` of ability `id`. Silent with no audio context (headless, before the first click) or volume off. */
+/** Play `moment` of ability `id`. Silent with no audio context (headless, before the first click), volume off, or
+ *  Enhanced Sounds off. */
 export function playAbilitySfx(id, moment) {
   const c = audio.ctx;
   const shape = MOMENTS[moment];
-  if (!c || !shape || c.state !== 'running' || !audio.enabled) return false;
+  if (!c || !shape || c.state !== 'running' || !audio.enabled || !enhancedSoundsOn()) return false;
+  const bus = audio._out?.();
+  if (!bus) return false;
   const now = c.currentTime;
   const key = id + moment;
   if (now - (last.get(key) ?? -1) < MIN_GAP_S) return false;
   last.set(key, now);
   const out = c.createGain();
   out.gain.value = ABILITY_SFX_LEVEL;
-  const bus = audio._out?.();
-  if (!bus) return false;
   out.connect(bus);
   const voice = abilityVoice(id);
   if (shape.whoosh) whoosh(c, out, now, voice, shape.whoosh);
