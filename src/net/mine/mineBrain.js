@@ -20,7 +20,7 @@ export const MINE_PROP = Object.freeze({ cap: 4, fill: 6, capMax: 160 });
 /** The woods a plank can be, and how much each shores (the spec's table). */
 export const MINE_WOOD_STRENGTH = Object.freeze({ pine: 1, oak: 1.5, cherry: 1.75, teak: 2, mahogany: 2.25, ironwood: 3, ghostwood: 3 });
 /** The warnings, from the first a falling section gives to the last, and where each sounds. */
-export const MINE_WARNINGS = Object.freeze([Object.freeze(['warn:dust', 50]), Object.freeze(['warn:creak', 30]), Object.freeze(['warn:rumble', 15])]);
+export const MINE_WARNINGS = Object.freeze([Object.freeze({ name: 'warn:dust', under: 50 }), Object.freeze({ name: 'warn:creak', under: 30 }), Object.freeze({ name: 'warn:rumble', under: 15 })]);
 /** How long a collapsed mine stays sealed (s), and how long a standing one lasts before it turns over (s). */
 export const MINE_SEAL_S = 3600;
 export const MINE_WEEK_S = 7 * 86400;
@@ -56,9 +56,9 @@ const propped = (/** @type {MineState} */ st, /** @type {number} */ s, /** @type
 function warningsOf(/** @type {number} */ level, /** @type {number} */ to) {
   const events = [];
   let at = level;
-  MINE_WARNINGS.forEach(([name, under], i) => { if (to < under && at <= i) { events.push(name); at = i + 1; } });
+  MINE_WARNINGS.forEach(({ name, under }, i) => { if (to < under && at <= i) { events.push(name); at = i + 1; } });
   // a section shored back over a warning's line may sound it again
-  while (at > 0 && to >= MINE_WARNINGS[at - 1][1]) at--;
+  while (at > 0 && to >= MINE_WARNINGS[at - 1].under) at--;
   return { events, at };
 }
 

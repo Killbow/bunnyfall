@@ -55,7 +55,7 @@ export function mineTextures(worldClimate) {
   return { archive: 22, wall: 0, floor: 1, ceiling: 0 };
 }
 
-const unit = (/** @type {number} */ ...k) => gateHash(0x6d1e, ...k) / 4294967296;
+const unit = (/** @type {number[]} */ ...k) => gateHash(0x6d1e, ...k) / 4294967296;
 
 /** A point of chamber `ch`'s rim at angle `a`, bulged by `b`, at height `y` over its floor. */
 const rimAt = (/** @type {any} */ ch, /** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ s, /** @type {number} */ y) =>

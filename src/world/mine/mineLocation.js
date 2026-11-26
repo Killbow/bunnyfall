@@ -58,6 +58,7 @@ export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, res
   };
   // the lamps: a light over each chamber's floor (and one inside the mouth), its standing torch on the nearest wall slot -
   // RDB light and flat objects as the dungeon builder reads them (world/dungeonLights.js: y is flipped, range = radius x 3)
+  /** @type {any[]} */
   const objs = [marker];
   const flat = (/** @type {number[]} */ p) => ({
     type: 0x03, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-p[1] * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
