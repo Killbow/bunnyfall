@@ -86,8 +86,8 @@ test('refusals: known words, a plain line for unknown home codes, the account wo
 test('refusal words: the delete retry and a full co-owner list each have their own text', async () => {
   const { accountRefusalText } = await import('../src/net/accountClient.js');
   const server = accountRefusalText('server');
-  assert.equal(accountRefusalText('home-plan-changed'), 'The houses owned by this character changed while deleting. Nothing was deleted. Try again.');
+  assert.equal(accountRefusalText('home-plan-changed'), "This character's houses changed during the delete. Nothing was deleted. Try again.");
   assert.equal(accountRefusalText('home-owners-full'), 'This house already has 8 co-owners.');
-  assert.match(accountRefusalText('home-heir-full'), /sell or transfer a house owned by one of its co-owners/);
+  assert.match(accountRefusalText('home-heir-full'), /sell or transfer one of a co-owner's houses/);
   for (const code of ['home-plan-changed', 'home-owners-full', 'home-heir-full']) assert.notEqual(accountRefusalText(code), server);
 });

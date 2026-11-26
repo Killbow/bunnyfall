@@ -1,11 +1,23 @@
 // @ts-check
+// BUNNYFALL (2026-11-06): THE STAFF PAGE'S DATA DOORS (staff.html). Three things the upstream panel never had:
+//   - /v1/staff/data/saves   { target | name }   an account's saves: its cloud slots (the `saves` rows) and its online
+//                                                 characters (realm_characters, their last checkpoint) - Admins'
+//   - /v1/staff/data/export  { kind, ... }       one save, whole: the cloud slot's data (or screenshot) blob, or an online
+//                                                 character's checkpoint, as text when it opens to text, else the raw bytes
+//                                                 in base64 - Admins'
+//   - /v1/staff/data/tables, /v1/staff/data/query { sql }   the database, read only: the tables with their rows, and one
+//                                                 SELECT at a time (never more than QUERY_ROWS rows; a column that holds a
+//                                                 secret, a hash, a token or a key is answered as [hidden]) - OWNERS'
+// Every call is an audit row, as every staff act is (staff.js `audit`); an export names what it took, a query its SQL.
 import { findAccount } from './sanctions.js';
 import { realmSaveTextOf } from './realm.js';
 import { saveKey, SAVE_PARTS } from './service.js';
 
 export const DATA_ROUTES = Object.freeze(['/v1/staff/data/saves', '/v1/staff/data/export', '/v1/staff/data/tables', '/v1/staff/data/query']);
+/** Rows a query answers, and the longest SQL it takes. */
 export const QUERY_ROWS = 500;
 export const QUERY_SQL_MAX = 4000;
+/** Columns never shown: a secret, a password, a hash, a token, a key. */
 const HIDDEN_COLUMN = /pass|secret|token|hash|pub|sig|salt|key/i;
 const TABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -14,6 +26,7 @@ const base64 = (/** @type {Uint8Array} */ bytes) => {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 };
+/** An object's bytes, chunk by chunk, so a body that ends short still gives what it had: `{ bytes, warning }`. */
 async function readAll(/** @type {any} */ object) {
   const chunks = []; let n = 0; let warning = null;
   try {
@@ -28,9 +41,10 @@ const str = (/** @type {unknown} */ v, max = 200) => (typeof v === 'string' && v
 
 /**
  * @param {any} ctx @param {any} env @param {string} path @param {any} body
- * @param {{ player: any, role: string, owner: boolean }} who @param {Function} audit
+ * @param {{ player: any, role: string, owner: boolean }} who @param {Function} audit staff.js's audit(act, target, detail, how)
  */
 export async function staffData(ctx, env, path, body, who, audit) {
+  // a failure is answered with its words (this page is the developer's own), never a bare 'server'
   try { return await staffDataRun(ctx, env, path, body, who, audit); } catch (e) {
     console.warn('[staff data]', path, e?.stack ?? e);
     return { error: 'staff-data', message: String(e?.message ?? e).slice(0, 300) };
@@ -65,7 +79,9 @@ async function staffDataRun(ctx, env, path, body, who, audit) {
     return { rows: clean, columns: clean[0] ? Object.keys(clean[0]) : [], limit: QUERY_ROWS };
   }
 
+  // the saves doors: an Admin's
   if (who.role !== 'admin') return denied('staff-admin');
+  // a name first (a handle such as "Sits-With-Drink" is shaped like an id), then the same word as an id
   let p = await findAccount(db, { name: body.name ?? body.target });
   if ('error' in p && p.error === 'no-player') p = await findAccount(db, { target: body.target ?? body.name });
   if ('error' in p) return p;
@@ -84,11 +100,12 @@ async function staffDataRun(ctx, env, path, body, who, audit) {
     };
   }
 
+  // /v1/staff/data/export { target|name, kind: 'cloud'|'realm', characterId + saveName + part? | char, as? }
   if (!bucket) return { error: 'no-storage' };
   if (body.kind === 'realm') {
     const id = str(body.char, 80);
     const c = id ? await db.prepare('SELECT id, name, obj, prev FROM realm_characters WHERE id = ? AND player = ?').bind(id, p.id).first() : null;
-    const key = body.which === 'prev' ? c?.prev : c?.obj;
+    const key = body.which === 'prev' ? c?.prev : c?.obj;   // the previous checkpoint, when asked
     if (!key) return { error: 'no-data' };
     const object = await bucket.get(key);
     if (!object) return { error: 'no-data' };

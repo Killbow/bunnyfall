@@ -1,11 +1,32 @@
 // @ts-check
+// ═══════════════════════════════════════════════════════════════════
+// SEA-SEASON (2026-10-22, the owner: "Build ever single bit of this and dont return until its perfected"; bible/03-World/
+// Eltheric-Ocean.md SEA-SEASON) - THE ELTHERIC OCEAN'S SEASON BOARDS, the service's half: the deepest voyage and the
+// legends ended, each a season's (net/arena/arenaLaw.js arenaSeasonOf). The law is both ends' (src/net/sea/
+// seaSeasonLaw.js); the table migrations/0147_sea_season.sql's.
+//
+//   THE FIGURES (seaSeasonSteps): a realm character's captain's ledger keeps its season's (`ether.season`); a CLEAN judged
+//     checkpoint (realm.js checkpointRealm - verdict.js's `clean`: nothing the law found, no copy) carries them here in its
+//     own batch, read through the law (seaSeasonFigures: this season's, within the sea's depth and the legends' rises) and
+//     written only while the character stands unheld - after the verdict's own write, so a hold it lays counts. Each
+//     figure is the most any checkpoint of the season has said - a figure never falls - with the moment it was first
+//     reached.
+//   BOARD (/v1/sea/season/board): the season's first SEA_SEASON_ROWS each way (the deepest first, the legends most first;
+//     equal figures by who reached them first), the asking character's rank each way, and the season before's first
+//     SEA_SEASON_LAST_ROWS. A held character stands on neither board while it is held.
+//
+// Not a DFU member: Daggerfall Unity keeps no season and no players' boards. The figures are the record's, which the
+// service cannot replay (bible: KNOWN, NAMED).
+// ═══════════════════════════════════════════════════════════════════
 import { REALM_CHARACTER_RE } from '../../src/net/identityToken.js';
 import { arenaSeasonOf, arenaSeasonEndsS } from '../../src/net/arenaLaw.js';
 import { seaSeasonFigures, SEA_SEASON_ROWS, SEA_SEASON_LAST_ROWS } from '../../src/net/sea/seaSeasonLaw.js';
 
-// These steps run in the batch of a clean checkpoint, after the verdict writes, so a hold laid by that checkpoint
-// applies. Each figure only rises.
-/** @param {any} db @param {{ player: string, char: string }} at @param {any} save @param {number} nowS */
+/**
+ * THE SEASON'S FIGURES OF A CLEAN CHECKPOINT - the steps for its batch, or none: `save` the checkpoint, parsed; the figures
+ * written (each the most of the season's) while the character is unheld when the batch reaches them.
+ * @param {any} db @param {{ player: string, char: string }} at @param {any} save @param {number} nowS
+ */
 export function seaSeasonSteps(db, { player, char }, save, nowS) {
   const f = seaSeasonFigures(save, nowS);
   if (!f || (f.deepest === 0 && f.legends === 0)) return [];
@@ -19,9 +40,16 @@ export function seaSeasonSteps(db, { player, char }, save, nowS) {
       at = excluded.at`).bind(f.n, char, player, f.deepest, f.legends, nowS)];
 }
 
+/** The two boards' columns: the figure, and when it was first reached. */
 const WAYS = Object.freeze({ deep: ['deepest', 'deep_at'], legends: ['legends', 'legends_at'] });
 
-/** @param {any} ctx @param {any} player @param {any} body */
+/**
+ * BOARD: `{ character? }` - `{ season, ends, deep: [{ name, n }], legends: [{ name, n }], mine: { deep, legends }, last:
+ * { deep, legends } }`: this season's first SEA_SEASON_ROWS each way (unheld characters with a figure), when it ends, the
+ * asking character's `{ rank, n }` each way (null without a figure, or without one of its own), and the season before's
+ * first SEA_SEASON_LAST_ROWS.
+ * @param {any} ctx @param {any} player @param {any} body
+ */
 export async function seaSeasonBoard(ctx, player, body) {
   const { db, nowS } = ctx;
   const season = arenaSeasonOf(nowS);
@@ -29,6 +57,7 @@ export async function seaSeasonBoard(ctx, player, body) {
   const top = (/** @type {string[]} */ [n, at], /** @type {number} */ s, /** @type {number} */ limit) => db.prepare(`SELECT rc.name AS name, s.${n} AS n
     FROM sea_season s JOIN realm_characters rc ON rc.id = s.char_id AND rc.held IS NULL
     WHERE s.season = ?1 AND s.${n} > 0 ORDER BY s.${n} DESC, s.${at}, rc.name LIMIT ?2`).bind(s, limit);
+  // a rank: one more than the unheld figures ahead - greater, or equal and reached sooner (then by name, as the board orders)
   const rank = (/** @type {string[]} */ [n, at]) => db.prepare(`SELECT s.${n} AS n, 1 + (SELECT COUNT(*) FROM sea_season o
       JOIN realm_characters orc ON orc.id = o.char_id AND orc.held IS NULL
       WHERE o.season = s.season AND o.${n} > 0 AND (o.${n} > s.${n} OR (o.${n} = s.${n} AND (o.${at} < s.${at} OR (o.${at} = s.${at} AND orc.name < rc.name))))) AS rank

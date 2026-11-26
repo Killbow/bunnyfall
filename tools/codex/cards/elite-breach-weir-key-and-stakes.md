@@ -48,8 +48,6 @@ invariants:
   - "Gate-kill drop odds are `EG_KEY_ODDS` (1/6), `EG_KEY_ODDS_RITE` (1/4), and `EG_KEY_ODDS_SD` (1/3), with a guaranteed drop after `EG_KEY_PITY` (5) consecutive misses in `players.eg_key_miss`."
   - "Dungeon finds (`/v1/eg/find`) roll `EG_FIND_ODDS` (`super` 1/60, `elite` 1/150, and `regular` 1/400), capped at `EG_FIND_PER_DAY` (6 requests per tier per UTC day) and `EG_FIND_KEYS_PER_WEEK` (2 keys per arena week)."
   - "Stakes still held `EG_STAKE_CLOCK_S` (`EG_VOID_WINDOW_S + EG_RECEIPT_TTL_S`, 14 days) past `until` are consumed by `spendLapsedStakes` (`server-account/src/cron.js`, `SWEEP_ROWS` pages) with one `server_post` notice per batch (`spire-stake-<order id>`)."
-  - "A Redoubt pays Marks, the guild deed, embers, the Weir Key, and Panoply pity only on the first paid `eg_redoubts` row of that Redoubt for the account in an arena week; a later take that week pays gold alone."
-  - "The Reliquaries of each circle open once per account per arena week (`eg_reliqs`)."
 traps:
   - "`eg_keys`, `eg_key_miss`, `eg_live_b`, `eg_live_until`, `eg_mercy`, `eg_pity`, `eg_valk_wk`, `eg_annals`, `eg_honours`, and `eg_first` are columns on `players` (`0124_elite_breach.sql`), not separate tables."
   - "A lapsed stake never refunds its Weir Key; first-breach mercy (`players.eg_mercy`) refunds at most once per account."

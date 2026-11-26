@@ -37,10 +37,7 @@ invariants:
   - "One `ql_steps` row exists per `(account, line, step)` via `INSERT OR IGNORE`; account titles are bitflags in `players.ql_titles`, OR-ed only when unset."
   - "The Weir Key is granted at most once per account (`eg_keys = eg_keys + 1` and `ql_key = 1` guarded by `ql_key = 0`), exclusively on `covensHoard` step `2` with choice `'keep'` after `burningDoors` is fully witnessed."
   - "`QUESTLINES_OPEN` (`off`, `dev`, or `on`) gates `/v1/ql/claim`; when closed it returns `ql-closed` (`403`), and payloads rejected by `qlClaimOf` return `ql-body` (`400`)."
-  - "Every receipt writer (`claimGate`, `claimEg`, `claimSd`, `claimSerpent`, `claimStar`, and `claimKetch`) stores `at` as the nowS of the claim, never the kill time, so a receipt claimed after a line opens falls inside its window. A change to that rule must change `QL_WITNESS_SQL` too."
 traps:
-  - "`UNTIL` caps the window at the `seen_at` of any later step already done. It exists for older rows where a later step finished before an earlier one, from before `qlInOrderSql` required step order."
-  - "The `rite` witness accepts `g.stones >= 2` because only a fighter who broke the rite (`c.r === 1` in `claimGate`) gets a `gate_kills` row with `stones` 2."
   - "A guest account (no handle) can record step opens but receives `{ why: 'guest' }` on end claims, and an Elite Breach Rehearsal Redoubt never satisfies a redoubt witness (`NOT_REHEARSAL`)."
   - "The client retries failed claims every `CLAIM_RETRY_MS` (`60` s) up to `CLAIM_TRIES = 5` times before backing off to `CLAIM_SLOW_MS` (`600000` ms); duplicate deliveries resolve cleanly as `titleHeld` or `keyHeld`."
 dfu: []

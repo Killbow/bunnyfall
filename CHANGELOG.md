@@ -3,10 +3,6 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
-## 2026-11-26
-
-- Changed: Online account, market, customs, and housing messages use plainer words.
-
 ## 2026-11-25
 
 - Fixed: The Essence reforge lists (and the Reforge window's replacement list) now scroll inside the window, so every replacement bonus can be reached on every line. They were cut off in the desktop app.

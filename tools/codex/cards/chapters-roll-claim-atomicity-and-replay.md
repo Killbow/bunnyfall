@@ -24,7 +24,6 @@ invariants:
   - "A claim updates the head with its own minted `tag` and the next `seq` inside one batch guarded by `HELD_SQL` (character, standing, lease); a write that does not match writes nothing (AUDIT CHAP S1/S4)."
   - "A repeat is `last_rid` on the head or any `rid` still in `npc_rep_events` (AUDIT CHAP S6)."
   - "A no-op claim writes nothing and answers from rows in hand (AUDIT CHAP S7)."
-  - "The client reads `kseq` as the Roll `seq`, and only a claim that writes a reputation line the client sent moves it. Service credits (an owed drain, `profWrits.js`, `craftWrits.js`, and `npcReceipts.js`) move only the head `seq`, so they never make an adopted Roll stale in an open tab."
 traps:
   - "`npc_rep_events` is pruned after `ROLL_EVENTS_KEEP_S` (90 * 86_400 s) by the claims of the character, so replay detection only spans 90 days."
   - "`members: null` leaves memberships alone; `members: []` ends them."

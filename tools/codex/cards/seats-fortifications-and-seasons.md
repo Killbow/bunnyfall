@@ -13,7 +13,6 @@ files:
   - src/net/tideLaw.js
   - src/ui/hallOfRecords.js
   - server-account/src/halls.js
-  - server-account/src/seatRibbons.js
 routes:
   - /v1/seats/forts
   - /v1/seats/fort/fund
@@ -39,7 +38,6 @@ invariants:
   - "Both a siege capture and the end of a Season reduce each work by one tier (`MAX(0, tier - 1)`), except when `server-account/src/seatForts.js` passes the wall-preservation flag so walls retain their tier."
   - "Standard Seasons span `SEASON_WEEKS` (`8` weeks), whereas Season 0 runs for `SEASON_ZERO_WEEKS` (`4` weeks) and clears all `SEASON_ZERO_WIPED` tables at completion while preserving `SEASON_ZERO_KEPT` moderator strike rows."
   - "A palace Charter Room holds up to `SEAT_HALL_DECOR_CAP` (`100`) placed decor items."
-  - "A Season ribbon (`town_seat_ribbons`) goes only to a character who was a guild member at the last Turning of that Season, and it uses the current guild colors."
 traps:
   - "Marks balances, the Stores, and profession progression tracks survive the Season 0 wipe and must never be added to `SEASON_ZERO_WIPED`."
   - "Gatehouse and battering-ram parameters live in both `src/net/fortLaw.js` (`GATEHOUSE`, `RAM`) and `src/net/siegeRef.js` (`SIEGE_GATEHOUSE`, `SIEGE_RAM`); edits must update both modules together."

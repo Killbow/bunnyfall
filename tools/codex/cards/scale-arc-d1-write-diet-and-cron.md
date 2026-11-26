@@ -16,9 +16,6 @@ files:
   - server-account/src/door.js
   - server-account/src/progress.js
   - server-account/src/honours.js
-  - server-account/src/marketSettle.js
-  - server-account/wrangler.toml
-  - selfhost/accounts.toml
 routes:
   - /v1/seats/list
   - /v1/homes/town
@@ -48,16 +45,11 @@ invariants:
   - "Multi-key SQL lookups bind JSON arrays through `IN (SELECT value FROM json_each(?))` to stay below D1's 100-parameter ceiling."
   - "Each cron firing stops at `FIRING_STATEMENTS_MAX` (`600`), well below D1's 1,000-statement batch limit."
   - "Serialized boards larger than `KEPT_BOARD_MAX_BYTES` (`1500000`) bypass table caching to stay under D1's 2 MB row limit."
-  - "Act receipts (`prof_withdrawals`, `prof_choices`, and `guild_store_moves`) are never pruned, because clients resend an unanswered act with no age limit and a pruned receipt would let the act run twice."
-  - "`runCron` runs nothing while the service is held for maintenance (`maintaining`), because a write during the restore rewind would be lost with it."
-  - "`pruneMarketHistory` deletes at most one bounded page per table and the hourly job repeats while a page comes back full, because one unbounded batch can exceed the D1 batch time limit and roll back."
 traps:
   - "`statement.first()` omits D1 result metadata; use `statement.all()` whenever row write counts or changes metadata are needed."
   - "Tables backed by version triggers forbid `REPLACE` because SQLite `REPLACE` skips `DELETE` triggers; lean witness queries require explicit `INDEXED BY` clauses once `ANALYZE` statistics exist."
   - "`strikeWitness` deletes unconfirmed late rows first, clears confirmation flags second, and deletes the remaining rows third to avoid quadratic trigger re-settlement."
   - "After a D1 Time Travel restore, redeploy the account Worker so `weekKept.js` isolate caches drop rewound `town_seat_weeks` and `npc_chapter_weeks` rows."
-  - "D1 bookmarks sort oldest to newest as strings, so the yard cache keeps the newest bookmark it drops (`yardsFloor`) as the floor for later replica reads."
-  - "The `[triggers]` crons in `server-account/wrangler.toml` and `selfhost/accounts.toml` must name exactly `CRON_MINUTE` and `CRON_HOUR`; `runCron` only logs a warning for a schedule it has no jobs for."
 tags:
   - account
   - d1

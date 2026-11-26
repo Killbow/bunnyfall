@@ -13,11 +13,9 @@ invariants:
   - "server-account/src/judge.js never discards checkpoints on validation findings; instead it applies a trade hold blocking outbound transfers."
   - "tradeRealm settles goods from stored R2 saves rather than client payloads and updates both characters, realm_trades, and ledgerMoves in one db.batch."
   - "Marks convert only into gold via /v1/marks/exchange, while unique (actor, rid) rows ensure retries return repeat: true idempotently."
-  - "A batch that moves two records runs the `left` steps of both records before the `entered` steps of either, so a piece passing between them lands where it went."
 traps:
   - "Claims held past DUPE_GRACE_S (750 s) lock the claimant's copy without penalizing the holder, except crafted items check products.handed_to so sellers retaining sold crafts take the lock."
   - "Reading realm_trades before verifying a character's lease and seq allows an interleaved settle to be overwritten by the next checkpoint."
-  - "`leavingKeys` counts a key as leaving whenever its count falls, even when one copy remains, so a record holding two copies of a locked key cannot hand one on unlocked."
 tags:
   - economy
   - trades

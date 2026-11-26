@@ -39,7 +39,6 @@ invariants:
   - "Each turn allows `GAMBIT_TURN_MS` (`60000` ms); a timeout ends the turn like `end`, `GAMBIT_IDLE_TURNS` (`3`) consecutive timeouts stand the seat up with `how: 'idle'`, and standing or closing the socket forfeits immediately with `how: 'left'`."
   - "Gold-table matches choose from `GAMBIT_ONLINE_STAKES` (`[10, 50, 200, 1000, 5000]`), require both seats to match stakes escrowed in `card_stakes` under `GAMBIT_STAKE_BB` (`1`), pay the full pot to the winner, and refund both seats on a void match."
   - "Completed rated matches between two distinct accounts mint a 7-day `g1` receipt (`GAMBIT_HOW`: `king`, `forfeit`, `idle`, or `left`); submitting it to `POST /v1/gambit/claim` records one `gambit_games` row keyed by game ID using arena Elo and pair caps."
-  - "A rated game row is inserted only while both account ratings still equal the ones read, so a game that lands in between forces a reread, up to `GAMBIT_RATE_TRIES` (`4`) times."
 traps:
   - "A `stand` naming an earlier `gameNo` within `GAMBIT_LATE_MS` (`3000` ms) of the deal and before the seat has acted voids the match and refunds stakes without rating; a `forfeit` with a stale `gameNo` is rejected with `'stale'`."
   - "On room load, persisted tables under storage key `gambit` are validated by `gambitTableValid` and `validGambitState` and dropped if invalid, with per-table queues bounded by `GAMBIT_QUEUE_MAX` (`16`)."

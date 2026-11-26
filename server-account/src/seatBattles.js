@@ -1,6 +1,23 @@
 // @ts-check
-// Each act's first write asks every condition against the rows as they stand, and what follows moves only where
-// that write landed.
+// ═════════════════════════════════════════════════════════════════════
+// SEAT2a (2026-10-01, Mac: "Finish the seats"; "Or we could go ahead and
+// do sieges"; "Continue") - THE BATTLES' WEEK: the holder's window, the
+// battle the Turning places in it (seatTurning.js), the two sides' rosters
+// and their Sellswords, and the week's live battles for the relay's
+// deploy blackout.
+//
+// bible/11-Multiplayer/Seats-Arc.md 6.3-6.5. The numbers and the schedule
+// are src/net/townSeatLaw.js's; the battle itself is the relay's
+// (net/siege/siegeRef.js, SEAT2a's relay half).
+//
+// ONE STATEMENT DECIDES, as everywhere a seat's rows move: each act's
+// first write asks every condition against the rows as they stand (the
+// rank, the Charter, the roster's room, the side's Sellswords, the
+// rosters' close, the account's war-guild), and what follows it moves
+// only where that write landed.
+//
+// EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
+// ═════════════════════════════════════════════════════════════════════
 import { accountKind, displayName, overRate } from './accounts.js';
 import { guildActorOf } from './guilds.js';
 import { seatsOpenFor } from './townSeats.js';
@@ -14,11 +31,18 @@ import {
 
 const weekAt = (nowS) => seatWeekOf(nowS * 1000);
 const LEVERS_SQL = SEAT_LEVER_RANKS.join(', ');
+/** The deploy blackout's reach (17: "any siege room is live or starts within 30 minutes"), seconds. */
 export const BLACKOUT_LEAD_S = 30 * 60;
 
 const seatOpen = (player, env) => (accountKind(player) !== 'linked' ? { error: 'seats-need-account' } : !seatsOpenFor(player, env) ? { error: 'seats-closed' } : null);
 
-/** @param {{db: any, nowS: number}} ctx */
+/**
+ * THE HOLDER'S WINDOW (SEAT0 6.3) - the Guildmaster's or an Officer's of the guild holding `key`, at its board: a day
+ * (0 Wednesday to 3 Saturday) and a start hour (16-23, 0-2), in the Muster (AUDIT-SEATS S10). The rank and the Charter
+ * asked in the write. The window in force at the Turning is the one its battle keeps (the Turning freezes it into the
+ * battle's row).
+ * @param {{db: any, nowS: number}} ctx
+ */
 export async function setWindow({ db, nowS }, player, env, { character, key, day, hour } = {}) {
   const closed = seatOpen(player, env);
   if (closed) return closed;
@@ -27,10 +51,11 @@ export async function setWindow({ db, nowS }, player, env, { character, key, day
   const a = await guildActorOf(db, player, character);
   if ('error' in a) return a;
   if (!SEAT_LEVER_RANKS.includes(Number(a.me.rank))) return { error: 'guild-rank' };
-  // The window locks outside the Muster, so the window the Turning freezes is the one challengers saw all through
-  // it.
+  // AUDIT-SEATS S10 (5.1: "Muster ... windows may move (6.3)"; 6.3: "a change made in the Muster applies from the next
+  // Turning"): the Reckoning locks the window as it locks the pledges, so the window the Turning freezes is the one the
+  // challengers saw standing all through it
   if (seatPhaseOf(nowS * 1000) !== 'muster') return { error: 'window-reckoning' };
-  if (await overRate({ db, nowS }, `seat-window:${player.id}`, SEAT_EDICTS_HOUR, 3600)) return { error: 'seats-rate' };
+  if (await overRate({ db, nowS }, `seat-window:${player.id}`, SEAT_EDICTS_HOUR, 3600)) return { error: 'seats-rate' };   // AUDIT SEATS-2 L6 (Appendix B: "windows 5, edicts 5"): the window's own five
   const r = await db.prepare(`INSERT INTO town_seat_windows (key, guild_id, day, hour, set_by, at)
     SELECT ?1, ?2, ?3, ?4, ?5, ?6 WHERE EXISTS (SELECT 1 FROM town_seat_holds WHERE key = ?1 AND guild_id = ?2)
       AND EXISTS (SELECT 1 FROM guild_members WHERE rowid = ?7 AND guild_id = ?2 AND rank IN (${LEVERS_SQL}))
@@ -40,22 +65,32 @@ export async function setWindow({ db, nowS }, player, env, { character, key, day
   return { ok: true, window: { day, hour } };
 }
 
+/** The window the holder of `key` set, or null - a window a former holder set is not the new holder's. */
 export async function windowOf(db, key, guildId) {
   const w = await db.prepare('SELECT day, hour FROM town_seat_windows WHERE key = ? AND guild_id = ?').bind(key, guildId).first();
   return w ? { day: Number(w.day), hour: Number(w.hour) } : null;
 }
 
+/** A battle row of `week` at `key`, or null. */
 async function battleAt(db, week, key) {
   const b = await db.prepare('SELECT * FROM town_seat_battles WHERE week = ? AND key = ?').bind(week, key).first();
   return b ? { ...b, starts_at: Number(b.starts_at), ends_at: Number(b.ends_at), week: Number(b.week), key: Number(b.key) } : null;
 }
+/** The rosters' room at a battle, in SQL: the side under its tier's cap (`?W` week, `?K` key, `?S` side). */
 const roomSql = (w, k, s) => `(SELECT COUNT(*) FROM town_seat_rosters WHERE week = ${w} AND key = ${k} AND side = ${s})
   < CASE (SELECT tier FROM town_seat_battles WHERE week = ${w} AND key = ${k}) WHEN 'crown' THEN ${SIEGE_SIDE_MAX.crown} ELSE ${SIEGE_SIDE_MAX.palace} END`;
 const swordsRoomSql = (w, k, s) => `(SELECT COUNT(*) FROM town_seat_rosters WHERE week = ${w} AND key = ${k} AND side = ${s} AND sellsword = 1)
   < CASE (SELECT tier FROM town_seat_battles WHERE week = ${w} AND key = ${k}) WHEN 'crown' THEN ${SELLSWORDS_MAX.crown} ELSE ${SELLSWORDS_MAX.palace} END`;
 const openSql = (w, k, now) => `${now} < (SELECT starts_at FROM town_seat_battles WHERE week = ${w} AND key = ${k} AND state = 'scheduled') - ${SIGN_CLOSES_MS / 1000}`;
 
-/** @param {{db: any, nowS: number}} ctx */
+/**
+ * SIGN A SIDE (SEAT0 6.4): `character` of `player` onto the side of this week's battle at `key` its guild fights - a
+ * member who had been in the guild 7 days at the Turning, whose account was bound to it in the week that won the Right
+ * and is bound to no other guild this week (the signing binds it). An account a side's Guildmaster hired signs as its
+ * Sellsword instead (`town_seat_hires`). Until 10 minutes before the start; within the side's room (and a Sellsword
+ * within the side's Sellswords). One statement decides; the bind and the hire's state follow it.
+ * @param {{db: any, nowS: number}} ctx
+ */
 export async function signBattle({ db, nowS }, player, env, { character, key } = {}) {
   const closed = seatOpen(player, env);
   if (closed) return closed;
@@ -71,10 +106,11 @@ export async function signBattle({ db, nowS }, player, env, { character, key } =
   const me = await db.prepare('SELECT guild_id, joined_at FROM guild_members WHERE player = ? AND char_id = ?').bind(player.id, character).first();
   const side = me ? sideOf({ attacker: b.attacker, defender: b.defender }, me.guild_id) : null;
   if (side) {
+    // A MEMBER: 7 days at the Turning, bound to the guild in the Right's week, bound to no other this week
     const turningS = Math.floor(seatWeekStartMs(week) / 1000);
     if (Number(me.joined_at) > turningS - SEAT_MEMBER_WAIT_S) return { error: 'sign-new-member' };
     const then = (await db.prepare('SELECT guild_id FROM town_seat_binds WHERE week = ? AND account = ?').bind(week - 1, player.id).first())?.guild_id ?? null;
-    if (then !== me.guild_id && b.kind !== 'revolt') return { error: 'sign-unbound' };
+    if (then !== me.guild_id && b.kind !== 'revolt') return { error: 'sign-unbound' };   // AUDIT SEATS-2 L2: a revolt won no Right - its week asks no bind (7.7)
     if (bound != null && bound !== me.guild_id) return { error: 'sign-bound-elsewhere' };
     const r = await db.prepare(`INSERT INTO town_seat_rosters (week, key, account, char_id, guild_id, side, sellsword, fee, at)
       SELECT ?1, ?2, ?3, ?4, ?5, ?6, 0, 0, ?7
@@ -86,6 +122,8 @@ export async function signBattle({ db, nowS }, player, env, { character, key } =
     await db.prepare('INSERT OR IGNORE INTO town_seat_binds (week, account, guild_id, char_id, at) VALUES (?, ?, ?, ?, ?)').bind(week, player.id, me.guild_id, character, nowS).run();
     return { ok: true, side, sellsword: false };
   }
+  // A SELLSWORD: hired by a side, in neither guild, bound to no other guild this week, not on the other side's guild's
+  // rosters in the last four weeks
   const hire = await db.prepare("SELECT guild_id, fee FROM town_seat_hires WHERE week = ? AND key = ? AND account = ? AND state = 'offered'").bind(week, key, player.id).first();
   if (!hire) return { error: 'battle-not-side' };
   const swordSide = sideOf({ attacker: b.attacker, defender: b.defender }, hire.guild_id);
@@ -109,7 +147,11 @@ export async function signBattle({ db, nowS }, player, env, { character, key } =
   return { ok: true, side: swordSide, sellsword: true, fee: Number(hire.fee) };
 }
 
-/** @param {{db: any, nowS: number}} ctx */
+/**
+ * UNSIGN (SEAT0 6.4): the account's place on this week's battle at `key` given back, until the rosters close - a
+ * Sellsword's contract stands again as offered. The bind it made stays (the week's war is the account's).
+ * @param {{db: any, nowS: number}} ctx
+ */
 export async function unsignBattle({ db, nowS }, player, env, { key } = {}) {
   const closed = seatOpen(player, env);
   if (closed) return closed;
@@ -123,6 +165,7 @@ export async function unsignBattle({ db, nowS }, player, env, { key } = {}) {
   return { ok: true };
 }
 
+/** The Guildmaster of a side of this week's battle at `key`: `{ me, b, side }` or an error. */
 async function sideMasterOf(db, player, env, character, key, nowS) {
   const closed = seatOpen(player, env);
   if (closed) return closed;
@@ -138,7 +181,13 @@ async function sideMasterOf(db, player, env, character, key, nowS) {
   return { me: a.me, b, side };
 }
 
-/** @param {{db: any, nowS: number}} ctx */
+/**
+ * HIRE A SELLSWORD (SEAT0 6.4): a side's Guildmaster names an account (`handle`) at a fee in Marks (0 to
+ * SELLSWORD_FEE_MAX), escrowed from the guild's treasury; the account signs under it. At most the side's Sellswords
+ * offered and signed together. One batch: the contract only where the rank, the battle and the room stand; the escrow
+ * only where the treasury holds it, or the contract rolls back with it.
+ * @param {{db: any, nowS: number}} ctx
+ */
 export async function hireSellsword({ db, nowS }, player, env, { character, key, handle, fee = 0 } = {}) {
   const m = await sideMasterOf(db, player, env, character, key, nowS);
   if ('error' in m) return m;
@@ -173,7 +222,11 @@ export async function hireSellsword({ db, nowS }, player, env, { character, key,
   return { ok: true, fee };
 }
 
-/** @param {{db: any, nowS: number}} ctx */
+/**
+ * WITHDRAW A CONTRACT (SEAT0 6.4) - the side's Guildmaster's, while the Sellsword has not signed under it: the escrow
+ * goes home to the treasury.
+ * @param {{db: any, nowS: number}} ctx
+ */
 export async function withdrawHire({ db, nowS }, player, env, { character, key, handle } = {}) {
   const m = await sideMasterOf(db, player, env, character, key, nowS);
   if ('error' in m) return m;
@@ -194,6 +247,12 @@ export async function withdrawHire({ db, nowS }, player, env, { character, key, 
   return { ok: true };
 }
 
+/**
+ * THE BATTLE AS THE SEAT TAB SHOWS IT: this week's battle at `key` (its kind, its start and end, `moved`, its two
+ * guilds), each side's signed count and Sellswords, the caps; for the reader's character its side, whether it signed
+ * and why it may not; its own Sellsword contract; for a side's Guildmaster the side's contracts. The holder's window
+ * too. Null where no battle is named and no window set.
+ */
 export async function fightOf(db, key, player, character, nowS) {
   const week = weekAt(nowS);
   const b = await battleAt(db, week, key);
@@ -226,6 +285,10 @@ export async function fightOf(db, key, player, character, nowS) {
   return { ...out, mine };
 }
 
+/**
+ * THE DEPLOY BLACKOUT'S QUESTION (SEAT0 17): is any battle live now, or starting within BLACKOUT_LEAD_S? `{ live, until }`
+ * - `until` the latest end among them (epoch seconds), null when none. Public: it names no guild.
+ */
 export async function siegesLive(db, nowS) {
   const r = await db.prepare("SELECT COUNT(*) AS n, MAX(ends_at) AS until FROM town_seat_battles WHERE state = 'scheduled' AND starts_at - ? <= ? AND ends_at > ?")
     .bind(BLACKOUT_LEAD_S, nowS, nowS).first();

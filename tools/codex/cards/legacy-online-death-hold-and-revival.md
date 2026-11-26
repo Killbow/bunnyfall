@@ -33,7 +33,6 @@ invariants:
   - "`settleHolds` in cron entombs expired holds, at most `REZ_SETTLE_MAX` (`25`) per pass."
   - "Revival stamps `revived` on the person; `dropRevived` clears the remains and succession from that death on every copy."
   - "`inheritHome` moves the house of a dead member to the carrier of the line atomically; homes stay one per region."
-  - "A lineage write copies the revival stamps of the stored copy into the sent copy before it stores or entombs, so a device that never heard of a revival cannot kill the member again."
 traps:
   - "A session that dies mid-hold is finalized only by cron; never leave a hold open client-side."
   - "An heir created before revival stays a living member; revival must not delete them."

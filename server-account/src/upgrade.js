@@ -1,3 +1,11 @@
+// BUNNYFALL CRAFTING REWORK, PHASE 2: THE MATERIAL UPGRADE (the service's side).
+//
+//   POST /v1/prof/upgrade { character, recipe, rid } -> { ok, recipe, xp, track, stores } | { repeat, ... } | { error }
+//
+// A found piece one metal up (src/net/upgradeLaw.js): `recipe` is the recipe it becomes, which the client reads off the
+// piece (upgradeRecipeOf). The service cannot see the pack, so the piece is the save's word, as a temper's found piece is
+// (professions.js temperPiece); the Stores' spend is the bound. It asks the new recipe's rank of Smithing, spends 80% of
+// the new metal's main input, and pays the craft's XP at its tier.
 import { craftworkPct, halfXp } from '../../src/net/craft/craftLaw.js';
 import { inCraftwork } from './professions.js';
 import { mintId, overRate } from './accounts.js';
@@ -15,6 +23,7 @@ async function upgradeAnswer(db, player, row, nowS, extra = {}) {
   };
 }
 
+/** An upgrade: the new metal's share out of the Stores, the XP onto Smithing, in one batch. */
 export async function upgradeMaterial(ctx, player, env, { character, recipe: id, rid } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
@@ -32,10 +41,11 @@ export async function upgradeMaterial(ctx, player, env, { character, recipe: id,
   if (rank < r.rank) return { error: 'prof-rank' };
   const cost = metalUpgradeCost(r);
   const cap = PROF_XP_MAX;
-  const xp = scaleXp(upgradeXp(r, rank), craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft)));
+  const xp = scaleXp(upgradeXp(r, rank), craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft)));   // CRAFTWORK: half
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_upgrades WHERE player = ?1 AND rid = ?5 AND n = ?6)';
   await db.batch([
+    // THE DECISION: the input held at a station (never gold's units) - and the XP what the track can take
     db.prepare(`INSERT OR IGNORE INTO prof_upgrades (player, rid, char_id, recipe, material, qty, xp, at, n)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6,
         MAX(0, MIN(${focusXpSql('?1', '?2', craft, '?7', halfXp(xp))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?10), 0))), ?8, ?9

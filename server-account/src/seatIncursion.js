@@ -1,15 +1,24 @@
 // @ts-check
-// Incursion gate kills pay their doubled Marks at the weekly settle, after the day's region is agreed, because one
-// claim's region is unverified. The `incursion:<day>` rid pays each account once.
+// AUDIT-SEATS (2026-10-01, Mac: "We need to do a comprehensive audit on everything and finish the not done"): A DAEDRIC
+// INCURSION'S MARKS (bible/11-Multiplayer/Seats-Arc.md 9.3: "gate kills in the kingdom's regions give double influence,
+// and double Marks (PROF0 10.5)"). SEASON1 part two doubled the influence and left the Marks unpaid, because a kill's
+// region is the claiming client's word until three claims agree - and a faucet is not doubled on one account's word.
+// So the second half is paid at the Turning that settles the week, once the day's region IS agreed
+// (seatInfluence.js agreedGateRegions): every account whose claim named the agreed region, in a land whose week rolled
+// a Daedric Incursion, and whose gate Marks that day were struck (marks.js gateStrikeStatement's line), is minted the
+// same again - once (its own `incursion:<day>` rid), and only where its balance has the room (a full purse is not
+// paid; nothing is refused).
 import { tideAt } from '../../src/net/tideLaw.js';
 import { MARKS_MAX, utcDay } from '../../src/net/marksLaw.js';
 import { gateStrikeRid } from './marks.js';
 
+/** An Incursion's second half's rid, a gate day's. */
 export const incursionRid = (gameDay) => `incursion:${gameDay}`;
 
 /**
- * @param {any} db
- * @param {{ week: number, agreed: Map<number, number>, counted: boolean, nowS: number }} o
+ * THE STATEMENTS the settle of `week` runs for the Incursion's Marks - `agreed` each gate day of the week to its agreed
+ * region (agreedGateRegions), `counted` whether a Season counts the week (a Tide rolls only then).
+ * @param {any} db @param {{ week: number, agreed: Map<number, number>, counted: boolean, nowS: number }} o
  */
 export function incursionStatements(db, { week, agreed, counted, nowS }) {
   const out = [];

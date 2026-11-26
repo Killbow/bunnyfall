@@ -1,17 +1,34 @@
 // @ts-check
+// BUNNYFALL STAFF COMMANDS (2026-11-12, the owner: "a vanish to disappear from both players and enemies, a spawn command
+// to spawn enemies and a greed command to give gold to players or dusk tokens") - the account service's half. Staff are the
+// accounts staff.js staffRole names (an Admin - DEVELOPER_HANDLES - or a Moderator); /greed is an Admin's alone.
+//
+//   /vanish   vanishSet: the account's switch (players.vanish_on, migration 0202). While it is on, the game's ordinary
+//             token carries the vanish mark (`vn`, index.js /v1/auth/token): the relay passes it on the join and every game
+//             leaves the player undrawn and untargeted, while the socket plays on as any other - the monsters' sync and
+//             everything else unchanged.
+//   /spawn    the game's own (scenes/world.js): staff-only, asked of `vanishSet`'s answer's `staff` - nothing here.
+//   /greed    greedGive: gold and Dusk Tokens kept for a player (staff_gifts) until their game takes them (greedClaim) -
+//             the gold into the character's purse, the coins into the pack; the account's Nyx count and the character's
+//             wealth allowance move with them, so neither the Nyx titles nor the integrity measure miss them.
 import { staffRole } from './staff.js';
 import { displayName } from './accounts.js';
 
 export const GREED_GOLD_MAX = 1_000_000;
 export const GREED_NYX_MAX = 1_000;
+/** The gifts one claim reads at most. */
 const OPEN_MAX = 20;
 
+/** Whether this account is staff, and an Admin. */
 export function staffOf(player, env) {
   const role = staffRole(player, env);
   return { staff: !!role, admin: role === 'admin', role };
 }
 
-/** @param {{ db: any }} ctx */
+/**
+ * THE STAFF MEMBER'S OWN STANDING (`{ staff, admin, vanished }`) - and, with `on` a boolean, /vanish turned on or off.
+ * @param {{ db: any }} ctx
+ */
 export async function vanishSet({ db }, player, env, { on } = {}) {
   const s = staffOf(player, env);
   if (!s.staff) return { error: 'staff-only' };
@@ -20,6 +37,7 @@ export async function vanishSet({ db }, player, env, { on } = {}) {
   return { ok: true, staff: true, admin: s.admin, vanished: Number(r?.vanish_on ?? 0) === 1 };
 }
 
+/** The account a name names: a handle first (any case), then a realm character's name - or null. */
 async function accountByName(db, name) {
   const n = String(name ?? '').trim();
   if (!n || n.length > 40) return null;
@@ -27,11 +45,14 @@ async function accountByName(db, name) {
   if (byHandle) return { id: byHandle.id, name: byHandle.handle };
   const byChar = await db.prepare('SELECT player, name FROM realm_characters WHERE lower(name) = lower(?) ORDER BY updated_at DESC LIMIT 1').bind(n).first();
   if (byChar) return { id: byChar.player, name: byChar.name };
-  const byId = await db.prepare('SELECT id, handle, guest_name FROM players WHERE id = ?').bind(n).first();
+  const byId = await db.prepare('SELECT id, handle, guest_name FROM players WHERE id = ?').bind(n).first();   // the staff panel's pick names the account
   return byId ? { id: byId.id, name: displayName(byId) } : null;
 }
 
-/** @param {{ db: any, nowS: number }} ctx */
+/**
+ * /greed: `gold` and `nyx` kept for the player `to` names (a handle or a character's name; `me` the sender). An Admin's.
+ * @param {{ db: any, nowS: number }} ctx
+ */
 export async function greedGive({ db, nowS }, player, env, { to, gold = 0, nyx = 0 } = {}) {
   if (!staffOf(player, env).admin) return { error: 'staff-admin' };
   const g = Number.isSafeInteger(gold) ? gold : -1, c = Number.isSafeInteger(nyx) ? nyx : -1;
@@ -42,13 +63,20 @@ export async function greedGive({ db, nowS }, player, env, { to, gold = 0, nyx =
   return { ok: true, to: who.name, gold: g, nyx: c };
 }
 
-/** @param {{ db: any }} ctx */
+/**
+ * The gifts waiting for this account, oldest first.
+ * @param {{ db: any }} ctx
+ */
 export async function greedMine({ db }, player) {
   const { results } = await db.prepare('SELECT id, gold, nyx, from_name FROM staff_gifts WHERE to_account = ? AND claimed_at IS NULL ORDER BY id LIMIT ?').bind(player.id, OPEN_MAX).all();
   return { ok: true, gifts: (results ?? []).map((r) => ({ id: Number(r.id), gold: Number(r.gold), nyx: Number(r.nyx), from: r.from_name })) };
 }
 
-/** @param {{ db: any, nowS: number }} ctx */
+/**
+ * TAKE A GIFT (its `id`), once: answers its gold and coins for the game to put in the purse and the pack. The account's Nyx
+ * count rises by the coins, and the playing character's wealth allowance by the gold.
+ * @param {{ db: any, nowS: number }} ctx
+ */
 export async function greedClaim({ db, nowS }, player, { id } = {}) {
   if (!Number.isSafeInteger(id)) return { error: 'greed-bad' };
   const g = await db.prepare('SELECT gold, nyx, from_name FROM staff_gifts WHERE id = ? AND to_account = ? AND claimed_at IS NULL').bind(id, player.id).first();

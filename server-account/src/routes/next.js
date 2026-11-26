@@ -1,2 +1,2 @@
-// A route chunk returns NEXT when none of its routes match the request.
+// A chunk of the route returns NEXT when none of its routes answers.
 export const NEXT = Symbol('route.next');

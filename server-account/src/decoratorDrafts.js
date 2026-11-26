@@ -1,6 +1,6 @@
 // @ts-check
-// Saves a decorator draft for free (never in home_decor) and lets the home owner accept a sent template.
-// Accept is all or nothing: the owner pays for every piece from purse and bank, guarded on the draft revision.
+// A decorator's draft saved (free, never in home_decor), and a sent template accepted by the home's owner, who pays
+// the value of its pieces from purse and bank. Accept is all or nothing, guarded on the draft's revision.
 import { accountKind } from './accounts.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import {
@@ -16,7 +16,11 @@ import { HANDLE_RE } from '../../src/net/handleShape.js';
 
 const placeJson = ({ pos, rot, scale, light, storage, paid }) => JSON.stringify({ pos, rot, scale, light, storage, paid });
 
-/** @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} body */
+/**
+ * SAVE A DRAFT: `{ mapId, buildingKey, character, draftRev, put, drop, yard }`, the shape of a Confirm.
+ * Free; no record.
+ * @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} body
+ */
 export async function saveDraft(ctx, player, body = {}) {
   const { db, nowS } = ctx;
   const { mapId, buildingKey, character, draftRev } = body;
@@ -103,7 +107,11 @@ export async function saveDraft(ctx, player, body = {}) {
   return { ok: true, draftRev: draftRev + 1 };
 }
 
-/** @param {{ db: any, bucket?: any, rand?: any, nowS: number }} ctx @param {any} player @param {any} body */
+/**
+ * ACCEPT A TEMPLATE: `{ mapId, buildingKey, character, name, draftRev, txn, paid: [[id, gold], ...], realm }`. The
+ * owner's client prices every piece; the record pays the sum, and every piece becomes the owner's, or nothing moves.
+ * @param {{ db: any, bucket?: any, rand?: any, nowS: number }} ctx @param {any} player @param {any} body
+ */
 export async function acceptDraft(ctx, player, body = {}) {
   const { db, nowS } = ctx;
   const { mapId, buildingKey, character, draftRev, txn, name } = body;
@@ -190,7 +198,7 @@ export async function acceptDraft(ctx, player, body = {}) {
   } catch {
     await dropIfUnnamed(db, ctx.bucket, player.id, at.id, prep.key);
     const again = await db.prepare('SELECT result FROM decor_batch_receipt WHERE txn = ?').bind(txn).first();
-    if (again?.result) { try { return JSON.parse(again.result); } catch { } }
+    if (again?.result) { try { return JSON.parse(again.result); } catch { /* refused below */ } }
     const moved = await recordMovedOf(db, player.id, at);
     if (moved) return moved;
     const g = await db.prepare('SELECT draft_rev, sent_at FROM home_decorators WHERE map_id = ? AND building_key = ? AND player = ?').bind(mapId, buildingKey, who.id).first();

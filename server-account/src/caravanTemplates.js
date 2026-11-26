@@ -1,6 +1,8 @@
 // @ts-check
-// Caravan pieces live in the save of the owner, so a decorator sends a whole template that the owner's client
-// checks, prices, and pays for.
+// Caravan templates. A caravan's pieces live in the owner's save, so a decorator sends a whole template. It holds
+// pieces to add or move, ids to remove, and a hash of the caravan as the decorator saw it. The owner's client checks,
+// prices, previews, and pays for it (src/systems/caravanTemplate.js). A decorator has one open template per caravan
+// owner.
 import { accountKind, displayName, overRate } from './accounts.js';
 import { DECOR_CAP, DECOR_ID_RE, decorPieceOf } from '../../src/net/decorLaw.js';
 import {
@@ -21,6 +23,7 @@ async function accountByName(db, name) {
 
 const expire = (db, owner, nowS) => db.prepare('DELETE FROM caravan_templates WHERE owner = ? AND sent_at < ?').bind(owner, nowS - TEMPLATE_TTL_S).run();
 
+/** A template's body as the law takes it: `{ put, drop }`, or null. */
 export function caravanTemplateOf(/** @type {any} */ raw) {
   const put = Array.isArray(raw?.put) ? raw.put : null;
   const drop = Array.isArray(raw?.drop) ? raw.drop : null;
@@ -40,7 +43,11 @@ export function caravanTemplateOf(/** @type {any} */ raw) {
   return { put: pieces, drop: [...drop] };
 }
 
-/** @param {{ db: any, rand: any, nowS: number }} ctx @param {any} player @param {string} path @param {any} body */
+/**
+ * `/v1/homes/caravan/decorators { op: list | grant | revoke, name }` and
+ * `/v1/homes/caravan/templates { op: may | send | list | read | answer }`.
+ * @param {{ db: any, rand: any, nowS: number }} ctx @param {any} player @param {string} path @param {any} body
+ */
 export async function caravanRoute(ctx, player, path, body = {}) {
   const { db, nowS } = ctx;
   if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };

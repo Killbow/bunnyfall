@@ -1,6 +1,11 @@
 // @ts-check
-// Items and gold never move on the client's word: the record is written one sequence on in one guarded
-// batch. A `txnId` settles once, and asking again returns the same answer.
+// POI v2 (World Builder M5): a live POI's trades and events, settled here. POST /v1/poi/trade and /v1/poi/event-claim.
+// Items and gold never move on the client's word: the character's own last checkpoint is read, the recipe's goods taken
+// out of it, rewards minted by staffGive.js mintGift and held to the item law, and the record written one sequence on in
+// one guarded batch with the limit's count, the kept variables and the act's log row (realm.js prepareRealmRecord).
+// Only a POI live at the named revision settles; the character must be the caller's, under its lease, at its sequence,
+// and not held by the judge; the worth moved is witnessed. A `txnId` settles once: asked again, it is answered the same.
+// The save's schema is unchanged.
 
 import { REALM_ID_RE, LEASE_RE, realmSaveTextOf, dropObjects, dropIfUnnamed, mustChange, prepareRealmRecord, recordMovedOf } from './realm.js';
 import { mintGift } from './staffGive.js';
@@ -9,8 +14,11 @@ import { evalWhen, varsRead, persists, claimRule, eventRule, recipeWhy, takesOf,
 import { takeStacks, takeChosen, takeGold, giveGoods, countOf, takeableOf, goldOf, eventClaim, recipeClaim, HAND_MAX } from '../../src/poi/poiSettle.js';
 import { GOLD_INT_MAX } from '../../src/items/itemLaw.js';
 
+/** How long a settled act's answer is kept for a client asking again (cron.js poi-txn-log). */
 export const POI_TXN_KEEP_S = 30 * 24 * 3600;
+/** A client's own id for one act. */
 export const POI_TXN_RE = /^[A-Za-z0-9_-]{8,64}$/;
+/** The most reward records one act may hand over: a recipe's eight stacks, an event's thirty-two actions. */
 const GIVE_MAX = 40;
 export const POI_ACT_BODY_MAX = 32 * 1024;
 export const poiActPath = (/** @type {string} */ path) => path === '/v1/poi/trade' || path === '/v1/poi/event-claim';
@@ -18,7 +26,7 @@ export const poiActPath = (/** @type {string} */ path) => path === '/v1/poi/trad
 const parsed = (/** @type {any} */ text) => { try { return typeof text === 'string' ? JSON.parse(text) : null; } catch { return null; } };
 const byKey = (/** @type {any} */ rows, /** @type {string} */ key) => (Array.isArray(rows) ? rows.find((r) => r?.key === key) : undefined);
 
-/** @param {any} b */
+/** The body's shared fields, or null. @param {any} b */
 function actOf(b) {
   const { poi, rev, id, lease, seq, txnId } = b ?? {};
   if (typeof poi !== 'string' || !POI_ID_RE.test(poi) || !Number.isSafeInteger(rev) || rev < 1) return null;
@@ -36,7 +44,7 @@ function handOf(hand) {
   return hand.every((l) => Array.isArray(l) && l.length >= 1 && l.every(pick)) ? /** @type {{ at: number, n: number, rec: any }[][]} */ (hand) : false;
 }
 
-/** @param {any} db @param {string} poi @param {number} rev */
+/** The document that is live at `rev`, or the refusal. @param {any} db @param {string} poi @param {number} rev */
 async function liveDoc(db, poi, rev) {
   const d = await db.prepare('SELECT live_rev FROM poi_docs WHERE id = ?').bind(poi).first();
   if (!d || d.live_rev !== rev) return { error: 'poi-not-live' };
@@ -45,7 +53,7 @@ async function liveDoc(db, poi, rev) {
   return doc?.v === 2 ? { doc } : { error: 'poi-not-live' };
 }
 
-/** @param {any} db @param {string} txnId @param {string} player */
+/** What a settled txn answered, to the account that made it. @param {any} db @param {string} txnId @param {string} player */
 async function replayOf(db, txnId, player) {
   const row = await db.prepare('SELECT player, result FROM poi_txn_log WHERE txn_id = ?').bind(txnId).first();
   if (!row) return null;
@@ -53,7 +61,9 @@ async function replayOf(db, txnId, player) {
   return { ...parsed(row.result), replayed: true };
 }
 
-/** @param {any} db @param {string} poi @param {string} char @param {Map<string, string>} [texts] */
+/**
+ * @param {any} db @param {string} poi @param {string} char @param {Map<string, string>} [texts] filled with each value as stored
+ */
 async function keptVars(db, poi, char, texts = new Map()) {
   const rows = (await db.prepare('SELECT scope_id, var, value FROM poi_state_vars WHERE poi_id = ? AND scope_id IN (?, ?)').bind(poi, `char:${char}`, 'poi').all())?.results ?? [];
   /** @type {Record<string, any>} */
@@ -62,10 +72,10 @@ async function keptVars(db, poi, char, texts = new Map()) {
   return out;
 }
 
-/** @param {any} v @param {string} char */
+/** Where a variable is kept. @param {any} v @param {string} char */
 const scopeIdOf = (v, char) => (v.scope === 'character' ? `char:${char}` : 'poi');
 
-/** @param {any} db @param {string} poi @param {string} claim @param {{ scope: string }[]} rules */
+/** The claims the rules count, read before the settle. @param {any} db @param {string} poi @param {string} claim @param {{ scope: string }[]} rules */
 async function keptClaims(db, poi, claim, rules) {
   /** @type {Map<string, { n: number, last: number }>} */
   const out = new Map();
@@ -76,8 +86,7 @@ async function keptClaims(db, poi, claim, rules) {
   return out;
 }
 
-/** @param {any} db @param {string} poi @param {string} claim
- *  @param {{ scope: string, max: number, cooldownS?: number }[]} rules @param {number} nowS */
+/** The statements that count one run against each rule, each guarded: no room, and the batch rolls back. @param {any} db @param {string} poi @param {string} claim @param {{ scope: string, max: number, cooldownS?: number }[]} rules @param {number} nowS */
 function claimSteps(db, poi, claim, rules, nowS) {
   return rules.flatMap((r) => [
     db.prepare(`INSERT INTO poi_trade_claims (poi_id, claim, scope, n, last_at) VALUES (?1, ?2, ?3, 1, ?4)
@@ -87,9 +96,11 @@ function claimSteps(db, poi, claim, rules, nowS) {
   ]);
 }
 
-/** @param {any} db @param {string} poi
- *  @param {{ claim: string, rules: { scope: string, max: number, cooldownS?: number }[] }} limits
- *  @param {number} nowS */
+/**
+ * The word for a settle's batch refused by a limit: a rule of the act whose row has no room now answers its own word, the
+ * one recipeWhy gives; null when every rule had room (the database failed instead).
+ * @param {any} db @param {string} poi @param {{ claim: string, rules: { scope: string, max: number, cooldownS?: number }[] }} limits @param {number} nowS
+ */
 async function limitWord(db, poi, limits, nowS) {
   if (!limits.rules.length) return null;
   const rows = await keptClaims(db, poi, limits.claim, limits.rules);
@@ -102,16 +113,16 @@ async function limitWord(db, poi, limits, nowS) {
   return null;
 }
 
-/** @param {any} ctx @param {string} player
- *  @param {{ poi: string, rev: number, id: string, lease: string, seq: number, txnId: string }} a
- *  @param {'trade' | 'event'} kind @param {(save: any) => string | null} change
- *  @param {() => { steps: any[], result: any, limits: { claim: string, rules: any[] }, raced?: () => Promise<boolean> }} after */
+/**
+ * @param {any} ctx @param {string} player @param {{ poi: string, rev: number, id: string, lease: string, seq: number, txnId: string }} a @param {'trade' | 'event'} kind
+ * @param {(save: any) => string | null} change @param {() => { steps: any[], result: any, limits: { claim: string, rules: any[] }, raced?: () => Promise<boolean> }} after
+ */
 async function settle(ctx, player, a, kind, change, after) {
   const { db, bucket, nowS } = ctx;
   const prep = await prepareRealmRecord(ctx, player, { id: a.id, lease: a.lease, seq: a.seq }, change, { outbound: true, escrow: false });
   if ('error' in prep) return prep;
   const { steps, result, limits, raced } = after();
-  const answer = { ok: true, seq: prep.seq, realm: { seq: prep.seq }, ...result };
+  const answer = { ok: true, seq: prep.seq, realm: { seq: prep.seq }, ...result };   // `realm.seq`: where the record stands now, as every realm act answers it (systems/realmSaves.js realmGoldAct)
   try {
     await db.batch([
       ...prep.steps,
@@ -134,17 +145,20 @@ async function settle(ctx, player, a, kind, change, after) {
   return answer;
 }
 
+/** The refusal for a recipe's why-word. */
 const WHY = Object.freeze({ when: 'poi-when', items: 'poi-items', gold: 'poi-gold', limit: 'poi-limit', cooldown: 'poi-cooldown', stock: 'poi-stock', hand: 'poi-hand' });
 
 /** @param {any} save @param {any[]} stacks @param {{ at: number, n: number, rec: any }[][] | null} hand */
 function takeFrom(save, stacks, hand) {
-  // Rollout only: an older client sends no hand, so the records are chosen here.
+  // Rollout only: an older client sends no hand, so the records are chosen here; a later update refuses that.
   if (!hand) { const t = takeStacks(save, stacks); return t.ok ? { picks: t.picks } : { error: WHY.items }; }
   const t = takeChosen(save, stacks, hand);
   return t.ok ? { picks: t.picks } : { error: WHY.hand };
 }
 
-/** @param {any[]} stacks @param {(b: Uint8Array<ArrayBuffer>) => Uint8Array} rand */
+/**
+ * Mint what a stack list gives: the records, or a refusal. @param {any[]} stacks @param {(b: Uint8Array<ArrayBuffer>) => Uint8Array} rand
+ */
 function mint(stacks, rand) {
   /** @type {any[]} */
   const records = [];
@@ -157,7 +171,7 @@ function mint(stacks, rand) {
   return records.length > GIVE_MAX ? { error: 'poi-reward' } : { records };
 }
 
-/** @param {any} save @param {any} doc @param {Record<string, any>} kept */
+/** The counts and gold a save holds, as the conditions read them, with the kept variables. @param {any} save @param {any} doc @param {Record<string, any>} kept */
 const ctxOfSave = (save, doc, kept) => ({
   count: (/** @type {any} */ s) => countOf(save, s),
   takeable: (/** @type {any} */ s) => takeableOf(save, s),
@@ -165,10 +179,10 @@ const ctxOfSave = (save, doc, kept) => ({
   getVar: (/** @type {string} */ k) => (k in kept ? kept[k] : byKey(doc.variables, k)?.initial),
 });
 
-/** @param {any} doc @param {any} c */
+/** A condition that reads a variable the service does not keep (event, instance) cannot be judged here. @param {any} doc @param {any} c */
 const readsOnlyKept = (doc, c) => [...varsRead(c)].every((k) => persists(byKey(doc.variables, k)));
 
-/** @param {any} ctx @param {string} player @param {any} body */
+/** ONE RECIPE RUN. @param {any} ctx @param {string} player @param {any} body */
 export async function tradePoi(ctx, player, body) {
   if (!ctx.bucket) return { error: 'no-storage' };
   const a = actOf(body);
@@ -215,7 +229,7 @@ export async function tradePoi(ctx, player, body) {
 
 const POI_RACE_TRIES = 8;
 
-/** @param {any} ctx @param {string} player @param {any} body @param {number} [tries] */
+/** ONE EVENT'S ITEMS, GOLD AND KEPT VARIABLES. @param {any} ctx @param {string} player @param {any} body @param {number} [tries] */
 export async function eventClaimPoi(ctx, player, body, tries = POI_RACE_TRIES) {
   if (!ctx.bucket) return { error: 'no-storage' };
   const a = actOf(body);
@@ -249,6 +263,8 @@ export async function eventClaimPoi(ctx, player, body, tries = POI_RACE_TRIES) {
   /** @type {Map<string, { to?: any, delta: number }>} */
   const writes = new Map();
   let value = null;
+  // the branch is chosen from the record, then the act is shaped by it - so the rules (the once an event gives in) are
+  // read with the actions in hand, and the claim row for them read before the record is touched
   const rulesFor = (/** @type {any[]} */ actions) => eventRule(actions, char);
   const claimName = eventClaim(body.event);
   const claims = await keptClaims(db, a.poi, claimName, [...rulesFor(ev.then ?? []), ...rulesFor(ev.else ?? [])]);
@@ -282,6 +298,7 @@ export async function eventClaimPoi(ctx, player, body, tries = POI_RACE_TRIES) {
     giveGoods(save, given, giveAmount);
     return null;
   };
+  // an event with nothing for the service to settle: the branch is read from the record, and nothing is written
   const nothingFor = (/** @type {'then' | 'else'} */ b) => !(ev[b] ?? []).some((x) => /^(give|take)_(item|gold)$/.test(x.k) || (x.k === 'set_var' && persists(byKey(doc.variables, x.var))));
   if (nothingFor('then') && nothingFor('else')) {
     if (hand?.length) return { error: WHY.hand };
@@ -302,7 +319,7 @@ export async function eventClaimPoi(ctx, player, body, tries = POI_RACE_TRIES) {
       const v = byKey(doc.variables, key);
       const scopeId = scopeIdOf(v, char);
       if (w.to === undefined && v.scope === 'poi_global') {
-        // A shared counter moves by arithmetic, so two characters adding at once both count.
+        // a shared counter moves by arithmetic, so two characters adding at once both count
         steps.push(db.prepare(`INSERT INTO poi_state_vars (poi_id, scope_id, var, value) VALUES (?1, ?2, ?3, ?4)
           ON CONFLICT (poi_id, scope_id, var) DO UPDATE SET value = printf('%.15g', CAST(value AS REAL) + ?5)`)
           .bind(a.poi, scopeId, key, JSON.stringify((Number(v.initial) || 0) + w.delta), w.delta));

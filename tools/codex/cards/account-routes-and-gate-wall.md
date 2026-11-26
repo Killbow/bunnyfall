@@ -9,7 +9,6 @@ files:
   - server-account/src/sessionPass.js
   - server-account/src/staffFreeze.js
   - tools/routesCheck.mjs
-  - server-account/src/admit.js
 routes:
   - /v1/auth/token
   - /v1/auth/logout
@@ -31,7 +30,6 @@ invariants:
 traps:
   - Hot routes that accept `x-session-pass` skip the initial D1 lookup, so checkpoint and heartbeat writes must still check session, ban, and freeze columns in SQL.
   - Only `AdmitGate` and `default` may be exported from `server-account/src/index.js`; placing constants there breaks `workerd` entrypoint validation.
-  - "The sign-in admission gate (`admitWait`, backed by `AdmitGate`) fails open: a missing `ADMIT` binding, an error, or no answer within `ADMIT_ASK_MS` (`2000` ms) lets the caller in."
 tags:
   - account
   - routes

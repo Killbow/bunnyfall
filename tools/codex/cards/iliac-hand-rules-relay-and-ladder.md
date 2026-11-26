@@ -38,8 +38,6 @@ invariants:
   - "`deckValid` enforces exactly `ILIAC_DECK_SIZE` (`30`) known playable cards, with at most `ILIAC_COPIES_MAX` (`2`) copies of any card and `ILIAC_LEGENDARY_COPIES_MAX` (`1`) of any legendary-or-higher tier."
   - "Matches run `ILIAC_TURNS` (`6`) simultaneous turns across `ILIAC_HOLDINGS` (`3`) holdings (`ILIAC_ROOM = 4` cards per side each), with magicka climbing by `1` per turn up to `ILIAC_MAGICKA_MAX` (`10`) and hand size starting at `4` (max `7`)."
   - "All randomness (deck shuffles, 3 holdings from 11 `ILIAC_LOCATIONS`, and initial `coin`) is drawn in `newGame`; winning 2 of 3 holdings wins the match, breaking ties by total power across all holdings before declaring a draw."
-  - "An account season rating is its last `iliac_games` row by rowid, not by `at`, because `at` is when the claim request began and claims can land out of order."
-  - "The pair day cap (`ARENA_PAIR_DAY_MAX`) counts the pair games whose receipt `played` time falls within a day either side of this game, since a held receipt can be carried days after the game."
 traps:
   - "Equal board power ties only affect turn reveal order (`(state.coin + turn - 1) % 2`), whereas leading total board power reveals first."
   - "Ranked play has no matchmaking queue; a table game becomes ranked when two distinct accounts both sit with 60-second signed `'deck'` orders from `/v1/cards/deck` (`verifyOrder` kind `'deck'`)."

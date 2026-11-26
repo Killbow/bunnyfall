@@ -35,7 +35,6 @@ invariants:
 traps:
   - "`canModerate` is `isModerator || isDeveloper`; `MOD_TIERS` (`shadowfang`) grants moderation without the shield glyph."
   - "Founder eligibility uses `FOUNDER_UNTIL` and `firstPlayed`, linked via `linkFirstPlay`, not a stored grant flag."
-  - "`LINK_SQL` reads the same holdings as migration 0078 except `renown_tracks`, whose `char_id` is second in its key, so a lookup by character would scan the whole table."
 dfu: []
 tags:
   - titles

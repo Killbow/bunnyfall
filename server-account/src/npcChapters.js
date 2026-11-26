@@ -1,11 +1,45 @@
 // @ts-check
+// ═══════════════════════════════════════════════════════════════════
+// CHAP3b (2026-10-08, Mac: "Continue", on "Keep going with the arc/
+// slices") — STRENGTH AND THE CHAPTER SHEET: each chapter's Strength moved
+// at the week's Turning toward its members' Merit (Chapters-Arc 5.2), and
+// every chapter's state published (5.3). The law is
+// src/net/npcChapterLaw.js; the record is migration 0102_npc_chapters.
+//
+// THE CHAPTERS' TURNING IS THEIR OWN, ON THE SEATS' WEEK. Section 11 drew it
+// inside the seats' settleWeek; it is built beside it instead - the same
+// lazy law (Seats-Arc 5.2: "never a job that runs" - week N settled the
+// first time anything asks after N's boundary), keyed on its own row
+// (`npc_chapter_weeks`), so neither switch waits on the other. ONE batch a
+// week whose first statement is the week's own key - a plain INSERT, so a
+// second reader racing the first fails on the key and its whole batch rolls
+// back - and every chapter's new Strength in ONE statement over a bound
+// JSON array (SCALE1's law: never a statement a chapter).
+//
+// The week's chapters: every chapter confirmed when it settles, every one
+// that earned Merit that week, every one the sheet already holds. Its scale
+// is the accounts that played in the week before its Turning or since (a
+// player's last play is all the service keeps).
+//
+// CHAP4a (2026-10-08, Mac: "Your decision", on "Whats next"): AND ITS
+// SEATS - the same batch places every chapter's Master and three officers
+// by its Eligible members' Merit over the four weeks to the one it settles
+// (npcChapterLaw.js chapterSeatPlan, Chapters-Arc 6), writes the seats'
+// table whole again, and a Chronicle row for every seat that moved.
+//
+// AUDIT CHAP3: a week settles CHAPTER_TURNING_GRACE_S after its boundary
+// (S1: a credit in flight across it lands in its week first); only while
+// the Chapters are 'dev' or 'on', and the first week settled 'on' after
+// weeks at 'dev' starts every chapter from 50 (S2); a gate's Merit counts
+// only in the region the day's claims agree on (E1, the seats' own law).
+// ═══════════════════════════════════════════════════════════════════
 
 import { chaptersOpenFor } from './npcRoll.js';
-import { REALM_ID_RE } from './realm.js';
+import { REALM_ID_RE } from './realm.js';   // CHAP4d: a Master's character, as the Roll names one
 import { regionOk } from '../../src/net/nodeLaw.js';
 import { allRegionChapters, hallRowsRead } from './npcHalls.js';
-import { weekSettled, keepWeekSettled } from './weekKept.js';
-import { agreedGateRegions } from './seatInfluence.js';
+import { weekSettled, keepWeekSettled } from './weekKept.js';   // PRIMARY-FOLD: a week read settled, kept
+import { agreedGateRegions } from './seatInfluence.js';   // AUDIT CHAP3 E1: a gate's region, as three of the day's claims agree on it
 import { seatWeekStartMs, SEAT_WEEK_MS, seasonEndingAt, seasonZeroOf, seasonOf, SEASON_WEEKS } from '../../src/net/townSeatLaw.js';
 import {
   STRENGTH_START, strengthAfter, failingWeekAfter, strengthTarget, strengthSeasonEnd, chapterBandOf, meritWeekOf, hallHidden, chaptersSwitchOf,
@@ -14,7 +48,7 @@ import {
   schismDoctrinesOf, schismWinner, successionHeir, chapterBackOk, chapterDoctrineOk, SUCCESSION_TURNING,
   patronBidOk, patronEscrowId, patronWinnerOf,
 } from '../../src/net/npcChapterLaw.js';
-import { MARKS_MAX, MARKS_MOVE_MAX, MARKS_OPS_MAX, MARKS_OPS_WINDOW_S, MARKS_RID_RE, utcDay } from '../../src/net/marksLaw.js';
+import { MARKS_MAX, MARKS_MOVE_MAX, MARKS_OPS_MAX, MARKS_OPS_WINDOW_S, MARKS_RID_RE, utcDay } from '../../src/net/marksLaw.js';   // CHAP7a: a patron's bid
 import { guildMay } from '../../src/net/guildLaw.js';
 import { accountKind, displayName, overRate } from './accounts.js';
 import { guildActorOf } from './guilds.js';
@@ -22,31 +56,52 @@ import { marksOpenFor, guildBalanceOf } from './marks.js';
 import { mustChange } from './realm.js';
 import { heraldryOfRow } from './halls.js';
 
+/** The most weeks one read settles - a service asleep for longer starts its count again from there (the seats' own). */
 export const CHAPTER_WEEKS_MAX = 8;
+/** AUDIT CHAP3 S1: how long after its boundary a week is settled - a credit in flight across the boundary (its week
+ *  stamped from its own clock) lands in its week before the Turning reads it. */
 export const CHAPTER_TURNING_GRACE_S = 300;
 
-/** @param {any} db @param {number} nowS */
+/**
+ * EVERY REGION'S CHAPTERS, `[{ faction, region }]` (npcHalls.js allRegionChapters - AUDIT CHAP3 S3: each region's row,
+ * computed once a change), by region then faction.
+ * @param {any} db @param {number} nowS
+ */
 export async function allChapters(db, nowS, rows = undefined) {
   return (await allRegionChapters(db, nowS, rows)).sort((a, b) => a.region - b.region || a.faction - b.faction);
 }
 
+/** AUDIT CHAP3 E1: the gate's day a Merit line's `ref` names (`gate:<day>`), or null. */
 const gateDayOf = (/** @type {unknown} */ ref) => { const m = /^gate:(\d+)$/.exec(String(ref)); return m ? Number(m[1]) : null; };
 
+/** The Turning that ends seat week `week`, in seconds. */
 const turningOf = (/** @type {number} */ week) => Math.floor((seatWeekStartMs(week) + SEAT_WEEK_MS) / 1000);
 
-/** @param {any} db @param {number} week @param {number} nowS @param {number | null} [zero]
- * @param {string} [open] */
+/**
+ * SETTLE WEEK `week`'S STRENGTH: each chapter's Strength moved by its week's Merit against the week's target
+ * (npcChapterLaw.js strengthAfter), halfway back toward 50 where a Season ends with it (`zero`, the week Season 0 began,
+ * or null). `open` the Chapters' switch it settles under ('dev' or 'on' - AUDIT CHAP3 S2: the first week settled 'on'
+ * after a week settled 'dev' starts every chapter from 50). Answers `{ settled: true, chapters }` or `{ settled: false }`
+ * - settled first by another reader, or rolled back (the next read settles it again).
+ * @param {any} db @param {number} week @param {number} nowS @param {number | null} [zero] @param {string} [open]
+ */
 export async function settleChapterWeek(db, week, nowS, zero = null, open = 'on') {
   const turning = turningOf(week);
   const active = Number((await db.prepare('SELECT COUNT(*) AS n FROM players WHERE handle IS NOT NULL AND played_at >= ?1')
     .bind(turning - SEAT_WEEK_MS / 1000).first())?.n ?? 0);
   const target = strengthTarget(active);
+  // AUDIT CHAP3 E1: a gate's Merit only in the region three of its day's claims agree on (the seats' agreedGateRegions)
+  // - the region a claim names is its client's word; the other sources' lines stand as they were written
   const { results: lines = [] } = await db.prepare(`SELECT faction, region, source, ref, SUM(amount) AS n FROM npc_chapter_merit WHERE week = ?1
     GROUP BY faction, region, source, CASE WHEN source = 'gate' THEN ref ELSE '' END`).bind(week).all();
   const gateDays = [...new Set(lines.filter((r) => r.source === 'gate').map((r) => gateDayOf(r.ref)).filter((d) => d !== null))];
   const agreed = await agreedGateRegions(db, gateDays);
   const merits = lines.filter((r) => r.source !== 'gate' || agreed.get(/** @type {number} */ (gateDayOf(r.ref))) === Number(r.region));
+  // AUDIT CHAP3 S2: the developers' weeks forgotten the first week the Chapters are everyone's - AUDIT CHAP4 S2: the
+  // last week the Chapters were open at all ('dev' or 'on'), the weeks they were shut ('off') no week of either
   const last = await db.prepare("SELECT open FROM npc_chapter_weeks WHERE week < ?1 AND open <> 'off' ORDER BY week DESC LIMIT 1").bind(week).first();
+  // AUDIT CHAP5 S6: the opening is the FIRST week ever settled 'on' - a trial of the developers' after it ('on', 'dev',
+  // 'on' again) wiped every chapter's Strength, seats and paid patronage in the middle of a Season
   const opened = open === 'on' && last?.open === 'dev'
     && !(await db.prepare("SELECT 1 FROM npc_chapter_weeks WHERE week < ?1 AND open = 'on' LIMIT 1").bind(week).first());
   const { results: held = [] } = opened ? { results: [] } : await db.prepare('SELECT faction, region, strength, event, event_season, event_data, shut_season, doctrine, doctrine_season FROM npc_chapters').all();
@@ -63,23 +118,30 @@ export async function settleChapterWeek(db, week, nowS, zero = null, open = 'on'
   for (const r of merits) at(Number(r.faction), Number(r.region)).merit += Number(r.n);
   const ends = seasonEndingAt(week, zero);
   const keys = new Set(confirmed.map((c) => `${c.faction}|${c.region}`));
+  // CHAP6a: the week's step (Chapters-Arc 7). GUILD3e (bible/11-Multiplayer/Guilds-Made-Plain.md): the Decline gone as an
+  // event - a row still holding one reads as none (heldEvent) - and AUDIT GUILD3 R1: its fall the Failing band's, every
+  // week a chapter begins Failing (failingWeekAfter: 2 more unless the week's Merit meets twice the target)
   const season = seasonOf(week, zero);
   const live = (/** @type {Chapter} */ c) => (season && c.eventSeason === season.n ? c.event : null);
   for (const c of all.values()) c.s = failingWeekAfter(c.prev, strengthAfter(c.prev, c.merit, target), c.merit, target);
+  // CHAP6b: a Succession named at the Season's third Turning (or the first after it a sleeping service settles)
   if (season && week >= season.start + SUCCESSION_TURNING - 1) await successionNamed(db, season, week, all, live);
   /** @type {any[]} */
   const seasonRows = ends ? await seasonEnded(db, /** @type {{ n: number, start: number }} */ (season), week, all, keys, live, opened, open) : [];
   const next = seasonOf(week + 1, zero);
   if (next && next.start === week + 1) await seasonDrawn(db, next.n, week, season, all, keys);
+  // CHAP7a: and the Season's patrons - each chapter's highest bid burnt, every other home (Chapters-Arc 8). AUDIT CHAP5
+  // S6: at the opening every bid goes home, none won - the developers' trial bought nobody a Season
   const patrons = opened ? await patronsDrawn(db, PATRON_SEASONS_ALL, new Set())
     : next && next.start === week + 1 ? await patronsDrawn(db, next.n, keys) : null;
   const rows = [...all.values()].map((c) => [c.faction, c.region, ends ? strengthSeasonEnd(c.s) : c.s, c.merit, c.event, c.eventSeason, JSON.stringify(c.data), c.shut, c.doctrine, c.doctrineSeason]);
   const seats = await seatsPlaced(db, week, turning, open, opened, keys);
   try {
     await db.batch([
-      // A plain INSERT of the week's key goes first, so a second settler fails on the key and its whole
-      // batch rolls back.
       db.prepare('INSERT INTO npc_chapter_weeks (week, active, target, chapters, open, at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(week, active, target, rows.length, open, nowS),
+      // AUDIT CHAP4 S6: the opening week starts EVERY chapter from 50 - a chapter this week names no more than one it does not
+      // (a developers' trial chapter whose town is confirmed again later read its trial Strength)
+      // CHAP6a: and no developers' event, nor a shut hall, past the opening
       ...(opened ? [db.prepare("UPDATE npc_chapters SET strength = ?1, event = NULL, event_season = NULL, event_data = '{}', shut_season = NULL, doctrine = NULL, doctrine_season = NULL, patron = NULL, patron_season = NULL WHERE true").bind(STRENGTH_START)] : []),
       db.prepare(`INSERT INTO npc_chapters (faction, region, strength, week, merit, at, event, event_season, event_data, shut_season, doctrine, doctrine_season)
         SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'), ?1, json_extract(value, '$[3]'), ?2,
@@ -90,17 +152,19 @@ export async function settleChapterWeek(db, week, nowS, zero = null, open = 'on'
           event = excluded.event, event_season = excluded.event_season, event_data = excluded.event_data, shut_season = excluded.shut_season,
           doctrine = excluded.doctrine, doctrine_season = excluded.doctrine_season`)
         .bind(week, nowS, JSON.stringify(rows)),
+      // CHAP4a: the seats, the whole table again; a Chronicle row a seat that moved
       db.prepare('DELETE FROM npc_chapter_seats WHERE true'),
       db.prepare(`INSERT INTO npc_chapter_seats (faction, region, char_id, account, seat, since, week, at)
         SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'), json_extract(value, '$[3]'),
           json_extract(value, '$[4]'), json_extract(value, '$[5]'), ?1, ?2 FROM json_each(?3)
-          WHERE EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = json_extract(value, '$[2]'))`)
+          WHERE EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = json_extract(value, '$[2]'))`)   // AUDIT CHAP4 S5: one deleted meanwhile never sits
         .bind(week, nowS, JSON.stringify(seats.rows)),
       db.prepare(`INSERT INTO npc_chapter_history (faction, region, week, kind, char_id, data, at)
         SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), ?1, 'seat', json_extract(value, '$[2]'),
           json_object('from', json_extract(value, '$[3]'), 'to', json_extract(value, '$[4]')), ?2 FROM json_each(?3)
-          WHERE json_extract(value, '$[4]') IS NULL OR EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = json_extract(value, '$[2]'))`)
+          WHERE json_extract(value, '$[4]') IS NULL OR EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = json_extract(value, '$[2]'))`)   // S5: nor is said to take one
         .bind(week, nowS, JSON.stringify(seats.changes)),
+      // CHAP6a: the Season's own lines - each event's ending, and each Master who held the seat the whole of it
       db.prepare(`INSERT INTO npc_chapter_history (faction, region, week, kind, char_id, data, at)
         SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), ?1, json_extract(value, '$[2]'), json_extract(value, '$[3]'), json_extract(value, '$[4]'), ?2
         FROM json_each(?3) WHERE json_extract(value, '$[3]') = '' OR EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = json_extract(value, '$[3]'))`)
@@ -113,11 +177,24 @@ export async function settleChapterWeek(db, week, nowS, zero = null, open = 'on'
   return { settled: true, chapters: rows.length };
 }
 
+// ─── CHAP7a: THE PATRONS (Chapters-Arc 8, CALL 6) ───────────────────
+
+/** The ledger's actor for the Turning's own patron lines (one a bid, its id the bid's escrow's). */
 const PATRON_ACTOR = 'chapters';
+/** AUDIT CHAP5 S6: the Season past every bid's - the opening's draw, which sends every open bid home. */
 const PATRON_SEASONS_ALL = 2 ** 31 - 1;
 const LEDGER = 'INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, who, rid)';
 
-/** @param {any} db @param {number} n @param {Set<string>} keys */
+/**
+ * CHAP7a: THE PATRONS OF SEASON `n`, decided at the Turning that opens it: each chapter's open bids for it, the highest
+ * of a guild still standing at a chapter confirmed now (npcChapterLaw.js patronWinnerOf - at a tie the one that stood
+ * at it first) wins; its escrow is burnt ('patron') and every other goes home ('patron-return') - burnt where its guild
+ * is gone or its treasury would pass the cap, the cap reckoned across every bid going home to it, so the batch never
+ * fails on it. A bid still open for an earlier Season - one that opened while the Chapters were shut ('off', nothing
+ * settled) - goes home with them. Answers `{ n, lines, won, rows }` - the ledger's lines `[escrow id, dst kind, dst id,
+ * kind, faction, region, guild, Season]`, each chapter's patron `[faction, region, guild]`, and a Chronicle row a patron.
+ * @param {any} db @param {number} n @param {Set<string>} keys
+ */
 async function patronsDrawn(db, n, keys) {
   const { results: bids = [] } = await db.prepare(`SELECT b.faction, b.region, b.season, b.guild_id, b.amount, b.at, g.name, g.tag,
       (SELECT balance FROM guild_marks m WHERE m.guild_id = b.guild_id) AS treasury
@@ -131,7 +208,7 @@ async function patronsDrawn(db, n, keys) {
     by.get(k)?.push(b);
   }
   /** @type {Map<string, number>} */
-  const home = new Map();
+  const home = new Map();   // each guild's treasury as the lines going home to it leave it
   const lines = [], won = [], rows = [];
   for (const [k, list] of by) {
     const [f, g, season] = k.split('|').map(Number);
@@ -154,13 +231,21 @@ async function patronsDrawn(db, n, keys) {
   return { n, lines, won, rows };
 }
 
-/** @param {any} db @param {{ n: number, lines: any[], won: any[] }} p @param {number} nowS */
+/**
+ * CHAP7a: THE TURNING'S PATRON STATEMENTS, in its one batch after the chapters' own: the ledger's lines (each bid's whole
+ * escrow, its amount as the table holds it), the bids decided, each chapter's patron and its Season - and last a guard
+ * that fails the whole batch if a bid for the Season stands undecided (one that landed between the read and the batch:
+ * the next read settles the week again, with it).
+ * @param {any} db @param {{ n: number, lines: any[], won: any[] }} p @param {number} nowS
+ */
 function patronStatements(db, { n, lines, won }, nowS) {
   return [
     db.prepare(`${LEDGER} SELECT 'escrow', json_extract(v.value, '$[0]'), json_extract(v.value, '$[1]'), json_extract(v.value, '$[2]'),
         json_extract(v.value, '$[3]'), b.amount, ?2, ?3, '${PATRON_ACTOR}', 'The Turning', json_extract(v.value, '$[0]')
       FROM json_each(?1) v JOIN npc_chapter_patron_bids b ON b.faction = json_extract(v.value, '$[4]') AND b.region = json_extract(v.value, '$[5]')
         AND b.guild_id = json_extract(v.value, '$[6]') AND b.season = json_extract(v.value, '$[7]') AND b.state = 'open'`).bind(JSON.stringify(lines), utcDay(nowS), nowS),
+    // AUDIT CHAP5 S4: each array read ONCE (a row-value IN over an uncorrelated list, an UPDATE ... FROM) - a correlated
+    // EXISTS read the whole array again for every bid, a Season of some thousands of bids past the batch's time
     db.prepare(`UPDATE npc_chapter_patron_bids SET state = CASE WHEN (faction, region, guild_id, season) IN (SELECT json_extract(value, '$[0]'),
         json_extract(value, '$[1]'), json_extract(value, '$[2]'), ?1 FROM json_each(?2)) THEN 'won' ELSE 'lost' END
       WHERE season <= ?1 AND state = 'open' AND (faction, region, guild_id, season) IN (SELECT json_extract(value, '$[4]'), json_extract(value, '$[5]'),
@@ -168,13 +253,21 @@ function patronStatements(db, { n, lines, won }, nowS) {
     db.prepare(`UPDATE npc_chapters SET patron = w.guild, patron_season = ?2
       FROM (SELECT json_extract(value, '$[0]') AS f, json_extract(value, '$[1]') AS g, json_extract(value, '$[2]') AS guild FROM json_each(?1)) w
       WHERE npc_chapters.faction = w.f AND npc_chapters.region = w.g`).bind(JSON.stringify(won), n),
-    // Fails the whole batch while a bid for the Season is still open, so a bid that landed after the
-    // read settles on the next read.
     db.prepare("INSERT INTO realm_tx_guard (moved, expected) SELECT 1, 0 WHERE EXISTS (SELECT 1 FROM npc_chapter_patron_bids WHERE season <= ?1 AND state = 'open')").bind(n),
   ];
 }
 
-/** @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} env @param {any} body */
+/**
+ * CHAP7a: A GUILD'S BID FOR A CHAPTER'S PATRONAGE (`POST /v1/chapters/patron { character, faction, region, marks, rid }`)
+ * - the account's character the guildmaster of its player guild (GUILD1: its treasury is the guildmaster's to spend),
+ * the bid the whole the guild will pay for the Season after this one, more than it stood at; the difference held from
+ * the guild's treasury in escrow. Never a hidden guild's chapter, nor one not confirmed now; never once the Turning
+ * that opens that Season has settled. One batch: the line (its guards inside it), then the bid. Answers `{ ok, season,
+ * marks, guildMarks }` (`repeat` for a request already made), or `{ error }`: 'body', 'marks-need-account',
+ * 'marks-rid', 'no-season', 'no-chapter', the guild's door's ('guild-character', 'no-guild'), 'guild-rank',
+ * 'marks-closed', 'bad-marks', 'patron-low', 'marks-rate', 'guild-marks-short', 'closed'.
+ * @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} env @param {any} body
+ */
 export async function bidPatron(ctx, player, env, { character, faction, region, marks, rid } = {}) {
   const { db, nowS } = ctx;
   if (typeof character !== 'string' || !REALM_ID_RE.test(character) || !regionOk(region) || !Number.isSafeInteger(faction)) return { error: 'body' };
@@ -205,6 +298,7 @@ export async function bidPatron(ctx, player, env, { character, faction, region, 
   const more = marks - prev;
   try {
     await db.batch([
+      // THE LINE: the guildmaster still, the treasury's silver, the bid where it stood, the Season not yet opened
       db.prepare(`${LEDGER} SELECT 'guild', ?1, 'escrow', ?2, 'patron-escrow', ?3, ?4, ?5, ?6, ?7, ?8
         WHERE COALESCE((SELECT balance FROM guild_marks WHERE guild_id = ?1), 0) >= ?3
           AND EXISTS (SELECT 1 FROM guild_members WHERE player = ?6 AND char_id = ?9 AND guild_id = ?1 AND rank = ?10)
@@ -223,12 +317,18 @@ export async function bidPatron(ctx, player, env, { character, faction, region, 
   return { ok: true, season, marks, guildMarks: await guildBalanceOf(db, guild) };
 }
 
+/** CHAP7a: a region's chapters' patrons this Season (every region's for `region` null), a Map of `faction|region` to
+ *  `{ id, name, tag, heraldry }` - a patron whose guild is gone since is none. `n` the Season (seasonNumberAt), null for
+ *  none counted. */
 export async function regionPatrons(/** @type {any} */ db, /** @type {number | null} */ region, /** @type {number | null} */ n) {
   const read = patronsRead(db, region, n);
   return patronsFrom(read ? (await read.all()).results ?? [] : []);
 }
+/** PRIMARY-FOLD: the patrons' question for Season `n` (null asks none - no Season counted), as a statement a caller's batch
+ *  may carry (chapterSheet's), and its rows read as regionPatrons answers them. */
 export function patronsRead(/** @type {any} */ db, /** @type {number | null} */ region, /** @type {number | null} */ n) {
   if (n == null) return null;
+  // AUDIT CHAP5 S5: a region's on its own index - `?2 IS NULL OR` read every chapter for a board's one region
   const head = 'SELECT c.faction, c.region, g.id, g.name, g.tag, g.heraldry FROM npc_chapters c JOIN guilds g ON g.id = c.patron';
   return region == null ? db.prepare(`${head} WHERE c.patron_season = ?1`).bind(n) : db.prepare(`${head} WHERE c.region = ?2 AND c.patron_season = ?1`).bind(n, region);
 }
@@ -239,6 +339,7 @@ export function patronsFrom(/** @type {any[]} */ results) {
   return out;
 }
 
+/** CHAP7a: a guild's own bids on a region's chapters for Season `n`, a Map of guild faction to its whole. */
 export async function guildPatronBids(/** @type {any} */ db, /** @type {number} */ region, /** @type {number} */ n, /** @type {string} */ guild) {
   const { results = [] } = await db.prepare("SELECT faction, amount FROM npc_chapter_patron_bids WHERE region = ?1 AND season = ?2 AND guild_id = ?3 AND state = 'open'").bind(region, n, guild).all();
   return new Map(results.map((/** @type {any} */ r) => [Number(r.faction), Number(r.amount)]));
@@ -246,17 +347,23 @@ export async function guildPatronBids(/** @type {any} */ db, /** @type {number} 
 
 /** @typedef {{ faction: number, region: number, prev: number, merit: number, s: number, event: string | null, eventSeason: number | null, data: any, shut: number | null, doctrine: string | null, doctrineSeason: number | null }} Chapter */
 
+/** CHAP6a: a held row's event, as the Turning carries it. */
 function heldEvent(/** @type {any} */ r) {
   let data = {};
-  try { data = JSON.parse(r.event_data ?? '{}') ?? {}; } catch { }
+  try { data = JSON.parse(r.event_data ?? '{}') ?? {}; } catch { /* a state nobody can read is no state */ }
   return {
     event: chapterEventOk(r.event) ? String(r.event) : null, eventSeason: r.event_season == null ? null : Number(r.event_season),
     data: typeof data === 'object' && !Array.isArray(data) ? data : {}, shut: r.shut_season == null ? null : Number(r.shut_season),
+    // CHAP6b: the doctrine a Schism carried, and the Season it holds for
     doctrine: chapterDoctrineOk(r.doctrine) ? String(r.doctrine) : null, doctrineSeason: r.doctrine_season == null ? null : Number(r.doctrine_season),
   };
 }
 
-/** @param {any} db @param {number} from @param {number} to */
+/**
+ * CHAP6b: EVERY ACCOUNT'S MERIT at every chapter from week `from` to week `to`, a Map of `faction|region|account` to its
+ * sum - a gate's where its day's claims agree (AUDIT CHAP3 E1), as every sum.
+ * @param {any} db @param {number} from @param {number} to
+ */
 async function accountMeritBetween(db, from, to) {
   const { results: lines = [] } = await db.prepare(`SELECT faction, region, account, source, ref, SUM(amount) AS n FROM npc_chapter_merit WHERE week BETWEEN ?1 AND ?2
     GROUP BY faction, region, account, source, CASE WHEN source = 'gate' THEN ref ELSE '' END`).bind(from, to).all();
@@ -272,7 +379,12 @@ async function accountMeritBetween(db, from, to) {
   return out;
 }
 
-/** @param {any} db @param {{ n: number, start: number }} season @param {number} week */
+/**
+ * CHAP6b: A SEASON'S BACKING at every chapter whose event it decides - `{ backs, masters, merit }`: each chapter's
+ * backings `[{ account, char, side }]` (`faction|region` keyed), the character in each chapter's Master's seat as the
+ * seats stand before this Turning's placing, and every account's Merit there from the Season's first week to `week`.
+ * @param {any} db @param {{ n: number, start: number }} season @param {number} week
+ */
 async function seasonBacking(db, season, week) {
   const { results = [] } = await db.prepare('SELECT faction, region, account, char_id, side FROM npc_chapter_backing WHERE season = ?1 ORDER BY account')
     .bind(season.n).all();
@@ -288,8 +400,13 @@ async function seasonBacking(db, season, week) {
   return { backs, masters, merit: backs.size ? await accountMeritBetween(db, season.start, week) : new Map() };
 }
 
-/** @param {any} db @param {{ n: number, start: number }} season @param {number} week
- * @param {Map<string, Chapter>} all @param {(c: Chapter) => string | null} live */
+/**
+ * CHAP6b: A SUCCESSION NAMED (Chapters-Arc 7) at its Season's third Turning - each chapter whose Season's Succession has no
+ * heir yet: the Master's naming (the backing of the character in its Master's seat), else the choice of the backer whose
+ * account earned the chapter the most Merit this Season (the lower account at a tie), else the hall's own first
+ * (successionHeir). The heir and who named it kept in the chapter's state.
+ * @param {any} db @param {{ n: number, start: number }} season @param {number} week @param {Map<string, Chapter>} all @param {(c: Chapter) => string | null} live
+ */
 async function successionNamed(db, season, week, all, live) {
   const due = [...all.values()].filter((c) => live(c) === 'succession' && !Number.isSafeInteger(c.data.heir));
   if (!due.length) return;
@@ -307,7 +424,11 @@ async function successionNamed(db, season, week, all, live) {
   }
 }
 
-/** @param {any} db @param {number} from @param {number} to */
+/**
+ * CHAP6a: EVERY CHAPTER'S MERIT from week `from` to week `to`, a Map of `faction|region` to its sum - a gate's where its
+ * day's claims agree (AUDIT CHAP3 E1, as the week's own sums).
+ * @param {any} db @param {number} from @param {number} to
+ */
 async function chapterMeritBetween(db, from, to) {
   const { results: lines = [] } = await db.prepare(`SELECT faction, region, source, ref, SUM(amount) AS n FROM npc_chapter_merit WHERE week BETWEEN ?1 AND ?2
     GROUP BY faction, region, source, CASE WHEN source = 'gate' THEN ref ELSE '' END`).bind(from, to).all();
@@ -323,22 +444,30 @@ async function chapterMeritBetween(db, from, to) {
   return out;
 }
 
-/** @param {any} db @param {{ n: number, start: number }} season @param {number} week
- * @param {Map<string, Chapter>} all @param {Set<string>} keys @param {(c: Chapter) => string | null} live
- * @param {boolean} opened @param {string} open */
+/**
+ * CHAP6a: A SEASON'S END (Chapters-Arc 7: "the event resolves"), before its halving - each Rivalry raced on the Season's
+ * Merit and its winner given 10 of the loser's Strength (a pair that drew each other raced once), each Crackdown's
+ * chapter under 30 shut for the next Season. Answers the Chronicle's rows `[faction, region, kind, char, data]`: an
+ * 'event' row a chapter whose event was no Calm, and a 'season' row each Master who held the seat the whole Season
+ * (placed at or before the Turning that opened it, sitting still - never Season 0's, which crowns no one, as the seats'
+ * own; never at the Chapters' opening, whose seats are none). AUDIT CHAP5 E5: a chapter races once a Season - the
+ * first of its rivalries in the chapters' order; any other ends even. `open` the switch the week settles under.
+ * @param {any} db @param {{ n: number, start: number }} season @param {number} week @param {Map<string, Chapter>} all
+ * @param {Set<string>} keys @param {(c: Chapter) => string | null} live @param {boolean} opened @param {string} open
+ */
 async function seasonEnded(db, season, week, all, keys, live, opened, open) {
   const merit = await chapterMeritBetween(db, season.start, week);
   /** @type {Map<string, string | null>} */
   const raced = new Map();
   /** @type {Set<string>} */
-  const ran = new Set();
+  const ran = new Set();   // AUDIT CHAP5 E5: the chapters that raced - a hub (the Brotherhood, every order's and two temples' rival) raced each
   for (const c of all.values()) {
     if (live(c) !== 'rivalry') continue;
     const k = `${c.faction}|${c.region}`, rk = `${c.data.rival}|${c.region}`;
     const r = keys.has(rk) ? all.get(rk) : undefined;
-    if (!r) { c.data = { ...c.data, won: null }; continue; }
+    if (!r) { c.data = { ...c.data, won: null }; continue; }   // its rival's chapter gone: no race to win
     const pair = [k, rk].sort().join('&');
-    if (!raced.has(pair) && (ran.has(k) || ran.has(rk))) raced.set(pair, null);
+    if (!raced.has(pair) && (ran.has(k) || ran.has(rk))) raced.set(pair, null);   // E5: one of the two raced already - even
     if (!raced.has(pair)) {
       const end = rivalryEnd([c.s, r.s], [merit.get(k) ?? 0, merit.get(rk) ?? 0]);
       c.s = end.a; r.s = end.b;
@@ -348,6 +477,8 @@ async function seasonEnded(db, season, week, all, keys, live, opened, open) {
     const winner = raced.get(pair);
     c.data = { ...c.data, won: winner == null ? null : winner === k };
   }
+  // CHAP6b: each Schism decided - its sides' backers' Merit this Season, a tie the Master's side, the winner's doctrine
+  // the next Season's
   if ([...all.values()].some((c) => live(c) === 'schism')) {
     const { backs, masters, merit: by } = await seasonBacking(db, season, week);
     for (const c of all.values()) {
@@ -374,8 +505,11 @@ async function seasonEnded(db, season, week, all, keys, live, opened, open) {
     }
     if (e && e !== 'calm') out.push([c.faction, c.region, 'event', '', JSON.stringify({ ...c.data, season: season.n, event: e })]);
   }
+  // AUDIT CHAP5 S6: never a Season any week of which the developers' alone settled - their trial crowned for good
   const trial = open !== 'on' || !!(await db.prepare("SELECT 1 FROM npc_chapter_weeks WHERE week BETWEEN ?1 AND ?2 AND open = 'dev' LIMIT 1").bind(season.start, week - 1).first());
   if (season.n > 0 && !opened && !trial) {
+    // AUDIT CHAP5 S1/E2: and the seat a Master's the whole Season - a seat's `since` is the character's at the chapter,
+    // kept from an officer's seat to the Master's: one who rose to it in the Season's last week was crowned for it
     const { results: masters = [] } = await db.prepare(`SELECT s.faction, s.region, s.char_id FROM npc_chapter_seats s WHERE s.seat = 'master' AND s.since <= ?1
       AND NOT EXISTS (SELECT 1 FROM npc_chapter_history h WHERE h.char_id = s.char_id AND h.week BETWEEN ?2 AND ?3 AND h.faction = s.faction
         AND h.region = s.region AND h.kind = 'seat' AND json_extract(h.data, '$.to') = 'master')
@@ -387,8 +521,13 @@ async function seasonEnded(db, season, week, all, keys, live, opened, open) {
   return out;
 }
 
-/** @param {any} db @param {number} n @param {number} week @param {{ start: number } | null} ended
- * @param {Map<string, Chapter>} all @param {Set<string>} keys */
+/**
+ * CHAP6a: A SEASON'S DRAW (Chapters-Arc 7) at the Turning that opens Season `n` (`week` its last week before, `ended`
+ * the Season that week closed, or null): every confirmed chapter's event over the weights its last Season moved - its
+ * band as that Season ended, the hands its Master's seat changed into in it, its strongest rival in the region (the
+ * Rivalry's to race), whether a seat of the region has the Curfew as law. A chapter no longer confirmed draws none.
+ * @param {any} db @param {number} n @param {number} week @param {{ start: number } | null} ended @param {Map<string, Chapter>} all @param {Set<string>} keys
+ */
 async function seasonDrawn(db, n, week, ended, all, keys) {
   /** @type {Map<string, number>} */
   const masters = new Map();
@@ -416,10 +555,22 @@ async function seasonDrawn(db, n, week, ended, all, keys) {
   }
 }
 
-/** @param {any} db @param {number} week @param {number} turning @param {string} open @param {boolean} opened
- * @param {Set<string>} chapters */
+/**
+ * CHAP4a: THE SEATS WEEK `week`'S TURNING PLACES (Chapters-Arc 6): every chapter's Eligible members (npcChapterLaw.js
+ * seatEligibleAt, at the Turning `turning`: a member on the Roll at the seat's line, fourteen days in the guild, its account
+ * seven days old, its character standing) by their Merit at it over the SEAT_MERIT_WEEKS to `week` - a gate's where its
+ * day's claims agree (AUDIT CHAP3 E1), never a week settled while the Chapters were the developers' alone once they are
+ * everyone's (`opened`, S2's law) - placed by chapterSeatPlan over the seats as they stand. Answers `{ rows, changes }`:
+ * the table's rows `[faction, region, char, account, seat, since]` (`since` kept for a character that sat at the chapter
+ * already) and the Chronicle's `[faction, region, char, from, to]`. AUDIT CHAP4 E3: seats only at a chapter confirmed now
+ * (`chapters`, the week's own `faction|region` keys) - a struck chapter's holders sit nowhere.
+ * @param {any} db @param {number} week @param {number} turning @param {string} open @param {boolean} opened @param {Set<string>} chapters
+ */
 async function seatsPlaced(db, week, turning, open, opened, chapters) {
+  // the developers' weeks: none of their Merit counts toward a seat once the Chapters are everyone's
   const dev = open === 'on' ? (await db.prepare("SELECT MAX(week) AS w FROM npc_chapter_weeks WHERE week < ?1 AND open = 'dev'").bind(week).first())?.w : null;
+  // AUDIT CHAP4 S2: the four weeks are the last four the Chapters were open - a week they were shut ('off') is no week of
+  // the window, so the Turning after the switch is on again reads its holders' Merit from before it went off
   const { results: opens = [] } = await db.prepare("SELECT week FROM npc_chapter_weeks WHERE week < ?1 AND open <> 'off' ORDER BY week DESC LIMIT ?2")
     .bind(week, SEAT_MERIT_WEEKS - 1).all();
   const from = Math.max(Math.min(week - SEAT_MERIT_WEEKS + 1, ...opens.map((/** @type {any} */ r) => Number(r.week))), dev == null ? -Infinity : Number(dev) + 1);
@@ -431,14 +582,14 @@ async function seatsPlaced(db, week, turning, open, opened, chapters) {
   const chars = [...new Set(counted.map((r) => String(r.char_id)))];
   const { results: roll = [] } = chars.length ? await db.prepare(`SELECT r.char_id, r.faction_id, r.player, r.rep, r.member, r.joined_at, p.registered_at
     FROM npc_roll r JOIN realm_characters c ON c.id = r.char_id AND c.player = r.player AND c.dead_at IS NULL JOIN players p ON p.id = r.player
-    WHERE r.member = 1 AND r.dormant = 0 AND r.char_id IN (SELECT value FROM json_each(?1))`).bind(JSON.stringify(chars)).all() : { results: [] };
+    WHERE r.member = 1 AND r.dormant = 0 AND r.char_id IN (SELECT value FROM json_each(?1))`).bind(JSON.stringify(chars)).all() : { results: [] };   // AUDIT CHAP4 D1: an active membership
   const eligible = new Map(roll.filter((r) => seatEligibleAt({ member: r.member, rep: r.rep, joinedAt: r.joined_at, registeredAt: r.registered_at }, turning))
     .map((r) => [`${r.char_id}|${r.faction_id}`, { account: String(r.player), joinedAt: Number(r.joined_at) }]));
   /** @type {Map<string, { faction: number, region: number, char: string, account: string, merit: number, joinedAt: number }>} */
   const candidates = new Map();
   for (const r of counted) {
     const e = eligible.get(`${r.char_id}|${r.faction}`);
-    if (!e || !chapters.has(`${r.faction}|${r.region}`)) continue;
+    if (!e || !chapters.has(`${r.faction}|${r.region}`)) continue;   // AUDIT CHAP4 E3
     const k = `${r.faction}|${r.region}|${r.char_id}`;
     if (!candidates.has(k)) candidates.set(k, { faction: Number(r.faction), region: Number(r.region), char: String(r.char_id), ...e, merit: 0 });
     /** @type {any} */ (candidates.get(k)).merit += Number(r.n);
@@ -453,14 +604,25 @@ async function seatsPlaced(db, week, turning, open, opened, chapters) {
   };
 }
 
-// The relay must know every chapter title id before CHAPTER_TITLES is on; it refuses a token with
-// an unknown title at the hello.
+/** CHAP4c: whether the chapters' titles are minted for this account - the Chapters open to it and CHAPTER_TITLES on. The
+ *  relay must carry the five ids (RELAY_VERSION world183 - CHAP6e's two beside CHAP4c's three) before this is turned on:
+ *  a token with a title the relay does not know is refused at the hello. */
 export const chapterTitlesOpenFor = (/** @type {any} */ player, /** @type {any} */ env) => env?.CHAPTER_TITLES === 'on' && chaptersOpenFor(player, env);
 
+/** CHAP4c: the first week of the Season `week` falls in - the counted Season's, or with none counted the eight-week
+ *  block's (the seats' stand-in). A Former Master's title holds from its loss to the Season's end. */
 const seasonStartOf = (/** @type {number} */ week, /** @type {number | null} */ zero) => seasonOf(week, zero)?.start ?? Math.floor(week / SEASON_WEEKS) * SEASON_WEEKS;
 
-/** @param {any} db @param {string} playerId @param {number} nowS @param {number | null} [zero]
- * @param {string | null} [character] */
+/**
+ * CHAP4c: THE CHAPTERS' TITLES OF AN ACCOUNT'S STANDING CHARACTERS, `[{ char, title, ts }]` - each character's, best
+ * first (npcChapterLaw.js chapterTitlesOf): its seats now, and the Masters' seats it lost this Season (the Chronicle's
+ * rows from the Season's first week). `character` narrows it to one. AUDIT CHAP4 E3: only a chapter confirmed now - a
+ * struck chapter's seats and its Masters' loss title nobody. CHAP6e: a Master's seat at a chapter whose Ascendancy is
+ * this counted Season's is marked `high` - GUILD3e: at a chapter standing Ascendant (its Strength from
+ * CHAPTER_ASCENDANT_FROM, as the sheet carries it), the event retired into the band; and every Season a character held a
+ * Master's seat whole (the Chronicle's 'season' rows) is its 'seasonmaster' for good - a chapter struck since or not.
+ * @param {any} db @param {string} playerId @param {number} nowS @param {number | null} [zero] @param {string | null} [character]
+ */
 export async function chapterTitlesOfAccount(db, playerId, nowS, zero = null, character = null) {
   const week = meritWeekOf(nowS);
   const who = 'JOIN realm_characters c ON c.id = x.char_id AND c.player = ?1 AND c.dead_at IS NULL WHERE (?2 IS NULL OR x.char_id = ?2)';
@@ -469,9 +631,10 @@ export async function chapterTitlesOfAccount(db, playerId, nowS, zero = null, ch
     AND x.kind = 'seat' AND json_extract(x.data, '$.from') = 'master' AND x.week >= ?3`).bind(playerId, character, seasonStartOf(week, zero)).all();
   const { results: whole = [] } = await db.prepare(`SELECT x.char_id, x.faction, x.region, x.data FROM npc_chapter_history x ${who}
     AND x.kind = 'season'`).bind(playerId, character).all();
-  const season = seasonOf(week, zero)?.n ?? 0;
+  const season = seasonOf(week, zero)?.n ?? 0;   // AUDIT GUILD3 L1: no Season counted asks no High Master now (GUILD3e: the band's) - the 0 the season titles read
   if (!seats.length && !lost.length && !whole.length) return [];
   const confirmed = new Set((await allChapters(db, nowS)).map((c) => `${c.faction}|${c.region}`));
+  // GUILD3e: only the chapters whose Master's seat the account holds are asked - never every Ascendant chapter's row
   const led = seats.filter((r) => r.seat === 'master').map((r) => [Number(r.faction), Number(r.region)]);
   const { results: rising = [] } = led.length
     ? await db.prepare(`SELECT faction, region FROM npc_chapters WHERE strength >= ?1 AND (faction, region) IN
@@ -488,17 +651,27 @@ export async function chapterTitlesOfAccount(db, playerId, nowS, zero = null, ch
   ).map((t) => ({ char: ch, ...t })));
 }
 
+/** CHAP4a: A CHARACTER'S SEATS, `[{ f, region, seat, since }]` by guild then region - the Roll's answer carries them. */
 export async function chapterSeatsOf(/** @type {any} */ db, /** @type {unknown} */ character) {
   if (typeof character !== 'string') return [];
   const { results = [] } = await db.prepare('SELECT faction, region, seat, since FROM npc_chapter_seats WHERE char_id = ?1 ORDER BY faction, region').bind(character).all();
   return results.map((/** @type {any} */ s) => ({ f: Number(s.faction), region: Number(s.region), seat: String(s.seat), since: Number(s.since) }));
 }
 
-/** @param {any} db @param {number} nowS @param {number | null} [zero] @param {unknown} [open] */
+/**
+ * THE CHAPTERS' TURNINGS DUE: every week before this one not yet settled, oldest first - from the week after the last
+ * settled (or, on a service that has settled none, the last week alone), at most CHAPTER_WEEKS_MAX back; a week that
+ * fails is the first the next read settles (the seats' settleDue, AUDIT-SEATS S1). Cheap when nothing is due: one read.
+ * `open` the Chapters' switch - AUDIT CHAP3 S2: none settled while it is 'off'. "This week" is the week
+ * CHAPTER_TURNING_GRACE_S ago (S1). AUDIT CHAP4 S2: while it is 'off' the weeks due are RECORDED shut ('off', nothing
+ * moved - no Merit could be earned in them) on a service that has settled one, so the Turnings once it is on again start
+ * past them: their -3, a Season's halving and an empty seat window never came all at once at the reopening.
+ * @param {any} db @param {number} nowS @param {number | null} [zero] @param {unknown} [open]
+ */
 export async function settleChaptersDue(db, nowS, zero = null, open = 'on') {
   const sw = chaptersSwitchOf(open);
   const current = meritWeekOf(nowS - CHAPTER_TURNING_GRACE_S);
-  if (weekSettled(db, `chapters:${sw}`, current)) return 0;
+  if (weekSettled(db, `chapters:${sw}`, current)) return 0;   // PRIMARY-FOLD: this isolate read the week settled (weekKept.js)
   const last = (await db.prepare('SELECT MAX(week) AS w FROM npc_chapter_weeks').first())?.w;
   if (last != null && Number(last) + 1 >= current) { keepWeekSettled(db, `chapters:${sw}`, current); return 0; }
   if (sw === 'off') {
@@ -516,29 +689,41 @@ export async function settleChaptersDue(db, nowS, zero = null, open = 'on') {
     if (!r.settled) break;
     n++;
   }
-  if (from + n >= current) keepWeekSettled(db, `chapters:${sw}`, current);
+  if (from + n >= current) keepWeekSettled(db, `chapters:${sw}`, current);   // PRIMARY-FOLD: every week due settled here
   return n;
 }
 
+/** CHAP6a: the Season `nowS` is in (its number), or null with none counted - the week a chapter's event and shut halls
+ *  are read against. */
 export const seasonNumberAt = (/** @type {number} */ nowS, /** @type {number | null} */ zero) => seasonOf(meritWeekOf(nowS), zero)?.n ?? null;
 
+/** CHAP6a: a chapter's event this Season as a reader is told it - `{ event, rival?, shut? }` (`event` null where none was
+ *  drawn for it) - or null where it has neither; `named` whether a rival guild may be named to this reader. */
 function eventView(/** @type {any} */ r, /** @type {number | null} */ n, /** @type {(f: number) => boolean} */ named) {
   if (n == null) return null;
   const e = heldEvent(r);
   const event = e.eventSeason === n ? e.event : null;
   const shut = e.shut === n;
-  const doctrine = e.doctrineSeason === n ? e.doctrine : null;
+  const doctrine = e.doctrineSeason === n ? e.doctrine : null;   // CHAP6b: the doctrine last Season's Schism carried
   if (!event && !shut && !doctrine) return null;
   const rival = event === 'rivalry' && Number.isSafeInteger(e.data.rival) && named(e.data.rival) ? e.data.rival : null;
   return {
     event, ...(rival !== null ? { rival } : {}), ...(shut ? { shut: true } : {}), ...(doctrine ? { doctrine } : {}),
+    // CHAP6b: a Schism's two doctrines (side 0's, side 1's), a Succession's heir once named; CHAP6c: and the Season their
+    // candidates' names are drawn on (the client's, net/chapterEvents.js)
     ...(event === 'schism' || event === 'succession' ? { season: n } : {}),
     ...(event === 'schism' ? { sides: schismDoctrinesOf(n, Number(r.faction), Number(r.region)) } : {}),
     ...(event === 'succession' && Number.isSafeInteger(e.data.heir) ? { heir: e.data.heir } : {}),
   };
 }
 
-/** @param {any} db @param {number} region @param {number | null} n @param {(f: number) => boolean} [named] */
+/**
+ * CHAP6a: A REGION'S CHAPTERS' EVENTS this Season `n` (null: none counted) - a Map of guild faction to eventView's
+ * `{ event, rival?, shut?, doctrine?, sides?, heir? }`, for each chapter with an event drawn for this Season, its halls
+ * shut for it, or (CHAP6b) a doctrine holding in it. `named`
+ * whether a rival guild may be named (a hidden one only to its members).
+ * @param {any} db @param {number} region @param {number | null} n @param {(f: number) => boolean} [named]
+ */
 export async function regionEvents(db, region, n, named = (f) => !hallHidden(f)) {
   /** @type {Map<number, { event: string | null, rival?: number, shut?: boolean }>} */
   const out = new Map();
@@ -551,13 +736,24 @@ export async function regionEvents(db, region, n, named = (f) => !hallHidden(f))
   return out;
 }
 
+/** CHAP6b: an account's backings this Season `n` in a region's chapters - a Map of guild faction to the side it backs. */
 export async function regionBackings(/** @type {any} */ db, /** @type {number} */ region, /** @type {number | null} */ n, /** @type {string} */ account) {
   if (n == null) return new Map();
   const { results = [] } = await db.prepare('SELECT faction, side FROM npc_chapter_backing WHERE region = ?1 AND season = ?2 AND account = ?3').bind(region, n, account).all();
   return new Map(results.map((/** @type {any} */ r) => [Number(r.faction), Number(r.side)]));
 }
 
-/** @param {{ db: any, nowS: number }} ctx @param {{ id: string }} player @param {any} env @param {any} body */
+/**
+ * CHAP6b: A MEMBER'S BACKING (Chapters-Arc 7): `{ character, faction, region, side }` - the account's standing character,
+ * an active member of the guild on its Roll, backs side `side` of its chapter's Schism (0 or 1) or names candidate `side`
+ * of its Succession (0 to 2); a Master's naming is the backing of the character in its Master's seat. One backing an
+ * account a chapter a Season, changed until the event is decided. Answers `{ ok: true, event, side }` or `{ error }`:
+ * 'body'; 'no-event' (no Season counted, or the chapter's Season holds no Schism nor Succession); 'no-side'; 'closed' (a
+ * Succession named, or past its third Turning); 'not-member' (no active membership of the guild on that character,
+ * another account's character, or a dead one). The Turnings due settled first; the event and the membership asked
+ * inside the write.
+ * @param {{ db: any, nowS: number }} ctx @param {{ id: string }} player @param {any} env @param {any} body
+ */
 export async function backChapter({ db, nowS }, player, env, { character, faction, region, side } = {}) {
   if (typeof character !== 'string' || !REALM_ID_RE.test(character) || !Number.isSafeInteger(faction) || !regionOk(region) || !Number.isSafeInteger(side)) return { error: 'body' };
   const zero = seasonZeroOf(env?.SEASON_ZERO_WEEK);
@@ -565,8 +761,8 @@ export async function backChapter({ db, nowS }, player, env, { character, factio
   const week = meritWeekOf(nowS);
   const season = seasonOf(week, zero);
   if (!season) return { error: 'no-event' };
-  // A stranger asking about a hidden guild's chapter gets no-event, so refusals never reveal where
-  // its halls are.
+  // AUDIT CHAP5 S3: a hidden guild's chapter's Season is its members' alone - a stranger asked of it is answered as of a
+  // chapter with no event (its 'no-side', 'closed' and 'not-member' told which regions keep the underworld's halls)
   if (hallHidden(faction) && !(await db.prepare('SELECT 1 FROM npc_roll WHERE char_id = ?1 AND player = ?2 AND faction_id = ?3 AND member = 1 AND dormant = 0')
     .bind(character, player.id, faction).first())) return { error: 'no-event' };
   const row = await db.prepare('SELECT event, event_season, event_data FROM npc_chapters WHERE faction = ?1 AND region = ?2').bind(faction, region).first();
@@ -585,6 +781,7 @@ export async function backChapter({ db, nowS }, player, env, { character, factio
   return Number(r?.meta?.changes ?? 0) > 0 ? { ok: true, event, side } : { error: 'not-member' };
 }
 
+/** A region's chapters' Strengths: a Map of guild faction to Strength (50 for one no Turning has settled yet). */
 export async function regionStrengths(/** @type {any} */ db, /** @type {number} */ region, /** @type {number[]} */ factions) {
   const out = new Map(factions.map((f) => [f, STRENGTH_START]));
   if (!factions.length) return out;
@@ -593,15 +790,26 @@ export async function regionStrengths(/** @type {any} */ db, /** @type {number} 
   return out;
 }
 
-/** @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} env */
+/**
+ * THE CHAPTER SHEET (5.3): `{ week, chapters: [{ f, region, strength, band, seats, event?, rival?, shut? }] }` - every
+ * chapter confirmed now, its Strength and band, after the Turnings due, (CHAP5a) its seats' holders `[{ seat, name }]`,
+ * the Master's first, and (CHAP6a) its Season's event, a Rivalry's public rival, and whether its halls are shut. The Thieves Guild's and the Dark Brotherhood's are left off: a public sheet
+ * would name where the underworld keeps its halls (their members read theirs on the board). `{ error }`:
+ * 'chapters-closed'.
+ * @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} env
+ */
 export async function chapterSheet({ db, nowS }, player, env) {
   if (!chaptersOpenFor(player, env)) return { error: 'chapters-closed' };
   await settleChaptersDue(db, nowS, seasonZeroOf(env?.SEASON_ZERO_WEEK), env?.CHAPTERS_OPEN);
   const n = seasonNumberAt(nowS, seasonZeroOf(env?.SEASON_ZERO_WEEK));
+  // PRIMARY-FOLD (bible/11-Multiplayer/Scale-Arc.md THE PLAN PAST 1,000): the sheet's reads in one trip - the regions'
+  // halls, the chapters' rows, their seats' holders and this Season's patrons, each worded as it was asked alone
   const patronQ = patronsRead(db, null, n);
   const [hallRows, chapterRows, seatQ, patronRows] = await db.batch([
     hallRowsRead(db),
     db.prepare('SELECT faction, region, strength, event, event_season, event_data, shut_season, doctrine, doctrine_season FROM npc_chapters'),
+    // CHAP5a (Chapters-Arc 5.3, 9): each chapter's seats' holders, by the names their characters carry now - the Master's
+    // first, then its officers by their tenure (the hall's roll); a hidden guild's chapters are not on the sheet
     db.prepare(`SELECT s.faction, s.region, s.seat, c.name FROM npc_chapter_seats s
     JOIN realm_characters c ON c.id = s.char_id ORDER BY s.seat = 'master' DESC, s.since, s.char_id`),
     ...(patronQ ? [patronQ] : []),
@@ -609,8 +817,9 @@ export async function chapterSheet({ db, nowS }, player, env) {
   const chapters = (await allChapters(db, nowS, hallRows?.results ?? [])).filter((c) => !hallHidden(c.faction));
   const results = chapterRows?.results ?? [];
   const held = new Map(results.map((/** @type {any} */ r) => [`${r.faction}|${r.region}`, Number(r.strength)]));
+  // CHAP6a: and each chapter's Season's event - its rival named where the rival is public, as the sheet itself is
   const events = new Map(results.map((/** @type {any} */ r) => [`${r.faction}|${r.region}`, eventView(r, n, (f) => !hallHidden(f))]));
-  const patrons = patronsFrom(patronRows?.results ?? []);
+  const patrons = patronsFrom(patronRows?.results ?? []);   // CHAP7a: and its patron this Season
   const seatRows = seatQ?.results ?? [];
   /** @type {Map<string, { seat: string, name: string }[]>} */
   const seats = new Map();
@@ -630,7 +839,17 @@ export async function chapterSheet({ db, nowS }, player, env) {
   };
 }
 
-/** @param {{ db: any, nowS: number }} ctx @param {{ id: string }} player @param {any} env @param {any} body */
+// ─── CHAP4d: THE FOCUS AND THE CHRONICLE ────────────────────────────
+
+/**
+ * THE MASTER'S FOCUS: `{ character, faction, region, focus }` - the account's standing character, the Master of that
+ * chapter, names the material family its hall writs ask more of this week (npcChapterLaw.js chapterFocusOk - its guild's
+ * own, where it has more than one). One write, the seat asked inside it. Answers `{ ok: true, focus, week }`, or `{ error }`:
+ * 'body', 'no-focus' (none of its guild's), 'not-master' (no Master's seat of that chapter on that character). AUDIT CHAP4
+ * S4: the Turnings due settled first, and the seat the one LAST week's Turning placed - between a week's boundary and its
+ * Turning the Master about to be unseated set the new week's Focus.
+ * @param {{ db: any, nowS: number }} ctx @param {{ id: string }} player @param {any} env @param {any} body
+ */
 export async function setChapterFocus({ db, nowS }, player, env, { character, faction, region, focus } = {}) {
   if (typeof character !== 'string' || !REALM_ID_RE.test(character) || !Number.isSafeInteger(faction) || !regionOk(region)) return { error: 'body' };
   if (!chapterFocusOk(faction, focus)) return { error: 'no-focus' };
@@ -642,30 +861,40 @@ export async function setChapterFocus({ db, nowS }, player, env, { character, fa
   return Number(r?.meta?.changes ?? 0) > 0 ? { ok: true, focus, week } : { error: 'not-master' };
 }
 
+/** CHAP4d: a region's chapters' Focuses this week - a Map of guild faction to family (the hall writs' draw reads it). */
 export async function regionFocuses(/** @type {any} */ db, /** @type {number} */ region, /** @type {number} */ week) {
   const { results = [] } = await db.prepare('SELECT faction, focus FROM npc_chapters WHERE region = ?1 AND focus_week = ?2 AND focus IS NOT NULL').bind(region, week).all();
   return new Map(results.filter((/** @type {any} */ r) => chapterFocusOk(Number(r.faction), r.focus)).map((/** @type {any} */ r) => [Number(r.faction), String(r.focus)]));
 }
 
+/** CHAP4d: the chapters a character is the Master of in a region - a Set of guild factions (the board offers the Focus).
+ *  AUDIT CHAP4 S4: by the seats LAST week's Turning placed (`week` this one), as the Focus's write asks. */
 export async function masterSeatsIn(/** @type {any} */ db, /** @type {unknown} */ character, /** @type {number} */ region, /** @type {number} */ week) {
   if (typeof character !== 'string') return new Set();
   const { results = [] } = await db.prepare("SELECT faction FROM npc_chapter_seats WHERE char_id = ?1 AND region = ?2 AND seat = 'master' AND week = ?3").bind(character, region, week - 1).all();
   return new Set(results.map((/** @type {any} */ r) => Number(r.faction)));
 }
 
+/** The most of a region's Chronicle the Hall of Records reads - its newest rows. */
 export const CHAPTER_CHRONICLE_ROWS = 60;
-/** @param {{ db: any }} ctx @param {any} _player @param {any} env @param {any} body */
+/**
+ * CHAP4d: A REGION'S CHAPTERS' CHRONICLE, `{ rows: [{ faction, week, kind, data, name }], zero }` - its newest
+ * CHAPTER_CHRONICLE_ROWS, oldest first (the book's order), each character named as it is now (null for one gone since);
+ * never a hidden guild's (their seats are their members' alone) - AUDIT CHAP4 S3: left out BEFORE the newest are counted,
+ * so the underworld's moves neither shorten the book nor show in its count.
+ * @param {{ db: any }} ctx @param {any} _player @param {any} env @param {any} body
+ */
 export async function chapterChronicle({ db }, _player, env, { region } = {}) {
   if (!regionOk(region)) return { error: 'body' };
-  // Hidden guilds are filtered before the newest rows are counted, so they neither shorten the book
-  // nor show in its count.
   const { results = [] } = await db.prepare(`SELECT h.faction, h.week, h.kind, h.data, c.name FROM npc_chapter_history h
     LEFT JOIN realm_characters c ON c.id = h.char_id WHERE h.region = ?1 AND h.faction NOT IN (SELECT value FROM json_each(?3))
     ORDER BY h.seq DESC LIMIT ?2`).bind(region, CHAPTER_CHRONICLE_ROWS, JSON.stringify(HIDDEN_HALL_FACTIONS)).all();
   const rows = results.reverse().map((/** @type {any} */ r) => {
     /** @type {any} */
     let data = {};
-    try { data = JSON.parse(r.data); } catch { }
+    try { data = JSON.parse(r.data); } catch { /* a row the Chronicle has no words for */ }
+    // AUDIT CHAP5 S2: a public chapter's Rivalry with a hidden one never names it - the line says "its rival in the
+    // shadows" (chapterSeasonLine), and the row the reader is sent says no more than the line
     if (data && typeof data === 'object' && hallHidden(data.rival)) { data = { ...data }; delete data.rival; }
     return { faction: Number(r.faction), week: Number(r.week), kind: String(r.kind), data, name: r.name ?? null };
   });

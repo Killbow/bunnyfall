@@ -47,7 +47,6 @@ invariants:
   - "Prices run from 1 to `MARKET_PRICE_MAX` (1,000,000); `listingFee` charges `max(1, ceil(worth / 100))`, and `MARKET_TAX_PCT` takes 5% on settlement."
   - "`MARKET_POSTS_MAX` (60) and `MARKET_OPS_MAX` (120) bound market mutations per `MARKET_WINDOW_S` (3,600 s)."
   - "Auctions accept only Masterwork items (`auctionable`), run for `AUCTION_S` (24 h), require a 5% bid raise (minimum 1 Mark), and extend by `AUCTION_ADD_S` (120 s) when bid within the final `AUCTION_LATE_S` (120 s)."
-  - "Rows that answer a repeat are pruned after 90 days but the Marks ledger is permanent, so each market decision also refuses a request id whose first ledger line already exists."
 traps:
   - "When a winning auction settles while the seller sits at `MARKS_MAX`, payout holds for `AUCTION_GRACE_S` (7 days) before voiding the bid and returning the item unsold."
   - "`MARKET_TITHE_PCT` defaults to 0 in `src/net/marketLaw.js`; live regional tithes are read dynamically from the seat holder via `titheAt` in `seatHolding.js`."

@@ -1,14 +1,34 @@
 // @ts-check
-// Every bound is checked inside this INSERT in the act's own batch, so racing acts never write past a bound.
-// A bound number may read back as REAL, so the amount is CAST to an integer in SQL.
+// ═══════════════════════════════════════════════════════════════════
+// CHAP3a (2026-10-08, Mac: "Keep going with the arc/slices") — MERIT: what
+// a member did for its chapter this week, from witnessed acts alone
+// (Chapters-Arc 5.1) - its own writ for the chapter (professions.js
+// deliverWrit) and a receipt in the chapter's region (npcReceipts.js
+// creditReceipt). The law is src/net/npcChapterLaw.js; the record is
+// migration 0101_npc_merit. CHAP3b's Turning reads the week's sums.
+//
+// ONE STATEMENT, IN THE ACT'S OWN BATCH. Every bound is asked by the line's
+// own INSERT, so the act and its Merit stand or fall together and no race
+// between two of an account's acts writes past one: the member's tenure on
+// the Roll (MERIT_TENURE_S since `joined_at`), the character standing, the
+// account's one chapter of a guild a week (no line of the guild's in
+// another region this week), and the 600 an account a chapter a week - the
+// line cut to the room left, none at all where none is. Whole Merit, rounded
+// down (a bound number may be read as a REAL: the CAST, never its binding).
+// ═══════════════════════════════════════════════════════════════════
 
 import { MERIT_CAP_WEEK, MERIT_TENURE_S, meritWeekOf } from '../../src/net/npcChapterLaw.js';
 import { regionChapters } from './npcHalls.js';
 
-// `amountSql` and `guard` read binds from ?11 on. The first ten are player, character, faction, region,
-// week, source, ref, now, the cap, and the tenure.
-/** @param {any} db
- *  @param {{ player: string, character: string, faction: number, region: number, source: string, ref: string, nowS: number, amountSql: string, guard: string, binds?: unknown[] }} o */
+/**
+ * THE MERIT LINE AN ACT WRITES, for the act's own batch: `{ player, character, faction, region, source, ref, nowS,
+ * amountSql, guard, binds }` - the account and its realm character, the chapter (guild faction and region), the source
+ * ('writ', 'gate', 'raid'), the act's own id, and the act's Merit as SQL, written only where `guard` holds. `amountSql`
+ * and `guard` read `binds` from ?11 on (?1 player, ?2 character, ?3 faction, ?4 region, ?5 week, ?6 source, ?7 ref, ?8
+ * now, ?9 the cap, ?10 the tenure).
+ * @param {any} db
+ * @param {{ player: string, character: string, faction: number, region: number, source: string, ref: string, nowS: number, amountSql: string, guard: string, binds?: unknown[] }} o
+ */
 export function meritStatement(db, { player, character, faction, region, source, ref, nowS, amountSql, guard, binds = [] }) {
   return db.prepare(`INSERT OR IGNORE INTO npc_chapter_merit (week, faction, region, account, char_id, source, amount, ref, at)
     SELECT ?5, ?3, ?4, ?1, ?2, ?6, got, ?7, ?8 FROM (SELECT CAST(MIN(${amountSql}, ?9 - COALESCE((SELECT SUM(amount) FROM npc_chapter_merit
@@ -20,14 +40,20 @@ export function meritStatement(db, { player, character, faction, region, source,
     .bind(player, character, faction, region, meritWeekOf(nowS), source, ref, nowS, MERIT_CAP_WEEK, MERIT_TENURE_S, ...binds);
 }
 
+/** The Merit lines one act of a character's stand under: `[{ f, amount }]`, by guild. */
 export async function meritOfAct(/** @type {any} */ db, /** @type {string} */ character, /** @type {string} */ source, /** @type {string} */ ref) {
   const { results = [] } = await db.prepare('SELECT faction AS f, amount FROM npc_chapter_merit WHERE char_id = ?1 AND source = ?2 AND ref = ?3 ORDER BY faction')
     .bind(character, source, ref).all();
   return results.map((/** @type {any} */ r) => ({ f: Number(r.f), amount: Number(r.amount) }));
 }
 
-/** @param {any} db @param {string} player @param {string} character @param {number} region @param {number} nowS
- *  @param {number[]} members */
+/**
+ * THE BOARD'S MERIT for a region and the character reading it: for each guild it is a member of (`members`, its Roll's)
+ * keeping a chapter here, `{ faction, merit, max, elsewhere, from }` - the account's Merit in this chapter this week, the
+ * cap, whether the account's chapter of the guild this week is another region's (so this one earns it none), and when
+ * the character's tenure lets it earn (null once it does).
+ * @param {any} db @param {string} player @param {string} character @param {number} region @param {number} nowS @param {number[]} members
+ */
 export async function meritAsks(db, player, character, region, nowS, members) {
   if (!members.length) return [];
   const chapters = new Set(await regionChapters(db, region, nowS * 1000));

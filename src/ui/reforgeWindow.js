@@ -142,7 +142,8 @@ export const HONED = (name, line) => `Honed: ${name} - ${line}.`;   // LOOT17
 /** REFORGE-REPLACE (the owner: "Replace, price rises"): the card's word on the Reforge's price - what it does, and that
  *  the next costs more. PRICE-CATCH: it rises a half-price step each time; PRICE-CAP: no past fifty Welkynd Shards. */
 export const REFORGE_NOTE = (price) => t('reforge.note', 'A reforge costs {price}. Choose a different kind of bonus.', { price: reforgePriceText(price) });
-/** The hone's price is a flat amount per point gained. */
+/** LOOT17: the card's word on the hone's price. PRICE-CATCH: it rises a half-price step each time; PRICE-CAP: no past
+ *  fifty Welkynd Shards. */
 export const HONE_NOTE = 'Hone raises a bonus to its highest value. Larger increases cost more.';
 export const SALVAGED = (name, n) => `Salvaged: ${name}, for ${shardsText(n)}.`;
 export const BREAK_ASK = (name, n) => `Break ${name} for ${shardsText(n)}? It is gone for good.`;

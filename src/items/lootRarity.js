@@ -2246,8 +2246,8 @@ export function honeableLines(item) {
 }
 /** LOOT17: HONE ONE LINE, IN PLACE - its value set to the top of its band: never lower and never
  *  the same, its kind and its param kept, so its name stands (a name's word reads the tier's band, never the value).
- *  The price moves by the line's worth, and the piece counts the hone (`honed`, which bars it from the market).
- *  Answers the new line, or null (a line no hone may take; nothing changed). */
+ *  The price moves by the line's worth, and the piece counts the hone (`honed` - what the next costs). Answers the new
+ *  line, or null (a line no hone may take; nothing changed). */
 export function honeAffix(item, index) {
   if (!honeableLines(item).includes(index)) return null;
   const old = item.affixes[index];

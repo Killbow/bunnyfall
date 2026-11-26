@@ -1,5 +1,7 @@
 // @ts-check
-// Decorators draft templates for a home they were granted; they never write home_decor.
+// Home decorators: the players an owner lets draft templates in a home, up to DECORATORS_MAX. A template is read, sent
+// to the owner with a letter, or declined back to the decorator as an editable draft. Drafts are written in
+// decoratorDrafts.js. OWNS is unchanged: a decorator never writes home_decor.
 import { accountKind, displayName, isMuted, mintId, overRate } from './accounts.js';
 import { REALM_ID_RE } from './realm.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
@@ -8,11 +10,15 @@ import { DECORATORS_MAX, DRAFT_TTL_S } from '../../src/net/decoratorLaw.js';
 import { LETTERS_INBOX_MAX, LETTERS_PAIR_MAX, LETTERS_SENT_WINDOW_S } from '../../src/net/letterLaw.js';
 import { HANDLE_RE } from '../../src/net/handleShape.js';
 
+/** The home's own account, never a hall's or a deed's, acting as one of its realm characters. Binds (map, key, player,
+ *  character, player). */
 export const HOME_OWNER = `EXISTS (SELECT 1 FROM homes h WHERE h.map_id = ? AND h.building_key = ? AND h.guild_id IS NULL AND h.deed = 0
   AND h.player = ? AND EXISTS (SELECT 1 FROM realm_characters rc WHERE rc.id = ? AND rc.player = ?))`;
+/** The player holds a grant on a home that is still no hall and no deed. Binds (map, key, player). */
 export const DECORATES = `EXISTS (SELECT 1 FROM home_decorators d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
   WHERE d.map_id = ? AND d.building_key = ? AND d.player = ? AND h.guild_id IS NULL AND h.deed = 0)`;
 
+/** A draft row as a piece: the room's or the yard's law. */
 export function draftPieceOf(/** @type {any} */ row) {
   let place = null;
   try { place = JSON.parse(row.place); } catch { return null; }
@@ -21,6 +27,7 @@ export function draftPieceOf(/** @type {any} */ row) {
   return row.yard === 1 ? decorYardPieceOf(raw) : decorPieceOf(raw);
 }
 
+/** The shared door: a registered account, a home named, a realm character of the account. */
 function doorOf(player, { mapId, buildingKey, character }) {
   if (accountKind(player) !== 'linked') return 'homes-need-account';
   if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey)) return 'bad-home';
@@ -28,6 +35,7 @@ function doorOf(player, { mapId, buildingKey, character }) {
   return null;
 }
 
+/** A registered account by username, or null. */
 async function accountByName(db, name) {
   const handle = typeof name === 'string' ? name.trim() : '';
   if (!HANDLE_RE.test(handle)) return null;
@@ -35,11 +43,13 @@ async function accountByName(db, name) {
   return row?.handle ? row : null;
 }
 
+/** A transfer offer for the home that is still open. Binds (map, key, now). */
 const OFFER_OPEN = "SELECT 1 AS y FROM home_offers WHERE map_id = ? AND building_key = ? AND state = 'open' AND until > ?";
 
 const ownsHome = async (db, mapId, buildingKey, player, character) =>
   !!(await db.prepare(`SELECT ${HOME_OWNER} AS y`).bind(mapId, buildingKey, player.id, character, player.id).first())?.y;
 
+/** Why the caller may not manage this home's decorators: a hall, a palace, or a deed refuses `decorator-hall`. */
 async function ownerWhy(db, mapId, buildingKey, player, character) {
   if (await ownsHome(db, mapId, buildingKey, player, character)) return null;
   const h = await db.prepare('SELECT player, guild_id, deed FROM homes WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first();
@@ -47,6 +57,7 @@ async function ownerWhy(db, mapId, buildingKey, player, character) {
   return 'no-home';
 }
 
+/** Drafts with no change for DRAFT_TTL_S are discarded; the grant stays. */
 async function expireDrafts(db, mapId, buildingKey, nowS) {
   const old = nowS - DRAFT_TTL_S;
   if (!(await db.prepare('SELECT 1 AS y FROM home_decorators WHERE map_id = ? AND building_key = ? AND draft_at IS NOT NULL AND draft_at < ? LIMIT 1')
@@ -60,10 +71,9 @@ async function expireDrafts(db, mapId, buildingKey, nowS) {
 }
 
 /**
- * @param {{ db: any, rand: any, nowS: number }} ctx
- * @param {any} sender
- * @param {string} toId
- * @param {string} body
+ * A letter about a template, from the decorator to the owner or back. It is skipped, never refused, when the reader
+ * blocked the sender or the sender is muted. It is also skipped when the hourly letters or the box are full.
+ * @param {{ db: any, rand: any, nowS: number }} ctx @param {any} sender @param {string} toId @param {string} body
  * @param {string} [subject]
  */
 export async function templateLetter(ctx, sender, toId, body, subject = TEMPLATE_LETTER_SUBJECT) {
@@ -79,6 +89,7 @@ export async function templateLetter(ctx, sender, toId, body, subject = TEMPLATE
 export const TEMPLATE_LETTER_SUBJECT = 'A decorating template for you';
 export const homeTemplateLetter = (/** @type {string} */ name) => `${name} sent you a decorating template for your home. Go inside and open Decorators to preview it.`;
 
+/** One decorator's draft as `{ draftRev, sentAt, declined, pieces, yard }`. */
 async function draftOf(db, mapId, buildingKey, playerId) {
   const grant = await db.prepare('SELECT draft_rev, draft_at, sent_at, declined_at FROM home_decorators WHERE map_id = ? AND building_key = ? AND player = ?')
     .bind(mapId, buildingKey, playerId).first();
@@ -94,9 +105,9 @@ async function draftOf(db, mapId, buildingKey, playerId) {
 }
 
 /**
- * @param {{ db: any, rand: any, nowS: number }} ctx
- * @param {any} player
- * @param {any} body
+ * `/v1/homes/decorators`, by `op`. The owner sends `list`, `grant { name }`, `revoke { name }`, `decline { name }`, and
+ * `draft { name }` (a sent template, to preview). The decorator sends `draft` and `send`.
+ * @param {{ db: any, rand: any, nowS: number }} ctx @param {any} player @param {any} body
  */
 export async function decoratorsRoute(ctx, player, body = {}) {
   const { db, nowS } = ctx;

@@ -47,12 +47,9 @@ invariants:
   - "Item unique ids match `ITEM_UID_RE` (16 lowercase hex digits), and the ledger assigns each key to the first record that holds it."
   - "A contested claim waits `DUPE_GRACE_S` (`750` s) before locking only the claimant copy without adding a strike."
   - "Crafted pieces listed on the market move from the seller record into `piece_escrow` in the same batch."
-  - "A signed win fills the allowance bucket at the trusted `level_seen`, never the level a save claims, and only for a living character that holds a lease and already has an allowance."
-  - "The first judged checkpoint measures gains from the baseline that `server-account/src/realm.js` passes in (the stored record the realm already held, a newborn purse, or the customs allowance at its level), and uses the wealth of the save itself only when that baseline wealth is null."
 traps:
   - "`DUPE_GRACE_S` is `750` seconds (two and a half checkpoints), not `300`."
   - "`WEALTH_VERSION` (`2`) must increment whenever `wealthOf`, `itemWorth`, or deed prices change how a save is valued, or every character records a false gain."
-  - "`JUDGE_LEVEL_MAX` (`1000`) must equal `REALM_LEVEL_CLAIM_MAX` in `server-account/src/realm.js`, and `realmLoanOwedMax` must match the online loan cap and repayment in `src/trade/banking.js` (`calculateMaxBankLoan` and `calculateBankLoanRepayment`), because the Worker does not bundle `banking.js`."
 tags:
   - integrity
   - item-law
