@@ -74,7 +74,7 @@ export function refitRowWords(r) {
     name,
     gain: t('naval.refit.gain', '{what}: +{now}% now, +{next}% with the next refit.', { what: r.what, now: pc(r.share), next: pc(r.next.share) }),
     asks: t('naval.refit.asks', 'Next: {gold}, {mats}.', { gold: goldWords(r.next.gold), mats }),
-    melt: melted.length ? t('naval.refit.melt', 'Melts down weapons and armor you carry for {pieces}. Worn, enchanted and quest items are never used.', { pieces: melted.map((m) => `${m.melt} ${m.label}`).join(', ') }) : null,
+    melt: melted.length ? t('naval.refit.melt', 'Melts down weapons and armor you carry for {pieces}. Worn, enchanted, and quest items are never used.', { pieces: melted.map((m) => `${m.melt} ${m.label}`).join(', ') }) : null,
     lock: r.next.locked ? t('naval.refit.locked', 'Needs captain level {level}.', { level: r.next.level }) : null,
   };
 }
@@ -99,7 +99,7 @@ function refitPanel(el, s, rerender, act) {
     for (const m of kinds.values()) if (m.have < Math.min(...o.rows.flatMap((r) => (r.next?.mats ?? []).filter((x) => x.kind === m.kind).map((x) => x.n)))) box.append(el('span', 'hld-why', `${m.label}: ${m.hint}.`));
   }
   // REFIT-ORES: past the shipwright's third refit each tier is a metal, and asks her captain's level
-  if (o.rows.some((r) => r.next && r.next.level > 1)) box.append(el('span', 'hld-sub', t('naval.refit.captain', 'Captain level {level}. Refits past grade III use metals (Steel up to Daedric) and need a captain\'s level.', { level: o.level ?? 1 })));
+  if (o.rows.some((r) => r.next && r.next.level > 1)) box.append(el('span', 'hld-sub', t('naval.refit.captain', 'Captain level {level}. Refits above grade III use metals (Steel through Daedric) and require a higher captain level.', { level: o.level ?? 1 })));
   for (const r of o.rows) {
     const w = refitRowWords(r);
     const card = el('div', 'hld-refit');

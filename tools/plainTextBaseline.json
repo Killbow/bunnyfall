@@ -41,7 +41,6 @@
   "realm.locked.one": 2,
   "realm.stranded": 1,
   "rvn.roster.abroadLaw": 7,
-  "sea.wild.chipTip": 3,
   "season.book.cakes.about": 1,
   "tavern.favor.rules": 2
  },
@@ -84,8 +83,7 @@
   "notice.chapters.standing.words": 4,
   "ql.journal.stepWitnessedTitle": 2,
   "rvn.stars.hint": 7,
-  "rvn.stars.hintTouch": 1,
-  "sea.season.lede": 2
+  "rvn.stars.hintTouch": 1
  },
  "padding": {
   "bard.svc.heading": 1,

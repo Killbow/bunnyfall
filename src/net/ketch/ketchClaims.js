@@ -40,7 +40,7 @@ export const KT_CLAIM_MENDABLE = Object.freeze(['signature', 'verify-threw', 'fu
 
 /** The words - each read through the text core when it is said (L10N4). */
 export const KT_CLAIM_TEXT = Object.freeze({
-  recorded: (n) => t('ketch.claim.recorded', 'The Ketchmaster\'s hold pays your share. Voyages sailed: {n}.', { n }),
+  recorded: (n) => t('ketch.claim.recorded', 'You claim your share for the voyage. Voyages sailed: {n}.', { n }),
   get taken() { return t('ketch.claim.taken', 'You already took a share this voyage with another crew. Each voyage pays one share.'); },
 });
 

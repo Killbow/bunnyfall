@@ -147,7 +147,7 @@ export function createSeaVentures(deps) {
     if (!s) return [];
     const slot = stormWrackSlot(s, now), id = `${WRACK_SITE}${s.n}:${slot}`;
     if (hauled(id)) return [];
-    return [{ id, kind: 'strand', px, py, seed: (s.n * 977 + slot) >>> 0, n: 1, word: t('sea.storm.wrack', 'The storm throws up wrack. A cask bobs in the swell alongside.') }];
+    return [{ id, kind: 'strand', px, py, seed: (s.n * 977 + slot) >>> 0, n: 1, word: t('sea.storm.wrack', 'The storm churns up wreckage. A cask bobs in the swell alongside.') }];
   }
   /** A cask of the storm's wrack hauled (the naval host's strand haul): one of the sea's goods by the band it floated in,
    *  and on the band's share a piece of the Tidemail (ELTHERIC_CHANCE.storm). `{ items, text }`, or null for a strand of
@@ -164,8 +164,8 @@ export function createSeaVentures(deps) {
     const g = goodById(w.good), items = [mintGood(w.good, w.n)];
     const piece = rollElthericPiece(w.rolls, elthericChance('storm', band));
     if (piece) items.push(piece);
-    const haul = t('sea.storm.wrackHaul', '{n} {unit} of {good} from the storm\'s wrack.', { n: w.n, unit: w.n === 1 ? g?.unit ?? '' : g?.units ?? '', good: String(g?.name ?? '').toLowerCase() });
-    return { items, text: piece ? `${haul} ${t('sea.storm.wrackTidemail', 'In the wrack: {piece}, a piece of {set}!', { piece: piece.name, set: setById('eltheric')?.name ?? '' })}` : haul };
+    const haul = t('sea.storm.wrackHaul', '{n} {unit} of {good} salvaged from the storm wreckage.', { n: w.n, unit: w.n === 1 ? g?.unit ?? '' : g?.units ?? '', good: String(g?.name ?? '').toLowerCase() });
+    return { items, text: piece ? `${haul} ${t('sea.storm.wrackTidemail', 'You also recover {piece}, a piece of {set}, from the wreckage.', { piece: piece.name, set: setById('eltheric')?.name ?? '' })}` : haul };
   }
   const sunk = new Set();   // the sailings whose flagship is down, the hub's word
   const mine = new Set();   // AUDIT SEA VENTURES D5: the sailings whose flagship I ended - never put out by the hub's word, told it until it says so
@@ -203,14 +203,14 @@ export function createSeaVentures(deps) {
     if (f && heardFleet !== f.n && !down(f.n)) { heardFleet = f.n; const q = fleetPlace(f, now); mid(t('sea.fleet.sails', 'A treasure fleet weighs anchor ({band}): the {ship} and her escorts, bound east. It lies to the {way}.', { band: bandName(f.band), ship: f.name, way: wayTo(p, q) || etherWayWord('north') }), 6); }
     const here = stormOver(p, now);
     if ((here?.n ?? null) !== inStorm) {
-      if (here) say(t('sea.storm.enter', 'You sail into the Aether storm. Lightning seeks the masts, and wrack rides the swell.'), 5);
+      if (here) say(t('sea.storm.enter', 'You sail into the Aether storm. Lightning arcs toward the masts, and wreckage drifts on the swell.'), 5);
       else if (inStorm != null) say(t('sea.storm.leave', 'You sail out of the Aether storm.'), 4);
       inStorm = here?.n ?? null;
     }
     const n = Number(strikes) || 0;
     if (here && strikesSeen != null && n > strikesSeen) {
       const k = stormStrikeOf();
-      if (k && deps.naval?.()?.stormStrike?.(k)) say(k.fire ? t('sea.storm.strikeFire', 'Lightning strikes your ship and sets her alight!') : t('sea.storm.strike', 'Lightning strikes your ship!'), 4);
+      if (k && deps.naval?.()?.stormStrike?.(k)) say(k.fire ? t('sea.storm.strikeFire', 'Lightning strikes your ship and sets her alight.') : t('sea.storm.strike', 'Lightning strikes your ship.'), 4);
     }
     strikesSeen = here ? n : null;
   }
@@ -226,7 +226,7 @@ export function createSeaVentures(deps) {
     if (tellHub(f.n)) fkAt = clock();   // a word that never left (the socket shut) is said at the next step it can be
     if (!first) return 0;
     deps.ether?.credit?.(f.purse);
-    mid(act === 'board' ? t('sea.fleet.taken', 'The {ship} is taken! {gold} gold from her strongroom.', { ship: f.name, gold: f.purse }) : t('sea.fleet.sunk', 'The {ship} is sunk! {gold} gold floats up from her strongroom.', { ship: f.name, gold: f.purse }), 6);
+    mid(act === 'board' ? t('sea.fleet.taken', 'The {ship} is taken. You claim {gold} gold from her strongroom.', { ship: f.name, gold: f.purse }) : t('sea.fleet.sunk', 'The {ship} is sunk. {gold} gold floats up from her strongroom.', { ship: f.name, gold: f.purse }), 6);
     return f.purse;
   }
   /** THE HUB'S WORD of the fleets (`st` at hello, `fd` when a flagship goes down): the sailings scattered - one this sailing's

@@ -180,11 +180,11 @@ export function seasonText(s) {
   const lastDeep = firstOf(s.last?.deep, leagues), lastLegends = firstOf(s.last?.legends, legends);
   const last = [
     lastDeep ? t('sea.season.lastDeep', 'Last season\'s deepest voyage: {who}.', { who: lastDeep }) : '',
-    lastLegends ? t('sea.season.lastLegends', 'Last season\'s most legends ended: {who}.', { who: lastLegends }) : '',
+    lastLegends ? t('sea.season.lastLegends', 'Most legends ended last season: {who}.', { who: lastLegends }) : '',
   ].filter(Boolean).join(' ');
   return {
     head: [t('sea.season.head', 'The season\'s captains'), s.asking || !s.season ? '' : t('sea.season.headSub', 'Season {n} · {days, plural, one {# day} other {# days}} left', { n: s.season, days: s.daysLeft })],
-    lede: s.asking ? t('sea.season.asking', 'The harbormaster is reading the season\'s boards...') : [t('sea.season.lede', 'Every captain of the realm, this season: how far past the Veil they have sailed, and how many of the six legends they have sunk or taken.'), mine, last].filter(Boolean).join(' '),
+    lede: s.asking ? t('sea.season.asking', 'The harbormaster is reading the season\'s boards...') : [t('sea.season.lede', 'See how far past the Veil captains have sailed this season and how many of the six legends they have sunk or taken.'), mine, last].filter(Boolean).join(' '),
     lists: s.asking ? [] : [
       { title: t('sea.season.deepTitle', 'Deepest voyages'), rows: rows(s.deep ?? [], leagues), none: t('sea.season.deepNone', 'No captain has sailed past the Veil this season.') },
       { title: t('sea.season.legendsTitle', 'Legends ended'), rows: rows(s.legends ?? [], legends), none: t('sea.season.legendsNone', 'No legend has been sunk or taken this season.') },
@@ -205,20 +205,20 @@ export function wantedText(w) {
   const g = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
   const rows = (w.rows ?? []).map((r) => ({
     id: r.char, title: r.name,
-    words: t('sea.bounty.row', '{kills, plural, =0 {No kills at sea of late} one {# kill at sea} other {# kills at sea}}, {gold} gold on their head', { kills: r.kills, gold: g(r.bounty) }),
+    words: t('sea.bounty.row', '{kills, plural, =0 {No recent kills at sea} one {# kill at sea} other {# kills at sea}}, {gold} gold on their head', { kills: r.kills, gold: g(r.bounty) }),
     presses: (w.posts ?? []).map((n) => ({ label: t('sea.bounty.post', 'Post {gold}', { gold: g(n) }), can: !w.busy && !(w.purse < n), n })),   // AUDIT SEA VENTURES E7: greyed past the purse
   }));
   return {
-    head: [t('sea.bounty.head', 'Wanted'), t('sea.bounty.headSub', 'the open sea\'s killers')],
-    lede: w.asking ? t('sea.bounty.asking', 'The harbormaster is reading the board...') : rows.length ? t('sea.bounty.lede', 'Gold posted on a captain\'s head is paid to whoever ends them at sea: a death at their hand, or a wreck at their guns. Each post is your own gold.') : t('sea.bounty.none', 'No captain of the open sea is wanted.'),
+    head: [t('sea.bounty.head', 'Wanted'), t('sea.bounty.headSub', 'outlaw captains at sea')],
+    lede: w.asking ? t('sea.bounty.asking', 'The harbormaster is checking the bounty board.') : rows.length ? t('sea.bounty.lede', 'Bounties go to whoever kills a wanted captain or wrecks their ship at sea. Posting a bounty comes out of your own gold.') : t('sea.bounty.none', 'No captains are currently wanted at sea.'),
     rows,
-    owed: w.owed > 0 ? { title: t('sea.bounty.owedTitle', 'Bounties owed you'), words: t('sea.bounty.owed', '{gold} gold for the wanted captains you ended at sea.', { gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
+    owed: w.owed > 0 ? { title: t('sea.bounty.owedTitle', 'Bounties owed to you'), words: t('sea.bounty.owed', '{gold} gold for wanted captains you killed, or whose ships you wrecked, at sea.', { gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
     // AUDIT SEA VENTURES B4: my posts on heads gone, back to me by the same collect
-    refund: w.refund > 0 ? { title: t('sea.bounty.refundTitle', 'Bounties returned'), words: t('sea.bounty.refund', '{gold} gold you posted on captains who are gone, back to you.', { gold: g(w.refund) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
-    mine: w.mine > 0 ? t('sea.bounty.mine', 'A bounty of {gold} gold stands on your own head.', { gold: g(w.mine) }) : null,
+    refund: w.refund > 0 ? { title: t('sea.bounty.refundTitle', 'Bounties returned'), words: t('sea.bounty.refund', '{gold} gold returned from bounties you posted on captains who are gone.', { gold: g(w.refund) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
+    mine: w.mine > 0 ? t('sea.bounty.mine', 'There is a {gold} gold bounty on your head.', { gold: g(w.mine) }) : null,
     // SHIP-PVP: a wreck's prizes held for me to collect, and my hold's goods a killer left, mine to reclaim
     prizes: w.prizes > 0 ? { title: t('sea.pvp.prizesTitle', 'Prizes taken at sea'), words: t('sea.pvp.prizes', '{n, plural, one {# piece} other {# pieces}} from wrecks you boarded, held for you.', { n: w.prizes }), can: !w.busy, press: t('sea.bounty.collect', 'Collect') } : null,
-    back: w.back > 0 ? { title: t('sea.pvp.backTitle', 'Your hold\'s goods'), words: t('sea.pvp.back', '{n, plural, one {# piece} other {# pieces}} of your hold, never collected by the captain who boarded you.', { n: w.back }), press: t('sea.pvp.reclaim', 'Reclaim'), can: !w.busy } : null,
+    back: w.back > 0 ? { title: t('sea.pvp.backTitle', 'Goods from your hold'), words: t('sea.pvp.back', '{n, plural, one {# piece} other {# pieces}} from your hold, never collected by the captain who boarded you.', { n: w.back }), press: t('sea.pvp.reclaim', 'Reclaim'), can: !w.busy } : null,
     line: w.line ?? null,
   };
 }
@@ -237,7 +237,7 @@ export function exchangeText(x) {
   const lede = (x.weight == null ? `${x.port}'s exchange. Trade from the helm, into the hold.`
     : `${x.port}'s exchange. The hold carries ${Math.round(x.weight)} kg of goods${room}. You have ${g(x.gold)}.`) + band;
   const STAND = { makes: 'Made here: cheap', wants: 'Wanted here: dear', neither: '' };
-  const CREW_STAND = { makes: t('sea.crew.standMakes', 'Sailors to spare here: cheap'), wants: t('sea.crew.standWants', 'Short of sailors here: dear'), neither: t('sea.crew.standNeither', 'Sailors to be had here: the usual price') };   // CREW-TRADE; AUDIT CREW-TRADE R4: a port that is neither says so
+  const CREW_STAND = { makes: t('sea.crew.standMakes', 'Sailors are plentiful here (cheap)'), wants: t('sea.crew.standWants', 'Sailors are scarce here (expensive)'), neither: t('sea.crew.standNeither', 'Sailors are at standard prices here') };   // CREW-TRADE; AUDIT CREW-TRADE R4: a port that is neither says so
   /** AUDIT CREW-TRADE O3: crew's row in the player's language - its stand, a man's two prices and how many today. */
   const crewWords = (r) => [CREW_STAND[r.stand], r.sells > 0 ? CREW_TRADE_TEXT.buyAt(r.sell, r.sells) : CREW_TRADE_TEXT.noneToBuy, r.buys > 0 ? CREW_TRADE_TEXT.sellAt(r.buy, r.buys) : CREW_TRADE_TEXT.noneTaken].filter(Boolean).join(' - ');
   const rows = (x.rows ?? []).map((r) => {

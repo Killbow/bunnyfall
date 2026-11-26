@@ -26,7 +26,7 @@ export const KT_WORDS = Object.freeze({
   get noMap() { return t('ketch.noMap', 'There is no map of the Ketch.'); },
   get noMark() { return t('ketch.noMark', 'You cannot set a Mark here.'); },
   get noRecall() { return t('ketch.noRecall', 'Recall does not work aboard the Ketch.'); },
-  get noFlight() { return t('ketch.noFlight', 'The Sailwalk is walked, not flown.'); },
+  get noFlight() { return t('ketch.noFlight', 'You cannot fly on the Sailwalk.'); },
   get noUnstuck() { return t('ketch.noUnstuck', 'Use the anchor-lift or the stern lift to leave the Ketch.'); },
   get died() { return t('ketch.died', 'You fall from the Ketch and wake in the fields below.'); },
   get castBack() { return t('ketch.castBack', 'The rigging nets catch you and pull you back aboard.'); },
@@ -46,7 +46,7 @@ export const KT_REFUSE_WORDS = Object.freeze({
   get gone() { return t('ketch.refuse.gone', 'The Ketch is gone.'); },
   get crew() { return t('ketch.refuse.crew', 'This ship belongs to another party.'); },
   get full() { return t('ketch.refuse.full', 'This crew is full.'); },
-  get busy() { return t('ketch.refuse.busy', 'The anchor-lift does not answer. Try again in a moment.'); },
+  get busy() { return t('ketch.refuse.busy', 'The anchor-lift is busy. Try again in a moment.'); },
   get offline() { return t('ketch.refuse.offline', 'Only an online crew can board the Ketch.'); },
   get away() { return t('ketch.refuse.away', 'The Ketch is not over Daggerfall right now. It comes every ten hours.'); },
 });

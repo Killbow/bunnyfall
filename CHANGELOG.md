@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Changed: Ship, voyage, boarding, and dock messages use clearer, more direct wording.
 - Changed: Menu, pause, mod, and feature settings descriptions are clearer and more direct.
 - Changed: Profession, store, crafting station, and work board messages use clearer, more direct wording.
 - Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.

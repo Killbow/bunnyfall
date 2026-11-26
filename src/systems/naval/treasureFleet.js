@@ -98,7 +98,7 @@ export function createTreasureFleet(deps) {
     const piece = rollElthericPiece(mulberry32(((entry.fleet.seed >>> 0) ^ TIDEMAIL_SALT) >>> 0), elthericChance('fleet', band));
     if (piece) {
       deps.give([piece]);
-      deps.say(t('sea.tidemail.fleet', 'From the treasure fleet\'s flagship {ship}: {piece}, a piece of {set}!', { ship: entry.ship.names?.name ?? '', piece: piece.name, set: setById('eltheric')?.name ?? '' }), 6);
+      deps.say(t('sea.tidemail.fleet', 'You recover {piece}, a piece of {set}, from the treasure fleet flagship {ship}.', { ship: entry.ship.names?.name ?? '', piece: piece.name, set: setById('eltheric')?.name ?? '' }), 6);
     }
     return piece;
   }

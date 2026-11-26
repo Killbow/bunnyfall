@@ -50,16 +50,16 @@ export const KT_LINK_TEXT = Object.freeze({
   get wave() {
     return [
       '',
-      t('ketch.link.wave.1', 'The Watch sounds! Dwarven Spheres drop from the rigging.'),
-      t('ketch.link.wave.2', 'Sentries march up from below with the second wave!'),
+      t('ketch.link.wave.1', 'The Watch sounds the alarm. Dwarven Spheres drop from the rigging.'),
+      t('ketch.link.wave.2', 'Sentries march up from below with the second wave.'),
       // KETCH-LONGER (2026-10-25): five waves - the third and fourth more brass, the Watch-Captain with the fifth
-      t('ketch.link.wave.more', 'Wave {w} of the Watch climbs aboard!', { w: 3 }),
-      t('ketch.link.wave.more', 'Wave {w} of the Watch climbs aboard!', { w: 4 }),
-      t('ketch.link.wave.3', 'The Watch-Captain climbs onto the deck!'),
+      t('ketch.link.wave.more', 'Wave {w} of the Watch climbs aboard.', { w: 3 }),
+      t('ketch.link.wave.more', 'Wave {w} of the Watch climbs aboard.', { w: 4 }),
+      t('ketch.link.wave.3', 'The Watch-Captain climbs onto the deck.'),
     ];
   },
   get wardens() { return t('ketch.link.wardens', 'Two Hammer Wardens guard the landing. They wake when you pass the last hammers.'); },
-  get woke() { return t('ketch.link.woke', 'The Hammer Wardens wake!'); },
+  get woke() { return t('ketch.link.woke', 'The Hammer Wardens wake.'); },
   engine: (n) => t('ketch.link.engine', 'The engine needs {n} aether cells. Bring them from the cradles to its sockets.', { n }),
   banked: (who, k, n) => t('ketch.link.banked', '{who} sets a cell in the engine ({k} of {n}).', { who: someone(who), k, n }),
   dropped: (who, why) => (why === 'struck' ? t('ketch.link.dropped.struck', '{who} is struck and drops their aether cell.', { who: someone(who) })
@@ -67,17 +67,17 @@ export const KT_LINK_TEXT = Object.freeze({
       : why === 'left' ? t('ketch.link.dropped.left', '{who} leaves the deck with their aether cell. It is lost.', { who: someone(who) })   // AUDIT KETCH L3-14: never "lets go"
         : t('ketch.link.dropped.let', '{who} lets go of their aether cell.', { who: someone(who) })),
   bridge: (by) => t('ketch.link.bridge', '{who} reaches the bridge. {open}', { who: someone(by), open: KT_WORDS.bridgeOpen }),
-  phase: (n) => t('ketch.link.phase', '{phase}!', { phase: ketchPhaseName(n) }),
-  get discord() { return t('ketch.link.discord', 'The Warden throws the ship out of tune! Carry cells to the four resonators.'); },
-  retuned: (left) => (left > 0 ? t('ketch.link.retuned', 'A resonator rings true. {left, plural, one {# is} other {# are}} still false.', { left })
-    : t('ketch.link.retunedAll', 'The last resonator rings true! The Warden\'s ward breaks!')),
-  get lastNote() { return t('ketch.link.lastNote', 'The Last Note! Break the tuning-forks before the song ends.'); },
-  get song() { return t('ketch.link.song', 'The Warden sings the Keel-Song! Break the tuning-forks!'); },
-  forkBroken: (who, left) => (left > 0 ? t('ketch.link.forkBroken', '{who} breaks a fork. {left, plural, one {# stands} other {# stand}}.', { who: someone(who), left })
-    : t('ketch.link.forkBrokenAll', '{who} breaks the last fork!', { who: someone(who) })),
-  get stunned() { return t('ketch.link.stunned', 'The song breaks! The Warden reels!'); },
-  get sections() { return t('ketch.link.sections', 'The bridge’s outer ring shudders. Get onto the core!'); },
-  get west() { return t('ketch.link.west', 'The Ketch turns west!'); },
+  phase: (n) => t('ketch.link.phase', '{phase}.', { phase: ketchPhaseName(n) }),
+  get discord() { return t('ketch.link.discord', 'The Warden throws the ship out of tune. Carry cells to the four resonators.'); },
+  retuned: (left) => (left > 0 ? t('ketch.link.retuned', 'A resonator rings true. {left, plural, one {# is} other {# are}} still out of tune.', { left })
+    : t('ketch.link.retunedAll', 'The last resonator rings true. The Warden\'s ward breaks.')),
+  get lastNote() { return t('ketch.link.lastNote', 'The Last Note. Break the tuning-forks before the song ends.'); },
+  get song() { return t('ketch.link.song', 'The Warden sings the Keel-Song. Break the tuning-forks.'); },
+  forkBroken: (who, left) => (left > 0 ? t('ketch.link.forkBroken', '{who} breaks a fork. {left, plural, one {# remains} other {# remain}}.', { who: someone(who), left })
+    : t('ketch.link.forkBrokenAll', '{who} breaks the last fork.', { who: someone(who) })),
+  get stunned() { return t('ketch.link.stunned', 'The song breaks. The Warden reels.'); },
+  get sections() { return t('ketch.link.sections', 'The bridge\'s outer ring shudders. Get onto the core.'); },
+  get west() { return t('ketch.link.west', 'The Ketch turns west.'); },
   get lost() { return t('ketch.link.lost', 'The bridge is empty. The Warden returns to the helm.'); },
   fell: (top) => (top?.length ? t('ketch.link.fell', 'The Tonal Warden falls. {top} hit it hardest. {open}', { top: top.join(', '), open: KT_WORDS.cabinOpen })
     : t('ketch.link.fellNone', 'The Tonal Warden falls. {open}', { open: KT_WORDS.cabinOpen })),

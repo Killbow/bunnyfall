@@ -146,7 +146,7 @@ export function createFleetHost(deps) {
       : inFight ? 'Not while the ship is in combat.'
       : !crewed && at.where !== 'here' ? 'This ship has no crew to sail it to port. Go to it yourself.'
       : apart ? 'This ship is on the other side of the Veil. The crew won\'t take it across without you.'
-      : openSea ? t('naval.fleet.openSeaAway', 'Not on the open sea. The crew won\'t sail it through without you.')
+      : openSea ? t('naval.fleet.openSeaAway', 'Not on the open sea. The crew won\'t sail it to port without you.')
       : (deps.passengersAboard?.(at.boat) ?? 0) > 0 ? 'Another player is aboard.'
       : null;
     const repair = !crewed ? 'This ship has no crew to make repairs.'

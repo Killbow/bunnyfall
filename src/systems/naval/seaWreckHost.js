@@ -64,7 +64,7 @@ export function collectSeaPrizes({ session, checkpoint, character, door, say }) 
     apply: (/** @type {any} */ a) => {
       const items = Array.isArray(a?.data?.items) ? a.data.items : [];
       for (const it of items) addItem((playerEntity.items ??= []), it);
-      if (items.length) say?.(t('sea.pvp.prizeTaken', 'Plunder from a wreck\'s hold is in your pack: {n, plural, one {# piece} other {# pieces}}.', { n: items.length }), 5);
+      if (items.length) say?.(t('sea.pvp.prizeTaken', 'Plunder from boarded wrecks is now in your pack: {n, plural, one {# piece} other {# pieces}}.', { n: items.length }), 5);
     },
   });
 }
@@ -81,7 +81,7 @@ export function reclaimSeaPrizes({ session, checkpoint, character, door, say }) 
     apply: (/** @type {any} */ a) => {
       const items = Array.isArray(a?.data?.items) ? a.data.items : [];
       for (const it of items) addItem((playerEntity.items ??= []), it);
-      if (items.length) say?.(t('sea.pvp.holdBack', 'Goods your killer never collected are back in your pack: {n, plural, one {# piece} other {# pieces}}.', { n: items.length }), 5);
+      if (items.length) say?.(t('sea.pvp.holdBack', 'Goods the captain who boarded you never collected are back in your pack: {n, plural, one {# piece} other {# pieces}}.', { n: items.length }), 5);
     },
   });
 }
@@ -133,7 +133,7 @@ export function createSeaWreckHost(deps) {
         const out = took.length ? deps.naval?.()?.pvp?.takeHold?.(w.c.u, took) ?? [] : [];
         const n = out.length || Math.max(0, Math.floor(Number(d.n) || 0));   // her record already without them: still said
         if (n) say(t('sea.pvp.holdTaken', 'Your wreck was boarded and her hold plundered: {n, plural, one {# piece} other {# pieces}} taken.', { n }), 6);
-        else if (w.c.b === 1) say(t('sea.pvp.holdSpared', 'Your wreck was boarded, but nothing in her hold was worth the taking.'), 5);
+        else if (w.c.b === 1) say(t('sea.pvp.holdSpared', 'Your wreck was boarded, but nothing in the hold was worth taking.'), 5);
       },
     });
   }
@@ -157,7 +157,7 @@ export function createSeaWreckHost(deps) {
     if (!c || !me) return;
     restore(me);
     if (!owe(/** @type {string} */ (rc), c, me, true)) return;
-    if (c.k === me && c.b !== 1) say(t('sea.pvp.notBoarded', 'You did not board her in time. Her hold stays her captain\'s.'), 5);
+    if (c.k === me && c.b !== 1) say(t('sea.pvp.notBoarded', 'You did not board the wreck in time. Her cargo remains with her captain.'), 5);
     keep();
   }
   /** THE FRAME (the sea's host's guns' step): each carry come due asked - again its wait on while the answer says nothing

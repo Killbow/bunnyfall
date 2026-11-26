@@ -87,18 +87,18 @@ export const crewRoom = (d) => Math.max(0, Math.floor((Number(d?.maxCrew) || 0) 
 export const CREW_TRADE_TEXT = Object.freeze({
   bought: (n, gold) => t('sea.crew.bought', 'Signed on {n, plural, one {# man} other {# men}} for {gold, number} gold.', { n, gold }),   // AUDIT CREW-TRADE R4: a man, as the row counts him
   sold: (n, gold) => t('sea.crew.sold', 'Signed off {n, plural, one {# man} other {# men}} for {gold, number} gold.', { n, gold }),
-  short: (gold) => t('sea.crew.short', 'Not enough gold. It’s {gold, number} gold a man.', { gold }),
+  short: (gold) => t('sea.crew.short', 'Not enough gold. It costs {gold, number} gold a man.', { gold }),
   get noneToday() { return t('sea.crew.noneToday', 'The exchange has no more sailors to sign on today.'); },
   get noneWanted() { return t('sea.crew.noneWanted', 'The exchange will take no more crew today.'); },
   get full() { return t('sea.crew.full', 'The ship has her whole crew aboard.'); },
   get noCrew() { return t('sea.crew.noCrew', 'This ship carries no crew.'); },
-  get crossed() { return t('sea.crew.crossed', 'This ship came through customs with her crew. The exchange takes none of them.'); },
+  get crossed() { return t('sea.crew.crossed', 'This ship came through customs with her crew. The exchange will not take them.'); },
   ashore: (who) => t('sea.crew.ashore', '{who} is in your shore party. Send them back aboard first.', { who }),   // AUDIT CREW-TRADE H2: on deck at the helm, his place kept for the shore
   signedOn: (names) => t('sea.crew.signedOn', 'Signed on: {names}.', { names }),   // AUDIT CREW-TRADE H3
   paidOff: (names) => t('sea.crew.paidOff', 'Paid off: {names}.', { names }),   // AUDIT CREW-TRADE H1
   get fighting() { return t('sea.crew.fighting', 'Not while the ship is in combat.'); },
-  get lastMan() { return t('sea.crew.lastMan', 'That\'s your last crew member. The ship would have nobody aboard.'); },
-  get charter() { return t('sea.crew.charter', 'Her crew are her master\'s. You only booked passage.'); },   // AUDIT CREW-TRADE E1
+  get lastMan() { return t('sea.crew.lastMan', 'That is your last crew member. The ship would have nobody aboard.'); },
+  get charter() { return t('sea.crew.charter', 'The crew belongs to the captain. You only booked passage.'); },   // AUDIT CREW-TRADE E1
   get title() { return t('sea.crew.title', 'Crew'); },
   buyAt: (gold, left) => t('sea.crew.buyAt', 'buy at {gold, number} gold a man ({left} left today)', { gold, left }),
   sellAt: (gold, wanted) => t('sea.crew.sellAt', 'sell at {gold, number} gold ({wanted} wanted)', { gold, wanted }),

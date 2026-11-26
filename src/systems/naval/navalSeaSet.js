@@ -34,6 +34,6 @@ export function legendTidemail(legend, seed, paid, { give, say }) {
   const piece = rollElthericPiece(mulberry32(((seed >>> 0) ^ TIDEMAIL_SALT) >>> 0), elthericChance('legend', legend.band));
   if (!piece) return null;
   give([piece]);
-  say(t('sea.tidemail.legend', 'From {ship}: {piece}, a piece of {set}!', { ship: legend.name, piece: piece.name, set: setById('eltheric')?.name ?? '' }), 6);
+  say(t('sea.tidemail.legend', 'You recover {piece}, a piece of {set}, from {ship}.', { ship: legend.name, piece: piece.name, set: setById('eltheric')?.name ?? '' }), 6);
   return piece;
 }
