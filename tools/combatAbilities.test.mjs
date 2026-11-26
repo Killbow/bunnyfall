@@ -525,3 +525,26 @@ test('the Wayfarer lantern moves with the floating origin of the scene it was se
   for (let i = 0; i < 4; i++) stepUtilityTimers(entity, .25);
   assert.ok(lanterns.every(at => Math.abs(at[0] - (810 - 819.2)) < 1e-9), "another scene's shift leaves it in place");
 });
+
+test('utility buffs are cast at ten rounds or more, rising with rank, while instant effects stay one round', (t) => {
+  const old = globalThis.location;
+  globalThis.location = { search: '?abilities' };
+  t.after(() => { if (old) globalThis.location = old; else delete globalThis.location; });
+  const entity = { ...makeEntity(), items: [], magicka: 0 };
+  for (const skill of [SKILLS.Archery, SKILLS.Axe, SKILLS.ShortBlade, SKILLS.LongBlade, SKILLS.BluntWeapon, SKILLS.HandToHand]) entity.skills[skill] = 60;
+  restoreAbilityProgress(entity, null, true);
+  syncAbilityUnlocks(entity);
+  const bundles = [];
+  const door = { player: () => entity, feet: () => [0, 0, 0], foes: () => [], castOnPlayer: bundle => { bundles.push(bundle); } };
+  const rounds = id => {
+    bundles.length = 0;
+    assert.equal(requestUtility(entity, id, door).ok, true, id);
+    return bundles[0].effects.map(effect => effect.durationBase);
+  };
+  assert.deepEqual(rounds('utility.trailblazer'), [10]);
+  assert.deepEqual(rounds('utility.unbound-will'), [10]);
+  assert.deepEqual(rounds('utility.deepwater-training'), [14]);
+  assert.deepEqual(rounds('utility.skyward-ascent'), [16]);
+  assert.deepEqual(rounds('utility.breakaway'), [14, 14]);
+  assert.deepEqual(rounds('utility.field-antidote'), [1]);
+});

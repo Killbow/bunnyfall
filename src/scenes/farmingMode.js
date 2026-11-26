@@ -12,6 +12,7 @@ import { ChoiceWindow } from '../ui/talkWindow.js';
 import { TITLE_TEXT } from '../ui/playerBadge.js';
 import { holdHotbar } from '../ui/enhancedHotbar.js';
 import { farmToolArea } from '../net/farmProgressLaw.js';
+import { farmToolBeds } from '../net/farm/toolRange.js';
 import { layFarmstead, farmsteadTargets, rayHitsTarget, cargoLevel, farmsteadLamps, LAMP_RANGE } from '../world/farm/farmstead.js';
 import { adoptLight } from '../render/lightId.js';
 import { seedsFor } from '../net/farm/cropLaw.js';   // PHASE 2: the seeds this farm's climate grows
@@ -241,6 +242,21 @@ export function createFarmingMode(deps) {
     carried.push(...near.map((s) => s.id));
     notice(t('farm.stead.sackTaken', 'You shoulder {n} sack(s). Carry them to the factor\'s wagon.', { n: carried.length }));
   }
+  /** The beds one click works from the bed aimed at (toolRange.js): the 3x3 block with the best tools; the same ones the highlight shows. */
+  function workBeds(index, feet) {
+    return farmToolBeds(site.beds, index, farmToolArea(garden), feet, (i) => {
+      const p = site.beds[i], distance = Math.hypot(p[0] - feet[0], p[2] - feet[2]);
+      return deps.collider.raycast([feet[0], feet[1] + .8, feet[2]], directionTo(feet, p), distance) >= distance - .3;
+    });
+  }
+  let markKey = '', marked = [];
+  /** The highlighted beds, recomputed only when the aim, the tools or the worker's spot (to a quarter metre) change. */
+  function markedBeds() {
+    if (selected < 0 || !site) { markKey = ''; return marked = []; }
+    const feet = deps.feet(), key = `${selected}|${farmToolArea(garden)}|${Math.round(feet[0] * 4)}|${Math.round(feet[2] * 4)}|${site.beds.length}`;
+    if (key !== markKey) { markKey = key; marked = workBeds(selected, feet); }
+    return marked;
+  }
   async function work() {
     if (!active || selected < 0 || busy || version < 0) return;
     if (ownHere()?.mapId !== farm.mapId) { notice(t('farm.market.visitor', 'The beds are the Company\'s. On market day the green is yours.')); return; }   // PHASE 7
@@ -249,15 +265,7 @@ export function createFarmingMode(deps) {
     if (deps.collider.raycast([feet[0], feet[1] + .8, feet[2]], directionTo(feet, bed), Math.hypot(feet[0] - bed[0], feet[2] - bed[2])) < Math.hypot(feet[0] - bed[0], feet[2] - bed[2]) - .3) {
       notice(t('farm.mode.blocked', 'Something is between you and this bed.')); return;
     }
-    const ids=[selected],area=farmToolArea(garden);
-    if(area>1){
-      const candidates=site.beds.map((p,i)=>({p,i,d:Math.hypot(p[0]-bed[0],p[2]-bed[2])})).filter(({p,i,d})=>i!==selected&&d<=FARM_BED_SPACING+.1&&Math.hypot(p[0]-feet[0],p[2]-feet[2])<=FARM_WORK_REACH).sort((a,b)=>a.d-b.d||a.i-b.i);
-      for(const {p,i}of candidates){
-        const distance=Math.hypot(p[0]-feet[0],p[2]-feet[2]);
-        if(deps.collider.raycast([feet[0],feet[1]+.8,feet[2]],directionTo(feet,p),distance)>=distance-.3)ids.push(i);
-        if(ids.length>=area)break;
-      }
-    }
+    const ids=workBeds(selected,feet);
     // PHASE 2: the hoe on a weedy planted bed weeds it; with Careful work on, sowing, weeding and scything are played
     // PHASE 6: the hoe on a blighted bed pulls the sick plants (the crop is lost, the bed stops spreading it)
     const here = shown().beds[selected], op = tool === 'hoe' && bedBlighted(here) ? 'pull' : tool === 'hoe' && here?.crop && bedWeedy(here, now(), gardenStage(here, now()) === 'ripe') ? 'weed' : tool;
@@ -532,7 +540,7 @@ export function createFarmingMode(deps) {
       for(const observer of observers.values())observer.draw(proj,view,right,up);
       if (!farm || !site || version < 0 || !art.ready) return;
       frame = { proj, view }; if (active && !deps.blocked()) pick(); else { selected = -1; fixture = null; }
-      site.mask(garden,version); art.update(site, shown(), now(), selected); art.draw(right, up, selected);
+      site.mask(garden,version); art.update(site, shown(), now(), selected, markedBeds()); art.draw(right, up, selected);
       if (stead.ready) {
         if (!site.farmstead) {
           site.farmstead = layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });

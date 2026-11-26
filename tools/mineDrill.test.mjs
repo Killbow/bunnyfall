@@ -53,7 +53,7 @@ test('the haul’s receipt: minted by the relay, read by the page, verified once
   assert.equal(readMineReceipt(r).n, 9);
   const v = await verifyMineReceipt(r, kp.publicKey, { subtle, nowS: NOW + 10 });
   assert.ok(v.ok);
-  assert.equal(mineReceiptId(v.claims), `${MINE}:0:4`);
+  assert.equal(mineReceiptId(v.claims), `${MINE}:0:4:${v.claims.u}`);
   const [ver, body, sig] = r.split('.');
   const forged = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(body, 'base64url').toString()), n: 45 })).toString('base64url');
   assert.equal((await verifyMineReceipt(`${ver}.${forged}.${sig}`, kp.publicKey, { subtle, nowS: NOW })).why, 'signature');

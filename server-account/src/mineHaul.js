@@ -3,7 +3,7 @@
 // signature with the relay's public half (the gate's key, as the arena's receipts), checks the haul is the caller's,
 // keeps it once (`mine_hauls`, migration 0221: one row a receipt, whoever carries it twice), holds the account to
 // MINE_HAULS_PER_DAY pieces a day, and pays the ore into the character's Stores as its own.
-import { verifyMineReceipt, mineReceiptId } from '../../src/net/mine/mineReceipt.js';
+import { verifyMineReceipt, mineReceiptId, mineReceiptOldId } from '../../src/net/mine/mineReceipt.js';
 import { asks, shut } from './profShared.js';
 import { STORES_MAX, PROF_XP_MAX } from '../../src/net/professionLaw.js';
 import { drillHaulPaid } from '../../src/net/mine/mineHaulLaw.js';
@@ -29,6 +29,8 @@ export async function claimMineHaul(ctx, player, env, body, publicKey) {
   const c = v.claims;
   if (c.u !== player.id) return { error: 'not-yours' };
   const day = Math.floor(nowS / 86400);
+  // a haul banked before the taker joined the row's id is still this player's, and still banked
+  if (await db.prepare('SELECT 1 AS x FROM mine_hauls WHERE id = ?1 AND player = ?2').bind(mineReceiptOldId(c), player.id).first()) return { paid: 0, why: 'claimed' };
   const today = Number((await db.prepare('SELECT COALESCE(SUM(n), 0) AS n FROM mine_hauls WHERE player = ?1 AND day = ?2').bind(player.id, day).first())?.n ?? 0);
   const n = Math.max(0, Math.min(c.n, MINE_HAULS_PER_DAY - today));
   if (n <= 0) return { error: 'day-full' };

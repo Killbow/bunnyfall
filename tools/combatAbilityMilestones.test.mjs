@@ -5,7 +5,7 @@ import { ABILITIES } from '../src/combat/abilities/registry.js';
 import { PlayerWeapon } from '../src/combat/playerWeapon.js';
 import { abilityCooldown, claimAbilityEvents, offsetAbilities, requestHotbarAbility, stepAbilityRig } from '../src/combat/abilities/rig.js';
 import {
-  abilityPlayable, DAGGER_MILESTONES, milestoneDelivery, PREVIEW_THRUST, PREVIEW_JAB, PREVIEW_POWER_DRAW, PREVIEW_DEADEYE, PREVIEW_SIEGE_BOLT,
+  abilityPlayable, DAGGER_MILESTONES, TANTO_MILESTONES, milestoneDelivery, PREVIEW_THRUST, PREVIEW_JAB, PREVIEW_POWER_DRAW, PREVIEW_DEADEYE, PREVIEW_SIEGE_BOLT,
   PREVIEW_KEEP_AWAY, PREVIEW_BARRAGE, PREVIEW_ANCHORED_SIGHT, PREVIEW_ANCHOR_FIRE, PREVIEW_SHOULDER_BREAK,
   PREVIEW_PIERCING_LINE, PREVIEW_EAGLES_RHYTHM, PREVIEW_ARMOR_NEEDLE, PREVIEW_LINEBREAKER, PREVIEW_FLOW_STATE,
   PREVIEW_KINGS_MEASURE, PREVIEW_SKYFALL, PREVIEW_FINAL_VERDICT, PREVIEW_SIEGE_OF_HEAVEN, PREVIEW_HUNDRED_FIST,
@@ -29,6 +29,9 @@ import { blowSchedule } from '../src/characters/weaponStates.js';
 import { AUTOAIM, autoaimFoe } from '../src/combat/abilities/autoaim.js';
 import { ABILITY_DAMAGE, meleeBeatMult, shotMult, tunedAbility } from '../src/combat/abilities/damage.js';
 import { blowReaches } from '../src/combat/technique/techniqueBlow.js';
+import { buffRounds, buffRoundsForRank, ROUND_SECONDS, utilityBuffRounds, withBuffDuration } from '../src/combat/abilities/buffDuration.js';
+import { racialDelivery } from '../src/combat/abilities/racialProfiles.js';
+import { utilityProfile } from '../src/combat/abilities/utilityProfiles.js';
 import { BLADE_WEAVE, THOUSAND_CUTS, HUNTING_LINE, PREDATORS_CROSSING, KNOCKOUT_CHAIN, TITANS_HANDS, combinationDelivery } from '../src/combat/abilities/combinations.js';
 
 function offline(t) {
@@ -947,7 +950,9 @@ test('Sword-Song commits once and its temporary accuracy expires in simulation t
   assert.ok(abilityCooldown(entity, id) > 0);
   assert.deepEqual(swings, []);
   for (let i = 0; i < 44; i++) frame(.25);
-  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 4);
+  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 9, 'still up after eleven seconds');
+  for (let i = 0; i < 256; i++) frame(.25);
+  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 4, 'gone after the racial buff length (15 rounds, 75 seconds)');
 });
 
 test('Forest Ambush requires a bow, spends one arrow and applies concealment', (t) => {
@@ -1000,8 +1005,8 @@ test("Commander's Call buffs the Imperial and only nearby companions in sight", 
   assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 8);
   assert.equal(liveStat(entity, 'speed'), 56);
   assert.equal(liveStat(near.entity, 'speed'), 56);
-  tickActiveEffects(near.entity, {}, () => 0);
-  assert.equal(liveStat(near.entity, 'speed'), 56);
+  for (let round = 1; round < 15; round++) tickActiveEffects(near.entity, {}, () => 0);
+  assert.equal(liveStat(near.entity, 'speed'), 56, 'a companion keeps the buff for the whole racial length');
   tickActiveEffects(near.entity, {}, () => 0);
   assert.equal(liveStat(near.entity, 'speed'), 50);
   for (const excluded of [hostileNear, blocked, far, down]) assert.equal(liveStat(excluded.entity, 'speed'), 50);
@@ -1314,4 +1319,55 @@ test('every beat of a normal weapon or combination ability lands clearly harder 
   assert.equal(meleeBeatMult(capstone, 3.25, .2), (1 + 3.25) * .2);
   const racial = ABILITIES.find(entry => entry.race === 'Nord');
   assert.equal(meleeBeatMult(racial, 1.05, 1), 2.05);
+});
+
+test('every ability buff lasts at least ten rounds, and longer at a higher rank, up to twenty', () => {
+  assert.deepEqual([25, 50, 75, 100].map(buffRoundsForRank), [10, 13, 16, 20]);
+  assert.deepEqual([10, 20, 30, 40, 50].map(utilityBuffRounds), [10, 10, 12, 14, 16]);
+  for (const ability of ABILITIES) {
+    if (ability.category === 'utility') continue;
+    const raw = milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, { templateIndex: ability.templates?.find(v => v !== 'bare') })
+      ?? racialDelivery(ability.id);
+    if (!raw) continue;
+    const delivery = withBuffDuration(ability, raw);
+    const rounds = buffRounds(ability);
+    assert.ok(rounds >= 10 && rounds <= 20, ability.id);
+    for (const effect of [].concat(delivery.selfEffect ?? [], delivery.crouchEffect ?? [])) {
+      assert.ok(effect.rounds >= rounds, ability.id + ' effect ' + effect.type);
+    }
+    if (delivery.accuracy) assert.equal(delivery.accuracy.seconds, rounds * ROUND_SECONDS, ability.id);
+  }
+  // A rank 100 capstone lasts the longest, and the lengthened profile leaves the table's own copy alone.
+  const capstone = ABILITIES.find(entry => entry.id === TANTO_MILESTONES[3]);
+  assert.equal(withBuffDuration(capstone, milestoneDelivery(capstone.id)).selfEffect[0].rounds, 20);
+  assert.equal(milestoneDelivery(capstone.id).selfEffect[0].rounds, 2);
+});
+
+test('a buff cast from an ability reaches the spell system at its rank length', (t) => {
+  offline(t);
+  t.after(() => setPlayerDoor(null));
+  const casts = [];
+  const { entity, frame } = fighter(114, SKILLS.ShortBlade, 100);
+  setPlayerDoor({ player: () => entity, castOnPlayer: (bundle) => { casts.push(bundle); } });
+  frame();
+  assert.ok(requestHotbarAbility(entity, TANTO_MILESTONES[3]).ok);
+  for (let i = 0; i < 80 && !casts.length; i++) frame();
+  assert.ok(casts.length, 'the capstone casts its buffs');
+  assert.deepEqual(casts[0].effects.map(effect => effect.durationBase), [20, 20, 20]);
+});
+
+test('utility buffs last ten rounds or more, rising with rank, and instant effects stay instant', () => {
+  const rounds = id => {
+    const profile = utilityProfile(id);
+    return [].concat(profile.effects ?? [profile]).map(effect => effect.rounds);
+  };
+  assert.ok(rounds('utility.trailblazer')[0] < 10, 'the raw table is short');
+  for (const id of ['utility.trailblazer', 'utility.unbound-will', 'utility.featherstep', 'utility.hunters-awareness',
+    'utility.deepwater-training', 'utility.riverstride', 'utility.breakaway', 'utility.skyward-ascent']) {
+    const profile = utilityProfile(id);
+    const ability = ABILITIES.find(entry => entry.id === id);
+    for (const effect of [].concat(profile.effects ?? [profile])) {
+      assert.ok(Math.max(effect.rounds, utilityBuffRounds(ability.rank)) >= 10, id);
+    }
+  }
 });

@@ -20,7 +20,7 @@ invariants:
   - "In `PROF_CSS` (`src/ui/enhancedPlusStyle.js`), `.prof-smelt .act` stays pinned to `grid-column: 3` and `grid-row: 1`, so multi-button reforge actions must never append directly into `.prof-smelt`."
   - "`drawEssenceReforge` (`src/ui/profPages.js`) groups press rows inside `.prof-smelt > .prof-lines` spanning `grid-column: 1 / -1` with `flex-direction: column`."
   - "`.prof-short` shortage warnings sit explicitly below their action line rather than flowing into the count column, and `src/ui/reforgeWindow.js` renders `.reforge-line` rows through `affixLine`."
-  - "Replacement choices come from `reforgeChoices` (`src/items/lootRarity.js`): the item's group and number-or-proc class, minus the line's own kind and any kind or param another line holds. Pools are per item and line, never per line category; `tools/essenceReforgePools.test.mjs` pins this."
+  - "Replacement choices come from `reforgeChoices` (`src/items/lootRarity.js`): the item's group and number-or-proc class, minus the line's own kind (or, for a kind with params, its own param: Medical may become Archery) and any kind or param another line holds. Pools are per item and line, never per line category; `tools/essenceReforgePools.test.mjs` pins this."
   - "`upgradeSelect` (`src/ui/upgradeSelect.js`) is an in-window scrolling list (`.choice-list`, max-height 220px, own scroll) with a select-like `.value`, `.onchange` and `.disabled`. It is not a native select."
 traps:
   - "A native `<select>` popup is clipped by the desktop app window, and a `size > 1` listbox inside the scrolling pane swallows the wheel, so long pools looked cut off. Do not bring either back."
@@ -44,6 +44,6 @@ Reforge with Essence is a Bunnyfall station screen (`src/ui/profPages.js` `drawE
 
 ## Pools and pickers
 
-- `reforgeChoices` (`src/items/lootRarity.js`) gives a line its replacements: the item's group and number-or-proc class, minus the line's own kind and any kind or param another line holds. Pools follow the item and the line, not the line's category. `tools/essenceReforgePools.test.mjs` pins this.
+- `reforgeChoices` (`src/items/lootRarity.js`) gives a line its replacements: the item's group and number-or-proc class, minus the line's own kind (or, for a kind with params, its own param: Medical may become Archery) and any kind or param another line holds. Pools follow the item and the line, not the line's category. `tools/essenceReforgePools.test.mjs` pins this.
 - `upgradeSelect` (`src/ui/upgradeSelect.js`) is an in-window list (`.choice-list`, 220px, scrolls on its own) with a select-like `.value`, `.onchange` and `.disabled`.
 - Do not bring back a native `<select>` (the desktop app clips its popup) or a `size > 1` listbox in the pane (it swallows the wheel). Long pools looked cut off.
