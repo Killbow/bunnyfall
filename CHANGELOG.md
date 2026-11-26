@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Added: A third tier for Company farm tools and soil, at 26,000 of every crop shipped. Legendary tools work a whole 3x3 block of nine beds in one click, with all nine lit up before you swing. Black earth gives 3 extra items a bed and grows crops 50% faster. Farms keep their progress and see the new upgrades at the tool rack and the compost heap.
 - Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
 - Added: Mine sounds. A running drill grinds at its rig, hauling ore rattles into your sack, shoring hammers home and lamps catch with a flare. Falling dust, creaking timbers and the rumble each have their own sound, the collapse comes down in a crash of rock, and a wave is heralded by a roar from the dark.
 - Added: Mine kit at the Cartographers' desk (press G there): a Mining Drill, Drill Fuel, Mine Lamps and a Survey Rod, bought with gold. A drill now needs one fuel a shift, and stops if you leave the mine.
