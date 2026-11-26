@@ -9,12 +9,12 @@ import { standMineFoes } from './mineFoes.js';
 import { createMineSounds } from './mineSounds.js';
 import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, MINE_DRILL_RECORDS } from '../../world/mine/mineDrillModel.js';
 import { drillRunning } from '../../net/mine/mineDrill.js';
-import { trs } from '../../world/mat4.js';
+import { transformPoint, trs } from '../../world/mat4.js';
 import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
 import { identity } from '../../world/mat4.js';
 import { mineLayout } from '../../net/mine/mineLayout.js';
 import { buildMineModel, mineColliderTris, mineTextures } from '../../world/mine/mineModel.js';
-import { isMine } from '../../world/mine/mineLocation.js';
+import { isMine, MINE_LAMP_M } from '../../world/mine/mineLocation.js';
 import { t } from '../../ui/textManager.js';
 import { createMineClient, mineKey } from './mineClient.js';
 import { noteMineState } from './mineMouths.js';
@@ -47,6 +47,7 @@ export function mineExitDoor(mouth) {
 const RIG_SHAFT_UP_M = 0.35;
 /** How far off a chamber's middle its lamp stands (m), clear of the way through. */
 const LAMP_OFF_M = 1.2;
+const LAMP_COLOR = Object.freeze([1, 0.76, 0.47]);
 /** How often a page says `hi` to its mine's room until the room answers (ms). */
 const HI_RETRY_MS = 1000;
 /** An activation box about a point (m): `w` across, `h` up from `y0`. */
@@ -115,15 +116,18 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
 
   /** THE LAMPS, as the room says them: a post and its glowing lantern at each lit chamber's middle (they stay till the
    *  mine turns over, so none is ever taken down but with the mine). */
-  const lampsStood = new Set();
+  /** @type {Map<string, { x: number, y: number, z: number, range: number, color: readonly number[] }>} */
+  const lampLights = new Map();
   function standLamps(/** @type {any[]} */ lamps) {
     const ctx = standCtx;
-    if (!ctx || !layout || !drillMeshes?.post) return;
+    if (!ctx || !layout) return;
     for (const l of lamps) {
       const key = `${l.s}:${l.c}`, ch = layout.sections[l.s]?.chambers[l.c];
-      if (!ch || lampsStood.has(key)) continue;
-      lampsStood.add(key);
+      if (!ch || lampLights.has(key)) continue;
       const m = trs(ch.c[0] + LAMP_OFF_M, ch.c[1], ch.c[2], 0, (l.c * 71) % 360, 0);
+      const [x, y, z] = transformPoint(m, 0.36, 1.59, 0);
+      lampLights.set(key, { x, y, z, range: MINE_LAMP_M, color: LAMP_COLOR });
+      if (!drillMeshes?.post) continue;
       ctx.dynamicDraws?.push({ gpu: drillMeshes.post, object: { matrix: m }, hidden: false, noShadow: false, texRemap: null },
         { gpu: drillMeshes.lantern, object: { matrix: m }, hidden: false, noShadow: true, texRemap: null });
     }
@@ -157,7 +161,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       } catch (e) { console.warn('[mine] the way out', /** @type {any} */ (e)?.message ?? e); wayOut = null; }
       ctx.addActivationNamer?.((/** @type {any} */ key) => (typeof key === 'string' && key.startsWith('exit:') ? { title: MINE_TEXT.wayOut() } : null));
       // THE MINE ON THIS PAGE: its holes and its walls offered to the activation ray, named by the client, pressed through it
-      mine = { ...loc.mine }; heard = false; hiAt = -Infinity; lampsStood.clear(); kitHeld = null;
+      mine = { ...loc.mine }; heard = false; hiAt = -Infinity; lampLights.clear(); kitHeld = null;
       void Promise.resolve(link?.()?.kit?.()).then((k) => { if (standCtx === ctx || standCtx === null) kitHeld = k ?? null; }, () => {});
       const doors = link?.() ?? null;
       client = createMineClient({
@@ -187,7 +191,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); } catch { /* the context's own teardown frees it either way */ }
         try { if (drillMeshes) for (const m of Object.values(drillMeshes)) renderer?.destroyMesh?.(m); } catch { /* as above */ }
         sounds.stop();
-        mesh = null; wayOut = null; standCtx = null; layout = null; client = null; mine = null; drillMeshes = null; rigs.clear();
+        mesh = null; wayOut = null; standCtx = null; layout = null; client = null; mine = null; drillMeshes = null; rigs.clear(); lampLights.clear();
       });
     },
     /** Every frame in a mine: `hi` said until the room answers, and the collapse played. */
@@ -219,6 +223,13 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       }
       client.heard(w);
       if (w?.k === 'st' && w.st) { standRigs(w.st.drills ?? []); standLamps(w.st.lamps ?? []); }
+    },
+    lampLights(/** @type {number[]} */ eye) {
+      const near = [];
+      for (const lamp of lampLights.values()) {
+        if (Math.hypot(lamp.x - eye[0], lamp.z - eye[2]) <= lamp.range * 2) near.push(lamp);
+      }
+      return near;
     },
     /** The drills stood now (probes): `s:c:k` each. */
     rigs: () => [...rigs.keys()],

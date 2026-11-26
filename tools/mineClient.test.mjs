@@ -95,3 +95,29 @@ test('a strike is told to the room by its section and chamber, but not during a 
   client.struck({ s: 1, c: 2 });
   assert.equal(log.sent.length, 1);
 });
+
+test('shared lamp state supplies a stable point light until the mine is left', async () => {
+  const { createMineHost } = await import('../src/systems/mine/mineHost.js');
+  const { mineLocation, MINE_LAMP_M } = await import('../src/world/mine/mineLocation.js');
+  const host = createMineHost({ renderer: { createMesh: () => ({}) } });
+  const teardown = [];
+  const ctx = { dynamicDraws: [], addTeardown: (fn) => teardown.push(fn) };
+  host.stand(ctx, mineLocation({ px: 100, py: 100 }));
+  const [x, y, z] = host.layout().sections[0].chambers[0].c;
+  const eye = [x, y + 1, z];
+  assert.deepEqual(host.lampLights(eye), []);
+
+  const state = { k: 'st', st: { reset: 0, lamps: [{ s: 0, c: 0 }] } };
+  host.heard(state);
+  const [light] = host.lampLights(eye);
+  assert.equal(light.range, MINE_LAMP_M);
+  assert.ok(Math.abs(light.x - (x + 1.56)) < 0.001);
+  assert.ok(Math.abs(light.y - (y + 1.59)) < 0.001);
+  assert.deepEqual(host.lampLights([x + 100, y, z]), []);
+
+  host.heard(state);
+  assert.deepEqual(host.lampLights(eye), [light]);
+  assert.equal(host.lampLights(eye)[0], light);
+  teardown[0]();
+  assert.deepEqual(host.lampLights(eye), []);
+});
