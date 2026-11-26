@@ -1,7 +1,4 @@
-// Tests the dialogue map layout (src/poi/poiDialogueMap.js) and the "Lead to a new line" edit (src/poi/poiDmEdit.js).
-// It checks the Guard Captain example and a seeded 64-line dialogue for one link per "Go to" answer, arrows one column
-// right, and no overlapping boxes. Unreachable lines must match the validation rules, every run must give the same
-// output, and the document must stay unchanged.
+// Tests the dialogue map layout and the Lead to a new line edit. Run: node --test tools/poiDialogueMap.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
@@ -9,7 +6,6 @@ import { dialogueMap, dialogueEntries } from '../src/poi/poiDialogueMap.js';
 import * as DM from '../src/poi/poiDmEdit.js';
 import { poiV2Example } from './poiV2Examples.mjs';
 
-/** A 64-line dialogue of 8 answers a line, from a fixed seed: links forward and back, ends, trades, and conditions. */
 function seeded(seed = 7) {
   let s = seed;
   const rnd = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
@@ -26,7 +22,7 @@ function seeded(seed = 7) {
     }
     nodes.push({ key: `n${n}`, say: `Line ${n} says something.`, options });
   }
-  // makes n40 and n41 unreachable from the start, with n40 linking to n41
+  // Makes n40 and n41 unreachable from the start, while n40 still links to n41.
   for (const n of nodes) for (const o of n.options) if (o.then.node === 'n40' || o.then.node === 'n41') o.then = { k: 'close' };
   nodes[40].options[0].then = { k: 'goto', node: 'n41' };
   return { key: 'big', name: 'Big', start: 'n0', nodes };

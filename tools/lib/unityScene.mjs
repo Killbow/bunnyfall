@@ -1,39 +1,8 @@
-// CSA-A (2026-09-27): A UNITY BUNDLE'S PREFABS, MESHES, MATERIALS AND ANIMATION,
-// READ OFF ITS TYPE TREES INTO PLAIN DATA (tools/comeSailAwayExtract.mjs).
-//
-// src/formats/unityBundle.js reads any object through its type tree; this
-// module knows what a few classes MEAN, so a prefab comes out as the tree
-// the mod's C# walks by name (GameObject, Transform, the components on each
-// node) and the assets it points at come out as data the port can draw and
-// animate without Unity:
-//
-// - MESHES (class 43): Unity 2019's VertexData - channels laid in streams,
-//   each stream 16-byte aligned, a channel's format and dimension packed in
-//   one byte (the low nibble the dimension) - or, for a big mesh, the same
-//   bytes in the `.resS` at m_StreamData. Position, normal, uv0 and the
-//   single-bone blend index are what the boats' shaders and skinning read;
-//   the index buffer (16- or 32-bit) with its submeshes; the bind poses and
-//   bone-name hashes of a skinned mesh.
-// - MATERIALS (21): shader, textures, floats, colours, keywords.
-// - ANIMATION CLIPS (74): Unity strips a Mecanim clip's editor curves from a
-//   build and keeps its MUSCLE CLIP - curves as a streamed clip (Hermite
-//   segments: at each key's time the curve's cubic coefficients a, b, c, d,
-//   value = ((a t + b) t + c) t + d for t the time since the key), a dense
-//   clip (samples at a rate) and a constant clip (one value a curve). The
-//   curves are numbered streamed first, then dense, then constant, and the
-//   genericBindings say what each is: a transform's position (3 curves),
-//   rotation (4, a quaternion), scale (3) or euler angles (3), named by the
-//   CRC32 of the transform's path from the Animator (AssetStudio's
-//   AnimationClipConverter reads them the same way).
-// - ANIMATOR CONTROLLERS (91) and OVERRIDES (221): the compiled state
-//   machines - states, their motions (a clip or a blend tree), transitions
-//   and conditions, the parameters - with every name taken from the
-//   controller's own id table (m_TOS).
+// Reads a Unity bundle's prefabs, meshes, materials, animation clips, and animator controllers into plain data.
 
 import zlib from 'node:zlib';
 import { readUnityFs, readSerializedFile } from '../../src/formats/unityBundle.js';
 
-/** Unity's class ids this module reads. */
 export const UCLASS = Object.freeze({
   GameObject: 1, Transform: 4, Material: 21, MeshRenderer: 23, Texture2D: 28, MeshFilter: 33, Mesh: 43, Shader: 48,
   MeshCollider: 64, BoxCollider: 65, AnimationClip: 74, AudioSource: 82, AudioClip: 83, AnimatorController: 91,
@@ -43,7 +12,6 @@ export const UCLASS = Object.freeze({
 
 const key = (pptr) => (pptr && (pptr.m_PathID !== 0n && pptr.m_PathID !== 0) ? `${pptr.m_FileID}:${String(pptr.m_PathID)}` : null);
 
-/** The bundle opened for reading: its objects by path id, each read once. */
 export function openScene(bytes) {
   const fs = readUnityFs(bytes);
   const main = fs.files.find((f) => !/\.res(S|ource)$/.test(f.path));
@@ -69,11 +37,7 @@ export function openScene(bytes) {
   return { sf, get, resource, ofClass };
 }
 
-// ---- meshes -----------------------------------------------------------------
-
-/** VertexFormat (2019.x): Float, Float16, UNorm8, SNorm8, UNorm16, SNorm16, UInt8, SInt8, UInt16, SInt16, UInt32, SInt32. */
 const FORMAT_SIZE = [4, 2, 1, 1, 2, 2, 1, 1, 2, 2, 4, 4];
-/** The 14 channels of 2019's VertexData, in order. */
 export const MESH_CHANNELS = Object.freeze(['position', 'normal', 'tangent', 'color', 'uv0', 'uv1', 'uv2', 'uv3', 'uv4', 'uv5', 'uv6', 'uv7', 'blendWeight', 'blendIndices']);
 
 const half = (h) => {
@@ -84,10 +48,7 @@ const half = (h) => {
 };
 
 /**
- * A Mesh's vertex channels, index buffer and submeshes.
- * @returns {{ name:string, vertexCount:number, channels: Object<string,{dim:number,format:number,data:Float32Array|Int32Array}>,
- *   indices: Uint16Array|Uint32Array, submeshes: {start:number,count:number,baseVertex:number,topology:number}[],
- *   bindPoses:number[][], boneNameHashes:number[], rootBoneNameHash:number, aabb:{center:number[],extent:number[]} }}
+ * @returns {{ name:string, vertexCount:number, channels: Object<string,{dim:number,format:number,data:Float32Array|Int32Array}>, indices: Uint16Array|Uint32Array, submeshes: {start:number,count:number,baseVertex:number,topology:number}[], bindPoses:number[][], boneNameHashes:number[], rootBoneNameHash:number, aabb:{center:number[],extent:number[]} }}
  */
 export function decodeMesh(m, resource) {
   const vd = m.m_VertexData;
@@ -159,16 +120,12 @@ export function decodeMesh(m, resource) {
   };
 }
 
-// ---- animation -------------------------------------------------------------
-
-/** How many curves a Transform binding's attribute carries (AnimationClipConverter's FindBinding). */
 export function bindingCurves(b) {
   if (b.typeID !== UCLASS.Transform) return 1;
   return b.attribute === 2 ? 4 : (b.attribute === 1 || b.attribute === 3 || b.attribute === 4) ? 3 : 1;
 }
 export const TRANSFORM_ATTRIBUTE = Object.freeze({ 1: 'position', 2: 'rotation', 3: 'scale', 4: 'euler' });
 
-/** A streamed clip's frames: each a time and the keys that start there (a curve index and its cubic's a, b, c, d). */
 export function readStreamedFrames(words) {
   const buf = new DataView(new Uint32Array(words).buffer);
   const frames = [];
@@ -187,12 +144,6 @@ export function readStreamedFrames(words) {
   return frames;
 }
 
-/**
- * An AnimationClip's muscle clip as curves: for each binding, its path hash,
- * what it animates and, per component, either a constant or the streamed
- * segments [time, a, b, c, d] (value = ((a t + b) t + c) t + d, t from the
- * segment's time) or dense samples.
- */
 export function decodeClip(c) {
   const mc = c.m_MuscleClip;
   const cl = mc.m_Clip.data ?? mc.m_Clip;
@@ -204,7 +155,8 @@ export function decodeClip(c) {
   for (let i = 0; i < streamedCount; i++) perCurve.push({ streamed: [] });
   for (const f of frames) {
     for (const k of f.keys) {
-      if (k.index < 0 || k.index >= streamedCount) continue;   // Unity writes a sentinel frame at +/-infinity whose keys may name no curve
+      // Unity writes a sentinel frame at plus and minus infinity whose keys may name no curve.
+      if (k.index < 0 || k.index >= streamedCount) continue;
       perCurve[k.index].streamed.push([f.time, k.a, k.b, k.c, k.d]);
     }
   }
@@ -233,20 +185,12 @@ export function decodeClip(c) {
   };
 }
 
-/** Unity's path hash: CRC32 of the UTF-8 transform path from the Animator's node (`Bones/Mast/Yard`). */
 export const pathHash = (path) => zlib.crc32(Buffer.from(path, 'utf8')) >>> 0;
 
-/** Animator condition modes (AnimatorConditionMode). */
 const CONDITION = Object.freeze({ 1: 'If', 2: 'IfNot', 3: 'Greater', 4: 'Less', 6: 'Equals', 7: 'NotEqual' });
-/** Animator parameter types. */
 const PARAM_TYPE = Object.freeze({ 1: 'Float', 3: 'Int', 4: 'Bool', 9: 'Trigger' });
 
-/**
- * A compiled AnimatorController as data: its parameters, and per layer the
- * state machine's states (motion, speed, loop, transitions) - every id named
- * through the controller's own m_TOS.
- * @param {(index:number) => string|null} clipName the controller's m_AnimationClips[index], by name
- */
+/** @param {(index:number) => string|null} clipName */
 export function decodeController(ctl, clipName) {
   const tos = new Map(ctl.m_TOS.map((p) => [p.first >>> 0, p.second]));
   const name = (id) => (id && (id >>> 0) !== 0xffffffff ? tos.get(id >>> 0) ?? `#${id >>> 0}` : null);
@@ -299,9 +243,6 @@ export function decodeController(ctl, clipName) {
   return { name: ctl.m_Name, params, layers, clips: ctl.m_AnimationClips.map((_, i) => clipName(i)) };
 }
 
-// ---- prefabs ---------------------------------------------------------------
-
-/** Unity's own primitive meshes in "Library/unity default resources", by local id. */
 export const BUILTIN_MESH = Object.freeze({ 10202: 'Cube', 10206: 'Cylinder', 10207: 'Sphere', 10208: 'Capsule', 10209: 'Plane', 10210: 'Quad' });
 const UNITY_DEFAULT_RESOURCES = 'Library/unity default resources';
 
@@ -312,14 +253,9 @@ const ASSET_KIND = Object.freeze({
   [UCLASS.Shader]: 'shader', [UCLASS.MonoScript]: 'script', [UCLASS.AnimationClip]: 'clip',
 });
 
-/**
- * The assets a set of prefabs names, collected as they are met: each gets a
- * key (its name, or its name and path id where two share a name) and the
- * prefab JSON carries `{ <kind>: key }` where Unity held a pointer.
- */
 export function assetRefs(scene) {
   const byKind = new Map();
-  const names = new Map();   // kind -> name -> [pathIds]
+  const names = new Map();
   for (const o of scene.sf.objects) {
     const kind = ASSET_KIND[o.classId];
     if (!kind) continue;
@@ -329,12 +265,9 @@ export function assetRefs(scene) {
     m.set(n, [...(m.get(n) ?? []), String(o.pathId)]);
     names.set(kind, m);
   }
-  // two assets of one kind and one name share the name when they are the same asset byte for byte (a material
-  // Unity copied into each prefab that used it); only a real collision is told apart by its path id
+  // Two assets of one kind share a name only when byte-identical; a real collision is distinguished by path id.
   const content = (pathId) => JSON.stringify(scene.get(`0:${pathId}`).v, (k, x) => (typeof x === 'bigint' ? String(x) : x instanceof Uint8Array ? Buffer.from(x).toString('base64') : x));
   const sameAll = new Map();
-  // an asset the bundle lists by path is told apart by its folder (`rowboatanimations/Rudder Rowing Right`),
-  // one it does not (a clip inside a model) by its path id
   const folderOf = new Map();
   const ab = scene.sf.objects.find((o) => o.classId === UCLASS.AssetBundle);
   if (ab) for (const e of scene.get(`0:${String(ab.pathId)}`).v.m_Container) {
@@ -366,24 +299,15 @@ export function assetRefs(scene) {
   return { ref, used: (kind) => byKind.get(kind) ?? new Map(), keyOf };
 }
 
-/**
- * A prefab's tree, rooted at its GameObject: each node's name, active flag,
- * layer, tag, local position / rotation (x, y, z, w) / scale, components and
- * children, in Unity's order. A pointer to a node of the same prefab becomes
- * `{ node: 'Root/Child/...' }` (a component of one, `{ node, component: 'ParticleSystem' }`); to an asset, `{ mesh: key }` and the like
- * (assetRefs); to nothing, null; to one of Unity's own primitive meshes, `{ builtin: 'Cube' }`;
- * anywhere else outside the file, `{ external: [file, pathId] }`.
- */
 export function prefabTree(scene, rootGo, refs) {
-  const paths = new Map();   // transform key -> path, game object key -> path
-  const components = new Map();   // component key -> { node, component }
+  const paths = new Map();
+  const components = new Map();
   const walkPaths = (goPtr, prefix) => {
     const go = scene.get(goPtr).v;
     const path = prefix ? `${prefix}/${go.m_Name}` : go.m_Name;
     paths.set(key(goPtr), path);
     const tr = go.m_Component.map((c) => c.component).find((c) => scene.get(c)?.classId === UCLASS.Transform);
     paths.set(key(tr), path);
-    // a pointer to another component of the prefab (a sub-emitter's particle system) names its node and its kind
     for (const c of go.m_Component.map((x) => x.component)) {
       if (c === tr) continue;
       const t = scene.get(c);
@@ -419,7 +343,6 @@ export function prefabTree(scene, rootGo, refs) {
     const v = { ...t.v };
     delete v.m_GameObject;
     if (t.classId === UCLASS.ParticleSystem) {
-      // a module that is off does nothing: only its switch is kept
       for (const [k2, x] of Object.entries(v)) if (x && typeof x === 'object' && x.enabled === false && /Module$/.test(k2)) v[k2] = { enabled: false };
     }
     const type = Object.entries(UCLASS).find(([, id]) => id === t.classId)?.[0] ?? `class${t.classId}`;
@@ -441,7 +364,6 @@ export function prefabTree(scene, rootGo, refs) {
   return node(rootGo);
 }
 
-/** The AssetBundle's container: asset path -> pointer, for finding a prefab by its file name. */
 export function bundleContainer(scene) {
   const ab = scene.ofClass(UCLASS.AssetBundle)[0].v;
   return new Map(ab.m_Container.map((p) => [p.first, p.second.asset]));

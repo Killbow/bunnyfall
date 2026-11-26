@@ -1,9 +1,5 @@
-// Diagnostic: does a drape clear the body it hangs on, at every height?
-//
-// The fit is one uniform scale on X and Z. A body is not uniformly wide:
-// it has shoulders, it has hips, and it has ARMS hanging outside the
-// torso. A scale that clears the chest can still pass straight through
-// a forearm.
+// Checks whether a shipped drape fit clears the body it hangs on at every height.
+
 import { drapedGrid, DRAPED_NAMES } from '../src/characters/pieces/draped.js';
 import { buildNeutralBody } from '../src/characters/neutralBody.js';
 import { UNDEAD_DESIGNS, undeadOpts } from '../src/characters/undeadBody.js';
@@ -12,8 +8,6 @@ import { DAEDRA_DESIGNS, daedraOpts } from '../src/characters/daedra.js';
 
 const pal = { get: (i) => ({ r: (i * 7) & 255, g: (i * 5) & 255, b: (i * 3) & 255 }) };
 
-// Read the SHIPPED fit rather than recomputing it: this tool now checks
-// what actually goes out, not what a second copy of the maths says.
 import { buildPaperdollPayload } from '../src/characters/paperdollPayload.js';
 const PAYLOAD = buildPaperdollPayload(null, null, null);
 const SHIPPED = new Map();
@@ -24,7 +18,6 @@ function fit(d) {
   return SHIPPED.get(d.name) ?? 1;
 }
 
-/** The drape's own radius at each row. */
 function drapeRows(name) {
   const g = drapedGrid(name);
   if (!g) return null;
@@ -44,7 +37,6 @@ function drapeRows(name) {
   return rows;
 }
 
-/** How wide the body actually is in a band around a height, per group. */
 function bodyAt(faces, y, band = 0.045) {
   const out = {};
   for (const f of faces) {
@@ -79,12 +71,8 @@ for (const [designs, opts] of LINES) {
     const k = fit(d);
     for (const r of rows) {
       const body = bodyAt(faces, r.y);
-      // The trunk only — see test/characters/drapeclip.test.js for why measuring
-      // against arms produced a correct number and a terrible garment.
       for (const [group, e] of Object.entries(body)) {
         if (group !== 'body') continue;
-        // The drape is an ellipse of rx*k by rz*k. A body point at (x,z)
-        // is INSIDE it when (x/rx)^2 + (z/rz)^2 < 1.
         const nx = e.x / (r.rx * k);
         const nz = e.z / (r.rz * k);
         const outside = Math.hypot(nx, nz);

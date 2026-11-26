@@ -1,23 +1,5 @@
-// WISPS-RETURN (2026-09-25): THE STREAKS, ON A REAL GPU.
-//
-// Mac: "I want to return to the original wind wisps before our current
-// design". The pins run the shaders' own main()s in node (test/glsl.mjs), so
-// the GLSL's compile and link and the picture are this probe's: the real
-// WindWispsRenderer on a real WebGL2 context (headless Chromium over
-// SwiftShader), a sky-coloured clear, a gale and a calm, the frame read back.
-// Born as tools/wind5SwirlProbe.mjs for WIND5's flourishes; its checks are the
-// streak's now.
-//
-//     node tools/wispStreakProbe.mjs [outDir] [--bold]
-//
-// It fails on: a program that will not compile or link; a draw of anything
-// but one quad (six corners) a wisp, for the wind's look and the sand's; a
-// gale that lays no ink; a calm whose field (four headings, three moments
-// each) lays none, or more than a gale's; a field that stands still; and
-// ink that does not run along the wind - with the wind
-// across the view, a streak's horizontal runs of ink must be longer than its
-// vertical ones. `--bold` multiplies the alpha for a picture of the SHAPE
-// alone (never for the checks).
+// Probe: draws the wind wisps and sand in headless WebGL2 and checks they compile, draw, and streak along the wind.
+// Run: node tools/wispStreakProbe.mjs [outDir] [--bold]; --bold multiplies the wisp alpha for clearer pictures.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -73,7 +55,6 @@ const out = await page.evaluate(async ({ W, H, bold }) => {
   if (!built || !sand) return { err };
   const proj = perspective(Math.PI / 3, W / H, 0.1, 400);
   const eye = new Float32Array([0, 1.7, 0]);
-  // looking across a wind blowing along +x (heading 0), and the other three ways round for the field's totals
   const views = [0, 1, 2, 3].map((q) => lookAt(eye, [30 * Math.sin(q * Math.PI / 2), 2.5, -30 * Math.cos(q * Math.PI / 2)], [0, 1, 0]));
   let view = views[0];
   const inkAt = (px, i) => Math.abs(px[i] - 133) + Math.abs(px[i + 1] - 168) + Math.abs(px[i + 2] - 214) > 6;
@@ -84,7 +65,6 @@ const out = await page.evaluate(async ({ W, H, bold }) => {
     r.draw(wd, proj, view, eye, t);
     const px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
     let ink = 0; for (let i = 0; i < px.length; i += 4) if (inkAt(px, i)) ink++;
-    // the ink's grain: the mean length of its horizontal runs and of its vertical ones
     const runs = (along) => {
       let n = 0, sum = 0;
       const [outer, inner] = along === 'x' ? [H, W] : [W, H];
@@ -105,8 +85,7 @@ const out = await page.evaluate(async ({ W, H, bold }) => {
   const orig = gl.drawArraysInstanced.bind(gl);
   gl.drawArraysInstanced = (m, f, n, c) => { draws.push([n, c]); return orig(m, f, n, c); };
   const g1 = shot(built, gale, 3.0), g2 = shot(built, gale, 4.2), s1 = shot(sand, { on: true, strength01: 0.8, windV: [10, 0], step: [0.1, 0] }, 3.0);
-  // the field's totals: four headings at three moments each, and each wind's inkiest frame for its picture (a calm's
-  // ten wisps in a 90 m box are often out of one view at one moment)
+  // A calm's few wisps are often outside one view, so the field sums four headings at three moments each.
   const field = (wd) => {
     let ink = 0, best = null, at = null;
     for (let q = 0; q < 4; q++) {

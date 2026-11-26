@@ -1,33 +1,6 @@
-// QUICK-LOOT-STATS, SEEN - the plaque and its stat panel, drawn in a
-// real browser against the real sheet, and photographed.
-//
-// A player asked for the stats "next to the quickloot window"; NEXT TO
-// is a thing about pixels, and the suite can only tell you that the
-// side was COMPUTED right, never that the panel reads as one surface
-// with the list beside it. CHARGEN-REFLEX's own lesson, twice over: a
-// harness that builds its own markup measures its own artefact, so
-// this builds the plaque through `showWorldPlaque` itself - the same
-// entry the four hosts call - over the real ENHANCED_CSS.
-//
-// IT PAID FOR ITSELF THE FIRST TIME IT RAN, twice, on things no pin in
-// the suite could have failed on:
-//
-//   - a Condition reads "Slightly Used (75%)" and the panel is
-//     deliberately narrow, so that row WRAPS - and the value was only
-//     pushed right by an auto margin, so its second line sat hard
-//     against the LABEL and read as a different row. It is
-//     text-aligned right now, and both lines flush to the same edge as
-//     every value above and below.
-//   - the survival SENTENCE rows ("Nourishes for 180 minutes") inherited
-//     that same right alignment and read as a value with no name. They
-//     are left-aligned again, which is what the label-less class was
-//     for in the first place.
-//
-// Both are true of the rendered box and of nothing else: the rows were
-// right, the side was right, the markup was right.
-//
-//     node tools/quickLootStatsProbe.mjs            -> shots + a report
-//     SHOT_DIR=/tmp/x node tools/quickLootStatsProbe.mjs
+// Draws the quick-loot plaque and its stat panel through showWorldPlaque over the real stylesheet and
+// photographs it. Run: node tools/quickLootStatsProbe.mjs (SHOT_DIR=<dir> for the screenshots).
+
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join, normalize } from 'node:path';
@@ -35,9 +8,6 @@ import { fileURLToPath } from 'node:url';
 import { ENHANCED_CSS, ENHANCED_TOKENS } from '../src/ui/enhancedStyle.js';
 
 const ROOT = normalize(join(fileURLToPath(import.meta.url), '..', '..'));
-/** The page imports the REAL modules, so the plaque it draws is the
- *  plaque the hosts draw. Served off disk rather than through a dev
- *  server: no port, no second thing to be running. */
 async function serveRepo(page) {
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
@@ -46,9 +16,7 @@ async function serveRepo(page) {
     try {
       if (url.pathname === '/') return route.fulfill({ status: 200, contentType: 'text/html', body: PAGE });
       const body = readFileSync(join(ROOT, url.pathname.replace(/^\/+/, '')), 'utf8');
-      // A wrong MIME is a module that will not load at all: the tree
-      // imports JSON with an import attribute, and Chrome enforces the
-      // type strictly for module scripts.
+      // Chrome enforces the MIME type of module scripts and JSON imports, so a wrong one stops the module loading.
       const type = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') ? 'text/javascript'
         : url.pathname.endsWith('.json') ? 'application/json'
         : url.pathname.endsWith('.css') ? 'text/css' : 'text/html';
@@ -60,7 +28,6 @@ async function serveRepo(page) {
 const OUT = process.env.SHOT_DIR ?? 'tools/shots';
 mkdirSync(OUT, { recursive: true });
 
-/** The pile a player would actually be looking at. */
 const ITEMS = [
   { name: 'Dagger', group: 'Weapons', templateIndex: 121, material: 3, maxCondition: 200, currentCondition: 150 },
   { name: 'Cuirass', group: 'Armor', templateIndex: 103, material: 0x0202, maxCondition: 100, currentCondition: 62 },
@@ -92,8 +59,6 @@ for (const [W, H, label] of [[1280, 720, 'desktop'], [1024, 640, 'narrow'], [420
   await serveRepo(p);
   await p.goto('http://probe.local/', { waitUntil: 'load' });
 
-  // The rows and the highlight come from the REAL modules, and the
-  // plaque is raised through the real seam.
   for (let row = 0; row < ITEMS.length; row++) {
     const side = await p.evaluate(async ({ items, row, W }) => {
       const hv = await import('/src/player/worldHover.js');

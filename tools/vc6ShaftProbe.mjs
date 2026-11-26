@@ -1,21 +1,6 @@
-// VC6c (2026-09-18): THE SHAFTS, ON A REAL GPU.
-//
-// Mac: "when the sun is covered by clouds, there shouldnt be sky rays or
-// sky rays coming through trees/flora". The fix reads the cloud shadow
-// map at the player's feet and squares it - and no pin can see it,
-// because the pins run on a fake GL that compiles anything and draws
-// nothing, and the sky lab has no air pass at all. So: the real renderer
-// on a real WebGL2 context (headless Chromium over SwiftShader), an open
-// sky with the sun in front of the camera, a synthetic one-texel deck
-// handed to `setCloudShadow`, and the SHAFT IMAGE read back.
-//
-//     node tools/vc6ShaftProbe.mjs
-//
-// It fails on: a program that will not compile; no shafts at all under a
-// clear sky (the pass would be dead and the rest of the probe vacuous);
-// shafts surviving a solid deck; and a half-covered sky not landing near
-// the square of a clear one - the law that makes a bank TAKE the rays
-// rather than dim them politely.
+// Checks on a real WebGL2 context that cloud shadow at the player's feet removes the sun shafts.
+// Usage: `node tools/vc6ShaftProbe.mjs`
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -51,8 +36,6 @@ const out = await page.evaluate(async ({ W, H }) => {
   })();
   r.uploadTexture(1, 1, stone);
 
-  // A GROUND PLANE AND A PILLAR. The pillar is the "tree": it cuts the
-  // sky around the sun, which is where a shaft image gets its shape.
   const P = [], N = [], UV = [], IDX = [];
   const quad = (a, b, c, d, n) => {
     const base = P.length / 3;
@@ -60,19 +43,17 @@ const out = await page.evaluate(async ({ W, H }) => {
     UV.push(0, 0, 4, 0, 4, 4, 0, 4);
     IDX.push(base, base + 1, base + 2, base, base + 2, base + 3);
   };
-  quad([-40, 0, -40], [40, 0, -40], [40, 0, 40], [-40, 0, 40], [0, 1, 0]);      // the ground
-  quad([-1, 0, -12], [1, 0, -12], [1, 9, -12], [-1, 9, -12], [0, 0, 1]);        // the pillar, between the eye and the sun
+  quad([-40, 0, -40], [40, 0, -40], [40, 0, 40], [-40, 0, 40], [0, 1, 0]);
+  quad([-1, 0, -12], [1, 0, -12], [1, 9, -12], [-1, 9, -12], [0, 0, 1]);
   const mesh = r.createMesh({ positions: new Float32Array(P), normals: new Float32Array(N), uvs: new Float32Array(UV), indices: new Uint32Array(IDX), subMeshes: [{ textureArchive: 1, textureRecord: 1, startIndex: 0, primitiveCount: IDX.length / 3 }] });
 
   const proj = perspective(Math.PI / 3, W / H, 0.1, 400);
   const eye = [0, 1.7, 6];
   const view = lookAt(eye, [0, 6, -20], [0, 1, 0]);
   const I = identity();
-  // the sun is IN FRONT of the camera and up - the only geometry that
-  // puts its screen position on screen, which the pass requires
+  // The sun sits in front of the camera and up, since the pass needs the sun's screen position on screen.
   const lightDir = new Float32Array([0, 0.62, -0.78]);
 
-  // a one-texel deck: `t` is the transmittance the whole square holds
   const deckOf = (t) => {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -83,15 +64,15 @@ const out = await page.evaluate(async ({ W, H }) => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
-    // a square around the eye: corner, 1/side, amount 1 (VC4's SHADOW_AMOUNT)
     return { map: tex, rect: [eye[0] - 500, eye[2] - 500, 1 / 1000, 1] };
   };
 
   const shot = (deck) => {
     r.setLightingLane(EL_LANE);
     r.setAir(true);
-    r.setHaze(false);   // VC7b: the beams alone - the haze march is tools/vc7bHazeProbe.mjs's to measure
-    if (r.air) r.air._now = () => 1000;   // the eye's clock frozen: a with/without comparison is the deck's alone
+    r.setHaze(false);
+    // The frozen clock keeps eye adaptation out of the with and without comparison.
+    if (r.air) r.air._now = () => 1000;
     r.setClearColor([0.53, 0.7, 0.92, 1]);
     r.setLighting(new Float32Array([0.35, 0.35, 0.4]), 0.9, new Float32Array([1, 0.95, 0.85]));
     r.setFog('linear', 0, 200, 400, new Float32Array([0.6, 0.6, 0.7]));
@@ -99,25 +80,20 @@ const out = await page.evaluate(async ({ W, H }) => {
     let stats = null, shaft = null, ground = 0;
     for (let f = 0; f < 4; f++) {
       r.beginFrame(proj, view, lightDir, WORLD_FRAME);
-      r.setCloudShadow(deck);   // AFTER beginFrame, as both exterior hosts do - beginFrame clears the deck, because a deck is a FRAME's
+      // This must follow beginFrame, which clears the deck every frame.
+      r.setCloudShadow(deck);
       r.drawMesh(mesh, I, null);
       r.resolveFrame();
       stats = { gl: gl.getError(), shafts: r.air ? r.air.stats.shafts : null };
       if (r.air?.targets) {
-        // LA-POST3: a half float where the GL renders one - readTarget reads it as the bytes a byte image held; LA-POST8:
-        // a frame that drew neither the beams nor the haze leaves the image unread and uncleared - it adds nothing
         const T = r.air.readTarget('shaft');
         const b = r.air.stats.shafts || r.air.stats.haze ? T.px : new Uint8Array(T.px.length);
         let sum = 0, max = 0;
         for (let i = 0; i < b.length; i += 4) { const l = b[i] + b[i + 1] + b[i + 2]; sum += l; if (l > max) max = l; }
         shaft = { w: T.w, h: T.h, sum, max };
       }
-      // the GROUND's own brightness: the same field, read per surface -
-      // it must go dark with the rays, or the two would disagree
       const px = new Uint8Array(W * H * 4);
       gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
-      // the bottom-centre patch, which is ground and nothing else
-      // (readPixels' y = 0 is the image's bottom row)
       let g = 0, n = 0;
       for (let y = 0; y < H * 0.10; y++) for (let x = W * 0.3; x < W * 0.7; x++) { const i = (y * W + (x | 0)) * 4; g += (px[i] + px[i + 1] + px[i + 2]) / 3; n++; }
       ground = g / n;
@@ -126,7 +102,7 @@ const out = await page.evaluate(async ({ W, H }) => {
   };
 
   const clear = shot(null);
-  const open = shot(deckOf(1));      // a deck that is all light: the same as none
+  const open = shot(deckOf(1));
   const half = shot(deckOf(0.5));
   const solid = shot(deckOf(0));
   return { clear, open, half, solid, renderer: gl.getParameter(gl.RENDERER) };
@@ -145,11 +121,7 @@ check('a SOLID deck takes the rays away - the sun is behind the bank', out.solid
   const want = out.clear.shaft.sum * 0.25, got = out.half.shaft.sum;
   check('half the sun is a QUARTER of the rays - the gate is squared, so a bank takes them rather than dimming them politely', Math.abs(got - want) <= Math.max(2, want * 0.08), `${got} against ${want.toFixed(0)} (a linear gate would be ${(out.clear.shaft.sum * 0.5).toFixed(0)})`);
 }
-// The ground moves WITH the rays - one field, two consumers, so a shaft
-// can never outlive the sun that would have cast it. Only the ORDER is
-// judged here: the frame goes out through the eye's adaptation, which
-// pulls a darkened image back up, so the size of the drop is not this
-// probe's to read (VC4's own probe measures the shadow map itself).
+// Only the order is judged, since eye adaptation pulls a darkened frame back up.
 check('the ground moves with the rays - one field, two consumers, so a shaft can never outlive the sun that would cast it', out.clear.ground > out.half.ground && out.half.ground > out.solid.ground, `clear ${out.clear.ground.toFixed(1)} > half ${out.half.ground.toFixed(1)} > solid ${out.solid.ground.toFixed(1)} (the eye's adaptation compresses the drop; the order is the law)`);
 
 await browser.close();

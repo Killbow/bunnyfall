@@ -1,6 +1,6 @@
 // @ts-check
-// Garrison, farm, and charter lists cached per isolate for WORLD_KEPT_MS; concurrent readers share one load.
-// Farm, garrison, and charter writes drop it in this isolate; any other change shows within WORLD_KEPT_MS.
+// Farm, garrison, and charter writes drop the cached list in this isolate only; others see a change within
+// WORLD_KEPT_MS.
 import { DB_ROOT } from './service.js';
 
 export const WORLD_KEPT_MS = 30_000;

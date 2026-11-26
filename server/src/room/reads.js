@@ -1,11 +1,9 @@
-// What a room reads once a wake from storage: its world chunks and its recent home words.
 import { WORLD_META, worldChunkKey } from './keys.js';
 import { HOME_WORDS_KEY, validHomeWord, HOME_WORDS_KEEP_MS, HOME_WORDS_MAX } from '../relay.js';
 
 export class ReadsPart {
   async _worldRaw() {
-    // Read once a wake; every write or delete of the world chunks must also
-    // set or clear `_worldMemo`.
+    // Read once per wake; every write or delete of the world chunks must also set or clear `_worldMemo`.
     if (this._worldMemo !== undefined) return this._worldMemo;
     this._worldMemo = await this._worldRead();
     return this._worldMemo;

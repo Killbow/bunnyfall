@@ -1,4 +1,5 @@
-// Real-browser regression check of the counter, recipe book and host wiring; no ARENA2 or live realm needed.
+// Real-browser regression check of the counter, recipe book, and host wiring; no ARENA2 or live realm needed.
+
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -53,7 +54,6 @@ try {
   await page.waitForFunction(() => document.querySelector('.ts-point small').textContent === '1 in cup');
   await cream.click(); await beer.click();
   await page.waitForFunction(() => window.probe.state.mix.beer === 1);
-  // The third dose lifts the cup into the hand and the counter steps aside by itself.
   assert.equal(await page.evaluate(() => window.probe.state.phase), 'carry');
   assert.equal(await page.locator('.ts-dose-slots .ts-dose.ts-fresh').count(), 1, 'Only the newest dose drops in');
   await page.waitForFunction(() => !document.querySelector('.ts-window'));

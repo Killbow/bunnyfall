@@ -1,23 +1,5 @@
-// PERF-CROWD (2026-10-10, Dudey: "big problems are caused by many players causing severe stutter" - with ~500 online):
-// THE PEER LAB - the layers that draw other players, under a crowd, in a minute and without the relay.
-//
-// tools/onlineFrameProbe.mjs measures the whole online frame and boots the real game first (a quarter of an hour on
-// SwiftShader). This stands only the layers that scale with the players round you - RemotePlayers (the class sprites,
-// the dolls, the steps' and swings' sounds), the walkers in Eye Of The Beholder's sets (net/peer/peerRiders.js), the name
-// layer (ui/nameLayer.js) - over the REAL renderer, the REAL data pipeline over the player's ARENA2 (/play/arena2/, the
-// dev server's door), the REAL audio engine, and drives them with N peers who ARRIVE TOGETHER (a welcome's roster)
-// while the camera turns, then walk about. It reports, a frame at a time:
-//   - each layer's JavaScript inside the frame (sync, names, the billboard draw),
-//   - the time BETWEEN frames that is not the browser idling: the microtasks and tasks the frame's own asks set off
-//     (a doll's compose, a sprite's decode and upload) - which is where an arrival's hitch lands,
-//   - the long tasks the browser saw (PerformanceObserver 'longtask').
-// A stall is the worst of these. SwiftShader's GPU is not measured: the canvas is small and the lane off.
-//
-// Usage: node tools/peerLab.mjs [peers=40] [frames=240]
-//   LOOKS=mixed|same   every peer a different race/class/set (default), or one look for all
-//   EOTB=0.5           the share of peers wearing an Eye Of The Beholder set (the rest the class sprite)
-//   SPRITES=1          'Other players: animated sprite' (0: the paperdoll for everyone)
-//   OUT=file.json      the per-frame rows
+// Measures the layers that draw other players under a crowd, without the relay, over the player's ARENA2.
+// Usage: node tools/peerLab.mjs [peers=40] [frames=240]. Other settings come from environment variables.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
@@ -32,7 +14,7 @@ const LOOKS = process.env.LOOKS || 'mixed';
 const EOTB = Number(process.env.EOTB ?? 0.5);
 const SPRITES = process.env.SPRITES !== '0';
 const NAMES = process.env.NAMES !== '0';
-const CHURN = Number(process.env.CHURN || 0);   // CHURN=n: n waves of NEW peers (new ids) arrive and leave; what each wave leaves behind is printed   // NAMES=0: the name layer left out (its DOM's share, by difference)
+const CHURN = Number(process.env.CHURN || 0);
 
 const server = await createServer({ root: ROOT, configFile: `${ROOT}/vite.config.js`, server: { port: PORT, strictPort: true, hmr: false, watch: null }, logLevel: 'error' });
 await server.listen();
@@ -41,10 +23,9 @@ const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e.message)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(`[console] ${m.text().slice(0, 200)}`); });
-// a blank page under /play/, so the data door's relative './arena2/' is the dev server's
+// A blank page under /play/, so the data loader's relative ./arena2/ path resolves on the dev server.
 await page.route('**/play/peer-lab.html', (r) => r.fulfill({ contentType: 'text/html', body: '<!doctype html><html><head></head><body style="margin:0;background:#000"></body></html>' }));
 await page.goto(`http://localhost:${PORT}/play/peer-lab.html`);
-// PROFILE=1: a CPU profile over the whole run, its self time by function printed (the arrival's stalls attributed)
 const cdp = await page.context().newCDPSession(page);
 await cdp.send('Performance.enable');
 const metrics = async () => Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((m) => [m.name, m.value]));
@@ -56,7 +37,7 @@ if (process.env.PROFILE) { await cdp.send('Profiler.enable'); await cdp.send('Pr
 
 const out = await page.evaluate(async ({ PEERS, FRAMES, LOOKS, EOTB, SPRITES, NAMES, CHURN }) => {
   const longTasks = [];
-  try { new PerformanceObserver((l) => { for (const e of l.getEntries()) longTasks.push({ at: e.startTime, ms: e.duration }); }).observe({ type: 'longtask', buffered: true }); } catch { /* none */ }
+  try { new PerformanceObserver((l) => { for (const e of l.getEntries()) longTasks.push({ at: e.startTime, ms: e.duration }); }).observe({ type: 'longtask', buffered: true }); } catch { }
   const { Renderer, WORLD_FRAME } = await import('/src/render/renderer.js');
   const { perspective, lookAt, mirrorProjectionX } = await import('/src/world/mat4.js');
   const { DFPalette } = await import('/src/formats/dfPalette.js');
@@ -80,7 +61,7 @@ const out = await page.evaluate(async ({ PEERS, FRAMES, LOOKS, EOTB, SPRITES, NA
   palette.load(await getBytes('ART_PAL.COL'), 'ART_PAL.COL');
   const pipeline = createDataPipeline({ renderer, arch: { getRecordIndex: () => -1, getMesh: () => null }, palette, fetch: getBytes });
   await audio.ensure(getBytes);
-  try { await audio.ctx?.resume?.(); } catch { /* headless */ }
+  try { await audio.ctx?.resume?.(); } catch { }
   const deps = { fetchBytes: getBytes, palette, getTexture: pipeline.getTexture, uploadRecordFrame: pipeline.uploadRecordFrame, audio };
   const rp = new RemotePlayers({ renderer, deps });
   const art = createEotbArt({ renderer });
@@ -110,11 +91,10 @@ const out = await page.evaluate(async ({ PEERS, FRAMES, LOOKS, EOTB, SPRITES, NA
   return await new Promise((resolve) => {
     const tick = () => {
       const start = performance.now();
-      const between = start - lastEnd;   // the frame's asks' async tails, and the browser's own work, since the last frame
+      const between = start - lastEnd;
       const f = rows.length;
       const dt = 1 / 60; t += dt;
       if (f === 10) arrived = true;
-      // CHURN: every 60 frames a wave - frames 0-39 of it with the crowd (new ids each wave), 40-59 empty
       let list = arrived ? peers : [];
       if (CHURN) {
         const wave = Math.floor(f / 60), inWave = f % 60;
@@ -127,9 +107,9 @@ const out = await page.evaluate(async ({ PEERS, FRAMES, LOOKS, EOTB, SPRITES, NA
       for (const p of list) {
         const a = p.ph + (p.walking ? t * p.sp : 0);
         p.shown.x = p.cx + Math.cos(a) * 2; p.shown.z = p.cz + Math.sin(a) * 2; p.shown.yaw = a + Math.PI / 2; p.shown.mv = p.walking ? 1 : 0;
-        if (rnd() < 0.01) p.shown.an++;   // a swing now and then
+        if (rnd() < 0.01) p.shown.an++;
       }
-      const yaw = t * 1.2;   // the camera turns, so the crowd shows every face
+      const yaw = t * 1.2;
       const eye = [0, 1.7, 0];
       const fwd = [Math.sin(yaw), 0, Math.cos(yaw)];
       camRight[0] = Math.cos(yaw); camRight[1] = 0; camRight[2] = -Math.sin(yaw);
@@ -205,6 +185,5 @@ console.log(`  composes ${out.counters.composes}, uploads ${out.counters.uploads
 if (out.leftover) for (const l of out.leftover) console.log(`  after wave ${l.wave}: dom ${l.dom}, textures ${l.textures}, batches ${l.batches}, dolls ${l.dolls}, mobiles ${l.mobiles}, footsteps ${l.footsteps}, swings ${l.attackAn}, rides ${l.riding}, climbs ${l.climb}, names ${l.names}, gl tex/buf live ${l.glTex}/${l.glBuf}, heap ${(l.heap / 1e6).toFixed(1)} MB`);
 if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(out));
 if (errors.length) console.log('errors:', errors.slice(0, 6).join('\n  '));
-// the lab judges its run (test/tooling/probehygiene.test.js T3): a page that threw, or no frame measured, is no measure
 if (errors.length || !rows.length || !rows.every((r) => Number.isFinite(r.total))) process.exitCode = 1;
 await browser.close(); await server.close();

@@ -1,29 +1,16 @@
-// THE LOW POLY TREES' CROWNS, baked from the vendored mod into a module the world reads.
-//
-//     node tools/bakeLptCrowns.mjs
-//
-// VERGE1 (2026-10-07, Mac: "Making sure objects, like trees, avoid pathways and roads. Currently they slightly
-// overlap"). A wilderness flat keeps its whole footprint off the roads (world/road/roadVerge.js), and where Low Poly Trees
-// stands a tree for it the footprint is that tree's crown - 5 to 11 metres about the trunk in the temperate woods,
-// against a classic picture's few. Where the flats stand must not hang on the mod's switch (it is the player's own
-// online: it draws the trees, it never moves them - systems/online/onlineLane.js), so the crowns are read here, off the
-// vendored files, into a table every client has whether or not it draws the trees.
-//
-// A crown is the farthest any vertex of the prototype's mesh reaches from its root across the ground (x and z, under
-// the prefab's own scale) - a disc, because DFU turns each tree at random (world/lowPolyTrees.js lptVariety). Rounded
-// UP to the centimetre, so the table is never short of the mesh. test/world/road/verge1.test.js re-runs the bake and holds the
-// module to it byte for byte.
+// Bakes each Low Poly Trees prototype's crown and trunk radius from the vendored mod into a module the world reads.
+// Run: node tools/bakeLptCrowns.mjs.
+
 import { readFileSync, writeFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 
 export const SOURCE = 'vendor/low-poly-trees/Trees';
 export const OUT = 'src/world/lptCrowns.js';
-/** The floats a vertex of trees.bin (position, normal, uv) - world/lowPolyTrees.js renderImpostor's stride. */
 const VERTEX_FLOATS = 8;
 
 /**
- * Every prototype's crown (m), keyed `ARCHIVE_RECORD` as trees.json keys its prefabs.
- * @param {any} json trees.json @param {Uint8Array} bin trees.bin
+ * @param {any} json
+ * @param {Uint8Array} bin
  * @returns {Record<string, number>}
  */
 export function lptCrowns(json, bin) {
@@ -44,14 +31,8 @@ export function lptCrowns(json, bin) {
 }
 
 /**
- * FB1020c TRUNK-FIT: every prototype's TRUNK where it meets the ground (m), keyed as lptCrowns'. The trunk is the
- * prototype's SOLID part - the sub-meshes whose material the mod draws one-sided (`cull` 2: the bark and the limbs; its
- * two-sided cards, `cull` 0, are leaves and undergrowth, world/lowPolyTrees.js's own reading of a sub-mesh's material) -
- * cut by the ground plane (y = 0, the root's): the farthest point of the cut from the root across the ground, under the
- * prefab's own scale, rounded UP to the centimetre, so the table is never short of the mesh. 0 for a prototype of cards
- * alone (a bush, a flower, the swamp's card trees) or one whose solid part never meets the ground. world/road/roadVerge.js
- * lptTrunkCap draws a location's tree no wider than the room its root has to the town's own solid things by it.
- * @param {any} json trees.json @param {Uint8Array} bin trees.bin
+ * @param {any} json
+ * @param {Uint8Array} bin
  * @returns {Record<string, number>}
  */
 export function lptTrunks(json, bin) {
@@ -65,29 +46,27 @@ export function lptTrunks(json, bin) {
     const mats = p.materials ?? [];
     let reach = 0;
     m.subs.forEach(([at, count], i) => {
-      if ((json.materials[mats[Math.min(i, mats.length - 1)]]?.cull ?? 0) === 0) return;   // a card: leaves, not a trunk
+      if ((json.materials[mats[Math.min(i, mats.length - 1)]]?.cull ?? 0) === 0) return;
       for (let t = at; t + 2 < at + count; t += 3) {
         for (let e = 0; e < 3; e++) {
           const a = (m.vertex + ix[m.index + t + e]) * VERTEX_FLOATS, b = (m.vertex + ix[m.index + t + ((e + 1) % 3)]) * VERTEX_FLOATS;
           const ya = f[a + 1] * sy, yb = f[b + 1] * sy;
-          if (ya * yb > 0 || ya === yb) continue;   // the edge does not cross the ground (one lying in it is its neighbours' ends)
+          if (ya * yb > 0 || ya === yb) continue;
           const k = ya / (ya - yb);
           reach = Math.max(reach, Math.hypot((f[a] + (f[b] - f[a]) * k) * sx, (f[a + 2] + (f[b + 2] - f[a + 2]) * k) * sz));
         }
       }
     });
-    out[key] = Math.ceil(100 * reach) / 100;   // UP: a trunk the table holds is never short of the mesh
+    out[key] = Math.ceil(100 * reach) / 100;
   }
   return out;
 }
 
-/** A table's rows, in trees.json's own key order (archive, then record), one prototype a line. */
 const tableRows = (table) => Object.keys(table).sort((a, b) => {
   const [aa, ar] = a.split('_').map(Number), [ba, br] = b.split('_').map(Number);
   return aa - ba || ar - br;
 }).map((k) => `  '${k}': ${table[k]},`);
 
-/** The module's text: the table in trees.json's own key order, one prototype a line. */
 export function bakeLptCrowns(json, bin) {
   const rows = tableRows(lptCrowns(json, bin));
   return [

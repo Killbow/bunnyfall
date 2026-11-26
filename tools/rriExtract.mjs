@@ -1,19 +1,6 @@
-// RRI1 - ROLEPLAY & REALISM: ITEMS' ART INTO THE CODEBASE. Reads the
-// shipped `roleplayrealism-items.dfmod` with the port's UnityFS reader
-// and writes every Texture2D out under public/art/roleplay-realism-items/
-// by the exact name DFU asks for (`520_10-0_Iron`, `522_13-0_Mask`), the
-// way Diverse Weapons' sprites went out (tools/diverseWeaponsExtract.mjs):
-// indexed PNG where the picture fits one, RGBA where not, each file read
-// back against its texel. The bundle's XML beside each texture - the
-// `<rect>` TextureReplacement.OverridePaperdollItemRect reads for the
-// paper doll (TextureReplacement.cs:919-926) - is written into the
-// generated index (src/mods/rriIndex.js) as the sprite's offset.
-//
-//   node tools/rriExtract.mjs "<path to roleplayrealism-items.dfmod>"
-//
-// What the folder may hold is the mod's own manifest (vendor/roleplay-
-// realism-items/roleplay-realism-items.dfmod.json; test/tooling/doctrine.test.js
-// derives the folder's membership from it).
+// Extracts the Roleplay & Realism Items textures into public/art/roleplay-realism-items/ and writes
+// src/mods/rriIndex.js. Run: node tools/rriExtract.mjs "<path to roleplayrealism-items.dfmod>"
+
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,9 +14,7 @@ export const OUT_DIR = 'public/art/roleplay-realism-items';
 export const INDEX_FILE = 'src/mods/rriIndex.js';
 export const MANIFEST = 'vendor/roleplay-realism-items/roleplay-realism-items.dfmod.json';
 
-/** The `<rect>` of one XML text asset, or null. XMLManager.GetRect
- *  (:148-160): x, y, width, height, each divided by the rect's own
- *  `scale` attribute (1 in every file the mod ships). */
+// Matches Daggerfall Unity's XMLManager.GetRect: x, y, width, and height are each divided by the rect's scale.
 export function rectOf(xmlText) {
   const m = /<rect\s+scale="([\d.]+)"\s*>[\s\S]*?<x>(-?[\d.]+)<\/x>\s*<y>(-?[\d.]+)<\/y>\s*<width>(-?[\d.]+)<\/width>\s*<height>(-?[\d.]+)<\/height>/.exec(xmlText);
   if (!m) return null;

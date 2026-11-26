@@ -1,24 +1,7 @@
-// TRADE-VIRT (2026-10-20, a player's audit of the trading windows, handed on by the owner: "Someone also sent this") -
-// THE TRADE COUNTERS, DRIVEN IN A BROWSER AND TIMED, OVER THE PLAYER'S OWN PICTURES.
-//
-// The enhanced shop counter (ui/enhanced/enhancedTrade.js) and the player-to-player window (ui/enhanced/
-// enhancedPlayerTrade.js) mounted as the game mounts them, over a pack of N real items (every weapon in every metal,
-// every armour piece in every material - all on the first page, Weapons & Armor), a shelf of 0.65 N beside it at a
-// counter that sells, and the real TradeSession over the real pack adapter (systems/tradePack.js) for a trade between
-// players. The pictures are the freeware ARENA2's own (ARENA2_PATH, default /home/claude/dfdata/arena2), served to the
-// page by intercepting its fetches. For each window and size, in a fresh page (the pictures cold):
-//   - the open, to the frame, and to SETTLED (every row's picture in), with the full repaints counted (a MutationObserver
-//     on the host: every new `.trade-shell` is one) and the long tasks summed;
-//   - a warm open, to the frame;
-//   - seven single clicks down the pack's list (each a preview), each to the frame, and that the strip shows the piece;
-//   - a double click that moves a piece (an offer, a sale staged), to the frame, and that it moved;
-//   - where the rows carry their piece (`_tradeItem`), the list at five depths: every drawn row at its piece's own place
-//     in the whole list, none in view missing.
-// The timings are this machine's Chromium, said as such; run it on a tree without the change for the before.
-//
-//     ARENA2_PATH=... node tools/tradePerfProbe.mjs            SIZES=30,100,300,700,1000  WINDOWS=sell,buy,p2p  OUT=<file>
-//     REPAINTS=<k>: the window repainted k times, each timed;  PROFILE=<dir>: the clicks (and the repaints) under a CPU
-//     profile, a file a run (<window>-<n>.cpuprofile)
+// Times the shop and player trade windows over packs of real items in a browser, using ARENA2's own pictures.
+// Usage: ARENA2_PATH=<dir> node tools/tradePerfProbe.mjs
+// Env: SIZES, WINDOWS, OUT, REPAINTS, PROFILE, SETTLE_S, PROBE_PORT, and TREE (another worktree, for a before run).
+
 import { writeFile, unlink, readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -26,14 +9,14 @@ import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
-const ROOT = process.env.TREE || normalize(join(dirname(fileURLToPath(import.meta.url)), '..'));   // TREE: another worktree, the before
+const ROOT = process.env.TREE || normalize(join(dirname(fileURLToPath(import.meta.url)), '..'));
 const ARENA2 = process.env.ARENA2_PATH || '/home/claude/dfdata/arena2';
 const PAGE_NAME = 'tradeperf.tmp.html';
 const SIZES = (process.env.SIZES ?? '30,100,300,700,1000').split(',').map(Number);
 const WINDOWS = (process.env.WINDOWS ?? 'sell,buy,p2p').split(',');
 const SETTLE_S = Number(process.env.SETTLE_S ?? 180);
-const REPAINTS = Number(process.env.REPAINTS || 0);   // a count: the window repainted that many times, each timed
-const PROFILE = process.env.PROFILE || null;   // a directory: the clicks' (and the repaints') CPU profile a run, <window>-<n>.cpuprofile
+const REPAINTS = Number(process.env.REPAINTS || 0);
+const PROFILE = process.env.PROFILE || null;
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TRADE-VIRT probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#333}</style></head><body>
@@ -174,7 +157,6 @@ globalThis.__placed = async (frac) => {
 globalThis.__ready = true;
 </script></body></html>`;
 
-/** The page's ARENA2 fetch, answered off the disk, case as the folder has it. */
 async function arena2Index() {
   const map = new Map();
   for (const f of await readdir(ARENA2)) map.set(f.toUpperCase(), f);
@@ -207,7 +189,6 @@ try {
       await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced`, { waitUntil: 'domcontentloaded', timeout: 120000 });
       await page.waitForFunction(() => globalThis.__ready === true, null, { timeout: 120000 });
       out.kinds = await page.evaluate(() => globalThis.__kinds);
-      // warm the modules (not the pictures): a three-piece window opened and shut
       await page.evaluate((w) => globalThis.__open(3, w), which);
       await page.evaluate(() => globalThis.__close());
       await page.evaluate(() => { globalThis.__long = []; new PerformanceObserver((l) => { for (const t of l.getEntries()) globalThis.__long.push(t.duration); }).observe({ type: 'longtask' }); });

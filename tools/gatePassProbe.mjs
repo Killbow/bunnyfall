@@ -1,13 +1,5 @@
-// WB2 - THE GATE'S FIRE AND BEACON, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds the pass's law (test/world/gate/wb2_gate.test.js drives it over a fake GL); what node cannot answer is whether the
-// GLSL COMPILES and LINKS in a real WebGL2 context, whether the arch's profile survives as a uniform the optimiser did
-// not drop, and whether the fire actually lands on the pixels between the pillars - bright and hot when open, an ember
-// when sealed - and the beacon on the sky over the crown. So: the repo's own modules served as they are (no bundler -
-// every import in this chain is relative), the stone drawn with its own art by a stand-in shader, the pass drawn by
-// its own class, and the frame read back.
-//
-//     node tools/gatePassProbe.mjs [--shots <dir>]     (writes open.png / sealed.png / shoulder.png / far.png there when given)
+// Browser probe that compiles, links, and draws the gate's fire and beacon pass over its stone.
+// Run: node tools/gatePassProbe.mjs [--shots <dir>].
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -59,10 +51,10 @@ window.ready = true;
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }   // not the root: U60 keeps that the landing page's
+  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const f = join(ROOT, url);
   if (!f.startsWith(ROOT) || !existsSync(f)) { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { 'content-type': { '.js': 'text/javascript', '.json': 'application/json' }[extname(f)] ?? 'application/octet-stream' });   // GATE-FBX: the stone's bake is a JSON module
+  res.writeHead(200, { 'content-type': { '.js': 'text/javascript', '.json': 'application/json' }[extname(f)] ?? 'application/octet-stream' });
   res.end(readFileSync(f));
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -86,7 +78,6 @@ try {
   const sealed = await page.evaluate(() => window.draw([0, 6.5, 24], [0, 6.5, 0], 0));
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'sealed.png') });
   check('sealed, the fire is an ember - dimmer than open', lum(sealed.centre) < lum(open.centre), `${JSON.stringify(sealed.centre)} vs ${JSON.stringify(open.centre)}`);
-  // GATE-FBX: the stone itself, from off its shoulder - its basalt, the rim seared round the opening, the spines' points
   const shoulder = await page.evaluate(() => window.draw([-9, 1.7, 13], [0, 7, 0], 1));
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'shoulder.png') });
   check('no GL error from off its shoulder', shoulder.error === 0, `error ${shoulder.error}`);

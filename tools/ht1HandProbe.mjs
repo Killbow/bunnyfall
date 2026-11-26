@@ -1,33 +1,5 @@
-// HT1/TEX1/HT2 - THE TORCH IN THE HAND, end to end in a real browser.
-//
-// The audit Mac asked for after HT2 ("ensure youre not just guessing
-// and this actually works"): the pack's act and the mod's sprite are
-// two halves of one question, so this probe runs BOTH over ONE entity.
-// It lights a torch through the enhanced pack's card, then mounts the
-// Handheld Torches component on a REAL Renderer over a real WebGL2
-// context, lets it fetch and decode its OWN vendored PNGs, and asks
-// whether a frame of the torch actually reaches the screen.
-//
-// WHAT IT FOUND, and why the two switches below are set by hand: BOTH
-// of the switches that make a lit torch VISIBLE are off by default,
-// and both defaults are faithful.
-//   - `Modules.Sprite` (the mod's own modsettings.json ships
-//     `Sprite = False`) gates the first-person hand. With it off,
-//     `draw()` returns false and nothing is in your hand.
-//   - `Enhancements/PlayerTorchFromItems` (DFU's own defaults.ini
-//     ships False) gates the LIGHT the torch casts.
-// So as those two ship, lighting a torch is invisible: no hand, no
-// light. Both are reachable - the first on the Mods pane under
-// Handheld Torches, the second in Settings as "Torches Light Your
-// Way".
-//
-// MODS-ON (2026-09-14) answered that: Mac's call was "all mods should
-// be on by default", so BOTH now default on in the port and this probe
-// passes on stock settings - `SPRITE_ON=1` is kept only to force the
-// module on if the pane's default is ever turned back.
-//
-//     npx vite --port 5199 &
-//     node tools/ht1HandProbe.mjs
+// Browser probe that lights a torch from the enhanced pack and checks the Handheld Torches sprite draws a frame.
+// Run: npx vite --port 5199 & node tools/ht1HandProbe.mjs (SPRITE_ON=1 forces the sprite module on).
 import { chromium } from 'playwright';
 const BASE = 'http://127.0.0.1:5199';
 const out = [];
@@ -38,7 +10,7 @@ const page = await ctx.newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(e.message));
 await page.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
 await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
-if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();
 await page.locator('#enhanced-menu .doorbtn.door-new').first().click();
 await page.getByRole('button', { name: 'Begin', exact: true }).click();
 await page.waitForSelector('#enhanced-menu', { state: 'detached', timeout: 20000 });
@@ -46,7 +18,6 @@ await page.waitForFunction(() => document.body.textContent.includes('boot failed
 
 check('the browser has WebGL2 at all', await page.evaluate(() => !!document.createElement('canvas').getContext('webgl2')));
 
-// 1. the PACK lights the torch (the HT2 act), on the same entity the rig will read
 await page.evaluate(async () => {
   const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
   const { TEMPLATES } = await import('/src/items/useItem.js');
@@ -55,7 +26,7 @@ await page.evaluate(async () => {
   globalThis.__ent = e;
   globalThis.__slot = createInventoryWindow({ entity: e, items: () => e.items, wagonItems: () => [] });
 });
-await page.waitForSelector('#enhanced-inventory', { timeout: 20000 });   // one torch: the Weapons page it opens on is empty
+await page.waitForSelector('#enhanced-inventory', { timeout: 20000 });
 await page.locator('#enhanced-inventory .packtab', { hasText: 'Misc' }).first().click();
 await page.waitForSelector('#enhanced-inventory .itemrow', { timeout: 20000 });
 await page.locator('#enhanced-inventory .itemrow', { hasText: 'Torch' }).first().click();
@@ -63,7 +34,6 @@ await page.locator('#enhanced-inventory .acts button', { hasText: 'Light' }).fir
 check('the pack lit the torch on the shared entity',
   await page.evaluate(() => globalThis.__ent.lightSource === globalThis.__ent.items[0]));
 
-// 2. the MOD then loads its real sprites on a real Renderer and draws one
 await page.evaluate((v) => { globalThis.__spriteOn = v; }, !!process.env.SPRITE_ON);
 const r = await page.evaluate(async () => {
   const { createHandheldTorches, readTorchSettings, HANDHELD_TORCHES_VENDOR } = await import('/src/items/handheldTorches.js');
@@ -85,8 +55,8 @@ const r = await page.evaluate(async () => {
     collider: () => null, keyDown: () => false, sheathWeapons: () => {},
   };
   h.update(0.016, c); h.lateUpdate(0.016, c);
-  await h._w.texturesLoading;                    // the real fetch + decode + upload
-  for (let i = 0; i < 240; i++) { h.update(0.016, c); h.lateUpdate(0.016, c); }   // let the rest smoothing settle
+  await h._w.texturesLoading;
+  for (let i = 0; i < 240; i++) { h.update(0.016, c); h.lateUpdate(0.016, c); }
   const drew = h.draw(renderer, cv);
   console.warn = hadWarn;
   return {

@@ -1,7 +1,5 @@
 // @ts-check
 
-// A small modal form. `ask` resolves with the field values, or null when the builder cancels.
-
 import { h } from './dom.js';
 
 /**
@@ -35,7 +33,6 @@ export function ask(title, fields, { ok = 'OK', validate } = {}) {
   });
 }
 
-/** Ask a yes or no question. */
 export const confirmBox = (title, text, ok = 'Yes') => new Promise((resolve) => {
   const done = (v) => { back.remove(); resolve(v); };
   const back = h('div', { class: 'dialog' }, h('div', null, h('h3', { text: title }), h('div', { text }), h('div', { class: 'acts' }, h('button', { text: 'Cancel', on: { click: () => done(false) } }), h('button', { class: 'on', text: ok, on: { click: () => done(true) } }))));

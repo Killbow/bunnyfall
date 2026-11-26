@@ -1,29 +1,29 @@
 // @ts-check
-// BUNNYFALL: shared gardens. Revision claims and harvest deposits commit in one batch.
+// Company farm gardens. The garden revision claim, treasury and Stores moves, and harvest deposits commit in one
+// batch.
 import { guildActorOf } from './guilds.js';
 import { mustChange } from './realm.js';
 import { emptyGarden, validGarden, stepFarmGardenAction, stepFarmBirds, stepFarmBurn, stepFarmProwl, settleGarden, stepFarmPlough } from '../../src/net/farmGardenLaw.js';
 import { cropMaterial } from '../../src/net/farmLaw.js';
 import { farmProgressStep, farmProgressRead } from './farmProgress.js';
-import { stepFarmHaul } from '../../src/net/farm/haulLaw.js';   // FARM EXPANSION: sacks carried to the wagon
-import { farmWorkOf, farmWorkStep, farmTitleCrossed, FARM_WORK_DAY_CAP } from '../../src/net/farm/farmWorkLaw.js';   // FARM EXPANSION: farm work and its titles
-import { stepFarmHerdAction, kindContent } from '../../src/net/farm/herdLaw.js';   // PHASE 3: the herd
-import { stepFarmWorkshop } from '../../src/net/farm/workshopLaw.js';   // PHASE 4: the workshops
+import { stepFarmHaul } from '../../src/net/farm/haulLaw.js';
+import { farmWorkOf, farmWorkStep, farmTitleCrossed, FARM_WORK_DAY_CAP } from '../../src/net/farm/farmWorkLaw.js';
+import { stepFarmHerdAction, kindContent } from '../../src/net/farm/herdLaw.js';
+import { stepFarmWorkshop } from '../../src/net/farm/workshopLaw.js';
 import { farmWeek } from '../../src/net/farmProgressLaw.js';
-import { stepFarmStation, stationDaily, pruneStations, characterStationed } from '../../src/net/farm/stationLaw.js';   // PHASE 5: sworn beasts on the farm
+import { stepFarmStation, stationDaily, pruneStations, characterStationed } from '../../src/net/farm/stationLaw.js';
 import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
 
 export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const { character, mapId, op = 'read', version } = body;
   if (!Number.isSafeInteger(mapId) || mapId < 0 || mapId > 0xffffffff || !['read', 'hoe', 'plant', 'water', 'harvest', 'upgrade', 'deliver', 'haul', 'weed', 'birds', 'burn', 'herd', 'pull', 'prowl', 'workshop', 'plough', 'station', 'recall'].includes(op)) return { error: 'farm-bed-bad' };
-  const management = op === 'upgrade' || op === 'deliver';   // both move Company money; only buying an improvement ('upgrade') is an officer's, any member ships an order
-  // Any authenticated visitor may see a garden. Only Company members may change it.
+  const management = op === 'upgrade' || op === 'deliver';
   const actor = op === 'read' ? null : await guildActorOf(db, player, character);
   if (actor && 'error' in actor) return actor;
   const farm = await db.prepare('SELECT * FROM company_farms WHERE map_id = ?').bind(mapId).first();
   if (!farm) return { error: 'farm-not-ours' };
   if (op !== 'read' && farm.guild_id !== actor.me.guild_id) return { error: 'farm-not-ours' };
-  if ((op === 'upgrade' || op === 'burn' || (op === 'herd' && body.act === 'buy') || (op === 'workshop' && body.act === 'build')) && Number(actor.me.rank) > 1) return { error:'farm-rank' };   // PHASE 2c/3: burning a strain and buying an animal are an officer's   // PHASE 2c: burning a strain is an officer's
+  if ((op === 'upgrade' || op === 'burn' || (op === 'herd' && body.act === 'buy') || (op === 'workshop' && body.act === 'build')) && Number(actor.me.rank) > 1) return { error:'farm-rank' };
   await db.prepare('INSERT OR IGNORE INTO company_farm_gardens (map_id, version, garden) VALUES (?, 0, ?)').bind(mapId, JSON.stringify(emptyGarden())).run();
   const row = await db.prepare('SELECT version, garden FROM company_farm_gardens WHERE map_id = ?').bind(mapId).first();
   let garden;
@@ -31,21 +31,21 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   if (!validGarden(garden)) return { error: 'farm-bed-bad' };
   if (op === 'read') return { ok: true, ...(version === Number(row.version) ? { unchanged: true } : { garden }), ...await farmProgressRead(db,player,character,farm.guild_id,body.details===true,nowS), version: Number(row.version), nowS };
   if (!Number.isSafeInteger(version) || version !== Number(row.version)) return { error: 'farm-bed-version' };
-  // PHASE 5: the stationed beasts' daily work (silk for the Stores, heaps for the sty), counted before the act
   const daily = stationDaily(garden, nowS); garden = daily.garden;
   if (op === 'station' || op === 'recall') {
     const { results: members } = await db.prepare('SELECT player, char_id FROM guild_members WHERE guild_id = ?').bind(actor.me.guild_id).all();
-    garden = pruneStations(garden, (p, c) => (members ?? []).some((m) => m.player === p && m.char_id === c));   // a keeper who has left takes no beast's place
+    garden = pruneStations(garden, (p, c) => (members ?? []).some((m) => m.player === p && m.char_id === c));
   }
   const step = management ? await farmProgressStep({db,nowS,env},player,farm,garden,body) : op === 'haul' ? stepFarmHaul(garden, body.sacks, nowS)
     : op === 'birds' ? stepFarmBirds(garden, { mapId, who: player.id, game: body.game }, nowS)
     : op === 'burn' ? stepFarmBurn(garden, body.strain)
-    : op === 'prowl' ? stepFarmProwl(garden, { mapId }, nowS)   // PHASE 6: the prowler chased off
+    : op === 'prowl' ? stepFarmProwl(garden, { mapId }, nowS)
     : op === 'herd' ? stepFarmHerdAction(settleGarden(garden, mapId, nowS), { ...body, mapId, who: player.id }, nowS, farmWeek)
-    : op === 'workshop' ? stepFarmWorkshop(garden, { act: body.act, workshop: body.workshop, recipe: body.recipe, mapId }, nowS)   // PHASE 4
+    : op === 'workshop' ? stepFarmWorkshop(garden, { act: body.act, workshop: body.workshop, recipe: body.recipe, mapId }, nowS)
     : op === 'plough' ? stepFarmPlough(garden, { beds: body.beds, game: body.game, who: player.id }, nowS)
     : op === 'station' || op === 'recall' ? stepFarmStation(garden, { act: op, who: player.id, character, revenantId: body.revenantId, kind: body.kind, name: body.name, rank: body.rank, art: body.art, post: body.post, elsewhere: op === 'station' ? await stationedElsewhere(db, actor.me.guild_id, mapId, character) : 0 }, nowS)
-    : stepFarmGardenAction(garden, { ...body, climate: Number(farm.climate), who: player.id }, nowS);   // the farm's own climate and the account's own id, never the client's
+    // `climate` and `who` come after the body spread, so the farm's climate and the account id override client values.
+    : stepFarmGardenAction(garden, { ...body, climate: Number(farm.climate), who: player.id }, nowS);
   if ('error' in step) return step;
   if ((op === 'herd' || op === 'workshop') && step.gold && Number((await db.prepare('SELECT treasury FROM guilds WHERE id = ?').bind(actor.me.guild_id).first())?.treasury ?? 0) < step.gold) return { error: 'farm-gold' };
   const statements = [db.prepare(`UPDATE company_farm_gardens SET garden = ?1, version = version + 1
@@ -53,18 +53,15 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
       AND EXISTS (SELECT 1 FROM guild_members WHERE player = ?5 AND char_id = ?6 AND guild_id = ?4 AND (?7 = 0 OR rank <= 1))`)
     .bind(JSON.stringify(step.garden), mapId, version, actor.me.guild_id, player.id, character, op === 'upgrade' ? 1 : 0), mustChange(db)];
   if (management) statements.push(...step.statements);
-  // PHASE 3: the herd's money and food - an animal bought from the treasury, a feed from the communal Stores
   if (op === 'herd' && step.gold) {
     statements.push(db.prepare(`UPDATE guilds SET treasury = treasury - ?2, realm_gold = MIN(realm_gold, treasury - ?2), moved_by = ?3, moved_at = ?4, moved_kind = 'farm-animal'
       WHERE id = ?1 AND treasury >= ?2`).bind(actor.me.guild_id, step.gold, String(player.handle || 'Farmer').slice(0, 64), nowS), mustChange(db));
   }
-  // PHASE 4: a workshop ordered built is paid from the treasury; a product order pays into it. The garden's revision claim above
-  // is in the same batch, so neither can be paid twice.
   if (op === 'workshop' && step.gold) {
     statements.push(db.prepare(`UPDATE guilds SET treasury = treasury - ?2, realm_gold = MIN(realm_gold, treasury - ?2), moved_by = ?3, moved_at = ?4, moved_kind = 'farm-workshop'
       WHERE id = ?1 AND treasury >= ?2`).bind(actor.me.guild_id, step.gold, String(player.handle || 'Farmer').slice(0, 64), nowS), mustChange(db));
   }
-  if (op === 'workshop' && step.consume) {   // a batch's inputs, or the order's goods: exactly that material, from the communal Stores
+  if (op === 'workshop' && step.consume) {
     const have = await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id = ? AND material = ? AND dep_player = '' AND dep_char = ''").bind(actor.me.guild_id, step.consume.key).first();
     if (Number(have?.qty ?? 0) < step.consume.units) return { error: 'farm-workshop-nostock' };
     statements.push(db.prepare(`UPDATE guild_prof_stores SET qty = qty - ?2, moved_by = ?3, moved_at = ?4 WHERE guild_id = ?1 AND material = ?5 AND dep_player = '' AND dep_char = '' AND qty >= ?2`)
@@ -89,12 +86,12 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   }
   const harvests = management || op === 'haul' || op === 'herd' || op === 'workshop' ? [] : step.harvests ?? [];
   const deposits = new Map();
-  for (const d of [...(op === 'herd' || op === 'workshop' ? step.deposit ?? [] : []), ...daily.deposit]) deposits.set(d.material, (deposits.get(d.material) ?? 0) + d.qty);   // PHASE 3: the milk - PHASE 4: a workshop's goods - PHASE 5: the silk the spiders spun
+  for (const d of [...(op === 'herd' || op === 'workshop' ? step.deposit ?? [] : []), ...daily.deposit]) deposits.set(d.material, (deposits.get(d.material) ?? 0) + d.qty);
   for (const harvest of harvests) {
     const material = harvest.material ?? cropMaterial('herbs', Math.floor(nowS / 86400), Number(farm.climate), Number(farm.region));
     if (!material) return { error: 'farm-bed-bad' };
     deposits.set(material,(deposits.get(material)??0)+harvest.qty);
-    for (const x of harvest.extra ?? []) deposits.set(x.material, (deposits.get(x.material) ?? 0) + x.qty);   // PHASE 5: a boar's truffle
+    for (const x of harvest.extra ?? []) deposits.set(x.material, (deposits.get(x.material) ?? 0) + x.qty);
   }
   for (const [material,qty] of deposits) {
     statements.push(db.prepare(`INSERT INTO guild_prof_stores (guild_id, material, dep_player, dep_char, qty, moved_by, moved_at)
@@ -103,7 +100,6 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
       .bind(actor.me.guild_id, material, qty, `Garden: ${farm.name}`.slice(0, 64), nowS));
   }
   const day = Math.floor(nowS / 86400);
-  // FARM WORK (docs/FARM-EXPANSION.md 10.1): the work this action did, raised in this batch, never past the day's cap
   const points = management ? 0 : farmWorkOf(op, { worked: step.worked?.length ?? 0, harvested: harvests.reduce((n, h) => n + h.qty, 0), sacks: op === 'haul' ? (body.sacks?.length ?? 0) : 0, game: !!step.played?.full, horse: op === 'haul' && kindContent(garden, 'horse', nowS), tended: step.tended ?? 0, batches: step.started ?? 0 });
   let work = null;
   if (points > 0) {
@@ -128,10 +124,9 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   return { ok: true, garden: step.garden, version: version + 1, nowS, mayManage:Number(actor.me.rank)<=1, harvested:harvests.reduce((n,h)=>n+h.qty,0), reward:step.reward, upgraded:step.upgraded, hauled:step.hauled, work, played:step.played ?? null, chased:step.chased, prowlChased:step.prowlChased, blighted:harvests.some((h)=>h.blight), grades:harvests.map((h)=>h.grade), strain:step.strain ?? null, bought:step.bought ?? null, milk:step.milk ?? 0, station:step.station ?? null, recalled:step.recalled ?? null, workshop:op==='workshop'?{built:step.built??null,started:!!step.started,collected:step.collected??step.deposit?.[0]??null,order:step.order??null}:null, choreAwarded: !management && !!result.at(-1)?.meta?.changes };
 }
 
-/** PHASE 5: how many beasts this character has stationed at the Company's OTHER farms (the cross-farm cap; read off their gardens). */
 async function stationedElsewhere(db, guildId, mapId, character) {
   const { results } = await db.prepare('SELECT g.garden FROM company_farm_gardens g JOIN company_farms f ON f.map_id = g.map_id WHERE f.guild_id = ?1 AND g.map_id != ?2').bind(guildId, mapId).all();
   const gardens = [];
-  for (const r of results ?? []) { try { gardens.push(JSON.parse(r.garden)); } catch { /* a broken garden holds no beast */ } }
+  for (const r of results ?? []) { try { gardens.push(JSON.parse(r.garden)); } catch { } }
   return characterStationed(gardens, character);
 }

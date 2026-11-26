@@ -1,24 +1,5 @@
-// PARTY8 (Mac, 2026-09-22: "increase the party limit to 8, and also redesign
-// the party UI so it doesnt clutter the screen into a better enhanced
-// design") - THE PARTY HUD AT A FULL PARTY, in a real browser.
-//
-// What only a browser can prove: the stack of seven companions' cards on
-// the enhanced skin's sheet - its width, its height against the viewport,
-// that a name ellipsizes, that the away card greys - photographed, so a
-// person can look at the design. The laws are pinned in node
-// (test/net/soc4_partyhud.test.js); here the numbers the screen shows are read
-// back off the DOM.
-//
-// PARTY8-B (Mac: "B" - quiet rows): the same seven, now with `here` set
-// to Daggerfall so the rows read as the design means them to - Bran's
-// place line gone (with me), the dungeon seat's kept, the digits drawn
-// only on the seats under half health.
-//
-// Self-hosting: starts its own vite on 5226. No ARENA2: the portraits are
-// the plate (the face loader answers null), which is the layout's worst
-// case for a face. (The head records themselves, measured off the real
-// FACE##I0.CIF files: 20-31 wide, 26-32 tall - the plate is 32x34.)
-//     node tools/partyHudProbe.mjs [--shots DIR]
+// Photographs the party HUD with a full party on the enhanced skin and reads its sizes back off the DOM.
+// Usage: node tools/partyHudProbe.mjs [--shots DIR]  (starts its own vite on 5226; needs no ARENA2)
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -44,7 +25,6 @@ await page.goto(`${BASE}/menu.html?skin=enhanced`, { waitUntil: 'networkidle' })
 const state = await page.evaluate(async () => {
   const { createPartyPanel } = await import('/src/ui/partyPanel.js');
   const { PARTY_MAX } = await import('/src/net/wire.js');
-  // the picture a full party's hub frame paints (net/social.js SocialState's own shape, stubbed)
   const pose = (h, hm, f, fm, m, mm, loc, inn = 0) => ({ px: 1, py: 1, in: inn, loc, h, hm, f, fm, m, mm, race: 'Breton', gender: 'male', face: 0 });
   const names = ['Bran', 'Cylandriel of the Long Name', 'Dar', 'Eli', 'Fen', 'Gorm', 'Hal'];
   const members = [{ acct: 'acct-me', name: 'Mac', online: true, seen: 0, peers: ['peer-me'], p: null }];

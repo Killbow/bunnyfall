@@ -1,11 +1,5 @@
-// GRIM1 - DFO GRIMOIRE, in a real browser, WITH NO ARENA2. What the suite cannot say: the dress lands on the page with
-// the pack's art cut and laid (ui/grimoireArt.js), the front door's doors are written on the desk's open book, the
-// pack stands in GrimoireUI's own roster (the tab plates in one row, the jewellery down the left, the goods on the
-// right), a press on a page is written in ink and the way out wears the red Exit, the Ascend is the character book (the
-// attributes down the left page, the skills down the right), and the vitals are the pack's three vials upright in the
-// corner in Daggerfall's order. Pictures of each go to SHOT_DIR.
-//
-//     node tools/grimoireDressProbe.mjs          (stands its own dev server; SHOT_DIR for the pictures)
+// Browser probe for the Grimoire dress with no ARENA2: front door, pack, Ascend, and vitals, with screenshots.
+// Run: node tools/grimoireDressProbe.mjs (starts its own dev server; SHOT_DIR sets where the pictures go).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -24,7 +18,6 @@ const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await ctx.newPage();
 page.on('pageerror', (e) => errors.push(e.message));
 
-/** Wear the dress on the shelf, then load the front door with it. */
 async function frontDoor() {
   await page.goto(`${BASE}/play/?skin=enhanced&nointro&nofonts`, { waitUntil: 'load', timeout: 180000 });
   await page.evaluate(async () => { (await import('/src/ui/uiPrefs.js')).setPref('plusDress', 'grimoire'); });
@@ -35,7 +28,6 @@ async function frontDoor() {
   await page.waitForFunction(() => document.documentElement.dataset.grimArt === 'ready', null, { timeout: 30000 }).catch(() => {});
 }
 
-// ── the front door ───────────────────────────────────────────────────────────────────────────────────────────────────
 await frontDoor();
 const door = await page.evaluate(() => {
   const root = document.documentElement;
@@ -49,7 +41,6 @@ const cols = [...new Set(door.doors.map((d) => Math.round(d.x / 50)))];
 check('the doors are written on the book\'s two pages - two columns, no plate behind a word, no pixel face', cols.length === 2 && door.doors.every((d) => d.bg === 'none' && !d.plusFace), JSON.stringify(door.doors.map((d) => Math.round(d.x))));
 await page.screenshot({ path: `${OUT}/grim-frontdoor.png` });
 
-// ── the pack ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 await page.evaluate(async () => {
   const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
   const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll.js');
@@ -76,7 +67,6 @@ check('the pack stands in GrimoireUI\'s roster: the nine tab plates in one row, 
 check('a press on a page is written there (no plate), the way out wears the red Exit, the item\'s card is a scroll, the chosen tab has no diamond', pack.wearOn === 'page' && pack.wearBg === 'none' && pack.exit && pack.scroll && /none|normal/.test(pack.tab), JSON.stringify(pack));
 await page.screenshot({ path: `${OUT}/grim-pack.png` });
 
-// ── the Ascend ───────────────────────────────────────────────────────────────────────────────────────────────────────
 await page.goto(`${BASE}/levelup.html?lane=door`, { waitUntil: 'load', timeout: 180000 });
 await page.waitForSelector('.lv-star', { timeout: 60000 });
 await page.waitForTimeout(800);
@@ -92,7 +82,6 @@ const asc = await page.evaluate(() => {
 check('the Ascend is the character book: the eight attributes a ledger down the left page, the points under them, the skills down the right page, Plus\'s star lines gone', asc.column && asc.rising && asc.skillsRight && asc.pointsUnder && asc.book && asc.lines === 'none', JSON.stringify(asc));
 await page.screenshot({ path: `${OUT}/grim-ascend.png` });
 
-// ── the vitals ───────────────────────────────────────────────────────────────────────────────────────────────────────
 await frontDoor();
 await page.evaluate(async () => {
   document.getElementById('enhanced-menu')?.remove();

@@ -1,6 +1,3 @@
-// The in-game editor writes v2: a new POI is stamped v2, a v1 POI becomes v2 at its first change (and only then), every
-// v2 key the editor does not edit is preserved through its edits, undo, and redo, and library entries stay v1.
-// Run: node --test tools/poiEditV2.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as Law from '../src/poi/poiLaw.js';
@@ -20,7 +17,6 @@ const v1Doc = () => {
   return d;
 };
 const V2_KEYS = ['groups', 'interior', 'flats', 'routes', 'encounters', 'interactives', 'dialogues', 'trades', 'variables', 'events'];
-// the v2 keys of the document and of the parts (by key) and lights (by place) it was opened with
 const keptOf = (d, partKeys = d.parts.map((p) => p.key), lights = d.lights?.length ?? 0) => JSON.stringify({
   top: V2_KEYS.map((k) => d[k]),
   rows: [...partKeys.map((k) => d.parts.find((p) => p.key === k)), ...(d.lights ?? []).slice(0, lights)].map((o) => [o.group, o.visible, o.locked, o.arch3d]),
@@ -61,14 +57,12 @@ test('a v1 POI becomes v2 at its first change, and only then', () => {
   assert.equal(edit.dirty(d.id), false);
   edit.redo();
   assert.equal(edit.docOf(d.id).v, 2);
-  // "Put back as saved" writes the saved v1 document over the v2 one: it stays v1, and clean
   edit.edit(d.id, 'revert', (x) => { for (const k of Object.keys(x)) delete x[k]; Object.assign(x, structuredClone(d)); });
   assert.equal(edit.docOf(d.id).v, 1);
   assert.equal(edit.dirty(d.id), false);
 });
 
 test('"Put back as saved" on a v1 POI opened unlike its saved v1 gives the saved v1, clean, at one press', () => {
-  // a pack's v1 POI over its live v1, or a past v1 revision opened over the live one
   const edit = Edit.createPoiEdit({ rand });
   const live = v1Doc();
   const other = { ...v1Doc(), name: 'Mill from a pack' };

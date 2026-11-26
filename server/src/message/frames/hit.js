@@ -1,4 +1,3 @@
-// The `hit` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, isWorldRoom, hitOwnerOf } from '../../relay.js';
 
 export function hitFrame(ws, a, m, message) {

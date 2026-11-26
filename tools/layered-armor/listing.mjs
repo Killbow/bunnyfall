@@ -1,9 +1,5 @@
-// LAYERED-GEAR: write vendor/layered-armor/layered-armor.files.json - every file under vendor/layered-armor/ with its
-// sha256. The art is no mod's bundle, so it ships no manifest of its own; this listing is what
-// test/tooling/doctrine.test.js holds the folder to (BUNDLE_ART, both ways: nothing there it does not name, nothing it
-// names missing). Re-run after every rebuild of the strips, the cloak layer or the hood fixes (Layered-Gearing.md).
-//
-// usage: node tools/layered-armor/listing.mjs [<repo>]   (--check: fail if the listing on disk is not this one)
+// Writes vendor/layered-armor/layered-armor.files.json, each file with its sha256; rerun after rebuilding art.
+// Run: node tools/layered-armor/listing.mjs [<repo>] [--check].
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, relative } from 'node:path';
@@ -31,7 +27,7 @@ const listing = {
 const text = `${JSON.stringify(listing, null, 2)}\n`;
 if (check) {
   let had = '';
-  try { had = readFileSync(OUT, 'utf8'); } catch { /* no listing yet */ }
+  try { had = readFileSync(OUT, 'utf8'); } catch { }
   if (had !== text) { console.error(`${OUT} is not the folder's listing - re-run tools/layered-armor/listing.mjs`); process.exit(1); }
   console.log(`${pngs.length} pictures, listing current`);
 } else {

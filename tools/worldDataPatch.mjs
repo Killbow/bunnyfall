@@ -1,21 +1,7 @@
 #!/usr/bin/env node
-// WD1 (2026-09-25): A MOD'S WORLD-DATA FILE, AS A DIFF OF THE CLASSIC BLOCK.
-//
-// Aquatic Sprites, Detailed Ships and Warm Ashes - Ships ship whole
-// blocks and whole building records as DFU's World Data Editor writes
-// them - the classic block with the author's edits in it. This tool
-// takes each file against the player's own BLOCKS.BSA (the block the
-// editor read it out of), keeps only the edit (formats/worldData/worldDataJson.js
-// diffJson) and checks that the edit, laid back on the classic block,
-// gives the author's file again - canonical form, sha256 for sha256 -
-// before it writes anything.
-//
-//   node tools/worldDataPatch.mjs <arena2> <out dir> <mod file>...
-//
-// A mod file is the TextAsset out of the bundle under its asset name
-// (`SHIPAA00.RMB_base`, `W0000000.RDB`, `SHIPAA00.RMB-390-building0`);
-// the patch is written as `<out dir>/<asset name>.json` and rebuilds the
-// DFU file `<asset name>.json`.
+// Writes each mod world-data file as a patch against its classic block in BLOCKS.BSA, and checks that the patch
+// rebuilds the author's file (canonical sha256) before writing.
+// Run: node tools/worldDataPatch.mjs <arena2> <out dir> <mod file>... (each patch goes to <out dir>/<name>.json).
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -25,7 +11,6 @@ import { BlocksFile } from '../src/formats/blocksFile.js';
 import { blockToDfuJson, buildingToDfuJson, diffJson, canonicalJson } from '../src/formats/worldDataJson.js';
 import { PATCH_FORMAT, rebuildWorldDataPatch } from '../src/formats/worldDataPatch.js';
 
-/** What a world-data asset name says it is: a block (with its variant) or a building record of a block. */
 export function parseWorldDataName(name) {
   const building = /^([A-Z0-9]+\.RMB)-(\d+)-building(\d+)(.*)$/.exec(name);
   if (building) return { kind: 'building', block: building[1], index: Number(building[2]), record: Number(building[3]), variant: building[4] };
@@ -34,7 +19,6 @@ export function parseWorldDataName(name) {
   throw new Error(`world-data patch: ${name} is neither a block nor a building file`);
 }
 
-/** The classic JSON a file of this name is an edit of. */
 export function classicBaseFor(blocks, parsed) {
   const index = blocks.getBlockIndex(parsed.block);
   if (index < 0) throw new Error(`world-data patch: ${parsed.block} is not in BLOCKS.BSA`);
@@ -46,8 +30,6 @@ export function classicBaseFor(blocks, parsed) {
 
 export const sha256Canonical = (json) => createHash('sha256').update(canonicalJson(json)).digest('hex');
 
-/** Every object that is an element of an array, by the array's key: the
- *  records a mod's inserted record may be a moved copy of. */
 function recordsByArrayKey(doc, block, into) {
   const walk = (v, path) => {
     if (Array.isArray(v)) {
@@ -65,9 +47,7 @@ function recordsByArrayKey(doc, block, into) {
   return into;
 }
 
-const COPY_MIN_BYTES = 400;   // a record smaller than this is carried whole (a flat, a model)
-/** Replace each large inserted or set record that is a moved copy of a
- *  classic record by a copy op and the author's edits to it. */
+const COPY_MIN_BYTES = 400;
 function preferCopies(ops, sources) {
   const out = [];
   for (const op of ops) {
@@ -88,8 +68,6 @@ function preferCopies(ops, sources) {
   return out;
 }
 
-/** The patch for one mod file, checked. `copyFrom` names the classic
- *  blocks (their indices) whose records an inserted record may copy. */
 export function makePatch(blocks, assetName, modJson, copyFrom = []) {
   const parsed = parseWorldDataName(assetName);
   const { index, json: base } = classicBaseFor(blocks, parsed);
@@ -103,12 +81,11 @@ export function makePatch(blocks, assetName, modJson, copyFrom = []) {
     ? { kind: 'building', block: parsed.block, index, record: parsed.record }
     : { kind: 'block', block: parsed.block, index };
   const patch = { format: PATCH_FORMAT, rebuilds: `${assetName}.json`, base: baseRef, sha256: sha256Canonical(modJson), ops };
-  // Checked through the runtime's own rebuild (formats/worldData/worldDataPatch.js), not a second copy of it.
   if (sha256Canonical(rebuildWorldDataPatch(patch, blocks)) !== patch.sha256) throw new Error(`world-data patch: ${assetName} does not rebuild`);
   return patch;
 }
 
-/** One op a line: small, and a re-run's diff reads op for op. */
+// One op per line, so a rerun diffs op by op.
 export function formatPatch(patch) {
   const { ops, ...head } = patch;
   const h = JSON.stringify(head);
@@ -124,7 +101,6 @@ if (isMain(import.meta.url)) {
   const blocks = new BlocksFile();
   if (!blocks.load(new Uint8Array(readFileSync(join(arena2, 'BLOCKS.BSA'))))) throw new Error('BLOCKS.BSA did not load');
   mkdirSync(outDir, { recursive: true });
-  // Every block the batch names is a copy source for every file in it.
   const copyFrom = [...new Set(files.map((f) => blocks.getBlockIndex(parseWorldDataName(basename(f).replace(/\.json$/, '')).block)))];
   for (const file of files) {
     const name = basename(file).replace(/\.json$/, '');

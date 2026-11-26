@@ -13,6 +13,7 @@ files:
   - src/systems/quest/questPatches.js
   - src/ui/questLens.js
   - src/systems/quest/questShare.js
+  - tools/qlSheetLaw.mjs
 routes: []
 tables: []
 replacesBible:
@@ -30,6 +31,7 @@ traps:
   - "`ASK_AGAIN_TICKS = 300` machine ticks equals `30` s at `TICKS_PER_SECOND = 10`; dismissing a branch prompt without choosing waits `30` s before asking again."
   - "Patched branch message IDs must stay within `QL_MESSAGE_BASE = 1900` through `1999` and must never collide with an existing script message ID."
   - "`sheetTextKey` builds `QUEST.o|r|b.id[.choice]`; IDs are unique only within each list, so the kind segment (`o`, `r`, or `b`) is mandatory."
+  - "A script's `outcome _x_` must name an outcome on its sheet; an unknown name latches an outcome no row answers, and the quest ends with no outcome, so `tools/qlSheetLaw.mjs` refuses it."
 dfu:
   - Assets/Scripts/Game/Questing/Actions/PromptMulti.cs
 tags:

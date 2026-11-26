@@ -1,16 +1,5 @@
-// LC1 (2026-09-23, Mac: "make some insane improvements to our lighting system ... while also improving
-// performance"): THE CLUSTERED LOOP ON A REAL GPU - is it the SAME PICTURE, and how much less does it walk.
-//
-// The pins (test/render/lc1_clusters.test.js) prove the grid's laws on the CPU and the shader's text; what only a GPU
-// can prove is that the shader READS the grid the CPU wrote and lights the same pixels the plain loop lit. This
-// probe draws enhancedLightingProbe's room through the real renderer on a real WebGL2 context (headless
-// Chromium, ANGLE over SwiftShader) twice - the grid on, and `setClusters(false)` - and reads both back:
-//   - the two frames must agree pixel for pixel to within the dither's byte (a summation-order difference at
-//     most); a cell that lost a light shows as a dark patch, and the probe FAILS on it;
-//   - the grid's mean list length is printed against the light count - what a fragment walks now.
-// A second scene, a night street with forty lanterns, is the case the grid exists for.
-//
-// Usage: node tools/lightClusterProbe.mjs [outDir]   (PNGs land in outDir, default scratch/lc1/)
+// Draws the enhanced lighting probe room and a lantern street with clustered lighting on and off and checks that
+// the frames match. Run: node tools/lightClusterProbe.mjs [outDir] (default scratch/lc1/).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -134,7 +123,6 @@ const result = await page.evaluate(async ({ W, H }) => {
   const room = new Float32Array([0, 2, -6, 12, 4, 2.5, 1, 7, -5, 2, 3, 9]);
   scene('room-grid', { lights: room, sky: false, clusters: true });
   scene('room-plain', { lights: room, sky: false, clusters: false });
-  // the street: forty lanterns on a lattice around the eye, the case the grid exists for
   const street = [];
   for (let k = 0; k < 40; k++) { const a = k * 0.77, d = 6 + (k % 7) * 4; street.push(eye[0] + Math.cos(a) * d, 2.2, eye[2] - 4 - Math.abs(Math.sin(a)) * d, 12); }
   scene('street-grid', { lights: new Float32Array(street), sky: true, clusters: true });

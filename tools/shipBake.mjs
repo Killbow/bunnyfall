@@ -1,86 +1,30 @@
-// THE BAKE FOR A SCENE OF PARTS - one ship of Mac's Blender scene into the boat's frame.
-//
-// SHIPS-2 (2026-10-07, Mac, sending Tiny_Ship.fbx, New_Ship_2.fbx and New_Ship_2_Shutter.fbx: "implement both of these
-// new ship placement models, UV Map/Texture, and ensure it matches the love we gave the other new ship model we
-// implemented"): the galleon's bake (tools/bakeGalleon.mjs, GALLEON and its two audits) made the home of every ship's.
-// Mac builds his ships as a scene of parts - a hull, decks, masts, a hatch cover, a shutter, each its own object - and
-// keeps working stations of them along the scene's Y: the bake reads ONE ship of it, by a SPEC (`bakeScene`):
-//
-//   frame  where the ship stands in the scene and how it is taken into the boat's (scale, waterline, midship,
-//          centreline - `toBoat`);
-//   roles  each object of hers by name, the role it plays aboard and the scene box it was read standing in;
-//   skip   every other object of the scene, each said for what it is and checked to be it - a `twin` (a Shift+D copy
-//          standing in a part's own place), a station beyond a scene Y (`minY`), an object standing wholly outside
-//          her own band of the scene (`band`, another ship's), or an object with no faces (`empty`) - so a part of hers
-//          is never dropped by its name;
-//   hull   the role whose object IS the boat's frame (its origin her centreline), and `cut`, what of it is cut off as
-//          its own part (the galleon's rudder).
-//
-// tools/fbxRead.mjs is the reader and tools/fbxMesh.mjs's helpers do the polygon work. The bake does three things and
-// nothing else, and leaves everything that is art (which face wears which texture, how a texture lies on it, what a
-// part is hung from) to the ship's model module, where a test can read it:
-//
-// 1. EACH OBJECT INTO THE BOAT'S FRAME. A Blender export carries its axis conversion on every object (Lcl Rotation -90
-//    about X, Lcl Scaling 100, UnitScaleFactor 1 - centimetres), so the object's own T*R*S is applied and the file's
-//    GlobalSettings (`sceneFrame`) take the result back to Mac's Z-up scene in metres, where a ship's bow is +X and her
-//    port side +Y. Come Sail Away's hulls - and so the port's boats - stand in Unity's frame: +x starboard, +y up, +z the
-//    bow, the root on the waterline (systems/naval/navalShips.js's header). So a scene point (X, Y, Z) is the boat's
-//    ( CENTRELINE - Y, Z - WATERLINE, X - MIDSHIP ) times SCALE: a mirror, which is why every polygon's corners are
-//    REVERSED on the way through - Blender's front is counter-clockwise in a right-handed frame and the port's is
-//    clockwise in Unity's (renderer.js frontFace(CW)), so the reversal keeps each face's front its front.
-//
-//    AUDIT GN-B5: WHAT IT CANNOT READ, IT REFUSES BY NAME - never bakes wrong: a file whose GlobalSettings are not
-//    Blender's FBX axes (EXPORT_AXES), an object parented under another, one carrying a pre/post rotation, a pivot, a
-//    rotation or scaling OFFSET or a geometric transform (the bake reads T*R*S only), one MIRRORED by its own transform
-//    (a negative determinant: every face of it would bake inside out), and one not standing where it was read (the
-//    spec's role boxes, BOX_SLACK out in any coordinate).
-//
-// 2. EACH POLYGON CUT INTO TRIANGLES AS BLENDER CUTS IT (AUDIT GN-B1): tools/fbxMesh.mjs blenderTessellate, Blender
-//    5.1's own tessellation ported - and an export any other Blender wrote is refused by name (assertBlenderFill: its
-//    fill may not be the port's) - on each polygon as Blender holds it (the mesh's own coordinates, its corners in their
-//    own order), the triangles then carried through the mirror as the polygon is. A polygon its triangles do not TILE
-//    is refused by object and number, never patched (tools/fbxMesh.mjs tilingFault), so the bake makes no point and no
-//    triangle of its own. The polygons are kept as well, since a face's texture is chosen per polygon.
-//
-// 3. WHAT THE SPEC CUTS OFF THE HULL (`cut`) as parts of their own - the galleon's rudder, modelled into her hull's
-//    mesh, turns.
-//
-// The output is a JSON a test re-bakes byte for byte (`bakeJson`): the source is committed beside it, so the file is a
-// DERIVATION, never a blob.
+// Bakes one ship from a Blender FBX scene of parts into the boat's frame, as named by a spec.
+// The output JSON is rebaked byte for byte by a test, so it is a derivation of the committed FBX.
+
 import { createHash } from 'node:crypto';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFbx, nodeAt, childNamed, childrenNamed, property70, objectName } from './fbxRead.mjs';
 import { eulerXYZ, polygonsOf, sceneFrame, blenderTessellate, blenderProject, tilingFault, BLENDER_FILL } from './fbxMesh.mjs';
 
-/** AUDIT GN-B5: the axes this export was written in (Blender's FBX default: Y up, Z front, X right - all positive),
- *  read off its GlobalSettings. tools/fbxMesh.mjs sceneFrame reads the up and coord axes; the front axis it never asks
- *  is what makes the frame right-handed, so a file written in any other axes is refused, never re-derived. */
+// The scene frame never reads the front axis, so a file in other axes is refused rather than re-derived.
 export const EXPORT_AXES = Object.freeze({ UpAxis: 1, UpAxisSign: 1, FrontAxis: 2, FrontAxisSign: 1, CoordAxis: 0, CoordAxisSign: 1 });
 
-/** AUDIT GN-B5: how far (m, any coordinate of the box) an object may stand from where its role was read. */
 export const BOX_SLACK = 0.02;
 
-/** A coordinate to 0.1 mm, as the file holds it. AUDIT GN2-BK5: a half step away from nought both sides (Math.round
- *  alone takes 1.23465 up to 1.2347 and -1.23465 up to -1.2346), so a mirror pair bakes to the same |x|; + 0: never a
- *  -0 in the file. */
+// Rounds half away from zero on both sides so mirrored pairs bake to the same magnitude; adding 0 turns -0 into 0.
 export const round4 = (v) => Math.sign(v) * Math.round(Math.abs(v) * 1e4) / 1e4 + 0;
 
-/** A scene point (metres, Z up, bow +X) in the boat's frame: `frame` the ship's (scale, waterline, midship,
- *  centreline). */
 export function toBoat([x, y, z], frame) {
   return [(frame.centreline - y) * frame.scale, (z - frame.waterline) * frame.scale, (x - frame.midship) * frame.scale];
 }
 
-/** AUDIT GN-B5: the transform properties T*R*S does not carry, each at the value that leaves it out. Blender writes
- *  none of them; a file that does was authored with a pivot or an offset the bake would silently drop. */
 const UNREAD_TRANSFORM = Object.freeze([
   ['PreRotation', [0, 0, 0]], ['PostRotation', [0, 0, 0]], ['RotationOffset', [0, 0, 0]], ['RotationPivot', [0, 0, 0]],
   ['ScalingOffset', [0, 0, 0]], ['ScalingPivot', [0, 0, 0]],
   ['GeometricTranslation', [0, 0, 0]], ['GeometricRotation', [0, 0, 0]], ['GeometricScaling', [1, 1, 1]],
 ]);
 
-/** AUDIT GN-B5: the file is in this export's axes (EXPORT_AXES), or the bake refuses it, naming what differs. */
 function assertExportAxes(tree) {
   const gs = nodeAt(tree.nodes, 'GlobalSettings');
   if (!gs) throw new Error('no GlobalSettings in this FBX - the bake reads its axes there');
@@ -92,9 +36,6 @@ function assertExportAxes(tree) {
   }
 }
 
-/** AUDIT GN2-BK1: the file was written by the Blender whose fill tools/fbxMesh.mjs ports (BLENDER_FILL, 5.1.x) - its
- *  SceneInfo's Original and LastSaved application Blender's, their versions that one - or the bake refuses it, naming
- *  what wrote it: another Blender's fill may cut Mac's faces otherwise than the port does (5.0's did, two of hers). */
 export function assertBlenderFill(tree) {
   const info = nodeAt(tree.nodes, 'FBXHeaderExtension', 'SceneInfo');
   if (!info) throw new Error('no SceneInfo in this FBX\'s header - the bake reads there which Blender wrote it');
@@ -110,22 +51,10 @@ export function assertBlenderFill(tree) {
 
 const det3 = (a) => a[0] * (a[4] * a[8] - a[5] * a[7]) - a[1] * (a[3] * a[8] - a[5] * a[6]) + a[2] * (a[3] * a[7] - a[4] * a[6]);
 
-/** AUDIT GN-B6: an Euler angle (degrees) within a microradian of a quarter turn IS that quarter turn. Blender's
- *  exporter writes its axis conversion (-90 about X) into every root object's rotation through single precision, and
- *  the noise is a float32 step or two: the hull's reads -90.0000093 (0.16 urad), which tilts her mirror plane enough
- *  that a vertex Mac mirrored exactly bakes 1.6 um off its pair - across the bake's last digit for five of them. No
- *  modelled rotation is a microradian off a quarter turn; nothing here moves more than 2.8 um (her main mast's head). */
+// Blender writes its -90 degree axis conversion through float32, so an angle within a microradian snaps to the
+// quarter turn. Otherwise vertices mirrored exactly in the scene bake a few micrometers off their pairs.
 const quarterTurn = (deg) => { const q = Math.round(deg / 90) * 90; return Math.abs(deg - q) * (Math.PI / 180) <= 1e-6 ? q : deg; };
 
-/** Every Mesh model with its Geometry, materials and placement, from a parsed FBX: `local` its mesh's own vertices (as
- *  Blender holds them - AUDIT GN-B1 cuts its faces there), `scene` the same placed in Mac's scene, `origin` where its
- *  own origin stands in the scene (AUDIT GN-B6). GATE-FBX: `read` names the objects a bake will bake (every one, for a
- *  ship's); one it declines is placed for its box alone (`unread`, no polygons) - its faces are never baked, so their
- *  sense is never asked (the gate is one object of a scene of 1,905, and one of the others is mirrored).
- *  EG6c: a read object also carries its Geometry (`geo`, whose normal and UV layers tools/fbxMesh.mjs layerReader reads
- *  - the ships and the gate lay their art in code and never ask) and `normal`, a normal placed as its vertices are: the
- *  inverse transpose of the object's T*R*S and the file's frame (each axis by the reciprocal of its scale, then the
- *  rotation and the frame - tools/fbxMesh.mjs bakeMesh's placeNormal), made unit. */
 export function sceneObjects(tree, read = () => true) {
   const objects = nodeAt(tree.nodes, 'Objects');
   if (!objects) throw new Error('no Objects section in this FBX');
@@ -153,7 +82,6 @@ export function sceneObjects(tree, read = () => true) {
     const R = eulerXYZ((property70(model, 'Lcl Rotation') ?? [0, 0, 0]).map(Number).map(quarterTurn));
     const T = (property70(model, 'Lcl Translation') ?? [0, 0, 0]).map(Number);
     const m = frame.m;
-    // the object's T*R*S into FBX world space, then the file's frame into the scene (metres, Z up)
     const place = (p) => {
       const s = [p[0] * S[0], p[1] * S[1], p[2] * S[2]];
       const w = [R[0] * s[0] + R[1] * s[1] + R[2] * s[2] + T[0], R[3] * s[0] + R[4] * s[1] + R[5] * s[2] + T[1], R[6] * s[0] + R[7] * s[1] + R[8] * s[2] + T[2]];
@@ -166,9 +94,6 @@ export function sceneObjects(tree, read = () => true) {
       out.push({ name, unread: true, local: [], scene, origin: place([0, 0, 0]), polygons: [], polyMaterial: [], materials });
       continue;
     }
-    // AUDIT GN-B5: a transform that mirrors (a negative scale, an odd number of them) turns every face it carries
-    // inside out - the bake's own mirror reverses each polygon's corners on the strength of the frame alone. The
-    // determinant of the whole linear map, the file's frame times R times S, says so whatever the rotation.
     const det = det3([0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => (m[r * 3] * R[c] + m[r * 3 + 1] * R[3 + c] + m[r * 3 + 2] * R[6 + c]) * S[c])));
     if (!(det > 0)) throw new Error(`${name}'s transform ${det < 0 ? 'mirrors it' : 'flattens it'} (scale ${JSON.stringify(S)}, determinant ${det.toPrecision(4)}) - ${det < 0 ? 'its faces would bake inside out' : 'it would bake flat'}; apply the scale in Blender (Ctrl+A) before exporting`);
     const raw = childNamed(geo, 'Vertices')?.props[0];
@@ -196,14 +121,6 @@ export function sceneObjects(tree, read = () => true) {
   return out;
 }
 
-/**
- * AUDIT GN-B1: POLYGON `k` OF AN OBJECT CUT AS BLENDER CUTS IT, OR REFUSED. Its corners as Blender holds them - the
- * mesh's own coordinates, in the polygon's own order - through tools/fbxMesh.mjs blenderTessellate; then the cut is
- * held to its face (tilingFault: in the plane the fill worked in, each triangle's area judged on its corners in 3D,
- * so one standing edge-on to the face is caught too), and a polygon it does not tile is refused, naming the object
- * and the polygon, never patched - no point made along an edge, no fill of the bake's own. Returns corner-index
- * triples, each wound as the polygon is.
- */
 export function fillFace(object, k) {
   const poly = object.polygons[k];
   if (poly.length < 3) throw new Error(`${object.name} polygon #${k}: ${poly.length} corners is not a face`);
@@ -214,29 +131,19 @@ export function fillFace(object, k) {
   return tris;
 }
 
-/** GALLEON-2: whether two objects are one shape - the same faces on the same corners, each within a micrometre. */
 export function sameShape(a, b) {
   if (a.scene.length !== b.scene.length || a.polygons.length !== b.polygons.length) return false;
   if (!a.scene.every((p, i) => p.every((v, k) => Math.abs(v - b.scene[i][k]) < 1e-6))) return false;
   return a.polygons.every((p, i) => p.length === b.polygons[i].length && p.every((v, j) => v === b.polygons[i][j]));
 }
 
-/** A scene box: { min, max } over some points. */
 export function boxOf(points) {
   const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
   for (const p of points) for (let k = 0; k < 3; k++) { if (p[k] < min[k]) min[k] = p[k]; if (p[k] > max[k]) max[k] = p[k]; }
   return { min, max };
 }
-/** A box to the millimetre, as a spec's roles record it. */
 export const mm = (b) => [b.min.map((v) => Math.round(v * 1000) / 1000 + 0), b.max.map((v) => Math.round(v * 1000) / 1000 + 0)];
 
-/**
- * One part: its scene polygons over a subset of the object's vertices, re-indexed, into the boat's frame (`frame`) -
- * the positions (the source's corners and no others), each polygon's corners in the port's winding, its triangles,
- * which polygon each triangle is of, and (AUDIT GN-B7) `split`: how many of its polygons were cut, four corners or
- * more - the rest were triangles already. WAGONS1: `frame` is a ship's (toBoat), or a function taking a scene point
- * to the part's own frame - a wagon's (tools/bakeWagons.mjs toWagon); either way a MIRROR, so the winding below holds.
- */
 export function bakePart(role, object, polyIds, frame) {
   const place = typeof frame === 'function' ? frame : (p) => toBoat(p, frame);
   const remap = new Map();
@@ -252,25 +159,18 @@ export function bakePart(role, object, polyIds, frame) {
   let split = 0;
   for (const k of polyIds) {
     const poly = object.polygons[k];
-    const tris = fillFace(object, k);   // AUDIT GN-B1: Blender's cut, or refused; GN-B3: on its own corners alone
+    const tris = fillFace(object, k);
     const ring = poly.map(take);
     const p = polygons.length;
-    polygons.push([...ring].reverse());   // the mirror: the port's winding
+    // The scene-to-boat transform is a mirror, so reversing the corners keeps each face's front on the same side.
+    polygons.push([...ring].reverse());
     material.push(object.polyMaterial[k] >= 0 ? object.materials[object.polyMaterial[k]] ?? null : null);
-    // AUDIT GN-B1: each triangle through the mirror as its polygon goes - (a, b, c) wound with the face in Mac's scene,
-    // (a, c, b) with it in hers
     for (const [a, b, c] of tris) { triangles.push(ring[a], ring[c], ring[b]); triangleOf.push(p); }
     if (poly.length > 3) split++;
   }
   return { role, object: object.name, positions, polygons, material, triangles, triangleOf, split };
 }
 
-/**
- * What a skipped object is said to be, checked - or an Error naming what it is not. GALLEON-2's `twin` (a part's copy
- * standing IN its place, the same corners and faces as the part it names to the micrometre - its materials' names
- * apart) and `minY` (a working STATION wholly beyond that scene Y); SHIPS-2's `band` (wholly outside the ship's own band
- * of the scene's Y, `spec.band` - another ship's part, or another station's) and `empty` (an object with no faces).
- */
 function skipFault(o, skip, byName, spec) {
   if (skip.twin) {
     const t = byName.get(skip.twin);
@@ -286,14 +186,11 @@ function skipFault(o, skip, byName, spec) {
 }
 
 /**
- * The bake: the FBX's bytes in, one ship's parts out. Pure. `spec` says which ship (the header); `tree` is the bytes
- * parsed - a test hands in one it has changed, to see the bake refuse it; `source` the FBX's path as the file records
- * it (AUDIT GN2-BK4).
  * @param {Uint8Array} fbxBytes
  * @param {{ bake: string, source: string, frame: { scale: number, waterline: number, midship: number, centreline: number }, roles: Record<string, { role: string, box: number[][] }>, skip: Record<string, any>, band?: number[], hull?: string, cut?: (o: any, all: number[]) => any[] }} spec
  */
 export function bakeScene(fbxBytes, spec, tree = readFbx(fbxBytes), source = spec.source) {
-  assertBlenderFill(tree);   // AUDIT GN2-BK1
+  assertBlenderFill(tree);
   const objects = sceneObjects(tree);
   const parts = [];
   const seen = new Set();
@@ -308,14 +205,13 @@ export function bakeScene(fbxBytes, spec, tree = readFbx(fbxBytes), source = spe
     }
     const r = spec.roles[o.name];
     if (!r) throw new Error(`${o.name} plays no role aboard - name it in ROLES (or SKIP) after reading the scene`);
-    // AUDIT GN-B5: where it was read, to BOX_SLACK in every coordinate of its box
     const b = boxOf(o.scene);
     const off = Math.max(...[b.min, b.max].flatMap((end, e) => end.map((v, k) => Math.abs(v - r.box[e][k]))));
     if (!(off <= BOX_SLACK)) throw new Error(`${o.name} (${r.role}) was read standing in the box ${JSON.stringify(r.box)} and stands in ${JSON.stringify(mm(b))} - ${(off * 100).toFixed(1)} cm out where ${BOX_SLACK * 100} cm is let pass; read the scene again (--list) before re-baking`);
     seen.add(o.name);
     const all = o.polygons.map((_, k) => k);
     if (r.role === hullRole) {
-      // AUDIT GN-B6: her centreline is this object's own Y, to the bit - or her mirror pairs bake unequal
+      // frame.centreline must equal the hull's origin Y exactly, or mirrored pairs bake unequal.
       if (o.origin[1] !== spec.frame.centreline) throw new Error(`the hull's origin stands at scene Y ${o.origin[1]} and FRAME.centreline is ${spec.frame.centreline} - set the centreline to the hull's Y`);
       if (spec.cut) parts.push(...spec.cut(o, all));
       else parts.push(bakePart(r.role, o, all, spec.frame));
@@ -333,26 +229,20 @@ export function bakeScene(fbxBytes, spec, tree = readFbx(fbxBytes), source = spe
   };
 }
 
-/** The bake as the file holds it: one part a line, so a re-bake that moves a part is one line of the diff. */
 export function bakeJson(baked) {
   const { parts, ...head } = baked;
   const lines = parts.map((p) => `    ${JSON.stringify(p)}`);
   return `${JSON.stringify(head, null, 2).replace(/\n}$/, '')},\n  "parts": [\n${lines.join(',\n')}\n  ]\n}\n`;
 }
 
-/** The repo's root (tools/..). */
 export const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-/** AUDIT GN2-BK4: an FBX's path as the file records it - in the repo, its path there (as a spec's source is written);
- *  else where it lies. */
 export function sourcePath(file) {
   const abs = resolve(file);
   const rel = relative(ROOT, abs);
   return rel && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel) ? rel.split(sep).join('/') : abs;
 }
 
-/** A scene's objects listed as a spec's roles record them - the name, the role a spec gives it (or how it is skipped),
- *  its box to the millimetre and its face count: what `--list` prints, read before a spec is written. */
 export function listScene(bytes, spec = null) {
   return sceneObjects(readFbx(bytes)).map((o) => {
     const role = spec?.roles?.[o.name]?.role ?? (spec?.skip?.[o.name] ? '(skipped)' : '?');

@@ -1,4 +1,3 @@
-// The words the hub says to a socket at its hello: receipts, live events, and home words.
 import { followHello } from '../../staffFollow.js';
 import { sayRestartTo } from '../../restartNotice.js';
 import { gateHolds } from '../../../../src/net/gateLaw.js';

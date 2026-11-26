@@ -1,5 +1,4 @@
-// T3c probe: talk to a townsperson, W (where is), pick a category and
-// a building, and read the classic direction answer live.
+// Probe: talks to a townsperson, asks where a building is, and prints the direction answer.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -7,11 +6,7 @@ await server.listen();
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-// T2: `class=16` SKIPS THE CHARGEN WIZARD. Without it the wizard holds
-// townTalk's overlay slot and townTalk.keydown - FIRST in this host's
-// keydown ladder (exterior.js:"if (e.code === 'Escape') backButtonHeld = true") - swallows every
-// page.keyboard.press below, so this probe pressed its keys into a
-// character-creation screen it never knew was up.
+// class=16 skips character creation, whose screen would otherwise take every key press below.
 await page.goto('http://localhost:5199/play/?shot&play&exterior&time=12:00&class=16');
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 180000 });
 const readPeople = async () => JSON.parse(await page.evaluate(() => window.__people()));

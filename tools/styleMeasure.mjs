@@ -1,25 +1,12 @@
 #!/usr/bin/env node
-// BUNNYFALL (2026-11-06, the Discord's balance thread: "two-handers are garbage", "dual is almost twice as fast", "shields
-// barely matter"): THE FIGHTING STYLES, MEASURED. Changes nothing in the game; it asks the game's own code.
-//
-// THE RATE: the real weapon machine (combat/playerWeapon.js PlayerWeapon) with the attack held down for a minute at 60
-// frames a second - the swing law, the dual flurry and the off hand's burden, the bow's draw and cooldown, Roleplay &
-// Realism: Items' weaponBalance as it ships - counting the blows that land a hit frame, per hand.
-// THE BLOW: the game's own formula (combat/formulas.js calculateAttackDamage, PCAAO and RR as they ship), against foes
-// drawn from DFU's level band (tools/heroMeasure.mjs bandWeights over the dungeon and wilderness tables), the off hand's
-// share and to-hit as resolveHit passes them.
-// THE GUARD: the same foes' blows on the player, plate on (seven pieces), a shield in the left hand or not.
-// THE KIT: "plain" is every item Common; "rare" rolls each hand item Rare through the loot's own roll
-// (systems/loot/lootRarity.js rollAffixes) and folds its lines into the wearer (systems/entityMods.js), so a second item's
-// stat and skill lines count the way they do in play. Procs (elemental, leech) are each weapon's own and left out.
-//
-//   node tools/styleMeasure.mjs            # 600 foes a cell
-//   node tools/styleMeasure.mjs --n 200    # quicker
+// Measures the blow rate, damage, and defense of each fighting style through the combat code itself.
+// Usage: node tools/styleMeasure.mjs [--n <enemies>] [--hits]
 import { isMain } from './lib/isMain.mjs';
 import { installRoleplayRealismItems } from '../src/mods/rriInstall.js';
 import { installRoleplayRealism } from '../src/mods/rrInstall.js';
 import '../src/combat/swingLaw.js';
-import '../src/combat/meleeRework.js';   // the melee rework's rows, strengths and shield block (the game loads it through the sigil sets)
+// Imported for its side effects, which the game loads through the sigil sets.
+import '../src/combat/meleeRework.js';
 import { PlayerWeapon } from '../src/combat/playerWeapon.js';
 import { calculateAttackDamage, weaponKnockbackSpeed, weaponKnockbackApplies, enemyWeightClassicUnits, KB_UNIT } from '../src/combat/formulas.js';
 import { offHandToHit, OFF_HAND_BLOW } from '../src/combat/twoHands/handsLaw.js';
@@ -42,7 +29,6 @@ installRoleplayRealism();
 
 const T = Object.freeze({ Buckler: 109, Kite: 111, Tower: 112, Dagger: 113, Staff: 115, Shortsword: 116, Saber: 119, Longsword: 120, Katana: 121,
   Claymore: 122, DaiKatana: 123, Mace: 124, Warhammer: 126, BattleAxe: 127, LongBow: 130 });
-/** The styles: [name, right hand, left hand]. */
 export const STYLES = Object.freeze([
   ['Longsword', T.Longsword, null], ['Longsword + buckler', T.Longsword, T.Buckler], ['Longsword + kite', T.Longsword, T.Kite],
   ['Longsword + tower', T.Longsword, T.Tower], ['Dual longswords', T.Longsword, T.Longsword], ['Shortsword', T.Shortsword, null],
@@ -50,7 +36,7 @@ export const STYLES = Object.freeze([
   ['Claymore (2H)', T.Claymore, null], ['Dai-katana (2H)', T.DaiKatana, null], ['Warhammer (2H)', T.Warhammer, null],
   ['Battle axe', T.BattleAxe, null], ['War axe (2H)', 128, null], ['Staff (2H)', T.Staff, null], ['Long bow', T.LongBow, null], ['Fists', null, null],
   ['Fists + tower', null, T.Tower],
-  ['Fists, Hand-to-Hand 200', null, null, { [SKILLS.HandToHand]: EFFECTIVE_SKILL_MAX }],   // mastered online: what a formula reads at 200 (systems/skillSoftcap.js); level 30 alone
+  ['Fists, Hand-to-Hand 200', null, null, { [SKILLS.HandToHand]: EFFECTIVE_SKILL_MAX }],
 ]);
 const isShield = (ti) => ti >= 109 && ti <= 112;
 const ARMOR = [[102, 'ChestArmor'], [103, 'Gloves'], [104, 'LegsArmor'], [105, 'LeftArm'], [106, 'RightArm'], [107, 'Head'], [108, 'Feet']];
@@ -65,7 +51,6 @@ function mintHand(ti, B, rare, r) {
   return it;
 }
 
-/** The stated player at `B` with `right`/`left` in hand: every weapon skill at the build's Long Blade. */
 function mkPlayer(B, right, left, over = null) {
   const skills = Object.fromEntries(Array.from({ length: 35 }, (_, i) => [i, B.other]));
   for (const s of [SKILLS.LongBlade, SKILLS.ShortBlade, SKILLS.BluntWeapon, SKILLS.Axe, SKILLS.Archery, SKILLS.HandToHand]) skills[s] = B.LB;
@@ -73,7 +58,7 @@ function mkPlayer(B, right, left, over = null) {
 
   const p = { isPlayer: true, level: B.level, raceId: 1, stats: { strength: B.STR, intelligence: 50, willpower: B.WIL, agility: B.AGI, endurance: B.END, personality: 50, speed: B.SPD, luck: B.LUC },
     skills, career: { weaponArmorShieldsBitfield: 0, abilityFlagsAndSpellPointsBitfield: 0 }, health: 1e6, maxHealth: 1e6, items: [], reflexes: 2, biographyAvoidHitMod: 0 };
-  if (over) p.skillOverrides = { ...over };   // skills.js skillValue: the formula's value as given (Master Skills is an online switch)
+  if (over) p.skillOverrides = { ...over };
   const table = equipTableOf(p);
   for (const [ti, slot] of ARMOR) { const it = mintCondition({ group: 'Armor', templateIndex: ti, material: plateOf(B), name: `a${ti}` }); it.currentCondition = it.maxCondition; it.equipSlot = EQUIP_SLOTS[slot]; table[EQUIP_SLOTS[slot]] = it; p.items.push(it); }
   if (right) { right.equipSlot = EQUIP_SLOTS.RightHand; table[EQUIP_SLOTS.RightHand] = right; p.items.push(right); }
@@ -83,7 +68,6 @@ function mkPlayer(B, right, left, over = null) {
   return p;
 }
 
-/** Blows a second through the real machine, per hand, and the bow's draw. */
 export function blowRate(p, right, left, seconds = 60) {
   const pw = new PlayerWeapon({ liveSpeed: p.stats.speed });
   pw.sheathed = false;
@@ -97,7 +81,6 @@ export function blowRate(p, right, left, seconds = 60) {
   return { R: hits.R / seconds, L: hits.L / seconds, mode: pw.handsMode, drawMs: pw.lastDrawMs, times };
 }
 
-/** A foe from the level's band, seeded. */
 function foeAt(L, r, hero = null) {
   const w = bandWeights(L), table = ENCOUNTER_TABLES[TABLES[Math.floor(r() * TABLES.length)]];
   let x = r(), i = 0; for (; i < 19; i++) { x -= w[i]; if (x <= 0) break; }
@@ -109,7 +92,6 @@ function foeAt(L, r, hero = null) {
   return { e, weapon };
 }
 
-/** One style at one level: blows a second, a blow's mean on the band, damage a second, a foe blow's mean on me. */
 export function measure(L, [name, ri, li, over = null], { n = 600, rare = false, seed = 1, renown = null } = {}) {
   const B = buildAt(L);
   const hero = renown ? heroThreat(L, renown) : null;
@@ -122,8 +104,8 @@ export function measure(L, [name, ri, li, over = null], { n = 600, rare = false,
     rate ??= blowRate(p, right, left);
     const { e, weapon } = foeAt(L, r, hero);
     foeHp += e.maxHealth;
-    e.health = Math.max(1, Math.ceil(r() * e.maxHealth));   // a blow lands anywhere in a fight: the finisher and the draw cut read the foe's health
-    // three streams, so a second hand's rolls never move the foe's blow on me
+    e.health = Math.max(1, Math.ceil(r() * e.maxHealth));
+    // Separate seeded streams keep player rolls from shifting the blows enemies land on the player.
     const rd = mulberry(seed * 300007 + L * 7919 + s), rt = mulberry(seed * 500009 + L * 7919 + s);
     const dfRand = () => Math.floor(rd() * 32768), dfT = () => Math.floor(rt() * 32768);
     const dR = calculateAttackDamage(p, e, { weapon: right && !isShield(ri) ? right : null, rolls: rd, dfRand, weaponAnimTime: rate.drawMs });
@@ -144,11 +126,6 @@ export function measure(L, [name, ri, li, over = null], { n = 600, rare = false,
 }
 const foeIsClass = (e) => (e.mobileType ?? e.id ?? 0) >= 128 || !!e.isClass;
 
-// ── THE SHOVE (formulas.js weaponKnockbackSpeed / weaponKnockbackApplies, characters/enemy/enemyMotor.js _knockbackStep):
-// a landed blow writes the foe's knockback speed from its damage and the foe's weight - a monster's on every blow, a
-// class foe's only once the last shove has all but stopped - and while it runs the foe moves along the blow and can
-// neither walk nor shoot nor cast (CanAct false; DFU's melee roll is not gated, the shove only carries it out of reach).
-// Played over the style's own hit times for 30 s fights, a blow's damage drawn from its measured rolls.
 const CLASSIC_TICK = 1 / 16;
 export function shove(m, { fights = 200, seconds = 30, seed = 9, kind = 'all' } = {}) {
   const r = mulberry(seed);
@@ -186,9 +163,6 @@ if (isMain(import.meta.url)) {
   const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? Number(process.argv[i + 1]) : d; };
   const n = arg('n', 600);
   if (process.argv.includes('--hits')) {
-    // THE PER-HIT TABLE: blows that land a second (what every on-hit effect rides: a Rare elemental line, a leech, a DFU
-    // Cast When Strikes, the Echo), the flat 4.5 a Rare elemental line adds a landed blow (each weapon carrying one, the
-    // off hand's at its 0.8 share), and the shove against class foes and monsters.
     for (const L of [10, 20, 30]) {
       console.log(`\nLEVEL ${L}`);
       console.log('  style                  landed/s  DPS   +elem  x vs LS | class foe: knocked  shove m/s | monster: knocked  shove m/s');

@@ -1,4 +1,3 @@
-// The `foes` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, isWorldRoom, CELL_FRAME_RECORDS_MAX } from '../../relay.js';
 
 export function foesFrame(ws, a, m, message, doored) {

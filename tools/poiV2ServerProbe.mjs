@@ -1,7 +1,5 @@
-// Probes the account service's POI v2 routes on an isolated local stack whose data directory is temporary, never a
-// real save: draft, submit, and approve; trade and event settlement, retries, races, limits, potions, and hand-overs.
-//   node --test tools/poiV2ServerProbe.mjs
-// Needs `npm --prefix server ci` once (wrangler and miniflare), and takes a minute to bundle the two Workers.
+// Probes the account service's POI v2 routes on an isolated local stack with a temporary data directory.
+// Run: node --test tools/poiV2ServerProbe.mjs (needs `npm --prefix server ci` once).
 
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -47,18 +45,17 @@ before(async () => {
   const t0 = Date.now();
   for (;;) {
     if (child.exitCode !== null) throw new Error(`the stack stopped:\n${out.join('').slice(-2000)}`);
-    try { if ((await fetch(`${base}/v1/health`)).ok) break; } catch { /* not up yet */ }
+    try { if ((await fetch(`${base}/v1/health`)).ok) break; } catch { }
     if (Date.now() - t0 > 240_000) throw new Error(`the stack did not start:\n${out.join('').slice(-2000)}`);
     await new Promise((r) => setTimeout(r, 1000));
   }
 });
 
 after(() => {
-  try { child?.kill('SIGTERM'); } catch { /* gone */ }
-  setTimeout(() => { try { rmSync(data, { recursive: true, force: true }); } catch { /* kept */ } }, 3500).unref();
+  try { child?.kill('SIGTERM'); } catch { }
+  setTimeout(() => { try { rmSync(data, { recursive: true, force: true }); } catch { } }, 3500).unref();
 });
 
-/** A signed-in account: a guest made a real account with a handle. */
 async function account(handle) {
   const g = await call('/v1/auth/guest', { method: 'POST', body: { label: 'probe' } });
   assert.equal(g.status, 200, g.text);
@@ -69,7 +66,6 @@ async function account(handle) {
 
 const items = (...specs) => specs.map(([template, count]) => mintGift({ template, count }).item);
 
-/** A realm character with a first save, the way chargen makes one (level 1, a small purse, a few goods). */
 async function character(token, name, goods, gold) {
   const made = await call('/v1/realm/create', { method: 'POST', token, body: { name } });
   assert.equal(made.status, 200, made.text);
@@ -79,7 +75,6 @@ async function character(token, name, goods, gold) {
   assert.equal(put.status, 200, put.text);
   return { id, lease, seq: put.json.seq, save };
 }
-/** A checkpoint of the record that stands at `seq` is written as `seq + 1`. */
 const checkpoint = (token, { id, lease, seq }, save) => call(`/v1/realm/${id}/data`, { method: 'PUT', token, raw: true, body: JSON.stringify(save), headers: { 'x-realm-lease': lease, 'x-realm-seq': String(seq + 1), 'content-type': 'application/octet-stream' } });
 const saveOf = async (token, id) => JSON.parse((await call(`/v1/realm/${id}/data`, { token })).text);
 let txn = 0;
@@ -90,7 +85,6 @@ const countIn = (save, template) => save.items.filter((r) => r.templateIndex ===
 const HEAL_TRUE = mintGift({ template: 83, recipe: 'healTrue' }).item.potionRecipeKey;
 const healTrueIn = (save) => save.items.filter((r) => r.templateIndex === 83 && r.potionRecipeKey === HEAL_TRUE && !r.potent).reduce((n, r) => n + (r.stackCount ?? 1), 0);
 
-/** The probe's POI: the example's four scenarios, plus a gift, a toll, a stock and a counter. */
 function doc(id = 'poi-0123456789ab') {
   const d = poiV2Example();
   d.id = id;
@@ -118,11 +112,9 @@ test('a builder drafts, submits and an approver approves; only then is the POI l
   state.poi = { id: saved.json.id, rev: saved.json.rev };
   assert.equal(saved.json.state, 'draft');
   state.c = await character(state.player, 'Probe', [...items([16, 6], [42, 2], [71, 10], [72, 5])], 100);
-  // a draft settles nothing, and neither does a submission
   assert.equal((await trade(state.player, state.poi, state.c, ['nyra', 'brew'])).json.error, 'poi-not-live');
   assert.equal((await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: state.poi })).json.state, 'submitted');
   assert.equal((await trade(state.player, state.poi, state.c, ['nyra', 'brew'])).json.error, 'poi-not-live');
-  // the approver's word names the document it read
   const queue = (await call('/v1/poi/queue', { token: state.builder })).json.queue;
   const entry = queue.find((q) => q.id === state.poi.id);
   assert.ok(entry?.docSha);
@@ -149,17 +141,14 @@ test('a trade settles once: its items leave, its reward arrives, the save keeps 
   assert.equal(after1.goldPieces, before.goldPieces);
   assert.deepEqual(Object.keys(after1).sort(), Object.keys(before).sort(), 'no new save field');
   for (const r of after1.items) assert.deepEqual(itemFindings(r), []);
-  // the answer was lost: the same txn asked again is answered the same and moves nothing
   const again = await call('/v1/poi/trade', { method: 'POST', token: state.player, body });
   assert.equal(again.json.replayed, true);
   assert.equal(again.json.seq, a.json.seq);
   assert.deepEqual(again.json.gave, a.json.gave);
   assert.equal(healTrueIn(await saveOf(state.player, c.id)), 1);
-  // another account cannot use the txn
   const other = await account('ProbeOther');
   assert.equal((await call('/v1/poi/trade', { method: 'POST', token: other, body })).json.error, 'txn-spent');
   c.seq = a.json.seq;
-  // and the character holds too few of the goods now
   assert.equal((await trade(state.player, state.poi, c, ['nyra', 'brew'])).json.error, 'poi-items');
 });
 
@@ -209,7 +198,6 @@ test('a stock runs out for everyone, and two settles at one sequence let one thr
   assert.equal(two.status, 200, two.text);
   second.seq = two.json.seq;
   assert.equal((await trade(state.two, state.poi, second, ['stock', 'one'])).json.error, 'poi-stock', 'the stock of two is gone');
-  // two at once, same sequence: one settles, the other finds the record moved
 }, { timeout: 120_000 });
 
 test('a record moved under an act refuses it: a stale sequence, another lease, another account\'s character', async () => {
@@ -246,16 +234,13 @@ test('events: a gift once, a toll as often as it can be paid, a counter kept, a 
   const t2 = await claim(state.player, state.poi, c, 'toll');
   c.seq = t2.json.seq;
   assert.equal(t2.status, 200, 'an exchange repeats');
-  // a variable kept for the character is read back, and the shared counter counts every character
   const read = await claim(state.player, state.poi, c);
   assert.equal(read.json.vars.visits, 1);
   const other = await claim(state.two, state.poi, state.c2, 'gift');
   assert.equal(other.json.vars.visits, 2, 'poi_global: the second character\'s gift counted on the first\'s');
-  // a branch that needs nothing from the service moves nothing and says which it took
   const proof = await claim(state.player, state.poi, c, 'proof');
   assert.equal(proof.status, 200, proof.text);
   assert.equal(proof.json.seq >= c.seq, true);
-  // too poor to pay the toll: refused whole
   const poor = await character(await account('ProbePoor'), 'Poor', [], 5);
   const poorToken = (await call('/v1/auth/login', { method: 'POST', body: { handle: 'ProbePoor', password: 'probe-password-1' } })).json.secret;
   const refused = await claim(poorToken, state.poi, poor, 'toll');
@@ -264,7 +249,6 @@ test('events: a gift once, a toll as often as it can be paid, a counter kept, a 
 
 test('a rollback is a revision of its own, and only the revision live now settles', async () => {
   const c = state.c;
-  // a second revision with the brew costing more goes live; the first no longer settles
   const d2 = doc();
   d2.trades[0].recipes[0].requireItems = [{ template: 16, count: 1 }];
   const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: d2, base: state.poi.rev } });
@@ -283,7 +267,6 @@ test('a rollback is a revision of its own, and only the revision live now settle
   assert.notEqual(back.json.error, 'poi-not-live', 'revision 1 is live again');
 });
 
-/** Builds a test POI with a potion trade, a potion condition, an empty-bottle take, and a trade keyed `event`. */
 function potionDoc() {
   const d = poiV2Example();
   d.id = 'poi-0123456789ac';

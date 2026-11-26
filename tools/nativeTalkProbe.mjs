@@ -1,9 +1,5 @@
-// U8b probe: the NATIVE talk window live - E on a walker opens
-// TALK01I0.IMG; mouse clicks drive the verbatim hit rects (Where is
-// -> category -> building -> the answer in the conversation panel).
-// U10: ?class=16 is the HEADLESS chargen skip. S3c put the chargen
-// overlay on a fresh town boot and wedged this probe too - AUDIT 17f
-// found three of the six, this is the rest.
+// Probe: E on a walker opens the classic talk window, and clicks walk through Where is, a category, and a building.
+// ?class=16 skips character creation, whose overlay would take every key.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -35,24 +31,22 @@ console.log('opened:', JSON.stringify({ native: t.native, text: t.overlayText, t
 if (!t.native) { console.log('NOT THE NATIVE WINDOW'); process.exit(1); }
 await waitFrames(3);
 await page.screenshot({ path: '/home/claude/talk-native.png' });
-// virtual -> screen for the 1400x900 canvas: s=4, ox=60, oy=50
 const S = 4, OX = 60, OY = 50;
 const click = async (vx, vy) => { await page.mouse.click(OX + vx * S, OY + vy * S); await waitFrames(3); };
-await click(57, 19);    // the Where is button
+await click(57, 19);
 t = await talk();
 console.log('after Where is:', JSON.stringify({ topicMode: t.topicMode, topics: t.topicCount }));
 if (t.topicMode !== 'categories') { console.log('CATEGORIES DID NOT OPEN'); process.exit(1); }
-await click(50, 75);    // topic row 1
+await click(50, 75);
 t = await talk();
 console.log('after category:', JSON.stringify({ topicMode: t.topicMode, topics: t.topicCount }));
 if (t.topicMode !== 'buildings') { console.log('BUILDINGS DID NOT OPEN'); process.exit(1); }
-await click(50, 75);    // building row 1 -> the answer
+await click(50, 75);
 t = await talk();
 console.log('answer:', JSON.stringify(t.overlayText));
 if (!t.overlayText || t.overlayText === 'Yes?') { console.log('NO ANSWER APPENDED'); }
 await waitFrames(3);
 await page.screenshot({ path: '/home/claude/talk-native-answer.png' });
-// the Blunt tone radio, then goodbye
 await click(260, 40);
 t = await talk();
 console.log('tone after radio:', t.tone);

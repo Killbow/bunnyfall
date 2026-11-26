@@ -1,20 +1,5 @@
-// THE WIZARD, IN THE RUNNING GAME.
-//
-// tools/enhancedChargenProbe.mjs walks the wizard at /chargen.html,
-// where a prototype host hands it a flow. This asks the only question
-// that one cannot: does the GAME mount it? The path is the real one -
-// the enhanced front door, New Game, the world host booting, ARENA2
-// loading, and createChargenWindow choosing a skin.
-//
-//     ARENA2_PATH=... npx vite --port 5199 &
-//     node tools/enhancedIntegrationProbe.mjs
-//
-// A NOTE ON TIME. The host keeps rendering the world behind the
-// overlay, and under SwiftShader that is seconds per frame - so the
-// generous timeouts here are the software renderer's, not the port's.
-// For the same reason this probe checks the MOUNT and the skin fork
-// rather than walking to `done`; the walk itself is the chargen
-// probe's job and it runs where the world is not being drawn.
+// Checks that the running game mounts the Enhanced character creation wizard after New Game, and the classic skin
+// does not. Run: ARENA2_PATH=... npx vite --port 5199 & node tools/enhancedIntegrationProbe.mjs.
 import { chromium, devices } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -36,16 +21,15 @@ for (const [label, opts] of [
   page.on('pageerror', (e) => errs.push(e.message));
   await page.goto(`${BASE}/play/`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 30000 });
-  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();
   await page.locator('#enhanced-menu .doorbtn.door-new').click();
   await page.locator('#enhanced-menu .act.primary', { hasText: 'Begin' }).click();
 
+  // The world keeps rendering behind the overlay at seconds per frame in software, so the timeouts are long.
   const mounted = await page.waitForSelector('#enhanced-chargen .prov', { timeout: 180000 })
     .then(() => true, () => false);
   check(`${label}: New Game mounts the ENHANCED wizard`, mounted);
   if (mounted) {
-    // the map is traced from the player's OWN files, so this also
-    // proves the art path reaches the view inside the game
     const provs = await page.locator('#enhanced-chargen .prov').count();
     check(`${label}: the map traced from the game's ARENA2`, provs === 9, `${provs} regions`);
     const st = JSON.parse(await page.evaluate(() => window.__chargen()));
@@ -55,7 +39,6 @@ for (const [label, opts] of [
   await ctx.close();
 }
 
-// AND THE CLASSIC SKIN IS UNTOUCHED: ?skin=classic must never mount it.
 {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const page = await ctx.newPage();

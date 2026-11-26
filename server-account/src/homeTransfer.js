@@ -55,7 +55,6 @@ async function blocked(db, mapId, buildingKey, nowS) {
   return null;
 }
 
-/** What the seller's save still holds in this house, or `home-holds` when it cannot be moved safely. */
 async function heldGoods(ctx, home, pieceIds) {
   const blob = await getRealmBlob(ctx, home.player, home.char_id);
   if (!blob.ok) return { error: 'home-holds' };
@@ -82,7 +81,7 @@ async function namedCharacters(db, name, toChar, seller) {
   return rows;
 }
 
-// A move to another character on the same account skips the offer; the old main stays on as a co-owner, added last.
+// A move to another character on the same account skips the offer, and the old main stays on as a co-owner.
 async function moveMain(ctx, player, home, target) {
   const { db, nowS } = ctx;
   const at = [home.map_id, home.building_key];
@@ -111,7 +110,6 @@ async function moveMain(ctx, player, home, target) {
   return { ok: true, moved: true, character: target.id, name: target.name };
 }
 
-/** The living characters a name points at, before a price is asked: `own` marks the seller's account. */
 async function resolveHome(ctx, player, body) {
   const { db } = ctx;
   const { mapId, buildingKey, character, toName } = body ?? {};
@@ -148,7 +146,7 @@ async function offerHome(ctx, player, body) {
   const { mapId, buildingKey, character, toName, toChar, price, keepDecor, keepItems } = body ?? {};
   if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };
   if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey) || typeof character !== 'string' || !CHAR_ID_RE.test(character)) return { error: 'no-home' };
-  // Older builds send an account name instead of a character name.
+  // Older builds send no toName, so they get `home-update`.
   if (toName === undefined) return { error: 'home-update' };
   const name = typeof toName === 'string' ? toName.trim() : '';
   if (!name || name.length > REALM_NAME_MAX || /[\u0000-\u001f\u007f]/.test(name)) return { error: 'home-no-char' };
@@ -237,7 +235,8 @@ async function acceptHome(ctx, player, body) {
   let refund = 0;
   if (!keepDecor) {
     for (const row of pieces) {
-      refund += decorRefund(row.paid);   // BUNNYFALL AUDIT BF-10: half of what records paid (the ledger column), never of a price the client wrote into the piece's place
+      // The refund comes from the paid ledger column, never from a price the client wrote into the piece.
+      refund += decorRefund(row.paid);
     }
   }
   const price = offer.price;
@@ -245,8 +244,7 @@ async function acceptHome(ctx, player, body) {
   const moved = [];
   let sellerKey = null;
   let buyerKey = null;
-  // BUNNYFALL AUDIT: a seizure is no payment the hold looks at - a seller under a hold is paid nothing by the service
-  {   // (a gift at no price too: the home keeps what its giver paid, and the receiver sells it back for that)
+  {
     const sellerHeld = await realmHoldOf(db, offer.seller, offer.seller_char);
     if (sellerHeld) return sellerHeld;
   }
@@ -263,7 +261,7 @@ async function acceptHome(ctx, player, body) {
   }) : null;
   if (sellerPrep?.error) return sellerPrep;
   sellerKey = sellerPrep?.key ?? null;
-  const buyerPrep = price > 0 ? await prepareRealmRecord(ctx, player.id, realm, (save) => (payFromSave(save, price, home.region) ? null : 'realm-gold'), { outbound: true }) : null;   // INT3: the price goes to the seller - a held record pays no one
+  const buyerPrep = price > 0 ? await prepareRealmRecord(ctx, player.id, realm, (save) => (payFromSave(save, price, home.region) ? null : 'realm-gold'), { outbound: true }) : null;
   if (buyerPrep?.error) {
     if (sellerKey) await dropIfUnnamed(db, ctx.bucket, offer.seller, offer.seller_char, sellerKey);
     return buyerPrep;
@@ -318,7 +316,6 @@ async function acceptHome(ctx, player, body) {
   return result;
 }
 
-/** Offer, accept, decline or cancel. The client names none of the gold, the owner, or the goods. */
 export async function homeTransfer(ctx, player, body = {}) {
   if (body.op === 'offer') return offerHome(ctx, player, body);
   if (body.op === 'resolve') return resolveHome(ctx, player, body);

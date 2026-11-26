@@ -1,12 +1,5 @@
-// G4 probe: the four guild store services against the live game.
-//
-// The unit tests drive the shelves and the value sum over fixtures;
-// this proves the HOST half - that each of the four destinations
-// really reaches the trade window (all four were FLAGGED nulls), that
-// the magic shelf stocks from the real MAGIC.DEF and prices off the
-// enchantment sum M4 unblocked, that the gems on that shelf are not
-// the Buy Soulgems gems, and above all that a REAL guildFactionId now
-// reaches the price context - the thing that had never had a caller.
+// Browser probe for the four guild store services against the live game.
+// Run: ARENA2_PATH=... node tools/guildStoreProbe.mjs (starts its own dev server).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -55,15 +48,12 @@ await page.evaluate(() => {
   if (g) g.stackCount = 200000;
   else e.items.push({ group: 'Currency', name: 'Gold pieces', stackCount: 200000 });
   e.level = 6;
-  // an UNidentified magic item and a plain one, for Identify/SellMagic
   e.items.push({ group: 'Jewellery', templateIndex: 165, name: 'Ring', stackCount: 1,
     enchantments: [{ type: 4, param: 1 }], isIdentified: false, value: 900 });
   e.items.push({ group: 'MensClothing', templateIndex: 19, name: 'Robe', stackCount: 1 });
 });
 
-// A STRANGER cannot buy soul gems, and GetMerchantMagicItems gates its
-// gem run on that same permission - so join first, or the shelf's most
-// interesting half never runs.
+// A stranger cannot buy soul gems, and the magic shelf gates its gems on the same permission, so join first.
 console.log('member:', await page.evaluate(() => window.__joinGuild()));
 
 console.log('\n== BUY MAGIC ITEMS ==');
@@ -76,8 +66,6 @@ if (win.priceCtx.guildFactionId !== faction) {
   fail(`the guild's faction id must reach the price context - got ${win.priceCtx.guildFactionId}`);
 }
 if (!win.remote.length) fail('the magic shelf is empty - MAGIC.DEF never reached the mint');
-// the spellbook is minted from a template index and carries no name
-// of its own, which is exactly how to tell it from the magic items
 const magicItems = win.remote.filter((i) => i.soul === undefined && i.name);
 if (!magicItems.length) fail('no magic items on the magic shelf');
 if (!magicItems.every((i) => i.identified)) fail('a shop magic item must arrive IDENTIFIED');
@@ -121,7 +109,6 @@ if (win.mode !== 'SellMagic') fail(`expected SellMagic mode, got ${win.mode}`);
 if (win.remote.length !== 0) fail('SellMagic has no shelf either');
 
 console.log('\n== TALES AND TALLOW: the clause that had never had a caller ==');
-// day 243 of the year, the holiday every region celebrates
 const holidayMinutes = (243 - 1) * 1440 + 600;
 await page.evaluate((m) => window.__setWorldMinutes?.(m), holidayMinutes);
 await waitFrames(3);

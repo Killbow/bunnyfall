@@ -1,10 +1,6 @@
-// AUDIT WD3 P5 (2026-10-02, Mac: "Fix anything. This needs to be perfect"): THE CLASSIC BLOCK NAMES A PACK'S `$c`
-// REFERENCES READ, written into a vendored pack - what tools/worldDataPackBuild.mjs now writes into every pack it builds,
-// laid into the two it built before it did. A `$c` names a classic block by INDEX; with its name beside it the reader
-// refuses a BLOCKS.BSA in another order (formats/worldData/worldDataPack.js) instead of reading another block's pieces. Nothing
-// else of the pack changes: its files, nodes and bases are written back as they were read.
-//
-//   node tools/worldDataPackNames.mjs <arena2> <vendor/<mod>/WorldDataPack/<mod>.pack.json.gz>...
+// Writes into existing packs the name of each classic block their $c references read, so the reader refuses a
+// BLOCKS.BSA in another order. Files, nodes, and bases are written back unchanged.
+// Run: node tools/worldDataPackNames.mjs <arena2> <pack.json.gz>...
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import zlib from 'node:zlib';
@@ -12,7 +8,7 @@ import { BlocksFile } from '../src/formats/blocksFile.js';
 import { classicIndicesOf } from '../src/formats/worldDataPack.js';
 import { isMain } from './lib/isMain.mjs';
 
-/** The pack's text with `classicNames` laid in after `bases` (the builder's own order), from `blockName(index)`. */
+// The key order matches serialisePack in tools/worldDataPackBuild.mjs.
 export function withClassicNames(text, blockName) {
   const pack = JSON.parse(text);
   const names = Object.fromEntries(classicIndicesOf(pack).map((i) => [i, blockName(i)]));

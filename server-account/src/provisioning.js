@@ -1,8 +1,6 @@
 // @ts-check
-// BUNNYFALL PROVISIONING (docs/PROVISIONING.md): the service's pot and cauldron. A make is decided by the shared law
-// (src/net/provision/provisionLaw.js provPlan) at the character's Provisioning rank, its ingredients spent from the Stores
-// in one batch with the decision, its XP credited to Provisioning, the traits it shows learnt for each ingredient that
-// carries them, and the make kept in the character's book. The client mints what it made (systems/provItems.js).
+// Provisioning makes and preparations. A make's decision, spent ingredients, XP, traits, and book entry commit in
+// one batch keyed by its row and nonce; the client mints the item it made.
 
 import { mintId, overRate } from './accounts.js';
 import { asks, shut, trackView, trackRow, storeOf, workableSql, workStatements, workHeld } from './professions.js';
@@ -13,14 +11,12 @@ import { xpPct, scaleXp } from '../../src/net/firmament/firmamentLaw.js';
 
 const TRACK = 'provisioning';
 
-/** Whether `seat` is a town seat the character's Company holds - its hall's table, where a feast is laid. */
 async function atHall(db, player, character, seat) {
   if (!Number.isSafeInteger(seat) || seat < 0 || seat > 0xffffffff) return false;
   return !!(await db.prepare(`SELECT 1 FROM guild_members m JOIN town_seat_holds h ON h.guild_id = m.guild_id
     WHERE m.player = ? AND m.char_id = ? AND h.key = ?`).bind(player, character, seat).first());
 }
 
-/** A character's Provisioning: its track, the traits it has learnt and its book. */
 export async function provState(ctx, player, env, { character } = {}) {
   const { db, nowS } = ctx;
   const refused = asks(player, { character, needRid: false }) ?? shut(player, env);
@@ -53,11 +49,6 @@ async function makeAnswer(db, player, row, nowS, extra = {}) {
   };
 }
 
-/**
- * A MAKE: `{ character, kind: 'pot'|'cauldron', keys, base?, simmer?, seat?, rid }`. The ingredients (and the base) one
- * of each, spent from the Stores; refused whole where one is short. `simmer` 0..1, The Simmer's share (the client's word,
- * as a minigame's clean has always been). A feast is a four-ingredient pot at the Company's own hall from rank 75.
- */
 export async function provMake(ctx, player, env, { character, kind, keys, base = null, simmer = 0, seat = null, rid } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
@@ -79,7 +70,6 @@ export async function provMake(ctx, player, env, { character, kind, keys, base =
   const decided = 'EXISTS (SELECT 1 FROM prov_makes WHERE player = ?1 AND rid = ?3 AND n = ?4)';
   const learnt = plan.keys.flatMap((/** @type {string} */ k) => plan.traits.filter((/** @type {string} */ t) => traitsOf(k, plan.kind).includes(t)).map((/** @type {string} */ t) => [k, t]));
   await db.batch([
-    // THE DECISION: every ingredient held
     db.prepare(`INSERT OR IGNORE INTO prov_makes (player, rid, char_id, kind, keys, base, traits, name, potent, magnitude, resist, minutes, count, party, drink, dish, xp, at, n)
       SELECT ?1, ?3, ?2, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?19,
         MAX(0, MIN(?17, ${PROF_XP_MAX} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${TRACK}'), 0))), ?18, ?4
@@ -87,17 +77,13 @@ export async function provMake(ctx, player, env, { character, kind, keys, base =
       .bind(player.id, character, rid, nonce, plan.kind, JSON.stringify(plan.keys), plan.base, JSON.stringify(plan.traits), plan.name,
         plan.potent ?? 0, plan.magnitude ?? 0, plan.resistPct ?? 0, plan.minutes ?? 0, plan.count, plan.party ? 1 : 0, plan.drink ? 1 : 0, xp, nowS,
         plan.kind === 'pot' ? dishTemplateOf(plan) : null, null, ...inputs.map((i) => i.key)),
-    // the ingredients out
     ...inputs.flatMap((inp) => workStatements(db, { player: player.id, character, materialSql: '?3', qtySql: '?4', guard: decided.replace('?3', '?5').replace('?4', '?6'), binds: [inp.key, inp.n, rid, nonce] })),
-    // the XP
     db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, '${TRACK}', xp, ?4 FROM prov_makes WHERE player = ?1 AND rid = ?3 AND n = ?5
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${PROF_XP_MAX}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
       .bind(player.id, character, rid, nowS, nonce),
-    // what it showed, learnt
     ...learnt.map(([k, t]) => db.prepare(`INSERT OR IGNORE INTO prov_learnt (player, char_id, kind, key, trait)
       SELECT ?1, ?2, ?3, ?4, ?5 WHERE EXISTS (SELECT 1 FROM prov_makes WHERE player = ?1 AND rid = ?6 AND n = ?7)`).bind(player.id, character, plan.kind, k, t, rid, nonce)),
-    // and kept in the book
     db.prepare(`INSERT INTO prov_book (player, char_id, sig, kind, base, keys, name, traits, made, at)
       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9 WHERE EXISTS (SELECT 1 FROM prov_makes WHERE player = ?1 AND rid = ?10 AND n = ?11)
       ON CONFLICT (player, char_id, sig) DO UPDATE SET made = prov_book.made + 1, at = excluded.at, name = excluded.name, traits = excluded.traits`)
@@ -113,7 +99,6 @@ export async function provMake(ctx, player, env, { character, kind, keys, base =
   return { error: 'stores-short' };
 }
 
-/** PREPARING: `{ character, prep: 'flour'|'cheese', count, rid }` - Grain milled to Flour, Milk set to Cheese, in the Stores. */
 export async function provPrepare(ctx, player, env, { character, prep, count = 1, rid } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid }) ?? shut(player, env);

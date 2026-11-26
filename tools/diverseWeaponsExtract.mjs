@@ -1,24 +1,6 @@
-// DW2 - THE SPRITES INTO THE CODEBASE. Mac (2026-09-23): "this needs to
-// be in the codebase, not an attachable file". Reads Diverse Weapons'
-// shipped `.dfmod` (the zip's `Mods/diverse weapons.dfmod`) with the
-// port's own UnityFS reader and writes every Texture2D out under
-// public/art/diverse-weapons/ by the exact name DFU asks for
-// (TextureReplacement.GetNameCifRci's spelling - `LONGSWORD.CIF_0-0_Iron`,
-// `w_LONGSWORD.CIF_0-0_Iron`, `233_5-0_Elven`), the way Shield Widget's
-// 600 went out (vendor/shield-widget/README.md): as INDEXED PNG where the
-// picture fits one - every drawn pixel identical, every hidden pixel
-// still hidden - and RGBA where it does not, each file read back and
-// compared to the texel it came from before the next is written.
-//
-//   node tools/diverseWeaponsExtract.mjs "<path to diverse weapons.dfmod>"
-//
-// Deterministic: the same bundle writes the same bytes, so a re-run
-// against the same upstream version is a no-op diff. The first of a
-// duplicated name wins, as the reader's index (and DFU's importer,
-// which keys by name) has it. What the folder may hold is the mod's own
-// manifest (tools/diverseWeaponsIndex.mjs derives the door's index from
-// it; test/tooling/doctrine.test.js derives the folder's membership from it),
-// so a texture the manifest does not name is reported and not written.
+// Writes Diverse Weapons' textures from the shipped bundle to public/art/diverse-weapons/ under DFU's names.
+// Run: node tools/diverseWeaponsExtract.mjs "<path>/diverse weapons.dfmod".
+
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,13 +12,11 @@ import { isMain } from './lib/isMain.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const OUT_DIR = 'public/art/diverse-weapons';
 
-/** The PNG a texel goes out as: indexed when it fits, RGBA when not. */
 export function encodeSprite(img) {
   const indexed = writeIndexedPng(img);
   return { png: indexed ?? writePng(img), indexed: !!indexed };
 }
 
-/** Drawn pixels identical, hidden pixels hidden - the check each file passes before the next is written. */
 export function sameOnScreen(a, b) {
   if (a.width !== b.width || a.height !== b.height) return false;
   for (let p = 0; p < a.data.length; p += 4) {
@@ -62,7 +42,7 @@ if (isMain(import.meta.url)) {
   const allowed = new Set(manifestSpriteNames(readFileSync(join(ROOT, MANIFEST), 'utf8')));
   const out = join(ROOT, OUT_DIR);
   mkdirSync(out, { recursive: true });
-  for (const f of readdirSync(out)) if (/\.png$/i.test(f)) unlinkSync(join(out, f));   // a clean set: a name the new bundle lacks is gone
+  for (const f of readdirSync(out)) if (/\.png$/i.test(f)) unlinkSync(join(out, f));
 
   const written = new Set();
   const strangers = [];

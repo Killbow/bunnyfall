@@ -1,5 +1,3 @@
-// The meters of a room: one token bucket per socket and frame kind, with its strikes and words.
-// It also funnels directed frames from one sender and turns away junk frames.
 import { DROP_STRIKES_MAX, poseGate, whoGate, socialGate, partyGate, tradeGate, castGate, cardGate, pageGate, duelGate, wedGate, CAST_HZ_MAX, CAST_DEST_SENDERS_MAX, tokenGate, parkGate, lookGate, actGate, foesGate } from '../relay.js';
 import { questMeter, travMeter, amapMeter } from './frameShapes.js';
 
@@ -15,8 +13,8 @@ export class MetersPart {
     return g.pass;
   }
   _meter(ws, a, now, patch = {}, passPatch = {}, lazy = false) {
-    // `patch` is written even when the frame is dropped; anything that counts
-    // what the room relayed, such as `turn`, belongs in `passPatch`.
+    // `patch` is written even when the frame is dropped; anything that counts relayed frames,
+    // such as `turn`, belongs in `passPatch`.
     const pass = this._spend(ws, now, poseGate, 'bucket', 'drops', 'too many poses');
     return this._metered(ws, a, pass, patch, passPatch, lazy);
   }
@@ -38,8 +36,7 @@ export class MetersPart {
   _meterPage(ws, a, now) { return this._spend(ws, now, pageGate, 'pageBucket', 'pageDrops', 'too many page frames') ? a : null; }
   _meterDuel(ws, a, now) { return this._spend(ws, now, duelGate, 'duelBucket', 'duelDrops', 'too many duel frames') ? a : null; }
   _meterWed(ws, a, now) { return this._spend(ws, now, wedGate, 'wedBucket', 'wedDrops', 'too many wed frames') ? a : null; }
-  // Carry the verified `sub`, so the receiver's block list (`_directedIn` in src/net/online.js)
-  // can hold the frame back.
+  // Carry the verified `sub` so the receiver's block list in src/net/online.js can hold the frame back.
   _directedFrame(t, a, data) { return JSON.stringify({ t, id: a.id, ...(typeof a.sub === 'string' && a.sub ? { sub: a.sub } : {}), data }); }
   _senderFunnel(tws, senderId, now, field = 'cin', hz = CAST_HZ_MAX) {
     const meters = this._meterOf(tws);

@@ -1,28 +1,5 @@
-// MEADOW1 (2026-10-06): THE MEADOW, PHOTOGRAPHED ON A REAL GPU.
-//
-//     node tools/meadowProbe.mjs            shots in tools/shots/meadow-*.png
-//
-// The grass pins run on a fake GL that compiles anything and draws nothing,
-// and this container has no ARENA2, so the exterior cannot be booted here.
-// What can be driven is what MEADOW1 changes: `LabGrassRenderer` and
-// `createGrassField` over a SYNTHETIC ground - a plane where every point is
-// grass, in the default skin's temperate grass base (the colour the owner's
-// sprites are moved onto), with a faint mottle so the eye has a ground to read -
-// on SwiftShader's WebGL2, as tools/grassFieldProbe.mjs drives the lab's
-// field. It photographs the meadow from a walker's eye, close up, from
-// above (where the patches show) and under a low sun (where the cards'
-// facets show), beside the pixel style from the same eye; and it counts
-// what each frame submits, so the meadow's cost is a number and not a
-// guess. SwiftShader's milliseconds are not a player's and are never
-// reported; the counts are exact.
-//
-// AUDIT MEADOW1 (2026-10-06): and in a clear day's wind (`wind`: the sky's
-// sunny record through windDrive's mapping, 11.2 m/s - the probe's own
-// 0.01 never leaned a card) and edge-on (`grazing`, where a card's level
-// was the GPU's); and THE FILL each style costs - the shipped vertex
-// stage drawn again through a counting fragment stage, additive into a
-// float target with no depth and no discard, so the sum is every fragment
-// the rasteriser handed the fragment stage, before any early-Z.
+// Photographs the grass field over a synthetic ground on SwiftShader WebGL2 and counts draw submissions and fill.
+// Run: node tools/meadowProbe.mjs (shots in tools/shots/meadow-*.png).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -46,9 +23,6 @@ try {
     document.body.append(canvas);
     const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
     if (!gl) return { error: 'no webgl2' };
-    // the ground: one big quad at y = 0 in the temperate grass base's mean under Vanilla Enhanced (public/art/vanilla-
-    // enhanced/base/302_2-0.png, measured: 49.3, 72.8, 39.1 - the default skin's lawn), mottled a little, lit as the
-    // classic lane lights a tile - or, under the lane, through its own decode, exposure, curve and encode
     const GROUND = [49.3 / 255, 72.8 / 255, 39.1 / 255];
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
     const gp = gl.createProgram();
@@ -88,7 +62,7 @@ void main(){
     const dusk = { sunDir: [0.95, 0.22, 0.2], amb: [0.30, 0.27, 0.30], sunCol: [1, 0.72, 0.45], dim: 1, sunScale: 0.9 };
     const wind = { dir: [1, 0], speed: 70, windV: [0.01, 0] };
     const vpOf = (proj, view) => { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = proj[r] * view[c * 4] + proj[4 + r] * view[c * 4 + 1] + proj[8 + r] * view[c * 4 + 2] + proj[12 + r] * view[c * 4 + 3]; return o; };
-    const LANE = { decode3: elDecode3, decodeN: elDecodeN };   // the lane as the renderer hands it (renderer.lightingLane)
+    const LANE = { decode3: elDecode3, decodeN: elDecodeN };
     const shot = (name, eye, target, style, lit = noon, fov = Math.PI / 3, sky = [0.52, 0.66, 0.86], wnd = wind) => {
       field.update(eye[0], eye[2], keep, ground);
       const proj = perspective(fov, W / H, 0.05, 4000);
@@ -124,7 +98,6 @@ void main(){
       shot('grazing', [0.3, 0.6, 0.2], [-3, 0.5, -0.4], 'meadow', noon, Math.PI / 4),
       shot('close-dusk', [0.4, 0.9, 2.0], [0.0, 0.35, -1.5], 'meadow', dusk, Math.PI / 3.2, [0.80, 0.58, 0.45]),
     ];
-    // THE FILL: the eye's frame, each style, through the counting stage (R32F where the float blend is, R16F else)
     const fb32 = gl.getExtension('EXT_color_buffer_float') && gl.getExtension('EXT_float_blend');
     const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texStorage2D(gl.TEXTURE_2D, 1, fb32 ? gl.R32F : gl.R16F, W, H);
@@ -138,7 +111,7 @@ void main(){
       gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
       const real = { enable: gl.enable, disable: gl.disable, blendFunc: gl.blendFunc };
       real.enable.call(gl, gl.BLEND); real.blendFunc.call(gl, gl.ONE, gl.ONE); real.disable.call(gl, gl.DEPTH_TEST);
-      gl.enable = (c) => { if (c !== gl.BLEND && c !== gl.DEPTH_TEST) real.enable.call(gl, c); };   // the renderer's own state calls, held off the count
+      gl.enable = (c) => { if (c !== gl.BLEND && c !== gl.DEPTH_TEST) real.enable.call(gl, c); };
       gl.disable = (c) => { if (c !== gl.BLEND) real.disable.call(gl, c); };
       gl.blendFunc = () => {};
       counter.draw(perspective(Math.PI / 3, W / H, 0.05, 4000), lookAt(eye, [0, 1.1, -12], [0, 1, 0]), new Float32Array(eye), 2.0, noon, wind, LAB_GRASS.range, style);

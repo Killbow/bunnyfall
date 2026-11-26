@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// QL1: the questlines' data files in their one form - a family's sheets one a line, its patches one a quest a line - so a
-// wave's diff reads quest by quest. `node tools/qlFormat.mjs` rewrites every file under src/systems/questlines/{sheets,patches};
-// `node tools/qlFormat.mjs --file <path>` rewrites that one file alone (AUDIT QUESTLINES DOC-35).
+// Rewrites the questline sheet and patch files under src/systems/questlines/ in their one-entry-per-line form.
+// Run: node tools/qlFormat.mjs, or node tools/qlFormat.mjs --file <path> for one file.
+
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +25,6 @@ export function formatAll() {
     }
   }
 }
-/** One file alone (a wave's writer formats its own family's file and no other's). */
 export function formatFile(path) {
   const key = /[\\/]patches[\\/]/.test(path) ? 'patches' : 'sheets';
   writeFileSync(path, formatFamily(JSON.parse(readFileSync(path, 'utf8')), key));

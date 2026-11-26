@@ -1,7 +1,3 @@
-// U38: the crosshair and mode indicator LIVE. Counts the draw calls
-// the components make in a real frame, by wrapping the renderer's
-// screen-quad path around one frame with a window open and one with
-// it closed. Frame-synced like the fleet.
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
@@ -20,8 +16,6 @@ const frames = async (n) => {
 await frames(5);
 const out = { steps: {} };
 
-// The components draw with a null texture and an explicit colour;
-// count the quads whose colour is the crosshair's over one frame.
 const countCrosshairQuads = async () => page.evaluate(async () => {
   const { CROSSHAIR_COLOR } = await import('/src/ui/hudCrosshair.js');
   const r = window.__renderer;
@@ -40,7 +34,6 @@ const countCrosshairQuads = async () => page.evaluate(async () => {
 });
 
 out.steps.aiming = await countCrosshairQuads();
-// open the pause window - the cursor goes active, the crosshair must vanish
 await page.keyboard.press('Escape');
 await frames(3);
 out.steps.windowUp = await countCrosshairQuads();
@@ -48,9 +41,9 @@ await page.keyboard.press('Escape');
 await frames(3);
 out.steps.aimingAgain = await countCrosshairQuads();
 
-out.ok = !!(out.steps.aiming >= 2            // the two arms, at least once in the frame
-  && out.steps.windowUp === 0                // suppressed under a window
-  && out.steps.aimingAgain >= 2              // and back after it closes
+out.ok = !!(out.steps.aiming >= 2
+  && out.steps.windowUp === 0
+  && out.steps.aimingAgain >= 2
   && errors.length === 0);
 out.errors = errors.slice(0, 6);
 console.log(JSON.stringify(out, null, 2));

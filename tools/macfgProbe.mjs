@@ -1,13 +1,5 @@
-// MAC-F / MAC-G IN A REAL BROWSER, WITH NO ARENA2.
-//
-// Both of Mac's reports are DOM behaviour - a card that folds and a
-// page that lists what a career carries - and a source sweep cannot
-// show either one working. This drives the two modules on the live
-// page the way the enhanced menu probe does: /play/ opens without a
-// byte of game data, and the two windows are mounted over it.
-//
-//     npx vite --port 5199 &
-//     node tools/macfgProbe.mjs
+// Checks chronicle card folding and the stats page career list in a browser with no ARENA2.
+// Run against a dev server: npx vite --port 5199 & node tools/macfgProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -25,13 +17,11 @@ page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(`${BASE}/play/`, { waitUntil: 'networkidle' });
 await page.waitForSelector('.px-menu button', { timeout: 15000 });
 
-// ── MAC-F: the chronicle's cards fold ────────────────────────────
 const fold = await page.evaluate(async () => {
   const T = (text) => ({ formatting: 'text', text });
   const m = await import('/src/ui/enhancedChronicle.js');
   const host = document.createElement('div');
   host.id = 'probe-chronicle';
-  // the probe mounts OVER the live title page, so it has to sit above it
   host.style.cssText = 'position:fixed; inset:0; z-index:99999;';
   document.body.append(host);
   m.mountEnhancedChronicle(host, {
@@ -48,29 +38,21 @@ const fold = await page.evaluate(async () => {
   const q = (sel) => host.querySelectorAll(sel);
   const bodies = () => q('.cr-entry p').length;
   const out = { opened: bodies(), cards: q('.cr-entry').length, folds: q('.cr-fold').length };
-  // the section control folds every card at once
   host.querySelector('.cr-foldall').click();
   out.afterCollapseAll = bodies();
   out.foldAllLabel = host.querySelector('.cr-foldall').textContent;
-  // one card's own head opens it again, and only it
   q('.cr-fold')[1].click();
   out.afterOneOpen = bodies();
-  // ONE card open is not all of them open, so the control offers to
-  // collapse rather than to expand - it reads the cards, not a flag
   out.labelAfterOneOpen = host.querySelector('.cr-foldall').textContent;
-  // collapse the one that is open, then expand the lot
   host.querySelector('.cr-foldall').click();
   out.afterCollapseAgain = bodies();
   host.querySelector('.cr-foldall').click();
   out.afterExpandAll = bodies();
-  // THE FOLD IS A READING POSITION: shut the tab, walk to Notes and
-  // back, and it is still shut
   host.querySelector('.cr-foldall').click();
   const rows = [...host.querySelectorAll('.px-qrail .cr-row')];
   rows[1].click();
   rows[0].click();
   out.afterTabRoundTrip = bodies();
-  // left standing, folded, for the screenshot below
   return out;
 });
 await page.screenshot({ path: `${shots}/macf-chronicle-folded.png` });
@@ -85,7 +67,6 @@ check('MAC-F: and collapses it', fold.afterCollapseAgain === 0, `${fold.afterCol
 check('MAC-F: Expand all opens them all again', fold.afterExpandAll === 5, `${fold.afterExpandAll} lines`);
 check('MAC-F: a fold survives walking to another tab and back', fold.afterTabRoundTrip === 0, `${fold.afterTabRoundTrip} lines`);
 
-// ── MAC-G: the stats page lists what the career carries ──────────
 const specials = await page.evaluate(async () => {
   const { playerEntity } = await import('/src/characters/playerEntity.js');
   const { parseCareerData, DEFAULT_MAGERY_BITS } = await import('/src/characters/specialAdvantages.js');

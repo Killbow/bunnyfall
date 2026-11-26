@@ -1,12 +1,6 @@
-// PERF-SAILS1 (2026-10-10, Dudey's `?perf=cpu` readout in a port at night: `sails` 5-7.6 ms a frame): THE BOATS' FRAME.
-// Come Sail Away's pool (scenes/comeSailAway/comeSailAwayPool.js) over the vendored hulls, N ships standing in a row, its `frame`
-// (the walk, the holders' bakes, the lanterns, the flats) and its `draw` (to a stand-in renderer) timed over FRAMES frames after a warm-up. No GL: the
-// renderer and the picture pipeline are stand-ins (test/scenes/audit0928_online.test.js's), so the time is the pool's own.
-//
-//   node tools/csaBench.mjs [ships=12] [frames=600]      BOB=1: each hull pitched and rolled every frame, as navalHost's
-//                                                        poseShip rocks a ship in a wind (her MeshObject's local turn)
-//   ANIM=1 node tools/csaBench.mjs [ships=12] [frames=600]   PERF-SAILS4: the ships' animators instead (navalHost's poseShip
-//                                                        steps each every frame within NEAR_LIFE_M) - every one of them, standing
+// Times Come Sail Away's ship pool frame and draw for a row of ships, with stand-in renderers.
+// Run: node tools/csaBench.mjs [ships=12] [frames=600] (BOB=1 rocks each hull; ANIM=1 runs the animators).
+
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createComeSailAwayPool } from '../src/systems/naval/comeSailAwayPool.js';
@@ -30,7 +24,7 @@ await pool.preload();
 for (let i = 0; i < SHIPS; i++) { const b = pool.spawnSeaNow(new Boat(i % 5, 0)); b.GameObject.localPosition = [i * 30, 0, 0]; }
 const world = { cityLightsOn: true, playerPosition: [0, 0, 0] };
 for (let f = 0; f < 60; f++) { pool.frame(1 / 60, world); pool.draw(); }
-await new Promise((res) => setTimeout(res, 50));   // the bakes' uploads land
+await new Promise((res) => setTimeout(res, 50));
 if (process.env.ANIM === '1') {
   const anims = pool.seaBoats.flatMap((b) => boatAnimators(b));
   for (let f = 0; f < 60; f++) for (const a of anims) a.update(1 / 60);

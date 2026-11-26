@@ -1,7 +1,3 @@
-// Tests the shared settlement rules (src/poi/poiSettle.js) and the account service's reward mint, run with:
-//   node --test tools/poiSettle.test.mjs
-// Covers potions named by recipe (minting, matching, counting and taking, spending Potent ones last), empty bottles,
-// the names claims are counted under, and a take of the records a player hands over.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recordMatches, recordAccepts, countOf, takeableOf, takeStacks, takeChosen, handRecord, potionKeyOf, eventClaim, recipeClaim } from '../src/poi/poiSettle.js';
@@ -15,7 +11,6 @@ import { itemNameParts } from '../src/items/itemInfo.js';
 const keyOf = (/** @type {string} */ name) => potionRecipeKey(/** @type {any} */ (POTION_RECIPES.find((r) => r.name === name)).ingredients);
 const potion = (/** @type {string} */ name, n = 1, extra = {}) => ({ ...createPotion(keyOf(name)), ...(n > 1 ? { stackCount: n } : {}), ...extra });
 const bottles = (/** @type {number} */ n) => /** @type {any} */ (mintGift({ template: 83, count: n })).item;
-/** Builds a test pack with 3 empty bottles, a Purification, a Heal True, a Potent Heal True, and 2 Healing. */
 const pack = () => ({ items: [bottles(3), potion('purification'), potion('healTrue'), potion('healTrue', 1, { potent: 40 }), potion('healing', 2)], lightSourceIndex: -1 });
 const left = (/** @type {any} */ save) => save.items.map((/** @type {any} */ r) => [r.potionRecipeKey ?? 0, r.potent ?? 0, r.stackCount ?? 1]);
 
@@ -39,7 +34,6 @@ test('the mint refuses a recipe the game does not know and a recipe on any other
   assert.equal(/** @type {any} */ (mintGift({ template: 83, recipe: 7, count: 1 })).error, 'staff-item-template');
   assert.equal(/** @type {any} */ (mintGift({ template: 71, recipe: 'healing', count: 1 })).error, 'staff-item-template');
   assert.equal(/** @type {any} */ (mintGift({ template: 113, recipe: 'healing' })).error, 'staff-item-template');
-  // without a recipe the Glass Bottle is still an empty bottle
   const empty = /** @type {any} */ (mintGift({ template: 83, count: 1 })).item;
   assert.ok(!empty.potionRecipeKey);
 });
@@ -70,7 +64,6 @@ test('a recipe stack counts Potent potions too, and a take spends them only when
   const before = left(save);
   assert.equal(takeStacks(save, [{ template: 83, recipe: 'healTrue', count: 1 }]).ok, false);
   assert.deepEqual(left(save), before, 'a refused take changes nothing');
-  // Spend the plain potion first even when the Potent stack is smaller.
   const two = { items: [potion('healing', 3), potion('healing', 1, { potent: 25 })] };
   assert.equal(takeStacks(two, [{ template: 83, recipe: 'healing', count: 2 }]).ok, true);
   assert.deepEqual(left(two), [[keyOf('healing'), 0, 1], [keyOf('healing'), 25, 1]]);

@@ -1,12 +1,5 @@
-// PAD1 (2026-09-21) - THE DISPATCH-TARGET LAW, proved in a real browser.
-// ui/gamepadInput.js synthesises a keydown per pad button. Dispatched on
-// the WINDOW, an event's path is the window alone and a listener on the
-// DOCUMENT - the enhanced controls pane's capture, `document.addEventListener
-// ('keydown', ..., { capture: true })` - never sees it; dispatched on the
-// DOCUMENT it reaches the document's listeners and then bubbles to the
-// window's, where the hosts listen. This prints what Chromium does with
-// both, so the poller's choice of target is a measured fact, not a belief.
-//   node tools/padDispatchProbe.mjs
+// Prints which keydown listeners Chromium reaches when a synthesized event goes to the window or the document.
+// Usage: node tools/padDispatchProbe.mjs.
 import { chromium } from 'playwright';
 const browser = await chromium.launch();
 const page = await browser.newPage();

@@ -1,12 +1,6 @@
-// U22: the splash, proved by a real boot.
-//
-// Shoots ANIM0001.VID mid-play and again after it hands over, then the
-// ?novideo arm. The frame it captures has to be a DECODED VIDEO FRAME,
-// not a black canvas - a reader that parks on a bad block (the preserved
-// DFU quirk) would still leave the page "running", so the probe measures
-// the pixels rather than trusting that nothing threw.
-//
+// Shoots the intro video mid-play and after it hands over, and checks that the frame holds decoded video pixels.
 // Usage: node tools/splashProbe.mjs [outprefix]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -28,9 +22,6 @@ const shoot = async (label, { query = '', wait = 3000 } = {}) => {
   await page.goto(`http://localhost:5204/play/${query}`);
   await page.waitForTimeout(wait);
   const title = await page.evaluate(() => document.title);
-  // Report the context state AND how many audio blocks the player has
-  // actually scheduled - a context that exists but schedules nothing is
-  // the bug this probe was written for.
   const snd = await page.evaluate(async () => {
     const aud = await import('/src/audio/audio.js');
     const ctx = aud.audio.ctx;

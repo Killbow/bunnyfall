@@ -1,4 +1,3 @@
-// The `amap` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, tokenGate, AMAP_ROOM_HZ_MAX } from '../../relay.js';
 
 export async function amapFrame(ws, a, m) {

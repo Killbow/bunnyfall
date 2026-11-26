@@ -1,18 +1,5 @@
-// LOOT-BANNER, SEEN (2026-10-09, Mac: "something akin to a destiny loot popup notification") - the banners drawn in a real
-// browser over the real enhanced HUD, beside a real notice toast at the right edge, and photographed.
-//
-// The suite holds the banners' LAW (what arrives, what stands, how long) and their DOM's shape (test/systems/lootbanner.test.js);
-// what it cannot hold is whether a banner reads at the edge of a screen, whether each tier's colour reads over the veil,
-// whether a big one stands out from the rest, and whether the stack steps under the notices and stays on a phone's screen.
-// Those are things about pixels, so the page builds every surface through its real entry - `drawLootBanners` with a
-// player entity (what drawHud hands it), `drawEnhancedHud`, `drawEnhancedToasts` - the pieces minted by the game's own
-// producers, and the probe measures the rectangles as well as photographing them.
-//
-// THE ICONS ARE STAND-INS (tools/pickupFeedProbe.mjs's reason: no ARENA2 here). A card's picture is the real painted face.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (the pickup feed probe's pattern).
-//
-//     node tools/lootBannerProbe.mjs                  -> shots (tools/shots/, or SHOT_DIR) and a report
+// Renders loot banners over the enhanced HUD beside a notice toast in Chromium and measures them.
+// Run: node tools/lootBannerProbe.mjs (screenshots go to SHOT_DIR, default tools/shots).
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -131,7 +118,7 @@ try {
     await page.waitForFunction(() => globalThis.__ready === true, null, { timeout: 90000 });
     for (const s of SCENE_NAMES) {
       await page.evaluate((n) => globalThis.__scene(n), s);
-      await page.waitForTimeout(1300);   // landed, the sweep run
+      await page.waitForTimeout(1300);
       const m = await page.evaluate(() => globalThis.__measure());
       const tag = `${v.name}/${s}`;
       const file = join(OUT, `lootbanner-${v.name}-${s}.png`);

@@ -1,20 +1,5 @@
-// U58 - THE REMOTE PANE, in a real browser.
-//
-// The pack's second list, which is what every flow the enhanced screen
-// could not answer actually was: the wagon, a corpse, a guild's reward
-// tray, and dropping anything at all. The LAW under it is DFU's and is
-// pinned headless (itemTransfer, inventorySession, enhancedInventory);
-// what only a browser can answer is whether the pane is an INTERFACE -
-// do both lists fit at once, does the wagon toggle, does a stow land
-// where the label said it would, and does the drop pile survive the
-// window closing.
-//
-// The last one is the one that matters most and is the least visible:
-// AUDIT B-C1's mint. A drop that never becomes a world pile looks
-// exactly like a player misremembering, and no screenshot shows it.
-//
-//     npx vite --port 5199 &
-//     node tools/enhancedRemoteProbe.mjs
+// Browser probe for the enhanced pack's second list: the wagon, a corpse, a reward tray, and dropped items.
+// Run: npx vite --port 5199 & node tools/enhancedRemoteProbe.mjs.
 import { chromium, devices } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -25,28 +10,24 @@ const check = (name, ok, detail = '') => {
 };
 const browser = await chromium.launch();
 
-/** main.js's failed boot assigns document.body.textContent, which
- *  removes every child of body - an overlay opened before that lands
- *  is racing a page wipe. See enhancedPackProbe for the whole story. */
+// A failed boot replaces the whole page body, so a screen opened before it lands is wiped.
+// A successful boot never writes the text, so the timeout is the expected outcome.
 async function bootSettled(page) {
   await page.waitForFunction(
     () => document.body.textContent.includes('boot failed'), null, { timeout: 15000 },
-  ).catch(() => { /* a successful boot never says it */ });
+  ).catch(() => { });
 }
 
 async function toGamePage(page) {
   await page.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
   await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
-  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();
   await page.locator('#enhanced-menu .doorbtn.door-new').first().click();
   await page.getByRole('button', { name: 'Begin', exact: true }).click();
   await page.waitForSelector('#enhanced-menu', { state: 'detached', timeout: 20000 });
   await bootSettled(page);
 }
 
-/** Opens the pack with a bag, a wagon list and whatever remote target
- *  the case wants. Everything is built from the port's OWN templates,
- *  so the weights and names on screen are the game's numbers. */
 async function openPack(page, mode = 'ground') {
   await page.evaluate(async (m) => {
     const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
@@ -107,10 +88,6 @@ async function run(label, opts) {
   await toGamePage(page);
   await openPack(page, 'ground');
 
-  // ── 1. BOTH LISTS ARE ON THE SCREEN AT ONCE ────────────────────
-  // The whole point of the pane. Two lists that need scrolling past
-  // each other are one list with extra steps, so this measures where
-  // they actually landed rather than trusting the grid.
   let p = await pack(page);
   check(`${label}: the remote pane is the GROUND by default`, p.remoteKind === 'ground', p.remoteKind);
   const boxes = await page.evaluate(() => {
@@ -124,14 +101,11 @@ async function run(label, opts) {
   check(`${label}: the remote list starts on the screen`,
     boxes.r.y >= 0 && boxes.r.y < boxes.vh && boxes.r.x >= 0 && boxes.r.x < boxes.vw,
     `x=${boxes.r.x} y=${boxes.r.y} of ${boxes.vw}x${boxes.vh}`);
-  // side by side on a desktop, stacked on a phone - either is fine,
-  // OVERLAPPING is not
   const sideBySide = boxes.r.x >= boxes.l.x + boxes.l.w - 2;
   const stacked = boxes.r.y >= boxes.l.y + boxes.l.h - 2;
   check(`${label}: the two lists do not overlap`, sideBySide || stacked,
     sideBySide ? 'side by side' : stacked ? 'stacked' : `l=${JSON.stringify(boxes.l)} r=${JSON.stringify(boxes.r)}`);
 
-  // ── 2. DROPPING PUTS IT ON THE GROUND, AND THE LABEL SAID SO ───
   await localRow(page, 'Dagger').click();
   const dropLabel = await act(page, 'Drop').count();
   check(`${label}: the stow verb names the destination`, dropLabel === 1, 'Drop');
@@ -143,7 +117,6 @@ async function run(label, opts) {
   const gone = await localRow(page, 'Dagger').count();
   check(`${label}: ...and out of the pack`, gone === 0);
 
-  // ── 3. AND TAKING IT BACK WORKS FROM THE OTHER SIDE ────────────
   await remoteRow(page, 'Dagger').click();
   check(`${label}: a remote pick offers Take, not Wear`,
     (await act(page, 'Take').count()) === 1 && (await act(page, 'Wear').count()) === 0);
@@ -153,7 +126,6 @@ async function run(label, opts) {
   check(`${label}: taking it back empties the ground`, p.remoteCount === 0, `${p.remoteCount} left`);
   check(`${label}: ...and the pack tab followed it`, p.tab === 'weapons', p.tab);
 
-  // ── 4. THE WAGON TOGGLES, AND IT IS A DIFFERENT LIST ───────────
   await page.locator('#enhanced-inventory .remoteacts button', { hasText: 'Wagon' }).click();
   p = await pack(page);
   check(`${label}: the wagon button shows the wagon`, p.usingWagon && p.remoteKind === 'wagon',
@@ -172,10 +144,6 @@ async function run(label, opts) {
   check(`${label}: ...and the host's own wagon list has it`, inWagon.includes('Longsword'),
     inWagon.join(', '));
 
-  // ── 5. THE CART CANNOT BE STOWED IN ITS OWN WAGON ──────────────
-  // AUDIT 24 ui. TransferItem's transport block is SILENT, so a button
-  // that could only be silently refused is not drawn at all - the U53
-  // rule about controls that can only do nothing.
   await page.locator('#enhanced-inventory .packtab', { hasText: 'Clothing' }).click();
   const cartRow = page.locator('#enhanced-inventory .packcol:not(.packremote) .itemrow', { hasText: 'cart' }).first();
   if (await cartRow.count()) {
@@ -188,7 +156,6 @@ async function run(label, opts) {
     check(`${label}: the cart row is findable`, false, 'no cart row');
   }
 
-  // ── 6. GOLD IS ITS OWN CONTROL (GOLD-DROP: the pack's own, beside the purse) ──
   await page.locator('#enhanced-inventory .goldbtn').click();
   const field = page.locator('#enhanced-inventory .goldfield input');
   check(`${label}: the gold button opens a numeric field`, (await field.count()) === 1);
@@ -199,7 +166,6 @@ async function run(label, opts) {
   const wagonGold = await page.evaluate(() =>
     globalThis.__wagon.find((i) => i.group === 'Currency')?.stackCount ?? 0);
   check(`${label}: ...and landed in the wagon`, wagonGold === 400, `${wagonGold} in the wagon`);
-  // AND AN OUT-OF-RANGE AMOUNT IS REFUSED OUTRIGHT, not clamped
   await page.locator('#enhanced-inventory .goldbtn').click();
   await page.locator('#enhanced-inventory .goldfield input').fill('99999');
   await page.locator('#enhanced-inventory .goldfield button').click();
@@ -210,9 +176,6 @@ async function run(label, opts) {
   await ctx.close();
 }
 
-/** THE MINT, which is the invisible one. A session drop must become a
- *  world pile when the window goes (AUDIT B-C1) - and the door reads
- *  it out of the view, so only a real mount proves the wiring. */
 async function runMint() {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
@@ -234,8 +197,6 @@ async function runMint() {
   await ctx.close();
 }
 
-/** A CORPSE, and a guild's REWARD TRAY - the two flows U53 handed to
- *  the classic window and U58 took back. */
 async function runTargets() {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
@@ -270,7 +231,6 @@ async function runTargets() {
   check('reward: the label says taking one is the whole choice',
     (await act(page, 'Take this one').count()) === 1);
   await act(page, 'Take this one').click();
-  // G6 (:1585-1591): the claim and the taking are ONE event
   await page.waitForSelector('#enhanced-inventory', { state: 'detached', timeout: 10000 });
   const chose = await page.evaluate(() => globalThis.__chose);
   check('reward: taking one closes the window AND fires the callback', chose === 'Claymore', String(chose));
@@ -278,10 +238,6 @@ async function runTargets() {
   await ctx.close();
 }
 
-/** THE STACK ORDER, which only a phone has. Stacked, the list you came
- *  for must be the one at the top - and the 46vh schematic must not be
- *  above either of them, which is how the remote list ended up at
- *  y=781 in a 727px viewport on the first draft of this pane. */
 async function runPhoneOrder() {
   const ctx = await browser.newContext(devices['Pixel 5']);
   const page = await ctx.newPage();
@@ -293,7 +249,7 @@ async function runPhoneOrder() {
     return {
       local: b('#enhanced-inventory .packcol:not(.packremote):not(.packdetail)'),
       remote: b('#enhanced-inventory .packremote'),
-      doll: b('#enhanced-inventory .wornmap'),   // PX19d: the worn map took the schematic's job
+      doll: b('#enhanced-inventory .wornmap'),
       vh: innerHeight,
     };
   });

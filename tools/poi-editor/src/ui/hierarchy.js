@@ -1,8 +1,5 @@
 // @ts-check
 
-// The scene hierarchy: groups and the things in them, searchable, with visibility and lock toggles, rename,
-// shift and ctrl selection, and drag to regroup. Every change is one editor step, so it undoes.
-
 import { h, clear } from './dom.js';
 import { buildTree, rangeIds, setFlag, moveToGroup, renameNode } from '../scene.js';
 

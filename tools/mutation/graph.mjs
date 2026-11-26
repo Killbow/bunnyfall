@@ -1,4 +1,4 @@
-// Build test-file -> transitive src-module closure via static import / dynamic import scan.
+// Maps each test file to the src modules it reaches through static and dynamic imports.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -10,7 +10,7 @@ function resolve(spec, fromFile) {
   if (!spec.startsWith('.')) return null;
   const p = path.resolve(path.dirname(fromFile), spec);
   const cands = [p, p + '.js', path.join(p, 'index.js')];
-  for (const c of cands) { try { if (fs.statSync(c).isFile()) return c; } catch { /* ignore */ } }
+  for (const c of cands) { try { if (fs.statSync(c).isFile()) return c; } catch { } }
   return null;
 }
 
@@ -43,7 +43,7 @@ function closure(file) {
 
 const map = {};
 const rev = {};
-for (const t of fs.readdirSync(TEST, { recursive: true }).map(String).filter(f => f.endsWith('.test.js')).sort()) {   // TIDY5: the tests in their folders
+for (const t of fs.readdirSync(TEST, { recursive: true }).map(String).filter(f => f.endsWith('.test.js')).sort()) {
   const abs = path.join(TEST, t);
   const cl = [...closure(abs)].map(f => path.relative(ROOT, f)).filter(f => f.startsWith('src/')).sort();
   map[t] = cl;

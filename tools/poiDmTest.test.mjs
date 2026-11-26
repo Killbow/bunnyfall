@@ -1,7 +1,4 @@
-// Tests the in-game POI editor's Test (src/poi/poiDmTest.js) and the DM runtime's preview mode
-// (src/poi/poiDmRuntime.js): a draft's trades, gifts, takes, and settlements land on a throwaway purse and pack copied
-// from the character's; the character's pack, `give`, the service's act, and the device's store are never used;
-// persistent variables stay in memory; encounters spawn enemies from the pool, and stopping the test removes them.
+// Tests the POI editor Test preview, which must leave the character's pack, purse, and store alone.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -15,7 +12,6 @@ const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const supplies = () => [mintStack({ template: 71, count: 10 }), mintStack({ template: 72, count: 5 })];
 
-/** Every door to the character a preview must leave alone, each a spy that records its use. */
 function doors() {
   const used = [];
   return {
@@ -33,13 +29,11 @@ function handOver(name, line, view, on) {
   }
 }
 
-/** Creates a mock panel that records what it shows and holds the last dialogue and trade callbacks. */
 function panelRec() {
   const rec = { shown: [], pick: null, tradePick: null };
   rec.panel = { dialogue: (n, l, opts, pick) => { rec.shown.push(l); rec.pick = pick; }, trade: (n, rows, pick) => { rec.shown.push(`trade ${n}`); rec.tradePick = pick; }, hand: handOver, close: () => {} };
   return rec;
 }
-/** An enemy pool as scenes/exteriorFoes.js answers it. */
 function poolRec() {
   const pool = { foes: [], spawned: 0 };
   pool.spawnFoe = async (foe) => { const f = { foe, ai: {}, corpse: false }; pool.foes.push(f); pool.spawned++; return f; };
@@ -59,7 +53,6 @@ test('in preview a dialogue\'s trade settles on the throwaway purse; act, store,
   const s = { id: doc.id, rev: 0, doc, place: I, draft: true };
   for (let i = 0; i < 3; i++) { rt.frame(s, [0, 0, 0], npcsOf(doc, I)); await tick(); }
   assert.equal(rt.talk(doc.id, 'supplier'), true);
-  // "I have brought the supplies."
   rec.pick(1);
   for (let i = 0; i < 6; i++) { await tick(); rt.frame(s, [0, 0, 0], npcsOf(doc, I)); }
   assert.equal(purse.goldPieces, 257, 'the reward lands in the throwaway purse');
@@ -204,7 +197,6 @@ test('the death guard is held from the start of every test, held again when some
     const before = hook;
     session.start(doc.id, doc);
     assert.notEqual(hook, before, 'the guard is the hook in a test');
-    // an interior frame sets its own
     hook = () => false;
     session.frame();
     assert.equal(hook(), true, 'held again: a death in the test is turned aside');

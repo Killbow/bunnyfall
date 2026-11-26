@@ -1,4 +1,3 @@
-// The `stp` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, tokenGate, SOCIAL_ROOM_HZ_MAX } from '../../relay.js';
 import { routeStaffTeleport } from '../../staffTeleport.js';
 

@@ -1,4 +1,3 @@
-// The `chat` frame's handler, called by message/dispatch.js with the room as `this`.
 import { chatGate, CHAT_STRIKES_MAX } from '../../relay.js';
 import { staffLine } from '../../staffFreeze.js';
 

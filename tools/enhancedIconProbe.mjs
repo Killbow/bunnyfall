@@ -1,26 +1,5 @@
-// U54 - A TEXTURE RECORD ALL THE WAY TO AN <img>, WITH NO ARENA2.
-//
-// The pack draws real item icons now, and the chain behind that is
-// five links: getBytes fetches TEXTURE.###, TextureFile parses it,
-// getDFBitmap decodes a record, bitmapCanvas paints it, and
-// toDataURL hands the DOM something an <img> can carry. Four of those
-// five are already proven elsewhere - TextureFile against the real
-// corpus, bitmapCanvas by the chargen faces since U50 - and the new
-// link is ui/textureCanvas.js, the middle.
-//
-// THIS CONTAINER HAS NO GAME DATA, so the archive is SYNTHETIC: a
-// valid, minimal, uncompressed TEXTURE file built here to the format
-// the reader parses, served by intercepting the fetch. That is the
-// same device the chargen tests use ("synthetic pickers so it is
-// provable with no game data") and it touches no ARENA2 content - it
-// proves the PLUMBING, which is what this slice added.
-//
-// WHAT IT DOES NOT PROVE, and cannot here: that a REAL archive record
-// decodes to the right picture. That needs a run with ARENA2_PATH set
-// and eyes on the screen. Stated rather than implied.
-//
-//     npx vite --port 5199 &
-//     node tools/enhancedIconProbe.mjs
+// Checks the item icon path from a TEXTURE record to an <img> with a synthetic archive and palette.
+// Run: npx vite --port 5199 & node tools/enhancedIconProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -32,22 +11,15 @@ const check = (name, ok, detail = '') => {
 
 const W = 8, H = 8, STRIDE = 256;
 
-/** A 768-byte ART_PAL: index i is a flat grey ramp, except index 1,
- *  which is a colour distinctive enough to find in the output. */
 function synthPalette() {
   const b = Buffer.alloc(768);
   for (let i = 0; i < 256; i++) { b[i * 3] = i; b[i * 3 + 1] = i; b[i * 3 + 2] = i; }
-  b[3] = 200; b[4] = 40; b[5] = 30;   // index 1 = a red nobody could mistake for grey
+  b[3] = 200; b[4] = 40; b[5] = 30;
   return b;
 }
 
-/** A minimal uncompressed TEXTURE archive with `count` identical
- *  records, each an 8x8 image whose left half is palette index 1 and
- *  whose right half is index 0 - the CUTOUT, so the transparency law
- *  is exercised too. Built to formats/textureFile.js's own reader:
- *  16-bit record count, a 24-byte description, 20-byte record headers
- *  from offset 26, then 28-byte record bodies with their rows on a
- *  fixed 256-byte stride. */
+// The layout follows src/formats/textureFile.js: a 16-bit record count, a 24-byte description, and 20-byte record
+// headers from offset 26. Each record body has a 28-byte header and rows on a fixed 256-byte stride.
 function synthArchive(count) {
   const bodySize = 28 + H * STRIDE;
   const headersEnd = 26 + 20 * count;
@@ -57,19 +29,19 @@ function synthArchive(count) {
   for (let r = 0; r < count; r++) {
     const bodyAt = headersEnd + bodySize * r;
     const hAt = 26 + 20 * r;
-    buf.writeInt16LE(0, hAt);              // type1
-    buf.writeInt32LE(bodyAt, hAt + 2);     // recordPosition
-    buf.writeInt16LE(0, hAt + 6);          // type2
-    buf.writeInt32LE(0, hAt + 8);          // unknown1
-    buf.writeInt16LE(0, bodyAt);           // offsetX
-    buf.writeInt16LE(0, bodyAt + 2);       // offsetY
+    buf.writeInt16LE(0, hAt);
+    buf.writeInt32LE(bodyAt, hAt + 2);
+    buf.writeInt16LE(0, hAt + 6);
+    buf.writeInt32LE(0, hAt + 8);
+    buf.writeInt16LE(0, bodyAt);
+    buf.writeInt16LE(0, bodyAt + 2);
     buf.writeInt16LE(W, bodyAt + 4);
     buf.writeInt16LE(H, bodyAt + 6);
-    buf.writeInt16LE(0, bodyAt + 8);       // compression: Uncompressed
-    buf.writeUInt32LE(bodySize - 28, bodyAt + 10);   // recordSize
-    buf.writeUInt32LE(28, bodyAt + 14);              // dataOffset, from the body
-    buf.writeInt16LE(1, bodyAt + 18);      // isNormal
-    buf.writeUInt16LE(1, bodyAt + 20);     // frameCount
+    buf.writeInt16LE(0, bodyAt + 8);
+    buf.writeUInt32LE(bodySize - 28, bodyAt + 10);
+    buf.writeUInt32LE(28, bodyAt + 14);
+    buf.writeInt16LE(1, bodyAt + 18);
+    buf.writeUInt16LE(1, bodyAt + 20);
     for (let y = 0; y < H; y++) {
       const row = bodyAt + 28 + y * STRIDE;
       for (let x = 0; x < W; x++) buf[row + x] = x < W / 2 ? 1 : 0;
@@ -80,23 +52,12 @@ function synthArchive(count) {
 
 const browser = await chromium.launch();
 
-/** THE BOOT MUST SETTLE BEFORE AN IN-GAME SCREEN OPENS.
- *
- *  main.js's top-level catch does `document.body.textContent = ...` on
- *  a failed boot, and assigning textContent REMOVES EVERY CHILD OF
- *  BODY - including an enhanced overlay opened a moment earlier. With
- *  no ARENA2 on disk the world boot always fails here, so a probe that
- *  opens a screen before that lands is racing a page wipe. It won that
- *  race often enough to look reliable, which is the worst kind: this
- *  repo has a commit called "the verifier said TIMEOUT four times
- *  against good deploys". So: wait for it.
- *
- *  A boot that SUCCEEDS never writes that text, so the wait times out
- *  and that is the correct outcome - hence the swallowed rejection. */
+// A failed boot sets the body's text, which removes every child of body, so screens open only after it settles.
+// A successful boot never writes that text, so the timeout is expected.
 async function bootSettled(page) {
   await page.waitForFunction(
     () => document.body.textContent.includes('boot failed'), null, { timeout: 15000 },
-  ).catch(() => { /* a successful boot never says it - nothing to wait for */ });
+  ).catch(() => { });
 }
 
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
@@ -104,8 +65,6 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 
-// COUNT THE FETCHES. The cache's whole job is that a repainting screen
-// asks once, and a MISS is remembered as a miss.
 const fetched = [];
 await page.route('**/arena2/**', async (route) => {
   const url = route.request().url();
@@ -118,19 +77,16 @@ await page.route('**/arena2/**', async (route) => {
 
 await page.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
 await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
-if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();
 await page.locator('#enhanced-menu .doorbtn.door-new').first().click();
 await page.getByRole('button', { name: 'Begin', exact: true }).click();
 await page.waitForSelector('#enhanced-menu', { state: 'detached', timeout: 20000 });
 await bootSettled(page);
 
-// ── 1. THE MIDDLE LINK, ON ITS OWN ─────────────────────────────────
 const one = await page.evaluate(async () => {
   const { loadIcon } = await import('/src/ui/textureCanvas.js');
   const url = await loadIcon(234, 3, { scale: 1 });
   if (!url) return { url: null };
-  // read the pixels back, which is the only way to know the cutout
-  // and the palette survived the trip
   const img = new Image();
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
   const c = document.createElement('canvas');
@@ -153,7 +109,6 @@ check('...with the palette colour on the painted half',
 check('...and index 0 TRANSPARENT, which is the port\'s cutout law',
   one.right?.[3] === 0, `alpha ${one.right?.[3]}`);
 
-// ── 2. THE CACHE ───────────────────────────────────────────────────
 const mark = fetched.length;
 await page.evaluate(async () => {
   const { loadIcon } = await import('/src/ui/textureCanvas.js');
@@ -162,22 +117,16 @@ await page.evaluate(async () => {
 const since = fetched.slice(mark);
 check('eight more records from that archive cost NO further fetch',
   since.length === 0, since.join(', ') || 'none');
-// The whole-session ART_PAL count is not this module's to hold -
-// scenes/world.js fetches it for the renderer's own palette, so a
-// session count measures other people's work. What is pinned is that
-// this module's own repeats are free, which the window above shows.
 check('...and one archive was fetched in total, for the first call',
   fetched.filter((n) => /^TEXTURE/.test(n)).length === 1,
   fetched.filter((n) => /^TEXTURE/.test(n)).join(', '));
 
-// ── 3. A RECORD PAST THE END IS A MISS, NOT A THROW ────────────────
 const past = await page.evaluate(async () => {
   const { loadIcon } = await import('/src/ui/textureCanvas.js');
   return await loadIcon(234, 9999, { scale: 1 });
 });
 check('a record past the end of the archive answers null', past === null, String(past));
 
-// ── 4. THE PACK SHOWS THE REAL THING ───────────────────────────────
 const addr = await page.evaluate(async () => {
   const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
   const { ITEM_TEMPLATES } = await import('/src/characters/paperdoll.js');
@@ -207,16 +156,6 @@ check('the address came from inventoryItemImage',
   Number.isInteger(addr?.archive) && Number.isInteger(addr?.record),
   JSON.stringify(addr));
 
-// ── THE LANDINGS MUST SETTLE ───────────────────────────────────────
-// A cold icon used to repaint the screen when it landed, which is what
-// made the letters give way to the picture; since VIRT the waiting tile
-// takes its picture in place and the screen is not repainted at all
-// (bible/10-UI/UI-Arc.md VIRT). AUDIT VIRT: so the count that pins it is
-// the landings' own (`__pack`'s `landings`, the passes that put pictures
-// into tiles, and `painted`, the tiles they put them into). A landing
-// that set off another - a cache that forgot an in-flight record asked
-// again, landed again - would run at whatever rate a decode takes,
-// invisible except as a hot fan. So: let it settle, then prove it HAS.
 const at = () => page.evaluate(() => { const p = JSON.parse(globalThis.__pack()); return { landings: p.landings, painted: p.painted, repaints: p.repaints, tiles: document.querySelectorAll('#enhanced-inventory .tile').length }; });
 const settled = await at();
 await page.waitForTimeout(1200);
@@ -228,7 +167,6 @@ check('...each tile was given its picture once',
 check('...and the screen was not repainted for them',
   later.repaints === settled.repaints && settled.repaints <= 3, `${settled.repaints} -> ${later.repaints} repaints (the mount and the doll's)`);
 
-// the detail draws it larger
 await page.locator('#enhanced-inventory .itemrow').first().click();
 check('the detail draws it larger', (await page.locator('#enhanced-inventory .bigicon img').count()) === 1);
 check('...and drops the address note, which was the no-picture explanation',
@@ -237,7 +175,6 @@ check('...and drops the address note, which was the no-picture explanation',
 check('no page errors', errors.length === 0, errors.join(' | '));
 await ctx.close();
 
-// ── 5. NO DATA AT ALL: THE INITIALS COME BACK ──────────────────────
 {
   const c2 = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const p2 = await c2.newPage();
@@ -246,7 +183,7 @@ await ctx.close();
   await p2.route('**/arena2/**', (route) => route.fulfill({ status: 404, body: '' }));
   await p2.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
   await p2.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
-  if (await p2.locator('#enhanced-menu .doorbtn.door-offline').count()) await p2.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+  if (await p2.locator('#enhanced-menu .doorbtn.door-offline').count()) await p2.locator('#enhanced-menu .doorbtn.door-offline').click();
   await p2.locator('#enhanced-menu .doorbtn.door-new').first().click();
   await p2.getByRole('button', { name: 'Begin', exact: true }).click();
   await p2.waitForSelector('#enhanced-menu', { state: 'detached', timeout: 20000 });

@@ -1,5 +1,4 @@
-// The import graph of the repo's modules: what a file imports by relative path, and everything it reaches. Moved out
-// of the old test runner (tools/testChanged.mjs) when the tests were removed; tools/citeAnchor.mjs reads it.
+// The repo's relative import graph: what a file imports and every file it reaches.
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, relative, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,8 +7,6 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const IMPORT_RE = /(?:^|[\s;])(?:import|export)\s[^'"`;]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s+['"]([^'"]+)['"]/gm;
 
-/** The relative specifiers a module's text imports, resolved against its own path (repo-relative), existing files
- *  only. Pure but for the existence check. */
 export function importsOf(file, text, root = ROOT) {
   const out = [];
   for (const m of text.matchAll(IMPORT_RE)) {
@@ -24,7 +21,6 @@ export function importsOf(file, text, root = ROOT) {
   return out;
 }
 
-/** Every file a test file reaches through its imports, itself included. */
 export function closureOf(test, root = ROOT, cache = new Map()) {
   const seen = new Set([test]);
   const stack = [test];
@@ -33,7 +29,7 @@ export function closureOf(test, root = ROOT, cache = new Map()) {
     let deps = cache.get(f);
     if (!deps) {
       let text = '';
-      try { text = readFileSync(join(root, f), 'utf8'); } catch { /* gone: no imports */ }
+      try { text = readFileSync(join(root, f), 'utf8'); } catch { }
       deps = importsOf(f, text, root);
       cache.set(f, deps);
     }

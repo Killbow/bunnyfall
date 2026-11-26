@@ -1,5 +1,3 @@
-// The Worker's `/v1/eg/live` ask, `/status` ask, and law door, with their caches, held trail,
-// body cap, and verifying key.
 import { EG_ABSENT_TRIAL_MS } from '../../../src/net/eliteGates/egLaw.js';
 import { EG_TRAIL_MS, egTrailPush } from '../../../src/net/eliteGates/egFair.js';
 import { json } from '../room/json.js';
@@ -11,8 +9,7 @@ import { LAW_BODY_MAX, SAFE_INTERNAL_LAW, LAW_SEEN_MAX } from '../room/holds.js'
 import { STAFF_ORDER_KINDS } from '../staffFreeze.js';
 import { verifyOrder, _b64url, importPublicKeyB64 } from '../../../src/net/identityToken.js';
 
-// Keep below EG_POSE_NEAR_MS in src/net/eliteGates/egFair.js, so every landing finds a held pose
-// on either side.
+// Keep below EG_POSE_NEAR_MS in src/net/eliteGates/egFair.js, so every landing finds a held pose on either side.
 export const EG_HELD_STEP_MS = 200;
 export const EG_CAST_SEEN_MAX = 64;
 export function egTrailHeld(k, now) {

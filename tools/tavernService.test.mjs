@@ -14,7 +14,6 @@ function fill(state, recipe = tavernOrder(state).recipe) {
   assert.equal(state.phase, 'carry', 'the third dose puts the cup in hand');
   return state;
 }
-/** Pour and serve the current order: one action pays for it. */
 const serveOrder = (state, at) => step(fill(state), 'serve', { target: tavernOrder(state).patron }, at);
 
 test('nine distinct recipes, each three doses, all exactly recognisable', () => {
@@ -72,12 +71,11 @@ test('a shift saved mid cup round trip still collects, returns and pays once', (
   let a = fresh(); a.phase = 'served';
   assert.equal(stepTavernShift(a, { op: 'return', target: 'keeper' }, 200).error, 'tavern-action');
   a = step(a, 'collect', { target: tavernOrder(a).patron }).state;
-  const r = step(a, 'return'); assert.equal(r.gold, 36); assert.equal(r.favor, 1); // wage 29 + streak tip 7 assert.equal(r.state.index, 1);
+  const r = step(a, 'return'); assert.equal(r.gold, 36); assert.equal(r.favor, 1);
   assert.equal(stepTavernShift(r.state, { op: 'return', target: 'keeper' }, 200).error, 'tavern-action');
   const legacy = fresh(); legacy.mix = { wine: 3, cream: 0, beer: 0 };
   assert.equal(step(legacy, 'carry').state.phase, 'carry');
 });
-/** A whole shift: each drink served `late` seconds after it was ordered, chores cleared as they appear when `tidy`. */
 function playShift(a, { late, tidy }) {
   let at = 100, rep = 0, favor = 0, localRep = 0, choreGold = 0;
   for (let n = 0; n < TAVERN_ORDERS; n++) {

@@ -1,19 +1,6 @@
-// THE SOUNDSCAPE'S RECORDINGS, INSTALLED (SOUNDSCAPE, 2026-10-24 - bible/08-Audio/Audio.md SOUNDSCAPE).
-//
-// The sea's and the wild's sounds that a synthesiser does badly - a gull, a crow, a frog, a hammer on an anvil - are
-// recordings: each CC0 (public domain), from OpenGameArt.org, fetched from its own page's file, decoded in Chromium
-// (tools/sfxBake.mjs decodeAudio - the gun lab's door) and baked to DAGGER.SND's own 11025 Hz unsigned 8-bit mono by
-// tools/sndify.mjs, as the gun lab's picks are (tools/gunSfxInstall.mjs). The rest of the soundscape is made in code
-// (tools/soundscapeSfx.mjs, systems/soundscape/soundBeds.js).
-//
-//     node tools/soundscapeSfxInstall.mjs     # fetches into scratch/soundscape-sounds/ (gitignored), writes public/sfx/
-//
-// WHY THESE. Every pick is CC0 - the only license public/README.md lets ship out of public/ without an attribution
-// trail - and short, dry and close: the soundscape places each in the world itself (a gull 25 to 70 m off over the
-// water, a frog at the reeds), so a recording's own room or distance would be twice over. Freesound is the gun lab's
-// source, and this session's network reaches OpenGameArt alone; each pick's page states CC0 and its author.
-// The provenance is public/sfx/SOURCES.md's table (kept by hand: tools/gunSfxInstall.mjs's rewrite of that file is the
-// gun lab's alone), and the doctrine allow-list (test/tooling/doctrine.test.js) carries a row for each file.
+// Fetches the soundscape's CC0 recordings into scratch/soundscape-sounds/ and bakes them into public/sfx/.
+// Usage: node tools/soundscapeSfxInstall.mjs
+// A new pick must be CC0, with a row added by hand to public/sfx/SOURCES.md and to the doctrine allow-list.
 
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,7 +12,6 @@ const SRC = 'scratch/soundscape-sounds';
 const OUT = 'public/sfx';
 const OGA = 'https://opengameart.org/sites/default/files/';
 
-/** The pages the picks are taken from: their author and license, as each page states them. */
 export const PAGES = Object.freeze({
   gulls: { url: 'https://opengameart.org/content/solo-seagull-sound-effects', title: 'Solo Seagull Sound Effects', by: 'Rango Mango', license: 'CC0' },
   crow: { url: 'https://opengameart.org/content/crow', title: 'Crow', by: 'fvcalderan', license: 'CC0' },
@@ -34,8 +20,6 @@ export const PAGES = Object.freeze({
   anvil: { url: 'https://opengameart.org/content/hammer-on-anvil', title: 'Hammer on anvil', by: 'themightyglider', license: 'CC0' },
 });
 
-/** The picks: `as` the shipped name, `file` the page's file, `max` a tail's cap (s), `peak` the level baked to. */
-/** AUDIT SOUNDSCAPE W12: the croaks are cut out of their takes mid-sound - each eased in over 4 ms and out over 15. */
 export const FROG_EDGES = Object.freeze([0.004, 0.015]);
 export const PICKS = Object.freeze([
   { as: 'sea-gull-1', page: 'gulls', file: 'Seagull%20Ambient%201.wav', max: 3.9, peak: 0.86, why: 'a herring gull\'s long call, three falling cries - the coast\'s own sound' },

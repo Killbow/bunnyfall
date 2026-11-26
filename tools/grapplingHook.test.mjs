@@ -15,7 +15,7 @@ import { setPref } from '../src/ui/uiPrefs.js';
 test('the hook is a carried item: lawful, never held, and a hook saved as held goes back to the pack', () => {
   const hook = createGrapplingHook();
   assert.equal(lawfulItem(hook), true);
-  assert.equal(getItemHands(hook), ITEM_HANDS.None);   // no hand: it cannot be equipped
+  assert.equal(getItemHands(hook), ITEM_HANDS.None);
   const pack = [{ ...hook, equipSlot: 19 }];
   repairItemLists(savedItemLists({ items: pack }));
   assert.equal(pack.length, 1);

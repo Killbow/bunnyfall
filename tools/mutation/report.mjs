@@ -1,4 +1,4 @@
-// Aggregate every round log into the audit numbers.
+// Aggregates the mutation round logs into totals and survivors.json.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -50,7 +50,6 @@ for (const [f, v] of Object.entries(byFile).filter(x => x[1].s >= 3).sort((a, b)
 fs.writeFileSync(path.join(D, 'survivors.json'), JSON.stringify(surv, null, 1));
 console.log('\nsurvivors.json written:', surv.length);
 
-// annotate survivors with the tests whose coverage includes the mutated line
 const COV = JSON.parse(fs.readFileSync(path.join(D, 'cov.json'), 'utf8'));
 const ann = surv.map(r => ({ ...r, coveringTests: (COV[r.file] || {})[String(r.line)] || [] }));
 fs.writeFileSync(path.join(D, 'survivors.json'), JSON.stringify(ann, null, 1));

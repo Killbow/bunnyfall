@@ -1,41 +1,6 @@
-// INV3 - THE HOLD, MEASURED UNDER A REAL FINGER.
-//
-// Mac: "Hold to drag functionality in inventory sometimes doesnt work."
-// SOMETIMES is the whole report, and node cannot see it. The suite
-// drives this drag through test/invdrag.mjs, a document just real
-// enough to carry the gesture - but that document has no compositor,
-// no `touch-action` and no scroll gesture detector, so it delivers
-// every pointermove a test asks for and can never answer the two
-// questions the report turns on: how far a finger may drift before the
-// BROWSER takes the gesture away, and in which axis. Both are
-// properties of Chromium, not of this module, so they are measured
-// here.
-//
-// What it reports:
-//
-//  - THE BROWSER'S OWN SLOP, off a bare `touch-action: pan-y` tile in a
-//    scroller with no pane involved at all - the ceiling any hold law
-//    has to live under.
-//  - HOW OFTEN THE HOLD SURVIVES a drifting finger, as a rate over many
-//    trials at each drift amplitude, which is the shape of "sometimes".
-//  - and the laws, as pass/fail: a still finger always picks up, a
-//    flick scrolls and is never a drag and drops nothing, an armed hold
-//    carries and releases, and the body's panels take the same gesture.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER rather than a static file server,
-// for the reason tools/qs3Probe.mjs states: this module graph reaches
-// `import.meta.glob`, a Vite COMPILE-TIME macro, and a plain server
-// hands the browser the macro itself.
-//
-// The gestures are real touch points through CDP
-// (`Input.dispatchTouchEvent`) - playwright's own touchscreen only
-// taps, and a tap is the one gesture this feature is not.
-//
-//     node tools/invDragProbe.mjs
-//
-// PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers here; pass CHROMIUM=... to
-// point at another executable. INV3_TRIALS=<n> changes the trial count
-// per amplitude (default 12).
+// Measures inventory hold-to-drag under real touch points (CDP Input.dispatchTouchEvent; Playwright only taps):
+// Chromium's own scroll slop, hold survival under drift, and the drag checks. Runs on Vite's dev server.
+// Run: node tools/invDragProbe.mjs (CHROMIUM=<executable>, INV3_TRIALS=<n> trials per amplitude, default 12).
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -47,7 +12,6 @@ const PAGE_NAME = 'inv3-probe.tmp.html';
 const BARE_NAME = 'inv3-bare.tmp.html';
 const TRIALS = Number(process.env.INV3_TRIALS ?? 12);
 
-/** The pane over the real modules, with a pack long enough to flick. */
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>INV3 probe</title>
 <style>html,body{margin:0;height:100%;background:#12141a;overflow:hidden;overscroll-behavior:none}
 #host{position:fixed;inset:0}</style></head><body><div id="host"></div>
@@ -121,8 +85,6 @@ globalThis.__probe = {
 document.title = 'ready';
 <\/script></body></html>`;
 
-/** A bare pan-y tile in a scroller: NO pane, so what this measures is
- *  Chromium's own scroll-start slop and nothing of ours. */
 const BARE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>INV3 bare</title>
 <style>html,body{margin:0;height:100%;overflow:hidden}
 #list{position:fixed;left:0;top:0;width:200px;height:300px;overflow-y:auto;background:#222}
@@ -145,7 +107,6 @@ const check = (name, ok, detail = '') => {
   if (!ok) fails.push(`${name}${detail ? ` - ${detail}` : ''}`);
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`);
 };
-/** A seeded walk, so two runs of this probe are the same two runs. */
 const rng = (seed) => () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
 
 const vite = await createServer({ root: ROOT, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' });
@@ -153,19 +114,16 @@ await vite.listen();
 const port = vite.httpServer.address().port;
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 
-/** A phone with a phone's pixel ratio - the whole question is whether
- *  the browser's slop is in CSS px or device px, and a 1x page cannot
- *  tell you. */
+// A phone pixel ratio, because the question is whether the browser's slop is in CSS pixels or device pixels.
 const phone = (deviceScaleFactor) => ({ viewport: { width: 430, height: 860 }, hasTouch: true, isMobile: true, deviceScaleFactor });
 const finger = (cdp) => (type, x, y) => cdp.send('Input.dispatchTouchEvent', {
   type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, radiusX: 14, radiusY: 14, force: 1, id: 1 }],
 });
 
 try {
-  // AUDIT 68 X2-probe-tmp-page-leak: written inside the try, so the finally that unlinks it always runs.
+  // Written inside the try so the finally that unlinks it always runs.
   await writeFile(join(ROOT, `tools/${PAGE_NAME}`), PAGE);
   await writeFile(join(ROOT, `tools/${BARE_NAME}`), BARE);
-  // ── WHAT THE BROWSER ITSELF ALLOWS ───────────────────────────────
   console.log('CHROMIUM\'S OWN SCROLL-START SLOP, off a bare pan-y tile');
   const ceiling = {};
   for (const dpr of [1, 2, 3]) {
@@ -199,7 +157,6 @@ try {
     `dpr1 ${ceiling[1].vert}, dpr2 ${ceiling[2].vert}, dpr3 ${ceiling[3].vert}`);
   check('and a pan-y surface never loses a HORIZONTAL gesture', [1, 2, 3].every((d) => ceiling[d].horz === null));
 
-  // ── AND WHAT THE PANE DOES UNDER A FINGER ────────────────────────
   for (const dpr of [1, 3]) {
     const ctx = await browser.newContext(phone(dpr));
     const page = await ctx.newPage();
@@ -211,12 +168,7 @@ try {
     const send = finger(cdp);
     const P = (fn, ...a) => page.evaluate(fn, ...a);
     const sleep = (ms) => page.waitForTimeout(ms);
-    /** A tile to press, once the last gesture's fling has finished
-     *  moving the list. A momentum scroll outlives the finger, so a
-     *  `scrollTop = 0` written while one is in flight is simply
-     *  overwritten - and the rect that came back then belonged to a tile
-     *  that has since slid out of the viewport. Measured the hard way:
-     *  the probe read "no tile" and fell over. */
+    // A momentum scroll outlives the finger and overwrites a reset scrollTop; retry until the list is at its top.
     const settle = async () => {
       for (let i = 0; i < 12; i++) {
         await P(() => globalThis.__probe.reset());
@@ -230,8 +182,6 @@ try {
     console.log(`\n══ the pack on a 430x860 phone, devicePixelRatio ${dpr} ══`);
     console.log(`   ${await P(() => globalThis.__probe.items())} tiles, ${await P(() => globalThis.__probe.room())}px of scroll under them`);
 
-    /** One hold: press a tile, let the contact patch wander `amp` px
-     *  about the point it came down on for 420ms, read the ghost. */
     const hold = async (amp, drift) => {
       const t = await settle();
       if (!t) return { ghost: false, cancel: false, none: true };
@@ -246,8 +196,6 @@ try {
       await sleep(40);
       return { ghost: got.ghost, cancel: got.ev.includes('pointercancel') };
     };
-    // a patch that wanders rather than travels - both axes, never twice
-    // round the same point
     const wander = (u, amp) => [Math.cos(u * Math.PI * 2) * amp, Math.sin(u * Math.PI * 2 * 1.7) * amp];
 
     console.log('   HOW OFTEN THE HOLD SURVIVES A DRIFTING FINGER');
@@ -259,8 +207,6 @@ try {
       if (amp === 24) check(`dpr ${dpr}: a finger that TRAVELS +/-24px does not`, up === 0, `${up}/${TRIALS}`);
     }
 
-    // A RESTING THUMB, which is not a circle: a random walk of random
-    // amplitude, the thing Mac's finger actually does.
     const rand = rng(20260917);
     let alive = 0;
     for (let i = 0; i < TRIALS * 2; i++) {
@@ -272,7 +218,6 @@ try {
     console.log(`     a resting thumb (2-8px random walk): ${alive}/${TRIALS * 2}`);
     check(`dpr ${dpr}: a resting thumb always picks up`, alive === TRIALS * 2, `${alive}/${TRIALS * 2}`);
 
-    // ── THE LAWS (AUDIT INV2 A1) ───────────────────────────────────
     const ft = await settle();
     if (!ft) { fails.push(`dpr ${dpr}: the list would not settle - no tile to press`); await ctx.close(); continue; }
     const before = await P(() => globalThis.__probe.top());
@@ -290,12 +235,10 @@ try {
     check(`dpr ${dpr}: and is never a drag`, !sawGhost);
     check(`dpr ${dpr}: and puts nothing on the floor`, (await P(() => globalThis.__probe.dropped())) === 0);
 
-    // AND AN ARMED HOLD CARRIES. It arms under the FINGER, not under the
-    // point the finger landed on 320ms ago.
     const ht = await settle() ?? ft;
     await send('touchStart', ht.x, ht.y);
     await sleep(60);
-    await send('touchMove', ht.x + 9, ht.y + 9);   // inside the slop, both axes
+    await send('touchMove', ht.x + 9, ht.y + 9);
     await sleep(380);
     check(`dpr ${dpr}: the hold arms`, await P(() => globalThis.__probe.ghost()));
     check(`dpr ${dpr}: and takes the pan back`, await P(() => globalThis.__probe.lock()));
@@ -310,14 +253,8 @@ try {
     check(`dpr ${dpr}: the release puts it down`, !(await P(() => globalThis.__probe.ghost())));
     check(`dpr ${dpr}: and the pan is given back`, !(await P(() => globalThis.__probe.lock())));
 
-    // AND THE SCROLLER DOES NOT TAKE IT BACK MID-CARRY. `.draglock`
-    // cannot do this - Chromium latched the touch-action at touchstart -
-    // so an armed drag carried DOWN a list that has somewhere to scroll
-    // used to hand the gesture to the scroller and the ghost vanished
-    // with the item halfway to the doll.
     await settle();
-    // partway down, so a downward carry has somewhere to scroll TO -
-    // at the top of the list there is nothing to steal and the bug hides
+    // Start partway down so a downward carry has somewhere to scroll; at the top there is nothing to steal.
     await P(() => globalThis.__probe.scrollTo(80));
     const ct = await P(() => globalThis.__probe.tile()) ?? ft;
     await send('touchStart', ct.x, ct.y);
@@ -333,7 +270,6 @@ try {
     await send('touchEnd', ct.x, ct.y + 128);
     await sleep(80);
 
-    // THE BODY'S PANELS TAKE THE SAME GESTURE (MAC-M2 A).
     const worn = await P(() => globalThis.__probe.worn());
     if (!worn) fails.push(`dpr ${dpr}: no filled worn panel to press`);
     else {

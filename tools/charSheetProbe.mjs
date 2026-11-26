@@ -1,8 +1,6 @@
-// U8a probe: F5 in the exterior host opens the CLASSIC character
-// sheet - real INFO00I0.IMG art with DFU's verbatim label geometry.
-// U10: ?class=16 is the HEADLESS chargen skip. S3c put the chargen
-// overlay on a fresh town boot and wedged this probe too - AUDIT 17f
-// found three of the six, this is the rest.
+// Opens the classic character sheet with F5 in the exterior host and shoots its pages.
+// Run: node tools/charSheetProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -26,11 +24,9 @@ console.log('overlay:', t.overlay);
 if (!t.overlay) { console.log('SHEET DID NOT OPEN'); process.exit(1); }
 await waitFrames(3);
 await page.screenshot({ path: '/home/claude/charsheet-native.png' });
-// The skill page popup (key 1 = primary)
 await press('Digit1');
 await waitFrames(3);
 await page.screenshot({ path: '/home/claude/charsheet-skills.png' });
-// F5 toggles closed
 await press('F5');
 const closed = JSON.parse(await page.evaluate(() => window.__talk()));
 console.log('after F5 again, overlay:', closed.overlay);

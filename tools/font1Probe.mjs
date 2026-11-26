@@ -1,48 +1,5 @@
-// FONT1 (2026-09-16, Mac: "Enhanced mode UI. Especially the new online
-// interfaces font use our enhanced font. Ambient Text mod also doesnt
-// use it. Any enhanced UI or text must be our enhanced version"):
-// THE ENHANCED FACE, MEASURED.
-//
-// A font swap is a LAYOUT change, and node has no layout engine - the
-// whole suite drives a fake DOM whose boxes are whatever the fake says
-// they are (tools/chatLayoutProbe.mjs makes the same argument about the
-// chat list). Pixelify Sans is a pixel face on a 12px grid and it is
-// WIDER than Barlow Semi Condensed, the launcher face these surfaces
-// used to be set in, so every fixed-width box in the online UI had to
-// be re-measured rather than re-read.
-//
-// What this measures, over the REAL sheets:
-//   1. THE RATIO - how much wider the pixel face runs at one size, on
-//      strings these panels actually draw. The number in the sheets'
-//      headers (about 1.29x, measured) is this one.
-//   2. NOTHING SPILLS - no row in the four online surfaces is wider
-//      than the box that holds it (a name column 132px wide, a party
-//      card 244px, the peer menu's 208px card).
-//   3. THE FINGER KEEPS ITS 44px - AUDIT SOC C8's targets are a
-//      platform rule, not a typographic one, so the face must not have
-//      moved them.
-//   4. THE HUD'S TEXT SURFACES - the mid-screen label stands at DFU's
-//      146-of-200 line, under the reticle and over the bars (AUDIT FONT
-//      F11); and, since ENH-NOTICE3 (2026-09-21) moved PopupText's rows
-//      off the top-centre column and into the right-edge notice stack
-//      as TOASTS (ui/enhanced/enhancedNotice.js), the toasts: at the right edge,
-//      two models' rows stacking rather than overlapping (AUDIT FONT F1's
-//      claim, kept - townTalk's and dungeonContext's are both alive on
-//      ?world in a dungeon), a TEXT.RSC-length line wrapping whole
-//      rather than being ellipsised (F8's claim, kept), and no
-//      "click or press a key" hint on a row nothing dismisses.
-//
-// THE FONTS COME FROM THE GAME'S OWN REQUEST. ENHANCED_FONTS_URL is
-// fetched here in node (the browser in this harness has no route to it)
-// and every latin face in it is inlined into the page as a data URI, so
-// what is measured is the face a player is served. Offline, the probe
-// says so and exits 1 rather than measuring the fallback and calling it
-// a pass - a measurement of monospace is not a measurement of Pixelify.
-//
-//     node tools/font1Probe.mjs
-//
-// (Needs network. NODE_USE_ENV_PROXY=1 / NODE_EXTRA_CA_CERTS where a
-// proxy stands in front of fonts.googleapis.com.)
+// Browser probe that measures the enhanced pixel font in the online panels and the HUD text.
+// Run: node tools/font1Probe.mjs; it needs network for the game's font request and exits 1 offline.
 import { chromium } from 'playwright';
 import { CHAT_CSS } from '../src/ui/chatPanel.js';
 import { SOCIAL_CSS } from '../src/ui/socialPanel.js';
@@ -52,12 +9,11 @@ import { ENHANCED_CSS, ENHANCED_FONTS_URL } from '../src/ui/enhancedStyle.js';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-/** The game's one font request, with every latin face in it inlined. */
 async function inlineFonts() {
   const css = await (await fetch(ENHANCED_FONTS_URL, { headers: { 'user-agent': UA } })).text();
   const out = [];
   for (const block of css.split('@font-face').slice(1)) {
-    if (!/U\+0000-00FF/.test(block)) continue;            // the latin subset alone - these panels draw latin
+    if (!/U\+0000-00FF/.test(block)) continue;
     const fam = /font-family: '([^']+)'/.exec(block)?.[1];
     const weight = /font-weight: ([\d ]+)/.exec(block)?.[1] ?? '400';
     const url = /url\((https[^)]+)\)/.exec(block)?.[1];
@@ -68,7 +24,6 @@ async function inlineFonts() {
   return out.join('\n');
 }
 
-/** 1. The ratio, on strings these surfaces draw. */
 const MEASURE_RATIO = () => {
   const samples = [
     [10, 'already in a party'], [11, 'last seen 5 days ago'], [12, 'ONLINE PLAYERS'],
@@ -90,15 +45,11 @@ const MEASURE_RATIO = () => {
   });
 };
 
-/** 2 + 3. The four online surfaces, built as their modules build them. */
 const MEASURE_SURFACES = (touch) => {
   document.body.innerHTML = '';
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
-  // NAME_MAX (net/wire.js) is 24 - the longest name the hub will ever
-  // hand these rows, and so the one that decides whether a column
-  // clips. The probe draws it rather than a comfortable one.
+  // NAME_MAX in net/wire.js is the longest name these rows receive, so it decides whether a column clips.
   const NAME = 'Maximilian Wanderer XIV';
-  // the chat, open, with a roster column
   const chat = el('div', `dfchat${touch ? ' touch' : ''}`);
   chat.dataset.state = 'open';
   const peek = el('div', 'dfchat-peek');
@@ -134,7 +85,6 @@ const MEASURE_SURFACES = (touch) => {
   chat.append(peek, box);
   document.body.append(chat);
 
-  // the friends + party panel
   const social = el('div', `dfsocial${touch ? ' touch' : ''}`);
   social.dataset.open = '1';
   const head = el('div', 'dfsocial-head');
@@ -151,7 +101,6 @@ const MEASURE_SURFACES = (touch) => {
   social.append(head, stabs, body);
   document.body.append(social);
 
-  // the party HUD
   const party = el('div', `dfparty${touch ? ' touch' : ''}`);
   const card = el('div', 'dfparty-card');
   const pbody = el('div', 'dfparty-body');
@@ -164,7 +113,6 @@ const MEASURE_SURFACES = (touch) => {
   party.append(el('div', 'dfparty-title', 'Party'), card);
   document.body.append(party);
 
-  // the F-menu over a body
   const peer = el('div', 'dfpeer');
   peer.dataset.state = 'open';
   const pcard = el('div', 'dfpeer-card');
@@ -174,13 +122,7 @@ const MEASURE_SURFACES = (touch) => {
   peer.append(pcard);
   document.body.append(peer);
 
-  // Does any text run wider than the box that holds it? scrollWidth is
-  // the content's own width; a row whose content is wider than its
-  // client box is a row a player reads the start of.
-  // A box that declares `text-overflow: ellipsis` CLIPS BY DESIGN - a
-  // name column has to end somewhere - so it is measured below rather
-  // than counted a spill. Everything else is a row a player would read
-  // the start of.
+  // A box with text-overflow: ellipsis clips by design, so it is measured below rather than counted as a spill.
   const spills = [];
   for (const n of document.querySelectorAll('div, span, button')) {
     if (!n.className || typeof n.className !== 'string') continue;
@@ -189,22 +131,15 @@ const MEASURE_SURFACES = (touch) => {
       spills.push({ cls: n.className, content: n.scrollWidth, box: n.clientWidth });
     }
   }
-  // AUDIT SOC C8's targets, on the touch skin.
   const targets = ['dfchat-social', 'dfchat-rowbtn', 'dfsocial-tab', 'dfsocial-close', 'dfsocial-btn', 'dfpeer-btn']
     .map((cls) => {
       const n = document.querySelector('.' + cls.replace(/ /g, '.'));
       return n ? { cls, h: +n.getBoundingClientRect().height.toFixed(1) } : { cls, h: null };
     });
-  // What the ellipsising columns have room to SAY. The party card's
-  // name is the one that clips (the roster's wraps), so the question it
-  // answers is HOW MANY CHARACTERS fit whole - measured by shortening
-  // the name until it stops being cut. A 24-character name (NAME_MAX)
-  // ending in an ellipsis is the ellipsis doing its job; an ordinary
-  // one being cut is the face being too big for the card.
   const nameNode = document.querySelector('.dfparty-name');
   let fits = 0;
   for (let n = 1; n <= NAME.length; n++) {
-    nameNode.textContent = NAME.slice(0, n);   // a real name's own letters, not the widest glyph repeated
+    nameNode.textContent = NAME.slice(0, n);
     if (nameNode.scrollWidth <= nameNode.clientWidth + 1) fits = n;
   }
   nameNode.textContent = NAME;
@@ -217,7 +152,6 @@ const MEASURE_SURFACES = (touch) => {
   return { spills, targets, clipped };
 };
 
-/** 4. The popup column against the HUD furniture above it. */
 const MEASURE_HUDTEXT = () => {
   document.body.innerHTML = '';
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
@@ -230,11 +164,6 @@ const MEASURE_HUDTEXT = () => {
   top.append(compass, foe);
   hud.append(top);
   document.body.append(hud);
-  // ENH-NOTICE3: PopupText's rows are TOASTS in the notice stack - one
-  // `.notice.notice-toast` per row, two models' rows in the one stack
-  // (townTalk's and dungeonContext's both draw on ?world in a dungeon;
-  // AUDIT FONT F1's claim, kept), and a modal box's panel beside them.
-  // The probe builds what two live models and one box really produce.
   const stack = el('div', 'notice-stack');
   const toast = (t) => { const n = el('div', 'notice notice-toast notice-in'); const b = el('div', 'notice-body'); b.append(el('div', 'notice-row', t)); n.append(b); return n; };
   const rows = ['Your Long Blade skill has improved.', 'You found 25 gold pieces.'];
@@ -247,15 +176,12 @@ const MEASURE_HUDTEXT = () => {
   const firstBox = first.getBoundingClientRect();
   const secondBox = second.getBoundingClientRect();
   const stackBox = stack.getBoundingClientRect();
-  // AUDIT FONT F8's claim, kept: a TEXT.RSC-length line is drawn whole, not cut.
   const longRow = first.querySelector('.notice-row');
   const LONG = 'You have been given a letter of introduction to the Knights of the Dragon, and are expected at their hall in Daggerfall before the 15th of Hearthfire.';
   const shortH = +longRow.getBoundingClientRect().height.toFixed(1);
   longRow.textContent = LONG;
   const longBox = { content: +longRow.scrollWidth.toFixed(1), box: +longRow.clientWidth.toFixed(1), h: +longRow.getBoundingClientRect().height.toFixed(1), shortH };
   longRow.textContent = rows[0];
-  // ...and the OTHER text surface: the mid-screen label, at DFU's own
-  // 146-of-200 height, against the bottom block it must not sit on.
   const bottom = el('div', 'hud-bottom');
   const bars = el('div', 'hud-bars');
   for (const kind of ['magicka', 'health', 'fatigue']) {
@@ -263,15 +189,11 @@ const MEASURE_HUDTEXT = () => {
     v.append(el('div', 'hud-track'));
     bars.append(v);
   }
-  bottom.append(bars);   // UI3: the column ends at the vitals (and the Renown row online) - the effects are the status widget's
+  bottom.append(bars);
   hud.append(bottom);
   const mid = el('div', 'hudmid', 'Interaction is now in talk mode.');
   document.body.append(mid);
   const fallbackBox = mid.getBoundingClientRect();
-  // AUDIT FONT F11: ...at the number ui/enhanced/enhancedHudText.js writes for
-  // this viewport, which is the CLASSIC label's own line - the floored
-  // native fit (Math.floor(min(w/320, h/200))) with the 320x200 panel
-  // centred in what is left. The sheet's 73% is the fallback above.
   const s = Math.max(1, Math.floor(Math.min(window.innerWidth / 320, window.innerHeight / 200)));
   const oy = Math.floor((window.innerHeight - 200 * s) / 2);
   mid.style.setProperty('--hudmid-top', `${oy + 146 * s}px`);
@@ -357,9 +279,6 @@ console.log(`   a ${h.longRow.content}px line wraps into a ${h.longRow.box}px bo
 if (h.longRow.content > h.longRow.box + 1) fails.push(`a TEXT.RSC-length line is ${h.longRow.content}px in a ${h.longRow.box}px box - it is being cut, not wrapped`);
 if (h.longRow.h <= h.longRow.shortH + 0.5) fails.push('a long line did not wrap to a second row - the toast is still one line high');
 
-// AUDIT ENH-NOTICE3 (second pass, A1): a SHORT viewport under eight
-// toasts and a box - the stack must clip what will not fit, never
-// spill it off the screen (1280x520 spilled the eighth toast by 12px).
 await page.setViewportSize({ width: 1280, height: 520 });
 const short = await page.evaluate(() => {
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };

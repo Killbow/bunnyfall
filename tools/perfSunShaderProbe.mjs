@@ -1,14 +1,5 @@
-// PERF-SUN - THE FOUR LANE SHADERS, COMPILED IN A REAL BROWSER.
-//
-// PERF-SUN1 moves a branch INTO the shared SHADOW_GLSL block that every
-// lane shader pastes, and PERF-SUN2 restructures the sun term in all four
-// of them plus the water. Node can pin the source; only a real GL driver
-// can say the GLSL still compiles - and a shader that does not is a
-// silent black pass in play, which is the one cost a performance change
-// may never have.
-//
-//     npx vite --port 5199 &
-//     node tools/perfSunShaderProbe.mjs
+// Compiles and links the four lane shaders and the water shader in a real browser.
+// Usage: start npx vite --port 5199, then run node tools/perfSunShaderProbe.mjs.
 import { chromium } from 'playwright';
 const BASE = 'http://127.0.0.1:5199';
 const browser = await chromium.launch();
@@ -32,19 +23,13 @@ const r = await page.evaluate(async () => {
     if (typeof el[n] === 'string') compile(n, el[n], gl.FRAGMENT_SHADER);
     else out.push([n, false, 'not exported as a string']);
   }
-  // the water builds its FS from a factory, with and without the lane's block
   for (const withLane of [false, true]) {
     const cloud = (await import('/src/render/cloudShadow.js')).CLOUD_SHADOW_GLSL ?? '';
     const src = ws.waterSurfaceFs ? ws.waterSurfaceFs(cloud, withLane ? sp.SHADOW_GLSL : '') : null;
     if (typeof src === 'string') compile(`WATER_FS(lane=${withLane})`, src, gl.FRAGMENT_SHADER);
     else out.push([`WATER_FS(lane=${withLane})`, null, 'no factory export - checked by the renderer build instead']);
   }
-  // PERF-FOG, and EL-DISTANCE after it: the four lane programs must LINK
-  // with the fog colour still in them - uFogColor now, blended in display
-  // space as the classic lane does (PERF-FOG's decoded uFogColorLin went
-  // with the linear blend). A uniform the optimiser drops reads back as
-  // null, the upload skips it, and the shader then mixes toward a BLACK
-  // fog - a failure that compiles clean and only shows on a foggy day.
+  // A fog uniform the optimizer drops reads back null and the shader then mixes toward black fog.
   const rend = await import('/src/render/renderer.js');
   const cv2 = document.createElement('canvas'); cv2.width = 64; cv2.height = 64; document.body.append(cv2);
   const r = new rend.Renderer(cv2);

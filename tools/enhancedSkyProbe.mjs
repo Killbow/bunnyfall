@@ -1,11 +1,5 @@
-// THE ENHANCED SKY, SEEN (ES1). Opens the sky lab at a set of hours,
-// weathers and views and screenshots each - the eyeball tool - and
-// judges what a screenshot can: the pass compiles and draws (no page
-// error, no WebGL error), the frame is not black, the dome is brighter
-// at noon than at midnight, the sun's disc is in the frame at noon when
-// looking up at it, and the stars are there at midnight.
-//
-//     node tools/enhancedSkyProbe.mjs          (writes /tmp/sky-*.png)
+// Browser probe that screenshots the enhanced sky lab at several hours, weathers, and views and judges each frame.
+// Run: node tools/enhancedSkyProbe.mjs (PROBE_SHOTS sets where the screenshots go).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { skyState } from '../src/render/enhancedSky.js';
@@ -38,18 +32,12 @@ async function shoot(label, q) {
     for (let i = 0; i < n; i++) {
       const r = px[i * 4], g = px[i * 4 + 1], b = px[i * 4 + 2], l = (r + g + b) / 3;
       sum += l; if (l > max) max = l; if (l > 250) bright++;
-      if (r > 150 && r > b + 20 && l > 100) warm++;   // Masser's colour class: a warm, lit disc
+      if (r > 150 && r > b + 20 && l > 100) warm++;
     }
-    // A cheap fingerprint of WHERE the bright points are, for the wheel:
-    // the row and column sums of the pixels over 200, folded to a number.
     let starHash = 0;
     for (let i = 0; i < n; i++) {
       if ((px[i * 4] + px[i * 4 + 1] + px[i * 4 + 2]) / 3 > 200) { starHash = (starHash * 31 + i) >>> 0; }
     }
-    // ES1e: how chunky and how posterised. `blocks` counts how often a
-    // pixel differs from the one on its left along a middle row (a
-    // coarse grid changes rarely); `levels` counts the distinct greens
-    // in that row (a posterised gradient has few).
     const row = (h >> 1) * w * 4;
     let changes = 0; const greens = new Set();
     for (let x = 1; x < w; x++) {
@@ -69,11 +57,6 @@ const noonUp = await shoot('noon-up', 'hour=12&weather=sunny&yaw=90&pitch=78');
 const dawn = await shoot('dawn', 'hour=6.2&weather=sunny&yaw=0&pitch=8');
 const dusk = await shoot('dusk', 'hour=17.8&weather=sunny&yaw=180&pitch=8');
 const night = await shoot('midnight', 'hour=0&weather=sunny&yaw=90&pitch=20&day=3');
-// Point the camera AT Masser on the night of the cycle it stands HIGHEST at
-// ten in the evening (the lab's pitch slider stops at 80, so the very top
-// is left alone): the law says where. CLK3: the phase is the clock's own
-// fraction now, so the pick is the best night, not the first that clears
-// a bar - the first was a moon eighteen degrees up.
 const moonNight = (() => {
   let best = null;
   for (let day = 0; day < 32; day++) {
@@ -88,12 +71,8 @@ const moonNight = (() => {
 })();
 const moons = await shoot('evening-moons', `hour=22&weather=sunny&day=${moonNight.day}&yaw=${moonNight.yaw.toFixed(0)}&pitch=${moonNight.pitch.toFixed(0)}`);
 console.log(`  (Masser phase ${moonNight.phase}, at yaw ${moonNight.yaw.toFixed(0)} pitch ${moonNight.pitch.toFixed(0)} on day ${moonNight.day})`);
-// ES1c: the clouds are LIT. At mid-morning under cloud, looking AT the
-// sun and looking AWAY from it must not be the same picture.
 const towardSun = await shoot('cloudy-toward-sun', 'hour=8&weather=cloudy&yaw=90&pitch=25');
 const awaySun = await shoot('cloudy-away-sun', 'hour=8&weather=cloudy&yaw=270&pitch=25');
-// ES1c: the field WHEELS. The same camera three hours later is a
-// different sky - it was byte-identical before.
 const night3 = await shoot('midnight-plus-3h', 'hour=3&weather=sunny&yaw=90&pitch=20&day=3');
 
 const overcast = await shoot('overcast', 'hour=12&weather=overcast&yaw=90&pitch=12');

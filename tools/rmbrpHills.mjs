@@ -1,30 +1,7 @@
-// TREES-SEATED (FIELD BUGS 2026-10-03b): THE RMB RESOURCE PACK'S HILLS, MEASURED - and since FIELD BUGS 2026-10-05
-// HILL-SHAPES the shapes the port's stand-ins are drawn at (src/world/rmbrpHillShapes.js; they had been the catalogue's
-// Small/Medium/Large mounds).
-//
-//   git clone --depth 1 https://github.com/drcarademono/rmb-resource-pack <dir>   (GIT_LFS_SKIP_SMUDGE=1 is enough)
-//   node tools/rmbrpHills.mjs <dir>
-//
-// Reads, for each hill id the port stands in: its prefab (Prefabs/Hills/{Grass,Stone}/<id>.prefab), the .blend its mesh
-// lives in (found by the guid in Assets/**.blend.meta), the mesh's vertices and faces out of the .blend itself (Blender's
-// own SDNA - no Blender needed), and the scale the prefab stands it at: the .blend object's own (0.01 - the mesh is in
-// centimetres) unless the prefab sets one (the Medium prefabs 0.005, the Small 0.0025). Prints each hill's half-extents,
-// top and base in metres. Nothing of the pack is written or kept - the clone is the user's, and the numbers are a
-// measurement of it (the rocks, stalls and docks were measured the same way).
-//
-// FIELD BUGS 2026-10-05 HILL-SHAPES ("Houses in Ipsham are floating"; "this particular structure is frequently
-// flying"): `--shapes` prints src/world/rmbrpHillShapes.js - each hill MEASURED as a polar profile, the shape the port's
-// stand-in is drawn at (townStandIns.js hillMesh). The mesh is read as Unity imports it (x mirrored - the orientation
-// under which all 33 of TVRNAS03's and all 7 of TEMPASH3's authored trees lie within 0.75 m of its surface) at the
-// prefab's scale; its top surface sampled on a grid; the centre the raised footprint's centroid; along SHAPE_BEARINGS
-// bearings (every 22.5 degrees from +x towards +z) the reach - the 98th percentile of the surface's distance in that
-// sector - and SHAPE_RINGS heights out along it, each the median of the surface in its cell (the rim the mesh's base).
-// Sixteen bearings by ten rings - not the mesh, which is a sculpt of thousands of faces: the median of each cell, so a
-// lump smaller than a cell is not in it.
-//   node tools/rmbrpHills.mjs <clone>            the table: half-extents, top, base, the shape's fit
-//   node tools/rmbrpHills.mjs <clone> --shapes   MEASURES, then WRITES src/world/rmbrpHillShapes.js whole (its header
-//                                                kept, the grid and the table new) - `--bearings K --rings N` another grid
-// AUDIT FB1005 H1: it printed the table alone, and imported the grid from the module a shell redirect had just emptied.
+// Measures the RMB resource pack's hills from their prefabs and .blend meshes; prints half-extents, top, and base.
+// With --shapes it writes src/world/rmbrpHillShapes.js. Run: node tools/rmbrpHills.mjs <clone> [--shapes]
+// [--bearings K --rings N]. Clone the pack with GIT_LFS_SKIP_SMUDGE=1; nothing from it is written or saved.
+
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,7 +10,7 @@ import { RMBRP_HILLS, RMBRP_PIECES } from '../src/world/townStandIns.js';
 const root = process.argv[2];
 const SHAPES = process.argv.includes('--shapes');
 const argN = (flag, dflt) => { const i = process.argv.indexOf(flag); return i >= 0 ? Number(process.argv[i + 1]) : dflt; };
-/** The grid the module is measured on - the module's own (16 bearings, 10 rings) unless asked for another. */
+// The default grid is set here, not imported from the module that --shapes rewrites.
 const SHAPE_BEARINGS = argN('--bearings', 16), SHAPE_RINGS = argN('--rings', 10);
 const MODULE = join(dirname(fileURLToPath(import.meta.url)), '../src/world/rmbrpHillShapes.js');
 if (!root || !existsSync(join(root, 'Prefabs/Hills'))) {
@@ -41,7 +18,6 @@ if (!root || !existsSync(join(root, 'Prefabs/Hills'))) {
   process.exit(1);
 }
 
-/** Every file under `dir` whose name ends in `suffix`. */
 function walk(dir, suffix, out = []) {
   for (const n of readdirSync(dir)) {
     const p = join(dir, n);
@@ -50,7 +26,6 @@ function walk(dir, suffix, out = []) {
   return out;
 }
 
-/** A .blend's file blocks and its SDNA (Blender's own description of its structs). */
 function readBlend(path) {
   const b = readFileSync(path);
   if (b.toString('latin1', 0, 7) !== 'BLENDER') throw new Error(`${path}: not a .blend`);
@@ -79,7 +54,6 @@ function readBlend(path) {
     for (let f = 0; f < nf; f++) { fields.push([types[i16(p)], names[i16(p + 2)]]); p += 4; }
     structs.push({ name: types[t], fields });
   }
-  /** byte offset of `field` in struct `name`, and the struct's index */
   const offset = (name, field) => {
     const si = structs.findIndex((s) => s.name === name);
     let o = 0;
@@ -99,7 +73,8 @@ function readBlend(path) {
   const verts = rows('MVert', 'co[3]', (o) => [f32(o), f32(o + 4), f32(o + 8)]);
   const loops = rows('MLoop', 'v', (o) => u32(o));
   const starts = rows('MPoly', 'loopstart', (o) => i32(o)), totals = rows('MPoly', 'totloop', (o) => i32(o));
-  const ob = (() => { try { return offset('Object', 'scale[3]'); } catch { return offset('Object', 'size[3]'); } })();   // Blender 3.0 names it size[3]
+  // Some .blend files name the field size[3] instead of scale[3].
+  const ob = (() => { try { return offset('Object', 'scale[3]'); } catch { return offset('Object', 'size[3]'); } })();
   const objScale = blocks.filter((k) => k.code.startsWith('OB') && k.sdna === ob.si).map((k) => f32(k.data + ob.o));
   return { verts, loops, polys: starts.map((s, k) => [s, totals[k]]), objScale: objScale[0] ?? 1 };
 }
@@ -107,7 +82,7 @@ function readBlend(path) {
 const metas = walk(join(root, 'Assets'), '.blend.meta');
 const blendOfGuid = (guid) => metas.find((m) => readFileSync(m, 'utf8').includes(`guid: ${guid}`))?.slice(0, -'.meta'.length) ?? null;
 
-/** The hill as it stands: its triangles in metres, x mirrored as Unity imports a .blend, at the prefab's scale. */
+// x is mirrored because Unity mirrors x when it imports a .blend.
 function hillTriangles(id) {
   const prefab = ['Grass', 'Stone'].map((d) => join(root, 'Prefabs/Hills', d, `${id}.prefab`)).find(existsSync);
   if (!prefab) return null;
@@ -126,7 +101,6 @@ function hillTriangles(id) {
   return { tris, scale: s, blend };
 }
 
-/** The highest of the triangles over (x, z), or null. */
 function surfaceOf(tris) {
   const T = tris.map(([a, b, c]) => ({ a, b, c, x0: Math.min(a[0], b[0], c[0]), x1: Math.max(a[0], b[0], c[0]), z0: Math.min(a[2], b[2], c[2]), z1: Math.max(a[2], b[2], c[2]) }));
   return (x, z) => {
@@ -147,7 +121,6 @@ function surfaceOf(tris) {
 const median = (a) => { a.sort((p, q) => p - q); return a.length ? a[a.length >> 1] : null; };
 const r2 = (v) => Math.round(v * 100) / 100;
 
-/** HILL-SHAPES: the polar profile of one hill - `{ c: [x, z], top, reach: [K], rings: [K][N] }` (rmbrpHillShapes.js). */
 function measureShape(tris) {
   const surf = surfaceOf(tris), vs = tris.flat();
   const base = Math.min(...vs.map((v) => v[1]));
@@ -178,7 +151,6 @@ if (SHAPES) {
     const s = measureShape(h.tris);
     out.push(`  ${id}: { c: [${s.c.join(', ')}], top: ${s.top}, reach: [${s.reach.join(', ')}],\n    rings: [${s.rings.map((r) => `[${r.join(', ')}]`).join(',\n      ')}] },`);
   }
-  // the module whole: its header as it stands (the record's), then the grid and the table measured now
   const was = readFileSync(MODULE, 'utf8'), head = was.slice(0, was.indexOf('export const SHAPE_BEARINGS'));
   if (!head) throw new Error(`${MODULE}: no header before SHAPE_BEARINGS - restore it from git first`);
   writeFileSync(MODULE, `${head}export const SHAPE_BEARINGS = ${SHAPE_BEARINGS};\nexport const SHAPE_RINGS = ${SHAPE_RINGS};\n\n`
@@ -195,7 +167,6 @@ for (const id of Object.keys(RMBRP_HILLS)) {
   const vs = h.tris.flat(), surf = surfaceOf(h.tris);
   const ext = (k) => [Math.min(...vs.map((v) => v[k])), Math.max(...vs.map((v) => v[k]))];
   const [x0, x1] = ext(0), [y0, y1] = ext(1), [z0, z1] = ext(2);
-  // the stand-in as the pipeline builds it, against the pack's surface over the hill's raised ground
   const drawn = RMBRP_PIECES[id](), dp = drawn.positions, di = drawn.indices, dt = [];
   for (let t = 0; t < di.length; t += 3) dt.push([0, 1, 2].map((q) => [dp[di[t + q] * 3], dp[di[t + q] * 3 + 1], dp[di[t + q] * 3 + 2]]));
   const standIn = surfaceOf(dt), miss = [];

@@ -1,5 +1,3 @@
-// Verifies that src/poi/poiItemChoices.js matches the item law as the account service loads it, and that every
-// listed item can be minted by the service as a POI gift and passes the POI trade law.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

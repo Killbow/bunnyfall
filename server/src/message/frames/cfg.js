@@ -1,4 +1,3 @@
-// The `cfg` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, tokenGate } from '../../relay.js';
 import { relayCfgValue, mayRelayCfg } from '../../../../src/net/relayCfg.js';
 import { relayCfgRefusal } from '../../worker/relayCfg.js';

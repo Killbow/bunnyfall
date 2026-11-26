@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { AFFIX_KINDS, reforgeChoices, reforgeableLines } from '../src/items/lootRarity.js';
 
-// Daedric Gauntlets in the report: armor, carrying capacity, a skill (Medical) and a resistance on one piece
 const gauntlets = () => ({
   rarity: 'rare', group: 'Armor', name: 'Habasi test gauntlets',
   affixes: [
@@ -29,7 +28,6 @@ test('each slot offers its group legal kinds, never its own kind or another line
       assert.ok(AFFIX_KINDS[c.id].groups.includes('Armor'), `${c.id} fits armor`);
       assert.ok(!AFFIX_KINDS[c.id].proc, 'a number line is replaced by a number line');
     }
-    // other lines are taken: no second armor or carrying capacity, no skill or element the piece already holds
     for (const other of item.affixes.filter((_, i) => i !== index)) {
       assert.ok(!choices.some((c) => keyOf(c) === keyOf(other)), `slot ${index} never duplicates ${keyOf(other)}`);
     }

@@ -1,15 +1,5 @@
-// WB9c / WB9e - THE COURT'S CRYSTALS AND HIS BLOWS' FALL, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds both passes' law (test/net/gate/wb9c_gate_reckoning.test.js, test/net/gate/wb9e_gate_blows.test.js: the cluster's model,
-// its growth, the sparks' flight and the meteor's fall in JS, the passes over a fake GL); what node cannot answer is
-// whether their GLSL COMPILES and LINKS in a real WebGL2 context (GLSL ES 3.00 asks every uniform shared by the two
-// stages to carry one precision - the crystal's glow once failed exactly there), and whether what they draw lands
-// where the fight says: a crystal standing up out of the floor in its aspect's colour, gone to the floor once broken;
-// a landing's sparks lighting the stone about it; the meteor burning in the sky over its mark. So: the repo's own
-// modules served as they are (no bundler), the court drawn with its own art by a stand-in shader, each pass drawn by
-// its own class, and the frame read back.
-//
-//     node tools/gateCourtFxProbe.mjs [--shots <dir>]     (writes crystal.png / burst.png / meteor.png there when given)
+// Browser probe that compiles, links, and draws the gate court's crystal, spark, and meteor passes.
+// Run: node tools/gateCourtFxProbe.mjs [--shots <dir>].
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -87,7 +77,7 @@ window.ready = true;
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }   // not the root: U60 keeps that the landing page's
+  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const f = join(ROOT, url);
   if (!f.startsWith(ROOT) || !existsSync(f)) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': extname(f) === '.js' ? 'text/javascript' : extname(f) === '.json' ? 'application/json' : 'application/octet-stream' });
@@ -119,7 +109,7 @@ try {
   check('the sparks light the stone about the landing', lit > 60, `${lit} added over ${JSON.stringify(land.before)}`);
   const spent = await page.evaluate(() => window.burst(5));
   check('spent, a burst draws nothing', spent.bursts === 0);
-  const fall = await page.evaluate(() => window.meteor(10000 - 60));   // the last of its fall, over the court in view
+  const fall = await page.evaluate(() => window.meteor(10000 - 60));
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'meteor.png') });
   check('no GL error drawing the meteor', fall.error === 0 && fall.meteors === 1, `error ${fall.error}, meteors ${fall.meteors}`);
   check('its stone burns bright where it is falling', !!fall.head && fall.head[0] > 200 && lum(fall.head) > lum(fall.before) + 150, `${JSON.stringify(fall.head)} over ${JSON.stringify(fall.before)}`);

@@ -1,13 +1,5 @@
-// L10N1b (2026-09-27): THE LANGUAGE SETTING, IN A REAL BROWSER, WITH NO ARENA2.
-//
-// test/systems/l10n1b.test.js holds the laws and the source; what only a browser can show is the boot and the menu doing it:
-// the language's text fetched before the front door draws and only that language's, the first-run offer asked in the
-// browser's own language and answered once, the Settings row switching the words at once, the page's `lang` following,
-// `?lang=` for one visit, and English standing wherever nothing was chosen.
-//
-// Run against a dev server:
-//     npx vite --port 5199 &
-//     node tools/languageProbe.mjs
+// Checks the language setting in a browser with no ARENA2: first-run offer, Settings row, page lang, and ?lang=.
+// Run against a dev server: npx vite --port 5199 & node tools/languageProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -20,7 +12,6 @@ const check = (name, ok, detail = '') => {
 
 const browser = await chromium.launch();
 
-/** A page on the game's front door, with the page errors and the locale files it fetched. */
 async function open(ctx, query = '') {
   const page = await ctx.newPage();
   const errors = [];
@@ -31,17 +22,14 @@ async function open(ctx, query = '') {
   await page.waitForSelector('.px-menu button', { timeout: 20000 });
   return { page, errors, fetched };
 }
-/** A front-door button's words, by its structural id (door-<English id>), without the diamonds. */
 const door = async (page, id) => (await page.locator(`.px-menu .door-${id}`).first().innerText()).replace(/◆/g, '').trim();
 const htmlLang = (page) => page.evaluate(() => document.documentElement.lang);
-const same = (a, b) => a.toLocaleLowerCase() === b.toLocaleLowerCase();   // the rail's face is set in capitals by CSS
+const same = (a, b) => a.toLocaleLowerCase() === b.toLocaleLowerCase();
 const accountUp = async (page) => (await page.locator('.px-acctstage').count()) === 1;
-/** The account window, offered once a visit to a device nobody is signed in on, closed by a tap outside it. */
 async function closeAccount(page) {
   if (await accountUp(page)) await page.locator('.px-acctstage').click({ position: { x: 2, y: 2 } });
 }
 
-// 1. A FRENCH BROWSER, FIRST VISIT: English stands, the offer asks in French, Yes switches and is remembered.
 {
   const ctx = await browser.newContext({ locale: 'fr-FR' });
   const { page, errors, fetched } = await open(ctx);
@@ -63,7 +51,6 @@ async function closeAccount(page) {
   check('fr browser, reloaded: nothing is offered again', (await page.locator('.px-langoffer').count()) === 0);
   await closeAccount(page);
 
-  // THE SETTINGS ROW: the language chosen, switched at once, labelled while machine-made
   await page.locator(':is(.px-menu, .px-foot) .door-settings').click();
   await page.locator('#enhanced-menu .subbtn').filter({ hasText: /^Interface/ }).first().click();
   const sel = page.locator('#enhanced-menu .row select');
@@ -84,7 +71,6 @@ async function closeAccount(page) {
   await ctx.close();
 }
 
-// 2. A FRENCH BROWSER THAT SAYS NO: English stays, and the offer never returns.
 {
   const ctx = await browser.newContext({ locale: 'fr-FR' });
   const { page, errors } = await open(ctx);
@@ -98,7 +84,6 @@ async function closeAccount(page) {
   await ctx.close();
 }
 
-// 3. AN ENGLISH BROWSER: nothing offered, nothing fetched.
 {
   const ctx = await browser.newContext({ locale: 'en-US' });
   const { page, errors, fetched } = await open(ctx);
@@ -110,7 +95,6 @@ async function closeAccount(page) {
   await ctx.close();
 }
 
-// 4. ?lang= FOR ONE VISIT: Japanese drawn and only Japanese fetched, the choice not remembered; the pseudo-locale.
 {
   const ctx = await browser.newContext({ locale: 'en-US' });
   const { page, errors, fetched } = await open(ctx, '&lang=ja');

@@ -1,24 +1,19 @@
-// SD-LAB - THE HOUR AND THE RIFT, SEEN. Opens the Abyss lab (abyss.html, src/tools/abyssLab.js) on Vite's own server
-// in a real Chromium, waits on the lab's frame counter (never a sleep - bible/Home.md's Process), and writes a shot of
-// each camera, failing on any page error or GL error and on a frame that drew nothing.
-//
-//     node tools/abyssLabProbe.mjs                        every view, to $ABYSS_SHOTS (default /tmp)
-//     node tools/abyssLabProbe.mjs hollow threshold       the named views
-//     ABYSS_Q='lane=off' node tools/abyssLabProbe.mjs     more of the lab's query on every shot
-//     ABYSS_PORT=5242 node tools/abyssLabProbe.mjs        another port (two probes at once)
+// Screenshots each camera view of the Abyss lab in Chromium and fails on any page error, GL error, or blank frame.
+// Run with `node tools/abyssLabProbe.mjs [view...]`. ABYSS_SHOTS sets the output folder, ABYSS_Q adds lab query
+// options, and ABYSS_PORT picks another port so two probes can run at once.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const shots = process.env.ABYSS_SHOTS ?? '/tmp';
 const extra = process.env.ABYSS_Q ?? '';
-const VIEWS = ['threshold', 'back', 'orrery', 'steps', 'arena', 'overview', 'sky', 'hollow', 'hollow-side', 'hollow-ret', 'hollow-close', 'pendulums', 'beat', 'beat-far', 'gust', 'crumble', 'works', 'hang', 'hang-far', 'pillar', 'capitals', 'arena-far'];   // SD-LOOK S9: the Steps' views; S11: the Works, the hang, the far islands; S7: the pillars'
+const VIEWS = ['threshold', 'back', 'orrery', 'steps', 'arena', 'overview', 'sky', 'hollow', 'hollow-side', 'hollow-ret', 'hollow-close', 'pendulums', 'beat', 'beat-far', 'gust', 'crumble', 'works', 'hang', 'hang-far', 'pillar', 'capitals', 'arena-far'];
 const want = process.argv.slice(2).filter((a) => VIEWS.includes(a));
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`); };
 
 const port = Number(process.env.ABYSS_PORT ?? 5241);
-const server = await createServer({ server: { port, strictPort: true, watch: { ignored: ['**/.claude/**'] } }, logLevel: 'error' });   // a still probe: never the agents' worktrees
+const server = await createServer({ server: { port, strictPort: true, watch: { ignored: ['**/.claude/**'] } }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: Number(process.env.ABYSS_W ?? 960), height: Number(process.env.ABYSS_H ?? 540) } });
@@ -36,8 +31,7 @@ try {
       gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
       let sum = 0, lit = 0;
       for (let i = 0; i < px.length; i += 4) { const l = (px[i] + px[i + 1] + px[i + 2]) / 3; sum += l; if (l > 12) lit++; }
-      // SD-LOOK: the floor's display luminance (the lower third of the frame - readPixels' first rows - Rec. 709 luma of
-      // the sRGB bytes), its 95th and 99th percentiles: the value ladder's L1 holds at or under 0.25
+      // The first rows readPixels returns are the bottom third of the frame, which is the floor.
       const lum = [];
       for (let y = 0; y < Math.floor(h / 3); y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; lum.push((0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255); }
       lum.sort((a, b) => a - b);

@@ -1,5 +1,4 @@
-// Which exported verbatim TABLES (frozen objects / array literals) are pinned
-// whole by a deepEqual, which only by spot checks, which not at all?
+// Reports which exported data tables the tests pin whole with deepEqual, only spot-check, or never mention.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -25,17 +24,15 @@ for (const abs of srcFiles) {
     const m = lines[i].match(/^export const ([A-Z][A-Z0-9_]*)\s*=\s*(Object\.freeze\(|\[|new Set\(|\{)/);
     if (!m) continue;
     const name = m[1];
-    // size: count numeric literals until the declaration closes (brace balance)
     let depth = 0, j = i, body = '';
     do { body += lines[j] + '\n'; for (const ch of lines[j]) { if ('([{'.includes(ch)) depth++; else if (')]}'.includes(ch)) depth--; } j++; } while (depth > 0 && j < lines.length && j - i < 400);
     const nums = (body.match(/(?<![A-Za-z0-9_$.])\d+/g) || []).length;
-    if (nums < 4) continue;                     // not a data table
+    if (nums < 4) continue;
     let deep = 0, spot = 0, mentioned = 0;
     for (const [, t] of testText) {
       if (!t.includes(name)) continue;
       mentioned++;
-      // WHOLE-table pin only: the bare export (or a spread/Object.values/entries of
-      // it) is one side of a deepEqual. `deepEqual(TABLE.C, {...})` is a spot check.
+      // Only a deepEqual on the whole export (or its spread, values, or entries) counts as a whole-table pin.
       const dre = new RegExp(
         `deep(?:Strict)?Equal\\(\\s*(?:\\[\\s*\\.\\.\\.\\s*)?(?:Object\\.(?:values|entries|keys)\\(\\s*)?${name}\\s*[,)\\]]`
         + `|deep(?:Strict)?Equal\\([\\s\\S]{0,200}?,\\s*(?:\\[\\s*\\.\\.\\.\\s*)?${name}\\s*[,)\\]]`, 'g');

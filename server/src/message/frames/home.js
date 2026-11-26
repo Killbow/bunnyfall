@@ -1,4 +1,3 @@
-// The `home` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, homeGate, HOME_WORDS_MAX, HOME_WORDS_KEY } from '../../relay.js';
 import { verifyOrder } from '../../../../src/net/identityToken.js';
 

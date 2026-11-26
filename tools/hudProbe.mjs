@@ -1,23 +1,12 @@
-// AUDIT 21 (hosts lane, F7): does the classic HUD actually draw ABOVE GROUND?
-//
-// The six scene hosts have no node execution coverage, so the pins for this
-// are source rules. This is the half a rule cannot do: boot the real host in a
-// browser and read the pixels where the health bar belongs.
+// Boots the world and exterior hosts and checks the classic HUD vitals bars draw in the bottom-left strip.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { inflateSync } from 'node:zlib';
 
-/** Minimal decoder for the 8-bit RGBA non-interlaced PNGs Playwright emits.
- *
- *  The first draft of this probe called readPixels on a context re-got from
- *  the canvas - which reads a swapped/blank buffer - and reported 0% lit while
- *  the screenshot plainly showed the bars. The second compared PNG BYTE SIZES,
- *  which cannot tell a textured sky from a status bar. Decoding is the only
- *  honest way to answer "is there a red bar at the bottom left". */
 function decodePng(buf) {
   let w = 0, h = 0, bitDepth = 0, colorType = 0;
   const idat = [];
-  let p = 8;                                   // skip the signature
+  let p = 8;
   while (p < buf.length) {
     const len = buf.readUInt32BE(p);
     const type = buf.toString('ascii', p + 4, p + 8);
@@ -57,21 +46,6 @@ function decodePng(buf) {
   return { w, h, ch, px: out };
 }
 
-/** Count strongly-saturated pixels in the crop.
- *
- *  CALIBRATED BY MUTATION, not by taste. Over the 60x100 strip where the three
- *  vitals bars sit, at 1400x900:
- *
- *      with the drawHud call   world 1600, exterior 1799
- *      with it deleted         exterior  438      <- the grass and plaster behind
- *
- *  So the world behind the bars is itself colourful and a bare "is there any
- *  colour" test does not discriminate; 1000 sits cleanly between the two
- *  populations. Two earlier drafts of this probe got this wrong and are worth
- *  recording: the first called readPixels on a context re-got from the canvas,
- *  which reads a swapped buffer and reported 0% while the screenshot plainly
- *  showed the bars; the second compared PNG byte sizes, which cannot tell a
- *  textured sky from a status bar. */
 function saturated(png) {
   let n = 0;
   for (let i = 0; i < png.px.length; i += png.ch) {
@@ -82,6 +56,7 @@ function saturated(png) {
   return n;
 }
 
+// The floor sits between the counts measured with the HUD drawn (about 1600) and with it removed (about 440).
 const HUD_LIT_FLOOR = 1000;
 
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5202, strictPort: true } });
@@ -92,8 +67,7 @@ page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 
 const shot = async (url, label) => {
   await page.goto(url);
-  // __shotReady needs the streaming queue to drain in ?world, which can take a
-  // while; a frame count is enough for "the host is rendering".
+  // __shotReady waits for the streaming queue to drain, which is slow in ?world, so a frame count is the fallback.
   try {
     await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 120000 });
   } catch {
@@ -108,11 +82,7 @@ const shot = async (url, label) => {
   const png = `/home/claude/hud-${label}.png`;
   await page.screenshot({ path: png });
 
-  // Measure the SCREENSHOT, not the live GL buffer. The first draft of this
-  // probe called readPixels on a context re-got from the canvas, which reads a
-  // swapped/blank buffer and reported 0% while the screenshot plainly showed
-  // the bars - a measurement failure, not a missing HUD. The count is held to
-  // the floor `saturated` documents (calibrated by mutation).
+  // Measure the screenshot: readPixels on a context fetched again from the canvas reads a swapped or blank buffer.
   const vp = page.viewportSize();
   const strip = decodePng(await page.screenshot({ clip: { x: 0, y: vp.height - 100, width: 60, height: 100 } }));
   const lit = saturated(strip);
@@ -124,7 +94,7 @@ const shot = async (url, label) => {
 const world = await shot('http://localhost:5202/play/?shot&play&class=0&time=12:00', 'world');
 const ext = await shot('http://localhost:5202/play/?shot&play&exterior&class=0&time=12:00', 'exterior');
 
-const ok = world > 0 && ext > 0;   // shot() returns 0 unless the strip clears HUD_LIT_FLOOR
+const ok = world > 0 && ext > 0;
 console.log(ok ? 'HUD OK - both exterior hosts draw a status bar'
   : 'NO HUD - the bottom-left strip is as flat as the sky in at least one host');
 await browser.close(); await server.close();

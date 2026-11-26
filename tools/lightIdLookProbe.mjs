@@ -1,11 +1,5 @@
-// LIGHT-ID (2026-10-14, Mac: "Engine fix (Recommended)" - bible/07-Rendering/Enhanced-Lighting-Arc.md LIGHT-ID): THE LOOK,
-// ON A REAL GL. The court's whole frame - its own mesh, art, lights and fog on the enhanced lane, his glow walking among
-// ten Eye Of The Beholder walkers, then a five-mark Hellfire's flashes - drawn twice in Chromium (SwiftShader), with
-// LIGHT-ID's two laws off (render/shadowPass.js SHADOW_TUNING `moverDirect`, `loUnread`: a moved light through its
-// static cache, a lo map for every light that may cast) and on, each frame read back whole and compared byte for byte,
-// with the shadow pass's counts beside it. Judged: not one channel value apart, in any frame.
-//
-// Usage: node tools/lightIdLookProbe.mjs [frames=14]
+// Draws the court scene with SHADOW_TUNING moverDirect and loUnread off and on, and requires identical frames.
+// Run: node tools/lightIdLookProbe.mjs [frames=14].
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';

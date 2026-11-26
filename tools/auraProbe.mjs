@@ -1,66 +1,10 @@
-// WB9g - DAGON'S FIRE, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds the aura's law (test/net/wb9g_insignia.test.js: who is drawn, the clock's wrap, the pass over a fake GL); what
-// node cannot answer is whether the GLSL COMPILES and LINKS in a real WebGL2 context, and whether what it draws is the
-// fire it says: the ring burning at its radius and dim inside it, nothing past its edge, flames standing up out of it,
-// no seam where the angle's noise closes behind the wearer, no jump where the clock wraps, and nothing at all before it
-// has kindled. So: the repo's own module served as it is (no bundler), a grey floor drawn by a stand-in shader, the pass
-// drawn by its own class over it, and the frame read back.
-//
-// AEGIS (2026-10-03): and THE OBLIVION WARD, the second aura, through the same pass - its ring whole and violet round
-// the feet, dark within the runes and past its edge, no seam where the ring closes, no jump at the clock's wrap, its
-// veil standing up off the ring, nothing before it kindles, and half of it drawn round at half kindled; and its floating
-// symbols aloft over the ring, to the chest, where the fire has nothing.
-//
-// PRIMARCH (2026-10-04): and THE GOLDEN RADIANCE, the third - its ring whole and golden round the feet, its pool bright
-// at the feet and gone past its reach, its column standing to past the crown and brightest at its two edges (light ROUND
-// the body, never a wash over it), dark over the crown, no seam where the ring closes, no jump at the wrap, nothing
-// before it kindles and the column risen to the waist at half kindled - and from inside it (the wearer's own first
-// person) no gold veil over the view.
-//
-// SHADOW-CLOAK (2026-10-04): and THE HOLO SHADOW CLOAK, the fourth - a cape with its hood up, drawn premultiplied, so
-// over a lit floor its shadow DARKENS: the pool dark round the feet and the floor past it untouched; from behind the
-// cloth over the floor darker than the floor beside it and the wearer's glyph on its back - the wolf lit, beside it dark;
-// from the front its opening (no trim across its middle) with its embroidery lit either side and its clasp lit; turned
-// with its wearer; no jump at the wrap; nothing before it kindles and drawn to the waist at half; torn when its wearer
-// turns beast - the cloth gone, its shreds floating round them; emblems aloft; and from the wearer's own eye no shadow
-// over the view. AUDIT: every cloak read is STRICT (a point off the canvas throws, never reads black), compared against
-// the frame with NO aura (not the cloak unkindled), its hood read against the lit floor; and its two sides drawn by
-// its winding are checked as this probe draws (unmirrored, CCW) and as the game does (world/mat4.js
-// mirrorProjectionX, CW). The shots are unmirrored - the wolf faces left in them; in the game it faces right.
-//
-//     node tools/auraProbe.mjs [--shots <dir>]     (writes aura.png / aura_side.png / ward.png / ward_side.png /
-//                                                   radiance.png / radiance_side.png / cloak_back.png /
-//                                                   cloak_front.png / cloak_top.png / cloak_torn.png /
-//                                                   wings_back.png / resonance.png / resonance_top.png /
-//                                                   maelstrom_top.png / maelstrom_side.png / warren.png /
-//                                                   warren_top.png / firstlight.png / firstlight_top.png /
-//                                                   firstlight_side.png there)
-//
-// CRYSTAL-FIST (2026-10-05): and THE CRYSTAL RESONANCE, the sixth - from the side, every square node's law
-// (resonanceLit, on the wearer's own clock) stands lit is lit in the reference's purple itself, and every square over a
-// column's top dark - AUDIT: exactly, square for square, the counts being node's; the columns go up and down (another
-// moment, other squares); its feet on the ring from above, read inside it where no square of the wall can stand over
-// them; the purple not summed to a paler one where a square lies over its foot; no jump at the wrap; nothing before it
-// kindles.
-//
-// SERPENT5 (2026-10-15; AUDIT WORLD-REWARDS D3 - the interpreter had been its only reader): and THE MAELSTROM, the ninth -
-// from above, foam where node's law (maelstromArmAngle, on the aura's own clock) stands its arms and the water darker
-// between them; its eye open water; no jump at the wrap; nothing before it kindles; from the side, its curl at the lip.
+// Compiles and draws each aura shader in real WebGL2 and reads the frame back to check shape, seams,
+// clock wrap, and kindling.
+// Run with `node tools/auraProbe.mjs [--shots <dir>]`.
 import { chromium } from 'playwright';
-//
-// WIKIMAID (2026-10-17): and THE LILAC WARREN, the twelfth - from the side, every rabbit drawn where node's law has it (warrenBunny,
-// on the wearer's own clock), its coat the lilac and never washed past it over a bright floor; from above, the ring of light
-// whole in the lilac inside the rabbits' lane, the amethyst light within it, dark past the ground, and their tracks where they
-// landed; no jump at the wrap; nothing before it kindles.
-//
-// SPIRE-FIRST (2026-10-20): and FIRSTLIGHT, rebuilt as Serveride's own - from above its ring whole in the dawn's white, the
-// climb's lane lit behind the climb and dark ahead of it (node's law, dawnClimb); from X's side its spire standing whole once
-// taken and a third before, and the shaft of first light past the head as it is taken; no seam where the ring closes, no
-// jump at the wrap, nothing before it kindles.
 import { DAWN_R, DAWN_INNER_M, DAWN_HZ, DAWN_CLIMB, DAWN_START, DAWN_SPIRE_H, dawnMarkAngle } from '../src/render/auraRing.js';
-import { SAGE_RUNE_R, SAGE_ROOTS, SAGE_ROOT_M, SAGE_ROOT_PAD, SAGE_PUFFS, SAGE_PUFF_A, sagePuff, sageRoot, sageClock } from '../src/render/auraRing.js';   // NIRNROOT-SAGE: where the nirnroots and the smoke are, by node's own law   // SPIRE-FIRST: where Firstlight's Redoubts, spires and climb are, by node's own law
-import { glyphEdges, CLOAK_GLYPH, RESONANCE_R, RESONANCE_COLUMNS, RESONANCE_CELLS, RESONANCE_PITCH_M, AURA_LIFT_M, resonanceLit, resonanceClock, MAELSTROM_R, MAELSTROM_ARMS, maelstromArmAngle, auraClock, WARREN_R, WARREN_RING_IN, WARREN_BUNNIES, WARREN_BUNNY_M, WARREN_BUNNY, WARREN_LEAN, WARREN_PRINTS, warrenBunny, warrenClock, warrenPrintsInto } from '../src/render/auraRing.js';   // WIKIMAID: where the rabbits and their tracks are, by node's own law   // SHADOW-CLOAK; SERPENT5 (AUDIT WORLD-REWARDS D3): the Maelstrom: where the wearer's glyph is, to read it back; CRYSTAL-FIST: which squares stand lit, by node's own law
+import { SAGE_RUNE_R, SAGE_ROOTS, SAGE_ROOT_M, SAGE_ROOT_PAD, SAGE_PUFFS, SAGE_PUFF_A, sagePuff, sageRoot, sageClock } from '../src/render/auraRing.js';
+import { glyphEdges, CLOAK_GLYPH, RESONANCE_R, RESONANCE_COLUMNS, RESONANCE_CELLS, RESONANCE_PITCH_M, AURA_LIFT_M, resonanceLit, resonanceClock, MAELSTROM_R, MAELSTROM_ARMS, maelstromArmAngle, auraClock, WARREN_R, WARREN_RING_IN, WARREN_BUNNIES, WARREN_BUNNY_M, WARREN_BUNNY, WARREN_LEAN, WARREN_PRINTS, warrenBunny, warrenClock, warrenPrintsInto } from '../src/render/auraRing.js';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
@@ -115,7 +59,7 @@ window.ready = true;
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }   // not the root: U60 keeps that the landing page's
+  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const f = join(ROOT, url);
   if (!f.startsWith(ROOT) || !existsSync(f)) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': extname(f) === '.js' ? 'text/javascript' : extname(f) === '.json' ? 'application/json' : 'application/octet-stream' });
@@ -123,7 +67,7 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
-const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});   // NIRNROOT-SAGE: a browser of the machine's own, as brokerProbe.mjs takes one
+const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 try {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errs = []; page.on('pageerror', (e) => errs.push(e.message));
@@ -134,7 +78,6 @@ try {
   check('its program links in a real WebGL2', p.linked === true);
   const lum = (c) => c[0] + c[1] + c[2];
   const R = p.ringR, above = [0, 3.2, 3.2];
-  // round the ring at 24 bearings, the centre, and past the edge
   const ring = Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return [Math.cos(a) * R, 0.05, Math.sin(a) * R]; });
   const top = await page.evaluate(([eye, pts]) => window.draw(eye, 3.5, 1, pts), [above, [...ring, [0, 0.05, 0], [2.2, 0.05, 0], [0, 0.05, -2.2]]]);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'aura.png') });
@@ -144,8 +87,6 @@ try {
   const reds = top.px.slice(0, 24).filter((c) => c[0] > c[2] * 1.4).length;
   check('in fire\'s colours - red over blue', reds >= 20, `${reds}/24`);
   check('dim within it, dark past its edge', lum(top.px[24]) < mean / 2 && lum(top.px[25]) < 60 && lum(top.px[26]) < 60, `${JSON.stringify(top.px.slice(24))}`);
-  // the seam where the angle wraps (the -x axis): from straight above, on the ground inside the flames' wall, the fire
-  // either side of it differs no more than the fire beside it does - at three moments, three rings in
   const over = [0, 3.4, 0.001], rr = [R - 0.06, R - 0.1, R - 0.14];
   let dSeam = 0, dNear = 0;
   for (const t of [2.5, 7.25, 31.75]) {
@@ -154,19 +95,16 @@ try {
     for (let k = 0; k < rr.length; k++) { dSeam += Math.abs(lum(got.px[k * 4]) - lum(got.px[k * 4 + 1])); dNear += Math.abs(lum(got.px[k * 4 + 2]) - lum(got.px[k * 4 + 3])); }
   }
   check('no seam behind the wearer where the ring closes', dSeam <= Math.max(90, dNear * 2), `across the seam ${dSeam}, beside it ${dNear} (summed over nine pairs)`);
-  // the clock's wrap: a breath before it and a breath after, the same fire
   const wrapPts = ring.slice(0, 12);
   const before = await page.evaluate(([eye, pts, t]) => window.draw(eye, t, 1, pts), [above, wrapPts, p.period - 1 / 240]);
   const after = await page.evaluate(([eye, pts, t]) => window.draw(eye, t, 1, pts), [above, wrapPts, 1 / 240]);
   const jump = before.px.map((c, i) => Math.abs(lum(c) - lum(after.px[i])));
   check('no jump where the clock wraps', Math.max(...jump) <= 45, jump.join(' '));
-  // the flames stand up out of the ring (from the side, a point a quarter up the flame at the near side)
   const side = await page.evaluate(([eye, pts]) => window.draw(eye, 3.5, 1, pts), [[0, 0.9, 3.4], [[0, 0.14, R], [0, 0.14, R + 0.8], [0, 1.2, R]]]);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'aura_side.png') });
   check('flames stand up out of it', lum(side.px[0]) > lum(side.px[1]) + 60 && lum(side.px[2]) < 60, JSON.stringify(side.px));
   const cold = await page.evaluate(([eye, pts]) => window.draw(eye, 3.5, 0, pts), [above, ring.slice(0, 6)]);
   check('unkindled, nothing burns', cold.px.every((c) => lum(c) < 70), JSON.stringify(cold.px));
-  // ── AEGIS: THE OBLIVION WARD ──
   const W = p.wardR, wardAt = (eye, t, k, pts) => page.evaluate(([e, tt, kk, ps]) => window.draw(e, tt, kk, ps, 'oblivionward'), [eye, t, k, pts]);
   const wring = Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return [Math.cos(a) * W, 0.05, Math.sin(a) * W]; });
   const wtop = await wardAt(above, 3.5, 1, [...wring, [0, 0.05, 0], [0.45, 0.05, 0], [W + 0.32, 0.05, 0], [0, 0.05, -(W + 0.32)]]);
@@ -178,7 +116,6 @@ try {
   const violets = halo.px.filter((c) => c[2] > c[0] && c[0] > c[1] * 1.3).length;
   check('in violet - blue over red over green, in the glow beside the white heart', violets >= 22, `${violets}/24: ${JSON.stringify(halo.px.slice(0, 4))}`);
   check('dark under the feet and past its edge', lum(wtop.px[24]) < 80 && lum(wtop.px[26]) < 60 && lum(wtop.px[27]) < 60, JSON.stringify(wtop.px.slice(24)));
-  // no seam where the angle wraps (-x), on the ring and through the runes, at three moments
   let wSeam = 0, wNear = 0;
   for (const t of [2.5, 7.25, 31.75]) for (const r of [W - 0.004, p.runeR]) {
     const got = await wardAt(over, t, 1, [[-r, 0.05, -0.012], [-r, 0.05, 0.012], [Math.cos(2.2) * r, 0.05, Math.sin(2.2) * r], [Math.cos(2.2 + 0.025) * r, 0.05, Math.sin(2.2 + 0.025) * r]]);
@@ -193,11 +130,8 @@ try {
   check('its veil stands up off the ring, gone by the shins', lum(wside.px[0]) > lum(wside.px[1]) + 60 && lum(wside.px[2]) < 60, JSON.stringify(wside.px));
   const wcold = await wardAt(above, 3.5, 0, wring.slice(0, 6));
   check('unkindled, nothing is drawn', wcold.px.every((c) => lum(c) < 70), JSON.stringify(wcold.px));
-  // half kindled: drawn round from behind the wearer (-x) - the half it has reached lit, the half it has not dark
   const wHalf = await wardAt(above, 3.5, 0.5, [[-Math.cos(0.6) * W, 0.05, Math.sin(-0.6) * W], [Math.cos(0.6) * W, 0.05, Math.sin(0.6) * W]]);
   check('half kindled, half drawn round', lum(wHalf.px[0]) > 150 && lum(wHalf.px[1]) < 70, JSON.stringify(wHalf.px));
-  // the floating symbols: from the side, the air from the knee to the chest over the ring - lit by the ward's symbols at
-  // every moment, and never by the fire, whose flames end below it
   const air = []; for (let x = -1.4; x <= 1.401; x += 0.1) for (let y = 0.8; y <= 1.601; y += 0.1) air.push([x, y, 0]);
   const aloft = async (aura, t) => (await page.evaluate(([e, tt, ps, au]) => window.draw(e, tt, 1, ps, au), [[0, 0.9, 3.4], t, air, aura])).px.filter((c) => lum(c) > 60).length;
   const wardAir = [], fireAir = [];
@@ -205,7 +139,6 @@ try {
   if (shotsAt) { await page.evaluate(([e]) => window.draw(e, 5.3, 1, [], 'oblivionward'), [[0, 0.9, 3.4]]); await page.locator('#c').screenshot({ path: join(shotsAt, 'ward_symbols.png') }); }
   check('symbols float over the ward, to the chest', wardAir.every((n) => n >= 3), `lit points of ${air.length} at four moments: ${wardAir.join(' ')}`);
   check('and none over the fire', fireAir.every((n) => n === 0), fireAir.join(' '));
-  // ── PRIMARCH: THE GOLDEN RADIANCE ──
   const RR = p.radR, radAt = (eye, t, k, pts, at) => page.evaluate(([e, tt, kk, ps, a]) => window.draw(e, tt, kk, ps, 'radiance', a ?? undefined), [eye, t, k, pts, at ?? null]);
   const rring = Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return [Math.cos(a) * RR, 0.05, Math.sin(a) * RR]; });
   const rtop = await radAt(above, 3.5, 1, [...rring, [0.2, 0.05, 0.1], [p.poolR + 0.1, 0.05, 0], [0, 0.05, -(p.poolR + 0.1)]]);
@@ -225,8 +158,6 @@ try {
   const rBefore = await radAt(above, p.period - 1 / 240, 1, rring.slice(0, 12)), rAfter = await radAt(above, 1 / 240, 1, rring.slice(0, 12));
   const rJump = rBefore.px.map((c, i) => Math.abs(lum(c) - lum(rAfter.px[i])));
   check('no jump where the clock wraps', Math.max(...rJump) <= 45, rJump.join(' '));
-  // from the side at the chest: the column's two edges bright, its middle (where it crosses the body) faint, the air
-  // beside it and over the crown dark - at four moments, so a mote passing is not mistaken for the column
   const sideEye = [0, 1.2, 4], sidePts = [[-RR, 1.0, 0], [RR, 1.0, 0], [0, 1.0, RR], [-(RR + 0.45), 1.0, 0], [RR + 0.45, 1.0, 0], [0, p.radH + 0.35, 0]];
   let edge = 0, middle = 0, beside = 0, crown = 0;
   for (const t of [2.0, 5.3, 9.1, 47.7]) {
@@ -240,16 +171,12 @@ try {
   check('unkindled, nothing is drawn', rcold.px.every((c) => lum(c) < 70), JSON.stringify(rcold.px));
   const rHalf = await radAt(sideEye, 9.1, 0.5, [[-RR, 0.3, 0], [RR, 0.3, 0], [-RR, 1.9, 0], [RR, 1.9, 0]], [0, 1.1, 0]);
   check('half kindled, the column risen to the waist and no higher', Math.min(lum(rHalf.px[0]), lum(rHalf.px[1])) > 90 && Math.max(lum(rHalf.px[2]), lum(rHalf.px[3])) < 60, JSON.stringify(rHalf.px));
-  // the wearer's own first person: the eye inside the column, looking level - the view not veiled in gold
   const veil = [];
   for (const t of [2.0, 5.3, 9.1, 47.7]) veil.push((await radAt([0, 1.65, 0], t, 1, [[0, 1.6, -3], [1.5, 1.4, -3], [-1.5, 1.4, -3], [0, 2.2, -3]], [0, 1.6, -3])).px.map(lum).reduce((a, b) => a + b, 0));
   check('from inside it, no gold veil over the view', veil.every((v) => v < 4 * 60), veil.join(' '));
-  // ── SHADOW-CLOAK: THE HOLO SHADOW CLOAK ──
-  // over a floor lit bright enough that a shadow can be seen: 0.08 * 6 is a mid grey
   const LIT = 6, Q = 13.2, cl = (eye, t, k, pts, at, yaw = 0, torn = -1, opts = {}) => page.evaluate(([e, tt, kk, ps, a, y, l, tr, o]) => window.draw(e, tt, kk, ps, 'shadowcloak', a ?? undefined, y, l, tr, null, { strict: true, ...o }), [eye, t, k, pts, at ?? null, yaw, LIT, torn, opts]);
-  const bare = (eye, pts, at) => page.evaluate(([e, ps, a, l]) => window.draw(e, 13.2, 1, ps, 'shadowcloak', a, 0, l, -1, null, { strict: true, none: true }), [eye, pts, at, LIT]);   // the same frame with NO aura at all (AUDIT: not the cloak unkindled - that compared a frame with itself)
+  const bare = (eye, pts, at) => page.evaluate(([e, ps, a, l]) => window.draw(e, 13.2, 1, ps, 'shadowcloak', a, 0, l, -1, null, { strict: true, none: true }), [eye, pts, at, LIT]);
   const CP = p.cloakPoolR;
-  // from straight above: the pool round the hem darker than the floor past it, and the floor past it untouched
   const poolPts = Array.from({ length: 8 }, (_, i) => { const a = (i / 8 + 1 / 16) * Math.PI * 2; return [Math.cos(a) * 0.62, 0.0, Math.sin(a) * 0.62]; });
   const ctop = await cl([0, 4.2, 0.001], Q, 1, [[CP + 0.12, 0, 0], [0, 0, -(CP + 0.12)], [-(CP + 0.12), 0, 0], [1.3, 0, 0.6], ...poolPts], [0, 0, 0]);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'cloak_top.png') });
@@ -258,61 +185,51 @@ try {
   check('the floor past its pool untouched', ctop.px.slice(0, 3).every((c) => Math.abs(lum(c) - floorLum) < 6), JSON.stringify(ctop.px.slice(0, 4)));
   const poolLum = ctop.px.slice(4).map(lum);
   check('a shadow pooled round it - the floor round the hem darker than past it', poolLum.filter((v) => v < floorLum * 0.9).length >= 6, `${poolLum.join(' ')} round the hem vs ${floorLum}`);
-  // from behind (the wearer faces +z): the cloth over the floor darker than the floor beside it; the wearer's glyph on
-  // its back - inside the wolf lit, beside it in the disc dark; nothing over the hood
   const behind = [0, 1.1, -3.2], cAt = [0, 1.0, 0];
   const E = glyphEdges(CLOAK_GLYPH);
   const inside = ([x, y]) => { let n = 0; for (const [ax, ay, bx, by] of E) if ((ay <= y) !== (by <= y) && x < ax + (y - ay) * (bx - ax) / (by - ay)) n++; return n % 2 === 1; };
   const segD = ([ax, ay, bx, by], [x, y]) => { const ex = bx - ax, ey = by - ay, h = Math.max(0, Math.min(1, ((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey))); return Math.hypot(x - ax - ex * h, y - ay - ey * h); };
   const box = Array.from({ length: 31 * 31 }, (_, i) => [0.5 + (i % 31) * 0.5, 0.5 + Math.floor(i / 31) * 0.5]).filter((g) => Math.min(...E.map((e) => segD(e, g))) > 0.7 && Math.hypot(g[0] - 8, g[1] - 8) < 6.8);
-  const onBack = (g) => [((g[0] - 8) / 7) * p.cloakSigilR / 1.4, p.cloakSigilY + ((8 - g[1]) / 7) * p.cloakSigilR / 1.4, -0.4];   // the wearer's right is +x: the glyph's own right
+  const onBack = (g) => [((g[0] - 8) / 7) * p.cloakSigilR / 1.4, p.cloakSigilY + ((8 - g[1]) / 7) * p.cloakSigilR / 1.4, -0.4];
   const wolf = box.filter(inside).filter((_, i) => i % 6 === 0), besideWolf = box.filter((g) => !inside(g));
   const cback = await cl(behind, Q, 1, [[0.12, 0.35, -0.42], [1.4, 0.0, -0.6], [0, p.cloakH + 0.15, -0.1], ...wolf.map(onBack), ...besideWolf.map(onBack)], cAt);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'cloak_back.png') });
   check('from behind the cloth shades what is behind it', lum(cback.px[0]) < lum(cback.px[1]) * 0.8, `${lum(cback.px[0])} on the cloth vs ${lum(cback.px[1])} on the floor beside`);
-  check('nothing over the hood\'s peak', lum(cback.px[2]) < 30, JSON.stringify(cback.px[2]));   // and against the lit floor, below (AUDIT 2)
+  check('nothing over the hood\'s peak', lum(cback.px[2]) < 30, JSON.stringify(cback.px[2]));
   const wolfLum = cback.px.slice(3, 3 + wolf.length).map(lum), besideLum = cback.px.slice(3 + wolf.length).map(lum);
   const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
   check('the wearer\'s glyph on its back - the wolf lit, beside it dark, in red', besideWolf.length >= 8 && med(wolfLum) > med(besideLum) + 40 && cback.px.slice(3, 3 + wolf.length).filter((c) => c[0] > 2 * c[1]).length > wolf.length * 0.8, `the wolf ${med(wolfLum)} (of ${wolf.length}) vs beside ${med(besideLum)} (of ${besideWolf.length})`);
-  // from the front: across the knees, the opening's embroidery either side of its middle and none across it; the clasp
-  // lit at the throat
-  const knees = [0.55, 0.75, 0.95].flatMap((y) => Array.from({ length: 401 }, (_, i) => [-0.4 + i * 0.002, y, 0.5]));   // every 2 mm at three heights: a line is a pixel or two wide
+  const knees = [0.55, 0.75, 0.95].flatMap((y) => Array.from({ length: 401 }, (_, i) => [-0.4 + i * 0.002, y, 0.5]));
   const redOf = (px) => px.map((c) => (c[0] > c[1] * 1.6 ? c[0] : 0));
   const cfront = await cl([0, 0.9, 3.2], Q, 1, [...knees, [0, p.cloakClaspY - 0.012, 0.3], [0.13, p.cloakClaspY - 0.012, 0.3]], [0, 0.9, 0]);
   const K = knees.length;
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'cloak_front.png') });
   const peakOf = (a) => a.reduce((x, y) => Math.max(x, y), 0), rows = [0, 1, 2].map((r) => redOf(cfront.px.slice(r * 401, r * 401 + 401)));
-  const leftPeak = peakOf(rows.map((fr) => peakOf(fr.slice(0, 175)))), rightPeak = peakOf(rows.map((fr) => peakOf(fr.slice(226)))), mid = peakOf(rows.map((fr) => peakOf(fr.slice(175, 226))));   // the middle 10 cm
+  const leftPeak = peakOf(rows.map((fr) => peakOf(fr.slice(0, 175)))), rightPeak = peakOf(rows.map((fr) => peakOf(fr.slice(226)))), mid = peakOf(rows.map((fr) => peakOf(fr.slice(175, 226))));
   check('open at the front - its embroidery either side of its middle, none across it, its lining seen through', leftPeak > mid + 20 && rightPeak > mid + 20 && mid > 40, `edges ${leftPeak} and ${rightPeak}, the middle ${mid}`);
   check('its clasp lit at the throat', lum(cfront.px[K]) > lum(cfront.px[K + 1]) + 60, `${JSON.stringify(cfront.px[K])} the clasp vs ${JSON.stringify(cfront.px[K + 1])} beside`);
-  // turned: the same eye and the wearer facing away - the glyph on their back faces the eye now
   const turnedPts = wolf.map((g) => { const q = onBack(g); return [-q[0], q[1], 0.4]; });
   const tTurned = await cl([0, 1.1, 3.2], Q, 1, turnedPts, [0, 1.0, 0], Math.PI), tFacing = await cl([0, 1.1, 3.2], Q, 1, turnedPts, [0, 1.0, 0], 0);
   check('turned with its wearer - faced away, the wolf on its back toward the eye', med(tTurned.px.map(lum)) > med(tFacing.px.map(lum)) + 40, `${med(tTurned.px.map(lum))} turned vs ${med(tFacing.px.map(lum))} facing`);
-  // the wrap, on the cloth and the ground
   const cwp = [[0.3, 0.6, -0.4], [-0.3, 0.9, -0.38], [0, 0.4, -0.45], [0.25, 1.2, -0.3], [0.7, 0, -0.3], [-0.6, 0, -0.4]];
   const cBefore = await cl(behind, p.period - 1 / 240, 1, cwp, cAt), cAfter = await cl(behind, 1 / 240, 1, cwp, cAt);
   const cJump = cBefore.px.map((c, i) => Math.abs(lum(c) - lum(cAfter.px[i])));
   check('no jump where the clock wraps', Math.max(...cJump) <= 45, cJump.join(' '));
-  const coldPts = [[0.12, 0.35, -0.42], [0, 0.8, -0.4], [0.3, 0.0, -0.55]];   // every one over the lit floor (AUDIT 2: one was sky in both frames)
+  const coldPts = [[0.12, 0.35, -0.42], [0, 0.8, -0.4], [0.3, 0.0, -0.55]];
   const ccold = await cl(behind, Q, 0, coldPts, cAt);
   const cfloor = await bare(behind, coldPts, cAt);
   check('unkindled, nothing is drawn', ccold.px.every((c, i) => Math.abs(lum(c) - lum(cfloor.px[i])) < 6), JSON.stringify(ccold.px));
-  // the hood read against the LIT floor (AUDIT: against the black sky a shadow cannot show): from above and behind
   const high = [0, 3.4, -2.4], hoodPts = [[0, 1.75, -0.12], [0.08, 1.7, -0.14], [-0.08, 1.7, -0.14]], overPeak = [[0, p.cloakH + 0.04, -0.06], [0, p.cloakH + 0.08, -0.06], [0.06, p.cloakH + 0.04, -0.06], [-0.06, p.cloakH + 0.04, -0.06]];
   const hoodBare = await bare(high, [[0.12, 0.45, -0.42], ...hoodPts], cAt), hoodWhole = await cl(high, Q, 1, [[0.12, 0.45, -0.42], ...hoodPts], cAt), chalf = await cl(high, Q, 0.5, [[0.12, 0.45, -0.42], ...hoodPts], cAt);
   const dHood = (f) => Math.max(...hoodPts.map((_, i) => Math.abs(lum(f.px[i + 1]) - lum(hoodBare.px[i + 1]))));
   check('half kindled, drawn to the waist and not to the hood', lum(chalf.px[0]) < lum(hoodBare.px[0]) * 0.85 && dHood(chalf) < 12 && dHood(hoodWhole) > 60, `waist ${lum(chalf.px[0])} vs ${lum(hoodBare.px[0])}; the hood ${dHood(chalf)} half kindled, ${dHood(hoodWhole)} whole`);
   const peakBare = await bare(high, overPeak, cAt), peakWhole = await cl(high, Q, 1, overPeak, cAt);
   check('nothing over the hood\'s peak, read against the lit floor', peakWhole.px.every((c, i) => Math.abs(lum(c) - lum(peakBare.px[i])) < 6), `${peakWhole.px.map(lum).join(' ')} vs ${peakBare.px.map(lum).join(' ')}`);
-  // the emblems aloft: over the back, from behind, at four moments something there that the bare frame has not
   const overBack = Array.from({ length: 300 }, (_, i) => [-0.9 + (i % 20) * 0.095, 1.2 + Math.floor(i / 20) * 0.075, -0.6]);
   const aloftBare = await bare(behind, overBack, cAt);
   const aloftN = [];
   for (const t of [3.1, 17.9, 44.4, 90.2]) { const f = await cl(behind, t, 1, overBack, cAt); aloftN.push(f.px.filter((c, i) => c[0] > lum(aloftBare.px[i]) / 3 + 25 && c[0] > 1.8 * c[1]).length); }
   check('the wearer\'s emblems aloft over its back, in red', aloftN.every((n) => n >= 3), aloftN.join(' '));
-  // TORN: its wearer turned beast - mid-tear the cloth splitting with embers along it; torn through, no cloth over the
-  // floor behind it, its shreds round the beast
   const clothPts = Array.from({ length: 60 }, (_, i) => [-0.25 + (i % 10) * 0.05, 0.4 + Math.floor(i / 10) * 0.12, -0.45]);
   const whole = await cl(behind, Q, 1, clothPts, cAt), clothBare = await bare(behind, clothPts, cAt);
   const tearing = await cl(behind, Q, 1, clothPts, cAt, 0, 0.35 * p.cloakRipS);
@@ -321,50 +238,40 @@ try {
   const shaded = (f) => f.px.filter((c, i) => lum(c) < lum(clothBare.px[i]) - 40).length;
   const emberOf = (f) => Math.max(...f.px.map((c) => (c[0] > 2 * c[1] ? c[0] : 0)));
   check('torn when its wearer turns beast - splitting mid-tear, embers along it; torn through, no cloth over the floor (a shred passing at most)', shaded(whole) >= 50 && shaded(tearing) < shaded(whole) * 0.5 && emberOf(tearing) > emberOf(whole) + 40 && shaded(torn) <= 10, `${shaded(whole)} shaded whole, ${shaded(tearing)} mid-tear, ${shaded(torn)} torn; embers ${emberOf(tearing)} mid-tear vs ${emberOf(whole)} whole`);
-  const ringPts = Array.from({ length: 400 }, (_, i) => [-1.4 + (i % 20) * 0.147, 0.35 + Math.floor(i / 20) * 0.1, 0]);   // none whose ray ends in the pool at the feet (AUDIT 2: it counted the ground for shreds)
+  const ringPts = Array.from({ length: 400 }, (_, i) => [-1.4 + (i % 20) * 0.147, 0.35 + Math.floor(i / 20) * 0.1, 0]);
   const ringBare = await bare([0, 1.2, -4], ringPts, [0, 1.1, 0]);
   const shredN = [];
   for (const t of [3.1, 17.9, 44.4]) { const f = await cl([0, 1.2, -4], t, 1, ringPts, [0, 1.1, 0], 0, p.cloakRipS + t); shredN.push(f.px.filter((c, i) => Math.abs(lum(c) - lum(ringBare.px[i])) > 40).length); }
   check('its shreds float round the beast', shredN.every((n) => n >= 6), shredN.join(' '));
-  // it swings: from the side, a run's trail carries its hem out behind the wearer over floor it left bare at rest
   const trailPts = Array.from({ length: 12 }, (_, i) => [0, 0.08 + (i % 3) * 0.12, -0.62 - Math.floor(i / 3) * 0.06]);
   const swingAt = (extra) => page.evaluate(([e, ps, a, l, x]) => window.draw(e, 13.2, 1, ps, 'shadowcloak', a, 0, l, -1, x, { strict: true }), [[3.2, 0.9, 0], trailPts, [0, 0.6, 0], LIT, extra]);
   const still = await swingAt(null), running = await swingAt({ swing: { x: 0, z: -0.35, lift: 0, twist: 0 } }), trailBare = await bare([3.2, 0.9, 0], trailPts, [0, 0.6, 0]);
   const covered = (f) => f.px.filter((c, i) => lum(c) < lum(trailBare.px[i]) - 40).length;
   check('it swings with its wearer - a run trails its hem out behind them', covered(running) >= covered(still) + 4, `${covered(still)} of ${trailPts.length} behind it covered still, ${covered(running)} running`);
-  // the wearer's own eye, looking level and looking down: no shadow over the view, no red over it
   const own = [];
-  for (const [look, pts] of [[[0, 1.6, -3], [[0, 0, -6], [1, 0, -5], [-1, 0, -7], [0, 1.0, -3]]], [[0, 0, -0.9], [[0, 0, -0.7], [0.25, 0, -0.75]]]]) {   // AUDIT: every point in the frame (strict)
+  for (const [look, pts] of [[[0, 1.6, -3], [[0, 0, -6], [1, 0, -5], [-1, 0, -7], [0, 1.0, -3]]], [[0, 0, -0.9], [[0, 0, -0.7], [0.25, 0, -0.75]]]]) {
     const on = await cl([0, 1.65, 0], Q, 1, pts, look), off = await bare([0, 1.65, 0], pts, look);
     own.push(...on.px.map((c, i) => Math.abs(lum(c) - lum(off.px[i]))));
   }
   check('from the wearer\'s own eye, nothing over the view past the ground at the feet', own.slice(0, 4).every((d) => d < 20), own.join(' '));
-  // ITS SIDES BY ITS WINDING, as the game draws it too - mirrored (world/mat4.js mirrorProjectionX) and its front face
-  // CW: from behind the back's outside (a dark shadow), from the front its lining (red) through the opening, either way
   const windPts = [[0, 0.7, -0.5]];
   for (const mirror of [false, true]) {
     const backSeen = await cl(behind, Q, 1, windPts, cAt, 0, -1, { mirror }), frontSeen = await cl([0, 0.9, 3.2], Q, 1, windPts.map(([x, y]) => [x, y, -0.5]), [0, 0.9, 0], 0, -1, { mirror });
     const [b, f] = [backSeen.px[0], frontSeen.px[0]];
     check(`its two sides by its own winding${mirror ? ', as the game mirrors it' : ''} - its outside dark from behind, its lining red from the front`, lum(b) < 120 && f[0] > 2 * f[1] && f[0] > b[0] + 25, `${JSON.stringify(b)} from behind, ${JSON.stringify(f)} from the front`);
   }
-  // ── SERAPH-WINGS: THE SERAPH WINGS ──
-  // from behind, over the wLitNow floor: gold light out to either side of the wearer and over the head, gold in colour,
-  // nothing wPast their reach; flowing (another moment, another picture) and the same at the wrap; nothing unkindled and
-  // less half kindled; from the wearer's own eye looking wAhead nothing over the view; as the game mirrors it, the same
   const wg = (eye, t, k, pts, at, swOpts = {}) => page.evaluate(([e, tt, kk, ps, a, l, o]) => window.draw(e, tt, kk, ps, 'seraphwings', a, 0, l, -1, null, { strict: true, ...o }), [eye, t, k, pts, at, LIT, swOpts]);
   const wBehind = [0, 1.6, -4.6], wAt = [0, 1.5, 0];
-  const wGrid = Array.from({ length: 41 * 28 }, (_, i) => [-2 + (i % 41) * 0.1, 0.4 + Math.floor(i / 41) * 0.1, -0.35]);   // WINGS-FIT: every 0.1 m - slim strands fall between a coarser grid's points
+  const wGrid = Array.from({ length: 41 * 28 }, (_, i) => [-2 + (i % 41) * 0.1, 0.4 + Math.floor(i / 41) * 0.1, -0.35]);
   const wBare = await wg(wBehind, 13.2, 1, wGrid, wAt, { none: true }), wWhole = await wg(wBehind, 13.2, 1, wGrid, wAt);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'wings_back.png') });
   check('the wings draw without a GL error', wWhole.error === 0 && wWhole.drawn === 1, `error ${wWhole.error}, drawn ${wWhole.drawn}`);
   const wLit = (f) => f.px.map((c, i) => lum(c) > lum(wBare.px[i]) + 60);
   const wLitNow = wLit(wWhole), wSide = (pred) => wGrid.filter((q, i) => wLitNow[i] && pred(q)).length;
-  // WINGS-FIT: slim, shorter strands with dark between them (the old blaze lit 12 a side on a grid twice as coarse) - out
-  // past the shoulders either side, and over the crown of the rest pose (CLOAK_H 1.88 m)
   check('gold light out to either side of the wearer and over the head', wSide((q) => q[0] < -0.5) >= 4 && wSide((q) => q[0] > 0.5) >= 4 && wSide((q) => q[1] > 1.95) >= 4, `left ${wSide((q) => q[0] < -0.5)}, right ${wSide((q) => q[0] > 0.5)}, over the head ${wSide((q) => q[1] > 1.95)}`);
   const wGolds = wWhole.px.filter((c, i) => wLitNow[i]), wGoldN = wGolds.filter((c) => c[0] >= c[1] && c[1] >= c[2]).length, wWarm = wGolds.filter((c) => c[0] > c[2] + 20).length;
   check('in gold - red over green over blue, white only where it burns hottest', wGoldN === wGolds.length && wWarm >= wGolds.length * 0.6, `${wGoldN} gold or white, ${wWarm} warm, of ${wGolds.length}`);
-  const wPast = [[1.8, 1.4, -0.35], [-1.8, 1.4, -0.35], [1.7, 0.6, -0.35], [-1.6, 2.7, -0.35]];   // WINGS-FIT: their shorter reach (1.3 m; at 2.2 m these lay inside it)
+  const wPast = [[1.8, 1.4, -0.35], [-1.8, 1.4, -0.35], [1.7, 0.6, -0.35], [-1.6, 2.7, -0.35]];
   const wPBare = await wg(wBehind, 13.2, 1, wPast, wAt, { none: true }), wPWhole = await wg(wBehind, 13.2, 1, wPast, wAt);
   check('nothing past their reach', wPWhole.px.every((c, i) => Math.abs(lum(c) - lum(wPBare.px[i])) < 12), wPWhole.px.map(lum).join(' '));
   const wLater = await wg(wBehind, 14.7, 1, wGrid, wAt), wFlow = wWhole.px.reduce((a, c, i) => a + Math.abs(lum(c) - lum(wLater.px[i])), 0);
@@ -382,14 +289,12 @@ try {
   check('from the wearer\'s own eye looking ahead, nothing over the view', wFp.px.every((c, i) => Math.abs(lum(c) - lum(wFpBare.px[i])) < 6), wFp.px.map(lum).join(' '));
   const wm = await wg(wBehind, 13.2, 1, wGrid, wAt, { mirror: true }), wLitM = wm.px.map((c, i) => lum(c) > lum(wBare.px[i]) + 60).filter(Boolean).length;
   check('as the game mirrors it, the same light', wm.error === 0 && Math.abs(wLitM - wWholeN) <= wWholeN * 0.25, `${wLitM} vs ${wWholeN}`);
-  // ── CRYSTAL-FIST: THE CRYSTAL RESONANCE ──
   const rs = (eye, t, k, pts, at) => page.evaluate(([e, tt, kk, ps, a]) => window.draw(e, tt, kk, ps, 'resonance', a, 0, 1, -1, null, { strict: true }), [eye, t, k, pts, at]);
-  const resEye = [0, 2.4, 2.0], resAt = [0, 0.3, 0];   // high enough that the far side's columns stand clear above the near side's on the screen
-  /** The middle of column k's square j, in the scene (the feet at the origin, the wall lifted AURA_LIFT_M). */
+  const resEye = [0, 2.4, 2.0], resAt = [0, 0.3, 0];
   const sq = (k, j) => { const a = ((k + 0.5) / RESONANCE_COLUMNS) * Math.PI * 2; return [Math.cos(a) * RESONANCE_R, AURA_LIFT_M + (j + 0.5) * RESONANCE_PITCH_M, Math.sin(a) * RESONANCE_R]; };
-  const nearCols = [9, 10, 11, 12, 13, 14];   // the near side, facing the eye (+z)
+  const nearCols = [9, 10, 11, 12, 13, 14];
   const resPts = nearCols.flatMap((k) => Array.from({ length: RESONANCE_CELLS }, (_, j) => sq(k, j)));
-  const litAt = (t) => nearCols.flatMap((k) => Array.from({ length: RESONANCE_CELLS }, (_, j) => j < resonanceLit(k, resonanceClock(t, 0.37))));   // the probe's wearer's seed
+  const litAt = (t) => nearCols.flatMap((k) => Array.from({ length: RESONANCE_CELLS }, (_, j) => j < resonanceLit(k, resonanceClock(t, 0.37))));
   const rsT = 13.3, rsWhole = await rs(resEye, rsT, 1, resPts, resAt);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'resonance.png') });
   check('the resonance draws without a GL error', rsWhole.error === 0 && rsWhole.drawn === 1, `error ${rsWhole.error}, drawn ${rsWhole.drawn}`);
@@ -397,14 +302,13 @@ try {
   check('every square the law stands lit is lit', onPx.length > 6 && onPx.every((c) => lum(c) > 250), `${onPx.length} lit: ${onPx.map(lum).join(' ')}`);
   check('in the reference\'s purple itself (#a349a4), never summed past it', onPx.every((c) => Math.abs(c[0] - 163) <= 6 && Math.abs(c[1] - 73) <= 6 && Math.abs(c[2] - 164) <= 6), JSON.stringify(onPx.slice(0, 4)));
   check('over a column\'s top, every square dark', offPx.length > 6 && offPx.every((c) => lum(c) < 60), `${offPx.filter((c) => lum(c) < 60).length} of ${offPx.length} dark`);
-  // AUDIT: over a bright floor (0.08 * 9 a light grey) the squares COVER it in the purple, never summed past it
   const rsLit = await page.evaluate(([e, tt, ps, a]) => window.draw(e, tt, 1, ps, 'resonance', a, 0, 9, -1, null, { strict: true }), [resEye, rsT, resPts, resAt]);
   const litOn = rsLit.px.filter((c, i) => want[i]);
   check('over a bright floor, still the purple itself', litOn.length > 6 && litOn.every((c) => Math.abs(c[0] - 163) <= 6 && Math.abs(c[1] - 73) <= 6 && Math.abs(c[2] - 164) <= 6), JSON.stringify(litOn.slice(0, 3)));
   const rsT2 = 14.05, rsLater = await rs(resEye, rsT2, 1, resPts, resAt), want2 = litAt(rsT2);
   const moved = want.filter((w, i) => w !== want2[i]).length, movedPx = rsLater.px.filter((c, i) => want2[i] && !want[i] && lum(c) > 250).length + rsLater.px.filter((c, i) => !want2[i] && want[i] && lum(c) < lum(rsWhole.px[i]) - 150).length;
   check('up and down - another moment, other squares', moved >= 4 && movedPx === moved, `${moved} squares changed by the law, ${movedPx} by the frame`);
-  const feet = Array.from({ length: 24 }, (_, i) => { const a = ((2 * i + 0.5) / RESONANCE_COLUMNS) * Math.PI * 2, r = RESONANCE_R - 0.006; return [Math.cos(a) * r, 0.05, Math.sin(a) * r]; });   // AUDIT: inside the ring - 15 mm in from the foot's inner edge, two pixels clear of its edge's ramp - where the wall (which leans out from an eye over it) stands over nothing
+  const feet = Array.from({ length: 24 }, (_, i) => { const a = ((2 * i + 0.5) / RESONANCE_COLUMNS) * Math.PI * 2, r = RESONANCE_R - 0.006; return [Math.cos(a) * r, 0.05, Math.sin(a) * r]; });
   const rsTop = await rs([0, 3.4, 0.001], rsT, 1, [...feet, [0, 0.05, 0], [1.2, 0.05, 0]], [0, 0, 0]);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'resonance_top.png') });
   check('its feet on the ring, seen from above, in the purple itself; dark within and past it', rsTop.px.slice(0, 24).every((c) => Math.abs(c[0] - 163) <= 6 && Math.abs(c[1] - 73) <= 6 && Math.abs(c[2] - 164) <= 6) && lum(rsTop.px[24]) < 60 && lum(rsTop.px[25]) < 60, rsTop.px.map(lum).join(' '));
@@ -413,7 +317,6 @@ try {
   check('no jump where the clock wraps', rsJump <= 45, `${rsJump}`);
   const rsCold = await rs(resEye, rsT, 0, resPts, resAt);
   check('unkindled, nothing stands', rsCold.px.every((c) => lum(c) < 70), `${Math.max(...rsCold.px.map(lum))}`);
-  // ── SERPENT5: THE MAELSTROM (AUDIT WORLD-REWARDS D3: the real GL's own word, beside the interpreter's) ──
   const ms = (eye, t, k, pts, at) => page.evaluate(([e, tt, kk, ps, a]) => window.draw(e, tt, kk, ps, 'maelstrom', a, 0, 1, -1, null, { strict: true }), [eye, t, k, pts, at]);
   const msEye = [0, 3.4, 0.001], msAt = [0, 0, 0], msT = 21.7;
   const msG = (r, a) => [Math.cos(a) * r, AURA_LIFT_M, Math.sin(a) * r];
@@ -435,10 +338,8 @@ try {
   const msSide = await ms([0, 0.6, 3.2], msT, 1, [[0, AURA_LIFT_M + 0.09, MAELSTROM_R]], [0, 0.2, 0]);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'maelstrom_side.png') });
   check('from the side, its curl stands at the lip', msSide.error === 0 && lum(msSide.px[0]) > 60, `${lum(msSide.px[0])}`);
-  // ── WIKIMAID: THE LILAC WARREN ──
   const wr = (eye, t, k, pts, at, lit = 1, none = false) => page.evaluate(([e, tt, kk, ps, a, l, n]) => window.draw(e, tt, kk, ps, 'lilacwarren', a, 0, l, -1, null, { strict: true, none: n }), [eye, t, k, pts, at, lit, none]);
   const wrEye = [0, 1.0, 2.6], wrAt = [0, 0.25, 0], wrT = 13.3;
-  /** Rabbit k's middle at `t` - its box's (8, 10), inside it whichever way it faces - leaned as the vertex half leans it. */
   const bunMid = (k, t, eye) => {
     const b = warrenBunny(k, warrenClock(t, 0.37)), c = [Math.cos(b.a) * WARREN_R, AURA_LIFT_M + b.y, Math.sin(b.a) * WARREN_R];
     const h = ((WARREN_BUNNY.ground - 10) / 16) * WARREN_BUNNY_M * b.sq, dx = eye[0] - c[0], dz = eye[2] - c[2], d = Math.hypot(dx, dz);
@@ -455,7 +356,6 @@ try {
   check('over a bright floor still lilac, never washed past it', wrLit.px.every((c) => lilacish(c) && c[1] < 200), JSON.stringify(wrLit.px));
   const wrLater = await wr(wrEye, wrT + 0.8, 1, Array.from({ length: WARREN_BUNNIES }, (_, k) => bunMid(k, wrT + 0.8, wrEye)), wrAt);
   check('another moment, the rabbits moved on and still drawn where the law has them', wrLater.px.every(lilacish), JSON.stringify(wrLater.px));
-  // from above: the ring of light inside their lane, the light within, nothing past the ground; their tracks where they landed
   const wrTop = [0, 3.4, 0.001], RL = WARREN_R - WARREN_RING_IN;
   const wrRing = Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return [Math.cos(a) * RL, 0.05, Math.sin(a) * RL]; });
   const pr = warrenPrintsInto(new Float32Array(WARREN_BUNNIES * WARREN_PRINTS * 2), warrenClock(wrT, 0.37)), trackPts = [];
@@ -467,15 +367,12 @@ try {
   const inner = wrTopped.px[24], past = wrTopped.px[25];
   check('the amethyst light within it, and nothing past the ground', inner[2] > wrBareTop.px[24][2] + 8 && inner[2] > inner[1] && lum(past) - lum(wrBareTop.px[25]) < 6, `${inner} / ${past}`);
   check('their tracks where they landed, a hind foot in the lilac', trackPts.length >= 4 && wrTopped.px.slice(26).every((c, i) => c[2] - wrBareTop.px[26 + i][2] > 40), `${trackPts.length} prints: ${wrTopped.px.slice(26).map((c, i) => c[2] - wrBareTop.px[26 + i][2]).join(' ')}`);
-  // the wrap: the rabbits' own middles there, and the ground round the ring - each rabbit on either side of it where the
-  // other has it, never a jump (the fixed points of a moment before would sit on a moving rabbit's edge)
   const wrWrap = [...Array.from({ length: WARREN_BUNNIES }, (_, k) => bunMid(k, 0, wrEye)), ...wrRing.filter((_, i) => i % 3 === 0)];
   const wrB = await wr(wrEye, p.period - 1 / 240, 1, wrWrap, wrAt), wrA = await wr(wrEye, 1 / 240, 1, wrWrap, wrAt);
   const wrJump = Math.max(...wrB.px.map((c, i) => Math.abs(lum(c) - lum(wrA.px[i]))));
   check('no jump where the clock wraps', wrJump <= 45 && wrA.px.slice(0, WARREN_BUNNIES).every(lilacish), `${wrJump}`);
   const wrCold = await wr(wrEye, wrT, 0, mids, wrAt), wrBare = await wr(wrEye, wrT, 0, mids, wrAt, 1, true);
   check('unkindled, nothing stands', wrCold.px.every((c, i) => Math.abs(lum(c) - lum(wrBare.px[i])) < 6), `${Math.max(...wrCold.px.map((c, i) => Math.abs(lum(c) - lum(wrBare.px[i]))))}`);
-  // ── SPIRE-FIRST: FIRSTLIGHT ──
   const fl = (eye, t, k, pts, at, none = false) => page.evaluate(([e, tt, kk, ps, a, n]) => window.draw(e, tt, kk, ps, 'firstlight', a, 0, 1, -1, null, { strict: true, none: n }), [eye, t, k, pts, at, none]);
   const climbT = (c) => c / DAWN_HZ.climb, ang = (s) => (s - DAWN_START) * Math.PI * 2, onGround = (r, a) => [Math.cos(a) * r, 0.05, Math.sin(a) * r];
   const flTop = [0, 3.4, 0.001], flHeld = climbT(0.7), xAt = DAWN_CLIMB.at + 9 * DAWN_CLIMB.step;
@@ -484,11 +381,9 @@ try {
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'firstlight_top.png') });
   check('Firstlight draws without a GL error', flRing.error === 0 && flRing.drawn === 1, `error ${flRing.error}, drawn ${flRing.drawn}`);
   check('from above, its ring whole round the feet in the dawn\'s white - warm, never blue', flRing.px.every((c) => lum(c) > 450 && c[0] >= c[2]), flRing.px.map(lum).join(' '));
-  // mid-climb: the lane between the dial's lines lit behind the climb's head and dark ahead of it, as node's law has it
   const lane = DAWN_R - DAWN_INNER_M / 2, reach = 0.05 + (0.28 - DAWN_CLIMB.at) / (DAWN_CLIMB.step * 10);
   const flMid = await fl(flTop, climbT(0.28), 1, [onGround(lane, ang(reach - 0.12)), onGround(lane, ang(reach + 0.12))], [0, 0, 0]);
   check('mid-climb, the lane lit behind the climb and dark ahead of it', lum(flMid.px[0]) > lum(flMid.px[1]) + 40, `${lum(flMid.px[0])} / ${lum(flMid.px[1])}`);
-  // from X's side: its spire whole once taken, a third before; the shaft of first light past the head as it is taken
   const ax = dawnMarkAngle(9), flEye = [Math.cos(ax) * 3.4, 0.9, Math.sin(ax) * 3.4], flAt = [0, 0.6, 0], xH = DAWN_SPIRE_H[1];
   const spireAt = (y) => [Math.cos(ax) * DAWN_R, 0.05 + y, Math.sin(ax) * DAWN_R];
   const flSide = await fl(flEye, flHeld, 1, [spireAt(xH * 0.6)], flAt);
@@ -497,9 +392,6 @@ try {
   check('X\'s spire whole once taken, a third before', lum(flSide.px[0]) > 300 && lum(flBefore.px[0]) < 60, `${lum(flSide.px[0])} / ${lum(flBefore.px[0])}`);
   const flShot = await fl(flEye, climbT(xAt + 0.06), 1, [spireAt(1.6)], flAt), flEarly = await fl(flEye, climbT(xAt - 0.01), 1, [spireAt(1.6)], flAt);
   check('the shaft of first light past the head as X is taken, none before', lum(flShot.px[0]) > 120 && lum(flEarly.px[0]) < 40, `${lum(flShot.px[0])} / ${lum(flEarly.px[0])}`);
-  // no seam where the ring closes (-x), through the climb's lane and the dial within, at three moments - a pixel either
-  // side; the sunburst's rays and the lozenges are crisp at a pixel's scale, so their continuity there is the
-  // interpreter's exact pin (egeco_honours.test.js, a hair either side of the wrap), not this one's. No jump at the wrap
   let flSeam = 0, flNear = 0;
   for (const t of [2.5, 7.25, 31.75]) for (const r of [DAWN_R - 0.1, 0.5]) {
     const got = await fl(flTop, t, 1, [[-r, 0.05, -0.006], [-r, 0.05, 0.006], [Math.cos(2.2) * r, 0.05, Math.sin(2.2) * r], [Math.cos(2.2 + 0.012 / r) * r, 0.05, Math.sin(2.2 + 0.012 / r) * r]], [0, 0, 0]);
@@ -512,7 +404,6 @@ try {
   const flCold = await fl(flTop, flHeld, 0, flRingPts, [0, 0, 0]), flBare = await fl(flTop, flHeld, 0, flRingPts, [0, 0, 0], true);
   check('unkindled, nothing stands', flCold.px.every((c, i) => Math.abs(lum(c) - lum(flBare.px[i])) < 6), `${Math.max(...flCold.px.map((c, i) => Math.abs(lum(c) - lum(flBare.px[i]))))}`);
   if (shotsAt) { await fl([0.4, 2.3, 3.6], flHeld, 1, [], [0, 0.7, 0]); await page.locator('#c').screenshot({ path: join(shotsAt, 'firstlight.png') }); }
-  // ── NIRNROOT-SAGE: SAGE'S SMOKE ──
   const sg = (eye, t, k, pts, at, lit = 1, none = false) => page.evaluate(([e, tt, kk, ps, a, l, n]) => window.draw(e, tt, kk, ps, 'sagesmoke', a, 0, l, -1, null, { strict: true, none: n }), [eye, t, k, pts, at, lit, none]);
   const sgT = 13.3, sgTop = [0, 3.4, 0.001], sgEye = [0, 1.2, 3.2], sgAt = [0, 0.9, 0];
   const runeRing = Array.from({ length: 72 }, (_, i) => { const a = (i / 72) * Math.PI * 2; return [Math.cos(a) * SAGE_RUNE_R, 0.05, Math.sin(a) * SAGE_RUNE_R]; });
@@ -522,8 +413,6 @@ try {
   const greenish = (c) => c[1] > c[0] + 20 && c[1] > c[2] + 10;
   const runesLit = sgRing.px.filter((c) => greenish(c) && c[1] > 120).length;
   check('from above, small green runes glowing round the feet', runesLit >= 12, `${runesLit} of 72 bearings bright and green`);
-  // each nirnroot where node's law has it: a point in its bulb's glow (the badge's box (8.3, 0.9)), placed as the vertex
-  // half places it - square to the eye about the vertical, swayed by its turn, tilted
   const rootGlow = (k, t, eye) => {
     const r = sageRoot(k, sageClock(t, 0.37)), c = [r.x, r.y, r.z];
     const te = [eye[0] - c[0], eye[2] - c[2]], tl = Math.hypot(...te), right = [-te[1] / tl, te[0] / tl];
@@ -535,17 +424,14 @@ try {
   const sgSide = await sg(sgEye, sgT, 1, glows, sgAt);
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'sagesmoke.png') });
   check('every nirnroot where the law has it, round the waist, glowing green', sgSide.px.filter(greenish).length >= SAGE_ROOTS - 1, JSON.stringify(sgSide.px));
-  // the smoke: puffs in their thick middle years, from the side over the dark floor - each a grey over the bare frame
   const thick = Array.from({ length: SAGE_PUFFS }, (_, m) => sagePuff(m, sageClock(sgT, 0.37))).filter((q) => q.age > 0.15 && q.age < 0.55 && q.z > -0.2).map((q) => [q.x, q.y, q.z]);
   const sgSmoke = await sg(sgEye, sgT, 1, thick, sgAt), sgBareSide = await sg(sgEye, sgT, 1, thick, sgAt, 1, true);
   const greyed = sgSmoke.px.filter((c, i) => lum(c) > lum(sgBareSide.px[i]) + 15).length;
   check('smoke billowing about the body, a grey over what is behind it', thick.length >= 3 && greyed >= Math.ceil(thick.length * 0.6), `${greyed} of ${thick.length} puffs seen (cover ${SAGE_PUFF_A} at most)`);
-  // the wearer's own first person: looking ahead, no smoke over the view
   const ahead = [[0, 1.7, 2], [0.5, 1.5, 2], [-0.5, 1.9, 2], [0.3, 1.2, 1.5]];
   const sgFirst = await sg([0, 1.7, 0.05], sgT, 1, ahead, [0, 1.6, 2]), sgFirstBare = await sg([0, 1.7, 0.05], sgT, 1, ahead, [0, 1.6, 2], 1, true);
   const sgVeil = Math.max(...sgFirst.px.map((c, i) => Math.abs(lum(c) - lum(sgFirstBare.px[i]))));
   check('from the wearer\'s own eye, no smoke over the view ahead', sgVeil <= 12, `${sgVeil}`);
-  // no jump at the wrap (the runes and the nirnroots both sides of it), nothing before it kindles
   const sgB = await sg(sgTop, p.period - 1 / 240, 1, runeRing.filter((_, i) => i % 6 === 0), [0, 0, 0]), sgA = await sg(sgTop, 1 / 240, 1, runeRing.filter((_, i) => i % 6 === 0), [0, 0, 0]);
   const sgJump = Math.max(...sgB.px.map((c, i) => Math.abs(lum(c) - lum(sgA.px[i]))));
   check('no jump where the clock wraps', sgJump <= 45, `${sgJump}`);

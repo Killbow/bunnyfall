@@ -1,7 +1,3 @@
-// T4 probe: ask "where is" repeatedly until the 35% arm fires - the
-// answer must switch from the 7333 compass hint to a 7332 "marked on
-// your map" line, live, with the real %hnr/%ra expanded. Based on
-// whereIsProbe (T3c).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -9,14 +5,9 @@ await server.listen();
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-// ?class=16 (Warrior) is the headless chargen skip - without it the
-// U-wave chargen wizard owns the overlay and eats every keypress.
+// class=16 skips the character-creation wizard, which would otherwise own the overlay and every key press.
 await page.goto('http://localhost:5199/play/?shot&play&exterior&class=16&time=12:00');
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 180000 });
-// T4 needs an INTERLOCUTOR, not a walker: a person parked by the
-// politeness idle answers Where-is exactly the same, so any visible,
-// materialized townsperson does (T1's probe demanded moves > 0
-// because MOVEMENT was its law under test).
 const readPeople = async () => JSON.parse(await page.evaluate(() => window.__people()));
 let live = null;
 for (let i = 0; i < 120 && !live; i++) {
@@ -42,11 +33,10 @@ await press('KeyE');
 console.log('greeting:', JSON.stringify(await talk()));
 let revealed = null, directions = 0;
 for (let ask = 0; ask < 15 && !revealed; ask++) {
-  await press('KeyW');          // where is... (also "ask another" on the answer window)
-  await press('Digit1');        // first category
-  await press('Digit1');        // first building
+  await press('KeyW');
+  await press('Digit1');
+  await press('Digit1');
   const ans = await talk();
-  // __talk's overlayText is a { text, kind } object on answer windows.
   const o = ans.overlayText;
   const text = typeof o === 'string' ? o : (o?.text ?? '');
   console.log(`ask ${ask}:`, JSON.stringify(text));

@@ -1,21 +1,7 @@
-// SCALE5a (2026-10-10, Mac: "we just hit 500 online people. I think its time to scale up our server and improve
-// performance for more people"): THE HUB, MEASURED - what the world channel (`chat:world`, the one room every player online
-// holds a socket in) costs at N sockets, on the REAL Room (server/src/index.js) over the relay pins' fake object
-// (test/fakeRoom.mjs), every hello a real signed token with an account and no claim - a reconnect, as a relay deploy's
-// wave of them is (net/online.js: a hub link claims on its first hello alone; AUDIT SCALE5a D15). The sockets COUNT what
-// they are sent and parse nothing - so a send costs the room nothing here, where a runtime's costs it a copy at least:
-// COPY=1 copies each frame as it is sent (AUDIT SCALE5a D6), a floor under what a real send costs. One clock, the
-// bench's own, each hello past the room's hello gate.
-//
-//   node tools/relayHubBench.mjs                          hubs of 500, 1000 and 2000
-//   N=250,500 node tools/relayHubBench.mjs
-//   ROOT=/path/to/a/worktree node tools/relayHubBench.mjs   the same bench over another tree (an A/B's base)
-//   COPY=1 node tools/relayHubBench.mjs                      every send copies its frame
-//
-// It prints, per hub: the WAVE - every socket's hello one after another, as a relay deploy's reconnect brings them (ms in
-// all, and a hello's median us); the welcome's largest frame; the frames the wave sent and their bytes; a chat line's us
-// and its frames; and the DRAIN - every socket's leave (ms in all). Node's CPU, relative only: an A/B is two runs, the
-// base's tree and the change's, one after the other, alternated, and nothing else running.
+// Benchmarks the chat hub's hello wave, chat line, and drain at N sockets on the real Room and test/fakeRoom.mjs.
+// Run: node tools/relayHubBench.mjs (N=250,500; ROOT=<worktree> for an A/B base; COPY=1 to copy each frame).
+// CPU numbers are relative only: run the base and the change alternately with nothing else running.
+
 import { resolve, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -39,7 +25,8 @@ async function hub(n) {
     let sent = 0, bytes = 0;
     const counting = (ws) => { ws.send = (s) => { sent++; bytes += s.length; ws.max = Math.max(ws.max || 0, s.length); if (COPY) sink += Buffer.from(s).length & 1; }; };
     const pad = (i) => String(i).padStart(5, '0');
-    const toks = [];   // minted first, so the wave's time is the room's and not the signer's
+    // Tokens are minted first so the wave measures the room, not the signer.
+    const toks = [];
     for (let i = 0; i < n; i++) toks.push(await R.token(`peer-${pad(i)}`, { s: `acct-${pad(i)}`, n: `Player${i}` }));
     const hellos = [];
     let welcome = 0;
@@ -70,11 +57,13 @@ async function hub(n) {
   } finally { Date.now = realNow; }
 }
 
-await hub(300);   // warm: the first hub otherwise carries the compiler's warm-up
+// A warm-up hub keeps compiler warm-up out of the first measured hub.
+await hub(300);
 print(COPY ? '(every send copies its frame)' : '(sends are counted, never copied)');
 print('  hub   wave ms   hello us (median)   welcome KB   wave frames   wave MB   chat us/line   chat frames   drain ms');
 for (const n of CROWDS) {
   const r = await hub(n);
   print([String(r.n).padStart(5), r.wave.ms.toFixed(0).padStart(9), r.wave.median.toFixed(0).padStart(19), (r.welcome / 1024).toFixed(1).padStart(12), String(r.wave.sent).padStart(13), (r.wave.bytes / 1048576).toFixed(1).padStart(9), r.chat.us.toFixed(0).padStart(14), r.chat.sent.toFixed(0).padStart(13), r.drainMs.toFixed(0).padStart(10)].join(' '));
 }
-if (sink < 0) print(sink);   // the copies' sum, read so no copy is optimized away
+// Reading the sum keeps the copies from being optimized away.
+if (sink < 0) print(sink);

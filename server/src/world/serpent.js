@@ -1,5 +1,3 @@
-// The fights against the Sea Serpent: ships, hulls, bodies, frames, and falls in a room.
-// It fans, saves, and arms each fight, runs its tick, tells the hub, and hands out receipts.
 import { SERPENT_FIGHTS_KEY, SERPENT_SITES_MAX, serpentFightId, cellRoomOfWire, SERPENT_TELL_RETRY_MS, SOCIAL_ROOM, SERPENT_INTERNAL_FELL, SERPENT_FELLS_KEY, SERPENT_RC_PREFIX, validSerpentOut, SERPENT_FELLS_MAX } from '../relay.js';
 import { serpentStoreKey, SERPENT_KEEP_MS } from './serpentKeys.js';
 import { SERPENT_NATIVE_PER_M, serpentAt, serpentSiteKey, SERPENT_BRAIN_MIN, serpentHolds, serpentAdmits, serpentBossOf, serpentRiseYaw, SERPENT_DIVE_MS, sameSerpentSite } from '../../../src/net/serpentLaw.js';
@@ -96,8 +94,8 @@ export class SerpentPart {
   _serpentRoomFor(fights, day) {
     const today = [...fights].filter(([, f]) => f.day === day);
     if (today.length < SERPENT_SITES_MAX) return true;
-    // Never let a slain fight go: a later `in` would raise it again at full health. A fight with
-    // a ship near its waters is not idle, even before she has a part.
+    // Never reuse a slain fight's slot: a later `in` would raise it again at full health.
+    // A fight with a ship near its waters is not idle, even before any player has a part.
     const over = today.find(([, f]) => f.gone && !f.fell);
     if (over) return over[0];
     const idle = today.find(([, f]) => !f.fell && !Object.values(f.players).some(serpentBrain.serpentHasPart)
@@ -125,7 +123,7 @@ export class SerpentPart {
     await this._serpentSay(fights, id, f, serpentBrain.serpentResume(f, now), now);
     const sunk = line.enforce && !!f.players[a.sub]?.bd?.dn;
     if (m.k === 'hit') {
-      // Only the socket the census judges may strike; another socket of hers could strike from near
+      // Only the socket the census judges may strike; the same player's other socket could strike from near
       // while the judged one poses far off.
       const own = this._siegeSocketOf(a.sub)?.[0] === ws;
       const pose = a.pose && !a.pose.dd && !sunk && own ? this._serpentFrameOf(f, a.pose) : null;

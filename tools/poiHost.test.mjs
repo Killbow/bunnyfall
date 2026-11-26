@@ -1,8 +1,3 @@
-// The game's POI host (src/poi/poiHost.js) standing documents served by its own feed (src/poi/poiFeed.js), with a
-// stub renderer and an in-process store (no sockets): a v1 POI of uploaded models, a v2 POI that mixes an uploaded
-// model with a Daggerfall model part from the World Builder, parts whose assets the store lacks, fails on, or refuses,
-// parts whose bytes will not read, a new revision, and a builder's draft laid over the feed.
-
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPoiFeed } from '../src/poi/poiFeed.js';
@@ -20,9 +15,7 @@ const meshOf = (k) => encodePoiMesh({
   uvs: new Float32Array([0, 0, 1, 0, 0, 1]), indices: new Uint16Array([0, 1, 2]), submeshes: [{ start: 0, count: 3 }],
 });
 const MESH = meshOf(1), MESH_SHA = await shaOf(MESH);
-// the part whose answers each test sets
 const ROOF = meshOf(2), ROOF_SHA = await shaOf(ROOF);
-// served, but will not read
 const JUNK = new TextEncoder().encode('not a model at all'), JUNK_SHA = await shaOf(JUNK);
 const BAD_PICTURE = new TextEncoder().encode('not a picture'), BAD_PICTURE_SHA = await shaOf(BAD_PICTURE);
 const PY = 250;
@@ -32,8 +25,6 @@ const v1Poi = (id, px) => {
   d.parts.push(newPart(d, { mesh: MESH_SHA, submeshes: 1, name: 'shed' }));
   return d;
 };
-/** The v2 schema's worked example: its first part is an uploaded model, and its second is a Daggerfall model (as the
- *  World Builder writes). */
 const mixedPoi = (id, px) => {
   const d = poiV2Example();
   d.id = id; d.place.px = px; d.place.py = PY;
@@ -45,10 +36,6 @@ const mixedPoi = (id, px) => {
 const withPart = (d, key, mesh) => { d.parts.push({ ...newPart(d, { mesh, submeshes: 1, name: key }), key }); return d; };
 const keeper = (d) => { d.npcs = [newNpc(d, { name: 'Keeper', t: [2, 0, 0], look: { k: 'df', a: 184, r: 0 } })]; return d; };
 
-/**
- * A store, a feed, and a host over `docs` (live, rev `live.rev`) and `drafts` (laid over the feed). `roof(n)` answers
- * the n-th ask for ROOF_SHA: a Response, or it throws (a fetch that got no answer).
- */
 async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dmTest = null, dmHeld = undefined } = {}) {
   const live = { rev: 1, docs };
   const asked = new Map();
@@ -67,7 +54,6 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dm
   const log = { warn: (...a) => warnings.push(a.join(' ')) };
   const feed = createPoiFeed({ base: () => 'http://store.invalid', fetch, cache: null, log });
   await feed.refresh();
-  // every ask the host makes of the feed, by sha (the feed answers a second ask from memory, without the store)
   const wanted = new Map();
   const asset = feed.asset;
   feed.asset = (sha, o) => { wanted.set(sha, (wanted.get(sha) ?? 0) + 1); return asset(sha, o); };
@@ -90,12 +76,9 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dm
     groundAt: () => 0, clock: () => 0, now: () => clock, dm, dmTest, dmHeld,
     getTexture: async () => null, uploadRecordFrame: () => null, log,
   });
-  // the people each POI shows this frame, as the host hands them to its people pass
   const sync = host.npcs.sync;
   host.npcs.sync = (id, shown, t) => { people[id] = shown.length; return sync(id, shown, t); };
   const console0 = console.warn;
-  // each frame as the world runs it: the host's frame, then its opaque draw, its translucent draw, and a pick, with the
-  // view test checking every box it is handed (world.js yardCull)
   const cull = (b) => { if (![0, 1, 2, 3, 4, 5].every((k) => Number.isFinite(b[k]))) throw new Error('a box that is not one'); return DECOR_DRAW; };
   let translucentDrawn = 0;
   const frames = async (n = 60) => {
@@ -111,7 +94,6 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dm
     } finally { console.warn = console0; }
   };
   const of = (id) => host.standing().find((s) => s.id === id);
-  /** A new revision of the live set: `change` applied to each document, the feed asked again. */
   const revise = async (change) => { live.docs = live.docs.map((d) => change(structuredClone(d))); live.rev++; await feed.refresh(); };
   return { host, feed, asked, wanted, warnings, translucent: () => translucentDrawn, people, dmFrames, dmCloses, dmTicks, frames, of, revise, later: (ms) => { clock += ms; } };
 }
@@ -198,7 +180,6 @@ test('a see-through part the store did not have joins whole once it does: drawn,
   assert.equal(r.translucent(), 0);
   have = true;
   r.later(POI_RETRY_MS);
-  // the re-ask, the join, and the frames after it, each drawn and picked
   await r.frames();
   assert.equal(r.of(d.id).parts, 2);
   assert.ok(r.translucent() > 0, 'the see-through part is drawn');
@@ -216,7 +197,6 @@ test('a part whose model will not read is left out for the revision, and a new r
   r.later(POI_RETRY_MS);
   await r.frames();
   assert.equal(r.wanted.get(JUNK_SHA), 1, 'bytes that will not read are not asked again within the revision');
-  // the same build: the stand is kept
   await r.revise((x) => ({ ...x, name: 'Renamed shed' }));
   await r.frames();
   assert.equal(r.of(d.id).rev, 2);

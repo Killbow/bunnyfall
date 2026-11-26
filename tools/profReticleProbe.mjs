@@ -1,11 +1,6 @@
-// PROF-RETICLE (2026-10-01): THE ACTS ON THE CROSSHAIR, PHOTOGRAPHED - each act's marks (ui/professions/profReticle.js) round a
-// drawn crosshair over a sky-and-grass ground, through a 65 degree lens, at the moments a player sees: the vein with its
-// glint and a blow's flash, the ring in the band, the steady hand held and bruised, the Basket's glint and its finds,
-// the knife's line half drawn and the Gentle hold, the net winding, waiting over a school, at the tug and in the haul;
-// the still forms under reduced motion; a phone's width. Driven headless through Vite over the real modules - no
-// ARENA2, no world.
-//
-//   node tools/profReticleProbe.mjs [outDir]
+// Screenshots each profession's crosshair marks through Vite over the real modules, without ARENA2.
+// Run: node tools/profReticleProbe.mjs [outDir]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -17,7 +12,6 @@ await server.listen();
 const browser = await chromium.launch({ headless: true });
 const shots = [];
 const failures = [];
-/** A judgement: the marks are on the reticle, inside the screen, with no plate and no title. */
 const check = (ok, what) => { if (!ok) failures.push(what); };
 try {
   for (const [vw, vh, tag, reduced] of [[1280, 800, 'desk', false], [390, 844, 'phone', false], [1280, 800, 'still', true]]) {
@@ -25,7 +19,7 @@ try {
     await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
-    await page.goto('http://localhost:5241/src/ui/profHud.js', { waitUntil: 'domcontentloaded' }); console.error('loaded', tag);   // a page of the origin - the modules import from it; never the landing (U60)
+    await page.goto('http://localhost:5241/src/ui/profHud.js', { waitUntil: 'domcontentloaded' }); console.error('loaded', tag);
     await page.evaluate(() => { document.head.querySelectorAll('style, link[rel=stylesheet]').forEach((n) => n.remove()); document.body.innerHTML = ''; document.body.style.cssText = 'margin:0;height:100vh;background:linear-gradient(#8aa0b5 0 48%, #55663f 48% 70%, #3f4d30 70%)'; const x = document.createElement('div'); x.style.cssText = 'position:fixed;left:50%;top:50%;width:9px;height:9px;transform:translate(-50%,-50%);background:linear-gradient(#e6dcc0,#e6dcc0) center/100% 1px no-repeat,linear-gradient(#e6dcc0,#e6dcc0) center/1px 100% no-repeat'; document.body.append(x); });
     const scenes = await page.evaluate(async () => {
       const { createProfHud } = await import('/src/ui/profHud.js');
@@ -38,7 +32,7 @@ try {
       setProfCueSink(() => {});
       window.__hud = createProfHud({ anchor: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2, focal: window.innerHeight / 2 / Math.tan((65 * Math.PI) / 360) }) });
       const run = (n, f) => { for (let i = 0; i < n; i++) f(i); };
-      const cycle = () => { let r = 0.05; return () => { r = (r + 0.37) % 1; return r; }; };   // the glint's re-roll asks until it moves
+      const cycle = () => { let r = 0.05; return () => { r = (r + 0.37) % 1; return r; }; };
       const acts = {
         mine: () => { const a = createMineAct({ tier: 2, rng: cycle() }); a.tick(0.1, { aim: { yaw: -4.6, pitch: 2.2 } }); a.tick(0.1, { attack: true, aim: { yaw: -4.6, pitch: 2.2 } }); a.tick(0.6, { aim: { yaw: 1, pitch: -1 } }); a.tick(0.05, { attack: true, aim: { yaw: 1, pitch: -1 } }); return [a, '', {}]; },
         chop: () => { const a = createChopAct({ tier: 2, rank: 40 }); a.tick(0.9, {}); a.tick(0.01, { attack: true }); a.tick(0.5, {}); return [a, '', {}]; },

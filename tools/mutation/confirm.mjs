@@ -1,8 +1,5 @@
-// Re-apply a specific mutant and run the ENTIRE 688-test suite, to prove a
-// SURVIVED verdict is not an artefact of the coverage-derived test subset.
-//   node tools/mutation/confirm.mjs <spec-file.json>
-// spec-file: [ {file, line, from, to, nth?} , ... ]  (nth = which occurrence of
-// `from` on that line, default 1)
+// Reapplies each mutant in a spec and runs the whole suite, to confirm a survivor is not an artifact of the subset.
+// Run: node tools/mutation/confirm.mjs <spec.json> (entries {file, line, from, to, nth?}; nth defaults to 1).
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -23,8 +20,7 @@ for (const s of specs) {
   fs.writeFileSync(abs, lines.join('\n'));
   const chk = spawnSync(process.execPath, ['--check', abs], { encoding: 'utf8' });
   if (chk.status !== 0) { fs.writeFileSync(abs, orig); results.push({ ...s, verdict: 'SYNTAX' }); continue; }
-  // AUDIT 68 X5-mutation-harness-enobufs-orphaned: a whole-suite TAP outgrows the default 1 MiB maxBuffer, and the
-  // child killed by ENOBUFS exits non-zero - which read as CAUGHT, so every real survivor sent here was dismissed.
+  // A whole-suite TAP outgrows the default 1 MiB maxBuffer, and an ENOBUFS kill must not read as caught.
   const r = spawnSync(process.execPath, ['--test'], { cwd: ROOT, encoding: 'utf8', timeout: 600000, maxBuffer: 1 << 28 });
   fs.writeFileSync(abs, orig);
   if (r.error || r.status === null) {

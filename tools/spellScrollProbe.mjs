@@ -1,18 +1,6 @@
-// SPELL-SCROLL (FIELD BUGS 2026-10-18f): THE BOOK'S LIST, AND ITS SIBLINGS, IN A REAL BROWSER.
-//
-// The pins (test/ui/enhanced/fb1018f_spellscroll.test.js) run on the suite's minimal DOM, which has no layout: they prove
-// a pane's offset is carried across a repaint, and they read the book's CSS as text. What the CSS DOES - that the list
-// is the pane that scrolls, and the chosen spell's page stands beside it in view - only a browser's layout can say. This
-// mounts the real windows over the dev server's real modules and sheets in Chromium, scrolls each list, presses as a
-// player does (a real mouse click at the row's centre), and reads where every pane stands after.
-//
-//   npx vite --port 5199 --strictPort --host 127.0.0.1 &
-//   node tools/spellScrollProbe.mjs
-//
-// It checks: the enhanced spellbook at a desktop and a phone size (the list kept, the pick lit, its page in view), the
-// Chronicle's notes (a fold and a remove kept, another section at its top) - exit 1 if any fails - and reads the two
-// salvage surfaces the report's reply named, which held before the fix (the Reforge's Salvage page and the pack's
-// Salvage): their readings are printed, not judged.
+// Scrolls the spellbook and Chronicle lists in a real browser and checks that the scroll and the chosen row stay.
+// Usage: start `npx vite --port 5199 --strictPort --host 127.0.0.1` (or set PROBE_ORIGIN), then run the probe.
+
 import { chromium } from 'playwright';
 
 const ORIGIN = process.env.PROBE_ORIGIN ?? 'http://127.0.0.1:5199';
@@ -20,7 +8,6 @@ const fails = [];
 const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if (!ok) fails.push(what); };
 const browser = await chromium.launch();
 
-/** A blank page on the dev server's origin, so the modules import as the game imports them. */
 async function page(viewport) {
   const p = await browser.newPage({ viewport });
   p.on('pageerror', (e) => console.log('pageerror:', e.message));
@@ -28,18 +15,15 @@ async function page(viewport) {
   await p.evaluate(() => { document.open(); document.write('<!doctype html><html><head></head><body style="margin:0"></body></html>'); document.close(); });
   return p;
 }
-/** Every pane under the window's host that scrolls, as `class=offset`. */
 const panes = (p) => p.evaluate(() => [...window.__host.querySelectorAll('*')]
   .filter((e) => ['auto', 'scroll'].includes(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 1)
   .map((e) => ({ cls: e.className, top: e.scrollTop })));
-/** Scroll the first pane that holds `inside` (or is it) to `y`. */
 const scrollTo = (p, inside, y) => p.evaluate(([inside, y]) => {
   const sc = [...window.__host.querySelectorAll('*')].find((e) => ['auto', 'scroll'].includes(getComputedStyle(e).overflowY)
     && e.scrollHeight > e.clientHeight + 1 && (e.matches(inside) || e.querySelector(inside)));
   sc.scrollTop = y;
   return sc.scrollTop;
 }, [inside, y]);
-/** Click, with the mouse, the first `sel` whose words hold `words` and that stands inside its pane's view. */
 async function press(p, sel, words = '') {
   const at = await p.evaluate(([sel, words]) => {
     const n = [...window.__host.querySelectorAll(sel)].find((x) => {
@@ -61,7 +45,6 @@ async function press(p, sel, words = '') {
   return at.text;
 }
 
-// ── THE ENHANCED SPELLBOOK: forty spells from the Spell Maker's own producer ──────────────────────────────────────────
 for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['phone', { width: 393, height: 851 }]]) {
   const p = await page(viewport);
   await p.evaluate(async () => {
@@ -88,7 +71,6 @@ for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['pho
   await p.close();
 }
 
-// ── THE CHRONICLE: thirty notes and thirty messages from the real notebook ─────────────────────────────────────────────
 {
   const p = await page({ width: 1280, height: 720 });
   await p.evaluate(async () => {
@@ -113,7 +95,6 @@ for (const [size, viewport] of [['desktop', { width: 1280, height: 720 }], ['pho
   await p.close();
 }
 
-// ── THE SALVAGE SURFACES (read, not judged): the Reforge's Salvage page and the pack's Salvage ───────────────────────
 {
   const p = await page({ width: 1280, height: 720 });
   await p.evaluate(async () => {

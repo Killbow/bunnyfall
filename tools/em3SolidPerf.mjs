@@ -1,4 +1,5 @@
-// EM3-3D perf probe: a big walked dungeon with a real flight of steps; times the solid sheet's full repaint.
+// Times repaints of the 3D dungeon map on a large synthetic dungeon and fails if the map repaints at rest.
+// Run: node tools/em3SolidPerf.mjs [dir]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +22,6 @@ const out = await page.evaluate(async () => {
   const am = await import('/src/maps/automap.js');
   const rows = [];
   const quad = (key, y, x0, z0, x1, z1) => rows.push({ key, positions: new Float32Array([x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1]), indices: new Uint16Array([0, 1, 2, 0, 2, 3]), matrix: null });
-  // three storeys of a 6x4 grid of 14 m rooms joined by 3 m corridors
   for (let f = 0; f < 3; f++) {
     const y = f * 9;
     for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) {
@@ -31,7 +31,6 @@ const out = await page.evaluate(async () => {
       if (j < 3) quad(`cz${f}.${i}.${j}`, y, x0 + 5, z0 + 14, x0 + 8, z0 + 20);
     }
   }
-  // a flight of steps from storey 0 up to storey 1 beside the grid: 36 treads of 0.25 m over 0.3 m each
   for (let k = 0; k < 36; k++) quad(`st${k}`, (k + 1) * 0.25, 125 + k * 0.3, 30, 125 + (k + 1) * 0.3, 34);
   quad('land0', 0, 120, 28, 125, 36); quad('land1', 9, 125 + 36 * 0.3, 28, 125 + 36 * 0.3 + 5, 36);
   const model = { rows };
@@ -45,7 +44,6 @@ const out = await page.evaluate(async () => {
   const win = new HeldMapWindow(deps);
   globalThis.__win = win;
   for (let i = 0; i < 60; i++) win.tick(1 / 30);
-  // time 20 forced repaints of the kept layer, as a pan does
   const sheet = win._sheet;
   const ps = sheet.paintStatic.bind(sheet);
   let tp = 0; sheet.paintStatic = (c, e) => { const a = performance.now(); ps(c, e); tp += performance.now() - a; };
@@ -54,7 +52,6 @@ const out = await page.evaluate(async () => {
   const t0 = performance.now();
   for (let i = 0; i < 20; i++) { win._view = { ...win._view, ox: win._view.ox + 0.3 }; win._dirty = true; win.tick(1 / 60); }
   const pan = (performance.now() - t0) / 20;
-  // a turn: Q, then the frames of its ease (the quick sketch), then the frame it lands on (the full drawing)
   return { pan, stat: tp / 20, over: to / 20, scale: win._view.scale };
 });
 console.log(JSON.stringify(out));
@@ -84,9 +81,8 @@ await page.evaluate(() => { const w = globalThis.__win; for (let i = 0; i < 30; 
 await page.screenshot({ path: `${SHOTS}/perf.png` });
 await page.evaluate(() => { const w = globalThis.__win; w._zoomBy(3, 1000, 450); for (let i = 0; i < 40; i++) w.tick(1 / 30); });
 await page.screenshot({ path: `${SHOTS}/perf-zoom.png` });
-// EM3-3D merge, T3: the finished drawing is KEPT (README, third round): once the map rests, a frame repaints nothing,
-// whatever the machine. The turn and zoom times are this machine's and are reported, not judged.
-const fail = (why) => { console.error('FAIL', why); process.exitCode = 1; };   // T3: a probe judges its subject
+// Turn and zoom times depend on the machine, so they are reported, not judged.
+const fail = (why) => { console.error('FAIL', why); process.exitCode = 1; };
 const settled = out2.settle.split(' ').slice(1).map(Number);
 if (settled.some((ms) => ms > 5)) fail(`the map repaints while it rests: ${out2.settle}`);
 if (!(out.pan > 0 && out.stat > 0)) fail(`the timings did not run: ${JSON.stringify(out)}`);

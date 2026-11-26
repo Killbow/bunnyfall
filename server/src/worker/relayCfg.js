@@ -1,5 +1,3 @@
-// Checks a relay setting a developer sends the hub, and answers a bad value with the refusal in
-// words (null when the value is good).
 import { GRANT_MODES } from '../../../src/net/grantLaw.js';
 import { cellSeedOf } from '../../../src/net/cellTree.js';
 import { HERALD_FAMILIES, heraldThread } from '../../../src/net/herald/heraldCard.js';

@@ -1,4 +1,3 @@
-// The `page` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, isChatRoom } from '../../relay.js';
 
 export function pageFrame(ws, a, m) {

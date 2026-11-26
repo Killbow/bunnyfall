@@ -1,6 +1,6 @@
-// BUNNYFALL: checks world script counts against the branch's merge base plus a small edit allowance.
+// Checks world script counts against the branch's merge base plus a small edit allowance.
 // Frame loops and frame* phase functions stay under the bytecode and register ceilings in tools/worldBudget.json.
-// Run: node tools/worldBudgetCheck.mjs [--base <ref>]   (or WORLD_BUDGET_BASE; else the merge base with main)
+// Run: node tools/worldBudgetCheck.mjs [--base <ref>] (or WORLD_BUDGET_BASE; else the merge base with main).
 import { spawn, execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

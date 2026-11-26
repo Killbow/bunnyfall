@@ -1,4 +1,3 @@
-// The `quest` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, byteGate, tokenGate, QUEST_ROOM_HZ_MAX, QUEST_ROOM_BYTES_PER_S } from '../../relay.js';
 
 export async function questFrame(ws, a, m, message, doored) {

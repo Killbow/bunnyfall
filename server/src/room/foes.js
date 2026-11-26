@@ -1,5 +1,3 @@
-// The live monster frames a room fans out: the byte budget, held frames, their turns, and beats.
-// A blow onto one socket passes that socket's frame and byte funnels.
 import { foesFrameFull, foesFrameHandsOn, FOES_FULL_RESERVE, FOES_ROOM_BYTES_PER_S, isRoomKey, floorGate, isCellRoom, inRangeOf, FOES_STALE_MS, FOES_UNHEARD_MS, FOES_FULL_MS, FOES_FIRST_MS, tokenGate, HIT_ROOM_HZ_MAX, byteGate, HIT_ROOM_BYTES_PER_S } from '../relay.js';
 import { heldOf, holdFrame, createFoesHold, heldHead, unhold, served, FOES_BEAT_SCAN_MS, FOES_LEFT_FLOOR } from '../foesHold.js';
 import { relayCfgValue } from '../../../src/net/relayCfg.js';

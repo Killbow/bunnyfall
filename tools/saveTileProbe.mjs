@@ -1,24 +1,6 @@
-// TILE1/TILE2 — THE SAVE TILES, IN A REAL BROWSER.
-//
-// Mac: "a detailed tile based design for your saves which will
-// translate to the load character pane also. Basically showing your
-// portrait and character information."
-//
-// node cannot draw a tile, so the node pins hold its ARITHMETIC and
-// this holds the drawing. Same machinery as tools/accountCardProbe.mjs
-// and for the same reason ACC1e needed it: DECLARING a font family and
-// RENDERING in it are different claims, and only a computed style can
-// tell them apart.
-//
-//     node tools/saveTileProbe.mjs
-//     PROBE_SHOTS=/tmp node tools/saveTileProbe.mjs
-//
-// THE PORTRAIT IS A STAND-IN AND THE SHEET SAYS SO. A real head is ten
-// records in the race-and-gender FACE CIF and needs the player's own
-// Daggerfall files, which this container does not have. The stand-in is
-// drawn at the REAL size of a head record (64x80 at 1x, 2x here, which
-// is what ui/facePortrait.js produces) so the layout under test is the
-// layout a player gets - what it cannot show is the art itself.
+// Draws the save tiles in a real browser and checks their layout and fonts.
+// Run: node tools/saveTileProbe.mjs (PROBE_SHOTS=<dir> for screenshots).
+
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 
@@ -58,7 +40,6 @@ await page.addStyleTag({ content: fontCss });
 await page.addStyleTag({ content: ENHANCED_CSS });
 await page.evaluate(() => document.fonts.ready);
 
-/** The saves a player would actually be looking at. */
 const SAVES = [
   { name: 'Nystul', race: 'Breton', career: 'Battlemage', level: 12, health: 84, maxHealth: 120, gold: 14230,
     when: '17th of Hearthfire, 3E 405', hour: '21:40', saveName: 'QuickSave', face: true, cloud: 'saved' },
@@ -68,9 +49,6 @@ const SAVES = [
     when: '28th of Last Seed, 3E 405', hour: '03:02', saveName: 'AutoSave', face: true, cloud: 'busy' },
   { name: 'Mithriil Stormaire', race: 'High Elf', career: 'Spellsword', level: 3, health: 30, maxHealth: 44, gold: 9,
     when: '1st of Morning Star, 3E 405', hour: '12:00', saveName: 'a very long slot name indeed', face: false, cloud: 'bad' },
-  // AUDIT-312 F2: a card from before CHARID1. It cannot be filed in the
-  // cloud yet and it is not a failure, so it gets the sentence and no
-  // button - and it must still read as an ordinary tile.
   { name: 'Old Gwylim', race: 'Wood Elf', career: 'Archer', level: 5, health: 52, maxHealth: 52, gold: 1204,
     when: '9th of Sun\'s Dusk, 3E 405', hour: '18:30', saveName: 'QuickSave', face: false, cloud: 'wait' },
 ];
@@ -80,8 +58,6 @@ const measured = await page.evaluate(async ({ saves }) => {
   const app = document.getElementById('app');
   app.style.cssText = 'padding:28px;max-width:1040px;margin:0 auto;';
 
-  /** A head record's real size (64x80 at 1x), drawn at 2x as
-   *  facePortrait.js draws it - so the layout is the real layout. */
   const standIn = () => {
     const c = document.createElement('canvas');
     c.width = 128; c.height = 160;
@@ -97,10 +73,6 @@ const measured = await page.evaluate(async ({ saves }) => {
   grid.className = 'svgrid';
   app.append(grid);
   const cloudOf = (s) => ({
-    // AUDIT-312 F1: a backed-up slot carries BOTH cloud buttons now -
-    // the delete had a route and a client call and no door at all, while
-    // the refusal table already told a player at the bound to delete
-    // one. Two buttons plus the line is what has to fit.
     saved: { state: 'saved', when: '2 hours ago', actions: [{ label: 'Back up again' }, { label: 'Delete backup' }] },
     none: { state: 'none', actions: [{ label: 'Back up' }] },
     busy: { state: 'busy' },
@@ -122,9 +94,6 @@ const measured = await page.evaluate(async ({ saves }) => {
     tiles.push(t);
   });
 
-  // ...and the same tile with NO account, which is what most players
-  // see: no cloud line at all, because ACC0's wall is at cloud saves
-  // and a player who has not asked for one is not nagged on every tile.
   const plain = document.createElement('div');
   plain.className = 'svgrid';
   plain.style.marginTop = '8px';
@@ -132,14 +101,6 @@ const measured = await page.evaluate(async ({ saves }) => {
   const bare = saveTile(document, saves[0], { face: standIn(), cloud: { state: 'off' }, actions: [{ label: 'Play online', primary: true }] });
   plain.append(bare);
 
-  // ── ACC2c: THE SAVES THAT ARE ONLY IN THE BACKUP ───────────────
-  // Stood up in a REAL browser because that is the only place three of
-  // its claims can be checked: that a heading in the display face
-  // actually gets one (ACC1f found `.shell .card h3` forcing the pixel
-  // face on a card that had never asked for it), that `is-only` is a
-  // DIFFERENT colour from the verdigris a backed-up local save wears,
-  // and that a tile with no face, no sub-line and no stats is still a
-  // tile rather than a collapsed strip.
   const onlyBox = document.createElement('div');
   onlyBox.className = 'svcloudonly';
   const h4 = document.createElement('h4');
@@ -183,20 +144,13 @@ const measured = await page.evaluate(async ({ saves }) => {
       cloudSay: t.querySelector('.svsay')?.textContent ?? null,
       cloudColor: cs(t.querySelector('.svsay'))?.color ?? null,
       cloudButtons: [...t.querySelectorAll('.svcloud .act')].map((b) => b.textContent),
-      // Does the cloud line fit? Its own right edge against the last
-      // button's - a second button that wraps off the tile is the fault
-      // a source sweep cannot see.
       cloudRight: t.querySelector('.svcloud')
         ? Math.round(box(t.querySelector('.svcloud')).right) : 0,
       cloudLastRight: t.querySelector('.svcloud .act:last-child')
         ? Math.round(box(t.querySelector('.svcloud .act:last-child')).right) : 0,
       slot: t.querySelector('.svslot')?.textContent ?? null,
-      // A LONG SLOT NAME SITS ON THE HEADING'S LINE, so it is bounded
-      // and clipped rather than allowed to crowd the character's name.
       slotW: t.querySelector('.svslot') ? Math.round(box(t.querySelector('.svslot')).width) : 0,
-      // THE TEXT's right edge, not the heading BLOCK's: an h3 is
-      // full-width whatever it says, so measuring its box would make
-      // this check about the column and not about the name.
+      // Measure the text's right edge, not the h3 box, which is full-width whatever it says.
       nameRight: (() => {
         const h = t.querySelector('h3');
         const r = document.createRange();
@@ -204,12 +158,7 @@ const measured = await page.evaluate(async ({ saves }) => {
         return Math.round(r.getBoundingClientRect().right);
       })(),
       slotLeft: t.querySelector('.svslot') ? Math.round(box(t.querySelector('.svslot')).left) : Infinity,
-      // NOTHING MAY LEAVE ITS TILE. A long slot name and a long
-      // character name are the two that would.
       overflow: [...t.querySelectorAll('*')].some((n) => box(n).right > box(t).right + 1 || box(n).bottom > box(t).bottom + 1),
-      // THE ACTIONS LINE UP: the foot row starts at the same offset
-      // from the tile's own top edge in every tile of a row, which is
-      // what a grid of equal-height tiles buys.
       actsTop: Math.round(box(t.querySelector('.acts')).top - box(t).top),
     })),
     bare: { cloud: !!bare.querySelector('.svcloud'), h: Math.round(box(bare).height) },
@@ -218,8 +167,6 @@ const measured = await page.evaluate(async ({ saves }) => {
       headSize: cs(h4).fontSize,
       say: onlyTiles[0].querySelector('.svsay')?.textContent ?? null,
       sayColor: cs(onlyTiles[0].querySelector('.svsay'))?.color ?? null,
-      // WHAT A CARD DOES NOT CARRY MUST NOT BE DRAWN: no sub-line, no
-      // stats list, and the well on its initial.
       sub: !!onlyTiles[0].querySelector('.svsub'),
       stats: !!onlyTiles[0].querySelector('.stats'),
       initial: !!onlyTiles[0].querySelector('.svinitial'),
@@ -227,7 +174,6 @@ const measured = await page.evaluate(async ({ saves }) => {
       tiles: onlyTiles.map((t) => ({ w: Math.round(box(t).width), h: Math.round(box(t).height) })),
       buttons: onlyTiles.map((t) => [...t.querySelectorAll('.act')].map((b) => b.textContent).join('/')),
       overflow: onlyTiles.some((t) => [...t.querySelectorAll('*')].some((n) => box(n).right > box(t).right + 1 || box(n).bottom > box(t).bottom + 1)),
-      // The group's own rule above it, so the eye reads two groups.
       ruled: cs(onlyBox).borderTopWidth,
     },
     perRow: (() => {
@@ -277,7 +223,6 @@ check('a backup reads verdigris and a refusal reads ruby',
   measured.tiles[0].cloudColor === VERDIGRIS && measured.tiles[3].cloudColor === RUBY,
   `${measured.tiles[0].cloudColor} / ${measured.tiles[3].cloudColor}`);
 check('NO ACCOUNT, NO CLOUD LINE - a player who has not asked for one is not nagged', !measured.bare.cloud);
-// AUDIT-312 F1/F2: the delete's door, and the wait that had none.
 check('a backed-up slot offers BOTH cloud buttons, and both fit on the tile',
   measured.tiles[0].cloudButtons.join('/') === 'Back up again/Delete backup'
   && measured.tiles[0].cloudLastRight <= measured.tiles[0].cloudRight,
@@ -288,7 +233,6 @@ check('a card from before CHARID1 says so and offers NO button',
 check('...and it reads QUIET - a wait is not a failure', measured.tiles[4].cloudColor === DIM,
   measured.tiles[4].cloudColor);
 
-// ── ACC2c: THE CLOUD-ONLY GROUP ─────────────────────────────────────
 const only = measured.only;
 check('ACC2c: the group heading is in the DISPLAY face, not the pixel one',
   /Cormorant/i.test(only.headFace), only.headFace);

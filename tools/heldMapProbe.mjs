@@ -1,21 +1,5 @@
-// MAP1/MAP2 - THE HELD MAP, in a real browser.
-//
-// WHAT ONLY A BROWSER CAN PROVE HERE is the sheet standing up: the
-// sprite loading and the thumbs keyed back over the ink, a real 2D
-// canvas laid on the paper's rectangle and painted, real pointer events
-// panning, zooming toward the cursor, picking a mark and marking one,
-// the card and the boxes as DOM the player can click, and the window
-// walking open -> map -> closing -> done against a real clock. The LAWS
-// are pinned in node (test/ui/heldmap.test.js); here every number the
-// screen shows is re-checked against the modules imported INTO the page.
-//
-// CI has no ARENA2 and never will, so the bay is SYNTHETIC: a 96x64
-// heightmap with a western sea, a ridge and a handful of places, built
-// in-page - the same seam the node tests use (deps.mapSize).
-//
-// Self-hosting: starts its own vite on 5225. Writes two screenshots
-// beside the report so a person can look at the sheet.
-//     node tools/heldMapProbe.mjs [--shots DIR]
+// Browser probe for the held map window over a synthetic bay: sheet, pointer, marks, prompts, and the hands lane.
+// Run: node tools/heldMapProbe.mjs [--shots DIR] (starts its own dev server).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -39,14 +23,10 @@ await server.listen();
 const BASE = `http://127.0.0.1:${PORT}`;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 
-/** The synthetic bay + a live window on the menu page (no game data). */
 async function mount(page, { armed = false, gotoPlace = null, mod = false, party = false, hands = false, events = false } = {}) {
   await page.goto(`${BASE}/menu.html?skin=enhanced`, { waitUntil: 'networkidle' });
   await page.evaluate(async ({ armed2, gotoPlace2, mod2, party2, hands2, events2 }) => {
     document.getElementById('enhanced-menu')?.remove();
-    // MAP3: the REAL first-person rig on the fixture arm, drawn on a WebGL
-    // canvas under the window, holding the sheet through the same four
-    // closures the world host hands the window
     let holder, armLoop = null;
     if (hands2) {
       const [{ Renderer }, fp] = await Promise.all([import('/src/render/renderer.js'), import('/src/combat/fpArm.js')]);
@@ -71,8 +51,6 @@ async function mount(page, { armed = false, gotoPlace = null, mod = false, party
       let drew = false;
       const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
       armLoop = (dt) => { renderer.beginFrame(I, I, new Float32Array([0.3, -0.9, 0.2])); arm.update(dt); drew = arm.draw(cv); };
-      // the fixture rig is metre-scaled: the default sheet hangs off the
-      // bottom of its frame, so the probe's pose puts a smaller sheet higher
       holder = {
         available: () => drew,
         hold: (spec, opts) => arm.holdPaper(spec ?? { paper: { width: 0.3, drop: 0.02, forward: 0.6 } }, opts),
@@ -104,11 +82,11 @@ async function mount(page, { armed = false, gotoPlace = null, mod = false, party
     const climateAt = (x, y) => (bytes[y * W + x] === 0 ? 223 : (x > 55 && x < 65 ? 226 : 231));
     const R = 17, R2 = 18;
     const spots = [
-      { x: 40, y: 30, type: 0, name: 'Proofhold', discovered: true, mapID: ports.PORT_LOCATION_IDS[0] },   // TownCity, a port
-      { x: 45, y: 34, type: 2, name: 'Lowmarsh', discovered: true, mapID: 700001 },                        // TownVillage
-      { x: 50, y: 28, type: 10, name: 'Cryptwatch', discovered: true, mapID: 700002 },                     // DungeonRuin
-      { x: 42, y: 40, type: 5, name: 'Kyn Temple', discovered: true, mapID: 700003 },                      // ReligionTemple
-      { x: 70, y: 20, type: 1, name: 'Farhamlet', discovered: true, mapID: 700004 },                       // TownHamlet
+      { x: 40, y: 30, type: 0, name: 'Proofhold', discovered: true, mapID: ports.PORT_LOCATION_IDS[0] },
+      { x: 45, y: 34, type: 2, name: 'Lowmarsh', discovered: true, mapID: 700001 },
+      { x: 50, y: 28, type: 10, name: 'Cryptwatch', discovered: true, mapID: 700002 },
+      { x: 42, y: 40, type: 5, name: 'Kyn Temple', discovered: true, mapID: 700003 },
+      { x: 70, y: 20, type: 1, name: 'Farhamlet', discovered: true, mapID: 700004 },
       { x: 52, y: 30, type: 0, name: 'Hiddenport', discovered: false, mapID: 700005 },
     ];
     const mapDict = new Map();
@@ -129,8 +107,8 @@ async function mount(page, { armed = false, gotoPlace = null, mod = false, party
       getClimateIndex: climateAt,
     };
     const roads = new Uint8Array(W * H), tracks = new Uint8Array(W * H);
-    for (let x = 40; x < 70; x++) roads[30 * W + x] = 32 | 2;   // an E-W road along row 30
-    for (let y = 30; y < 40; y++) roads[y * W + 45] |= 128 | 8;  // a spur south from (45,30)
+    for (let x = 40; x < 70; x++) roads[30 * W + x] = 32 | 2;
+    for (let y = 30; y < 40; y++) roads[y * W + 45] |= 128 | 8;
     for (let x = 45; x < 52; x++) tracks[36 * W + x] = 32 | 2;
     const net = { roads, tracks, source: 'basic-roads' };
     globalThis.__log = { traveled: [], ported: [], coords: [], resumed: 0, closed: 0 };
@@ -140,8 +118,6 @@ async function mount(page, { armed = false, gotoPlace = null, mod = false, party
         cautiousTravelMultiplier: 0.8, recklessTravelMultiplier: 1, markLocationColor: [255, 235, 5, 255], teleportCost: false },
       destinationName: mod2 === 'resume' ? 'Proofhold' : null, isTravelActive: false,
     } : null;
-    // EVENT-TIP: the world's events through their REAL producers - an omen on a clock the probe turns (the gate's mark
-    // and card) and raidMapMarks over a raid record in rollRaids' own shape, on Lowmarsh
     let events = {};
     if (events2) {
       const [{ raidMapMarks }, omenMod, lawMod] = await Promise.all([import('/src/ui/eventMapMarks.js'), import('/src/worldEvents/gateOmen.js'), import('/src/net/gateLaw.js')]);
@@ -201,14 +177,12 @@ async function mount(page, { armed = false, gotoPlace = null, mod = false, party
 const state = (page) => page.evaluate(() => JSON.parse(globalThis.__heldMap?.() ?? 'null'));
 const waitPhase = (page, phase, timeout = 15000) => page.waitForFunction(
   (p) => globalThis.__heldMap && JSON.parse(globalThis.__heldMap()).phase === p, phase, { timeout });
-/** A map pixel's CSS position on screen, through the window's own view. */
 const screenOf = (page, x, y) => page.evaluate(([mx, my]) => {
   const w = globalThis.__win;
   const r = w._chrome.ink.getBoundingClientRect();
   const [px, py] = globalThis.__law.ink.toPaper(w._view, mx, my);
   return { x: r.left + px, y: r.top + py };
 }, [x, y]);
-/** How many ink-canvas pixels are painted (alpha > 0) inside a CSS rect, sampled. */
 const inkCount = (page, rect) => page.evaluate((rc) => {
   const w = globalThis.__win;
   const c = w._chrome.ink; const ctx = c.getContext('2d');
@@ -227,7 +201,6 @@ try {
   page.on('pageerror', (e) => check(`page error: ${e.message}`, false));
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.log(`  [console.${m.type()}] ${m.text()}`); });
 
-  // ── 1. THE SHEET STANDS UP ─────────────────────────────────────
   await mount(page, { party: true });
   await waitPhase(page, 'map');
   const geo = await page.evaluate(() => {
@@ -244,12 +217,6 @@ try {
       FOOT: globalThis.__law.held.SPRITE_ART_FOOT, SPRITE: globalThis.__law.held.SPRITE,
     };
   });
-// MAP-FIELD2 RETIRED THE LETTERBOX, and these two checks had gone stale
-// with it - they still described the poster the sheet used to be, and
-// had been failing quietly ever since. The sheet is HELD now: the root
-// is CLEAR, because the world stands behind a thing in the player's
-// hands, and the stage is bottom-anchored on the PAINTING's foot rather
-// than centred in the viewport.
   check('root mounted with the map id, and CLEAR - the world stands behind a held thing', geo.rootId === 'enhanced-travelmap' && /rgba\(0, 0, 0, 0\)|transparent/.test(geo.bg), geo.bg);
   let wantH = 800 * geo.HEIGHT / geo.FOOT, wantW = wantH * geo.SPRITE.w / geo.SPRITE.h;
   if (wantW > 1280) { wantW = 1280; wantH = wantW * geo.SPRITE.h / geo.SPRITE.w; }
@@ -267,24 +234,11 @@ try {
   const key = await page.evaluate(() => {
     const c = globalThis.__win._chrome.hands; const ctx = c.getContext('2d');
     const at = (fx, fy) => ctx.getImageData(Math.round(fx * c.width), Math.round(fy * c.height), 1, 1).data[3];
-    // a thumb pixel (left thumb, on the paper), the paper's centre, and
-    // the clear ground beside the hand. MAP-FIELD4: the sample point is
-    // READ OFF the row below, not guessed - the thumbs moved with the
-    // painting, and the old point (0.16, 0.55) now lands just outside
-    // the left one.
     return { thumb: at(0.18, 0.6), paper: at(0.5, 0.45), clear: at(0.02, 0.9), thumbZoneRow: Array.from({ length: 10 }, (_, i) => at(0.12 + i * 0.015, 0.6)) };
   });
-// MAP-FIELD4: OPAQUE, not exactly 255. The copy of Mac's painting this
-// port was given arrived through a lossy re-encode, which left its
-// solid interior at alpha 251-254 instead of 255. That is invisible on
-// screen and above every threshold the module tests, so the pin asks
-// the module's own question - is this pixel THERE - rather than a
-// number the transport happened not to preserve. An original PNG would
-// pass this unchanged.
   check('the left thumb is keyed back OVER the ink (opaque)', key.thumb > 128, JSON.stringify(key));
   check('the paper\'s centre is clear (outside the thumb zones nothing is drawn)', key.paper === 0, String(key.paper));
 
-  // the ink: something is painted, and it is where the model says
   const painted = await inkCount(page, await page.evaluate(() => { const r = globalThis.__win._chrome.ink.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }));
   check('the sheet carries ink', painted > 2000, `${painted} painted device pixels`);
   const city = await screenOf(page, 40.5, 30.5);
@@ -297,7 +251,6 @@ try {
   check('the party stands with the window', st0.party.length === 1 && st0.party[0].startsWith('Nym@45,34/1'), JSON.stringify(st0.party));
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/held-map-rest.png` });
 
-  // ── 2. THE POINTER: hover, pan, wheel, pick ────────────────────
   await page.mouse.move(city.x, city.y);
   await page.waitForTimeout(50);
   const hov = await page.evaluate(() => [globalThis.__win._chrome.label.textContent, getComputedStyle(globalThis.__win._chrome.stage).cursor]);
@@ -314,22 +267,7 @@ try {
   const under = await page.evaluate(([x, y]) => { const w = globalThis.__win; const r = w._chrome.ink.getBoundingClientRect(); return globalThis.__law.ink.toMap(w._view, x - r.left, y - r.top); }, [mid.x, mid.y]);
   await page.mouse.move(mid.x, mid.y);
   await page.mouse.wheel(0, -600);
-  await page.mouse.wheel(0, -600);   // past the ceiling: the clamp must not move the point under the cursor
-  // AUDIT MAP-FIELD (2026-09-19): MEASURE THE DRIFT ON THE SCREEN.
-  //
-  // The tolerance was 0.05 MAP pixels, and a map pixel shrinks as the
-  // scale grows - so the same drift in the only units a player has,
-  // screen pixels, got a tolerance fourteen times tighter at SCALE_MAX
-  // than at the rest scale. MAP-FIELD3's new PAPER moved the fixture's
-  // rest scale, the wheel then landed on the ceiling, and a drift of
-  // ONE PAPER PIXEL failed a check about whether the eye sees the point
-  // move. It is measured in paper pixels now, against what a person
-  // could actually see.
-  //
-  // The settle below is belt and braces, not the fix: the numbers were
-  // identical before and after it was added, so the glide had already
-  // finished inside the old fixed wait. It is here so the measurement
-  // cannot become a race on a slower machine.
+  await page.mouse.wheel(0, -600);
   await page.waitForFunction(() => {
     const w = globalThis.__win, v = w._view, g = w._goal;
     return Math.abs(v.ox - g.ox) < 1e-3 && Math.abs(v.oy - g.oy) < 1e-3 && Math.abs(v.scale - g.scale) < 1e-4;
@@ -341,7 +279,6 @@ try {
     JSON.stringify({ under, after, driftPaperPx: driftPx.map((v) => Math.round(v * 100) / 100) }));
   const st1 = await state(page);
   check('the band moved with the scale', st1.band === (await page.evaluate((s) => globalThis.__law.ink.zoomBand(s), after.scale)), st1.band);
-  // pick the village (visible at mid/near)
   await page.evaluate(() => { const w = globalThis.__win; w._focusOn(45.5, 34.5, 8); for (let i = 0; i < 60; i++) w.tick(0.05); });
   const vil = await screenOf(page, 45.5, 34.5);
   await page.mouse.click(vil.x, vil.y);
@@ -351,7 +288,7 @@ try {
   const card = await page.evaluate(() => { const c = globalThis.__win._chrome.card; const r = c.getBoundingClientRect(); return { display: getComputedStyle(c).display, w: r.width, title: c.children[0]?.textContent, buttons: [...c.querySelectorAll('button')].map((b) => b.textContent) }; });
   check('the card is on screen with the place and its one button', card.display === 'block' && card.w > 200 && card.title === 'Lowmarsh' && card.buttons.includes('Travel here'), JSON.stringify(card));
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/held-map-picked.png` });
-  await page.click('.hmcard button');   // Travel here
+  await page.click('.hmcard button');
   await page.waitForTimeout(50);
   const st3 = await state(page);
   const lawTrip = await page.evaluate(() => {
@@ -363,14 +300,13 @@ try {
   check('the panel\'s trip is the law\'s own numbers', st3.panel === 'travel' && st3.trip.minutes === lawTrip.minutes && st3.trip.totalCost === lawTrip.totalCost && st3.trip.days === lawTrip.days, JSON.stringify({ trip: st3.trip, lawTrip }));
   const cardTexts = await page.evaluate(() => [...globalThis.__win._chrome.card.querySelectorAll('dd')].map((d) => d.textContent));
   check('the card reads the same days and fare', cardTexts[0] === `${lawTrip.days} ${lawTrip.days === 1 ? 'day' : 'days'}` && cardTexts[1] === `${lawTrip.totalCost} gold`, JSON.stringify(cardTexts));
-  await page.click('.hmcard .hmacts .act:not(.hmghost)');   // Begin journey
+  await page.click('.hmcard .hmacts .act:not(.hmghost)');
   await page.waitForFunction(() => globalThis.__win.done, null, { timeout: 5000 });
   const log = await page.evaluate(() => globalThis.__log);
   check('Begin lowers the sheet, fires onTravel once with the classic pick, and the window is done', log.traveled.length === 1 && log.traveled[0].pick.name === 'Lowmarsh' && log.traveled[0].pick.pixel.x === 45 && log.closed === 1, JSON.stringify(log.traveled[0]?.pick));
   const gone = await page.evaluate(() => !!document.getElementById('enhanced-travelmap'));
   check('the DOM is torn down after done', gone === false);
 
-  // ── 3. MAP2: the mod on the sheet ───────────────────────────────
   await mount(page, { mod: true });
   await waitPhase(page, 'map');
   const portsBtn = await page.evaluate(() => getComputedStyle(globalThis.__win._chrome.ports).display);
@@ -401,8 +337,7 @@ try {
   const help = await page.evaluate(() => globalThis.__win._chrome.box.textContent);
   check('H shows the host\'s help rows', /Held map help/.test(help));
   await page.evaluate(() => globalThis.__win.input('Escape'));
-  // the coordinates click on bare land
-  await page.evaluate(() => globalThis.__win.input('Escape'));   // drop the selection
+  await page.evaluate(() => globalThis.__win.input('Escape'));
   const bare = await screenOf(page, 47.5, 31.5);
   await page.mouse.click(bare.x, bare.y);
   await page.waitForTimeout(50);
@@ -414,7 +349,6 @@ try {
   const log2 = await page.evaluate(() => globalThis.__log);
   check('Begin hands onTravelToCoords the popup\'s {pixel, name} with playerControlled', log2.coords.length === 1 && log2.coords[0].pick.pixel.x === 47 && log2.coords[0].opts.playerControlled === true, JSON.stringify(log2.coords[0]));
 
-  // ── 4. the resume prompt, and No stays ─────────────────────────
   await mount(page, { mod: 'resume' });
   await page.waitForFunction(() => JSON.parse(globalThis.__heldMap()).top === 'resume', null, { timeout: 5000 });
   const rbox = await page.evaluate(() => [...globalThis.__win._chrome.box.querySelectorAll('button')].map((b) => b.textContent));
@@ -427,7 +361,6 @@ try {
   await page.evaluate(() => globalThis.__win.input('Escape'));
   await page.waitForFunction(() => globalThis.__win.done, null, { timeout: 5000 });
 
-  // ── 5. gotoPlace lands selected with the panel open, teleport arms the pick ──
   await mount(page, { gotoPlace: { siteDetails: { regionName: 'Daggerfall', regionIndex: 17, locationName: 'Kyn Temple' } } });
   await waitPhase(page, 'map');
   const stG = await state(page);
@@ -449,7 +382,6 @@ try {
   const log3 = await page.evaluate(() => globalThis.__log);
   check('Teleport fires onTeleport once', log3.ported.length === 1 && log3.ported[0].name === 'Proofhold');
 
-  // ── 6. MAP3: THE HANDS LANE on the real rig ────────────────────
   await mount(page, { hands: true });
   await waitPhase(page, 'map');
   await page.waitForFunction(() => JSON.parse(globalThis.__heldMap()).placed, null, { timeout: 10000 }).catch(() => {});
@@ -472,18 +404,11 @@ try {
       corners: corners.map((p) => p.map((v) => Math.round(v))),
     };
   });
-// MAP-FIELD2 again: what the stage SHOWS is the canvas, `sheet` - the
-// <img> is only the loader and was never displayed, so asking after its
-// display told us nothing and this check had gone stale with the rest.
   check('the painting and its thumbs are gone and the root is clear', hg.sheet === 'none' && hg.hands === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(hg.rootBg), JSON.stringify([hg.sheet, hg.hands, hg.rootBg]));
   check('the ink is under a matrix3d about its top-left', hg.transform === 'matrix3d(' && hg.origin.startsWith('0px 0px'), JSON.stringify([hg.transform, hg.origin]));
   const near = (a, b) => Math.abs(a - b) <= 2;
   check('the browser lays the canvas exactly on the rig\'s corners (the bounding box, to 2 px)', hg.box.every((v, i) => near(v, hg.want[i])), JSON.stringify({ box: hg.box, want: hg.want }));
   check('four corners on screen, a level trapezium wider at the bottom', hg.corners.length === 4 && hg.corners[0][1] === hg.corners[1][1] && hg.corners[2][0] - hg.corners[3][0] > hg.corners[1][0] - hg.corners[0][0], JSON.stringify(hg.corners));
-  // the PARCHMENT is under the ink: the texel at the corners' centre on
-  // the arm's own offscreen target (the pass clears it to alpha 0, so
-  // alpha there is the sheet; the first browser run had none - the
-  // sheet sat past the far plane the arm's reach set)
   const texel = await page.evaluate(async () => {
     const { MW_ARM_PIXEL, CHAR_SPRITE_RT_SIZE } = await import('/src/render/renderer.js');
     const cv = globalThis.__armCanvas, r = globalThis.__armRenderer, gl = r.gl;
@@ -502,7 +427,6 @@ try {
   });
   check('the parchment is drawn under the ink (the arm target\'s texel at the corners\' centre)', texel.rgba[3] > 8 && texel.rgba[0] > texel.rgba[2], JSON.stringify(texel));
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/held-map-hands.png` });
-  // a click through the angle: the city's sheet point, forward-mapped, hits it
   await page.evaluate(() => { const w = globalThis.__win; w._focusOn(40.5, 30.5, 8); for (let i = 0; i < 60; i++) w.tick(0.05); });
   const cityH = await page.evaluate(() => {
     const w = globalThis.__win;
@@ -521,14 +445,12 @@ try {
   const pickH = await state(page);
   check('a click through the inverse picks it', pickH.selected === 'Proofhold', JSON.stringify({ selected: pickH.selected }));
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/held-map-hands-picked.png` });
-  // the sheet goes with the window
   await page.evaluate(() => globalThis.__win.input('Escape'));
   await page.evaluate(() => globalThis.__win.input('Escape'));
   await page.waitForFunction(() => globalThis.__win.done, null, { timeout: 5000 });
   const released = await page.evaluate(() => ({ pose: globalThis.__arm.heldPose(), corners: globalThis.__arm.paperCorners() }));
   check('closing the map releases the sheet from the arm', released.pose === null && released.corners === null, JSON.stringify(released));
 
-  // ── 8. EVENT-TIP: the world's events answer a hover with their card ──
   await mount(page, { events: true });
   await waitPhase(page, 'map');
   const tipOf = () => page.evaluate(() => {
@@ -558,7 +480,6 @@ try {
   const onRing = await tipOf();
   check('the gate\'s ring answers anywhere inside it with the gate\'s card', onRing.display === 'block' && onRing.text[0] === 'Dagon\'s Breach'
     && onRing.text[1] === 'Near Lowmarsh, Daggerfall' && /^Open - seals in \d+:\d\d$/.test(onRing.text[2]) && onRing.text[3] === 'Valkynaz Ruhn, Warden of the Burning Gate', JSON.stringify(onRing.text));
-  // GATE-COLLAPSE, on a still pointer: the gate seals under it and the card and the label follow the poll
   await page.evaluate(() => { const e = globalThis.__event; e.clock.now = e.t.sealAt + 2000; e.omen.frame(); });
   await page.waitForTimeout(400);
   const sealed = await tipOf();
@@ -571,12 +492,7 @@ try {
   check('...and the card goes where nothing under the pointer has one', (await tipOf()).display === 'none');
   await page.evaluate(() => globalThis.__win.input('Escape'));
 
-  // ── 7. MAP-FIELD: the sprite, asked for from the GAME'S OWN PAGE ──
-  // Every check above mounts the window on menu.html, which sits at the
-  // site root - where a document-relative 'art/held-map.png' happens to
-  // resolve. The game is /play/index.html, one directory down, and there
-  // the same string asked for /play/art/held-map.png and got the page
-  // back. So this check runs from that depth, on purpose.
+  // The game page is /play/, one directory below menu.html, so the sprite URL is checked from that depth.
   await page.goto(`${BASE}/play/index.html?skin=enhanced`, { waitUntil: 'domcontentloaded' });
   const sprite = await page.evaluate(async () => {
     const { HELD_MAP_URL } = await import('/src/ui/heldMap.js');

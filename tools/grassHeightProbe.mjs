@@ -1,35 +1,5 @@
-// GRASS3 (2026-09-18): CAN A SHADER STAND A BLADE ON THE GROUND?
-//
-// The question a GPU-placed grass field turns on. Today every blade's
-// root height is computed on the CPU and uploaded as an attribute; a
-// derived field has no attributes at all, so a vertex shader has to
-// work the height out from a heightmap TEXTURE - and if it cannot
-// reproduce the drawn surface exactly, every blade floats or sinks and
-// the whole approach is dead. This probe answers it on a real WebGL2
-// context before anything is built on the assumption.
-//
-// It reports two numbers:
-//
-//   bilinearVsTriangle  how far the placer's old bilinear read sat from
-//                       the drawn triangles. NOTE the terrain here is
-//                       deliberately extreme (a 311% grade) to exercise
-//                       the saddle term; on real grades of 7-75% the
-//                       gap is 0.003 to 0.08 world units and no blade
-//                       is off by a sixth of its height. The fix is
-//                       correctness, not a rescue - see
-//                       test/world/terrain/grass3_surface.test.js, which pins both.
-//   shaderVsCpu         whether GLSL can match `surfaceHeightAt` - the
-//                       law the mesh is actually built from, pinned
-//                       against the real index buffer in
-//                       test/world/terrain/grass3_surface.test.js.
-//
-//     node tools/grassHeightProbe.mjs
-//
-// The heightmap here is SYNTHETIC: this container has no ARENA2, so the
-// probe builds terrain with deliberate saddles rather than pretending to
-// read Daggerfall's. What it proves is the ARITHMETIC - the texture
-// layout, the indexing convention and the float precision - which is
-// exactly the part that does not depend on whose terrain it is.
+// Browser probe that checks a shader can reproduce the drawn terrain height from a heightmap texture.
+// Run: node tools/grassHeightProbe.mjs (synthetic terrain, no ARENA2).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
@@ -40,12 +10,10 @@ const page = await browser.newPage({ viewport: { width: 400, height: 300 } });
 await page.goto('http://localhost:5301/play/');
 const out = await page.evaluate(async () => {
   const { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE } = await import('/src/world/terrainSampler.js');
-  const hDim = HEIGHTMAP_DIMENSION;                  // 129
-  const cell = TERRAIN_SIZE / (hDim - 1);            // 6.4
-  const worldH = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;   // 1923.75 - the game scene's scale (TERRAIN-SCALE1)
+  const hDim = HEIGHTMAP_DIMENSION;
+  const cell = TERRAIN_SIZE / (hDim - 1);
+  const worldH = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;
 
-  // A synthetic heightmap with plausible rolling terrain PLUS deliberate
-  // saddles, so the bilinear/triangle gap is exercised rather than hoped for.
   const data = new Float32Array(hDim * hDim);
   const h = (x, z) => 0.5
     + 0.020 * Math.sin(x * 0.11) * Math.cos(z * 0.09)
@@ -54,7 +22,6 @@ const out = await page.evaluate(async () => {
   for (let x = 0; x < hDim; x++) for (let z = 0; z < hDim; z++) data[x * hDim + z] = h(x, z);
 
   const S = (x, z) => data[Math.max(0, Math.min(hDim - 1, x)) * hDim + Math.max(0, Math.min(hDim - 1, z))];
-  // TODAY'S PLACER: bilinear (scenes/world.js keep())
   const bilinear = (lx, lz) => {
     const fx = lx / cell, fz = lz / cell;
     const x0 = Math.min(hDim - 2, Math.floor(fx)), z0 = Math.min(hDim - 2, Math.floor(fz));
@@ -62,8 +29,7 @@ const out = await page.evaluate(async () => {
     return ((S(x0, z0) * (1 - ax) + S(x0 + 1, z0) * ax) * (1 - az)
           + (S(x0, z0 + 1) * (1 - ax) + S(x0 + 1, z0 + 1) * ax) * az) * worldH;
   };
-  // THE RENDERED SURFACE: two triangles a quad, diagonal (x,z)-(x+1,z+1),
-  // matching buildTerrainIndices' i0,i2,i3 / i0,i3,i1.
+  // The drawn surface is two triangles a quad on the (x,z)-(x+1,z+1) diagonal, matching buildTerrainIndices.
   const triangle = (lx, lz) => {
     const fx = lx / cell, fz = lz / cell;
     const x0 = Math.min(hDim - 2, Math.floor(fx)), z0 = Math.min(hDim - 2, Math.floor(fz));
@@ -73,7 +39,6 @@ const out = await page.evaluate(async () => {
                      : h00 + ax * (h10 - h00) + az * (h11 - h10)) * worldH;
   };
 
-  // sample points across one terrain pixel
   const pts = [];
   let s = 12345;
   const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
@@ -82,14 +47,13 @@ const out = await page.evaluate(async () => {
   let maxGap = 0, sumGap = 0;
   for (const [x, z] of pts) { const g = Math.abs(bilinear(x, z) - triangle(x, z)); maxGap = Math.max(maxGap, g); sumGap += g; }
 
-  // ---- THE GPU SIDE: can a shader reproduce `triangle` exactly? ----
   const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
   const gl = canvas.getContext('webgl2');
   if (!gl) return { error: 'no webgl2' };
   if (!gl.getExtension('EXT_color_buffer_float')) return { error: 'no float render target' };
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
-  // texel (x, z) IS data[x*hDim + z] - the port's own x-major order
+  // Texel (x, z) is data[x*hDim + z], the game's x-major order.
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, hDim, hDim, 0, gl.RED, gl.FLOAT, data);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -194,26 +158,16 @@ await server.close();
 if (out.error) { console.log('FAIL', out.error); process.exit(1); }
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`); };
-const BLADE = 0.5;   // a mid blade at the port's height of 38, in world units
+const BLADE = 0.5;
 
 console.log(`  heightmap ${out.hDim}x${out.hDim}, quad ${out.cell}u, full height ${out.worldH}u, ${out.n} points`);
 console.log(`  bilinear against the drawn mesh: max ${out.bilinearVsTriangle.max.toFixed(2)}u, mean ${out.bilinearVsTriangle.mean.toFixed(3)}u`);
 console.log(`  the shader against surfaceHeightAt: max ${out.shaderVsCpu.max.toExponential(2)}u, mean ${out.shaderVsCpu.mean.toExponential(2)}u`);
 
 check('no GL error', out.glError === 0, String(out.glError));
-// THE ANSWER. Float32 rounding, and nothing else: a blade is 0.25..0.72
-// world units tall, so an error this size is a thousandth of a blade.
 check('a shader CAN stand a blade on the drawn ground - the height law reproduces exactly',
   out.shaderVsCpu.max < BLADE / 100, `${out.shaderVsCpu.max.toExponential(2)}u against a blade of ${BLADE}u`);
 check('...and it is float rounding rather than a near miss', out.shaderVsCpu.max < 1e-3);
-// THE BUG THAT WAS ALREADY THERE. Bilinear is a different surface from
-// the triangles the terrain is drawn as, and on ground with any saddle
-// in it the gap is a real fraction of a blade.
-// ON THIS CLIFF the two surfaces are a blade apart - which is what
-// makes them provably different surfaces rather than two spellings of
-// one. It is NOT a claim about what a player would have seen: the same
-// measurement on real grades is in the pins, and it is a fraction of a
-// blade.
 check('bilinear and the drawn triangles are genuinely different surfaces (on terrain chosen to show it)',
   out.bilinearVsTriangle.max > BLADE, `up to ${out.bilinearVsTriangle.max.toFixed(2)}u apart at a 311% grade; on real grades it is under 0.08u`);
 

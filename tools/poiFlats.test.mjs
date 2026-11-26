@@ -1,8 +1,3 @@
-// Tests v2 POI flat pictures (src/poi/poiFlats.js): converting `flats` rows into decor pieces (transformed position,
-// rotated billboard yaw and mirroring, fixed scale for person sprites, fallback world and inventory sprites for items,
-// rotated mount frames, and scaled lights) and rendering them through the POI host's decor room (billboards, decals,
-// lights, single-row updates, and teardown).
-
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiFlatPiece, poiFlatPicture, flatYawThrough, mountRotThrough, createPoiFlats } from '../src/poi/poiFlats.js';
@@ -45,7 +40,6 @@ test('rotating a POI 180 degrees rotates the position and mirrors the billboard'
   close(p.pos, [-2, 0, -1], 'spot');
   assert.equal(Math.abs(p.rot[0]), 180);
   assert.equal(decorFlatMirrored(p), true);
-  // a row with yaw 180 on a POI rotated 180 degrees faces 0 degrees and is not mirrored
   const back = poiFlatPiece({ ...billboard, rot: [180, 0, 0] }, { r: TURNED, s: 1 });
   assert.equal(back.rot[0], 0);
   assert.equal(decorFlatMirrored(back), false);
@@ -64,9 +58,7 @@ test('a paperdoll row without a flat property uses its item\'s world sprite', ()
   assert.deepEqual(p.flat, [204, 0]);
   assert.deepEqual(p.item, { t: 200 });
   assert.equal(decorStandsOwn(p), true, 'marked as a placed paperdoll item for the decor room');
-  // a row that names its picture keeps it
   assert.deepEqual(poiFlatPicture({ ...robe, flat: [204, 3] }), [204, 3]);
-  // an item with no world sprite returns null
   assert.equal(poiFlatPiece({ ...robe, item: { t: 220 } }, { r: [0, 0, 0, 1], s: 1 }), null);
 });
 
@@ -90,7 +82,6 @@ test('a tilted POI tilts a mount\'s frame with it', () => {
   close(p.pos, quatRotate(TILTED, dagger.t), 'spot');
 });
 
-/** Stub renderer that records the calls made by the decor room. */
 function countingRenderer() {
   const n = { billboards: 0, destroyed: 0, decals: 0, decalsGone: 0, decalDraws: 0 };
   const textures = new Map();
@@ -136,32 +127,26 @@ test('the POI host renders a POI\'s flats through a single decor room', async ()
   assert.equal(batches.length, 3);
   assert.ok(batches.some((b) => b.archive === 210 && b.record === 1));
   assert.ok(batches.some((b) => b.archive === 204 && b.record === 0), 'the robe as its item\'s world picture');
-  // the billboard sits at the map square's translation plus the POI's spot, the ground height under it, and the row's
-  // own offset
   const lamp = batches.find((b) => b.archive === 210);
   close(lamp.spots[0], [100 + 10 + 2, 5 + 0, 200 + 10 + 1], 'the lamp in the scene');
   assert.equal(host.drawMounts(renderer), 1);
   const lights = host.lights([]);
   assert.equal(lights.length, 1, 'the lamp\'s light among the POI\'s lights');
   assert.ok(lights[0].color instanceof Float32Array);
-  // unchanged rows on the next frame do not rebuild batches
   const made = renderer.n.billboards;
   host.frame(); await settle();
   assert.equal(renderer.n.billboards, made);
   assert.strictEqual(host.batches(), batches, 'one list, refilled');
-  // picking through the lamp's bounding volume hits the lamp
   const hit = host.pick([112, 5.5, 190], [0, 0, 1]);
   assert.equal(hit?.kind, 'flat');
   assert.equal(hit?.key, 'lamp');
   assert.notEqual(host.flatBox(d.id, 'lamp'), null);
-  // moving one row in a draft updates only that row
   const moved = structuredClone(d);
   moved.flats[0].t = [3, 0, 1];
   feed.setOverlay(new Map([[d.id, { doc: moved, rev: 0 }]]));
   for (let i = 0; i < 3; i++) { host.frame(); await settle(); }
   const lamp2 = host.batches().find((b) => b.archive === 210);
   close(lamp2.spots[0], [113, 5, 211], 'the lamp moved');
-  // removing the POI releases all of its billboard and decal batches
   feed.setOverlay(new Map([[d.id, null]]));
   host.destroyAll();
   host.frame();
@@ -175,8 +160,6 @@ test('a POI with no flats does not create a decor room', () => {
   flats.sync({ id: 'poi-x', px: 1, py: 1, y: 0, doc: { place: { x: 0, z: 0, r: [0, 0, 0, 1], s: 1 }, flats: [] } }, [0, 0, 0]);
   assert.deepEqual(flats.standing(), []);
 });
-
-// ── the editor's edits of a flat row (src/poi/poiFlatRows.js, src/poi/poiMulti.js) ──
 
 test('the editor builds valid flat rows for a billboard, a paperdoll item, and a mounted item', async () => {
   const { newFlat } = await import('../src/poi/poiFlatRows.js');
@@ -207,7 +190,6 @@ test('the gizmo rotates and scales a flat row; a figure keeps its scale; mirrori
   assert.equal(d.flats[0].scale, 3);
   assert.equal(d.flats[2].scale, 1, 'a person\'s picture keeps its own size');
   assert.deepEqual(poiDocProblems(d), []);
-  // mirrored as the game draws it when the POI is rotated 180 degrees
   d.place.r = TURNED;
   d.flats[0].rot = [0, 0, 0];
   assert.equal(flatMirrored(d.flats[0], d.place), true);
@@ -241,7 +223,6 @@ test('a flat and a mount moved every frame, and a recenter, are drawn in every f
     moved.flats[0].t = [2 + i * 0.1, 0, 1];
     moved.flats[1].t = [0, 1.5, -0.5 + i * 0.1];
     s.doc = moved;
-    // a recenter now and then
     if (i % 5 === 0) t[0] += 100;
     flats.frame(); flats.sync(s, t);
     if (flats.batches().some((b) => b.archive === 210 && !b.gone)) drawn++;

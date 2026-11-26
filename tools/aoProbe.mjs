@@ -1,18 +1,6 @@
-// HQ1 AUDIT (2026-09-23, Mac: "can we audit everything so far"): THE OCCLUSION ON A REAL GPU - is it SYMMETRIC.
-//
-// The horizon-based occlusion (airPass.js AO_FS) marches screen-space slices both ways from a pixel and clamps the
-// horizons to the projected normal's hemisphere. The hosts render through an x-MIRRORED projection
-// (mirrorProjectionX: proj[0] < 0), so screen +x is view -x: any place the shader assumes "screen right is view
-// +x" - the slice direction's sign against the marched side, the radius's sign - shows up as an occlusion that
-// leans to one side. This probe draws a crate on a floor in the middle of the view and reads the AO image back:
-//   - the floor strip just LEFT of the crate and the strip just RIGHT must occlude alike (within a few percent);
-//   - both must be darker than the open floor far from the crate (a little: the flanks are seen edge-on, so the
-//     screen-space march barely meets them), and the floor in FRONT of the crate, whose wall faces the eye, much more;
-//   - the open floor must be 1 at EVERY depth (a flat surface occludes itself nowhere - the audit's first cut read
-//     0.73 far off from a half-texel reconstruction error, then 0.97 from clamping each pixel before the blur);
-//   - the crate's top face must be near 1.
-//
-// Usage: node tools/aoProbe.mjs [outDir]
+// Draws a crate on a floor on a real GPU and checks that ambient occlusion is symmetric
+// under the game's x-mirrored projection.
+// Run with `node tools/aoProbe.mjs [outDir]`.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -72,8 +60,8 @@ const result = await page.evaluate(async ({ W, H }) => {
     quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0]);
   };
   const sub = (build) => { const start = IDX.length; build(); subs.push({ textureArchive: 1, textureRecord: 1, startIndex: start, primitiveCount: (IDX.length - start) / 3 }); };
-  sub(() => quad([-20, 0, 20], [20, 0, 20], [20, 0, -20], [-20, 0, -20], [0, 1, 0], 10));   // the floor
-  sub(() => box(-1, 0, -1, 1, 1.5, 1));   // the crate, centred
+  sub(() => quad([-20, 0, 20], [20, 0, 20], [20, 0, -20], [-20, 0, -20], [0, 1, 0], 10));
+  sub(() => box(-1, 0, -1, 1, 1.5, 1));
   const mesh = r.createMesh({ positions: new Float32Array(P), normals: new Float32Array(N), uvs: new Float32Array(UV), indices: new Uint32Array(IDX), subMeshes: subs });
   const proj = mirrorProjectionX(perspective(Math.PI / 3, W / H, 0.1, 200));
   const eye = [0, 3, 6];
@@ -98,10 +86,9 @@ const result = await page.evaluate(async ({ W, H }) => {
       return [(cx / cw * 0.5 + 0.5) * T.w, (cy / cw * 0.5 + 0.5) * T.h];
     };
     const rowMean = (img, z) => { let s = 0, n = 0; for (let x = -4; x <= 4; x += 0.5) { if (Math.abs(x) < 1.6 && Math.abs(z) < 1.6) continue; const [px, py] = projectS([x, 0, z]); const i = (Math.round(py) * T.w + Math.round(px)) * 4; if (i >= 0 && i < img.length) { s += img[i] / 255; n++; } } return n ? +(s / n).toFixed(3) : null; };
-    floorByDepth = [2, 0, -2, -4, -8, -12].map((z) => rowMean(ao, z));   // the open floor's rows, near to far (the crate's own columns skipped)
+    floorByDepth = [2, 0, -2, -4, -8, -12].map((z) => rowMean(ao, z));
   }
   const frame = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, frame);
-  // world points to AO-image pixels (the AO image is the world rect at AIR_AO_SCALE; here the whole canvas)
   const project = (p) => {
     const v = [view[0] * p[0] + view[4] * p[1] + view[8] * p[2] + view[12], view[1] * p[0] + view[5] * p[1] + view[9] * p[2] + view[13], view[2] * p[0] + view[6] * p[1] + view[10] * p[2] + view[14]];
     const cx = proj[0] * v[0] + proj[4] * v[1] + proj[8] * v[2] + proj[12], cy = proj[1] * v[0] + proj[5] * v[1] + proj[9] * v[2] + proj[13], cw = proj[3] * v[0] + proj[7] * v[1] + proj[11] * v[2] + proj[15];
@@ -111,10 +98,10 @@ const result = await page.evaluate(async ({ W, H }) => {
   const strip = (x0, x1, z0, z1, n = 12) => { const out = []; for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) out.push([x0 + (x1 - x0) * (i + 0.5) / n, 0, z0 + (z1 - z0) * (j + 0.5) / 3]); return out; };
   return {
     w: T.w, h: T.h, ao: Array.from(ao), frame: Array.from(frame), err: gl.getError(), floorByDepth,
-    left: meanAt(strip(-1.35, -1.05, -0.8, 0.8)),     // the floor just left of the crate (view: crate's -x side)
-    right: meanAt(strip(1.05, 1.35, -0.8, 0.8)),       // just right
-    front: meanAt(strip(-0.8, 0.8, 1.05, 1.35)),       // just in front (toward the eye)
-    open: meanAt(strip(3, 5, -1, 1)),                  // the open floor, beside the crate but past the radius
+    left: meanAt(strip(-1.35, -1.05, -0.8, 0.8)),
+    right: meanAt(strip(1.05, 1.35, -0.8, 0.8)),
+    front: meanAt(strip(-0.8, 0.8, 1.05, 1.35)),
+    open: meanAt(strip(3, 5, -1, 1)),
     top: meanAt([[0, 1.5, 0], [0.4, 1.5, 0.3], [-0.4, 1.5, -0.3]]),
   };
 }, { W, H });

@@ -1,4 +1,3 @@
-// The `own` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isWorldRoom, CELL_FRAME_RECORDS_MAX } from '../../relay.js';
 
 export function ownFrame(ws, a, m, message, doored) {

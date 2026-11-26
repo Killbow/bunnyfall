@@ -1,4 +1,3 @@
-// The say and whisper lines of a room, each struck against its budget before its fan.
 import { staffLine } from '../staffFreeze.js';
 import { isSocialRoom, tokenGate, GUILD_CHAT_ROOM_HZ_MAX, PARTY_CHAT_ROOM_HZ_MAX, CHAT_ROOM_HZ_MAX, isChatRoom, inRange } from '../relay.js';
 import { isArenaPrivateRoom } from '../../../src/net/arenaLaw.js';

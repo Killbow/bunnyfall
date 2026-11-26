@@ -1,5 +1,3 @@
-// The open zone as the relay referees it: remains, fighter state, blows, picks, and the beat.
-// It signs and hands out what is won, holds what is owed, and carries a fighter's bar via the hub.
 import { WILD_REMAINS_PREFIX, remainsOf, remainsLive, remainsEmpty, remainsSpent, wildRemainsKey, remainsWords, remainsTakeover, remainsEvict, newRemains, foldFall, collectAsk, remainsNamedFor, takeFrom } from '../../../src/net/wildLaw.js';
 import { verifyOrder, remainsDigest } from '../../../src/net/identityToken.js';
 import { junkOutsideCover } from '../cellNodes.js';
@@ -92,8 +90,7 @@ export class WildPart {
         await this.state.storage.put(wildRemainsKey(rec.r), rec);
         this._wildFan({ t: 'wild', k: 'rm', r: d.r, i: d.i, n });
       }
-      // Every ask gets the same signed collect; server-account/src/wild.js `wildCollect`
-      // commits it once.
+      // Every ask gets the same signed collect; `wildCollect` in server-account/src/wild.js commits it once.
       this._send(ws, JSON.stringify({ t: 'wild', k: 'cr', r: d.r, i: d.i, cr: rec.wc }));
       if (ask === 'mint' && remainsSpent(rec)) this._wildFan({ t: 'wild', k: 'gone', r: d.r });
       return;

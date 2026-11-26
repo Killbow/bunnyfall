@@ -1,9 +1,6 @@
-// Ordered reachability over a BUNDLED chunk: inside every function body,
-// walk the statements in order and report a read of a const/let/class
-// that is declared later in that same body - counting reads made by
-// functions the statement calls (transitively, through bindings that are
-// already initialised at that point). Reports the bundle offset so the
-// sourcemap can name the line.
+// Reports reads of a const, let, or class before its declaration inside each function body of a bundled chunk,
+// following calls through bindings already initialized at that point. Offsets are bundle offsets for the sourcemap.
+
 import { parse } from 'acorn';
 import { readFileSync } from 'node:fs';
 const file = process.argv[2];

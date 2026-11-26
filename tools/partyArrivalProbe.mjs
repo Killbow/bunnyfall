@@ -1,4 +1,4 @@
-// Local DOM validation of the real HudText/toast surface used by townTalk.say.
+// Local DOM check of the real HudText toast surface.
 import { chromium } from 'playwright';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, extname } from 'node:path';

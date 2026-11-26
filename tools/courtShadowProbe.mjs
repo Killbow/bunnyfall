@@ -1,25 +1,6 @@
-// FIELD BUGS 2026-10-13e AOE-PERF, THE PART ITS PROBE DID NOT TIME - THE COURT'S SHADOW PASS, COUNTED; and LIGHT-ID's
-// before and after (2026-10-14, Mac: "Engine fix (Recommended)" - bible/07-Rendering/Enhanced-Lighting-Arc.md LIGHT-ID).
-//
-// HellRay's "massive FPS drops when the boss performs AoE attacks ... especially when more than 10 players are gathered"
-// was measured by tools/fb1013ePerfProbe.mjs, which times the telegraph pass and the crowd's draws AFTER beginFrame. The
-// shadow maps are drawn INSIDE beginFrame (renderer.js _renderPasses, render/shadowPass.js), from the last frame's records
-// under this frame's lights, so what the boss's own lights and the crowd cost there never entered its numbers. This
-// counts it: the real Renderer and ShadowPass on a counting GL (counts, not milliseconds - no load moves them), the
-// Burning Court's own mesh as its static caster (world/gate/gateArena.js buildCourtModel, through renderer.createMesh), the
-// court's own light composition (world/gate/gateArena.js withCourtLights over courtLightsNear - the dungeon arm's, worldModes.js
-// `const _court = withCourtLights`), under everyLightCasts as that arm asks, Steady shadows (the default). His glow at his
-// chest (world/gate/gateBoss.js GLOW_RANGE) in ONE kept record as the court keeps it (scenes/gate/gateCourt.js `_glow`), a
-// Hellfire's landing flashes (render/gate/gateFx.js FX_KINDS.hellfire.light, for FX_LIGHT_MS) each its burst's record, and the
-// crowd's Morrowind bodies recorded as renderer.recordShadowBody records them, a new pose every frame (WB9h's budget
-// poses four of eight a frame, so the bodies in a light's reach change every frame either way), of BODY_CORNERS corners
-// (the committed horse's, the AOE-PERF crowd's stand-in).
-//
-// Two arms: `before` - the pass with LIGHT-ID's two laws off (render/shadowPass.js SHADOW_TUNING `moverDirect` and
-// `loUnread` false, the pins' oracles: a light that moved through its static cache, and a lo map for every light that may
-// cast) - and `now`. test/render/lightid.test.js pins the counts (`courtShadowCounts`).
-//
-// Usage: node tools/courtShadowProbe.mjs [bodies=8]
+// Counts the Burning Court's shadow pass work per frame on a counting GL, before and after the light ID rules.
+// Run: node tools/courtShadowProbe.mjs [bodies=8].
+
 import { Renderer, WORLD_FRAME } from '../src/render/renderer.js';
 import { EL_LANE } from '../src/render/enhancedLighting.js';
 import { SHADOW_TUNING } from '../src/render/shadowPass.js';
@@ -32,7 +13,6 @@ import { isMain } from './lib/isMain.mjs';
 export const BODY_CORNERS = 5934;
 const FPS = 60;
 
-/** A recording GL: every call a no-op, the vertex array bound and the corners each draw sends counted by array. */
 function countingGl() {
   let ids = 0, bound = null;
   const corners = new Map();
@@ -54,12 +34,9 @@ function countingGl() {
   return { canvas: { getContext: () => gl, clientWidth: 960, clientHeight: 540, width: 960, height: 540 }, corners };
 }
 
-/** The flashes' marks, about the fighters round him (the court's frame), and how many frames a flash stands. */
 export const FLASH_MARKS = Object.freeze([[3, 4], [-4, 3], [5, -2], [-2, -5], [1, 6]]);
 export const LANDING_FRAMES = Math.round((FX_LIGHT_MS / 1000) * FPS);
-/** A case's frames: a landing's lit frames and the two after. */
 export const CASE_FRAMES = LANDING_FRAMES + 2;
-/** The cases, frame `k` from 0: where he stands, his glow's reach, the flashes standing, whether the crowd is posed. */
 export const COURT_CASES = Object.freeze({
   still: () => ({ boss: [0, 0], glow: GLOW_RANGE.ember, flashes: false, posed: false }),
   posed: () => ({ boss: [0, 0], glow: GLOW_RANGE.ember, flashes: false, posed: true }),
@@ -68,10 +45,6 @@ export const COURT_CASES = Object.freeze({
 });
 export const CASE_NAMES = Object.freeze({ still: 'a still court, the crowd still', posed: 'the crowd posed, he stands', walks: 'he walks among them', hellfire: `a Hellfire lands on five (${LANDING_FRAMES} frames lit)` });
 
-/**
- * The shadow pass's work a frame for court case `name` under `arm` ('before' | 'now'), `bodies` about him: the frames'
- * rows ({ faces, stat, dyn, mover, lo, blits, draws, bodyCorners }) after four frames to settle on the case's first.
- */
 export function courtShadowCounts(name, arm = 'now', { bodies: nBodies = 8, frames = CASE_FRAMES } = {}) {
   const was = { moverDirect: SHADOW_TUNING.moverDirect, loUnread: SHADOW_TUNING.loUnread };
   SHADOW_TUNING.moverDirect = arm !== 'before'; SHADOW_TUNING.loUnread = arm !== 'before';
@@ -82,15 +55,13 @@ export function courtShadowCounts(name, arm = 'now', { bodies: nBodies = 8, fram
     r.setLightingLane(EL_LANE);
     const sp = r.shadows;
     r.setLighting(new Float32Array([0.18, 0.1, 0.08]), 0);
-    const court = r.createMesh(buildCourtModel());   // the court's own mesh - its bounds and its sub-meshes' - on the counting GL
+    const court = r.createMesh(buildCourtModel());
     for (const sm of court.subMeshes) r.textures.set(`${sm.textureArchive}_${sm.textureRecord}`, { id: `court-${sm.textureRecord}` });
-    // a fighter's eye, eight metres south of him (fb1013ePerfProbe's third-person camera)
     const eye = courtToDungeon(0, 2.6, 11.5);
     const view = lookAt(eye, courtToDungeon(0, 1.6, 0), [0, 1, 0]);
     const proj = mirrorProjectionX(perspective((60 * Math.PI) / 180, 16 / 9, 0.05, 500));
     const bodies = Array.from({ length: nBodies }, (_, i) => ({ vao: { id: `body${i}` }, count: BODY_CORNERS, ranges: [{ first: 0, count: BODY_CORNERS }], _poseGen: 0 }));
     const model = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-    // his glow, one kept record (scenes/gate/gateCourt.js `_glow`); each flash its burst's (`b.light`)
     const glow = { x: 0, y: 0, z: 0, range: 0, color: [1.2, 0.5, 0.15] };
     const flashes = FLASH_MARKS.map(([x, z]) => { const p = courtToDungeon(x, LANDING_LIGHT_Y, z); return { x: p[0], y: p[1], z: p[2], range: FX_KINDS.hellfire.light[1], color: [1.2, 0.6, 0.2] }; });
     const rows = [];
@@ -123,7 +94,6 @@ export function courtShadowCounts(name, arm = 'now', { bodies: nBodies = 8, fram
   }
 }
 
-/** A case's rows, as a frame's mean and its worst of `key`. */
 export const meanOf = (rows, key) => rows.reduce((a, x) => a + x[key], 0) / rows.length;
 export const worstOf = (rows, key) => Math.max(...rows.map((x) => x[key]));
 

@@ -1,5 +1,3 @@
-// The hub's social frame: what an account's friends and tabs are told, and its presence rows and
-// whole picture. Its dispatch answers the friend request, accept, and remove words.
 import { ACCOUNT_TABS_MAX, INVITE_TTL_MS, FRIENDS_MAX, PENDING_MAX } from '../relay.js';
 import { hasEntry, without } from '../room/keys.js';
 

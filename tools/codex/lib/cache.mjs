@@ -126,6 +126,6 @@ export function writeDiskCache(cacheDir, root, fingerprint, payload) {
     writeFileSync(tmpPath, body, 'utf8');
     renameSync(tmpPath, filePath);
   } catch {
-    try { rmSync(tmpPath, { force: true }); } catch { /* ignore */ }
+    try { rmSync(tmpPath, { force: true }); } catch { }
   }
 }

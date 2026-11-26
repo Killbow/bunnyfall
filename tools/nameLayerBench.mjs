@@ -1,12 +1,5 @@
-// PERF-NAMES1 bench (2026-10-10): THE NAME LAYER UNDER A CROWD, on the main thread's clock.
-//
-// PERF-ON4 measured the browser's own (native) time growing from 4.8 ms a frame alone to 18-20 with company and named
-// the name layer's per-frame writes as the next measurement. This stands the REAL layer (ui/nameLayer.js
-// createNameLayer) in headless Chromium with N peers milling about the screen - names, Renown, guild tags, a house line,
-// a few bubbles - renders it once a frame for FRAMES frames, and reads Chromium's own counters over the run
-// (Performance.getMetrics: the style recalcs, the layouts and the task time) and the frames' wall time.
-//
-// Usage: node tools/nameLayerBench.mjs [peers=60] [frames=300]
+// Benchmarks the real name layer under a crowd of peers in headless Chromium, using its performance counters.
+// Usage: node tools/nameLayerBench.mjs [peers=60] [frames=300].
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -61,7 +54,7 @@ await page.evaluate(async ({ PEERS, STATIC }) => {
     requestAnimationFrame(tick);
   });
 }, { PEERS, STATIC: process.env.STATIC === '1' });
-await page.evaluate(() => window.__run(30));   // warm
+await page.evaluate(() => window.__run(30));
 const m0 = await metrics();
 await page.evaluate(() => { window.__scriptMs = 0; });
 const times = await page.evaluate((f) => window.__run(f), FRAMES);
@@ -71,6 +64,5 @@ const d = (k) => ((m1[k] - m0[k]) * 1000 / FRAMES);
 const sorted = times.slice(1).sort((a, b) => a - b);
 console.log(`peers ${PEERS}  frames ${FRAMES}: per frame - layer JS ${(script / FRAMES).toFixed(3)} ms, recalc style ${d('RecalcStyleDuration').toFixed(3)} ms (${((m1.RecalcStyleCount - m0.RecalcStyleCount) / FRAMES).toFixed(2)}x), layout ${d('LayoutDuration').toFixed(3)} ms (${((m1.LayoutCount - m0.LayoutCount) / FRAMES).toFixed(2)}x), task ${d('TaskDuration').toFixed(3)} ms; frame interval p50 ${sorted[sorted.length >> 1].toFixed(1)} p95 ${sorted[Math.floor(sorted.length * 0.95)].toFixed(1)}`);
 if (errors.length) console.log('errors:', errors.join(' | '));
-// the bench judges its run (test/tooling/probehygiene.test.js T3): a page that threw, or a layer that did no work, is no measure
 if (errors.length || !(script > 0) || !Number.isFinite(d('TaskDuration'))) process.exitCode = 1;
 await browser.close(); await server.close();

@@ -1,6 +1,4 @@
-// I3: the pause window LIVE - Escape opens OPTN00I0 in the dungeon
-// host, the sound bar writes, N declines the exit confirm, Continue
-// closes, Escape toggles. Frame-synced like the fleet.
+// Probe: Escape opens the dungeon pause window, the sound bar writes, N declines the exit, and Escape closes it.
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
@@ -23,47 +21,35 @@ out.steps.boot = await overlay();
 await page.keyboard.press('Escape');
 await frames(2);
 out.steps.open = await overlay();
-// the sound bar: a quarter-click writes 0.25 (OPTN00I0 is 150x84 ->
-// panelX 85). NOT the mid-point: 0.5 IS the ini default and the
-// sparse store drops default-equal writes, which made the first
-// version of this probe read the default back and call it proof.
-// The store persists ON CLOSE (the saveSettings latch = DFU's OnPop).
+// A quarter click writes 0.25, because 0.5 is the default and the store drops writes equal to it.
+// The store saves on close.
 await page.evaluate(() => window.__overlayClick(85 + 6.15 + 109.1 * 0.25, 40 + 23.2 + 2));
 await frames(1);
-// exit -> confirm -> N declines
 await page.evaluate(() => window.__overlayClick(85 + 101 + 2, 40 + 4 + 2));
 await frames(1);
 await page.evaluate(() => window.__overlayKey('KeyN'));
 await frames(1);
 out.steps.declined = await overlay();
-// Escape toggles closed
 await page.keyboard.press('Escape');
 await frames(2);
 out.steps.closed = await overlay();
 out.steps.sound = await page.evaluate(() => JSON.parse(localStorage.getItem('dagger.settings.v1') ?? '{}').Controls?.SoundVolume ?? null);
-// and reopens
 await page.keyboard.press('Escape');
 await frames(2);
 out.steps.reopened = await overlay();
-// I4: the CONTROLS door, a live rebind, and the round trip back.
-// Reopen, click CONTROLS (5,60 inside the panel), rebind MoveForwards
-// (the grid's first button at 57,13) to KeyP, then CONTINUE (240,190)
-// and confirm the registry persisted it.
 await page.evaluate(() => window.__overlayClick(85 + 5 + 2, 40 + 60 + 2));
 await frames(2);
 out.steps.controls = await overlay();
-await page.evaluate(() => window.__overlayClick(57 + 2, 13 + 2));   // MoveForwards
+await page.evaluate(() => window.__overlayClick(57 + 2, 13 + 2));
 await frames(1);
 await page.evaluate(() => window.__overlayKey('KeyP'));
 await frames(1);
-await page.evaluate(() => window.__overlayClick(240 + 2, 190 + 2));  // CONTINUE
+await page.evaluate(() => window.__overlayClick(240 + 2, 190 + 2));
 await frames(2);
 out.steps.backToPause = await overlay();
 out.steps.rebound = await page.evaluate(() => JSON.parse(localStorage.getItem('dagger.keybinds') ?? '{}').actionKeyBinds?.KeyP ?? null);
 out.steps.oldGone = await page.evaluate(() => JSON.parse(localStorage.getItem('dagger.keybinds') ?? '{}').actionKeyBinds?.KeyW ?? null);
-// U37: the tooltip, live. Rebind MoveForwards to a code whose label
-// ELONGATES, hover it, and read the tip through the window.
-await page.evaluate(() => window.__overlayClick(85 + 5 + 2, 40 + 60 + 2));   // CONTROLS again
+await page.evaluate(() => window.__overlayClick(85 + 5 + 2, 40 + 60 + 2));
 await frames(2);
 out.steps.tipShort = await page.evaluate(() => {
   const w = window.__overlayWindow?.();

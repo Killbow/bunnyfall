@@ -970,7 +970,6 @@ export function validateCard(slug, content) {
   const structuredProse = [...parsed.invariants, ...parsed.traps].join('\n');
   checkProseText(`${prose}\n${structuredProse}`, issues);
 
-  // Deduplicate issue codes while preserving order.
   const dedup = [];
   const seenCodes = new Set();
   for (const item of issues) {
@@ -1509,7 +1508,6 @@ export function createCodex(options = {}) {
     const changedMigrations = changedFiles.filter((f) => f.startsWith('server-account/migrations/') && f.endsWith('.sql'));
     const overlay = loadPathOverlay(options.overlayPath);
 
-    // Build reverse caller lookup so edits to upstream modules also flag dependent cards.
     const callerFilesOfChanged = new Set();
     for (const f of changedFiles) {
       for (const caller of snap.graph.inbound.get(f) ?? []) {

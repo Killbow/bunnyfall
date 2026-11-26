@@ -1,15 +1,6 @@
-// LEFAY1 - THE MONUMENT TO JULIAN LEFAY, DRAWN IN A REAL BROWSER.
-//
-// node holds its law (test/world/lefay1_monument.test.js: the spot, the faces outward, the plaque's corners, the art); what
-// node cannot answer is what lands on the pixels drawn AS THE GAME DRAWS (world/mat4.js THE HANDEDNESS LAW: the
-// projection mirrored in x, the front faces clockwise on screen) with the back faces culled: its steps, its pedestal,
-// the cornice's underside and its obelisk all drawn from outside, and the plaque's inscription READING the right way
-// round - not mirrored, not upside down - where the viewer sees it on the screen. AUDIT LEFAY1 A1: the first cut drew
-// with a plain projection, the mirror of the game's, and so certified a plaque the game shows backwards. So: the repo's own modules served as they are, the stone drawn with
-// its own art by a stand-in shader (riteProbe.mjs's), the flowers' rests marked by small swatches (their pictures are
-// the player's ARENA2, which no probe carries), and the frame read back.
-//
-//     node tools/lefayProbe.mjs [--shots <dir>]     (writes front / quarter / plaque / above .png there)
+// Draws the Julian Lefay monument with the game's mirrored projection and back-face culling, and checks every face
+// draws from outside and the plaque inscription reads the right way round.
+// Run: node tools/lefayProbe.mjs [--shots <dir>].
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -115,9 +106,8 @@ try {
   const shot = async (name) => { if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, `${name}.png`) }); };
   const SKY = [158, 184, 219];
   const near = (a, b, t = 12) => a.every((v, i) => Math.abs(v - b[i]) <= t);
-  // from the east, a few paces off: every part of it drawn from outside with the back faces culled
   const front = await page.evaluate(() => window.draw({ eye: [9, 1.7, 0], centre: [0, 2.6, 0],
-    at: [[0.73, 1.45, 0.3], [0.4, 4.2, 0], [0.12, 6.6, 0], [2.5, 0.15, 0], [1.9, 0.45, 0], [1.4, 0.75, 0.2], [-3, 5, 3]] }));   // the plaque under its lines, clear of the letters
+    at: [[0.73, 1.45, 0.3], [0.4, 4.2, 0], [0.12, 6.6, 0], [2.5, 0.15, 0], [1.9, 0.45, 0], [1.4, 0.75, 0.2], [-3, 5, 3]] }));
   await shot('front');
   check('no GL error drawing it', front.error === 0, `error ${front.error}`);
   const [plaque, obelisk, gilt, step0, step1, step2, over] = front.at;
@@ -126,19 +116,16 @@ try {
   check('its point drawn, gilt', gilt[0] > gilt[2] + 40, JSON.stringify(gilt));
   for (const [n, c] of [['lowest', step0], ['middle', step1], ['top', step2]]) check(`the ${n} step drawn, granite (not culled away to the sky or the ground)`, !near(c, SKY) && Math.abs(c[0] - c[2]) < 30 && c[0] > 30, JSON.stringify(c));
   check('the sky beside its point', near(over, SKY), JSON.stringify(over));
-  // from the other three sides: the plaque there too
   for (const [n, eye, p] of [['north', [0, 1.7, 9], [-0.3, 1.45, 0.73]], ['west', [-9, 1.7, 0], [-0.73, 1.45, -0.3]], ['south', [0, 1.7, -9], [0.3, 1.45, -0.73]]]) {
     const r = await page.evaluate(({ eye, p }) => window.draw({ eye, centre: [0, 2.6, 0], at: [p] }), { eye, p });
     check(`the ${n} face's plaque drawn`, r.at[0][0] > r.at[0][2] + 20, JSON.stringify(r.at[0]));
   }
-  // THE INSCRIPTION READS, on every face: looked at square, the face is the picture - not its mirror, not upside down
   for (let k = 0; k < 4; k++) {
     const read = await page.evaluate((k) => window.readPlaque(k), k);
     if (k === 0) await shot('plaque');
     check(`face ${k}: the inscription reads the right way round`, read.drawn > 0.6 && read.drawn > read.mirrored + 0.3 && read.drawn > read.flipped + 0.3,
       `as drawn ${read.drawn.toFixed(2)}, mirrored ${read.mirrored.toFixed(2)}, upside down ${read.flipped.toFixed(2)}`);
   }
-  // AUDIT LEFAY1 A2: the cornice's underside, from the ground under its overhang - stone, never the sky through it
   const under = await page.evaluate(() => window.draw({ eye: [3, 1.7, 0], centre: [0.78, 2.45, 0], at: [[0.78, 2.449, 0], [0.78, 2.449, 0.3]] }));
   for (const c of under.at) check('the cornice\'s underside drawn, marble', !near(c, SKY) && c[0] > 60, JSON.stringify(c));
   if (shotsAt) {

@@ -1,4 +1,3 @@
-// The caravan travel marks of a room, fanned to its sockets, and the travel owed, cleared or paid.
 import { byteGate, ACT_SENDER_BYTES_PER_S, ACT_ROOM_BYTES_PER_S, TRAV_WELCOME_MAX, travRoomGate } from '../relay.js';
 
 export class CaravanPart {

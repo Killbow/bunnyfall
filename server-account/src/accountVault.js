@@ -1,13 +1,4 @@
 // @ts-check
-// BUNNYFALL (2026-11-05, Phase 5: "a way for characters on the same account to access shared items and gold"): THE ACCOUNT
-// VAULT, as the service keeps it. A shelf of pieces and a purse, the account's own - every character of the account reaches
-// them at a bank (src/ui/accountVaultWindow.js). It is the guild vault's law (guildVault.js) with one owner:
-//   - a piece moves on a REALM RECORD, in the vault's own batch (prepareRealmRecord's guard rolls both back or lands both),
-//     by the trade's own law (takeTradeGoods): what may leave a pack - never what is worn, a quest's, summoned, BOUND to its
-//     character, a boat's, or the Materials Bag;
-//   - gold moves the same way, the record's own purse (payFromSave / creditSave) against `players.vault_gold`;
-//   - a realm character's alone: only a realm record is the service's to move.
-// EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 import { displayName, overRate } from './accounts.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE } from './realm.js';
 import { takeTradeGoods, giveTradeGoods, recordCount, REALM_TRADE_RECORD_MAX } from '../../src/net/realmTradeLaw.js';
@@ -15,7 +6,6 @@ import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
 import { wagonItemName } from '../../src/travel/wagonKinds.js';
 import { lawfulItem } from '../../src/items/itemLaw.js';
 
-/** The shelves' count, the purse's ceiling, one act's gold, the acts allowed a minute. */
 export const ACCOUNT_VAULT_SLOTS = 60;
 export const ACCOUNT_VAULT_GOLD_MAX = 100_000_000;
 export const ACCOUNT_VAULT_MOVE_MAX = 1_000_000;
@@ -24,7 +14,6 @@ const spend = (/** @type {any} */ ctx, /** @type {any} */ player) => overRate(ct
 const pieceName = (/** @type {any} */ rec) => String(wagonItemName(rec) ?? rec?.name ?? 'an item').slice(0, 64);
 const parse = (/** @type {string} */ t) => { try { return JSON.parse(t); } catch { return null; } };
 
-/** THE VAULT: every slot's piece (its record, name, count, which character put it, when), the shelves' count, the purse. */
 export async function accountVaultOf({ db }, player) {
   const { results: rows = [] } = await db.prepare('SELECT slot, rec, name, count, dep_name, at FROM account_vault WHERE player_id = ? ORDER BY slot').bind(player.id).all();
   const me = await db.prepare('SELECT vault_gold FROM players WHERE id = ?').bind(player.id).first();
@@ -38,8 +27,6 @@ export async function accountVaultOf({ db }, player) {
   };
 }
 
-/** PUT A PIECE IN: `{ character, realm, pick, item, count }` (the guild vault's put, one owner). Refusals: `avault-full`,
- *  `vault-goods`, `avault-moved` and the realm's own. */
 export async function accountVaultPut(ctx, player, { character, realm = null, pick, item, count = null } = {}) {
   const { db, bucket, nowS } = ctx;
   if (typeof character !== 'string' || !REALM_ID_RE.test(character)) return { error: 'realm-only' };
@@ -66,6 +53,8 @@ export async function accountVaultPut(ctx, player, { character, realm = null, pi
   }, { outbound: true, escrow: true });
   if ('error' in prep) return prep;
   const who = displayName(player);
+  // The realm record and the vault row land in one batch; mustChange fails it when the guarded write changes
+  // no row.
   try {
     await db.batch([
       ...prep.steps,
@@ -85,8 +74,6 @@ export async function accountVaultPut(ctx, player, { character, realm = null, pi
   return { ok: true, slot, item: piece, realm: { seq: prep.seq } };
 }
 
-/** TAKE A PIECE OUT: `{ character, realm, slot, count, at }` - the slot's piece (or `count` of its stack) into the taker's
- *  record; `at` when the slot was read, so a slot emptied and filled again is never the one taken. */
 export async function accountVaultTake(ctx, player, { character, realm = null, slot, count = null, at = null } = {}) {
   const { db, bucket, nowS } = ctx;
   if (typeof character !== 'string' || !REALM_ID_RE.test(character)) return { error: 'realm-only' };
@@ -95,6 +82,7 @@ export async function accountVaultTake(ctx, player, { character, realm = null, s
   if (!side.at) return { error: 'realm-needed' };
   if (!Number.isSafeInteger(slot) || slot < 0 || slot >= ACCOUNT_VAULT_SLOTS) return { error: 'bad-vault-slot' };
   const row = await db.prepare('SELECT * FROM account_vault WHERE player_id = ? AND slot = ?').bind(player.id, slot).first();
+  // `at` is the slot write time the client read, so a slot emptied and filled again since then is refused.
   if (!row || (at != null && Number(row.at) !== at)) return { error: row ? 'avault-moved' : 'avault-empty' };
   const have = Number(row.count);
   const n = count == null ? have : count;
@@ -128,8 +116,6 @@ export async function accountVaultTake(ctx, player, { character, realm = null, s
   return { ok: true, slot, item: give, left, realm: { seq: prep.seq } };
 }
 
-/** GOLD IN OR OUT: `{ character, realm, gold, kind: 'deposit' | 'withdraw', region, letter }`. The record pays or is paid in
- *  the purse's own batch, each guarded; both or neither. */
 export async function accountVaultGold(ctx, player, { character, realm = null, gold, kind, region = null, letter = false } = {}) {
   const { db, bucket } = ctx;
   if (typeof character !== 'string' || !REALM_ID_RE.test(character)) return { error: 'realm-only' };

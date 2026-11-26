@@ -1,20 +1,5 @@
-// NOTICE-FIT, SEEN - the enhanced notice panels drawn in a real
-// browser against the real sheet, measured and photographed.
-//
-// kurkku asked for "the sizing of the boxes to properly adjust for the
-// text instead of always being wide", and WIDTH is a thing about
-// pixels: a pin can assert that the rule says `max-width` and still
-// not tell you that "You are healthy." now hugs its line while a
-// four-paragraph quest box still wraps at the cap. So this builds the
-// panels through `drawEnhancedNotice` itself - the same entry every
-// box and every toast goes through - over the real ENHANCED_CSS, and
-// reports the measured border-box width of each.
-//
-// The QUICK-LOOT-STATS probe's lesson, at a second surface: a harness
-// that writes its own markup measures its own artefact.
-//
-//     node tools/noticeFitProbe.mjs            -> shots + a report
-//     SHOT_DIR=/tmp/x node tools/noticeFitProbe.mjs
+// Draws the enhanced notice panels in Chromium over the real stylesheet and reports each panel's measured width.
+// Usage: node tools/noticeFitProbe.mjs  (SHOT_DIR=<dir> sets where the shots go)
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join, normalize } from 'node:path';
@@ -47,9 +32,6 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8">
    repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px)}
 </style></head><body><div class="floor"></div></body></html>`;
 
-// The four shapes the stack really carries: a one-line notice, the
-// status readout (STATUS-LIVE's own rows, its caption and all), a long
-// quest box that MUST still wrap at the cap, and a toast.
 const CASES = [
   ['short', { rows: ['You are healthy.'] }],
   ['status', { rows: [
@@ -86,14 +68,8 @@ for (const [W, H, label] of [[1280, 720, 'desktop'], [1024, 640, 'narrow'], [420
       const host = en.drawEnhancedNotice(frame, document, name);
       out.push({ name, host, frame });
     }
-    // THE PANEL IS KEPT ALIVE THE WAY A BOX KEEPS IT ALIVE: by
-    // drawing, every frame. Measured the first time this ran and a
-    // panel came back 46px off the right edge with a live transform -
-    // NOTICE_WATCHDOG_MS had fired at 400ms (no draws arrived, so the
-    // module correctly decided the box was gone) and what the picture
-    // showed was a slide-OUT halfway done. A harness that does not do
-    // what the host does measures its own artefact.
-    const until = performance.now() + 520;   // past the 260ms slide, with the watchdog fed throughout
+    // Draw every frame as a box does, or the notice watchdog starts the slide-out before the measure.
+    const until = performance.now() + 520;
     await new Promise((done) => {
       const pump = () => {
         for (const { name, frame } of out) en.drawEnhancedNotice(frame, document, name);

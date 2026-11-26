@@ -86,7 +86,6 @@ test('real ARENA2: the manifest, visible map and world loaders agree; all other 
   }
   assert.equal(inventory.filter((l) => l.inside && !CIVILIAN_TYPES.has(l.type)).length, 178);
   assert.ok(maps.getLocationByName('Wrothgarian Mountains', 'Cromwark Hamlet')?.loaded);
-  // Cache eviction and reloading cannot resurrect suppressed names or models.
   maps.discardRegion(16);
   for (const l of plan.removed) assert.equal(maps.getLocation(l.region, l.index), null);
 });

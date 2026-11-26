@@ -1,14 +1,5 @@
-// MW-D LIVE PROOF. The reverted arc's node tests were green through three
-// broken releases; what caught the real defects every time was a probe that
-// drove the actual page. So this one builds a Morrowind archive and record
-// file BY HAND, hands them to mw-inspect.html through the REAL file input,
-// and reads the verdicts back out of the rendered DOM.
-//
-// The headline assertion is the one the whole arc turned on: an archive
-// WITHOUT meshes/base_anim.1st.nif - the name the reverted rig hardcoded -
-// must say so, in words, on screen.
-//
-// Usage: node tools/mwInspectProbe.mjs
+// Browser probe: feeds a hand-built Morrowind archive and record file to mw-inspect.html and reads its verdicts.
+// Usage: node tools/mwInspectProbe.mjs.
 import { readFileSync } from 'node:fs';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
@@ -53,57 +44,27 @@ const ok = (cond, label) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${label}`);
 
 await page.goto('http://localhost:5223/mw-inspect.html');
 
-// An archive shaped like RETAIL: it has xbase_anim.1st.nif and does NOT
-// have base_anim.1st.nif - exactly the situation the reverted rig died on.
-// MW-D2: the two arm meshes differ ON PURPOSE - the hand carries a
-// NiSkinInstance and the wrist does not - because a page that reports one
-// verdict for everything would pass a fixture where they agree.
-// The fixture archive is the source for the real files below - a loose
-// base_anim.nif does not exist on disk, it lives inside it.
 const fixtureBsa = new MwBsaFile(new Uint8Array(readFileSync('test/fixtures/mw/fixture.bsa')));
 const nifRecs = (types) => {
   const out = [...ascii('NetImmerse File Format, Version 4.0.0.2'), 0x0a, ...u32(0x04000002)];
   for (const t of types) out.push(...u32(t.length), ...ascii(t), ...[7, 0, 0, 0, 1, 2, 3]);
   return Uint8Array.from(out);
 };
-//
-// MW-D6 REBUILT THIS FIXTURE. Until now the skeleton was the generic
-// test rig (SkinRoot/Bone0/Bone1), whose vocabulary is not Morrowind's,
-// so assembleFirstPersonArm could bind NOTHING and a probe could only
-// ever prove the failure path. armskel.nif carries rule 5's own bone
-// names for both sides, and armhand/armcuff are shaped like retail parts
-// - so the ASSEMBLY's success path is now measured here, on a page, in
-// pixels, which is this lane's whole standing rule.
-//
-// armskel deliberately omits Weapon Bone, Weapon Bone Left, the spine and
-// the clavicles, so MW-D4's MISSING half stays exercised too.
 const loose = (n) => new Uint8Array(readFileSync(`test/fixtures/mw/${n}`));
 const bsa = buildBsa([
   { name: 'meshes\\XBase_Anim.1st.nif', data: loose('armskel.nif') },
   { name: 'meshes\\Base_Anim_Female.1st.nif', data: nif('NetImmerse File Format, Version 4.0.0.2', 0x04000002) },
-  // The HAND: one real file carrying BOTH sides as separately named
-  // shapes - the retail shape rule 15's filter exists for.
   { name: 'meshes\\b\\H1.nif', data: loose('armhand.nif') },
-  // The WRIST: a record-name STUB the strict reader must refuse, so the
-  // draw panel's "name your failure stage" behaviour stays proven. Its
-  // scan still reads rigid, which is what MW-D2 asserts.
   { name: 'meshes\\b\\W.nif', data: nifRecs(['NiNode', 'NiTriShape']) },
-  // The UPPER ARM: a real RIGID part, asymmetric in x, which is what
-  // makes rule 13's mirror measurable off the pixels.
   { name: 'meshes\\b\\U.nif', data: loose('armcuff.nif') },
-  // MW-D7: THE IDLE CLIP, at rule 6's own path. Until now this archive
-  // carried no animation source at all, so the page printed ABSENT for it
-  // and the assembly could only ever be drawn at rest.
   { name: 'meshes\\XBase_Anim.1st.kf', data: loose('armidle.kf') },
 ]);
 const esm = Uint8Array.from([
   ...body('b_n_nord_m_hand.1st', 'nord', 'hand', { model: 'b/H1.nif' }),
-  ...body('b_n_nord_m_wrist', 'nord', 'wrist', { model: 'b/W.nif' }),   // third-person only
-  // Part VI found `b_n_nord_m_upper arm` on retail - the id carries a
-  // SPACE, and any lookup assuming record ids are token-safe breaks on
-  // this slot specifically. The fixture keeps the space.
+  ...body('b_n_nord_m_wrist', 'nord', 'wrist', { model: 'b/W.nif' }),
+  // The retail record id contains a space, and the fixture keeps it.
   ...body('b_n_nord_m_upper arm', 'nord', 'upperarm', { model: 'b/U.nif' }),
-  ...body('b_n_nord_m_chest', 'nord', 'chest'),                          // not an arm
+  ...body('b_n_nord_m_chest', 'nord', 'chest'),
 ]);
 
 await page.setInputFiles('#file', [
@@ -135,10 +96,6 @@ ok(/Both kinds are present here, so the rig must handle both/.test(text),
 ok(/scan<\/b>, not a parse/.test(text) || /scan.{0,12}not a parse/.test(text),
   'the verdict carries its own uncertainty on screen');
 
-// MW-D3: the fixture arm meshes are NOT real NIFs (they are record-name
-// stubs for the scan), so the reader must REFUSE them and print the stage
-// and message rather than leaving an empty box. That is the behaviour
-// under test: a failure that says why.
 await page.waitForSelector('#draws .draw', { timeout: 10000 });
 const drawText = await page.textContent('#draws');
 ok(/hand/.test(drawText) && /wrist/.test(drawText), 'each arm slot with a mesh gets its own panel');
@@ -157,15 +114,6 @@ ok(/parse:|flatten:|geometry:/.test(drawText),
   `a mesh the strict reader refuses names its STAGE (got: ${drawText.replace(/\s+/g, ' ').slice(0, 120)})`);
 ok(!/^\s*$/.test(drawText), 'and never an empty box - the reverted rig\'s defining behaviour');
 
-// ── MW-D6: THE ASSEMBLED ARM, DRAWN ───────────────────────────────
-//
-// Three layers, because each is blind to what the next catches:
-//   1. lit pixels     - something was drawn at all
-//   2. x-symmetry     - blind to "two identical right hands", which is
-//                       EXACTLY the defect MW8 shipped, so layer 1 alone
-//                       would have passed it
-//   3. signed readback- which piece, which bone, which side, mirrored or
-//                       not; the only layer that can name what went wrong
 await page.waitForSelector('#assembly canvas', { timeout: 10000 });
 const armText = await page.textContent('#assembly');
 
@@ -181,13 +129,6 @@ const armPixels = await page.evaluate(() => {
 });
 ok(armPixels > 200, `the assembled arm actually DRAWS (${armPixels} lit pixels)`);
 
-// LAYER 2. Every part in this fixture is x-symmetric by construction -
-// two mirrored hand shapes, one cuff placed at both upper arms with the
-// left mirrored - and frontViewMapper centres on (minX+maxX)/2 = 0. So a
-// correct drawing is symmetric about the vertical centre line. Drop rule
-// 13's mirror and the left cuff lands on top of the right one instead of
-// opposite it, and the score collapses. Block-downsampled to absorb
-// antialiasing and the even-width off-by-one.
 const sym = await page.evaluate(() => {
   const c = document.querySelector('#assembly canvas');
   const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
@@ -209,7 +150,6 @@ const sym = await page.evaluate(() => {
 ok(sym.tot > 20 && sym.score >= 0.9,
   `and it is SYMMETRIC about x=0 - two identical hands would not be (${sym.score.toFixed(2)} over ${sym.tot} cells)`);
 
-// LAYER 3. The signed numbers, off the same rows the page's table shows.
 const arm = await page.evaluate(() => window.__mwArm);
 ok(Array.isArray(arm) && arm.length === 4,
   `four pieces: a skinned hand per side and a rigid upper arm per side (${arm ? arm.length : 'none'})`);
@@ -231,23 +171,9 @@ ok(/skinned/.test(armText) && /rigid/.test(armText), 'and both kinds by name');
 ok(/Not in the picture/.test(armText) && /forearm/.test(armText),
   'a slot with no data is listed WITH ITS REASON, never silently absent');
 
-// ── MW-D7: THE IDLE CLIP, PLAYED ──────────────────────────────────
-//
-// MW-D6's lesson, applied. A lit-pixel count passed a ONE-HANDED arm; it
-// will pass a rest-pose arm just as happily, and a rest pose is exactly
-// what an unbound clip produces. So the layers here have to separate
-// three outcomes that a picture cannot:
-//
-//   NOT ANIMATING  - poseSkeleton fell through to node.rest for every
-//                    bone. Clean, plausible, static. Layer 2 kills it.
-//   ANIMATING WRONGLY - a `% span` player replays the clip's intro on
-//                    every wrap instead of the loop segment. It moves,
-//                    it is symmetric, it draws. Only layer 5 kills it.
-//   ANIMATING CORRECTLY - the recorded law.
 await page.waitForSelector('#clip canvas', { timeout: 10000 });
 const clipText = await page.textContent('#clip');
 
-// L1 - it draws.
 const clipPixels = await page.evaluate(() => {
   const c = document.querySelector('#clip canvas');
   const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
@@ -257,10 +183,6 @@ const clipPixels = await page.evaluate(() => {
 });
 ok(clipPixels > 200, `the clip panel draws the arm (${clipPixels} lit pixels)`);
 
-// L1b - IT ANIMATES ON ITS OWN. Every layer below drives the pose through
-// __mwArmAt, which answers perfectly well with the rAF loop dead - a page
-// frozen on its first frame passes all of them. So watch the LIVE canvas
-// across real frames and nothing else.
 const live = await page.evaluate(async () => {
   const c = document.querySelector('#clip canvas');
   const g = c.getContext('2d');
@@ -281,8 +203,6 @@ ok(live.before !== live.after,
 
 const CLIP_TIMES = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 
-// L2 - THE PICTURE CHANGES. This is the layer that kills "bound nothing,
-// fell back to rest", which no pixel count and no symmetry score can see.
 const shots = await page.evaluate((times) => {
   const c = document.querySelector('#clip canvas');
   const g = c.getContext('2d');
@@ -311,15 +231,10 @@ const distinct = new Set(shots.map((s2) => s2.hash)).size;
 ok(distinct >= 5,
   `the picture CHANGES across the clip - a clip that bound nothing gives 1 (${distinct} distinct of ${shots.length})`);
 
-// L3 - symmetry at EVERY time, not once. The fixture's left arm track is
-// the right's negated about Y, which the x-mirror conjugates exactly, so
-// the assembly is x-symmetric at every instant. A one-sided binding or a
-// mirror lost under animation collapses this.
 const worst = shots.reduce((a, b) => (b.sym < a.sym ? b : a));
 ok(shots.every((s2) => s2.tot > 20 && s2.sym >= 0.9),
   `and stays SYMMETRIC at every time (worst ${worst.sym.toFixed(2)} at t=${worst.t})`);
 
-// L4 - the signed readback, per piece, per time.
 const poses = await page.evaluate((times) => times.map((t) => {
   const rows = window.__mwArmAt(t);
   const pick = (b) => rows.find((r) => r.bone === b);
@@ -332,8 +247,6 @@ const poses = await page.evaluate((times) => times.map((t) => {
   };
 }), CLIP_TIMES);
 const at = (t) => poses.find((p) => p.t === t);
-// ANTI-VACUITY: the intro pose must be REACHABLE, or L5's "never returns
-// to it" could pass by never arriving in the first place.
 ok(at(1.0).rh.maxX < 0,
   `at the clip's start the right hand is still LEFT of centre (${at(1.0).rh.maxX.toFixed(3)})`);
 ok(at(2.0).rh.maxX > 2.4, `and by t=2.0 it has swung across (${at(2.0).rh.maxX.toFixed(3)})`);
@@ -342,9 +255,6 @@ ok(poses.every((p) => Math.abs(p.lh.minX + p.rh.maxX) < 1e-3 && Math.abs(p.lc.mi
 ok(poses.some((p) => Math.abs(p.rc.maxX - at(1.0).rc.maxX) > 1e-3),
   'and the RIGID pieces move too - a pose that re-skins and leaves the cuffs at rest is half a rig');
 
-// L5 - THE LOOP LAW, as a sequence. The one measurement that separates a
-// correct player from a plausible one, asserted in time-space AND in
-// pose-space so a time-bookkeeping fake cannot pass it.
 const trace = await page.evaluate(() => window.__mwClipTrace({ dt: 0.2, steps: 40, loopCount: 2 }));
 ok(trace.length > 6 && Math.abs(trace[0].time - 1.2) < 1e-3,
   `the clip starts at 1.0, not 0 - a forward scan takes the decoy block (first step t=${trace[0] && trace[0].time})`);
@@ -357,11 +267,6 @@ ok(after.every((r) => r.rightHandMaxX == null || r.rightHandMaxX > 1.4),
   'measured in the POSE too, not just the clock - the intro reaches x < 0 and the loop never does');
 ok(trace[trace.length - 1].loopStartTime === 1.5 && trace[trace.length - 1].loopStopTime === 2.5,
   'the loop window ends at 1.5..2.5 - DISCOVERED by crossing the keys, not read at load');
-// loopCount is a count of ADDITIONAL passes, so a count of 2 CROSSES the
-// loop-stop key three times and WRAPS twice - the third crossing finds
-// the count exhausted and runs on to the stop key. Both numbers are
-// asserted, because an off-by-one in either direction moves exactly one
-// of them.
 const wraps = trace.filter((r, i) => i > 0 && r.loopCount < trace[i - 1].loopCount).length;
 ok(wraps === 2 && trace[trace.length - 1].loopCount === 0,
   `two wraps for a loop count of 2 (${wraps}, ending at ${trace[trace.length - 1].loopCount})`);
@@ -377,7 +282,6 @@ ok(allFired.includes('soundgen: left'),
 ok(!allFired.some((k) => k.startsWith('idle1h:') || k.startsWith('sneak')),
   'while another group\'s ordinary keys are dropped - "idle" must not swallow "idle1h"');
 
-// The page has to SAY the things a picture cannot.
 ok(/1\.00\s*…\s*3\.00s|1\.00 &hellip; 3\.00s|1\.00.{0,10}3\.00s/.test(clipText),
   `the resolved clip range is printed (got: ${clipText.replace(/\s+/g, ' ').slice(0, 200)})`);
 ok(/5 of 5/.test(clipText), 'the binding count is printed - the answer to the silent failure');
@@ -386,10 +290,6 @@ ok(/runs backwards/.test(clipText),
 ok(/Right Hand|Left Hand/.test(clipText),
   'bones the clip does not drive are named, since they are indistinguishable from an unbound clip');
 
-// MW-D4: the bone table. The fixture skeleton is a TEST RIG, not
-// Morrowind's, so the retail bone names are expected to be MISSING - and
-// the assertion is that the page SAYS so, in the row, rather than
-// shortening the list or defaulting to cheerful.
 await page.waitForSelector('#bones table', { timeout: 10000 });
 const boneText = await page.textContent('#bones');
 ok(/Left Hand/.test(boneText) && /Weapon Bone Left/.test(boneText),
@@ -398,9 +298,6 @@ ok(/MISSING/.test(boneText), 'and a bone this skeleton lacks is named MISSING');
 ok(/are missing[\s\S]{0,300}before a rig is written against them/.test(boneText),
   'with the consequence spelled out, not left for the reader to infer');
 
-// L6 - THE SILENT FAILURE, MADE VISIBLE. Swap in a .kf that keys bones
-// this skeleton does not have. The arm still draws, still symmetric,
-// still plausible - and the page must say so in words.
 const blindBsa = buildBsa([
   { name: 'meshes\\XBase_Anim.1st.nif', data: loose('armskel.nif') },
   { name: 'meshes\\b\\H1.nif', data: loose('armhand.nif') },
@@ -423,16 +320,11 @@ ok(blindClip && blindClip.binding && blindClip.binding.matched.length === 0
     ? blindClip.binding.matched.length + ' matched' : 'no report'})`);
 ok(blindClip && /names no such animation/.test(blindClip.refusal || ''),
   'and the refusal itself is readable, not only the success path');
-// BOTH sentences, not either. The clip refusal and the empty binding are
-// two different failures of the same file, and an OR lets one stand in for
-// the other - which is how a page stops reporting the binding at all and
-// nothing notices.
 ok(/names no such animation/.test(blindText),
   `the refused clip is named (got: ${blindText.replace(/\s+/g, ' ').slice(0, 160)})`);
 ok(/holds its rest pose/.test(blindText),
   'AND the unmatched track is named, with the consequence spelled out - the failure a picture cannot show');
 
-// a corrupt archive must be named, not swallowed
 const bad = Uint8Array.from([...u32(0x102), ...u32(0), ...u32(0)]);
 await page.setInputFiles('#file', [
   { name: 'Broken.bsa', mimeType: 'application/octet-stream', buffer: Buffer.from(bad) },

@@ -12,7 +12,6 @@ for (let i = 0; i < 5000; i++) out(`dfrandom.rr.${pad(i, 5)}`, randomRange(0, 10
 srand(42);
 for (let i = 0; i < 5000; i++) out(`dfrandom.rri.${pad(i, 5)}`, randomRangeInclusive(-50, 50));
 srand(7);
-// DFU has a single-arg random_range(max) == rand() % max; the port exposes only
-// the two-arg form, which is arithmetically identical for min = 0.
+// DFU's single-argument random_range(max) is rand() % max, which equals randomRange(0, max).
 for (let i = 0; i < 5000; i++) out(`dfrandom.rr1.${pad(i, 5)}`, randomRange(0, 1000));
 await closeOut();

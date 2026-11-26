@@ -1,22 +1,9 @@
-// AUDIT GALLEON P6 (2026-10-02, Mac: "Audit this. It must be perfect"): THE GUNPORT SHUTTERS' FIT, MEASURED OFF THE BAKE.
-//
-// A shut shutter lies on her side: its inner face follows her outer planking at LID_ROWS' heights (the hinge on the
-// lintel, the knuckle her side breaks at, the port's sill, the shutter's foot) and LID_COLS' stations across it, the
-// board bent between them (world/ships/galleonModel.js lidGeometry). The numbers it is built from - her side's half-breadth at
-// each station, the OUTER of her two sides' (a shutter and its mirror are one shape) - are LID_FIT in
-// world/ships/galleonModel.js, pinned against this measure by test/world/ships/auditgalleon_prefab.test.js. When the bake changes her hull
-// (tools/bakeGalleon.mjs, galleon.json) the pin fails with the new numbers; re-measure and paste:
-//
-//   node tools/galleonLidFit.mjs          prints LID_FIT for galleonModel.js, and each side's own fit beside it
-//
-// Her half-breadth at (y, z): the outermost of the bake's own hull triangles over that point, seen from her side - a ray
-// in from outboard. Over a port's opening (the knuckle row's inner stations) there is no planking: the station is the
-// line between the row's outer ones. Pure: the bake in, numbers out. Not a DFU member. Ledger A (GALLEON).
+// Measures the galleon's hull half-breadth at each gunport shutter station from the bake and prints LID_FIT.
+// Run: node tools/galleonLidFit.mjs, then paste LID_FIT into src/world/galleonModel.js when its pin fails.
 import { readFileSync } from 'node:fs';
 import { MEASURED, LID } from '../src/world/galleonModel.js';
 import { isMain } from './lib/isMain.mjs';
 
-/** The hull's triangles of a bake, each with its bounds in y and z (a ray's quick reject). */
 export function hullTriangles(bake) {
   const hull = bake.parts.find((p) => p.role === 'hull');
   if (!hull) throw new Error('galleonLidFit: the bake has no hull');
@@ -28,8 +15,6 @@ export function hullTriangles(bake) {
   return out;
 }
 
-/** Her half-breadth on side `s` (1 starboard, -1 port) at (y, z): the outermost hull triangle over the point, as |x|,
- *  or null where none is (a zero-area triangle - the bake keeps 11 on collinear corners, Blender 5.1.1's own - AUDIT GN2-BK1 - meets no point). */
 export function halfBreadth(tris, y, z, s) {
   let best = null;
   for (const { v: [a, b, c], y0, y1, z0, z1 } of tris) {
@@ -46,11 +31,8 @@ export function halfBreadth(tris, y, z, s) {
   return best;
 }
 
-/** Whether (y, dz) about a port's middle lies over its opening (no planking behind a shutter there). */
 export const overOpening = (y, dz) => Math.abs(dz) < MEASURED.portHalfW && y > MEASURED.portSillY && y < MEASURED.portTopY;
 
-/** One side's fit at one port: her half-breadth at each of LID.rows x LID.cols (rows top down), the opening's stations
- *  the line between their row's outer ones. */
 export function sideFit(tris, z, s) {
   return LID.rows.map((y) => {
     const row = LID.cols.map((dz) => (overOpening(y, dz) ? null : halfBreadth(tris, y, z + dz, s)));
@@ -59,7 +41,6 @@ export function sideFit(tris, z, s) {
   });
 }
 
-/** Every port's fit: each side's own, and the shutters' (the outer of the two at each station, to the millimetre). */
 export function measureLidFit(bake) {
   const tris = hullTriangles(bake);
   const starboard = MEASURED.portZ.map((z) => sideFit(tris, z, 1)), port = MEASURED.portZ.map((z) => sideFit(tris, z, -1));

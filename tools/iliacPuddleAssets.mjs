@@ -1,21 +1,7 @@
 #!/usr/bin/env node
-// DW-E3 (2026-09-25): ILIAC PUDDLE NO MORE 1.2.2 (jet082) - THE FISH'S
-// VENDORED FILES, OUT OF THE SHIPPED BUNDLE.
-//
-//   node tools/iliacPuddleAssets.mjs "<path-to>/iliac puddle no more.dfmod" [outDir]
-//
-// Default outDir is vendor/iliac-puddle-no-more. What it writes:
-//
-// - `Flats/<name>.png` - the seven fish, the author's own pictures: the
-//   bundle's Texture2D (DXT5, as Unity imported the author's PNGs - the
-//   import rounds each to a power of two, which is why the mod restores
-//   the icon's aspect at run time) decoded at its first mip, every pixel
-//   the game samples there. None is a classic record: each is measured
-//   against every record of every TEXTURE file (--arena2) by the search
-//   tools/detailedShipsAssets.mjs puts its pictures through, and the tool
-//   refuses to write one a record covers.
-// - `ItemTemplates.json` - the mod's seven item templates, the bundle's
-//   text verbatim.
+// Extracts the Iliac Puddle fish pictures and item templates from its mod bundle into vendor/iliac-puddle-no-more.
+// It refuses to write a picture that a classic TEXTURE record covers.
+// Run: node tools/iliacPuddleAssets.mjs "<path>/iliac puddle no more.dfmod" [outDir] --arena2 <ARENA2>.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,12 +10,11 @@ import { PNG } from 'pngjs';
 import { isMain } from './lib/isMain.mjs';
 import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { DFPalette } from '../src/formats/dfPalette.js';
-import { classicRecords, findClassicSource } from './detailedShipsAssets.mjs';   // DS1's search: a record within a pixel of the picture's size, at every offset
+import { classicRecords, findClassicSource } from './detailedShipsAssets.mjs';
 
-/** The seven pictures PassiveFishSpeciesCatalog loads, by their bundle names. */
 export const FISH_TEXTURES = Object.freeze(['longnose_butterflyfish', 'largemouth_bass', 'canary_rockfish', 'crucian_carp', 'mackerel', 'white_zebra_angelfish', 'finulon']);
 
-/** The bundle's fish and templates. @param {Uint8Array} bundleBytes */
+/** @param {Uint8Array} bundleBytes */
 export function fishAssets(bundleBytes) {
   const b = readUnityBundle(bundleBytes);
   const pictures = FISH_TEXTURES.map((name) => {
@@ -43,7 +28,6 @@ export function fishAssets(bundleBytes) {
   return { pictures, itemTemplates: templates.text };
 }
 
-/** A bundle picture as a PNG - rgba() hands its rows top-down, as a PNG holds them. */
 function toPng(pic) {
   const png = new PNG({ width: pic.width, height: pic.height });
   png.data = Buffer.from(pic.data);

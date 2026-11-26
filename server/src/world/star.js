@@ -1,5 +1,3 @@
-// A fallen star in its cell: its words, ledger, frame, and listing, read once a wake and saved.
-// It holds a star for the hub, sweeps the old ones, and holds the receipts owed to its finders.
 import { starRelayGate, isCellRoom, worldRoom, STAR_SAVE_MS, starLedgerKey, STAR_KEEP_MS, STAR_TELL_RETRY_MS, STAR_LEDGER_PREFIX, SOCIAL_ROOM, STAR_INTERNAL_HELD, STAR_HELD_KEY, validStarOut, STAR_HELD_MAX, STAR_COUNT_MAX, starReceiptKeyOf, STAR_RC_KEEP_MS, STAR_RC_KEEP } from '../relay.js';
 import { junkOutsideCover } from '../cellNodes.js';
 import { starHeard, starLedgerId, starNear, starMayMake, newStarLedger, foldStarWord, P_HELD, starOver, starLedgerState, starLedgerSane, starSettled, starTimes, starLostAt, starPlaceFor, starEarned, starTop, starHeldWord, stepStar, starOk, starNightGoneAt } from '../../../src/net/starfall/starfallLaw.js';

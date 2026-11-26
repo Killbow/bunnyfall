@@ -1,18 +1,7 @@
 #!/usr/bin/env node
-// L10N4 (2026-09-28): THE PORT'S OWN STRINGS, DRAFTED IN-SESSION, WRITTEN WHERE THE GAME READS THEM.
-//
-// Mac's third decision: the port's own strings are translated in-session (the game's text goes through
-// tools/translate.mjs on his key). Every language the catalog marks machine-made covers the English catalog exactly
-// (test/systems/l10n1b.test.js), and every row it holds is recorded in `<table>.meta.json` as the machine's
-// (`claude-in-session`), so the pipeline redrafts it when its English moves and never mistakes it for a person's
-// (test/systems/l10n6b.test.js). This is the one door such drafts come in by: a JSON file of `{ "<lang>": { "<key>": "text" } }`
-// is checked row by row with the pipeline's own placeholder law (checkDraft - the English's ICU arguments by name,
-// a language's own plural categories allowed), merged into `locales/<lang>/Port_Strings.csv` in the catalog's order and
-// the port's own CSV form, and recorded. A row a PERSON wrote or edited is never replaced: it is reported and kept. A
-// key the English catalog no longer has is dropped, with its record. What a language still owes is said at the end.
-//
-//   node tools/l10nInSession.mjs drafts.json            merge, record, and list what is still owed (exit 1 if any)
-//   node tools/l10nInSession.mjs --owed [lang ...]      the English each language still owes, as a drafts template
+// Merges in-session translation drafts into locales/<lang>/Port_Strings.csv, checking placeholders and never
+// replacing a row a person wrote.
+// Run: node tools/l10nInSession.mjs drafts.json, or node tools/l10nInSession.mjs --owed [lang ...].
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +14,6 @@ export const IN_SESSION = 'claude-in-session';
 const TABLE = 'Port_Strings';
 
 const catalogOf = (root) => new Map(parseStringTableCsv(readFileSync(join(root, 'locales/en', `${TABLE}.csv`), 'utf8')));
-/** The languages with a Port_Strings table of their own (every folder but English's). */
 export const draftLanguages = (root = ROOT) => readdirSync(join(root, 'locales'), { withFileTypes: true })
   .filter((d) => d.isDirectory() && d.name !== 'en' && existsSync(join(root, 'locales', d.name, `${TABLE}.csv`))).map((d) => d.name).sort();
 
@@ -36,7 +24,6 @@ function readLanguage(root, code) {
   return { csv, metaPath, rows, meta };
 }
 
-/** What each language owes: the catalog's keys it has no current machine row for (plan.draft), with the English. */
 export function owed(root = ROOT, langs = draftLanguages(root)) {
   const en = catalogOf(root);
   const out = {};
@@ -48,10 +35,6 @@ export function owed(root = ROOT, langs = draftLanguages(root)) {
   return out;
 }
 
-/**
- * Merge `drafts` ({ lang: { key: text } }) into the languages' tables. Answers { written, refused, kept, dropped, owed }:
- * refused - drafts that failed the placeholder law or name no catalog key; kept - rows a person owns, left as they are.
- */
 export function mergeDrafts(drafts, root = ROOT) {
   const en = catalogOf(root);
   const report = { written: {}, refused: [], kept: [], dropped: [], owed: {} };

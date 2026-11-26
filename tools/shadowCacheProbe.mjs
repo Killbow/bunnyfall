@@ -1,20 +1,7 @@
-// SC1 (2026-09-23, Mac: "make some insane improvements to our lighting system ... while also improving
-// performance"): THE STATIC SHADOW CACHE ON A REAL GPU - the same picture, and the draws it no longer makes.
-//
-// The pins (test/render/sc1_shadowcache.test.js) prove the cache's laws on the fake GL; what only a GPU can prove is that
-// a COPY of the cached faces into the live layers, with the movers drawn on top, lights the same pixels the full
-// replay lit. CACHE-COPY (2026-10-07): the copy is a draw, a triangle a face (render/shadowPass.js _blitSlot) - it was a
-// depth blit, which SwiftShader (ANGLE over Vulkan) copies and Direct3D (ANGLE's Blit11::copyDepth, a Texture2D shader
-// handed an array's layer) left to the driver, so this probe never saw the blink. tools/shadowTavernProbe.mjs is the
-// tavern the players described. This probe draws enhancedLightingProbe's room through the real renderer on SwiftShader with a
-// walker (a flat whose origin moves a step a frame) crossing it, six frames, the cache on and `setShadowCache(false)`,
-// and reads both back frame by frame:
-//   - every frame must agree pixel for pixel to within the dither's byte;
-//   - the cache's point draws must fall to the walker alone after the first replay, while the old path's stay at
-//     the room's every frame;
-//   - with the walker gone, the cache's draws must be ZERO.
-//
-// Usage: node tools/shadowCacheProbe.mjs [outDir]   (PNGs land in outDir, default scratch/sc1/)
+// Draws a room with a walking flat through the real renderer, with the static shadow cache on and off.
+// It checks that every frame matches and that the cache skips static draws.
+// Usage: node tools/shadowCacheProbe.mjs [outDir]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -100,7 +87,6 @@ const result = await page.evaluate(async ({ W, H }) => {
     r.setFog(fog.mode, fog.density, fog.start, fog.end, new Float32Array(fog.color));
     const lightDir = new Float32Array([0.45, 0.8, 0.35]);
     const frames = [];
-    // the cache's memory is on the objects and the slots: a fresh start for each run
     if (r.shadows) { r.shadows._slotLight.fill(NaN); r.shadows._slotCached.fill(0); r.shadows._slotLiveDyn.fill(0); }
     delete mesh._shMat; delete walker._shSeen;
     for (let f = 0; f < 9; f++) {
@@ -130,9 +116,8 @@ for (let f = 0; f < result.on.length; f++) {
   if (f >= 1) check(`frame ${f}: the same picture as the full replay (a dither byte at most)`, c.maxd <= 2 && c.over === 0, `max ${c.maxd}, ${c.over} over`);
 }
 const on = result.on, off = result.off;
+// Frame 1 fills the caches, frame 2 sees the walker's first step, and from frame 3 only the walker draws.
 check('the first replay draws the caches (three casters, eighteen static faces)', on[1].st.staticFaces === 18, `${on[1].st.staticFaces}`);
-// frame 1 replays the first records (the walker's first sight is still: everything into the caches); frame 2 sees its
-// first step (the caches drawn again without it, the walker on top); from frame 3 the caches stand and the walker alone is drawn
 check('with the walker crossing, the cache draws the walker alone - a fraction of the full replay - every frame once its step is seen', on.slice(3, 6).every((f, i) => f.st.staticFaces === 0 && f.st.pointDraws < off[i + 3].st.pointDraws / 3), on.slice(3, 6).map((f, i) => `${f.st.pointDraws} vs ${off[i + 3].st.pointDraws}`).join(', '));
 check('with the walker gone, one copy puts the caches back (the frame its absence is seen), and then NOTHING - no draw, no copy', on[7].st.pointDraws === 0 && on[7].st.blits === 18 && on[8].st.pointDraws === 0 && on[8].st.blits === 0, `frame 7: ${on[7].st.pointDraws} draws, ${on[7].st.blits} faces copied; frame 8: ${on[8].st.pointDraws} draws, ${on[8].st.blits} copied`);
 check('...while the old path still draws the room', off[8].st.pointDraws > 0, `${off[8].st.pointDraws}`);

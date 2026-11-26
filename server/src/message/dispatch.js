@@ -1,5 +1,3 @@
-// The frame dispatcher: each client frame passes the room's doors (hidden sockets, shard hand-on,
-// lease, parse, court, hello), then reaches the arm for its type; and the room's hello rate.
 import { hiddenMay, hiddenPose } from '../staffHidden.js';
 import { roomKindOf } from '../relayScale.js';
 import { isChannelShard, shardKeeps } from '../../../src/net/hubShards.js';

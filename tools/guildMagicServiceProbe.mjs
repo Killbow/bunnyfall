@@ -1,22 +1,5 @@
-// V2 probe: the two guild services X6 and X7 shipped that nobody has
-// ever seen on screen - BUY SOULGEMS and IDENTIFY. V1 covered the
-// dungeon effect arc; this is the other half of that verification.
-//
-// Both services mount the trade window through the REAL openServiceFlow
-// (window.__openGuildService is a thin shot-mode wrapper over it), so
-// what is exercised here is the destination wiring, the shelf minting
-// and the mode's own logic - not a re-implementation.
-//
-// What it checks:
-//   X6  Buy Soulgems - the shelf mints, it is mostly EMPTY gems, the
-//                      filled ones price at 5000 + soul points, and
-//                      the shelf is stable within one game day
-//   X7  Identify     - the window opens in Identify mode, and the
-//                      DERIVED identified state holds on real items:
-//                      a mundane item is never offered, an enchanted
-//                      one is, and the cost is the shifted formula
-//
-// Run: ARENA2_PATH=/path/to/arena2 node tools/guildMagicServiceProbe.mjs
+// Browser probe for the guild Buy Soulgems and Identify services through the real service flow.
+// Run: ARENA2_PATH=... node tools/guildMagicServiceProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -39,7 +22,6 @@ const waitFrames = async (n) => {
 };
 const trade = async () => JSON.parse(await page.evaluate(() => window.__tradeOverlay()) ?? 'null');
 
-// ---- get inside a building so interiorBuilding (and its QUALITY) is real
 const doors = JSON.parse(await page.evaluate(() => JSON.stringify(window.__doors())));
 let inside = null;
 for (let i = 0; i < doors.length && !inside; i++) {
@@ -53,11 +35,8 @@ for (let i = 0; i < doors.length && !inside; i++) {
 check('inside a building', !!inside, { building: inside });
 if (!inside) { console.log(JSON.stringify(out, null, 2)); await browser.close(); await server.close(); process.exit(1); }
 
-// A rank the soulgem service will accept (its own gate has unit pins;
-// this probe is about the SERVICE, not the ladder).
 out.steps.membership = JSON.parse(await page.evaluate(() => window.__joinGuild(undefined, 8)));
 
-// ---- X6: Buy Soulgems ------------------------------------------------
 {
   await page.evaluate(() => window.__openGuildService('guildServiceBuySoulgems'));
   await waitFrames(4);
@@ -68,11 +47,7 @@ out.steps.membership = JSON.parse(await page.evaluate(() => window.__joinGuild(u
   check('X6 window opens in Buy mode', t?.trade === true && t.mode === 'Buy', { mode: t?.mode });
   check('X6 the shelf mints soul gems', gems.length >= 2 && gems.length === (t?.remote ?? []).length,
     { gems: gems.length, remote: t?.remote?.length });
-  // trunc(quality/2) + 2, DFU's inclusive loop. The quality is read
-  // from the window's OWN priceCtx rather than looked up again -
-  // that is the number the shelf was actually built from, and an
-  // earlier version of this check asserted against a quality that
-  // __building() does not expose, so it compared 5 against 2.
+  // The shelf holds trunc(quality / 2) + 2 gems (DFU's inclusive loop), from the quality the window priced with.
   const quality = t?.priceCtx?.quality;
   const expect = Math.trunc((quality ?? 0) / 2) + 2;
   check('X6 shelf size is the inclusive loop', quality != null && gems.length === expect,
@@ -82,7 +57,6 @@ out.steps.membership = JSON.parse(await page.evaluate(() => window.__joinGuild(u
     filled.every((g) => g.value >= 5000), { filled: filled.length, sample: filled.slice(0, 3) });
   out.steps['X6 mix'] = { empty: empty.length, filled: filled.length };
 
-  // The daily seed: reopening the SAME day gives the same shelf.
   await page.evaluate(() => window.__closeOverlay?.());
   await waitFrames(2);
   await page.evaluate(() => window.__openGuildService('guildServiceBuySoulgems'));
@@ -94,11 +68,7 @@ out.steps.membership = JSON.parse(await page.evaluate(() => window.__joinGuild(u
   await waitFrames(2);
 }
 
-// ---- X7: Identify ----------------------------------------------------
 {
-  // Put one MUNDANE and one ENCHANTED item in the pack. The derived
-  // state is the whole point: before X7 the mundane one read as
-  // unidentified and would have been offered - and charged for.
   await page.evaluate(() => {
     const e = window.__playerEntity;
     e.items = e.items ?? [];
@@ -112,8 +82,6 @@ out.steps.membership = JSON.parse(await page.evaluate(() => window.__joinGuild(u
   check('X7 window opens in Identify mode', t?.trade === true && t.mode === 'Identify', { mode: t?.mode });
   check('X7 the shelf is empty - the pack is both lists', (t?.remote ?? []).length === 0, { remote: t?.remote?.length });
   out.steps['X7 pack'] = { local: t?.local, cost: t?.cost };
-  // Stage every item the mode will accept, then read the cost. Only
-  // the enchanted one may be taken, so the cost is ONE item's.
   const staged = await page.evaluate(async () => {
     const tm = await import('/src/trade/tradeModes.js');
     const e = window.__playerEntity;

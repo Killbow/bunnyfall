@@ -1,37 +1,8 @@
 #!/usr/bin/env node
-// FIELD BUGS 2026-10-04d QUEST-MARKERS: THE TOWN PACKS' QUEST MARKERS, MEASURED - the list the port's curation carries
-// (src/systems/quest/markerCuration.js CURATED_QUEST_MARKERS), made from the player's own data, as tools/rmbrpHills.mjs
-// measured the RMB Resource Pack's hills.
-//
-//   ARENA2_PATH=<the player's arena2> node tools/townQuestMarkers.mjs           print the list
-//   ARENA2_PATH=<...> node tools/townQuestMarkers.mjs --check                   compare it with the committed list (exit 1)
-//   ARENA2_PATH=<...> node tools/townQuestMarkers.mjs --classic                 and measure Daggerfall's own BLOCKS.BSA
-//
-// Every building interior the two vendored town packs lay out - each pack's RMB blocks, rebuilt over the player's own
-// BLOCKS.BSA as the world-data door rebuilds them - is laid out by world/interior/interiorLayout.js over the models the port's
-// pipeline builds for it (scenes/dataPipeline.js buildGpuMesh: the town stand-ins and the alias beds, Kamer's
-// machinery, the seams patched, the rest out of the player's ARCH3D), and every quest marker in it (editor flats 199.11,
-// a spawn, and 199.18, an item) is measured against that geometry by the two tests the town-mods audit used:
-//   - THE RAY. Straight down from 0.3 m over the marker, and out of it 1 m up in eight directions: VOID when nothing is
-//     below it or two of the eight leave the room; INSIDE A SOLID when the first face below is not a floor facing up,
-//     or four of the eight strike a face from behind.
-//   - THE WALK. From the interior's enter markers (199.8, and 199.4 where DFU accepts it), over a 0.25 m grid of
-//     floor a person stands on (1.7 m of headroom, a step of at most 0.65 m, nothing at knee or chest height in the
-//     way): REACHABLE when a floor cell the walk reaches lies within 2.5 m of the marker with a clear sight of it.
-// A marker both condemn - void or inside a solid, and unreachable - is listed, with the FLOOR SPOT it stands at instead:
-// the walk's nearest floor cell to it on a storey (a floor height the walk covers four square metres of - never a table
-// it climbed onto from a bench) with half a metre of the same floor all round, in the block's own units. Nothing of the
-// packs or of ARENA2 is written; the numbers are a measurement of the player's data.
-//
-// FIELD BUGS 2026-10-05 SEALED-CELLAR ("Can't access building basement to continue quest" - Tigonus, The Possessed
-// Child: "Supposed to be stairs down"): THE HATCHES. The packs' cellars and lofts are reached by a stair the author
-// shut with a floor tile laid over its head (GEMSAL00 #7: stairs 40018 under floor 1000 and its ceiling 2000, a rug on
-// top) and marked with a pair of editor markers no game reads - 199.14 on the floor over the plug, 199.13 at the other
-// side. DFU lays the plug as the port does (AddModels places every record), so a quest marker past one stands where no
-// player walks, on a sound floor: THE RAY passes it and the list above never held it. A marker THE WALK does not reach
-// from the entrance but does from the far side of a hatch (a 199.14 or 199.13 the walk reaches, its partner the nearest
-// marker of the other number) is listed too, its floor spot the walk's nearest to the hatch's near side - the person,
-// the foe or the item stands by the shut stair, in the room the player can enter.
+// Finds unreachable quest markers in the town pack interiors that sit in a void or a solid, with a floor spot
+// for each. The curated quest marker list comes from it.
+// --check compares with that list, and --classic also measures BLOCKS.BSA.
+// Usage: ARENA2_PATH=<dir> node tools/townQuestMarkers.mjs [--check] [--classic]
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,18 +11,15 @@ import zlib from 'node:zlib';
 import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-/** MeshReader.GlobalScale - one block unit, in metres. */
 export const UNIT = 0.025;
 const SPAWN = 11, ITEM = 18, ENTER = 8, REST = 4, EDITOR = 199;
-/** SEALED-CELLAR: the packs' hatch markers - 199.14 over the plug, 199.13 at the stair's other side. */
+// The packs mark a stair sealed by a floor tile with 199.14 over the tile and 199.13 at its other side.
+// No game reads these markers.
 export const HATCH = Object.freeze([14, 13]);
-/** AUDIT FB1005 S1: how far a hatch's spot stands from the room's entrance (its enter and rest markers), in metres. */
 export const HATCH_DOOR_CLEAR_M = 1.5;
 export const VENDORS = Object.freeze([['beautiful-villages', 10], ['beautiful-cities', 20]]);
-/** The walk's person and its reach (the audit's): a 0.25 m grid, 1.7 m of headroom, a 0.65 m step, 2.5 m of reach. */
 export const WALK = Object.freeze({ cell: 0.25, head: 1.7, step: 0.65, reach: 2.5, clear: 2 });
 
-/** The player's towns: the door holding both packs, BLOCKS.BSA, MAPS.BSA, and a model getter as the pipeline builds. */
 export async function openTownData(arena2) {
   const bytes = (f) => new Uint8Array(readFileSync(join(arena2, f)));
   const W = await import('../src/formats/worldDataReplacement.js');
@@ -78,10 +46,9 @@ export async function openTownData(arena2) {
   const maps = new MapsFile(); maps.load(bytes('MAPS.BSA'), bytes('CLIMATE.PAK'), bytes('POLITIC.PAK'));
   const arch = new Arch3dFile(); arch.load(bytes('ARCH3D.BSA'));
   installTownStandIns(() => true);
-  const size = () => ({ width: 64, height: 64 });   // a geometry measure: the UVs are never read
+  const size = () => ({ width: 64, height: 64 });
   const classicModel = (id) => { const i = arch.getRecordIndex(id); return i === -1 ? null : dfMeshToModel(arch.getMesh(i), size); };
   const models = new Map();
-  /** buildGpuMesh's order: Kamer's machinery, a registered model, an alias's classic model, ARCH3D - seams patched. */
   const getModel = (id) => {
     if (models.has(id)) return models.get(id);
     let m = null;
@@ -97,13 +64,10 @@ export async function openTownData(arena2) {
     models.set(id, m);
     return m;
   };
-  /** A block of a pack as the door serves it - the pack's own rebuild over the player's BLOCKS.BSA. */
   const packBlock = (vendor, name) => {
     const index = blocks.getBlockIndex(name);
     return { dfBlock: W.blockFromJson(packs[vendor].rebuild(`${name}.json`, maps), index, name), index };
   };
-  /** A flat's classic billboard, metres { w, h } - the size a person's pick box takes (scenes/interiorContext.js
-   *  standPerson's billboardSize, the TEXTURE file's record; AUDIT QA2: the temple summoners' spots ask it). */
   const { TextureFile, texName } = await import('../src/formats/textureFile.js');
   const { classicBillboardSize } = await import('../src/world/rmbFlats.js');
   const textures = new Map();
@@ -114,8 +78,6 @@ export async function openTownData(arena2) {
   return { blocks, maps, packs, getModel, packBlock, billboardSize };
 }
 
-/** The triangles of a laid-out interior: [ax,ay,az, bx,by,bz, cx,cy,cz, nx,ny,nz] each, the normal turned to the
- *  mesh's own stored normal (the face the model shows). */
 export async function interiorTriangles(getModel, dfBlock, blockIndex, recordIndex) {
   const { layoutInterior } = await import('../src/world/interiorLayout.js');
   const warn = console.warn; console.warn = () => {};
@@ -146,7 +108,6 @@ export async function interiorTriangles(getModel, dfBlock, blockIndex, recordInd
   return { tris: Float64Array.from(tris), layout };
 }
 
-/** The first face along a ray, either side: { t, nx, ny, nz } or null. */
 export function rayHit(tris, o, d, maxT = 200) {
   let best = maxT, hit = -1;
   for (let i = 0; i < tris.length; i += 12) {
@@ -167,7 +128,6 @@ export function rayHit(tris, o, d, maxT = 200) {
 }
 
 const AROUND = Array.from({ length: 8 }, (_, k) => [Math.cos(k * Math.PI / 4), 0, Math.sin(k * Math.PI / 4)]);
-/** THE RAY: 'void' | 'insideSolid' | 'buried' | 'floating' | 'ok' for a marker at `p` (metres, y up). */
 export function rayVerdict(tris, p) {
   const down = rayHit(tris, [p.x, p.y + 0.3, p.z], [0, -1, 0]);
   let escape = 0, back = 0;
@@ -184,8 +144,6 @@ export function rayVerdict(tris, p) {
   return 'ok';
 }
 
-/** THE WALK from `starts` (metres): every floor cell a person reaches, whether one SEES a point, and the nearest cell to
- *  a point with `clear` cells of the same floor all round. */
 export function walkFloor(tris, starts, { cell, head, step, reach, clear } = WALK) {
   const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < tris.length; i += 12) for (let k = 0; k < 9; k += 3) for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], tris[i + k + a]); hi[a] = Math.max(hi[a], tris[i + k + a]); }
@@ -256,15 +214,13 @@ export function walkFloor(tris, starts, { cell, head, step, reach, clear } = WAL
   const at = (n) => ({ x: lo[0] + n.i * cell, y: n.h, z: lo[2] + n.j * cell });
   const byCell = new Map();
   for (const n of reached) (byCell.get(`${n.i},${n.j}`) ?? byCell.set(`${n.i},${n.j}`, []).get(`${n.i},${n.j}`)).push(n.h);
-  // a STOREY is a floor height the walk covers four square metres of - the room's floor, never a table, a bed or a
-  // landing it climbed onto (the walk steps onto a bench, and from it onto the table)
   const level = (h) => Math.round(h * 10) || 0;
   const perLevel = new Map();
   for (const n of reached) perLevel.set(level(n.h), (perLevel.get(level(n.h)) ?? 0) + 1);
+  // A storey is a floor height the walk covers 4 square meters of, so a table or bench it climbs never counts.
   const storey = (h) => (perLevel.get(level(h)) ?? 0) * cell * cell >= 4;
   return {
     reached: reached.map(at),
-    /** A reached cell within `reach` of `p` with a clear sight of it (eye 1.5 m over its floor, `p` 0.3 m over its own). */
     sees(p) {
       for (const n of reached) {
         const c = at(n);
@@ -274,9 +230,6 @@ export function walkFloor(tris, starts, { cell, head, step, reach, clear } = WAL
       }
       return false;
     },
-    /** The nearest reached cell to `p` on a storey, with `clear` cells of the same floor (within 0.1 m) all round it,
-     *  or null. SEALED-CELLAR: `passes`, where given, a further test the cell must pass (the hatch's spots: THE RAY's floor -
-     *  by a shut stair the nearest clear cell can stand under its rail). */
     clearSpot(p, passes = null) {
       let best = null;
       for (const n of reached) {
@@ -296,8 +249,6 @@ export function walkFloor(tris, starts, { cell, head, step, reach, clear } = WAL
 }
 
 const rawOf = (p) => [Math.round(p.x / UNIT), Math.round(-p.y / UNIT) || 0, Math.round(p.z / UNIT)];
-/** One interior's quest markers: [{ record, at: [xPos, yPos, zPos], ray, reachable, to: [xPos, yPos, zPos] | null }] -
- *  `to` the floor spot of a marker both tests condemn. */
 export async function measureInterior(getModel, dfBlock, blockIndex, recordIndex) {
   const flats = dfBlock.rmbBlock.subRecords[recordIndex].interior.blockFlatObjectRecords.filter((f) => f.textureArchive === EDITOR && (f.textureRecord === SPAWN || f.textureRecord === ITEM));
   if (!flats.length) return [];
@@ -305,22 +256,17 @@ export async function measureInterior(getModel, dfBlock, blockIndex, recordIndex
   const entries = layout.markers.filter((m) => m.type === ENTER || m.type === REST);
   const walk = walkFloor(tris, entries);
   const sealed = hatchesOf(layout.markers, walk);
-  // AUDIT FB1005 S1: a hatch's spot is a floor (THE RAY) and not the entrance - a quest foe stood there meets the player
-  // at the door (TEMPASF0 #7's stood 0.95 m from its one enter marker)
   const hatchSpotOk = (c) => rayVerdict(tris, c) === 'ok' && entries.every((m) => Math.hypot(c.x - m.x, c.z - m.z) >= HATCH_DOOR_CLEAR_M);
   return flats.map((f) => {
     const p = { x: f.xPos * UNIT, y: -f.yPos * UNIT, z: f.zPos * UNIT };
     const ray = rayVerdict(tris, p), reachable = walk.sees(p);
     const condemned = (ray === 'void' || ray === 'insideSolid') && !reachable;
-    // SEALED-CELLAR: past a shut hatch - the walk from its far side reaches it - it stands by the hatch's near side
     const hatch = !condemned && !reachable ? sealed.find((h) => (h.walk ??= walkFloor(tris, [h.far])).sees(p)) : null;
     const spot = condemned ? walk.clearSpot(p) : hatch ? walk.clearSpot(hatch.near, hatchSpotOk) : null;
     return { record: f.textureRecord, at: [f.xPos, f.yPos, f.zPos], ray, reachable, ...(hatch ? { sealed: true } : {}), to: spot ? rawOf(spot) : null };
   });
 }
 
-/** SEALED-CELLAR: an interior's hatches the entrance's walk reaches - `{ near, far }`, a 199.14 or 199.13 it reaches
- *  and the nearest marker of the other number (metres) - in the layout's marker order. */
 export function hatchesOf(markers, walk) {
   const out = [];
   for (const near of markers) {
@@ -338,9 +284,6 @@ export function hatchesOf(markers, walk) {
 }
 
 const designOf = (sub) => createHash('sha1').update(JSON.stringify([sub.interior.block3dObjectRecords, sub.interior.blockFlatObjectRecords, sub.interior.blockDoorRecords])).digest('hex');
-/** Every pack's buildings whose quest markers include a condemned one, grouped by interior design: the curation list
- *  ({ design, where: [[vendor, block, record], ...], markers: [{ record, at, to }] }), sorted. `only` limits the walk
- *  to those [vendor, block, record]s (the gated test re-measures the list it pins). */
 export async function measureTownPacks(data, { only = null, log = () => {} } = {}) {
   const designs = new Map(), measured = new Map();
   const wanted = only ? new Set(only.map(([v, b, r]) => `${v}|${b}|${r}`)) : null;
@@ -369,7 +312,6 @@ export async function measureTownPacks(data, { only = null, log = () => {} } = {
     .sort((a, b) => b.where.length - a.where.length || a.design.localeCompare(b.design));
 }
 
-/** Daggerfall's own BLOCKS.BSA measured the same way: [{ block, record, record type, at, ray }] of every condemned marker. */
 export async function measureClassic(data, { log = () => {} } = {}) {
   const out = [], measured = new Map();
   for (let b = 0; b < data.blocks.count; b++) {

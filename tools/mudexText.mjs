@@ -1,10 +1,6 @@
 #!/usr/bin/env node
-// MUDEX1 (2026-10-20): writes src/mods/enemyExpansion/mudexTableText.js - MUDEX's two tables as TEXT, each the bytes
-// of the vendored file of the same name under vendor/mudex/ exactly, in the manifest's order (BestiaryMod.GetDBAssets
-// walks an enabled mod's Files). `--check` fails when the module and the vendored files part.
-//
-//   node tools/mudexText.mjs            write the module
-//   node tools/mudexText.mjs --check    exit 1 if the module is not what the files make
+// Writes src/mods/enemyExpansion/mudexTableText.js from the vendored MUDEX tables, in manifest order.
+// Run: node tools/mudexText.mjs [--check].
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +10,6 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const VENDOR = join(ROOT, 'vendor/mudex');
 export const MUDEX_TEXT_MODULE = 'src/mods/enemyExpansion/mudexTableText.js';
 
-/** The module's source: the manifest's files, in its order, as their bytes. */
 export function mudexTextSource() {
   const manifest = JSON.parse(readFileSync(join(VENDOR, 'MUDEX.dfmod.json'), 'utf8'));
   const entries = manifest.Files.map((f) => basename(f)).map((name) => `  ${JSON.stringify(name)}: ${JSON.stringify(readFileSync(join(VENDOR, name), 'utf8'))},`);

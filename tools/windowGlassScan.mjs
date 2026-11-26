@@ -1,24 +1,13 @@
 #!/usr/bin/env node
-// RW1 (2026-10-09), GLASS-ALL (2026-10-11): WHICH INTERIOR TEXELS ARE GLASS - read off the player's own ARENA2, so the
-// rule world/interior/interiorGlass.js interiorGlassMask carries can be checked against the data.
-//
-//     node tools/windowGlassScan.mjs /path/to/ARENA2            every building interior set's window wall
-//     node tools/windowGlassScan.mjs /path/to/ARENA2 --all      and every record of those sets carrying the glass index
-//
-// For every TEXTURE.nnn of a building interior set in a climate an interior is laid out in (interiorGlass.js
-// isInteriorGlassArchive) it prints the set's window wall (interiorWindowOf - record 2 against its twin, record 1, but
-// for the two castles) and the glass the rule finds in it: its texel count, its share of the picture and the box it
-// spans. With --all it prints every record of those archives that carries the palette's 0xff, the index RW1 read glass
-// off, beside them. Reads the player's files where they lie and writes nothing: no raster of game data leaves the
-// machine (Port-Doctrine).
+// Prints the window wall of each interior building texture set and the glass texels the interior glass rule finds.
+// Run: node tools/windowGlassScan.mjs /path/to/ARENA2 [--all]; --all also lists every record using the glass index.
+// Reads the local ARENA2 files and writes nothing.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { isMain } from './lib/isMain.mjs';
 import { TextureFile } from '../src/formats/textureFile.js';
 import { isInteriorGlassArchive, interiorWindowOf, interiorGlassMask, GLASS_INDEX } from '../src/world/interiorGlass.js';
 
-/** One archive's window wall and the glass the rule finds in it ({ glass: 0 } when it finds none), or null when the
- *  archive is not a building set or its set has no window. Pure over a TextureFile. */
 export function windowOfArchive(tf, archive) {
   const win = interiorWindowOf(archive);
   if (!win || win.record >= tf.recordCount) return null;
@@ -28,13 +17,13 @@ export function windowOfArchive(tf, archive) {
   if (mask) for (let y = 0; y < mask.height; y++) for (let x = 0; x < mask.width; x++) {
     if (mask.colors[(y * mask.width + x) * 4] < 128) continue;
     n++;
-    const yy = mask.height - 1 - y;   // the mask's rows are bottom-up (getWindowColors32's shape); the box is the bitmap's
+    // The mask rows run bottom-up, and the box uses the bitmap's top-down rows.
+    const yy = mask.height - 1 - y;
     if (x < x0) x0 = x; if (x > x1) x1 = x; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy;
   }
   return { archive, record: win.record, twin: win.twin, width: bm.width, height: bm.height, glass: n, share: n / (bm.width * bm.height), box: n ? [x0, y0, x1, y1] : null };
 }
 
-/** Every record of one archive carrying the glass index: { record, count }. */
 export function glassIndexRecords(tf) {
   const out = [];
   for (let r = 0; r < tf.recordCount; r++) {

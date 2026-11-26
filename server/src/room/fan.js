@@ -1,4 +1,3 @@
-// How a room fans frames: to every other socket, owed batches, the roster, and the referee flag.
 import { POSE_BATCH_MS, WIRE2_BATCH_MAX, wire2Batch, ROSTER_BATCH_MS } from '../relay.js';
 
 export class FanPart {

@@ -1,5 +1,3 @@
-// Caps and small checks the relay's rooms share. They cover the account and cooldown caches, raid
-// caches and receipts still good, unlisted accounts, a shard's owed event weight, and its retry.
 import { INVITE_TTL_MS } from '../relay.js';
 
 export const RECS_MAX = 4096;

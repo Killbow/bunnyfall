@@ -1,13 +1,3 @@
-// G5 probe: does the Mages Guild TELEPORT service land the player, in
-// the live world host?
-//
-// The unit tests drive the popup and the map's fork over fixtures;
-// this proves the two halves actually meet - the map opens ARMED
-// through the host's own door, a pick opens the TELEPORT box rather
-// than the travel one, YES lands the player at the destination pixel,
-// and the JOURNEY is skipped: no gold spent, no time passed. Those
-// last two are the whole difference between this and fast travel and
-// they can only be seen against a live clock and a live purse.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -51,7 +41,7 @@ const until = async (pred, cap = 30000) => {
 const clickNative = (x, y) => page.mouse.click(x * 4, y * 4);
 const fail = (m) => { console.log('FAIL:', m); process.exit(1); };
 
-// Drain the quest arc's boot boxes before driving keys.
+// The quest boot boxes take the keyboard until they are dismissed.
 for (let i = 0, quiet = 0; i < 30 && quiet < 2; i++) {
   const up = await page.evaluate(() => JSON.parse(window.__talk()).overlay);
   if (up) { quiet = 0; await page.keyboard.press('Escape'); } else quiet++;
@@ -72,8 +62,6 @@ if (!opened) fail('openTeleportMap answered null - the G5 host door is dead');
 console.log('armed:', opened.armed, '| telePopUp:', opened.telePopUp);
 if (!opened.armed) fail('the map opened UNarmed - activateTeleportationTravel never ran');
 
-// Region page, then find the destination by name - the same walk a
-// player makes, and the same one travelProbe makes for fast travel.
 if (!opened.identifying) await clickNative(25, 191);
 await page.keyboard.press('Enter');
 await frames(1);
@@ -101,7 +89,6 @@ if (!st?.telePopUp) fail('no teleport box - the fork did not fire');
 if (st.popUp) fail('the TRAVEL popup opened as well; the fork must pick one');
 if (st.telePopUp.name !== dest.name) fail(`the box names ${st.telePopUp.name}, not ${dest.name}`);
 
-// the save envelope is still three booleans with the box up
 console.log('save envelope with the box up:', JSON.stringify(st.save));
 for (const k of ['sleepInn', 'speedCautious', 'travelShip']) {
   if (typeof st.save[k] !== 'boolean') fail(`${k} is ${st.save[k]} - the box reached the envelope`);
@@ -113,7 +100,6 @@ if (st.telePopUp) fail('No did not close the box');
 if (!st.armed) fail('No disarmed the map - another destination must still be pickable');
 
 console.log('\n== YES lands the player, and the JOURNEY is skipped ==');
-// pick the same place again, then say yes
 await page.keyboard.press('f');
 await frames(1);
 for (const c of dest.name) {
@@ -136,7 +122,6 @@ console.log('after:', JSON.stringify(after));
 if (after.pixel.x !== dest.pixel.x || after.pixel.y !== dest.pixel.y) {
   fail(`landed at ${after.pixel.x},${after.pixel.y}, wanted ${dest.pixel.x},${dest.pixel.y}`);
 }
-// THE TWO THINGS THAT MAKE IT A TELEPORT
 if (after.gold !== before.gold) fail(`teleporting cost ${before.gold - after.gold} gold - it is free`);
 if (after.minutes !== before.minutes) {
   fail(`the clock moved ${after.minutes - before.minutes} minutes - no time passes`);

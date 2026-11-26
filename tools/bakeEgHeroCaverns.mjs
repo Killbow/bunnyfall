@@ -1,15 +1,5 @@
-// THE OBLIVION CAVERNS HERO PASSAGE, BAKED - its own bake script, the reference's shape (tools/bakeEgRefFrag.mjs).
-//
-//     node tools/bakeEgHeroCaverns.mjs [--fbx=src/assets/egfrags/source/egheroCaverns.fbx]
-//
-// EG-HERO (2026-10-13, Mac: "You have to author the fragments"; bible/11-Multiplayer/Elite-Gates.md section 11.6: "each
-// fragment its own bake script and byte-for-byte test, as every bake in the port has"). The scene is the port's own
-// (tools/egHeroCavernsScene.mjs writes it); the bake is tools/fragBake.mjs's, the one every authored fragment goes through.
-// Its SPEC says what the scene cannot: the fragment (`id`), its library kit (the Oblivion Caverns - its band, reverb, light
-// and engine follow, net/eliteGates/egFragLaw.js EG_FRAGS), its class (a passage), which hero of the kit it is (`variant` - 'caverns':
-// a hero a hall may lay, net/eliteGates/egHeroFrags.js egHeroFragLaws), and a chamber's play (a passage names none). The two halves land
-// beside the source: `LAW` (net/eliteGates/egFragLaw.js's record - registered in net/eliteGates/egHeroFrags.js) and `MESH` (registered in
-// world/eliteGates/egHeroFragModel.js), each held to its bytes by test/tooling/eghero_galleries.test.js.
+// Bakes the Oblivion Caverns hero passage's LAW and MESH from its committed FBX through tools/fragBake.mjs.
+// Run with `node tools/bakeEgHeroCaverns.mjs [--fbx=src/assets/egfrags/source/egheroCaverns.fbx]`.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { bakeFrag, fragJson } from './fragBake.mjs';

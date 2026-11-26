@@ -1,4 +1,3 @@
-// The frame types the room's dispatcher looks up after the lease and freeze doors, in arm order.
 import { worldFrame } from './world.js';
 import { foesFrame } from './foes.js';
 import { ownFrame } from './own.js';

@@ -1,5 +1,3 @@
-// The parks of a room: the list, the public view, the store, and the warden.
-// It tells an owner of a drop, registers parks with the hub, and answers the hub's park door.
 import { PARK_TTL_MS, PARK_REFRESH_MS, parkKey, parkSameSpot, PARK_ACCOUNT_MAX, PARK_CELL_MAX, wardenVerdicts, parkSpotOf, parkRegistryRoom, PARK_INTERNAL_REG, layerOf, PARK_INTERNAL_DROP, PARK_KEY_RE, isCellRoom, layerName } from '../relay.js';
 import { ROOM_CALL_MS } from '../relayScale.js';
 import { cellCall } from '../cellNodes.js';

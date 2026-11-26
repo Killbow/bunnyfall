@@ -1,6 +1,3 @@
-// Checks for the v2 POI law, run with: node --test tools/poiLaw.test.mjs
-// They cover v1 compatibility, the v2 shape rules, strict unknown-key handling, references between keys, event cycles,
-// the trade law, the service's settle law, and that the numbers poiLawV2.js copies still match the laws they come from.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems, poiShelfProblems, poiAssetProblems, poiAssetsOf, POI_DOC_VERSIONS, POI_LIMITS, poiDocBytesOf } from '../src/poi/poiLaw.js';
@@ -339,12 +336,11 @@ test('a stack may name a potion\'s recipe on the Glass Bottle; the trade law ref
   assert.deepEqual(edit((d) => { d.trades[0].recipes[0].rewardItems = [{ template: 83, recipe: 'healTrue', count: 2 }]; }), []);
   assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 'healTrue', count: 2 }]; }), []);
   assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, group: 'UselessItems1', recipe: 'healing', count: 1 }]; }), []);
-  // the shape law only knows the key, so the game's re-check of live POIs refuses nothing new
+  // poiDocProblems re-checks live POIs, so it accepts an unknown recipe name; only the trade law refuses it.
   assert.deepEqual(edit((d) => { d.trades[0].recipes[0].rewardItems = [{ template: 83, recipe: 'greaterHealing', count: 1 }]; }), []);
   assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 'greaterHealing', count: 1 }]; }), [`${at}.recipe:item-recipe`]);
   assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 3, count: 1 }]; }), [`${at}.recipe:item-recipe`]);
   assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 71, recipe: 'healing', count: 1 }]; }), [`${at}.recipe:item-recipe`]);
-  // the same stack works wherever stacks go: a requirement, a condition, an event's give and take
   const d = poiV2Example();
   d.trades[0].recipes[0].requireItems = [{ template: 83, recipe: 'healing', count: 1 }];
   d.events[0].when = { k: 'has_item', item: { template: 83, recipe: 'nonsense', count: 1 } };

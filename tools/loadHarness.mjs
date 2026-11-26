@@ -1,73 +1,8 @@
 #!/usr/bin/env node
-// SCALE3 (2026-10-08, Mac: "Do 1 2 and 3"): THE LOAD HARNESS - a fleet of bots against the REAL relay and the REAL account
-// service, both in local workerd, at the real client's own rates, measured (bible/11-Multiplayer/Scale-Arc.md SCALE3).
-//
-//   npm run load                                    50 bots, three minutes standing play
-//   node tools/loadHarness.mjs --bots 200 --minutes 5
-//   node tools/loadHarness.mjs --scenario storm     the same, and halfway the relay is restarted under the fleet (a deploy)
-//   node tools/loadHarness.mjs --json out.json      every figure, for a machine
-//   node tools/loadHarness.mjs --help               every knob
-//
-// WRANGLER_BIN names a wrangler to run (`npm ci` in server/ installs one - server/node_modules/.bin/wrangler, which is
-// taken by default when it is there); without one, `npx --yes wrangler@4` (minutes a call on a cold cache). It runs on
-// Linux, macOS and Windows (HARNESS-WIN: tools/lib/wranglerLaunch.mjs starts and stops wrangler on each).
-//
-// ═══ WHAT A BOT IS ══════════════════════════════════════════════════════════════════════════════════════════════════
-//
-// The client's own modules, never a model of them - so what the fleet does is what the game does, and a change to the
-// client's law moves the fleet with it:
-//   - a guest made through POST /v1/auth/guest (TERMS1's versions ticked, each bot its own address - the service bounds
-//     an address's sign-ups; AUDIT SCALE II L3: through the sign-in line, waiting the told wait as a player does),
-//     registered through /v1/auth/register, and a realm character created and given its first
-//     save through the realm's own client calls (systems/realmSaves.js realmCreate) - online is the realm's (REALM-DOOR);
-//   - three rooms as the world host holds them (scenes/world.js onlineStart): the PRESENCE session in its cell (and the
-//     cell's halo), the hub link (`chat:world`, the account's profile, the seat claimed) and the region link - each a
-//     net/online.js OnlineSession over this harness's WebSocket, each token from ONE net/accountClient.js
-//     accountTokenMinter for the bot, as the game shares one - AUDIT SCALE II L5: and ONE reconnect wave (SCALE2c, the
-//     page's), each socket offering the second wire (SCALE5b) as the world host's do, or the first (`--wire 1`);
-//   - poses from a walk, through OnlineSession.sendPose (its own POSE_HZ gate and crowd law), chat lines, and the
-//     session's own tick (pings, retries, halos);
-//   - the account calls the client makes on its own clocks, each by the client's own call and at the client's own
-//     constant: the play beat (net/playClock.js PLAY_BEAT_S), the mail (net/mail.js MAIL_POLL_MS), Renown while it is
-//     owed (net/renown.js RENOWN_REPORT_MS - a bot fighting), the realm checkpoint (systems/online/onlineCheckpoint.js
-//     ONLINE_CHECKPOINT_MS, through the realm's own session, packed and idle-keyed), the town's Notice Board
-//     (net/boardLaw.js BOARD_CACHE_MS), the town's yards (scenes/homeYards.js YARD_TOWN_TTL_MS, no session), the towns'
-//     layouts once at the start, the seats' red lines (net/townSeatBook.js SEAT_RED_READ_MS), the Motherlodes
-//     (net/motherlodeBook.js MOTHERLODE_READ_MS), and the professions' state as the client's book reads it
-//     (net/profBook.js stale(), scenes/gatherHost.js): once on arrival and again at the UTC day's turn, a refusal (a
-//     guest's) asked again every PROF_CLOSED_RECHECK_MS. AUDIT SCALE C1: the harness asked it every 30 s of a gatherer's -
-//     the client's floor for a read that FAILED - thirty times the client, and a quarter of every statement it measured.
-// Each clock starts at a random phase, so a fleet is not one synchronised drum. WHAT A PLAYER DOES IS NOT MODELLED: no
-// harvest, craft, market post, pin or letter sent - the fleet stands and walks in its town, fights (a fighter owes
-// Renown every RENOWN_REPORT_MS, without a pause) and talks, as the knobs say; a run's report states its fleet.
-//
-// ═══ WHAT IT MEASURES ═══════════════════════════════════════════════════════════════════════════════════════════════
-//
-//   - THE ACCOUNT SERVICE, by route: requests a bot-hour, statuses, latency, and the D1 statements each ran - the
-//     service's own metrics point (server-account/src/metrics.js), kept in the isolate by tools/loadAccountEntry.mjs
-//     where a deploy writes it to Analytics Engine; and by statement, the rows D1 read and wrote - the figure the
-//     database is billed and throttled by (YARD-SHED and STORM-SHED read it off `wrangler d1 insights`);
-//   - THE RELAY, at the bots: frames and bytes in and out a bot-second by frame type, what the frames said (a second-wire
-//     batch opened, AUDIT SCALE II L5), the latency of a pose from its sender's stamp (wire.js POSE_TS_MOD) to a
-//     listener - batched or alone - the closes by code and the refusals by word;
-//   - A DEPLOY (--scenario storm): the relay's process killed and started again on the same state, as a deploy restarts
-//     every Durable Object - and the reconnect wave second by second: the mints, the service's statements, the hellos
-//     refused, and how long until a quarter, half, nine in ten and every bot is welcomed back in its cell.
-//
-// ═══ WHAT IT IS NOT ═════════════════════════════════════════════════════════════════════════════════════════════════
-//
-// workerd on this machine is not Cloudflare: a local D1 is one SQLite file with no queue, no network and no global
-// placement, and the fleet shares the machine with both Workers. Latency here is relative; COUNTS are not - statements a
-// request, rows a statement, requests a bot-hour and frames a bot-second are the code's own, and they are what the
-// production overloads were made of. The staging pair (SCALE3's second half) is the same harness pointed at deployed
-// Workers; it is not built here, and this file refuses every address but its own two.
-//
-// A RUN SERVES THE TREE IT STANDS IN, LIVE: `wrangler dev` rebuilds a Worker whenever its source changes, so a file edited
-// under a run is what the run measures from that moment on (the first baseline of SCALE3's record was lost that way).
-// Measure a commit from a snapshot of it - `git worktree add <dir> <commit>`, server/node_modules linked into it.
-//
-// It is NOT in the suite and has no Testing.md row, for the account probe's reason (tools/accountProbe.mjs): it needs a
-// toolchain and minutes. Its parts that can be pinned without one are - test/net/scale3.test.js.
+// Load harness: client-module bots against the local relay and account service in workerd. It measures account
+// routes, D1 rows, relay frames, and (--scenario storm) the reconnect wave after a relay restart.
+// Run: node tools/loadHarness.mjs [--bots N] [--minutes N] [--scenario storm] [--json out.json] [--help].
+// Latency is relative; counts are exact. wrangler dev rebuilds on edits, so measure a separate worktree.
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
@@ -84,7 +19,7 @@ import {
   accountTokenMinter, SESSION_KEY, SERVICE_KEY, beatPlay, register as registerCall,
   accountBoard, accountHomes, accountSeats, accountProf, accountRenown, accountDecor, lineHoldMs,
 } from '../src/net/accountClient.js';
-import { reconnectWave } from '../src/net/reconnectWave.js';   // AUDIT SCALE II L5: a bot's one wave, as a page's
+import { reconnectWave } from '../src/net/reconnectWave.js';
 import { inboxCall, MAIL_POLL_MS, MailBox } from '../src/net/mail.js';
 import { createNoticeBook } from '../src/net/noticeBook.js';
 import { startPlayClock } from '../src/net/playClock.js';
@@ -104,15 +39,9 @@ import { utcDayOfMs } from '../src/net/nodeLaw.js';
 import { routeLabel } from '../server-account/src/metrics.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-/** SCALE4c: the tab's one heartbeat (src/net/heartbeat.js), where the tree under test has it - its bots then keep the
- *  beat, the letterbox and the town's board as the world host keeps them (the client's own MailBox, notice book and play
- *  clock, each a part of the bot's heartbeat); a tree before it is measured with the three clocks it had. */
 const HEARTBEAT = await import('../src/net/heartbeat.js').catch(() => null);
 const run = promisify(execFile);
 
-// ═══ THE KNOBS ═════════════════════════════════════════════════════════════════════════════════════════════════════
-
-/** Every knob, its default, and what it means - `--help` prints this table. */
 export const KNOBS = Object.freeze({
   bots: [50, 'bots in the fleet'],
   minutes: [3, 'minutes of play once the fleet is in'],
@@ -135,7 +64,6 @@ export const KNOBS = Object.freeze({
   wire: [2, 'the wire every socket offers: 2 the second (SCALE5b, batched poses and rosters - the game\'s own), 1 the first (a before-and-after)'],
 });
 
-/** `--name value` / `--name=value` pairs over KNOBS' defaults, typed as the default is. Unknown names are refused. */
 export function parseArgs(argv) {
   const out = Object.fromEntries(Object.entries(KNOBS).map(([k, [v]]) => [k, v]));
   for (let i = 0; i < argv.length; i++) {
@@ -152,27 +80,19 @@ export function parseArgs(argv) {
   }
   if (!['steady', 'storm'].includes(out.scenario)) throw new Error(`--scenario is steady or storm, not ${out.scenario}`);
   if (!(out.bots >= 1 && out.minutes > 0 && out.cells >= 1)) throw new Error('--bots, --minutes and --cells must be positive');
-  // AUDIT SCALE C12: a count is a whole number (2.5 threads built fleets past the bots asked), a share a share, and the
-  // storm inside the play (--setup 0 never set a bot up, and spun)
   for (const k of ['bots', 'cells', 'setup', 'threads', 'port']) if (!Number.isSafeInteger(out[k]) || out[k] < 1) throw new Error(`--${k} takes a whole number from 1, not ${out[k]}`);
   for (const k of ['movers', 'fighters', 'registered']) if (!(out[k] >= 0 && out[k] <= 1)) throw new Error(`--${k} is a share, 0 to 1, not ${out[k]}`);
   if (!(out['storm-at'] > 0 && out['storm-at'] < 1)) throw new Error(`--storm-at is a share of the play, between 0 and 1, not ${out['storm-at']}`);
-  if (out.wire !== 1 && out.wire !== 2) throw new Error(`--wire is 1 or 2, not ${out.wire}`);   // AUDIT SCALE II L5
+  if (out.wire !== 1 && out.wire !== 2) throw new Error(`--wire is 1 or 2, not ${out.wire}`);
   for (const k of ['ramp', 'chat-every', 'save-kb']) if (!(out[k] >= 0)) throw new Error(`--${k} cannot be negative`);
   return out;
 }
 
-// ═══ ONLY ITS OWN TWO ADDRESSES ════════════════════════════════════════════════════════════════════════════════════
-
-/** The account service's address as the bots' storage names it. The client accepts only an https base
- *  (accountClient.js serviceBase) and falls back to the PRODUCTION service for anything else - so the bots are given
- *  this one, which resolves nowhere, and `localFetch` maps it to the local Worker. */
+// The client accepts only an https base and falls back to the production service otherwise, so bots get this
+// unresolvable address and localFetch maps it to the local Worker.
 export const LOAD_SERVICE = 'https://accounts.load.invalid';
 
-/** A fetch that reaches the local account service and NOTHING ELSE: a URL on LOAD_SERVICE goes to 127.0.0.1:`port`
- *  (over node:http - no proxy is consulted), every other URL - the production service a fallback would name above all
- *  - is refused before a byte leaves. `ip` rides as cf-connecting-ip, the address the service bounds an open route's
- *  callers by. `note(route, status, ms)` hears every answer. */
+// Reaches only the local account service: every other URL, including the production fallback, is refused.
 export function localFetch({ port, ip = null, note = null, request = httpRequest }) {
   return async (url, init = {}) => {
     const u = String(url);
@@ -182,7 +102,6 @@ export function localFetch({ port, ip = null, note = null, request = httpRequest
     const body = init.body == null ? null : (typeof init.body === 'string' ? Buffer.from(init.body) : Buffer.from(init.body));
     const headers = { ...(init.headers ?? {}), ...(ip ? { 'cf-connecting-ip': ip } : {}), ...(body ? { 'content-length': String(body.length) } : {}) };
     const res = await new Promise((resolve, reject) => {
-      // AUDIT SCALE C13: the caller's give-up honoured (the client's waitedPost, the heartbeat's try), as a browser's fetch
       if (init.signal?.aborted) { reject(new Error('aborted')); return; }
       const req = request({ host: '127.0.0.1', port, path, method: init.method ?? 'GET', headers, timeout: 30_000 }, (r) => {
         const parts = [];
@@ -205,11 +124,6 @@ export function localFetch({ port, ip = null, note = null, request = httpRequest
   };
 }
 
-/** AUDIT SCALE II L5 (2026-10-11; Mac: "Lets do an audit on everything. Ensure perfection"): ONE FRAME THE ROOM SAID,
- *  TALLIED - its kind in `saidByType`, a pose's age from its sender's stamp, a refusal by its word and a welcome to its
- *  bot. A second-wire batch (SCALE5b) is opened as the client opens it (net/online.js _poses, _batch): each `poses` entry
- *  `[id, slim pose]` is one pose, aged by its `ts` where it carries one, and each frame of a frame batch (`fb`) is its
- *  own, a run of poses in it among them - never a batch within a batch. The first wire's frames are each one said. */
 export function tallySaid(tally, m, now, ws = null, room = null) {
   if (!m || typeof m !== 'object') return;
   if (m.t === 'poses') {
@@ -230,15 +144,10 @@ export function tallySaid(tally, m, now, ws = null, room = null) {
   } else if (t === 'error') {
     const w = typeof m.m === 'string' ? m.m : '?';
     tally.refusals[w] = (tally.refusals[w] ?? 0) + 1;
-    tally.refusedAt?.push([now, w]);   // AUDIT SCALE C5: when, for the storm's seconds
+    tally.refusedAt?.push([now, w]);
   }
 }
 
-/** The bots' WebSocket: Node's own, opened only to the local relay (any other URL throws), each frame counted by type
- *  and each pose's latency taken from its sender's stamp. One class a fleet, so every socket lands in one tally.
- *  AUDIT SCALE II L5: `inFrames`, `inBytes` and `inByType` are the frames on the wire - what a send costs the relay - and
- *  `saidByType` what they carried (tallySaid): the first wire's every pose was its own frame, the second's are batched,
- *  and its poses were counted as nothing - no pose ages at all - until this. */
 export function localWebSocket({ port, tally, Base = globalThis.WebSocket, now = () => Date.now() }) {
   const allowed = `ws://127.0.0.1:${port}/room/`;
   return class LoadSocket extends Base {
@@ -252,7 +161,6 @@ export function localWebSocket({ port, tally, Base = globalThis.WebSocket, now =
         const t = /^\{"t":"([a-z]+)"/.exec(text)?.[1] ?? '?';
         tally.inFrames += 1; tally.inBytes += text.length;
         tally.inByType[t] = (tally.inByType[t] ?? 0) + 1;
-        // the first wire's frames read as they always were, by their own text; a batch parsed, as the client parses it
         let m = null;
         if (t === 'poses' || t === 'fb') { try { m = JSON.parse(text); } catch { m = null; } }
         else if (t === 'pose') { const ts = /"ts":(\d+)/.exec(text)?.[1]; m = { t, p: ts != null ? { ts: Number(ts) } : {} }; }
@@ -263,10 +171,8 @@ export function localWebSocket({ port, tally, Base = globalThis.WebSocket, now =
       let opened = false, closed = false;
       this.addEventListener('open', () => { opened = true; });
       this.addEventListener('close', (e) => { closed = true; tally.closes[e.code] = (tally.closes[e.code] ?? 0) + 1; });
-      // A BROWSER CLOSES WHAT FAILED TO OPEN, AND NODE DOES NOT: a connect refused (a relay down mid-deploy) fires
-      // `error` and then `close` 1006 in every browser, and Node 22's WebSocket fires the error alone and leaves the
-      // socket CONNECTING for ever. The client's retry waits on that close (net/online.js _bind's onclose), so under
-      // Node a fleet never came back from a storm - the harness's own artifact, said here as a browser says it.
+      // Node's WebSocket fires only error on a refused connect and stays CONNECTING; browsers also fire
+      // close 1006, which the client's retry waits on, so it is raised here.
       this.addEventListener('error', () => {
         if (opened) return;
         setTimeout(() => {
@@ -288,36 +194,28 @@ export function localWebSocket({ port, tally, Base = globalThis.WebSocket, now =
   };
 }
 
-/** A fresh tally for the relay's side. AUDIT SCALE II L5: `saidByType`, the frames the room said (tallySaid). */
 export const relayTally = () => ({
   opened: 0, synthetic: 0, inFrames: 0, inBytes: 0, outFrames: 0, outBytes: 0,
   inByType: {}, saidByType: {}, outByType: {}, closes: {}, refusals: {}, refusedAt: [], poseMs: [], onWelcome: null,
 });
 
-/** The p-th percentile (0..1) of a list of numbers, or null for none. */
 export function percentile(list, p) {
   if (!list.length) return null;
   const s = [...list].sort((a, b) => a - b);
   return s[Math.min(s.length - 1, Math.max(0, Math.ceil(p * s.length) - 1))];
 }
 
-/** A device's storage: a Map behind the four calls the client asks of localStorage. */
 export function botStorage(seed = {}) {
   const m = new Map(Object.entries(seed));
   return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), _map: m };
 }
 
-// ═══ THE WORLD THE FLEET STANDS IN ═════════════════════════════════════════════════════════════════════════════════
-
-/** The map pixel of cell `k`'s town: cells two apart along one row from (13, 13) - far enough that no two cells' halos
- *  meet - standing at the cell's middle, or (`edge`) a pixel inside its corner, where its halo is three more cells. */
+// Cells sit two apart along one row so no two cells' halos meet.
 export function townPixel(k, edge = false) {
   const cx = 13 + 2 * k, cy = 13;
   return edge ? { px: cx * 16 + 1, py: cy * 16 + 1 } : { px: cx * 16 + 8, py: cy * 16 + 8 };
 }
 
-/** A bot's pose at `t` seconds: a mover walks a circle of up to a third of a pixel round its town's pixel (every bot of
- *  a town within the relay's range of every other - the crowd the fan was built for), a stander stands. */
 export function poseAt(bot, t) {
   const { px, py } = bot.town;
   const a = bot.phase + (bot.mover ? t * bot.speed : 0);
@@ -327,8 +225,6 @@ export function poseAt(bot, t) {
   return { x, y: 0, z, yaw: a, pitch: 0, mv: bot.mover ? 1 : 0 };
 }
 
-/** A realm save of about `kb` KB of JSON - a character as the realm keeps one, its inventory the bulk - stamped with
- *  where it stands and when, so every checkpoint is a save that changed (a player at play), never an idle one. */
 export function saveText(bot, kb, at) {
   const items = [];
   for (let i = 0; JSON.stringify(items).length < kb * 1024; i++) {
@@ -337,15 +233,12 @@ export function saveText(bot, kb, at) {
   return JSON.stringify({ name: bot.name, level: 1, goldPieces: 100, items, place: poseAt(bot, at / 1000), at });
 }
 
-// ═══ THE TOOLCHAIN ═════════════════════════════════════════════════════════════════════════════════════════════════
-
 const localWrangler = join(ROOT, 'server/node_modules/.bin/wrangler');
 const WRANGLER_BIN = process.env.WRANGLER_BIN || (existsSync(localWrangler) ? localWrangler : '');
 const wrangler = (args) => wranglerCommand(args, { bin: WRANGLER_BIN });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Is anything answering (or holding) a local port? Only a refused connection says no - an orphaned workerd accepts and
- *  never answers (tools/accountProbe.mjs's lesson). */
+// Only a refused connection means the port is free: an orphaned workerd accepts and never answers.
 async function portHeld(port) {
   return new Promise((resolve) => {
     const req = httpRequest({ host: '127.0.0.1', port, path: '/', timeout: 1500 }, (r) => { r.resume(); resolve(true); });
@@ -369,8 +262,7 @@ async function healthy(port, path, waitS) {
   return false;
 }
 
-/** The processes this run started, each killed whole (npx -> wrangler -> workerd: the grandchild holds the port), on the
- *  way out and on a signal - its own group off Windows, its tree on it (tools/lib/wranglerLaunch.mjs). */
+// Each process is killed with its whole tree, since the workerd grandchild holds the port.
 const started = new Set();
 function startDev(cwd, args, label) {
   const [bin, a] = wrangler(args);
@@ -384,11 +276,9 @@ function startDev(cwd, args, label) {
 function stopDev(p) {
   if (!p) return;
   started.delete(p);
-  try { killTree(p.pid, 'SIGKILL'); } catch { /* already gone */ }
+  try { killTree(p.pid, 'SIGKILL'); } catch { }
 }
 export const stopAll = () => { for (const p of [...started]) stopDev(p); };
-
-// ═══ THE SERVICES ══════════════════════════════════════════════════════════════════════════════════════════════════
 
 export async function standServices(o, state) {
   const accountPort = o.port, relayPort = o.port + 1;
@@ -419,8 +309,6 @@ export async function standServices(o, state) {
   // Wait for the account worker to initialize shared local storage before starting the relay.
   const accountProcess = account();
   if (!(await healthy(accountPort, '/v1/health', 180))) throw new Error(`the account service never answered:\n${accountProcess.log.slice(-2000)}`);
-  // AUDIT SCALE C11: the private half read and the service up - it leaves the disk now, not at the run's end (the relay's
-  // file holds the public half alone, and the storm restarts only the relay)
   rmSync(acctEnv, { force: true });
   const svc = { accountPort, relayPort, account: accountProcess, relay: relay(), restartRelay: null };
   if (!(await healthy(relayPort, '/health', 180))) throw new Error(`the relay never answered:\n${svc.relay.log.slice(-2000)}`);
@@ -433,11 +321,7 @@ export async function standServices(o, state) {
   return svc;
 }
 
-/** THE SERVICE'S OWN CLOCK (SCALE4b, server-account/src/cron.js), fired as the deploy fires it: the minute's list every
- *  minute of play and the hour's once as play begins - `wrangler dev --test-scheduled` answers /__scheduled. Its
- *  statements ride the service's own points (`cron:<job>`), counted with the rest. The two strings are cron.js's
- *  CRON_MINUTE and CRON_HOUR (test/net/scale3.test.js holds them together); a tree whose service keeps no clock (before
- *  SCALE4b) answers the firing with nothing, so one harness measures either. */
+// These strings must match CRON_MINUTE and CRON_HOUR in server-account/src/cron.js.
 export const FIRE_MINUTE = '* * * * *';
 export const FIRE_HOUR = '41 * * * *';
 async function fireCron(port, cron) {
@@ -449,8 +333,6 @@ async function fireCron(port, cron) {
   });
 }
 
-/** The account service's kept points and statements since the last read (tools/loadAccountEntry.mjs) - every read
- *  drains them, so each fold is of what is new. */
 async function serviceStats(port) {
   return new Promise((resolve, reject) => {
     const req = httpRequest({ host: '127.0.0.1', port, path: '/__load/stats', timeout: 30_000 }, (r) => {
@@ -463,9 +345,6 @@ async function serviceStats(port) {
   });
 }
 
-// ═══ THE FLEET ═════════════════════════════════════════════════════════════════════════════════════════════════════
-
-/** The client-side tally of the account service: route -> { n, statuses, ms[] }. */
 const accountTally = () => ({ byRoute: new Map(), at: [] });
 function noteCall(tally, route, status, ms) {
   const row = tally.byRoute.get(route) ?? { n: 0, statuses: {}, ms: [] };
@@ -479,12 +358,8 @@ function noteCall(tally, route, status, ms) {
 const LOOK = Object.freeze({ race: 'Nord', gender: 'male', faceIndex: 0, items: [] });
 const quietly = async (fn) => { try { return await fn(); } catch { return null; } };
 
-/** One bot: made, then connected, then ticked. */
-/** Bot `n`'s roles - a deterministic spread of each share over the fleet, each role its own (AUDIT SCALE C2: one spread
- *  for every share nested the roles, every fighter a mover and every gatherer a fighter). */
 export function rolesOf(n, o) {
-  // a Weyl sequence a role, the three multipliers rationally independent: each share spread evenly over the fleet, and
-  // the roles' pairs spread evenly over the square (offsets on one sequence had moved every fighter with a mover)
+  // A Weyl sequence per role with independent multipliers spreads each share evenly and keeps roles uncorrelated.
   const roll = (share, a) => (n * a + 0.5) % 1 < share;
   return { mover: roll(o.movers, 0.6180339887498949), fighter: roll(o.fighters, 0.4142135623730951), registered: roll(o.registered, 0.7320508075688772) };
 }
@@ -505,16 +380,8 @@ export function makeBot(n, o, ctx) {
   return bot;
 }
 
-/** AUDIT SCALE II L3 (2026-10-11; Mac: "Lets do an audit on everything. Ensure perfection"): how many times a bot asks
- *  for its guest at the sign-in line before its setup fails - each after the wait the line told (ADMIT-LINE,
- *  server-account/src/admit.js: never under a second), so a bot stands in the line at least half a minute. */
 export const LINE_ASKS_MAX = 30;
 
-/** A BOT'S GUEST, THROUGH THE SIGN-IN LINE (AUDIT SCALE II L3). ADMIT-LINE lets a quiet line's burst in at once
- *  (ADMIT_BURST, 25) and tells the rest their place - 503 `queue` with the wait before asking again - and the harness
- *  asked once and threw on it: a fleet past the burst failed its setup. A bot now does as a player does - waits the told
- *  wait (the client's own hold, net/accountClient.js lineHoldMs) and asks again, up to LINE_ASKS_MAX times. Answers the
- *  service's last word. */
 export async function guestThroughLine(fetch, { asks = LINE_ASKS_MAX, wait = (ms) => sleep(ms) } = {}) {
   for (let n = 1; ; n++) {
     const body = await fetch(`${LOAD_SERVICE}/v1/auth/guest`, {
@@ -550,19 +417,13 @@ export async function setUp(bot, o) {
   return bot;
 }
 
-/** The bot's three rooms, as the world host opens them. AUDIT SCALE II L5: and with what the world host hands every
- *  session it opens (scenes/world.js) - the page's ONE wave (SCALE2c: net/reconnectWave.js, a bot its own page), so a
- *  relay deploy's reconnect is spread by the hub's count and the three sockets wait for one slot; and the second wire
- *  (SCALE5b), unless the run asks the first (`--wire 1`). Built without either, the harness measured per-session waves
- *  and the first wire: neither SCALE2c's spread nor SCALE5b's batches. */
 export function connect(bot, ctx, o) {
   const t0 = ctx.clock();
   const pose = poseAt(bot, t0 / 1000);
   const { px, py } = bot.town;
-  // the bot's own socket class over the fleet's: a socket opened at any time - a retry, a halo - is known as this bot's
   const Fleet = ctx.WS;
   const WS = class extends Fleet { constructor(url, protocols) { super(url, protocols); ctx.ownerOf.set(this, bot); } };
-  const page = { wave: reconnectWave(), wire2: o.wire !== 1 };   // AUDIT SCALE II L5: the bot's page - one wave, its wire
+  const page = { wave: reconnectWave(), wire2: o.wire !== 1 };
   const presence = new OnlineSession({ url: ctx.relayUrl, name: bot.account.name, look: LOOK, id: bot.id, secret: bot.secret, mintToken: bot.minter, WebSocketImpl: WS, ...page });
   presence.join(worldRoom(px, py), pose);
   presence.setHalo(cellHaloFor(px, py));
@@ -580,14 +441,12 @@ export function connect(bot, ctx, o) {
   bot.hub = hub;
 }
 
-/** The account calls a bot makes on its own clocks - each the client's own call, at the client's own constant. */
 export function accountClocks(bot, o) {
   const io = () => ({ fetch: bot.fetch, base: LOAD_SERVICE, secret: bot.account.secret });
   const dev = { fetch: bot.fetch, storage: bot.storage };
   const board = accountBoard(dev), homes = accountHomes(dev), seats = accountSeats(dev), prof = accountProf(dev), renown = accountRenown(dev), decor = accountDecor(dev);
   const clocks = [];
   if (HEARTBEAT) {
-    // SCALE4c: as the world host keeps them - the play clock knocking through the heartbeat, the box and the board its parts
     bot.heartbeat = HEARTBEAT.createHeartbeat({ fetch: bot.fetch, storage: bot.storage });
     bot.mail = new MailBox({ ioOf: () => ({ ...io(), storage: bot.storage }) });
     bot.notices = createNoticeBook({ door: board, storage: bot.storage });
@@ -608,13 +467,10 @@ export function accountClocks(bot, o) {
   );
   if (bot.registered) clocks.push(['motherlodes', MOTHERLODE_READ_MS, () => prof.motherlodes(bot.realm.id)]);
   if (bot.fighter) clocks.push(['renown', RENOWN_REPORT_MS, () => renown.report(bot.realm.id, 40, bot.name, renownRid())]);
-  // AUDIT SCALE C1: the professions' state as the client's book reads it - on arrival, then at the UTC day's turn
-  // (tickBot); a guest's refusal asked again every PROF_CLOSED_RECHECK_MS (net/profBook.js stale())
   bot.profDay = utcDayOfMs(Date.now());
   bot.profState = () => quietly(() => prof.state(bot.realm.id));
   if (bot.registered) bot.profState();
   else clocks.push(['prof state', PROF_CLOSED_RECHECK_MS, bot.profState]);
-  // once at the start, as a boot asks: the towns' layouts
   quietly(() => homes.layouts());
   return clocks.map(([name, every, call]) => ({ name, every, call, next: Date.now() + Math.random() * every, busy: false }));
 }
@@ -629,7 +485,6 @@ function tickBot(bot, ctx, o) {
       bot.hub.sendChat(`the fleet says hello (${bot.n})`);
     }
   }
-  // AUDIT SCALE C1: a registered account's professions' state read again at the UTC day's turn, as the book reads it
   if (bot.registered && bot.profState && utcDayOfMs(now) !== bot.profDay) { bot.profDay = utcDayOfMs(now); bot.profState(); }
   for (const c of bot.clocks ?? []) {
     if (c.busy || now < c.next) continue;
@@ -639,23 +494,13 @@ function tickBot(bot, ctx, o) {
   }
 }
 
-// ═══ THE RUN ═══════════════════════════════════════════════════════════════════════════════════════════════════════
-
-/** The pose ages a fleet keeps for its percentiles - a reservoir, so a long crowded run neither grows without bound nor
- *  loses its late poses (every pose heard has the same chance of being kept). */
 export const POSE_SAMPLE_MAX = 100_000;
-/** Keep `v` in `list`, a uniform reservoir of `max` over the `seen` values offered. */
 export function reservoir(list, v, seen, max = POSE_SAMPLE_MAX) {
   if (list.length < max) { list.push(v); return; }
   const j = Math.floor(Math.random() * seen);
   if (j < max) list[j] = v;
 }
 
-/**
- * A FLEET: bots `from`..`to` of the run, with its own tallies - in this thread (`--threads 1`) or a worker thread of
- * its own, the main thread asking it the same six questions either way. The services, the clock and the storm are the
- * main thread's; a fleet only plays.
- */
 export class Fleet {
   constructor({ o, accountPort, relayPort, runTag, from, to }) {
     this.o = o;
@@ -680,7 +525,7 @@ export class Fleet {
     return this.bots.length;
   }
   async connect(rampMs) {
-    console.warn = () => {}; console.info = () => {};   // the sessions' own chatter, not the run's
+    console.warn = () => {}; console.info = () => {};
     this.ticker = setInterval(() => { for (const b of this.bots) tickBot(b, this.ctx, this.o); }, 50);
     const start = Date.now();
     for (let i = 0; i < this.bots.length; i++) {
@@ -692,7 +537,6 @@ export class Fleet {
     }
     return true;
   }
-  /** Play begins: every tally from nought. */
   play() {
     this.ctx.account = accountTally();
     const r = this.relay;
@@ -701,16 +545,12 @@ export class Fleet {
     r.poseMs.list.length = 0; this.poseSeen = 0;
     return true;
   }
-  /** The storm begins: nobody is back until a welcome says so. */
   stormBegin() {
     for (const b of this.bots) b.welcomedAt.clear();
     this.mark = { calls: this.ctx.account.at.length, refusals: { ...this.relay.refusals }, refusedAt: this.relay.refusedAt.length };
     return true;
   }
-  /** Each bot's welcome back into its own cell since the storm began (ms, or null for one not back). */
   backTimes() { return this.bots.map((b) => b.welcomedAt.get(b.cell) ?? null); }
-  /** The second since the last asked: the calls (mints among them, failures), the refusals, and the bots back in their
-   *  cell - and (AUDIT SCALE C5) every call and refusal with its own moment, for the storm's seconds. */
   second() {
     const calls = this.ctx.account.at.slice(this.mark.calls);
     this.mark.calls = this.ctx.account.at.length;
@@ -734,10 +574,9 @@ export class Fleet {
       refused, trace, callsAt: calls, refusedAt,
     };
   }
-  /** Play ends: every session left, every clock stopped, the tallies handed back. */
   finish() {
     clearInterval(this.ticker);
-    for (const b of this.bots) for (const ss of b.sessions) { try { ss.leave(); } catch { /* gone */ } }
+    for (const b of this.bots) for (const ss of b.sessions) { try { ss.leave(); } catch { } }
     for (const b of this.bots) { b.heartbeat?.stop(); b.stopBeat?.(); }
     const r = this.relay;
     return {
@@ -748,7 +587,6 @@ export class Fleet {
   }
 }
 
-/** A fleet in a worker thread of its own - the same six questions, asked by message. */
 function remoteFleet(data) {
   const w = new Worker(new URL(import.meta.url), { workerData: { role: 'fleet', ...data } });
   let seq = 0;
@@ -763,7 +601,6 @@ function remoteFleet(data) {
   };
 }
 
-/** A uniform `take` of `list` (a partial Fisher-Yates over a copy). */
 function sampleOf(list, take, rand) {
   const a = list.slice();
   const n = Math.min(take, a.length);
@@ -771,9 +608,6 @@ function sampleOf(list, take, rand) {
   return a.slice(0, n);
 }
 
-/** The fleet's tallies, merged: the account calls by route and the relay's counts, the pose ages' reservoirs pooled -
- *  AUDIT SCALE C9: each fleet's kept ages standing for the same number of heard poses, so a fleet that heard less weighs
- *  less in the percentiles (pooled as they were, a quiet fleet's ages counted as much as a crowded one's). */
 export function mergeFleets(finals, rand = Math.random) {
   const account = accountTally();
   const relay = relayTally();
@@ -791,11 +625,11 @@ export function mergeFleets(finals, rand = Math.random) {
     for (const k of ['inByType', 'saidByType', 'outByType', 'closes', 'refusals']) for (const [t, v] of Object.entries(f.relay[k] ?? {})) relay[k][t] = (relay[k][t] ?? 0) + v;
     poseSeen += f.relay.poseSeen;
   }
-  // the heaviest kept age's weight (poses heard a kept one stands for), and every fleet's sample cut to it
   const weight = Math.max(0, ...finals.map((f) => (f.relay.poseMs.length ? f.relay.poseSeen / f.relay.poseMs.length : 0)));
   for (const f of finals) {
     const take = weight > 0 ? Math.round(f.relay.poseSeen / weight) : 0;
-    for (const v of sampleOf(f.relay.poseMs, take, rand)) relay.poseMs.push(v);   // a loop: a reservoir's hundred thousand would overrun a spread's arguments
+    // A loop, because spreading a 100,000-entry reservoir into push would exceed the argument limit.
+    for (const v of sampleOf(f.relay.poseMs, take, rand)) relay.poseMs.push(v);
   }
   return { bots, account, relay, poseSeen };
 }
@@ -805,12 +639,11 @@ async function main(o) {
   const out = { knobs: o, started: new Date().toISOString() };
   const restore = { warn: console.warn, info: console.info };
   let fleets = [];
-  // AUDIT SCALE C11: an interrupted run takes its state with it (the throwaway signing pair among it) - process.exit
-  // skips the `finally` below
+  // process.exit skips the finally below, so an interrupted run removes its state here.
   const onSignal = () => {
     for (const f of fleets) f.stop?.();
     stopAll();
-    if (!o.keep) { try { rmSync(state, { recursive: true, force: true }); } catch { /* gone */ } }
+    if (!o.keep) { try { rmSync(state, { recursive: true, force: true }); } catch { } }
     process.exit(130);
   };
   process.on('SIGINT', onSignal); process.on('SIGTERM', onSignal);
@@ -830,7 +663,7 @@ async function main(o) {
     await sleep(5000);
 
     console.log(`== playing for ${o.minutes} min${o.scenario === 'storm' ? `, the relay restarted at ${Math.round(o['storm-at'] * 100)}%` : ''}`);
-    await serviceStats(svc.accountPort);   // the setup's and the ramp's points and rows are not the play's - drained
+    await serviceStats(svc.accountPort);
     await Promise.all(fleets.map((f) => f.play()));
     const playStart = Date.now();
     const playMs = o.minutes * 60_000;
@@ -876,12 +709,6 @@ async function main(o) {
   return out;
 }
 
-/** A DEPLOY: the relay's process killed - every socket in the game closes at once - and started again on the same state.
- *  Second by second until the run ends: the mints asked, the service's statements, the hellos refused, the bots back. */
-/** THE STORM'S SECONDS (AUDIT SCALE C5), each by its own moment: `marks` - [ms, kind, n] the calls, mints, failures,
- *  statements and refusals as they happened; `back` - each bot's welcome into its own cell (ms or null). Row `t` holds
- *  what happened in the t-th second after `at`; `back` the bots in by its end. Answers the rows and the moments a share of
- *  `total` was back (seconds, a tenth's grain) - from the welcomes themselves, not from when a loop looked. */
 export function stormSeconds(marks, back, at, total) {
   const rows = new Map();
   const row = (t) => {
@@ -912,7 +739,7 @@ export function stormSeconds(marks, back, at, total) {
 
 async function theStorm(fleets, total, svc, fold, endsAt) {
   console.log('== the storm: the relay restarted under the fleet');
-  fold(await serviceStats(svc.accountPort));   // what came before the storm is the play's, not its first second's
+  fold(await serviceStats(svc.accountPort));
   await Promise.all(fleets.map((f) => f.stormBegin()));
   const at = Date.now();
   const restarting = svc.restartRelay();
@@ -948,8 +775,6 @@ async function theStorm(fleets, total, svc, fold, endsAt) {
   return { relayUpS: up > 0 ? Math.round((up - at) / 100) / 10 : null, ...stormSeconds(marks, backs, at, total) };
 }
 
-// ═══ THE REPORT ════════════════════════════════════════════════════════════════════════════════════════════════════
-
 const pad = (s, n) => String(s).padEnd(n);
 const lpad = (s, n) => String(s).padStart(n);
 const r1 = (x) => (x == null ? '-' : Math.round(x * 10) / 10);
@@ -966,16 +791,13 @@ export function report({ bots, o, account, relay, poseSeen, statsSum, playedMs, 
     };
   }).sort((a, b) => b.statementsPerBotHour - a.statementsPerBotHour);
   for (const [route, svc] of statsSum.byRoute) {
-    if (!route.startsWith('cron:')) continue;   // the service's own clock: no bot asked it, the database paid it
+    if (!route.startsWith('cron:')) continue;
     routes.push({ route, requests: svc.n, perBotHour: svc.n / botHours, statuses: {}, p50: null, p95: null, statementsPerRequest: svc.n ? svc.statements / svc.n : null, statementsPerBotHour: svc.statements / botHours });
   }
   routes.sort((a, b) => b.statementsPerBotHour - a.statementsPerBotHour);
   const totals = routes.reduce((a, r) => ({ requests: a.requests + (r.route.startsWith('cron:') ? 0 : r.requests), statements: a.statements + r.statementsPerBotHour * botHours }), { requests: 0, statements: 0 });
-  // AUDIT SCALE C2: the play's own, the deploy's mints apart - a storm folded into an hourly rate is a deploy every few
-  // minutes, and standing play mints nothing (its token rides a connect's every room)
   const mints = routes.find((r) => r.route === '/v1/auth/token');
   const play = { requests: totals.requests - (mints?.requests ?? 0), statements: totals.statements - (mints ? mints.statementsPerBotHour * botHours : 0) };
-  // AUDIT SCALE C2: the fleet the figures are of
   const fleet = { bots, threads, ...Object.fromEntries(['mover', 'fighter', 'registered'].map((k) => [`${k}s`, Array.from({ length: bots }, (_, n) => rolesOf(n, o)[k]).filter(Boolean).length])) };
   const statements = [...statsSum.statements].map(([sql, s]) => ({ sql, ...s, rowsReadPerBotHour: s.rowsRead / botHours }))
     .sort((a, b) => b.rowsRead - a.rowsRead);
@@ -1016,7 +838,6 @@ export function report({ bots, o, account, relay, poseSeen, statsSum, playedMs, 
   };
 }
 
-// A FLEET'S THREAD: the six questions, answered as they come
 if (!isMainThread && workerData?.role === 'fleet') {
   const fleet = new Fleet(workerData);
   parentPort.on('message', async (m) => {

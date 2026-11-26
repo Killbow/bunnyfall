@@ -1,4 +1,3 @@
-// The `guild` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, isChatRoom, guildGate, guildRoomGate } from '../../relay.js';
 import { verifyOrder } from '../../../../src/net/identityToken.js';
 

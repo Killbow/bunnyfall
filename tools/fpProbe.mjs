@@ -1,13 +1,5 @@
-// ON ICE (2026-08-17, Mac): guards the PARKED voxel viewmodel path
-// only - the live FP weapon is the classic CIF overlay
-// (combat/fpsWeapon.js, probed by tools/fpsWeaponProbe.mjs).
-// FP viewmodel probe (standing tool, shipped with the 2026-08-16 audit):
-// renders the REAL drawFirstPersonViewmodel path headless (no ARENA2 -
-// the voxel rig is code-only, boot ramp synthetic) and measures where
-// the viewmodel lands on screen. Zero coverage anywhere in the sweep is
-// the failure this probe exists to catch (the P9 overshoot shipped an
-// invisible viewmodel for six weeks). Usage: node tools/fpProbe.mjs
-// (starts its own vite server; needs provisioned Chromium).
+// Probe for the parked voxel first-person viewmodel; the live weapon is the classic overlay (fpsWeaponProbe.mjs).
+// Run: node tools/fpProbe.mjs (starts its own dev server; needs provisioned Chromium).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
@@ -80,7 +72,6 @@ window.__probeReady = true;
 
 await page.waitForFunction('window.__probeReady === true', { timeout: 30000 });
 
-// Full sweep: every FP state and frame must land pixels somewhere sane.
 const sweep = await page.evaluate(() => {
   const out = [];
   const states = ['Idle', 'StrikeUp', 'StrikeDown', 'StrikeLeft', 'StrikeRight', 'StrikeDownLeft', 'StrikeDownRight'];

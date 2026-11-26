@@ -1,30 +1,11 @@
-// FT15 (2026-09-15): THE READING RAIL, MEASURED AND JUDGED.
-//
-// Mac's complaint - "reduce the overexplanation wall of text within
-// featured categories" - is about a length, so it needs a number the
-// browser agrees with rather than a character count. The rail GROWS to
-// fit its note (nothing is ever clipped), so the defect was never an
-// overflow: it was HEIGHT. This points at every tile in turn, reports
-// the rendered height of what the rail says, and fails if one has grown
-// back into a wall.
-//
-// Run against a dev server with NO arena2 on disk:
-//     npx vite --port 5199 &
-//     node tools/featureRailProbe.mjs
-//
-// Measured at the FT15 trim: tallest note 619px -> 300px, with nothing
-// over 300 where five rows had been over 350. The ceiling below is the
-// same guard test/systems/features.test.js holds in characters, in the unit the
-// player actually sees.
+// Browser probe that measures the rendered height of every Features help note and fails past the ceiling.
+// Run: npx vite --port 5199 & node tools/featureRailProbe.mjs.
 import { chromium } from 'playwright';
 import { FEATURES } from '../src/mods/features.js';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const SHOTS = process.env.PROBE_SHOTS ?? '/tmp';
-const MAX_NOTE_PX = 340;   // FT15: the trim's worst case is 300; this is the drift guard
-// AUDIT FT15 F7: this was a hardcoded 28 - the same enumerated-count
-// anti-pattern this very commit range removed from HT1's "160 modules".
-// A 29th feature would have failed the probe for existing. Derived.
+const MAX_NOTE_PX = 340;
 const TILES = FEATURES.length;
 
 const bad = [];
@@ -42,8 +23,6 @@ await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.px-menu');
   if (await page.locator('.px-acctstage').count()) await page.keyboard.press('Escape');
 await page.waitForSelector('.px-menu button');
-// ORG2 (2026-10-09): the Features home is the Settings screen's tabs, and the reading rail is its help pane - a row's
-// name is PRESSED to pick it (a hover is no gesture on a phone). Every tab is walked, so every registry row is read.
 await page.locator('.px-menu button').filter({ hasText: /Settings/ }).first().click();
 await page.waitForSelector('#enhanced-menu .subbtn');
 

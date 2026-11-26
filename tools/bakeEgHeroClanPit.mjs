@@ -1,14 +1,5 @@
-// THE CLAN PIT, BAKED - the Havoc Wellhead's hero chamber, its own bake script (the reference's shape).
-//
-//     node tools/bakeEgHeroClanPit.mjs [--fbx=src/assets/egfrags/source/egheroClanPit.fbx]
-//
-// EG-HERO (2026-10-13, the owner: "You have to author the fragments"; bible/11-Multiplayer/Elite-Gates.md section 11.6:
-// "each fragment its own bake script and byte-for-byte test"). The scene is the port's own (tools/egHeroClanPitScene.mjs
-// writes it); the bake is tools/fragBake.mjs's. Its SPEC: the Clan Pit (`clanpit` - band 3, the open sky's reverb, the
-// kit's ember light, no engine: net/eliteGates/egFragLaw.js EG_FRAGS), a chamber whose play is its dais (`balcony` - EG_PLAYS, section
-// 11.4), the hero `clanpit` (net/eliteGates/egHeroFrags.js lays any hero but the reference). The two halves land beside the source -
-// `LAW` registered in net/eliteGates/egHeroFrags.js, `MESH` in world/eliteGates/egHeroFragModel.js - each held to its bytes by
-// test/tooling/eghero_wellhead.test.js.
+// Bakes the Clan Pit hero chamber's LAW and MESH from its committed FBX through tools/fragBake.mjs.
+// Run with `node tools/bakeEgHeroClanPit.mjs [--fbx=src/assets/egfrags/source/egheroClanPit.fbx]`.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { bakeFrag, fragJson } from './fragBake.mjs';

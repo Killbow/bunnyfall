@@ -1,36 +1,15 @@
-// SAME PROGRAM - proof that a mechanical change changed nothing (LEGIBLE 2, bible/01-Overview/Readability-Arc.md).
-//
-// A formatter or a rename is supposed to change how code reads and nothing about what it does. Tests can only sample
-// that; this checks it whole. Two versions of a file are parsed and their syntax trees compared node by node:
-//
-//   - Layout, comments, quote style, redundant parentheses and trailing commas are not in the tree, so they are free.
-//   - A literal is compared by its value (`'a'` and `"a"`, `1e3` and `1000` are the same), a template by its text.
-//   - A name is compared by what it MEANS, not how it is spelled: every variable is resolved to its declaration
-//     (eslint-scope), and the two versions must pair their variables one to one. A variable may change its name only
-//     when the change is asked for (`renames`), and a rename that makes a name resolve to a different variable - a
-//     local renamed onto a global's name, say - is caught, because the pairing breaks.
-//   - Names other files can see never change: exported declarations, import and export specifiers' outer names,
-//     property keys and member names (`obj.name`, `{ name }`, class members), labels. A rename of one of those is a
-//     change to every file that uses it, which no single-file comparison can prove.
-//   - A file with `with` or a direct `eval(` cannot have its variables resolved statically, so no rename in it is
-//     accepted.
-//   - One thing a rename changes that no tree can hold: the `name` a renamed function or class carries at run time
-//     (`f.name`, a stack trace, a function assigned to a renamed `const`). A rename passes here; the slice that makes
-//     it checks that nothing reads that name.
-//
-//   node tools/sameProgram.mjs before.js after.js [--rename old=new ...]
-//   node tools/sameProgram.mjs --against <git rev> [path ...] [--rename old=new ...]
-//       every .js/.mjs that differs between the rev and the working tree (or the paths named); exit 1 if any is not
-//       the same program, with where the two first differ.
+// Checks that two versions of a file parse to the same program, ignoring layout, comments, and quote style.
+// Variables are paired by declaration, so only renames given with --rename pass; exported and property names stay.
+// Run: node tools/sameProgram.mjs before.js after.js [--rename old=new ...], or --against <git rev> [path ...].
+// A rename still passes when it changes the runtime name of a function or class (f.name or a stack trace).
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { parse } from 'acorn';
 import { analyze } from 'eslint-scope';
 import { isMain } from './lib/isMain.mjs';
 
-/** Fields that record where a node is, or how it was spelled - never what it does. */
 const POSITION_FIELDS = new Set(['start', 'end', 'loc', 'range', 'raw']);
-/** Fields compared by the rules below instead of as plain data. */
 const RULE_FIELDS = new Set(['shorthand']);
 
 function parseProgram(src) {
@@ -42,10 +21,6 @@ function parseProgram(src) {
   }
 }
 
-/**
- * What every identifier in a tree is: a variable (resolved through its scope), a global it reaches without a
- * declaration, or an outer name that must keep its spelling (a property key, a member name, an export's name).
- */
 function identifierRoles(ast, sourceType) {
   const scopes = analyze(ast, { ecmaVersion: 2025, sourceType, fallback: 'iteration' });
   const variableOf = new Map();
@@ -58,8 +33,8 @@ function identifierRoles(ast, sourceType) {
     }
   }
 
-  const fixedName = new Set();   // identifiers whose spelling other code depends on
-  let dynamicScope = false;      // `with` or a direct eval: names cannot be resolved statically
+  const fixedName = new Set();
+  let dynamicScope = false;
   const markDeclaredNames = (declaration) => {
     if (!declaration) return;
     if (declaration.id) fixedName.add(declaration.id);
@@ -115,7 +90,6 @@ function collectPatternNames(pattern, into) {
   }
 }
 
-/** Visit every node of a tree, parents before children. */
 function walk(node, visit) {
   if (!node || typeof node.type !== 'string') return;
   visit(node);
@@ -139,10 +113,9 @@ class Difference extends Error {
 }
 
 /**
- * Whether two sources are the same program.
  * @param {string} beforeSrc
  * @param {string} afterSrc
- * @param {{ renames?: Record<string, string> }} [options] - variable names the change was asked to rename, old -> new
+ * @param {{ renames?: Record<string, string> }} [options]
  * @returns {{ same: true } | { same: false, why: string, before: {line: number, column: number} | null, after: {line: number, column: number} | null }}
  */
 export function sameProgram(beforeSrc, afterSrc, { renames = {} } = {}) {
@@ -152,7 +125,7 @@ export function sameProgram(beforeSrc, afterSrc, { renames = {} } = {}) {
   if (before.sourceType !== after.sourceType) return { same: false, why: `one version parses only as a ${before.sourceType}, the other only as a ${after.sourceType}`, before: null, after: null };
 
   const roles = [identifierRoles(before.ast, before.sourceType), identifierRoles(after.ast, after.sourceType)];
-  const pairedForward = new Map(), pairedBack = new Map();   // variable of the first version <-> of the second
+  const pairedForward = new Map(), pairedBack = new Map();
 
   const where = (node) => (node?.loc ? { line: node.loc.start.line, column: node.loc.start.column } : null);
   const differ = (why, a, b) => { throw new Difference(why, where(a), where(b)); };
@@ -202,8 +175,8 @@ export function sameProgram(beforeSrc, afterSrc, { renames = {} } = {}) {
       return;
     }
     if (a.type === 'ImportSpecifier' || a.type === 'ExportSpecifier') {
-      // `import { a }` and `export { k }` hold ONE node as both names (acorn); the outer name is other code's and
-      // keeps its spelling, the local one is a variable like any other - `import { a as b }` renames only the local
+      // acorn uses one node for both names in `import { a }` and `export { k }`.
+      // Only the outer name must keep its spelling; the local one is a variable like any other.
       const outer = a.type === 'ImportSpecifier' ? 'imported' : 'exported';
       const outerName = (n) => n[outer].name ?? n[outer].value;
       if (outerName(a) !== outerName(b)) differ(`the ${outer} name \`${outerName(a)}\` became \`${outerName(b)}\``, a, b);

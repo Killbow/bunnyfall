@@ -1,4 +1,5 @@
-// Actual browser check of the shared Enhanced Plus themes and Classic bitmap-rendering path. No ARENA2 required.
+// Browser check of the shared Enhanced Plus themes and the Classic bitmap-rendering path. No ARENA2 required.
+
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';

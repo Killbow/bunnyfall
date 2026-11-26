@@ -1,18 +1,6 @@
-// CHAT-FIT (2026-09-22, Mac: "names sometimes take up 2 rows, the list
-// isnt scrollable and continues to grow, enlarging the chat. Glyphs
-// should also show on chat names in the chat itself"): THE CHAT BOX
-// MEASURED. The pins can say a rule reads `nowrap` and a column is
-// `absolute`; only a layout engine can say a nineteen-name roster does
-// not make the box taller, that a row is one line, and that the list
-// scrolls. So this stands the REAL panel (createChatPanel over a real
-// ChatLog, the real CHAT_CSS over the real enhanced sheet) in Chromium
-// at a desktop and a phone-landscape viewport, with a roster of 24 long
-// names wearing titles and glyphs and a conversation whose authors wear
-// them too, and measures. (TITLE-C, 2026-10-12: a line draws its author's
-// glyphs and never the title - the authors here still wear one, so a
-// title drawn on a line would show.)
-//
-//     node tools/chatFitProbe.mjs
+// Mounts the real chat panel with a long roster and checks that rows stay one line and the list scrolls.
+// Run: node tools/chatFitProbe.mjs.
+
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join, normalize } from 'node:path';

@@ -1,29 +1,6 @@
-// SET5 (2026-09-26, Sigil Sets - bible/11-Multiplayer/Sigil-Sets.md; Mac: "sigil armor sets that also come with set
-// builds ... go all out on this") - THE SETS ON SCREEN, DRAWN AND MEASURED.
-//
-// A pin can say the card appends a set block and the sheet has a rule for it; only a layout engine can say the block
-// reads, the doll's strip fits its column beside the worn map, the rune in a tile's corner took its set's colour, and
-// the HUD's chips burn in the set's hue. So the REAL pack (ui/inventoryDoor.js createInventoryWindow, the enhanced skin
-// - Plus is its only dress) and the REAL HUD (ui/enhanced/enhancedHud.js drawEnhancedHud) are drawn here over the real sheets,
-// with a kit worn through the game's own equip (systems/equip.js): six pieces of Dagon's Brand and its sword, two of
-// Ruhn's Regalia (the Cinder-Boots and the Gate-Shield), a Mora helm and a Nocturnal cuirass in the pack - online at
-// Renown 12, the Dagon pieces grown to Kindled. At a desktop, a laptop and a phone it reads:
-//   - THE STRIP: a line a worn set in the doll's column - its name, "7/9" and "2/9", its tiers' pips lit where awake,
-//     its stage - inside the column, clear of the shelf above it;
-//   - THE RUNES: a set piece's tile and socket wear data-set, and the corner rune's picture is in its set's colour;
-//   - THE CARD: a worn Dagon piece's set block - the name, "7/9", seven places lit, three tiers awake, the stage and
-//     what holds it; a Mora helm in the pack - "0/9", nothing lit, "Wear two pieces to wake it"; the sigil block of a set's
-//     armour says "A set's sigil" (never "+null%"); a press on a strip line shows that set's piece;
-//   - OFFLINE: the same card says the sets sleep, the block dimmed;
-//   - THE HUD: after the powers are driven through their real doors (two kills for the Rampage, a lethal blow for
-//     Unbroken, a blow across 30% for the Wrath, a kill for Eventide), each set's chip is on the effects row, in its
-//     set's colour, a window burning and a recovery dashed.
-// Every state is photographed.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (tools/qs3Probe.mjs's reason).
-//
-//     node tools/setUiProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/setUiProbe.mjs     -> reuse a dev server already listening there
+// Draws the sigil set UI in the inventory and HUD on a Vite dev server and saves screenshots.
+// Usage: `[SHOT_DIR=<dir>] [PROBE_PORT=<n>] node tools/setUiProbe.mjs`
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -215,10 +192,9 @@ try {
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => globalThis.__ready === true, null, { timeout: 90000 });
     const colours = await page.evaluate(() => globalThis.__colours);
-    // ── THE PACK ──
     check(await page.evaluate(() => globalThis.__openPack()), `${v.name}: the pack did not open`);
     await page.waitForSelector('#enhanced-inventory .packtab', { timeout: 30000 });
-    check(await page.evaluate(() => globalThis.__tab('Armor')), `${v.name}: no Armor page`);   // the carried pieces are armour
+    check(await page.evaluate(() => globalThis.__tab('Armor')), `${v.name}: no Armor page`);
     await page.waitForSelector('#enhanced-inventory .itemrow', { timeout: 30000 });
     await page.evaluate(() => document.fonts.ready);
     await settle(page);
@@ -245,7 +221,6 @@ try {
       check(r && r.rune.includes(encodeURIComponent(colours[set]).toLowerCase().replace('%23', '%23')), `${v.name}: the ${set} rune is not in its colour (${r?.rune.slice(0, 60)}...)`);
     }
     await page.screenshot({ path: join(OUT, `setui-${v.name}-pack.png`) });
-    // AUDIT SET U13: the hover card of a worn set piece stands inside the screen, whole
     for (const set of ['dagon', 'ruhn']) {
       const tip = await page.evaluate((x) => globalThis.__hover(x), set);
       await settle(page);
@@ -257,7 +232,6 @@ try {
       if (t) await page.screenshot({ path: join(OUT, `setui-${v.name}-hover-${set}.png`), clip: { x: Math.max(0, t.x - 8), y: Math.max(0, t.y - 8), width: Math.min(v.viewport.width - Math.max(0, t.x - 8), t.w + 16), height: Math.min(v.viewport.height - Math.max(0, t.y - 8), t.h + 16) } });
       await page.evaluate(() => document.querySelectorAll('.inv-tip').forEach((n) => n.remove()));
     }
-    // the card of a worn Dagon piece
     check(await page.evaluate(() => globalThis.__pickWorn('dagon')), `${v.name}: no worn Dagon piece to press`);
     await settle(page);
     let c = await page.evaluate(() => globalThis.__card());
@@ -272,19 +246,16 @@ try {
       check(c.box.x >= 0 && c.box.r <= v.viewport.width + 0.5, `${v.name}: the set block runs off the screen sideways`);
       await page.screenshot({ path: join(OUT, `setui-${v.name}-card-dagon.png`), clip: { x: Math.max(0, c.box.x - 12), y: Math.max(0, c.box.y - 12), width: Math.min(v.viewport.width, c.box.w + 24), height: Math.min(v.viewport.height - Math.max(0, c.box.y - 12), c.box.h + 24) } });
     }
-    // a Mora helm in the pack: nothing of its set worn
     check(await page.evaluate(() => globalThis.__pickPack('mora')), `${v.name}: no Mora helm in the pack to press`);
     await settle(page);
     c = await page.evaluate(() => globalThis.__card());
     check(c && c.set === 'mora' && c.count === '0/9' && c.lit === 0 && c.awake === 0 && c.stageText === 'Wear two pieces to wake it', `${v.name}: the Mora card reads ${JSON.stringify(c && { ...c, text: undefined })}`);
     check(c && /^A set's sigil/.test(String(c.sigil)), `${v.name}: a set armour's sigil block says "${c?.sigil}"`);
     if (c) await page.screenshot({ path: join(OUT, `setui-${v.name}-card-mora.png`), clip: { x: Math.max(0, c.box.x - 12), y: Math.max(0, c.box.y - 12), width: Math.min(v.viewport.width, c.box.w + 24), height: Math.min(v.viewport.height - Math.max(0, c.box.y - 12), c.box.h + 24) } });
-    // the strip's Ruhn line shows a Ruhn piece
     check(await page.evaluate(() => globalThis.__pickStrip('ruhn')), `${v.name}: no Ruhn line to press`);
     await settle(page);
     c = await page.evaluate(() => globalThis.__card());
     check(c && c.set === 'ruhn' && c.count === '2/9' && c.awake === 1, `${v.name}: the strip's press shows ${JSON.stringify(c && { set: c.set, count: c.count, awake: c.awake })}`);
-    // offline: the sets sleep
     await page.evaluate(() => { globalThis.__closePack(); globalThis.__online(false); globalThis.__openPack(); });
     await page.waitForSelector('#enhanced-inventory .packtab', { timeout: 30000 });
     await page.evaluate(() => globalThis.__tab('Armor'));
@@ -296,7 +267,6 @@ try {
     check(c && /saturate/.test(c.filter), `${v.name}: offline the block is not dimmed (${c?.filter})`);
     if (c) await page.screenshot({ path: join(OUT, `setui-${v.name}-card-offline.png`), clip: { x: Math.max(0, c.box.x - 12), y: Math.max(0, c.box.y - 12), width: Math.min(v.viewport.width, c.box.w + 24), height: Math.min(v.viewport.height - Math.max(0, c.box.y - 12), c.box.h + 24) } });
     await page.evaluate(() => { globalThis.__closePack(); globalThis.__online(true); });
-    // ── THE HUD ──
     for (const [set, want] of [['dagon', { name: 'Rampage II', state: 'active' }], ['malacath', { name: 'Unbroken', state: 'active' }],
       ['ruhn', { name: 'Wrath', state: 'active' }], ['nocturnal', { name: 'Eventide', state: 'recovering' }]]) {
       const law = await page.evaluate((x) => globalThis.__power(x), set);
@@ -311,7 +281,6 @@ try {
       check(chip && (want.state === 'recovering') === (chip.style === 'dashed'), `${v.name}: the ${set} chip's border is ${chip?.style}`);
       check(chip && chip.box.x >= 0 && chip.box.r <= v.viewport.width + 0.5, `${v.name}: the ${set} chip runs off the screen`);
       if (chips.length) {
-        // the widget's tiles, as a player sees them at the left edge (UI3)
         const pad = 16;
         const xs = chips.flatMap((x) => [x.box.x, x.box.r]);
         const ys = chips.flatMap((x) => [x.box.y, x.box.b]);

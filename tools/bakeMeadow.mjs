@@ -1,28 +1,11 @@
-// THE MEADOW'S SPRITES, baked from the owner's PNGs into a module the renderer imports.
-//
-//     node tools/bakeMeadow.mjs
-//
-// MEADOW1 (2026-10-06, Mac: "These are 4 textures I want to blend into our
-// grass system, all with varying sizes so its not monotonous everywhere" -
-// then a fifth, "specifically is a bush, so it should be of different
-// sizes"). Five pixel-art sprites, supplied as indexed PNGs: a tall green
-// tuft, the same tuft cut short, a tuft of flowers, a dry tuft (32x32 each)
-// and a bush (64x64). They are committed as he supplied them under
-// src/assets/grass/source/ (test/tooling/doctrine.test.js rows), and this bake turns
-// them into src/render/meadowArt.js: each sprite as its palette and its rows,
-// one character a texel, '.' for air - the picture stays readable in a diff,
-// and the grass builds its atlas at boot with nothing to fetch or decode, the
-// way the pixel style's sheet always has (render/grassPixelArt.js).
-//
-// The order of SOURCES is the order of the atlas, so it is the variant index
-// the shader picks (render/grassMeadow.js MEADOW_VARIANTS names them).
-// test/render/grassmeadow.test.js re-runs the bake and holds the module to it byte
-// for byte, and holds every texel of it to the PNG it came from.
+// Bakes the meadow's pixel sprites from the committed PNGs into src/render/meadowArt.js.
+// Run: node tools/bakeMeadow.mjs.
+
 import { readFileSync, writeFileSync } from 'node:fs';
 import { readPng } from './pngIO.mjs';
 import { isMain } from './lib/isMain.mjs';
 
-/** The owner's PNGs, in atlas order - the variant index is the position here. */
+// The order is the atlas order, so each position is the variant index that MEADOW_VARIANTS names.
 export const SOURCES = Object.freeze([
   Object.freeze({ name: 'tall', png: 'src/assets/grass/source/tuft-tall.png' }),
   Object.freeze({ name: 'short', png: 'src/assets/grass/source/tuft-short.png' }),
@@ -31,15 +14,9 @@ export const SOURCES = Object.freeze([
   Object.freeze({ name: 'bush', png: 'src/assets/grass/source/bush.png' }),
 ]);
 export const OUT = 'src/render/meadowArt.js';
-/** a palette entry's letter - '.' is air and never a colour */
 export const MEADOW_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-/**
- * One sprite: its colours in the order they are first met (rows top first, as the PNG stores them) and its rows as
- * letters of MEADOW_ALPHABET. A texel is a colour or air, never between - a soft edge is refused, not rounded,
- * because a pixel sprite that has one was not drawn as one.
- * @param {{ width: number, height: number, data: Uint8ClampedArray }} img readPng's RGBA
- */
+/** @param {{ width: number, height: number, data: Uint8ClampedArray }} img */
 export function spriteOf(img, name = 'sprite') {
   const { width, height, data } = img;
   const index = new Map();
@@ -65,7 +42,6 @@ export function spriteOf(img, name = 'sprite') {
   return { name, width, height, palette, rows };
 }
 
-/** The module's text, from the five PNGs' bytes (in SOURCES order). Pure. */
 export function bakeMeadow(pngs) {
   if (pngs.length !== SOURCES.length) throw new Error(`the meadow bakes ${SOURCES.length} sprites, handed ${pngs.length}`);
   const sprites = SOURCES.map((s, i) => ({ ...spriteOf(readPng(pngs[i]), s.name), source: s.png }));

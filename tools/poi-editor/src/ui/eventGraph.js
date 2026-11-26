@@ -1,16 +1,12 @@
 // @ts-check
 
-// The event graph as an SVG picture: sources on the left (a zone, a person, a route, an encounter, a trade, an answer),
-// events to their right, an arrow for each thing that starts another. Columns come from dm.js eventGraph. Click an event
-// to open it. This draws what the document says; it has no state of its own.
-
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v)); if (text !== undefined) e.textContent = text; return e; };
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}...` : s);
 
 /**
  * @param {ReturnType<typeof import('../../../../src/poi/poiDmEdit.js').eventGraph>} graph
- * @param {string | null} selected a node id
+ * @param {string | null} selected
  * @param {(id: string) => void} onPick
  */
 export function eventGraphSvg(graph, selected, onPick) {

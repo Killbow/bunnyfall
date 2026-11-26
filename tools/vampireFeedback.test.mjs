@@ -19,7 +19,6 @@ import {
 import { feedOnPerson } from '../src/scenes/vampire/vampireFeed.js';
 import { tutorialById, TUTORIALS } from '../src/ui/tutorials.js';
 
-/** An awakened vampire of a clan, its Vitae settled from the clock's minute `at`. */
 const vampire = (clan, vitae = 75, at = 0) => ({
   racialOverride: {},
   activeEffects: [{ kind: 'racialOverride', racial: 'vampirism', clan, awakened: true, vitae, vitaeAt: at, blood: null, statMods: {}, skillMods: {} }],
@@ -222,7 +221,6 @@ test('the vampire\'s pages exist, in the Vampirism group, with the law\'s own nu
   assert.match(blood, new RegExp(`thin under ${fair}, fair from ${fair}, good from ${good}, rich from ${rich}, and potent from ${potent}`));
 });
 
-/** One person to feed on, and a quest box that answers the picker. */
 function feedOnce(entity, choiceId, person, { now = 100 } = {}) {
   let list = null, pick = null;
   const showBox = (box) => { const step = box.onClick(); list = step[0].picker; pick = step[0].onPick; };
@@ -233,7 +231,8 @@ function feedOnce(entity, choiceId, person, { now = 100 } = {}) {
   if (!list) return null;
   const key = { kiss: 'the kiss', drink: 'drink', leave: 'leave them be' }[choiceId];
   const i = list.findIndex((l) => l.toLowerCase().startsWith(key));
-  return pick(i >= 0 ? i : list.length - 1);   // Leave is the last row
+  // The last row is Leave.
+  return pick(i >= 0 ? i : list.length - 1);
 }
 
 test('leaving, or a feed that did not happen, never uses the person up', () => {

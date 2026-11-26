@@ -1,20 +1,7 @@
-// CUSTOMS-PASS (2026-09-29, the field - Mac, asked what becomes of a character a build from before the realm stranded:
-// "Staff customs pass"): A DEVELOPER GRANTS ONE ACCOUNT ONE CHARACTER THROUGH CUSTOMS. The account service's route does
-// the work and holds the law (server-account/src/realm.js grantCustomsPass and customsRealm); this names the account and
-// says the answer.
-//
-//   node tools/customsPass.mjs <name>              grant - a handle, or a guest's two-word name (Akh'bil Zakar)
-//   node tools/customsPass.mjs --account <id>      grant, by the account's id (two guests wearing one name)
-//   node tools/customsPass.mjs <name> --revoke     take back a pass not yet spent
-//
-// Signed in as YOU - a developer, your handle in the service's DEVELOPER_HANDLES: DAGGER_HANDLE and DAGGER_PASSWORD sign
-// in for this one call and sign out after it; DAGGER_SECRET, a session secret you already hold, is used as it is and left
-// signed in. DAGGER_ACCOUNT_SERVICE points at another service (a local one); the live one by default.
-//
-// A pass is one character: the account's next Bring online of a character its census never counted comes in through
-// customs as any does (its loans called in, its gold capped at the level's allowance), and the pass is spent on it. It
-// never lets in a character already brought in from any account. So: grant it, then tell the player to press Bring
-// online on that character.
+// Grants or revokes one customs pass for one account through the account service. Signs in as a developer from
+// DAGGER_HANDLE and DAGGER_PASSWORD, or uses DAGGER_SECRET.
+// Run: node tools/customsPass.mjs <name> | --account <id> [--revoke].
+
 import { DEFAULT_ACCOUNT_SERVICE, accountRefusalText } from '../src/net/accountClient.js';
 import { isMain } from './lib/isMain.mjs';
 
@@ -26,9 +13,6 @@ export const USAGE = [
 ].join('\n');
 
 /**
- * The route's body for these arguments - `{ body }` - or `{ usage }` when they do not name exactly one account: a
- * handle is one word and a guest's name two (net/handleShape.js), so a name of more words is no name the game shows,
- * and a flag this tool does not know is refused rather than read as a name.
  * @param {string[]} argv
  * @returns {{ body: { name?: string, account?: string, revoke?: true } } | { usage: string }}
  */
@@ -53,7 +37,6 @@ export function passRequest(argv) {
   return { body: revoke ? { ...body, revoke: true } : body };
 }
 
-/** One POST to the service - `{ ok, status, body }`, never a throw for an answer the service gave. */
 async function post(base, path, body, secret = null) {
   const res = await fetch(`${base}${path}`, {
     method: 'POST',
@@ -85,7 +68,7 @@ async function main() {
     if (open) console.log(changed ? `Granted: ${who} holds a customs pass. Their next Bring online of a character the realm never counted comes in, once.` : `${who} already holds an open customs pass.`);
     else console.log(changed ? `Taken back: ${who}'s open customs pass.` : `${who} holds no open customs pass - nothing to take back.`);
   } finally {
-    if (opened) await post(base, '/v1/auth/logout', {}, secret).catch(() => {});   // the session this call opened, and no other
+    if (opened) await post(base, '/v1/auth/logout', {}, secret).catch(() => {});
   }
 }
 

@@ -1,5 +1,3 @@
-// A peer's frame serialized again for the fan, or null when it grew or cannot be, and the quest,
-// traveller mark, and map share cooldowns in a meter's shape.
 import { questShareGate, travHubGate, amapShareGate } from '../relay.js';
 
 export function fanOut(t, id, data, sentLength, g = false) {

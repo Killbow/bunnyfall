@@ -1,25 +1,7 @@
-// ═══════════════════════════════════════════════════════════════════
-// THE PROTOTYPE'S RENDER GATE.
-//
-// `npm run check` runs eslint, the node suite and a vite build. NONE
-// of those compile a shader or draw a pixel, so every shader fault in
-// this lane has shipped green: a NaN uniform that blackened the sky, a
-// depth test that discarded it, a backtick that killed the module, and
-// a const declared in the wrong GLSL stage that took the whole page
-// down to grey. Four times, and four times the gate said pass.
-//
-// This is the missing check. It loads the page in a real browser and
-// FAILS unless:
-//   - no page error and no console error was raised;
-//   - every shader program linked (the page exposes them);
-//   - the canvas is actually DRAWING - not one flat colour, which is
-//     what a dead frame looks like and what "grey screen" means;
-//   - a frame later, it is still drawing.
-//
-//   node tools/protoRenderGate.mjs [--url ...]
-//
-// It needs the dev server up:
-//   (setsid npx vite --port 5199 --host 127.0.0.1 &)
+// Loads the prototype page in a real browser and fails on a page or console error, an unlinked shader, or a canvas
+// that draws one flat color. Start the dev server first: (setsid npx vite --port 5199 --host 127.0.0.1 &)
+// Run: node tools/protoRenderGate.mjs [--url ...]
+
 import { chromium } from 'playwright';
 
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : d; };
@@ -40,18 +22,13 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.
 page.setDefaultTimeout(120000);
 await page.goto(URL, { waitUntil: 'load' });
 await page.waitForTimeout(4000);
-// the lab defaults to a million blades; a software rasteriser cannot
-// finish a frame in time to be measured, and a gate that times out
-// teaches nothing. Ask for a cheap scene first.
+// A software rasterizer cannot draw the default 1.2 million blades in time, so ask for the lowest density first.
 await page.evaluate(() => {
   const d = document.getElementById('density');
   if (d) { d.value = d.min; d.dispatchEvent(new Event('input')); }
 }).catch(() => {});
 await page.waitForTimeout(6000);
 
-/** Is the canvas drawing? A dead frame is ONE colour; a live one is
- *  not. Sampled on a grid so a flat sky over flat ground still counts
- *  as two colours and passes, while a grey screen cannot. */
 const sample = () => page.evaluate(() => new Promise((res) => requestAnimationFrame(() => {
   const c = document.getElementById('c');
   const gl = c && c.getContext('webgl2');
@@ -76,7 +53,6 @@ await browser.close();
 for (const e of errors.slice(0, 4)) fail(e);
 if (!a.ok) fail(a.why);
 else {
-  // one distinct colour across 25 samples IS the grey screen
   if (a.colours < 3) fail(`the canvas is drawing ${a.colours} colour(s) - a dead frame`);
   if (b.colours < 3) fail(`still ${b.colours} colour(s) a second later`);
   if (a.glError) fail(`glError ${a.glError}`);

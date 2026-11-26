@@ -1,4 +1,3 @@
-// The `find` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isRegionBus, HUB_FIND_ROOM_HZ_MAX, foldFind } from '../../../../src/net/hubShards.js';
 import { isSocialRoom, tokenGate } from '../../relay.js';
 

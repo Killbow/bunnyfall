@@ -1,18 +1,4 @@
-// T3d probe: the STREAMING host's Where-is - boot ?world&play at
-// Daggerfall city, talk to a walker, W (where is), pick a category
-// and a building, and read the classic direction answer live (the
-// directory swapped in by the location-pixel tracker).
-//
-// ROAD-E E8: THE OPENING BOXES ARE DRAINED BEFORE ANYTHING IS ASKED
-// OF THE WORLD. This probe used to report NO LIVE WALKER against a
-// host that was fine. A modal holds the motor - every host returns at
-// its overlay gate before the frame body - so while the quest arc's
-// boot boxes are up the town does not tick AT ALL, nobody walks, and
-// the 60x5s poll below runs out against a frozen world. firstHourProbe
-// learned this the same way (tools/firstHourProbe.mjs:"...and then READ", tools/firstHourProbe.mjs:"Drain the quest arc's")
-// and drains them the way a player does; this is that drain. Escape
-// first because the boxes here are read-and-dismiss, Enter after in
-// case one wants a button.
+// Probe: boots the streaming world at Daggerfall city, asks a townsperson where a building is, and prints it.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -21,11 +7,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 page.on('console', (m) => { if (m.type() === 'error') console.log('[console]', m.text().slice(0, 200)); });
-// T2: `class=16` SKIPS THE CHARGEN WIZARD. Without it the wizard holds
-// townTalk's overlay slot and townTalk.keydown - FIRST in this host's
-// keydown ladder (exterior.js:"if (e.code === 'Escape') backButtonHeld = true") - swallows every
-// page.keyboard.press below, so this probe pressed its keys into a
-// character-creation screen it never knew was up.
+// class=16 skips character creation, whose screen would otherwise take every key press below.
 await page.goto('http://localhost:5199/play/?shot&world&play&tod=12:00&class=16');
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 300000 });
 const waitFrames = async (n) => {
@@ -35,8 +17,7 @@ const waitFrames = async (n) => {
 const press = async (code) => { await page.keyboard.down(code); await waitFrames(3); await page.keyboard.up(code); await waitFrames(2); };
 const talk = async () => JSON.parse(await page.evaluate(() => window.__talk()));
 
-// The drain. `overlay` is townTalk's live slot (townTalk.js:"mode: getInteractionMode"), so
-// this asks the host what is up rather than guessing at names.
+// The town does not update while an opening quest box is open, so close each one (Escape, then Enter for buttons).
 let drained = 0;
 for (let i = 0, quiet = 0; i < 30 && quiet < 2; i++) {
   if ((await talk()).overlay) { quiet = 0; drained++; await press('Escape'); await press('Enter'); } else quiet++;
@@ -65,9 +46,6 @@ await press('KeyE');
 const greet = await talk();
 console.log('greeting:', JSON.stringify(greet));
 if (!greet.overlay) { console.log('NO TALK WINDOW'); process.exit(1); }
-// E8: the assertions read the LIVE window's own state, which the
-// native talk window carries and the keyed one does not - topicMode
-// walks none -> categories -> buildings (ui/native/nativeTalk.js:"_portraitDeps.fetchBytes", ui/native/nativeTalk.js:"this._category = it").
 await press('KeyW');
 const cats = await talk();
 console.log('categories:', JSON.stringify({ mode: cats.topicMode, count: cats.topicCount }));

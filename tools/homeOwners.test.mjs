@@ -1,4 +1,3 @@
-// Co-owners, transfer by character name, and the hand-over on delete, tested against the real migrations in SQLite.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -113,12 +112,11 @@ test('transfer by name: none, one, several, toChar', async () => {
   f.home('a', main);
   const offer = (to, extra = {}) => homeTransfer(f.ctx, a, { op: 'offer', ...base, character: main, toName: to, price: 0, keepDecor: true, keepItems: true, ...extra });
   const old = await homeTransfer(f.ctx, a, { op: 'offer', ...base, character: main, to: 'Beta', price: 0, keepDecor: true, keepItems: true });
-  assert.equal(old.error, 'home-update');   // an older build names an account; it is never read as a character's name
+  assert.equal(old.error, 'home-update');
   assert.equal((await offer('Nobody')).error, 'home-no-char');
   assert.equal((await offer('Dead Bob')).error, 'home-no-char');
   f.sql.prepare("INSERT INTO players (id, handle, handle_lc, guest_name, created_at, last_seen) VALUES ('g', NULL, NULL, 'Guest One', 0, 0)").run();
   f.char('g', 'Guest Bob');
-  // A guest account cannot accept an offer, so its characters never match.
   assert.equal((await offer('Guest Bob')).error, 'home-no-char');
   const pick = await offer('SIR BOB');
   assert.equal(pick.error, 'home-pick');
@@ -147,7 +145,7 @@ test('transfer to a character of the same account moves the main at once', async
   const r = await move('Second');
   assert.equal(r.ok, true); assert.equal(r.moved, true);
   assert.equal(f.mainOf(1), alt);
-  assert.deepEqual(f.owners(1), [main]);   // the old main stays on as a co-owner
+  assert.deepEqual(f.owners(1), [main]);
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM home_offers').get().n, 0);
 });
 
@@ -166,7 +164,6 @@ test('cross-account offer: only the named character accepts, co-owners are clear
   assert.equal(got.ok, true, JSON.stringify(got));
   assert.equal(f.mainOf(1), named);
   assert.deepEqual(f.owners(1), []);
-  // An offer made before the new column names no character.
   const id = '0'.repeat(32);
   f.sql.prepare(`INSERT INTO home_offers (id, map_id, building_key, seller, seller_char, buyer, price, keep_decor, keep_items, rev, state, at, until)
     VALUES (?, 10, 2, 'a', ?, 'b', 0, 1, 1, 0, 'open', 1, 9999999)`).run(id, main);
@@ -183,12 +180,12 @@ test('delete: the earliest living co-owner takes the house; houses without one g
   f.sql.prepare('INSERT INTO home_owners VALUES (10, 1, ?, ?, ?)').run(c2, 'a', 7);
   f.sql.prepare('INSERT INTO home_owners VALUES (10, 1, ?, ?, ?)').run(c1, 'a', 7);
   f.sql.prepare('INSERT INTO home_owners VALUES (10, 3, ?, ?, ?)').run(c1, 'a', 9);
-  f.sql.exec(`UPDATE realm_characters SET dead_at = 3 WHERE id = '${c3}'`);   // a dead co-owner is skipped
+  f.sql.exec(`UPDATE realm_characters SET dead_at = 3 WHERE id = '${c3}'`);
   f.sql.prepare('INSERT INTO home_owners VALUES (10, 3, ?, ?, ?)').run(main, 'a', 1);
   const r = await deleteRealm(f.ctx, 'a', main);
   assert.equal(r.ok, true);
-  assert.equal(f.mainOf(1), c1);   // tie at 7 goes to the lower id
-  assert.deepEqual(f.owners(1), [c3, c2]);   // the dead co-owner's row stays listed, never promoted
+  assert.equal(f.mainOf(1), c1);
+  assert.deepEqual(f.owners(1), [c3, c2]);
   assert.equal(f.mainOf(3), c1);
   assert.deepEqual(f.owners(3), []);
   assert.equal(f.mainOf(2), null);
@@ -203,10 +200,10 @@ test('delete: a co-owner leaving only drops its rows; refusals ask after houses 
   f.sql.prepare('INSERT INTO home_owners VALUES (10, 1, ?, ?, 5)').run(co, 'a');
   f.sql.exec(`INSERT INTO home_rooms (map_id, building_key, room, anchor, listed, price, tenant, tenant_char, until) VALUES (10, 1, 0, 'a', 0, 5, 'b', 'rx', 2000000)`);
   const r1 = await deleteRealm(f.ctx, 'a', main);
-  assert.equal(r1.ok, true, JSON.stringify(r1));   // the tenancy runs on in a house that stays
+  assert.equal(r1.ok, true, JSON.stringify(r1));
   assert.equal(f.mainOf(1), co);
   const r2 = await deleteRealm(f.ctx, 'a', co);
-  assert.equal(r2.error, 'home-tenants');   // now nobody takes it, so the tenancy holds the delete
+  assert.equal(r2.error, 'home-tenants');
   f.sql.exec('DELETE FROM home_rooms');
   const c2 = f.char('a', 'Another');
   f.sql.prepare('INSERT INTO home_owners VALUES (10, 1, ?, ?, 5)').run(c2, 'a');
@@ -345,7 +342,7 @@ test('delete: two houses for one heir with a single slot left refuse the delete'
   assert.equal(r.error, 'home-heir-full');
   assert.equal(f.mainOf(1), main);
   assert.equal(f.mainOf(2), main);
-  f.sql.exec('DELETE FROM homes WHERE building_key = 12');   // two slots now, one for each house
+  f.sql.exec('DELETE FROM homes WHERE building_key = 12');
   const ok = await deleteRealm(f.ctx, 'a', main);
   assert.equal(ok.ok, true);
   assert.deepEqual([f.mainOf(1), f.mainOf(2)], [heir, heir]);
@@ -403,7 +400,7 @@ test('delete: open offers by or to the character are cancelled; and a door shows
   assert.equal(f.sql.prepare('SELECT state FROM home_offers WHERE id = ?').get(made.id).state, 'cancelled');
 });
 
-// Runs `change` once, just before the delete's own batch, after the plan was made.
+// Runs change once, before the first batch of more than 20 steps, which is the delete's own batch.
 function beforeDeleteBatch(f, change) {
   const orig = f.db.batch;
   let fired = false;
@@ -423,7 +420,7 @@ test('delete: a house planned to go that gains a living co-owner before the batc
   const r = await deleteRealm(f.ctx, 'a', main);
   assert.equal(fired(), true);
   assert.equal(r.ok, true, JSON.stringify(r));
-  assert.equal(f.mainOf(1), late);   // the guard failed the first batch; the second plan passes the house on
+  assert.equal(f.mainOf(1), late);
   assert.deepEqual(r.passed.map((p) => [p.buildingKey, p.char]), [[1, late]]);
   assert.equal(r.moved, undefined);
 });

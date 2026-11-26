@@ -1,20 +1,4 @@
 // @ts-check
-// BUNNYFALL CAMPS (src/net/campLaw.js): A PLAYER'S CAMP IN THE OPEN WORLD, KEPT WHERE EVERY PASSER-BY READS IT.
-//
-// A camp is pitched with the camping kit (a linked account's character's tent pitched outdoors - the client says its
-// record, scenes/homeYards.js), one camp a record, and furnished a piece at a time (the decorator's own writes - one piece each, as a home's yard is), free, up to CAMP_CAP pieces
-// within CAMP_RADIUS of the fire. It stands until its owner strikes it. Every read answers the camps of a 3 x 3 square of
-// map pixels round the asker's own, with their pieces; every write names the camp's owner in its own WHERE, so a piece
-// in somebody else's camp is exactly as absent as none (`no-camp`).
-//
-//   POST /v1/camps/near   { px, py }                                  -> { camps: [{ id, name, owner, mine, px, py, at, pieces }] }
-//   POST /v1/camps/mine   {}                                          -> { camps: [{ ...camp, pieceCount, placedAt }] }   (the asker's own, anywhere)
-//   POST /v1/camps/pitch  { character, rec, px, py, at, yaw, name? } -> { camp }   (the record's camp again, if it has one)
-//   POST /v1/camps/strike { id }                                      -> { ok: true }
-//   POST /v1/camps/rename { id, name }                                -> { ok: true, name }
-//   POST /v1/camps/place  { id, character, piece }                    -> { piece }
-//   POST /v1/camps/move   { id, character, pieceId, place }           -> { piece }
-//   POST /v1/camps/remove { id, character, pieceId }                  -> { ok: true }
 import { displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE } from './service.js';
 import {
@@ -23,7 +7,6 @@ import {
 } from '../../src/net/campLaw.js';
 import { DECOR_ID_RE } from '../../src/net/decorLaw.js';
 
-/** One account's writes in a minute, at most - a decorator's quick hands, not a script's. */
 export const CAMP_WRITES_MAX = 120;
 const CAMP_WRITES_WINDOW_S = 60;
 
@@ -31,13 +14,11 @@ const hexId = (/** @type {(b: Uint8Array) => void} */ rand) => { const b = new U
 const pieceOfRow = (/** @type {any} */ r) => { try { return campPieceOf(JSON.parse(r.piece)); } catch { return null; } };
 const tooFast = (/** @type {any} */ ctx, /** @type {any} */ player) => overRate(ctx, `camp:${player.id}`, CAMP_WRITES_MAX, CAMP_WRITES_WINDOW_S);
 
-/** A camp's row as a read answers it - its record and character said to its owner alone. */
 const campRow = (/** @type {any} */ r, /** @type {any} */ player, /** @type {any[] | undefined} */ pieces) => {
   const mine = r.player === player.id;
   return campOf({ id: r.id, name: r.name, owner: r.owner_name, mine, px: r.px, py: r.py, at: [r.x, r.y, r.z], yaw: r.yaw, ...(mine ? { rec: r.rec, char: r.char_id } : {}), pieces: pieces ?? [] });
 };
 
-/** THE CAMPS ROUND A PIXEL: every camp of the 3 x 3 square round (`px`, `py`), each with its pieces. */
 export async function campsNear({ db }, player, { px, py } = {}) {
   if (!campPixelOk(px, py)) return { error: 'bad-camp' };
   const { results: rows = [] } = await db.prepare(`SELECT * FROM camps WHERE px BETWEEN ?1 AND ?2 AND py BETWEEN ?3 AND ?4
@@ -51,9 +32,6 @@ export async function campsNear({ db }, player, { px, py } = {}) {
   return { camps };
 }
 
-/** THE ASKER'S OWN CAMPS, wherever they stand (HOLDINGS: a player who forgot where they pitched them finds them in the pause
- *  menu): at most CAMPS_MAX, oldest first, without their pieces - `pieceCount` and `at` (when it was pitched, epoch seconds)
- *  say how furnished and how old. */
 export async function campsMine({ db }, player) {
   const { results: rows = [] } = await db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM camp_pieces p WHERE p.camp_id = c.id) AS n
     FROM camps c WHERE c.player = ?1 ORDER BY c.created_at LIMIT ?2`).bind(player.id, CAMPS_MAX + 5).all();
@@ -61,8 +39,6 @@ export async function campsMine({ db }, player) {
   return { camps };
 }
 
-/** A CAMP PITCHED with the kit: the record's own camp answered again where it has one; refused past CAMPS_MAX, or
- *  within CAMP_GAP of another camp's fire. */
 export async function pitchCamp(ctx, player, { character, rec, px, py, at, yaw = 0, name } = {}) {
   const { db, nowS, rand } = ctx;
   if (typeof character !== 'string' || !CHAR_ID_RE.test(character) || typeof rec !== 'string' || !CAMP_REC_RE.test(rec) || !campPixelOk(px, py) || !Number.isFinite(yaw)) return { error: 'bad-camp' };
@@ -81,7 +57,8 @@ export async function pitchCamp(ctx, player, { character, rec, px, py, at, yaw =
   const owner = displayName(player) ?? '';
   const campName = campNameOf(name) ?? `${owner || 'A'}'s camp`.slice(0, 40);
   const heading = Math.round(yaw * 1000) / 1000;
-  // the cap read again inside the write: two tabs pitching at once keep CAMPS_MAX; the record's one camp its index's
+  // The cap is checked again inside the insert so two tabs pitching at once stay within CAMPS_MAX, and the unique
+  // (player, rec) index keeps one camp per record.
   await db.prepare(`INSERT OR IGNORE INTO camps (id, player, char_id, rec, yaw, name, owner_name, px, py, x, y, z, created_at, updated_at)
     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13 WHERE (SELECT COUNT(*) FROM camps WHERE player = ?2) < ?14`)
     .bind(id, player.id, character, rec, heading, campName, owner, px, py, where[0], where[1], where[2], nowS, CAMPS_MAX).run();
@@ -90,7 +67,6 @@ export async function pitchCamp(ctx, player, { character, rec, px, py, at, yaw =
   return { camp: campRow(made, player, []) };
 }
 
-/** A CAMP STRUCK: it and every piece of it gone - its owner's alone. */
 export async function strikeCamp(ctx, player, { id } = {}) {
   const { db } = ctx;
   if (typeof id !== 'string' || !CAMP_ID_RE.test(id)) return { error: 'bad-camp' };
@@ -103,7 +79,6 @@ export async function strikeCamp(ctx, player, { id } = {}) {
   return { ok: true };
 }
 
-/** A CAMP RENAMED by its owner. */
 export async function renameCamp(ctx, player, { id, name } = {}) {
   const { db, nowS } = ctx;
   const clean = campNameOf(name);
@@ -114,8 +89,6 @@ export async function renameCamp(ctx, player, { id, name } = {}) {
   return { ok: true, name: clean };
 }
 
-/** A PIECE PLACED in the owner's camp, while it holds fewer than CAMP_CAP. A piece already standing under its id answers
- *  as placed (a repeat). */
 export async function placeCampPiece(ctx, player, { id, piece } = {}) {
   const { db, nowS } = ctx;
   const p = campPieceOf(piece);
@@ -126,16 +99,16 @@ export async function placeCampPiece(ctx, player, { id, piece } = {}) {
   const had = await db.prepare('SELECT piece FROM camp_pieces WHERE camp_id = ?1 AND id = ?2').bind(id, p.id).first();
   if (had) return { piece: pieceOfRow(had) ?? p, repeat: true };
   if (Number(own.n) >= CAMP_CAP) return { error: 'camp-full' };
+  // The cap is checked again inside the insert, so concurrent placements stay within CAMP_CAP.
   await db.prepare(`INSERT OR IGNORE INTO camp_pieces (camp_id, id, piece, at)
     SELECT ?1, ?2, ?3, ?4 WHERE EXISTS (SELECT 1 FROM camps WHERE id = ?1 AND player = ?5)
       AND (SELECT COUNT(*) FROM camp_pieces WHERE camp_id = ?1) < ?6`).bind(id, p.id, JSON.stringify(p), nowS, player.id, CAMP_CAP).run();
-  const stood = await db.prepare('SELECT 1 AS ok FROM camp_pieces WHERE camp_id = ?1 AND id = ?2').bind(id, p.id).first();   // the cap read inside the write
+  const stood = await db.prepare('SELECT 1 AS ok FROM camp_pieces WHERE camp_id = ?1 AND id = ?2').bind(id, p.id).first();
   if (!stood) return { error: 'camp-full' };
   await db.prepare('UPDATE camps SET updated_at = ?2 WHERE id = ?1').bind(id, nowS).run();
   return { piece: p };
 }
 
-/** A PIECE MOVED, turned or resized in the owner's camp - what it is never changes, only where it stands. */
 export async function moveCampPiece(ctx, player, { id, pieceId, place } = {}) {
   const { db, nowS } = ctx;
   const pl = campMoveOf(place);
@@ -151,7 +124,6 @@ export async function moveCampPiece(ctx, player, { id, pieceId, place } = {}) {
   return { piece: next };
 }
 
-/** A PIECE TAKEN DOWN in the owner's camp. Gone already answers as gone. */
 export async function removeCampPiece(ctx, player, { id, pieceId } = {}) {
   const { db } = ctx;
   if (typeof id !== 'string' || !CAMP_ID_RE.test(id) || typeof pieceId !== 'string' || !DECOR_ID_RE.test(pieceId)) return { error: 'bad-decor' };
@@ -162,9 +134,7 @@ export async function removeCampPiece(ctx, player, { id, pieceId } = {}) {
   return { ok: true, gold: 0 };
 }
 
-/** The routes, for index.js: the read is every session's, the writes a linked account's. */
 export const CAMP_ROUTES = Object.freeze(['/v1/camps/near', '/v1/camps/mine', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove']);
-/** One camp route answered. */
 export function campRoute(ctx, player, path, body) {
   switch (path) {
     case '/v1/camps/near': return campsNear(ctx, player, body);

@@ -1,5 +1,3 @@
-// A pose or a ping, the room's hottest frames: both metered on the socket's bucket, the ping
-// answered, and the pose fanned by tier to the sockets in range.
 import { isChatRoom, poseChanged, KEEPALIVE_FAN_MS, poseGate, isCellRoom, inRangeOf, poseFan, slimPose, cellRoomOfWire } from '../relay.js';
 import { isBattleRoom } from '../../../src/net/siegeRef.js';
 import { isEgRoom } from '../../../src/net/eliteGates/egLaw.js';

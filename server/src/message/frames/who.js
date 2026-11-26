@@ -1,4 +1,3 @@
-// The `who` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isChatRoom, tokenGate, badged, whoIdOf, WHO_ROOM_HZ_MAX, inRange } from '../../relay.js';
 import { isBattleRoom } from '../../../../src/net/siegeRef.js';
 import { lookKey } from '../../room/keys.js';

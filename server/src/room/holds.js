@@ -1,5 +1,3 @@
-// Caps, keys, and hold times the relay's rooms and Worker read: spent signatures, mute orders,
-// bans, the law door's post size and seen orders, kinship silence, and guild removals.
 import { MAX_TTL_S, ORDER_TTL_S } from '../../../src/net/identityToken.js';
 
 export const SPENT_MAX = 4096;

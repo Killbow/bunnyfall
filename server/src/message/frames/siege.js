@@ -1,4 +1,3 @@
-// The `siege` frame's handler, called by message/dispatch.js with the room as `this`.
 import { siegeGate } from '../../relay.js';
 import { isBattleRoom } from '../../../../src/net/siegeRef.js';
 

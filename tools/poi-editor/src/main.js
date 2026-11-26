@@ -1,8 +1,5 @@
 // @ts-check
 
-// The World Builder. This file wires the panels to one editing session: the document, the selection, the clipboard,
-// the server and the viewport. It holds no law of its own: the law is src/poi, the rest is in the modules beside it.
-
 import { createPoiEdit, newPoiDoc } from '../../../src/poi/poiEdit.js';
 import { mintPoiId } from '../../../src/poi/poiLaw.js';
 import { problemText } from '../../../src/poi/poiText.js';
@@ -64,7 +61,6 @@ async function boot() {
     queue();
   };
 
-  // ── panels ──
   const stage = h('div', { class: 'stage' });
   const glCanvas = /** @type {HTMLCanvasElement} */ (h('canvas', { id: 'viewport-gl' }));
   const hudCanvas = /** @type {HTMLCanvasElement} */ (h('canvas', { class: 'hud' }));
@@ -80,7 +76,6 @@ async function boot() {
   /** @type {ReturnType<typeof createDm> | null} */ let dmPanel = null;
   const c2d = createCanvas2d({ host: stage2d, arena, getDoc, getSel, catalogue, edit, docId, select, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  2d edit`); queue(); } });
   const here = () => { const t = viewport?.camera.target ?? [0, 0, 0], d = getDoc(), x = Math.round(t[0] * 4) / 4, z = Math.round(t[2] * 4) / 4; const gh = d && terrain.state() === 'loaded' ? groundInFrame(terrain, d.place, x, z) : null; return [x, Math.round((gh ?? 0) * 100) / 100, z]; };
-  /** Ask for a point on the ground: show the 3D view, take the next click, come back to where we were. */
   const pick = (what, done) => {
     if (!viewport) return;
     const back = S.view;
@@ -90,9 +85,8 @@ async function boot() {
   dmPanel = createDm({ host: stageDm, getDoc, docId, edit, catalogue, say, pick, here, getSel, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  DM edit`); queue(); }, onSandbox: () => queue() });
   const transfer = createTransfer({ api, edit, getDoc, docId: () => S.docId, say, act, opened: (id) => { S.docId = id; S.sel = []; stepsLog.length = 0; }, refresh: () => queue() });
 
-  // ── clipboard ──
-  const remember = async (clip) => { const t = clipText(clip); try { globalThis.localStorage?.setItem(CLIP_KEY, t); } catch { /* blocked */ } try { await navigator.clipboard?.writeText(t); } catch { /* the page may not write the system clipboard */ } };
-  const recall = async () => { let t = null; try { t = await navigator.clipboard?.readText(); } catch { /* denied */ } let c = t ? readClip(t) : null; if (!c) { try { c = readClip(globalThis.localStorage?.getItem(CLIP_KEY) ?? ''); } catch { c = null; } } return c; };
+  const remember = async (clip) => { const t = clipText(clip); try { globalThis.localStorage?.setItem(CLIP_KEY, t); } catch { } try { await navigator.clipboard?.writeText(t); } catch { } };
+  const recall = async () => { let t = null; try { t = await navigator.clipboard?.readText(); } catch { } let c = t ? readClip(t) : null; if (!c) { try { c = readClip(globalThis.localStorage?.getItem(CLIP_KEY) ?? ''); } catch { c = null; } } return c; };
 
   function place(asset, at) {
     if (!S.docId) { say('Open or create a POI first.'); return; }
@@ -106,7 +100,6 @@ async function boot() {
     prefs.noteUsed(asset.id);
   }
 
-  // ── actions ──
   const A = {
     run(name) { const [fn, ...args] = String(name).split(':'); const f = /** @type {any} */ (A)[fn]; if (typeof f === 'function') return f(...args); return undefined; },
     async newDoc() {
@@ -256,7 +249,6 @@ async function boot() {
     panels() { const all = layout.fold.left && layout.fold.right && layout.fold.bottom; for (const k of /** @type {const} */ (['left', 'right', 'bottom'])) if (layout.fold[k] === !all) layout.toggle(k); viewport?.dirty(); },
   };
 
-  // ── toolbar ──
   const toolbar = createToolbar({ host: layout.toolbar, actions: /** @type {any} */ (A), getState: () => {
     const d = getDoc(), e = S.docId ? edit.entryOf(S.docId) : null, dirtyNow = !!S.docId && edit.dirty(S.docId);
     const st = e?.state ?? 'none';
@@ -278,10 +270,9 @@ async function boot() {
   const live = createLiveLink({ getDoc: () => getDoc(), getId: () => S.docId, getRev: () => (S.docId ? edit.entryOf(S.docId)?.rev ?? 0 : 0), getAuth: () => api.bearer() });
   edit.onChange(() => { queue(); live.changed(); }); api.onChange(queue);
 
-  // ── keyboard and drops ──
   document.addEventListener('keydown', (e) => {
     const t = /** @type {HTMLElement} */ (e.target);
-    if (e.key === 'Escape' && viewport?.picking()) { viewport.cancelPick(); say('Cancelled.'); if (S.view === '3d' && dmPanel) { /* stays in the 3D view */ } return; }
+    if (e.key === 'Escape' && viewport?.picking()) { viewport.cancelPick(); say('Cancelled.'); if (S.view === '3d' && dmPanel) { } return; }
     if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
     const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
     if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) A.redo(); else A.undo(); }
@@ -308,7 +299,8 @@ async function boot() {
   await places.open();
   say(arena.state() === 'loaded' ? `Game files found.${terrain.state() === 'loaded' ? ' Ground: the game\'s base terrain.' : ' No ground data.'}` : 'Game files not found. Use File, Game files... to pick your ARENA2 folder (or set ARENA2_PATH for the dev server).');
   if (api.signedIn()) api.refreshMe();
-  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser, places, dm: dmPanel };   // for the headless probe
+  // tools/poiEditorProbe.mjs drives the editor through this object.
+  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser, places, dm: dmPanel };
   refresh();
 }
 boot();

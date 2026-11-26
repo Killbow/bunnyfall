@@ -53,7 +53,7 @@ test('room mood affects rank-scaled tips, future patience, and performance incom
   const st = respond(ready(), 'listen').state;
   const collected = stepTavernShift(st, { op: 'collect', target: 'guest' }, 500).state;
   const returned = stepTavernShift(collected, { op: 'return', target: 'keeper' }, 500);
-  assert.equal(returned.roomTip, 4); // 3 base goodwill gold at rank 3
+  assert.equal(returned.roomTip, 4);
   assert.equal(returned.gold, 40);
   assert.equal(returned.state.orderAt, 500);
   assert.equal(tavernPatienceSeconds(returned.state.room), 105);

@@ -1,10 +1,4 @@
 // @ts-check
-// BUNNYFALL COMPANIES (2026-11-12, territory): WHAT THE SERVICE KEEPS OF A COMPANY'S TERRITORY - the Renown XP its
-// members earn, by region and seat week (migration 0197), and every Company's territory as the maps paint it. The law
-// both ends read is src/net/territoryLaw.js.
-//
-// A friends' server: the XP credited is what the Renown report already credited (index.js, /v1/renown/xp), so it is
-// bounded as Renown is and no more.
 import { seatWeekOf } from '../../src/net/townSeatLaw.js';
 import { TERRITORY_WEEK_WEIGHTS, TERRITORY_XP_REPORT_MAX, territoryStrength, territoryRadius, inTerritory } from '../../src/net/territoryLaw.js';
 import { charterRadius } from '../../src/net/charterLaw.js';
@@ -13,11 +7,7 @@ import { chartersRead } from './charters.js';
 
 const regionOk = (r) => Number.isSafeInteger(r) && r >= 0 && r <= 61;
 
-/**
- * Renown XP a character earned in `region`, credited to its Company's week there. Nothing for a character in no
- * Company. Called after the Renown report's own credit, with what it credited.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function creditTerritory({ db, nowS }, player, { character, region, xp } = {}) {
   const n = Math.min(TERRITORY_XP_REPORT_MAX, Math.trunc(Number(xp)));
   if (!player?.id || typeof character !== 'string' || !regionOk(region) || !(n > 0)) return { credited: 0 };
@@ -29,11 +19,6 @@ export async function creditTerritory({ db, nowS }, player, { character, region,
   return { credited: r?.meta?.changes ? n : 0 };
 }
 
-/**
- * Returns true when a lapsed release must keep the farm. A farm with pixels is kept inside the circle of the recorded
- * hall or Charter. A farm without pixels, or a reported farm outside both, is kept while the Company holds the recorded
- * hall town or Charter. Throws on a failed read.
- */
 export async function farmInReach(db, gid, mapId, nowS) {
   const now = seatWeekOf(nowS * 1000);
   const [own, mates, rows, reach] = await db.batch([
@@ -60,12 +45,7 @@ export async function farmInReach(db, gid, mapId, nowS) {
   return (!!hall && hall.map_id === f.hall_map) || (ch.length > 0 && ch[0].map_id === f.cap_map);
 }
 
-/**
- * Returns each Company that holds a hall, with its id, tag, name, heraldry, hall town (`mapId`) and region.
- * Each also carries its strength (territoryLaw.js territoryStrength over the region's last weeks) and those weeks' XP.
- * The client places it on the map by the town and sizes it by the strength.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function territoriesRead({ db, nowS }) {
   const week = seatWeekOf(nowS * 1000);
   const oldest = week - (TERRITORY_WEEK_WEIGHTS.length - 1);
@@ -92,8 +72,7 @@ export async function territoriesRead({ db, nowS }) {
       weeks: weeks.get(h.id) ?? TERRITORY_WEEK_WEIGHTS.map(() => 0),
     };
   });
-  // BUNNYFALL COMPANIES (City Charters): every Charter, which the maps draw around its capital (charters.js).
-  // A failed Charter read returns null, and the client keeps the last Charters it received.
+  // A failed Charter read returns null, and the client keeps the Charters it last received.
   const charters = await chartersRead({ db, nowS }).catch(() => null);
   return { ok: true, week, territories, charters };
 }

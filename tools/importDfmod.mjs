@@ -1,22 +1,6 @@
 #!/usr/bin/env node
-// BUNNYFALL PHASE 3: THE DFMOD IMPORTER - a developer tool, nothing in the game. Hand it a Daggerfall Unity mod
-// (.dfmod) and it unpacks what the browser can use into vendor/<mod>/, for the work of bringing the mod in:
-//
-//   <mod>.dfmod.json   the manifest (title, author, version, dependencies)
-//   modsettings.json   and every other TextAsset, by its own name: settings, quest and text files, the mod's .dll
-//   Textures/*.png     every Texture2D, decoded
-//   Sound/*.ogg        every AudioClip (FSB5 Vorbis, remuxed untouched)
-//   inventory.json     everything in the bundle by kind and name, extracted or not (meshes, prefabs, scripts)
-//   README.md          what the mod is, where it came from, and what is left to port
-//
-// A mod that only adds pictures, sounds or text is mostly done here. A mod with C# behaviour (its .dll) is ported by
-// hand from there, as every mod under vendor/ was.
-//
-//   node tools/importDfmod.mjs <path/to/mod.dfmod> [--name <folder>] [--force] [--extra <folder>]
-//
-//   --name    the folder under vendor/ (default: the file's name, lower-case, dashed)
-//   --force   write over an existing vendor/<folder>/
-//   --extra   a folder of loose files from the mod's download (textures, a readme, a licence), copied in as they are
+// Unpacks a .dfmod into vendor/<mod>/: the manifest, text assets, textures, sounds, and an inventory.
+// Run: node tools/importDfmod.mjs <path/to/mod.dfmod> [--name <folder>] [--force] [--extra <folder>].
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, cpSync } from 'node:fs';
 import { join, dirname, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,19 +12,15 @@ import { writePng } from './pngIO.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLASS_AUDIO_CLIP = 83;
-/** Unity class ids worth naming in the inventory. */
 const CLASS_NAMES = Object.freeze({
   1: 'GameObject', 4: 'Transform', 21: 'Material', 23: 'MeshRenderer', 28: 'Texture2D', 33: 'MeshFilter', 43: 'Mesh',
   48: 'Shader', 49: 'TextAsset', 74: 'AnimationClip', 83: 'AudioClip', 91: 'AnimatorController', 95: 'Animator',
   114: 'MonoBehaviour', 115: 'MonoScript', 137: 'SkinnedMeshRenderer', 142: 'AssetBundle', 187: 'Texture2DArray',
 });
 
-/** A folder name from a file name: "Heat Haze.dfmod" -> "heat-haze". */
 export const slugOf = (file) => basename(file, extname(file)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mod';
-/** A safe file name for an asset. */
 const safe = (name) => String(name ?? 'unnamed').replace(/[\\/:*?"<>|\0]/g, '_').trim() || 'unnamed';
 
-/** The bundle opened: its objects (classId, read) and the resource streams' reader. */
 function openBundle(bytes) {
   const fs = readUnityFs(bytes);
   const main = fs.files.find((f) => !/\.res(S|ource)$/.test(f.path));
@@ -55,7 +35,6 @@ function openBundle(bytes) {
   return { objects: sf.objects.map((o) => ({ classId: o.classId, read: () => o.read() })), resource };
 }
 
-/** The Vorbis setup headers vendor/vorbis-fsb-setups/ carries, by CRC32. */
 function setupHeaders() {
   const setups = new Map();
   const dir = join(ROOT, 'vendor/vorbis-fsb-setups');
@@ -67,7 +46,6 @@ function setupHeaders() {
   return setups;
 }
 
-/** The file name a TextAsset is written under: its own extension, else .json for JSON, .txt for text, .bytes else. */
 function textAssetFile(name, bytes) {
   const n = safe(name);
   if (/\.[a-z0-9]{1,5}$/i.test(n) && !/\.dfmod$/i.test(n)) return n;
@@ -78,7 +56,6 @@ function textAssetFile(name, bytes) {
   } catch { return `${n}.bytes`; }
 }
 
-/** Unpack `bytes` (a .dfmod): the files to write (path under the mod's folder -> bytes) and a report. */
 export function unpackDfmod(bytes) {
   const b = openBundle(bytes);
   const files = new Map();
@@ -96,7 +73,7 @@ export function unpackDfmod(bytes) {
       if (o.classId === CLASS_ID.TextAsset) {
         const data = new Uint8Array(obj.m_Script);
         if (/\.dfmod$/i.test(name)) {
-          try { const j = JSON.parse(new TextDecoder().decode(data)); if (j?.ModTitle) { manifest = j; files.set('__manifest__', data); continue; } } catch { /* not the manifest */ }
+          try { const j = JSON.parse(new TextDecoder().decode(data)); if (j?.ModTitle) { manifest = j; files.set('__manifest__', data); continue; } } catch { }
         }
         files.set(textAssetFile(name, data), data);
       } else if (o.classId === CLASS_ID.Texture2D) {
@@ -113,7 +90,6 @@ export function unpackDfmod(bytes) {
   return { manifest, files, inventory, report };
 }
 
-/** The README a fresh import gets. */
 function readmeOf(slug, manifest, source, inventory) {
   const m = manifest ?? {};
   const kinds = Object.entries(inventory).map(([k, v]) => `- ${k}: ${v.length}`).join('\n');

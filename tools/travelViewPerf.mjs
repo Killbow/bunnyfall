@@ -1,38 +1,6 @@
-// PERF-TV (2026-09-28, Mac: "I also want to ensure performance is golden"; bible/06-Systems/Travel-View.md
-// PERF-TV): THE OVERWORLD'S OWN FRAME COST, MEASURED IN A REAL BROWSER.
-//
-// What the view adds to a frame on top of the world it draws: the readout (the traveller's ring, the compass and the
-// route line in the DOM; every keyed mark - plates, far places, travellers - drawn on its one canvas since PERF-TV,
-// held clear of the HUD's furniture and parted along the edges since EDGE-FURNITURE / EDGE-DECLUTTER), each frame. Measured here as the
-// frame measures it: the update's JavaScript, then the style and layout the browser owes for it (forced with a
-// layout read, so the cost is paid inside the timer and not hidden in the next paint). Marks move every frame, as
-// they do while the camera orbits; a second run holds them still, as they are while it rests - the steady state the
-// readout must make nearly free.
-//
-// The mix is the view's own: 20 clickable places (the grid's plates and TV5's far places) and the rest travellers,
-// a quarter of them off the picture and held at its edge - every one drawn on the readout's one canvas since PERF-TV.
-//
-// Budgets (the frame is 16.7 ms at 60 Hz; the view's own share must be a rounding error):
-//   20 places + 64 travellers moving   <= 0.60 ms a frame
-//   20 places + 256 travellers moving  <= 1.50 ms a frame
-//   20 places + 64 travellers at rest  <= 0.15 ms a frame
-//
-// Measured before PERF-TV (2026-09-28, every mark a DOM node, the screen read per held mark): 64 moving marks 5.8 ms,
-// 256 moving 35.7 ms - the screen's size read after each mark's writes forced a layout per held mark.
-//
-// FB0929 (2026-09-29, the Discord: "The moment I go to my Travel Map and select a far away destination, the game drops
-// to sub-10 FPS"): THE ROUTE LINE, BY ITS FRAMES. The timer above holds the update and the layout it owes; a line's
-// cost is the browser's paint and raster, after it - the route above was a 120-point line on the screen, and a far
-// journey's dashed line running a million pixels off it was never timed. So the line is measured by the frames
-// themselves: the readout updated in requestAnimationFrame under a moving camera, the median interval (16.7 ms at
-// 60 Hz). The routes are Hazelnut's own roads through the planner - a click on the ground in view, and a pick 400
-// pixels across the map (139 legs), the camera behind the traveller and dragged half round - drawn as the host draws
-// them (the feet, four points a leg, flat ground) through the view's camera at its defaults.
-//   a journey's line, any length, moving   <= 20 ms a frame (median)
-// Measured before FB0929 (the line uncut, two runs): the far pick 383 and 433 ms a frame (the median), turned 267 and
-// 217; in view 16.7. After: 16.7 all three.
-//
-// Usage: node tools/travelViewPerf.mjs            (prints the table; exits 1 on a blown budget)
+// Times the per-frame HUD cost of the travel view and the frame interval of its route line in a real browser.
+// Usage: node tools/travelViewPerf.mjs   (prints the table and exits 1 on a blown budget)
+
 import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
@@ -42,12 +10,10 @@ import { projectToScreen } from '../src/player/tapRay.js';
 import { perspective, lookAt, mirrorProjectionX } from '../src/world/mat4.js';
 import { StreamingWorldState, mapPixelToWorldCoords } from '../src/world/streamingWorld.js';
 
-/** FB0929: a journey's line as the readout is handed it, frame by frame - the traveller 3 m further along its first leg
- *  each frame, the camera behind them at the view's defaults turned `turn`, the frame's lens (DFU's 65 degrees). */
 function routeFrames({ from, goal, spot = null, turn = 0, frames = 120, w = 1366, h = 768 }) {
   const bytes = (n) => new Uint8Array(readFileSync(new URL(`../vendor/roads-hazelnut/${n}`, import.meta.url)));
   const plan = planRoute(from, goal, { roads: bytes('roadData.bytes'), tracks: bytes('trackData.bytes') });
-  const mid = (p) => { const o = mapPixelToWorldCoords(p.x, p.y); return [o.x + 16384, o.z + 16384]; };   // world.js tvLegMid
+  const mid = (p) => { const o = mapPixelToWorldCoords(p.x, p.y); return [o.x + 16384, o.z + 16384]; };
   const me = mid(from), end = spot ?? mid(goal);
   const natives = routeDrawPoints({ x: me[0], z: me[1] }, routeLegs(plan.pixels, plan.kinds), { x: end[0], z: end[1] }, mid);
   const state = new StreamingWorldState(5);
@@ -91,7 +57,7 @@ try {
       for (let i = 0; i < all; i++) {
         const a = (i / all) * Math.PI * 2 + (moving ? t * 0.01 : 0);
         const place = i < 20;
-        const far = !place && i % 4 === 0;   // a quarter of the travellers off the picture: held at the edge
+        const far = !place && i % 4 === 0;
         const rr = far ? 2000 : 250;
         marks.push(place
           ? { key: `p${i}`, x: W / 2 + Math.cos(a) * rr, y: H / 2 + Math.sin(a) * rr * 0.6, front: true, label: `Place ${i}`, kind: 'place', pick: true }
@@ -105,12 +71,13 @@ try {
     };
     const run = (n, moving, frames = 400) => {
       const pre = Array.from({ length: frames }, (_, t) => frameOf(n, t, moving));
-      for (let t = 0; t < 30; t++) { hud.updateTravelViewHud(pre[t]); document.body.getBoundingClientRect(); }   // warm
+      for (let t = 0; t < 30; t++) { hud.updateTravelViewHud(pre[t]); document.body.getBoundingClientRect(); }
       const t0 = performance.now();
       for (let t = 0; t < frames; t++) { hud.updateTravelViewHud(pre[t]); void document.body.offsetHeight; }
       return (performance.now() - t0) / frames;
     };
-    run(64, true, 200); run(256, true, 100);   // the JIT and the label images, warmed - the first run paid for both
+    // These first runs warm the JIT and the label images.
+    run(64, true, 200); run(256, true, 100);
     const out = { m64: run(64, true) };
     out.canvas = hud.travelViewHudState().marks.length;
     out.hits = hud.travelViewHudState().hits.length;
@@ -130,7 +97,6 @@ try {
   check(r.m256 <= 1.5, `20 places + 256 moving travellers within 1.50 ms (${r.m256.toFixed(3)})`);
   check(r.s64 <= 0.15, `20 places + 64 travellers at rest within 0.15 ms (${r.s64.toFixed(3)})`);
   check(r.canvas === 84 && r.nodes === 0 && r.hits === 20, `every mark on the canvas (${r.canvas} handed, ${r.nodes} DOM nodes), the 20 places taking clicks (${r.hits} boxes)`);
-  // FB0929: the route line by its frames - paint and raster included
   const from = { x: 195, y: 172 }, o = mapPixelToWorldCoords(from.x, from.y);
   const lines = {
     'a click in view, 300 m': routeFrames({ from, goal: from, spot: [o.x + 16384, o.z + 16384 + 300 * 40] }),

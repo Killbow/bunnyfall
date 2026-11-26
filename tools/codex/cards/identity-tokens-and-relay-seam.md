@@ -8,6 +8,8 @@ files:
   - server-account/src/signing.js
   - server-account/src/index.js
   - server/src/index.js
+  - server-account/src/routes/accountRoutes.js
+  - tools/mintGateKeys.mjs
 routes:
   - /v1/auth/token
   - /v1/pubkey
@@ -19,9 +21,13 @@ invariants:
   - "`server/` and `server-account/` share trust only through Ed25519 signatures; the relay holds no D1 binding and never calls `server-account/` for authentication."
   - "`verifyToken` verifies `TOKEN_V` and the 64-byte signature before parsing JSON, enforces `MAX_TTL_S` (`300` s) and `SKEW_S` (`30` s), and rejects unsanitized names."
   - Each `Room` Durable Object tracks spent token signatures to block same-room replay.
+  - "For a staff account with a live staff session and Hide me on, `/v1/auth/token` returns the token from `hiddenToken` instead of the normal one; a lapsed hidden session gets HTTP `409` and no token."
+  - "A gate receipt starts with `r1` (`RECEIPT_V`) and an identity token with `v1` (`TOKEN_V`); each verifier rejects the other's prefix, so a receipt never verifies as a token or the reverse."
 traps:
   - Signed orders require an explicit `kind` in `verifyOrder` and forbid identity fields (`n`, `k`) while requiring `o`, preventing cross-type signature reuse.
   - Because `src/net/identityToken.js` sits in the relay bundle graph, editing it bumps `RELAY_VERSION` and disconnects connected rooms on deploy.
+  - "The mint drops only the house claim when adding it would push the token past `TOKEN_MAX_CHARS` or its body past `TOKEN_BODY_MAX`; every other claim stays."
+  - "`tools/mintGateKeys.mjs` emits both halves of one Ed25519 pair in one run. `GATE_PUBLIC_KEY` goes on the account service as a Worker secret, not a var, because every deploy rewrites vars."
 tags:
   - auth
   - tokens

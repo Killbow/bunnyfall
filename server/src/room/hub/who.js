@@ -1,4 +1,3 @@
-// Who the hub can name: a name search, everyone online, and the members of a guild online.
 import { foldFind, HUB_FIND_MAX, HUB_WHO_KEEP_MS, HUB_GUILD_WHO_MAX } from '../../../../src/net/hubShards.js';
 import { badged, CHAT_ROSTER_MAX } from '../../relay.js';
 

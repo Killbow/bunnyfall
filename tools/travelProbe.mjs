@@ -1,10 +1,3 @@
-// U41 (was F-slice): does FAST TRAVEL work in the live world host,
-// through the CLASSIC ART WINDOW? Opens the real map on V, opens the
-// player's own region page with Return, finds the nearest real
-// destination by name, waits out the identify flash, answers the
-// travel confirmation, and begins the trip - then verifies the clock
-// advanced, the pixel moved, the gold paid, and no page errors.
-// Frame-synced like castProbe.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -15,12 +8,12 @@ const browser = await chromium.launch({
   headless: true,
   args: ['--use-gl=angle', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'],
 });
+// 1280x800 is an exact 4x of the 320x200 virtual screen, with no letterbox.
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e.message)));
 page.on('console', (m) => {
-  // A resource 404 (this box's ARENA2 lacks CURSOR.IMG) is not a page
-  // error - the cursor module logs and falls back. Real errors gate.
+  // A missing resource such as CURSOR.IMG logs a 404 and falls back, so it is not a page error.
   if (m.type() === 'error' && !/status of 404/.test(m.text())) errors.push(`[console] ${m.text()}`);
 });
 
@@ -38,9 +31,6 @@ const frames = async (n, cap = 30000) => {
   }
 };
 const map = () => page.evaluate(() => JSON.parse(window.__travelMap()));
-/** Poll the window's own state rather than sleeping: the identify
- *  flash and the day countdown both run off real time inside the
- *  frame loop, which SwiftShader paces in seconds. */
 const until = async (pred, cap = 30000) => {
   const t0 = Date.now();
   for (;;) {
@@ -50,14 +40,9 @@ const until = async (pred, cap = 30000) => {
     await frames(1, 5000);
   }
 };
-// The window lays out on the virtual 320x200 screen; this viewport is
-// an exact 4x with no letterbox.
 const clickNative = (x, y) => page.mouse.click(x * 4, y * 4);
 
 const out = { steps: {} };
-// Drain the quest arc's boot boxes (the start letter + the tutorial
-// YesNo) before driving keys - Escape advances a plain box and
-// declines a YesNo. Same guard as castProbe's.
 for (let i = 0, quiet = 0; i < 30 && quiet < 2; i++) {
   const up = await page.evaluate(() => JSON.parse(window.__talk()).overlay);
   if (up) { quiet = 0; await page.keyboard.press('Escape'); } else quiet++;
@@ -72,8 +57,6 @@ await page.keyboard.press('v');
 await frames(2);
 out.steps.opened = await map();
 
-// Return opens the player's own region page while the identify flash
-// is running; I'M AT restarts it if the flash has already finished.
 if (!out.steps.opened?.identifying) await clickNative(25, 191);
 await page.keyboard.press('Enter');
 await frames(1);
@@ -81,7 +64,6 @@ let st = await map();
 if (!st?.regionSelected) { await clickNative(25, 191); await page.keyboard.press('Enter'); await frames(1); st = await map(); }
 out.steps.regionPage = st;
 
-// FIND, then the name, then Return.
 await page.keyboard.press('f');
 await frames(1);
 for (const c of dest.name) {
@@ -92,28 +74,25 @@ for (const c of dest.name) {
 out.steps.typed = await map();
 await page.keyboard.press('Enter');
 await frames(1);
-// A fuzzy match opens the list picker; its first row is the best one.
 if ((await map())?.picker) { await page.keyboard.press('Enter'); await frames(1); }
 out.steps.found = await map();
 
-// The crosshair flashes twice over the found place and the flash's
-// END pops the travel confirmation. Y opens the popup, B begins.
 out.steps.confirm = await until((s) => s?.top === 'confirm' || s?.popUp, 40000);
 if ((await map())?.top === 'confirm') await page.keyboard.press('y');
 await frames(1);
 out.steps.popUp = await map();
 await page.keyboard.press('b');
-await frames(8, 60000);               // the day countdown, then the arrival rebuild
+await frames(8, 60000);
 await until((s) => s === null, 60000);
 out.steps.after = await page.evaluate(() => JSON.parse(window.__travelProbe()));
 
 const b = out.steps.before, a = out.steps.after;
-out.ok = !!(a.minutes > b.minutes                                      // the clock advanced
-  && (a.pixel.x !== b.pixel.x || a.pixel.y !== b.pixel.y)              // the player moved pixels
-  && Math.abs(a.pixel.x - dest.pixel.x) <= 1 && Math.abs(a.pixel.y - dest.pixel.y) <= 1   // to the destination
-  && a.gold <= b.gold                                                  // the trip was paid (inns cost)
-  && out.steps.regionPage?.regionSelected                              // the page really opened
-  && out.steps.found?.locationSelected                                 // the find really landed
+out.ok = !!(a.minutes > b.minutes
+  && (a.pixel.x !== b.pixel.x || a.pixel.y !== b.pixel.y)
+  && Math.abs(a.pixel.x - dest.pixel.x) <= 1 && Math.abs(a.pixel.y - dest.pixel.y) <= 1
+  && a.gold <= b.gold
+  && out.steps.regionPage?.regionSelected
+  && out.steps.found?.locationSelected
   && errors.length === 0);
 out.minutesAdvanced = a.minutes - b.minutes;
 out.errors = errors.slice(0, 8);

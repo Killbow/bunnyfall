@@ -1,8 +1,5 @@
-// Builds the World Builder's asset catalogue from the game files and the repo.
-//   ARENA2_PATH=/path/to/arena2 node tools/poi-editor/scripts/buildAssetCatalogue.mjs
-// Writes public/asset-catalogue.json, public/thumbs/flats-<archive>.png (32 px sprite atlases)
-// and ASSET-AUDIT.md next to this folder. Without ARENA2_PATH the repo-only part is still built.
-// Plain node, no dependencies beyond the repo's own modules.
+// Builds public/asset-catalogue.json, the flat thumbnail atlases, and the asset audit report for the World Builder.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/poi-editor/scripts/buildAssetCatalogue.mjs (repo-only without it).
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -15,7 +12,7 @@ const SRC = (p) => join(ROOT, 'src', p);
 const arena = process.env.ARENA2_PATH && existsSync(process.env.ARENA2_PATH) ? process.env.ARENA2_PATH : null;
 
 const { Arch3dFile } = await import(SRC('formats/arch3dFile.js'));
-const { GLOBAL_SCALE } = await import(SRC('world/meshReader.js'));   // a model's units to metres
+const { GLOBAL_SCALE } = await import(SRC('world/meshReader.js'));
 const { TextureFile } = await import(SRC('formats/textureFile.js'));
 const { DFPalette } = await import(SRC('formats/dfPalette.js'));
 const { FlatsFile } = await import(SRC('formats/flatsFile.js'));
@@ -37,8 +34,6 @@ const add = (e) => {
 const THUMB = 32;
 const rd = (f) => new Uint8Array(readFileSync(join(arena, f)));
 
-// What the old in-game editor offered: the building models by block kind (dfModelCatalog) and the shelf.
-// Billboards, paperdolls and entities were never placeable by it.
 const OLD_EXPOSES = { 'df-arch3d': 'building models only', 'poi-shelf': 'yes' };
 
 if (arena) {
@@ -46,7 +41,6 @@ if (arena) {
   const flatsCfg = new FlatsFile(); flatsCfg.load(rd('FLATS.CFG'));
   const npcSet = new Set(NPC_FLAT_ARCHIVES);
 
-  // --- df-flat: every TEXTURE.nnn record, frame 0 as a 32 px thumbnail in one atlas per archive
   mkdirSync(join(OUT, 'public', 'thumbs'), { recursive: true });
   const textureArchives = new Set();
   for (const n of readdirSync(arena).filter((f) => /^TEXTURE\.\d{3}$/i.test(f)).sort()) {
@@ -88,7 +82,6 @@ if (arena) {
     writeFileSync(join(OUT, 'public', 'thumbs', `flats-${archive}.png`), encodePng({ width: cols * THUMB, height: rows * THUMB, data: atlas }));
   }
 
-  // --- df-arch3d: every model, metadata only (the editor draws them on demand)
   const a = new Arch3dFile(); a.load(rd('ARCH3D.BSA'));
   for (let i = 0; i < a.count; i++) {
     const rid = a.getRecordId(i);
@@ -106,7 +99,6 @@ if (arena) {
   }
 }
 
-// --- paperdoll-item: item templates, with the flat each one draws as in the world
 const groupOf = new Map();
 for (const [g, list] of Object.entries(GROUP_TEMPLATE_INDICES)) for (const i of list) groupOf.set(i, g);
 for (const t of ITEM_TEMPLATES) {
@@ -122,7 +114,6 @@ for (const t of ITEM_TEMPLATES) {
   if (arena && worldRef && !ids.has(worldRef) && !missing.some((m) => m.what === `item ${t.index}`)) missing.push({ what: `item ${t.index}`, why: `world texture ${t.worldTexArchive}.${t.worldTexRecord} not found` });
 }
 
-// --- entity: enemies and home stations
 const rows = Array.isArray(ENEMY_BASICS) ? ENEMY_BASICS.map((r, i) => [i, r]) : Object.entries(ENEMY_BASICS).map(([k, r]) => [+k, r]);
 for (const [id, r] of rows) {
   if (!r) continue;
@@ -139,7 +130,6 @@ for (const s of DECOR_STATIONS) {
   add({ id: `entity:station-${s}`, namespace: 'entity', name: `${s[0].toUpperCase()}${s.slice(1)} station`, sourcePath: 'src/net/decorLaw.js', dimensionMode: 'entity', category: 'stations', subcategory: '', tags: [], dimensions: null, preview: null, oldEditorExposes: 'no', runtime: 'house decor only, not wired to POIs' });
 }
 
-// --- repo-3d: the vendored low-poly trees
 const trees = join(ROOT, 'vendor', 'low-poly-trees', 'Trees', 'trees.json');
 if (existsSync(trees)) {
   const t = JSON.parse(readFileSync(trees, 'utf8'));
@@ -152,13 +142,13 @@ if (existsSync(trees)) {
 const byNs = {};
 for (const e of entries) byNs[e.namespace] = (byNs[e.namespace] ?? 0) + 1;
 byNs['poi-shelf'] = 0;
-// a field every entry of a namespace shares is written once, in `shared`
+// Fields every entry of a namespace shares are written once in `shared`; ../src/catalogue.js merges them back.
 const shared = {};
 for (const e of entries) {
   const sh = (shared[e.namespace] ??= { ...e });
   for (const k of Object.keys(sh)) if (JSON.stringify(sh[k]) !== JSON.stringify(e[k])) delete sh[k];
 }
-for (const sh of Object.values(shared)) delete sh.namespace;   // an entry keeps its namespace: it is the key into `shared`
+for (const sh of Object.values(shared)) delete sh.namespace;
 for (const e of entries) for (const k of Object.keys(shared[e.namespace])) delete e[k];
 const out = { version: 1, generated: 'by tools/poi-editor/scripts/buildAssetCatalogue.mjs', arena2: !!arena, counts: byNs, shared, missingReferences: missing, duplicates, entries };
 writeFileSync(join(OUT, 'public', 'asset-catalogue.json'), JSON.stringify(out));

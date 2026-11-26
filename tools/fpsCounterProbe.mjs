@@ -1,25 +1,5 @@
-// AUDIT BRANCH-0925 PS-A4 (2026-09-25): THE FPS COUNTER'S BOX, MEASURED.
-//
-// PERF-SCALE gave the counter two more lines - the GPU the browser names and the
-// frame's size - so one screenshot answers a slow-exterior report. The box was
-// `white-space:pre` with no width cap, anchored top-right: a Windows ANGLE name
-// ("ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Ti (0x00002803) Direct3D11 vs_5_0
-// ps_5_0, D3D11)") made it 728px wide - over nine tenths of an 800px window and
-// 346px off a 390px phone's left edge, so the start of the "gpu ..." line, the
-// part the line exists to show, was cut off. Even the size line alone
-// (48 characters) overflowed a phone. The box is now capped at the window less
-// its margins, and a long line wraps inside it.
-//
-// This mounts the REAL counter (src/ui/fpsCounter.js) in Chromium, drives its
-// tick by hand past one second with the GPU names of the field reports, and
-// fails if the box leaves the window or any line overflows the box.
-//
-// Run against a dev server with NO arena2 on disk:
-//     npx vite --port 5199 &
-//     node tools/fpsCounterProbe.mjs
-//
-// Measured at the fix: before, 390x844 with the RTX name: box left -346, width
-// 728; after: every case inside the window, nothing overflowing.
+// Browser probe that mounts the FPS counter with long GPU names and fails if its box leaves the window.
+// Run: npx vite --port 5199 & node tools/fpsCounterProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -43,7 +23,6 @@ try {
   for (const vp of VIEWPORTS) {
     const page = await (await browser.newContext({ viewport: vp })).newPage();
     await page.goto(`${BASE}/tools/`, { waitUntil: 'load' });
-    // any page of the dev server's origin, emptied: the counter measured on a bare body, no page's styles
     await page.evaluate(() => { document.documentElement.innerHTML = '<head></head><body></body>'; });
     for (const [name, gpu, size] of CASES) {
       const r = await page.evaluate(async ([gpu, size]) => {

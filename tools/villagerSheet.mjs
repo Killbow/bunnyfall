@@ -1,15 +1,7 @@
-// The VILLAGER REFERENCE SHEET: every wandering-townsperson archive
-// SetPerson can pick, as its idle record, on one bottom-aligned sheet.
-// 3 races x 2 genders x 4 archives = 24, plus the city guard (399).
-// The table is mobilePerson.js's own PERSON_TEXTURES, so the sheet
-// cannot drift from what the game actually spawns.
-//
-// Usage: ARENA2_PATH=... node tools/villagerSheet.mjs [out.png]
-//
-// NOTE for anyone reusing the reader: TextureFile.getDFBitmap returns
-// PALETTE INDICES, one byte per pixel, with 0 meaning transparent -
-// NOT RGBA. Reading it at stride 4 yields a washed-out, 4x-squashed
-// image that looks plausible enough to mistake for bad art.
+// Draws every wandering townsperson archive and the city guard on one sheet, from PERSON_TEXTURES.
+// TextureFile.getDFBitmap returns palette indices, one byte a pixel with 0 transparent, not RGBA.
+// Usage: ARENA2_PATH=<dir> node tools/villagerSheet.mjs [out.png]
+
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { TextureFile } from '../src/formats/textureFile.js';
@@ -41,10 +33,10 @@ const png = new PNG({ width: CW * COLS, height: CH * ROWS });
 for (let i = 0; i < png.data.length; i += 4) { png.data[i] = 24; png.data[i+1] = 26; png.data[i+2] = 30; png.data[i+3] = 255; }
 cells.forEach((c, i) => {
   const ox = (i % COLS) * CW + Math.floor((CW - c.w * SC) / 2);
-  const oy = Math.floor(i / COLS) * CH + CH - c.h * SC - 5;   // bottom-aligned: feet on a common line
+  const oy = Math.floor(i / COLS) * CH + CH - c.h * SC - 5;
   for (let y = 0; y < c.h * SC; y++) for (let x = 0; x < c.w * SC; x++) {
     const idx = c.idx[((y / SC) | 0) * c.w + ((x / SC) | 0)];
-    if (!idx) continue;                                        // 0 = transparent
+    if (!idx) continue;
     const col = pal.get(idx);
     const di = ((oy + y) * png.width + (ox + x)) * 4;
     png.data[di] = col.r; png.data[di+1] = col.g; png.data[di+2] = col.b; png.data[di+3] = 255;

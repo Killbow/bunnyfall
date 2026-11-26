@@ -1,9 +1,5 @@
-// PERF-NEXT (2026-10-06): THE A/B OF TWO FRAME PROBE RUNS (tools/frameProbe.mjs) - one scene, two TAGs, the same OUT.
-// The frame's JavaScript by area (each row INCLUSIVE: a sample counts for a row when the row's function is anywhere on
-// its stack), the collector, the WebGL calls and draws a frame (the census, exact), what a frame allocates, and with
-// INSTR=shadow the shadow pass's own methods. Milliseconds of the probe machine's CPU a frame, by sample count.
-//
-// Run:  node tools/frameAb.mjs <scene> <tagA> <tagB>     (OUT as the probe's: the OS temp dir's frameProbe/ by default)
+// Compares two frame probe runs of one scene (tools/frameProbe.mjs) by area, GL calls, and allocations.
+// Run: node tools/frameAb.mjs <scene> <tagA> <tagB> (OUT as the probe's).
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,10 +24,9 @@ const rows = [
   ['  replay', /^replay src\/render\/shadowPass\.js/],
   ['  _dynamicNear', /^_dynamicNear /],
   ['  _casterCandidates', /^_casterCandidates /],
-  ['  _sunCandidates', /^_sunCandidates /],   // AUDIT PERF-ON4 (sun lens 4): the sun's walk, outside its replays
+  ['  _sunCandidates', /^_sunCandidates /],
   ['  _candidateQuads', /^_candidateQuads /],
   ['drawBillboards', /^drawBillboards /],
-  // SNOW-BUDGET (bible/07-Rendering/Performance-Priority.md): the weather's share of the frame - the snow the ground keeps
   ['the snow (all its asks)', /^(at|tick|winterAt|winterNear|buries) src\/weather\/snowCoverHost\.js/],
   ['  the snowpack advance', /^advance src\/weather\/snowpack\.js/],
   ['  the feet\'s snow', /^winterAt src\/weather\/snowCoverHost\.js/],

@@ -1,5 +1,3 @@
-// A town's raid in its cell: the ledger, read once a wake and saved, its words, and the hub told.
-// It holds the day's slots and towns the relay rolls, sweeps raids, and holds their receipts.
 import { raidLedgerKey, wallMsForClassicMinutes, RAID_TELL_RETRY_MS, RAID_LEDGER_PREFIX, worldRoom, sharedClassicMinutes, mapPixelOfWire, SOCIAL_ROOM, RAID_INTERNAL_CLEAN, RAID_DAY_ASK_MS, RAID_INTERNAL_DAY, validRaidOut, RAID_CLEANS_MAX, raidReceiptKeyOf, RAID_RC_KEEP_MS, RAID_RC_KEEP } from '../relay.js';
 import { raidLedgerId, raidLedgerEndMinute, RAID_KEEP_MS, RAID_LEDGERS_BY_MAX, RAID_LEDGERS_MAX, raidEvictPick, raidWordSane, raidWordFits, raidDayOfKey, raidOnSlot, newRaidLedger, foldRaidWord, raidCleansed, RAID_SAVE_MS, raidLedgerState, raidEarned, raidTop, raidSig, raidDaySlots, RAID_TOWNS_SHA_RE, raidTownsHash, readRaidTowns, raidDayIds, RAID_DAY_MINUTES, RAID_ACCOUNTS_MAX } from '../../../src/net/raidLaw.js';
 import { junkOutsideCover } from '../cellNodes.js';
@@ -229,8 +227,8 @@ export class RaidPart {
     if (list.some((e) => e[0] === cl.key && e[2] === cl.g)) return json({ ok: true });
     const next = [...list, [cl.key, cl.at, cl.g]];
     while (next.length > RAID_CLEANS_MAX) next.shift();
-    // Write storage before `_raidCleans` changes; a throw must leave the cleanse unknown,
-    // so the cell's retry still tells everyone.
+    // Write storage before `_raidCleans` changes; a throw must leave the cleanse unknown, so the cell's retry still
+    // tells everyone.
     await this.state.storage.put('raidcl', next);
     this._raidCleans = next;
     const said = JSON.stringify({ t: 'raid', ...cl });

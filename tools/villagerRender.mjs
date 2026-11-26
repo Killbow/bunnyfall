@@ -1,9 +1,6 @@
-// An OFFLINE render of the villager designs - a flat orthographic
-// painter's-algorithm pass over the same faces the viewer draws, so
-// the 25 can be eyeballed without a browser. The real editor is
-// tools/neutral (Three.js, orbit); this is the still life.
-//
-// Usage: ARENA2_PATH=... node tools/villagerRender.mjs [out.png] [--back]
+// Renders the villager designs offline with a flat orthographic painter's pass.
+// Usage: ARENA2_PATH=<dir> node tools/villagerRender.mjs [out.png] [--back]
+
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { DFPalette } from '../src/formats/dfPalette.js';
@@ -15,12 +12,6 @@ import { drapedPiece } from '../src/characters/pieces/draped.js';
 const pal = new DFPalette();
 pal.load(readFileSync(process.env.ARENA2_PATH + '/ART_PAL.COL'), 'ART_PAL.COL');
 const BACK = process.argv.includes('--back');
-// Skin comes from the SAME source the editor uses - palettes.js's
-// human tones, picked by RACE_TONE - so the still life and the viewer
-// agree. It matters: on one flat tan body for everybody, a Redguard in
-// undyed linen read as nude, because the garment sat within a few ramp
-// steps of the skin beneath it. That was the stand-in lying, not the
-// design failing.
 const BOOT = [[38, 30, 22], [70, 56, 42], [104, 84, 62], [138, 112, 84]];
 const toneRamp = (race) => {
   const want = RACE_TONE[race];
@@ -46,22 +37,12 @@ const tri = (buf, zbuf, W, ax, ay, az, bx, by, bz, cx, cy, cz, col) => {
     const z = az + (cz - az) * w0 + (bz - az) * w1;
     const o = y * W + x;
     if (o < 0 || o >= zbuf.length) continue;
-    if (z <= zbuf[o]) continue;              // keep the nearest
+    if (z <= zbuf[o]) continue;
     zbuf[o] = z; buf[o] = col;
   }
 };
 
-// HANGING CLOTH. A gown is not a cloth zone - see villagerDesigns.js -
-// so a render that draws zones only shows 17 of the 25 as a tunic plus
-// a pair of shorts, which is exactly the wrong picture. The drape is
-// drawn at REST (drapedPiece is the unsimulated grid; clothSim only
-// runs in the live viewer), which is what a still life wants anyway.
-//
-// AUDIT 68 S06-villagerrender-double-compress: draped.js authors in the
-// rig's FINAL (post-HSCALE) space - BODY_CORE was measured on the
-// compressed body buildNeutralBody returns, and the live viewer ships
-// the drape raw beside it - so the drape is drawn as it comes.
-// Compressing it again sat every garment 10% low.
+// The drape is authored in the rig's final, already compressed space, so it is drawn as it comes, at rest.
 const drapeFaces = (d) => {
   const dr = designDrape(d, pal);
   return dr ? drapedPiece(dr.name, dr.ramp) : [];
@@ -76,7 +57,6 @@ VILLAGER_DESIGNS.forEach((d, n) => {
   const cy = (minY + maxY) / 2, sc = SCALE / (maxY - minY);
   const flip = BACK ? -1 : 1;
   for (const f of faces) {
-    // back-face cull against the view direction
     if ((BACK ? -f.n[2] : f.n[2]) <= 0) continue;
     const px = [], py = [], pz = [];
     for (let i = 0; i < 4; i++) {

@@ -1,20 +1,6 @@
-// CACHE-COPY (2026-10-07, Mac: "I want to fix the flickering issue properly"): A TAVERN THROUGH THE STATIC SHADOW CACHE
-// ON A REAL GPU, frame by frame against the full replay - what the anti-flicker patch's player saw blink, built the way
-// they described it (bible/07-Rendering/Enhanced-Lighting-Arc.md CACHE-COPY).
-//
-// tools/shadowCacheProbe.mjs proves the cache on one room with a walker. This is the room the reports were about:
-// fourteen lamps (twelve full maps, the rest DISC15's lo tier - the host's everyLightCasts), townsfolk with an ORIGIN
-// whose idle swaps their picture and nudges them a hair on a beat (in and out of the static set: every lamp in reach
-// rebuilt at once), an animated flat with its centre in its vertices, and the player's own card. Two renderers, the
-// cache on and `setShadowCache(false)`, drawn in lockstep through the real renderer on SwiftShader and read back:
-//   - every frame must agree to within the dither's byte, but for ONE kind, recorded: the frame a flat that stood still
-//     first changes its picture - the full replay reads the batch's live picture, the cache's movers take it a frame
-//     later (the classification is the record's). Those frames are named and allowed;
-//   - the static caches must rebuild (the beat reaches them) and the copies must run, or the probe proved nothing.
-// SwiftShader is ANGLE over Vulkan: it never ran the Direct3D blit CACHE-COPY replaced. What this holds is that the
-// copy by a draw is the full replay's picture, through every rebuild a tavern's idlers cause.
-//
+// Draws a lamp-lit tavern with idling townsfolk with the static shadow cache on and off, frame by frame.
 // Usage: node tools/shadowTavernProbe.mjs [frames=200] [period=100]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -66,17 +52,16 @@ const rows = await page.evaluate(async ({ FRAMES, PERIOD }) => {
       q([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0]); q([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0]);
     };
     const sub = (draw) => { const start = IDX.length; draw(); subs.push({ textureArchive: 1, textureRecord: 1, startIndex: start, primitiveCount: (IDX.length - start) / 3 }); };
-    sub(() => box(-14, 0, -14, 14, 6, 14, false));   // the hall
-    sub(() => box(-3, 0, -2.5, 3, 3.5, -2));          // a wall
-    sub(() => box(5.5, 0, -6.5, 6.5, 6, -5.5));        // pillars
+    sub(() => box(-14, 0, -14, 14, 6, 14, false));
+    sub(() => box(-3, 0, -2.5, 3, 3.5, -2));
+    sub(() => box(5.5, 0, -6.5, 6.5, 6, -5.5));
     sub(() => box(-7, 0, 1, -6, 6, 2));
-    sub(() => box(-2, 0.8, 3, 2, 1.0, 5));             // a table top
-    sub(() => box(8, 0, 2, 14, 6, 2.4));               // a partition
+    sub(() => box(-2, 0.8, 3, 2, 1.0, 5));
+    sub(() => box(8, 0, 2, 14, 6, 2.4));
     const mesh = r.createMesh({ positions: new Float32Array(P), normals: new Float32Array(N), uvs: new Float32Array(UV), indices: new Uint32Array(IDX), subMeshes: subs });
-    // the townsfolk: one batch each with an ORIGIN (a stood person), idling on the beat below
     const folk = [[-3, 0, -5], [3.5, 0, -4], [-5, 0, 4]].map((at) => { const b = r.createBillboardBatch(201, 1, { w: 1, h: 1.8 }, [[0, 0, 0]]); b.origin = at.slice(); b.home = at.slice(); return b; });
-    const flame = r.createBillboardBatch(202, 1, { w: 0.8, h: 1.2 }, [[2, 0.3, -8]]); flame.frame = 0;   // FA1: its centre in its vertices
-    const self = r.createBillboardBatch(203, 1, { w: 0.8, h: 1.8 }, [[0, 0, 0]]); self.origin = [0, 0, 8.4]; self.selfCard = true;   // DISC24-C
+    const flame = r.createBillboardBatch(202, 1, { w: 0.8, h: 1.2 }, [[2, 0.3, -8]]); flame.frame = 0;
+    const self = r.createBillboardBatch(203, 1, { w: 0.8, h: 1.8 }, [[0, 0, 0]]); self.origin = [0, 0, 8.4]; self.selfCard = true;
     r.setLightingLane(EL_LANE); r.setAir(true); r.setContact(true); r.setShadowCache(cache);
     if (r.air) r.air._now = () => 1000;
     return { r, gl: r.gl, mesh, folk, flame, self };
@@ -90,8 +75,6 @@ const rows = await page.evaluate(async ({ FRAMES, PERIOD }) => {
   const I = identity();
   const lightDir = new Float32Array([0.45, 0.8, 0.35]);
   const read = (S) => { const px = new Uint8Array(W * H * 4); S.gl.readPixels(0, 0, W, H, S.gl.RGBA, S.gl.UNSIGNED_BYTE, px); return px; };
-  // the beat: the first person idles in every period, the others from the second on - a picture swapped and the
-  // person nudged 2 mm every fourth frame for the period's first twenty frames, then still
   const idling = (n, f) => f % PERIOD < 20 && (n === 0 || f >= PERIOD);
   const step = (S, f) => {
     const r = S.r;
@@ -105,7 +88,7 @@ const rows = await page.evaluate(async ({ FRAMES, PERIOD }) => {
       b.record = turn ? 2 : 1; b.origin[0] = b.home[0] + (turn ? 0.002 : 0);
     }
     S.flame.frame = (f >> 3) & 3;
-    r.everyLightCasts();   // DISC15: a room drawn whole
+    r.everyLightCasts();
     r.beginFrame(proj, view, lightDir, WORLD_FRAME);
     const st = { ...r.shadows.stats };
     r.drawMesh(S.mesh, I, null);
@@ -113,8 +96,6 @@ const rows = await page.evaluate(async ({ FRAMES, PERIOD }) => {
     r.resolveFrame();
     return { px: read(S), st, err: S.gl.getError() };
   };
-  // the frames a still flat first changes its picture: a person's first turn after standing (frames 4 of a period it
-  // idles in, whoever was still before it), the flame's first frame (8)
   const firstChange = (f) => f === 8 || (f % PERIOD === 4 && [0, 1, 2].some((n) => idling(n, f) && !(f >= 5 && idling(n, f - 5))));
   const A = build(true), B = build(false);
   const out = [];
@@ -132,7 +113,8 @@ for (const r of rows) {
   rebuilds += r.staticFaces; copies += r.copies;
   const same = r.maxd <= 2 && r.over === 0;
   if (r.err) check(`frame ${r.f}: no GL error`, false, String(r.err));
-  if (r.f < 1) continue;   // the first frame replays nothing: its records are the next frame's
+  // The first frame replays nothing, since its records belong to the next frame.
+  if (r.f < 1) continue;
   if (!same && r.firstChange) { lagFrames++; console.log(`     frame ${r.f}: a still flat's first new picture, a frame late in the cache (recorded) - max ${r.maxd}, ${r.over} channels`); continue; }
   if (!same) check(`frame ${r.f}: the cache's picture is the full replay's`, false, `max ${r.maxd}, ${r.over} channels over 2 (static faces ${r.staticFaces}, copies ${r.copies})`);
 }

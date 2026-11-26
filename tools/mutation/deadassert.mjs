@@ -1,5 +1,4 @@
-// Run the whole suite under V8 coverage and report every `assert.*` call site in
-// test/ that is NEVER EXECUTED — a pin that cannot fail because it never runs.
+// Runs the whole suite under V8 coverage and lists every assert call in test/ that never executes.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,11 +10,11 @@ fs.rmSync(DIR, { recursive: true, force: true });
 fs.mkdirSync(DIR, { recursive: true });
 
 const r = spawnSync(process.execPath, ['--test'], {
-  cwd: ROOT, encoding: 'utf8', timeout: 600000, maxBuffer: 1 << 28,   // AUDIT 68: a whole-suite TAP outgrows the 1 MiB default
+  // A whole-suite TAP output exceeds the 1 MiB default buffer.
+  cwd: ROOT, encoding: 'utf8', timeout: 600000, maxBuffer: 1 << 28,
   env: { ...process.env, NODE_V8_COVERAGE: DIR },
 });
 process.stderr.write('suite status=' + r.status + '\n');
-// A suite the harness lost part-way has coverage for part of the tree, and every assert past the cut would read as dead.
 if (r.error || r.status === null) { console.error(`HARNESS ERROR (${r.error?.code ?? r.signal}) - the coverage is partial, no verdict`); process.exit(2); }
 
 const ranges = {};

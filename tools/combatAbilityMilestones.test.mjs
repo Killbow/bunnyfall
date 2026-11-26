@@ -1106,7 +1106,6 @@ test('autoaim locks the foe nearest the crosshair, in sight and hostile, and not
   assert.equal(autoaimFoe(cam, open, 4, [near]), null, 'out of range');
   const wall = { raycast: (from, dir, reach) => dir[1] > -.5 && reach > 3 ? 2 : Infinity };
   assert.equal(autoaimFoe(cam, wall, 10, [near]), null, 'behind a wall');
-  // At arm's length the cone opens so a swing sticks to a foe off to the side.
   assert.equal(autoaimFoe(cam, open, 3, [hostile(1.2, 1.4)])?.ai.feet[0], 1.2);
   assert.ok(AUTOAIM.coneRad < AUTOAIM.closeConeRad);
 });
@@ -1309,7 +1308,6 @@ test('every beat of a normal weapon or combination ability lands clearly harder 
     }
   }
   assert.ok(lifted > 10, 'the floor lifts the split beats of multi-hit abilities');
-  // Capstones and racial abilities keep their own weights.
   const capstone = ABILITIES.find(entry => entry.id === DAGGER_MILESTONES[3]);
   assert.equal(meleeBeatMult(capstone, 3.25, .2), (1 + 3.25) * .2);
   const racial = ABILITIES.find(entry => entry.race === 'Nord');
