@@ -235,7 +235,7 @@ import { registerSpirePotionLaw, registerSpireFooting, registerSpireWake, regist
 import { accountEg } from '../net/accountClient.js';   // EG-PLAY: the Weir Keys, the open, the admission, the claims
 import { accountKetch } from '../net/accountClient.js';   // KETCH: the Ketchmaster's hold - a Tonal Warden's receipt carried to the service
 import { createKetchClient } from '../systems/ketch/ketchClient.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen - the sky over Daggerfall, the anchor-lift, the ship aboard, the hold
-import { createMineMouths } from '../systems/mine/mineMouths.js';   // BUNNYFALL (2026-11-25, caverns): mine mouths in the wilds
+import { createMineMouths, mineHeardReset, mineSealLeft, MOUTH_TEXT } from '../systems/mine/mineMouths.js';   // BUNNYFALL (2026-11-25, caverns): mine mouths in the wilds
 import { registerPlayerDeathSave } from '../characters/playerEntity.js';   // EG-FULL: the fall's death save (the witness's damage mod rides main's import of registerPlayerDamageMod, below) (EG-H2: the Spire's Levitate ward is the one ward's, by the made level's law)
 import { registerMadeLevelHere, madeRuleHere, madeSaysHere } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every per-level door below asks the one law
 import { registerJumpForgiveness } from '../player/motor.js';   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press, the made level's law's
@@ -11552,7 +11552,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     online.onSdFight = (w) => sdFightHeard(w);   // SD8c: the realm's word on the Last Moment's fight
     online.onSdReceipt = (r, room) => { sdClaims?.add(r); sdSpoilsReceipt(r, room); };   // SD9b: my Hour receipt (my realm's at the fall, the hub's at a hello) - to the account service, kept until it is counted; SD9e: and its spoils
     online.onEg = (w, room) => egClient?.word(w, room);   // EG-PLAY: my breach room's word - its state, its fights, my receipts
-    online.onKetch = (w) => ketch?.word(w);   // KETCH: my ship's room's word - its voyage, its fights, its cells, my receipt
+    online.onKetch = (w) => ketch?.word(w);
+    online.onMine = (w) => modes?.mineHeard?.(w);   // BUNNYFALL (2026-11-25, caverns): the mine I stand in's word   // KETCH: my ship's room's word - its voyage, its fights, its cells, my receipt
     online.onSerpent = (w) => { if (w?.k === 'bd') serpentHost?.wrecked?.(w); else serpentLink?.word(w); };   // SERPENT1: the sea serpent's cell's word (on my cell's socket or a halo's) - its fight, its swim, its blows, my receipt
     online.onRaid = (f, room) => raidRelayWord(f, room);   // RAID3: a town cell's word about its raid - the ledger, the cleanse, my receipt
     online.onRite = (w) => riteHost?.onBroken(w);   // WB12d: the hub's broken rite
@@ -12827,8 +12828,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     renderer, getTexture, uploadRecord, billboardSize, flatBatchAabb, built: () => built, climateAt: (x, y) => maps?.getClimateIndex(x, y) ?? -1,
     occupiedAt: (x, y) => locationIndex.has(`${x},${y}`), pixelTranslation: (x, y, out) => state.pixelTranslation(x, y, out),
     feet: () => player.feetAt?.() ?? null, outside: () => (modes?.mode ?? 'exterior') === 'exterior' && !gamePaused(),
-    enter: (px, py) => { void modes?.enterMine?.({ px, py, reset: 0, site: egSiteNow() }); }, sealedFor: () => 0, say: (text) => chatNotice(text),
+    enter: (px, py) => { if (online && !online.mnOk) { chatNotice(MOUTH_TEXT.relayOld()); return; } void modes?.enterMine?.({ px, py, reset: mineHeardReset(px, py), site: egSiteNow() }); }, sealedFor: (px, py) => mineSealLeft(px, py, Math.floor(Date.now() / 1000)), say: (text) => chatNotice(text),
   }) : null;
+  /** BUNNYFALL (2026-11-25, caverns): the doors a mine on this page reads (systems/mine/mineHost.js): its room's word out, the
+   *  Stores' planks counted and one spent (withdrawn, nothing minted), and every window closed at its collapse. */
+  const mineDoors = {
+    send: (k, f) => online?.sendMine?.(k, f) === true, planks: (m) => profBook?.storesHeld?.(m) ?? 0, closeWindows: () => closeWindowsForLoad(),
+    spend: async (m) => { try { return (await profBook?.withdraw?.(m, 1, () => {}))?.ok === true; } catch { return false; } },
+  };
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */
   const _egLightList = [], NO_EG_LIGHTS = Object.freeze([]);
   let _omenClockAt = null;   // AUDIT WB C4: when the relay's clock was first read this session (the omen's fallback wait)
@@ -13926,6 +13933,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // reference BEFORE this line must therefore be `modes?.` - which is
   // what test/scenes/audit24_wave37.test.js asserts, both ways.
   var modes = createWorldModes({
+    mine: mineDoors,   // BUNNYFALL (2026-11-25, caverns): a mine's doors (systems/mine/mineHost.js)
     climbFeel: staffFollow.indoors(climbFeel, player, cam),   // CLIMB4: the one body's climb camera - the modal frames take it after their own motor step; FOLLOW-INDOORS: and a follow's camera before it (scenes/staffFollowHost.js)
     outsideView,   // RW1: the street through a building's glass (render/realWindows.js)
     grabLook: () => { setCursorActive(false); requestLook(canvas); },   // DECOR: the decorator asks this host for the look; the click delay stays armed here

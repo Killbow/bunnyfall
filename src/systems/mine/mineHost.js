@@ -8,6 +8,9 @@ import { mineLayout } from '../../net/mine/mineLayout.js';
 import { buildMineModel, mineColliderTris, mineTextures } from '../../world/mine/mineModel.js';
 import { isMine } from '../../world/mine/mineLocation.js';
 import { t } from '../../ui/textManager.js';
+import { createMineClient, mineKey } from './mineClient.js';
+import { noteMineState } from './mineMouths.js';
+import { RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE } from '../../player/activate.js';
 
 /** The collider's bucket for the cave's rock. */
 export const MINE_BUCKET = 'mine:cave';
@@ -15,6 +18,7 @@ export const MINE_BUCKET = 'mine:cave';
 export const MINE_EXIT = Object.freeze({ w: 3, h: 3 });
 export const MINE_TEXT = Object.freeze({
   wayOut: () => t('mine.wayOut', 'The way out'),
+  shifted: () => t('mine.shifted', 'The mine has shifted since you last came. Walk back in to find its new ways.'),
 });
 
 /**
@@ -31,18 +35,35 @@ export function mineExitDoor(mouth) {
   };
 }
 
+/** How often a page says `hi` to its mine's room until the room answers (ms). */
+const HI_RETRY_MS = 1000;
+/** An activation box about a point (m): `w` across, `h` up from `y0`. */
+const boxAt = (/** @type {number[]} */ p, /** @type {number} */ w, /** @type {number} */ y0, /** @type {number} */ h) => ({ min: [p[0] - w / 2, p[1] + y0, p[2] - w / 2], max: [p[0] + w / 2, p[1] + y0 + h, p[2] + w / 2] });
+
+/** THE FADE: one black sheet over the page, faded in at the collapse's end and out once the player stands outside. */
+function fadeSheet() {
+  if (typeof document === 'undefined') return () => {};
+  let el = /** @type {HTMLDivElement|null} */ (null);
+  return (/** @type {boolean} */ on) => {
+    if (!el) { el = document.createElement('div'); el.style.cssText = 'position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 0.8s;z-index:50'; document.body.appendChild(el); }
+    el.style.opacity = on ? '1' : '0';
+  };
+}
+
 /**
- * @param {{ renderer: any, getTexture?: ((archive: number) => Promise<any>) | null, uploadRecord?: ((archive: number, record: number) => any) | null }} deps
+ * @param {{ renderer: any, getTexture?: ((archive: number) => Promise<any>) | null, uploadRecord?: ((archive: number, record: number) => any) | null,
+ *   link?: (() => any) | null, say?: ((text: string) => void) | null, shake?: ((k: number) => void) | null, leave?: (() => void) | null }} deps
+ *   `link()` the world's mine doors: `{ send(k, fields), planks(material), spend(material), closeWindows() }`
  */
-export function createMineHost({ renderer, getTexture = null, uploadRecord = null }) {
+export function createMineHost({ renderer, getTexture = null, uploadRecord = null, link = null, say = null, shake = null, leave = null }) {
   /** @type {any} */
-  let mesh = null, standCtx = null, layout = null;
+  let mesh = null, standCtx = null, layout = null, client = null, mine = null, hiAt = -Infinity, heard = false;
+  const fade = fadeSheet();
   return {
     /** THE MINE stood into its built context (before its start marker is read): `loc` the made location (mineLocation). */
     stand(/** @type {any} */ ctx, /** @type {any} */ loc) {
       if (!ctx || !isMine(loc)) return;
-      const mine = loc.mine;
-      layout = mineLayout(mine.id, mine.reset ?? 0);
+      layout = mineLayout(loc.mine.id, loc.mine.reset ?? 0);
       const tex = mineTextures(loc.climate?.worldClimate ?? 0);
       // the archive read first (the pipeline uploads a record of a file it holds), then its three records
       const up = () => { for (const rec of new Set([tex.wall, tex.floor, tex.ceiling])) { try { uploadRecord?.(tex.archive, rec); } catch (e) { console.warn('[mine] a texture', /** @type {any} */ (e)?.message ?? e); } } };
@@ -54,13 +75,58 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       try { ctx.collider?.addMesh?.(MINE_BUCKET, tris, idx, identity()); } catch (e) { console.warn('[mine] the cave\'s collider', e?.message ?? e); }
       ctx.exitDoors?.push(mineExitDoor(layout.mouth));
       ctx.addActivationNamer?.((/** @type {any} */ key) => (typeof key === 'string' && key.startsWith('exit:') ? { title: MINE_TEXT.wayOut() } : null));
+      // THE MINE ON THIS PAGE: its holes and its walls offered to the activation ray, named by the client, pressed through it
+      mine = { ...loc.mine }; heard = false; hiAt = -Infinity;
+      const doors = link?.() ?? null;
+      client = createMineClient({
+        layout, say: (x) => say?.(x), send: (k, f) => doors?.send?.(k, f) === true, planks: (m) => doors?.planks?.(m) ?? 0,
+        spend: async (m) => (await doors?.spend?.(m)) === true, shake: (k) => shake?.(k), fade, closeWindows: () => doors?.closeWindows?.(),
+        leave: () => { leave?.(); setTimeout(() => fade(false), 1500); },
+      });
+      const targets = [];
+      layout.sections.forEach((/** @type {any} */ sec, /** @type {number} */ s) => sec.chambers.forEach((/** @type {any} */ ch, /** @type {number} */ c) => {
+        ch.holes.forEach((/** @type {any} */ h, /** @type {number} */ k) => targets.push({ key: mineKey('hole', s, c, k), aabb: boxAt(h.at, 1.4, 0, 0.8), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
+        ch.walls.forEach((/** @type {any} */ w, /** @type {number} */ k) => targets.push({ key: mineKey('wall', s, c, k), aabb: boxAt([w.at[0] - w.n[0] * 0.3, w.at[1] - 1, w.at[2] - w.n[2] * 0.3], 1.2, 0.2, 2.2), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
+      }));
+      ctx.addActivationTargets?.(() => targets);
+      ctx.addActivationNamer?.((/** @type {any} */ key) => (typeof key === 'string' && key.startsWith('mine:') ? client?.name(key) ?? null : null));
       standCtx = ctx;
       ctx.addTeardown?.(() => {
         if (standCtx !== ctx) return;
         try { if (mesh) renderer?.destroyMesh?.(mesh); } catch { /* the context's own teardown frees it either way */ }
-        mesh = null; standCtx = null; layout = null;
+        mesh = null; standCtx = null; layout = null; client = null; mine = null;
       });
     },
+    /** Every frame in a mine: `hi` said until the room answers, and the collapse played. */
+    frame() {
+      if (!client) return;
+      const now = performance.now();
+      if (!heard && now - hiAt >= HI_RETRY_MS) { hiAt = now; link?.()?.send?.('hi', { r: mine.reset }); }
+      client.frame();
+    },
+    /** The room's word on the mine (online.onMine). A room on another reset than the one stood is a mine gone: out. */
+    heard(/** @type {any} */ w) {
+      if (!client || !mine) return;
+      if (w?.k === 'st' && w.st) {
+        heard = true;
+        noteMineState(mine.px, mine.py, w.st);
+        if (w.st.reset !== mine.reset) {
+          // the mine turned over since this page last stood in it: a sealed one puts me out as its collapse does; an open
+          // one is a new mine - out, and its next entry stands the reset just heard (systems/mine/mineMouths.js)
+          if (w.st.sealedUntil > 0) { client.heard({ k: 'st', st: w.st }); return; }
+          say?.(MINE_TEXT.shifted());
+          const out = leave; client = null; mine = null; out?.();
+          return;
+        }
+      }
+      client.heard(w);
+    },
+    /** A cave vein's answered strike (professions/mineHost.js). */
+    struck: (/** @type {any} */ node) => client?.struck(node),
+    /** A press on a hole or a wall. */
+    press: (/** @type {string} */ key) => { void client?.press(key); return !!client; },
+    /** The mine stood now (`{ id, reset, px, py }`), or null. */
+    here: () => (mine ? { ...mine } : null),
     /** The layout of the mine stood now, or null. */
     layout: () => layout,
   };

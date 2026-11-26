@@ -45,7 +45,9 @@ import { liveStat } from '../characters/statMods.js';
 import { getPref } from '../ui/uiPrefs.js';
 import { MOTHERLODE_TIER, MOTHERLODE_RANK } from '../net/motherlodeLaw.js';   // PROF2b
 import { MOTHERLODE_TEXT } from '../net/motherlodeBook.js';
-import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
+import { noteAct } from '../systems/questlines/qlActs.js';
+import { mineVeins, cveinKey } from '../net/mine/mineVeins.js';   // BUNNYFALL (2026-11-25, caverns): a mine's cave veins
+import { mineLayout } from '../net/mine/mineLayout.js';   // QL11: the features' acts, heard by the running quests
 
 /** The item flats' archive; a picture a new ore has none of its own borrows Lodestone's (PROF0 4.8). */
 export const ORE_FLAT_ARCHIVE = 254;
@@ -355,6 +357,21 @@ export function standDungeonVeins({ dungeon, day, climate, confirmed = false, wa
   }
   return out;
 }
+/**
+ * BUNNYFALL (2026-11-25, caverns): A MINE'S CAVE VEINS AS THE CLIENT STANDS THEM - the layout's veins (net/mine/mineVeins.js),
+ * each at the foot of its wall slot on its chamber's floor, in the mine's own space (the cave's mesh stands there too).
+ * `{ key, what: 'cvein', slot, tier, material, local, lift, reach, s, c }` - `s`, `c` its chamber's section and index.
+ * @param {{ mine: number, reset: number }} p
+ */
+export function standCaveVeins({ mine, reset }) {
+  const L = mineLayout(mine, reset);
+  const where = new Map();
+  L.sections.forEach((sec, s) => sec.chambers.forEach((ch, c) => where.set(ch.id, { s, c, floor: ch.c[1] })));
+  return mineVeins(L).map((v) => {
+    const w = where.get(v.chamber) ?? { s: 0, c: 0, floor: v.at[1] - 1 };
+    return { key: cveinKey({ mine, reset, slot: v.slot }), what: 'cvein', slot: v.slot, tier: v.tier, material: v.material, local: [v.at[0], w.floor, v.at[2]], lift: 0.4, reach: 2.5, s: w.s, c: w.c };
+  });
+}
 /** A node's flats: a cluster round its foot, turned by its slot. */
 export function mineFlats(node) {
   const [x, y, z] = node.local;
@@ -362,7 +379,7 @@ export function mineFlats(node) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const a = node.slot * 1.7 + (i * 2 * Math.PI) / n;
-    const r = i === 0 ? 0 : node.what === 'dvein' ? VEIN_SPREAD / 2 : node.what === 'motherlode' ? MOTHERLODE_SPREAD : VEIN_SPREAD;   // on a wall the ore sits close
+    const r = i === 0 ? 0 : node.what === 'dvein' || node.what === 'cvein' ? VEIN_SPREAD / 2 : node.what === 'motherlode' ? MOTHERLODE_SPREAD : VEIN_SPREAD;   // on a wall the ore sits close
     out.push([x + Math.cos(a) * r, y, z + Math.sin(a) * r]);
   }
   return out;
@@ -422,11 +439,12 @@ export const pickHandFrame = (swing) => (swing > 0 ? { state: 'StrikeDown', fram
  * MINING'S KIND in the gathering host (scenes/gatherHost.js): the veins and boulders, their pictures, the plan, the act.
  * PROF2b: and the Motherlodes standing (`lodes`, net/motherlodeBook.js), their strike's silver said through `marks`
  * (net/marksBook.js strikeLine).
- * @param {{ book: any, lodes?: any, marks?: any }} deps
+ * @param {{ book: any, lodes?: any, marks?: any, cave?: (() => ({ id: number, reset: number } | null)) | null, struck?: ((node: any) => void) | null }} deps
  * @returns {import('./gatherHost.js').GatherKind}
  */
-export function mineKind({ book, lodes = null, marks = null }) {
+export function mineKind({ book, lodes = null, marks = null, cave = null, struck = null }) {   // BUNNYFALL (2026-11-25, caverns): `cave()` the mine stood in ({ mine, reset }) or null; `struck(node)` told of a cave vein's answered strike
   const harvestOf = (n) => (n.what === 'boulder' ? 'stone' : 'ore');
+  let lastCave = /** @type {any} */ (null);
   const gone = (n) => goneIn(book, n.key, harvestOf(n)) || (n.what === 'motherlode' && !!lodes?.found?.());   // GATHER-SPEED: or being counted   // PROF2b: the account's one found
   return {
     id: 'mine',
@@ -445,6 +463,8 @@ export function mineKind({ book, lodes = null, marks = null }) {
       return here.length ? [...nodes, ...standMotherlodes({ lodes: here, ...stone, taken: nodes.map((n) => n.local) })] : nodes;
     },
     dungeonNodesOf({ dungeon, day, info, confirmed, wall }) {
+      const m = cave?.() ?? null;   // BUNNYFALL (2026-11-25, caverns): a mine stands its cave veins, and no dungeon veins
+      if (m && m.id === dungeon) return standCaveVeins({ mine: m.id, reset: m.reset });
       return standDungeonVeins({ dungeon, day, climate: info.climate, confirmed, wall });
     },
     flatsOf: (n) => [{ archive: ORE_FLAT_ARCHIVE, record: mineRecord(n), scale: n.what === 'boulder' ? STONE_SCALE : n.what === 'motherlode' ? MOTHERLODE_SCALE : VEIN_SCALE, centers: mineFlats(n), tint: mineWash(n), dye: mineWash(n) ? ORE_DYE : 0 }],   // VEIN-WASH: its ore's own wash; VEIN-HUE: as its colour
@@ -473,9 +493,9 @@ export function mineKind({ book, lodes = null, marks = null }) {
       archive: ORE_FLAT_ARCHIVE, record: mineRecord(n), tint: mineWash(n), dye: mineWash(n) ? ORE_DYE : 0, floor: n.local[1],
       // AUDIT GATHER-FEEL V3: a street node's ground anywhere about it - its pixel's own heightmap, the ground its foot was
       // found on (a dungeon's vein stands on its one floor - its foot, no pixel's ground)
-      ground: n.what !== 'dvein' && entry?.samples ? (x, z) => groundAt(entry.samples, x, z) : null,
+      ground: n.what !== 'dvein' && n.what !== 'cvein' && entry?.samples ? (x, z) => groundAt(entry.samples, x, z) : null,
     }),
-    where: (n) => (n.what === 'dvein' ? null : actChecksRefusal(GROUND_WHERE, GROUND_WHERE_WORDS)),   // SETTLE-SAID: a dungeon's vein asks no settlement (DUNGEON_SKIP)
+    where: (n) => (n.what === 'dvein' || n.what === 'cvein' ? null : actChecksRefusal(GROUND_WHERE, GROUND_WHERE_WORDS)),   // SETTLE-SAID: a dungeon's vein asks no settlement (DUNGEON_SKIP)
     /** PROF-MENU: the menu's title - the boulder, or the vein's ore. */
     nodeName: mineNodeName,
     plan(n, { entity, rank }) {
@@ -493,7 +513,8 @@ export function mineKind({ book, lodes = null, marks = null }) {
       return { ...plan, profession: 'mining' };
     },
     start(n, plan, { entity, rank }) {
-      const refusal = foragingActRefusal(FT.PickAxe, n.what === 'dvein' ? DUNGEON_SKIP : null);
+      if (n.what === 'cvein') lastCave = n;   // BUNNYFALL (2026-11-25, caverns): the strike its answer tells the mine of
+      const refusal = foragingActRefusal(FT.PickAxe, n.what === 'dvein' || n.what === 'cvein' ? DUNGEON_SKIP : null);
       if (refusal) return { refused: refusal };
       // PROF2b: a Motherlode's strike carries the relay's word that it stood on its pixel - none yet, no act
       const watch = n.what === 'motherlode' ? lodes?.watchFor?.(n.lode.x, n.lode.y) ?? null : null;
@@ -515,12 +536,15 @@ export function mineKind({ book, lodes = null, marks = null }) {
     /** AUDIT SILVER-WAYS D2: a Motherlode's refusal told to the Motherlodes' book (its twenty, the find, the list read
      *  again), which stands its pixel again. */
     refused(key, error) {
+      if (lastCave?.key === key) lastCave = null;   // BUNNYFALL (2026-11-25, caverns): a refused strike wears nothing
       if (typeof key === 'string' && key.startsWith('mlode:')) lodes?.refused?.(key, error);
     },
     /** PROF2b: a Motherlode's answer - the find and its count told to the Motherlodes' book, its silver said. QL11: and
      *  every harvest the service answered - a vein's ore, a boulder's stone, a dungeon vein's - is Mining's act. */
     answered(d, toast, o = {}) {
       noteAct('ore-mined');   // QL11: ore or gems mined
+      // BUNNYFALL (2026-11-25, caverns): a cave vein's strike wears its section - told to the mine (the relay's brain)
+      if (lastCave && (d?.node === undefined || d.node === lastCave.key)) { const n = lastCave; lastCave = null; try { struck?.(n); } catch (e) { console.warn('[mine] struck', e); } }
       if (!d?.motherlode) return;
       lodes?.heard?.(d);
       const line = d.marks ? marks?.strikeLine?.(d.marks) ?? null : null;   // the balance kept either way

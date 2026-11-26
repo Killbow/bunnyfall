@@ -135,7 +135,7 @@ import { createEgCircleHost } from '../systems/eliteGates/egCircleHost.js';   //
 import { createKetchDeckHost, ketchShipHit } from '../systems/ketch/ketchDeckHost.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen's dungeon host - its set, its seams, its look, its door
 import { isKetchShip } from '../world/ketch/ketchShip.js';
 import { createMineHost } from '../systems/mine/mineHost.js';   // BUNNYFALL (2026-11-25, caverns): a mine, a made level
-import { mineHit } from '../world/mine/mineLocation.js';   // BUNNYFALL (2026-11-25, caverns)   // KETCH: the sky-ketch, a made level as the Hour is
+import { mineHit, isMine } from '../world/mine/mineLocation.js';   // BUNNYFALL (2026-11-25, caverns)   // KETCH: the sky-ketch, a made level as the Hour is
 import { KT_ARRIVE } from '../net/ketch/ketchDeck.js';   // KETCH: where the anchor-lift sets a crew down, and its facing
 import { EG_OCCLUDE_CHEST_M } from '../systems/eliteGates/egOcclude.js';   // EG-ZN (section 11.8): the occluders between the camera and the body dithered out
 import { madeLevelOf } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): which made level stands under the player - one law
@@ -9720,7 +9720,7 @@ export function createWorldModes(host) {
   /** KETCH (bible/11-Multiplayer/Sky-Ketch.md sections 3 and 11): A CREW'S SHIP on this screen - its set, its seams routed to the
    *  world's client (`host.ketch`), its look (scenes/ketch/ketchDeckHost.js - HOST-SPLIT: built there, its reads here). */
   const ketchDeck = createKetchDeckHost({ renderer, host, wm: _madeView });
-  const mineHost = createMineHost({ renderer, getTexture, uploadRecord });   // BUNNYFALL (2026-11-25, caverns)
+  const mineHost = createMineHost({ renderer, getTexture, uploadRecord, link: () => host.mine ?? null, say: (x) => say(x), shake: (k) => host.shakeCamera?.(k), leave: () => { if (mode === 'dungeon' && dungeonCtx && isMine(dungeonLoc)) pendingDungeonExit = true; } });   // BUNNYFALL (2026-11-25, caverns)
   /** EG-ZN (2026-10-12, Elite-Gates.md section 11.8): THE OCCLUDERS DITHERED, this frame - after its beginFrame (the shadow
    *  record open) and before the dynamic draws: the circle's rock a ray from the third-person eye to my body (its pivot and
    *  its chest) crosses dithered out, the rest of the circle drawn whole (scenes/eliteGates/egOcclude.js). First person, a witness's
@@ -10470,7 +10470,8 @@ export function createWorldModes(host) {
       return true;
     }
     if (key.startsWith('sdrift:') || key.startsWith('sdreturn:') || key.startsWith('sdstone:') || key.startsWith('sdplaque:')) { dungeonCtx.sdPress?.(key); return true; }
-    if (key.startsWith('kt:')) { host.ketch?.()?.press?.(key); return true; }   // KETCH: a crew's ship's - a cell, a socket, a resonator, the bosun's line, a way down, the chest
+    if (key.startsWith('kt:')) { host.ketch?.()?.press?.(key); return true; }
+    if (key.startsWith('mine:')) { mineHost.press(key); return true; }   // BUNNYFALL (2026-11-25, caverns): a mine's hole or wall   // KETCH: a crew's ship's - a cell, a socket, a resonator, the bosun's line, a way down, the chest
     if (key.startsWith('egstone:') || key.startsWith('egengine:')) { dungeonCtx.egPress?.(key); return true; }   // EG-FULL LAYER THREE: an Elite Breach's Orrery stone, a chamber's engine   // SD4b: a Super dungeon's Rift and Return (Super-Dungeons.md section 6) - the context's own
     if (key.startsWith('questflat:')) {
       // DQ1: buildingKey is 0 down here - StaticNPC reads it from the
@@ -11212,6 +11213,7 @@ export function createWorldModes(host) {
       if (isGateArena(dungeonLoc)) { const _court = withCourtLights(_dgLit, [...(host.gateCourtLights?.() ?? []), ...courtLightsNear(cam.pos, planOfDay(dungeonLoc.gate))]); renderer.setPointLights(_court.data, null, _court.colors); }
       if (isSdRealm(dungeonLoc)) { const _hour = realmLightsWith(_dgLit, host.sdRealmLights?.() ?? NO_LIGHTS, cam.pos, host.sdLampDim?.() ?? null); renderer.setPointLights(_hour.data, null, _hour.colors); }   // SD5a: the Hour's lamps, after the player's own lights, nearest first; SD9e: the spoils' light before them, as the court's; AUDIT SD II (L2 F9): into the realm's own arrays, made once; SD-LOOK S7: the arena's dimmed through the Reset
       if (isEgHall(dungeonLoc)) { const _sp = egLightsWith(_dgLit, host.egLights?.() ?? NO_LIGHTS, egCircle.lamps(), cam.pos); renderer.setPointLights(_sp.data, null, _sp.colors); }   // EG-PLAY: the Spire's lamps after the player's own lights, the fight's glows before them
+      if (isMine(dungeonLoc)) mineHost.frame();   // BUNNYFALL (2026-11-25, caverns): the mine's hello and its collapse
       const _ktLook = isKetchShip(dungeonLoc) ? ketchDeck.frameLook(mwv.eye, _dgLit, skyMinutes() % 1440) : null;   // KETCH: the deck's hour (its light, its haze, its sun) or below decks' lamps; the ship's lamps and the fight's glows after my own lights
       renderer.everyLightCasts();   // LA-SHADOW3: the level is drawn whole below (no view cull) - every torch keeps a shadow map, none lights through the rock as the nearest eight change (DISC15's rooms)
       renderer.setClearColor(INTERIOR_CLEAR);   // REVIEW 2026-09-05 (PR #55 review): the world-hosted dungeon/interior frame is THIS one - the host's own setClearColor sits after its `modes.frame` return
@@ -13530,6 +13532,8 @@ export function createWorldModes(host) {
     enterEgHall,   // EG-PLAY: into a breach's circle (the world host steps the veil)
     enterKetch,   // KETCH: up the anchor-lift onto a crew's ship (the world's client rides it)
     enterMine,   // BUNNYFALL (2026-11-25, caverns): into a mine from its mouth
+    mineHere: () => (mode === 'dungeon' && isMine(dungeonLoc) ? mineHost.here() : null),   // BUNNYFALL (2026-11-25, caverns): the mine stood in
+    mineStruck: (n) => mineHost.struck(n), mineHeard: (w) => mineHost.heard(w),
     ktShip: () => (mode === 'dungeon' && isKetchShip(dungeonLoc) ? dungeonLoc.ketch : null),   // KETCH: the crew's ship under this player - its voyage, its captain, its room
     ktLeave: () => { if (mode !== 'dungeon' || !isKetchShip(dungeonLoc) || !dungeonCtx) return false; pendingDungeonExit = true; return true; },   // KETCH: down at the top of the next frame, to where I boarded (returnLanding's `from`)
     ktPlace: egPlace,   // KETCH: stood elsewhere on the ship - the bosun's line's ride

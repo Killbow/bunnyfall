@@ -12,8 +12,9 @@ export const MINE_WIRE_SALT = 7;
 export const MINE_WIRE_WOODS = Object.freeze(['pine', 'oak', 'cherry', 'teak', 'mahogany', 'ironwood', 'ghostwood']);
 /** The most sections, chambers a section and wall slots a chamber (the layout's 6, 4 and 10, with room). */
 export const MINE_WIRE_MAX = Object.freeze({ s: 8, c: 6, w: 12, reset: 99999, props: 400 });
-/** The relay version that keeps mines (net/wire.js RELAY_VERSION at their landing). */
-export const MINE_RELAY_MIN = 'world278';
+/** The relay version that keeps mines (net/wire.js RELAY_VERSION's number at their landing), and whether a relay's does. */
+export const MINE_RELAY_MIN = 278;
+export const relaySupportsMine = (/** @type {any} */ v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= MINE_RELAY_MIN; };
 /** How many mine words a socket may say a second, and its burst. */
 export const MINE_HZ = 6;
 

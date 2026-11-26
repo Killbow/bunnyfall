@@ -691,7 +691,7 @@ export function createGatherHost(deps) {
   function restandNode(key) {
     const n = parseNodeKey(key);
     if (!n || n.kind === 'body' || n.kind === 'haul') return;   // PROF7: a body stands nothing of the host's (it is DFU's corpse); PROF8: nor a haul
-    if (n.kind === 'dvein') { if (dungeon?.id === n.dungeon) standDungeon(); } else restandAt(n.x, n.y);
+    if (n.kind === 'dvein') { if (dungeon?.id === n.dungeon) standDungeon(); } else if (n.kind === 'cvein') { if (dungeon?.id === n.mine) standDungeon(); } else restandAt(n.x, n.y);   // BUNNYFALL (2026-11-25, caverns): a cave vein's mine
   }
 
   // ─── THE TARGET ────────────────────────────────────────────────────

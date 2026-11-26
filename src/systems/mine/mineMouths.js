@@ -27,9 +27,19 @@ const SCAN_S = 0.5;
 
 export const MOUTH_TEXT = Object.freeze({
   spotted: () => t('mine.spotted', 'You spot the mouth of a mine.'),
+  relayOld: () => t('mine.relayOld', 'The mines open after the next server update.'),
   sealed: (/** @type {number} */ m) => t('mine.sealed', 'The mouth is choked with rubble. It reopens in about {m} minutes.', { m }),
 });
 
+/** What this page last heard of each mine it stood in: its reset and its seal, by pixel - the mouths' word on them. */
+const _heard = new Map();
+/** A mine's state heard (systems/mine/mineHost.js). */
+export function noteMineState(/** @type {number} */ px, /** @type {number} */ py, /** @type {any} */ st) {
+  if (st && Number.isSafeInteger(st.reset)) _heard.set(`${px},${py}`, { reset: st.reset, sealedUntil: Number(st.sealedUntil) || 0 });
+}
+/** A mine's last heard reset (0 never heard) and how many seconds its seal has left at `nowS` (0 open). */
+export const mineHeardReset = (/** @type {number} */ px, /** @type {number} */ py) => _heard.get(`${px},${py}`)?.reset ?? 0;
+export const mineSealLeft = (/** @type {number} */ px, /** @type {number} */ py, /** @type {number} */ nowS) => Math.max(0, (_heard.get(`${px},${py}`)?.sealedUntil ?? 0) - nowS);
 /** Where a pixel's mouth stands, pixel-local: its middle, on the ground. */
 export const mouthLocal = (/** @type {any} */ entry) => {
   const x = TERRAIN_SIZE / 2, z = TERRAIN_SIZE / 2;

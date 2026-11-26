@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validMineIn, validMineOut, mineRoomOf, MINE_WIRE_SALT, MINE_WIRE_WOODS, MINE_WIRE_MAX, MINE_RELAY_MIN } from '../src/net/mine/mineWire.js';
+import { validMineIn, validMineOut, mineRoomOf, MINE_WIRE_SALT, MINE_WIRE_WOODS, MINE_WIRE_MAX, MINE_RELAY_MIN, relaySupportsMine } from '../src/net/mine/mineWire.js';
 import { MINE_SALT, mineRoomKey, mineIdOf } from '../src/net/mine/mineSites.js';
 import { MINE_WOOD_STRENGTH, MINE_PROPS_MAX, createMineState, stepMine } from '../src/net/mine/mineBrain.js';
 import { MINE_SECTIONS, MINE_CHAMBERS, MINE_WALLS, mineLayout } from '../src/net/mine/mineLayout.js';
@@ -13,7 +13,8 @@ test('the wire pins the laws it does not import', () => {
   assert.ok(MINE_WIRE_MAX.s >= MINE_SECTIONS[1] && MINE_WIRE_MAX.c >= MINE_CHAMBERS[1] && MINE_WIRE_MAX.w >= MINE_WALLS[1]);
   assert.equal(MINE_WIRE_MAX.reset, MINE_RESET_MAX);
   assert.equal(MINE_WIRE_MAX.props, MINE_PROPS_MAX);
-  assert.equal(RELAY_VERSION, MINE_RELAY_MIN);
+  assert.equal(RELAY_VERSION, `world${MINE_RELAY_MIN}`);
+  assert.ok(relaySupportsMine(RELAY_VERSION) && !relaySupportsMine('world277') && !relaySupportsMine(null));
 });
 
 test('a mine room reads back its pixel, with or without its size tag; another room reads as none', () => {

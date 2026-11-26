@@ -60,9 +60,9 @@ export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, res
   // RDB light and flat objects as the dungeon builder reads them (world/dungeonLights.js: y is flipped, range = radius x 3)
   /** @type {any[]} */
   const objs = [marker];
-  const flat = (/** @type {number[]} */ p) => ({
+  const flat = (/** @type {number[]} */ p, rec = MINE_TORCH) => ({
     type: 0x03, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-p[1] * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
-    resources: { flatResource: { textureArchive: MINE_TORCH.archive, textureRecord: MINE_TORCH.record, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
+    resources: { flatResource: { textureArchive: rec.archive, textureRecord: rec.record, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
   });
   const light = (/** @type {number[]} */ p, /** @type {number} */ up) => ({
     type: 0x02, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-(p[1] + up) * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
