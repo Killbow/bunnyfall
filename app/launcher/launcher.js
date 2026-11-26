@@ -38,6 +38,8 @@
   }
 
   const BADGE = { new: 'New', update: 'Update' };
+  /** The kinds a note may lead with (CHANGELOG.md's own words). */
+  const TAG = /^(Fixed|Changed|Added|New|Removed)\s*:\s*/;
 
   /** A release's patch notes - the markdown subset a pull request's
    *  "Patch notes" section is written in (scripts/desktopRelease.mjs):
@@ -73,7 +75,15 @@
           lists.push({ indent, ul });
         }
         const li = el('li');
-        inline(li, bullet[2]);
+        // PARCHMENT: "Fixed: ..." / "Changed: ..." wear their kind as a pill, the words beside it
+        const kind = TAG.exec(bullet[2]);
+        if (kind) {
+          li.className = 'tagged';
+          li.append(el('span', `tag ${kind[1].toLowerCase()}`, kind[1]));
+          const words = el('span');
+          inline(words, bullet[2].slice(kind[0].length));
+          li.append(words);
+        } else inline(li, bullet[2]);
         lists[lists.length - 1].ul.append(li);
       } else {
         lists = [];
@@ -88,6 +98,8 @@
    *  view many times a second, and a button rebuilt under the pointer
    *  between press and release is a click that never happens. */
   const drawn = new Map();
+  /** The campfire has burned at full once: it does not go out again. */
+  let lit = false;
   const changed = (region, value) => {
     const key = JSON.stringify(value);
     if (drawn.get(region) === key) return false;
@@ -126,7 +138,14 @@
 
     const play = $('play');
     play.disabled = !v.play.enabled;
-    play.textContent = v.play.label;
+    // the badge is a picture: its words are the button's name, and the rabbit and the badge move only when Play can be pressed
+    setText(play.querySelector('.play-label'), v.play.label);
+    document.body.toggleAttribute('data-ready', !!v.play.enabled);
+    // THE CAMPFIRE (launcher.css): cold, embers while the launcher works, catching with a download's progress, and
+    // burning once Play can be pressed - and once lit it stays lit
+    if (v.play.enabled) lit = true;
+    const fire = lit ? 4 : v.progress ? 1 + Math.min(2, Math.floor(v.progress.percent / 34)) : v.busy ? 1 : 0;
+    if (document.body.dataset.fire !== String(fire)) document.body.dataset.fire = String(fire);
 
     $('news').hidden = v.panel !== 'news';
     $('setup').hidden = v.panel !== 'setup';

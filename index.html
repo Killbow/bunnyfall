@@ -5,88 +5,143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Bunnyfall</title>
   <!-- TI2 (2026-09-11): the phone's chrome colour. The manifest and the
-       home-screen icons are the GAME page's (play/index.html): this page
-       references no file, by its own test's law. -->
-  <meta name="theme-color" content="#1c1108" />
+       home-screen icons are the GAME page's (play/index.html). -->
+  <meta name="theme-color" content="#4c2c16" />
   <meta name="description" content="Daggerfall online with friends, in your browser. Bring your own copy of The Elder Scrolls II: Daggerfall." />
   <meta property="og:title" content="Bunnyfall" />
   <meta property="og:description" content="Daggerfall online with friends, in your browser. Bring your own copy of The Elder Scrolls II: Daggerfall." />
   <meta property="og:type" content="website" />
   <!--
-    THE DOOR IN FRONT OF THE DOOR, IN GRIMOIRE DRESS (2026-10-30, the owner: "make it look more like the daggerfall
-    grimoire ui"). The game lives at ./play/. This page mounts none of it: no module, no canvas. It wears the game's
-    DFO Grimoire look from the pack's own pictures and face (public/art/grimoire-ui/, GrimoireUI by LordSquacquerone,
-    credited below): the dark planked desk, cream pages with a dark edge, the red press with yellow lettering, the
-    Alagard face. The colours are the dress's own (ui/grimoireDress.js): wood #3a2414, page #e3c995, ink #2b1a0c, red
-    #8e1a10, yellow #f4e04c.
+    THE DOOR IN FRONT OF THE DOOR, ON PARCHMENT (2026-11-27, the owner: "the website main page should get a similar
+    rebranding using a similar parchment, and the new button style"). The game lives at ./play/. This page mounts none
+    of it: no module, no canvas. It is the desktop launcher's sheet, read as a page: parchment under a wooden rail
+    (public/art/bunnyfall-decor/wood.png, one plank that tiles), cream plaques with a brown rule, the rabbit, and the
+    game's own trinkets (the GrimoireUI pack's bank icons and wax seals, the spell icons, the currency) scattered about.
+    The site wears the STILL rabbit and the still PLAY badge; the launcher's move. Faces: Jacquard 12 and Pixelify Sans,
+    the launcher's own files (public/fonts/pixel/).
   -->
   <link rel="stylesheet" href="./landing.css" />
 </head>
 <body>
-  <div class="night" aria-hidden="true"></div>
+  <!-- the sheet: stains, grain and burnt edges, one fixed layer behind everything -->
+  <svg class="sheet" aria-hidden="true" width="100%" height="100%" preserveAspectRatio="none">
+    <defs>
+      <filter id="blot" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".004 .006" numOctaves="4" seed="8"/><feColorMatrix values="0 0 0 0 .56 0 0 0 0 .33 0 0 0 0 .1 0 0 0 1.2 -.38"/></filter>
+      <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 .36 0 0 0 0 .2 0 0 0 0 .08 0 0 0 .55 -.05"/></filter>
+      <radialGradient id="burn" cx="50%" cy="45%" r="80%"><stop offset="58%" stop-color="#7a3a1c" stop-opacity="0"/><stop offset="100%" stop-color="#3f1c0a" stop-opacity=".62"/></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="#ccb074" opacity=".55"/>
+    <rect width="100%" height="100%" filter="url(#blot)" opacity=".6"/>
+    <rect width="100%" height="100%" filter="url(#grain)" opacity=".4"/>
+    <rect width="100%" height="100%" fill="url(#burn)"/>
+  </svg>
   <a class="skip" href="#main">Skip to content</a>
 
-  <header class="door">
-    <div class="book" aria-hidden="true"></div>
-    <h1 class="wordmark"><img src="./src/assets/branding/bunnyfall.png" alt="Bunnyfall" width="1600" height="382" /></h1>
-    <div class="rule"><i class="gem"></i></div>
-    <p class="dek">Daggerfall online with friends, in your browser, on our own private server.</p>
-    <p class="gate">You need <b>your own copy</b> of The Elder Scrolls II: Daggerfall, free since 2009. Your game files stay on your device. Make an account to play online with the group and back up your saves.</p>
-    <div class="doorplaques">
-      <a class="plaque" href="./play/">Play</a>
-      <a class="plaque wood" href="#desktop">Download</a>
+  <!-- THE RAIL: wood, the mark, a shelf of trinkets, the doors along it -->
+  <header class="rail">
+    <div class="rail-in">
+      <a class="mark" href="./" aria-label="Bunnyfall, home"><img src="./src/assets/branding/bunnyfall.png" alt="Bunnyfall" width="1600" height="382" /></a>
+      <div class="shelf" aria-hidden="true">
+        <img class="token" src="/art/bunnyfall-decor/dusk-token.png" alt="" width="51" height="69" />
+        <img class="coin" src="/art/bunnyfall-decor/argent.png" alt="" width="96" height="96" />
+        <img class="book" src="/art/bunnyfall-decor/spellbook.png" alt="" width="345" height="225" />
+        <img class="quill" src="/art/bunnyfall-decor/feather.png" alt="" width="16" height="16" />
+      </div>
+      <nav class="doors" aria-label="Sections">
+        <a href="#how">How to play</a>
+        <a href="#credits">Credits</a>
+        <a href="https://discord.gg/eNGsgr8BZt" target="_blank" rel="noopener noreferrer" aria-label="Join the Bunnyfall Discord server">Discord</a>
+      </nav>
     </div>
-    <nav class="doorlinks caps" aria-label="Sections">
-      <a href="#how">How to play</a>
-      <a href="#credits">Credits</a>
-      <a href="https://discord.gg/eNGsgr8BZt" target="_blank" rel="noopener noreferrer" aria-label="Join the Bunnyfall Discord server">Discord</a>
-    </nav>
+    <i class="gem" aria-hidden="true"></i>
   </header>
 
+  <!-- THE DOOR -->
+  <section class="door" aria-labelledby="door-h">
+    <div class="pitch">
+      <h1 id="door-h">Daggerfall online with friends, in your browser, on our own private server.</h1>
+      <p class="gate">You need <b>your own copy</b> of The Elder Scrolls II: Daggerfall, free since 2009. Your game files stay on your device. Make an account to play online with the group and back up your saves.</p>
+      <div class="presses">
+        <a class="badge" href="./play/"><img src="/art/bunnyfall-decor/play-still.png" alt="" width="361" height="362" /><span>Play</span></a>
+        <a class="plaque big" href="#desktop">Download</a>
+      </div>
+    </div>
+    <div class="burrow" aria-hidden="true">
+      <img class="scroll" src="/art/bunnyfall-decor/scroll.png" alt="" width="106" height="180" />
+      <img class="bunny" src="/art/bunnyfall-decor/bunny-cheer.png" alt="" width="420" height="420" />
+      <img class="chest" src="/art/bunnyfall-decor/chest.png" alt="" width="130" height="132" />
+      <img class="pile" src="/art/bunnyfall-decor/coins-icon.png" alt="" width="48" height="44" />
+      <img class="spark s1" src="/art/bunnyfall-decor/sparkle-gold.png" alt="" width="16" height="16" />
+      <img class="spark s2" src="/art/bunnyfall-decor/sparkle-red.png" alt="" width="16" height="16" />
+      <img class="spark s3" src="/art/bunnyfall-decor/heart.png" alt="" width="16" height="16" />
+    </div>
+  </section>
+
   <main id="main">
-    <section id="how" aria-labelledby="how-h">
+    <section id="how" class="card" aria-labelledby="how-h">
+      <img class="seal" src="/art/bunnyfall-decor/seal-red.png" alt="" width="62" height="67" aria-hidden="true" />
       <h2 id="how-h">How to play</h2>
-      <div class="rule"><i class="gem"></i></div>
       <p class="lede">Three steps, and the first two only happen once.</p>
       <ol class="steps">
-        <li class="step"><div>
-          <h3>Get Daggerfall.</h3>
-          <p>Free from any of these.</p>
-          <ul class="sources">
-            <li><a href="https://store.steampowered.com/app/1812390/">Steam</a></li>
-            <li><a href="https://www.gog.com/game/the_elder_scrolls_chapter_ii_daggerfall">GOG</a></li>
-            <li><a href="https://forums.dfworkshop.net/viewtopic.php?t=2360">DaggerfallGameFiles.zip</a></li>
-          </ul>
-        </div></li>
-        <li class="step"><div>
-          <h3>Press Play and pick your ARENA2 folder.</h3>
-          <p>On Steam it is under DF/DAGGER/ARENA2. Pick it or drop it on the page; on a phone, hand over the zip. You will not be asked again.</p>
-        </div></li>
-        <li class="step"><div>
-          <h3>Then play.</h3>
-        </div></li>
+        <li class="step">
+          <img class="icon" src="/art/bunnyfall-decor/letter-icon.png" alt="" width="44" height="42" />
+          <div>
+            <h3>Get Daggerfall.</h3>
+            <p>Free from any of these.</p>
+            <ul class="sources">
+              <li><a class="plaque" href="https://store.steampowered.com/app/1812390/">Steam</a></li>
+              <li><a class="plaque" href="https://www.gog.com/game/the_elder_scrolls_chapter_ii_daggerfall">GOG</a></li>
+              <li><a class="plaque" href="https://forums.dfworkshop.net/viewtopic.php?t=2360">DaggerfallGameFiles.zip</a></li>
+            </ul>
+          </div>
+        </li>
+        <li class="step">
+          <img class="icon" src="/art/bunnyfall-decor/chest-icon.png" alt="" width="48" height="42" />
+          <div>
+            <h3>Press Play and pick your ARENA2 folder.</h3>
+            <p>On Steam it is under DF/DAGGER/ARENA2. Pick it or drop it on the page; on a phone, hand over the zip. You will not be asked again.</p>
+          </div>
+        </li>
+        <li class="step">
+          <img class="icon" src="/art/bunnyfall-decor/house-icon.png" alt="" width="42" height="46" />
+          <div>
+            <h3>Then play.</h3>
+          </div>
+        </li>
       </ol>
-      <dl class="qa">
-        <div><dt id="desktop">Desktop app</dt>
-          <dd>The same game in its own window, for Windows and Linux. It updates itself when a new version is out.
-            <span class="dl"><a href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-win-x64-setup.exe">Windows</a><a href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-win-x64-portable.exe">Windows portable</a><a href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-linux-x86_64.AppImage">Linux</a></span>
-            <span class="meta">Windows may warn the first time: More info, then Run anyway.</span></dd></div>
-      </dl>
+
+      <div class="desktop">
+        <img class="icon" src="/art/bunnyfall-decor/ship-icon.png" alt="" width="54" height="50" />
+        <div>
+          <h3 id="desktop">Desktop app</h3>
+          <p>The same game in its own window, for Windows and Linux. It updates itself when a new version is out.</p>
+          <div class="dl">
+            <a class="plaque primary" href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-win-x64-setup.exe">Windows</a>
+            <a class="plaque" href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-win-x64-portable.exe">Windows portable</a>
+            <a class="plaque" href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-linux-x86_64.AppImage">Linux</a>
+          </div>
+          <p class="meta">Windows may warn the first time: More info, then Run anyway.</p>
+        </div>
+      </div>
     </section>
 
-    <section class="credits" id="credits" aria-label="Credits">
+    <section class="card credits" id="credits" aria-labelledby="credits-h">
+      <img class="seal green" src="/art/bunnyfall-decor/seal-green.png" alt="" width="72" height="75" aria-hidden="true" />
+      <h2 id="credits-h"><img src="/art/bunnyfall-decor/feather.png" alt="" width="16" height="16" />Credits</h2>
       <p>Bunnyfall is a fork of <a href="https://github.com/Lattymoy/daggerfall-js-source">DFO Online</a> (Lattymoy and contributors, MIT), which grew from <a href="https://github.com/Interkarma/daggerfall-unity">Daggerfall Unity</a> (Interkarma and contributors, MIT). Run by Killbunny.</p>
       <p>The look is <a href="https://www.nexusmods.com/daggerfallunity/mods/1222">GrimoireUI</a> by LordSquacquerone. Format notes from <a href="https://www.dfworkshop.net/">Daggerfall Workshop</a> and <a href="https://en.uesp.net/wiki/Daggerfall:Daggerfall">UESP</a>.</p>
       <p>The Elder Scrolls II: Daggerfall is by Bethesda Softworks, 1996. This is a fan project, not affiliated with or endorsed by Bethesda or ZeniMax. The Elder Scrolls and Daggerfall are trademarks of ZeniMax Media Inc.</p>
     </section>
+  </main>
 
-    <footer class="end">
+  <footer class="end">
+    <div class="end-in">
       <span>Bunnyfall</span>
       <a class="build" data-build="" href="https://github.com/Killbow/bunnyfall/commit/"></a>
       <a href="https://github.com/Killbow/bunnyfall">Source</a>
       <a href="./terms/">Terms</a>
       <a href="./privacy/">Privacy</a>
-    </footer>
-  </main>
+    </div>
+  </footer>
 </body>
 </html>

@@ -3,6 +3,13 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-27
+
+- Changed: The desktop launcher has a new look: a parchment page under a wooden shelf, with the Bunnyfall rabbit, a PLAY badge, wax seals, coins and other trinkets from the game. The rabbit and the badge come to life once you can play.
+- Added: A campfire beside the rabbit in the launcher. It smoulders while the launcher checks for updates, catches as an update downloads, and burns once you can play.
+- Changed: Patch notes in the launcher mark each line as Fixed or Changed, and the first-run screen that finds your Daggerfall files fits without scrolling.
+- Changed: The website's front page wears the same parchment, wood and trinkets as the launcher.
+
 ## 2026-11-26
 
 - Fixed: Way Back and its guide line no longer give out in cave-style and twisting dungeons. The route home now trusts the steps you actually walked instead of being cut by cave walls and stair edges.
