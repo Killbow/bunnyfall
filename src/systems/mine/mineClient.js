@@ -4,6 +4,10 @@
 import { t } from '../../ui/textManager.js';
 import { MINE_WOOD_STRENGTH } from '../../net/mine/mineBrain.js';
 import { drillReading, mineOreKey, oreRunsLeft } from '../../net/mine/mineDrill.js';
+import { accountRefusalText } from '../../net/accountClient.js';   // a refusal in its own words, never the generic one
+
+/** A claim the service could not answer is asked again after these waits (ms). */
+export const HAUL_RETRY_MS = Object.freeze([1500, 4000, 10000]);
 
 /** The shakes the warnings give, and the collapse's: how hard, and how long it lasts (s). */
 export const MINE_SHAKE = Object.freeze({ 'warn:dust': 0.02, 'warn:creak': 0.05, 'warn:rumble': 0.1, collapse: 0.3 });
@@ -45,6 +49,9 @@ export const MINE_CLIENT_TEXT = Object.freeze({
   lampHung: () => t('mine.lampHung', 'You hang a Mine Lamp. Its light keeps strays from this chamber.'),
   hauled: (/** @type {number} */ n, /** @type {string} */ ore) => t('mine.hauled', 'You haul {n} {ore} into your Stores.', { n, ore }),
   haulFailed: () => t('mine.haulFailed', 'The haul could not be banked. Try again in a moment.'),
+  haulClaimed: () => t('mine.haulClaimed', 'That haul is already in your Stores.'),
+  haulSlip: (/** @type {string} */ why) => t('mine.haulSlip', 'The haul slip could not be checked ({why}), so its ore was not banked.', { why }),
+  haulRefused: (/** @type {string} */ words) => t('mine.haulRefused', 'The haul was not banked. {words}', { words }),
   refused: (/** @type {string} */ e) => ({
     'one-each': t('mine.oneEach', 'You already have a drill running in this mine.'),
     taken: t('mine.drillTaken', 'A drill already stands on this seam.'),
@@ -92,12 +99,21 @@ export function createMineClient(deps) {
   const depleted = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) =>
     oreRunsLeft(st?.oreWork, mineOreKey(s, c, k)) <= 0;
   const drillAt = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => st?.drills?.find((/** @type {any} */ d) => d.s === s && d.c === c && d.k === k) ?? null;
+  /** A claim the service could not answer now is asked again: the receipt is good for a day and pays once, so a retry never double-pays. */
+  const TRANSIENT = new Set(['offline', 'server', 'busy', 'maintenance', 'no-gate-key', 'seq', 'lease']);
   async function haul(/** @type {string} */ r) {
     try {
-      const a = await deps.claim?.(r);
+      let a = await deps.claim?.(r);
+      for (let i = 0; i < HAUL_RETRY_MS.length && a && !a.ok && TRANSIENT.has(String(a.error)); i++) {
+        await new Promise((go) => setTimeout(go, HAUL_RETRY_MS[i]));
+        a = await deps.claim?.(r);
+      }
       const paid = a?.data?.paid ?? 0;
       if (a?.ok && paid > 0) { deps.say(MINE_CLIENT_TEXT.hauled(paid, oreName(a.data.ore))); deps.sound?.('haul'); }
-      else if (!a?.ok) deps.say(MINE_CLIENT_TEXT.haulFailed());
+      else if (a?.ok) deps.say(MINE_CLIENT_TEXT.haulClaimed());
+      else if (!a) deps.say(MINE_CLIENT_TEXT.haulFailed());
+      else if (a.error === 'receipt') deps.say(MINE_CLIENT_TEXT.haulSlip(String(a.why ?? 'unknown')));
+      else deps.say(MINE_CLIENT_TEXT.haulRefused(a.error === 'not-yours' ? t('mine.haulNotYours', 'That haul slip belongs to another account.') : accountRefusalText(a.error)));
     } catch { deps.say(MINE_CLIENT_TEXT.haulFailed()); }
   }
 
