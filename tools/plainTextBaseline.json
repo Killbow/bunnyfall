@@ -1,6 +1,5 @@
 {
  "strings": {
-  "cards.kingsGambit.guide.ground.body": 1,
   "credits.betterAmbience.what": 15,
   "credits.classSkins.what": 5,
   "credits.climatesCalories.what": 37,
@@ -83,14 +82,12 @@
   "realm.stranded": 1,
   "rvn.roster.abroadLaw": 7,
   "sea.wild.chipTip": 3,
-  "season.book.cakes.about": 1,
-  "tavern.favor.rules": 2
+  "season.book.cakes.about": 1
  },
  "sentences": {
   "captain.sky.hint": 7,
   "captain.sky.hintTouch": 1,
   "captain.sky.levelTip": 3,
-  "cards.kingsGambit.words.forFun.meaning": 5,
   "coll.how.serpent": 1,
   "credits.ambientText.what": 5,
   "credits.aquaticSprites.terms": 14,
@@ -176,8 +173,7 @@
   "captain.sky.noPoints": 1,
   "features.enemyInfighting.note": 1,
   "features.lockpickGame.note": 1,
-  "menu.home.homeAria": 1,
-  "tavern.favor.heading": 1
+  "menu.home.homeAria": 1
  },
  "comments": {
   "server-account/src/accountVault.js": 2,

@@ -96,7 +96,7 @@ export function createTavernServiceHost(deps) {
         deps.say(t('tavern.service.wrong', 'That is not the drink I ordered. Return to the innkeeper and discard it.'));
       }
       if (state?.phase === 'done') deps.say(t('tavern.service.complete', 'Your service has ended. Completed orders: {n}. Earned: {gold} gold.', { n: state.index, gold: state.earned }));
-    } catch { deps.say(t('tavern.service.retry', 'The answer was lost. Interact again to retry the same action.')); }
+    } catch { deps.say(t('tavern.service.retry', 'That action could not be confirmed. Interact again to retry it.')); }
     finally { busy = false; }
   }
   function present(view) {
@@ -107,7 +107,7 @@ export function createTavernServiceHost(deps) {
     if (!live() || busy || !tavernRoomAvailable(state)) return;
     const event = tavernRoomEvent(state), target = tavernRoomPatron(state);
     deps.choose({ lines: [t('tavern.room.title', 'Work the Room'), tavernRoomMood(state.room), tavernRoomCue(event),
-      t('tavern.room.help', 'Choices change tips, patience and song pay. Loud responses can backfire in tense rooms.')],
+      t('tavern.room.help', 'Choices change tips, patience, and song pay. Loud responses can backfire in tense rooms.')],
       options: [...event.choices.map((choice, i) => ({ code: 'Digit' + (i + 1), label: (i + 1) + ' - ' + tavernRoomChoice(event, choice),
         action: () => { void send('room', { target, choice: choice.id }); } })),
         { code: 'Escape', label: t('tavern.room.leave', 'Keep working'), action: () => {} }] });
@@ -121,7 +121,7 @@ export function createTavernServiceHost(deps) {
   function book(page = 0, fromCounter = false) {
     if (deps.showWindow && present(createTavernRecipeWindow({ onBack: fromCounter ? mix : undefined }))) return;
     const recipes = TAVERN_RECIPES.slice(page * 3, page * 3 + 3);
-    deps.choose({ lines: [t('tavern.service.book', "The Innkeeper's Recipe Book"), t('tavern.service.bookRule', 'Three doses per cup. Order does not matter. Discard a wrong mixture.'),
+    deps.choose({ lines: [t('tavern.service.book', "The Innkeeper's Recipe Book"), t('tavern.service.bookRule', 'Three doses per cup, in any order. Discard a wrong mixture.'),
       ...recipes.flatMap((r) => [tavernRecipeName(r.id), TAVERN_INGREDIENTS.filter((k) => r[k]).map((k) => `${r[k]} ${tavernIngredientName(k)}`).join(' + ')])],
       options: [
         ...(page > 0 ? [{ code: 'ArrowLeft', label: t('tavern.service.previousPage', 'Previous page'), action: () => book(page - 1) }] : []),
@@ -180,7 +180,7 @@ export function createTavernServiceHost(deps) {
     const spill = entry.chore.kind === 'spill';
     return { title: spill ? t('tavern.chore.spillName', 'Spilled drink') : t('tavern.chore.tableName', 'Empties to clear'),
       subs: [spill ? t('tavern.chore.spillBy', 'Knocked over by {name}', { name: name(entry.chore.patron) }) : t('tavern.chore.leftBy', 'Left by {name}', { name: name(entry.chore.patron) })],
-      actions: [{ id: 'tchore:clean', label: spill ? t('tavern.chore.sweep', 'Sweep it up') : t('tavern.chore.clear', 'Clear and wipe the table'), disabled: busy }] };
+      actions: [{ id: 'tchore:clean', label: spill ? t('tavern.chore.sweep', 'Sweep up') : t('tavern.chore.clear', 'Clear and wipe table'), disabled: busy }] };
   }
   return {
     activateChore,
