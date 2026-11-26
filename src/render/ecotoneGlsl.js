@@ -1,34 +1,13 @@
 // @ts-check
-// ECOTONE1 (2026-10-07, Mac: "Making it where bione transitions are insta t and instead fade and transition naturally
-// into each other") - THE GROUND'S SHARE OF ITS NEIGHBOURS, in both terrain programs (renderer.js TERRAIN_FS and the
-// lane's EL_TERRAIN_FS). world/ecotone.js is the law and the reason; this is its twin in GLSL, term for term - the same
-// hash, the same lattices, the same constants (read from ECOTONE, never restated) - and test/systems/ecotone1.test.js runs it
-// through test/glsl.mjs against the JS.
-//
-// A terrain draw hands the pixel's neighbours' tile sets on units 3-5 (uEcoArr1-3: at most three, as a 3x3 of pixels
-// holds at most four ground families in a season), which of them each neighbour wears (uEcoSide, uEcoCorner: 0 the
-// pixel's own set), and the pixel's first world tile (uEcoOrigin.xy). uEcoOrigin.z is 0 for a pixel all of whose
-// neighbours wear its own set - and for the classic skin, every interior and the exterior host's lone pixel - and the
-// whole blend is then one uniform test. A neighbour's tile is the SAME record of its own set (every ground archive is
-// the same 56 records - R9), turned the same way, at the same gradient: the fragment's own decode, sampled again.
+// GLSL twin of world/ecotone.js for both terrain programs: the same hash, lattices, and ECOTONE constants.
 import { ECOTONE, ECOTONE_REACH } from '../world/ecotone.js';
 
-/** The units the neighbours' tile sets bind on - free in every terrain program (0 the pixel's set, 2 its tilemap, 8-15
- *  the lane's and the cloud shadow's). */
+// Free in every terrain program: unit 0 holds the pixel's set, 2 its tilemap, and 8 to 15 belong to other passes.
 export const ECO_UNITS = Object.freeze([3, 4, 5]);
 
 const f = (v) => (Number.isInteger(v) ? `${v}.0` : `${v}`);
 
-/**
- * The chunk, for a program whose texels decode through `decode` (the lane's elDecode; '' for the classic program's
- * display values). Declares the uniforms, `vec4 ecoWeights(vec2 local)` (the shares of the pixel's own set and its
- * neighbours' at pixel-local metres - main asks it once; the pixel's own whole where uEcoOrigin.z says no neighbour's
- * set differs) and
- * `vec3 ecotone(vec3 own, vec4 w, vec3 tl, vec2 gx, vec2 gy)`: `own` the pixel's own decoded texel, `w` those weights
- * (AUDIT PRECIP GROUND-6: the snow's winter texel crosses the border by the same, render/snowCoverGlsl.js), `tl` its
- * (tuv, layer), `gx`/`gy` its gradient.
- * @param {string} decode
- */
+/** @param {string} decode */
 export function ecotoneGlsl(decode = '') {
   const [w0, w1] = ECOTONE.warp, [p0, p1] = ECOTONE.patch, e = ECOTONE.edge;
   return `// ECOTONE1 (render/ecotoneGlsl.js; the law is world/ecotone.js)

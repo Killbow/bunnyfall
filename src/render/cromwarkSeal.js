@@ -59,7 +59,6 @@ export class CromwarkSealRenderer {
     gl.bindVertexArray(null); gl.depthMask(true); gl.enable(gl.CULL_FACE); gl.disable(gl.BLEND);
     return true;
   }
-  /** Frees the program, the vertex array and the buffer. */
   dispose() {
     if(!this.program) return;
     const gl=this.gl;

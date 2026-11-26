@@ -1,15 +1,11 @@
-// BUNNYFALL: ability sounds made in code with Web Audio, with no sound files. Each art material has a voice, such as
-// steel rings or stone thuds, and each cast moment a shape: wind-up swell, release whoosh, impact accent, self chime,
-// and landing thump. Quiet by design, through the game's sound volume bus, and only with Enhanced Sounds on.
 import { audio } from './audio.js';
 import { enhancedSoundsOn } from './enhancedSounds.js';
 import { abilityArt } from '../combat/abilities/abilityArt.js';
 
 export const ABILITY_SFX_LEVEL = 0.22;
-// One accent per moment per 50 ms, so a sweep through five enemies plays one sound.
+// One sound per ability moment per gap, so a sweep through several enemies plays once.
 const MIN_GAP_S = 0.05;
 
-// Each voice: a pitch, a noise color (bandpass center), a ring (sine partial ratios), and a body (low thud).
 export const VOICES = Object.freeze({
   steel: { pitch: 880, band: 3200, ring: [1, 2.76, 5.4], ringDecay: .32, body: 0, air: .7 },
   shadow: { pitch: 220, band: 900, ring: [], ringDecay: .2, body: .25, air: .9 },
@@ -89,7 +85,6 @@ function crackle(c, out, at, voice, level) {
   for (let i = 0; i < 4; i++) whoosh(c, out, at + i * .035 + Math.random() * .02, voice, { level: level * .5, length: .03, from: 1.4, to: 1 });
 }
 
-/** The shapes of a cast's moments, as plain data (tests read this). */
 export const MOMENTS = Object.freeze({
   'wind-up': { whoosh: { level: .35, length: .32, from: .5, to: 1.1 } },
   release: { whoosh: { level: .8, length: .2, from: 1.3, to: .6 } },
@@ -102,8 +97,6 @@ export function abilityVoice(id) {
   return VOICES[abilityArt(id)?.material] ?? VOICES.steel;
 }
 
-/** Play `moment` of ability `id`. Silent with no audio context (headless, before the first click), volume off, or
- *  Enhanced Sounds off. */
 export function playAbilitySfx(id, moment) {
   const c = audio.ctx;
   const shape = MOMENTS[moment];
@@ -122,6 +115,6 @@ export function playAbilitySfx(id, moment) {
   if (shape.ring && voice.ring.length) ring(c, out, now + .005, voice, shape.ring, voice.ringDecay * shape.ringScale);
   if (shape.thud) thud(c, out, now, voice, shape.thud);
   if (shape.crackle && voice.crackle) crackle(c, out, now, voice, shape.crackle);
-  setTimeout(() => { try { out.disconnect(); } catch { /* already gone */ } }, 1500);
+  setTimeout(() => { try { out.disconnect(); } catch { } }, 1500);
   return true;
 }

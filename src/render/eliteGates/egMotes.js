@@ -1,28 +1,4 @@
 // @ts-check
-// EG-LOOK (2026-10-15, Mac: "Literally everything, and no band aids"; bible/11-Multiplayer/Elite-Gates-Look.md section 5):
-// THE AIR - the Spire's air made visible, a band at a time, as the Hour's is (render/superDungeon/sdMotes.js, SD14c):
-//   THE MOTES - SD14c's motion law made a generator of a layout and its colours: each band's kinds of mote (EG_MOTE_KINDS -
-//     how each moves; world/eliteGates/egAtmos.js `motes` - how many, in what colours): the Galleries' embers rising off the fire-sea
-//     and ash drifting down, the Cairn's soul-motes rising slow and breathing, the Shade's moon-dust falling silver and
-//     glinting, the Wellhead's sparks rising thick and its heavy ash. 600-1,000 points, ONE draw, added onto the frame,
-//     depth-tested and never written, fogged as the world is, in the band's own colours under L2 but for the embers' and
-//     the sparks' hottest (L3, small). Every mote is a pure function of its seeded draws and the clock (its lives whole
-//     over EG_SKY_PERIOD, its wind whole cells over it), laid in one field anchored at the hall the eye stands in and
-//     wrapped about the eye in the hall's plane (EG_MOTE_CELL) - every screen sees the same air in the same place, and the
-//     air is as thick wherever the eye stands in a hall 150 m long. THE TELEGRAPHS KEEP THEIR FLOOR (Elite-Gates.md
-//     section 25.6): a mote fades out within EG_MOTE_FLOOR.clear of any floor's top over its footprint - the eye's hall's
-//     floors handed to the shader (egMoteFloors) - and out of a passage whole. Reduced motion holds the clock (the
-//     host's), so the air stands still - the Hour's precedent (render/nodeGlow.js: "every moving part held at its seed's
-//     own place"). THE QUIET COMPANY (section 25.4) never touches it: it is the place, not a player's.
-//   THE HALOS - the classic set's bloom (render/superDungeon/sdHalo.js, reused): every lamp's fixture (world/eliteGates/egHall.js egCircleLights -
-//     the lamps where they stand) and the foot of every beam of the way (the door's, the Redoubt's beacon - world/
-//     egLights.js), the nearest EG_HALO.max a frame.
-//   THE CAIRN'S MIST SHEETS - the band's mist under every rim, below the cornice's foot (render/eliteGates/egMistPass.js's sheet, held
-//     still - never a surge), round under a disc and square under a band, never over any floor of the hall (egRimMists).
-// Nothing a frame allocates: the floors, the halos and the sheets are written into kept arrays.
-//
-// A foreign pass (the motes): it owns its program, its buffer and its state; the host marks it. Not a DFU member.
-// Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
 import { FOG_FACTOR_GLSL } from '../labGrass.js';
 import { EG_SKY_PERIOD } from './egSkyMap.js';
@@ -30,10 +6,6 @@ import { egAtmosOf } from '../../world/eliteGates/egAtmos.js';
 import { egToDungeon, egIsleDisc } from '../../world/eliteGates/egHall.js';
 import { EG_LIGHT_KIND } from '../../world/eliteGates/egLights.js';
 
-/** THE KINDS OF MOTE and how each moves - its id (the layout's), up (+1) or down, the heights it lives between in the
- *  hall's frame (m), its lives a period (whole - drawn between), its size (m), its sway (m) and how many sways a life,
- *  its wind (whole cells a period), whether it is hot (cooling as it rises: its hottest is L3), whether it glows (a disc
- *  of light) or is a flake, whether it breathes or glints. */
 export const EG_MOTE_KINDS = Object.freeze({
   ember: Object.freeze({ id: 0, rise: 1, y: Object.freeze([-20, 20]), turns: Object.freeze([36, 60]), size: Object.freeze([0.1, 0.16]), sway: 0.9, flutter: 2, wind: 1, hot: 1, glow: 1, breathe: 0, glint: 0 }),
   ash: Object.freeze({ id: 1, rise: -1, y: Object.freeze([-18, 22]), turns: Object.freeze([16, 28]), size: Object.freeze([0.14, 0.24]), sway: 1.6, flutter: 5, wind: 1, hot: 0, glow: 0, breathe: 0, glint: 0 }),
@@ -44,27 +16,16 @@ export const EG_MOTE_KINDS = Object.freeze({
 });
 const KINDS = Object.values(EG_MOTE_KINDS).sort((a, b) => a.id - b.id);
 const KIND_NAMES = Object.keys(EG_MOTE_KINDS).sort((a, b) => EG_MOTE_KINDS[a].id - EG_MOTE_KINDS[b].id);
-/** The kind each id is and the band's colours for it (each kind is one band's): `{ band, lo, hi }` by id. */
 export const EG_MOTE_COLOURS = Object.freeze(KIND_NAMES.map((name) => {
   for (let b = 0; b < 4; b++) { const m = egAtmosOf(b).motes.find((q) => q.kind === name); if (m) return Object.freeze({ band: b, lo: m.lo, hi: m.hi }); }
   throw new Error(`[eg] the mote kind ${name} is no band's`);
 }));
-/** The field's cell (m): the motes tile the hall's plane with it, and the eye stands in the middle of the one it sees. */
 export const EG_MOTE_CELL = 48;
-/** THE TELEGRAPHS KEEP THEIR FLOOR: within `clear` m over a floor's top (and `under` m below it), over its footprint and
- *  `margin` m past it, a mote is gone, coming back over `ease` m more; a passage's floor clears its whole height and a
- *  metre. At most `max` floors a hall. */
 export const EG_MOTE_FLOOR = Object.freeze({ clear: 3, ease: 1.5, under: 1, margin: 1, max: 40 });
-/** The least a mote is drawn across (px) - smaller, it is faded by how much (render/superDungeon/sdMotes.js's law) - the most, and
- *  the most drawn as one solid dot (a glow's rings need room). */
 export const EG_MOTE_PX = Object.freeze({ min: 2, max: 24, solid: 3 });
-/** The phones' tier: this share of each kind. */
 export const EG_MOTE_LITE = 0.5;
 
-/** A band's motes: how many in all (the lite tier's share with `lite`). */
 export const egMoteCount = (band, lite = false) => egAtmosOf(band).motes.reduce((n, m) => n + (lite ? Math.round(m.n * EG_MOTE_LITE) : m.n), 0);
-/** THE LAYOUT: one vertex a mote - its kind's id and three draws in [0, 1) - band `band`'s kinds in its counts. Seeded,
- *  pure: the same band, the same air on every screen. */
 export function egMoteLayout(band, lite = false, seed = 0xe61007) {
   let x = (seed ^ (band * 0x9e3779b1)) >>> 0;
   const r = () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296; };
@@ -83,9 +44,6 @@ const v3 = (a) => `vec3(${a.map(f).join(', ')})`;
 const arr = (type, name, rows) => `const ${type} ${name}[${rows.length}] = ${type}[${rows.length}](${rows.join(', ')});`;
 const F = EG_MOTE_FLOOR;
 
-/** THE LAW, the vertex shader's: `moteAt(seed, T, size, alpha, heat)` - where mote (kind, a, b, c) stands at the clock's
- *  T in the field (its anchor's frame), its size, its alpha over its life and its warmth; `floorFade(p)` - what the
- *  hall's floors leave of a mote at p (the scene's frame). The tests run this very text (test/glsl.mjs). */
 export const EG_MOTE_LAW_GLSL = `const float PERIOD = ${EG_SKY_PERIOD.toFixed(1)};
 const float TAU = 6.283185307179586;
 const float CELL = ${EG_MOTE_CELL.toFixed(1)};
@@ -201,11 +159,8 @@ void main() {
 }`;
 
 /**
- * THE EYE'S HALL'S FLOORS for the motes (`spec` the hall), into `out` (EG_MOTE_FLOOR.max floors, eight floats each, the
- * scene's frame): every disc (its centre, radius, top), every band and ramp (its box, top - a ramp's its higher end, low
- * its lower), every lane (its line, half-width, top), each road's run of pieces as one box (its highest piece's top, its
- * lowest's low, their whole travel) and each passage (its box, clearing its height). Answers how many.
- * @param {any} spec @param {Float32Array} out
+ * @param {any} spec
+ * @param {Float32Array} out
  */
 export function egMoteFloors(spec, out) {
   let n = 0;
@@ -236,8 +191,6 @@ export function egMoteFloors(spec, out) {
   }
   return n;
 }
-/** Is a point at `p` (the scene's frame) within the floors' clearance - the law floorFade keeps (JS, for the tests and
- *  the lab): the share of a mote's light left there (0 within `clear` over a floor, 1 clear of every one). */
 export function egMoteFloorKeep(floors, n, p) {
   let k = 1;
   const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -255,18 +208,13 @@ export function egMoteFloorKeep(floors, n, p) {
   return k;
 }
 
-// ── THE HALOS ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-/** THE HALOS (render/superDungeon/sdHalo.js - the classic set's bloom): at most `max` a frame; a lamp's fixture's (`lamp`: its size in
- *  metres and its share of the lamp's colour) and a beam of the way's foot (`beam`: its size, its share of the beam's
- *  colour, how far over the floor it stands); none past `far` metres from the eye (the fog has them). */
 export const EG_HALO = Object.freeze({ max: 48, far: 120, lamp: Object.freeze({ size: 0.6, k: 0.5 }), beam: Object.freeze({ size: 1.8, k: 0.7, up: 0.3 }) });
 /**
- * THE HALOS THIS FRAME into `out` (a kept array-like of kept halos - render/superDungeon/sdHalo.js's `{ at, size, color }`, its
- * `length` the count): every beam's foot in `lights` (world/eliteGates/egLights.js egSpireLights - the way's gold), then the lamps of
- * `lamps` (world/eliteGates/egHall.js egCircleLights's shape) nearest `eye`, at most EG_HALO.max and none past EG_HALO.far. `order`
- * a kept index list at least as long as `lamps`, the lamps sorted in it. Answers `out`. Nothing is made but the first
- * frame's slots.
- * @param {any} out @param {any[]} lamps @param {any[]|null} lights @param {ArrayLike<number>} eye @param {Int32Array} order
+ * @param {any} out
+ * @param {any[]} lamps
+ * @param {any[]|null} lights
+ * @param {ArrayLike<number>} eye
+ * @param {Int32Array} order
  */
 export function egHalosInto(out, lamps, lights, eye, order) {
   const H = EG_HALO, far2 = H.far * H.far;
@@ -279,7 +227,6 @@ export function egHalosInto(out, lamps, lights, eye, order) {
     h.color[0] = L.c[0] * H.beam.k * a; h.color[1] = L.c[1] * H.beam.k * a; h.color[2] = L.c[2] * H.beam.k * a;
     n++;
   }
-  // the lamps nearest first (an insertion sort into the kept order - a circle's lamps are a few dozen)
   let m = 0;
   for (let i = 0; i < lamps.length && m < order.length; i++) {
     const d = dist2(lamps[i], eye);
@@ -298,29 +245,19 @@ export function egHalosInto(out, lamps, lights, eye, order) {
   return out;
 }
 const NO_LIGHTS = Object.freeze([]);
-/** Halo `n`'s kept slot in `out` (made the first time it is asked). */
 const haloSlot = (out, n) => (out[n] ??= { at: new Float32Array(3), size: 0, color: new Float32Array(3) });
-/** A lamp's squared distance from the eye. */
 const dist2 = (L, eye) => (L.x - eye[0]) * (L.x - eye[0]) + (L.y - eye[1]) * (L.y - eye[1]) + (L.z - eye[2]) * (L.z - eye[2]);
 
-// ── THE CAIRN'S MIST SHEETS ───────────────────────────────────────────────────────────────────────────────────────────
-/** THE CAIRN'S MIST under the rims: the bands that wear it, how far under a rim a sheet lies (below the cornice's foot -
- *  world/eliteGates/egRuin.js), how far past the rim it runs (m), the least disc that has one, its colour (linear - the Cairn's
- *  mist's pale violet), how thick, and at most how many a hall (render/eliteGates/egMistPass.js EG_MIST_MAX). */
 export const EG_RIM_MIST = Object.freeze({ bands: Object.freeze([1]), below: 2.4, pad: 6, minR: 3, color: Object.freeze([0.36, 0.33, 0.46]), alpha: 0.55, max: 8 });
 /**
- * THE CAIRN'S MIST SHEETS for hall `spec` (in band `band`) into `out` (a kept list of kept sheets - render/eliteGates/egMistPass.js's
- * `{ rect, y, alpha, round }`, the scene's frame): one under each disc of at least EG_RIM_MIST.minR (round), then each
- * open band (square - never a passage's), the largest first, at most EG_RIM_MIST.max. Each lies EG_RIM_MIST.below under
- * the lowest top of every floor its footprint meets - never over a floor of the hall. None outside the bands that wear
- * it. Answers `out`, its length the count.
- * @param {any} spec @param {number} band @param {any[]} out
+ * @param {any} spec
+ * @param {number} band
+ * @param {any[]} out
  */
 export function egRimMists(spec, band, out) {
   const M = EG_RIM_MIST;
   let n = 0;
   if (!spec || !M.bands.includes(band)) { out.length = 0; return out; }
-  // every floor's footprint in the hall's frame (a box) and its top
   const floors = [];
   for (const d of spec.discs ?? []) floors.push([d.x - d.r, d.z - d.r, d.x + d.r, d.z + d.r, d.y ?? 0]);
   for (const b of spec.bands ?? []) floors.push([b.x - b.halfW, Math.min(b.z0, b.z1), b.x + b.halfW, Math.max(b.z0, b.z1), b.y ?? 0]);
@@ -346,19 +283,14 @@ export function egRimMists(spec, band, out) {
   return out;
 }
 
-// ── THE PASS ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 function mul4(out, a, b) {
   for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) out[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
   return out;
 }
 const NO_RANGE = new Float32Array([0, 1]), NO_CAM = new Float32Array(3);
 
-/** FIRST-USE (#1144): the pass's one program, as its constructor builds it - what the hall's load starts and the
- *  look's door waits on (render/glProgram.js startPrograms, compiledPass). */
 export const EG_MOTES_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[EG_MOTES_VS, EG_MOTES_FS]]));
 
-/** THE MOTES, one foreign pass: a band's layout in its buffer (made again only for another band), the eye's hall's floors
- *  and anchor handed when the eye's hall changes, one draw a frame. */
 export class EgMotesPass {
   /** @param {WebGL2RenderingContext} gl @param {{ lite?: boolean }} [o] */
   constructor(gl, { lite = false } = {}) {
@@ -374,7 +306,6 @@ export class EgMotesPass {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
     gl.bindVertexArray(null);
-    /** the band laid in the buffer (-1: none), how many motes, what the last draw drew */
     this.band = -1;
     this.count = 0;
     this.drawn = 0;
@@ -384,7 +315,6 @@ export class EgMotesPass {
     this._anchor = new Float32Array(3);
     this._eye = new Float32Array(3);
   }
-  /** Band `band`'s layout into the buffer (once a band). */
   setBand(band) {
     const b = Math.max(0, Math.min(3, band | 0));
     if (b === this.band) return false;
@@ -395,17 +325,11 @@ export class EgMotesPass {
     this.band = b; this.count = data.length / 4;
     return true;
   }
-  /** The hall the eye stands in: its floors (egMoteFloors) and its origin (the field's anchor - the scene's frame). */
   setHall(spec) {
     this._nFloors = egMoteFloors(spec, this._floors);
     const o = egToDungeon(spec, 0, 0, 0);
     this._anchor[0] = o[0]; this._anchor[1] = o[1]; this._anchor[2] = o[2];
   }
-  /**
-   * The motes, depth-tested and never written, added onto the frame after the solid geometry, in the frame's fog (`fog`
-   * the renderer's) at `gain` (the band's light against its fog - the sky's). `eye` the camera (the scene's frame), `T`
-   * the air's clock (wrapped here), `viewH` the world image's height in pixels. Answers whether it drew.
-   */
   draw(proj, view, eye, T, fog = null, gain = 1, viewH = 0) {
     const gl = this.gl, U = this.u;
     this.drawn = 0;
@@ -433,7 +357,6 @@ export class EgMotesPass {
     this.drawn = this.count;
     return true;
   }
-  /** Every GL object it made, freed once. */
   destroy() {
     const gl = this.gl;
     if (!this.prog) return;

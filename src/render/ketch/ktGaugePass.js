@@ -1,55 +1,30 @@
 // @ts-check
-// KETCH-LOOK KL3 (bible/11-Multiplayer/Sky-Ketch-Look.md "The shared kit", "The state language"): EVERY INSTRUMENT ON THE
-// SHIP IN ONE INSTANCED DRAW (the Hour's ghost pass the precedent: render/superDungeon/sdStepsPass.js) - up to
-// KT_GAUGE_MAX faces, each 12 floats: its centre (xyz), its face's right and up half-axes (xyz each - the wall it stands a
-// hair proud of), its kind, its value `a` (0..1) and its second `b`. The kinds speak the state language:
-//   dial     TIME LEFT - a 270-degree sweep, full at the lower right, its red pin at the lower left; the needle falls
-//   glass    A LEVEL - a sight-glass filling from its foot (glass shows a level: a cell drains)
-//   lamps    A COUNT - a row of `b` studs, `a` of them lit from the left
-//   ring     A SHARE - a flat ring filled clockwise from the top
-//   pulse    A FLOW - a pulse running along a segment
-// Each face's look is a pure function of (kind, meaning, a, b, u, v) - ktGaugeAt, the fragment's JS twin term for term,
-// the test's eye - posterized through the ordered dither on the face's own texel grid (render/orderedDither.js
-// SD_PIXEL_GLSL: 10 steps on the lane, 8 on the classic set), fogged as the world is. Its meaning (world/ketch/ketchLook.js
-// KT_MEANING: LAMP, AETHER, EMBER, RED) rides its kind: `kind + KT_GAUGE_MEANING_STRIDE * meaning`. Faces stand on L2
-// (bezels, studs dark), signals on L3 (needles, lit glass, lit studs) - the value ladder (KT_LADDER).
-//
-// A foreign pass: it owns its program and its state, and its host marks it (renderer.markForeignPass). Not a DFU member.
-// Ledger A (KETCH).
 import { buildProgram } from '../glProgram.js';
 import { FOG_FACTOR_GLSL } from '../labGrass.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from '../orderedDither.js';
 
 export const KT_GAUGE_MAX = 96;
 export const KT_GAUGE_FLOATS = 12;
-/** The kinds, and how a meaning rides one (`kind + stride * meaning`). */
 export const KT_GAUGE_KIND = Object.freeze({ dial: 0, glass: 1, lamps: 2, ring: 3, pulse: 4 });
 export const KT_GAUGE_MEANING = Object.freeze({ lamp: 0, aether: 1, ember: 2, red: 3 });
 export const KT_GAUGE_MEANING_STRIDE = 10;
-/** The face's colours (display): its signal by meaning (L3), the bezel and a dark stud (L2), the face's dark (L1), the
- *  dial's red sector; the texels a face is posterized on, across. */
 export const KT_GAUGE_LOOK = Object.freeze({
   signal: Object.freeze([Object.freeze([0.95, 0.76, 0.42]), Object.freeze([0.5, 0.82, 0.98]), Object.freeze([1.0, 0.56, 0.14]), Object.freeze([0.88, 0.18, 0.14])]),
   bezel: Object.freeze([0.5, 0.42, 0.2]), stud: Object.freeze([0.2, 0.16, 0.1]), face: Object.freeze([0.07, 0.07, 0.08]), red: Object.freeze([0.62, 0.16, 0.12]),
   texels: 32, steps: Object.freeze({ lane: 10, classic: 8 }),
 });
-/** The dial's sweep (radians from up, clockwise): its pin at the lower left, full at the lower right; its red sector. */
 export const KT_DIAL = Object.freeze({ from: (-135 * Math.PI) / 180, sweep: (270 * Math.PI) / 180, red: (24 * Math.PI) / 180 });
 
-/** The parts a face's point is (ktGaugeAt's `part`). */
 export const KT_GAUGE_PART = Object.freeze({ none: 0, face: 1, bezel: 2, signal: 3, dark: 4, red: 5 });
 
-/**
- * A FACE'S POINT: kind `k` (with its meaning), its value `a`, its second `b`, at face point (`u`, `v`) in -1..1 - which part
- * it is (KT_GAUGE_PART). Pure; the fragment shader's twin, term for term.
- */
+// JS copy of the fragment shader's partAt, term for term; change both together.
 export function ktGaugeAt(k, a, b, u, v) {
   const kind = k % KT_GAUGE_MEANING_STRIDE, r = Math.hypot(u, v), P = KT_GAUGE_PART;
   switch (kind) {
     case KT_GAUGE_KIND.dial: {
       if (r > 1) return P.none;
       if (r > 0.86) return P.bezel;
-      const th = Math.atan2(u, v);   // from up, clockwise
+      const th = Math.atan2(u, v);
       const needle = KT_DIAL.from + KT_DIAL.sweep * Math.max(0, Math.min(1, a));
       const off = Math.abs(Math.atan2(Math.sin(th - needle), Math.cos(th - needle)));
       if (r < 0.1) return P.signal;
@@ -67,7 +42,7 @@ export function ktGaugeAt(k, a, b, u, v) {
     case KT_GAUGE_KIND.lamps: {
       const n = Math.max(1, Math.min(16, Math.round(b))), cell = 2 / n;
       const i = Math.min(n - 1, Math.floor((u + 1) / cell)), cu = -1 + cell * (i + 0.5);
-      const rr = Math.hypot(u - cu, v) / Math.min(1, cell / 2);   // round studs on the plate, whatever their count
+      const rr = Math.hypot(u - cu, v) / Math.min(1, cell / 2);
       if (rr > 0.8) return Math.abs(v) <= 1 ? P.bezel : P.none;
       return i < Math.round(Math.max(0, Math.min(1, a)) * n) ? P.signal : P.dark;
     }
@@ -86,7 +61,7 @@ export function ktGaugeAt(k, a, b, u, v) {
   }
 }
 
-/** A JS number as a GLSL float literal, every digit kept (the dial's edges the twin's to the last bit). */
+// Keeps every digit so the shader's dial edges match the JS copy exactly.
 const glf = (x) => (Number.isInteger(x) ? `${x}.0` : String(x));
 
 export const KT_GAUGE_VS = `#version 300 es
@@ -167,12 +142,10 @@ void main() {
   o = vec4(mix(uFogColor, c, fogFactorAt(vWorld)), 1.0);
 }`;
 
-/** FIRST-USE: the pass's one program, as its constructor builds it. */
 export const KT_GAUGE_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[KT_GAUGE_VS, KT_GAUGE_FS]]));
 const QUAD = new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]);
 const NO_RANGE = new Float32Array([0, 1]), NO_CAM = new Float32Array(3), NO_FOG = new Float32Array(3);
 
-/** The gauges, one foreign pass. `instances` a Float32Array of `count` faces, KT_GAUGE_FLOATS each. */
 export class KtGaugeRenderer {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -196,8 +169,6 @@ export class KtGaugeRenderer {
     this.signal = new Float32Array(KT_GAUGE_LOOK.signal.flat());
     this.drawn = 0;
   }
-  /** Draw `count` faces of `instances` (the world frame), `lane` the enhanced lane's (linear light, its steps). Answers
-   *  whether any drew. */
   draw(proj, view, instances, count, { lane = false, fog = null } = {}) {
     const gl = this.gl, U = this.u, n = Math.min(count | 0, KT_GAUGE_MAX), L = KT_GAUGE_LOOK;
     this.drawn = 0;
@@ -222,7 +193,6 @@ export class KtGaugeRenderer {
     this.drawn = n;
     return true;
   }
-  /** Every GL object it made, freed once. */
   destroy() {
     const gl = this.gl;
     if (!this.prog) return;
@@ -231,10 +201,6 @@ export class KtGaugeRenderer {
   }
 }
 
-/**
- * A FACE into `out` at instance `i` (KT_GAUGE_FLOATS each): its centre, its right and up half-axes (the world frame), its
- * kind and meaning, its `a` and `b`. Answers `i + 1`.
- */
 export function ktGaugePut(out, i, at, right, up, kind, meaning, a, b = 0) {
   const o = i * KT_GAUGE_FLOATS;
   out[o] = at[0]; out[o + 1] = at[1]; out[o + 2] = at[2];

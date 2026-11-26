@@ -1,57 +1,14 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// DW-C (2026-09-25): ILIAC PUDDLE NO MORE'S TWO PASSES. The mod ships
-// its own shaders (jet082's 1.2.2 bundle, GLCore programs read back to
-// GLSL) and this pass is them, term for term:
-//
-//   SEAFLOOR (DeepWaters/Seafloor) - opaque, unlit, both faces: the
-//     vertex colour's depth band shades a sand / mid / deep ramp (the
-//     band to the gamma, the shelf by the coast distance, the swamp by
-//     the climate band), the climate's texture over it at its strength
-//     with a luminance lift, the night's ambient boost, the scene tint
-//     while the camera is over the sea, and the world's fog.
-//   SURFACE TOP (TransparentWaterSurfaceTop) - the surface texture
-//     (TEXTURE.302 record 0, 128 repeats a pixel, scrolling) times the
-//     time-adjusted tint, a fifth of the way to the tint's shade; its
-//     alpha the tint's, rising to 1 with the water column behind it over
-//     the vision distance; gone while the camera is under the surface.
-//     And the world's fog over it, as over the seafloor - the port's own
-//     (Port-Ledger, the Iliac Puddle No More row, (8)): the read-back
-//     carries none, and unfogged the sea stood out of the port's fogged
-//     world and far ring as dark square pixels to the horizon.
-//   SURFACE UNDERSIDE (TransparentWaterSurfaceUnderside) - drawn only
-//     while the player's presentation is underwater: the same texture and
-//     tint, to the horizon colour and opaque by the fade distances, a
-//     third of the way to the fog colour by the column fog's strength.
-//
-// THE WATER COLUMN. The top's alpha reads Unity's camera depth texture:
-// alpha = a + (1 - a) * min(behind / vision, 1), `behind` the eye depth
-// of what the surface covers past the surface's own. The port's world
-// pass has no depth texture to read on its classic set, so the same sum
-// is split across the two draws (Port-Ledger A, the Iliac Puddle No More
-// row): the floor - the one thing a carved sea covers - is itself carried
-// toward the surface's colour by min(behind / vision, 1), with `behind`
-// its own eye depth past the point its view ray crosses the sea, and the
-// surface is then blended at alpha `a`. mix(mix(x, s, t), s, a) =
-// mix(x, s, a + (1 - a) t): the same picture, on every lane, from the
-// same numbers.
-//
-// GL DISCIPLINE (farRing.js's): a self-contained pass the host follows
-// with renderer.markForeignPass(); depth tested LEQUAL; the floor writes
-// depth, the surfaces do not (the top does once near-opaque, as the
-// mod's ZWrite switch says). Colours are display colours on both lanes -
-// the mod's materials are unlit, and what they write is what it shows.
-// ═══════════════════════════════════════════════════════════════════
+// The world pass has no depth texture, so the mod's column alpha a + (1 - a) * min(behind / vision, 1) is split.
+// The floor moves toward the surface color by min(behind / vision, 1), and the surface then blends at a.
+// The host follows this pass with renderer.markForeignPass(). The floor writes depth; the surfaces do not.
 
 import { buildProgram, startPrograms } from './glProgram.js';
 import { FOG_GLSL } from './fogGlsl.js';
-import { COLUMN_GLSL } from './columnGlsl.js';   // DW-F: the column's share, one home (the renderer's billboards take it too)
-import { WATER_LAYER_UNITS } from './waterSurface.js';   // FIELD BUGS 2026-09-29 (the sea) #4: the top's place in the sea's stack
+import { COLUMN_GLSL } from './columnGlsl.js';
+import { WATER_LAYER_UNITS } from './waterSurface.js';
 import { SURFACE_TEXTURE_TILING, SURFACE_SCROLL, FLOOR_TEXTURE_WORLD_SCALE, FLOOR_SHADER_DEFAULTS } from '../world/deepWaterLook.js';
 
-// THE COLUMN'S SHARE (the top's alpha, split - see above): columnGlsl.js,
-// one home - the floor and the decorations take it here, DFU's billboards a
-// foe under the sea stands in take it in the renderer's own programs.
 export { COLUMN_GLSL };
 
 export const FLOOR_VS = `#version 300 es
@@ -72,8 +29,6 @@ void main() {
   gl_Position = uProj * uView * w;
 }`;
 
-// The Seafloor fragment program (no-fog variant, the fog after it as
-// every world pass takes it), then the column's share of the top's alpha.
 export const FLOOR_FS = `#version 300 es
 precision highp float;
 in vec4 vColor;
@@ -137,8 +92,6 @@ void main() {
   gl_Position = uProj * uView * w;
 }`;
 
-// TransparentWaterSurfaceTop, the camera-depth read taken out (the floor
-// carries it - see above), the world's fog after it as the floor takes it.
 export const TOP_FS = `#version 300 es
 precision highp float;
 in vec2 vUv;
@@ -163,10 +116,7 @@ void main() {
   outColor = vec4(mix(uFogColor, col, fogFactorAt(vWorldPos)), a);
 }`;
 
-// The top's other arm: where nothing opaque stands behind the surface (the
-// cleared far plane - the sky, the far ring, the void past the streamed
-// world) the C#'s depth read is 1e9 and the top is opaque. Tested against
-// the depth buffer at the plane's edge, so it lands only there.
+// Where nothing opaque is behind the surface (the cleared far plane), the top is opaque, as in the mod.
 export const TOP_FAR_FS = `#version 300 es
 precision highp float;
 in vec2 vUv;
@@ -190,7 +140,6 @@ void main() {
   outColor = vec4(mix(uFogColor, col, fogFactorAt(vWorldPos)), 1.0);
 }`;
 
-// TransparentWaterSurfaceUnderside.
 export const UNDERSIDE_FS = `#version 300 es
 precision highp float;
 in vec2 vUv;
@@ -224,31 +173,6 @@ void main() {
   outColor = vec4(dwWaterFog(col, vWorldPos), a);   // the distance fog over it: the surface and all it shows share one capped ray
 }`;
 
-// DW-E2: THE DECORATIONS (DeepWaters/UnderwaterBillboardBatchUnlit), u_xlat
-// for u_xlat. DFU's billboard-batch mesh layout: each billboard's four
-// vertices at its CENTRE, the tangent (width, height, corner u, corner v);
-// the vertex program stands the quad about the up vector, its right the
-// normalised cross of the view's third column (UNITY_MATRIX_V._m02_m12_m22,
-// DaggerfallBillboardBatch.shader's own "viewDirection") with the up - so it
-// faces the camera as DFU's batches do, pitch quirk and all. Unlit: the
-// texel times _Color (1.12), the cut-out, the scene tint; the forward pass
-// takes no Unity fog (its other two programs are the shadow caster, and the
-// decorations cast none), so the distance fog alone closes it (dwWaterFog).
-// Seen from over the sea it takes the column's share, as the floor does:
-// the batches write the depth texture the top reads (the mod's cut-out
-// queue), so the top covers a weed by the water between it and the surface.
-// The texture is an ARRAY - a record's frames its layers - and a billboard
-// draws layer (start + tick) mod frames: DaggerfallBillboardBatch's
-// per-billboard frame, advanced by its coroutine at FramesPerSecond.
-//
-// THE THREE FACINGS. The batches' is the program's own (above). The mod
-// also puts the same material on single billboards, whose meshes (MeshReader
-// .GetBillboardMesh) set no tangents - the object's own rotation is what
-// faces those, and the port stands them by it: a DaggerfallBillboard (an animated replacement)
-// turns to the camera's horizontal facing, the world's up kept (uFacing 1);
-// a FaceY billboard (DW-E3's fish, DeepWaterRendering.FaceMainCamera) turns
-// to the camera itself, its up the camera's (uFacing 2). The same corner
-// offsets stand every one of them.
 export const DECOR_VS = `#version 300 es
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec4 aTangent;
@@ -304,21 +228,9 @@ void main() {
   outColor = vec4(dwWaterFog(col, vWorldPos), 1.0);
 }`;
 
-/** UnderwaterDecorationColor (1.12, 1.12, 1.12, 1) and the cut-out's default (the source material's _Cutoff where it has one). */
 export const DECORATION_COLOR = Object.freeze([1.12, 1.12, 1.12, 1]);
 export const DECORATION_CUTOFF = 0.5;
 
-// THE SKY'S SHARE OF THE DISTANCE FOG. The mod's post effect takes every
-// pixel of the camera's image, the sky included - where the depth read is
-// the far plane (>= 0.9999) the ray's length is the band's own reach,
-// V (3.6 - 2 strength), capped at the surface for a ray that climbs to it.
-// Nothing the port draws there has a fragment of its own to fog (the sky
-// and its decks write no depth, the far ring writes the far plane), so this
-// pass lands on exactly those pixels - a full-screen triangle AT the far
-// plane under LEQUAL - after the sky and the ring and before anything that
-// blends over them. The fog is affine in the colour under it,
-// c' = c * keep + add, and a blend can apply that: the first draw
-// multiplies (ZERO, SRC_COLOR), the second adds (ONE, ONE), alpha kept.
 export const SKY_FOG_VS = `#version 300 es
 uniform vec3 uRayC;   // the view ray at the centre of the viewport, per unit of eye depth
 uniform vec3 uRayX;   // and its change per NDC unit across
@@ -350,14 +262,6 @@ void main() {
   else outColor = vec4((1.0 - exp(-d * uDwFog[1].w)) * uDwFog[2].xyz * k + uDwFog[3].xyz * f, 0.0);
 }`;
 
-// UNDER-LOOK and UNDER-RAYS (FIELD BUGS 2026-10-01 #4, #5; world/underwater/underwaterLook.js): the port's look over the sea
-// while the eye is under it - over every pixel the world drew, before the weapon and the HUD. The water body is
-// affine in the colour under it, c * keep + body, so it is the sky fog's two blends again (the first draw multiplies,
-// the second adds); the second also adds the shafts. A shaft is the sun let through where the moving surface focuses
-// it: each point along the view (out to the reach, or to the surface) is lit by the surface point its light came in
-// at - the point itself carried up the refracted sun to the sea's height - through a drifting two-octave pattern,
-// fainter with distance and depth. No depth is read (no program of every lane can), so the reach is short: the near
-// water, where a shaft reads.
 export const UNDER_LOOK_FS = `#version 300 es
 precision highp float;
 in vec3 vRay;
@@ -407,18 +311,15 @@ void main() {
 
 const locs = (gl, p, names) => Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)]));
 
-/** The pass: one per renderer, built on first use. */
 export class DeepWatersRenderer {
   constructor(renderer) {
     this.renderer = renderer;
     this.gl = renderer.gl;
     this._programs = null;
     this._fwd = new Float32Array(3);
-    this._stream = null;   // DW-E3: the moving billboards' streamed buffers
+    this._stream = null;
   }
 
-  /** BUNNYFALL AUDIT STUT-1c: the sea's seven programs, named so the idle warm starts them all together (render/warmPrograms.js
-   *  `{ start, run }`) - run as one plain step they were seven compiles in one 115-130 ms task. */
   warmSteps() {
     const pairs = /** @type {[string, string][]} */ ([[FLOOR_VS, FLOOR_FS], [SURFACE_VS, TOP_FS], [SURFACE_VS, TOP_FAR_FS], [SURFACE_VS, UNDERSIDE_FS], [SKY_FOG_VS, SKY_FOG_FS], [DECOR_VS, DECOR_FS], [SKY_FOG_VS, UNDER_LOOK_FS]]);
     return [{ start: () => startPrograms(this.gl, pairs), run: () => { this._ensure(); }, need: () => !this._programs }];
@@ -433,7 +334,7 @@ export class DeepWatersRenderer {
     const under = buildProgram(gl, SURFACE_VS, UNDERSIDE_FS, 'deep waters surface underside');
     const skyFog = buildProgram(gl, SKY_FOG_VS, SKY_FOG_FS, 'deep waters distance fog (sky)');
     const decor = buildProgram(gl, DECOR_VS, DECOR_FS, 'deep waters decorations');
-    const look = buildProgram(gl, SKY_FOG_VS, UNDER_LOOK_FS, 'under the sea: the water body and the shafts');   // UNDER-LOOK
+    const look = buildProgram(gl, SKY_FOG_VS, UNDER_LOOK_FS, 'under the sea: the water body and the shafts');
     this._programs = {
       floor: { p: floor, u: locs(gl, floor, ['uProj', 'uView', 'uModel', 'uMainTex', 'uSurfaceTex', 'uSandColor', 'uMidColor', 'uDeepColor', 'uSwampColor',
         'uTextureWorldScale', 'uTextureStrength', 'uShelfMix', 'uDepthGamma', 'uAmbientBoost', 'uSceneTint',
@@ -449,12 +350,11 @@ export class DeepWatersRenderer {
       decor: { p: decor, u: locs(gl, decor, ['uProj', 'uView', 'uModel', 'uViewCol2', 'uUpVector', 'uMainTex', 'uColor', 'uCutoff', 'uSceneTint',
         'uTick', 'uFrames', 'uCamPos', 'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uDwFog', 'uFocus', 'uJungleHaze',
         'uSurfaceTex', 'uDwCamFwd', 'uColumnOn', 'uSeaY', 'uTopColor', 'uTopVision', 'uSurfaceScroll', 'uPixelOrigin', 'uFacing', 'uCamRight', 'uCamUp']) },
-      empty: gl.createVertexArray(),   // the sky pass's triangle is gl_VertexID's
+      empty: gl.createVertexArray(),
     };
     return this._programs;
   }
 
-  /** One pixel's GPU half: the floor's and the surface's buffers. */
   create(result) {
     const gl = this.gl;
     const out = { floor: null, surface: null };
@@ -481,11 +381,11 @@ export class DeepWatersRenderer {
     if (f && f.indices.length) out.floor = vao([[0, f.positions, 3], [1, f.colors, 4], [2, f.uvs, 2]], f.indices);
     const s = result.surface;
     if (s && s.indices.length) out.surface = vao([[0, s.positions, 3], [2, s.uvs, 2]], s.indices);
-    this.renderer.markForeignPass?.();   // the VAO binds above are behind the renderer's back
+    // The VAO binds above happen behind the renderer's back, so the pass must be marked.
+    this.renderer.markForeignPass?.();
     return out;
   }
 
-  /** OH-B: CommitExternalMeshChanges' drawn half - the floor's vertices uploaded again after an outside edit (a pit cut). */
   updateFloor(h, floor) {
     if (!h?.floor || !floor?.positions) return;
     const gl = this.gl;
@@ -510,10 +410,10 @@ export class DeepWatersRenderer {
     gl.uniformMatrix4fv(u.uProj, false, r._proj);
     gl.uniformMatrix4fv(u.uView, false, r._view);
     if (u.uCamPos) gl.uniform3fv(u.uCamPos, r._camPos);
-    if (u.uDwFog) gl.uniform4fv(u.uDwFog, r._dwFog);   // the distance fog's frame (renderer.setWaterFog)
-    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);   // AUDIT DEEP R-1: the travel view's focus - the seabed's fog is the traveller's, as the beach's is
-    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);   // BANTHA1: the jungle's haze (render/hazeGlsl.js)
-    if (u.uFogColor) {   // the world's fog (renderer.setFog): the floor, the top, and the column's share in the decorations
+    if (u.uDwFog) gl.uniform4fv(u.uDwFog, r._dwFog);
+    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);
+    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);
+    if (u.uFogColor) {
       gl.uniform3fv(u.uFogColor, r._fogColor);
       gl.uniform1i(u.uFogMode, r._fogMode);
       gl.uniform1f(u.uFogDensity, r._fogDensity);
@@ -522,14 +422,12 @@ export class DeepWatersRenderer {
   }
 
   /**
-   * COLUMN_GLSL's frame: the camera's forward, the top's colour, vision
-   * and scroll, and the surface texture on unit 1 (unit 0 is the caller's).
    * @param {Record<string, WebGLUniformLocation>} u
    * @param {{columnOn: boolean, seaY: number, topColor: number[], topVision: number, surfaceScroll: number[], surfaceTexture: ?WebGLTexture}} frame
    */
   _columnUniforms(u, frame) {
     const gl = this.gl, v = this.renderer._view;
-    this._fwd[0] = -v[2]; this._fwd[1] = -v[6]; this._fwd[2] = -v[10];   // the camera's forward in world space: minus the view matrix's third row
+    this._fwd[0] = -v[2]; this._fwd[1] = -v[6]; this._fwd[2] = -v[10];
     gl.uniform3fv(u.uDwCamFwd, this._fwd);
     gl.uniform1f(u.uColumnOn, frame.columnOn ? 1 : 0);
     gl.uniform1f(u.uSeaY, frame.seaY);
@@ -543,7 +441,6 @@ export class DeepWatersRenderer {
   }
 
   /**
-   * The floors, opaque, after the streamed ground.
    * @param {Array<{h: any, model: Float32Array, origin: number[], material: {texture: ?WebGLTexture, strength: number, palette: {sand: number[], mid: number[], deep: number[], swamp: number[]}, ambientBoost: number}}>} list
    * @param {{sceneTint: number[], columnOn: boolean, seaY: number, topColor: number[], topVision: number, surfaceScroll: number[], surfaceTexture: ?WebGLTexture}} frame
    */
@@ -565,7 +462,7 @@ export class DeepWatersRenderer {
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(true);
     gl.disable(gl.BLEND);
-    gl.disable(gl.CULL_FACE);   // Cull Off
+    gl.disable(gl.CULL_FACE);
     let lastTex;
     for (const it of list) {
       const part = it.h?.floor;
@@ -588,12 +485,10 @@ export class DeepWatersRenderer {
     gl.depthFunc(gl.LESS);
   }
 
+  // Drawn after every opaque thing and cut-out flat; each program discards the other side of the surface itself.
   /**
-   * The surfaces, blended, after every opaque thing and every cut-out flat
-   * (the mod's Transparent queue): the top from above, the underside from
-   * below - each program discards the other side itself.
    * @param {Array<{h: any, model: Float32Array}>} list
-   * @param {Record<string, any>} frame - surfaceLook's values + {underwater, liftY, surfaceScroll, surfaceTexture}
+   * @param {Record<string, any>} frame
    */
   drawSurfaces(list, frame) {
     if (!list.length || !frame.surfaceTexture) return;
@@ -635,8 +530,7 @@ export class DeepWatersRenderer {
         gl.uniform1f(u.uColumnFogStrength, frame.columnFogStrength);
       }, false);
     } else {
-      // FIELD BUGS 2026-09-29 (the sea) #4: the top is the sea's surface film - over the beach 3 cm under it and the
-      // shelf's floor, in window depth (render/waterSurface.js WATER_LAYER_UNITS); the far arm writes its own depth and takes none
+      // The polygon offset puts the top in its layer of the sea's stack, over the beach and the shelf floor.
       gl.enable(gl.POLYGON_OFFSET_FILL);
       gl.polygonOffset(0, WATER_LAYER_UNITS.surface);
       pass(top, (u) => { gl.uniform4fv(u.uColor, frame.topColor); }, !!frame.topDepthWrite);
@@ -651,12 +545,6 @@ export class DeepWatersRenderer {
     gl.depthFunc(gl.LESS);
   }
 
-  /**
-   * DW-E2: a decoration texture - a record's frames as the layers of one
-   * array (every frame the record's own size; a frame of another size ends
-   * the array there), point-sampled over a mip chain as DFU's billboard
-   * atlas is. `frames`: [{width, height, data: RGBA rows}].
-   */
   createDecorationTexture(frames) {
     const gl = this.gl;
     const w = frames[0].width, h = frames[0].height;
@@ -680,12 +568,6 @@ export class DeepWatersRenderer {
 
   deleteDecorationTexture(t) { if (t?.tex) this.gl.deleteTexture(t.tex); }
 
-  /**
-   * DW-E2: one pixel's decorations on the GPU - a VAO per group, a group
-   * one texture: {texture: {tex, frames}, fps, born (s), facing (DECOR_VS's
-   * uFacing, 0 when absent), billboards: [{centre: [x, y, z] pixel-local,
-   * width, height, start}]}.
-   */
   createDecorations(groups) {
     const gl = this.gl;
     const out = { groups: [] };
@@ -694,7 +576,7 @@ export class DeepWatersRenderer {
       if (!n || !g.texture) continue;
       const pos = new Float32Array(n * 12), tan = new Float32Array(n * 16), start = new Float32Array(n * 4);
       const idx = new Uint32Array(n * 6);
-      const CORNERS = [[0, 1], [1, 1], [0, 0], [1, 0]];   // BuildMaterialBillboardBatchMesh's vertex order
+      const CORNERS = [[0, 1], [1, 1], [0, 0], [1, 0]];
       for (let i = 0; i < n; i++) {
         const b = g.billboards[i];
         for (let k = 0; k < 4; k++) {
@@ -738,13 +620,6 @@ export class DeepWatersRenderer {
     h.groups = [];
   }
 
-  /**
-   * DW-E3: billboards that MOVE (the fish) - the same program, the same
-   * groups, their centres in the world and written again every frame into
-   * one set of streamed buffers (the pattern's indices kept, grown as the
-   * count does). Returns a handle drawDecorations draws with an identity
-   * model; valid until the next call.
-   */
   streamDecorations(groups) {
     const gl = this.gl;
     let n = 0;
@@ -789,8 +664,6 @@ export class DeepWatersRenderer {
   }
 
   /**
-   * DW-E2: the decorations, cut-out and depth-writing (the AlphaTest queue
-   * the mod's material takes), both faces.
    * @param {Array<{h: any, model: Float32Array, origin: number[]}>} list
    * @param {{sceneTint: number[], seconds: number, columnOn: boolean, seaY: number, topColor: number[], topVision: number, surfaceScroll: number[], surfaceTexture: ?WebGLTexture}} frame
    */
@@ -801,10 +674,10 @@ export class DeepWatersRenderer {
     const u = decor.u, v = r._view;
     gl.useProgram(decor.p);
     this._frameUniforms(u);
-    // Unity's view matrix is (right, up, back) by rows; the port's lookAt is (-right, up, back) - its third column then
+    // Unity view matrix rows are (right, up, back) and lookAt rows are (-right, up, back), so the signs flip here.
     gl.uniform3f(u.uViewCol2, -v[8], v[9], v[10]);
     gl.uniform3f(u.uUpVector, 0, 1, 0);
-    gl.uniform3f(u.uCamRight, -v[0], -v[4], -v[8]);   // the lookAt's first row is minus the camera's right
+    gl.uniform3f(u.uCamRight, -v[0], -v[4], -v[8]);
     gl.uniform3f(u.uCamUp, v[1], v[5], v[9]);
     gl.uniform4fv(u.uColor, DECORATION_COLOR);
     gl.uniform4fv(u.uSceneTint, frame.sceneTint);
@@ -814,7 +687,7 @@ export class DeepWatersRenderer {
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(true);
     gl.disable(gl.BLEND);
-    gl.disable(gl.CULL_FACE);   // Cull Off
+    gl.disable(gl.CULL_FACE);
     for (const it of list) {
       const groups = it.h?.groups;
       if (!groups?.length) continue;
@@ -822,7 +695,7 @@ export class DeepWatersRenderer {
       gl.uniform3fv(u.uPixelOrigin, it.origin);
       for (const g of groups) {
         gl.uniform1i(u.uFacing, g.facing);
-        gl.uniform1f(u.uCutoff, g.cutoff ?? DECORATION_CUTOFF);   // DW-E3: a fish's is 0.1
+        gl.uniform1f(u.uCutoff, g.cutoff ?? DECORATION_CUTOFF);
         gl.bindTexture(gl.TEXTURE_2D_ARRAY, g.texture.tex);
         gl.uniform1f(u.uFrames, g.texture.frames);
         gl.uniform1f(u.uTick, g.fps > 0 ? Math.floor((frame.seconds - g.born) * g.fps) : 0);
@@ -836,13 +709,8 @@ export class DeepWatersRenderer {
     gl.depthFunc(gl.LESS);
   }
 
-  /**
-   * The distance fog over the sky's pixels - after the sky and the far
-   * ring, before the first thing blended over them. A no-op while the fog
-   * is off. The rays are the view's own (the projection's mirror and any
-   * off-centre shift included): per unit of eye depth, the camera's
-   * forward plus right x (ndc.x + P[8]) / P[0] plus up x (ndc.y + P[9]) / P[5].
-   */
+  // Drawn after the sky and the far ring, before anything blended over them. The fog c * keep + add is applied as
+  // a multiply blend, then an add blend.
   drawSkyFog() {
     const r = this.renderer;
     if (!(r._dwFog[0] > 0.5)) return;
@@ -857,8 +725,8 @@ export class DeepWatersRenderer {
     gl.uniform3f(u.uRayY, up[0] / P[5], up[1] / P[5], up[2] / P[5]);
     gl.uniform3fv(u.uCamPos, r._camPos);
     gl.uniform4fv(u.uDwFog, r._dwFog);
-    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);   // AUDIT DEEP R-1
-    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);   // BANTHA1: the jungle's haze (render/hazeGlsl.js)
+    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);
+    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(false);
@@ -879,13 +747,11 @@ export class DeepWatersRenderer {
     gl.depthFunc(gl.LESS);
   }
 
+  // Drawn after the last world pass and before the weapon and the HUD.
   /**
-   * UNDER-LOOK and UNDER-RAYS: the water over every pixel the world drew, while the eye is under the sea - after the
-   * last world pass and before the weapon and the HUD (the host's), into whatever target the world draws into. The
-   * rays are drawSkyFog's; no depth test, no depth write, alpha kept.
-   * @param {{keep: number[], body: number[], sunW: number[], shaft: number[]}} u - world/underwater/underwaterLook.js underwaterLookUniforms
-   * @param {number} seaY - the sea's height in the scene
-   * @param {number} reach - the shafts' march (m)
+   * @param {{keep: number[], body: number[], sunW: number[], shaft: number[]}} u
+   * @param {number} seaY
+   * @param {number} reach
    * @param {number} timeSeconds
    */
   drawUnderwaterLook(u, seaY, reach, timeSeconds) {
@@ -942,7 +808,6 @@ export class DeepWatersRenderer {
   }
 }
 
-/** The surface texture's offset now: _ScrollX, _ScrollY times Unity's _Time.y (seconds), in repeats. */
 export function surfaceScrollAt(seconds) {
   return [SURFACE_SCROLL[0] * seconds, SURFACE_SCROLL[1] * seconds];
 }

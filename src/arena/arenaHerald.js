@@ -1,28 +1,12 @@
 // @ts-check
-// ARENA2 (2026-10-02): THE HERALD'S CHOICE at the arena's gate - "Watch the exhibition", "Fight on the ladder", "Go
-// down to the fighters' hall", "Leave" - what he says before it (the bout on the sand or the next one, the player's next
-// ladder bout, the title the arena calls them by) and which choices stand. The full Arena window is ARENA3's; this is
-// a keyed choice (ui/talkWindow.js ChoiceWindow), the enhanced dialog on the Plus skin (ui/enhanced/enhancedDialog.js
-// drawEnhancedChoice) and the classic panel on the other. A choice that cannot be taken is not offered, and HIS LINES
-// SAY WHY (the house's refusal rule: a sentence, never a button that silently vanishes).
-//
-// Pure: the clock, the city's bout, the ladder and the player's state in; `{ lines, options }` out, each option
-// `{ code, label, act }` (`act` 'watch' | 'fight' | 'hall' | 'leave' - the host's to do). Not a DFU member. Ledger A.
 
 import { ARENA_TEXT } from './arenaText.js';
 import { exhibitionFor, nextExhibitionHour, nextLadderBout, ladderTitle } from './arenaLadder.js';
-import { rollLeague, leagueStandings, joinRefusal, laurelWorn, otherBanner } from './arenaLeague.js';   // ARENA3: the banners
+import { rollLeague, leagueStandings, joinRefusal, laurelWorn, otherBanner } from './arenaLeague.js';
 
-/** A fighter must have this share of their health to be let onto the sand. */
 export const FIGHT_HEALTH_MIN = 0.5;
 
 /**
- * ARENA3: `window` - the host opens the Arena window ("A - The Arena window"); `league` the banners' record
- * (systems/arena/arenaLeague.js) - he names the banner you fight under, and the laurel when you wear it.
- * ARENA5: `replays` how many of the save's ladder bouts the records keep (systems/arena/arenaReplay.js) - the last one is
- * offered to watch again ("R - Watch your last bout again").
- * AUDIT PRE-MERGE 1003 B3: `fought` the hour's bout has had its word on this screen (scenes/arena/arenaGate.js watchRefusal) -
- * Watch is not offered: it would dismiss that bout and fight the hour again from its call, both fighters whole.
  * @param {{ gameMinutes: number, cityBout?: { a: string, b: string } | null, ladder?: any, healthShare?: number, window?: boolean, league?: any, replays?: number, fought?: boolean }} o
  */
 export function heraldChoice({ gameMinutes, cityBout = null, ladder = null, healthShare = 1, window = true, league = null, replays = 0, fought = false }) {
@@ -32,7 +16,8 @@ export function heraldChoice({ gameMinutes, cityBout = null, ladder = null, heal
   lines.push(H.greet[hour % H.greet.length]);
   lines.push('');
   const ex = exhibitionFor(gameMinutes);
-  const canWatch = !fought && (!!cityBout || !!ex?.open);   // AUDIT PRE-MERGE 1003 B3
+  // No Watch once the hour's bout had its word here, since watching would restart it with both fighters whole.
+  const canWatch = !fought && (!!cityBout || !!ex?.open);
   if (cityBout) { lines.push(H.onNow(cityBout.a, cityBout.b)); if (fought) lines.push(H.underWay); }
   else if (!canWatch) { lines.push(H.noWatch); lines.push(H.nextAt(nextExhibitionHour(gameMinutes))); }
   const next = nextLadderBout(ladder);
@@ -45,27 +30,20 @@ export function heraldChoice({ gameMinutes, cityBout = null, ladder = null, heal
   const title = ladderTitle(ladder);
   if (title) lines.push(H.title(title));
   const team = league ? rollLeague(league, gameMinutes).team : null;
-  if (team) lines.push(laurelWorn(league, gameMinutes) ? ARENA_TEXT.teams.laurelYou : ARENA_TEXT.teams.under(ARENA_TEXT.teams.the[team]));   // ARENA3
-  if (replays > 0) lines.push(ARENA_TEXT.replay.heraldLine);   // ARENA5
+  if (team) lines.push(laurelWorn(league, gameMinutes) ? ARENA_TEXT.teams.laurelYou : ARENA_TEXT.teams.under(ARENA_TEXT.teams.the[team]));
+  if (replays > 0) lines.push(ARENA_TEXT.replay.heraldLine);
   const options = [];
   if (canWatch) options.push({ code: 'KeyW', label: H.watch, act: 'watch' });
   if (next && fit) options.push({ code: 'KeyF', label: H.fight, act: 'fight' });
-  if (replays > 0) options.push({ code: 'KeyR', label: ARENA_TEXT.replay.herald, act: 'replay' });   // ARENA5: your ladder replay, the newest
-  if (window) options.push({ code: 'KeyA', label: H.window, act: 'window' });   // ARENA3: the Arena window's first door
+  if (replays > 0) options.push({ code: 'KeyR', label: ARENA_TEXT.replay.herald, act: 'replay' });
+  if (window) options.push({ code: 'KeyA', label: H.window, act: 'window' });
   options.push({ code: 'KeyH', label: H.hall, act: 'hall' });
   options.push({ code: 'KeyL', label: H.leave, act: 'leave' });
-  options.push({ code: 'Escape', label: null, act: 'leave' });   // the key alone: Escape leaves him
+  options.push({ code: 'Escape', label: null, act: 'leave' });
   return { lines, options, exhibition: ex, next };
 }
 
-// ── THE RECRUITERS (ARENA3; systems/arena/arenaLeague.js) ─────────────────────────────────────────────────────────────
-/**
- * A BANNER'S RECRUITER at the gate: his pitch, the season's standing, the player's place, and what may be done - join
- * (when the banner will take them), quit (when they wear it - asked again before it is done, `quitAsk`), the Arena
- * window, leave. A refusal is a line, never a button that vanishes unsaid. `banner` 'red' | 'blue'. Pure.
- * `window` whether the host opens the Arena window.
- * @param {{ banner: 'red'|'blue', league: any, gameMinutes: number, window?: boolean }} o
- */
+/** @param {{ banner: 'red'|'blue', league: any, gameMinutes: number, window?: boolean }} o */
 export function recruiterChoice({ banner, league, gameMinutes, window = true }) {
   const R = ARENA_TEXT.recruiter, T = ARENA_TEXT.teams;
   const me = T.the[banner];
@@ -87,7 +65,6 @@ export function recruiterChoice({ banner, league, gameMinutes, window = true }) 
   options.push({ code: 'Escape', label: null, act: 'leave' });
   return { lines, options };
 }
-/** The question before a banner is quit: yes strikes the name, no keeps it. */
 export function quitAsk(banner) {
   const R = ARENA_TEXT.recruiter;
   return {

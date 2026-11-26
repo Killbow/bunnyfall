@@ -1,14 +1,9 @@
 // @ts-check
-// BUNNYFALL SPELL VISUALS, DRAWN: motes about a body under a lasting effect (systems/effectVisuals.js bits) - embers
-// rising off the burning, flakes falling off the frozen, sparks crackling round the shocked, green bubbles off the
-// poisoned, violet motes round magic, and a bubble round the head of a Water Breather. One point-sprite draw a frame,
-// every mote placed from the clock and its body's seed (nothing kept between frames); added onto the frame (ONE, ONE),
-// tested against the world's depth and never writing it.
 import { buildProgram } from './glProgram.js';
 import { FX_FIRE, FX_FROST, FX_SHOCK, FX_POISON, FX_BUBBLE, FX_MAGIC } from '../magic/effectVisuals.js';
 
 export const MOTES_MAX = 2048;
-const STRIDE = 9;   // x y z, r g b a, size, shape (0 a soft dot, 1 a ring)
+const STRIDE = 9;
 
 const VS = `#version 300 es
 layout(location=0) in vec3 aPos;
@@ -49,10 +44,6 @@ void main() {
 const fract = (x) => x - Math.floor(x);
 const hash = (n) => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
 
-/**
- * The motes of `bodies` at `t` seconds into `out` (STRIDE floats each); answers how many. A body is
- * `{ at: [x, y, z] the feet, height, bits, seed }`. Pure.
- */
 export function motesInto(bodies, t, out) {
   let n = 0;
   const max = Math.floor(out.length / STRIDE);
@@ -76,7 +67,7 @@ export function motesInto(bodies, t, out) {
       const step = Math.floor(t * 14);
       for (let i = 0; i < 10; i++) {
         const k = step * 31 + i * 7 + s * 1000;
-        if (hash(k) < 0.35) continue;   // a spark flickers on and off
+        if (hash(k) < 0.35) continue;
         const ang = hash(k + 1) * 6.283, r = 0.2 + hash(k + 2) * 0.2;
         put(fx + Math.cos(ang) * r, fy + h * (0.2 + hash(k + 3) * 0.85), fz + Math.sin(ang) * r, 0.75, 0.85, 1, 1, 0.08 + hash(k + 4) * 0.1, 0);
       }
@@ -123,7 +114,6 @@ export class EffectMotes {
     this.drawn = 0;
   }
 
-  /** Draw `bodies` under the frame's camera. */
   draw(bodies, proj, view, t) {
     const gl = this.gl;
     this.drawn = motesInto(bodies, t, this.data);

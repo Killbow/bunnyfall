@@ -1,47 +1,16 @@
 // @ts-check
-// DUEL1 (2026-09-24, Mac: "...traps both players in a surrounding transparent holographic wall that keeps them from
-// going outside of the duel space"): THE RING'S WALL, DRAWN.
-//
-// A cylinder of light around a duel's ring (net/duel/duelSession.js DUEL_RADIUS_M): a faint tint, a grid of thin lines
-// around it, bands of light rising up it and one bright sweep climbing it every few seconds, fading out toward its
-// top. It is ADDED onto the frame (ONE, ONE) so it only ever brightens what stands behind it - see-through by
-// construction - it writes no depth, and it is tested against the depth the world wrote, so a hill or a house in
-// front of the wall hides the part behind it and the ground cuts its foot wherever the ground stands (it reaches
-// DUEL_WALL_BELOW_M below the ring's centre, so a ring on a slope still meets the ground all round). Both faces draw
-// (culling off): a duellist inside sees the wall's inside, an onlooker its outside, a third-person camera either.
-//
-// What it is NOT: a collider. The body is kept inside by the motor's clamp (player/motor.js _keepInArena); arrows,
-// spells, foes and the camera pass through the light as through air.
-//
-// Its geometry never changes - one ring of DUEL_WALL_SEGMENTS quads in (around, up) - and each ring's centre, radius,
-// height and fade are uniforms, so a floating-origin shift is the host's centre moving and nothing else. The pattern
-// runs on the cylinder's OWN coordinates, never the world's, so an origin shift shows nowhere; and every rate in it
-// is a whole number of cycles over DUEL_CLOCK_PERIOD, the clock handed wrapped to it (the wisps' law, windWisps.js
-// wispClock), so the pattern never stutters as a 32-bit float's seconds grow. The fog thins it as it thins the
-// ground (the grass's fog, labGrass.js FOG_FACTOR_GLSL) - for light added onto the frame that is a fade, not a mix.
-//
-// Built at boot in every skin (not only the enhanced lane's): the players must see the ring whatever they play in.
-//
-// Not a DFU member: Daggerfall Unity has no other players. Ledger A (ONLINE).
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 
-/** Quads around the ring. */
 export const DUEL_WALL_SEGMENTS = 96;
-/** The wall reaches this far below the ring's centre and this high above its foot, metres. */
 export const DUEL_WALL_BELOW_M = 4;
 export const DUEL_WALL_HEIGHT_M = 10;
-/** The light's colour, DISPLAY-encoded (the frame image the lit lane draws foreign passes into is 8-bit and display
- *  encoded - airPass.js): a cold arcane blue. */
+// Display-encoded: foreign passes draw into the 8-bit, display-encoded frame image.
 export const DUEL_WALL_COLOR = Object.freeze([0.3, 0.72, 1.0]);
-/** The most rings a frame draws (a duel of my own and the onlookers' view of others'). */
 export const DUEL_WALL_RINGS_MAX = 4;
-/** Every rate the shader runs is a whole number of cycles over this many seconds; the clock is handed wrapped to it. */
+// Every shader rate is a whole number of cycles over this period, so the wrapped clock never shows a seam.
 export const DUEL_CLOCK_PERIOD = 120;
 export const duelClock = (seconds) => ((seconds % DUEL_CLOCK_PERIOD) + DUEL_CLOCK_PERIOD) % DUEL_CLOCK_PERIOD;
-/** The pattern's counts and rates: lines around (whole, so the seam at 0/1 never shows), bands up, the bands' climb
- *  and the sweep's, in cycles a second (each a whole number over DUEL_CLOCK_PERIOD - a pin holds it), and the
- *  shimmer's waves around and its cycles a second. */
 export const DUEL_WALL_LINES = 72;
 export const DUEL_WALL_BANDS = 14;
 export const DUEL_WALL_CLIMB_HZ = 0.25;
@@ -108,7 +77,6 @@ function mat4Multiply(out, a, b) {
   return out;
 }
 
-/** The ring's vertices, (around, up) pairs, two triangles a segment. Pure. */
 export function ringVertices(segments = DUEL_WALL_SEGMENTS) {
   const out = new Float32Array(segments * 6 * 2);
   let o = 0;
@@ -120,15 +88,15 @@ export function ringVertices(segments = DUEL_WALL_SEGMENTS) {
 }
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
-const NO_WATER_FOG = new Float32Array(20);   // DW-C: uDwFog off ([0].x 0)
-const NO_HAZE = new Float32Array(8);   // BANTHA1: uJungleHaze off ([1].x 0)
-const NO_FOCUS = new Float32Array(4);   // AUDIT DEEP R-1: no travel view - w 0, the fog measures from the camera
+const NO_WATER_FOG = new Float32Array(20);
+const NO_HAZE = new Float32Array(8);
+const NO_FOCUS = new Float32Array(4);
 const WHITE = new Float32Array([1, 1, 1]);
 
 export class DuelWallRenderer {
   constructor(gl) {
     this.gl = gl;
-    const prog = buildProgram(gl, DUEL_WALL_VS, DUEL_WALL_FS);   // AUDIT 68 S17: the one compile and link
+    const prog = buildProgram(gl, DUEL_WALL_VS, DUEL_WALL_FS);
     this.program = prog;
     this.u = {};
     for (const n of ['uVP', 'uCentre', 'uRadius', 'uBase', 'uHeight', 'uTime', 'uColor', 'uAlpha', 'uBelow', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uDwFog', 'uJungleHaze', 'uFocus']) this.u[n] = gl.getUniformLocation(prog, n);
@@ -143,15 +111,9 @@ export class DuelWallRenderer {
     gl.bindVertexArray(null);
     this.vao = vao;
     this._vp = new Float32Array(16);
-    /** the rings the last draw put up, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /**
-   * Draw the rings: `rings` [{ centre: [x, y, z] in the scene, radius, alpha }] (at most DUEL_WALL_RINGS_MAX, the
-   * faded-out skipped), `eye` the view's own eye, `seconds` any clock (wrapped here), `fog` the frame's fog as the
-   * renderer set it ({ mode, density, range, color, camPos }; none draws unfogged). Nothing to draw, nothing touched.
-   */
   draw(rings, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
     const list = (Array.isArray(rings) ? rings : []).filter((r) => r && Array.isArray(r.centre) && r.centre.length === 3 && r.centre.every(Number.isFinite) && r.radius > 0 && r.alpha > 0.001).slice(0, DUEL_WALL_RINGS_MAX);
@@ -169,9 +131,9 @@ export class DuelWallRenderer {
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye ?? WHITE);
-    if (U.uDwFog) gl.uniform4fv(U.uDwFog, fog?.dw ?? NO_WATER_FOG);   // DW-C: the frame's (renderer.setWaterFog); none handed, off
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1: the jungle's haze (renderer.setJungleHaze); none handed, off
-    if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);   // AUDIT DEEP R-1: under the travel view the fog is the traveller's (fogGlsl.js FOCUS_GLSL)
+    if (U.uDwFog) gl.uniform4fv(U.uDwFog, fog?.dw ?? NO_WATER_FOG);
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
+    if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.depthMask(false);

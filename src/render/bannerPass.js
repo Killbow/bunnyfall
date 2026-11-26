@@ -1,39 +1,16 @@
 // @ts-check
-// GUILD1d (2026-09-30, Mac: "Lets do this"): A GUILD'S BANNERS, DRAWN (bible/11-Multiplayer/Seats-Arc.md 3.4: "the
-// port's own cloth quad, 1 wide by 3 tall (in DFU's scale, a man's height and a half), its field the holder's first
-// colour, a border in the second, the device centred; it sways on the weather's wind").
-//
-// Each banner is a strip of BANNER_ROWS quads hung from its top edge: the top stays where it is nailed and the cloth
-// below it swings out along its face (`uOut`) the further down it hangs, with a ripple across it - both on the wind's
-// strength, the one the grass and the rain read. Its picture is the heraldry drawn on a canvas (ui/heraldryArt.js
-// drawBanner), one texture a heraldry, made the first time it is drawn and kept. Opaque cloth: the swallowtail's cut is
-// discarded, so it writes depth as the town it hangs in does; both faces draw (a banner is seen from either side), lit
-// by the frame's ambient and sun off its own face, fogged as the ground is (labGrass.js FOG_FACTOR_GLSL).
-//
-// Every rate is a whole number of cycles over BANNER_CLOCK_PERIOD and the clock is handed wrapped to it (duelWall.js's
-// law), so the sway never stutters as a 32-bit float's seconds grow; each banner's phase is its own, so two side by side
-// do not swing as one.
-//
-// Built at boot in every skin: a guild's banner is the guild's whatever the player's skin. Not a DFU member: Daggerfall
-// Unity has no player guilds. Ledger A (ONLINE).
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 
-/** The cloth, metres: a man's height and a half, a third of it wide. */
 export const BANNER_W_M = 0.9;
 export const BANNER_H_M = 2.7;
-/** The quads down the cloth - enough that its swing bends rather than hinges. */
 export const BANNER_ROWS = 8;
-/** The most banners a frame draws. */
 export const BANNERS_MAX = 16;
-/** AUDIT GUILD1d R7: how long a heraldry's texture is kept undrawn, seconds, before it is given back. */
 export const BANNER_TEXTURE_IDLE_S = 120;
-/** The canvas a heraldry is drawn on, pixels wide (three times as tall). */
 export const BANNER_TEX_W = 64;
-/** Every rate is a whole number of cycles over this many seconds. */
+// Every rate is a whole number of cycles over this period, so the wrapped clock never makes the sway jump.
 export const BANNER_CLOCK_PERIOD = 120;
 export const bannerClock = (seconds) => ((seconds % BANNER_CLOCK_PERIOD) + BANNER_CLOCK_PERIOD) % BANNER_CLOCK_PERIOD;
-/** The swing's and the ripple's cycles a second (whole over the period - a pin holds it). */
 export const BANNER_SWING_HZ = 0.25;
 export const BANNER_RIPPLE_HZ = 0.75;
 
@@ -101,7 +78,6 @@ function mat4Multiply(out, a, b) {
   return out;
 }
 
-/** The cloth's vertices, (across, down) pairs, two triangles a row. Pure. */
 export function clothVertices(rows = BANNER_ROWS) {
   const out = new Float32Array(rows * 6 * 2);
   let o = 0;
@@ -114,7 +90,7 @@ export function clothVertices(rows = BANNER_ROWS) {
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_WATER_FOG = new Float32Array(20);
-const NO_HAZE = new Float32Array(8);   // BANTHA1: uJungleHaze off ([1].x 0)
+const NO_HAZE = new Float32Array(8);
 const NO_FOCUS = new Float32Array(4);
 const GREY = new Float32Array([0.5, 0.5, 0.5]);
 const UP = new Float32Array([0, 1, 0]);
@@ -140,13 +116,12 @@ export class BannerRenderer {
     gl.bindVertexArray(null);
     this.vao = vao;
     this._vp = new Float32Array(16);
-    /** @type {Map<string, {tex: WebGLTexture, seen: number}>} a heraldry's texture, by its key, and when it was last drawn */
+    /** @type {Map<string, {tex: WebGLTexture, seen: number}>} */
     this.textures = new Map();
     this.drawn = 0;
   }
 
-  /** A heraldry's texture: painted and uploaded the first time, kept while it is drawn (null where it cannot be painted -
-   *  AUDIT GUILD1d R7: asked again next time, never remembered as none). `seconds` stamps its use. */
+  // A heraldry that cannot be painted is retried on the next draw, never cached as missing.
   textureOf(key, heraldry, seconds = 0) {
     const had = this.textures.get(key);
     if (had) { had.seen = seconds; return had.tex; }
@@ -157,7 +132,8 @@ export class BannerRenderer {
       tex = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);   // AUDIT GUILD1d R8: the cut's edge mipmaps without a dark rim
+      // Premultiplied upload keeps the mipmapped edge of the cut from showing a dark rim.
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, /** @type {any} */ (canvas));
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.generateMipmap(gl.TEXTURE_2D);
@@ -171,19 +147,12 @@ export class BannerRenderer {
     return tex;
   }
 
-  /** AUDIT GUILD1d R7: a heraldry not drawn for BANNER_TEXTURE_IDLE_S (a changed banner's old picture, a town left) gives
-   *  its texture back. */
   prune(seconds) {
     for (const [key, t] of this.textures) {
       if (seconds - t.seen > BANNER_TEXTURE_IDLE_S) { this.gl.deleteTexture(t.tex); this.textures.delete(key); }
     }
   }
 
-  /**
-   * Draw the banners: `banners` [{ key, heraldry, top: [x, y, z] in the scene, right: [x, 0, z], out: [x, 0, z], phase }]
-   * (at most BANNERS_MAX), `seconds` any clock (wrapped here), `light` the frame's { sunDir, amb, sunCol, sunScale },
-   * `wind` 0..1, `fog` the frame's as the renderer set it. Answers whether it drew anything.
-   */
   draw(banners, proj, view, eye, seconds, { light = null, wind = 0, fog = null } = {}) {
     this.drawn = 0;
     this.prune(seconds);
@@ -209,7 +178,7 @@ export class BannerRenderer {
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye ?? GREY);
     if (U.uDwFog) gl.uniform4fv(U.uDwFog, fog?.dw ?? NO_WATER_FOG);
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1: the jungle's haze (renderer.setJungleHaze); none handed, off
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
     if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
     gl.uniform1i(U.uTex, 0);
     gl.activeTexture(gl.TEXTURE0);
@@ -229,8 +198,7 @@ export class BannerRenderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindVertexArray(null);
     gl.enable(gl.CULL_FACE);
-    // AUDIT GUILD1d R6: the program was changed whatever was drawn - the host marks the seam on this answer, and a frame
-    // whose every picture failed left the renderer believing its own program still bound
+    // This returns true even when no texture drew, because the program changed and the host must mark the seam.
     return true;
   }
 }

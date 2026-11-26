@@ -28,6 +28,7 @@ invariants:
 traps:
   - "A decor model with no geometry yet has no box and is not culled."
   - "The per-face `_faceDyn` flag (PERF-FACE) must be reset when a point light cache slot is dropped."
+  - "`entrySeen` (`src/homes/decorRoom.js`) is defined at module scope so batch culling allocates no closure per call; keep it there."
 dfu: []
 tags:
   - yards

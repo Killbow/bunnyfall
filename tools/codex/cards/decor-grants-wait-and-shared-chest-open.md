@@ -9,6 +9,7 @@ files:
   - src/scenes/worldModes.js
   - server-account/src/decorAccess.js
   - src/net/accountClient.js
+  - src/items/physicalItems.js
 routes:
   - /v1/homes/decor/use
 tables:
@@ -24,6 +25,9 @@ invariants:
   - "Open shared chests refresh their `HOLD_S = 180` s lease while open; expired holds fail with `decor-lapsed` and credit gold only on settle."
 traps:
   - "Treating unresolved `decorIsShared` state as private opens an empty character-save chest instead of the shared `decor_bin`."
+  - "`openSharedChest` draws the peeked rows at once, and when the held list arrives before any move it keeps those row objects (matched by `uid`, or by row and template), because a fresh parse makes new objects and the first click's transfer refuses a row the list no longer holds."
+  - "Once a hold refresh (`keepHeld`) answers `decor-lapsed`, `decor-busy`, or `decor-shut`, the open window moves nothing more, because its close would be refused."
+  - "An open shared chest passes `dropRefusal`, so the Physical Items shift-drop (`shiftDrop`) refuses with the same line as a drop from the chest window (\"Shut the chest before you drop that.\"). Without it, a shift-drop removes the piece only from the pack shown in the window and places it in the room, while the character pack still holds it."
 dfu: []
 tags:
   - homes

@@ -1,12 +1,11 @@
 // @ts-check
-// Shadow cache signatures: an order-independent fold, and one shared walk for all lo-tier lamps.
 
 export function spheresTouch(ax, ay, az, ar, bx, by, bz, br) {
   const dx = ax - bx, dy = ay - by, dz = az - bz, r = ar + br;
   return dx * dx + dy * dy + dz * dz <= r * r;
 }
 
-/** Order-independent (a sum of rotated products), so the draw order the culling shuffles cannot change it. */
+// Order-independent, so the draw order that culling shuffles cannot change the signature.
 export function foldSignature(h, v) {
   const x = (v | 0) * 0x9e3779b1 | 0;
   return (h + ((x << 13) | (x >>> 19))) | 0;
@@ -26,8 +25,8 @@ export class LoLampSignatures {
     this.farFor = farFor;
   }
 
+  // The far here must match the far _renderLo computes for the same slot.
   /**
-   * The far here must match the far _renderLo computes for the same slot.
    * @param {{ lights: ArrayLike<number>, lightCount: number, slotOf: ArrayLike<number>, readsFullMap: (light: number) => boolean,
    *   slotLight: ArrayLike<number>, slotBuilt: ArrayLike<number>, walk: (casters: Float64Array, count: number, out: Int32Array) => void }} input
    */

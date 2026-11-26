@@ -1,20 +1,6 @@
 // @ts-check
-// SD14c (2026-10-07, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 7 and section 16's SD14c;
-// Mac: "The detail needs to exceed that of the oblivion gates"): THE HOUR'S MOTES - the air of the Shattered Hour made
-// visible. The Deadlands' air carries 896 (render/deadlands.js lifeVertices: embers off the sea and its braziers, ash
-// falling); the Hour carried none. Four kinds, SD_MOTES_TOTAL of them, each a point drawn after the realm's solid
-// geometry, depth-tested and never written, added onto the frame in the Hour's own colours and its fog:
-//
-//   BRASS DUST in the hall - specks turning slowly round the Orrery as its stones do, rising and settling;
-//   SPARKS OUT OF THE VOID under the Steps - gold rising from far below the course, cooling as they climb, gone by
-//     the height a body stands at;
-//   THE HOUR'S MOTES over the arena - slow gold-green lights (the Mantella's) orbiting its centre against the clock,
-//     breathing;
-//   THE SHARDS' DUST high over everything - glints falling slowly out of the broken sky.
-//
-// Every mote is a pure function of its seeded draws and the Hour's clock (the sky's: world.js deadlandsSeconds, wrapped
-// at SD_SKY_PERIOD - every rate a whole number of turns over it), so every screen sees the same air at the same moment.
-// `sdMoteAt` is the shader's own law in JS, for the tests. Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon air motes, each a pure function of its seeded draws and the sky clock. Every rate is a whole number
+// of turns over SD_SKY_PERIOD, so every screen sees the same air at the same moment.
 import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { SD_SKY_PERIOD } from './sdSky.js';
@@ -22,21 +8,14 @@ import { SD_REALM_ORIGIN, SD_ORRERY, SD_ARENA } from '../net/sdBrain.js';
 import { SD_FIRST_STEP } from '../world/sdHall.js';
 import { SD_COURSE_END } from '../world/sdSteps.js';
 
-/** How many of each kind: the hall's dust, the void's sparks, the arena's motes, the shards' dust. */
 export const SD_MOTES = Object.freeze({ dust: 320, sparks: 360, hour: 300, shards: 240 });
 export const SD_MOTES_TOTAL = SD_MOTES.dust + SD_MOTES.sparks + SD_MOTES.hour + SD_MOTES.shards;
-/** Each kind's span of whole turns (lives) over the period - every mote's own, drawn from it. */
 export const SD_MOTE_TURNS = Object.freeze({ dust: [24, 40], sparks: [60, 110], hour: [6, 12], shards: [20, 36] });
-/** Where they live, in the realm's frame: the hall's ring and height; the void's band under the course (its x half
- *  width, its z from the first step to the course's end, how deep they rise from and how high they reach); the arena's
- *  ring and height; the shards' sky. */
 export const SD_MOTE_HALL = Object.freeze({ r: SD_ORRERY.r + 4, y: [0.4, 7] });
 export const SD_MOTE_VOID = Object.freeze({ halfW: 14, z: [SD_FIRST_STEP.z, 0], y: [-26, 1.5] });
 export const SD_MOTE_ARENA = Object.freeze({ r: [4, SD_ARENA.r + 4], y: [1, 12] });
 export const SD_MOTE_SKY = Object.freeze({ r: 140, y: [14, 46] });
-/** The least a mote is drawn across (px); smaller, it is faded by how much (`sdMotePx`). */
 export const SD_MOTE_MIN_PX = 2;
-/** A mote of `size` m `w` m off at `pxPerM`: drawn across (px) and the share of its light kept - the shader's own. Pure. */
 export function sdMotePx(size, w, pxPerM) {
   const px = (size * pxPerM) / Math.max(w, 0.1);
   return { px: Math.min(32, Math.max(SD_MOTE_MIN_PX, px)), keep: Math.max(0, Math.min(1, px / SD_MOTE_MIN_PX)) };
@@ -44,7 +23,6 @@ export function sdMotePx(size, w, pxPerM) {
 const TAU = Math.PI * 2;
 const voidZ1 = () => (Number.isFinite(SD_COURSE_END) ? SD_COURSE_END : SD_ARENA.z - SD_ARENA.r);
 
-/** One vertex a mote: kind (0 dust, 1 sparks, 2 the Hour's, 3 the shards'), three draws in [0, 1). Seeded, pure. */
 export function sdMoteVertices(seed = 0x5d14c) {
   let x = seed >>> 0;
   const r = () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296; };
@@ -55,25 +33,19 @@ export function sdMoteVertices(seed = 0x5d14c) {
 
 const f = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
 
-/**
- * THE LAW, the shader's own in JS: where mote (kind, a, b, c) stands at clock time `t` (s) in the realm's frame, its
- * size (m), its alpha and its warmth (0 cold, 1 hot) - `{ p: [x, y, z], size, alpha, heat }`. Pure.
- */
+// Mirrors the shader's mote math in JS for the tests; keep the two in sync.
 export function sdMoteAt(kind, a, b, c, t) {
   const T = ((t % SD_SKY_PERIOD) + SD_SKY_PERIOD) % SD_SKY_PERIOD;
   /** @param {readonly number[]} s @param {number} u */
   const turnsOf = (s, u) => Math.floor(s[0] + u * (s[1] - s[0]));
   if (kind === 0) {
-    // the hall's dust: a ring turning once a period (the Orrery's own way round - clockwise as the eye sees it from
-    // above), each speck bobbing. AUDIT SD III (V7): its angle FALLS - the camera's one mirror (world/mat4.js) turns a
-    // falling angle clockwise on screen; it rose, and the dust turned against the stones
+    // The angle falls so the dust turns clockwise on screen, because the camera's mirror (world/mat4.js) flips it.
     const life = SD_SKY_PERIOD / turnsOf(SD_MOTE_TURNS.dust, a), u = ((T + b * life) % life) / life;
     const ang = c * TAU - (T / SD_SKY_PERIOD) * TAU, rad = Math.sqrt(a) * SD_MOTE_HALL.r;
     const y = SD_MOTE_HALL.y[0] + (SD_MOTE_HALL.y[1] - SD_MOTE_HALL.y[0]) * (0.5 + 0.5 * Math.sin(u * TAU + c * 9));
     return { p: [SD_ORRERY.x + Math.cos(ang) * rad, y, SD_ORRERY.z + Math.sin(ang) * rad], size: 0.05 + 0.05 * b, alpha: 0.35 + 0.35 * Math.sin(u * Math.PI), heat: 0.3 };
   }
   if (kind === 1) {
-    // the void's sparks: up out of the dark under the course, cooling, gone by the height a body stands at
     const life = SD_SKY_PERIOD / turnsOf(SD_MOTE_TURNS.sparks, a), u = ((T + b * life) % life) / life;
     const z0 = SD_MOTE_VOID.z[0], z1 = voidZ1();
     const x = (c * 2 - 1) * SD_MOTE_VOID.halfW + Math.sin(u * TAU + a * 20) * 0.8;
@@ -81,14 +53,12 @@ export function sdMoteAt(kind, a, b, c, t) {
     return { p: [x, y, z0 + (z1 - z0) * ((a * 7.31 + b * 3.7) % 1)], size: 0.12 + 0.12 * c, alpha: Math.min(1, u * 8) * (1 - u) * (1 - u), heat: 1 - u };
   }
   if (kind === 2) {
-    // the Hour's motes: orbiting the arena's centre AGAINST the clock (anticlockwise as the eye sees it from above),
-    // breathing. AUDIT SD III (V7): its angle RISES - it fell, and through the camera's one mirror they turned with it
+    // The angle rises so these motes turn anticlockwise on screen through the camera's mirror.
     const turns = turnsOf(SD_MOTE_TURNS.hour, a), ang = c * TAU + (T / SD_SKY_PERIOD) * turns * TAU;
     const rad = SD_MOTE_ARENA.r[0] + (SD_MOTE_ARENA.r[1] - SD_MOTE_ARENA.r[0]) * Math.sqrt(b);
     const y = SD_MOTE_ARENA.y[0] + (SD_MOTE_ARENA.y[1] - SD_MOTE_ARENA.y[0]) * ((a * 5.17 + c * 2.3) % 1);
     return { p: [SD_ARENA.x + Math.cos(ang) * rad, y, SD_ARENA.z + Math.sin(ang) * rad], size: 0.16 + 0.1 * a, alpha: 0.4 + 0.3 * Math.sin((T / SD_SKY_PERIOD) * turns * 4 * TAU + b * 11), heat: 0.55 };
   }
-  // the shards' dust: falling slowly out of the sky over everything
   const life = SD_SKY_PERIOD / turnsOf(SD_MOTE_TURNS.shards, a), u = ((T + b * life) % life) / life;
   const ang = c * TAU, rad = Math.sqrt((a * 13.7 + c) % 1) * SD_MOTE_SKY.r;
   const centreZ = (SD_ORRERY.z + SD_ARENA.z) / 2;
@@ -176,7 +146,6 @@ function mul4(out, a, b) {
   return out;
 }
 
-/** The Hour's motes on a GL2 context: built once, drawn each frame in the realm's world pass. */
 export class SdMotesRenderer {
   constructor(gl) {
     this.gl = gl;
@@ -192,14 +161,9 @@ export class SdMotesRenderer {
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
     gl.bindVertexArray(null);
     this._vp = new Float32Array(16);
-    /** what the last draw drew, for the tests: the count of points */
     this.drawn = 0;
   }
 
-  /**
-   * The motes, depth-tested and never written, added onto the frame - after the realm's solid geometry, in its fog
-   * (`fog` the renderer's as it set it) and at the sky's light (`gain`). `viewH` the world image's height in pixels.
-   */
   draw(proj, view, seconds, fog = null, gain = 1, viewH = 0) {
     const gl = this.gl;
     this.drawn = 0;

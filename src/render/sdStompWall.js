@@ -1,39 +1,14 @@
 // @ts-check
-// SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md section 9): THE STOMP'S RING AS A WALL - the ring a
-// Brass Stomp rolls out (net/superDungeon/sdRemnant.js stompRingAt - the very front the law strikes) stood up as a low wall of brass
-// light SD_STOMP_WALL.h tall, not a line on the floor: it reads "jump this". A cylinder strip of SD_STOMP_WALL.segs sides
-// about the Stomp's centre at the front's radius, ADDED onto the frame (the beam's law, render/superDungeon/sdBeam.js: fixed geometry
-// placed by uniforms, no depth written, tested against the world's, fogged), its light posterized in bands rising to a
-// bright top lip, fading as the roll ends. The gate telegraph's floor ring stays under it (scenes/superDungeon/sdRemnantBlows.js).
-//
-// THE HOLD (section 9) is the same wall in gold, SD_HOLD_CURTAIN.h tall, at the arena's rim: while a player joined to a
-// living fight stands in it (net/superDungeon/sdBrain.js arenaHolds), "you are held here" is seen, not found by walking into it.
-//
-// THE WAY HOME'S BEACON (section 4) is the same strip as a narrow column of silver light over the Return where the
-// Remnant fell (`beacon` - its light falling off up it): SD_HOME_BEACON.tall for its first seconds, seen from anywhere in
-// the arena and from the Steps, then settled to SD_HOME_BEACON.low while it stands (`sdHomeBeacon`). While the Return
-// assembles it is the column of pale light it assembles in (SD_HOME_BEACON.column - wide, from the floor), closing to
-// the beacon over its top as the keystone locks.
-//
-// Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon wall pass from one cylinder strip: the Brass Stomp ring as a low wall, the hold curtain at the
+// arena rim, and the way home beacon.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { SD_BLOWS, stompRingAt } from '../net/sdRemnant.js';
 import { SD_ARENA, realmToDungeon } from '../net/sdBrain.js';
 
-/** The wall: its height (m - under a jump's reach, over a step's), its sides, the most a frame stands (the Remnant's
- *  and the two Echoes'), and its brass. */
 export const SD_STOMP_WALL = Object.freeze({ h: 0.6, segs: 64, max: 3, color: Object.freeze([1.0, 0.7, 0.26]) });
-/** The hold's curtain: its height, its light, its gold - at the arena's rim, a hair outside it. */
 export const SD_HOLD_CURTAIN = Object.freeze({ h: 1.1, k: 0.75, out: 0.15, color: Object.freeze([1.0, 0.78, 0.4]) });
-/** The way home's beacon: its reach up at first and once settled (m), how long it stands tall and how long it settles
- *  (ms, from the way home standing whole), its radius, its light and its silver; and the column the way home assembles
- *  in - its radius (about the 1.5x arch, 1.95 m wide), its light, and how long before the arch stands whole it closes to
- *  the beacon (ms). */
 export const SD_HOME_BEACON = Object.freeze({ tall: 40, low: 6, holdMs: 10000, settleMs: 2000, r: 0.32, k: 0.55, color: Object.freeze([0.8, 0.86, 1.0]), column: Object.freeze({ r: 1.3, k: 0.3, closeMs: 400 }) });
-/** The beacon over the way home `age` ms after it stood whole, into `out` (a wall record, `beacon` set): from `foot`
- *  metres up (the arch's top - it stands over it, never across its window), tall, then settling to low. Before it
- *  stands whole (`age` < 0 - its rise) the column it assembles in, from the floor, closing to the beacon. Pure. */
 export function sdHomeBeacon(age, out, foot = 0) {
   const B = SD_HOME_BEACON, C = B.column, u = Math.max(0, Math.min(1, (age - B.holdMs) / B.settleMs)), e = u * u * (3 - 2 * u);
   out.y0 = foot; out.h = B.tall + (B.low - B.tall) * e; out.r = B.r; out.k = B.k; out.color = B.color; out.beacon = true;
@@ -43,12 +18,9 @@ export function sdHomeBeacon(age, out, foot = 0) {
   }
   return out;
 }
-/** The hold's curtain as a wall record (sdStompWalls's shape): about the arena's heart. */
 export const SD_HOLD_WALL = Object.freeze({ x: 0, z: 0, r: SD_ARENA.r + SD_HOLD_CURTAIN.out, k: SD_HOLD_CURTAIN.k, h: SD_HOLD_CURTAIN.h, color: SD_HOLD_CURTAIN.color });
 
 const STOMP = SD_BLOWS.stomp;
-/** A body's blow if it is a Stomp rolling at `t` - the wall's `{ x, z, r, k }` into `w` (the arena's frame; k its light,
- *  fading over the roll's last fifth) - else false. */
 function rolling(atk, t, w) {
   if (!atk || atk.a !== STOMP.id) return false;
   const r = stompRingAt(atk, t);
@@ -57,10 +29,6 @@ function rolling(atk, t, w) {
   w.x = atk.x; w.z = atk.z; w.r = r; w.k = u > 0.8 ? Math.max(0, (1 - u) / 0.2) : 1;
   return true;
 }
-/**
- * THE WALLS STANDING at `t` of the fight state `s`: the Remnant's Stomp and each living Echo's, rolling - written into
- * `out` (SD_STOMP_WALL.max kept records, made once by the caller) and counted. Nothing made (the frame's).
- */
 export function sdStompWalls(s, t, out) {
   let n = 0;
   if (!s || s.fell) return 0;
@@ -69,7 +37,6 @@ export function sdStompWalls(s, t, out) {
   for (let i = 0; i < ec.length && n < out.length; i++) if (ec[i].h > 0 && rolling(ec[i].atk, t, out[n])) n++;
   return n;
 }
-/** Kept records for `sdStompWalls`. */
 export const sdStompWallRecords = () => Array.from({ length: SD_STOMP_WALL.max }, () => ({ x: 0, z: 0, r: 0, k: 0 }));
 
 const HEAD = `#version 300 es
@@ -110,7 +77,6 @@ void main() {
   o = vec4(uColor * k * uK * fogFactorAt(vWorld), 1.0);
 }`;
 
-/** The strip: SD_STOMP_WALL.segs quads round, one up. Pure. */
 export function sdStompWallVertices(segs = SD_STOMP_WALL.segs) {
   const v = [];
   for (let i = 0; i < segs; i++) {
@@ -139,8 +105,6 @@ export class SdStompWallRenderer {
     this._vp = new Float32Array(16);
     this.drawn = 0;
   }
-  /** Draw the first `n` of `walls` (sdStompWalls's; a wall may carry its own `h` and `color` - the hold's), in `fog`.
-   *  Answers whether it drew. */
   draw(walls, n, proj, view, fog = null) {
     this.drawn = 0;
     if (!(n > 0)) return false;

@@ -30,9 +30,11 @@ invariants:
   - "`EG_SKY_MAP` is 512, an octahedral NEAREST map painted one quadrant per call by the band's fragment shader (lite: one quadrant every fourth call). `egSkyPass.js` fetches it with one triangle at the far plane, depth-tested LEQUAL."
   - "Motes draw 600-1000 points in one additive draw, under L2 except the hottest embers and sparks (L3). They fade within `EG_MOTE_FLOOR.clear` (3 m) of any floor top."
   - "`egHalosInto` keeps at most `EG_HALO.max` (48) halos per frame, none beyond `EG_HALO.far` (120 m)."
+  - "Each mote kind's lives and wind drift are whole numbers per `EG_SKY_PERIOD` (`src/render/eliteGates/egMotes.js`), so the wrapped sky clock shows no seam."
 traps:
   - "`egUnderside.js` is the stair-fall camera law (`EG_FALL`, `egFallEye`, `egFallCamera`), not the underside mesh. Edit `egUndersideModel.js` for geometry."
   - "`SD_HALO_MAX` (64) is the shared renderer buffer; the Spire's own cap is `EG_HALO.max` 48."
+  - "`egMoteFloorKeep` is the JS twin of the mote vertex shader's `floorFade` and must change with it."
 dfu: []
 tags:
   - elite-gates

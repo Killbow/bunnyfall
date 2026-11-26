@@ -38,6 +38,7 @@ traps:
   - "`ARENADAG.RMB` is a custom block cut from `DFARENA.RMB` and shipped as vendored JSON, not loaded from classic `ARENA2` archives."
   - "Account-server home relocations record once per `(map_id, old_key)` in `home_moves`, and `arenaMoveHome` must stay idempotent across repeated logins."
   - "An arena move copies only the `HOME_MOVE_CARRIED` columns to the new `homes` row, so a new `homes` column must be added to that list or a move drops it."
+  - "`emptyArenaScene` never replaces a target scene that is already permanent, because an online move can run again at each boot until it is marked read; carried items join that scene's `ARENA_CRATE_KEY` (`container:0`) chest, and a new target record is stamped with the town's layout (`stampLayout`) or the next visit holds it back as a record of another layout."
 dfu: []
 tags:
   - arena

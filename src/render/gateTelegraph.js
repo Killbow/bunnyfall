@@ -1,195 +1,102 @@
 // @ts-check
-// WB4 (2026-09-25, Mac: "an oversized enemy with telegraphed attacks (like wind ups, etc)"): THE TELEGRAPH - every
-// attack's shape drawn on the court's floor where it will land. Design: bible/11-Multiplayer/World-Bosses.md section 5
-// ("On the ground: every shape is drawn where it will land - a dim outline at once, filling toward the edge as the
-// wind-up runs, bright at the landing").
-//
-// ONE QUAD over the floor's disc, a hair above it, and the shape is the FRAGMENT'S question: its point in the court's
-// frame against the attack the uniforms describe - the same law net/gate/gateStrike.js inAttack answers for a struck
-// player's feet (a cone about his facing that always holds his body, a disc about him or under each target, the lane
-// his charge runs, the ring of the nova, the whole floor), so the ground shows exactly what lands. `telegraphField` is
-// the shader's own reading in JS - the pins hold it to inAttack point for point, and the shader's text to it.
-//
-// The duel wall's law (render/duelWall.js): fixed geometry and uniforms, no depth written, tested against the depth the
-// court wrote (a body standing on it hides it), fogged as the ground is. A polygon offset keeps it off the floor it
-// lies on.
-//
-// WB13a (2026-10-01, Mac: "hone in telegraphs"): THE TELEGRAPH, HONED - read in Chromium at a fighter's eye and from
-// above, at every moment of every wind-up (bible/11-Multiplayer/World-Bosses.md section 20):
-//   - ONE LINE, whole from the first frame and the brightest thing in the shape, in ONE DANGER EDGE (Dagon's crimson for
-//     his own blows); the element lives in the fill and its grain. Its width from the edge's own screen derivative, a
-//     dark keyline outside it. No fuse burning it down, no false edge inside it.
-//   - THE FILL eases in behind the line and reaches the far edge as it lands - the Nova's and the Spokes' at the floor's
-//     rim when they reach past it. The last moments brighten the line alone; the landing is white-hot, then a scorch.
-//   - The Nova's safe heart has a cool edge. Burning ground is terrain, darker, its rim broken; a path or a tether is
-//     dashes flowing to him. Nothing flashes faster than three times a second.
-//   - Premultiplied: the light ADDED, the floor under a fill DARKENED (ONE, ONE_MINUS_SRC_ALPHA). A quad per shape.
-//
-// FIELD BUGS 2026-10-13e AOE-PERF (HellRay: "massive FPS drops when the boss performs AoE attacks and circles appear"): a
-// quad is laid over the ground its shape can draw on, and no more. A blow's reaches TELEGRAPH_REACH past it - its glow,
-// keyline and wave reach as far as the pixel is large - but his mark (telegraphMarkReach) and a path or a tether
-// (telegraphStrip) draw nothing past their own ground at any pixel's size, and theirs are that ground: an AoE frame at a
-// fighter's eye rasterised 3.4 screens of this pass, 2.1 now (tools/fb1013ePerfProbe.mjs). The fragment stage is the one
-// it was, byte for byte (bible/07-Rendering/Performance-Rig.md AOE-PERF).
-//
-// Not a DFU member. Ledger A (WB).
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { ATTACK_BY_ID, ATTACKS, BOSS_R, COURT_CENTRE, COURT_R, COURTS, BASE_PROFILE, windupOf, nearestCourt, isDagons, WALKS, WALK_HALF_W, PLAN_PLAIN, CHAIN_HOLD_M } from '../net/gateBrain.js';
 import { telegraphAt, wheelAngle } from '../net/gateStrike.js';
 import { attackColor } from '../world/gateBoss.js';
 
-/** The shapes, as the shader's `uKind` says them. WBX5: the Spokes of Dagon's lanes; WBX4: his mark. */
-export const TELEGRAPH_KIND = Object.freeze({ cone: 0, disc: 1, discs: 2, lane: 3, ring: 4, all: 5, spokes: 6, mark: 7, wedges: 8 });   // WB14a: the Unmaking's wedges
-/** The most lanes one spokes lays (the shader's loop bound). */
+export const TELEGRAPH_KIND = Object.freeze({ cone: 0, disc: 1, discs: 2, lane: 3, ring: 4, all: 5, spokes: 6, mark: 7, wedges: 8 });
 export const TELEGRAPH_SPOKES_MAX = 8;
-/** WBX4 (2026-09-26, Swololo on Discord: "its hard to see where boss is and where he is facing, maybe he should have a
- *  circle under him"): HIS MARK on the floor, always - a ring about his feet a little wider than his body, and a chevron
- *  before it pointing where he faces: its ring's radius, the chevron's length and its half-width at the ring. */
 export const BOSS_MARK_R = BOSS_R + 0.35;
 export const BOSS_MARK_CHEVRON_LEN = 1.6;
 export const BOSS_MARK_CHEVRON_HALF_W = 0.85;
-/** The most discs one attack lays (Hellfire's two volleys of five in phase three - net/gate/gateBrain.js). */
 export const TELEGRAPH_POINTS_MAX = 10;
-/** How far over the floor it lies, metres; how far past the floor's rim a whole court's quad reaches, and (WB13a) how far
- *  past its own shape a shape's quad reaches - its glow, its keyline and its shockwave. */
 export const TELEGRAPH_LIFT = 0.05;
 export const TELEGRAPH_MARGIN = 0.5;
 export const TELEGRAPH_REACH = 4;
-/** FIELD BUGS 2026-10-13e AOE-PERF: how far past its ring his mark's ring is drawn (its smoothstep's outer edge - the
- *  shader reads it from here), and how far past the ground a shape draws its quad is laid where that ground is all it
- *  draws (his mark; a path or a tether) - a hair, for the rounding of the quad's corners. */
 export const TELEGRAPH_MARK_RING = 0.2;
 export const TELEGRAPH_TIGHT_PAD = 0.05;
-/** AUDIT EG V (L6-2; Elite-Gates.md section 25.4): how far past its radius a Vestige aura's ring (TELEGRAPH_POOL_SPIRE.ring)
- *  draws - its line's two pixels are cut there at any pixel's size (whole within ~18 m at a grazing look on a 1080p screen;
- *  past that the ring is a few pixels across) - and how far across its line a pull-apart tether's break tick reaches past
- *  twice its half-width (the Spire's stage's own `2.0 * uHalfW + 0.1`). Each quad is laid over that ground and no more. */
 export const TELEGRAPH_RING_REACH = 0.5;
 export const TELEGRAPH_TICK_REACH = 0.1;
-/** Burning ground comes up over this long as it lands; a landing's afterglow dies over this long after its span. */
 export const TELEGRAPH_FADE_IN_MS = 150;
 export const TELEGRAPH_FLASH_MS = 350;
-/** WB13a: a shape's line stands whole from the word, popping (decaying over TELEGRAPH_POP_MS); its inside comes up over
- *  TELEGRAPH_FILL_IN_MS; the landing's white heat decays over TELEGRAPH_FLASH_TAU_MS into a scorch. */
 export const TELEGRAPH_POP_MS = 70;
 export const TELEGRAPH_FILL_IN_MS = 120;
 export const TELEGRAPH_FLASH_TAU_MS = 90;
-/** WB13a: THE DANGER EDGE - every pending shape's line, his and his host's, whatever it carries (an element's blue or green
- *  on the red floor read as safe), and Dagon's own crimson for the Wrath and the Reckoning; the Nova's safe heart's edge
- *  is cool. */
 export const TELEGRAPH_EDGE = Object.freeze([1.0, 0.36, 0.05]);
 export const TELEGRAPH_EDGE_DAGON = Object.freeze([1.0, 0.24, 0.28]);
 export const TELEGRAPH_EDGE_SAFE = Object.freeze([0.72, 0.95, 1.0]);
-/** WB13a: what a shape is (`pool`): a blow still to land, burning ground, or a path or tether (dashes flowing to him). */
 export const TELEGRAPH_POOL = Object.freeze({ blow: 0, ground: 1, path: 2 });
-/** WB13a: the line is two pixels wherever it is seen - wider on a screen shorter than TELEGRAPH_LINE_H, up to this. */
 export const TELEGRAPH_LINE_H = 540;
 export const TELEGRAPH_LINE_W_MAX = 1.6;
 export const telegraphLineW = (h) => Math.max(1, Math.min(TELEGRAPH_LINE_W_MAX, TELEGRAPH_LINE_H / Math.max(1, h || TELEGRAPH_LINE_H)));
-/** WB13a: the throb on the line: 1.5 beats a second at the word, 3 at the landing - never past WCAG 2.3.1's three flashes a
- *  second (the phase is hz * uSince and uT grows with uSince, so the beat is 1.5 + 3 (hz - 1.5): hz = 1.5 + 0.5 uT^2). */
+// At most three flashes a second (WCAG 2.3.1). The beat is 1.5 + 3 (hz - 1.5), so the shader's hz tops out at 2.
 export const TELEGRAPH_THROB_MAX_HZ = 3;
-/**
- * WB9e (2026-09-30, Mac: "further improve his telegraphs"): EACH SHAPE WEARS ITS ELEMENT - the fill's grain by what
- * lands (`uStyle`): his weight's cracks (the blade, the slam, the charge, the leaps), fire's flicker, frost's facets,
- * the storm's crackle, venom's bubbles, and Dagon's own for the Wrath and the Reckoning.
- */
 export const TELEGRAPH_STYLE = Object.freeze({ weight: 0, fire: 1, frost: 2, shock: 3, poison: 4, dagon: 5 });
-/** WB9e: the shockwave a landing throws out past its edge - its speed (metres a second) and how long it runs; WB13a: and
- *  how far it runs at most - half its shape's size, 1 to TELEGRAPH_WAVE_MAX_M (a Bite's swept five times its size). */
 export const TELEGRAPH_WAVE_MPS = 22;
 export const TELEGRAPH_WAVE_MS = 280;
 export const TELEGRAPH_WAVE_MAX_M = 3.5;
-/** WB9e: the last stretch of a wind-up - "now"; WB13a: it brightens and widens the line alone (it flooded the shape at the
- *  landing's own brightness, so the landing never read). */
 export const TELEGRAPH_NOW_MS = 180;
-/** An attack's grain under a profile: Dagon's own, else its element's (his weight's when it carries none). */
 export const telegraphStyle = (A, P = BASE_PROFILE) => (isDagons(A) ? TELEGRAPH_STYLE.dagon : TELEGRAPH_STYLE[P.atk[A.key].el ?? 'weight'] ?? TELEGRAPH_STYLE.weight);
-/** WB14a: THE NEW ARSENAL'S GROUND - a shape of the gate's own kinds for each but the Unmaking's (a kind of its own,
- *  TELEGRAPH_KIND.wedges): the Chains a path (TELEGRAPH_POOL.path - dashes flowing to him) from him to the chained,
- *  TELEGRAPH_CHAIN_HALF_W across, in his blow's colour while they stand inside its hold and the safe edge's past it; the
- *  Brand his element's rings and the Torment a gold one (TORMENT_COLOR - a ring to gather in, never one to leave), each
- *  where this screen sees its marked fighter; the Wheel the Spokes' lanes, turning; the Gaze none - it lands on a view,
- *  never on the ground. */
 export const TELEGRAPH_CHAIN_HALF_W = 0.35;
 export const TORMENT_COLOR = Object.freeze([1.0, 0.8, 0.28]);
 export const TORMENT_EDGE = Object.freeze([1.0, 0.9, 0.5]);
-/** WB14a: the shape each new attack's ground takes (TELEGRAPH_KIND by name - the gate's own shapes keep their own). */
 const ARSENAL_KIND = Object.freeze({ tether: 'lane', brand: 'discs', torment: 'discs', wheel: 'spokes', wedges: 'wedges' });
 
-/** WB13a: an attack's line - Dagon's crimson for his own, the danger edge for every other. */
 export const telegraphEdge = (A) => (A && isDagons(A) ? TELEGRAPH_EDGE_DAGON : TELEGRAPH_EDGE);
 
 const DEG = Math.PI / 180;
 
 /**
- * What the pass draws for an attack at `now` - the uniforms, as plain numbers - or null when there is nothing (no
- * attack, or its landing's flash is over). `t` is the wind-up's share (the fill's reach), `flash` 1 from the landing
- * on, `alpha` its fade after its span (WB13a: none at the word - the line stands whole from the first frame, the shader
- * brings the inside up). WB8b: under the fight's profile `P` - the reach the attack has under his marks, his body his
- * own size, the colour his aspect gives it - so the ground still shows exactly what lands. WB13a: `edge` its line's
- * colour, `runS` the charge's run (its landing follows his head down the lane).
- * @param {{a: number, at: number, x: number, z: number, yw: number, tg: number[][]}|null} atk @param {number} phase @param {number} now
+ * @param {{a: number, at: number, x: number, z: number, yw: number, tg: number[][]}|null} atk
+ * @param {number} phase
+ * @param {number} now
  * @param {ReturnType<typeof import('../net/gateBrain.js').fightProfile>} [P]
  */
 export function telegraphShape(atk, phase, now, P = BASE_PROFILE, markAt = null) {
-  /** @type {any} an attack of any shape - the fields its shape does not have read as none */
+  /** @type {any} */
   const A = atk ? ATTACK_BY_ID[atk.a] : null;
   const tel = A ? telegraphAt(atk, phase, now) : null;
-  if (!A || !tel || A.shape === 'gaze') return null;   // WB14a: the Gaze lands on a view, never on the ground
+  if (!A || !tel || A.shape === 'gaze') return null;
   const span = Math.max(A.active, 1);
   if (tel.since >= span + TELEGRAPH_FLASH_MS) return null;
   const start = atk.at - windupOf(A, phase);
   const fadeOut = tel.since > span ? 1 - (tel.since - span) / TELEGRAPH_FLASH_MS : 1;
   const kind = A.shape === 'disc' ? (A.aim === 'self' ? TELEGRAPH_KIND.disc : TELEGRAPH_KIND.discs) : TELEGRAPH_KIND[ARSENAL_KIND[A.shape] ?? A.shape];
-  // WB14a: a marked fighter where this screen sees them now (`markAt(k)` - the court's: my feet, the online frame's place
-  // of another), else where they stood at the word
   const placed = (k) => markAt?.(k) ?? atk.tg?.[k] ?? null;
   const tether = A.shape === 'tether', wheel = A.shape === 'wheel', wedges = A.shape === 'wedges';
   const end = (tether ? placed(0) : null) ?? atk.tg?.[0] ?? [atk.x, atk.z];
-  // WBX5: a 'point' disc is one mark (the leap's landing, the meteor's fall); the spokes' lanes are `len` long
   const marks = A.aim === 'players' ? (atk.tg ?? []).slice(0, TELEGRAPH_POINTS_MAX).map((p, k) => placed(k) ?? p) : A.aim === 'point' ? (atk.tg ?? []).slice(0, 1) : [];
-  // WB9b: the court it is drawn over - where it lands (the bound's landing is the next court's heart), else where he stood
   const at = A.aim === 'point' && marks.length ? marks[0] : A.aim === 'players' && marks.length ? marks[0] : [atk.x, atk.z];
-  const held = tether && Math.hypot(end[0] - atk.x, end[1] - atk.z) <= CHAIN_HOLD_M;   // WB14a: the chain's colour says whether it holds
+  const held = tether && Math.hypot(end[0] - atk.x, end[1] - atk.z) <= CHAIN_HOLD_M;
   const torment = A.shape === 'torment';
   return {
     kind, origin: wedges ? [at[0], at[1]] : [atk.x, atk.z], yaw: wheel ? wheelAngle(atk, now) : atk.yw,
     r: A.shape === 'spokes' || wheel ? A.len : P.atk[A.key].r ?? 0, halfArc: wedges ? Math.PI / A.n : ((A.arc ?? 0) / 2) * DEG, body: wedges ? 0 : P.bossR,
-    end: [end[0], end[1]], halfW: tether ? TELEGRAPH_CHAIN_HALF_W : A.shape === 'lane' ? Math.max((A.width ?? 0) / 2, P.bossR) : (A.width ?? 0) / 2, r0: A.r0 ?? 0, r1: A.r1 ?? 0,   // AUDIT WBX F7: the charge strikes as wide as his body (net/gate/gateStrike.js chargeStrikes), and shows so
+    end: [end[0], end[1]], halfW: tether ? TELEGRAPH_CHAIN_HALF_W : A.shape === 'lane' ? Math.max((A.width ?? 0) / 2, P.bossR) : (A.width ?? 0) / 2, r0: A.r0 ?? 0, r1: A.r1 ?? 0,
     points: marks.map((p) => [p[0], p[1]]), n: A.shape === 'spokes' || wheel ? Math.min(TELEGRAPH_SPOKES_MAX, A.n) : wedges ? A.n / 2 : 0,
-    // WB14a: the Wheel's blades stand lit through their whole turn (its landing's flash at their end); the chain is a path
     t: tel.t, flash: tel.since >= 0 && !(wheel && tel.since < span) ? 1 : 0, alpha: Math.max(0, fadeOut),
     color: tether ? (held ? attackColor(A, P) : TELEGRAPH_EDGE_SAFE) : torment ? TORMENT_COLOR : attackColor(A, P), edge: torment ? TORMENT_EDGE : telegraphEdge(A),
     runS: A === ATTACKS.charge ? span / 1000 : 0, pool: tether ? TELEGRAPH_POOL.path : TELEGRAPH_POOL.blow,
-    // WB9b: over which court (all three for the whole arena's - the Wrath's and the Reckoning's); WB9e: its grain, its own
-    // clock (seconds since the word, the wind-up's length) and how long since it landed (the shockwave's)
     court: A.shape === 'all' ? -1 : nearestCourt(at[0], at[1]), style: telegraphStyle(A, P),
     since: Math.max(0, (now - start) / 1000), span: Math.max(0.001, windupOf(A, phase) / 1000), after: tel.since >= 0 && !(wheel && tel.since < span) ? (wheel ? tel.since - span : tel.since) / 1000 : -1,
   };
 }
 
-/** WBX4: HIS MARK as the pass draws it - where he stands (the court's frame), his facing, in `color` (the ward's gold while
- *  it stands, his ember otherwise), about a body of `body` metres (WB8b: his profile's - Colossal's is larger). Pure. */
 export function markShape(at, yaw, color, body = BOSS_R) {
   return {
     kind: TELEGRAPH_KIND.mark, origin: [at[0], at[1]], yaw, r: body + (BOSS_MARK_R - BOSS_R), halfArc: 0, body, end: [at[0], at[1]],
     halfW: BOSS_MARK_CHEVRON_HALF_W, r0: 0, r1: BOSS_MARK_CHEVRON_LEN, points: [], n: 0, t: 1, flash: 0, alpha: 1, color, edge: TELEGRAPH_EDGE,
-    court: 0, style: TELEGRAPH_STYLE.weight, since: 0, span: 1, after: -1, runS: 0, pool: TELEGRAPH_POOL.blow,   // WB9b: the court's driver sets `court` where he stands
+    court: 0, style: TELEGRAPH_STYLE.weight, since: 0, span: 1, after: -1, runS: 0, pool: TELEGRAPH_POOL.blow,
   };
 }
 
-/** WBX5: THE BURNING GROUND as the pass draws it - live pools (net/gate/gateStrike.js landingPools) gathered by radius, each
- *  group one filled `discs` shape in `color`, coming up at its landing and dying down over its last second. WB13a: a
- *  full group (TELEGRAPH_POINTS_MAX) starts another - the newest pools were dropped, unseen and still biting (two
- *  phase-three Hellfires on five fighters). Pure. */
 export function poolShapes(pools, now, color, style = TELEGRAPH_STYLE.fire) {
   const byR = new Map();
   const groups = [];
   for (const p of pools ?? []) {
     if (!(now >= p.from && now < p.until)) continue;
-    const court = nearestCourt(p.x, p.z), key = `${court}:${p.r}`;   // WB9b: each court's pools on its own quad
+    const court = nearestCourt(p.x, p.z), key = `${court}:${p.r}`;
     let g = byR.get(key);
     if (!g || g.pts.length >= TELEGRAPH_POINTS_MAX) { g = { r: p.r, court, pts: [], alpha: 0, from: p.from }; byR.set(key, g); groups.push(g); }
     g.pts.push([p.x, p.z]);
@@ -199,26 +106,22 @@ export function poolShapes(pools, now, color, style = TELEGRAPH_STYLE.fire) {
   return groups.map((g) => ({
     kind: TELEGRAPH_KIND.discs, origin: [0, 0], yaw: 0, r: g.r, halfArc: 0, body: BOSS_R, end: [0, 0], halfW: 0, r0: 0, r1: 0,
     points: g.pts, n: 0, t: 1, flash: 0, alpha: g.alpha, color, edge: TELEGRAPH_EDGE,
-    court: g.court, style, since: Math.max(0, (now - g.from) / 1000), span: 1, after: -1, runS: 0, pool: TELEGRAPH_POOL.ground,   // WB9d: burning ground - its own seething, never a wind-up's
+    court: g.court, style, since: Math.max(0, (now - g.from) / 1000), span: 1, after: -1, runS: 0, pool: TELEGRAPH_POOL.ground,
   }));
 }
 
 /**
- * WB13a: THE GROUND A SHAPE'S QUAD COVERS - its bounds in the court's frame, [x0, z0, x1, z1], TELEGRAPH_REACH past the
- * shape (its glow, its keyline, its shockwave), or null for a shape over its whole court (the Nova's ring, the Spokes,
- * the whole floor's). Every pass drew the whole 49 m court: a Legion-Lord's frame on a phone shaded 1.65M fragments,
- * most of them to discard. AUDIT EG V (L6-4): into `out` when given (the Spire's floor plan keeps one), else a new array.
- * Pure but for `out`.
- * @param {any} sh @param {number[]|null} [out]
+ * @param {any} sh
+ * @param {number[]|null} [out]
  * @returns {number[]|null}
  */
 export function telegraphBounds(sh, out = null) {
   const M = TELEGRAPH_REACH;
   const b = out ?? [0, 0, 0, 0];
   switch (sh?.kind) {
-    case TELEGRAPH_KIND.cone: case TELEGRAPH_KIND.disc: return boxInto(b, sh.origin[0], sh.origin[1], sh.origin[0], sh.origin[1], sh.r + (sh.kind === TELEGRAPH_KIND.disc && sh.pool === TELEGRAPH_POOL_SPIRE.ring ? TELEGRAPH_RING_REACH : M));   // AUDIT EG V (L6-2): a Vestige aura's ring draws no glow
-    case TELEGRAPH_KIND.mark: return boxInto(b, sh.origin[0], sh.origin[1], sh.origin[0], sh.origin[1], telegraphMarkReach(sh));   // AOE-PERF: his mark draws no glow
-    case TELEGRAPH_KIND.lane: return boxInto(b, Math.min(sh.origin[0], sh.end[0]), Math.min(sh.origin[1], sh.end[1]), Math.max(sh.origin[0], sh.end[0]), Math.max(sh.origin[1], sh.end[1]), stripW(sh) || sh.halfW + M);   // AUDIT EG V (L6-2): a path's or a tether's no wider than its strip
+    case TELEGRAPH_KIND.cone: case TELEGRAPH_KIND.disc: return boxInto(b, sh.origin[0], sh.origin[1], sh.origin[0], sh.origin[1], sh.r + (sh.kind === TELEGRAPH_KIND.disc && sh.pool === TELEGRAPH_POOL_SPIRE.ring ? TELEGRAPH_RING_REACH : M));
+    case TELEGRAPH_KIND.mark: return boxInto(b, sh.origin[0], sh.origin[1], sh.origin[0], sh.origin[1], telegraphMarkReach(sh));
+    case TELEGRAPH_KIND.lane: return boxInto(b, Math.min(sh.origin[0], sh.end[0]), Math.min(sh.origin[1], sh.end[1]), Math.max(sh.origin[0], sh.end[0]), Math.max(sh.origin[1], sh.end[1]), stripW(sh) || sh.halfW + M);
     case TELEGRAPH_KIND.discs: {
       if (!sh.points?.length) return null;
       let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
@@ -229,29 +132,13 @@ export function telegraphBounds(sh, out = null) {
   }
 }
 
-/** AUDIT EG V (L6-4): box `b` set to [x0, z0, x1, z1] `pad` out. */
 function boxInto(b, x0, z0, x1, z1, pad) { b[0] = x0 - pad; b[1] = z0 - pad; b[2] = x1 + pad; b[3] = z1 + pad; return b; }
 
-/**
- * FIELD BUGS 2026-10-13e AOE-PERF: HOW FAR FROM WHERE HE STANDS HIS MARK CAN DRAW ANYTHING - its pass draws its ring
- * (TELEGRAPH_MARK_RING about it), the floor inside it and the chevron before it (its base `halfW` either side at the ring,
- * its tip `r1` past it), and discards every fragment else whatever the pixel's size: no glow, no keyline, no wave. Its
- * quad was TELEGRAPH_REACH past the chevron's tip - three times the ground, a third of a fighter's screen, every frame
- * of the fight. Pure.
- */
 export const telegraphMarkReach = (sh) => Math.max(sh.r + TELEGRAPH_MARK_RING, Math.hypot(sh.r, sh.halfW), sh.r + sh.r1) + TELEGRAPH_TIGHT_PAD;
 
 /**
- * FIELD BUGS 2026-10-13e AOE-PERF: A PATH'S OR A TETHER'S OWN STRIP - { a, u, len, w }: its start (TELEGRAPH_TIGHT_PAD
- * past the capsule's end), its direction, its length and its half-width - or null for any other shape. A path's pass
- * (TELEGRAPH_POOL.path) writes its colour inside the lane alone (`fin`, the dashes flowing to him) and nothing past it at
- * any pixel's size - no line, no glow - so its quad is the strip, laid along it; it was the box about its whole run,
- * TELEGRAPH_REACH past it, and a Sapper walking in from the rim made that a fifth of the screen. AUDIT EG V (L6-2): the
- * Spire's two tethers are strips too (Elite-Gates.md section 25.5 - the Spire's stage, EG-ZG's pools): a stay-close chain
- * (TELEGRAPH_POOL_SPIRE.chain) draws its links inside the lane alone, and a pull-apart tether (TELEGRAPH_POOL_SPIRE.pull) its
- * line inside it and its break tick out to twice its half-width and TELEGRAPH_TICK_REACH - its strip that wide. AUDIT EG V
- * (L6-4): into `out` when given (its `a` and `u` pairs kept), else a new strip. Pure but for `out`.
- * @param {any} sh @param {{ a: number[], u: number[], len: number, w: number }|null} [out]
+ * @param {any} sh
+ * @param {{ a: number[], u: number[], len: number, w: number }|null} [out]
  */
 export function telegraphStrip(sh, out = null) {
   const w = stripW(sh);
@@ -262,8 +149,6 @@ export function telegraphStrip(sh, out = null) {
   out.a[0] = sh.origin[0] - ux * w; out.a[1] = sh.origin[1] - uz * w; out.u[0] = ux; out.u[1] = uz; out.len = l + 2 * w; out.w = w;
   return out;
 }
-/** AUDIT EG V (L6-2): a path's or a tether's own strip's half-width (telegraphStrip's `w` - its lane's reach, a pull-apart's
- *  break tick, TELEGRAPH_TIGHT_PAD past it), or NaN for any other shape. Pure. */
 function stripW(sh) {
   if (!sh || sh.kind !== TELEGRAPH_KIND.lane) return NaN;
   const across = sh.pool === TELEGRAPH_POOL.path || sh.pool === TELEGRAPH_POOL_SPIRE.chain ? sh.halfW : sh.pool === TELEGRAPH_POOL_SPIRE.pull ? 2 * sh.halfW + TELEGRAPH_TICK_REACH : NaN;
@@ -271,14 +156,11 @@ function stripW(sh) {
 }
 
 const wrap = (a) => a - 2 * Math.PI * Math.floor((a + Math.PI) / (2 * Math.PI));
-/** WB13a: how far from (ox, oz) along the unit (dx, dz) the rim of the floor of radius `R` about (cx, cz) stands - the
- *  shader's rimDist. */
+// JS twin of the shader's rimDist; keep the two in step.
 export function rimDist(ox, oz, dx, dz, cx, cz, R = COURT_R) {
   const ocx = ox - cx, ocz = oz - cz, b = ocx * dx + ocz * dz, q = ocx * ocx + ocz * ocz - R * R;
   return -b + Math.sqrt(Math.max(b * b - q, 0));
 }
-/** WB13a: the cone's edge as one continuous distance - the sector's (folded about his facing) joined with his body's disc
- *  (AUDIT WB9 F1's jump gone: the line's width is read off this edge's own derivative). */
 function coneEdge(rx, rz, yaw, r, halfArc, body) {
   const fx = Math.sin(yaw), fz = Math.cos(yaw);
   const px = Math.abs(rx * fz - rz * fx), pz = rx * fx + rz * fz;
@@ -293,13 +175,11 @@ function segDist(px, pz, ax, az, bx, bz) {
   return [Math.hypot(px - (ax + vx * h), pz - (az + vz * h)), h];
 }
 
+// JS twin of the shader's field, which follows net/gateStrike.js inAttack; keep the three in step.
 /**
- * THE SHADER'S OWN READING, in JS: for a point of the court (its frame), whether it lies inside the shape, how far it
- * is from the shape's edge (metres - the outline's measure), and the fill's coordinate (0 where the fill starts, 1 at
- * its far edge: out from him for a cone or disc, down the lane for the charge, out from the ring's inner edge for the
- * nova, out from the centre for the whole floor). WB13a: the Nova's and the Spokes' far edge is the floor's rim where
- * they reach past it - so the fill meets the edge a fighter can see as it lands.
- * @param {NonNullable<ReturnType<typeof telegraphShape>>} sh @param {number} px @param {number} pz
+ * @param {NonNullable<ReturnType<typeof telegraphShape>>} sh
+ * @param {number} px
+ * @param {number} pz
  */
 export function telegraphField(sh, px, pz) {
   const rx = px - sh.origin[0], rz = pz - sh.origin[1], d = Math.hypot(rx, rz);
@@ -324,7 +204,7 @@ export function telegraphField(sh, px, pz) {
       const far = Math.min(sh.r1, rimDist(sh.origin[0], sh.origin[1], rx / dd, rz / dd, C[0], C[1]));
       return { inside: d >= sh.r0 && d <= sh.r1, edge: Math.min(Math.abs(d - sh.r0), Math.abs(d - sh.r1)), s: Math.max(0, Math.min(1, (d - sh.r0) / Math.max(far - sh.r0, 1e-3))) };
     }
-    case TELEGRAPH_KIND.all: { const cc = COURTS[nearestCourt(px, pz)], c = Math.hypot(px - cc[0], pz - cc[1]); return { inside: true, edge: Math.abs(COURT_R - c), s: c / COURT_R }; }   // WB9b: about the court the point stands in
+    case TELEGRAPH_KIND.all: { const cc = COURTS[nearestCourt(px, pz)], c = Math.hypot(px - cc[0], pz - cc[1]); return { inside: true, edge: Math.abs(COURT_R - c), s: c / COURT_R }; }
     case TELEGRAPH_KIND.spokes: {
       const C = COURTS[sh.court] ?? COURTS[0];
       let best = Infinity, bh = 0;
@@ -336,12 +216,11 @@ export function telegraphField(sh, px, pz) {
       return { inside: best <= sh.halfW, edge: Math.abs(best - sh.halfW), s: bh };
     }
     case TELEGRAPH_KIND.wedges: {
-      // WB14a: the Unmaking's lit wedges - `n` about its heart, the first centred on its facing, `halfArc` each side
       const per = (2 * Math.PI) / Math.max(1, sh.n), a = Math.atan2(rx, rz) - sh.yaw, C = COURTS[sh.court] ?? COURTS[0];
       const off = Math.abs(a - per * Math.floor(a / per + 0.5)) - sh.halfArc;
       const across = d * Math.sin(Math.min(Math.abs(off), Math.PI / 2));
       const inside = d <= sh.r && off <= 0;
-      return { inside, edge: inside ? Math.min(across, sh.r - d) : Math.max(off > 0 ? across : 0, d - sh.r), s: d / Math.min(sh.r, rimDist(sh.origin[0], sh.origin[1], rx / (d || 1), rz / (d || 1), C[0], C[1])) };   // AUDIT WB14 (SCREEN-13): the fill meets the rim it is seen at (the Nova's and the Spokes' law)
+      return { inside, edge: inside ? Math.min(across, sh.r - d) : Math.max(off > 0 ? across : 0, d - sh.r), s: d / Math.min(sh.r, rimDist(sh.origin[0], sh.origin[1], rx / (d || 1), rz / (d || 1), C[0], C[1])) };
     }
     case TELEGRAPH_KIND.mark: {
       const fx = Math.sin(sh.yaw), fz = Math.cos(sh.yaw), along = rx * fx + rz * fz, side = rx * fz - rz * fx;
@@ -584,18 +463,11 @@ function mat4Multiply(out, a, b) {
   return out;
 }
 
-/** AUDIT WB9 (court F4): a walkway's strip - 0..1 along it, -1..1 across (the vertex stage lays it where it is laid). */
 export const TELEGRAPH_WALK_QUAD = Object.freeze([0, -1, 0, 1, 1, 1, 0, -1, 1, 1, 1, -1]);
 
-/** WB13a: the quad, two triangles facing up over 0..1 - the vertex stage lays it over the shape's own ground (uLo..uHi).
- *  Pure. */
 export function telegraphQuad() {
   return new Float32Array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0]);
 }
-/** WB13a: the ground the pass lays the quad over for `shape` in court `k`, [x0, z0, x1, z1] - its bounds within the
- *  court's own square (the floor and TELEGRAPH_MARGIN past it), the whole square for a shape over the whole court, or
- *  null where they do not meet. SD8d: over another floor's courts and radius (`courts`, `R` - the Brass Remnant's
- *  arena). Pure. */
 export function telegraphQuadOver(shape, k, courts = COURTS, R = COURT_R) {
   const C = courts[k], half = R + TELEGRAPH_MARGIN;
   if (!C) return null;
@@ -607,24 +479,7 @@ export function telegraphQuadOver(shape, k, courts = COURTS, R = COURT_R) {
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 
-/**
- * EG-G2 (2026-10-12, bible/11-Multiplayer/Elite-Gates.md sections 25.6 and 25.7 - EG16): THE SPIRE'S TELEGRAPH, the gate's
- * own fragment stage with three things more, made from TELEGRAPH_FS's text (each needle asserted - the gate's program is
- * the same bytes it was, and every pin on it stands):
- *   READABLE IN THE FOG - `uFogFloor` (floor, within, ease): within `within` metres a shape keeps a fog visibility of at
- *     least `floor`, eased out past it (world/eliteGates/egLook.js egFogKept - the same numbers), so the Shade's fog and the Cairn's
- *     haze never fade a warning;
- *   `port:telegraphFill` - `uFillK`, the fill's opacity (0.5 to 1); the line is never thinned by it;
- *   `port:dangerPalette`'s style bit - `uLook`: 1 a second dark keyline outside the first, 2 a 45-degree hatch through the
- *     fill (world/eliteGates/egLook.js EG_LOOK_BIT). Its colours ride the pass's existing uEdgeCol and uColor;
- *   THE HAVEN GRAMMAR (section 25.5) - a pool of its own, TELEGRAPH_POOL_HAVEN: gold and lit (never the darkened floor
- *     burning ground is), its line bright, a dark keyline outside it and chevrons flowing inward to its heart - so a haven
- *     never relies on gold against red (a deuteranopia pair);
- *   EG-ZD (2026-10-12, section 13.2 - an EG-H1 departure retired): THE FEINT'S DASHED FADE - `uLook` 4 (world/eliteGates/egLook.js
- *     EG_LOOK_BIT.dash): a cut blow's whole mark broken into stripes as it fades, Feud-Arc section 7.3's own grammar
- *     (render/foeTelegraph.js TELL5 - `step(0.5, fract((across + along) * 2.5))`, here across the court's own axes the
- *     hatch's other way), so a feint reads dashed and never as a blow still to come.
- */
+// Built from the gate shader text by asserted swaps, so the gate program itself stays byte for byte the same.
 export function spireTelegraphFs(fs) {
   const swap = (src, needle, put) => { if (!src.includes(needle)) throw new Error(`spireTelegraphFs: the gate's shader lost ${needle}`); return src.replace(needle, put); };
   let out = swap(fs, 'uniform vec3 uCamPos;\n', 'uniform vec3 uCamPos;\nuniform vec3 uFogFloor;   // EG-G2: floor, within, ease (m)\nuniform float uFillK;     // EG-G2: the fill\'s opacity\nuniform int uLook;        // EG-G2: 1 the double keyline, 2 the hatch\n');
@@ -633,30 +488,11 @@ export function spireTelegraphFs(fs) {
   out = swap(out, '  float inner = (fin * 0.10 + filled * (0.20 + 0.55 * T2) + lip * 0.35 + fin * (0.05 + 0.07 * uT) * g) * inFade;\n', '  float inner = (fin * 0.10 + filled * (0.20 + 0.55 * T2) + lip * 0.35 + fin * (0.05 + 0.07 * uT) * g) * inFade * uFillK * hatch;\n');
   out = swap(out, '  float a = fin * (0.22 + 0.18 * filled) * inFade + keyl * 0.55;\n', '  float a = fin * (0.22 + 0.18 * filled) * inFade * uFillK + keyl * 0.55 + keyl2 * 0.75;\n');
   out = swap(out, '  o = vec4(rgb * f, clamp(a, 0.0, 1.0) * f);\n}', '  if ((uLook & 4) != 0) { float dsh = step(0.5, fract((vCourt.x - vCourt.y) * 2.5)); rgb *= dsh; a *= dsh; }   // EG-ZD: a feint cut - dashed as it fades\n  o = vec4(rgb * f, clamp(a, 0.0, 1.0) * f);\n}');
-  out = swap(out, '  if (uPool == 1) {\n', EG_ZG_POOLS_GLSL + '  if (uPool == 1) {\n');   // EG-ZG: the grammars' pools, before the gate's own
+  out = swap(out, '  if (uPool == 1) {\n', EG_ZG_POOLS_GLSL + '  if (uPool == 1) {\n');
   return out;
 }
-/** EG-G2: THE HAVEN GRAMMAR's pool - the Spire's stage alone draws it (the gate's own reads it as a blow, and is never
- *  handed one). */
 export const TELEGRAPH_POOL_HAVEN = 3;
-/**
- * EG-ZG (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md sections 25.2, 25.4 and 25.5):
- * THE GRAMMARS' POOLS - each a shape the Spire's stage alone draws (the gate's own is never handed one), its line in the
- * palette's danger (`uEdgeCol`) where it warns:
- *   pool (4)  a Spire pool - the band's ramp darkened (`uColor`), the floor darkened under it, its element's grain, and a
- *             DASHED danger rim (never POOL_COLOR, the burning ground's orange);
- *   pull (5)  a pull-apart tether (the Wraith's Drain, the Blood Tether, a soul-wisp) - a red line `uR` each side of its
- *             middle, chevrons pointing OUT from the middle and flowing outward, a tick across it at the break (`uR1`
- *             each side); the caller thins it (`halfW`) as the pair nears the break;
- *   chain (6) a stay-close tether (Morvayn's Chaining) - chain links along it, every other link turned, slack and dim under
- *             6 m and taut and throbbing (`uT` 0..1, never past three beats a second) to 8 m: never the pull's pattern;
- *   ring (7)  a Vestige aura - one thin line at the holder's feet in Battlemage blue (`uColor`), steady: yours, never a
- *             danger, never a cloud over the floor the telegraphs live on;
- *   dark (8)  THE ECLIPSE'S DARK - the floor darkened by `uT` (its last 2 s), every moon-shaft (`uPts`, radius `uR`) kept.
- */
 export const TELEGRAPH_POOL_SPIRE = Object.freeze({ haven: TELEGRAPH_POOL_HAVEN, pool: 4, pull: 5, chain: 6, ring: 7, dark: 8 });
-/** EG-ZG: the pools' fragment text, laid into the Spire's stage before the gate's burning ground (the fill's `f`, `fin`,
- *  `core`, `keyl` and `g` stand by then). */
 const EG_ZG_POOLS_GLSL = `  if (uPool == 4) {
     // EG-ZG (section 25.2): A SPIRE POOL - the band's ramp darkened, the floor darkened under it, a dashed danger rim
     float run = uKind == 2 ? course : uKind == 3 ? s * length(uEnd - uOrigin) / 7.0 : (atan(rel.x, rel.y) + PI) / (2.0 * PI);
@@ -702,12 +538,7 @@ const EG_ZG_POOLS_GLSL = `  if (uPool == 4) {
     return;
   }
 `;
-/**
- * EG-ZG (2026-10-12; Elite-Gates.md section 11.7 - EG6b): THE SPIRE'S VERTEX STAGE, made from TELEGRAPH_VS's text by
- * asserted swaps (the gate's own is the same bytes it was): a fight floor's clipped triangle (`uOnFloor` 1 - its vertex
- * already in the court frame) or the gate's quad, at `uFloorY` (the floor's height, or a shape's own surface's) plus the
- * lift. With both nought it is the gate's.
- */
+// Built from the gate shader text by asserted swaps; with uOnFloor and uFloorY at 0 it matches the gate stage.
 export function spireTelegraphVs(vs) {
   const swap = (src, needle, put) => { if (!src.includes(needle)) throw new Error(`spireTelegraphVs: the gate's shader lost ${needle}`); return src.replace(needle, put); };
   let out = swap(vs, 'uniform float uLift;\n', 'uniform float uLift;\nuniform float uFloorY;      // EG-ZG: the floor\'s height (a shape\'s own surface\'s for a quad)\nuniform highp int uOnFloor;   // EG-ZG: 1 - aCourt is a fight floor\'s clipped triangle, in the court frame\n');
@@ -715,20 +546,20 @@ export function spireTelegraphVs(vs) {
   out = swap(out, 'vWorld = uCentre + vec3(vCourt.x, uLift, vCourt.y);', 'vWorld = uCentre + vec3(vCourt.x, uFloorY + uLift, vCourt.y);');
   return out;
 }
-/** EG-ZG: the Spire's vertex stage (spireTelegraphVs over the gate's). */
 export const TELEGRAPH_VS_SPIRE = spireTelegraphVs(TELEGRAPH_VS);
-/** EG-G2: the Spire's fragment stage (spireTelegraphFs over the gate's). */
 export const TELEGRAPH_FS_SPIRE = spireTelegraphFs(TELEGRAPH_FS);
-/** SHADER-STALL: the pass's one program, the gate's or (`spire`) the Spire's, as its constructor builds it - what a host
- *  starts ahead of the build (render/glProgram.js startPrograms).
- *  @param {boolean} spire @returns {ReadonlyArray<readonly [string, string]>} */
+/**
+ * @param {boolean} spire
+ * @returns {ReadonlyArray<readonly [string, string]>}
+ */
 export const telegraphPrograms = (spire) => [spire ? [TELEGRAPH_VS_SPIRE, TELEGRAPH_FS_SPIRE] : [TELEGRAPH_VS, TELEGRAPH_FS]];
-/** EG-G2: what the Spire's pass draws a shape with when the shape says nothing: no fog floor, the whole fill, no bits. */
 const NO_FOG_FLOOR = Object.freeze([0, 0, 1]);
 
 export class GateTelegraphRenderer {
-  /** @param {WebGL2RenderingContext} gl @param {{ spire?: boolean }} [o] - EG-G2: `spire`, the Spire's stage (TELEGRAPH_FS_SPIRE; EG-ZG: and
-   *  TELEGRAPH_VS_SPIRE - the fight floors' triangles at their own heights) */
+  /**
+   * @param {WebGL2RenderingContext} gl
+   * @param {{ spire?: boolean }} [o]
+   */
   constructor(gl, { spire = false } = {}) {
     this.gl = gl;
     this.spire = !!spire;
@@ -739,9 +570,7 @@ export class GateTelegraphRenderer {
     for (const n of ['uVP', 'uCentre', 'uCourt', 'uLo', 'uHi', 'uLift', 'uKind', 'uOrigin', 'uYaw', 'uR', 'uHalfArc', 'uBody', 'uEnd', 'uHalfW', 'uR0', 'uR1', 'uPts', 'uCount',
       'uT', 'uFlash', 'uAlpha', 'uColor', 'uEdgeCol', 'uFloorR', 'uStyle', 'uSince', 'uSpan', 'uAfter', 'uPool', 'uRunS', 'uLineW', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos',
       'uOnWalk', 'uWalkA', 'uWalkU', 'uWalkLen', 'uWalkC0', 'uWalkC1', 'uStrip', 'uStripW', ...(this.spire ? ['uFogFloor', 'uFillK', 'uLook', 'uFloorY', 'uOnFloor'] : [])]) this.u[n] = gl.getUniformLocation(prog, n);
-    /** EG-ZG: the fight floors' clipped triangles - one dynamic buffer a frame (the Spire's alone), and its size */
     this.floorVao = null; this.floorVbo = null; this.floorCap = 0;
-    /** EG-ZG: how many shape-floor draws the last drawFloors made, and how many of them on a floor's own triangles */
     this.floorDraws = 0; this.floorTris = 0;
     const verts = telegraphQuad();
     this.count = verts.length / 2;
@@ -753,7 +582,6 @@ export class GateTelegraphRenderer {
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
     this.vao = vao;
-    // AUDIT WB9 (court F4): the walkways' strip, one quad for all of them
     const walkVao = gl.createVertexArray();
     gl.bindVertexArray(walkVao);
     this.walkVbo = gl.createBuffer();
@@ -762,42 +590,28 @@ export class GateTelegraphRenderer {
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
     this.walkVao = walkVao;
-    /** how many walkway strips the last draw laid it over, for the tests */
     this.walked = 0;
     this._vp = new Float32Array(16);
     this._pts = new Float32Array(TELEGRAPH_POINTS_MAX * 2);
-    /** whether the last draw put a shape down, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /**
-   * Draw one attack's shape (`telegraphShape`'s answer; null draws nothing and touches nothing) over the court it names
-   * (WB9b: `shape.court`; -1 - the whole arena's - over each court in turn; WB13a: over its own ground there, not the
-   * whole court), the first court's centre standing at `centre` in the scene, `seconds` any clock (the shapes run on
-   * their own), `fog` the frame's fog as the renderer set it ({ mode,
-   * density, range, color, camPos }; none draws unfogged). AUDIT WB9 (court F4): `walks` - how far each walkway is laid
-   * (0..1, net/gate/gateBrain.js walkFormed; none, none drawn) - and the shape goes on over the laid stretch of each walkway
-   * its court joins (the whole arena's, of every one): a blow at the rim reaches the walkway past it, and strikes there.
-   */
   draw(shape, proj, view, eye, seconds, fog = null, centre = COURT_CENTRE, walks = null, floor = null) {
-    // SD8d: another floor than the Burning Court's - `floor` { r, courts } (the Brass Remnant's arena: one floor, its
-    // centre the frame's origin); the court's own by default. WB14b: `ks` the night's floors among them (net/gate/gateBrain.js
-    // nightPlan) - the whole arena's shape is drawn over those alone (a portent's platform stands only on its night)
     const floorCourts = floor?.courts ?? COURTS, floorR = floor?.r ?? COURT_R, floorKs = floor ? floor.ks ?? null : PLAN_PLAIN.floors;
     this.drawn = 0;
     this.walked = 0;
-    if (!shape || !(shape.alpha > 0.001) || !this.gl) return;   // AUDIT EG V (L6-5): a destroyed pass draws nothing
+    if (!shape || !(shape.alpha > 0.001) || !this.gl) return;
     const gl = this.gl, U = this.u;
     mat4Multiply(this._vp, proj, view);
     gl.useProgram(this.program);
     gl.uniformMatrix4fv(U.uVP, false, this._vp);
     gl.uniform3f(U.uCentre, centre[0], centre[1], centre[2]);
-    gl.uniform1i(U.uStyle, shape.style ?? 0);   // WB9e
+    gl.uniform1i(U.uStyle, shape.style ?? 0);
     gl.uniform1f(U.uSince, shape.since ?? 0);
     gl.uniform1f(U.uSpan, shape.span ?? 1);
     gl.uniform1f(U.uAfter, shape.after ?? -1);
-    gl.uniform1i(U.uPool, shape.pool === true ? TELEGRAPH_POOL.ground : (shape.pool | 0));   // WB9d; WB13a: a path's dashes
-    gl.uniform1f(U.uRunS, shape.runS ?? 0);   // WB13a
+    gl.uniform1i(U.uPool, shape.pool === true ? TELEGRAPH_POOL.ground : (shape.pool | 0));
+    gl.uniform1f(U.uRunS, shape.runS ?? 0);
     gl.uniform1f(U.uLineW, telegraphLineW(gl.drawingBufferHeight));
     gl.uniform1f(U.uLift, TELEGRAPH_LIFT);
     gl.uniform1i(U.uKind, shape.kind);
@@ -813,29 +627,26 @@ export class GateTelegraphRenderer {
     this._pts.fill(0);
     shape.points.forEach((p, i) => { this._pts[i * 2] = p[0]; this._pts[i * 2 + 1] = p[1]; });
     gl.uniform2fv(U.uPts, this._pts);
-    gl.uniform1i(U.uCount, shape.kind === TELEGRAPH_KIND.spokes || shape.kind === TELEGRAPH_KIND.wedges ? (shape.n ?? 0) : shape.points.length);   // WBX5: the spokes' count rides the points' slot (WB14a: and the wedges')
+    gl.uniform1i(U.uCount, shape.kind === TELEGRAPH_KIND.spokes || shape.kind === TELEGRAPH_KIND.wedges ? (shape.n ?? 0) : shape.points.length);
     gl.uniform1f(U.uT, shape.t);
     gl.uniform1f(U.uFlash, shape.flash);
     gl.uniform1f(U.uAlpha, Math.min(1, shape.alpha));
     gl.uniform3fv(U.uColor, shape.color);
-    gl.uniform3fv(U.uEdgeCol, shape.edge ?? TELEGRAPH_EDGE);   // WB13a
+    gl.uniform3fv(U.uEdgeCol, shape.edge ?? TELEGRAPH_EDGE);
     gl.uniform1f(U.uFloorR, floorR);
     gl.uniform1i(U.uFogMode, fog ? fog.mode : 0);
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye ?? centre);
-    if (this.spire) { const ff = shape.fogFloor ?? NO_FOG_FLOOR; gl.uniform3f(U.uFogFloor, ff[0], ff[1], ff[2]); gl.uniform1f(U.uFillK, shape.fillK ?? 1); gl.uniform1i(U.uLook, shape.look ?? 0); }   // EG-G2
+    if (this.spire) { const ff = shape.fogFloor ?? NO_FOG_FLOOR; gl.uniform3f(U.uFogFloor, ff[0], ff[1], ff[2]); gl.uniform1f(U.uFillK, shape.fillK ?? 1); gl.uniform1i(U.uLook, shape.look ?? 0); }
     gl.bindVertexArray(this.vao);
-    gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);   // WB13a: light added, the floor under a fill darkened - the frame's alpha untouched
+    gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
     gl.depthMask(false);
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -4);
-    // WB9b: over its court - or, the whole arena's, over each of them; WB13a: over its own ground there
     const one = Number.isInteger(shape.court) && shape.court >= 0, k0 = one ? (floorCourts[shape.court] ? shape.court : 0) : 0, k1 = one ? k0 + 1 : floorCourts.length;
     gl.uniform1i(U.uOnWalk, 0);
-    // AOE-PERF: a path's or a tether's quad is its own strip (telegraphStrip) - the walkways' quad, laid along it. Never
-    // over a fight floor's own triangles (EG-ZG's drawFloors lends them as this.vao): they are its ground already, and the
-    // strip's quad read as one (uOnFloor) would lie at the court's origin
+    // Never a strip over the lent fight floor triangles: read with uOnFloor, it would lie at the court origin.
     const strip = this.floorVao && this.vao === this.floorVao ? null : telegraphStrip(shape);
     if (strip) {
       gl.bindVertexArray(this.walkVao);
@@ -852,12 +663,11 @@ export class GateTelegraphRenderer {
       this.drawn++;
     }
     if (strip) { gl.uniform1i(U.uStrip, 0); gl.bindVertexArray(this.vao); }
-    // AUDIT WB9 (court F4): on over the walkways its courts join, as far as each is laid - never his mark (he stands in his court)
     if (Array.isArray(walks) && shape.kind !== TELEGRAPH_KIND.mark) {
       let on = false;
       for (const w of WALKS) {
         const f = walks[w.k];
-        if (!(f > 0) || (one && w.a !== k0 && w.b !== k0)) continue;   // WB14b: a walkway by its two floors
+        if (!(f > 0) || (one && w.a !== k0 && w.b !== k0)) continue;
         if (!on) { on = true; gl.bindVertexArray(this.walkVao); gl.uniform1i(U.uOnWalk, 1); gl.uniform2f(U.uCourt, COURTS[k0][0], COURTS[k0][1]); }
         gl.uniform2f(U.uWalkA, w.ax, w.az);
         gl.uniform2f(U.uWalkU, w.ux, w.uz);
@@ -876,15 +686,6 @@ export class GateTelegraphRenderer {
     gl.disable(gl.BLEND);
   }
 
-  /**
-   * EG-ZG (2026-10-12; bible/11-Multiplayer/Elite-Gates.md section 11.7 - EG6b): THE TELEGRAPHS PER FIGHT FLOOR, the
-   * Spire's stage alone. `plan` world/eliteGates/egTelegraph.js egFloorPlan's answer - `{ draws, buf, n }`: the frame's clipped floor
-   * triangles in one buffer (uploaded once here) and each shape-floor draw in THE TELEGRAPH BUDGET's order, mine last.
-   * A floor's draw is the gate's own `draw` over that floor's triangles at its height (this pass's vertex array and count
-   * lent to the floor's for the call, the floor's circle its court - `f.over` - so its rim, the ring's and the spokes'
-   * reach, are that floor's); a shape with its own surface (`sh.y`) is the gate's quad at that height over its own circle
-   * (`over`), and in a hall with no fight floor over the hall's court (`plan.over`). Nothing else moves.
-   */
   drawFloors(plan, proj, view, eye, seconds, fog = null, centre = COURT_CENTRE) {
     this.floorDraws = 0; this.floorTris = 0;
     if (!this.spire || !plan?.draws?.length || !this.gl) return;
@@ -925,16 +726,11 @@ export class GateTelegraphRenderer {
     } finally {
       this.vao = vao; this.count = count;
       gl.useProgram(this.program);
-      gl.uniform1i(U.uOnFloor, 0); gl.uniform1f(U.uFloorY, 0);   // the gate's quad at the hall's floor again, for any plain draw after
+      // Puts the gate quad back at the hall floor for any plain draw after.
+      gl.uniform1i(U.uOnFloor, 0); gl.uniform1f(U.uFloorY, 0);
     }
   }
 
-  /**
-   * AUDIT EG V (L6-5; Elite-Gates.md sections 11.9 and 29, EVERY ALLOCATION HAS AN OWNER): every GL object this pass made let
-   * go - its program, its three vertex arrays and their buffers (the quad's, the walkways' strip, EG-ZG's fight floors' growing
-   * DYNAMIC buffer) - once; a destroyed pass draws nothing. The breach's fight frees its own at every way out of the Spire
-   * (scenes/eliteGates/egFight.js leave); the Burning Court's and the Hour's are a screen's, kept.
-   */
   destroy() {
     const gl = this.gl;
     if (!gl) return;

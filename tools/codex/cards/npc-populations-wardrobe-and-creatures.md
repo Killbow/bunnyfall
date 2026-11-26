@@ -37,6 +37,7 @@ invariants:
 traps:
   - "Re-deriving an enemy seed on each wire update changes its appearance mid-fight."
   - "`drawBodiesUnderWindow` must mark corpse flats `castOnly` while loot is open or dead enemies revert to sprites."
+  - "`offerDecorFigures` rebuilds the feet position of each placed figure from the entry origin `o` plus `piece.pos` every frame, because the origin of a figure batch is not its base: a room batch carries its base in its vertices, and `restand()` writes only the recenter step into `batch.origin`."
 dfu: []
 tags:
   - wardrobe

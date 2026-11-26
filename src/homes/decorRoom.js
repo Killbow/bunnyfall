@@ -1,110 +1,53 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// DECOR1c (2026-09-25) — THE PIECES STANDING IN A ROOM.
-//
-// Mac: decor "Gold per placement"; the catalogue "Everything Daggerfall
-// furnishes"; offline "kept in the save". The room's own furniture is
-// the block's and stands where Daggerfall laid it (one collider bucket,
-// one static batch - interiorContext.js); a PLACED piece is one of these
-// instead: its own model or flat, its own collider bucket and activation
-// key (`decor:<id>`, the same string both, as player/activate.js's pick
-// compares them), its own light. The room is one of these pools a host
-// (worldModes.js), torn down with the interior at all three of its
-// teardowns, as the torch and the loot pools are.
-//
-// A piece's position is from the BUILDING's origin (net/decorLaw.js - the
-// door matrix's translation, the scene cache's 'building' frame), so the
-// same numbers stand the same chair in the same place for every client
-// and every visit; `origin()` is this visit's.
-//
-// A model stands with its ORIGIN at `pos` (a Daggerfall model's origin is
-// not its base - interiorLayout.js lifts its props by their bottom; the
-// placement tool does the lifting, so the record says where the model's
-// own origin is and nothing is re-derived at a restore). A flat stands on
-// its base at `pos`, as every Daggerfall billboard does, and turns to the
-// eye whatever its record says (a flat has no turn of its own).
-//
-// DECOR2c: A MOUNT - one of the owner's weapons or pieces of armour
-// (net/decorLaw.js decorIsMount) - is the one flat that does NOT turn to
-// the eye. It hangs flat against the surface it was set on, CENTRED at
-// `pos` (a hair off the surface), its picture framed by `rot` - the
-// surface's heading and tilt, then its own spin on it - and drawn by the
-// blood marks' own pass (a quad lying on a surface, lit by that
-// surface's light, its clear texels cut out) through its picture door
-// (render/renderer.js drawDecalPicture - WEAPON-MOUNT: the texel is the
-// colour, never a film's thickness).
-// ═══════════════════════════════════════════════════════════════════
 
-import { decorFlameLift } from './decorFlame.js';   // CHAIN-FLAME: a lantern on a chain lights from its flame
+import { decorFlameLift } from './decorFlame.js';
 import { trs } from '../world/mat4.js';
-import { localAabb, transformedAabb, aabbOutside } from '../render/frustum.js';   // PERF-YARD: and the view's box test
+import { localAabb, transformedAabb, aabbOutside } from '../render/frustum.js';
 import { RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE } from '../player/activate.js';
 import { billboardSize } from '../world/rmbFlats.js';
 import { armFlatAnim } from '../render/flatAnimation.js';
 import { collectInteriorLights } from '../world/interiorLights.js';
-import { decorIsMount, decorIsTrophy, decorMountFrame, DECOR_MOUNT_LIFT, decorFlatMirrored, decorDrawnScale, decorIsFigure } from '../net/decorLaw.js';   // DECOR-FIGURE: a figure at its own size; MWNPC18: and in its body
-import { figureLook, personActor } from '../characters/peopleBodies.js';   // MWNPC18: a placed figure, read for its Morrowind body
+import { decorIsMount, decorIsTrophy, decorMountFrame, DECOR_MOUNT_LIFT, decorFlatMirrored, decorDrawnScale, decorIsFigure } from '../net/decorLaw.js';
+import { figureLook, personActor } from '../characters/peopleBodies.js';
 import { decorMountDye, decorMountDyeTarget, decorMountItem } from './decorItems.js';
-import { toColor32 } from '../formats/color32Order.js';   // MW-MOUNT: a rendered picture's rows, as the upload reads them
-import { preloadTextureRecord } from '../render/textureReplacement.js';   // MOUNT-LAZY: the record's own replacement, decoded before its upload
+import { toColor32 } from '../formats/color32Order.js';
+import { preloadTextureRecord } from '../render/textureReplacement.js';
 import { writeDecalQuad, clearDecalQuad, DECAL_FLOATS } from '../combat/bloodDecals.js';
-import { decorIsDoor } from './decorDoorways.js';   // HOME-DOORS: a door piece hangs as one of the room's own doors
-import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-DECOR: a nude figure stands as its clothed stand-in while Show Nudity is off
-import { StaticBatchBuilder, keyResolver } from '../render/staticBatch.js';   // YARD-MERGE: a yard's models as one mesh, as a town's statics are
-import { lateSolidsOf } from '../player/lateSolid.js';   // DECOR-CLEAR: a piece landing round the body is withheld until it is clear
-import { decorHearth } from './decorUse.js';   // DECOR-USE: a placed fire is one of the room's hearths
-import { loadTrophyArt } from './trophyArt.js';   // HUNTERS-MARK: a mounted trophy's plaque
+import { decorIsDoor } from './decorDoorways.js';
+import { drawnFlat } from '../characters/nudeFlats.js';
+import { StaticBatchBuilder, keyResolver } from '../render/staticBatch.js';
+import { lateSolidsOf } from '../player/lateSolid.js';
+import { decorHearth } from './decorUse.js';
+import { loadTrophyArt } from './trophyArt.js';
 
-/** How far the eye reaches a placed piece - the room's own furniture's reach (a bed's, a shelf's: 128 units). */
 export const DECOR_REACH = DEFAULT_ACTIVATION_DISTANCE;
-/** AUDIT DECOR-SHELL 3: how long after a model failed to load it is asked again, milliseconds - by a standing piece of
- *  it, and by the decorator (scenes/decor/decorTool.js modelFor). */
 export const DECOR_MODEL_RETRY_MS = 2000;
+// The activation key is also the model's collider bucket name, because player/activate.js compares the two.
 export const decorKeyOf = (id) => `decor:${id}`;
 export const decorIdOfKey = (key) => (typeof key === 'string' && key.startsWith('decor:') ? key.slice(6) : null);
-/** PERF-YARD (2026-10-10, the owner: "prob caused by placed objects by players"): a host's verdict on a placed model's box
- *  in the world (`draw`'s `cull`) - drawn, cast into the shadow maps alone, or neither. */
 export const DECOR_DRAW = 0, DECOR_SHADOW = 1, DECOR_SKIP = 2;
-/**
- * YARD-RANGE (2026-10-11, a player: "browser version for me is unplayable nowadays I get like 20-40 fps in cities"; the
- * owner: "look into limiting and improving performance with player's exterior decor items"): WHETHER A PIECE IS BIG
- * ENOUGH TO SEE - its half-size `half` (metres) at the offset (dx, dy, dz) from the eye, no smaller than `minAngle` (half
- * over distance, radians near enough). A town of full yards is two thousand pieces; past a few pixels a cup or a
- * flowerpot is a draw call and a shadow record for nothing. Pure.
- */
 export function decorPieceSeen(half, dx, dy, dz, minAngle) {
   if (!(minAngle > 0)) return true;
   const d = Math.hypot(dx, dy, dz);
   return half >= d * minAngle;
 }
-/** Returns whether a placed entry's picture is large enough to see from `eye` (decorPieceSeen at its drawn size,
- *  measured from its base), or true when there is no `eye` or the picture has not loaded yet. Defined at module
- *  scope so batch culling does not allocate a closure per call. */
 const entrySeen = (e, eye, minAngle) => {
   if (!eye || !e.size) return true;
   const p = e.piece.pos;
   return decorPieceSeen(Math.max(Math.abs(e.size.w), e.size.h) / 2, e.o[0] + p[0] - eye[0], e.o[1] + p[1] - eye[1], e.o[2] + p[2] - eye[2], minAngle);
 };
-/** YARD-RANGE: decorPieceSeen of a box in the world ([minX, minY, minZ, maxX, maxY, maxZ]), from its middle. */
 export const decorBoxSeen = (b, eye, minAngle) => decorPieceSeen(Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]) / 2,
   (b[0] + b[3]) / 2 - eye[0], (b[1] + b[4]) / 2 - eye[1], (b[2] + b[5]) / 2 - eye[2], minAngle);
-/** PERF-YARD: the pixel walk's law over one box (scenes/world.js - EV3 and SHADOW-REACH): inside the view's `planes`,
- *  drawn; outside them, cast into the maps alone where `reaches(box)` says a shadow reaches it, else neither. */
 export function decorCullVerdict(planes, box, reaches) {
   if (!aabbOutside(planes, box)) return DECOR_DRAW;
   return reaches(box) ? DECOR_SHADOW : DECOR_SKIP;
 }
-/** PERF-YARD (AUDIT 15); PERF-WAGON: `r` as the shadow maps alone take it - every draw a caster's record, none on
- *  screen (a draw that casts nothing casts nothing here either) - for a draw whose verdict is DECOR_SHADOW. One a
- *  renderer, kept. */
 const _castOnly = new WeakMap();
 export function castOnly(r) {
   let cast = _castOnly.get(r);
   if (!cast) { cast = { drawMesh: (mesh, m, remap, o) => { if (!o?.noShadow) r.recordShadowMesh?.(mesh, m, remap); } }; _castOnly.set(r, cast); }
   return cast;
 }
-/** PERF-WAGON: one mesh by its host's view test over its `box` in the scene - drawn, cast into the maps alone, or
- *  neither; no test or no box, drawn as before and never asked. Answers whether it was drawn on screen. */
 export function drawSeen(r, cull, box, mesh, m, remap = null, o = undefined) {
   const seen = cull && box ? cull(box) : DECOR_DRAW;
   if (seen === DECOR_SKIP) return false;
@@ -112,33 +55,14 @@ export function drawSeen(r, cull, box, mesh, m, remap = null, o = undefined) {
   return seen === DECOR_DRAW;
 }
 
-/**
- * YARD-MERGE (2026-10-12, a capture standing in Daggerfall: 1,878 draw calls a frame, about 360 of them the yards' pieces,
- * every piece a draw a texture of its model; and 185 of the yards' flats handed to the billboard pass, 86 pictures among
- * them, each its own draw): A POOL'S MODELS MERGED INTO ONE MESH - PERF4's static batch over the pieces standing, one
- * draw a texture for the whole pool - AND ITS FLATS OF ONE PICTURE INTO ONE BATCH (decorFlatMergeKey), as a town's flats
- * of one record are one batch of many quads. A pool its host lets merge (`merge` - the town's yards; a room's host
- * gives none) merges once it has stood unchanged DECOR_MERGE_SETTLE_MS (a town's yards stand piece by piece as their
- * models land: one merge, not one a landing) and its host's budget allows (`merge.take()` - a town of yards merges one a
- * frame, never all in the frame it streams in). A piece standing after the merge draws on its own until the next; a
- * piece taken out, moved or replaced lets the merge go at once - every piece draws on its own again until the pool settles.
- */
 export const DECOR_MERGE_SETTLE_MS = 500;
-/** YARD-MERGE: the fewest models a merge is made of - one piece is one draw a texture either way. */
 export const DECOR_MERGE_MIN = 2;
-/** YARD-MERGE: the texture key a merged sub-mesh keeps - its own `${archive}_${record}`, unresolved: the merge draws through
- *  the host's remap as each piece did (a yard's town's climate, written into its pixel's table as its pieces land). */
 const RAW_KEY = keyResolver(null);
-/** YARD-MERGE: whether a standing entry goes into a merge from origin `o` - a model standing (its triangles, normals and
- *  texture coordinates in hand: the merge's own needs, world.js's), no door, and standing from `o` itself (a merge is
- *  made relative to one origin and moved by the recentre as one). Pure. */
 export function decorMergeable(e, o) {
   const cpu = e?.mesh;
   return !!(e.gpu && !e.door && cpu?.positions && cpu.indices && cpu.normals && cpu.uvs && cpu.subMeshes?.length
     && e.o[0] === o[0] && e.o[1] === o[1] && e.o[2] === o[2]);
 }
-/** YARD-MERGE: the entries' models as ONE mesh in createMesh's shape, relative to origin `o` - each piece's own matrix
- *  less `o` (drawn back at `o`: decorMergeMatrix), grouped by its unresolved texture key. Null for nothing to merge. Pure. */
 export function mergeDecorModels(entries, o) {
   const b = new StaticBatchBuilder();
   for (const e of entries) {
@@ -148,18 +72,8 @@ export function mergeDecorModels(entries, o) {
   }
   return b.finish();
 }
-/** YARD-MERGE: the matrix a merge made relative to `o` is drawn with. */
 export const decorMergeMatrix = (o) => trs(o[0], o[1], o[2], 0, 0, 0);
-/** YARD-MERGE: what a flat's batch may carry and still join another's - none of the looks a batch is drawn with alone. */
 const FLAT_ALONE = ['frame', 'lptProto', 'tint', 'dye', 'conceal', 'hitFlash', 'glint', 'dissolve', 'noShadow', 'selfCard', 'castOnly', 'tip', 'eliteGlow', 'dwColumn'];
-/**
- * YARD-MERGE: THE GROUP A STANDING FLAT JOINS, from origin `o` - its picture, its drawn size (a mirrored one's width
- * negative) and its lean (the sway and Windfall's share its batch was given): flats of one key are one batch of many quads,
- * as a town's flats of one record are. None (null) for a flat drawn alone: no batch yet, a mount (the decal pass's), a
- * figure (the people lane's), an animated one (its animator's, frame by frame), a batch of more than one quad, dynamic,
- * scaled a flat at a time (a tree Low Poly Trees stands) or carrying any look of its own; nor one standing from another
- * origin. Pure.
- */
 export function decorFlatMergeKey(e, o) {
   const b = e?.batch;
   if (!b || e.anims || e.mount || decorIsFigure(e.piece)) return null;
@@ -169,19 +83,15 @@ export function decorFlatMergeKey(e, o) {
   return `${b.archive}|${b.record}|${b.size.w}|${b.size.h}|${b.sway ?? 0}|${b.windfall ?? 0}`;
 }
 
-/** Where a lit piece's light hangs above its base: a TEXTURE.210 light where the room's own light of that record hangs
- *  (interiorLights.js - the flame, not the foot), any other flat at its middle, a model at its origin. */
 export function decorLightLift(piece, size) {
   if (!piece.flat) return 0;
   if (!size) return null;
-  const flame = piece.flat[0] === 210 ? decorFlameLift(piece.flat[1], size.h) : null;   // CHAIN-FLAME: a hanging lantern's flame
+  const flame = piece.flat[0] === 210 ? decorFlameLift(piece.flat[1], size.h) : null;
   if (flame != null) return flame;
   const [own] = collectInteriorLights([{ archive: piece.flat[0], record: piece.flat[1], x: 0, y: 0, z: 0 }], () => size);
   return own ? own.y : size.h / 2;
 }
 
-/** DECOR2c: a mount's quad in THIS visit's frame - its centre, its frame, and its four corners (bottom-left first,
- *  round as the decal pass writes them) for `size` {w, h}, the picture's scaled size. */
 export function decorMountQuad(piece, origin, size) {
   const f = decorMountFrame(piece.rot);
   const centre = [origin[0] + piece.pos[0], origin[1] + piece.pos[1], origin[2] + piece.pos[2]];
@@ -191,8 +101,6 @@ export function decorMountQuad(piece, origin, size) {
   return { centre, ...f, w: size.w, h: size.h, corners: [at(-1, -1), at(-1, 1), at(1, 1), at(1, -1)] };
 }
 
-/** DECOR2c: the decal pass's floats for a mount's quad (bloodDecals.js writeDecalQuad - a square of `size` stretched
- *  along `right`), untinted and dry; none for no quad. */
 export function decorMountFloats(quad) {
   const out = new Float32Array(DECAL_FLOATS);
   if (!quad || !(quad.w > 0) || !(quad.h > 0)) { clearDecalQuad(out, 0); return out; }
@@ -200,21 +108,11 @@ export function decorMountFloats(quad) {
   return out;
 }
 
-/**
- * DECOR2c: A MOUNT'S PICTURE - uploaded as the pack's own is (the cut-out and the dye: scenes/dataPipeline.js
- * uploadRecord, the icons' door), sized as a flat of its archive is - answering `{ tex, w, h }`, or null (no such
- * record, or no texture to be had). `deps` the room's or the tool's: getTexture, uploadRecord, renderer.
- */
 export function loadMountArt({ getTexture, uploadRecord, renderer }, a, r, dye, dyeTarget = null) {
   return Promise.resolve(getTexture?.(a)).then(async (t) => {
     if (!t || !(r < t.recordCount)) return null;
-    // MOUNT-LAZY: the record's replacement by the item's dye, decoded BEFORE the upload asks for it - the pack's own ask
-    // (ui/item/itemScroller.js preloadIconRecord). A lazy one (Diverse Weapons' metals, Roleplay Realism Items' archives) is
-    // never decoded by the archive's preload: a mount hung before any list drew its record hung as the classic
-    // picture, or as nothing where the mod's picture is the only one, and a ghost put up before the decode landed was
-    // not the picture that then stood (Mac, the house: "changes after placment", "disapeared").
     await preloadTextureRecord(a, r, 0, 'Albedo', dye);
-    const variant = uploadRecord?.(a, r, { mips: false, removeMask: true, dye, dyeTarget });   // DYE-ICON: the pack's picture, its metal dyed
+    const variant = uploadRecord?.(a, r, { mips: false, removeMask: true, dye, dyeTarget });
     const tex = renderer?.textures?.get?.(`${a}_${r}${variant ?? '#ui'}`) ?? null;
     if (!tex) return null;
     const { w, h } = billboardSize(t, r);
@@ -222,102 +120,46 @@ export function loadMountArt({ getTexture, uploadRecord, renderer }, a, r, dye, 
   }).catch(() => null);
 }
 
-/**
- * MW-MOUNT: A MOUNT'S MORROWIND PICTURE - the item's ground mesh face-on at its own size, from the host's Morrowind
- * build (`mwPicture`, combat/fpArm.js mountPicture), uploaded once under its own key: `{ tex, w, h }` in metres, or
- * null (no build, no record, a file that will not read) and the classic picture hangs.
- */
 export function loadMwMountArt({ mwPicture, renderer }, item, archive = 'mw-mount') {
   if (typeof mwPicture !== 'function' || !item) return Promise.resolve(null);
   return Promise.resolve().then(() => mwPicture(item)).then((pic) => {
     if (!pic?.image?.width || !pic.key) return null;
     const tex = renderer?.uploadTexture?.(archive, pic.key, toColor32(pic.image), { mips: false, variant: '' }) ?? null;
-    return tex ? { tex, w: pic.w, h: pic.h, key: pic.key } : null;   // MW-ASSIGN: the key, for a billboard's own
+    return tex ? { tex, w: pic.w, h: pic.h, key: pic.key } : null;
   }).catch(() => null);
 }
 
-/** MW-ASSIGN (2026-09-27, Discord: "Some sprites not assigned morrowind skin"): the archive a STANDING thing's Morrowind
- *  picture goes up under - one's own item set down (a garment), drawn on the room's billboard pass as its flats are. */
 export const MW_STAND_ARCHIVE = 'mw-stand';
-/** Whether a piece is one's own thing STANDING (not hung): the kind whose picture may be its Morrowind one. */
 export const decorStandsOwn = (piece) => !!piece?.item && piece.model == null && Array.isArray(piece.flat) && !decorIsMount(piece);
 
-/**
- * MW-MOUNT: THE PICTURE A MOUNT HANGS AS - its Morrowind one where the host has a build to take it from, else its pack
- * picture, dyed (loadMountArt). The ghost and the room ask this one door, so what the ghost shows is what stands.
- */
 export function loadMountPicture(deps, flat, d) {
-  if (decorIsTrophy({ model: null, flat, item: d })) return loadTrophyArt(deps, flat[0]);   // HUNTERS-MARK: its beast on its plaque
+  if (decorIsTrophy({ model: null, flat, item: d })) return loadTrophyArt(deps, flat[0]);
   return loadMwMountArt(deps, decorMountItem(d))
     .then((mw) => mw ?? loadMountArt(deps, flat[0], flat[1], decorMountDye(d), decorMountDyeTarget(d)));
 }
 
-/** The model matrix of a placed piece in THIS visit's frame. */
+// A piece's pos is relative to the building origin, so every client and visit places it alike.
 export function decorMatrix(piece, origin) {
   const [x, y, z] = piece.pos;
   const [yaw, pitch, roll] = piece.rot;
   return trs(origin[0] + x, origin[1] + y, origin[2] + z, pitch, yaw, roll, piece.scale, piece.scale, piece.scale);
 }
 
-/**
- * THE ROOM'S PLACED PIECES. `deps`:
- *   meshes    - { getGpuMesh(id) -> Promise<gpu>, cpuModels: Map<id, {positions, indices}> }
- *   renderer  - { createBillboardBatch, destroyBillboardBatch, drawMesh } - DECOR2c: and the decal pass's four
- *               (createDecalBatch, writeDecalSlot, drawDecals, destroyDecalBatch) and its `textures`, for the mounts
- *   getTexture(archive) -> Promise<TextureFile>, uploadRecord(archive, record), uploadRecordFrame(archive, record, frame)
- *                  - a flat is uploaded, sized and animated exactly as the room's own flats are (interiorContext.js)
- *   flatAnims()  - the room's own flat animator (FA1, which the host ticks), or null
- *   collider()   - the interior's collider (addMesh / removeBucket), or null
- *   origin()     - this visit's building origin [x, y, z]
- *   roomLights() - the room's own live light list (interiorContext.js `lights`), or null: a lit piece's light joins
- *                  it, so the frame sorts it with the room's by distance and the renderer's cap keeps the nearest -
- *                  never two hundred placed candles ahead of the room's own lamps
- *   mwPicture(item) - MW-MOUNT: the host's Morrowind picture of a mount's item (combat/fpArm.js mountPicture), or
- *                  none; a mount hangs as it while a build stands (loadMountPicture)
- *   later(f, ms)  - AUDIT DECOR-SHELL 3: setTimeout's shape, for a model asked again
- *   doors         - HOME-DOORS: the host's action doors - `add(piece, model, matrix)` hangs a door piece as one of the
- *                  room's own doors (world/actionSystem.js addDoor: it swings, blocks while shut, is saved and shared,
- *                  and the host draws, ticks and names it) and answers it, or null; `remove(id)` takes it down. With
- *                  none, a door piece stands as any model does
- *   prepareModel(gpu) - DECOR-OUTDOOR: the host's own law over a model before it stands (a yard's: its town's climate
- *                  swaps, scenes/homeYards.js), a Promise awaited first; none for a room, which draws with its own
- *   standFlat(piece, at, live) - DECOR-OUTDOOR: the host's own way of standing a flat it knows (a yard's nature, in its
- *                  season - scenes/yardNature.js): null for one it leaves to the room, else a Promise of `{ batch, size,
- *                  release? }` (the room destroys the batch with the piece and calls `release`) or of null (nothing to
- *                  draw); `live()` whether the piece still stands as it was asked
- *   lampOf(piece, size) - YARD-LIGHT: the host's own law over the light a piece gives, IN PLACE of the piece's own (a
- *                  yard's: scenes/homeYards.js yardLampOf - a TEXTURE.210 flat lights as the town's own lanterns, at
- *                  its top): `{ light, lift }` - the light (its fields ride onto the light the room keeps) and how far
- *                  above the piece's base it hangs - or null for none. `size` is the drawn picture's, null until it
- *                  stands. None for a room: a piece gives the light it carries (`piece.light`), where the room hangs it
- *                  (decorLightLift's height; a mount's at its centre)
- *   merge         - YARD-MERGE: `{ take() -> boolean, now() -> ms }` - the host lets the pool's models merge (take: whether
- *                  its budget allows one this frame), or null: every piece its own draw, as a room's
- *   body          - DECOR-CLEAR: the player's body, live - the motor (its `pos` and `height`) - or none. A model's collider
- *                  bucket goes through the collider's one gate (player/lateSolid.js): a piece landing round the body draws,
- *                  and is solid only once the body is clear of it, asked every frame by `draw` (the host's own per-frame
- *                  call), which hands the gate the body it guards. ROCK-CLEAR: with none (a yard's), the body the
- *                  collider's gate guards - the world's frame settles it; none guarded, every piece solid as it stands
- */
 export function createDecorRoom({
   meshes, renderer, getTexture, uploadRecord, uploadRecordFrame, flatAnims = () => null, collider, origin, roomLights = () => null,
   mwPicture = null, later = setTimeout, doors = null, prepareModel = null, standFlat = null, lampOf = null, merge = null, body = undefined,
 }) {
-  /** DECOR-CLEAR: the gate of the collider the room stands in now (the host's collider is a visit's), or none. */
   const late = () => lateSolidsOf(collider?.());
   /** @type {Map<string, {piece: any, o: number[], gpu: any, box: any, wbox?: number[] | null, cpu: any, mesh?: any, merged?: boolean, matrix: Float32Array, batch: any, anims: any, size: any, light: any, mount: any, door: any, release?: any, quiet?: boolean}>} */
   const standing = new Map();
-  // YARD-MERGE: the pool's merge - { gpu, matrix, box, wbox, n } - and when the pool last changed
   /** @type {{gpu: any, matrix: Float32Array, box: number[], wbox: number[] | null, n: number} | null} */
   let merged = null;
-  /** YARD-MERGE: the flats' groups - one batch of many quads each, and the entries it stands for
-   *  @type {{batch: any, members: any[]}[]} */
+  /** @type {{batch: any, members: any[]}[]} */
   let flatGroups = [];
-  let mergedAt = [0, 0, 0];   // the origin the merges stand from (a recentre moves them by the difference)
+  let mergedAt = [0, 0, 0];
   let mergeDue = false;
   let changedAt = 0;
   const changed = () => { if (merge) { mergeDue = true; changedAt = merge.now(); } };
-  /** YARD-MERGE: the merges let go - every piece in them drawn on its own again. */
   function unmerge() {
     if (!merged && !flatGroups.length) return;
     for (const e of standing.values()) e.merged = false;
@@ -326,8 +168,6 @@ export function createDecorRoom({
     merged = null;
     flatGroups = [];
   }
-  /** YARD-MERGE: the pool merged afresh (the old merges let go first) - its mergeable models one mesh (none for fewer
-   *  than DECOR_MERGE_MIN), and its flats of one key one batch each (a key of one flat stays its own). */
   function remerge() {
     mergeDue = false;
     unmerge();
@@ -361,27 +201,20 @@ export function createDecorRoom({
       for (const e of members) e.merged = true;
     }
   }
-  /** MWNPC18 (AUDIT MWNPC16-18 D4): the standing entries that are figures - one of Daggerfall's people */
   const figs = new Set();
-  const models = new Map();   // model id -> Promise<{gpu, cpu, box}>
-  const flats = new Map();    // "a.r" -> Promise<{t, w, h} | null>
-  const arts = new Map();     // DECOR2c: "a.r|t.g.m.v.a" -> Promise<{tex, w, h} | null>, a mount's picture (MW-MOUNT: its Morrowind one, or its pack's)
-  // the resolved results of `flats` and `arts`, by the same keys: a piece whose picture has already loaded is built in
-  // the same `put()` call, not a microtask later, so a dragged piece (put again every frame) still draws every frame
+  const models = new Map();
+  const flats = new Map();
+  const arts = new Map();
+  // Resolved pictures let put() build a loaded piece in the same call, so a piece dragged every frame still draws.
   const flatsDone = new Map();
   const artsDone = new Map();
-  // AUDIT DYE-ICON 5: the Morrowind pictures asked for here, by the key each goes up under (fpArm.js mountPicture's -
-  // per record and generation). Nothing let them go, so each Remove data or re-attach left one texture per mounted
-  // record; refreshMounts does, once the mounts that drew them are down.
   const mwKeys = new Set();
   const mwAsk = typeof mwPicture === 'function'
     ? async (item) => { const pic = await mwPicture(item); if (pic?.key) mwKeys.add(pic.key); return pic; }
     : null;
-  const borrowers = new Set();   // AUDIT DYE-ICON r3 1: who else hangs these pictures (the decorator's ghost) - told at a refresh
-  // MW-ASSIGN: a STANDING thing's Morrowind picture (a garment set down), by its item's numbers - null where there is
-  // none (no build, no record: the classic picture stands); a miss is never remembered, as a mount's is not
+  const borrowers = new Set();
   const stands = new Map();
-  const standKeys = new Set();   // the keys those went up under - let go at a refresh, as the mounts' are (AUDIT DYE-ICON 5)
+  const standKeys = new Set();
   const standAsk = typeof mwPicture === 'function'
     ? async (item) => { const pic = await mwPicture(item); if (pic?.key) standKeys.add(pic.key); return pic; }
     : null;
@@ -401,8 +234,6 @@ export function createDecorRoom({
     if (!arts.has(k)) {
       const got = loadMountPicture({ getTexture, uploadRecord, renderer, mwPicture: mwAsk }, piece.flat, piece.item);
       arts.set(k, got);
-      // AUDIT DYE-ICON 3: a picture that would not load is not remembered as none for the session (modelOf's
-      // DECOR-SHELL law) - one blip, and that item never hung again, re-put, a second of it or a later visit
       got.then((art) => { if (!art) { if (arts.get(k) === got) arts.delete(k); } else if (arts.get(k) === got) artsDone.set(k, art); });
     }
     return arts.get(k);
@@ -415,13 +246,10 @@ export function createDecorRoom({
         return { gpu: gpu ?? null, cpu, box: cpu?.positions ? localAabb(cpu.positions) : null };
       }).catch(() => ({ gpu: null, cpu: null, box: null }));
       models.set(id, got);
-      // DECOR-SHELL: a model that would not load is not remembered as nothing for the session - the next piece of it
-      // asks again (a piece stood with no mesh is listed and never drawn)
       got.then((m) => { if (!m.gpu && models.get(id) === got) models.delete(id); });
     }
     return models.get(id);
   }
-  /** A flat's texture, uploaded and sized as the room's own flats are (a record the archive lacks is none). */
   function flatOf(a, r) {
     const k = `${a}.${r}`;
     if (!flats.has(k)) {
@@ -435,14 +263,12 @@ export function createDecorRoom({
     return flats.get(k);
   }
 
-  /** A lit piece's light, into the room's list - `lift` above its base (decorLightLift). YARD-LIGHT: or the host's own
-   *  law's light, where that law hangs it (`lampOf`), the piece's own never asked. */
   function mountLight(entry, o, lift) {
     const { piece } = entry;
     const law = lampOf ? lampOf(piece, entry.size) : { light: piece.light, lift };
     if (!law?.light || law.lift == null) return;
     entry.light = {
-      ...law.light,   // AUDIT YARD-LIGHT: a law's own fields ride along (a yard lamp's flicker slot); a room's piece carries none past these
+      ...law.light,
       x: o[0] + piece.pos[0], y: o[1] + piece.pos[1] + law.lift, z: o[2] + piece.pos[2],
       range: law.light.range, intensity: law.light.intensity, color: [...law.light.color], decor: piece.id,
     };
@@ -450,18 +276,18 @@ export function createDecorRoom({
   }
   function unmount(entry) {
     if (!entry) return;
-    if (entry.merged) unmerge();   // YARD-MERGE: a merged piece going takes the merges with it
+    if (entry.merged) unmerge();
     if (entry.gpu || entry.batch) changed();
-    figs.delete(entry);   // MWNPC18
-    if (entry.door) { doors?.remove?.(entry.piece.id); entry.door = null; }   // HOME-DOORS: the room's door, taken down
-    late()?.remove(decorKeyOf(entry.piece.id));   // DECOR-CLEAR: its bucket, or the triangles withheld from the body
-    if (entry.mount) { renderer?.destroyDecalBatch?.(entry.mount.batch); entry.mount = null; }   // DECOR2c
+    figs.delete(entry);
+    if (entry.door) { doors?.remove?.(entry.piece.id); entry.door = null; }
+    late()?.remove(decorKeyOf(entry.piece.id));
+    if (entry.mount) { renderer?.destroyDecalBatch?.(entry.mount.batch); entry.mount = null; }
     if (entry.batch) {
-      entry.anims?.remove?.(entry.batch);   // its FlatAnim goes with it (the room's animator outlives no batch)
+      entry.anims?.remove?.(entry.batch);
       renderer?.destroyBillboardBatch?.(entry.batch);
       entry.batch = null;
     }
-    if (entry.release) { const r = entry.release; entry.release = null; r(); }   // DECOR-OUTDOOR: what the host's stand holds (scenes/yardNature.js)
+    if (entry.release) { const r = entry.release; entry.release = null; r(); }
     const lights = roomLights?.();
     if (lights && entry.light) {
       const i = lights.indexOf(entry.light);
@@ -470,12 +296,6 @@ export function createDecorRoom({
     entry.light = null;
   }
 
-  /** DECOR-OUTDOOR: A FLAT THE HOST STANDS ITS OWN WAY (`standFlat` - a yard's nature, in its season): asked once;
-   *  whether the host took it. Its answer stands where the room's own would - its batch the piece's, destroyed with it,
-   *  and what it holds let go with it (`release`); an answer landing for a piece moved or gone is let go at once.
-   *  AUDIT 05b A1: the host stands it from the origin it was asked at - an answer landing after a restand() is moved by
-   *  the recentre it missed, as restand() moves a batch already standing (else it stood a whole recentre off its yard,
-   *  and its 3D tree, until the yard was set again). */
   function standOwn(entry) {
     const { piece } = entry;
     const live = () => standing.get(piece.id) === entry;
@@ -485,84 +305,66 @@ export function createDecorRoom({
     Promise.resolve(asked).then((got) => {
       if (!got) return;
       if (!live()) { renderer?.destroyBillboardBatch?.(got.batch); got.release?.(); return; }
+      // An answer that lands after a restand() is moved by the recenter it missed.
       const d = [entry.o[0] - at[0], entry.o[1] - at[1], entry.o[2] - at[2]];
       if (d[0] || d[1] || d[2]) { const b = got.batch.origin ?? [0, 0, 0]; got.batch.origin = [b[0] + d[0], b[1] + d[1], b[2] + d[2]]; }
       entry.batch = got.batch;
       entry.size = got.size;
       entry.release = got.release ?? null;
-      changed();   // YARD-MERGE: a flat standing - the pool's to merge once it settles
+      changed();
     }, () => {});
     return true;
   }
 
-  /** Stand one piece - a fresh placement, a move, a restore. Replaces a piece of the same id. */
   function put(piece) {
     unmount(standing.get(piece.id));
     const o = origin?.() ?? [0, 0, 0];
-    // FB1001 YARD-RECENTRE: `o`, the origin it stands from, and `cpu`, its model's (once stood) - restand() moves it
     const entry = { piece, o: [o[0], o[1], o[2]], gpu: null, box: null, cpu: null, matrix: decorMatrix(piece, o), batch: null, anims: null, size: null, light: null, mount: null, door: null };
     standing.set(piece.id, entry);
-    if (decorIsFigure(piece)) figs.add(entry);   // MWNPC18: one of Daggerfall's people - the people lane's
-    if (decorIsMount(piece)) {   // DECOR2c: hung flat on its surface, as its pack picture (MW-MOUNT: or its Morrowind one)
+    if (decorIsFigure(piece)) figs.add(entry);
+    if (decorIsMount(piece)) {
       const hang = (art) => {
         if (standing.get(piece.id) !== entry || !art || !renderer?.createDecalBatch) return;
         entry.size = { w: art.w * piece.scale, h: art.h * piece.scale };
         const quad = decorMountQuad(piece, o, entry.size);
         entry.mount = { batch: renderer.createDecalBatch(1), tex: art.tex, quad };
         renderer.writeDecalSlot?.(entry.mount.batch, 0, decorMountFloats(quad));
-        mountLight(entry, o, 0);   // a lit one's light at its middle - the centre is where it stands
+        mountLight(entry, o, 0);
       };
       const known = artsDone.get(artKey(piece));
       if (known) hang(known); else artOf(piece).then(hang);
     } else if (piece.model != null) {
       mountLight(entry, o, decorLightLift(piece, null));
       const stand = (wait = DECOR_MODEL_RETRY_MS) => modelOf(piece.model).then((m) => {
-        if (standing.get(piece.id) !== entry) return;   // moved or removed while it loaded
-        // AUDIT DECOR-SHELL 3: a model that would not load is asked again while the piece stands - it stood undrawn, not
-        // solid and not pointable for the visit, and only the next put of it asked (node: never holds a process open).
-        // AUDIT2 DECOR-SHELL 7: twice as long each time, to the list's own bound - a build that throws was rebuilt every
-        // two seconds a piece for the whole visit
+        if (standing.get(piece.id) !== entry) return;
         if (!m.gpu) { /** @type {any} */ (later(() => stand(Math.min(2 * wait, DECOR_LIST_RETRY_MAX_MS)), wait))?.unref?.(); return; }
         entry.box = m.box;
-        // HOME-DOORS: a door hangs as one of the room's own doors - the host's to draw, swing and share, never a solid
-        // piece of furniture in the doorway
         if (decorIsDoor(piece) && doors && m.cpu?.positions && m.cpu?.indices) { entry.door = doors.add(piece, m, entry.matrix) ?? null; if (entry.door) return; }
         const solid = () => {
           entry.gpu = m.gpu;
-          entry.mesh = m.cpu;   // YARD-MERGE: its triangles, for the pool's merge
+          entry.mesh = m.cpu;
           changed();
-          // DECOR-CLEAR: solid through the collider's gate - a piece standing round the body draws, and is solid once the
-          // body is clear of it (player/lateSolid.js; `draw` asks every frame)
           if (m.cpu?.positions && m.cpu?.indices) { entry.cpu = m.cpu; late()?.add(decorKeyOf(piece.id), m.cpu.positions, m.cpu.indices, entry.matrix, { body }); }
         };
-        // DECOR-OUTDOOR: the host's own law first (a yard's town's climate swaps) - the piece stands once it is in place,
-        // never in the textures a moment and the town's the next
         if (!prepareModel) { solid(); return; }
         Promise.resolve().then(() => prepareModel(m.gpu)).catch(() => {}).then(() => { if (standing.get(piece.id) === entry) solid(); });
       });
       stand();
     } else if (!standOwn(entry)) {
-      // NUDE-DECOR: the picture a flat DRAWS - a nude figure's clothed stand-in while Show Nudity is off, on the piece's
-      // own base, at the stand-in's size; the piece stays the figure it was placed as (its key, its name, its station)
       const [a, r] = drawnFlat(piece.flat[0], piece.flat[1]);
-      // MW-ASSIGN: one's own thing set down stands as its Morrowind picture while a build stands (a garment, not the
-      // classic pile of cloth), on the billboard pass as every flat - else as its own world picture, as ever
       const ownPic = decorStandsOwn(piece) && !!standAsk;
       const stand = ([f, pic]) => {
         if (standing.get(piece.id) !== entry || !f || !renderer?.createBillboardBatch) return;
-        const [da, dr, seen] = pic ? [MW_STAND_ARCHIVE, pic.key, pic] : [a, r, f];   // MW-ASSIGN: its own picture, its own size
-        // DECOR-FIGURE: one of Daggerfall's people at its own size - one grown or shrunk before stands as it was made
+        const [da, dr, seen] = pic ? [MW_STAND_ARCHIVE, pic.key, pic] : [a, r, f];
         const k = decorDrawnScale(piece);
         entry.size = { w: seen.w * k, h: seen.h * k };
-        // the renderer bottom-anchors every batch (rmbFlats.js AlignToBase): the base goes in, as the room's flats' do.
-        // DECOR-FLIP: turned half round, the picture faces the other way - the renderer's flip is the sign of its width
-        // (the size the eye's box reads stays whole)
+        // The renderer mirrors a flat by the sign of its drawn width; the size the eye's box reads stays positive.
         const drawn = decorFlatMirrored(piece) ? { w: -entry.size.w, h: entry.size.h } : entry.size;
-        const at = entry.o;   // FB1001 YARD-RECENTRE: where it stands now - a restand() before its picture landed moved it
+        const at = entry.o;
         entry.batch = renderer.createBillboardBatch(da, dr, drawn, [[at[0] + piece.pos[0], at[1] + piece.pos[1], at[2] + piece.pos[2]]]);
         const anims = flatAnims?.() ?? null;
-        if (!pic && armFlatAnim(entry.batch, f.t, a, r, anims, uploadRecordFrame ?? null)) entry.anims = anims;   // FA1: a lamp's flame moves as the room's own do
-        changed();   // YARD-MERGE: a flat standing - the pool's to merge once it settles
+        if (!pic && armFlatAnim(entry.batch, f.t, a, r, anims, uploadRecordFrame ?? null)) entry.anims = anims;
+        changed();
         mountLight(entry, at, decorLightLift(piece, entry.size));
       };
       const fk = `${a}.${r}`;
@@ -579,18 +381,12 @@ export function createDecorRoom({
     return e?.piece ?? null;
   }
 
-  /** A piece being moved stays in the room and is not drawn, so only the piece in hand shows. */
   function hold(id, on) {
     const e = standing.get(id);
     if (e) e.quiet = !!on;
   }
 
-  /**
-   * FB1001 YARD-RECENTRE: EVERY PIECE STOOD AGAIN WHERE `origin()` STANDS NOW, AT ONCE - its matrix, its solid bucket,
-   * its picture's place and its light moved, nothing let go or asked again. A world that recentres moves its yards so:
-   * put again, a model stands only when its model's answer runs - after the frame that put it is drawn - so every
-   * piece went missing for that frame. A hung piece or a door is put again (none stands in a yard).
-   */
+  // Moves every piece in place at once; putting them again would leave each model undrawn for a frame.
   function restand() {
     const o = origin?.() ?? [0, 0, 0];
     for (const e of [...standing.values()]) {
@@ -599,45 +395,29 @@ export function createDecorRoom({
       if (e.mount || e.door || decorIsMount(e.piece)) { put(e.piece); continue; }
       e.o = [o[0], o[1], o[2]];
       e.matrix = decorMatrix(e.piece, o);
-      e.wbox = null;   // PERF-YARD: its box in the world, made again where it stands now
+      e.wbox = null;
       if (e.batch) { const b = e.batch.origin ?? [0, 0, 0]; e.batch.origin = [b[0] + d[0], b[1] + d[1], b[2] + d[2]]; }
       if (e.light) { e.light.x += d[0]; e.light.y += d[1]; e.light.z += d[2]; }
-      // DECOR-CLEAR: its bucket taken down and stood again - a solid one at once (the body moved with it), one withheld
-      // held still, moved (the gate's `replace`: the collider's own removeBucket would forget a withheld one)
+      // Replacing through the gate keeps a withheld bucket withheld; removeBucket on the collider would forget it.
       if (e.cpu) late()?.replace(decorKeyOf(e.piece.id), e.cpu.positions, e.cpu.indices, e.matrix);
     }
-    // YARD-MERGE: the merges stand from the origin as their pieces now do - moved as one, nothing merged again
     if (merged) { merged.matrix = decorMergeMatrix(o); merged.wbox = null; }
     const d = [o[0] - mergedAt[0], o[1] - mergedAt[1], o[2] - mergedAt[2]];
     if (d[0] || d[1] || d[2]) for (const g of flatGroups) { const b = g.batch.origin ?? [0, 0, 0]; g.batch.origin = [b[0] + d[0], b[1] + d[1], b[2] + d[2]]; }
     mergedAt = [o[0], o[1], o[2]];
   }
 
-  /** Replace every piece (a visit's load). */
   function set(pieces) {
     for (const e of standing.values()) unmount(e);
     standing.clear();
     for (const p of pieces ?? []) put(p);
   }
 
-  /** The room goes: every piece unmounted, what they hold, the owner's own items and the kept record forgotten (the
-   *  scene already wrote them). */
   function destroyAll() { set([]); held = new Map(); own = new Map(); kept = []; }
 
-  /** The models, in the host's interior world pass - the room's texture remap, so a piece wears the climate the
-   *  room's own furniture wears. Answers how many were drawn.
-   *  PERF-YARD (2026-10-10): `cull`, where a host gives one, is its view test of a piece's box in the world - the town's
-   *  yards are culled as the town's own models are (scenes/world.js, the pixel walk: off screen and out of every
-   *  shadow's reach, nothing; off screen in a shadow's reach, the maps alone). Every piece of every yard within reach
-   *  was a draw a frame, behind the eye or not, and a recorded caster for every shadow walk. A piece whose model has no
-   *  box (no triangles to measure) is drawn, as before; a room's host gives none - a building is drawn whole. */
   function draw(r = renderer, texRemap = null, cull = null) {
     let n = 0;
-    // DECOR-CLEAR: the host's per-frame call hands the collider's gate the body it guards - every piece withheld (the
-    // room's own put back among them, decorBase.js show) that the body is now clear of stands
     if (body) late()?.settle(body);
-    // YARD-MERGE: merged again once the pool has settled and its host's budget allows; drawn by the same verdict, its box
-    // the whole merge's, through the same remap - and its pieces not drawn on their own
     if (mergeDue && merge && merge.now() - changedAt >= DECOR_MERGE_SETTLE_MS && merge.take()) remerge();
     if (merged) {
       const seen = cull ? cull(merged.wbox ??= transformedAabb(merged.box, merged.matrix)) : DECOR_DRAW;
@@ -653,18 +433,10 @@ export function createDecorRoom({
     }
     return n;
   }
-  /** The flats' batches, for the host's billboard pass (YARD-MERGE: a merged flat's group's, once). */
   const batches = () => batchesSeen([]);
-  /** MWNPC18: the figures standing (decorIsFigure - one of Daggerfall's people), each its entry - its piece and the batch
-   *  that draws it - for the host's people lane (offerDecorFigures). AUDIT MWNPC16-18 D4: kept as they are put and
-   *  taken down (`figs`), into one list the room keeps - every piece of every room walked a frame, into a new array,
-   *  to find the few that are people; the answer is the room's until its next asking. */
   const figOut = [];
   const figures = () => { figOut.length = 0; for (const e of figs) if (e.batch && !e.quiet) figOut.push(e); return figOut; };
-  /** YARD-RANGE: the flats' batches pushed onto `out`, each only while it is no smaller from `eye` than `minAngle`
-   *  (decorPieceSeen) - no eye, every one. A town's yards answer theirs every frame, so nothing is made but the push. */
   function batchesSeen(out, eye = null, minAngle = 0) {
-    // YARD-MERGE: a group's batch while any of its flats is big enough to see - its flats not again on their own
     for (const g of flatGroups) {
       for (let i = 0; i < g.members.length; i++) if (entrySeen(g.members[i], eye, minAngle)) { out.push(g.batch); break; }
     }
@@ -674,18 +446,13 @@ export function createDecorRoom({
     }
     return out;
   }
-  /** DECOR2c: the mounts, on the host's decal pass (after the room's solid geometry, as the blood marks go). */
   function drawMounts(r = renderer) {
     let n = 0;
-    for (const e of standing.values()) if (!e.quiet && e.mount) { (r?.drawDecalPicture ?? r?.drawDecals)?.call(r, e.mount.batch, e.mount.tex); n++; }   // WEAPON-MOUNT: a picture, not a film
+    for (const e of standing.values()) if (!e.quiet && e.mount) { (r?.drawDecalPicture ?? r?.drawDecals)?.call(r, e.mount.batch, e.mount.tex); n++; }
     return n;
   }
 
-  /** The lights the lit pieces carry - the very objects in the room's list. */
   const lights = () => [...standing.values()].filter((e) => !e.quiet).map((e) => e.light).filter(Boolean);
-  /** AUDIT YARD-LIGHT: the lights of the first `max` lit pieces IN THE ORDER THE PIECES STAND (the room's own order -
-   *  the order they were placed, a move keeping its place), pushed onto `out`; answers how many. A host asks it every
-   *  frame, so nothing is made for it (`lights()` above makes two arrays). */
   function pushLights(out, max = Infinity) {
     let n = 0;
     for (const e of standing.values()) {
@@ -696,20 +463,18 @@ export function createDecorRoom({
     return n;
   }
 
-  /** The eye's targets: every piece by its box, keyed `decor:<id>` (the collider's bucket, for a model). A flat has no
-   *  collider, so its box answers the ray alone (`noSurface`, the hearth's own convention). */
   function targets() {
     const out = [];
     const o = origin?.() ?? [0, 0, 0];
     for (const e of standing.values()) {
       if (e.quiet) continue;
       const key = decorKeyOf(e.piece.id);
-      if (e.door) continue;   // HOME-DOORS: the room's own door answers the eye (`act:decor:<id>`), as the room's doors do
+      if (e.door) continue;
       if (e.piece.model != null) {
         if (!e.box) continue;
         const b = transformedAabb(e.box, e.matrix);
         out.push({ key, aabb: { min: [b[0], b[1], b[2]], max: [b[3], b[4], b[5]] }, distance: RAY_DISTANCE, reach: DECOR_REACH, meshCollider: true });
-      } else if (e.mount) {   // DECOR2c: the box round its four corners, a hair thick either side of it
+      } else if (e.mount) {
         const cs = e.mount.quad.corners;
         const min = [0, 1, 2].map((i) => Math.min(...cs.map((c) => c[i])) - DECOR_MOUNT_LIFT);
         const max = [0, 1, 2].map((i) => Math.max(...cs.map((c) => c[i])) + DECOR_MOUNT_LIFT);
@@ -723,27 +488,19 @@ export function createDecorRoom({
     return out;
   }
 
-  // WHAT A PIECE HOLDS, by its id - always the SAVE's (an online home's pieces are the service's, what the owner keeps
-  // in them is the owner's own, as HOME1's cupboards are), restored with the room's scene and written back with it.
   /** @type {Map<string, any[]>} */
   let held = new Map();
-  /** The items a storage piece holds - the live array the inventory window binds to. */
   function itemsOf(id) {
     let list = held.get(id);
     if (!list) { list = []; held.set(id, list); }
     return list;
   }
-  /** Whether a piece holds anything (a full chest is not removed out from under its contents). */
   const holdsAny = (id) => (held.get(id)?.length ?? 0) > 0;
-  /** The scene's record of what the pieces hold - only the non-empty, deep-copied. */
   function itemsSnapshot() {
     const out = {};
     for (const [id, list] of held) if (list.length) out[id] = list.map((it) => ({ ...it }));
     return out;
   }
-  /** HOLD-KEPT (FIELD BUGS 2026-10-12g): what the pieces the service no longer has held - `served` is its whole list,
-   *  every piece it has (read by this build or not) - taken out of the record whole, for the caller to set down. A record
-   *  for a piece no one will ever stand again is otherwise kept, and out of reach, for good. */
   function takeUnserved(served) {
     const standing = new Set((served ?? []).map((p) => p?.id).filter((id) => typeof id === 'string'));
     const out = [];
@@ -754,35 +511,26 @@ export function createDecorRoom({
     }
     return out;
   }
-  /** Restore what the pieces hold from a scene's record (a record written before DECOR1 holds none). */
   function setItems(record) {
     held = new Map();
     if (!record || typeof record !== 'object') return;
     for (const [id, list] of Object.entries(record)) if (Array.isArray(list)) held.set(id, list.map((it) => ({ ...it })));
   }
 
-  // DECOR2a: THE OWNER'S OWN ITEMS STANDING HERE, by the piece's id - the save's, always (an online home's piece is
-  // the service's, the thing itself the owner's), restored with the room's scene and written back with it; the item
-  // leaves this record only to go back into the pack.
   /** @type {Map<string, any>} */
   let own = new Map();
-  /** The item a piece of the owner's own is, or null. */
   const ownOf = (id) => own.get(id) ?? null;
-  /** A piece is the owner's own item - kept here while it stands. */
   function keepOwn(id, item) { if (item) own.set(id, item); }
-  /** The item taken back out of the record (for the pack), or null. */
   function takeOwn(id) {
     const item = own.get(id) ?? null;
     own.delete(id);
     return item;
   }
-  /** The scene's record of the owner's own items - copies. */
   function ownSnapshot() {
     const out = {};
     for (const [id, item] of own) out[id] = { ...item };
     return out;
   }
-  /** Restore the owner's own items from a scene's record (a record written before DECOR2 holds none). */
   function setOwn(record) {
     own = new Map();
     if (!record || typeof record !== 'object') return;
@@ -790,28 +538,17 @@ export function createDecorRoom({
   }
   const ownIds = () => [...own.keys()];
 
-  // THE SAVE'S PIECES FOR A ROOM STANDING ANOTHER'S. An online home is the service's room (HOME1: "Online, the server's
-  // list is the only truth"), and the same building can be this character's own OFFLINE house, whose pieces are this
-  // save's under the very scene a visitor's visit writes: held here untouched and written back as they came, so a
-  // visit that stood none of them never wipes them ("The offline house keeps working offline").
+  // An online home can sit over an offline house in the same save. The offline pieces are kept untouched and
+  // written back as they came, so a visit never wipes them.
   let kept = [];
   const keep = (pieces) => { kept = [...(pieces ?? [])]; };
-  // A wagon's Confirm has not been pressed: the save and the relay read the last kept picture, while the
-  // pieces the player is still moving stay standing in the room.
+  // Before a wagon's Confirm, the save and the relay read the last saved list while the moved pieces stay placed.
   let savedList = null;
   const live = () => [...standing.values()].map((e) => e.piece);
   const showSaved = (fn) => { savedList = typeof fn === 'function' ? fn : null; };
 
   const pieceOf = (id) => standing.get(id)?.piece ?? null;
   const list = () => (savedList ? savedList() : live());
-  /**
-   * DECOR-USE (systems/decor/decorUse.js decorHearth): THE ROOM'S PLACED FIRES - a fire flat one stands over, a fireplace
-   * and a piece made the cooking station - as survival/hearth.js collectHearths gives the room's own, by their flame
-   * (`x`, `y`, `z`: a model's box's middle, a picture's over its base). AUDIT DECOR-USE D1: and NO eye's box (`foot`,
-   * `w`, `h` - hearthAabb answers none): the piece's own target (`decor:<id>`, its model's mesh or its picture) is the
-   * press, and a square over a model's longer side stood past its narrow sides, through a wall at a hand from it, and
-   * took the press from a door beyond. A piece not yet standing (no size, no box) is none yet.
-   */
   function hearths() {
     const out = [];
     const o = origin?.() ?? [0, 0, 0];
@@ -829,28 +566,21 @@ export function createDecorRoom({
     return out;
   }
 
-  /** MW-MOUNT: a Morrowind build landed, or went (the host watches fpArm.js mountPictureStamp) - every mount asks
-   *  for its picture again and hangs as the answer, where it stood. */
   function refreshMounts() {
     const was = [...mwKeys];
-    const wasStand = [...standKeys];   // MW-ASSIGN: and the standing things' pictures
+    const wasStand = [...standKeys];
     mwKeys.clear();
     standKeys.clear();
     arts.clear();
     artsDone.clear();
     stands.clear();
     for (const e of [...standing.values()]) if (decorIsMount(e.piece) || decorStandsOwn(e.piece)) put(e.piece);
-    for (const k of was) renderer?.releaseTexture?.('mw-mount', k);   // AUDIT DYE-ICON 5: the old pictures, their mounts down (one asked again uploads anew)
+    for (const k of was) renderer?.releaseTexture?.('mw-mount', k);
     for (const k of wasStand) renderer?.releaseTexture?.(MW_STAND_ARCHIVE, k);
-    for (const fn of [...borrowers]) fn();   // AUDIT DYE-ICON r3 1: and whoever else hangs them lets its own go and asks again
+    for (const fn of [...borrowers]) fn();
   }
 
-  /** AUDIT DYE-ICON r3 1: A MOUNT'S PICTURE FOR ANOTHER TO HANG - the decorator's ghost - through the room's own cache and
-   *  keys, since a hung piece's ghost is its very texture: a refresh let it go under the ghost, still drawn, and a
-   *  cancelled ghost's upload was never let go at all. `onRefresh(fn)` - told once a refresh has let the old ones go;
-   *  answers the way to stop. */
   const mountPicture = (flat, item) => artOf({ flat, item });
-  /** MW-ASSIGN: a standing thing's Morrowind picture for the decorator's ghost - the room's own cache and keys. */
   const standPicture = (item) => standArtOf(item);
   function onRefresh(fn) {
     borrowers.add(fn);
@@ -858,29 +588,26 @@ export function createDecorRoom({
   }
 
   return {
-    put, remove, hold, set, restand, destroyAll, draw, batches, batchesSeen, figures, drawMounts, lights, pushLights, targets, pieceOf, list, live, showSaved, hearths, size: () => standing.size,   // DECOR-USE: the placed fires
+    put, remove, hold, set, restand, destroyAll, draw, batches, batchesSeen, figures, drawMounts, lights, pushLights, targets, pieceOf, list, live, showSaved, hearths, size: () => standing.size,
     itemsOf, holdsAny, itemsSnapshot, setItems, takeUnserved, keep, kept: () => kept,
     ownOf, keepOwn, takeOwn, ownSnapshot, setOwn, ownIds, refreshMounts, mountPicture, standPicture, onRefresh,
   };
 }
 
 /**
- * MWNPC18 (bible/04-Characters/Morrowind-NPCs.md section 26): THE FIGURES A PLAYER PLACED, OFFERED THEIR BODIES - on the
- * host's people lane (characters/npcBodies.js createPopulationLane: `lane.offer(actor, batch)`), as its own standing
- * people are, before the flats draw (cast-only where one stands - and since MWNPC16 casting nothing: the body casts).
- * Each stands where its picture stands (its piece's base: the room's origin and its place in it), turned to the eye at a person's pace (peopleBodies.js
- * personActor); its look figureLook's - `flats` FLATS.CFG, `race` the region's. A figure with no look draws its picture.
- * @param {any[]} figs the figures (decorRoom figures()) @param {{ offer: Function }} lane @param {boolean} on the lane's frame
- * @param {{ flats?: any, race?: any } | null} ctx @param {number[]} eye @param {number} dt @returns {number} how many were offered
+ * @param {any[]} figs
+ * @param {{ offer: Function }} lane
+ * @param {boolean} on
+ * @param {{ flats?: any, race?: any } | null} ctx
+ * @param {number[]} eye
+ * @param {number} dt
+ * @returns {number}
  */
 export function offerDecorFigures(figs, lane, on, ctx, eye, dt) {
   let n = 0;
   for (const e of figs) {
     const look = on ? figureLook(e, ctx) : null;
     if (!look) { e.batch.castOnly = false; continue; }
-    // AUDIT MWNPC16-18 D1: the piece's base - where it stands from (`o`, a restand()'s) and its place in it, made again
-    // every frame as the street's people's are (world.js). The batch's origin is no base: a room's batch is minted
-    // without one (its base in its vertices), and a restand() writes only the recentre's step into it
     const f = e._mwFeet ??= [0, 0, 0];
     f[0] = e.o[0] + e.piece.pos[0]; f[1] = e.o[1] + e.piece.pos[1]; f[2] = e.o[2] + e.piece.pos[2];
     lane.offer(personActor(e, look, f, eye, dt), e.batch);
@@ -889,33 +616,17 @@ export function offerDecorFigures(figs, lane, on, ctx, eye, dt) {
   return n;
 }
 
-/** AUDIT DECOR-SHELL 2: how long after an online home's list did not stand it is asked again - twice as long each time
- *  after, to the most. */
 export const DECOR_LIST_RETRY_MS = 2_000;
 export const DECOR_LIST_RETRY_MAX_MS = 30_000;
 
-/**
- * AUDIT DECOR-SHELL 2: AN ONLINE HOME'S LIST, ASKED UNTIL IT STANDS. The host opened the room's decorator on any answer,
- * a refusal or the service unreachable too: the room then stood none of the service's pieces and none of its owner's
- * taken-out furniture, and the first piece taken out wrote the room's whole list from that - the service's own list
- * wiped, for every visitor. `ask()` answers the list (net/accountClient.js accountDecor.list); `live()` whether it is
- * still wanted (the visit that asked goes on, its list not yet stood); `stand(r)` stands the room from an answer that
- * holds pieces - the host's gate opens there and nowhere else. Anything else stands nothing, and the list is asked
- * again `wait` on, twice as long each time to DECOR_LIST_RETRY_MAX_MS, by `later` (setTimeout's shape; node: never
- * holding a process open).
- */
-/** The door's ask, started when the player commits to going in, so the list overlaps the greeting and the build. */
 let decorAhead = null;
-/** `${mapId}:${buildingKey}:${seat}` — the same three the room's list is asked with. */
 export const decorListKey = (mapId, buildingKey, seat) => `${mapId >>> 0}:${buildingKey >>> 0}:${seat ? 1 : 0}`;
-/** Start `ask` now. A later `primedDecorList` of the same key takes this promise; any other key leaves it. */
 export function primeDecorList(key, ask) {
   if (key == null || typeof ask !== 'function') return;
   const p = Promise.resolve().then(ask);
   p.catch(() => {});
   decorAhead = { key, p };
 }
-/** The promise `primeDecorList` started for `key`, once, or null. */
 export function primedDecorList(key) {
   if (!decorAhead || decorAhead.key !== key) return null;
   const p = decorAhead.p;
@@ -923,6 +634,8 @@ export function primedDecorList(key) {
   return p;
 }
 
+// Only an answer that holds pieces places the room. On a refusal or no answer, a first removal would write an empty
+// list over the service's, so the list is asked again with a doubling wait.
 /**
  * @param {{ ask: () => any, live: () => boolean, stand: (r: any) => void, later?: (f: () => void, ms: number) => any, wait?: number }} _spec
  */

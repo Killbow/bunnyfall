@@ -11,6 +11,7 @@ files:
   - src/travel/travelOptions.js
   - src/ui/travelViewHud.js
   - src/travel/travelHorizon.js
+  - src/render/farRing.js
 replacesBible:
   - "06-Systems/Travel-View.md"
 related:
@@ -31,6 +32,7 @@ invariants:
 traps:
   - "Always read the haze boundary from `RING_RIM_END` (`src/render/farRing.js`) rather than hardcoding the distance."
   - "Classic mode refuses Overworld activation with `TRAVEL_VIEW_TEXT.enhancedOnly`."
+  - "The far ring (`src/render/farRing.js`) computes its own haze instead of drawing through the world fog, because the linear world fog saturates before the ring begins; it follows the ramp of the world fog, holds at `RING_HAZE_HOLD` (`0.85`), and closes at `RING_RIM_END`, the nearest rim that the square mesh can present, not at the far plane."
 tags:
   - travel-view
   - overworld

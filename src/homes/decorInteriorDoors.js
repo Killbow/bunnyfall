@@ -1,25 +1,17 @@
 // @ts-check
-// An interior room door is one of the building's swing doors (interiorContext's
-// action doors, keyed `door:N` with no action record). Taking it out drops its
-// draw and its collider bucket. The wall it hung in is the shell, and stays.
-// An exit (`exit:`), a chained or teleport door (`act:`), and a door that
-// carries an action record are not these.
 
 import { worldAabb, RAY_DISTANCE } from '../player/activate.js';
 
 export const INTERIOR_DOOR_PREFIX = 'intdoor:';
 
-/** The save's name for the room door at this record index. */
 export const interiorDoorKey = (index) => `${INTERIOR_DOOR_PREFIX}${index}`;
 
-/** The record index a saved name is, or null when it is not a room door. */
 export function interiorDoorIndex(key) {
   if (typeof key !== 'string' || !key.startsWith(INTERIOR_DOOR_PREFIX)) return null;
   const n = Number(key.slice(INTERIOR_DOOR_PREFIX.length));
   return Number.isSafeInteger(n) && n >= 0 && n < 500 ? n : null;
 }
 
-/** Room-door names in `list`, once each, in order. Anything else is left out. */
 export function interiorDoorKeys(list) {
   const out = [];
   const seen = new Set();
@@ -32,13 +24,9 @@ export function interiorDoorKeys(list) {
   return out;
 }
 
-/**
- * A swing door with no record of its own: the kind AddActionDoors hangs between
- * rooms. A special door, a lock-bearing load id, an action flag, a trigger or
- * a next object is a quest, a teleport or a dungeon door and stays. So does a sealed door (FIELD BUGS 2026-10-25
- * DOOR-VOID, world/interior/doorsToNowhere.js): taken out, its opening would be the way into nothing.
- * @param {any} object
- */
+// Quest, teleport, and dungeon doors carry a flag, load id, trigger, or next object and stay. A sealed door
+// stays too, because without it the opening would lead into nothing.
+/** @param {any} object */
 export function isRemovableInteriorDoor(object) {
   return !!object && object.kind === 'door' && !object.special && !object.sealed
     && (object.actionFlag ?? 0) === 0 && (object.loadID ?? 0) === 0
@@ -46,11 +34,7 @@ export function isRemovableInteriorDoor(object) {
     && typeof object.key === 'string' && object.key.startsWith('door:');
 }
 
-/**
- * The room's swing doors, beside the furniture list. `draws` is the interior's
- * dynamic draw list. `addDoor` / `removeDoor` are the action system's.
- * @param {{ draws: any[], addDoor: (cpu: any, matrix: any) => any, removeDoor: (key: string) => boolean }} deps
- */
+/** @param {{ draws: any[], addDoor: (cpu: any, matrix: any) => any, removeDoor: (key: string) => boolean }} deps */
 export function createInteriorDoors({ draws, addDoor, removeDoor }) {
   /** @type {any[]} */
   const recs = [];

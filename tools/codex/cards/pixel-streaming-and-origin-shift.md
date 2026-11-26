@@ -10,6 +10,7 @@ files:
   - src/world/terrainGen.js
   - src/world/terrainGenClient.js
   - src/formats/woodsFile.js
+  - src/render/labGrass.js
 dfu:
   - Assets/Scripts/Terrain/StreamingWorld.cs
   - Assets/Scripts/Utility/FloatingOrigin.cs
@@ -20,6 +21,7 @@ related:
 invariants:
   - Exterior streaming loads a Chebyshev `(2d + 1)^2` grid (`TERRAIN_DISTANCE = 3` default, `819.2` scene units per pixel at `GLOBAL_SCALE = 0.025`) nearest-first via `StreamingWorldState`.
   - Floating-origin recenters shift every world-space holder in the same frame by `(-dx * 819.2, 0, +dy * 819.2)` on pixel crossings and vertically past `+/-500` after `adjustFallStart`.
+  - "The grass field (`src/render/labGrass.js`) keeps its own cell-grid origin, which `shiftOrigin` moves with each origin shift, so cell keys and seeds never change, and a half-placed cell starts again in the new frame."
 traps:
   - "`WOODS.WLD` heightmaps run `py` southward (`z = (499 - py) * 32768`); `getLargeHeightMapValuesRange` must strip each 5x5 cell to its interior 3x3, invert sample Y (`srcData[ix][4 - iy]`), and step descending map Y (`mapPixelY - y`)."
   - Missing any world-space system (camera, interpolation endpoints, colliders, billboards, grass, arrows, or ships) during origin recenter strands it `819.2` units away.

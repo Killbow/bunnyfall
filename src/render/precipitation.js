@@ -1,29 +1,6 @@
 // @ts-check
-// Precipitation: rain streaks and drifting snow as a shader-animated
-// particle volume that wraps around the camera - zero per-frame CPU.
-// Presentation is ours (Port-Doctrine); DFU uses Unity particle prefabs
-// whose values live in animation curves, so only the particle CAP (1000,
-// Rain_Particles maxNumParticles) is anchored. Rain quads stretch along
-// the fall direction (streaks), snow quads face the camera and drift on
-// a per-particle sine. Depth-tested against the world, no depth writes,
-// alpha blended, drawn after all other passes. Deliberately unfogged
-// (the volume hugs the camera inside any fog's near field).
-//
-// AUDIT 58 (f3/render): TWO PROFILES ARE TWO PROGRAMS, not one shader
-// with a switch. EE8 mixed an enhanced arm into the stages below under
-// `uEnh`; WX1 then gave the enhanced lane the lab's own program and
-// returned from draw() into it before any of that arm could be reached
-// (`if (this.enhanced) return this.drawLab(...)`, below) - so every
-// `uEnh` term was dead: uploaded as 0 on every frame the classic lane
-// drew, and never once as 1. The mixed arms, the enhanced profiles and
-// the 26,000-particle buffer they sized are gone with the branch that
-// could have reached them; the stages below are the classic pass byte
-// for byte as it stood before EE8, and the enhanced look is WX1's
-// program (drawLab), untouched. The classic lane pays for the classic
-// cap alone - the lab's program and its 26,000 instances are built for
-// the lane that draws them, and for no other.
 
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
+import { buildProgram } from './glProgram.js';
 
 const PRECIP_VS = `#version 300 es
 layout(location=0) in vec3 aSeed;   // 0..1 per particle
@@ -74,7 +51,8 @@ void main() {
   outColor = vec4(uColor.rgb, uColor.a * vFade);
 }`;
 
-export const PRECIP_MAX_PARTICLES = 1000; // Rain_Particles_Splash maxNumParticles (AUDIT 23: the sibling named Rain_Particles carries 10000; this cap anchors the splash object)
+// Matches the classic Rain_Particles_Splash maxNumParticles.
+export const PRECIP_MAX_PARTICLES = 1000;
 const RAIN = {
   count: PRECIP_MAX_PARTICLES,
   box: [50, 30, 50],
@@ -93,32 +71,8 @@ const SNOW = {
   size: [0.07, 0.07],
   color: [1, 1, 1, 0.85],
 };
-// AUDIT 58 (f3/render): EE8's RAIN_ENH/STORM_ENH/SNOW_ENH profiles and
-// their PRECIP_ENHANCED_MAX = 26000 stood here. Their only reader was
-// the ternary in draw() below, downstream of WX1's early return into
-// drawLab - unreachable from the day WX1 landed. The lab's volume is
-// LAB_COUNTS, on the lab's own program; DFU's cap above is the classic
-// one, and it is the only one this program draws.
 
-
-// ═══════════════════════════════════════════════════════════════════
-// WX1 (Mac: implement the weather effects BYTE-EXACT to the proto - rain
-// and snow still stick to the screen in game). The enhanced profile is
-// no longer a mixed branch of DFU's sheet: it is the lab's own program,
-// both stages copied VERBATIM from grass-proto.html, with the lab's
-// instance layout (a world-space seed in a 42m box plus a phase), the
-// lab's fall speeds (22 rain, 1.6 snow), the lab's counts (26,000 and
-// 20,000), the lab's wind law (integrated travel, per-drop gust) and
-// the lab's wrap:
-//
-//     p = mod(p - uEye + uBox*0.5, uBox) + uEye - uBox*0.5;
-//
-// which is the whole difference between rain that falls through the
-// world and rain that sticks to the screen. The old profile wrapped a
-// CAMERA-LOCAL position and then added the camera to it, so every drop
-// moved with the player; the lab wraps a WORLD position around the eye,
-// so moving reveals other drops and never drags the ones in view. The
-// classic program above is untouched and still draws the classic skin.
+// The lab stages match grass-proto.html byte for byte; change both together.
 const LAB_HEAD = `#version 300 es
 precision highp float;
 `;
@@ -205,48 +159,15 @@ void main(){
 }`;
 export const LAB_BOX = 42;
 export const LAB_COUNTS = Object.freeze({ rain: 26000, storm: 26000, snow: 20000 });
-/** PRECIP1: where a mixed fall's flakes stand against its drops - a fraction of the box east and north, added to the wind's
- *  carried offset the flakes' volume wraps by (any offset that is not a whole box parts the two lattices). */
+// Any offset that is not a whole box keeps the flakes' lattice apart from the drops'.
 export const MIX_SHIFT = Object.freeze([LAB_BOX * 0.37, LAB_BOX * 0.53]);
 export const LAB_FALL = Object.freeze({ rain: 22.0, storm: 22.0, snow: 1.6 });
 
-// RAIN-CLOCK: THE FALL'S OWN CLOCK. Every program here moves its drops by
-// uTime x a per-drop rate and by the host's integrated wind travel
-// (windOff), both float32 on the GPU. Both were handed over unbounded -
-// uTime the page's whole uptime, windOff every metre the wind had blown
-// since boot - so a page left open for a day was asking the shader for
-// uTime x fall ~ 2.5e6 m, where a float32's step is a quarter metre: the
-// rain moved in visible jumps, and only got worse. The wisps wrap theirs
-// on commensurate periods (windWisps.js, AUDIT 68 S17-wisp-wrap-gust),
-// but the lab's stage is pinned byte for byte to grass-proto.html and its
-// fall and gust are continuous per drop, so no wrap of either is unseen.
-// So the clock is RE-ORIGINED instead - uTime counts from it and windOff
-// goes back to 0 - and only where no one can see the field move: on the
-// first draw after the fall has been off the screen PRECIP_REST_S (a clear
-// sky, an interior, the eye under water), which is how a spell of weather
-// begins. A spell that never pauses is re-origined at PRECIP_CLOCK_MAX_S,
-// where uTime x the fastest fall is ~1e5 m and a float32's step is under a
-// centimetre against ~0.4 m a frame of travel: one frame's reshuffle of
-// a statistically identical field, once an hour of unbroken weather.
+// Time and wind travel are float32 on the GPU, so the fall's clock re-origins after PRECIP_REST_S off screen
+// or at PRECIP_CLOCK_MAX_S, before precision loss makes the drops jump.
 export const PRECIP_REST_S = 10;
 export const PRECIP_CLOCK_MAX_S = 3600;
 
-// ═══════════════════════════════════════════════════════════════════
-// DS1: DYNAMIC SKIES' PIXEL SNOW (BLBSkybox.InitSnow, :1183-1228). The
-// mod hands DFU's Snow_Particles renderer a new material - Legacy
-// Shaders/Particles/Alpha Blended Premultiply over PixelSnow.png (64x64,
-// white with a dot of alpha) - sets startRotation 0, switches rotation
-// over lifetime off, and clamps the renderer's minParticleSize /
-// maxParticleSize: viewport FRACTIONS every flake's screen size is held
-// between (the mod's defaults 0.001 and 0.003 - one to three pixels of
-// a 1080p frame). The port's flakes are the lab's - the same instances,
-// fall, wind, tumble and wrap - so this is the lab's vertex stage with
-// the clamp on the quad, and the mod's fragment: out = tex * color *
-// color.a under Blend One OneMinusSrcAlpha, the particle colour white.
-// The texture is white everywhere with alpha only at its dot, so under
-// that blend a flake is a white square of the clamped size, which is
-// what the mod draws. Its own program: the lab's above is pinned byte
-// for byte against grass-proto.html and stays so.
 export const PIXEL_SNOW_VS = LAB_HEAD + `layout(location=0) in vec2 aCorner;
 layout(location=1) in vec4 aSeed;      // x,y,z in the box + phase
 uniform mat4 uVP; uniform vec3 uEye;
@@ -289,7 +210,6 @@ void main(){
   o = t * color * color.a;
 }`;
 
-/** out = a * b, column-major 4x4 - the lab's uVP is proj * view */
 function mat4Multiply(out, a, b) {
   for (let c = 0; c < 4; c++) {
     for (let r = 0; r < 4; r++) {
@@ -300,15 +220,8 @@ function mat4Multiply(out, a, b) {
 }
 
 export class PrecipitationRenderer {
-  /** BUNNYFALL AUDIT STUT-1c: the programs every renderer builds in its constructor, for the idle warm to start together. */
   static get PROGRAMS() { return [[PRECIP_VS, PRECIP_FS]]; }
-  // HARD3: the classic lane's twelve uniform locations. They are
-  // ASSIGNED through a string list in the constructor (`this[u] =
-  // getUniformLocation(prog, u)`), which is the honest way to say "these
-  // twelve" and also the way a reader, a renamer and a type checker all
-  // lose sight of them. Declared here so every READ is checked against
-  // the list: rename a uniform in the shader and forget the read, or
-  // read one the list never sets, and `npm run types` says so.
+  // Declared so the type checker checks every read against the names the constructor assigns in a loop.
   /** @type {WebGLUniformLocation|null} */ uProj = null;
   /** @type {WebGLUniformLocation|null} */ uView = null;
   /** @type {WebGLUniformLocation|null} */ uCamPos = null;
@@ -322,13 +235,6 @@ export class PrecipitationRenderer {
   /** @type {WebGLUniformLocation|null} */ uSnow = null;
   /** @type {WebGLUniformLocation|null} */ uColor = null;
 
-  /** AUDIT 58 (f3/render): `opts.enhanced` is the LANE, not the frame -
-   *  the host passes `sky.enhanced` (scenes/shared.js's createSkyController
-   *  return), which is fixed for a scene, while the per-frame
-   *  `precip.enhanced` field below rides the deck. The lane builds WX1's
-   *  program here, so a shader fault is still a constructor fault the boot
-   *  probe sees; the classic lane never compiles it and never uploads its
-   *  26,000 instances. */
   constructor(gl, opts = {}) {
     this.gl = gl;
     const prog = buildProgram(gl, PRECIP_VS, PRECIP_FS);
@@ -337,42 +243,24 @@ export class PrecipitationRenderer {
       this[u] = gl.getUniformLocation(prog, u);
     }
 
-    /** the wind's instantaneous rate, m/s, for the streak's lean and the
-     *  flake's throw - the lab's uWindV */
     this.windV = new Float32Array(2);
     this.labProgram = null;
+    // The lane builds the lab program here, so a shader fault fails construction where the boot probe sees it.
     if (opts.enhanced) this._buildLab();
-    /** DS1: Dynamic Skies' pixel snow, when the mod's switch is on -
-     *  {minParticleSize, maxParticleSize, textureUrl}; null is DFU's
-     *  own snow (the lab's flakes). */
     this.pixelSnow = null;
     this.pixelTex = null;
     this.pixelProgram = null;
     if (opts.pixelSnow) {
       this.setPixelSnow(opts.pixelSnow);
-      // PERF-WARM: and its PROGRAM here too, on the same rule _buildLab
-      // above follows - the pixel-snow lane is fixed at construction, so
-      // the compile belongs to the constructor (which the scene now pays
-      // for at idle) rather than to the first frame of snow. drawPixelSnow
-      // keeps its own on-demand build for the renderer that is handed the
-      // enhanced deck without the lane's flag.
       if (opts.enhanced) this._buildPixelSnow();
     }
 
-    // One buffer sized for the LARGEST set this program can draw, and
-    // the smaller profile draws a prefix of it. Per-particle quad (4
-    // verts). AUDIT 58 (f3/render): this was PRECIP_ENHANCED_MAX =
-    // 26,000 - a 26,000-iteration build and ~2.7 MB of buffers for a
-    // program whose only reachable counts are RAIN's 1000 (DFU's
-    // Rain_Particles_Splash cap) and SNOW's 800. The lab's 26,000 are
-    // instances of the LAB's buffer, in _buildLab.
     const n = Math.max(RAIN.count, SNOW.count);
     const verts = new Float32Array(n * 4 * 5);
     const indices = new Uint32Array(n * 6);
     const corners = [[-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [0.5, -0.5]];
     let s = 1;
     const rand = () => {
-      // Deterministic LCG so the volume is identical every load.
       s = (s * 1664525 + 1013904223) >>> 0;
       return s / 4294967296;
     };
@@ -391,35 +279,13 @@ export class PrecipitationRenderer {
       indices[io] = b; indices[io + 1] = b + 2; indices[io + 2] = b + 1;
       indices[io + 3] = b; indices[io + 4] = b + 3; indices[io + 5] = b + 2;
     }
-    /** EE8: the profile. false = classic (DFU's cap, byte for byte);
-     *  true = the lab's volume, driven by the weather's wind. Set by the
-     *  host each frame from the sky's deck; it opens at the lane's own
-     *  answer so a renderer built for the enhanced lane is never asked
-     *  to draw the lab's program before it owns one. */
     this.enhanced = !!opts.enhanced;
-    /** EE8: the wind's travel, integrated by the host in world units. */
     this.windOff = new Float32Array(2);
-    /** EE8: an optional cap on the enhanced count (?rain=<n>), for gates.
-     *  AUDIT 58 (f3/render): taken at CONSTRUCTION, from the host's own
-     *  boot params - it is a page dial and cannot change during a load,
-     *  and both hosts were re-parsing `location.search` for it on every
-     *  frame that rain drew, in the pass whose header claims zero
-     *  per-frame CPU. */
     this.countCap = opts.countCap ?? null;
-    /** WX2: the front's intensity, 0..1 - the fraction of the profile's
-     *  drops on screen. 1 is the whole profile (WX1's volume). The hosts
-     *  walk it on the front under the enhanced environments; the classic
-     *  draw never reads it and never sets it. */
     this.intensity = 1;
-    /** PRECIP1 (systems/weather/airTemperature.js): the fall's snow share, 0..1 - the hosts hand the front's (`snow`);
-     *  null draws the mode as it is (the classic lane, a test). A wet mode draws its drops at (1 - share) of the
-     *  intensity and its flakes at the share, one beside the other (MIX_SHIFT): sleet, wet snow, the snow line. */
     this.snowShare = null;
-    /** AUDIT PRECIP FALL-6/7: the flakes' offset while drawFall draws them, and the array their travel is handed in */
     this._shift = null;
     this._windUp = new Float32Array(2);
-    /** RAIN-CLOCK: the host time (s) the fall's clock counts from, and of
-     *  the last frame it drew - null until the first draw */
     this._t0 = null;
     this._lastDrawn = null;
     this.vao = gl.createVertexArray();
@@ -437,22 +303,12 @@ export class PrecipitationRenderer {
     gl.bindVertexArray(null);
   }
 
-  /** WX1: the LAB's program beside the classic one - its own shaders,
-   *  its own instance layout, its own VAO. The enhanced lane builds it
-   *  in the constructor, so a shader fault is a constructor fault the
-   *  boot probe sees; drawLab builds it on demand, so a renderer that
-   *  is handed the deck without the lane's flag still draws the lab's
-   *  rain rather than throwing. AUDIT 58 (f3/render): it used to be
-   *  built unconditionally - the classic skin compiled two stages it
-   *  can never bind and uploaded 26,000 instances it can never draw. */
   _buildLab() {
     const gl = this.gl;
     const lp = buildProgram(gl, LAB_WX_VS, LAB_WX_FS);
     this.labProgram = lp;
     this.lab = {};
     for (const u of ['uVP', 'uEye', 'uRight', 'uUp', 'uTime', 'uKind', 'uBox', 'uFall', 'uWindV', 'uWindOff']) this.lab[u] = gl.getUniformLocation(lp, u);
-    // the lab's instances: x,y,z in [0, BOX) + a phase, from the lab's
-    // own xorshift so the scatter is the lab's scatter
     const n = LAB_COUNTS.rain;
     const inst = new Float32Array(n * 4);
     let s2 = 0x9e3779b9;
@@ -469,11 +325,6 @@ export class PrecipitationRenderer {
     this.labVao = vao;
   }
 
-  /** RAIN-CLOCK: the seconds the drawing frame hands its program - the
-   *  host's `seconds` counted from the fall's own origin, which is moved
-   *  (and the wind's travel zeroed) on the first draw, after a rest of
-   *  PRECIP_REST_S off the screen, on a clock that ran backwards, and at
-   *  PRECIP_CLOCK_MAX_S. Called by each draw that reaches the GPU. */
   clock(seconds) {
     const t0 = this._t0, last = this._lastDrawn;
     if (t0 === null || seconds < last || seconds - last > PRECIP_REST_S || seconds - t0 >= PRECIP_CLOCK_MAX_S) {
@@ -484,8 +335,6 @@ export class PrecipitationRenderer {
     return seconds - this._t0;
   }
 
-  /** DS1: InitSnow - the pixel snow replacement. The texture decodes
-   *  in its own time; until it lands the lab's own flakes draw. */
   setPixelSnow(cfg) {
     this.pixelSnow = cfg;
     if (!cfg?.textureUrl || typeof Image === 'undefined') return;
@@ -497,7 +346,7 @@ export class PrecipitationRenderer {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, img);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-      // PixelSnow.png as imported: Point, no mips, Repeat
+      // Point filtering, no mips, and repeat wrap, as the mod imports PixelSnow.png.
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -511,15 +360,13 @@ export class PrecipitationRenderer {
 
   _buildPixelSnow() {
     const gl = this.gl;
-    if (!this.labProgram) this._buildLab();   // the same instances and VAO
+    if (!this.labProgram) this._buildLab();
     const pp = buildProgram(gl, PIXEL_SNOW_VS, PIXEL_SNOW_FS);
     this.pixelProgram = pp;
     this.pixel = {};
     for (const u of ['uVP', 'uEye', 'uTime', 'uBox', 'uFall', 'uWindV', 'uWindOff', 'uProjY', 'uAspect', 'uMinSize', 'uMaxSize', 'uTex']) this.pixel[u] = gl.getUniformLocation(pp, u);
   }
 
-  /** DS1: the lab's snow, drawn as the mod's pixel snow: the same count,
-   *  fall, wind and travel; the mod's blend and texture; the size clamp. */
   drawPixelSnow(proj, view, camPos, timeSeconds) {
     const gl = this.gl;
     if (!this.pixelProgram) this._buildPixelSnow();
@@ -532,11 +379,11 @@ export class PrecipitationRenderer {
     const P = this.pixel;
     gl.uniformMatrix4fv(P.uVP, false, this._vp);
     gl.uniform3fv(P.uEye, camPos);
-    gl.uniform1f(P.uTime, this.clock(timeSeconds));   // RAIN-CLOCK
+    gl.uniform1f(P.uTime, this.clock(timeSeconds));
     gl.uniform1f(P.uBox, LAB_BOX);
     gl.uniform1f(P.uFall, LAB_FALL.snow);
     gl.uniform2fv(P.uWindV, this.windV);
-    gl.uniform2fv(P.uWindOff, this.windUpload());   // AUDIT PRECIP FALL-6/7: the flakes aside while drawFall draws them
+    gl.uniform2fv(P.uWindOff, this.windUpload());
     gl.uniform1f(P.uProjY, proj[5]);
     gl.uniform1f(P.uAspect, proj[5] / proj[0]);
     gl.uniform1f(P.uMinSize, this.pixelSnow.minParticleSize);
@@ -544,7 +391,8 @@ export class PrecipitationRenderer {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.pixelTex);
     gl.uniform1i(P.uTex, 0);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // Alpha Blended Premultiply
+    // Premultiplied alpha, as the mod's Alpha Blended Premultiply shader draws its snow.
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.depthMask(false);
     gl.disable(gl.CULL_FACE);
     gl.bindVertexArray(this.labVao);
@@ -555,14 +403,6 @@ export class PrecipitationRenderer {
     gl.disable(gl.BLEND);
   }
 
-  /** PRECIP1: THE FALL AT THE AIR'S SNOW SHARE (`snowShare`) - the hosts' draw. On the enhanced lane a wet mode is one
-   *  fall in two looks: the rain's (a storm's, under a storm) at what is not snow, the lab's flakes at what is, the flakes'
-   *  volume carried aside (MIX_SHIFT, added to the wind's travel as it is handed over - `_shift`) so a flake never falls
-   *  in a drop's column - sleet, wet snow, the snow line. AUDIT PRECIP FALL-6: aside at EVERY share - one field of
-   *  flakes whatever falls beside them, so the air crossing the freezing point moves no flake (only the drops thin out);
-   *  FALL-7: the wind's own travel is never swapped, so the clock's re-origin always lands on it, and nothing is made a
-   *  frame; FALL-8: a ?rain=<n> cap is the whole fall's, split by the share. With no share, off the lane, or a dry mode:
-   *  `draw` as it is. */
   drawFall(mode, proj, view, camPos, camRight, timeSeconds) {
     const s = this.snowShare;
     if (!this.enhanced || s == null || !(mode === 'rain' || mode === 'storm' || mode === 'snow')) return this.draw(mode, proj, view, camPos, camRight, timeSeconds);
@@ -578,8 +418,6 @@ export class PrecipitationRenderer {
     } finally { this.intensity = all; this.countCap = cap; this._shift = null; }
   }
 
-  /** The wind's travel as a draw hands it over: its own (the clock re-origins it), with the flakes' MIX_SHIFT added while
-   *  drawFall draws them - into one owned array, never a new one a frame (RAIN-LEAK). */
   windUpload() {
     const sh = this._shift;
     if (!sh) return this.windOff;
@@ -587,20 +425,11 @@ export class PrecipitationRenderer {
     return this._windUp;
   }
 
-  /** mode 'rain'|'storm'|'snow'; storm shares the rain look. */
-  /** WX1: the lab's draw, term for term - blend src-alpha, depth write
-   *  off, the eye's right and WORLD up (a flake faces the camera about Y
-   *  only), the lab's box, fall and counts, the wind's rate and its
-   *  integrated travel. */
   drawLab(mode, proj, view, camPos, camRight, timeSeconds) {
-    if (mode === 'snow' && this.pixelSnow && this.pixelTex) return this.drawPixelSnow(proj, view, camPos, timeSeconds);   // DS1
+    if (mode === 'snow' && this.pixelSnow && this.pixelTex) return this.drawPixelSnow(proj, view, camPos, timeSeconds);
     const gl = this.gl;
     if (!this.labProgram) this._buildLab();
     const kind = mode === 'snow' ? 1 : 0;
-    // WX2: the lab's own scaling - `Math.round(wx.n * wsky.fall)` in
-    // grass-proto.html's frame() - the profile times the front's
-    // intensity, so a sprinkle is a few thousand drops and a front
-    // fills the volume in rather than switching it on.
     const full = Math.round((LAB_COUNTS[mode] ?? LAB_COUNTS.rain) * Math.min(1, Math.max(0, this.intensity)));
     const count = this.countCap != null ? Math.min(full, this.countCap) : full;
     if (count <= 0) return;
@@ -612,12 +441,12 @@ export class PrecipitationRenderer {
     gl.uniform3fv(L.uEye, camPos);
     gl.uniform3fv(L.uRight, camRight);
     gl.uniform3f(L.uUp, 0, 1, 0);
-    gl.uniform1f(L.uTime, this.clock(timeSeconds));   // RAIN-CLOCK
+    gl.uniform1f(L.uTime, this.clock(timeSeconds));
     gl.uniform1f(L.uKind, kind);
     gl.uniform1f(L.uBox, LAB_BOX);
     gl.uniform1f(L.uFall, LAB_FALL[mode] ?? LAB_FALL.rain);
     gl.uniform2fv(L.uWindV, this.windV);
-    gl.uniform2fv(L.uWindOff, this.windUpload());   // AUDIT PRECIP FALL-6/7: the flakes aside while drawFall draws them
+    gl.uniform2fv(L.uWindOff, this.windUpload());
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.depthMask(false);
     gl.disable(gl.CULL_FACE);
@@ -631,11 +460,6 @@ export class PrecipitationRenderer {
 
   draw(mode, proj, view, camPos, camRight, timeSeconds) {
     if (this.enhanced) return this.drawLab(mode, proj, view, camPos, camRight, timeSeconds);
-    // AUDIT 58 (f3/render): below this line `this.enhanced` is FALSE, and
-    // every arm that asked it again was dead - the enhanced profiles it
-    // chose, and the countCap it read (?rain=<n> caps the LAB's volume,
-    // drawLab above, which is the only volume big enough to need it).
-    // What is left is the classic profile, at DFU's cap.
     const cfg = mode === 'snow' ? SNOW : RAIN;
     const count = cfg.count;
     const gl = this.gl;
@@ -644,10 +468,7 @@ export class PrecipitationRenderer {
     gl.uniformMatrix4fv(this.uView, false, view);
     gl.uniform3fv(this.uCamPos, camPos);
     gl.uniform3fv(this.uCamRight, camRight);
-    gl.uniform1f(this.uTime, this.clock(timeSeconds));   // RAIN-CLOCK
-    // EV2: the config vectors upload from arrays built ONCE - four
-    // fresh Float32Arrays per frame sat in a pass whose header claims
-    // zero per-frame CPU, and now it is true again.
+    gl.uniform1f(this.uTime, this.clock(timeSeconds));
     if (!cfg._gpu) cfg._gpu = { box: new Float32Array(cfg.box), slant: new Float32Array(cfg.slant), size: new Float32Array(cfg.size), color: new Float32Array(cfg.color) };
     gl.uniform3fv(this.uBox, cfg._gpu.box);
     gl.uniform1f(this.uFall, cfg.fall);
@@ -666,10 +487,6 @@ export class PrecipitationRenderer {
     gl.enable(gl.CULL_FACE);
     gl.depthMask(true);
     gl.disable(gl.BLEND);
-    // EV2: no program restore, and no gl.getParameter round-trip to
-    // learn what to restore - the R9 law (renderer.js drawMesh) is
-    // that EVERY draw entry point owns its program binding, so the
-    // next pass binds its own and a restore here was paying a
-    // synchronous driver query per frame for nothing.
+    // Every draw entry point binds its own program, so this pass restores none.
   }
 }

@@ -1,62 +1,14 @@
 // @ts-check
-// AUDIT 68 S17-fog-glsl-dup (2026-09-24): THE FOG LAW, ONE HOME. Every world
-// pass fogs by the same factor - renderer.js's seven programs, the water
-// surface and the lighting lane's five - and it was pasted into nine of
-// them; DS1's exp2 mode had to be added to every copy. A leaf with no
-// imports, as cloudShadow.js is, so the classic page's static graph grows by
-// this file alone (BANTHA1: and the jungle's haze law, render/hazeGlsl.js -
-// its one import, itself a leaf). Each shader declares its own uniforms (uFogMode,
-// uFogDensity, uFogRange, uCamPos); renderer.js's setFog/_uploadFog is
-// their one producer.
-//
-// DW-C (2026-09-25): AND THE SEA'S. Iliac Puddle No More 1.2.2 (jet082)
-// closes the view under its carved sea with a post effect of its own -
-// UnderwaterDistanceFog.shader, over the camera's image and depth: the
-// light absorbed per channel and scattered back in over the distance the
-// ray travels IN THE WATER (a ray that climbs out through the surface stops
-// counting there), the whole darkened with the camera's depth, and closed
-// to the fog colour over a near band and a far one. The port's classic
-// frame has no depth to read, so the same arithmetic runs per fragment,
-// after the world fog, in every program that takes this block: the
-// affine map a pixel's colour goes through is the one its own distance
-// sets, and an alpha blend of two fogged fragments is the fog of the blend
-// wherever they share a distance - the surface and everything seen
-// through it do, the ray being capped at the surface for both. The sky,
-// which no program here draws, takes the same map in its own pass
-// (deepWatersRender.js drawSkyFog). Its one uniform is declared here with
-// its only reader: five vec4s from world/deepWater/deepWaterLook.js
-// distanceFogUniforms, [0].x 0 when the effect is off (renderer.js
-// setWaterFog - a frame's, cleared by beginFrame).
+// The fog math every world pass shares. Each shader declares its own fog uniforms; renderer.js setFog is their one
+// producer. Keep this a leaf so the classic page's static graph grows by this file alone.
 
-/**
- * TV1 (2026-09-27, bible/06-Systems/Travel-View.md): THE FOCUS - where the world is EXPERIENCED from, which is the
- * camera until the travel view lifts the camera hundreds of metres over the traveller. Mac: "Every detail like weather
- * patterns, should be 1:1 in this mode." The fog is the traveller's: a rain the traveller sees 300 m through is drawn
- * as the rain it is where they stand - a clear round of ground about them closing to the weather's colour - and not as
- * a camera 450 m up in the same air. (The sun's cascades stand about the same point by their own word: the shadow
- * pass is rendered about it and hands the receivers `uSunOrigin` - render/shadowPass.js SHADOW_GLSL.) Everything else
- * a shader reads off the eye - the specular, the facing flip, the water's fresnel - stays the camera's.
- *
- * `uFocus` is a vec4 whose w says whether it is set: a program the renderer never uploads it to, or a frame with no
- * travel view, reads (0,0,0,0) and falls back to uCamPos - so the default is today's law exactly, and a pass left
- * out of the upload fogs from the camera rather than from the world's origin. FOG_GLSL is its one home: every
- * program takes the fog block once, and no other block declares it (the shader evaluator, test/glsl.mjs, takes no
- * preprocessor, and a second declaration is a compile error).
- */
-import { HAZE_LAW_GLSL } from './hazeGlsl.js';   // BANTHA1: the jungle's haze - its one import, itself a leaf
+import { HAZE_LAW_GLSL } from './hazeGlsl.js';
 
+// `uFocus.w` 0 (never uploaded, or no travel view) falls back to uCamPos. Declare uFocus only here: a second
+// declaration is a compile error.
 export const FOCUS_GLSL = `uniform vec4 uFocus;
 vec3 focusOrigin() { return uFocus.w > 0.5 ? uFocus.xyz : uCamPos; }`;
 
-/** fogFactorAt(worldPos): 1 unfogged, 0 all fog. uFogMode 0 off, 1 linear
- *  over uFogRange (start, end), 2 exp, 3 exp2 (DS1: FogMode.ExponentialSquared).
- *  BANTHA1: and the jungle's haze over it (render/hazeGlsl.js hazeAt - a
- *  transmittance, so the two multiply); weatherFogAt(worldPos) the weather's
- *  half alone, for a pass that holds that half to a law of its own (the
- *  water's sea haze, render/waterSurface.js).
- *  dwWaterFog(colour, worldPos): the Deep Waters distance fog over a
- *  finished colour (the colour back unchanged while it is off);
- *  dwWaterFogAdd(colour, worldPos): an ADDED colour's share of it. */
 export const FOG_GLSL = `${FOCUS_GLSL}
 ${HAZE_LAW_GLSL}
 float weatherFogAt(vec3 worldPos) {

@@ -1,240 +1,28 @@
 // @ts-check
-// WB9g (2026-09-30, Mac: "a new addition (the aura), an animated burning ground aura that circles the ground where your
-// character stands. These items should be expensive and sought after"): DAGON'S FIRE, DRAWN - the Sigil Broker's aura,
-// burning on the ground about the feet of whoever wears it: a ring of fire that chases itself round, tongues of flame
-// licking up out of it, embers circling in it and a glow in the stone inside it. Design: bible/11-Multiplayer/
-// World-Bosses.md section 14 (WB9g); the aura's law (who wears one, signed into the token) is net/insignia.js.
-//
-// TWO DRAWS A WEARER, one pass:
-//   - THE GROUND: one quad flat under the feet, the ring, its fire, its embers and the glow inside it answered per pixel
-//     from the polar distance and angle about the wearer (a ring band broken by value-noise fire that flows round it,
-//     bright crests chasing about it, ten embers orbiting in it, a soft ember-glow within).
-//   - THE FLAMES: a low cylinder of flame at the ring - tongues rising out of noise that scrolls up and round, white-hot
-//     at the root, orange, red and gone at the top; both faces, so the far side burns behind the wearer too.
-//
-// The duel wall's law (render/duelWall.js): fixed geometry (a quad, a strip of the cylinder's steps) placed by uniforms;
-// added onto the frame (ONE, ONE); tested against the depth the world wrote and never writing it; the ground lifted and
-// offset off the stone it lies on; fogged to the frame's fog; every rate whole over the wrapped clock (AURA_CLOCK_PERIOD).
-// The travel view draws none (the hosts draw it in the walking views alone). Pure where it can be: `auraWearers` (who is
-// drawn, nearest first, at most AURA_DRAW_MAX) and `auraClock` are the pins' doors.
-//
-// AEGIS (2026-10-03, the owner: "For the account named Sureme ... a title, glyph and new custom aura for this user.
-// Title: Aegis of Oblivion. Theme: Purple"; Sureme, sending two Path of Exile ground marks: "i want one that is a full
-// circle", "but with some stuff like this one"): THE OBLIVION WARD, the second aura, drawn by the SAME pass - one source,
-// the aura picked per wearer by `uAura` (AURA_LOOK: its kind, its ring's radius, its wall's height); since AURA-SPLIT
-// (#1143) each look is that source with `uAura` a constant, a program of its own. Not fire but script, in the Aegis of
-// Oblivion's violets:
-//   - THE GROUND: the ward's ring WHOLE (the first reference) - one line of light, lilac-white at its heart and violet
-//     round it, breathing, two scribes of brighter light running round it; a bezel of fine ticks outside it turning
-//     the other way; within it a ring of WARD_RUNES runes in the second reference's script - each a baseline along the
-//     ring with a bead or a serif at each end, beads on the line, a comb or a chevron outward, a cross inward
-//     (WARD_SCRIPT says which) - turning slowly against the ring and lit one after another as if being written;
-//     WARD_SIGILS claws hung inward from the ring at the diagonals (the first reference's four marks); the abyss's
-//     violet mist turning within; drawn round from behind the wearer as it kindles.
-//   - THE WALL: a veil of light no higher than the shins, in streaks that climb, and WARD_MOTES motes rising off the
-//     ring at their own places and paces - so it stands up off the ground seen from the side, as the fire's flames do.
-//   - THE SYMBOLS (the owner, after: "Can you add like symbols that float and dissipate"): WARD_GLYPHS cards, each a rune
-//     of the script stood on end, lifting off the ring and floating up to the chest - swaying, drifting outward, turning
-//     a little, always facing the eye round the vertical - while they blur, break into dust and fade; then each lifts
-//     again somewhere else round the ring, another rune. A third draw, the ward's alone.
-// Every rate whole over the clock, as the fire's (wardRatesWhole); every pattern round the ring a whole number of
-// itself, so no seam behind the wearer.
-//
-// PRIMARCH (2026-10-04, GA00250, relayed by the owner: "can the aura be a golden light around the character? like i've
-// seen some rare mobs with it" - the elite foes' glow, systems/hitFlash.js ELITE_GLOW_GLSL: a warmth, an edge of light
-// round the silhouette and embers rising off it): THE GOLDEN RADIANCE, the third aura, the same pass's third look. Not a
-// mark on the ground but LIGHT ABOUT THE BODY:
-//   - THE WALL: a column of golden light the body's own width (RADIANCE_R) standing past the crown (RADIANCE_H), lit as
-//     a glowing shell is - faint where it crosses the body (the eye looks straight through it) and brightest at its two
-//     edges, where the eye looks along it, so it reads as light ROUND the wearer, a halo up the silhouette, and never as
-//     a gold wash over them; shafts in it climbing, fading toward the top, breathing; RADIANCE_MOTES golden motes rising
-//     the column's height at their own places and paces, the elite's embers. From inside it (the wearer's own first
-//     person) the column is not drawn - only its motes, dimmer - so the wearer's own view is never veiled in gold.
-//   - THE GROUND: the light the column throws - a pool, brightest at the feet; a white-gold ring at the column's foot;
-//     RADIANCE_RAYS rays out across the pool, turning slowly.
-// It kindles UP: the ground lights as the fire's does, and the column rises from the feet to past the crown. Every rate
-// whole over the clock (radianceRatesWhole). No third draw.
-//
-// SHADOW-CLOAK (2026-10-04, Mac, for SirMcMobdon: "A holo shadow cloak with red accents. Extremely detailed"; then "less
-// digital, adjust hood since it's at a weird orientation, not as tall, more cape like, change the floating elements to
-// be more emblem like", "For the emblems have it use that user's glyph", "when the user transforms into a werewolf have
-// this rip apart with fragments floating around"): THE HOLO SHADOW CLOAK, the fourth look - a CAPE ON THE BODY in the
-// Shadow Fang's black and crimson, its hood up:
-//   - THE WALL is its own mesh (auraCloakGrid), shaped in the vertex half round the wearer's facing (`uYaw`): hung from
-//     the shoulders, clasped at the throat, open below it, flaring and trailing longest down the back, the hood round
-//     the head. It SHADES - drawn premultiplied (AURA_LOOK `shade`) so it darkens what is behind it - and its two sides
-//     are two draws (`uSide`) culled by the bent mesh's own winding, its lining before its outside. A dense shadow
-//     outside, a red lining, a mantle, embroidery down its opening, a hem fraying into smoke.
-//   - THE EMBLEM is the wearer's own glyph: the badge's path (ui/playerBadge.js GLYPH_PATH.shadowfang) cut into edges
-//     (glyphEdges) and filled in the shader - on its back, as its clasp, and on the THIRD DRAW's cards rising off it.
-//   - THE GROUND: a pool of shadow under it.
-//   - TORN when its wearer turns beast (`uTorn`, auraBeastStep): it splits and goes, and the third draw's cards past
-//     the emblems are its shreds, floating round the beast.
-//   - IT MOVES WITH THE BODY (Mac: "Tie the cape to animations"): the pose off the body's posed bones as it was drawn
-//     (auraCapePose: `uCapeS` the shoulders, `uCapeH` the head, `uKneeL`/`uKneeR` the knees - fpArm.thirdBones mine,
-//     peerBodies.bonesOf a peer's), and a swing off how the wearer moves (auraMotionStep, a damped spring: `uSwing`).
-// Every rate whole over the clock (cloakRatesWhole). The pass draws its wearers farthest first (AUDIT).
-//
-// SERAPH-WINGS (2026-10-05, Mac: "I want to build an aura for the developers ... Golden Angel wings that flow", from a
-// painted angel whose wings are long ribbons of light): THE SERAPH WINGS, the fifth look - WINGS OF LIGHT on the body:
-//   - THE WINGS are their own mesh (auraWingsGrid): WING_PLUMES primaries and WING_COVERTS short coverts a side, each a
-//     broad strand and two fine ones - ribbons of WING_SEGS segments out of the upper back, turned to the eye. Waves and
-//     a flutter run out along each so they FLOW; the fan breathes, and beats every eight seconds (wingBeat). Gold,
-//     white-hot at each heart, amber at a frayed edge and tip, light pulsing outward; added whole (no shade), nothing
-//     laid over an eye among them. The third draw: sparks streaking out past the tips, and a backlight card behind.
-//   - THE GROUND: a faint pool of gold; THE LIGHT on the world: auraWingLights (an aura's light, `aura` - gold).
-//   - ON THE BACK: laid along the torso's own axes (auraTorso: `uTorsoU`, `uTorsoF`) from the shoulders (`uCapeS`) - a
-//     Morrowind rig's bones, or a Beholder sprite's figure (auraSpriteBones, EOTB_FIGURE: by the pixel, the sprite's own
-//     facing; AUDIT 3), or the rest pose (a rider's over the saddle, AURA_SADDLE_M); closed when sunk to the neck. Swung
-//     as the cape is (auraMotionStep: `uSwing`); unfurling from the root as they kindle. Every rate whole over the clock
-//     (wingRatesWhole).
-//   - WINGS-FIT (2026-10-05, Mac: "the wings should sit farther back on the eye of the beholder skin ... clips on certain
-//     rotational directions", "the aura itself is WAY too bright. It really needs to match this and the slimness of the
-//     wings", "way to long, too large and overbearing", the same painted angel): a sprite is a FLAT card standing at its
-//     feet, square to the eye, so a wing rooted a hand behind its axis stood inside the body's outline and nearer the
-//     eye than the card whenever it was seen from a side or a three-quarter, and was laid over the body there, cut off
-//     where it passed through the card. A sprite's wings root WING_SPRITE_BACK further back (the pose's
-//     `wingBack`, `uWingBack`): a wing crosses the card no nearer the axis, as the eye sees it, than its own depth behind
-//     it - past the body's outline. And slim, short and dimmed to the painting: three strands a plume, not five, a third
-//     as broad; twelve plumes a side, not fifteen; about six tenths as long; each strand's light about half; the
-//     backlight smaller and faint; the pool and the light on the world dimmer.
-//
-// CRYSTAL-FIST (2026-10-05, the owner, for Flylighter: "Aura, also purple, would be a circle of tiny purple squares
-// going up and down out of the ground. Something similar to what you see here, but the color 'gradient' would be
-// unnecessary" - Octavia's in Warframe, a ring of a music visualiser's bars about her): THE CRYSTAL RESONANCE, the sixth
-// look - A RING OF SQUARES RISING AND FALLING:
-//   - THE WALL: RESONANCE_COLUMNS columns round the feet at RESONANCE_R, one on each face of the pass's own strip (it is
-//     AURA_STEPS round), each a stack of tiny squares, RESONANCE_SQUARE_M a side, RESONANCE_CELLS high at most. How
-//     many of a column's squares stand lit is its level now (resonanceLevel, in node alone - AUDIT: the draw counts each
-//     column's lit squares once a frame, `resonanceLitInto`, and hands them to the shader, `uResLit`): a wave
-//     running round the ring, a second against it, each column's own bounce and a beat through them all, so the columns
-//     go up and down out of the ground as a visualiser's do. Every square the same - ONE colour, the
-//     reference's purple (the Crystal Fist's own, ui/playerBadge.js CRYSTAL_PURPLE), as asked: no gradient.
-//   - THE GROUND: each column's foot, a square lying on the ring.
-// It kindles UP - the columns rise out of the ground. Every rate whole over the clock (resonanceRatesWhole); every
-// wave round the ring a whole number of crests, so no seam behind the wearer. No third draw, no host changed.
-//   AUDIT (2026-10-05, the owner: "Audit this"): ONE LAW, ON EVERY GPU - the level's per-column hash is fract(sin(x) *
-//   43758), which float32 and every vendor's sin answer differently, so the shader lit other squares than node's law in
-//   nearly half the samples; the count is node's now, handed over. ONE COLOUR ON SCREEN - added (ONE, ONE), a square
-//   over its foot, the far wall through the near and any bright ground summed past the purple to a pale pink; it is
-//   drawn premultiplied (AURA_LOOK `shade`): a square COVERS what is behind it in the purple, however many lie over each
-//   other. NO SHIMMER - each square's edge is as wide as a pixel there (the scene's own derivatives), and a square under
-//   a pixel or two fades to its cell's average cover, so the rows do not moire far off; the glow round a square, which a
-//   cell's edge cut into a line over each column's top, is gone. AND A WEARER'S OWN PULSE - `uSeed` offsets its clock.
-//
-// SD9c (2026-10-07, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 11): THE TURNING HOUR, the
-// seventh look - the Brass Remnant's aura, "a slow wheel of brass gears and gold light about the wearer", granted one
-// kill in eight on its first write (server-account/src/sds.js). Added whole, as the radiance is, in the Hourbreaker's own
-// colours (ui/playerBadge.js HOUR_*):
-//   - THE GROUND: a brass wheel lying about the feet - its rim, TURNING_TEETH teeth out of it, its hub and TURNING_SPOKES
-//     spokes - STEPPING on the second as a clock's escapement does (eased over a quarter of each second, held the rest:
-//     turningWheelAngle), two turns over the clock; a light that does not turn gleaming on the brass as it passes under;
-//     outside it the Hour's dial, a line of gold and its twelve marks - the Hour's own the longer - turning BACK, as the
-//     Hour's sky's hands do (render/superDungeon/sdSky.js); gold light pooled at the feet, breathing.
-//   - THE WALL, the pass's strip at the teeth's tips: the wheel's edge seen from the side - its teeth's faces passing
-//     round with it, gold along their top - gold light rising off it, gone by the knee, and TURNING_MOTES motes rising.
-// It kindles UP, as the radiance does. Every rate whole over the clock (turningRatesWhole); the teeth, the spokes and
-// the marks whole round, so no seam behind the wearer. No third draw, no host changed.
-//
-// EG-E2 (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section 19, THE HONOURS): THE
-// SPIRE'S THREE, the ninth to eleventh looks, each its own kind and added whole, in the Spire's colours (ui/playerBadge.js
-// SPIRE_*), each granted with its title (server-account/src/egHonours.js):
-//   - BEACONLIGHT (Kynbane's, 8): GOLD-WHITE MOTES - BEACON_LIGHTS beacons of white fire on a thin gold ring at the feet,
-//     lit one after another round it as the Spire's were and fading after, in a pool of gold-white light; off the ring
-//     BEACON_MOTES gold-white motes rising past the chest, swaying as they climb. It kindles UP.
-//   - THE BURNING STAIR (Wellhead-Walker's, 9): FALLING EMBERS - a spiral stair of STAIR_STEPS steps burning round the
-//     feet, each a little hotter than the one above it, its risers' lips lit, the whole stair turning DOWN; over it
-//     STAIR_EMBERS embers falling from over the head, cooling as they fall. It kindles DOWN - the embers' first fall.
-//   - FIRSTLIGHT (First of the Spire's, 10) - SPIRE-FIRST (2026-10-20, the owner, for Serveride, the first company ever to
-//     take Redoubt 10, alone: "Since hes world first. He should get this title plus a custom aura"): rebuilt as his own,
-//     THE TEN REDOUBTS CLIMBED AND THE DAWN BREAKING. The climb (dawnClimb, node's law; the shader's dawnTaken its copy):
-//     the Redoubts taken one after another, I to X, X held, all of it down and again. THE GROUND: a dial - the dawn's
-//     white ring and a gold line within it - the climb's lane between them lit round to where the climb has come, the ten
-//     Redoubts lozenges on the ring (an outline until taken, filled with the dawn after; X's a star once the dawn breaks),
-//     the sunrise circling it, and a sunburst of rays past it, long and short by turns, brightening as X is taken while
-//     the dawn's light runs out along them. THE WALL: ten spires off the Redoubts, I the lowest and X the tallest, a third
-//     of themselves until taken; a shaft of first light off X past the head as it is taken; motes rising; the veil to
-//     the shin. Shaft and motes are not drawn from inside the ring. It kindles UP.
-// Every rate whole over the clock (spireRatesWhole); the beacons, the steps, the Redoubts and the rays whole round, so no
-// seam behind the wearer but the stair's own top. No third draw, no host changed. THE QUIET COMPANY (Elite-Gates.md section 25.4 - a cosmetic
-// aura draws nothing during a trial) is the host's to say: `auraWearers` takes no room, and no host is wired here.
-//
-// WIKIMAID (2026-10-17, for SylviaBun: "Honestly as dumb as this is gonna sound the WikiMaid title and a purple aura with
-// bunnies would be dope as hell" - "Lets go all out for this"): THE LILAC WARREN, the twelfth look - RABBITS HOPPING ROUND
-// THE FEET, in the WikiMaid's own colours (ui/playerBadge.js WARREN_*), drawn premultiplied as the resonance is (AURA_LOOK
-// `shade`): a rabbit COVERS what is behind it in its lilac, so it stays a lilac rabbit over a lit floor, and the light
-// about it is added (no cover):
-//   - THE RABBITS, the third draw: WARREN_BUNNIES cards, each a rabbit in profile (WARREN_BUNNY.path, cut into edges by
-//     glyphEdges and filled in the shader) - a lilac coat lit from above, an amethyst line round it, its cotton tail
-//     white, its eye plum with a glint, its ear's inside and its nose blush, and on its crown the WikiMaid's own maid's
-//     headdress, white lace on a plum band. Each hops round the ring the way it faces as the eye sees it: WARREN_HOPS
-//     hops - a crouch, then the air, stretched as it flies - and a sit; one sit in WARREN_BINKY_EVERY a BINKY, a rabbit's
-//     happy leap, turning about in the air and back. Where each is, how high, how stretched and which way it faces is
-//     node's law (warrenBunny), handed to the GPU each frame (`uWarren`, the resonance's AUDIT A2 law: one law on every
-//     GPU), nearest last (warrenDepthOrder) so a near rabbit is laid over a far one. They come up out of the ground as it
-//     kindles, one after another.
-//   - THE GROUND: amethyst light pooled within the ring; the ring a crisp line of the lilac in an amethyst glow, just inside
-//     the rabbits' lane (WARREN_RING_IN), so they hop round it; a soft shadow under each rabbit, fainter as it leaps; and THE TRACKS - each landing's prints, a rabbit's own (two long
-//     hind feet side by side ahead of two small fore feet one behind the other), fading (`uWarrenPrint`, node's too);
-//     and twinkles round the ring, each in its own time.
-//   - THE WALL, the pass's strip at the ring: sparkles of lilac, blush and white rising off it to the waist, and a low
-//     amethyst veil, gone by the shin; kindled up.
-// Every rate whole over the clock (warrenRatesWhole); the gait, its laps and its binkies whole over it too, so the ring
-// meets itself at the wrap. No host changed.
-//
-// NIRNROOT-SAGE (2026-10-26, for Blob-Marley, an Immortal backer: "a cloud of billowing smoke with nirnroots circling
-// around me" - "billowing smoke, circling nirn roots around midsection, small glowing green runes encircling feet"): SAGE'S
-// SMOKE, the fifteenth look, in the Nirnroot Sage's own colours (ui/playerBadge.js NIRN_*), drawn premultiplied (AURA_LOOK
-// `shade`): the smoke COVERS what is behind it, the runes' light and the nirnroots' glow are added:
-//   - THE GROUND: SAGE_RUNES small runes in the ward's alphabet (runeD) round the feet, glowing green, turning slowly and lit
-//     in turn, framed by two fine lines of the glow; under them the shade the smoke lays, rolling, gone past the runes.
-//   - THE WALL, the strip at the runes: low smoke rolling round the boots, thick where the eye looks along it and thin
-//     across them, gone by the knee; the runes' light rising off the ring.
-//   - THE THIRD DRAW: SAGE_PUFFS puffs of smoke billowing up about the body past the crown - each rising off a place round
-//     the feet, curling round the body, drifting out and growing as it climbs, lit from above - and SAGE_ROOTS nirnroots
-//     circling the waist, the badge's own sprig (GLYPH_PATH.nirnrootsage and its details, cut by glyphEdges), bobbing and
-//     swaying. Every card's place, size and kind is node's law (sageCardsInto), handed over farthest first (`uSage`,
-//     `uSageLook`); a puff near the eye is not drawn, so the wearer's own first person is never smoked out.
-// Every rate whole over the clock (sageRatesWhole), every puff's life too. No host changed.
-//
-// Not a DFU member. Ledger A (WB).
+// Every look is added onto the frame or drawn premultiplied, depth-tested and never written. Every rate is a whole
+// number of cycles over AURA_CLOCK_PERIOD, so the wrapped clock never jumps.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram, compiledPass } from './glProgram.js';
 import { wrapAngle } from '../world/mat4.js';
-import { GLYPH_PATH, GLYPH_DETAIL, CRYSTAL_PURPLE, HOUR_BRASS, HOUR_GOLD, HOUR_LIGHT, HOUR_DAWN, HOUR_PEARL, HOUR_SUN, COIL_SEA, COIL_TIDE, COIL_FOAM, SPIRE_BEACON, SPIRE_BEACON_WHITE, SPIRE_EMBER, SPIRE_COAL, SPIRE_DAWN, SPIRE_DAWN_GOLD, SPIRE_DAWN_ROSE, WARREN_AMETHYST, WARREN_LILAC, WARREN_BLUSH, WARREN_FRILL, WARREN_PLUM, WITCH_MOSS, WITCH_FIRE, WITCH_GLOW, WITCH_VIOLET, HEARTH_TALLOW, NIRN_LEAF, NIRN_GLOW, NIRN_HAZE, NIRN_DEEP, NIRN_SMOKE } from '../ui/playerBadge.js';   // SHADOW-CLOAK: the wearer's own glyph, its emblem; CRYSTAL-FIST AUDIT: the Crystal Fist's purple, the resonance's one colour; WIKIMAID: the warren's five
+import { GLYPH_PATH, GLYPH_DETAIL, CRYSTAL_PURPLE, HOUR_BRASS, HOUR_GOLD, HOUR_LIGHT, HOUR_DAWN, HOUR_PEARL, HOUR_SUN, COIL_SEA, COIL_TIDE, COIL_FOAM, SPIRE_BEACON, SPIRE_BEACON_WHITE, SPIRE_EMBER, SPIRE_COAL, SPIRE_DAWN, SPIRE_DAWN_GOLD, SPIRE_DAWN_ROSE, WARREN_AMETHYST, WARREN_LILAC, WARREN_BLUSH, WARREN_FRILL, WARREN_PLUM, WITCH_MOSS, WITCH_FIRE, WITCH_GLOW, WITCH_VIOLET, HEARTH_TALLOW, NIRN_LEAF, NIRN_GLOW, NIRN_HAZE, NIRN_DEEP, NIRN_SMOKE } from '../ui/playerBadge.js';
 
-/** The ring's radius about the feet (m), the ground quad's half-width, the flames' height, and the ground's lift. */
 export const AURA_RING_R = 0.85;
 export const AURA_GROUND_R = 1.35;
 export const AURA_FLAME_H = 0.62;
 export const AURA_LIFT_M = 0.05;
-/** The cylinder's steps round (its strip's resolution). */
 export const AURA_STEPS = 48;
-/** The most auras one frame draws, and the farthest one is drawn from the eye (m) - past it a ring is a few pixels.
- *  AUDIT 3 (2026-10-05, Mac: "Ensure other players can see all auras"): 32 - a crowd at a hub's fountain is more than
- *  sixteen, and the seventeenth wearer within reach was drawn by nobody; a wearer is four draws at most. */
 export const AURA_DRAW_MAX = 32;
 export const AURA_RANGE_M = 90;
-/** The clock every rate is whole over (s): the ring's turn (AURA_TURN_HZ), the fire's flow and the flames' rise. */
 export const AURA_CLOCK_PERIOD = 120;
-/** BUNNYFALL (2026-11-04, the owner: "change the developer aura to be an halo instead of holy wings"): THE HALO - a ring
- *  of gold light floating over the head: its radius, the ribbon's width (turned to the eye all round, so it reads from
- *  any side), how far over the head's middle it floats, how far it bobs; its glint's turns round it, its breath and its
- *  bob (Hz, whole over the clock). */
 export const HALO_R = 0.17;
 export const HALO_W = 0.05;
 export const HALO_UP = 0.3;
 export const HALO_BOB_M = 0.015;
 export const HALO_HZ = Object.freeze({ glint: 0.25, breath: 0.5, bob: 0.5 });
 export const AURA_TURN_HZ = 1 / 8;
-/** The seconds a wearer's aura takes to kindle when it first stands (or when they first put it on). */
 export const AURA_KINDLE_S = 0.8;
-/** AUDIT 3: the seconds a peer's aura is remembered unseen (a frame without their pose, a moment concealed or out of the
- *  list) before it is forgotten - so it does not kindle again from nothing every time they blink out for a frame. */
 export const AURA_FORGET_S = 2;
 
-/** AEGIS: THE OBLIVION WARD'S MEASURES - the ring's radius (wider than the fire's, as the first reference's circle stands
- *  clear of the feet), the rune ring's within it, the wall's height (a veil to the shins), and how many of each round. */
 export const WARD_RING_R = 0.95;
 export const WARD_RUNE_R = 0.78;
 export const WARD_WALL_H = 0.42;
@@ -242,64 +30,33 @@ export const WARD_RUNES = 12;
 export const WARD_SIGILS = 4;
 export const WARD_TICKS = 48;
 export const WARD_MOTES = 14;
-/** AEGIS: THE FLOATING SYMBOLS - how many are aloft at once, the seconds a flight lasts (symbol k's is
- *  WARD_GLYPH_LIFE[k mod 3], each dividing AURA_CLOCK_PERIOD so the flights wrap whole with the clock), how high a flight
- *  climbs over the ring (m), and a card's width and height (m) before it grows as it fades. */
 export const WARD_GLYPHS = 9;
 export const WARD_GLYPH_LIFE = Object.freeze([3, 4, 5]);
 export const WARD_GLYPH_RISE = 1.3;
 export const WARD_GLYPH_W = 0.16;
 export const WARD_GLYPH_H = 0.26;
-/** The ward's rates (Hz), each a whole number of cycles over AURA_CLOCK_PERIOD: the runes' turn against the ring (a
- *  turn in 40 s), the bezel's the other way (60 s), the two scribes' run round the ring, the ring's breath, the
- *  writing's pass round the runes, and the slowest mote's rise (the others two and three times it). */
 export const WARD_HZ = Object.freeze({ runes: 1 / 40, bezel: 1 / 60, scribe: 1 / 8, pulse: 1 / 4, write: 1 / 6, mote: 1 / 4 });
-/** Its flows in lattice cells a second (the mist's turn round the ring, the veil's climb) - whole over the clock too. */
 export const WARD_FLOW = Object.freeze({ mist: 0.5, veil: 0.75 });
-/** Every ward rate whole over the clock. Pure. */
 export const wardRatesWhole = () => [...Object.values(WARD_HZ), ...Object.values(WARD_FLOW)]
   .every((r) => Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** THE WARD'S SCRIPT: rune k's ornaments as bits on its baseline - 1 a bead ends it on the left (else a serif), 2 on the
- *  right, 4 a bead on the line's left half, 8 on its right, 16 a comb outward (else a chevron), 32 a cross inward. The
- *  second reference's marks, twelve runes no two alike, so the ring reads as writing and not as a pattern. */
 export const WARD_SCRIPT = Object.freeze([25, 38, 51, 12, 19, 40, 61, 18, 33, 15, 52, 10]);
-/** Its light: the ward's violet (the Aegis of Oblivion's own - ui/playerBadge.js OBLIVION_VIOLET), the lilac-white at a
- *  line's heart (OBLIVION_LILAC), and the abyss's violet in the mist (OBLIVION_ABYSS). RGB 0..1. */
 export const WARD_RGB = Object.freeze({ violet: Object.freeze([0.698, 0.302, 1]), heart: Object.freeze([0.925, 0.863, 1]), abyss: Object.freeze([0.302, 0.102, 0.58]) });
-/** PRIMARCH: THE GOLDEN RADIANCE'S MEASURES - the column's radius about the body (clear of the shoulders, inside the
- *  fire's ring) and its height (past the crown: the walking body is 1.8 m, player/motor.js CAPSULE_HEIGHT), the pool's
- *  reach on the ground (inside the ground quad), the rays round it, the motes up it, and the shafts' lattice cells round
- *  the column. */
 export const RADIANCE_R = 0.6;
 export const RADIANCE_H = 2.2;
 export const RADIANCE_POOL_R = 1.15;
 export const RADIANCE_RAYS = 12;
 export const RADIANCE_MOTES = 18;
 export const RADIANCE_ROUND = 24;
-/** Its rates (Hz), each a whole number of cycles over AURA_CLOCK_PERIOD: the light's breath, the rays' turn (a turn in
- *  30 s), and the slowest mote's climb (the others two and three times it); and the shafts' climb in lattice cells a
- *  second. */
 export const RADIANCE_HZ = Object.freeze({ pulse: 1 / 4, rays: 1 / 30, mote: 1 / 6 });
 export const RADIANCE_FLOW = Object.freeze({ shafts: 0.5 });
-/** Every radiance rate whole over the clock. Pure. */
 export const radianceRatesWhole = () => [...Object.values(RADIANCE_HZ), ...Object.values(RADIANCE_FLOW)]
   .every((r) => Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** Its light: the gold the column glows in (the elite foe's warmth, a step paler - systems/hitFlash.js ELITE_GOLD
- *  #ffad29), and the white-gold at the ring's heart and in the motes - the Primarch's own light gold (ui/playerBadge.js
- *  PRIMARCH_GOLD, the menu's #d8cfae). RGB 0..1. */
 export const RADIANCE_RGB = Object.freeze({ gold: Object.freeze([1, 0.741, 0.278]), heart: Object.freeze([0.847, 0.812, 0.682]) });
-/** SHADOW-CLOAK: THE SHADOW CLOAK'S MEASURES (m above the feet; the walking body is 1.8 m, its eye at 1.7 - player/motor.js
- *  CAPSULE_HEIGHT, EYE_HEIGHT). A CAPE hung from the shoulders and clasped at the throat, its hood up: the hood's peak
- *  a hand over the crown, the hood's middle at the eye, the neck the cape draws in to over the shoulders, the clasp, and
- *  the shoulders it hangs from. */
 export const CLOAK_H = 1.88;
 export const CLOAK_HOOD_Y = 1.68;
 export const CLOAK_NECK_Y = 1.53;
 export const CLOAK_CLASP_Y = 1.43;
 export const CLOAK_SHOULDER_Y = 1.42;
-/** Its radius about the body: across the shoulders, at the hem, round the neck and round the hood; how much further out
- *  than its sides its back hangs at the hem; how far behind the body's middle the hood sits (the face forward of the
- *  head's middle), and how much further back its peak falls. */
 export const CLOAK_SHOULDER_R = 0.27;
 export const CLOAK_HEM_R = 0.4;
 export const CLOAK_NECK_R = 0.15;
@@ -307,147 +64,76 @@ export const CLOAK_HOOD_R = 0.165;
 export const CLOAK_BACK_M = 0.14;
 export const CLOAK_HOOD_BACK_M = 0.035;
 export const CLOAK_PEAK_BACK_M = 0.05;
-/** The hem's height down the back (a cape trails longest there) and at its front edges. */
 export const CLOAK_HEM_Y = Object.freeze({ back: 0.1, edge: 0.26 });
-/** How much narrower front to back than across it is: at the shoulders (a body is broader than it is deep) and at the
- *  hem, where the cloth has fallen round; and round the hood, narrower across than deep (as a head is). The folds' depth
- *  (m) at the hem. The mesh's steps round and up. */
 export const CLOAK_SQUASH = Object.freeze({ shoulder: 0.32, hem: 0.1, hood: 0.1 });
 export const CLOAK_FOLD_M = 0.022;
 export const CLOAK_ROUND = 48;
 export const CLOAK_ROWS = 48;
-/** Its opening at the front, half its width in turns: at the hem and at the chest - closing from there to the clasp,
- *  where its edges meet - and the hood's face at its widest; the face's middle (m up) and half its height. */
 export const CLOAK_OPEN = Object.freeze({ hem: 0.2, chest: 0.13, face: 0.12 });
 export const CLOAK_FACE = Object.freeze({ y: 1.665, h: 0.135 });
-/** Its pattern counts round the body (each a whole number, so the cape closes on itself): the folds and the mantle's
- *  scallops. The mantle over the shoulders: its edge's height. */
 export const CLOAK_FOLDS = 14;
 export const CLOAK_SCALLOPS = 16;
 export const CLOAK_MANTLE_Y = 1.2;
-/** The embroidery along its opening and the hood's face, a band of wolf's teeth: the band's width in from the edge and a tooth's
- *  length along it (m). */
 export const CLOAK_TRIM = Object.freeze({ band: 0.034, tooth: 0.045 });
-/** On the ground: the shadow's pool. */
 export const CLOAK_POOL_R = 0.85;
-/** THE EMBLEM: the wearer's own glyph - SirMcMobdon's, the Shadow Fang's wolf's head (ui/playerBadge.js GLYPH_PATH
- *  and its eye, GLYPH_DETAIL), the very path the badge draws - on a disc of shadow ringed in crimson. On the cape's back
- *  (its middle's height and its disc's radius, m) and at the clasp (its disc's). */
 export const CLOAK_GLYPH = GLYPH_PATH.shadowfang;
 export const CLOAK_GLYPH_EYE = GLYPH_DETAIL.shadowfang.path;
 export const CLOAK_SIGIL_Y = 0.98;
 export const CLOAK_SIGIL_R = 0.15;
 export const CLOAK_CLASP_R = 0.04;
-/** THE EMBLEMS, its third draw: the emblem rising off its back, turning a little as it climbs, drawn in out of smoke and
- *  falling back to smoke - how many at once, the seconds one lasts (emblem k's is CLOAK_EMBLEM_LIFE[k mod 3], each
- *  dividing AURA_CLOCK_PERIOD), how high one climbs (m) and its card, square (m). */
 export const CLOAK_EMBLEMS = 5;
 export const CLOAK_EMBLEM_LIFE = Object.freeze([5, 6, 8]);
 export const CLOAK_EMBLEM_RISE = 0.75;
 export const CLOAK_EMBLEM_M = 0.22;
-/** THE BEAST FORM: the wearer turned lycanthrope tears the cloak apart - the seconds the tear takes - and its shreds
- *  float round the beast, drawn with the emblems' cards: how many, a shred's card (m), the radii and heights they float
- *  at (m), and their rates (Hz, each whole over the clock - a shred goes round at one to three times `orbit`, either
- *  way, and turns in its own plane at one or two times `spin`). */
 export const CLOAK_RIP_S = 1.2;
 export const CLOAK_SHREDS = 14;
 export const CLOAK_SHRED_M = 0.17;
 export const CLOAK_SHRED_AT = Object.freeze({ r: Object.freeze([0.7, 1.15]), y: Object.freeze([0.3, 2.1]) });
 export const CLOAK_SHRED_HZ = Object.freeze({ orbit: 1 / 60, spin: 1 / 10, tumble: 1 / 6, bob: 1 / 5 });
-/** Its rates (Hz), each a whole number of cycles over AURA_CLOCK_PERIOD: the cape's billow and the wave running down
- *  it, and the breath of its light. */
 export const CLOAK_HZ = Object.freeze({ billow: 1 / 5, wave: 1 / 3, pulse: 1 / 4 });
-/** Its flows in lattice cells a second: the smoke stirring in the cloth and falling off its hem, the ground's mist drawn
- *  in and turning. */
 export const CLOAK_FLOW = Object.freeze({ smoke: 0.25, hem: 0.5, mist: 0.25, swirl: 0.1 });
-/** Every cloak rate whole over the clock. Pure. */
 export const cloakRatesWhole = () => [...Object.values(CLOAK_HZ), ...Object.values(CLOAK_FLOW), ...Object.values(CLOAK_SHRED_HZ)]
   .every((r) => Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** Its colours: the Shadow Fang's crimson (ui/playerBadge.js TITLE_GRADIENT.shadowfang's end, #d3193c), an ember's red
- *  for where it burns brightest, the shadow's own black (the gradient's start, #0d0709) and the lining's deep red - the
- *  cloth is shadow, lined and edged in red. RGB 0..1. */
 export const CLOAK_RGB = Object.freeze({ crimson: Object.freeze([0.827, 0.098, 0.235]), ember: Object.freeze([1, 0.36, 0.28]), shadow: Object.freeze([0.051, 0.027, 0.035]), lining: Object.freeze([0.32, 0.02, 0.06]) });
 
-/** SHADOW-CLOAK: how near the hood's middle an eye stands inside the cloak (m): its cloth answers nothing there (the
- *  wearer's own first person) and is not drawn, fading in over the next 0.15 m out. */
 export const CLOAK_INSIDE_M = 0.3;
 
-/** SERAPH-WINGS: THE WINGS' MEASURES. Plumes a side - the long primaries and, inside them, the short coverts that give
- *  a wing its body - strands a plume (a broad one and two fine about it - WINGS-FIT, were four), and segments along a strand (each a whole
- *  number: the mesh is these counts). */
-export const WING_PLUMES = 8;   // WINGS-FIT: 8 / 4 / 3 (were 9 / 6 / 5) - slim, apart tendrils as the painting's, not a sheet
+export const WING_PLUMES = 8;
 export const WING_COVERTS = 4;
 export const WING_STRANDS = 3;
 export const WING_SEGS = 32;
-/** Where a wing grows from, about the shoulders' middle along the torso (m): behind it, below it, either side of the
- *  spine. */
 export const WING_ROOT = Object.freeze({ back: 0.12, below: 0.04, apart: 0.07 });
-/** WINGS-FIT: how much further back a Beholder sprite's wings root (m, at the sets' standing scale): its body is a flat
- *  card through its feet, square to the eye, so a wing passes through the card wherever the eye sees it cross - never
- *  nearer the axis, on the screen, than its own depth behind the axis. From this far back that is past the body's
- *  outline (the sets' bodies stand about 0.25 m either side of the axis), so no wing is laid over the body it grows from
- *  as the sprite is seen from round about. */
 export const WING_SPRITE_BACK = 0.25;
-/** The primaries' fan: the lowest plume's angle and the highest's (rad, from level, outward), and the shortest plume's
- *  reach and the longest's (m) - the high plumes long, the low ones short, as a wing's are. The coverts', inside them. */
 export const WING_SPREAD = Object.freeze([-0.7, 1.25]);
-export const WING_REACH = Object.freeze([0.6, 1.3]);   // WINGS-FIT: about six tenths (were 0.95 - 2.2 m, a span of four metres over a two-metre body)
-export const WING_COVERT = Object.freeze({ spread: Object.freeze([-0.35, 1.0]), reach: Object.freeze([0.28, 0.5]) });   // WINGS-FIT: were 0.45 - 0.8
-/** A strand's width at its broadest (m) - the broad strand's taking its glow's sheath - and the fine's. WINGS-FIT: a third
- *  of what they were (0.34, 0.08) - slim ribbons. */
+export const WING_REACH = Object.freeze([0.6, 1.3]);
+export const WING_COVERT = Object.freeze({ spread: Object.freeze([-0.35, 1.0]), reach: Object.freeze([0.28, 0.5]) });
 export const WING_W = Object.freeze({ broad: 0.12, fine: 0.035 });
-/** The wings' rates (Hz), each whole over the clock: the light running out along a strand, the waves along it, the fan's
- *  breath, every strand's flutter, the wings' beat and the backlight's rays turning. */
 export const WING_HZ = Object.freeze({ flow: 1 / 3, wave: 1 / 4, breathe: 1 / 6, flutter: 1 / 2, beat: 1 / 8, rays: 1 / 30 });
-/** The beat's stroke: how far down the fan sweeps (rad) and how far forward its tips (a share of their reach). */
 export const WING_BEAT = Object.freeze({ down: 0.32, forward: 0.35 });
-/** The noise the light runs on: its cells along a strand and how many it scrolls out a second (whole over the clock). */
 export const WING_FLOW = Object.freeze({ cells: 8, rate: 0.5, fray: 1.5 });
-/** The sparks: how many, their width and length (m) and their lives (s, each dividing the clock). */
 export const WING_MOTES = 24;
-export const WING_MOTE_M = 0.04;   // WINGS-FIT: smaller with the wings (were 0.05, 0.26)
+export const WING_MOTE_M = 0.04;
 export const WING_MOTE_LEN = 0.18;
 export const WING_MOTE_LIFE = Object.freeze([3, 4, 5]);
-/** The backlight: the card of radiance behind the upper back (m across). WINGS-FIT: 1.2 (was 2.6) - a glow behind the
- *  shoulders and head, not a sun behind the wearer. */
 export const WING_HALO_M = 1.2;
-/** AUDIT 4: the eye's distance from the backlight's middle over which it fades in (m) - gone from the wearer's own first
- *  person (about 0.36 m), whole from a third-person camera's and a peer's at arm's length. */
 export const WING_HALO_NEAR = Object.freeze([0.9, 1.6]);
-/** The ground's pool of light (m). */
-export const WING_POOL_R = 1.0;   // WINGS-FIT: under the shorter wings (was 1.3)
-/** Its colours: white-hot at a strand's heart, gold through it, amber at its fraying edge. */
+export const WING_POOL_R = 1.0;
 export const WING_RGB = Object.freeze({ core: Object.freeze([1, 0.96, 0.84]), gold: Object.freeze([1, 0.76, 0.32]), amber: Object.freeze([0.95, 0.5, 0.14]) });
-/** The strands a side and in all, the mesh's vertices, and the third draw's cards (the sparks and the backlight). */
 export const WING_PER_SIDE = (WING_PLUMES + WING_COVERTS) * WING_STRANDS;
 export const WING_STRAND_COUNT = 2 * WING_PER_SIDE;
 export const WING_VERTS = WING_STRAND_COUNT * WING_SEGS * 6;
 export const WING_CARDS = WING_MOTES + 1;
-/** CRYSTAL-FIST: THE CRYSTAL RESONANCE'S MEASURES - the ring's radius (inside the fire's, clear of the body), its
- *  columns round (one on each face of the strip the wall is drawn on, AURA_STEPS), the most squares a column stands, the
- *  squares' pitch up a column and their side (m) - tiny, as asked - and the wall's height, the tallest column's. */
 export const RESONANCE_R = 0.8;
 export const RESONANCE_COLUMNS = AURA_STEPS;
 export const RESONANCE_CELLS = 10;
 export const RESONANCE_PITCH_M = 0.06;
 export const RESONANCE_SQUARE_M = 0.042;
 export const RESONANCE_H = RESONANCE_CELLS * RESONANCE_PITCH_M;
-/** Its rates (Hz), each a whole number of cycles over AURA_CLOCK_PERIOD: the wave running round the ring (about every
- *  two seconds) and the one against it (about every three), each column's own bounce, and the beat through them all
- *  once a second; and the crests each wave has round the ring (whole, so it closes behind the wearer). AUDIT: the three
- *  free rates are whole cycles over the clock with no common divisor (61, 41, 59 of them in 120 s) - at 1/2, 1/3 and
- *  1/2 Hz the whole ring repeated every six seconds, and two wearers' seeds six seconds apart rose and fell as one. */
 export const RESONANCE_HZ = Object.freeze({ wave: 61 / 120, counter: 41 / 120, bounce: 59 / 120, beat: 1 });
 export const RESONANCE_CRESTS = Object.freeze({ wave: 3, counter: 2 });
-/** Every resonance rate whole over the clock. Pure. */
-export const resonanceRatesWhole = () => Object.values(RESONANCE_HZ).every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));   // AUDIT: and none stopped
-/** Its light: the reference's purple, #a349a4 - the Crystal Fist's title and glyph, read from ui/playerBadge.js
- *  CRYSTAL_PURPLE (AUDIT: one literal, not two). RGB 0..1. One colour. */
+export const resonanceRatesWhole = () => Object.values(RESONANCE_HZ).every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
 export const RESONANCE_RGB = Object.freeze({ purple: Object.freeze(CRYSTAL_PURPLE.slice(0, 3)) });
 const resHash = (k, a, b) => { const x = Math.sin(k * a + b) * 43758.5453; return x - Math.floor(x); };
-/** CRYSTAL-FIST: COLUMN k's LEVEL at the clock `t`, 0..1 - the share of its squares standing lit: the wave round the
- *  ring, the one against it, its own bounce and the beat. In node alone (AUDIT): the shader is handed the counts
- *  reads the ring off node. Pure. */
 export function resonanceLevel(k, t) {
   const TAU = Math.PI * 2, N = RESONANCE_COLUMNS;
   const h1 = resHash(k, 12.9898, 4.1), h2 = resHash(k, 78.233, 1.7);
@@ -457,244 +143,143 @@ export function resonanceLevel(k, t) {
   const beat = (0.5 + 0.5 * Math.cos(TAU * t * RESONANCE_HZ.beat)) ** 4;
   return Math.max(0, Math.min(1, 0.08 + 0.34 * wave + 0.28 * counter * bounce + 0.3 * beat * (0.4 + 0.6 * h2)));
 }
-/** CRYSTAL-FIST: how many of column k's squares stand lit at `t`, kindled `kindle` 0..1 - at least the one at its foot
- *  once it kindles at all, since a level is never under its 0.08 floor (AUDIT: so no guard is kept for one). Pure. */
 export const resonanceLit = (k, t, kindle = 1) => (kindle > 0 ? Math.ceil(resonanceLevel(k, t) * Math.min(1, kindle) * RESONANCE_CELLS) : 0);
-/** AUDIT: A WEARER'S CLOCK - the frame's, offset by the wearer's own seed (0..1 of the clock), so two wearers side by
- *  side do not rise and fall as one. Pure. */
 export const resonanceClock = (seconds, seed) => auraClock(seconds) + (Number.isFinite(seed) ? seed : 0) * AURA_CLOCK_PERIOD;
-/** AUDIT: EVERY COLUMN'S COUNT AT ONCE, into `out` (RESONANCE_COLUMNS long) - what the draw hands the shader (`uResLit`),
- *  so the squares a GPU lights are node's law's and no float32 sin's. Pure but for `out`. */
+// The shader gets counts computed here, because float32 sin differs across GPUs and would light other squares.
 export function resonanceLitInto(out, t, kindle = 1) {
   for (let k = 0; k < RESONANCE_COLUMNS; k++) out[k] = resonanceLit(k, t, kindle);
   return out;
 }
 
-/** Every rate the wings take is whole over the clock, and every spark's life divides it. Pure. */
 export const wingRatesWhole = () => [...Object.values(WING_HZ), WING_FLOW.rate, WING_FLOW.fray].every((hz) => Number.isInteger(Math.round(hz * AURA_CLOCK_PERIOD * 1e6) / 1e6))
   && WING_MOTE_LIFE.every((l) => Number.isInteger(AURA_CLOCK_PERIOD / l));
 
-// SD9c (2026-10-07, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 11): THE TURNING HOUR - the
-// Brass Remnant's aura, "a slow wheel of brass gears and gold light about the wearer", one kill in eight on its first
-// write (server-account/src/sds.js). The pass's seventh look, added whole as the radiance is:
-export const TURNING_R = 0.7;             // the wheel's rim, where its teeth stand, m
-export const TURNING_RIM_M = 0.06;        // the rim's band, inward
+export const TURNING_R = 0.7;
+export const TURNING_RIM_M = 0.06;
 export const TURNING_TEETH = 24;
-export const TURNING_TOOTH_M = 0.07;      // a tooth's reach out of the rim
+export const TURNING_TOOTH_M = 0.07;
 export const TURNING_SPOKES = 6;
-export const TURNING_SPOKE_M = 0.035;     // a spoke's width
+export const TURNING_SPOKE_M = 0.035;
 export const TURNING_HUB_R = 0.2;
-export const TURNING_DIAL_R = 1.0;        // the Hour's dial, outside the wheel
+export const TURNING_DIAL_R = 1.0;
 export const TURNING_MARKS = 12;
-export const TURNING_MARK_M = 0.07;       // an hour's mark, inward from the dial; the Hour's own twice as long
-export const TURNING_H = 0.62;            // the wall: the wheel's edge, and the light rising off it
-export const TURNING_EDGE_M = 0.05;       // the wheel's thickness, seen from the side
+export const TURNING_MARK_M = 0.07;
+export const TURNING_H = 0.62;
+export const TURNING_EDGE_M = 0.05;
 export const TURNING_MOTES = 14;
-/** Its rates, in turns a second: the wheel two turns over the clock - stepping on the second, a clock's escapement; the
- *  dial one turn BACK (the Hour's hands run backwards - render/superDungeon/sdSky.js); the light's breath; the motes' rise. */
 export const TURNING_HZ = Object.freeze({ wheel: 1 / 60, dial: 1 / 120, pulse: 1 / 4, mote: 1 / 6 });
-/** The wheel's step takes the first quarter of each second, and it holds the rest. */
 export const TURNING_STEP_S = 0.25;
 export const turningRatesWhole = () => Object.values(TURNING_HZ).every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** The Hourbreaker's own colours (ui/playerBadge.js HOUR_*): the Remnant's brass, its bar's gold, the light of its heart. */
 export const TURNING_RGB = Object.freeze({ brass: Object.freeze(HOUR_BRASS.slice(0, 3)), gold: Object.freeze(HOUR_GOLD.slice(0, 3)), light: Object.freeze(HOUR_LIGHT.slice(0, 3)) });
-/** HOURS-FIRST (2026-10-08, Mac: "a unique different version of the aura"): THE FIRST HOUR - Hour's First's own, The
- *  Turning Hour's wheel and dial (every measure and rate above) cast again in the first dawn's colours (ui/playerBadge.js
- *  HOUR_DAWN, HOUR_PEARL, HOUR_SUN: rose gold where the brass was, pearl where the gold was, the dawn's white where the
- *  light was), and three things the Remnant's has not: its dial turns FORWARD - the Hour's hands, that ran back, set
- *  going again by the first to break it - the Hour's own mark is ablaze, and THE FIRST LIGHT: a ray of dawn from the
- *  wheel out to each hour's mark, turning on with the dial. Its own kind (7), the pass's eighth look.
- *  AUDIT SERVER-POST/HOURS-FIRST: drawn at FIRST_SHADE of the title's colours - the pass adds its light, and at their full
- *  strength the pearl and the dawn's white washed out to white over a lit floor (5,071 pixels clipped where the Turning
- *  Hour clipped 97), the rose gold gone pale peach and the blazing mark lost among the rest. */
 export const FIRST_SHADE = 0.72;
 const shaded = (/** @type {readonly number[]} */ c) => Object.freeze(c.slice(0, 3).map((x) => Math.round(x * FIRST_SHADE * 1000) / 1000));
-/** One step deeper than the title's three: the rose gold, the rose gold into the pearl, the pearl - no dawn's white in the
- *  light the pass adds, so it holds its colour over a lit floor (the title keeps the white; it is drawn, not added). */
 const between = (/** @type {readonly number[]} */ a, /** @type {readonly number[]} */ b) => [0, 1, 2].map((i) => (a[i] + b[i]) / 2);
 export const FIRST_RGB = Object.freeze({ brass: shaded(HOUR_DAWN), gold: shaded(between(HOUR_DAWN, HOUR_PEARL)), light: shaded(HOUR_PEARL) });
-/** HOURS-FIRST: how much brighter the Hour's own mark burns on The First Hour's dial, over the line it stands on. */
 export const FIRST_BLAZE = 1.8;
-/** HOURS-FIRST: THE FIRST LIGHT's strength - a ray to each of the dial's TURNING_MARKS, between the wheel's teeth and the dial. */
 export const FIRST_RAY = 0.55;
-/** HOURS-FIRST: The First Hour's dial at `t`: FORWARD - clockwise as the eye sees the ground, the angle falling
- *  (turningDialAngle's mirror). Pure. */
 export const firstDialAngle = (t) => -turningDialAngle(t);
-/** The wheel's turn at clock time `t` (s), radians: TAU x wheel each second, eased over its first TURNING_STEP_S and held
- *  the rest - never going back, whole over the clock. The shader's own (turningWheel). Pure. AUDIT SD II (SD11f): FORWARD
- *  AS THE EYE SEES IT - its angle FALLS, clockwise on the screen (the one mirror's law, turningDialAngle's below), as a
- *  clock's escapement steps; it grew, and the wheel stepped anticlockwise, the dial's own way - back. */
 export function turningWheelAngle(t) {
   const s = Math.floor(t), e = Math.min(1, (t - s) / TURNING_STEP_S);
   return -Math.PI * 2 * TURNING_HZ.wheel * (s + e * e * (3 - 2 * e));
 }
-/** The dial's turn at `t`: backwards, smoothly - ANTICLOCKWISE as the eye sees the ground, as the Hour's sky's hands turn
- *  (render/superDungeon/sdSky.js). Pure. AUDIT SD II (L2 F13): the ground's angle (atan(p.y, p.x), p = (x, z) about the feet) grows
- *  anticlockwise on the screen - +x right and +z up it, the one mirror's law (world/mat4.js) - so BACK is the angle
- *  growing; it fell, and the dial turned clockwise, forward. */
 export const turningDialAngle = (t) => Math.PI * 2 * TURNING_HZ.dial * t;
 
-// SERPENT5 (2026-10-15; bible/11-Multiplayer/Sea-Serpent.md section 17): THE MAELSTROM - the Old Coil's aura, the
-// whirlpool Sethrakul raises about a ship, drawn about the wearer's feet; one dealing ship's serpent kill in fifty on its
-// first write (server-account/src/serpents.js). The pass's ninth look, added whole as the wheel is:
-//   - THE GROUND: a pool of the sea's light, dark in its eye; MAELSTROM_ARMS arms of foam wound in to the eye, turning
-//     with it - clockwise as the eye sees the ground, so they draw IN (maelstromArmAngle); a lip of foam breaking round
-//     it, the surf running round the lip.
-//   - THE WALL: the curl of water at the lip, its crest riding the arms round; spray thrown up off the crest, each drop on
-//     its own arc and back down, carried round with the pool.
-// It kindles UP, as the wheel's light does. Every rate whole over the clock (maelstromRatesWhole).
-export const MAELSTROM_R = 0.9;          // the pool's lip, where its foam breaks, m
-export const MAELSTROM_EYE_R = 0.14;     // the eye at its middle - open water, no foam
+export const MAELSTROM_R = 0.9;
+export const MAELSTROM_EYE_R = 0.14;
 export const MAELSTROM_ARMS = 3;
-export const MAELSTROM_TWIST = 4;        // how hard the arms wind in: an arm turns TWIST/ARMS radians for each factor of e inward
-export const MAELSTROM_SHARP = 6;        // how narrow an arm's crest is
-export const MAELSTROM_H = 0.55;         // the wall: the spray's reach
-export const MAELSTROM_CURL_H = 0.12;    // the curl's crest at the lip, its middle height
+export const MAELSTROM_TWIST = 4;
+export const MAELSTROM_SHARP = 6;
+export const MAELSTROM_H = 0.55;
+export const MAELSTROM_CURL_H = 0.12;
 export const MAELSTROM_DROPS = 16;
-/** Its rates, in turns a second: the pool's turn, the light's breath, the surf round the lip, the drops' arcs. */
 export const MAELSTROM_HZ = Object.freeze({ spin: 1 / 12, pulse: 1 / 4, surf: 1 / 3, drop: 1 / 6 });
 export const maelstromRatesWhole = () => Object.values(MAELSTROM_HZ).every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * MAELSTROM_ARMS * 1e6) / 1e6) && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** AUDIT WORLD-REWARDS D1: the Coilbreaker's colours as the pass ADDS them - at MAELSTROM_SHADE, The First Hour's own law
- *  (FIRST_SHADE): at full strength the near-white foam washed out to white over a lit floor (4,706 pixels clipped at a
- *  0.55 floor, where The Turning Hour clipped 497) and the sea's hue read as mint-white; shaded, 444. */
 export const MAELSTROM_SHADE = 0.72;
 const coilShaded = (/** @type {readonly number[]} */ c) => Object.freeze(c.slice(0, 3).map((x) => Math.round(x * MAELSTROM_SHADE * 1000) / 1000));
-/** The Coilbreaker's own colours (ui/playerBadge.js COIL_*), shaded: the open sea, the tide, the foam. */
 export const MAELSTROM_RGB = Object.freeze({ sea: coilShaded(COIL_SEA), tide: coilShaded(COIL_TIDE), foam: coilShaded(COIL_FOAM) });
-/** AUDIT WORLD-REWARDS D4: a drop's arc tops out at this share of the wall - at its whole height the drop's top half stood
- *  past the strip's edge, cut off at its apex. */
 export const MAELSTROM_DROP_TOP = 0.9;
-/** The pool's turn at clock time `t` (s), radians: its angle FALLS - clockwise as the eye sees the ground (the one
- *  mirror's law, turningDialAngle's above). The shader's own (maelstromSpin). Pure. */
 export const maelstromSpin = (t) => -Math.PI * 2 * MAELSTROM_HZ.spin * t;
-/** Where arm `k` crosses radius `r` at `t`, radians - a log spiral turning with the pool. As the pool turns clockwise a
- *  point of an arm falls INWARD (the angle an arm holds at r is held at a smaller r a moment later): the arms draw in.
- *  The shader's own crest (maelstromArm). Pure. */
 export function maelstromArmAngle(r, t, k = 0) {
   return maelstromSpin(t) - (MAELSTROM_TWIST / MAELSTROM_ARMS) * Math.log(r / MAELSTROM_R) + (Math.PI * 2 * k) / MAELSTROM_ARMS;
 }
-/** The curl's crest at `u` round the strip (0..1) at `t`, m - higher under an arm. The shader's own (maelstromWall). Pure. */
 export const maelstromCrest = (u, t) => MAELSTROM_CURL_H * (0.7 + 0.3 * Math.cos(MAELSTROM_ARMS * (u * Math.PI * 2 - maelstromSpin(t))));
-/** AUDIT WORLD-REWARDS E5: where drop `m` of the spray is at `t` - its place round the strip (0..1), carried round WITH
- *  the pool (maelstromSpin's turn: it drifted a few hundredths a life and snapped back, at a tenth of the pool's pace),
- *  and its life (0..1, thrown up off the crest and back down). The shader's own (maelstromWall's hashes). Pure. */
 export function maelstromDropAt(m, t) {
   const hash = (a, b, c) => { const x = Math.sin(m * a + b) * c; return x - Math.floor(x); };
   const h1 = hash(41.37, 1.7, 43758.5453), h2 = hash(17.93, 3.1, 24634.6345);
   const f = (x) => x - Math.floor(x);
   return { u: f(h1 + maelstromSpin(t) / (Math.PI * 2)), life: f((t / Math.round(1 / MAELSTROM_HZ.drop)) * (1 + (m % 3)) + h2) };
 }
-// EG-E2 (2026-10-12, Elite-Gates.md section 19): THE SPIRE'S THREE - Beaconlight, The Burning Stair and Firstlight.
-export const BEACONLIGHT_R = 0.8;              // Beaconlight: the ring its beacons stand on, m
-export const BEACON_LIGHTS = 8;           // the beacons round it
-export const BEACON_H = 1.7;              // the motes' climb, past the chest
+export const BEACONLIGHT_R = 0.8;
+export const BEACON_LIGHTS = 8;
+export const BEACON_H = 1.7;
 export const BEACON_MOTES = 22;
-/** Its rates: the beacons lit round once in eight seconds, the light's breath, the motes' rise. */
 export const BEACON_HZ = Object.freeze({ kindle: 1 / 8, pulse: 1 / 4, mote: 1 / 5 });
-export const STAIR_R = 0.75;              // The Burning Stair: the stair's outer edge (and the embers' fall about it), m
-export const STAIR_W = 0.22;              // the steps' tread, inward from it
+export const STAIR_R = 0.75;
+export const STAIR_W = 0.22;
 export const STAIR_STEPS = 12;
-export const STAIR_H = 1.9;               // the embers fall from over the head
+export const STAIR_H = 1.9;
 export const STAIR_EMBERS = 20;
-/** Its rates: the stair turning down, its fire's flare, the embers' fall. */
 export const STAIR_HZ = Object.freeze({ descend: 1 / 12, flare: 1 / 2, ember: 1 / 4 });
-// SPIRE-FIRST (2026-10-20, the owner, for Serveride, who took Redoubt 10 first and alone: "Since hes world first. He should
-// get this title plus a custom aura"): FIRSTLIGHT, REBUILT AS HIS OWN - only the first company ever holds it.
-export const DAWN_R = 0.9;                // Firstlight: its ring, the ten Redoubts standing on it, m
-export const DAWN_RING_M = 0.024;         // the ring's line
-export const DAWN_INNER_M = 0.14;         // the dial's inner line, inside the ring by this - the climb's lane between them, m
-export const DAWN_REDOUBTS = 10;          // the Redoubts taken, I to X, round the ring
-export const DAWN_START = 0.25;           // the climb's start round the ring, a share of a turn off atan's zero: I just past it, X last
-/** A Redoubt's lozenge on the ring: its half-length along the ring and its half-width across it, m - X's DAWN_CROWN times. */
+export const DAWN_R = 0.9;
+export const DAWN_RING_M = 0.024;
+export const DAWN_INNER_M = 0.14;
+export const DAWN_REDOUBTS = 10;
+export const DAWN_START = 0.25;
 export const DAWN_MARK_M = Object.freeze([0.04, 0.068]);
 export const DAWN_CROWN = 1.5;
-/** The ten spires: I's height and X's, m - each between by its number, a third of itself until its Redoubt is taken. */
 export const DAWN_SPIRE_H = Object.freeze([0.16, 0.74]);
-export const DAWN_SPIRE_W = 0.024;        // a spire's half-width at its foot, m, tapered to its point
-export const DAWN_RAYS = 20;              // the sunburst's rays out across the ground, long and short by turns
-export const DAWN_RAY_M = Object.freeze([0.42, 0.24]);   // a long ray's reach past the ring, and a short one's, m
-export const DAWN_RAY_W = 0.035;          // a ray's half-width at the ring, m, tapered to its tip
-export const DAWN_VEIL_H = 0.35;          // the veil off the ring, gone by the shin, m
-export const DAWN_H = 1.9;                // the wall: the first light's shaft off X, and the motes, past the head
+export const DAWN_SPIRE_W = 0.024;
+export const DAWN_RAYS = 20;
+export const DAWN_RAY_M = Object.freeze([0.42, 0.24]);
+export const DAWN_RAY_W = 0.035;
+export const DAWN_VEIL_H = 0.35;
+export const DAWN_H = 1.9;
 export const DAWN_MOTES = 12;
-/** Its rates: the sunrise round the ring, the light's breath, the climb (ten Redoubts and the dawn, again), the sunburst's
- *  turn, the motes' rise; and its veil's flow (cells a second up the lattice). */
 export const DAWN_HZ = Object.freeze({ sweep: 1 / 24, breath: 1 / 6, climb: 1 / 12, rays: 1 / 60, mote: 1 / 8 });
 export const DAWN_FLOW = Object.freeze({ veil: 0.5 });
-/** THE CLIMB, in shares of its period: Redoubt k taken at `at` + k * `step`, its spire up over `rise`; X held - the dawn
- *  broken - until `hold`, and all of it gone back down by `down`, and again. A taking's flare fades by `flare` a share;
- *  the dawn's light runs out across the ground at `wave` metres a share. */
 export const DAWN_CLIMB = Object.freeze({ at: 0.04, step: 0.05, rise: 0.035, hold: 0.86, down: 0.97, flare: 30, wave: 9 });
-/** SPIRE-FIRST: Redoubt k's angle round the ring (0 is I, 9 is X), radians in the ground's own sense (atan of z over x). Pure. */
 export const dawnMarkAngle = (k) => ((k + 0.5) / DAWN_REDOUBTS - DAWN_START) * Math.PI * 2;
-/** SPIRE-FIRST: THE CLIMB at clock `t` for Redoubt `k` - `c` the climb's share now, `taken` 0..1 (its spire up, and down
- *  again with the rest), `flare` 1 at its taking and fading. X taken is the dawn broken. Pure; the shader's own law
- *  (dawnTaken, dawnFlare). */
 export function dawnClimb(k, t) {
   const c = (((t * DAWN_HZ.climb) % 1) + 1) % 1, at = DAWN_CLIMB.at + k * DAWN_CLIMB.step;
   const ss = (a, b, x) => { const e = Math.max(0, Math.min(1, (x - a) / (b - a))); return e * e * (3 - 2 * e); };
   const down = 1 - ss(DAWN_CLIMB.hold, DAWN_CLIMB.down, c);
   return { c, taken: ss(at, at + DAWN_CLIMB.rise, c) * down, flare: c >= at ? Math.exp(-(c - at) * DAWN_CLIMB.flare) * down : 0 };
 }
-/** SPIRE-FIRST: Redoubt k's spire's height at clock `t`, m - a third of itself, and all of it as its Redoubt is taken. Pure. */
 export const dawnSpireH = (k, t) => (DAWN_SPIRE_H[0] + (DAWN_SPIRE_H[1] - DAWN_SPIRE_H[0]) * k / (DAWN_REDOUBTS - 1)) * (0.3 + 0.7 * dawnClimb(k, t).taken);
 export const spireRatesWhole = () => [...Object.values(BEACON_HZ), ...Object.values(STAIR_HZ), ...Object.values(DAWN_HZ), ...Object.values(DAWN_FLOW)]
   .every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** The Spire's colours (ui/playerBadge.js SPIRE_*): the beacon's gold and white, the ember, its coal and the flame
- *  between the ember and the beacon, the dawn's white and its gold - SPIRE-FIRST: and its rose, low on the sky. */
 export const SPIRE_RGB = Object.freeze({
   beacon: Object.freeze(SPIRE_BEACON.slice(0, 3)), white: Object.freeze(SPIRE_BEACON_WHITE.slice(0, 3)),
   ember: Object.freeze(SPIRE_EMBER.slice(0, 3)), coal: Object.freeze(SPIRE_COAL.slice(0, 3)),
   flame: Object.freeze([0, 1, 2].map((i) => Math.round((SPIRE_EMBER[i] + SPIRE_BEACON[i]) / 2 * 1000) / 1000)),
   dawn: Object.freeze(SPIRE_DAWN.slice(0, 3)), dawnGold: Object.freeze(SPIRE_DAWN_GOLD.slice(0, 3)), dawnRose: Object.freeze(SPIRE_DAWN_ROSE.slice(0, 3)),
 });
-/** EG-E2: which of Beaconlight's beacons stands nearest the ground's angle `a` (radians), 0..BEACON_LIGHTS-1, and how
- *  long since it was lit in its round (0 just lit .. 1 about to be lit again) at clock `t` - lit one after another, as
- *  the shader lights them (beaconGround). Pure. */
 export function beaconLit(a, t) {
   const k = Math.floor((((a / (Math.PI * 2)) % 1) + 1) % 1 * BEACON_LIGHTS + 0.5) % BEACON_LIGHTS;
   const age = (((t * BEACON_HZ.kindle - k / BEACON_LIGHTS) % 1) + 1) % 1;
   return { k, age };
 }
 
-// WITCH1 (2026-10-20, bible/06-Systems/Witches-Festival.md): WITCHFIRE's measures - a coven's green fire round the feet,
-// tallow candles burning in its ring, and the violet motes the night's sorcery sends up off it.
-export const WITCHFIRE_R = 0.78;          // the ring the fire burns on, m
-export const WITCH_CANDLES = 7;           // the candles standing in it
-export const WITCHFIRE_H = 1.6;           // the wall: the tongues low, the motes past the chest
+export const WITCHFIRE_R = 0.78;
+export const WITCH_CANDLES = 7;
+export const WITCHFIRE_H = 1.6;
 export const WITCH_MOTES = 18;
-/** Its rates: the ring's turn, the candles' flicker, the motes' rise and the fire's breath. */
 export const WITCH_HZ = Object.freeze({ turn: 1 / 20, flicker: 1 / 2, mote: 1 / 6, breath: 1 / 5 });
-/** Its fire's flow up the wall and round the ring, in lattice cells a second (the Dagon fire's measure, AURA_FLOW). */
 export const WITCH_FLOW = Object.freeze({ rise: 1.5, ground: 1.25 });
 export const witchfireRatesWhole = () => [...Object.values(WITCH_HZ), ...Object.values(WITCH_FLOW)].every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** Its colours (ui/playerBadge.js): the moor's moss, the coven's green fire and its pale heart, the violet of its motes,
- *  the tallow's flame. */
 export const WITCH_RGB = Object.freeze({
   moss: Object.freeze(WITCH_MOSS.slice(0, 3)), fire: Object.freeze(WITCH_FIRE.slice(0, 3)), glow: Object.freeze(WITCH_GLOW.slice(0, 3)),
   violet: Object.freeze(WITCH_VIOLET.slice(0, 3)), tallow: Object.freeze(HEARTH_TALLOW.slice(0, 3)),
 });
-/** WITCH1: which candle stands nearest the ground's angle `a` (radians), 0..WITCH_CANDLES-1 - the shader's own pick
- *  (witchGround). Pure. */
 export const witchCandleAt = (a) => Math.floor((((a / (Math.PI * 2)) % 1) + 1) % 1 * WITCH_CANDLES + 0.5) % WITCH_CANDLES;
 
-// WIKIMAID (2026-10-17, for SylviaBun: "a purple aura with bunnies"): THE LILAC WARREN's measures.
-export const WARREN_R = 0.8;              // the ring the rabbits hop round, m - clear of the body, inside the fire's
-export const WARREN_RING_M = 0.022;       // the ring's line
-export const WARREN_RING_IN = 0.1;        // the ring of light inside the rabbits' lane by this, m - so their tracks land on the floor beside it, never under its line
-export const WARREN_H = 0.9;              // the wall: the sparkles' climb, to the waist
+export const WARREN_R = 0.8;
+export const WARREN_RING_M = 0.022;
+export const WARREN_RING_IN = 0.1;
+export const WARREN_H = 0.9;
 export const WARREN_BUNNIES = 6;
-export const WARREN_BUNNY_M = 0.28;       // a rabbit's card, a side, m - the rabbit on it about 0.22 m nose to tail
-/** How far a rabbit's card leans back toward the eye, its feet planted: this share of the eye's height over it (its
- *  elevation, radians) - square to an eye level with it, and seen from above still a rabbit, never a sliver edge on. */
+export const WARREN_BUNNY_M = 0.28;
 export const WARREN_LEAN = 0.5;
-/** THE RABBIT, in profile facing +x in a 16-unit box, y down as a glyph's is (ui/playerBadge.js GLYPH_PATH): ONE outline,
- *  never crossing itself (the shader fills it even-odd, as the cloak's emblem) - the haunch and its cotton tail, the back,
- *  two ears up and back, the round head, the snout, the chest and a front paw, the belly and the long hind foot flat on
- *  the ground (`ground`, the path's lowest y); and its parts the shader draws over it, as discs (x, y, r) and capsules (ax,
- *  ay, bx, by, r): the tail, white, past the haunch; the eye, plum, its glint; the nose and the ear's inside, blush; the
- *  maid's headdress across the crown in front of the ears - white lace, three scallops along its top (`frills`), over a
- *  plum band. */
 export const WARREN_BUNNY = Object.freeze({
   path: 'M2.6 10.2Q3.4 6.6 7.2 6.4Q8.8 6.3 9.4 5.6Q7.4 3.2 7.6 1Q7.9 0.2 8.6 0.8Q9.6 2.6 10.3 4.6Q10.2 2.4 10.9 0.7Q11.5 0.2 11.9 0.9Q12.2 3 11.6 5Q13 5.2 13.8 6.4Q14.8 7.4 14.5 8.3Q14 9.2 12.6 9.3Q12 10.6 12.4 12.6L13.4 13.6Q13.6 14.4 12.6 14.4L11.4 14.4Q10.6 12.8 9.6 13.4L10.2 14Q10.4 14.6 9.6 14.6L5 14.6Q2.6 14.4 2.2 12.2Q2 11 2.6 10.2Z',
   ground: 14.6,
@@ -707,13 +292,7 @@ export const WARREN_BUNNY = Object.freeze({
   frills: Object.freeze([Object.freeze([11.67, 4.75, 0.3]), Object.freeze([12.34, 4.91, 0.3]), Object.freeze([13.0, 5.06, 0.3])]),
   band: Object.freeze([11.45, 5.7, 13.35, 6.1, 0.2]),
 });
-/** Where its feet stand on its card, up from the card's foot (0..1) - the path's ground line. */
 export const WARREN_FOOT = (16 - WARREN_BUNNY.ground) / 16;
-/** THE GAIT: WARREN_HOPS hops of WARREN_HOP_S each - a crouch (the first WARREN_CROUCH of it, on the ground), then the
- *  air - and a sit for the rest of WARREN_GAIT_S; WARREN_LAPS laps of the ring over the clock (one in twenty seconds); a
- *  hop's height; a BINKY in one sit of WARREN_BINKY_EVERY - WARREN_BINKY_H high over WARREN_BINKY_S, WARREN_BINKY_AT into
- *  the sit, turned about through the middle of it (WARREN_BINKY_TURN). Each rabbit's gait WARREN_OFFSET_S after the one
- *  ahead of it, so they hop at their own moments. */
 export const WARREN_GAIT_S = 3;
 export const WARREN_HOPS = 3;
 export const WARREN_HOP_S = 0.45;
@@ -726,34 +305,22 @@ export const WARREN_BINKY_S = 0.6;
 export const WARREN_BINKY_AT = 0.4;
 export const WARREN_BINKY_TURN = Object.freeze([0.3, 0.7]);
 export const WARREN_OFFSET_S = WARREN_GAIT_S / WARREN_BUNNIES;
-/** A hop's turn round the ring, radians: the laps over every hop the clock holds. */
 export const WARREN_HOP_RAD = (Math.PI * 2 * WARREN_LAPS) / ((AURA_CLOCK_PERIOD / WARREN_GAIT_S) * WARREN_HOPS);
-/** The share of the kindle a rabbit takes to come up out of the ground, and how much later each comes up than the one
- *  before it. */
 export const WARREN_EMERGE = 0.4;
 export const WARREN_EMERGE_STEP = 0.08;
-/** THE TRACKS: the landings a rabbit's prints are kept for, and a print's fade (s). */
 export const WARREN_PRINTS = 3;
 export const WARREN_PRINT_S = 2.4;
-/** THE LIGHT: the sparkles off the wall, the twinkles round the ring; its rates - the glow's breath, the sparkles' climb,
- *  the twinkles'. */
 export const WARREN_SPARKLES = 18;
 export const WARREN_TWINKLES = 12;
 export const WARREN_HZ = Object.freeze({ breath: 1 / 4, sparkle: 1 / 5, twinkle: 1 / 2 });
-/** Every rate whole over the clock (each sparkle climbs at one, two or three times its rate), and the gait, its laps
- *  and its binkies whole over it, so the ring meets itself at the wrap. Pure. */
 export const warrenRatesWhole = () => [...Object.values(WARREN_HZ), ...Object.values(WARREN_HZ).map((r) => r * 3), 1 / WARREN_GAIT_S].every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6))
   && Number.isInteger(WARREN_LAPS) && Number.isInteger(AURA_CLOCK_PERIOD / WARREN_GAIT_S / WARREN_BINKY_EVERY)
   && WARREN_HOPS * WARREN_HOP_S < WARREN_GAIT_S && WARREN_BINKY_AT + WARREN_BINKY_S <= WARREN_GAIT_S - WARREN_HOPS * WARREN_HOP_S;
-/** The WikiMaid's colours (ui/playerBadge.js WARREN_*), RGB 0..1: the amethyst light, the rabbits' lilac, the blush, the
- *  frill's white and the plum. */
 export const WARREN_RGB = Object.freeze({
   amethyst: Object.freeze(WARREN_AMETHYST.slice(0, 3)), lilac: Object.freeze(WARREN_LILAC.slice(0, 3)),
   blush: Object.freeze(WARREN_BLUSH.slice(0, 3)), frill: Object.freeze(WARREN_FRILL.slice(0, 3)), plum: Object.freeze(WARREN_PLUM.slice(0, 3)),
 });
-const WARREN_PACE = (WARREN_HOP_RAD * WARREN_HOPS) / WARREN_GAIT_S;   // the gait's mean turn a second
-/** How far round a rabbit's own gait has carried it at its own time `tau` (s), against the gait's mean pace, radians -
- *  WARREN_HOP_RAD a hop, carried evenly through its air and none in its crouch or the sit; periodic over the gait. Pure. */
+const WARREN_PACE = (WARREN_HOP_RAD * WARREN_HOPS) / WARREN_GAIT_S;
 export function warrenStride(tau) {
   const c = Math.floor(tau / WARREN_GAIT_S), f = tau - c * WARREN_GAIT_S;
   const j = Math.min(WARREN_HOPS, Math.floor(f / WARREN_HOP_S));
@@ -761,10 +328,6 @@ export function warrenStride(tau) {
   const air = s > WARREN_CROUCH ? (s - WARREN_CROUCH) / (1 - WARREN_CROUCH) : 0;
   return WARREN_HOP_RAD * (j + air) - WARREN_PACE * f;
 }
-/** WIKIMAID: RABBIT k AT THE CLOCK `t`, kindled `kindle` 0..1 - `a` its angle round the ring (radians, growing the way it
- *  hops), `y` its feet's height (m - under the ground while it comes up), `sq` its stretch up (its width the inverse root,
- *  so it keeps its bulk: over 1 in the air, under in a crouch or a landing), `face` +1 the way it hops, -1 turned about
- *  in a binky, and `up` how far it has come up out of the ground (0..1). Pure. */
 export function warrenBunny(k, t, kindle = 1) {
   const tau = t + k * WARREN_OFFSET_S;
   const c = Math.floor(tau / WARREN_GAIT_S), f = tau - c * WARREN_GAIT_S;
@@ -772,11 +335,11 @@ export function warrenBunny(k, t, kindle = 1) {
   let y = 0, sq = 1, face = 1;
   if (f < WARREN_HOPS * WARREN_HOP_S) {
     const s = (f % WARREN_HOP_S) / WARREN_HOP_S;
-    if (s < WARREN_CROUCH) sq = 1 - 0.12 * Math.sin((Math.PI * s) / WARREN_CROUCH);   // gathered to spring
+    if (s < WARREN_CROUCH) sq = 1 - 0.12 * Math.sin((Math.PI * s) / WARREN_CROUCH);
     else { const u = (s - WARREN_CROUCH) / (1 - WARREN_CROUCH); y = WARREN_HOP_H * 4 * u * (1 - u); sq = 1 + 0.1 * Math.sin(Math.PI * u); }
   } else {
     const since = f - WARREN_HOPS * WARREN_HOP_S, b = (since - WARREN_BINKY_AT) / WARREN_BINKY_S;
-    if (since < 0.12) sq = 1 - 0.1 * (1 - since / 0.12);   // the landing, taken
+    if (since < 0.12) sq = 1 - 0.1 * (1 - since / 0.12);
     else if ((((c + k) % WARREN_BINKY_EVERY) + WARREN_BINKY_EVERY) % WARREN_BINKY_EVERY === 0 && b >= 0 && b < 1) {
       y = WARREN_BINKY_H * 4 * b * (1 - b); sq = 1 + 0.08 * Math.sin(Math.PI * b);
       if (b > WARREN_BINKY_TURN[0] && b < WARREN_BINKY_TURN[1]) face = -1;
@@ -785,10 +348,7 @@ export function warrenBunny(k, t, kindle = 1) {
   const up = Math.max(0, Math.min(1, (kindle - k * WARREN_EMERGE_STEP) / WARREN_EMERGE));
   return { a, y: y - (1 - up) * WARREN_BUNNY_M * 0.5, sq, face, up };
 }
-/** The wearer's own clock - the frame's, offset by its seed (resonanceClock's law). Pure. */
 export const warrenClock = (seconds, seed) => resonanceClock(seconds, seed);
-/** EVERY RABBIT AT ONCE, into `out` (4 x WARREN_BUNNIES): its angle, its feet's height, its stretch, and its facing
- *  times how far it has come up - what the draw hands the shader (`uWarren`). Pure but for `out`. */
 export function warrenBunniesInto(out, t, kindle = 1) {
   for (let k = 0; k < WARREN_BUNNIES; k++) {
     const b = warrenBunny(k, t, kindle);
@@ -796,8 +356,7 @@ export function warrenBunniesInto(out, t, kindle = 1) {
   }
   return out;
 }
-/** THE RABBITS FARTHEST FIRST from `eye`, the wearer's feet at `at` - `out` (warrenBunniesInto's) reordered in place, so
- *  the third draw lays a near rabbit over a far one (none writes the depth). Pure but for `out`. */
+// Farthest first, so the third draw lays a near rabbit over a far one; none writes the depth.
 export function warrenDepthOrder(out, at, eye) {
   const rows = [];
   for (let k = 0; k < WARREN_BUNNIES; k++) {
@@ -808,16 +367,13 @@ export function warrenDepthOrder(out, at, eye) {
   rows.forEach((r, k) => { out[k * 4] = r[1]; out[k * 4 + 1] = r[2]; out[k * 4 + 2] = r[3]; out[k * 4 + 3] = r[4]; });
   return out;
 }
-/** THE TRACKS: each rabbit's last WARREN_PRINTS landings at or before `t`, newest first, into `out` (2 x WARREN_BUNNIES x
- *  WARREN_PRINTS): the angle it landed at and the seconds since - what the draw hands the shader (`uWarrenPrint`). A
- *  binky lands where it leapt, on its own prints, and leaves none. Pure but for `out`. */
 export function warrenPrintsInto(out, t) {
   for (let k = 0; k < WARREN_BUNNIES; k++) {
     const tau = t + k * WARREN_OFFSET_S;
     let c = Math.floor(tau / WARREN_GAIT_S), j = Math.min(WARREN_HOPS, Math.floor((tau - c * WARREN_GAIT_S) / WARREN_HOP_S)) - 1;
     for (let n = 0; n < WARREN_PRINTS; n++) {
       if (j < 0) { c--; j = WARREN_HOPS - 1; }
-      const land = c * WARREN_GAIT_S + (j + 1) * WARREN_HOP_S;   // the end of hop j of gait c, its own time
+      const land = c * WARREN_GAIT_S + (j + 1) * WARREN_HOP_S;
       out[(k * WARREN_PRINTS + n) * 2] = warrenBunny(k, land - k * WARREN_OFFSET_S).a;
       out[(k * WARREN_PRINTS + n) * 2 + 1] = tau - land;
       j--;
@@ -826,34 +382,22 @@ export function warrenPrintsInto(out, t) {
   return out;
 }
 
-// NIRNROOT-SAGE (2026-10-26, for Blob-Marley: "billowing smoke, circling nirn roots around midsection, small glowing green
-// runes encircling feet"): SAGE'S SMOKE's measures.
-export const SAGE_RUNE_R = 0.6;           // the ring of runes round the feet, m - clear of the boots, inside the fire's
-export const SAGE_RUNES = 10;             // the runes round it
-export const SAGE_RUNE_SCALE = 0.65;      // a rune's size against the Oblivion Ward's (runeD): about 0.18 m along the ring - small
-export const SAGE_BAND_M = 0.1;           // the two fine lines framing the runes' band, out and in from its middle, m
-export const SAGE_WALL_H = 0.5;           // the wall: the runes' light rising and the smoke rolling, gone by the knee
-/** The runes' script: each a rune's strokes, the Oblivion Ward's alphabet (runeD's bits) in the Sage's own words. */
+export const SAGE_RUNE_R = 0.6;
+export const SAGE_RUNES = 10;
+export const SAGE_RUNE_SCALE = 0.65;
+export const SAGE_BAND_M = 0.1;
+export const SAGE_WALL_H = 0.5;
 export const SAGE_SCRIPT = Object.freeze([37, 22, 49, 14, 58, 27, 41, 9, 54, 30]);
-/** THE NIRNROOTS: SAGE_ROOTS of them circling the midsection - their orbit's radius (clear of the arms), its height (the
- *  waist of the 1.8 m walking body, player/motor.js), a nirnroot's card a side (the sprig on it about 0.24 m tall), its bob up and down, how far it sways
- *  about its stem either way (radians) and how far it tilts as it bobs. They come up one after another as it kindles. */
 export const SAGE_ROOTS = 5;
 export const SAGE_ROOT_R = 0.55;
 export const SAGE_ROOT_Y = 1.0;
 export const SAGE_ROOT_M = 0.3;
-/** How much wider a nirnroot's card is than its sprig (the badge's 16-unit box): room about it for its glow. */
 export const SAGE_ROOT_PAD = 1.25;
 export const SAGE_ROOT_BOB = 0.06;
 export const SAGE_ROOT_SWAY = 0.6;
 export const SAGE_ROOT_TILT = 0.15;
 export const SAGE_EMERGE = 0.5;
 export const SAGE_EMERGE_STEP = 0.1;
-/** THE SMOKE: SAGE_PUFFS puffs billowing up about the body, each rising for its life (by its number) and then rising again
- *  somewhere else round the feet; its size as it begins and as it thins away; how high it climbs (past the crown); how
- *  far out from the body's axis it starts, and how much further it drifts out as it climbs; how far it curls round the
- *  body as it climbs (radians); its cover at its thickest; and how near an eye it may be - none nearer than the first,
- *  whole past the second (m), so the wearer's own first person is never smoked out. */
 export const SAGE_PUFFS = 16;
 export const SAGE_PUFF_LIFE = Object.freeze([4, 5, 6]);
 export const SAGE_PUFF_M = Object.freeze([0.3, 1.05]);
@@ -863,29 +407,16 @@ export const SAGE_PUFF_DRIFT = 0.35;
 export const SAGE_PUFF_CURL = 0.8;
 export const SAGE_PUFF_A = 0.62;
 export const SAGE_NEAR = Object.freeze([0.6, 1.6]);
-/** The third draw's cards: every puff and every nirnroot. */
 export const SAGE_CARDS = SAGE_PUFFS + SAGE_ROOTS;
-/** Its rates: the nirnroots' orbit, their bob, their sway; the runes' turn, the light passing round them, the glow's
- *  breath; and the smoke's roll over the ground and up the wall, in lattice cells a second (AURA_FLOW's measure). */
 export const SAGE_HZ = Object.freeze({ orbit: 1 / 10, bob: 1 / 4, sway: 1 / 6, runes: 1 / 40, pulse: 1 / 3, breath: 1 / 5 });
 export const SAGE_FLOW = Object.freeze({ ground: 0.25, rise: 0.5 });
-/** Every rate whole over the clock, and every puff's life a whole number of times over it, so the smoke meets itself at
- *  the wrap. Pure. */
 export const sageRatesWhole = () => [...Object.values(SAGE_HZ), ...Object.values(SAGE_FLOW), ...SAGE_PUFF_LIFE.map((l) => 1 / l)]
   .every((r) => r > 0 && Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
-/** The Nirnroot Sage's colours (ui/playerBadge.js NIRN_*), RGB 0..1: the leaf, the glow, the haze, the deep green and the
- *  smoke. */
 export const SAGE_RGB = Object.freeze({
   leaf: Object.freeze(NIRN_LEAF.slice(0, 3)), glow: Object.freeze(NIRN_GLOW.slice(0, 3)), haze: Object.freeze(NIRN_HAZE.slice(0, 3)),
   deep: Object.freeze(NIRN_DEEP.slice(0, 3)), smoke: Object.freeze(NIRN_SMOKE.slice(0, 3)),
 });
-/** A share 0..1 off two numbers - node's alone (the AUDIT A2 law: the GPU is handed what this says, never asked it). */
 const sageHash = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
-/** NIRNROOT-SAGE: PUFF m AT THE CLOCK `t` - where it is about the feet (`x`, `y`, `z`, m), its size (m), its `age` (0 rising
- *  off the ground .. 1 thinned away) and its `seed` (0..1: its billows' own, and which way it turns). Each flight lasts the
- *  puff's life and the next begins where it ends, off another place round the feet; which flight it is wraps with the
- *  clock (the lives divide its period), so the wrap is whole. It rises fast and slows, curls round the body, drifts out
- *  and grows as it climbs. Pure. */
 export function sagePuff(m, t) {
   const life = SAGE_PUFF_LIFE[m % SAGE_PUFF_LIFE.length], flights = AURA_CLOCK_PERIOD / life;
   const u = t / life + sageHash(m, 0.5), n = Math.floor(u), age = u - n;
@@ -896,9 +427,6 @@ export function sagePuff(m, t) {
   const size = SAGE_PUFF_M[0] + (SAGE_PUFF_M[1] - SAGE_PUFF_M[0]) * Math.pow(age, 0.7);
   return { x: Math.cos(a) * r, y, z: Math.sin(a) * r, size, age, seed: sageHash(m + 53, flight) };
 }
-/** NIRNROOT-SAGE: NIRNROOT k AT THE CLOCK `t`, kindled `kindle` 0..1 - where it is about the feet (`x`, `y`, `z`, m) on its
- *  orbit round the waist, bobbing; its size (m - none until it has come up, then grown to SAGE_ROOT_M); its `turn`, the
- *  width it shows as it sways about its stem; its `tilt` (radians). Pure. */
 export function sageRoot(k, t, kindle = 1) {
   const a = (k / SAGE_ROOTS) * Math.PI * 2 + Math.PI * 2 * SAGE_HZ.orbit * t;
   const bob = Math.PI * 2 * (SAGE_HZ.bob * t + k / SAGE_ROOTS);
@@ -908,13 +436,8 @@ export function sageRoot(k, t, kindle = 1) {
     size: SAGE_ROOT_M * up, turn: Math.cos(SAGE_ROOT_SWAY * Math.sin(Math.PI * 2 * SAGE_HZ.sway * t + k * 1.3)), tilt: SAGE_ROOT_TILT * Math.cos(bob),
   };
 }
-/** The wearer's own clock - the frame's, offset by its seed (resonanceClock's law). Pure. */
 export const sageClock = (seconds, seed) => resonanceClock(seconds, seed);
-/** NIRNROOT-SAGE: EVERY CARD AT ONCE, FARTHEST FIRST from `eye` (the wearer's feet at `at`) - what the draw hands the
- *  shader, so the third draw lays a near card over a far one (none writes the depth): into `cards` (4 x SAGE_CARDS) each
- *  one's place about the feet and its size, and into `looks` (4 x SAGE_CARDS) what it is - a puff (0, its age, its cover
- *  - the kindle's, and none near the eye, SAGE_NEAR - and its seed) or a nirnroot (1, its turn, its tilt, 0). Pure but
- *  for `cards` and `looks`. */
+// Cards come farthest first, so the third draw lays a near card over a far one; none writes the depth.
 export function sageCardsInto(cards, looks, t, kindle, at, eye) {
   const rows = [];
   const k1 = Math.max(0, Math.min(1, kindle));
@@ -927,55 +450,38 @@ export function sageCardsInto(cards, looks, t, kindle, at, eye) {
     const r = sageRoot(k, t, k1);
     rows.push([Math.hypot(at[0] + r.x - eye[0], at[1] + r.y - eye[1], at[2] + r.z - eye[2]), r.x, r.y, r.z, r.size, 1, r.turn, r.tilt, 0]);
   }
-  rows.sort((a, b) => b[0] - a[0]);   // farthest first: the third draw lays the nearer card over the farther
+  rows.sort((a, b) => b[0] - a[0]);
   rows.forEach((r, i) => { for (let j = 0; j < 4; j++) { cards[i * 4 + j] = r[1 + j]; looks[i * 4 + j] = r[5 + j]; } });
   return cards;
 }
 
-/** AEGIS: HOW EACH AURA IS DRAWN - its kind in the shader (`uAura`), its ring's radius, its wall's height and how many
- *  symbols float off it (the third draw - none for the fire). A pin walks AURAS and requires one each. SHADOW-CLOAK: and,
- *  for the cloak alone, the mesh its wall is (`mesh` - the shaped cloth, not the strip) and that it SHADES: it darkens
- *  what is behind it as well as lighting it, drawn premultiplied (ONE, ONE_MINUS_SRC_ALPHA) where the others add. */
-/** BUNNYFALL: Nyx's Veil - the mist's ring about the body (m) and how high it drifts (m). */
 export const NYX_VEIL_R = 0.6;
 export const NYX_VEIL_H = 2.1;
 export const AURA_LOOK = Object.freeze({
   dagonfire: Object.freeze({ kind: 0, ringR: AURA_RING_R, flameH: AURA_FLAME_H, glyphs: 0 }),
-  oblivionward: Object.freeze({ kind: 1, ringR: WARD_RING_R, flameH: WARD_WALL_H, glyphs: WARD_GLYPHS }),   // and its floating symbols
-  radiance: Object.freeze({ kind: 2, ringR: RADIANCE_R, flameH: RADIANCE_H, glyphs: 0 }),   // PRIMARCH: the column about the body
-  shadowcloak: Object.freeze({ kind: 3, ringR: CLOAK_HEM_R, flameH: CLOAK_H, glyphs: CLOAK_EMBLEMS, shreds: CLOAK_SHREDS, mesh: 'cloak', shade: true }),   // SHADOW-CLOAK: the cape on the body, its emblems, and its shreds when it tears
-  // BUNNYFALL (2026-11-04, the owner: "change the developer aura to be an halo instead of holy wings"): the developers' aura keeps its
-  // name on the wire and in the token (net/identityToken.js AURAS, server-account titles.js DEVELOPER_AURA) and is drawn as THE HALO;
-  // the wings' look stays, unworn (SERAPH_WINGS_LOOK)
-  seraphwings: Object.freeze({ kind: 15, ringR: HALO_R, flameH: HALO_W, glyphs: 0, mesh: 'halo' }),   // SERAPH-WINGS: the wings on the body, their sparks and their backlight
-  resonance: Object.freeze({ kind: 5, ringR: RESONANCE_R, flameH: RESONANCE_H, glyphs: 0, shade: true }),   // CRYSTAL-FIST: the ring of columns of squares, on the strip; AUDIT: drawn premultiplied, so the squares stay the one purple
-  turninghour: Object.freeze({ kind: 6, ringR: TURNING_R + TURNING_TOOTH_M, flameH: TURNING_H, glyphs: 0 }),   // SD9c: the wheel at the feet, its edge on the strip at its teeth's tips
-  firsthour: Object.freeze({ kind: 7, ringR: TURNING_R + TURNING_TOOTH_M, flameH: TURNING_H, glyphs: 0 }),   // HOURS-FIRST: the same wheel, in the first dawn's light
-  maelstrom: Object.freeze({ kind: 8, ringR: MAELSTROM_R, flameH: MAELSTROM_H, glyphs: 0 }),   // SERPENT5: the pool at the feet, its curl and spray on the strip at its lip
-  beaconlight: Object.freeze({ kind: 9, ringR: BEACONLIGHT_R, flameH: BEACON_H, glyphs: 0 }),   // EG-E2: the beacons at the feet, their motes on the strip
-  burningstair: Object.freeze({ kind: 10, ringR: STAIR_R, flameH: STAIR_H, glyphs: 0 }),   // EG-E2: the stair at the feet, its embers falling on the strip
-  firstlight: Object.freeze({ kind: 11, ringR: DAWN_R, flameH: DAWN_H, glyphs: 0 }),   // EG-E2: the dawn's ring at the feet, its veil on the strip
+  oblivionward: Object.freeze({ kind: 1, ringR: WARD_RING_R, flameH: WARD_WALL_H, glyphs: WARD_GLYPHS }),
+  radiance: Object.freeze({ kind: 2, ringR: RADIANCE_R, flameH: RADIANCE_H, glyphs: 0 }),
+  shadowcloak: Object.freeze({ kind: 3, ringR: CLOAK_HEM_R, flameH: CLOAK_H, glyphs: CLOAK_EMBLEMS, shreds: CLOAK_SHREDS, mesh: 'cloak', shade: true }),
+  // The seraphwings key keeps its name on the wire and in the token, but draws as the halo.
+  seraphwings: Object.freeze({ kind: 15, ringR: HALO_R, flameH: HALO_W, glyphs: 0, mesh: 'halo' }),
+  resonance: Object.freeze({ kind: 5, ringR: RESONANCE_R, flameH: RESONANCE_H, glyphs: 0, shade: true }),
+  turninghour: Object.freeze({ kind: 6, ringR: TURNING_R + TURNING_TOOTH_M, flameH: TURNING_H, glyphs: 0 }),
+  firsthour: Object.freeze({ kind: 7, ringR: TURNING_R + TURNING_TOOTH_M, flameH: TURNING_H, glyphs: 0 }),
+  maelstrom: Object.freeze({ kind: 8, ringR: MAELSTROM_R, flameH: MAELSTROM_H, glyphs: 0 }),
+  beaconlight: Object.freeze({ kind: 9, ringR: BEACONLIGHT_R, flameH: BEACON_H, glyphs: 0 }),
+  burningstair: Object.freeze({ kind: 10, ringR: STAIR_R, flameH: STAIR_H, glyphs: 0 }),
+  firstlight: Object.freeze({ kind: 11, ringR: DAWN_R, flameH: DAWN_H, glyphs: 0 }),
   lilacwarren: Object.freeze({ kind: 12, ringR: WARREN_R, flameH: WARREN_H, glyphs: WARREN_BUNNIES, shade: true }),
   witchfire: Object.freeze({ kind: 13, ringR: WITCHFIRE_R, flameH: WITCHFIRE_H, glyphs: 0 }),
-  // BUNNYFALL (Cromwark, the owner: "build the aura"): NYX'S VEIL - the reach's purple haze about the wearer, a mist
-  // drifting up round the body with stars glinting in it (Nyx's own coat's), a pool of it at the feet; added whole
   nyxveil: Object.freeze({ kind: 16, ringR: NYX_VEIL_R, flameH: NYX_VEIL_H, glyphs: 0 }),
-  sagesmoke: Object.freeze({ kind: 14, ringR: SAGE_RUNE_R, flameH: SAGE_WALL_H, glyphs: SAGE_CARDS, shade: true }),   // NIRNROOT-SAGE: the runes and the smoke's shade at the feet, the runes' light and the low smoke on the strip, the smoke's puffs and the nirnroots the third draw - premultiplied, so the smoke covers   // WITCH1: the green fire and its candles at the feet, its tongues and violet motes on the strip   // WIKIMAID: the ring and the tracks at the feet, the sparkles on the strip, the rabbits the third draw - premultiplied, so a rabbit stays lilac
+  sagesmoke: Object.freeze({ kind: 14, ringR: SAGE_RUNE_R, flameH: SAGE_WALL_H, glyphs: SAGE_CARDS, shade: true }),
 });
-/** SERAPH-WINGS: the wings' own look, kept for its pins and a later wearer (the developers wear the halo since BUNNYFALL). */
 export const SERAPH_WINGS_LOOK = Object.freeze({ kind: 4, ringR: WING_POOL_R, flameH: WING_REACH[1], glyphs: WING_CARDS, mesh: 'wings' });
-/** The look a wearer's aura is drawn with - Dagon's Fire for one that names none (the fire was the only aura before). */
 export const auraLookOf = (aura) => (typeof aura === 'string' && Object.hasOwn(AURA_LOOK, aura) ? AURA_LOOK[aura] : AURA_LOOK.dagonfire);
 
-/** The clock, wrapped: whole cycles of every rate over its period, so no stutter at the wrap. Pure. */
 export const auraClock = (seconds) => ((seconds % AURA_CLOCK_PERIOD) + AURA_CLOCK_PERIOD) % AURA_CLOCK_PERIOD;
 
-/**
- * WHO IS DRAWN THIS FRAME: of `wearers` (`[{ id, at: [x, y, z] their feet in the scene, aura }]`), those wearing an
- * aura within AURA_RANGE_M of `eye`, nearest first, at most AURA_DRAW_MAX - written into `out` (one list, refilled: AUDIT
- * WB D10's law) and answered. Pure.
- * @param {Array<{ id?: any, at: number[], aura: string|null, _d2?: number }>} wearers @param {number[]} eye @param {any[]} out
- */
+/** @param {Array<{ id?: any, at: number[], aura: string|null, _d2?: number }>} wearers @param {number[]} eye @param {any[]} out */
 export function auraWearers(wearers, eye, out) {
   out.length = 0;
   if (!Array.isArray(wearers) || !eye) return out;
@@ -997,9 +503,6 @@ const HEAD = `#version 300 es
 precision highp float;
 precision highp int;
 `;
-/** THE FIRE'S NOISE, PERIODIC: value noise on a lattice that wraps at `per` (both whole), so a flow scrolled by the clock
- *  meets itself at the clock's wrap and the angle's noise meets itself where the ring closes - no pop every
- *  AURA_CLOCK_PERIOD, no seam behind the wearer. Each octave doubles the lattice and its period together. */
 const NOISE_GLSL = `
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vnoiseP(vec2 p, vec2 per) {
@@ -1016,22 +519,13 @@ vec3 fireRamp(float v) {
   return mix(c, vec3(1.0, 0.95, 0.78), smoothstep(0.82, 1.0, v));
 }
 `;
-/** The fire's rates, each a whole number of lattice cells over AURA_CLOCK_PERIOD (the ground's flow outward, the
- *  flames' rise and their flicker's), and the lattice's cells round the ring (the ground's, the flames' two). */
 export const AURA_FLOW = Object.freeze({ ground: 1.75, rise: 2.4, flicker: 4.8 });
 export const AURA_ROUND = Object.freeze({ ground: 18, flames: 26, flicker: 60 });
-/** The wrap is whole for every flow: its cells over the clock's period are a whole number. Pure. */
 export const auraFlowsWhole = () => Object.values(AURA_FLOW).every((r) => Number.isInteger(Math.round(r * AURA_CLOCK_PERIOD * 1e6) / 1e6));
 const v3 = (c) => `vec3(${c.map((x) => x.toFixed(3)).join(', ')})`;
-/** A number as GLSL writes a float, to a tenth or a thousandth (SPIRE-FIRST: up here, before the first look that reads them). */
 const g1 = (x) => x.toFixed(1), g3 = (x) => x.toFixed(3);
-/** A rate (Hz) as GLSL writes it EXACTLY - a division by a whole period where it has one, else its own decimal - never a
- *  rounded one, which drifts off whole by its rounding times the clock and steps the picture at the wrap. */
+// Rates are written exactly (over a whole period where there is one), because a rounded rate steps at the wrap.
 const hzGlsl = (hz) => { const per = Math.round(1 / hz); return Math.abs(per * hz - 1) < 1e-12 ? `/ ${per.toFixed(1)}` : `* ${hz}`; };
-/** AEGIS: A FLOATING SYMBOL'S FLIGHT - symbol k at the clock `t`: where it is about the feet (xyz, m) and its age (w,
- *  0 lifting off the ring .. 1 gone). Each flight lasts its life and the next begins where it ends; which flight it is
- *  wraps with the clock (the lives divide its period), so the wrap is whole. Each flight lifts off a new place round the
- *  ring, sways as it climbs, drifts outward, and slows toward its top. */
 const WARD_FLIGHT_GLSL = `
 float wardFlightOf(float k, float t) {
   float life = ${WARD_GLYPH_LIFE[0].toFixed(1)} + mod(k, 3.0);
@@ -1047,8 +541,6 @@ vec4 wardFlight(float k, float t) {
   return vec4(cos(a) * r, y, sin(a) * r, age);
 }
 `;
-/** AEGIS: THE OBLIVION WARD'S SCRIPT AND LIGHT - its strokes as distances (m), lit as one inked line is: a lilac-white
- *  heart, a violet body and a soft violet glow round it. */
 const WARD_GLSL = `
 const vec3 WARD_VIOLET = ${v3(WARD_RGB.violet)};
 const vec3 WARD_HEART = ${v3(WARD_RGB.heart)};
@@ -1146,7 +638,6 @@ vec3 wardWall(vec2 q) {
   return col * wardDrawn(fract(u + 0.5));
 }
 `;
-/** PRIMARCH: THE GOLDEN RADIANCE'S LIGHT - the column about the body (its wall) and the light it throws on the ground. */
 const RADIANCE_GLSL = `
 const vec3 RAD_GOLD = ${v3(RADIANCE_RGB.gold)};
 const vec3 RAD_HEART = ${v3(RADIANCE_RGB.heart)};
@@ -1193,10 +684,6 @@ vec3 radianceWall(vec2 q) {
   return col * clamp((uKindle * 1.25 - v) / 0.15, 0.0, 1.0);
 }
 `;
-/** CRYSTAL-FIST: THE CRYSTAL RESONANCE - its columns of squares (the wall, on the strip: u round, v up) and their feet
- *  on the ground, each answered PREMULTIPLIED (the purple times its cover, its cover): a square covers what is behind it.
- *  AUDIT: the counts are node's (`uResLit`); a square's edge is a pixel wide where it is drawn (`resPixel`, the scene's
- *  own derivatives), and a square under a couple of pixels fades to its cell's average cover. */
 const RESONANCE_GLSL = `
 const vec3 RES_PURPLE = ${v3(RESONANCE_RGB.purple)};
 const float RES_N = ${RESONANCE_COLUMNS.toFixed(1)};
@@ -1235,7 +722,6 @@ vec4 resonanceGround(vec2 p) {
   return vec4(RES_PURPLE * c, c);
 }
 `;
-/** SD9c: the wheel's helpers, one copy for every look cast from it. */
 const TURNING_HELPERS = `
 // the metres a pixel spans here, never under a few millimetres
 float turnPixel() { return max(max(length(dFdx(vWorld)), length(dFdy(vWorld))), 0.002); }
@@ -1250,10 +736,6 @@ float turningTooth(float w, float r, float px) {
   return clamp((x - 0.2 * pitch) / px + 0.5, 0.0, 1.0) * clamp((0.7 * pitch - x) / px + 0.5, 0.0, 1.0);
 }
 `;
-/** SD9c: THE WHEEL'S LOOK in a palette (`rgb`: brass, gold, light) - its ground and its wall, `fn`Ground and `fn`Wall, the
- *  palette's constants `P`_BRASS, `P`_GOLD and `P`_LIGHT. HOURS-FIRST: cast twice - The Turning Hour's, its dial turning
- *  back; The First Hour's (`forward`, its dial turning on; `blaze`, the Hour's own mark that much brighter; `rays`, the
- *  first light's strength). */
 const turningLook = (fn, P, rgb, { forward = false, blaze = 0, rays = 0 } = {}) => `
 const vec3 ${P}_BRASS = ${v3(rgb.brass)};
 const vec3 ${P}_GOLD = ${v3(rgb.gold)};
@@ -1313,7 +795,6 @@ vec3 ${fn}Wall(vec2 q) {
 }
 `;
 const TURNING_GLSL = TURNING_HELPERS + turningLook('turning', 'TH', TURNING_RGB) + turningLook('first', 'FH', FIRST_RGB, { forward: true, blaze: FIRST_BLAZE, rays: FIRST_RAY });
-/** SERPENT5: THE MAELSTROM'S LOOK - its ground and its wall (MAELSTROM_* above). */
 const MAELSTROM_GLSL = `
 const vec3 MS_SEA = ${v3(MAELSTROM_RGB.sea)};
 const vec3 MS_TIDE = ${v3(MAELSTROM_RGB.tide)};
@@ -1368,8 +849,6 @@ vec3 maelstromWall(vec2 q) {
 }
 `;
 
-/** EG-E2: THE SPIRE'S THREE LOOKS - each a ground (`p` metres about the feet) and a wall (the strip: `q` = (u round, v up)),
- *  added whole. They read The Turning Hour's helpers (turnPixel, turnBand) and the fire's periodic noise. */
 const SPIRE_GLSL = `
 const vec3 SP_BEACON = ${v3(SPIRE_RGB.beacon)};
 const vec3 SP_WHITE = ${v3(SPIRE_RGB.white)};
@@ -1557,19 +1036,16 @@ vec3 dawnWall(vec2 q) {
   return col * clamp(uKindle * 1.25 - v, 0.0, 0.15) / 0.15;
 }
 `;
-/** SHADOW-CLOAK: A GLYPH'S OUTLINE AS STRAIGHT EDGES - an SVG path of absolute M, L, Q and Z (ui/playerBadge.js
- *  GLYPH_PATH's shapes), each quadratic cut into `steps` chords and each figure closed, as [ax, ay, bx, by] in the
- *  glyph's own 16-unit box, y down; no edge of no length; any other command refused. Pure. */
 export function glyphEdges(path, steps = 4) {
   const tok = String(path).match(/[A-Za-z]|-?(?:\d+\.?\d*|\.\d+)/g) ?? [];
   const out = [];
   let i = 0, cmd = null, at = null, start = null;
   const num = () => { const v = Number(tok[i++]); if (!Number.isFinite(v)) throw new Error(`glyphEdges: a number wanted in ${path}`); return v; };
-  const r3 = (x) => Math.round(x * 1000) / 1000;   // as the shader takes it (toFixed(3)) - an edge that rounds to nothing is none
+  const r3 = (x) => Math.round(x * 1000) / 1000;
   const edge = (b) => { if (!at) throw new Error(`glyphEdges: a figure must begin with M in ${path}`); if (r3(at[0]) !== r3(b[0]) || r3(at[1]) !== r3(b[1])) out.push([at[0], at[1], b[0], b[1]]); at = b; };
   while (i < tok.length) {
     if (/[A-Za-z]/.test(tok[i])) cmd = tok[i++];
-    if (cmd === 'M') { if (start) edge(start); at = [num(), num()]; start = at; cmd = 'L'; }   // pairs after a move are lines
+    if (cmd === 'M') { if (start) edge(start); at = [num(), num()]; start = at; cmd = 'L'; }
     else if (cmd === 'L') edge([num(), num()]);
     else if (cmd === 'Q') {
       if (!at) throw new Error(`glyphEdges: a figure must begin with M in ${path}`);
@@ -1578,15 +1054,11 @@ export function glyphEdges(path, steps = 4) {
     } else if (cmd === 'Z') { if (start) edge(start); cmd = null; }
     else throw new Error(`glyphEdges: '${cmd}' is not drawn here`);
   }
-  if (start) edge(start);   // an open figure closed, to be filled
+  if (start) edge(start);
   return out;
 }
 const CLOAK_GLYPH_EDGES = glyphEdges(CLOAK_GLYPH), CLOAK_EYE_EDGES = glyphEdges(CLOAK_GLYPH_EYE);
 const glyphEdgesGlsl = (name, edges) => `const vec4 ${name}[${edges.length}] = vec4[${edges.length}](${edges.map((e) => `vec4(${e.map((x) => x.toFixed(3)).join(', ')})`).join(', ')});`;
-/** SHADOW-CLOAK: THE CLOAK'S SHAPE, both halves' - its frame off the wearer's facing, its radius about the body at a
- *  height, how far behind the body's middle it stands there, and its opening at the front. `u` turns round from the
- *  front's middle (0) by the wearer's right, so the mesh's seam (u 0 = 1) lies inside the opening below the clasp and in
- *  the hood's face, and the collar between them closes whole over it. */
 const CLOAK_SHAPE_GLSL = `
 const float CLOAK_TAU = 6.283185307179586;
 // x squared - never pow(x, 2.0), which GLSL leaves undefined for a negative x (AUDIT: a driver's exp2/log2 answers NaN)
@@ -1639,8 +1111,6 @@ float cloakTwistAt(float y) { return uSwing.w / CLOAK_TAU * pow(cloakHangOf(y), 
 // negative while they have not
 float cloakRipOf() { return uTorn < 0.0 ? 0.0 : clamp(uTorn / ${g3(CLOAK_RIP_S)}, 0.0, 1.0); }
 `;
-/** SHADOW-CLOAK: THE CLOAK'S CLOTH, ITS GROUND AND ITS EMBLEMS - the fragment half's. Each answers premultiplied: the
- *  light it adds (rgb) and how much of what is behind it the shadow covers (a). */
 const CLOAK_FS_GLSL = `
 const vec3 CLOAK_CRIMSON = ${v3(CLOAK_RGB.crimson)};
 const vec3 CLOAK_EMBER = ${v3(CLOAK_RGB.ember)};
@@ -1826,7 +1296,6 @@ vec4 cloakShred(vec2 uv, vec3 s) {
   return vec4(col * gate, inside * 0.85 * gate);
 }
 `;
-/** SHADOW-CLOAK: where the cloak's mesh stands, and its emblems' flights - the vertex half's alone. */
 const CLOAK_VS_GLSL = `
 // the cape's billow and a wave running down it - most at the hem and down the back, none at the shoulders
 float cloakBillow(float u, float y, float t) {
@@ -1905,19 +1374,12 @@ vec4 cloakShredFlight(float j, float since) {
   return vec4(d.x, y, d.y, since * CLOAK_TAU * (1.0 + floor(cloakHash(vec2(j, 4.4)) * 2.0)) ${hzGlsl(CLOAK_SHRED_HZ.spin)} + j);
 }
 `;
-/** SERAPH-WINGS: what both halves share - the beat: every WING_HZ.beat a slow stroke, down and forward fast and back up
- *  slow, its tips after its roots (`t` how far out, 0 .. 1). */
 const WING_SHARED_GLSL = `
 float wingBeat(float t, float time) {
   float bp = fract(time ${hzGlsl(WING_HZ.beat)} - 0.06 * t);
   return smoothstep(0.0, 0.18, bp) * (1.0 - smoothstep(0.18, 0.75, bp));
 }
 `;
-/** SERAPH-WINGS: THE WINGS' SHAPE, the vertex half's - a strand's point at its length's share `t` (0 its root, 1 its tip)
- *  in the body's frame (x right, y up, z forward, m about the feet): laid out of the upper back along the TORSO's own
- *  axes (`uTorsoU`, `uTorsoF` - auraCapePose, off the body's spine), so the wings lean and turn as the back does; on a
- *  curve rising behind the shoulder and out along its plume's angle to its reach, the tips drooping; waves running out
- *  along it; the fan breathing and beating; and the body's swing carried the more the further out. */
 const WING_VS_GLSL = `
 float wingHash(float n) { return fract(sin(n * 78.233 + 1.7) * 43758.5453); }
 // strand k: its side (-1 the wearer's left, +1 their right), its plume's place up its fan (0 the lowest .. 1 the
@@ -1977,9 +1439,6 @@ vec4 wingMoteFlight(float k, float time, out vec3 dir) {
   return vec4(b, age);
 }
 `;
-/** SERAPH-WINGS: THE WINGS' LIGHT, the fragment half's - a strand (`p` across 0..1 and along 0..1; `s` its number, its
- *  fineness, a covert), the ground's pool, a spark (`p` across and along its streak) and the backlight. Added whole:
- *  what they answer is light. The beat flares them a moment. */
 const WING_FS_GLSL = `
 const vec3 WING_CORE = ${v3(WING_RGB.core)};
 const vec3 WING_GOLD = ${v3(WING_RGB.gold)};
@@ -2031,16 +1490,8 @@ vec3 wingHalo(vec2 p, float away) {
   return col * (1.0 - smoothstep(0.55, 1.0, r)) * wingBreath() * (1.0 + 0.25 * wingBeat(0.0, uTime)) * smoothstep(0.5, 1.0, uKindle) * wingNear() * away;
 }
 `;
-/** WIKIMAID: THE LILAC WARREN - its ground (`p` metres about the feet), its wall (the strip: `q` = (u round, v up)) and a
- *  rabbit (its card's uv, and `s` its facing and number), each answered PREMULTIPLIED as the resonance's are: its light
- *  added (no cover) and a rabbit, the ring and the tracks COVERING what is behind them in their own colours. Where the
- *  rabbits are and where they landed are node's (`uWarren`, `uWarrenPrint` - warrenBunniesInto, warrenPrintsInto). It
- *  reads the wheel's helpers (turnPixel, turnBand), the ward's segment (segD) and the cloak's edges (cloakSeg2,
- *  cloakCross), so it is laid after them. */
 const WARREN_EDGES = glyphEdges(WARREN_BUNNY.path);
 const wv2 = (a, i = 0) => `vec2(${g3(a[i])}, ${g3(a[i + 1])})`;
-/** WITCH1: WITCHFIRE - a ground (`p` metres about the feet) and a wall (the strip: `q` = (u round, v up)), added whole,
- *  kindled within. The fire is Dagon's own noise (fbmP over the ring's lattice), in the coven's green. */
 const WITCH_GLSL = `
 const vec3 WF_MOSS = ${v3(WITCH_RGB.moss)};
 const vec3 WF_FIRE = ${v3(WITCH_RGB.fire)};
@@ -2095,16 +1546,12 @@ vec3 witchWall(vec2 q) {
 `;
 
 const SAGE_EDGES = glyphEdges(GLYPH_PATH.nirnrootsage), SAGE_VEIN_EDGES = glyphEdges(GLYPH_DETAIL.nirnrootsage[0].path), SAGE_BUD_EDGES = glyphEdges(GLYPH_DETAIL.nirnrootsage[1].path);
-/** NIRNROOT-SAGE: a shape's distance in its box, named, over its edges - negative inside, filled even-odd (warrenD's law). */
 const edgeDGlsl = (fn, name, edges) => `${glyphEdgesGlsl(name, edges)}
 float ${fn}(vec2 g) {
   float d = 1e9, n = 0.0;
   for (int i = 0; i < ${edges.length}; i++) { d = min(d, cloakSeg2(g, ${name}[i])); n += cloakCross(g, ${name}[i]); }
   return (mod(n, 2.0) > 0.5 ? -1.0 : 1.0) * sqrt(d);
 }`;
-/** NIRNROOT-SAGE: SAGE'S SMOKE - a ground (`p` metres about the feet), a wall (the strip: `q` = (u round, v up)) and a card
- *  (a puff of the smoke or a nirnroot: `uv` its card's 0..1, `s` what vS says of it), each answered PREMULTIPLIED: the
- *  smoke and the nirnroots COVER what is behind them, the runes' light and the nirnroots' glow are added (no cover). */
 const SAGE_GLSL = `
 const vec3 SG_LEAF = ${v3(SAGE_RGB.leaf)};
 const vec3 SG_GLOW = ${v3(SAGE_RGB.glow)};
@@ -2636,14 +2083,13 @@ void main() {
 }`;
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
-const NO_FOCUS = new Float32Array(4);   // AUDIT DEEP R-1: no travel view - w 0, the fog measures from the camera
-const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
+const NO_FOCUS = new Float32Array(4);
+const NO_HAZE = new Float32Array(8);
 function mat4Multiply(out, a, b) {
   for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) out[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
   return out;
 }
 
-/** The flames' strip: AURA_STEPS quads round, two triangles each, as (step, up) pairs. Pure. */
 export function auraFlameStrip() {
   const out = [];
   for (let i = 0; i < AURA_STEPS; i++) {
@@ -2653,15 +2099,12 @@ export function auraFlameStrip() {
   return new Float32Array(out);
 }
 
-/** AEGIS: the floating symbols' cards - `n` quads, two triangles each, as (number * 2 + the corner's u, its v). Pure. */
 export function auraGlyphCards(n) {
   const out = [];
   for (let k = 0; k < n; k++) for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]]) out.push(k * 2 + u, v);
   return new Float32Array(out);
 }
 
-/** SHADOW-CLOAK: the cloak's mesh - CLOAK_ROUND steps round by CLOAK_ROWS up, two triangles a cell, as (u round from the
- *  front, v up) pairs. Pure. */
 export function auraCloakGrid() {
   const out = [];
   for (let j = 0; j < CLOAK_ROWS; j++) {
@@ -2673,8 +2116,6 @@ export function auraCloakGrid() {
   }
   return new Float32Array(out);
 }
-/** SERAPH-WINGS: the wings' mesh - each of WING_STRAND_COUNT strands a ribbon of WING_SEGS segments, two triangles each,
- *  as (its number * 2 + across 0 or 1, along 0..1) pairs. Pure. */
 export function auraWingsGrid() {
   const out = [];
   for (let k = 0; k < WING_STRAND_COUNT; k++) {
@@ -2686,78 +2127,46 @@ export function auraWingsGrid() {
   }
   return new Float32Array(out);
 }
-/** The cards the third draw has to hand: the most any look floats (the ward's symbols, the cloak's emblems and shreds). */
 export const AURA_CARDS = Math.max(...Object.values(AURA_LOOK).map((l) => l.glyphs + ('shreds' in l ? l.shreds : 0)));
 
-/** SHADOW-CLOAK: THE BODY'S POSE AT REST - what the cape's measures are drawn about, in the body's frame (x right, y
- *  up, z forward, m about the feet): the shoulders' middle (w its scale across them - 1 at rest), the head's middle (w
- *  its turn from the body's, rad), and no knee to press it (at the feet's own axis, nowhere). A wearer with no posed
- *  body hangs it from this. */
-export const CLOAK_REST_POSE = Object.freeze({ shoulders: Float32Array.of(0, CLOAK_SHOULDER_Y, 0, 1), head: Float32Array.of(0, CLOAK_HOOD_Y, 0, 0), kneeL: new Float32Array(3), kneeR: new Float32Array(3), torso: Float32Array.of(0, 1, 0, 0, 0, 1), wingBack: 0 });   // SERAPH-WINGS: the torso upright and facing forward; WINGS-FIT: the wings at the back itself
-/** SHADOW-CLOAK: THE BONES IT HANGS FROM - the retail third-person skeleton's (base_anim.nif and its kin, lowercase as
- *  the skeleton's byName keeps them): the shoulder joints, the neck and the head, the knees. */
-export const CLOAK_BONES = Object.freeze(['bip01 l upperarm', 'bip01 r upperarm', 'bip01 neck', 'bip01 head', 'bip01 l calf', 'bip01 r calf', 'bip01 spine2']);   // SERAPH-WINGS: and the upper spine, the back's own up
-/** The rest shoulders' half-width its measures assume (m) - a broader or narrower body scales the cloth across, within
- *  CLOAK_ACROSS - and how far past the head's own joint (the top of the neck) its middle is, along the neck (m). */
+export const CLOAK_REST_POSE = Object.freeze({ shoulders: Float32Array.of(0, CLOAK_SHOULDER_Y, 0, 1), head: Float32Array.of(0, CLOAK_HOOD_Y, 0, 0), kneeL: new Float32Array(3), kneeR: new Float32Array(3), torso: Float32Array.of(0, 1, 0, 0, 0, 1), wingBack: 0 });
+export const CLOAK_BONES = Object.freeze(['bip01 l upperarm', 'bip01 r upperarm', 'bip01 neck', 'bip01 head', 'bip01 l calf', 'bip01 r calf', 'bip01 spine2']);
 export const CLOAK_SHOULDER_HALF = 0.2;
 export const CLOAK_ACROSS = Object.freeze([0.8, 1.25]);
 export const CLOAK_HEAD_ABOVE = 0.09;
 
-/** SHADOW-CLOAK: THE POSE FROM THE BONES - `bones` the body's (fpArm.thirdBones: each [right, up, forward] m about its
- *  feet, or null) - the shoulders' middle and the scale across them, the head's middle and the knees, written into
- *  `out` (or a new pose); null when the shoulders or the head are missing (another skeleton - the wolf's), so the cape
- *  hangs at rest. Pure but for `out`. */
 export function auraCapePose(bones, out = null) {
   const L = bones?.['bip01 l upperarm'], R = bones?.['bip01 r upperarm'], N = bones?.['bip01 neck'], H = bones?.['bip01 head'];
   if (!L || !R || !H) return null;
   const o = out ?? { shoulders: new Float32Array(4), head: new Float32Array(4), kneeL: new Float32Array(3), kneeR: new Float32Array(3), torso: new Float32Array(6) };
   const half = Math.hypot(L[0] - R[0], L[1] - R[1], L[2] - R[2]) / 2;
   const S = o.shoulders, Hd = o.head;
-  S[0] = (L[0] + R[0]) / 2; S[1] = Math.max((L[1] + R[1]) / 2, CLOAK_SHOULDER_Y * 0.4); S[2] = (L[2] + R[2]) / 2; S[3] = Math.max(CLOAK_ACROSS[0], Math.min(CLOAK_ACROSS[1], half / CLOAK_SHOULDER_HALF));   // never lower than a crouch's floor (AUDIT 2: a pose at the feet hangs nothing)
+  S[0] = (L[0] + R[0]) / 2; S[1] = Math.max((L[1] + R[1]) / 2, CLOAK_SHOULDER_Y * 0.4); S[2] = (L[2] + R[2]) / 2; S[3] = Math.max(CLOAK_ACROSS[0], Math.min(CLOAK_ACROSS[1], half / CLOAK_SHOULDER_HALF));
   const ux = N ? H[0] - N[0] : 0, uy = N ? H[1] - N[1] : 1, uz = N ? H[2] - N[2] : 0, ul = Math.hypot(ux, uy, uz) || 1;
-  Hd[0] = H[0] + (ux / ul) * CLOAK_HEAD_ABOVE; Hd[1] = Math.max(H[1] + (uy / ul) * CLOAK_HEAD_ABOVE, S[1] + 0.18); Hd[2] = H[2] + (uz / ul) * CLOAK_HEAD_ABOVE; Hd[3] = 0;   // the head a neck over the shoulders at least (AUDIT 2: nearer, the collar folds over itself)
+  Hd[0] = H[0] + (ux / ul) * CLOAK_HEAD_ABOVE; Hd[1] = Math.max(H[1] + (uy / ul) * CLOAK_HEAD_ABOVE, S[1] + 0.18); Hd[2] = H[2] + (uz / ul) * CLOAK_HEAD_ABOVE; Hd[3] = 0;
   o.kneeL.set(bones['bip01 l calf'] ?? [0, 0, 0]);
   o.kneeR.set(bones['bip01 r calf'] ?? [0, 0, 0]);
   auraTorso(L, R, bones['bip01 spine2'] ?? null, N ?? null, H, o.torso ?? (o.torso = new Float32Array(6)));
-  o.sunk = bones.sunk === true;   // AUDIT 3: a sprite sunk to its neck (auraSpriteBones) - folded, closed
-  o.wingBack = Number.isFinite(bones.wingBack) ? bones.wingBack : 0;   // WINGS-FIT: a sprite's flat card - the wings rooted further back (auraSpriteBones)
+  o.sunk = bones.sunk === true;
+  o.wingBack = Number.isFinite(bones.wingBack) ? bones.wingBack : 0;
   return o;
 }
-/** SERAPH-WINGS: THE TORSO'S OWN AXES, written into `out` [up, forward] - up the spine (the upper spine to the neck, or
- *  the neck to the head without it), across from the left shoulder to the right, and forward out of the chest square to
- *  both - so what grows from the back leans and turns as the back does. Upright and facing forward where the bones
- *  cannot say. Pure but for `out`. */
 export function auraTorso(L, R, spine, neck, head, out) {
   const lo = spine && neck ? spine : neck, hi = spine && neck ? neck : head;
   let ux = lo ? hi[0] - lo[0] : 0, uy = lo ? hi[1] - lo[1] : 1, uz = lo ? hi[2] - lo[2] : 0;
   let rx = R[0] - L[0], ry = R[1] - L[1], rz = R[2] - L[2];
-  let fx = ry * uz - rz * uy, fy = rz * ux - rx * uz, fz = rx * uy - ry * ux;   // right x up: forward
+  let fx = ry * uz - rz * uy, fy = rz * ux - rx * uz, fz = rx * uy - ry * ux;
   const fl = Math.hypot(fx, fy, fz);
   if (!(fl > 1e-6) || !(Math.hypot(ux, uy, uz) > 1e-6)) { out.set(CLOAK_REST_POSE.torso); return out; }
   fx /= fl; fy /= fl; fz /= fl;
-  ux = fy * rz - fz * ry; uy = fz * rx - fx * rz; uz = fx * ry - fy * rx;   // forward x right: up, square to both
+  ux = fy * rz - fz * ry; uy = fz * rx - fx * rz; uz = fx * ry - fy * rx;
   const ul = Math.hypot(ux, uy, uz);
-  if (!(ul > 1e-6) || uy / ul < 0.2) { out.set(CLOAK_REST_POSE.torso); return out; }   // a back upside down or flat is no back to grow from
+  if (!(ul > 1e-6) || uy / ul < 0.2) { out.set(CLOAK_REST_POSE.torso); return out; }
   out[0] = ux / ul; out[1] = uy / ul; out[2] = uz / ul; out[3] = fx; out[4] = fy; out[5] = fz;
   return out;
 }
 
-/** SERAPH-WINGS: THE EYE OF THE BEHOLDER FIGURE - a sprite body has no bones, so what stands for them is read off the frame
- *  it is drawn in: its base over the feet and its metres a pixel (eotbBody figure(), peerRiders figureOf).
- *  AUDIT 3 (2026-10-05): BY THE PIXEL, NOT BY THE FRAME'S HEIGHT. A frame is as tall as what it holds - a sword up, a
- *  staff, a hand raised to cast (to 174 px) - and the shoulders at 0.8 of it hung the cloak and the wings 0.3 - 1 m over
- *  the head whenever a weapon was out, jumping as it was drawn or sheathed. The sets' own shoulders stand 78 - 88 px
- *  over the frame's foot whatever it holds (measured off the frames' alpha: Idle 88, IdleMelee 80, IdleSpell 84,
- *  IdleRanged 87). So: the shoulder line, the neck, the head's joint and the upper spine in the sets' pixels over the
- *  frame's foot; a beast's frames (`beast` - drawn at 0.029 m a pixel, the beast smaller in them) stand them at `beast`
- *  of that (shoulders 1.70 m, measured 1.65 - 1.74); across as broad as its metres a pixel are to the standing scale's
- *  (`mpp`). */
 export const EOTB_FIGURE = Object.freeze({ mpp: 0.019, shoulder: 86, neck: 91, head: 96, spine: 75, beast: 0.68 });
-/** The bones a sprite figure stands for, in the body's frame - or null without a figure. `sunk` when its shoulders are
- *  below the crouch's floor (the body sunk in water to its neck - its quad's top at the waterline): nothing hangs from
- *  them, and the cloak folds and the wings close as on a rider (AUDIT 3: hung at the floor, it floated over the
- *  swimmer). WINGS-FIT: `wingBack` - its wings rooted WING_SPRITE_BACK further behind its flat card, as big as the sprite
- *  is drawn. Pure. */
 export function auraSpriteBones(fig) {
   if (!fig || !Number.isFinite(fig.base) || !(fig.mpp > 0)) return null;
   const m = fig.mpp * (fig.beast === true ? EOTB_FIGURE.beast : 1), at = (px) => fig.base + px * m, half = CLOAK_SHOULDER_HALF * m / EOTB_FIGURE.mpp;
@@ -2767,92 +2176,60 @@ export function auraSpriteBones(fig) {
     'bip01 l calf': null, 'bip01 r calf': null, sunk: at(EOTB_FIGURE.shoulder) < CLOAK_SHOULDER_Y * 0.4, wingBack: WING_SPRITE_BACK * m / EOTB_FIGURE.mpp,
   };
 }
-/** A peer's sprite figure as the pose `auraCapeStep` takes - at the wearer's own feet - or null. SPRITE-FACE (2026-10-05,
- *  Mac: "The sprite rotation on character input is a little finicky and make the aura misallign"): FACING AS ITS PICTURE
- *  DOES - `face` the sprite layer's { yaw, turn } (net/peer/peerRiders.js faceOf): hung on the picture's facing, its eight-way
- *  view, where the pose's own facing runs up to half a view off it; swung by the pose's (`turn`). A sprite with a face and
- *  no figure (a rider's, the horse's picture) is faced and hung from the rest pose; neither, null. Pure. */
 export const auraSpritePosed = (w, fig, face = null) => (fig || face
   ? { feet: w.at, yaw: face ? face.yaw : w.yaw, turn: face ? face.turn : null, bones: fig ? auraSpriteBones(fig) : null }
   : null);
-/** SERAPH-WINGS: THE WINGS' LIGHT ON THE WORLD - a gold light where they grow, behind the shoulders, for the nearest
- *  wearers of them within `reach` of the eye (at most `max`): `range` (m) as the wings are kindled, `rgb` its colour.
- *  A carried light (no glare of its own, no shadow slot - the torch's law). Outdoors the city's light colour stands
- *  for every carried light (world.js); in a dungeon or a building it is gold. */
-export const WING_LIGHT = Object.freeze({ range: 4.5, rgb: Object.freeze([0.7, 0.53, 0.24]), lift: 0.15, back: 0.35, max: 3, reach: 40 });   // WINGS-FIT: 4.5 m and seven tenths (were 7 m, [1, 0.76, 0.34])
-/** The wings' lights this frame, nearest first, written into `out` (one list, refilled) and answered. Pure but for
- *  `out`. @param {any[]} wearers @param {number[]|Float32Array|null} eye @param {any[]} out */
+export const WING_LIGHT = Object.freeze({ range: 4.5, rgb: Object.freeze([0.7, 0.53, 0.24]), lift: 0.15, back: 0.35, max: 3, reach: 40 });
+/** @param {any[]} wearers @param {number[]|Float32Array|null} eye @param {any[]} out */
 export function auraWingLights(wearers, eye, out) {
   out.length = 0;
   if (!Array.isArray(wearers) || !eye) return out;
   const L = WING_LIGHT;
   for (const w of wearers) {
-    if (!w || auraLookOf(w.aura).mesh !== 'wings' || !Array.isArray(w.at) || w.cape?.sunk === true) continue;   // AUDIT 3: closed (sunk to the neck), unlit
+    if (!w || auraLookOf(w.aura).mesh !== 'wings' || !Array.isArray(w.at) || w.cape?.sunk === true) continue;
     const k = Number.isFinite(w.kindle) ? Math.max(0, Math.min(1, w.kindle)) : 1;
     if (!(k > 0)) continue;
     const yaw = Number.isFinite(w.yaw) ? w.yaw : 0, c = Math.cos(yaw), sn = Math.sin(yaw), pose = w.cape ?? CLOAK_REST_POSE, sh = pose.shoulders;
-    const back = L.back + (Number.isFinite(pose.wingBack) ? pose.wingBack : 0);   // WINGS-FIT: behind a sprite's roots, where they are
+    const back = L.back + (Number.isFinite(pose.wingBack) ? pose.wingBack : 0);
     const x = w.at[0] + c * sh[0] + sn * (sh[2] - back), y = w.at[1] + sh[1] + L.lift, z = w.at[2] - sn * sh[0] + c * (sh[2] - back);
     const d = Math.hypot(x - eye[0], y - eye[1], z - eye[2]);
     if (!(d <= L.reach)) continue;
-    out.push({ x, y, z, range: L.range * (0.5 + 0.5 * k), color: [L.rgb[0] * k, L.rgb[1] * k, L.rgb[2] * k], carried: true, aura: true, _d: d });   // AUDIT 3: `aura` - the dungeon's flame tint passes it by (worldModes.js _dgTint)
+    out.push({ x, y, z, range: L.range * (0.5 + 0.5 * k), color: [L.rgb[0] * k, L.rgb[1] * k, L.rgb[2] * k], carried: true, aura: true, _d: d });
   }
   out.sort((a, b) => a._d - b._d);
   if (out.length > L.max) out.length = L.max;
   return out;
 }
-/** SERAPH-WINGS: how far a rider's shoulders stand over a walker's (m) - the saddle's (player/motor.js RIDE_EYE_HEIGHT less
- *  EYE_HEIGHT): a mounted wearer without bones hangs from the rest pose lifted so far. */
 export const AURA_SADDLE_M = 0.81;
 
-/** SHADOW-CLOAK: THE POSE A WEARER'S CAPE HANGS FROM THIS FRAME, set on `w` (`w.cape`): `posed` the body's own - { feet,
- *  yaw, bones } (mwView mwViewBodyBones beside my body's feet and yaw; peerBodies bonesOf) - the cape placed where that
- *  body is drawn (its feet and yaw, which the gather's may lag) and hung from its bones when they stand; else from the
- *  rest pose pressed down to `crouch` (the body's height over its standing height, 1 standing). Returns `w`. Pure but
- *  for `w`. */
 export function auraCapeStep(w, posed, crouch = 1) {
-  if (posed?.feet && Number.isFinite(posed.yaw)) { w.at[0] = posed.feet[0]; w.at[1] = posed.feet[1]; w.at[2] = posed.feet[2]; w.yaw = posed.yaw; }   // where the body is drawn
-  // SPRITE-FACE: and the way the body TURNS, where it is not the way it is drawn (a sprite: its picture faces a view at a
-  // time, behind the walk) - what the swing reads (auraMotionStep); none for a body drawn as it turns
+  if (posed?.feet && Number.isFinite(posed.yaw)) { w.at[0] = posed.feet[0]; w.at[1] = posed.feet[1]; w.at[2] = posed.feet[2]; w.yaw = posed.yaw; }
   w.turnYaw = Number.isFinite(posed?.turn) ? posed.turn : null;
   const o = posed?.bones ? auraCapePose(posed.bones, w.cape && w.cape !== CLOAK_REST_POSE ? w.cape : null) : null;
   if (o) { w.cape = o; return w; }
-  const k = Number.isFinite(crouch) ? Math.max(0.4, Math.min(1, crouch)) : 1, lift = w.mounted === true ? AURA_SADDLE_M : 0;   // SERAPH-WINGS: a rider's shoulders over the saddle
+  const k = Number.isFinite(crouch) ? Math.max(0.4, Math.min(1, crouch)) : 1, lift = w.mounted === true ? AURA_SADDLE_M : 0;
   if (k >= 1 && !lift) { w.cape = CLOAK_REST_POSE; return w; }
   const c = w.cape && w.cape !== CLOAK_REST_POSE ? w.cape : { shoulders: new Float32Array(4), head: new Float32Array(4), kneeL: new Float32Array(3), kneeR: new Float32Array(3), torso: new Float32Array(6) };
-  c.shoulders.fill(0); c.shoulders[1] = CLOAK_SHOULDER_Y * k + lift; c.shoulders[3] = 1; c.head.fill(0); c.head[1] = CLOAK_HOOD_Y * k + lift; c.kneeL.fill(0); c.kneeR.fill(0); c.sunk = false; c.wingBack = 0;   // AUDIT 4: a reused pose never stays sunk (a swim, then a ride: the wings stayed closed); WINGS-FIT: nor rooted back for a sprite no longer drawn
+  c.shoulders.fill(0); c.shoulders[1] = CLOAK_SHOULDER_Y * k + lift; c.shoulders[3] = 1; c.head.fill(0); c.head[1] = CLOAK_HOOD_Y * k + lift; c.kneeL.fill(0); c.kneeR.fill(0); c.sunk = false; c.wingBack = 0;
   (c.torso ?? (c.torso = new Float32Array(6))).set(CLOAK_REST_POSE.torso);
   w.cape = c;
   return w;
 }
 
-/** SHADOW-CLOAK: THE CAPE'S SWING - how its hem answers its wearer's motion: the seconds of their speed it trails
- *  behind them (m per m/s, a walk's 4 m/s a hand and a half, a run's more) and the most it trails; the metres it lifts
- *  per m/s of falling and the most; the radians it lags per rad/s of turning and the most; and the spring it swings on
- *  (Hz, and its damping - under one, so it swings past and settles when they stop); the speeds smoothed over (s). A
- *  jump of more than `snap` metres in a frame and faster than `snapV` m/s (a door, a teleport, a step snapped, the
- *  floating origin moving the world) is no motion: nothing is read off it and the swing carries on as it was going. */
 export const CLOAK_SWING = Object.freeze({ trail: 0.05, trailMax: 0.42, lift: 0.04, liftMax: 0.25, twist: 0.12, twistMax: 0.6, hz: 1.2, damp: 0.45, smooth: 0.1, snap: 0.5, snapV: 30 });
 
-/** SHADOW-CLOAK: THE CAPE'S SWING, a wearer's step each frame - from their feet (`w.at`) and facing (`w.yaw`) at the
- *  clock `t` (s), whoever's body it is (a rig or a sprite, mine or a peer's): their velocity and turning, smoothed, set
- *  where the hem would hang - behind them by their speed, lifted by their fall, lagging their turn - and a damped
- *  spring carries it there. Writes `w.swing` { x, z (m, along the body's right and forward), lift (m), twist (rad) }
- *  and the state it keeps (`w.motion`); returns `w`. Pure but for `w`. */
 const clampTo = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 export function auraMotionStep(w, t) {
   const S = CLOAK_SWING;
   const m = w.motion ?? (w.motion = { t: null, at: [0, 0, 0], yaw: 0, v: [0, 0, 0], yr: 0, p: [0, 0, 0, 0], q: [0, 0, 0, 0], goal: [0, 0, 0, 0] });
-  // SPRITE-FACE: the body's turning (`turnYaw`, a sprite's walk) where it has one, else the way it is drawn - so a sprite's
-  // picture changing a view is no turn, and its velocity is read along the body, not along the picture's bucket
   const yaw = Number.isFinite(w.turnYaw) ? w.turnYaw : Number.isFinite(w.yaw) ? w.yaw : 0, at = w.at;
   const dt = m.t === null ? 0 : t - m.t;
   const jump = Math.hypot(at[0] - m.at[0], at[1] - m.at[1], at[2] - m.at[2]);
-  if (m.t !== null && dt === 0) return w;   // a frame on the clock's same tick (a coarsened clock): nothing to read, nothing moved
-  if (m.t === null || !(dt > 0) || dt > 0.5) { m.v.fill(0); m.yr = 0; m.p.fill(0); m.q.fill(0); }   // first seen, or back after a gap (or a clock run backwards): hanging still
+  if (m.t !== null && dt === 0) return w;
+  if (m.t === null || !(dt > 0) || dt > 0.5) { m.v.fill(0); m.yr = 0; m.p.fill(0); m.q.fill(0); }
   else {
     const a = 1 - Math.exp(-dt / S.smooth);
-    if (jump <= Math.max(S.snap, S.snapV * dt)) { for (let i = 0; i < 3; i++) m.v[i] += ((at[i] - m.at[i]) / dt - m.v[i]) * a; m.yr += (wrapAngle(yaw - m.yaw) / dt - m.yr) * a; }   // the short way round (ONCRASH1: the one wrap); a placement (a door, a teleport, a snapped step, the floating origin moving the world) is no motion - the swing carries on as it was going
+    if (jump <= Math.max(S.snap, S.snapV * dt)) { for (let i = 0; i < 3; i++) m.v[i] += ((at[i] - m.at[i]) / dt - m.v[i]) * a; m.yr += (wrapAngle(yaw - m.yaw) / dt - m.yr) * a; }
     const fwd = m.v[0] * Math.sin(yaw) + m.v[2] * Math.cos(yaw), right = m.v[0] * Math.cos(yaw) - m.v[2] * Math.sin(yaw);
     const g = m.goal;
     g[0] = clampTo(-right * S.trail, -S.trailMax, S.trailMax); g[1] = clampTo(-fwd * S.trail, -S.trailMax, S.trailMax);
@@ -2866,11 +2243,6 @@ export function auraMotionStep(w, t) {
   return w;
 }
 
-/** SHADOW-CLOAK: THE BEAST FORM, a wearer's step each frame - `beast` whether they stand turned lycanthrope, `t` the
- *  clock (s). Turned, the cloak tears: `w.torn` the seconds since the turn, wrapped whole past the tear by the clock's
- *  period (the shreds' rates are whole over it, so their flights meet themselves); -1 while they are not. A wearer
- *  first seen already turned is already torn; turned back, its cloak kindles again from nothing (`w.since`). Writes `w`
- *  and returns it. */
 export function auraBeastStep(w, beast, t) {
   if (w.beastAt === undefined) w.beastAt = beast ? t - CLOAK_RIP_S : null;
   if (beast) {
@@ -2884,34 +2256,27 @@ export function auraBeastStep(w, beast, t) {
   return w;
 }
 
-/** AURA-SPLIT (#1143, bible/07-Rendering/Performance-Priority.md): every look's kind, once each. */
 export const AURA_KINDS = Object.freeze([...new Set(Object.values(AURA_LOOK).map((l) => l.kind))]);
-/** AURA-SPLIT: the uniforms a look's program is handed (`uAura` is its constant, not one of them). */
 const AURA_UNIFORMS = Object.freeze(['uVP', 'uKind', 'uAt', 'uGroundR', 'uRingR', 'uFlameH', 'uLift', 'uTime', 'uSeed', 'uKindle', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze', 'uYaw', 'uSide', 'uTorn', 'uSwing', 'uCapeS', 'uCapeH', 'uKneeL', 'uKneeR', 'uTorsoU', 'uTorsoF', 'uWingBack', 'uResLit', 'uWarren', 'uWarrenPrint', 'uSage', 'uSageLook']);
 const _lookPrograms = new Map();
-/** AURA-SPLIT (#1143): ONE PROGRAM A LOOK - AURA_VS and AURA_FS with `uAura` declared a constant, so the compiler drops
- *  every other look's code. The whole source (every look, 81 KB of fragment shader) compiled 8.5-11 s on D3D11; a look
- *  alone 67-472 ms, the Holo Shadow Cloak 1.65 s. A look's two sources, made once (the started programs are keyed by
- *  them). Pure. @param {number} kind @returns {ReadonlyArray<readonly [string, string]>} */
+// Each look compiles alone with uAura made a constant, because the whole shader takes seconds to compile.
+/** @param {number} kind @returns {ReadonlyArray<readonly [string, string]>} */
 export function auraPrograms(kind) {
   let p = _lookPrograms.get(kind);
   if (!p) {
-    // exactly one declaration: a second (a comment quoting it) would be swapped in its place, the uniform left at 0
+    // uAura must be declared exactly once: a second match, such as a comment quoting it, would be replaced instead.
     const one = (src) => { if (src.split('uniform int uAura;').length !== 2) throw new Error('aura ring: uAura not declared exactly once'); return src.replace('uniform int uAura;', `const int uAura = ${kind | 0};`); };
     _lookPrograms.set(kind, (p = Object.freeze([Object.freeze([one(AURA_VS), one(AURA_FS)])])));
   }
   return p;
 }
-/** AURA-STALL, AURA-SPLIT: every look's program - what the boot's idle starts (render/playPrograms.js), each built at its
- *  own door the first time its look is drawn (AuraRingRenderer programOf). */
 export const AURA_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze(AURA_KINDS.flatMap((k) => auraPrograms(k))));
 
 export class AuraRingRenderer {
   constructor(gl) {
     this.gl = gl;
-    /** AURA-SPLIT: each look's door (programOf), by its kind */
     this._looks = new Map();
-    this._frame = 0;   // AURA-SPLIT: the draws' count - a look's program is handed the draw's camera, clock and fog once a draw
+    this._frame = 0;
     this.quadVao = gl.createVertexArray();
     gl.bindVertexArray(this.quadVao);
     this.quadBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
@@ -2922,36 +2287,32 @@ export class AuraRingRenderer {
     this.flameBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.flameBuf);
     gl.bufferData(gl.ARRAY_BUFFER, auraFlameStrip(), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
-    this.glyphVao = gl.createVertexArray();   // AEGIS: the ward's floating symbols
+    this.glyphVao = gl.createVertexArray();
     gl.bindVertexArray(this.glyphVao);
     this.glyphBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.glyphBuf);
-    gl.bufferData(gl.ARRAY_BUFFER, auraGlyphCards(AURA_CARDS), gl.STATIC_DRAW);   // SHADOW-CLOAK: as many as the most any look floats
+    gl.bufferData(gl.ARRAY_BUFFER, auraGlyphCards(AURA_CARDS), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
-    this.cloakVao = gl.createVertexArray();   // SHADOW-CLOAK: the cloak's cloth
+    this.cloakVao = gl.createVertexArray();
     gl.bindVertexArray(this.cloakVao);
     this.cloakBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.cloakBuf);
     gl.bufferData(gl.ARRAY_BUFFER, auraCloakGrid(), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
-    this.wingsVao = gl.createVertexArray();   // SERAPH-WINGS: the wings' strands
+    this.wingsVao = gl.createVertexArray();
     gl.bindVertexArray(this.wingsVao);
     this.wingsBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.wingsBuf);
     gl.bufferData(gl.ARRAY_BUFFER, auraWingsGrid(), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
     this._vp = new Float32Array(16);
-    this._resLit = new Float32Array(RESONANCE_COLUMNS);   // CRYSTAL-FIST AUDIT: one list, refilled per wearer
-    this._warren = new Float32Array(WARREN_BUNNIES * 4);   // WIKIMAID: the rabbits, and their tracks - refilled per wearer
+    this._resLit = new Float32Array(RESONANCE_COLUMNS);
+    this._warren = new Float32Array(WARREN_BUNNIES * 4);
     this._warrenPrints = new Float32Array(WARREN_BUNNIES * WARREN_PRINTS * 2);
-    this._sage = new Float32Array(SAGE_CARDS * 4);   // NIRNROOT-SAGE: the smoke's puffs and the nirnroots - refilled per wearer
+    this._sage = new Float32Array(SAGE_CARDS * 4);
     this._sageLook = new Float32Array(SAGE_CARDS * 4);
-    /** how many auras the last draw burned, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /** AURA-SPLIT (#1143): THE LOOK'S PROGRAM - its own sources (auraPrograms) built at its door (render/glProgram.js
-   *  compiledPass) once the driver says they are compiled, started at the first ask where the boot's idle did not start them
-   *  (render/playPrograms.js): `{ prog, u, frame }`, or null while it compiles and for good once it would not build (told
-   *  once). `need` builds it now whatever the driver says (the probe's). @param {number} kind @param {boolean} [need] */
+  /** @param {number} kind @param {boolean} [need] */
   programOf(kind, need = false) {
     let door = this._looks.get(kind);
     if (!door) {
@@ -2968,14 +2329,11 @@ export class AuraRingRenderer {
     return door(need);
   }
 
-  /** AURA-SPLIT: the look a program draws (tests, stats) - its kind among the looks built so far, or null. Builds nothing. */
   kindOf(prog) {
     for (const [kind, door] of this._looks) if (door.settled && door()?.prog === prog) return kind;
     return null;
   }
 
-  /** AURA-SPLIT: a look's program bound - and handed the draw's camera, clock and fog the first time it is in this draw
-   *  (each draw its own: a frame that draws the auras under two cameras hands each its own). */
   _bind(P, eye, seconds, fog) {
     const gl = this.gl, U = P.u;
     gl.useProgram(P.prog);
@@ -2983,22 +2341,15 @@ export class AuraRingRenderer {
     P.frame = this._frame;
     gl.uniformMatrix4fv(U.uVP, false, this._vp);
     gl.uniform1f(U.uTime, auraClock(seconds));
-    gl.uniform1f(U.uGroundR, AURA_GROUND_R); gl.uniform1f(U.uLift, AURA_LIFT_M);   // AEGIS: the ring's radius and the wall's height per wearer, in draw
+    gl.uniform1f(U.uGroundR, AURA_GROUND_R); gl.uniform1f(U.uLift, AURA_LIFT_M);
     gl.uniform1i(U.uFogMode, fog ? fog.mode : 0);
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye);
     if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
   }
 
-  /**
-   * Draw the frame's auras - `list` `[{ at: [x, y, z] the wearer's feet in the scene, aura?, seed?, kindle? 0..1, yaw? }]`
-   * (already picked: auraWearers) - with the frame's camera, its clock (`seconds`) and its fog as the renderer set it
-   * ({ mode, density, range, camPos, focus }). Each in its own aura's look (AURA_LOOK - AEGIS); SHADOW-CLOAK: `yaw` the
-   * wearer's facing (forward (sin, cos) in x, z - 0 when not given), which the cloak's parting faces. Nothing to draw,
-   * nothing touched.
-   */
   draw(list, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
     if (!Array.isArray(list) || !list.length) return;
@@ -3008,18 +2359,15 @@ export class AuraRingRenderer {
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.depthMask(false);
     gl.disable(gl.CULL_FACE);
-    gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -4);   // the ground's fire over the stone it lies on
+    gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -4);
     const camAt = fog?.camPos ?? eye;
-    let bound = null;   // AURA-SPLIT: the look's program bound last
+    let bound = null;
     try {
-      // SHADOW-CLOAK (AUDIT): FARTHEST FIRST - the list comes nearest first (auraWearers), and a cloak's shadow is laid
-      // OVER what is behind it, so the nearer wearer's is laid last; the added looks are the same in any order
+      // Farthest first: the shadow of a cloak covers what is behind it, so the nearer wearer draws last.
       for (let i = list.length - 1; i >= 0; i--) {
         const w = list[i];
         if (!w || !Array.isArray(w.at)) continue;
-        const look = auraLookOf(w.aura);   // AEGIS: the fire or the ward, at its own radius and height
-        // AURA-SPLIT: in its look's own program - none while that compiles, and the wearer stands without the aura; bound
-        // again only where the look changes (the wearers stay farthest first)
+        const look = auraLookOf(w.aura);
         const P = this.programOf(look.kind);
         if (!P) continue;
         if (P !== bound) { this._bind(P, eye, seconds, fog); bound = P; }
@@ -3028,43 +2376,38 @@ export class AuraRingRenderer {
         gl.uniform1f(U.uSeed, Number.isFinite(w.seed) ? w.seed : 0);
         gl.uniform1f(U.uKindle, Math.max(0, Math.min(1, Number.isFinite(w.kindle) ? w.kindle : 1)));
         gl.uniform1f(U.uRingR, look.ringR); gl.uniform1f(U.uFlameH, look.flameH);
-        gl.uniform1f(U.uYaw, Number.isFinite(w.yaw) ? w.yaw : 0);   // SHADOW-CLOAK: the facing its opening is at
+        gl.uniform1f(U.uYaw, Number.isFinite(w.yaw) ? w.yaw : 0);
         const torn = Number.isFinite(w.torn) ? w.torn : -1;
-        gl.uniform1f(U.uTorn, torn);   // SHADOW-CLOAK: turned beast, the cloak torn (auraBeastStep)
-        const sw = w.swing, pose = w.cape ?? CLOAK_REST_POSE;   // SHADOW-CLOAK: its swing (auraMotionStep) and the body's pose it hangs from (auraCapePose)
+        gl.uniform1f(U.uTorn, torn);
+        const sw = w.swing, pose = w.cape ?? CLOAK_REST_POSE;
         gl.uniform4f(U.uSwing, sw?.x || 0, sw?.z || 0, sw?.lift || 0, sw?.twist || 0);
         gl.uniform4fv(U.uCapeS, pose.shoulders); gl.uniform4fv(U.uCapeH, pose.head);
         gl.uniform3fv(U.uKneeL, pose.kneeL); gl.uniform3fv(U.uKneeR, pose.kneeR);
-        const torso = pose.torso ?? CLOAK_REST_POSE.torso;   // SERAPH-WINGS: the back the wings grow from
+        const torso = pose.torso ?? CLOAK_REST_POSE.torso;
         gl.uniform3f(U.uTorsoU, torso[0], torso[1], torso[2]); gl.uniform3f(U.uTorsoF, torso[3], torso[4], torso[5]);
-        gl.uniform1f(U.uWingBack, Number.isFinite(pose.wingBack) ? pose.wingBack : 0);   // WINGS-FIT: a sprite's wings rooted further back
-        // CRYSTAL-FIST AUDIT: the resonance's counts, node's law on the wearer's own clock - the GPU lights exactly these
+        gl.uniform1f(U.uWingBack, Number.isFinite(pose.wingBack) ? pose.wingBack : 0);
         if (look === AURA_LOOK.resonance) gl.uniform1fv(U.uResLit, resonanceLitInto(this._resLit, resonanceClock(seconds, w.seed), Math.max(0, Math.min(1, Number.isFinite(w.kindle) ? w.kindle : 1))));
-        // WIKIMAID: the rabbits and their tracks, node's law on the wearer's own clock - the rabbits farthest first
         if (look === AURA_LOOK.lilacwarren) {
           const t = warrenClock(seconds, w.seed);
           gl.uniform4fv(U.uWarren, warrenDepthOrder(warrenBunniesInto(this._warren, t, Math.max(0, Math.min(1, Number.isFinite(w.kindle) ? w.kindle : 1))), w.at, camAt));
           gl.uniform2fv(U.uWarrenPrint, warrenPrintsInto(this._warrenPrints, t));
         }
-        // NIRNROOT-SAGE: the smoke's puffs and the nirnroots, node's law on the wearer's own clock - farthest first
         if (look === AURA_LOOK.sagesmoke) {
           sageCardsInto(this._sage, this._sageLook, sageClock(seconds, w.seed), Math.max(0, Math.min(1, Number.isFinite(w.kindle) ? w.kindle : 1)), w.at, camAt);
           gl.uniform4fv(U.uSage, this._sage); gl.uniform4fv(U.uSageLook, this._sageLook);
         }
-        // SHADOW-CLOAK: a look that SHADES is drawn premultiplied - its light added, what is behind it covered by its
-        // alpha - and every other look as it always was, its light added whole
         if (look.shade) gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.uniform1i(U.uKind, 0);
         gl.bindVertexArray(this.quadVao);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        if (look.mesh === 'cloak') this._drawCloak(w, look, torn, camAt, U);   // SHADOW-CLOAK: the cloak's cloth, not the strip
+        if (look.mesh === 'cloak') this._drawCloak(w, look, torn, camAt, U);
         else {
-          const wings = look.mesh === 'wings', closed = wings && pose.sunk === true;   // SERAPH-WINGS: the strands, not the strip - and, as the cloak's, none of it with the ground's depth offset; AUDIT 3: closed on a body sunk to its neck
+          const wings = look.mesh === 'wings', closed = wings && pose.sunk === true;
           if (wings) gl.disable(gl.POLYGON_OFFSET_FILL);
           gl.uniform1i(U.uKind, 1);
           gl.bindVertexArray(wings ? this.wingsVao : this.flameVao);
           if (!closed) gl.drawArrays(gl.TRIANGLES, 0, wings ? WING_VERTS : AURA_STEPS * 6);
-          if (look.glyphs && !closed) {   // AEGIS: the ward's floating symbols, a third draw; SERAPH-WINGS: the wings' motes
+          if (look.glyphs && !closed) {
             gl.uniform1i(U.uKind, 2);
             gl.bindVertexArray(this.glyphVao);
             gl.drawArrays(gl.TRIANGLES, 0, look.glyphs * 6);
@@ -3074,7 +2417,7 @@ export class AuraRingRenderer {
         if (look.shade) gl.blendFunc(gl.ONE, gl.ONE);
         this.drawn++;
       }
-    } finally {   // SHADOW-CLOAK (AUDIT): the frame's state handed back whatever a wearer did mid-pass
+    } finally {
       gl.bindVertexArray(null);
       gl.cullFace(gl.BACK);
       gl.disable(gl.POLYGON_OFFSET_FILL);
@@ -3085,26 +2428,20 @@ export class AuraRingRenderer {
     }
   }
 
-  /** SHADOW-CLOAK: THE CLOAK'S CLOTH AND ITS CARDS, after its ground - `eye` the frame's camera. The cloth's two sides are
-   *  two draws of its mesh, its lining (`uSide` 0, the faces turned from the eye - front faces culled) and then its
-   *  outside (1, back faces culled), so the bent mesh's own winding names each side (the frame's front face is the
-   *  game's: world/mat4.js HANDEDNESS mirrors the projection and the renderer winds CW). None of it while torn through,
-   *  folded on a rider, or with the eye inside its hood (CLOAK_INSIDE_M - its fragments answer nothing there). Its cards:
-   *  the emblems before the cloth when the eye is in front of the wearer (they rise behind them), after it otherwise;
-   *  torn, the shreds after it always (they burst out every way) - the shreds alone once through. None of it with the
-   *  ground's depth offset, which is the ground's (AUDIT 2: a body before the cloth stays before it). */
+  // The lining draws first with front faces culled, then the outside with back faces culled, so the mesh winding
+  // names each side.
   _drawCloak(w, look, torn, eye, U) {
     const gl = this.gl;
-    const folded = w.mounted === true || w.cape?.sunk === true;   // AUDIT 3: and on a body sunk to its neck (auraSpriteBones)
+    const folded = w.mounted === true || w.cape?.sunk === true;
     const dx = eye[0] - w.at[0], dz = eye[2] - w.at[2], yaw = Number.isFinite(w.yaw) ? w.yaw : 0, hd = (w.cape ?? CLOAK_REST_POSE).head, c = Math.cos(yaw), sn = Math.sin(yaw);
     const front = dx * sn + dz * c > 0, emblemsFirst = !folded && front && torn < CLOAK_RIP_S;
-    gl.disable(gl.POLYGON_OFFSET_FILL);   // the ground's offset is the ground's
+    gl.disable(gl.POLYGON_OFFSET_FILL);
     if (emblemsFirst) { gl.uniform1i(U.uKind, 2); gl.bindVertexArray(this.glyphVao); gl.drawArrays(gl.TRIANGLES, 0, look.glyphs * 6); }
-    if (torn < CLOAK_RIP_S && !folded && Math.hypot(dx - c * hd[0] - sn * hd[2], eye[1] - w.at[1] - hd[1], dz + sn * hd[0] - c * hd[2]) >= CLOAK_INSIDE_M) {   // the eye inside the hood (the wearer's own first person) - by the hood's own middle, so a camera over or beside them never is (AUDIT 2)
+    if (torn < CLOAK_RIP_S && !folded && Math.hypot(dx - c * hd[0] - sn * hd[2], eye[1] - w.at[1] - hd[1], dz + sn * hd[0] - c * hd[2]) >= CLOAK_INSIDE_M) {
       gl.uniform1i(U.uKind, 1);
       gl.bindVertexArray(this.cloakVao);
       gl.enable(gl.CULL_FACE);
-      for (let side = 0; side < 2; side++) { gl.uniform1i(U.uSide, side); gl.cullFace(side === 0 ? gl.FRONT : gl.BACK); gl.drawArrays(gl.TRIANGLES, 0, CLOAK_ROUND * CLOAK_ROWS * 6); }   // its lining, then its outside over it
+      for (let side = 0; side < 2; side++) { gl.uniform1i(U.uSide, side); gl.cullFace(side === 0 ? gl.FRONT : gl.BACK); gl.drawArrays(gl.TRIANGLES, 0, CLOAK_ROUND * CLOAK_ROWS * 6); }
       gl.disable(gl.CULL_FACE);
       gl.cullFace(gl.BACK);
     }

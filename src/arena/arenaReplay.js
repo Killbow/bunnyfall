@@ -1,52 +1,18 @@
 // @ts-check
-// ARENA5 (2026-10-03): YOUR LADDER REPLAY - bible/11-Multiplayer/Arena.md "2. The fights", the table's Spectate row:
-// offline, "exhibitions, your ladder replay". The last REPLAY_KEEP ladder bouts this save fought, recorded small into the
-// save's arena record (systems/save/save.js `arena.replays`), and one of them played back on the floor's instance as a watched
-// bout. Pure: a recording grown by the bout driver (scenes/arena/arenaBouts.js, beside its own law), a record out, a record in,
-// and the words that play it back.
-//
-// WHAT IS KEPT, AND HOW SMALL. At REPLAY_HZ (ten a second): each fighter's feet on the sand (from the floor's centre, a
-// tenth of a metre a step) and its facing (a 256th of a turn), each as the change since the last tick - one signed byte
-// apiece, the quantizer closed on its own output so it never drifts - one fighter's ticks after another's, so a fighter
-// standing still is two bytes a run (a zero marker and its length, to 127 ticks); then base64. Beside it, sparse: each
-// fighter's health share (a 255th)
-// when it moves, each strike's moment and striker, and THE BOUT LAW'S OWN EVENTS (systems/arena/arenaBout.js - the call, the
-// criers, the count, every blow, the end, the verdict, the healers) with their times to a hundredth of a second. Bounded:
-// at most REPLAY_MAX_TICKS (four minutes - the law's three of fighting and its ceremony), four fighters, so a Grand
-// Melee's worst is under REPLAY_BYTES_MAX; measured in test/systems/arena/arena5_replay.test.js. Versioned inside its own shape (`v`);
-// a save from before ARENA5 - or a record of any other shape - reads back with none.
-//
-// HOW IT PLAYS. Not a second driver: the relay's bout mirror (scenes/arena/arenaBouts.js startRelay / relayWord over
-// net/arena/arenaLink.js) already stands puppets, the HUD, the crowd, the Herald and the music from a stream of words. A replay
-// IS such a stream (`replayFeed`): every fighter a puppet of the relay's own kind (`ai` 1 - the player too, as the class
-// enemy of their own career), its walk the `mv` words between two ticks, its blows `atk`, the health bars `hp`, the law's
-// events `ev`, all on this screen's clock from the moment it starts. Watched from the stands (`me` '' - nothing of it
-// pays, counts, or holds a gate), and left at any time by the floor's gates.
-//
-// Not a DFU member (Daggerfall has no arena). Ledger A (ARENA).
 
 import { MOBILE_TYPES } from '../characters/mobileTypes.js';
 
-/** The replay record's version. */
 export const REPLAY_VERSION = 1;
-/** How many ladder bouts are kept (the newest first). */
 export const REPLAY_KEEP = 3;
-/** Ticks a second, and a tick's length, ms. */
 export const REPLAY_HZ = 10;
 export const REPLAY_TICK_MS = 1000 / REPLAY_HZ;
-/** The longest a recording runs, ticks: four minutes (the law's three of fight, its call and walk before, its verdict
- *  and healers after) - past it the bout is kept to there. */
 export const REPLAY_MAX_TICKS = 4 * 60 * REPLAY_HZ;
-/** The most fighters a record holds (a Grand Melee's player and three). */
 export const REPLAY_FIGHTERS_MAX = 4;
-/** A step of the feet, metres; a step of the facing, of a whole turn (1/256). */
 export const REPLAY_POS_Q = 0.1;
 export const REPLAY_YAW_STEPS = 256;
-/** A whole record serialized is never longer than this (its worst: four fighters moving every tick for four minutes). */
 export const REPLAY_BYTES_MAX = 64 * 1024;
-/** The law's events a record keeps, by index (systems/arena/arenaBout.js's own names). */
 export const REPLAY_EVENTS = Object.freeze(['call', 'crier', 'walk', 'count', 'fight', 'hit', 'crit', 'miss', 'knockdown', 'comeback', 'stall', 'flee', 'yield', 'fall', 'ringout', 'timeout', 'end', 'verdict', 'heal', 'done']);
-/** The RLE marker in the delta stream (no delta is ever -128: they are clamped to -127..127). */
+// Deltas clamp to -127..127, so -128 never occurs as a delta and marks a run of still ticks.
 const RUN = -128;
 
 const clampI = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
@@ -54,19 +20,11 @@ const qPos = (m) => clampI(m / REPLAY_POS_Q, -32000, 32000);
 const qYaw = (rad) => ((Math.round(((Number(rad) || 0) / (Math.PI * 2)) * REPLAY_YAW_STEPS) % REPLAY_YAW_STEPS) + REPLAY_YAW_STEPS) % REPLAY_YAW_STEPS;
 const share255 = (hp, max) => clampI((Math.max(0, Number(hp) || 0) / Math.max(1, Number(max) || 1)) * 255, 0, 255);
 
-/** The class enemy a player is stood as in their own replay (MOBILE_TYPES' careers, 128..145, by the career's name), the
- *  Warrior for a career of their own making. Pure. */
 export function playerMobileOf(entity) {
   const m = MOBILE_TYPES[entity?.career?.name ?? ''];
   return Number.isInteger(m) && m >= 128 && m <= 145 ? m : MOBILE_TYPES.Warrior;
 }
 
-/**
- * A RECORDING BEGUN at the bout's first bell (`t0` this screen's clock): its fighters in the law's order (`[{ id, name,
- * side, mobile, gender, home, epithet, health, maxHealth }]`, at most REPLAY_FIGHTERS_MAX), the ladder bout it is (`next`
- * - nextLadderBout's tier, bout, label, champion, grand, free, beasts, tierName), the banners its two halves wore
- * (`sides` `[west, east]`), and the game minute (`at`) - the Records page's row it belongs to. Pure.
- */
 export function newRecording({ t0 = 0, fighters = [], next = null, sides = [null, null], at = 0 } = {}) {
   const f = fighters.slice(0, REPLAY_FIGHTERS_MAX);
   return {
@@ -78,16 +36,10 @@ export function newRecording({ t0 = 0, fighters = [], next = null, sides = [null
   };
 }
 
-/** Flush fighter `i`'s run of standing ticks into its stream. */
 function flushRun(R, i) {
   while (R.zeros[i] > 0) { const n = Math.min(127, R.zeros[i]); R.deltas[i].push(RUN, n); R.zeros[i] -= n; }
 }
 
-/**
- * THE TICKS DUE at `t`: each fighter's pose (`poses[i]` `[x, z, yaw]` - feet from the floor's centre, metres, and facing,
- * radians; null keeps its last) and health (`health[i]` `[hp, max]`, or null) - one sample a tick passed since the last
- * call (a long frame's missed ticks carry the same pose). Stops at REPLAY_MAX_TICKS (`full`). Pure but for `R`.
- */
 export function recordTick(R, t, poses, health = []) {
   if (!R || R.full) return R;
   const due = Math.floor((t - R.t0) / REPLAY_TICK_MS);
@@ -105,7 +57,8 @@ export function recordTick(R, t, poses, health = []) {
         const dx = clampI(q[i][0] - L[0], -127, 127), dz = clampI(q[i][1] - L[1], -127, 127);
         let dy = ((q[i][2] - L[2] + 128) & 255) - 128;
         if (dy < -127) dy = -127;
-        L[0] += dx; L[1] += dz; L[2] = (L[2] + dy + 256) & 255;   // closed on its own output: never a drift
+        // The last pose advances by the clamped delta, so the decoded poses never drift from the recorded ones.
+        L[0] += dx; L[1] += dz; L[2] = (L[2] + dy + 256) & 255;
         if (dx === 0 && dz === 0 && dy === 0) { R.zeros[i]++; continue; }
         flushRun(R, i);
         R.deltas[i].push(dx, dz, dy);
@@ -122,7 +75,6 @@ export function recordTick(R, t, poses, health = []) {
   return R;
 }
 
-/** A STRIKE begun by fighter `id` at `t` (the player's swing, a fighter's blow resolved) - one a fighter in 300 ms. */
 export function recordStrike(R, t, id) {
   if (!R || R.full) return R;
   const i = R.ids.indexOf(id);
@@ -132,8 +84,6 @@ export function recordStrike(R, t, id) {
   return R;
 }
 
-/** One of THE LAW'S EVENTS (systems/arena/arenaBout.js takeBoutEvents) at its time: kept as `[t/10ms, kind, a, b, dmg, n,
- *  side, how]`, its fighters by their place in the record, the trailing fields it does not carry left off. */
 export function recordEvent(R, e) {
   if (!R || !e || R.full) return R;
   const k = REPLAY_EVENTS.indexOf(e.k);
@@ -145,9 +95,7 @@ export function recordEvent(R, e) {
   return R;
 }
 
-// ── THE RECORD ───────────────────────────────────────────────────────────────────────────────────────────────
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-/** Bytes to base64 (no padding needed back: the length is the record's own). Pure. */
 export function toBase64(bytes) {
   let s = '';
   for (let i = 0; i < bytes.length; i += 3) {
@@ -156,7 +104,6 @@ export function toBase64(bytes) {
   }
   return s;
 }
-/** Base64 to bytes, or null for a string that is not. Pure. */
 export function fromBase64(s) {
   if (typeof s !== 'string' || s.length % 4) return null;
   const out = [];
@@ -171,11 +118,9 @@ export function fromBase64(s) {
   return Uint8Array.from(out);
 }
 
-/** THE RECORD a finished recording keeps (`result` the law's `{ side, how }`): small, plain, versioned. Pure. */
 export function finishRecording(R, result = null) {
   if (!R?.start) return null;
   R.f.forEach((_, i) => flushRun(R, i));
-  // one fighter's ticks after another's (a fighter standing still is one run however long), each its own stream
   return {
     v: REPLAY_VERSION, at: R.at, next: R.next, f: R.f.map((x) => ({ ...x })), sides: [...R.sides], n: R.ticks,
     s: R.start.flat(), d: toBase64(Uint8Array.from(R.deltas.flat(), (x) => x & 255)), hp0: [...R.hp0], hp: [...R.hpLog], k: [...R.k], ev: R.ev.map((r) => [...r]),
@@ -183,8 +128,6 @@ export function finishRecording(R, result = null) {
   };
 }
 
-/** Every fighter's pose at every tick, decoded: `[tick][fighter] = [qx, qz, qyaw]`, or null for a stream that does not
- *  hold exactly `n` ticks of `f` fighters. Pure. */
 export function decodePoses(rec) {
   const nf = rec?.f?.length ?? 0, n = rec?.n ?? 0;
   const bytes = fromBase64(rec?.d);
@@ -192,7 +135,6 @@ export function decodePoses(rec) {
   const out = Array.from({ length: Math.max(1, n) }, () => []);
   const sb = (b) => (b > 127 ? b - 256 : b);
   let p = 0;
-  // fighter-major: each fighter's n - 1 ticks of deltas (or runs) after the one before's
   for (let i = 0; i < nf; i++) {
     let L = [rec.s[i * 3], rec.s[i * 3 + 1], rec.s[i * 3 + 2]], run = 0;
     out[0].push([...L]);
@@ -211,7 +153,6 @@ export function decodePoses(rec) {
 
 const isInt = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
 const isStr = (v, max) => typeof v === 'string' && v.length <= max;
-/** A replay record read back as it was written, or null for any other shape. Pure. */
 export function replayOk(r) {
   if (!r || typeof r !== 'object' || r.v !== REPLAY_VERSION) return null;
   if (!Array.isArray(r.f) || r.f.length < 1 || r.f.length > REPLAY_FIGHTERS_MAX) return null;
@@ -225,23 +166,14 @@ export function replayOk(r) {
   if (!isStr(r.d, REPLAY_BYTES_MAX) || !decodePoses(r)) return null;
   return r;
 }
-/** THE SAVE'S REPLAYS read back: every record of the right shape, the newest first, REPLAY_KEEP at most; anything else
- *  (a save from before ARENA5, a broken one) none. Pure. */
 export function arenaReplaysRestore(raw) {
   return (Array.isArray(raw) ? raw : []).map(replayOk).filter(Boolean).slice(0, REPLAY_KEEP);
 }
-/** The replays as the save writes them (copies). Pure. */
 export const arenaReplaysSnapshot = (list) => arenaReplaysRestore(list).map((r) => JSON.parse(JSON.stringify(r)));
-/** A new replay kept: first, the oldest past REPLAY_KEEP let go. Pure. */
 export const keepReplay = (list, rec) => (replayOk(rec) ? [rec, ...arenaReplaysRestore(list)].slice(0, REPLAY_KEEP) : arenaReplaysRestore(list));
-/** A record's size as the save holds it, bytes. Pure. */
 export const replayBytes = (rec) => JSON.stringify(rec ?? null).length;
 
-// ── PLAYING IT BACK ──────────────────────────────────────────────────────────────────────────────────────────
-/** The fighter id a record's fighter `i` wears on the mirror: the relay's own AI ids (net/arena/arenaLaw.js `a0`..`a3`), so each
- *  stands as a puppet of its walk. */
 export const replayId = (i) => `a${i}`;
-/** A 16-hex bout id for a record - the mirror's `o`, the seed its seats are picked by. Pure. */
 export function replayBoutId(rec) {
   let h = 0x811c9dc5;
   const s = `${rec?.at ?? 0}:${rec?.next?.tier ?? 0}:${rec?.next?.bout ?? 0}:${rec?.n ?? 0}`;
@@ -250,13 +182,8 @@ export function replayBoutId(rec) {
 }
 
 /**
- * THE WORDS THAT PLAY A RECORD (scenes/arena/arenaBouts.js relayWord's own), on this screen's clock from `t0`, about the floor
- * centre `centre` (`[x, y, z]` - the instance's): `{ first, st, due(t), yawAt(i, t), end }` - `first` the fighters' places
- * before the state (each puppet stood where the bout began), `st` the bout's state at its first bell, `due(t)` every word
- * whose moment has come since the last call (in order: the walks, the blows, the health, the law's events - the call
- * handed back as `{ k: 'call' }`, the host's to say), `yawAt` a fighter's recorded facing then, `end` the record's last
- * moment, ms. Null for a record that does not decode. Pure but for its cursor.
- * @param {any} rec @param {{ t0: number, centre: number[], o?: string, limitMs?: number }} o
+ * @param {any} rec
+ * @param {{ t0: number, centre: number[], o?: string, limitMs?: number }} o
  */
 export function replayFeed(rec, { t0, centre, o = replayBoutId(rec), limitMs = 180_000 }) {
   const poses = replayOk(rec) ? decodePoses(rec) : null;
@@ -305,7 +232,8 @@ export function replayFeed(rec, { t0, centre, o = replayBoutId(rec), limitMs = 1
     if (e[7]) ev.how = e[7];
     words.push({ t: tm, w: { k: 'ev', e: [ev] } });
   }
-  words.sort((a, b) => a.t - b.t);   // stable: a tick's walks, then its blows, its health and its events, as pushed
+  // The sort is stable: words at one moment keep their push order of walks, health, blows, then events.
+  words.sort((a, b) => a.t - b.t);
   const first = poses[0].map((p, i) => ({ k: 'mv', i: replayId(i), x: X(p[0]), z: Z(p[1]), tx: X(p[0]), tz: Z(p[1]), v: 0, at: t0 }));
   const st = {
     k: 'st', o, kind: 'pve', ph: 'call', pa: t0, fa: null, lim: limitMs, me: '', sp: 0,

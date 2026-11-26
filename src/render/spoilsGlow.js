@@ -1,57 +1,30 @@
 // @ts-check
-// WB5 (2026-09-25, Mac: "On death the boss would physically spew out per player loot and bounce (sort of how dropping a
-// torch works) and have a sort of rarity glow attached to it"): THE SPOILS' GLOW - the first place in the port a rarity
-// is drawn in the world. Design: bible/11-Multiplayer/World-Bosses.md section 7 ("The glow").
-//
-// WBX3 (2026-09-26, Mac: "Loot drops should show their sprite and have a small colored loot line that extrudes from the
-// sprite itself"): A LINE, NOT A BEAM. WB5 stood each piece in a wide beam over a halo on the floor - a column 0.64 m
-// across and up to 8 m tall, which read as a light standing beside the piece rather than as the piece itself, and hid
-// what it marked. Now each resting piece sends a THIN LINE of its tier's colour straight up out of the top of its own
-// sprite (scenes/spoilsPool.js hands the line's root, the sprite's crown): brightest where it leaves the sprite,
-// thinning to nothing at its tip, a soft glint climbing it. Small by intent, taller by tier - a Legendary is seen across
-// the court, a Magic a few paces off - and never thinner on the screen than SPOILS_LINE_MIN_RAD of the eye's view, so a
-// piece across the floor still shows its line.
-//
-// The duel wall's law (render/duelWall.js): fixed geometry placed by uniforms, ADDED onto the frame (ONE, ONE) so it only
-// ever brightens what stands behind it, no depth written, tested against the depth the world wrote (the sprite itself and
-// the floor hide what stands behind them), fogged, and every rate a whole number of cycles over the wrapped clock. One
-// quad a piece, turned about the upright to face the eye. The colours are Loot Rarity's own (systems/loot/lootRarity.js
-// RARITIES), display-encoded.
-//
-// Not a DFU member. Ledger A (WB).
+// Loot rarity line pass. Each resting piece sends a thin line in its tier color up from its sprite, added onto the
+// frame (ONE, ONE). Every rate is a whole number of cycles over the duel clock's wrap.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { duelClock } from './duelWall.js';
 import { RARITIES } from '../items/lootRarity.js';
 
-/** The most pieces one frame draws (three pieces, a Regalia piece when one drops, the gold and the Sigil Stone - and
- *  room for more). */
 export const SPOILS_GLOW_MAX = 8;
-/** WBX3: how tall the line stands out of the sprite, by tier (metres), and how wide it is. SET6: the Aetheric's between
- *  the Legendary's and the Artifact's, as its rung is; GILDED1: the Gilded's the tallest, at the line's own cap. */
 export const SPOILS_LINE_H = Object.freeze({ common: 0.7, magic: 1.0, rare: 1.4, legendary: 1.9, aetheric: 2.1, artifact: 2.3, gilded: 2.5 });
 export const SPOILS_LINE_W = 0.07;
-/** The narrowest the line may stand on the screen, as an angle of the eye's view (radians): about two pixels of a
- *  1080-line screen at the port's field of view - a piece across the court keeps a line the eye can find. */
+// About two pixels of a 1080-line screen, so a piece across the court still shows its line.
 export const SPOILS_LINE_MIN_RAD = 0.0022;
-/** The climbing glint's and the Legendary pulse's rates, cycles a second (whole over duelWall.js DUEL_CLOCK_PERIOD). */
 export const SPOILS_CLIMB_HZ = 1;
 export const SPOILS_PULSE_HZ = 1;
 
-/** A tier's colour as the pass draws it: Loot Rarity's own hex, as display-encoded floats. */
 export function tierColour(tier) {
   const hex = (RARITIES[tier] ?? RARITIES.common).colour;
   const n = parseInt(hex.slice(1), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-/** The line's height for a tier (an unknown tier stands as Common's). */
 export const lineHeight = (tier) => SPOILS_LINE_H[RARITIES[tier] ? tier : 'common'] ?? SPOILS_LINE_H.common;
 
 const HEAD = `#version 300 es
 precision highp float;
 `;
-/** One quad a piece: x across the line (-1..1), y up it (0 at the sprite's crown, 1 at the tip). */
 export const SPOILS_GLOW_VS = HEAD + `layout(location = 0) in vec2 aP;
 uniform mat4 uVP;
 uniform vec3 uRoot;      // where the line leaves the sprite: its crown
@@ -96,7 +69,6 @@ void main() {
   o = vec4(uColor * light * pulse * uAlpha * fogFactorAt(vWorld), 1.0);
 }`;
 
-/** The line's quad: x across (-1, 1), y up (0, 1). Pure. */
 export function spoilsLineVertices() {
   return new Float32Array([-1, 0, 1, 0, 1, 1, -1, 0, 1, 1, -1, 1]);
 }
@@ -111,7 +83,7 @@ function mat4Multiply(out, a, b) {
 }
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
-const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
+const NO_HAZE = new Float32Array(8);
 
 export class SpoilsGlowRenderer {
   constructor(gl) {
@@ -131,15 +103,9 @@ export class SpoilsGlowRenderer {
     gl.bindVertexArray(null);
     this.vao = vao;
     this._vp = new Float32Array(16);
-    /** the pieces the last draw lit, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /**
-   * Draw the lines: `lines` [{ root: [x, y, z] the sprite's crown in the scene, tier, alpha }] (at most SPOILS_GLOW_MAX,
-   * the faded skipped), `eye` the camera, `seconds` any clock (wrapped here), `fog` the frame's fog as the renderer set
-   * it. Nothing to draw, nothing touched.
-   */
   draw(lines, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
     const list = (Array.isArray(lines) ? lines : []).filter((g) => g && Array.isArray(g.root) && g.root.length === 3 && g.root.every(Number.isFinite) && g.alpha > 0.001).slice(0, SPOILS_GLOW_MAX);
@@ -157,7 +123,7 @@ export class SpoilsGlowRenderer {
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? at);
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.depthMask(false);
@@ -165,7 +131,6 @@ export class SpoilsGlowRenderer {
     for (const g of list) {
       const tier = RARITIES[g.tier] ? g.tier : 'common';
       gl.uniform3f(U.uRoot, g.root[0], g.root[1], g.root[2]);
-      // WILD1: a line may wear its own colour, height and pulse (scenes/lootLines.js `mark` - my remains in the open zone)
       gl.uniform1f(U.uHeight, Number.isFinite(g.h) ? g.h : lineHeight(tier));
       gl.uniform3fv(U.uColor, Array.isArray(g.colour) && g.colour.length === 3 ? g.colour : tierColour(tier));
       gl.uniform1f(U.uAlpha, Math.min(1, g.alpha));

@@ -1,23 +1,8 @@
 // @ts-check
-// EG-G2 (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section 11.2 - the Mist Stair's
-// signature - and layer three's "the mist is not drawn"): THE MIST, DRAWN - a Mist Stair's and the Sinking Stair's mist
-// surge as a sheet of drifting mist at the surge's line (net/eliteGates/egFragLaw.js egMistAt), hiding the depth below it for its 3 s.
-//
-// It never hides footing (section 11.2): its top stops EG_MIST.below under the landing it serves (world/eliteGates/egLook.js
-// egMistSheets - "it stops 0.3 m below any landing within one jump"), it is depth-tested against the platforms standing
-// out of it, and the edge lines and the telegraphs draw after it (section 25.6 - scenes/eliteGates/egLookDraw.js). One quad a sheet,
-// its texture value noise drifting on the shared clock, posterized through the ordered dither (the Hour's pixel law),
-// fogged as the world is, premultiplied over what lies under it. Sight only - nothing here is judged.
-// EG-LOOK (2026-10-15, Elite-Gates-Look.md section 5): and THE CAIRN'S MIST under every rim (render/eliteGates/egMotes.js
-// egRimMists) - the same sheet, held still at its own height; a sheet that says `round` fades to the circle inside its
-// box (under a disc), any other to its box's edges as before.
-//
-// A foreign pass: it owns its program and its state; the host marks it. Not a DFU member. Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
 import { FOG_FACTOR_GLSL } from '../labGrass.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from '../orderedDither.js';
 
-/** The most sheets one frame draws (a hall's mists). */
 export const EG_MIST_MAX = 8;
 
 export const EG_MIST_VS = `#version 300 es
@@ -60,11 +45,8 @@ void main() {
   o = vec4(c * a, a);
 }`;
 
-/** FIRST-USE (#1144): the pass's one program, as its constructor builds it - what the hall's load starts and the
- *  look's door waits on (render/glProgram.js startPrograms, compiledPass). */
 export const EG_MIST_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[EG_MIST_VS, EG_MIST_FS]]));
 
-/** The pass. */
 export class EgMistPass {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -83,10 +65,6 @@ export class EgMistPass {
     this._vp = new Float32Array(16);
     this.drawn = 0;
   }
-  /**
-   * Draw `sheets` ([{ rect: [x0, z0, x1, z1], y, alpha, round? }] in the scene's frame - scenes/eliteGates/egLookDraw.js) in `color`
-   * (linear), `seconds` the shared clock. Answers whether any drew.
-   */
   draw(proj, view, eye, sheets, color, seconds, fog = null, steps = 10) {
     this.drawn = 0;
     if (!sheets?.length) return false;
@@ -104,7 +82,7 @@ export class EgMistPass {
     gl.bindVertexArray(this.vao);
     gl.enable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.CULL_FACE);
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
-    for (let k = 0, n = Math.min(sheets.length, EG_MIST_MAX); k < n; k++) {   // AUDIT EG V (L6-4): read in place, never sliced a frame
+    for (let k = 0, n = Math.min(sheets.length, EG_MIST_MAX); k < n; k++) {
       const s = sheets[k];
       if (!(s.alpha > 0)) continue;
       gl.uniform4f(U.uRect, s.rect[0], s.rect[1], s.rect[2], s.rect[3]);

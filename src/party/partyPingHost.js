@@ -1,7 +1,4 @@
 // @ts-check
-// PARTY-PING: the look's point for the party, and the floor route to it.
-// The world host wires this (scenes/world.js) and does not grow a second
-// copy into the dungeon or the interior. Not a DFU member.
 import { findPath } from '../ai/navmesh.js';
 import { NavClient } from '../ai/navClient.js';
 import { isActionDoorObject } from '../world/actionSystem.js';
@@ -13,8 +10,7 @@ import {
   aimPoint, placeOk, pingPlace, fadeAlpha, settleAim, pingGround, groundRoute, markUnderLook, buildingStop,
 } from './partyPing.js';
 
-/** Unlocked action doors, left out of the soup the way the dungeon's bake leaves them
- *  (dungeonContext.js's own exclude: a door a walker opens is not a wall). */
+/** Unlocked action doors leave the soup, matching the dungeon navmesh bake in dungeonContext.js. */
 function openDoors(actions) {
   const out = new Set();
   const objs = actions?.objects;
@@ -28,7 +24,6 @@ const dist2 = (a, b) => {
   return dx * dx + dy * dy + dz * dz;
 };
 
-/** A knee-height step hits a mesh before it arrives: a building, a rock, a wall. The ground is not a mesh. */
 function kneeClear(col, a, b) {
   if (!col?.raycastHit) return true;
   const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
@@ -118,7 +113,6 @@ export function createPartyPingHost(deps) {
     if (pg && now > pgUntil) { pg = null; unsent = false; }
   };
 
-  /** A mark fades out. The one being followed is let go with it. */
   const fadeMark = (m, now) => {
     const dead = now + PING_OUT_MS;
     m.hold = false;
@@ -127,14 +121,13 @@ export function createPartyPingHost(deps) {
     if (follow === m) { follow = null; if (ribbon) present(null, pathColor, now, now, null); }
   };
 
-  /** My own showing ping gives way. A mate's mark, and the one I follow, stay. */
   const retireMine = (now) => {
     for (const m of marks) if (m.mine && m.hold) fadeMark(m, now);
   };
 
   const shown = (m, place) => !!place && !!m && (m.k === place.k || (place.space === 'world' && m.space === 'world'));
 
-  /** An outdoor point is kept in world metres, so a shift of the scene origin leaves it where it was named. */
+  /** An outdoor point is stored in world meters, so a shift of the scene origin leaves it where it was named. */
   const placeAt = (m) => {
     if (m.space !== 'world' || !m.wire) return;
     const at = deps.fromWire(m.wire, 'world');
@@ -214,7 +207,6 @@ export function createPartyPingHost(deps) {
     present(path, pathColor, now, goal.pathUntil, goal);
   };
 
-  /** A look: follow a mate's mark under it, or name a point of my own. */
   const cast = ({ eye, dir, reach = undefined }) => {
     const now = deps.now();
     const place = deps.place();
@@ -276,7 +268,6 @@ export function createPartyPingHost(deps) {
   };
 
   return {
-    /** One frame. `eye` and `dir` are the look the picture is drawn along. */
     frame({ eye, dir }) {
       const now = deps.now();
       const place = deps.place();
@@ -289,9 +280,8 @@ export function createPartyPingHost(deps) {
       if (deps.pressed()) cast({ eye, dir });
       if (place) retarget(now, deps.feet(), place);
     },
-    /** A look from a view that already swallowed the button (the travel map). */
     cast,
-    /** A party mate's pose. The same stamp twice is one ping. */
+    /** The same pose stamp twice counts as one ping. */
     hear(acct, p) {
       const g = p?.pg;
       if (!g || !placeOk(g.k) || !Number.isFinite(g.at)) return;
@@ -314,14 +304,12 @@ export function createPartyPingHost(deps) {
       });
       deps.sound();
     },
-    /** The pose's `pg`, while the route is still worth saying. */
     poseField() {
       expire(deps.now());
       return pg ? { pg } : {};
     },
     unsent() { return unsent && !!pg; },
     sent() { unsent = false; },
-    /** The marks still on screen, for the test. */
     points() {
       const now = deps.now();
       const out = [];
@@ -332,9 +320,8 @@ export function createPartyPingHost(deps) {
       }
       return out;
     },
-    /** Whether a route is showing, before its fade-out. */
     line() { return !!(ribbon && ribbon.pts && ribbon.pts.length > 1); },
-    /** After the opaque world, in the veiled-bodies' slot. */
+    /** Draws after the opaque world, in the slot for veiled bodies. */
     draw(renderer) {
       const now = deps.now();
       const place = deps.place();
@@ -378,17 +365,15 @@ export function createPartyPingHost(deps) {
     },
     dispose() {
       forgetMesh();
-      try { labels?.dispose(); } catch { /* the page is already gone */ }
+      try { labels?.dispose(); } catch { }
       labels = null;
-      try { drawPass?.dispose(); } catch { /* the context is already gone */ }
+      try { drawPass?.dispose(); } catch { }
       drawPass = null;
     },
   };
 }
 
 /**
- * The world host's door (scenes/world.js). The place, and the world's
- * floating origin, are asked here so that host stays a wire.
  * @param {{
  *   now: () => number, pressed: () => boolean, blocked: () => boolean, mode: () => string,
  *   identity: () => object|null, pixel: () => { x: number, y: number }|null,

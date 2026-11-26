@@ -26,9 +26,11 @@ invariants:
   - "Programs compile in parallel via KHR_parallel_shader_compile, polled with COMPLETION_STATUS_KHR; without the extension they compile synchronously."
   - "Snow cover asks share one SNOW_COVER.frameMs = 12 ms window (budgetMs = 3 per ask)."
   - "Trade windows render through virtualRows with measured row heights and preserved scroll."
+  - "Resonance square counts (`resonanceLitInto`) are computed in JS and handed to the aura shader, because float32 `sin` differs across GPUs and would light other squares. Rabbit places (`warrenBunniesInto`) and smoke cards (`sageCardsInto`) are also computed in JS and passed farthest first, since none of those draws writes depth."
 traps:
   - "Parallel compile must never skip critical combat indicators; such passes compile on demand (compiledPass)."
   - "Snow sweeps (beginSweep/sweepUntil, SWEEP_FLATS_A_READ = 64) resume across frames without losing progress."
+  - "`auraPrograms` (`src/render/auraRing.js`) swaps the `uniform int uAura;` declaration for a constant and throws unless the shader text holds that declaration exactly once, so no comment may quote it."
 dfu: []
 tags:
   - shaders
