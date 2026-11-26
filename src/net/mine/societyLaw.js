@@ -2,6 +2,13 @@
 // The client and account service share the contract and shop rules.
 // Only gathered ore counts toward contracts, including veins outside mines and drill hauls.
 
+import { METALS, ORES } from '../professionLaw.js';
+
+export const SOCIETY_ORE_PACK = 100;
+export const SOCIETY_ORE_PRICES = Object.freeze(Object.fromEntries(
+  [...METALS.filter((ore) => ore.key !== 'metal:brass'), ...ORES].map((ore) => [ore.key, ore.tier]),
+));
+
 /** The contracts by ore: how much is asked, and the Seals it pays. */
 export const SOCIETY_CONTRACTS = Object.freeze({
   'metal:iron': Object.freeze({ n: 400, seals: 40 }), 'metal:copper': Object.freeze({ n: 400, seals: 40 }), 'metal:tin': Object.freeze({ n: 400, seals: 40 }),

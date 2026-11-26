@@ -3,13 +3,13 @@
 // Pick strikes lower section stability. Shoring restores stability and raises its cap.
 // A collapsed mine rejects actions until its seal expires and a tick resets its layout.
 import { mineLayout } from './mineLayout.js';
-import { MINE_DRILL, drillHopper, drillRunning, drillSecondsBetween } from './mineDrill.js';
+import { MINE_DRILL, MINE_ORE_RUNS, drillHopper, drillRunning, drillRuns, drillSecondsBetween, mineOreKey, oreRunsLeft } from './mineDrill.js';
 
 /**
  * @typedef {{ mine: number, reset: number, born: number, sealedUntil: number, stab: number[], cap: number[],
  *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }>,
  *   alarm?: number[], waves?: number, ticked?: number, drills?: import('./mineDrill.js').MineDrillState[], hauls?: number,
- *   lamps?: Array<{ s: number, c: number }> }} MineState
+ *   oreWork?: Record<string, number>, lamps?: Array<{ s: number, c: number }> }} MineState
  */
 
 /** A pick strike's cost to its section, and how much each unshored weak wall of its chamber multiplies it. */
@@ -45,11 +45,11 @@ export function createMineState(layout, nowS) {
     stab: layout.sections.map(() => 100), cap: layout.sections.map(() => 100), warned: layout.sections.map(() => 0),
     weak: layout.sections.map((s) => s.chambers.map((c) => c.walls.map((w, k) => (w.weak ? k : -1)).filter((k) => k >= 0))),
     walls: layout.sections.map((s) => s.chambers.map((c) => c.walls.length)),   // each chamber's wall slots, so a prop is checked without the layout
-    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS, drills: [], hauls: 0, lamps: [],
+    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS, drills: [], hauls: 0, lamps: [], oreWork: {},
   };
 }
 
-const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0, drills: (st.drills ?? []).map((d) => ({ ...d })), hauls: st.hauls ?? 0, lamps: [...(st.lamps ?? [])] });
+const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0, drills: (st.drills ?? []).map((d) => ({ ...d })), hauls: st.hauls ?? 0, lamps: [...(st.lamps ?? [])], oreWork: { ...st.oreWork } });
 
 /** A mine's holes (its layout's, by its reset), kept a mine at a time: the drill reads a hole's ore and seam. */
 const _holes = new Map();
@@ -72,6 +72,9 @@ function noise(/** @type {MineState} */ st, /** @type {number} */ s, /** @type {
 }
 const valid = (/** @type {any} */ st, /** @type {any} */ s, /** @type {any} */ c) => Number.isSafeInteger(s) && Number.isSafeInteger(c) && s >= 0 && s < st.stab.length && c >= 0 && c < st.weak[s].length;
 const propped = (/** @type {MineState} */ st, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ w) => st.props.some((p) => p.s === s && p.c === c && p.w === w);
+
+const rockWear = (/** @type {MineState} */ st, /** @type {number} */ s, /** @type {number} */ c) =>
+  MINE_COST.weakMult ** st.weak[s][c].filter((w) => !propped(st, s, c, w)).length;
 
 /** The warnings a section crossing from `from` down to `to` sounds, and its warned level after. */
 function warningsOf(/** @type {number} */ level, /** @type {number} */ to) {
@@ -104,12 +107,20 @@ export function stepMine(state, op, nowS) {
     // THE DRILLS: each shift second since the last tick roars in its section and wears it - and a drill whose setter has
     // left the mine (the relay's `here`, the accounts in it) stops where it stands (the spec: "leaving stops it")
     const from = state.ticked ?? nowS, worn = new Set();
+    const oreWork = /** @type {Record<string, number>} */ (st.oreWork);
+    let depleted = false;
     if (Array.isArray(op.here)) for (const d of /** @type {any[]} */ (st.drills)) if (d.until > nowS && !op.here.includes(d.by)) d.until = Math.max(d.from, nowS);
     for (const d of /** @type {any[]} */ (st.drills)) {
       const secs = drillSecondsBetween(d, from, nowS);
       if (secs <= 0) continue;
       noise(st, d.s, d.c, MINE_DRILL.noisePerS * secs, events);
-      st.stab[d.s] = Math.max(0, st.stab[d.s] - MINE_DRILL.wearPerS * secs);
+      const key = mineOreKey(d.s, d.c, d.k);
+      const runs = drillRuns(d, nowS) - drillRuns(d, from);
+      if (runs > 0 && oreRunsLeft(oreWork, key) > 0) {
+        oreWork[key] = Math.min(MINE_ORE_RUNS, (oreWork[key] ?? 0) + runs);
+        depleted ||= oreWork[key] === MINE_ORE_RUNS;
+      }
+      st.stab[d.s] = Math.max(0, st.stab[d.s] - MINE_DRILL.wearPerS * secs * rockWear(st, d.s, d.c));
       worn.add(d.s);
     }
     for (const s of worn) {
@@ -118,6 +129,7 @@ export function stepMine(state, op, nowS) {
       events.push(...w.events);
       if (st.stab[s] <= 0) { st.sealedUntil = nowS + MINE_SEAL_S; return { state: st, events: [...events.filter((e) => !e.startsWith('wave:')), 'collapse'] }; }
     }
+    if (depleted) events.push('ore-depleted');
     if (op.present && Number(op.roll) < MINE_STRAY.chance) {
       const slots = st.walls.flatMap((cs, s) => cs.map((_, c) => [s, c]));
       const [s, c] = slots[Math.min(slots.length - 1, Math.floor(Math.max(0, Number(op.pick) || 0) * slots.length))];
@@ -140,8 +152,7 @@ export function stepMine(state, op, nowS) {
   }
   const st = copy(state), waveEvents = [];
   if (op.op === 'strike') {
-    const open = st.weak[s][c].filter((w) => !propped(st, s, c, w)).length;
-    st.stab[s] = Math.max(0, st.stab[s] - MINE_COST.strike * MINE_COST.weakMult ** open);
+    st.stab[s] = Math.max(0, st.stab[s] - MINE_COST.strike * rockWear(st, s, c));
     noise(st, s, c, MINE_ALARM.strike, waveEvents);   // a wave called each time a section's alarm fills, bigger as the mine calls more
   } else {
     const strength = MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (op.wood)];
@@ -179,12 +190,14 @@ function drillOp(state, op, nowS, none) {
   st.drills = drills.filter((d) => live(d));   // spent and empty: gone
   const here = /** @type {any[]} */ (st.drills).find((d) => d.s === s && d.c === c && d.k === op.k);
   if (op.op === 'drill') {
+    const remaining = oreRunsLeft(st.oreWork, mineOreKey(s, c, op.k));
+    if (remaining <= 0) return none('depleted');
     if (here) return none('taken');
     if (/** @type {any[]} */ (st.drills).some((d) => d.by === by)) return none('one-each');
     if (/** @type {any[]} */ (st.drills).length >= MINE_DRILL.most) return none('full');
     // its crew: the setter's party, named by the setter (the accounts that may empty its hopper beside them)
     const crew = Array.isArray(op.crew) ? [...new Set(op.crew.filter((/** @type {any} */ x) => typeof x === 'string' && x && x.length <= 64 && x !== by))].slice(0, MINE_DRILL.crewMax) : [];
-    /** @type {any[]} */ (st.drills).push({ s, c, k: op.k, by, crew, from: nowS, until: nowS + MINE_DRILL.shiftS, took: 0, rich: Math.max(1, Math.min(3, hole.rich | 0)) });
+    /** @type {any[]} */ (st.drills).push({ s, c, k: op.k, by, crew, from: nowS, until: nowS + remaining * MINE_DRILL.perOreS, took: 0, rich: Math.max(1, Math.min(3, hole.rich | 0)) });
     return { state: st, events: [`drill:${s}:${c}:${op.k}`] };
   }
   if (!here) return none('no-drill');

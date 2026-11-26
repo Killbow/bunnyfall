@@ -1,10 +1,8 @@
 // @ts-check
 // Chamber walls and flattened tunnels meet at open doorways.
 // The render faces point inward. The mesh and collider share the same cave geometry.
-// Walls, floors, and ceilings use cave textures from archives 22 and 322.
 import { createMeshKit } from '../eliteGates/meshKit.js';
 import { gateHash } from '../../net/gateLaw.js';
-import { CLIMATES } from '../../formats/mapsTables.js';
 
 /** Buckets in the kit, remapped to their textures at the pack. */
 const WALL = 0, FLOOR = 1, CEILING = 2;
@@ -28,24 +26,14 @@ const tubeTop = (/** @type {number} */ r) => (RING_LIFT + 1) * r * (1 + MINE_TUN
 const TUBE_UNDER_M = 0.6, TUBE_MIN_TOP_M = 3.6;
 /** How far behind the mouth (m) the mouth's tunnel is closed, so the floor runs under the way out. */
 const MOUTH_BACK_M = 1.5;
-/** Where a tube begins inside a chamber: this share of the rim's radius from the centre (just inside the wall). */
-const STUB_IN = 0.94;
+/** Where a tube begins inside a chamber, as a share of its radius. */
+const STUB_IN = 0.74;
 /** The wall's rows (m) and the gap over a doorway's top. */
 const WALL_ROW_M = 0.6, DOOR_HEAD_M = 0.3;
 /** How far a chamber's wall leans in, a share of its radius each metre it rises. */
 const WALL_LEAN = 0.025;
 /** Texels a metre: a 64-pixel tile every two metres. */
 const UV = 0.5;
-
-/**
- * The cave textures for a climate.
- * @param {number} worldClimate
- * @returns {{ archive: number, wall: number, floor: number, ceiling: number }}
- */
-export function mineTextures(worldClimate) {
-  if (worldClimate === CLIMATES.Mountain || worldClimate === CLIMATES.MountainWoods) return { archive: 322, wall: 0, floor: 2, ceiling: 1 };
-  return { archive: 22, wall: 0, floor: 1, ceiling: 0 };
-}
 
 const unit = (/** @type {number[]} */ ...k) => gateHash(0x6d1e, ...k) / 4294967296;
 
@@ -56,7 +44,7 @@ const rimAt = (/** @type {any} */ ch, /** @type {number} */ a, /** @type {number
 const inside = (/** @type {any} */ ch, /** @type {number} */ x, /** @type {number} */ z, s = 1) => ((x - ch.c[0]) / (ch.rx * s)) ** 2 + ((z - ch.c[2]) / (ch.rz * s)) ** 2 < 1;
 
 /**
- * Every chamber by id, and each tunnel's run outside the chambers it joins (the doorway's angle and half width on each).
+ * Every chamber by id, and the tunnel runs opening into each chamber.
  * @param {any} layout
  */
 function plan(layout) {
@@ -76,30 +64,10 @@ function plan(layout) {
       const ch = rec.ch;
       const atStart = end === t.from;
       const seq = atStart ? pts : [...pts].reverse();
-      let first = seq.findIndex((p) => !inside(ch, p[0], p[2]));
+      let first = seq.findIndex((p) => !inside(ch, p[0], p[2], STUB_IN));
       if (first < 0) first = seq.length - 1;
-      // where the tube crosses the rim (between the last point inside and the first outside), not the first point outside:
-      // a curving tunnel can leave a metre or two along the wall from it
-      let exit = seq[first], along = [0, 0];
-      if (first > 0) along = [seq[first][0] - seq[first - 1][0], seq[first][2] - seq[first - 1][2]];
-      if (first > 0) {
-        const p = seq[first - 1], q = seq[first];
-        let lo3 = 0, hi3 = 1;
-        for (let k = 0; k < 20; k++) { const f = (lo3 + hi3) / 2; if (inside(ch, p[0] + (q[0] - p[0]) * f, p[2] + (q[2] - p[2]) * f)) lo3 = f; else hi3 = f; }
-        exit = [p[0] + (q[0] - p[0]) * hi3, p[1], p[2] + (q[2] - p[2]) * hi3];
-      }
-      const a = Math.atan2((exit[2] - ch.c[2]) / ch.rz, (exit[0] - ch.c[0]) / ch.rx);
-      const rim = Math.hypot(Math.cos(a) * ch.rx, Math.sin(a) * ch.rz);
-      // a doorway: where the tube meets the wall - its heading, the rim's radius there, and the tube's narrowest
-      // cross-section (its wobble taken in), so only wall wholly inside the tube is cut and no gap opens round it
-      const lo = 1 - MINE_TUNNEL_WOBBLE;
-      const speed = Math.hypot(Math.sin(a) * ch.rx, Math.cos(a) * ch.rz);   // metres of rim per radian of the ellipse's angle there
-      // a tube meeting the wall aslant cuts it wider: its width over the cosine of the angle it meets the wall's normal at
-      const nx = Math.cos(a) / ch.rx, nz = Math.sin(a) / ch.rz, nl = Math.hypot(nx, nz), al = Math.hypot(along[0], along[1]);
-      const slant = al > 1e-6 ? Math.max(0.5, Math.abs(along[0] * nx + along[1] * nz) / (al * nl)) : 1;
-      rec.doors.push({ a, rim, speed, hw: (t.r * lo) / slant, hh: t.r * vs * lo, yc: RING_LIFT * t.r * vs, top: tubeTop(t.r) * vs + DOOR_HEAD_M });
-      // the run starts just inside the rim (its share STUB_IN of the way in), not at the last point inside, so the tube
-      // stands no stub in the chamber for a body coming at the doorway aslant to meet
+      rec.doors.push({ top: tubeTop(t.r) * vs + DOOR_HEAD_M, tunnel: tubes.length });
+      // Extend the open end into the chamber, behind the leaning wall.
       const kept = seq.slice(first);
       if (first > 0) {
         const p = seq[first - 1], q = seq[first];
@@ -126,15 +94,13 @@ function heights(/** @type {any} */ rec) {
   return { wallTop, top: Math.max(rec.ch.h, wallTop + 0.9) };
 }
 
-/** The angular distance between two angles. */
-const angGap = (/** @type {number} */ a, /** @type {number} */ b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
-
 /**
  * One chamber into the kit: its floor, its wall (open at its doorways), its cap.
  * @param {any} kit
  * @param {any} rec
+ * @param {any[]} tubes
  */
-function chamberInto(kit, rec) {
+function chamberInto(kit, rec, tubes) {
   const { ch, doors } = rec, { wallTop, top } = heights(rec), n = sidesOf(rec.ch);
   const bulge = (/** @type {number} */ i) => 1 + MINE_CHAMBER_BULGE * unit(ch.c[0] * 100 | 0, ch.c[2] * 100 | 0, i % n);
   const ang = (/** @type {number} */ i) => (2 * Math.PI * i) / n;
@@ -150,15 +116,20 @@ function chamberInto(kit, rec) {
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < rows; j++) {
       const y0 = (wallTop * j) / rows, y1 = (wallTop * (j + 1)) / rows;
-      if (doors.some((d) => [[ang(i), y0], [ang(i + 1), y0], [ang(i + 1), y1], [ang(i), y1]].every(([q, y]) => {
-        const L = angGap(q, d.a) * d.speed;   // across the doorway, along the rim
-        return (L / d.hw) ** 2 + ((y - d.yc) / d.hh) ** 2 <= 1;
-      }))) continue;
       const s0 = 1 - WALL_LEAN * y0, s1 = 1 - WALL_LEAN * y1;   // the wall leans in as it rises
       const p = [rimAt(ch, ang(i), bulge(i), s0, y0), rimAt(ch, ang(i + 1), bulge(i + 1), s0, y0), rimAt(ch, ang(i + 1), bulge(i + 1), s1, y1), rimAt(ch, ang(i), bulge(i), s1, y1)];
       const m = [(p[0][0] + p[2][0]) / 2, (p[0][1] + p[2][1]) / 2, (p[0][2] + p[2][2]) / 2];
-      const arc = Math.hypot(p[1][0] - p[0][0], p[1][2] - p[0][2]) * UV;
-      kit.quad(WALL, p[0], p[1], p[2], p[3], [centre[0] - m[0], 0, centre[2] - m[2]], true, [[i * arc, y0 * UV], [(i + 1) * arc, y0 * UV], [(i + 1) * arc, y1 * UV], [i * arc, y1 * UV]]);
+      const scale = (Math.PI * (ch.rx + ch.rz) * UV) / n;
+      const u0 = i * scale, u1 = (i + 1) * scale;
+      let polygons = [p.map((v, k) => [...v, k === 0 || k === 3 ? u0 : u1, v[1] * UV])];
+      for (const door of doors) {
+        for (const segment of tubes[door.tunnel].doorSegments) polygons = polygons.flatMap((poly) => cutTunnel(poly, segment));
+      }
+      const facing = [centre[0] - m[0], 0, centre[2] - m[2]];
+      for (const [a, ...rest] of polygons) for (let k = 0; k + 1 < rest.length; k++) {
+        const b = rest[k], c = rest[k + 1];
+        kit.tri(WALL, a, b, c, facing, true, a.slice(3), b.slice(3), c.slice(3));
+      }
     }
   }
   // the cap: from the wall's top in to the crown, two rings
@@ -181,12 +152,11 @@ function chamberInto(kit, rec) {
 /**
  * One tunnel's run into the kit: rings of MINE_RING_SIDES about its floor points, their lower points flattened onto the
  * floor; the mouth's run closed by a flat wall at its first ring.
- * @param {any} kit
- * @param {{ t: any, pts: number[][], mouth: boolean, vs: number }} tube
+ * @param {{ t: any, pts: number[][], vs: number }} tube
  * @param {number} seed
  */
-function tubeInto(kit, { t, pts, mouth, vs }, seed) {
-  if (pts.length < 2) return;
+function tubeRings(tube, seed) {
+  const { t, pts, vs } = tube;
   const n = MINE_RING_SIDES;
   const rings = [], centres = [];
   for (let i = 0; i < pts.length; i++) {
@@ -203,6 +173,66 @@ function tubeInto(kit, { t, pts, mouth, vs }, seed) {
     }
     rings.push(ring); centres.push(c);
   }
+  return { rings, centres };
+}
+
+/** Planes of a tunnel segment, oriented toward the inside. */
+function tunnelSegment(a, b, ca, cb) {
+  const middle = ca.map((v, i) => (v + cb[i]) / 2);
+  const planes = [];
+  const plane = (p, q, r, offset = 0) => {
+    const u = q.map((v, i) => v - p[i]), v = r.map((w, i) => w - p[i]);
+    let x = u[1] * v[2] - u[2] * v[1], y = u[2] * v[0] - u[0] * v[2], z = u[0] * v[1] - u[1] * v[0];
+    const length = Math.hypot(x, y, z);
+    if (length < 1e-8) return;
+    const sign = x * (middle[0] - p[0]) + y * (middle[1] - p[1]) + z * (middle[2] - p[2]) >= 0 ? 1 : -1;
+    const scale = sign / length;
+    x *= scale; y *= scale; z *= scale;
+    planes.push([x, y, z, x * p[0] + y * p[1] + z * p[2] + offset]);
+  };
+  plane(a[0], a[2], a[4], -0.015);
+  plane(b[0], b[2], b[4], -0.015);
+  for (let k = 0; k < a.length; k++) {
+    const next = (k + 1) % a.length;
+    const floor = [a[k], a[next], b[k], b[next]].every((p, i) => p[1] < (i < 2 ? ca : cb)[1] - 0.1);
+    plane(a[k], a[next], b[next], floor ? -0.03 : 0.04);
+    plane(a[k], b[next], b[k], floor ? -0.03 : 0.04);
+  }
+  const points = [...a, ...b];
+  const bounds = [0, 1, 2].map((i) => {
+    const values = points.map((p) => p[i]);
+    return [Math.min(...values) - 0.4, Math.max(...values) + 0.4];
+  });
+  return { planes, bounds };
+}
+/** Keep the pieces of the wall outside the tunnel's actual cross-section. */
+function cutTunnel(poly, { planes, bounds }) {
+  if (bounds.some(([min, max], i) => poly.every((p) => p[i] < min) || poly.every((p) => p[i] > max))) return [poly];
+  const distance = ([a, b, c, d], [x, y, z]) => a * x + b * y + c * z - d;
+  if (planes.some((plane) => poly.every((p) => distance(plane, p) < 0))) return [poly];
+  const pieces = [];
+  let inside = poly;
+  for (const plane of planes) {
+    const next = [], outside = [];
+    for (let i = 0; i < inside.length; i++) {
+      const a = inside[i], b = inside[(i + 1) % inside.length];
+      const da = distance(plane, a), db = distance(plane, b);
+      (da >= 0 ? next : outside).push(a);
+      if ((da >= 0) !== (db >= 0)) {
+        const point = a.map((v, k) => v + (b[k] - v) * da / (da - db));
+        next.push(point); outside.push(point);
+      }
+    }
+    if (outside.length >= 3) pieces.push(outside);
+    if (next.length < 3) return [poly];
+    inside = next;
+  }
+  return pieces;
+}
+
+function tubeInto(kit, { t, pts, mouth, rings, centres }) {
+  if (pts.length < 2) return;
+  const n = MINE_RING_SIDES;
   let along = 0;
   for (let i = 0; i + 1 < rings.length; i++) {
     const A = rings[i], B = rings[i + 1], len = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]);
@@ -211,7 +241,8 @@ function tubeInto(kit, { t, pts, mouth, vs }, seed) {
       const k1 = (k + 1) % n, q = [A[k], A[k1], B[k1], B[k]];
       const m = [(q[0][0] + q[2][0]) / 2, (q[0][1] + q[2][1]) / 2, (q[0][2] + q[2][2]) / 2];
       const floor = m[1] <= pts[i][1] + 0.05 * t.r + (pts[i + 1][1] - pts[i][1]) / 2;
-      const uv = [[k * UV * 1.5, along * UV], [(k + 1) * UV * 1.5, along * UV], [(k + 1) * UV * 1.5, (along + len) * UV], [k * UV * 1.5, (along + len) * UV]];
+      const uv = floor ? q.map((p) => [p[0] * UV, p[2] * UV]) :
+        q.map((p, j) => [(along + (j < 2 ? 0 : len)) * UV + (j === 0 || j === 3 ? k : k + 1) * 0.15, p[1] * UV]);
       kit.quad(floor ? FLOOR : WALL, q[0], q[1], q[2], q[3], [cm[0] - m[0], cm[1] - m[1], cm[2] - m[2]], true, uv);
     }
     along += len;
@@ -226,8 +257,16 @@ function tubeInto(kit, { t, pts, mouth, vs }, seed) {
 function caveKit(/** @type {any} */ layout) {
   const kit = createMeshKit({ start: 4096 });
   const { chambers, tubes } = plan(layout);
-  for (const rec of chambers.values()) chamberInto(kit, rec);
-  tubes.forEach((tube, i) => tubeInto(kit, tube, gateHash(layout.mineId, layout.reset, 0x7b, i)));
+  const meshTubes = tubes.map((tube, i) => {
+    const { rings, centres } = tubeRings(tube, gateHash(layout.mineId, layout.reset, 0x7b, i));
+    const doorSegments = [];
+    for (let j = 0; j + 1 < rings.length; j++) {
+      if (j < 3 || j >= rings.length - 4) doorSegments.push(tunnelSegment(rings[j], rings[j + 1], centres[j], centres[j + 1]));
+    }
+    return { ...tube, rings, centres, doorSegments };
+  });
+  for (const rec of chambers.values()) chamberInto(kit, rec, meshTubes);
+  for (const tube of meshTubes) tubeInto(kit, tube);
   return kit;
 }
 

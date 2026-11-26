@@ -3,7 +3,7 @@ import test from 'node:test';
 import { webcrypto } from 'node:crypto';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
 import { createMineState, stepMine, MINE_ALARM } from '../src/net/mine/mineBrain.js';
-import { MINE_DRILL, drillHopper } from '../src/net/mine/mineDrill.js';
+import { MINE_DRILL, mineOreKey, oreRunsLeft, drillHopper } from '../src/net/mine/mineDrill.js';
 import { mintMineReceipt, readMineReceipt, verifyMineReceipt, mineReceiptId } from '../src/net/mine/mineReceipt.js';
 import { validMineIn, validMineOut } from '../src/net/mine/mineWire.js';
 
@@ -98,4 +98,26 @@ test('a lamp lights its chamber once, and no stray comes in by a lit chamber', (
   assert.ok(validMineOut({ t: 'mn', k: 'st', st }));
   assert.deepEqual(validMineIn({ t: 'mn', k: 'drill', s: 0, c: 0, h: 1, crew: ['a-1', 'b-2'] }).crew, ['a-1', 'b-2']);
   assert.equal(validMineIn({ t: 'mn', k: 'drill', s: 0, c: 0, h: 1, crew: Array(9).fill('x') }), null);
+});
+
+test('a partly worked deposit survives a stopped drill and breaks after its remaining cycles', () => {
+  const { s, c, k } = hole;
+  const spot = { s, c, k, by: ME };
+  const deposit = mineOreKey(s, c, k);
+  let state = createMineState(L, NOW);
+  state.weak[s][c] = [0];
+  state = stepMine(state, { op: 'drill', ...spot }, NOW).state;
+  const stopped = stepMine(state, { op: 'tick', here: [] }, NOW + 60).state;
+  assert.ok(Math.abs(stopped.stab[s] - (100 - MINE_DRILL.wearPerS * 60 * 1.5)) < 1e-9);
+  assert.equal(oreRunsLeft(stopped.oreWork, deposit), 10);
+  const taken = stepMine(stopped, { op: 'take', ...spot }, NOW + 60);
+  assert.ok(taken.haul.n > 0);
+  state = stepMine(taken.state, { op: 'drill', ...spot }, NOW + 60).state;
+  assert.equal(state.drills[0].until, NOW + 180);
+  const finished = stepMine(state, { op: 'tick', here: [ME] }, NOW + 180);
+  assert.ok(finished.events.includes('ore-depleted'));
+  assert.equal(oreRunsLeft(finished.state.oreWork, deposit), 0);
+  const finalHaul = stepMine(finished.state, { op: 'take', ...spot }, NOW + 180);
+  assert.ok(finalHaul.haul.n > 0);
+  assert.equal(stepMine(finalHaul.state, { op: 'drill', ...spot }, NOW + 180).error, 'depleted');
 });

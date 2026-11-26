@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
-import { buildMineModel, mineColliderTris, mineTextures, mineChamberTop } from '../src/world/mine/mineModel.js';
+import { buildMineModel, mineColliderTris, mineChamberTop } from '../src/world/mine/mineModel.js';
+import { mineSurfacePictures, mineTextures } from '../src/world/mine/mineSurfaces.js';
+import { Collider } from '../src/player/collider.js';
+import { identity } from '../src/world/mat4.js';
 import { CLIMATES } from '../src/formats/mapsTables.js';
 
 /** The nearest hit along a ray (unit `d`) from `o` over a triangle soup, or Infinity. */
@@ -62,7 +65,7 @@ test('the model has a wall, a floor and a ceiling, and no NaN', () => {
   assert.equal(model.subMeshes.length, 3);
   for (const s of model.subMeshes) assert.equal(s.textureArchive, tex.archive);
   assert.ok(model.positions.every((x) => Number.isFinite(x)));
-  assert.equal(mineTextures(CLIMATES.Mountain).archive, 322);
+  assert.notEqual(mineTextures(CLIMATES.Mountain).wall, tex.wall);
 });
 
 test('floors face up and ceilings face down, so neither is culled from inside', () => {
@@ -106,4 +109,38 @@ test("a body walks through every doorway: from the room's middle to where its tu
       }
     }
   }
+});
+
+test('doorway sightlines stay inside the cave shell', () => {
+  for (const layout of LAYOUTS) {
+    const tris = mineColliderTris(layout);
+    const collider = new Collider(() => -Infinity);
+    collider.addMesh('cave', tris, Uint32Array.from({ length: tris.length / 3 }, (_, i) => i), identity());
+    const chambers = new Map(layout.sections.flatMap((s) => s.chambers).map((ch) => [ch.id, ch]));
+    for (const tunnel of layout.tunnels) {
+      for (const id of [tunnel.from, tunnel.to]) {
+        const ch = chambers.get(id);
+        if (!ch) continue;
+        const points = id === tunnel.from ? tunnel.pts : [...tunnel.pts].reverse();
+        const p = points.find((p) => ((p[0] - ch.c[0]) / ch.rx) ** 2 + ((p[2] - ch.c[2]) / ch.rz) ** 2 > 1);
+        if (!p) continue;
+        const aim = Math.atan2(p[2] - ch.c[2], p[0] - ch.c[0]);
+        for (let step = -16; step <= 16; step++) for (const height of [0.4, 0.9, 1.4, 1.8, 2.3, 2.8, 3.3]) {
+          const offset = step * 0.025;
+          const start = [ch.c[0], ch.c[1] + height, ch.c[2]];
+          const hit = collider.raycast(start, [Math.cos(aim + offset), 0, Math.sin(aim + offset)], 5000);
+          assert.ok(hit < 5000, `${layout.mineId} ${id}, offset ${offset}, height ${height}`);
+        }
+      }
+    }
+  }
+});
+
+test('stone textures are opaque and give the floor its own palette', () => {
+  const tex = mineTextures(CLIMATES.Mountain);
+  const [wall, floor, ceiling] = mineSurfacePictures(tex);
+  assert.deepEqual([wall.record, floor.record, ceiling.record], [tex.wall, tex.floor, tex.ceiling]);
+  for (const picture of [wall, floor, ceiling]) assert.ok(picture.colors.every((n, i) => i % 4 !== 3 || n === 255));
+  assert.ok(floor.colors[0] > wall.colors[0]);
+  assert.notDeepEqual(wall.colors, floor.colors);
 });

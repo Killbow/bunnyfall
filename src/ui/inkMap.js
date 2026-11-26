@@ -45,6 +45,7 @@ import { SD_MAP_INK } from './sdMapMark.js';   // SD2c: the Super dungeon's ring
 import { EG_ARCH_MAP_INK } from './eliteGates/egArchMapMark.js';   // EG-F: my company's Elite arch, in its gold
 import { KT_MAP_INK } from './ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch over Daggerfall, in the aether's blue
 import { LODE_RING_CSS, LODE_FILL_CSS } from './lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's Motherlodes, in the compass's aqua
+import { MINE_MARK_CSS } from './mineMapMark.js';
 import { POI_RING_CSS, POI_FILL_CSS } from './poi/poiMapMark.js';   // POI-2: the approved POIs, in their violet
 import { BOUNTY_RING_CSS, BOUNTY_FILL_CSS, REVENANT_RING_CSS, REVENANT_FILL_CSS } from './bountyMapMark.js';   // BOUNTY1: a held bounty's black circle; RVN7c: a revenant's lair in blood red
 import { RAID_MARK_CSS, FESTIVAL_MARK_CSS } from './eventMapMarks.js';   // EVENT-TIP: a town under attack
@@ -1249,6 +1250,16 @@ export function paintInkOverlay(ctx, view, opts) {
   for (const b of opts.lodes ?? []) if (visible(b.cx, b.cy, b.r + 2)) paintBountyRing(ctx, view, b, pulse, LODE_INK);
   // POI-2: the approved POIs - the same circle in their violet, each its label
   for (const b of opts.pois ?? []) if (visible(b.cx, b.cy, b.r + 2)) paintBountyRing(ctx, view, b, pulse, POI_INK);
+  ctx.save();
+  ctx.fillStyle = MINE_MARK_CSS;
+  ctx.strokeStyle = '#442516';
+  ctx.lineWidth = 1;
+  for (const { x, y } of opts.mines ?? []) {
+    if (!visible(x + 0.5, y + 0.5)) continue;
+    const [sx, sy] = toPaper(view, x + 0.5, y + 0.5);
+    ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
   // EVENT-TIP: the towns under attack, over the ring and under the party - a member standing in one reads over it
   for (const m of opts.raids ?? []) if (visible(m.x, m.y)) paintRaidMark(ctx, view, m, pulse);
   // STAR6: the night's fallen stars, beside the raids - none ever falls in a town

@@ -11,11 +11,15 @@ files:
   - src/net/mine/mineBrain.js
   - src/net/mine/mineWire.js
   - src/world/mine/mineModel.js
+  - src/world/mine/mineSurfaces.js
   - src/world/mine/mineLocation.js
   - src/world/mine/mineArt.js
   - src/systems/mine/mineHost.js
   - src/systems/mine/mineClient.js
   - src/systems/mine/mineMouths.js
+  - src/ui/mineMapMark.js
+  - src/ui/mineDrillReadout.js
+  - src/travel/travelViewMarks.js
   - server/src/world/mine.js
   - src/net/mine/mineDrill.js
   - src/net/mine/mineReceipt.js
@@ -41,8 +45,8 @@ tags:
   - shoring
 ---
 
-Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do.
+Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do. The world maps show orange markers for every eligible mine entrance before discovery. Overworld Travel shows nearby entrances as orange mining markers under the Gathering filter.
 
 Inside, `mineLayout(mineId, reset)` builds sections of domed chambers joined by tubes, made into one virtual RDB block (`MINE_LOCATION_ID`). Holes name their ore and seam; walls are sound or weak.
 
-The relay's `MinePart` runs `stepMine`: each answered strike wears its section's stability (`MINE_COST`, weak walls 1.5x), shoring spends a Stores plank whose wood sets the gain (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse. A collapse shakes, fades and puts everyone out with what they carry. Strikes fill a section's alarm (`MINE_ALARM`): each fill calls `wave:s:c:n`, and the relay's minute tick may send `stray:s:c:n` (`MINE_STRAY`); the room's host stands them through `spawnFoeNear` (`src/systems/mine/mineFoes.js`). A drill (`src/net/mine/mineDrill.js`, `MINE_DRILL`) set on a hole runs a shift, filling a hopper only its setter empties; the relay signs each haul (`mineReceipt.js`, `m1.`) and `/v1/mine/haul` pays it once (`mine_hauls`, migration 0221). A drill names its setter's party as `crew` (they may empty it) and stops when its setter leaves (the tick's `here`); `lamp` lights a chamber against strays.
+The relay's `MinePart` runs `stepMine`: each answered strike wears its section's stability (`MINE_COST`, weak walls 1.5x), shoring spends a Stores plank whose wood sets the gain (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse. A collapse shakes, fades and puts everyone out with what they carry. Strikes fill a section's alarm (`MINE_ALARM`): each fill calls `wave:s:c:n`, and the relay's minute tick may send `stray:s:c:n` (`MINE_STRAY`); the room's host stands them through `spawnFoeNear` (`src/systems/mine/mineFoes.js`). A drill (`src/net/mine/mineDrill.js`, `MINE_DRILL`) set on a hole runs a shift, filling a hopper only its setter empties; the relay signs each haul (`mineReceipt.js`, `m1.`) and `/v1/mine/haul` pays it once (`mine_hauls`, migration 0221). Drill work depletes each ore deposit for the current mine reset. The deposit disappears, and its hopper remains available until emptied. The ore icon and live hopper count appear above nearby drills. Unshored weak walls amplify drill wear, just as they do pick strikes. A drill names its setter's party as `crew` (they may empty it) and stops when its setter leaves (the tick's `here`); `lamp` lights a chamber against strays.

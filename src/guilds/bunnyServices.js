@@ -81,7 +81,7 @@ export function bunnyQuestEnded(/** @type {any} */ quest, /** @type {any} */ ent
  * `openBoard(focus)` this town's Notice Board as the hall's desk opens it (`{ tab, hall, sift?, crafts? }`), `openBounties()`
  * the town's bounty notices.
  * @param {{ entity: any, openCompany?: (() => boolean) | null, openBoard?: ((focus: any) => boolean) | null, openBounties?: (() => boolean) | null,
- *   revealLocation?: (() => { shown: string } | null) | null, openFavor?: (() => void) | null, openSociety?: (() => void) | null }} doors
+ *   revealLocation?: (() => { shown: string } | null) | null, openFavor?: (() => void) | null }} doors
  */
 export function bunnyHallServices(doors) {
   return (/** @type {string} */ key, /** @type {{ member: { rank: number } | null, again: (note?: string) => void }} */ { member, again }) => {
@@ -102,7 +102,6 @@ export function bunnyHallServices(doors) {
           again(t('bguild.carto.bought', 'The map shows the way to {place}.', { place: found.shown }));
         } });
       }
-      if (doors.openSociety) out.push({ code: 'KeyK', label: t('bguild.carto.contracts', 'K - Ore contracts and Survey Seals'), action: doors.openSociety });   // BUNNYFALL (2026-11-26, caverns): anyone may take one
       if (member) {
         const n = Math.max(0, discoveredLocationCount() - surveyedCount());
         out.push({ code: 'KeyS', label: t('bguild.carto.sell', 'S - Sell survey notes ({n} new places)', { n }), action: () => {

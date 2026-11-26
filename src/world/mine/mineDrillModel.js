@@ -74,3 +74,29 @@ export function mineLampModels() {
   const lantern = boxesModel([[0.36, 1.42, 0, 0.26, 0.34, 0.26]], MINE_DRILL_RECORDS.flame);
   return { post, lantern };
 }
+
+export const MINE_LAMP_MARK_RECORD = 303;
+
+export const MINE_WALL_MARK_RECORD = 304;
+
+/** A small ring just above the chamber floor. */
+export function mineFloorRingModel(record = MINE_LAMP_MARK_RECORD) {
+  const positions = [], normals = [], uvs = [], indices = [];
+  const segments = 24;
+  for (let i = 0; i < segments; i++) {
+    const angle = i * 2 * Math.PI / segments;
+    for (const radius of [0.38, 0.45]) {
+      positions.push(radius * Math.cos(angle), 0.025, radius * Math.sin(angle));
+      normals.push(0, 1, 0);
+      uvs.push(0.5, 0.5);
+    }
+    const inner = i * 2;
+    const next = ((i + 1) % segments) * 2;
+    indices.push(inner, next, inner + 1, inner + 1, next, next + 1);
+  }
+  return {
+    positions: new Float32Array(positions), normals: new Float32Array(normals),
+    uvs: new Float32Array(uvs), indices: new Uint32Array(indices),
+    subMeshes: [{ textureArchive: MINE_ART_ARCHIVE, textureRecord: record, startIndex: 0, primitiveCount: indices.length / 3 }],
+  };
+}

@@ -9,6 +9,9 @@ import { getPref } from '../ui/uiPrefs.js';
 import { isShipMark, travellerWorldOf } from './travellerMarks.js';
 import { isWaypointFollowed, mapPointToNative, shownWaypoints } from '../maps/mapWaypoints.js';
 import { livingWorldOn } from '../systems/livingWorld/livingSwitch.js';
+import { GROUP_M, GROUP_LIFT_M } from '../professions/gatherHost.js';
+import { MINE_MARK_CSS } from '../ui/mineMapMark.js';
+import { MOUTH_TEXT } from '../systems/mine/mineMouths.js';
 import { LODE_COMPASS_CSS, lodeLabel } from '../ui/lodeMapMark.js';
 import { mapPixelToWorldCoords } from '../world/streamingWorld.js';
 import { markShown, travellerKin } from './travelViewFilters.js';
@@ -54,6 +57,7 @@ export function createTravelViewMarks(host) {
   /** OVERWORLD NAMES: a player's badge as their name wears it in play - the relay's stamps, never a frame's own words. */
   const tvBadgeOf = (p) => ({ title: p.title ?? null, glyphs: Array.isArray(p.glyphs) ? p.glyphs : [], lv: p.lv ?? null, gt: p.gt ?? null, rb: p.rb ?? null });   // AUDIT-SEATS: and a Season's banner ribbon
   const TV_PEER_HEAD_M = 1.8;   // m: a peer's head when no body layer knows their height
+  const mineTranslation = [0, 0, 0];
   const _tvQuestHold = new Map();   // OW-QUEST: each quest place's point, kept by its key between frames (the bounties' own way)
   /** OW-FORECAST (scenes/overworldForecastHost.js): A PLACE'S CARD - its own next hours first ("Weather: Rain - clearing in
    *  about 2 h", the map's word at its middle, never one invented), then its town's card (TOWN-ECON's, online) under it;
@@ -122,7 +126,19 @@ export function createTravelViewMarks(host) {
     // standing about, a camp, a pack or a band stood: mine, and each peer's by the tags their frames carry
     // (world/campShared.js) - one mark where its living members stand, with its kind and its number; gone with its last
     const wildCamps = wildCampKeys();   // WILD-ALERT: a camp a member of which has noticed me wears the mark
-    for (const c of travelViewCamps()) marks.push({ key: `camp:${c.key}`, at: [c.at[0], c.at[1] + 2, c.at[2]], label: wildCamps.has(c.key) ? `${WILD_MARK} ${c.label}` : c.label, kind: 'camp', pick: true }); for (const g of host.gatherHost?.overworldGroups(walkMode ? player.pos : cam.pos) ?? []) marks.push(g);   // OW-ATTACK: pressable; GATHER-OW: each profession's group of nodes near me, a glyph (scenes/gatherHost.js overworldGroups)
+    for (const c of travelViewCamps()) marks.push({ key: `camp:${c.key}`, at: [c.at[0], c.at[1] + 2, c.at[2]], label: wildCamps.has(c.key) ? `${WILD_MARK} ${c.label}` : c.label, kind: 'camp', pick: true });   // OW-ATTACK: pressable
+    const gatherOrigin = walkMode ? player.pos : cam.pos;
+    for (const g of host.gatherHost?.overworldGroups(gatherOrigin) ?? []) marks.push(g);
+    for (const { px, py, local } of host.mines?.stood() ?? []) {
+      const tr = state.pixelTranslation(px, py, mineTranslation);
+      const x = local[0] + tr[0], z = local[2] + tr[2];
+      const distance = Math.hypot(x - gatherOrigin[0], z - gatherOrigin[2]);
+      if (distance > GROUP_M) continue;
+      marks.push({
+        key: `mine:${px},${py}`, at: [x, local[1] + tr[1] + GROUP_LIFT_M, z],
+        label: MOUTH_TEXT.title(), kind: 'gather mining', color: MINE_MARK_CSS, dist: distance / 1000,
+      });
+    }
     // YARDS-FOUND (from play: "The new stable and transport merchant shops dont show on town maps/overworld"): each town's
     // Stable and Wagon Yard standing about me, its name over its ground and its signboard's emblem (scenes/merchantYardsHost.js
     // overworldMarks) - with the towns on the Towns switch

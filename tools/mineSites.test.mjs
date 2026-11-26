@@ -37,3 +37,21 @@ test('ids and room keys', () => {
   assert.equal(mineMapId(10, 20), spawnedMapId(MINE_SALT, 10, 20));
   assert.equal(mineIdOf(10, 20), 20010);
 });
+
+test('world map reveals distant mine entrances and omits occupied sites', async () => {
+  const { createMineMapMarks } = await import('../src/ui/mineMapMark.js');
+  const sites = [];
+  for (let x = 900; x < 1000; x++) {
+    if (mineAt({ px: x, py: 450, climate: CLIMATES.Mountain, occupied: false })) sites.push(x);
+  }
+  assert.ok(sites.length > 1);
+  const locations = new Map([[sites[0] + ',450', {}]]);
+  const marks = createMineMapMarks({
+    getClimateIndex: (x, y) => y === 450 && x >= 900 ? CLIMATES.Mountain : -1,
+  }, locations);
+  const before = marks();
+  assert.deepEqual(before.map(({ x, y }) => [x, y]), sites.slice(1).map((x) => [x, 450]));
+  assert.equal(marks(), before);
+  locations.delete(sites[0] + ',450');
+  assert.deepEqual(marks().map(({ x }) => x), sites);
+});

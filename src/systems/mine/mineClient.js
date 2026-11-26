@@ -3,7 +3,7 @@
 // Effects are injected so tests can exercise mine interactions without a scene.
 import { t } from '../../ui/textManager.js';
 import { MINE_WOOD_STRENGTH } from '../../net/mine/mineBrain.js';
-import { drillReading } from '../../net/mine/mineDrill.js';
+import { drillReading, mineOreKey, oreRunsLeft } from '../../net/mine/mineDrill.js';
 
 /** The shakes the warnings give, and the collapse's: how hard, and how long it lasts (s). */
 export const MINE_SHAKE = Object.freeze({ 'warn:dust': 0.02, 'warn:creak': 0.05, 'warn:rumble': 0.1, collapse: 0.3 });
@@ -35,6 +35,7 @@ export const MINE_CLIENT_TEXT = Object.freeze({
   crewDrill: () => t('mine.crewDrill', "Your party's drill"),
   needDrill: () => t('mine.needDrill', 'You need a Mining Drill. The Cartographers’ Society sells them.'),
   needFuel: () => t('mine.needFuel', 'You have no Drill Fuel. The Cartographers’ Society sells it.'),
+  depleted: () => t('mine.oreDepleted', 'This ore deposit is depleted.'),
   rockWall: () => t('mine.rockWall', 'Rock wall'),
   rodHint: () => t('mine.rodHint', 'A Survey Rod would tell sound rock from weak'),
   lampSpot: () => t('mine.lampSpot', 'A dark chamber'),
@@ -51,6 +52,7 @@ export const MINE_CLIENT_TEXT = Object.freeze({
     lit: t('mine.lit', 'A lamp already burns in this chamber.'),
     empty: t('mine.hopperEmpty', 'The hopper is empty. Give the drill time.'),
     guest: t('mine.drillGuest', 'Only a registered account can run a drill.'),
+    depleted: t('mine.oreDepleted', 'This ore deposit is depleted.'),
     full: t('mine.drillsFull', 'There is no room for another drill in this mine.'),
   })[e] ?? null,
 });
@@ -87,6 +89,8 @@ export function createMineClient(deps) {
   const nowS = () => Math.floor(Date.now() / 1000);
   /** The drill on hole k of chamber c of section s, as the room last said it, or null. */
   const lit = (/** @type {number} */ s, /** @type {number} */ c) => !!st?.lamps?.some((/** @type {any} */ l) => l.s === s && l.c === c);
+  const depleted = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) =>
+    oreRunsLeft(st?.oreWork, mineOreKey(s, c, k)) <= 0;
   const drillAt = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => st?.drills?.find((/** @type {any} */ d) => d.s === s && d.c === c && d.k === k) ?? null;
   async function haul(/** @type {string} */ r) {
     try {
@@ -137,9 +141,10 @@ export function createMineClient(deps) {
       if (!p) return null;
       if (p.kind === 'hole') {
         const h = chamber(p.s, p.c)?.holes[p.k], d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
+        if (depleted(p.s, p.c, p.k) && !d) return null;
         const mineOrCrew = d && (d.by === me || (me && d.crew?.includes(me)));
         const drill = !deps.drillOk?.() ? null : !d ? MINE_CLIENT_TEXT.setDrill() : mineOrCrew ? (() => { const r = drillReading(d, nowS()); return d.by === me ? MINE_CLIENT_TEXT.myDrill(r.n, r.left) : `${MINE_CLIENT_TEXT.crewDrill()}: ${MINE_CLIENT_TEXT.myDrill(r.n, r.left).split(': ').slice(1).join(': ')}`; })() : MINE_CLIENT_TEXT.theirDrill();
-        return { title: t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: drill ? `${oreName(h.ore)} - ${drill}` : oreName(h.ore) } : {}) };
+        return { title: depleted(p.s, p.c, p.k) ? t('mine.hopperTitle', 'Drill hopper') : t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: drill ? `${oreName(h.ore)} - ${drill}` : oreName(h.ore) } : {}) };
       }   // the owner: "turn hole in the rock into Minable Ore"
       if (p.kind === 'lamp') return chamber(p.s, p.c) ? { title: lit(p.s, p.c) ? MINE_CLIENT_TEXT.lampLit() : MINE_CLIENT_TEXT.lampSpot(), ...(lit(p.s, p.c) ? {} : { sub: MINE_CLIENT_TEXT.lampSet() }) } : null;
       const w = chamber(p.s, p.c)?.walls[p.k];
@@ -165,6 +170,7 @@ export function createMineClient(deps) {
         const d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
         if (d && d.by !== me && !(me && d.crew?.includes(me))) { deps.say(MINE_CLIENT_TEXT.refused('not-yours') ?? ''); return true; }
         if (d) { lastAsk = 'take'; deps.send('take', { s: p.s, c: p.c, h: p.k }); return true; }
+        if (depleted(p.s, p.c, p.k)) { deps.say(MINE_CLIENT_TEXT.depleted()); return true; }
         // a new drill: its own (a Mining Drill owned), a shift's fuel spent, the mine's own refusals asked first so no fuel is lost to one
         if (st?.drills?.some((/** @type {any} */ x) => x.by === me && drillReading(x, nowS()).running)) { deps.say(MINE_CLIENT_TEXT.refused('one-each') ?? ''); return true; }
         if (deps.kit && deps.kit('drill') <= 0) { deps.say(MINE_CLIENT_TEXT.needDrill()); return true; }
@@ -195,6 +201,7 @@ export function createMineClient(deps) {
     },
     /** The mine as last heard (probes), and whether its collapse has put the player out. */
     state: () => st,
+    holeAvailable: (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => !depleted(s, c, k) || !!drillAt(s, c, k),
     falling: () => fall !== null,
   };
 }

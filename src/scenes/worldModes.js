@@ -2643,7 +2643,7 @@ export function createWorldModes(host) {
     back: () => favorShop.open(),
   });
   const societyDesk = createSocietyDesk({ call: host.societyCall ?? null, kit: host.societyKit ?? null, stores: host.societyStores ?? null, gold: () => playerEntity?.goldPieces ?? 0,
-    gainRep: (n) => bunnyGainRep(playerEntity, 'cartographers', n), choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });   // BUNNYFALL (2026-11-26, caverns)
+    gainRep: (n) => bunnyGainRep(playerEntity, 'cartographers', n) });   // BUNNYFALL (2026-11-26, caverns)
   const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
@@ -4471,10 +4471,15 @@ export function createWorldModes(host) {
     if (gateRole === 'bookmaker' && host.arenaBookmaker?.()) return;   // ARENA3: the bookmaker's stall (scenes/arena/arenaGate.js)
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
     if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
-      openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
-        entity: playerEntity, openFavor: () => favorShop.open(), openSociety: () => { void societyDesk.open(); }, openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
+      const services = bunnyHallServices({
+        entity: playerEntity, openFavor: () => favorShop.open(), openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
         revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
-      }));
+      });
+      if (pn.bunnyClerk === 'cartographers') {
+        const win = societyDesk.open((show) => { openBunnyHall(pn.bunnyClerk, playerEntity, show, services); });
+        if (win) { townTalk?.showOverlay?.(win); return; }
+      }
+      openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), services);
       return;
     }
     if (!info && pn?.lamp) { lampChoice(pn); return; }   // LAMP-KEEPER II: the lamp's own words, its shop, and its title
@@ -9724,7 +9729,7 @@ export function createWorldModes(host) {
   /** KETCH (bible/11-Multiplayer/Sky-Ketch.md sections 3 and 11): A CREW'S SHIP on this screen - its set, its seams routed to the
    *  world's client (`host.ketch`), its look (scenes/ketch/ketchDeckHost.js - HOST-SPLIT: built there, its reads here). */
   const ketchDeck = createKetchDeckHost({ renderer, host, wm: _madeView });
-  const mineHost = createMineHost({ renderer, audio, getTexture, uploadRecord, link: () => host.mine ?? null, say: (x) => say(x), shake: (k) => host.shakeCamera?.(k), leave: () => { if (mode === 'dungeon' && dungeonCtx && isMine(dungeonLoc)) pendingDungeonExit = true; } });   // BUNNYFALL (2026-11-25, caverns)
+  const mineHost = createMineHost({ renderer, audio, link: () => host.mine ?? null, say: (x) => say(x), shake: (k) => host.shakeCamera?.(k), leave: () => { if (mode === 'dungeon' && dungeonCtx && isMine(dungeonLoc)) pendingDungeonExit = true; } });   // BUNNYFALL (2026-11-25, caverns)
   /** EG-ZN (2026-10-12, Elite-Gates.md section 11.8): THE OCCLUDERS DITHERED, this frame - after its beginFrame (the shadow
    *  record open) and before the dynamic draws: the circle's rock a ray from the third-person eye to my body (its pivot and
    *  its chest) crosses dithered out, the rest of the circle drawn whole (scenes/eliteGates/egOcclude.js). First person, a witness's
@@ -11209,7 +11214,7 @@ export function createWorldModes(host) {
         // 16-slot shader cap picks from what survives (dungeonLights.js
         // carries the composition and why that order).
         _dgNear,   // EL1: the installed set's cap
-        abyssCandle(dungeonCtx.candleLight(), _abyss), _abyss?.torchOff ? null : _dgTint(playerTorchLight(playerEntity, player.feetAt(), cam.yaw)), ...(host.peerLights?.({ torches: !_abyss?.torchOff }) ?? []).map((l) => abyssCandle(_dgTint(l), _abyss)), ...dungeonCtx.campLights().map(_dgTint), ...dungeonCtx.torchLights().map(_dgTint), ...(dungeonCtx.sdEndLights?.() ?? []), ...(host.modeLights?.() ?? []));   // OH-E: the abyss's candle at half, its torch put out; AUDIT PRE-MERGE 0928 M4: and the others' (PEERLIGHT1/2), as on their own screens; X11 the Light effect's candle; T1 the torch. DISC19-B: the DUNGEON's engine's candle - every cast down here is the context's engine's, and this host's own `magic` is not updated underground (its candle stood dark, or lit at the street it was cast on); HT1 the dropped lights; SURV3 the campfires; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
+        abyssCandle(dungeonCtx.candleLight(), _abyss), _abyss?.torchOff ? null : _dgTint(playerTorchLight(playerEntity, player.feetAt(), cam.yaw)), ...(host.peerLights?.({ torches: !_abyss?.torchOff }) ?? []).map((l) => abyssCandle(_dgTint(l), _abyss)), ...dungeonCtx.campLights().map(_dgTint), ...dungeonCtx.torchLights().map(_dgTint), ...(isMine(dungeonLoc) ? mineHost.lampLights(cam.pos) : []), ...(dungeonCtx.sdEndLights?.() ?? []), ...(host.modeLights?.() ?? []));   // OH-E: the abyss's candle at half, its torch put out; AUDIT PRE-MERGE 0928 M4: and the others' (PEERLIGHT1/2), as on their own screens; X11 the Light effect's candle; T1 the torch. DISC19-B: the DUNGEON's engine's candle - every cast down here is the context's engine's, and this host's own `magic` is not updated underground (its candle stood dark, or lit at the street it was cast on); HT1 the dropped lights; SURV3 the campfires; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
       renderer.setPointLights(_dgLit.data, null, (_dgFade && capFadePairs(_dgLit.data, _dgLit.data.length / 4 - _dgNear.data.length / 4, cam.pos, renderer.maxPointLights, _dgLit.colors)) || _dgLit.colors);   // LA-AUDIT A5
       // WB3b: the braziers, in their own fire's colour, after the player's lights; WB4: and the glow on the boss - WB9b: the
       // fight's own lights first (his glow, the crystals, the spoils), then the braziers nearest first, so the renderer's
@@ -11282,6 +11287,7 @@ export function createWorldModes(host) {
       // RPT1026-FIGHTS (WINDOW-ONLINE, scenes/windowWorld.js): the window HOLDS this frame offline alone (DFU's PauseGame) -
       // online the world it stands in runs on under it (WINFOE1's law, underground at last): the frame below steps the
       // foes, ticks the rounds and draws, the window last over it; the motor, the input and the breath stay held
+      if (isMine(dungeonLoc)) mineHost.drawDrillReadout(canvas, mwv.eye, modeHudCovered());
       if (windowHoldsDungeon(dungeonCtx.uiOverlayActive, aliveUnder())) { dungeonCtx.hideHudText?.(); hideWorldPlaque(); dungeonCtx.tickOverlay(dt); host.drawPeerNames?.({ proj, view, eye: mwv.eye }); host.drawCompanionBars?.({ proj, view, eye: mwv.eye }); dungeonCtx.drawOverlay(canvas); return true; }   // U2b/U3: overlays gate the dungeon (AUDIT 18 F5: the overlay's own clock still runs)   // AUDIT-WH H4: and the plaque comes down on this line too - this return is ABOVE drawFoes, where the hover lives, so it hung frozen over every dungeon window showing a container's PRE-TAKE contents
       dungeonCtx.drawFoes(dt, canvas, proj, view, cam.pos, player.pos, !dungeonCtx.uiOverlayActive && anyMove(moveHeld(keys)), player.height, !!player.isSneaking, motionBagOf(player), player.bobOffset ? player.bobOffset[1] : 0, !!player.crouching, player.feetAt(), climbRigInput(player, cam.yaw), aimView);   // DISC13-A: the render feet, the candle's   // CLIMB6: the climb's snapshot   // ROAD-H H1b: PlayerMotor.IsCrouching rides in beside the live height - the archer's 0.05 dip (DaggerfallMissile.cs:583-585) is the latched STATE, not a 0.9 capsule   // PX26 F4: the jump-state inputs the interior lane never sent - without them `grounded` read undefined, the rig thought the player was permanently airborne, and BOTH the movement selection and the jump play died in every interior   // moveHeld: the collision-trigger input gate (verbatim)   // C8 foes + S3b clock + S4b missiles - internally gated, must run foes or not (trap spells fire in empty dungeons)
       // WATER-D1: the water plane is drawn INSIDE drawFoes now, before the

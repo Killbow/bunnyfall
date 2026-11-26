@@ -4,6 +4,7 @@
 // The owner: "make them bigger and make them clustered". A rich seam's cluster is of the big crystals, a common one's of
 // the small ores; which pieces, where and how big, by the hole, so every page stands the same cluster.
 import { multiply, trs } from '../mat4.js';
+import { mineOreKey } from '../../net/mine/mineDrill.js';
 import { MINE_RICH_ORES } from '../../net/mine/mineLayout.js';
 
 /** How many of the baked ores (the last, the clusters) are the rich seams'. */
@@ -57,12 +58,12 @@ export function mineOreCluster(/** @type {{ at: number[], k: number, ore: string
  */
 export function mineOreDraws(layout, ores, meshOf = null) {
   const out = [];
-  for (const sec of layout.sections) for (const ch of sec.chambers) for (const h of ch.holes) {
+  for (const [s, sec] of layout.sections.entries()) for (const [c, ch] of sec.chambers.entries()) for (const h of ch.holes) {
     for (const p of mineOreCluster(h, ores.length)) {
       const gpu = meshOf?.(p.i, h.ore) ?? ores[p.i]?.gpu;
       if (!gpu) continue;
       const box = ores[p.i].box, s = p.tall / Math.max(0.05, box[4] - box[1]);
-      out.push({ gpu, object: { matrix: mineOreMatrix(p.at, box, p.yaw, s) }, hidden: false, noShadow: true, texRemap: null });
+      out.push({ oreKey: mineOreKey(s, c, h.k), gpu, object: { matrix: mineOreMatrix(p.at, box, p.yaw, s) }, hidden: false, noShadow: true, texRemap: null });
     }
   }
   return out;

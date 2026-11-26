@@ -369,7 +369,7 @@ export function standCaveVeins({ mine, reset }) {
   L.sections.forEach((sec, s) => sec.chambers.forEach((ch, c) => where.set(ch.id, { s, c, floor: ch.c[1] })));
   return mineVeins(L).map((v) => {
     const w = where.get(v.chamber) ?? { s: 0, c: 0, floor: v.at[1] - 1 };
-    return { key: cveinKey({ mine, reset, slot: v.slot }), what: 'cvein', slot: v.slot, tier: v.tier, material: v.material, local: [v.at[0], w.floor, v.at[2]], lift: 0.4, reach: 2.5, s: w.s, c: w.c };
+    return { key: cveinKey({ mine, reset, slot: v.slot }), what: 'cvein', slot: v.slot, tier: v.tier, material: v.material, local: [v.at[0] + v.n[0] * 1.35, w.floor, v.at[2] + v.n[2] * 1.35], lift: 0.4, reach: 2.5, s: w.s, c: w.c };
   });
 }
 /** A node's flats: a cluster round its foot, turned by its slot. */
