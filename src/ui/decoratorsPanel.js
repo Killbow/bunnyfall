@@ -51,13 +51,13 @@ const swallowPresses = (node) => {
 
 export const DECORATORS_TEXT = Object.freeze({
   get title() { return t('decor.decorators.title', 'Decorators'); },
-  get empty() { return t('decor.decorators.empty', 'Nobody else decorates this home.'); },
+  get empty() { return t('decor.decorators.empty', 'No one else can decorate this home yet.'); },
   get emptyCaravan() { return t('caravan.decorators.empty', 'Nobody else sends you templates for your caravan.'); },
   get add() { return t('decor.decorators.add', 'Add decorator'); },
   get nameAsk() { return t('decor.decorators.nameAsk', 'Who may decorate this home? Enter their username.'); },
   get nameAskCaravan() { return t('caravan.decorators.nameAsk', 'Who may send you templates for your caravan? Enter their username.'); },
   get remove() { return t('decor.decorators.remove', 'Remove'); },
-  removeAsk: (name) => t('decor.decorators.removeAsk', 'Remove {name}? Their unaccepted template is discarded.', { name }),
+  removeAsk: (name) => t('decor.decorators.removeAsk', 'Remove {name}? Their unaccepted template will be discarded.', { name }),
   line: (name, pieces) => t('decor.decorators.line', '{name}: {pieces, plural, one {# template piece} other {# template pieces}}', { name, pieces }),
   lineSent: (name, pieces) => t('decor.decorators.lineSent', '{name}: template sent, {pieces, plural, one {# piece} other {# pieces}}', { name, pieces }),
   get list() { return t('decor.template.list', 'Templates sent to you'); },

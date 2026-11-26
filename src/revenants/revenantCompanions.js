@@ -82,7 +82,7 @@ export function forgetSwornMember(id = null) { if (id == null) { _members.clear(
 export function callRefusal(r, now) {
   if (!r?.sworn) return 'It is no longer sworn to you.';
   if (stateOf(r) === 'with') return null;
-  if (stateOf(r) === 'station' && !stationLost(r)) return t('rvn.station.callAtPost', 'It stands at a farm\'s beast post. Call it back there, in Farming Mode.');
+  if (stateOf(r) === 'station' && !stationLost(r)) return t('rvn.station.callAtPost', 'It is stationed at a farm\'s beast post. Call it back there in Farming Mode.');
   if (stateOf(r) === 'resting' && now < restUntil(r, now)) return 'Still recovering.';
   if (stateOf(r) === 'errand') return t('rvn.errand.callAbroad', 'Abroad, {left}.', { left: errandLeftWords(errandUntil(r.companion.errand, now), now, sharedClockOn()) });
   if (wildHere() && revenantsWithYou().length >= WILD_REVENANTS_MAX) return zoneWord('revenantOne');
@@ -151,15 +151,15 @@ export function errandRefusal(r, now) {
   if (stateOf(r) === 'errand') return t('rvn.errand.no.abroad', 'It is already abroad.');
   if (stateOf(r) === 'station') return t('rvn.station.no.errand', 'It is stationed at a farm. Call it back from its post first.');
   if (stateOf(r) === 'resting' && now < restUntil(r, now)) return t('rvn.errand.no.resting', 'Still recovering.');
-  if (revenantsAbroad().length >= ERRAND.MAX) return t('rvn.errand.no.most', '{n} of your sworn are abroad already, the most allowed at once.', { n: ERRAND.MAX });
+  if (revenantsAbroad().length >= ERRAND.MAX) return t('rvn.errand.no.most', 'You already have {n} sworn companions abroad, the maximum allowed at once.', { n: ERRAND.MAX });
   return leaveRefusal(r);
 }
 export function sendOnErrand(id, place, venture, { now = Math.floor(ownMinutes()), seed = Math.floor(Math.random() * 0x100000000), world = sharedClockOn() ? errandWorldNow() : NaN } = {}) {
   const r = revenantRecord(_player, id);
   const why = errandRefusal(r, now);
   if (why) return why;
-  const e = newErrand(r, place, venture, now, seed, world);
-  if (!e) return t('rvn.errand.no.such', 'It knows no such errand.');
+  const e = newErrand(r, place, venture, now, seed, world);   // OFFLINE-ROAD: online, its world's minute
+  if (!e) return t('rvn.errand.no.such', 'That mission is not available.');
   revenantCompanionUpdate(_player, id, (c) => { c.state = 'errand'; c.errand = e; c.until = null; c.rested = false; });
   _errandClock ??= { own: ownMinutes(), raised: raisedMinutes() };
   forgetSwornMember(id);
@@ -198,8 +198,8 @@ export function returnFromErrand(id, now) {
   const p = errandPlace(e.place);
   const body = haul.won
     ? t('rvn.errand.back', 'Back from {place} with {haul}.', { place: p?.name ?? '', haul: errandHaulWords(haul) })
-    : t('rvn.errand.backHurt', 'Back, hurt, from {place} with {haul}. It must recover.', { place: p?.name ?? '', haul: errandHaulWords(haul) });
-  _errandWords.push(revenantEvent('errand_back', r, { body, line: t('rvn.errand.backLine', '{name}: {body}', { name: r.name, body }) }));
+    : t('rvn.errand.backHurt', 'Returned injured from {place} with {haul}. It needs time to recover.', { place: p?.name ?? '', haul: errandHaulWords(haul) });
+  _errandWords.push(revenantEvent('errand_back', r, { body, line: t('rvn.errand.backLine', '{name}: {body}', { name: r.name, body }) }));   // AUDIT RVN D7: no portal's voice - it waits away
   return haul;
 }
 export function chargeErrands(now, { own = ownMinutes(), raised = raisedMinutes(), online = sharedClockOn(), world = errandWorldNow() } = {}) {
@@ -238,8 +238,8 @@ const stationLost = (r) => { try { return _stationHome ? _stationHome(r.companio
 export const revenantsStationed = () => swornRevenants().filter((r) => stateOf(r) === 'station');
 export function stationRefusal(r) {
   if (!r?.sworn) return t('rvn.sworn.gone', 'It is no longer sworn to you.');
-  if (!isStationBeast(r.mobileType)) return t('rvn.station.no.kind', 'Only a beast will stand at a farm\'s post.');
-  if (stateOf(r) !== 'with') return t('rvn.station.no.with', 'It must walk at your side to be stationed.');
+  if (!isStationBeast(r.mobileType)) return t('rvn.station.no.kind', 'Only a beast can be stationed at a farm\'s post.');
+  if (stateOf(r) !== 'with') return t('rvn.station.no.with', 'It must be at your side to be stationed.');
   return leaveRefusal(r);
 }
 // A stationed beast frees a companion slot but still counts toward REVENANT_RETINUE_MAX, and it goes on no errand.

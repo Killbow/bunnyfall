@@ -21,17 +21,17 @@ export const LOOK_FILTERS = Object.freeze([
 ]);
 /** The part's words, each read when said. */
 export const LOOK_WORDS = Object.freeze({
-  how: () => t('coll.looks.how', 'Every armor piece, shield and weapon you hold adds its look here. A Clothing Store, an Armorer or a Weaponsmith can give a piece you wear any look of its kind, for gold.'),
+  how: () => t('coll.looks.how', 'Every armor piece, shield, and weapon you hold adds its look here. For gold, a Clothing Store, an Armorer, or a Weaponsmith can apply any look of the same kind to a piece you wear.'),
   group: (/** @type {string} */ kind, /** @type {number} */ held, /** @type {number} */ total) => t('coll.looks.group', '{kind} · {held} / {total}', { kind, held, total }),
   none: () => t('coll.looks.none', 'None collected yet.'),
   held: () => t('coll.looks.tag.held', 'Held'),
   worn: () => t('coll.looks.tag.worn', 'Worn'),
   howHead: () => t('coll.looks.howHead', 'How to get it'),
   // AUDIT HORIZONTAL E4: no article before a name that starts with a vowel or a material; past style 1 a shop's roll alone
-  howGet: (/** @type {string} */ name) => t('coll.looks.howGet', 'To collect {name}: buy it, find it or make it.', { name }),
+  howGet: (/** @type {string} */ name) => t('coll.looks.howGet', 'To collect {name}: buy it, find it, or make it.', { name }),
   howBuy: (/** @type {string} */ name) => t('coll.looks.howBuy', 'To collect {name}: buy it at a shop.', { name }),
   wearHead: () => t('coll.looks.wearHead', 'Wearing it'),
-  wearAt: (/** @type {string} */ kind, /** @type {number} */ gold) => t('coll.looks.wearAt', 'Over any piece of its kind ({kind}), at a Clothing Store, an Armorer or a Weaponsmith, for {gold, number} gold.', { kind, gold }),
+  wearAt: (/** @type {string} */ kind, /** @type {number} */ gold) => t('coll.looks.wearAt', 'Over any piece of its kind ({kind}), at a Clothing Store, an Armorer, or a Weaponsmith, for {gold, number} gold.', { kind, gold }),
   heldLine: () => t('coll.looks.heldLine', 'Collected.'),
 });
 

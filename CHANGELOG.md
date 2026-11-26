@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Changed: Revenant, home decor, birthsign, growth, collection, and online text uses plainer words.
 - Changed: Iliac Hand, King's Gambit, and tavern text uses plainer words.
 - Changed: The launcher's rabbit now keeps the campfire company: he lights it while the launcher works, cheers as an update brings it to life, and dances beside it with the cube once you can play. On the first run he carries the cube in.
 - Changed: On the website's front page the cube stands by the Play button, and the rabbit hauls the cube past the credits.

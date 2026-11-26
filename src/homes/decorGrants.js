@@ -214,7 +214,7 @@ export async function openSharedChest(id) {
     const stack = item?.stackCount ?? 1;
     const n = amount == null ? stack : amount;
     if (!Number.isInteger(n) || n < 1 || n > stack || typeof go !== 'function') { d.say?.(t('decor.grants.whole', 'The chest takes the whole stack.')); return false; }
-    if (!item || typeof item !== 'object') { d.say?.(dir === 'put' ? t('decor.grants.badItem', 'That cannot be stored.') : t('decor.grants.stays', 'It stays in the chest.')); return false; }
+    if (!item || typeof item !== 'object') { d.say?.(dir === 'put' ? t('decor.grants.badItem', 'That cannot be stored.') : t('decor.grants.stays', 'That cannot be taken from the chest.')); return false; }
     const real = d.items?.() ?? [];
     if (dir === 'put' && draft.includes(item) && !real.includes(item)) {
       const cut = cuts.find((c) => c.give === item);

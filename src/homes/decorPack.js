@@ -46,6 +46,6 @@ export function returnUnstood(room, pieces, give, say) {
   const own = (room.ownIds?.() ?? []).filter((/** @type {string} */ id) => !standing.has(id)).map((/** @type {string} */ id) => room.takeOwn(id)).filter(Boolean);
   const back = [...own, ...(room.takeUnserved?.(pieces) ?? [])];
   for (const it of back) give(it);
-  if (back.length) say?.(ownBackLines(back, (n) => t('decor.tool.strayBack', '{n, plural, one {One of your things was no longer here and went back to your pack.} other {# of your things were no longer here and went back to your pack.}}', { n })));
+  if (back.length) say?.(ownBackLines(back, (n) => t('decor.tool.strayBack', '{n, plural, one {An item from an unsaved piece is back in your pack.} other {# items from unsaved pieces are back in your pack.}}', { n })));
   return back;
 }

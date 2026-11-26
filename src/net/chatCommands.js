@@ -44,13 +44,13 @@ export const CHANNEL_COMMANDS = Object.freeze([
   Object.freeze({ names: Object.freeze(['local', 'l', 'say', 's']), tab: 'local', wrap: null, help: '/local, /l, /say or /s <text>: to players nearby, in character' }),
   Object.freeze({ names: Object.freeze(['ooc']), tab: 'local', wrap: 'ooc', help: '/ooc <text>: to players nearby, out of character (( ))' }),
   // CHAT-TRADE: the two channels a player joins by choice - said on a channel not joined joins it (scenes/world.js)
-  Object.freeze({ names: Object.freeze(['trade', 'tr']), tab: 'trade', wrap: null, get help() { return t('net.chat.tradeHelp', '/trade or /tr <text>: post to the Trade channel to buy, sell or swap'); } }),
+  Object.freeze({ names: Object.freeze(['trade', 'tr']), tab: 'trade', wrap: null, get help() { return t('net.chat.tradeHelp', '/trade or /tr <text>: post to the Trade channel to buy, sell, or swap'); } }),
   Object.freeze({ names: Object.freeze(['lfg']), tab: 'lfg', wrap: null, get help() { return t('net.chat.lfgHelp', '/lfg <text>: post to the LFG channel to find a group or more players'); } }),
 ]);
 /** CHAT-TRADE: the channels `/join` and `/leave` name (net/chat.js OPT_CHANNELS' ids). */
 export const JOIN_CHANNELS = Object.freeze(['trade', 'lfg']);
 /** CHAT-TRADE: a /join or /leave that names none of them - through the text core (AUDIT CHAT-TRADE A4). */
-export const badJoinText = (name) => t('net.chat.badJoin', '/{cmd} takes trade or lfg: /{cmd} trade.', { cmd: name });
+export const badJoinText = (name) => t('net.chat.badJoin', 'Use /{cmd} trade or /{cmd} lfg.', { cmd: name });
 /**
  * EMOTE1 (2026-09-23, Addison Knox: "Emotes, be it emojis or additional animations"): THE GESTURES. Each is an ACTION
  * line said on the Local tab - a gesture is the body's, and the bodies near enough to see it are the ones Local
@@ -199,7 +199,7 @@ export function pauseCommandOf(text) {
  *  online and signed in, so the season's one refusal is the relay's clock not yet heard (world.js timersSource) - said
  *  so, never "connect and sign in" to a player who has; the mailbox's is the box not there. */
 export const pauseCommandRefusal = (/** @type {string} */ at) => (at === 'season'
-  ? t('net.chat.seasonRefused', 'The world\'s clock hasn\'t been heard yet. Try again in a moment.')
+  ? t('net.chat.seasonRefused', 'The server clock is not available yet. Go online, or try again in a moment.')
   : t('net.chat.mailRefused', 'Connect and sign in to use the mailbox.'));
 /**
  * EVENT1: `/event <name> [on|off]` and `/event off` - a dev staging a live event for everyone online, or ending it.
@@ -245,13 +245,13 @@ export const HELP_LINES = lazyLines([
   '/unstuck: leave by the door you came in, or outdoors go to the nearest town (/unstuck cancel stops it)',   // PVPUNSTUCK
   '/mentor: shows whether you’re mentoring your party (it turns on when they’re well below your level)',
   '/mail: your mailbox, with messages from the developers and items to claim',
-  () => t('net.chat.bugHelp', '/bug: tell the developers privately about an exploit, a bug or a security hole'),   // PRIVATE-REPORT
-  () => t('net.chat.seasonHelp', '/season: this season, your standings and the time left'),   // SEASON-BOOK
+  () => t('net.chat.bugHelp', '/bug: tell the developers privately about an exploit, a bug, or a security hole'),   // PRIVATE-REPORT
+  () => t('net.chat.seasonHelp', '/season: this season, your standings, and the time left'),   // SEASON-BOOK
   '/find or /who <name>: find who is online by that name',   // SCALE5c
   '/search <name>: show a player\'s lines on every tab and who is online by that name (/search on its own clears it)',   // CHAT-FIND
-  () => t('net.chat.blockHelp', '/block <name>, /unblock <name>, /blocked: hide a player’s lines, invites and requests, or show them again'),   // SAFE1
+  () => t('net.chat.blockHelp', '/block <name>, /unblock <name>, /blocked: hide a player\'s messages, invites, and requests, or show them again'),   // SAFE1
   '/hideskin <name>, /showskin <name>, /hiddenskins: stop drawing a player\'s custom paperdoll, or draw it again',   // CUSTOM-SKIN
-  () => t('net.chat.reportHelp', '/report <name> [harassment|hate|sexual|threat|spam][: note]: send their recent lines and your note to the moderators. You can also click a name in the chat'),   // SAFE3 - AUDIT SAFE DOC-13: and the reporter's note
+  () => t('net.chat.reportHelp', '/report <name> [harassment|hate|sexual|threat|spam][: note]: send their recent messages and your note to the moderators. You can also click a name in chat'),   // SAFE3 - AUDIT SAFE DOC-13: and the reporter's note
   () => t('net.chat.rulesHelp', '/rules: the Code of Conduct every player agreed to'),   // SAFE7
   '//text: a line that starts with a slash',
 ]);

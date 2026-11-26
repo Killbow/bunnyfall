@@ -190,7 +190,7 @@ export function trainedHow(a) {
     case 'silverScarred': return t('rvn.unq.how.silverScarred', 'silver');
     case 'steadfast': return t('rvn.unq.how.steadfast', 'heavy blows');
     case 'patient': return t('rvn.unq.how.patient', 'footwork');
-    case 'watchful': return t('rvn.unq.how.watchful', 'tricks from behind');
+    case 'watchful': return t('rvn.unq.how.watchful', 'attacks from behind');
     case 'relentless': return t('rvn.unq.how.relentless', 'running');
     case 'nightStalker': return t('rvn.unq.how.nightStalker', 'night raids');
     default: return null;
@@ -217,33 +217,33 @@ export const sanitizeTrail = (v) => (Number.isFinite(v) && v > 0 ? Math.floor(v)
 
 export function craftWords(craft) {
   switch (craft) {
-    case 'smoke': return { name: t('rvn.unq.craft.smoke', 'Smoke'), effect: t('rvn.unq.craft.smokeDo', 'it throws down smoke and vanishes as it runs, but a blow can still find it') };
+    case 'smoke': return { name: t('rvn.unq.craft.smoke', 'Smoke'), effect: t('rvn.unq.craft.smokeDo', 'it throws down smoke and vanishes as it runs, but your attacks can still hit it') };
     case 'blink': return { name: t('rvn.unq.craft.blink', 'Blink'), effect: t('rvn.unq.craft.blinkDo', 'it tears open a rift and is gone. Silence it, hold it, or strike it as it fades') };
-    case 'sink': return { name: t('rvn.unq.craft.sink', 'Sink'), effect: t('rvn.unq.craft.sinkDo', 'it sinks into the earth. Strike it before it is under, and it rises, cornered, and runs no more') };
+    case 'sink': return { name: t('rvn.unq.craft.sink', 'Sink'), effect: t('rvn.unq.craft.sinkDo', 'it sinks into the earth. Strike it before it goes under, and it rises, cornered, and stops running') };
     case 'bolt': return { name: t('rvn.unq.craft.bolt', 'Bolt'), effect: t('rvn.unq.craft.boltDo', 'it runs faster than anything you have chased. Bring it down from range, and break its will before the killing blow') };
     default: return null;
   }
 }
 export function craftFleeWords(craft, given) {
   switch (craft) {
-    case 'smoke': return t('rvn.unq.flee.smoke', '{given} throws down smoke and is lost to sight!', { given });
-    case 'blink': return t('rvn.unq.flee.blink', '{given} tears open a rift. Strike it before it is through!', { given });
-    case 'sink': return t('rvn.unq.flee.sink', '{given} sinks into the earth. Strike it before it is under!', { given });
-    case 'bolt': return t('rvn.unq.flee.bolt', '{given} bolts!', { given });
+    case 'smoke': return t('rvn.unq.flee.smoke', '{given} throws down smoke and vanishes from sight.', { given });
+    case 'blink': return t('rvn.unq.flee.blink', '{given} tears open a rift. Strike it before it escapes.', { given });
+    case 'sink': return t('rvn.unq.flee.sink', '{given} sinks into the earth. Strike it before it goes under.', { given });
+    case 'bolt': return t('rvn.unq.flee.bolt', '{given} bolts.', { given });
     default: return null;
   }
 }
 export function woundWords(w) {
   switch (w) {
-    case 'bled': return { name: t('rvn.unq.wound.bled', 'Bled'), effect: t('rvn.unq.wound.bledDo', 'a wound that will not close, so it has less health') };
-    case 'cracked': return { name: t('rvn.unq.wound.cracked', 'Cracked'), effect: t('rvn.unq.wound.crackedDo', 'cracked bones, so it staggers more easily') };
-    case 'maimed': return { name: t('rvn.unq.wound.maimed', 'Maimed'), effect: t('rvn.unq.wound.maimedDo', 'a maimed hand, so its blows are lighter') };
-    case 'lamed': return { name: t('rvn.unq.wound.lamed', 'Lamed'), effect: t('rvn.unq.wound.lamedDo', 'a lamed leg, so it runs slower') };
-    case 'burned': return { name: t('rvn.unq.wound.burned', 'Burned'), effect: t('rvn.unq.wound.burnedDo', 'fire bites it deeper') };
-    case 'frostbitten': return { name: t('rvn.unq.wound.frostbitten', 'Frostbitten'), effect: t('rvn.unq.wound.frostbittenDo', 'frost bites it deeper') };
-    case 'stormstruck': return { name: t('rvn.unq.wound.stormstruck', 'Stormstruck'), effect: t('rvn.unq.wound.stormstruckDo', 'shock bites it deeper') };
-    case 'blighted': return { name: t('rvn.unq.wound.blighted', 'Blighted'), effect: t('rvn.unq.wound.blightedDo', 'poison bites it deeper') };
-    case 'hexed': return { name: t('rvn.unq.wound.hexed', 'Hexed'), effect: t('rvn.unq.wound.hexedDo', 'magic bites it deeper') };
+    case 'bled': return { name: t('rvn.unq.wound.bled', 'Bled'), effect: t('rvn.unq.wound.bledDo', 'has less health') };
+    case 'cracked': return { name: t('rvn.unq.wound.cracked', 'Cracked'), effect: t('rvn.unq.wound.crackedDo', 'staggers more easily') };
+    case 'maimed': return { name: t('rvn.unq.wound.maimed', 'Maimed'), effect: t('rvn.unq.wound.maimedDo', 'deals less damage') };
+    case 'lamed': return { name: t('rvn.unq.wound.lamed', 'Lamed'), effect: t('rvn.unq.wound.lamedDo', 'moves slower') };
+    case 'burned': return { name: t('rvn.unq.wound.burned', 'Burned'), effect: t('rvn.unq.wound.burnedDo', 'takes more fire damage') };
+    case 'frostbitten': return { name: t('rvn.unq.wound.frostbitten', 'Frostbitten'), effect: t('rvn.unq.wound.frostbittenDo', 'takes more frost damage') };
+    case 'stormstruck': return { name: t('rvn.unq.wound.stormstruck', 'Stormstruck'), effect: t('rvn.unq.wound.stormstruckDo', 'takes more shock damage') };
+    case 'blighted': return { name: t('rvn.unq.wound.blighted', 'Blighted'), effect: t('rvn.unq.wound.blightedDo', 'takes more poison damage') };
+    case 'hexed': return { name: t('rvn.unq.wound.hexed', 'Hexed'), effect: t('rvn.unq.wound.hexedDo', 'takes more magic damage') };
     default: return null;
   }
 }
@@ -255,9 +255,9 @@ export function ambitionWords(a) {
     default: return null;
   }
 }
-export const trainedWords = (given, how) => t('rvn.unq.trained', '{given} has been training. It has learned to answer your {how}.', { given, how });
+export const trainedWords = (given, how) => t('rvn.unq.trained', '{given} has been training. It has learned to counter your {how}.', { given, how });
 export const healWords = (days) => t('rvn.unq.page.heals', 'The oldest heals in {days, plural, one {# day} other {# days}} unless you find it first.', { days });
-export const trailWords = (lair) => t('rvn.unq.trail', 'Its trail leads to {lair}, where it has gone to ground to recover. Catch it before it is whole again.', { lair });
+export const trailWords = (lair) => t('rvn.unq.trail', 'Its trail leads to {lair}, where it has gone to ground to recover. Catch it before it heals.', { lair });
 export function omenWords(a, given) {
   switch (a) {
     case 'mastery': return t('rvn.unq.omen.mastery', 'Word reaches you that {given} is ready to face you again.', { given });
@@ -268,7 +268,7 @@ export function omenWords(a, given) {
 export function ambitionRumor(a) {
   switch (a) {
     case 'vengeance': return t('rvn.unq.rumor.vengeance', 'Word is it asks after you by name.');
-    case 'mastery': return t('rvn.unq.rumor.mastery', 'Word is it trains day and night for the day it meets you again.');
+    case 'mastery': return t('rvn.unq.rumor.mastery', 'Word is it trains day and night to face you again.');
     case 'plunder': return t('rvn.unq.rumor.plunder', 'Word is it has been raiding the roads.');
     default: return '';
   }

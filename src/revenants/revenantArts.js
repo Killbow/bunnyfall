@@ -86,12 +86,12 @@ export function artWords(r, { sworn = !!r?.sworn } = {}) {
   if (sworn) {
     const A = swornArtNumbers(r);
     switch (art) {
-      case 'mending': return t('rvn.art.sworn.mendingSecs', 'Art: {n}. When you drop under {at} of your health, it heals {share} of it (every {s} seconds).', { n, at: pct(ART_LAW.SWORN_MEND.AT), share: pct(A.mendShare), s: Math.round(A.mendCooldown) });
-      case 'warding': return t('rvn.art.sworn.warding', 'Art: {n}. As it goes into a fight, it shields you for {points} (every {s} seconds).', { n, points: A.wardPoints, s: Math.round(A.wardCooldown) });
-      case 'warcry': return t('rvn.art.sworn.warcry', 'Art: {n}. As it goes into a fight, your Strength rises by {points} (every {s} seconds).', { n, points: A.cryPoints, s: Math.round(A.cryCooldown) });
-      case 'siphon': return t('rvn.art.sworn.siphonShare', 'Art: {n}. Now and then it drains its foe’s life and gives you {share} of it.', { n, share: pct(ART_LAW.SWORN_STRIKE.SIPHON_HEAL) });
-      case 'barrage': return t('rvn.art.sworn.barrage', 'Art: {n}. Now and then it looses a barrage on its foe.', { n });
-      default: return t('rvn.art.sworn.nova', 'Art: {n}. Now and then it strikes every foe around it.', { n });
+      case 'mending': return t('rvn.art.sworn.mendingSecs', 'Art: {n}. When you fall below {at} health, it restores {share} of your maximum health (every {s} seconds).', { n, at: pct(ART_LAW.SWORN_MEND.AT), share: pct(A.mendShare), s: Math.round(A.mendCooldown) });   // AUDIT RVN-STARS S9: seconds, as the Ward's and the War Cry's - a minute and a half read as a minute
+      case 'warding': return t('rvn.art.sworn.warding', 'Art: {n}. Shields you for {points} at the start of combat (every {s} seconds).', { n, points: A.wardPoints, s: Math.round(A.wardCooldown) });
+      case 'warcry': return t('rvn.art.sworn.warcry', 'Art: {n}. Raises your Strength by {points} at the start of combat (every {s} seconds).', { n, points: A.cryPoints, s: Math.round(A.cryCooldown) });
+      case 'siphon': return t('rvn.art.sworn.siphonShare', 'Art: {n}. Now and then it drains life from an enemy and gives you {share} of it.', { n, share: pct(ART_LAW.SWORN_STRIKE.SIPHON_HEAL) });   // AUDIT RVN D13: its share, its constant's
+      case 'barrage': return t('rvn.art.sworn.barrage', 'Art: {n}. Now and then it looses a barrage on its enemy.', { n });
+      default: return t('rvn.art.sworn.nova', 'Art: {n}. Now and then it strikes every enemy around it.', { n });
     }
   }
   const young = (r.rank | 0) < ART_RANK, on = tacticsSwitchOn(), from = ROMAN[ART_RANK];
@@ -99,10 +99,10 @@ export function artWords(r, { sworn = !!r?.sworn } = {}) {
   switch (art) {
     case 'mending': return t('rvn.art.hunt.mending', 'Art: {n}. When hurt, it gathers itself to heal. Strike it to break the spell{below}.', { n, below });
     case 'warding': return t('rvn.art.hunt.warding', 'Art: {n}. When hurt, it raises a ward against your blows. Strike it to break the spell{below}.', { n, below });
-    case 'warcry': return t('rvn.art.hunt.warcry', 'Art: {n}. It roars as the fight begins, and it and its band hit harder. Strike it to cut the roar short{below}.', { n, below });
+    case 'warcry': return t('rvn.art.hunt.warcry', 'Art: {n}. It roars as the fight begins, making itself and its band hit harder. Strike it to cut the roar short{below}.', { n, below });
     case 'siphon': return t('rvn.art.hunt.siphon', 'Art: {n}. A beam that drains your life. Step out of its line{below}.', { n, below });
     case 'barrage': return t('rvn.art.hunt.barrageCount', 'Art: {n}. {count} blasts at your feet, one after another. Keep moving{below}.', { n, count: ART_LAW.BARRAGE.COUNT, below });
-    default: return t('rvn.art.hunt.novaRing', 'Art: {n}. A ring bursts where it stands. Step out of it, or into its center{below}.', { n, below });
+    default: return t('rvn.art.hunt.novaRing', 'Art: {n}. A ring bursts around it. Step out of it, or into its center{below}.', { n, below });
   }
 }
 const pct = (x) => `${Math.round(x * 100)}%`;
@@ -190,9 +190,9 @@ function call(f, st, ctx, what) {
   if (what === 'start') {
     if (st.called) return;
     st.called = true;
-    const body = ART_CHANNELS.includes(st.art) ? t('rvn.art.call.channel', 'Strike it to break the spell!') : st.art === 'siphon' ? t('rvn.art.call.siphon', 'Step out of its line!') : st.art === 'nova' ? t('rvn.art.call.nova', 'Step away from it!') : t('rvn.art.call.barrage', 'Keep moving!');
-    ctx.say(revenantEvent('art', r, { body, line: t('rvn.art.call.line', '{given} calls on its {n}! {body}', { given: r.given, n, body }) }));
-  } else if (what === 'broken') ctx.say(revenantEvent('art', r, { body: t('rvn.art.broken.body', 'Its {n} is broken.', { n }), line: t('rvn.art.broken.line', '{given}\'s {n} is broken!', { given: r.given, n }) }));
+    const body = ART_CHANNELS.includes(st.art) ? t('rvn.art.call.channel', 'Strike it to break the spell.') : st.art === 'siphon' ? t('rvn.art.call.siphon', 'Step out of its line.') : st.art === 'nova' ? t('rvn.art.call.nova', 'Step away from it.') : t('rvn.art.call.barrage', 'Keep moving.');
+    ctx.say(revenantEvent('art', r, { body, line: t('rvn.art.call.line', '{given} calls on its {n}. {body}', { given: r.given, n, body }) }));
+  } else if (what === 'broken') ctx.say(revenantEvent('art', r, { body: t('rvn.art.broken.body', 'Its {n} is broken.', { n }), line: t('rvn.art.broken.line', '{given}\'s {n} is broken.', { given: r.given, n }) }));
 }
 function liveStep(f, st, now, ctx, feet) {
   const L = st.live;

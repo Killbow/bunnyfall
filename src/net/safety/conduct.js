@@ -39,7 +39,7 @@ export const conductRules = () => [   // BUNNYFALL: the server's own rules (the 
   t('bf.conduct.r9', '9. Bugs and cheats. Report bugs in the bug channel. Don’t use exploits against other players, and don’t share them publicly.'),
 ];
 /** What follows a broken rule, and who reads a report. */
-export const conductConsequence = () => t('net.conduct.consequence', 'Breaking these rules gets you muted, then muted for longer, then banned. Moderators read every report, with an automated reviewer helping them sort what comes in. /block hides a player from you, and /report sends their lines to the moderators.');
+export const conductConsequence = () => t('net.conduct.consequence', 'Breaking these rules results in mutes of increasing length and eventually a ban. Moderators review every report with automated sorting, and you can use /block to hide a player or /report to send their messages to the moderators.');
 /** The button that agrees. */
 export const conductAgreeLabel = () => t('net.conduct.agree', 'I agree');
 /** The button that puts it off - the line stays unsent. */

@@ -348,7 +348,7 @@ export function createDecorTool(deps) {
     if (have >= 0) hotSlots[have] = null;
     else {
       const empty = hotSlots.findIndex((s) => !s);
-      if (empty < 0) { deps.say?.(t('decor.tool.barFull', 'The bar is full.')); return; }
+      if (empty < 0) { deps.say?.(t('decor.tool.barFull', 'The hotbar is full.')); return; }
       hotSlots[empty] = key;
     }
     saveDecorHotbar(hotSlots);
@@ -885,7 +885,7 @@ export function createDecorTool(deps) {
         const res = await deps.homeDecor.use({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id: piece.id, kind, mode: 'guild', rank, names: [] });
         if (!res?.ok) {
           if (useRank.get(piece.id) === rank) useRank.set(piece.id, curRank);
-          deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.'));
+          deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be saved.'));
           return false;
         }
         if (Number.isInteger(res.data?.rank) && useRank.get(piece.id) === rank) useRank.set(piece.id, res.data.rank);
@@ -914,7 +914,7 @@ export function createDecorTool(deps) {
       const act = !r.hall && kind === 'storage' ? deps.realm?.() : null;
       if (!r.hall && kind === 'storage' && !act) {
         if (cur === 'private') useMode.delete(piece.id); else useMode.set(piece.id, cur);
-        deps.say?.(t('decor.tool.unkept', 'It could not be kept.'));
+        deps.say?.(t('decor.tool.unkept', 'It could not be saved.'));
         return false;
       }
       useBusy = false;
@@ -924,7 +924,7 @@ export function createDecorTool(deps) {
       if (!res?.ok) {
         const nowMode = useMode.get(piece.id) ?? 'private';
         if (nowMode === mode) { if (cur === 'private') useMode.delete(piece.id); else useMode.set(piece.id, cur); }
-        deps.say?.(res?.error === 'bad-item' ? t('decor.tool.unmarked', 'Take out what has no mark first.') : (deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.')));
+        deps.say?.(res?.error === 'bad-item' ? t('decor.tool.unmarked', 'Take out any items that cannot be shared first.') : (deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be saved.')));
         return false;
       }
       const kept = DECOR_USE_MODES.includes(res.data?.mode) ? res.data.mode : mode;
@@ -1118,7 +1118,7 @@ export function createDecorTool(deps) {
       // A piece the draft placed and now takes away gives what it holds back to the pack.
       if (pool.holdsAny?.(p.id)) {
         for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);
-        deps.say?.(t('decor.tool.discardGaveBack', 'What the {name} held is back in your pack.', { name: entryOf(p).name }));
+        deps.say?.(t('decor.tool.discardGaveBack', 'The contents of the {name} are back in your pack.', { name: entryOf(p).name }));
       }
       pool.remove(p.id);
     }
@@ -1136,7 +1136,7 @@ export function createDecorTool(deps) {
       pool.takeOwn?.(m.id);
       pool.remove(m.id);
       still.push(m);
-      deps.say?.(t('decor.tool.discardNotInPack', '{name} is no longer in your pack, or is worn. Confirm takes its piece down.', { name: itemLongName(m.item) || DECOR_KINDS.decor }));
+      deps.say?.(t('decor.tool.discardNotInPack', '{name} is equipped or no longer in your pack. Confirm to remove the placed piece.', { name: itemLongName(m.item) || DECOR_KINDS.decor }));
     }
     for (const id of [...usePending]) if (!d.before.has(id)) { usePending.delete(id); useMode.delete(id); useRank.delete(id); }
     d.moves = still;
@@ -1154,7 +1154,7 @@ export function createDecorTool(deps) {
         const kind = piece?.station ? 'station' : piece?.storage ? 'storage' : null;
         if (!piece || !kind || !Number.isInteger(rank)) { usePending.delete(id); continue; }
         const res = await deps.homeDecor.use({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id, kind, mode: 'guild', rank, names: [], realm: null });
-        if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.')); continue; }
+        if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be saved.')); continue; }
         usePending.delete(id);
         if (kind === 'storage') noteDecorShared(id, true);
         continue;
@@ -1166,11 +1166,11 @@ export function createDecorTool(deps) {
       const names = mode === 'friends' ? circle.friends : mode === 'party' ? circle.party : [];
       const body = { mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id, kind, mode, names };
       const act = kind === 'storage' ? deps.realm?.() : null;
-      if (kind === 'storage' && !act) { usePending.delete(id); useMode.delete(id); deps.say?.(t('decor.tool.unkept', 'It could not be kept.')); continue; }
+      if (kind === 'storage' && !act) { usePending.delete(id); useMode.delete(id); deps.say?.(t('decor.tool.unkept', 'It could not be saved.')); continue; }
       const res = act
         ? await act({ needsAnswer: true, apply: (/** @type {any} */ a) => keepChestGoods(id, a), call: (/** @type {any} */ at) => deps.homeDecor.use({ ...body, realm: at }) })
         : await deps.homeDecor.use({ ...body, realm: null });
-      if (!res?.ok) { deps.say?.(res?.error === 'bad-item' ? t('decor.tool.unmarked', 'Take out what has no mark first.') : (deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.'))); continue; }
+      if (!res?.ok) { deps.say?.(res?.error === 'bad-item' ? t('decor.tool.unmarked', 'Take out any items that cannot be shared first.') : (deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be saved.'))); continue; }
       usePending.delete(id);
       if (kind === 'storage') noteDecorShared(id, mode !== 'private');
     }
@@ -1181,10 +1181,10 @@ export function createDecorTool(deps) {
     const res = await Promise.resolve(deps.homeDecor.list(r.mapId, r.buildingKey, false, !!r.yard)).catch(() => null);
     const rev = Number(res?.data?.rev);
     if (liveDraft() !== d) return false;
-    if (!res?.ok || !Number.isSafeInteger(rev)) { deps.say?.(t('decor.tool.unread', 'The room could not be read.')); return false; }
+    if (!res?.ok || !Number.isSafeInteger(rev)) { deps.say?.(t('decor.tool.unread', 'The room could not be loaded.')); return false; }
     const held = (res.data.pieces ?? []).map((p) => decorPieceOf(p)).filter(Boolean);
     const since = decorDelta([...d.before.values()], held);
-    if (since.put.length || since.drop.length) { deps.say?.(deps.refusal?.('decor-rev') ?? t('decor.tool.unkeptRoom', 'The changes could not be kept.')); return false; }
+    if (since.put.length || since.drop.length) { deps.say?.(deps.refusal?.('decor-rev') ?? t('decor.tool.unkeptRoom', 'The changes could not be saved.')); return false; }
     d.rev = rev;
     return true;
   }
@@ -1221,7 +1221,7 @@ export function createDecorTool(deps) {
         d.owns = pool.ownSnapshot?.() ?? null;
         if (placing) placing.draftWhy = null;
         publishDraft();
-        deps.say?.(t('decor.tool.kept', 'The room is kept.'));
+        deps.say?.(t('decor.tool.kept', 'The room is saved.'));
         return true;
       }
       const share = r.hall ? draftParts().back : 0;
@@ -1244,7 +1244,7 @@ export function createDecorTool(deps) {
         if (res?.ok && gold < 0) deps.wallet().pay(-gold);
         if (res?.ok && gold > 0) deps.wallet().credit?.(gold);
       }
-      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkeptRoom', 'The changes could not be kept.')); return false; }
+      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkeptRoom', 'The changes could not be saved.')); return false; }
       d.before = new Map(roomPieces().map((p) => [p.id, snapPiece(p)]));
       // The service moves the revision only from the one this Confirm named, so the new one is this room as saved.
       if (Number.isSafeInteger(res.data?.rev)) d.rev = heardRev = res.data.rev;
@@ -1254,7 +1254,7 @@ export function createDecorTool(deps) {
       if (placing) placing.draftWhy = null;
       await flushStagedUse(r);
       publishDraft();
-      deps.say?.(share ? t('decor.tool.keptShare', 'The room is kept. The company has its share.') : t('decor.tool.kept', 'The room is kept.'));
+      deps.say?.(share ? t('decor.tool.keptShare', 'The room is saved. The company received its share.') : t('decor.tool.kept', 'The room is saved.'));
       return true;
     } finally {
       d.keeping = false;
@@ -1300,7 +1300,7 @@ export function createDecorTool(deps) {
       const cur = roomPieces().find((p) => p.id === piece.id);
       if (!cur) return false;
       const next = decorPieceOf({ ...cur, name: typeof text === 'string' ? text : '' });
-      if (!next) { deps.say?.(t('decor.tool.badName', 'That name will not do.')); return false; }
+      if (!next) { deps.say?.(t('decor.tool.badName', 'That name is not valid.')); return false; }
       if ((next.name ?? '') === (cur.name ?? '')) return true;
       const visit = deps.visit?.();
       const stood = await writeChange(r, next);
@@ -1315,7 +1315,7 @@ export function createDecorTool(deps) {
     if (typeof deps.openSlot !== 'function') { placing.draftWhy = t('decor.tool.confirmFirst', 'Confirm or discard the changes first.'); return; }
     placing.leaving = true;
     const box = new DecisionBoxWindow({
-      rows: [t('decor.tool.unkeptLeave', 'These changes are not kept.'), t('decor.tool.leaveBehind', 'Leave them behind?')],
+      rows: [t('decor.tool.unkeptLeave', 'These changes are not saved.'), t('decor.tool.leaveBehind', 'Discard them and leave?')],
       onYes: () => { deps.closeSlot?.(box); if (placing?.browse) { discardDraft(); endPlacing(); } },
       onNo: () => { deps.closeSlot?.(box); if (placing) placing.leaving = false; },
     });
@@ -1383,7 +1383,7 @@ export function createDecorTool(deps) {
         openDraft();
         standRound(p, piece);
         publishDraft();
-        deps.say?.(t('decor.tool.setAside', '{name} set aside. Confirm keeps it.', { name: p.entry.name }));
+        deps.say?.(t('decor.tool.setAside', '{name} placed. Confirm to save.', { name: p.entry.name }));
         if (placing === p) { const fly = [...p.fly]; endPlacing(); beginBrowse(fly); }
         return true;
       }
@@ -1451,7 +1451,7 @@ export function createDecorTool(deps) {
       pool.keepOwn(piece.id, moved);
       draft?.moves.push({ op: 'out', id: piece.id, item: moved });
       publishDraft();
-      deps.say?.(t('decor.tool.setAside', '{name} set aside. Confirm keeps it.', { name: p.entry.name }));
+      deps.say?.(t('decor.tool.setAside', '{name} placed. Confirm to save.', { name: p.entry.name }));
       if (placing === p) { const fly = [...p.fly]; endPlacing(); beginBrowse(fly); }
       return true;
     }
@@ -1558,7 +1558,7 @@ export function createDecorTool(deps) {
       pool.remove(piece.id);
       publishDraft();
       if (decorIsDoor(piece)) forgetRooms();
-      deps.say?.(t('decor.tool.setAsideRemove', '{name} set aside. Confirm removes it.', { name: entryOf(piece).name }));
+      deps.say?.(t('decor.tool.setAsideRemove', '{name} removed. Confirm to save.', { name: entryOf(piece).name }));
       return true;
     }
     const visit = deps.visit?.();
@@ -1607,7 +1607,7 @@ export function createDecorTool(deps) {
       const item = pool.takeOwn?.(piece.id) ?? null;
       if (item) d?.moves.push({ op: 'in', id: piece.id, item: deps.packGive?.(item) ?? item });
       publishDraft();
-      deps.say?.(t('decor.tool.setAsideDown', '{name} set aside. Confirm takes it down.', { name }));
+      deps.say?.(t('decor.tool.setAsideDown', '{name} taken down. Confirm to save.', { name }));
       return true;
     }
     const visit = deps.visit?.();
@@ -1727,7 +1727,7 @@ export function createDecorTool(deps) {
       if (!next || !purseOk(decorGoldMove(cur, next, cur.paid).delta)) { deps.say?.(decorStationGoldLine(want)); return false; }
       pool.put(next);
       publishDraft();
-      deps.say?.(want ? t('decor.tool.stationKept', '{name}: {station}. Confirm keeps it.', { name: entryOf(cur).name ?? t('decor.tool.thePiece', 'The piece'), station: DECOR_STATION_NAMES[want] }) : t('decor.tool.stationCleared', '{name} is no longer a station. Confirm keeps it.', { name: entryOf(cur).name ?? t('decor.tool.thePiece', 'The piece') }));
+      deps.say?.(want ? t('decor.tool.stationKept', '{name}: {station}. Confirm to save.', { name: entryOf(cur).name ?? t('decor.tool.thePiece', 'The piece'), station: DECOR_STATION_NAMES[want] }) : t('decor.tool.stationCleared', '{name} is no longer a station. Confirm to save.', { name: entryOf(cur).name ?? t('decor.tool.thePiece', 'The piece') }));
       return true;
     }
     const next = decorPieceOf({ ...cur, station: want });

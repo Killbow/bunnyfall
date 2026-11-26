@@ -12,7 +12,7 @@ export const DECORATOR_TEXT = Object.freeze({
   sent: (name) => t('decor.template.sent', 'Template sent to {name}.', { name }),
   declined: (name) => t('decor.template.declined', '{name} declined your template.', { name }),
   get accepted() { return t('decor.template.accepted', 'The template is in place.'); },
-  get declinedOwner() { return t('decor.template.declinedOwner', 'The template went back to its decorator.'); },
+  get declinedOwner() { return t('decor.template.declinedOwner', 'You declined the template and returned it to the decorator.'); },
   short: (gold) => t('decor.template.short', 'You need {gold} gold in your purse and bank to accept this template.', { gold: Number(gold).toLocaleString('en-US') }),
   get full() { return t('decor.template.full', 'This template no longer fits. The room or yard would hold too many pieces.'); },
   get changed() { return t('decor.template.changed', 'The decorator changed this template. Preview it again.'); },
@@ -27,7 +27,7 @@ export const DECORATOR_TEXT = Object.freeze({
   whereCaravan: (name) => t('caravan.decorators.where', "{name}'s caravan (template)", { name }),
   get unsaved() { return t('decor.template.unsaved', 'Confirm your changes before you send the template.'); },
   get notSent() { return t('decor.template.notSent', 'The template could not be sent.'); },
-  get notRead() { return t('decor.template.notRead', 'The template could not be read.'); },
+  get notRead() { return t('decor.template.notRead', 'The template could not be loaded.'); },
   line: (name, pieces) => t('decor.decorators.line', '{name}: {pieces, plural, one {# template piece} other {# template pieces}}', { name, pieces }),
   lineSent: (name, pieces) => t('decor.decorators.lineSent', '{name}: template sent, {pieces, plural, one {# piece} other {# pieces}}', { name, pieces }),
 });

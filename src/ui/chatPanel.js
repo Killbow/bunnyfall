@@ -785,8 +785,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   if (voice) {
     voiceBox.setAttribute('role', 'group');
     voiceBox.setAttribute('aria-label', t('net.chat.voiceLabel', 'Chat as'));
-    voiceBtns.me.title = t('net.chat.voiceMeTitle', 'Your lines go out as yourself.');
-    voiceBtns.red.title = t('net.chat.voiceRedTitle', 'Each line goes out as the server, as /red does. Commands go as typed.');
+    voiceBtns.me.title = t('net.chat.voiceMeTitle', 'Send chat messages as yourself.');
+    voiceBtns.red.title = t('net.chat.voiceRedTitle', 'Send chat messages as the server, like /red. Slash commands run as typed.');
     for (const [want, b] of Object.entries(voiceBtns)) {
       b.type = 'button';
       b.addEventListener('click', () => { voice.pick(want, log.active); paintVoice(); input.focus?.(); });

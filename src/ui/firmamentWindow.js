@@ -363,8 +363,8 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const tip = el('div', 'fmt-tip');
   tip.setAttribute('data-grim', 'ink');
   const coarse = !!globalThis.matchMedia?.('(pointer: coarse)')?.matches;   // AUDIT UICALM-FIRM1 L4 H1: a finger's words
-  const hint = el('div', 'fmt-hint', coarse ? t('firmament.hintTouch', 'Tap a star to see it, tap again to learn it and the stars on the way · Hold a learned star to remove it · Drag to pan · Pinch to zoom')
-    : t('firmament.hint', 'Click a star to learn it and the stars on the way · Right-click a learned star to remove it · Drag to pan · Scroll to zoom · F: center on your birthsign'));
+  const hint = el('div', 'fmt-hint', coarse ? t('firmament.hintTouch', 'Tap a star to inspect it, then tap again to learn it and its path. Hold a learned star to remove it. Drag to pan · Pinch to zoom.')
+    : t('firmament.hint', 'Click a star to learn it and its path. Right-click a learned star to remove it. Drag to pan · Scroll to zoom · F: center on your birthsign.'));
   hint.setAttribute('data-grim', 'ink');
   const sayBox = el('div', 'fmt-say');
   sayBox.setAttribute('data-grim', 'ink');
@@ -517,7 +517,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     const p = purse();
     // the caps (firmamentLaw.js STAT_DEFS, BLOW_CAP, BLOW_TOTAL_CAP) and where the sky sleeps (firmamentPowers.js firmamentAwake: offline,
     // a duel or an arena bout, mentoring; never a blow or a spell at a player - a siege and the Wrothgarian zone included)
-    parts.push(el('p', 'fmt-note', `${t('firmament.side.caps', 'Limits for all stars together: +30% weapon damage (up to +50% against unaware foes, or while you are below half Health), +30% spell damage, 15% less damage taken.')} ${t('firmament.side.where', 'Stars work only online, and not while you mentor. Combat stars do nothing in duels or Arena fights, and never add damage against other players.')}`));
+    parts.push(el('p', 'fmt-note', `${t('firmament.side.caps', 'Combined star limits: +30% weapon damage, +30% spell damage, and 15% less damage taken. Weapon damage can reach +50% against unaware enemies or while below half Health.')} ${t('firmament.side.where', 'Stars work only online, and not while you mentor. Combat stars do nothing in duels or Arena fights, and never add damage against other players.')}`));
     parts.push(el('p', 'fmt-note', `${p.renown < p.refund.freeBelow
       ? t('firmament.side.refundFree', 'Removing stars is free until Renown {renown}.', { renown: p.refund.freeBelow })
       : t('firmament.side.refundCost', 'Removing an accepted star costs {silver} Imperial Argents.', { silver: p.refund.perStar })} ${p.freeRespec
@@ -759,7 +759,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
    *  the server, the Worker's rate and maintenance) says so; a respec is never kept, so its lost answer says to look. */
   function refusalText(error, respec) {
     const KEPT = ['offline', 'server', 'rate', 'maintenance'];
-    if (KEPT.includes(error)) return respec ? t('firmament.refusal.respecLost', 'The server didn\'t answer the respec. Open the Firmament again in a moment to see if it went through.') : REFUSALS.offline;
+    if (KEPT.includes(error)) return respec ? t('firmament.refusal.respecLost', 'The server didn\'t respond during the respec. Open the Firmament again in a moment to see if it went through.') : REFUSALS.offline;
     return /** @type {Record<string, string>} */ (REFUSALS)[error] ?? accountRefusalText(error);
   }
   /** Whether the stars act now, in the player's words (firmamentLive.js firmamentStatus). */

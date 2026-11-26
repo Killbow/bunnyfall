@@ -80,7 +80,6 @@
   "realm.locked.manyNamed": 3,
   "realm.locked.one": 2,
   "realm.stranded": 1,
-  "rvn.roster.abroadLaw": 7,
   "sea.wild.chipTip": 3,
   "season.book.cakes.about": 1
  },
@@ -88,7 +87,6 @@
   "captain.sky.hint": 7,
   "captain.sky.hintTouch": 1,
   "captain.sky.levelTip": 3,
-  "coll.how.serpent": 1,
   "credits.ambientText.what": 5,
   "credits.aquaticSprites.terms": 14,
   "credits.chebsNecromancy.what": 8,
@@ -132,9 +130,6 @@
   "features.weaponGlow.note": 3,
   "features.weatherEvents.note": 1,
   "features.wind.note": 3,
-  "firmament.hint": 9,
-  "firmament.hintTouch": 8,
-  "firmament.side.caps": 3,
   "guild.rankNeeds.seatMerit": 7,
   "guild.seatService": 2,
   "menu.online.carriageNote": 6,
@@ -161,8 +156,6 @@
   "prof.page.reforge.how": 1,
   "prof.page.stores.empty": 1,
   "ql.journal.stepWitnessedTitle": 2,
-  "rvn.stars.hint": 7,
-  "rvn.stars.hintTouch": 1,
   "sea.season.lede": 2
  },
  "padding": {

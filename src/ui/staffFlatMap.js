@@ -144,7 +144,7 @@ export function createStaffFlatMap({ doc = globalThis.document, onPick, onRegion
       b.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); onPick(p.id, { x: Number(e?.clientX) || 0, y: Number(e?.clientY) || 0 }); });
       out.push(b);
     }
-    if (!players.length) { const none = doc.createElement('div'); none.textContent = t('net.staffFlat.nobody', 'Nobody with a position here right now.'); none.style.color = STAFF_TAG_COLORS.plain; out.push(none); }
+    if (!players.length) { const none = doc.createElement('div'); none.textContent = t('net.staffFlat.nobody', 'No players are reporting a position here right now.'); none.style.color = STAFF_TAG_COLORS.plain; out.push(none); }
     list.replaceChildren(...out);
   }
   return {
