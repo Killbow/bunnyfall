@@ -7,7 +7,7 @@ import { MINE_ART_ARCHIVE, loadMineArt } from '../../world/mine/mineArt.js';
 import { mineOreDraws } from '../../world/mine/mineOres.js';
 import { standMineFoes } from './mineFoes.js';
 import { createMineSounds } from './mineSounds.js';
-import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, mineFloorRingModel, MINE_DRILL_RECORDS, MINE_LAMP_MARK_RECORD, MINE_WALL_MARK_RECORD } from '../../world/mine/mineDrillModel.js';
+import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, mineFloorRingModel, MINE_DRILL_SIZE, MINE_DRILL_RECORDS, MINE_LAMP_MARK_RECORD, MINE_WALL_MARK_RECORD } from '../../world/mine/mineDrillModel.js';
 import { drillRunning, oreRunsLeft } from '../../net/mine/mineDrill.js';
 import { transformPoint, trs } from '../../world/mat4.js';
 import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
@@ -15,6 +15,7 @@ import { identity } from '../../world/mat4.js';
 import { mineLayout } from '../../net/mine/mineLayout.js';
 import { buildMineModel, mineColliderTris, mineTextures } from '../../world/mine/mineModel.js';
 import { isMine, MINE_LAMP_M } from '../../world/mine/mineLocation.js';
+import { createMineDrillReadout } from '../../ui/mineDrillReadout.js';
 import { t } from '../../ui/textManager.js';
 import { createMineClient, mineKey } from './mineClient.js';
 import { noteMineState } from './mineMouths.js';
@@ -73,6 +74,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
   /** @type {any} */
   /** the drills stood, by `s:c:k`: their frame's and shaft's draws, and their hole */
   const rigs = new Map();
+  const drillReadout = createMineDrillReadout();
   let drillMeshes = /** @type {any} */ (null);
   /** the character's mine kit as the Society last said it (`{ drill, fuel, lamp, rod }`), or null unread */
   let kitHeld = /** @type {any} */ (null);
@@ -103,7 +105,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       const at = hole.at, yaw = (d.k * 97) % 360;
       const frame = { gpu: drillMeshes.frame, object: { matrix: trs(at[0], at[1], at[2], 0, yaw, 0) }, hidden: false, noShadow: false, texRemap: null };
       const shaft = { gpu: drillMeshes.shaft, object: { matrix: trs(at[0], at[1] + RIG_SHAFT_UP_M, at[2], 0, 0, 0) }, hidden: false, noShadow: true, texRemap: null };
-      const rig = { d, at, frame, shaft, spin: 0, running: (/** @type {number} */ t) => drillRunning(rig.d, t) };
+      const rig = { d, at, ore: hole.ore, readoutAt: [at[0], at[1] + MINE_DRILL_SIZE.tall + 0.25, at[2]], frame, shaft, spin: 0, running: (/** @type {number} */ t) => drillRunning(rig.d, t) };
       ctx.dynamicDraws?.push(frame, shaft);
       rigs.set(key, rig);
     }
@@ -111,6 +113,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       if (want.has(key)) continue;
       for (const e of [r.frame, r.shaft]) { const i = ctx.dynamicDraws?.indexOf(e) ?? -1; if (i >= 0) ctx.dynamicDraws.splice(i, 1); }
       rigs.delete(key);
+      drillReadout.remove(key);
     }
   }
 
@@ -221,6 +224,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         if (standCtx !== ctx) return;
         try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); if (markerMesh) renderer?.destroyMesh?.(markerMesh); if (wallMarkerMesh) renderer?.destroyMesh?.(wallMarkerMesh); } catch { /* the context's own teardown frees it either way */ }
         try { if (drillMeshes) for (const m of Object.values(drillMeshes)) renderer?.destroyMesh?.(m); } catch { /* as above */ }
+        drillReadout.dispose();
         lampMarkers.clear();
         oreDraws = [];
         sounds.stop();
@@ -264,6 +268,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       }
       return near;
     },
+    drawDrillReadout: (/** @type {HTMLCanvasElement} */ canvas, /** @type {number[]} */ eye, covered = false) => drillReadout.draw(canvas, renderer, eye, standCtx?.collider, rigs, covered),
     /** The drills stood now (probes): `s:c:k` each. */
     rigs: () => [...rigs.keys()],
     /** A cave vein's answered strike (professions/mineHost.js). */
