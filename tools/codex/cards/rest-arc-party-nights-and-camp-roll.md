@@ -27,6 +27,7 @@ invariants:
 traps:
   - "Strangers (players not in the party) never block a rest (STRANGER-REST1). A party mate resting separately nearby gives REST_APART_TEXT."
   - "Party reach is 15 m (carriedFar text). A party member beyond 15 m receives a notification and is not carried."
+  - "Night and camp stamps put their kind in the milliseconds of the pose's `restStartedAt` because older builds stamp that same field when the rest window opens, so the field and its bounds never change on the wire."
 dfu: []
 tags:
   - party

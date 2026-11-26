@@ -1,20 +1,4 @@
 // @ts-check
-// BUNNYFALL VAMPIRE EXPANSION, PHASE 2: THE THRALLS - the vampire's captives and servants (the law: thrallLaw.js; the
-// Haven window: ui/vampire/havenWindow.js; the follower in the world: scenes/vampire/thrallHost.js, over the companion
-// layer). Kept here, saved with the character (the per-mod slot, modSaveData - VENDOR below):
-//   - PRISONERS in the Haven (any home the player owns: its door opens the Haven window), each with its blood, HEALTH and
-//     MISERY; tapped, bled into a VIAL OF VITAE (a pack item, its Use drinks it), tended, made a servant, or let go.
-//   - SERVANTS: vampiric thralls, a prisoner's blood quality their expertise (thrallLaw.js thrallRank). One may FOLLOW
-//     (a companion, counted in the companion slots - companionSlots.js), others GUARD the Haven or run ERRANDS by day.
-//     Each wears the kit the vampire gives it (the sworn revenants' own gear law, revenantGear.js, read through
-//     `gearRecord` - its rank its expertise's).
-//   - SOCIAL THRALLS: townsfolk enthralled where they stand - an innkeeper, a watchman, a merchant - each a perk in
-//     their own town (socialPerk).
-//   - THE UPKEEP: every day of the character's own clock (thrallRound, from the curse's magic round) each servant and
-//     social thrall drinks its Vitae; unpaid, its loyalty pays, and at nought it leaves - a social thrall breaking free
-//     costs the vampire's name in its region. Prisoners sicken and despair, and may escape (never under a guard).
-// Nothing here runs for a vampire the Elder has not awakened (vitae.js awakenedVampirism).
-
 import { t } from '../../ui/textManager.js';
 import { registerModSaveData } from '../../saves/modSaveData.js';
 import { registerCompanionCount, registerCompanionRoster, companionSlotFree, COMPANION_SLOTS_FULL } from '../../characters/companionSlots.js';
@@ -26,8 +10,8 @@ import { MINUTES_PER_DAY, isDayFromMinutes } from '../../world/gameDate.js';
 import { worldMinutes, skyMinutes, ownMinutes } from '../../world/worldTick.js';
 import { awakenedVampirism, feedVampire, spendVitae } from './vitae.js';
 import { archetypeName, STALE_QUALITY_CAP } from './bloodLaw.js';
-import { noteBreach } from './masquerade.js';   // PHASE 3: a thrall broken free talks
-import { clanExtraSlots, clanGentle, clanStaleCap, clanFortress, clanSocialUpkeep } from './clanLaw.js';   // PHASE 3: the nine bloodlines
+import { noteBreach } from './masquerade.js';
+import { clanExtraSlots, clanGentle, clanStaleCap, clanFortress, clanSocialUpkeep } from './clanLaw.js';
 import { noteFirstUse } from '../../ui/tutorials.js';
 import { skippedSpanAt } from '../../world/skippedTime.js';
 import { gearRefusal, gearKeyOf, sanitizeGear, gearItems, wornGear, gearLabel } from '../../revenants/revenantGear.js';
@@ -36,9 +20,9 @@ import {
   ENTHRALL_COST, PRISONER_DAY, TAP, BOTTLE, TEND, TEND_GOLD, deathChance, thrallRank, DUTIES, ERRANDS, MERCHANT,
 } from './thrallLaw.js';
 
+// Thralls are saved per character under this mod save key; renaming it orphans saves.
 export const THRALL_SAVE_VENDOR = 'Bunnyfall Vampire Thralls';
 
-// ── the state ─────────────────────────────────────────────────────────────────────────
 /**
  * @typedef {{ id: string, name: string, gender: string, type: string, quality: number, health: number, misery: number,
  *   mobile: number, source: string }} Prisoner
@@ -52,9 +36,7 @@ let _s = fresh();
 let _seq = 0;
 /** @type {any} */
 let _player = null;
-/** The player whose thralls these are (the host's; the curse's round sets it too). */
 export function setThrallPlayer(entity) { _player = entity ?? null; }
-/** Words waiting for the host (a thrall gone, an errand home): taken by `takeThrallLines`. */
 const _lines = [];
 export const takeThrallLines = () => _lines.splice(0);
 const note = (s) => { if (s) _lines.push(s); };
@@ -67,26 +49,24 @@ export const servants = () => _s.servants;
 export const socials = () => _s.socials;
 export const provisions = () => _s.provisions;
 
-/** Slots used, and the vampire's slots. */
 export function slotsUsed() { return _s.prisoners.length + _s.servants.length + _s.socials.length; }
-export function slotsOf(entity) { return bloodSlots(entity?.level ?? 1) + clanExtraSlots(clanOf(entity)); }   // PHASE 3: Lyrezi keep one more
-/** The vampire's clan (faction id), or null. @param {any} entity */
+export function slotsOf(entity) { return bloodSlots(entity?.level ?? 1) + clanExtraSlots(clanOf(entity)); }
+/** @param {any} entity */
 const clanOf = (entity) => awakenedVampirism(entity)?.clan ?? null;
-/** Why no new thrall can be bound now, or null. @param {any} entity */
+/** @param {any} entity */
 export function slotRefusal(entity) {
   if (!awakenedVampirism(entity)) return t('thrall.no.awake', 'Only an awakened vampire binds thralls.');
   if (slotsUsed() >= slotsOf(entity)) return t('thrall.no.slots', 'Your Blood Slots are full ({n}). Release a thrall first.', { n: slotsOf(entity) });
   return null;
 }
 
-// ── capture ───────────────────────────────────────────────────────────────────────────
-/** Why a prisoner cannot be taken now, or null. @param {any} entity */
+/** @param {any} entity */
 export function captureRefusal(entity) {
   return slotRefusal(entity) ?? (_s.prisoners.length >= PRISONERS_MAX ? t('thrall.no.cells', 'Your Haven holds no more prisoners.') : null);
 }
 /**
- * A prisoner taken to the Haven. Answers it, or null when it cannot be (captureRefusal says why).
- * @param {any} entity @param {{ name: string, gender?: string, type: string, quality: number, mobile: number, source: string, health?: number }} p
+ * @param {any} entity
+ * @param {{ name: string, gender?: string, type: string, quality: number, mobile: number, source: string, health?: number }} p
  */
 export function takePrisoner(entity, p) {
   if (captureRefusal(entity)) return null;
@@ -98,8 +78,11 @@ export function takePrisoner(entity, p) {
   return pr;
 }
 
-/** Enthrall a townsperson where they stand (the feed box's row). Answers the thrall, or a refusal's words.
- * @param {any} entity @param {{ id: string, name: string, role: string, town: number, townName: string, region: number }} p @param {number} now */
+/**
+ * @param {any} entity
+ * @param {{ id: string, name: string, role: string, town: number, townName: string, region: number }} p
+ * @param {number} now
+ */
 export function enthrallSocial(entity, p, now) {
   const no = slotRefusal(entity);
   if (no) return no;
@@ -111,35 +94,31 @@ export function enthrallSocial(entity, p, now) {
   noteFirstUse('vampire-thralls');
   return s;
 }
-/** Is this living resident already a social thrall. @param {string} id */
+/** @param {string} id */
 export const isSocialThrall = (id) => _s.socials.some((s) => s.id === id);
 
-// ── the prisoners' acts (the Haven window) ─────────────────────────────────────────────
 const prisonerOf = (id) => _s.prisoners.find((p) => p.id === id) ?? null;
-/** One under the knife may die: answers the death's words, or null. */
 function underTheKnife(p, rolls) {
   if (Math.floor(rolls() * 100) >= deathChance(p.health, p.misery)) return null;
   _s.prisoners.splice(_s.prisoners.indexOf(p), 1);
   return t('thrall.prisoner.died', '{name} dies under your teeth, too weak and too wretched to go on.', { name: p.name });
 }
-/** Drink from a prisoner. Answers the lines to show. @param {any} entity @param {string} id @param {number} now */
+/** @param {any} entity @param {string} id @param {number} now */
 export function tapPrisoner(entity, id, now, rolls = Math.random) {
   const p = prisonerOf(id);
   if (!p || !awakenedVampirism(entity)) return [];
   const fed = feedVampire(entity, { kind: 'tap', type: p.type, quality: Math.min(p.quality, STALE_QUALITY_CAP), fresh: false, now });
   p.health = clamp(p.health - TAP.health);
-  p.misery = clamp(p.misery + (clanGentle(clanOf(entity)) ? TAP.misery / 2 : TAP.misery));   // PHASE 3: Thrafey keep them kindly
+  p.misery = clamp(p.misery + (clanGentle(clanOf(entity)) ? TAP.misery / 2 : TAP.misery));
   const died = underTheKnife(p, rolls);
   return [t('thrall.prisoner.tapped', 'You drink from {name}. Stale, but it holds the Beast back. Vitae {vitae}.', { name: p.name, vitae: Math.round(fed?.vitae ?? 0) }), ...(died ? [died] : [])];
 }
 
-// ── the vial ──────────────────────────────────────────────────────────────────────────
 export const VIAL_TEMPLATE = 6680;
 const VIAL_GROUP = 'UselessItems2';
 export const VIAL_ROW = Object.freeze({ ...ITEM_TEMPLATES[83], index: VIAL_TEMPLATE, name: 'Vial of Vitae', basePrice: 0, value: 0, stackable: false, rarity: 3 });
 registerCustomTemplates([VIAL_ROW]);
 registerTemplateLore(VIAL_TEMPLATE, 'Blood, bottled in a vampire\'s Haven. Stale, but it keeps the Beast quiet for a while.');
-/** A vial of `type` blood at `quality` (stale: capped). */
 export function mintVial(type, quality, cap = STALE_QUALITY_CAP) {
   const q = Math.min(cap, clamp(quality, 1, 100));
   return { ...mintCondition(setItemFields({ group: VIAL_GROUP, templateIndex: VIAL_TEMPLATE, name: `Vial of Vitae (${archetypeName(type)}, ${q}%)` })), bloodType: type, bloodQuality: q };
@@ -155,30 +134,30 @@ registerItemUseHandler(VIAL_TEMPLATE, Object.assign((/** @type {any} */ item, /*
   return { kind: 'text', text: t('thrall.vial.drunk', 'You drink the vial. Vitae {vitae}.', { vitae: Math.round(fed?.vitae ?? 0) }) };
 }, { usable: () => true }));
 
-/** Bleed a prisoner into a vial (into the pack). @param {any} entity @param {string} id */
+/** @param {any} entity @param {string} id */
 export function bottlePrisoner(entity, id, rolls = Math.random) {
   const p = prisonerOf(id);
   if (!p || !awakenedVampirism(entity)) return [];
   entity.items ??= [];
-  addItem(entity.items, mintVial(p.type, p.quality, clanStaleCap(clanOf(entity), STALE_QUALITY_CAP)));   // PHASE 3: Anthotis keep it better
+  addItem(entity.items, mintVial(p.type, p.quality, clanStaleCap(clanOf(entity), STALE_QUALITY_CAP)));
   p.health = clamp(p.health - BOTTLE.health);
   p.misery = clamp(p.misery + (clanGentle(clanOf(entity)) ? BOTTLE.misery / 2 : BOTTLE.misery));
   const died = underTheKnife(p, rolls);
   return [t('thrall.prisoner.bottled', 'You bleed {name} into a vial and stopper it.', { name: p.name }), ...(died ? [died] : [])];
 }
-/** Tend a prisoner: a provision, else gold. @param {any} entity @param {string} id */
+/** @param {any} entity @param {string} id */
 export function tendPrisoner(entity, id) {
   const p = prisonerOf(id);
   if (!p) return [];
   if (_s.provisions > 0) _s.provisions--;
   else if (goldAmount(entity) >= TEND_GOLD) deductGoldPieces(entity, TEND_GOLD);
   else return [t('thrall.tend.poor', 'You have no provisions and not {gold} gold to buy food.', { gold: TEND_GOLD })];
-  const kind = clanGentle(clanOf(entity)) ? 1.5 : 1;   // PHASE 3: Thrafey tend them better
+  const kind = clanGentle(clanOf(entity)) ? 1.5 : 1;
   p.health = clamp(p.health + TEND.health * kind);
   p.misery = clamp(p.misery - TEND.misery * kind);
   return [t('thrall.tend.done', '{name} eats, and some colour comes back. Health {health}, misery {misery}.', { name: p.name, health: p.health, misery: p.misery })];
 }
-/** Make a prisoner a servant thrall (BIND_COST Vitae). @param {any} entity @param {string} id @param {number} now */
+/** @param {any} entity @param {string} id @param {number} now */
 export function makeServant(entity, id, now) {
   const p = prisonerOf(id);
   if (!p) return [];
@@ -189,7 +168,7 @@ export function makeServant(entity, id, now) {
   _s.servants.push(sv);
   return [t('thrall.bound', '{name} drinks from your wrist, and is yours. A {type} thrall, rank {rank}.', { name: sv.name, type: archetypeName(sv.type), rank: thrallRank(sv.quality) })];
 }
-/** Let a prisoner go. @param {string} id */
+/** @param {string} id */
 export function releasePrisoner(id) {
   const p = prisonerOf(id);
   if (!p) return [];
@@ -197,14 +176,12 @@ export function releasePrisoner(id) {
   return [t('thrall.prisoner.released', 'You let {name} go. They will not remember the way back.', { name: p.name })];
 }
 
-// ── the servants ──────────────────────────────────────────────────────────────────────
 const servantOf = (id) => _s.servants.find((s) => s.id === id) ?? null;
 export const follower = () => _s.servants.find((s) => s.duty === DUTIES.Follow) ?? null;
-/** The sworn revenants' gear law reads a record of its shape: a servant read as one (its rank its expertise's). */
 export function gearRecord(sv) {
   return { sworn: true, rank: thrallRank(sv.quality), mobileType: sv.mobile, companion: { gear: sv.gear, state: sv.duty === DUTIES.Errand ? 'errand' : 'with' } };
 }
-/** Set a servant's duty. Answers the lines to show. @param {string} id @param {string} duty */
+/** @param {string} id @param {string} duty */
 export function setDuty(id, duty) {
   const sv = servantOf(id);
   if (!sv) return [];
@@ -219,14 +196,13 @@ export function setDuty(id, duty) {
   if (duty === DUTIES.Guard) return [t('thrall.guards', '{name} will guard your Haven. Prisoners will not escape.', { name: sv.name })];
   return [t('thrall.idles', '{name} waits in your Haven.', { name: sv.name })];
 }
-/** Why a servant cannot go on an errand now, or null. */
 export function errandRefusal(sv) {
   if (!sv) return t('thrall.gone', 'That thrall is gone.');
   if (sv.duty === DUTIES.Errand) return t('thrall.busy', '{name} is away on an errand.', { name: sv.name });
   if (!isDayFromMinutes(skyMinutes())) return t('thrall.errand.night', 'Errands are run by day, while you hide from the sun.');
   return null;
 }
-/** Send a servant on an errand. @param {string} id @param {string} kind */
+/** @param {string} id @param {string} kind */
 export function sendErrand(id, kind, rolls = Math.random) {
   const sv = servantOf(id);
   const def = ERRANDS[/** @type {keyof typeof ERRANDS} */ (kind)];
@@ -236,7 +212,6 @@ export function sendErrand(id, kind, rolls = Math.random) {
   sv.errand = { kind, until: Math.floor(worldMinutes()) + def.hours * 60, roll: rolls() };
   return [t('thrall.errand.sent', '{name} sets out, and will be back in {hours} hours.', { name: sv.name, hours: def.hours })];
 }
-/** An errand's haul, delivered. */
 function errandHome(entity, sv) {
   const e = sv.errand;
   sv.errand = null;
@@ -248,9 +223,8 @@ function errandHome(entity, sv) {
   if ('gold' in h) { addGoldPieces(entity, h.gold); note(t('thrall.errand.market', '{name} is back from the market with {gold} gold.', { name: sv.name, gold: h.gold })); }
   if ('scouted' in h) { _s.scouted = Math.max(_s.scouted, h.scouted); note(t('thrall.errand.scout', '{name} is back: they marked fine blood for you. Your next feed is {n}% richer.', { name: sv.name, n: h.scouted })); }
 }
-/** Take the scouting's mark (the next live feed's quality bonus). */
 export function takeScouted() { const n = _s.scouted; _s.scouted = 0; return n; }
-/** Release a servant: its kit comes back to the pack. @param {any} entity @param {string} id */
+/** @param {any} entity @param {string} id */
 export function releaseServant(entity, id) {
   const sv = servantOf(id);
   if (!sv) return [];
@@ -263,15 +237,13 @@ function returnKit(entity, sv) {
   sv.gear = {};
 }
 
-// ── the servants' kit (the revenants' gear law) ─────────────────────────────────────────
-/** The pack's pieces a servant could wear: [item, refusal|null] for every unequipped weapon, armour piece or charm. */
 export function giftable(entity, id) {
   const sv = servantOf(id);
   if (!sv) return [];
   const worn = new Set(equipTableOf(entity) ?? []);
   return (entity.items ?? []).filter((it) => it && !worn.has(it) && gearKeyOf(it)).map((it) => [it, gearRefusal(/** @type {any} */ (gearRecord(sv)), it, { kindName: archetypeName(sv.type) })]);
 }
-/** Give a piece from the pack. @param {any} entity @param {string} id @param {any} item */
+/** @param {any} entity @param {string} id @param {any} item */
 export function giveGear(entity, id, item) {
   const sv = servantOf(id);
   if (!sv) return [];
@@ -286,7 +258,7 @@ export function giveGear(entity, id, item) {
   sv.gear[key] = item;
   return [t('thrall.gear.given', '{name} takes it: {slot}.', { name: sv.name, slot: gearLabel(key) })];
 }
-/** Take a piece back. @param {any} entity @param {string} id @param {string} key */
+/** @param {any} entity @param {string} id @param {string} key */
 export function takeGear(entity, id, key) {
   const sv = servantOf(id);
   const it = sv?.gear?.[key];
@@ -295,22 +267,19 @@ export function takeGear(entity, id, key) {
   addItem(entity.items ??= [], it);
   return [t('thrall.gear.taken', 'You take back the {slot}.', { slot: gearLabel(key) })];
 }
-/** What a servant wears now ([key, item]). */
 export const servantKit = (sv) => wornGear(/** @type {any} */ (gearRecord(sv)));
 
-// ── the social thralls' perks ───────────────────────────────────────────────────────────
-/** Is a loyal social thrall of `role` in town `mapId` (any town for none). */
 export function socialPerk(role, mapId = null) {
   return _s.socials.some((s) => s.role === role && s.loyalty > 0 && (mapId == null || s.town === (mapId >>> 0)));
 }
-/** A watchman thrall hushes one witnessed feed a day in their town: answers whether it did. @param {number} mapId @param {number} now */
+/** @param {number} mapId @param {number} now */
 export function guardHushes(mapId, now) {
   const day = Math.floor(now / MINUTES_PER_DAY);
   if (!socialPerk('guard', mapId) || _s.hushDay === day) return false;
   _s.hushDay = day;
   return true;
 }
-/** A merchant thrall's goods, by courier. Answers the lines. @param {any} entity @param {'provision'|'vial'} what */
+/** @param {any} entity @param {'provision'|'vial'} what */
 export function buyFromMerchant(entity, what) {
   if (!socialPerk('merchant')) return [t('thrall.merchant.none', 'You have no merchant among your thralls.')];
   const price = what === 'vial' ? MERCHANT.vial : MERCHANT.provision;
@@ -320,7 +289,7 @@ export function buyFromMerchant(entity, what) {
   _s.provisions++;
   return [t('thrall.merchant.provision', 'A sack of provisions comes by courier. You have {n}.', { n: _s.provisions })];
 }
-/** Release a social thrall, gently. @param {string} id */
+/** @param {string} id */
 export function releaseSocial(id) {
   const i = _s.socials.findIndex((s) => s.id === id);
   if (i < 0) return [];
@@ -328,17 +297,16 @@ export function releaseSocial(id) {
   return [t('thrall.social.released', 'You loosen your hold on {name}. They wake from it as from a dream.', { name: s.name })];
 }
 
-// ── the day ───────────────────────────────────────────────────────────────────────────
-/** A thrall's day unpaid or paid: its loyalty moved; answers whether it holds. */
 function payDay(entity, th, cost, now) {
   if (spendVitae(entity, cost, now)) th.loyalty = clamp(th.loyalty + LOYALTY_PAID);
   else th.loyalty = clamp(th.loyalty - LOYALTY_UNPAID);
   return th.loyalty > 0;
 }
 /**
- * THE ROUND (the curse's magic round, vampirism.js): an errand home, and every day of the character's own clock since the
- * last - the upkeep, the prisoners' day, the thralls who leave. At most a week is caught up. @param {any} entity
- * @param {number} now the own clock's minute @param {(line: string) => void} [say] @param {() => number} [rolls]
+ * @param {any} entity
+ * @param {number} now
+ * @param {(line: string) => void} [say]
+ * @param {() => number} [rolls]
  */
 export function thrallRound(entity, now, say = () => {}, rolls = Math.random) {
   if (!awakenedVampirism(entity)) return;
@@ -362,7 +330,7 @@ export function thrallRound(entity, now, say = () => {}, rolls = Math.random) {
   for (const line of takeThrallLines()) say(line);
 }
 function oneDay(entity, now, rolls) {
-  const fortress = clanFortress(clanOf(entity));   // PHASE 3: a Garlythi Haven is a fortress
+  const fortress = clanFortress(clanOf(entity));
   const guarded = fortress || _s.servants.some((s) => s.duty === DUTIES.Guard);
   for (const p of [..._s.prisoners]) {
     p.misery = clamp(p.misery + (guarded ? PRISONER_DAY.miseryGuarded : PRISONER_DAY.misery) - (fortress ? 2 : 0));
@@ -379,15 +347,14 @@ function oneDay(entity, now, rolls) {
     note(t('thrall.servant.left', '{name} went too long without your blood, and has left you. Their kit is back in your pack.', { name: sv.name }));
   }
   for (const s of [..._s.socials]) {
-    if (payDay(entity, s, clanSocialUpkeep(clanOf(entity), SOCIAL_UPKEEP), now)) continue;   // PHASE 3: Lyrezi pay less
+    if (payDay(entity, s, clanSocialUpkeep(clanOf(entity), SOCIAL_UPKEEP), now)) continue;
     _s.socials.splice(_s.socials.indexOf(s), 1);
-    try { lowerRepForCrime(entity, s.region, CRIMES.Assault); } catch { /* a name lost is no round's failure */ }
-    noteBreach(entity, s.region, 'freed', now);   // PHASE 3: and the region hears of it
+    try { lowerRepForCrime(entity, s.region, CRIMES.Assault); } catch { }
+    noteBreach(entity, s.region, 'freed', now);
     note(t('thrall.social.free', '{name} of {town} has broken free of your hold, and talks of a pale stranger. Your name suffers in the region.', { name: s.name, town: s.townName || t('thrall.social.theirTown', 'their town') }));
   }
 }
 
-// ── the follower: the companion layer's party (crewAshore.js's shape) ─────────────────────
 export const THRALL_KEY_PREFIX = 'th:';
 export const isThrallKey = (k) => typeof k === 'string' && k.startsWith(THRALL_KEY_PREFIX);
 const _members = new Map();
@@ -403,11 +370,10 @@ function memberOf(sv) {
   c.thrall = sv;
   return c;
 }
-/** The follower as the layer's party. */
 export function thrallParty() {
   return {
     get party() { const f = awakenedVampirism(_player) ? follower() : null; return f ? [memberOf(f)] : []; },
-    wake() { /* knocked out, it is sent home: nothing to wake */ },
+    wake() { },
     knock(boat, id) {
       const sv = servantOf(id);
       if (!sv) return false;
@@ -428,7 +394,6 @@ export function thrallParty() {
 registerCompanionCount('thralls', () => (follower() && awakenedVampirism(_player) ? 1 : 0));
 registerCompanionRoster('thralls', () => { const f = awakenedVampirism(_player) ? follower() : null; return f ? [{ name: f.name, role: t('thrall.role', 'Thrall') }] : []; });
 
-// ── the save ──────────────────────────────────────────────────────────────────────────
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 const str = (v, n = 40) => String(v ?? '').slice(0, n);
 registerModSaveData(THRALL_SAVE_VENDOR, {

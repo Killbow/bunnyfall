@@ -1,32 +1,16 @@
 // @ts-check
-// DECK-PROPS (2026-10-17; bible/03-World/Naval-Refit.md DECK-PROPS) - A SHIP'S FITTINGS STOOD ON HER DECK: each fitting
-// (systems/naval/deckFittings.js) a classic model hung in her own tree as the mod's ModelHelpers hang theirs
-// (systems/comeSailAway/comeSailAwayBoat.js createDaggerfallMeshGameObject - a MeshRenderer and a MeshCollider over the
-// model) under one node of hers, DECK_FITTINGS_NODE, under her MeshObject - the frame her deck is baked in (systems/
-// naval/navalDeck.js) and the one the swell rolls. So each is drawn with her (scenes/comeSailAway/comeSailAwayPool.js
-// draw: a part of her tree), stands in her colliders (one walks round a crate, climbs a chest; the world's collider and
-// the aboard ray read her tree's), and rocks and sails with her, whoever's she is: mine by the Fleet's ledger, a peer's
-// by its owner's word.
-//
-// A fitting stands on her open deck under its place (the deck's own height there), its model's foot on the deck and its
-// middle over the place (the model's box: SetupModelHelper's centring, alignment 1), turned about up. One whose place is
-// no deck of hers (her deck baked otherwise since it was set) stands nowhere; one whose model is not loaded yet waits
-// for it, and the boat is fitted again once it is - and only then (AUDIT 2026-10-17: her tree was made again every frame
-// while one waited, for ever for a model that never loads).
 import { PrefabNode } from '../../world/prefabNode.js';
 import { quatAngleAxis } from '../../world/quat.js';
 import { createDaggerfallMeshGameObject } from './comeSailAwayBoat.js';
 import { fittingsKey, yawDegrees } from './deckFittings.js';
 
-/** Her fittings' node's name, under her MeshObject. */
 export const DECK_FITTINGS_NODE = 'DeckFittings';
 const UP = Object.freeze([0, 1, 0]);
 
 /**
- * Her fittings stood in her tree: the node of them made again whole (none, for none). Answers whether every one is
- * stood or stands nowhere for good - false while a model is not loaded (`ctx.modelBounds` has none yet).
- * @param {any} boat @param {{ m: number, x: number, z: number, yaw: number }[]} list
- * @param {{ ctx: any, deck: any }} o - `ctx` the spawn's context (its `modelBounds`), `deck` her hull's deck
+ * @param {any} boat
+ * @param {{ m: number, x: number, z: number, yaw: number }[]} list
+ * @param {{ ctx: any, deck: any }} o
  */
 export function standFittings(boat, list, { ctx, deck }) {
   const frame = boat?.MeshObject;
@@ -53,32 +37,27 @@ export function standFittings(boat, list, { ctx, deck }) {
 /** @type {any[]} */
 const NO_FITTINGS = /** @type {any} */ (Object.freeze([]));
 /**
- * The fitting-out, a frame: each boat whose fittings are not the ones she stands with is fitted again - their models
- * asked of the pipeline first (`load`, once each), and the boat marked fitted (`_fitted`, the list's key) once every one
- * stood. While a model is not loaded her tree is made again only as one more comes in (`_fitStage`, the key and how many
- * are loaded), never a frame it is the same. `fittingsOf(boat)` her fittings now (null: none) - a list the same as the
- * last frame's is not keyed again.
- * @param {any[]} boats @param {(boat: any) => any[] | null | undefined} fittingsOf
+ * @param {any[]} boats
+ * @param {(boat: any) => any[] | null | undefined} fittingsOf
  * @param {{ ctx: any, deckOf: (hull: number) => any, load: (model: number) => void }} o
  */
 export function fitBoats(boats, fittingsOf, { ctx, deckOf, load }) {
   for (const boat of boats) {
     const list = fittingsOf(boat) ?? NO_FITTINGS;
     if (!list.length) {
-      if (boat._fitted == null || boat._fitted === '') { boat._fitted = ''; continue; }   // none to fit, none stood
-    } else if (list === boat._fitList && boat._fitted === boat._fitKey) continue;   // the same list, stood
+      if (boat._fitted == null || boat._fitted === '') { boat._fitted = ''; continue; }
+    } else if (list === boat._fitList && boat._fitted === boat._fitKey) continue;
     const key = list === boat._fitList ? boat._fitKey : fittingsKey(list);
     boat._fitList = list; boat._fitKey = key;
     if (boat._fitted === key) continue;
     let loaded = 0;
-    // AUDIT 2: asked for EVERY fitting, loaded or not - the ask is what pins its model (dataPipeline.js pinnedGpuMesh; `load`
-    // asks once a model); a crate a house had loaded under its own hold was freed by the place cache four rooms on, and
-    // her fitting went from the deck and its collider with it
+    // Each model is requested, loaded or not: the request pins it, so a house releasing its hold never frees it.
     for (const f of list) { load(f.m); if (ctx.modelBounds?.(f.m)) loaded++; }
     const stage = `${key}#${loaded}`;
-    if (boat._fitStage === stage) continue;   // nothing more loaded since she was last stood
+    // While a model loads, the boat is fitted again only when another model arrives, never every frame.
+    if (boat._fitStage === stage) continue;
     const deck = list.length ? deckOf(boat.hull) : null;
-    if (list.length && !deck) continue;   // her deck not baked yet: the next frame
+    if (list.length && !deck) continue;
     boat._fitStage = stage;
     if (standFittings(boat, list, { ctx, deck })) boat._fitted = key;
   }

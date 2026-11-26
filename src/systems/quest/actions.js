@@ -1,72 +1,31 @@
-// THE QUEST ACTIONS (Q2 tranche + Q2b-i state tranche) -
-// QuestAction.cs's ActionTemplate base + the actions from
-// Actions/*.cs, each 1:1 with its DFU source named. Actions are
-// objects with a LIFETIME, not one-shot executions: a template
-// registry tests each task line against every action's Pattern
-// (QuestMachine GetActionTemplate's brute-force scan) and factories a
-// new instance on match; SetComplete stops re-execution until a
-// rearm; a trigger condition starts its task, an ALWAYS-ON trigger
-// keeps being checked every tick (the primary/secondary law lives in
-// task.update).
-//
-// Q2 shipped the ten world-free actions: StartTask, ClearTask,
-// UnsetTask, EndQuest, WhenTask, StartStopTimer, Say, LogMessage,
-// RemoveLogMessage, PickOneOf. PickOneOf's UnityEngine.Random draw
-// rides the quest's injectable roll (Ledger A; DFU reseeds from
-// QuestMachine.InternalSeed, its own System.Random - a per-machine
-// stream either way).
-//
-// Q2b-i shipped the STATE tranche - the 25 actions that ride resource
-// state (clicks, kills, injuries, hide/mute/restrain flags), task
-// state, world time, and the machine's hook seams: ClickedNpc,
-// ClickedItem, KilledFoe, InjuredFoe, LevelCompleted, DailyFrom,
-// Prompt, PlaySound, PlayVideo, HideNpc, RestoreNpc, AddFace,
-// DropFace, StartQuest, RestrainFoe, AddAsQuestor, DropAsQuestor,
-// ItemUsedDo, DialogLink, AddDialog, RumorMill, RemoveFoe,
-// LegalRepute, MuteNpc, DestroyNpc. The registry below now mirrors
-// DFU's RegisterActionTemplates WHOLE - every un-ported action stands
-// as a guard at its C# position, so every corpus line lands exactly
-// where DFU's first-match scan sends it. Still queued: the ITEM
-// tranche (GivePc/GetItem/Toting/Have/Take/GiveItem/MakePermanent -
-// they need Item.cs's DaggerfallUnityItem mint, Q2b-ii) and the WORLD
-// tranche (Place/Person/Foe site binding, Q3).
-//
-// REGEX NOTE: C# alternations reuse group names across alternatives;
-// JS cannot. Where a ported action consumes groups, the alternatives
-// keep DFU's order with per-alternative names (g.a ?? g.a2 ...) -
-// backtracking regexes in .NET and JS both scan positions left to
-// right and try alternatives in order, so a single renamed regex
-// keeps .NET semantics. Guards strip group names entirely.
-
+// Quest actions ported from Daggerfall Unity. The registry tests each task line against every pattern in order.
+// Patterns keep the C# alternative order but number repeated group names, which JavaScript cannot reuse.
 import { Symbol as QuestSymbol, symbolToSaveData, symbolFromSaveData } from './symbol.js';
 import { parseInt as questParseInt } from './parseUtils.js';
 import { staticMessagesTable, soundsTable, placesTable, spellsTable, diseasesTable } from './tables.js';
-import { dateFromSeconds, SEASON_NAMES, seasonValue } from '../../world/gameDate.js';   // Q5: the Season trigger
-import { SKILLS, skillValue, tallySkill } from '../../characters/skills.js';   // Q5: WhenSkillLevel/TrainPc
-import { SKILL_ADVANCEMENT_MULTIPLIER } from '../../characters/advancement.js';   // Q5: TrainPc's tally scale
-import { liveStat, FATIGUE_LOSS } from '../../characters/statMods.js';   // Q5: WhenAttributeLevel/TrainPc
-import { CRIMES } from '../../justice/court.js';   // Q5: SetPlayerCrime's enum
+import { dateFromSeconds, SEASON_NAMES, seasonValue } from '../../world/gameDate.js';
+import { SKILLS, skillValue, tallySkill } from '../../characters/skills.js';
+import { SKILL_ADVANCEMENT_MULTIPLIER } from '../../characters/advancement.js';
+import { liveStat, FATIGUE_LOSS } from '../../characters/statMods.js';
+import { CRIMES } from '../../justice/court.js';
 import { makeItemPermanent } from './item.js';
-import { isGoldPieces } from '../../items/inventory.js';   // E4: GetItem's IsOfTemplate(Currency, Gold_pieces) test, one spelling
+import { isGoldPieces } from '../../items/inventory.js';
 import { QUEST_MESSAGES } from './quest.js';
 import { customParseInt, isPlayerAtBuildingType, isPlayerAtDungeonType, MARKER_PREFERENCE } from './place.js';
 import { getIndividualFactionID, getFactionDataOrThrow } from './person.js';
 import { markerScenePosition } from './sceneMount.js';
 import { isSongFileDefined, songFileToRecordName } from '../../audio/songFiles.js';
-import { MOBILE_TEAMS } from '../../characters/enemyTargets.js';   // MT-iii: ChangeFoeTeam's enum door
-import { dfuEffectKeyOf } from '../../magic/spellEffects.js';   // QG1: CastEffectDo's key vocabulary, one home
-import { setLocationVariant, setNewLocationVariant, setBlockVariant, setBuildingVariant, makeLocationKey, NO_VARIANT } from '../../world/worldDataVariants.js';   // RR3: WorldUpdate's registry
-import { ONLINE_GUARD_WINDOWS, guardWindowStep } from './onlineGuard.js';   // GUARD-ONLINE: a guarded quest's window online is its arrival's
-import { localizedText } from '../../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { raisedSince } from './questStamps.js';   // TIME3: a wave's interval charges a raise whole
-import { waveIsAwaited, questWaitsShort, ONLINE_DELAY_SECONDS } from './clock.js';   // WAVE-WAIT: a wave the quest waits on comes on the short wait online
-import { stringHash } from '../../formats/netRuntime.js';   // VERMIN-SHARED: a shared copy's pick, seeded (a leaf)
-import { seededFirst } from '../../weather/wind.js';   // VERMIN-SHARED: the port's one seeded die (imports nothing)
-/** TIME3 (bible/06-Systems/Online-Time-Arc.md 6.3): the SKY a quest reads an hour, a date or a season on - its own
- *  seam, and the quest's clock where none is given (offline, a headless quest: DFU's one clock). */
+import { MOBILE_TEAMS } from '../../characters/enemyTargets.js';
+import { dfuEffectKeyOf } from '../../magic/spellEffects.js';
+import { setLocationVariant, setNewLocationVariant, setBlockVariant, setBuildingVariant, makeLocationKey, NO_VARIANT } from '../../world/worldDataVariants.js';
+import { ONLINE_GUARD_WINDOWS, guardWindowStep } from './onlineGuard.js';
+import { localizedText } from '../../ui/textManager.js';
+import { raisedSince } from './questStamps.js';
+import { waveIsAwaited, questWaitsShort, ONLINE_DELAY_SECONDS } from './clock.js';
+import { stringHash } from '../../formats/netRuntime.js';
+import { seededFirst } from '../../weather/wind.js';
 const skySecondsOf = (quest) => (quest?.skySeconds ?? quest?.nowSeconds)?.() ?? 0;
 
-/** TalkManager.cs:285-291 - the dialog-link resource types. */
 export const QUEST_INFO_RESOURCE_TYPE = Object.freeze({
   NotSet: 0, Location: 1, Person: 2, Thing: 3,
 });
@@ -81,7 +40,6 @@ export class ActionTemplate {
     this.allowRearm = true;
   }
 
-  /** The Regex the registry tests lines against; set by subclass. */
   get pattern() { return null; }
 
   test(source) { return this.pattern.exec(source); }
@@ -92,20 +50,11 @@ export class ActionTemplate {
   setComplete() { this.isComplete = true; }
   rearmAction() { if (this.isComplete && this.allowRearm) this.isComplete = false; }
   dispose() {}
-  // ---- the save envelope (Q4-iv; QuestAction.cs:182-219) ----
 
-  /** The envelope's type identity - explicit per class so a
-   *  minifying build cannot rename it. */
+  // Each class sets typeName explicitly so a minifying build cannot rename the saved type.
   get typeName() { return this.constructor.typeName ?? this.constructor.name; }
 
-  /** The declarative save shape: [[portField, kind, savedName?]] with
-   *  kinds 'raw' (JSON-safe copy) and 'sym'/'symArray' (Symbol <->
-   *  {original}). Every shipped action's C# GetSaveData/RestoreSaveData
-   *  is a pure field copy (spot-verified), so ONE walk implements all
-   *  of them; savedName keeps the C# field name where the port's
-   *  differs (PlaySound soundId <-> soundIndex). Transient fields C#
-   *  leaves out stay out - CreateFoe's in-flight wave, TeleportPc's
-   *  resume, GivePc's offer latch all reset on load, verbatim. */
+  // Fields left out of saveShape are not saved, so they reset on load as in the C# save data.
   get saveShape() { return []; }
 
   getSaveData() {
@@ -131,7 +80,6 @@ export class ActionTemplate {
     }
   }
 
-  /** GetActionSaveData (:195-206). */
   getActionSaveData() {
     return {
       type: this.typeName,
@@ -143,7 +91,6 @@ export class ActionTemplate {
     };
   }
 
-  /** RestoreActionSaveData (:211-218). */
   restoreActionSaveData(data) {
     this.isComplete = data.isComplete;
     this.isTriggerCondition = data.isTriggerCondition;
@@ -153,7 +100,6 @@ export class ActionTemplate {
   }
 }
 
-/** StartTask.cs: "start task X" / "setvar X". */
 export class StartTask extends ActionTemplate {
   static typeName = 'StartTask';
   get saveShape() { return [['taskSymbol', 'sym']]; }
@@ -171,7 +117,6 @@ export class StartTask extends ActionTemplate {
   }
 }
 
-/** ClearTask.cs: "clear A B C..." - every named task un-triggers. */
 export class ClearTask extends ActionTemplate {
   static typeName = 'ClearTask';
   get saveShape() { return [['taskSymbols', 'symArray']]; }
@@ -188,7 +133,6 @@ export class ClearTask extends ActionTemplate {
   }
 }
 
-/** UnsetTask.cs: "unset A B..." - permanently DROPS the tasks. */
 export class UnsetTask extends ActionTemplate {
   static typeName = 'UnsetTask';
   get saveShape() { return [['taskSymbols', 'symArray']]; }
@@ -205,7 +149,6 @@ export class UnsetTask extends ActionTemplate {
   }
 }
 
-/** EndQuest.cs: "end quest [saying N]" - questBreak + the two-tick end. */
 export class EndQuest extends ActionTemplate {
   static typeName = 'EndQuest';
   get saveShape() { return [['textId']]; }
@@ -226,9 +169,6 @@ export class EndQuest extends ActionTemplate {
   }
 }
 
-/** WhenTask.cs: the when/and/or (not) trigger over task states -
- *  always-on, evaluated left to right with DFU's exact
- *  short-circuits. An unknown task name reads FALSE, loudly. */
 export class WhenTask extends ActionTemplate {
   static typeName = 'WhenTask';
   get saveShape() { return [['evaluations']]; }
@@ -308,7 +248,6 @@ export class WhenTask extends ActionTemplate {
   }
 }
 
-/** StartStopTimer.cs: "start timer _x_" / "stop timer _x_". */
 export class StartStopTimer extends ActionTemplate {
   static typeName = 'StartStopTimer';
   get saveShape() { return [['isStartTimer'], ['targetSymbol', 'sym']]; }
@@ -333,7 +272,6 @@ export class StartStopTimer extends ActionTemplate {
   }
 }
 
-/** Say.cs: "say N" / "say Name" - an IMMEDIATE oncePerQuest popup. */
 export class Say extends ActionTemplate {
   static typeName = 'Say';
   get saveShape() { return [['id']]; }
@@ -356,7 +294,6 @@ export class Say extends ActionTemplate {
   }
 }
 
-/** LogMessage.cs: "log N [step] M" - sets the journal step. */
 export class LogMessage extends ActionTemplate {
   static typeName = 'LogMessage';
   get saveShape() { return [['messageID'], ['stepID']]; }
@@ -375,7 +312,6 @@ export class LogMessage extends ActionTemplate {
   }
 }
 
-/** RemoveLogMessage.cs: "remove log step N". */
 export class RemoveLogMessage extends ActionTemplate {
   static typeName = 'RemoveLogMessage';
   get saveShape() { return [['stepID']]; }
@@ -393,17 +329,9 @@ export class RemoveLogMessage extends ActionTemplate {
   }
 }
 
-/** VERMIN-SHARED (FIELD BUGS 2026-10-03b; Port-Ledger A, VERMIN-SHARED): the draw a `pick one of` takes in a copy of a
- *  quest kept in step with the party - one uniform per share, task and action (the copy's `shareId`, the task's symbol
- *  name, the action's place in it), the port's one string hash (formats/netRuntime.js) through its one seeded die
- *  (systems/wind/wind.js). Every copy draws the same number, so every copy starts the same task. Pure. */
-export const sharedPickRoll = (shareId, taskName, index) => seededFirst(stringHash(`${shareId}|${taskName}|${index}`));
+// A copy shared with the party draws a seeded pick, so every copy starts the same task.
+export const sharedPickRoll =(shareId, taskName, index) => seededFirst(stringHash(`${shareId}|${taskName}|${index}`));
 
-/** PickOneOf.cs: "pick one of _a_ _b_ ..." - starts one at random (UnityEngine.Random.Range: the quest's rolls).
- *  VERMIN-SHARED: a copy kept in step with the party draws `sharedPickRoll` instead - each copy rolled its own, and a
- *  resync (machine.updateSharedQuest) takes the partner's task flags whole while the pick stays complete, so the
- *  copies held different picks and traded them at every crossing sync: The Exterminator's spiders in one copy, its
- *  bats in the other. Solo and offline, DFU's roll. */
 export class PickOneOf extends ActionTemplate {
   static typeName = 'PickOneOf';
   get saveShape() { return [['taskSymbols', 'symArray']]; }
@@ -421,7 +349,7 @@ export class PickOneOf extends ActionTemplate {
   update(caller) {
     const quest = this.parentQuest;
     const u = quest.shareId && quest.hooks?.sharedCopy?.(quest)
-      ? sharedPickRoll(quest.shareId, caller?.symbol?.name ?? '', caller?.actions?.indexOf(this) ?? 0)   // VERMIN-SHARED
+      ? sharedPickRoll(quest.shareId, caller?.symbol?.name ?? '', caller?.actions?.indexOf(this) ?? 0)
       : (quest.rolls ?? Math.random)();
     const selected = this.taskSymbols[Math.floor(u * this.taskSymbols.length)];
     const task = this.parentQuest.getTask(selected);
@@ -431,16 +359,6 @@ export class PickOneOf extends ActionTemplate {
   }
 }
 
-// ---------------------------------------------------------------
-// Q2b-i - THE STATE TRANCHE
-// ---------------------------------------------------------------
-
-/** ClickedNpc.cs: the click trigger. Once the owning task triggers it
- *  stays true ("another action will need to rearm/unset this task if
- *  another click is required"). The gold form deducts on success or
- *  starts the otherwise-task and refuses. The click is consumed via
- *  ScheduleClickRearm so a second task in the same tick cannot see
- *  it. */
 export class ClickedNpc extends ActionTemplate {
   static typeName = 'ClickedNpc';
   get saveShape() { return [['npcSymbol', 'sym'], ['id'], ['goldAmount'], ['taskSymbol', 'sym']]; }
@@ -464,13 +382,11 @@ export class ClickedNpc extends ActionTemplate {
     return action;
   }
   checkTrigger(caller) {
-    // Always true once the owning task is triggered
     if (caller.getTriggerValue()) return true;
     const person = this.parentQuest.getPerson(this.npcSymbol);
     if (!person) return false;
     if (person.hasPlayerClicked) {
       if (this.goldAmount > 0 && this.taskSymbol && this.taskSymbol.name) {
-        // AUDIT 68 S29-gold-hook-dup: ClickedNpc.cs:91-94 reads and spends PlayerEntity.GoldPieces, as ClickedFoe does
         if ((this.parentQuest.hooks?.getGoldPieces?.() ?? 0) >= this.goldAmount) {
           this.parentQuest.hooks?.deductGoldPieces?.(this.goldAmount);
         } else {
@@ -486,9 +402,6 @@ export class ClickedNpc extends ActionTemplate {
   }
 }
 
-/** ClickedItem.cs: click trigger on a quest Item. The C# ships its
- *  RearmPlayerClick call commented out - no rearm is scheduled; the
- *  PostTick law clears the click anyway. */
 export class ClickedItem extends ActionTemplate {
   static typeName = 'ClickedItem';
   get saveShape() { return [['itemSymbol', 'sym'], ['id']]; }
@@ -520,26 +433,7 @@ export class ClickedItem extends ActionTemplate {
   }
 }
 
-/** ClickedFoe.cs: ClickedNpc "cut-and-pasted ... and made it work for
- *  foes" (the file's own header note), verbatim - QG1 retired the
- *  guard. The gold arm reads and spends `PlayerEntity.GoldPieces`
- *  (:91-94), the COINS alone - Q5's getGoldPieces/deductGoldPieces
- *  pair, ClickedNpc's too. The click itself arrives
- *  through the foe's QuestResourceBehaviour (the host activation
- *  ladder's PlayerActivate.cs:325-339 arm: any quest resource that is
- *  not a Person, in any mode but Info, within DefaultActivationDistance
- *  - QG1 wired that door).
- *
- *  THE SAY FORMS ARE SAY-SHADOWED, IN C# TOO - the UnrestrainFoe
- *  quirk's shape, pinned loudly. Test() is unanchored
- *  (QuestAction.cs:142) and Say registers at QuestMachine.cs:366
- *  while ClickedFoe registers at :417 - so a parsed `clicked foe _x_
- *  say 1011` matches Say's `say (\d+)` FIRST and mints a Say action.
- *  ClickedNpc does not share the fate only because trigger conditions
- *  register at the TOP (:351, before Say). No shipped quest writes
- *  any `clicked foe` line. The port keeps the registration order -
- *  quirk preserved; the say arms are reachable only by direct
- *  construction and by save shape, exactly as upstream. */
+// Say registers first and patterns are unanchored, so a clicked-enemy line that ends in `say N` parses as Say.
 export class ClickedFoe extends ActionTemplate {
   static typeName = 'ClickedFoe';
   get saveShape() { return [['npcSymbol', 'sym'], ['id'], ['goldAmount'], ['taskSymbol', 'sym']]; }
@@ -562,7 +456,6 @@ export class ClickedFoe extends ActionTemplate {
     return action;
   }
   checkTrigger(caller) {
-    // Always true once the owning task is triggered (:74-77)
     if (caller.getTriggerValue()) return true;
     const foe = this.parentQuest.getFoe(this.npcSymbol);
     if (!foe) return false;
@@ -571,7 +464,6 @@ export class ClickedFoe extends ActionTemplate {
         if ((this.parentQuest.hooks?.getGoldPieces?.() ?? 0) >= this.goldAmount) {
           this.parentQuest.hooks?.deductGoldPieces?.(this.goldAmount);
         } else {
-          // the otherwise-task, and the trigger does NOT fire (:96-100)
           this.parentQuest.startTask(this.taskSymbol);
           return false;
         }
@@ -584,8 +476,6 @@ export class ClickedFoe extends ActionTemplate {
   }
 }
 
-/** KilledFoe.cs: fires when the Foe's kill count reaches the target
- *  (a missing count parses 0 and is raised to 1). */
 export class KilledFoe extends ActionTemplate {
   static typeName = 'KilledFoe';
   get saveShape() { return [['foeSymbol', 'sym'], ['killsRequired'], ['sayingID']]; }
@@ -615,8 +505,6 @@ export class KilledFoe extends ActionTemplate {
   }
 }
 
-/** InjuredFoe.cs: fires on the Foe's injured flag ("will not fire if
- *  Foe dies immediately", e.g. a one-shot). */
 export class InjuredFoe extends ActionTemplate {
   static typeName = 'InjuredFoe';
   get saveShape() { return [['foeSymbol', 'sym'], ['textID']]; }
@@ -644,8 +532,6 @@ export class InjuredFoe extends ActionTemplate {
   }
 }
 
-/** LevelCompleted.cs: despite the classic name, DFU implements
- *  "level N completed" as player level >= N. */
 export class LevelCompleted extends ActionTemplate {
   static typeName = 'LevelCompleted';
   get saveShape() { return [['minLevelValue']]; }
@@ -663,20 +549,15 @@ export class LevelCompleted extends ActionTemplate {
   }
 }
 
-/** DailyFrom.cs: ALWAYS-ON window trigger over the world clock -
- *  inclusive at both ends, so as a primary trigger it stops its task
- *  outside the window. Hour/minute come off the same calendar as
- *  DFU's WorldTime.Now (the machine's nowSeconds contract). */
 export class DailyFrom extends ActionTemplate {
   static typeName = 'DailyFrom';
-  // GUARD-ONLINE: the arrival's window rides the save beside C#'s two fields (a load mid-watch keeps its clock)
   get saveShape() { return [['minDailySeconds'], ['maxDailySeconds'], ['guardAnchor'], ['guardAway']]; }
   constructor(parentQuest) {
     super(parentQuest);
     this.isTriggerCondition = true;
     this.isAlwaysOnTriggerCondition = true;
-    this.guardAnchor = null;   // GUARD-ONLINE (onlineGuard.js): when the player was first in the watched place
-    this.guardAway = false;    // ...and whether they left it after the window closed
+    this.guardAnchor = null;
+    this.guardAway = false;
   }
   get pattern() { return /daily from (?<hours1>\d+):(?<minutes1>\d+) to (?<hours2>\d+):(?<minutes2>\d+)/; }
   createNew(source, parentQuest) {
@@ -689,36 +570,24 @@ export class DailyFrom extends ActionTemplate {
     return action;
   }
   checkTrigger(_caller) {
-    // GUARD-ONLINE (Mac, 2026-09-26): on the shared clock a guarded quest's window is the player's arrival's, not
-    // the hour of the world's day (systems/quest/onlineGuard.js); offline, and every other quest, DFU's window
+    // Online, a guarded quest's window starts when the player arrives at the watched place, not at an hour of day.
     const win = this.parentQuest.hooks?.sharedClock?.() ? ONLINE_GUARD_WINDOWS[this.parentQuest.questName] ?? null : null;
     if (win) {
       const place = this.parentQuest.getPlace?.(new QuestSymbol(`_${win.place}_`)) ?? null;
       return guardWindowStep(this, !!place?.isPlayerHere?.(), this.parentQuest.nowSeconds?.() ?? 0, win);
     }
-    const now = dateFromSeconds(skySecondsOf(this.parentQuest));   // TIME3: the hour is the sky's - a window comes round every real hour online
+    const now = dateFromSeconds(skySecondsOf(this.parentQuest));
     const currentDailySeconds = now.hour * 3600 + now.minute * 60;
     return currentDailySeconds >= this.minDailySeconds && currentDailySeconds <= this.maxDailySeconds;
   }
 }
 
-/** QUEST-AUDIT III PROMPT-HELD: A QUESTION IS SPENT BY ITS ANSWER, NOT BY ITS BOX. Prompt.cs and PromptMulti.cs complete
- *  at Show, and the answer lives only in the box's callback - so a save taken while the box was up (online the
- *  checkpoints write under any window: the five-minute save, the page-hide save as a tab closes) loaded a quest whose
- *  question was spent and never answered: The Lost Child's child never asked again, a main-story offer at start-up
- *  (S0000003's `prompt QuestorOffer`) left a quest with no row and no way on. Now the box's place - its task and its
- *  index there, so a party's resync, which rebuilds every action, finds it held (QlAsk's own latch, qlActions.js) - is
- *  held while the box is up, and the action completes on the answer; a load forgets the hold and asks again. A host with
- *  no box completes it at once, as before. Not DFU's (Port-Ledger A, PROMPT-HELD). */
-const promptsUp = new WeakMap();   // quest -> the places (`task#index`) whose box is up
+// A prompt completes on its answer, not when shown, so a load forgets the hold and asks again.
+// Shared copies mark held places as asked, so a party member never asks a question this player's box holds.
+const promptsUp = new WeakMap();
 const promptPlace = (action, caller) => `${caller?.symbol?.name ?? ''}#${caller?.actions?.indexOf?.(action) ?? -1}`;
-/** Is this prompt's box up (its place held)? */
 const promptUp = (action, caller) => promptsUp.get(action.parentQuest)?.has(promptPlace(action, caller)) ?? false;
-/** AUDIT QA3 A1: the places (`task#index`) of `quest` whose box is up here - the envelope this copy hands on writes them
- *  asked (machine.js getShareableQuestData), so a party member's copy never asks the question this player's box holds. */
 export const heldPromptPlaces = (quest) => [...(promptsUp.get(quest) ?? [])];
-/** Hold the prompt's place while its box is up; answers the answer's own door - the hold let go, the prompt complete
- *  (and the one a resync stood at its place since, which the hold kept from asking). */
 function holdPrompt(action, caller) {
   const quest = action.parentQuest, key = promptPlace(action, caller);
   let up = promptsUp.get(quest);
@@ -733,11 +602,6 @@ function holdPrompt(action, caller) {
   };
 }
 
-/** Prompt.cs: a yes/no box over a quest message - Yes starts the yes
- *  task, anything else the no task. The box itself is the machine's
- *  showPrompt hook (Q4 wires the parchment prompt; tests capture);
- *  a missing message shows nothing, and SetComplete runs either
- *  way. */
 export class Prompt extends ActionTemplate {
   static typeName = 'Prompt';
   get saveShape() { return [['id'], ['yesTaskSymbol', 'sym'], ['noTaskSymbol', 'sym']]; }
@@ -759,9 +623,7 @@ export class Prompt extends ActionTemplate {
     return prompt;
   }
   update(caller) {
-    // QuestMachine.CreateMessagePrompt answers null for a missing
-    // message - no box shows, but the action still completes.
-    if (promptUp(this, caller)) return;   // PROMPT-HELD: asked, not yet answered
+    if (promptUp(this, caller)) return;
     const message = this.parentQuest.getMessage(this.id);
     const show = this.parentQuest.hooks?.showPrompt;
     if (!message || !show) { this.setComplete(); return; }
@@ -770,27 +632,10 @@ export class Prompt extends ActionTemplate {
       answered();
       this.parentQuest.startTask(isYes ? this.yesTaskSymbol : this.noTaskSymbol);
     });
-    if (shown === false) answered();   // no box to answer it (a host with none): spent at once, as before
+    if (shown === false) answered();
   }
 }
 
-/** PromptMulti.cs: "a dialog with 2-4 buttons that each execute a
- *  different task" - QG1 retired the guard. The example the C# header
- *  itself gives: `promptmulti 1072 4:noChoice _dirRand_ 24:south
- *  _headS_ 25:west _headW_ 28:swest _headSW_` - the `:name` after a
- *  button number is commentary the pattern discards, and the NUMBER is
- *  cast unchecked to MessageBoxButtons (:91-99), which is to say it is
- *  a BUTTONS.RCI record index (24/25/28 sit past the named enum's last
- *  value, 20, in C# too - the box's AddButton loads the art straight
- *  off the record). The box itself is the machine's showPromptMulti
- *  hook, PROMPT's own precedent: the host lays the parchment (the
- *  message-box layer already warms arbitrary BUTTONS.RCI records), the
- *  C# NRE on a missing message id (:82 reads it unguarded) lands as
- *  Prompt's recorded no-box arm instead. The click routes by BUTTON
- *  VALUE down an else-if chain (:111-118), so duplicate numbers pick
- *  the FIRST option - verbatim. AllowCancel is false (:88): the box
- *  offers no way out but a button. SetComplete runs at SHOW (:105);
- *  the box outlives the action, and allowRearm is false (:46). */
 export class PromptMulti extends ActionTemplate {
   static typeName = 'PromptMulti';
   get saveShape() {
@@ -831,62 +676,33 @@ export class PromptMulti extends ActionTemplate {
     return prompt;
   }
   update(caller) {
-    if (promptUp(this, caller)) return;   // PROMPT-HELD: asked, not yet answered
+    if (promptUp(this, caller)) return;
     const message = this.parentQuest.getMessage(this.id);
     const show = this.parentQuest.hooks?.showPromptMulti;
     if (!message || !show) { this.setComplete(); return; }
     {
-      // 2-4 buttons in declaration order; the 3rd and 4th ride their
-      // symbols' presence, exactly as the C# AddButton arms (:93-100)
       const buttons = [this.opt1button, this.opt2button];
       if (this.opt3TaskSymbol) buttons.push(this.opt3button);
       if (this.opt4TaskSymbol) buttons.push(this.opt4button);
       const answered = holdPrompt(this, caller);
       const shown = show(this.parentQuest, message, buttons, (button) => {
         answered();
-        // MessageBox_OnButtonClick's else-if chain, verbatim - first
-        // matching VALUE wins on duplicates, and no symbol is tested
-        // (:111-118; only a SHOWN button can arrive here, and every
-        // shown button has its symbol)
         if (button === this.opt1button) this.parentQuest.startTask(this.opt1TaskSymbol);
         else if (button === this.opt2button) this.parentQuest.startTask(this.opt2TaskSymbol);
         else if (button === this.opt3button) this.parentQuest.startTask(this.opt3TaskSymbol);
         else if (button === this.opt4button) this.parentQuest.startTask(this.opt4TaskSymbol);
       });
-      if (shown === false) answered();   // PROMPT-HELD: no box - spent at once, as before
+      if (shown === false) answered();
     }
   }
 }
 
-/** PlaySound.cs: "play sound X every N minutes M times" (count 0 =
- *  forever) / "play sound X N unknown" - a REPEATING action with no
- *  SetComplete; timesPlayed++ rides the interval check while only a
- *  real play (hook answers truthy; C# skips while the audio source is
- *  busy) re-stamps lastTimePlayed. E6 SHIPPED the other half of that
- *  skip: the host's door now HAS the busy state DFU reads - one
- *  `QuestAudioSource` per machine (systems/audio.js, the
- *  DaggerfallAudioSource the QuestMachine carries) keeping the end
- *  time of the clip it last started. Create resolves the sound through
- *  Quests-Sounds inside the C#'s try/catch - an unknown name answers
- *  null and the line pends. DEPARTURE (recorded): C# also resolves
- *  SoundReader.GetSoundIndex/GetAudioClip at create and nulls on
- *  failure; the port keeps SND resolution host-side behind the
- *  playSound hook, so create succeeds on the table hit alone. */
 export class PlaySound extends ActionTemplate {
   static typeName = 'PlaySound';
   get saveShape() { return [['soundName'], ['soundId', 'raw', 'soundIndex'], ['interval'], ['count'], ['unknown'], ['lastTimePlayed']]; }
   constructor(parentQuest) {
     super(parentQuest);
-    // AUDIT 24 (the seven-slice sweep): A RESTORED PlaySound WENT NaN.
-    // `int timesPlayed;` is a C# FIELD, so it is 0 before anything
-    // touches it - and C# is right not to save it (SaveData_v1 carries
-    // the other six). The port set it only in createNew and
-    // rearmAction, and a restore mints the action through the (Quest)
-    // constructor and then walks saveShape - which correctly omits it.
-    // So `this.timesPlayed++` ran on undefined, NaN failed
-    // `NaN <= count`, and the sound never played again for the rest of
-    // the save. Every other action's createNew-only field is either
-    // declared here or in its shape; a gate now keeps it that way.
+    // timesPlayed is not saved, so a restored action needs this default.
     this.timesPlayed = 0;
   }
   get pattern() {
@@ -929,10 +745,6 @@ export class PlaySound extends ActionTemplate {
   }
 }
 
-/** PlayVideo.cs: "play video N" -> "ANIM" + N zero-padded to four +
- *  ".VID"; an empty or five-plus-digit number answers null and the
- *  line pends (the C# try/catch shape). Playback is the machine's
- *  playVideo hook (Q4 UI). */
 export class PlayVideo extends ActionTemplate {
   static typeName = 'PlayVideo';
   get saveShape() { return [['videoName']]; }
@@ -952,31 +764,6 @@ export class PlayVideo extends ActionTemplate {
   }
 }
 
-/** PlaySong.cs: "play song <name>" plays ONE song from MIDI.BSA and
- *  completes. The name is a SongFiles member and the gate is C#'s own
- *  `Enum.IsDefined` (:47-52) - an unknown song completes the TEMPLATE
- *  and THROWS. The throw leaves the parse through Task's line loop and
- *  lands in the machine's per-quest catch (ParseQuest's "Parsing quest
- *  FAILED!"), so a quest naming a song that does not exist is DROPPED
- *  WHOLE. That is the loud half of the same choice PlaySound's create
- *  makes quietly one screen up: its lookup sits in a try/catch and a
- *  bad sound name pends the single line. Both are verbatim; the two
- *  actions simply disagree in C#.
- *
- *  `SetComplete()` there really is called on the template rather than
- *  on the action being built (the action does not exist yet on that
- *  path); templates are never updated, so it changes nothing, and it
- *  is kept where C# has it. C#'s `source = source.TrimEnd()` two lines
- *  below is dead - the comment is copied from an action that splits
- *  the source into symbols and this one never reads `source` again -
- *  so it is not transcribed.
- *
- *  DFU hands the enum value to DaggerfallSongPlayer.Play, which turns
- *  it into a filename at the last moment. The port's seam is the
- *  machine's playSong hook and the port's song layer keys on MIDI.BSA
- *  record names throughout, so songFileToRecordName (systems/
- *  songFiles.js = EnumToFilename) does that step here. The SAVED field
- *  is still the enum name, as C#'s SaveData_v1.song is. */
 export class PlaySong extends ActionTemplate {
   static typeName = 'PlaySong';
   get saveShape() { return [['songFile', 'raw', 'song']]; }
@@ -987,6 +774,7 @@ export class PlaySong extends ActionTemplate {
     const action = new PlaySong(parentQuest);
     const song = match.groups.song;
     if (!isSongFileDefined(song)) {
+      // Completing the template is a no-op kept from C#; the throw drops the whole quest at parse.
       this.setComplete();
       throw new Error(`PlaySong: Song file ${song} is not a known song from MIDI.BSA`);
     }
@@ -999,8 +787,6 @@ export class PlaySong extends ActionTemplate {
   }
 }
 
-/** HideNpc.cs: raises the Person's hidden flag. A missing Person
- *  returns WITHOUT completing - the action keeps trying. */
 export class HideNpc extends ActionTemplate {
   static typeName = 'HideNpc';
   get saveShape() { return [['npcSymbol', 'sym']]; }
@@ -1020,8 +806,6 @@ export class HideNpc extends ActionTemplate {
   }
 }
 
-/** RestoreNpc.cs: clears the hidden flag; same keep-trying law as
- *  HideNpc. */
 export class RestoreNpc extends ActionTemplate {
   static typeName = 'RestoreNpc';
   get saveShape() { return [['npcSymbol', 'sym']]; }
@@ -1041,9 +825,6 @@ export class RestoreNpc extends ActionTemplate {
   }
 }
 
-/** MuteNpc.cs: mutes (SetPlayerClicked then refuses the click), and -
- *  unlike every other flag action - UNMUTES on rearm. A missing
- *  Person completes immediately, in update AND in rearm. */
 export class MuteNpc extends ActionTemplate {
   static typeName = 'MuteNpc';
   get saveShape() { return [['npcSymbol', 'sym']]; }
@@ -1065,16 +846,11 @@ export class MuteNpc extends ActionTemplate {
     super.rearmAction();
     const person = this.parentQuest.getPerson(this.npcSymbol);
     if (!person) { this.setComplete(); return; }
-    // QUEST-AUDIT III MUTE-HELD: an `until _x_ performed:` body re-arms at the end of every tick (task.js), and the unmute
-    // here left the person unmuted between ticks - where a click lands. S0000018's Gortwog took the click at once, the
-    // thirty days, the tenth level and Medora's vision its mute holds him behind skipped. The persisting re-arm keeps
-    // the mute; the task's own clear (its target performed) lifts it
+    // A persisting re-arm keeps the mute, so an `until ... performed:` body stays muted between ticks.
     if (!persist) person.isMuted = false;
   }
 }
 
-/** DestroyNpc.cs: marks the Person destroyed - the Tick law then
- *  keeps it hidden while it stands in a scene, and clicks refuse. */
 export class DestroyNpc extends ActionTemplate {
   static typeName = 'DestroyNpc';
   get saveShape() { return [['npcSymbol', 'sym']]; }
@@ -1094,8 +870,6 @@ export class DestroyNpc extends ActionTemplate {
   }
 }
 
-/** RestrainFoe.cs: raises the restrained flag (the Q3 foe motor
- *  reads it); a missing Foe keeps trying. */
 export class RestrainFoe extends ActionTemplate {
   static typeName = 'RestrainFoe';
   get saveShape() { return [['foeSymbol', 'sym']]; }
@@ -1115,9 +889,6 @@ export class RestrainFoe extends ActionTemplate {
   }
 }
 
-/** RemoveFoe.cs: hides the Foe (removing ALL spawned instances, per
- *  the SetHidden note); a missing Foe completes then THROWS - the
- *  machine error-terminates the quest. */
 export class RemoveFoe extends ActionTemplate {
   static typeName = 'RemoveFoe';
   get saveShape() { return [['foeSymbol', 'sym']]; }
@@ -1140,8 +911,6 @@ export class RemoveFoe extends ActionTemplate {
   }
 }
 
-/** AddAsQuestor.cs / DropAsQuestor.cs: the quest's questor registry
- *  (Quest.AddQuestor/DropQuestor carry the laws). */
 export class AddAsQuestor extends ActionTemplate {
   static typeName = 'AddAsQuestor';
   get saveShape() { return [['target', 'sym']]; }
@@ -1176,8 +945,6 @@ export class DropAsQuestor extends ActionTemplate {
   }
 }
 
-/** AddFace.cs: puts the Person's (or Foe's) face on the HUD escort
- *  panel via the addFace hook; an optional saying pops IMMEDIATE. */
 export class AddFace extends ActionTemplate {
   static typeName = 'AddFace';
   get saveShape() { return [['personSymbol', 'sym'], ['foeSymbol', 'sym'], ['sayingID']]; }
@@ -1208,7 +975,6 @@ export class AddFace extends ActionTemplate {
   }
 }
 
-/** DropFace.cs: removes the face from the HUD escort panel. */
 export class DropFace extends ActionTemplate {
   static typeName = 'DropFace';
   get saveShape() { return [['personSymbol', 'sym'], ['foeSymbol', 'sym']]; }
@@ -1236,9 +1002,6 @@ export class DropFace extends ActionTemplate {
   }
 }
 
-/** ItemUsedDo.cs: watches a quest Item until the player "uses" it
- *  from the inventory - then says, starts the task, stops watching
- *  and completes. Until then every tick re-raises actionWatching. */
 export class ItemUsedDo extends ActionTemplate {
   static typeName = 'ItemUsedDo';
   get saveShape() { return [['itemSymbol', 'sym'], ['taskSymbol', 'sym'], ['textID']]; }
@@ -1268,13 +1031,6 @@ export class ItemUsedDo extends ActionTemplate {
   }
 }
 
-/** DialogLink.cs: registers dialog links with the talk system - one
- *  call per named resource (by SYMBOL name), then pair links both
- *  ways (by DISPLAY names). QUIRKS kept verbatim: the C# ships
- *  namePlace's assignment commented out, so place pair-links always
- *  carry an empty place name; the person display name pends the Q3
- *  Setup chain and the item name pends the Q2b-ii mint (both '' until
- *  their slices land - in DFU they are live strings). */
 export class DialogLink extends ActionTemplate {
   static typeName = 'DialogLink';
   get saveShape() { return [['placeSymbol', 'sym'], ['npcSymbol', 'sym'], ['itemSymbol', 'sym']]; }
@@ -1301,10 +1057,9 @@ export class DialogLink extends ActionTemplate {
     const place = this.parentQuest.getPlace(this.placeSymbol ?? null);
     const person = this.parentQuest.getPerson(this.npcSymbol ?? null);
     const item = this.parentQuest.getItem(this.itemSymbol ?? null);
+    // C# never assigns the place name, so place pair links carry an empty name.
     let namePlace = '', namePerson = '', nameItem = '';
-    // first the solo links for the separated resources (which hides them)
     if (place) {
-      // C# leaves namePlace's buildingName assignment commented out
       hooks?.dialogLink?.(uid, place.symbol.name, T.Location);
     }
     if (person) {
@@ -1312,10 +1067,9 @@ export class DialogLink extends ActionTemplate {
       hooks?.dialogLink?.(uid, person.symbol.name, T.Person);
     }
     if (item) {
-      nameItem = item.daggerfallUnityItem?.itemName ?? '';   // Q2b-ii pends the mint
+      nameItem = item.daggerfallUnityItem?.itemName ?? '';
       hooks?.dialogLink?.(uid, item.symbol.name, T.Thing);
     }
-    // then the pair links between the resources, both directions
     if (place && person) {
       hooks?.dialogLink?.(uid, namePlace, T.Location, namePerson, T.Person);
       hooks?.dialogLink?.(uid, namePerson, T.Person, namePlace, T.Location);
@@ -1332,8 +1086,6 @@ export class DialogLink extends ActionTemplate {
   }
 }
 
-/** AddDialog.cs: re-enables dialog for resources by SYMBOL name (its
- *  alternation order differs from DialogLink's - kept verbatim). */
 export class AddDialog extends ActionTemplate {
   static typeName = 'AddDialog';
   get saveShape() { return [['placeSymbol', 'sym'], ['npcSymbol', 'sym'], ['itemSymbol', 'sym']]; }
@@ -1367,9 +1119,6 @@ export class AddDialog extends ActionTemplate {
   }
 }
 
-/** RumorMill.cs: hands the message to the talk rumor pool - even a
- *  missing message goes through (the hook receives null, as
- *  TalkManager does). */
 export class RumorMill extends ActionTemplate {
   static typeName = 'RumorMill';
   get saveShape() { return [['id']]; }
@@ -1388,9 +1137,6 @@ export class RumorMill extends ActionTemplate {
   }
 }
 
-/** LegalRepute.cs: current region's LegalRep += amount then the
- *  clamp - both live with the G2 court system behind the
- *  changeLegalRep hook. ParseInt carries the sign. */
 export class LegalRepute extends ActionTemplate {
   static typeName = 'LegalRepute';
   get saveShape() { return [['amount']]; }
@@ -1408,11 +1154,6 @@ export class LegalRepute extends ActionTemplate {
   }
 }
 
-/** StartQuest.cs: "start quest N N" formats the classic index as
- *  S%07d ("start quest 500 500" -> S0000500) and schedules it through
- *  the machine's data seam (the QuestListsManager stand-in); a
- *  missing quest schedules nothing. The second index is unused, as in
- *  DFU. */
 export class StartQuest extends ActionTemplate {
   static typeName = 'StartQuest';
   get saveShape() { return [['questIndex1'], ['questIndex2'], ['questName']]; }
@@ -1437,20 +1178,9 @@ export class StartQuest extends ActionTemplate {
   }
 }
 
-// ---------------------------------------------------------------
-// Q2b-ii - THE ITEM TRANCHE (the mint lives in item.js; these are
-// its consumers, each riding the machine's player-inventory hooks)
-// ---------------------------------------------------------------
-
-/** Internal_Strings "youReceiveGoldPieces" (en id 195) - GetItem's
- *  HUD line, %s replaced by the stack amount, as TextManager does. */
 export const YOU_RECEIVE_GOLD_PIECES = 'You receive %s gold pieces.';
 
-/** REALM P0.4 (2026-09-28, bible/06-Systems/Realm-Arc.md "Shared quest rewards are split"): A PARTY'S QUEST PAYS ONE
- *  REWARD. Each partner's copy pays its own (a resync rearms GivePc - machine.js REPLAYABLE_ONE_TIME_ACTIONS), so a
- *  party of six drew six purses for one quest. A shared quest's gold is paid in shares now - the party's size at the
- *  payment (hooks.rewardShares), never under one piece - and the HUD says so. An item reward is each partner's own.
- *  Answers whether it split. */
+// Each partner's copy pays its own reward, so a shared quest pays gold in shares of the party size.
 export function shareQuestGold(quest, dfItem) {
   const shares = quest?.hooks?.rewardShares?.(quest) ?? 1;
   if (!(shares > 1) || !isGoldPieces(dfItem)) return false;
@@ -1459,20 +1189,6 @@ export function shareQuestGold(quest, dfItem) {
   return true;
 }
 
-/** GivePc.cs: the three formats - "give pc anItem" offers the reward
- *  through the QuestComplete box + loot window (and makes the item
- *  PERMANENT - Sx010's cursed item stays keepable); "give pc nothing"
- *  shows QuestComplete without loot; "give pc anItem notify nnnn" /
- *  "... silently" put the item straight in the inventory - but only
- *  in town, outdoors, between 07:00 and 18:00, after a 40..500-tick
- *  random delay (the Ledger A roll). AUDIT 58: the moment that delay
- *  is rolled the action raises OnOfferPending (GivePc.cs:96, the
- *  static event at :238-244); DaggerfallUI is its one subscriber
- *  (DaggerfallUI.cs:352) and latches the sender, and the next REST or
- *  FAST TRAVEL press spends the latch through GiveOffer()
- *  (:1717-1726, gated in front of both presses at :680 and :612) -
- *  the item lands at once and the press is consumed. ui/pendingOffer.js
- *  is that half; the raise is the hooks call below. */
 export class GivePc extends ActionTemplate {
   static typeName = 'GivePc';
   get saveShape() { return [['itemSymbol', 'sym'], ['textId'], ['isNothing'], ['silently']]; }
@@ -1501,30 +1217,25 @@ export class GivePc extends ActionTemplate {
     const minHour = 7, maxHour = 18, minDelay = 40, maxDelay = 500;
     const hooks = this.parentQuest.hooks;
 
-    // The notify/silently forms wait for town, outdoors, and daytime
     if ((this.textId !== 0 || this.silently) && !this.offerImmediately) {
-      const now = dateFromSeconds(skySecondsOf(this.parentQuest));   // TIME3: daytime is the sky's
+      const now = dateFromSeconds(skySecondsOf(this.parentQuest));
       if (!hooks?.isPlayerInTown?.() || now.hour < minHour || now.hour > maxHour) {
         this.waitingForTown = true;
         this.ticksUntilFire = 0;
         return;
       }
       if (this.waitingForTown) {
-        // Random.Range(minDelay, maxDelay + 1) so messages don't all land at once
         const roll = this.parentQuest.rolls ?? Math.random;
         this.ticksUntilFire = minDelay + Math.floor(roll() * (maxDelay + 1 - minDelay));
         this.waitingForTown = false;
-        // GivePc.cs:96 - RaiseOnOfferPendingEvent(this), the LAST line
-        // of the arm. DaggerfallUI latches the sender here and the
-        // next rest / fast-travel press hands the item over instead
-        // of opening its window (DaggerfallUI.cs:352, :1717-1735).
+        // A pending offer lets the next rest or fast travel press hand the item over at once.
         hooks?.onOfferPending?.(this);
       }
     }
     if (this.ticksUntilFire > 0) { this.ticksUntilFire--; return; }
 
     if (this.isNothing) {
-      this.parentQuest.hooks?.questReward?.(this.parentQuest, null);   // QL3: the outcome's reward, at the script's own moment
+      this.parentQuest.hooks?.questReward?.(this.parentQuest, null);
       this._offerWithQuestComplete(null);
       this.setComplete();
       return;
@@ -1534,12 +1245,6 @@ export class GivePc extends ActionTemplate {
       console.warn(`[quest] Could not find Item resource symbol ${this.itemSymbol?.name}`);
       return;
     }
-    // QL3 (bible/06-Systems/Questlines-Arc.md section 5.2): a stamped quest's outcome settled and paid - its gold by the
-    // outcome's factor, its choice of gear set waiting (systems/questlines/qlLayer.js reward). DFU's quest: nothing.
-    // AUDIT QUESTLINES REWARD-11: before the party's split - split first, the HUD named the share of the unscaled purse
-    // ("309 gold") and the pile held the scaled one (386)
-    // QUEST-AUDIT III GOLD-ONCE: gold this holder was already paid (a `get item` of it) is not offered again - the
-    // QuestComplete box stands, with nothing in it
     if (item.goldPaid && isGoldPieces(item.daggerfallUnityItem)) {
       this.parentQuest.hooks?.questReward?.(this.parentQuest, null);
       this._offerWithQuestComplete(null);
@@ -1548,10 +1253,11 @@ export class GivePc extends ActionTemplate {
       return;
     }
     if (isGoldPieces(item.daggerfallUnityItem)) item.goldPaid = true;
+    // The reward hook scales the gold before the party split, so the HUD names a share of the scaled amount.
     this.parentQuest.hooks?.questReward?.(this.parentQuest, item.daggerfallUnityItem, item);
-    shareQuestGold(this.parentQuest, item.daggerfallUnityItem);   // REALM P0.4: a party's quest pays one reward
+    shareQuestGold(this.parentQuest, item.daggerfallUnityItem);
     if (this.textId !== 0) {
-      this.parentQuest.hooks?.giveItemToPlayer?.(item.daggerfallUnityItem, true);   // AddPosition.Front
+      this.parentQuest.hooks?.giveItemToPlayer?.(item.daggerfallUnityItem, true);
       this.parentQuest.showMessagePopup(this.textId);
     } else if (this.silently) {
       this.parentQuest.hooks?.giveItemToPlayer?.(item.daggerfallUnityItem, true);
@@ -1561,9 +1267,6 @@ export class GivePc extends ActionTemplate {
     this.offerImmediately = false;
     this.setComplete();
   }
-  /** OfferImmediately (GivePc.cs:142-147). AUDIT 58: its caller is
-   *  DaggerfallUI.GiveOffer() (:1717-1726) - the rest and fast-travel
-   *  presses - not the guild questor UI, which never touches it. */
   offerImmediatelyNow() {
     this.waitingForTown = false;
     this.ticksUntilFire = 0;
@@ -1573,21 +1276,12 @@ export class GivePc extends ActionTemplate {
     this.parentQuest.questSuccess = true;
     this.parentQuest.showMessagePopup(QUEST_MESSAGES.QuestComplete);
     if (!item) return;
-    // ReleaseQuestItemForReoffer(uid, item, TRUE): the reward stays
-    // with the player past quest end - permanent first, then the
-    // player-side sweep so the loot window can offer it back.
     makeItemPermanent(item.daggerfallUnityItem);
     this.parentQuest.hooks?.releaseQuestItem?.(this.parentQuest.uid, item);
-    // The dropped-loot reward container + its open-on-dismiss wiring
-    // is the Q4 window's; the hook receives the freed item.
     this.parentQuest.hooks?.offerReward?.(this.parentQuest, item.daggerfallUnityItem);
   }
 }
 
-/** GetItem.cs: gives the quest item (back) to the player - a gold
- *  stack lands as gold with the HUD line, anything else in the
- *  inventory at the front. "get item from" is the same action in DFU
- *  ("appears to behave identically"). */
 export class GetItem extends ActionTemplate {
   static typeName = 'GetItem';
   get saveShape() { return [['itemSymbol', 'sym'], ['textId']]; }
@@ -1612,17 +1306,11 @@ export class GetItem extends ActionTemplate {
     const hooks = this.parentQuest.hooks;
     hooks?.releaseQuestItem?.(this.parentQuest.uid, item);
     const dfItem = item.daggerfallUnityItem;
-    if (dfItem && isGoldPieces(dfItem)) {   // GetItem.cs:73 - IsOfTemplate, both terms
-      // QUEST-AUDIT III GOLD-ONCE: a quest's gold Item pays its holder once. GetItem re-arms with its task (allowRearm), so
-      // S0000009's `_S.02_ when _foilGone_ and _npcclicked_`, set again every dusk, paid its 87 gold every night, and
-      // N0B21Y14's `get item _gold_` then `give pc _gold_` paid one pile twice; an item, a second time, is the
-      // inventory's dedupe's to drop - gold had none
+    if (dfItem && isGoldPieces(dfItem)) {
+      // A quest's gold item pays once, since GetItem re-arms with its task and GivePc may hand over the same pile.
       if (!item.goldPaid) {
         item.goldPaid = true;
-        // AUDIT QA3 A3: a stamped quest's reward gold is its outcome's (QL3, qlLayer.js reward) here as at GivePc when
-        // this is the reward - the gold its script's `give pc` hands over too (N0B21Y14's rescue paid its purse unscaled
-        // here, and the `give pc` of it after, paid already, settled nothing). An advance at start-up is no reward: its
-        // own Item, never given by `give pc`, is paid as it stands, and the reward after it is scaled
+        // Only gold that a `give pc` also hands over is scaled as the quest's reward.
         const theReward = [...this.parentQuest.tasks.values()].some((t) => t.actions?.some((a) => a?.typeName === 'GivePc' && a.itemSymbol?.name === this.itemSymbol?.name));
         if (theReward) hooks?.questReward?.(this.parentQuest, dfItem, item);
         const amount = dfItem.stackCount ?? 0;
@@ -1630,15 +1318,13 @@ export class GetItem extends ActionTemplate {
         hooks?.addHUDText?.(localizedText('youReceiveGoldPieces', YOU_RECEIVE_GOLD_PIECES).replaceAll('%s', String(amount)));
       }
     } else {
-      hooks?.giveItemToPlayer?.(dfItem, true);   // AddPosition.Front
+      hooks?.giveItemToPlayer?.(dfItem, true);
     }
     if (this.textId !== 0) this.parentQuest.showMessagePopup(this.textId);
     this.setComplete();
   }
 }
 
-/** TakeItem.cs: releases the quest item from the player (unequip +
- *  remove, the host sweep) - the item just stops being carried. */
 export class TakeItem extends ActionTemplate {
   static typeName = 'TakeItem';
   get saveShape() { return [['itemSymbol', 'sym'], ['textId']]; }
@@ -1666,9 +1352,6 @@ export class TakeItem extends ActionTemplate {
   }
 }
 
-/** HaveItem.cs: starts the target task while the player carries the
- *  quest item - NO SetComplete on the carry branch, so it keeps
- *  checking (and keeps re-starting) every tick, verbatim. */
 export class HaveItem extends ActionTemplate {
   static typeName = 'HaveItem';
   get saveShape() { return [['targetItem', 'sym'], ['targetTask', 'sym']]; }
@@ -1687,16 +1370,13 @@ export class HaveItem extends ActionTemplate {
       this.setComplete();
       throw new Error(`Could not find Item resource symbol ${this.targetItem?.name}`);
     }
+    // The carry branch never completes, so the task restarts every tick while the item is carried, as in C#.
     if (this.parentQuest.hooks?.carriesQuestItem?.(item)) {
       this.parentQuest.startTask(this.targetTask);
     }
   }
 }
 
-/** TotingItemAndClickedNpc.cs: ClickedNpc plus the carried-item
- *  check; on success the click is consumed, the message pops (id 0
- *  passes through and shows nothing, as C#), and the item releases
- *  for re-offer. */
 export class TotingItemAndClickedNpc extends ActionTemplate {
   static typeName = 'TotingItemAndClickedNpc';
   get saveShape() { return [['itemSymbol', 'sym'], ['npcSymbol', 'sym'], ['id']]; }
@@ -1735,12 +1415,6 @@ export class TotingItemAndClickedNpc extends ActionTemplate {
   }
 }
 
-/** GiveItem.cs: hands the quest item to a Foe's item queue (cloned
- *  onto instances when Q3 spawns them) or to a generic entity in the
- *  scene - no scene object yet means the non-Foe arm keeps trying,
- *  exactly as C# does for a target not in the world; the entity/
- *  corpse-container halves ride Q3's behaviours. If the player holds
- *  the item it leaves their inventory. */
 export class GiveItem extends ActionTemplate {
   static typeName = 'GiveItem';
   get saveShape() { return [['itemSymbol', 'sym'], ['targetSymbol', 'sym']]; }
@@ -1766,12 +1440,8 @@ export class GiveItem extends ActionTemplate {
     }
     if (target.isFoe) {
       target.queueItem(item.daggerfallUnityItem);
-      // Q3 FLAG: a target already standing in the scene dequeues onto
-      // its entity immediately (QuestResourceBehaviour.AddItemQueue).
     } else {
-      // Target must exist in the world; nothing stands in scenes yet
       if (!target.questResourceBehaviour) return;
-      // Q3 FLAG: the live-entity / corpse-loot-container arms.
     }
     const hooks = this.parentQuest.hooks;
     if (hooks?.playerHasItem?.(item.daggerfallUnityItem)) {
@@ -1781,9 +1451,6 @@ export class GiveItem extends ActionTemplate {
   }
 }
 
-/** MakePermanent.cs: converts the quest item to a permanent one (the
- *  resource method syncs the virtual item, the current instance, and
- *  every held copy); a missing Item completes then THROWS. */
 export class MakePermanent extends ActionTemplate {
   static typeName = 'MakePermanent';
   get saveShape() { return [['target', 'sym']]; }
@@ -1806,15 +1473,6 @@ export class MakePermanent extends ActionTemplate {
   }
 }
 
-// ---------------------------------------------------------------
-// Q3-i - THE PLACE TRANCHE (site binding lives in place.js; these
-// consume it through the SiteLink machinery and the world seam)
-// ---------------------------------------------------------------
-
-/** PlaceNpc.cs: reserve the SiteLink, then pin the Person to the
- *  Place's marker; a destroyed person is a silent complete; an
- *  individual who is supposed to be atHome is an ERROR LOG, not a
- *  throw. Placing also unhides. */
 export class PlaceNpc extends ActionTemplate {
   static typeName = 'PlaceNpc';
   get saveShape() { return [['npcSymbol', 'sym'], ['placeSymbol', 'sym'], ['marker']]; }
@@ -1860,8 +1518,6 @@ export class PlaceNpc extends ActionTemplate {
   }
 }
 
-/** PlaceItem.cs: the marker/questmarker/anymarker forms map to
- *  MarkerPreference verbatim. */
 export class PlaceItem extends ActionTemplate {
   static typeName = 'PlaceItem';
   get saveShape() { return [['itemSymbol', 'sym'], ['placeSymbol', 'sym'], ['marker'], ['markerPreference']]; }
@@ -1905,7 +1561,6 @@ export class PlaceItem extends ActionTemplate {
   }
 }
 
-/** PlaceFoe.cs. */
 export class PlaceFoe extends ActionTemplate {
   static typeName = 'PlaceFoe';
   get saveShape() { return [['foeSymbol', 'sym'], ['placeSymbol', 'sym'], ['marker']]; }
@@ -1942,10 +1597,6 @@ export class PlaceFoe extends ActionTemplate {
   }
 }
 
-/** PcAt.cs: a CONTINUOUS set/clear toggle - never completes. The
- *  place-symbol form asks the Place; the "pc at any TYPE" form goes
- *  through Quests-Places as a placeType, which must be a building
- *  (p1=0) or dungeon (p1=1) row. The saying shows ONCE. */
 export class PcAt extends ActionTemplate {
   static typeName = 'PcAt';
   get saveShape() { return [['placeSymbol', 'sym'], ['taskSymbol', 'sym'], ['textId'], ['textShown'], ['p1'], ['p2'], ['p3']]; }
@@ -1999,8 +1650,6 @@ export class PcAt extends ActionTemplate {
   }
 }
 
-/** RevealLocation.cs: discover the Place's location on the travel
- *  map; the readmap form also notes it in the journal. */
 export class RevealLocation extends ActionTemplate {
   static typeName = 'RevealLocation';
   get saveShape() { return [['placeSymbol', 'sym'], ['readMap']]; }
@@ -2026,24 +1675,12 @@ export class RevealLocation extends ActionTemplate {
   }
 }
 
-/** TeleportPc.cs: move the player to the Place (optionally a specific
- *  spawn marker), TWO-PHASE (Q4-iii, the arrival law): the first live
- *  tick starts the site respawn (world.respawnPlayerAtSite - C#'s
- *  GetLocation + RespawnPlayer; false = unresolvable location, retry);
- *  while world.isRespawning() the action idles; the tick AFTER the
- *  respawn completes lands the player on the marker position
- *  (world.setPlayerScenePosition) and completes. RearmAction lowers
- *  resumePending - a rearmed teleport is a NEW instance and must not
- *  land a stale position (C#'s desync note). With no world seam the
- *  action keeps trying, exactly a not-in-scene target. The
- *  save-resume half rides the session restore (recorded, Q4-iv:
- *  resumePending/resumePosition are NOT in C#'s save shape, so a
- *  mid-flight teleport re-runs whole after load). */
 export class TeleportPc extends ActionTemplate {
   static typeName = 'TeleportPc';
   get saveShape() { return [['targetPlace', 'sym'], ['targetMarker']]; }
   constructor(parentQuest) {
     super(parentQuest);
+    // The resume fields are not saved, so a teleport in flight runs again whole after a load.
     this.resumePending = false;
     this.resumePosition = null;
   }
@@ -2066,65 +1703,39 @@ export class TeleportPc extends ActionTemplate {
   update(_caller) {
     const hooks = this.parentQuest.hooks;
     const world = hooks?.world;
-    // Do nothing while player respawning
     if (world?.isRespawning?.()) return;
-    // Handle resume on the next tick after the respawn completes
     if (this.resumePending) {
       world.setPlayerScenePosition?.(this.resumePosition);
       this.resumePending = false;
       this.setComplete();
       return;
     }
-    // AUDIT 24 (the seven-slice sweep): the transport-seam guard used
-    // to sit at the TOP of this method, above the SiteLink write - so
-    // on a host that has not mounted respawnPlayerAtSite (which is
-    // today's port; it is a declared pending) the link was never
-    // created at all, where C# writes it every tick regardless of what
-    // the transport does. The SiteLink is machine state other actions
-    // read; it is not the transport's to withhold.
+    // The site link is written before the transport check, because other actions read it even with no transport.
     if (!hooks?.hasSiteLink?.(this.parentQuest, this.targetPlace)) {
       hooks?.createSiteLink?.(this.parentQuest, this.targetPlace);
     }
     const place = this.parentQuest.getPlace(this.targetPlace);
     if (!place) return;
-    // The indexed marker is picked BEFORE the respawn, the [0]
-    // fallback AFTER (C#'s order); an unresolvable location returns
-    // before any respawn begins.
-    //
-    // AUDIT 24: `.questSpawnMarkers.length` UNGUARDED, as C# reads it
-    // (:102). A site whose marker array is null NREs right here, before
-    // any respawn begins; the port's `?? 0` sent it down the
-    // usingMarker=false path instead, which respawned the player and
-    // THEN threw on the [0] below - a teleport half-done.
     let usingMarker = false;
     let marker = null;
+    // The marker array is read unguarded as in C#, so a site without markers throws before any respawn begins.
     if (this.targetMarker >= 0 && this.targetMarker < place.siteDetails.questSpawnMarkers.length) {
       marker = place.siteDetails.questSpawnMarkers[this.targetMarker];
       usingMarker = true;
     }
-    if (!world?.respawnPlayerAtSite) return;   // no transport - keep trying
+    if (!world?.respawnPlayerAtSite) return;
     if (!world.respawnPlayerAtSite(place)) return;
-    // The usingMarker=false path still positions at spawn marker 0
-    // (TeleportPc.cs:120-135) - EVERY plain "teleport pc to" lands on
-    // the site's first spawn marker, and a site without one NREs in
-    // C# (the quest error-terminates; the natural throw here matches).
     if (!usingMarker) marker = place.siteDetails.questSpawnMarkers[0];
     this.resumePosition = markerScenePosition(marker);
     this.resumePending = true;
   }
 }
 
-/** DroppedItemAtPlace.cs: the trigger arms the item's actionWatching,
- *  gates allowDrop on the player being AT the place, and fires when
- *  the player drops it there, saying once. */
 export class DroppedItemAtPlace extends ActionTemplate {
   static typeName = 'DroppedItemAtPlace';
   get saveShape() { return [['itemSymbol', 'sym'], ['placeSymbol', 'sym'], ['textId'], ['textShown']]; }
   constructor(parentQuest) {
     super(parentQuest);
-    // DroppedItemAtPlace.cs:34-35 - an ALWAYS-ON trigger: first in a
-    // task it claims the primary slot and demotes later always-ons to
-    // start-only (Q3-i VERIFY: the flag was dropped).
     this.isTriggerCondition = true;
     this.isAlwaysOnTriggerCondition = true;
   }
@@ -2167,16 +1778,9 @@ export class DroppedItemAtPlace extends ActionTemplate {
   }
 }
 
-/** ChangeReputeWith.cs (Q3-ii): the player's reputation with the
- *  Person's FACTION moves by the signed amount, through the
- *  PROPAGATING overload (allies/enemies/tree spread - the same
- *  propagate=TRUE law Quest.cs:385 carries). A missing person is a
- *  silent complete. */
 export class ChangeReputeWith extends ActionTemplate {
   static typeName = 'ChangeReputeWith';
   get saveShape() { return [['target', 'sym'], ['amount']]; }
-  // ChangeReputeWith.cs:33 - the reputation move fires ONCE ever; a
-  // task rearm must not repeat it (AUDIT VI)
   constructor(parentQuest) { super(parentQuest); this.allowRearm = false; }
   get pattern() { return /change repute with (?<target>[a-zA-Z0-9_.-]+) by (?<sign>[+-])(?<amount>\d+)/; }
   createNew(source, parentQuest) {
@@ -2196,9 +1800,6 @@ export class ChangeReputeWith extends ActionTemplate {
   }
 }
 
-/** ReputeExceedsDo.cs (Q3-ii): starts the task once the player's
- *  reputation with the Person's faction reaches the bar - checked
- *  every tick until it does (no complete before then). */
 export class ReputeExceedsDo extends ActionTemplate {
   static typeName = 'ReputeExceedsDo';
   get saveShape() { return [['npcSymbol', 'sym'], ['taskSymbol', 'sym'], ['minReputation']]; }
@@ -2222,9 +1823,6 @@ export class ReputeExceedsDo extends ActionTemplate {
   }
 }
 
-/** CreateNpc.cs (Q3-ii): places the person at their generated home
- *  Place (Person.PlaceAtHome); a missing person completes then
- *  THROWS; a person with no home just logs. */
 export class CreateNpc extends ActionTemplate {
   static typeName = 'CreateNpc';
   get saveShape() { return [['npcSymbol', 'sym']]; }
@@ -2247,47 +1845,30 @@ export class CreateNpc extends ActionTemplate {
   }
 }
 
-/** CreateFoe.cs (Q3-iii) - the tick-driven spawn law. The parse and
- *  the interval/chance/counter/msg-once law are machine state; the
- *  scene halves ride two seam members (contract in machine.js):
- *  world.createFoeGameObjects(foe, count) - GameObjectHelper's mint,
- *  one opaque handle per pending instance, inactive until placed -
- *  and world.tryPlaceFoe(handle) - TryPlacement's dispatch +
- *  PlaceFoeFreely's raycast placement just outside the player's
- *  view, answering true when THIS handle stood (a false is retried
- *  next tick, verbatim). world.raiseOnEncounterEvent rides along.
- *  HEADLESS (or a world without the spawn seam) the update returns
- *  before any progress - the corpus charter. Q4-iii: the exterior-
- *  transition/init-world invalidations land below (the machine's
- *  notifyExteriorTransition/notifyInitWorld fan them out where C#
- *  subscribes each instance in its ctor); the save envelope's
- *  in-flight-wave loss stays Q4-iv's row. */
 export class CreateFoe extends ActionTemplate {
   static typeName = 'CreateFoe';
   get saveShape() { return [['foeSymbol', 'sym'], ['lastSpawnTime'], ['spawnInterval'], ['spawnMaxTimes'], ['spawnChance'], ['spawnCounter'], ['isSendAction'], ['msgMessageID']]; }
   constructor(parentQuest) {
     super(parentQuest);
     this.foeSymbol = null;
-    this.spawnInterval = 0;      // seconds
-    this.spawnMaxTimes = -1;     // -1 = infinite
+    this.spawnInterval = 0;
+    this.spawnMaxTimes = -1;
     this.spawnChance = 0;
     this.msgMessageID = -1;
     this.lastSpawnTime = 0;
     this.spawnCounter = 0;
     this.isSendAction = false;
-    this._lastTick = null;   // WORLD7: the last tick's world seconds - transient, so a resume forgives the time since the save to one played step
-    this._lastRaised = null;   // TIME3: the session's raised seconds at that tick - transient with it
-    this._awaited = null;   // WAVE-WAIT: whether the quest waits on this wave (clock.js waveIsAwaited) - read once, transient
-    this._arrived = false;   // AUDIT WAITS W3: a wave of it has come this session - transient, and a re-set does not clear it
-    // transient scene state (CreateFoe.cs:37-39) - NOT save state:
-    // an in-flight wave is lost on save/load, as in DFU
+    // The fields below are not saved, so a load loses a wave in flight as C# does.
+    this._lastTick = null;
+    this._lastRaised = null;
+    this._awaited = null;
+    this._arrived = false;
     this.spawnInProgress = false;
     this.pendingFoes = null;
     this.pendingFoesSpawned = 0;
   }
 
   get pattern() {
-    // C# reuses group names across alternates; JS suffixes and coalesces
     return new RegExp(
       'create foe (?<symbol>[a-zA-Z0-9_.-]+) every (?<minutes>\\d+) minutes (?<infinite>indefinitely) with (?<percent>\\d+)% success'
       + '|create foe (?<symbol2>[a-zA-Z0-9_.-]+) every (?<minutes2>\\d+) minutes (?<count>\\d+) times with (?<percent2>\\d+)% success'
@@ -2295,23 +1876,16 @@ export class CreateFoe extends ActionTemplate {
       + '|(?<send2>send) (?<symbol4>[a-zA-Z0-9_.-]+) every (?<minutes4>\\d+) minutes with (?<percent4>\\d+)% success');
   }
 
-  /** InitialiseOnSet (CreateFoe.cs:61-65): a task rearm restarts the
-   *  spawn cycle whole. */
   initialiseOnSet() {
     this.lastSpawnTime = 0;
     this.spawnCounter = 0;
   }
 
-  /** PlayerEnterExit_OnTransitionExterior (CreateFoe.cs:366-371):
-   *  foes pending placement into a dungeon or building interior are
-   *  invalid once the player steps outside. */
   onTransitionExterior() {
     this.pendingFoes = null;
     this.spawnInProgress = false;
   }
 
-  /** StreamingWorld_OnInitWorld (CreateFoe.cs:373-377): a streaming-
-   *  world rebuild orphans the loose-object container the same way. */
   onInitWorld() {
     this.pendingFoes = null;
     this.spawnInProgress = false;
@@ -2330,46 +1904,20 @@ export class CreateFoe extends ActionTemplate {
     if (g.infinite != null) action.spawnMaxTimes = -1;
     if ((g.send ?? g.send2) != null) {
       action.isSendAction = true;
-      // "send" without a count implies infinite
       if (action.spawnMaxTimes === 0) action.spawnMaxTimes = -1;
     }
-    // options ride source.Substring(match.Length) - C# slices by the
-    // match LENGTH regardless of where the match began, verbatim.
-    // AUDIT 24 (the seven-slice sweep): C# walks the WHOLE
-    // MatchCollection - `foreach (Match option in options)` reassigns
-    // action.msgMessageID on every hit, so a line carrying two `msg`
-    // options keeps the LAST. The port had `.exec`, which keeps the
-    // first.
+    // Options are sliced by match length as in C#, and a later `msg` option replaces an earlier one.
     for (const msg of source.slice(match[0].length).matchAll(/msg (?<msgId>\d+)/g)) {
       action.msgMessageID = questParseInt(msg.groups.msgId);
     }
     return action;
   }
 
-  /** CreateFoe.cs:110 - `(uint)UnityEngine.Random.Range(0, spawnInterval)`.
-   *  spawnInterval is a uint, and uint has NO implicit conversion to
-   *  int, so overload resolution binds Range(FLOAT, float) (inclusive
-   *  max), not Range(int, int); the (uint) cast then truncates, which
-   *  lands the same 0..n-1 uniform the int overload would have. What
-   *  is NOT the same is the DRAW: C# calls Range unconditionally, and
-   *  the corpus is full of `every 0 minutes` (S0000008, S0000503,
-   *  M0B21Y19, N0B00Y16), so an `n > 0 ?` guard here skipped a draw on
-   *  every one of them and slid the quest's whole roll stream. The
-   *  draw is unconditional; floor(r * 0) is 0 either way. */
+  // The draw is taken even for a zero interval, so the quest's roll stream matches C#.
   _range(n) { return Math.floor((this.parentQuest?.rolls ?? Math.random)() * n); }
 
-  /** WAVE-WAIT (bible/06-Systems/Online-Waits.md WAIT2): how long the wave's first arrival may wait - its interval
-   *  (DFU's Range(0, interval) backdate, below), or, online and until the wave has come, the short wait
-   *  (ONLINE_DELAY_SECONDS: 24 of the character's minutes, about two real minutes of play) for a wave the quest waits
-   *  on (clock.js waveIsAwaited, read once). The waves after it keep the script's interval - once the messenger has
-   *  come, the gap is the script's pacing again. Offline, and for every wave the quest does not wait on, the interval:
-   *  DFU's draw whole. AUDIT WAITS W3: "has come" outlives a re-set. A task set again re-arms its wave whole
-   *  (InitialiseOnSet, CreateFoe.cs:61-65) - N0B20Y02's `pc at` clears and sets `_S.01_` each time the guard steps out
-   *  of the hall and back - and read off the counter it reset, every return was a first arrival: a guard stepping out
-   *  of the hall for a minute every twenty met twice the waves of Nightblades online that the same guard meets offline
-   *  (6.1 to 2.8 over 400 rolls; 3.3 now, the first come sooner). A wave has come once its arming counted one
-   *  (spawnCounter - saved, and zeroed by a re-set), one arrived this session (`_arrived` - a re-set leaves it, a load
-   *  forgets it), or its foe has a kill on record (Foe.killCount, saved with the quest: a load never forgets it). */
+  // Online, a wave the quest waits on first arrives within the short wait instead of a full interval.
+  // `_arrived` survives a re-set, so a re-armed wave that has already come is not a first arrival again.
   _firstArrivalSeconds() {
     if (this.spawnCounter > 0 || this._arrived || !questWaitsShort(this.parentQuest)) return this.spawnInterval;
     this._awaited ??= waveIsAwaited(this.parentQuest, this.foeSymbol?.name);
@@ -2379,102 +1927,60 @@ export class CreateFoe extends ActionTemplate {
 
   update(_caller) {
     const world = this.parentQuest.hooks?.world;
-    if (!world?.createFoeGameObjects) return;   // headless / spawn seam absent - the charter
+    if (!world?.createFoeGameObjects) return;
 
     const gameSeconds = this.parentQuest.nowSeconds?.() ?? 0;
-    // First update: backdate the timer a random distance into the
-    // interval so the first spawn lands anywhere within one cycle
-    // (Range(0, interval) on the quest's injectable rolls - see _range
-    // for the overload and the unconditional draw)
-    // WORLD7 (OL3's law re-spelt): the spawn interval is a quest timer too, and online it charges PLAYED time as the
-    // Clock does - the quest's step (Infinity offline: DFU's own marker arithmetic, untouched). The marker moves
-    // forward by whatever a tick's gap exceeds the step (time away, forgiven); a resume (a load, a quest restored -
-    // no tick sample yet) forgives the time since the save to one step; a wave already in flight still lands, the
-    // placement below is not a timer. OL3 stood the interval down with the Clock instead, and no wave ever came.
     const step = this.parentQuest.questClockStepMax?.() ?? Infinity;
-    // TIME3: the interval runs on the character's clock (nowSeconds). QCLOCK-WORLD: online what they RAISED since the
-    // last tick - a rest, a loiter, a journey - is forgiven whole, and so is the LIVED part past one step: the interval
-    // spends the world's played time alone, the Clock's own law (quest/clock.js chargeSeconds) [SUPERSEDES TIME3's raise
-    // spent whole]
     const raisedNow = this.parentQuest.raisedSeconds?.() ?? null;
-    // WAVE-WAIT: the wave's first arrival - its interval, or online the short wait for a wave the quest waits on
     const first = this._firstArrivalSeconds();
+    // Online the interval counts played time as the quest clock does, so raised time and long gaps are forgiven.
     if (this.lastSpawnTime === 0) { this.lastSpawnTime = gameSeconds - (this.spawnInterval - first) - this._range(first); this._lastTick = gameSeconds; }
-    // AUDIT WORLD7/8 A3: a marker AHEAD of the world (an offline save loaded online is game-weeks past the shared
-    // calendar; the relay's welcome can correct the clock backwards) spawned nothing for the whole offset - a
-    // backward gap online is a resume too: the marker stands here. A6: the marker moves on the in-flight path as well
-    // (the placement is not a timer, and an away mid-flight counted whole once the wave landed)
-    else if (this._lastTick == null) { if (Number.isFinite(step) && (gameSeconds - this.lastSpawnTime > step || gameSeconds < this.lastSpawnTime)) this.lastSpawnTime = gameSeconds; this._lastTick = gameSeconds; }   // a resume past a step: the time away is forgiven whole and the first wave waits a full interval from here (OL3's standing-up arm)
+    else if (this._lastTick == null) { if (Number.isFinite(step) && (gameSeconds - this.lastSpawnTime > step || gameSeconds < this.lastSpawnTime)) this.lastSpawnTime = gameSeconds; this._lastTick = gameSeconds; }
     else if (Number.isFinite(step) && gameSeconds < this._lastTick) { this.lastSpawnTime = gameSeconds; this._lastTick = gameSeconds; }
     else { const raised = Number.isFinite(step) ? Math.min(raisedSince(raisedNow, this._lastRaised), gameSeconds - this._lastTick) : 0; const forgiven = Math.max(0, gameSeconds - this._lastTick - raised - step) + raised; if (forgiven > 0) this.lastSpawnTime += forgiven; this._lastTick = gameSeconds; }
-    // WAVE-WAIT: until it has come, an awaited wave is never further away than the short wait - after a resume, a load
-    // that stamped `now` (restoreSaveData's quirk: a full interval), or an attempt that brought nothing (a failed roll, a
-    // hidden foe, a wave kept off, a wave lost in flight) it comes inside one, not a whole interval on (AUDIT WAITS W7)
-    if (first < this.spawnInterval && !this.spawnInProgress) this.lastSpawnTime = Math.min(this.lastSpawnTime, gameSeconds - (this.spawnInterval - first));   // (never while one is in flight: it is coming)
+    if (first < this.spawnInterval && !this.spawnInProgress) this.lastSpawnTime = Math.min(this.lastSpawnTime, gameSeconds - (this.spawnInterval - first));
     this._lastRaised = raisedNow;
 
-    // Max spawns reached - cleared only by a set/rearm
     if (this.spawnCounter >= this.spawnMaxTimes && this.spawnMaxTimes !== -1) return;
 
-    // The wave finished deploying: count it and end this cycle
     if (this.spawnInProgress && this.pendingFoesSpawned >= this.pendingFoes.length) {
       this.spawnInProgress = false;
       this.spawnCounter++;
-      this._arrived = true;   // AUDIT WAITS W3: come - a re-set's re-arm is the script's pacing from here
+      this._arrived = true;
       return;
     }
 
-    // A new spawn event - only one can be in flight at a time
     if (gameSeconds >= this.lastSpawnTime + this.spawnInterval && !this.spawnInProgress) {
-      // the interval is consumed BEFORE the chance roll - a failed
-      // roll still waits out a full cycle
+      // The interval is spent before the chance roll, so a failed roll waits a full cycle.
       this.lastSpawnTime = gameSeconds;
-      if (this._range(100) >= this.spawnChance) return;   // Dice100.FailedRoll
+      if (this._range(100) >= this.spawnChance) return;
       const foe = this.parentQuest.getFoe(this.foeSymbol);
       if (!foe) {
         this.setComplete();
-        // C# formats the action's own never-assigned Symbol (NREs
-        // before the message renders) - the same quirk as
-        // CastSpellOnFoe; either way the quest error-terminates
+        // `this.symbol` is never assigned, matching C#; the quest error-terminates either way.
         throw new Error(`create foe could not find Foe with symbol name ${this.symbol?.name}`);
       }
-      if (foe.isHidden) return;   // hidden blocks the spawn; the interval is already spent
-      // CURSE-OFF-SAND (FIELD BUGS 2026-10-04e): a wave the host keeps off where the player stands (systems/arena/arenaGround.js
-      // - the curse's dead off the arena's grounds) passes as a hidden Foe's does: the interval spent, NO wave pending. A
-      // refusal at placement instead left the wave pending, and every tick of a pending wave raises the encounter event
-      // below - a rest on the grounds broken each hour by a foe that never came
+      // A hidden or kept-off wave spends its interval and leaves no wave pending, so it raises no encounter.
+      if (foe.isHidden) return;
       if (world.foeKeptOff?.(foe)) return;
       this._createPendingFoeSpawn(world, foe);
     }
 
-    // One placement attempt per tick while a wave is pending
     if (this.spawnInProgress) {
-      // QUEST-AUDIT III SEND-HELD: a `send` wave waits for a town (_tryPlacement) - and every tick it waited raised the
-      // encounter, which breaks a rest and stops a journey: out of town, S0000021's zombies (and S0000009/10/12's, and
-      // K0C30Y03's) turned every rest and every Travel Options trip back until the player walked into a town, with no foe
-      // ever there. A held wave raises nothing, as CURSE-OFF-SAND's kept-off wave does not
+      // A send wave waiting for a town raises no encounter, so it does not break rests or travel.
       if (this.isSendAction && !world.isPlayerInLocationRect?.()) return;
       this._tryPlacement(world);
       world.raiseOnEncounterEvent?.();
     }
   }
 
-  /** RestoreSaveData (CreateFoe.cs:412-430): the field walk plus ONE
-   *  trailing rule the generic walk cannot express -
-   *  `if (lastSpawnTime == 0) lastSpawnTime = now;`. It matters: a
-   *  quest saved before CreateFoe's first Update still carries
-   *  lastSpawnTime 0, and DFU stamps NOW on load, which permanently
-   *  retires Update's random backdate - the first wave then waits a
-   *  FULL interval and no draw is taken. Without this the port
-   *  backdated after every such load, spawning early and consuming a
-   *  roll DFU never spends. AUDIT 24 (the seven-slice sweep). */
   restoreSaveData(dataIn) {
     super.restoreSaveData(dataIn);
     if (dataIn == null) return;
+    // As in C#, a zero spawn time is stamped now on load, so the first wave waits a full interval with no draw.
     if (this.lastSpawnTime === 0) this.lastSpawnTime = this.parentQuest?.nowSeconds?.() ?? 0;
   }
 
-  /** CreatePendingFoeSpawn (CreateFoe.cs:166-181). */
   _createPendingFoeSpawn(world, foe) {
     this.pendingFoes = world.createFoeGameObjects(foe, foe.spawnCount) ?? null;
     if (!this.pendingFoes || this.pendingFoes.length !== foe.spawnCount) {
@@ -2485,11 +1991,6 @@ export class CreateFoe extends ActionTemplate {
     this.pendingFoesSpawned = 0;
   }
 
-  /** TryPlacement (CreateFoe.cs:183-212) minus the physics: the
-   *  "send" variant waits for the player inside a location rect; the
-   *  dispatch (building/dungeon/exterior/wilderness) and the raycast
-   *  ring live host-side behind tryPlaceFoe. The msg fires on the
-   *  FIRST placed foe only, oncePerQuest. */
   _tryPlacement(world) {
     if (this.isSendAction && !world.isPlayerInLocationRect?.()) return;
     if (!world.tryPlaceFoe?.(this.pendingFoes[this.pendingFoesSpawned])) return;
@@ -2501,13 +2002,6 @@ export class CreateFoe extends ActionTemplate {
   }
 }
 
-/** CastSpellOnFoe.cs (Q3-iii): queues a spell on a Foe resource -
- *  delivery is the behaviour mount's per-instance cursor (Q4). Two
- *  C# QUIRKS KEPT: a Quests-Spells miss LOGS and calls SetComplete
- *  on the TEMPLATE (a no-op - the minted action still queues its
- *  all-default spell, classic id 0); and the missing-foe throw reads
- *  the action's own never-assigned Symbol, so C# NREs before the
- *  format - either way the quest error-terminates. */
 export class CastSpellOnFoe extends ActionTemplate {
   static typeName = 'CastSpellOnFoe';
   get saveShape() { return [['spell'], ['foeSymbol', 'sym']]; }
@@ -2527,7 +2021,8 @@ export class CastSpellOnFoe extends ActionTemplate {
         action.spell.classicId = questParseInt(table.getValue('id', g.aSpell));
       } else {
         console.warn(`[quest] CastSpellOnFoe could not resolve classic spell '${g.aSpell}' in Quests-Spells data table`);
-        this.setComplete();   // C#: the TEMPLATE completes, not the action - kept
+        // C# completes the template here, not the action, so the line still mints an action with spell id 0.
+        this.setComplete();
       }
     }
     return action;
@@ -2543,36 +2038,9 @@ export class CastSpellOnFoe extends ActionTemplate {
   }
 }
 
-// ---- Q3-iv, THE REMAINDER SWEEP: the last six template owners ----
-
-// DFRegion.LocationTypes.None (DFRegion.cs:99) - 0xffff, not -1.
-// AUDIT 24 (the seven-slice sweep): no Quests-Places p2 reaches 65535
-// (the table tops out at 23, with -1 the 'anywhere' wildcard), so both
-// sentinels read the same through the guards - but the value RIDES THE
-// SAVE, and a sentinel is only a sentinel if it is the source's.
+// The value is saved, so it keeps the C# sentinel 0xffff rather than -1.
 const LOCATION_TYPE_NONE = 0xffff;
 
-/** WhenPcEntersExits.cs: the exterior-type trigger. C# rides
- *  PlayerGPS's OnEnter/OnExitLocationRect events; the port POLLS the
- *  rect flag each checkTrigger and writes previous/current on ITS
- *  EDGE, which is what the two handlers do.
- *
- *  AUDIT 24 (the seven-slice sweep): the poll used to shift previous
- *  on every observed change of the TYPE VALUE, and record that as
- *  equivalent. It is not. Walk from one town's rect straight into an
- *  adjacent town's rect of the same type and C# raises exit-then-enter
- *  - previous becomes the type, current becomes None, then the other
- *  way round, and an `exits city` fires; the value poll saw city then
- *  city and never moved. The edge is what C# writes on, so the edge is
- *  what the port holds (_wasInRect, seeded at create from the live
- *  flag exactly as PlayerGPS's flag is already true when a quest
- *  starts inside a town - a transient, out of the save shape as it is
- *  out of C#'s).
- *
- *  Only p1=2 rows of Quests-Places are legal exterior types;
- *  'anywhere' carries p2=-1, the wildcard arm. HEADLESS the flag reads
- *  false forever and the trigger stays false - the parse (and the p1
- *  throw) runs whole. */
 export class WhenPcEntersExits extends ActionTemplate {
   static typeName = 'WhenPcEntersExits';
   get saveShape() { return [['onEnter'], ['sourceExteriorType'], ['indexExteriorType'], ['currentLocationType'], ['previousLocationType']]; }
@@ -2584,8 +2052,6 @@ export class WhenPcEntersExits extends ActionTemplate {
     this.indexExteriorType = -1;
     this.currentLocationType = LOCATION_TYPE_NONE;
     this.previousLocationType = LOCATION_TYPE_NONE;
-    // transient - PlayerGPS owns this flag in C#, so it is no more part
-    // of the action's SaveData_v1 than it is of the port's saveShape
     this._wasInRect = false;
   }
   get pattern() { return /when pc (?<enters>enters) (?<exteriorType>\w+)|when pc (?<exits>exits) (?<exteriorType2>\w+)/; }
@@ -2603,23 +2069,16 @@ export class WhenPcEntersExits extends ActionTemplate {
       throw new Error('WhenPcEntersExits: This trigger condition can only be used with exterior types of p1=2 in Quests-Places table.');
     }
     action.indexExteriorType = table.getInt('p2', action.sourceExteriorType);
-    // seed the current type from the player's location at create
-    // (WhenPcEntersExits.cs:73-76), and with it the rect flag PlayerGPS
-    // is already holding - otherwise the first poll reads a phantom
-    // enter edge for a quest that started inside a town
     const world = parentQuest?.hooks?.world;
     const loc = world?.currentLocation?.();
+    // Seeding the flag here keeps a quest started inside a town from reading a false enter edge.
     action._wasInRect = Boolean(world?.isPlayerInLocationRect?.());
     if (action._wasInRect && loc?.loaded) {
       action.currentLocationType = loc.mapTableData.locationType;
     }
     return action;
   }
-  /** The two handlers, on the rect flag's edge.
-   *  PlayerGPS_OnEnterLocationRect (:157-164): previous takes current,
-   *  then current takes the location's type - or None when the
-   *  location is not Loaded. PlayerGPS_OnExitLocationRect (:166-170):
-   *  previous takes current, current becomes None. */
+  // Types shift on edges of the rect flag, as the C# enter and exit events do, so a walk into a nearby town exits.
   _poll() {
     const world = this.parentQuest?.hooks?.world;
     const inRect = Boolean(world?.isPlayerInLocationRect?.());
@@ -2635,7 +2094,7 @@ export class WhenPcEntersExits extends ActionTemplate {
   }
   _hasEnteredTarget() {
     if (!this.onEnter || this.currentLocationType === LOCATION_TYPE_NONE) return false;
-    if (this.indexExteriorType === -1) return true;   // 'anywhere'
+    if (this.indexExteriorType === -1) return true;
     return this.indexExteriorType === this.currentLocationType;
   }
   _hasExitedTarget() {
@@ -2649,13 +2108,6 @@ export class WhenPcEntersExits extends ActionTemplate {
   }
 }
 
-/** WhenNpcIsAvailable.cs: the individual NPC is "available" when the
- *  player clicks them while NO active quest binds a Person of that
- *  faction. The clickMemory holds the SAME click from re-triggering
- *  (identity), and every check claims the machine's faction-listener
- *  slot (TalkManager's Q4 signal). The parse-time individual check
- *  runs only under a world; C#'s throw here is preceded by the
- *  TEMPLATE SetComplete - the same no-op quirk as CastSpellOnFoe. */
 export class WhenNpcIsAvailable extends ActionTemplate {
   static typeName = 'WhenNpcIsAvailable';
   get saveShape() { return [['npcName'], ['npcFactionID']]; }
@@ -2676,15 +2128,9 @@ export class WhenNpcIsAvailable extends ActionTemplate {
     const factionID = getIndividualFactionID(name);
     const world = parentQuest?.hooks?.world;
     if (factionID !== -1 && world) {
-      // AUDIT 24 systems: Person.GetFactionData THROWS on a missing
-      // record (Person.cs:848-856) - the port's `factionData &&` guard
-      // let an unknown faction fall straight through and mint the
-      // action, where DFU error-terminates the quest at parse. And
-      // factionID 0 answers the zero record, whose type is 0, so the
-      // `!= Individual` test below fires rather than being skipped.
       const factionData = getFactionDataOrThrow(world, factionID);
-      if (factionData.type !== 4) {   // FactionTypes.Individual
-        this.setComplete();   // C#: the TEMPLATE completes - kept
+      if (factionData.type !== 4) {
+        this.setComplete();
         throw new Error(`WhenNpcIsAvailable: NPC ${name} with FactionID ${factionID} is not an individual NPC`);
       }
     }
@@ -2697,17 +2143,7 @@ export class WhenNpcIsAvailable extends ActionTemplate {
     hooks?.addFactionListener?.(this.npcFactionID, this);
     const lastClicked = hooks?.lastNPCClicked?.() ?? null;
     if (!lastClicked) return false;
-    // AUDIT 24 (the seven-slice sweep): the spam-click guard was DEAD.
-    // C#'s `lastClicked == clickMemory` (WhenNpcIsAvailable.cs:84)
-    // compares two StaticNPC REFERENCES, and a scene holds exactly one
-    // StaticNPC per NPC - so it reads "the player clicked this same
-    // NPC again". The port's hosts build a fresh NPCData object literal
-    // at every click (worldModes.js's quest-flat arm and
-    // questBridge.clickNpc both do), so `===` could never be true and
-    // the guard never fired: re-clicking the same NPC re-triggered the
-    // task every time, where DFU makes the player go and click someone
-    // else first. The identity compare is IsNPCDataEqual's, the one the
-    // machine already uses to match a questor.
+    // Hosts build a new NPC object per click, so the same NPC is matched by its data, not by reference.
     const sameNPC = hooks?.isNPCDataEqual
       ? hooks.isNPCDataEqual(lastClicked, this.clickMemory)
       : lastClicked === this.clickMemory;
@@ -2727,11 +2163,6 @@ export class WhenNpcIsAvailable extends ActionTemplate {
   }
 }
 
-/** WhenReputeWith.cs: the always-on reputation bar over the
- *  persistent faction store - the record's LIVE rep field, read each
- *  check. An unknown faction (no record) answers false, even at a
- *  bar of 0. The parse-time individual check runs only under a
- *  world; C#'s throw here has NO SetComplete, unlike its sibling. */
 export class WhenReputeWith extends ActionTemplate {
   static typeName = 'WhenReputeWith';
   get saveShape() { return [['npcName'], ['npcFactionID'], ['minRepValue']]; }
@@ -2752,10 +2183,8 @@ export class WhenReputeWith extends ActionTemplate {
     const factionID = getIndividualFactionID(name);
     const world = parentQuest?.hooks?.world;
     if (factionID !== -1 && world) {
-      // AUDIT 24 systems: the same throw as WhenNpcIsAvailable above
-      // (WhenReputeWith.cs:57 is the identical line).
       const factionData = getFactionDataOrThrow(world, factionID);
-      if (factionData.type !== 4) {   // FactionTypes.Individual
+      if (factionData.type !== 4) {
         throw new Error(`WhenReputeWith: NPC ${name} with FactionID ${factionID} is not an individual NPC`);
       }
     }
@@ -2771,24 +2200,15 @@ export class WhenReputeWith extends ActionTemplate {
   }
 }
 
-/** MakePcDiseased.cs: the Quests-Diseases id at parse (a miss
- *  THROWS), CreateDisease + AssignBundle(BypassSavingThrows) through
- *  the makePcDiseased seam at update. The corpus's one "saying N"
- *  tail is NOT in C#'s pattern - C# drops it and no popup fires; the
- *  port reads it (QUEST-AUDIT III ILL-SAYING, below). */
 export class MakePcDiseased extends ActionTemplate {
   static typeName = 'MakePcDiseased';
-  // AUDIT QA3 C1/A4: `textId` is saved only where a `saying` gave one - written always, every bare `make pc ill` (C0C00Y10,
-  // A0C00Y11, C0B10Y05, Q0C0XY02) wrote a field a copy begun before it, and an older build's, has not, and each share and
-  // sync between the two was refused as forged. S0000007's, the one `saying`, is the main story's and never shared.
+  // textId is saved only when set, because a share or sync with fields an older copy lacks is refused as forged.
   get saveShape() { return this.textId ? [['diseaseType'], ['textId']] : [['diseaseType']]; }
   constructor(parentQuest) { super(parentQuest); this.diseaseType = -1; this.textId = 0; }
   restoreSaveData(dataIn) {
     super.restoreSaveData(dataIn);
-    if (dataIn?.textId) this.textId = dataIn.textId;   // a restore builds the action bare - its `saying` from the save
+    if (dataIn?.textId) this.textId = dataIn.textId;
   }
-  // QUEST-AUDIT III ILL-SAYING: `... saying N` - S0000007's "You feel a sickening jolt as the _relic_ vanishes." (1027) was
-  // read past and never shown; the curse landed with no word
   get pattern() { return /make pc ill with (?<aDisease>[a-zA-Z0-9_.']+)(?: saying (?<id>\d+))?/; }
   createNew(source, parentQuest) {
     const match = this.test(source);
@@ -2812,17 +2232,12 @@ export class MakePcDiseased extends ActionTemplate {
   }
 }
 
-/** CurePcDisease.cs: three arms - vampirism and lycanthropy ride
- *  their own enders, everything else the Quests-Diseases id (a miss
- *  THROWS). C# re-tests the matched text CASE-INSENSITIVELY, so
- *  'cure Vampirism' falls through the third alternate and still
- *  lands on the vampirism arm. */
 export class CurePcDisease extends ActionTemplate {
   static typeName = 'CurePcDisease';
   get saveShape() { return [['diseaseType'], ['isCureVampirism'], ['isCureLycanthropy']]; }
   constructor(parentQuest) {
     super(parentQuest);
-    this.diseaseType = -1;   // Diseases.None
+    this.diseaseType = -1;
     this.isCureVampirism = false;
     this.isCureLycanthropy = false;
   }
@@ -2853,43 +2268,6 @@ export class CurePcDisease extends ActionTemplate {
   }
 }
 
-/** CastSpellDo.cs: starts a task when the player READIES a spell
- *  whose bundle matches EVERY classic effect of the named spell.
- *
- *  AUDIT 24 (the seven-slice sweep): THE LATCH IS THE ACTION'S, NOT
- *  THE HOST'S. The port used to poll world.readiedSpell() each update
- *  and call the readied state "the window" - a recorded equivalence
- *  that is not sound. C# holds `lastReadySpell` as ACTION state, set
- *  by OnNewReadySpell and cleared by OnCastReadySpell, and the two do
- *  not tile the readied state:
- *    - AbortReadySpell (EntityEffectManager.cs:361-365) nulls the
- *      host's readySpell WITHOUT raising OnCastReadySpell, so C#'s
- *      latch SURVIVES an aborted ready and still fires the task; the
- *      poll saw nothing and never fired.
- *    - the action subscribes in its CONSTRUCTOR, so a ready landing
- *      before the task ever runs is latched and fires on the task's
- *      first tick; a ready that has since been aborted is invisible
- *      to a poll.
- *    - a MISMATCH consumes the latch (`lastReadySpell = null`), so C#
- *      evaluates one readied bundle exactly ONCE; the poll re-tested
- *      the same bundle every tick.
- *  So the latch is ported here and the host raises it through the
- *  machine's notifyNewReadySpell/notifyCastReadySpell doors, the same
- *  fan-out CreateFoe's transitions ride.
- *
- *  ONE MORE C# QUIRK KEPT: SetComplete UNSUBSCRIBES both events and
- *  RearmAction never resubscribes - a completed CastSpellDo that is
- *  rearmed is deaf forever (_eventsBound, cleared and never restored),
- *  and the STALE bundle it is still holding re-fires it on the next
- *  tick.
- *
- *  BOTH miss arms carry the template-SetComplete quirk (CastSpellOnFoe's
- *  sibling): the minted action stands with spellID -1 or null effects
- *  and idles forever, never completing - which is also exactly the
- *  HEADLESS stance, since the classic spell records need ARENA2. The
- *  first arm's LOG carries it too: C# formats the unqualified
- *  `spellID`, the TEMPLATE's field, which is never assigned and always
- *  prints -1. */
 export class CastSpellDo extends ActionTemplate {
   static typeName = 'CastSpellDo';
   get saveShape() { return [['spellID'], ['classicEffects'], ['taskSymbol', 'sym']]; }
@@ -2898,23 +2276,17 @@ export class CastSpellDo extends ActionTemplate {
     this.spellID = -1;
     this.classicEffects = null;
     this.taskSymbol = null;
-    // transient, NOT saved (C#'s SaveData_v1 carries three fields):
     this.lastReadySpell = null;
-    this._eventsBound = true;   // the ctor's two += subscriptions
+    this._eventsBound = true;
   }
   get pattern() { return /cast (?<aSpell>[a-zA-Z0-9'_.-]+) spell do (?<aTask>[a-zA-Z0-9_.-]+)/; }
 
-  /** PlayerEffectManager_OnNewReadySpell (:127-131). */
+  // The ready-spell latch is action state: a cast clears it, and an aborted ready leaves it set.
   onNewReadySpell(spell) { if (this._eventsBound) this.lastReadySpell = spell ?? null; }
 
-  /** PlayerEffectManager_OnCastReadySpell (:133-137): a CAST clears
-   *  the latch "so player can't queue it up before entering location".
-   *  An ABORT does not - EntityEffectManager.AbortReadySpell raises
-   *  nothing. */
   onCastReadySpell(_spell) { if (this._eventsBound) this.lastReadySpell = null; }
 
-  /** SetComplete (:119-124): completing UNSUBSCRIBES, and the base
-   *  RearmAction does not put the handlers back. */
+  // Completing unbinds the ready-spell events and a rearm never binds them again, as in C#.
   setComplete() {
     super.setComplete();
     this._eventsBound = false;
@@ -2932,34 +2304,30 @@ export class CastSpellDo extends ActionTemplate {
       if (effects) {
         action.classicEffects = effects;
       } else {
-        // C# logs the unqualified `spellID` - the TEMPLATE's field,
-        // never assigned, so DFU always prints -1 here
         console.warn(`[quest] CastSpellDo could not find spell matching spellID '${this.spellID}' from spell '${sourceSpellName}'`);
-        this.setComplete();   // C#: the TEMPLATE completes - kept
+        this.setComplete();
       }
     } else {
       console.warn(`[quest] CastSpellDo could not resolve spell '${sourceSpellName}' in Quests-Spells data table`);
-      this.setComplete();   // C#: the TEMPLATE completes - kept
+      this.setComplete();
     }
     return action;
   }
   update(_caller) {
     const world = this.parentQuest.hooks?.world;
-    // QUEST-AUDIT III CAST-SHARE: a copy read headless (a party member's shared copy) holds no effects - read them here,
-    // from this world's own spell records
+    // A shared copy read without a world holds no effects, so they load here from this world's spell records.
     if (this.spellID !== -1 && !this.classicEffects) this.classicEffects = world?.getClassicSpellEffects?.(this.spellID) ?? null;
-    // Validate - and note C# clears the latch on the way out of this
-    // arm too, so an unresolvable action eats every ready it is handed
     if (this.spellID === -1 || !this.classicEffects?.length || !this.taskSymbol || !this.lastReadySpell) {
       this.lastReadySpell = null;
       return;
     }
+    // A mismatch consumes the latch, so each readied spell is checked once.
     let foundEffects = 0;
     for (const effect of this.classicEffects) {
       if (effect.type === -1) continue;
       foundEffects++;
       if (!world?.spellHasMatchForClassicEffect?.(this.lastReadySpell, effect)) {
-        this.lastReadySpell = null;   // one bundle, one evaluation
+        this.lastReadySpell = null;
         return;
       }
     }
@@ -2972,28 +2340,6 @@ export class CastSpellDo extends ActionTemplate {
   }
 }
 
-/** CastEffectDo.cs: starts a task when the player READIES a spell
- *  containing one specific effect, "matches effect by key" - QG1
- *  retired the guard. The same latch machinery as CastSpellDo above
- *  (constructor subscription, a cast clears, an abort does not, and
- *  SetComplete unsubscribes with no resubscribe on rearm - the same
- *  deaf-forever quirk, :80-85), with TWO differences, both C#'s:
- *
- *  - the VALIDATE arm eats the latch (:62-66) exactly as the sibling,
- *    BUT a readied bundle that simply does not CONTAIN the effect
- *    KEEPS the latch (:69-77 has no clear on the fall-through), so
- *    the same bundle is re-evaluated every tick until a cast or a
- *    match - where CastSpellDo consumes one bundle per evaluation.
- *    Pinned; do not "fix" it into the sibling's shape.
- *  - the KEY. C# compares Settings.Effects[i].Key, the effect
- *    template's per-class registry key literal ("Levitate",
- *    "ContinuousDamage-Health"). The port's spells carry classic
- *    (type, subType) pairs, so the compare rides spellEffects'
- *    dfuEffectKeyOf - the one derivation of DFU's key convention -
- *    and `cast Levitate effect do _t_` means here exactly what it
- *    means there. No shipped quest writes the line (corpus: zero
- *    hits); the vocabulary exists for custom quests, "should support
- *    custom effects from mods" being the C# header's own reason. */
 export class CastEffectDo extends ActionTemplate {
   static typeName = 'CastEffectDo';
   get saveShape() { return [['effectKey'], ['taskSymbol', 'sym']]; }
@@ -3001,20 +2347,15 @@ export class CastEffectDo extends ActionTemplate {
     super(parentQuest);
     this.effectKey = null;
     this.taskSymbol = null;
-    // transient, NOT saved (C#'s SaveData_v1 carries two fields):
     this.lastReadySpell = null;
-    this._eventsBound = true;   // the ctor's two += subscriptions
+    this._eventsBound = true;
   }
   get pattern() { return /cast (?<effectKey>[a-zA-Z0-9_.-]+) effect do (?<aTask>[a-zA-Z0-9_.-]+)/; }
 
-  /** PlayerEffectManager_OnNewReadySpell (:89-93). */
   onNewReadySpell(spell) { if (this._eventsBound) this.lastReadySpell = spell ?? null; }
 
-  /** PlayerEffectManager_OnCastReadySpell (:95-99): a CAST clears the
-   *  latch "so player can't queue it up before entering location". */
   onCastReadySpell(_spell) { if (this._eventsBound) this.lastReadySpell = null; }
 
-  /** SetComplete (:80-85): completing UNSUBSCRIBES, never rebound. */
   setComplete() {
     super.setComplete();
     this._eventsBound = false;
@@ -3028,13 +2369,11 @@ export class CastEffectDo extends ActionTemplate {
     return action;
   }
   update(_caller) {
-    // Validate (:62-66) - and the arm clears the latch on the way out
     if (!this.effectKey || !this.taskSymbol || !this.lastReadySpell) {
       this.lastReadySpell = null;
       return;
     }
-    // Compare readied spell for target effect (:69-77). NO latch
-    // clear on a miss - see the header.
+    // Unlike CastSpellDo, a spell without the effect keeps the latch and is checked again each tick, as in C#.
     for (const effect of this.lastReadySpell.effects ?? []) {
       if (dfuEffectKeyOf(effect.type, effect.subType) === this.effectKey) {
         this.parentQuest.startTask(this.taskSymbol);
@@ -3045,9 +2384,6 @@ export class CastEffectDo extends ActionTemplate {
   }
 }
 
-/** CreateNpcAt.cs: a DOCUMENTED no-op - legacy TEMPLATE scripts
- *  "reserve" a site before placing; DFU creates SiteLinks in the
- *  placement actions either way, so this only completes. */
 export class CreateNpcAt extends ActionTemplate {
   static typeName = 'CreateNpcAt';
   get saveShape() { return [['placeSymbol', 'sym']]; }
@@ -3062,29 +2398,8 @@ export class CreateNpcAt extends ActionTemplate {
   update(_caller) { this.setComplete(); }
 }
 
-/** Internal_Strings "readMap" (en id 653) - RevealLocation's journal
- *  note, %map replaced by the location name, as TextManager does. */
 export const READ_MAP_NOTE = 'Discovered the location of %map after studying a map.';
 
-/** AUDIT quest-P2: the registry is first-match-wins over UNANCHORED
- *  patterns, so the un-ported actions that sit before (or between)
- *  the tranche in DFU's RegisterActionTemplates order need GUARDS at
- *  their positions - without them Say hijacked "clicked npc _x_ say
- *  1011" into an unconditional popup and WhenTask built bogus evals
- *  from "when repute with ..." lines. A guard's createNew answers
- *  null, so the line lands in pendingActionLines (the Q2b queue),
- *  exactly where an unregistered action's line belongs. Q2b-i widened
- *  the guard set to EVERY un-ported action, so the registry mirrors
- *  RegisterActionTemplates whole and every corpus line resolves or
- *  pends exactly where DFU's scan sends it. Patterns are the DFU
- *  originals' match surface, group-free. */
-// ══ Q5 (2026-08-27): FOURTEEN GUARDS RETIRED ════════════════════
-// Each class is its .cs whole; the six still guarded below carry
-// their blocker in GUARD_PATTERNS' comment.
-
-/** WhenSkillLevel.cs - trigger: the LIVE skill at least N. The
- *  skill name is the C# enum member's; an unknown name completes
- *  and THROWS, verbatim. */
 export class WhenSkillLevel extends ActionTemplate {
   static typeName = 'WhenSkillLevel';
   get saveShape() { return [['skill'], ['minSkillValue']]; }
@@ -3110,11 +2425,10 @@ export class WhenSkillLevel extends ActionTemplate {
   }
   checkTrigger(_caller) {
     const e = this.parentQuest.hooks?.playerEntity?.();
-    return !!e && skillValue(e, this.skill) >= this.minSkillValue;   // GetLiveSkillValue
+    return !!e && skillValue(e, this.skill) >= this.minSkillValue;
   }
 }
 
-/** WhenAttributeLevel.cs - trigger: the LIVE stat at least N. */
 export class WhenAttributeLevel extends ActionTemplate {
   static typeName = 'WhenAttributeLevel';
   get saveShape() { return [['attribute'], ['minAttributeValue']]; }
@@ -3140,17 +2454,15 @@ export class WhenAttributeLevel extends ActionTemplate {
   }
   checkTrigger(_caller) {
     const e = this.parentQuest.hooks?.playerEntity?.();
-    return !!e && liveStat(e, this.attribute) >= this.minAttributeValue;   // GetLiveStatValue
+    return !!e && liveStat(e, this.attribute) >= this.minAttributeValue;
   }
 }
-/** DFCareer.Stats enum names -> the port's stat keys. */
 const STAT_KEYS_BY_ENUM = Object.freeze({
   Strength: 'strength', Intelligence: 'intelligence', Willpower: 'willpower',
   Agility: 'agility', Endurance: 'endurance', Personality: 'personality',
   Speed: 'speed', Luck: 'luck',
 });
 
-/** Season.cs - ALWAYS-ON trigger: the calendar's season. */
 export class SeasonCondition extends ActionTemplate {
   static typeName = 'Season';
   get saveShape() { return [['season']]; }
@@ -3170,17 +2482,12 @@ export class SeasonCondition extends ActionTemplate {
   }
   checkTrigger(_caller) {
     const hooks = this.parentQuest.hooks;
-    const sec = (hooks?.skySeconds ?? hooks?.nowSeconds)?.();   // TIME3: the season is the sky's
+    const sec = (hooks?.skySeconds ?? hooks?.nowSeconds)?.();
     if (sec == null) return false;
     return SEASON_NAMES[seasonValue(dateFromSeconds(sec))]?.toLowerCase() === this.season;
   }
 }
 
-/** Weather.cs - ALWAYS-ON trigger. DFU derives the seven states from
- *  WeatherManager's flag set because it HAS no single enum; the
- *  port's weather IS the same seven-value enum (weather.js
- *  WEATHER_TYPES, name for name), so the check is equality - one
- *  law, two spellings, recorded. */
 export class WeatherCondition extends ActionTemplate {
   static typeName = 'Weather';
   get saveShape() { return [['weather']]; }
@@ -3203,10 +2510,6 @@ export class WeatherCondition extends ActionTemplate {
   }
 }
 
-/** Climate.cs - ALWAYS-ON trigger: the named climate, or `base` and
- *  one of desert/mountain/temperate/swamp. The named arm compares
- *  the MAPS.BSA climate index; the base arm folds it (Climates ->
- *  ClimateBaseType, ClimateSwaps.FromAPIClimateBase's own grouping). */
 export class ClimateCondition extends ActionTemplate {
   static typeName = 'Climate';
   get saveShape() { return [['climate'], ['climateBase']]; }
@@ -3214,13 +2517,10 @@ export class ClimateCondition extends ActionTemplate {
     super(parentQuest);
     this.isTriggerCondition = true;
     this.isAlwaysOnTriggerCondition = true;
-    this.climate = -1;       // MapsFile.Climates value, or -1
-    this.climateBase = '';   // 'desert'|'mountain'|'temperate'|'swamp', or ''
+    this.climate = -1;
+    this.climateBase = '';
   }
-  /** C#'s alternative order binds `climate desert2` to desert (224) and `climate mountainwoods` to mountain (226) - the
-   *  leftmost alternative that matches wins, and Test() is unanchored - so neither ever meant its own climate (Foraging's
-   *  MiningQuest's rich seam never read 225 or 230). QUEST-AUDIT III CLIMATE-NAMES: the longer name first, so each reads
-   *  its own; a departure from DFU's bug. */
+  // Longer climate names come first so `desert2` and `mountainwoods` match their own climates, unlike C#.
   get pattern() {
     return /climate (?<climate>desert2|desert|mountainwoods|mountain|rainforest|ocean|swamp|subtropical|hauntedwoodlands|woodlands)|climate (?<base>base) (?<climatebase>desert|mountain|temperate|swamp)/;
   }
@@ -3243,23 +2543,17 @@ export class ClimateCondition extends ActionTemplate {
     return CLIMATE_BASE_OF[idx] === this.climateBase;
   }
 }
-/** The quest grammar's climate names -> MapsFile.Climates values. */
 const QUEST_CLIMATES = Object.freeze({
   ocean: 223, desert: 224, desert2: 225, mountain: 226, rainforest: 227,
   swamp: 228, subtropical: 229, mountainwoods: 230, woodlands: 231,
   hauntedwoodlands: 232,
 });
-/** ClimateSwaps.FromAPIClimateBase: which base each climate folds to
- *  (ocean rides temperate, DFU's own fold). */
 const CLIMATE_BASE_OF = Object.freeze({
   223: 'temperate', 224: 'desert', 225: 'desert', 226: 'mountain',
   227: 'swamp', 228: 'swamp', 229: 'desert', 230: 'mountain',
   231: 'temperate', 232: 'temperate',
 });
 
-/** SetPlayerCrime.cs - CrimeCommitted through the ONE setter (the
- *  V4 SuppressCrime gate rides the hook's implementation). An
- *  unknown crime name completes and THROWS, verbatim. */
 export class SetPlayerCrimeAction extends ActionTemplate {
   static typeName = 'SetPlayerCrime';
   get saveShape() { return [['playerCrime']]; }
@@ -3286,12 +2580,9 @@ export class SetPlayerCrimeAction extends ActionTemplate {
   }
 }
 
-/** PayMoney.cs - `gold` counts COINS alone, `money` the whole purse
- *  (letters of credit included); the paid/not tasks start
- *  accordingly and the amount is only taken when it covers. */
 export class PayMoney extends ActionTemplate {
   static typeName = 'PayMoney';
-  get saveShape() { return [['paidTaskSymbol', 'sym'], ['notTaskSymbol', 'sym'], ['amount'], ['goldOnly']]; }   // AUDIT 68 S29-raw-symbol-saveshape
+  get saveShape() { return [['paidTaskSymbol', 'sym'], ['notTaskSymbol', 'sym'], ['amount'], ['goldOnly']]; }
   constructor(parentQuest) {
     super(parentQuest);
     this.paidTaskSymbol = null;
@@ -3313,9 +2604,6 @@ export class PayMoney extends ActionTemplate {
   update(_caller) {
     const hooks = this.parentQuest.hooks;
     if (this.amount > 0) {
-      // The `money` arm gates on PlayerEntity.GetGoldAmount() - coins
-      // PLUS letters of credit - which is what deductGold then spends.
-      // getGoldPieces is the bare GoldPieces read the `gold` arm uses.
       const held = this.goldOnly ? (hooks?.getGoldPieces?.() ?? 0) : (hooks?.getTotalGold?.() ?? 0);
       if (held >= this.amount) {
         if (this.goldOnly) hooks?.deductGoldPieces?.(this.amount);
@@ -3329,9 +2617,6 @@ export class PayMoney extends ActionTemplate {
   }
 }
 
-/** JournalNote.cs - the message's tokens into the notebook's NOTES
- *  page through the TOKEN overload, PlayerNotebook.AddNote(List<Token>)
- *  (RevealLocation's readmap note is the string one). */
 export class JournalNote extends ActionTemplate {
   static typeName = 'JournalNote';
   get saveShape() { return [['id']]; }
@@ -3350,18 +2635,11 @@ export class JournalNote extends ActionTemplate {
   }
   update(_caller) {
     const message = this.parentQuest.getMessage(this.id);
-    if (message) this.parentQuest.hooks?.world?.addNoteTokens?.(message.getTextTokens(-1, this.parentQuest.rolls));   // AUDIT 68 S29-trainpc-popup-rng: the variant on the quest's rolls
+    if (message) this.parentQuest.hooks?.world?.addNoteTokens?.(message.getTextTokens(-1, this.parentQuest.rolls));
     this.setComplete();
   }
 }
 
-/** TrainPc.cs - free training: QuestSuccess, the QuestComplete
- *  popup, then the training itself - the last-training stamp, THREE
- *  hours raised, 180 minutes of fatigue, and a tally of
- *  Range(10,21) x the skill's advancement multiplier. C# trains on
- *  the popup's OnClose; the port's popup hook is fire-and-forget, so
- *  the training runs in the same update - a deferral folded, the
- *  outcome identical (recorded). */
 export class TrainPc extends ActionTemplate {
   static typeName = 'TrainPc';
   get saveShape() { return [['skill']]; }
@@ -3387,18 +2665,14 @@ export class TrainPc extends ActionTemplate {
     const q = this.parentQuest;
     const hooks = q.hooks;
     q.questSuccess = true;
-    // AUDIT 68 S29-trainpc-popup-rng: TrainPc.cs:67 is ParentQuest.ShowMessagePopup, GivePc's door - the chunker
-    // and the empty-token bail with it
     q.showMessagePopup(QUEST_MESSAGES.QuestComplete);
     const e = hooks?.playerEntity?.();
     if (e) {
+      // The stamp is in classic minutes on the character clock, which the guild's training gate reads.
       const own = hooks?.ownMinutes?.();
-      // ToClassicDaggerfallTime is classic MINUTES. AUDIT LIVED1 D: the guild's twelve-hour gate reads this on the
-      // character's clock, so it is stamped there (nowSeconds is the world's online); a host with no word keeps it
       e.timeOfLastSkillTraining = Number.isFinite(own) ? Math.floor(own) : Math.floor((hooks?.nowSeconds?.() ?? 0) / 60);
-      hooks?.raiseTime?.(3 * 3600);                       // SecondsPerHour * 3
-      e.fatigue = Math.max(0, (e.fatigue ?? 0) - FATIGUE_LOSS.Default * 180);   // DefaultFatigueLoss * 180
-      // UnityEngine.Random.Range(10, 20 + 1) - the engine PRNG, the quest's rolls (Ledger A), not DFRandom's stream
+      hooks?.raiseTime?.(3 * 3600);
+      e.fatigue = Math.max(0, (e.fatigue ?? 0) - FATIGUE_LOSS.Default * 180);
       const tally = (10 + Math.floor((q.rolls ?? Math.random)() * 11)) * (SKILL_ADVANCEMENT_MULTIPLIER[this.skill] ?? 1);
       tallySkill(e, this.skill, tally);
     }
@@ -3406,8 +2680,6 @@ export class TrainPc extends ActionTemplate {
   }
 }
 
-/** KillFoe.cs - the Foe resource dies outright; a missing symbol
- *  completes and THROWS, verbatim. */
 export class KillFoeAction extends ActionTemplate {
   static typeName = 'KillFoe';
   get saveShape() { return [['foeSymbol', 'sym']]; }
@@ -3434,8 +2706,6 @@ export class KillFoeAction extends ActionTemplate {
   }
 }
 
-/** UnrestrainFoe.cs - clears the restraint; a missing foe simply
- *  waits (no throw, no complete - C# returns), verbatim. */
 export class UnrestrainFoe extends ActionTemplate {
   static typeName = 'UnrestrainFoe';
   get saveShape() { return [['foeSymbol', 'sym']]; }
@@ -3459,9 +2729,6 @@ export class UnrestrainFoe extends ActionTemplate {
   }
 }
 
-/** RunQuest.cs - start a child quest by name and WAIT on it: the
- *  success task on QuestComplete+QuestSuccess, the failure task on
- *  completion-without-success OR a quest the lists cannot serve. */
 export class RunQuest extends ActionTemplate {
   static typeName = 'RunQuest';
   get saveShape() { return [['questName'], ['successSymbol', 'sym'], ['failureSymbol', 'sym'], ['questStarted'], ['questUId']]; }
@@ -3473,7 +2740,7 @@ export class RunQuest extends ActionTemplate {
     this.failureSymbol = null;
     this.questStarted = false;
     this.questUId = null;
-    this._quest = null;   // transient; re-found by uid after a load
+    this._quest = null;
   }
   get pattern() { return /run quest (?<questName>\w+) then (?<successTask>[a-zA-Z0-9_.]+) or (?<failureTask>[a-zA-Z0-9_.]+)/; }
   createNew(source, parentQuest) {
@@ -3506,9 +2773,7 @@ export class RunQuest extends ActionTemplate {
       this._quest = null;
     }
   }
-  /** Dispose: a child still RUNNING when the parent quest is
-   *  tombstoned dies with it - otherwise it ticks on alone, keeping
-   *  its SiteLinks, placed foes and talk topics alive. */
+  // A child quest still running when the parent ends is tombstoned too, so its links and enemies do not linger.
   dispose() {
     super.dispose();
     if (this._quest && !this._quest.questComplete) {
@@ -3518,8 +2783,6 @@ export class RunQuest extends ActionTemplate {
   }
 }
 
-/** SpawnCityGuards.cs - PlayerEntity.SpawnCityGuards(immediate),
- *  through the host door F036 gave a production caller. */
 export class SpawnCityGuardsAction extends ActionTemplate {
   static typeName = 'SpawnCityGuards';
   get saveShape() { return [['immediateSpawn']]; }
@@ -3527,12 +2790,7 @@ export class SpawnCityGuardsAction extends ActionTemplate {
     super(parentQuest);
     this.immediateSpawn = false;
   }
-  /** Two C# quirks, both load-bearing. The space before the optional
-   *  group is MANDATORY, so a bare `spawncityguards` line matches no
-   *  template at all and the registry drops it. And CreateNew reads
-   *  `match.Groups.Count > 1` - the number of groups IN THE PATTERN,
-   *  always 2, not whether the group participated - so every line
-   *  that DOES match spawns immediately. Verbatim. */
+  // The space before `immediate` is required, and C# counts pattern groups, so every matching line spawns at once.
   get pattern() { return /spawncityguards (immediate)?/; }
   createNew(source, parentQuest) {
     const match = this.test(source);
@@ -3547,8 +2805,6 @@ export class SpawnCityGuardsAction extends ActionTemplate {
   }
 }
 
-/** Enemies.cs - `makehostile` turns every loaded foe on the player;
- *  `clear` removes them all. Host pools, host doors. */
 export class EnemiesAction extends ActionTemplate {
   static typeName = 'Enemies';
   get saveShape() { return [['clear']]; }
@@ -3572,10 +2828,7 @@ export class EnemiesAction extends ActionTemplate {
   }
 }
 
-/** C#'s `Convert.ToBoolean(string)`, which ChangeFoeInfighting reads
- *  its flag through: "true"/"false" case-insensitively and NOTHING
- *  else - every other string throws FormatException, and ParseQuest's
- *  catch then drops the whole quest. Not JS truthiness. */
+// Matches C#'s Convert.ToBoolean: anything but true or false throws, which drops the whole quest at parse.
 function convertToBoolean(text, who) {
   const s = String(text ?? '').trim().toLowerCase();
   if (s === 'true') return true;
@@ -3583,13 +2836,6 @@ function convertToBoolean(text, who) {
   throw new Error(`${who}: '${text}' was not recognized as a valid Boolean`);
 }
 
-/** ChangeFoeInfighting.cs - "Changes whether or not a quest foe is
- *  attackable by other NPCs": the flag lands on EVERY spawned
- *  instance carrying this Foe's symbol (C# walks the active-enemy
- *  database, :44-56), and SetComplete fires INSIDE that loop, so a
- *  wave with no instance standing yet leaves the action live and it
- *  retries next tick. A missing Foe resource simply returns (:41-42 -
- *  no throw, unlike the Kill/Restrain family). */
 export class ChangeFoeInfighting extends ActionTemplate {
   static typeName = 'ChangeFoeInfighting';
   get saveShape() { return [['npcSymbol', 'sym'], ['isAttackableByAI']]; }
@@ -3610,20 +2856,9 @@ export class ChangeFoeInfighting extends ActionTemplate {
   update(_caller) {
     const foe = this.parentQuest.getFoe(this.npcSymbol);
     if (!foe) return;
-    // MT-iii: the host door answers every LIVE instance of this foe
-    // symbol (DFU's ActiveGameObjectDatabase walk, QuestSpawn-filtered
-    // and TargetSymbol-matched). An absent door idles the arm - the
-    // headless charter - which is also C#'s own behaviour with no
-    // enemy standing.
-    //
-    // WA-ALLIES (2026-09-26, SquidKamer, Warm Ashes - Ships' author: "if the wa ships allies aren't attacking then my
-    // other mods may have issues"): an instance is the host's foe RECORD, and a record keeps its QuestResourceBehaviour
-    // as `questBehaviour` (questFoeHost.js bindQuestFoeHost - `behaviour` is the name only on a spawn HANDLE). This
-    // wrote `inst.behaviour`, which no record has: the flag never landed, the action completed anyway, and every
-    // quest foe stayed un-attackable - WAQ_SHIP_SMALLRAID's crew (`change foe _ally_ infighting true`, team 1) stood
-    // idle while the raiders fought the player alone. The targeting reads `questBehaviour.isAttackableByAI`
-    // (exteriorFoes.js / dungeonContext.js `questAttackable`), which is C#'s `qrb.IsAttackableByAI` (:68).
+    // Completing inside the loop, as C# does, leaves the action live until an instance exists.
     for (const inst of this.parentQuest.hooks?.questFoeInstances?.(this.npcSymbol) ?? []) {
+      // Host enemy records keep it as `questBehaviour`; only spawn handles name it `behaviour`.
       const qrb = inst?.questBehaviour;
       if (qrb) qrb.isAttackableByAI = this.isAttackableByAI;
       this.setComplete();
@@ -3631,12 +2866,6 @@ export class ChangeFoeInfighting extends ActionTemplate {
   }
 }
 
-/** ChangeFoeTeam.cs - retarget a quest foe's MobileTeams membership,
- *  by number or by enum NAME; an unknown name completes and THROWS
- *  (:57-61). Team 1 (PlayerAlly) is how a quest hands the player a
- *  bodyguard - MT-i's targeting arms are what make that mean
- *  anything. Like its sibling: a missing Foe returns, and SetComplete
- *  sits INSIDE the instance loop. */
 export class ChangeFoeTeam extends ActionTemplate {
   static typeName = 'ChangeFoeTeam';
   get saveShape() { return [['npcSymbol', 'sym'], ['teamNumber']]; }
@@ -3669,13 +2898,8 @@ export class ChangeFoeTeam extends ActionTemplate {
   update(_caller) {
     const foe = this.parentQuest.getFoe(this.npcSymbol);
     if (!foe) return;
-    // `enemyEntity.Team = (MobileTeams)teamNumber` (:89). The port's
-    // entities carry the team as its NAME (enemyBasics' rows), so the
-    // enum value is spelled back through MOBILE_TEAMS - and a number
-    // outside the enum is an unchecked cast in C# too, so it lands as
-    // undefined here and matches no team, exactly as it matches no
-    // member there.
     const team = MOBILE_TEAMS[this.teamNumber];
+    // Completing inside the loop, as C# does, leaves the action live until an instance exists.
     for (const inst of this.parentQuest.hooks?.questFoeInstances?.(this.npcSymbol) ?? []) {
       if (inst?.entity) inst.entity.team = team;
       this.setComplete();
@@ -3689,24 +2913,11 @@ class PendingTrigger extends ActionTemplate {
   createNew() { return null; }
 }
 
+// Every action is ported, so this is empty; a guard's pattern would pend matching lines at its registry slot.
 const GUARD_PATTERNS = Object.freeze({
-  // Q5 (2026-08-27) retired fourteen rows, MT-iii took the two
-  // MobileTeams rows, QG1 (2026-08-28) took CastEffectDo, ClickedFoe
-  // and PromptMulti with the ready-spell doors and the foe-click
-  // surface, and RR3 (2026-09-23) took the last - WorldUpdate - when
-  // Roleplay & Realism's Master Armorer line wrote the first
-  // `worldupdate building` a quest here has ever had, so the
-  // WorldDataVariants registry it routes into was taken up
-  // (systems/worldDataVariants.js). The registry is empty; the shape
-  // stays so a future guard has its home.
 });
 const guard = (name) => new PendingTrigger(null, GUARD_PATTERNS[name]);
 
-/** WorldUpdate.cs (Hazelnut): a quest sets a world-data variant - a
- *  location's, a new location's by name, a block's or a building's, at
- *  one location (`MakeLocationKey`) or everywhere (`*All`). `-` is
- *  NoVariant (:96-97). C# names the same groups in every alternate;
- *  JavaScript cannot, so each alternate numbers its own. */
 export class WorldUpdate extends ActionTemplate {
   static typeName = 'WorldUpdate';
   get saveShape() { return [['type'], ['regionIndex'], ['locationIndex'], ['locationName'], ['blockName'], ['recordIndex'], ['variant']]; }
@@ -3734,7 +2945,7 @@ export class WorldUpdate extends ActionTemplate {
     action.variant = pick('variant');
     const regionIndex = pick('regionIndex'); if (regionIndex !== undefined) action.regionIndex = questParseInt(regionIndex);
     const locationIndex = pick('locationIndex'); if (locationIndex !== undefined) action.locationIndex = questParseInt(locationIndex);
-    const locationName = pick('locationName'); if (locationName !== undefined) action.locationName = locationName;   // the C# tests locationIndexGroup here (:69) - a slip; the port reads the name it captured
+    const locationName = pick('locationName'); if (locationName !== undefined) action.locationName = locationName;
     const blockName = pick('blockName'); if (blockName !== undefined) action.blockName = blockName;
     const recordIndex = pick('recordIndex'); if (recordIndex !== undefined) action.recordIndex = questParseInt(recordIndex);
     return action;
@@ -3755,14 +2966,9 @@ export class WorldUpdate extends ActionTemplate {
   }
 }
 
-/** The default registry - DFU's RegisterActionTemplates WHOLE
- *  (QuestMachine.cs:345-428), one slot per registered action in the
- *  C# order: the ported action's template, or a guard whose verbatim
- *  pattern pends the line for its future slice (AUDIT quest-P12
- *  adopted the C# order outright; Q2b-i completed the mirror). */
+// The order is Daggerfall Unity's registration order, because the first unanchored match wins.
 export function defaultActionTemplates() {
   return [
-    // Trigger conditions
     new WhenPcEntersExits(null),
     new WhenNpcIsAvailable(null),
     new WhenReputeWith(null),
@@ -3780,7 +2986,6 @@ export function defaultActionTemplates() {
     new SeasonCondition(null),
     new WeatherCondition(null),
     new ClimateCondition(null),
-    // Default actions
     new EndQuest(null),
     new Prompt(null),
     new Say(null),

@@ -1,19 +1,12 @@
 // @ts-check
-// CREW-SIGNED (2026-10-27; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED ONCE ONLINE, the
-// client's half: a hire asks the account service first (server-account/src/crewSigns.js), and the first character to
-// sign a recruit holds him for his day - every ask names it (`character`, AUDIT HORIZONTAL C8). Built by
-// scenes/shipyardHost.js.
-//   taken(town, day) - the slots others hold, as last read, and the read in flight (`wait`);
-//   sign(id) - `{ ok, fresh }`, or `{ ok: false, text }`; a service with no hall (`not-found`) is not asked again;
-//   release(id) - a recruit this account holds let go. Offline, nothing is asked.
+// Signs crew hall recruits through the account service when online. The first character to sign a recruit holds
+// the recruit for that day, so every request names the character. Offline, nothing is asked.
 import { accountCrewSigns } from '../../net/accountClient.js';
 import { crewSignOf } from '../../net/crewSignLaw.js';
 import { appStorage } from '../../platform/appStorage.js';
 import { CREW_HALL_TEXT, CREW_SIGN_TEXT } from './crewHall.js';
 
-/** A hall read is asked again when it is this old (ms). */
 export const CREW_HALL_FRESH_MS = 20_000;
-/** The halls kept read at once. */
 export const CREW_HALLS_KEPT = 8;
 const NONE = Object.freeze(new Set());
 
@@ -41,7 +34,8 @@ export function createCrewSignBook(deps = {}) {
       hall.wait = doorNow().hall({ town: town >>> 0, day, character: character() }).catch(() => null).then((r) => {
         if (r?.ok) hall.slots = new Set((r.data?.taken ?? []).filter((s) => Number.isInteger(s)));
         else if (r?.error === 'not-found') off = true;
-        hall.at = now();   // a refused read waits as a good one does
+        // A failed read waits as long as a good one before the next request.
+        hall.at = now();
         hall.wait = null;
       });
     }
@@ -62,7 +56,6 @@ export function createCrewSignBook(deps = {}) {
     return { ok: false, text: r?.error === 'crew-many' ? CREW_SIGN_TEXT.many : CREW_SIGN_TEXT.unread };
   }
 
-  /** Let `id` go - answers whether the service held it for this account. */
   function release(id) {
     if (!live() || !crewSignOf(id)) return Promise.resolve(false);
     return Promise.resolve(doorNow().release({ id, character: character() })).then((r) => !!r?.ok && !!r.data?.released, () => false);

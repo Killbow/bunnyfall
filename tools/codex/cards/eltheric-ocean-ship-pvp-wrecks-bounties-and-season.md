@@ -8,6 +8,7 @@ files:
   - src/net/sea/seaRef.js
   - src/systems/naval/seaBroadsides.js
   - src/systems/naval/navalPvp.js
+  - src/systems/naval/navalHost.js
   - src/systems/naval/seaWreckHost.js
   - src/systems/naval/seaHoldGuard.js
   - src/net/sea/seaPrizeLaw.js
@@ -55,6 +56,7 @@ invariants:
 traps:
   - "Character deletion is rejected (`sea-held`) whenever bounties, wreck prizes, or hold goods await collection at a freeport."
   - "Bounty payouts never mint or burn gold; every coin added to `sea_bounty_owed` comes directly from a player post in `sea_bounties`."
+  - "`SEA_CAPTAIN_NEAR_M` in `navalPvp.js` must stay equal to `HOSTILE_NEAR_M` in `navalHost.js` (both `700` m)."
 dfu: []
 tags:
   - eltheric-ocean

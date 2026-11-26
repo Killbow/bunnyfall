@@ -1,20 +1,4 @@
 // @ts-check
-// BUNNYFALL VAMPIRE EXPANSION, PHASE 3 (2026-11-20, the owner's blueprint section 4): THE MASQUERADE AND THE COURTS - kept
-// per character (the per-mod slot, modSaveData - VENDOR below), never shared (the owner's choice).
-//
-// HEAT: each region's suspicion of vampires, 0-100 (`heat`), raised by a BREACH (noteBreach: a bite seen, a victim who
-// cries out, a body left drained, a death seen, someone gone missing, a thrall who broke free and talks) and cooling
-// HEAT_COOL_PER_DAY a day of the character's own clock. Its TIER (tierOf: Quiet, Uneasy, Suspicious, Hunted) is what
-// the world feels: a hidden watcher at a feed (watcherChance) and WITCH HUNTERS at night (scenes/vampire/huntersHost.js,
-// ambushChance). A Starving vampire's breach counts double; the Montalion's bane counts it double with its Court.
-//
-// THE COURTS: the clan holding the region of a breach (clanLaw.js clanOfRegion) hears of it - a STRIKE and a blood-TITHE
-// owed (TITHE_PER_STRIKE gold). At HUNT_STRIKES, or at a death someone saw, that Court declares a BLOOD HUNT: Elder
-// assassins at night (huntersHost.js), and - the vampire's own clan's - its strength withheld (clanLaw.js strengthOn,
-// through courtLeaf.js). The Court's back room (ui/vampire/courtWindow.js) takes the tithe in gold or in Vitae, and
-// gives the penance (quest QLVA02: `vamp penance` ends the hunt) and its work (QLVA03, or Daggerfall's own clan quests:
-// `vamp courtwork` forgives a strike). A Court left in peace QUIET_DAYS forgives a strike.
-
 import { t } from '../../ui/textManager.js';
 import { registerModSaveData } from '../../saves/modSaveData.js';
 import { MINUTES_PER_DAY } from '../../world/gameDate.js';
@@ -26,25 +10,20 @@ import { clanOfRegion, clanName, clanStrikeWeight, CLANS } from './clanLaw.js';
 import { setHunts, huntedBy } from './courtLeaf.js';
 import { startNamedRacialQuest, racialQuestLive } from '../../afflictions/racialQuests.js';
 
+// Masquerade heat and Court records are saved per character under this mod save key; renaming it orphans saves.
 export const MASQUERADE_SAVE_VENDOR = 'Bunnyfall Masquerade';
-/** What each breach adds to its region's heat. */
-export const BREACH_HEAT = Object.freeze({ cried: 8, seen: 15, body: 10, murder: 30, taken: 6, freed: 10, power: 8 });   // `power` a Discipline seen (disciplines.js): heat, no strike
-/** The breaches a Court counts as a strike. */
+export const BREACH_HEAT = Object.freeze({ cried: 8, seen: 15, body: 10, murder: 30, taken: 6, freed: 10, power: 8 });
 const STRIKING = new Set(['seen', 'body', 'murder', 'freed']);
 export const HEAT_COOL_PER_DAY = 10;
-/** The tiers' floors: Quiet, Uneasy (25), Suspicious (50), Hunted (75). */
 export const TIER_FLOOR = Object.freeze([0, 25, 50, 75]);
 export const TITHE_PER_STRIKE = 100;
-/** Vitae for each hundred gold of tithe. */
 export const VITAE_PER_HUNDRED = 8;
 export const HUNT_STRIKES = 3;
 export const QUIET_DAYS = 7;
 export const PENANCE_QUEST = 'QLVA02';
 export const COURT_WORK_QUEST = 'QLVA03';
-/** The chance in a hundred, each game hour outdoors by night, of the witch hunters (by tier) and of a Court's assassins. */
 export const HUNTER_CHANCE = Object.freeze([0, 8, 18, 30]);
 export const ASSASSIN_CHANCE = 15;
-/** The least game minutes between two ambushes of a kind. */
 export const AMBUSH_GAP = Object.freeze({ hunter: 180, assassin: 240 });
 
 /**
@@ -56,18 +35,17 @@ const fresh = () => ({ heat: /** @type {Record<string, number>} */ ({}), heatAt:
 let _s = fresh();
 const _lines = [];
 const note = (s) => { if (s) _lines.push(s); };
-/** Words waiting for the host (a Court's word, a region's mood). */
 export const takeMasqueradeLines = () => _lines.splice(0);
 const syncHunts = () => setHunts(Object.entries(_s.courts).filter(([, c]) => c.hunt).map(([k]) => Number(k)));
 
 export const regionName = (r) => String(REGION_NAMES[r] ?? t('masq.someRegion', 'the region'));
-/** A heat's tier (0-3). @param {number} heat */
+/** @param {number} heat */
 export function tierOf(heat) {
   let n = 0;
   for (let i = 1; i < TIER_FLOOR.length; i++) if (heat >= TIER_FLOOR[i]) n = i;
   return n;
 }
-/** A tier's word. @param {number} tier */
+/** @param {number} tier */
 export function tierName(tier) {
   return [t('masq.tier.quiet', 'Quiet'), t('masq.tier.uneasy', 'Uneasy'), t('masq.tier.suspicious', 'Suspicious'), t('masq.tier.hunted', 'Hunted')][tier] ?? '';
 }
@@ -78,7 +56,7 @@ const TIER_LINES = [
   () => t('masq.rise.hunted', '{region} hunts its vampires. The witch hunters are out every night.'),
 ];
 
-/** Cool every region to the minute. @param {number} now */
+/** @param {number} now */
 function cool(now) {
   if (_s.heatAt == null) { _s.heatAt = now; return; }
   const days = Math.max(0, now - _s.heatAt) / MINUTES_PER_DAY;
@@ -90,28 +68,30 @@ function cool(now) {
     if (v > 0 && tierOf(v) < (_s.said[r] ?? 0)) _s.said[r] = tierOf(v);
   }
 }
-/** A region's heat now. @param {number} region @param {number} now */
+/** @param {number} region @param {number} now */
 export function heatOf(region, now) { cool(now); return Math.round(_s.heat[region] ?? 0); }
-/** Every region with any heat, hottest first: [{ region, heat, tier }]. @param {number} now */
+/** @param {number} now */
 export function heatList(now) {
   cool(now);
   return Object.entries(_s.heat).map(([r, h]) => ({ region: Number(r), heat: Math.round(h), tier: tierOf(h) })).sort((a, b) => b.heat - a.heat);
 }
-/** The chance in a hundred that an unseen feed had a watcher after all. @param {number} region @param {number} now */
+/** @param {number} region @param {number} now */
 export const watcherChance = (region, now) => tierOf(heatOf(region, now)) * 8;
 
-/** A Court's record, minted on first need. @param {number} clan @param {number} now */
+/** @param {number} clan @param {number} now */
 function courtOf(clan, now) {
   const k = String(clan);
   _s.courts[k] ??= { strikes: 0, owed: 0, hunt: false, quietSince: now };
   return _s.courts[k];
 }
-/** A Court's record as it stands (never minted). @param {number} clan */
+/** @param {number} clan */
 export const courtState = (clan) => _s.courts[String(clan)] ?? { strikes: 0, owed: 0, hunt: false, quietSince: 0 };
 
 /**
- * A BREACH of the Masquerade in `region`: its heat, and the strike the Court of its land counts. Answers the heat added.
- * @param {any} entity @param {number} region @param {keyof typeof BREACH_HEAT} kind @param {number} now
+ * @param {any} entity
+ * @param {number} region
+ * @param {keyof typeof BREACH_HEAT} kind
+ * @param {number} now
  */
 export function noteBreach(entity, region, kind, now) {
   const entry = awakenedVampirism(entity);
@@ -144,8 +124,7 @@ export function noteBreach(entity, region, kind, now) {
   return add;
 }
 
-/** The round (the curse's magic round): the regions cool, a quiet Court forgives a strike. @param {any} entity @param {number} now
- *  @param {(line: string) => void} [say] */
+/** @param {any} entity @param {number} now @param {(line: string) => void} [say] */
 export function masqueradeRound(entity, now, say = () => {}) {
   if (!awakenedVampirism(entity)) return;
   cool(now);
@@ -155,11 +134,9 @@ export function masqueradeRound(entity, now, say = () => {}) {
   for (const line of takeMasqueradeLines()) say(line);
 }
 
-// ── the Court's back room (ui/vampire/courtWindow.js) ────────────────────────────────────
-/** The tithe in Vitae. @param {number} gold */
+/** @param {number} gold */
 export const titheInVitae = (gold) => Math.ceil(gold / 100) * VITAE_PER_HUNDRED;
-/** Pay a Court's tithe, in gold or in Vitae: the debt cleared and a strike forgiven. Answers the lines.
- *  @param {any} entity @param {number} clan @param {'gold'|'vitae'} how @param {number} now */
+/** @param {any} entity @param {number} clan @param {'gold'|'vitae'} how @param {number} now */
 export function payTithe(entity, clan, how, now) {
   const c = courtState(clan);
   if (!(c.owed > 0)) return [t('masq.tithe.none', 'You owe this Court nothing.')];
@@ -173,16 +150,16 @@ export function payTithe(entity, clan, how, now) {
   rec.quietSince = now;
   return [t('masq.tithe.paid', 'The tithe is taken. The {clan} Court is satisfied, for now.', { clan: clanName(clan) })];
 }
-/** Ask a hunting Court for penance: the quest begins. Answers the lines. @param {number} clan */
+/** @param {number} clan */
 export function askPenance(clan) {
   if (!courtState(clan).hunt) return [t('masq.penance.none', 'This Court has no quarrel that needs penance.')];
-  if (racialQuestLive(PENANCE_QUEST) === false) _s.penance = null;   // a penance left to lapse may be asked again
+  // A penance quest left to lapse clears the record, so the penance may be asked again.
+  if (racialQuestLive(PENANCE_QUEST) === false) _s.penance = null;
   if (_s.penance != null || racialQuestLive(PENANCE_QUEST)) return [t('masq.penance.busy', 'You are already doing penance.')];
   if (!startNamedRacialQuest(PENANCE_QUEST)) return [t('masq.penance.wait', 'The Court will send for you. Come back later.')];
   _s.penance = clan;
   return [t('masq.penance.given', 'Penance is given. A witch hunter has learned too much about the {clan}; silence them. A letter will tell you where.', { clan: clanName(clan) })];
 }
-/** The penance done (`vamp penance`): the hunt ended, the strikes forgiven. Answers the lines. */
 export function penanceDone() {
   const clan = _s.penance;
   _s.penance = null;
@@ -193,7 +170,7 @@ export function penanceDone() {
   note(t('masq.penance.done', 'The {clan} Court has lifted its Blood Hunt.', { clan: clanName(clan) }));
   return [];
 }
-/** Ask one's own Court for work (a rogue of a rival bloodline). Answers the lines. @param {any} entity @param {number} clan */
+/** @param {any} entity @param {number} clan */
 export function askCourtWork(entity, clan) {
   const entry = awakenedVampirism(entity);
   if (!entry || entry.clan !== clan) return [t('masq.work.notYours', 'This is not your Court.')];
@@ -204,7 +181,6 @@ export function askCourtWork(entity, clan) {
   _s.work = clan;
   return [t('masq.work.given', 'A rogue of a rival bloodline hides in the region. The Court wants them destroyed. A letter will tell you where.')];
 }
-/** The Court's work done (`vamp courtwork`): a strike forgiven. */
 export function courtWorkDone() {
   const clan = _s.work;
   _s.work = null;
@@ -213,16 +189,16 @@ export function courtWorkDone() {
   if (c) c.strikes = Math.max(0, c.strikes - 1);
   return [];
 }
-/** A quest that ended unfinished lets the Court ask again (QLVA02/QLVA03 lapsed). */
 export function questLapsed(name) {
   if (name === PENANCE_QUEST) _s.penance = null;
   if (name === COURT_WORK_QUEST) _s.work = null;
 }
 
-// ── the ambushes (scenes/vampire/huntersHost.js) ──────────────────────────────────────────
 /**
- * An ambush due now? `kind` 'hunter' (the region's witch hunters, by its tier) or 'assassin' (a Court hunting the player).
- * Answers { n, clan? } or null. @param {any} entity @param {'hunter'|'assassin'} kind @param {number} region @param {number} now
+ * @param {any} entity
+ * @param {'hunter'|'assassin'} kind
+ * @param {number} region
+ * @param {number} now
  * @param {() => number} [rolls]
  */
 export function ambushDue(entity, kind, region, now, rolls = Math.random) {
@@ -243,7 +219,6 @@ export function ambushDue(entity, kind, region, now, rolls = Math.random) {
 }
 export { huntedBy };
 
-// ── the save ──────────────────────────────────────────────────────────────────────────
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 registerModSaveData(MASQUERADE_SAVE_VENDOR, {
   newSaveData: () => fresh(),

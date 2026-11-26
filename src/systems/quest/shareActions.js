@@ -15,22 +15,15 @@ const progress = {
   WhenPcEntersExits: { currentLocationType: location, previousLocationType: location },
   RunQuest: { questStarted: bool, questUId: (v) => v === null || count(v) },
 };
-// AUDIT QUESTLINES BRANCH-2: PROGRESS THAT IS THE HOLDER'S OWN - checked as progress is, never taken from the partner: a
-// fresh copy keeps its own parse's, a resync the copy it holds (takeLocalActions' `live`). `ql act`'s `from` is where this
-// copy's count of acts began (systems/questlines/qlActions.js QlAct), and an act is this world's (qlState.js
-// receivedState: a copy arrives having heard none) - so the partner's number read against this holder's acts a count
-// that never came, or one already met. Not listed, it failed the law closed: a step with `ql act` (25 of the 35 line
-// scripts) could not be shared once its trigger had been asked, and every resync of a party's copy was refused.
+// Holder fields are checked like progress but never taken from the partner: a fresh copy keeps its parsed values,
+// and a resync keeps the values of the live copy.
 const holders = {
   QlAct: { from: (v) => v === null || count(v) },
-  VampClouded: { from: (v) => v === null || count(v) },   // BUNNYFALL VAMPIRE EXPANSION: the Kisses counted from this holder's own (systems/vampire/vampireActions.js)
-  // QUEST-AUDIT III GUARD-HOLDER: GUARD-ONLINE's watch is the holder's arrival at the hall (onlineGuard.js), never the
-  // partner's - a member who left at the close sent `guardAway` and started the watch over for the one still in the hall
+  VampClouded: { from: (v) => v === null || count(v) },
+  // The guard watch anchors to this holder's own arrival at the hall, never the partner's.
   DailyFrom: { guardAnchor: (v) => v === null || finite(v), guardAway: bool },
-  // QUEST-AUDIT III CAST-SHARE: a `cast X spell do` action's classic effects are its spell's, read from the holder's own
-  // ARENA2 at the parse - the receiver's reference parse is headless and holds none, so every share and resync of
-  // N0B00Y08, N0B00Y16 and N0B40Y07 was refused as a forgery. The holder's own stand (actions.js CastSpellDo reads them
-  // lazily); a partner's are only checked to be effects
+  // Classic spell effects come from the holder's own game data at parse; a headless reference parse has none,
+  // so only their shape is checked then.
   CastSpellDo: { classicEffects: (v, own) => (own == null ? v === null || Array.isArray(v) : same(v, own)) },
 };
 
@@ -39,16 +32,13 @@ const canonical = (value) => JSON.stringify(value, (_key, v) => v && typeof v ==
   ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v);
 const same = (a, b) => canonical(a) === canonical(b);
 
-/** AUDIT QA3 C1: what a copy parsed by an earlier build of the port writes otherwise - accepted, never taken (the
- *  receiver's own parse stands: takeLocalActions). QUEST-AUDIT III CLIMATE-NAMES read `climate desert2` and `climate
- *  mountainwoods` (Foraging's mining quests) as their own climates, 225 and 230; a copy begun before it holds 224 and 226,
- *  and every share and sync of it was refused as forged. */
+// Copies parsed by older builds hold climates 224 and 226 where the parser now reads 225 and 230.
+// They are accepted but never taken.
 const LEGACY_CLIMATES = Object.freeze({ 225: 224, 230: 226 });
 const legacy = Object.freeze({
-  Climate: { climate: (v, own) => v === LEGACY_CLIMATES[own] },   // ClimateCondition's typeName
+  Climate: { climate: (v, own) => v === LEGACY_CLIMATES[own] },
 });
 
-/** Validate definitions against the local parse, allowing only bounded runtime progress. */
 export function sharedActionMatches(own, incoming) {
   if (!incoming || incoming.type !== own.type || !bool(incoming.isComplete)
     || incoming.isTriggerCondition !== own.isTriggerCondition
@@ -70,9 +60,6 @@ export function sharedActionMatches(own, incoming) {
   return true;
 }
 
-/** Copy the checked progress over locally authored action definitions and diagnostic source. AUDIT QUESTLINES
- *  BRANCH-2: the holder's own progress (`holders`) is `live`'s - the copy a resync lands on, its action in the same
- *  place - or, for a fresh copy (no `live`), the local parse's. */
 export function takeLocalActions(local, data, live = null) {
   const ref = local.getSaveData();
   const mine = live?.getSaveData?.() ?? null;

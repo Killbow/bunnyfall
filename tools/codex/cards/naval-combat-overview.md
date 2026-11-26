@@ -33,6 +33,7 @@ invariants:
 traps:
   - "Sea ships come from `spawnSeaNow` in `comeSailAwayPool.js` on the five Come Sail Away hulls; do not author a separate hull pipeline."
   - "`SHIP_CLASSES` has 17 rows (base, legend, and fishing); index-based code must not assume 9."
+  - "A ship class goes on the wire as its row in `SHIP_CLASSES`, and older builds know only the first `NAVAL_WIRE_OLD_CLASSES` (15, in `navalWire.js`) rows, so new classes are appended at the end."
 dfu: []
 tags:
   - naval

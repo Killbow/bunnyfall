@@ -11,6 +11,7 @@ files:
   - src/systems/naval/navalRaiders.js
   - src/systems/naval/navalHost.js
   - src/systems/naval/seaLanes.js
+  - src/systems/naval/navalPlunder.js
 routes: []
 tables: []
 replacesBible:
@@ -27,6 +28,9 @@ invariants:
 traps:
   - "Captain AI `layMin` keeps AI out of the galley dead zone; `fightingPower` and `odds` include crew losses."
   - "Cross-player hits go through `navalHitData` and the retry queue; each client damages only its own boat."
+  - "A ship taken over (`adopt`) is re-keyed with her handover count one past the old one (capped at `NAVAL_GEN_MAX`), so every client, her old owner included, sees the new claim win under `claimBeats` (greater gen, then lower id)."
+  - "New fields in the naval `nv` word go on keys of their own: an older build checks every `s` and `p` entry by length and refuses the whole word on a mismatch, while it ignores keys it does not know."
+  - "A cask's lot goes on the wire as its index in `LOT_KEYS`, which is built from `HOLD_KEYS` plus `STRONGBOX_KEY` (`navalPlunder.js`), so the order of neither may change."
 dfu: []
 tags:
   - naval

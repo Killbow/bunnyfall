@@ -25,6 +25,8 @@ invariants:
   - "Online, `Clock.chargeSeconds` charges only the lived step (the raw gap minus raised seconds, clamped between `0` and `questClockStepMax`), never charging raised time; offline play charges the full raw gap."
   - "An online delay clock (`waitsShort`: shared clock active and not `isDeadline`) is capped at `ONLINE_DELAY_SECONDS = 24 * 60` classic seconds (about two real minutes)."
   - "`isDeadline` is set from `ONLINE_DEADLINES` (a maintained table) or when a quest script calls `clockIsDeadline`, and remains a deadline until the quest succeeds."
+  - "A clock declared at an explicit zero time with no travel arm, whose script name does not start with `_2`, is never a deadline unless `ONLINE_DEADLINES` names it; saves carry this as `declaredAtOnce`."
+  - "A quest envelope without `ownSecondsAt` predates the own-clock split, so its own-clock stamps sit on the event clock; `questBlockOnOwnClock` shifts them once at load and `markOwnClock` then marks the envelope."
   - "Restoring a clock from a save or a party member's shared quest envelope resets `_lastRaisedSample` so no prior raise is subtracted across the load."
 traps:
   - "Any quest timer whose expiry causes quest failure must be listed in `ONLINE_DEADLINES` (such as `N0B00Y17` `time2`, `K0C30Y03` `S.13`, and `B0B81Y02` `S.30`) so `waitsShort` does not compress it to two minutes."

@@ -1,9 +1,4 @@
 // @ts-check
-// SIFRIT (2026-11-13; systems/sifrit/sifritLaw.js): HER ROW IN THE TABLES, as the Enemy Expansion's fifty are put there
-// (systems/enemyExpansion/dexInstall.js, its pattern, one enemy): the Mummy's row for her body (a monster's, an undead's,
-// its corpse and its sounds), her own health, damage and picture; the Mummy's career (its resistances and weaknesses);
-// her name; and her one picture on the texture door as a stand-in archive (SIFRIT_ARCHIVE, 25 records of one frame -
-// every pose the tables ask of a mobile is the picture the owner gave). Once, before the archives load. Not a DFU member.
 import { ENEMY_BASICS, registerEnemyRows } from '../../characters/enemyBasics.js';
 import { registerCustomCareerTemplate, registerCustomEnemyName } from '../../characters/customEnemies.js';
 import { loadMonsterCareer } from '../../characters/enemyEntity.js';
@@ -11,26 +6,25 @@ import { addVendorTextures } from '../../render/textureReplacement.js';
 import { APP_ROOT } from '../../platform/appRoot.js';
 import { SIFRIT_ID, SIFRIT_NAME, SIFRIT_MUMMY, SIFRIT_ARCHIVE, SIFRIT_RECORDS } from './sifritLaw.js';
 
-/** The shipped picture's URL, off the app root as the other shipped art is. */
 export const sifritArtUrl = (root = APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/') => new URL('art/bunnyfall-sifrit/sifrit.png', root).href;
 
-/** Her row: the Mummy's, as it stands in the table now (any mod's edits of it are hers too), made hers. */
 export function sifritRow(mummy = ENEMY_BASICS[SIFRIT_MUMMY]) {
   const row = { ...structuredClone(mummy) };
   delete /** @type {any} */ (row).id;
   return Object.assign(row, {
     maleTexture: SIFRIT_ARCHIVE, femaleTexture: SIFRIT_ARCHIVE,
-    minHealth: 8400, maxHealth: 8400,   // a staff event's own health multiplier reads it; her own health is promoteStaffBoss's (SIFRIT_HP)
+    // A staff event's health multiplier reads this row; her real health is SIFRIT_HP, set by promoteStaffBoss.
+    minHealth: 8400, maxHealth: 8400,
     level: 30, armorValue: 0,
     minDamage: 20, maxDamage: 45,
-    hasIdle: false, primaryAttackAnimFrames: [0, -1, 0],   // one picture: a blow is the picture and its landing
+    hasIdle: false, primaryAttackAnimFrames: [0, -1, 0],
     weight: 0, canOpenDoors: true, seesThroughInvisibility: true,
     soulPts: 30000, mapChance: 0,
   });
 }
 
+// Runs once, before the archives load.
 let _installed = false;
-/** Once: her row, her career, her name and her picture. `fetchBytes` is the test seam. Answers whether it installed now. */
 export function installSifrit({ fetchBytes = null } = {}) {
   if (_installed) return false;
   _installed = true;

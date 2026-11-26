@@ -1,6 +1,6 @@
 // @ts-check
-// Who a vampire has fed on today, saved on the curse entry as the optional `fedToday: { day, ids }`. A save without it,
-// or with a bad value or an earlier day, reads as nobody fed today.
+// Saved on the curse entry as the optional `fedToday: { day, ids }`. A missing value, a bad one, or one from an
+// earlier day reads as nobody fed today.
 
 import { liveVampirism } from '../../afflictions/racialLive.js';
 import { MINUTES_PER_DAY } from '../../world/gameDate.js';
@@ -35,8 +35,7 @@ export function markFedToday(entity, id, now) {
   entry.fedToday = encodeFedToday(day, ids);
 }
 
-/** On load: keeps only today's valid entries, and drops the field when none are left.
- *  @param {any} entity @param {number} now */
+/** @param {any} entity @param {number} now */
 export function normalizeFedToday(entity, now) {
   for (const a of entity?.activeEffects ?? []) {
     if (a?.kind !== 'racialOverride' || !('fedToday' in a)) continue;

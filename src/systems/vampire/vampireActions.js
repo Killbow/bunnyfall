@@ -1,26 +1,19 @@
 // @ts-check
-// BUNNYFALL VAMPIRE EXPANSION, PHASE 1: THE ELDER'S QUEST'S OWN LINES - three a quest script may say that DFU's machine
-// does not know, registered by the quest bridge beside the questlines' (scenes/quest/questBridge.js), for QLVA01 (the
-// Clan Elder's summons, systems/questlines/quests/QLVA01.txt). They read the curse through vitae.js, never the layer's
-// acts, so the quest runs with the Questlines switch on or off.
-//
-//   vamp night           a trigger re-read every tick (always-on): its task is set while the sky is night and clear by
-//                        day, so `when _clicked_ and _night_` asks both at once
-//   vamp clouded <n>     a trigger: true once the vampire has fed <n> more times unseen with the Kiss than when it was
-//                        first asked (the count it started from is saved)
-//   vamp awaken          the Elder's gift: the Beast awakened (vitae.js awakenVampire)
+// Quest actions for the vampire questline. They read the curse through vitae.js and never the questline layer, so
+// the quests run with the Questlines switch on or off.
 
 import { ActionTemplate } from '../quest/actions.js';
 import { isDayFromMinutes } from '../../world/gameDate.js';
 import { skyMinutes, ownMinutes } from '../../world/worldTick.js';
 import { awakenVampire, deedCount } from './vitae.js';
-import { penanceDone, courtWorkDone } from './masquerade.js';   // PHASE 3
+import { penanceDone, courtWorkDone } from './masquerade.js';
 
 export class VampNight extends ActionTemplate {
   static typeName = 'VampNight';
   constructor(parentQuest) {
     super(parentQuest);
     this.isTriggerCondition = true;
+    // Re-read every tick, so `when _clicked_ and _night_` checks both conditions at once.
     this.isAlwaysOnTriggerCondition = true;
   }
   get pattern() { return /^\s*vamp night\s*$/; }
@@ -66,19 +59,15 @@ export class VampAwaken extends ActionTemplate {
   }
 }
 
-/** The templates, in the order the bridge registers them (after DFU's and the questlines'; no other pattern claims a
- *  line beginning `vamp `). */
+// The bridge registers these after the classic and questline templates; no other pattern claims a `vamp ` line.
 export const vampireActionTemplates = () => [new VampNight(null), new VampClouded(null), new VampAwaken(null), new VampPenance(null), new VampCourtWork(null)];
 
-// ── PHASE 3: the Courts' quests (QLVA02 penance, QLVA03 the Court's work) ─────────────────
-/** `vamp penance` - the Blood Hunt of the Court that gave the penance is lifted (masquerade.js penanceDone). */
 export class VampPenance extends ActionTemplate {
   static typeName = 'VampPenance';
   get pattern() { return /^\s*vamp penance\s*$/; }
   createNew(source, parentQuest) { return this.test(source) ? new VampPenance(parentQuest) : null; }
   update(_caller) { penanceDone(); this.setComplete(); }
 }
-/** `vamp courtwork` - the Court's work done: a strike forgiven (masquerade.js courtWorkDone). */
 export class VampCourtWork extends ActionTemplate {
   static typeName = 'VampCourtWork';
   get pattern() { return /^\s*vamp courtwork\s*$/; }

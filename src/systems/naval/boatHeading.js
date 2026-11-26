@@ -1,6 +1,4 @@
-// A boat's heading in the scene's XZ plane, from her root's rotation (her bow is +Z in her own
-// frame). A boat with no rotation takes the given yaw.
-
+// The bow is +Z in the boat's own frame; a boat with no rotation uses the given yaw.
 export const boatForward = (boat, yaw) => {
   const q = boat?.GameObject?.rotation;
   if (!q) return [Math.sin(yaw), 0, Math.cos(yaw)];
