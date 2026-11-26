@@ -67,7 +67,7 @@ export function castDiscipline(entity, id, { now, region = -1, seenBy = () => 0 
   let seen = 0;
   try { seen = d.visible ? seenBy() : 0; } catch { /* none counted */ }
   if (seen > 0) noteBreach(entity, region, 'power', now);
-  return d.range === 0 ? d.words() : t('discipline.readied', '{words} Strike or cast to unleash it.', { words: d.words() });
+  return d.range === 0 ? d.words() : t('discipline.readied', '{words} Strike or cast to release it.', { words: d.words() });
 }
 
 /** Tests and a new character: every cooldown and the last cast forgotten. */

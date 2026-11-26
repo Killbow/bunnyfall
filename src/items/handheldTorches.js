@@ -53,6 +53,7 @@ import { weaponTypeForItem, WEAPON_TYPES, NATIVE_W, NATIVE_H } from '../combat/f
 import { weaponOffsetHeight } from '../ui/hudLarge.js';
 import { SOUND } from '../audio/soundClips.js';
 import { moveTowards, moveTowards2, snap, BOB_SHAPE, STEP_CONDITION } from '../combat/weaponWidget.js';   // WW1: Unity's pieces and the two choice tables, one home
+import { IDLE_BREATH } from '../combat/weaponWidgetMotion.js';
 import { setPlayerTorchOffsetOverride } from '../player/playerTorch.js';
 import { beltLanternOf } from './beltLantern.js';   // BELT-WAIST: a press lights the lantern slot's lantern first
 import { toScreenOrder } from '../formats/color32Order.js';   // HT3: a SCREEN sprite keeps its rows - see the note there   // TEX1: the SHAPE the upload path reads - `{ colors }`, never a decoded PNG's `{ data }`
@@ -742,11 +743,12 @@ export function createHandheldTorches({
       let s = speedRatio;
       if (m.crouching) s *= 0.5;
       if (m.riding) s *= 0.5;
-      if (m.standing) s = w.s.bobWhileIdle ? 0.1 : 0;
+      let reach = s;
+      if (m.standing) { s = w.s.bobWhileIdle ? IDLE_BREATH.rate : 0; reach = w.s.bobWhileIdle ? IDLE_BREATH.size : 0; }
       const rate = baseSpeed * 1.25 * s * w.s.bobLength;
       const rate2 = rate * 2;
       const amp = 0.01;
-      const size = [w.screenRect.width * amp * s * w.s.bobSizeXMod, w.screenRect.height * amp * s * w.s.bobSizeYMod];
+      const size = [w.screenRect.width * amp * reach * w.s.bobSizeXMod, w.screenRect.height * amp * reach * w.s.bobSizeYMod];
       const xMin = w.flipped ? -1 : 1, yMax = 1;
       const target = [
         (xMin + Math.sin(w.s.bobOffset + w.time * rate)) * -size[0],
@@ -754,6 +756,10 @@ export function createHandheldTorches({
       ];
       const eased = moveTowards2(w.bobSmooth, target, dt * w.s.bobSmoothSpeed);
       w.bobSmooth = [eased[0] * w.moveSmooth, eased[1] * w.moveSmooth];
+      w.position = [w.position[0] + w.bobSmooth[0], w.position[1] + w.bobSmooth[1]];
+    } else if (w.s.bob) {
+      // Out of rest the bob eases back, like the shield bob, so a swing never starts with a jump.
+      w.bobSmooth = moveTowards2(w.bobSmooth, [0, 0], dt * w.s.bobSmoothSpeed);
       w.position = [w.position[0] + w.bobSmooth[0], w.position[1] + w.bobSmooth[1]];
     }
     // Inertia (0x2371-0x25d8): attacking or sliding resets it; the look and the body's motion lag the sprite, forward motion grows it

@@ -294,13 +294,13 @@ export function isVampireSatiated(entity, nowMinutes = 0) {
 
 /** OnWeaponHitEntity (:125-128): the whole body is UpdateSatiation -
  *  any landed attack feeds. */
-export function onVampireHit(entity, nowMinutes = 0, { target = null, isCivilian = false } = {}) {
+export function onVampireHit(entity, nowMinutes = 0, { target = null, isCivilian = false, damage = 0 } = {}) {
   const entry = liveVampirism(entity);
   if (!entry) return;
-  // BUNNYFALL VAMPIRE EXPANSION: once awakened a blow is no feed - a mouthful of a creature's or a foe's blood in the
-  // fight (FEEDS.wound, Beast blood), and nothing of a civilian's; real feeding is the Steal mode's (vampireFeed.js)
+  // Once awakened, only a blow that draws blood from an enemy feeds, as a mouthful (FEEDS.wound, Beast blood).
+  // A civilian gives nothing; real feeding is in Steal mode (vampireFeed.js).
   if (awakenedVampirism(entity)) {
-    if (!isCivilian) feedVampire(entity, { kind: 'wound', type: ARCHETYPES.Beast, quality: qualityOfCreature(target?.level), now: nowMinutes });
+    if (!isCivilian && damage > 0) feedVampire(entity, { kind: 'wound', type: ARCHETYPES.Beast, quality: qualityOfCreature(target?.level), now: nowMinutes });
     return;
   }
   entry.lastTimeFed = nowMinutes;

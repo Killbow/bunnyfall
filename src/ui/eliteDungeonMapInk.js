@@ -55,7 +55,7 @@ export function eliteDungeonTipAt(list, mx, my, today) {
     if (d > Math.max(0.9, e.spread || 0)) continue;
     const lines = [t('edmap.what', "An elite dungeon: Cromwark's creatures, then Sifrit. Cleansing it pays {nyx} Dusk Tokens.", { nyx: ED_REWARD_NYX })];
     const left = edGraceLeft(e.day, today);
-    lines.push(e.spread > 0 ? t('edmap.spreads', 'Its corruption spreads every day until it is cleansed. Foes in it are tougher.')
+    lines.push(e.spread > 0 ? t('edmap.spreads', 'Its corruption spreads every day until it is cleansed. Enemies in it are tougher.')
       : left > 1 ? t('edmap.grace', 'Its corruption begins to spread in {n} days.', { n: left }) : t('edmap.graceOne', 'Its corruption begins to spread tomorrow.'));
     return { title: e.name || t('edmap.title', 'Elite dungeon'), lines };
   }

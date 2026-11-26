@@ -29,12 +29,13 @@ import { MINUTES_PER_DAY } from '../../world/gameDate.js';
 import {
   VITAE_MAX, VITAE_AWAKENED, VITAE_DRAIN_PER_DAY, BEAST, beastStageOf, beastStageLine, BEAST_STAT_MODS,
   resonanceTier, RESONANCE_STAT_MODS, RESONANCE_SKILL_MODS, BLOOD_FADE_PER_DAY, vitaeAfterFeed, bloodAfterFeed, FEEDS,
-  MIND_CLOUD_COST, beastStageName, archetypeName, TRAVEL_SPAN_DAYS, TRAVEL_DRAIN_MUL, TRAVEL_DRAIN_FLOOR,
+  MIND_CLOUD_COST, beastStageName, TRAVEL_DRAIN_MUL, TRAVEL_DRAIN_FLOOR, bloodTag,
 } from './bloodLaw.js';
+import { skippedMinutesIn } from '../../world/skippedTime.js';
 import { t } from '../../ui/textManager.js';
 import { STALE_QUALITY_CAP } from './bloodLaw.js';
 import { BANE_FLOOR, clanDrainMul, clanFeedMul, clanStaleCap, clanKissCost, clanStageShift, clanSkillMods } from './clanLaw.js';   // PHASE 3: the nine bloodlines
-import { noteFirstUse } from '../../ui/tutorials.js';   // the vampire's pages
+import { noteFirstUse } from '../../ui/tutorials.js';
 import { VAMPIRE_AWAKENING_QUEST, startNamedRacialQuest, racialQuestLive } from '../../afflictions/racialQuests.js';
 
 /** Days after the turning before the Elder writes (own clock); a vampire already standing hears in ELDER_FIRST_DAYS. */
@@ -82,9 +83,8 @@ function settle(entry, nowMinutes) {
   const days = Math.max(0, nowMinutes - from) / MINUTES_PER_DAY;
   entry.vitaeAt = Math.max(from, nowMinutes);
   if (!(days > 0)) return;
-  // A jump of the clock (a journey, a loiter) drains gently: the first TRAVEL_SPAN_DAYS at the full rate, the rest at a
-  // quarter of it, and never down past the Hungry floor - the playtest arrived Starving from every carriage trip
-  const full = Math.min(days, TRAVEL_SPAN_DAYS), skipped = days - full;
+  // Skipped time drains at a quarter of the rate and never past the Hungry floor; time played drains in full.
+  const skipped = Math.min(days, skippedMinutesIn(from, nowMinutes) / MINUTES_PER_DAY), full = days - skipped;
   const rate = VITAE_DRAIN_PER_DAY * clanDrainMul(entry.clan);   // PHASE 3: Haarvenu's fever
   const before = Number(entry.vitae) || 0;
   let v = Math.max(0, before - full * rate);
@@ -119,7 +119,7 @@ export function beastStageNow(entity, nowMinutes) {
 export function vitaeRound(entity, nowMinutes, say = () => {}) {
   const live = liveVampirism(entity);
   if (!live) return;
-  if (!live.awakened) { noteFirstUse('vampire-bitten'); elderLetterDue(live, nowMinutes); return; }
+  if (!live.awakened) { if (vampireBloodOn()) noteFirstUse('vampire-bitten'); elderLetterDue(live, nowMinutes); return; }
   const entry = awakenedVampirism(entity);
   if (!entry) return;
   settle(entry, nowMinutes);
@@ -160,9 +160,8 @@ export function feedVampire(entity, { kind, type, quality, fresh = true, now, de
   return { vitae: entry.vitae, stage: entry.stageSaid, blood: entry.blood };
 }
 
-/** The Kiss's price. A vampire short of it still gives the Kiss on whatever Vitae is left (a Starving one could never
- *  work back up to one: the playtest) - the Beast's slip (KISS_SLIP) is the price of that. Answers whether the vampire
- *  was awakened to give it. @param {any} entity @param {number} now */
+/** The Kiss's price. A vampire short of Vitae still gives the Kiss on what is left, and KISS_SLIP is the risk.
+ *  Returns true when the vampire is awakened. @param {any} entity @param {number} now */
 export function spendMindCloud(entity, now) {
   const entry = awakenedVampirism(entity);
   if (!entry) return false;
@@ -231,7 +230,7 @@ export function vampireHudChips(entity, nowMinutes) {
   // where it says more than the bar - a Ravenous or Starving Beast, red
   const out = st.stage >= BEAST.Ravenous ? [{ key: 'vitae', text: t('vampire.hud.beast', '{stage} (Vitae {vitae})', { stage: beastStageName(st.stage), vitae: st.vitae }), level, glyph: 'bleed', foot: String(st.vitae) }] : [];
   if (st.blood?.tier > 0) {
-    out.push({ key: 'boon:blood', text: t('vampire.hud.blood', '{type} blood, {quality}% (tier {tier} of 4)', { type: archetypeName(st.blood.type), quality: Math.round(st.blood.quality), tier: st.blood.tier }), level: 'boon', glyph: 'bleed', foot: `T${st.blood.tier}` });
+    out.push({ key: 'boon:blood', text: t('vampire.hud.blood', '{tag}, tier {tier} of 4', { tag: bloodTag(st.blood.type, st.blood.quality), tier: st.blood.tier }), level: 'boon', glyph: 'bleed', foot: `T${st.blood.tier}` });
   }
   return out;
 }

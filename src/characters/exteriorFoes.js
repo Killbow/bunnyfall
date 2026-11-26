@@ -2035,7 +2035,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         // is a blow, the owner's foe turns) - the local wake is a stream-driven body's
         attackFromPlayer(foe, playerFeet);
       }
-      playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
+      playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType, damage });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
     }
     return any;
   }

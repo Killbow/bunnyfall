@@ -16,6 +16,12 @@ export function placeWayfarerLantern(entity, door = playerDoor()) {
   return true;
 }
 
+export function offsetWayfarerLantern(entity, offset, door = playerDoor()) {
+  const lantern = lanterns.get(entity);
+  if (!lantern || lantern.door !== door) return;
+  lantern.at[0] += offset[0]; lantern.at[1] += offset[1]; lantern.at[2] += offset[2];
+}
+
 export function stepWayfarerLantern(entity, dt, door = playerDoor()) {
   const lantern = lanterns.get(entity);
   if (!lantern) return;

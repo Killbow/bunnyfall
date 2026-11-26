@@ -1,23 +1,13 @@
 // @ts-check
-// CREW-SIGNED (2026-10-27; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED ONCE ONLINE, the
-// service's half (the law src/net/crewSignLaw.js, the table migrations/0180's).
-//   HALL (/v1/crew/hall): a town's hall on a day - the slots others hold, and the asking character's own.
-//   SIGN (/v1/crew/sign): held by the first character to ask, for his day; asked again by it, the same; else `crew-taken`.
-//   RELEASE (/v1/crew/release): a recruit the asker holds let go. An account holds CREW_SIGN_DAY_MAX a day.
-// A row's holder is `<account>:<character>` (AUDIT HORIZONTAL C8: one account's two characters held one man as one, and
-// the first to pay him off let him go from under the other). No gold moves here. Not a DFU member.
 import { crewSignOf, crewDayOk, CREW_SIGN_DAY_MAX, CREW_SIGN_SLOTS, CREW_SIGN_KEEP_DAYS, crewDayAt } from '../../src/net/crewSignLaw.js';
-import { renownCharacterOk } from './renownTracks.js';   // a character id in the saves' shape - the same id, one door
+import { renownCharacterOk } from './renownTracks.js';
 
-/** A refusal's HTTP status. */
 export const CREW_STATUS = Object.freeze({ 'crew-bad': 400, 'crew-day': 400, 'crew-taken': 409, 'crew-many': 429 });
 
-/** The holder a character of `player`'s is, `<account>:<character>` - or null for no character in the saves' shape. */
 const holderOf = (player, character) => (renownCharacterOk(character) ? `${player.id}:${character}` : null);
-/** Every holder of `player`'s account sorts in [lo, hi): an account id is base64url, never `:` or `;`. */
+// An account id is base64url and never holds `:` or `;`, so this range covers exactly one account's holders.
 const accountSpan = (player) => [`${player.id}:`, `${player.id};`];
 
-/** The id asked, read and on the shared day - or the refusal. */
 function asked(ctx, id) {
   const s = crewSignOf(id);
   if (!s) return { error: 'crew-bad' };
@@ -25,8 +15,7 @@ function asked(ctx, id) {
   return s;
 }
 
-/** HALL: `{ town, day, character }` - `{ taken, mine }`, the slots held by others (the account's other characters too)
- *  and by the asking character. @param {any} ctx @param {any} player @param {any} body */
+/** @param {any} ctx @param {any} player @param {any} body */
 export async function crewHall(ctx, player, body = {}) {
   const town = Number(body?.town), day = Number(body?.day), who = holderOf(player, body?.character);
   if (!who || !Number.isInteger(town) || town < 0 || town > 0xffffffff || !Number.isInteger(day) || day < 0) return { error: 'crew-bad' };
@@ -37,17 +26,14 @@ export async function crewHall(ctx, player, body = {}) {
   return { taken: taken.sort(), mine: mine.sort() };
 }
 
-/** SIGN: `{ id, character }` - `{ signed: true, fresh }` (`fresh` when this ask took him), `crew-taken` or `crew-many`.
- *  @param {any} ctx @param {any} player @param {any} body */
+/** @param {any} ctx @param {any} player @param {any} body */
 export async function crewSign(ctx, player, body = {}) {
   const s = asked(ctx, body?.id);
   if ('error' in s) return s;
   const who = holderOf(player, body?.character);
   if (!who) return { error: 'crew-bad' };
   const [lo, hi] = accountSpan(player);
-  // AUDIT HORIZONTAL C2: the day's cap and the hold in ONE statement - asked as a count, then a write, parallel asks all
-  // read the count under the cap. The key settles two asks for one man; the loser reads the winner. A second try only
-  // when the read finds him free under the cap: a release landed between the two statements.
+  // The cap and the hold are one statement, because parallel requests could all pass a count read before the write.
   for (let tries = 0; tries < 2; tries++) {
     const r = await ctx.db.prepare(`INSERT OR IGNORE INTO crew_signed (town, day, slot, player, at) SELECT ?1, ?2, ?3, ?4, ?5
       WHERE (SELECT COUNT(*) FROM crew_signed WHERE player >= ?6 AND player < ?7 AND day = ?2) < ?8`)
@@ -61,8 +47,7 @@ export async function crewSign(ctx, player, body = {}) {
   return { error: 'crew-taken' };
 }
 
-/** RELEASE: `{ id, character }` - `{ released }`, whether that character held him. Any day's id is let go.
- *  @param {any} ctx @param {any} player @param {any} body */
+/** @param {any} ctx @param {any} player @param {any} body */
 export async function crewRelease(ctx, player, body = {}) {
   const s = crewSignOf(body?.id), who = holderOf(player, body?.character);
   if (!s || !who) return { error: 'crew-bad' };
@@ -70,7 +55,6 @@ export async function crewRelease(ctx, player, body = {}) {
   return { released: Number(r?.meta?.changes ?? 0) > 0 };
 }
 
-/** The sweep (cron.js): rows CREW_SIGN_KEEP_DAYS past their day - `[sql, cutoff day]`. */
 export const crewSweep = (/** @type {number} */ nowS) => /** @type {[string, number]} */ ([
   'DELETE FROM crew_signed WHERE rowid IN (SELECT rowid FROM crew_signed WHERE day < ?1 LIMIT ?2)', crewDayAt(nowS * 1000) - CREW_SIGN_KEEP_DAYS,
 ]);

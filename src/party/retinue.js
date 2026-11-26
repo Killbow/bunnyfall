@@ -36,7 +36,7 @@ import {
 } from '../revenants/revenant.js';
 import { setWindupAtMeListener } from '../combat/hostCombat.js';
 import { wildEncounterLevel } from '../characters/wildLevel.js';
-import { noteFirstUse, wrapTutorialText } from '../ui/tutorials.js';   // the Vampirism pages, and a box's wrapped words
+import { noteFirstUse, wrapTutorialText } from '../ui/tutorials.js';
 
 /** @param {any} shared */
 export function createRetinue(shared) {
@@ -177,8 +177,7 @@ export function createRetinue(shared) {
   const courtSeatsHere = () => (_courtSeats ??= courtSeats((r) => hubOfRegion(shared.regionHubs, r)));
   setBloodlineHost({
     seatsWords: () => [...courtSeatsHere().values()].map((v) => `${v.name} (${clanName(v.clan)})`).join(', '),
-    // where to go to be claimed is the one line the bitten need: a box that stays until it is read, never the HUD's
-    // two-frame line alone (the playtest); the same words stand in the Vampirism tutorial pages
+    // The bloodline's directions also open a quest box, because the HUD line fades before it can be read.
     say: (l) => {
       townTalk.say(l);
       noteFirstUse('vampire-bitten');

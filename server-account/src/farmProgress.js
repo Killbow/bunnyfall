@@ -1,4 +1,4 @@
-// Purchases and bulk orders join the garden's revision claim in the same D1 transaction.
+// The returned statements run in the same D1 batch as the garden's revision claim.
 import { mustChange } from './realm.js';
 import { marksOpenFor } from './marks.js';
 import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';
@@ -30,8 +30,7 @@ export async function farmProgressStep({ db, nowS, env }, player, farm, garden, 
   if(gold+step.order.gold>GUILD_TREASURY_MAX||balance+step.order.argents>MARKS_MAX)return{error:'farm-order-full'};
   const earned=await db.prepare("SELECT COALESCE(SUM(amount),0) AS total FROM marks_ledger WHERE dst_kind='guild' AND dst_id=?1 AND kind='farm-order' AND day>=?2 AND day<?3").bind(gid,from,from+7).first();
   if(Number(earned?.total??0)+step.order.argents>FARM_ARGENTS_PER_WEEK)return{error:'farm-order-cap'};
-  // Only communal stock is eligible. Purchased/personal-origin rows cannot fund a premium-currency order.
-  // The server's separate harvested-minus-delivered counter also limits orders to actual crops grown at THIS farm.
+  // Only communal stock can fill an order, so purchased or personal deposits never earn premium currency.
   const {results}=await db.prepare("SELECT rowid AS rid,material,qty FROM guild_prof_stores WHERE guild_id=? AND dep_player='' AND dep_char='' AND qty>0 ORDER BY material").bind(gid).all();
   let remaining=step.order.quantity;
   for(const row of results??[]) {
@@ -55,7 +54,6 @@ export async function farmProgressStep({ db, nowS, env }, player, farm, garden, 
 export const farmProgressRead = async (db,player,character,gid,details=false,nowS=0) => {
   const me=typeof character==='string'?await db.prepare('SELECT rank FROM guild_members WHERE player=? AND char_id=? AND guild_id=?').bind(player.id,character,gid).first():null;
   const mayManage=!!me&&Number(me.rank)<=1;
-  // FARM EXPANSION: a member reading the ledger reads their own farm work (farmWorkLaw.js) - details are asked for only then
   const work=me&&details?await db.prepare('SELECT farm_work, farm_work_day, farm_work_today FROM players WHERE id=?').bind(player.id).first():null;
   const mine=work?{work:{total:Number(work.farm_work),today:Number(work.farm_work_day)===Math.floor(nowS/86400)?Number(work.farm_work_today):0}}:{};
   if(!mayManage||!details)return{mayManage,...mine};

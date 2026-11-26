@@ -28,7 +28,8 @@ function cagePoints() {
 }
 const CAGE = cagePoints();
 
-/** One beat of the lantern at `at` (its foot on the ground). The engine's spark and floor-glow shapes are 3 (flare) and 5 (pool). */
+/** One beat of the lantern at `at` (its foot on the ground). The spark and floor-glow shapes of the engine are 3
+ *  (flare) and 5 (pool). */
 export function drawWayfarerLantern(fx, at, gy) {
   const y = Number.isFinite(gy) ? gy : at[1];
   const keep = { life: LIFE, g: 0, drag: 0, streak: 0, fadeIn: 0.12, sway: 0 };

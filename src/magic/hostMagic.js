@@ -443,15 +443,10 @@ export function createPlayerMagic({
     }
     return out;
   }
-  /** COMPANION-KIT: a gift landed on my companion - applied here, ALLY-CAST's receiver's record (its beneficial effects as
-   *  a self-cast: no save, the caster's level), tagged an ally's bundle (a buff on his bar and his card), through his own
-   *  sinks as no blow of mine. Answers whether anything landed.
-   *  AUDIT WK-M1: AND WITH NO CASTER, the receiver's own call (world.js online.onCast hands applySpellToPlayer `null`).
-   *  Handed me as its caster, applySpell ran the incoming spell's chain (effects.js: absorption, REFLECTION, resistance -
-   *  gated on a caster) that a gift never meets (AUDIT ALLY-CAST B6, C1): a companion wearing a Spell Reflection I gave
-   *  him bounced my next heal onto me, and a Heal + Fortify landed on both of us, mine tagged an ally's.
-   *  AUDIT WK-M4: what lands is what he can use (`companion`: the Light, Detect and Comprehend Languages stripped).
-   *  AUDIT WK-M6: and never on a man knocked out. */
+  /** Applies a gift spell to my companion through the receiver's own record: its beneficial effects as a self-cast
+   *  (no save, the caster's level), tagged as an ally's. It runs with no caster, because a caster ran the absorption
+   *  and reflection chain that a gift never meets. Light, Detect and Comprehend Languages are stripped, and nothing
+   *  lands on a knocked-out companion. Returns true when the gift was applied. */
   function giveToCompanion(mark, sp, { quiet = false } = {}) {
     const rec = mark?.rec;
     if (!rec || rec.dead || rec._knockedOut || !rec.entity) return false;

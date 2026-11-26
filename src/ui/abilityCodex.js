@@ -2,6 +2,7 @@
 // on the left, grouped and folded by skill, and the chosen ability on the right with its numbers and one-click hotbar
 // slots. A rail row also drags onto the hotbar, or takes a slot key while pointed at, as a spell row does.
 import { abilityIcon } from './abilityIcon.js';
+import { t } from './textManager.js';
 import { beginHotbarDrag, hotbarAcceptsDrops, takeHotbarDragClick } from './enhancedHotbar.js';
 import { CAPSTONE_RECOVERY_MS } from '../combat/abilities/engine.js';
 import { SKILL_NAMES, skillValue } from '../characters/skills.js';
@@ -10,7 +11,7 @@ import { ABILITIES, PHYSICAL_SKILLS } from '../combat/abilities/registry.js';
 import { learnedAbility } from '../combat/abilities/progress.js';
 import { milestoneDelivery } from '../combat/abilities/milestones.js';
 import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
-import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
+import { racialDelivery, racialKey, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
 import { combinationDelivery, combinationDescription } from '../combat/abilities/combinations.js';
 import { meleeBeatMult, shotMult } from '../combat/abilities/damage.js';
 import { templateByIndex } from '../items/itemTemplates.js';
@@ -18,16 +19,23 @@ import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbar
 import { activeAbilityWeapon } from '../combat/abilities/rig.js';
 
 const styleNames = {
-  'archers-axe': 'Archer’s Axe',
-  'light-flail': 'Light Flail',
-  crossbow: 'Crossbow',
-  ballista: 'Royal Ballista',
-  'hand-to-hand': 'Unarmed',
+  'archers-axe': () => t('abilities.style.archersAxe', 'Archer’s Axe'),
+  'light-flail': () => t('abilities.style.lightFlail', 'Light Flail'),
+  crossbow: () => t('abilities.style.crossbow', 'Crossbow'),
+  ballista: () => t('abilities.style.ballista', 'Royal Ballista'),
+  'hand-to-hand': () => t('abilities.style.unarmed', 'Unarmed'),
 };
 const customStyleNames = { 513: styleNames['archers-axe'], 514: styleNames['light-flail'], 563: styleNames.crossbow };
 
-// Kept across repaints of the book, so a pick or an assignment never moves the page.
-const memory = { picked: null, open: new Set(), hand: 'weapon', learnedOnly: false, query: '' };
+// Persists across repaints of the book, so a pick or an assignment never moves the page.
+const memory = { picked: null, open: new Set(), hand: 'weapon', learnedOnly: false, query: '', reveal: true };
+
+export function resetAbilityCodex() {
+  memory.query = '';
+  memory.learnedOnly = false;
+  memory.reveal = true;
+}
+export const revealAbilityPick = () => { memory.reveal = true; };
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -36,32 +44,47 @@ function element(tag, text, className) {
   return node;
 }
 
-/** The numbers a player weighs before binding an ability, in plain words. */
 export function abilityStatChips(ability, profile = null) {
   const delivery = profile?.kind ? profile : milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, null) ?? racialDelivery(ability.id);
   const chips = [];
-  if (delivery?.spend != null) chips.push(['Cost', delivery.spend + ' fatigue' + (delivery.kind === 'self' ? '' : ' + swing')]);
+  if (delivery?.spend != null) {
+    chips.push([t('abilities.chip.cost', 'Cost'), delivery.kind === 'self'
+      ? t('abilities.chip.costSelf', '{n} fatigue', { n: delivery.spend })
+      : t('abilities.chip.costSwing', "{n} fatigue plus the swing's cost", { n: delivery.spend })]);
+  }
   const shield = [].concat(delivery?.selfEffect ?? []).find(effect => effect?.type === 35);
-  if (shield) chips.push(['Shield', shield.magnitude + ' for ' + shield.rounds + (shield.rounds === 1 ? ' round' : ' rounds')]);
+  if (shield) {
+    chips.push([t('abilities.chip.shield', 'Shield'), t('abilities.chip.shieldValue',
+      '{magnitude} for {rounds, plural, one {# round} other {# rounds}}', { magnitude: shield.magnitude, rounds: shield.rounds })]);
+  }
   const recovery = (delivery ?? profile)?.cooldownMs;
-  if (recovery) chips.push(['Recovers', Math.round(recovery / 100) / 10 + ' s']);
+  if (recovery) chips.push([t('abilities.chip.recovers', 'Recovers'), t('abilities.chip.seconds', '{s} s', { s: Math.round(recovery / 100) / 10 })]);
   if (delivery?.kind === 'melee') {
     const beats = delivery.beats ?? 1;
-    if (beats > 1) chips.push(['Hits', String(beats)]);
+    if (beats > 1) chips.push([t('abilities.chip.hits', 'Hits'), String(beats)]);
     const shares = Array.from({ length: beats }, (_, beat) => delivery.stages?.[beat]?.share ?? 1 / beats);
     const each = Math.min(...shares.map(share => meleeBeatMult(ability, delivery.potency, share)));
-    chips.push([beats > 1 ? 'Each hit' : 'Damage', '×' + each.toFixed(1) + ' a plain swing']);
+    // A capstone adds flat damage before the formula, so its share of a plain swing understates the hit.
+    if (!delivery.capstone) {
+      chips.push([beats > 1 ? t('abilities.chip.eachHit', 'Each hit') : t('abilities.chip.damage', 'Damage'),
+        t('abilities.chip.timesSwing', '{x} times a plain swing', { x: each.toFixed(1) })]);
+    }
     const advance = delivery.stages?.[0]?.advance ?? delivery.advance;
-    if (advance) chips.push(['Moves', advance.mech === 'leap' ? 'Leap' : advance.aim === 'side' ? 'Side hop' : 'Dash']);
+    if (advance) {
+      chips.push([t('abilities.chip.moves', 'Moves'), advance.mech === 'leap' ? t('abilities.chip.leap', 'Leap')
+        : advance.aim === 'side' ? t('abilities.chip.sideHop', 'Side hop') : t('abilities.chip.dash', 'Dash')]);
+    }
   } else if (delivery?.kind === 'ranged') {
     const arrows = delivery.ammo ?? 1;
-    chips.push(['Arrows', String(arrows)]);
-    chips.push(['Each arrow', '×' + shotMult(ability, delivery.potency, arrows).toFixed(1) + ' a plain shot']);
+    chips.push([t('abilities.chip.arrows', 'Arrows'), String(arrows)]);
+    if (!delivery.capstone) {
+      chips.push([t('abilities.chip.eachArrow', 'Each arrow'),
+        t('abilities.chip.timesShot', '{x} times a plain shot', { x: shotMult(ability, delivery.potency, arrows).toFixed(1) })]);
+    }
   }
   return chips;
 }
 
-/** Every ability in its group, with what the page shows for it. */
 function catalog(entity) {
   const groups = [];
   const add = (label, kind, skill = null) => {
@@ -71,10 +94,9 @@ function catalog(entity) {
   };
   const push = (group, ability, profile, sub = null) => {
     const kind = group.kind;
-    const rank = kind === 'combination' ? ability.rank + '/' + ability.rank
-      : kind === 'racial' ? 'Racial' : kind === 'utility' ? 'Rank ' + ability.rank : 'Rank ' + ability.rank;
+    const rank = kind === 'racial' ? t('abilities.racial', 'Racial') : t('abilities.rank', 'Rank {rank}', { rank: ability.rank });
     group.items.push({ ability, profile, sub, kind, rank, capstone: ability.rank === 100 && kind !== 'utility',
-      learned: !!profile && learnedAbility(entity, ability.id) });
+      learned: !!profile && learnedAbility(entity, ability.id), foreign: kind === 'racial' && ability.race !== racialKey(entity) });
   };
   const weaponsBySkill = new Map(PHYSICAL_SKILLS.map(skill => [skill, new Map()]));
   for (const ability of ABILITIES) {
@@ -87,11 +109,11 @@ function catalog(entity) {
   for (const [skill, weapons] of weaponsBySkill) {
     const group = add(SKILL_NAMES[skill], 'weapon', skill);
     for (const [style, abilities] of weapons) {
-      const name = styleNames[style] ?? templateByIndex(abilities[0].templates[0])?.name ?? style;
+      const name = styleNames[style]?.() ?? templateByIndex(abilities[0].templates[0])?.name ?? style;
       for (const ability of abilities) push(group, ability, milestoneDelivery(ability.id), name);
     }
   }
-  const combinations = add('Combinations', 'combination');
+  const combinations = add(t('abilities.group.combinations', 'Combinations'), 'combination');
   for (const ability of ABILITIES) {
     if (ability.category !== 'combination') continue;
     const text = combinationDescription(ability.id);
@@ -101,20 +123,21 @@ function catalog(entity) {
     push(combinations, ability, text ? { ...combinationDelivery(ability.id, weapon), description: text } : null,
       ability.skills.map(id => SKILL_NAMES[id]).join(' + '));
   }
-  const racial = add('Racial abilities', 'racial');
+  const racial = add(t('abilities.group.racial', 'Racial abilities'), 'racial');
   for (const ability of ABILITIES) {
     if (ability.category !== 'racial') continue;
     const favorites = RACIAL_FAVORITES[ability.race].map(id =>
-      id === 'bare' ? styleNames['hand-to-hand'] : customStyleNames[id] ?? templateByIndex(id)?.name);
+      id === 'bare' ? styleNames['hand-to-hand']() : customStyleNames[id]?.() ?? templateByIndex(id)?.name);
     const trait = RACIAL_TRAITS[ability.race];
     push(racial, ability, { ...racialDelivery(ability.id), description: [
-      'Active: ' + racialDelivery(ability.id).description,
-      'Passive: ' + favorites.join(' and ') + ' gain 4 weapon accuracy at half health or higher.',
+      t('abilities.racial.active', 'Active: {text}', { text: racialDelivery(ability.id).description }),
+      t('abilities.racial.passive', 'Passive: {weapons} gain 4 weapon accuracy at half health or higher.',
+        { weapons: favorites.join(t('abilities.and', ' and ')) }),
       trait.passive + (trait.passive.endsWith('.') ? '' : '.'),
       trait.movement,
     ].join(' ') }, raceByKey(ability.race)?.name ?? ability.race);
   }
-  const utilities = add('Universal utilities', 'utility');
+  const utilities = add(t('abilities.group.utilities', 'Universal utilities'), 'utility');
   for (const ability of ABILITIES) if (utilityProfile(ability.id)) push(utilities, ability, utilityProfile(ability.id));
   return groups;
 }
@@ -130,7 +153,7 @@ const sameEntry = (held, entry) => !!held && held.type === entry.type && (entry.
 export function buildAbilityCodex(entity, size) {
   const groups = catalog(entity);
   const all = groups.flatMap(group => group.items);
-  const playable = all.filter(item => item.profile);
+  const playable = all.filter(item => item.profile && !item.foreign);
   const learnedCount = playable.filter(item => item.learned).length;
   let picked = all.find(item => item.ability.id === memory.picked)
     ?? all.find(item => item.learned && item.kind === 'racial') ?? all.find(item => item.learned) ?? all[0];
@@ -140,27 +163,28 @@ export function buildAbilityCodex(entity, size) {
   }
 
   const panel = element('div', null, 'sb-abilities px-journal');
-  panel.setAttribute('aria-label', 'Abilities');
+  panel.setAttribute('aria-label', t('abilities.page', 'Abilities'));
   const rail = element('div', null, 'px-qrail sb-ability-rail');
   const detail = element('div', null, 'px-qdetail sb-ability-detail');
 
   // The rail's head: the count, the search and the learned filter, kept above the scrolling list.
   const head = element('div', null, 'sb-rail-head');
-  const count = element('span', learnedCount + ' / ' + playable.length + ' learned', 'sb-rail-count');
-  const learnedOnly = element('button', 'Learned', 'act sb-filter');
+  const count = element('span', t('abilities.learnedCount', '{n} / {total} learned', { n: learnedCount, total: playable.length }),
+    'sb-rail-count');
+  const learnedOnly = element('button', t('abilities.filter.learned', 'Learned'), 'act sb-filter');
   learnedOnly.type = 'button';
   learnedOnly.setAttribute('aria-pressed', String(memory.learnedOnly));
-  learnedOnly.title = 'Show only the abilities you have learned';
+  learnedOnly.title = t('abilities.filter.learnedTip', 'Show only the abilities you have learned');
   const search = element('input', null, 'sb-ability-search');
   search.type = 'search';
-  search.placeholder = 'Find an ability or weapon';
+  search.placeholder = t('abilities.search', 'Find an ability or weapon');
   search.setAttribute('aria-label', search.placeholder);
   search.value = memory.query;
   const top = element('div', null, 'sb-rail-top');
   top.append(count, learnedOnly);
   head.append(top, search);
   const list = element('div', null, 'sb-rail-list');
-  const empty = element('p', 'No matching abilities.', 'px-note');
+  const empty = element('p', t('abilities.search.none', 'No matching abilities.'), 'px-note');
   empty.hidden = true;
   rail.append(head, list);
   list.append(empty);
@@ -176,7 +200,7 @@ export function buildAbilityCodex(entity, size) {
     });
     const summary = element('summary', null, 'sb-fold-head');
     const learned = group.items.filter(item => item.learned).length;
-    const total = group.items.filter(item => item.profile).length;
+    const total = group.items.filter(item => item.profile && !item.foreign).length;
     summary.append(element('span', group.label, 'sb-fold-name'), element('span', learned + '/' + total, 'sb-fold-count'));
     if (group.skill != null) summary.title = SKILL_NAMES[group.skill] + ' ' + Math.round(skillValue(entity, group.skill));
     fold.append(summary);
@@ -199,9 +223,9 @@ export function buildAbilityCodex(entity, size) {
       icon.alt = '';
       icon.draggable = false;
       row.append(icon, element('span', item.ability.name, 'sb-arow-name'),
-        element('span', item.kind === 'racial' ? item.sub : item.rank.replace('Rank ', ''), 'sb-arow-rank'));
+        element('span', item.kind === 'racial' ? item.sub : String(item.ability.rank), 'sb-arow-rank'));
       if (item.learned) {
-        row._hotbarEntry = entryFor(item);
+        Object.defineProperty(row, '_hotbarEntry', { get: () => entryFor(item) });
         row.onpointerdown = (e) => {
           if (!hotbarAcceptsDrops()) return;
           beginHotbarDrag(e, { kind: 'entry', entry: entryFor(item) }, { iconSrc: icon.src, label: item.ability.name });
@@ -261,14 +285,20 @@ export function buildAbilityCodex(entity, size) {
     icon.alt = '';
     const words = element('div', null, 'sb-adetail-words');
     words.append(element('h3', ability.name), element('p', [
-      kind === 'combination' ? 'Combination ' + item.rank : kind === 'racial' ? 'Racial ability' : item.rank,
+      kind === 'combination' ? t('abilities.kind.combination', 'Combination') : null,
+      kind === 'racial' ? t('abilities.kind.racial', 'Racial ability') : item.rank,
       item.sub && kind !== 'racial' ? item.sub : null,
-      item.capstone ? 'Capstone' : null,
+      item.capstone ? t('abilities.kind.capstone', 'Capstone') : null,
     ].filter(Boolean).join(' · '), 'sb-adetail-kind'));
     title.append(icon, words);
     detail.append(title);
-    if (!item.learned) detail.append(element('p', profile ? 'Not learned yet' + (ability.rank ? ': reach ' + ability.rank + ' in '
-      + ability.skills.map(id => SKILL_NAMES[id]).join(' and ') + '.' : '.') : 'Planned.', 'sb-adetail-lock'));
+    const skills = kind === 'utility' ? t('abilities.lock.anySkill', 'any weapon skill or Hand-to-Hand')
+      : ability.skills.map(id => SKILL_NAMES[id]).join(t('abilities.and', ' and '));
+    const lock = !profile ? t('abilities.lock.planned', 'Not available yet.')
+      : item.foreign ? t('abilities.lock.race', 'Only for {race}.', { race: raceByKey(ability.race)?.name ?? ability.race })
+        : ability.rank ? t('abilities.lock.reach', 'Not learned yet: reach {rank} in {skills}.', { rank: ability.rank, skills })
+          : t('abilities.lock.locked', 'Not learned yet.');
+    if (!item.learned) detail.append(element('p', lock, 'sb-adetail-lock'));
     const chips = abilityStatChips(ability, profile);
     if (chips.length) {
       const grid = element('dl', null, 'sb-adetail-chips');
@@ -280,10 +310,11 @@ export function buildAbilityCodex(entity, size) {
       detail.append(grid);
     }
     let text = profile?.description ?? '';
-    if (profile?.weakPointBonus) text += ' A weak point is a hit in the top 22% of the foe’s height.';
-    if (profile?.counterBonus) text += ' Counter during an enemy wind-up or its overreach after an attack.';
+    if (profile?.weakPointBonus) text += ' ' + t('abilities.text.weakPoint', 'A weak point is a hit in the top 22% of the enemy’s height.');
+    if (profile?.counterBonus) text += ' ' + t('abilities.text.counter', 'Counter during an enemy wind-up or its overreach after an attack.');
     if (item.capstone && (kind === 'weapon' || kind === 'combination')) {
-      text += ' Other capstones recover for ' + CAPSTONE_RECOVERY_MS / 1000 + ' seconds.';
+      text += ' ' + t('abilities.text.capstoneWait', 'Using any capstone makes every capstone wait {s} seconds.',
+        { s: CAPSTONE_RECOVERY_MS / 1000 });
     }
     if (text) detail.append(element('p', text, 'sb-adetail-text'));
     if (!item.learned) return;
@@ -292,26 +323,33 @@ export function buildAbilityCodex(entity, size) {
     if (kind === 'weapon') {
       const hands = element('div', null, 'sb-hands');
       hands.setAttribute('role', 'group');
-      hands.setAttribute('aria-label', 'Binding');
-      for (const [hand, label] of [['weapon', 'Follow active weapon · Rank ' + ability.rank], ['manual', 'This ability']]) {
+      hands.setAttribute('aria-label', t('abilities.bind', 'Binding'));
+      for (const [hand, label] of [['weapon', t('abilities.bind.follow', 'Follow active weapon · Rank {rank}', { rank: ability.rank })],
+        ['manual', t('abilities.bind.this', 'This ability')]]) {
         const button = element('button', label, 'act sb-hand');
         button.type = 'button';
         button.setAttribute('aria-pressed', String(memory.hand === hand));
-        button.onclick = () => { memory.hand = hand; showDetail(); };
+        button.onclick = () => {
+          memory.hand = hand;
+          showDetail();
+          detail.querySelector?.('.sb-hand[data-hand="' + hand + '"]')?.focus?.();
+        };
+        button.dataset.hand = hand;
         hands.append(button);
       }
       bind.append(hands);
-      bind.append(element('p', memory.hand === 'manual' ? 'The slot always uses this ability.'
-        : 'The slot uses the rank ' + ability.rank + ' ability of whatever weapon you hold.', 'sb-bind-note'));
+      bind.append(element('p', memory.hand === 'manual' ? t('abilities.bind.thisNote', 'The slot always uses this ability.')
+        : t('abilities.bind.followNote', 'The slot uses the rank {rank} ability of whatever weapon you hold.', { rank: ability.rank }),
+      'sb-bind-note'));
     }
     const entry = entryFor(item);
     const slots = element('div', null, 'sb-slots');
     slots.setAttribute('role', 'group');
-    slots.setAttribute('aria-label', 'Put on hotbar slot');
+    slots.setAttribute('aria-label', t('abilities.slots', 'Put on hotbar slot'));
     slots.style.setProperty('--cols', String(size > 6 ? Math.ceil(size / 2) : size));
     const status = element('p', null, 'sb-bind-status');
     status.setAttribute('role', 'status');
-    const label = element('p', 'Put on the hotbar', 'sb-slots-label');
+    const label = element('p', t('abilities.slots.label', 'Put on the hotbar'), 'sb-slots-label');
     const paintSlots = () => {
       slots.replaceChildren();
       for (let i = 0; i < size; i++) {
@@ -326,14 +364,16 @@ export function buildAbilityCodex(entity, size) {
           img.src = heldIcon;
           img.alt = '';
           button.append(img);
-        } else if (held) button.append(element('span', held.type === 'weapon-rank' ? 'R' + held.rank : held.name.slice(0, 2), 'sb-slotmark'));
+        } else if (held) button.append(element('span', held.type === 'weapon-rank' ? t('abilities.slot.rankMark', 'R{rank}', { rank: held.rank }) : held.name.slice(0, 2), 'sb-slotmark'));
         button.classList.toggle('on', here);
         button.classList.toggle('full', !!held && !here);
-        button.title = here ? 'Already here' : held ? 'Replace ' + held.name : 'Empty';
+        button.title = here ? t('abilities.slot.here', 'Already here')
+          : held ? t('abilities.slot.replace', 'Replace {name}', { name: held.name }) : t('abilities.slot.empty', 'Empty');
         button.onclick = () => {
           if (here || !setHotbarSlot(i, entry)) return;
-          status.textContent = entry.name + ' is on slot ' + (i + 1) + '.';
+          status.textContent = t('abilities.slot.done', '{name} is on slot {n}.', { name: entry.name, n: i + 1 });
           paintSlots();
+          slots.children[i]?.focus?.();
         };
         slots.append(button);
       }
@@ -345,6 +385,9 @@ export function buildAbilityCodex(entity, size) {
   showDetail();
 
   panel.append(rail, detail);
-  requestAnimationFrame?.(() => rows.find(entry => entry.item === picked)?.row.scrollIntoView?.({ block: 'nearest' }));
+  if (memory.reveal) {
+    memory.reveal = false;
+    requestAnimationFrame?.(() => rows.find(entry => entry.item === picked)?.row.scrollIntoView?.({ block: 'nearest' }));
+  }
   return panel;
 }

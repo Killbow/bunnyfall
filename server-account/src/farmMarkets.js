@@ -1,15 +1,4 @@
 // @ts-check
-// BUNNYFALL FARM EXPANSION, PHASE 7 (docs/FARM-EXPANSION.md section 9): MARKET DAY - the account service's half of the
-// `/v1/farms/market` route. The day, the contests, the prices and the scoring are the law's (src/net/farm/marketLaw.js);
-// this turns them into statements.
-//   read     anyone: the farm's market today, its stalls, the entries, the last judging's ribbons; a member also the Company
-//            Stores' stallable stock; the account's prize gold. THE FIRST READ AFTER A MARKET'S DAY returns the stalls' unsold
-//            stock to the Company that stocked it and judges the contests, each once (a claim nonce, so two reads never pay twice).
-//   stock    a member: a lot from the communal Stores onto a stall.
-//   buy      anyone with a realm character: gold off the record (prepareRealmRecord, the rent's pattern) into the selling
-//            Company's treasury - less the prize pot's tenth - and the goods into the buyer's own Stores, in ONE batch.
-//   enter    a contest entry: one an account a contest.
-//   collect  the prize gold the pot owes the account, into the record's purse (collectRent's pattern).
 import { guildActorOf } from './guilds.js';
 import { accountKind, displayName, mintId, overRate } from './accounts.js';
 import { mustChange, prepareRealmRecord, realmActFirst, recordMovedOf, dropObjects, dropIfUnnamed, REALM_ID_RE } from './realm.js';
@@ -27,7 +16,6 @@ const DAY = 86400;
 const MARKET_OPS_MAX = 600, MARKET_OPS_WINDOW_S = 3600;
 const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
 
-/** The unsold stock of every past market goes back to the Company that stocked it - each stall once (its claim). */
 async function returnStalls(ctx, mapId, today) {
   const { db, nowS, rand } = ctx;
   const { results } = await db.prepare('SELECT day, slot FROM farm_stalls WHERE map_id = ? AND day < ? AND claim IS NULL LIMIT 16').bind(mapId, today).all();
@@ -45,8 +33,6 @@ async function returnStalls(ctx, mapId, today) {
   await db.prepare('DELETE FROM farm_stalls WHERE map_id = ? AND day < ? AND claim IS NOT NULL').bind(mapId, today - 7).run();
 }
 
-/** THE JUDGING of every past market with entries, once each: ribbons, their farm work (three a week counted) and the pot's
- *  gold, all behind the one claim. What the pot does not pay goes to the host Company's treasury. */
 async function judgeMarkets(ctx, farm, today) {
   const { db, nowS, rand } = ctx;
   const mapId = Number(farm.map_id);
@@ -55,7 +41,8 @@ async function judgeMarkets(ctx, farm, today) {
     const day = Number(m.day), week = farmWeek(day * DAY), pot = Number(m.pot);
     const { results: rows } = await db.prepare('SELECT contest, account, name, snapshot, score, at FROM farm_market_entries WHERE map_id = ? AND day = ?').bind(mapId, day).all();
     const held = marketContests(mapId, week), n = mintId(rand);
-    const claimed = `EXISTS (SELECT 1 FROM farm_markets WHERE map_id = ${mapId} AND day = ${day} AND claim = '${n}')`;   // every statement after the claim waits on it (the nonce is the service's own mintId)
+    // Every statement after the claim is gated on it, so two reads never pay twice.
+    const claimed = `EXISTS (SELECT 1 FROM farm_markets WHERE map_id = ${mapId} AND day = ${day} AND claim = '${n}')`;
     const statements = [db.prepare('UPDATE farm_markets SET judged = 1, claim = ?1 WHERE map_id = ?2 AND day = ?3 AND judged = 0').bind(n, mapId, day)];
     let paid = 0;
     for (const contest of held) {
@@ -66,7 +53,6 @@ async function judgeMarkets(ctx, farm, today) {
           db.prepare(`INSERT OR IGNORE INTO farm_market_awards (map_id, day, contest, ribbon, account, name, score, week, counted, work, gold)
             SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, CASE WHEN (SELECT COUNT(*) FROM farm_market_awards WHERE account = ?5 AND week = ?8 AND counted = 1) < ${RIBBON_WEEK_MAX} THEN 1 ELSE 0 END, ?9, ?10
             WHERE ${claimed}`).bind(mapId, day, contest, p.ribbon, p.account, String(p.name).slice(0, 64), p.score, week, RIBBON_WORK[p.ribbon], gold),
-          // farm work for a counted ribbon only, once: the award row exists only behind this claim
           db.prepare(`UPDATE players SET farm_work = farm_work + ?1 WHERE id = ?2
             AND EXISTS (SELECT 1 FROM farm_market_awards WHERE map_id = ?3 AND day = ?4 AND contest = ?5 AND ribbon = ?6 AND account = ?2 AND counted = 1) AND ${claimed}`)
             .bind(RIBBON_WORK[p.ribbon], p.account, mapId, day, contest, p.ribbon),
@@ -78,7 +64,8 @@ async function judgeMarkets(ctx, farm, today) {
     const rest = Math.max(0, pot - paid);
     if (rest > 0) statements.push(db.prepare(`UPDATE guilds SET treasury = treasury + ?1, realm_gold = realm_gold + ?1, moved_by = 'Market prize pot', moved_at = ?2, moved_kind = 'farm-market'
       WHERE id = ?3 AND treasury + ?1 <= ?4 AND ${claimed}`).bind(rest, nowS, farm.guild_id, GUILD_TREASURY_MAX));
-    try { await db.batch(statements); } catch { /* another read judged it first, or the farm moved on: the claim decides */ }
+    // A failed batch means another read judged first or the farm moved on, and the claim decides which.
+    try { await db.batch(statements); } catch { }
   }
 }
 
@@ -92,8 +79,8 @@ export async function farmMarket(ctx, player, body = {}) {
   if (!farm) return { error: 'farm-not-ours' };
   const today = Math.floor(nowS / DAY), market = marketToday(mapId, nowS);
   if (op === 'collect') return collectPrize(ctx, player, body);
-  // a past market's leftovers and its judging, on the first read after: neither ever breaks the read
-  try { await returnStalls(ctx, mapId, today); await judgeMarkets(ctx, farm, today); } catch { /* tried again by the next read */ }
+  // Leftovers and judging never break the read, and the next read tries again.
+  try { await returnStalls(ctx, mapId, today); await judgeMarkets(ctx, farm, today); } catch { }
   const actor = typeof character === 'string' && character ? await guildActorOf(db, player, character).catch(() => null) : null;
   const member = !!actor && !('error' in actor) && actor.me.guild_id === farm.guild_id ? actor : null;
   if (op === 'read') return read(ctx, player, farm, market, member);
@@ -140,7 +127,6 @@ async function stock(ctx, player, farm, market, member, { slot, material, qty })
       db.prepare(`UPDATE guild_prof_stores SET qty = qty - ?1, moved_by = ?2, moved_at = ?3
         WHERE guild_id = ?4 AND material = ?5 AND dep_player = '' AND dep_char = '' AND qty >= ?1`).bind(qty, `Market: ${who}`.slice(0, 64), nowS, gid, material),
       mustChange(db),
-      // a stall holds one thing at a time (a sold-out one may change); it never passes STALL_MAX
       db.prepare(`INSERT INTO farm_stalls (map_id, day, slot, guild_id, material, qty, price) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
         ON CONFLICT (map_id, day, slot) DO UPDATE SET material = excluded.material, guild_id = excluded.guild_id, price = excluded.price,
           qty = CASE WHEN farm_stalls.material = excluded.material THEN farm_stalls.qty + excluded.qty ELSE excluded.qty END
@@ -160,7 +146,7 @@ async function buy(ctx, player, farm, market, { character, slot, material, qty, 
   if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };
   if (!Number.isSafeInteger(slot) || slot < 0 || slot >= MARKET_STALLS || !stallOk(material) || !Number.isSafeInteger(qty) || qty < 1 || qty > BUY_MAX) return { error: 'farm-market-bad' };
   if (typeof character !== 'string' || !REALM_ID_RE.test(character)) return { error: 'realm-only' };
-  const side = await realmActFirst(db, player.id, character, realm);   // where the record stands, before any other word
+  const side = await realmActFirst(db, player.id, character, realm);
   if (side.error) return side;
   if (!side.at) return { error: 'realm-needed' };
   const stall = await db.prepare('SELECT guild_id, material, qty, price FROM farm_stalls WHERE map_id = ? AND day = ? AND slot = ? AND claim IS NULL').bind(mapId, market.day, slot).first();
@@ -172,16 +158,14 @@ async function buy(ctx, player, farm, market, { character, slot, material, qty, 
   try {
     await db.batch([
       ...prep.steps,
-      // the stall as it was read: the goods still there
       db.prepare('UPDATE farm_stalls SET qty = qty - ?1 WHERE map_id = ?2 AND day = ?3 AND slot = ?4 AND material = ?5 AND qty >= ?1 AND claim IS NULL').bind(qty, mapId, market.day, slot, material),
       mustChange(db),
-      // the gold: the selling Company's treasury, less the pot's tenth, as a deposit from a record is
       db.prepare(`UPDATE guilds SET treasury = treasury + ?1, realm_gold = realm_gold + ?1, moved_by = ?2, moved_at = ?3, moved_kind = 'farm-market'
         WHERE id = ?4 AND treasury + ?1 <= ?5`).bind(sale.company, displayName(player), nowS, stall.guild_id, GUILD_TREASURY_MAX),
       mustChange(db),
       db.prepare('INSERT OR IGNORE INTO farm_markets (map_id, day) VALUES (?, ?)').bind(mapId, market.day),
       db.prepare('UPDATE farm_markets SET takings = takings + ?1, pot = pot + ?2 WHERE map_id = ?3 AND day = ?4').bind(sale.cost, sale.pot, mapId, market.day),
-      // the goods into the buyer's own Stores (5,000 a material: the table's CHECK refuses more, and the batch with it)
+      // The table's CHECK refuses more than 5,000 of a material, which fails the whole batch.
       db.prepare(`INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?1, ?2, ?3, 'bought', ?4)
         ON CONFLICT (player, char_id, material, origin) DO UPDATE SET qty = qty + excluded.qty`).bind(player.id, character, material, qty),
     ]);
@@ -199,7 +183,7 @@ async function buy(ctx, player, farm, market, { character, slot, material, qty, 
 async function enter(ctx, player, farm, market, member, { character, contest, animal }) {
   const { db, nowS } = ctx, mapId = Number(farm.map_id);
   if (!CONTESTS.includes(contest) || !marketContests(mapId, market.week).includes(contest)) return { error: 'farm-market-contest' };
-  if (nowS >= market.closesAt - 600) return { error: 'farm-market-late' };   // the judge is already walking the tables
+  if (nowS >= market.closesAt - 600) return { error: 'farm-market-late' };
   let snapshot, name;
   if (member) {
     const row = await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id = ?').bind(mapId).first();
@@ -211,7 +195,6 @@ async function enter(ctx, player, farm, market, member, { character, contest, an
       if (!a) return { error: 'farm-market-entry' };
       snapshot = { animal: a.id, name: a.name, kind: a.kind, content: Math.round(contentAt(a, nowS)) };
     } else {
-      // the best ripe bed on the farm: its care and, if its strain is showy, the bonus
       let best = null;
       for (const bed of Object.values(garden.beds)) {
         if (!bed?.crop || gardenStage(bed, nowS) !== 'ripe') continue;
@@ -222,7 +205,6 @@ async function enter(ctx, player, farm, market, member, { character, contest, an
       snapshot = best;
     }
   } else {
-    // a visitor: only the sheaf, and a crop in their own Stores to show (a plain one: grade of the market's own judging)
     if (contest !== 'sheaf') return { error: 'farm-market-members' };
     if (typeof character !== 'string' || !REALM_ID_RE.test(character)) return { error: 'realm-only' };
     const held = await db.prepare("SELECT material FROM prof_stores WHERE player = ? AND char_id = ? AND material LIKE 'food:%' AND qty > 0 LIMIT 1").bind(player.id, character).first();
@@ -245,7 +227,6 @@ async function enter(ctx, player, farm, market, member, { character, contest, an
   return { ok: true, entered: { contest, snapshot } };
 }
 
-/** The prize gold the pot owes this account, into the record's purse - the rent collection's batch. */
 async function collectPrize(ctx, player, { character, realm = null }) {
   const { db, bucket } = ctx;
   if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };

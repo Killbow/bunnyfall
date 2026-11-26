@@ -3211,21 +3211,14 @@ html.plus-pad-prompts-visible .px-over > .px-stage.px-timersstage > .px-win { ma
 }
 .sb-art-layout .sb-catalogue-row:is(.on, :hover, :focus-visible) { background: #4c3824; border-color: #c29a5a; }
 .sb-art-layout .sb-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.sb-art-layout .sb-inline-expanded {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: .75rem; padding: .75rem; background: #231a15; color: #fff0d2; border: 1px solid #987548;
-}
-.sb-art-layout :is(.sb-catalogue-row,.sb-inline-expanded,[hidden])[hidden] { display: none; }
+.sb-art-layout :is(.sb-catalogue-row,[hidden])[hidden] { display: none; }
 .sb-preview-panel,.sb-inline-effects,.sb-inline-parameters { min-width: 0; align-self: start; }
 .sb-inline-effects,.sb-inline-parameters { padding: .55rem; background: #30231a; border: 1px solid #745535; }
 .sb-inline-heading { color: #f0c582; margin: 0 0 .6rem; font: inherit; font-weight: bold; }
-.sb-art-layout .sb-inline-expanded .sb-acts { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .35rem; }
-.sb-art-layout .sb-inline-expanded .act { background: #4b3423; color: #fff0d2; border: 1px solid #9e7948; }
 .sb-preview-panel .sb-spell-illustration { margin: 0; min-height: 0; }
 .sb-preview-panel .sb-spell-illustration:has(canvas:not([hidden])) { background: #0c0e14; }
 .sb-preview-panel .sb-animated-preview { height: auto; aspect-ratio: 350 / 281; }
 @media (max-width: 780px) {
-  .sb-art-layout .sb-inline-expanded { grid-template-columns: minmax(0, 1fr); }
   .sb-art-layout .sb-preview-panel { width: min(320px, 100%); justify-self: center; }
 }
 .sb-shell .sb-page-tabs [aria-pressed="true"] { outline: 1px solid currentColor; }
@@ -3260,82 +3253,15 @@ html.plus-pad-prompts-visible .px-over > .px-stage.px-timersstage > .px-win { ma
   .card-item-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
 }
 .sb-abilities { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-.sb-skill-nav { display: flex; flex-wrap: wrap; gap: .35rem; padding: .6rem .85rem;
-  border-bottom: 1px solid rgba(155,130,86,.4); }
-.sb-skill-nav .act { padding: .35rem .5rem; font-size: 12px; }
-.sb-roster { overflow-y: auto; overscroll-behavior: contain; padding: .3rem .85rem 1rem; }
-.sb-skill-section { padding-top: .65rem; }
-.sb-skill-section h3 { font: inherit; font-size: 18px; color: var(--brass, #e5c488);
-  margin: .25rem 0 .55rem; padding-bottom: .25rem; border-bottom: 1px solid rgba(155,130,86,.45); }
-.sb-weapon-ladder { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 4fr);
-  column-gap: .7rem; row-gap: .15rem; padding: .5rem 0; border-bottom: 1px solid rgba(155,130,86,.22); }
-.sb-weapon-ladder h4 { grid-column: 1; grid-row: 1; align-self: center; margin: 0; font-size: 15px; }
-.sb-weapon-ladder > .sb-roster-note { grid-column: 1; grid-row: 2; align-self: start; }
-.sb-milestones { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: stretch; gap: .3rem; padding: 0; margin: 0; list-style: none; }
-.sb-weapon-ladder:not(:has(h4)) .sb-milestones { grid-column: 1 / -1; }
-.sb-milestone { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
-  gap: .18rem; width: 100%; height: 100%; box-sizing: border-box; text-align: left;
-  border: 1px solid rgba(155,130,86,.25); border-radius: 2px; background: rgba(70,57,41,.18);
-  padding: .35rem .4rem; font: inherit; color: inherit; }
-button.sb-milestone { cursor: pointer; }
-button.sb-milestone:is(:hover, :focus-visible, [aria-expanded="true"]) {
-  background: rgba(131,96,48,.3); border-color: var(--brass, #e5c488); }
-.sb-milestone-rank { color: var(--brass, #e5c488); font-size: 12px; line-height: 1.1; }
-.sb-milestone-name { font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; }
-.sb-roster-note { margin: .15rem 0; font-size: 12px; opacity: .78; }
-.sb-assignment { grid-column: 1 / -1; padding: .6rem .5rem .2rem; }
-.sb-assignment p { margin: 0 0 .4rem; }
-.sb-assignment p:empty { display: none; }
-.sb-assignment-controls { display: flex; flex-wrap: wrap; gap: .4rem; }
-.sb-ability-details { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: .6rem 0 .75rem; }
-.sb-ability-details:empty { display: none; }
-.sb-ability-details dt { color: var(--brass, #e5c488); font-size: 12px; }
-.sb-ability-details dd { margin: .12rem 0 0; font-variant-numeric: tabular-nums; }
-.sb-assignment select { max-width: 100%; padding: .42rem; color: inherit; background: #211a15; border: 1px solid #a48252; }
-.sb-assignment [role="status"] { margin: .4rem 0 0; }
-@media (max-width: 700px) {
-  .sb-weapon-ladder { grid-template-columns: minmax(0, 1fr) auto; }
-  .sb-weapon-ladder > .sb-roster-note { grid-column: 2; grid-row: 1; }
-  .sb-milestones, .sb-weapon-ladder:not(:has(h4)) .sb-milestones {
-    grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 .sb-abilities { container-type: inline-size; }
 .sb-abilities [hidden] { display: none !important; }
 .sb-ability-search { margin: .6rem .85rem 0; padding: .45rem .55rem; min-width: 0;
   color: inherit; font: inherit; background: #211a15; border: 1px solid #a48252; }
-.sb-abilities .sb-weapon-ladder { display: block; padding: .65rem 0 .8rem; }
-.sb-weapon-ladder h4 { margin: 0 0 .4rem; }
-.sb-milestones { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: .38rem; }
-.sb-milestones > li { min-width: 0; }
-.sb-milestone { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-content: center;
-  align-items: center; column-gap: .5rem; row-gap: .18rem; min-height: 3.1rem; padding: .42rem .5rem;
-  background: linear-gradient(115deg, rgba(155,130,86,.13), rgba(70,57,41,.08)); }
-.sb-ability-icon { grid-row: 1 / span 2; width: 2rem; height: 2rem; }
-.sb-milestone-name { grid-column: 2; }
-.sb-milestone .sb-roster-note { grid-column: 2; }
 .sb-capstone { border-color: rgba(204,164,91,.6); }
-.sb-milestone:focus-visible { outline: 2px solid var(--brass, #e5c488); outline-offset: 1px; }
-.sb-milestones li:has(.sb-assignment) { grid-column: 1 / -1; }
-.sb-milestones li:has(.sb-assignment) .sb-milestone { height: auto; }
-.sb-assignment { border-left: 2px solid #aa8955; background: rgba(70,57,41,.16); padding: .55rem .75rem; }
-@media (prefers-reduced-motion: no-preference) {
-  .sb-assignment { animation: sb-reveal .16s ease-out; }
-  @keyframes sb-reveal { from { opacity: .3; transform: translateY(-3px); } }
-}
-@container (max-width: 32rem) {
-  .sb-abilities .sb-milestones { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .sb-skill-nav { flex-wrap: nowrap; overflow-x: auto; }
-  .sb-skill-nav .act { flex: none; }
-}
-@container (max-width: 22rem) {
-  .sb-abilities .sb-milestones { grid-template-columns: minmax(0, 1fr); }
-  .sb-assignment-controls select { flex: 1 1 100%; }
-}
 /* BUNNYFALL: the Abilities page as a journal - a dense rail of every ability and the chosen one beside it. */
 .sb-abilities.px-journal { flex: 1 1 auto; min-height: 0; flex-direction: row; }
-/* Both pages of the book: a rail wide enough that a name reads on one line. */
-:root .sb-shell > .px-win > .px-body > .px-journal > .px-qrail { width: 38%; max-width: 46%; flex: 0 0 auto; }
+/* The Abilities rail is wide enough that a name reads on one line. */
+:root .sb-shell > .px-win > .px-body > .px-journal.sb-abilities > .px-qrail { width: 38%; max-width: 46%; flex: 0 0 auto; }
 :root .sb-shell > .px-win > .px-body > .px-journal > .px-qrail .px-qrow { overflow-wrap: normal; font-size: 15px; letter-spacing: .04em; }
 .sb-ability-rail { display: flex; flex-direction: column; overflow: hidden !important; }
 .sb-rail-head { flex: none; display: flex; flex-direction: column; gap: .3rem; padding: .3rem .55rem .45rem .2rem;
@@ -3410,7 +3336,6 @@ button.sb-milestone:is(:hover, :focus-visible, [aria-expanded="true"]) {
 .sb-shell .sb-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .sb-shell .sb-row-icon { display: grid; place-items: center; flex: 0 0 24px; height: 24px; font-size: 10px; }
 .sb-shell .sb-row-icon img { width: 24px; height: 24px; image-rendering: pixelated; }
-.sb-art-layout .sb-inline-expanded { grid-column: 1 / -1; }
 /* BUNNYFALL: the illustrated Spells page in three columns - list, animation, details - each scrolling on its own. */
 .sb-art-layout .sb-catalogue { display: grid; grid-template-columns: minmax(11rem, 27%) minmax(0, 1fr) minmax(13rem, 32%);
   gap: .6rem; padding: .6rem; }

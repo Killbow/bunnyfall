@@ -453,16 +453,11 @@ export const TEST_WARDROBE_BASES = Object.freeze([155, 195]);
 const testGarment = (templateIndex) => mintCondition({ group: templateIndex >= 182 ? 'WomensClothing' : 'MensClothing', templateIndex,
   name: templateByIndex(templateIndex)?.name ?? 'Garment', flags: 0, variant: 0 });
 
-/** SPELLFX1 (2026-09-23): THE SORCERESS GETS MISSILES. The Mage set she
- *  starts with has nothing that flies, and the co-op spell work needs
- *  two things to throw at a friend in the test room: a FIREBALL (the
- *  hostile missile - a peer must see it fly and it must pass through
- *  them) and a HEALING BOLT (the friendly one - it must land on them
- *  through ALLY-CAST's cast frame, a party mate). Fireball is SPELLS.STD's own record when the
- *  loaded file has one by that name, and a made one otherwise; the bolt
- *  is always made - Heal Health at range, the Balm's shape. Fixed
- *  negative indices below the Healer's touch (-1000), so a re-apply
- *  does not double them. */
+/** The Sorceress starts with no spell that flies. The test room adds a Fireball and a Healing Bolt. A peer must see
+ *  the Fireball fly, and it must pass through them. The bolt must land on a party mate through the cast frame. The
+ *  Fireball is the loaded spell file's own record when it has one by that name, and a made one otherwise. The bolt is
+ *  always made (Heal Health at range, the Balm's shape). Fixed negative indices below the Healer's touch (-1000) keep
+ *  a re-apply from doubling them. */
 const TEST_MISSILE_EFFECT = (type, subType, lo, hi) => ({
   type, subType,
   durationBase: 0, durationMod: 0, durationPerLevel: 1,

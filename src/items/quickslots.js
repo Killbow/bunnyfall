@@ -60,7 +60,8 @@ import { isEnchanted } from './inventory.js';   // UI2: an enchanted piece shows
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';   // RPT1026-PROGRESS: a worn piece's Cast When Used
 import { isPower } from '../magic/enchantmentCatalogue.js';   // AUDIT RPT1026 F2: a power beside Cast When Used, never a side effect's cost
 import { shownSpellName } from './loot.js';   // L10N3e: a slotted spell's name as the book shows it - the stored name stays the canonical one
-import { retiredItemKey } from './retiredItems.js';
+import { retiredItemKey, hookItemKey } from './retiredItems.js';
+import { isGrappleItem } from '../characters/heavyGearIds.js';
 import { isAmmunition } from './itemTemplates.js';   // THUNDERLOCK-ART: a stack of shot shows its count, never a wear bar (the pack's rule)
 
 import { expandRowValues } from '../systems/quest/questMacros.js';   // MACROS1: a used item's record through its own context (%map)
@@ -172,10 +173,10 @@ function computeKey(item) {
  *  an ingredient does nothing when used. */
 export const isQuickConsumable = (item) => isPotion(item) || isDrug(item);
 
-/** What the swap slot takes: a weapon that is not an arrow. The
- *  equipped one is refused - swapping to what is in your hand is a
+/** What the swap slot takes: a weapon that is not an arrow or the
+ *  grappling hook (thrown on its own key). The equipped one is refused - swapping to what is in your hand is a
  *  no-op the tooltip should not offer. */
-export const canSwapTo = (item) => !!item && item.group === 'Weapons' && item.templateIndex !== ARROW && !isEquipped(item);
+export const canSwapTo = (item) => !!item && item.group === 'Weapons' && item.templateIndex !== ARROW && !isGrappleItem(item) && !isEquipped(item);
 
 const assertSlot = (slot) => { if (!QUICKSLOTS.includes(slot)) throw new Error(`quickslots: no slot ${slot}`); };
 
@@ -928,7 +929,7 @@ export function restoreQuickslotSaveData(data) {
   if (!data || typeof data !== 'object') return;
   for (const s of QUICKSLOTS) {
     const e = data[s];
-    if (e && typeof e.key === 'string' && !retiredItemKey(e.key) && typeof e.name === 'string') state[s] = { key: e.key, name: e.name };
+    if (e && typeof e.key === 'string' && !retiredItemKey(e.key) && !hookItemKey(e.key) && typeof e.name === 'string') state[s] = { key: e.key, name: e.name };
   }
   const sp = data.spell;
   if (sp && Number.isFinite(sp.index) && typeof sp.name === 'string') spellState = { index: sp.index, name: sp.name };
@@ -988,7 +989,7 @@ function savedHotbarEntry(e) {
   if (e.type === 'ability') return hotbarEntryForAbility(e.id);
   if (e.type === 'weapon-rank' || e.type === 'hand-ability') return hotbarEntryForWeaponRank(e.rank);
   if (e.type === 'spell' && Number.isFinite(e.index)) return { type: 'spell', index: e.index, name: e.name, ...iconOf(e) };   // UI2: and its icon
-  if (e.type === 'item' && typeof e.key === 'string' && !retiredItemKey(e.key) && HOTBAR_KINDS.includes(e.kind)) {
+  if (e.type === 'item' && typeof e.key === 'string' && !retiredItemKey(e.key) && !hookItemKey(e.key) && HOTBAR_KINDS.includes(e.kind)) {
     if (OLD_BOOK_KEY.test(e.key)) _oldBookKeys = true;
     return { type: 'item', kind: e.kind, key: e.key, name: e.name };
   }
@@ -1065,6 +1066,8 @@ export function hotbarKindOf(item) {
   if (isQuickConsumable(item)) return 'consumable';
   if (isLightSource(item)) return 'light';
   if (isShieldItem(item)) return 'shield';   // SHIELD1: a shield goes on the bar and a press straps it on
+  // The hook is thrown on its own key, never from the bar.
+  if (isGrappleItem(item)) return null;
   if (item.group === 'Weapons' && item.templateIndex !== ARROW) return 'weapon';
   if (getEquipSlot({}, item) !== EQUIP_SLOTS.None) return castsWhenUsed(item) && !wornForMore(item) ? 'use' : 'wear';   // UI2: a throwaway table - the rule is the item's; RPT1026-PROGRESS: a power to use is used; AUDIT RPT1026 F2: unless wearing it is worth something too
   return 'use';

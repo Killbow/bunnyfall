@@ -215,7 +215,7 @@ export const ACTIONS = Object.freeze([
   // BUNNYFALL VAMPIRE EXPANSION: an awakened vampire's Disciplines - tap casts the last, hold opens their wheel
   // (ui/vampire/disciplineWheel.js). Numpad0: every letter and digit is spent, and nothing in play reads it.
   'Discipline',
-  // BUNNYFALL GRAPPLING-HOOK: the grappling hook, a tool every character carries (combat/grapple/grapple.js). Numpad1:
+  // The grappling hook, thrown from the pack by any character who carries one (combat/grapple/grapple.js). Numpad1:
   // every letter and digit is spent, and nothing in play reads it.
   'GrapplingHook',
 ]);
@@ -385,7 +385,7 @@ export const DEFAULT_BINDINGS = Object.freeze([
   ['Digit9', 'Hotbar9'],
   ['Digit0', 'Hotbar10'],
   ['Equal', 'EventBoard'],   // BUNNYFALL EVENT-BOARD-KEY: free on every count (DFU, the port, the vendored mods); the map's zoom reads it only inside the map
-  ['Numpad1', 'GrapplingHook'],   // BUNNYFALL GRAPPLING-HOOK: free on every count; rebindable in Controls
+  ['Numpad1', 'GrapplingHook'],
   ['Numpad0', 'Discipline'],   // BUNNYFALL VAMPIRE EXPANSION: free on every count; a vampire rebinds it in Controls
   ['Minus', 'HotbarPreset'],   // BUNNYFALL HOTBAR-PRESETS: free on every count (DFU, the port, the vendored mods)
   ['KeyO', 'TorchToggleLight'],
@@ -566,7 +566,7 @@ export const ACTION_GROUPS = Object.freeze([
   g('Combat', [
     ['ReadyWeapon', 'Ready or sheathe weapon'], ['SwingWeapon', 'Swing weapon'], ['SwitchHand', 'Switch hand'],
     ['WeaponTechnique', 'Weapon technique (hold to aim)'],   // TECH1
-    ['GrapplingHook', t('input.action.grapplingHook', 'Throw the grappling hook (carried)')],   // BUNNYFALL GRAPPLING-HOOK
+    ['GrapplingHook', t('input.action.grapplingHook', 'Throw grappling hook')],
     ['ShotCycle', 'Shot (aboard)'],   // SHOT-KINDS: the guns' load at a helm, stepped on
   ]),
   g('Magic', [

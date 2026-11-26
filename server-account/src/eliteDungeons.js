@@ -1,14 +1,4 @@
 // @ts-check
-// BUNNYFALL (2026-11-18): WHAT THE SERVICE KEEPS OF THE ELITE DUNGEONS - each batch's picks (3 to 5, one every two hours:
-// 2026-11-19) out of its pool of sites (eliteDungeonSites.js, generated from MAPS.BSA), made on the first read of each
-// batch (migration 0216; a row's key is `day:slot`, a batch's picks taking five slots of their day); who asked for
-// each one's summon; its cleanse and the Dusk Tokens it paid. The law both ends read is src/net/eliteDungeonLaw.js.
-//
-// THE GUARD (the raids' spirit - a receipt, one claim an instance): a summon is asked by a game that felled the dungeon's
-// series (its own count - a friends' server takes the game's word for that); the service keeps who asked (the presence
-// rows) and names one summoner at a time. A cleanse is taken only from a player who asked, only ED_FIGHT_MIN_S after the
-// summon, only while the dungeon still stands - and only the first one pays: one cleanse an instance, ED_REWARD_NYX on
-// that account's Dusk Token count (players.nyx_found, the realm's Nyx counter).
 import { ED_SITES_TEXT } from './eliteDungeonSites.js';
 import {
   ED_FIGHT_MIN_S, ED_RESUMMON_S, ED_REWARD_NYX, ED_BATCH_MAX, edKey, edKeyOf, edPickSites, edBatchOf, edBatchSlot0, edWantBatch, edSpreadPx,
@@ -16,12 +6,10 @@ import {
 import { contentOn } from '../../src/mods/contentOff.js';
 
 const DAY_S = 86400;
-/** Cleansed ones are told for this long (s), so every game can say so. */
 const TOLD_S = DAY_S;
 
 /** @type {Array<{ region: number, location: number, px: number, py: number, name: string }> | null} */
 let _sites = null;
-/** The pool, read once. */
 export function edSites() {
   if (_sites) return _sites;
   _sites = [];
@@ -43,9 +31,7 @@ async function seedOf(db) {
   return Number(row?.seed) >>> 0;
 }
 
-/** This batch's picks made, where they are not yet (two readers in one window: the rows' keys are the batch's slots, so
- *  the second insert is ignored). A batch the cap leaves empty is tried again on the next read, so a cleansing before its
- *  window ends lets it rise. Answers the standing rows. */
+// Row keys are the batch slots, so a second reader's insert in the same window is ignored.
 async function standing(db, nowS) {
   const { batch, day: today, inDay } = edBatchOf(nowS);
   const open = (await db.prepare('SELECT * FROM elite_dungeons WHERE cleared_at IS NULL ORDER BY day, slot').all())?.results ?? [];
@@ -53,10 +39,10 @@ async function standing(db, nowS) {
   const lo = edBatchSlot0(inDay), hi = lo + ED_BATCH_MAX;
   if (open.some((r) => Number(r.day) === today && Number(r.slot) >= lo && Number(r.slot) < hi)) return { today, open };
   const done = await db.prepare('SELECT 1 FROM elite_dungeons WHERE day = ? AND slot >= ? AND slot < ? LIMIT 1').bind(today, lo, hi).first();
-  if (done) return { today, open };   // this batch is picked and every one already cleansed
+  if (done) return { today, open };
   const seed = await seedOf(db);
   const want = edWantBatch(batch, seed, open.length);
-  if (!want) return { today, open };   // the map is full: nothing rises until something is cleansed
+  if (!want) return { today, open };
   const sites = edSites();
   const taken = new Set(open.map((r) => Number(r.site)));
   const picks = edPickSites(batch, seed, sites.length, taken, want);
@@ -71,11 +57,7 @@ async function standing(db, nowS) {
 
 const rowOut = (r, today) => ({ key: r.key, region: Number(r.region), location: Number(r.location), px: Number(r.px), py: Number(r.py), name: String(r.name ?? ''), spread: edSpreadPx(Number(r.day), today) });
 
-/**
- * THE BOOK: `{ ok, day, list, cleansed }` - every elite dungeon standing (with its spread today), and those cleansed in
- * the last day (`{ key, name, by }`).
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function eliteDungeonsRead({ db, nowS }) {
   const { today, open } = await standing(db, nowS);
   const told = (await db.prepare('SELECT e.key, e.name, COALESCE(p.handle, p.guest_name, \'\') AS by FROM elite_dungeons e LEFT JOIN players p ON p.id = e.cleared_by WHERE e.cleared_at >= ? ORDER BY e.cleared_at DESC LIMIT 32')
@@ -88,12 +70,7 @@ async function openRow(db, key) {
   return db.prepare('SELECT * FROM elite_dungeons WHERE key = ?').bind(key).first();
 }
 
-/**
- * THE SUMMON: a game felled `key`'s series. Kept as this account's presence; answers `{ ok, summon }` - true when this
- * game is to stand her (no summoner yet, or the last one's summon went ED_RESUMMON_S unanswered), false when another's
- * has (or will). Refused for a dungeon not standing.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function eliteDungeonSummon({ db, nowS }, player, { key } = {}) {
   if (!player?.id) return { error: 'ed-need-account' };
   const row = await openRow(db, key);
@@ -105,12 +82,7 @@ export async function eliteDungeonSummon({ db, nowS }, player, { key } = {}) {
   return { ok: true, summon: !!r?.meta?.changes };
 }
 
-/**
- * THE CLEANSE: Sifrit fell in `key`. Taken from a player who asked for the summon, ED_FIGHT_MIN_S after it, the dungeon
- * still standing; the first pays ED_REWARD_NYX onto this account's Dusk Tokens. Answers `{ ok, cleansed, nyx }` (`nyx` the
- * reward, 0 for a repeat - `repeat` true) or a refusal.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function eliteDungeonClear({ db, nowS }, player, { key } = {}) {
   if (!player?.id) return { error: 'ed-need-account' };
   const row = await openRow(db, key);

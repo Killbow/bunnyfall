@@ -21,6 +21,7 @@ import { EQUIP_SLOTS } from './paperdoll.js';
 import { ITEM_GROUPS, SLOT_RULES, WEAPON_HANDS, SHIELD_INDICES } from './equipRules.js';
 import { getBool } from '../platform/settings.js';
 import { customItemClass } from '../mods/rriItems.js';   // RRI1: GetItemHands / GetEquipSlot are virtuals a custom class answers   // AUDIT 58: ItemEquipTable.cs:635 reads BowLeftHandWithSwitching
+import { GRAPPLE_TEMPLATE } from './heavyGearIds.js';
 
 export const ITEM_HANDS = Object.freeze({ None: 0, RightOnly: 1, LeftOnly: 2, Either: 3, Both: 4 });
 /** Weapons.Short_Bow / Weapons.Long_Bow - the one switch case in
@@ -81,6 +82,8 @@ export function createEquipTable() {
       case ITEM_GROUPS.WomensClothing:
         return resolveRule(SLOT_RULES[GROUP_NAME[item.group]][item.templateIndex]);
       case ITEM_GROUPS.Weapons: {
+        // The hook has no hand, but the two-hander rule below would still give it the right hand.
+        if (item.templateIndex === GRAPPLE_TEMPLATE) return EQUIP_SLOTS.None;
         // Verbatim: a 2H weapon equipped right-hand pulls the next
         // non-LeftOnly weapon into the right hand.
         const right = slots[EQUIP_SLOTS.RightHand];
