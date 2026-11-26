@@ -107,7 +107,7 @@ export const LOCK_WORDS = Object.freeze({
   pins: (/** @type {number} */ set, /** @type {number} */ n) => t('lock.meta.pins', 'Pins set: {set} of {count}', { set, count: n }),
   skill: (/** @type {number} */ s) => t('lock.meta.skill', 'Lockpicking {value}', { value: s }),
   auto: () => t('lock.act.auto', 'Auto attempt'),
-  autoWhy: () => t('lock.act.autoWhy', 'Roll your chance to open the lock. A failed roll snaps a pick.'),
+  autoWhy: () => t('lock.act.autoWhy', 'Roll your chance to open the lock. A failed roll drops any pins you set, but the pick holds.'),
   leave: () => t('lock.act.leave', 'Leave'),
   keys: (/** @type {number} */ n) => t('lock.window.keys', 'Left and Right or 1-{n}: choose a pin. Space, Up, W, Enter or a click: lift and set. Q: auto attempt. Esc: leave.', { n }),
   keysGentle: () => t('lock.window.keysGentle', 'Q: auto attempt. Esc: leave.'),
@@ -164,7 +164,7 @@ export function mountLockpickWindow(host, deps) {
    *  Grimoire reads Leave as the window's way out (grimoireDress.js EXIT_WORDS) */
   const pressOf = (cls, name) => { const b = /** @type {HTMLButtonElement} */ (el('button', cls, name)); b.type = 'button'; return b; };
   const autoB = pressOf('lk-auto', LOCK_WORDS.auto());
-  autoB.setAttribute('title', LOCK_WORDS.autoWhy());   // AUDIT LOCKPICK C6: the press that costs says what it costs
+  autoB.setAttribute('title', LOCK_WORDS.autoWhy());
   const leaveB = pressOf('lk-leave', LOCK_WORDS.leave());
   acts.append(autoB, leaveB);
   win.append(head, canvas, word, meta, acts, el('div', 'lk-keys', gentle ? LOCK_WORDS.keysGentle() : LOCK_WORDS.keys(st.n)));
