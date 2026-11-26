@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Fixed: Logging out inside a mine no longer drops you in the ocean in the far corner of the world. You wake at the mouth of the mine, and a character already stranded in that corner wakes at the start of the realm.
+- Fixed: Mining with someone else in the same mine no longer loses your ore. A drill haul that matched another miner's is paid to both, a failed claim is asked again, and a refused vein or haul says why instead of "The account service had a problem".
 - Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
 - Added: Mine sounds. A running drill grinds at its rig, hauling ore rattles into your sack, shoring hammers home and lamps catch with a flare. Falling dust, creaking timbers and the rumble each have their own sound, the collapse comes down in a crash of rock, and a wave is heralded by a roar from the dark.
 - Added: Mine kit at the Cartographers' desk (press G there): a Mining Drill, Drill Fuel, Mine Lamps and a Survey Rod, bought with gold. A drill now needs one fuel a shift, and stops if you leave the mine.
