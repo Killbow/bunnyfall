@@ -622,6 +622,7 @@ export const TUTORIALS = Object.freeze([
       'Switch to Steal mode and use a person or a sleeper\'s bed. Each person can be fed on once a day, and only a feed that happens counts.',
       'The Kiss costs a little Vitae and clouds their memory, so no one suspects. Even with no Vitae left it still works, but the hungrier the Beast, the likelier it slips.',
       'Drink gives more and leaves them weak, but they may call the watch. Drain kills them, giving the most blood for the worst crime.',
+      'Fighting also feeds you: a landed blow on a foe that bleeds gives a few Vitae. Undead and constructs give none. In Steal mode, a blow that would kill a person takes them alive instead and sends them to your Haven as a prisoner.',
       'Being seen is a crime: any bite in view of others is Assault, and a kill is Murder. Each breach makes the region warier, and a wary region may hide watchers you cannot see.',
       'Houses are full at night. A house can hold several sleepers, and each can be fed on once a day. Prisoners in your Haven are safe blood too.',
     ],
@@ -632,6 +633,15 @@ export const TUTORIALS = Object.freeze([
       'Prisoners, thralls and enthralling are still a work in progress. They work, but expect rough edges, and they may change.',
       'Kiss someone unseen and take them to your Haven. A prisoner can be tapped for stale blood, bottled into a vial, tended, or bound as a servant.',
       'A servant costs a little Vitae a day, and so does a social thrall such as a loyal innkeeper or watchman. Unpaid thralls lose loyalty. A rest, a loiter, or fast travel costs them one day of upkeep at most.',
+    ],
+  }),
+  page({
+    id: 'vampire-court', group: 'vampire', title: 'Courts, Penance and the Masquerade', trigger: 'When the Elder awakens the Beast in you.',
+    body: [
+      'Every clan keeps a Court in the back room of each tavern in its seat city. After dark, the tavern door shows an extra choice: "The (clan) Court (back room)". Use it to open the Court window, which shows each region\'s heat and your strikes.',
+      'Each region keeps a heat from 0 to 100 and cools 10 a day. A bite someone saw, a victim crying for the watch, a drained body, a missing person, a thrall breaking free, and a power cast in view all raise it. Hot regions send witch hunters at night and put hidden watchers at feeds.',
+      'The clan that holds the region also counts a strike for a bite seen, a drained body, a murder or a thrall breaking free, and wants a tithe of 100 gold a strike. Three strikes, or a death someone saw, start a Blood Hunt: assassins at night, and your own clan withholds its strength and Disciplines.',
+      'To end a hunt, ask the Court for penance in its back room. It gives you a quest, and finishing it lifts the hunt. You can pay the tithe in gold or in Vitae, and do the Court\'s work to forgive a strike. A Court left in peace for seven days forgives one strike by itself.',
     ],
   }),
   page({

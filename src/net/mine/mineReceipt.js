@@ -31,8 +31,10 @@ export function mineReceiptValid(/** @type {any} */ c) {
   return true;
 }
 
-/** A receipt's one id: its mine, reset and haul count (one haul a count, whoever carries it). */
-export const mineReceiptId = (/** @type {any} */ c) => `${c.m}:${c.z}:${c.q}`;
+/** A receipt's one id: its mine, reset, haul count and taker (one haul a count for one taker: two players' hauls never share a row). */
+export const mineReceiptId = (/** @type {any} */ c) => `${c.m}:${c.z}:${c.q}:${c.u}`;
+/** The id receipts carried before the taker joined it (migration 0221's rows): a haul already banked under it is still banked. */
+export const mineReceiptOldId = (/** @type {any} */ c) => `${c.m}:${c.z}:${c.q}`;
 
 /**
  * MINT - the relay's half. With no key the receipt goes out unsigned (`m1.<body>.`), which no account service pays.

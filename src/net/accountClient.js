@@ -435,6 +435,9 @@ const REFUSAL_WORDS = {
   'guild-treasury-old': () => t('account.refusal.guildTreasuryOld', 'Realm characters can only withdraw gold that realm characters deposited, and not enough of it remains. Gold deposited before the realm opened, or by non-realm characters, stays in the treasury.'),
   // WB5b: a gate's kill receipt carried to the service. net/gate/gateClaims.js says nothing of these to the player - it keeps
   // what they do not settle and lets go of what they do - but a word the service can say is a word with a sentence.
+  // BUNNYFALL (2026-11-26, caverns): a mine's refusals, in their own words - a cave vein or a drill's haul the service would not take
+  'no-node': () => t('account.refusal.noNode', 'That vein is not in this mine any more. The mine may have been reopened, so step out and in again.'),
+  'day-full': () => t('account.refusal.dayFull', 'You have taken all the ore from mines that one account may take in a day. Try again tomorrow.'),
   'no-gate-key': () => t('account.refusal.noGateKey', 'The account service cannot check your gate result right now. It will try again.'),
   'no-relay-key': () => t('account.refusal.noRelayKey', 'The account service cannot check other players\' fights right now. It will try again.'),   // GRANT3 (Spawn-Grants.md section 13): /v1/relaykey, a reader's key
   receipt: () => t('account.refusal.receipt', 'That gate result could not be verified, or it has expired.'),

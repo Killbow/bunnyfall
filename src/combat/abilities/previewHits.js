@@ -63,8 +63,8 @@ export function weaponOpening(actor, foe, { opening, exploit, woundDamage = 0 } 
   return bonus;
 }
 
-export function beginEdgeRitual(entity, crouching) {
-  edgeRituals.set(entity, { load: abilityLoad(entity), remaining: 8, strikes: 3, crouching });
+export function beginEdgeRitual(entity, crouching, seconds = 8) {
+  edgeRituals.set(entity, { load: abilityLoad(entity), remaining: seconds, strikes: 3, crouching });
 }
 
 export const clearEdgeRitual = entity => edgeRituals.delete(entity);

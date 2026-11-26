@@ -75,10 +75,10 @@ export function createFarmsteadActs(d) {
     const family = { tools: t('farm.ledger.tools', 'Tools'), irrigation: t('farm.ledger.irrigation', 'Irrigation'), soil: t('farm.ledger.soil', 'Soil') };
     sections.push({ title: t('farm.ledger.improvements', 'Improvements'), rows: Object.keys(FARM_UPGRADES).map((key) => {
       const tier = p.upgrades[key], have = tier > 0 ? farmUpgradeName(key, tier - 1) : t('farm.ledger.none', 'none yet');
-      if (tier >= 2) return { label: family[key], text: t('farm.ledger.best', '{name}: the best there is', { name: have }) };
+      if (tier >= FARM_UPGRADES[key].length) return { label: family[key], text: t('farm.ledger.best', '{name}: the best there is', { name: have }) };
       const price = FARM_UPGRADES[key][tier], short = FARM_CROP_TYPES.filter((c) => p.delivered[c] < price.delivered);
       return { label: family[key], text: short.length
-        ? t('farm.ledger.nextShort', '{have}. Next: {name}, once {needed} of every crop has shipped (short: {crops})', { have, name: farmUpgradeName(key, tier), needed: fmt(price.delivered), crops: short.map(farmCropName).join(', ') })
+        ? t('farm.ledger.nextShort', '{have}. Next: {name}, once {needed} of every crop has shipped (short: {crops})', { have, name: farmUpgradeName(key, tier), needed: fmt(price.delivered), crops: short.map((c) => `${farmCropName(c)} ${fmt(p.delivered[c])}/${fmt(price.delivered)}`).join(', ') })
         : t('farm.ledger.nextReady', '{have}. Next: {name}, for {gold} gold and {argents} Argents: a Captain or an Officer orders it at {place}', { have, name: farmUpgradeName(key, tier), gold: fmt(price.gold), argents: price.argents, place: place[key] }) };
     }) });
     const herd = g.herd ?? [], built = WORKSHOP_IDS.filter((id) => stageOf(g, id, now) === 2);
@@ -114,7 +114,7 @@ export function createFarmsteadActs(d) {
   /** The tool rack, the well and the compost heap: their improvement, and an officer's order for the next. */
   function improvement(key) {
     const p = progress(), tier = p.upgrades[key];
-    if (tier >= 2) { d.say(t('farm.stead.upgradeBest', '{name}: the best there is.', { name: farmUpgradeName(key, 1) })); return; }
+    if (tier >= FARM_UPGRADES[key].length) { d.say(t('farm.stead.upgradeBest', '{name}: the best there is.', { name: farmUpgradeName(key, tier - 1) })); return; }
     const price = FARM_UPGRADES[key][tier], name = farmUpgradeName(key, tier);
     const line = t('farm.stead.upgradeLine', '{name}: {effect} {gold} gold and {argents} Argents, once {needed} of every crop has shipped.',
       { name, effect: farmUpgradeEffect(key, tier), gold: fmt(price.gold), argents: price.argents, needed: fmt(price.delivered) });
@@ -144,7 +144,7 @@ export function createFarmsteadActs(d) {
       const p = progress();
       if (Object.hasOwn(FIXTURE_UPGRADE, id)) {
         const key = FIXTURE_UPGRADE[id], tier = p.upgrades[key];
-        return tier >= 2 ? farmUpgradeName(key, 1) : tier > 0 ? `${farmUpgradeName(key, tier - 1)} · ${t('farm.stead.next', 'next: {name}', { name: farmUpgradeName(key, tier) })}` : t('farm.stead.next', 'next: {name}', { name: farmUpgradeName(key, tier) });
+        return tier >= FARM_UPGRADES[key].length ? farmUpgradeName(key, tier - 1) : tier > 0 ? `${farmUpgradeName(key, tier - 1)} · ${t('farm.stead.next', 'next: {name}', { name: farmUpgradeName(key, tier) })}` : t('farm.stead.next', 'next: {name}', { name: farmUpgradeName(key, tier) });
       }
       return {
         orderPost: t('farm.stead.postLabel', 'Order post · this week\'s notices'),

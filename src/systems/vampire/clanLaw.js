@@ -6,7 +6,7 @@
 // formats/mapsFile.js REGION_NAMES); a region in none answers no clan. Its COURT sits in its SEAT - the hub city
 // (systems/region/regionHubs.js) of the first of CLAN_SEATS' regions that has one.
 // IDENTITY: each clan has a STRENGTH and a BANE, applied where the rule they bend lives.
-//   Anthotis   + vials keep better blood and give more        - beast blood gives nothing, any not Scholar's 3/4.
+//   Anthotis   + vials keep better blood and give more        - beast blood in a feed gives nothing (a blow's mouthful still feeds), any not Scholar's 3/4.
 //   Garlythi   + prisoners never escape, despair slower         - poor (<35%), Worker, or Beast blood gives 3/5.
 //   Haarvenu   + a blow drinks twice the blood                  - the Vitae burns away a fifth faster.
 //   Khulari    + captives come in healthier, their blood richer - no Kiss on anyone awake, so no taking after it.
@@ -102,7 +102,7 @@ export function clanFeedMul(clan, kind, type, quality) {
   const s = strengthOn(clan);
   switch (clan) {
     case C.Anthotis:
-      if (type === 'beast') m *= 0; else if (type !== 'scholar') m *= 0.75;
+      if (type === 'beast' && kind !== 'wound') m *= 0; else if (type !== 'scholar') m *= 0.75;   // a blow's mouthful is always Beast blood: it must still feed an Anthotis
       if (s && kind === 'vial') m *= 1.35;
       break;
     case C.Garlythi:
@@ -155,7 +155,7 @@ export const clanStrikeWeight = (clan) => (clan === C.Montalion ? 2 : 1);
 /** The strength's and the bane's words, for the Court window. @param {number} clan */
 export function clanIdentityWords(clan) {
   switch (clan) {
-    case C.Anthotis: return [t('clan.anthotis.s', 'Strength: your vials keep better blood and give more.'), t('clan.anthotis.b', 'Bane: beast blood gives you nothing, and any but a Scholar\'s less.')];
+    case C.Anthotis: return [t('clan.anthotis.s', 'Strength: your vials keep better blood and give more.'), t('clan.anthotis.b', 'Bane: beast blood gives you nothing in a feed, and any but a Scholar\'s less. A blow\'s mouthful still feeds you.')];
     case C.Garlythi: return [t('clan.garlythi.s', 'Strength: your prisoners never escape, and despair slower.'), t('clan.garlythi.b', 'Bane: Worker blood, Beast blood, and any blood under 35% quality give you only three fifths of the usual Vitae.')];
     case C.Haarvenu: return [t('clan.haarvenu.s', 'Strength: your blows drink twice the blood.'), t('clan.haarvenu.b', 'Bane: a fever in your veins burns your Vitae faster.')];
     case C.Khulari: return [t('clan.khulari.s', 'Strength: captives come in healthier, their blood richer.'), t('clan.khulari.b', 'Bane: you cannot give the Kiss to anyone awake.')];

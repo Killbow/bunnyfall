@@ -12854,6 +12854,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the Society's mine kit (2026-11-26): read on entry, one spent at a drill or a lamp; a drill's crew the party's accounts
     kit: async () => { if (!realmSession) return null; const r = await accountCall(realmIoNow(), '/v1/society', { character: characterIdOf(playerEntity) }); return r?.ok ? r.data.kit : null; },
     useKit: async (kit) => { if (!realmSession) return false; const r = await accountCall(realmIoNow(), '/v1/society/use', { character: characterIdOf(playerEntity), kit }); return r?.ok === true; },
+    surveyor: () => profBook?.track?.('mining')?.specs?.[100] ?? null,   // Mining 100's choice, read on entry (mineHost: a Surveyor's survey)
     crew: () => (social?.party?.members ?? []).map((m) => m?.acct).filter((x) => typeof x === 'string' && x && x !== _mineAccount.me()).slice(0, 7),
   };
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */

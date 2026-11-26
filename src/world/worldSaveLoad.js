@@ -11,6 +11,7 @@ import { BOOT_DOOR_KEYS, isOnlinePage } from '../platform/onlineLane.js';
 import { bootLoadPlan } from '../saves/bootLoadPlan.js';
 import { cabinSceneName, savedCabinBoat } from '../systems/naval/sailingCabin.js';
 import { CAMP_TEXT, packSavedFires } from '../systems/survival/camp.js';
+import { savedLanding, LANDING_TEXT } from '../saves/mineSaveLanding.js';   // BUNNYFALL (caverns)
 import { CARAVAN_TEXT } from '../travel/caravanRoom.js';
 import { checkpointAllowed } from '../saves/onlineCheckpoint.js';
 import { classicSaveToSnapshot, peekPendingClassicSave, takePendingClassicSave } from '../saves/classicSave.js';
@@ -340,7 +341,19 @@ export function createWorldSaveLoad(shared) {
       if (restoreSessionState(extras, { questBridge: shared.questBridge, talk: { mill: shared.rumorMill, tree: shared.topicTree, session: shared.npcSession }, entity: playerEntity, spawnLedger: shared._spawnLedger })) shared._questStarted = true;
       await shared.applyLayoutPins(extras);   // WD3: the save's towns in the layouts its things were made in, before its place is built
       let csaElsewhere = false;   // CSA-J (the audit): the load did not land where its save stood
-      if (extras.locationKey === 'world' && extras.world?.pixel) {
+      // BUNNYFALL (2026-11-26, caverns): a save taken in a mine lands at the mine's mouth (its mine-local position is no place in
+      // the world - it read as the far corner's ocean), and one already stranded in that corner at the start cell (mineSaveLanding.js)
+      const landing = savedLanding(extras, { startCell: { x: getInt('Startup', 'StartCellX'), y: getInt('Startup', 'StartCellY') } });
+      if (landing) {
+        shared._wodInside = false;
+        await _teleportToPixel(landing.pixel.x, landing.pixel.y, null, { modEvent: 'load' });
+        { const s = shared.walkMode && shared.playerSpawned; const f = s ? shared.player.pos : shared.cam.pos; shared.wodOnLoad([f[0], f[1] + (s ? shared.player.height / 2 : 0), f[2]]); }
+        shared.townTalk.say(LANDING_TEXT[landing.why]);
+        csaElsewhere = true;
+        standSavedOuterCamps(extras);
+        const carried = packSavedFires(extras.world?.camps);
+        if (carried.length) (playerEntity.items ??= []).push(...carried);
+      } else if (extras.locationKey === 'world' && extras.world?.pixel) {
         const w = extras.world;
         shared._wodInside = !!extras.interior;   // WOD6: an inside save lands inside
         await _teleportToPixel(w.pixel.x, w.pixel.y, null, { modEvent: 'load' });   // SIB2: SaveLoadManager.OnLoad

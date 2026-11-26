@@ -14,6 +14,7 @@ import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
 import { racialDelivery, racialKey, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
 import { combinationDelivery, combinationDescription } from '../combat/abilities/combinations.js';
 import { meleeBeatMult, shotMult } from '../combat/abilities/damage.js';
+import { buffRounds, ROUND_SECONDS, withBuffDuration } from '../combat/abilities/buffDuration.js';
 import { templateByIndex } from '../items/itemTemplates.js';
 import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot } from '../items/quickslots.js';
 import { activeAbilityWeapon } from '../combat/abilities/rig.js';
@@ -45,18 +46,22 @@ function element(tag, text, className) {
 }
 
 export function abilityStatChips(ability, profile = null) {
-  const delivery = profile?.kind ? profile : milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, null) ?? racialDelivery(ability.id);
+  const delivery = withBuffDuration(ability, profile?.kind ? profile : milestoneDelivery(ability.id) ?? combinationDelivery(ability.id, null) ?? racialDelivery(ability.id));
   const chips = [];
   if (delivery?.spend != null) {
     chips.push([t('abilities.chip.cost', 'Cost'), delivery.kind === 'self'
       ? t('abilities.chip.costSelf', '{n} fatigue', { n: delivery.spend })
       : t('abilities.chip.costSwing', "{n} fatigue plus the swing's cost", { n: delivery.spend })]);
   }
-  const shield = [].concat(delivery?.selfEffect ?? []).find(effect => effect?.type === 35);
-  if (shield) {
-    chips.push([t('abilities.chip.shield', 'Shield'), t('abilities.chip.shieldValue',
-      '{magnitude} for {rounds, plural, one {# round} other {# rounds}}', { magnitude: shield.magnitude, rounds: shield.rounds })]);
+  // Every timed buff an ability grants lasts the same rounds (src/combat/abilities/buffDuration.js).
+  const timed = [].concat(delivery?.selfEffect ?? delivery?.crouchEffect ?? []).some(effect => effect?.rounds != null) || !!delivery?.accuracy
+    || (!delivery?.kind && (profile?.rounds != null || !!profile?.effects?.some(effect => effect.rounds != null)));
+  if (timed) {
+    chips.push([t('abilities.chip.lasts', 'Lasts'), t('abilities.chip.lastsValue', '{rounds} magic rounds ({s} s)',
+      { rounds: buffRounds(ability), s: buffRounds(ability) * ROUND_SECONDS })]);
   }
+  const shield = [].concat(delivery?.selfEffect ?? []).find(effect => effect?.type === 35);
+  if (shield) chips.push([t('abilities.chip.shield', 'Shield'), t('abilities.chip.shieldPoints', '{magnitude} points', { magnitude: shield.magnitude })]);
   const recovery = (delivery ?? profile)?.cooldownMs;
   if (recovery) chips.push([t('abilities.chip.recovers', 'Recovers'), t('abilities.chip.seconds', '{s} s', { s: Math.round(recovery / 100) / 10 })]);
   if (delivery?.kind === 'melee') {
