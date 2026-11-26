@@ -50,7 +50,7 @@ const onFocus = (/** @type {number} */ xp, /** @type {CraftPay} */ pay) => focus
 export const paidXp = (xp, pay = {}) => creditedXp(onFocus(scaleXp(xp, pay.pct ?? 0), pay), pay.limit?.room ?? Infinity);
 
 /** Said once when a craft outside the Focus reaches FOCUS_HALF_RANK. */
-export const focusHalfLine = (/** @type {string} */ profession, rank = FOCUS_HALF_RANK) => t('prof.focusHalf', '{profession} is now rank {rank}. This profession isn’t your Focus; you can continue to raise it to the cap, but your experience gain will be reduced.', { profession, rank });
+export const focusHalfLine = (/** @type {string} */ profession, rank = FOCUS_HALF_RANK) => t('prof.focusHalf', '{profession} is now rank {rank}. It is not your Focus, so from now on it earns half experience, but you can still raise it to the cap.', { profession, rank });
 
 /**
  * @param {string} profession the track's name @param {CraftPay|null|undefined} pay @param {number} most
@@ -85,7 +85,7 @@ export function craftXpLine(r, rank, profession, pay = {}, silver = 0, owed = nu
       : t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more, number} more the first time you make this piece at this grade.', { xp, profession, more }));
   }
   return capLine(profession, pay, xp + more) || (walled
-    ? t('prof.page.craft.xpBought', '{xp} {profession} experience. Bolts of this cloth bought with Imperial Argents and not yet used: {silver, number}. Until you have used that many, no piece of it earns a first-time bonus.', { xp, profession, silver })
+    ? t('prof.page.craft.xpBought', '{xp} {profession} experience. Unused bolts of this cloth bought with Imperial Argents: {silver, number}. No piece of this cloth earns a first-time bonus until you use them up.', { xp, profession, silver })
     : t('prof.page.craft.xpFirstOwn', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade from cloth not bought with Imperial Argents.', { xp, profession, more }));
 }
 
@@ -134,5 +134,5 @@ export function craftXpText(r, data, profession, limit = null) {
   if (!r || data?.first !== true) return t('prof.craft.xp', '(+{xp} {profession} experience)', { xp, profession });
   return (typeof data.firstPaid === 'boolean' ? data.firstPaid : firstCraftPays(r))
     ? t('prof.craft.xpFirst', '(+{xp} {profession} experience, with the first-time bonus)', { xp, profession })
-    : t('prof.craft.xpFirstBought', '(+{xp} {profession} experience. Cloth bought with Imperial Argents earns no first-time bonus, so this piece\'s is still yours to earn)', { xp, profession });
+    : t('prof.craft.xpFirstBought', '(+{xp} {profession} experience. Cloth bought with Imperial Argents earns no first-time bonus, so you can still earn the bonus for this piece)', { xp, profession });
 }

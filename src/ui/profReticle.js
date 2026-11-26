@@ -348,7 +348,7 @@ function fishMarks(k, rc) {
       return st.phase === 'wind' ? t('prof.reticle.fish.wind', 'hold {key} to wind the net, let go to throw it ({m} m)', { key, m: Math.round(throwM(st.windS)) })
         : st.phase === 'fly' ? t('prof.reticle.fish.fly', 'the net flies...')
           : st.phase === 'wait' ? (st.school !== null ? t('prof.reticle.fish.waitSchool', 'waiting for a bite, over a school...') : t('prof.reticle.fish.wait', 'waiting for a bite...'))
-            : t('prof.reticle.fish.tug', 'a tug! press {key} now', { key });
+            : t('prof.reticle.fish.tug', 'a tug, press {key} now', { key });
     },
   };
 }
