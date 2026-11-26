@@ -79,7 +79,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       ctx.exitDoors?.push(mineExitDoor(layout.mouth));
       // the owner's ores at the holes (world/mine/mineOres.js), once the mines' models are read; the meshes are shared, never freed here
       const oresFor = layout;
-      void loadMineArt(renderer).then((art) => { if (art?.ores && standCtx === ctx && layout === oresFor) ctx.dynamicDraws?.push(...mineOreDraws(layout, art.ores)); }).catch(() => {});
+      void loadMineArt(renderer).then((art) => { if (art?.ores && standCtx === ctx && layout === oresFor) ctx.dynamicDraws?.push(...mineOreDraws(layout, art.ores, art.oreMesh)); }).catch(() => {});
       // the way out seen: a timber frame onto daylight behind the exit door (world/mine/mineWayOut.js)
       try {
         const pic = mineWayOutPicture();

@@ -96,7 +96,7 @@ export function createMineClient(deps) {
     name(/** @type {string} */ key) {
       const p = parseKey(key);
       if (!p) return null;
-      if (p.kind === 'hole') return { title: t('mine.holeTitle', 'A hole in the rock') };
+      if (p.kind === 'hole') { const h = chamber(p.s, p.c)?.holes[p.k]; return { title: t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: oreName(h.ore) } : {}) }; }   // the owner: "turn hole in the rock into Minable Ore"
       const w = chamber(p.s, p.c)?.walls[p.k];
       if (!w) return null;
       if (propped(p.s, p.c, p.k)) return { title: MINE_CLIENT_TEXT.shored() };
