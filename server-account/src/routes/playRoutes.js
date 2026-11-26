@@ -3,7 +3,7 @@ import { duelRecordOf, claimDuel, gateRecordOf, claimGate } from '../accounts.js
 import { mintRenownOrder, ID_RE } from '../../../src/net/identityToken.js';
 import { signingKey, gatePublicKey } from '../signing.js';
 import { claimMineHaul } from '../mineHaul.js';   // BUNNYFALL (2026-11-26, caverns)
-import { societyState, societyTake, societyTurnIn, societyBuy, societyKitBuy, societyKitUse } from '../society.js';   // BUNNYFALL (2026-11-26, caverns)
+import { societyState, societyTake, societyTurnIn, societyBuy, societyKitBuy, societyKitUse, societySellOre } from '../society.js';   // BUNNYFALL (2026-11-26, caverns)
 import { seaWreck, seaPrizeCollect, seaPrizeReclaim } from '../seaWreck.js';
 import { claimIliac, iliacBoardOf } from '../iliac.js';
 import { claimGambit, gambitBoardOf } from '../gambit.js';
@@ -240,9 +240,9 @@ export async function playRoutes({ request, env, subtle, nowS, origin, path, db,
     // BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY - its desk, a contract taken or turned in, a ware bought
     // with Survey Seals (society.js; the law is src/net/mine/societyLaw.js). A refusal says its rung.
     // the mine kit bought for gold (a realm act: the record's purse) and used; a turn-in reads the member's rank off the record
-    const act = { '/v1/society': societyState, '/v1/society/take': societyTake, '/v1/society/turnin': societyTurnIn, '/v1/society/buy': societyBuy, '/v1/society/kit': societyKitBuy, '/v1/society/use': societyKitUse }[path];
+    const act = { '/v1/society': societyState, '/v1/society/take': societyTake, '/v1/society/turnin': societyTurnIn, '/v1/society/buy': societyBuy, '/v1/society/kit': societyKitBuy, '/v1/society/use': societyKitUse, '/v1/society/sell-ore': societySellOre }[path];
     if (act) {
-      const r = await act({ ...ctx, bucket: env.SAVES }, who.player, body ?? {});
+      const r = await act({ ...ctx, env, bucket: env.SAVES }, who.player, body ?? {});
       if (r.error) return json(r, r.error === 'need-account' ? 403 : r.error === 'busy' || r.error === 'seq' ? 409 : 400, origin);
       return json(r, 200, origin);
     }

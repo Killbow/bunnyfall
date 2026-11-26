@@ -14560,7 +14560,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     societyKit: realmSession ? (body, gold) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true,
       reserve: () => { playerEntity.goldPieces = Math.max(0, (playerEntity.goldPieces ?? 0) - gold); return () => { playerEntity.goldPieces = (playerEntity.goldPieces ?? 0) + gold; }; },
       call: (at) => accountCall(realmIoNow(), '/v1/society/kit', { ...body, ...at, character: characterIdOf(playerEntity) }) }) : null,
-    societyStores: () => { void profBook?.refresh?.({ force: true }); },
+    societyStores: () => { void profBook?.refresh?.({ force: true }); void marksBook?.refresh?.(); },
     favorBuy: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/tavern/favor', { ...body, ...at }) }) : null,
     // BARDS' GUILD services paid in Favor (scenes/bardServicesShop.js): the service charges the Favor and writes the result in one batch
     bardAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/bards/service', { ...body, ...at }) }) : null,

@@ -1,6 +1,8 @@
 // Survey Seals and wares belong to the account. Each character can hold one open contract.
 // A contract consumes gathered ore. Purchases check the price and title prerequisites in the same update.
-import { SOCIETY_CONTRACTS, SOCIETY_WARES, societyOffers, societyWaresHeld, societyBuyRefused, SOCIETY_KIT, SOCIETY_KIT_IDS, SOCIETY_KIT_MAX, societySealsFor } from '../../src/net/mine/societyLaw.js';
+import { SOCIETY_ORE_PACK, SOCIETY_ORE_PRICES, SOCIETY_CONTRACTS, SOCIETY_WARES, societyOffers, societyWaresHeld, societyBuyRefused, SOCIETY_KIT, SOCIETY_KIT_IDS, SOCIETY_KIT_MAX, societySealsFor } from '../../src/net/mine/societyLaw.js';
+import { MARKS_MAX, MARKS_RID_RE, utcDay } from '../../src/net/marksLaw.js';
+import { balanceOf, marksOpenFor } from './marks.js';
 import { charOk } from './profShared.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, recordMovedOf, realmSaveTextOf } from './realm.js';
 import { goldOf } from './judge.js';
@@ -13,12 +15,20 @@ const ownOf = async (/** @type {any} */ db, /** @type {string} */ player, /** @t
   Number((await db.prepare("SELECT qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?3 AND origin = 'own'").bind(player, character, ore).first())?.qty ?? 0);
 
 /** The desk as a character reads it. */
-export async function societyState({ db, nowS }, player, { character } = {}) {
+export async function societyState({ db, nowS, env }, player, { character } = {}) {
   if (!registered(player)) return { error: 'need-account' };
   if (!charOk(character)) return { error: 'character' };
   const row = await db.prepare('SELECT society_seals, society_wares, society_done FROM players WHERE id = ?1').bind(player.id).first();
   const open = await db.prepare('SELECT ore, n, seals FROM society_contracts WHERE player = ?1 AND char_id = ?2').bind(player.id, character).first();
+  const oreSales = marksOpenFor(player, env)
+    ? (await db.prepare("SELECT material, qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND origin = 'own' AND qty >= ?3")
+      .bind(player.id, character, SOCIETY_ORE_PACK).all()).results
+      .filter((r) => Object.hasOwn(SOCIETY_ORE_PRICES, r.material))
+      .map((r) => ({ ore: r.material, held: Number(r.qty), argents: SOCIETY_ORE_PRICES[r.material] }))
+      .sort((a, b) => a.argents - b.argents || a.ore.localeCompare(b.ore))
+    : null;
   return {
+    oreSales,
     seals: Number(row?.society_seals ?? 0), wares: societyWaresHeld(row?.society_wares), done: Number(row?.society_done ?? 0),
     contract: open ? { ore: open.ore, n: Number(open.n), seals: Number(open.seals), held: await ownOf(db, player.id, character, open.ore) } : null,
     offers: open ? [] : societyOffers(character, dayOf(nowS)),
@@ -139,4 +149,28 @@ export async function societyKitUse({ db }, player, { character, kit } = {}) {
   if (!charOk(character) || !SOCIETY_KIT.some((k) => k.id === kit && !k.owned)) return { error: 'society-bad' };
   const r = await db.prepare('UPDATE mine_kit SET qty = qty - 1 WHERE player = ?1 AND char_id = ?2 AND kit = ?3 AND qty >= 1 RETURNING qty').bind(player.id, character, kit).first();
   return r ? { kit, qty: Number(r.qty) } : { error: 'kit-none' };
+}
+
+/** Sell one pack from the character's gathered Stores. The ledger receipt and debit commit together. */
+export async function societySellOre({ db, nowS, env }, player, { character, ore, txn } = {}) {
+  if (!registered(player)) return { error: 'need-account' };
+  if (!marksOpenFor(player, env)) return { error: 'marks-closed' };
+  if (!charOk(character) || typeof ore !== 'string' || !Object.hasOwn(SOCIETY_ORE_PRICES, ore) || typeof txn !== 'string' || !MARKS_RID_RE.test(txn)) return { error: 'society-bad' };
+  const rid = `society-ore:${txn}`, source = `${character}:${ore}`, argents = SOCIETY_ORE_PRICES[ore];
+  const [paid] = await db.batch([
+    db.prepare(`INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, who, rid)
+      SELECT 'mint', ?2, 'account', ?1, 'ore-sale', ?3, ?4, ?5, ?1, NULL, ?6
+      WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + ?3 <= ?7
+        AND EXISTS (SELECT 1 FROM prof_stores WHERE player = ?1 AND char_id = ?8 AND material = ?9 AND origin = 'own' AND qty >= ?10)
+        AND NOT EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?1 AND rid = ?6)`)
+      .bind(player.id, source, argents, utcDay(nowS), nowS, rid, MARKS_MAX, character, ore, SOCIETY_ORE_PACK),
+    db.prepare(`UPDATE prof_stores SET qty = qty - ?4
+      WHERE player = ?1 AND char_id = ?2 AND material = ?3 AND origin = 'own' AND changes() = 1`)
+      .bind(player.id, character, ore, SOCIETY_ORE_PACK),
+  ]);
+  if (paid.meta.changes) return { ore, n: SOCIETY_ORE_PACK, argents };
+  const prior = await db.prepare("SELECT src_id, amount FROM marks_ledger WHERE actor = ?1 AND rid = ?2 AND kind = 'ore-sale'").bind(player.id, rid).first();
+  if (prior) return prior.src_id === source ? { ore, n: SOCIETY_ORE_PACK, argents: Number(prior.amount), replayed: true } : { error: 'society-bad' };
+  if (await balanceOf(db, player.id) + argents > MARKS_MAX) return { error: 'marks-full' };
+  return { error: 'short' };
 }
