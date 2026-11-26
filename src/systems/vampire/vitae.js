@@ -73,6 +73,7 @@ export function awakenVampire(entity, nowMinutes) {
   noteFirstUse('vampire-awakened');
   noteFirstUse('vampire-blood');
   noteFirstUse('vampire-gift');
+  noteFirstUse('vampire-court');
   return true;
 }
 
