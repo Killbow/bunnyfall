@@ -4,6 +4,7 @@ title: "Combat Abilities: Engine, Ladders, Damage Floor, and Rig"
 domain: "combat"
 kind: "overview"
 files:
+  - "src/combat/abilities/buffDuration.js"
   - "src/combat/abilities/registry.js"
   - "src/combat/abilities/engine.js"
   - "src/combat/abilities/rig.js"
@@ -27,6 +28,7 @@ invariants:
   - "A blow's mult multiplies the weapon's own rolled damage (previewDamage); a plain swing is 1. meleeBeatMult and shotMult in damage.js are the only places that weigh an ability hit or arrow."
   - "Normal weapon and combination abilities (rank below 100) never weigh less than ABILITY_DAMAGE.meleeBeatFloor (1.4) per melee hit or shotFloor (1.3) per arrow. Racial abilities and capstones keep (1 + potency) * share."
   - "milestones.js already gives normal melee abilities a third of the fatigue cost and +0.35 potency, so ABILITY_DAMAGE.potencyScale stays 1."
+  - "Every timed self buff an ability grants lasts the rounds in buffDuration.js: 10, 13, 16, and 20 by unlock rank 25, 50, 75, and 100, 15 for racial abilities, and 10 to 16 for utilities. A round is ROUND_SECONDS (5). withBuffDuration lengthens the delivery in rig.js deliveryFor and the spellbook chips, never the source tables."
 traps:
   - "Abilities never reach players: blockedActor refuses online, duel and peer actors, and abilityMayStrike excludes players, so ability tuning cannot change PvP."
   - "A multi-hit ability splits its weight by share; without the floor its single hits fall below a plain swing."
@@ -51,3 +53,7 @@ Ability IDs and unlock ranks live in `src/combat/abilities/registry.js`. Deliver
 - **Racial abilities and capstones:** the raw split, with capstones adding `capstonePower` as a damage modifier.
 
 The spellbook shows each ability's weight per hit against a plain swing from the same functions.
+
+## Buff length
+
+`buffDuration.js` holds the one table for how long an ability's own buffs last, so raising it changes every ability. Shields, Speed, Strength, concealment, Free Action, accuracy stances, and the Tanto Edge Ritual window all follow it. Foe-side marks and openings keep their own seconds.

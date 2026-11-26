@@ -47,7 +47,7 @@ export const expandedWeaponLadders = [
   ]),
   ...ladder('wakizashi', [
     ['crosscut', 'Cut twice. Pair with a second short blade to use the offhand on the second hit.', { ...combo(2), alternateHands: true, fx: 'flurry' }],
-    ['twin-guard', 'Raise a brief shield and answer with a cut that punishes an exposed enemy.', { alternateHands: true, openOffhand: true, selfEffect: shield(12), counterBonus: .65, fx: 'measure' }],
+    ['twin-guard', 'Raise a shield and answer with a cut that punishes an exposed enemy.', { alternateHands: true, openOffhand: true, selfEffect: shield(12), counterBonus: .65, fx: 'measure' }],
     ['mirrored-tempo', 'Alternate hands with a second short blade. The final cut carries the largest share of damage.', { ...combo(3, 1.45), alternateHands: true, fx: 'flurry', stages: [
       { strike: 'StrikeRight', rangeM: 2, share: .23, tempo: 1.3, fx: 'flurry' },
       { strike: 'StrikeLeft', rangeM: 2, share: .32, tempo: 1.48, fx: 'flurry' },
@@ -63,9 +63,9 @@ export const expandedWeaponLadders = [
   ]),
   ...ladder('broadsword', [
     ['measured-cut', 'Deliver a quick, accurate cut with extra reach.', { rangeM: 2.7, toHit: 8, fx: 'measure' }],
-    ['adaptive-guard', 'Stand for a stronger cut or crouch through release to gain a brief shield.', { crouchEffect: shield(14), standPotency: .45, fx: 'measure' }],
+    ['adaptive-guard', 'Stand for a stronger cut or crouch through release to gain a shield.', { crouchEffect: shield(14), standPotency: .45, fx: 'measure' }],
     ['champions-answer', 'Answer an exposed enemy with a strong interruption and extra damage.', { counterBonus: .95, control: { poiseShare: 1 }, fx: 'measureFinish' }],
-    ['perfect-form', 'Gain a brief shield while delivering two measured cuts and a long-reaching finishing thrust.', { ...combo(3, 1.25), rangeM: 2.65, selfEffect: shield(18), capstone: cap(40, 'strength'), fx: 'measure', stages: [
+    ['perfect-form', 'Gain a shield while delivering two measured cuts and a long-reaching finishing thrust.', { ...combo(3, 1.25), rangeM: 2.65, selfEffect: shield(18), capstone: cap(40, 'strength'), fx: 'measure', stages: [
       { strike: 'StrikeRight', rangeM: 2.45, share: .23, fx: 'measure' },
       { strike: 'StrikeLeft', rangeM: 2.45, share: .27, fx: 'measure' },
       { strike: 'StrikeUp', rangeM: 4, halfWidthM: .55, share: .5, toHit: 12, fx: 'measureFinish' },
@@ -73,13 +73,13 @@ export const expandedWeaponLadders = [
   ]),
   ...ladder('saber', [
     ['silent-draw', 'Open with a fast draw that deals extra damage to unaware enemies.', { ...wind(135, 305), unawareBonus: .95, fx: 'shadowstep' }],
-    ['flowing-pursuit', 'Rush toward the enemy under your aim, cut, and gain a short Speed boost.', { advance: chase, selfEffect: haste(6), fx: 'lunge' }],
+    ['flowing-pursuit', 'Rush toward the enemy under your aim, cut, and gain a Speed boost.', { advance: chase, selfEffect: haste(6), fx: 'lunge' }],
     ['crescent-current', 'Sweep up to three enemies twice. Turn between cuts to catch a different group.', { ...combo(2, 1.45), ...cleave(3, 1.35), redirect: true, fx: 'measure' }],
     ['moonlit-torrent', 'Build speed through four cuts and finish with a sweeping fifth swing.', { ...combo(5, 1.6), rangeM: 2.6, redirect: true, capstone: cap(37, 'speed'), ...cleave(3, 1.2), finishControl: { poiseShare: .8, shove: .8 }, fx: 'flurry', finishFx: 'flurryFinish' }],
   ]),
   ...ladder('katana', [
     ['iai-cut', 'Prepare a deliberate draw with high single-target damage.', { ...wind(465, 540), potency: 1.35, rangeM: 2.7, strike: 'StrikeDown', fx: 'execute' }],
-    ['vanishing-sheath', 'Dash forward under brief concealment and strike through the line you travel.', { advance: dash(3.7, .48), rangeM: 3.7, selfEffect: veil, fx: 'shadowstep' }],
+    ['vanishing-sheath', 'Dash forward under concealment and strike through the line you travel.', { advance: dash(3.7, .48), rangeM: 3.7, selfEffect: veil, fx: 'shadowstep' }],
     ['fatal-opening', 'Exploit a wind-up or overreach. A rear strike deals additional damage.', { counterBonus: 1.05, rearBonus: .65, fx: 'measureFinish' }],
     ['one-perfect-stroke', 'Commit to a long draw that deals extreme damage from behind or against a weakened enemy.', { ...wind(1050, 1450), potency: 3.65, rearBonus: 1.4, lowHealthBonus: .9, capstone: cap(52, 'agility'), rangeM: 3.4, strike: 'StrikeDown', fx: 'execute' }],
   ]),
@@ -108,7 +108,7 @@ export const expandedWeaponLadders = [
     ['huntsmans-relay', 'Sweep three enemies and open each for a powerful follow-up arrow.', { ...cleave(3, 1.35, .7), opening: trail('axe', 1.6, 12), capstone: cap(41, 'agility'), fx: 'measureFinish' }],
   ]),
   ...ladder('war-axe', [
-    ['brace-and-hew', 'Gain a brief shield as you deliver a heavy chop.', { selfEffect: shield(12), strike: 'StrikeDown', fx: 'execute' }],
+    ['brace-and-hew', 'Gain a shield as you deliver a heavy chop.', { selfEffect: shield(12), strike: 'StrikeDown', fx: 'execute' }],
     ['iron-root', 'Stay planted through the wind-up. Gain a stronger shield and stagger an interruptible enemy.', { stance: rooted, selfEffect: shield(22), control: { poiseShare: .85 }, fx: 'rally' }],
     ['guardians-break', 'Sweep up to three enemies hard enough to disrupt wind-ups and knock them back.', { ...cleave(3, 1.5, 1.2), control: { poiseShare: .9, shove: 1.2 }, counterBonus: .5, fx: 'sweep' }],
     ['mountainfall', 'Hold your position, then raise a shield and send a knockback sweep around you.', { stance: rooted, ...wind(950, 1250), selfEffect: shield(28), rangeM: 3.9, ...cleave(5, Math.PI, 1.8), capstone: cap(46, 'endurance'), fx: 'quake' }],
@@ -127,7 +127,7 @@ export const expandedWeaponLadders = [
   ]),
   ...ladder('staff', [
     ['staff-jab', 'Jab quickly along a narrow line from outside normal melee range.', { strike: 'StrikeUp', ...wind(140, 300), rangeM: 3.55, halfWidthM: .44, fx: 'measureFinish' }],
-    ['sweeping-ward', 'Push up to three enemies away and gain a brief shield.', { rangeM: 3.1, ...cleave(3, 1.45, 1.6), selfEffect: shield(13), fx: 'sweep' }],
+    ['sweeping-ward', 'Push up to three enemies away and gain a shield.', { rangeM: 3.1, ...cleave(3, 1.45, 1.6), selfEffect: shield(13), fx: 'sweep' }],
     ['vault-strike', 'Pole-vault high onto the enemy under your aim and drive a long thrust through up to two enemies in your lane.', { advance: leap(5.8, 2.2), rangeM: 4.4, targetCap: 2, strike: 'StrikeUp', fx: 'lunge' }],
     ['circle-of-the-master', 'Drive two rapid jabs, then knock nearby enemies away with a circular sweep.', { ...combo(3, 1.35), capstone: cap(38, 'willpower'), fx: 'measure', stages: [
       { strike: 'StrikeUp', rangeM: 3.15, halfWidthM: .55, share: .24, tempo: 1.5, fx: 'measureFinish' },

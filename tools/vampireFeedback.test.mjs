@@ -199,6 +199,12 @@ test('fed today survives a same-day save and reload; an old or bad save loads as
   }
 });
 
+test('an Anthotis is fed by a blow, though not by beast blood in a feed', () => {
+  const v = vampire(150, 0);
+  const wound = feedVampire(v, { kind: 'wound', type: 'beast', quality: 40, now: 0 });
+  assert.ok(wound.vitae > 0, 'the mouthful feeds');
+});
+
 test('blood at a glance: a quality word and a tag', () => {
   assert.equal(bloodQualityName(10), 'thin');
   assert.equal(bloodQualityName(99), 'potent');
@@ -206,7 +212,7 @@ test('blood at a glance: a quality word and a tag', () => {
 });
 
 test('the vampire\'s pages exist, in the Vampirism group, with the law\'s own numbers', () => {
-  for (const id of ['vampire-bitten', 'vampire-awakened', 'vampire-blood', 'vampire-feeding', 'vampire-thralls', 'vampire-gift']) {
+  for (const id of ['vampire-court', 'vampire-bitten', 'vampire-awakened', 'vampire-blood', 'vampire-feeding', 'vampire-thralls', 'vampire-gift']) {
     assert.equal(tutorialById(id)?.group, 'vampire', id);
   }
   for (const p of TUTORIALS.filter((x) => x.group === 'vampire')) {

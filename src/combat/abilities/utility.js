@@ -7,6 +7,7 @@ import { playerDoor } from '../../player/playerDoor.js';
 import { removeBundleNamed } from '../../magic/effects.js';
 import { placeWayfarerLantern, stepWayfarerLantern } from './wayfarerLantern.js';
 import { playAbilitySfx } from '../../audio/abilitySfx.js';
+import { utilityBuffRounds } from './buffDuration.js';
 
 const timers = new WeakMap();
 const trailName = abilityById('utility.trailblazer').name;
@@ -48,9 +49,10 @@ function startCooldown(entity, id, duration) {
   return state;
 }
 
-function effectOf({ effect, subType = 255, rounds = 1, magnitude }, fixed) {
+function effectOf({ effect, subType = 255, rounds, magnitude }, fixed, minRounds = 0) {
   return {
-    type: effect, subType, durationBase: rounds, durationMod: fixed ? 0 : 1, durationPerLevel: 5,
+    // A profile that names its rounds is a timed buff, lifted to the rank's length; an instant effect keeps its one round.
+    type: effect, subType, durationBase: rounds == null ? 1 : Math.max(rounds, minRounds), durationMod: fixed ? 0 : 1, durationPerLevel: 5,
     chanceBase: 100, chanceMod: 0, chancePerLevel: 1,
     ...(magnitude == null ? {} : { magnitudeBaseLow: magnitude, magnitudeBaseHigh: magnitude,
       magnitudeLevelBase: 0, magnitudeLevelHigh: 0, magnitudePerLevel: 1 }),
@@ -93,7 +95,7 @@ export function requestUtility(entity, id, door = playerDoor()) {
   if (profile.safePace && (!feet || hostileNearby(door))) {
     return { ok: false, why: 'combat' };
   }
-  const bundle = { name, rangeType: 0, element: 4, effects: (profile.effects ?? [profile]).map(effect => effectOf(effect, !!profile.effects)) };
+  const bundle = { name, rangeType: 0, element: 4, effects: (profile.effects ?? [profile]).map(effect => effectOf(effect, !!profile.effects, utilityBuffRounds(abilityById(id).rank))) };
   const refusal = door.previewUtilityRefusal?.(bundle);
   if (refusal) return { ok: false, why: 'unavailable', message: refusal };
   door.castOnPlayer(bundle);

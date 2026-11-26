@@ -2179,10 +2179,10 @@ function reforgePool(item, index) {
   const old = item.affixes[index];
   const was = AFFIX_KINDS[old.id];
   const others = item.affixes.filter((a, i) => i !== index && a?.gem == null);   // AUDIT LOOT II A4: a gem's line is its socket's, no roll's - it never takes a kind or a param from the piece's own (a Diamond's damage left a weapon's damage line nothing to become)
-  const freeParams = (id) => kindParams(id, item).filter((p) => !others.some((a) => a?.id === id && a.param === p));   // LOOT14: a garment's own params
+  const freeParams = (id) => kindParams(id, item).filter((p) => !others.some((a) => a?.id === id && a.param === p) && !(id === old.id && p === old.param));   // PARAM-SWAP: the line's own param is the one it leaves   // LOOT14: a garment's own params
   const ids = (was.technique ? ['technique'] : AFFIX_IDS).filter((id) => {
     const k = AFFIX_KINDS[id];
-    if (id === old.id || !k.groups.includes(item.group) || !!k.proc !== !!was.proc) return false;
+    if ((id === old.id && (!k.params || was.technique)) || !k.groups.includes(item.group) || !!k.proc !== !!was.proc) return false;
     return k.params ? freeParams(id).length > 0 : !others.some((a) => a?.id === id);
   });
   return { ids, others, freeParams };
