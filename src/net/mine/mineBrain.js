@@ -26,10 +26,18 @@ export const MINE_SEAL_S = 3600;
 export const MINE_WEEK_S = 7 * 86400;
 /** The most props a mine keeps (every wall slot of every chamber, with room to spare). */
 export const MINE_PROPS_MAX = 400;
+/** THE ALARM (the spec's section 8): each strike's noise in its section, and the noise a wave is called at (the drill's
+ *  will be louder); how fast a quiet section forgets (a minute), and a wave's size - the first, and one more each two
+ *  waves the mine has called, to the most. */
+export const MINE_ALARM = Object.freeze({ strike: 1, wave: 24, forgetPerMin: 6, first: 2, most: 5 });
+/** STRAYS: the chance a minute's tick sends one into an occupied mine (one or two creatures, a chamber of the tick's
+ *  pick). */
+export const MINE_STRAY = Object.freeze({ chance: 0.3, pair: 0.35 });
 
 /**
  * @typedef {{ mine: number, reset: number, born: number, sealedUntil: number, stab: number[], cap: number[],
- *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }> }} MineState
+ *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }>,
+ *   alarm?: number[], waves?: number, ticked?: number }} MineState
  */
 
 /**
@@ -44,11 +52,11 @@ export function createMineState(layout, nowS) {
     stab: layout.sections.map(() => 100), cap: layout.sections.map(() => 100), warned: layout.sections.map(() => 0),
     weak: layout.sections.map((s) => s.chambers.map((c) => c.walls.map((w, k) => (w.weak ? k : -1)).filter((k) => k >= 0))),
     walls: layout.sections.map((s) => s.chambers.map((c) => c.walls.length)),   // each chamber's wall slots, so a prop is checked without the layout
-    props: [],
+    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS,
   };
 }
 
-const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props] });
+const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0 });
 const valid = (/** @type {any} */ st, /** @type {any} */ s, /** @type {any} */ c) => Number.isSafeInteger(s) && Number.isSafeInteger(c) && s >= 0 && s < st.stab.length && c >= 0 && c < st.weak[s].length;
 const propped = (/** @type {MineState} */ st, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ w) => st.props.some((p) => p.s === s && p.c === c && p.w === w);
 
@@ -67,7 +75,9 @@ const turnedOver = (/** @type {MineState} */ st, /** @type {number} */ nowS) => 
 
 /**
  * One act on a mine. Ops: `{ op: 'strike', s, c }` (a pick strike in chamber c of section s), `{ op: 'prop', s, c, w,
- * wood, by }` (a plank on wall slot w), `{ op: 'tick' }` (the clock: a seal run out, or a week gone).
+ * wood, by }` (a plank on wall slot w), `{ op: 'tick', present?, roll?, pick? }` (the clock: a seal run out, or a week
+ * gone; the alarm forgetting; and, with someone `present`, a stray when `roll` (0..1) falls under MINE_STRAY.chance, its
+ * chamber by `pick` (0..1)). A strike's noise may call a wave: `wave:<s>:<c>:<n>`; a stray is `stray:<s>:<c>:<n>`.
  * @param {MineState} state
  * @param {any} op
  * @param {number} nowS
@@ -77,16 +87,33 @@ export function stepMine(state, op, nowS) {
   const none = (/** @type {string} */ error) => ({ state, events: [], error });
   if (op?.op === 'tick') {
     if (state.sealedUntil > 0 ? nowS >= state.sealedUntil : nowS >= state.born + MINE_WEEK_S) return { state: turnedOver(state, nowS), events: ['reset'] };
-    return { state, events: [] };
+    if (state.sealedUntil > 0) return { state, events: [] };
+    const st = copy(state), mins = Math.max(0, nowS - (state.ticked ?? nowS)) / 60, events = [];
+    st.ticked = nowS;
+    st.alarm = /** @type {number[]} */ (st.alarm).map((a) => Math.max(0, a - MINE_ALARM.forgetPerMin * mins));
+    if (op.present && Number(op.roll) < MINE_STRAY.chance) {
+      const slots = st.walls.flatMap((cs, s) => cs.map((_, c) => [s, c]));
+      const [s, c] = slots[Math.min(slots.length - 1, Math.floor(Math.max(0, Number(op.pick) || 0) * slots.length))];
+      events.push(`stray:${s}:${c}:${Number(op.roll) < MINE_STRAY.chance * MINE_STRAY.pair ? 2 : 1}`);
+    }
+    return { state: st, events };
   }
   if (op?.op !== 'strike' && op?.op !== 'prop') return none('bad');
   if (state.sealedUntil > 0) return none('sealed');
   const { s, c } = op;
   if (!valid(state, s, c)) return none('bad');
-  const st = copy(state);
+  const st = copy(state), waveEvents = [];
   if (op.op === 'strike') {
     const open = st.weak[s][c].filter((w) => !propped(st, s, c, w)).length;
     st.stab[s] = Math.max(0, st.stab[s] - MINE_COST.strike * MINE_COST.weakMult ** open);
+    // the noise: a wave called each time a section's alarm fills, bigger as the mine calls more
+    const alarm = /** @type {number[]} */ (st.alarm);
+    alarm[s] += MINE_ALARM.strike;
+    if (alarm[s] >= MINE_ALARM.wave) {
+      alarm[s] -= MINE_ALARM.wave;
+      st.waves = (st.waves ?? 0) + 1;
+      waveEvents.push(`wave:${s}:${c}:${Math.min(MINE_ALARM.most, MINE_ALARM.first + Math.floor((st.waves - 1) / 2))}`);
+    }
   } else {
     const strength = MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (op.wood)];
     if (typeof op.wood !== 'string' || !strength) return none('wood');
@@ -103,5 +130,6 @@ export function stepMine(state, op, nowS) {
   st.warned[s] = w.at;
   const events = [...w.events];
   if (st.stab[s] <= 0) { st.sealedUntil = nowS + MINE_SEAL_S; events.push('collapse'); }
+  else events.push(...waveEvents);   // a mine coming down calls nothing more
   return { state: st, events };
 }

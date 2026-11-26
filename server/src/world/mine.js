@@ -59,14 +59,17 @@ export class MinePart {
       await this._mnArm(now);
     } catch (e) { console.warn('[mine] word failed', e?.message ?? e); }
   }
-  /** The alarm's turn: a held mine ticked, and the alarm kept while anyone stands in it or it is sealed. */
+  /** The alarm's turn: a held mine ticked - its noise forgetting, and with anyone in it a stray on the minute's roll -
+   *  and the alarm kept while anyone stands in it or it is sealed. */
   async _mnTick() {
     if (this._mn === undefined) this._mn = (await this.state.storage.get(MINE_KEY)) ?? null;
     const st = this._mn;
     if (!st) return;
-    const now = Date.now(), next = await this._mnTicked(st, Math.floor(now / 1000));
     let anyone = false;
     for (const [, b] of this._all()) if (b.id) { anyone = true; break; }
-    if (anyone || next.sealedUntil > 0) await this._mnArm(now);
+    const now = Date.now(), r = stepMine(st, { op: 'tick', present: anyone, roll: Math.random(), pick: Math.random() }, Math.floor(now / 1000));
+    await this._mnSave(r.state);
+    if (r.events.length) this._mnFan(r.state, r.events);
+    if (anyone || r.state.sealedUntil > 0) await this._mnArm(now);
   }
 }

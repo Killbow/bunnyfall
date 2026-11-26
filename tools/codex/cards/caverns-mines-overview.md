@@ -38,4 +38,4 @@ Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, ne
 
 Inside, `mineLayout(mineId, reset)` builds sections of domed chambers joined by tubes, made into one virtual RDB block (`MINE_LOCATION_ID`). Holes name their ore and seam; walls are sound or weak.
 
-The relay's `MinePart` runs `stepMine`: each answered strike wears its section's stability (`MINE_COST`, weak walls 1.5x), shoring spends a Stores plank whose wood sets the gain (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse. A collapse shakes, fades and puts everyone out with what they carry.
+The relay's `MinePart` runs `stepMine`: each answered strike wears its section's stability (`MINE_COST`, weak walls 1.5x), shoring spends a Stores plank whose wood sets the gain (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse. A collapse shakes, fades and puts everyone out with what they carry. Strikes fill a section's alarm (`MINE_ALARM`): each fill calls `wave:s:c:n`, and the relay's minute tick may send `stray:s:c:n` (`MINE_STRAY`); the room's host stands them through `spawnFoeNear` (`src/systems/mine/mineFoes.js`).

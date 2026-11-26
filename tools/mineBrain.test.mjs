@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
 import {
-  createMineState, stepMine, MINE_COST, MINE_PROP, MINE_SEAL_S, MINE_WEEK_S, MINE_WOOD_STRENGTH,
+  createMineState, stepMine, MINE_ALARM, MINE_STRAY, MINE_COST, MINE_PROP, MINE_SEAL_S, MINE_WEEK_S, MINE_WOOD_STRENGTH,
 } from '../src/net/mine/mineBrain.js';
 
 const NOW = 1_800_000_000;
@@ -50,7 +50,7 @@ test('167 strikes in a plain chamber warn dust, creak and rumble once each, in o
     st = r.state;
     events.push(...r.events);
   }
-  assert.deepEqual(events, ['warn:dust', 'warn:creak', 'warn:rumble', 'collapse']);
+  assert.deepEqual(events.filter((e) => !e.startsWith('wave:')), ['warn:dust', 'warn:creak', 'warn:rumble', 'collapse']);
   assert.equal(st.sealedUntil, NOW + 166 + MINE_SEAL_S);
 });
 
@@ -117,4 +117,27 @@ test('stepMine never changes the state it is handed, and refuses a place the min
   assert.equal(stepMine(st, { op: 'strike', s: 9, c: 0 }, NOW).error, 'bad');
   assert.equal(stepMine(st, { op: 'prop', s: plain.s, c: plain.c, w: 40, wood: 'oak', by: 'a' }, NOW).error, 'bad');
   assert.equal(stepMine(st, { op: 'dance' }, NOW).error, 'bad');
+});
+
+test('the noise calls waves: one each time a section’s alarm fills, bigger as the mine calls more, and a quiet minute forgets', () => {
+  const { L, plain } = pick();
+  let st = createMineState(L, NOW);
+  const waves = [];
+  for (let i = 0; i < MINE_ALARM.wave * 4; i++) { const r = stepMine(st, { op: 'strike', s: plain.s, c: plain.c }, NOW); st = r.state; waves.push(...r.events.filter((e) => e.startsWith('wave:'))); }
+  assert.deepEqual(waves.map((w) => Number(w.split(':')[3])), [2, 2, 3, 3]);
+  assert.ok(waves.every((w) => w.startsWith(`wave:${plain.s}:${plain.c}:`)));
+  for (let i = 0; i < MINE_ALARM.wave - 1; i++) st = stepMine(st, { op: 'strike', s: plain.s, c: plain.c }, NOW).state;
+  st = stepMine(st, { op: 'tick' }, NOW + 600).state;   // ten quiet minutes
+  assert.equal(st.alarm[plain.s], 0);
+  assert.deepEqual(stepMine(st, { op: 'strike', s: plain.s, c: plain.c }, NOW + 600).events.filter((e) => e.startsWith('wave:')), []);
+});
+
+test('a stray comes only into a mine someone stands in, on the tick’s roll, into a chamber the mine has', () => {
+  const { L } = pick();
+  const st = createMineState(L, NOW);
+  assert.deepEqual(stepMine(st, { op: 'tick', present: false, roll: 0, pick: 0.5 }, NOW + 60).events, []);
+  assert.deepEqual(stepMine(st, { op: 'tick', present: true, roll: 0.99, pick: 0.5 }, NOW + 60).events, []);
+  const [e] = stepMine(st, { op: 'tick', present: true, roll: MINE_STRAY.chance / 2, pick: 0.999 }, NOW + 60).events;
+  const [, s, c, n] = e.split(':').map(Number);
+  assert.ok(e.startsWith('stray:') && s < L.sections.length && c < L.sections[s].chambers.length && (n === 1 || n === 2));
 });

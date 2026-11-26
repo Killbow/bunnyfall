@@ -33,6 +33,7 @@ export const MINE_CLIENT_TEXT = Object.freeze({
   rumble: () => t('mine.rumble', 'The whole mine rumbles. Get out, or shore it up.'),
   collapsed: () => t('mine.collapsed', 'The mine came down behind you. It reopens in about an hour.'),
   sealed: () => t('mine.sealedInside', 'The mine is sealed.'),
+  wave: () => t('mine.wave', 'Something stirs in the dark. The noise has drawn them.'),
 });
 
 const WARN_WORDS = Object.freeze({ 'warn:dust': MINE_CLIENT_TEXT.dust, 'warn:creak': MINE_CLIENT_TEXT.creak, 'warn:rumble': MINE_CLIENT_TEXT.rumble });
@@ -47,7 +48,9 @@ const WOODS = Object.freeze(Object.keys(MINE_WOOD_STRENGTH).sort((a, b) => MINE_
  *   planks: (material: string) => number, spend: (material: string) => Promise<boolean>,
  *   shake: (k: number) => void, fade: (on: boolean) => void, closeWindows: () => void, leave: () => void,
  *   woodName?: (wood: string) => string, nowMs?: () => number,
+ *   foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null,
  * }} deps
+ *   `foes` a wave's or a stray's creatures stood (systems/mine/mineFoes.js; the room's host alone stands them)
  */
 export function createMineClient(deps) {
   const nowMs = deps.nowMs ?? (() => performance.now());
@@ -77,6 +80,8 @@ export function createMineClient(deps) {
       st = m.st;
       for (const e of m.ev ?? []) {
         if (e === 'collapse') { collapse(); continue; }
+        const call = /^(wave|stray):(\d):(\d):(\d)$/.exec(e);
+        if (call) { if (call[1] === 'wave') deps.say(MINE_CLIENT_TEXT.wave()); if (fall === null) deps.foes?.(/** @type {any} */ (call[1]), Number(call[2]), Number(call[3]), Number(call[4])); continue; }
         const shake = MINE_SHAKE[/** @type {keyof typeof MINE_SHAKE} */ (e)];
         if (shake) { deps.shake(shake); deps.say(WARN_WORDS[/** @type {keyof typeof WARN_WORDS} */ (e)]()); }
       }

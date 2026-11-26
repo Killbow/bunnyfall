@@ -9343,6 +9343,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     window.__look = (yaw, pitch) => { cam.yaw = yaw; cam.pitch = pitch; lookFilter.settle(); };   // CSA-F probe: the view turned in place (the helm pins the body, not the look)
     window.__streamIdle = () => queue.length === 0 && !building && inFlight.size === 0;   // AUDIT EV: teleport builds count too - the probe told the truth only for pump's
     window.__builtCount = () => built.size;
+    window.__mineHeard = (w) => modes?.mineHeard?.(w);   // BUNNYFALL (2026-11-26, caverns) probe: a room's word, as the relay would say it (a wave, a stray)
     window.__mine = (px, py) => (px === undefined ? (mines?.frame(), mines?.stood() ?? []) : modes?.enterMine?.({ px, py, reset: 0, site: egSiteNow() }));   // BUNNYFALL (2026-11-25, caverns) probe: the mouths stood, or into one
     window.__cromwarkEnvironment = () => [...built.values()].filter((p) => p.wasteR).map((p) => ({ px: p.px, py: p.py, damage: p.cromwarkDamage, models: p.models.length, lights: p.lights.length, animals: p.animals?.length ?? 0,
       ruins: p.models.filter((m) => m._ruin).map((m) => { const t = state.pixelTranslation(p.px, p.py); return { kind: m._ruin, box: m._box.map((v, i) => v + t[i % 3]) }; }) }));

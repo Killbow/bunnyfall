@@ -5,7 +5,7 @@
 //
 //   1. both say `hi` and hear the same fresh mine
 //   2. A shores a wall; B hears the prop, and B shoring the same wall is refused `taken`
-//   3. both strike one section; the dust, creak and rumble come in order, to both
+//   3. both strike one section; the dust, creak and rumble come in order, to both, and the noise calls the same waves
 //   4. the section gives: both hear the collapse, the mine reads sealed for an hour, and a strike after it is refused
 //   5. a newcomer saying `hi` hears the seal (the client puts them out at once)
 //
@@ -77,8 +77,10 @@ try {
   await sleep(500);
   const evA = events(A.heard), evB = events(B.heard);
   const order = ['warn:dust', 'warn:creak', 'warn:rumble', 'collapse'];
-  check(order.every((e) => evA.includes(e)) && order.every((e, i) => i === 0 || evA.indexOf(order[i - 1]) < evA.indexOf(e)), `A hears ${evA.join(', ')}`);
-  check(order.every((e) => evB.includes(e)), `B hears the same: ${evB.join(', ')}`);
+  check(order.every((e) => evA.includes(e)) && order.every((e, i) => i === 0 || evA.indexOf(order[i - 1]) < evA.indexOf(e)), `A hears ${evA.filter((e) => !e.startsWith('wave:')).join(', ')}`);
+  check(order.every((e) => evB.includes(e)), `B hears the same: ${evB.filter((e) => !e.startsWith('wave:')).join(', ')}`);
+  const wavesA = evA.filter((e) => e.startsWith('wave:')), wavesB = evB.filter((e) => e.startsWith('wave:'));
+  check(wavesA.length >= 3 && wavesA.join() === wavesB.join(), `the noise called the same waves to both: ${wavesA.join(', ')}`);
   const last = [...A.heard].reverse().find((x) => x.k === 'st');
   const left = last ? last.st.sealedUntil - Math.floor(Date.now() / 1000) : 0;
   check(left > MINE_SEAL_S - 120 && left <= MINE_SEAL_S, `sealed for about an hour (${left} s left)`);

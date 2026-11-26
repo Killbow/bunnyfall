@@ -10567,6 +10567,12 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
      * which is what stops the plaque naming something the button
      * ignores.
      */
+    /** BUNNYFALL (2026-11-26, caverns): a made level's own creature (systems/mine/mineFoes.js: a mine's wave or stray),
+     *  stood about `feet` as a rest's ambush is - online by the room's host alone, shared; offline, mine. */
+    spawnFoeNear(mobileType, feet, minDistance, maxDistance) {
+      if (onlineRoom() && !_authority) return Promise.resolve(null);
+      return _spawnEncounter({ mobileType, minDistance, maxDistance, lineOfSightCheck: false }, { feet, yaw: 0, shared: !!onlineRoom() });
+    },
     addActivationTargets(fn) {
       if (typeof fn !== 'function') return () => {};
       _hostTargets.push(fn);
