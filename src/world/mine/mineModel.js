@@ -94,6 +94,12 @@ function heights(/** @type {any} */ rec) {
   return { wallTop, top: Math.max(rec.ch.h, wallTop + 0.9) };
 }
 
+function chamberRim(ch, n, i, scale, y) {
+  const angle = 2 * Math.PI * i / n;
+  const bulge = 1 + MINE_CHAMBER_BULGE * unit(ch.c[0] * 100 | 0, ch.c[2] * 100 | 0, i % n);
+  return rimAt(ch, angle, bulge, scale, y);
+}
+
 /**
  * One chamber into the kit: its floor, its wall (open at its doorways), its cap.
  * @param {any} kit
@@ -102,12 +108,11 @@ function heights(/** @type {any} */ rec) {
  */
 function chamberInto(kit, rec, tubes) {
   const { ch, doors } = rec, { wallTop, top } = heights(rec), n = sidesOf(rec.ch);
-  const bulge = (/** @type {number} */ i) => 1 + MINE_CHAMBER_BULGE * unit(ch.c[0] * 100 | 0, ch.c[2] * 100 | 0, i % n);
-  const ang = (/** @type {number} */ i) => (2 * Math.PI * i) / n;
+  const rim = (i, scale, y) => chamberRim(ch, n, i, scale, y);
   const centre = [ch.c[0], ch.c[1], ch.c[2]];
   // the floor: a fan from the centre, its rim the wall's foot
   for (let i = 0; i < n; i++) {
-    const a = rimAt(ch, ang(i), bulge(i), 1, 0), b = rimAt(ch, ang(i + 1), bulge(i + 1), 1, 0);
+    const a = rim(i, 1, 0), b = rim(i + 1, 1, 0);
     kit.tri(FLOOR, centre, a, b, [0, 1, 0], true, [centre[0] * UV, centre[2] * UV], [a[0] * UV, a[2] * UV], [b[0] * UV, b[2] * UV]);
   }
   // the wall: rows of quads up to wallTop, each looking at the chamber's upright axis; a quad in a doorway's span below
@@ -117,13 +122,13 @@ function chamberInto(kit, rec, tubes) {
     for (let j = 0; j < rows; j++) {
       const y0 = (wallTop * j) / rows, y1 = (wallTop * (j + 1)) / rows;
       const s0 = 1 - WALL_LEAN * y0, s1 = 1 - WALL_LEAN * y1;   // the wall leans in as it rises
-      const p = [rimAt(ch, ang(i), bulge(i), s0, y0), rimAt(ch, ang(i + 1), bulge(i + 1), s0, y0), rimAt(ch, ang(i + 1), bulge(i + 1), s1, y1), rimAt(ch, ang(i), bulge(i), s1, y1)];
+      const p = [rim(i, s0, y0), rim(i + 1, s0, y0), rim(i + 1, s1, y1), rim(i, s1, y1)];
       const m = [(p[0][0] + p[2][0]) / 2, (p[0][1] + p[2][1]) / 2, (p[0][2] + p[2][2]) / 2];
       const scale = (Math.PI * (ch.rx + ch.rz) * UV) / n;
       const u0 = i * scale, u1 = (i + 1) * scale;
       let polygons = [p.map((v, k) => [...v, k === 0 || k === 3 ? u0 : u1, v[1] * UV])];
       for (const door of doors) {
-        for (const segment of tubes[door.tunnel].doorSegments) polygons = polygons.flatMap((poly) => cutTunnel(poly, segment));
+        for (const segment of tubes[door.tunnel].doorSegments) polygons = polygons.flatMap((poly) => subtractVolume(poly, segment));
       }
       const facing = [centre[0] - m[0], 0, centre[2] - m[2]];
       for (const [a, ...rest] of polygons) for (let k = 0; k + 1 < rest.length; k++) {
@@ -138,8 +143,8 @@ function chamberInto(kit, rec, tubes) {
   const ringsS = [s, s * 0.6, 0];
   for (let r = 0; r < 2; r++) {
     for (let i = 0; i < n; i++) {
-      const a0 = rimAt(ch, ang(i), bulge(i), ringsS[r], ringsY[r]), b0 = rimAt(ch, ang(i + 1), bulge(i + 1), ringsS[r], ringsY[r]);
-      const a1 = rimAt(ch, ang(i), bulge(i), ringsS[r + 1], ringsY[r + 1]), b1 = rimAt(ch, ang(i + 1), bulge(i + 1), ringsS[r + 1], ringsY[r + 1]);
+      const a0 = rim(i, ringsS[r], ringsY[r]), b0 = rim(i + 1, ringsS[r], ringsY[r]);
+      const a1 = rim(i, ringsS[r + 1], ringsY[r + 1]), b1 = rim(i + 1, ringsS[r + 1], ringsY[r + 1]);
       const look = [ch.c[0], ch.c[1] + wallTop * 0.5, ch.c[2]];
       const uv = [[a0[0] * UV, a0[2] * UV], [b0[0] * UV, b0[2] * UV], [b1[0] * UV, b1[2] * UV], [a1[0] * UV, a1[2] * UV]];
       const m = [(a0[0] + b1[0]) / 2, (a0[1] + b1[1]) / 2, (a0[2] + b1[2]) / 2], into = [look[0] - m[0], look[1] - m[1], look[2] - m[2]];   // facing into the chamber
@@ -176,11 +181,11 @@ function tubeRings(tube, seed) {
   return { rings, centres };
 }
 
-/** Planes of a tunnel segment, oriented toward the inside. */
-function tunnelSegment(a, b, ca, cb) {
+/** The inward half-spaces of the volume between two polygon rings. */
+function ringVolume(a, b, ca, cb, offsets) {
   const middle = ca.map((v, i) => (v + cb[i]) / 2);
   const planes = [];
-  const plane = (p, q, r, offset = 0) => {
+  const plane = (p, q, r, offset) => {
     const u = q.map((v, i) => v - p[i]), v = r.map((w, i) => w - p[i]);
     let x = u[1] * v[2] - u[2] * v[1], y = u[2] * v[0] - u[0] * v[2], z = u[0] * v[1] - u[1] * v[0];
     const length = Math.hypot(x, y, z);
@@ -190,24 +195,50 @@ function tunnelSegment(a, b, ca, cb) {
     x *= scale; y *= scale; z *= scale;
     planes.push([x, y, z, x * p[0] + y * p[1] + z * p[2] + offset]);
   };
-  plane(a[0], a[2], a[4], -0.015);
-  plane(b[0], b[2], b[4], -0.015);
+  const capPoint = a.length === 3 ? 1 : 2, capEnd = a.length === 3 ? 2 : 4;
+  plane(a[0], a[capPoint], a[capEnd], offsets.start);
+  plane(b[0], b[capPoint], b[capEnd], offsets.end);
   for (let k = 0; k < a.length; k++) {
     const next = (k + 1) % a.length;
     const floor = [a[k], a[next], b[k], b[next]].every((p, i) => p[1] < (i < 2 ? ca : cb)[1] - 0.1);
-    plane(a[k], a[next], b[next], floor ? -0.03 : 0.04);
-    plane(a[k], b[next], b[k], floor ? -0.03 : 0.04);
+    const offset = offsets.rim && k === 1 ? offsets.rim : floor ? offsets.floor : offsets.side;
+    plane(a[k], a[next], b[next], offset);
+    plane(a[k], b[next], b[k], offset);
   }
-  const points = [...a, ...b];
-  const bounds = [0, 1, 2].map((i) => {
-    const values = points.map((p) => p[i]);
-    return [Math.min(...values) - 0.4, Math.max(...values) + 0.4];
-  });
-  return { planes, bounds };
+  return { planes, bounds: volumeBounds([...a, ...b], 0.4) };
 }
-/** Keep the pieces of the wall outside the tunnel's actual cross-section. */
-function cutTunnel(poly, { planes, bounds }) {
-  if (bounds.some(([min, max], i) => poly.every((p) => p[i] < min) || poly.every((p) => p[i] > max))) return [poly];
+
+function volumeBounds(points, pad = 0) {
+  return [0, 1, 2].map((i) => {
+    const values = points.map((p) => p[i]);
+    return [Math.min(...values) - pad, Math.max(...values) + pad];
+  });
+}
+const outsideBounds = (poly, bounds) =>
+  bounds.some(([min, max], i) => poly.every((p) => p[i] < min) || poly.every((p) => p[i] > max));
+
+const TUNNEL_CUT = { start: -0.015, end: -0.015, floor: -0.03, side: 0.04 };
+// Keep a short overlap at the rim and preserve the tunnel surface at uneven floor joins.
+const CHAMBER_CUT = { start: 0.14, end: 0, floor: 0, side: 0, rim: 0.16 };
+
+/** Use the chamber's actual wall edges as the outside of a fan of wedges. */
+function chamberVolume(rec) {
+  const { ch } = rec, { wallTop } = heights(rec), n = sidesOf(ch);
+  const at = (i, y) => chamberRim(ch, n, i, 1 - WALL_LEAN * y, y);
+  const bottom = ch.c, top = [ch.c[0], ch.c[1] + wallTop, ch.c[2]];
+  const wedges = [];
+  for (let i = 0; i < n; i++) {
+    const a = [bottom, at(i, 0), at(i + 1, 0)], b = [top, at(i, wallTop), at(i + 1, wallTop)];
+    const centre = (ring) => ring[0].map((_, j) => (ring[0][j] + ring[1][j] + ring[2][j]) / 3);
+    wedges.push(ringVolume(a, b, centre(a), centre(b), CHAMBER_CUT));
+  }
+  const radiusX = ch.rx * (1 + MINE_CHAMBER_BULGE), radiusZ = ch.rz * (1 + MINE_CHAMBER_BULGE);
+  const bounds = [[bottom[0] - radiusX, bottom[0] + radiusX], [bottom[1], top[1]], [bottom[2] - radiusZ, bottom[2] + radiusZ]];
+  return { wedges, bounds };
+}
+/** Split a polygon around a solid volume, keeping only its outside pieces. */
+function subtractVolume(poly, { planes, bounds }) {
+  if (outsideBounds(poly, bounds)) return [poly];
   const distance = ([a, b, c, d], [x, y, z]) => a * x + b * y + c * z - d;
   if (planes.some((plane) => poly.every((p) => distance(plane, p) < 0))) return [poly];
   const pieces = [];
@@ -230,9 +261,23 @@ function cutTunnel(poly, { planes, bounds }) {
   return pieces;
 }
 
-function tubeInto(kit, { t, pts, mouth, rings, centres }) {
+function tubeInto(kit, { t, pts, mouth, rings, centres, portalVolumes }) {
   if (pts.length < 2) return;
   const n = MINE_RING_SIDES;
+  const trim = (polygons, volumes) => {
+    for (const volume of volumes) {
+      if (!volume) continue;
+      if (polygons.every((poly) => outsideBounds(poly, volume.bounds))) continue;
+      for (const wedge of volume.wedges) polygons = polygons.flatMap((poly) => subtractVolume(poly, wedge));
+    }
+    return polygons;
+  };
+  const emit = (polygons, record, facing) => {
+    for (const [a, ...rest] of polygons) for (let j = 0; j + 1 < rest.length; j++) {
+      const b = rest[j], c = rest[j + 1];
+      kit.tri(record, a, b, c, facing, true, a.slice(3), b.slice(3), c.slice(3));
+    }
+  };
   let along = 0;
   for (let i = 0; i + 1 < rings.length; i++) {
     const A = rings[i], B = rings[i + 1], len = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]);
@@ -243,13 +288,24 @@ function tubeInto(kit, { t, pts, mouth, rings, centres }) {
       const floor = m[1] <= pts[i][1] + 0.05 * t.r + (pts[i + 1][1] - pts[i][1]) / 2;
       const uv = floor ? q.map((p) => [p[0] * UV, p[2] * UV]) :
         q.map((p, j) => [(along + (j < 2 ? 0 : len)) * UV + (j === 0 || j === 3 ? k : k + 1) * 0.15, p[1] * UV]);
-      kit.quad(floor ? FLOOR : WALL, q[0], q[1], q[2], q[3], [cm[0] - m[0], cm[1] - m[1], cm[2] - m[2]], true, uv);
+      const facing = floor ? [0, 1, 0] : cm.map((v, j) => v - m[j]);
+      const vertices = q.map((p, j) => [...p, ...uv[j]]);
+      const triangles = [[vertices[0], vertices[1], vertices[2]], [vertices[0], vertices[2], vertices[3]]];
+      const polygons = floor ? triangles : trim(triangles, portalVolumes);
+      emit(polygons, floor ? FLOOR : WALL, facing);
     }
     along += len;
   }
-  if (mouth) {
-    const ring = rings[0], c = centres[0], into = [pts[1][0] - pts[0][0], 0, pts[1][2] - pts[0][2]];
-    for (let k = 0; k < n; k++) kit.tri(WALL, c, ring[k], ring[(k + 1) % n], into, true);
+  // Close any part of the end ring that extends beyond the chamber.
+  for (const [end, chamber] of portalVolumes.entries()) {
+    if (!chamber && !(mouth && end === 0)) continue;
+    const i = end === 0 ? 0 : rings.length - 1, j = end === 0 ? 1 : i - 1;
+    const ring = rings[i], centre = centres[i];
+    const facing = centres[j].map((v, axis) => v - centre[axis]);
+    for (let k = 0; k < n; k++) {
+      const poly = [centre, ring[k], ring[(k + 1) % n]].map((p) => [...p, p[0] * UV + p[2] * UV, p[1] * UV]);
+      emit(trim([poly], [chamber]), WALL, facing);
+    }
   }
 }
 
@@ -257,13 +313,15 @@ function tubeInto(kit, { t, pts, mouth, rings, centres }) {
 function caveKit(/** @type {any} */ layout) {
   const kit = createMeshKit({ start: 4096 });
   const { chambers, tubes } = plan(layout);
+  const portalVolumes = new Map([...chambers].map(([id, rec]) => [id, chamberVolume(rec)]));
   const meshTubes = tubes.map((tube, i) => {
     const { rings, centres } = tubeRings(tube, gateHash(layout.mineId, layout.reset, 0x7b, i));
     const doorSegments = [];
     for (let j = 0; j + 1 < rings.length; j++) {
-      if (j < 3 || j >= rings.length - 4) doorSegments.push(tunnelSegment(rings[j], rings[j + 1], centres[j], centres[j + 1]));
+      if (j < 3 || j >= rings.length - 4) doorSegments.push(ringVolume(rings[j], rings[j + 1], centres[j], centres[j + 1], TUNNEL_CUT));
     }
-    return { ...tube, rings, centres, doorSegments };
+    const portals = [tube.t.from, tube.t.to].map((id) => portalVolumes.get(id));
+    return { ...tube, rings, centres, doorSegments, portalVolumes: portals };
   });
   for (const rec of chambers.values()) chamberInto(kit, rec, meshTubes);
   for (const tube of meshTubes) tubeInto(kit, tube);
