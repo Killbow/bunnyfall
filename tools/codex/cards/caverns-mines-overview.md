@@ -45,7 +45,7 @@ tags:
   - shoring
 ---
 
-Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do. The world maps show orange markers for every eligible mine entrance before discovery. Overworld Travel shows nearby entrances as orange mining markers under the Gathering filter.
+Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do. The world maps mark eligible mine entrances before discovery. The parchment V map draws orange dots at close zoom, with a saved Mines toggle in the map key. Overworld Travel shows nearby entrances as orange mining markers under the Gathering filter.
 
 Inside, `mineLayout(mineId, reset)` builds sections of domed chambers joined by tubes, made into one virtual RDB block (`MINE_LOCATION_ID`). Holes name their ore and seam; walls are sound or weak.
 

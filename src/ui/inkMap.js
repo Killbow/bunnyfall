@@ -1250,16 +1250,18 @@ export function paintInkOverlay(ctx, view, opts) {
   for (const b of opts.lodes ?? []) if (visible(b.cx, b.cy, b.r + 2)) paintBountyRing(ctx, view, b, pulse, LODE_INK);
   // POI-2: the approved POIs - the same circle in their violet, each its label
   for (const b of opts.pois ?? []) if (visible(b.cx, b.cy, b.r + 2)) paintBountyRing(ctx, view, b, pulse, POI_INK);
-  ctx.save();
-  ctx.fillStyle = MINE_MARK_CSS;
-  ctx.strokeStyle = '#442516';
-  ctx.lineWidth = 1;
-  for (const { x, y } of opts.mines ?? []) {
-    if (!visible(x + 0.5, y + 0.5)) continue;
-    const [sx, sy] = toPaper(view, x + 0.5, y + 0.5);
-    ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  if (opts.mines?.length && zoomBand(view.scale) === 'near') {
+    ctx.save();
+    ctx.fillStyle = MINE_MARK_CSS;
+    ctx.strokeStyle = '#442516';
+    ctx.lineWidth = 1;
+    for (const { x, y } of opts.mines) {
+      if (!visible(x + 0.5, y + 0.5)) continue;
+      const [sx, sy] = toPaper(view, x + 0.5, y + 0.5);
+      ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
   }
-  ctx.restore();
   // EVENT-TIP: the towns under attack, over the ring and under the party - a member standing in one reads over it
   for (const m of opts.raids ?? []) if (visible(m.x, m.y)) paintRaidMark(ctx, view, m, pulse);
   // STAR6: the night's fallen stars, beside the raids - none ever falls in a town
