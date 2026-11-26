@@ -40,6 +40,7 @@ export class AlarmPart {
     if (await this._sdFightTick()) return;
     if (await this._egTick()) return;
     if (await this._ktTick()) return;
+    await this._mnTick();   // BUNNYFALL (2026-11-25, caverns): a held mine's clock - its seal, its week
     const sp = await this._serpentTick();
     if (sp) {
       const now = Date.now();

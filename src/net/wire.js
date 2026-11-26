@@ -1,4 +1,5 @@
 // @ts-check
+import { validMineIn } from './mine/mineWire.js';   // BUNNYFALL (2026-11-25, caverns): the `mn` frame's shapes
 import { isRetiredItem } from '../items/retiredItems.js';
 import { dmColourOf } from './dmLaw.js';   // BUNNYFALL /dm: the Dungeon Master's colours
 import { FACE_INDEX_MAX } from '../characters/roxArgonians.js';   // ROX: the extra Argonian faces
@@ -1708,7 +1709,10 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world277';
+// world278: CAVERNS (2026-11-25, BUNNYFALL) - one frame, `mn` (net/mine/mineWire.js validMineIn, validMineOut), in a mine's own
+// dungeon room alone: the relay's part (server/src/world/mine.js) keeps the mine's brain (net/mine/mineBrain.js) in the room's
+// storage and fans its state; a page enters a mine only once its relay says MINE_RELAY_MIN.
+export const RELAY_VERSION = 'world278';
 // world277: the pose carries `bl` - the last arrow loosed was a Royal Ballista's bolt, which peers draw on its arc
 // world276: the pose carries Meteor and Wall of Earth (`mt`, `ew`)
 // world275: BUNNYFALL copy pass (staff help and herald words); world274: the relay strips its /relay path prefix
@@ -2511,6 +2515,11 @@ export function parseClient(text, { hasHello = false } = {}) {
     if (!hasHello) return { error: 'star before hello' };
     const r = validStarIn(m);
     return r ? { t: 'star', ...r } : { error: 'bad star' };
+  }
+  if (m.t === 'mn') {   // BUNNYFALL (2026-11-25, caverns): a word on the shared mine - projected by validMineIn; the room's mine brain judges it
+    if (!hasHello) return { error: 'mn before hello' };
+    const r = validMineIn(m);
+    return r ? { t: 'mn', ...r } : { error: 'bad mn' };
   }
   if (m.t === 'kt') {   // KETCH: a word aboard a crew's ship - projected by validKetchIn; the ship's director (net/ketch/ketchBrain.js) judges it
     if (!hasHello) return { error: 'kt before hello' };

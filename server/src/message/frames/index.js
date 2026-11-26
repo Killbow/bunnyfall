@@ -22,6 +22,7 @@ import { serpentFrame } from './serpent.js';
 import { riteFrame } from './rite.js';
 import { starFrame } from './star.js';
 import { ktFrame } from './kt.js';
+import { mnFrame } from './mn.js';   // BUNNYFALL (2026-11-25, caverns)
 import { egFrame } from './eg.js';
 import { sdFrame } from './sd.js';
 import { raidtownsFrame } from './raidtowns.js';
@@ -78,6 +79,7 @@ export const FRAMES = new Map([
   ['rite', riteFrame],
   ['star', starFrame],
   ['kt', ktFrame],
+  ['mn', mnFrame],   // BUNNYFALL (2026-11-25, caverns): a word on the shared mine
   ['eg', egFrame],
   ['sd', sdFrame],
   ['raidtowns', raidtownsFrame],
