@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Added: A third tier for Company farm tools and soil, at 26,000 of every crop shipped. Legendary tools work a whole 3x3 block of nine beds in one click, with all nine lit up before you swing. Black earth gives 3 extra items a bed and grows crops 50% faster. Farms keep their progress and see the new upgrades at the tool rack and the compost heap.
 - Ability buffs now last much longer: at least 10 magic rounds, 13 at rank 50, 16 at rank 75, and 20 for a rank 100 capstone. Racial abilities last 15 rounds, and utilities last 10 to 16 depending on rank. The Abilities page shows how long each one lasts.
 - Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
 - Added: Mine sounds. A running drill grinds at its rig, hauling ore rattles into your sack, shoring hammers home and lamps catch with a flare. Falling dust, creaking timbers and the rumble each have their own sound, the collapse comes down in a crash of rock, and a wave is heralded by a roar from the dark.
