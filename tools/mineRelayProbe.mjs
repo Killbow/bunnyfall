@@ -91,6 +91,30 @@ try {
   const stolen = await B.bot.fetch(`${LOAD_SERVICE}/v1/mine/haul`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${B.bot.account.secret}` }, body: JSON.stringify({ receipt: rc?.r, character: B.bot.realm.id }) });
   check(stolen.status === 403, `B carrying A's receipt is refused (${stolen.status})`);
 
+  // 2b2. A CREW: B sets a drill naming A as its crew; A empties it, and the haul is A's
+  const hole2 = (() => { for (const [s2, sec] of layout.sections.entries()) for (const [c2, ch] of sec.chambers.entries()) for (const [k2] of ch.holes.entries()) if (!(s2 === hole.s && c2 === hole.c && k2 === hole.h)) return { s: s2, c: c2, h: k2 }; return null; })();
+  if (hole2) {
+    A.heard.length = 0;
+    B.s.sendMine('drill', { ...hole2, crew: [A.bot.account.id] });
+    await until(() => A.heard.find((x) => x.k === 'st' && x.st.drills?.some((d) => d.s === hole2.s && d.c === hole2.c && d.k === hole2.h)));
+    await sleep(MINE_DRILL.perOreS * 1000 + 1500);
+    A.s.sendMine('take', hole2);
+    const crewRc = readMineReceipt((await until(() => A.heard.find((x) => x.k === 'rc'), 10000))?.r);
+    check(!!crewRc?.signed && crewRc.u === A.bot.account.id, `B's crew (A) empties B's drill, the haul A's: ${crewRc?.n} ${crewRc?.o}`);
+  }
+
+  // 2b3. A LAMP, set by A, seen by B
+  B.heard.length = 0;
+  A.s.sendMine('lamp', { s: 0, c: 0 });
+  check(!!(await until(() => B.heard.find((x) => x.k === 'st' && x.st.lamps?.some((l) => l.s === 0 && l.c === 0)))), 'B sees the lamp A hung in the first chamber');
+
+  // 2b4. THE MINE KIT for gold, through the realm record: a bot's 100 gold buys no lamp (120); none held is none used
+  const kitBuy = await A.bot.realm.session.transact(async (at) => {
+    const r = await A.bot.fetch(`${LOAD_SERVICE}/v1/society/kit`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${A.bot.account.secret}` }, body: JSON.stringify({ character: A.bot.realm.id, kit: 'lamp', txn: `probe-kit-${Date.now()}`, id: at.id, lease: at.lease, seq: at.seq }) });
+    return { ok: false, status: r.status, body: await r.json() };
+  });
+  check(kitBuy?.body?.error === 'gold-short', `a lamp the purse cannot pay for is refused by the record: ${JSON.stringify(kitBuy?.body ?? kitBuy)}`);
+
   // 2c. THE SOCIETY'S DESK on the real service: the day's offers, one taken, a turn-in short (its contract stands), a ware too dear
   const desk = (path, body = {}) => A.bot.fetch(`${LOAD_SERVICE}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${A.bot.account.secret}` }, body: JSON.stringify({ character: A.bot.realm.id, ...body }) }).then(async (r) => ({ status: r.status, body: await r.json() }));
   const d0 = await desk('/v1/society');
