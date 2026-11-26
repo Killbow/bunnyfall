@@ -25,9 +25,10 @@ related:
   - items-gold-counter-and-wagon
   - economy-ledger-and-item-judge
   - hotbar-icons-item-slotting-and-key-gate
+  - grappling-hook-tool
 invariants:
   - "`RETIRED_TEMPLATES` in `src/items/retiredItems.js` reserves weapon template IDs `560`, `561`, and `562` from older saves so they can never be minted, equipped, quickslotted, or accepted by the online item judge."
-  - "`removeRetiredItems(list)` splices retired item records out of carried and placeable item lists in place during save hydration (`src/saves/save.js`)."
+  - "`removeRetiredItems(list)` splices retired item records out of carried and placeable item lists in place during save hydration (`src/saves/save.js`). It also deletes `equipSlot` from every Grappling Hook (`565`), so a hook saved as held returns to the pack. `hookItemKey` clears a saved quickslot or hotbar entry holding a hook."
 traps:
   - "Quickslot keys encode `Weapons|<template>|<material>`; always filter saved quickslots with `retiredItemKey(key)` in `src/items/quickslots.js` so retired weapon bindings clear cleanly."
   - "Legacy `world245` and `acct170` version comments in `src/net/wire.js` and `server-account/src/service.js` are historical wire ledger entries; live validation rejects `560`, `561`, and `562` via `isRetiredItem`."

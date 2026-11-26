@@ -54,7 +54,7 @@
 import { modSettingsOf } from '../mods/modSettings.js';
 import { getInt } from '../platform/settings.js';
 import { liveStat } from '../characters/statMods.js';
-import { moveTowards, moveTowards2, snap, STEP_CONDITION } from './weaponWidgetMotion.js';   // AUDIT 68 S09-unused-and-heavy-imports: the leaf built for these, not the component
+import { IDLE_BREATH, moveTowards, moveTowards2, snap, STEP_CONDITION } from './weaponWidgetMotion.js';   // AUDIT 68 S09-unused-and-heavy-imports: the leaf built for these, not the component
 export { STEP_CONDITION };   // the same enum, one home (the sibling's)
 import { shieldProtectedBodyParts } from './enemyEquipment.js';
 // the classic 320x200 the sprite's scale is measured against (SetGuard
@@ -699,11 +699,12 @@ export function createShieldWidget({
         let s = speedRatio;
         if (motor.isCrouching) s *= 0.5;
         if (motor.isRiding) s *= 0.5;
-        if (motor.isStandingStill) s = w.s.bobWhileIdle ? 0.1 : 0;
+        let reach = s;
+        if (motor.isStandingStill) { s = w.s.bobWhileIdle ? IDLE_BREATH.rate : 0; reach = w.s.bobWhileIdle ? IDLE_BREATH.size : 0; }
         const freq = baseSpeed * 1.25 * s * w.s.bobLength;
         const freq2 = freq * 2;
         const amp = 0.01;
-        const size = [w.screenRect.width * amp * s * w.s.bobSizeXMod, w.screenRect.height * amp * s * w.s.bobSizeYMod];
+        const size = [w.screenRect.width * amp * reach * w.s.bobSizeXMod, w.screenRect.height * amp * reach * w.s.bobSizeYMod];
         let sx = 1; const sy = 1;
         if (w.flipped) sx *= -1;
         // with Inertia on and Animation off the horizontal swing is the

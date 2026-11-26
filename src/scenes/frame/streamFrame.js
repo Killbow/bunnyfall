@@ -15,6 +15,7 @@ import { meterFor } from '../../render/perfMeter.js';
 import { mwViewRebase } from '../../player/mwView.js';
 import { offsetTactics } from '../../ai/tactics.js';
 import { offsetTechniques } from '../../combat/techniques.js';
+import { offsetAbilities } from '../../combat/abilities/rig.js';
 import { playerEntity } from '../../characters/playerEntity.js';
 import { raidOffsetAll } from '../../worldEvents/raidingParties.js';
 import { shipCoords } from '../../trade/banking.js';
@@ -88,6 +89,7 @@ export function createStreamFrame(shared) {
       shared.labGrassField?.shiftOrigin(r.offset);   // PERF-EXT21: the field keeps its own origin and follows this one - every cell stays where it grew (AUDIT 49 F2 / GR5 threw it away here and regrew it for three seconds)
       offsetTactics(r.offset);   // AUDIT TACT D3: the noted player and every live wind-up move with the world
       offsetTechniques(r.offset);   // TECH1: and the player's own - an aim, a leap's landing, a Volley's falling shafts
+      offsetAbilities(r.offset, playerEntity);
       hazeGl?.offsetOrigin(r.offset);   // HAZE1: the shimmer's noise stands on the land, not the scene
       heatHaze.offsetOrigin(r.offset);   // HAZE1 (AUDIT ENVIRONS I7): and the ring's layer, held while airborne, with it
       atmosphere.offsetOrigin(r.offset);   // ATMO1

@@ -13,10 +13,13 @@ files:
   - "src/combat/abilities/racialProfiles.js"
   - "src/combat/abilities/damage.js"
   - "src/combat/abilities/previewHits.js"
+  - "src/combat/abilities/capstones.js"
+  - "src/combat/abilities/utilityProfiles.js"
 routes: []
 tables: []
 related:
   - "combat-abilities-autoaim-and-leaps"
+  - "combat-abilities-unlocks-combinations-and-racial-traits"
   - "combat-abilities-presentation-and-sound"
   - "spellbook-abilities-page"
   - "weapon-techniques-overview"

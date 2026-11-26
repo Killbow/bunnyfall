@@ -406,6 +406,10 @@ export function bookSound(was, now, t = nowMs()) {
   if (!redrawn) return 'open';
   return was.tab !== now.tab || was.row !== now.row ? 'turn' : null;
 }
+// The illustrated Spells page and the empty one are book pages too, so every tab gets the same plates and sounds.
+const BOOK_PAGES = '.px-journal, .sb-shell .sb-catalogue, .sb-shell > .px-win > .px-body > .px-note';
+const BOOK_TABS = ':is(.px-win:has(> .px-body > .px-journal), '
+  + '.sb-shell > .px-win:has(> .px-body > :is(.sb-catalogue, .px-note))) > .px-tabs';
 let _audio = null;
 /** Play one of the game's clips, at the player's own volume (lazily: the sound system loads with the game). */
 function playClip(name) {
@@ -415,7 +419,7 @@ function playClip(name) {
 }
 /** Read each newly drawn book and sound it. */
 export function markGrimoireBook(root) {
-  const books = root.matches?.('.px-journal') ? [root] : [...(root.querySelectorAll?.('.px-journal') ?? [])];
+  const books = root.matches?.(BOOK_PAGES) ? [root] : [...(root.querySelectorAll?.(BOOK_PAGES) ?? [])];
   for (const j of books) {
     if (j.dataset.grimBook != null) continue;
     j.dataset.grimBook = '';
@@ -1984,13 +1988,13 @@ ${G} .px-journal .px-qrow { color: ${T.ink}; min-width: 0; }
 ${G} .px-journal .px-qrail .px-qrow { overflow-wrap: anywhere; } ${G} .px-journal .px-qrail .sb-cost { flex: 0 0 auto; padding-left: ${px(2)}; }
 ${G} .px-journal .px-qrow.on { color: ${T.red}; background: rgba(142,26,16,0.1); }
 /* the tabs: the pack's plates in a row across the top of the board */
-${G} .px-win:has(> .px-body > .px-journal) > .px-tabs { background: none !important; border: 0 !important; box-shadow: none !important;
+${G} ${BOOK_TABS} { background: none !important; border: 0 !important; box-shadow: none !important;
   padding: ${px(3)} ${px(4)} 0 !important; gap: ${px(1)} !important; justify-content: center; align-items: flex-end; flex-wrap: nowrap;
   position: relative; z-index: 2; margin-bottom: calc(-1 * ${px(2)}); }
-${G} .px-win:has(> .px-body > .px-journal) > .px-tabs button { min-height: 0; margin: 0; padding: ${px(1, 'gk')} ${px(10, 'gk')} 0 !important; flex: 0 1 ${px(46)};
+${G} ${BOOK_TABS} button { min-height: 0; margin: 0; padding: ${px(1, 'gk')} ${px(10, 'gk')} 0 !important; flex: 0 1 ${px(46)};
   font-size: 16px; line-height: 20px; letter-spacing: 0; text-indent: 0; text-transform: none; justify-content: center; ${TAB_CSS} transition: none; }
-${G} .px-win:has(> .px-body > .px-journal) > .px-tabs button:hover:not(.on), ${G} .px-win:has(> .px-body > .px-journal) > .px-tabs button:focus-visible:not(.on) { ${TAB_HOVER} }
-${G} .px-win:has(> .px-body > .px-journal) > .px-tabs button.on { ${TAB_ON_CSS} }
+${G} ${BOOK_TABS} button:hover:not(.on), ${G} ${BOOK_TABS} button:focus-visible:not(.on) { ${TAB_HOVER} }
+${G} ${BOOK_TABS} button.on { ${TAB_ON_CSS} }
 @media (max-width: 480px) {
   ${G} .px-journal > .px-qrail { flex: 0 0 auto; max-height: 32%; }
 }
@@ -2007,21 +2011,21 @@ ${G} [data-grim="ink"] .port-row:not(.on) .port-rowname, ${G} [data-grim="ink"] 
 ${G} [data-grim="ink"] .port-row.on, ${G} [data-grim="ink"] .port-row.on *, ${G} [data-grim="ink"] .pick-row.on, ${G} [data-grim="ink"] .pick-row.on * { color: ${T.red} !important; text-shadow: none !important; }
 
 /* Illustrated service menus and item stat rows use solid ink on textured paper. */
-${G} .sb-art-layout :is(.sb-catalogue,.sb-catalogue-list,.sb-inline-expanded) {
+${G} .sb-art-layout :is(.sb-catalogue,.sb-catalogue-list,.sb-spell-side) {
   background: #1a1714 !important; color: #f5e7cf !important;
 }
 ${G} .sb-art-layout :is(.sb-catalogue-row,.sb-inline-effects,.sb-inline-parameters) {
   background: #29231c !important; color: #f5e7cf !important;
 }
 ${G} .sb-art-layout .sb-catalogue-row.on { background: #493729 !important; }
-${G} .sb-art-layout :is(.sb-catalogue-row,.sb-inline-expanded) :is(.sb-row-name,.sb-cost,.sb-group,.sb-sub,.sb-num,.sb-inline-heading,.px-qtimer) {
+${G} .sb-art-layout :is(.sb-catalogue-row,.sb-spell-side) :is(.sb-row-name,.sb-cost,.sb-group,.sb-sub,.sb-num,.sb-inline-heading,.px-qtimer) {
   color: #f5e7cf !important; -webkit-text-fill-color: currentColor !important; text-shadow: none !important;
 }
-${G} .sb-art-layout .sb-inline-expanded .act {
+${G} .sb-art-layout .sb-spell-side .act {
   background: #483425 !important; color: #fff1d2 !important; -webkit-text-fill-color: currentColor !important;
   border: 1px solid #9e7948 !important; text-shadow: none !important;
 }
-${G} .sb-art-layout .sb-inline-expanded .act:is(:hover,:focus-visible) { background: #665038 !important; }
+${G} .sb-art-layout .sb-spell-side .act:is(:hover,:focus-visible) { background: #665038 !important; }
 ${G} .port-win:has(.port-picture:is(.port-bank-ledger, .port-clerk-portrait, .port-property-art))
   :is(.port-stat dt, .port-stat dd, .port-rowname, .port-rowvalue),
 ${G} .card.card-illustrated dl.stats > .pair > :is(dt, dd) {

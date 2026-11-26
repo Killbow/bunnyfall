@@ -72,6 +72,8 @@ let _scale = 1;
 /** `Time.timeScale`. Always finite and at least a hundredth, so a bad
  *  caller cannot stop the world. */
 export const timeScale = () => _scale;
+/** Whether game time runs faster than real time (an accelerated journey or a sea helm). */
+export const timeAccelerated = () => _scale > 1;
 
 /** `Time.timeScale = n`. `Time.fixedDeltaTime` rides along in the
  *  motor, which reads the same number (see below). Returns what was set. */

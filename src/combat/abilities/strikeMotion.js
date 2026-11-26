@@ -18,9 +18,8 @@ export function strikeMotionKind(id, stage, strike, weapon) {
   return 'sweep';
 }
 
-// BUNNYFALL: SIGNATURE SWINGS. Each ability's art form carries its own path for the weapon sprite, so an ability no
-// longer moves like the plain swing it plays over. Keys are [progress, x, y, scale]: progress 0 to 1 runs to the
-// contact frame, 1 to 2 runs out to rest. Rest is added at both ends. Kept small: no spins, no big flourishes.
+// BUNNYFALL: each ability's art form has its own path for the weapon sprite. Keys are [progress, x, y, scale]: 0 to 1
+// runs to the contact frame, and 1 to 2 runs out to rest. Rest is added at both ends. Paths stay small, with no spins.
 const SIGNATURES = {
   // A wide crescent: high on the lead side, carried low across.
   crescent: [[.5,.17,-.09,.96],[.82,.07,-.1,1.04],[1,-.07,-.03,1.14],[1.38,-.22,.07,1.02]],
@@ -85,15 +84,10 @@ export function strikeMotionPath(id, beat = 0, final = false) {
   return keys.map(([t, x, y, s]) => [t, x * amp + lean, y * amp, 1 + (s - 1) * amp]);
 }
 
-function along(keys, progress) {
-  const path = [[0, ...rest], ...keys, [2, ...rest]];
-  let i = 1;
-  while (i < path.length - 1 && path[i][0] <= progress) i++;
-  const a = path[i - 1], b = path[i];
-  let t = Math.max(0, Math.min(1, (progress - a[0]) / Math.max(1e-6, b[0] - a[0])));
-  t = t * t * (3 - 2 * t);
-  return [1, 2, 3].map(k => a[k] + (b[k] - a[k]) * t);
-}
+const restStart = [0, ...rest], restEnd = [2, ...rest];
+const keyAt = (keys, i) => (i < 0 ? restStart : i >= keys.length ? restEnd : keys[i]);
+const ease = t => t * t * (3 - 2 * t);
+const lerp = (a, b, t) => a + (b - a) * t;
 
 // The actual contact event anchors recovery when the weapon machine's frame clock runs late.
 export function strikePose(motion, now, strength) {
@@ -103,18 +97,22 @@ export function strikePose(motion, now, strength) {
   const progress = elapsed < contact ? elapsed / Math.max(.001, contact)
     : 1 + (elapsed - contact) / Math.max(.04, motion.duration - motion.hit);
   if (progress >= 2) return null;
-  let x, y, scale;
-  if (motion.path) [x, y, scale] = along(motion.path, progress);
-  else {
+  let a, b, t, o = 0;
+  if (motion.path) {
+    const keys = motion.path;
+    let i = 0;
+    while (i < keys.length && keys[i][0] <= progress) i++;
+    a = keyAt(keys, i - 1); b = keyAt(keys, i); o = 1;
+    t = Math.max(0, Math.min(1, (progress - a[0]) / Math.max(1e-6, b[0] - a[0])));
+  } else {
     const [load, hit, follow] = poses[motion.kind];
-    let a, b, t;
     if (progress < .62) { a = rest; b = load; t = progress / .62; }
     else if (progress < 1) { a = load; b = hit; t = (progress - .62) / .38; }
     else if (progress < 1.32) { a = hit; b = follow; t = (progress - 1) / .32; }
     else { a = follow; b = rest; t = (progress - 1.32) / .68; }
-    t = t * t * (3 - 2 * t);
-    [x, y, scale] = [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * t);
   }
+  t = ease(t);
+  const x = lerp(a[o], b[o], t), y = lerp(a[o + 1], b[o + 1], t), scale = lerp(a[o + 2], b[o + 2], t);
   return { x: x * motion.side * strength, y: y * strength, scale: 1 + (scale - 1) * strength };
 }
 

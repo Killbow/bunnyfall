@@ -19,6 +19,7 @@ related:
   - balance-arc-place-threat-elites-and-death
   - balance-arc-reflection-leech-and-arcane-caps
   - balance-arc-lycanthropy-and-vampirism
+  - vampire-vitae-blood-and-feeding
   - balance-arc-pvp-harm-ceiling-and-archery
 invariants:
   - "Every attacker (player or enemy) computes `chanceToHitMod = Math.ceil(skill * 1.5)` in `pcaaoAttackDamage` and rolls critical hits through `pcaaoCriticalStrike` as `crit / (4 - Math.floor((luck - 50) / 25))`."

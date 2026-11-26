@@ -28,7 +28,8 @@ import { awakenedVampirism, feedVampire, spendVitae } from './vitae.js';
 import { archetypeName, STALE_QUALITY_CAP } from './bloodLaw.js';
 import { noteBreach } from './masquerade.js';   // PHASE 3: a thrall broken free talks
 import { clanExtraSlots, clanGentle, clanStaleCap, clanFortress, clanSocialUpkeep } from './clanLaw.js';   // PHASE 3: the nine bloodlines
-import { noteFirstUse } from '../../ui/tutorials.js';   // the vampire's pages
+import { noteFirstUse } from '../../ui/tutorials.js';
+import { skippedSpanAt } from '../../world/skippedTime.js';
 import { gearRefusal, gearKeyOf, sanitizeGear, gearItems, wornGear, gearLabel } from '../../revenants/revenantGear.js';
 import {
   bloodSlots, PRISONERS_MAX, SERVANT_UPKEEP, SOCIAL_UPKEEP, LOYALTY_START, LOYALTY_UNPAID, LOYALTY_PAID, BIND_COST,
@@ -346,10 +347,15 @@ export function thrallRound(entity, now, say = () => {}, rolls = Math.random) {
   for (const sv of _s.servants) if (sv.errand && w >= sv.errand.until) errandHome(entity, sv);
   const day = Math.floor(now / MINUTES_PER_DAY);
   if (_s.upkeepDay == null) _s.upkeepDay = day;
-  // a journey or a loiter jumps the clock many days at once: the thralls are paid (or fail) ONE day for the lot, so a
-  // carriage trip alone never makes a servant leave or a social thrall break free (the playtest)
-  const days = Math.min(1, day - _s.upkeepDay);
-  if (days > 0) {
+  if (day > _s.upkeepDay) {
+    // Each day played is charged, up to 7; a skipped span (such as a rest or a journey) is charged one day at most.
+    let days = 0;
+    for (let d = _s.upkeepDay + 1; d <= day && days < 7; d++) {
+      const span = skippedSpanAt(d * MINUTES_PER_DAY);
+      if (span?.charged) { d = Math.max(d, Math.floor(span.to / MINUTES_PER_DAY)); continue; }
+      if (span) span.charged = true;
+      days++;
+    }
     _s.upkeepDay = day;
     for (let d = 0; d < days; d++) oneDay(entity, now, rolls);
   }

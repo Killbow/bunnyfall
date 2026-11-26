@@ -123,15 +123,15 @@ export function offsetStep({
   return { offsetCurrent: current, offsetTarget: target, delta: current };
 }
 
+/** BUNNYFALL: the tempo and size of the idle breath, as shares of the walking bob rate and reach. */
+export const IDLE_BREATH = Object.freeze({ rate: 0.1, size: 0.4 });
+
 /** Bob (IL 0x1dca-0x1fbb): the sprite sways as you walk. `m` is the
  *  motor's frame (grounded, crouching, riding, standing, speedRatio,
  *  baseSpeed), `screenRect` the canvas, `time` the component's clock.
  *  `doubleScaleIdle` is the mod's `doubleScale && state == Idle` arm,
  *  which moves the bob's rest corner. Answers the next moveSmooth and
  *  bobSmooth, and the position delta (screen pixels). */
-/** BUNNYFALL: the idle breath's tempo (a share of the walking bob's) and its size (a share of the walking bob's reach). */
-export const IDLE_BREATH = Object.freeze({ rate: 0.1, size: 0.4 });
-
 export function bobStep({ moveSmooth, bobSmooth, time, screenRect, doubleScaleIdle = false }, s, m, dt) {
   const shape = s.bobShape;
   const moveMul = m.grounded === false ? 0 : 1;
@@ -139,8 +139,7 @@ export function bobStep({ moveSmooth, bobSmooth, time, screenRect, doubleScaleId
   let sp = Number.isFinite(m.speedRatio) ? m.speedRatio : 1;
   if (m.crouching) sp *= 0.5;
   if (m.riding) sp *= 0.5;
-  // BUNNYFALL: standing still, the weapon breathes - the mod's slow idle tempo, at a size the eye can see (the mod's own
-  // 0.1 of the walk was a twitch). IDLE_BREATH says how slow and how large.
+  // BUNNYFALL: standing still, the weapon breathes at the mod's slow idle tempo but at a visible size (IDLE_BREATH).
   let reach = sp;
   if (m.standing) { sp = s.bobWhileIdle ? IDLE_BREATH.rate : 0; reach = s.bobWhileIdle ? IDLE_BREATH.size : 0; }
   const baseSpeed = Number.isFinite(m.baseSpeed) ? m.baseSpeed : 1;

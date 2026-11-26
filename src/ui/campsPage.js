@@ -67,7 +67,7 @@ export function drawCampsPage(detail, rerender, { el, divider } = /** @type {any
   ensureHoldingsStyle();
   detail.append(divider(t('camps.page.title', 'Camps')));
   if (_read.status === 'idle' || (_read.status !== 'loading' && Date.now() - _read.at > READ_KEEP_MS)) ask(rerender);
-  if (_read.status === 'loading' && !_read.at) { detail.append(el('p', 'px-note', t('camps.page.loading', 'Looking for your camps...'))); return; }
+  if (_read.status === 'loading' && !_read.at) { detail.append(el('p', 'px-note', t('camps.page.loading', 'Loading...'))); return; }
   if (_read.status === 'fail') { detail.append(el('p', 'px-note', t('camps.page.fail', 'Your camps could not be read just now. Try again in a moment.'))); return; }
   const camps = _read.camps;
   detail.append(el('p', 'px-note', t('camps.page.intro', 'A tent pitched outdoors with the camping kit stays as a camp until its tent is packed up. You may keep {max} at once. Mark one to follow it on your map, or pack one up from here.', { max: CAMPS_MAX })));

@@ -35,7 +35,7 @@ export const ABILITY_REFUSAL = Object.freeze({
   fatigue: 'You need more fatigue',
   ammo: 'You need more ammunition',
   cooldown: 'This ability is recovering',
-  combat: 'Use Trailblazer away from hostile foes',
+  combat: 'Use Trailblazer away from enemies',
   followup: 'Land the ranged opener before using the follow-up',
 });
 

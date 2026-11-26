@@ -9,6 +9,29 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-25
 
+- New: In the Combat Preview, abilities lock onto the enemy you look at: swings turn toward it, leaps and dashes land on it, and ability arrows bend toward it.
+- Changed: In the Combat Preview, leaping abilities land on their target and strike it even if it moved, some leap farther and higher, and side hops land beside the enemy.
+- Changed: In the Combat Preview, each hit of a weapon or combination ability below rank 100 deals at least 30 percent more than a plain attack, even with several hits.
+- New: In the Combat Preview, Wayfarer's Anchor Mark leaves a lit lantern on the ground where you set it, until you Recall or set a new mark.
+- Changed: In the Combat Preview, abilities have their own weapon swings and sounds.
+- Changed: In the Combat Preview, the Abilities page of the spellbook shows a searchable list beside the chosen ability's details, and one click puts it on the hotbar.
+- Changed: The Spells page now shows the spell list, the spell's animation, and its details side by side, and the list and details scroll separately.
+- Changed: Your weapon, shield, and torch now sway more visibly while you stand still.
+- Fixed: With the grimoire look and illustrated menus on, the spellbook now plays its opening and closing sounds.
+- New: Vampires now have a short Vampirism tutorial, from the first bite to the Clan Gift. Each page appears once when relevant, and you can reread it under Menu > Tutorials.
+- Changed: Vitae now drains 12 a game day instead of 30. Resting, loitering, and fast travel drain it at a quarter rate and never take you below Hungry.
+- Changed: A rest, a loiter, or a fast travel trip now costs your thralls one day of upkeep at most, and unpaid thralls lose less loyalty each day.
+- Changed: The Kiss now works on whatever Vitae you have left, so a Starving vampire can still feed quietly, though the Beast may slip.
+- Changed: Garlythi now get 3/5 of the Vitae from Worker blood, Beast blood, and blood under 35% quality, instead of 2/5.
+- Changed: A Thrafey who drains someone dry now gets half the usual Vitae instead of a quarter.
+- Changed: Vampires now see the blood type and quality of the person they point at, such as "Noble blood, good (72%)", under the name. The Blood Sight card names it too.
+- Changed: After a bite, directions to the Courts stay in a box until closed, and the Elder's summons shows where to meet. Quest notices last 12 seconds, not 7.
+- Changed: Blows that draw blood from an enemy now give most vampires 4 Vitae instead of 2, and enough of them can fill a Starving vampire completely.
+- Changed: Prisoners, thralls, and enthralling are now labeled as a work in progress in the Haven, the feeding choices, and the tutorial.
+- Fixed: The hotbar, chat, buffs, and trackers no longer draw over the vampire's burial cutscene or any other full-screen video.
+- Fixed: Backing out of a feeding no longer uses up that person or sleeper for the day, and each sleeper in a house now counts separately.
+- Fixed: Reloading a game no longer lets a vampire feed on the same person twice in one day.
+- Changed: You can now throw the Grappling Hook from your pack with its own key (Numpad1 by default) or a touch button, with your weapon and shield still in hand. A hook you were holding goes back to your pack.
 - Fixed: The Essence reforge lists (and the Reforge window's replacement list) now scroll inside the window, so every replacement bonus can be reached on every line. They were cut off in the desktop app.
 - Fixed: Logging in no longer fails to load active quests with "this is expected if quest mod removed". The quest list was read before the game had loaded its people, so quests naming a person could not load. The game now waits for that, and a quest that still cannot load is set aside with its progress kept, and tried again at the next login.
 - Changed: Vampires have a short Vampirism tutorial, from the first bite to the Clan Gift. It pops once as each part matters, and you can read it again under Menu > Tutorials.

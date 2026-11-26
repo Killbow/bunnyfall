@@ -1,24 +1,7 @@
-// BUNNYFALL: THE GRAPPLING HOOK. The owner: "the grappling hook, wich can be used to fire in a direction and be pulled
-// there with a cooldown".
-//
-// A TOOL EVERY BODY CARRIES, not a weapon: no item, no skill, no ammo, no hand. Its own key (the GrapplingHook action)
-// is handed here by the weapon rig (grappleClick), which plays the hook's own frames (grappleFrame) in the hand for the
-// throw's length and starts no swing meanwhile; the weapon and the shield stay as they are. (It was item 565, held like a
-// dagger, until 2026-11-25; items/retiredItems.js clears the old item from saves.) The throw leaves on the throw frame. From there the PLAYER MOTOR runs it (player/motor.js `_step`, one hook: grappleStep), because the motor
-// is the one thing in every host that knows the eye, the look, the collider and the body:
-//   - THE THROW: a ray along the look from the eye, GRAPPLE_RANGE long, against the meshes and (outdoors) the terrain.
-//     What it meets is the mark; nothing met, the hook flies out, falls short and is reeled in.
-//   - THE MARK: a floor or a top (its normal up) - the body is set standing on it; a wall - onto the top just over the
-//     hook when there is one within reach, else hanging under the hook against the wall. The place must hold the
-//     body's capsule (player/parkour.js capsuleFits), nudged up or back toward the thrower if it does not; and indoors
-//     it must lie inside the place's own bounds. No place that holds the body, no pull: the hook comes back.
-//   - THE PULL: the body is moved toward the mark by the collider's own capsule sweep (collider.move), so it slides
-//     along what it meets and never passes through it; a pull that stops making way ends where it is. While it pulls
-//     there is no gravity and no fall: the fall's start is re-set every step, so a pull bills no falling damage (a
-//     drop after it is billed from where it ended). Jump lets go. A body moved by anything else meanwhile (a
-//     teleport, a door, the world's origin moving) ends it.
-//   - THE REST: GRAPPLE_COOLDOWN_S after a throw that caught, GRAPPLE_MISS_COOLDOWN_S after one that did not, counted
-//     on the motor's own clock (a paused game does not count it down). ui/heavyGearOverlay.js shows it, and the rope.
+// The Grappling Hook. Any character with one (item 565) in the pack throws it on the GrapplingHook key. The weapon rig
+// starts the throw (grappleClick) and draws its frames (grappleFrame); the player motor runs the flight and the pull
+// (grappleStep). The hook catches a wall, ledge, or floor the body fits on, and the pull has no gravity or falling
+// damage. Jump lets go, and a cooldown follows (GRAPPLE_COOLDOWN_S, or GRAPPLE_MISS_COOLDOWN_S after a miss).
 
 import { t } from '../../ui/textManager.js';
 import { capsuleFits } from '../../player/parkour.js';
@@ -92,7 +75,9 @@ export function grappleView() {
   };
 }
 
-/** End it all at once (a scene torn down, a death). */
+/** Cancels a throw still winding up; a hook already thrown keeps flying. */
+export function stopGrappleWindup() { if (!G.released) G.anim = -1; }
+/** Ends the wind-up, the flight, and the pull at once, on the rig's dispose and on death. */
 export function cancelGrapple() { G.hook = null; G.pull = null; G.wanted = false; G.anim = -1; G.released = false; }
 
 const unit = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
@@ -174,9 +159,9 @@ export function pullPlan(c, feet, height, hit, n, dir) {
   return dest ? [dest] : null;
 }
 
-/** May the body throw now? Not riding, levitating, on a wall or a ledge, held by a teleport's settle or knocked down. */
+/** May the body throw now? Not riding, swimming, levitating, climbing, on a wall or ledge, frozen, or knocked down. */
 function bodyFree(m) {
-  return !(m.riding || m.levitating || m.climb?.isClimbing || m._wall || m._pkMove || m.freezeMotor > 0 || m._downLeft > 0);
+  return !(m.riding || m.swimming || m.levitating || m.climb?.isClimbing || m._wall || m._pkMove || m.freezeMotor > 0 || m._downLeft > 0);
 }
 
 function launch(m, yaw, pitch) {
