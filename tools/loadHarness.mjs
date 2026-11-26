@@ -398,10 +398,13 @@ export async function standServices(o, state) {
   console.log('== a throwaway signing pair (never written into the repository)');
   const { stdout } = await run(process.execPath, [join(ROOT, 'tools/mintIdentityKeys.mjs'), '--pipe']);
   const [priv, pub] = stdout.split('\n');
+  // BUNNYFALL (2026-11-26): and the GATE pair - the relay signs made levels' receipts with its private half (a gate's, the
+  // arena's, a mine's haul) and the account service checks them with the public: without it they went out unsigned
+  const gate = (await run(process.execPath, [join(ROOT, 'tools/mintIdentityKeys.mjs'), '--pipe'])).stdout.split('\n');
   const acctEnv = join(state, 'account.env');
-  writeFileSync(acctEnv, `IDENTITY_PRIVATE_KEY=${priv}\nIDENTITY_PUBLIC_KEY=${pub}\n`, { mode: 0o600 });
+  writeFileSync(acctEnv, `IDENTITY_PRIVATE_KEY=${priv}\nIDENTITY_PUBLIC_KEY=${pub}\nGATE_PUBLIC_KEY=${gate[1]}\n`, { mode: 0o600 });
   const relayEnv = join(state, 'relay.env');
-  writeFileSync(relayEnv, `IDENTITY_PUBLIC_KEY=${pub}\n`, { mode: 0o600 });
+  writeFileSync(relayEnv, `IDENTITY_PUBLIC_KEY=${pub}\nGATE_SIGNING_KEY=${gate[0]}\n`, { mode: 0o600 });
 
   console.log('== the account database: every migration, through wrangler\'s ledger');
   const [mb, ma] = wrangler(['d1', 'migrations', 'apply', 'daggerfall-accounts', '--local', '--persist-to', state]);
@@ -413,11 +416,13 @@ export async function standServices(o, state) {
   const relay = () => startDev(join(ROOT, 'server'), ['dev', '--config', join(ROOT, 'server/wrangler.toml'), '--local',
     '--persist-to', state, '--port', String(relayPort), '--ip', '127.0.0.1', '--inspector-port', String(relayPort + 100), '--env-file', relayEnv], 'relay');
   console.log('== booting both Workers in workerd');
-  const svc = { accountPort, relayPort, account: account(), relay: relay(), restartRelay: null };
-  if (!(await healthy(accountPort, '/v1/health', 180))) throw new Error(`the account service never answered:\n${svc.account.log.slice(-2000)}`);
+  // Wait for the account worker to initialize shared local storage before starting the relay.
+  const accountProcess = account();
+  if (!(await healthy(accountPort, '/v1/health', 180))) throw new Error(`the account service never answered:\n${accountProcess.log.slice(-2000)}`);
   // AUDIT SCALE C11: the private half read and the service up - it leaves the disk now, not at the run's end (the relay's
   // file holds the public half alone, and the storm restarts only the relay)
   rmSync(acctEnv, { force: true });
+  const svc = { accountPort, relayPort, account: accountProcess, relay: relay(), restartRelay: null };
   if (!(await healthy(relayPort, '/health', 180))) throw new Error(`the relay never answered:\n${svc.relay.log.slice(-2000)}`);
   svc.restartRelay = async () => {
     stopDev(svc.relay);

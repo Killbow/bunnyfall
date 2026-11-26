@@ -25,10 +25,12 @@
 //   THE ACT. Foraging's checks with the Wood-Axe's lines; the machine is
 //   systems/chopAct.js; the Wood-Axe draws DFU's War Axe in the hand.
 // ═══════════════════════════════════════════════════════════════════
+import { t } from '../ui/textManager.js';   // BUNNYFALL (caverns): the timber grade's words
 import { trees, nodeKey, WOOD_TABLES } from '../net/nodeLaw.js';
 import { FELLED } from '../ai/cover.js';   // AUDIT TACT B1: a felled tree is no cover
 import { tierOpen, TIER_RANKS, woodAxeBand, chopsFor, storesFullIn, goneIn, fullWordsIn, GROUND_WHERE, GROUND_WHERE_WORDS } from '../net/professionLaw.js';
 import { createChopAct } from './chopAct.js';
+import { groveHeart } from './groves.js';   // CAVERNS-MINING-LOGGING: the day's trees stand in groves
 import { FT } from './foragingLaw.js';
 import { foragingActRefusal, foragingToolIn, actChecksRefusal } from './foragingInstall.js';
 import { materialLabel } from './profItems.js';
@@ -98,8 +100,10 @@ export function standTrees({ px, py, day, climate, confirmed = false, forest = n
   // flat, not once a flat a tree (JUNGLE-WOODS: the jungle's 48 trees a day over its ~5,400 tree flats)
   const flats = (woods.length ? woods : all).filter((f) => !insideRocks(rocks, f.x, f.z));
   const claimed = new Set();
-  for (const t of trees({ x: px, y: py, day, climate, confirmed })) {
-    const lx = t.u * TERRAIN_SIZE, lz = t.v * TERRAIN_SIZE;
+  const law = trees({ x: px, y: py, day, climate, confirmed });
+  for (const t of law) {
+    const heart = groveHeart(law, t);   // CAVERNS-MINING-LOGGING: a grove's trees take the flats nearest one point
+    const lx = heart.u * TERRAIN_SIZE, lz = heart.v * TERRAIN_SIZE;
     let best = null, bestD = Infinity;
     for (const f of flats) {
       if (claimed.has(f.id)) continue;
@@ -314,7 +318,12 @@ export function treeKind({ book, renderer = null, flatBatchAabb = null, getTextu
     },
     cleanNote: () => ' (every chop a Clean Cut)',
     /** QL11: a tree's logs the service answered (the host's one answer to a harvest: the act's own, or a kept one's). */
-    answered() { noteAct('wood-chopped'); },   // QL11: wood chopped
+    answered(/** @type {any} */ d, /** @type {(t: string) => void} */ say) {
+      noteAct('wood-chopped');   // QL11: wood chopped
+      // BUNNYFALL (2026-11-26, caverns): the felling's timber grade (net/timberLaw.js) - a prime one saws to a plank more, a knotty one to a plank less
+      if (d?.grade === 'prime') say?.(t('prof.timberPrime', 'Prime timber: these logs will saw to an extra plank each.'));
+      else if (d?.grade === 'knotty') say?.(t('prof.timberKnotty', 'Knotty timber: these logs will saw to one plank fewer each. Cleaner chops make better wood.'));
+    },
     title: () => 'Woodcutter',
   };
 }

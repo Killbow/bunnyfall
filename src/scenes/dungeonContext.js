@@ -10572,6 +10572,11 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       _hostTargets.push(fn);
       return () => { const i = _hostTargets.indexOf(fn); if (i >= 0) _hostTargets.splice(i, 1); };
     },
+    // Only the room host spawns shared mine creatures.
+    spawnFoeNear(mobileType, feet, minDistance, maxDistance) {
+      if (onlineRoom() && !_authority) return Promise.resolve(null);
+      return _spawnEncounter({ mobileType, minDistance, maxDistance, lineOfSightCheck: false }, { feet, yaw: 0, shared: !!onlineRoom() });
+    },
     /** WORLD-HOVER: the naming half of the same seam - the mod's own
      *  extension API (vendor .cs:228-257), insertion order, first
      *  answer with a title wins. A host registers a namer for each

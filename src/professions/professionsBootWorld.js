@@ -99,7 +99,7 @@ export function createProfessionsBootWorld(shared) {
         : key.startsWith('foeCorpse:') ? shared.openBodyLoot(key) : shared.modes?.dungeonCtx?.takeLoot(key, getInteractionMode()));
       const _fishSeaT = [0, 0, 0];   // HIGH-CAST: the sea's top's translation, the fish host's waterY
       shared.gatherHost = createGatherHost({
-        book: profBook, hud, kinds: [herbKind({ book: profBook }), mineKind({ book: profBook, lodes: motherlodeBook, marks: marksBook }),   // PROF2b: and the Motherlodes
+        book: profBook, hud, kinds: [herbKind({ book: profBook }), mineKind({ book: profBook, lodes: motherlodeBook, marks: marksBook, cave: () => shared.modes?.mineHere?.() ?? null, struck: (n) => shared.modes?.mineStruck?.(n) }),   // PROF2b: and the Motherlodes
           treeKind({ book: profBook, renderer, flatBatchAabb, getTexture, billboardSize, uploadRecord }),   // PROF4: Logging's trees
           huntKind({ book: profBook, bodies: () => shared.huntBodies(), openLoot: openHuntLoot, trophy: trophyDoor(saveSoon) }),   // PROF7: Hunting's bodies; HUNTERS-MARK: a Trophy Hunter's trophy
           // PROF8: Fishing's casts - the net in its water, the pixel and its ground the player stands in, the game clock's

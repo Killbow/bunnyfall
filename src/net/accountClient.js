@@ -2064,6 +2064,16 @@ export function accountKetch({ fetch, storage }) {
   };
 }
 
+/** BUNNYFALL (2026-11-26, caverns): A DRILL'S HAUL through the one door (server-account/src/mineHaul.js) - `claim(receipt,
+ *  character)` `{ ok, data: { paid, ore } }`; `me()` the signed-in account (a drill is set by it, its hopper its alone). */
+export function accountMine({ fetch, storage }) {
+  const io = () => { const s = storedSession(storage); return s ? { fetch, base: serviceBase(storage), secret: s.secret } : null; };
+  return {
+    claim: async (receipt, character) => { const i = io(); return i ? call(i, '/v1/mine/haul', { receipt, character }) : { ok: false, error: 'no-session' }; },
+    me: () => storedSession(storage)?.id ?? null,
+  };
+}
+
 /** LAMP-KEEPER II (2026-10-14): THE LAMP'S TITLE (server-account/src/lamp.js) through the one door - `claim()` a lamp
  *  keeper spoken to, `{ ok, data: { granted, why? } }`; no session is `no-session`, never a throw. */
 export function accountLamp({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {

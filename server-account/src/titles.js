@@ -10,6 +10,7 @@ import { EG_HONOUR, EG_HONOUR_TITLES, EG_HONOUR_AURA, EG_CHAMPION_TITLE, EG_FIRS
 import { LAMP_TITLE } from './lamp.js';
 import { QL_TITLES, qlTitleBit } from '../../src/net/questlineClaims.js';
 import { festivalWaresHeld, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../src/net/festivalLaw.js';
+import { societyWaresHeld } from '../../src/net/mine/societyLaw.js';
 import { STAFF_GLYPHS } from '../../src/net/staffCommands.js';
 import { MASTERY_MARKS } from '../../src/net/huntLaw.js';
 
@@ -127,9 +128,11 @@ export function titlesHeld(player, env) {
     if (Number(player?.fest_given) >= HEARTHKEEPER_GIVEN) held.push(HEARTHKEEPER_TITLE);
     if (Array.isArray(player?.masteryMarks)) for (const t of MASTERY_MARKS) if (player.masteryMarks.includes(t) && !held.includes(t)) held.push(t);
     for (const t of farmTitlesFor(player?.farm_work)) if (!held.includes(t)) held.push(t);
+    for (const t of societyKeys(player, 'title')) if (!held.includes(t)) held.push(t);
   }
   return held;
 }
+const societyKeys = (/** @type {any} */ player, /** @type {string} */ kind) => societyWaresHeld(player?.society_wares).filter((id) => id.startsWith(`${kind}:`)).map((id) => id.slice(kind.length + 1));
 export const HEARTHKEEPER_TITLE = 'hearthkeeper';
 const festivalKeys = (/** @type {any} */ player, /** @type {string} */ kind) => festivalWaresHeld(player?.fest_wares).filter((id) => id.startsWith(`${kind}:`)).map((id) => id.slice(kind.length + 1));
 
@@ -147,6 +150,7 @@ export function aurasHeld(player, env) {
   for (const a of insigniaKeys(player?.insignia, 'aura')) if (!held.includes(a)) held.push(a);
   if (typeof player?.handle === 'string' && player.handle && (Number(player?.serpent_honours) & SERPENT_HONOUR_AURA)) held.push('maelstrom');
   if (typeof player?.handle === 'string' && player.handle) for (const a of festivalKeys(player, 'aura')) if (!held.includes(a)) held.push(a);
+  if (typeof player?.handle === 'string' && player.handle) for (const a of societyKeys(player, 'aura')) if (!held.includes(a)) held.push(a);
   if (typeof player?.handle === 'string' && player.handle) for (const t of farmTitlesFor(player?.farm_work)) { const a = FARM_TITLE_AURA[t]; if (a && !held.includes(a)) held.push(a); }
   return held;
 }

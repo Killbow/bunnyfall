@@ -5,6 +5,19 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-26
 
+- Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
+- Added: Mine sounds. A running drill grinds at its rig, hauling ore rattles into your sack, shoring hammers home and lamps catch with a flare. Falling dust, creaking timbers and the rumble each have their own sound, the collapse comes down in a crash of rock, and a wave is heralded by a roar from the dark.
+- Added: Mine kit at the Cartographers' desk (press G there): a Mining Drill, Drill Fuel, Mine Lamps and a Survey Rod, bought with gold. A drill now needs one fuel a shift, and stops if you leave the mine.
+- Added: Your party can empty your drill's hopper; each crewman's haul is their own.
+- Added: Mine Lamps. Hang one in a chamber to light it and keep wandering creatures out of it.
+- Changed: Mine walls only show as sound or weak rock when you carry a Survey Rod.
+- Changed: Cartographers' Society members earn a tenth more Survey Seals per guild rank, and each contract raises your standing with the Society.
+- Added: Mine mouths you have spotted are marked on your world map.
+- Added: Timber grades. A felling with every chop clean gives prime logs, which saw into an extra plank each; a felling with fewer than half clean gives knotty logs, one plank fewer each. You are told the grade when the tree falls, and a saw at the workbench uses your prime logs first and your knotty ones last.
+- Added: The Cartographers' Society now takes ore contracts. Press K at a Cartographers' hall to pick one of the day's three: a big haul of one ore, delivered from your Stores, for Survey Seals. Ore you gather anywhere counts, but bought ore does not. Spend Seals on a ladder of titles (Prospector, Delver, Deepwarden, Master of the Seam) and on The Burning Stair aura.
+- Added: The mine drill. Press a Minable Ore to set your drill on it: it runs for three minutes, filling its hopper far faster than a pick, but its roar brings waves much sooner and wears the rock. Press it again to haul the hopper into your Stores. You and your party can empty your drill, and a collapse buries it. Use Info on the ore to examine it as before.
+- Added: Mines fight back. Mining makes noise, and enough of it draws waves of cave creatures into the chamber, bigger each time; the odd stray wanders in too. Rats, bats and spiders near the top, scorpions, orcs and spriggans further down, skeletons and the dead at the bottom.
+- Changed: Tree stands now grow in groves, so a woodcutter finds several trees together instead of one at a time.
 - Changed: Online account, market, customs, and housing messages use plainer words.
 
 ## 2026-11-25

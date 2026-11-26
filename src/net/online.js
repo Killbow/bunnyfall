@@ -1,4 +1,5 @@
 // @ts-check
+import { validMineIn, validMineOut, mineRoomOf, relaySupportsMine, relaySupportsDrill } from './mine/mineWire.js';   // BUNNYFALL (2026-11-25, caverns): the `mn` frame
 import { dmColourOf } from './dmLaw.js';   // BUNNYFALL /dm: the Dungeon Master's colours
 import { encodeTune, validTune } from './bardTune.js';   // BARDS' COLLEGE
 /** BARDS' COLLEGE: the least gap between my tunes, ms (the relay keeps the same). */
@@ -875,6 +876,9 @@ export class OnlineSession {
     this.onRite = null;           // WB12d: (word, room) => void - the hub's word of a broken rite, projected by the wire's validRiteOut
     this.onSd = null;             // SD3: (word, room) => void - the hub's word of the Super dungeon (its record), projected by the wire's validSdOut
     this.onSdHall = null;         // SD6b: (word, room) => void - the realm's word of its Orrery (the stones, the fray, the dial, the Concord), from my own realm alone
+    this.mnOk = false;            // BUNNYFALL (2026-11-25, caverns): the relay keeps mines (relaySupportsMine) - an older one closes the socket on `mn`
+    this.drillOk = false;         // BUNNYFALL (2026-11-26, caverns): and drills (relaySupportsDrill)
+    this.onMine = null;           // BUNNYFALL (2026-11-25, caverns): (word, room) => void - the mine I stand in's word (validMineOut)
     this.ktOk = false;            // KETCH: the relay that welcomed this socket keeps a crew's ship (relaySupportsKetch) - an older one CLOSES the socket on `kt`
     this.onKetch = null;          // KETCH: (word, room) => void - my ship's word (net/wire.js validKetchOut), from the ship I stand on alone
     this._ktBucket = null;        // KETCH: my words aboard - the ship's own bucket (net/wire.js ketchGate)
@@ -2168,6 +2172,14 @@ export class OnlineSession {
     if (!gate.pass) return false;
     try { this._ws.send(JSON.stringify({ t: 'kt', ...w })); } catch { return false; }
     this._ktBucket = gate.bucket; this.stats.sent++;
+    return true;
+  }
+  /** BUNNYFALL (2026-11-25, caverns): a word on the mine I stand in (net/mine/mineWire.js validMineIn) - to its room alone. */
+  sendMine(k, fields = {}) {
+    const w = validMineIn({ t: 'mn', ...fields, k });
+    if (!w || !this.mnOk || !mineRoomOf(this.room) || this.status !== 'open' || !this._ws || !this._welcomed.has(this._ws)) return false;
+    try { this._ws.send(JSON.stringify({ t: 'mn', ...w })); } catch { return false; }
+    this.stats.sent++;
     return true;
   }
   sendKetch(k, fields = {}) {
@@ -3617,6 +3629,7 @@ export class OnlineSession {
       if (primary) this.starOk = relaySupportsStar(relayV);   // STAR3: the cell keeps a fallen star - an older relay closes the socket on `star`
       else { const h = this._halo.get(room); if (h) h.starOk = relaySupportsStar(relayV); }
       if (primary) this.egOk = relaySupportsEg(relayV);   // EG-PLAY: a relay that opens Elite Breaches - an older one closes the socket on `eg`
+      if (primary) { this.mnOk = relaySupportsMine(relayV); this.drillOk = relaySupportsDrill(relayV); }   // BUNNYFALL (2026-11-25, caverns); the drill (2026-11-26)
       if (primary) this.ktOk = relaySupportsKetch(relayV);   // KETCH: a relay that keeps a crew's ship - an older one closes the socket on `kt`
       if (primary) this.egLandOk = relaySupportsEgLand(relayV);   // FIELD BUGS 2026-10-20f LANDED-WORD: a relay that says what my blows on a breach's bodies land
       if (primary) this.sdOk = relaySupportsSd(relayV);   // SD3: the cell hears a Hollow found - an older relay closes the socket on `sd`
@@ -3852,6 +3865,10 @@ export class OnlineSession {
       else if (r?.k === 'rcpt') { if ((room === this.room && isSdRoom(room)) || isSocialRoom(room)) this._deliver('sd', () => this.onSdReceipt?.(r.r, room)); }   // SD9a: my receipt - my own realm's, or the hub's
       else if (r && r.k !== 'ev') { if (room === this.room && isSdRoom(room)) this._deliver('sd', () => this.onSdFight?.(r, room)); }   // SD8b: the realm's fight, from my own realm alone
       else if (r && isSocialRoom(room)) this._deliver('sd', () => this.onSd?.(r, room));
+    } else if (m.t === 'mn') {
+      // BUNNYFALL (2026-11-25, caverns): the mine's word - from the mine room I stand in alone
+      const r = validMineOut(m);
+      if (r && room === this.room && mineRoomOf(room)) this._deliver('mn', () => this.onMine?.(r, room));
     } else if (m.t === 'kt') {
       // KETCH: a crew's ship's word - from the ship I stand on alone, projected by the wire's own law; AUDIT KETCH L1-2: and
       // my receipt from the hub, which keeps it (at the fall when I stood off her, and at my hello)

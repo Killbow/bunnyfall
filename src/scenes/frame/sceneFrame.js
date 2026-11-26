@@ -181,6 +181,7 @@ export function createSceneFrame(shared) {
     riteHost?.draw(renderer, null, mwv.eye);   // WB12d: the faithful's circle and their tents - AUDIT WB12d (G6): its sigil from near the eye alone
     sigilBroker?.draw(renderer);   // BROKER-CAGE: the Sigil Broker's cage beside it, and its door
     cromwark.draw(renderer);   // BUNNYFALL: the Adventurers' Guild's tent at the reach's edge
+    shared.mines?.draw(renderer);   // BUNNYFALL (2026-11-26, caverns): the mines' entrances, the owner's model
     starfall?.draw(renderer);   // STAR4: the craters and their stones
     gatePool?.draw(renderer);   // WB2: the Oblivion Gate's stone
     ketch?.drawSky(renderer);   // KETCH: the Sky-Ketch over Daggerfall, and her anchor-lift let down to the fields

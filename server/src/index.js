@@ -249,6 +249,7 @@ import { SdPart } from './world/sd.js';
 import { SdFightPart } from './world/sdFight.js';
 import { EgPart } from './world/eg.js';
 import { KetchPart } from './world/ketch.js';
+import { MinePart } from './world/mine.js';   // BUNNYFALL (2026-11-25, caverns): a mine's shared state
 import { ConfigPart } from './world/config.js';
 import { LeasePart } from './world/lease.js';
 import { BodyPart } from './world/body.js';
@@ -553,6 +554,7 @@ installParts(Room, SdPart);
 installParts(Room, SdFightPart);
 installParts(Room, EgPart);
 installParts(Room, KetchPart);
+installParts(Room, MinePart);   // BUNNYFALL (2026-11-25, caverns)
 installParts(Room, ConfigPart);
 installParts(Room, LeasePart);
 installParts(Room, BodyPart);

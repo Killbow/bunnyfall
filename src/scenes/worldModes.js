@@ -133,7 +133,9 @@ import { edAtmosFrame, edLampTint } from '../systems/eliteDungeons/edAtmos.js'; 
 import { egRoomKey } from '../net/eliteGates/egLaw.js';   // EG-PLAY: its room, its halls, its words
 import { createEgCircleHost } from '../systems/eliteGates/egCircleHost.js';   // HOST-SPLIT (EG-LOOK): an Elite Breach's circle on this screen, moved out of this host
 import { createKetchDeckHost, ketchShipHit } from '../systems/ketch/ketchDeckHost.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen's dungeon host - its set, its seams, its look, its door
-import { isKetchShip } from '../world/ketch/ketchShip.js';   // KETCH: the sky-ketch, a made level as the Hour is
+import { isKetchShip } from '../world/ketch/ketchShip.js';
+import { createMineHost } from '../systems/mine/mineHost.js';   // BUNNYFALL (2026-11-25, caverns): a mine, a made level
+import { mineHit, isMine } from '../world/mine/mineLocation.js';   // BUNNYFALL (2026-11-25, caverns)   // KETCH: the sky-ketch, a made level as the Hour is
 import { KT_ARRIVE } from '../net/ketch/ketchDeck.js';   // KETCH: where the anchor-lift sets a crew down, and its facing
 import { EG_OCCLUDE_CHEST_M } from '../systems/eliteGates/egOcclude.js';   // EG-ZN (section 11.8): the occluders between the camera and the body dithered out
 import { madeLevelOf } from '../characters/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): which made level stands under the player - one law
@@ -154,6 +156,8 @@ import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice,
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from '../characters/npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
 import { createTavernFavorShop } from './tavernFavorShop.js';
+import { createSocietyDesk } from '../guilds/societyDesk.js';
+import { bunnyGainRep } from '../guilds/bunnyServices.js';   // BUNNYFALL (2026-11-26, caverns): the Cartographers' ore contracts and Survey Seals
 import { magicHallEntry, magicRoomIdentity, magicHallGreeting } from './magicTavernRoom.js';   // MAGIC-TAVERN: a blue tavern's door opens the shared hall
 import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
@@ -2638,6 +2642,8 @@ export function createWorldModes(host) {
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), flow: (boxes) => townTalk?.showOverlay?.(new ServiceFlowWindow(boxes)),
     back: () => favorShop.open(),
   });
+  const societyDesk = createSocietyDesk({ call: host.societyCall ?? null, kit: host.societyKit ?? null, stores: host.societyStores ?? null, gold: () => playerEntity?.goldPieces ?? 0,
+    gainRep: (n) => bunnyGainRep(playerEntity, 'cartographers', n), choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });   // BUNNYFALL (2026-11-26, caverns)
   const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
@@ -4466,7 +4472,7 @@ export function createWorldModes(host) {
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
     if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
       openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
-        entity: playerEntity, openFavor: () => favorShop.open(), openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
+        entity: playerEntity, openFavor: () => favorShop.open(), openSociety: () => { void societyDesk.open(); }, openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
         revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
       }));
       return;
@@ -9498,6 +9504,12 @@ export function createWorldModes(host) {
    *  client rides it - scenes/ketch/ketchClient.js board). `r` is { n: the voyage, owner: the captain's digest, site: the
    *  climate and region at Daggerfall }. The ship's room is the relay's `kt:<voyage>.<owner>`; where I stood is every way
    *  down's landing (returnLanding's `from`). */
+  /** BUNNYFALL (2026-11-25, caverns): INTO A MINE (world/mine/mineLocation.js) - a made level, the Ketch's way. `r` is
+   *  { px, py, reset, site }; its room is the mine's own dungeon room. */
+  async function enterMine(r) {
+    const hit = mode === 'exterior' && playerEntity.health > 0 ? mineHit(r, blocks) : null;
+    return hit ? gatedTransition((live) => dungeonTransition(hit, [], true, live)) : false;
+  }
   async function enterKetch(r) {
     const hit = mode === 'exterior' && playerEntity.health > 0 ? ketchShipHit(r, blocks) : null;   // the made location and its blocks (scenes/ketch/ketchDeckHost.js)
     return hit ? gatedTransition((live) => dungeonTransition(hit, [], true, live)) : false;
@@ -9712,6 +9724,7 @@ export function createWorldModes(host) {
   /** KETCH (bible/11-Multiplayer/Sky-Ketch.md sections 3 and 11): A CREW'S SHIP on this screen - its set, its seams routed to the
    *  world's client (`host.ketch`), its look (scenes/ketch/ketchDeckHost.js - HOST-SPLIT: built there, its reads here). */
   const ketchDeck = createKetchDeckHost({ renderer, host, wm: _madeView });
+  const mineHost = createMineHost({ renderer, audio, getTexture, uploadRecord, link: () => host.mine ?? null, say: (x) => say(x), shake: (k) => host.shakeCamera?.(k), leave: () => { if (mode === 'dungeon' && dungeonCtx && isMine(dungeonLoc)) pendingDungeonExit = true; } });   // BUNNYFALL (2026-11-25, caverns)
   /** EG-ZN (2026-10-12, Elite-Gates.md section 11.8): THE OCCLUDERS DITHERED, this frame - after its beginFrame (the shadow
    *  record open) and before the dynamic draws: the circle's rock a ray from the third-person eye to my body (its pivot and
    *  its chest) crosses dithered out, the rest of the circle drawn whole (scenes/eliteGates/egOcclude.js). First person, a witness's
@@ -10110,6 +10123,7 @@ export function createWorldModes(host) {
       if (hit.sdRealm != null) standSdRealm(ctx);   // SD5a: the Hour, before the start marker is read
       if (hit.egHall) standEgHall(ctx, hit.egHall);   // EG-PLAY: an Elite Breach's circle, the same
       if (hit.ketch) ketchDeck.stand(ctx);   // KETCH: a crew's ship, the same
+      if (hit.mine) mineHost.stand(ctx, hit.dfLocation);   // BUNNYFALL (2026-11-25, caverns): a mine, the same
       if (hit.arenaFloor) standArenaFloor(ctx);   // ARENA2: the floor's gates, before any namer
       // OH-D: DaggerfallDungeon.OnSetDungeon - SetDungeon raises it after LayoutDungeon, before TransitionDungeonInterior
       // reads the start marker. A listener may hand back the work it started (the port's foe rebuilds - DFU's are
@@ -10460,7 +10474,8 @@ export function createWorldModes(host) {
       return true;
     }
     if (key.startsWith('sdrift:') || key.startsWith('sdreturn:') || key.startsWith('sdstone:') || key.startsWith('sdplaque:')) { dungeonCtx.sdPress?.(key); return true; }
-    if (key.startsWith('kt:')) { host.ketch?.()?.press?.(key); return true; }   // KETCH: a crew's ship's - a cell, a socket, a resonator, the bosun's line, a way down, the chest
+    if (key.startsWith('kt:')) { host.ketch?.()?.press?.(key); return true; }
+    if (key.startsWith('mine:')) { mineHost.press(key, getInteractionMode()); return true; }   // BUNNYFALL (2026-11-25, caverns): a mine's hole or wall   // KETCH: a crew's ship's - a cell, a socket, a resonator, the bosun's line, a way down, the chest
     if (key.startsWith('egstone:') || key.startsWith('egengine:')) { dungeonCtx.egPress?.(key); return true; }   // EG-FULL LAYER THREE: an Elite Breach's Orrery stone, a chamber's engine   // SD4b: a Super dungeon's Rift and Return (Super-Dungeons.md section 6) - the context's own
     if (key.startsWith('questflat:')) {
       // DQ1: buildingKey is 0 down here - StaticNPC reads it from the
@@ -11202,6 +11217,7 @@ export function createWorldModes(host) {
       if (isGateArena(dungeonLoc)) { const _court = withCourtLights(_dgLit, [...(host.gateCourtLights?.() ?? []), ...courtLightsNear(cam.pos, planOfDay(dungeonLoc.gate))]); renderer.setPointLights(_court.data, null, _court.colors); }
       if (isSdRealm(dungeonLoc)) { const _hour = realmLightsWith(_dgLit, host.sdRealmLights?.() ?? NO_LIGHTS, cam.pos, host.sdLampDim?.() ?? null); renderer.setPointLights(_hour.data, null, _hour.colors); }   // SD5a: the Hour's lamps, after the player's own lights, nearest first; SD9e: the spoils' light before them, as the court's; AUDIT SD II (L2 F9): into the realm's own arrays, made once; SD-LOOK S7: the arena's dimmed through the Reset
       if (isEgHall(dungeonLoc)) { const _sp = egLightsWith(_dgLit, host.egLights?.() ?? NO_LIGHTS, egCircle.lamps(), cam.pos); renderer.setPointLights(_sp.data, null, _sp.colors); }   // EG-PLAY: the Spire's lamps after the player's own lights, the fight's glows before them
+      if (isMine(dungeonLoc)) mineHost.frame();   // BUNNYFALL (2026-11-25, caverns): the mine's hello and its collapse
       const _ktLook = isKetchShip(dungeonLoc) ? ketchDeck.frameLook(mwv.eye, _dgLit, skyMinutes() % 1440) : null;   // KETCH: the deck's hour (its light, its haze, its sun) or below decks' lamps; the ship's lamps and the fight's glows after my own lights
       renderer.everyLightCasts();   // LA-SHADOW3: the level is drawn whole below (no view cull) - every torch keeps a shadow map, none lights through the rock as the nearest eight change (DISC15's rooms)
       renderer.setClearColor(INTERIOR_CLEAR);   // REVIEW 2026-09-05 (PR #55 review): the world-hosted dungeon/interior frame is THIS one - the host's own setClearColor sits after its `modes.frame` return
@@ -13519,6 +13535,9 @@ export function createWorldModes(host) {
     egHallCircle: () => (mode === 'dungeon' && isEgHall(dungeonLoc) ? dungeonLoc.egCircle : null),   // EG-PLAY: and which circle it is
     enterEgHall,   // EG-PLAY: into a breach's circle (the world host steps the veil)
     enterKetch,   // KETCH: up the anchor-lift onto a crew's ship (the world's client rides it)
+    enterMine,   // BUNNYFALL (2026-11-25, caverns): into a mine from its mouth
+    mineHere: () => (mode === 'dungeon' && isMine(dungeonLoc) ? mineHost.here() : null),   // BUNNYFALL (2026-11-25, caverns): the mine stood in
+    mineStruck: (n) => mineHost.struck(n), mineHeard: (w) => mineHost.heard(w),
     ktShip: () => (mode === 'dungeon' && isKetchShip(dungeonLoc) ? dungeonLoc.ketch : null),   // KETCH: the crew's ship under this player - its voyage, its captain, its room
     ktLeave: () => { if (mode !== 'dungeon' || !isKetchShip(dungeonLoc) || !dungeonCtx) return false; pendingDungeonExit = true; return true; },   // KETCH: down at the top of the next frame, to where I boarded (returnLanding's `from`)
     ktPlace: egPlace,   // KETCH: stood elsewhere on the ship - the bosun's line's ride

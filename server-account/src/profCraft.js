@@ -20,6 +20,7 @@ import { stationSteps } from '../../src/net/fortLaw.js';
 import { fortTiersOf } from './seatForts.js';
 import { RAM_KIT } from '../../src/net/professionLaw.js';
 import { SIEGE_GEM } from '../../src/net/professionLaw.js';
+import { sawGrades } from '../../src/net/timberLaw.js';   // BUNNYFALL (2026-11-26, caverns): timber grades
 import { CARRIED_MAX, DEPOSIT_MAX, DEPOSIT_ORDERS, heldOk, seenOk, depositOrderOk, looseOrder, LOOSE_ORIGIN } from '../../src/net/bagLaw.js';
 import { asks, shut, trackView, trackRow, storeOf, silverSql, silverClothIn, silverClothOut, carriedOf } from './profShared.js';
 import { spendOrigins, workStatements, workHeld } from './profSpend.js';
@@ -276,13 +277,26 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
     binds.push(embers);
     held.push(`(SELECT ${EMBERS_EARNED_SQL} - insignia_spent FROM players WHERE id = ?1) >= ?${binds.length}`);
   }
+  // BUNNYFALL (2026-11-26, caverns): TIMBER GRADES - a saw's own logs, the prime first and the knotty last, a plank more or
+  // less each (src/net/timberLaw.js sawGrades); its planks own, and the counts spent with the decision's own row
+  let graded = { prime: 0, knotty: 0, extra: 0 };
+  if (r.id.startsWith('saw:')) {
+    const log = r.inputs[0].key, st = await storeOf(db, player.id, character, log);
+    const g = await db.prepare('SELECT prime, knotty FROM prof_log_grades WHERE player = ?1 AND char_id = ?2 AND material = ?3').bind(player.id, character, log).first();
+    graded = sawGrades({ count, own: Number(st.own ?? 0), other: Number(st.bought ?? 0) + Number(st[LOOSE_ORIGIN] ?? 0), prime: Number(g?.prime ?? 0), knotty: Number(g?.knotty ?? 0) });
+  }
+  const extra = Math.trunc(graded.extra);
   await db.batch([
     db.prepare(`INSERT OR IGNORE INTO prof_smelts (player, rid, char_id, recipe, count, own, bought, loose, xp, at, n, first, clean)
-      SELECT ?1, ?3, ?2, ?4, ?5, ${per} * (?5 - MIN(?5, ${bought})), ${per} * (MIN(?5, ${bought}) - MIN(?5, ${loose})), ${per} * MIN(?5, ${loose}),
+      SELECT ?1, ?3, ?2, ?4, ?5, ${per} * (?5 - MIN(?5, ${bought})) + ${extra}, ${per} * (MIN(?5, ${bought}) - MIN(?5, ${loose})), ${per} * MIN(?5, ${loose}),
         MAX(0, MIN(${fx('?8', xp)} + f * ${fx('?11', workFirstXp(r))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${trackOf(r.xp ?? 'smithing')}'), 0))), ?9, ?10, f, ?12
       FROM (SELECT CASE WHEN ?11 > 0 AND NOT EXISTS (SELECT 1 FROM prof_smelts WHERE player = ?1 AND char_id = ?2 AND recipe = ?4) THEN 1 ELSE 0 END AS f)
       WHERE ${held.join(' AND ')}
-        AND COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?6), 0) + ${per} * ?5 <= ?7`).bind(...binds),
+        AND COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?6), 0) + ${per} * ?5 + ${extra} <= ?7`).bind(...binds),
+    // BUNNYFALL (caverns): the graded logs the saw spent, off their counts - only where its row was written
+    ...(graded.prime + graded.knotty > 0 ? [db.prepare(`UPDATE prof_log_grades SET prime = MAX(0, prime - ?4), knotty = MAX(0, knotty - ?5)
+      WHERE player = ?1 AND char_id = ?2 AND material = ?6 AND EXISTS (SELECT 1 FROM prof_smelts WHERE player = ?1 AND rid = ?3 AND n = ?7)`)
+      .bind(player.id, character, rid, graded.prime, graded.knotty, r.inputs[0].key, nonce)] : []),
     // the inputs out, each bought first - AUDIT BAG-CRAFT A1: its loose units before them
     ...r.inputs.flatMap((inp) => workStatements(db, {
       player: player.id, character, materialSql: '?3', qtySql: '?4', guard: 'EXISTS (SELECT 1 FROM prof_smelts WHERE player = ?1 AND rid = ?5 AND n = ?6)',
