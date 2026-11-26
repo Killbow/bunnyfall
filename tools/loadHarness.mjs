@@ -416,11 +416,13 @@ export async function standServices(o, state) {
   const relay = () => startDev(join(ROOT, 'server'), ['dev', '--config', join(ROOT, 'server/wrangler.toml'), '--local',
     '--persist-to', state, '--port', String(relayPort), '--ip', '127.0.0.1', '--inspector-port', String(relayPort + 100), '--env-file', relayEnv], 'relay');
   console.log('== booting both Workers in workerd');
-  const svc = { accountPort, relayPort, account: account(), relay: relay(), restartRelay: null };
-  if (!(await healthy(accountPort, '/v1/health', 180))) throw new Error(`the account service never answered:\n${svc.account.log.slice(-2000)}`);
+  // Wait for the account worker to initialize shared local storage before starting the relay.
+  const accountProcess = account();
+  if (!(await healthy(accountPort, '/v1/health', 180))) throw new Error(`the account service never answered:\n${accountProcess.log.slice(-2000)}`);
   // AUDIT SCALE C11: the private half read and the service up - it leaves the disk now, not at the run's end (the relay's
   // file holds the public half alone, and the storm restarts only the relay)
   rmSync(acctEnv, { force: true });
+  const svc = { accountPort, relayPort, account: accountProcess, relay: relay(), restartRelay: null };
   if (!(await healthy(relayPort, '/health', 180))) throw new Error(`the relay never answered:\n${svc.relay.log.slice(-2000)}`);
   svc.restartRelay = async () => {
     stopDev(svc.relay);
