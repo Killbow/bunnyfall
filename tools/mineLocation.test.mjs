@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mineLocation, isMine, mineBlocks, mineHit, MINE_BLOCK, MINE_BLOCK_INDEX } from '../src/world/mine/mineLocation.js';
+import { mineLocation, isMine, mineBlocks, mineHit, MINE_BLOCK, MINE_BLOCK_INDEX, MINE_LAMP_M } from '../src/world/mine/mineLocation.js';
 import { mineLayout } from '../src/net/mine/mineLayout.js';
 import { mineColliderTris } from '../src/world/mine/mineModel.js';
 import { mineAt, mineIdOf, mineRoomKey } from '../src/net/mine/mineSites.js';
@@ -34,7 +34,10 @@ test('its one block holds a start marker a step inside the mouth', () => {
   assert.equal(markers.length, 1);
   const L = mineLayout(loc.mine.id, 2);
   const chambers = L.sections.reduce((n, s) => n + s.chambers.length, 0);
-  assert.equal(objs.filter((o) => o.type === 0x02).length, chambers + 1);   // a lamp a chamber, and the mouth's
+  const lights = objs.filter((o) => o.type === 0x02).map((o) => o.resources.lightResource.radius * 3 / 40);
+  assert.equal(lights.length, chambers + 1);
+  assert.ok(Math.abs(lights[0] - 5) < 0.05);
+  assert.ok(lights.slice(1).every((range) => range === 3 && range < MINE_LAMP_M));
   const d = Math.hypot(markers[0].xPos / 40 - L.mouth.at[0], markers[0].zPos / 40 - L.mouth.at[2]);
   assert.ok(d > 1 && d < 3, `marker ${d.toFixed(2)} m from the mouth`);
   // the feet stand on the tunnel's floor under the marker, the roof well over it - never on the roof (the dungeon stands
