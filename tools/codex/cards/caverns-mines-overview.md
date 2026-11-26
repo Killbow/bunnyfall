@@ -11,6 +11,7 @@ files:
   - src/net/mine/mineBrain.js
   - src/net/mine/mineWire.js
   - src/world/mine/mineModel.js
+  - src/world/mine/mineSurfaces.js
   - src/world/mine/mineLocation.js
   - src/world/mine/mineArt.js
   - src/systems/mine/mineHost.js

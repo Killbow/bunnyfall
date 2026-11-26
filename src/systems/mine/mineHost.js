@@ -13,7 +13,8 @@ import { transformPoint, trs } from '../../world/mat4.js';
 import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
 import { identity } from '../../world/mat4.js';
 import { mineLayout } from '../../net/mine/mineLayout.js';
-import { buildMineModel, mineColliderTris, mineTextures } from '../../world/mine/mineModel.js';
+import { buildMineModel } from '../../world/mine/mineModel.js';
+import { mineSurfacePictures, mineTextures } from '../../world/mine/mineSurfaces.js';
 import { isMine, MINE_LAMP_M } from '../../world/mine/mineLocation.js';
 import { createMineDrillReadout } from '../../ui/mineDrillReadout.js';
 import { t } from '../../ui/textManager.js';
@@ -65,11 +66,11 @@ function fadeSheet() {
 }
 
 /**
- * @param {{ renderer: any, getTexture?: ((archive: number) => Promise<any>) | null, uploadRecord?: ((archive: number, record: number) => any) | null,
+ * @param {{ renderer: any,
  *   link?: (() => any) | null, say?: ((text: string) => void) | null, shake?: ((k: number) => void) | null, leave?: (() => void) | null, audio?: any }} deps
  *   `link()` the world's mine doors: `{ send(k, fields), planks(material), spend(material), closeWindows() }`
  */
-export function createMineHost({ renderer, getTexture = null, uploadRecord = null, link = null, say = null, shake = null, leave = null, audio = null }) {
+export function createMineHost({ renderer, link = null, say = null, shake = null, leave = null, audio = null }) {
   const sounds = createMineSounds({ audio });   // the mine heard (systems/mine/mineSounds.js)
   /** @type {any} */
   /** the drills stood, by `s:c:k`: their frame's and shaft's draws, and their hole */
@@ -151,12 +152,11 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       if (!ctx || !isMine(loc)) return;
       layout = mineLayout(loc.mine.id, loc.mine.reset ?? 0);
       const tex = mineTextures(loc.climate?.worldClimate ?? 0);
-      // the archive read first (the pipeline uploads a record of a file it holds), then its three records
-      const up = () => { for (const rec of new Set([tex.wall, tex.floor, tex.ceiling])) { try { uploadRecord?.(tex.archive, rec); } catch (e) { console.warn('[mine] a texture', /** @type {any} */ (e)?.message ?? e); } } };
-      Promise.resolve(getTexture?.(tex.archive)).then(up, (e) => console.warn('[mine] the cave textures', e?.message ?? e));
-      try { mesh = renderer?.createMesh ? renderer.createMesh(buildMineModel(layout, tex)) : null; } catch (e) { console.warn('[mine] the cave would not build', e?.message ?? e); mesh = null; }
+      for (const picture of mineSurfacePictures(tex)) renderer?.uploadTexture?.(tex.archive, picture.record, picture);
+      const model = buildMineModel(layout, tex);
+      try { mesh = renderer?.createMesh?.(model) ?? null; } catch (e) { console.warn('[mine] the cave would not build', e?.message ?? e); mesh = null; }
       if (mesh) ctx.dynamicDraws?.push({ gpu: mesh, object: { matrix: identity() }, hidden: false, noShadow: false, texRemap: null });
-      const tris = mineColliderTris(layout), idx = new Uint32Array(tris.length / 3);
+      const tris = model.positions, idx = new Uint32Array(tris.length / 3);
       for (let k = 0; k < idx.length; k++) idx[k] = k;
       try { ctx.collider?.addMesh?.(MINE_BUCKET, tris, idx, identity()); } catch (e) { console.warn('[mine] the cave\'s collider', e?.message ?? e); }
       ctx.exitDoors?.push(mineExitDoor(layout.mouth));
