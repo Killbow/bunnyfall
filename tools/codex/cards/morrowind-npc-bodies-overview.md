@@ -27,6 +27,7 @@ invariants:
   - "NPC lanes and peer (player) body lanes are separate, and NPC bodies never consume peer quotas."
   - "The `mwNpcBodies` pref (feature id `mw-npc-bodies`) selects `off`, `near`, or `all` (initial `near`); it is a viewer-local setting, never sent on the wire."
   - "When a 3D body renders, its billboard is marked `castOnly` so only the body draws."
+  - "`npcPeerId` builds `npc:<lane>:<id>`. The `npc:` prefix keeps it apart from relay ids, whose wire pattern has no colon, and from `fam:` family ids."
 traps:
   - "Do not add a population without routing it through `createPopulationLane` and `NPC_FRAME_BUDGET`; a lane outside the budget breaks the frame cap."
   - "Do not hardcode the relay version when touching enemy look wire fields `ls` and `lw`."

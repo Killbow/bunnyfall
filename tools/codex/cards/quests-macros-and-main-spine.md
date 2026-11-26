@@ -16,6 +16,7 @@ invariants:
 traps:
   - "If online character creation saves and reloads before FACTION.TXT loads, _BRISIEN fails to parse S0000999 and StartQuest marks itself complete, requiring mainSpine recovery."
   - "Outdoor RMB bit 32 cannot be trusted on its own; any non-'2' FLATS.CFG gender entry clears bit 32 via flags & 223, whereas '?2' entries keep it set."
+  - "FACTION.TXT race numbers (Nord 0, Khajiit 1, and so on) differ from the `RACES` enum in order as well as base. Both mapping functions stay as explicit cases and are never computed with an offset."
 dfu:
   - Assets/Scripts/Game/Questing/QuestMachine.cs
   - Assets/Scripts/Utility/MacroHelper.cs

@@ -29,9 +29,11 @@ invariants:
   - "`classifyPackFile` reads a path from its LAST `Text` or `Fonts` folder, case-insensitive and with either slash direction, so nested zip folders still classify."
   - "Installed packs live in the IndexedDB database `daggerfall-translations` (`DB_NAME`, `src/ui/translationStore.js`), local to the player; pack text is never bundled unless its terms allow it (`locales/<tag>/pack/` + `PACK.json`)."
   - "Non-English TEXT.RSC reads go through `localeRscRow` (Internal_RSC by id or string key such as `9000.1`) before the classic binary; English skips the table."
+  - "`parseFsJson` is looser than `JSON.parse`: it allows missing commas between values, trailing commas, and comments. Shipped `NameGen.txt` packs rely on this, so do not replace it with `JSON.parse`."
 traps:
   - "A drafting language is offered only once a pack is installed or bundled for it (`hasLocaleText` in `src/ui/localeData.js`)."
   - "Quest `-LOC.txt` files populate `Internal_Quests` only where no row already exists; unparseable files log a warning and leave English quest text intact."
+  - "`getNameBank` maps Argonian to the Imperial name bank, and any unknown race to Breton. The Argonian mapping looks like a bug but matches the original game."
 dfu:
   - "Assets/Scripts/Game/LocalizedBook.cs"
 tags:

@@ -27,6 +27,7 @@ invariants:
   - "`signatureOffers(entity)` returns only the held path record (`pathHeld`), and the Buy Spells shelf in src/scenes/worldModes.js appends it for the local player alone."
   - "All powers register at import under `ARCANE_POWERS = 'arcanePowers'` through named seams: spell power, spell pierce, cast cost, cast speed, entity fold, player damage mod, `registerPlayerBlowEvasion` (Foresight, before any modifier), hurt listener, magic round, kill listener, absorption chance, and `registerSpellLandedListener` (`pathLanded`)."
   - "`pathLanded` ignores reflected or `warded` landings, fires a rider only for `isSignatureSpell(spell) && spell.path === id`, and never against a target with `isPlayer` (duel opponents and party mates get the plain bundle)."
+  - "`pathEvade` is registered as a blow evasion, so Foresight is asked before any damage modifier runs. An evaded blow then spends no ward or winding held by the modifiers that run after it."
 traps:
   - "Rider magnitudes read `took` (what the target could lose, never overkill), falling back to `r.damage`; Unravel and Beguile refunds read `cast.cost`, the magicka actually paid."
   - "Conflux adds one stack per cast token; a landing with `cast === null` (a Cast When Strikes proc) counts as its own cast and does stack."

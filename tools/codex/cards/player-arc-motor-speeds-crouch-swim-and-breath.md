@@ -26,9 +26,11 @@ invariants:
   - "Crouch uses CROUCH_HEIGHT = 0.9 and CROUCH_EYE_HEIGHT = 0.8, and the height change runs over HEIGHT_TIMER_FAST = 0.10 s."
   - "Climbing chance is clamped to 5..95. Climb speed = baseSpeed / 3, doubled when enhanced."
   - "Minute fatigue drains scale by FATIGUE_DRAIN_SCALE = 0.75 (src/characters/statMods.js). Standing still on the ground pays no drain (FATIGUE-IDLE)."
+  - "Running clears the toggled sneak mode, and it does not return when the run stops, as in DFU's input speed adjustment. A held sneak key latches again on the next frame."
 traps:
   - "isSneaking must also latch while crouched, otherwise crouched movement fails the stealth half-speed check (IsMovingLessThanHalfSpeed)."
   - "Mid-air control is off except under the Jump spell (isEnhancedJumping in src/characters/skills.js)."
+  - "`SLOWFALL_VELOCITY` multiplies by `UNITY_FIXED_DT` (0.02), not `FIXED_DT`, to match DFU's flat 2.1 m/s slow fall. Using `FIXED_DT` slows every buffed descent by about a sixth."
 dfu:
   - "Assets/Scripts/Game/Player/PlayerSpeedChanger.cs"
   - "Assets/Scripts/Game/Player/AcrobatMotor.cs"

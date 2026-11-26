@@ -1,55 +1,15 @@
 // @ts-check
-// MARTIAL (2026-10-17) - MARTIAL SPECIALISATIONS: A FIGHTER IS THE WEAPONS THEY MASTER. bible/05-Combat/Martial-Specialisations.md
-//
-// The owner: "we've properly balanced mages, added a specialization tree and added the firmament system. I want to do the
-// same for other weapon types/classes." Asked, the owner chose: the six weapon skills (Long Blade, Short Blade, Axe, Blunt
-// Weapon, Archery, Hand-to-Hand) make the fifteen pairs, as the six schools do (SCHOOLS, systems/arcanePaths.js); a path's
-// signature is a TECHNIQUE on the Weapon Technique key, answering whenever the weapon in hand is one of its pair's and
-// carries no technique line of its own; one character may hold an arcane path and a martial path together; and every
-// weapon skill pays past 100 in its own way (MARTIAL2, systems/weaponMastery.js).
-//
-// THE LAW, and nothing that acts - a leaf the runner (combat/techniques.js), the save, the sheets and the powers (systems/martialPowers.js) all read, so none of them grows a cycle:
-//   - the fifteen PATHS, one for each pair of the six weapon skills, and the words a player reads (`martialWords`, through
-//     the text core);
-//   - every NUMBER a path's passive and rider names (`MARTIAL_NUMBERS`) - the one home the words print and
-//     martialPowers.js does, so a balance pass moves one number;
-//   - THE SIGNATURE TECHNIQUES (`SIGNATURE_TECHNIQUES`): the roster's own shape (combat/technique/techniqueRoster.js
-//     TECHNIQUES - a mechanic the runner already performs, its multiplier on DFU's own CalculateAttackDamage, its
-//     fatigue and its cooldown), a FORM a family: a pair with Archery has a bow's form and a blade's (or a fist's), and
-//     the two share one cooldown. Never a loot line: they stand outside the roster, so no ladder draws one and the item
-//     law reads no line naming one (systems/item/itemLaw.js, systems/loot/lootRarity.js validAffix);
-//   - WHO may choose (`martialChoices`: Master Skills in force, two or more weapon skills mastered, no martial path yet)
-//     and the choice (`chooseMartialPath`: undone only by SPEC-RESET's paid reset, systems/specReset.js - nothing
-//     here undoes it);
-//   - when a path ACTS (`martialAwake`: my own entity, Master Skills in force, both its skills mastered, not mentoring -
-//     and the powers add the refereed fight's word, sigil.js sigilDueling, the one every loot and set power sleeps on).
-// No judge's finding (the design page, section 7): a path acts only with both its masteries held, read here at every
-// ask, and the account service's judge reads no mastery - a finding would add a version and stop nothing.
-//
-// An arcane path and a martial path are two choices (the owner: "Yes, one of each") - neither reads the other, and the
-// masteries they need come from the one 3 / 2 / 1 (masterSkills.js MASTERY_SLOTS).
-//
-// Everything a player reads is `t()`, read when it is read.
-
 import { SKILLS, SKILL_NAMES } from './skills.js';
 import { masterSkillsActive, isMasteredSkill, masteredSkills, masterableCount } from './masterSkills.js';
 import { t, textRevision } from '../ui/textManager.js';
-import { SPEC_RESET_GOLD } from './arcanePaths.js';   // SPEC-RESET: one price for either family's reset
+import { SPEC_RESET_GOLD } from './arcanePaths.js';
 
 const { LongBlade: LB, ShortBlade: SB, Axe: AX, BluntWeapon: BL, Archery: AR, HandToHand: HH } = SKILLS;
 
-/** The six weapon skills, in the order the paths are tabled. */
 export const MARTIAL_SKILLS = Object.freeze([LB, SB, AX, BL, AR, HH]);
-/** A weapon skill's technique FAMILY - combat/technique/techniqueRoster.js TECHNIQUE_FAMILIES' words (pinned equal; that
- *  leaf reads the item tables, and this one must not). The Thunderlock is scored on Archery but is a gun: no path's. */
 export const MARTIAL_FAMILY = Object.freeze({ [LB]: 'longBlade', [SB]: 'shortBlade', [AX]: 'axe', [BL]: 'blunt', [AR]: 'archery', [HH]: 'handToHand' });
 
-/**
- * THE NUMBERS every passive and rider names - the design page's table, section 5. A `pct` is a percent, `seconds` real
- * seconds, `rounds` magic rounds (a classic minute: five real seconds online), `below` a share of the health.
- */
 export const MARTIAL_NUMBERS = Object.freeze({
-  // the passives
   flowingSteel: Object.freeze({ pct: 3, stacks: 5, seconds: 4 }),
   warRhythm: Object.freeze({ pct: 15, seconds: 10 }),
   ironDiscipline: Object.freeze({ lighter: 10 }),
@@ -65,7 +25,6 @@ export const MARTIAL_NUMBERS = Object.freeze({
   purge: Object.freeze({ pct: 20 }),
   grit: Object.freeze({ health: 1, fatigue: 2 }),
   windborne: Object.freeze({ speed: 10, running: 15, jumping: 15 }),
-  // the riders
   thousandCuts: Object.freeze({ share: 1 / 2 }),
   rallyingCleave: Object.freeze({ pct: 15, seconds: 8 }),
   judgement: Object.freeze({ heal: 4, foes: 3 }),
@@ -83,17 +42,10 @@ export const MARTIAL_NUMBERS = Object.freeze({
   windstrike: Object.freeze({ fatigue: 5, foes: 3 }),
 });
 const N = MARTIAL_NUMBERS;
-const pc = (x) => Math.round(x * 100);   // a share, as the percent the words print
+const pc = (x) => Math.round(x * 100);
 
-// ── the signature techniques ─────────────────────────────────────────
 const DEG = Math.PI / 180;
-/** A form: the roster's own fields (techniqueRoster.js header: the mechanic, its aim, `base` on the formula's damage,
- *  `fatigue` in the sheet's points, `cooldown` in seconds, and its mechanic's numbers), and the port's three - `path`, the
- *  path whose signature it is; `families`, the weapons in hand it answers; `fx`, the roster technique whose feel it wears
- *  (combat/technique/techniqueFx.js TECH_FX - a signature is a technique the hands already know, done its own way). */
 const form = (path, families, fields) => Object.freeze({ path, families: Object.freeze([...families]), ...fields });
-/** EVERY FORM, by id. PERSISTED: nothing - a cooldown is the session's - but an id is the runner's cooldown slot and the
- *  pins', so it never moves. */
 const FORMS = {
   thousandCuts: form('blademaster', ['longBlade', 'shortBlade'], { mech: 'dash', aim: 'lane', base: 1.0, fatigue: 5, cooldown: 12,
     length: 5, halfW: 0.9, strike: 'StrikeDown', toHit: 15, fx: 'lunge' }),
@@ -136,9 +88,6 @@ const FORMS = {
   windKick: form('windrunner', ['handToHand'], { mech: 'leap', aim: 'target', base: 1.2, fatigue: 4, cooldown: 11,
     range: Object.freeze([2, 7]), apex: 1.2, radius: 2.0, strike: 'StrikeDown', toHit: 20, airborne: true, fx: 'kick' }),
 };
-// THE SIGNATURE TECHNIQUES' NAMES IN ENGLISH - each one home, read by its words' t() below (tools/l10nExtract.mjs reads a
-// module constant's English) and said by the runner's English lines (combat/techniques.js: "X is not ready", as a loot
-// technique's own name is said).
 const THOUSAND_CUTS = 'Thousand Cuts';
 const RALLYING_CLEAVE = 'Rallying Cleave';
 const JUDGEMENT = 'Judgement';
@@ -154,29 +103,19 @@ const SAVAGE_WHIRL = 'Savage Whirl';
 const HALLOWED_STRIKE = 'Hallowed Strike';
 const KNOCKOUT = 'Knockout';
 const WINDSTRIKE = 'Windstrike';
-/** The signature's English name, by path - the words' default. */
 const SIGNATURE_EN = Object.freeze({ blademaster: THOUSAND_CUTS, warblade: RALLYING_CLEAVE, vanguard: JUDGEMENT, ranger: MARK_OF_THE_HUNT, bladedancer: CYCLONE, bloodletter: GUTTING_LUNGE, cutthroat: BLACKJACK, assassin: VANISHING_STRIKE, shadowdancer: PHANTOM_STRIKE, juggernaut: EARTHSPLITTER, woodsman: FELLING_STRIKE, berserker: SAVAGE_WHIRL, crusader: HALLOWED_STRIKE, brawler: KNOCKOUT, windrunner: WINDSTRIKE });
-/** AUDIT MARTIAL L1 L6: a signature's name in the player's language, kept a text revision (textManager.js textRevision -
- *  a locale switched, a table patched): the HUD's chip reads it every frame, and the path's words are six lines built
- *  whole (AUDIT TECH-FX's law - a frame at rest allocates nothing). */
 let _names = { rev: -1, by: /** @type {Record<string, string>} */ (Object.create(null)) };
 function signatureName(path) {
   const rev = textRevision();
   if (_names.rev !== rev) _names = { rev, by: Object.create(null) };
   return (_names.by[path] ??= martialWords(path)?.technique ?? SIGNATURE_EN[path]);
 }
-/** Every form, by id - each carries its `id`, `en` its path's signature's English name (what the runner's English status
- *  lines say - AUDIT MARTIAL L4 N1: "Mal der Jagd is not ready"), and `name`, the signature in the player's language. */
 export const SIGNATURE_TECHNIQUES = Object.freeze(Object.fromEntries(Object.entries(FORMS).map(([id, f]) => [id, Object.freeze(Object.defineProperty({ ...f, id, en: SIGNATURE_EN[f.path] },
   'name', { get() { return signatureName(f.path); }, enumerable: true }))])));
-/** The form ids, in the table's order. */
 export const SIGNATURE_IDS = Object.freeze(Object.keys(SIGNATURE_TECHNIQUES));
-/** A form by id, or null. */
 export const signatureById = (id) => (typeof id === 'string' && Object.hasOwn(SIGNATURE_TECHNIQUES, id) ? SIGNATURE_TECHNIQUES[id] : null);
-/** Is this technique id a signature's form? */
 export const isSignatureTechnique = (id) => signatureById(id) != null;
 
-/** THE WORDS a player reads for each path, through the text core - read when they are read (never at module load). */
 const WORDS = Object.freeze({
   blademaster: () => ({
     name: t('martial.blademaster.name', 'Blademaster'),
@@ -232,7 +171,7 @@ const WORDS = Object.freeze({
     passive: t('martial.cutthroat.passiveText', 'Your blows and arrows deal {pct}% more damage to enemies that haven\'t noticed you.', { pct: N.cheapShot.pct }),
     technique: t('martial.cutthroat.technique', BLACKJACK),
     techniqueText: t('martial.cutthroat.techniqueText', 'A heavy blow at the nearest enemy in front of you, +{toHit} to hit.', { toHit: FORMS.blackjack.toHit }),
-    rider: t('martial.cutthroat.rider', 'An enemy that hadn\'t noticed you takes the blow twice.'),   // N.blackjack.times is 2 (pinned beside the word)
+    rider: t('martial.cutthroat.rider', 'An enemy that hadn\'t noticed you takes the blow twice.'),
   }),
   assassin: () => ({
     name: t('martial.assassin.name', 'Assassin'),
@@ -299,12 +238,8 @@ const WORDS = Object.freeze({
     rider: t('martial.windrunner.rider', 'Each enemy it hits restores {pct}% of your fatigue (up to {foes} enemies).', { pct: N.windstrike.fatigue, foes: N.windstrike.foes }),
   }),
 });
-/** A path's words now: { name, passiveName, passive, technique, techniqueText, rider } - in the player's language. */
 export function martialWords(id) { return Object.hasOwn(WORDS, id) ? WORDS[/** @type {keyof typeof WORDS} */ (id)]() : null; }
 
-/** THE FIFTEEN, one per pair of the six weapon skills - the design page's table, section 5. AUDIT MARTIAL L4 N2: the ids
- *  stand (a save's), and two names moved off the Firmament's own - the bladedancer is the Skirmisher (the sky's Blade
- *  Dancer notable), the windrunner the Strider (its Wind Runner keystone). */
 /** @type {Array<[string, number[]]>} */
 const PATH_ROWS = [
   ['blademaster', [LB, SB]],
@@ -325,7 +260,6 @@ const PATH_ROWS = [
 ];
 export const MARTIAL_PATHS = Object.freeze(PATH_ROWS.map(([id, skills]) => Object.freeze({
   id, skills: Object.freeze([...skills]),
-  /** the signature's forms, by family: { longBlade: 'huntersPounce', archery: 'huntersMark' } */
   forms: Object.freeze(Object.fromEntries(SIGNATURE_IDS.filter((f) => FORMS[f].path === id).flatMap((f) => FORMS[f].families.map((fam) => [fam, f])))),
   get name() { return martialWords(id).name; },
   get passive() { const w = martialWords(id); return { name: w.passiveName, text: w.passive }; },
@@ -333,39 +267,28 @@ export const MARTIAL_PATHS = Object.freeze(PATH_ROWS.map(([id, skills]) => Objec
   get rider() { return martialWords(id).rider; },
 })));
 
-/** Path id -> its record. */
 export const MARTIAL_BY_ID = Object.freeze(Object.fromEntries(MARTIAL_PATHS.map((p) => [p.id, p])));
 export const isMartialPathId = (id) => typeof id === 'string' && Object.prototype.hasOwnProperty.call(MARTIAL_BY_ID, id);
 const pairKey = (a, b) => (a < b ? `${a},${b}` : `${b},${a}`);
 const PATH_BY_PAIR = new Map(MARTIAL_PATHS.map((p) => [pairKey(p.skills[0], p.skills[1]), p]));
-/** The path two weapon skills name, or null. */
 export const martialOfPair = (a, b) => (a !== b ? PATH_BY_PAIR.get(pairKey(a, b)) ?? null : null);
 
-/** A path's two skills, by DFU's own skill names (in the player's language). */
 const skillsOf = (p) => ({ a: SKILL_NAMES[p.skills[0]], b: SKILL_NAMES[p.skills[1]] });
-/** A path's two skills as one line ("Long Blade and Archery"). */
 export const martialSkillsText = (p) => t('martial.choice.skills', '{a} and {b}', skillsOf(p));
-/** Can this character EVER meet a martial path - two of the six weapon skills mastered, or masterable in the slots its
- *  career groups have left (masterSkills.js masterableCount - AUDIT MARTIAL L4 L3: two weapon skills that were both minor
- *  ones, one minor slot between them, showed the card for good)? */
 export const martialPossible = (entity) => masterableCount(entity, MARTIAL_SKILLS) >= 2;
 
-// ── the choice ──────────────────────────────────────────────────────
-
-/** The six weapon skills this entity has MASTERED, in MARTIAL_SKILLS order.
- *  @returns {number[]} */
+/**
+ * @returns {number[]}
+ */
 export const masteredWeapons = (entity) => MARTIAL_SKILLS.filter((id) => masteredSkills(entity).includes(id));
-/** The martial path this entity chose, or null. */
 export const martialPathOf = (entity) => (isMartialPathId(entity?.martialPath) ? MARTIAL_BY_ID[entity.martialPath] : null);
 
-/** The martial paths this entity may choose NOW, in table order: Master Skills in force, none yet, both skills mastered. */
 export function martialChoices(entity) {
   if (!entity || martialPathOf(entity) || !masterSkillsActive(entity)) return [];
   const have = masteredWeapons(entity);
   return MARTIAL_PATHS.filter((p) => have.includes(p.skills[0]) && have.includes(p.skills[1]));
 }
 
-/** Why this martial path cannot be chosen now, or null when it can. */
 export function martialRefusal(entity, id) {
   if (!isMartialPathId(id)) return t('martial.refuse.none', 'No such specialization.');
   if (martialPathOf(entity)) return t('martial.refuse.already', 'Your martial specialization is already chosen: {name}.', { name: martialPathOf(entity).name });
@@ -375,41 +298,32 @@ export function martialRefusal(entity, id) {
   return null;
 }
 
-/** Choose it - for good, short of the paid reset (specReset.js). Returns { ok, text }. */
 export function chooseMartialPath(entity, id) {
   const why = martialRefusal(entity, id);
   if (why) return { ok: false, text: why };
   entity.martialPath = id;
   const p = MARTIAL_BY_ID[id];
-  // AUDIT MARTIAL L4 M1: one short line - the classic sheet's notice and the HUD draw it unwrapped in 312 px; what the
-  // technique key does is the card's and the OK box's (martial.sheet.key)
   return { ok: true, text: t('martial.chosen', 'Martial specialization chosen: {name}.', { name: p.name }) };
 }
 
 export const MARTIAL_DECLINED_TEXT = 'You can choose a martial specialization later in your skill screen.';
-/** GROWTH4: the No's line where the enhanced pause window stands - its Growth tab (arcanePaths.js's own law). */
 export const MARTIAL_DECLINED_GROWTH_TEXT = 'You can choose a martial specialization later on the Growth tab of the pause menu.';
 export const martialDeclinedGrowthText = () => t('martial.declinedGrowth', MARTIAL_DECLINED_GROWTH_TEXT);
-/** The No's line, in the player's language. */
 export const martialDeclinedText = () => t('martial.declined', MARTIAL_DECLINED_TEXT);
 
-/** The first path the game still owes an ASK (asked once a character; the skill screen keeps the rest), or null. */
 export const nextMartialChoice = (entity) => (entity?.martialPrompted ? null : martialChoices(entity)[0] ?? null);
 
-/** What a path does, in two rows: its passive, then its signature technique and the technique's rider. */
 export const martialPowerRows = (p) => [
   t('martial.row.passive', '{name}: {text}', { name: p.passive.name, text: p.passive.text }),
   t('martial.row.technique', '{technique} (signature technique): {text} {rider}', { technique: p.technique.name, text: p.technique.text, rider: p.rider }),
 ];
 
-/** The choice box's rows - as arcanePaths.js pathChoiceRows: Daggerfall's parchment box and the enhanced card alike.
- *  `others` false leaves out the count of the other open paths (the classic sheet says its own). */
 export function martialChoiceRows(entity, id, { others = true } = {}) {
   const p = MARTIAL_BY_ID[id];
   if (!p) return [];
   const more = others ? martialChoices(entity).length - 1 : 0;
   return [
-    t('martial.choice.title', 'Martial specialization: {name}?', { name: p.name }),   // AUDIT MARTIAL L4 L4: never the arcane ask's own words
+    t('martial.choice.title', 'Martial specialization: {name}?', { name: p.name }),
     martialSkillsText(p),
     '',
     ...martialPowerRows(p),
@@ -419,8 +333,6 @@ export function martialChoiceRows(entity, id, { others = true } = {}) {
   ];
 }
 
-/** The one ask when SEVERAL martial paths are open - their names, and where each is chosen (AUDIT SCHOOLS L4 M1's law;
- *  GROWTH4: `growth` - the enhanced pause window's Growth tab, else the skill screen). */
 export function martialOpenRows(open, { growth = false } = {}) {
   return [
     t('martial.open.title', 'Martial Specialization'),
@@ -430,36 +342,25 @@ export function martialOpenRows(open, { growth = false } = {}) {
     '',
     growth ? t('martial.open.whereGrowth', 'See them all and choose one on the Growth tab of the pause menu.')
       : t('martial.open.where', 'Choose one in your skill screen.'),
-    t('martial.choice.reset', 'Resetting it later costs {gold, number} gold.', { gold: SPEC_RESET_GOLD }),   // AUDIT SPEC-RESET L4-5: a row of its own
+    t('martial.choice.reset', 'Resetting it later costs {gold, number} gold.', { gold: SPEC_RESET_GOLD }),
   ];
 }
 
-/** What a chosen path is, in rows (the sheets' description). */
 export function martialAboutRows(p) {
   if (!p) return [];
   return [t('martial.about.title', '{name}: {a} and {b}', { name: p.name, ...skillsOf(p) }), '', ...martialPowerRows(p)];
 }
 
-// ── held and awake ──────────────────────────────────────────────────
-
-/** The martial path this entity HOLDS now, mentoring or not - my own player entity, Master Skills in force, both its
- *  skills mastered. What answers the technique key with a signature (a technique rides the formula, whose skills
- *  mentoring already lowers - as a loot line's does). */
 export function martialHeld(entity) {
   if (!entity?.isPlayer || entity.peer) return null;
   const p = martialPathOf(entity);
-  // two reads, never a closure: the HUD's chip and the swing's pace ask it every frame (AUDIT TECH-FX's law)
   if (!p || !masterSkillsActive(entity) || !isMasteredSkill(entity, p.skills[0]) || !isMasteredSkill(entity, p.skills[1])) return null;
   return p;
 }
-/** Does the path ACT for this entity now - its passive and its signature's rider? Held, and not mentoring. (A refereed
- *  fight is the powers' word to add - systems/martialPowers.js.) */
 export function martialAwake(entity) {
   return entity?._mentor ? null : martialHeld(entity);
 }
 
-/** THE SIGNATURE IN HAND: the form of MY held path's signature that answers a weapon of `family` (techniqueRoster.js
- *  techniqueFamily's word; 'handToHand' for the bare hand), or null. */
 export function signatureFor(entity, family) {
   const p = martialHeld(entity);
   const id = p && typeof family === 'string' ? p.forms[family] : null;

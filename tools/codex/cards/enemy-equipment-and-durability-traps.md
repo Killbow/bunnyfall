@@ -13,6 +13,7 @@ invariants:
 traps:
   - "enemyArmorValues mirrors EnemyEntity.cs by stopping strictly before EquipSlots.Feet, leaving boots equipped and droppable as loot while excluding them from enemy armor values."
   - "Omitting mintCondition or setItemFields on enemy armor leaves pieces without condition for wear or causes smiths to value loot stacks at zero."
+  - "A broken item is removed through `unequipItem` by item identity, not by the worn mark, because enemy gear has no mark. The order is the popup, then the unequip, then the Breaks payload."
 dfu:
   - Assets/Scripts/Game/Entities/EnemyEntity.cs
   - Assets/Scripts/Game/Items/ItemHelper.cs

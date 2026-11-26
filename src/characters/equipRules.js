@@ -1,14 +1,3 @@
-// Equip-slot assignment data (Characters C5c).
-// EXTRACTION-GENERATED from DFU ItemEquipTable + ItemEnums (MIT,
-// Daggerfall Workshop) - never hand-copied; regenerate from source.
-// SLOT_RULES: per-group templateIndex -> a fixed slot or a paired
-// first-open rule (GetFirstSlot). WEAPON_HANDS: Either / Both per
-// weapon template. The two bow rows (129/130) are the extraction's
-// record of DFU's OFF answer only: ItemEquipTable.cs:633-635 returns
-// LeftOnly when BowLeftHandWithSwitching is on, and AUDIT 58 put that
-// branch in getItemHands (equipTable.js), which READS the setting.
-// SHIELD_INDICES: LeftOnly in GetItemHands.
-
 export const ITEM_GROUPS = Object.freeze({
  "None": -1,
  "Drugs": 0,

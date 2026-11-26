@@ -1,24 +1,6 @@
-// Enemy visual/behaviour/entity basics (Characters C3, re-extracted
-// E3a with combat fields). Generated from DFU's EnemyBasics.cs
-// Enemies table (MIT, Daggerfall Workshop): textures + Behaviour
-// (C3, byte-identical parity asserted at generation) + affinity,
-// corpse texture, MinMetalToHit (material index, None=-1), monster
-// damage pairs 1-3 + health/level/armor, soul points, team, loot key,
-// flags.
-// Class entries (128+) carry no health/level/damage - those come
-// from the career (CLASS*.CFG) + FormulaHelper, per SetEnemyCareer.
-// Do not hand-edit; regenerate: node tools/extract-enemy-basics.mjs
-// TextManager.GetLocalizedEnemyName's en list (Internal_Strings en id
-// 183, 62 entries): index = id for monsters 0..42, 43 + id - 128 for
-// the class enemies.
-//
-// AUDIT 24 (wave 38): this table lived in systems/quest/foe.js, which
-// already imports ENEMY_BASICS from here - so anything outside the
-// quest machinery that wanted an enemy's NAME had to reach through it.
-// EnemyDeath's "%s just died." and the pacification line both do, and
-// neither is a quest. ONE DFU MEMBER, ONE EXPORT: the names live with
-// the rows they name, and quest/foe.js re-exports them.
-import { customCareerTemplate, customEnemyName } from './customEnemies.js';   // DEX1: an id past MobileTypes, by its registered career
+// Enemy table: textures, behavior, combat fields, and names per mobile type, generated from DFU's EnemyBasics.
+// Do not hand-edit the rows; regenerate with node tools/extract-enemy-basics.mjs.
+import { customCareerTemplate, customEnemyName } from './customEnemies.js';
 
 export const ENEMY_NAMES = Object.freeze([
   'Rat', 'Imp', 'Spriggan', 'Giant Bat', 'Grizzly Bear',
@@ -37,26 +19,14 @@ export const ENEMY_NAMES = Object.freeze([
   'Knight', 'City Watch',
 ]);
 
-/** MobileBehaviour (DaggerfallUnityEnums.cs), by name and number - a row's `behaviour` is its name; the C# compares the
- *  ints (world/oceanHoles.js enemyRow). One home: the mods' readers parse by it (systems/enemyExpansion/dexTables.js). */
 export const MOBILE_BEHAVIOUR = Object.freeze({ General: 0, Flying: 1, Aquatic: 2, Spectral: 3, Guard: 4 });
 
-/** DaggerfallEntity.IsClassEnemyId (DaggerfallEntity.cs:974-977): the 128 bit. */
 export const isClassEnemyId = (id) => (id & 128) !== 0;
 
-/** A foe's level by its kind, as EnemyEntity.SetEnemyCareer sets it (EnemyEntity.cs:248-299): a monster's is its row's
- *  (MobileEnemy.Level, :262 and :284), a class's the level it is handed - the player's there (:272, :299), a party's on
- *  a road's trouble (systems/livingWorld/trouble.js `foeLevel`) - and the handed level where no row stands. One home:
- *  the streaming host's trouble world and the roads' harness (test/lwRoads.mjs) both read it - the harness's own copy
- *  still asked `>= 128` after DEX1 gave the host the bit (HOST-SPLIT, at DEX's merge). */
 export const enemyLevelOf = (type, level) => (isClassEnemyId(type) ? level : ENEMY_BASICS[type]?.level ?? level);
 
-/** A MobileTypes member that is an enemy: 0-42, 128-146 (Enum.IsDefined, None aside). */
 export const isClassicEnemyId = (id) => Number.isInteger(id) && ((id >= 0 && id <= 42) || (id >= 128 && id <= 146));
 
-/** DEX1: SetupDemoEnemy.ApplyEnemySettings's entity type (:160-185) - 0-42 a monster, 128-146 a class, any other id a
- *  monster or a class by the 128 bit when a mod registered its career (enemy/customEnemies.js), else no enemy at all
- *  (EntityTypes.None). 'monster' | 'class' | null. */
 export function enemyEntityType(id) {
   if (!Number.isInteger(id)) return null;
   if (id >= 0 && id <= 42) return 'monster';
@@ -64,16 +34,11 @@ export function enemyEntityType(id) {
   return customCareerTemplate(id) ? (isClassEnemyId(id) ? 'class' : 'monster') : null;
 }
 
-/** DEX1: EnemyEntity.SetEnemyCareer's careerIndex (:248-296) - a custom enemy's is its id, a class's its id - 128, a
- *  monster's its id. The index DFU's career switches (OnMonsterHit, GetEnemyGroup, the spell lists) read. */
 export function enemyCareerIndex(id) {
   if (customCareerTemplate(id)) return id;
   return enemyEntityType(id) === 'class' ? id - 128 : id;
 }
 
-/** DEX1: a mod's enemies joining the table - BestiaryMod.ParseCustomEnemies' `EnemyBasics.Enemies = enemies.ToArray()`
- *  (:1343), which every reader of the table then sees. A classic id is refused: a mod that edits a classic row edits the
- *  row (systems/enemyExpansion/dexInstall.js), it does not replace the table's own. Answers the rows written. */
 export function registerEnemyRows(rows) {
   let n = 0;
   for (const [id, row] of rows) {
@@ -84,18 +49,7 @@ export function registerEnemyRows(rows) {
   return n;
 }
 
-/** GetLocalizedEnemyName's English, with the index law in one place. Rows
- *  carry no `name` field - reading one returns undefined, which is how
- *  the pacification line came to say "The enemy" to everybody.
- *
- *  L10N3e: this is the CANONICAL name - the fallback a display hands to
- *  the text core's getLocalizedEnemyName, which reads a translation's
- *  enemyNames row by the same MobileTypes id. A name that is shown goes
- *  through that lookup where it is shown; this one never changes with
- *  the language. */
 export function enemyDisplayName(mobileType) {
-  // DEX1: an id past MobileTypes is named as GetLocalizedEnemyName names it (TextManager.cs:443-460): the text
-  // provider's custom name (a mod's), else its registered career's own Name, else none
   if (!isClassicEnemyId(mobileType)) {
     const t = customCareerTemplate(mobileType);
     return t ? (customEnemyName(mobileType) ?? (t.name || null)) : null;
@@ -104,9 +58,6 @@ export function enemyDisplayName(mobileType) {
   return ENEMY_NAMES[i] ?? null;
 }
 
-// DEX1: the table itself is not frozen, as DFU's EnemyBasics.Enemies is not - a mod's enemies join it
-// (registerEnemyRows) and a mod's edits are written over its rows, which every reader then sees (as RR1's
-// enemyAppearance writes over them). Its classic rows are DFU's, generated; only a mod's install writes it.
 export const ENEMY_BASICS = ({
  '0': {
   'maleTexture': 255,
@@ -3212,10 +3163,5 @@ export const ENEMY_BASICS = ({
  }
 });
 
-/** DEX1: THE TABLE AS DFU SHIPS IT - EnemyBasics.Enemies' own initializer, copied before any mod writes a row (this
- *  module's evaluation ends before an importer runs) and frozen to the leaf. For the readers a mod's edit must never
- *  reach: King's Gambit's roster is one for every client and the relay (bible/11-Multiplayer/Kings-Gambit.md, "the
- *  vanilla rows, never a mod's overlay"), and a client evaluating it after Daggerfall Enemy Expansion's Start wrote its
- *  classic rows would build another. */
 const deepFreeze = (o) => { for (const v of Object.values(o)) if (v && typeof v === 'object') deepFreeze(v); return Object.freeze(o); };
 export const VANILLA_ENEMY_BASICS = deepFreeze(structuredClone(ENEMY_BASICS));

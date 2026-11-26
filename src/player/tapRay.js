@@ -1,34 +1,5 @@
-// TI1 - THE TAP RAY: DFU's free-cursor activation arm, on a finger.
-// PlayerActivate.cs:283-306 - when the cursor is active the activation
-// ray is `mainCamera.ScreenPointToRay(Input.mousePosition)` (:303);
-// the centre ray the port's hosts build from cam.yaw/pitch is the
-// LOCKED-cursor arm. A touch holds no lock and has no centre: the
-// finger's point IS the pointer, and this is that arm.
-//
-// HANDEDNESS (mat4's law). The frame's projection is
-// mirrorProjectionX(perspective(...)): NDC x runs the other way from a
-// right-handed pipeline, and the bible records a vertically flipped
-// billboard shader and a transposed row-major shipping green for
-// milestones because a sign was DERIVED instead of measured. Nothing
-// here derives one. The ray is the numerical inverse of the SAME
-// proj*view the frame drew with, the dot is the same product forward,
-// and test/player/touchinput.test.js pins both against the real
-// perspective/mirrorProjectionX/lookAt with an ABSOLUTE anchor (at
-// yaw 0, +x lands screen-right and +y screen-up) as well as the
-// round-trip - a round-trip alone would bless two matching mistakes.
-//
-// THE RECT. ROAD-E E5: the world pass draws into the strip ABOVE a
-// docked large HUD (ui/hud/hudLarge.js largeHudViewportRect - a normalized
-// GL rect, y from the bottom), so screen<->NDC maps through that rect,
-// not the canvas. A finger in the bar's strip is no world tap at all:
-// the ray answers null and the host leaves the tap alone.
-
 import { multiply } from '../world/mat4.js';
 
-/** Column-major 4x4 inverse (gl-matrix's layout - mat4.js's own), or
- *  null for a singular matrix; the automap's pick reads it too (AUDIT 68
- *  S15-invert4-duplicate). It lives here, not in mat4.js, because mat4.js
- *  is in the relay's bundle (test/net/relayversion.test.js). */
 export function invert4(m, out = new Float32Array(16)) {
   const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
   const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
@@ -60,15 +31,11 @@ export function invert4(m, out = new Float32Array(16)) {
   return out;
 }
 
-/** The world strip in top-left CSS pixels, from the normalized GL
- *  rect the host hands the renderer (null = the whole canvas). */
 export function worldRectPx(rect, w, h) {
   if (!rect) return { x: 0, y: 0, w, h };
   return { x: rect.x * w, y: (1 - rect.y - rect.h) * h, w: rect.w * w, h: rect.h * h };
 }
 
-/** Screen (top-left CSS px) -> NDC inside the world strip, or null
- *  outside it. */
 export function ndcFromScreen(sx, sy, w, h, rect = null) {
   const r = worldRectPx(rect, w, h);
   if (!(r.w > 0) || !(r.h > 0)) return null;
@@ -76,18 +43,12 @@ export function ndcFromScreen(sx, sy, w, h, rect = null) {
   return [(2 * (sx - r.x)) / r.w - 1, 1 - (2 * (sy - r.y)) / r.h];
 }
 
-/**
- * The unit direction from `eye` through the finger's point, or null
- * when the point is outside the world strip (or the frame has no
- * invertible projection - a zero-area canvas).
- */
 export function rayDirFromScreen(sx, sy, w, h, proj, view, eye, rect = null) {
   const ndc = ndcFromScreen(sx, sy, w, h, rect);
   if (!ndc) return null;
   const inv = invert4(multiply(proj, view));
   if (!inv) return null;
   const [nx, ny] = ndc;
-  // the far-plane point (NDC z = 1) through the same lens the frame drew with
   const fx = inv[0] * nx + inv[4] * ny + inv[8] + inv[12];
   const fy = inv[1] * nx + inv[5] * ny + inv[9] + inv[13];
   const fz = inv[2] * nx + inv[6] * ny + inv[10] + inv[14];
@@ -98,51 +59,19 @@ export function rayDirFromScreen(sx, sy, w, h, proj, view, eye, rect = null) {
   return len > 0 ? [dx / len, dy / len, dz / len] : null;
 }
 
-/**
- * A world point on the screen (top-left CSS px), through the frame's
- * own matrices. `front` is false behind the camera - the caller hides
- * the mark rather than drawing it mirrored somewhere on the strip.
- * AUDIT DEEP T1-1: `behind` asks for that mirror instead (x, y through a
- * negative w, `front` still false) - the travel view holds a mark behind the
- * eye at the screen's edge, pointing its way, and needs to know which way.
- */
 export function projectToScreen(p, w, h, proj, view, rect = null, behind = false, pvIn = null) {
-  const pv = pvIn ?? multiply(proj, view);   // PERF-PEERS2: a caller projecting many points hands the product it made once (the same float32 product)
+  const pv = pvIn ?? multiply(proj, view);
   const [x, y, z] = p;
   let cw = pv[3] * x + pv[7] * y + pv[11] * z + pv[15];
   const front = cw > 0;
   if (!front && !(behind && Number.isFinite(cw))) return { x: 0, y: 0, depth: 0, front: false };
-  if (!front) cw = Math.min(cw, -1e-6);   // on the eye's own plane: a hair behind it
+  if (!front) cw = Math.min(cw, -1e-6);
   const nx = (pv[0] * x + pv[4] * y + pv[8] * z + pv[12]) / cw;
   const ny = (pv[1] * x + pv[5] * y + pv[9] * z + pv[13]) / cw;
   const r = worldRectPx(rect, w, h);
-  // NAME1 (2026-09-16): `depth` is the clip w this projection already
-  // divided by - the view-space depth for every perspective lens the
-  // port builds (world/mat4.js perspective + mirrorProjectionX). It is
-  // handed back rather than re-derived because a screen SIZE is the one
-  // thing a projected point cannot answer on its own: a fixed world
-  // height lands on `f * H / depth` pixels, so anything that must shrink
-  // with the thing it labels needs this number and nothing else. Purely
-  // additive - every existing caller reads x, y and front.
   return { x: r.x + ((nx + 1) / 2) * r.w, y: r.y + ((1 - ny) / 2) * r.h, depth: cw, front };
 }
 
-/**
- * PERF-TV-PROJ (2026-10-23): ONE FRAME'S PROJECTION, TAKEN ONCE. The travel
- * view projects every mark, every route dot and the pieces between them
- * each frame - thousands of points. Asked per point, the canvas's
- * clientWidth/clientHeight (four Blink reads a point) and proj x view (a
- * new matrix a point) left ~27 MB/s of Blink garbage and ~25 MB/s of V8
- * garbage behind a journey, and Blink's heap grew to that peak (1-1.7 GB)
- * and kept it for the session. The size, the world's rect and the product
- * are taken once when the frame's matrices change - every frame builds
- * new ones (perspective, lookAt), the precedent world.js yardCull keys on -
- * and every point of that frame reuses them.
- *
- * `frame(take)` hands the host's current matrices to `take(proj, view)`;
- * `front` and `behind` project a point through them (`behind`: the
- * mirror, AUDIT DEEP T1-1), null before a frame.
- */
 export function createFrameProjector(canvas, rectOf, frame) {
   const pv = new Float32Array(16);
   let proj = null, view = null, w = 0, h = 0, rect = null;

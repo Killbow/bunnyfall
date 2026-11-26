@@ -29,6 +29,7 @@ invariants:
   - "A hello refused for lack of a token (`CLOSE_POLICY` with `tokenRetryable`) sets `_tokenRetry` and retries on the frame `minter.holds(room)` becomes true, skipping the backoff."
   - "On the online lane, arena `shut()` returns 'wait' (no session, or no primary welcome yet: `arenaHeard` false), 'seat' (superseded) or 'gone' (terminal). It returns null only when live, off the lane, or after a welcome that said `arenaOk` false."
   - "While shut, `ladderPageWaiting` and `ladderCardWaiting` draw placeholders with no title, banner or purse."
+  - "`DOOR_PENDING_MS` must stay below `TOKEN_REUSE_MS` in `src/net/accountClient.js`, so a place change that stays pending across frames mints one door token."
 traps:
   - "Never fall back to the offline save ladder or a local bout during the welcome wait; it paid purses into the realm save."
   - "A single wide ahead-margin double-minted on slow walks; keep the door and walk margins separate."

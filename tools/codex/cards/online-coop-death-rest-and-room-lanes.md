@@ -28,9 +28,11 @@ invariants:
   - "Online death costs carried gold divided by DEATH_GOLD_DIVISOR (10) (10%), unless the place's death rule says none."
   - "ONLINE_REFUSED_FLAGS strips debug powers (tod, timescale, weather, tp, `nofoes`, and others) from online pages, so the shared clock stays read-only."
   - "ONLINE_ROOM_MOD_KEYS force roads-hazelnut Enabled, SmoothRoads, and RiversAndStreams on, so every player stands on identical ground."
+  - "`reviveForPlay` restores health and ends lethal drains, exposure, and death holds together, then lifts zeroed stats, then sets fatigue, because the fatigue ceiling reads live STR and END that the earlier steps can raise."
 traps:
   - "The skin is no longer forced online (OVH3). Do not reintroduce enhanced-only gates on online panels."
   - "A Travel Options message pushed over the death screen once trapped players after the one-shot respawn."
+  - "`nearestSafeLocationAnywhere` exists because the open-sea region has no temple, city, or graveyard. It loads regions one at a time and reloads the previously loaded region afterward, so keep that restore."
 dfu: []
 tags:
   - death
