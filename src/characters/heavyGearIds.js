@@ -17,7 +17,7 @@ export const BALLISTA_ARCHIVE = 564;
 
 export const isBallistaItem = (item) => item?.templateIndex === BALLISTA_TEMPLATE;
 export const isGrappleItem = (item) => item?.templateIndex === GRAPPLE_TEMPLATE;
-/** The hook is no item now (565 is retired, items/retiredItems.js): this stands in the hand for the throw's art only. */
+/** A stand-in hook for the throw's hand art only; the real hook is never equipped. */
 export const GRAPPLE_HAND_ITEM = Object.freeze({ group: 'Weapons', templateIndex: GRAPPLE_TEMPLATE, material: 0 });
 
 // ── THE ROYAL BALLISTA ───────────────────────────────────────────────

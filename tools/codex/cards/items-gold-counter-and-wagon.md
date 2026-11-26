@@ -7,6 +7,8 @@ files:
   - src/items/inventory.js
   - src/items/itemTransfer.js
   - src/items/useItem.js
+related:
+  - grappling-hook-tool
 invariants:
   - "Carried player gold lives on entity.goldPieces rather than inside entity.items, while gold in wagons, loot piles, and trade baskets remains a Currency item stack."
   - "carriedWeight sums item weights and goldPieces at 0.0025 kg per coin scaled by carryFactor, while canHoldAmount evaluates integer gold-piece weight units."

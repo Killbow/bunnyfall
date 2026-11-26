@@ -1,5 +1,4 @@
 // @ts-check
-// Co-owners of a house: living characters of the main owner's account, added by the main.
 import { accountKind, overRate } from './accounts.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import { REALM_ID_RE } from './realm.js';

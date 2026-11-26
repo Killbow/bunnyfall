@@ -1,6 +1,6 @@
 const pilot = new Map([
   ['utility.trailblazer', { effect: 9, subType: 6, rounds: 6, magnitude: 12, safePace: true,
-    description: 'Gain 12 Speed for travel when no hostile foe is nearby.' }],
+    description: 'Gain 12 Speed for travel when no enemy is nearby.' }],
   ['utility.unbound-will', { cooldownMs: 60000, effect: 26, rounds: 4, description: 'Move through paralysis and resist it briefly, using the Free Action effect. Recovers in 60 seconds.' }],
   ['utility.featherstep', { cooldownMs: 45000, effect: 25, rounds: 5, description: 'Slow your descent and protect yourself from falls with Slowfall. Recovers in 45 seconds.' }],
   ['utility.wayfarers-anchor-mark', { cooldownMs: 60000, travel: 'mark', description: 'Set a Wayfarer’s Anchor where you stand and leave a lit lantern on the ground to mark it. Recovers in 60 seconds.' }],

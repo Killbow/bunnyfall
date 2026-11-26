@@ -405,7 +405,12 @@ export function attachTouch(canvas, hooks = {}) {
       let b = null;
       const at = [edge('right', right), edge('bottom', 16), action.w ?? 60];
       if (action.kind === 'hold') {
-        b = button(action.glyph, ...at, () => { slotHeld.set(b, downAction(action.id)); }, () => { const c = slotHeld.get(b) ?? null; slotHeld.delete(b); upCode(c, liveNeeds()); });
+        // A late-lift button keeps its key down two frames past the lift, so the rig sees even a quick tap.
+        b = button(action.glyph, ...at, () => { slotHeld.set(b, downAction(action.id)); }, () => {
+          const c = slotHeld.get(b) ?? null; slotHeld.delete(b);
+          const lift = () => { if (!slotHeld.has(b)) upCode(c, liveNeeds()); };
+          if (action.liftLate) afterFrames(lift); else lift();
+        });
         if (action.id === 'Jump') jumpSlides(b);   // EG-ZH: in the Spire a Jump press that keeps sliding becomes look
       } else if (action.kind === 'tap') {
         // AUDIT CAPTAIN'S SEA S2: a SHARE's action (the Spyglass on K beside the road's follow) by the host's own door -

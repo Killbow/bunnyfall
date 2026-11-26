@@ -32,7 +32,7 @@ export async function discordBotAuthorized(request, env, subtle) {
 
 function profile(row) {
   let summary;
-  try { summary = JSON.parse(row.summary); } catch { /* older character */ }
+  try { summary = JSON.parse(row.summary); } catch {}
   return {
     name: row.name, level: summary?.level ?? null, race: summary?.race ?? null,
     className: summary?.className ?? null, gender: summary?.gender ?? null, face: summary?.face ?? null,

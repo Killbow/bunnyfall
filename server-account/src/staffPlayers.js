@@ -1,42 +1,15 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// STAFF-PANEL3-PLAYERS (2026-10-22, mob: "do all 6"; design doc "DFO Staff Panel: design", build step 3, "Players and
-// nameplates") - THE PANEL'S PLAYERS: a search over every account, online or not, by handle or character name (mob,
-// 03:23Z); one account's profile, read tab by tab; its devices and Sign out everywhere; and the rename of an offensive
-// handle or character name (the last was done by hand, migration 0134). Admins alone: Moderators have no profile screen
-// (mob, 03:03Z: Moderators get "only chat report notifications with Mute and Ban").
-//
-// NOTHING NEW IS JUDGED (design doc, "Built on the save judge"; mob, 09:22Z: "use the validators the server already has").
-// Every flag a profile shows is one the judge stored at a checkpoint - the law finding standing on a character's row
-// (`law_sig`, verdict.js), the copies and claims the ledger keeps (item_dupes, item_uids, ledger.js), the gains past the
-// bucket (`measure` and `budget` findings, review.js's gains) - never a check of this module's own. A save is opened with
-// the service's own codec (realm.js realmSaveTextOf) and its pieces walked as the judge walks them (possessedItemLists,
-// systems/item/possessedItems.js). A save answer names its sequence and when it landed: it is what the player's game
-// last wrote, not live truth (design doc, Weak spots: "Profiles show the player's last save").
-//
-// WHAT GOES FIRST (design doc: "A player's profile shows a count badge on each tab that has something open, and opens on
-// the most urgent tab"): profileBadges - each tab's count of what is open, a level and the words that say why, and the tab
-// the profile opens on. The weights are starting numbers to tune, not measured ones.
-//
-// EVERY READ IS WRITTEN DOWN (design doc, Weak spots: "A 'view' is opening a profile tab or screen, logged once per open"):
-// a search, a tab, a device list - once in READ_ONCE_S a member, a player and a view. Every act with its outcome; a refused
-// or failed one `failed`, with its word.
-//
-// SERVER LOAD (design doc, "Server load"): the search reads by index - the handle's, a character's name's (migration
-// 0151) and the last play beat's (players.played_at) - a profile's facts are one batch, a save is opened once a write
-// (`kept`: by its object's key, and every write is a new object, so a kept view never goes stale), the trades read by
-// migration 0151's indexes, and every list pages (`from`, answered `next`).
 import { displayName, devicesOf, closeAllSessions, handleRefusal, wornNameRefusal, isMuted } from './accounts.js';
 import { findAccount, strikesOf, isBanned } from './sanctions.js';
 import { canModerate, handleList } from './titles.js';
 import { REALM_ID_RE, REALM_PLAYING_S, realmSaveTextOf, realmNameOf, mustChange } from './realm.js';
 import { possessedItemLists, ledgerKeyOf } from './judge.js';
 import { receiptOf } from './review.js';
-import { lawExcused } from './verdict.js';   // RPT1026-LEDGERLAW: an excuse is of the values the law found too
+import { lawExcused } from './verdict.js';
 import { REALM_TRADE_KEEP_S } from './realmTrade.js';
 import { itemWorth } from '../../src/items/itemLaw.js';
 import { liquidWorthOf, REALM_LETTER_TEMPLATE } from '../../src/net/realmGoldLaw.js';
-import { bankTotalOf } from '../../src/net/repairLaw.js';   // STAFF-SET-BANK: the profile's bank, the one sum a bank set reads
+import { bankTotalOf } from '../../src/net/repairLaw.js';
 import { STAT_KEYS_ORDER } from '../../src/characters/statMods.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';
 import { BAN_FOREVER } from '../../src/net/safety/safetyLaw.js';
@@ -45,51 +18,29 @@ import { ID_RE } from '../../src/net/identityToken.js';
 
 export const PLAYER_ROUTES = Object.freeze(['/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout',
   '/v1/staff/player/rename']);
-/** A profile's tabs, in their usual order - a tie on urgency goes to the earlier. */
 export const PLAYER_TABS = Object.freeze(['overview', 'skills', 'equipment', 'inventories', 'market', 'trades', 'economy', 'history']);
-/** STAFF-BANNED: the search's ban filter - the first the default (mob: "player that are banned need to be taken out of
- *  staff panel list of players"). */
 export const BAN_FILTERS = Object.freeze(['not-banned', 'banned', 'all']);
-/** Rows one page of a list answers; an inventory's, ITEMS_PAGE. */
 export const PLAYERS_PAGE = 25;
 export const ITEMS_PAGE = 50;
-/** A read of one view of one player is written once in this, whatever its pages. */
 export const READ_ONCE_S = 10 * 60;
-/** The findings a tab counts as open - the gains, the history - are this recent. */
 export const OPEN_WINDOW_S = 7 * 24 * 3600;
-/** The most days the Economy tab's wealth by the hour reads (design doc, Server load: "cap the day range"). */
 export const ECONOMY_DAYS_MAX = 30;
-/** Saves' views kept in the isolate, by object key. */
 export const SAVES_KEPT = 8;
-/** The places a piece is answered in: the save's own lists (the pack, the Materials Bag, the wagon, the furnisher's and the
- *  repairer's, a home's chests and storage and what is set out there, and `other` - a boat's hold, a companion's pack), and
- *  the service's (the profession Stores, a guild vault's deposits, the market's escrow and deliveries, gold at the market).
- *  `letters` filters the letters of credit wherever they lie. */
 export const ITEM_PLACES = Object.freeze(['carried', 'bag', 'wagon', 'furnisher', 'repairer', 'home', 'other', 'stores', 'vault', 'escrow', 'deliveries', 'market-gold', 'letters']);
-/** MIGRATION 0134'S COPIES OF A HANDLE: every column that keeps an account's name as it was, which a rename writes anew
- *  (pinned to the migration's list by test/server/staffpanel3players.test.js). The moderation record (mod_*,
- *  private_reports, players.muted_by) and the panel's own audit keep what was said and done as it was.
- *  STAFF-PANEL3-PLAYERS FIX (flaw review, "Handle rename rewrites other accounts' rows"): each is `[table, column, scope]`,
- *  `scope` the row's own account column (?3, the renamed account's id) wherever the table keeps one beside the name, so a
- *  copy is this account's and no other's. A copy with no scope keeps no account id beside the name; it holds only
- *  displayName (a handle, unique, or a guest's name, which a handle never matches). 0134 also named six columns that hold
- *  no handle at all, left out here: renown_tracks.name (a character's name, as the client sends it), guild_writs and
- *  guild_contracts' closed_by (an account's id), guild_fealty's offered_by and broken_by and guild_pacts.offered_by (a
- *  guild's id). */
+// Migration 0134 rewrote these handle copies, plus six columns that hold no handle. An entry with a scope (?3)
+// limits the update to the renamed account's rows.
 export const NAME_COPIES = Object.freeze([
   ['letters', 'from_name', 'from_id = ?3'], ['homes', 'owner_name', 'player = ?3 AND guild_id IS NULL'], ['home_rooms', 'tenant_name', 'tenant = ?3'],
   ['board_notes', 'author_name', 'author = ?3'], ['board_notices', 'author_name', 'author = ?3'], ['guilds', 'moved_by'], ['guild_members', 'name', 'player = ?3'],
   ['guild_invites', 'by_name'], ['guild_ledger', 'who'], ['guild_notes', 'author_name', 'author = ?3'], ['guild_renames', 'who'],
   ['guild_vault', 'dep_name', 'dep_player = ?3'], ['guild_vault_log', 'who'], ['guild_writ_budgets', 'set_by'], ['guild_prof_stores', 'moved_by'],
   ['guild_store_ledger', 'who'],
-  // shortcut: a line's `who` is a name only on some kinds (a material's, a product's, a character's on others), so the
-  // account's own line naming a material spelled as its old handle is renamed too; name the kinds if that ever matters
+  // A `who` that names a material spelled like the old handle is rewritten too.
   ['marks_ledger', 'who', 'actor = ?3'],
   ['town_seat_pledges', 'set_by'], ['town_seat_windows', 'set_by'], ['town_seat_hires', 'by_name'], ['town_seat_edicts', 'set_by'],
   ['poi_revs', 'author_name', 'author = ?3'], ['poi_revs', 'reviewer_name', 'reviewer = ?3'], ['poi_shelf', 'by_name', 'by = ?3'], ['poi_shelf', 'updated_by'],
   ['poi_shelf', 'gone_by'],
 ]);
-/** A character list read at most this many (D1 binds 100 a statement). */
 const CHARS_READ_MAX = 90;
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
@@ -102,18 +53,14 @@ const marks = (/** @type {number} */ n, from = 1) => (n ? Array.from({ length: n
 const fromOf = (/** @type {unknown} */ v) => (Number.isSafeInteger(v) && /** @type {number} */ (v) > 0 ? /** @type {number} */ (v) : 0);
 const plural = (/** @type {number} */ n, /** @type {string} */ one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** Online now: a tab of the account beat within the play clock's grace (accounts.js creditPlay) - the service's word; the
- *  relay's own list is the live one. @param {any} p @param {number} nowS */
+/** @param {any} p @param {number} nowS */
 export const onlineNow = (p, nowS) => Number.isSafeInteger(p?.played_at) && nowS - p.played_at <= PLAY_GRACE_S;
-/** A character's law finding stands: found, and not the one staff excused (verdict.js lawExcused). @param {any} c */
+/** @param {any} c */
 const lawStands = (c) => c?.law_sig != null && !lawExcused(c.law_excused, c.law_sig, c.law_v);
-/** A stored law finding that names a piece - the item law's (its list and place), a craft's or a forged id's - is the
- *  Equipment tab's; the rest (the level, attributes, skills, gold: judge.js characterFindings) the Skills tab's. @param {any} f */
+/** @param {any} f */
 export const isPieceFinding = (f) => f?.list != null || f?.code === 'provenance' || f?.code === 'uid';
 
-/** EVERY HANDLE A ROLE OR TITLE LIST NAMES - any `*_HANDLES` the config holds (titles.js, staff.js OWNER_HANDLES), and the
- *  handles DISCORD_MODERATORS and OWNER_KEYS bind - folded as the lists fold them (design doc, Weak spots: "Rename can hand
- *  out power, because role lists are handles"). @param {any} env */
+/** @param {any} env */
 export function listedHandles(env) {
   const out = new Set();
   for (const [k, v] of Object.entries(env ?? {})) {
@@ -129,8 +76,6 @@ export function listedHandles(env) {
 }
 
 /**
- * WHAT GOES FIRST ON A PROFILE - each tab's count of what is open, its level and the words that say why, and `first`, the
- * tab it opens on: the highest level, then the most open, then the usual order; Overview when nothing is open.
  * @param {{ openCases: number, banned: boolean, muted: boolean, frozen: boolean, holds: number, charLaw: number, pieceLaw: number,
  *   copies: number, claims: number, reported: number, refusedHeld: number, budget: number, measure: number, findings: number }} f
  */
@@ -159,11 +104,10 @@ export function profileBadges(f) {
   return { tabs, first };
 }
 
-/** ONE PIECE AS A ROW: where it lies, which list and place (`li`, `i`: the judge's own address for it), and what it is. */
 function itemRow(/** @type {any} */ it, /** @type {string} */ where, /** @type {number} */ li, /** @type {number} */ i) {
   const o = it && typeof it === 'object' ? it : {};
   let worth = 0, key = null;
-  try { worth = liquidWorthOf(o) || itemWorth(o); key = ledgerKeyOf(o); } catch { /* a piece of no shape the game writes: the judge's own finding names it */ }
+  try { worth = liquidWorthOf(o) || itemWorth(o); key = ledgerKeyOf(o); } catch { }
   return {
     where, li, i, name: str(o.name), t: num(o.templateIndex), group: str(o.group ?? o.itemGroup, 32), material: num(o.material), quality: num(o.quality),
     count: Number.isSafeInteger(o.stackCount) && o.stackCount > 1 ? o.stackCount : 1, worth: Number.isSafeInteger(worth) ? worth : 0,
@@ -171,13 +115,8 @@ function itemRow(/** @type {any} */ it, /** @type {string} */ where, /** @type {
     ...itemMore(o),
   };
 }
-/** How many enchantments a row carries at most. */
 const ITEM_ENCH_MAX = 12;
-/** INV-HOVER (mob 2026-10-24: "hover for item here with descriptons", "so i can see what enchants and amounts of gold on
- *  parchment are"): what a piece's hover in the profile says beyond its row - its enchantments ([type, param], the
- *  game's EnchantmentTypes; the maker's own rows left out), its condition, the gold written on it (`value`: a letter's,
- *  or any piece's that carries one), its message number and whether a quest owns it. Only what the piece has.
- *  @param {any} o */
+/** @param {any} o */
 function itemMore(o) {
   const ench = (Array.isArray(o.enchantments) ? o.enchantments : [])
     .filter((/** @type {any} */ e) => e && typeof e === 'object' && e.enchantCost === undefined && Number.isSafeInteger(e.type) && e.type >= 0)
@@ -192,12 +131,7 @@ function itemMore(o) {
   };
 }
 
-/**
- * WHAT A PROFILE READS OF ONE SAVE - its level, attributes and skills as the save writes them, its purse and banks, and every
- * piece it holds as possessedItemLists walks them (the judge's walk), each with where it lies: the five lists by name, a
- * piece of the scene cache's (a home's chests, its storage, what is set out) `home`, the rest (a boat, a companion) `other`.
- * @param {any} save
- */
+/** @param {any} save */
 export function saveViewOf(save) {
   const named = new Map([[save.items, 'carried'], [save.bagItems, 'bag'], [save.wagonItems, 'wagon'], [save.furnishings, 'furnisher'], [save.otherItems, 'repairer']]);
   const home = new Set();
@@ -215,16 +149,15 @@ export function saveViewOf(save) {
   const stats = objectOf(save.stats);
   return {
     level: num(save.level), name: str(save.name), purse: num(save.goldPieces),
-    banks: bankTotalOf(save),   // STAFF-SET-BANK: the sum a bank set is checked against (net/repairLaw.js), one with it
+    banks: bankTotalOf(save),
     stats: Object.fromEntries(STAT_KEYS_ORDER.map((k) => [k, num(stats[k])])),
     skills: arrayOf(save.skills).slice(0, 64).map(num),
     items,
   };
 }
 
-/** Saves' views by their object's key, oldest first - a key is one write's, so what is kept is never stale. */
 const kept = new Map();
-/** The view of the save a character's row names now, or null (none written, no storage, not a save). @param {any} bucket @param {any} c */
+/** @param {any} bucket @param {any} c */
 async function viewOf(bucket, c) {
   if (!bucket || !c?.obj) return null;
   let view = kept.get(c.obj);
@@ -238,8 +171,7 @@ async function viewOf(bucket, c) {
   return view;
 }
 
-/** The law finding standing on a character - the last the judge wrote (one is written as its signature comes or changes,
- *  verdict.js) - as `{ seq, findings }`, or null. @param {any} db @param {any} c */
+/** @param {any} db @param {any} c */
 async function lawOf(db, c) {
   if (!lawStands(c)) return null;
   const f = await db.prepare("SELECT seq, detail FROM realm_findings WHERE char_id = ?1 AND kind = 'law' ORDER BY at DESC, id DESC LIMIT 1").bind(c.id).first();
@@ -247,8 +179,6 @@ async function lawOf(db, c) {
   return d ? { seq: f.seq, findings: arrayOf(d.findings) } : null;
 }
 
-/** The judge's piece findings laid on the rows they name - only when the finding was made of this very save (its list and
- *  place are that save's), never by a guess. And the pieces the ledger locked as copies, by their key. */
 function flagged(/** @type {any[]} */ rows, /** @type {{ seq: number, findings: any[] } | null} */ law, /** @type {number} */ seq, /** @type {Set<string>} */ locked) {
   const at = new Map();
   if (law && law.seq === seq) for (const f of law.findings) if (f?.list != null) at.set(`${f.list}:${f.at}`, [...(at.get(`${f.list}:${f.at}`) ?? []), f.code]);
@@ -258,7 +188,7 @@ function flagged(/** @type {any[]} */ rows, /** @type {{ seq: number, findings: 
   });
 }
 
-/** A character as a profile lists it. @param {any} c @param {number} nowS */
+/** @param {any} c @param {number} nowS */
 function charView(c, nowS) {
   const s = parse(c.summary ?? 'null');
   return {
@@ -267,28 +197,22 @@ function charView(c, nowS) {
     lawStrikes: c.strikes ?? 0, wealth: c.wealth ?? null, review: c.review ?? null, seq: c.seq, savedAt: c.updated_at,
   };
 }
-/** The character a tab reads: the one asked for, or the one played last that lives. @param {any[]} chars @param {unknown} id */
+/** @param {any[]} chars @param {unknown} id */
 const chosen = (chars, id) => chars.find((c) => c.id === id) ?? chars.find((c) => c.dead_at == null) ?? chars[0] ?? null;
 
 const CHARS_SQL = `SELECT id, name, summary, seq, lease, lease_at, obj, dead_at, held, held_at, held_until, strikes, law_sig, law_excused, law_v, review,
   wealth, allowance, witnessed, judged_seq, level_seen, created_at, updated_at FROM realm_characters WHERE player = ?1 ORDER BY updated_at DESC LIMIT ${CHARS_READ_MAX}`;
 
-/**
- * A PROFILE'S FACTS, one batch: the open case, the judge's findings standing and this week's, the ledger's copies and claims,
- * the reported listings, the trades refused on a hold - and the card's newest flag.
- * @param {any} db @param {any} p @param {any[]} chars @param {number} nowS
- */
+/** @param {any} db @param {any} p @param {any[]} chars @param {number} nowS */
 async function factsOf(db, p, chars, nowS) {
   const ids = chars.map((c) => c.id);
   const standing = chars.filter(lawStands);
   const q = (/** @type {string} */ sql, /** @type {unknown[]} */ ...a) => db.prepare(sql).bind(...a);
   /** @type {[string, any][]} */
   const reads = [
-    // one open case a kind (migration 0156: a chat case and a spawn case may stand together)
     ['case', q("SELECT COUNT(*) AS n FROM mod_cases WHERE target = ?1 AND status = 'open'", p.id)],
     ['reported', q(`SELECT COUNT(DISTINCT x) AS n FROM (SELECT r.listing AS x FROM market_reports r JOIN market_listings l ON l.id = r.listing WHERE l.seller = ?1 AND l.state = 'open'
       UNION ALL SELECT r.auction FROM market_auction_reports r JOIN market_auctions a ON a.id = r.auction WHERE a.seller = ?1 AND a.state = 'open')`, p.id)],
-    // a hold's refusal is kept with the side it held (realmTrade.js, FIELD BUGS 2026-10-11g HELD-SIDE): this account's own
     ['refused', q("SELECT COUNT(*) AS n FROM realm_trades WHERE (a_player = ?1 AND why = 'trade-held:a') OR (b_player = ?1 AND why = 'trade-held:b')", p.id)],
   ];
   if (ids.length) {
@@ -321,9 +245,10 @@ async function factsOf(db, p, chars, nowS) {
   };
 }
 
-/** A list's statements, paged: every section from its start, or the one asked (`section`) from `from` - one batch, the
- *  read's audit row (`row`) last in it. @param {any} db @param {Record<string, [string, unknown[]]>} defs @param {any} body
- *  @param {any} row @param {(row: any) => any} [map] */
+/**
+ * @param {any} db @param {Record<string, [string, unknown[]]>} defs @param {any} body
+ * @param {any} row @param {(row: any) => any} [map]
+ */
 async function sectionsOf(db, defs, body, row, map = (x) => x) {
   const one = typeof body.section === 'string' && Object.hasOwn(defs, body.section) ? body.section : null;
   const names = one ? [one] : Object.keys(defs);
@@ -335,15 +260,15 @@ async function sectionsOf(db, defs, body, row, map = (x) => x) {
   }));
 }
 
-/** A stored item record (a listing's, a delivery's, a vault slot's, an escrow's) as its name and template. @param {unknown} rec */
+/** @param {unknown} rec */
 const recOf = (rec) => { const o = objectOf(parse(rec)); return { name: str(o.name), t: num(o.templateIndex) }; };
-/** A market row with its item record read. @param {any} r */
+/** @param {any} r */
 const marketRow = (r) => (r.item ? { ...r, item: recOf(r.item) } : r);
 
 /**
- * ONE TAB OF A PROFILE. @param {any} ctx @param {any} env @param {string} tab @param {any} p the account's row
- * @param {any[]} chars its realm characters, the one played last first @param {any} body
- * @param {any} row the read's audit row - STAFF-PANEL-SPEED: written in the tab's own batch, never a trip after it
+ * @param {any} ctx @param {any} env @param {string} tab @param {any} p
+ * @param {any[]} chars @param {any} body
+ * @param {any} row
  */
 async function tabOf(ctx, env, tab, p, chars, body, row) {
   const { db, nowS } = ctx;
@@ -355,7 +280,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
       db.prepare('SELECT m.char_id, m.rank, g.id, g.name, g.tag FROM guild_members m JOIN guilds g ON g.id = m.guild_id WHERE m.player = ?1').bind(p.id),
       db.prepare('SELECT char_id, xp FROM renown_tracks WHERE player = ?1').bind(p.id),
       db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE player_id = ?1').bind(p.id),
-      // every open case - one a kind, a chat case and a spawn case at once (migration 0156)
       db.prepare("SELECT id, kind, opened_at, reports, claimed_by FROM mod_cases WHERE target = ?1 AND status = 'open' ORDER BY kind").bind(p.id),
       row,
     ]), strikesOf(db, p.id, nowS)]);
@@ -379,10 +303,8 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
   if (tab === 'skills' || tab === 'equipment' || tab === 'inventories') {
     const c = chosen(chars, body.char);
     if (!c) { await row.run(); return { character: null }; }
-    // STAFF-PANEL-SPEED: the save, its law finding, the locked copies and what the service holds, all at once, the row with them
     const service = tab === 'inventories' ? [
       db.prepare('SELECT char_id, material, origin, qty FROM prof_stores WHERE player = ?1 AND qty > 0').bind(p.id),
-      // a guild's vault, by its own key: the account's guilds' deposits (one it left keeps them as the guild's)
       db.prepare(`SELECT v.guild_id, g.name AS guild, v.slot, v.rec, v.name, v.count, v.dep_char FROM guild_vault v JOIN guilds g ON g.id = v.guild_id
         WHERE v.guild_id IN (SELECT guild_id FROM guild_members WHERE player = ?1) AND v.dep_player = ?1`).bind(p.id),
       db.prepare(`SELECT l.id, l.char_id, l.kind, l.material, l.provenance, l.item, l.units, l.bought, l.price, l.currency, e.item AS piece
@@ -405,7 +327,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
     const locked = new Set((got[0]?.results ?? []).map((/** @type {any} */ d) => d.uid));
     const rows = flagged(view?.items ?? [], law, c.seq, locked);
     if (tab === 'equipment') return { ...head, worn: rows.filter((r) => r.where === 'carried' && r.slot != null), findings: (law?.findings ?? []).filter(isPieceFinding) };
-    // INVENTORIES, EVERYWHERE: the save's own lists (this character's), and what the service holds for the account
     const [stores, vault, listings, auctions, orders, bids, deliveries, gold, wild] = got.slice(1);
     const res = (/** @type {any} */ x) => /** @type {any[]} */ (x?.results ?? []);
     const held = [
@@ -454,7 +375,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
   }
 
   if (tab === 'trades') {
-    // both sides, by migration 0151's indexes; the service keeps a trade REALM_TRADE_KEEP_S (realmTrade.js), so this is the last week's
     const from = fromOf(body.from);
     const [found] = await db.batch([db.prepare(`SELECT t.sid, t.created_at AS at, t.state, t.why, t.result, t.a_player, t.a_char, t.b_player, t.b_char,
         ca.name AS a_name, cb.name AS b_name, pa.handle AS a_handle, pb.handle AS b_handle
@@ -468,7 +388,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
         const mine = t.a_player === p.id ? 'a' : 'b', theirs = mine === 'a' ? 'b' : 'a';
         const r = t.state === 'done' ? parse(t.result) ?? {} : null;
         const side = /^(trade-held|record-unjudged):([ab])$/.exec(t.why ?? '');
-        // the row keeps what each side RECEIVED, so what this side gave is what the other got (review.js tradesOf)
         return {
           sid: t.sid, at: t.at, state: t.state, why: side ? side[1] : t.why ?? null, held: side ? (side[2] === mine ? 'mine' : 'theirs') : null, char: t[`${mine}_char`],
           with: { id: t[`${theirs}_char`] ?? null, name: t[`${theirs}_name`] ?? null, player: t[`${theirs}_player`] ?? null, handle: t[`${theirs}_handle`] ?? null },
@@ -482,7 +401,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
     const days = Number.isSafeInteger(body.days) && body.days >= 1 && body.days <= ECONOMY_DAYS_MAX ? body.days : 7;
     const since = nowS - days * 86400;
     const c = chosen(chars, body.char);
-    // the gains page from `from`, answered `next` (STAFF-PANEL3-PLAYERS FIX, flaw review: a farmer's month is past any one cut)
     const from = fromOf(body.from);
     const [hours, gains] = await db.batch([
       db.prepare('SELECT hour, level, gain, loss, played_s AS playedS, checkpoints FROM realm_wealth_hours WHERE char_id = ?1 AND hour >= ?2 ORDER BY hour DESC').bind(c?.id ?? null, since),
@@ -498,8 +416,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
     };
   }
 
-  // HISTORY: the judge's findings (staff's realm acts among them, `staff`), the strike record, and the reports against the
-  // account and by it - a report's reason, never its words
   return sectionsOf(db, {
     findings: [`SELECT id, char_id AS char, seq, at, kind, detail FROM realm_findings WHERE char_id IN (${marks(ids.length)}) ORDER BY at DESC, id DESC`, ids],
     acts: ['SELECT id, kind, until, reason, actor_name AS actorName, case_id AS caseId, at, void_at AS voidAt FROM mod_actions WHERE target = ?1 ORDER BY at DESC, id DESC', [p.id]],
@@ -511,7 +427,6 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
 }
 
 /**
- * THE PANEL'S PLAYER DOORS. Answers the route's body, or `{ error }` (staff.js STAFF_STATUS its status).
  * @param {any} ctx @param {any} env @param {string} path @param {any} body
  * @param {{ player: any, role: string }} who
  * @param {(act: string, target?: string|null, detail?: object|null, how?: object) => any} audit
@@ -523,30 +438,18 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
     return { error: 'staff-admin' };
   }
 
-  // /v1/staff/players { q?, online?, ban?, from? } - every account with a handle whose handle, or a character's name, starts
-  // with `q` (any case), `online` those a tab of which beat inside the play clock's grace; by handle, `from` the last one
-  // STAFF-BANNED (2026-10-23, mob: "player that are banned need to be taken out of staff panel list of players we need a
-  // tab for banned players as well", "add a ban status as well to player list", "so we can filter them"): `ban` is
-  // 'not-banned' (the default, so a banned account is out of the list unless asked for), 'banned' or 'all' (BAN_FILTERS),
-  // judged in the statement against banned_until and the clock, as sanctions.js isBanned judges it (a lapsed ban is none).
-  // The page is cut after the filter, so its cursor - the last handle of the filtered page - goes on from there: no row
-  // skipped, none read twice. Each row says its ban (`bannedUntil`, 0 for none; `banForever` for BAN_FOREVER). The Banned
-  // tab itself is staffCases.js /v1/staff/banned, a Moderator's too, as Unban is.
   if (path === '/v1/staff/players') {
     const q = typeof body.q === 'string' ? body.q.trim().slice(0, 32) : '';
     const online = body.online === true;
     const ban = BAN_FILTERS.includes(body.ban) ? body.ban : 'not-banned';
     const after = typeof body.from === 'string' ? body.from.slice(0, 64) : '';
-    const top = (/** @type {string} */ s) => `${s}\u{10FFFF}`;   // past every name the prefix starts
+    const top = (/** @type {string} */ s) => `${s}\u{10FFFF}`;
     const args = [after, PLAYERS_PAGE + 1, ...(q ? [q.toLowerCase(), top(q.toLowerCase()), q, top(q)] : [])];
-    // STAFF-BANNED: the banned read by migration 0164's index, as the online one is by the play beat's; the clock bound
-    // before the online filter's, whose clause reads the last bound
     const banSql = ban === 'banned' ? `AND id IN (SELECT id FROM players WHERE banned_until > ?${args.push(nowS)}) `
       : ban === 'not-banned' ? `AND (banned_until IS NULL OR banned_until <= ?${args.push(nowS)}) ` : '';
     if (online) args.push(nowS - PLAY_GRACE_S);
-    // the online read by the last play beat's index (idx_players_played) and only they sorted: a plain `played_at >=` beside
-    // the handle's range let the planner walk every handle for the ORDER BY (STAFF-PANEL3-PLAYERS FIX, flaw review)
-    // STAFF-PANEL-SPEED (mob: "slow when moving in menus"): the cut page's characters ride its read as one JSON column, its audit row the same batch - one trip, was three
+    // The online filter stays a subquery so it uses idx_players_played; a plain played_at >= beside the handle
+    // range makes the planner walk every handle.
     const sql = `SELECT x.*, (SELECT json_group_array(json_array(c.id, c.name, c.lease, c.lease_at, c.dead_at, c.held)) FROM (SELECT id, name, lease, lease_at, dead_at, held
         FROM realm_characters WHERE player = x.id ORDER BY updated_at DESC) c) AS chars
       FROM (SELECT id, handle, handle_lc, created_at, played_at, muted_until, banned_until FROM players WHERE ${q ? `id IN (
@@ -559,26 +462,19 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
     return {
       players: page.map((r) => ({
         id: r.id, handle: r.handle, online: onlineNow(r, nowS), playedAt: r.played_at ?? null, createdAt: r.created_at, banned: isBanned(r, nowS), muted: isMuted(r, nowS),
-        bannedUntil: isBanned(r, nowS) ? r.banned_until : 0, banForever: isBanned(r, nowS) && r.banned_until >= BAN_FOREVER,   // STAFF-BANNED: the ban status
+        bannedUntil: isBanned(r, nowS) ? r.banned_until : 0, banForever: isBanned(r, nowS) && r.banned_until >= BAN_FOREVER,
         characters: arrayOf(parse(r.chars)).map(([id, name, lease, leaseAt, deadAt, held]) => ({ id, name, playing: !!lease && nowS - leaseAt < REALM_PLAYING_S, dead: deadAt != null, held: held ?? null })),
       })),
       next: rows.length > PLAYERS_PAGE ? page[page.length - 1].handle_lc : null,
     };
   }
 
-  // an act names the account by its id, never a name (design doc, Weak spots: "Act by account id ... never by name"); a read
-  // may name it either way (sanctions.js findAccount)
   const acting = path === '/v1/staff/player/signout' || path === '/v1/staff/player/rename';
-  // STAFF-PANEL-SPEED: a profile asked by the account's id (findAccount's own test) reads its characters beside the account
   const byId = path === '/v1/staff/player' && typeof body.target === 'string' && ID_RE.test(body.target);
   const [p, early] = await Promise.all([findAccount(db, acting ? { target: body.target } : { target: body.target, name: body.name }),
     byId ? db.prepare(CHARS_SQL).bind(body.target).all() : null]);
   if ('error' in p) return p;
 
-  // /v1/staff/player { target | name, tab?, char?, section?, from?, where?, q?, type?, quality?, min?, days? } - opened (no
-  // tab): the summary card, each tab's badge, the tab it opens on and that tab; a tab named: that tab alone. `where`, `q`,
-  // `type`, `quality` and `min` filter the Inventories (ITEM_PLACES; a name; a group; a quality and a worth at least);
-  // `days` the Economy's range (1 to ECONOMY_DAYS_MAX, a week else)
   if (path === '/v1/staff/player') {
     const chars = (early ?? await db.prepare(CHARS_SQL).bind(p.id).all())?.results ?? [];
     const asked = PLAYER_TABS.includes(body.tab) ? body.tab : null;
@@ -605,18 +501,14 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
     return { ...head, target: p.id, tab, data };
   }
 
-  // /v1/staff/player/devices { target | name } - the devices the account signed in on (accounts.js devicesOf, the player's own list)
   if (path === '/v1/staff/player/devices') {
-    // STAFF-PANEL-SPEED: the row with the list's read, one trip (devicesOf is the player's own list, accounts.js's statement)
     const [devices] = await Promise.all([devicesOf(ctx, p.id), audit('devices-read', p.id, null, { onceIn: READ_ONCE_S }).run()]);
     return { target: p.id, name: displayName(p), devices };
   }
 
-  // /v1/staff/player/signout { target } - every game session ended (accounts.js closeAllSessions, the player's own "everywhere")
   if (path === '/v1/staff/player/signout') {
-    // STAFF-PANEL3-PLAYERS FIX (flaw review, "Sign out everywhere on a guest account locks the player out for good"): a
-    // guest has no handle or password, so its sessions are its only way in (accounts.js createGuest) - never all ended
     if (!p.handle) {
+      // A guest has no handle or password, so its sessions are its only way in.
       await audit('signout-all', p.id, { name: displayName(p), error: 'no-handle' }, { outcome: 'failed' }).run();
       return { error: 'no-handle' };
     }
@@ -629,9 +521,6 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
     return { ok: true, target: p.id, revoked: r.revoked };
   }
 
-  // /v1/staff/player/rename { target, to, char? } - the account's handle, or (with `char`) one of its characters' names.
-  // Never to or from a name a role or title list holds (design doc, Weak spots: "Rename refuses any handle on a role or
-  // title list"), so a rename hands no power out and takes none away - a staff member's name is the config's to change.
   const to = typeof body.to === 'string' ? body.to : '';
   const listed = listedHandles(env);
   const fail = async (/** @type {string} */ error, /** @type {object} */ detail) => {
@@ -643,8 +532,6 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
       ? await db.prepare('SELECT id, name FROM realm_characters WHERE id = ?1 AND player = ?2').bind(body.char, p.id).first() : null;
     if (!c) return fail('no-character', { char: str(body.char, 40) });
     const detail = { char: c.id, from: c.name };
-    // a name the realm keeps (realm.js realmNameOf) and the wire carries as it stands (accounts.js wornNameRefusal: the name
-    // filter's law), never another account's handle (wornNameOf's own refusal)
     if (realmNameOf(to) !== to || wornNameRefusal(to)) return fail('rename-bad', detail);
     if (to === c.name) return fail('rename-same', detail);
     if (listed.has(to.toLowerCase())) return fail('rename-listed', detail);
@@ -665,10 +552,6 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
   if (to === p.handle) return fail('rename-same', detail);
   if (canModerate(p, env) || listed.has(p.handle_lc) || listed.has(to.toLowerCase())) return fail('rename-listed', detail);
   if (await db.prepare('SELECT 1 AS taken FROM players WHERE handle_lc = ?1 AND id != ?2').bind(to.toLowerCase(), p.id).first()) return fail('rename-taken', detail);
-  // migration 0134's way, in one batch: the handle (the unique index the authority on a name taken), and every copy of it
-  // matched on the old one - on this account's own rows wherever the table names the account (NAME_COPIES).
-  // shortcut: each copy is matched by a scan of its table, as 0134's were - a staff act done rarely; give a table an index
-  // on its name column if one grows past what a scan reads quickly.
   try {
     await db.batch([
       audit('rename', p.id, { ...detail, to }),

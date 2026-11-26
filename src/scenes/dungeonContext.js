@@ -179,7 +179,7 @@ import { tallySkill, skillValue, SKILLS } from '../characters/skills.js';
 import { FALL_DAMAGE_THRESHOLD, FALL_HP_PER_METRE, CAPSULE_HEIGHT, EYE_HEIGHT, startRestGroundedCheck } from '../player/motor.js';   // the rest gate's grounded input, one home
 import { applyLevelUp } from '../characters/advancement.js';
 import { initVirtueLeveling, LEVELING_CLASSIC } from '../characters/oblivionLeveling.js';   // ORL1: the font-less creation path answers the question it could not ask
-import { tickPlayerMinutes, claimMagicRounds, runMagicRoundsFor, playerWeaponHitEntity } from '../world/worldTick.js';   // AUDIT 18: the player tick every host shares; DISC10-D H1: OnWeaponHitEntity's one dispatcher
+import { tickPlayerMinutes, claimMagicRounds, runMagicRoundsFor, playerWeaponHitEntity, blowFeedDamage } from '../world/worldTick.js';   // AUDIT 18: the player tick every host shares; DISC10-D H1: OnWeaponHitEntity's one dispatcher
 import { mintSharedStamp, hitPoisonOf, hitSpellOf, hitSpellFields, HIT_ARROWS_MAX, wallMsForClassicMinutes, validFoeRecord, validSharedFoe, FOE_HEALTH_MAX, FOES_FRAME_MAX, CELL_FRAME_RECORDS_MAX } from '../net/wire.js';   // AUDIT ONCRASH1 B4a/A3: the stream's door and the memory's, which this host had neither of   // WORLD8: the hour's respawn - DUNGEON-RESPAWN: the dungeon's own pace now (its respawnDue below), the wire's hour not imported (MAC-L1b: nothing shadowed)   // AUDIT WORLD6a B7: the memory's stamp, from the wire's one mint
 import { spendPoolLowest } from '../characters/chargen.js';
 import { doorSpellFor, consumeDoorSpell } from './shared.js';
@@ -4437,7 +4437,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   /** A swing of mine that met a crystal: the glass rings (the court voices it - scenes/gate/gateCourt.js), the number out. */
   function swingOnCrystal(cr, damage) {
     if (damage > 0) landOnCrystal(cr, damage, HIT_KINDS.Melee);
-    playerWeaponHitEntity(playerEntity, cr.entity, { mobileType: null });
+    playerWeaponHitEntity(playerEntity, cr.entity, { mobileType: null, damage: blowFeedDamage(cr, damage) });
   }
   // ═══ WB11c: HIS HOST, MET ═════════════════════════════════════════════════════════════════════════════════════════
   // (2026-10-01, Mac: "1. All three ... 4. Trial rotation" - the Legion-Lord's Harriers, Sappers and Ward-Bearers). The
@@ -4476,7 +4476,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       hitEffects?.showBloodSplash(ENEMY_BASICS[hb.mobileType]?.bloodIndex ?? 0, hostChest(hb), null, bloodHit(damage, hb.bloodOf, { fromPlayer: true, weapon: playerWeapon.strikingWeapon, swing: playerWeapon.machine?.state, forward: lookDir }));
       landOnHost(hb, damage, HIT_KINDS.Melee);
     }
-    playerWeaponHitEntity(playerEntity, hb.entity, { mobileType: hb.mobileType });
+    playerWeaponHitEntity(playerEntity, hb.entity, { mobileType: hb.mobileType, damage: blowFeedDamage(hb, damage) });
   }
   // ═══ ARENA4: MY OPPONENT ON A RELAY'S SAND, MET ═══════════════════════════════════════════════════════════════
   // (2026-10-02, Mac: "choose to matchmake for a real opponent to take on in real time"). The outer host's word of the
@@ -4545,7 +4545,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       hitEffects?.showBloodSplash(ENEMY_BASICS[boss.mobileType]?.bloodIndex ?? 0, bossChest(boss), null, bloodHit(damage, boss.entity, { fromPlayer: true, weapon: playerWeapon.strikingWeapon, swing: playerWeapon.machine?.state, forward: lookDir }));
       landOnBoss(boss, bossStrikeAt(boss.entity, damage, 'melee', playerWeapon.strikingWeapon, null, false, (n) => hurtPlayer(n)), HIT_KINDS.Melee);   // BOSS-TRAITS: resisted, its thorns at me
     }
-    playerWeaponHitEntity(playerEntity, boss.entity, { mobileType: boss.mobileType });
+    playerWeaponHitEntity(playerEntity, boss.entity, { mobileType: boss.mobileType, damage: blowFeedDamage(boss, damage) });
   }
   // FIELD BUGS 2026-10-19f STAND-IN-WHOLE (HOST-SPLIT): MY HARMFUL SPELL ON A BODY THE RELAY RUNS - him, his crystals, his
   // host (the Remnant's in the Hour, an Elite Breach's bodies) and my opponent on the sand - by one door, counted on its
@@ -4665,7 +4665,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       const pain = enemyPainVoice(foe, damage);
       if (pain && pain.clip >= 0) audio.play3d(pain.clip, [foe.ai.feet[0], foe.ai.feet[1] + 0.9, foe.ai.feet[2]], monsterVolume(), { maxDistance: 16, pitch: 1 + pain.pitchLift });   // AUDIT 58: EnemySounds.cs:172-175
       damageFoe(foe, damage, playerFeet, lookDir, { weapon: playerWeapon.strikingWeapon, abilityControl: playerWeapon.techniqueBlow?.control });   // C15: the attack ray knocks back; rigs also stagger (HurtFront/Back); TELL1: the blow's weapon weighs it on a wind-up's poise
-      playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
+      playerWeaponHitEntity(playerEntity, foe.entity, { mobileType: foe.mobileType, damage });   // DISC10-D H1: OnWeaponHitEntity, after DecreaseHealth and HandleAttackFromSource (WeaponManager.cs:627-635) - every connect, the zero-damage one too
     }
     // combat-14: the no-entity fallback - only a swing that connected
     // with NO foe may bash the environment.

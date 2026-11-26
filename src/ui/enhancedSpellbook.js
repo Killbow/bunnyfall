@@ -33,7 +33,7 @@ import { animateSpellPreview, illustratedUiOn } from './expanderArt.js';
 import { repaintKeepingScroll } from './domRepaint.js';   // FB1018f SPELL-SCROLL: a pick keeps the list where it was
 import { closeOnOutsideTap } from './enhancedOverlays.js';   // OT1
 import { abilitiesEnabled } from '../combat/abilities/progress.js';
-import { buildAbilityCodex } from './abilityCodex.js';
+import { buildAbilityCodex, resetAbilityCodex, revealAbilityPick } from './abilityCodex.js';
 import { hotbarSize } from './enhancedHotbar.js';
 import { overlayAction, eventMeans } from './input.js';   // KB1: and the registry's answer for the book's own key
 import {
@@ -231,12 +231,15 @@ function paint() {
 
   const body = el('div', 'px-body');
   if (abilitiesEnabled() && deps.entity) {
-    const tabs = el('nav', 'px-tabs sb-page-tabs');   // BUNNYFALL: the window's own tab plates
+    const tabs = el('nav', 'px-tabs sb-page-tabs');
     tabs.setAttribute('aria-label', 'Spellbook pages');
     for (const [label, active] of [['Spells', false], ['Abilities', true]]) {
       const button = el('button', 'act' + (active === abilityPage ? ' on' : ''), label);
       button.setAttribute('aria-pressed', String(active === abilityPage));
-      button.onclick = () => { abilityPage = active; notice = null; render(); };
+      button.onclick = () => {
+        if (active && !abilityPage) revealAbilityPick();
+        abilityPage = active; notice = null; render();
+      };
       tabs.append(button);
     }
     win.append(tabs);
@@ -275,7 +278,7 @@ function paint() {
   for (const r of rows) {
     if (hotbarAcceptsDrops()) spellIconPicture(r.spell?.icon, { box: SPELL_DRAG_BOX });   // UI2: warmed, so a drag starts with it
     const b = el('button', `${illustrated ? 'sb-catalogue-row' : 'px-qrow'} sb-row${r.i === picked ? ' on' : ''}`);
-    if (illustrated) b.setAttribute('aria-expanded', String(r.i === picked));
+    if (illustrated && r.i === picked) b.setAttribute('aria-current', 'true');
     if (r.i === picked) selectedRow = b;
     const icon = el('span', 'sb-row-icon', spellInitials(r.name));
     icon.setAttribute('aria-hidden', 'true');
@@ -618,6 +621,7 @@ function onKey(e) {
 
 export function mountEnhancedSpellbook(hostEl, d = {}) {
   spellQuery = '';
+  resetAbilityCodex();
   injectEnhancedStyle();
   injectEnhancedFonts();
   host = hostEl;

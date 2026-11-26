@@ -1,26 +1,15 @@
 // @ts-check
-// BUNNYFALL VAMPIRE EXPANSION, PHASE 1: FEEDING. An awakened vampire (systems/vampire/vitae.js) in STEAL MODE feeds where
-// a mortal would pick a purse:
-//   - on a TOWNSPERSON in the street or in a room (townTalk.js's steal arm hands the person here first);
-//   - on a SLEEPER, through the bed they sleep in (worldModes.js's bed rows, while the building holds a sleeper).
-// BLOOD SIGHT reads the victim first - their blood's archetype and quality %, and who could see - and the player chooses
-// in a small box (the quest box's own ServiceFlowWindow, through the host's `showBox`):
-//   The Kiss          a sip, their memory clouded for MIND_CLOUD_COST Vitae: no suspicion (a Ravenous Beast may slip)
-//   Drink             more blood, Vitae kept; they wake weakened and may cry for the watch (REPORT_CHANCE)
-//   Drain them dry    the most blood, and a death: Murder if seen, their household's hatred either way
-//   Leave them be
-// Seen by anyone (the Living World's witnesses: on the street within its WITNESS_M with a clear line, in a room anyone
-// awake), the feeding is a crime: Assault, or Murder for a death - and the watch comes (the host's onCrime, the
-// pickpocket's own). Each person feeds once a day (FED_TODAY), as a purse is picked once - and only a feed that happened
-// counts: a Leave, a refused Kiss or a box closed never uses the person up (the playtest's "you wipe your mouth" bug).
-// FED_TODAY is kept per PERSON (a sleeper's own id), never per house: each bed press takes the next sleeper not yet fed.
+// Feeding: in Steal mode an awakened vampire feeds on a townsperson (townTalk.js) or on a sleeper through their bed
+// (worldModes.js) instead of picking a purse. Blood Sight shows the blood and who could see, then the player picks a
+// choice such as the Kiss, Drink, Drain, or Leave. A feed seen by anyone is Assault, or Murder for a death. Each
+// person, sleepers included, is fed on once a day (fedToday.js, saved), counted only after a real feed.
 
 import { t } from '../../ui/textManager.js';
 import { setCrimeCommitted, CRIMES } from '../../justice/court.js';
 import { skillValue, SKILLS } from '../../characters/skills.js';
-import { MINUTES_PER_DAY } from '../../world/gameDate.js';
-import { awakenedVampirism, feedVampire, spendMindCloud, beastStageNow, vampireStatus } from '../../systems/vampire/vitae.js';
-import { noteFirstUse } from '../../ui/tutorials.js';   // the vampire's pages
+import { fedToday, markFedToday } from '../../systems/vampire/fedToday.js';
+import { awakenedVampirism, feedVampire, spendMindCloud, spendVitae, beastStageNow, vampireStatus } from '../../systems/vampire/vitae.js';
+import { noteFirstUse } from '../../ui/tutorials.js';
 import { openBloodSight } from '../../ui/vampire/bloodSightCard.js';   // THE VISUAL PASS: the Blood Sight card
 import {
   archetypeOfPerson, qualityOfPerson, resonanceWords, resonanceTier, beastStageName, beastStageOf, archetypeName, bloodTag,
@@ -38,20 +27,18 @@ export const SLEEPER_WAKES = 50;
 /** Without a Living World town, anyone this near (m) sees the feeding. */
 export const NEAR_WITNESS_M = 6;
 
-/** Who has fed today: `${id}@${day}`, kept for the page's life (a day is short online, and a reload forgives). */
-const FED_TODAY = new Set();
-const fedKey = (/** @type {string} */ id, /** @type {number} */ now) => `${id}@${Math.floor(now / MINUTES_PER_DAY)}`;
-
-/** BLOOD AT A GLANCE: the vampire whose Blood Sight the hover tags read (set once by the host). */
+/** The vampire whose Blood Sight the hover tags read, set once by the host. */
 let _sense = null;
 /** @param {any} entity */
 export const setBloodSense = (entity) => { _sense = entity; };
-/** The hover's line under an NPC's name for an awakened vampire - "Noble blood, rich (72%)" - or null for anyone else. The
- *  person is the one feeding reads (a Living World person, or a static one with its `interactionId`), so the tag is the
- *  very blood the Blood Sight card will show. @param {any} person */
+/** The blood quality Blood Sight reads in a person, with a servant's scouting. @param {any} person */
+const sightQuality = (person) => Math.min(100, qualityOfPerson(person) + thrallState().scouted);
+/** The tag under an NPC's name for an awakened vampire, such as "Noble blood, good (72%)", or null for anyone else.
+ *  It reads the same person record and quality the feed uses, so the tag matches the Blood Sight card.
+ *  @param {any} person */
 export function bloodHoverLine(person) {
   if (!person || !_sense || !awakenedVampirism(_sense)) return null;
-  return bloodTag(archetypeOfPerson(person), qualityOfPerson(person));
+  return bloodTag(archetypeOfPerson(person), sightQuality(person));
 }
 
 /** The rows Blood Sight shows of a victim. */
@@ -103,7 +90,7 @@ function resolveChoice(entity, id, victim, /** @type {{ now: number, rolls: () =
   const seen = victim.seen > 0;
   const base = { type: victim.type, quality: victim.quality, now };
   if (id === 'kiss') {
-    if (!spendMindCloud(entity, now)) return [{ rows: [t('vampire.feed.noVitae', 'You have too little Vitae for the Kiss.')] }];
+    spendMindCloud(entity, now);
     const slip = Math.floor(rolls() * 100) < (KISS_SLIP[beastStageNow(entity, now)] ?? 0);
     const fed = feedVampire(entity, { ...base, kind: 'sip', deed: seen || slip ? 'seen' : 'clouded' });
     if (fed) onFed();
@@ -149,7 +136,7 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
   const person = target?.person;
   if (!person) return false;
   const id = String(person.living?.id ?? person.interactionId ?? person.nameNPC ?? '');
-  if (FED_TODAY.has(fedKey(id, now))) { say(t('vampire.feed.already', 'They are still pale from your last visit.')); return true; }
+  if (fedToday(entity, id, now)) { say(t('vampire.feed.already', 'They are still pale from your last visit.')); return true; }
   const town = person.living?.town ?? null;
   const pos = target.pos ?? person.pos;
   // the Living World's street witnesses (a clear line, within its WITNESS_M) - and anyone near among the persons the ray
@@ -160,7 +147,7 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
   for (const p of near) ids.add(String(p.person?.living?.id ?? p.person?.nameNPC ?? ids.size));
   const seenBy = [...ids];
   const scouted = thrallState().scouted;   // PHASE 2: a servant's scouting marks richer blood
-  const victim = { name: String(person.nameNPC ?? t('vampire.feed.someone', 'them')), type: archetypeOfPerson(person), quality: Math.min(100, qualityOfPerson(person) + scouted), seen: seenBy.length };
+  const victim = { name: String(person.nameNPC ?? t('vampire.feed.someone', 'them')), type: archetypeOfPerson(person), quality: sightQuality(person), seen: seenBy.length };
   const canDrain = !!(town?.slain && town?.retire);
   // PHASE 2: unseen, a living townsperson may be TAKEN to the Haven (after the Kiss) or ENTHRALLED where they stand
   const res = person.living?.res ?? null;
@@ -184,12 +171,12 @@ export function feedOnPerson({ entity, target, persons = [], now, showBox, showW
     rows: [...sightRows(victim.name, victim.type, victim.quality, victim.seen), ...(watch ? [t('masq.feed.wary', 'This region is wary of your kind. There may be eyes you cannot see.')] : [])],
     pick: (i) => {
         const c = list[i];
-        const markFed = () => { FED_TODAY.add(fedKey(id, now)); if (scouted) takeScouted(); };   // only a feed that happened uses them up
+        const markFed = () => { markFedToday(entity, id, now); if (scouted) takeScouted(); };   // only a feed that happened uses them up
         // PHASE 3: a hidden watcher - a window, a doorway - in a wary region
         const spotted = !!c && c.id !== 'leave' && c.id !== 'enthrall' && watch > 0 && Math.floor(rolls() * 100) < watch;
         if (spotted) victim.seen = 1;
         const lead = spotted ? [{ rows: [t('masq.feed.spotted', 'A shutter bangs. Someone was watching.')] }] : [];
-        if (c?.id === 'take') { if (spotted) { onSeen('assault'); onBreach('seen'); return lead; } onBreach('taken'); markFed(); return takeToHaven(entity, person, victim, now); }
+        if (c?.id === 'take') { if (spotted) { onSeen('assault'); onBreach('seen'); return lead; } return takeToHaven(entity, person, victim, now, () => { onBreach('taken'); markFed(); }); }
         if (c?.id === 'enthrall') return enthrallHere(entity, person, role, now, regionIndex);
         return [...lead, ...resolveChoice(entity, c?.id ?? 'leave', victim, {
           now, rolls, onSeen, reportChance: REPORT_CHANCE, onBreach, onFed: markFed,
@@ -221,11 +208,14 @@ function present({ showBox, showWindow, entity, now, list, view, rows, pick }) {
 
 /** PHASE 2: the Kiss, and the townsperson taken to the Haven - gone from their town for good (their household's grief the
  *  Living World's, as a death's). */
-function takeToHaven(entity, person, victim, now) {
+function takeToHaven(entity, person, victim, now, onTaken) {
   const town = person.living.town, res = person.living.res;
-  if (!spendMindCloud(entity, now)) return [{ rows: [t('vampire.feed.noVitae', 'You have too little Vitae for the Kiss.')] }];
+  const refusal = captureRefusal(entity);
+  if (refusal) return [{ rows: [refusal] }];
+  if (!spendVitae(entity, clanKissCost(awakenedVampirism(entity)?.clan ?? null, MIND_CLOUD_COST), now)) return [{ rows: [t('vampire.feed.noVitae', 'You have too little Vitae for the Kiss.')] }];
   const p = takePrisoner(entity, { name: victim.name, gender: res.sex, type: victim.type, quality: victim.quality, mobile: mobileOfThrall(victim.type, res.cls), source: 'town', health: 70 });
   if (!p) return [{ rows: [captureRefusal(entity) ?? ''] }];
+  onTaken();
   town.slain(person);
   town.retire(person);
   return [{ rows: [t('thrall.taken', 'The Kiss takes them, and they follow you into the dark. {name} waits in your Haven.', { name: p.name })] }];
@@ -257,10 +247,10 @@ export function feedOnSleeper({ entity, building, now, showBox, showWindow = nul
   const { town, key } = building;
   const sleepers = town.sleepersAt(key);
   if (!sleepers.length) return false;
-  const fresh = sleepers.filter((r) => !FED_TODAY.has(fedKey(r.id, now)));
+  const fresh = sleepers.filter((r) => !fedToday(entity, r.id, now));
   const res = fresh[0];
   if (!res) { say(t('vampire.feed.allPale', 'Everyone asleep here is already pale.')); return true; }
-  if (fresh.length > 1) say(t('vampire.feed.moreAsleep', '{n} more sleep in this house.', { n: fresh.length - 1 }));
+  if (fresh.length > 1) say(t('vampire.feed.moreAsleep', 'Still asleep in this house: {n}.', { n: fresh.length - 1 }));
   const awake = town.insideAt?.(key, town._now)?.length ?? 0;
   const stealth = skillValue(entity, SKILLS.Stealth) ?? 0;
   const seenChance = Math.min(90, (awake > 0 ? Math.max(5, awake * 20 - Math.floor(stealth / 3)) : 0) + watcherChance(regionIndex, now));   // PHASE 3: a wary region keeps a lamp lit
@@ -276,7 +266,7 @@ export function feedOnSleeper({ entity, building, now, showBox, showWindow = nul
     pick: (i) => {
         const c = list[i];
         return resolveChoice(entity, c?.id ?? 'leave', victim, {
-          now, rolls, onSeen, reportChance: SLEEPER_WAKES, onFed: () => FED_TODAY.add(fedKey(res.id, now)), onBreach: (kind) => noteBreach(entity, regionIndex, kind, now),   // PHASE 3
+          now, rolls, onSeen, reportChance: SLEEPER_WAKES, onFed: () => markFedToday(entity, res.id, now), onBreach: (kind) => noteBreach(entity, regionIndex, kind, now),   // PHASE 3
           onReported: () => { town.wokeBitten?.(res); crimeArm(entity, onCrime)('assault'); },
           onDrain: (wasSeen) => { town.slainAsleep?.(res, wasSeen); },
         });

@@ -590,54 +590,55 @@ export const TUTORIALS = Object.freeze([
   }),
 
   // ── VAMPIRISM ────────────────────────────────────────────────
-  // The vampire\'s pages: each pops once, on the moment it matters, and is read again under Menu > Tutorials.
   page({
-    id: 'vampire-bitten', group: 'vampire', title: 'Bitten: Choosing a Bloodline', trigger: 'When a vampire\'s bite first takes hold of you.',
+    id: 'vampire-bitten', group: 'vampire', title: 'Bitten: Choosing a Bloodline', trigger: 'When the fever first calls you to a bloodline, or when you first wake as a vampire.',
     body: [
-      'A vampire\'s bite starts a fever. In a few days you turn. Before you do, a bloodline must claim you, or the turning waits.',
-      'Go by night to a clan\'s Court, in the back room of a tavern in its seat city. The Court door asks if you will join. Each bloodline has its own strength and its own bane.',
+      'A vampire\'s bite starts a fever, and a few days later you turn. The turning waits until a bloodline claims you.',
+      'To be claimed, go by night to a clan\'s Court, in the back room of a tavern in its seat city. Each bloodline has its own strength and its own bane.',
       'Once you turn, a Clan Elder of your bloodline writes to you and names a tavern to meet in, after dark. Meeting them awakens the Beast. Until then you are an ordinary vampire.',
     ],
   }),
   page({
     id: 'vampire-awakened', group: 'vampire', title: 'Vitae and the Beast', trigger: 'When the Elder awakens the Beast in you.',
     body: [
-      'Vitae is your blood, from 0 to 100. It drains slowly with time, about 12 a day, and faster in a Haarvenu. Journeys and loitering drain it gently. The Kiss, thralls and your powers spend it.',
-      'As Vitae falls the Beast rises: Sated from 70, Thirsty from 45, Hungry from 25, Ravenous from 10, Starving at 0. A Starving vampire cannot rest or use powers, and the Beast makes you strong but hard to talk to.',
-      'Feed to fill it. A drink gives about 30 Vitae and a drain about 60. Landing blows on foes gives a few Vitae, and works even when Starving, so a fight can pull you back.',
+      'Vitae is how full of blood you are, from 0 to 100. It drains about 12 a game day, faster for the Haarvenu, and gently while you rest, loiter, or fast travel. The Kiss, thralls, and your powers spend it.',
+      'As Vitae falls, the Beast rises: Sated from 70, Thirsty from 45, Hungry from 25, Ravenous from 10, and Starving below 10. Starving vampires cannot rest or use powers, and Ravenous ones are strong but hard to talk to.',
+      'Feed to fill it. A drink gives about 30 Vitae and a drain about 60. For most bloodlines, blows that draw blood from an enemy give a few Vitae, even when Starving, so a fight can pull you back.',
     ],
   }),
   page({
-    id: 'vampire-blood', group: 'vampire', title: 'Blood Types and Quality', trigger: 'When you first look at someone\'s blood.',
+    id: 'vampire-blood', group: 'vampire', title: 'Blood Types and Quality', trigger: 'When the Elder awakens the Beast in you.',
     body: [
-      'Everyone has a blood type: Scholar, Warrior, Rogue, Noble, Worker or Beast. A priest or clerk is a Scholar, a guard or smith a Warrior, a courier or minstrel a Rogue, and a merchant or innkeeper a Noble. Most others are Workers.',
-      'Blood and Vitae are two different numbers. Vitae is how full you are, and it drains. Blood quality is how good the last blood you drank was, and it fades 10 percent a day. The T on your blood chip is its tier, from T1 (25 percent or better) to T4 (95 percent or better).',
-      'Quality is a percentage. Fresh, good blood gives you resonance in tiers at 25, 50, 75 and 95 percent: a few points to the stats and skills of its type, such as Scholar for spells, Warrior for blades and Rogue for stealth. Resonance fades 10 percent a day.',
-      'Point at anyone and their blood type and quality show under their name. Merchants, nobles and guildsmen usually have the richest blood. Stale blood from a prisoner or a vial is capped at 65 percent and cannot calm a Ravenous Beast.',
+      'Everyone has a blood type: Scholar, Warrior, Rogue, Noble, Worker, or Beast. Priests and clerks are Scholars, guards and smiths Warriors, couriers and minstrels Rogues, and merchants and innkeepers Nobles. Most others are Workers.',
+      'Blood and Vitae are two different numbers. Vitae is how full you are. Blood quality is how good the last blood you drank was, and it drops 10 points a day.',
+      'Quality is a percentage: thin under 25, fair from 25, good from 50, rich from 75, and potent from 95. Fair blood or better gives resonance, a few points to the stats and skills of its type.',
+      'The T on your blood chip is the tier, from T1 for fair blood to T4 for potent. Scholar blood helps spells, Warrior blood helps blades, and Rogue blood helps stealth.',
+      'Point at anyone to see their blood type and quality under their name. Merchants, nobles, and guildsmen usually have the richest blood. Stale blood from prisoners or vials is capped at 65 percent and cannot calm a Ravenous Beast.',
     ],
   }),
   page({
     id: 'vampire-feeding', group: 'vampire', title: 'Feeding: Kiss, Drink, Drain', trigger: 'When you first lean over someone to feed.',
     body: [
       'Switch to Steal mode and use a person or a sleeper\'s bed. Each person can be fed on once a day, and only a feed that happens counts.',
-      'The Kiss costs a little Vitae and clouds their memory, so no one suspects. If you have none left it still works on your last drops, but a hungry Beast may slip. Drink gives more and leaves them weak, and they may cry for the watch. Drain kills them: the most blood and the worst crime.',
-      'Being seen is a crime. Any bite in view of others is Assault, and a kill is Murder. Some regions watch for your kind and raise a Masquerade heat.',
-      'Houses are full at night. Each bed holds its own sleeper, and every sleeper can be fed on once a day. Prisoners and thralls in your Haven are safe blood too.',
+      'The Kiss costs a little Vitae and clouds their memory, so no one suspects. Even with no Vitae left it still works, but the hungrier the Beast, the likelier it slips.',
+      'Drink gives more and leaves them weak, but they may call the watch. Drain kills them, giving the most blood for the worst crime.',
+      'Being seen is a crime: any bite in view of others is Assault, and a kill is Murder. Each breach makes the region warier, and a wary region may hide watchers you cannot see.',
+      'Houses are full at night. A house can hold several sleepers, and each can be fed on once a day. Prisoners in your Haven are safe blood too.',
     ],
   }),
   page({
-    id: 'vampire-thralls', group: 'vampire', title: 'Prisoners and Thralls (Work in Progress)', trigger: 'When you first take or bind a thrall.',
+    id: 'vampire-thralls', group: 'vampire', title: 'Prisoners and Thralls (Work in Progress)', trigger: 'When you first take a prisoner or enthrall someone.',
     body: [
       'Prisoners, thralls and enthralling are still a work in progress. They work, but expect rough edges, and they may change.',
       'Kiss someone unseen and take them to your Haven. A prisoner can be tapped for stale blood, bottled into a vial, tended, or bound as a servant.',
-      'A servant costs a little Vitae a day, and so does a social thrall such as a loyal innkeeper or watchman. If they go unpaid their loyalty falls. A long trip or a loiter costs them one day at most, so travel will not make them leave.',
+      'A servant costs a little Vitae a day, and so does a social thrall such as a loyal innkeeper or watchman. Unpaid thralls lose loyalty. A rest, a loiter, or fast travel costs them one day of upkeep at most.',
     ],
   }),
   page({
     id: 'vampire-gift', group: 'vampire', title: 'The Clan Gift', trigger: 'When the Elder awakens the Beast in you.',
     body: [
       'Your bloodline gives you three things: a strength, a bane, and two Disciplines of its own beside the three every vampire has. The Court window lists them. Hold the Discipline key for the wheel.',
-      'Your stats also move with the day and the night, the Beast\'s stage and your blood\'s resonance. That is why they shift: they are not random.',
+      'Your stats also shift with day and night, the Beast\'s stage, and your blood\'s resonance, so the changes are not random.',
       'A clan\'s Court may hunt you after a breach. Then its strength and Disciplines are withheld until you do penance.',
     ],
   }),

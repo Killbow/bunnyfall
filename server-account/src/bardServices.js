@@ -1,11 +1,6 @@
 // @ts-check
-// BARDS' GUILD SERVICES, paid in Favor Tokens (law: src/net/bardServiceLaw.js). One route, `/v1/bards/service`, three ops:
-//   item-name  { pick, item, name }          a piece of the realm record renamed (`bardName` on the record)
-//   item-buff  { pick, item, buff: {name, text} }   a cosmetic flourish written on a piece (`bardBuff`) - no stat, no spell
-//   home-name  { mapId, buildingKey, name }  a home the account owns renamed (`homes.title`, migration 0212)
-// The Favor is debited inside the realm character's record - where the Favor Tokens live (modData.BunnyGuilds._marks.tavern)
-// - in the SAME batch as the write the service pays for, so the Favor and the service land together or neither does. A
-// receipt (tavern_service_txns, the tavern's own table) makes a request asked again after a lost answer answer the same.
+// The Favor is debited inside the realm record in the same batch as the paid write, so both land or neither does.
+// A receipt in tavern_service_txns makes a retried request return the first answer.
 import { bardServicePrice, bardItemNameOf, bardHomeNameOf, bardBuffOf, bardWritable } from '../../src/net/bardServiceLaw.js';
 import { tavernProgressOf } from '../../src/net/tavernFavorLaw.js';
 import { recordIsOffered } from '../../src/net/realmTradeLaw.js';
@@ -14,14 +9,10 @@ import { overRate } from './accounts.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, mustChange, recordMovedOf } from './realm.js';
 
 const TXN_RE = /^[A-Za-z0-9_-]{8,80}$/;
-/** A bard's hand: this many services an hour per account (a flood of renames is no use to anyone). */
 const BARD_OPS_MAX = 30;
 const BARD_WINDOW_S = 3600;
 
-/**
- * @param {any} ctx `{ db, bucket, nowS, rand }`
- * @param {any} player @param {any} body
- */
+/** @param {any} ctx @param {any} player @param {any} body */
 export async function bardServiceAct(ctx, player, body) {
   const { db, bucket, nowS } = ctx;
   const at = realmAtOf(body), price = bardServicePrice(body?.op);
@@ -31,7 +22,6 @@ export async function bardServiceAct(ctx, player, body) {
     .bind(at.id, body.txn, player.id).first();
   if (replay) return replay.lease === at.lease ? { ...JSON.parse(replay.result), realm: { seq: replay.seq }, replayed: true } : { error: 'lease' };
 
-  // the words, cleaned and filtered, before anything is asked of the record
   let name = null, buff = null, pick = -1, offered = null, home = null;
   if (op === 'item-name') {
     const n = bardItemNameOf(body.name);

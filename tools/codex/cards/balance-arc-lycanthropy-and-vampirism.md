@@ -18,6 +18,7 @@ replacesBible:
 related:
   - balance-arc-overview
   - characters-paperdoll-and-bodies
+  - vampire-vitae-blood-and-feeding
 invariants:
   - "`lycanthropeAdvantages` (`src/afflictions/lycanthropy.js`) clears `statMods` and `skillMods` every round and on `morphSelf`, applying `LYCANTHROPE_STAT_MOD` (`+40`) and `LYCANTHROPE_SKILL_MOD` (`+30`) only while `isTransformed` is true."
   - "`morphHeals` grants transformation healing only when `nowMinutes - lastMorphHeal > MINUTES_PER_DAY`; equipping the Hircine Ring removes the transformation requirement without bypassing the daily heal cooldown."

@@ -1832,13 +1832,7 @@ button.prof-track:hover, button.prof-track:focus-visible { border-color: var(--b
    the piece: in the button track's one cell every press drew on the first and the name was squeezed to nothing */
 .prof-smelt > .prof-short { grid-column: 1 / -1; }
 .prof-smelt > .prof-lines { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; }
-.prof-reforge-picker { min-width: 0; }
-.prof-reforge-picker summary { cursor: pointer; white-space: normal; }
-.prof-reforge-picker select {
-  display: block; box-sizing: border-box; width: 100%; max-width: 100%; margin-top: 4px;
-  border: 1px solid var(--brass, #846b45); color: var(--bone, #e9e4d9);
-  background: #171b20; font: inherit; color-scheme: dark;
-}
+.prof-reforge-pick { color: #efe0b8; white-space: normal; margin-top: 4px; }
 
 /* PROF3: the anvil - its recipes, a recipe's inputs, and the heat (a bar the glow's marker runs along, the band on it) */
 .prof-metals { margin-top: 4px; }

@@ -26,13 +26,11 @@ import { SKILLS } from '../../characters/skills.js';
 export const VITAE_MAX = 100;
 /** The Vitae an awakened vampire starts with (the Elder's gift). */
 export const VITAE_AWAKENED = 75;
-/** Vitae lost per day of the character's own clock (online: a day is one real hour). Full to empty in five days (it was
- *  30 a day, three, then 20; a second playtest still found adventuring too costly, so 12: eight days). */
+/** Vitae lost per day of the character's own clock (online, a day is one real hour). Full to empty takes about eight
+ *  days. */
 export const VITAE_DRAIN_PER_DAY = 12;
-/** TIME SKIPPED (a journey, a loiter, a rest: the clock raised in one jump). Only a span up to TRAVEL_SPAN_DAYS drains
- *  at the full rate; the rest of a longer jump drains at TRAVEL_DRAIN_MUL of it, and never takes the Vitae under
- *  TRAVEL_DRAIN_FLOOR (the Hungry stage's floor): a carriage ride no longer arrives Starving. */
-export const TRAVEL_SPAN_DAYS = 0.1;
+/** Time skipped (a rest, a loiter, a journey, a sentence, or a quest's raise) drains at TRAVEL_DRAIN_MUL of the rate,
+ *  and never takes the Vitae under TRAVEL_DRAIN_FLOOR (the Hungry floor). */
 export const TRAVEL_DRAIN_MUL = 0.25;
 export const TRAVEL_DRAIN_FLOOR = 25;
 /** The Kiss (Mind-Cloud): Vitae spent to cloud a victim's memory. */
@@ -147,7 +145,7 @@ export function bloodQualityName(quality) {
   }
 }
 
-/** One short tag for a hover or a card: "Noble blood, rich (72%)". @param {string} type @param {number} quality */
+/** One short tag for a hover or a card: "Noble blood, good (72%)". @param {string} type @param {number} quality */
 export function bloodTag(type, quality) {
   const q = Math.round(quality);
   return t('vampire.bloodTag', '{type} blood, {word} ({quality}%)', { type: archetypeName(type), word: bloodQualityName(q), quality: q });

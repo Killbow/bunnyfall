@@ -56,7 +56,7 @@ import { poseStrikeRect } from './abilities/strikeMotion.js';
 // it, which the gun lab imports without dragging this file's world in.
 // Re-exported here because this is still the mod's front door.
 import {
-  readWidgetSettings, offsetStep, bobStep, inertiaStep, widgetTransformRect,
+  readWidgetSettings, offsetStep, bobStep, inertiaStep, widgetTransformRect, moveTowards2,
   WINDUP, RECOVERY, RECOIL_CONDITION, MISS_VFX_AT,
 } from './weaponWidgetMotion.js';
 export {
@@ -721,6 +721,13 @@ export function createWeaponWidget({
       }, w.s, { ...m, speedRatio }, dt);
       w.armsMoveSmooth = ba.moveSmooth; w.armsBobSmooth = ba.bobSmooth;
       w.armsPosition = [w.armsPosition[0] + ba.delta[0], w.armsPosition[1] + ba.delta[1]];
+    } else if (w.s.bob) {
+      // Out of the idle the bob eases back to rest, like the shield bob, so a swing never starts with a jump.
+      w.bobSmooth = moveTowards2(w.bobSmooth, [0, 0], dt * w.s.bobSmoothSpeed);
+      w.armsBobSmooth = moveTowards2(w.armsBobSmooth, [0, 0], dt * w.s.bobSmoothSpeed);
+      w.position = [w.position[0] + w.bobSmooth[0], w.position[1] + w.bobSmooth[1]];
+      w.armsPosition = [w.armsPosition[0] + w.armsBobSmooth[0], w.armsPosition[1] + w.armsBobSmooth[1]];
+      w.swayDx.bob += w.bobSmooth[0];
     }
     // Inertia (0x1fc0-0x2243): the look and the body's motion lag the sprite, and forward motion scales it
     if (w.s.inertia && w.weaponState === S.Idle) {

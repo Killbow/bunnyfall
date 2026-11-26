@@ -1,12 +1,7 @@
-// BUNNYFALL: THE WEAPON RIG'S HALF OF THE ROYAL BALLISTA AND THE GRAPPLING HOOK - what the rig (combat/weapon/weaponRig.js)
-// asks once a frame and once a loose, so the rig itself gains a call and not the features. Every host's rig runs it.
-//   - the ballista DRAWN slows every pace on foot (player/motor.js registerFootSpeedMod, BALLISTA_FOOT_MULT);
-//   - the ballista AIMED (the button held) shows the bolt's arc and where it bursts (ui/heavyGearOverlay.js, the path
-//     combat/ballista/ballistaFlight.js predictArc integrates by the flight's own law);
-//   - the ballista LOOSED kicks the camera (Better Ambience's shaker, the Thunderlock's door) and thumps, and says so on
-//     the wire (`shot.bl`, net/wire.js validPose `bl`) so peers draw the bolt on its arc;
-//   - the HOOK (a tool every body carries, on its own key, GrapplingHook) is thrown by combat/grapple/grapple.js: it plays
-//     its own frames in the hand, and its rope and rest are drawn.
+// The weapon rig's half of the Royal Ballista and the Grappling Hook, called once per frame and once per shot. A drawn
+// ballista slows the player on foot (registerFootSpeedMod). An aimed one shows the bolt's arc (ui/heavyGearOverlay.js),
+// and a loosed one kicks the camera and sets `shot.bl` (net/wire.js) so peers see its arc. The hook, thrown from the
+// pack on its own key, runs in combat/grapple/grapple.js. It plays its own frames, and its rope and cooldown are drawn.
 
 import { registerFootSpeedMod } from '../player/motor.js';
 import { betterAmbience } from '../audio/betterAmbience.js';
@@ -14,13 +9,18 @@ import { SOUND } from '../audio/soundClips.js';
 import { t } from '../ui/textManager.js';
 import { isBallistaItem, BALLISTA_FOOT_MULT, BALLISTA_KICK } from '../characters/heavyGearIds.js';
 import { predictArc, bindBallistaFx } from './ballista/ballistaFlight.js';
-import { grappleClick, grappleFrame, grappleView, grappleThrowing, bindGrappleSay } from './grapple/grapple.js';
+import { grappleClick, grappleFrame, grappleView, grappleThrowing, bindGrappleSay, stopGrappleWindup, cancelGrapple } from './grapple/grapple.js';
+import { setDeathListener } from '../characters/playerEntity.js';
 import { drawHeavyGearOverlay } from '../ui/heavyGearOverlay.js';
 
 let _ballistaDrawn = false;
 registerFootSpeedMod('royal-ballista', () => (_ballistaDrawn ? BALLISTA_FOOT_MULT : 1));
 
 let _rig = null;
+setDeathListener('grapplingHook', () => cancelGrapple());
+
+/** Only the classic sprite lane has hook frames: none under the Morrowind arms or the third-person body. */
+export const hookFramesDraw = (hooking, { arms = false, body = false } = {}) => !!hooking && !arms && !body;
 let _hookWas = false;
 
 /** The rig's sounds and words, bound to the rig that steps (four hosts, four rigs; the stepping one owns them). */
@@ -36,8 +36,9 @@ function bindRig(rig, { audio, say, camera }) {
 }
 
 /**
- * Once a frame. `hookDown` the hook key's state, `canHook` whether a throw may start now, `hasHook` whether the pack holds a hook. Answers `{ grappling, hookFrame }`:
- * whether the hook's throw is in the hand (the rig then starts no swing and no technique) and the hook's frame to draw.
+ * Once a frame. `hookDown` is the hook key's state, `canHook` whether a throw may start now, and `hasHook` whether the
+ * pack holds a hook. Returns `{ grappling, hookFrame }`: whether the throw is in the hand (the rig then starts no swing
+ * and no technique) and the hook's frame to draw.
  */
 export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, paralyzed, hookDown, canHook, hasHook, camera, collider, canvas, renderer, flip, audio, say }) {
   bindRig(rig, { audio, say, camera });
@@ -47,6 +48,7 @@ export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, para
   if (edge && !hasHook) say?.(t('grapple.noHook', 'You carry no grappling hook.'));
   else grappleClick(edge);
   _hookWas = !!hookDown;
+  if (paralyzed) stopGrappleWindup();
   const hookFrame = grappleFrame(dt);
   const grappling = grappleThrowing();
   let arc = null;

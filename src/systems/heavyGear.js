@@ -33,7 +33,7 @@ export const BALLISTA_ROW = Object.freeze({
   rarity: 1,
   isOneHanded: false,
 });
-/** The hook's row: a Dagger's template with no hand given it (characters/equipTable.js), an iron tool's weight and price. */
+/** The hook's row: a Dagger template with the weight and price of an iron tool, and no hand (equipTable.js). */
 export const GRAPPLE_ROW = Object.freeze({
   ...ITEM_TEMPLATES[DAGGER],
   index: GRAPPLE_TEMPLATE,
@@ -47,7 +47,7 @@ export const GRAPPLE_ROW = Object.freeze({
 });
 registerCustomTemplates([BALLISTA_ROW, GRAPPLE_ROW]);
 registerTemplateLore(BALLISTA_TEMPLATE, 'A siege engine cut down to a soldier\'s arms, crowned on the stock. It lobs its bolt high and the bolt bursts where it lands, striking all about it. It is a slow thing to carry and slower to wind.');
-registerTemplateLore(GRAPPLE_TEMPLATE, 'Three iron prongs on a pole and a long rope. Keep it in your pack, and with its key throw it at a wall, a ledge or the ground ahead and it hauls you there. The rope needs a moment to be coiled again.');
+registerTemplateLore(GRAPPLE_TEMPLATE, 'Three iron prongs and a long rope. Press its key to throw it from your pack at a wall, a ledge, or the ground, and it pulls you there. The rope takes a moment to coil again.');
 
 /** Mint a Royal Ballista. Material rides the weapon metal ladder (0 Iron .. 9 Daedric). */
 export function createBallista({ material = 0 } = {}) {

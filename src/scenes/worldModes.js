@@ -4418,7 +4418,7 @@ export function createWorldModes(host) {
     return officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(data);
   }
 
-  /** The person feeding and the blood tag read for a static NPC (one id, so the hover's blood is the card's). */
+  /** A static NPC's person record, with the id the feed uses, so the hover tag matches the Blood Sight card. */
   function staticFeedPerson(pn, data) {
     return {
       interactionId: `static:${data.mapID}:${data.context}:${data.buildingKey}:${data.hash}:${data.nameSeed}:${data.factionID}`,
@@ -4431,7 +4431,7 @@ export function createWorldModes(host) {
     const title = npcHoverName(staticPersonName(pn, data), {
       archive: data.billboardArchiveIndex, record: data.billboardRecordIndex,
     });
-    // BLOOD AT A GLANCE: a vampire's Blood Sight under the name - mod-altered (Flat Replacer) people too, as the feed reads them
+    // A vampire sees blood under the name, including mod-altered (Flat Replacer) people, read the same way as the feed.
     let blood = null;
     try { if (title && !isChildNPCData(data) && data.billboardArchiveIndex !== DAEDRA_ARCHIVE) blood = bloodHoverLine(staticFeedPerson(pn, data)); } catch { /* the plaque never fails on a tag */ }
     return title ? (blood ? { title, subs: [blood] } : { title }) : null;

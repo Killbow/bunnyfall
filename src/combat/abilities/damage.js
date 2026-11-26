@@ -1,9 +1,6 @@
-// BUNNYFALL: what one ability beat weighs on the weapon's own rolled damage. A plain swing is 1.
-// Normal weapon and combination abilities cost fatigue that comes back slowly, so each of their beats lands clearly
-// harder than a plain swing, however many beats the ability splits into: a beat never weighs less than the floor.
-// milestones.js already gives normal melee abilities a third of the cost and +0.35 potency, so potencyScale stays at 1
-// and the floor does the work. Racial abilities and rank-100 capstones keep their own tuning (capstones add
-// capstonePower on top).
+// BUNNYFALL: what one ability beat weighs on the weapon's own rolled damage (a plain swing is 1). Normal weapon and
+// combination abilities cost slow-returning fatigue, so each beat lands clearly harder than a plain swing: a beat never
+// weighs less than the floor. Racial abilities and rank 100 capstones keep their own tuning.
 export const ABILITY_DAMAGE = Object.freeze({
   potencyScale: 1,    // how much of a normal ability's potency reaches the blow
   meleeBeatFloor: 1.4, // the least one melee beat of a normal ability weighs

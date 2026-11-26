@@ -289,6 +289,9 @@ export function createWorldSaveLoad(shared) {
       // Awaiting here costs nothing once it has resolved and is the
       // difference between reading a save and destroying one.
       if (!shared.spellsByIndex) await shared._magicRegistries.catch(() => null);
+      // The quests restore through FACTION.TXT (a Person's faction), which the town talk reads on its own. A load straight
+      // from the boot beat that read and every quest with a person failed to restore, so it is waited for here.
+      await shared.townTalk.ensureLoaded?.().catch(() => null);
       // AUDIT 68 X3-transition-build-race: a door build still in flight
       // belongs to the game being replaced - abandon it and WAIT for it
       // to unwind (its context freed, any seams it borrowed handed back)
