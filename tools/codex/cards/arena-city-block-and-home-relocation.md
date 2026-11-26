@@ -34,6 +34,7 @@ invariants:
   - "The colosseum replaces `GEMSAL03` at Daggerfall City cell `(4, 3)` with `ARENADAG.RMB`, registered at `ARENA_BLOCK_INDEX = 900100`."
   - "Colosseum mesh `864102` is registered in `NO_CLIMATE_REMAP` (`isClimateFreeModel`) so it renders its own textures without climate remapping."
   - "Player homes displaced from `GEMSAL03` relocate to a house of matching building type outside the cell (`arenaHouseFor` and `arenaHomeFor`), moving loose items into the first container of the new home or a generated crate."
+  - "Daggerfall City keeps its MapId and its LocationId (`50026`), while the undercroft uses `UNDERCROFT_LOCATION_ID = 55398` and `UNDERCROFT_MAP_ID = 211207`, so a save made there re-enters it and no castle quest resolves there."
 traps:
   - "`ARENADAG.RMB` is a custom block cut from `DFARENA.RMB` and shipped as vendored JSON, not loaded from classic `ARENA2` archives."
   - "Account-server home relocations record once per `(map_id, old_key)` in `home_moves`, and `arenaMoveHome` must stay idempotent across repeated logins."

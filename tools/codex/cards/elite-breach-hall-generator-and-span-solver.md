@@ -16,6 +16,8 @@ files:
   - src/world/eliteGates/egCircleParts.js
   - src/systems/eliteGates/egSpan.js
   - src/world/sdSteps.js
+  - src/world/eliteGates/egPlatformModel.js
+  - src/world/eliteGates/egLook.js
 replacesBible:
   - "11-Multiplayer/Elite-Gates.md"
 related:
@@ -27,11 +29,15 @@ invariants:
   - "Halls cap length at `EG_HALL_LEN_MAX` (158 m); falling below `EG_VOID_Y` (`SD_VOID_Y = -30`) casts the player back and deducts `EG_CAST_BACK_LOSS` (0.1) down to `EG_CAST_BACK_FLOOR` (0.25)."
   - "The timed span solver enforces an `EG_WINDOW_MIN` (0.5 s) crossing window, an `EG_WAIT_MAX` (4 s) maximum wait, at most `EG_RELAY_MAX` (8) re-lays, and a shaft median within `EG_SHAFT_MAX_S` (15 s)."
   - "`EG_FRAG_BUDGET` caps each fragment at 12,000 triangles, 3,000 collider triangles, 4 lights, and 12 draws, while `EG_LAMP_BUDGET` caps active lamps at 12 within 40 m."
+  - "`egGustSections` splits Gust runs by road and by span link, and `src/systems/eliteGates/egSpan.js` pushes players with those same sections, so a breath never reaches the other road."
 traps:
   - "Hero fragments require `EG_HERO_LAND_ROOM_CM` (40 cm) of landing clearance and spawn only from `EG_HERO_LAW` (7) onward."
   - "`EG_ASCENT_LAW` (9) introduces routed ascent ways and `EG_BROKEN_LAW` (10) adds broken ways; always branch on `egLawOf(spec)` rather than comparing against `EG_SPEC` directly."
   - "Running leap is disabled inside the Spire so player movement physics match the span solver's jump envelope."
   - "`EG_FLOOR_KEY` (`egSpan.js`) and `EG_BUCKET` (`egCircleHost.js`) are both `'eg:hall'`, and the span sets the cast-back point on that bucket, so they change together."
+  - "`EG_DROP_WALL_T` in `src/world/eliteGates/egPlatformModel.js` and `DROP_WALL_T` in `src/systems/eliteGates/egSpan.js` are separate 0.3 m constants; the drawn Drop walls match their collider only while both agree."
+  - "The ring gap rule (absolute sine under 0.2) is repeated in `ringGap` (`egHall.js`), `egRingSideWalls` (`src/net/eliteGates/egWalkGraph.js`), and `ringGapSide` (`src/world/eliteGates/egGround.js`); keep all three equal."
+  - "`CLAMP_BODY_M` (1.8) in `egHall.js` copies `CAPSULE_HEIGHT` from `src/player/motor.js`; the fragment clamp ceiling is wrong if either changes alone."
 tags:
   - procedural
   - generator

@@ -39,6 +39,7 @@ traps:
   - "`CONTENT.witchesFestival` in `src/mods/contentOff.js` is currently `false`, which overrides `FESTIVAL_OPEN = \"on\"` and keeps both the Witches' Festival and Starfall closed."
   - "`FESTIVALS` defines only the `'witches-2026'` window; running the event in a later year requires adding a new `FESTIVALS` entry alongside enabling the content flag."
   - "`src/scenes/exterior.js` (`?exterior`) and `src/scenes/dungeonContext.js` do not mount a festival host because they have no account service or town streets."
+  - "`holidayTables.js` imports nothing so `festivalLaw.js` can load the holiday tables without `mapsFile.js`; `holidays.js` re-exports every name."
 dfu:
   - Assets/Scripts/Game/PlayerEnterExit.cs
 tags:

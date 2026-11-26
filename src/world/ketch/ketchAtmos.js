@@ -1,25 +1,4 @@
 // @ts-check
-// KETCH-LOOK KL1 (bible/11-Multiplayer/Sky-Ketch-Look.md section 14, "Her light by the hour"; section 5, below decks):
-// HER LIGHT BY THE HOUR AND THE ZONE - pure. Her open decks were lit by a two-point lerp between a night and a noon with the
-// sun's colour fixed at every hour, and no grade (scenes/worldModes.js grades the Hour, the Spire and interiors, never
-// her): one flat brown at dusk, the decks black at dusk and night (floor mean 0.02), the gun deck and the hold black at
-// every hour (p50 0.003-0.005). Now a row an hour and a room, each:
-//   ambient   the trilight's sky term (a floor's face); the equator (a wall's, a body's) is KT_TRI.equator of it; the
-//             ground (a ceiling's, her belly's) the deck's bounce: KT_TRI.bounce of the sun - warm below decks
-//   sun       the key's colour and share (none below); its colour follows its elevation (ketchSunColor) on the day's row
-//   key       by night the moons' key in the sun's stead, from the world's moon (render/enhancedSky.js moonlightTerm)
-//   fog       the haze's colour and density - thinner by day than she had (0.0028), so the city 800 m off keeps a
-//             quarter of its contrast; the lamps' warm close air below
-//   lamps     her deck lamps' gain - dim by day, brightest at night
-//   grade     the lane's grade (render/renderer.js setSceneGrade - world/superDungeon/sdLook.js SD_HOUR_GRADE's shape)
-//   classic   the classic set's own (KETCH-LOOK KL2): it has no eye to open in the dark or close in the noon, and a lamp
-//             falls off as (1 - d/r)^2, so its `light` (the ambient, the sun, the key) and its `lamps` carry the eye the
-//             lane would open - measured, both lanes held to the one ladder
-// The open decks' rows are walked by the world's daylight (world/worldClock.js daylightScale, over its own noon) between
-// night and day - full day once it passes KT_DAY_FULL of its noon, the hour the dawn window closes - then toward dawn's or
-// dusk's row over its window, the hour the sky itself turns.
-//
-// Not a DFU member. Ledger A (KETCH).
 import { daylightScale, dayFraction } from '../worldClock.js';
 import { KT_AIR_FOG, KT_BELOW_FOG, KT_LIGHT } from './ketchShip.js';
 
@@ -27,9 +6,6 @@ const f3 = (a, b, c) => Object.freeze([a, b, c]);
 const grade = (adaptKey, adaptMax, bloom, vignette, contrast) => Object.freeze({ adaptKey, adaptMax, bloom, vignette, contrast });
 const classic = (light, lamps) => Object.freeze({ light, lamps });
 
-/** THE ROWS. `from`..`to` an open-deck twilight row's window (hours; its peak the window's middle). The night's `key` is the
- *  moons' (by DFU's exterior night floor, PlayerAmbientLight.ExteriorNightAmbientLight 0.25, under her moon's tint); the
- *  cabin is the hour's own row, its ambient `ambientK` of it. */
 export const KT_HOURS = Object.freeze({
   dawn: Object.freeze({ from: 5, to: 7, ambient: f3(0.36, 0.33, 0.36), sun: f3(1.0, 0.72, 0.5), share: 0.6, fog: f3(0.66, 0.52, 0.5), density: 0.0020, lamps: 2.0, grade: grade(0.18, 1.6, 0.6, 0.24, 1.04), classic: classic(1.9, 1.9) }),
   day: Object.freeze({ ambient: KT_LIGHT.noon, sun: KT_LIGHT.sun, share: KT_LIGHT.sunScale, fog: KT_AIR_FOG.color, density: KT_AIR_FOG.density, lamps: 0.6, grade: grade(0.16, 1.5, 0.7, 0.26, 1.06), classic: classic(0.85, 1) }),
@@ -38,19 +14,11 @@ export const KT_HOURS = Object.freeze({
   below: Object.freeze({ ambient: f3(0.26, 0.21, 0.16), ground: f3(0.3, 0.21, 0.12), share: 0, fog: KT_BELOW_FOG.color, density: KT_BELOW_FOG.density, lamps: 1.5, grade: grade(0.14, 1.5, 0.75, 0.34, 1.08), classic: classic(1.6, 1.6) }),
   cabin: Object.freeze({ ambientK: 0.7, lamps: 2.0, grade: grade(0.15, 1.6, 0.7, 0.30, 1.06), classic: classic(1.2, 3.8) }),
 });
-/** THE DAY'S ROW IS WHOLE once the world's daylight passes this share of its noon (07:00 and 17:00 on DFU's curve, where the
- *  dawn window closes and the dusk one opens). The plan walked the rows by the daylight itself (Sky-Ketch-Look.md section
- *  14), which left the morning a grey between them: at 07:00, the dawn row gone, her haze stood at [0.28, 0.33, 0.40] under
- *  a sky already day's. */
 export const KT_DAY_FULL = 0.4;
-/** THE TRILIGHT's two shares: the equator of the sky term, the ground (the deck's bounce) of the sun's light. */
 export const KT_TRI = Object.freeze({ equator: 0.8, bounce: 0.35 });
-/** THE SUN BY ITS ELEVATION (degrees, high to low): the day's colour above 12, easing to a gold at 3 and a red at the
- *  horizon. Its share comes up over the first `rise` degrees, so it never lights her from under the horizon. */
 export const KT_SUN_LOW = Object.freeze({ high: 12, low: 3, gold: f3(1.0, 0.72, 0.42), red: f3(0.95, 0.5, 0.3), rise: 6 });
 
 const smooth = (k) => { const x = Math.max(0, Math.min(1, k)); return x * x * (3 - 2 * x); };
-/** The sun's colour at `elev` degrees, into `out`. Pure. */
 export function ketchSunColor(elev, out = [0, 0, 0]) {
   const S = KT_SUN_LOW, day = KT_HOURS.day.sun;
   if (elev >= S.high) { out[0] = day[0]; out[1] = day[1]; out[2] = day[2]; return out; }
@@ -59,15 +27,11 @@ export function ketchSunColor(elev, out = [0, 0, 0]) {
   for (let i = 0; i < 3; i++) out[i] = a[i] + (b[i] - a[i]) * k;
   return out;
 }
-/** The sun's elevation (degrees) and its direction toward it (`dir`, written in place) at the world's `minute` - the
- *  clock's own arc (world/worldClock.js sunDirection). */
 export function ketchSunAt(minute, dir = [0, 1, 0]) {
   const t = dayFraction(minute), x = Math.PI * Math.max(0, Math.min(1, t));
   dir[0] = Math.cos(x); dir[1] = Math.sin(x); dir[2] = 0;
   return t >= 0 && t <= 1 ? (Math.min(x, Math.PI - x) * 180) / Math.PI : 0;
 }
-/** How far the open decks stand toward the day (0 night - 1 whole day, KT_DAY_FULL) and toward a twilight row (`w`, and
- *  which: `row` 'dawn' | 'dusk') at the world's `minute`, into `out`. Pure. */
 export function ketchHourWeights(minute, out = { day: 0, w: 0, row: 'dawn' }) {
   const noon = daylightScale(720), h = (((minute / 60) % 24) + 24) % 24;
   out.day = noon > 0 ? smooth(daylightScale(minute) / noon / KT_DAY_FULL) : 0;
@@ -78,11 +42,11 @@ export function ketchHourWeights(minute, out = { day: 0, w: 0, row: 'dawn' }) {
 }
 
 const _w = { day: 0, w: 0, row: 'dawn' }, _sun = [0, 0, 0];
-const mix = (a, b, k) => a * (1 - k) + b * k;   // whole at either end (a + (b - a) * k misses b by a rounding)
+// This form returns `b` exactly at k = 1, which `a + (b - a) * k` can miss by rounding.
+const mix = (a, b, k) => a * (1 - k) + b * k;
 const lerp3 = (out, a, b, k) => { for (let i = 0; i < 3; i++) out[i] = mix(a[i], b[i], k); return out; };
 const GRADE_KEYS = Object.freeze(['adaptKey', 'adaptMax', 'bloom', 'vignette', 'contrast']), CLASSIC_KEYS = Object.freeze(['light', 'lamps']);
 const lerpGrade = (out, a, b, k) => { for (const n of GRADE_KEYS) out[n] = mix(a[n], b[n], k); return out; };
-/** A light record's shape (ketchHourLight's `out`). */
 export function ketchLightRecord() {
   return {
     ambient: [0, 0, 0], tri: { sky: [0, 0, 0], equator: [0, 0, 0], ground: [0, 0, 0] },
@@ -91,11 +55,8 @@ export function ketchLightRecord() {
     classic: { light: 1, lamps: 1 },
   };
 }
-/**
- * HER LIGHT at the world's `minute` in `zone` - 'deck' (her open decks, the tops, the bridge), 'below' (the gun deck,
- * the landing, the hold) or 'cabin' - written into `out` (ketchLightRecord's shape), every array in place. `key.scale` is
- * the night key's share before the moon's own (the caller's: a moon that is new, set or clouded gives none). Pure.
- */
+// `key.scale` is the night key share before the moon term, which the caller applies (none for a new, set, or
+// clouded moon).
 export function ketchHourLight(minute, zone, out = ketchLightRecord()) {
   const H = KT_HOURS, below = zone === 'below';
   const elev = ketchSunAt(minute, out.sunDir);
@@ -114,11 +75,9 @@ export function ketchHourLight(minute, zone, out = ketchLightRecord()) {
     out.lamps = mix(mix(N.lamps, D.lamps, W.day), T.lamps, W.w);
     lerpGrade(lerpGrade(out.grade, N.grade, D.grade, W.day), out.grade, T.grade, W.w);
     for (const n of CLASSIC_KEYS) out.classic[n] = mix(mix(N.classic[n], D.classic[n], W.day), T.classic[n], W.w);
-    // the sun: the day's colour by its elevation, toward the twilight row's; its share up with it over the horizon
     lerp3(out.sunColor, ketchSunColor(elev, _sun), T.sun, W.w);
     const up = smooth(elev / KT_SUN_LOW.rise), share = D.share * W.day;
     out.sunScale = mix(share, T.share * up, W.w) * up;
-    // by night - the sun under the horizon, the twilight gone - the moons' key in its stead
     out.key.scale = (1 - up) * (1 - W.w);
     for (let i = 0; i < 3; i++) { out.key.color[i] = N.key[i]; out.tri.ground[i] = (out.sunColor[i] * out.sunScale + N.key[i] * out.key.scale) * KT_TRI.bounce; }
     if (zone === 'cabin') {

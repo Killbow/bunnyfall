@@ -1,48 +1,21 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// FIELD BUGS 2026-10-25 DOOR-VOID — A DOOR THAT OPENS ONTO NOTHING STAYS SHUT.
-//
-// Players reported falling through the floor in their own houses. Some
-// interiors hang an action door in a wall with no room behind it: the
-// door's far side has no floor at all. Daggerfall's own data has them in
-// blocks no town places; Beautiful Cities' House2 design (DARKAB00-02,
-// record 0) has them in towns players buy houses in. Opened and walked
-// through, such a door drops the player into the void, and the room's
-// failsafe (player/enterExit.js standFromVoid) stands them back at the
-// door. DFU builds every interior door as it finds it
-// (DaggerfallInterior.AddActionDoors); this is our departure: a door
-// with a floor on one side and none on the other is SEALED when the
-// room is built, and nothing opens it (world/actionSystem.js `sealed`).
-//
-// The test is the room's own collider, finished but for the doors' own
-// buckets: a side has a floor when a ray down from a stride past the
-// leaf (DOOR_SIDE_STEP) meets one within DOOR_FLOOR_REACH - a stairwell
-// or a cellar below the doorway is a floor, only nothing at all is not.
-// A door with no floor on either side hangs in no room and is left as it
-// is.
-// ═══════════════════════════════════════════════════════════════════
+// Unlike DFU, which builds every interior door, a door with a floor on one side and none on the other is sealed
+// when the room is built. Some House2 interiors hang doors in walls with nothing behind them.
 
-import { t } from '../ui/textManager.js';   // the sealed door's line, in the player's language
+import { t } from '../ui/textManager.js';
 
-/** The player's line at a sealed door (world/actionSystem.js onSealedDoor), in English. */
 export const SEALED_DOOR_TEXT = 'This door will not open.';
-/** The player's line at a sealed door, in the player's language. */
 export const sealedDoorText = () => t('player.sealedDoor', SEALED_DOOR_TEXT);
 
-/** How far below the doorway a floor still counts - standsOnFloor's own reach (player/enterExit.js). */
+// Matches the default `maxDist` of `standsOnFloor` in player/enterExit.js; change both together.
 export const DOOR_FLOOR_REACH = 10;
 
-/** How far out from the closed leaf each side is sampled, metres - a stride through the doorway. Nearer is not enough:
- *  Beautiful Cities' House2 doors stand on a lip of floor half a metre deep with nothing past it. */
+// House2 doors sit on a half-meter lip of floor with nothing past it, so a nearer sample finds a false floor.
 export const DOOR_SIDE_STEP = 1.0;
-/** Where across the doorway each side is sampled, as fractions of the leaf's width. */
 const ACROSS = Object.freeze([0.25, 0.5, 0.75]);
-/** How far above the leaf's foot the rays start - over a sill, under any lintel. */
 const RAY_LIFT = 0.5;
 
 /**
- * Whether each side of a closed door has a floor - `[near, far]` along the leaf's thin axis. `door` is an action door
- * as ActionSystem.addDoor registers it (`cpu.positions` local, `base` its closed matrix, `key` its collider bucket).
  * @param {{ raycast: (o: number[], d: number[], max: number, f?: any) => number }} collider
  * @param {{ key: string, cpu: { positions: ArrayLike<number> }, base: ArrayLike<number> }} door
  * @returns {[boolean, boolean]}
@@ -56,7 +29,6 @@ export function doorSidesFloored(collider, door) {
       if (p[i + k] > hi[k]) hi[k] = p[i + k];
     }
   }
-  // the leaf's thin local axis (x or z) is the way through it; the other is its width
   const through = hi[0] - lo[0] < hi[2] - lo[2] ? 0 : 2;
   const across = 2 - through;
   const at = (local) => [0, 1, 2].map((r) => m[r] * local[0] + m[4 + r] * local[1] + m[8 + r] * local[2] + m[12 + r]);
@@ -79,9 +51,7 @@ export function doorSidesFloored(collider, door) {
 }
 
 /**
- * Seal every action door of a room that opens onto nothing - a floor on one side, none on the other. Answers the keys
- * it sealed, in the room's door order.
- * @param {{ objects: Map<string, any>, collider: any }} actions the room's ActionSystem, its doors registered
+ * @param {{ objects: Map<string, any>, collider: any }} actions
  * @returns {string[]}
  */
 export function sealDoorsToNowhere(actions) {

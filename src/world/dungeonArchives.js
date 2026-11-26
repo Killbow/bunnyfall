@@ -1,5 +1,3 @@
-// Starts every texture archive a dungeon level uses at once, so the first entry does not load them model by model.
-
 import { applyTextureTable } from './dungeonTextures.js';
 import { isClimateFreeModel } from './customModels.js';
 

@@ -23,7 +23,6 @@ function noise(u, v, columns, rows, salt) {
   return (a + (b - a) * dx) * (1 - dy) + (c + (d - c) * dx) * dy;
 }
 
-// Voronoi edges make angular flagstones. Distance from each edge gives its bevel a dark seam and light shoulder.
 function slabs(u, v) {
   const cells = 5, x = u * cells, y = v * cells;
   let first = Infinity, second = Infinity, shade = 0;

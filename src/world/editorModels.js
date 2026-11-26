@@ -1,18 +1,5 @@
-// BUNNYFALL: THE DUNGEON EDITOR'S OWN MODELS. The Bunnyfall Dungeon Editor (the C++ project beside this repo) builds
-// models ARCH3D never had - a room of the designer's own shape, wearing Daggerfall's textures - and writes each to
-// `vendor/<mod>/Models/<id>.json` (format `bunnyfall-dungeon-model/1`). Its blocks place them by that id like any
-// classic model. Each file goes onto the custom model registry (world/customModels.js), asked before ARCH3D, behind
-// its mod's switch.
-//
-// A file is the registry's own shape already, as dfMeshToModel makes it (world/meshReader.js): positions in metres in
-// Unity's frame, unit normals, UVs over the named classic textures (u / width, -(v / height), wrapping), indices, and
-// sub-meshes by texture with a start index and a triangle count. Its textures are Daggerfall's numbers, so a dungeon's
-// texture table swaps a custom wall like a classic one. The editor makes no door planes; action doors are the block's
-// (a DOR model), as classic ones are.
-//
-// Ids start at 7,000,001, past every ARCH3D id and every model the port registers itself.
-//
-// BROWSER-ONLY glob (as scenes/modWorldData.js): node tests hand `registerEditorModel` their JSON.
+// Reads `bunnyfall-dungeon-model/1` files from the external dungeon editor, so the format must stay in sync with
+// it. Ids start at 7,000,001 to stay clear of every ARCH3D and built-in model id.
 
 import { registerCustomModel } from './customModels.js';
 import { modSetting } from '../mods/modSettings.js';
@@ -20,11 +7,10 @@ import { modSetting } from '../mods/modSettings.js';
 export const EDITOR_MODEL_FORMAT = 'bunnyfall-dungeon-model/1';
 export const FIRST_EDITOR_MODEL_ID = 7000001;
 
-// Editor models are <id>.json (ids from 7,000,001), so other Models files such as the Come Sail Away ones are skipped.
+// The seven-digit name pattern skips Models files from other mods.
 const globModels = () => import.meta.glob('../../vendor/*/Models/[0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.json', { import: 'default' });
 const vendorOf = (path) => /vendor\/([^/]+)\/Models\//.exec(path)?.[1] ?? '';
 
-/** Why a model file cannot be used, or null when it can. */
 export function editorModelProblem(json) {
   if (!json || json.format !== EDITOR_MODEL_FORMAT) return `not a ${EDITOR_MODEL_FORMAT} file`;
   if (!Number.isInteger(json.id) || json.id < FIRST_EDITOR_MODEL_ID) return `id ${json.id} is not an editor model id`;
@@ -41,7 +27,6 @@ export function editorModelProblem(json) {
   return null;
 }
 
-/** The registry's model from a file (checked first). */
 export function editorModelToModel(json) {
   return {
     positions: Float32Array.from(json.positions),
@@ -53,7 +38,6 @@ export function editorModelToModel(json) {
   };
 }
 
-/** One model file onto the registry, answering to `isOn`. False (and said) when the file is unusable. */
 export function registerEditorModel(json, isOn = () => true) {
   const problem = editorModelProblem(json);
   if (problem) {
@@ -65,7 +49,6 @@ export function registerEditorModel(json, isOn = () => true) {
 }
 
 let _loaded = null;
-/** Each vendored editor model file, behind its mod's Enabled switch. Once; resolves to the number registered. */
 export function loadEditorModels() {
   _loaded ??= (async () => {
     let n = 0;

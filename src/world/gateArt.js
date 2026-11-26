@@ -1,49 +1,22 @@
 // @ts-check
-// WB2 (2026-09-25): THE GATE'S OWN ART, MADE AT BOOT - the port draws no Oblivion in ARENA2, so the gate's stone is
-// made here from noise the moment a host asks (combat/blood/bloodArt.js's law: an atlas of the port's own under a
-// pseudo-archive far above any classic one, no renderer and no GL in this file - pixels and numbers).
-//
-//   stone  - the gate's basalt: a near-black brown, mottled, split by veins of fire that run up the stone (v runs up
-//            every standing face - world/gate/gateModel.js gateFaceUv), bright at their heart and banked red at their edge.
-//            Tileable on both axes.
-//   rim    - GATE-FBX: the same basalt seared where it faces the opening - twice the veins, the stone between them
-//            banked toward an ember and smouldering faintly, so the fire's frame reads round the portal.
-//   spine  - GATE-FBX: the spines' horn, root (v 0) to point (v 1): charred, ringed with growth, its last third
-//            heating to the fire at its point.
-//   plinth - the carved flags WB2's plinth wore (the Sigil Broker's cage wears them still): squared stones on dark
-//            mortar with one ring of runes cut round the middle, the runes' strokes glowing a banked red.
-//
-// Each comes with its EMISSION twin: the same picture's fire alone, on black - so the veins and the runes burn by
-// night and the stone around them stays stone (renderer.uploadEmissionTexture, the mesh shader's own mask). Low and
-// square-pixelled at 64 on a side, Daggerfall's own texel size: the gate sits in the pixel world, not over it.
-//
-// Deterministic (its own mulberry32 on fixed seeds): every client's gate is the same stone.
-//
-// Not a DFU member. Ledger A (WB).
 import { GATE_ARCHIVE, GATE_STONE_RECORD, GATE_PLINTH_RECORD, RITE_SIGIL_RECORD, GATE_SPINE_RECORD, GATE_RIM_RECORD, EG_ARCH_STONE_RECORD, EG_ARCH_SPINE_RECORD, EG_ARCH_RIM_RECORD } from './gateModel.js';
-import { COURT_ARCHIVE, COURT_FLOOR_RECORD, COURT_RUNE_RECORD, COURT_LAVA_RECORD } from './gateArena.js';   // WB3b: the court's own
+import { COURT_ARCHIVE, COURT_FLOOR_RECORD, COURT_RUNE_RECORD, COURT_LAVA_RECORD } from './gateArena.js';
 
 export { GATE_ARCHIVE, GATE_STONE_RECORD, GATE_PLINTH_RECORD, RITE_SIGIL_RECORD, GATE_SPINE_RECORD, GATE_RIM_RECORD, COURT_ARCHIVE };
-/** A texture's side, texels. */
 export const GATE_ART_SIZE = 64;
-/** The fire's veins down a tile of the gate's stone - few enough that the basalt still reads as stone. */
 export const GATE_VEINS = 4;
-/** GATE-FBX: the rim's veins - twice the stone's - and the ember its stone is banked toward, and how far. */
 export const RIM_VEINS = 8;
 export const RIM_EMBER = Object.freeze([92, 22, 8]);
 export const RIM_BANK = 0.3;
-/** AUDIT GATE-FBX G4: what the rim's stone between its veins gives off - an ember's two fifths, where a fifth of the bank
- *  (6, 1, 0) burned at a fortieth of anything and could not be seen. */
 export const RIM_SMOULDER = 0.4;
-/** GATE-FBX: where along a spine (v, root 0 to point 1) its heat begins, and its growth rings' pitch (texels). */
 export const SPINE_HEAT_FROM = 0.62;
 export const SPINE_RING_TEXELS = 7;
-/** The fire's three colours: its heart, its edge, and the banked red of a rune. */
 export const VEIN_HEART = Object.freeze([255, 168, 64]);
 export const VEIN_EDGE = Object.freeze([196, 56, 18]);
 export const RUNE_GLOW = Object.freeze([176, 40, 16]);
 
-/** mulberry32, the port's seeded rng (systems/wind/wind.js seededRng's own), kept here so the art is the world's alone. */
+// Private seeded rng on fixed seeds, so every client builds the same gate textures and no shared rng state can
+// change them.
 function rng(seed) {
   let a = seed >>> 0;
   return () => {
@@ -55,7 +28,6 @@ function rng(seed) {
   };
 }
 
-/** Tileable value noise over an n x n lattice, sampled at (x, y) in texels of an S-texel tile. */
 function noiseField(seed, n) {
   const r = rng(seed);
   const lat = Float32Array.from({ length: n * n }, () => r());
@@ -71,18 +43,25 @@ function noiseField(seed, n) {
 }
 
 const image = (S = GATE_ART_SIZE) => ({ width: S, height: S, colors: new Uint8Array(S * S * 4) });
-/** @param {{width:number, colors:Uint8Array}} img @param {number} x @param {number} y @param {ArrayLike<number>} rgb @param {number} [a] */
+/**
+ * @param {{width:number, colors:Uint8Array}} img
+ * @param {number} x
+ * @param {number} y
+ * @param {ArrayLike<number>} rgb
+ * @param {number} [a]
+ */
 const put = (img, x, y, rgb, a = 255) => {
   const S = img.width, i = (((y % S + S) % S) * S + ((x % S + S) % S)) * 4;
   img.colors[i] = rgb[0]; img.colors[i + 1] = rgb[1]; img.colors[i + 2] = rgb[2]; img.colors[i + 3] = a;
 };
-/** @param {ArrayLike<number>} a @param {ArrayLike<number>} b @param {number} t @returns {number[]} */
+/**
+ * @param {ArrayLike<number>} a
+ * @param {ArrayLike<number>} b
+ * @param {number} t
+ * @returns {number[]}
+ */
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t].map((v) => Math.round(v));
 
-/**
- * The gate's basalt and its fire: `{ albedo, emission }`, each `{ width, height, colors }` (RGBA, the renderer's
- * color32 shape). The veins are random walks down the tile (wrapping, so it tiles), a few of them branching.
- */
 export function gateStoneArt(seed = 0x0b1e, veins = GATE_VEINS) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
@@ -102,7 +81,7 @@ export function gateStoneArt(seed = 0x0b1e, veins = GATE_VEINS) {
       y += 1;
       const turn = r();
       if (turn < 0.28) x -= 1; else if (turn > 0.72) x += 1;
-      if (r() < 0.025) walk(x, Math.floor(len * 0.4));   // a branch
+      if (r() < 0.025) walk(x, Math.floor(len * 0.4));
     }
   };
   for (let k = 0; k < veins; k++) walk(Math.floor((k + r() * 0.6) * (S / veins)), 28 + Math.floor(r() * 24));
@@ -121,11 +100,6 @@ export function gateStoneArt(seed = 0x0b1e, veins = GATE_VEINS) {
   return { albedo, emission };
 }
 
-/**
- * The plinth's carved flags: four by four stones on dark mortar, and one ring of runes cut round the tile's middle -
- * the ring spans the whole tile, so WB2's plinth wore it as a sigil under the threshold. GATE-FBX: Mac's gate has no
- * plinth; the Sigil Broker's cage wears the flags (world/cageModel.js).
- */
 export function gatePlinthArt(seed = 0x0f1a) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
@@ -140,7 +114,6 @@ export function gatePlinthArt(seed = 0x0f1a) {
     put(albedo, x, y, c);
     put(emission, x, y, [0, 0, 0]);
   }
-  // the rune ring: short strokes set round a circle, each a little glyph of two or three cuts
   const cx = S / 2, cy = S / 2, R = S * 0.36;
   const glyphs = 14;
   for (let g = 0; g < glyphs; g++) {
@@ -156,7 +129,6 @@ export function gatePlinthArt(seed = 0x0f1a) {
       }
     }
   }
-  // and the circle the runes ride, cut thin
   for (let k = 0; k < 360; k++) {
     const a = (k / 360) * Math.PI * 2;
     const px = Math.round(cx + Math.cos(a) * (R - 5)), py = Math.round(cy + Math.sin(a) * (R - 5));
@@ -165,15 +137,10 @@ export function gatePlinthArt(seed = 0x0f1a) {
   return { albedo, emission };
 }
 
-/**
- * GATE-FBX: THE RIM - the basalt seared where it faces the opening (world/gate/gateModel.js gateRimFace): RIM_VEINS of fire
- * where the stone has GATE_VEINS, the stone between them banked RIM_BANK toward RIM_EMBER and smouldering at RIM_SMOULDER
- * of that ember, so the frame round the portal glows by night and the gate's outside stays stone.
- */
 export function gateRimArt(seed = 0x0b2e) {
   const { albedo, emission } = gateStoneArt(seed, RIM_VEINS);
   for (let i = 0; i < albedo.colors.length; i += 4) {
-    if (emission.colors[i] > 0) continue;   // a vein burns as it is
+    if (emission.colors[i] > 0) continue;
     const c = mix(albedo.colors.subarray(i, i + 3), RIM_EMBER, RIM_BANK);
     albedo.colors.set(c, i);
     emission.colors.set(mix([0, 0, 0], RIM_EMBER, RIM_SMOULDER), i);
@@ -181,12 +148,6 @@ export function gateRimArt(seed = 0x0b2e) {
   return { albedo, emission };
 }
 
-/**
- * GATE-FBX: THE SPINE'S HORN - laid root (v 0, the tile's first row) to point (v 1) along each spine
- * (world/gate/gateModel.js buildGateModel): charred and grained, ringed every SPINE_RING_TEXELS rows with growth, and from
- * SPINE_HEAT_FROM on heating through the veins' banked edge to their heart at the point, burning (the emission) as it
- * heats.
- */
 export function gateSpineArt(seed = 0x0b3a) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
@@ -208,36 +169,20 @@ export function gateSpineArt(seed = 0x0b3a) {
   return { albedo, emission };
 }
 
-/** Every texture the gate wears, by record: `[record, { albedo, emission }]` - GATE-FBX: its rim's and its spines'
- *  beside its stone's, and the plinth's flags the Broker's cage wears.
- *  @returns {Array<[number, ReturnType<typeof gateStoneArt>]>} */
+/** @returns {Array<[number, ReturnType<typeof gateStoneArt>]>} */
 export const gateArt = () => [[GATE_STONE_RECORD, gateStoneArt()], [GATE_PLINTH_RECORD, gatePlinthArt()], [GATE_SPINE_RECORD, gateSpineArt()], [GATE_RIM_RECORD, gateRimArt()]];
 
-// ═══ EG-F: THE ARCH'S SKIN ═══════════════════════════════════════════════════════════════════════════════════════
-// EG-F (2026-10-12, the Elite Gates arc, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section
-// 6.3): an Elite Breach's arch is the gate's model at 0.62 (scenes/eliteGates/egArch.js), and its skin is the Spire's - "Imperial
-// white marble inlaid with gold, cracked through with the Warden's basalt". Painted here as the gate's own is, on the
-// gate's own noise and its own veins' walk: a mottled white-grey marble, a lattice of gold inlay set in it (the inlay's
-// gleam its own emission, faint, so the arch reads by night), and the gate's basalt veins running through it as cracks
-// - dark stone, their fire banked to an ember. The rim is the same marble with more gold where it faces the opening; the
-// spines are gold, darkening to basalt at their points.
-/** The marble's two tones, the inlay's gold and its gleam, the cracks' basalt and the ember banked in them. */
 export const ARCH_MARBLE = Object.freeze([Object.freeze([176, 172, 164]), Object.freeze([236, 233, 226])]);
 export const ARCH_GOLD = Object.freeze([214, 168, 64]);
 export const ARCH_GOLD_GLEAM = Object.freeze([70, 52, 16]);
 export const ARCH_CRACK = Object.freeze([34, 24, 20]);
 export const ARCH_CRACK_EMBER = Object.freeze([48, 12, 4]);
-/** The inlay's pitch, texels (a square lattice, so the tile wraps). */
 export const ARCH_INLAY_TEXELS = 16;
-/**
- * THE ARCH'S MARBLE: `{ albedo, emission }`, the gate's art shape - the marble, its gold lattice (a line every `inlay`
- * texels), and the Warden's cracks (the gate's basalt veins - gateStoneArt's walk - laid dark through it).
- */
 export function archStoneArt(seed = 0x0eb1, inlay = ARCH_INLAY_TEXELS) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
   const coarse = noiseField(seed, 8), fine = noiseField(seed + 1, 32);
-  const basalt = gateStoneArt(seed + 2, GATE_VEINS);   // the Warden's own cracks: where the gate's veins run, the marble is split
+  const basalt = gateStoneArt(seed + 2, GATE_VEINS);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const v = 0.55 * coarse(x, y) + 0.45 * fine(x, y);
     let c = mix(ARCH_MARBLE[0], ARCH_MARBLE[1], Math.min(1, Math.max(0, (v - 0.15) / 0.75)));
@@ -250,10 +195,7 @@ export function archStoneArt(seed = 0x0eb1, inlay = ARCH_INLAY_TEXELS) {
   }
   return { albedo, emission };
 }
-/** THE ARCH'S RIM: its marble where it faces the opening - the inlay twice as close, the gold the frame the fire burns in. */
 export const archRimArt = (seed = 0x0eb2) => archStoneArt(seed, ARCH_INLAY_TEXELS / 2);
-/** THE ARCH'S SPINES: gold from the root (v 0), darkening through to the Warden's basalt at the point (v 1) - each spine
- *  laid root to point as the gate's are (world/gate/gateModel.js buildGateModel). */
 export function archSpineArt(seed = 0x0eb3) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
@@ -266,32 +208,20 @@ export function archSpineArt(seed = 0x0eb3) {
   }
   return { albedo, emission };
 }
-/** Every texture the arch wears, by record (world/gate/gateModel.js EG_ARCH_RECORD_OF - the gate's own records' twins).
- *  @returns {Array<[number, ReturnType<typeof gateStoneArt>]>} */
+/** @returns {Array<[number, ReturnType<typeof gateStoneArt>]>} */
 export const archArt = () => [[EG_ARCH_STONE_RECORD, archStoneArt()], [EG_ARCH_SPINE_RECORD, archSpineArt()], [EG_ARCH_RIM_RECORD, archRimArt()]];
 
-// ═══ WB12d: THE FAITHFUL'S SIGIL ═════════════════════════════════════════════════════════════════════════════════
-/** AUDIT WB12d (G11): the sigil's art, one disc across its whole tile (never a tile repeated - the plinth's flags read
- *  as a paved square), and its fire's colour. */
 export const RITE_SIGIL_ART_SIZE = 128;
 const CHAR = Object.freeze([40, 31, 25]);
 const ASH = Object.freeze([92, 85, 77]);
 const BURNT = Object.freeze([10, 7, 6]);
 
-/**
- * AUDIT WB12d (G11): DAGON'S SIGIL BURNED INTO THE EARTH - scorched ground, char and pooled ash, ragged where the burn
- * gave out (alpha 0 there, so the land shows through and no disc's edge is drawn); a double ring cut round it with the
- * faithful's runes between; Dagon's seven-pointed star burned across it, its first point at the top (+v - the circle's
- * model turns it toward the gate); the altar's ring at the heart. Every cut smoulders (the emission), so the sigil glows
- * at night as the braziers do. `{ albedo, emission }`, RITE_SIGIL_ART_SIZE square.
- */
 export function riteSigilArt(seed = 0x5161) {
   const S = RITE_SIGIL_ART_SIZE, albedo = image(S), emission = image(S);
   const tone = noiseField(seed, 6), grain = noiseField(seed + 1, 32), edge = noiseField(seed + 2, 10);
   const r = rng(seed + 3);
   const c = (S - 1) / 2;
   const glow = (t) => mix([0, 0, 0], RUNE_GLOW, t);
-  // the ground: char, ash pooled toward the heart, the grain of burnt soil - and nothing past the burn's ragged rim
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const d = Math.hypot(x - c, y - c) / c;
     if (d > 0.9 + 0.16 * (edge(x, y, S) - 0.5)) { put(albedo, x, y, CHAR, 0); put(emission, x, y, [0, 0, 0], 0); continue; }
@@ -300,7 +230,6 @@ export function riteSigilArt(seed = 0x5161) {
     put(albedo, x, y, mix(CHAR, ASH, ash).map((v) => Math.min(255, Math.round(v * g))));
     put(emission, x, y, [0, 0, 0]);
   }
-  // a cut: burnt black at its heart, its fire in the emission, a halo of heat about it
   const burn = (x, y) => {
     const px = Math.round(x), py = Math.round(y);
     for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
@@ -311,7 +240,6 @@ export function riteSigilArt(seed = 0x5161) {
   };
   const line = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2); for (let t = 0; t <= n; t++) burn(x0 + ((x1 - x0) * t) / n, y0 + ((y1 - y0) * t) / n); };
   const ring = (R) => { const n = Math.ceil(2 * Math.PI * R * 2); for (let k = 0; k < n; k++) { const a = (k / n) * 2 * Math.PI; burn(c + Math.cos(a) * R, c + Math.sin(a) * R); } };
-  // the double ring, and the faithful's runes between its two cuts
   ring(0.8 * c); ring(0.68 * c);
   const glyphs = 21, mid = 0.74 * c;
   for (let g = 0; g < glyphs; g++) {
@@ -323,32 +251,19 @@ export function riteSigilArt(seed = 0x5161) {
       line(ox - Math.cos(ang) * len, oy - Math.sin(ang) * len, ox + Math.cos(ang) * len, oy + Math.sin(ang) * len);
     }
   }
-  // Dagon's star, {7/3}: its first point at the top
   const pts = Array.from({ length: 7 }, (_, i) => { const a = Math.PI / 2 + (i / 7) * 2 * Math.PI; return [c + Math.cos(a) * 0.64 * c, c + Math.sin(a) * 0.64 * c]; });
   for (let i = 0; i < 7; i++) line(...pts[i], ...pts[(i + 3) % 7]);
-  // and the ring the altar stands in
   ring(0.17 * c);
   return { albedo, emission };
 }
-/** WB12d: every texture the faithful's circle wears beside the gate's own, by record.
- *  @returns {Array<[number, ReturnType<typeof riteSigilArt>]>} */
+/** @returns {Array<[number, ReturnType<typeof riteSigilArt>]>} */
 export const riteArt = () => [[RITE_SIGIL_RECORD, riteSigilArt()]];
 
-// ═══ WB3b: THE BURNING COURT'S ART ═════════════════════════════════════════════════════════════════════════════════
-//
-//   floor    - black flagstones, big and uneven, the mortar between them banked red where the fire below shows through
-//   rune     - the ring the boss never crosses: a dark band cut with glyphs that burn (it tiles along the ring, u)
-//   lava     - the sea of fire under the court and the braziers' beds: a crust of black over bright moving heat
-// Each with its emission twin, as the gate's own art. GATE-FBX: the bridge's membrane and its swirl are gone - the court's
-// portals are the gate's own fire (render/gate/gatePass.js).
-
-/** The court's floor: flagstones laid by a jittered grid, their mortar glowing where it is deepest. */
 export function courtFloorArt(seed = 0x0c07) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
   const r = rng(seed);
   const tone = noiseField(seed + 1, 16);
-  // four by four stones, each corner jittered - a Voronoi of their centres gives the uneven joints
   const N = 5, cell = S / N;
   const centres = [];
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) centres.push([(i + 0.2 + r() * 0.6) * cell, (j + 0.2 + r() * 0.6) * cell, 0.7 + r() * 0.35]);
@@ -361,7 +276,7 @@ export function courtFloorArt(seed = 0x0c07) {
     }
     const joint = d2 - d1;
     if (joint < 1.2) {
-      const hot = tone(x, y) > 0.7;   // the fire shows through a few joints, not all of them
+      const hot = tone(x, y) > 0.7;
       put(albedo, x, y, hot ? mix(MORTAR, EMBER, 0.6) : MORTAR);
       put(emission, x, y, hot ? mix([0, 0, 0], EMBER, 0.55) : [0, 0, 0]);
     } else {
@@ -372,7 +287,6 @@ export function courtFloorArt(seed = 0x0c07) {
   return { albedo, emission };
 }
 
-/** The rune ring's band: glyphs of two or three cuts set along u, burning on dark stone; v runs across the band. */
 export function courtRuneArt(seed = 0x0c11) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
@@ -401,7 +315,6 @@ export function courtRuneArt(seed = 0x0c11) {
   return { albedo, emission };
 }
 
-/** The sea of fire: bright heat under a broken black crust - nearly all of it burns. */
 export function courtLavaArt(seed = 0x0c1a) {
   const S = GATE_ART_SIZE;
   const albedo = image(), emission = image();
@@ -410,14 +323,13 @@ export function courtLavaArt(seed = 0x0c1a) {
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const h = 0.7 * heat(x, y) + 0.3 * fine(x, y), c = crust(x, y);
     const col = mix(COOL, HOT, Math.min(1, Math.max(0, (h - 0.2) / 0.65)));
-    const k = Math.min(1, Math.max(0, (c - 0.62) / 0.12));   // the crust floats on it, its edges banked
+    const k = Math.min(1, Math.max(0, (c - 0.62) / 0.12));
     put(albedo, x, y, mix(col, CRUST, k)); put(emission, x, y, mix(col, [0, 0, 0], k));
   }
   return { albedo, emission };
 }
 
-/** Every texture the court wears, by record: `[record, { albedo, emission }]`.
- *  @returns {Array<[number, ReturnType<typeof gateStoneArt>]>} */
+/** @returns {Array<[number, ReturnType<typeof gateStoneArt>]>} */
 export const courtArt = () => [
   [COURT_FLOOR_RECORD, courtFloorArt()], [COURT_RUNE_RECORD, courtRuneArt()], [COURT_LAVA_RECORD, courtLavaArt()],
 ];

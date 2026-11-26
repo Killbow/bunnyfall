@@ -14,6 +14,7 @@ files:
   - "src/scenes/dungeonContext.js"
   - "src/scenes/worldModes.js"
   - "src/scenes/world.js"
+  - "src/world/doorsToNowhere.js"
 routes: []
 tables: []
 replacesBible:
@@ -28,10 +29,15 @@ invariants:
   - "Collision triggers fire only when hasActionCollision passes (COLLISION_TRIGGER_FLAGS: Collision01, Collision03, MultiTrigger, Collision09)."
   - "Doors swing over DOOR_OPEN_DURATION = 1.5 s. Move actions tween linearly over record.duration / 20."
   - "A lock value >= 20 is magically held and can never be picked or bashed."
+  - "`sharedRecord` strips `failedSkillLevel` from every action change sent to the room, and `validActionRecord` drops it on receipt; only the save keeps the lockpick latch."
+  - "Action save records never carry `activationCount`, so every counter restarts at 0 after a load, as in DFU."
+  - "A remote action record (`restoreSaveData` with `remote`) lands a lock only up to `lockCeiling(o)`; a higher lock comes from a Lock spell and stays with its caster."
 traps:
   - "An armed Lock beats an armed Open on action doors (doorSpellFor), but exteriorOpenSpellFor stays Open-only (F41)."
   - "The Castle Daggerfall hack applies only to isActionDoorObject (non-special action doors) (F44/F45)."
   - "Door plaque text passes DOOR_TEXT_HUD_DELAY_S = 2.0 to hudText. The default HUD_TEXT_POP_DELAY is 1.0."
+  - "The Teleport relay calls `onTeleportPortal` before the warp with both endpoints from the static layout index, so the automap's portal key stays stable across saves."
+  - "`DOOR_FLOOR_REACH` (10) matches the default `maxDist` of `standsOnFloor` in `src/player/enterExit.js`; change both together."
 dfu:
   - "Assets/Scripts/Game/PlayerActivate.cs"
   - "Assets/Scripts/Internal/DaggerfallActionDoor.cs"

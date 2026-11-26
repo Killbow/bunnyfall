@@ -20,6 +20,7 @@ traps:
   - "The projection mirrors NDC x and the renderer sets `frontFace(CW)`, so only world passes may draw with `CULL_FACE` on, and every other pass must turn culling off around its draw."
   - "The cloud deck (`setCloudShadow`), the deep-water fog, the jungle haze (`setJungleHaze`), and the travel-view focus (`setFocus`) are per-frame state that `beginFrame` clears, so a host must set them again every frame."
   - "Texture units are claimed by constants in separate modules, such as `1`, `6`, and `7` for water, `3` to `5` for ecotones, `6` for the billboard surface, `8` for the shadow lo tier, `9` and `10` for light clusters, `11` and `12` for the air pass, `13` and `14` for sun and point shadows, `15` for the cloud shadow, `16` to `20` for snow, `21` for the skin palette (`SKIN_PALETTE_UNIT`), `22` for the view pane, and `23` for snow lines; check every `*_UNIT` constant before a new pass takes one."
+  - "The projection mirrors NDC x and the renderer sets `gl.frontFace(gl.CW)`, so a world mesh face is front-facing only when its corners wind counter-clockwise about its outward normal."
 dfu:
   - Assets/Scripts/API/TextureFile.cs
   - Assets/Scripts/MaterialReader.cs

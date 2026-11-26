@@ -1,6 +1,3 @@
-// The world's landform lift: how far the landforms move the ground at a point, with each
-// pixel's lift field and build rect reused. It also writes record heights in the base ground's
-// frame, puts the lift back on when a record is read, and holds the building doors list.
 import {
   DEFAULT_TERRAIN_SCALE, HEIGHTMAP_DIMENSION, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE,
 } from './terrainSampler.js';
@@ -11,21 +8,10 @@ import { setLocationTiles } from './terrainTiles.js';
 /** @param {any} shared */
 export function createLandformLiftWorld(shared) {
   const { _liftLocationAt, blocks, built, heightAt, heightCell, landform, landformsHere, maps, terrainGen } = shared;
-  /** LANDFORM1: how far the landforms move DFU's ground at a scene point, in world units (world/landforms.js
-   *  landformLift - the kernel's own shaped ground less DFU's over the network this thread holds, the cuts with the
-   *  lift (AUDIT LANDFORMS B2), over the location rect of the pixel's build, so a town's levelled ground is exact).
-   *  What the row puts there, read while it is on. A pixel's field is kept for the next record a save or a load stands
-   *  on it - the last LIFT_FIELDS_KEPT pixels asked, the longest unasked let go first (AUDIT LANDFORMS II F3: dropped
-   *  whole past eight, a save whose records stood on nine pixels made every field again - a town's is a kernel pass,
-   *  146 ms for nine on the main thread and 0.4-0.6 s for sixteen - at every save, online every periodic checkpoint).
-   *  AUDIT LANDFORMS B1: the rect is the build's for a pixel not built yet too - the one setLocationTiles will stamp
-   *  (tvTownRects' own fallback). A load stands records before their pixels stream in (its camps anywhere in the world, a
-   *  neighbour's piles), and the wild lift it took there was up to 203 m off a location's levelled ground (Tamarilyn
-   *  Coven; 1,036 of 15,251 locations over a metre at the rect's centre), into a camp that is never stood again. */
-  const LIFT_FIELDS_KEPT = 32;   // a town's field is 129 x 129 floats (66 KB): 2 MB at the most
+  // For a pixel not built yet the rect comes from setLocationTiles, the same rect the build will stamp, so records
+  // loaded before streaming land on leveled ground.
+  const LIFT_FIELDS_KEPT = 32;
   const _liftFields = new Map();
-  /** ...and the rect that build will stamp, kept per pixel while the same place stands there (a spawn's clone is made
-   *  afresh at each ask, so a spawn's is asked again - 50 us, against its field's kernel pass) */
   const _liftRects = new Map();
   const landformLiftAt = (x, z) => {
     const c = shared.state.compensation;
@@ -41,56 +27,30 @@ export function createLandformLiftWorld(shared) {
       else {
         if (loc?.exterior?.exteriorData && loc.mapTableData) rect = setLocationTiles(loc, maps, blocks, new Uint8Array(128 * 128)) ?? null;
         _liftRects.delete(`${px},${py}`);
-        if (_liftRects.size >= LIFT_FIELDS_KEPT) _liftRects.delete(_liftRects.keys().next().value);   // the longest unasked
+        if (_liftRects.size >= LIFT_FIELDS_KEPT) _liftRects.delete(_liftRects.keys().next().value);
         _liftRects.set(`${px},${py}`, { loc, rect });
       }
     }
-    // AUDIT LANDFORMS B2: the field follows the cuts, so it is the network's too - made again once the network lands
     const key = `${px},${py},${rect ? `${rect.xMin},${rect.xMax},${rect.yMin},${rect.yMax}` : '-'},${terrainGen.roads() ? 1 : 0}`;
     let field = _liftFields.get(key);
-    if (field) _liftFields.delete(key);   // asked again: the last to be let go
+    if (field) _liftFields.delete(key);
     else {
-      if (_liftFields.size >= LIFT_FIELDS_KEPT) _liftFields.delete(_liftFields.keys().next().value);   // the longest unasked
+      if (_liftFields.size >= LIFT_FIELDS_KEPT) _liftFields.delete(_liftFields.keys().next().value);
       field = landformLiftField(shared.woods, px, py, rect, HEIGHTMAP_DIMENSION, landformsHere());
     }
     _liftFields.set(key, field);
     return field((x - t[0]) / heightCell, (z - t[2]) / heightCell) * STREAMING_TERRAIN_SCALE;
   };
-  /** AUDIT LANDFORMS C1/B4: A HEIGHT GOES INTO A RECORD IN DFU'S FRAME. With the row on the ground at (x, z) stands
-   *  `landformLiftAt(x, z)` over DFU's, and every exterior height a record carries (the save, the scene cache, the ship's
-   *  deck, an anchor, a dungeon's outer camps) is written without it - so a build without the row reads it as it always
-   *  read one, and this one puts the lift back on (restandHeight). Written on the landforms' own ground (LANDFORM1's
-   *  stamp), a record stood the lift over its ground on any build before: a save loaded on a desktop copy that has not
-   *  updated, or after a revert, dropped its character - a fall of over 100 HP from 30% of the land. `y` is
-   *  compensation-free, (x, z) scene coordinates. */
+  // Record heights are saved without the landform lift, so builds without landforms read them unchanged;
+  // restandHeight adds the lift back.
   const groundFrameHeight = (y, x, z) => (landform && Number.isFinite(y) ? y - landformLiftAt(x, z) : y);
-  /** ...for a record in NATIVE coordinates (a pile, a foe, a guard). */
   const groundFrameNative = (nx, nz, y) => {
     if (!landform) return y;
     const [x, z] = shared.state.localFromWorld(nx, nz);
     return groundFrameHeight(y, x, z);
   };
-  // TERRAIN-SCALE1: A HEIGHT WRITTEN UNDER ANOTHER TERRAIN SCALE, STOOD
-  // AGAIN ON TODAY'S GROUND. Every exterior height a save (or a scene
-  // cache, or an anchor) carries is compensation-free and stood on
-  // ground drawn at the scale it was written under - the prefab's 1.5
-  // for anything written before the game scene's 1.25 was found. The
-  // terrain is linear in the scale (sample * 1539 * scale, a location's
-  // levelled ground included), so a point `off` above the ground it was
-  // measured on keeps its `off`:
-  //     y' = y - ground'(x, z) * (was / now - 1)
-  // exact for a body on a hillside, a pile on a floor, a player on a
-  // roof or up a tower's stair, wherever the ground under (x, z) is
-  // built. Where it is not yet, the ratio stands in (y * now / was),
-  // exact for anything that stood ON its ground and a sixth of any
-  // height above it off. (x, z) are scene coordinates; `was` absent or
-  // equal to today's scale is today's ground, untouched.
-  //
-  // LANDFORM1: and every record's height is DFU's frame (AUDIT LANDFORMS
-  // C1: groundFrameHeight writes it so), so while the Landforms row is on
-  // it takes the lift at its own spot (landformLiftAt) back on, beside the
-  // scale's arm: on today's ground it is the ground's height there plus
-  // its own `off`.
+  // Height is linear in terrain scale, so a height saved under `was` keeps its offset: y' = y - ground'(x, z) *
+  // (was / now - 1). Unbuilt ground uses y * now / was.
   const restandHeight = (y, x, z, was) => {
     if ((!(was > 0) || was === STREAMING_TERRAIN_SCALE) && !landform) return y;
     if (!Number.isFinite(y)) return y;
@@ -100,11 +60,10 @@ export function createLandformLiftWorld(shared) {
     if (Number.isFinite(h)) return y - (h - shared.state.compensation[1] - now) * (r - 1) + now;
     return y * (was > 0 ? STREAMING_TERRAIN_SCALE / was : 1) + now;
   };
-  /** TERRAIN-SCALE1: the scale a record without its own stamp was written on - the prefab's, before the stamp. */
+  // A record without a scale stamp predates the stamp and was written under DEFAULT_TERRAIN_SCALE, not today's
+  // scale.
   const scaleOf = (stamp) => (stamp > 0 ? stamp : DEFAULT_TERRAIN_SCALE);
-  // Building doors (P3): registered pixel-local at build, activated
-  // against the live translation; each carries what the transition
-  // needs (its block + building record + sibling exterior doors).
-  const buildingDoors = []; // {door, pixelKey, dfBlock, recordIndex, climateBase, season (A1: INTERIOR_SEASON)}
+  // Doors register in pixel-local coordinates at build and are tested against the live world translation.
+  const buildingDoors = [];
   return { buildingDoors, groundFrameHeight, groundFrameNative, restandHeight, scaleOf };
 }

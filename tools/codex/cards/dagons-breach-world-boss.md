@@ -16,6 +16,7 @@ files:
   - server-account/src/index.js
   - src/audio/deadlandsAir.js
   - src/render/deadlands.js
+  - src/world/deadlandsLand.js
 routes:
   - "/v1/gate/claim"
 tables:
@@ -32,6 +33,8 @@ invariants:
   - "Schedule, exterior site selection, omen rings, and daily marks derive deterministically from wall time and local map archives with zero relay traffic."
   - "The arena reuses the dungeon host (`buildDungeonContext`) with a generated block, disabling rest, recall, automap, fast travel, saves, and companions."
   - "Thunder in the Burning Court (`src/audio/deadlandsAir.js`) is timed from `flashOfSlot` in `src/render/deadlands.js` and delayed by distance at `SPEED_OF_SOUND`, so each strike and its thunder match. A gap between frames longer than `AIR_BACKLOG_S` (`2` s) plays none of the events it skipped."
+  - "The Deadlands islands and shards are seeded from `LAND_SEED` and read `SIGIL_TOWER` and `DEAD_CLOCK_PERIOD` from `src/render/deadlands.js`, so every client draws the same land."
+  - "A busy refusal from the court door counts as a word from the court for `COURT_DOOR_WAIT_MS` after stepping in, and a frame gap over `COURT_FRAME_GAP_MS` counts no silence."
 traps:
   - "The player-facing feature name is `Dagon's Breach`, whereas code modules, room frames (`gate`), and storage keys retain `gate*` identifiers."
   - "Protocol compatibility gates on `GATE_BRAIN_V` and `GATE_BRAIN_MIN` (plus `COURT_WATCH_RELAY_MIN`), never on a hardcoded relay version string."

@@ -1,32 +1,6 @@
 // @ts-check
-// EG-G2 (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section 11.6 - "One kit of mesh
-// tools"): THE MESH KIT - the shared shapes a made level is built from, writing STRAIGHT INTO TYPED ARRAYS.
-//
-// Every made level carried its own box, extrude and pack helpers (gateArena.js packFaces, sdRealm.js packRealmFaces and
-// quadFacing, sdIslandModel.js away, sdHall.js facing) over JS arrays pushed a number at a time and copied at the end (a
-// 40,000-triangle circle cost 41-53 ms and 21-30 MB of garbage in one task - AUDIT EG II L4-27). The kit keeps one
-// growable Float32Array bucket per record, so a hall can be built a slice at a time across frames (THE SWAP, section 7)
-// and packed once into renderer.createMesh's shape with Uint32 indices (renderer.js "THE ONE INDEX TYPE"), its
-// sub-meshes one per record, lowest first. Every face is flat-shaded and wound so (b - a) x (c - a) faces OUT - the
-// world pass culls the back - whichever way its caller listed it (`out`, a point or a direction the face must look
-// away from or toward).
-//
-// The shapes:
-//   quad, tri       one face, wound to face `out`;
-//   box             an axis-aligned box, any faces left off (a slab's underside, a wall's ends);
-//   prism           a polygon in the xz plane stood from y0 to y1, its sides out, its top and its bottom optional;
-//   extrude         a 2D profile (u across, v up) carried along a straight segment - a kerb, a rail, a beam;
-//   lathe           a profile of [r, y] turned about the y axis - a column drum, a lamp's head, a bell;
-//   sweep           a profile carried along a polyline with a frame a vertex (parallel transport, no twist) - a track,
-//                   a chain, a pipe;
-//   mesh            EG6c: a BAKED mesh's triangles (an authored hero fragment's mesh half - tools/fragBake.mjs), moved to
-//                   where it is laid, its own normals and UVs kept.
-// The court and the Hour may move onto it later; that is not required (section 11.6). Its first users are the Spire's
-// own look (world/eliteGates/egLook.js): the waystones' lamps, the slag's crust, the Rail's track ties.
-//
-// Pure. Not a DFU member. Ledger A (ELITE-GATES).
+// Every face winds so (b - a) x (c - a) points out of the solid, because the world pass culls back faces.
 
-/** The first bucket's room (vertices); a bucket doubles as it fills. */
 export const MESH_KIT_START = 96;
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -34,10 +8,7 @@ const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const unit = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
 
-/**
- * A new kit. `kit.vertexCount` and `kit.triangleCount` say what it holds; `kit.pack(archive)` the model.
- * @param {{ start?: number }} [o]
- */
+/** @param {{ start?: number }} [o] */
 export function createMeshKit({ start = MESH_KIT_START } = {}) {
   /** @type {Map<number, { p: Float32Array, n: Float32Array, uv: Float32Array, v: number }>} */
   const byRec = new Map();
@@ -55,7 +26,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
     p.set(b.p.subarray(0, b.v * 3)); n.set(b.n.subarray(0, b.v * 3)); uv.set(b.uv.subarray(0, b.v * 2));
     b.p = p; b.n = n; b.uv = uv;
   };
-  /** One triangle, wound as given (its normal (b - a) x (c - a)). */
   function rawTri(rec, a, b, c, ua = [0, 0], ub = [1, 0], uc = [1, 1]) {
     const g = bucket(rec);
     grow(g, 3);
@@ -69,7 +39,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
     }
     verts += 3;
   }
-  /** Which way a face must look: `out` a direction ([x, y, z] with `dir` true) or a point it looks away from. */
   const facing = (a, b, c, out, dir) => {
     const nn = cross(sub(b, a), sub(c, a));
     if (!out) return true;
@@ -78,21 +47,15 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
     return dot(nn, sub(mid, out)) >= 0;
   };
   const kit = {
-    /** One triangle wound to face `out` (a direction when `dir`, else a point it looks away from). */
     tri(rec, a, b, c, out = null, dir = true, ua = [0, 0], ub = [1, 0], uc = [1, 1]) {
       if (facing(a, b, c, out, dir)) rawTri(rec, a, b, c, ua, ub, uc); else rawTri(rec, a, c, b, ua, uc, ub);
       return kit;
     },
-    /** One quad a-b-c-d (a convex ring), wound to face `out`. */
     quad(rec, a, b, c, d, out = null, dir = true, uv = [[0, 0], [1, 0], [1, 1], [0, 1]]) {
       if (facing(a, b, c, out, dir)) { rawTri(rec, a, b, c, uv[0], uv[1], uv[2]); rawTri(rec, a, c, d, uv[0], uv[2], uv[3]); }
       else { rawTri(rec, a, d, c, uv[0], uv[3], uv[2]); rawTri(rec, a, c, b, uv[0], uv[2], uv[1]); }
       return kit;
     },
-    /**
-     * An axis-aligned box from `lo` to `hi`, every face out; `skip` the faces left off ('top', 'bottom', 'nx', 'px',
-     * 'nz', 'pz'); `uvScale` texels a metre over the face (a tile is two metres at 0.5).
-     */
     box(rec, lo, hi, { skip = [], uvScale = 0.5 } = {}) {
       const [x0, y0, z0] = lo, [x1, y1, z1] = hi, s = uvScale, P = (x, y, z) => [x, y, z];
       const U = (a, b) => [[0, 0], [a * s, 0], [a * s, b * s], [0, b * s]];
@@ -108,10 +71,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
       for (const [name, q, out, uv] of F) if (!skip.includes(name)) kit.quad(rec, q[0], q[1], q[2], q[3], out, true, uv);
       return kit;
     },
-    /**
-     * A PRISM: polygon `poly` ([[x, z], ...], any winding) stood from y0 to y1 - its sides facing out of it, its `top`
-     * and `bottom` caps fanned from its first point (a convex polygon's - a slab of slag, a waystone's plinth).
-     */
     prism(rec, poly, y0, y1, { top = true, bottom = false, uvScale = 0.5 } = {}) {
       const n = poly.length, cx = poly.reduce((a, p) => a + p[0], 0) / n, cz = poly.reduce((a, p) => a + p[1], 0) / n;
       let along = 0;
@@ -126,10 +85,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
       if (bottom) cap(y0, -1);
       return kit;
     },
-    /**
-     * EXTRUDE: a closed 2D profile ([[u, v], ...] - u across the way, v up) carried from `a` to `b` (a straight run, never
-     * vertical): its sides out of the profile; `caps` closes both ends.
-     */
     extrude(rec, profile, a, b, { caps = true, uvScale = 0.5 } = {}) {
       const d = unit(sub(b, a)), side = unit(cross(d, [0, 1, 0])), up = cross(side, d), len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
       const at = (o, p) => [o[0] + side[0] * p[0] + up[0] * p[1], o[1] + side[1] * p[0] + up[1] * p[1], o[2] + side[2] * p[0] + up[2] * p[1]];
@@ -143,10 +98,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
       if (caps) for (const [o, s] of [[a, -1], [b, 1]]) for (let k = 1; k + 1 < n; k++) kit.tri(rec, at(o, profile[0]), at(o, profile[k]), at(o, profile[k + 1]), [d[0] * s, d[1] * s, d[2] * s]);
       return kit;
     },
-    /**
-     * LATHE: profile [[r, y], ...] (bottom to top) turned about the y axis through `centre` in `sides` steps from `a0` to
-     * `a1` (radians - a whole turn by default), its faces out from the axis.
-     */
     lathe(rec, profile, sides, { centre = [0, 0, 0], a0 = 0, a1 = Math.PI * 2, uvScale = 0.5 } = {}) {
       for (let k = 0; k < sides; k++) {
         const t0 = a0 + ((a1 - a0) * k) / sides, t1 = a0 + ((a1 - a0) * (k + 1)) / sides, c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1);
@@ -158,7 +109,7 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
           if (Math.max(r0, r1) <= 0) continue;
           const u0 = (k / sides) * Math.PI * 2 * Math.max(r0, r1) * uvScale, u1 = ((k + 1) / sides) * Math.PI * 2 * Math.max(r0, r1) * uvScale;
           const uv = [[u0, y0 * uvScale], [u1, y0 * uvScale], [u1, y1 * uvScale], [u0, y1 * uvScale]];
-          const nr = y1 - y0, ny = -(r1 - r0), out = [nr * mid, ny, nr * mids];   // the profile's own outward normal (bottom to top, the solid on the axis's side)
+          const nr = y1 - y0, ny = -(r1 - r0), out = [nr * mid, ny, nr * mids];
           if (r0 <= 0) kit.tri(rec, pa, pc, pd, out, true, uv[0], uv[2], uv[3]);
           else if (r1 <= 0) kit.tri(rec, pa, pb, pc, out, true, uv[0], uv[1], uv[2]);
           else kit.quad(rec, pa, pb, pc, pd, out, true, uv);
@@ -166,11 +117,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
       }
       return kit;
     },
-    /**
-     * SWEEP: a closed 2D profile ([[u, v], ...]) carried along polyline `path` ([[x, y, z], ...], two points or more),
-     * framed at each vertex by parallel transport (no twist) - a track's rail, a chain, a pipe. `closed` joins the last
-     * point to the first.
-     */
     sweep(rec, profile, path, { closed = false, uvScale = 0.5 } = {}) {
       const m = path.length;
       if (m < 2) return kit;
@@ -182,7 +128,7 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
       const rings = [];
       for (let i = 0; i < m; i++) {
         const ti = tangent(i);
-        side = unit(sub(side, [ti[0] * dot(side, ti), ti[1] * dot(side, ti), ti[2] * dot(side, ti)]));   // carried, never re-picked
+        side = unit(sub(side, [ti[0] * dot(side, ti), ti[1] * dot(side, ti), ti[2] * dot(side, ti)]));
         const up = cross(side, ti);
         rings.push(profile.map((p) => [path[i][0] + side[0] * p[0] + up[0] * p[1], path[i][1] + side[1] * p[0] + up[1] * p[1], path[i][2] + side[2] * p[0] + up[2] * p[1]]));
         t = ti;
@@ -200,12 +146,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
       }
       return kit;
     },
-    /**
-     * EG6c - A BAKED MESH: `count` triangles of `src` (`{ positions, normals, uvs, indices }` - an authored hero fragment's
-     * mesh half, tools/fragBake.mjs) from index `start`, into record `rec`, each vertex moved by `at` (where the fragment
-     * is laid, the hall's frame) - its own normals and UVs kept (smooth where Mac smoothed it, mapped as he mapped it),
-     * wound as it was baked (out). So an authored fragment packs with the hall's code-built shapes (section 11.6).
-     */
     mesh(rec, src, { start = 0, count = src.indices.length / 3, at = [0, 0, 0] } = {}) {
       const g = bucket(rec);
       grow(g, count * 3);
@@ -221,12 +161,7 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
     },
     get vertexCount() { return verts; },
     get triangleCount() { return verts / 3; },
-    /** The records the kit holds, lowest first. */
     records: () => [...byRec.keys()].sort((a, b) => a - b),
-    /**
-     * THE PACK: renderer.createMesh's model - `positions`, `normals`, `uvs`, Uint32 `indices`, a sub-mesh a record
-     * (lowest first) under `archive`. The kit may go on being written after (a slice at a time); each pack is whole.
-     */
     pack(archive) {
       const recs = kit.records(), positions = new Float32Array(verts * 3), normals = new Float32Array(verts * 3), uvs = new Float32Array(verts * 2), indices = new Uint32Array(verts);
       const subMeshes = [];
@@ -244,8 +179,6 @@ export function createMeshKit({ start = MESH_KIT_START } = {}) {
   return kit;
 }
 
-/** A model's axis-aligned bounds `[minx, miny, minz, maxx, maxy, maxz]` and the radius of the sphere about their centre
- *  that holds every vertex (the cull's - world/eliteGates/egLook.js). Pure. */
 export function meshKitBounds(positions) {
   const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
   for (let i = 0; i < positions.length; i += 3) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], positions[i + k]); b[k + 3] = Math.max(b[k + 3], positions[i + k]); }

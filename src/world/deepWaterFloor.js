@@ -1,32 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════
-// DW-B: THE SEAFLOOR. DeepWaterFloorBuilder.ComputeHoleMask and
-// DeepWaterFloorMesh (Iliac Puddle No More 1.2.2, jet082), as pure
-// geometry over one streamed pixel:
-//
-//   HOLES  - 128 x 128 cells, a terrain tile each: a cell is carved out
-//            of the ground (hole = false in Unity's TerrainData.SetHoles
-//            sense) where the pixel's own heights call it water
-//            (IsLocalPointWater - the carve threshold, 0.25 above the
-//            sea), its four heightmap corners sit on the sea, and the
-//            bake's fine mask carved it - or, on a pixel the fine bake
-//            missed, where it is a pure water tile the coarse bake calls
-//            sea.
-//   FLOOR  - a 65 x 65 vertex grid (12.8 m quads) at the bathymetry's
-//            depth under the sea, fitted up to the vanilla shore within
-//            180 m of the coast, never above 5 cm under the surface; a
-//            quad is drawn where any of its four cells is carved.
-//   WALLS  - where a carved cell meets the pixel's edge and the bake does
-//            not carve across it, a sloped skirt from just under the
-//            surface down to the floor, both faces.
-//
-// Everything is PIXEL-LOCAL (x east, z north, meters from the south-west
-// corner), the frame DFU's terrain transform gives the mesh and the frame
-// the port builds the pixel in. `nearbyLocalY(lx, lz)` is the host's
-// answer to DeepWaterTerrainLookup.TryGetByWorldPosition + a bilinear read
-// of THAT terrain's heights - the neighbour's own heightmap when a point
-// falls past this pixel's edge - or null where nothing is streamed.
-// ═══════════════════════════════════════════════════════════════════
-
 import { SCALED_OCEAN_ELEVATION, MAX_TERRAIN_HEIGHT, HEIGHTMAP_DIMENSION } from './terrainSampler.js';
 import { heightSample, isLocalPointWater, isLocalPointPureWaterTile } from './deepWaterClassification.js';
 import { sampleDepthMeters, depthBand01 } from './deepBathymetry.js';
@@ -35,15 +6,13 @@ const f32 = Math.fround;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const clampInt = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 const lerp = (a, b, t) => a + (b - a) * clamp01(t);
-/** Mathf.SmoothStep. */
 const smoothStep = (from, to, t) => { t = clamp01(t); t = -2 * t * t * t + 3 * t * t; return to * t + from * (1 - t); };
 
 export const TILE_WORLD_SIZE = 819.2;
-/** AUDIT PRE-MERGE 0928 H4: terrainData.size.x / .z as Unity holds it, a float (819.2f = 819.20001220703125), for the C#'s float products over it. */
+// Unity holds the terrain size as a float (819.2f is 819.20001220703125), and the float products ported from the
+// mod need that exact value.
 export const TILE_WORLD_SIZE_F32 = Math.fround(TILE_WORLD_SIZE);
-/** DeepWaterFloorMesh.VertexGridSize. */
 export const VERTEX_GRID_SIZE = 65;
-/** terrainData.holesResolution: a hole per terrain tile. */
 export const HOLES_RESOLUTION = 128;
 export const HOLE_BUFFER_METERS = 0.5;
 const WALL_MINIMUM_DROP = 0.25;
@@ -53,20 +22,16 @@ const SHORE_WALL_TOP_TEXTURE_STRENGTH = 0.35;
 const SKIRT_SLOPE_TANGENT = 0.6;
 const BOUNDARY_SKIRT_MIN_WIDTH = 2;
 const BOUNDARY_SKIRT_MAX_WIDTH = 8;
-/** The floor's shore fit: within this of the coast (m) it is lifted toward the vanilla ground (the sea's own top, in
- *  the sea), full depth past it. HARBOUR-BOOK: exported for the quays' piers (systems/naval/quays.js JETTY_MAX). */
 export const SHORE_TERRAIN_FIT_METERS = 180;
 const FLOOR_SURFACE_CLEARANCE = 0.05;
 
-/** OceanElevation / MaxTerrainHeight, the float. */
 export const OCEAN_THRESHOLD = f32(SCALED_OCEAN_ELEVATION / MAX_TERRAIN_HEIGHT);
 
 /**
- * ComputeHoleMask.
- * @param {object} mapData - {samples, tilemap}
- * @param {object} tile - the pixel's DeepWaterTileData
- * @param {object} bake - the DeepWatersBake
- * @returns {?{holes: Uint8Array, any: boolean}} holes[z * 128 + x]: 1 = the ground stays, 0 = carved.
+ * @param {object} mapData
+ * @param {object} tile
+ * @param {object} bake
+ * @returns {?{holes: Uint8Array, any: boolean}}
  */
 export function computeHoleMask(mapData, tile, bake) {
   if (!mapData.samples) return null;
@@ -95,7 +60,6 @@ export function computeHoleMask(mapData, tile, bake) {
   return { holes, any };
 }
 
-/** IsFloorQuadWater: a floor quad covers 2 x 2 hole cells; it is drawn when any is carved. */
 export function isFloorQuadWater(holes, quadX, quadZ, quadResolution) {
   if (!holes || quadResolution <= 0) return true;
   const length = HOLES_RESOLUTION, length2 = HOLES_RESOLUTION;
@@ -109,21 +73,19 @@ export function isFloorQuadWater(holes, quadX, quadZ, quadResolution) {
   return false;
 }
 
-/** CreateVertexColor: (sqrt of the depth band, the climate band, the shore distance over 360 m, the texture's strength). */
 export function createVertexColor(depth, climateBand, distanceToCoast, textureStrength = 1) {
   return [Math.sqrt(depthBand01(depth)), climateBand, clamp01(distanceToCoast / 360), clamp01(textureStrength)];
 }
 
 /**
- * DeepWaterFloorMesh.Build.
  * @param {object} ctx
- * @param {object} ctx.mapData - {samples, tilemap}
- * @param {object} ctx.tile - DeepWaterTileData
- * @param {Uint8Array} ctx.holes - computeHoleMask's
- * @param {number} ctx.oceanLocalY - the sea's local height (OceanElevation / MaxTerrainHeight * size.y)
- * @param {number} ctx.terrainHeight - terrainData.size.y (MaxTerrainHeight * TerrainScale)
- * @param {?number} ctx.waterDepth - the Water Depth setting
- * @param {(lx: number, lz: number) => ?number} [ctx.nearbyLocalY] - a streamed pixel's vanilla height here, local
+ * @param {object} ctx.mapData
+ * @param {object} ctx.tile
+ * @param {Uint8Array} ctx.holes
+ * @param {number} ctx.oceanLocalY
+ * @param {number} ctx.terrainHeight
+ * @param {?number} ctx.waterDepth
+ * @param {(lx: number, lz: number) => ?number} [ctx.nearbyLocalY]
  */
 export function buildFloorMesh(ctx) {
   const { mapData, tile, holes, oceanLocalY, terrainHeight, waterDepth } = ctx;
@@ -149,7 +111,6 @@ export function buildFloorMesh(ctx) {
     const n8 = lerp(heightSample(mapData, n3 + 1, n4), heightSample(mapData, n3 + 1, n4 + 1), n6);
     return lerp(n7, n8, n5) / oceanThreshold * oceanLocalY;
   };
-  // SampleNearbyVanillaLocalY: the highest of four points a meter out, where a terrain is streamed there.
   const sampleNearbyVanillaLocalY = (localX, localZ, fallbackLocalY) => {
     let best = fallbackLocalY;
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -220,14 +181,12 @@ export function buildFloorMesh(ctx) {
   };
 }
 
-/** AppendHoleEdgeWalls: the skirts along the pixel's edge where the carve stops at it. */
 function appendHoleEdgeWalls(w) {
   const { holes, tile, positions, colors, uvs, indices, oceanLocalY, num: tileWorldSize, floor } = w;
   if (!holes || !tile) return;
   const length = HOLES_RESOLUTION, length2 = HOLES_RESOLUTION;
   const list = [];
   const across = (x, z, dx, dz) => {
-    // IsBakedHoleAcrossBoundary: the cell centre one step over, in this pixel's local meters.
     const n = tileWorldSize / length2, n2 = tileWorldSize / length;
     const lx = (x + 0.5 + dx) * n, lz = (z + 0.5 + dz) * n2;
     if (tile.usesLocalWaterFallback) return true;
@@ -309,10 +268,6 @@ function appendHoleEdgeWalls(w) {
 
 const clampNum = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
-/**
- * TrySampleMeshLocalY: the floor's height at a pixel-local point, on the
- * triangle the mesh draws there, or null off the floor's water quads.
- */
 export function sampleMeshLocalY(floor, lx, lz) {
   if (!floor || !floor.vertexLocalY) return null;
   const num = lx / TILE_WORLD_SIZE, num2 = lz / TILE_WORLD_SIZE;
@@ -330,7 +285,6 @@ export function sampleMeshLocalY(floor, lx, lz) {
   return num12 * (1 - num11) + num14 * (num11 - num10) + num15 * num10;
 }
 
-/** TrySampleMeshLocalYAndSlope: the height and the triangle's slope in degrees. */
 export function sampleMeshLocalYAndSlope(floor, lx, lz) {
   if (!floor || !floor.vertexLocalY) return null;
   const num = lx / TILE_WORLD_SIZE, num2 = lz / TILE_WORLD_SIZE;

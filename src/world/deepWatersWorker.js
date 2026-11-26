@@ -1,45 +1,14 @@
-// ═══════════════════════════════════════════════════════════════════
-// DW-A / DW-B — THE DEEP WATERS WORKER. Iliac Puddle No More's two heavy
-// halves, off the main thread: the bake's global half (deepWatersBake.js
-// - seconds of work on a first boot, then an IndexedDB hit) and every
-// streamed pixel's promote (deepWatersPixel.js - a coastal pixel's fine
-// masks, floor, cap and surface are tens of milliseconds, which the mod
-// pays inside Unity's frame and this port does not). The terrain worker
-// answers its jobs in order, so neither rides there: a bake queued behind
-// it would hold the first pixels of the world, and a promote queued there
-// would hold the next terrain behind the sea.
-//
-// Messages in:
-//   {t: 'build', woodsBytes, rects, ether?} - once, first. The WOODS bytes are a
-//     COPY (the RA1 law - the main thread's reader keeps its own) carrying
-//     the boot's SmoothLocationNeighbourhood (syncHeightMapBytes); `rects`
-//     are [pixelId, xMin, xMax, yMin, yMax] rows, SetLocationTiles' answer
-//     for every classic location whose pixel the bound cannot settle - the
-//     main thread reads MAPS.BSA and BLOCKS.BSA, this thread cannot.
-//   {t: 'pixel', id, job, centre?} - a pixel to promote (deepWatersPixel.js
-//     buildDeepWatersPixel's job); held until the bake is in. `centre`
-//     ([px, py], the player's pixel) bounds this thread's plane caches.
-//   {t: 'ether', rects} - the Eltheric Ocean place rects, sent before the first pixel job inside that ocean.
-// Messages out:
-//   {t: 'built', record} - the bake's global record, arrays copied (this
-//     thread keeps its own to answer pixels), or {t: 'error', message};
-//   {t: 'pixel', id, result} with the result's arrays transferred, or
-//     {t: 'pixel', id, error}.
-//
-// Pure modules only (no ui/, scenes/, render/) - a worker has no DOM.
-// ═══════════════════════════════════════════════════════════════════
-
 import { WoodsFile } from '../formats/woodsFile.js';
-import { buildGlobal, DeepWatersBake, PLANE_KEEP_RADIUS } from './deepWatersBake.js';   // AUDIT ETHER-OW C1-2: the planes' keep, one home
+import { buildGlobal, DeepWatersBake, PLANE_KEEP_RADIUS } from './deepWatersBake.js';
 import { cachedBake, bakeCacheKey, fnv1a, rectsFingerprint, rectsLookup } from './deepWatersBakeCache.js';
 import { buildDeepWatersPixel, deepWatersPixelTransfers } from './deepWatersPixel.js';
-import { worldBakes } from './etherWatersBake.js';   // ETHER-DEEP
+import { worldBakes } from './etherWatersBake.js';
 import { etherWoods } from './ethericSea.js';
 
 
-let bake = null;            // this thread's DeepWatersBake, once built
-let failed = null;          // the build's error message, when it failed
-const waiting = [];         // pixel messages that arrived before the bake
+let bake = null;
+let failed = null;
+const waiting = [];
 let etherRects = null;
 
 globalThis.onmessage = (ev) => { handle(ev.data ?? {}); };
@@ -64,7 +33,7 @@ async function build(m) {
     const g = await cachedBake({ key, build: () => buildGlobal(woods, { locationRectAt }) });
     if (!g) throw new Error('deep waters bake produced nothing');
     bake = worldBakes(new DeepWatersBake({ woods, global: g, locationRectAt }), { woods: m.ether ? etherWoods(woods) : woods, ether: m.ether ? () => etherRects : null });
-    // the main thread's copy crosses; this thread's arrays stay behind for the pixels
+    // Send copies, since this worker keeps its own arrays to answer pixel jobs.
     const record = { state: g.state.slice(), classes: g.classes.slice(), partialIndex: g.partialIndex.slice(), partialBits: g.partialBits.slice(), stats: { ...g.stats, cached: !!g.cached } };
     globalThis.postMessage({ t: 'built', record }, [record.state.buffer, record.classes.buffer, record.partialIndex.buffer, record.partialBits.buffer]);
   } catch (e) {

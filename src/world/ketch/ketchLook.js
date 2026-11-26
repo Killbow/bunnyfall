@@ -1,30 +1,8 @@
 // @ts-check
-// KETCH-LOOK (bible/11-Multiplayer/Sky-Ketch-Look.md section 2; slice KL1): HER LOOK'S SHARED NUMBERS - pure, a leaf (it
-// imports nothing, so a renderer's pass, a probe and a test read it alike).
-//
-//   THE LIGHTS (KT_MEANING): the four meanings and the beat, each a colour that already had its home - the lamps'
-//     (world/ketch/ketchModel.js KT_LAMP), the lit things' (scenes/ketch/ketchDeckHost.js KT_GLOWS), the Hour's red and its
-//     moment (world/superDungeon/sdLook.js SD_LIGHT). A leaf cannot import a ship builder or a scene, so the numbers are
-//     written here and test/world/ketch/ketch_atmos.test.js pins each equal to its home: nothing is re-pointed.
-//   THE VALUE LADDER (KT_LADDER): the display luma each rung is held to, as tools/ketchLabProbe.mjs measures it (Y' =
-//     0.2126R' + 0.7152G' + 0.0722B' over the encoded frame).
-//   THE PALETTE CONTRACT (KT_PAL, KETCH-LOOK KL2): her ramps as ART_PAL indices, dark to light, each step's fallback
-//     colour beside it. Daggerfall's textures are 8-bit indices into ART_PAL.COL; hers are too, resolved at upload
-//     through the player's own palette (formats/dfPalette.js) - or, with no game data (the lab, a test, a data-less
-//     boot), drawn in the fallback colours: the port's own, each within 24 (sRGB distance) of its entry and never one
-//     of the file's bytes - taken from the Ketch's and the Hour's ramps where one stood that near (world/ketch/
-//     ketchArt.js KT_RAMP, world/superDungeon/sdLook.js SD_RAMP), painted fresh where none did, one colour an index
-//     (test/world/ketch/kt_look_palette.test.js holds all of it, against ART_PAL itself with ARENA2_PATH). The indices
-//     are code, as characters/dyes.js METAL_TABLES' are: her metal is Daggerfall's Dwarven (METAL_TABLES.Dwarven,
-//     144-159 - every Dwarven blade and cuirass in the Iliac Bay), her steel the darkest greys under METAL_TABLES.Iron's.
-//
-// Not a DFU member. Ledger A (KETCH).
 
 const f3 = (a, b, c) => Object.freeze([a, b, c]);
 
-/** THE LIGHTS, linear RGB as the renderer takes them: LAMP the made way (`lampBelow` its warmer self below decks), AETHER
- *  her soul true (`aetherTrue` a true resonator's), EMBER out of tune or about to fail, RED refused or the end, and `beat`
- *  the white-gold of a beat landing, once. */
+// Each color copies KT_LAMP, KT_GLOWS, or SD_LIGHT and must stay equal to its source.
 export const KT_MEANING = Object.freeze({
   lamp: f3(1.0, 0.8, 0.5), lampBelow: f3(1.0, 0.7, 0.4),
   aether: f3(0.5, 0.85, 1.0), aetherTrue: f3(0.55, 0.9, 1.0),
@@ -33,13 +11,6 @@ export const KT_MEANING = Object.freeze({
   beat: f3(1.0, 0.92, 0.62),
 });
 
-/** THE VALUE LADDER (display luma): L0 the land far below (by day at most `dayMax` and under her hull's mean, by night at
- *  most `nightMax`); L1 her structure - on the open decks at noon the floor (the frame's lower 30%) at mean `noonFloorMean`
- *  and p95 `noonFloorP95` at most, nothing over `max`, at dusk p50 at least `duskP50`, at night mean at least
- *  `nightMean`; below decks p50 at least `p50` at every hour, a lamp's pool at most `pool`, a telegraph's floor at most
- *  `telegraphFloor` under every lamp; the cabin's p50 in `p50`; L2 ambient light (cages, edge lines, gauge faces, ports by
- *  night); L3 signals (aether and ember glass, needles, lit bands); L4 critical (a telegraph's core, a tell at its
- *  hottest, the beat) at least `min`, peaking at `peak` - render/airPass.js AIR_BRIGHT_THRESHOLD, where bloom begins. */
 export const KT_LADDER = Object.freeze({
   deep: Object.freeze({ dayMax: 0.40, nightMax: 0.06 }),
   deck: Object.freeze({ noonFloorMean: 0.22, noonFloorP95: 0.30, max: 0.5, duskP50: 0.10, nightMean: 0.06 }),
@@ -51,13 +22,7 @@ export const KT_LADDER = Object.freeze({
 });
 
 const ramp = (idx, fallback) => Object.freeze({ idx: Object.freeze(idx), fallback: Object.freeze(fallback.map((c) => f3(c[0], c[1], c[2]))) });
-/** THE PALETTE CONTRACT: each ramp `{ idx, fallback }`, ART_PAL indices dark to light and the port's colour for each.
- *  `dwarven` her plate, trim and rails - METAL_TABLES.Dwarven's own steps; `rubbed` its worn edge, `glint` its brightest;
- *  `burnished` the Dwarven ramp's light end (the bridge's instruments); `rust` its two darkest seams and the oil under a
- *  vent; `copper` pipes and coils (181 stands darker than 183 in the palette); `verdigris` recesses, weeping below seams;
- *  `steel` her machinery and the floor under a fight - the darker metal, so a telegraph owns it; `stone` Dwemer dressed
- *  stone, warm sand; `aether`, `ember`, `lamp` the three glasses; `gilt` the helm's and the chest's gold; `cloud` and
- *  `cloudBlue` cloud and steam; `field`, `meadow`, `soil`, `water` the painted land where no data stands. */
+// Each ramp lists ART_PAL indices from dark to light, which is not index order (181 is darker than 183).
 export const KT_PAL = Object.freeze({
   dwarven: ramp([159, 158, 156, 154, 152, 150, 148], [[62, 44, 24], [70, 52, 32], [92, 60, 24], [114, 96, 6], [138, 114, 0], [168, 153, 0], [198, 186, 0]]),
   rubbed: ramp([18], [[196, 146, 64]]),

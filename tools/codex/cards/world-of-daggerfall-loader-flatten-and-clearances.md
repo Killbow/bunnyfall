@@ -31,6 +31,7 @@ invariants:
   - "Instances outside 1..128 or whose prefab overruns 127 are skipped."
   - "ROADS-CLEAR: `roadClearance.js` tests site footprints against `basicRoadsPathsPoint` (`WOD_SITE_OBJECT_RADIUS_M = 8`, `WOD_PIECE_ROAD_CLEAR`)."
   - "GATE-CLEAR: `GATE_CLEAR_M = 24` (+ margin), `RITE_CLEAR_M = 20`, `WOD_FLAT_GATE_CLEAR_M = 2`; STAR-CLEAR uses `STAR_ROCK_M = 28`. Terrain flatten is not altered; `pixelBuild.js` holds sites via `wodHeld`, and `sweepGateClear` lives in `gatesWorld.js`."
+  - "Online forces `world-of-daggerfall` on (`Enabled: true` in `onlineLane.js`), so every client that sees a gate places the same rock and refuses the same pieces against `GATE_CLEAR_M`."
 traps:
   - "`isWodShrub` excludes model 60610 on `WOD_ROCK_SITES` ('Rocks', 'Mountains'), so rock-field shrubs keep mod height (ROCK-SUNK)."
   - "Giant `WOD_Mountain_*` rocks need the 64-unit coarse grid in `src/player/collider.js`; brute-force queries freeze."

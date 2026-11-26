@@ -31,6 +31,7 @@ invariants:
 traps:
   - "A submesh with cull 2 enables CULL_FACE. The flats pass expects it disabled again afterwards."
   - "uMeshAlpha 0 means an opaque card. Above 0 the alpha is scaled to the flats 0.5 cut."
+  - "`BB_VS` in renderer.js hardcodes the far-picture light (`0.6` up, `0.8` toward the camera) and the `0.72 + 0.28 n.l` law, so changing `LPT_IMPOSTOR_LIGHT` or `lptShade` needs the matching shader change."
 dfu: []
 tags:
   - low-poly-trees

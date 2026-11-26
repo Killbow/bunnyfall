@@ -36,6 +36,7 @@ traps:
   - "`egUnderside.js` is the stair-fall camera law (`EG_FALL`, `egFallEye`, `egFallCamera`), not the underside mesh. Edit `egUndersideModel.js` for geometry."
   - "`SD_HALO_MAX` (64) is the shared renderer buffer; the Spire's own cap is `EG_HALO.max` 48."
   - "`egMoteFloorKeep` is the JS twin of the mote vertex shader's `floorFade` and must change with it."
+  - "`egVista.js` and `egUndersideModel.js` load in the circle build worker through `egCircleParts.js`, so neither may import `egLights.js`, `egUnderside.js`, or any DOM or GL code."
 dfu: []
 tags:
   - elite-gates
