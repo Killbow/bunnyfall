@@ -5792,6 +5792,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _talkPersons, camps, csaHoverName, droppedLoot, droppedTorches, dwFish, hcc, peerInSight, springAt,
     get cityGuards() { return cityGuards; },
     get cromwark() { return cromwark; },
+    get mines() { return mines; },   // BUNNYFALL (2026-11-26, caverns)
     get exteriorFoes() { return exteriorFoes; },
     get gatePool() { return gatePool; },
     get gatherHost() { return gatherHost; },
@@ -13331,6 +13332,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const hoverPicks = createWorldHoverTargets({
     cityGuards, exteriorFoes, dwLootTargets, droppedTorches, hcc, camps, reachEvents, yards, springTargets, gatePool, riteHost,
     sigilBroker, cromwark, csaActivationPick, collider, hoverPersonPick: _hoverPersonPick, hoverPeerPick: _hoverPeerPick,
+    mines,   // BUNNYFALL (2026-11-26, caverns): a mine mouth's dark, pressed to go in
     modes: () => modes,
   });
   // BUNNYFALL COMPANIES (systems/companyTerritory.js): every Company's territory, painted on the held map and worth
@@ -15474,6 +15476,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get weather() { return weather; },
   });
   const { frameMotorPhase } = createMotorFrame({
+    mines,   // BUNNYFALL (2026-11-26, caverns): a mine mouth's dark, pressed to go in
     _dwBreathState, _dwSwimSound, _fr, _makeEnemiesHostile, _musicLocationType, _talkPersons, built, cam, camps,
     cityGuards, climbFeel, collider, cromwark, csaActivate, csaActivationPick, csaHoldsTimeScale, csaOnTeleport,
     csaRuntime, csaUpdate, drinkAtSpring, droppedLoot, droppedTorches, dwFish, dwFishLootHooks, dwLootTargets,

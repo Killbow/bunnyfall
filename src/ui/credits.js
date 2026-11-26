@@ -106,6 +106,13 @@ export const CREDITS = Object.freeze({
       get terms() { return t('credits.classSkins.terms', 'Used with the artists\u2019 permission, on Mac\u2019s word. The archive states no license. Its 1,683 pictures are included unchanged.'); },
       vendor: Object.freeze(['class-skins']),
     }),
+    // BUNNYFALL (2026-11-26, caverns): the owner's own models, baked by tools/mineArtBake.mjs into public/art/bunnyfall-mine/
+    Object.freeze({
+      get title() { return t('credits.mineArt.title', 'Mine entrance and ores'); },
+      author: 'Killbow',
+      get what() { return t('credits.mineArt.what', 'The low-poly mine entrance that stands at every mine mouth in the wilds, and the set of ores and crystals.'); },
+      get terms() { return t('credits.mineArt.terms', 'Made for Bunnyfall by its owner.'); },
+    }),
   ]),
   mods: Object.freeze([
     // MODPACK1 / WEEB1: the two mods a player attaches from their own downloads (none of their art ships with the game),

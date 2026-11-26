@@ -30,8 +30,9 @@ test('the loader uploads every texture under the registered archive and makes ev
   const renderer = { uploadTexture: (a, r, p) => uploads.push([a, r, p.width]), createMesh: (m) => { meshes.push(m); return { id: meshes.length }; } };
   const art = await loadMineArt(renderer, { fetchBytes: async (f) => (f.endsWith('.json') ? new TextEncoder().encode(JSON.stringify(manifest)).buffer : bin) });
   assert.ok(art && art.entrance.gpu && art.ores.length === 15);
-  assert.equal(uploads.length, manifest.textures.length);
+  assert.equal(uploads.length, manifest.textures.length + 1);   // and the dark's black picture
   assert.ok(uploads.every(([a]) => a === MINE_ART_ARCHIVE));
-  assert.equal(meshes.length, 16);
+  assert.equal(meshes.length, 17);   // the entrance, its dark, the ores
+  assert.ok(art.entrance.dark.gpu && art.entrance.dark.corners.length === 4);
   assert.ok(PSEUDO_ARCHIVES.some((e) => e.archive === MINE_ART_ARCHIVE || e.from === MINE_ART_ARCHIVE || e.n === MINE_ART_ARCHIVE || JSON.stringify(e).includes('38341')));
 });

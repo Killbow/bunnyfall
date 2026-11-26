@@ -28,7 +28,7 @@ export function createHoverPickersWorld(shared) {
   const _hoverNamers = [
     (key) => shared.gatherHost?.hoverName?.(key) ?? shared.yards?.hoverName?.(key) ?? null,   // PROF-MENU: a profession node, its acts the plaque's rows; HOME-YARD: a yard piece's Move, Duplicate, Remove
     (key) => shared.gatePool?.hoverName(key) ?? null,   // WB2: the Oblivion Gate, and its countdown
-    (key) => shared.sigilBroker?.hoverName(key) ?? shared.cromwark?.hoverName(key) ?? null,   // SET7: the Sigil Broker (BROKER-CAGE: caged at the faithful's circle); BUNNYFALL: Nyx
+    (key) => shared.sigilBroker?.hoverName(key) ?? shared.cromwark?.hoverName(key) ?? shared.mines?.hoverName(key) ?? null,   // SET7: the Sigil Broker (BROKER-CAGE: caged at the faithful's circle); BUNNYFALL: Nyx
     (key) => shared.riteHost?.hoverName(key) ?? null,   // WB12d: the faithful's chest - its own keys, and its pile's before the piles' word
     (key) => shared.reachEvents.fireHover(key) ?? camps.hoverName?.(key) ?? null,
     (key) => droppedTorches.hoverName?.(key) ?? null,

@@ -18,7 +18,7 @@ function fill(out, a, b, c = NONE) {
 
 export function createWorldHoverTargets(d) {
   const { cityGuards, exteriorFoes, dwLootTargets, droppedTorches, hcc, camps, reachEvents, yards, springTargets, gatePool,
-    riteHost, sigilBroker, cromwark, csaActivationPick, collider, hoverPersonPick, hoverPeerPick } = d;
+    riteHost, sigilBroker, cromwark, csaActivationPick, collider, hoverPersonPick, hoverPeerPick, mines } = d;
   const corpseList = [], campList = [], gateList = [], brokerList = [], foeList = [];
   const picks = { corpse: null, pile: null, torch: null, wagon: null, horseCart: null, camp: null, water: null, gate: null,
     broker: null, boat: null, foe: null, person: null, peer: null };
@@ -35,7 +35,7 @@ export function createWorldHoverTargets(d) {
     picks.camp = pickActivatableHit(eye, dir, fill(campList, camps.targets(), reachEvents.fireTargets(), yards?.targets() ?? NONE), collider);
     picks.water = pickActivatableHit(eye, dir, springTargets(), collider);
     picks.gate = gatePool ? pickActivatableHit(eye, dir, fill(gateList, gatePool.targets(), riteHost?.targets() ?? NONE), collider) : null;
-    picks.broker = pickActivatableHit(eye, dir, fill(brokerList, sigilBroker?.targets() ?? NONE, cromwark.targets()), collider);
+    picks.broker = pickActivatableHit(eye, dir, fill(brokerList, sigilBroker?.targets() ?? NONE, cromwark.targets(), mines?.targets() ?? NONE), collider);   // BUNNYFALL: and the mine mouths' dark
     picks.boat = csaActivationPick(eye, dir);
     const ft = fill(foeList, exteriorFoes.liveTargets(), cityGuards.liveTargets());
     picks.foe = peacefulFoePass(pickActivatableHit(eye, dir, ft, collider), ft, doorBehind, getInteractionMode());

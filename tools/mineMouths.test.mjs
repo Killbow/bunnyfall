@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createMineMouths, mouthLocal } from '../src/systems/mine/mineMouths.js';
+import { createMineMouths, mouthLocal, MOUTH_KEY } from '../src/systems/mine/mineMouths.js';
 import { mineAt } from '../src/net/mine/mineSites.js';
 import { CLIMATES } from '../src/formats/mapsTables.js';
+import { mineDarkCorners, mineDarkModel } from '../src/world/mine/mineArt.js';
 
 /** A Mountain pixel that holds a mouth. */
 function minePixel() {
@@ -63,7 +64,8 @@ test("the owner's entrance stands in place of the flats: its rock on the collide
   const entry = { px: p.px, py: p.py, batches: [] };
   const built = new Map([[`${p.px},${p.py}`, entry]]);
   const buckets = new Map(), draws = [], entered = [];
-  const E = { gpu: { id: 1 }, positions: new Float32Array(9), indices: new Uint32Array([0, 1, 2]), box: [0, 0, 0, 1, 1, 1], door: { at: [0, 0, 11.42], into: [1, 0, 0] } };
+  const door = { at: [0, 0, 11.42], into: [1, 0, 0] };
+  const E = { gpu: { id: 1 }, positions: new Float32Array(9), indices: new Uint32Array([0, 1, 2]), box: [0, 0, 0, 1, 1, 1], door, dark: { gpu: { id: 2 }, corners: mineDarkCorners(door) } };
   let feet = null, clock = 0;
   const mouths = createMineMouths({
     renderer: { createBillboardBatch: () => ({}) }, getTexture: async () => ({ recordCount: 40 }), uploadRecord: () => {},
@@ -79,6 +81,19 @@ test("the owner's entrance stands in place of the flats: its rock on the collide
   assert.equal(buckets.size, 1);
   assert.equal(mouths.draw({ drawMesh: (g, m) => draws.push([g, m[12]]) }), 1);
   assert.equal(draws[0][0], E.gpu);
+  assert.equal(draws[1][0], E.dark.gpu);   // the dark of its way in, drawn with it
+  // the dark is pressable where it stands: Info names it, a press goes in
+  const [tg] = mouths.targets();
+  assert.equal(tg.key, `${MOUTH_KEY}${p.px},${p.py}`);
+  assert.ok(tg.aabb.min[0] >= 100 && tg.aabb.max[1] - tg.aabb.min[1] > 2);
+  assert.equal(mouths.hoverName(tg.key).title, 'Mine entrance');
+  assert.equal(mouths.activate('nyx:camp'), false);
+  assert.equal(mouths.activate(tg.key, 'info'), true);
+  assert.equal(entered.length, 0);
+  assert.equal(mouths.activate(tg.key, 'grab'), true);
+  assert.deepEqual(entered, [[p.px, p.py]]);
+  entered.length = 0;
+  feet = [10000, 0, 10000]; mouths.frame();   // stepped well away: the walk-in armed again
   const at = mouths.stood()[0].local;   // the walk-in point, inside the portal
   feet = [at[0] + 100, at[1], at[2]];
   mouths.frame();
@@ -86,4 +101,15 @@ test("the owner's entrance stands in place of the flats: its rock on the collide
   built.clear();
   mouths.frame();
   assert.equal(buckets.size, 0);
+});
+
+test('the dark of the way in is one quad each side, behind the door and as wide as the portal', () => {
+  const door = { at: [0, 0, 11.42], into: [1, 0, 0] };
+  const c = mineDarkCorners(door);
+  assert.ok(c.every((p) => p[0] > 0));   // behind the door, into the rock
+  assert.ok(Math.abs(c[1][2] - c[0][2]) > 2);
+  const m = mineDarkModel(door, 19);
+  assert.equal(m.indices.length, 12);
+  assert.equal(m.subMeshes[0].primitiveCount, 4);
+  assert.equal(m.subMeshes[0].textureRecord, 19);
 });

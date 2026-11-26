@@ -25,6 +25,10 @@ export const MOUTH_REARM_M = 8;
 export const MOUTH_SPOT_M = 120;
 /** The entrance model's walk-in point: this far into its portal from its door (m). */
 export const MOUTH_MODEL_IN_M = 1.6;
+/** A mouth's press key (`mine:mouth:<px>,<py>`), how near its dark is pressed (m), and how far its box reaches past it. */
+export const MOUTH_KEY = 'mine:mouth:';
+export const MOUTH_PRESS_M = 4;
+const MOUTH_DARK_PAD_M = 0.15;
 /** The entrance model's turn on a pixel: a quarter turn of four, by the pixel (degrees). */
 export const mouthYaw = (/** @type {number} */ px, /** @type {number} */ py) => (((px * 7 + py * 13) % 4) + 4) % 4 * 90;
 /** How often the streamed pixels are walked for mouths (s). */
@@ -33,6 +37,9 @@ const SCAN_S = 0.5;
 export const MOUTH_TEXT = Object.freeze({
   spotted: () => t('mine.spotted', 'You spot the mouth of a mine.'),
   relayOld: () => t('mine.relayOld', 'The mines open after the next server update.'),
+  title: () => t('mine.mouthTitle', 'Mine entrance'),
+  enter: () => t('mine.mouthEnter', 'Enter the mine'),
+  info: () => t('mine.mouthInfo', 'A mine shaft runs into the rock here. Its timbers still hold.'),
   sealed: (/** @type {number} */ m) => t('mine.sealed', 'The mouth is choked with rubble. It reopens in about {m} minutes.', { m }),
 });
 
@@ -74,6 +81,13 @@ export function createMineMouths(deps) {
   let scanAt = -Infinity, armed = true;
   const _t = [0, 0, 0];
 
+  /** Into a mouth, or told how long its seal has left. */
+  function goIn(/** @type {any} */ s) {
+    const left = deps.sealedFor(s.px, s.py);
+    if (left > 0) { deps.say(MOUTH_TEXT.sealed(Math.max(1, Math.ceil(left / 60)))); return; }
+    deps.enter(s.px, s.py);
+  }
+
   async function stand(/** @type {any} */ entry) {
     const key = `${entry.px},${entry.py}`;
     if (pending.has(key)) return;
@@ -89,7 +103,8 @@ export function createMineMouths(deps) {
         const trig = transformPoint(L, d[0] + E.door.into[0] * MOUTH_MODEL_IN_M, d[1], d[2] + E.door.into[2] * MOUTH_MODEL_IN_M);
         const bucket = `mine:mouth:${key}`;
         try { deps.collider?.()?.addMesh?.(bucket, E.positions, E.indices, L, deps.riding?.(entry.px, entry.py)); } catch (e) { console.warn('[mine] the rock of a mouth', /** @type {any} */ (e)?.message ?? e); }
-        stood.set(key, { entry, px: entry.px, py: entry.py, local: [trig[0], local[1], trig[2]], batches: [], model: { L, W: new Float32Array(16), gpu: E.gpu, bucket } });
+        const dark = E.dark ? { gpu: E.dark.gpu, corners: E.dark.corners.map((/** @type {number[]} */ c) => transformPoint(L, c[0], c[1], c[2])) } : null;
+        stood.set(key, { entry, px: entry.px, py: entry.py, local: [trig[0], local[1], trig[2]], batches: [], model: { L, W: new Float32Array(16), gpu: E.gpu, bucket, dark } });
         return;
       }
       const [rocks, torch] = await Promise.all([deps.getTexture(MOUTH_ROCKS.archive), deps.getTexture(MOUTH_TORCH.archive)]);
@@ -149,9 +164,31 @@ export function createMineMouths(deps) {
       if (nearest > MOUTH_REARM_M) { armed = true; return; }
       if (!armed || nearest > MOUTH_ENTER_M || !near) return;
       armed = false;
-      const left = deps.sealedFor(near.px, near.py);
-      if (left > 0) { deps.say(MOUTH_TEXT.sealed(Math.max(1, Math.ceil(left / 60)))); return; }
-      deps.enter(near.px, near.py);
+      goIn(near);
+    },
+    /** The dark of each entrance's way in, pressable (the world's press and hover picks, beside Nyx's): boxes where they stand now. */
+    targets() {
+      const out = [];
+      for (const s of stood.values()) {
+        const c = s.model?.dark?.corners;
+        if (!c) continue;
+        const tr = deps.pixelTranslation(s.px, s.py, _t);
+        const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+        for (const p of c) for (let k = 0; k < 3; k++) { min[k] = Math.min(min[k], p[k] + tr[k] - MOUTH_DARK_PAD_M); max[k] = Math.max(max[k], p[k] + tr[k] + MOUTH_DARK_PAD_M); }
+        out.push({ key: `${MOUTH_KEY}${s.px},${s.py}`, aabb: { min, max }, distance: MOUTH_PRESS_M * 2, reach: MOUTH_PRESS_M, noSurface: true });
+      }
+      return out;
+    },
+    /** What a mouth's dark is called under the crosshair. */
+    hoverName: (/** @type {string} */ key) => (String(key).startsWith(MOUTH_KEY) ? { title: MOUTH_TEXT.title(), subs: [MOUTH_TEXT.enter()] } : null),
+    /** A press on a mouth's dark: Info names it, anything else goes in. Answers whether the key was a mouth's. */
+    activate(/** @type {string} */ key, mode = 'grab') {
+      if (!String(key).startsWith(MOUTH_KEY)) return false;
+      const s = stood.get(String(key).slice(MOUTH_KEY.length));
+      if (!s) return true;
+      if (mode === 'info') deps.say(MOUTH_TEXT.info());
+      else { armed = false; goIn(s); }
+      return true;
     },
     /** The entrances, with the world (world.js's scene frame): each model at its pixel's translation now. */
     draw(/** @type {any} */ r) {
@@ -162,6 +199,7 @@ export function createMineMouths(deps) {
         const tr = deps.pixelTranslation(s.px, s.py, _t);
         multiply(trs(tr[0], tr[1], tr[2], 0, 0, 0), s.model.L, s.model.W);
         r.drawMesh(s.model.gpu, s.model.W, null);
+        if (s.model.dark) r.drawMesh(s.model.dark.gpu, s.model.W, null);
         n++;
       }
       return n;

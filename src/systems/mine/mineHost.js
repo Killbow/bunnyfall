@@ -3,6 +3,8 @@
 // the Sky-Ketch's deck is (systems/ketch/ketchDeckHost.js): the cave's mesh among the context's draws under Daggerfall's cave
 // textures, its rock on the collider as one bucket, and its way out an exit door at the mouth, so the dungeon's own exit
 // press and landing take the player back out where they went in. createWorldModes constructs it and calls `stand`.
+import { MINE_ART_ARCHIVE } from '../../world/mine/mineArt.js';
+import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
 import { identity } from '../../world/mat4.js';
 import { mineLayout } from '../../net/mine/mineLayout.js';
 import { buildMineModel, mineColliderTris, mineTextures } from '../../world/mine/mineModel.js';
@@ -57,7 +59,7 @@ function fadeSheet() {
  */
 export function createMineHost({ renderer, getTexture = null, uploadRecord = null, link = null, say = null, shake = null, leave = null }) {
   /** @type {any} */
-  let mesh = null, standCtx = null, layout = null, client = null, mine = null, hiAt = -Infinity, heard = false;
+  let mesh = null, wayOut = null, standCtx = null, layout = null, client = null, mine = null, hiAt = -Infinity, heard = false;
   const fade = fadeSheet();
   return {
     /** THE MINE stood into its built context (before its start marker is read): `loc` the made location (mineLocation). */
@@ -74,6 +76,14 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       for (let k = 0; k < idx.length; k++) idx[k] = k;
       try { ctx.collider?.addMesh?.(MINE_BUCKET, tris, idx, identity()); } catch (e) { console.warn('[mine] the cave\'s collider', e?.message ?? e); }
       ctx.exitDoors?.push(mineExitDoor(layout.mouth));
+      // the way out seen: a timber frame onto daylight behind the exit door (world/mine/mineWayOut.js)
+      try {
+        const pic = mineWayOutPicture();
+        renderer?.uploadTexture?.(MINE_ART_ARCHIVE, MINE_WAY_OUT_RECORD, pic.picture);
+        renderer?.uploadEmissionTexture?.(MINE_ART_ARCHIVE, MINE_WAY_OUT_RECORD, pic.glow, { white: true });   // the daylight shines in the dark
+        wayOut = renderer?.createMesh ? renderer.createMesh(mineWayOutModel(layout)) : null;
+        if (wayOut) ctx.dynamicDraws?.push({ gpu: wayOut, object: { matrix: identity() }, hidden: false, noShadow: true, texRemap: null });
+      } catch (e) { console.warn('[mine] the way out', /** @type {any} */ (e)?.message ?? e); wayOut = null; }
       ctx.addActivationNamer?.((/** @type {any} */ key) => (typeof key === 'string' && key.startsWith('exit:') ? { title: MINE_TEXT.wayOut() } : null));
       // THE MINE ON THIS PAGE: its holes and its walls offered to the activation ray, named by the client, pressed through it
       mine = { ...loc.mine }; heard = false; hiAt = -Infinity;
@@ -93,8 +103,8 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       standCtx = ctx;
       ctx.addTeardown?.(() => {
         if (standCtx !== ctx) return;
-        try { if (mesh) renderer?.destroyMesh?.(mesh); } catch { /* the context's own teardown frees it either way */ }
-        mesh = null; standCtx = null; layout = null; client = null; mine = null;
+        try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); } catch { /* the context's own teardown frees it either way */ }
+        mesh = null; wayOut = null; standCtx = null; layout = null; client = null; mine = null;
       });
     },
     /** Every frame in a mine: `hi` said until the room answers, and the collapse played. */

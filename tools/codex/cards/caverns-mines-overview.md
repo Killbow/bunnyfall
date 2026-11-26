@@ -1,0 +1,41 @@
+---
+slug: caverns-mines-overview
+title: "Caverns: Shared Mines, Stability, Shoring and the Collapse"
+domain: economy
+kind: subcard
+parent: professions-arc-overview
+files:
+  - src/net/mine/mineSites.js
+  - src/net/mine/mineLayout.js
+  - src/net/mine/mineVeins.js
+  - src/net/mine/mineBrain.js
+  - src/net/mine/mineWire.js
+  - src/world/mine/mineModel.js
+  - src/world/mine/mineLocation.js
+  - src/world/mine/mineArt.js
+  - src/systems/mine/mineHost.js
+  - src/systems/mine/mineClient.js
+  - src/systems/mine/mineMouths.js
+  - server/src/world/mine.js
+  - tools/mineArtBake.mjs
+related:
+  - professions-gathering-nodes-and-motherlodes
+invariants:
+  - "A mine is one relay room (`dungeon:m<mapId>`) over the `mn` frame; `MINE_RELAY_MIN` (278) gates the client."
+  - "Cave veins (`cvein:`) are server-checked harvests with no ground test, capped at `MINE_VEINS_PER_DAY` (150)."
+  - "A collapse seals the mine for `MINE_SEAL_S` (3600 s) and the next opening bumps its `reset`, which reshuffles the layout."
+traps:
+  - "The player's `pos` is the feet: the start marker sits 0.3 m over the mouth tunnel's floor, never 1.75 m up."
+  - "Billboard batch centres are the base; never add half the height."
+  - "Walking into a mouth runs from onlineWorld's frame alone; offline probes call `window.__mine()`."
+tags:
+  - caverns
+  - mining
+  - shoring
+---
+
+Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, never on a location). With `public/art/bunnyfall-mine/` readable, the owner's entrance model stands there (collider bucket `mine:mouth:<px,py>`); otherwise Daggerfall's flats do.
+
+Inside, `mineLayout(mineId, reset)` builds sections of domed chambers joined by tubes, made into one virtual RDB block (`MINE_LOCATION_ID`). Holes name their ore and seam; walls are sound or weak.
+
+The relay's `MinePart` runs `stepMine`: each answered strike wears its section's stability (`MINE_COST`, weak walls 1.5x), shoring spends a Stores plank whose wood sets the gain (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse. A collapse shakes, fades and puts everyone out with what they carry.

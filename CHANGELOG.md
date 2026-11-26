@@ -3,6 +3,11 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-26
+
+- Added: Mines in the wilds. Walk into a mine mouth to enter a shared, winding cave, examine holes for ore, swing your pick at cave veins and shore weak walls with planks from your Stores. Mine too hard and the mine creaks, rumbles and collapses, putting everyone out with what they carry; it reopens an hour later.
+- Changed: Tree stands now grow in groves, so a woodcutter finds several trees together instead of one at a time.
+
 ## 2026-11-25
 
 - Changed: Vampires have a short Vampirism tutorial, from the first bite to the Clan Gift. It pops once as each part matters, and you can read it again under Menu > Tutorials.
