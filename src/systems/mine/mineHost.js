@@ -7,8 +7,8 @@ import { MINE_ART_ARCHIVE, loadMineArt } from '../../world/mine/mineArt.js';
 import { mineOreDraws } from '../../world/mine/mineOres.js';
 import { standMineFoes } from './mineFoes.js';
 import { createMineSounds } from './mineSounds.js';
-import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, mineLampMarkerModel, MINE_DRILL_RECORDS, MINE_LAMP_MARK_RECORD } from '../../world/mine/mineDrillModel.js';
-import { drillRunning } from '../../net/mine/mineDrill.js';
+import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, mineFloorRingModel, MINE_DRILL_RECORDS, MINE_LAMP_MARK_RECORD, MINE_WALL_MARK_RECORD } from '../../world/mine/mineDrillModel.js';
+import { drillRunning, oreRunsLeft } from '../../net/mine/mineDrill.js';
 import { transformPoint, trs } from '../../world/mat4.js';
 import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
 import { identity } from '../../world/mat4.js';
@@ -119,6 +119,12 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
   /** @type {Map<string, { x: number, y: number, z: number, range: number, color: readonly number[] }>} */
   const lampLights = new Map();
   const lampMarkers = new Map();
+  /** @type {ReturnType<typeof mineOreDraws>} */
+  let oreDraws = [];
+  const hideDepletedOre = () => {
+    const work = client?.state()?.oreWork;
+    for (const draw of oreDraws) draw.hidden = oreRunsLeft(work, draw.oreKey) <= 0;
+  };
   function standLamps(/** @type {any[]} */ lamps) {
     const ctx = standCtx;
     if (!ctx || !layout) return;
@@ -153,7 +159,11 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       ctx.exitDoors?.push(mineExitDoor(layout.mouth));
       // the owner's ores at the holes (world/mine/mineOres.js), once the mines' models are read; the meshes are shared, never freed here
       const oresFor = layout;
-      void loadMineArt(renderer).then((art) => { if (art?.ores && standCtx === ctx && layout === oresFor) ctx.dynamicDraws?.push(...mineOreDraws(layout, art.ores, art.oreMesh)); }).catch(() => {});
+      void loadMineArt(renderer).then((art) => { if (art?.ores && standCtx === ctx && layout === oresFor) {
+        oreDraws = mineOreDraws(layout, art.ores, art.oreMesh);
+        hideDepletedOre();
+        ctx.dynamicDraws?.push(...oreDraws);
+      } }).catch(() => {});
       // the way out seen: a timber frame onto daylight behind the exit door (world/mine/mineWayOut.js)
       try {
         const pic = mineWayOutPicture();
@@ -181,12 +191,16 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         foes: (kind, s, c, n) => standMineFoes(layout, { s, c, n }, (t, feet, lo, hi) => ctx.spawnFoeNear?.(t, feet, lo, hi)),
       });
       const targets = [];
-      const markerPicture = { width: 1, height: 1, colors: new Uint8Array([255, 180, 75, 255]) };
-      renderer?.uploadTexture?.(MINE_ART_ARCHIVE, MINE_LAMP_MARK_RECORD, markerPicture);
-      renderer?.uploadEmissionTexture?.(MINE_ART_ARCHIVE, MINE_LAMP_MARK_RECORD, markerPicture, { white: true });
-      const markerMesh = renderer?.createMesh?.(mineLampMarkerModel());
+      const floorMarker = (/** @type {number} */ record, /** @type {number[]} */ color) => {
+        const picture = { width: 1, height: 1, colors: new Uint8Array(color) };
+        renderer?.uploadTexture?.(MINE_ART_ARCHIVE, record, picture);
+        renderer?.uploadEmissionTexture?.(MINE_ART_ARCHIVE, record, picture, { white: true });
+        return renderer?.createMesh?.(mineFloorRingModel(record));
+      };
+      const markerMesh = floorMarker(MINE_LAMP_MARK_RECORD, [255, 180, 75, 255]);
+      const wallMarkerMesh = floorMarker(MINE_WALL_MARK_RECORD, [115, 200, 240, 255]);
       layout.sections.forEach((/** @type {any} */ sec, /** @type {number} */ s) => sec.chambers.forEach((/** @type {any} */ ch, /** @type {number} */ c) => {
-        ch.holes.forEach((/** @type {any} */ h, /** @type {number} */ k) => targets.push({ key: mineKey('hole', s, c, k), aabb: boxAt(h.at, 1.4, 0, 0.8), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
+        ch.holes.forEach((/** @type {any} */ h, /** @type {number} */ k) => targets.push({ key: mineKey('hole', s, c, k), hole: [s, c, k], aabb: boxAt(h.at, 1.4, 0, 1.65), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
         const lampAt = [ch.c[0] + LAMP_OFF_M, ch.c[1], ch.c[2]];
         targets.push({ key: mineKey('lamp', s, c, 0), aabb: boxAt(lampAt, 1, 0, 2), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });
         if (markerMesh) {
@@ -194,16 +208,21 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
           ctx.dynamicDraws?.push(marker);
           lampMarkers.set(`${s}:${c}`, marker);
         }
-        ch.walls.forEach((/** @type {any} */ w, /** @type {number} */ k) => targets.push({ key: mineKey('wall', s, c, k), aabb: boxAt([w.at[0] - w.n[0] * 0.3, w.at[1] - 1, w.at[2] - w.n[2] * 0.3], 1.2, 0.2, 2.2), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
+        ch.walls.forEach((/** @type {any} */ w, /** @type {number} */ k) => {
+          const at = [w.at[0] + w.n[0] * 0.45, ch.c[1], w.at[2] + w.n[2] * 0.45];
+          targets.push({ key: mineKey('wall', s, c, k), aabb: boxAt(at, 0.9, 0.1, 1.5), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });
+          if (wallMarkerMesh) ctx.dynamicDraws?.push({ gpu: wallMarkerMesh, object: { matrix: trs(at[0], at[1], at[2], 0, 0, 0) }, hidden: false, noShadow: true, texRemap: null });
+        });
       }));
-      ctx.addActivationTargets?.(() => targets);
+      ctx.addActivationTargets?.(() => targets.filter((target) => !target.hole || client?.holeAvailable(target.hole[0], target.hole[1], target.hole[2])));
       ctx.addActivationNamer?.((/** @type {any} */ key) => (typeof key === 'string' && key.startsWith('mine:') ? client?.name(key) ?? null : null));
       standCtx = ctx;
       ctx.addTeardown?.(() => {
         if (standCtx !== ctx) return;
-        try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); if (markerMesh) renderer?.destroyMesh?.(markerMesh); } catch { /* the context's own teardown frees it either way */ }
+        try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); if (markerMesh) renderer?.destroyMesh?.(markerMesh); if (wallMarkerMesh) renderer?.destroyMesh?.(wallMarkerMesh); } catch { /* the context's own teardown frees it either way */ }
         try { if (drillMeshes) for (const m of Object.values(drillMeshes)) renderer?.destroyMesh?.(m); } catch { /* as above */ }
         lampMarkers.clear();
+        oreDraws = [];
         sounds.stop();
         mesh = null; wayOut = null; standCtx = null; layout = null; client = null; mine = null; drillMeshes = null; rigs.clear(); lampLights.clear();
       });
@@ -236,7 +255,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         }
       }
       client.heard(w);
-      if (w?.k === 'st' && w.st) { standRigs(w.st.drills ?? []); standLamps(w.st.lamps ?? []); }
+      if (w?.k === 'st' && w.st) { standRigs(w.st.drills ?? []); standLamps(w.st.lamps ?? []); hideDepletedOre(); }
     },
     lampLights(/** @type {number[]} */ eye) {
       const near = [];

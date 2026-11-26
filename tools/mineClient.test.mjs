@@ -126,3 +126,14 @@ test('a placed lamp hides its floor marker and supplies a stable point light', a
   teardown[0]();
   assert.deepEqual(host.lampLights(eye), []);
 });
+
+test('an exhausted deposit is only targetable while its drill hopper remains', () => {
+  const { client } = rig();
+  const st = { ...fresh(), oreWork: { '0:0:0': 15 } };
+  client.heard({ k: 'st', st: { ...st, drills: [{ s: 0, c: 0, k: 0, by: 'miner' }] } });
+  assert.equal(client.holeAvailable(0, 0, 0), true);
+  assert.equal(client.name(mineKey('hole', 0, 0, 0)).title, 'Drill hopper');
+  client.heard({ k: 'st', st });
+  assert.equal(client.holeAvailable(0, 0, 0), false);
+  assert.equal(client.name(mineKey('hole', 0, 0, 0)), null);
+});

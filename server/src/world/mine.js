@@ -33,7 +33,7 @@ export class MinePart {
   /** The clock first: a seal run out (or a week gone) turns the mine over before any word is judged. */
   async _mnTicked(st, nowS) {
     const r = stepMine(st, { op: 'tick' }, nowS);
-    if (!r.events.length) return st;
+    if (!r.events.length) return st.drills?.length ? r.state : st;
     await this._mnSave(r.state);
     this._mnFan(r.state, r.events);
     return r.state;

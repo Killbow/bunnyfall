@@ -7,13 +7,19 @@ export const MINE_DRILL = Object.freeze({ shiftS: 180, perOreS: 12, hopperMax: 4
  * @typedef {{ s: number, c: number, k: number, by: string, crew?: string[], from: number, until: number, took: number, rich: number }} MineDrillState
  */
 
+export const MINE_ORE_RUNS = MINE_DRILL.shiftS / MINE_DRILL.perOreS;
+export const mineOreKey = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => `${s}:${c}:${k}`;
+export const oreRunsLeft = (/** @type {Record<string, number> | undefined} */ work, /** @type {string} */ key) => MINE_ORE_RUNS - (work?.[key] ?? 0);
+
+export const drillRuns = (/** @type {MineDrillState} */ d, /** @type {number} */ nowS) =>
+  Math.floor(Math.max(0, Math.min(nowS, d.until) - d.from) / MINE_DRILL.perOreS);
+
 /** Whether a drill runs at `nowS`. */
 export const drillRunning = (/** @type {MineDrillState} */ d, /** @type {number} */ nowS) => nowS >= d.from && nowS < d.until;
 
 /** The ore a drill has made by `nowS`, and what its hopper holds untaken. */
 export function drillHopper(/** @type {MineDrillState} */ d, /** @type {number} */ nowS) {
-  const ran = Math.max(0, Math.min(nowS, d.until) - d.from);
-  const made = Math.floor(ran / MINE_DRILL.perOreS) * Math.max(1, Math.min(3, d.rich | 0));
+  const made = drillRuns(d, nowS) * Math.max(1, Math.min(3, d.rich | 0));
   return Math.max(0, Math.min(MINE_DRILL.hopperMax, made - d.took));
 }
 

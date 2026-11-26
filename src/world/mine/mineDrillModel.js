@@ -77,8 +77,10 @@ export function mineLampModels() {
 
 export const MINE_LAMP_MARK_RECORD = 303;
 
+export const MINE_WALL_MARK_RECORD = 304;
+
 /** A small ring just above the chamber floor. */
-export function mineLampMarkerModel() {
+export function mineFloorRingModel(record = MINE_LAMP_MARK_RECORD) {
   const positions = [], normals = [], uvs = [], indices = [];
   const segments = 24;
   for (let i = 0; i < segments; i++) {
@@ -95,6 +97,6 @@ export function mineLampMarkerModel() {
   return {
     positions: new Float32Array(positions), normals: new Float32Array(normals),
     uvs: new Float32Array(uvs), indices: new Uint32Array(indices),
-    subMeshes: [{ textureArchive: MINE_ART_ARCHIVE, textureRecord: MINE_LAMP_MARK_RECORD, startIndex: 0, primitiveCount: indices.length / 3 }],
+    subMeshes: [{ textureArchive: MINE_ART_ARCHIVE, textureRecord: record, startIndex: 0, primitiveCount: indices.length / 3 }],
   };
 }

@@ -80,6 +80,11 @@ export function validMineOut(m) {
   if (st.drills !== undefined && !(Array.isArray(st.drills) && st.drills.length <= 24 && st.drills.every((/** @type {any} */ d) => d && int(d.s, 0, n - 1) && int(d.c, 0, MINE_WIRE_MAX.c - 1) && int(d.k, 0, 9) && typeof d.by === 'string' && d.by.length <= 64 && Number.isSafeInteger(d.from) && Number.isSafeInteger(d.until) && int(d.took, 0, 1e6)
     && (d.crew === undefined || (Array.isArray(d.crew) && d.crew.length <= 7 && d.crew.every((/** @type {any} */ x) => typeof x === 'string' && x.length <= 64)))))) return null;
   if (st.lamps !== undefined && !(Array.isArray(st.lamps) && st.lamps.length <= MINE_WIRE_MAX.s * MINE_WIRE_MAX.c && st.lamps.every((/** @type {any} */ l) => l && int(l.s, 0, n - 1) && int(l.c, 0, MINE_WIRE_MAX.c - 1)))) return null;
+  if (st.oreWork !== undefined) {
+    if (!st.oreWork || typeof st.oreWork !== 'object' || Array.isArray(st.oreWork)) return null;
+    const work = Object.entries(st.oreWork);
+    if (work.length > MINE_WIRE_MAX.s * MINE_WIRE_MAX.c * 10 || !work.every(([key, value]) => /^[0-7]:[0-5]:[0-9]$/.test(key) && int(value, 1, 15))) return null;
+  }
   if (m.ev !== undefined && !(Array.isArray(m.ev) && m.ev.length <= 8 && m.ev.every((/** @type {any} */ e) => typeof e === 'string' && e.length <= 16))) return null;
   return m;
 }
