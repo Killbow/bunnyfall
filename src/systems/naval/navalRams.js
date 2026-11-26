@@ -14,10 +14,10 @@
 //             ship it strikes; one ram a ship a RAM_COOLDOWN_S. It is an act of fire, and on a ship another player stands
 //             it is said to her stander as a ram (`ram` on the wire), hers to take to her own line (`peer`). A booked
 //             ship's master never rams (FERRY-CLEAR); a wreck rams nothing.
-//   A GALLEY  `galleys()`, each step of the sea's clock: a captain's galley afloat and fighting - engaged on a ship or
-//             closing to board her - whose stem is in THAT ship's hull at RAM_SPEED or more of closing way: a boat of mine
-//             if it is me she fights (braced, half; the Captain's Due on it), else a ship of my sea. A galley never rams a
-//             ship she is not fighting: a bump between friends is a bump.
+//   A GALLEY  `galleys()`, each step of the sea's clock: a captain's galley afloat rams the ship she fights or closes
+//             to board. Her stem must be in that hull at RAM_SPEED or more of closing way. When she fights me, she rams
+//             a boat of mine (never a booked ship; braced, half; the Captain's Due on it). Otherwise she rams a ship of
+//             my sea. A galley never rams a ship she is not fighting: a bump between friends is a bump.
 //
 // A ram lands on a FIGHTING ship alone (`fighting`: afloat, not being boarded) - one whose colours are down is the
 // grapples' (BOARD-MAGNET), never the stem's - with her line as its floor, and only as hard as the rammer's recoil room
@@ -101,6 +101,7 @@ export function createNavalRams(deps) {
 
   /** A galley's ram on a boat of mine she fights - braced, half; the Captain's Due on it. Answers whether it struck. */
   function onMine(e, boat, f, bow, now) {
+    if (boat.charter) return false;
     const s = e.ship, st = deps.state(boat);
     const box = deps.hullBox(boat);
     const at = box && st.damage.state === SHIP_STATES.afloat ? ramContact(box, bow) : null;   // a wreck of mine is not rammed

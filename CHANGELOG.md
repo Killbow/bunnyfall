@@ -9,6 +9,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-25
 
+- Fixed: Enemy galleys can no longer ram the ship you booked passage on.
 - Fixed: The lockpicking Auto attempt button no longer has a red warning border, and its tooltip no longer says a failed roll snaps a pick.
 - New: In the Combat Preview, abilities lock onto the enemy you look at: swings turn toward it, leaps and dashes land on it, and ability arrows bend toward it.
 - Changed: In the Combat Preview, leaping abilities land on their target and strike it even if it moved, some leap farther and higher, and side hops land beside the enemy.
