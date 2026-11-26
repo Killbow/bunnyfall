@@ -1,26 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
+import { d1Sqlite, seedPlayer } from './lib/d1Sqlite.mjs';
 import { societyOffers, societyWaresHeld, societyBuyRefused, SOCIETY_WARES, SOCIETY_ORES, SOCIETY_OFFERS } from '../src/net/mine/societyLaw.js';
 import { societyState, societyTake, societyTurnIn, societyBuy } from '../server-account/src/society.js';
 import { titlesHeld, aurasHeld } from '../server-account/src/titles.js';
 
 const NOW = 1_800_000_000, DAY = Math.floor(NOW / 86400), CHAR = 'char-0001';
 
-/** The account database as D1 hands it, over node's own SQLite: the players' and Stores' columns the Society reads, and its migration. */
+/** The whole account schema (every migration), a registered player and a guest. */
 function d1() {
-  const sqlite = new DatabaseSync(':memory:');
-  sqlite.exec(`CREATE TABLE players (id TEXT PRIMARY KEY, handle TEXT);
-    CREATE TABLE prof_stores (player TEXT, char_id TEXT, material TEXT, origin TEXT, qty INTEGER, PRIMARY KEY (player, char_id, material, origin));
-    INSERT INTO players (id, handle) VALUES ('p1', 'Miner'), ('g1', NULL);`);
-  sqlite.exec(readFileSync(new URL('../server-account/migrations/0222_society.sql', import.meta.url), 'utf8'));
-  const db = {
-    prepare(sql) {
-      const st = sqlite.prepare(sql);
-      return { bind: (...args) => ({ first: async () => st.get(...args) ?? null, run: async () => ({ meta: st.run(...args) }) }) };
-    },
-  };
+  const { db, sqlite } = d1Sqlite();
+  seedPlayer(sqlite, 'p1', 'Miner');
+  sqlite.prepare("INSERT INTO players (id, handle, guest_name, created_at, last_seen) VALUES ('g1', NULL, 'Guest', 1, 1)").run();
   return { db, sqlite };
 }
 const ctx = (db) => ({ db, nowS: NOW });
@@ -54,7 +45,7 @@ test('a contract taken, turned in short (it stands), then in full: the Stores’
   assert.equal((await societyTake(ctx(db), P, { character: CHAR, ore: 'metal:nonsense' })).error, 'not-offered');
   assert.equal((await societyTake(ctx(db), P, { character: CHAR, ore: offer.ore })).contract.n, offer.n);
   assert.equal((await societyTake(ctx(db), P, { character: CHAR, ore: offer.ore })).error, 'has-contract');
-  sqlite.prepare("INSERT INTO prof_stores VALUES ('p1', ?1, ?2, 'own', ?3), ('p1', ?1, ?2, 'bought', 9999)").run(CHAR, offer.ore, offer.n - 1);
+  sqlite.prepare("INSERT INTO prof_stores VALUES ('p1', ?1, ?2, 'own', ?3), ('p1', ?1, ?2, 'bought', 4000)").run(CHAR, offer.ore, offer.n - 1);
   const short = await societyTurnIn(ctx(db), P, { character: CHAR });
   assert.equal(short.error, 'short');   // bought ore never counts
   assert.equal((await societyState(ctx(db), P, { character: CHAR })).contract.held, offer.n - 1);
@@ -80,4 +71,26 @@ test('Seals buy the ladder in order and The Burning Stair, which the account the
   assert.equal((await societyBuy(ctx(db), P, { ware: 'title:deepwarden' })).seals, 1450 - 900);
   assert.equal((await societyBuy(ctx(db), P, { ware: 'title:masteroftheseam' })).error, 'seals-short');
 
+});
+
+test('a member turns in for a tenth more Seals a rank, read off their own realm record; kit is used one at a time', async () => {
+  const { db, sqlite } = d1();
+  const { societyKitUse, societyRankOf } = await import('../server-account/src/society.js');
+  const save = JSON.stringify({ name: 'Miner', modData: { BunnyGuilds: { cartographers: { rank: 3, joinedAt: 1 } } } });
+  sqlite.prepare("INSERT INTO realm_characters (id, player, name, created_at, updated_at, obj) VALUES ('realm-0001', 'p1', 'Miner', 1, 1, 'obj-1'), ('realm-0002', 'g1', 'Other', 1, 1, 'obj-2')").run();
+  const bucket = { get: async (k) => (k === 'obj-1' || k === 'obj-2' ? { arrayBuffer: async () => new TextEncoder().encode(save).buffer } : null) };
+  const c = { db, nowS: NOW, bucket };
+  assert.equal(await societyRankOf(c, 'p1', 'realm-0001'), 3);
+  assert.equal(await societyRankOf(c, 'p1', 'realm-0002'), -1);   // another account's record says nothing
+  const offer = societyOffers(CHAR, DAY)[0];
+  await societyTake(c, P, { character: CHAR, ore: offer.ore });
+  sqlite.prepare("INSERT INTO prof_stores VALUES ('p1', ?1, ?2, 'own', ?3)").run(CHAR, offer.ore, offer.n);
+  const paid = await societyTurnIn(c, P, { character: CHAR, realm: 'realm-0001' });
+  assert.equal(paid.rank, 3);
+  assert.equal(paid.paid, Math.round(offer.seals * 1.3));
+  assert.equal((await societyKitUse(c, P, { character: CHAR, kit: 'fuel' })).error, 'kit-none');
+  assert.equal((await societyKitUse(c, P, { character: CHAR, kit: 'drill' })).error, 'society-bad');   // a drill is owned, never spent
+  sqlite.prepare("INSERT INTO mine_kit VALUES ('p1', ?1, 'fuel', 2)").run(CHAR);
+  assert.equal((await societyKitUse(c, P, { character: CHAR, kit: 'fuel' })).qty, 1);
+  assert.equal((await societyState(c, P, { character: CHAR })).kit.fuel, 1);
 });

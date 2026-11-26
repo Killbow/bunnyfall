@@ -6,7 +6,7 @@
 import { MINE_ART_ARCHIVE, loadMineArt } from '../../world/mine/mineArt.js';
 import { mineOreDraws } from '../../world/mine/mineOres.js';
 import { standMineFoes } from './mineFoes.js';
-import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, MINE_DRILL_RECORDS } from '../../world/mine/mineDrillModel.js';
+import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, MINE_DRILL_RECORDS } from '../../world/mine/mineDrillModel.js';
 import { drillRunning } from '../../net/mine/mineDrill.js';
 import { trs } from '../../world/mat4.js';
 import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
@@ -44,6 +44,8 @@ export function mineExitDoor(mouth) {
 
 /** How high over its hole a rig's shaft turns (m). */
 const RIG_SHAFT_UP_M = 0.35;
+/** How far off a chamber's middle its lamp stands (m), clear of the way through. */
+const LAMP_OFF_M = 1.2;
 /** How often a page says `hi` to its mine's room until the room answers (ms). */
 const HI_RETRY_MS = 1000;
 /** An activation box about a point (m): `w` across, `h` up from `y0`. */
@@ -69,6 +71,8 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
   /** the drills stood, by `s:c:k`: their frame's and shaft's draws, and their hole */
   const rigs = new Map();
   let drillMeshes = /** @type {any} */ (null);
+  /** the character's mine kit as the Society last said it (`{ drill, fuel, lamp, rod }`), or null unread */
+  let kitHeld = /** @type {any} */ (null);
   let mesh = null, wayOut = null, standCtx = null, layout = null, client = null, mine = null, hiAt = -Infinity, heard = false;
   const fade = fadeSheet();
   /** THE DRILLS, as the room says them: a rig stood over each hole one stands on, taken down where none does. */
@@ -80,7 +84,10 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         const pic = mineDrillPictures();
         renderer.uploadTexture?.(MINE_ART_ARCHIVE, MINE_DRILL_RECORDS.timber, pic.timber);
         renderer.uploadTexture?.(MINE_ART_ARCHIVE, MINE_DRILL_RECORDS.iron, pic.iron);
-        drillMeshes = { frame: renderer.createMesh(mineDrillFrameModel()), shaft: renderer.createMesh(mineDrillShaftModel()) };
+        renderer.uploadTexture?.(MINE_ART_ARCHIVE, MINE_DRILL_RECORDS.flame, pic.flame);
+        renderer.uploadEmissionTexture?.(MINE_ART_ARCHIVE, MINE_DRILL_RECORDS.flame, pic.flame, { white: true });   // the lantern shines in the dark
+        const lamp = mineLampModels();
+        drillMeshes = { frame: renderer.createMesh(mineDrillFrameModel()), shaft: renderer.createMesh(mineDrillShaftModel()), post: renderer.createMesh(lamp.post), lantern: renderer.createMesh(lamp.lantern) };
       } catch (e) { console.warn('[mine] the drill', /** @type {any} */ (e)?.message ?? e); return; }
     }
     const want = new Set();
@@ -101,6 +108,22 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       if (want.has(key)) continue;
       for (const e of [r.frame, r.shaft]) { const i = ctx.dynamicDraws?.indexOf(e) ?? -1; if (i >= 0) ctx.dynamicDraws.splice(i, 1); }
       rigs.delete(key);
+    }
+  }
+
+  /** THE LAMPS, as the room says them: a post and its glowing lantern at each lit chamber's middle (they stay till the
+   *  mine turns over, so none is ever taken down but with the mine). */
+  const lampsStood = new Set();
+  function standLamps(/** @type {any[]} */ lamps) {
+    const ctx = standCtx;
+    if (!ctx || !layout || !drillMeshes?.post) return;
+    for (const l of lamps) {
+      const key = `${l.s}:${l.c}`, ch = layout.sections[l.s]?.chambers[l.c];
+      if (!ch || lampsStood.has(key)) continue;
+      lampsStood.add(key);
+      const m = trs(ch.c[0] + LAMP_OFF_M, ch.c[1], ch.c[2], 0, (l.c * 71) % 360, 0);
+      ctx.dynamicDraws?.push({ gpu: drillMeshes.post, object: { matrix: m }, hidden: false, noShadow: false, texRemap: null },
+        { gpu: drillMeshes.lantern, object: { matrix: m }, hidden: false, noShadow: true, texRemap: null });
     }
   }
 
@@ -132,7 +155,8 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       } catch (e) { console.warn('[mine] the way out', /** @type {any} */ (e)?.message ?? e); wayOut = null; }
       ctx.addActivationNamer?.((/** @type {any} */ key) => (typeof key === 'string' && key.startsWith('exit:') ? { title: MINE_TEXT.wayOut() } : null));
       // THE MINE ON THIS PAGE: its holes and its walls offered to the activation ray, named by the client, pressed through it
-      mine = { ...loc.mine }; heard = false; hiAt = -Infinity;
+      mine = { ...loc.mine }; heard = false; hiAt = -Infinity; lampsStood.clear(); kitHeld = null;
+      void Promise.resolve(link?.()?.kit?.()).then((k) => { if (standCtx === ctx || standCtx === null) kitHeld = k ?? null; }, () => {});
       const doors = link?.() ?? null;
       client = createMineClient({
         layout, say: (x) => say?.(x), send: (k, f) => doors?.send?.(k, f) === true, planks: (m) => doors?.planks?.(m) ?? 0,
@@ -140,11 +164,16 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         leave: () => { leave?.(); setTimeout(() => fade(false), 1500); },
         // waves and strays: the dungeon's encounter door stands them (the room's host alone, shared - offline, mine)
         drillOk: () => doors?.drillOk?.() === true, me: () => doors?.me?.() ?? null, claim: (r) => doors?.claim?.(r) ?? Promise.resolve(null),
+        // the Society's mine kit, read on entry and kept as it is spent; the party's accounts for a drill's crew
+        kit: (id) => kitHeld?.[id] ?? 0,
+        useKit: async (id) => { const ok = (await doors?.useKit?.(id)) === true; if (ok && kitHeld) kitHeld[id] = Math.max(0, (kitHeld[id] ?? 0) - 1); return ok; },
+        crew: () => doors?.crew?.() ?? [],
         foes: (kind, s, c, n) => standMineFoes(layout, { s, c, n }, (t, feet, lo, hi) => ctx.spawnFoeNear?.(t, feet, lo, hi)),
       });
       const targets = [];
       layout.sections.forEach((/** @type {any} */ sec, /** @type {number} */ s) => sec.chambers.forEach((/** @type {any} */ ch, /** @type {number} */ c) => {
         ch.holes.forEach((/** @type {any} */ h, /** @type {number} */ k) => targets.push({ key: mineKey('hole', s, c, k), aabb: boxAt(h.at, 1.4, 0, 0.8), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
+        targets.push({ key: mineKey('lamp', s, c, 0), aabb: boxAt([ch.c[0] + LAMP_OFF_M, ch.c[1], ch.c[2]], 1, 0, 2), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });   // a lamp's spot
         ch.walls.forEach((/** @type {any} */ w, /** @type {number} */ k) => targets.push({ key: mineKey('wall', s, c, k), aabb: boxAt([w.at[0] - w.n[0] * 0.3, w.at[1] - 1, w.at[2] - w.n[2] * 0.3], 1.2, 0.2, 2.2), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE }));
       }));
       ctx.addActivationTargets?.(() => targets);
@@ -153,7 +182,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       ctx.addTeardown?.(() => {
         if (standCtx !== ctx) return;
         try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); } catch { /* the context's own teardown frees it either way */ }
-        try { if (drillMeshes) { renderer?.destroyMesh?.(drillMeshes.frame); renderer?.destroyMesh?.(drillMeshes.shaft); } } catch { /* as above */ }
+        try { if (drillMeshes) for (const m of Object.values(drillMeshes)) renderer?.destroyMesh?.(m); } catch { /* as above */ }
         mesh = null; wayOut = null; standCtx = null; layout = null; client = null; mine = null; drillMeshes = null; rigs.clear();
       });
     },
@@ -183,7 +212,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         }
       }
       client.heard(w);
-      if (w?.k === 'st' && w.st) standRigs(w.st.drills ?? []);
+      if (w?.k === 'st' && w.st) { standRigs(w.st.drills ?? []); standLamps(w.st.lamps ?? []); }
     },
     /** The drills stood now (probes): `s:c:k` each. */
     rigs: () => [...rigs.keys()],

@@ -8631,7 +8631,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // MINE-PERKS (Professions-Arc 43): a Motherlode Sense's day's Motherlodes - each on its pixel from the day's start,
       // its ore and its hour (ui/lodeMapMark.js); none without the Sense, nor with the professions shut
       lodes: () => lodeMapMarksNow(),
-      pois: () => poiMapMarks(poiHost?.marks() ?? []),   // POI-2: the approved POIs that ask to be marked
+      pois: () => [...poiMapMarks(poiHost?.marks() ?? []), ...poiMapMarks(mines?.mapMarks() ?? [])],   // POI-2: the approved POIs that ask to be marked; BUNNYFALL (caverns): and the mine mouths spotted
       // HOME-VENDOR: the trader's waypoint - its town's pixel, the house's owner and the town, on both maps (ui/vendor/vendorMapMark.js)
       vendor: () => { const wp = vendorWaypoint(); const t = wp ? _townOfMapId.get(wp.map) : null; return t ? { px: t.px, py: t.py, label: `Trader: ${wp.owner || 'a'}'s house`, town: t.name } : null; },
       // HUB1: each region's hub, marked and named - online alone (systems/region/regionHubs.js); offline the map is DFU's
@@ -12836,7 +12836,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     renderer, getTexture, uploadRecord, billboardSize, flatBatchAabb, built: () => built, climateAt: (x, y) => maps?.getClimateIndex(x, y) ?? -1,
     occupiedAt: (x, y) => locationIndex.has(`${x},${y}`), pixelTranslation: (x, y, out) => state.pixelTranslation(x, y, out),
     feet: () => player.feetAt?.() ?? null, outside: () => (modes?.mode ?? 'exterior') === 'exterior' && !gamePaused(),
-    art: () => _mineArtNow, collider: () => collider, riding: (px, py) => mineRide(px, py),
+    art: () => _mineArtNow, collider: () => collider, riding: (px, py) => mineRide(px, py), storage: appStorage(),
     enter: (px, py) => { if (online && !online.mnOk) { chatNotice(MOUTH_TEXT.relayOld()); return; } void modes?.enterMine?.({ px, py, reset: mineHeardReset(px, py), site: egSiteNow() }); }, sealedFor: (px, py) => mineSealLeft(px, py, Math.floor(Date.now() / 1000)), say: (text) => chatNotice(text),
   }) : null;
   /** BUNNYFALL (2026-11-25, caverns): the doors a mine on this page reads (systems/mine/mineHost.js): its room's word out, the
@@ -12848,6 +12848,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the drill (2026-11-26): a relay that keeps drills, my account (a drill and its hopper are its), a haul carried and the Stores read again
     drillOk: () => online?.drillOk === true, me: () => _mineAccount.me(),
     claim: async (r) => { const a = await _mineAccount.claim(r, characterIdOf(playerEntity)); if (a?.ok) void profBook?.refresh?.({ force: true }); return a; },
+    // the Society's mine kit (2026-11-26): read on entry, one spent at a drill or a lamp; a drill's crew the party's accounts
+    kit: async () => { if (!realmSession) return null; const r = await accountCall(realmIoNow(), '/v1/society', { character: characterIdOf(playerEntity) }); return r?.ok ? r.data.kit : null; },
+    useKit: async (kit) => { if (!realmSession) return false; const r = await accountCall(realmIoNow(), '/v1/society/use', { character: characterIdOf(playerEntity), kit }); return r?.ok === true; },
+    crew: () => (social?.party?.members ?? []).map((m) => m?.acct).filter((x) => typeof x === 'string' && x && x !== _mineAccount.me()).slice(0, 7),
   };
   /** AUDIT EG III (lane4 #10): the Spire's lights a frame - one list, refilled. */
   const _egLightList = [], NO_EG_LIGHTS = Object.freeze([]);
@@ -14548,7 +14552,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,
     // BUNNYFALL (2026-11-26, caverns): the Cartographers' Society's desk (guilds/societyDesk.js) - its calls as this character, the Stores read after a turn-in
-    societyCall: realmSession ? (path, body) => accountCall(realmIoNow(), path, { ...body, character: characterIdOf(playerEntity) }) : null,
+    societyCall: realmSession ? (path, body) => accountCall(realmIoNow(), path, { ...body, character: characterIdOf(playerEntity), realm: realmSession?.id ?? null }) : null,
+    // the mine kit bought for gold - a realm act (the record's purse), its gold held from the purse while it is asked
+    societyKit: realmSession ? (body, gold) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true,
+      reserve: () => { playerEntity.goldPieces = Math.max(0, (playerEntity.goldPieces ?? 0) - gold); return () => { playerEntity.goldPieces = (playerEntity.goldPieces ?? 0) + gold; }; },
+      call: (at) => accountCall(realmIoNow(), '/v1/society/kit', { ...body, ...at, character: characterIdOf(playerEntity) }) }) : null,
     societyStores: () => { void profBook?.refresh?.({ force: true }); },
     favorBuy: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/tavern/favor', { ...body, ...at }) }) : null,
     // BARDS' GUILD services paid in Favor (scenes/bardServicesShop.js): the service charges the Favor and writes the result in one batch

@@ -47,7 +47,14 @@ export function validMineIn(m) {
   if (m.k === 'hi') return int(m.r, 0, MINE_WIRE_MAX.reset) ? { k: 'hi', r: m.r } : null;
   if (!int(m.s, 0, MINE_WIRE_MAX.s - 1) || !int(m.c, 0, MINE_WIRE_MAX.c - 1)) return null;
   if (m.k === 'strike') return { k: 'strike', s: m.s, c: m.c };
-  if (m.k === 'drill' || m.k === 'take') return int(m.h, 0, 9) ? { k: m.k, s: m.s, c: m.c, h: m.h } : null;   // a drill set on hole h, or its hopper taken
+  if (m.k === 'take') return int(m.h, 0, 9) ? { k: 'take', s: m.s, c: m.c, h: m.h } : null;   // a drill's hopper taken
+  if (m.k === 'drill') {   // a drill set on hole h, its crew the setter's party (accounts)
+    if (!int(m.h, 0, 9)) return null;
+    const crew = m.crew === undefined ? [] : m.crew;
+    if (!Array.isArray(crew) || crew.length > 7 || !crew.every((/** @type {any} */ x) => typeof x === 'string' && x.length >= 1 && x.length <= 64)) return null;
+    return { k: 'drill', s: m.s, c: m.c, h: m.h, crew };
+  }
+  if (m.k === 'lamp') return { k: 'lamp', s: m.s, c: m.c };   // a lamp set in a chamber
   if (m.k === 'prop') return int(m.w, 0, MINE_WIRE_MAX.w - 1) && MINE_WIRE_WOODS.includes(m.wood) ? { k: 'prop', s: m.s, c: m.c, w: m.w, wood: m.wood } : null;
   return null;
 }
@@ -70,7 +77,9 @@ export function validMineOut(m) {
   if (!nums(st.stab, MINE_WIRE_MAX.s, level) || !nums(st.cap, MINE_WIRE_MAX.s, level) || st.cap.length !== n) return null;
   if (!Array.isArray(st.props) || st.props.length > MINE_WIRE_MAX.props) return null;
   if (!st.props.every((/** @type {any} */ p) => p && int(p.s, 0, n - 1) && int(p.c, 0, MINE_WIRE_MAX.c - 1) && int(p.w, 0, MINE_WIRE_MAX.w - 1) && MINE_WIRE_WOODS.includes(p.wood))) return null;
-  if (st.drills !== undefined && !(Array.isArray(st.drills) && st.drills.length <= 24 && st.drills.every((/** @type {any} */ d) => d && int(d.s, 0, n - 1) && int(d.c, 0, MINE_WIRE_MAX.c - 1) && int(d.k, 0, 9) && typeof d.by === 'string' && d.by.length <= 64 && Number.isSafeInteger(d.from) && Number.isSafeInteger(d.until) && int(d.took, 0, 1e6)))) return null;
+  if (st.drills !== undefined && !(Array.isArray(st.drills) && st.drills.length <= 24 && st.drills.every((/** @type {any} */ d) => d && int(d.s, 0, n - 1) && int(d.c, 0, MINE_WIRE_MAX.c - 1) && int(d.k, 0, 9) && typeof d.by === 'string' && d.by.length <= 64 && Number.isSafeInteger(d.from) && Number.isSafeInteger(d.until) && int(d.took, 0, 1e6)
+    && (d.crew === undefined || (Array.isArray(d.crew) && d.crew.length <= 7 && d.crew.every((/** @type {any} */ x) => typeof x === 'string' && x.length <= 64)))))) return null;
+  if (st.lamps !== undefined && !(Array.isArray(st.lamps) && st.lamps.length <= MINE_WIRE_MAX.s * MINE_WIRE_MAX.c && st.lamps.every((/** @type {any} */ l) => l && int(l.s, 0, n - 1) && int(l.c, 0, MINE_WIRE_MAX.c - 1)))) return null;
   if (m.ev !== undefined && !(Array.isArray(m.ev) && m.ev.length <= 8 && m.ev.every((/** @type {any} */ e) => typeof e === 'string' && e.length <= 16))) return null;
   return m;
 }

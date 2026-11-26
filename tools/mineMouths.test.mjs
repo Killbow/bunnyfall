@@ -113,3 +113,21 @@ test('the dark of the way in is one quad each side, behind the door and as wide 
   assert.equal(m.subMeshes[0].primitiveCount, 4);
   assert.equal(m.subMeshes[0].textureRecord, 19);
 });
+
+test('a spotted mouth is remembered for the world maps, across pages', async () => {
+  const p = minePixel();
+  const entry = { px: p.px, py: p.py, batches: [] };
+  const store = new Map();
+  const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  const make = () => createMineMouths({
+    renderer: { createBillboardBatch: () => ({}) }, getTexture: async () => ({ recordCount: 40 }), uploadRecord: () => {},
+    billboardSize: () => ({ w: 2, h: 3 }), built: () => new Map([[`${p.px},${p.py}`, entry]]), climateAt: () => CLIMATES.Mountain, occupiedAt: () => false,
+    pixelTranslation: (x, y, out) => { out[0] = 0; out[1] = 0; out[2] = 0; return out; }, feet: () => [m[0] + 40, m[1], m[2]], outside: () => true,
+    enter: () => {}, sealedFor: () => 0, say: () => {}, nowMs: () => 0, storage,
+  });
+  const m = mouthLocal(entry);
+  const a = make();
+  a.frame(); await new Promise((r) => setTimeout(r, 0)); a.frame();
+  assert.deepEqual(a.mapMarks(), [{ px: p.px, py: p.py, label: 'Mine' }]);
+  assert.deepEqual(make().mapMarks(), [{ px: p.px, py: p.py, label: 'Mine' }]);   // a new page remembers it
+});

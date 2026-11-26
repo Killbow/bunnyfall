@@ -156,7 +156,8 @@ import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice,
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from '../characters/npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
 import { createTavernFavorShop } from './tavernFavorShop.js';
-import { createSocietyDesk } from '../guilds/societyDesk.js';   // BUNNYFALL (2026-11-26, caverns): the Cartographers' ore contracts and Survey Seals
+import { createSocietyDesk } from '../guilds/societyDesk.js';
+import { bunnyGainRep } from '../guilds/bunnyServices.js';   // BUNNYFALL (2026-11-26, caverns): the Cartographers' ore contracts and Survey Seals
 import { magicHallEntry, magicRoomIdentity, magicHallGreeting } from './magicTavernRoom.js';   // MAGIC-TAVERN: a blue tavern's door opens the shared hall
 import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
@@ -2641,7 +2642,8 @@ export function createWorldModes(host) {
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), flow: (boxes) => townTalk?.showOverlay?.(new ServiceFlowWindow(boxes)),
     back: () => favorShop.open(),
   });
-  const societyDesk = createSocietyDesk({ call: host.societyCall ?? null, stores: host.societyStores ?? null, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });   // BUNNYFALL (2026-11-26, caverns)
+  const societyDesk = createSocietyDesk({ call: host.societyCall ?? null, kit: host.societyKit ?? null, stores: host.societyStores ?? null, gold: () => playerEntity?.goldPieces ?? 0,
+    gainRep: (n) => bunnyGainRep(playerEntity, 'cartographers', n), choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });   // BUNNYFALL (2026-11-26, caverns)
   const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });

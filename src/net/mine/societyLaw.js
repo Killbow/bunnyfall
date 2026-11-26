@@ -70,3 +70,22 @@ export function societyBuyRefused(/** @type {string} */ id, /** @type {string[]}
   if (!(seals >= w.seals)) return 'seals-short';
   return null;
 }
+
+// ─── THE MINE KIT (the spec's section 3) ────────────────────────────
+/** The kit the desk sells for gold, kept a character beside the Stores (`mine_kit`, migration 0224): a drill (one owned,
+ *  never spent, needed to set one), its fuel (one spent a shift), lamps (one spent a chamber lit) and the Survey Rod (one
+ *  owned: walls read sound or weak). `per` how many one purchase brings. */
+export const SOCIETY_KIT = Object.freeze([
+  Object.freeze({ id: 'drill', name: 'Mining Drill', gold: 1500, per: 1, owned: true }),
+  Object.freeze({ id: 'fuel', name: 'Drill Fuel', gold: 250, per: 5, owned: false }),
+  Object.freeze({ id: 'lamp', name: 'Mine Lamp', gold: 120, per: 2, owned: false }),
+  Object.freeze({ id: 'rod', name: 'Survey Rod', gold: 400, per: 1, owned: true }),
+]);
+export const SOCIETY_KIT_IDS = Object.freeze(SOCIETY_KIT.map((k) => k.id));
+/** The most of a spent kit a character keeps. */
+export const SOCIETY_KIT_MAX = 99;
+/** A member's Seals by rank: a contract's Seals, and a tenth more a rank of the Society (a visitor's none). */
+export const SOCIETY_RANK_SHARE = 0.1;
+export const societySealsFor = (/** @type {number} */ seals, /** @type {number} */ rank) => Math.round(seals * (1 + SOCIETY_RANK_SHARE * Math.max(0, Math.min(9, rank | 0))));
+/** The Society's standing a contract turned in raises (its guild's reputation, the page's as survey notes'). */
+export const SOCIETY_CONTRACT_REP = 3;

@@ -52,10 +52,11 @@ export class MinePart {
       if (!st) { this._junk(ws); return; }
       st = await this._mnTicked(st, nowS);
       if (w.k === 'hi') { this._send(ws, JSON.stringify({ t: 'mn', k: 'st', st })); await this._mnArm(now); return; }
-      const drilling = w.k === 'drill' || w.k === 'take';
+      const drilling = w.k === 'drill' || w.k === 'take' || w.k === 'lamp';
       if (drilling && !a.sub) { this._send(ws, JSON.stringify({ t: 'mn', k: 'no', e: 'guest' })); return; }   // a drill's ore is an account's: no account, no drill
       const op = w.k === 'strike' ? { op: 'strike', s: w.s, c: w.c }
-        : drilling ? { op: w.k, s: w.s, c: w.c, k: w.h, by: String(a.sub) }
+        : w.k === 'lamp' ? { op: 'lamp', s: w.s, c: w.c }
+          : drilling ? { op: w.k, s: w.s, c: w.c, k: w.h, by: String(a.sub), crew: w.crew ?? [] }
           : { op: 'prop', s: w.s, c: w.c, w: w.w, wood: w.wood, by: String(a.sub ?? a.id) };
       const r = stepMine(st, op, nowS);
       if (r.error) { this._send(ws, JSON.stringify({ t: 'mn', k: 'no', e: r.error })); return; }
@@ -77,9 +78,12 @@ export class MinePart {
     if (this._mn === undefined) this._mn = (await this.state.storage.get(MINE_KEY)) ?? null;
     const st = this._mn;
     if (!st) return;
-    let anyone = false;
-    for (const [, b] of this._all()) if (b.id) { anyone = true; break; }
-    const now = Date.now(), r = stepMine(st, { op: 'tick', present: anyone, roll: Math.random(), pick: Math.random() }, Math.floor(now / 1000));
+    // who stands in it: anyone (a stray's chance), and the accounts (a drill whose setter has left stops)
+    const here = [];
+    for (const [, b] of this._all()) if (b.id && b.sub) here.push(String(b.sub));
+    let anyone = here.length > 0;
+    if (!anyone) for (const [, b] of this._all()) if (b.id) { anyone = true; break; }
+    const now = Date.now(), r = stepMine(st, { op: 'tick', present: anyone, here, roll: Math.random(), pick: Math.random() }, Math.floor(now / 1000));
     await this._mnSave(r.state);
     if (r.events.length) this._mnFan(r.state, r.events);
     if (anyone || r.state.sealedUntil > 0) await this._mnArm(now);

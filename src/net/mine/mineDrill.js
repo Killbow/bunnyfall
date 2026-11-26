@@ -17,11 +17,12 @@
  *   noisePerS  the alarm a running drill raises a second (a pick's strike is 1: a wave in ~50 s, not 24 strikes)
  *   wearPerS   the stability a running drill wears a second (a pick's strike is 0.6)
  *   most       the most drills a mine holds
+ *   crewMax    the most accounts beside its setter a drill's crew names (a party's others)
  */
-export const MINE_DRILL = Object.freeze({ shiftS: 180, perOreS: 12, hopperMax: 45, noisePerS: 0.5, wearPerS: 0.12, most: 24 });
+export const MINE_DRILL = Object.freeze({ shiftS: 180, perOreS: 12, hopperMax: 45, noisePerS: 0.5, wearPerS: 0.12, most: 24, crewMax: 7 });
 
 /**
- * @typedef {{ s: number, c: number, k: number, by: string, from: number, until: number, took: number, rich: number }} MineDrillState
+ * @typedef {{ s: number, c: number, k: number, by: string, crew?: string[], from: number, until: number, took: number, rich: number }} MineDrillState
  */
 
 /** Whether a drill runs at `nowS`. */

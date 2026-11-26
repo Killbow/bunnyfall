@@ -41,12 +41,23 @@ export const MINE_CLIENT_TEXT = Object.freeze({
     ? t('mine.myDrill', 'Your drill: {n} in the hopper, {m}:{s} left', { n, m: Math.floor(left / 60), s: String(left % 60).padStart(2, '0') })
     : t('mine.myDrillDone', 'Your drill has stopped: {n} in the hopper', { n })),
   theirDrill: () => t('mine.theirDrill', "Someone else's drill"),
+  crewDrill: () => t('mine.crewDrill', "Your party's drill"),
+  needDrill: () => t('mine.needDrill', 'You need a Mining Drill. The Cartographers’ Society sells them.'),
+  needFuel: () => t('mine.needFuel', 'You have no Drill Fuel. The Cartographers’ Society sells it.'),
+  rockWall: () => t('mine.rockWall', 'Rock wall'),
+  rodHint: () => t('mine.rodHint', 'A Survey Rod would tell sound rock from weak'),
+  lampSpot: () => t('mine.lampSpot', 'A dark chamber'),
+  lampSet: () => t('mine.lampSet', 'Set a Mine Lamp here'),
+  lampLit: () => t('mine.lampLit', 'A Mine Lamp burns here. Strays keep away.'),
+  needLamp: () => t('mine.needLamp', 'You have no Mine Lamps. The Cartographers’ Society sells them.'),
+  lampHung: () => t('mine.lampHung', 'You hang a Mine Lamp. Its light keeps strays from this chamber.'),
   hauled: (/** @type {number} */ n, /** @type {string} */ ore) => t('mine.hauled', 'You haul {n} {ore} into your Stores.', { n, ore }),
   haulFailed: () => t('mine.haulFailed', 'The haul could not be banked. Try again in a moment.'),
   refused: (/** @type {string} */ e) => ({
     'one-each': t('mine.oneEach', 'You already have a drill running in this mine.'),
     taken: t('mine.drillTaken', 'A drill already stands on this seam.'),
     'not-yours': t('mine.notYours', "That drill and its hopper are someone else's."),
+    lit: t('mine.lit', 'A lamp already burns in this chamber.'),
     empty: t('mine.hopperEmpty', 'The hopper is empty. Give the drill time.'),
     guest: t('mine.drillGuest', 'Only a registered account can run a drill.'),
     full: t('mine.drillsFull', 'There is no room for another drill in this mine.'),
@@ -67,7 +78,10 @@ const WOODS = Object.freeze(Object.keys(MINE_WOOD_STRENGTH).sort((a, b) => MINE_
  *   woodName?: (wood: string) => string, nowMs?: () => number,
  *   foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null,
  *   drillOk?: (() => boolean) | null, me?: (() => (string|null)) | null, claim?: ((receipt: string) => Promise<any>) | null,
+ *   kit?: ((id: string) => number) | null, useKit?: ((id: string) => Promise<boolean>) | null, crew?: (() => string[]) | null,
  * }} deps
+ *   `kit` how many of a mine kit the character holds (the Society's: drill, fuel, lamp, rod), `useKit` one spent at the
+ *   account service, `crew` the accounts of the player's party (a drill's crew may empty its hopper)
  *   `drillOk` the relay keeps drills, `me` this page's account, `claim` a haul's receipt carried to the account service
  *   `foes` a wave's or a stray's creatures stood (systems/mine/mineFoes.js; the room's host alone stands them)
  */
@@ -88,6 +102,7 @@ export function createMineClient(deps) {
   let lastAsk = '';
   const nowS = () => Math.floor(Date.now() / 1000);
   /** The drill on hole k of chamber c of section s, as the room last said it, or null. */
+  const lit = (/** @type {number} */ s, /** @type {number} */ c) => !!st?.lamps?.some((/** @type {any} */ l) => l.s === s && l.c === c);
   const drillAt = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => st?.drills?.find((/** @type {any} */ d) => d.s === s && d.c === c && d.k === k) ?? null;
   async function haul(/** @type {string} */ r) {
     try {
@@ -136,14 +151,19 @@ export function createMineClient(deps) {
       if (!p) return null;
       if (p.kind === 'hole') {
         const h = chamber(p.s, p.c)?.holes[p.k], d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
-        const drill = !deps.drillOk?.() ? null : !d ? MINE_CLIENT_TEXT.setDrill() : d.by === me ? (() => { const r = drillReading(d, nowS()); return MINE_CLIENT_TEXT.myDrill(r.n, r.left); })() : MINE_CLIENT_TEXT.theirDrill();
+        const mineOrCrew = d && (d.by === me || (me && d.crew?.includes(me)));
+        const drill = !deps.drillOk?.() ? null : !d ? MINE_CLIENT_TEXT.setDrill() : mineOrCrew ? (() => { const r = drillReading(d, nowS()); return d.by === me ? MINE_CLIENT_TEXT.myDrill(r.n, r.left) : `${MINE_CLIENT_TEXT.crewDrill()}: ${MINE_CLIENT_TEXT.myDrill(r.n, r.left).split(': ').slice(1).join(': ')}`; })() : MINE_CLIENT_TEXT.theirDrill();
         return { title: t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: drill ? `${oreName(h.ore)} - ${drill}` : oreName(h.ore) } : {}) };
       }   // the owner: "turn hole in the rock into Minable Ore"
+      if (p.kind === 'lamp') return chamber(p.s, p.c) ? { title: lit(p.s, p.c) ? MINE_CLIENT_TEXT.lampLit() : MINE_CLIENT_TEXT.lampSpot(), ...(lit(p.s, p.c) ? {} : { sub: MINE_CLIENT_TEXT.lampSet() }) } : null;
       const w = chamber(p.s, p.c)?.walls[p.k];
       if (!w) return null;
       if (propped(p.s, p.c, p.k)) return { title: MINE_CLIENT_TEXT.shored() };
       const plank = bestPlank();
-      return { title: w.weak ? MINE_CLIENT_TEXT.weak() : MINE_CLIENT_TEXT.sound(), ...(plank ? { sub: MINE_CLIENT_TEXT.shore(woodName(woodOf(plank))) } : {}) };
+      // the Survey Rod reads the rock (the spec's section 3): without one, a wall is only a wall
+      const rod = (deps.kit?.('rod') ?? 1) > 0;
+      const title = rod ? (w.weak ? MINE_CLIENT_TEXT.weak() : MINE_CLIENT_TEXT.sound()) : MINE_CLIENT_TEXT.rockWall();
+      return { title, ...(plank ? { sub: MINE_CLIENT_TEXT.shore(woodName(woodOf(plank))) } : !rod ? { sub: MINE_CLIENT_TEXT.rodHint() } : {}) };
     },
     /** A press on a hole (examined) or a wall slot (shored). */
     async press(/** @type {string} */ key, mode = 'grab') {
@@ -157,9 +177,22 @@ export function createMineClient(deps) {
         // Info, or a relay before drills: the hole examined. Otherwise the drill - set mine here, or empty mine
         if (mode === 'info' || !deps.drillOk?.()) { deps.say(MINE_CLIENT_TEXT.hole(oreName(h.ore), h.rich, st?.stab?.[p.s] ?? 100)); return true; }
         const d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
-        if (d && d.by !== me) { deps.say(MINE_CLIENT_TEXT.refused('not-yours') ?? ''); return true; }
-        lastAsk = d ? 'take' : 'drill';
-        if (deps.send(lastAsk, { s: p.s, c: p.c, h: p.k }) && !d) deps.say(MINE_CLIENT_TEXT.drillSet(oreName(h.ore)));
+        if (d && d.by !== me && !(me && d.crew?.includes(me))) { deps.say(MINE_CLIENT_TEXT.refused('not-yours') ?? ''); return true; }
+        if (d) { lastAsk = 'take'; deps.send('take', { s: p.s, c: p.c, h: p.k }); return true; }
+        // a new drill: its own (a Mining Drill owned), a shift's fuel spent, the mine's own refusals asked first so no fuel is lost to one
+        if (st?.drills?.some((/** @type {any} */ x) => x.by === me && drillReading(x, nowS()).running)) { deps.say(MINE_CLIENT_TEXT.refused('one-each') ?? ''); return true; }
+        if (deps.kit && deps.kit('drill') <= 0) { deps.say(MINE_CLIENT_TEXT.needDrill()); return true; }
+        if (deps.useKit && !(await deps.useKit('fuel'))) { deps.say(MINE_CLIENT_TEXT.needFuel()); return true; }
+        lastAsk = 'drill';
+        if (deps.send('drill', { s: p.s, c: p.c, h: p.k, crew: deps.crew?.() ?? [] })) deps.say(MINE_CLIENT_TEXT.drillSet(oreName(h.ore)));
+        return true;
+      }
+      if (p.kind === 'lamp') {
+        if (lit(p.s, p.c)) { deps.say(MINE_CLIENT_TEXT.lampLit()); return true; }
+        if (!deps.drillOk?.()) return true;
+        if (deps.useKit && !(await deps.useKit('lamp'))) { deps.say(MINE_CLIENT_TEXT.needLamp()); return true; }
+        lastAsk = 'lamp';
+        if (deps.send('lamp', { s: p.s, c: p.c })) deps.say(MINE_CLIENT_TEXT.lampHung());
         return true;
       }
       if (!ch.walls[p.k] || shoring) return false;
@@ -181,8 +214,8 @@ export function createMineClient(deps) {
 }
 
 /** An activation key of the mine's: `mine:hole:<s>:<c>:<k>` or `mine:wall:<s>:<c>:<k>`. */
-export const mineKey = (/** @type {'hole'|'wall'} */ kind, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => `mine:${kind}:${s}:${c}:${k}`;
-const KEY_RE = /^mine:(hole|wall):(\d):(\d):(\d{1,2})$/;
+export const mineKey = (/** @type {'hole'|'wall'|'lamp'} */ kind, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => `mine:${kind}:${s}:${c}:${k}`;
+const KEY_RE = /^mine:(hole|wall|lamp):(\d):(\d):(\d{1,2})$/;
 function parseKey(/** @type {string} */ key) {
   const m = KEY_RE.exec(String(key ?? ''));
   return m ? { kind: m[1], s: Number(m[2]), c: Number(m[3]), k: Number(m[4]) } : null;

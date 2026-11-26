@@ -4,11 +4,24 @@
 // (server-account/src/society.js): the Survey Seals, the open contract and how much of its ore the Stores hold, or the
 // day's offers; and it takes a contract, turns one in, or buys a ware from the shop's ladder (net/mine/societyLaw.js).
 // Every number shown is the service's; nothing here decides.
-import { SOCIETY_WARES, societyBuyRefused } from '../net/mine/societyLaw.js';
+import { SOCIETY_WARES, societyBuyRefused, SOCIETY_KIT, SOCIETY_CONTRACT_REP } from '../net/mine/societyLaw.js';
 import { t } from '../ui/textManager.js';
 
 /** An ore's name for the desk: `metal:iron` -> `Iron Ore`, `ore:mithril` -> `Mithril Ore`. */
 export const societyOreName = (/** @type {string} */ ore) => { const id = String(ore).split(':')[1] ?? ore; return t('society.ore', '{name} Ore', { name: `${id[0].toUpperCase()}${id.slice(1)}` }); };
+
+/** The wares' and the kit's names, each its own literal key (the extractor reads them: tools/l10nExtract.mjs). */
+const WARE_NAMES = Object.freeze({
+  'title:prospector': () => t('society.ware.prospector', 'Prospector'), 'title:delver': () => t('society.ware.delver', 'Delver'),
+  'title:deepwarden': () => t('society.ware.deepwarden', 'Deepwarden'), 'title:masteroftheseam': () => t('society.ware.masteroftheseam', 'Master of the Seam'),
+  'aura:burningstair': () => t('society.ware.burningstair', 'The Burning Stair'),
+});
+const KIT_NAMES = Object.freeze({
+  drill: () => t('society.kit.drill', 'Mining Drill'), fuel: () => t('society.kit.fuel', 'Drill Fuel'),
+  lamp: () => t('society.kit.lamp', 'Mine Lamp'), rod: () => t('society.kit.rod', 'Survey Rod'),
+});
+const wareName = (/** @type {any} */ w) => WARE_NAMES[/** @type {keyof typeof WARE_NAMES} */ (w.id)]?.() ?? w.name;
+const kitName = (/** @type {any} */ k) => KIT_NAMES[/** @type {keyof typeof KIT_NAMES} */ (k.id)]?.() ?? k.name;
 
 const REFUSED = Object.freeze({
   'need-account': () => t('society.needAccount', 'The Society deals only with registered accounts.'),
@@ -19,15 +32,19 @@ const REFUSED = Object.freeze({
   owned: () => t('society.owned', 'You already have that.'),
   ladder: () => t('society.ladder', 'The Society grants its titles in order. Earn the one before it first.'),
   'seals-short': () => t('society.sealsShort', 'You do not have enough Survey Seals.'),
+  'gold-short': () => t('society.goldShort', 'You do not have enough gold.'),
+  'kit-full': () => t('society.kitFull', 'You cannot carry more of that.'),
 });
 
 /**
- * @param {{ call: ((path: string, body?: any) => Promise<any>) | null, choose: (view: any) => void, stores?: (() => void) | null }} deps
+ * @param {{ call: ((path: string, body?: any) => Promise<any>) | null, choose: (view: any) => void, stores?: (() => void) | null,
+ *   kit?: ((body: any, gold: number) => Promise<any>) | null, gold?: (() => number) | null, gainRep?: ((n: number) => void) | null }} deps
+ *   `kit` a mine kit bought for gold (a realm act), `gold` the purse, `gainRep` the Society's standing raised
  *   `call` the account service (`{ ok, data }` or `{ ok: false, error }`), null offline; `choose` the host's choice box;
  *   `stores` the Stores read again after a turn-in
  */
 export function createSocietyDesk(deps) {
-  let busy = false, shopping = false;
+  let busy = false, shopping = false, kitting = false;
   const words = (/** @type {any} */ r) => (REFUSED[/** @type {keyof typeof REFUSED} */ (r?.data?.error ?? r?.error)]?.() ?? t('society.failed', 'The Society could not do that just now.'));
 
   async function act(/** @type {string} */ path, /** @type {any} */ body, /** @type {(d: any) => string} */ done) {
@@ -35,7 +52,7 @@ export function createSocietyDesk(deps) {
     busy = true;
     try {
       const r = await deps.call(path, body);
-      if (r?.ok) { if (path === '/v1/society/turnin') deps.stores?.(); await open(done(r.data)); } else await open(words(r));
+      if (r?.ok) { if (path === '/v1/society/turnin') { deps.stores?.(); deps.gainRep?.(SOCIETY_CONTRACT_REP); } await open(done(r.data)); } else await open(words(r));
     } catch { await open(t('society.failed', 'The Society could not do that just now.')); } finally { busy = false; }
   }
 
@@ -45,12 +62,22 @@ export function createSocietyDesk(deps) {
     if (!r?.ok) { deps.choose({ lines: [t('society.heading', 'The Cartographers’ Society'), words(r)], options: [{ code: 'Escape', label: t('society.close', 'Leave'), action: () => {} }] }); return; }
     const d = r.data, lines = [t('society.heading', 'The Cartographers’ Society'), note, t('society.seals', 'Survey Seals: {n}', { n: d.seals })].filter(Boolean);
     const options = [];
-    if (shopping) {
+    if (kitting) {
+      // THE MINE KIT, for gold (the Society's tools: the spec's section 3)
+      const k = d.kit ?? {};
+      lines.push(t('society.kitHeld', 'You hold: drill {drill}, fuel {fuel}, lamps {lamp}, Survey Rod {rod}.', { drill: k.drill ?? 0, fuel: k.fuel ?? 0, lamp: k.lamp ?? 0, rod: k.rod ?? 0 }));
+      lines.push(t('society.kitRules', 'A drill needs a Drill Fuel each shift. A Mine Lamp lights a chamber and keeps strays out. The Survey Rod tells sound rock from weak.'));
+      SOCIETY_KIT.forEach((kit, i) => {
+        const owned = kit.owned && (k[kit.id] ?? 0) > 0;
+        options.push({ code: `Digit${i + 1}`, label: `${kitName(kit)}${kit.per > 1 ? ` x${kit.per}` : ''} - ${kit.gold} ${t('society.goldWord', 'gold')}${owned ? t('society.markOwned', ' (yours)') : ''}`, action: () => { void buyKit(kit); } });
+      });
+      options.push({ code: 'KeyC', label: t('society.backContracts', 'C - Contracts'), action: () => { kitting = false; void open(); } });
+    } else if (shopping) {
       lines.push(t('society.shopRules', 'Titles are granted in order. The Burning Stair stands apart.'));
       SOCIETY_WARES.forEach((w, i) => {
         const why = societyBuyRefused(w.id, d.wares, d.seals);
         const mark = why === 'owned' ? t('society.markOwned', ' (yours)') : why === 'ladder' ? t('society.markLadder', ' (earn the one before)') : '';
-        options.push({ code: `Digit${i + 1}`, label: `${t(`society.ware.${w.id.replace(':', '.')}`, w.name)} - ${w.seals} ${t('society.sealsWord', 'Seals')}${mark}`, action: () => { void act('/v1/society/buy', { ware: w.id }, () => t('society.bought', 'The Society grants you {name}.', { name: w.name })); } });
+        options.push({ code: `Digit${i + 1}`, label: `${wareName(w)} - ${w.seals} ${t('society.sealsWord', 'Seals')}${mark}`, action: () => { void act('/v1/society/buy', { ware: w.id }, () => t('society.bought', 'The Society grants you {name}.', { name: w.name })); } });
       });
       options.push({ code: 'KeyC', label: t('society.backContracts', 'C - Contracts'), action: () => { shopping = false; void open(); } });
     } else if (d.contract) {
@@ -65,9 +92,24 @@ export function createSocietyDesk(deps) {
         action: () => { void act('/v1/society/take', { ore: o.ore }, (x) => t('society.taken', 'Contract taken: deliver {n} {ore}. Any ore you gather counts, in the wilds or in a mine.', { n: x.contract.n, ore: societyOreName(x.contract.ore) })); },
       }));
     }
-    if (!shopping) options.push({ code: 'KeyS', label: t('society.shop', 'S - Spend Survey Seals'), action: () => { shopping = true; void open(); } });
-    options.push({ code: 'Escape', label: t('society.close', 'Leave'), action: () => { shopping = false; } });
+    if (!shopping && !kitting) {
+      options.push({ code: 'KeyS', label: t('society.shop', 'S - Spend Survey Seals'), action: () => { shopping = true; void open(); } });
+      options.push({ code: 'KeyG', label: t('society.kitShop', 'G - Buy mine kit for gold'), action: () => { kitting = true; void open(); } });
+    }
+    options.push({ code: 'Escape', label: t('society.close', 'Leave'), action: () => { shopping = false; kitting = false; } });
     deps.choose({ lines, options });
   }
-  return { open: () => { shopping = false; return open(); } };
+  /** A kit bought for gold: the purse checked here first, the realm act the service's word. */
+  async function buyKit(/** @type {any} */ kit) {
+    if (busy) return;
+    if (!deps.kit) { await open(t('society.online', 'Load an online realm character to take the Society’s contracts.')); return; }
+    if ((deps.gold?.() ?? 0) < kit.gold) { await open(REFUSED['gold-short']()); return; }
+    busy = true;
+    try {
+      const r = await deps.kit({ kit: kit.id, txn: globalThis.crypto.randomUUID() }, kit.gold);
+      busy = false;
+      await open(r?.ok ? t('society.kitBought', 'Bought: {name}.', { name: kit.name }) : r?.unknown ? t('society.kitRetry', 'The answer was lost. Look at your kit before buying again.') : words(r));
+    } catch { busy = false; await open(t('society.failed', 'The Society could not do that just now.')); }
+  }
+  return { open: () => { shopping = false; kitting = false; return open(); } };
 }

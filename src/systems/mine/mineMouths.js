@@ -40,8 +40,19 @@ export const MOUTH_TEXT = Object.freeze({
   title: () => t('mine.mouthTitle', 'Mine entrance'),
   enter: () => t('mine.mouthEnter', 'Enter the mine'),
   info: () => t('mine.mouthInfo', 'A mine shaft runs into the rock here. Its timbers still hold.'),
+  mapLabel: () => t('mine.mapLabel', 'Mine'),
   sealed: (/** @type {number} */ m) => t('mine.sealed', 'The mouth is choked with rubble. It reopens in about {m} minutes.', { m }),
 });
+
+/** Where the spotted mouths are remembered, and the most kept (the newest). */
+export const MOUTH_SPOTTED_KEY = 'bunnyfall.mines.spotted';
+export const MOUTH_SPOTTED_MAX = 64;
+function readSpotted(/** @type {any} */ storage) {
+  try { const v = JSON.parse(storage?.getItem?.(MOUTH_SPOTTED_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((k) => typeof k === 'string' && /^\d{1,4},\d{1,4}$/.test(k)).slice(-MOUTH_SPOTTED_MAX) : []; } catch { return []; }
+}
+function writeSpotted(/** @type {any} */ storage, /** @type {Set<string>} */ set) {
+  try { storage?.setItem?.(MOUTH_SPOTTED_KEY, JSON.stringify([...set].slice(-MOUTH_SPOTTED_MAX))); } catch { /* a page that keeps nothing still marks this session's */ }
+}
 
 /** What this page last heard of each mine it stood in: its reset and its seal, by pixel - the mouths' word on them. */
 const _heard = new Map();
@@ -68,7 +79,9 @@ export const mouthLocal = (/** @type {any} */ entry) => {
  *   enter: (px: number, py: number) => void, sealedFor: (px: number, py: number) => number, say: (text: string) => void,
  *   nowMs?: () => number, art?: (() => ({ state: 'loading'|'ready'|'none', art: any })) | null,
  *   collider?: (() => any) | null, riding?: ((px: number, py: number) => any) | null,
+ *   storage?: { getItem: (k: string) => (string|null), setItem: (k: string, v: string) => void } | null,
  * }} deps
+ *   `storage` where the mouths this player has spotted are remembered (the world maps mark them: mapMarks)
  *   `art()` the owner's entrance model (world/mine/mineArt.js), stood in place of the flats once it is ready; `collider` and
  *   `riding` its rock on the collider, riding its pixel's floating translation (poi/poiHostWorld.js's way)
  */
@@ -77,7 +90,7 @@ export function createMineMouths(deps) {
   /** stood mouths by pixel key: `{ entry, px, py, local, batches }` */
   const stood = new Map();
   const pending = new Set();
-  const spotted = new Set();
+  const spotted = new Set(readSpotted(deps.storage));
   let scanAt = -Infinity, armed = true;
   const _t = [0, 0, 0];
 
@@ -158,7 +171,7 @@ export function createMineMouths(deps) {
         const tr = deps.pixelTranslation(s.px, s.py, _t);
         const dx = feet[0] - (s.local[0] + tr[0]), dz = feet[2] - (s.local[2] + tr[2]), dy = feet[1] - (s.local[1] + tr[1]);
         const d = Math.hypot(dx, dz);
-        if (d < MOUTH_SPOT_M && !spotted.has(`${s.px},${s.py}`)) { spotted.add(`${s.px},${s.py}`); deps.say(MOUTH_TEXT.spotted()); }
+        if (d < MOUTH_SPOT_M && !spotted.has(`${s.px},${s.py}`)) { spotted.add(`${s.px},${s.py}`); writeSpotted(deps.storage, spotted); deps.say(MOUTH_TEXT.spotted()); }
         if (d < nearest && Math.abs(dy) < 4) { nearest = d; near = s; }
       }
       if (nearest > MOUTH_REARM_M) { armed = true; return; }
@@ -204,6 +217,8 @@ export function createMineMouths(deps) {
       }
       return n;
     },
+    /** The mouths this player has spotted, for the world maps: `{ px, py, label }` each (ui/poi/poiMapMark.js's shape). */
+    mapMarks: () => [...spotted].map((k) => { const [px, py] = k.split(',').map(Number); return { px, py, label: MOUTH_TEXT.mapLabel() }; }).filter((m) => Number.isSafeInteger(m.px) && Number.isSafeInteger(m.py)),
     /** The mouths stood now (probes). */
     stood: () => [...stood.values()].map((s) => ({ px: s.px, py: s.py, local: [...s.local] })),
     /** The way out landed the player before a mouth: wait until they step away. */

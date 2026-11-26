@@ -52,6 +52,8 @@ const factionOf = (/** @type {string} */ key) => bunnyGuildOfKey(key)?.factionId
 const gainRep = (/** @type {any} */ entity, /** @type {string} */ key, /** @type {number} */ n) => {
   if (n > 0 && entity?.factionRep) changeReputation(entity.factionRep, factionOf(key), n);
 };
+/** A Bunny guild's standing raised (BUNNYFALL 2026-11-26, caverns: the Society's contracts, guilds/societyDesk.js). */
+export const bunnyGainRep = gainRep;
 
 /** A performance's pay, for `hits` notes struck at `rank` (-1 for none). */
 export const bardPay = (/** @type {number} */ hits, /** @type {number} */ rank) =>

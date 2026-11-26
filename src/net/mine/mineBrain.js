@@ -38,7 +38,8 @@ export const MINE_STRAY = Object.freeze({ chance: 0.3, pair: 0.35 });
 /**
  * @typedef {{ mine: number, reset: number, born: number, sealedUntil: number, stab: number[], cap: number[],
  *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }>,
- *   alarm?: number[], waves?: number, ticked?: number, drills?: import('./mineDrill.js').MineDrillState[], hauls?: number }} MineState
+ *   alarm?: number[], waves?: number, ticked?: number, drills?: import('./mineDrill.js').MineDrillState[], hauls?: number,
+ *   lamps?: Array<{ s: number, c: number }> }} MineState
  */
 
 /**
@@ -53,11 +54,11 @@ export function createMineState(layout, nowS) {
     stab: layout.sections.map(() => 100), cap: layout.sections.map(() => 100), warned: layout.sections.map(() => 0),
     weak: layout.sections.map((s) => s.chambers.map((c) => c.walls.map((w, k) => (w.weak ? k : -1)).filter((k) => k >= 0))),
     walls: layout.sections.map((s) => s.chambers.map((c) => c.walls.length)),   // each chamber's wall slots, so a prop is checked without the layout
-    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS, drills: [], hauls: 0,
+    props: [], alarm: layout.sections.map(() => 0), waves: 0, ticked: nowS, drills: [], hauls: 0, lamps: [],
   };
 }
 
-const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0, drills: (st.drills ?? []).map((d) => ({ ...d })), hauls: st.hauls ?? 0 });
+const copy = (/** @type {MineState} */ st) => ({ ...st, stab: [...st.stab], cap: [...st.cap], warned: [...st.warned], props: [...st.props], alarm: st.alarm ? [...st.alarm] : st.stab.map(() => 0), waves: st.waves ?? 0, drills: (st.drills ?? []).map((d) => ({ ...d })), hauls: st.hauls ?? 0, lamps: [...(st.lamps ?? [])] });
 
 /** A mine's holes (its layout's, by its reset), kept a mine at a time: the drill reads a hole's ore and seam. */
 const _holes = new Map();
@@ -112,8 +113,10 @@ export function stepMine(state, op, nowS) {
     const st = copy(state), mins = Math.max(0, nowS - (state.ticked ?? nowS)) / 60, events = [];
     st.ticked = nowS;
     st.alarm = /** @type {number[]} */ (st.alarm).map((a) => Math.max(0, a - MINE_ALARM.forgetPerMin * mins));
-    // THE DRILLS: each shift second since the last tick roars in its section and wears it
+    // THE DRILLS: each shift second since the last tick roars in its section and wears it - and a drill whose setter has
+    // left the mine (the relay's `here`, the accounts in it) stops where it stands (the spec: "leaving stops it")
     const from = state.ticked ?? nowS, worn = new Set();
+    if (Array.isArray(op.here)) for (const d of /** @type {any[]} */ (st.drills)) if (d.until > nowS && !op.here.includes(d.by)) d.until = Math.max(d.from, nowS);
     for (const d of /** @type {any[]} */ (st.drills)) {
       const secs = drillSecondsBetween(d, from, nowS);
       if (secs <= 0) continue;
@@ -130,15 +133,23 @@ export function stepMine(state, op, nowS) {
     if (op.present && Number(op.roll) < MINE_STRAY.chance) {
       const slots = st.walls.flatMap((cs, s) => cs.map((_, c) => [s, c]));
       const [s, c] = slots[Math.min(slots.length - 1, Math.floor(Math.max(0, Number(op.pick) || 0) * slots.length))];
-      events.push(`stray:${s}:${c}:${Number(op.roll) < MINE_STRAY.chance * MINE_STRAY.pair ? 2 : 1}`);
+      // a lamp's chamber is no stray's way in (the spec: "reduces strays there")
+      if (!/** @type {any[]} */ (st.lamps).some((l) => l.s === s && l.c === c)) events.push(`stray:${s}:${c}:${Number(op.roll) < MINE_STRAY.chance * MINE_STRAY.pair ? 2 : 1}`);
     }
     return { state: st, events };
   }
-  if (op?.op !== 'strike' && op?.op !== 'prop' && op?.op !== 'drill' && op?.op !== 'take') return none('bad');
+  if (!['strike', 'prop', 'drill', 'take', 'lamp'].includes(op?.op)) return none('bad');
   if (state.sealedUntil > 0) return none('sealed');
   const { s, c } = op;
   if (!valid(state, s, c)) return none('bad');
   if (op.op === 'drill' || op.op === 'take') return drillOp(state, op, nowS, none);
+  if (op.op === 'lamp') {
+    // A LAMP set in a chamber (the page spent it first, as a plank): one a chamber, lit for good, till the mine turns over
+    if ((state.lamps ?? []).some((l) => l.s === s && l.c === c)) return none('lit');
+    const st = copy(state);
+    /** @type {any[]} */ (st.lamps).push({ s, c });
+    return { state: st, events: [`lamp:${s}:${c}`] };
+  }
   const st = copy(state), waveEvents = [];
   if (op.op === 'strike') {
     const open = st.weak[s][c].filter((w) => !propped(st, s, c, w)).length;
@@ -185,11 +196,13 @@ function drillOp(state, op, nowS, none) {
     if (here) return none('taken');
     if (/** @type {any[]} */ (st.drills).some((d) => d.by === by)) return none('one-each');
     if (/** @type {any[]} */ (st.drills).length >= MINE_DRILL.most) return none('full');
-    /** @type {any[]} */ (st.drills).push({ s, c, k: op.k, by, from: nowS, until: nowS + MINE_DRILL.shiftS, took: 0, rich: Math.max(1, Math.min(3, hole.rich | 0)) });
+    // its crew: the setter's party, named by the setter (the accounts that may empty its hopper beside them)
+    const crew = Array.isArray(op.crew) ? [...new Set(op.crew.filter((/** @type {any} */ x) => typeof x === 'string' && x && x.length <= 64 && x !== by))].slice(0, MINE_DRILL.crewMax) : [];
+    /** @type {any[]} */ (st.drills).push({ s, c, k: op.k, by, crew, from: nowS, until: nowS + MINE_DRILL.shiftS, took: 0, rich: Math.max(1, Math.min(3, hole.rich | 0)) });
     return { state: st, events: [`drill:${s}:${c}:${op.k}`] };
   }
   if (!here) return none('no-drill');
-  if (here.by !== by) return none('not-yours');
+  if (here.by !== by && !(here.crew ?? []).includes(by)) return none('not-yours');   // the setter, or their crew
   const n = drillHopper(here, nowS);
   if (n <= 0) return none('empty');
   here.took += n;

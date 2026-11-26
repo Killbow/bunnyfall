@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readdirSync, readFileSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
+import { d1Sqlite } from './lib/d1Sqlite.mjs';
 import { timberGrade, sawGrades, TIMBER_PLANKS } from '../src/net/timberLaw.js';
 import { smeltAtForge } from '../server-account/src/profCraft.js';
 
@@ -20,23 +19,7 @@ test('a saw spends the others first, then its own logs prime first and knotty la
   assert.deepEqual(sawGrades({ count: 2, own: 1, other: 0, prime: 9, knotty: 9 }), { prime: 1, knotty: 0, extra: 1 });   // counts no higher than the logs
 });
 
-/** The whole account database over node's SQLite (every migration), as D1 hands it. */
-function d1() {
-  const sqlite = new DatabaseSync(':memory:');
-  const dir = new URL('../server-account/migrations/', import.meta.url);
-  for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) sqlite.exec(readFileSync(new URL(f, dir), 'utf8'));
-  const stmt = (sql, args = []) => {
-    const st = sqlite.prepare(sql);
-    // a batch's statement answers as D1's does: its rows (a SELECT's, a RETURNING's) and its changes
-    const exec = () => { const results = st.all(...args); return { results, meta: { changes: sqlite.prepare('SELECT changes() AS c').get().c } }; };
-    return { first: async () => st.get(...args) ?? null, all: async () => ({ results: st.all(...args) }), run: async () => ({ meta: st.run(...args) }), _run: exec };
-  };
-  const db = {
-    prepare: (sql) => ({ bind: (...a) => stmt(sql, a), ...stmt(sql) }),
-    batch: async (list) => { sqlite.exec('BEGIN'); try { const out = list.map((s) => s._run()); sqlite.exec('COMMIT'); return out; } catch (e) { sqlite.exec('ROLLBACK'); throw e; } },
-  };
-  return { db, sqlite };
-}
+const d1 = d1Sqlite;
 
 const ENV = { PROFESSIONS_OPEN: 'on' };
 test('the workbench’s saw, on the real schema: prime logs saw to a plank more, the knotty to one less, their counts spent', async () => {
