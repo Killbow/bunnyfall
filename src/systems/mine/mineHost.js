@@ -3,7 +3,8 @@
 // the Sky-Ketch's deck is (systems/ketch/ketchDeckHost.js): the cave's mesh among the context's draws under Daggerfall's cave
 // textures, its rock on the collider as one bucket, and its way out an exit door at the mouth, so the dungeon's own exit
 // press and landing take the player back out where they went in. createWorldModes constructs it and calls `stand`.
-import { MINE_ART_ARCHIVE } from '../../world/mine/mineArt.js';
+import { MINE_ART_ARCHIVE, loadMineArt } from '../../world/mine/mineArt.js';
+import { mineOreDraws } from '../../world/mine/mineOres.js';
 import { mineWayOutModel, mineWayOutPicture, MINE_WAY_OUT_RECORD } from '../../world/mine/mineWayOut.js';
 import { identity } from '../../world/mat4.js';
 import { mineLayout } from '../../net/mine/mineLayout.js';
@@ -76,6 +77,9 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       for (let k = 0; k < idx.length; k++) idx[k] = k;
       try { ctx.collider?.addMesh?.(MINE_BUCKET, tris, idx, identity()); } catch (e) { console.warn('[mine] the cave\'s collider', e?.message ?? e); }
       ctx.exitDoors?.push(mineExitDoor(layout.mouth));
+      // the owner's ores at the holes (world/mine/mineOres.js), once the mines' models are read; the meshes are shared, never freed here
+      const oresFor = layout;
+      void loadMineArt(renderer).then((art) => { if (art?.ores && standCtx === ctx && layout === oresFor) ctx.dynamicDraws?.push(...mineOreDraws(layout, art.ores)); }).catch(() => {});
       // the way out seen: a timber frame onto daylight behind the exit door (world/mine/mineWayOut.js)
       try {
         const pic = mineWayOutPicture();

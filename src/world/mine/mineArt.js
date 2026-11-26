@@ -30,6 +30,9 @@ export function unpackMineModel(m, bin) {
   return { model: { positions, normals, uvs, indices, subMeshes }, box: m.box };
 }
 
+/** How much of its own colour an ore glows with in the dark (0 none, 1 all of it). */
+export const MINE_ORE_GLOW = 0.7;
+
 /** The dark of the way in, in the entrance's own frame: how far behind the door it hangs, how wide and how tall (m). */
 export const MINE_DARK = Object.freeze({ in: 0.35, w: 2.7, h: 2.6 });
 
@@ -65,6 +68,14 @@ export function loadMineArt(renderer, { fetchBytes = null } = {}) {
     const manifest = JSON.parse(new TextDecoder().decode(await get(MINE_ART_FILES.manifest)));
     const bin = await get(MINE_ART_FILES.bin);
     for (const t of manifest.textures) renderer.uploadTexture(MINE_ART_ARCHIVE, t.record, { width: t.width, height: t.height, colors: new Uint8Array(bin, t.at, t.bytes) });
+    // the ores glow a little of their own colour, so a seam reads in the cave's dark (the entrance takes the day's light)
+    const oreRecords = new Set(manifest.ores.flatMap((/** @type {any} */ o) => o.subMeshes.map((/** @type {any} */ s) => s.record)));
+    for (const t of manifest.textures) {
+      if (!oreRecords.has(t.record)) continue;
+      const src = new Uint8Array(bin, t.at, t.bytes), glow = new Uint8Array(src.length);
+      for (let i = 0; i < src.length; i += 4) { glow[i] = src[i] * MINE_ORE_GLOW; glow[i + 1] = src[i + 1] * MINE_ORE_GLOW; glow[i + 2] = src[i + 2] * MINE_ORE_GLOW; glow[i + 3] = 255; }
+      renderer.uploadEmissionTexture?.(MINE_ART_ARCHIVE, t.record, { width: t.width, height: t.height, colors: glow }, { white: true });
+    }
     const make = (/** @type {any} */ m) => { const u = unpackMineModel(m, bin); return { gpu: renderer.createMesh(u.model), box: u.box, name: m.name, positions: u.model.positions, indices: u.model.indices }; };
     const entrance = { ...make(manifest.entrance), door: manifest.entrance.door, dark: /** @type {any} */ (null) };
     // the owner: "a black square inside the mine model so you can interact on that to enter" - the dark of the way in, filling
