@@ -69,7 +69,7 @@ export function createMineMouths(deps) {
         if (!tex || record >= tex.recordCount) return;
         deps.uploadRecord(archive, record);
         const base = deps.billboardSize(tex, record), size = { w: base.w * scale, h: base.h * scale };
-        const centers = [[at[0], at[1] + size.h / 2, at[2]]];
+        const centers = [[at[0], at[1], at[2]]];   // a billboard's centre is its base
         const b = deps.renderer.createBillboardBatch(archive, record, size, centers);
         if (!b) return;
         if (deps.flatBatchAabb) b._box = deps.flatBatchAabb(centers, size);

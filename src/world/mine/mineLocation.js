@@ -16,6 +16,9 @@ export const MINE_DUNGEON_TYPE = 6;
 /** A chamber's lamp: Daggerfall's standing torch (TEXTURE.210 record 6), and how far its light reaches (m). */
 export const MINE_TORCH = Object.freeze({ archive: 210, record: 6 });
 export const MINE_LAMP_M = 14;
+/** How high over the mouth's floor the start marker stands (m): RDB y is flipped, and the dungeon stands a body's middle
+ *  0.72 m under its marker - at 1.75 m the body stands on the floor. */
+export const MINE_START_UP_M = 1.75;
 /** Classic units a metre. */
 const UNITS_PER_M = 40;
 
@@ -47,7 +50,7 @@ export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, res
   const step = 1.5, fx = Math.cos(L.mouth.facing), fz = Math.sin(L.mouth.facing);
   const marker = {
     type: 0x03, position: 1, index: 0,
-    xPos: Math.round((x + fx * step) * UNITS_PER_M), yPos: 0, zPos: Math.round((z + fz * step) * UNITS_PER_M),
+    xPos: Math.round((x + fx * step) * UNITS_PER_M), yPos: -Math.round(MINE_START_UP_M * UNITS_PER_M), zPos: Math.round((z + fz * step) * UNITS_PER_M),   // over the floor: the body stands 0.72 m under its marker
     resources: { flatResource: { textureArchive: 199, textureRecord: 10, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
   };
   // the lamps: a light over each chamber's floor (and one inside the mouth), its standing torch on the nearest wall slot -
