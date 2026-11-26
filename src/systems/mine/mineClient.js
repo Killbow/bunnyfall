@@ -213,5 +213,11 @@ function parseKey(/** @type {string} */ key) {
   const m = KEY_RE.exec(String(key ?? ''));
   return m ? { kind: m[1], s: Number(m[2]), c: Number(m[3]), k: Number(m[4]) } : null;
 }
+/** A Surveyor's survey of a mine (Mining 100): every ore its holes hold, once, the deepest and rarest last. '' for none. */
+export function mineSurveyLine(/** @type {{ sections: Array<{ chambers: Array<{ holes: Array<{ ore: string }> }> }> }} */ layout) {
+  const seen = [...new Set(layout.sections.flatMap((s) => s.chambers.flatMap((c) => c.holes.map((h) => h.ore))))];
+  if (!seen.length) return '';
+  return t('mine.survey', 'Your survey of the rock: {ores}.', { ores: seen.map(oreName).join(', ') });
+}
 /** An ore's name for a hole's words: `metal:iron` -> `Iron`. */
 const oreName = (/** @type {string} */ key) => { const id = String(key).split(':')[1] ?? key; return `${id[0].toUpperCase()}${id.slice(1)}`; };

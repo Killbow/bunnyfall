@@ -18,7 +18,8 @@ import { mineSurfacePictures, mineTextures } from '../../world/mine/mineSurfaces
 import { isMine, MINE_LAMP_M } from '../../world/mine/mineLocation.js';
 import { createMineDrillReadout } from '../../ui/mineDrillReadout.js';
 import { t } from '../../ui/textManager.js';
-import { createMineClient, mineKey } from './mineClient.js';
+import { createMineClient, mineKey, mineSurveyLine } from './mineClient.js';
+import { SURVEYOR } from '../../net/professionLaw.js';
 import { noteMineState } from './mineMouths.js';
 import { RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE } from '../../player/activate.js';
 
@@ -180,6 +181,7 @@ export function createMineHost({ renderer, link = null, say = null, shake = null
       mine = { ...loc.mine }; heard = false; hiAt = -Infinity; lampLights.clear(); kitHeld = null;
       void Promise.resolve(link?.()?.kit?.()).then((k) => { if (standCtx === ctx || standCtx === null) kitHeld = k ?? null; }, () => {});
       const doors = link?.() ?? null;
+      if (doors?.surveyor?.() === SURVEYOR) { const line = mineSurveyLine(layout); if (line) say?.(line); }   // MINE-PERKS: a Surveyor knows the ores before they walk in
       client = createMineClient({
         layout, say: (x) => say?.(x), send: (k, f) => doors?.send?.(k, f) === true, planks: (m) => doors?.planks?.(m) ?? 0,
         spend: async (m) => (await doors?.spend?.(m)) === true, shake: (k) => shake?.(k), fade, closeWindows: () => doors?.closeWindows?.(),

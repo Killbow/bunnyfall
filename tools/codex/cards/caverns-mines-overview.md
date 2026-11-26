@@ -22,6 +22,7 @@ files:
   - src/travel/travelViewMarks.js
   - server/src/world/mine.js
   - src/net/mine/mineDrill.js
+  - src/net/mine/mineHaulLaw.js
   - src/net/mine/mineReceipt.js
   - server-account/src/mineHaul.js
   - tools/mineArtBake.mjs
@@ -49,4 +50,4 @@ Mouths stand in the wilds on pixels `mineAt` rolls (`MINE_CHANCE` by climate, ne
 
 Inside, `mineLayout(mineId, reset)` builds sections of domed chambers joined by tubes, as one virtual RDB block (`MINE_LOCATION_ID`). Holes name their ore and seam; walls are sound or weak.
 
-The relay's `MinePart` runs `stepMine`: each strike wears its section's stability (`MINE_COST`, weak walls 1.5x), a Stores plank shores it (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse, which puts everyone out. Strikes fill an alarm (`MINE_ALARM`) that calls `wave:s:c:n`, and the minute tick may send `stray` (`MINE_STRAY`) via `spawnFoeNear`. A drill (`MINE_DRILL`) runs a shift into a hopper its setter or crew empties; the relay signs each haul (`mineReceipt.js`) and `/v1/mine/haul` pays it once. A deposit holds 15 runs times its richness in ore (`mineOreLeft`, 15 to 45), as an examined hole says, then depletes for the reset. Unshored weak walls amplify drill wear. The drill stops when its setter leaves; `lamp` keeps strays from a chamber.
+The relay's `MinePart` runs `stepMine`: each strike wears its section's stability (`MINE_COST`, weak walls 1.5x), a Stores plank shores it (`MINE_WOOD_STRENGTH`), and falling stability says dust, creak, rumble, then collapse, which puts everyone out. Strikes fill an alarm (`MINE_ALARM`) that calls `wave:s:c:n`, and the minute tick may send `stray` (`MINE_STRAY`) via `spawnFoeNear`. A drill (`MINE_DRILL`) runs a shift into a hopper its setter or crew empties; the relay signs each haul (`mineReceipt.js`) and `/v1/mine/haul` pays it once. A deposit holds 15 runs of `drillYield(rich)` ore (2, 3 or 5; `mineOreLeft`), as an examined hole says, then depletes for the reset. A paid haul takes the character's Firmament mining yield and half a node's mining XP per ore (`mineHaulLaw.js`); a Surveyor is told the mine's ores on entry. Unshored weak walls amplify drill wear. The drill stops when its setter leaves; `lamp` keeps strays from a chamber.
