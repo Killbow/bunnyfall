@@ -1,14 +1,7 @@
 // @ts-check
-// BUNNYFALL (2026-11-26, caverns): A DRILL'S HAUL, SIGNED - the spec's section 5: "Its yield is reported and paid by the
-// account service (the relay signs the run, as other made levels sign receipts), so a client cannot invent drill ore."
-// The arena's receipt, rung for rung (net/arenaReceipt.js): the relay MINTS one when a drill's setter empties its hopper
-// (net/mine/mineBrain.js `take`), the page carries it to /v1/mine/haul, and the account service VERIFIES it with the
-// relay's public half and pays it once (server-account/src/mineHaul.js, one row a receipt).
-//
-//   m1.<base64url claims>.<base64url Ed25519 signature>
-//   claims: { m mine, z reset, s c k the hole, o ore, n pieces, u the setter, q the mine's haul count, i issued, e expires }
-//
-// A receipt of another shape (the arena's, a gate's) carries fields this one never does, and is refused for them.
+// The relay signs each drill haul. The account service verifies it before paying it once.
+// Wire format: m1.<base64url claims>.<base64url Ed25519 signature>
+// Claims identify the mine, reset, hole, ore, player, haul sequence, and validity window.
 import { _b64url, SIG_BYTES, SKEW_S, ID_RE } from '../identityToken.js';
 import { MINE_DRILL } from './mineDrill.js';
 

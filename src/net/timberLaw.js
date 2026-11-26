@@ -1,14 +1,6 @@
 // @ts-check
-// BUNNYFALL (2026-11-26, caverns): TIMBER GRADES - the spec's section 10: "timber grades from felling (sound, knotty, prime),
-// which change how many planks a log saws to". A felling's logs take its GRADE from the Wood-Axe's own act
-// (server-account/src/profHarvest.js cutsOf: how many of the finish's chops were clean):
-//   prime   every chop clean (the Clean Cut)       saws to one plank MORE than its wood's yield
-//   sound   at least half the chops clean           saws to its wood's yield (a Timberwright's three, else two)
-//   knotty  fewer than half                         saws to one plank LESS
-// The Stores keep no unit's grade: the account service counts a character's prime and knotty logs of each wood beside
-// them (`prof_log_grades`, migration 0223, as unbruised herbs are counted). A saw at the workbench spends loose and bought
-// logs first, as every work does (they are sound); of the character's own logs, the prime first and the knotty last.
-// Pure: the service and the page read it.
+// The service counts prime and knotty logs alongside each character’s Stores.
+// The saw spends loose and bought logs first, then gathered logs in prime-to-knotty order.
 
 /** How many chops of a finish must be clean for a sound log (a share of the finish). */
 export const TIMBER_SOUND_SHARE = 0.5;

@@ -1,15 +1,7 @@
 // @ts-check
-// BUNNYFALL (2026-11-25, caverns): THE MINE'S ROCK - a layout (net/mine/mineLayout.js) made into one mesh and one collider
-// soup, drawn with Daggerfall's own cave textures.
-//
-// A CHAMBER is a lumpy dome: an ellipse of floor, a near-upright wall rising to `wallTop`, then a cap closing at its
-// height. A TUNNEL is a tube of irregular rings along its floor points, its lower rings flattened into a walkable floor,
-// clipped where it enters a chamber - and the chamber's wall is left open there, so the two meet in a doorway. The mouth's
-// tunnel is closed by a flat wall at the mouth, where the way out stands. Every face looks into the cave (the world pass
-// culls the back), so from inside it is rock all round and from outside nothing.
-//
-// The textures: archive 22 (Daggerfall's temperate cave set - record 0 rough rock, record 1 dirt) and, under the
-// mountains, 322 (the darker mountain rock). Three sub-meshes: wall, floor, ceiling.
+// Chamber walls and flattened tunnels meet at open doorways.
+// The render faces point inward. The mesh and collider share the same cave geometry.
+// Walls, floors, and ceilings use cave textures from archives 22 and 322.
 import { createMeshKit } from '../eliteGates/meshKit.js';
 import { gateHash } from '../../net/gateLaw.js';
 import { CLIMATES } from '../../formats/mapsTables.js';

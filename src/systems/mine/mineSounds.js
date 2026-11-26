@@ -1,16 +1,5 @@
 // @ts-check
-// BUNNYFALL (2026-11-26, caverns): THE MINE, HEARD - the owner: "the drill and mining had [no sound effects]". Daggerfall's
-// own clips (DAGGER.SND, by DFU's SoundClips.cs names), played through the game's one bus (audio/audio.js):
-//   a drill RUNNING      ActivateGrind (40) looped at its rig, near and loud, fading out a few chambers off; its gears
-//                        (ActivateGears, 19) as it is set
-//   a hopper HAULED      AmbientGoldPieces (74): ore clattering into the sack
-//   a wall SHORED        PlayerDoorBash (7): the plank hammered home
-//   a lamp HUNG          Ignite (16)
-//   the WARNINGS         dust: AmbientDripShort (63) - grit pattering down; creak: AmbientGrind (68) pitched low - the
-//                        timbers groaning; rumble: AmbientWindMoanDeep (66) pitched low under a FallHard (92)
-//   the COLLAPSE         FallHard (92) and BodyFall (15) in a run, under the deep moan
-//   a WAVE called        AmbientMonsterRoar (73): something in the dark heard you
-// A sound never stops the mine: every play is guarded, and a page with no bus (a test, a probe) hears nothing.
+// Mine sounds use clips from DAGGER.SND. Missing audio must never interrupt mine interactions.
 import { SOUND } from '../../audio/soundClips.js';
 
 /** The clips (DFU SoundClips indices), and how each is played: volume, pitch. */

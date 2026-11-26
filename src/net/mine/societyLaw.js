@@ -1,17 +1,6 @@
 // @ts-check
-// BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY'S LAW - the spec's section 9, the owner's "contracts for
-// LARGE quantity of ore, the kind of large you either need to break your hand outside or inside the mine, this contract
-// turns into points that lets you buy special rewards, including rare grindable titles and auras".
-//
-//   CONTRACTS  each names one ore and a large amount of it, delivered from the Stores (the units gathered, `own`: bought
-//              ore never counts, so Seals cannot be bought with gold). One at a time a character; the desk offers
-//              SOCIETY_OFFERS of them a day, the same for everyone on a character's day (societyOffers). Size and pay
-//              grow with the ore's rarity. Ore from anywhere counts: a vein outside, a cave vein, a drill's haul.
-//   SURVEY SEALS  the account service's currency (server-account/src/society.js): a contract turned in pays them.
-//   THE SHOP   a ladder of titles, each costing more and each needing the one before (Prospector, Delver, Deepwarden,
-//              Master of the Seam), then The Burning Stair, the Wellhead-Walker's falling embers, at a very high price.
-//
-// Pure: the account service and every page read this one law.
+// The client and account service share the contract and shop rules.
+// Only gathered ore counts toward contracts, including veins outside mines and drill hauls.
 
 /** The contracts by ore: how much is asked, and the Seals it pays. */
 export const SOCIETY_CONTRACTS = Object.freeze({

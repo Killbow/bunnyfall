@@ -71,19 +71,12 @@ export const mouthLocal = (/** @type {any} */ entry) => {
 };
 
 /**
- * @param {{
- *   renderer: any, getTexture: (a: number) => Promise<any>, uploadRecord: (a: number, r: number) => void,
+ * @param {{ renderer: any, getTexture: (a: number) => Promise<any>, uploadRecord: (a: number, r: number) => void,
  *   billboardSize: (t: any, r: number) => { w: number, h: number }, flatBatchAabb?: ((c: number[][], s: any) => number[]) | null,
  *   built: () => Map<string, any>, climateAt: (px: number, py: number) => number, occupiedAt: (px: number, py: number) => boolean,
  *   pixelTranslation: (px: number, py: number, out: number[]) => number[], feet: () => (number[]|null), outside: () => boolean,
- *   enter: (px: number, py: number) => void, sealedFor: (px: number, py: number) => number, say: (text: string) => void,
- *   nowMs?: () => number, art?: (() => ({ state: 'loading'|'ready'|'none', art: any })) | null,
- *   collider?: (() => any) | null, riding?: ((px: number, py: number) => any) | null,
- *   storage?: { getItem: (k: string) => (string|null), setItem: (k: string, v: string) => void } | null,
- * }} deps
- *   `storage` where the mouths this player has spotted are remembered (the world maps mark them: mapMarks)
- *   `art()` the owner's entrance model (world/mine/mineArt.js), stood in place of the flats once it is ready; `collider` and
- *   `riding` its rock on the collider, riding its pixel's floating translation (poi/poiHostWorld.js's way)
+ *   enter: (px: number, py: number) => void, sealedFor: (px: number, py: number) => number, say: (text: string) => void, nowMs?: () => number,
+ *   art?: (() => ({ state: 'loading'|'ready'|'none', art: any })) | null, collider?: (() => any) | null, riding?: ((px: number, py: number) => any) | null, storage?: { getItem: (k: string) => (string|null), setItem: (k: string, v: string) => void } | null }} deps
  */
 export function createMineMouths(deps) {
   const nowMs = deps.nowMs ?? (() => performance.now());

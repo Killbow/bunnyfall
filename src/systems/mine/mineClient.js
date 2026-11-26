@@ -1,15 +1,6 @@
 // @ts-check
-// BUNNYFALL (2026-11-25, caverns): THE MINE ON THIS PAGE - what a player in a mine reads of it and does in it, apart from
-// the rock (systems/mine/mineHost.js stands that). It keeps the mine as its room last said it (net/mine/mineBrain.js,
-// over the `mn` frame), and:
-//   - HOLES: examining one names the ore below and how rich its seam is, and how well its section's rock holds.
-//   - WALLS: a wall slot is sound or weak rock; shoring it spends one plank of the best wood in the Stores (the plank is
-//     withdrawn and nothing minted: spent) and tells the room, whose brain raises the section's stability.
-//   - STRIKES: each cave vein's answered strike is told to the room, which wears its section.
-//   - WARNINGS: the room's dust, creaks and rumble shake the camera, harder each time, and say so.
-//   - THE COLLAPSE: a long shake rising, every window closed, a fade to black, and the player put out at the mouth - with
-//     what they carry, the rest under the rock.
-// Every effect is a door handed in, so the whole of it runs in a test.
+// The client uses the latest mine state from the relay.
+// Effects are injected so tests can exercise mine interactions without a scene.
 import { t } from '../../ui/textManager.js';
 import { MINE_WOOD_STRENGTH } from '../../net/mine/mineBrain.js';
 import { drillReading } from '../../net/mine/mineDrill.js';
@@ -71,21 +62,12 @@ const woodOf = (/** @type {string} */ key) => key.slice('plank:'.length);
 const WOODS = Object.freeze(Object.keys(MINE_WOOD_STRENGTH).sort((a, b) => MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (b)] - MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (a)]));
 
 /**
- * @param {{
- *   layout: any, say: (text: string) => void, send: (k: string, fields?: any) => boolean,
- *   planks: (material: string) => number, spend: (material: string) => Promise<boolean>,
- *   shake: (k: number) => void, fade: (on: boolean) => void, closeWindows: () => void, leave: () => void,
- *   woodName?: (wood: string) => string, nowMs?: () => number,
+ * @param {{ layout: any, say: (text: string) => void, send: (k: string, fields?: any) => boolean, planks: (material: string) => number, spend: (material: string) => Promise<boolean>,
+ *   shake: (k: number) => void, fade: (on: boolean) => void, closeWindows: () => void, leave: () => void, woodName?: (wood: string) => string, nowMs?: () => number,
  *   foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null,
  *   drillOk?: (() => boolean) | null, me?: (() => (string|null)) | null, claim?: ((receipt: string) => Promise<any>) | null,
  *   kit?: ((id: string) => number) | null, useKit?: ((id: string) => Promise<boolean>) | null, crew?: (() => string[]) | null,
- *   sound?: ((name: string) => void) | null,
- * }} deps
- *   `sound` a mine sound said (systems/mine/mineSounds.js MINE_SOUND's keys)
- *   `kit` how many of a mine kit the character holds (the Society's: drill, fuel, lamp, rod), `useKit` one spent at the
- *   account service, `crew` the accounts of the player's party (a drill's crew may empty its hopper)
- *   `drillOk` the relay keeps drills, `me` this page's account, `claim` a haul's receipt carried to the account service
- *   `foes` a wave's or a stray's creatures stood (systems/mine/mineFoes.js; the room's host alone stands them)
+ *   sound?: ((name: string) => void) | null }} deps
  */
 export function createMineClient(deps) {
   const nowMs = deps.nowMs ?? (() => performance.now());

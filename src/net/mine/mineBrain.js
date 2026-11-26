@@ -1,18 +1,16 @@
 // @ts-check
-// BUNNYFALL (2026-11-25, caverns): THE MINE'S SHARED BRAIN - pure, run by the relay (server/src/room/mine.js) for the one
-// mine every player in it shares, and read by every page (systems/mine/mineClient.js).
-//
-// A mine has a STABILITY for each of its sections, 0 to its cap (100 fresh). Every pick strike wears its section a
-// little - more for each weak wall of its chamber left unshored. A PLANK stood on a wall slot raises its section's cap
-// and gives some stability back, by its wood (Pine the least, Ironwood and Ghostwood the most), twice over on a weak wall.
-// As a section falls it WARNS: dust under 50, creaks under 30, a rumble under 15. At 0 the WHOLE mine collapses: it is
-// SEALED for MINE_SEAL_S, refusing every act, and the first tick past the seal RESETS it - a new layout (the reset count
-// one higher), full stability, no props. A mine nobody brings down turns over the same way after MINE_WEEK_S.
-//
-// The state is plain data the relay keeps in its room's storage; stepMine never changes the state it is handed.
-// Imports only pure laws (ruling R2): no clock, no network.
+// The relay stores this shared mine state. Each action returns a new state.
+// Pick strikes lower section stability. Shoring restores stability and raises its cap.
+// A collapsed mine rejects actions until its seal expires and a tick resets its layout.
 import { mineLayout } from './mineLayout.js';
 import { MINE_DRILL, drillHopper, drillRunning, drillSecondsBetween } from './mineDrill.js';
+
+/**
+ * @typedef {{ mine: number, reset: number, born: number, sealedUntil: number, stab: number[], cap: number[],
+ *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }>,
+ *   alarm?: number[], waves?: number, ticked?: number, drills?: import('./mineDrill.js').MineDrillState[], hauls?: number,
+ *   lamps?: Array<{ s: number, c: number }> }} MineState
+ */
 
 /** A pick strike's cost to its section, and how much each unshored weak wall of its chamber multiplies it. */
 export const MINE_COST = Object.freeze({ strike: 0.6, weakMult: 1.5 });
@@ -34,13 +32,6 @@ export const MINE_ALARM = Object.freeze({ strike: 1, wave: 24, forgetPerMin: 6, 
 /** STRAYS: the chance a minute's tick sends one into an occupied mine (one or two creatures, a chamber of the tick's
  *  pick). */
 export const MINE_STRAY = Object.freeze({ chance: 0.3, pair: 0.35 });
-
-/**
- * @typedef {{ mine: number, reset: number, born: number, sealedUntil: number, stab: number[], cap: number[],
- *   warned: number[], weak: number[][][], walls: number[][], props: Array<{ s: number, c: number, w: number, wood: string, by: string }>,
- *   alarm?: number[], waves?: number, ticked?: number, drills?: import('./mineDrill.js').MineDrillState[], hauls?: number,
- *   lamps?: Array<{ s: number, c: number }> }} MineState
- */
 
 /**
  * A fresh mine, as its layout stands.
@@ -96,10 +87,7 @@ function warningsOf(/** @type {number} */ level, /** @type {number} */ to) {
 const turnedOver = (/** @type {MineState} */ st, /** @type {number} */ nowS) => createMineState(mineLayout(st.mine, st.reset + 1), nowS);
 
 /**
- * One act on a mine. Ops: `{ op: 'strike', s, c }` (a pick strike in chamber c of section s), `{ op: 'prop', s, c, w,
- * wood, by }` (a plank on wall slot w), `{ op: 'tick', present?, roll?, pick? }` (the clock: a seal run out, or a week
- * gone; the alarm forgetting; and, with someone `present`, a stray when `roll` (0..1) falls under MINE_STRAY.chance, its
- * chamber by `pick` (0..1)). A strike's noise may call a wave: `wave:<s>:<c>:<n>`; a stray is `stray:<s>:<c>:<n>`.
+ * A tick uses optional rolls in [0, 1) for stray chance and chamber selection.
  * @param {MineState} state
  * @param {any} op
  * @param {number} nowS
@@ -176,9 +164,7 @@ export function stepMine(state, op, nowS) {
 }
 
 /**
- * A drill set on hole k of chamber c of section s (`drill`), or its hopper emptied (`take`) - by `by`, the player.
- * A set drill starts its shift at once; one a player, one a hole (a spent, empty one is cleared for the next). A take is
- * the setter's alone and answers `haul`: what the relay signs for the account service to pay.
+ * A successful take returns a haul for the relay to sign.
  * @param {MineState} state
  * @param {any} op
  * @param {number} nowS

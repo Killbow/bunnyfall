@@ -1,13 +1,5 @@
-// BUNNYFALL (2026-11-26, caverns): THE CARTOGRAPHERS' SOCIETY ON THE ACCOUNT SERVICE - the spec's section 9 (the law is
-// src/net/mine/societyLaw.js). A registered account's Survey Seals and its wares live on its row (`society_seals`,
-// `society_wares`, migration 0222); each character keeps one open contract (`society_contracts`). Nothing here trusts
-// the page: an offer taken is checked against the day's offers, a contract turned in takes its ore from the Stores' own
-// units (bought ore never counts), and a ware's price and ladder are checked in the very UPDATE that spends the Seals.
-//
-//   /v1/society          { character }            the desk: Seals, wares, the open contract, the day's offers, Stores held
-//   /v1/society/take     { character, ore }       an offered contract taken (one at a time)
-//   /v1/society/turnin   { character }            the open contract's ore taken from the Stores, its Seals paid
-//   /v1/society/buy      { ware }                 a ware bought with Seals (its title or aura held for good: titles.js)
+// Survey Seals and wares belong to the account. Each character can hold one open contract.
+// A contract consumes gathered ore. Purchases check the price and title prerequisites in the same update.
 import { SOCIETY_CONTRACTS, SOCIETY_WARES, societyOffers, societyWaresHeld, societyBuyRefused, SOCIETY_KIT, SOCIETY_KIT_IDS, SOCIETY_KIT_MAX, societySealsFor } from '../../src/net/mine/societyLaw.js';
 import { charOk } from './profShared.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, recordMovedOf, realmSaveTextOf } from './realm.js';

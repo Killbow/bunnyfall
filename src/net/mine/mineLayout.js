@@ -1,15 +1,8 @@
 // @ts-check
-// BUNNYFALL (2026-11-25, caverns): the mine layout law, a cave's shape from its mineId and its weekly reset.
-// Shared by the client, the relay and the account service (ruling R2): it hashes with gateHash and imports no client
-// module. Pure: the same (mineId, reset) gives the same layout on every machine.
-//
-// Units are metres, y up. The mouth stands at the origin; the mine winds down from it as a meandering descent of
-// sections, each a few chambers on one level (a chamber's floor is at c[1]), each section lower than the last.
-// A tunnel's `pts` run along its floor, a point about every 2 m, from a point inside one chamber (or the mouth) to a
-// point inside the next. `rails` is the main line, mouth to the deepest chamber, through each chamber's center.
-// `mouth.facing` is the heading into the mine, in radians: the way in is [cos(facing), 0, sin(facing)]. A chamber's
-// ellipse is axis aligned (rx along x, rz along z). A wall slot stands on that ellipse 1 m above the floor, `n` its
-// inward unit normal; a hole stands on the floor, at least 3 m from every wall slot.
+// A mine ID and reset count determine the same layout on the client and relay.
+// Layout coordinates use meters with y up. Tunnel points follow the floor.
+// The mouth is at the origin and its heading into the mine is in radians.
+// Wall slots sit one meter above the chamber floor with inward unit normals.
 import { gateHash } from '../gateLaw.js';
 
 /** Sections a mine has (inclusive). */
@@ -66,17 +59,17 @@ const POCKET_APART = Math.PI / 3;   // a pocket's tunnel leaves its chamber this
 const HOLE_WALL_M = 3;        // a hole keeps this far from every wall slot (veins stand by the walls, 2 m off a hole)
 
 /**
- * @typedef {{ k: number, at: number[], ore: string, rich: number }} MineHole
  * @typedef {{ k: number, at: number[], n: number[], weak: boolean }} MineWall
  * @typedef {{ id: string, c: number[], rx: number, rz: number, h: number, holes: MineHole[], walls: MineWall[] }} MineChamber
  * @typedef {{ from: string, to: string, pts: number[][], r: number }} MineTunnel
  * @typedef {{ mineId: number, reset: number, mouth: { at: number[], facing: number },
  *   sections: Array<{ i: number, depth: number, chambers: MineChamber[] }>, tunnels: MineTunnel[], rails: number[][] }} MineLayout
  * @typedef {{ id: string, x: number, y: number, z: number, rx: number, rz: number, h: number, ends: Array<{ ang: number, r: number }> }} Cell
- * @typedef {{ from: string, to: string, a: number[], b: number[], r: number }} Bore
  */
 
 const cm = (/** @type {number} */ v) => Math.round(v * 100) / 100;
+/** @typedef {{ k: number, at: number[], ore: string, rich: number }} MineHole */
+/** @typedef {{ from: string, to: string, a: number[], b: number[], r: number }} Bore */
 const cmAll = (/** @type {number[]} */ p) => p.map(cm);
 const widest = (/** @type {{ rx: number, rz: number }} */ c) => Math.max(c.rx, c.rz);
 /** Distance from an ellipse's center to its rim along the unit direction (ux, uz). */
@@ -144,8 +137,6 @@ export function mineLayout(mineId, reset) {
   };
 
   /**
-   * Place a new chamber from `from` (a chamber, or null for the mouth) on a heading near `heading`, and bore the
-   * tunnel to it.
    * @param {Cell|null} from
    * @param {{ id: string, y: number, rx: number, rz: number, h: number }} shape
    * @param {number} heading

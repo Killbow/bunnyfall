@@ -82,7 +82,6 @@ export function bunnyQuestEnded(/** @type {any} */ quest, /** @type {any} */ ent
  * the town's bounty notices.
  * @param {{ entity: any, openCompany?: (() => boolean) | null, openBoard?: ((focus: any) => boolean) | null, openBounties?: (() => boolean) | null,
  *   revealLocation?: (() => { shown: string } | null) | null, openFavor?: (() => void) | null, openSociety?: (() => void) | null }} doors
- *   `openSociety` the Cartographers' ore contracts and Survey Seals (guilds/societyDesk.js)
  */
 export function bunnyHallServices(doors) {
   return (/** @type {string} */ key, /** @type {{ member: { rank: number } | null, again: (note?: string) => void }} */ { member, again }) => {
