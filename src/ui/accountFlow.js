@@ -118,8 +118,8 @@ export const AGREEMENT_SPEC = Object.freeze({
  *  service takes one password and has no idea a second box existed. */
 export const LOCAL_REFUSALS = localizedTable({   // L10N4: each a getter, read when it is said
   'confirm-mismatch': () => t('account.local.confirmMismatch', 'Those two passwords are not the same.'),
-  'handle-shape': () => t('account.local.handleShape', 'A username is one word, 3 to 24 characters, starting with a letter, and no spaces.'),
-  'password-short': () => t('account.local.passwordShort', 'A password is at least {min} characters.', { min: PASSWORD_MIN_LEN }),
+  'handle-shape': () => t('account.local.handleShape', 'Usernames must be 3 to 24 characters long, start with a letter, and contain no spaces.'),
+  'password-short': () => t('account.local.passwordShort', 'Passwords must be at least {min} characters long.', { min: PASSWORD_MIN_LEN }),
   'code-empty': () => t('account.local.codeEmpty', 'Type the recovery code you were given.'),
   'password-empty': () => t('account.local.passwordEmpty', 'Type your password.'),
   'handle-empty': () => t('account.local.handleEmpty', 'Type your username.'),
@@ -140,7 +140,7 @@ export function codesOf(d) {
 export function recoveryCodesText(handle, codes) {
   return [
     t('account.codes.fileHead', 'Bunnyfall recovery codes for {name}', { name: handle || '?' }),
-    t('account.codes.fileNote', 'Each code works once, if you forget your password. Keep this file somewhere safe.'),
+    t('account.codes.fileNote', 'Each code works once if you forget your password. Keep this file somewhere safe.'),
     '',
     ...codes.map((c, i) => `${i + 1}. ${c}`),
     '',
@@ -345,7 +345,7 @@ export function AccountFlow({ io, storage, onChange = () => {}, now = () => Date
     self.patreon = d.patreon ?? null;
     if (self.patreonWaiting && self.patreon?.linked && (!was?.linked || String(was.titles) !== String(self.patreon.titles))) {
       self.patreonWaiting = false;
-      self.note = self.patreon.titles?.length ? t('account.flow.patreonLinkedTitle', 'Patreon linked. Wear your title under Title.') : t('account.flow.patreonLinked', 'Patreon linked. Your title arrives when your pledge holds one.');
+      self.note = self.patreon.titles?.length ? t('account.flow.patreonLinkedTitle', 'Patreon linked. Choose your title under Title.') : t('account.flow.patreonLinked', 'Patreon linked. Your title will unlock once your pledge includes one.');
     }
     changed();
     return true;
@@ -658,7 +658,7 @@ export function AccountFlow({ io, storage, onChange = () => {}, now = () => Date
     if (!codes.length) {
       await self.start();
       if (self.stage === 'in' && !self.error && Number.isSafeInteger(r.data.codesLeft)) {
-        self.note = t('account.flow.recoveredLeft', 'Your password was set. {n, plural, one {# recovery code is} other {# recovery codes are}} left.', { n: r.data.codesLeft });
+        self.note = t('account.flow.recoveredLeft', 'Your new password is set. You have {n, plural, one {# recovery code} other {# recovery codes}} left.', { n: r.data.codesLeft });
         changed();
       }
       return true;

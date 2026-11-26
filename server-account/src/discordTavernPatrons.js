@@ -4,8 +4,6 @@ const recent = 3600;
 export async function tavernDiscordNames(db, nowS, patrons) {
   const state = await db.prepare('SELECT channel, floor FROM discord_tavern_config WHERE id = 1').first();
   if (!state?.channel || !patrons.length) return null;
-  // `skin`: the approved custom paperdoll the linked game account wears, if the Discord user linked one (a banned account's
-  // worn row is already gone, skins.js) - the room draws that patron as the paperdoll instead of only renaming them
   const { results } = await db.prepare(`SELECT name, skin FROM (
     SELECT t.name, t.id, row_number() OVER (PARTITION BY t.discord_id ORDER BY t.id DESC) AS latest,
       (SELECT w.skin_id FROM discord_links l JOIN skin_worn w ON w.player = l.player

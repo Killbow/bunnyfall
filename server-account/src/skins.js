@@ -1,7 +1,6 @@
 // @ts-check
-// BUNNYFALL (2026-11-07): CUSTOM PAPERDOLLS, KEPT (src/net/skinLaw.js is the law). An account uploads a skin - a name, a
-// height and a front and a back PNG - it waits for staff, and once approved its owner may wear it online; everyone who
-// meets the wearer reads it by its id (`get`). The pictures live in the saves bucket under `skins/<id>/front|back`.
+// An approved skin may be worn online by its owner, and anyone who meets the wearer reads it by id.
+// The pictures live in the saves bucket under `skins/<id>/front|back`.
 import { accountKind } from './accounts.js';
 import { findAccount } from './sanctions.js';
 import {
@@ -34,7 +33,6 @@ async function read(/** @type {any} */ bucket, /** @type {string} */ id, /** @ty
   return b;
 }
 
-/** UPLOAD `{ name, height, front, back }` (the pictures in base64): `{ ok, skin }` or `{ error }`. */
 export async function skinsUpload(/** @type {any} */ ctx, /** @type {any} */ player, /** @type {any} */ body) {
   const { db, nowS, bucket } = ctx;
   if (accountKind(player) !== 'linked') return { error: 'skin-need-account' };
@@ -56,10 +54,9 @@ export async function skinsUpload(/** @type {any} */ ctx, /** @type {any} */ pla
   return { ok: true, skin: { id, name, height, w: fs.w, h: fs.h, status: 'pending', note: '', createdAt: nowS } };
 }
 
-/** MINE `{}`: `{ skins, worn }` - the account's skins with their status and the id worn (or null). */
 export async function skinsMine({ db }, /** @type {any} */ player) {
   const off = await disabledNote(db, player.id);
-  if (off) return { skins: [], worn: null, disabled: true, note: off.note };   // staff switched this account's skins off
+  if (off) return { skins: [], worn: null, disabled: true, note: off.note };
   const [rows, worn] = await Promise.all([
     db.prepare('SELECT id, name, height, w, h, status, note, created_at FROM skins WHERE player = ? ORDER BY created_at DESC').bind(player.id).all(),
     db.prepare('SELECT skin_id FROM skin_worn WHERE player = ?').bind(player.id).first(),
@@ -67,17 +64,15 @@ export async function skinsMine({ db }, /** @type {any} */ player) {
   return { skins: (rows.results ?? []).map(rowOut), worn: worn?.skin_id ?? null };
 }
 
-/** DELETE `{ id }`: one of the account's own, whatever its status. */
 export async function skinsDelete({ db, bucket }, /** @type {any} */ player, /** @type {any} */ body) {
   if (!skinIdOk(body?.id)) return { error: 'skin-gone' };
   const r = await db.prepare('DELETE FROM skins WHERE id = ? AND player = ?').bind(body.id, player.id).run();
   if (!r?.meta?.changes) return { error: 'skin-gone' };
   await db.prepare('DELETE FROM skin_worn WHERE player = ? AND skin_id = ?').bind(player.id, body.id).run();
-  try { await bucket?.delete([keyOf(body.id, 'front'), keyOf(body.id, 'back')]); } catch { /* the row is gone; a stray picture is no harm */ }
+  try { await bucket?.delete([keyOf(body.id, 'front'), keyOf(body.id, 'back')]); } catch {  }
   return { ok: true };
 }
 
-/** WEAR `{ id }` (or `{ id: null }` for none): an approved skin of the account's own. */
 export async function skinsWear({ db }, /** @type {any} */ player, /** @type {any} */ body) {
   if (body?.id != null && await disabledNote(db, player.id)) return { error: 'skin-disabled' };
   if (body?.id == null) { await db.prepare('DELETE FROM skin_worn WHERE player = ?').bind(player.id).run(); return { ok: true, worn: null }; }
@@ -89,21 +84,16 @@ export async function skinsWear({ db }, /** @type {any} */ player, /** @type {an
   return { ok: true, worn: body.id };
 }
 
-/** GET `{ id }`: an approved skin (or the asker's own, whatever its status) with its pictures, for whoever meets its wearer. */
 export async function skinsGet({ db, bucket }, /** @type {any} */ player, /** @type {any} */ body) {
   if (!skinIdOk(body?.id) || !bucket) return { error: 'skin-gone' };
   const s = await db.prepare('SELECT id, player, name, height, w, h, status FROM skins WHERE id = ?').bind(body.id).first();
   if (!s || (s.status !== 'approved' && s.player !== player.id)) return { error: 'skin-gone' };
-  if (await disabledNote(db, s.player)) return { error: 'skin-gone' };   // an owner staff have switched off is shown to nobody
+  if (await disabledNote(db, s.player)) return { error: 'skin-gone' };
   const [front, back] = await Promise.all([read(bucket, s.id, 'front'), read(bucket, s.id, 'back')]);
   if (!front || !back) return { error: 'skin-gone' };
   return { id: s.id, owner: s.player, name: s.name, height: s.height, w: s.w, h: s.h, front: toB64(front), back: toB64(back) };
 }
 
-/**
- * STAFF: `/v1/staff/skins/queue { status? }` the skins waiting (or `status`), oldest first, each with its pictures and its
- * owner; `/v1/staff/skins/review { id, verdict: 'approve'|'reject', note }`. Any staff account decides; each is an audit row.
- */
 export async function staffSkins(/** @type {any} */ ctx, /** @type {any} */ env, /** @type {string} */ path, /** @type {any} */ body, /** @type {any} */ who, /** @type {Function} */ audit) {
   const { db, nowS } = ctx;
   const bucket = ctx.bucket ?? env?.SAVES ?? null;
@@ -122,7 +112,6 @@ export async function staffSkins(/** @type {any} */ ctx, /** @type {any} */ env,
     return { banned: rows.map((r) => ({ player: r.player, owner: r.handle ?? r.guest_name ?? r.player, note: r.note, at: r.at })) };
   }
   if (path === '/v1/staff/skins/ban') {
-    // { name | target, on: true|false, note }: switch one account's custom paperdolls off (or on again)
     const p = await findAccount(db, { name: body?.name ?? body?.target });
     const acct = 'error' in p && p.error === 'no-player' ? await findAccount(db, { target: body?.target ?? body?.name }) : p;
     if ('error' in acct) return acct;
@@ -139,7 +128,6 @@ export async function staffSkins(/** @type {any} */ ctx, /** @type {any} */ env,
     await audit('skin-disable', acct.id, { note }).run();
     return { ok: true, disabled: true };
   }
-  // review
   if (!skinIdOk(body?.id) || !['approve', 'reject'].includes(body?.verdict)) return { error: 'skin-bad' };
   const note = skinNote(body.note);
   if (body.verdict === 'reject' && !note) return { error: 'staff-note' };

@@ -1,6 +1,6 @@
 // @ts-check
-// BUNNYFALL: recipes, order identities, timing and pay are checked here. World presence is the character's
-// checkpoint, as with other services; this is not an independent server simulation of the room's NPCs.
+// The service checks recipes, order identities, timing, and pay. World presence comes from the character
+// checkpoint, and the service does not simulate the room's NPCs.
 import { createTavernShift, stepTavernShift, tavernOrder, TAVERN_RECIPES, TAVERN_BARDS_FACTION, TAVERN_SHIFT_MAX_S } from '../../src/net/tavernServiceLaw.js';
 import { realmAtOf, recordMovedOf, prepareRealmRecord, dropIfUnnamed, dropObjects, realmSaveTextOf, mustChange } from './realm.js';
 import { tavernProgressOf, tavernReputation } from '../../src/net/tavernFavorLaw.js';
@@ -14,7 +14,8 @@ export async function tavernServiceAct(ctx, player, body) {
   const { db, bucket, nowS, rand } = ctx;
   const at = realmAtOf(body);
   if (!at || typeof body.txn !== 'string' || !/^[A-Za-z0-9_-]{8,80}$/.test(body.txn)) return { error: 'tavern-bad' };
-  // An acknowledgement lost before a checkpoint is still the same operation, before the sequence check.
+  // A replayed txn returns its stored result before the sequence check, so a lost acknowledgement is
+  // not applied twice.
   const replay = await db.prepare('SELECT t.result, c.seq, c.lease FROM tavern_service_txns t JOIN realm_characters c ON c.id = t.character WHERE t.character = ? AND t.txn = ? AND c.player = ?')
     .bind(at.id, body.txn, player).first();
   if (replay) {
