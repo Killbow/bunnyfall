@@ -1,5 +1,6 @@
 // BUNNYFALL (2026-11-25, caverns): the mine layout law.
 import test from 'node:test';
+import { mineSignatureOre } from '../src/net/mine/mineRegions.js';
 import assert from 'node:assert/strict';
 import {
   mineLayout, mineIsRich, mineOresAt, MINE_SECTIONS, MINE_CHAMBERS, MINE_HOLES, MINE_DROP_M, MINE_TUNNEL_R,
@@ -146,7 +147,7 @@ test('ores follow depth; a rich mine keeps one rare ore in its deepest section',
     L.sections.forEach((s, i) => {
       for (const c of s.chambers) for (const h of c.holes) {
         if (isRich && i === last) assert.ok(MINE_RICH_ORES.includes(h.ore));
-        else assert.ok(mineOresAt(i).includes(h.ore), `${h.ore} at ${i}`);
+        else assert.ok(mineOresAt(i).includes(h.ore) || (i >= 2 && h.ore === mineSignatureOre(L.mineId)), `${h.ore} at ${i}`);   // a region's own ore past the shallows
       }
     });
     if (isRich) assert.equal(new Set(L.sections[last].chambers.flatMap((c) => c.holes.map((h) => h.ore))).size, 1);
@@ -175,4 +176,17 @@ test('mouth facing points toward the first chamber', () => {
     const d = Math.abs(((want - L.mouth.facing) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI);
     assert.ok(d < 0.01, `${d}`);
   }
+});
+
+test('a mine in a region with a signature ore holds it in a third of its deeper holes, the rest of the layout unchanged', async () => {
+  const { mineSignatureOre, MINE_SIGNATURE_COUNT } = await import('../src/net/mine/mineRegions.js');
+  assert.ok(MINE_SIGNATURE_COUNT > 1000);
+  let id = 0;
+  while (id < 500000 && !mineSignatureOre(id)) id++;
+  const sig = mineSignatureOre(id), L = mineLayout(id, 0);
+  const deep = L.sections.slice(2).flatMap((s) => s.chambers.flatMap((c) => c.holes));
+  assert.ok(deep.some((h) => h.ore === sig), sig);
+  assert.ok(L.sections.slice(0, 2).every((s) => s.chambers.every((c) => c.holes.every((h) => h.ore !== sig))));   // the shallows keep their common ores
+  const plain = [...Array(60).keys()].map((i) => 700000 + i).find((i) => !mineSignatureOre(i));
+  assert.equal(mineSignatureOre(plain), null);
 });
