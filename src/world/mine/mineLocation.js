@@ -16,9 +16,8 @@ export const MINE_DUNGEON_TYPE = 6;
 /** A chamber's lamp: Daggerfall's standing torch (TEXTURE.210 record 6), and how far its light reaches (m). */
 export const MINE_TORCH = Object.freeze({ archive: 210, record: 6 });
 export const MINE_LAMP_M = 14;
-/** How high over the mouth's floor the start marker stands (m): RDB y is flipped, and the dungeon stands a body's middle
- *  0.72 m under its marker - at 1.75 m the body stands on the floor. */
-export const MINE_START_UP_M = 1.75;
+/** How high over the tunnel's floor the start marker stands (m): the dungeon stands a body's feet on the floor under it. */
+export const MINE_START_UP_M = 0.3;
 /** Classic units a metre. */
 const UNITS_PER_M = 40;
 
@@ -47,10 +46,14 @@ export const isMine = (/** @type {any} */ loc) => typeof loc?.mine?.key === 'str
 /** THE EMPTY BLOCK: its start marker at the mouth, a step into the cave. */
 export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, reset }) {
   const L = mineLayout(id, reset), [x, , z] = L.mouth.at;
-  const step = 1.5, fx = Math.cos(L.mouth.facing), fz = Math.sin(L.mouth.facing);
+  const fx = Math.cos(L.mouth.facing), fz = Math.sin(L.mouth.facing);
+  // the start: on the mouth tunnel's own floor a point in (the tunnel slopes from the mouth: a fixed height stood a
+  // body on its roof)
+  const way = L.tunnels.find((q) => q.from === 'mouth')?.pts ?? [L.mouth.at];
+  const start = way[Math.min(1, way.length - 1)];
   const marker = {
     type: 0x03, position: 1, index: 0,
-    xPos: Math.round((x + fx * step) * UNITS_PER_M), yPos: -Math.round(MINE_START_UP_M * UNITS_PER_M), zPos: Math.round((z + fz * step) * UNITS_PER_M),   // over the floor: the body stands 0.72 m under its marker
+    xPos: Math.round(start[0] * UNITS_PER_M), yPos: -Math.round((start[1] + MINE_START_UP_M) * UNITS_PER_M), zPos: Math.round(start[2] * UNITS_PER_M),   // RDB y is flipped
     resources: { flatResource: { textureArchive: 199, textureRecord: 10, flags: 0, magnitude: 0, soundIndex: 0, factionOrMobileId: 0, nextObjectOffset: -1, action: 0, position: 0 } },
   };
   // the lamps: a light over each chamber's floor (and one inside the mouth), its standing torch on the nearest wall slot -
@@ -64,7 +67,7 @@ export function mineBlock(/** @type {{ id: number, reset: number }} */ { id, res
     type: 0x02, position: 0, index: 0, xPos: Math.round(p[0] * UNITS_PER_M), yPos: Math.round(-(p[1] + up) * UNITS_PER_M), zPos: Math.round(p[2] * UNITS_PER_M),
     resources: { lightResource: { unknown1: 0, unknown2: 0, radius: Math.round(MINE_LAMP_M / (3 / UNITS_PER_M)) } },
   });
-  objs.push(light([x + fx * 3, L.mouth.at[1], z + fz * 3], 2.5));
+  { const q = way[Math.min(2, way.length - 1)]; objs.push(light(q, 2.2), flat([q[0] + fz * 1.2, q[1], q[2] - fx * 1.2])); }   // the mouth's lamp: on its tunnel's own floor a few metres in, its torch at the side
   for (const s of L.sections) for (const ch of s.chambers) {
     const w = ch.walls.find((q) => !q.weak) ?? ch.walls[0];
     const foot = w ? [w.at[0] + w.n[0] * 0.6, ch.c[1], w.at[2] + w.n[2] * 0.6] : [ch.c[0], ch.c[1], ch.c[2]];
