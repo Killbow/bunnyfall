@@ -9724,7 +9724,7 @@ export function createWorldModes(host) {
   /** KETCH (bible/11-Multiplayer/Sky-Ketch.md sections 3 and 11): A CREW'S SHIP on this screen - its set, its seams routed to the
    *  world's client (`host.ketch`), its look (scenes/ketch/ketchDeckHost.js - HOST-SPLIT: built there, its reads here). */
   const ketchDeck = createKetchDeckHost({ renderer, host, wm: _madeView });
-  const mineHost = createMineHost({ renderer, getTexture, uploadRecord, link: () => host.mine ?? null, say: (x) => say(x), shake: (k) => host.shakeCamera?.(k), leave: () => { if (mode === 'dungeon' && dungeonCtx && isMine(dungeonLoc)) pendingDungeonExit = true; } });   // BUNNYFALL (2026-11-25, caverns)
+  const mineHost = createMineHost({ renderer, audio, getTexture, uploadRecord, link: () => host.mine ?? null, say: (x) => say(x), shake: (k) => host.shakeCamera?.(k), leave: () => { if (mode === 'dungeon' && dungeonCtx && isMine(dungeonLoc)) pendingDungeonExit = true; } });   // BUNNYFALL (2026-11-25, caverns)
   /** EG-ZN (2026-10-12, Elite-Gates.md section 11.8): THE OCCLUDERS DITHERED, this frame - after its beginFrame (the shadow
    *  record open) and before the dynamic draws: the circle's rock a ray from the third-person eye to my body (its pivot and
    *  its chest) crosses dithered out, the rest of the circle drawn whole (scenes/eliteGates/egOcclude.js). First person, a witness's

@@ -79,7 +79,9 @@ const WOODS = Object.freeze(Object.keys(MINE_WOOD_STRENGTH).sort((a, b) => MINE_
  *   foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null,
  *   drillOk?: (() => boolean) | null, me?: (() => (string|null)) | null, claim?: ((receipt: string) => Promise<any>) | null,
  *   kit?: ((id: string) => number) | null, useKit?: ((id: string) => Promise<boolean>) | null, crew?: (() => string[]) | null,
+ *   sound?: ((name: string) => void) | null,
  * }} deps
+ *   `sound` a mine sound said (systems/mine/mineSounds.js MINE_SOUND's keys)
  *   `kit` how many of a mine kit the character holds (the Society's: drill, fuel, lamp, rod), `useKit` one spent at the
  *   account service, `crew` the accounts of the player's party (a drill's crew may empty its hopper)
  *   `drillOk` the relay keeps drills, `me` this page's account, `claim` a haul's receipt carried to the account service
@@ -108,7 +110,7 @@ export function createMineClient(deps) {
     try {
       const a = await deps.claim?.(r);
       const paid = a?.data?.paid ?? 0;
-      if (a?.ok && paid > 0) deps.say(MINE_CLIENT_TEXT.hauled(paid, oreName(a.data.ore)));
+      if (a?.ok && paid > 0) { deps.say(MINE_CLIENT_TEXT.hauled(paid, oreName(a.data.ore))); deps.sound?.('haul'); }
       else if (!a?.ok) deps.say(MINE_CLIENT_TEXT.haulFailed());
     } catch { deps.say(MINE_CLIENT_TEXT.haulFailed()); }
   }
@@ -127,11 +129,13 @@ export function createMineClient(deps) {
       if (m?.k !== 'st' || !m.st) return;
       st = m.st;
       for (const e of m.ev ?? []) {
-        if (e === 'collapse') { collapse(); continue; }
+        if (e === 'collapse') { deps.sound?.('collapse'); collapse(); continue; }
+        if (e.startsWith('drill:')) { deps.sound?.('drillStart'); continue; }   // the room's: a drill set, heard by all in it
+        if (e.startsWith('lamp:')) { deps.sound?.('lamp'); continue; }
         const call = /^(wave|stray):(\d):(\d):(\d)$/.exec(e);
-        if (call) { if (call[1] === 'wave') deps.say(MINE_CLIENT_TEXT.wave()); if (fall === null) deps.foes?.(/** @type {any} */ (call[1]), Number(call[2]), Number(call[3]), Number(call[4])); continue; }
+        if (call) { if (call[1] === 'wave') { deps.say(MINE_CLIENT_TEXT.wave()); deps.sound?.('wave'); } if (fall === null) deps.foes?.(/** @type {any} */ (call[1]), Number(call[2]), Number(call[3]), Number(call[4])); continue; }
         const shake = MINE_SHAKE[/** @type {keyof typeof MINE_SHAKE} */ (e)];
-        if (shake) { deps.shake(shake); deps.say(WARN_WORDS[/** @type {keyof typeof WARN_WORDS} */ (e)]()); }
+        if (shake) { deps.shake(shake); deps.say(WARN_WORDS[/** @type {keyof typeof WARN_WORDS} */ (e)]()); deps.sound?.(e); }
       }
       if (st.sealedUntil > 0 && fall === null && !left) collapse();   // a newcomer to a mine already down is put out too
     },
@@ -203,7 +207,7 @@ export function createMineClient(deps) {
       try {
         if (!(await deps.spend(plank))) return true;
         lastAsk = 'prop';
-        if (deps.send('prop', { s: p.s, c: p.c, w: p.k, wood: woodOf(plank) })) deps.say(MINE_CLIENT_TEXT.shoredWith(woodName(woodOf(plank))));
+        if (deps.send('prop', { s: p.s, c: p.c, w: p.k, wood: woodOf(plank) })) { deps.say(MINE_CLIENT_TEXT.shoredWith(woodName(woodOf(plank)))); deps.sound?.('shore'); }
       } finally { shoring = false; }
       return true;
     },

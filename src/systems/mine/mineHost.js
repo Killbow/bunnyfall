@@ -6,6 +6,7 @@
 import { MINE_ART_ARCHIVE, loadMineArt } from '../../world/mine/mineArt.js';
 import { mineOreDraws } from '../../world/mine/mineOres.js';
 import { standMineFoes } from './mineFoes.js';
+import { createMineSounds } from './mineSounds.js';
 import { mineDrillFrameModel, mineDrillShaftModel, mineDrillPictures, mineLampModels, MINE_DRILL_RECORDS } from '../../world/mine/mineDrillModel.js';
 import { drillRunning } from '../../net/mine/mineDrill.js';
 import { trs } from '../../world/mat4.js';
@@ -63,10 +64,11 @@ function fadeSheet() {
 
 /**
  * @param {{ renderer: any, getTexture?: ((archive: number) => Promise<any>) | null, uploadRecord?: ((archive: number, record: number) => any) | null,
- *   link?: (() => any) | null, say?: ((text: string) => void) | null, shake?: ((k: number) => void) | null, leave?: (() => void) | null }} deps
+ *   link?: (() => any) | null, say?: ((text: string) => void) | null, shake?: ((k: number) => void) | null, leave?: (() => void) | null, audio?: any }} deps
  *   `link()` the world's mine doors: `{ send(k, fields), planks(material), spend(material), closeWindows() }`
  */
-export function createMineHost({ renderer, getTexture = null, uploadRecord = null, link = null, say = null, shake = null, leave = null }) {
+export function createMineHost({ renderer, getTexture = null, uploadRecord = null, link = null, say = null, shake = null, leave = null, audio = null }) {
+  const sounds = createMineSounds({ audio });   // the mine heard (systems/mine/mineSounds.js)
   /** @type {any} */
   /** the drills stood, by `s:c:k`: their frame's and shaft's draws, and their hole */
   const rigs = new Map();
@@ -168,6 +170,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         kit: (id) => kitHeld?.[id] ?? 0,
         useKit: async (id) => { const ok = (await doors?.useKit?.(id)) === true; if (ok && kitHeld) kitHeld[id] = Math.max(0, (kitHeld[id] ?? 0) - 1); return ok; },
         crew: () => doors?.crew?.() ?? [],
+        sound: (n) => { sounds.say(n); },
         foes: (kind, s, c, n) => standMineFoes(layout, { s, c, n }, (t, feet, lo, hi) => ctx.spawnFoeNear?.(t, feet, lo, hi)),
       });
       const targets = [];
@@ -183,6 +186,7 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
         if (standCtx !== ctx) return;
         try { if (mesh) renderer?.destroyMesh?.(mesh); if (wayOut) renderer?.destroyMesh?.(wayOut); } catch { /* the context's own teardown frees it either way */ }
         try { if (drillMeshes) for (const m of Object.values(drillMeshes)) renderer?.destroyMesh?.(m); } catch { /* as above */ }
+        sounds.stop();
         mesh = null; wayOut = null; standCtx = null; layout = null; client = null; mine = null; drillMeshes = null; rigs.clear();
       });
     },
@@ -194,7 +198,9 @@ export function createMineHost({ renderer, getTexture = null, uploadRecord = nul
       client.frame();
       // the drills that run turn their shafts (a turn and a half a second)
       const nowS = Date.now() / 1000;
-      for (const r of rigs.values()) if (r.running(nowS)) { r.spin += 0.15; r.shaft.object.matrix = trs(r.at[0], r.at[1] + RIG_SHAFT_UP_M, r.at[2], 0, (r.spin * 180) / Math.PI, 0); }
+      const running = [];
+      for (const [key, r] of rigs) if (r.running(nowS)) { r.spin += 0.15; r.shaft.object.matrix = trs(r.at[0], r.at[1] + RIG_SHAFT_UP_M, r.at[2], 0, (r.spin * 180) / Math.PI, 0); running.push({ key, at: [r.at[0], r.at[1] + 1, r.at[2]] }); }
+      sounds.drills(running);   // each running drill grinds at its rig; one stopped falls silent
     },
     /** The room's word on the mine (online.onMine). A room on another reset than the one stood is a mine gone: out. */
     heard(/** @type {any} */ w) {
