@@ -1,8 +1,3 @@
-// Selectable colour palettes per race. Each ramp is dark -> light (6
-// steps); the viewer snaps a per-face shading intensity onto the chosen
-// ramp, so any tone recolours the whole figure with correct shading.
-// Khajiit entries carry a paler belly ramp for counter-shading.
-
 export const HUMAN_SKINS = [
   { name: 'Pale',   ramp: [[120, 88, 72], [150, 112, 92], [178, 138, 114], [202, 164, 138], [222, 188, 162], [238, 210, 186]] },
   { name: 'Fair',   ramp: [[104, 72, 56], [134, 96, 74], [162, 120, 94], [188, 146, 116], [210, 172, 140], [230, 196, 166]] },

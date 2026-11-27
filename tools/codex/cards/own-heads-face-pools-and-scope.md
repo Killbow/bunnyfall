@@ -17,6 +17,7 @@ files:
   - "src/scenes/exterior.js"
   - "src/scenes/worldModes.js"
   - "src/scenes/dungeonContext.js"
+  - "src/characters/roxArgonians.js"
 routes: []
 tables: []
 replacesBible:
@@ -27,6 +28,7 @@ related:
 invariants:
   - "`facePools(parts, race, female, { has, own })` (`src/formats/mwFirstPerson.js`) substitutes custom Breton male heads and hairs all-or-none only when `own` is requested and `archiveHas` (`src/combat/fpArm.js`) confirms all six meshes exist."
   - "Only `src/combat/weaponRig.js` (`ownHeads: true`) and `src/net/peerBodies.js` (`playerBuildOpts`) request `ownHeads`; NPC, escort, portrait, and kin bodies never enable it."
+  - "`FACE_INDEX_MAX` (`src/characters/roxArgonians.js`) is the bound `src/net/wire.js` applies to a received `faceIndex`. Adding faces to any race must raise it, or the wire clamps the new faces away."
 traps:
   - "`npcFaceOf` (`src/characters/wardrobe.js`) seeds always index Morrowind data pools."
   - "Vampire Breton men keep the retail vampire head (`b_v_breton_m_head_01`) while pairing it with custom hair."

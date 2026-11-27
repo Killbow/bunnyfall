@@ -27,6 +27,7 @@ invariants:
   - "`Graphics.LayeredGear` (Eye of the Beholder) is `0` (`Skins`), `1` (female), `2` (male), or `3` (`LAYERED_OWN`, the default, clamped `0..3`)."
   - "Only chest, legs, and helmet slots change the layered sprite (`empty` draws as leather); plate tiers tint for iron, steel, mithril, adamantium, ebony, orcish, and daedric, while silver, elven, and dwarven draw as steel."
   - "Casual Cloak (templates `154`, `191`) and Formal Cloak (templates `155`, `192`) add a hood and cape tinted via `dyeCloth` (undyed defaults to Light Brown), with `applyCloak` drawing over the helmet and `closeHoodFoot` sealing gaps below the hood rim."
+  - "`OUTFIT_SLOTS` repeats the `EQUIP_SLOTS` values for `Head`, `ChestArmor`, and `LegsArmor` as literals so the wire reader needs no paperdoll import. The two must stay equal."
 traps:
   - "Riders and beast forms (werewolves and wereboars) lack layered art and fall back to Mounted or beast sprites (with On-foot skin fallback for missing frames)."
   - "`decodeLayered` loads hoodfix strips only when a cloak is worn and draws without `applyHoodFix` if strips are absent; `releaseOutfits` (`src/player/eotbBody.js`) frees prior outfit textures on equip."

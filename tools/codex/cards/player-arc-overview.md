@@ -29,9 +29,15 @@ invariants:
   - "The player motor advances on a FIXED_DT = 1/60 accumulator, and each frame's real dt is clamped to MAX_FRAME_DT = 0.25."
   - "Enemy AI steps on the same `FIXED_DT` (`1/60`) but clamps frame delta with `FOE_MAX_FRAME_DT = 3 * FIXED_DT`, not `MAX_FRAME_DT`."
   - "Body dimensions have one source: CAPSULE_HEIGHT = 1.8, CAPSULE_RADIUS = 0.35, STEP_OFFSET = 0.5, EYE_HEIGHT = 1.7, all exported from src/player/motor.js."
+  - "`update` clamps the real frame to `MAX_FRAME_DT` before multiplying by `timeScale()`, and the fixed step is `FIXED_DT` times the scale. Hosts pass real frame time and never pre-scale it."
+  - "A floating-origin shift goes through `offsetOrigin`, which moves `pos`, the previous-step position, and every other held position, such as the duel ring and any climb move. Adding to `pos` directly makes the camera interpolate across the whole recenter."
+  - "Rising into a ceiling reverses `velY` instead of zeroing it, as DFU's HitHead does. The downward bounce is intended."
 traps:
   - "Pointer lock must go through requestLook (src/player/pointerLock.js). Calling canvas.requestPointerLock directly brings back the P9 silent look failures."
   - "The postbuild script runs git checkout -- src/buildTag.js. Never hand-commit a stamped build tag."
+  - "The crouch decision and the speed-mode capture run once per render frame in `update`, not inside a fixed step, so a frame that runs no step cannot swallow a key press. Only levitation skips the capture."
+  - "Strafe +1 moves along `(cos yaw, -sin yaw)`, screen right, because the projection mirrors NDC x. Flipping that sign mirrors the world, and signage text reads backward."
+  - "The browser grants a lock request frames later, so `pointerlockchange` releases a lock that lands while the cursor is free or held; only `requestLook` may ask for the lock."
 dfu:
   - "Assets/Scripts/Game/PlayerMotor.cs"
   - "Assets/Scripts/Game/Player/PlayerSpeedChanger.cs"

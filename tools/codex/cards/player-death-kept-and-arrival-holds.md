@@ -36,6 +36,7 @@ invariants:
   - "Every frame, `src/scenes/frame/inputFrame.js` calls `presentPlayerDeath(playerEntity)` when `shared.playerSpawned && health <= 0`, `worldMoveBusy()` is false, no `DeathScreen` holds `townTalk.overlay`, `modes.deathUp()` is false, and `successionOpen()` is false."
   - "`_seasonStraightening` latches inside `_teleportToPixel` before its first `await` and clears in `finally`; `motorFrame.js` holds the motor (`holdFrame`) whenever `_seasonStraightening`, `_seasonHoldKey`, or `_partyArrivalPending` is active."
   - "Hosts supply `groundStands: (x, z) => Number.isFinite(heightAt(x, z))`; an enemy over unbuilt terrain calls `EnemyAI.holdFrame()`, clearing `inSight`, `detected`, and `wouldBeSpawned`."
+  - "`restoreFall` must run after the placement's `spawn`, which clears every motion state. Calling it earlier loses the saved fall, and a fall saved just above the ground would load as a safe landing."
 traps:
   - "Service windows mounted directly into a host slot can cover the death overlay, so keep the per-frame `presentPlayerDeath` check in `inputFrame.js` and keep `setDeathListener` callbacks idempotent."
   - "World of Daggerfall camp enemies spawn with `placed: true` (`standWodAction`) and never distance-cull, relying on `holdFrame()` while terrain builds."

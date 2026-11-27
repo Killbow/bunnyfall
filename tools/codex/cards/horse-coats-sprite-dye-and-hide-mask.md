@@ -25,10 +25,12 @@ invariants:
   - "Regions are 8-connected; dyed when >= COAT_REGION_SHARE = 0.03 of the largest, or shadow (mean value < COAT_SHADOW_VALUE = 0.3) within COAT_SHADOW_REACH = 2 px."
   - "White markings: 0.4 + 0.85 * max(v, whiteFloor); socks/stockings climb LEG_BANDS [0, 0.1, 0.2] of hide height."
   - "HORSE_LOOKS_KEPT = 16, HORSE_DYE_PICTURES = 5 per frame (_dyeBudget), RIDER_LOOKS_KEPT = 12, HORSE_PRELOAD_A_FRAME = 3."
+  - "The billboard batch cannot flip, so a mirrored sprite is a separate upload under its own cache key. `spriteFor` returns `mirror` as the wheel flag XOR `flip`, and callers upload the flipped pixels."
 traps:
   - "hideOf caches hide masks in a WeakMap keyed by the pixel array (_hides); a new array re-detects."
   - "Riding sprite records key as ride:<file>:<frame> plus lookSuffix (~<code>, empty for bay)."
   - "`rgbInto` wraps hue into `[0, 360)` before conversion."
+  - "Decoded PNG rows arrive top first, but the billboard batch reads bottom row first. Convert once through `worldOrderColors`; a second flip anywhere on the path draws the sprite upside down."
 dfu: []
 tags:
   - horses

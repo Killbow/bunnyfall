@@ -1,214 +1,113 @@
-// MAC-K3 - THE MOUNT, ONE HOME.
-//
-// Mac, 2026-09-15: "T to mount not working outside interiors."
-//
-// It was not a missing key. `KeyT` resolves to `Transport`
-// (systems/inputActions.js) and `ui/input.js` routes that to
-// `ctx.openTransport`, which THREE hosts answered: `world.js` with the
-// real picker, and `worldModes.js` and `dungeonContext.js` with the
-// indoor refusal line. `scenes/exterior.js` - the FIXED-CITY host, the
-// one a player walking round a town is in - answered nothing, so the
-// key did nothing at all. THE FOUR HOSTS, three wired and one not, for
-// the second time in two days.
-//
-// And it was not a one-liner either: that host had no transport
-// surface whatever. It READ `player.transportMode` (the ray distance
-// at :749, the mounted water gate at :3831) and had no way to set it,
-// no animator, no art and no sprite - so even had the key been routed
-// there was nothing behind it.
-//
-// SO THE SURFACE MOVED HERE, rather than being copied into a second
-// host: HARD2a did this for the activation race and HARD2c for the
-// weapon pose, and the reason is the same one exterior.js's own quest
-// walk carried until MAC-K2 - "two copies is two laws the day one of
-// them moves".
-//
-// WHAT STAYS WITH THE HOST. The SHIP is not a mode you travel in
-// (DFU's own comment on the enum) - it is a teleport - and the one
-// that exists is `world.js`'s, wired into its streaming world. A host
-// with no world to teleport across hands `onShip: null` and the
-// picker's Ship row is dark, which is the truth rather than a button
-// that does nothing.
+// Mount rig: the transport picker, the horse and cart sprite, riding sounds, and the enhanced riding terrain ring.
+// The ship is a teleport only the streaming world host can wire; other hosts pass a null ship hook.
 
 import { TRANSPORT_MODES, isRiding, hasHorse, hasCart } from '../travel/transport.js';
 import { RidingAnimator, loadRidingArt, ridingRect, ridingLook, RIDING_VOLUME_SCALE } from '../travel/riding.js';
-import { riddenHorseLook } from '../travel/horseCoats.js';   // COATS1: the ridden horse's look, which the sprite wears
+import { riddenHorseLook } from '../travel/horseCoats.js';
 import { TransportWindow, transportArtLoaded } from '../ui/transportWindow.js';
-import { enhancedWindow } from '../ui/enhancedPorts.js';   // PORT4: the transport picker, in the enhanced skin
+import { enhancedWindow } from '../ui/enhancedPorts.js';
 import { ownsShip } from '../trade/banking.js';
-import { horseOffsetHeight, dockedLargeHudHeight } from '../ui/hudLarge.js';   // ROAD-D D10: LargeHUDOffsetHorse; AUDIT-RR F25: EnhancedRiding's own arm asks LargeHUDDocked (EnhancedRiding.cs:256-257)
-import { mwViewHides, mwViewDrawSaddle } from './mwView.js';   // AUDIT-EOTB2: the sprite body on screen hides the FPV horse (Eye Of The Beholder's ToggleBillboard); COATS3D: the 3D horse in its place
+import { horseOffsetHeight, dockedLargeHudHeight } from '../ui/hudLarge.js';
+import { mwViewHides, mwViewDrawSaddle } from './mwView.js';
 import { SOUND } from '../audio/soundClips.js';
-import { horseVolume } from '../audio/animalVolume.js';   // HORSE-VOL: the mount's neigh, voices and hooves on the Audio tab's Horse Volume
-import { isShipAvailable } from '../systems/naval/ship.js';   // RR1: TransportManager.ShipAvailiable, the delegate
-import { NATIVE_SCREEN_HEIGHT } from '../travel/riding.js';   // RR2: the 200-line native screen the sprite scales by
-import { RR_RIDING, rrTerrainAngle, rrTerrainFollow, rrRidingYAdj, rrRidingNeckBand } from '../mods/rrRealism.js';   // RR2: EnhancedRiding's draw laws
-import { setPitchFloorProvider } from './lookFilter.js';   // RR2: PitchMaxLimit while riding
-import { uiCanvas, onUiScreen } from '../ui/uiScreen.js';   // RETRO-UI: the horse in the pillarbox (TransportManager's CustomScreenRect)
-import { noteFirstUse } from '../ui/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
-import { fpLightingOn } from '../combat/fpsWeapon.js';   // HORSE-LIT: the first-person lighting switch the weapon's tint rides
-import { enhancedSoundsOn } from '../audio/enhancedSounds.js';   // HORSE-VOICE: the port's own sounds, the enhanced skin's ES1 switch
-import { createHorseVoice, hoofClipFor, installHorseSounds } from '../travel/horseVoice.js';   // HORSE-VOICE: the horse's voices and its hooves on the ground under it
+import { horseVolume } from '../audio/animalVolume.js';
+import { isShipAvailable } from '../systems/naval/ship.js';
+import { NATIVE_SCREEN_HEIGHT } from '../travel/riding.js';
+import { RR_RIDING, rrTerrainAngle, rrTerrainFollow, rrRidingYAdj, rrRidingNeckBand } from '../mods/rrRealism.js';
+import { setPitchFloorProvider } from './lookFilter.js';
+import { uiCanvas, onUiScreen } from '../ui/uiScreen.js';
+import { noteFirstUse } from '../ui/tutorials.js';
+import { fpLightingOn } from '../combat/fpsWeapon.js';
+import { enhancedSoundsOn } from '../audio/enhancedSounds.js';
+import { createHorseVoice, hoofClipFor, installHorseSounds } from '../travel/horseVoice.js';
 
-/**
- * @param deps {
- *   renderer, canvas (element or () => element), fetchBytes, palette, audio,
- *   player           - the motor (setTransportMode, transportMode, grounded, ...)
- *   playerEntity     - for the picker's three availability questions
- *   showOverlay(win) - the host's own window slot
- *   onShip           - the ship teleport, or null where there is none
- *   paused()         - GameManager.IsGamePaused
- * }
- */
+/** @param deps */
 export function createMountRig({
   renderer, canvas, fetchBytes, palette, audio,
   player, playerEntity, showOverlay, onShip = null, paused = () => false,
-  shipLocation = null,   // RR1: () => ({ locationLoaded, portTown, onShip }) - what TransportManager.ShipAvailiable's replacement reads (RoleplayRealism.cs:610-631); null when the host cannot say
-  // RR2 (EnhancedRiding.cs): the host's reads the component makes - the
-  // look's pitch (radians, up-positive) and yaw, the ground's height at a
-  // world x/z, and whether the module is on with its two settings
+  shipLocation = null,
   lookPitch = null, lookYaw = null, groundHeightAt = null, enhancedRiding = null,
-  // AUDIT-TO1 J1: TransportManager.RidingVolumeScale, which Travel
-  // Options zeroes for an accelerated journey (TravelOptionsMod.cs:1227
-  // -1229) and restores at its end (:1264). A host that hands none
-  // rides at DFU's own 1.
   ridingVolumeScale = () => 1,
-  horseCart = null,   // HCC: () => the Horse Cart and Cargo runtime, or null - TrailingWagonTransportWindow's gate and route
-  // HORSE-VOICE (systems/horse/horseVoice.js): the host's reads the horse's voices and hooves take, each null where the
-  // host cannot say - the ground's kind under the rider (systems/footsteps.js pickFootstepKind: none, DFU's clop), foes in
-  // sight (encounters.js areEnemiesNearby: none, no spook), horse care's breath (upkeepRuntime.js bar: none, no breath of
-  // its own but a long gallop's) - and the switch the port's own sounds ride
+  horseCart = null,
   surfaceKind = null, foesNear = null, horseBreath = null, soundsOn = enhancedSoundsOn,
 }) {
-  const animator = new RidingAnimator();   // TR2: the mount's frames, loop and neigh
-  const voice = createHorseVoice();   // HORSE-VOICE: the voices said on the neigh's clock, the gallop's breath, the spook
-  // RR2: the terrain ring (EnhancedRiding.cs:26-31) and the pitch floor the
-  // component sets (`PitchMaxLimit = terrainAngle + 18`, :288) - registered
-  // for as long as this rig stands; off the mount, the owner's floor
+  const animator = new RidingAnimator();
+  const voice = createHorseVoice();
   const _terrainAngles = new Array(RR_RIDING.samples).fill(0);
   let _sampleIdx = 0;
   let _terrainAngle = 0;
-  /** RR2: EnhancedRiding.OnGUI (:265-322) - TransportManager.DrawHorse is
-   *  off and the component draws the mount itself: `yAdj = (Pitch -
-   *  terrainAngle - 10) * 2.6` (DFU's Pitch down-positive) lifts the
-   *  sprite's bottom edge off the screen's, over the averaged terrain
-   *  ring. Rewrites `rect.y`; answers { yAdj, scaleY, c }. */
   function liftForLook(rect, art, enhanced) {
     const c = canvasOf();
     _terrainAngle = rrTerrainFollow(_terrainAngles, enhanced.softenFollow ?? 0, enhanced.terrainFollowing !== false);
     const pitchDeg = -((lookPitch?.() ?? 0) * 180) / Math.PI;
     const yAdj = rrRidingYAdj(pitchDeg, _terrainAngle);
     const scaleY = c.height / NATIVE_SCREEN_HEIGHT;
-    // AUDIT-RR F25: `LargeHUD && LargeHUDDocked` (EnhancedRiding.cs:256-257), not TransportManager's OffsetHorse arm - the
-    // component draws the mount itself and asks its own question; ridingRect above took the classic arm's offset, so
-    // it is taken back out here and the docked height put in
-    const offset = Math.trunc(dockedLargeHudHeight());   // AUDIT-RR2 G4: `(int)LargeHUD.ScreenHeight` (EnhancedRiding.cs:257)
+    const offset = Math.trunc(dockedLargeHudHeight());
     rect.y = c.height - ((art.height + yAdj) * scaleY) - offset;
     return { yAdj, scaleY, c, offset };
   }
-  /** OnGUI's neck band (:303-320): when the lifted sprite leaves a gap
-   *  under it, a strip of the same riding texture fills it (no neck CFA
-   *  here - see rrRealism), `width - 14` wide, from 0.2 of the texture
-   *  down by `yAdj / 100`. */
   function drawNeckBand({ yAdj, scaleY, c, offset }, rect, art, r, tint) {
     const drawBottom = rect.y + rect.h - scaleY;
     if (drawBottom >= c.height) return;
     const band = rrRidingNeckBand(yAdj);
     const scaleX = rect.w / art.width;
-    renderer.drawScreenQuad(art.frames[r.frame], { x: rect.x, y: drawBottom, w: (art.width - band.widthTrim) * scaleX, h: c.height - drawBottom + scaleY - offset }, { u0: band.u0, v0: band.v0, u1: band.u1, v1: band.v1 }, tint);   // HORSE-LIT: the neck the sprite's own
+    renderer.drawScreenQuad(art.frames[r.frame], { x: rect.x, y: drawBottom, w: (art.width - band.widthTrim) * scaleX, h: c.height - drawBottom + scaleY - offset }, { u0: band.u0, v0: band.v0, u1: band.u1, v1: band.v1 }, tint);
   }
-  setPitchFloorProvider(() => (enhancedRiding?.() && isRiding(player.transportMode) && !paused() ? _terrainAngle + RR_RIDING.pitchMaxOffset : null));   // AUDIT-RR2 G26: the else arm (`IsGamePaused || !IsRiding`, :122-131) resets PitchMaxLimit every frame
-  let art = null;                          // TR2: the four CFA frames of the mount under you
-  const canvasOf = () => uiCanvas(typeof canvas === 'function' ? canvas() : canvas);   // RETRO-UI: TransportManager's screenRect is CustomScreenRect (:290-291)
+  setPitchFloorProvider(() => (enhancedRiding?.() && isRiding(player.transportMode) && !paused() ? _terrainAngle + RR_RIDING.pitchMaxOffset : null));
+  let art = null;
+  const canvasOf = () => uiCanvas(typeof canvas === 'function' ? canvas() : canvas);
 
-  /**
-   * THE ONE PLACE THE MODE CHANGES (U53), and HC1's lesson with it
-   * (2026-09-14, Mac: "audit the horse and cart ... the sprites
-   * actually show"): the mount's art loads HERE, not on the T-key pick
-   * alone. Three other paths set the mode and used to leave the art
-   * null for good - a loaded save on horseback, the Test Room's ride
-   * out, and the ship's landing - and a rider from any of them had the
-   * speed, the bob and the hoof loop with no horse under them.
-   */
+  // Every path that changes the mode goes through here so the art always loads with it.
   function setMode(mode) {
-    player.setTransportMode(mode);   // F-E3: the height action rides with the mode
-    voice.mount(isRiding(mode));   // HORSE-VOICE: a mount's whinny is the next voice; a dismount drops a spook's neigh not yet said
-    // DISC29-F (Skibbster on Discord: the gallop kept playing inside a building entered at speed): UpdateMode's first
-    // act on EVERY change is "stop any riding sounds playing" (TransportManager.cs:332-336). The loop re-arms itself
-    // at each clip's end, and the one thing that stopped it was this component's next frame - which a door never
-    // gives: the interior is up before another outdoor frame runs, and the indoor frame returns before it is drawn.
+    player.setTransportMode(mode);
+    voice.mount(isRiding(mode));
+    // Daggerfall Unity stops riding sounds on every mode change; a door gives no further outdoor frame to do it.
     audio.setLoop('riding', null);
     animator.mount(mode);
     art = null;
     loadArt(mode);
   }
-  /** COATS1: the look the mount under the player wears now (the cart's sprite is never dyed - riding.js ridingLook). */
   const lookNow = (mode) => ridingLook(mode, riddenHorseLook(playerEntity?.items ?? []));
-  /** COATS1: the mount and look the last load was asked for (`mode:look`) - asked once, loaded or failed, so a failed
-   *  load is not asked again every frame (HC1's art is asked by the mode's change alone). */
   let _artFor = null;
   const artKey = (mode) => `${mode}:${lookNow(mode)}`;
-  /** COATS1: the dyed frames of a look no longer worn let go (EVERY ALLOCATION HAS AN OWNER) - the bay's as drawn are
-   *  the art's own and stay. */
   const letGo = (a) => { if (a?.look) for (const rec of a.records ?? []) renderer?.evictTexture?.(`img_${rec}`); };
-  let _lastArt = null;   // the last load landed - kept past a dismount, so its look is let go when another lands
-  let _req = 0;   // the newest load asked; an older one landing late is let go, never drawn
+  let _lastArt = null;
+  let _req = 0;
   function loadArt(mode) {
     _artFor = isRiding(mode) ? artKey(mode) : null;
     if (!_artFor) return;
     const id = ++_req;
     loadRidingArt(fetchBytes, palette, renderer, mode, lookNow(mode))
       .then((a) => {
-        if (id !== _req) { if (a.look !== art?.look && a.look !== _lastArt?.look && a.look !== lookNow(mode)) letGo(a); return; }   // AUDIT COATS3D A10: never the look the newest load is asking for - its frames are these (uploadTexture's one handle a key)
+        if (id !== _req) { if (a.look !== art?.look && a.look !== _lastArt?.look && a.look !== lookNow(mode)) letGo(a); return; }
         if (_lastArt && _lastArt.look !== a.look) letGo(_lastArt);
         _lastArt = a;
-        if (player.transportMode === mode) art = a;   // still that mount: a dismount mid-load keeps null
+        if (player.transportMode === mode) art = a;
       })
       .catch((e) => console.warn('[transport] mount art unavailable:', e?.message ?? e));
   }
 
   return {
     setMode,
-    /** For a host that needs to know whether the sprite is up. */
     loaded: () => !!art,
-    /** Tests only: the art without ARENA2 (RR2's lift and band are drawn off it). */
     _setArt: (a) => { art = a; },
 
-    /**
-     * TR3: dfuiOpenTransportWindow (DaggerfallUI.cs:690-700) - indoors
-     * refuses with a HUD line (the interior hosts' own arms, not this
-     * one), and AIRBORNE is silently ignored (`if (isGrounded)` with no
-     * else). Outdoors and grounded, the picker opens.
-     */
     open() {
       if (!player.grounded || !transportArtLoaded()) return;
-      noteFirstUse('horse');   // TUT1: the transport window
-      // HCC: TrailingWagonTransportWindow.Setup [IL_b008] - with the mod on, the horse and cart rows are live only
-      // when the runtime's CanMountHorseFromTransportWindow / CanUseCartFromTransportWindow say so (a horse waiting
-      // across the map cannot be mounted from here), and a click goes through TryUseTransport rather than the
-      // direct set - the runtime walks the player to the team, or says why not.
+      noteFirstUse('horse');
       const rt = horseCart?.() ?? null;
       showOverlay(enhancedWindow(new TransportWindow({
         hasHorse: rt ? !!rt.canMountHorseFromTransportWindow() : hasHorse(playerEntity.items ?? []),
         hasCart: rt ? !!rt.canUseCartFromTransportWindow() : hasCart(playerEntity.items ?? []),
-        // TR4: the row is live when a ship is owned - AND when this
-        // host can actually sail it. A fixed city has nowhere to sail
-        // to, so the row goes dark rather than opening onto nothing.
-        shipAvailable: isShipAvailable({ canSail: !!onShip, ownsShip: ownsShip(playerEntity), ...(shipLocation?.() ?? {}) }),   // RR1: through the delegate (DFU's own answer is HasShip)
+        shipAvailable: isShipAvailable({ canSail: !!onShip, ownsShip: ownsShip(playerEntity), ...(shipLocation?.() ?? {}) }),
         onMode: (mode) => {
           if (mode === TRANSPORT_MODES.Ship) { onShip?.(); return; }
-          if (rt && (mode === TRANSPORT_MODES.Horse || mode === TRANSPORT_MODES.Cart)) { rt.tryUseTransport(mode); return; }   // HCC: HandleHorseTransportButton / HandleCartTransportButton [IL_b170, IL_b1ac]
-          setMode(mode);   // HC1: the art loads with the mode, in the one place
+          if (rt && (mode === TRANSPORT_MODES.Horse || mode === TRANSPORT_MODES.Cart)) { rt.tryUseTransport(mode); return; }
+          setMode(mode);
         },
       }), 'transport'));
     },
 
-    /**
-     * The frame's half: the animator, the audio and the sprite.
-     * Called from the host's draw ladder where the classic HUD art is
-     * up - OnGUI draws at depth 2, UNDER the HUD's own elements, so it
-     * goes in before drawHud.
-     */
     frame(dt) {
       const ridePaused = paused();
       const r = animator.update(dt, {
@@ -218,33 +117,21 @@ export function createMountRig({
         paused: ridePaused,
         movingLessThanHalfSpeed: player.movingLessThanHalfSpeed,
         running: player.isRunning,
-        walking: !!player.rideWalking,   // HORSE-WALK: the walk's slow clop and its slower nod
-        soundVolume: ridingVolumeScale(),   // AUDIT-TO1 J1: 0 for the length of an accelerated journey
+        walking: !!player.rideWalking,
+        soundVolume: ridingVolumeScale(),
       });
-      const horse = horseVolume();   // HORSE-VOL: the Audio tab's Horse Volume - the neigh, the voices and the hooves alike
-      // HORSE-VOICE: with the port's own sounds on, the neigh's moment says a voice of the horse's mood and the hooves
-      // follow the ground - off, DFU's neigh and clop exactly
+      const horse = horseVolume();
       const voiced = !!soundsOn() && isRiding(player.transportMode);
       if (voiced) {
         installHorseSounds(audio);
         const shots = voice.update(dt, { neigh: r.neigh, clip: r.clip, moving: r.playing && !player.standing, running: player.isRunning, pitch: r.pitch, paused: ridePaused, breath: horseBreath?.()?.amount ?? null, foesNear });
         for (const s of shots) audio.playOneShot(s.clip, s.volume * RIDING_VOLUME_SCALE * ridingVolumeScale() * horse, s.pitch);
       } else {
-        voice.hush();   // AUDIT SOUNDSCAPE H1: nothing owed from before is said when the voices come back
+        voice.hush();
         if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE * horse);
       }
       if (voiced) audio.setLoop('riding', r.playing ? hoofClipFor(r.clip, surfaceKind?.()) : null, { volume: r.volume * horse, pitch: r.pitch });
       else audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume * horse, pitch: r.pitch });
-      // TR-AUDIT F-E1: OnGUI (:293) refuses to draw AT ALL while the
-      // game is paused - `!GameManager.IsGamePaused` sits in the same
-      // condition as the Repaint test. Under an open window DFU shows
-      // no mount; the first cut froze the frame and kept drawing it.
-      // AUDIT-EOTB2 [SETTINGS]: and not while the Eye Of The Beholder body
-      // is the one on screen - the horse archives draw the rider WITH the
-      // horse, so the FPV horse hides (Compatibility.Don'tHideHorse keeps it)
-      // RR2: EnhancedRiding.Update's terrain sample (:139-146) - the ground
-      // under the rider against one unit ahead, into a ring of sixteen,
-      // while riding and not paused
       const enhanced = enhancedRiding?.() ?? null;
       if (enhanced && isRiding(player.transportMode) && !ridePaused && groundHeightAt && player.pos) {
         const yaw = lookYaw?.() ?? 0;
@@ -252,32 +139,20 @@ export function createMountRig({
         const ahead = groundHeightAt(player.pos[0] + Math.sin(yaw), player.pos[2] + Math.cos(yaw));
         if (Number.isFinite(here) && Number.isFinite(ahead)) { _terrainAngles[_sampleIdx++] = rrTerrainAngle(here, ahead); if (_sampleIdx >= RR_RIDING.samples) _sampleIdx = 0; }
       }
-      // COATS1: a look chosen in the saddle (the Stable card) dresses the sprite - the old one drawn until the new is up
       if (_artFor && isRiding(player.transportMode) && _artFor !== artKey(player.transportMode)) loadArt(player.transportMode);
-      // COATS3D: on the Morrowind body's 3D horse, that horse is the one in first person - drawn here, in the sprite's
-      // place (after the world, under the hands), and the sprite stands down
       if (isRiding(player.transportMode) && !ridePaused && !mwViewHides().horse && mwViewDrawSaddle(typeof canvas === 'function' ? canvas() : canvas)) return r;
       if (art && isRiding(player.transportMode) && !ridePaused && !mwViewHides().horse) {
-        // ROAD-D D10: horseOffsetHeight (TransportManager.cs :304-309)
-        // - the bar the LAST drawHud drew, lifted out from under the
-        // mount. Docking is not asked here; DFU's horse arm never asks.
         const ui = canvasOf();
         const rect = ridingRect(ui, art, horseOffsetHeight());
-        const lift = enhanced ? liftForLook(rect, art, enhanced) : null;   // RR2: EnhancedRiding.OnGUI - the sprite rides the look
-        // HORSE-LIT (2026-10-16, Mac: "Horses in first person should be affected by lighting"): THE ROOM'S LIGHT ON THE
-        // MOUNT. TransportManager.OnGUI (:285-318) draws the ridingTexture white, and so did this - a bright horse's neck
-        // under a weapon MAC-I darkens, at night and in the dark. It takes the weapon's tint now (combat/weapon/weaponRig.js
-        // fpTint): `flatLightAt` at the camera, under the same switch. The 3D horse (mwViewDrawSaddle, above) is drawn
-        // in the world's own space and light, and needs none.
+        const lift = enhanced ? liftForLook(rect, art, enhanced) : null;
         const tint = fpLightingOn() ? (renderer?.flatLightAt?.() ?? undefined) : undefined;
-        onUiScreen(renderer, ui, () => {   // RETRO-UI: drawn in the pillarbox
+        onUiScreen(renderer, ui, () => {
           renderer.drawScreenQuad(art.frames[r.frame], rect, undefined, tint);
-          if (lift) drawNeckBand(lift, rect, art, r, tint);   // RR2: and the gap under it is filled
+          if (lift) drawNeckBand(lift, rect, art, r, tint);
         });
       }
       return r;
     },
-    /** RR2: OnGUI's averaged terrain angle, for the look's floor. */
     terrainAngle: () => _terrainAngle,
   };
 }

@@ -1,8 +1,6 @@
 // @ts-check
-// ENCOUNTER-LEVEL: the level a dungeon is built at. The party's level (mentorMode.js effectiveLevel) placed on this
-// dungeon's tier (lootRarity.js DUNGEON_RARITY_TIER: a cemetery 3 .. a dragon's den 18), fixed for the session
-// (encounterLevel.js dungeonSessionLevel: a join, a leave or a level-up after the first build changes nothing), and a
-// Super dungeon's floor on top (sdDungeon.js superFoeLevel). One answer for the build, the rest spawns and the elites.
+// The level a dungeon is built at: the party's effective level on the dungeon tier, fixed for the session,
+// plus a Super dungeon floor.
 import { effectiveLevel } from './mentorMode.js';
 import { placeLevel, dungeonSessionLevel, adoptSessionLevel, endDungeonSession } from './encounterLevel.js';
 import { dungeonRarityTier } from '../items/lootRarity.js';
@@ -18,8 +16,8 @@ export function dungeonBuildLevel(dfLocation, entity, superTier) {
   return superTier ? superFoeLevel(level) : level;
 }
 
-/** A joiner takes the host's session level for this dungeon (the host's full frame says it). @param {any} dfLocation @param {number} level */
+/** @param {any} dfLocation @param {number} level */
 export const adoptDungeonSessionLevel = (dfLocation, level) => adoptSessionLevel(sessionKey(dfLocation), level);
 
-/** ENTRY-HOLD: a visit that built at the host's level forgets it on leaving, so its next visit builds at its own. @param {any} dfLocation */
+/** @param {any} dfLocation */
 export const endDungeonSessionFor = (dfLocation) => endDungeonSession(sessionKey(dfLocation));

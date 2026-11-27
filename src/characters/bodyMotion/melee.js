@@ -1,44 +1,16 @@
 // @ts-check
-// BODY-MOTION (2026-10-18; bible/04-Characters/Body-Motion.md) - THE BLOWS. A third-person melee strike as a whole
-// body: the blade's path through the air, the trunk winding against it and unwinding through it, the hips leading the
-// chest, the weight driven onto the lead foot and a step taken with it - in place of Morrowind's clip, which in third
-// person took every bone (the legs froze mid-stride and slid: the recorded gap of Morrowind-Rules.md's rule 26).
-//
-// TIMED BY THE MACHINE, NOT BY A CLOCK OF ITS OWN. combat/fpArm.js already runs a blow through three sections - the
-// wind-up to "<type> max attack", the release to "<type> hit" (fitted to Daggerfall's own hit: MW-PACE1), the
-// follow-through - and this law reads each section's progress: the wind-up spans u 0..U.windup, the release U.windup..
-// U.hit and lands ON the hit, the follow U.hit..1. A held wind-up holds its key; a release skipped part-way (the
-// strength's skip) starts part-way. So the blade meets the target on the frame Daggerfall's machine deals the damage.
-//
-// A CHOREOGRAPHY is keys over u: the GRIP (the Weapon Bone's origin - where the fist closes) in arm lengths off the
-// middle of the shoulders, in the BODY's frame [right, forward, up] (the facing, not the twisting chest - so the
-// trunk's wind is the body's, and the path is the blade's); the BLADE's way and its true EDGE's (the cut leads with
-// the edge: a slash's edge faces where it sweeps); the chest's turn [yaw, roll, pitch] and the hips' yaw (degrees -
-// yaw + to the left, as the rig turns); the hips' SHIFT forward and DROP (legs); the lead foot's STEP (legs, laid only
-// standing); and the free arm's [flex, abduct, elbow] (a counterweight). Keys are joined by Catmull-Rom splines,
-// eased in at the start and out at the end; the first and last are the carry's own (the blow eases in from the stance
-// and back out to it). Every key is the RIGHT hand's; a left-hand blow (a pair's, a left fist) is its mirror.
 
 import { algebra, clamp01, smooth } from './bodyKit.js';
 
 const { lerp, norm, cross, dot, scale, sub } = algebra;
 
-/** The machine's sections on u: the wind-up ends at `windup`, the blade lands at `hit`. */
 export const U = Object.freeze({ windup: 0.3, hit: 0.5 });
 
 const k = (u, v) => Object.freeze({ u, ...v });
 const STANCE_ONE = { grip: [0.55, 0.2, -0.82], blade: [0.3, 0.75, -0.6], edge: [0, 0.2, -1], chest: [0, 0, 0], hip: 0, shift: 0, drop: 0, step: 0, off: [3, 8, 12] };
-const STANCE_TWO = { grip: [0.08, 0.53, -0.96], blade: [-0.34, 0.87, -0.37], edge: [-0.41, -0.49, -0.77], chest: [0, 0, 0], hip: 0, shift: 0, drop: 0, step: 0, off: [0, 0, 0] };   // carry.js CARRY.two's guard (TWO-CLEAR)
+const STANCE_TWO = { grip: [0.08, 0.53, -0.96], blade: [-0.34, 0.87, -0.37], edge: [-0.41, -0.49, -0.77], chest: [0, 0, 0], hip: 0, shift: 0, drop: 0, step: 0, off: [0, 0, 0] };
 const STANCE_FIST = { grip: [0.2, 0.32, 0.02], fingers: [0, 0.55, 0.85], palm: [-1, 0, 0], chest: [0, 0, 0], hip: 0, shift: 0, drop: 0, step: 0, off: [0, 0, 0] };
 
-/**
- * THE CHOREOGRAPHIES - MELEE[family][blow], `blow` one of chop (a downward cut), slash (the forehand, right to left),
- * back (the backhand, left to right - Daggerfall's StrikeRight, MS1's reversed slash) and thrust. Families: 'one' (a
- * one-hander; also each blade of a pair), 'two' (a two-hander, a staff and a spear - both hands, the left on the haft,
- * carry.js: AUDIT BODY-MOTION DOC-16 - a staff's and a spear's are no families of their own, meleeFamilyOf), 'fists'
- * (bare hands: the straight, the hook, the overhand and the uppercut). Tuned on the retail biped through
- * tools/bodyMotionSheet.mjs's blow scenes; one frozen table, for Mac to move on his own data.
- */
 export const MELEE = Object.freeze({
   one: Object.freeze({
     slash: [
@@ -51,8 +23,6 @@ export const MELEE = Object.freeze({
     ],
     back: [
       k(0, STANCE_ONE),
-      // AUDIT BODY-MOTION MELEE-2: carried across the body out in front of it (straight to the wind-up, the forearm went 7
-      // units through the chest)
       k(0.15, { grip: [0.18, 0.5, -0.3], blade: [-0.2, 0.35, 0.91], edge: [-0.35, 0.75, -0.55], chest: [16, 0, 0], hip: 5, shift: -0.01, drop: 0.005, step: 0, off: [-4, 14, 21] }),
       k(0.3, { grip: [-0.4, 0.4, 0.1], blade: [-0.8, -0.5, 0.33], edge: [-0.5, 0.86, 0], chest: [32, 0, 0], hip: 10, shift: -0.02, drop: 0.01, step: 0, off: [-10, 20, 30] }),
       k(0.5, { grip: [0.1, 0.62, -0.04], blade: [0.02, 1, -0.06], edge: [1, 0, 0], chest: [-4, -2, 6], hip: -8, shift: 0.05, drop: 0.03, step: 0.12, off: [10, 28, 40] }),
@@ -78,11 +48,6 @@ export const MELEE = Object.freeze({
     ],
   }),
   two: Object.freeze({
-    // TWO-CLEAR (feature-feedback via Mac, 2026-10-26, the claymore's hands through the back - and, measured on the retail
-    // biped, every blow of the family's: the hand on the haft 6.5 to 8.5 units into the audit's trunk, the left on a
-    // claymore's grip a third of an arm behind the right): the hands LEAD. Each release passes its blade upright or across
-    // with the grip out ahead of the face or the chest, not beside it; each wind-up gathers the hilt in front before it
-    // is drawn back; and the blow lands two thirds of an arm out, where the pommel's hand still stands before the chest.
     slash: [
       k(0, STANCE_TWO),
       k(0.12, { grip: [0.16, 0.63, -0.11], blade: [0.94, -0.16, 0.29], edge: [0.33, 0.43, -0.84], chest: [-16, 0, -1], hip: -8, shift: -0.02, drop: 0, step: 0 }),
@@ -116,10 +81,6 @@ export const MELEE = Object.freeze({
     ],
     thrust: [
       k(0, STANCE_TWO),
-      // THRUST-CHAMBER (feature-feedback via Mac, 2026-10-26: "Two-handed sword (claymore) forward pierce attack animation
-      // causes character's hands to clip through his back"): chambered BEFORE the right hip, the point raised at the target -
-      // the draw is the trunk's coil, not the hands'. Drawn back beside the hip (grip -0.2 forward), the left hand closed on
-      // the hilt toward the pommel 0.31 to 0.38 of an arm behind the shoulders, and the left arm crossed behind the back.
       k(0.3, { grip: [0.37, 0.57, -0.4], blade: [-0.2, 0.96, 0.2], edge: [0, 0, -1], chest: [-24, 0, -2], hip: -12, shift: -0.06, drop: 0.02, step: 0 }),
       k(0.5, { grip: [0.06, 0.88, -0.04], blade: [0, 1, 0.02], edge: [0, 0, -1], chest: [14, 0, 12], hip: 10, shift: 0.12, drop: 0.07, step: 0.3 }),
       k(0.7, { grip: [0.22, 0.84, -0.1], blade: [-0.05, 0.99, -0.15], edge: [0, 0, -1], chest: [10, 0, 10], hip: 8, shift: 0.1, drop: 0.06, step: 0.3 }),
@@ -163,9 +124,6 @@ export const MELEE = Object.freeze({
   }),
 });
 
-/** Which family a carry class strikes with (carry.js carryClassOf), or null where the body does not choreograph its
- *  blows (a bow's shot, a spell - the clip's own). A staff and a spear swing the two-hander's arcs; a pair's blade the
- *  one-hander's. */
 export function meleeFamilyOf(cls) {
   switch (cls) {
     case 'one': case 'dual': return 'one';
@@ -175,14 +133,8 @@ export function meleeFamilyOf(cls) {
   }
 }
 
-/** The blow's name in the table: Daggerfall's StrikeRight is the slash played backward (MS1's backhand). */
 export const blowName = (type, reversed) => (type === 'slash' && reversed ? 'back' : type);
 
-/**
- * WHERE ON u the machine stands: `section` 'windup' | 'release' | 'follow' and its `progress` (0..1, the section clip's
- * own completion - combat/fpArm.js clipCompletion). The wind-up eases in and out (a gathering), the release
- * accelerates into the hit (a blow is fastest at contact), the follow decelerates.
- */
 export function blowU(section, progress) {
   const p = clamp01(progress);
   if (section === 'windup') return U.windup * smooth(p);
@@ -190,12 +142,8 @@ export function blowU(section, progress) {
   return U.hit + (1 - U.hit) * (1 - (1 - p) * (1 - p));
 }
 
-/** The blow's weight over the carry at u: eased in over its first tenth, out over its last fifth. */
 const blowWeight = (u) => smooth(u / 0.1) * (1 - smooth((u - 0.8) / 0.2));
 
-/** Catmull-Rom across non-uniform keys on one number per key (`get`), zero speed at the ends - and at the HIT the
- *  stroke's own way and speed, the chord from the key before (AUDIT BODY-MOTION MELEE-10: read through to the follow-
- *  through's key, the blade met its target at half the speed it had reached on the way). */
 function spline(keys, u, get) {
   const n = keys.length;
   if (u <= keys[0].u) return get(keys[0]);
@@ -219,7 +167,6 @@ const vecAt = (keys, u, name) => {
   return [0, 1, 2].map((i) => spline(keys, u, (key) => key[name][i]));
 };
 
-/** The rotation whose columns are `x`, `y` (squared against x) and their cross, as a unit quaternion [w, x, y, z]. */
 function quatOf(xIn, yIn) {
   const x = norm(xIn), y = norm(sub(yIn, scale(x, dot(yIn, x)))), z = cross(x, y);
   const m00 = x[0], m11 = y[1], m22 = z[2], tr = m00 + m11 + m22;
@@ -230,13 +177,10 @@ function quatOf(xIn, yIn) {
   else { const S = Math.sqrt(1 + m22 - m00 - m11) * 2; q = [(x[1] - y[0]) / S, (z[0] + x[2]) / S, (z[1] + y[2]) / S, S / 4]; }
   return q;
 }
-/** The quaternion's rotation's first two columns. */
 function columnsOf(q) {
   const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1, [w, x, y, z] = q.map((v) => v / l);
   return [[1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)], [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)]];
 }
-/** Each key's hand frame as a quaternion, every one in the hemisphere of the key before it - memoised per blow (a blow
- *  begun from the carry's own hand is keyed afresh). */
 const _frames = new WeakMap();
 function framesOf(keys, a, b) {
   let per = _frames.get(keys);
@@ -254,10 +198,6 @@ function framesOf(keys, a, b) {
   return per.get(name);
 }
 
-/** A blow's keys begun on `from.start` and ended on `from.end`, in place of the standing stance's: each the hand (the
- *  right hand's, in the body frame - its grip and its blade and edge, or a fist's fingers and palm: the carry's own
- *  where it stands now) and, begun where a blow this one cut stood, the trunk's wind too (its chest, hips, shift, drop,
- *  step and free arm). */
 const CHANNELS = Object.freeze(['grip', 'blade', 'edge', 'fingers', 'palm', 'chest', 'hip', 'shift', 'drop', 'step', 'off']);
 function fromCarry(keys, from) {
   if (!from || (!from.start && !from.end)) return keys;
@@ -269,12 +209,6 @@ function fromCarry(keys, from) {
   };
   return [pick(keys[0], from.start), ...keys.slice(1, -1), pick(keys[keys.length - 1], from.end)];
 }
-/**
- * THE HAND'S FRAME at u - the blade's and the edge's ways (or a fist's fingers' and palm's), as the keys' frames splined
- * as rotations (AUDIT BODY-MOTION MELEE-1: each way splined on its own and normalised, a blade turning past a quarter
- * turn between keys passed through nothing and flipped 100 to 150 degrees in one frame). Answers [`a`, `b` squared
- * against it] - or null.
- */
 function frameAt(keys, u, a, b) {
   if (!keys[0][a] || !keys[0][b]) return null;
   const qs = framesOf(keys, a, b);
@@ -283,21 +217,10 @@ function frameAt(keys, u, a, b) {
   return columnsOf([q[0], q[1], q[2], q[3]]);
 }
 
-/**
- * THE BLOW AT u - the RIGHT hand's, in the body frame: { grip, blade, edge (or fingers, palm for a fist), chest [yaw,
- * roll, pitch] (degrees), hip, shift, drop, step, off } - and `w`, its weight over the carry. `side` 'L' mirrors it
- * across the body's middle (a left-hand blow). `from`: { start, end } - where the blow begins and ends in place of the
- * standing stance: the carry's own striking hand now (AUDIT BODY-MOTION MELEE-1: begun from the standing guard, a
- * running two-hander's blade trailing behind turned 139 degrees in a frame to the guard on its way to the wind-up behind
- * it), and for a blow that cut another the hand and the trunk where that one stood, its weight `w` held over the wind-up
- * (MELEE-6: begun from the carry, a follow-through cut by the next blow leapt 1.4 arm lengths). Null where the family has
- * no such blow.
- */
 export function blowPose(family, blow, u, side = 'R', from = null) {
   const table = MELEE[family]?.[blow];
   if (!table) return null;
   const keys = fromCarry(table, from);
-  // a blow begun where one it cut stood holds the body from its start, and hands it to its own weight over its wind-up
   const held = from?.start?.w ? from.start.w * (1 - smooth(u / U.windup)) : 0;
   const m = side === 'L' ? -1 : 1;
   const mx = (v) => (v ? [v[0] * m, v[1], v[2]] : null);
@@ -318,7 +241,5 @@ export function blowPose(family, blow, u, side = 'R', from = null) {
   };
 }
 
-/** The strength the blow lands with scales its wind (the chest's and the hips' turn, the shift and the step) between
- *  `lo` and 1 - a tap barely turns the body, a full swing throws it. */
 export const STRENGTH_WIND = Object.freeze({ lo: 0.65 });
 export const windFor = (strength) => lerp(STRENGTH_WIND.lo, 1, clamp01(strength ?? 1));

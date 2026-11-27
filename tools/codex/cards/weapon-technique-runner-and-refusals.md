@@ -38,7 +38,7 @@ traps:
   - "`flightApex` lowers the arc apex under low ceilings or returns `null` (`NO_ROOM_TEXT`)."
   - "Motor `techFlight` must clear on ground contact, wall grab, and clamber exits, or Slowfall glide misbehaves."
   - "The made-level rule `techFlight: 'refused'` blocks flights on Spire traversal ground."
-  - "`offsetTechniques` must move every stored point on a floating-origin recenter: the aim point and lane; the act point, target point, and lane; the flight start; the blow feet and lane; the volley queue; and each shaft landing point."
+  - "The collider's `raycast` never meets outdoor terrain, which is a height sampler and not a mesh. A ray that must reach the ground uses `groundHit` or `rayHit`."
 dfu: []
 tags:
   - techniques

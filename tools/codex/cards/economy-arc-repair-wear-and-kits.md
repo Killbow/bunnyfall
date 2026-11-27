@@ -31,6 +31,7 @@ invariants:
 traps:
   - "`kitGives` refuses a piece whose gap to the ceiling is at most `floor(maxCondition / 100)`, so no kit is spent on a 75%-to-75% mend."
   - "A Repairs Objects tick (every `CONDITION_PER_ROUNDS = 4` rounds, in play and in rest) mends `round(maxCondition / MEND_SHARE_OF)` (a fiftieth), but magic items and artifacts mend only `CONDITION_AMOUNT = 1`."
+  - "`weightForMaterial` rounds half to even through `roundHalfEven`, as Unity's `Mathf.Round` does. `Math.round` would turn 22.5 quarter-kilograms into 23 where Daggerfall Unity gives 22."
 dfu:
   - Assets/Scripts/Game/Formulas/FormulaHelper.cs
   - Assets/Scripts/Game/MagicAndEffects/Effects/Enchanting/RepairsObjects.cs

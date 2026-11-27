@@ -1,19 +1,12 @@
 // @ts-check
 /* global atob */
-// BUNNYFALL (2026-11-07): CUSTOM PAPERDOLLS, THE CLIENT'S HALF (src/net/skinLaw.js is the law; server-account/src/skins.js
-// keeps them; ui/skinsWindow.js is where a player picks one). This module holds
-//   - the skin THIS player wears online (`wornId`), told by the account on connect and by the window's pick,
-//   - every skin anyone in view wears, fetched once by its id (an approved skin is the same picture for everyone) and
-//     decoded into two same-size RGBA pictures, `art`: { id, name, height, w, h, front, back },
-// and answers `skinArtOf(id)` - the art, or null while it is still coming (the caller draws what it drew before; the id
-// is asked for on the first look). The doll compositor (ui/paperDoll.js) and the peers' billboards (net/remotePlayers.js)
-// read it; neither knows how it is fetched.
+// Client half of custom paperdolls: the worn skin and every skin in view, fetched once by id.
+// skinArtOf(id) returns the decoded art, or null while it is still coming.
 import { skinsGet, skinsMine, skinsWear } from '../net/accountClient.js';
 import { skinIdOk } from '../net/skinLaw.js';
 
 /** @typedef {{ id: string, owner: string, name: string, height: number, w: number, h: number, front: Uint8Array, back: Uint8Array }} SkinArt */
 const RETRY_MS = 60_000;
-/** How long a skin is trusted before it is asked for again: a skin staff withdrew, or an owner they switched off, stops being drawn. */
 const RECHECK_MS = 10 * 60_000;
 /** @type {Map<string, { art?: SkinArt, at?: number, loading?: boolean, failedUntil?: number }>} */
 const _skins = new Map();
@@ -23,11 +16,9 @@ let _io = null;
 let _worn = null;
 let _listeners = /** @type {Set<() => void>} */ (new Set());
 
-/** The id this player wears online, or null. */
 export const wornSkinId = () => _worn;
-/** Something changed (a skin landed, the pick changed): the doll and the peers redraw. */
 export const onSkinsChange = (/** @type {() => void} */ f) => { _listeners.add(f); return () => { _listeners.delete(f); }; };
-const changed = () => { for (const f of _listeners) { try { f(); } catch { /* an ear's trouble is its own */ } } };
+const changed = () => { for (const f of _listeners) { try { f(); } catch { } } };
 
 async function decode(/** @type {string} */ b64) {
   const bin = atob(b64);
@@ -60,18 +51,15 @@ async function fetchSkin(/** @type {string} */ id) {
   e.loading = false;
 }
 
-/** The art of a skin by id when it is here; else null, and the fetch is started (once; a failure waits RETRY_MS). */
 export function skinArtOf(/** @type {unknown} */ id) {
   if (!skinIdOk(id)) return null;
   const e = _skins.get(/** @type {string} */ (id));
-  if (e?.art) { if (!e.loading && Date.now() - (e.at ?? 0) > RECHECK_MS) fetchSkin(/** @type {string} */ (id)); return e.art; }   // a stale one is asked for again, drawn meanwhile
+  if (e?.art) { if (!e.loading && Date.now() - (e.at ?? 0) > RECHECK_MS) fetchSkin(/** @type {string} */ (id)); return e.art; }
   if (!e || (!e.loading && (e.failedUntil ?? 0) <= Date.now())) fetchSkin(/** @type {string} */ (id));
   return null;
 }
-/** The art of the skin this player wears, when it is here. */
 export const ownSkinArt = () => (_worn ? skinArtOf(_worn) : null);
 
-/** The world hands the account door once; the worn skin is read from the account. */
 export function connectSkins(/** @type {() => any} */ io) {
   _io = io;
   const door = io();
@@ -79,7 +67,6 @@ export function connectSkins(/** @type {() => any} */ io) {
   skinsMine(door).then((r) => { if (r?.ok) { _worn = skinIdOk(r.data?.worn) ? r.data.worn : null; changed(); } }).catch(() => {});
 }
 
-/** Wear one of the account's approved skins (or `null` for none): the service's word, then the doll redraws. */
 export async function wearSkin(/** @type {string|null} */ id) {
   const door = _io?.();
   if (!door) return { ok: false, error: 'auth' };
@@ -88,5 +75,4 @@ export async function wearSkin(/** @type {string|null} */ id) {
   return r;
 }
 
-/** Test seam. */
 export function _resetSkinsForTests() { _skins.clear(); _worn = null; _io = null; _listeners = new Set(); }

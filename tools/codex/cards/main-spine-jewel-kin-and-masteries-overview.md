@@ -37,6 +37,7 @@ invariants:
   - "craftMintVersion(asked) returns min(asked, MINT_VERSION) when asked >= MINT_V_JEWEL_KIN, otherwise MINT_V_LINES."
   - "MASTERY_SLOTS = { primary: 3, major: 2, minor: 1 }."
   - "Deed gate refusals (deedRefusal, again-today, gift without gold) return before heard() fires, so they change no regard, no affection, and no tone cost."
+  - "Turning Master Skills off saves the `skillUses` counters of mastered skills at 100 or more in `masterPracticeHeld`, and turning it on restores them, so toggling before a rest keeps tough-enemy practice."
 traps:
   - "Never read classic globals such as MetLadyBrisienna as proof the opener ran. Doing so re-seeded a backbone into every import."
   - "Regard day starts at 04:00 (REGARD_DAY_START_MIN = 240, regardDayOf), but courtship stamps use marriage.js dayOf, which starts at midnight. Do not merge the two clocks."

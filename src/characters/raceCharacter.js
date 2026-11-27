@@ -1,8 +1,4 @@
-// Assembles a complete race character - body (race-coloured) + head
-// (hair/features) + tail + body detail (scales/fur) - as one merged face
-// list with group tags intact, so the engine can pack it into a single
-// animated mesh. This is the in-engine counterpart to the viewer's
-// separate toggleable pieces.
+// Assembles a complete race character (body, head, tail, body detail) into one merged face list with group tags.
 import { buildNeutralBody } from './neutralBody.js';
 import { buildHair, HAIR_RAMPS } from './pieces/hair.js';
 import { buildTail } from './pieces/tail.js';
@@ -11,17 +7,14 @@ import { HUMAN_SKINS, ELF_TONES, KHAJIIT_FURS, ARGONIAN_HIDES } from './palettes
 
 const MORPHS = ['Human', 'Elf', 'Khajiit', 'Argonian'];
 
-/** Resolve a race from a Daggerfall people texture archive. Real DF
- *  archives encode race+gender; until that table is wired, this is a
- *  deterministic spread so a crowd shows all four morphologies. */
 export function raceOfArchive(archive) {
   return MORPHS[((archive | 0) % MORPHS.length + MORPHS.length) % MORPHS.length];
 }
 
 /**
- * @param race one of Human|Elf|Khajiit|Argonian
- * @param spriteRamps { boot } - palette ramps sampled from the sprite
- * @param opts { tone, hairStyle, hairTone }
+ * @param race
+ * @param spriteRamps
+ * @param opts
  */
 export function buildRaceCharacter(race, spriteRamps, opts = {}) {
   const tone = opts.tone ?? 0;

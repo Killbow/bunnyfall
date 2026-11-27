@@ -1,32 +1,7 @@
-// WINGS.
-//
-// The last body plan in the game that nothing else can express. A
-// quadruped is a spine with legs, an arachnid is a ring of them, and a
-// werebeast is a man with the wrong head — all of them things that
-// stand on the ground. `behaviour: Flying` is the one category in
-// ENEMY_BASICS that is neither foot nor fin, and it needs a surface
-// rather than a limb.
-//
-// A WING IS A MEMBRANE ON FINGERS. That is the whole of it, and it is
-// why a wing cannot be built out of the boxes everything else here is
-// made of: what the eye reads is the SHEET between the bones, not the
-// bones. So this is panels — a fan of triangular quads running from a
-// shoulder root out to a row of tips — and the fingers are drawn on top
-// as thin ribs rather than being the structure.
-//
-// FOLD IS A PARAMETER, NOT A POSE. A bat at rest is wrapped in its own
-// wings and a bat in flight is twice as wide as it is long, and the
-// difference is one number rather than two pieces. It also means the
-// same wing serves an imp, which is a small man who happens to have a
-// pair, at a fold nothing like a bat's.
-//
-// Built in FINAL (compressed) body space and tagged 'body', so the wings
-// ride the torso rather than staying put while it turns.
+// Wings for flying enemies, a body plan the other builders cannot express.
 
 import { HSCALE, quadder } from './pieceLoft.js';
 
-/** Membrane: darker than fur and warmer than chitin, and thin enough
- *  that light is behind it as often as on it. */
 export const MEMBRANE_RAMP = [
   [52, 36, 34],
   [80, 56, 50],
@@ -39,12 +14,6 @@ export const MEMBRANE_RAMP = [
 /**
  * @param {number[][]} ramp
  * @param {object} s
- *   span   — how far each wing reaches from the shoulder
- *   at     — shoulder height, in the rig's own (uncompressed) units
- *   fold   — 0 spread wide, 1 wrapped in against the body
- *   fingers— how many ribs the membrane hangs on
- *   droop  — how far the tips fall below the shoulder line
- *   rib    — rib thickness
  */
 export function buildWings(ramp = MEMBRANE_RAMP, s = {}) {
   const { span = 0.55, at = 1.34, fold = 0.2, fingers = 4, droop = 0.24, rib = 0.012 } = s;
@@ -57,10 +26,6 @@ export function buildWings(ramp = MEMBRANE_RAMP, s = {}) {
     const rootX = side * 0.1;
     const rootZ = -0.02;
 
-    // The tips, fanned from forward-and-out to back-and-in. Folding
-    // swings the whole fan backwards and pulls it in against the body,
-    // which is what a wrapped bat actually does — it does not shrink its
-    // wings, it puts them behind itself.
     const tip = [];
     for (let i = 0; i <= fingers; i++) {
       const t = i / fingers;
@@ -72,25 +37,15 @@ export function buildWings(ramp = MEMBRANE_RAMP, s = {}) {
       tip.push([x, y, z]);
     }
 
-    // THE MEMBRANE, panel by panel between neighbouring tips. Each panel
-    // is a quad from the root to two tips — it is a sheet, so it has no
-    // thickness and is drawn from both sides by the double-sided
-    // material the rest of the rig uses.
     for (let i = 0; i < fingers; i++) {
       const a = tip[i];
       const b = tip[i + 1];
-      // Shade darkens along the wing: the far end is thinner and further
-      // from any light, and a flat membrane reads as cardboard.
       const shade = 0.86 - (i / fingers) * 0.36;
       quad([rootX, y0, rootZ], a, b, [rootX, y0, rootZ], shade);
-      // The same panel a shade darker at its trailing edge, so the sheet
-      // has a gradient across it rather than a flat tone.
       const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - droop * 0.12, (a[2] + b[2]) / 2];
       quad(a, mid, b, a, shade * 0.72);
     }
 
-    // THE FINGERS, drawn on top as thin ribs. They are not the
-    // structure — the membrane is — but without them a wing is a flag.
     for (const t of tip) {
       const dx = t[0] - rootX;
       const dy = t[1] - y0;
