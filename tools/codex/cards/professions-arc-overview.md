@@ -40,7 +40,7 @@ invariants:
   - "`harvestXp` is `15 * tier`, with +50% for clean harvests, and is quartered when the tier falls more than two below the rank's top tier; `writXp` is `2 * pay`."
   - "`STORES_MAX` caps each material at 5,000 units across all origins (`own`, `bought`, `gold`, and `loose`)."
   - "Specializations open at ranks 50 (`JOURNEYMAN_RANK`) and 100, offering `SPEC_TRIAL_S` (86,400 s) of free changes before `RESPEC` costs 1,000 Marks with a 7-day lock."
-  - "`PROF_OPS_MAX` limits profession mutations to 600 per hour per account."
+  - "`PROF_OPS_MAX` limits profession mutations to 3,600 per hour per account."
 traps:
   - "There is no two-above-Journeyman XP cap: `craftLimitOf` allows every track to reach `PROF_XP_MAX`, while crafting specialization uses Focus (`FOCUS_MAX = 2`) in `src/net/craft/craftLaw.js`."
   - "`FIRST_MAKE_SHARE` is 0 on every track, so first-make bonuses pay 0 XP and progression speed relies on `CRAFT_PACE` multipliers."
@@ -62,7 +62,7 @@ Every track reaches `PROF_XP_MAX` (`craftLimitOf`). Characters pledge up to two 
 
 ## Specializations, Stores, and Subcards
 
-Specializations (`/v1/prof/spec`, `prof_choices`) unlock at ranks 50 and 100 with a 24-hour free swap window (`SPEC_TRIAL_S` 86,400 s), then `RESPEC` costs 1,000 Marks with a 7-day lock. `/v1/prof/state`, `/v1/stores/deposit`, and `/v1/stores/withdraw` manage `prof_tracks`, `prof_stores` (`STORES_MAX` 5,000), `prof_deposits`, and `prof_withdrawals` under `PROF_OPS_MAX` (600/h).
+Specializations (`/v1/prof/spec`, `prof_choices`) unlock at ranks 50 and 100 with a 24-hour free swap window (`SPEC_TRIAL_S` 86,400 s), then `RESPEC` costs 1,000 Marks with a 7-day lock. `/v1/prof/state`, `/v1/stores/deposit`, and `/v1/stores/withdraw` manage `prof_tracks`, `prof_stores` (`STORES_MAX` 5,000), `prof_deposits`, and `prof_withdrawals` under `PROF_OPS_MAX` (3,600/h).
 
 - `professions-marks-and-silver-finds`: Marks ledger, faucets, bank, and silver finds.
 - `professions-board-and-writs`: notice boards, writs, and commissions.

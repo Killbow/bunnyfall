@@ -328,8 +328,10 @@ export function storesFullIn(book, material) {
 export const fullWordsIn = (book) => (book?.carrying?.() === true ? 'No room in your bag or pack' : 'Stores full');
 /** One withdrawal to the pack, at most. */
 export const WITHDRAW_MAX = 200;
-/** Professions writes an account may make an hour (a harvest, a withdrawal, a delivery, a choice each count). */
-export const PROF_OPS_MAX = 600;
+/** Professions writes an account may make an hour (a harvest, a craft, a withdrawal, a delivery, a choice each count).
+ *  BUNNYFALL (2026-11-27): 600 -> 3600. Heavy crafting plus cave mining spent 600 and locked gathering and crafting out
+ *  until the hour turned (`prof-rate`, shown as "slow to answer"). The account door's 240 a minute still bounds a hammer. */
+export const PROF_OPS_MAX = 3600;
 export const PROF_OPS_WINDOW_S = 3600;
 /** A harvest's `at` - the act's end on the shared clock - may be at most this far past (the queue's bound, PROF0 19)... */
 export const HARVEST_LATE_S = 600;
