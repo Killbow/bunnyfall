@@ -731,8 +731,9 @@ const longUp = (kind, empty = false, u = 'gq') => { const e = empty ? 'Empty' : 
 const RULE_UNDER = 'border-bottom: 2px solid rgba(92,56,24,0.5) !important; border-image: none !important;';
 /** One of the pack's own pixels (a third of the game's), for a picture laid at the pack's own size. */
 const pk = (n) => `calc(${n} * var(--gp, 3px) / 3)`;
-/** The spellbook window, when the card says GrimoireUI's own. */
-const SB = `${G}[data-grim-spellbook="pack"] .sb-shell`;
+// The painted book positions its controls over the artwork. The illustrated catalogue uses normal layout.
+const PAINTED_SPELLBOOK = '.sb-shell:where(:not(:has(> .px-win > .px-body > .sb-catalogue)))';
+const SB = `${G}[data-grim-spellbook="pack"] ${PAINTED_SPELLBOOK}`;
 /** A PLANK: the desk's grain in a black outline, lit along its top and shaded along its foot by a pixel each. */
 const PLANK = `linear-gradient(180deg, #0e0703 0 ${px(1)}, rgba(255,214,150,0.26) ${px(1)} ${px(2)}, rgba(0,0,0,0) ${px(2)} calc(100% - ${px(2)}),
     rgba(0,0,0,0.5) calc(100% - ${px(2)}) calc(100% - ${px(1)}), #0e0703 calc(100% - ${px(1)})),
@@ -2097,7 +2098,8 @@ ${G} [data-grim-unroll="open"] > :not(.grim-rod) { animation: grim-ink-show 560m
 ${G} [data-grim-unroll="closing"] > :not(.grim-rod) { animation: grim-ink-show 380ms linear reverse both; }
 @keyframes grim-ink-show { 0%, 40% { opacity: 0; } 100% { opacity: 1; } }
 @keyframes grim-unroll { from { clip-path: inset(calc(-1 * ${px(8)}) calc(50% - ${px(15)})); } to { clip-path: inset(calc(-1 * ${px(8)}) calc(-1 * ${px(13)})); } }
-${G}:not([data-grim-spellbook="pack"]) .grim-sbarrow { display: none; }
+${G} .grim-sbarrow { display: none; }
+${SB} .grim-sbarrow { display: block; }
 ${G} .grim-rod { position: absolute; z-index: 20; pointer-events: none; display: block; top: calc(-1 * ${px(5)}); bottom: calc(-1 * ${px(5)}); width: ${px(15)};
   border: 0 solid transparent; border-width: ${px(15)} 0; box-sizing: border-box; background: none;
   animation: grim-rod-l 560ms cubic-bezier(0.25, 0.8, 0.3, 1) both; }
@@ -2222,7 +2224,7 @@ ${SB} .grim-sbarrow { position: absolute; z-index: 5; left: ${pk(358)}; width: $
   background: none; color: transparent; font-size: 0; }
 ${SB} .grim-sbarrow.up { top: ${pk(36)}; } ${SB} .grim-sbarrow.down { top: ${pk(398)}; }
 ${SB} .grim-sbarrow:hover, ${SB} .grim-sbarrow:focus-visible { background: radial-gradient(closest-side, rgba(255,240,180,0.45), rgba(255,240,180,0)); outline: none; }
-${SB}:not([data-grim-art]) > .px-win, ${G}:not([data-grim-art="ready"])[data-grim-spellbook="pack"] .sb-shell > .px-win { background-color: #d9bc86 !important; }
+${SB}:not([data-grim-art]) > .px-win, ${G}:not([data-grim-art="ready"])[data-grim-spellbook="pack"] ${PAINTED_SPELLBOOK} > .px-win { background-color: #d9bc86 !important; }
 
 /* THE VITALS, UPRIGHT - Daggerfall's own three bars in the corner (health, fatigue, magicka, left to right), each the
    pack's vial standing on its foot with the cork on top, the liquid rising from the foot. The bars keep their own
