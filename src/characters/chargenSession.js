@@ -307,6 +307,35 @@ function enhancedChargenOverlay(flow, { onDone, onCancel, hudScale = 2 } = {}) {
   };
 }
 
+/**
+ * BUNNYFALL (the tavern wizard in 3D): the enhanced wizard mounted over Nyx's hall (scenes/chargenHall.js), before any world.
+ * The host is see-through so the hall's canvas shows; `hall` is the scene's handle (`aim`, `body`, `onBody`). The ledger
+ * answers the after-wizard questions itself (ui/tavernChargen.js), so the result is whole when `onDone` hears it.
+ * @param {any} flow @param {{ hall: any, onDone: (r: any) => void, onCancel: () => void }} opts
+ */
+export function mountWizardOverHall(flow, { hall, onDone, onCancel }) {
+  let fired = false;
+  let view = null;
+  const host = document.createElement('div');
+  host.id = 'enhanced-chargen';
+  host.className = 'in3d';
+  host.style.cssText = 'position:fixed;inset:0;z-index:14;background:transparent;overflow:hidden';
+  document.body.append(host);
+  const finish = (why) => {
+    if (fired) return;
+    fired = true;
+    view?.unmount();
+    host.remove();
+    if (why === 'cancel') onCancel?.();
+    else onDone?.({ levelingSystem: LEVELING_CLASSIC, ...flow.result(), ...(flow.tavernAnswers ?? {}) });
+  };
+  import('../ui/enhancedChargen.js').then(async ({ mountEnhancedChargen, attachChargenText }) => {
+    const deps = await chargenViewDeps();
+    attachChargenText(flow, deps.textRsc);
+    view = mountEnhancedChargen(host, { flow, ...deps, hall, onExit: finish });
+  }).catch((e) => { console.warn('[chargen] the wizard would not mount over the hall', e); finish('cancel'); });
+}
+
 async function chargenViewDeps() {
   const out = { picker: null, picture: null, palette: null, loadFaces: null, textRsc: null };
   const [{ ImgFile }, { DFPalette }, { TextRsc }, { loadFaceCanvases }] =

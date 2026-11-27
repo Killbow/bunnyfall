@@ -222,7 +222,7 @@ async function boot() {
   if (choice !== 'begin') {
     await ensureData();
     // The boot plate goes up after the data check, since the folder picker would sit under it.
-    const bootPlate = await import('./ui/loadingScreen.js').then((m) => m.raiseBootPlate());
+    let bootPlate = await import('./ui/loadingScreen.js').then((m) => m.raiseBootPlate());
     // AUDIT 19 F12's law, and it matters more here: SET on load,
     // DELETE on anything else. A URL that already carries ?load would
     // otherwise make New Game restore the save - the one action whose
@@ -296,6 +296,18 @@ async function boot() {
     // saw a Play Online session, so the skin stayed the player's
     // stored choice and a Classic player had no chat.
     publishBootParams(params);
+    // BUNNYFALL (2026-11-27): A NEW CHARACTER IS MADE IN NYX'S HALL - the 3D hall and the tavern wizard over it
+    // (scenes/chargenHall.js), before the world boots; the world then takes the signed character (characters/hallBorn.js)
+    // instead of mounting its own wizard. A hall that cannot be built boots the world as before, wizard and all; Leave
+    // goes back to the front door.
+    if ((choice === 'new' || (choice === 'online-new' && !legacyBirth)) && !params.has('nohall') && (await import('./ui/uiSkin.js')).isEnhanced()) {   // the classic skin keeps Daggerfall's own screens; ?nohall the old way
+      const { runChargenHall } = await import('./scenes/chargenHall.js');
+      const born = await runChargenHall(canvas, renderer, (s) => { if (s) bootPlate.line?.(s); else bootPlate.end(); })
+        .catch((e) => { console.warn('[chargen hall] the hall would not open - the world asks instead', e); return null; });
+      bootPlate.end();
+      if (born?.cancel) { location.reload(); return; }
+      bootPlate = await import('./ui/loadingScreen.js').then((m) => m.raiseBootPlate());
+    }
     return bootWorld(canvas, renderer, params, status).finally(() => bootPlate.end());
   }
   // FD1: BEGIN - the classic start sequence, data first.

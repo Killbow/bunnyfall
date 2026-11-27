@@ -111,9 +111,9 @@ const el = (doc, tag, cls = '', text = null) => { const n = doc.createElement(ta
 const btn = (doc, cls, text, onClick) => { const b = /** @type {HTMLButtonElement} */ (el(doc, 'button', cls, text)); b.type = 'button'; b.onclick = (e) => { if (e?.detail > 1) return; onClick(); }; return b; };
 
 /** The hall, built once per wizard and kept across repaints so the camera can glide between shots. */
-export function tavernBackdrop(doc) {
+export function tavernBackdrop(doc, { in3d = false } = {}) {
   ensureStyle(doc);
-  const root = el(doc, 'div', 'tc-hall');
+  const root = el(doc, 'div', `tc-hall${in3d ? ' in3d' : ''}`);   // in3d: Nyx's 3D hall draws the room; the painting and its Nyx stand down, the desk stays
   root.setAttribute('aria-hidden', 'true');
   const img = /** @type {HTMLImageElement} */ (el(doc, 'img', 'tc-bg'));
   img.src = art('bunnyfall-tavern/tavern.webp'); img.alt = ''; img.draggable = false;
@@ -134,8 +134,10 @@ export function tavernBackdrop(doc) {
 }
 
 /** Point the camera for this state. */
-export function aimCamera(hall, state) {
-  hall.dataset.cam = CAMERA[state] ?? 'desk';
+export function aimCamera(hall, flow, ctx = null) {
+  const cam = CAMERA[flow.state] ?? 'desk';
+  hall.dataset.cam = cam;
+  ctx?.hall?.aim?.(cam, { race: flow.race?.key });   // the 3D hall's camera, when there is one
 }
 
 /** The journey along the top, and Nyx's line. */
@@ -187,6 +189,7 @@ export function raceStage(ctx) {
   const row = el(doc, 'div', 'tc-patrons');
   row.setAttribute('role', 'group');
   row.setAttribute('aria-label', t('chargen.tavern.patrons', 'The patrons'));
+  if (ctx.hall) row.classList.add('in3d');
   for (const race of PLAYABLE_RACE_TEMPLATES) {
     const on = flow.raceConfirm && flow.race?.key === race.key;
     const b = btn(doc, `tc-patron${on ? ' on' : ''}`, null, () => {
@@ -195,6 +198,16 @@ export function raceStage(ctx) {
       ctx.paint();
     });
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (ctx.hall) {
+      // the patron stands in the hall: the people's own paperdoll, placed by the hall's frame where their spot projects
+      b.classList.add('tc-in3d');
+      b.dataset.race = race.key;
+      const fig = ctx.hall.body(race.key, 'male', 0);
+      b.append(fig ?? el(doc, 'span', 'tc-figwait'), el(doc, 'span', 'tc-plate', raceDisplayName(race.key)));
+      b.style.visibility = 'hidden';
+      row.append(b);
+      continue;
+    }
     const frame = el(doc, 'span', 'tc-portrait');
     const set = faceSet(ctx, race.key, 'male');
     const face = copyCanvas(doc, set?.[0]);
@@ -233,10 +246,23 @@ export function appearanceStage(ctx) {
   const set = faceSet(ctx, flow.race.key, mem.sex);
   const pane = el(doc, 'div', 'tc-stage tc-look');
 
-  const big = el(doc, 'div', 'tc-bigface');
-  const face = copyCanvas(doc, set?.[mem.face]);
-  if (face) big.append(face); else big.append(el(doc, 'span', 'tc-noface', raceDisplayName(flow.race.key)));
-  pane.append(big);
+  if (ctx.hall) {
+    // the one you chose, close, in the hall: their paperdoll with this sex and face (placed by the hall's frame)
+    const fig = el(doc, 'div', 'tc-in3d tc-chosen');
+    fig.dataset.race = flow.race.key;
+    fig.style.visibility = 'hidden';
+    fig.append(ctx.hall.body(flow.race.key, mem.sex, mem.face) ?? el(doc, 'span', 'tc-figwait'));
+    pane.append(fig);
+    const small = el(doc, 'div', 'tc-faceframe');
+    const face = copyCanvas(doc, set?.[mem.face]);
+    if (face) { small.append(face); }
+    pane.append(small);
+  } else {
+    const big = el(doc, 'div', 'tc-bigface');
+    const face = copyCanvas(doc, set?.[mem.face]);
+    if (face) big.append(face); else big.append(el(doc, 'span', 'tc-noface', raceDisplayName(flow.race.key)));
+    pane.append(big);
+  }
 
   const card = el(doc, 'section', 'tc-panel tc-lookcard');
   card.append(el(doc, 'h2', 'tc-h', raceDisplayName(flow.race.key)));
@@ -445,6 +471,24 @@ const CSS = `
 .tc-inkwell { left: 73%; top: -2vh; width: 3.2vw; height: 4.5vh; background: #1d1410; border: 3px solid #0b0705; border-radius: 6px 6px 10px 10px; }
 .tc-quill { position: absolute; left: 74.5%; top: -10vh; width: 4.4vw; height: auto; image-rendering: pixelated; transform: rotate(18deg); }
 .tc-wood { position: absolute; inset: 0; opacity: 0; background: repeating-linear-gradient(90deg, #4a2a14 0, #3e2212 6px, #4a2a14 14px, #43250f 22px); transition: opacity .8s; }
+/* IN 3D: the hall's canvas shows through; the desk in front of the camera stays */
+#enhanced-chargen.in3d { background: transparent !important; }
+.tc-hall.in3d { background: transparent; }
+.tc-hall.in3d :is(.tc-bg, .tc-nyx, .tc-wood, .tc-glow) { display: none; }
+.tc-hall.in3d .tc-shade { background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%); }
+.tc-hall.in3d .tc-desk { display: none; }   /* the hall has its own bar in front of Nyx */
+.tc-hall.in3d[data-cam="page"] { background: rgba(10,5,2,.55); }
+.tc-in3d { position: fixed; transform: translateX(-50%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; padding: 0; border: 0; background: none; cursor: pointer; width: auto; }
+.tc-in3d > canvas { height: 100%; width: auto; image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0,0,0,.6)); }
+.tc-in3d .tc-plate { position: absolute; top: 100%; margin-top: 4px; }
+.tc-in3d:hover > canvas, .tc-in3d:focus-visible > canvas, .tc-patron.on.tc-in3d > canvas { filter: drop-shadow(0 0 6px #e8b030) drop-shadow(0 0 2px #ffd58f); }
+.tc-patron.tc-in3d { width: auto; gap: 0; }
+.tc-patrons.in3d { position: fixed; inset: 0; pointer-events: none; }
+.tc-figwait { display: block; width: 40px; height: 100%; }
+.tc-chosen { cursor: default; pointer-events: none; }
+.tc-faceframe { position: absolute; left: 32px; top: 200px; width: 120px; aspect-ratio: 4 / 5; border: 3px solid #1c1108; box-shadow: 0 0 0 2px rgba(240,224,180,.3); overflow: hidden; background: #2a160a; }
+.tc-faceframe:empty { display: none; }
+.tc-faceframe canvas { width: 100%; height: 100%; image-rendering: pixelated; }
 /* THE CAMERA */
 .tc-hall[data-cam="desk"] .tc-bg { object-position: 42% 40%; filter: blur(1.5px) brightness(.6); transform: scale(1); }
 .tc-hall[data-cam="right"] .tc-bg { object-position: 100% 45%; filter: blur(1.5px) brightness(.55); transform: scale(1.12) translateX(-3%); }

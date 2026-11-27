@@ -1682,13 +1682,13 @@ function paintTavern() {
   if (!tavern.root || tavern.root.parentNode !== host) {
     host.innerHTML = '';
     tavern.root = el('div', 'tc-root');
-    tavern.hall = tavernBackdrop(document);
+    tavern.hall = tavernBackdrop(document, { in3d: !!tavern.scene });
     tavern.root.append(tavern.hall);
     host.append(tavern.root);
   }
   tavern.layer?.remove();
-  aimCamera(tavern.hall, flow.state);
-  const ctx = { doc: document, flow, mem: tavern.mem, paint, onExit: (why) => onExit(why), loadFaces };
+  const ctx = { doc: document, flow, mem: tavern.mem, paint, onExit: (why) => onExit(why), loadFaces, hall: tavern.scene };
+  aimCamera(tavern.hall, flow, ctx);
   if (flow.state !== 'customClass') { classIo = null; classIoNote = null; }
   stageSecondary = null;
   stagePrimary = null;
@@ -1981,14 +1981,15 @@ export function muteConstellation(f) {
  */
 export function mountEnhancedChargen(hostEl, {
   flow: f, picker = null, picture = null, palette = null,
-  loadFaces: faceLoader = null, onExit: exit = () => {},
+  loadFaces: faceLoader = null, onExit: exit = () => {}, hall = null,
 } = {}) {
   injectEnhancedStyle();
   injectEnhancedFonts();
   host = hostEl;
   flow = muteConstellation(f);
   onExit = exit;
-  tavern = TAVERN_WIZARD ? { mem: tavernMemory(), root: null, hall: null, layer: null } : null;   // BUNNYFALL: Nyx's hall
+  tavern = TAVERN_WIZARD || hall ? { mem: tavernMemory(), root: null, hall: null, layer: null, scene: hall } : null;   // `scene`: Nyx's 3D hall, when the wizard is mounted over it (scenes/chargenHall.js)
+  hall?.onBody?.(() => paint());   // BUNNYFALL: Nyx's hall
   loadFaces = faceLoader;
   faces = null;
   hover = null;
