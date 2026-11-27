@@ -116,6 +116,7 @@ const BANK_BY_RACE = Object.freeze({
   Breton: BANK_TYPES.Breton, Redguard: BANK_TYPES.Redguard, Nord: BANK_TYPES.Nord,
   DarkElf: BANK_TYPES.DarkElf, HighElf: BANK_TYPES.HighElf, WoodElf: BANK_TYPES.WoodElf,
   Khajiit: BANK_TYPES.Khajiit, Argonian: BANK_TYPES.Imperial,
+  Orc: BANK_TYPES.Redguard,   // an orc is drawn and named as a Redguard
 });
 export const getNameBank = (raceKey) => BANK_BY_RACE[raceKey] ?? BANK_TYPES.Breton;
 

@@ -81,7 +81,8 @@ function patronSpots(enter, keeper) {
   const out = new Map();
   const keys = PLAYABLE_RACE_TEMPLATES.map((t) => t.key);
   // one row before the right-hand benches, the first nearest the bar (on the screen's left as the camera faces them)
-  keys.forEach((key, i) => out.set(key, at(-2.2 - 0.72 * i, 1.7, 0.02)));
+  const step = 7.2 / Math.max(1, keys.length - 1);   // the row keeps its length however many peoples there are
+  keys.forEach((key, i) => out.set(key, at(-2.2 - step * i, 1.7, 0.02)));
   return out;
 }
 

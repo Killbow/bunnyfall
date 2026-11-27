@@ -60,7 +60,7 @@ const utilities = {
 };
 const families = { 'short-blade':'dagger', 'long-blade':'blade', axe:'axe', blunt:'hammer', 'hand-to-hand':'fist', archery:'bow' };
 const races = { breton:'ward', redguard:'blade', nord:'hammer', 'dark-elf':'dagger', 'high-elf':'eye',
-  'wood-elf':'bow', khajiit:'fist', argonian:'wave', imperial:'star', lilmothit:'step', lungaris:'feather' };
+  'wood-elf':'bow', khajiit:'fist', argonian:'wave', imperial:'star', lilmothit:'step', lungaris:'feather', orc:'axe' };
 
 Object.assign(marks, {
   tanto:'M8 22l11-14 5-1-2 6-12 12z M6 24l4-5m-6 8 4-5',

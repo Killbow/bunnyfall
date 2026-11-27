@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Added: A new people in character creation, the Orc. They look like Redguards and favor the warhammer and axes. In the combat beta an Orc takes 15% less physical damage with a weapon readied, runs 15% faster below half health, and has the Skullsplitter ability.
 - Changed: In the combat beta, every racial edge that was 6% (the faster walking, running, sneaking, swimming and jumping, and the damage each people takes less of) is now 15%.
 - Fixed: In the desktop app, "Upload or manage" under your paperdoll on the main menu showed "not found"; it now opens the skins page on the website.
 - Changed: Character creation now happens in Nyx's tavern, in 3D: the camera turns from Nyx at her bar to the patrons standing by the benches, steps close to the one you choose, and comes back to her bar for your class and her ledger. On a computer that cannot open the hall, the painted tavern stands in.
