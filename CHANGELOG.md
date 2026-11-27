@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Changed: The main menu is now a tavern. The logo stands upper left on the wood rail, Online is the big door on the right with Settings, Overhauls and Tutorials under it, and Play Offline, Screenshots and About sit small along the bottom. When you are signed in, your custom paperdoll shows on the left, where you can flip through your approved skins and wear one.
 - Changed: Mine drills no longer stop paying after a day's ore; there is no daily cap on what you haul.
 - Fixed: Gathering and crafting no longer lock out for the rest of the hour after a long session of mining and crafting; the hourly limit on profession actions is six times higher.
 - Changed: POI notices, mod credits, and many other short messages now use plainer wording.
