@@ -8,6 +8,8 @@ when it runs unpacked and packs it beside the launcher's page as `launcher/art` 
 | file | what | from |
 | --- | --- | --- |
 | `bunny-wave.gif`, `bunny-cheer.png` | the Bunnyfall rabbit, waving (launcher, once Play is ready) and still (launcher while waiting; the site) | the project's own art |
+| `bunny-light.png`, `bunny-hands.png` | the rabbit lighting the campfire, and cheering it on (the launcher while it works) | the project's own art |
+| `bunny-carry.png`, `cube.png` | the rabbit hauling the cube (the other dev; by the site's credits, and the launcher's first run), and the cube on its own (by the site's Play button, and by the lit fire) | the project's own art |
 | `play.gif`, `play-still.png` | the PLAY badge, and its first frame | the project's own art |
 | `wood.png` | one plank of wood, 320x38, that tiles left to right; shown at 2x, pixelated | drawn for Bunnyfall (generated pixel art) |
 | `chest-icon.png`, `letter-icon.png`, `coins-icon.png`, `house-icon.png`, `ship-icon.png` | the bank screen's icons, the parchment around them cleared | GrimoireUI `Img/BANK00I0.IMG.png` |
