@@ -39,6 +39,7 @@ export const PIECES = [
   { id: 7100018, name: 'bone-pile', note: 'Skulls and long bones heaped low.', build(m) { const t = W(123); m.prism(0, 0, 0, 0.35, 0.9, 0.5, 6, t); for (const [x, z] of [[0.3, 0.2], [-0.4, 0.1], [0.1, -0.4]]) m.box(x - 0.15, 0.3, z - 0.15, x + 0.15, 0.6, z + 0.15, F(123)); m.box(-0.9, 0.1, -0.1, 0.8, 0.22, 0.05, F(123)); } },
   { id: 7100019, name: 'dais-step', note: 'A 3.2 m wide, 0.4 m high step to stand a prop on.', build(m) { const t = F(120); m.box(-1.6, 0, -1.6, 1.6, 0.4, 1.6, t); } },
   { id: 7100020, name: 'lectern', note: 'A stone reading stand, chest high, the top sloped by stacked slabs.', build(m) { const t = W(124); m.box(-0.3, 0, -0.3, 0.3, 0.9, 0.3, t); m.box(-0.5, 0.9, -0.4, 0.5, 1.05, 0.4, t); m.box(-0.5, 1.05, -0.2, 0.5, 1.2, 0.4, t); } },
+  { id: 7100021, name: 'pillar-huge', note: 'A great round column, 9.6 m, for the tall halls.', build(m) { const t = W(120); m.prism(0, 0, 0, 0.6, 1.1, 0.85, 8, t, { cap: false }); m.prism(0, 0, 0.6, 9.0, 0.85, 0.85, 8, t, { cap: false }); m.prism(0, 0, 9.0, 9.6, 0.85, 1.1, 8, t); } },
 ];
 export const PIECE_ID = Object.freeze(Object.fromEntries(PIECES.map((p) => [p.name, p.id])));
 /** Every piece as a model file's JSON. */

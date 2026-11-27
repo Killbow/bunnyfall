@@ -23,7 +23,8 @@ the story and numbers: `docs/AI-DUNGEON-ROOMS.md`.
    at the right floor, everything reachable, markers present) and a top-down picture.
 3. `node tools/aiRoom/walk.mjs --only <name>` : the game's real player controller walks door to door and to every marker.
 4. `node tools/aiRoom/build.mjs` writes the files. `connect.mjs` / `joins.mjs` / `integrate.mjs` measure the whole.
-5. To LOOK at it in the game: `shots.mjs` (read its header: it needs a temporary patch to the dungeon scene).
+5. To SEE it fast: `node tools/aiRoom/isoview.mjs <dir> "Room Title"` draws a two-view isometric cutaway (floors coloured by height).
+6. To LOOK at it in the game: `shots.mjs` (read its header: it needs a temporary patch to the dungeon scene).
 
 A room that joins its two floors (a stair) sets `r.joinsLevels = true` (`switchbackCore` in `lib.mjs` does); the swap law
 reads it from `rooms.json`.

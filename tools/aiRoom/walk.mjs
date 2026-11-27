@@ -16,23 +16,24 @@ const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.a
 const kit = loadKit();
 for (const m of pieceModels()) kit.addCustomModel(m);
 
-/** Shortest cell path (BFS) between two cells, or null. */
-function path(cells, from, to, blocked) {
-  const key = (i, j) => j * SIDE + i, prev = new Map([[key(...from), null]]), queue = [from];
+/** Shortest path (BFS) between two nodes [layer, i, j] over every layer's cells, or null. A step to a neighbour in any layer
+ *  counts when the floors meet (passable). */
+function path(grids, from, to, blocked) {
+  const key = (l, i, j) => `${l}:${i},${j}`, prev = new Map([[key(...from), null]]), queue = [from];
   while (queue.length) {
-    const [i, j] = queue.shift();
-    if (i === to[0] && j === to[1]) { const out = []; let k = key(i, j); while (k != null) { out.push([k % SIDE, Math.floor(k / SIDE)]); k = prev.get(k); } return out.reverse(); }
-    for (const [si, sj] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-      const ni = i + si, nj = j + sj, d = cells[nj]?.[ni];
-      if (d && !blocked.has(key(ni, nj)) && !prev.has(key(ni, nj)) && passable(cells[j][i], d, si, sj)) { prev.set(key(ni, nj), key(i, j)); queue.push([ni, nj]); }
+    const [l, i, j] = queue.shift();
+    if (l === to[0] && i === to[1] && j === to[2]) { const out = []; let k = key(l, i, j); while (k != null) { const [ll, rest] = k.split(':'), [ii, jj] = rest.split(',').map(Number); out.push([Number(ll), ii, jj]); k = prev.get(k); } return out.reverse(); }
+    for (const [si, sj] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) for (let m = 0; m < grids.length; m++) {
+      const ni = i + si, nj = j + sj, d = grids[m][nj]?.[ni];
+      if (d && !blocked.has(key(m, ni, nj)) && !prev.has(key(m, ni, nj)) && passable(grids[l][j][i], d, si, sj)) { prev.set(key(m, ni, nj), key(l, i, j)); queue.push([m, ni, nj]); }
     }
   }
   return null;
 }
-const centre = (cells, [i, j]) => { const c = cells[j][i]; return [(i + 0.5) * CELL, (c.h[0] + c.h[1] + c.h[2] + c.h[3]) / 4, (j + 0.5) * CELL]; };
+const centre = (grids, [l, i, j]) => { const c = grids[l][j][i]; return [(i + 0.5) * CELL, (c.h[0] + c.h[1] + c.h[2] + c.h[3]) / 4, (j + 0.5) * CELL]; };
 
-function walkLeg(col, cells, route) {
-  const pts = route.map((c) => centre(cells, c));
+function walkLeg(col, grids, route) {
+  const pts = route.map((c) => centre(grids, c));
   const m = new PlayerMotor(col, { speed: 50, running: 30 }, {});
   m.spawn(pts[0][0], pts[0][1] + 0.05, pts[0][2]);
   let next = 1, lastD = Infinity, stuckT = 0;
@@ -53,18 +54,18 @@ for (const { spec, blockName, shellId, index, position } of allRooms()) {
   const lay = kit.layoutJson(res.block, blockName);
   const col = new Collider(() => -Infinity);
   for (const p of lay.placements) { const m = kit.getModel(p.modelIdNum); if (m?.indices?.length) col.addMesh('dungeon', m.positions, m.indices, p.matrix); }
-  const cells = parseLayer(spec.grid.map((r) => r.join('')), spec.legend);
-  const portCell = (p) => { const c = PORTS[p[1]].at / CELL - 1; return p[0] === 'N' ? [c, 0] : p[0] === 'S' ? [c, SIDE - 1] : p[0] === 'W' ? [0, c] : [SIDE - 1, c]; };
-  const start = portCell(spec.ports[0]);
-  const targets = [...spec.ports.slice(1).map((p) => ({ what: `port ${p}`, to: portCell(p) })), ...spec.flats.filter((f) => ['enemy', 'loot', 'quest', 'questItem'].includes(f.kind)).map((f) => ({ what: `${f.kind} ${f.x},${f.z}`, to: [Math.floor(f.x), Math.floor(f.z)] }))];
+  const grids = spec.layers.map((g) => parseLayer(g.map((r) => r.join('')), spec.legend));
+  const portCell = (p, n) => { const c = PORTS[p[1]].at / CELL - 1, L = spec.portSpecs[n]?.layer ?? 0; return p[0] === 'N' ? [L, c, 0] : p[0] === 'S' ? [L, c, SIDE - 1] : p[0] === 'W' ? [L, 0, c] : [L, SIDE - 1, c]; };
+  const start = portCell(spec.ports[0], 0);
+  const targets = [...spec.ports.slice(1).map((p, n) => ({ what: `port ${p}`, to: portCell(p, n + 1) })), ...spec.flats.filter((f) => ['enemy', 'loot', 'quest', 'questItem'].includes(f.kind)).map((f) => ({ what: `${f.kind} ${f.x},${f.z}${f.layer ? ` (layer ${f.layer})` : ''}`, to: [f.layer ?? 0, Math.floor(f.x), Math.floor(f.z)] }))];
   const blocked = new Set();   // cells a prop stands in: the walker goes round
-  for (const p of spec.props) for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (Math.hypot((i + 0.5 - p.x) * CELL, (j + 0.5 - p.z) * CELL) < (PROP_RADIUS[p.name] ?? 1)) blocked.add(j * SIDE + i);
+  for (const p of spec.props) for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (Math.hypot((i + 0.5 - p.x) * CELL, (j + 0.5 - p.z) * CELL) < (PROP_RADIUS[p.name] ?? 1)) blocked.add(`${p.layer ?? 0}:${i},${j}`);
   const fails = [];
   for (const t of targets) {
-    const route = path(cells, start, t.to, blocked);
+    const route = path(grids, start, t.to, blocked);
     legs++;
     if (!route) { fails.push(`${t.what}: no path`); continue; }
-    const r = walkLeg(col, cells, route);
+    const r = walkLeg(col, grids, route);
     if (!r.ok) fails.push(`${t.what}: stuck at ${JSON.stringify(r.at)} heading for cell ${r.cell}${r.timeout ? ' (timeout)' : ''}`);
   }
   console.log(`${blockName} ${spec.name}: ${targets.length - fails.length}/${targets.length} legs walked${fails.length ? '  FAILURES:' : ''}`);

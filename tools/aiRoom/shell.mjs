@@ -44,7 +44,7 @@ export function parseLayer(grid, legend) {
     const theme = THEMES[L.theme ?? 120];
     if (!theme) throw new Error(`no theme ${L.theme}`);
     const tex = { ...theme, ...(L.tex ?? {}) };
-    if (L.floor != null) { cells[j][i] = { i, j, h: [L.floor, L.floor, L.floor, L.floor], clear: L.clear ?? T, tex, flat: true }; continue; }
+    if (L.floor != null) { cells[j][i] = { i, j, h: [L.floor, L.floor, L.floor, L.floor], clear: L.clear ?? T, tex, flat: true, rail: !!L.rail, edgeRail: L.edge === 'rail', ends: L.ends ?? '' }; continue; }
     if (!L.ramp || !DIRS[L.ramp]) throw new Error(`legend '${ch}': a floor or a ramp`);
     const [di, dj] = DIRS[L.ramp];
     let lo = 0; while (grid[j - dj * (lo + 1)]?.[i - di * (lo + 1)] === ch) lo++;   // cells of the run below this one
@@ -59,7 +59,7 @@ export function parseLayer(grid, legend) {
     else if (L.ramp === '-x') { setEdge([1, 2], e0); setEdge([0, 3], e1); }
     else if (L.ramp === '+z') { setEdge([0, 1], e0); setEdge([2, 3], e1); }
     else setEdge([2, 3], e0), setEdge([0, 1], e1);
-    cells[j][i] = { i, j, h, clear: L.clear ?? T, tex, flat: false };
+    cells[j][i] = { i, j, h, clear: L.clear ?? T, tex, flat: false, rail: !!L.rail, edgeRail: L.edge === 'rail', ends: L.ends ?? '' };
   }
   return cells;
 }
@@ -80,7 +80,7 @@ export function buildShell(layers, legend, ports = []) {
   const mesh = new Mesh(), parsed = layers.map((g) => parseLayer(g, legend));
   const holes = new Map();   // 'N' -> [{ at, floor }]
   for (const p of ports) { const [edge, port] = [p[0], p[1]]; (holes.get(edge) ?? holes.set(edge, []).get(edge)).push(PORTS[port]); }
-  for (const cells of parsed) {
+  for (const [li, cells] of parsed.entries()) {
     // floors and ceilings: flat cells merge into rectangles, slopes stand alone
     const rectsOf = (keyOf) => {
       const done = new Set(), out = [];
@@ -98,6 +98,7 @@ export function buildShell(layers, legend, ports = []) {
     for (const { i, j, w, h, c } of rectsOf((c) => `${c.tex.floor}|${c.h[0]}`)) {
       const x0 = i * CELL, x1 = (i + w) * CELL, z0 = j * CELL, z1 = (j + h) * CELL, y = c.h[0];
       mesh.quad(c.tex.floor, [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]], [[x0 / T, -z0 / T], [x1 / T, -z0 / T], [x1 / T, -z1 / T], [x0 / T, -z1 / T]], [0, 1, 0]);
+      if (li > 0) mesh.quad(c.tex.ceil, [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]], [[x0 / T, -z0 / T], [x1 / T, -z0 / T], [x1 / T, -z1 / T], [x0 / T, -z1 / T]], [0, -1, 0]);   // a floor over another room is a ceiling to the one below
     }
     for (const { i, j, w, h, c } of rectsOf((c) => `${c.tex.ceil}|${c.h[0] + c.clear}`)) {
       const x0 = i * CELL, x1 = (i + w) * CELL, z0 = j * CELL, z1 = (j + h) * CELL, y = c.h[0] + c.clear;
@@ -117,6 +118,22 @@ export function buildShell(layers, legend, ports = []) {
           const g = [nb.h[s.na], nb.h[s.nb]], d = [g[0] + nb.clear, g[1] + nb.clear];
           lo = [Math.max(f[0], g[0]), Math.max(f[1], g[1])]; hi = [Math.min(ce[0], d[0]), Math.min(ce[1], d[1])];
           if (hi[0] - lo[0] < 1.0 || hi[1] - lo[1] < 1.0) { lo = [ce[0], ce[1]]; hi = [ce[0], ce[1]]; }   // too low to pass: a wall
+        }
+        if (!nb && !outer && c.ends.includes(s.name)) continue;   // a catwalk's end: nothing drawn, the way on
+        if (!nb && !outer && c.edgeRail) {   // an open edge with nothing beyond (a catwalk's side): a parapet, not a wall
+          const vert = s.name === 'N' || s.name === 'S', aA = vert ? pa[0] : pa[1], aB = vert ? pb[0] : pb[1], ln = vert ? pa[1] : pa[0];
+          const at2 = (axis, y) => (vert ? [axis, y, ln] : [ln, y, axis]);
+          for (const n2 of [s.n, s.n.map((q) => -q)]) mesh.quad(c.tex.wall, [at2(aA, f[0]), at2(aB, f[1]), at2(aB, f[1] + 1.1), at2(aA, f[0] + 1.1)], [[aA / T, -1.1 / T], [aB / T, -1.1 / T], [aB / T, 0], [aA / T, 0]], n2);
+          continue;
+        }
+        // a RAIL: a low parapet along an open edge that drops away more than 1.5 m (so nothing walks or falls off by accident)
+        if (c.rail && nb) {
+          const g2 = [nb.h[s.na], nb.h[s.nb]];
+          if (f[0] - g2[0] > 1.5 || f[1] - g2[1] > 1.5) {
+            const vert = s.name === 'N' || s.name === 'S', aA = vert ? pa[0] : pa[1], aB = vert ? pb[0] : pb[1], ln = vert ? pa[1] : pa[0];
+            const at2 = (axis, y) => (vert ? [axis, y, ln] : [ln, y, axis]);
+            for (const n2 of [s.n, s.n.map((q) => -q)]) mesh.quad(c.tex.wall, [at2(aA, f[0]), at2(aB, f[1]), at2(aB, f[1] + 1.1), at2(aA, f[0] + 1.1)], [[aA / T, -1.1 / T], [aB / T, -1.1 / T], [aB / T, 0], [aA / T, 0]], n2);
+          }
         }
         const regions = [];   // [y0 at a, y0 at b, y1 at a, y1 at b]
         if (lo[0] - f[0] > 0.02 || lo[1] - f[1] > 0.02) regions.push([f[0], f[1], lo[0], lo[1]]);
@@ -153,6 +170,7 @@ export function buildShell(layers, legend, ports = []) {
       if (!c || c.flat) continue;
       const P = (k, dy = 0) => { const [x, z] = corner(c, k); return [x, c.h[k] + dy, z]; }, uv = (k) => { const [x, z] = corner(c, k); return [x / T, -z / T]; };
       mesh.quad(c.tex.floor, [P(0), P(1), P(2), P(3)], [uv(0), uv(1), uv(2), uv(3)], [0, 1, 0]);
+      if (li > 0) mesh.quad(c.tex.ceil, [P(0), P(1), P(2), P(3)], [uv(0), uv(1), uv(2), uv(3)], [0, -1, 0]);
       mesh.quad(c.tex.ceil, [P(0, c.clear), P(1, c.clear), P(2, c.clear), P(3, c.clear)], [uv(0), uv(1), uv(2), uv(3)], [0, -1, 0]);
     }
   }

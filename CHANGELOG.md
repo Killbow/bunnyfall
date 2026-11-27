@@ -5,7 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
-- Added: Forty new dungeon rooms, laid out by an AI, now turn up in random dungeons: a cistern, a throne room, crypts, a causeway over a pit, a tomb of kings, a maze, a double staircase and more. They come with twenty new 3D pieces (pillars, sarcophagi, statues, a well, a throne, cages). Main-story dungeons are left as they were. There is one switch in Features, "Bunnyfall AI Rooms".
+- Added: Forty-eight new dungeon rooms, laid out by an AI, eight of them tall: a spiral stair up a deep shaft, a hall with galleries, a catwalk over a hall, a sunken court, a pit cathedral, a chasm with a bridge, now turn up in random dungeons: a cistern, a throne room, crypts, a causeway over a pit, a tomb of kings, a maze, a double staircase and more. They come with twenty new 3D pieces (pillars, sarcophagi, statues, a well, a throne, cages). Main-story dungeons are left as they were. There is one switch in Features, "Bunnyfall AI Rooms".
 - Changed: The launcher's rabbit now keeps the campfire company: he lights it while the launcher works, cheers as an update brings it to life, and dances beside it with the cube once you can play. On the first run he carries the cube in.
 - Changed: On the website's front page the cube stands by the Play button, and the rabbit hauls the cube past the credits.
 

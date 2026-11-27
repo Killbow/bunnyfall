@@ -600,5 +600,119 @@
   ],
   "joins": false,
   "note": "A central chamber of cages and slabs, small cells off the western passage."
+ },
+ {
+  "name": "N7000027.RDB",
+  "title": "Atrium",
+  "kind": "interior",
+  "index": 910041,
+  "shell": 7100141,
+  "ports": [
+   "SB",
+   "EB",
+   "EA"
+  ],
+  "joins": true,
+  "note": "Three flights climb the walls of a deep shaft, from its floor (12.8) to a balcony (32.0) that looks down into it."
+ },
+ {
+  "name": "N7000028.RDB",
+  "title": "Catwalk Hall",
+  "kind": "interior",
+  "index": 910042,
+  "shell": 7100142,
+  "ports": [
+   "NA",
+   "SA"
+  ],
+  "joins": false,
+  "note": "A T of catwalk across a hall, reached by one ramp; two platforms and a high altar."
+ },
+ {
+  "name": "B7000015.RDB",
+  "title": "Chasm Bridge",
+  "kind": "border",
+  "index": 910043,
+  "shell": 7100143,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
+  "note": "Two pits 6.4 m deep and a railed bridge between them; ramps lead down into each."
+ },
+ {
+  "name": "N7000029.RDB",
+  "title": "Overlook Hall",
+  "kind": "interior",
+  "index": 910044,
+  "shell": 7100144,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
+  "note": "A tall hall with galleries along its north and south walls, reached by flights at their ends; columns 9.6 m high."
+ },
+ {
+  "name": "N7000030.RDB",
+  "title": "Pit Cathedral",
+  "kind": "interior",
+  "index": 910045,
+  "shell": 7100145,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
+  "note": "A nave with a great pit in its middle; two ramps go down to its floor, and what is kept there."
+ },
+ {
+  "name": "N7000031.RDB",
+  "title": "Stepped Sanctum",
+  "kind": "interior",
+  "index": 910046,
+  "shell": 7100146,
+  "ports": [
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
+  "note": "A hall, a broad stair, a terrace, another stair, a high terrace with the altar: three levels under one roof."
+ },
+ {
+  "name": "B7000016.RDB",
+  "title": "Sunken Court",
+  "kind": "border",
+  "index": 910047,
+  "shell": 7100147,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
+  "note": "A terrace round a sunken court, four stairs down, a rail along the rim."
+ },
+ {
+  "name": "N7000032.RDB",
+  "title": "Tower",
+  "kind": "interior",
+  "index": 910048,
+  "shell": 7100148,
+  "ports": [
+   "NA",
+   "WA"
+  ],
+  "joins": false,
+  "note": "Flights climb four sides of a central hall, 9.6 m in all; the summit balcony looks down on the start."
  }
 ]

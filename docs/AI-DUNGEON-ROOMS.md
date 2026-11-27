@@ -5,12 +5,15 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
 
 ## What was built
 
-- **40 rooms** (14 border `B7000001-14`, 26 interior `N7000001-26`, in two batches of 20) and **20 new 3D pieces** (pillars, arch, sarcophagus,
+- **48 rooms** (16 border `B7000001-16`, 32 interior `N7000001-32`): two batches of 20 and a batch of **8 tall rooms**
+  (`rooms5.mjs`: an atrium with a spiral stair up a 19 m shaft, an overlook hall, a tower, a pit cathedral, a chasm bridge,
+  a sunken court, a catwalk hall on two layers, a stepped sanctum). Names count up in file order, so a new batch goes in a
+  new file after the others and **20 new 3D pieces** (pillars, arch, sarcophagus,
   altar, statue, stalagmites and stalactites, rubble, cage, well, throne, table, gate, bone pile, lectern ...), all
   generated in code under `tools/aiRoom/` and shipped as `vendor/bunnyfall-ai-rooms/` (about 1.6 MB).
 - **How a room is made.** A room is a 32 x 32 grid of 1.6 m cells (`shell.mjs`): floors, ramps, walls, ceilings and door
   holes become one model; props, lights, doors and markers go in the block (`block.mjs`, `dsl.mjs`). Rooms are authored as
-  short programs in `rooms1-4.mjs`. A person or an AI can add one by writing another function.
+  short programs in `rooms1-5.mjs`. A person or an AI can add one by writing another function.
 - **What the classic rooms taught.** All 187 classic rooms share the same connection points: two doors on every edge, at
   16.0 m (floor 32.0) and 35.2 m (floor 12.8). New rooms use exactly those, so they join classic neighbours. Doors,
   enemy, loot, quest and quest-item markers are cloned from the commonest classic ones.
@@ -30,9 +33,9 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
 ## What was checked, and how
 
 - `build.mjs --check`: every used door is open and at the right floor, every door and marker is reachable, every prop
-  stands on floor under a high enough ceiling, a quest marker exists. All 40 pass.
+  stands on floor under a high enough ceiling, a quest marker exists. All 48 pass.
 - `walk.mjs`: the game's own player controller and collider walk from each room's first door to every other door and
-  marker: **698 of 698 legs arrive** (this found prop-blocked corridors, which were fixed).
+  marker: **846 of 846 legs arrive** (this found prop-blocked corridors, which were fixed).
 - `connect.mjs`: over every dungeon, the blocks reachable from the start before and after the swap, with the ports
   measured from real floors (independent of the law's). Without the connectivity rule 11% of the new rooms were cut off
   from the start; with it **0.4%** are, only one dungeon in 3,521 loses a classic block (2 blocks), and 93% of the swaps
@@ -59,4 +62,4 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
 
 `ARENA2_PATH=<arena2> node tools/aiRoom/build.mjs` rewrites `vendor/bunnyfall-ai-rooms/`; `--check` only tests;
 `--preview <dir>` draws plans; `node tools/aiRoom/walk.mjs` and `integrate.mjs` run the other two checks, and
-`shots.mjs` takes in-game screenshots (see its header; the screenshots show Daggerfall's art, so keep them out of the repo).
+`isoview.mjs` draws isometric cutaway renders (floors coloured by height; software, a second a picture, carries no Daggerfall art, so they can be shared), and `shots.mjs` takes in-game screenshots (see its header; the screenshots show Daggerfall's art, so keep them out of the repo).

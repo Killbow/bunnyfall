@@ -6,9 +6,9 @@ import { RoomBlock, RAW } from './block.mjs';
 import { PIECES, PIECE_ID } from './pieces.mjs';
 
 export const A = 32.0, B = 12.8;   // the two port floors
-const PIECE_HEIGHT = Object.fromEntries(PIECES.map((p) => [p.name, { 'pillar-square': 3.2, 'pillar-square-tall': 6.4, 'pillar-round': 3.2, 'pillar-round-tall': 6.4, arch: 3.2, 'barred-gate': 3.2 }[p.name] ?? 2.9]));
+const PIECE_HEIGHT = Object.fromEntries(PIECES.map((p) => [p.name, { 'pillar-square': 3.2, 'pillar-square-tall': 6.4, 'pillar-round': 3.2, 'pillar-round-tall': 6.4, 'pillar-huge': 9.6, arch: 3.2, 'barred-gate': 3.2 }[p.name] ?? 2.9]));
 /** How far from a prop's middle (metres) a walker or a marker keeps: a prop is an obstacle this wide. */
-export const PROP_RADIUS = Object.freeze({ 'pillar-square': 0.9, 'pillar-square-tall': 1.0, 'pillar-round': 0.8, 'pillar-round-tall': 0.9, 'pillar-broken': 1.5, arch: 0, 'barred-gate': 1.7, sarcophagus: 1.4, altar: 1.7, statue: 1.0, stalagmites: 1.0, stalactites: 0, rubble: 1.2, cage: 1.2, well: 1.6, throne: 1.5, 'stone-table': 1.4, 'bone-pile': 1.0, 'dais-step': 0, lectern: 0.8 });
+export const PROP_RADIUS = Object.freeze({ 'pillar-square': 0.9, 'pillar-square-tall': 1.0, 'pillar-round': 0.8, 'pillar-round-tall': 0.9, 'pillar-huge': 1.1, 'pillar-broken': 1.5, arch: 0, 'barred-gate': 1.7, sarcophagus: 1.4, altar: 1.7, statue: 1.0, stalagmites: 1.0, stalactites: 0, rubble: 1.2, cage: 1.2, well: 1.6, throne: 1.5, 'stone-table': 1.4, 'bone-pile': 1.0, 'dais-step': 0, lectern: 0.8 });
 const CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!$%&*+=:;~';
 
 /** A tiny seeded generator (mulberry32), so a room built twice is the same room. */
@@ -26,17 +26,24 @@ export class RoomSpec {
   /** @param {{kind:'border'|'interior', theme?:number, note?:string, seed?:number}} opts */
   constructor(name, { kind = 'interior', theme = 120, note = '', seed = 1 } = {}) {
     this.name = name; this.kind = kind; this.theme = theme; this.note = note; this.rand = rng(seed);
-    this.grid = Array.from({ length: SIDE }, () => new Array(SIDE).fill(' '));
+    this.layers = [RoomSpec.blank()]; this.cur = 0;
     this.legend = {}; this.next = 0; this.ports = []; this.portSpecs = []; this.joinsLevels = false; this.props = []; this.lights = []; this.flats = [];
   }
+  static blank() { return Array.from({ length: SIDE }, () => new Array(SIDE).fill(' ')); }
+  /** The layer being drawn on: layer 0 until `layer(n)` says otherwise. */
+  get grid() { return this.layers[this.cur]; }
+  set grid(g) { this.layers[this.cur] = g; }
+  /** Draw on layer `n` (made when asked for): a second floor over the first, a catwalk over a hall. Layers do not see
+   *  each other's cells, so what stands over what is the author's to keep clear (headroom below, a ramp to join them). */
+  layer(n) { while (this.layers.length <= n) this.layers.push(RoomSpec.blank()); this.cur = n; return this; }
   /** A character for a floor/clear/theme combination (the same arguments give the same character). */
-  floor(h, { clear = 3.2, theme = this.theme, tex = null } = {}) {
-    const key = JSON.stringify([h, clear, theme, tex]);
+  floor(h, { clear = 3.2, theme = this.theme, tex = null, rail = false, edge = null, ends = null } = {}) {
+    const key = JSON.stringify([h, clear, theme, tex, rail, edge, ends]);
     for (const [ch, L] of Object.entries(this.legend)) if (L.key === key) return ch;
-    const ch = CHARS[this.next++]; this.legend[ch] = { floor: h, clear, theme, ...(tex ? { tex } : {}), key }; return ch;
+    const ch = CHARS[this.next++]; this.legend[ch] = { floor: h, clear, theme, ...(tex ? { tex } : {}), ...(rail ? { rail } : {}), ...(edge ? { edge } : {}), ...(ends ? { ends } : {}), key }; return ch;
   }
   /** A ramp run: its own character (two runs never share one), rising towards `dir`. */
-  ramp(dir, { clear = 3.2, theme = this.theme } = {}) { const ch = CHARS[this.next++]; this.legend[ch] = { ramp: dir, clear, theme }; return ch; }
+  ramp(dir, { clear = 3.2, theme = this.theme, rail = false } = {}) { const ch = CHARS[this.next++]; this.legend[ch] = { ramp: dir, clear, theme, ...(rail ? { rail } : {}) }; return ch; }
   set(i, j, ch) { if (i >= 0 && j >= 0 && i < SIDE && j < SIDE) this.grid[j][i] = ch; return this; }
   rect(i0, j0, i1, j1, ch) { for (let j = Math.min(j0, j1); j <= Math.max(j0, j1); j++) for (let i = Math.min(i0, i1); i <= Math.max(i0, i1); i++) this.set(i, j, ch); return this; }
   /** An ellipse of cells centred on (ci, cj), radii in cells. */
@@ -47,16 +54,19 @@ export class RoomSpec {
   octagon(ci, cj, rad, ch) { for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) { const dx = Math.abs(i + 0.5 - ci), dz = Math.abs(j + 0.5 - cj); if (dx <= rad && dz <= rad && dx + dz <= rad * 1.5) this.set(i, j, ch); } return this; }
   /** Rectangle outline, `t` cells thick. */
   frame(i0, j0, i1, j1, t, ch) { this.rect(i0, j0, i1, j0 + t - 1, ch).rect(i0, j1 - t + 1, i1, j1, ch).rect(i0, j0, i0 + t - 1, j1, ch).rect(i1 - t + 1, j0, i1, j1, ch); return this; }
-  at(i, j) { return this.legend[this.grid[j]?.[i]] ?? null; }
+  at(i, j, l = this.cur) { return this.legend[this.layers[l]?.[j]?.[i]] ?? null; }
   /** A port: its 2-cell corridor `len` cells in from the edge at the port's floor, and the door. Carved last (in
    *  finish), so no shape drawn after it can overwrite it. */
-  port(edge, port, len = 4, ch = this.floor(PORTS[port].floor)) { this.portSpecs.push({ edge, port, len, ch }); this.ports.push(edge + port); return this; }
+  port(edge, port, len = 4, ch = this.floor(PORTS[port].floor)) { this.portSpecs.push({ edge, port, len, ch, layer: this.cur }); this.ports.push(edge + port); return this; }
   _carvePorts() {
-    for (const { edge, port, len, ch } of this.portSpecs) {
+    const was = this.cur;
+    for (const { edge, port, len, ch, layer } of this.portSpecs) {
+      this.layer(layer ?? 0);
       const [p, q] = [PORTS[port].at / CELL - 1, PORTS[port].at / CELL];
       if (edge === 'N') this.rect(p, 0, q, len - 1, ch); if (edge === 'S') this.rect(p, SIDE - len, q, SIDE - 1, ch);
       if (edge === 'W') this.rect(0, p, len - 1, q, ch); if (edge === 'E') this.rect(SIDE - len, p, SIDE - 1, q, ch);
     }
+    this.cur = was;
   }
   /** Carve a corridor two cells wide between two cell positions (an L when they differ in both: along x first). */
   corridor(i0, j0, i1, j1, ch, w = 2) {
@@ -64,57 +74,71 @@ export class RoomSpec {
     this.rect(Math.min(i0, i1), lo(j0), Math.max(i0, i1), hi(j0), ch);
     this.rect(lo(i1), Math.min(j0, j1), hi(i1), Math.max(j0, j1), ch); return this;
   }
-  floorAt(i, j) { const L = this.at(i, j); return L?.floor ?? null; }
+  floorAt(i, j, l = this.cur) { const L = this.at(i, j, l); return L?.floor ?? null; }
   /** A prop at cell-space (x, z) (a cell's middle is i + 0.5), standing on the floor there. */
-  prop(name, x, z, { rot = 0, up = 0 } = {}) { if (!PIECE_ID[name]) throw new Error(`no piece ${name}`); this.props.push({ name, x, z, rot, up }); return this; }
-  light(x, z, { radius = 90, up = 2.3 } = {}) { this.lights.push({ x, z, radius, up }); return this; }
-  flat(kind, x, z, { up = 0 } = {}) { this.flats.push({ kind, x, z, up }); return this; }
+  prop(name, x, z, { rot = 0, up = 0 } = {}) { if (!PIECE_ID[name]) throw new Error(`no piece ${name}`); this.props.push({ name, x, z, rot, up, layer: this.cur }); return this; }
+  light(x, z, { radius = 90, up = 2.3 } = {}) { this.lights.push({ x, z, radius, up, layer: this.cur }); return this; }
+  flat(kind, x, z, { up = 0 } = {}) { this.flats.push({ kind, x, z, up, layer: this.cur }); return this; }
   /** Lights on a lattice over open floor (one per `step` cells), a torch standing by every other. */
   autoLights(step = 4, { radius = 90, torches = true } = {}) {
     let n = 0;
-    for (let j = 1; j < SIDE; j += step) for (let i = 1; i < SIDE; i += step) {
-      // the open cell nearest the lattice point, within a cell
+    for (let L = 0; L < this.layers.length; L++) for (let j = 1; j < SIDE; j += step) for (let i = 1; i < SIDE; i += step) {
+      // the open flat cell nearest the lattice point, within a cell
       let best = null;
-      for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]]) if (this.floorAt(i + di, j + dj) != null) { best = [i + di, j + dj]; break; }
+      for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]]) if (this.floorAt(i + di, j + dj, L) != null) { best = [i + di, j + dj]; break; }
       if (!best) continue;
+      const was = this.cur; this.cur = L;
       this.light(best[0] + 0.5, best[1] + 0.5, { radius });
       if (torches && n++ % 2 === 0) this.flat(this.theme === 123 ? 'skullCandles' : 'torch', best[0] + 0.5, best[1] + 0.5);
+      this.cur = was;
     }
     return this;
   }
   /** Foes, loot and the quest markers on open floor, spread out and away from the doors. */
   populate({ enemies = 6, loot = 3, quest = 2, seed = 0 } = {}) {
     const rand = rng(seed + 977), open = [];
-    for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (this.floorAt(i, j) != null && !this.props.some((p) => Math.hypot((i + 0.5 - p.x) * CELL, (j + 0.5 - p.z) * CELL) < (PROP_RADIUS[p.name] ?? 1) + 0.4)) open.push([i, j]);
+    for (let L = 0; L < this.layers.length; L++) for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (this.floorAt(i, j, L) != null && !this.props.some((p) => (p.layer ?? 0) === L && Math.hypot((i + 0.5 - p.x) * CELL, (j + 0.5 - p.z) * CELL) < (PROP_RADIUS[p.name] ?? 1) + 0.4)) open.push([i, j, L]);
     const taken = [], far = (i, j, d) => taken.every(([a, b]) => Math.hypot(a - i, b - j) >= d) && this.ports.every((p) => { const e = p[0], c = PORTS[p[1]].at / CELL; const [pi, pj] = e === 'N' ? [c, 0] : e === 'S' ? [c, SIDE] : e === 'W' ? [0, c] : [SIDE, c]; return Math.hypot(pi - i, pj - j) >= 5; });
-    const pick = (kind, count, minD) => { let tries = 0; while (count > 0 && tries++ < 4000) { const [i, j] = open[Math.floor(rand() * open.length)]; if (!far(i, j, minD)) continue; taken.push([i, j]); this.flat(kind, i + 0.5, j + 0.5, { up: kind === 'enemy' || kind === 'loot' || kind === 'quest' || kind === 'questItem' ? 0.6 : 0 }); count--; } };
+    const pick = (kind, count, minD) => { let tries = 0; while (count > 0 && tries++ < 4000) { const [i, j, L] = open[Math.floor(rand() * open.length)]; if (!far(i, j, minD)) continue; taken.push([i, j]); const was = this.cur; this.cur = L; this.flat(kind, i + 0.5, j + 0.5, { up: kind === 'enemy' || kind === 'loot' || kind === 'quest' || kind === 'questItem' ? 0.6 : 0 }); this.cur = was; count--; } };
     pick('quest', quest, 4); pick('questItem', 1, 4); pick('loot', loot, 3); pick('enemy', enemies, 3);
     return this;
   }
   /** Everything: the shell model JSON, the block JSON and a report. */
   finish({ shellId, index, blockName, position }) {
     this._carvePorts();
-    const { mesh } = buildShell([this.grid.map((r) => r.join(''))], this.legend, this.ports);
+    const { mesh } = buildShell(this.layers.map((g) => g.map((r) => r.join(''))), this.legend, this.ports);
     const shell = mesh.toModel(shellId);
     const blk = new RoomBlock({ name: blockName, index, position });
     blk.model(shellId, 0, 0, 0);
     for (const p of this.ports) blk.door(p[0], p[1]);
     const problems = [];
-    const floorY = (x, z) => this.floorAt(Math.floor(x), Math.floor(z));
-    for (const p of this.props) { const f = floorY(p.x, p.z); if (f == null) { problems.push(`prop ${p.name} at ${p.x},${p.z} is not on a flat floor`); continue; } if (this.at(Math.floor(p.x), Math.floor(p.z)).clear < PIECE_HEIGHT[p.name] - 1e-6 && !/stalactites/.test(p.name)) problems.push(`prop ${p.name} (${PIECE_HEIGHT[p.name]} m) is taller than the ceiling at ${Math.floor(p.x)},${Math.floor(p.z)}`); blk.model(PIECE_ID[p.name], p.x * CELL, f + p.up, p.z * CELL, p.rot); }
-    for (const l of this.lights) { const f = floorY(l.x, l.z); if (f == null) { problems.push(`light at ${l.x},${l.z} is not over a flat floor`); continue; } blk.light(l.x * CELL, f + l.up, l.z * CELL, l.radius); }
-    for (const f of this.flats) { const fl = floorY(f.x, f.z); if (fl == null) { problems.push(`flat ${f.kind} at ${f.x},${f.z} is not on a flat floor`); continue; } blk.flat(f.kind, f.x * CELL, fl + f.up, f.z * CELL); }
+    const floorY = (x, z, l = 0) => this.floorAt(Math.floor(x), Math.floor(z), l);
+    for (const p of this.props) { const f = floorY(p.x, p.z, p.layer ?? 0); if (f == null) { problems.push(`prop ${p.name} at ${p.x},${p.z} is not on a flat floor`); continue; } if (this.at(Math.floor(p.x), Math.floor(p.z), p.layer ?? 0).clear < PIECE_HEIGHT[p.name] - 1e-6 && !/stalactites/.test(p.name)) problems.push(`prop ${p.name} (${PIECE_HEIGHT[p.name]} m) is taller than the ceiling at ${Math.floor(p.x)},${Math.floor(p.z)}`); blk.model(PIECE_ID[p.name], p.x * CELL, f + p.up, p.z * CELL, p.rot); }
+    for (const l of this.lights) { const f = floorY(l.x, l.z, l.layer ?? 0); if (f == null) { problems.push(`light at ${l.x},${l.z} is not over a flat floor`); continue; } blk.light(l.x * CELL, f + l.up, l.z * CELL, l.radius); }
+    for (const f of this.flats) { const fl = floorY(f.x, f.z, f.layer ?? 0); if (fl == null) { problems.push(`flat ${f.kind} at ${f.x},${f.z} is not on a flat floor`); continue; } blk.flat(f.kind, f.x * CELL, fl + f.up, f.z * CELL); }
     // ports: each cell pair open and at the port's floor
-    for (const p of this.ports) for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (isPortCell(p[0], p[1], i, j) && this.floorAt(i, j) !== PORTS[p[1]].floor) problems.push(`port ${p} cell ${i},${j} is not floor ${PORTS[p[1]].floor}`);
-    // walkability: flood from the first port; every port, foe, loot and marker must be in it
-    const cells = parseLayer(this.grid.map((r) => r.join('')), this.legend), key = (i, j) => j * SIDE + i;
-    const start = this.ports.length ? (() => { const p = this.ports[0], c = PORTS[p[1]].at / CELL - 1; return p[0] === 'N' ? [c, 0] : p[0] === 'S' ? [c, SIDE - 1] : p[0] === 'W' ? [0, c] : [SIDE - 1, c]; })() : (() => { for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (cells[j][i]) return [i, j]; return [0, 0]; })();
+    this.ports.forEach((p, pn) => { const L = this.portSpecs[pn]?.layer ?? 0; for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (isPortCell(p[0], p[1], i, j) && this.floorAt(i, j, L) !== PORTS[p[1]].floor) problems.push(`port ${p} cell ${i},${j} is not floor ${PORTS[p[1]].floor}`); });
+    // walkability: flood from the first port over every layer (a step across a layer's edge counts when the floors meet);
+    // every port, foe, loot and marker must be in it
+    const grids = this.layers.map((g) => parseLayer(g.map((r) => r.join('')), this.legend)), key = (l, i, j) => `${l}:${i},${j}`;
+    const portCellOf = (p) => { const c = PORTS[p[1]].at / CELL - 1; return p[0] === 'N' ? [c, 0] : p[0] === 'S' ? [c, SIDE - 1] : p[0] === 'W' ? [0, c] : [SIDE - 1, c]; };
+    const portLayer = (n) => this.portSpecs[n]?.layer ?? 0;
+    let start;
+    if (this.ports.length) start = [portLayer(0), ...portCellOf(this.ports[0])];
+    else { start = [0, 0, 0]; out: for (let l = 0; l < grids.length; l++) for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (grids[l][j][i]) { start = [l, i, j]; break out; } }
     const seen = new Set([key(...start)]), queue = [start];
-    while (queue.length) { const [i, j] = queue.pop(); for (const [si, sj] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) { const ni = i + si, nj = j + sj, d = cells[nj]?.[ni]; if (!d || seen.has(key(ni, nj)) || !passable(cells[j][i], d, si, sj)) continue; seen.add(key(ni, nj)); queue.push([ni, nj]); } }
-    let open = 0; for (const row of cells) for (const c of row) if (c) open++;
+    while (queue.length) {
+      const [l, i, j] = queue.pop();
+      for (const [si, sj] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) for (let m = 0; m < grids.length; m++) {
+        const ni = i + si, nj = j + sj, d = grids[m][nj]?.[ni];
+        if (!d || seen.has(key(m, ni, nj)) || !passable(grids[l][j][i], d, si, sj)) continue;
+        seen.add(key(m, ni, nj)); queue.push([m, ni, nj]);
+      }
+    }
+    let open = 0; for (const g of grids) for (const row of g) for (const c of row) if (c) open++;
     if (!seen.has(key(...start))) problems.push('no start cell');
-    for (const p of this.ports) { const c = PORTS[p[1]].at / CELL - 1, [i, j] = p[0] === 'N' ? [c, 0] : p[0] === 'S' ? [c, SIDE - 1] : p[0] === 'W' ? [0, c] : [SIDE - 1, c]; if (!seen.has(key(i, j))) problems.push(`port ${p} is not reachable from ${this.ports[0]}`); }
-    for (const f of this.flats) if (['enemy', 'loot', 'quest', 'questItem'].includes(f.kind) && !seen.has(key(Math.floor(f.x), Math.floor(f.z)))) problems.push(`${f.kind} at ${f.x},${f.z} is not reachable`);
+    this.ports.forEach((p, n) => { if (!seen.has(key(portLayer(n), ...portCellOf(p)))) problems.push(`port ${p} is not reachable from ${this.ports[0]}`); });
+    for (const f of this.flats) if (['enemy', 'loot', 'quest', 'questItem'].includes(f.kind) && !seen.has(key(f.layer ?? 0, Math.floor(f.x), Math.floor(f.z)))) problems.push(`${f.kind} at ${f.x},${f.z} is not reachable`);
     if (open - seen.size > 0) problems.push(`${open - seen.size} of ${open} open cells cannot be walked to`);
     if (!blk.counts.enemy) problems.push('no enemy marker');
     if (!blk.counts.quest) problems.push('no quest marker (a quest cannot use this room)');

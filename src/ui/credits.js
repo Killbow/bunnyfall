@@ -117,7 +117,7 @@ export const CREDITS = Object.freeze({
     Object.freeze({
       get title() { return t('credits.aiRooms.title', 'AI dungeon rooms'); },
       author: 'Killbow, with Claude',
-      get what() { return t('credits.aiRooms.what', 'Forty dungeon rooms laid out by an AI and twenty new 3D pieces, mixed into random dungeons. They are built from Daggerfall\u2019s own pieces and numbers and carry none of its art.'); },
+      get what() { return t('credits.aiRooms.what', 'Forty-eight dungeon rooms laid out by an AI and twenty-one new 3D pieces, mixed into random dungeons. They are built from Daggerfall\u2019s own pieces and numbers and carry none of its art.'); },
       get terms() { return t('credits.aiRooms.terms', 'Made for Bunnyfall.'); },
       vendor: Object.freeze(['bunnyfall-ai-rooms']),
     }),
