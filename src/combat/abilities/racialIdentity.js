@@ -6,7 +6,7 @@ import { maxFatigue } from '../../characters/statMods.js';
 const stance = new WeakMap();
 const motors = new WeakMap();
 const hands = new WeakMap();
-const TRAIT_SHARE = .06;
+const TRAIT_SHARE = .15;
 
 export const previewPhysicalActor = entity => abilitiesEnabled() && entity?.isPlayer && !entity._online && !entity.peer
   && !entity._mentor && !entity.isInBeastForm && !sigilDueling();
