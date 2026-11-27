@@ -158,13 +158,16 @@ export const RIGHT_HAND_UV = Object.freeze({ u0: 1, v0: 0, u1: 0, v1: 1 });
 export function drawSpellCastHands(renderer, canvas, art, frameIndex, {
   offsetHeight = weaponOffsetHeight(),
   tint = null,
+  opacity = 1,
 } = {}) {
   if (!art || frameIndex < 0) return false;
   const rec = art.records[frameIndex];
   if (!rec || !rec.width || !rec.height) return false;
   const { left, right } = spellHandRects(canvas, rec, { frameIndex, element: art.element, offsetHeight });
-  renderer.drawScreenQuad(rec.tex, left, undefined, tint ?? undefined);
-  renderer.drawScreenQuad(rec.tex, right, RIGHT_HAND_UV, tint ?? undefined);
+  const color = opacity === 1 ? tint ?? undefined : [tint?.[0] ?? 1, tint?.[1] ?? 1, tint?.[2] ?? 1, opacity];
+  const opts = opacity === 1 ? undefined : { blend: true };
+  renderer.drawScreenQuad(rec.tex, left, undefined, color, opts);
+  renderer.drawScreenQuad(rec.tex, right, RIGHT_HAND_UV, color, opts);
   return true;
 }
 

@@ -113,7 +113,8 @@ import { markFoeStruck } from '../ui/hudFoeTarget.js';
 import { materialCountLabel } from '../professions/profItems.js';
 import { mergePartyAutomap } from '../maps/automap.js';
 import { modSetting } from '../mods/modSettings.js';
-import { mwViewBodyBones, mwViewSpriteFacing, mwViewSpriteFigure } from '../player/mwView.js';
+import { auraVisualIntensity } from '../magic/spellVisualSettings.js';
+import { mwViewBodyBones, mwViewSpriteFacing, mwViewSpriteFigure, mwViewThirdPerson } from '../player/mwView.js';
 import { noteFirstUse } from '../ui/tutorials.js';
 import { openPeers, peerIdOfKey, peerRelationText, pickPeerInFront, SOCIAL_REACH } from '../player/socialPick.js';
 import { ownAura, ownNameAsAt } from '../characters/ownGlyphs.js';
@@ -2090,7 +2091,7 @@ export function createOnlineWorld(shared) {
     if (_peerLights.length > PEER_LIGHTS_MAX) { _peerLights.sort((a, b) => a._d - b._d); _peerLights.length = PEER_LIGHTS_MAX; }
     for (const l of shared._peerCandleLights) _peerLights.push(l);   // PEERLIGHT2: and their Light spells' candles
     if (shared._peerLightPhase.size > 64) shared._peerLightPhase.clear();
-    for (const l of auraWingLights(shared._auraWearers, cam.pos, shared._auraLights)) _peerLights.push(l); return _peerLights;   // SERAPH-WINGS: and the gold of the nearest wings, in every host's light list
+    for (const l of auraWingLights(shared._auraWearers, cam.pos, shared._auraLights, auraVisualIntensity(mwViewThirdPerson()))) _peerLights.push(l); return _peerLights;   // SERAPH-WINGS: and the gold of the nearest wings, in every host's light list
   };
   const peerFxFrame = () => {
     _peerFxHp = playerEntity?.health ?? null;
@@ -2597,6 +2598,7 @@ export function createOnlineWorld(shared) {
     if (shared.egClient?.quiet?.()) return;   // EG-E2 (Elite-Gates.md section 25.4, THE QUIET COMPANY): no cosmetic aura during a Spire's trial
     const t = performance.now() / 1000;
     const mine = ownAura(); if (shared._auraHeard !== undefined && mine !== shared._auraHeard && shared.online.rehello?.()) shared._auraHeard = mine;   // the service's last word on my own - a mint's, a wear's from any door; AURA-LIVE: one the room's token did not say (a wear since) is said again, so the room sees it now
+    if (!auraVisualIntensity(mwViewThirdPerson())) return;
     if (mine && shared.playerSpawned) {
       const f = player.feetAt();
       if (_auraSelf.aura !== mine) _auraSelf.since = t;
@@ -2622,7 +2624,7 @@ export function createOnlineWorld(shared) {
     const proj = renderer._proj, view = renderer._view, eye = renderer._camPos;   // the frame's camera, the world's own
     if (proj && view && eye && auraWearers(shared._auraWearers, eye, shared._auraDraw).length) {
       const _auraPass = shared.auraPassOf();   // AURA-STALL: null while its program compiles - the capes still hang and swing below
-      const auraNow = performance.now() / 1000; for (const w of shared._auraDraw) if (auraLookOf(w.aura).mesh) { auraCapeStep(w, w === _auraSelf ? { feet: player.bodyFeetAt(), yaw: mwViewSpriteFacing()?.yaw ?? player.bodyYawFor(cam.yaw), turn: mwViewSpriteFacing()?.turn, bones: mwViewBodyBones(CLOAK_BONES) ?? auraSpriteBones(mwViewSpriteFigure()) } : shared.peerBodies?.bonesOf(w.id, CLOAK_BONES) ?? auraSpritePosed(w, shared.peerWalkers?.figureOf(w.id) ?? shared.peerRiders?.figureOf?.(w.id), shared.peerWalkers?.faceOf?.(w.id) ?? shared.peerRiders?.faceOf?.(w.id)), w === _auraSelf ? player.height / CAPSULE_HEIGHT : 1); auraMotionStep(w, auraNow); } _auraPass?.draw(shared._auraDraw, proj, view, eye, auraNow, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze });   // SHADOW-CLOAK: each cape hung on its body as drawn this frame - its bones posed by now (mine, or a peer's), else at rest, crouched with a crouch - and swung by how it moves where it is drawn; SPRITE-FACE (Mac: "The sprite rotation on character input is a little finicky and make the aura misallign"): a sprite's faced as its PICTURE is (the eight-way view drawn, mine after the mod's delayed repaint has landed - mwViewSpriteFacing, a peer's faceOf), in the saddle too, and swung by the way the body turns (`turn`)
+      const auraNow = performance.now() / 1000; for (const w of shared._auraDraw) if (auraLookOf(w.aura).mesh) { auraCapeStep(w, w === _auraSelf ? { feet: player.bodyFeetAt(), yaw: mwViewSpriteFacing()?.yaw ?? player.bodyYawFor(cam.yaw), turn: mwViewSpriteFacing()?.turn, bones: mwViewBodyBones(CLOAK_BONES) ?? auraSpriteBones(mwViewSpriteFigure()) } : shared.peerBodies?.bonesOf(w.id, CLOAK_BONES) ?? auraSpritePosed(w, shared.peerWalkers?.figureOf(w.id) ?? shared.peerRiders?.figureOf?.(w.id), shared.peerWalkers?.faceOf?.(w.id) ?? shared.peerRiders?.faceOf?.(w.id)), w === _auraSelf ? player.height / CAPSULE_HEIGHT : 1); auraMotionStep(w, auraNow); } _auraPass?.draw(shared._auraDraw, proj, view, eye, auraNow, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze }, auraVisualIntensity(mwViewThirdPerson()));   // SHADOW-CLOAK: each cape hung on its body as drawn this frame - its bones posed by now (mine, or a peer's), else at rest, crouched with a crouch - and swung by how it moves where it is drawn; SPRITE-FACE (Mac: "The sprite rotation on character input is a little finicky and make the aura misallign"): a sprite's faced as its PICTURE is (the eight-way view drawn, mine after the mod's delayed repaint has landed - mwViewSpriteFacing, a peer's faceOf), in the saddle too, and swung by the way the body turns (`turn`)
       if (_auraPass?.drawn) renderer.markForeignPass();
     }
     shared._auraWearers.length = 0;   // this frame's, drawn once: a frame that gathers none (the seat left, death, offline) draws none

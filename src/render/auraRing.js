@@ -2015,7 +2015,8 @@ vec3 nyxWall(vec2 q) {
   vec3 col = mix(NYX_DEEP, NYX_LILAC, n2) * mist * body * 0.5 + NYX_STAR * star * 0.9;
   return col * clamp((uKindle * 1.25 - v) / 0.15, 0.0, 1.0);
 }
-void main() {
+uniform float uOpacity;
+void paintAura() {
   if (uAura == 16) { vec3 c = uKind == 0 ? nyxGround(vP) : nyxWall(vP); o = vec4(c * fogFactorAt(vWorld), 1.0); return; }   // BUNNYFALL: Nyx's Veil, added whole
   if (uAura == 15) { vec3 c = uKind == 0 ? vec3(0.0) : haloRing(vP); o = vec4(c * fogFactorAt(vWorld), 1.0); return; }   // BUNNYFALL: the halo, added whole
   if (uAura == 14) { vec4 c = uKind == 0 ? sageGround(vP) : uKind == 1 ? sageWall(vP) : sageCard(vP, vS); float f = fogFactorAt(vWorld); o = vec4(c.rgb * f, c.a * f); return; }   // NIRNROOT-SAGE: premultiplied (AURA_LOOK shade), fogged to nothing; kindled within (the shade and the runes fade in, the low smoke rises, the puffs and the nirnroots by node's law)
@@ -2080,6 +2081,10 @@ void main() {
     col = (fireRamp(0.3 + 0.45 * core) * body * 0.8 + vec3(1.0, 0.8, 0.45) * core * 0.3) * fade;
   }
   o = vec4(col * uKindle * fogFactorAt(vWorld), 1.0);
+}
+void main() {
+  paintAura();
+  o *= uOpacity;
 }`;
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
@@ -2181,9 +2186,9 @@ export const auraSpritePosed = (w, fig, face = null) => (fig || face
   : null);
 export const WING_LIGHT = Object.freeze({ range: 4.5, rgb: Object.freeze([0.7, 0.53, 0.24]), lift: 0.15, back: 0.35, max: 3, reach: 40 });
 /** @param {any[]} wearers @param {number[]|Float32Array|null} eye @param {any[]} out */
-export function auraWingLights(wearers, eye, out) {
+export function auraWingLights(wearers, eye, out, intensity = 1) {
   out.length = 0;
-  if (!Array.isArray(wearers) || !eye) return out;
+  if (!intensity || !Array.isArray(wearers) || !eye) return out;
   const L = WING_LIGHT;
   for (const w of wearers) {
     if (!w || auraLookOf(w.aura).mesh !== 'wings' || !Array.isArray(w.at) || w.cape?.sunk === true) continue;
@@ -2194,7 +2199,7 @@ export function auraWingLights(wearers, eye, out) {
     const x = w.at[0] + c * sh[0] + sn * (sh[2] - back), y = w.at[1] + sh[1] + L.lift, z = w.at[2] - sn * sh[0] + c * (sh[2] - back);
     const d = Math.hypot(x - eye[0], y - eye[1], z - eye[2]);
     if (!(d <= L.reach)) continue;
-    out.push({ x, y, z, range: L.range * (0.5 + 0.5 * k), color: [L.rgb[0] * k, L.rgb[1] * k, L.rgb[2] * k], carried: true, aura: true, _d: d });
+    out.push({ x, y, z, range: L.range * (0.5 + 0.5 * k), color: [L.rgb[0] * k * intensity, L.rgb[1] * k * intensity, L.rgb[2] * k * intensity], carried: true, aura: true, _d: d });
   }
   out.sort((a, b) => a._d - b._d);
   if (out.length > L.max) out.length = L.max;
@@ -2257,7 +2262,7 @@ export function auraBeastStep(w, beast, t) {
 }
 
 export const AURA_KINDS = Object.freeze([...new Set(Object.values(AURA_LOOK).map((l) => l.kind))]);
-const AURA_UNIFORMS = Object.freeze(['uVP', 'uKind', 'uAt', 'uGroundR', 'uRingR', 'uFlameH', 'uLift', 'uTime', 'uSeed', 'uKindle', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze', 'uYaw', 'uSide', 'uTorn', 'uSwing', 'uCapeS', 'uCapeH', 'uKneeL', 'uKneeR', 'uTorsoU', 'uTorsoF', 'uWingBack', 'uResLit', 'uWarren', 'uWarrenPrint', 'uSage', 'uSageLook']);
+const AURA_UNIFORMS = Object.freeze(['uVP', 'uKind', 'uAt', 'uGroundR', 'uRingR', 'uFlameH', 'uLift', 'uTime', 'uSeed', 'uKindle', 'uOpacity', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze', 'uYaw', 'uSide', 'uTorn', 'uSwing', 'uCapeS', 'uCapeH', 'uKneeL', 'uKneeR', 'uTorsoU', 'uTorsoF', 'uWingBack', 'uResLit', 'uWarren', 'uWarrenPrint', 'uSage', 'uSageLook']);
 const _lookPrograms = new Map();
 // Each look compiles alone with uAura made a constant, because the whole shader takes seconds to compile.
 /** @param {number} kind @returns {ReadonlyArray<readonly [string, string]>} */
@@ -2350,9 +2355,9 @@ export class AuraRingRenderer {
     if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
   }
 
-  draw(list, proj, view, eye, seconds, fog = null) {
+  draw(list, proj, view, eye, seconds, fog = null, intensity = 1) {
     this.drawn = 0;
-    if (!Array.isArray(list) || !list.length) return;
+    if (!intensity || !Array.isArray(list) || !list.length) return;
     const gl = this.gl;
     mat4Multiply(this._vp, proj, view);
     this._frame++;
@@ -2370,7 +2375,7 @@ export class AuraRingRenderer {
         const look = auraLookOf(w.aura);
         const P = this.programOf(look.kind);
         if (!P) continue;
-        if (P !== bound) { this._bind(P, eye, seconds, fog); bound = P; }
+        if (P !== bound) { this._bind(P, eye, seconds, fog); gl.uniform1f(P.u.uOpacity, intensity); bound = P; }
         const U = P.u;
         gl.uniform3f(U.uAt, w.at[0], w.at[1], w.at[2]);
         gl.uniform1f(U.uSeed, Number.isFinite(w.seed) ? w.seed : 0);

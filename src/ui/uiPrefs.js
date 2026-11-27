@@ -118,6 +118,10 @@ export const PREF_DEFAULTS = Object.freeze({
   // anyone's): how much ANOTHER player's spell shakes the view where it lands (scenes/hostMagic.js
   // peerKickShare) - 1 Full, 0.5 Half, 0 Off; my own spells, a foe's and an event's keep their whole kick
   peerSpellShake: 0.5,
+  spellVisualsFirstPerson: 1,
+  spellVisualsThirdPerson: 1,
+  aurasFirstPerson: 1,
+  aurasThirdPerson: 1,
   // EG-G1 (bible/11-Multiplayer/Elite-Gates.md section 25.7): THE SPIRE'S ACCESSIBILITY (ui/eliteGates/egAccess.js) - the danger
   // palette ('standard' | 'contrast' | 'deutan' | 'tritan'), a danger fill's light (0.5-1), and reduced motion (the
   // system's setting does the same)

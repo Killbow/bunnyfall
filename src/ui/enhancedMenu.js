@@ -140,6 +140,7 @@ import { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS } from './eliteGates/egAcces
 import { TOUCH_BUTTON_SLOTS, touchButtonSlots, nextTouchButton, touchButtonChoices } from './touchButtons.js';   // TOUCH-BUTTONS: the corner's three slots
 import { DEFAULT_SERVER } from '../net/online.js';   // ONLINE1: the relay this port hosts, the field's placeholder   // R7: the port's own switches; SO1: the folded tiers' memory
 import { GATE_CROWD_TIERS } from '../net/gateCrowd.js';   // GATE-CROWD: how many other players are drawn at once (CROWD-WIDE: everywhere, not a gate's court alone)
+import { REDUCED_VISUAL_INTENSITY, visualIntensity } from '../magic/spellVisualSettings.js';
 import { PEER_RANGE_TIERS, peerRangeOf } from '../net/peerRange.js';
 import { YARD_RANGE_TIERS, yardRangeOf } from '../net/yardRange.js';   // YARD-RANGE: how far other players' yards are drawn   // PEER-RANGE: how far out other players are drawn, and the distance a stored value stands for
 import { replacementCount } from '../audio/musicReplacement.js';   // M-EXT: the packs card reports what the pick covers
@@ -1818,7 +1819,7 @@ const OPT_FILTERS = Object.freeze([['all', 'All'], ['changed', 'Changed'], ['enh
 export function portPool({ pause = false } = {}) {
   const pool = new Map();
   // RPT1026-CLIENT: and the Motion section's other players' shake beside the Game rows
-  for (const r of [...portRowsGame({ pause }), peerSpellShakeRow(), ...portRowsAudio(), ...portRowsControls({ pause }), ...portRowsInterface({ pause })]) {
+  for (const r of [...portRowsGame({ pause }), peerSpellShakeRow(), ...spellVisualRows(), ...portRowsAudio(), ...portRowsControls({ pause }), ...portRowsInterface({ pause })]) {
     if (r?.dataset?.opt) pool.set(r.dataset.opt, r);
   }
   return pool;
@@ -3159,6 +3160,26 @@ function peerSpellShakeRow() {
     [[1, t('menu.motion.peerShake.full', 'Full')], [0.5, t('menu.motion.peerShake.half', 'Half')], [0, t('menu.motion.peerShake.off', 'Off')]]);
   if (row?.dataset) { row.dataset.opt = 'peerSpellShake'; row.dataset.pref = 'peerSpellShake'; }   // ORG2: the map finds it by its key
   return row;
+}
+function spellVisualRows() {
+  const tiers = [
+    [1, t('menu.spellVisuals.full', 'Full')],
+    [REDUCED_VISUAL_INTENSITY, t('menu.spellVisuals.reduced', 'Reduced')],
+    [0, t('menu.spellVisuals.off', 'Off')],
+  ];
+  const spellNote = t('menu.spellVisuals.spellNote', 'Adjust spell particles, flashes, and casting effects.');
+  const auraNote = t('menu.spellVisuals.auraNote', 'Adjust worn cosmetic auras on characters.');
+  return [
+    ['spellVisualsFirstPerson', t('menu.spellVisuals.firstPerson', 'Spell effects in first person'), spellNote],
+    ['spellVisualsThirdPerson', t('menu.spellVisuals.thirdPerson', 'Spell effects in third person'), spellNote],
+    ['aurasFirstPerson', t('menu.spellVisuals.aurasFirstPerson', 'Auras in first person'), auraNote],
+    ['aurasThirdPerson', t('menu.spellVisuals.aurasThirdPerson', 'Auras in third person'), auraNote],
+  ].map(([key, name, note]) => {
+    const row = choiceRow(key, name, note, tiers, { read: () => visualIntensity(getPref(key)) });
+    row.dataset.opt = key;
+    row.dataset.pref = key;
+    return row;
+  });
 }
 /** TECH-FX (bible/05-Combat/Weapon-Techniques.md THE FEEL): how much a weapon technique moves the screen - every device,
  *  both skins; Settings > Accessibility > Motion lists it (ui/settings/settingsMap.js). GATHER-FEEL II: and a gathering tool's

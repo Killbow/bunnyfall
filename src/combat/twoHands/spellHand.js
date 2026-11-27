@@ -38,15 +38,16 @@ export function _resetSpellHand() { live.up = false; live.fits = false; live.bus
  * @param {{ width: number, height: number }} canvas
  * @param {any} art
  * @param {number} frameIndex
- * @param {{ side?: 'left'|'right', tint?: number[] | null, offsetHeight?: number, guard?: number }} [o]
+ * @param {{ side?: 'left'|'right', tint?: number[] | null, opacity?: number, offsetHeight?: number, guard?: number }} [o]
  */
-export function drawSpellHand(renderer, canvas, art, frameIndex, { side = 'left', tint = null, offsetHeight = weaponOffsetHeight(), guard = 0 } = {}) {
+export function drawSpellHand(renderer, canvas, art, frameIndex, { side = 'left', tint = null, opacity = 1, offsetHeight = weaponOffsetHeight(), guard = 0 } = {}) {
   if (!renderer || !canvas || !art || frameIndex < 0) return false;
   const rec = art.records[frameIndex];
   if (!rec || !rec.width || !rec.height) return false;
   const rects = spellHandRects(canvas, rec, { frameIndex, element: art.element, offsetHeight });
   const r = side === 'right' ? rects.right : rects.left;
-  renderer.drawScreenQuad(rec.tex, { ...r, y: r.y + guardDrop(guard, r.h) }, side === 'right' ? RIGHT_HAND_UV : undefined, tint ?? undefined);
+  const color = opacity === 1 ? tint ?? undefined : [tint?.[0] ?? 1, tint?.[1] ?? 1, tint?.[2] ?? 1, opacity];
+  renderer.drawScreenQuad(rec.tex, { ...r, y: r.y + guardDrop(guard, r.h) }, side === 'right' ? RIGHT_HAND_UV : undefined, color, opacity === 1 ? undefined : { blend: true });
   return true;
 }
 

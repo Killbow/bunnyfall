@@ -59,8 +59,8 @@ export function createSpellDebris({ collider }) {
         else st.rest = 0;
       }
     },
-    draw(r, key, art) {
-      if (!stones.length) return false;
+    draw(r, key, art, intensity = 1) {
+      if (!intensity || !stones.length) return false;
       if (!meshes || gpu !== r || artKey !== key) {
         free();
         try { meshes = Array.from({ length: SHAPES }, (_, i) => r.createMesh(stoneModel(i + 1, art))); gpu = r; artKey = key; }
@@ -74,7 +74,7 @@ export function createSpellDebris({ collider }) {
           (t * x * y - sn * z) * s, (t * y * y + c) * s, (t * y * z + sn * x) * s, 0,
           (t * x * z + sn * y) * s, (t * y * z - sn * x) * s, (t * z * z + c) * s, 0,
           st.p[0], st.p[1], st.p[2], 1]);
-        r.drawMesh(meshes[st.shape], st.mat);
+        r.drawMesh(meshes[st.shape], st.mat, null, intensity < 1 ? { translucent: intensity } : undefined);
       }
       return true;
     },
