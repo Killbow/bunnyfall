@@ -1,15 +1,6 @@
-// EG-LOOK - THE SPIRE'S SHEETS (bible/11-Multiplayer/Elite-Gates-Look.md section 11): the lab (spire.html, src/tools/
-// spireLab.js) shot for the eye, every band and view asked, on Vite's own server in Chromium on SwiftShader - one server,
-// one browser, one page, frame-synced on the lab's counter (never a sleep - bible/Home.md's Process), each shot timed and
-// written as a PNG. No reads, no verdicts: tools/spireLabProbe.mjs judges; this shows. The before/after sheets of the look
-// are made with it.
-//
-//     node tools/spireLabSheet.mjs                              every band, the views plate course court over
-//     node tools/spireLabSheet.mjs 0 2 -- court under wide      the named bands, the named views
-//     SPIRE_SHOTS=dir SPIRE_TAG=after SPIRE_W=640 SPIRE_H=360 SPIRE_PORT=5251 SPIRE_Q='&lane=off' node tools/spireLabSheet.mjs
-//
-// THE ASCENT (LAW 9): the MAP view (and any view with `&route` in SPIRE_Q, or SPIRE_PAGE=1) is shot as the page shows it - its
-// route is drawn on a canvas over the frame (src/tools/spireMap.js), which the frame's own pixels do not hold.
+// Shoots Spire lab views as PNG sheets with no checks. Usage: node tools/spireLabSheet.mjs [bands] [-- views]
+// Env: SPIRE_SHOTS, SPIRE_TAG, SPIRE_W, SPIRE_H, SPIRE_PORT, SPIRE_Q, SPIRE_PAGE, SPIRE_FRAMES, SPIRE_TIMEOUT.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -25,7 +16,6 @@ const args = process.argv.slice(2), cut = args.indexOf('--');
 const bands = (cut < 0 ? args : args.slice(0, cut)).map(Number).filter((b) => b >= 0 && b <= 3);
 const views = cut < 0 ? ['plate', 'course', 'court', 'over'] : args.slice(cut + 1);
 mkdirSync(shots, { recursive: true });
-/** A PNG of RGBA rows read bottom-up (readPixels' order). */
 function png(rgba, w, h) {
   const crcT = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
   const crc = (b) => { let c = 0xffffffff; for (const x of b) c = crcT[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
@@ -57,7 +47,8 @@ try {
       return { w, h, px: btoa(bin), ms: window.__labMs ?? null, stats: window.__lab?.stats?.() ?? null, err: window.__labError ?? null };
     });
     const file = `${shots}/spire-b${band}-${view}${tag}.png`;
-    if (process.env.SPIRE_PAGE === '1' || view === 'map' || extra.includes('route')) await page.screenshot({ path: file });   // THE ASCENT: the route's canvas over the frame
+    // The route draws on a canvas over the frame, so those views take a page screenshot, not the frame pixels.
+    if (process.env.SPIRE_PAGE === '1' || view === 'map' || extra.includes('route')) await page.screenshot({ path: file });
     else writeFileSync(file, png(Buffer.from(r.px, 'base64'), r.w, r.h));
     if (r.err || errors.length) failed++;
     console.log(`${r.err || errors.length ? 'ERR ' : 'shot'} b${band} ${view} ${((Date.now() - t0) / 1000).toFixed(1)}s ${file}${r.ms ? ` frame ${JSON.stringify(r.ms)}` : ''}${r.stats ? ` ${JSON.stringify(r.stats)}` : ''}${r.err ? ` ${r.err}` : ''}${errors.length ? ` ${errors.slice(0, 3).join(' | ')}` : ''}`);

@@ -1,7 +1,7 @@
 // @ts-check
-// Wall of Earth's three sounds (earthRise, earthSettle, earthSlide) are built at runtime by systems/soundRemix.js from
-// DAGGER.SND records 24 and 68 and the Immersive Footsteps clips Bunnyfall ships. The clip gains and lengths were
-// measured with ffmpeg, and scatter() replays the approved remix's seeded grains, so keep its order of rnd() calls.
+// Wall of Earth's three sounds (earthRise, earthSettle, and earthSlide) are built at runtime by audio/soundRemix.js
+// from DAGGER.SND records 24 and 68 and the Immersive Footsteps clips Bunnyfall ships. The clip gains and lengths
+// are measured values, and scatter() replays the approved remix's seeded grains, so keep its order of rnd() calls.
 import { remixSounds, WORK_RATE } from '../audio/soundRemix.js';
 import { seededRng } from '../weather/wind.js';
 

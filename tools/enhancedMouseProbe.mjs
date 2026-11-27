@@ -1,24 +1,6 @@
-// EVERY enhanced surface, clicked with a REAL MOUSE.
-//
-// THE REASON THIS EXISTS. Mac reported that the province map took no
-// clicks in the game, and every walk this project had written said it
-// worked - because every one of them dispatched a synthetic click
-// straight at the element, or used Playwright's element click, and
-// neither takes the path a mouse takes.
-//
-// What a mouse does is move, press and release, and a click only
-// EXISTS if the press and the release land on the same node. The map's
-// hover handler set a flag and repainted the whole screen, which
-// destroyed the node under the pointer and built a new one - so the
-// browser fired pointerenter on the fresh node, which repainted again,
-// forever. No mousedown ever survived to its mouseup.
-//
-// So this probe moves first, then presses, on every surface. A test
-// that clicks an element by handle can never see a bug in the space
-// between those two events.
-//
-//     ARENA2_PATH=... npx vite --port 5199 &
-//     node tools/enhancedMouseProbe.mjs
+// Clicks every Enhanced surface with a real mouse. A click exists only when press and release land on the
+// same node, so each click moves first, then presses.
+// Run: ARENA2_PATH=... npx vite --port 5199 & node tools/enhancedMouseProbe.mjs.
 import { chromium } from 'playwright';
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1400, height: 900 } });
@@ -51,7 +33,7 @@ await realClick('.bigbtn', 1);
 await p.waitForTimeout(200);
 if (await p.locator('.repbox').count()) await realClick('.act.primary');
 console.log('history       ->', (await st()).state);
-await realClick('.act', 1);                       // suggest a name
+await realClick('.act', 1);
 await realClick('.act.primary');
 console.log('name          ->', (await st()).state);
 await p.waitForTimeout(700);

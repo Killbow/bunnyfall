@@ -1,4 +1,3 @@
-// The `eg` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, bodyWordRelayGate, EG_HUB_KINDS, egHubGate, egGate } from '../../relay.js';
 import { isEgRoom } from '../../../../src/net/eliteGates/egLaw.js';
 

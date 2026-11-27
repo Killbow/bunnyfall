@@ -1,16 +1,5 @@
-// MAC-Q IN A REAL GL CONTEXT: a particle system becomes pixels.
-//
-// This container has no Morrowind data, so the torch's own file cannot be
-// drawn here. What CAN be proved is everything between a NIF and the
-// screen: a hand-built file with one particle geometry, an active
-// controller, a grow/fade and a colour modifier goes through the flattener's
-// sink, the descriptor, the simulation, the quad stream, the renderer's
-// particle program and the character pass's own effect draw - and a pixel
-// where the flame stands comes back lit in the flame's colour, while a pixel
-// beside it does not, and a HIDDEN effect draws nothing at all.
-//
-//     npx vite --port 5199 &
-//     node tools/macqFlameProbe.mjs
+// Draws a hand-built NIF particle system through the real particle path in WebGL and checks the flame pixels.
+// Run against a dev server: npx vite --port 5199 & node tools/macqFlameProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -36,13 +25,9 @@ const out = await page.evaluate(async () => {
   document.body.append(canvas);
   const r = new Renderer(canvas);
   r._lightDir = new Float32Array([0, 1, 0]);
-  r.setLighting([0.05, 0.05, 0.05], 0, [0, 0, 0]);   // a dark room - a flame is its own light
+  r.setLighting([0.05, 0.05, 0.05], 0, [0, 0, 0]);
   r.setPointLights(new Float32Array(0), [1, 1, 1], null);
 
-  // THE FILE: a NiBSParticleNode (AutoPlay | LocalSpace) over one
-  // NiAutoNormalParticles whose controller emits straight up (+Z in the
-  // file) at speed 0 - the particles stay where they are born - with 16
-  // slots, a colour ramp from orange to dark red, and additive blending.
   const I3 = Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1]);
   const node = (o = {}) => ({ type: 'NiNode', name: '', flags: 0, translation: [0, 0, 0], rotation: I3, scale: 1, properties: [], children: [], effects: [], controller: -1, ...o });
   const slots = Array.from({ length: 16 }, () => ({ velocity: [0, 0, 0], rotationAxis: [0, 0, 0], age: 0, lifeSpan: 0, lastUpdate: 0, spawnGeneration: 0, code: 0 }));
@@ -57,7 +42,7 @@ const out = await page.evaluate(async () => {
       birthRate: 0, lifetime: 1, lifetimeVariation: 0, useBirthRate: 0, spawnOnDeath: 0, emitterDimensions: [0, 0, 0], emitter: 1,
       numSpawnGenerations: 0, percentageSpawned: 0, spawnMultiplier: 0, spawnSpeedChaos: 0, spawnDirChaos: 0, numValid: 0, particles: slots,
       emitterModifier: -1, particleModifier: 7, particleCollider: -1, staticTargetBound: 0 },
-    { type: 'NiAlphaProperty', name: '', flags: 1 | (6 << 1) | (0 << 5), threshold: 0 },   // blend on, SRC_ALPHA, ONE
+    { type: 'NiAlphaProperty', name: '', flags: 1 | (6 << 1) | (0 << 5), threshold: 0 },
     { type: 'NiVertexColorProperty', name: '', flags: 0, vertexMode: 1, lightingMode: 0 },
     { type: 'NiParticleGrowFade', next: -1, controller: 4, grow: 0.05, fade: 0.3 },
   ] };
@@ -68,8 +53,6 @@ const out = await page.evaluate(async () => {
   const quads = sim.quads();
   const packed = P.packParticleQuads(quads);
 
-  // a black body (a dark quad far behind the flame) so the flame is the
-  // only light in the frame, and the read-back is unambiguous
   const V = [];
   const vert = (x, y) => V.push(x, y, -0.5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0);
   vert(-2, -2); vert(2, -2); vert(2, 2); vert(-2, -2); vert(2, 2); vert(-2, 2);

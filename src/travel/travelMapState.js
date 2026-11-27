@@ -1,45 +1,19 @@
-// U41: THE TRAVEL MAP'S SESSION STATE - what DFU's single, persistent
-// DaggerfallTravelMapWindow carries between openings, and the
-// TravelMapSaveData envelope the save writes
-// (SerializableGameObject.cs:502-512; SaveLoadManager.cs:871, :1479).
-//
-// DFU keeps ONE window alive in DaggerfallUI and re-PUSHES it, so the
-// four filter toggles and the popup's three choices survive both a
-// close and a save. The port mints a window per open - the A2
-// zoom-memory shape - so the state lives here, in a systems module
-// both the window and the save envelope can reach without the save
-// layer importing a UI one.
-//
-// The struct's own defaults are load-bearing: the filters start FALSE
-// and sleepInn/speedCautious/travelShip start TRUE, which is what a
-// null envelope (an old save) restores.
+// Filter flags are true when hidden, so the false defaults show everything, and the popup choices default to true.
+// A missing save field restores these defaults, so older saves still load.
 
-// ROADS 12: two more, the port's own - roads and tracks on the map.
-// Same inversion as DFU's four (TRUE means HIDDEN), so the default of
-// false is "always on" and a pre-ROADS-12 save, which has no such keys,
-// restores to shown.
-const DEFAULT_FILTERS = Object.freeze({ dungeons: false, temples: false, homes: false, towns: false, roads: false, tracks: false, rivers: false, streams: false, mines: false });   // ROADS 24: water too
+const DEFAULT_FILTERS = Object.freeze({ dungeons: false, temples: false, homes: false, towns: false, roads: false, tracks: false, rivers: false, streams: false, mines: false });
 const DEFAULT_POPUP = Object.freeze({ speedCautious: true, sleepModeInn: true, travelShip: true });
 
 let _filters = { ...DEFAULT_FILTERS };
 let _popUp = { ...DEFAULT_POPUP };
-// AUDIT-TO1 G4: Travel Options' middle-click mark
-// (TravelOptionsMapWindow.cs:102, `markedLocationId = -1`) is a field on
-// the SAME persistent window the eight filters ride, so it outlives an
-// open/close exactly as they do - and the junction mini-map reads it
-// between openings (TravelOptionsMod.cs:915-921). Session state, not
-// save state: the mod does not write it to the save either.
 let _markedMapId = -1;
 
-/** The live filter set - the window edits this object in place, the
- *  way DFU's window edits its own four fields. */
+// Returns the live object, because the travel map window edits it in place.
 export function travelMapFilters() { return _filters; }
 
-/** AUDIT-TO1 G4: the middle-click mark, -1 for none. */
 export function travelMapMarkedMapId() { return _markedMapId; }
 export function setTravelMapMarkedMapId(id) { _markedMapId = Number.isFinite(id) ? id : -1; }
 
-/** The three popup choices the next popup opens with. */
 export function travelMapPopUpState() { return { ..._popUp }; }
 export function setTravelMapPopUpState({ speedCautious, sleepModeInn, travelShip }) {
   _popUp = {
@@ -48,18 +22,12 @@ export function setTravelMapPopUpState({ speedCautious, sleepModeInn, travelShip
 }
 
 let _speedHook = null;
-/** Updates the stored Speed choice from the travel speed panel (persisted on save) and notifies the host so any active journey switches too. */
 export function setTravelSpeedCautious(on) {
   _popUp = { ..._popUp, speedCautious: !!on };
   _speedHook?.(!!on);
 }
-/** Registers the host callback for setTravelSpeedCautious. */
 export function onTravelSpeedCautious(fn) { _speedHook = typeof fn === 'function' ? fn : null; }
 
-/** GetTravelMapSaveData (DaggerfallTravelMapWindow.cs:1318-1339).
- *  `live` is the open popup's choices when one is up - DFU reads the
- *  window's popUp field and leaves the struct's defaults when it is
- *  null. */
 export function travelMapSaveData(live = null) {
   const p = live ?? _popUp;
   return {
@@ -67,9 +35,9 @@ export function travelMapSaveData(live = null) {
     filterTemples: _filters.temples,
     filterHomes: _filters.homes,
     filterTowns: _filters.towns,
-    filterRoads: _filters.roads,     // ROADS 12: the port's own two
+    filterRoads: _filters.roads,
     filterTracks: _filters.tracks,
-    filterRivers: _filters.rivers, filterStreams: _filters.streams,   // ROADS 24
+    filterRivers: _filters.rivers, filterStreams: _filters.streams,
     filterMines: _filters.mines,
     sleepInn: p.sleepModeInn,
     speedCautious: p.speedCautious,
@@ -77,16 +45,14 @@ export function travelMapSaveData(live = null) {
   };
 }
 
-/** SetTravelMapFromSaveData (:1342-1363): a null envelope restores
- *  the struct's own defaults, which is how a pre-U41 save loads. */
 export function restoreTravelMapSaveData(data) {
   const d = data ?? {};
   _filters = {
     dungeons: !!d.filterDungeons, temples: !!d.filterTemples,
     homes: !!d.filterHomes, towns: !!d.filterTowns,
-    roads: !!d.filterRoads, tracks: !!d.filterTracks,   // ROADS 12: absent in an older save -> shown
+    roads: !!d.filterRoads, tracks: !!d.filterTracks,
     mines: !!d.filterMines,
-    rivers: !!d.filterRivers, streams: !!d.filterStreams,   // ROADS 24
+    rivers: !!d.filterRivers, streams: !!d.filterStreams,
   };
   _popUp = {
     speedCautious: d.speedCautious ?? true,
@@ -96,16 +62,11 @@ export function restoreTravelMapSaveData(data) {
   return _filters;
 }
 
-/** A new game (and every test) starts from DFU's defaults. */
-/** AUDIT IT1 C1: a NEW window's four filters and the rest - the struct's own defaults, every place shown. The mod's
- *  CarriageMap and SeafarersMap are each a new DaggerfallTravelMapWindow (`newobj`), never DaggerfallUI's persistent
- *  one the store stands for. */
 export function freshTravelMapFilters() { return { ...DEFAULT_FILTERS }; }
-/** AUDIT IT1 C2: a NEW DaggerfallTravelPopUp's three (:85-87) - Cautious, By ship, At inns. */
 export function freshTravelMapPopUpState() { return { ...DEFAULT_POPUP }; }
 
 export function resetTravelMapState() {
   _filters = { ...DEFAULT_FILTERS };
   _popUp = { ...DEFAULT_POPUP };
-  _markedMapId = -1;   // AUDIT-TO1 G4
+  _markedMapId = -1;
 }

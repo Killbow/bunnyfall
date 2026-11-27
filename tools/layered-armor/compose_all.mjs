@@ -1,8 +1,5 @@
-// WORN-ARMOUR: compose every female outfit (each plate combo in all 7 metals, one metal for all its plate pieces), every frame, as
-// the input of fix_hood_fragments.py and build_hoodfix.mjs:
-// <out>/female/with-hood/<h>-helm_<t>-chest_<l>-legs/f_<rf>.png  (cloak dye 5 Light Brown + the current hood fix: the game's picture)
-// <out>/female/no-hood/...  (no cloak)
-// usage: node compose_all.mjs <repo> <out> [<record>-<frame>,...]   (needs pngjs)
+// Composes every female outfit, frame by frame, as input for fix_hood_fragments.py and build_hoodfix.mjs.
+// Run: node compose_all.mjs <repo> <out> [<record>-<frame>,...] (needs pngjs).
 import fs from 'fs'; import path from 'path'; import { PNG } from 'pngjs';
 const [X, OUT, ONLY] = process.argv.slice(2);
 const LA = await import(path.resolve(X, 'src/player/layeredArmor.js'));

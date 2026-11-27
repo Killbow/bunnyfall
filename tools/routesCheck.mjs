@@ -1,10 +1,6 @@
-// BUNNYFALL: every route the account service handles must be in its known-routes list (server-account/src/service.js
-// ROUTES), or its gate answers `not-found` before the handler runs. This prints any route index.js handles that the list
-// lacks, and exits 1 when there is one. Run it after adding a route: node tools/routesCheck.mjs
-//
-// It also checks the other way: every '/v1/...' path the client names (src/) must be one the account service lists
-// (ROUTES, or the POI prefix poiPathOf answers) or one the relay handles (server/src). A client calling a route that no
-// server knows fails only in play, so it is caught here.
+// Exits 1 when the account service handles a route missing from ROUTES (server-account/src/service.js), or when
+// the client names a /v1/ path that no server serves. Run: node tools/routesCheck.mjs.
+
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +18,7 @@ const handled = new Set(['server-account/src/index.js', ...jsFiles('server-accou
 const missing = [...handled].filter((p) => !ROUTES.has(p));
 
 const relay = new Set(jsFiles('server/src').flatMap((f) => paths(read(f))));
-// The relay also serves paths through constants it imports from the client's wire (SAFE_LAW_PATH): read them as served.
+// The relay also serves paths through constants it imports from the client's wire, such as SAFE_LAW_PATH.
 const { SAFE_LAW_PATH } = await import('../src/net/wire.js');
 relay.add(SAFE_LAW_PATH);
 /** @type {Map<string, string>} */

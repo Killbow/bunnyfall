@@ -2,7 +2,6 @@
 
 import { hitSpellFields } from '../net/wire.js';
 
-/** Builds the outgoing 'spell' hit packet for `ally` hitting `foe`, or returns null. */
 export function allySpellHit(foe, ally, record, level, k) {
   if (!foe?.puppet || foe.dead || foe.entity?.team === 'PlayerAlly') return null;
   if (!ally || ally.puppet || ally.entity?.team !== 'PlayerAlly') return null;

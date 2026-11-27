@@ -1,4 +1,3 @@
-// The `mute` frame's handler, called by message/dispatch.js with the room as `this`.
 import { muteGate } from '../../relay.js';
 import { verifyOrder } from '../../../../src/net/identityToken.js';
 import { ORDERS_MAX } from '../../room/holds.js';

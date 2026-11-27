@@ -1,13 +1,5 @@
-// BOARD-UI, MEASURED (2026-10-06, Mac: "We need to overhaul the notice boards to enhance readability, Including each of
-// the tabs"): THE NOTICE BOARD'S WINDOW (ui/noticeWindow.js) drawn in Chromium over the real sheets - the Enhanced Plus
-// skin and the classic skin's own - at a desktop's width and a phone's, on every tab (Notices, a note read large, Work,
-// Market's views, Vendors, Guilds, Seat), over books with something on every tab: notes new and old, the server's word,
-// a guild's poster, Court and guild writs, listings near and far, a seat held and besieged with the reader's guild
-// pledged to it. Each tab must stand inside the viewport with nothing spilling sideways, and its words in the pixel
-// face. The pins hold the window's law on a fake page (test/ui/board_ui.test.js); this photographs what a fake cannot.
-// Photographs to SHOT_DIR (default tools/shots/, ignored).
-//
-//     node tools/noticeBoardProbe.mjs [--only=<tab>] [--skin=enhanced|classic]
+// Photographs the notice board window on every tab at desktop and phone widths, and checks that nothing spills.
+// Usage: node tools/noticeBoardProbe.mjs [--only=<tab>] [--skin=enhanced|classic]  (SHOT_DIR, default tools/shots/)
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -25,24 +17,23 @@ await server.listen();
 const browser = await chromium.launch({ headless: true });
 const errors = [];
 
-/** The tabs photographed: [file name, tab label, an act inside it before the photograph (or null)]. */
 const SHOTS = [
   ['notices', 'Notices', null],
   ['read', 'Notices', 'read'],
   ['work', 'Work', null],
-  ['work-guide', 'Work', 'open'],   // PLAIN-UI: How chapters work, unfolded
+  ['work-guide', 'Work', 'open'],
   ['market', 'Market', null],
   ['market-picked', 'Market', 'pick'],
   ['market-mine', 'Market', 'view:mine'],
   ['market-orders', 'Market', 'view:orders'],
-  ['market-goods', 'Market', 'view:goods'],   // PACK-PICK: the way to sell from the pack, beside the Goods' filters
-  ['market-sell', 'Market', 'sell'],   // PACK-PICK: the List form on the pack - its pictured tiles, a piece chosen and looked at
-  ['market-sell-refused', 'Market', 'sell-refused'],   // PACK-PICK: what may not go, unfolded with why
-  ['market-sell-stores', 'Market', 'sell-stores'],   // AUDIT PACK-PICK: the Stores' form beside the kinds, drawn as chips
+  ['market-goods', 'Market', 'view:goods'],
+  ['market-sell', 'Market', 'sell'],
+  ['market-sell-refused', 'Market', 'sell-refused'],
+  ['market-sell-stores', 'Market', 'sell-stores'],
   ['vendors', 'Vendors', null],
   ['guilds', 'Guilds', null],
   ['seat', 'Seat', null],
-  ['seat-guide', 'Seat', 'open'],   // PLAIN-UI: How the seat war works and the board's words, unfolded
+  ['seat-guide', 'Seat', 'open'],
 ].filter(([n]) => !ONLY || n.startsWith(ONLY));
 
 for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (const skin of SKINS) {
@@ -54,8 +45,6 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     const NB = await import('/src/net/noticeBook.js');
     const { materialLabel, materialCountLabel } = await import('/src/professions/profItems.js');
     const { WEAVERS_STOCK, APOTHECARY_STOCK } = await import('/src/net/professionLaw.js');
-    // PACK-PICK: a realm character's pack as the producers mint it - a body's loot, two pieces rolled up the ladder, a
-    // potion and a gem (the Stores' - refused), a quest's piece (refused) - and the pictures from the player's own data
     const { generateRandomLoot, LOOT_MATRICES } = await import('/src/items/loot.js');
     const { applyRarity, LOOT_RARITY_KEY } = await import('/src/items/lootRarity.js');
     const { seededRng } = await import('/src/weather/wind.js');
@@ -63,7 +52,7 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     const { createMarketGoods } = await import('/src/trade/tradePack.js');
     const { itemPicture } = await import('/src/ui/menuPicture.js');
     setPref(LOOT_RARITY_KEY, true);
-    // AUDIT PACK-PICK: twelve bodies' loot, enough that a desktop's tiles scroll too
+    // Twelve bodies' loot, so the tiles scroll at every width and the scroll check has something to check.
     const loot = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].flatMap((s) => generateRandomLoot({ ...LOOT_MATRICES['-'], MinGold: 0, MaxGold: 0, WP: 100, AM: 100, MI: 100, CL: 60, C1: 60, P1: 40 }, { level: 12, gender: 'male' }, seededRng(s)))
       .filter((it) => it.group !== 'Currency');
     const gear = loot.filter((it) => it.group === 'Weapons' || it.group === 'Armor');
@@ -93,19 +82,16 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     const gboard = { guild: SH, notes: [{ id: 'g1n', subject: 'Siege muster', body: 'Sign for Thursday\'s defence at the Seat tab.\nBring Ram Kits if you have them.', from: 'Mirabelle', at: T - 900, expiresAt: T + 3 * 86400, mine: false }], me: { canPin: true, live: 0, max: 3, keeper: false } };
     const door = { read: async () => ({ ok: true, data: board }), guildRead: async () => ({ ok: true, data: gboard }) };
     const book = NB.createNoticeBook({ door, storage: null, nowMs: () => T * 1000 });
-    // WORK: the Court's writs, a guild's writ and a commission
     const OAK = 'log:oak';
     const workData = {
       writs: [
         { id: 'c1', material: 'ore:iron', tier: 1, qty: 30, pay: 72, renown: 150, expiresAt: T + 20 * 3600, state: 'open' },
         { id: 'c2', material: OAK, tier: 1, qty: 20, pay: 24, renown: 50, expiresAt: T + 9 * 3600, state: 'taken' },
         { id: 'c3', material: 'ore:mithril', tier: 4, qty: 10, pay: 310, renown: 600, expiresAt: T + 30 * 3600, state: 'open' },
-        // GUILD3d (bible/11-Multiplayer/Guilds-Made-Plain.md): a chapter's writ and the reader's own
         { id: 'h:1', kind: 'hall', faction: 41, material: 'ore:iron', tier: 2, qty: 12, pay: 40, renown: 90, expiresAt: T + 20 * 3600, state: 'open' },
         { id: 'm:1', kind: 'member', faction: 41, material: OAK, tier: 1, qty: 8, pay: 18, renown: 40, expiresAt: T + 20 * 3600, state: 'open' },
       ],
       today: { filled: 1, max: 3 },
-      // GUILD3d: the region's chapters as cards - a Thriving one in a Rivalry the reader is a member of, a Failing one
       chapters: [{ faction: 41, strength: 76, band: 'thriving', event: 'rivalry', season: 3, rival: 42, patron: { id: 'gabcdefghij', name: 'Grey Lanterns', tag: 'GLN' } },
         { faction: 40, strength: 12, band: 'failing' }],
       merit: [{ faction: 41, merit: 150, max: 600, elsewhere: false, from: null }],
@@ -119,7 +105,6 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
       writs: async () => ({ data: workData, error: null, stale: false }), deliver: async () => ({ ok: true, data: { pay: 72 } }),
     };
     const writBook = { state: {}, busy: false, supply: async () => ({ ok: true }), decline: async () => ({ ok: true }), withdraw: async () => ({ ok: true }) };
-    // MARKET
     const ROAD = 420;
     const road = (r) => (r === 17 ? { courier: 0, seconds: 0, road: 0 } : { courier: 6, seconds: 1980, road: ROAD });
     const med = (m) => ({ median: m, line: [m - 1, null, m, m + 1, null, m, m + 0.5] });
@@ -142,7 +127,7 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     let reads = 0;
     const marketBook = {
       state: { open: true, balance: 1240, held: 0, road: [{ kind: 'material', material: 'ore:mithril', units: 40, from: 23, arrivesAt: T + 1920, waiting: false }], counts: { listings: 1, orders: 0 } },
-      pending: 0, busy: false, goldOk: true, purse: () => 962_919, me: () => 'c1',   // PACK-PICK: a realm character's book
+      pending: 0, busy: false, goldOk: true, purse: () => 962_919, me: () => 'c1',
       cached: () => null,
       read: async (view) => { reads++; await new Promise((r) => setTimeout(r, 120)); return { ok: true, data: marketData[view] ?? { rows: [] } }; },
       settle: async () => ({ ok: true, settled: 0 }),
@@ -154,10 +139,9 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
       pieces: () => [], take: () => true, putBack: () => {}, mint: () => {}, pieceName: () => 'a piece',
       weavers: WEAVERS_STOCK, apothecaries: APOTHECARY_STOCK.slice(0, 4), stock: async () => ({ ok: true, text: 'Bought.' }),
       carried: () => new Map(), board: [402, 151], tithe: () => 6,
-      goods: () => packGoods.goods(), good: (it) => packGoods.good(it), goodName: (rec) => packGoods.goodName(rec),   // PACK-PICK
-      itemPicture: (it, wake, box) => itemPicture(it, { onReady: wake, box }),   // the world host's, a picker's box handed through
+      goods: () => packGoods.goods(), good: (it) => packGoods.good(it), goodName: (rec) => packGoods.goodName(rec),
+      itemPicture: (it, wake, box) => itemPicture(it, { onReady: wake, box }),
     };
-    // VENDORS
     const vendors = {
       mode: 'board', region: 17, regionName: 'Daggerfall',
       read: async () => ({ ok: true, data: { rows: [
@@ -167,7 +151,6 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
       nameOf: (it) => it.name, townOf: (m) => ({ 1: 'Anticlere', 2: 'Daggerfall' })[m], stats: () => ({ rows: ['Damage: 4-15', 'Weight: 9 kg'], magic: [] }),
       waypoint: () => true, waypointKey: () => null, clearWaypoint: () => {},
     };
-    // SEAT
     const seatData = {
       seat: ANTICLERE, week: 6, phase: 'muster', reckoningAt: T + 2 * 86400 + 3600, turningAt: T + 4 * 86400, defence: 4500,
       holder: { guild: SH, since: 3, standing: 55, was: 50, tithe: 6, edict: null, titheWeek: 6 },
@@ -216,28 +199,28 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
         await new Promise((r) => setTimeout(r, 60));
         document.querySelector('.notice-cork details')?.scrollIntoView({ block: 'start' });
       }
-      if (step === 'sell' || step === 'sell-refused') {   // PACK-PICK: My listings, the pack's form, a rolled piece pressed
+      if (step === 'sell' || step === 'sell-refused') {
         [...document.querySelectorAll('.market-view')].find((b) => b.textContent.trim().startsWith('My listings'))?.click();
         await new Promise((r) => setTimeout(r, 250));
         document.querySelector('.market-kind[data-kind="item"]')?.click();
         await new Promise((r) => setTimeout(r, 60));
-        // the tiles scrolled to their foot and the last pressed: the window redraws, and the tiles stay where they were
         const grid = document.querySelector('.packpick-grid');
         grid.scrollTop = grid.scrollHeight;
         await new Promise((r) => setTimeout(r, 60));
-        const before = grid.scrollTop, scrolls = grid.scrollHeight > grid.clientHeight;   // read before the press - the redraw takes this grid out
+        // Read before the press, because the redraw replaces this grid.
+        const before = grid.scrollTop, scrolls = grid.scrollHeight > grid.clientHeight;
         [...document.querySelectorAll('button.packpick-tile')].at(-1)?.click();
         await new Promise((r) => setTimeout(r, 120));
         window.__kept = { scrolls, before, after: document.querySelector('.packpick-grid').scrollTop, chosen: document.querySelector('.packpick-card .packpick-name')?.textContent ?? null };
         if (step === 'sell') (document.querySelector('.packpick-tile[data-rarity="rare"]') ?? document.querySelector('button.packpick-tile'))?.click();
-        await new Promise((r) => setTimeout(r, 400));   // the pictures land
+        await new Promise((r) => setTimeout(r, 400));
         if (step === 'sell-refused') {
           document.querySelector('.packpick-refused > summary')?.click();
           await new Promise((r) => setTimeout(r, 60));
           document.querySelector('.packpick-refused')?.scrollIntoView({ block: 'start' });
         } else document.querySelector('.market-listform')?.scrollIntoView({ block: 'start' });
       }
-      if (step === 'sell-stores') {   // AUDIT PACK-PICK: the Stores' kind pressed
+      if (step === 'sell-stores') {
         [...document.querySelectorAll('.market-view')].find((b) => b.textContent.trim().startsWith('My listings'))?.click();
         await new Promise((r) => setTimeout(r, 250));
         document.querySelector('.market-kind[data-kind="material"]')?.click();
@@ -258,15 +241,13 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     const m = await page.evaluate(() => {
       const w = document.querySelector('.notice-win');
       const r = w?.getBoundingClientRect();
-      // an element inside a strip that scrolls sideways (the tabs on a phone) is the strip's to show, not a spill
       const inScroller = (n) => { for (let x = n.parentElement; x && x !== w; x = x.parentElement) if (/(auto|scroll)/.test(getComputedStyle(x).overflowX)) return true; return false; };
       const wide = [...document.querySelectorAll('.notice-win *')].filter((n) => n.getBoundingClientRect().right > innerWidth + 1 && n.getClientRects().length && !inScroller(n)).length;
       return { inside: !!r && r.left >= 0 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1, wide, scrollX: document.scrollingElement.scrollWidth > innerWidth };
     });
     check(`${width}/${skin} ${name}: inside the viewport, nothing spilling sideways`, m.inside && !m.wide && !m.scrollX, JSON.stringify(m));
-    if (step === 'sell' || step === 'sell-refused') {   // PACK-PICK: a tile pressed far down its list keeps the list where it was
+    if (step === 'sell' || step === 'sell-refused') {
       const k = await page.evaluate(() => window.__kept);
-      // AUDIT PACK-PICK: the pack is made big enough that the tiles scroll at every width - a pack that did not was a pass with nothing checked
       check(`${width}/${skin} ${name}: a press keeps the tiles' scroll`, k && !!k.chosen && k.scrolls && k.before > 0 && Math.abs(k.after - k.before) <= 1, JSON.stringify(k));
     }
     await page.screenshot({ path: `${OUT}/notice-${width}-${skin}-${name}.png` });

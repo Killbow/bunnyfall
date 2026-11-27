@@ -1,12 +1,13 @@
 // @ts-check
-// Names the nearest enemy that blocks travel and marks a lone one on the Overworld.
-// Outside a journey, a wilderness enemy closes the Overworld only after it notices the player.
 import { areEnemiesNearby, foeAlerted } from '../characters/encounters.js';
 import { enemyDisplayName } from '../characters/enemyBasics.js';
 import { directionHintString } from '../talk/talk.js';
 import { t, getLocalizedEnemyName } from '../ui/textManager.js';
 
-/** @param {any[]} enemies @param {number[]} feet */
+/**
+ * @param {any[]} enemies
+ * @param {number[]} feet
+ */
 export function nearestBlocker(enemies, feet) {
   let best = null;
   for (const f of enemies ?? []) {
@@ -18,7 +19,11 @@ export function nearestBlocker(enemies, feet) {
   return best;
 }
 
-/** @param {string} base @param {any[]} enemies @param {number[] | null} feet */
+/**
+ * @param {string} base
+ * @param {any[]} enemies
+ * @param {number[] | null} feet
+ */
 export function blockerLine(base, enemies, feet) {
   const b = feet ? nearestBlocker(enemies, feet) : null;
   if (!b || b.flat < 1) return base;
@@ -29,7 +34,10 @@ export function blockerLine(base, enemies, feet) {
     { refusal: base.replace(/[.!]\s*$/, ''), who, meters: Math.max(1, Math.round(b.dist)), direction: directionHintString(b.dx, b.dz) });
 }
 
-/** @param {any[]} enemies @param {(feet: number[]) => boolean} inTown */
+/**
+ * @param {any[]} enemies
+ * @param {(feet: number[]) => boolean} inTown
+ */
 export const noticedFoes = (enemies, inTown) => enemies.filter((f) => f.puppet || foeAlerted(f) || !f.ai?.feet || inTown(f.ai.feet));
 
 /** @param {any} f */

@@ -1,10 +1,3 @@
-// MAGIC.DEF reader (Systems S4c). Verbatim port of DFU
-// MagicItemsFile.cs (MIT, Daggerfall Workshop): an i32 record count,
-// then per record: index = the record's STREAM POSITION (the source's
-// own identity key), 32-byte C-string name, type u8
-// (0 RegularMagicItem / 1 ArtifactClass1 / 2 ArtifactClass2),
-// group u8, groupIndex u8, 10 x { type s8, param s8 } enchantments,
-// uses i16, value i32, material u8 - 62 bytes per record.
 
 import { readCStringFixed } from './saveTreeFile.js';
 
@@ -12,11 +5,7 @@ export const MAGIC_ITEM_NAME_LENGTH = 32;
 export const MAGIC_ITEM_RECORD_SIZE = 62;
 export const MAGIC_ITEM_TYPES = Object.freeze({ RegularMagicItem: 0, ArtifactClass1: 1, ArtifactClass2: 2 });
 
-/** EnchantmentTypes (ItemsFile.cs:111-141), verbatim. V3 re-homed it
- *  HERE from systems/enchantments.js (which re-exports): the enum is
- *  FallExe's - this file reads the records that carry it - and the
- *  artifact registry needs it without closing an import cycle with
- *  the enchantment system that consumes the registry. */
+// Defined here so the artifact registry can use it without an import cycle through the enchantment system.
 export const ENCHANTMENT_TYPES = Object.freeze({
   None: -1,
   CastWhenUsed: 0, CastWhenHeld: 1, CastWhenStrikes: 2, ExtraSpellPts: 3,
@@ -34,11 +23,8 @@ export function readMagicDef(bytes) {
   const items = [];
   let o = 4;
   for (let r = 0; r < count && o + MAGIC_ITEM_RECORD_SIZE <= bytes.byteLength; r++) {
-    const index = o;   // stream position, per the source
-    // MagicItemsFile.cs:87 reads the name with a NON-ZERO readLength
-    // (`nameLength = 32`), which skips ReadCString's terminator scan
-    // entirely: only TRAILING NULs come off, an embedded one and its tail
-    // stay.
+    // The record index is its byte position in the file, which DFU uses as the identity key.
+    const index = o;
     const name = readCStringFixed(bytes, o, MAGIC_ITEM_NAME_LENGTH);
     o += MAGIC_ITEM_NAME_LENGTH;
     const type = v.getUint8(o++);

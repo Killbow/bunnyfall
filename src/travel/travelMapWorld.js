@@ -1,6 +1,3 @@
-// Travel map, Travel Options, and portals in the world. It holds the teleport map, the Travel
-// Options control and navigation, the town walk, and the portal holds and wire word. It also marks
-// guild halls and notice boards on the town map and renames its buildings.
 import { areEnemiesNearby } from '../characters/encounters.js';
 import { buildingSummaries } from '../world/buildingSummaries.js';
 import { createColliderProbe, createTravelSteer } from './travelSteer.js';
@@ -102,7 +99,8 @@ export function createTravelMapWorld(shared) {
       revealGuildHallsOnMap(revealingMemberships(playerEntity), locationId, buildings,
         { factionName: (id) => { const n = townTalk.factionDict?.get(id)?.name; return n == null ? '' : getLocalizedFactionName(id, n); } });
       revealBunnyHallsOnMap(locationId, buildings);
-      // Report only from a layout every client shares; an unheard pinned one has other buildings.
+      // Report only once every client shares the layout: online, the pinned home layouts and world data packs must
+      // have arrived, or the buildings differ.
       if (witness && hallBook && (!homeLayoutsOnline || (shared._homeLayoutsApplied && !worldDataPacksMissing().length))) {
         const factions = hallFactionsOf(buildings, townTalk.factionDict ?? null);
         const region = (() => { try { return maps.getRegionIndexAt(px.x, px.y); } catch { return null; } })();

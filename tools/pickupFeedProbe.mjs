@@ -1,28 +1,5 @@
-// PICKUP-FEED, SEEN (2026-10-01, Mac: "a better center screen notification for pickups") - the take's cards drawn in a
-// real browser over the real sheets, beside the real plaque under a crosshair and the real enhanced HUD, and
-// photographed.
-//
-// The suite holds the feed's LAW (the bump, the cap, the fade, the line said or not) and its DOM's shape; what it cannot
-// hold is whether the cards read at the centre of a screen, whether a tier's colour reads over the veil, and whether
-// the stack stands clear of the plaque it hangs under, the mid-screen line a refusal is said on, and the HUD's own
-// bottom block. Those are things about pixels, so the page builds every surface through its real entry -
-// `showPickups` (what the four hosts hand the take as `took`), `showWorldPlaque`, `drawEnhancedMidText`,
-// `drawEnhancedHud` - and the probe measures the rectangles as well as photographing them.
-//
-// THE ICONS ARE STAND-INS. This container has no ARENA2, so the cached icon door (textureCanvas.requestFittedIcon) has
-// no archive to read; the page hands the feed's icon seam small pixel pictures of its own so the card's picture slot is
-// seen at its real size. The address the real door is asked for is the pack's own (inventoryItemImage) and is pinned in
-// test/systems/pickupfeed.test.js.
-//
-// HAUL-CARDS (2026-10-03): four scenes more - a vein's card bumped and its gem, a raid's three silver cards, the day's
-// cap beside a pickup, a Motherlode's one card - built from answers through ui/haulCards.js and drawn by `showHaul`,
-// held to the same checks (no card over the plaque, the mid-screen line, the HUD's foot, or above the crosshair).
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (tools/renownBarProbe.mjs's pattern). Web fonts come through the session's proxy
-// when one is set (the pixel face is what the cards are measured in); NOFONTS=1 measures the fallback face.
-//
-//     node tools/pickupFeedProbe.mjs                  -> shots (tools/shots/, or SHOT_DIR) and a report
-//     SHOT_DIR=/tmp/x node tools/pickupFeedProbe.mjs
+// Draws the pickup feed and haul cards beside the plaque and enhanced HUD, then measures and photographs them.
+// Usage: node tools/pickupFeedProbe.mjs  (SHOT_DIR=<dir>; NOFONTS=1 measures the fallback face)
 import { mkdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { writeFile, unlink } from 'node:fs/promises';
@@ -223,15 +200,14 @@ const VIEWS = [
   { name: 'desktop', viewport: { width: 1280, height: 800 }, dsf: 1 },
   { name: 'phone', viewport: { width: 390, height: 844 }, dsf: 2 },
 ];
-const SCENE_NAMES = ['one', 'bump', 'four', 'gold', 'refusal', 'tall', 'fade', 'haul', 'silver', 'capped', 'lode'];   // HAUL-CARDS: the last four
+const SCENE_NAMES = ['one', 'bump', 'four', 'gold', 'refusal', 'tall', 'fade', 'haul', 'silver', 'capped', 'lode'];
 
 mkdirSync(OUT, { recursive: true });
 const vite = process.env.PROBE_PORT ? null : await createServer({ root: ROOT, server: { port: 0, host: '127.0.0.1', watch: null }, logLevel: 'error' });
 if (vite) await vite.listen();
 const port = vite ? vite.httpServer.address().port : Number(process.env.PROBE_PORT);
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
-/** The web fonts, fetched by curl (which reads the session's HTTPS_PROXY and its CA, where the browser's own stack may
- *  not) and handed to the page - so the cards are measured in the face they are drawn in. */
+// Fonts are fetched with curl, which reads the session's proxy settings where the browser may not.
 const fetched = new Map();
 const curl = (url) => {
   if (!fetched.has(url)) {
@@ -267,7 +243,7 @@ try {
     await page.evaluate(async () => { await globalThis.__scene('one'); await document.fonts.ready; });
     for (const s of SCENE_NAMES) {
       await page.evaluate((n) => globalThis.__scene(n), s);
-      await page.waitForTimeout(s === 'fade' ? 120 : 450);   // the entrance and a bump's pop run their course (the fade is caught part-way)
+      await page.waitForTimeout(s === 'fade' ? 120 : 450);
       const m = await page.evaluate(() => globalThis.__measure());
       const tag = `${v.name}/${s}`;
       const file = join(OUT, `pickupfeed-${v.name}-${s}.png`);
@@ -285,7 +261,6 @@ try {
         check(!overlaps(c, m.hudBottom), `${tag}: [${c.text}] overlaps the HUD's bottom block`);
         check(c.y > m.crossY, `${tag}: [${c.text}] stands above the crosshair`);
       }
-      // with room under the line, the feed stands ON it (the classic label's own top edge)
       const room = m.hudBottom ? m.hudBottom.y - m.midLine : m.vh - m.midLine;
       if (m.feed && !m.plaque && !m.mid && m.feed.h + 16 <= room) check(Math.abs(m.feed.y - m.midLine) < 1.5, `${tag}: the feed is not on the mid-screen line (${m.feed.y.toFixed(1)} vs ${m.midLine.toFixed(1)})`);
     }

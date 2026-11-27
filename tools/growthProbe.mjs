@@ -1,16 +1,5 @@
-// GROWTH (bible/10-UI/Growth.md) - THE GROWTH TAB, in a real browser, over its lab (growth.html, src/tools/growthLab.js).
-//
-// PROVEN HERE - each of the tab's four pages draws at a wide screen and a phone with no page error and no sideways
-// scroll; on a wide screen the Ascension, the Firmament and the captain's stars stand IN the pane (their `embed` roots,
-// the stage's size), and on a phone each page is its door, which opens the face over the whole screen and Escape puts
-// it back; the guide opens a path's detail; full screen moves a face over the window and back; and the window's
-// Escape asks a face first - unaccepted stars hold the first press, the second resumes.
-//
-// NOT PROVEN HERE - a living game's hosts (no ARENA2: the lab's character, book and captain are made up), which the
-// source pins hold (test/ui/growth/growth1_tab.test.js).
-//
-//     npx vite --port 5199 &
-//     node tools/growthProbe.mjs [shots-dir]
+// Browser probe for the Growth tab's four pages over its lab, at a wide screen and a phone.
+// Run: npx vite --port 5199 & node tools/growthProbe.mjs [shots-dir].
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
@@ -29,7 +18,6 @@ async function open(at, { w = 1280, h = 720, extra = '' } = {}) {
   await page.waitForSelector('.px-tabs', { timeout: 15000 });
   return { page, errors };
 }
-/** A phone's face page: its door (no stage in the pane), the face over the whole screen, and Escape back to the page. */
 async function phoneDoor(page, rootSel, name, shotName) {
   const noStage = await page.evaluate(() => !document.querySelector('.gr-stage') && !!document.querySelector('.gr-stagecard .act'));
   await page.locator('.gr-stagecard .act').click();
@@ -44,7 +32,6 @@ async function phoneDoor(page, rootSel, name, shotName) {
 const overflowOf = (page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 const shot = async (page, name) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png` }); };
 
-// a tall window: the Ascension drawn in the pane, its figure whole and Ascend in the stage (AUDIT GROWTH LANE2-8)
 {
   const { page, errors } = await open('level', { w: 1920, h: 1080, extra: '&owed=1' });
   await page.waitForSelector('.lv-sky.lv-embed', { timeout: 15000 }).catch(() => {});
@@ -61,8 +48,6 @@ const shot = async (page, name) => { if (SHOTS) await page.screenshot({ path: `$
 }
 
 for (const [w, h, tag] of [[1280, 720, 'wide'], [360, 740, 'phone']]) {
-  // the Level page: a level owed - a door to the Ascension full screen where the pane cannot hold it (a window under
-  // 1000 px tall - AUDIT GROWTH LANE2-8: in the pane its figure flattened and Ascend fell off), as a phone's
   {
     const { page, errors } = await open('level', { w, h, extra: '&owed=1' });
     await phoneDoor(page, '.lv-sky.lv-embed', `${tag}: the Level page's door opens the Ascension over the screen`, `${tag}-level-open`);
@@ -71,7 +56,6 @@ for (const [w, h, tag] of [[1280, 720, 'wide'], [360, 740, 'phone']]) {
     await shot(page, `${tag}-level`);
     await page.close();
   }
-  // the guide: a family's landing, a path opened
   {
     const { page, errors } = await open('specs:martial', { w, h });
     await page.locator('.gr-pathbar').first().click();
@@ -84,7 +68,6 @@ for (const [w, h, tag] of [[1280, 720, 'wide'], [360, 740, 'phone']]) {
     await shot(page, `${tag}-specs-arcane`);
     await page.close();
   }
-  // the two skies
   for (const at of ['firmament', 'captain']) {
     const { page, errors } = await open(at, { w, h });
     if (tag === 'phone') await phoneDoor(page, '.fmt-root.fmt-embed', `${tag}: the ${at} page's door opens the sky over the screen`, `${tag}-${at}-open`);
@@ -97,7 +80,6 @@ for (const [w, h, tag] of [[1280, 720, 'wide'], [360, 740, 'phone']]) {
     check(`${tag}: the ${at} page - no page error`, !errors.length, errors.join(' | '));
     await shot(page, `${tag}-${at}`);
     if (tag === 'wide') {
-      // full screen and back
       await page.locator('.gr-stagebar .act').click();
       const full = await page.evaluate(() => { const b = document.querySelector('.gr-fullbox'); const r = document.querySelector('.fmt-root.fmt-embed'); return !!b && !!r && b.contains(r) && r.getBoundingClientRect().width >= innerWidth - 4; });
       check(`${tag}: the ${at} sky goes full screen`, full);
@@ -110,13 +92,11 @@ for (const [w, h, tag] of [[1280, 720, 'wide'], [360, 740, 'phone']]) {
   }
 }
 
-// THE ESCAPE: unaccepted stars hold the first press (said), the second resumes the game
 {
   const { page } = await open('captain');
   await page.waitForSelector('.fmt-root.fmt-embed', { timeout: 15000 });
   const logs = [];
   page.on('console', (m) => logs.push(m.text()));
-  // a star taken through the window's own seam (the lab's handle on the stage's face), as a click would
   const taken = await page.evaluate(() => { const f = globalThis.growthFace(); f?.take?.(globalThis.growthStarIds[1]); return f?.model?.().changes; });
   check('a star taken on the stage is pending', !!(taken?.added), JSON.stringify(taken));
   await page.keyboard.down('Escape'); await page.keyboard.up('Escape');

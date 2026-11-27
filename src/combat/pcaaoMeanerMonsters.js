@@ -1,27 +1,8 @@
-// ═══════════════════════════════════════════════════════════════════
-// PCAAO - RALZAR'S MEANER MONSTERS, KIRK.O'S EDIT (PCO1, 2026-09-12).
-//
-// Physical Combat And Armor Overhaul v1.44 (Kirk.O) carries "a custom
-// for this overhaul edit of Ralzar's Meaner Monsters" - InitMod's tail
-// (PhysicalCombatAndArmorOverhaul.cs, the `ralzarMeanerMonstersEdit`
-// branch) overwrites EnemyBasics.Enemies[i] for forty-two monsters:
-// MinDamage/MaxDamage (and the second and third attack pairs where the
-// monster has them), MinHealth/MaxHealth, Level and ArmorValue. In DFU
-// the branch runs when the "Meaner Monsters" mod is LOADED beside this
-// one; the port reads that mod's own `Enabled` (MM1: Ralzar's mod is
-// vendored as characters/meanerMonsters.js, and there are no
-// compatibility switches between mods - Mac). Its rows land AFTER
-// Ralzar's at mint, as PCAAO Awakes after its dependency. The rows are the C#'s, index for index, value for
-// value; every field the C# leaves alone is the base row's.
-//
-// A LEAF on purpose: characters/enemy/enemyEntity.js reads it when it mints a
-// foe, and that file must not reach the combat formulas.
-// ═══════════════════════════════════════════════════════════════════
-
+// Physical Combat and Armor Overhaul's edit of Meaner Monsters: rows match the C# InitMod index for index.
+// Leaf module on purpose: enemyEntity.js reads it at spawn and must not reach the combat formulas.
 import { modSetting, modSettingIfDeclared } from '../mods/modSettings.js';
-import { meanerMonstersAlone } from '../mods/enemyExpansion/dexSwitches.js';   // MUDEX1: beside DEX, Meaner Monsters is MUDEX
+import { meanerMonstersAlone } from '../mods/enemyExpansion/dexSwitches.js';
 
-/** EnemyBasics.Enemies[i] <- {...}, exactly as InitMod writes them. */
 export const MEANER_MONSTERS = Object.freeze({
   0: { minDamage: 1, maxDamage: 3, minHealth: 15, maxHealth: 35, level: 1, armorValue: 6 },
   3: { minDamage: 1, maxDamage: 4, minHealth: 5, maxHealth: 13, level: 2, armorValue: 2 },
@@ -67,19 +48,10 @@ export const MEANER_MONSTERS = Object.freeze({
   31: { minDamage: 26, maxDamage: 42, minHealth: 170, maxHealth: 285, level: 21, armorValue: -9 },
 });
 
-/** Is the edit live: the overhaul on, AND Meaner Monsters on - DFU's
- *  `ModManager.Instance.GetMod("Meaner Monsters") != null` (Awake),
- *  read off that mod's own `Enabled` (MM1: no compatibility switch;
- *  `other` is the cross-mod read, a test hands in its own) - as itself:
- *  beside DEX that mod is MUDEX (MUDEX1), which the lookup does not find. */
+// Beside Enemy Expansion, Meaner Monsters runs as MUDEX, so this edit stays off there.
 export const meanerMonstersOn = (read = (k) => modSetting('pcaao', k), other = modSettingIfDeclared) =>
   !!read('Enabled') && meanerMonstersAlone(!!other('meanerMonsters', 'Enabled'));
 
-/** The row a foe of `mobileType` is minted from: the base row with
- *  the edit's fields written over it when the edit is live, the base
- *  row itself otherwise. A class enemy (128+) and any monster the edit
- *  does not name come back untouched - the C# writes only the indices
- *  above. Never mutates the base table (it is frozen). */
 export function meanerMonstersRow(mobileType, baseRow, on = meanerMonstersOn()) {
   if (!on || !baseRow) return baseRow;
   const edit = MEANER_MONSTERS[mobileType];

@@ -1,11 +1,6 @@
-// U46 probe: the buff and debuff icon rows, live, over a real cast.
-//
-// The unit tests drive the eight schemes and the split over fixtures.
-// This proves the HOST half: that the icon sheet loads with the HUD
-// art rather than with the spellbook window that used to be its only
-// consumer, that a REAL cast through the host's own engine puts an
-// icon on the right row, that the rows dodge the large HUD, and that
-// the tooltip finds the icon under the pointer.
+// Casts real spells through `applySpell` in the live host and checks the buff and debuff icon rows,
+// HUD clearance, and tooltip.
+// Run with `node tools/activeSpellsProbe.mjs`.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -40,16 +35,13 @@ console.log('nothing active yet:', await placed());
 if (JSON.parse(await placed()).length !== 0) fail('icons drawn with no active effect');
 
 console.log('\n== A REAL CAST, A REAL SPELL RECORD ==');
-// Not a hand-built spell: the player's own book, cast through the ONE
-// producer (applySpell) with the player as caster - which is what the
-// host's cast engine does at the attack click.
 const cast = await page.evaluate(async () => {
   const E = await import('/src/magic/effects.js');
   const p = window.__playerEntity;
   const book = p.spells ?? [];
   const spell = book.find((sp) => sp.rangeType === 0) ?? book[0];
   if (!spell) return JSON.stringify({ error: 'the starting book is empty' });
-  const named = { ...spell, name: `!${spell.name}` };   // the non-vendor bang
+  const named = { ...spell, name: `!${spell.name}` };
   const sinks = { hurt: () => {}, drainFatigue: () => {}, drainMagicka: () => {} };
   E.applySpell(named, 6, p, sinks, () => 0.5, { entity: p, sinks }, { bypassSavingThrows: true });
   return JSON.stringify({
@@ -79,11 +71,9 @@ const foeCast = await page.evaluate(async () => {
   const E = await import('/src/magic/effects.js');
   const p = window.__playerEntity;
   const foe = { isPlayer: false, level: 5, stats: {}, activeEffects: [] };
-  // A DIFFERENT spell: a re-cast of the same one is AddState, which
-  // stacks rounds onto the incumbent and pushes no new entry at all
-  // (X10's own note), so it would mint no second bundle to sort.
   const book = p.spells ?? [];
   const first = book.find((sp) => sp.rangeType === 0) ?? book[0];
+  // Use a different spell: casting the same one again stacks rounds and adds no new entry.
   const base = book.find((sp) => sp !== first && sp.rangeType === 0
     && sp.effects?.[0]?.type !== first.effects?.[0]?.type);
   if (!base) return 'the book has only one spell';

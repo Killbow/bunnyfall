@@ -1,7 +1,5 @@
-// Per-test-file EXACT line coverage of src/ via NODE_V8_COVERAGE.
-// Innermost-range-wins painting, so a loaded-but-unexecuted function body is
-// correctly reported as uncovered (V8 reports the module wrapper as count=1).
-// Output: .mutaudit/cov.json   { "<src rel>": { "<line>": ["a.test.js", ...] } }
+// Writes per-test-file line coverage of src/ to .mutaudit/cov.json from NODE_V8_COVERAGE.
+// The innermost range wins, so a loaded but unexecuted function body reads as uncovered.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -38,15 +36,14 @@ for (const t of tests) {
   const dir = path.join(COVROOT, String(i));
   fs.mkdirSync(dir, { recursive: true });
   const r = spawnSync(process.execPath, ['--test', path.join('test', t)], {
-    cwd: ROOT, encoding: 'utf8', timeout: 180000, maxBuffer: 1 << 28,   // AUDIT 68: the 1 MiB default is a ceiling a big file's TAP can reach
+    // A large test file's TAP output can exceed the 1 MiB default buffer.
+    cwd: ROOT, encoding: 'utf8', timeout: 180000, maxBuffer: 1 << 28,
     env: { ...process.env, NODE_V8_COVERAGE: dir, ARENA2_PATH: process.env.ARENA2_PATH },
   });
-  // a file the harness lost would leave its lines "executed by no test" - loud, never a partial map
   if (r.error || r.status === null) { console.error(`${t}: HARNESS ERROR (${r.error?.code ?? r.signal}) - coverage would be partial`); process.exit(2); }
-  // gather all ranges per src file across all coverage json shards
   const ranges = {};
   let files = [];
-  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.json')); } catch { /* ignore */ }
+  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.json')); } catch { }
   for (const f of files) {
     let j;
     try { j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch { continue; }
@@ -65,7 +62,7 @@ for (const t of tests) {
     let s;
     try { s = getSrc(path.join(ROOT, rel)); } catch { continue; }
     const n = s.text.length;
-    const paint = new Int32Array(n);           // 0 = not seen / not executed
+    const paint = new Int32Array(n);
     rs.sort((a, b) => (b.endOffset - b.startOffset) - (a.endOffset - a.startOffset));
     for (const rng of rs) {
       const a = Math.max(0, rng.startOffset), b = Math.min(n, rng.endOffset);

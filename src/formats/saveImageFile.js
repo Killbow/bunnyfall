@@ -1,9 +1,5 @@
-// IMAGE.RAW reader (SAV1) - the classic save's 80x50 screenshot. 1:1
-// translation of DFU API/Save/SaveImage.cs (MIT, Daggerfall Workshop):
-// a headerless raw of ART_PAL.COL indexes, one record, one frame. The
-// bitmap data is the file's bytes verbatim (DFU hands the whole
-// managed file to DFBitmap.Data - a short or long file passes through
-// untouched; GetSize answers 80x50 regardless).
+// IMAGE.RAW is a headerless 80x50 array of ART_PAL.COL indexes. The file bytes are used as they are, as in DFU, so
+// a short or long file passes through untouched.
 
 import { BaseImageFile, emptyBitmap } from './baseImageFile.js';
 
@@ -30,11 +26,10 @@ export class SaveImage extends BaseImageFile {
   }
 
   /**
-   * SaveImage.Load - the filename must be IMAGE.RAW (case-insensitive).
-   * @param {Uint8Array} bytes - full file contents.
+   * @param {Uint8Array} bytes
    * @param {string} [fileName]
    * @param {import('./dfPalette.js').DFPalette} [palette]
-   * @returns {boolean} true if successful.
+   * @returns {boolean}
    */
   load(bytes, fileName = SAVE_IMAGE_FILENAME, palette = null) {
     if (fileName.toUpperCase() !== SAVE_IMAGE_FILENAME) return false;
@@ -53,7 +48,6 @@ export class SaveImage extends BaseImageFile {
     return { width: 0, height: 0 };
   }
 
-  /** The one bitmap (record/frame must be 0 and the file non-empty). */
   getDFBitmap(record = 0, frame = 0) {
     if (record !== 0 || frame !== 0 || !this._loaded || this._bytes.length === 0)
       return emptyBitmap();

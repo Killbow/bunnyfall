@@ -1,4 +1,3 @@
-// The `caravan` frame's handler, called by message/dispatch.js with the room as `this`.
 import { CARAVAN_DECOR_KEY, PARK_TTL_MS, parkKeyOf, CARAVAN_DOC_MIN_MS, PARK_REFRESH_MS } from '../../relay.js';
 import { caravanKeyOf } from '../../../../src/net/privateInterior.js';
 

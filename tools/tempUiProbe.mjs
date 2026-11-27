@@ -1,20 +1,7 @@
-// TEMP-UI (2026-10-12, the owner: "add a tempurature widget to the UI") - THE TEMPERATURE PLATE, DRAWN AND MEASURED.
-//
-// The REAL HUD (ui/enhanced/enhancedHud.js over the real sheets, the enhanced skin) under a character reading freezing, then
-// comfortable, then scorching, beside the quest card (.qtrack, the right edge 92px down), a foe's bar under the compass
-// and the status widget at the left edge - at a desktop, two laptops, HUD scales 1.5 and 2, and a phone both ways up -
-// in Enhanced Plus and in the Bunnyfall Grimoire dress. For each it reads:
-//   - THE PLATE STANDS: shown, wholly on the screen, (UI-CALM) in the bottom-left corner - the quick block's caption;
-//   - NOTHING MET: it meets none of the quest card, the foe's bar, the status widget or the compass's own strip;
-//   - IT SAYS IT: the number and the word the reading has (the phone the number alone, and a screen where the whole
-//     plate would run off the edge - a large HUD scale - steps down to it, while a desktop at its own scale never
-//     does), its glyph loaded, the mark inside its scale where the reading stands;
-// and photographs each (the whole screen, and the plate close up).
-//
-// IT RUNS ON VITE'S OWN DEV SERVER and needs NO game data: nothing on the plate is drawn from ARENA2.
-//
-//     node tools/tempUiProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/tempUiProbe.mjs     -> reuse a dev server already listening there
+// Draws the HUD temperature plate at several screen sizes on a Vite dev server and checks it fits and overlaps
+// nothing.
+// Usage: `[SHOT_DIR=<dir>] [PROBE_PORT=<n>] node tools/tempUiProbe.mjs`
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -102,7 +89,6 @@ try {
       check(!!m.plate, `${tag}: the plate is not shown`);
       if (!m.plate) continue;
       check(m.plate.x >= 0 && m.plate.y >= 0 && m.plate.r <= m.vw + 0.5 && m.plate.b <= m.vh + 0.5, `${tag}: the plate runs off the screen (${JSON.stringify(m.plate)})`);
-      // UI-CALM (2026-10-14): the plate stands in the BOTTOM-LEFT corner, the quick block's caption - no longer off the compass's end
       check(m.plate.x < m.vw / 2 && m.plate.y > m.vh / 2, `${tag}: the plate is not in the bottom-left corner (${JSON.stringify(m.plate)})`);
       check(!meets(m.plate, m.card), `${tag}: the plate meets the quest card`);
       check(!meets(m.plate, m.foe), `${tag}: the plate meets the foe's bar`);

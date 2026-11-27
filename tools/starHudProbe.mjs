@@ -1,13 +1,3 @@
-// AUDIT STAR U1 (2026-10-20), MEASURED: the Starfall's tracker (ui/starfall/starTracker.js), the quest card
-// (ui/quest/questTracker.js's `.qtrack`), the party list (ui/partyPanel.js) and the master's bar (ui/gate/gateBossBar.js
-// over ui/starfall/starBar.js) drawn over the real sheets in Chromium - Enhanced Plus and the classic skin's bare page - at a
-// desk's widths, a narrow window's and a phone's both ways. In the right-upper column nothing may cover another: the plate
-// stands under the quest card, the party list under the plate, the plate under the master's bar where they share the
-// width, every one inside the screen; the phase alone is spoken and the light bar is named. test/systems/starfall/
-// star6_words.test.js holds the column's law on a fake document; this photographs what a fake cannot. Photographs to
-// SHOT_DIR (default tools/shots/).
-//
-//     node tools/starHudProbe.mjs
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -28,7 +18,7 @@ const over = (a, b) => !!(a && b && a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < 
 for (const skin of ['plus', 'classic']) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   page.on('pageerror', (e) => errors.push(`${skin}: ${e.message}`));
-  // one page a skin: the game's own page boots once (Vite's first optimisation may reload it - try again)
+  // Vite's first dependency optimization can reload the page, so the boot retries.
   for (let tries = 0; tries < 4; tries++) {
     try {
       await page.goto(`http://localhost:${PORT}/play/?skin=${skin === 'plus' ? 'enhanced' : 'classic'}&touch=off&nofonts`);
@@ -60,7 +50,7 @@ for (const skin of ['plus', 'classic']) {
         q.append(head, el('qtrack-line', 'Morwen of Glenmoril waits at the coven’s fire for word of the'), el('qtrack-where', 'Glenmoril Coven'), el('qtrack-time', '3 days left'));
         document.body.append(q);
         await wait(30);
-        document.documentElement.style.setProperty('--dfquest-h', `${Math.ceil(q.getBoundingClientRect().bottom) - (touch ? 76 : 92) + 8}px`);   // the card's own publish
+        document.documentElement.style.setProperty('--dfquest-h', `${Math.ceil(q.getBoundingClientRect().bottom) - (touch ? 76 : 92) + 8}px`);
       }
       const party = el(touch ? 'dfparty touch' : 'dfparty');
       for (const n of ['Ann', 'Bran', 'Cyrene', 'Dagny']) { const c = el('dfparty-card'); c.style.cssText = 'height:44px;flex:none;background:rgba(0,0,0,.55);border:1px solid #777;color:#ddd'; c.textContent = n; party.append(c); }

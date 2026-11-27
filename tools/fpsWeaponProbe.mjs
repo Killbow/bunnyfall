@@ -1,9 +1,5 @@
-// Classic FPS-weapon probe (standing tool, pivot 2026-08-17): renders
-// the REAL combat/fpsWeapon.js path headless against REAL ARENA2 CIFs
-// (vite dev serves /arena2/* from ARENA2_PATH) and measures where the
-// weapon lands on screen. Zero coverage in any state is the failure
-// class the iced voxel path shipped for six weeks - never again.
-// Usage: ARENA2_PATH=... node tools/fpsWeaponProbe.mjs
+// Browser probe that draws the classic first-person weapon from real ARENA2 CIFs and measures where it lands.
+// Run: ARENA2_PATH=... node tools/fpsWeaponProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
@@ -77,8 +73,6 @@ const check = (name, r, wants) => {
   for (const [msg, ok] of wants) if (!ok(r)) { console.log(`FAIL: ${name} - ${msg}`); fails++; }
 };
 
-// Idle sweeps: every set draws its ready frame; dagger sits right,
-// bottom-anchored (Right align, offset 0.04); melee fists Right 0.15.
 for (const [which, state, frame, name] of [
   ['dagger', 'Idle', 0, 'dagger-idle'],
   ['longblade', 'Idle', 0, 'longblade-idle'],
@@ -88,8 +82,8 @@ for (const [which, state, frame, name] of [
   ['dagger', 'StrikeRight', 2, 'dagger-strikeright-mid'],
   ['longblade', 'StrikeLeft', 2, 'longblade-strikeleft-mid'],
   ['bow', 'StrikeDown', 4, 'bow-draw'],
-  ['silverdagger', 'Idle', 0, 'silver-dagger-idle'],   // dye-parity evidence: 18 dyes SILVER (audit 2026-08-17)
-  ['steelblade', 'Idle', 0, 'steel-blade-idle'],       // dye-parity evidence: Steel keeps the files' native colors
+  ['silverdagger', 'Idle', 0, 'silver-dagger-idle'],
+  ['steelblade', 'Idle', 0, 'steel-blade-idle'],
 ]) {
   const r = await page.evaluate(([w, s, f]) => window.__probe(w, s, f), [which, state, frame]);
   const wants = [['bottom-anchored', (x) => x.bbox.y1 > 0.98]];

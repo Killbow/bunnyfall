@@ -1,21 +1,7 @@
-// SURV-TIERS - THE CLIMATES & CALORIES TILE, IN A REAL BROWSER, WITH NO ARENA2.
-//
-// The node pins hold the row, the table and the shelf to one another
-// (test/systems/survival/survtiers.test.js); what they cannot do is press the bar. This
-// does: the Settings screen (ORG2: the Gameplay tab) draws the tile as Off | Casual | Hard with
-// Casual pressed on a fresh shelf, each press writes the tier's STORED
-// value (Off the old switch's own `false`, Casual nothing - the default
-// is not a choice), the rail says what each tier costs, and a shelf
-// written before the tiers - a player who had turned the arc off -
-// opens on Off. AUDIT SURV-TIERS committed it so the browser claim in
-// bible/06-Systems/Climates-Calories.md can be run again, not taken on
-// trust.
-//
-// Run against a dev server (no arena2 needed - the pane is the front
-// door's):
-//     npx vite --port 5199 &
-//     node tools/survTierProbe.mjs
-//     PROBE_SHOTS=/tmp node tools/survTierProbe.mjs    (and the tile's three faces as PNGs)
+// Presses the Climates and Calories tier bar in Settings and checks each tier's stored value.
+// Usage: start `npx vite --port 5199` (or set PROBE_BASE), then run node tools/survTierProbe.mjs
+// PROBE_SHOTS=<dir> also saves the tile's three states as PNGs.
+
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -33,12 +19,11 @@ const open = async (shelf = null) => {
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.px-menu button');
-  // ACC1: the account window is offered once to a device nobody is signed in on; a click outside it closes it
   if (await page.locator('.px-acctstage').count()) {
     await page.locator('.px-acctstage').click({ position: { x: 5, y: 5 } });
     await page.waitForSelector('.px-acctstage', { state: 'detached' });
   }
-  await page.locator(':is(.doorbtn, .px-homelink).door-settings').first().click();   // UI-CALM II: the foot's plaque on the enhanced door. ORG2: the Features rows are Settings' tabs
+  await page.locator(':is(.doorbtn, .px-homelink).door-settings').first().click();
   await page.locator('#enhanced-menu .subbtn').filter({ hasText: /^Gameplay/ }).first().click();
   await page.waitForSelector('.ft-tile');
   const tile = page.locator('.ft-tile').filter({ hasText: 'Climates & Calories' }).first();
@@ -48,14 +33,13 @@ const segs = async (tile) => tile.locator('.ft-segb').evaluateAll((bs) => bs.map
 const stored = (page) => page.evaluate((k) => { const shelf = JSON.parse(localStorage.getItem(k) ?? '{}'); return Object.hasOwn(shelf, 'survival') ? shelf.survival : '(nothing)'; }, KEY);
 const shot = async (tile, name) => { if (SHOTS) await tile.screenshot({ path: `${SHOTS}/${name}.png` }); };
 
-// a fresh shelf: Casual by default
 {
   const { ctx, page, tile, errors } = await open();
   const s = await segs(tile);
   check('three segments, in order', JSON.stringify(s.map((x) => x.label)) === JSON.stringify(['Off', 'Casual', 'Hard']), s.map((x) => x.label).join(' | '));
   check('Casual is pressed on a fresh shelf', s.find((x) => x.pressed)?.label === 'Casual');
   check('the tile reads on', (await tile.getAttribute('data-on')) === '1');
-  await tile.locator('.ft-tile-main').click();   // ORG2: a press on the row's name picks it for the help pane
+  await tile.locator('.ft-tile-main').click();
   await page.waitForTimeout(60);
   const note = await page.evaluate(() => document.querySelector('.detail .ft-card .ft-rail-note')?.textContent ?? '');
   check('the help pane says what each tier costs', /On Casual, unmet needs only drain some stamina/.test(note) && /comes back once you\u2019ve seen to them/.test(note) && /on Hard they cost attributes and health/.test(note) && /Off is the classic game/.test(note), note.slice(0, 160));
@@ -73,7 +57,6 @@ const shot = async (tile, name) => { if (SHOTS) await tile.screenshot({ path: `$
   check('no page error', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
-// a shelf written before the tiers, by a player who turned the arc off
 {
   const { ctx, page, tile, errors } = await open({ survival: false, _rev: 1, open: {} });
   const s = await segs(tile);
@@ -81,7 +64,6 @@ const shot = async (tile, name) => { if (SHOTS) await tile.screenshot({ path: `$
   check('no page error (old shelf)', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
-// a value that names no tier: the load drops it, and the bar and the laws read the default
 {
   const { ctx, page, tile, errors } = await open({ survival: 'false', _rev: 1, open: {} });
   const s = await segs(tile);

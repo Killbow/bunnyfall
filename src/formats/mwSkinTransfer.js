@@ -1,45 +1,8 @@
-// MW-BRIG2 (2026-09-29, Mac on MW-BRIG1: "The texture was great, you just somehow moved the geometry in the
-// process"): A WORN MODEL SKINNED FROM THE BODY UNDER IT.
-//
-// MW-BRIG1 hung the steel brigandine RIGID on the skeleton's "Chest" and "Groin" nodes and took each node's REST
-// transform back out (restPoseInverse). The body it was fitted to does not move that way. A retail body part is
-// SKINNED (Morrowind-Rules.md MW-D21: "authored part-local, is a torso on the ground"), and the reference places
-// every one of its vertices by the part's OWN NiSkinData - v' = v * (Sum w_i * invBind_i * boneSkelMat_i) *
-// skinToSkel * skinTransform (rule 20) - on the spine, pelvis and leg bones, never on the Chest node. So the moment
-// the idle played, the torso moved by its bones and the brigandine by a node the body never uses, and the two came
-// apart. Nothing about the fit could have saved it: two things placed by two different transforms agree in one pose
-// at most.
-//
-// The fix is to stop having two transforms. Each garment vertex copies the skin of the body vertex nearest it - the
-// same bones, the same weights, the same inverse binds, the same skin transform - and its own position is solved so
-// that, in the pose the modeller fitted it in (the skeleton at rest), that skin puts it exactly where it was
-// authored. From then on it is drawn by skinBatch, the one door the body itself goes through, so every frame it moves
-// by precisely the transform the skin under it moves by. It is the "copy bone weights" every armour fitter uses,
-// with the reference's own skinning doing the rest.
-//
-// A body part that is RIGID (some mods' are) is a skin of one bone: its attach bone, with the mirror and BoneOffset
-// the rigid path applies (rules 13 and 14) as the inverse bind, so a garment over it rides that bone exactly as the
-// part does.
-//
-// MW-BRIG3 (2026-09-29, Mac on MW-BRIG2: "completely broke the morrowind torso" - "it's placed lower where the torso
-// should be", worn only, on a male body): THE DEFECT WAS WHERE IT SAT, BOTH TIMES. The skinning above holds the
-// garment to the body in every pose, and it holds it exactly as far from the body as it started - so a garment that
-// starts too LOW stays too low, and it hides the chest skin it was meant to cover (the cuirass slot shadows it), which
-// leaves the upper torso empty under the neck. Both MW-BRIG1 and MW-BRIG2 took the height from the modeller's scene
-// on faith (tools/bakeBrigandine.mjs: that scene's body "is" the skeleton at rest), and nobody measured the result on a
-// real body. The brigandine itself says the scene's body was not this one: its collar peaks at z 94.8 and its belt at
-// z ~67, well under a Morrowind man's neck and waist. So the height is now MEASURED ON THE WEARER (fitLift below): the
-// garment's top meets the top of the body part it hides, in the same rest pose the skin is solved in.
 
 import { GRAPH_ROOT } from './mwSkin.js';
 
 const IDENT_TRANSFORM = Object.freeze({ rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1], translation: [0, 0, 0], scale: 1 });
 
-/**
- * A body batch as a SKIN. A skinned batch is returned as it is; a rigid one becomes a skin of its one attach bone,
- * the rigid path's mirror (rule 13) and BoneOffset (rule 14) folded into the inverse bind so the result lands where
- * the rigid path draws the part.
- */
 export function sourceSkin(batch, { attachRef = null, mirrored = false, boneOffset = null } = {}) {
   if (batch.skinned && batch.skin) return batch;
   const n = batch.positions.length / 3;
@@ -55,14 +18,8 @@ export function sourceSkin(batch, { attachRef = null, mirrored = false, boneOffs
   };
 }
 
-/**
- * MW-BRIG3: THE LIFT that puts a garment on the wearer. Morrowind is Z-up; this answers how far along +Z the garment
- * must move so that its highest point meets the highest point of `anchors` - the body part it hides, SKINNED in
- * `ctx`'s pose (the rest pose the transfer is solved in). Skinned, never read raw: a retail part's authored vertices
- * are part-local, "a torso on the ground" (Morrowind-Rules.md MW-D21). A pure translation, so the garment's shape is
- * the modeller's to the last vertex. Null with no garment or no anchor vertex: nothing to measure against.
- * `ctx` is { skeleton, pose, mats, skinBatch }; the anchors are skins (sourceSkin).
- */
+// Measures the anchors after skinning them in `ctx.pose`, because a retail body part's raw vertices are part-local
+// and sit far from the body.
 export function fitLift(garments, anchors, ctx) {
   let top = -Infinity;
   for (const g of garments) for (let i = 2; i < g.positions.length; i += 3) top = Math.max(top, g.positions[i]);
@@ -76,14 +33,12 @@ export function fitLift(garments, anchors, ctx) {
   return { lift: anchorTop - top, top, anchorTop };
 }
 
-/** The garment batch moved `lift` along +Z, on a copy: the bound batch is never written. */
 export function liftBatch(batch, lift) {
   const positions = Float32Array.from(batch.positions);
   for (let i = 2; i < positions.length; i += 3) positions[i] += lift;
   return { ...batch, positions };
 }
 
-/** Every vertex's influences, as [boneIndex, weight] pairs, read off the skin's per-bone lists. */
 function influencesOf(skin, n) {
   const out = Array.from({ length: n }, () => []);
   skin.bones.forEach((b, bi) => {
@@ -103,12 +58,8 @@ function invert33(m) {
     C * k, -(a * h - b * g) * k, (a * e - b * d) * k];
 }
 
-/**
- * Each listed source vertex's whole skinning affine in `pose`, MEASURED through skinBatch itself rather than
- * re-derived: four probe vertices per source vertex (the origin and the three unit axes) carrying that vertex's
- * influences, skinned once. The columns and the translation are read off the result, so the garment is solved with
- * exactly the arithmetic that will draw it. Answers Map(j -> { a: 3x3 row-major, t }).
- */
+// Measures each affine by skinning four probe vertices through `skinBatch` itself, so the solve uses exactly the
+// arithmetic that draws the garment.
 function measureAffines(src, js, { skeleton, pose, mats, skinBatch }) {
   const infl = src.infl;
   const bones = src.batch.skin.bones.map((b) => ({ ref: b.ref, name: b.name, invBind: b.invBind, indices: [], weights: [] }));
@@ -131,16 +82,6 @@ function measureAffines(src, js, { skeleton, pose, mats, skinBatch }) {
   return res;
 }
 
-/**
- * Skin `garment` (a rigid batch whose positions are where the modeller fitted it, in the pose `pose`) from the body
- * batches `sources` (skins, see sourceSkin). Answers one skinned batch per source the garment's triangles land on:
- * each carries that source's skin (bones, inverse binds, skin and shape transforms) with the garment's own
- * influences, positions solved so that skinning them in `pose` gives back the authored positions, and the garment's
- * UVs, material and triangles.
- *
- * A triangle goes to the source nearest the majority of its corners, and each corner copies the nearest vertex OF
- * THAT SOURCE, so a triangle is never split across two skins. `ctx` is { skeleton, pose, mats, skinBatch }.
- */
 export function transferSkin(garment, sources, ctx) {
   if (!sources.length) return [];
   const src = sources.map((batch) => {
@@ -189,8 +130,6 @@ export function transferSkin(garment, sources, ctx) {
     const bones = batch.skin.bones.map((b) => ({ ref: b.ref, name: b.name, invBind: b.invBind, indices: [], weights: [] }));
     const positions = new Float32Array(sub.verts.length * 3);
     const uvs = garment.uvs ? new Float32Array(sub.verts.length * 2) : null;
-    // MW-SMOOTH: the garment's own normals, solved as its positions are - skinBatch turns a normal by the blended 3x3
-    // and renormalises, so the inverse of that 3x3 gives back the authored normal in this pose
     const N = garment.normals && garment.normals.length === G.length ? garment.normals : null;
     const normals = N ? new Float32Array(sub.verts.length * 3) : null;
     sub.verts.forEach(({ v, j }, k) => {

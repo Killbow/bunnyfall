@@ -1,21 +1,9 @@
-// BC7 (BPTC, Unity TextureFormat 25) block decoding to RGBA8.
-//
-// DREAM's paperdoll bundles store almost every sprite as BC7 - the
-// format Unity picks for a "High Quality" compressed RGBA import - and
-// the bundle reader (unityBundle.js) decoded only DXT1/5 and the raw
-// formats until the player-attached mod door (systems/dfmodTextures.js)
-// met them. Written from the format as the D3D11 / KHR_texture_BPTC
-// specs lay it out (8 modes, 1-3 subsets, 64-entry partition tables,
-// the 2/3/4-bit index weights) and validated texel for texel against
-// the texture2ddecoder reference (bcdec / detex lineage) on the mod's
-// own blocks. Like dxt.js it is a plain decoder: rows come out in block
-// order (Unity's bottom-up); the bundle reader flips.
+// Rows come out in block order (Unity's bottom-up), like dxt.js; the bundle reader in unityBundle.js flips them.
 
 const WEIGHTS2 = [0, 21, 43, 64];
 const WEIGHTS3 = [0, 9, 18, 27, 37, 46, 55, 64];
 const WEIGHTS4 = [0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64];
 
-// Partition tables: one hex digit per texel (row-major 4x4).
 const P2 = [
   '0011001100110011', '0001000100010001', '0111011101110111', '0001001100110111', '0000000100010011', '0011011101111111', '0001001101111111', '0000000100110111',
   '0000000000010011', '0011011111111111', '0000000101111111', '0000000000010111', '0001011111111111', '0000000011111111', '0000111111111111', '0000000000001111',
@@ -38,7 +26,6 @@ const P3 = [
   '0110011022222222', '0022001100110022', '0022112211220022', '0000000000002112', '0002000100020001', '0222122202221222', '0101222222222222', '0111201122012220',
 ].map((s) => Uint8Array.from(s, Number));
 
-// Anchor (fix-up) indices.
 const A2 = [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 2, 8, 2, 2, 8, 8, 15, 2, 8, 2, 2, 8, 8, 2, 2,
   15, 15, 6, 8, 2, 8, 15, 15, 2, 8, 2, 2, 2, 15, 15, 6, 6, 2, 6, 8, 15, 15, 2, 2, 15, 15, 15, 15, 15, 2, 2, 15];
 const A3a = [3, 3, 15, 15, 8, 3, 15, 15, 8, 8, 6, 6, 6, 5, 3, 3, 3, 3, 8, 15, 3, 3, 6, 10, 5, 8, 8, 6, 8, 5, 15, 15,
@@ -46,7 +33,6 @@ const A3a = [3, 3, 15, 15, 8, 3, 15, 15, 8, 8, 6, 6, 6, 5, 3, 3, 3, 3, 8, 15, 3,
 const A3b = [15, 8, 8, 3, 15, 15, 3, 8, 15, 15, 15, 15, 15, 15, 15, 8, 15, 8, 15, 3, 15, 8, 15, 8, 3, 15, 6, 10, 15, 15, 10, 8,
   15, 3, 15, 10, 10, 8, 9, 10, 6, 15, 8, 15, 3, 6, 6, 8, 15, 3, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 3, 15, 15, 8];
 
-// mode: [subsets, partitionBits, rotationBits, idxSelBit, colorBits, alphaBits, endpointPBits, sharedPBits, indexBits, index2Bits]
 const MODES = [
   [3, 4, 0, 0, 4, 0, 1, 0, 3, 0],
   [2, 6, 0, 0, 6, 0, 0, 1, 3, 0],
@@ -74,11 +60,10 @@ class Bits {
 const interp = (e0, e1, w) => ((64 - w) * e0 + w * e1 + 32) >> 6;
 const weightsFor = (bits) => (bits === 2 ? WEIGHTS2 : bits === 3 ? WEIGHTS3 : WEIGHTS4);
 
-/** Decode one 16-byte block into `px` (16 RGBA texels, row-major). */
 export function decodeBc7Block(src, off, px) {
   let mode = 0;
   while (mode < 8 && !((src[off] >>> mode) & 1)) mode++;
-  if (mode === 8) { px.fill(0); return; }   // reserved: transparent black, as the spec says
+  if (mode === 8) { px.fill(0); return; }
   const [ns, pb, rb, isb, cb, ab, epb, spb, ib, ib2] = MODES[mode];
   const r = new Bits(src, off);
   r.get(mode + 1);
@@ -89,7 +74,6 @@ export function decodeBc7Block(src, off, px) {
   const ep = Array.from({ length: nEnd }, () => [0, 0, 0, 255]);
   for (let c = 0; c < 3; c++) for (let e = 0; e < nEnd; e++) ep[e][c] = r.get(cb);
   if (ab) for (let e = 0; e < nEnd; e++) ep[e][3] = r.get(ab);
-  // P-bits, then expand to 8 bits.
   let cBits = cb, aBits = ab;
   if (epb) {
     for (let e = 0; e < nEnd; e++) {
@@ -142,7 +126,6 @@ export function decodeBc7Block(src, off, px) {
   }
 }
 
-/** Decode a BC7 mip-0 run to RGBA8, block order (bottom-up for Unity). */
 export function bc7Decode(src, width, height) {
   const bw = Math.ceil(width / 4), bh = Math.ceil(height / 4);
   if (src.length < bw * bh * 16) throw new Error(`bc7: ${src.length} bytes for ${width}x${height} (needs ${bw * bh * 16})`);

@@ -35,15 +35,11 @@ test('with WOODS.WLD the ground is the game\'s base terrain', { skip: !have }, a
   assert.equal(await t.open(), true);
   const g = t.groundAt(500, 250, 400, 400);
   assert.ok(Number.isFinite(g) && g >= 0 && g < 1539 * 1.25);
-  // continuity over a pixel edge: x = 819.2 of one pixel is x = 0 of the next
   const east = t.groundAt(500, 250, 819.2 - 1e-6, 300), next = t.groundAt(501, 250, 0, 300);
   assert.ok(Math.abs(east - next) < 0.05, `${east} vs ${next}`);
-  // north is py - 1
   const north = t.groundAt(500, 250, 300, 819.2 - 1e-6), up = t.groundAt(500, 249, 300, 0);
   assert.ok(Math.abs(north - up) < 0.05, `${north} vs ${up}`);
-  // off the map
   assert.equal(t.groundAt(0, 250, -5, 10), null);
-  // snap stands y above the ground: the POI origin's own ground in its frame is 0 - y
   const p = place({ y: 2 });
   assert.ok(Math.abs(groundInFrame(t, p, 0, 0) - -2) < 1e-6);
   const grid = surfaceGrid(t, p, 12, 6);

@@ -1,38 +1,6 @@
-// FIELD BUGS 2026-10-13e AOE-PERF - THE BOSS'S CIRCLES AND THE CROWD'S SPRITES, MEASURED ON A REAL GL.
-//
-// HellRay (Discord, "Performance issues with boss AoE attacks circles and player sprites"): "massive FPS drops when the
-// boss performs AoE attacks and circles appear on the ground ... Player sprites also cause severe performance drops,
-// especially when more than 10 players are gathered in one area." The record: bible/07-Rendering/Performance-Rig.md
-// AOE-PERF.
-//
-// This runs the real renderer in Chromium (SwiftShader - software GL, whose time grows with the fragments and vertices
-// it shades, so it MEASURES overdraw; it is not a GPU, and its milliseconds are only relative) on scenes that need no
-// ARENA2:
-//   1. THE BURNING COURT at a fighter's eye - its own mesh and art (world/gate/gateArena.js buildCourtModel, gateArt.js), lit
-//      and fogged as the court is, on the enhanced lighting lane - with the boss's real shapes from their real producers
-//      (render/gate/gateTelegraph.js telegraphShape, poolShapes, markShape; scenes/gate/gateHost.js hostShapes): each blow alone,
-//      the mark, the burning ground, his host, and whole AoE frames of them, a pass a shape in their order as the court
-//      draws them - and, with `--before <module>` (a copy of render/gate/gateTelegraph.js as it stood before AOE-PERF), as
-//      that module drew them, in the same rounds.
-//   2. THE LOOK (with `--before`) - his mark, his host and the AoE frames drawn both ways on the classic lane (straight
-//      onto the canvas) and read back whole, against a CONTROL: the old pass against itself with the camera moved a
-//      millimetre (its quads' corners land elsewhere on the pixel grid - what moving a quad's corners does, every frame
-//      the camera or he moves). JUDGED: no more texels apart by more than 3/255 than twice the control's (and 16).
-//   3. THE CROWD - 0 / 8 / 12 / 24 / 40 players standing near: the Morrowind lane's bodies through the one sprite batch
-//      (renderer.js beginCharacterSpriteBatch; the committed 3D horse stands in for a body - the same skinned pass, the
-//      same picture and quad - since a Morrowind person needs the player's own Data Files), at most BODIES_MAX of them as
-//      net/peer/peerBodies.js stands them, every peer past the cap as their Eye Of The Beholder walker (net/peer/peerRiders.js
-//      createPeerWalkers - the vendored art: the classic sprite lane a peer's walker takes, one billboard a peer, as the
-//      class sprite and the paperdoll are); and that sprite lane alone, every peer a walker.
-// THE CLOCK: the GL is synced (a 1x1 readPixels of the bound frame - gl.finish does not wait on SwiftShader in this
-// Chromium) before and after the part a case draws - the telegraph pass, or the players - and that span is the case's
-// time. Cases run in ROUNDS - every case once a round, FRAMES rounds after a warm one - and each case's median is taken,
-// so a machine whose load moves (other work on its cores) moves every case alike. THE COUNT, which no load moves: the
-// fragments each case rasterises for the telegraph (every quad it lays, projected through the frame's own lens and
-// clipped to the screen - its pixels), and the GL draws.
-//
-// Usage: node tools/fb1013ePerfProbe.mjs [--w 960] [--h 540] [--frames 3] [--lane on|off] [--only court|crowd]
-//          [--before src/render/<a copy of gateTelegraph.js as it stood before, 3f66ff064's>.js]
+// Software GL probe that times and counts the boss's telegraph circles and crowds of player sprites.
+// Run: node tools/fb1013ePerfProbe.mjs [--w 960] [--h 540] [--frames 3] [--lane on|off] [--only court|crowd]
+//   [--before <a copy of gateTelegraph.js>]; SwiftShader times are only relative.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -72,8 +40,6 @@ try {
     const pass = new gt.GateTelegraphRenderer(gl);
     const passOld = old ? new old.GateTelegraphRenderer(gl) : null;
     const C = gb.COURT_CENTRE;
-    // A FIGHTER'S EYE: eight metres south of him (he stands at the court's heart) - the third-person camera over the
-    // shoulder (the Morrowind body's: 2.6 m up, 3.5 m back, looking at his chest) and the first-person eye (1.62 m)
     const lens = m.mirrorProjectionX(m.perspective(60 * Math.PI / 180, W / H, 0.05, 500));
     const eyes = {
       third: { eye: [C[0], C[1] + 2.6, C[2] + 11.5], at: [C[0], C[1] + 1.6, C[2]] },
@@ -82,7 +48,7 @@ try {
     for (const e of Object.values(eyes)) e.view = m.lookAt(e.eye, e.at, [0, 1, 0]);
     const cl = dl.courtLighting(null);
     const fogNow = () => ({ mode: r._fogMode, density: r._fogDensity, range: r._fogRange, color: r._fogColor, camPos: r._camPos });
-    /** the bound frame read back, one texel - every command before it done (gl.finish is no wait here) */
+    // gl.finish does not wait on SwiftShader here, so a one-texel read syncs the GL.
     const sync = () => {
       const fmt = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT), type = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
       const buf = type === gl.FLOAT ? new Float32Array(4) : type === gl.HALF_FLOAT ? new Uint16Array(4) : type === gl.UNSIGNED_INT || type === gl.INT ? new Uint32Array(4) : new Uint8Array(4);
@@ -94,7 +60,7 @@ try {
       const fog = el.dungeonFog(lane, ga.COURT_FOG);
       r.setLighting(new Float32Array(cl.tri.equator), 0, undefined, lane ? cl.tri : null);
       r.setMoonlight?.(cl.key);
-      const lit = ga.withCourtLights({ data: new Float32Array(0), colors: new Float32Array(0) }, ga.courtLightsNear(cam.eye).slice(0, 8));   // the eight nearest braziers
+      const lit = ga.withCourtLights({ data: new Float32Array(0), colors: new Float32Array(0) }, ga.courtLightsNear(cam.eye).slice(0, 8));
       r.setPointLights(lit.data, null, lit.colors);
       if (fog) r.setFog(fog.mode, fog.density, fog.start ?? 0, fog.end ?? 0, new Float32Array(fog.color));
       r.setClearColor([0.05, 0.01, 0.01, 1]);
@@ -112,7 +78,6 @@ try {
       return { ms: t3 - t1, cpu: t2 - t1, frame: performance.now() - t0, draws: r.stats.draws + extra, tdraws: extra };
     };
     const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
-    /** every case once a round, FRAMES rounds after a warm one; each case's median */
     const rounds = (label, cases) => {
       const runs = cases.map(() => []);
       for (let k = -1; k < FRAMES; k++) {
@@ -122,12 +87,11 @@ try {
       }
       return cases.map((c, i) => ({ ...c.row, ms: median(runs[i].map((x) => x.ms)), frame: median(runs[i].map((x) => x.frame)), cpu: median(runs[i].map((x) => x.cpu)), draws: runs[i][runs[i].length - 1].draws, tdraws: runs[i][runs[i].length - 1].tdraws }));
     };
-    // THE COUNT: a quad over the court frame (its corners [x, z]) at the pass's lift, projected and clipped - its pixels
     const pv = new Float32Array(16);
     const polyPx = (pts, vp) => {
       const corner = ([x, z]) => { const p = [C[0] + x, C[1] + gt.TELEGRAPH_LIFT, C[2] + z, 1]; return [0, 1, 2, 3].map((row) => vp[row] * p[0] + vp[4 + row] * p[1] + vp[8 + row] * p[2] + vp[12 + row] * p[3]); };
       let poly = pts.map(corner);
-      for (const [ax, sg] of [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1]]) {   // w+x, w-x, w+y, w-y, w+z >= 0
+      for (const [ax, sg] of [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1]]) {
         const d = (v) => v[3] + sg * v[ax];
         const next = [];
         for (let i = 0; i < poly.length; i++) {
@@ -143,8 +107,6 @@ try {
       return Math.abs(a) / 2;
     };
     const courtsOf = (sh) => (Number.isInteger(sh.court) && sh.court >= 0 ? [sh.court] : gb.COURTS.map((_, k) => k));
-    /** the quads module `mod`'s pass lays for `shapes` - each shape's over each court it is drawn over: its box
-     *  (telegraphQuadOver), or (AOE-PERF) a path's own strip (telegraphStrip, where the module has it) */
     const shapesPx = (mod, shapes, vp) => shapes.reduce((a, sh) => a + (sh.alpha > 0.001 ? courtsOf(sh).reduce((b, k) => {
       const q = mod.telegraphQuadOver(sh, k);
       if (!q) return b;
@@ -155,7 +117,6 @@ try {
     }, 0) : 0), 0);
     const results = { court: [], crowd: [], look: [], err: 0 };
 
-    // THE BOSS'S SHAPES, from their producers: his attack 60% through its wind-up, the fighters about him
     const P = gb.BASE_PROFILE;
     const now = 1_000_000;
     const fighters = [[3, 8], [-6, 6], [8, -2], [-9, -5], [1, -11], [12, 6], [-13, 2], [5, 14], [-4, -15], [10, -10]];
@@ -164,7 +125,6 @@ try {
     const mark = (() => { const s = gt.markShape([0, 0], 0, [1, 0.5, 0.1], P.bossR); s.court = 0; return s; })();
     const poolsAt = (pts, rad) => pts.map(([x, z]) => ({ x, z, r: rad, from: now - 2000, until: now + 4000 }));
     const pools = [...gt.poolShapes(poolsAt(fighters, gb.POOLS.hellfire.r), now, [1, 0.4, 0.1]), ...gt.poolShapes(poolsAt(fighters.slice(0, 3).map(([x, z]) => [x * 0.7, z * 0.7]), gb.POOLS.meteor.r), now, [1, 0.4, 0.1])];
-    // his host (the Legion-Lord's trial): bites and pulses in flight, the bearers' tethers while his ward stands, the Sappers' paths
     const ads = [
       { i: 1, k: gb.HOST.harrier, x: 4, z: 7, yaw: 0, atk: { at: now + 300, x: 4, z: 7 } },
       { i: 2, k: gb.HOST.harrier, x: -7, z: 4, yaw: 0, atk: { at: now + 400, x: -7, z: 4 } },
@@ -187,7 +147,6 @@ try {
       ['AoE: mark + Nova + ground + host', [...pools, mark, blow('nova', 2), ...host]],
       ['AoE: mark + Spokes + ground + host', [...pools, mark, blow('spokes', 3), ...host]],
     ];
-    /** the shapes drawn as the court draws them - a pass each, in their order (scenes/gate/gateCourt.js drawPass) */
     const drawWith = (p, shapes) => ({ proj, view, eye }) => {
       let n = 0;
       const f = fogNow();
@@ -207,16 +166,12 @@ try {
         }
         results.court.push(...rounds(`court, ${camName}-person eye`, cases));
       }
-      // THE LOOK, on the classic lane (the canvas itself, 8 bits a channel, no image of the frame's own between)
       const frameImage = (cam, draw) => {
         frameAt(cam, draw, false);
         const px = new Uint8Array(W * H * 4);
         gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
         return px;
       };
-      // THE CONTROL: the old pass against itself, its camera moved a millimetre - the quad's corners land elsewhere on the
-      // pixel grid, which is all that moving them does: a texel on a hard edge (the chevron's, a dash's end, a lane's
-      // side) can flip, and a smooth ramp move a unit or two
       const cam = eyes.third, nudged = { eye: [cam.eye[0] + 0.001, cam.eye[1], cam.eye[2]], at: [cam.at[0] + 0.001, cam.at[1], cam.at[2]] };
       nudged.view = m.lookAt(nudged.eye, nudged.at, [0, 1, 0]);
       const apart = (a, b) => { let n = 0, big = 0, maxd = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2])); if (d > 0) n++; if (d > 3) big++; if (d > maxd) maxd = d; } return { n, big, maxd }; };
@@ -230,8 +185,6 @@ try {
     }
 
     if (ONLY !== 'court') {
-      // THE CROWD - the 3D horse rig (a real skinned body through the same sprite batch) for the Morrowind lane's bodies,
-      // the vendored Eye Of The Beholder walkers for every peer past the cap
       const rig = hr.horseRigFor(r);
       await rig.load();
       if (!rig.ready()) return { error: rig.failure() ?? 'the horse rig did not load' };
@@ -245,7 +198,7 @@ try {
       const cam = eyes.third;
       const right = [1, 0, 0];
       const all = Array.from({ length: N_MAX }, (_, i) => peerOf(i));
-      for (let k = 0; k < 400; k++) {   // the walkers' art lands
+      for (let k = 0; k < 400; k++) {
         walkers.sync(all, toScene, { eye: cam.eye, right, dt: 0 });
         if (all.every((p) => walkers.isWalking(p.id))) break;
         await new Promise((res) => setTimeout(res, 25));
@@ -291,7 +244,6 @@ try {
   }
   if (out.look.length) console.log('\nTHE LOOK (classic lane, the canvas read back whole)');
   for (const x of out.look) {
-    // no more texels flipped than moving the old quad's corners a millimetre flips
     check(x.lit > 1000 && x.d.big <= 2 * x.control.big + 16, `${x.name}: drawn now against before - ${x.d.n} texels apart (${x.d.big} by more than 3/255, at most ${x.d.maxd}); the old pass against itself a millimetre over: ${x.control.n} (${x.control.big}, at most ${x.control.maxd}); ${x.lit} texels lit`);
   }
   check(out.err === 0, `no GL error (${out.err})`);

@@ -41,4 +41,5 @@ export function seaHoldShut(/** @type {unknown} */ uid, now = Date.now()) {
   save();
   return false;
 }
-export const seaHoldShutText = () => t('sea.pvp.holdShut', 'Her hold is shut while her wreck may be boarded.');
+/** What a page says of a shut hold. */
+export const seaHoldShutText = () => t('sea.pvp.holdShut', 'The hold is locked while the wreck can still be boarded.');

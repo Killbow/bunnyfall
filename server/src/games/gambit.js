@@ -1,5 +1,3 @@
-// King's Gambit tables in a room, read once a wake and saved. It answers the table words and
-// ready, keeps the receipts owed, and runs ghosts, leaves, and the tick.
 import { gambitTableValid, gambitEmpty, gambitNextAt, gambitStand, gambitLook, gambitSeatOf, newGambitTable, gambitSitRefusal, gambitSit, gambitUnready, gambitForfeit, gambitCommand, gambitReady, gambitReadyRefusal, gambitVoid, gambitTick as gambitTableTick } from '../../../src/net/gambit/gambitTable.js';
 import { emptyTable as holdemEmpty, holdemGoldTable, stand as holdemStand } from '../../../src/net/holdemTable.js';
 import { iliacEmpty } from '../../../src/net/iliacTable.js';

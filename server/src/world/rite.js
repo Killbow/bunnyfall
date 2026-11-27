@@ -1,5 +1,3 @@
-// The rite of the faithful at a breach: words at the circle, the cell ledger, and the hub told.
-// It answers a broken rite and the rite of the day, and asks the hub ahead for who broke it.
 import { junkOutsideCover } from '../cellNodes.js';
 import { worldRoom, RITE_CIRCLES_MAX, sanitizeName, RITE_KEY, RITE_TELL_RETRY_MS, SOCIAL_ROOM, RITE_INTERNAL_BROKEN, validRiteOut, RITE_HUB_CIRCLES_MAX, RITE_ASK_TIMEOUT_MS, RITE_INTERNAL_DAY, RITE_ASK_EVERY_MS } from '../relay.js';
 import { isGateDay, gateTimes } from '../../../src/net/gateLaw.js';
@@ -83,8 +81,7 @@ export class RitePart {
     const fellAt = await this._fellAtOf(o.d);
     const stands = riteStands(o.d, now, fellAt);
     if (!stands && !(body?.cl === 1 && cageStands(o.d, now))) return json({ ok: true });
-    // No await between this read and setting `_riteHub`: two reports landing together
-    // would each start a fresh day.
+    // No await between this read and setting `_riteHub`: two reports landing together would each start a fresh day.
     let r = this._riteHub;
     if (r && r.d > o.d) return json({ ok: true });
     if (!r || r.d < o.d) r = { d: o.d, c: {} };

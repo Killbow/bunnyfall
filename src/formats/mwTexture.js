@@ -1,28 +1,10 @@
-// MW-D11: THE TEXTURE PATH LAW, and it is not "prepend textures/".
-//
-// Bethesda converted the BSA textures from TGA to DDS and left every
-// reference in every NIF saying .tga, so a Morrowind mesh asks for a file
-// that is not in the archive under that name. OpenMW's answer is one
-// function - Misc::ResourceHelpers::correctTexturePath, the ONLY entry
-// point a NIF texture takes (nifosg/nifloader.cpp:1136-1142) - and it is
-// four probes over a re-rooted, extension-swapped path, translated here
-// verbatim.
-//
-//   correctTexturePath(p, vfs) = correctResourcePath({textures, bookart}, p, vfs, "dds")
-//                                       (misc/resourcehelpers.cpp:137-141)
-//
-// THIS FILE IS THE ONE HOME. The mesh viewer carried its own two-line
-// version (a "textures\" prefix and a .tga->.dds swap) which gets three
-// of the rules wrong; it imports this now. Two ports of one rule drifting
-// apart is how MW7 died.
+// Morrowind NIFs name .tga textures that the archives store as .dds, so every NIF texture path goes through
+// `correctTexturePath`, which follows OpenMW's correctResourcePath and its four probes.
 
 import { decodeDds } from './mwDdsFile.js';
 
-/** VFS::Path normalization (vfs/pathutil.hpp:18-64): backslash becomes
- *  '/', every character lowercases, runs of '/' collapse to one, and a
- *  SINGLE leading '/' is stripped. A BSA index must be built the same way
- *  or the lookups miss - VFS::Manager::exists is a plain hash lookup with
- *  no case-insensitive compare at query time (vfs/manager.cpp:64-72). */
+// Matches OpenMW's VFS path normalization. A BSA index must be keyed the same way, because lookups are exact with
+// no case-insensitive compare.
 export function normalizeVfsPath(path) {
   let out = String(path ?? '').replace(/\\/g, '/').toLowerCase();
   out = out.replace(/\/{2,}/g, '/');
@@ -30,23 +12,7 @@ export function normalizeVfsPath(path) {
   return out;
 }
 
-/**
- * findDirectory (misc/resourcehelpers.cpp:38-62), and every clause earns
- * its place:
- *   - the match must be a WHOLE path component: preceded by '/' or at
- *     index 0, and followed by '/';
- *   - it must NOT be the last component (`position + size >= pathSize`
- *     returns npos), so "foo/textures" is not re-rooted and "textures"
- *     alone is not either - both get the prefix instead. THIS CLAUSE IS
- *     AN EARLY-OUT, NOT A RULE OF ITS OWN: with it removed the very next
- *     test reads one past the end (a std::string yields '\0' there, and
- *     JS yields undefined), which is not '/', so the component check
- *     fails anyway. A mutation campaign proved the two equivalent - kept
- *     because the reference has it and this is a translation, and
- *     recorded so nobody hunts for the pin that would catch its removal;
- *   - the scan continues past a failed candidate rather than giving up.
- * @returns the index the corrected path starts at, or -1.
- */
+/** @returns */
 export function findDirectory(path, directory) {
   const size = directory.length;
   let offset = 0;
@@ -59,13 +25,7 @@ export function findDirectory(path, directory) {
   }
 }
 
-/**
- * Normalized::changeExtension (vfs/pathutil.hpp:289-297). Replaces from
- * one character PAST the last '.', so the dot survives - and REFUSES when
- * the reverse scan hits a '/' first or finds no '.' at all, which is what
- * makes an extensionless name keep its shape.
- * @returns {{path:string, changed:boolean}}
- */
+/** @returns {{path:string, changed:boolean}} */
 export function changeExtension(path, ext) {
   for (let i = path.length - 1; i >= 0; i--) {
     if (path[i] === '/') break;
@@ -74,26 +34,19 @@ export function changeExtension(path, ext) {
   return { path, changed: false };
 }
 
-/** The last path component. */
 const filename = (path) => {
   const at = path.lastIndexOf('/');
   return at < 0 ? path : path.slice(at + 1);
 };
 
 /**
- * correctResourcePath (misc/resourcehelpers.cpp:81-131), verbatim.
- *
- * @param {string[]} topLevelDirectories tried IN ORDER; the first that
- *   matches wins, and everything before the match is DISCARDED - which is
- *   how an absolute authoring path like "D:\Bethesda\Data Files\Textures\
- *   tx_hand.tga" resolves.
- * @param {string} resPath the authored reference
- * @param {(p:string)=>boolean} exists the VFS probe
- * @param {string} ext substitute extension, WITHOUT a leading dot
- * @returns {string} the path to open - and when all four probes miss, the
- *   .dds candidate, NOT the authored name. The caller then fails to open
- *   it and gets the warning image, which is the behaviour that makes a
- *   missing texture visible instead of silent.
+ * When every probe misses, this returns the .dds candidate rather than the authored name, so the caller fails to
+ * open it and shows the warning texture.
+ * @param {string[]} topLevelDirectories
+ * @param {string} resPath
+ * @param {(p:string)=>boolean} exists
+ * @param {string} ext
+ * @returns {string}
  */
 export function correctResourcePath(topLevelDirectories, resPath, exists, ext) {
   const path = normalizeVfsPath(resPath);
@@ -114,8 +67,6 @@ export function correctResourcePath(topLevelDirectories, resPath, exists, ext) {
 
   if (exists(corrected)) return corrected;
   if (isExtChanged && exists(origExt)) return origExt;
-  // BOTH fallbacks use topLevelDirectories.FRONT, never the directory that
-  // matched - so a bookart-rooted miss is probed under textures/.
   const front = topLevelDirectories[0];
   const fallback = `${front}/${filename(corrected)}`;
   if (exists(fallback)) return fallback;
@@ -126,28 +77,16 @@ export function correctResourcePath(topLevelDirectories, resPath, exists, ext) {
   return corrected;
 }
 
-/** The two top-level directories a TEXTURE may be re-rooted at, in the
- *  order they are tried (misc/resourcehelpers.cpp:18-19, 140). */
 export const TEXTURE_TOP_LEVEL = Object.freeze(['textures', 'bookart']);
 
-/** The substitute extension, with NO leading dot - changeExtension
- *  replaces from one char past the '.', so the dot is already there. */
 export const TEXTURE_EXT = 'dds';
 
-/** correctTexturePath (misc/resourcehelpers.cpp:137-141). */
 export function correctTexturePath(resPath, exists) {
   return correctResourcePath(TEXTURE_TOP_LEVEL, resPath, exists, TEXTURE_EXT);
 }
 
-/**
- * NiTexturingProperty's clamp bits (nif/property.hpp:70-71) and their GL
- * mapping (nifosg/nifloader.cpp:1152-1153).
- *
- * THE BITS ARE THE OTHER WAY ROUND FROM THE NAMES: bit 0 is wrapT and
- * bit 1 is wrapS. A set bit is REPEAT; a clear bit is CLAMP_TO_EDGE -
- * not GL_CLAMP, and not REPEAT-by-default. mClamp 3 (the common value)
- * is REPEAT on both axes.
- */
+// Bit 0 is wrapT and bit 1 is wrapS, the reverse of the names. A set bit means repeat and a clear bit means clamp
+// to edge.
 export const GL_REPEAT = 0x2901;
 export const GL_CLAMP_TO_EDGE = 0x812f;
 export function wrapModes(clampMode) {
@@ -158,18 +97,8 @@ export function wrapModes(clampMode) {
   };
 }
 
-/**
- * ImageManager's warning image (resource/imagemanager.cpp:28-43): 8x8,
- * every texel (255, 0, 255).
- *
- * A MISSING TEXTURE IS NOT A REFUSAL, and that is the rule, not a
- * convenience. Every failure path in the reference - the archive throwing,
- * no reader for the extension, a decode failure, an unsupported
- * compression - returns this and caches it under the failed path. The
- * port's own instinct here was a skin-tone fallback, which is precisely
- * the "empty view called a working one" this arc keeps being burned by:
- * magenta is a texture that SAYS it is missing.
- */
+// Every texture load failure uses this magenta image, as OpenMW does, so a missing texture shows up instead of
+// failing the draw.
 export function warningImage() {
   const width = 8;
   const height = 8;
@@ -183,27 +112,8 @@ export function warningImage() {
   return { width, height, mips: [{ width, height, rgba }] };
 }
 
-/**
- * RULE 18: correctActorModelPath (misc/resourcehelpers.cpp:180-198), the
- * OTHER resource-path rule, and it lives here because this file is
- * ResourceHelpers' one home and it needs the same two primitives.
- *
- *   insert 'x' before the FILENAME (after the last '/'), swap a .nif
- *   extension for .kf, and USE THE X-FORM ONLY IF THAT KF EXISTS -
- *   otherwise keep the original path.
- *
- * It REFINES RULE 6, which reads as though the skeleton names were
- * fixed. They are not: `meshes/base_anim_female.1st.nif` is promoted to
- * `meshes/xbase_anim_female.1st.nif` exactly when
- * `meshes/xbase_anim_female.1st.kf` is in the archive. The male
- * first-person entry is ALREADY x-form in the settings, so the insert
- * yields a non-existent `xx` name and the original stands - which is why
- * a port tested only on a male character sees nothing wrong.
- *
- * The extension swap is CONDITIONAL on the extension being exactly
- * "nif": for anything else the probe is against the model name itself,
- * not a .kf. Both branches are here because both are reachable.
- */
+// Uses the x-prefixed name only when its .kf exists, as OpenMW does. The male first-person skeleton path already
+// starts with x, so it keeps its original name.
 export function correctActorModelPath(resPath, exists) {
   const path = normalizeVfsPath(resPath);
   const at = path.lastIndexOf('/');
@@ -214,24 +124,6 @@ export function correctActorModelPath(resPath, exists) {
   return exists(probe) ? xform : path;
 }
 
-// ---------------------------------------------------------------------------
-// MW-D34: DECODE BY EXTENSION, the other half of the ladder.
-//
-// correctResourcePath above deliberately answers the AUTHORED extension
-// when the .dds probe misses and the original file exists (`if
-// (isExtChanged && vfs.exists(origExt)) return origExt;`,
-// resourcehelpers.cpp:112-114) - and Morrowind's originals are .tga and
-// .bmp. The reference then decodes that path BY ITS EXTENSION, not by
-// assuming DDS: ImageManager reads the extension, aliases the
-// non-standard "targa" to "tga" ("Non-standard, but Morrowind supports
-// this", imagemanager.cpp:104-110), and asks osgDB for that format's
-// reader. The port fed every ladder answer to decodeDds, so a texture
-// the archives DO carry rendered as the magenta warning.
-
-
-/** TGA (types 1-3 and their RLE forms 9-11; 8/15/16/24/32 bpp), to the
- *  same {width, height, mips:[{width,height,rgba}]} shape decodeDds
- *  answers. Bottom-up unless descriptor bit 5 sets top-origin. */
 export function decodeTga(bytes) {
   if (!(bytes instanceof Uint8Array) || bytes.length < 18) throw new Error('decodeTga: not a TGA file');
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -249,8 +141,6 @@ export function decodeTga(bytes) {
   const rle = (imageType & 8) !== 0;
   if (baseType < 1 || baseType > 3 || !width || !height) throw new Error('decodeTga: unsupported image type');
   let off = 18 + idLength;
-  // AUDIT 68 S11-tga-15bpp: bytes per entry ROUND UP - a 15-bit pixel or
-  // colour-map entry is two bytes (5-5-5), and `>> 3` read it as one.
   const mapBpp = (mapDepth + 7) >> 3;
   const palette = colorMapType === 1 ? bytes.subarray(off, off + mapLength * mapBpp) : null;
   if (colorMapType === 1) off += mapLength * mapBpp;
@@ -259,7 +149,7 @@ export function decodeTga(bytes) {
   const putBgr = (o, src, at, nb) => {
     if (nb === 1) { rgba[o] = rgba[o + 1] = rgba[o + 2] = src[at]; rgba[o + 3] = 255; return; }
     if (nb === 2) {
-      const px = src[at] | (src[at + 1] << 8);   // ARRRRRGG GGGBBBBB
+      const px = src[at] | (src[at + 1] << 8);
       rgba[o] = ((px >> 10) & 31) * 255 / 31;
       rgba[o + 1] = ((px >> 5) & 31) * 255 / 31;
       rgba[o + 2] = (px & 31) * 255 / 31;
@@ -272,14 +162,12 @@ export function decodeTga(bytes) {
   const putPixel = (i, src, at) => {
     const x = i % width;
     const yRow = (i / width) | 0;
-    const y = (descriptor & 0x20) ? yRow : height - 1 - yRow;   // bit 5: top origin
+    const y = (descriptor & 0x20) ? yRow : height - 1 - yRow;
     const o = (y * width + x) * 4;
     if (baseType === 1) {
       const idx = (bpp === 2 ? (src[at] | (src[at + 1] << 8)) : src[at]) - mapStart;
       putBgr(o, palette, idx * mapBpp, mapBpp);
     } else if (baseType === 3) {
-      // AUDIT 68 S11-v-tga-grey16: greyscale is grey (+ its alpha byte at
-      // 16 bpp), never a 5-5-5 colour.
       rgba[o] = rgba[o + 1] = rgba[o + 2] = src[at];
       rgba[o + 3] = bpp >= 2 ? src[at + 1] : 255;
     } else putBgr(o, src, at, bpp);
@@ -303,8 +191,6 @@ export function decodeTga(bytes) {
   return { width, height, mips: [{ width, height, rgba }] };
 }
 
-/** BMP (uncompressed BI_RGB, 8-bit paletted / 24 / 32 bpp), same shape.
- *  Positive height is bottom-up, per the format. */
 export function decodeBmp(bytes) {
   if (!(bytes instanceof Uint8Array) || bytes.length < 54 || bytes[0] !== 0x42 || bytes[1] !== 0x4d) {
     throw new Error('decodeBmp: not a BMP file');
@@ -321,14 +207,14 @@ export function decodeBmp(bytes) {
     throw new Error('decodeBmp: unsupported BMP format');
   }
   const palOff = 14 + headerSize;
-  const stride = ((width * bpp + 31) >> 5) << 2;   // rows pad to 4 bytes
+  const stride = ((width * bpp + 31) >> 5) << 2;
   const rgba = new Uint8Array(width * height * 4);
   for (let row = 0; row < height; row++) {
-    const y = rawH > 0 ? height - 1 - row : row;   // positive height: bottom-up
+    const y = rawH > 0 ? height - 1 - row : row;
     for (let x = 0; x < width; x++) {
       const o = (y * width + x) * 4;
       if (bpp === 8) {
-        const p = palOff + bytes[dataOff + row * stride + x] * 4;   // BGRA quads
+        const p = palOff + bytes[dataOff + row * stride + x] * 4;
         rgba[o] = bytes[p + 2]; rgba[o + 1] = bytes[p + 1]; rgba[o + 2] = bytes[p]; rgba[o + 3] = 255;
       } else {
         const at = dataOff + row * stride + x * (bpp >> 3);
@@ -340,15 +226,14 @@ export function decodeBmp(bytes) {
   return { width, height, mips: [{ width, height, rgba }] };
 }
 
-/** ImageManager's routing (imagemanager.cpp:104-118): the path's own
- *  extension picks the decoder, "targa" aliases to "tga", and a format
- *  with no reader is an error the caller turns into the warning image. */
+// `correctResourcePath` can return the authored .tga or .bmp path when no .dds exists, so the decoder is chosen by
+// extension rather than assuming DDS.
 export function decodeTextureImage(path, bytes, { levels = Infinity } = {}) {
   const p = String(path || '');
   const dot = p.lastIndexOf('.');
   let ext = dot >= 0 ? p.slice(dot + 1).toLowerCase() : '';
-  if (ext === 'targa') ext = 'tga';   // "Non-standard, but Morrowind supports this"
-  if (ext === 'dds') return decodeDds(bytes, { levels });   // MW-LOAD: tga/bmp carry one level anyway
+  if (ext === 'targa') ext = 'tga';
+  if (ext === 'dds') return decodeDds(bytes, { levels });
   if (ext === 'tga') return decodeTga(bytes);
   if (ext === 'bmp') return decodeBmp(bytes);
   throw new Error(`no decoder for ".${ext}"`);

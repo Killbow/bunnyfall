@@ -1,6 +1,5 @@
-// SHOP-PLUS probe: the guild's Buy Spells (the spellbook in buy mode) in its Enhanced Plus face, on a real page - the
-// shelf, a spell chosen, and Buy through its haggle Yes/No to a spell in the book.
-//     node tools/spellShopProbe.mjs [dir]
+// Usage: node tools/spellShopProbe.mjs [shotDir]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +19,6 @@ const out = await page.evaluate(async () => {
   document.body.style.background = '#3a3226';
   const { SpellbookWindow, SPELLBOOK_TEMPLATE_INDEX } = await import('/src/ui/spellbookWindow.js').then(async (m) => ({ ...m, ...(await import('/src/magic/spellMaker.js')) }));
   const { enhancedWindow } = await import('/src/ui/enhancedPorts.js');
-  // a handful of SPELLS.STD-shaped records (the fields the book reads)
   const fx = (type, subType, o = {}) => ({ type, subType, magnitudeBaseLow: 0, magnitudeBaseHigh: 0, durationBase: 0, chanceBase: 0, ...o });
   const spells = [
     { name: 'Fireball', icon: 12, rangeType: 3, element: 0, cost: 30, effects: [fx(4, 0, { magnitudeBaseLow: 5, magnitudeBaseHigh: 15, magnitudeLevelBase: 2 })] },
@@ -37,23 +35,18 @@ const out = await page.evaluate(async () => {
     spells: () => entity.spells, entity, castCost: (sp) => sp.cost ?? 0, offered: () => spells,
     buildingQuality: () => 12, shopName: () => 'The Mages Guild of Daggerfall',
     skills: () => ({ mercantile: 35, personality: 55 }), classicMinutes: () => 0,
-    rows: () => ['A fair price for a fine spell. Do we have a deal?'],   // stands in for the host's TEXT.RSC reader
+    rows: () => ['A fair price for a fine spell. Do we have a deal?'],
     onClose: () => { globalThis.__closed = true; },
   }, { buyMode: true });
   win = enhancedWindow(win, 'spellShop');
   const cv = document.createElement('canvas'); cv.width = 320; cv.height = 200;
-  // the host's route for a press on the game canvas (client -> native -> the top window's click), which the
-  // enhanced Yes/No replays its press through
   cv.style.cssText = 'position:fixed;left:0;top:0;width:320px;height:200px;opacity:0;z-index:0';
   document.body.append(cv);
   cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); win.click((e.clientX - r.left) * 320 / r.width, (e.clientY - r.top) * 200 / r.height); });
-  // the game's renderer answers every draw call; the port quiets them all, so any function will do here
   const renderer = new Proxy({ canvas: cv }, { get: (t, k) => (k in t ? t[k] : () => undefined) });
   globalThis.__shop = win;
-  // a stand-in for FONT0003's metrics (the host passes the real one; no ARENA2 here) - the box is laid out with it
   const font = { fnt: { fixedHeight: 7, glyphWidth: () => 5 } };
   globalThis.__frame = () => win.draw(renderer, cv, font);
-  // the host draws the window every frame; so does this page
   setInterval(() => globalThis.__frame(), 16);
   globalThis.__entity = entity;
   return { host: !!document.querySelector('.port-spellshop'), rows: document.querySelectorAll('.port-spellshop .port-row').length };
@@ -62,12 +55,10 @@ console.log('shop', JSON.stringify(out));
 const frame = () => page.evaluate(() => { for (let i = 0; i < 3; i++) globalThis.__frame(); });
 await page.waitForTimeout(400); await frame();
 await page.screenshot({ path: `${SHOTS}/s1-shelf.png` });
-// choose Frostbite on the shelf with the mouse
 const names = await page.evaluate(() => [...document.querySelectorAll('.port-spellshop .port-row')].map((n) => n.tagName + ':' + n.textContent));
 console.log('rows', JSON.stringify(names));
 await page.locator('.port-spellshop button.port-row', { hasText: 'Frostbite' }).first().click(); await frame();
 await page.screenshot({ path: `${SHOTS}/s2-chosen.png` });
-// Buy - the haggle line and its Yes/No
 await page.click('.port-spellshop .port-foot .port-btn.primary'); await frame(); await page.waitForTimeout(200); await frame();
 await page.screenshot({ path: `${SHOTS}/s3-haggle.png` });
 console.log('haggle', JSON.stringify(await page.evaluate(() => ({ top: globalThis.__shop.top, box: !!globalThis.__shop._box, dlg: !!document.querySelector('.dlg-shell') }))));
@@ -76,8 +67,7 @@ if (yes) { await yes.click(); } else { await page.evaluate(() => globalThis.__sh
 await frame();
 const after = await page.evaluate(() => ({ gold: globalThis.__entity.goldPieces, book: globalThis.__entity.spells.map((s) => s.name), closed: !!globalThis.__closed }));
 console.log('bought', JSON.stringify(after));
-// EM3-3D merge (the patch's SHOP-PLUS), T3: the shelf, the haggle's Yes/No, the spell in the book and the gold paid
-const fail = (why) => { console.error('FAIL', why); process.exitCode = 1; };   // T3: a probe judges its subject
+const fail = (why) => { console.error('FAIL', why); process.exitCode = 1; };
 if (!names.length) fail('the Enhanced Plus shop listed no spells');
 if (after.book.length !== 1) fail(`the book holds ${after.book.length} spells after one purchase`);
 if (!(after.gold < 400)) fail(`the purchase cost nothing (gold ${after.gold} of 400)`);

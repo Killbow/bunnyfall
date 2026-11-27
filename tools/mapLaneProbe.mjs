@@ -1,11 +1,5 @@
-// MAP-LANE (icebreyker / Hog Goblin, Discord bug-reports, 2026-09-22: "Map
-// gets cut at the bottom"; Mac: "the morrowind arms dont show holding the
-// map and it sits too low on the screen"): the held map opened in the REAL
-// game - the world host, the enhanced skin, the M key (the town plan) and
-// the V key (the travel map) - read through the sheet's own probe surface
-// (globalThis.__heldMap) and photographed.
-//
-// Usage: ARENA2_PATH=/home/user/dfdata/arena2 node tools/mapLaneProbe.mjs
+// Opens the held map (M for the town plan, V for the travel map) in the world host and reads its layout.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/mapLaneProbe.mjs (VIEW=WxH sets the viewport).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -17,7 +11,7 @@ process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const server = await createServer({ root: process.cwd(), server: { port: 5233, strictPort: true, hmr: false, watch: null } });
 await server.listen();
 const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
-const [VW, VH] = (process.env.VIEW ?? '1280x800').split('x').map(Number);   // VIEW=WxH: the reporters' viewport, when known
+const [VW, VH] = (process.env.VIEW ?? '1280x800').split('x').map(Number);
 const page = await browser.newPage({ viewport: { width: VW, height: VH } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e.stack ?? e.message)));
@@ -37,7 +31,7 @@ console.log(`booted: mode=${mode}`);
 await page.waitForTimeout(3000);
 let fails = 0;
 const check = (ok, label) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`); if (!ok) fails++; return !!ok; };
-for (let i = 0; i < 60; i++) {   // the headless start's tutorial (a Yes/No: No ends it) and the main quest's opening box
+for (let i = 0; i < 60; i++) {
   const t = JSON.parse(await ev(() => window.__talk()));
   if (!t.overlay) break;
   await page.keyboard.press(/tutorial/i.test(t.overlayBox ?? '') ? 'KeyN' : 'Space');

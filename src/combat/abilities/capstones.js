@@ -7,7 +7,6 @@ import { rayHit } from '../../player/groundRay.js';
 import { coverDistance } from '../../ai/cover.js';
 import { floorUnder, groundAim, volleyPoints } from '../techniques.js';
 
-/** Added before the attack formula applies armor, material and hit rules. */
 export function capstonePower({ base, stat }, entity, skill, weapon) {
   const proficiency = Math.max(0, Math.min(120, skillValue(entity, skill)));
   const level = Math.max(1, Math.min(30, effectiveLevel(entity)));
@@ -22,7 +21,6 @@ export function abilityLook(cam, yaw = cam.yaw) {
   return [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
 }
 
-/** Choose visible ground and fit each shaft under its own ceiling. */
 export function skyfallPattern(cam, collider, { rain, rangeM, ammo }) {
   if (!cam || !collider) return null;
   const aim = groundAim(cam.pos, abilityLook(cam), cam.feet, collider, rangeM);

@@ -1,16 +1,6 @@
-// AUDIT CLIMB-DUNGEON (FIELD BUGS 2026-10-02) - THE CLIMB ON DAGGERFALL'S DUNGEONS. Builds a dungeon's collider as the
-// dungeon host does (every block's placed models and its enabled action doors, at each block's origin), then from every
-// floor point `--step` metres apart climbs every wall within 1 m that has a top between 2.4 m and 16 m with room to
-// stand on it: Forward held at the wall's own normal and at each `--offsets` degree either side, the enhanced climb on
-// at `skill` (default 100, so the grip does not decide). A top is one stood on: on it, and still on it after a second
-// with nothing held (a frame's touch of a slope the climber slides off and falls from is no top). A climb that does not
-// end standing on the top is run again on the classic lane with every roll passing; the line counts the walls, the climbs, the tops, the climbs that never took
-// hold within 1 m of their start (slid along the wall, or started in a void), the failures, and the failures the
-// classic lane topped. `--fails` prints each failure. The record's figures are this tool's, over --all.
-//
-//   ARENA2_PATH=<arena2> node tools/climbDungeonProbe.mjs "Daggerfall" "Ruins of Old Carololda's Farm" [skill]
-//   ARENA2_PATH=<arena2> node tools/climbDungeonProbe.mjs --all [skill]      (the record's 25 dungeons, one line each)
-//   options: --offsets 0,8,-8   --step 1   --fatigue 1   --fails
+// Climbs every climbable wall of a dungeon's collider and counts the climbs that fail to reach the top.
+// Run: ARENA2_PATH=<arena2> node tools/climbDungeonProbe.mjs <region> <dungeon> [skill] | --all [skill].
+
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MapsFile } from '../src/formats/mapsFile.js';
@@ -35,7 +25,6 @@ export const RECORD_DUNGEONS = Object.freeze([
   ['Tulune', 'The Haunt of Viscount Lithovon'],
 ]);
 
-/** The game's files, read once. */
 export function loadData(arena2) {
   const blocks = new BlocksFile(); blocks.load(new Uint8Array(readFileSync(join(arena2, 'BLOCKS.BSA'))));
   const arch = new Arch3dFile(); arch.load(new Uint8Array(readFileSync(join(arena2, 'ARCH3D.BSA'))));
@@ -43,10 +32,9 @@ export function loadData(arena2) {
   maps.load(new Uint8Array(readFileSync(join(arena2, 'MAPS.BSA'))), new Uint8Array(readFileSync(join(arena2, 'CLIMATE.PAK'))), new Uint8Array(readFileSync(join(arena2, 'POLITIC.PAK'))));
   const cache = new Map();
   const getModel = (id) => { if (!cache.has(id)) cache.set(id, dfMeshToModel(arch.getMesh(arch.getRecordIndex(id)), () => ({ width: 1, height: 1 }))); return cache.get(id); };
-  return { blocks, maps, getModel, arch };   // AUDIT REST II F6: the archive too - tools/dungeonFireProbe.mjs reads its models as the host does (patchSeams)
+  return { blocks, maps, getModel, arch };
 }
 
-/** A dungeon's collider as scenes/dungeonContext.js builds it, and its blocks. */
 export function dungeonCollider(data, region, name) {
   const d = layoutDungeon(data.maps.getLocationByName(region, name), data.blocks, data.getModel);
   const col = new Collider(() => -Infinity);
@@ -58,7 +46,6 @@ export function dungeonCollider(data, region, name) {
   return { col, blocks: d.blocks };
 }
 
-/** Probe one dungeon: the counts, and each failure. */
 export function probe(col, blocks, { skill = 100, fatigue = 1, offsets = [0, 8, -8], step = 1 } = {}) {
   const floorsAt = (x, z) => {
     const out = []; let y = 60;

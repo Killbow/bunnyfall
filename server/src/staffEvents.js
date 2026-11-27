@@ -1,37 +1,4 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// STAFF-EVENT (2026-10-24, mob: "lets start making an event tool for staff to use" - net/staffEvent/staffEventLaw.js,
-// bible/11-Multiplayer/Staff-Events.md) - A STAFF EVENT, THE RELAY'S HALF. The account service's half is
-// server-account/src/staffEvents.js; index.js holds the few hooks that call in here.
-//
-// THE HUB KEEPS THE BOOK: the events live (STAFF_EVENTS_MAX), in storage of its own (STAFF_EVENTS_KEY), each staged by a
-// signed `sevent` order (identityToken.js mintStaffEventOrder) the account service pushed through the Worker's law door:
-// `op` start (the event whole), end, boss (Spawn mini boss now - one more boss), or look (the book read back, nothing
-// changed). The book is said to every player online as it changes and to each at its hello (`{t:'sev', k:'ev', l}`), as
-// EVENT1's live event is; an end as `{t:'sev', k:'end', id, why}`. The door's answer is the book with each event's LIVE
-// state - the meter staff read - as the place's cell last told it.
-//
-// THE PLACE'S CELL KEEPS THE METER (a raid's ledger's law, RAID3): each player standing in the place says, every few
-// seconds, the deaths of the monsters THEY stand (`{t:'sev', k:'w'}`); the cell credits each account the most it has
-// said, under a cap on how fast a count may grow, calls the mini boss when the count reaches the event's meter (or staff
-// call it by hand), hears it stand and fall from the one who stands it, says the boss's state to the place (never the
-// count to a screen - the game reads it only to stop standing monsters at the event's total) and tells the hub - at once
-// when the boss moved, else every STAFF_EVENT_TELL_MS. An event done by its ledger (its boss fell and it ends there, or
-// its last monster fell) is ended by the hub on that tell.
-//
-// WHAT IT CAN CHECK, it checks (the raid's law): a word is heard only in the cell the event's pixel stands in, from a
-// socket whose own pose stands on that pixel, for an event the hub's book holds. WHAT IT CANNOT: a kill is the player's
-// own machine's word (co-op's law - the relay has no world to see it in). A forged word can bring a boss early; it can
-// never stage, end or move an event, which only a signed order does.
-//
-// THE REWARD (section 9 of the page; mob: "something like dagons leaderboard", "but not his ghear"): at the first boss's
-// fall the cell pays once - each earner's receipt minted with the relay's key (net/staffEvent/staffEventReceipt.js `e1`,
-// a seed and its rank) and kept WITH the ledger before a word is said (the raid's cleanse's law), the BOARD said to the
-// place (`{t:'sev', k:'bd', id, top}`) and carried to the hub on the tell (staff read it), and each earner's receipt to
-// its account's newest socket here (`k:'rc'`) - and again to any of its sockets that speaks after (a reconnect).
-//
-// OFFLINE ONLY until mob tries it live.
-// ═══════════════════════════════════════════════════════════════════
 
 import {
   validStaffEvent, validStaffEventTell, newStaffLedger, foldStaffWord, staffBossCall, staffEventDone, staffEventLapsed,
@@ -39,32 +6,23 @@ import {
 } from '../../src/net/staffEvent/staffEventLaw.js';
 import { mintStaffReceipt } from '../../src/net/staffEvent/staffEventReceipt.js';
 import { SOCIAL_ROOM, worldRoom, mapPixelOfWire } from '../../src/net/wire.js';
-import { junkOutsideCover, cellCall } from './cellNodes.js';   // COST-2 (b): a word in a cell this socket covers, or junk; part two: the event's cell reached through the tree
+import { junkOutsideCover, cellCall } from './cellNodes.js';
 import { verifyOrder } from '../../src/net/identityToken.js';
 
-/** The hub's book in storage: `{ l: StaffEvent[], b: [id, board][] }` - THE REWARD: `b` the boards of the last events whose boss fell. */
 export const STAFF_EVENTS_KEY = 'sevents';
-/** A cell's ledger of one event in storage. */
 export const STAFF_LEDGER_PREFIX = 'sevl:';
-/** A cell asking the hub for the book; a cell telling the hub an event's meter; the hub telling a cell a call or an end. */
 export const SEV_INTERNAL_BOOK = '/internal/sev/book';
 export const SEV_INTERNAL_TELL = '/internal/sev/tell';
 export const SEV_INTERNAL_CALL = '/internal/sev/call';
-/** How long a cell trusts the book it last asked for, ms (an event it has not heard of is asked again sooner). */
 export const SEV_BOOK_FRESH_MS = 30_000;
 export const SEV_BOOK_MISS_MS = 5_000;
-/** THE REWARD: how many fallen bosses' boards the hub keeps for staff's look (the newest). */
 export const SEV_BOARDS_KEPT = 2 * STAFF_EVENTS_MAX;
-/** How long a hub or cell waits on the other, ms. */
 const CALL_MS = 3_000;
-/** The door's ops. */
 export const STAFF_EVENT_OPS = Object.freeze(['start', 'end', 'boss', 'look']);
 
 const json = (/** @type {any} */ o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 
-// ─────────────────────────────── THE HUB ───────────────────────────────
-
-/** The book, read once a wake. @param {any} room @returns {Promise<import('../../src/net/staffEvent/staffEventLaw.js').StaffEvent[]>} */
+/** @param {any} room @returns {Promise<import('../../src/net/staffEvent/staffEventLaw.js').StaffEvent[]>} */
 async function bookOf(room) {
   if (!room._sevBook) {
     let v = null;
@@ -80,19 +38,18 @@ async function bookOf(room) {
 async function saveBook(room) {
   try { await room.state.storage.put(STAFF_EVENTS_KEY, { l: room._sevBook, b: [...(room._sevBoards ?? [])] }); } catch (e) { console.warn('[sev] write', /** @type {any} */ (e)?.message ?? e); }
 }
-/** The book as the game hears it. @param {any[]} l */
+/** @param {any[]} l */
 const bookFrame = (l) => JSON.stringify({ t: 'sev', k: 'ev', l });
-/** Said to everyone online (the hub's fan IS everyone online - EVENT1's law; on the bus, every shard's too). @param {any} room @param {string} s */
+/** @param {any} room @param {string} s */
 function fanAll(room, s) { for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, s); }
 
-/** The hub telling the event's cell (best effort: the cell asks the book again on its next word anyway) - COST-2 part two:
- *  the object of the node that holds the cell now (cellNodes.js cellCall). @param {any} room @param {any} e @param {object} body */
+/** @param {any} room @param {any} e @param {object} body */
 export async function tellCell(room, e, body) {
   try { const res = await cellCall(room.env, worldRoom(e.px, e.py), 0, SEV_INTERNAL_CALL, body, CALL_MS); return !!res?.ok; }
   catch (err) { console.warn('[sev] cell', /** @type {any} */ (err)?.message ?? err); return false; }
 }
 
-/** AN EVENT ENDS: out of the book, said to everyone, its cell told. @param {any} room @param {string} id @param {string} why */
+/** @param {any} room @param {string} id @param {string} why */
 async function endEvent(room, id, why) {
   const book = await bookOf(room);
   const e = book.find((x) => x.id === id);
@@ -102,22 +59,17 @@ async function endEvent(room, id, why) {
   await saveBook(room);
   fanAll(room, JSON.stringify({ t: 'sev', k: 'end', id, why }));
   fanAll(room, bookFrame(room._sevBook));
-  await tellCell(room, e, { id, op: 'end', ev: e });   // EVENT-EXTRAS: the event with it, so the cell can pay the earners of an event that ended with no boss fallen
+  await tellCell(room, e, { id, op: 'end', ev: e });
   return true;
 }
-/** The events past the end they were set to, ended. @param {any} room @param {number} now */
+/** @param {any} room @param {number} now */
 async function lapse(room, now) {
   for (const e of [...(await bookOf(room))]) if (staffEventLapsed(e, now)) await endEvent(room, e.id, 'time');
 }
-/** The book with each event's live state, as staff read it. @param {any} room */
+/** @param {any} room */
 const lookOf = (room) => room._sevBook.map((/** @type {any} */ e) => ({ ...e, live: room._sevLive.get(e.id) ?? null }));
 
-/**
- * A SIGNED STAFF EVENT ORDER TAKEN at the hub (index.js `_lawInternal`, past the Worker's verify; the hub verifies it
- * again with its own key in `_takeOrder`'s way, here by the caller). Answers `{ ok, l?, why? }` - `l` the book as staff read
- * it. A start whose id the book holds already is a replay (ok); a full book refuses a new one.
- * @param {any} room the hub @param {any} c the verified claims `{ o:'sevent', op, ev?, ei? }` @param {number} now
- */
+/** @param {any} room @param {any} c @param {number} now */
 export async function takeStaffEventOrder(room, c, now) {
   if (!STAFF_EVENT_OPS.includes(c?.op)) return { ok: false };
   await bookOf(room);
@@ -130,7 +82,7 @@ export async function takeStaffEventOrder(room, c, now) {
       room._sevBook = [...room._sevBook, e];
       await saveBook(room);
       fanAll(room, bookFrame(room._sevBook));
-      if (e.an) fanAll(room, JSON.stringify({ t: 'sev', k: 'an', id: e.id }));   // EVENT-EXTRAS: its start, said to everyone online (the words are the book's)
+      if (e.an) fanAll(room, JSON.stringify({ t: 'sev', k: 'an', id: e.id }));
     }
     return { ok: true, l: lookOf(room) };
   }
@@ -148,14 +100,10 @@ export async function takeStaffEventOrder(room, c, now) {
     await tellCell(room, e, { id: e.id, op: 'boss', fb: e.fb });
     return { ok: true, l: lookOf(room) };
   }
-  return { ok: true, l: lookOf(room), bd: [...room._sevBoards] };   // look - THE REWARD: and the boards kept, by event
+  return { ok: true, l: lookOf(room), bd: [...room._sevBoards] };
 }
 
-/**
- * THE HUB'S DOOR for a staff event's order (index.js `_lawInternal`): verified with the hub's own key, as a staff
- * message's is (staffMessage.js), then taken. Answers the door's body.
- * @param {any} room @param {unknown} order @param {number} now
- */
+/** @param {any} room @param {unknown} order @param {number} now */
 export async function takeStaffEventLaw(room, order, now) {
   if (typeof order !== 'string' || !order || order.length > 1024) return { ok: false };
   await room._loadKey();
@@ -165,27 +113,27 @@ export async function takeStaffEventLaw(room, order, now) {
   return takeStaffEventOrder(room, r.claims, now);
 }
 
-/** The book said to one joiner (a hello at the hub - its own socket's, or a shard's joiner on the bus). @param {any} room @param {any} ws @param {number} now */
+/** @param {any} room @param {any} ws @param {number} now */
 export async function sayStaffBook(room, ws, now) {
   await lapse(room, now);
   const book = await bookOf(room);
   if (book.length) room._send(ws, bookFrame(book));
 }
-/** A cell asking for the book. @param {any} room */
+/** @param {any} room */
 export async function staffBookInternal(room) {
   await lapse(room, Date.now());
   return json({ l: await bookOf(room) });
 }
-/** A cell telling an event's meter: kept for staff's look; an event its ledger says is done is ended. @param {any} room @param {Request} request */
+/** @param {any} room @param {Request} request */
 export async function staffTellInternal(room, request) {
   let body = null;
-  try { body = await request.json(); } catch { /* refused below */ }
+  try { body = await request.json(); } catch { }
   const t = validStaffEventTell(body?.t);
   const book = await bookOf(room);
   const e = t ? book.find((x) => x.id === t.id) : null;
   if (!t || !e) return json({ ok: false });
   room._sevLive.set(t.id, { ...t, at: Date.now() });
-  if (t.top && !room._sevBoards.has(t.id)) {   // THE REWARD: the board kept past the event's end, for staff's look (the panel's row)
+  if (t.top && !room._sevBoards.has(t.id)) {
     room._sevBoards.set(t.id, t.top);
     while (room._sevBoards.size > SEV_BOARDS_KEPT) room._sevBoards.delete(room._sevBoards.keys().next().value);
     await saveBook(room);
@@ -194,9 +142,7 @@ export async function staffTellInternal(room, request) {
   return json({ ok: true });
 }
 
-// ─────────────────────────────── THE PLACE'S CELL ───────────────────────────────
-
-/** The book as this cell last asked the hub - an event by id, or null. @param {any} room @param {string} id @param {number} now */
+/** @param {any} room @param {string} id @param {number} now */
 async function eventOf(room, id, now) {
   const c = room._sevCopy;
   const fresh = c && now - c.at < SEV_BOOK_FRESH_MS;
@@ -212,39 +158,38 @@ async function eventOf(room, id, now) {
     return l.find((/** @type {any} */ x) => x.id === id) ?? null;
   } catch (err) { console.warn('[sev] book', /** @type {any} */ (err)?.message ?? err); return e; }
 }
-/** An event's ledger in this cell (the instance's copy, else storage's). @param {any} room @param {any} e @param {number} now */
+/** @param {any} room @param {any} e @param {number} now */
 async function ledgerOf(room, e, now) {
   room._sevLed ??= new Map();
   let led = room._sevLed.get(e.id);
   if (!led) {
     let v = null;
-    try { v = await room.state.storage.get(STAFF_LEDGER_PREFIX + e.id); } catch { /* none */ }
+    try { v = await room.state.storage.get(STAFF_LEDGER_PREFIX + e.id); } catch { }
     led = v && typeof v === 'object' && v.id === e.id ? v : newStaffLedger(e, now);
     room._sevLed.set(e.id, led);
   }
   return led;
 }
 const rand32 = () => crypto.getRandomValues(new Uint32Array(1))[0];
-/** THE REWARD, paid once at the first boss's fall: the earners' receipts and the board kept on the ledger (said after,
- *  by `keep`). @param {any} room @param {any} led @param {number} now */
+/** @param {any} room @param {any} led @param {number} now */
 async function payReward(room, led, e, now) {
   led.rw = 1;
   led.rc = {};
   const key = await room._receiptKeyOf?.() ?? null;
   const nowS = Math.floor(now / 1000);
-  for (const { acct, rec, rank } of staffEventEarned(led, e.rk)) {   // EVENT-EXTRAS: the kills staff asked for; the receipt carries the kills and the gold
+  for (const { acct, rec, rank } of staffEventEarned(led, e.rk)) {
     try { led.rc[acct] = await mintStaffReceipt({ v: led.id, s: acct, c: rand32(), r: rank, h: Math.min(rec.h ?? 0, 9999), g: e.gd ?? 0 }, key, { subtle: crypto.subtle, nowS }); }
     catch (err) { console.warn('[sev] receipt refused', /** @type {any} */ (err)?.message ?? err); }
   }
   led.top = staffEventBoard(led, e.rk);
 }
-/** The board said to the place and each earner's receipt handed over - once, where a reward was just paid. @param {any} room @param {any} led */
+/** @param {any} room @param {any} led */
 function sayReward(room, led) {
   const bd = JSON.stringify({ t: 'sev', k: 'bd', id: led.id, top: led.top ?? [] });
   for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, bd);
   handReceipts(room, led);
 }
-/** Each earner's receipt to its account's newest socket here (one tab an account, the raid's AUDIT WBX S4). @param {any} room @param {any} led */
+/** @param {any} room @param {any} led */
 function handReceipts(room, led) {
   const newest = new Map();
   for (const [ws, b] of [...room._all()]) {
@@ -254,11 +199,10 @@ function handReceipts(room, led) {
   }
   for (const [sub, { ws }] of newest) room._send(ws, JSON.stringify({ t: 'sev', k: 'rc', id: led.id, r: led.rc[sub] }));
 }
-/** The ledger kept, said to the place, and told to the hub (at once when its boss moved or it is done). THE REWARD: at
- *  the first boss's fall, paid before a word of it is said. @param {any} room @param {any} led @param {any} e @param {number} now @param {boolean} urgent */
+/** @param {any} room @param {any} led @param {any} e @param {number} now @param {boolean} urgent */
 async function keep(room, led, e, now, urgent) {
   const done = staffEventDone(led, e);
-  const paying = (led.bk === 1 || !!done) && !led.rw;   // EVENT-EXTRAS: and when the event is done with no boss fallen (every monster down)
+  const paying = (led.bk === 1 || !!done) && !led.rw;
   if (paying) await payReward(room, led, e, now);
   try { await room.state.storage.put(STAFF_LEDGER_PREFIX + led.id, led); } catch (err) { console.warn('[sev] ledger', /** @type {any} */ (err)?.message ?? err); }
   const s = JSON.stringify({ t: 'sev', ...staffLedgerState(led) });
@@ -274,16 +218,10 @@ async function keep(room, led, e, now, urgent) {
   catch (err) { console.warn('[sev] tell', /** @type {any} */ (err)?.message ?? err); }
 }
 
-/**
- * A PLAYER'S WORD on the staff event whose place it stands in (index.js `_message`, `t: 'sev'`): heard in the place's own
- * cell alone (anywhere else junk), never in a layer, for an event the hub's book holds at this pixel, credited only from a
- * socket whose pose stands on the pixel, to the VERIFIED account (a guest's socket by its id). A count or a boss that
- * moved is kept, said to the place and told to the hub; else the speaker is answered with the ledger.
- * @param {any} room @param {any} ws @param {any} a its attachment @param {any} m validStaffEventIn's shape @param {number} now
- */
+/** @param {any} room @param {any} ws @param {any} a @param {any} m @param {number} now */
 export async function staffEventWord(room, ws, a, m, now) {
   if (junkOutsideCover(room, ws, a, worldRoom(m.px, m.py))) return;
-  if (a.ly) return;   // the place's ledger alone (a raid's law: a layer is another object for the same cell)
+  if (a.ly) return;
   const e = await eventOf(room, m.id, now);
   if (!e || e.px !== m.px || e.py !== m.py) return;
   const led = await ledgerOf(room, e, now);
@@ -293,29 +231,29 @@ export async function staffEventWord(room, ws, a, m, now) {
   const r = px === m.px && py === m.py ? foldStaffWord(led, e, acct, a.name ?? '', m, now) : { credited: 0, known: false, boss: false };
   if (called || r.credited > 0 || r.boss) { await keep(room, led, e, now, called || r.boss); return; }
   room._send(ws, JSON.stringify({ t: 'sev', ...staffLedgerState(led) }));
-  if (led.rc?.[acct]) room._send(ws, JSON.stringify({ t: 'sev', k: 'rc', id: led.id, r: led.rc[acct] }));   // THE REWARD: mine again (a reconnect)
+  if (led.rc?.[acct]) room._send(ws, JSON.stringify({ t: 'sev', k: 'rc', id: led.id, r: led.rc[acct] }));
 }
 
-/** The hub telling this cell: staff called one more boss (`op` boss, `fb` the call), or the event ended. @param {any} room @param {Request} request */
+/** @param {any} room @param {Request} request */
 export async function staffCallInternal(room, request) {
   let body = null;
-  try { body = await request.json(); } catch { /* refused below */ }
+  try { body = await request.json(); } catch { }
   if (typeof body?.id !== 'string' || !STAFF_EVENT_ID_RE.test(body.id)) return json({ ok: false }, 400);
   const now = Date.now();
   if (body.op === 'end') {
     const led = room._sevLed?.get(body.id);
     const e = validStaffEvent(body.ev);
-    if (led && e && e.id === body.id && !led.rw && !led.ended) {   // EVENT-EXTRAS: ended by staff or its clock before any pay - the fighters earned it all the same
+    if (led && e && e.id === body.id && !led.rw && !led.ended) {
       try { await payReward(room, led, e, now); if (led.top?.length || Object.keys(led.rc ?? {}).length) sayReward(room, led); } catch (err) { console.warn('[sev] end pay', /** @type {any} */ (err)?.message ?? err); }
     }
     if (led) led.ended = 1;
     room._sevCopy = null;
-    try { await room.state.storage.delete(STAFF_LEDGER_PREFIX + body.id); } catch { /* gone */ }
+    try { await room.state.storage.delete(STAFF_LEDGER_PREFIX + body.id); } catch { }
     room._sevLed?.delete(body.id);
     return json({ ok: true });
   }
   if (body.op === 'boss') {
-    room._sevCopy = null;   // the book's `fb` moved: asked again
+    room._sevCopy = null;
     const e = await eventOf(room, body.id, now);
     if (!e) return json({ ok: false });
     const led = await ledgerOf(room, e, now);

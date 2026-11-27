@@ -10,7 +10,6 @@ import { readFileSync } from 'node:fs';
 import { tavernServiceAct } from '../server-account/src/tavernService.js';
 import { TAVERN_RECIPES, TAVERN_INGREDIENTS, tavernOrder } from '../src/net/tavernServiceLaw.js';
 
-// Real SQLite constraints/rollback, the actual service handler and actual realm record mutation.
 export function fixture() {
   const sql = new DatabaseSync(':memory:');
   sql.exec(`CREATE TABLE realm_characters (id TEXT PRIMARY KEY, player TEXT, name TEXT DEFAULT 'Bard', dead_at INTEGER, seq INTEGER, lease TEXT, obj TEXT, prev TEXT, held TEXT,
@@ -46,7 +45,6 @@ export function fixture() {
     if (r.ok) { version = r.version; state = r.state; seq = r.realm?.seq ?? seq; }
     return { r, body };
   }
-  /** Start (or resume) the shift and pour the current order; the third dose puts the cup in hand. */
   async function pourOrder() {
     await call('start', { keeper: 'keeper', patrons: ['guest'] });
     const recipe = TAVERN_RECIPES.find((r) => r.id === tavernOrder(state).recipe);
@@ -54,7 +52,6 @@ export function fixture() {
     assert.equal(state.phase, 'carry');
     ctx.nowS += 21;
   }
-  /** One whole drink: pour it, then a single serve pays for it. */
   async function prepare() { await pourOrder(); return call('serve', { target: 'guest' }); }
   return { ctx, sql, call, prepare, pourOrder, player, id, lease, blobs, get state() { return state; } };
 }
@@ -81,7 +78,6 @@ test('concurrent serves with different request ids cannot double-pay', async () 
   const f = fixture(); await f.pourOrder();
   // Both statements may read the old version; SQLite batch guards reject one after the other commits.
   const body = { id: f.id, lease: f.lease, seq: 1, version: 7, where: '17:42', buildingKey: 42, target: 'guest', op: 'serve' };
-  // Read the real revision rather than assume how many preparation acts a recipe needed.
   body.version = f.sql.prepare('SELECT version FROM tavern_service').get().version;
   const results = await Promise.allSettled(['parallel_1', 'parallel_2'].map((txn) => tavernServiceAct(f.ctx, f.player, { ...body, txn })));
   assert.equal(results.filter((r) => r.status === 'fulfilled' && r.value.ok).length, 1, JSON.stringify(results));
@@ -218,5 +214,5 @@ test('a served Discord patron posts once and each Discord account can tip once',
   assert.equal((await tavernServiceAct(f.ctx, f.player, body)).replayed, true);
   assert.equal((await f.call('discord-tips')).r.discordGold, 0);
   const row = f.sql.prepare('SELECT obj FROM realm_characters').get();
-  assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 36 + 10); // the served drink's pay, then the tips
+  assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 36 + 10);
 });

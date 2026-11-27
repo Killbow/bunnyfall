@@ -1,39 +1,8 @@
 #!/usr/bin/env node
-// VE4 (2026-10-05, Mac: "Put it in the codebase") - VANILLA ENHANCED, VENDORED.
-//
-// carademono's Vanilla Enhanced ships as .dfmod bundles (Nexus Daggerfall Unity mod 273), and its sources are public at
-// github.com/drcarademono/vanilla-enhanced. This tool reads that repository AT THE COMMIT IT PINS and writes what the
-// port carries of three of its mods - the Base, Masked Roads, and Snowless Swamps and Jungles:
-//
-//   public/art/vanilla-enhanced/<mod>/<name>.png   every PNG the mod's own manifest names (`Files`), byte for byte,
-//                                                  under its asset name (the extension written lower case);
-//   public/art/vanilla-enhanced/<mod>/<archive>-TexArray_<slice>.png
-//                                                  a slice of one of the mod's texture arrays that no PNG it or the
-//                                                  Base ships draws - Masked Roads' road tiles - byte for byte from the
-//                                                  repository's own source picture for that slice;
-//   vendor/vanilla-enhanced/<title>.dfmod.json     each mod's manifest, verbatim;
-//   vendor/vanilla-enhanced/<mod>.files.json       each directory's listing - every file, the repository path it came
-//                                                  from and its sha256 - the authority test/tooling/doctrine.test.js reads;
-//   vendor/vanilla-enhanced/vanilla-enhanced.index.json
-//                                                  the name index each mod registers in the texture-mod door with
-//                                                  (systems/dfmodTextures.js), the shape buildDfmodIndex writes for an
-//                                                  attached bundle, and where each array's slices are served from.
-//
-// THE ARRAYS SHIP AS PNGS. A mod's `<archive>-TexArray` is the terrain archive's whole tile set (GROUND1), BC7 in the
-// bundle. This tool decodes every slice (formats/unity/unityBundle.js decodeTextureArray) and finds the picture it was made
-// from: the mod's own record PNG, else the repository's source picture for it. Only a slice within BC7's error of that
-// picture is carried (BC7_MEAN / BC7_MAX below; the measured worst is written into the listing), and it is served from
-// the picture - the Base's own record where it is that record, pixel for pixel. An array whose depth is not a terrain
-// archive's 56 is refused by Daggerfall Unity (TextureReplacement.cs:343, `textureArray.depth == depth`) and never
-// read, so it is indexed with its depth and no slices: the door's own refusal still happens.
-//
-// LEFT OUT: Winter Tracks (its 30 records are never reached while the Base's arrays dress the ground - Daggerfall
-// Unity's TryImportTextureArray takes the first mod carrying either name, and the Base carries both), Kokey's
-// Temperate (Kokey's own mod, not the family's), and every mod's Materials (the port has no Material reader - Ledger C,
-// A MOD'S MATERIALS).
-//
-//   node tools/vanillaEnhancedVendor.mjs <vanilla-enhanced clone>            check the committed tree against it
-//   node tools/vanillaEnhancedVendor.mjs <vanilla-enhanced clone> --write    write it
+// Vendors three Vanilla Enhanced mods from a clone at the pinned commit into public/art/vanilla-enhanced/ and
+// vendor/vanilla-enhanced/.
+// Texture array slices ship as the PNG each was made from, and only within BC7's error of it.
+// Usage: node tools/vanillaEnhancedVendor.mjs <clone> [--write]   (without --write it checks the committed tree)
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
@@ -46,34 +15,27 @@ import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const VE_REPO = 'https://github.com/drcarademono/vanilla-enhanced';
-/** The commit read: "HD dungeon textures, snowless swamps and jungles" (2025-05-08), the manifests' 3.4.7. */
 export const VE_COMMIT = 'c0c9041c101ba8b57feb93258dda7a37be1b9433';
 const ASSET_ROOT = 'Assets/Game/Mods/vanilla-enhanced/';
 export const ART = 'public/art/vanilla-enhanced';
 export const VENDOR = 'vendor/vanilla-enhanced';
-/** The mods carried, in the order the index lists them, each under its own directory. */
 export const VE_MODS = Object.freeze([
   Object.freeze({ title: 'Vanilla Enhanced - Base', dir: 'base' }),
   Object.freeze({ title: 'Vanilla Enhanced - Masked Roads', dir: 'masked-roads' }),
   Object.freeze({ title: 'Vanilla Enhanced - Snowless Swamps and Jungles', dir: 'snowless-swamps-and-jungles' }),
 ]);
-/** A terrain archive's record count - TEXTURE.002..404's 56. An array of another depth is refused (see above). */
+// Classic Daggerfall refuses a texture array whose depth is not 56, so such an array is indexed with no slices.
 const TERRAIN_RECORDS = 56;
-/** BC7's error on these tile sets: the mean absolute channel error and the worst channel error a slice may show
- *  against the picture it was made from. Measured at the pinned commit: every slice carried is at most 0.82 and 34 from
- *  its picture, and the nearest a Masked Roads road tile (records 46, 47 and 55) comes to the Base record it replaces
- *  is 5.20 and 78 - the bounds sit in that gap. */
+// These bounds sit between the worst carried slice (0.82 mean, 34 max) and the nearest replaced road tile
+// (5.20 mean, 78 max).
 export const BC7_MEAN = 1.5;
 export const BC7_MAX = 48;
 
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 const decodePng = (bytes) => { const p = PNG.sync.read(bytes); return { width: p.width, height: p.height, data: p.data }; };
-/** A manifest's text, its byte-order mark off. */
 const manifestJson = (bytes) => JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/, ''));
-/** The asset name of a repository path: the file's name without its extension. */
 const assetName = (p) => basename(p).replace(/\.[^.]+$/, '');
 
-/** A Texture2DArray `.asset` (Unity's text serialisation): the fields decodeTextureArray reads. */
 function readArrayAsset(bytes) {
   const t = bytes.toString('utf8');
   const num = (k) => { const m = new RegExp(`\\n\\s*${k}: (\\d+)`).exec(t); if (!m) throw new Error(`no ${k}`); return Number(m[1]); };
@@ -85,8 +47,6 @@ function readArrayAsset(bytes) {
   };
 }
 
-/** Mean and worst absolute colour-channel difference of two top-down RGBA pictures of one size (alpha aside: a ground
- *  tile is opaque). */
 export function channelError(a, b) {
   if (a.width !== b.width || a.height !== b.height) return null;
   let sum = 0, max = 0;
@@ -99,7 +59,6 @@ const samePixels = (a, b) => a.width === b.width && a.height === b.height && Buf
 const within = (e) => !!e && e.mean <= BC7_MEAN && e.max <= BC7_MAX;
 const round2 = (x) => Math.round(x * 100) / 100;
 
-/** Everything the tool writes, built in memory from the clone: Map<repo-relative output path, Buffer>. */
 export function build(clone) {
   const out = new Map();
   const report = [];
@@ -109,7 +68,6 @@ export function build(clone) {
     return { ...m, manifestBytes: bytes, manifest: manifestJson(bytes) };
   });
   const toRepo = (f) => { if (!f.startsWith(ASSET_ROOT)) throw new Error(`${f}: outside ${ASSET_ROOT}`); return f.slice(ASSET_ROOT.length); };
-  // every record PNG a carried mod ships, by mod: asset name -> { from, bytes, pic }
   const records = new Map();
   for (const m of mods) {
     const recs = new Map();
@@ -127,7 +85,7 @@ export function build(clone) {
   const index = { Pack: 'Vanilla Enhanced', Source: VE_REPO, Commit: VE_COMMIT, Root: 'art/vanilla-enhanced', Mods: [] };
   for (const m of mods) {
     const recs = records.get(m.dir);
-    const files = new Map();   // served basename -> { from, bytes }
+    const files = new Map();
     for (const r of recs.values()) files.set(`${r.name}.png`, { from: r.from, bytes: r.bytes, kind: 'record' });
     const arrays = [];
     const slices = {};
@@ -138,7 +96,7 @@ export function build(clone) {
       const am = /^(\d+)-TexArray$/i.exec(arr.m_Name);
       if (!am) throw new Error(`${from}: ${arr.m_Name} is not an <archive>-TexArray`);
       arrays.push([arr.m_Name, arr.m_Width, arr.m_Height, arr.m_Depth]);
-      if (arr.m_Depth !== TERRAIN_RECORDS) {   // refused by DFU at every read - indexed, never drawn
+      if (arr.m_Depth !== TERRAIN_RECORDS) {
         slices[arr.m_Name] = [];
         report.push(`${m.dir} ${arr.m_Name}: depth ${arr.m_Depth}, refused (no slices carried)`);
         continue;
@@ -154,7 +112,6 @@ export function build(clone) {
         const srcPath = [`${folder}/${recName}.png`, `${folder}/${recName}.PNG`].find((p) => existsSync(repo(p))) ?? null;
         const source = srcPath ? { from: srcPath, bytes: readFileSync(repo(srcPath)) } : null;
         if (source) source.pic = decodePng(source.bytes);
-        // the picture the slice was made from: the mod's own record, else the repository's source for it
         const candidates = [own && { ...own, kind: 'own' }, source && { ...source, kind: 'source' }].filter(Boolean);
         let pick = null, err = null;
         for (const c of candidates) { const e = channelError(decoded[i], c.pic); if (within(e)) { pick = c; err = e; break; } }
@@ -166,7 +123,7 @@ export function build(clone) {
         if (pick.kind === 'own') path = `${m.dir}/${pick.name}.png`;
         else {
           const b = base.get(recName.toLowerCase());
-          if (b && samePixels(b.pic, pick.pic)) path = `base/${b.name}.png`;   // the Base's own record, pixel for pixel
+          if (b && samePixels(b.pic, pick.pic)) path = `base/${b.name}.png`;
           else {
             const name = `${arr.m_Name}_${i}.png`;
             files.set(name, { from: pick.from, bytes: pick.bytes, kind: 'slice' });
@@ -183,7 +140,6 @@ export function build(clone) {
     }
     arrays.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     const byName = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
-    // the files of this directory
     const names = [...files.keys()].sort();
     for (const n of names) out.set(`${ART}/${m.dir}/${n}`, files.get(n).bytes);
     out.set(`${VENDOR}/${m.title}.dfmod.json`, m.manifestBytes);

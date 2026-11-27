@@ -1,8 +1,5 @@
 // @ts-check
 
-// The workstation layout: a toolbar over three columns and a bottom panel, with splitters that resize and
-// buttons that fold a panel away. Sizes are kept in the browser.
-
 import { h } from './dom.js';
 
 const KEY = 'bunnyfall.worldbuilder.layout';
@@ -10,9 +7,9 @@ const DEFAULTS = { left: 300, right: 320, bottom: 190, split: 0.5 };
 
 export function createLayout(/** @type {HTMLElement} */ root, storage = globalThis.localStorage) {
   let sz = { ...DEFAULTS };
-  try { sz = { ...DEFAULTS, ...JSON.parse(storage?.getItem(KEY) ?? '{}') }; } catch { /* default sizes */ }
+  try { sz = { ...DEFAULTS, ...JSON.parse(storage?.getItem(KEY) ?? '{}') }; } catch { }
   const fold = { left: false, right: false, bottom: false };
-  const save = () => { try { storage?.setItem(KEY, JSON.stringify(sz)); } catch { /* blocked */ } };
+  const save = () => { try { storage?.setItem(KEY, JSON.stringify(sz)); } catch { } };
   const apply = () => {
     root.style.setProperty('--left-w', `${fold.left ? 0 : sz.left}px`);
     root.style.setProperty('--right-w', `${fold.right ? 0 : sz.right}px`);

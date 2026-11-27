@@ -50,7 +50,7 @@ export function createSeaBounty(deps) {
     void act({
       reserve: () => deps.wallet?.(region)?.pay(n),
       call: (/** @type {any} */ at) => doorNow().post({ character: deps.character(), realm: at, region, target: row.char, gold: n, rid }),
-    }, (d) => (d.repeat ? t('sea.bounty.repeat', 'That bounty was already posted.') : t('sea.bounty.posted', 'You post {gold} gold on {name}\'s head. The bounty stands at {bounty} gold.', { gold: gold(n), name: row.name, bounty: gold(d.bounty) })));
+    }, (d) => (d.repeat ? t('sea.bounty.repeat', 'That bounty was already posted.') : t('sea.bounty.posted', 'You post {gold} gold on {name}\'s head. The bounty is now {bounty} gold.', { gold: gold(n), name: row.name, bounty: gold(d.bounty) })));
   }
   function collect() {
     if (!on() || busy) return;
@@ -58,7 +58,7 @@ export function createSeaBounty(deps) {
     void act({
       apply: (/** @type {any} */ a) => { const g = a?.data?.gold; if (Number.isSafeInteger(g) && g > 0) deps.wallet?.(region)?.bank(g); },
       call: (/** @type {any} */ at) => doorNow().collect({ character: deps.character(), realm: at, region }),
-    }, (d) => (d.gold > 0 ? t('sea.bounty.collected', 'You collect {gold} gold in bounties. It is in your account here.', { gold: gold(d.gold) }) : t('sea.bounty.nothing', 'Nothing is owed you.')));
+    }, (d) => (d.gold > 0 ? t('sea.bounty.collected', 'You collect {gold} gold in bounties, deposited into your bank account here.', { gold: gold(d.gold) }) : t('sea.bounty.nothing', 'No gold is owed to you.')));
   }
   async function prizesAct(/** @type {any} */ fn) {
     if (!on() || busy) return;

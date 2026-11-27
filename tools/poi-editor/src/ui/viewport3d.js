@@ -1,10 +1,5 @@
 // @ts-check
 
-// The 3D viewport: WebGL2 for the scene, a 2D canvas on top for text and the selection box.
-// It draws the document in the POI's own frame (metres, +x east, +y up, +z north) and never pretends to be the world:
-// there is no terrain here, and the banner says so. It reads the document and the selection each frame
-// and tells the editor what the builder did through `on`.
-
 import { surfaceGrid, groundInFrame, pixelToPoiMatrix } from '../terrain.js';
 import { multiply } from '../../../../src/world/mat4.js';
 import { rayBox, mountOnSurface, lightSpot } from '../interior.js';
@@ -45,7 +40,6 @@ function program(gl, vs, fs) {
   return p;
 }
 
-/** The eight corners of a box `[min, max]` as 12 line segments (24 points). */
 function boxLines(min, max) {
   const c = (i) => [i & 1 ? max[0] : min[0], i & 2 ? max[1] : min[1], i & 4 ? max[2] : min[2]];
   const e = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
@@ -124,7 +118,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     return { vbo, ibo, subs: m.subMeshes, min, max };
   }
 
-  // ── what a node is, in the POI's frame ──
   /** @returns {{ model: number[], min: number[], max: number[], model3d?: any } | null} */
   function placed(kind, row) {
     if (kind === 'part') {
@@ -155,7 +148,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     return { lo, hi };
   }
 
-  /** Every drawable node with its box, tree order. */
   function nodes() {
     const doc = getDoc();
     if (!doc) return [];
@@ -168,8 +160,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     return out;
   }
 
-  // ── drawing ──
-  /** The view matrix of the frame being drawn: lines are cut at the near plane here, because some drivers drop a line that crosses the eye. */
   let curView = null;
   function nearClip(pts) {
     if (!curView || cam.mode !== 'persp') return pts;
@@ -194,7 +184,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     g.drawArrays(g.LINES, 0, pts.length / 3);
   }
 
-  /** The ground around the POI as lines, in the POI's frame; rebuilt only when the place changes. */
   let terrainKey = '', terrainPts = /** @type {number[] | null} */ (null);
   function terrainLines() {
     const doc = getDoc();
@@ -214,7 +203,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     return pts;
   }
 
-  /** The land round the POI as a lit surface (about 1.2 km each way), in the POI's frame; rebuilt when the place moves. */
   let landKey = '', land = /** @type {any} */ (null);
   function landMesh() {
     const doc = getDoc();
@@ -239,7 +227,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     return land;
   }
 
-  /** The game's own buildings round the POI, in the POI's frame: `{ name, items: [{ id, m }], box }`; rebuilt when the place moves. */
   let surroundKey = '', surround = /** @type {any} */ (null);
   function surroundings() {
     const doc = getDoc();
@@ -266,8 +253,8 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
       else { (isMajor ? major : minor).push(cx + i, 0, cz - span, cx + i, 0, cz + span); minor.push(cx - span, 0, cz + i, cx + span, 0, cz + i); }
     }
     lines(minor, [0.35, 0.37, 0.42, 0.55]); lines(major, [0.5, 0.52, 0.6, 0.8]);
-    lines([-span * 2, 0.01, 0, span * 2, 0.01, 0], [0.85, 0.3, 0.3, 1], 2);   // +x east
-    lines([0, 0.01, -span * 2, 0, 0.01, span * 2], [0.3, 0.5, 0.9, 1], 2);    // +z north
+    lines([-span * 2, 0.01, 0, span * 2, 0.01, 0], [0.85, 0.3, 0.3, 1], 2);
+    lines([0, 0.01, -span * 2, 0, 0.01, span * 2], [0.3, 0.5, 0.9, 1], 2);
     lines([0, 0, 0, 0, span, 0], [0.3, 0.8, 0.4, 1], 2);
     void m;
   }
@@ -328,7 +315,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     drawHud(W, H, aspect, mm);
   }
 
-  /** The DM's content in the scene: routes as splines, encounters, zones and objects. The selected one is orange. */
   function drawDm() {
     const doc = getDoc();
     if (!doc || doc.v !== 2 || !state.showDm) return;
@@ -354,7 +340,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     }
   }
 
-  /** Text for the DM's content: where each thing is, named, so the picture can be read. */
   function dmLabels(text, aspect, dpr) {
     const doc = getDoc();
     if (!doc || doc.v !== 2 || !state.showDm) return;
@@ -372,7 +357,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     lines([...a, ...b, ...b, b[0], b[1] + h, b[2], b[0], b[1] + h, b[2], a[0], a[1] + h, a[2], a[0], a[1] + h, a[2], ...a], c, 1);
   }
 
-  // ── the gizmo ──
   function gizmo(aspect, H) {
     const ids = movable(getDoc() ?? {}, getSel());
     if (!ids.length || state.mode === 'select') return null;
@@ -426,7 +410,6 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     void mm;
   }
 
-  // ── input ──
   /** @type {{ nx: number, ny: number } | null} */ let cursor = null;
   /** @type {string | null} */ let hover = null;
   /** @type {string | null} */ let hangFor = null;
@@ -560,18 +543,14 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     camera: cam, state, dirty,
     setMode(m) { state.mode = m; dirty(); },
     setCamera(mode) { cam.mode = mode; dirty(); },
-    /** Show or hide the grid, the ground and the collision overlay. */
     setShow(o) { for (const k of ['showGrid', 'showTerrain', 'showCollision', 'showDm', 'showSurround']) if (typeof o?.[k] === 'boolean') state[k] = o[k]; dirty(); },
     show: () => ({ grid: state.showGrid, terrain: state.showTerrain, collision: state.showCollision, dm: state.showDm, surround: state.showSurround }),
     refresh: dirty,
-    /** The next click hangs this mount on the surface it hits (a part's face, or the ground). */
     armHang(id) { hangFor = id; canvas.style.cursor = 'crosshair'; dirty(); },
     hanging: () => hangFor,
-    /** The next click gives a point on the ground (snapped, on the terrain when there is one) to `done`. */
     armPick(what, done) { pickFor = { what, done }; canvas.style.cursor = 'crosshair'; dirty(); },
     cancelPick() { pickFor = null; hangFor = null; canvas.style.cursor = ''; dirty(); },
     picking: () => pickFor !== null,
-    /** Frame the selection, or everything. */
     frameSelection() {
       const sel = new Set(getSel());
       const list = nodes().filter((n) => !n.hidden && (!sel.size || sel.has(n.id)));
@@ -581,9 +560,7 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
       frame(cam, lo.map((v, k) => (v + hi[k]) / 2), Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2);
       dirty();
     },
-    /** The ground point (y 0) under a client point, in the POI's frame, or null. */
     groundAtClient(clientX, clientY) { const r = canvas.getBoundingClientRect(); return groundAt(rayAt(cam, aspectNow(), ((clientX - r.left) / r.width) * 2 - 1, -(((clientY - r.top) / r.height) * 2 - 1)), 0); },
-    /** Where the 3D box of a node is, for the inspector and the tests. */
     boxes: () => nodes().map((n) => ({ id: n.id, lo: n.box.lo, hi: n.box.hi, hidden: n.hidden, frozen: n.frozen })),
   };
 }

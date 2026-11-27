@@ -28,6 +28,7 @@ invariants:
   - "Only `LycanthropyTypes` `1` (werewolf) adopts the Bloodmoon body (`WOLFSKIN` and `WOLFSKIN_1ST` in `src/combat/fpArm.js`); wereboars keep the human Morrowind body."
   - "Transformed wolves wear only `WEREWOLF_ROBE_ID` (`werewolfrobe` `CLOT` in the Robe slot, `src/formats/mwItemMap.js`), key claws as an empty hand without equipping weapons or spells, and animate solely from wolf `.kf` sources (`fpAnimSources`, `tpAnimSources`)."
   - "`src/combat/weaponRig.js` calls `fpArm.setWerewolf` before checking paralysis and `fpArm.ready()` so refused wolf builds fall back cleanly to classic lycanthrope sprites and claws."
+  - "`rawToggleSheath` (`src/combat/weaponRig.js`) plays the equip sound only when the weapon in hand is not `werecreatureClaws`, so the claws draw with no sound."
 traps:
   - "Missing Bloodmoon BSA (`meshes/wolf/skin.1st.nif`) or missing `Bloodmoon.esm` (`werewolfrobe`) refuses the entire wolf build in both views (a first-person refusal refuses the whole wolf)."
   - "Peer `wb` transitions (`peerIsWolf(shown)` when `(shown.wb | 0) === 1`) within `BODY_REBUILD_MS` (`10000` ms in `src/net/peerBodies.js`) wait out the remaining cooldown, and `peerRiders.js` defers unmounted werewolves until `wolfStands(id)` settles to prevent double-drawing."

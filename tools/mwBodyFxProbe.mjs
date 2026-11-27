@@ -1,16 +1,5 @@
-// MWNPC5 LIVE PROOF: A FOE'S TELLS ON ITS BODY - IN A REAL BROWSER.
-//
-// test/render/mwnpc5_bodyfx.test.js holds the uniforms each quad sends and the box's padding on a recording GL. What it cannot
-// say is that the shader compiles and that the picture changes the way the billboards' does. This draws one fixture body
-// (the GPU-skinned rig of MWNPC1) plain, then with each tell, reads the frame back each time and compares with the plain:
-//   - the glint: texels OFF the plain silhouette lit (the outline) and the body lifted toward the colour;
-//   - the elite: an outline too, and over a second of its clock, embers above the head;
-//   - the dissolve at a half: body texels gone;
-//   - none of them: the plain frame exactly;
-//   - and batched beside two neighbours, the frame each body's own pass draws, texel for texel: no outline or ember
-//     reads a neighbour's tile (the tile clamp).
-//
-// Usage: node tools/mwBodyFxProbe.mjs
+// Browser probe for the glint, elite, and dissolve effects on a GPU-skinned body, compared with the plain frame.
+// Usage: node tools/mwBodyFxProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -50,7 +39,6 @@ try {
   });
   ok(boot.ok, `the fixture bodies build (${boot.error ?? 'ok'})`);
 
-  /** one frame: body 0 at the centre with `fx`; `others` also draws bodies 1 and 2 beside it (batched when `batched`) */
   const frame = (fx, { batched = false, others = false } = {}) => page.evaluate(({ fx, batched, others }) => {
     const r = window.__r, m = window.__mat4, cv = window.__cv;
     const proj = m.mirrorProjectionX(m.perspective(0.9, 640 / 480, 0.05, 100));
@@ -60,7 +48,7 @@ try {
     if (batched) r.beginCharacterSpriteBatch();
     const at = [[0, 0, 0], [-0.55, 0, 0], [0.55, 0, 0]];
     const drew = [];
-    // yaw a quarter turn: the fixture's arm meshes are flat, and side-on they are a line
+    // A quarter-turn yaw, because the fixture's arm meshes are flat and read as a line side-on.
     for (let i = 0; i < (others ? 3 : 1); i++) drew.push(window.__rigs[i].drawThird(cv, { proj, view, eye, feet: at[i], yaw: 1.57, grow: 30, fx: i === 0 ? fx : null }));
     if (batched) r.flushCharacterSpriteBatch();
     const gl = r.gl;
@@ -71,7 +59,8 @@ try {
     return { drew, w, h, px: Array.from(px) };
   }, { fx, batched, others });
 
-  await frame(null, { others: true });   // warm: the sprite target and every program made before a frame is compared
+  // A warm-up frame, so the sprite target and every program exist before frames are compared.
+  await frame(null, { others: true });
   const plain = await frame(null);
   ok(plain.drew.every(Boolean), 'the body drew');
   const clear = [plain.px[0], plain.px[1], plain.px[2]];
@@ -81,8 +70,8 @@ try {
     for (let i = 0; i < a.px.length; i += 4) {
       const pa = isClear(a.px, i), pb = isClear(b.px, i);
       if (!pa) body++;
-      if (pa && !pb) outside++;   // b lit a texel a left clear: an outline, an ember
-      else if (!pa && pb) gone++;   // b cleared a texel a drew: dissolved
+      if (pa && !pb) outside++;
+      else if (!pa && pb) gone++;
       else if (!pa && !pb) { if (a.px[i] !== b.px[i] || a.px[i + 1] !== b.px[i + 1] || a.px[i + 2] !== b.px[i + 2]) inside++; else same++; }
     }
     return { outside, inside, gone, same, body };
@@ -117,8 +106,6 @@ try {
   ok(d.gone > d.body * 0.2, `the dissolve at a half takes the body away (${d.gone} of ${d.body} gone)`);
   ok(d.outside === 0, `and draws no outline while it burns (${d.outside})`);
 
-  // the tile clamp: a body drawn alone takes its own pass, its picture in the corner with nothing beside it - so the
-  // batched frame, the glinting body's tile packed against its neighbours', must be that frame texel for texel
   const G = { glint: [1, 0.2, 0.1, 1], elite: 1, time: 0.7, dissolve: null };
   const loneFx = await frame(G, { others: true });
   const batchFx = await frame(G, { others: true, batched: true });
@@ -127,10 +114,6 @@ try {
   const lit = compare(await frame(null, { others: true }), loneFx).outside;
   ok(lit > 40, `three bodies, the centre one glinting and elite: its outline drawn (${lit} texels)`);
   ok(differ === 0, `and batched, the frame drawn alone texel for texel - no outline or ember read off a neighbour's tile (${differ} differ)`);
-  // THE CLAMP ITSELF: a tile of nothing ringed by ink. The sprite target filled opaque, a 64-texel square at (100, 100)
-  // cleared to nothing, and a glinting, elite quad drawn over that square alone. Clamped to its tile, every fragment
-  // finds nothing within two texels and nothing below it: no outline, no ember - nothing drawn. Reading the target
-  // past the tile, the square's border would ring with the outline off its neighbour's ink.
   const ringed = await page.evaluate(() => {
     const r = window.__r, m = window.__mat4, gl = r.gl;
     const proj = m.mirrorProjectionX(m.perspective(0.9, 640 / 480, 0.05, 100));
@@ -154,7 +137,6 @@ try {
       let ink = 0; for (let i = 0; i < px.length; i += 4) if (px[i] || px[i + 1] || px[i + 2]) ink++;
       return ink;
     };
-    // the control: the same quad one texel into the ink - its own tile now holds ink, and the outline must show
     const glint = { glint: [1, 1, 0, 1], elite: 1, time: 0.7, dissolve: null };
     const empty = draw(glint);
     const ctl = (() => {

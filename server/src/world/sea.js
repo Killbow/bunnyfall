@@ -1,5 +1,3 @@
-// The guns of the open sea as the relay referees them: helms, shots, boardings, and wrecks.
-// A wreck is armed on the room alarm and signed once boarded or when its time runs out.
 import { seaHelm, seaBoard, seaShot, SEA_WRECK_PREFIX, SEA_REF, seaStep } from '../../../src/net/sea/seaRef.js';
 import { duelBoutOf } from '../../../src/net/duelRef.js';
 import { wildKin } from '../../../src/net/wildRef.js';

@@ -1,4 +1,3 @@
-// The `bard` frame's handler, called by message/dispatch.js with the room as `this`.
 import { BARD_GAP_MS } from '../bardGap.js';
 import { validTune } from '../../../../src/net/bardTune.js';
 

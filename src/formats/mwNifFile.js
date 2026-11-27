@@ -1,32 +1,5 @@
-// NetImmerse NIF reader for Morrowind-era files (version 4.0.0.2 only).
-// Original implementation written against the niftools nifxml spec;
-// OpenMW's components/nif used as behavioral reference only (GPL - no code
-// ported). Scene graph, tri geometry, skinning data, render properties,
-// extra data, keyframes, particles, lights and effects - the whole
-// Morrowind-era registry.
-//
-// KNOWINGLY ABSENT, with the reason each cannot appear in a 4.0.0.2 file:
-//   NiSkinPartition   - its SkinPartition struct is ver1 4.2.1.0, so the
-//                       record has no body at this version.
-//   NiAlphaAccumulator, NiClusterAccumulator, NiFltAnimationNode - OpenMW
-//                       registers all three, but nif.xml declares no
-//                       layout for any of them, and a guessed field list
-//                       is worse than a named refusal.
-// Anything else that throws is a real gap: the message names the type.
-//
-// 4.0.0.2 records carry NO size field, so an unknown record type makes the
-// rest of the stream unreadable - there is nothing to skip over. The reader
-// is therefore strict: any type outside the registry throws with the type
-// name and record index, which is exactly the signal that tells the next
-// slice what to implement.
-//
-// File layout:
-//   Header line "NetImmerse File Format, Version 4.0.0.2\n" (0x0A-terminated)
-//   uint32 version (0x04000002), uint32 recordCount
-//   recordCount x { sizedString typeName, payload }   - little-endian
-//   Footer: uint32 rootCount, int32 rootRefs[rootCount]
-// Refs are int32 indices into the record list, -1 for null. Matrices are
-// row-major 3x3 (Float32Array(9)). Sized strings are uint32 length + bytes.
+// Reads Morrowind NIF files, version 4.0.0.2 only. Records at this version carry no size field, so one unknown
+// record type leaves the rest of the stream unreadable. The reader throws with the type name and record index.
 
 export const MW_NIF_VERSION = 0x04000002;
 
@@ -65,11 +38,9 @@ class NifStream {
     this.pos += 4;
     return v;
   }
-  /** 32-bit bool as used throughout 4.0.0.2. */
   bool() {
     return this.u32() !== 0;
   }
-  /** uint32 length-prefixed string, latin1 bytes. */
   string() {
     const len = this.u32();
     if (len > 0xffff || this.pos + len > this.bytes.byteLength) {
@@ -94,11 +65,9 @@ class NifStream {
     for (let i = 0; i < 9; i++) m[i] = this.f32();
     return m;
   }
-  /** Record ref: int32 index, -1 for null. */
   ref() {
     return this.i32();
   }
-  /** uint32 count + that many refs. */
   refList() {
     const n = this.u32();
     const out = new Array(n);
@@ -122,9 +91,6 @@ class NifStream {
   }
 }
 
-// --- shared bases -----------------------------------------------------------
-
-/** NIF key interpolation types. */
 export const KEY_TYPE = Object.freeze({
   linear: 1,
   quadratic: 2,
@@ -133,7 +99,6 @@ export const KEY_TYPE = Object.freeze({
   constant: 5,
 });
 
-/** NiTimeController base: chain link, timing, and the target it drives. */
 function readTimeController(s, rec) {
   rec.next = s.ref();
   rec.flags = s.u16();
@@ -144,19 +109,7 @@ function readTimeController(s, rec) {
   rec.target = s.ref();
 }
 
-/**
- * KeyGroup<T> of `dim`-component float values: uint32 count, then (only
- * when count > 0) uint32 interpolation type and the keys.
- *
- * MW-D33: quadratic keys carry TWO tangents and the reference names the
- * stream order - value, then mInTan, then mOutTan (readQuadratic,
- * nifkey.hpp:141-143). The sampler's Hermite then uses key0's OUT
- * tangent and key1's IN tangent (controller.hpp:158), i.e. the SECOND
- * stream field of the left key and the FIRST of the right. The port had
- * read them as forward/backward and sampled forward-of-left - the two
- * fields swapped both ways. TCB keys carry tension/continuity/bias
- * (readTCBKey, nifkey.hpp:159-163).
- */
+// Quadratic keys store the value, then the in tangent, then the out tangent, matching OpenMW's readQuadratic.
 function readKeyGroupOf(s, val) {
   const count = s.u32();
   const group = { type: 0, keys: [] };
@@ -179,14 +132,12 @@ function readKeyGroup(s, dim) {
   return readKeyGroupOf(s, dim === 1 ? () => s.f32() : () => s.f32Array(dim));
 }
 
-/** NiObjectNET: name, extra-data chain head, controller chain head. */
 function readObjectNET(s, rec) {
   rec.name = s.string();
   rec.extra = s.ref();
   rec.controller = s.ref();
 }
 
-/** transform + velocity + properties + optional bounding volume. */
 function readAVObject(s, rec) {
   readObjectNET(s, rec);
   rec.flags = s.u16();
@@ -215,42 +166,13 @@ function readNode(s, rec) {
   rec.effects = s.refList();
 }
 
-/**
- * RULE 34's SET: every record type that runs NiNode::read, which is what
- * the rule is attached to. The five aliases OpenMW registers as plain
- * NiNode (AvoidNode, NiBSAnimationNode, NiBSParticleNode,
- * RootCollisionNode) or as NiNode subclasses (NiBillboardNode,
- * NiSwitchNode, NiLODNode, NiSortAdjustNode) all reach it;
- * NiTriShape and everything else do not, and the rule's own comment says
- * so: "Only for NiNode-s for now".
- */
 const NI_NODE_TYPES = new Set([
   'NiNode', 'RootCollisionNode', 'NiBSAnimationNode', 'NiBSParticleNode',
   'AvoidNode', 'NiBillboardNode', 'NiSwitchNode', 'NiLODNode', 'NiSortAdjustNode',
 ]);
 
-/**
- * RULE 34, and the doc marks it CRITICAL:
- *
- *   // Discard transformations for the root node, otherwise some meshes
- *   // occasionally get wrong orientation. Only for NiNode-s for now...
- *   if (mRecordIndex == 0 && !Misc::StringUtils::ciEqual(mName, "bip01"))
- *       mTransform = Nif::NiTransform::getIdentity();
- *                                              (nif/node.cpp:170-192)
- *
- * It happens IN THE PARSER, so every consumer - render loader, collision
- * loader, animation - sees identity and none of them can opt out. Two
- * halves, and a port that takes only one breaks the opposite half of the
- * data: applying the stored transform mis-orients every mesh whose
- * author left one on the root, and zeroing it UNCONDITIONALLY breaks
- * every skeleton whose root is named Bip01 - which is also why a Bip01
- * root survives as a real transform node and can be found by name later
- * (rule 56's accum root).
- *
- * RECORD INDEX 0, not "a root": the rule is indexed on the record's
- * position in the file, and the reference's own FIXME says so ("if node
- * 0 is *not* the only root node, this must not happen").
- */
+// Matches OpenMW: when record 0 is a node not named Bip01, the parser resets its transform to identity, so every
+// consumer sees it. A Bip01 root keeps its transform for skeletons.
 function discardRootTransform(records) {
   const rec = records[0];
   if (!rec || !NI_NODE_TYPES.has(rec.type)) return;
@@ -260,7 +182,6 @@ function discardRootTransform(records) {
   rec.scale = 1;
 }
 
-/** Shared vertex payload of NiTriShapeData (4.0.0.2 flavor). */
 function readGeometryData(s, rec) {
   rec.numVertices = s.u16();
   rec.vertices = s.bool() ? s.f32Array(rec.numVertices * 3) : null;
@@ -268,29 +189,19 @@ function readGeometryData(s, rec) {
   rec.center = s.vec3();
   rec.radius = s.f32();
   rec.colors = s.bool() ? s.f32Array(rec.numVertices * 4) : null;
-  // For 4.0.0.2 the full uint16 is the UV set count, gated by a has-UV bool.
   const declaredUVs = s.u16();
   const numUVs = s.bool() ? declaredUVs : 0;
   rec.uvSets = [];
   for (let i = 0; i < numUVs; i++) rec.uvSets.push(s.f32Array(rec.numVertices * 2));
 }
 
-/**
- * NiExtraData base at 4.0.0.2: the chain link and the byte count the
- * exporter wrote for the payload. `Name` is ver1 10.0.1.0 and the inline
- * ByteArray is ver2 3.3.0.13, so neither exists here.
- */
 function readExtraData(s, rec) {
   rec.next = s.ref();
   rec.recordSize = s.u32();
 }
 
-/**
- * NiDynamicEffect: an AV object plus the nodes the effect reaches. At
- * exactly 4.0.0.2 the list is raw uint32 pointers (nif.xml gates the ref
- * form to ver2 3.3.0.13 and the ver1 10.1.0.0 re-declaration above us);
- * they are kept as written, not dereferenced.
- */
+// At 4.0.0.2 the affected-node list holds raw uint32 pointers, not record refs, so they are stored as written and
+// never dereferenced.
 function readDynamicEffect(s, rec) {
   readAVObject(s, rec);
   const count = s.u32();
@@ -298,7 +209,6 @@ function readDynamicEffect(s, rec) {
   for (let i = 0; i < count; i++) rec.affectedNodePointers[i] = s.u32();
 }
 
-/** NiLight: a dynamic effect plus the three colour terms and the dimmer. */
 function readLight(s, rec) {
   readDynamicEffect(s, rec);
   rec.dimmer = s.f32();
@@ -307,7 +217,6 @@ function readLight(s, rec) {
   rec.specular = s.vec3();
 }
 
-/** NiPointLight/NiSpotLight share the three attenuation terms. */
 function readPointLight(s, rec) {
   readLight(s, rec);
   rec.constantAttenuation = s.f32();
@@ -315,29 +224,20 @@ function readPointLight(s, rec) {
   rec.quadraticAttenuation = s.f32();
 }
 
-/** NiParticleModifier base: the next modifier and the controller pointer. */
 function readParticleModifier(s, rec) {
   rec.next = s.ref();
   rec.controller = s.ref();
 }
 
-/** NiParticleCollider base: the modifier chain plus the bounce term. */
 function readParticleCollider(s, rec) {
   readParticleModifier(s, rec);
   rec.bounce = s.f32();
 }
 
-/** NiPlane: normal + constant, shared by the collider and the effect. */
 function readPlane(s) {
   return { normal: s.vec3(), constant: s.f32() };
 }
 
-/**
- * NiParticlesData: the geometry payload plus the per-particle arrays.
- * `Num Particles` is ver2 4.0.0.2 and `Particle Radius` ver2 10.0.1.0, so
- * both are present here; the radii/rotations/rotation-angle arrays are all
- * ver1 10.0.1.0 or later and are not.
- */
 function readParticlesData(s, rec) {
   readGeometryData(s, rec);
   rec.numParticles = s.u16();
@@ -346,11 +246,6 @@ function readParticlesData(s, rec) {
   rec.sizes = s.bool() ? s.f32Array(rec.numVertices) : null;
 }
 
-/**
- * NiParticleSystemController's body, shared verbatim by NiBSPArrayController
- * (which adds no fields of its own). The ver2 3.1 legacy fields and the
- * ver1 10.x replacements are both outside 4.0.0.2.
- */
 function readParticleSystemController(s, rec) {
   readTimeController(s, rec);
   rec.speed = s.f32();
@@ -397,11 +292,6 @@ function readParticleSystemController(s, rec) {
   rec.staticTargetBound = s.u8();
 }
 
-/**
- * NiBoneLODController's body, shared by NiBSBoneLODController. The shape
- * groups are ver1 4.2.2.0 and absent here. Note the file writes THREE
- * counts but only `Num LODs` node groups follow.
- */
 function readBoneLODController(s, rec) {
   readTimeController(s, rec);
   rec.lod = s.u32();
@@ -410,8 +300,6 @@ function readBoneLODController(s, rec) {
   rec.nodeGroups = [];
   for (let i = 0; i < numLODs; i++) rec.nodeGroups.push(s.refList());
 }
-
-// --- record registry --------------------------------------------------------
 
 const READERS = {
   NiNode: readNode,
@@ -448,7 +336,7 @@ const READERS = {
   NiSkinData(s, rec) {
     rec.transform = { rotation: s.mat33(), translation: s.vec3(), scale: s.f32() };
     const numBones = s.u32();
-    rec.partitions = s.ref(); // present at 4.0.0.2, -1 in practice
+    rec.partitions = s.ref();
     rec.bones = [];
     for (let i = 0; i < numBones; i++) {
       const bone = {
@@ -469,7 +357,6 @@ const READERS = {
     }
   },
 
-  // --- properties ---
   NiMaterialProperty(s, rec) {
     readObjectNET(s, rec);
     rec.flags = s.u16();
@@ -517,10 +404,8 @@ const READERS = {
       rec.fileName = s.string();
       rec.pixelData = -1;
     } else {
-      // texture.cpp:13-21: below 10.0.1.4 that byte IS `hasData`, and the
-      // internal pixel-data ref follows ONLY when it is non-zero. Reading it
-      // unconditionally over-reads four bytes, and a 4.0.0.2 stream carries
-      // no record sizes to resynchronize from.
+      // Below version 10.0.1.4 this byte is `hasData`, and the pixel-data ref follows only when it is non-zero.
+      // Reading the ref unconditionally over-reads four bytes.
       rec.hasData = s.u8() !== 0;
       rec.pixelData = rec.hasData ? s.ref() : -1;
       rec.fileName = null;
@@ -582,15 +467,6 @@ const READERS = {
     rec.drawMode = s.u32();
   },
 
-  // --- extra data ---
-  /** RULE 54's node, and the reason it must parse: the first-person
-   *  camera tracks a bone named "Camera", so retail first-person
-   *  SKELETONS carry a NiCamera - and an unimplemented record type is
-   *  fatal to the whole file (a 4.0.0.2 NIF has no per-record sizes, so
-   *  there is nothing to skip). Layout from nif.xml, gated to this
-   *  version: `Unknown Short` and `Use Orthographic Projection` are
-   *  ver1 10.1.0.0, `Unknown Int 2` is ver1 4.2.1.0 and `Unknown Int 3`
-   *  is ver2 3.1 - none of the four exist at 4.0.0.2. */
   NiCamera(s, rec) {
     readAVObject(s, rec);
     rec.frustum = {
@@ -616,11 +492,8 @@ const READERS = {
     for (let i = 0; i < numKeys; i++) rec.keys.push({ time: s.f32(), text: s.string() });
   },
 
-  // --- animation (slice 3) ---
-  // NiSequenceStreamHelper is the root of an external .kf: its extra
-  // chain holds the text keys then one NiStringExtraData per controller
-  // naming the target bone; its controller chain holds the keyframe
-  // controllers in the same order.
+  // In a .kf file, the extra chain holds the text keys, then one NiStringExtraData per controller naming its target
+  // bone, in the same order as the controller chain.
   NiSequenceStreamHelper(s, rec) {
     readObjectNET(s, rec);
   },
@@ -638,12 +511,12 @@ const READERS = {
     if (numRot > 0) {
       rec.rotationType = s.u32();
       if (rec.rotationType === KEY_TYPE.xyz) {
-        // MW-era XYZ: axis order, then one float key group per axis.
         rec.axisOrder = s.u32();
         rec.xyzRotations = [readKeyGroup(s, 1), readKeyGroup(s, 1), readKeyGroup(s, 1)];
       } else {
         for (let i = 0; i < numRot; i++) {
-          const key = { time: s.f32(), value: [s.f32(), s.f32(), s.f32(), s.f32()] }; // w,x,y,z
+          // Quaternion keys store w, x, y, z in that order.
+          const key = { time: s.f32(), value: [s.f32(), s.f32(), s.f32(), s.f32()] };
           if (rec.rotationType === KEY_TYPE.tbc) key.tbc = [s.f32(), s.f32(), s.f32()];
           rec.rotationKeys.push(key);
         }
@@ -653,13 +526,6 @@ const READERS = {
     rec.scales = readKeyGroup(s, 1);
   },
 
-  // --- MW-D9e: the rest of the Morrowind-era registry ---
-  // Every layout below is nif.xml gated to 4.0.0.2 the same way NiCamera
-  // was. They are here because a 4.0.0.2 record carries no size, so ONE
-  // unknown type kills the whole file - a mesh that merely contains a
-  // particle emitter or a light took the skeleton down with it.
-
-  // Nodes.
   NiCollisionSwitch: readNode,
 
   NiSwitchNode(s, rec) {
@@ -667,9 +533,6 @@ const READERS = {
     rec.index = s.u32();
   },
 
-  // NiLODNode inherits NiSwitchNode, so the switch index comes first.
-  // `LOD Center` is ver1 exactly 4.0.0.2; the NiLODData ref that replaces
-  // the inline levels is ver1 10.1.0.0.
   NiLODNode(s, rec) {
     readNode(s, rec);
     rec.index = s.u32();
@@ -685,14 +548,12 @@ const READERS = {
     rec.accumulator = s.ref();
   },
 
-  // Geometry siblings of NiTriShape.
   NiTriStrips(s, rec) {
     readAVObject(s, rec);
     rec.data = s.ref();
     rec.skin = s.ref();
   },
 
-  // `Has Points` is ver1 10.0.1.3: here the point lists always follow.
   NiTriStripsData(s, rec) {
     readGeometryData(s, rec);
     rec.numTriangles = s.u16();
@@ -714,7 +575,6 @@ const READERS = {
     for (let i = 0; i < rec.numVertices; i++) rec.lines[i] = s.bool() ? 1 : 0;
   },
 
-  // Particle geometry. All three carry the same AV-object + data/skin pair.
   NiParticles(s, rec) {
     readAVObject(s, rec);
     rec.data = s.ref();
@@ -736,13 +596,11 @@ const READERS = {
   NiParticlesData: readParticlesData,
   NiAutoNormalParticlesData: readParticlesData,
 
-  // `Rotations 2` is ver2 4.2.2.0, so the quaternion array is read here.
   NiRotatingParticlesData(s, rec) {
     readParticlesData(s, rec);
     rec.rotations = s.bool() ? s.f32Array(rec.numVertices * 4) : null;
   },
 
-  // Particle modifiers and colliders.
   NiGravity(s, rec) {
     readParticleModifier(s, rec);
     rec.decay = s.f32();
@@ -752,7 +610,6 @@ const READERS = {
     rec.direction = s.vec3();
   },
 
-  // `Symmetry Type` is ver1 4.1.0.12 - one version past this file.
   NiParticleBomb(s, rec) {
     readParticleModifier(s, rec);
     rec.decay = s.f32();
@@ -801,7 +658,6 @@ const READERS = {
   NiParticleSystemController: readParticleSystemController,
   NiBSPArrayController: readParticleSystemController,
 
-  // Controllers. Every one below is a NiTimeController plus its own tail.
   NiAlphaController(s, rec) {
     readTimeController(s, rec);
     rec.data = s.ref();
@@ -827,10 +683,8 @@ const READERS = {
     rec.data = s.ref();
   },
 
-  // The one controller with no tail at all.
   NiLightRadiusController: readTimeController,
 
-  // `Accum Time` is ver1 3.3.0.13 / ver2 10.1.0.103 - present here.
   NiFlipController(s, rec) {
     readTimeController(s, rec);
     rec.textureSlot = s.u32();
@@ -839,8 +693,6 @@ const READERS = {
     rec.sources = s.refList();
   },
 
-  // `Always Update` is ver1 exactly 4.0.0.2: this file is the first that
-  // carries it, and the morpher flags that precede it are ver1 10.0.1.2.
   NiGeomMorpherController(s, rec) {
     readTimeController(s, rec);
     rec.data = s.ref();
@@ -871,7 +723,6 @@ const READERS = {
   NiBoneLODController: readBoneLODController,
   NiBSBoneLODController: readBoneLODController,
 
-  // Animation data.
   NiFloatData(s, rec) {
     rec.data = readKeyGroup(s, 1);
   },
@@ -884,10 +735,7 @@ const READERS = {
     rec.data = readKeyGroup(s, 4);
   },
 
-  // BoolKeyMap samples NIFStream::get<bool>, and a bool below 4.1.0.0 is a
-  // FOUR-byte int (nifstream.cpp:171-177) - unlike NiVisData below, whose
-  // reference reader really is get<uint8_t>. The two widths differ; this one
-  // is the wide one.
+  // Bool keys are four-byte ints at this version, unlike the one-byte values of NiVisData.
   NiBoolData(s, rec) {
     rec.data = readKeyGroupOf(s, () => (s.bool() ? 1 : 0));
   },
@@ -901,16 +749,15 @@ const READERS = {
     ];
   },
 
-  // NOT a KeyGroup: NiVisData writes the count and the keys with no
-  // interpolation word between them, and each value is one byte.
+  // Not a KeyGroup: NiVisData writes no interpolation type between the count and the keys, and each value is one
+  // byte.
   NiVisData(s, rec) {
     const count = s.u32();
     rec.keys = [];
     for (let i = 0; i < count; i++) rec.keys.push({ time: s.f32(), value: s.u8() });
   },
 
-  // Morph, unlike KeyGroup, writes its interpolation type even when the
-  // key count is zero.
+  // Unlike a KeyGroup, each morph writes its interpolation type even when the key count is zero.
   NiMorphData(s, rec) {
     const numMorphs = s.u32();
     rec.numVertices = s.u32();
@@ -923,7 +770,7 @@ const READERS = {
       for (let k = 0; k < count; k++) {
         const key = { time: s.f32(), value: s.f32() };
         if (type === KEY_TYPE.quadratic) {
-          key.inTan = s.f32();   // stream order per readQuadratic (nifkey.hpp:141-143)
+          key.inTan = s.f32();
           key.outTan = s.f32();
         } else if (type === KEY_TYPE.tbc) {
           key.tbc = [s.f32(), s.f32(), s.f32()];
@@ -934,18 +781,14 @@ const READERS = {
     }
   },
 
-  // EXACTLY `numEntries` RGBA entries. nif.xml says the array is 16 long
-  // when the count reads 16 and 256 otherwise, which is a rule about what
-  // exporters happen to write, not about the bytes; OpenMW reads the
-  // count and that is what the retail files hold.
+  // Reads exactly `numEntries` RGBA entries, as OpenMW does and the retail files hold, even though nif.xml implies
+  // a fixed 16 or 256.
   NiPalette(s, rec) {
     rec.hasAlpha = s.u8();
     rec.numEntries = s.u32();
     rec.palette = s.u8Array(rec.numEntries * 4);
   },
 
-  // NiPixelData inherits NiPixelFormat, whose 4.0.0.2 face is the mask
-  // block and the 8-byte compare field.
   NiPixelData(s, rec) {
     rec.pixelFormat = s.u32();
     rec.redMask = s.u32();
@@ -964,7 +807,6 @@ const READERS = {
     rec.pixels = s.u8Array(s.u32());
   },
 
-  // Lights and effects.
   NiAmbientLight: readLight,
   NiDirectionalLight: readLight,
   NiPointLight: readPointLight,
@@ -975,8 +817,6 @@ const READERS = {
     rec.exponent = s.f32();
   },
 
-  // `Unknown Short` is ver2 4.1.0.12 and the PS2 pair ver2 10.2.0.0, so
-  // all three are read here.
   NiTextureEffect(s, rec) {
     readDynamicEffect(s, rec);
     rec.modelProjectionMatrix = s.mat33();
@@ -1000,9 +840,6 @@ const READERS = {
     rec.fogColor = s.vec3();
   },
 
-  // Extra data. The BARE NiExtraData carries `recordSize` opaque bytes
-  // after the count - the subclasses spend those bytes on their own
-  // fields instead.
   NiExtraData(s, rec) {
     readExtraData(s, rec);
     rec.data = s.u8Array(rec.recordSize);
@@ -1040,8 +877,6 @@ const READERS = {
     for (let i = 0; i < count; i++) rec.strings.push(s.string());
   },
 
-  // `Accum Root Name` and the text-key ref are ver2 10.1.0.103; the
-  // interpolator half of a controlled block is ver1 10.1.0.106.
   NiSequence(s, rec) {
     rec.name = s.string();
     rec.accumRootName = s.string();
@@ -1054,7 +889,6 @@ const READERS = {
   },
 };
 
-/** Texture slot indices inside NiTexturingProperty.textures. */
 export const TEX_SLOT = Object.freeze({
   base: 0,
   dark: 1,
@@ -1066,7 +900,6 @@ export const TEX_SLOT = Object.freeze({
 });
 
 /**
- * Parse a Morrowind-era NIF file.
  * @param {Uint8Array} bytes
  * @returns {{version:number, records:object[], roots:number[]}}
  */
@@ -1074,7 +907,6 @@ export function parseNif(bytes) {
   if (!(bytes instanceof Uint8Array)) throw new TypeError('parseNif expects a Uint8Array');
   const s = new NifStream(bytes);
 
-  // Header line up to 0x0A. Cap the scan so binary junk fails fast.
   let nl = -1;
   for (let i = 0; i < Math.min(64, bytes.byteLength); i++) {
     if (bytes[i] === 0x0a) {
@@ -1109,9 +941,6 @@ export function parseNif(bytes) {
     try {
       reader(s, rec);
     } catch (err) {
-      // A 4.0.0.2 stream has no record sizes, so the FIRST record that
-      // reads the wrong number of bytes is the only one worth naming -
-      // everything after it is noise. Say which one and where.
       throw new Error(`NIF: record ${i} "${type}" at byte ${at}: ${err.message}`);
     }
     records[i] = rec;
@@ -1127,8 +956,8 @@ export function parseNif(bytes) {
 }
 
 /**
- * Resolve a ref to its record, or null.
- * @param {{records:object[]}} nif @param {number} ref
+ * @param {{records:object[]}} nif
+ * @param {number} ref
  */
 export function deref(nif, ref) {
   if (ref < 0) return null;

@@ -1,4 +1,3 @@
-// The shard side of the hub bus: socket events handed up, the poll for owed frames, the hub count.
 import { shardOf, regionsSharded, CLOSE_HUB, HUB_FRAME_MAX, HUB_UP_HZ_MAX, HUB_UP_BURST, HUB_UP_QUEUE_BYTES, HUB_BATCH_MS, isChannelShard, HUB_KEY_KEY, upOf, HUB_BATCH_MAX, HUB_BATCH_BYTES, HUB_SYNC_MS, HUB_INTERNAL_UP, HUB_INTERNAL_POLL, HUB_POLL_MS, SHARD_LAW_KEYS, HUB_COUNT_MS } from '../../../../src/net/hubShards.js';
 import { tokenGate, layerName, CLOSE_POLICY } from '../../relay.js';
 import { upBytesOf, HUB_RETRY_MS } from '../limits.js';
@@ -54,8 +53,7 @@ export class ShardPart {
     let k = null, ly = 0;
     for (const [, b] of this._all()) { k = b.key ?? null; ly = b.ly | 0; break; }
     let key = isChannelShard(k) ? k : isGateRoom(k) && ly > 0 ? layerName(k, ly) : null;
-    // A woken shard holding no socket reads its name from storage, or its last leave is never
-    // handed up.
+    // A woken shard with no socket reads its hub key from storage, or its last leave never reaches the bus.
     if (!key && this._hubKey === undefined) { try { const v = await this.state.storage.get(HUB_KEY_KEY); key = typeof v === 'string' && upOf(v) != null ? v : null; } catch { key = null; } }
     this._hubKey = key;
     return key;
@@ -71,7 +69,7 @@ export class ShardPart {
     return this._up.splice(0, n);
   }
   _hubUpFlush() {
-    // One batch in flight at a time, so the bus hears events in the order they happened.
+    // One batch is in flight at a time, so the bus receives events in the order they happened.
     if (this._upBusy) return this._upBusy.then(() => (this._up.length || this._upRetry ? this._hubUpFlush() : undefined));
     const rooms = this.env?.ROOMS;
     const now = Date.now();
@@ -82,7 +80,7 @@ export class ShardPart {
       try {
         const hub = await this._hubKeyOf();
         if (upOf(hub) == null) return;
-        // A missed batch goes again unchanged, with its `q`, so the bus skips it if it already ran.
+        // A failed batch is sent again unchanged, with its `q`, so the bus skips it if it already ran.
         let body = this._upRetry;
         if (!body) {
           body = { q: ++this._upSeq, e: this._upTake() };
@@ -157,8 +155,8 @@ export class ShardPart {
       if (typeof ans.rb === 'string') this._rsBoot = ans.rb;
       this._hubSyncAt = 0; this._upHoldUntil = 0;
       const up = this._hubUpFlush();
-      // The held loop never awaits the hand-up; it would poll nothing while the shard owes the
-      // bus, and the bus would drop its oldest deliveries.
+      // The held poll never awaits the send: it would poll nothing while the shard owes the bus,
+      // and the bus would drop its oldest deliveries.
       if (!wait) await up;
     }
     return ran + (ans.rs ? 1 : 0);

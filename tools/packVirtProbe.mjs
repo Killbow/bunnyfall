@@ -1,16 +1,5 @@
-// VIRT (2026-10-16) - THE LONG PACK, DRIVEN IN A BROWSER AND TIMED.
-//
-// A container of 700 pieces over 351 kinds (312 pictures), the player's own storage of 700 beside the pack, and a pack
-// page of 700: how long the window takes to open cold and warm, how many times it repaints while its pictures land, how
-// long a press takes, and whether the long list is still the whole list - every drawn row at its piece's own place to
-// the pixel and none in view missing, the list one height at every scroll, its columns still, its last piece flush at
-// the foot, a press's act done and its scroll kept, a search's scroll kept. AUDIT VIRT added the rest: a hover card
-// whose row a scroll took away, a carried tile across a scroll, a focused row scrolled away. The archives are SYNTHETIC (tools/enhancedIconProbe.mjs's device:
-// a valid TEXTURE file built here and served by intercepting the fetch) - no ARENA2 is read, and the timings are this
-// machine's, said as such. Run it on a tree without VIRT for the before.
-//
-//     node tools/packVirtProbe.mjs            (starts its own dev server)
-//     PROBE_PORT=5199 node tools/packVirtProbe.mjs
+// Times the long pack and container windows in a browser over synthetic archives and checks the virtualized list.
+// Usage: node tools/packVirtProbe.mjs  (starts its own dev server; PROBE_PORT=5199 picks a fixed one)
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -211,14 +200,12 @@ globalThis.__focusAway = async () => {
 globalThis.__scrollTop = (where) => Math.round(listOf(where).scrollTop);
 </script></body></html>`;
 
-/** A 768-byte ART_PAL, a grey ramp. */
 function synthPalette() {
   const b = Buffer.alloc(768);
   for (let i = 0; i < 256; i++) { b[i * 3] = i; b[i * 3 + 1] = i; b[i * 3 + 2] = i; }
   b[3] = 200; b[4] = 40; b[5] = 30;
   return b;
 }
-/** An uncompressed TEXTURE archive of `count` 16x16 records (tools/enhancedIconProbe.mjs's shape, larger). */
 function synthArchive(count, W = 16, H = 16, STRIDE = 256) {
   const bodySize = 28 + H * STRIDE;
   const headersEnd = 26 + 20 * count;
@@ -263,19 +250,17 @@ try {
   });
   await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced`, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => typeof globalThis.__open === 'function', null, { timeout: 90000 });
-  // the module's first load is not the window's cost: a small pile first
+  // The first module load would skew the timing, so a small pile opens first.
   await page.evaluate(() => globalThis.__open(3, 'loot'));
   await page.waitForSelector('#enhanced-inventory .itemrow', { timeout: 30000 });
   out.kinds = await page.evaluate(() => globalThis.__kinds);
   const res = out[v.name] = {};
-  // long tasks, from here on
   await page.evaluate(() => { globalThis.__long = []; new PerformanceObserver((l) => { for (const t of l.getEntries()) globalThis.__long.push(t.duration); }).observe({ type: 'longtask' }); });
   for (const where of ['loot', 'storage', 'pack']) {
     const r = {};
     await page.evaluate(() => { globalThis.__long.length = 0; });
     const t0 = Date.now();
     r.cold = await page.evaluate(([n, w]) => globalThis.__open(n, w), [N, where]);
-    // until the drawn rows' pictures settle: no initials left among them, or nothing moved for 1.5 s
     let last = null, still = 0;
     for (let i = 0; i < 300 && still < 15; i++) {
       await page.waitForTimeout(100);
@@ -303,7 +288,6 @@ try {
       for (const f of [0, 0.5, 1]) r.searchPlaced.push(await page.evaluate(([w, x]) => globalThis.__placed(w, x, 'a'), [where, f]));
     }
     if (where === 'pack') {
-      // the press above left its card up - a phone's is a sheet over the dock's foot: put away, as a player would
       if (await page.locator('.packtip').count()) { await page.keyboard.press('Escape'); await page.waitForTimeout(200); }
       r.drag = await page.evaluate(() => globalThis.__dragScroll());
       r.focus = await page.evaluate(() => globalThis.__focusAway());

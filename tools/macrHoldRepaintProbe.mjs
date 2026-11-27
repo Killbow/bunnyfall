@@ -1,22 +1,5 @@
-// MAC-R4 (2026-09-17, Mac: "Hold to drag in the enhanced inventory
-// sometimes doesn't work properly") - THE HOLD UNDER A REPAINT, MEASURED.
-//
-// A touch pointer implicitly captures the row it lands on. The pane
-// repaints (`render()`) on things a hold cannot see coming - an archive
-// icon landing, the doll settling, the arm rig rebuilding - and a
-// repaint detaches the captured row, which raises `lostpointercapture`,
-// which AUDIT INV2 read as "the pointer taken back" and ended the
-// session. So a press that overlapped a repaint died with no ghost:
-// the "sometimes". MAC-R4 gives the capture back at the press and stops
-// reading its loss as an end. This probe is the fact under a real
-// finger: a hold with a repaint 120ms into it still arms, still carries,
-// and still releases; a flick still scrolls; and the long-press's
-// context menu does not take the pointer.
-//
-// tools/invDragProbe.mjs is the shape (a real phone context, real touch
-// points through CDP, vite's own server for the module graph).
-//
-//     node tools/macrHoldRepaintProbe.mjs
+// Checks that an inventory hold survives pane repaints under real touch input in Chromium.
+// Run: node tools/macrHoldRepaintProbe.mjs (PROBE_PORT=<n> reuses a dev server already running there).
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -83,15 +66,12 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`);
 };
 
-// PROBE_PORT=<n> reuses a dev server already listening there (a container's
-// file-watcher budget can refuse a second vite); otherwise one is made here,
-// with its watcher off - the probe changes nothing it would need to see.
 const vite = process.env.PROBE_PORT ? null : await createServer({ root: ROOT, server: { port: 0, host: '127.0.0.1', watch: null }, logLevel: 'error' });
 if (vite) await vite.listen();
 const port = vite ? vite.httpServer.address().port : Number(process.env.PROBE_PORT);
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 try {
-  // AUDIT 68 X2-probe-tmp-page-leak: written inside the try, so the finally that unlinks it always runs.
+  // Written inside the try so the finally that unlinks it always runs.
   await writeFile(join(ROOT, `tools/${PAGE_NAME}`), PAGE);
   const ctx = await browser.newContext({ viewport: { width: 430, height: 860 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
@@ -117,16 +97,15 @@ try {
   check('the pane exposes repaint()', await P(() => globalThis.__probe.repaint()));
   console.log(`   ${await P(() => globalThis.__probe.rows())} tiles`);
 
-  // ── THE HOLD UNDER A REPAINT ─────────────────────────────────────
   let armed = 0, carried = 0, released = 0; const evs = [];
   for (let i = 0; i < TRIALS; i++) {
     const t = await settle();
     if (!t) { fails.push('no tile to press'); break; }
     await send('touchStart', t.x, t.y);
     await sleep(120);
-    await P(() => globalThis.__probe.repaint());   // the row under the finger is detached and rebuilt
+    await P(() => globalThis.__probe.repaint());
     await sleep(40);
-    await P(() => globalThis.__probe.repaint());   // and again - two async landings in one hold
+    await P(() => globalThis.__probe.repaint());
     await sleep(260);
     if (await P(() => globalThis.__probe.ghost())) armed++;
     for (let k = 1; k <= 6; k++) { await send('touchMove', t.x + k * 14, t.y - k * 10); await sleep(16); }
@@ -143,11 +122,10 @@ try {
   check('and the release ends it', released === TRIALS, `${released}/${TRIALS}`);
   check('the session never held a capture to lose', !evs.some((s) => s.includes('lostpointercapture')), evs.at(-1));
 
-  // ── THE LONG PRESS'S MENU ────────────────────────────────────────
   const t2 = await settle();
   if (t2) {
     await send('touchStart', t2.x, t2.y);
-    await sleep(900);   // past Android's long-press
+    await sleep(900);
     const ghost = await P(() => globalThis.__probe.ghost());
     const ev = await P(() => globalThis.__probe.ev());
     await send('touchEnd', t2.x, t2.y);
@@ -156,7 +134,6 @@ try {
     check('and no cancel took the pointer', !ev.includes('pointercancel'), ev);
   }
 
-  // ── AND A FLICK STILL SCROLLS ────────────────────────────────────
   const ft = await settle();
   if (ft) {
     const before = await P(() => globalThis.__probe.top());

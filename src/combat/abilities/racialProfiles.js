@@ -21,7 +21,6 @@ export const RACIAL_FAVORITES = Object.freeze({
   Lungaris: [116, 563],
 });
 
-// Native saving-throw traits supply the Breton, Nord and High Elf passive.
 export const RACIAL_TRAITS = Object.freeze({
   Breton: { passive: 'Resist Magic', pace: 'walk', condition: 'readied', movement: 'Walk 6% faster with a weapon or spell readied.' },
   Redguard: { passive: 'Martial Discipline reduces melee damage by 6% at half fatigue or higher.', guard: 'melee', guardCondition: 'rested',

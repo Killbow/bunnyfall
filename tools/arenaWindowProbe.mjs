@@ -1,21 +1,6 @@
-// ARENA3, MEASURED (2026-10-02, Mac: "Joining a team comes with it's own enhanced UI where you can view your ranking and
-// even player leaderboards"; "All UI elements and text must be enhanced UI plus"): THE ARENA WINDOW (ui/arena/arenaWindow.js)
-// drawn over the real sheets in Chromium - the Enhanced Plus skin and the classic skin's own sheet - at a desktop's
-// width, a narrow window's and a phone's, on every page (Bouts with the wager open, Ladder, Team, each Leaderboard,
-// Records, Rules), over a save with something on every page: a fighter of the Red Banner two tiers up, in the laurel,
-// with bouts behind them, a wager won and one waiting. Each must stand inside the viewport with nothing spilling
-// sideways and the page never scrolling sideways, its words in the pixel face, and every tab a `role="tab"`.
-// test/systems/arena/arena3_window.test.js holds the window's law on a fake page; this photographs what a fake cannot.
-// Photographs to SHOT_DIR (default tools/shots/, ignored).
-// ARENA4b: and THE WINDOW ONLINE over a realm's board (the service's `/v1/arena/board`, with the account's `me.record` and
-// `me.recent`): the Records page the account's (its note, its record, its last bouts - a rated bout's rating in its line),
-// no purses chip in the header, and the Leaderboards' fastest Grand Champion with the realm's Hall of Champions under it
-// (test/systems/arena/arena4b_window.test.js holds the law).
-// ARENA5: and YOUR LADDER REPLAY on the Records page - the save keeps three of its bouts (systems/arena/arenaReplay.js), each
-// row the records keep carrying Watch the replay: inside the window at every width, and its press the host's
-// (`act('replay', { i })`); test/systems/arena/arena5_replay.test.js holds the law.
-//
-//     node tools/arenaWindowProbe.mjs
+// Draws every page of the Arena window, offline and online, at desktop, narrow, and phone widths
+// and checks the fit.
+// Run with `node tools/arenaWindowProbe.mjs`; screenshots go to SHOT_DIR.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -40,15 +25,14 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     const BK = await import('/src/arena/arenaBook.js');
     const AL = await import('/src/arena/arenaLadder.js');
     const AB = await import('/src/arena/arenaBoard.js');
-    const RP = await import('/src/arena/arenaReplay.js');   // ARENA5
+    const RP = await import('/src/arena/arenaReplay.js');
     const { mountArenaWindow } = await import('/src/ui/arenaWindow.js');
     document.body.innerHTML = '';
     document.body.style.cssText = 'margin:0;background:repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px);height:100vh';
-    // a save with something on every page: noon of day 200 of 3E 405, the Red Banner, in the laurel
     const gm = 523530 - (523530 % 1440) + 196 * 1440 + 12 * 60;
     let ladder = AL.newArenaLadder();
     let league = LG.joinBanner(LG.newArenaLeague(), 'red', gm - 60 * 1440).league;
-    let replays = [];   // ARENA5
+    let replays = [];
     league.laurel = { banner: 'red', season: 405 };
     const opps = ['Mirabelle Ashfield', 'Gorlak gro-Mazgulbarz', 'Uthyrick Kingston', 'The Grizzly Bear', 'Senna Varo', 'Peristair Kingfield', 'Tozca of Totambu'];
     for (let i = 0; i < 9; i++) {
@@ -56,7 +40,6 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
       const next = AL.nextLadderBout(ladder);
       ladder = AL.ladderAfter(ladder, { won, how: won ? 'fall' : 'yield', purse: won ? next.purse : 0 }).ladder;
       league = LG.leagueAfterBout(league, { gameMinutes: gm - (40 - i * 4) * 1440, tier: next.tier, label: next.label, opp: opps[i % opps.length], won, how: won ? (i % 2 ? 'judges' : 'fall') : 'yield', purse: won ? next.purse : 0, champion: next.champion });
-      // ARENA5: the last three bouts kept for their replays (a few seconds each - the window reads only their rows)
       if (i >= 6) {
         const R = RP.newRecording({ t0: 0, at: gm - (40 - i * 4) * 1440, next, sides: ['red', null], fighters: [{ id: 'you', name: 'Aldric', side: 0, mobile: 145, health: 90, maxHealth: 90 }, { id: 'f0', name: opps[i % opps.length], side: 1, mobile: 138, health: 40, maxHealth: 40 }] });
         for (let k = 0; k <= 30; k++) RP.recordTick(R, k * 100, [[-6 + k * 0.1, 0, 1.57], [6 - k * 0.1, 0, -1.57]]);
@@ -68,7 +51,7 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     book = BK.settleBook(BK.bookVerdict(book, ex0.hour, 0), gm - 26 * 60 + 30).book;
     const ex1 = AL.exhibitionFor(gm);
     book = BK.placeWager(book, ex1, 1, 50, { gold: 1000, gameMinutes: gm }).book;
-    book = { ...book, wagers: book.wagers.filter((w) => w.hour !== ex1.hour) };   // the hour's still open to wager on
+    book = { ...book, wagers: book.wagers.filter((w) => w.hour !== ex1.hour) };
     league = { ...league, book };
     window.__arena = { gm, ladder, league };
     window.__acts = [];
@@ -83,7 +66,6 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
   for (const [pg, sub, online] of [...PAGES, ['records', null, 'online'], ['boards', 'fast', 'online']]) {
     const tag = `${width}-${skin}-${pg}${sub ? `-${sub}` : ''}${online ? '-online' : ''}`;
     if (online && !(await page.evaluate(() => !!window.__online))) {
-      // ARENA4b: the window remounted over a realm's board - the account's record and last bouts, the realm's Hall
       await page.evaluate(async () => {
         const AB = await import('/src/arena/arenaBoard.js');
         const { mountArenaWindow } = await import('/src/ui/arenaWindow.js');
@@ -151,7 +133,6 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     check(`${tag} the kit's carved frame`, r.border, '');
     check(`${tag} words on the page`, r.words > 40, String(r.words));
     if (pg === 'records' && !online) {
-      // ARENA5: the three kept bouts each carry Watch the replay, inside the window; pressed, the host's word with its record
       const rp = await page.evaluate(async () => {
         const shell = document.querySelector('.aw-shell');
         const win = shell.querySelector('.aw-win').getBoundingClientRect();

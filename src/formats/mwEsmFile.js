@@ -1,21 +1,3 @@
-// Morrowind ESM/ESP reader (TES3) - slice 6 of the import arc. Original
-// implementation against the documented TES3 layout; OpenMW's
-// components/esm3 used as behavioral reference only (GPL - no code
-// ported). User-supplied at runtime like every Morrowind byte.
-//
-// Layout (little-endian):
-//   Record: char[4] type, uint32 dataSize, uint32 unknown, uint32 flags,
-//     then dataSize bytes of subrecords.
-//   Subrecord: char[4] type, uint32 size, data.
-//   'TES3' opens the file; HEDR carries version/company/description and
-//   the record count.
-//
-// UNLIKE NIF, every record carries its size, so unknown types are
-// SKIPPED - correctly and by design. Strictness lives inside the types
-// this slice decodes (BODY, RACE, NPC_, CREA): a malformed known
-// subrecord throws with the record id. Everything else is counted and
-// passed over; the skip census is part of the parse result so nothing
-// disappears silently.
 
 const td = new TextDecoder('windows-1252');
 
@@ -48,7 +30,6 @@ class EsmStream {
     this.pos += 4;
     return s;
   }
-  /** Fixed-size zero-padded string field. */
   zstring(len) {
     const raw = this.bytes.subarray(this.pos, this.pos + len);
     this.pos += len;
@@ -57,7 +38,6 @@ class EsmStream {
   }
 }
 
-/** Split one record's data into its subrecords. */
 function* subrecords(bytes) {
   const s = new EsmStream(bytes);
   while (s.pos + 8 <= bytes.byteLength) {
@@ -79,10 +59,7 @@ export const MW_BODY_PARTS = Object.freeze([
 ]);
 export const BODY_TYPE = Object.freeze({ skin: 0, clothing: 1, armor: 2 });
 
-/** Rule 1: a first-person body part is a RECORD whose id ends in "1st"
- *  (loadbody.cpp:85-88) - NOT a mesh filename with .1st spliced in, which
- *  is the transform the reverted arc applied to the MODL path. Here, with
- *  the BODY reader, so both BODY sweeps ask one question (AUDIT 68). */
+// A first-person body part is a BODY record whose id ends in '1st', not a mesh path with .1st added.
 export const isFirstPersonId = (id) => String(id).toLowerCase().endsWith('1st');
 
 function decodeBody(rec) {
@@ -111,8 +88,9 @@ function decodeRace(rec) {
     else if (sub.type === 'RADT') {
       if (sub.data.byteLength !== 140) throw new Error(`RACE ${out.id}: RADT is ${sub.data.byteLength} bytes`);
       const s = new EsmStream(sub.data);
-      s.pos = 120; // 7 skill pairs (56) + 8x2 attributes (64)
-      out.height = [s.f32(), s.f32()]; // male, female
+      // Skips 7 skill pairs (56 bytes) and 8 attribute pairs (64 bytes) to reach the height and weight fields.
+      s.pos = 120;
+      out.height = [s.f32(), s.f32()];
       out.weight = [s.f32(), s.f32()];
       const flags = s.u32();
       out.playable = (flags & 1) !== 0;
@@ -143,7 +121,6 @@ function decodeNpc(rec) {
       out.female = (f & NPC_FLAG.female) !== 0;
       out.autocalc = (f & NPC_FLAG.autocalc) !== 0;
     } else if (sub.type === 'NPDT') {
-      // 52-byte full stats or 12-byte autocalc; level leads both.
       if (sub.data.byteLength !== 52 && sub.data.byteLength !== 12) {
         throw new Error(`NPC_ ${out.id}: NPDT is ${sub.data.byteLength} bytes`);
       }
@@ -166,12 +143,8 @@ function decodeCreature(rec) {
 const DECODERS = { BODY: decodeBody, RACE: decodeRace, NPC_: decodeNpc, CREA: decodeCreature };
 
 /**
- * Parse a TES3 .esm/.esp. Decodes the character-assembly record set into
- * id-keyed maps; every other type is skipped by size and CENSUSED.
  * @param {Uint8Array} bytes
- * @returns {{header: {version:number, company:string, description:string,
- *   declaredRecords:number}, bodies:Map, races:Map, npcs:Map,
- *   creatures:Map, skipped:Map<string,number>, recordCount:number}}
+ * @returns {{header: {version:number, company:string, description:string, declaredRecords:number}, bodies:Map, races:Map, npcs:Map, creatures:Map, skipped:Map<string,number>, recordCount:number}}
  */
 export function parseEsm(bytes) {
   if (!(bytes instanceof Uint8Array)) throw new TypeError('parseEsm expects a Uint8Array');
@@ -188,7 +161,7 @@ export function parseEsm(bytes) {
   while (s.pos + 16 <= bytes.byteLength) {
     const type = s.tag();
     const size = s.u32();
-    s.u32(); // unknown
+    s.u32();
     const flags = s.u32();
     if (s.pos + size > bytes.byteLength) throw new Error(`record ${type} overruns the file`);
     const data = bytes.subarray(s.pos, s.pos + size);
@@ -214,7 +187,7 @@ export function parseEsm(bytes) {
       out.skipped.set(type, (out.skipped.get(type) ?? 0) + 1);
       continue;
     }
-    if (flags & 0x0020) continue; // deleted
+    if (flags & 0x0020) continue;
     const rec = decoder({ data });
     if (!rec.id) throw new Error(`${type} record without NAME at ${s.pos - size - 16}`);
     const map = { BODY: out.bodies, RACE: out.races, NPC_: out.npcs, CREA: out.creatures }[type];

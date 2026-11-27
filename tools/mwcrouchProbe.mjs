@@ -1,26 +1,5 @@
-// MWCROUCH - THE SWALLOWED TAP, IN A REAL BROWSER AT A REAL FRAME RATE.
-//
-// Mac: "When crouching with the morrowind model. you can't uncrouch". The
-// node pin drives the seam with hand-made events and a hand-made dt, which
-// states the law but assumes the thing actually in question: that a browser
-// really does deliver a whole keydown+keyup BETWEEN two rAF callbacks when
-// the frames are long, and that the host's held-keys Set is therefore empty
-// on every frame that looks at it.
-//
-// So this runs both readers side by side, off the SAME real key events, in
-// Chromium, with the frame loop deliberately slowed to the ~10 fps a loaded
-// scene with the Morrowind body reaches: the OLD derivation
-// (`held(keys, 'Crouch') && !prev`) and the NEW edge (`pressed`), each
-// driving its own real `PlayerMotor` against a real `Collider` room. The
-// probe is a pass only if the old one MISSES taps the new one catches -
-// a probe that cannot show the bug cannot show the fix either.
-//
-//     node tools/mwcrouchProbe.mjs
-//
-// It cannot boot the game: this container has no ARENA2. What it can do is
-// drive the input seam and the motor over a real browser's own event timing.
-// PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers here; CHROMIUM=... points at
-// another executable.
+// Browser probe at a slow frame rate: a crouch tap delivered between two frames must still toggle the stance.
+// Usage: node tools/mwcrouchProbe.mjs  (CHROMIUM=<path> picks another browser)
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -131,23 +110,13 @@ const fails = [];
 const ok = (cond, what, got) => { console.log(`   ${cond ? 'ok  ' : 'FAIL'}  ${what}${got !== undefined ? `   (${JSON.stringify(got)})` : ''}`); if (!cond) fails.push(what); };
 
 try {
-  // AUDIT 68 X2-probe-tmp-page-leak: written inside the try, so the finally that unlinks it always runs.
   await writeFile(PAGE_PATH, PAGE);
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  // A PATH, spelled out: U60's pin reads a bare host-and-port as a probe
-  // driving the landing page and expecting the game, which this is not.
   await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => !!window.__mw, null, { timeout: 30000 });
-  // THE TAP, AS A HUMAN MAKES IT: keydown and keyup handed to the browser
-  // BACK TO BACK, without waiting for the first to be handled. Playwright's
-  // own `keyboard.press` awaits the keydown - which, against a page whose
-  // frame callback busy-waits, means the keyup is only sent once the page
-  // has come back for air and the loop has already sampled the key. That is
-  // an input timing no player produces; it is the harness synchronising
-  // itself to the thing under test. Fired this way both events land in the
-  // same drain, which is exactly a 50 ms tap inside a 110 ms frame.
+  // Keydown and keyup go out back to back over CDP, because keyboard.press waits on the busy frame.
   const cdp = await page.context().newCDPSession(page);
   const KEY = { code: 'KeyC', key: 'c', text: 'c', windowsVirtualKeyCode: 67, nativeVirtualKeyCode: 67 };
   const tap = async () => {
@@ -159,10 +128,6 @@ try {
   const start = (ms) => page.evaluate((x) => window.__mw.start(x), ms);
   const stop = () => page.evaluate(() => window.__mw.stop());
 
-  // ── 1. THE SWALLOWED TAP, AND THE ONE THAT IS NOT ───────────────────
-  // THREE taps, not four, on purpose: an odd count leaves the two readers in
-  // DIFFERENT stances, so the check is the player's own ("am I crouched?")
-  // and not a counter. An even count hides the bug behind its own parity.
   console.log('1. three taps of C at ~9 fps - the old derivation misses them, the ring does not');
   await start(110);
   for (let i = 0; i < 3; i++) { await tap(); await page.waitForTimeout(260); }
@@ -177,7 +142,6 @@ try {
   ok(r.crouchedByLatch !== r.crouchedByEdge,
     'and the old reader ended in the WRONG stance, which is the report', { latch: r.crouchedByLatch, edge: r.crouchedByEdge });
 
-  // ── 2. THE UNCROUCH, WHICH IS THE SENTENCE MAC WROTE ────────────────
   console.log('\n2. crouch, then UNCROUCH - one tap each, at the same frame rate');
   await start(110);
   await tap();
@@ -192,11 +156,10 @@ try {
   ok(r.crouchedByEdge === false, 'AND THE SECOND STOOD BACK UP', r.crouchedByEdge);
   ok(Math.abs(r.heightByEdge - 1.8) < 1e-6, 'the standing capsule is back', r.heightByEdge);
 
-  // ── 3. THE OS's OWN AUTO-REPEAT ─────────────────────────────────────
   console.log('\n3. C held down through the OS repeat storm - ONE press, one stance');
   await start(110);
   await page.keyboard.down('c');
-  await page.waitForTimeout(1400);        // long enough for the OS to repeat
+  await page.waitForTimeout(1400);
   await page.keyboard.up('c');
   await page.waitForTimeout(300);
   r = await read();
@@ -204,7 +167,6 @@ try {
   ok(r.edgePresses === 1, 'a held key is ONE GetKeyDown however many keydowns the OS sends', r.edgePresses);
   ok(r.crouchedByEdge === true, 'and the player is crouched, once', r.crouchedByEdge);
 
-  // ── 4. AT 60 fps THE TWO READERS AGREE ──────────────────────────────
   console.log('\n4. the same taps at a normal frame rate - the two readers agree, as they always did');
   await start(0);
   for (let i = 0; i < 4; i++) { await page.keyboard.press('c', { delay: 40 }); await page.waitForTimeout(160); }

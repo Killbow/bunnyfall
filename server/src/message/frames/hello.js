@@ -1,4 +1,3 @@
-// The `hello` frame's handler, called by message/dispatch.js with the room as `this`.
 import { hiddenHello, hiddenEntered } from '../../staffHidden.js';
 import { isChannelShard, busOf, isChannelBus, HUB_KEY_KEY, HUB_SYNC_MS } from '../../../../src/net/hubShards.js';
 import { isCellRoom, isSocialRoom, isWorldRoom, streamsFoes, isChatRoom, tokenGate, CLOSE_BUSY, BUSY_TOKEN_UNREAD, SEAT_ELSEWHERE, CLOSE_REPLACED, isRegionRoom, layerName, GRANT_HELLO_LAW, CHAT_ROSTER_MAX, badged, TRAV_STALE_MS, TRAV_WELCOME_MAX, RELAY_VERSION, rosterFor, CARAVAN_DECOR_KEY, PARK_TTL_MS } from '../../relay.js';

@@ -1,22 +1,6 @@
-// DW2 - THE SPRITE INDEX, from the mod's own manifest.
-//
-// Which names public/art/diverse-weapons/ carries is the bundle's own
-// file list (vendor/diverse-weapons/diverse-weapons.dfmod.json, verbatim
-// - the same authority test/tooling/doctrine.test.js derives the folder's
-// membership from), not a listing of the folder: the door must answer a
-// miss WITHOUT a fetch (a weapon's every frame is asked, and a name the
-// set lacks - a `w_` for record 3, an icon in a metal nobody painted -
-// would be a 404 per ask), and a listing is what the tool that wrote the
-// folder happened to write.
-//
-// 12,624 names is 350 KB of strings; almost every one is a STEM in ten
-// metals (`LONGSWORD.CIF_0-0` in Iron..Daedric), so the index is 1,298
-// stems with a bitmask over MetalTypes' order (itemInfo.js
-// MATERIAL_NAMES), bit 10 for the bare stem, and the one name that fits
-// no grammar on its own. ~40 KB, decoded by combat/diverseWeaponsAssets
-// .js hasDiverseWeaponsSprite.
-//
-//   node tools/diverseWeaponsIndex.mjs
+// Builds the Diverse Weapons sprite index from the mod's manifest, so a missing name is answered without a fetch.
+// Run: node tools/diverseWeaponsIndex.mjs.
+
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,17 +9,15 @@ import { isMain } from './lib/isMain.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const MANIFEST = 'vendor/diverse-weapons/diverse-weapons.dfmod.json';
 export const INDEX_FILE = 'src/combat/diverseWeaponsIndex.js';
-/** MetalTypes' order - itemInfo.js MATERIAL_NAMES, restated so the tool needs no src import. */
+// Restates the order of MATERIAL_NAMES in itemInfo.js so the tool needs no src import; keep the two in sync.
 export const METALS = Object.freeze(['Iron', 'Steel', 'Silver', 'Elven', 'Dwarven', 'Mithril', 'Adamantium', 'Ebony', 'Orcish', 'Daedric']);
 export const BARE_BIT = 1 << METALS.length;
 
-/** The manifest's PNG basenames, deduplicated (the bundle names 310 twice). */
 export function manifestSpriteNames(manifestJson) {
   const files = JSON.parse(manifestJson).Files ?? [];
   return [...new Set(files.filter((f) => /\.png$/i.test(f)).map((f) => f.slice(f.lastIndexOf('/') + 1).replace(/\.png$/i, '')))];
 }
 
-/** The names as stems -> bitmask, plus the names no grammar holds. */
 export function encodeIndex(names) {
   const stems = new Map();
   const odd = [];

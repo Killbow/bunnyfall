@@ -1,21 +1,5 @@
-// FIELD BUGS 2026-10-06b / AUDIT 637 (Mac: "theres a lot of player desync online, including players appearing to run in
-// place"): THE PLAY-OUT PROBE - how another player's body is drawn while their poses arrive late, or stop, or come
-// sparse. bible/01-Overview/bugs/Field-Bugs-2026-10-06b.md, bible/01-Overview/audits/Audit-637.md (AUDIT 637 D13: the record's
-// tables came from a harness in a session's scratch, and nothing in the tree could make them again).
-//
-// Two REAL OnlineSessions on one fake clock, over fake sockets: Eve, the sender, walks at 5 m/s and says her poses through
-// the real sendPose gate and stamp at her own frame rate (her `mv` the world host's law: moving while a frame moved
-// within the hold); a small relay forwards them - every one, or as the far tier does, one in POSE_FAR_SHARE by turn and a
-// standing pose whole once a KEEPALIVE_FAN_MS - to Mac, `40 ms + jitter` later and in order, as one socket's frames are;
-// Mac ticks at 60 fps and the probe reads what he draws of her each frame:
-//   in place   frames drawn where the frame before drew her, reading moving - running on the spot
-//   longest    the longest such run
-//   restarts   frames that read moving after one that read standing - a walk cycle started over
-//   lag        how far behind her true place she is drawn, on average
-// The sender never stands still here unless the row says so, so every restart is the play-out's, not hers.
-//
-// Run:  node tools/playoutProbe.mjs            (TREE=<dir> plays another worktree's net/online.js - a before)
-//   SECONDS=30   each row's length
+// Runs two online sessions on a fake clock to report how a peer's body plays out when poses come late or sparse.
+// Usage: node tools/playoutProbe.mjs  (SECONDS=30 per row; TREE=<dir> plays another worktree's net/online.js)
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 
@@ -28,7 +12,6 @@ const SECONDS = Number(process.env.SECONDS || 30);
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
-/** One row: Eve to Mac for SECONDS, the first 3 s (the cadence settling) not counted. */
 function row({ crowd = 0, far = false, jitter = 0, hitchEveryMs = 0, hitchMs = 0, timed = true, sendFps = 60, frameJit = 0, seed = 7 }) {
   const info = console.info, warn = console.warn;
   console.info = () => {}; console.warn = () => {};
@@ -41,7 +24,7 @@ function row({ crowd = 0, far = false, jitter = 0, hitchEveryMs = 0, hitchMs = 0
     const eve = new OnlineSession({ url: 'wss://relay.test', name: 'Eve', id: 'eve-0003', secret: 'secret-of-eve-0003', WebSocketImpl: E.FakeWS, now: () => clock.now });
     eve.join(`world:${cx},${cz}`, base); E.sockets[0].open();
     const roster = [{ id: 'mac-0001', name: 'Mac', look: null, pose: { ...base } }];
-    for (let i = 0; i < crowd; i++) roster.push({ id: `dum-${String(i).padStart(4, '0')}`, name: 'D', look: null, pose: { ...base, x: base.x + 50 + i } });   // her crowd: poseHzFor
+    for (let i = 0; i < crowd; i++) roster.push({ id: `dum-${String(i).padStart(4, '0')}`, name: 'D', look: null, pose: { ...base, x: base.x + 50 + i } });
     E.sockets[0].receive({ t: 'welcome', id: 'eve-0003', peers: roster, host: null, world: null });
     const M = fakeSocketClass();
     const mac = new OnlineSession({ url: 'wss://relay.test', name: 'Mac', id: 'mac-0001', secret: 'secret-of-mac-0001', WebSocketImpl: M.FakeWS, now: () => clock.now });
@@ -59,7 +42,8 @@ function row({ crowd = 0, far = false, jitter = 0, hitchEveryMs = 0, hitchMs = 0
       if (tn === nextSend) {
         nextSend += (1000 / sendFps) * (1 + frameJit * (2 * R() - 1));
         if (clock.now >= nextHitch) { hitchUntil = clock.now + hitchMs; nextHitch += hitchEveryMs; }
-        if (clock.now >= hitchUntil) {   // her frame ran: she walks (her motor's dt clamped at 100 ms, as a frame's is)
+        if (clock.now >= hitchUntil) {
+          // The sender's motor clamps dt at 100 ms, as a frame does.
           x += (200 * Math.min(clock.now - lastFrame, 100)) / 1000;
           lastFrame = clock.now;
           if (lastX !== null && x !== lastX) movingUntil = clock.now + 250;
@@ -70,16 +54,17 @@ function row({ crowd = 0, far = false, jitter = 0, hitchEveryMs = 0, hitchMs = 0
             const m = JSON.parse(sent[sentIdx]);
             if (m.t !== 'pose') continue;
             const p = m.p;
-            if (!timed) delete p.ts;   // an older relay's untimed poses: NET-SMOOTH's play-out
+            // Untimed poses model an older relay.
+            if (!timed) delete p.ts;
             const still = !!relayPose && (!poseChanged(relayPose, p) || ((relayPose.mv | 0) !== 0 && (p.mv | 0) === 0)) && clock.now - kept >= KEEPALIVE_FAN_MS;
             turn = (turn + 1) & 0xffff;
             if (still) kept = clock.now;
             relayPose = p;
-            if (far && !still && turn % POSE_FAR_SHARE !== 0) continue;   // the far tier: one in POSE_FAR_SHARE
+            if (far && !still && turn % POSE_FAR_SHARE !== 0) continue;
             const atMs = Math.max(clock.now + 40 + R() * jitter, tail); tail = atMs;
             q.push({ at: atMs, frame: { t: 'pose', id: 'eve-0003', p } });
           }
-        } else lastFrame = clock.now;   // her loop did not run: nothing moved, nothing said
+        } else lastFrame = clock.now;
       }
       while (q.length && q[0].at <= clock.now) M.sockets[0].receive(q.shift().frame);
       if (tn === nextRecv) {

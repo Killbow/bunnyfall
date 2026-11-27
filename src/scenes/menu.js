@@ -253,7 +253,7 @@ function pickClassicSaveFiles() {
         <h2 style="margin-top:0">${t('menu.classicLoad.title', 'Load Classic Save')}</h2>
         <p>${t('menu.classicLoad.pick', 'Select your classic {game} folder (the one with SAVE0-SAVE5 next to ARENA2), or drop it here. Your saves are read for this load only and are not stored.', { game: '<b>Daggerfall</b>' })}</p>
         <input type="file" id="picksaves" webkitdirectory multiple style="margin:8px">
-        <p style="margin:4px 0">${t('menu.classicLoad.phone', 'on a phone: pick a {zip} of your Daggerfall folder or a SAVE# folder instead', { zip: '<b>.zip</b>' })}</p>
+        <p style="margin:4px 0">${t('menu.classicLoad.phone', 'On a phone, select a {zip} of your Daggerfall folder or a SAVE# folder instead.', { zip: '<b>.zip</b>' })}</p>
         <input type="file" id="picksaveszip" accept=".zip,application/zip" style="margin:8px">
         <p><button id="cancelsaves" style="font:inherit;padding:4px 12px">${localizedText('cancel', 'Cancel')}</button></p>
         <p id="savemsg" style="color:#8a8"></p>

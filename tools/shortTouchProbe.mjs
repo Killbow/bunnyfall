@@ -1,19 +1,10 @@
-// SHORT-TOUCH (2026-09-27): THE FRONT DOOR ON A SHORT LANDSCAPE TOUCH SCREEN, MEASURED.
-//
-// Discord, an AYN Thor and an Android phone: "I can login, get to the main screen but I'm unable to select online,
-// load game, anything" - "I luckily have a tiny, tiny space under the title I can use to scroll". The section
-// screen stacked the logo, the pane and the rail in one column on every coarse pointer, and held sideways a
-// handheld's pane - where Continue, Load, Begin and Play online live - came to a few pixels. The tap probe
-// (enhancedTapProbe.mjs) measures button SIZES and passed: a button in a zero-height pane still measures 44 px.
-// This one measures what a player can SEE: for each door, the pane's height on screen and whether its first
-// button stands inside the viewport; and the first-visit sign-in window's Close.
-//
-//     npx vite --port 5199 &
-//     node tools/shortTouchProbe.mjs
+// Checks that each title screen pane and its first button fit on short landscape touch screens.
+// Usage: start `npx vite --port 5199` (or set PROBE_BASE), then run `node tools/shortTouchProbe.mjs`
+
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
-const PANE_FLOOR = 200;   // CSS px of pane a player can read a heading and a button in
+const PANE_FLOOR = 200;
 const SCREENS = [
   ['AYN Thor top screen (1920x1080 @ 2.625)', 731, 411],
   ['short handheld (1920x1080 @ 2.75)', 698, 393],
@@ -34,21 +25,20 @@ const check = (name, ok, detail = '') => {
 for (const [label, width, height] of SCREENS) {
   const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
-  await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'networkidle' });   // the probes' one-visit skip (main.js)
+  await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'networkidle' });
   await page.waitForSelector('#enhanced-menu .px-home');
-  // the first visit's sign-in window: its Close must be on the screen
   const win = page.locator('#enhanced-menu .px-acctwin');
   if (await win.count()) {
     const r = await win.boundingBox();
     check(`${label}: the sign-in window fits`, !!r && r.y >= 0 && r.y + r.height <= height + 1, JSON.stringify(r));
-    await page.mouse.click(4, height - 4);   // the bare scrim closes it
+    await page.mouse.click(4, height - 4);
   }
   await page.locator('#enhanced-menu .px-menu button', { hasText: 'Load Game' }).click();
   await page.waitForSelector('#enhanced-menu .shell');
   for (const door of DOORS) {
     const btn = page.locator('#enhanced-menu .rail .railbtn', { hasText: door }).first();
     if (!(await btn.count())) { check(`${label}: ${door}`, false, 'no rail entry'); continue; }
-    await btn.scrollIntoViewIfNeeded();   // the rail scrolls where it outruns the screen - a player's thumb does this
+    await btn.scrollIntoViewIfNeeded();
     const rb = await btn.boundingBox();
     check(`${label}: the ${door} rail entry is on the screen`, !!rb && rb.y >= 0 && rb.y + rb.height <= height + 1, JSON.stringify(rb));
     await btn.click();
@@ -56,8 +46,6 @@ for (const [label, width, height] of SCREENS) {
     const pane = await page.locator('#enhanced-menu .shell > .pane').boundingBox();
     const shown = pane ? Math.max(0, Math.min(pane.y + pane.height, height) - Math.max(pane.y, 0)) : 0;
     check(`${label}: the ${door} pane shows ${Math.round(shown)} px`, shown >= PANE_FLOOR);
-    // the pane's first button a player would press (Continue, Begin, Play online, Load...) - scrolled to, it must
-    // come to rest inside the screen
     const first = page.locator('#enhanced-menu .shell > .pane .body button, #enhanced-menu .shell > .pane .list button').first();
     if (await first.count()) {
       await first.scrollIntoViewIfNeeded().catch(() => {});

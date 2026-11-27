@@ -1,34 +1,12 @@
-// WD1 (2026-09-25): A VENDORED WORLD-DATA PATCH, LAID BACK ON THE
-// PLAYER'S CLASSIC BLOCK.
-//
-// The file a mod ships (a whole block, or a whole building record, as
-// DFU's World Data Editor writes it) is vendored as the edit only
-// (formats/worldData/worldDataJson.js says why; tools/worldDataPatch.mjs makes the
-// patch). At load the port reads the classic block out of the player's
-// own BLOCKS.BSA, serialises it the way the editor did, lays the edit on
-// and hands the result to the world-data door under the file's DFU name
-// (scenes/modWorldData.js) - from there it is the mod's file, served
-// exactly as DFU's WorldDataReplacement serves it.
-//
-// A patch:
-//   { format: 'dfe-worlddata-patch/1',
-//     rebuilds: '<DFU file name>.json',
-//     base: { kind: 'block', block: 'W0000000.RDB', index: 1016 }
-//         | { kind: 'building', block: 'SHIPAA00.RMB', index: 390, record: 0 },
-//     sha256: '<the shipped file, canonical form>',
-//     ops: [...] }
 
 import { blockToDfuJson, buildingToDfuJson, patchJson, canonicalJson, jsonAt } from './worldDataJson.js';
 
 export const PATCH_FORMAT = 'dfe-worlddata-patch/1';
 
 /**
- * The mod's file, rebuilt. Throws when the patch is not this format, the
- * player's BLOCKS.BSA does not hold the named block at the named index, or
- * an op does not land.
  * @param {object} patch
  * @param {{ getBlockName(i:number):string|null, readClassicBlock(i:number):object|null }} blocksFile
- * @returns {object} the DFU world-data JSON
+ * @returns {object}
  */
 export function rebuildWorldDataPatch(patch, blocksFile) {
   if (patch?.format !== PATCH_FORMAT) throw new Error(`world-data patch: ${patch?.rebuilds ?? '?'} is not ${PATCH_FORMAT}`);
@@ -54,12 +32,8 @@ export function rebuildWorldDataPatch(patch, blocksFile) {
   return patchJson(start, patch.ops, resolve);
 }
 
-/** sha256 of the canonical form, hex - WebCrypto, in the browser and under Node alike. */
 export async function canonicalSha256(json) {
   const bytes = new TextEncoder().encode(canonicalJson(json));
-  // BUILD-LEFTOVERS (AUDIT, the second read): every runtime this runs in has WebCrypto - a browser's secure context,
-  // and Node from 19 (package.json's engines: 20.19 and up). The `import('node:crypto')` fallback could never run in a
-  // browser (Vite stubs node: modules out of a bundle), and made every build warn that it had stubbed it
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) throw new Error('sha256 needs WebCrypto (crypto.subtle): a secure context - https, or localhost');
   const d = new Uint8Array(await subtle.digest('SHA-256', bytes));

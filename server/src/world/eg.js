@@ -1,5 +1,3 @@
-// An Elite Breach: the hub opens it on a signed order, and its room admits the company alone.
-// It runs the halls on the alarm, judges poses and casts, and mints and hands out each receipt.
 import { EG_KEY, SOCIAL_ROOM, validEgOpenTell, EG_BRAIN_MIN, sanitizeName, EG_INTERNAL_OPEN, egCallKey } from '../relay.js';
 import { EG_DONE_KEY, egResume, egDoneWith, egReceiptSeed, EG_RC_OWED_MAX, EG_INTERNAL_RCPT, EG_RC_TELL_MS, egDoneOf, egTickAt, EG_VOID_MAX_S, egVoidable, egHoldDone, egRelease, egBeatGap, EG_LIVE_MAX, EG_OPEN_HUB_TRIES, EG_INTERNAL_CALLED, EG_INTERNAL_VOID, egRcId, egRcKey, egRcFold, egRcLive, egRcSpent, EG_LIVE_KEY, EG_LIVE_SAID_MS, EG_INTERNAL_STAGE } from '../../../src/net/eliteGates/egDurable.js';
 import { egFairWoke, egEnd, egStateOf, egFightStateOf, egPoseIn, egCountHeals, egBreachNew, EG_HEAL_CAST_MS, egAdmitWord, egLive, egEnter, egBodyWord, EG_BODY_ENFORCE, egDown, egGeo, egHome, egHeal, egBlow, egWord, egCount, egStep } from '../../../src/net/eliteGates/egBrain.js';
@@ -49,8 +47,8 @@ export class EgPart {
   async _egSave(B, now, force) {
     if (!force && now - (this._egSavedAt ?? 0) < CHECKPOINT_MS) return;
     this._egSavedAt = now;
-    // Trails live in memory only; save each member's newest pose as `lp` so `_egTrails` can
-    // hold a woken room's bodies.
+    // Trails live in memory only; save the newest pose of each member as `lp`
+    // so `_egTrails` can rebuild the bodies in a woken room.
     for (const [sub, k] of this._egTrailsBy ?? []) if (B.mem?.[sub] && Array.isArray(k?.last)) B.mem[sub].lp = k.last.slice(0, 5);
     if (B.end && !B.tomb) { B.tomb = 1; await this._egDoneWrite(B.ez, B.end, null, now); }
     await this.state.storage.put(EG_KEY, B);

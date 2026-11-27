@@ -1,10 +1,5 @@
 // @ts-check
 
-// Editing a flat picture the way the 2D canvas shows it: the pivot (where the picture stands on its spot), the turn and
-// the mirror, and the layer it draws in. Pure: each function changes the row it is given, and the editor runs them
-// inside one poiEdit step. A mirrored flat is the game's own rule (net/decorLaw.js decorFlatMirrored): a billboard turned
-// more than a quarter either way faces the other way; a mount hangs by its own frame and never mirrors.
-
 import { decorFlatMirrored, decorMountFrame } from '../../../src/net/decorLaw.js';
 import { find } from './scene.js';
 
@@ -12,14 +7,12 @@ const LAYER_MIN = -100, LAYER_MAX = 100;
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-/** Whether the row's picture is drawn mirrored in the game. `pair` is the picture's [archive, record] when the row holds an item. */
 export function isMirrored(row, pair = null) {
   if (!row || row.kind === 'mount') return false;
   const flat = Array.isArray(row.flat) ? row.flat : pair;
   return decorFlatMirrored({ flat, item: row.kind === 'paperdoll' ? undefined : row.item, rot: row.rot });
 }
 
-/** Mirror or unmirror. A mount cannot mirror: answers false and changes nothing. */
 export function setMirrored(row, on) {
   if (!row?.rot || row.kind === 'mount') return false;
   const now = isMirrored(row, [0, 0]);
@@ -30,7 +23,6 @@ export function setMirrored(row, on) {
 
 const wrap = (d) => { let v = d % 360; if (v > 180) v -= 360; if (v <= -180) v += 360; return v; };
 
-/** Turn the picture by `deg`: a mount spins on its surface, any other flat turns about up (which is how it mirrors). */
 export function turnFlat(row, deg) {
   if (!row?.rot || !Number.isFinite(deg)) return false;
   const i = row.kind === 'mount' ? 2 : 0;
@@ -40,7 +32,6 @@ export function turnFlat(row, deg) {
   return true;
 }
 
-/** The pivot a point of the picture gives: `x` and `y` in picture pixels from the top-left, snapped by `mode`. */
 export function pivotAt(pic, x, y, mode = 'pixel') {
   let fx = clamp(x / pic.width, 0, 1), fy = clamp(y / pic.height, 0, 1);
   if (mode === 'pixel') { fx = Math.round(x) / pic.width; fy = Math.round(y) / pic.height; }
@@ -58,13 +49,11 @@ export function setPivot(row, pv) {
   return true;
 }
 
-/** The flats that draw, back to front: `[{ id, name, layer }]`, ties in the order they were placed. */
 export function layerStack(doc) {
   return (doc?.flats ?? []).map((f, i) => ({ id: `flat:${f.key}`, name: f.name || f.key, layer: f.layer ?? 0, i }))
     .sort((a, b) => a.layer - b.layer || a.i - b.i).map(({ i, ...r }) => r);
 }
 
-/** Move one flat a step forward (+1) or back (-1) in the stack: it takes its neighbour's layer, or the next one past it at the end. */
 export function shiftLayer(doc, id, dir) {
   const f = find(doc, id);
   if (!f || f.kind !== 'flat') return false;
@@ -78,7 +67,6 @@ export function shiftLayer(doc, id, dir) {
   return true;
 }
 
-/** Send to the very front or the very back. */
 export function layerEnd(doc, id, front) {
   const f = find(doc, id);
   if (!f || f.kind !== 'flat') return false;
@@ -90,5 +78,4 @@ export function layerEnd(doc, id, front) {
   return true;
 }
 
-/** How a mount's picture sits on its wall: the frame the game hangs it in, for the 2D view's drawing. */
 export function mountSpin(row) { return row?.kind === 'mount' ? Math.atan2(decorMountFrame(row.rot).right[1], decorMountFrame(row.rot).up[1]) : 0; }

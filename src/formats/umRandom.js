@@ -1,14 +1,5 @@
-// Unity.Mathematics Random: xorshift PRNG with Wang-hash index seeding.
-// 1:1 translation from the Unity.Mathematics source (MIT,
-// Unity Technologies, github.com/Unity-Technologies/Unity.Mathematics) -
-// unlike Mathf.PerlinNoise this one IS open source, so the beach-line
-// randomness in terrain texturing is byte-exact with DFU. Verbatim:
-//   - CreateFromIndex(i) seeds with WangHash(i + 62) (offset so
-//     uint.MaxValue hashes to zero instead of 61).
-//   - The constructor burns one NextState().
-//   - NextState is xorshift 13/17/5 returning the PRE-update state.
-//   - NextFloat reinterprets (0x3f800000 | state >> 9) as a float and
-//     subtracts 1 -> [0, 1); the (min, max) form scales it.
+// Port of the Unity.Mathematics `Random` so terrain beach randomness matches DFU bit for bit. Index seeding adds 62
+// before the Wang hash, and each step returns the state from before the update.
 
 const F32 = new Float32Array(1);
 const U32 = new Uint32Array(F32.buffer);
@@ -23,13 +14,11 @@ function wangHash(n) {
 }
 
 export class UMRandom {
-  /** new Random(seed): state = seed, then one NextState() burn. */
   constructor(seed) {
     this.state = seed >>> 0;
     this._nextState();
   }
 
-  /** Random.CreateFromIndex(index). */
   static createFromIndex(index) {
     return new UMRandom(wangHash((index + 62) >>> 0));
   }
@@ -44,22 +33,16 @@ export class UMRandom {
     return t;
   }
 
-  /** Uniform float in [0, 1), verbatim bit trick. */
   nextFloat() {
     U32[0] = (0x3f800000 | (this._nextState() >>> 9)) >>> 0;
     return F32[0] - 1.0;
   }
 
-  /** Uniform float in [min, max). WATER-AUDIT (2026-09-08): float32 per
-   *  operation, as `NextFloat() * (max - min) + min` is in C# - the
-   *  double form disagreed with the reference in 17% of draws by a
-   *  float32 ulp, and through the beach jitter's `fround(40 + j)` moved
-   *  the tile threshold itself for 1% of corners. */
+  // Each operation rounds to float32 as the C# does. Double math shifts the beach tile threshold at some corners.
   nextFloatRange(min, max) {
     return Math.fround(Math.fround(this.nextFloat() * Math.fround(max - min)) + min);
   }
 
-  /** Uniform int in [min, max), verbatim: (state * range) >> 32 + min. */
   nextIntRange(min, max) {
     const range = BigInt(max - min);
     return Number((BigInt(this._nextState()) * range) >> 32n) + min;

@@ -1,18 +1,5 @@
-// ECOTONE1 (2026-10-07): A CLIMATE BORDER, PHOTOGRAPHED ON A REAL GPU.
-//
-//     node tools/ecotoneProbe.mjs            shots in tools/shots/ecotone-*.png
-//
-// This container has no ARENA2, so the streaming world cannot boot here. What ECOTONE1 changes on the GPU is the terrain
-// programs' sample (render/ecotoneGlsl.js) and the draw's `eco` (renderer.drawTerrain), and those can be driven over a
-// SYNTHETIC 3x3 of map pixels: three flat-coloured tile sets (sixty-four records each, every one a base colour with a
-// texel mottle - green woods, sand, a grey-green upland), the west column one climate, the east another, the south-east
-// pixel a third, each pixel's tilemap marched from the game's own tile classifier (generateTileData, world tiles - the
-// pattern runs on across the edges as it does in the world), and each pixel's `eco` made as the world host makes it.
-// Shots from above (the whole 3x3, the corner) and from a walker's eye, with the blend and without - and a measurement:
-// across the woods-desert seam, how much of the ground at each distance from the map pixel's edge is the desert's set
-// (world points projected through the shot's own camera, the ground read back as one set or the other by its
-// brightness), so the border's width and its shape are numbers. SwiftShader's milliseconds are not a player's and are
-// never reported.
+// Renders a synthetic 3x3 of map pixels in three climates, with and without the climate border blend, and measures
+// the border's width. Run: node tools/ecotoneProbe.mjs (shots in tools/shots/ecotone-*.png)
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -42,11 +29,10 @@ try {
     const renderer = new Renderer(canvas);
     const gl = renderer.gl;
 
-    // three tile sets: water, dirt, grass, stone and every transition a mix of the two it joins, mottled per texel
     const SETS = {
-      302: [[38, 82, 128], [122, 96, 62], [74, 116, 48], [112, 112, 104]],     // the woods: green
-      2: [[38, 92, 128], [178, 142, 96], [206, 182, 128], [164, 148, 120]],    // the desert: sand
-      102: [[38, 82, 120], [110, 100, 82], [104, 112, 86], [140, 140, 136]],   // the upland: grey-green
+      302: [[38, 82, 128], [122, 96, 62], [74, 116, 48], [112, 112, 104]],
+      2: [[38, 92, 128], [178, 142, 96], [206, 182, 128], [164, 148, 120]],
+      102: [[38, 82, 120], [110, 100, 82], [104, 112, 86], [140, 140, 136]],
     };
     const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
     for (const [archive, base] of Object.entries(SETS)) {
@@ -61,7 +47,7 @@ try {
         const colors = new Uint8Array(64 * 64 * 4);
         for (let i = 0; i < 64 * 64; i++) {
           const x = i & 63, y = i >> 6;
-          const n = (((x * 7 + y * 13) ^ (x * y)) % 9) - 4;   // a texel mottle, so a set reads as ground
+          const n = (((x * 7 + y * 13) ^ (x * y)) % 9) - 4;
           colors[i * 4] = c[0] + n * 2; colors[i * 4 + 1] = c[1] + n * 2; colors[i * 4 + 2] = c[2] + n * 2; colors[i * 4 + 3] = 255;
         }
         layers.push({ width: 64, height: 64, colors });
@@ -69,11 +55,10 @@ try {
       renderer.uploadTileArray(Number(archive), layers);
     }
 
-    // the 3x3: map pixels (px0-1..px0+1, py0-1..py0+1); west column the woods, east the desert, south-east the upland
     const px0 = 240, py0 = 180;
     const groundOf = (px, py) => (px > px0 ? (px === px0 + 1 && py === py0 + 1 ? 102 : 2) : 302);
     const hDim = HEIGHTMAP_DIMENSION;
-    const heights = new Float32Array(hDim * hDim).fill(0.3);   // flat land, well above the sea
+    const heights = new Float32Array(hDim * hDim).fill(0.3);
     const grid = buildTerrainGrid(heights, 1);
     const surface = renderer.createTerrainSurface(grid.positions, grid.normals, buildTerrainIndices(1));
     const groundY = grid.positions[1];
@@ -86,7 +71,6 @@ try {
         assignTiles(tileData, tilemap, true);
         const tilemapTex = renderer.uploadTilemapTexture(convertTilemap(tilemap), TERRAIN_TILE_DIM);
         const m = identity(); m[12] = dx * TERRAIN_SIZE; m[14] = dz * TERRAIN_SIZE;
-        // the world host's eco (scenes/world.js): the 3x3's ground archives, the distinct others a slot each
         const own = groundOf(px, py), near = [];
         for (let ez = -1; ez <= 1; ez++) for (let ex = -1; ex <= 1; ex++) near.push(groundOf(px + ex, py - ez));
         let eco = null;
@@ -126,26 +110,18 @@ try {
       shots.push({ name, png: canvas.toDataURL('image/png'), err });
       return px;
     };
-    const c = TERRAIN_SIZE / 2;   // the centre pixel's middle
-    // above the whole 3x3, north up the picture, with the blend and without
+    const c = TERRAIN_SIZE / 2;
     const topH = 2300;
     const top = draw('top', [c, groundY + topH, c], [c, groundY, c], [0, 0, 1]);
     const topOff = draw('top-off', [c, groundY + topH, c], [c, groundY, c], [0, 0, 1], { blend: false });
-    // the corner of the woods, the desert and the upland, from 520 m up
     draw('corner', [TERRAIN_SIZE, groundY + 520, 0], [TERRAIN_SIZE, groundY, 0], [0, 0, 1]);
     draw('corner-off', [TERRAIN_SIZE, groundY + 520, 0], [TERRAIN_SIZE, groundY, 0], [0, 0, 1], { blend: false });
-    // from a rise on the woods' side, 30 m up: across the seam into the desert, along it to the north, and the lane's own
-    // decode of the first
     const across = [[TERRAIN_SIZE - 260, groundY + 30, c + 40], [TERRAIN_SIZE + 160, groundY, c + 40]];
     draw('rise-across', ...across, [0, 1, 0]);
     draw('rise-across-off', ...across, [0, 1, 0], { blend: false });
     draw('rise-across-lane', ...across, [0, 1, 0], { lane: true });
     draw('rise-along', [TERRAIN_SIZE - 60, groundY + 30, c - 220], [TERRAIN_SIZE + 10, groundY, c + 160], [0, 1, 0]);
 
-    // THE SEAM, MEASURED on the shots from above: at each distance from the map pixel's edge between the woods and the
-    // desert (x = TERRAIN_SIZE in the centre pixel's frame, east positive), the share of the ground along that line - the
-    // centre and east pixels' middle 600 m, clear of the upland - that reads as the desert's set (its tiles are all
-    // brighter than the woods': grass 206/182/128 against 74/116/48)
     const project = ({ proj, view }, x, y, z) => {
       const v = [x, y, z, 1];
       const mul = (m, a) => [0, 1, 2, 3].map((r) => m[r] * a[0] + m[4 + r] * a[1] + m[8 + r] * a[2] + m[12 + r] * a[3]);

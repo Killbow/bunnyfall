@@ -1,10 +1,5 @@
-// BUNNYFALL (2026-11-18, daily elite dungeons): THE POOL THE SERVICE PICKS FROM. Walks MAPS.BSA from the player's own
-// ARENA2 and writes server-account/src/eliteDungeonSites.js: every dungeon an elite dungeon may be (net/eliteDungeonLaw.js
-// edSiteOk - a labyrinth, a keep or a ruin of at least ED_SITE_MIN_BLOCKS blocks, never in Cromwark's region, never a
-// main-story dungeon, never a cemetery), one line each: region, location, map pixel x and y, name. The pool lives on the
-// service alone (it picks and keeps the rows); the client hears each pick whole.
-//
-// Usage: ARENA2_PATH=/path/to/arena2 node tools/eliteDungeonSites.mjs
+// Writes server-account/src/eliteDungeonSites.js, the dungeons an elite dungeon may use, from MAPS.BSA.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/eliteDungeonSites.mjs.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

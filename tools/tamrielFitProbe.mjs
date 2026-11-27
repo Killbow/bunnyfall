@@ -1,23 +1,7 @@
 #!/usr/bin/env node
-// TAMRIEL1 (2026-10-08, bible/03-World/Tamriel.md) - THE FIT PROBE: the authored continent laid over the player's own
-// picture of it, and the Bay's edge measured against the data. LOCAL ONLY: it reads ARENA2 and writes a render of it,
-// which never ships (Port-Doctrine, A RENDER OF GAME DATA IS GAME DATA) - the output directory is gitignored.
-//
-//   ARENA2_PATH=/path/to/arena2 node tools/tamrielFitProbe.mjs [--out tamriel-shots]
-//
-// Three readings, each a number the frame's authored constants (world/tamriel/tamrielFrame.js BAY_ORIGIN,
-// PIXELS_PER_PICTURE_UNIT) and the geography's vertices can be corrected by:
-//
-//   1. THE OVERLAY: TMAP00I0.IMG (320 x 200, the race screen's Tamriel) as grey, with the authored coast in white,
-//      the borders in grey, the Bay's rectangle in black and every city as a dot - `overlay.ppm`. Open it and read
-//      where the authored shore leaves the painted one.
-//   2. THE PICKER: for each authored province's label and each city, which race TAMRIEL2.IMG's byte names at that
-//      point (CreateCharRaceSelect's own law, ui/chargenArt.js raceAtPickerPoint). A label whose race is not its
-//      province's is a vertex to move.
-//   3. THE SEAM: along each of the Bay's four edges, the runs of land and water WOODS.WLD + CLIMATE.PAK say (the one
-//      water law, ui/overworldModel.js isWaterPixel) beside the runs the authored rings say, and every run where they
-//      disagree, in Bay pixels. The stitch (ui/tamrielInk.js) joins what agrees within STITCH_REACH; this lists the
-//      rest, and where the Bay's own coast ends on its edge with no authored chain to meet it.
+// Overlays the authored Tamriel map on the classic Tamriel pictures and measures where the Bay edge disagrees.
+// It reads ARENA2 and writes renders of game data, so its output stays local and is never committed.
+// Usage: ARENA2_PATH=<dir> node tools/tamrielFitProbe.mjs [--out tamriel-shots]
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ImgFile } from '../src/formats/imgFile.js';
@@ -25,7 +9,7 @@ import { WoodsFile } from '../src/formats/woodsFile.js';
 import { PakFile } from '../src/formats/pakFile.js';
 import { raceAtPickerPoint } from '../src/ui/chargenArt.js';
 import { DFPalette } from '../src/formats/dfPalette.js';
-import { traceTamrielPicture, paletteReader } from '../src/ui/tamrielTrace.js';   // TAMRIEL3: the trace the world host makes
+import { traceTamrielPicture, paletteReader } from '../src/ui/tamrielTrace.js';
 import { fitBayToPicture, setTamrielTrace, provinceKeyAt, PROVINCE_OF_ID } from '../src/world/tamrielLand.js';
 import { setTamrielFit, tamrielFit } from '../src/world/tamrielFrame.js';
 import { isWaterPixel } from '../src/ui/overworldModel.js';
@@ -43,7 +27,6 @@ const file = (name) => {
   throw new Error(`${name} not in ${A2}`);
 };
 
-// ── 1. THE OVERLAY ───────────────────────────────────────────────
 const picture = new ImgFile();
 picture.load(file('TMAP00I0.IMG'), 'TMAP00I0.IMG');
 const bmp = picture.getDFBitmap();
@@ -60,7 +43,6 @@ for (const c of CITIES) plot(c.at[0], c.at[1], 255, 0, 0);
 writeFileSync(join(outDir, 'overlay.ppm'), Buffer.concat([Buffer.from(`P6\n${W} ${H}\n255\n`), Buffer.from(rgb)]));
 console.log(`overlay: ${join(outDir, 'overlay.ppm')} (${W}x${H}; the Bay's rectangle at x ${r.x0.toFixed(1)}..${r.x1.toFixed(1)}, y ${r.y0.toFixed(1)}..${r.y1.toFixed(1)})`);
 
-// ── 2. THE PICKER ────────────────────────────────────────────────
 const picker = new ImgFile();
 picker.load(file('TAMRIEL2.IMG'), 'TAMRIEL2.IMG');
 const pick = picker.getDFBitmap();
@@ -79,13 +61,13 @@ for (const c of CITIES) {
 }
 console.log(`picker: ${off} off`);
 
-// ── 3. THE SEAM ──────────────────────────────────────────────────
 const woods = new WoodsFile();
 woods.load(file('WOODS.WLD'));
 const climate = new PakFile();
 climate.load(file('CLIMATE.PAK'));
 const heightBytes = woods.heightMapBuffer;
-const climateAt = (x, y) => climate.getValue(x + 1, y);   // MapsFile.getClimateIndex's own +1 column
+// CLIMATE.PAK is read one column over, as MapsFile.getClimateIndex reads it.
+const climateAt = (x, y) => climate.getValue(x + 1, y);
 const dataLand = landAt({ heightBytes, width: BAY_W, climateAt });
 const authoredLand = (x, y) => { const [px, py] = bayToPicture(x, y); return provinceAt(px, py) !== null; };
 const seam = (landAtPicture, label) => {
@@ -118,11 +100,7 @@ return disagree;
 seam(authoredLand, 'authored');
 console.log(`frame: BAY_ORIGIN (${BAY_ORIGIN.x}, ${BAY_ORIGIN.y}) at ${PIXELS_PER_PICTURE_UNIT} Bay px a picture px - the authored defaults`);
 
-// ── 4. THE TRACE AND THE FIT (TAMRIEL3) ──────────────────────────
-// What the world host does at boot: trace the two files, fit the Bay's land on the picture's, install both - then the
-// seam again on the trace, and `trace.ppm`: the traced land tinted by province, the sea blue, the fitted Bay's
-// rectangle black. The fit's numbers are what the player's game runs on; nothing here is committed.
-const mapPal = new DFPalette();   // the painting's own palette (MAP.PAL), as the host reads it
+const mapPal = new DFPalette();
 mapPal.load(file(picture.paletteName || 'ART_PAL.COL'), picture.paletteName || 'ART_PAL.COL');
 const trace = traceTamrielPicture(pick, bmp, paletteReader(mapPal));
 if (!trace) { console.log('trace: the picture traced to nothing (the two files differ in size?)'); }

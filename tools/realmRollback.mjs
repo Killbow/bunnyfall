@@ -1,37 +1,7 @@
 #!/usr/bin/env node
-// ═══════════════════════════════════════════════════════════════════
-// PURSE-BACK (2026-10-19; FIELD BUGS 2026-10-18b TRADE-WRAP's repair - the owner: "We need to restore Kurasawa's account
-// to before they were in a negative balance", and, asked how it should run, "Build a workflow") - A REALM CHARACTER BACK
-// TO ITS LAST SAVE FROM BEFORE ITS PURSE WENT BELOW NOTHING, RUN FROM THE ACTIONS TAB (selfhost/upstream-ci/workflows/realm-rollback.yml).
-//
-// TRADE-WRAP's counter paid a big lot's sale millions below nothing into the purse, and a purse below nothing is a law
-// finding (server-account/src/judge.js purseWord, code 'gold'): the character is held, and no checkpoint after it is
-// judged clean. The review's rollback (server-account/src/review.js, INT6) puts a record back to its last clean
-// checkpoint - for such a character the last save before the sale, with the pieces it sold, the letters of credit spent
-// since and the purse as it stood. That act is a developer's, signed in (tools/realmReview.mjs). This runs THE SAME ACT -
-// reviewAct itself: its developer gate, its guards, its statements and its staff finding - over the live database and
-// bucket, reached through wrangler with the repository's CLOUDFLARE_API_TOKEN (tools/lib/wranglerBindings.mjs). Nothing of
-// its law is copied here.
-//
-// THE CHECK THE ROUTE CANNOT MAKE (purseReach): the clean save must be older than the purse's first finding. A payment
-// the letters could not cover, a fare, a death in the open zone or a house bought through the bank sets such a purse at
-// nothing again (systems/court.js deductGold and deductGoldPieces, systems/wild/wildDropLaw.js), the next checkpoint is
-// judged clean, and the save from before the sale left the bucket when the clean one moved past it (realm.js keeps the
-// record, the one before it and the clean one) - a rollback would land after the sale, undo the play since and give
-// nothing back. So the earliest law finding naming 'gold' must stand after the clean save, or the act is never asked.
-//
-// THE DRY RUN IS THE ACT WITH ITS WRITES HELD: the same reviewAct over bindings that read the live database and bucket
-// and hold every write (`dry`) - so every refusal it would make ('not-developer', 'dead', 'no-clean', 'service-moved') is
-// its own, said before anything is written. The run's page names the account by the handle typed, its characters by
-// their names and realm ids, and never an account's id or a save's key (a public repository's run is public).
-//
-//   node tools/realmRollback.mjs --handle <account> --by <developer> [--character <realm id>] [--run <run id>] [--apply]
-//                                [--summary <file>] [--local]
-//
-// Run where wrangler finds server-account's wrangler.toml: the database, the bucket and the developers' list are read
-// from it, the deployed config's own words. `--by` must be on that list - the review's gate is the act's own. --local
-// reads and writes wrangler's local D1 and R2 (a probe's), never the workflow's.
-// ═══════════════════════════════════════════════════════════════════
+// Rolls a realm character back to its last clean save from before its purse went below zero, via the review act.
+// Run: node tools/realmRollback.mjs --handle <account> --by <developer> [--character <id>] [--run <id>] [--apply]
+// [--summary <file>] [--local], where wrangler finds server-account's wrangler.toml; --local uses local D1 and R2.
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -48,7 +18,6 @@ export const USAGE = [
   '  run where wrangler finds server-account/wrangler.toml; a dry run unless --apply',
 ].join('\n');
 
-/** Each refusal in the run page's words - the act's own and the check's. */
 export const REFUSALS = Object.freeze({
   'not-developer': "the run was asked by someone not on the developers' list (server-account/wrangler.toml DEVELOPER_HANDLES)",
   body: 'that is no account name',
@@ -64,11 +33,7 @@ export const REFUSALS = Object.freeze({
   'no-realm-character': 'the character is gone',
 });
 
-/**
- * What the run reads of server-account's wrangler.toml: the database and the bucket the service binds (DB, SAVES) and
- * the developers' list its review gate reads.
- * @param {string} toml
- */
+/** @param {string} toml */
 export function configOf(toml) {
   const sections = toml.split(/\n(?=\[)/);
   const bound = (/** @type {string} */ head, /** @type {string} */ binding) => sections.find((s) => s.startsWith(head) && new RegExp(`^binding\\s*=\\s*"${binding}"`, 'm').test(s)) ?? '';
@@ -80,14 +45,8 @@ export function configOf(toml) {
   };
 }
 
-/**
- * THE CHECK, from one character's review findings (reviewAct 'findings', the newest hundred): the save its purse first
- * went below nothing (`first`, `at` - the earliest law finding naming 'gold') and its last clean save (`clean`). `ok`
- * only when the clean one is the older; else `why` - 'no-purse-finding', 'no-clean', or 'clean-after' ('rolled-back'
- * when a staff rollback since is why: a run applied twice). `between`: the law findings after the clean save and before
- * the purse's - the saves the law held for something else, undone with it.
- * @param {any} answer
- */
+// The clean save must be older than the first 'gold' finding; otherwise a rollback lands after the bad sale.
+/** @param {any} answer */
 export function purseReach(answer) {
   const findings = (Array.isArray(answer?.findings) ? answer.findings : []).filter((f) => Number.isSafeInteger(f?.seq));
   const law = findings.filter((f) => f.kind === 'law');
@@ -104,9 +63,8 @@ export function purseReach(answer) {
 }
 
 /**
- * What a stored save holds that the run's page says - its purse, its letters of credit (how many, and their gold), its
- * banks' gold, the pieces it carries and its wealth as the judge counts it - or null.
- * @param {any} bucket @param {unknown} key
+ * @param {any} bucket
+ * @param {unknown} key
  */
 export async function saveSummary(bucket, key) {
   if (typeof key !== 'string' || !key) return null;
@@ -127,15 +85,10 @@ export async function saveSummary(bucket, key) {
   };
 }
 
-/** The act's note, kept by its staff finding: the cause, the save it undoes from, and the run. */
 export const noteFor = (/** @type {{ first: number | null }} */ reach, /** @type {string | null} */ run = null) =>
   `PURSE-BACK (TRADE-WRAP, FIELD BUGS 2026-10-18b): the purse below nothing from save ${reach.first}${run ? ` - realm-rollback.yml run ${run}` : ''}`;
 
 /**
- * THE RUN: the account by its handle and its realm characters (reviewAct 'characters'), each one's reach (purseReach over
- * its 'findings'), the one to roll back - the one named, else the one character whose purse went below nothing - and,
- * when its check holds, the review's own rollback asked of it. `ctx` is the act's own `{ db, bucket, nowS }`, live or dry.
- * Answers the run whole, `refusal` the act's word or the check's (REFUSALS) when it stopped.
  * @param {any} ctx
  * @param {{ handle: string, by: string, character?: string | null, developers: string | null, run?: string | null }} o
  */
@@ -161,19 +114,14 @@ export async function rollbackPurse(ctx, { handle, by, character = null, develop
   return result.answer.error ? stop(result.answer.error) : result;
 }
 
-/** An apply's row read back as the rollback leaves it: at the sequence the act answered (or past it, should the character
- *  have joined since) and held by nothing. */
 export const readBackOk = (/** @type {any} */ r) => !!r.after && r.after.seq >= r.answer?.seq && r.after.held == null;
 
 const n = (/** @type {number} */ v) => v.toLocaleString('en-US');
 const when = (/** @type {number | null} */ s) => (s == null ? '' : ` (${new Date(s * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC)`);
-/** What a held write is, by its first words - a statement's verb and table, an object's delete - never its values. */
 const heldKind = (/** @type {string} */ h) => /^(UPDATE \w+|INSERT INTO \w+|DELETE FROM \w+|INSERT OR \w+ INTO \w+|r2 object delete)/.exec(h)?.[1] ?? 'a write';
 
 /**
- * The run in the page's words: the characters and their reach, the one rolled back, what its record holds now and what
- * it holds back, and the outcome - a refusal, a dry run's yes and the writes it held, or the rollback written.
- * @param {any} r rollbackPurse's answer (with `after`, the row read back after an apply)
+ * @param {any} r
  * @param {{ apply: boolean, held?: string[] }} o
  */
 export function rollbackReport(r, { apply, held = [] }) {
@@ -206,7 +154,6 @@ export function rollbackReport(r, { apply, held = [] }) {
   return out.join('\n') + '\n';
 }
 
-// ── the command ──
 async function main() {
   const arg = (/** @type {string} */ name) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] ?? null : null; };
   const handle = arg('handle'), by = arg('by');
@@ -222,10 +169,12 @@ async function main() {
   const held = [];
   const dir = mkdtempSync(join(tmpdir(), 'realm-rollback-'));
   try {
+    // A dry run is the same review act with every write held, so it reports the same refusals an apply would.
     const db = wranglerD1({ database: config.database, exec, where, dry: !apply, held });
     const ctx = { db, bucket: wranglerR2({ bucket: config.bucket, exec, dir, where, dry: !apply, held }), nowS: Math.floor(Date.now() / 1000) };
     const result = await rollbackPurse(ctx, { handle, by, character: arg('character') || null, developers: config.developers, run: arg('run') || null });
-    if (process.env.GITHUB_ACTIONS && result.account?.id) process.stdout.write(`::add-mask::${result.account.id}\n`);   // never on the page
+    // The run page is public, so the account id is masked in the log.
+    if (process.env.GITHUB_ACTIONS && result.account?.id) process.stdout.write(`::add-mask::${result.account.id}\n`);
     if (apply && !result.refusal) result.after = await db.prepare('SELECT seq, held FROM realm_characters WHERE id = ?').bind(result.character.id).first();
     say(rollbackReport(result, { apply, held }));
     process.exitCode = result.refusal || (apply && !readBackOk(result)) ? 1 : 0;

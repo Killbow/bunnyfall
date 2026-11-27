@@ -1,31 +1,8 @@
-// Morrowind keyframe animation - slice 3 of the import arc. Three jobs,
-// all pure data: pull the text-key ANIMATION GROUPS out of a NIF
-// ("Idle: Start" ... "Idle: Stop"), pull per-bone keyframe TRACKS out of
-// either an inline-animated NIF (base_anim.nif style - controllers on
-// the bones) or an external .kf (xbase_anim.kf style -
-// NiSequenceStreamHelper pairing a NiStringExtraData bone-name chain
-// with a controller chain), and SAMPLE a track at a time.
-//
-// Interpolation, the reference's interpolate() verbatim
-// (nifosg/controller.hpp:135-179):
-//   - linear: lerp (the default case)
-//   - constant: WHICH HALF - `fraction > 0.5f ? b.mValue : a.mValue`,
-//     for quaternions too
-//   - quadratic: cubic Hermite on the stored in/out tangents -
-//     `a.mOutTan * b3 + b.mInTan * b4` (quaternion quadratic keys carry
-//     no tangents - slerp, the default)
-//   - TBC: tangents GENERATED from tension/continuity/bias exactly as
-//     generateTCBTangents (nifkey.hpp:172-204), then the same Hermite
-//     (quaternion TCB is unimplemented in the reference - slerp)
-//   - XYZ: three float tracks composed as rotations about X, Y, Z
 
 import { deref, KEY_TYPE } from './mwNifFile.js';
 import { allWeaponShortGroups } from './mwFirstPerson.js';
 import { segment, sampleKeyGroup } from './mwKeys.js';
 
-// --- text keys and groups --------------------------------------------------
-
-/** Every text key in the file, sorted by time. */
 export function collectTextKeys(nif) {
   const keys = [];
   for (const rec of nif.records) {
@@ -34,13 +11,7 @@ export function collectTextKeys(nif) {
   return keys.slice().sort((a, b) => a.time - b.time);
 }
 
-/**
- * Parse "Group: marker" text keys into named groups. One key's text can
- * carry several lines (retail packs "SoundGen: Left\nGroupname: Stop"
- * style bundles); every line is its own marker.
- * @returns {Map<string, {start:number, stop:number, loopStart:number|null,
- *   loopStop:number|null}>}
- */
+/** @returns {Map<string, {start:number, stop:number, loopStart:number|null, loopStop:number|null}>} */
 export function parseAnimGroups(textKeys) {
   const groups = new Map();
   for (const { time, text } of textKeys) {
@@ -54,8 +25,6 @@ export function parseAnimGroups(textKeys) {
         g = { start: null, stop: null, loopStart: null, loopStop: null, markers: new Map() };
         groups.set(name, g);
       }
-      // Every marker is kept - attack sub-segments ("chop start",
-      // "chop hit"...) live here for the first-person layer.
       g.markers.set(marker, time);
       if (marker === 'start') g.start = time;
       else if (marker === 'stop') g.stop = time;
@@ -63,30 +32,12 @@ export function parseAnimGroups(textKeys) {
       else if (marker === 'loop stop') g.loopStop = time;
     }
   }
-  // Only groups that actually bracket time are playable.
   for (const [name, g] of groups) {
     if (g.start == null || g.stop == null) groups.delete(name);
   }
   return groups;
 }
 
-/**
- * MWAUDIT: THE CASE-INSENSITIVE DOOR onto that map, and the reason it
- * has to exist.
- *
- * parseAnimGroups above lowercases every MARKER (`m[2].toLowerCase()`)
- * and keeps the GROUP name exactly as written - an inconsistency
- * inside one function, and the consumer that matters looks groups up
- * by a hard-coded capitalisation ('Idle1h', 'WeaponOneHand'). A file
- * that writes `idle1h:` therefore resolves nothing, and a first-person
- * rig with no group to play freezes in its bind pose. OpenMW
- * lowercases group names on the way in for exactly this reason: real
- * data and mods do not agree on case.
- *
- * The map itself stays keyed by the ORIGINAL name, because the mesh
- * viewer is a coverage scout and must show what the file actually
- * says. This is the lookup, not a second store.
- */
 export function findAnimGroup(groups, name) {
   if (!groups || !name) return null;
   const direct = groups.get(name);
@@ -96,9 +47,6 @@ export function findAnimGroup(groups, name) {
   return null;
 }
 
-// --- tracks ----------------------------------------------------------------
-
-/** MW-SPELLFX1: exported - an effect mesh's keyframed nodes are sampled by the same track (formats/morrowind/mwVfx.js). */
 export function trackFromController(nif, ctrl) {
   const data = deref(nif, ctrl.data);
   if (!data || data.type !== 'NiKeyframeData') return null;
@@ -116,19 +64,13 @@ export function trackFromController(nif, ctrl) {
   };
 }
 
-/**
- * Per-bone tracks, keyed by LOWERCASED bone name. Handles both shapes:
- * a .kf's NiSequenceStreamHelper root, and inline controllers on named
- * nodes anywhere in the record list.
- * @returns {Map<string, object>}
- */
+/** @returns {Map<string, object>} */
 export function extractTracks(nif) {
   const tracks = new Map();
   const helper = nif.roots.map((r) => deref(nif, r)).find(
     (r) => r && r.type === 'NiSequenceStreamHelper',
   );
   if (helper) {
-    // Extra chain: [text keys] then one NiStringExtraData per controller.
     const names = [];
     for (let e = deref(nif, helper.extra); e; e = deref(nif, e.next)) {
       if (e.type === 'NiStringExtraData') names.push(e.string);
@@ -155,13 +97,6 @@ export function extractTracks(nif) {
   return tracks;
 }
 
-// --- sampling --------------------------------------------------------------
-
-// AUDIT 68 S11-colorkey-tbc: the float KeyGroup sampler (Hermite, the TCB
-// tangents, the segment search) lives in mwKeys.js - the particle colour
-// ramp is a KeyGroup too, and its own copy dropped the TCB tangents.
-
-/** Quaternion slerp on [w,x,y,z]. */
 function slerp(a, b, u) {
   let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
   let bw = b;
@@ -208,18 +143,16 @@ function quatMul(a, b) {
   ];
 }
 
-// Application order per NIF axis-order code, matching the reference's
-// getXYZRotation table exactly (each triple applied left to right).
 const AXIS_ORDERS = [
-  [0, 1, 2], // XYZ
-  [0, 2, 1], // XZY
-  [1, 2, 0], // YZX
-  [1, 0, 2], // YXZ
-  [2, 0, 1], // ZXY
-  [2, 1, 0], // ZYX
-  [0, 1, 0], // XYX
-  [1, 2, 1], // YZY
-  [2, 0, 2], // ZXZ
+  [0, 1, 2],
+  [0, 2, 1],
+  [1, 2, 0],
+  [1, 0, 2],
+  [2, 0, 1],
+  [2, 1, 0],
+  [0, 1, 0],
+  [1, 2, 1],
+  [2, 0, 2],
 ];
 
 function sampleRotation(track, time) {
@@ -231,7 +164,6 @@ function sampleRotation(track, time) {
       sampleKeyGroup(gz, 1, time) ?? 0,
     ];
     const order = AXIS_ORDERS[track.axisOrder ?? 0] ?? AXIS_ORDERS[0];
-    // Apply order[0] first: q = q2 x q1 x q0 in Hamilton terms.
     let q = axisQuat(order[0], angles[order[0]]);
     q = quatMul(axisQuat(order[1], angles[order[1]]), q);
     q = quatMul(axisQuat(order[2], angles[order[2]]), q);
@@ -241,20 +173,15 @@ function sampleRotation(track, time) {
   if (!keys || !keys.length) return null;
   const [i0, i1, u] = segment(keys, time);
   if (i0 === i1) return keys[i0].value.slice();
-  // MW-D33: the quaternion interpolate (controller.hpp:164-179) knows
-  // exactly two moves - Constant's which-half, and slerp for EVERYTHING
-  // else (quadratic and TCB quats are unimplemented in the reference).
+  // Quaternion keys either take the nearer key (constant) or slerp. The reference has no quadratic or TCB
+  // quaternion interpolation.
   if (track.rotationType === KEY_TYPE.constant) {
     return (u > 0.5 ? keys[i1] : keys[i0]).value.slice();
   }
   return slerp(keys[i0].value, keys[i1].value, u);
 }
 
-/**
- * Sample a bone track at a time (already inside the clip's range).
- * @returns {{rotation:number[]|null, translation:number[]|null,
- *   scale:number|null}}
- */
+/** @returns {{rotation:number[]|null, translation:number[]|null, scale:number|null}} */
 export function sampleTrack(track, time) {
   return {
     rotation: sampleRotation(track, time),
@@ -263,36 +190,6 @@ export function sampleTrack(track, time) {
   };
 }
 
-// --- the clip law ----------------------------------------------------------
-//
-// MW-D7. Four OpenMW members that had no JS home, ported here beside the
-// text keys they read:
-//
-//   TextKeyMap::emplace          normalise + register groups (rules 44, 45, 21)
-//   Animation::reset             pick the clip's time range      (rules 22, 23, 49)
-//   AnimState::shouldLoop        the loop predicate              (rule 49)
-//   Animation::runAnimation      advance the playhead            (rule 50)
-//
-// WHY THIS IS NOT parseAnimGroups. parseAnimGroups above is the group
-// LISTING - what the viewer's dropdown shows, keyed by the name the file
-// wrote, with a marker map beside it. It is not reset(). It diverges from
-// the rules in ways that matter to a PLAYER and not at all to a listing:
-// it splits on /\r?\n/ where rule 44 splits on the CHARACTER SET [\r\n];
-// it accepts "Sneak:Start" where rule 21 requires colon-plus-one-space; it
-// compares the stop marker exactly where rule 22 truncates; and it takes
-// the last marker in file order where rule 22 walks backwards from the
-// group's LAST key. Re-basing it would move three MWAUDIT pins that
-// deliberately assert its present behaviour, and mixing that into the
-// first slice that animates anything would make a failure ambiguous - the
-// same reasoning assembleFirstPersonArm used to keep rest and clip apart.
-// So: two homes for two different questions, and resetClip takes a KEY
-// ARRAY where parseAnimGroups takes one too but answers with a map - a
-// call site cannot confuse them, because neither accepts the other's
-// output. The divergence is shown on the page, side by side, and booked.
-
-/** RULE 45's fold: a 256-entry ASCII table, A-Z only. NOT
- *  String.prototype.toLowerCase, which is Unicode-aware and would fold
- *  U+0130 and U+212A into ASCII - a byte the reference leaves alone. */
 export function asciiLower(s) {
   let out = '';
   for (let i = 0; i < s.length; i++) {
@@ -302,14 +199,8 @@ export function asciiLower(s) {
   return out;
 }
 
-/** RULE 44, verbatim: split the blob on the CHARACTER SET [\r\n] - not on
- *  the two-character sequence - trim, ASCII-lowercase, drop empties, and
- *  keep every survivor AT THE SAME TIME. A CRLF blob yields an empty piece
- *  between each pair, which is why the drop has to come after the split
- *  and not instead of it.
- *
- *  Duplicate times are legal and load-bearing: "Idle: Stop\r\nIdle2: Start"
- *  is two keys at one time, and rule 22 reads them in order. */
+// Splits on each CR or LF character, so a CRLF blob yields empty pieces that are dropped after the split. Every
+// piece keeps the key's time, and duplicate times are valid.
 export function normalizeTextKeys(textKeys) {
   const out = [];
   for (const { time, text } of textKeys ?? []) {
@@ -321,17 +212,12 @@ export function normalizeTextKeys(textKeys) {
   return out;
 }
 
-/** RULE 21: the group is everything before the FIRST ": " - colon plus
- *  exactly one space. A key with no ": " registers no group at all; it is
- *  still a key, it just never names an animation. */
 export function textKeyGroup(text) {
   const s = String(text ?? '');
   const at = s.indexOf(': ');
   return at < 0 ? null : s.slice(0, at);
 }
 
-/** RULE 21's mGroups: the engine's list of available animations, which is
- *  literally "does some key begin with '<name>: '". Sorted, deduplicated. */
 export function clipGroups(keys) {
   const set = new Set();
   for (const k of keys ?? []) {
@@ -341,44 +227,16 @@ export function clipGroups(keys) {
   return [...set].sort();
 }
 
-/**
- * RULE 46's TWO LOOKUPS, which are easy to conflate and are not the same
- * search (animation.cpp:827-854).
- *
- * getTextKeyTime is a PREFIX test - `iterKey->second.starts_with(textKey)`
- * - forward in time, first match wins, and it does NOT require an exact
- * key. That is what lets `"weapononehand: chop min attack"` be asked for
- * by a caller that never sees the key list.
- *
- * -1 IS THE NOT-FOUND VALUE, not null and not undefined, because the
- * callers do ARITHMETIC on it. The recorded caveat on rule 46 is exactly
- * this: two of the nine call sites never test the sentinel and instead
- * let the ORDERING comparison filter it (character.cpp:1879-1882 guards
- * `startTime <= currentTime && currentTime < minAttackTime` before
- * dividing). A port that returned null here would turn those comparisons
- * into `false` by coercion in some and NaN in others, and the arithmetic
- * would stop matching.
- */
+// A forward prefix match where the first hit wins. Returns -1 when missing, not null, because callers compare and
+// do arithmetic on the result.
 export function getTextKeyTime(keys, textKey) {
   const want = String(textKey ?? '');
   for (const k of keys ?? []) if (k.text.startsWith(want)) return k.time;
   return -1;
 }
 
-/**
- * CALCANIMVELOCITY (animation.cpp:180-224) - the distance a movement
- * clip's ACCUM ROOT travels over the clip, per second, which is what
- * the played animation speed is scaled by (character.cpp:2400-2408).
- *
- * The reference's own quirks, kept: the LAST "group: start"/"group:
- * loop start" key and the LAST "loop stop" (falling back over plain
- * "stop"s until one appears) are taken in REVERSE scan - the comment
- * cites AshVampire.nif's doubled Loop Stop keys, whose broken velocity
- * "must be replicated". The displacement is masked by the accumulate
- * vector (1,1,0) - character.cpp:925 - so only the HORIZONTAL travel
- * counts; MW's z is the vertical and never accumulates for walking.
- * Matching is equalsParts' exact concatenation, not a prefix test.
- */
+// Takes the last start and loop stop keys in a reverse scan, as the reference does, and counts only horizontal
+// travel, since Morrowind z is vertical.
 export function animVelocity(keys, track, group) {
   if (!keys || !keys.length || !track) return 0;
   const g = String(group || '').toLowerCase();
@@ -394,29 +252,12 @@ export function animVelocity(keys, track, group) {
     else if (t === `${g}: loop stop`) { stoptime = keys[i].time; break; }
   }
   if (starttime == null || stoptime == null || !(stoptime > starttime)) return 0;
-  // The accum root's TRANSLATION channel alone - getTranslation() is
-  // all the reference samples here (animation.cpp:218-219).
   const a = track.translations ? sampleKeyGroup(track.translations, 3, starttime) : null;
   const b = track.translations ? sampleKeyGroup(track.translations, 3, stoptime) : null;
   if (!a || !b) return 0;
-  // accumulate (1,1,0): the third component is MW's vertical.
   return Math.hypot(a[0] - b[0], a[1] - b[1]) / (stoptime - starttime);
 }
 
-/**
- * ANIMATION::ISLOOPINGANIMATION (animation.cpp:792-826), RULE 51's
- * second data fact - the hardcoded set, verbatim, all forty-four names.
- * The reference's own comment: "In Morrowind, a some animation groups
- * are always considered looping, regardless of loop start/stop keys."
- *
- * WHO CONSULTS IT is rule 51's recorded caveat and it matters here: the
- * player BODY's movement/idle/weapon paths hardcode their loopFallback
- * (fpArm does the same - character.cpp:757 et al.), and this function
- * is the SCRIPTED path's producer - playGroup (character.cpp:2631),
- * unpersistAnimationState (:2589), playGroupLua (:2708). A viewer page
- * playing whatever group the user picked IS that path, which is why the
- * mesh viewer rides this and fpArm does not.
- */
 export const LOOPING_ANIMATIONS = Object.freeze([
   'walkforward', 'walkback', 'walkleft', 'walkright',
   'swimwalkforward', 'swimwalkback', 'swimwalkleft', 'swimwalkright',
@@ -432,21 +273,7 @@ export const LOOPING_ANIMATIONS = Object.freeze([
 ]);
 const LOOPING_SET = new Set(LOOPING_ANIMATIONS);
 
-/**
- * Three steps, in the reference's order:
- *  1. a real "<group>: loop start" key anywhere loops, full stop - and
- *     the test is getTextKeyTime's PREFIX match, not an exact key.
- *  2. strip the LONGEST weapon short group that is a SUFFIX of the
- *     group ("so e.g. 'bow' doesn't get picked over 'crossbow' when the
- *     shortgroup is crossbow" - the reference's own comment), because
- *     most looping groups have a variant per short group; nothing
- *     stripped when none matches.
- *  3. membership of what remains in the hardcoded set.
- *
- * The group is asciiLower-ed at the door - the reference's callers hand
- * it already-normalised names, and this port folds once at each entry
- * point (resetClip's own convention) instead of trusting every caller.
- */
+// The longest weapon short-group suffix is stripped, so 'bow' never wins over 'crossbow'.
 export function isLoopingAnimation(keys, group) {
   const g = asciiLower(String(group ?? ''));
   if (getTextKeyTime(keys, `${g}: loop start`) >= 0) return true;
@@ -457,10 +284,6 @@ export function isLoopingAnimation(keys, group) {
   return LOOPING_SET.has(suffixLength ? g.slice(0, g.length - suffixLength) : g);
 }
 
-/** getStartTime (animation.cpp:827-840) with findGroupStart's predicate
- *  (components/sceneutil/textkeymap.hpp): the group's EARLIEST key
- *  whatever its action, which is not the same as its "start" key. The
- *  ": " test is what stops "idle" matching "idle2: start". */
 export function getStartTime(keys, group) {
   const g = asciiLower(String(group ?? ''));
   for (const k of keys ?? []) {
@@ -469,45 +292,11 @@ export function getStartTime(keys, group) {
   return -1;
 }
 
-/** RULE 22's `equalsParts`: starts_with then ==, i.e. exact equality with
- *  the parts joined. Kept as its own function because the stop key uses it
- *  on a TRUNCATED candidate and the start key does not. */
 const equalsParts = (s, ...parts) => s === parts.join('');
 
 /**
- * ANIMATION::RESET - the clip's time range, and the refusal.
- *
- * RULE 22, four steps and one refusal:
- *  1. `groupend` - walk the time-ordered keys IN REVERSE for the LAST key
- *     of this group. That reverse scan is the whole point: undeadwolf_2.nif
- *     carries two separate walkforward blocks and the later one wins.
- *  2. the start key - backwards from groupend for an EXACT
- *     "<group>: <start>".
- *  3. if that missed AND the caller asked for "loop start", retry
- *     backwards from groupend for "<group>: start".
- *  4. the stop key - backwards from groupend, comparing only the first
- *     group.length + 2 + stop.length characters, which is what tolerates
- *     the Scrib's "Idle3: Stop." with its trailing period.
- *  REFUSE when either key is missing or start > stop. Do NOT substitute 0,
- *  the file duration, or the last key: `Animation::play` moves on to the
- *  next anim source, and a page that guesses instead prints a plausible
- *  wrong clip with no error. `getStartTime` (rule 46) is the forward,
- *  any-action search that does exactly that - it is not this.
- *
- * RULES 23 + 49, the loop window, in reset's own three stages:
- *  - loopStartTime := the start key's time, in BOTH branches.
- *  - loopStopTime  := the stop key's time when `loopFallback`, else
- *    +Infinity. That default is why a clip with no "loop stop" key plays
- *    once and stops rather than looping: shouldLoop can never fire.
- *  - then the playhead moves to start + (stop - start) * startPoint, and
- *    reset RE-SCANS backwards from groupend DOWN TO THE START KEY
- *    (exclusive - animation.cpp:1028-1039) applying any real "<group>:
- *    loop start" / "loop stop" key AT OR BEFORE the playhead. This
- *    third stage is the half rule 49
- *    states as unconditional and its own caveat corrects: a resumed clip
- *    can leave reset with a finite loopStopTime even with loopFallback
- *    false. Everything later is discovered by CROSSING, in advanceClip.
- *
+ * Scans backwards from the last key of the group, so a later block of the same group wins. Refuses when a key is
+ * missing or start is after stop, instead of guessing a range.
  * @returns {{ok:false, reason:string} | {ok:true, ...ClipState}}
  */
 export function resetClip(keys, group, opts = {}) {
@@ -519,9 +308,6 @@ export function resetClip(keys, group, opts = {}) {
   const list = keys ?? [];
   if (!g) return { ok: false, reason: 'no group name given' };
 
-  // The reference's predicate is starts_with(groupname) plus ": " at
-  // exactly groupname.length (animation.cpp:977-981) - a PREFIX test,
-  // not "first colon names the group".
   let groupend = -1;
   for (let i = list.length - 1; i >= 0; i--) {
     if (list[i].text.startsWith(g) && list[i].text.slice(g.length, g.length + 2) === ': ') {
@@ -541,9 +327,8 @@ export function resetClip(keys, group, opts = {}) {
   }
   if (startAt < 0) return { ok: false, reason: `group "${g}" has no "${g}: ${start}" key` };
 
-  // THE TRUNCATED COMPARE. C++ takes a string_view substr, which returns
-  // the whole string when it is shorter than the length asked for; JS
-  // slice does the same, so "idle: sto" stays "idle: sto" and still fails.
+  // Only the first group + ': ' + stop characters are compared, so a trailing period such as 'idle3: stop.' still
+  // matches.
   const checkLength = g.length + 2 + stop.length;
   let stopAt = -1;
   for (let i = groupend; i >= 0; i--) {
@@ -571,12 +356,7 @@ export function resetClip(keys, group, opts = {}) {
     nextKey: 0,
   };
 
-  // Reset's THIRD stage: loop keys already behind the playhead. MW-D33:
-  // the reference walks from groupend and STOPS AT THE START KEY -
-  // `for (; key != startkey && key != keys.rend(); ++key)` (animation.
-  // cpp:1028-1039) - so an EARLIER block of the same group (undeadwolf_2.
-  // nif's doubled walkforward) never leaks its loop keys into this one.
-  // The port had scanned all the way to the front of the file.
+  // The scan stops at the start key, so loop keys from an earlier block of the same group do not leak in.
   for (let i = groupend; i > startAt; i--) {
     const k = list[i];
     if (k.time > state.time) continue;
@@ -587,75 +367,28 @@ export function resetClip(keys, group, opts = {}) {
   return state;
 }
 
-/** The cursor into the key array, and it is `std::multimap::lower_bound`
- *  verbatim: the first key whose time is AT OR AFTER `time`. Both the
- *  reset seed and the wrap re-seed use it, so a key sitting exactly on the
- *  playhead still fires - which is how the "<group>: start" key at the
- *  clip's own start time reaches the listener on the first advance. */
 function lowerBound(keys, time) {
   let i = 0;
   while (i < keys.length && keys[i].time < time) i++;
   return i;
 }
 
-/** ANIMSTATE::SHOULDLOOP, verbatim. All three terms matter: the +Infinity
- *  loopStopTime of rule 49's default makes the first one unsatisfiable,
- *  which is how a clip with no "loop stop" key plays exactly once. */
+// Without `loopFallback` and with no loop stop key, `loopStopTime` is Infinity, so the clip plays once.
 export function shouldLoop(state) {
   return !!state && state.time >= state.loopStopTime
     && state.loopingEnabled && state.loopCount > 0;
 }
 
-/**
- * ANIMATION::RUNANIMATION's stepping, rule 50.
- *
- * Time advances in TEXT-KEY-SIZED STEPS: the playhead never jumps over a
- * key, it lands exactly on it, fires it, and continues with the time it
- * has left. `onKey(text, time)` is called for every key crossed.
- *
- * The two halves are NOT an if/else - rule 50's own caveat is that the
- * second `if (shouldLoop())` runs in the SAME iteration that just set
- * `playing = false`, re-arming it and rewinding the playhead. A port that
- * writes `else` there stops a looping clip dead at its stop key.
- *
- * The `break` after the rewind is the only guard against a degenerate
- * window (loopStart >= loopStop) spinning forever, because timepassed
- * never decreases on that branch.
- *
- * KEY FIRING IS SCOPED TO THIS GROUP. The key array is the whole file -
- * both idle blocks, every other group - where OpenMW's handleTextKey
- * discards a key whose group is not the playing one (rule 47). Unscoped,
- * a wrap would report the other groups' keys as if this clip had crossed
- * them. Only this group's loop keys narrow the window.
- */
+// Steps land on each text key and fire `onKey` for every key crossed. The second `shouldLoop` check is not an else,
+// since it must run in the same pass that stopped the clip.
 export function advanceClip(state, keys, dt, onKey = null) {
   const list = keys ?? [];
   let timepassed = dt;
-  // ANIMATION::HANDLETEXTKEY, and it is TWO functions, not one.
-  //
-  //   Animation::handleTextKey (animation.cpp:856-873) narrows the loop
-  //     window from a "<playing group>: loop start"/"loop stop" key - THAT
-  //     half is group-checked - and then forwards the key to the listener
-  //     UNCONDITIONALLY.
-  //   CharacterController::handleTextKey (character.cpp:1012-1073) is the
-  //     listener, and it is where rule 47 lives: "sound: " and
-  //     "soundgen: " are handled and RETURN before any group test, so they
-  //     fire for a foreign group too; everything else not beginning with
-  //     "<playing group>: " is dropped with "Not ours, skip it".
-  //
-  // So the listener sees every key crossed and decides. `onKey` is the
-  // listener, and `mine` is the group test it would apply - a caller that
-  // wants rule 47 has what it needs, and one that wants the raw crossing
-  // is not lied to. Collapsing these into one group filter here would hide
-  // that a foreign group's key was crossed at all.
+  // `onKey` receives every key crossed plus a flag for this group. The listener decides, and sound keys fire even
+  // for another group.
   const fireTo = () => {
     while (state.nextKey < list.length && list[state.nextKey].time <= state.time) {
       const k = list[state.nextKey++];
-      // The loop-window assignment carries the group in its own compare
-      // ("<group>: loop start"), so it needs no separate group guard - one
-      // would be a branch no fixture could ever take. `mine` exists for the
-      // LISTENER's flag, which is a different question with a different
-      // answer for sound keys.
       if (equalsParts(k.text, state.group, ': loop start')) state.loopStartTime = k.time;
       else if (equalsParts(k.text, state.group, ': loop stop')) state.loopStopTime = k.time;
       if (onKey) onKey(k.text, k.time, textKeyGroup(k.text) === state.group);
@@ -674,11 +407,7 @@ export function advanceClip(state, keys, dt, onKey = null) {
       state.loopCount--;
       state.time = state.loopStartTime;
       state.playing = true;
-      // The re-fire is lowerBound(newTime) then "while <= newTime", so it
-      // is the keys sitting exactly ON the loop-start time and nothing
-      // else. Re-firing the whole [startTime, loopStartTime] range would
-      // report the clip's intro keys on every wrap, which is the opposite
-      // of what a loop start means.
+      // After a wrap only the keys sitting exactly on the loop start time fire again, not the clip's intro keys.
       state.nextKey = lowerBound(list, state.time);
       fireTo();
       if (state.time >= state.loopStopTime) break;

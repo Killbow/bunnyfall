@@ -7,7 +7,6 @@ function documentFixture() {
   const created = [], body = { children: [], append(n) { this.children.push(n); } };
   const document = {
     body,
-    // The game's shared styles/fonts already exist, as on the normal in-game HUD.
     getElementById: () => ({}),
     createElement(tagName) {
       const n = { tagName, children: [], className: '', hidden: false, textContent: '',
@@ -63,17 +62,14 @@ test('the cup animates a pour, the hand-off and a reward float from state change
   const draw = () => { quads.length = 0; hud.draw(renderer, canvas, null); return quads.slice(); };
   const state = stateOf(); hud.frame(state, () => 'Traveller', false);
   const settled = draw().length;
-  // A second dose arrives: for a moment a stream falls into the cup.
   const poured = structuredClone(state); poured.mix.wine = 1; hud.frame(poured, () => 'Traveller', false);
   now += 0.1; assert.equal(draw().length, settled + 1, 'pour stream');
   now += 1; assert.equal(draw().length, settled, 'the stream ends');
-  // Served: the cup leaves toward the customer and a fresh one rises.
   const served = structuredClone(poured); served.index = 1; served.mix = { wine: 0, cream: 0, beer: 0 }; served.orderAt = 200;
   hud.frame(served, () => 'Traveller', false);
   now += 0.2; const leaving = draw().filter((q) => q.texture !== 'font');
   now += 2; const back = draw().filter((q) => q.texture !== 'font');
   assert.ok(leaving[0].rect.x < back[0].rect.x, 'the handed-over cup moves toward the customer');
-  // The reward floats even after the shift's last drink hid the readout, then fades away.
   hud.hide(); hud.reward(36, 1);
   quads.length = 0; hud.draw(renderer, canvas, font); assert.ok(quads.some((q) => q.texture === 'font'));
   now += 2; quads.length = 0; hud.draw(renderer, canvas, font); assert.equal(quads.length, 0);

@@ -1,6 +1,5 @@
-// Tests for the World Builder's pure foundation: scene tree, clipboard, catalogue search.
-//   node --test tools/poiEditorFoundation.test.mjs
-
+// Tests the World Builder's scene tree, clipboard, and catalog search.
+// Run: node --test tools/poiEditorFoundation.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -297,7 +296,6 @@ test('scene: moving to a group, refused cycles, renaming', async () => {
   assert.deepEqual(bad(d), []);
 });
 
-// ── the 2D canvas's edits (flat2d.js) ──
 import { isMirrored, setMirrored, turnFlat, pivotAt, setPivot, layerStack, shiftLayer, layerEnd } from './poi-editor/src/flat2d.js';
 
 const flatDoc = () => ({ flats: [
@@ -352,7 +350,6 @@ test('layers reorder back to front and stay inside the law\'s range', () => {
   assert.equal(e.flats[0].layer, 100);
 });
 
-// ── interior decoration (interior.js) ──
 import { interiorOf, setShell, hideBase, showBase, showAllBase, describeBase, setFlatLight, editFlatLight, lightSpot, rayBox, mountOnSurface } from './poi-editor/src/interior.js';
 import { decorMountFrame } from '../src/net/decorLaw.js';
 
@@ -402,7 +399,6 @@ test('a mount hangs on the face a ray hits, facing out and a hair off it', () =>
   const ceil = mountOnSurface([0, 3, 0], [0, -1, 0]); assert.equal(ceil.rot[1], -90);
 });
 
-// ── route splines (spline.js) ──
 import { splinePoints, segments } from './poi-editor/src/spline.js';
 
 test('a route\'s spline passes through every waypoint and closes for a loop', () => {

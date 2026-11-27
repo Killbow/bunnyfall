@@ -15,6 +15,7 @@ files:
   - src/worldEvents/breachBook.js
   - src/items/portBooks.js
   - server-account/src/index.js
+  - src/world/spoilsWorld.js
 routes:
   - "/v1/gate/claim"
   - "/v1/account"
@@ -35,9 +36,11 @@ invariants:
   - "Fighters qualify for a kill receipt by dealing at least `RECEIPT_SHARE` (0.02) of their own HP share or surviving for `STOOD_SHARE` (0.5) of their live court time."
   - "`gate_kills` (`day, account, boss, earned, at, region, stones, body`) stores at most one row per `(day, account)` primary key."
   - "Deadlands Ember balances and cosmetics live on the `players` table (`insignia`, `insignia_spent`, and `aura`), never on a separate `accounts` table."
+  - "A current spoils crash record (`SPOILS_RECORD_V` 2) clears only through the pool's `saved`, which runs on `onSlotSaved` and on a landed realm checkpoint. Until then `recoverSpoils` grants its pieces again unless the realm save already holds them."
 traps:
   - "Claims that fail with mendable status codes (`signature`, `verify-threw`, `future`, or `clock` in `GATE_CLAIM_MENDABLE`) remain in local storage for automatic retry."
   - "`spoilsLevel` (`src/worldEvents/spoilsPool.js`) scales rewards using the lower of the player's current level and the receipt level."
+  - "The raid thanks pool runs under `RAID_SPOILS_KEYS` with no `onSpent`, so town receipts never push boss receipts out of the spent list and never reach the hub."
 tags:
   - receipts
   - spoils

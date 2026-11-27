@@ -1,9 +1,5 @@
 // @ts-check
 
-// The game's own models and pictures for the viewport, read straight from the ARENA2 files the dev server
-// serves at /arena2 (tools/poi-editor/vite.config.js). Nothing is cached on disk and nothing is built into the
-// app. `state()` says plainly whether the data is there, so the viewport can show its banner.
-
 import { Arch3dFile } from '../../../src/formats/arch3dFile.js';
 import { TextureFile } from '../../../src/formats/textureFile.js';
 import { DFPalette } from '../../../src/formats/dfPalette.js';
@@ -29,7 +25,6 @@ export function createArenaData(fetcher = (u) => fetch(u)) {
 
   return {
     state: () => status,
-    /** Load the model archive and the palette. Answers whether the game data is there. */
     async open() {
       try {
         arch = new Arch3dFile(); arch.load(await get('ARCH3D.BSA'));
@@ -47,7 +42,6 @@ export function createArenaData(fetcher = (u) => fetch(u)) {
       }
       return textures.get(archive);
     },
-    /** A texture record's first frame as RGBA (index 0 clear), or null. */
     async picture(archive, record) {
       const key = `${archive}.${record}`;
       if (pictures.has(key)) return pictures.get(key);
@@ -64,7 +58,6 @@ export function createArenaData(fetcher = (u) => fetch(u)) {
       pictures.set(key, out);
       return out;
     },
-    /** A model by id: `{ positions, normals, uvs, indices, subMeshes }` in metres, or null. Textures must be warmed first with `warm`. */
     model(id) {
       if (models.has(id)) return models.get(id);
       let m = null;
@@ -79,7 +72,6 @@ export function createArenaData(fetcher = (u) => fetch(u)) {
       models.set(id, m);
       return m;
     },
-    /** Load the texture files a model's pieces use, so `model` finds their sizes. */
     async warm(id) {
       const i = arch?.getRecordIndex(id) ?? -1;
       if (i < 0 || !arch) return;

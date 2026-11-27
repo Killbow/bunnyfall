@@ -1,5 +1,3 @@
-// The spawn grants a room mints, signs, renews, frees, carries, and tallies for its players. The
-// grant law's mode decides each ask, and records no grant stands behind are stripped.
 import { GRANT_CFG_TTL_MS, grantModeOf, grantMarksAllow, grantBucketIdle, GRANT_TALLY_MS, grantGate, validGrantAsk, GRANT_OPEN_KINDS, grantMintGate, grantKindRolled, grantMarksFor, GRANT_TTL_MS, signGrant, grantRenewed, grantSignedHere, grantCarried, grantHanded, GRANT_SKEW_MS } from '../../../src/net/grantLaw.js';
 import { relayCfgValue } from '../../../src/net/relayCfg.js';
 import { foeStatsRefusal } from '../../../src/net/foeBounds.js';

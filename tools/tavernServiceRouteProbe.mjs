@@ -1,5 +1,6 @@
 // Runs the real HTTP route, authentication, realm checkpoint, D1 migration and R2-backed payment.
 // BUNNYFALL_DATA must name disposable local test data. Never point this at a live server's data.
+
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { setTimeout as wait } from 'node:timers/promises';

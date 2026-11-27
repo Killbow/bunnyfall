@@ -1,29 +1,6 @@
-// LOAD-OWED / BUILD-RETRY (bible/06-Systems/Travel-View.md): THE PIXEL BUILD, SWEPT OVER THE MAP ON THE PLAYER'S DATA.
-//
-// "The speed randomly drops and gets locked at 1x after traveling for a while" was the load governor holding the clock
-// for a pixel whose build had thrown (LOAD-OWED). This asks which builds throw: the world host booted in headless
-// Chromium (SwiftShader) in shot mode on the player's own ARENA2, its frame HELD (scenes/shared.js holdFrame) so nothing
-// but the builds runs, and the pump's own build driven pixel by pixel through the host's probe door
-// (scenes/world.js window.__pixelBuild: the stream re-centred on the pixel, then buildPixel, a throw caught as the
-// pump's catch catches it and handed back with its stack). The places swept: every town of the location index (a
-// city, a town, a village, a hamlet, every row a mod added) and every fourth other place, the Bay's wilderness on a
-// lattice (every region, every climate) and its sea more thinly, the land past the Bay (TAMRIEL2's frame) and the
-// Eltheric Ocean's isles and sea. One JSON line a pixel; the summary groups the throws by message and stack.
-//
-//   ARENA2_PATH=<arena2> node tools/pixelBuildSweep.mjs [--out DIR] [--pages 2] [--step 10] [--every 4] [--far 3]
-//       [--query season=winter] [--again] [--swap] [--limit N] [--fail TEXTURE.302 --fail-count 1] [--journey SECONDS]
-//
-//   --again          each pixel built, torn down and built again (a re-skin's or a return's rebuild after release)
-//   --swap           that rebuild under the other season - the season's flip in one session, both sets cached
-//   --query Q        more of the page's query (season=winter, season=rain, ...)
-//   --fail NAME      the first --fail-count reads of a file whose URL ends in NAME are refused (a dropped fetch):
-//                    what a build does with a read that failed, and whether the next ask reads again
-//   --journey S      no sweep: the frame runs (its draws stubbed - SwiftShader rasterises nothing), the Overworld is
-//                    raised and the movement key held for S real seconds - the keys' travel at the road's or the open
-//                    ground's rate, the stream building under it at the journey's pace; the clock, its hold and every
-//                    build that threw are reported
-//
-// RENDERS NOTHING THAT IS KEPT: no screenshot, no picture of the player's data is written (Port-Doctrine).
+// Builds sampled map pixels in the world host on the player's ARENA2 and groups the builds that throw.
+// Usage: ARENA2_PATH=<dir> node tools/pixelBuildSweep.mjs [--out DIR] [--step N] [--again] [--journey SECONDS].
+// It writes no screenshot or picture of the player's data.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -40,9 +17,9 @@ mkdirSync(OUT, { recursive: true });
 const PAGES = Number(opt('pages', 2)), STEP = Number(opt('step', 10)), EVERY = Number(opt('every', 4)), FAR = Number(opt('far', 3));
 const PORT = Number(opt('port', 5311));
 const QUERY = `world&shot&play&region=Daggerfall&loc=Daggerfall&class=1&novideo&skin=enhanced&touch=off${opt('query') ? `&${opt('query')}` : ''}`;
-const PIXEL_TIMEOUT_MS = 180000, REBOOT_EVERY = 300;   // a page is let go every few hundred builds: the session caches of a whole map in one page outgrow a small box
+// A page is replaced every few hundred builds, because a whole map's session caches outgrow a small machine.
+const PIXEL_TIMEOUT_MS = 180000, REBOOT_EVERY = 300;
 
-// ---- the list ---------------------------------------------------------------------------------------------------
 async function sweepList(locationKeys) {
   const { MapsFile, longitudeLatitudeToMapPixel } = await import('../src/formats/mapsFile.js');
   const { CLIMATES } = await import('../src/formats/mapsTables.js');
@@ -59,7 +36,8 @@ async function sweepList(locationKeys) {
       type.set(`${p.x},${p.y}`, loc.mapTableData.locationType);
     }
   }
-  const TOWNS = new Set([0, 1, 2]);   // LocationTypes TownCity, TownHamlet, TownVillage
+  // LocationTypes TownCity, TownHamlet, and TownVillage.
+  const TOWNS = new Set([0, 1, 2]);
   const out = [], seen = new Set();
   const add = (p) => { const k = `${p.px},${p.py}`; if (!seen.has(k)) { seen.add(k); out.push(p); } };
   let other = 0;
@@ -69,7 +47,7 @@ async function sweepList(locationKeys) {
   }
   for (let y = 1; y < 500; y += STEP) for (let x = 2; x < 1000; x += STEP) {
     const sea = maps.getClimateIndex(x, y) === CLIMATES.Ocean;
-    if (sea && ((((x - 2) / STEP) % 2) || (((y - 1) / STEP) % 2))) continue;   // the sea on every other lattice point
+    if (sea && ((((x - 2) / STEP) % 2) || (((y - 1) / STEP) % 2))) continue;
     add({ px: x, py: y, kind: sea ? 'bay-sea' : 'bay-wild', region: maps.getRegionIndexAt(x, y) });
   }
   const f = tamrielFrameInBay();
@@ -88,7 +66,6 @@ async function sweepList(locationKeys) {
   return out;
 }
 
-// ---- the browser ------------------------------------------------------------------------------------------------
 const server = await createServer({ root: process.cwd(), server: { port: PORT, strictPort: true, hmr: false, watch: null }, logLevel: 'silent' });
 await server.listen();
 const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
@@ -103,7 +80,7 @@ async function bootPage(sink) {
       return route.continue();
     });
   }
-  // a renderer the system kills (out of memory on a shared box) leaves an evaluate that never answers - the crash is the answer
+  // A renderer the system kills leaves an evaluate that never answers, so a crash wakes the waiter.
   page.on('crash', () => sink.crashWake?.());
   page.on('pageerror', (e) => sink.errors.push({ at: sink.at, message: String(e.message ?? e), stack: String(e.stack ?? '').slice(0, 2000) }));
   page.on('console', (m) => {
@@ -119,11 +96,10 @@ async function bootPage(sink) {
   return page;
 }
 
-// ---- the journey ------------------------------------------------------------------------------------------------
 if (opt('journey')) {
   const sink = { errors: [], failed: [], refusals: [], at: 'journey' };
   const page = await bootPage(sink);
-  await page.evaluate(() => {   // the frame's logic, none of its rasterising
+  await page.evaluate(() => {
     const gl = window.__renderer.gl;
     for (const f of ['drawArrays', 'drawElements', 'drawArraysInstanced', 'drawElementsInstanced', 'drawRangeElements', 'clear', 'blitFramebuffer']) if (gl[f]) gl[f] = () => {};
   });
@@ -132,7 +108,6 @@ if (opt('journey')) {
     if (s.queue === 0 && s.owed === 0) break;
     await page.waitForTimeout(2000);
   }
-  // the boot's own pages (a tutorial's, the main quest's box) put away, then the Overworld raised - again until it stands
   let view = null, asked = null;
   for (let i = 0; i < 20 && view !== 'up'; i++) {
     asked = await page.evaluate(() => { window.__arenaCloseOverlays?.(); return { ...window.__overworld(), frame: window.__frame }; });
@@ -161,7 +136,6 @@ if (opt('journey')) {
   process.exit(sink.failed.length && !failName ? 1 : 0);
 }
 
-// ---- the sweep --------------------------------------------------------------------------------------------------
 const listPath = join(OUT, 'list.json'), rowsPath = join(OUT, 'pixels.jsonl');
 const again = flag('again'), swap = flag('swap');
 let list;
@@ -175,7 +149,7 @@ else {
 }
 if (opt('limit')) list = list.slice(0, Number(opt('limit')));
 const done = new Set();
-if (existsSync(rowsPath)) for (const l of readFileSync(rowsPath, 'utf8').split('\n')) if (l) { try { const r = JSON.parse(l); done.add(`${r.px},${r.py}`); } catch { /* a line cut short */ } }
+if (existsSync(rowsPath)) for (const l of readFileSync(rowsPath, 'utf8').split('\n')) if (l) { try { const r = JSON.parse(l); done.add(`${r.px},${r.py}`); } catch { } }
 const todo = list.filter((p) => !done.has(`${p.px},${p.py}`));
 console.log(`${list.length} pixels, ${done.size} swept already, ${todo.length} to go, ${PAGES} page(s)`);
 const t0 = Date.now();
@@ -205,8 +179,7 @@ async function lane(k) {
   for (let i = k; i < todo.length; i += PAGES) {
     const p = todo[i];
     let r = await once(p);
-    // a page that died or a build that never answered is asked again ONCE on a fresh page - the box may have killed
-    // the renderer for its memory; what fails twice is the pixel's
+    // A page that died or a build that never answered gets one retry on a fresh page.
     if (r.timeout || r.crash) { const first = r; await boot(); r = { ...(await once(p)), first }; }
     appendFileSync(rowsPath, `${JSON.stringify({ ...p, ...r, pageErrors: sink.errors.length ? sink.errors : undefined })}\n`);
     swept++; n++;
@@ -218,7 +191,6 @@ async function lane(k) {
 await Promise.all(Array.from({ length: PAGES }, (_, k) => lane(k)));
 await browser.close(); await server.close();
 
-// ---- the summary -------------------------------------------------------------------------------------------------
 const rows = readFileSync(rowsPath, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
 const by = new Map();
 const frames = (stack) => String(stack ?? '').split('\n').slice(1, 4).map((s) => s.trim().replace(/\?[^:)]*/g, '').replace(/:\d+:\d+\)?$/, '')).join(' < ');

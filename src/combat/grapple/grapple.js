@@ -10,41 +10,35 @@ import {
   LEDGE_REACH,
 } from '../../characters/heavyGearIds.js';
 
-/** The hook's frames (combat/heavyGearArt.js, the owner's GIF's own timings, ms): the rest, the wind-up, the throw
- *  with the rope leaving (frame 3 - the hook leaves on it), the recovery. */
 export const GRAPPLE_FRAME_MS = Object.freeze([200, 70, 60, 40, 60, 80, 120]);
 export const GRAPPLE_THROW_FRAME = 3;
 const THROW_AT = GRAPPLE_FRAME_MS.slice(0, GRAPPLE_THROW_FRAME).reduce((a, b) => a + b, 0) / 1000;
 const ANIM_END = GRAPPLE_FRAME_MS.reduce((a, b) => a + b, 0) / 1000;
-/** A miss: how long the hook takes to come back. */
 const REEL_S = 0.35;
 const BODY_RADIUS = 0.35;
 const UP = Object.freeze([0, 1, 0]);
 
+// The clock advances only in grappleStep, so a paused game does not count the rest down.
 const G = {
-  clock: 0,            // the motor's clock, seconds
-  readyAt: 0,          // when the next throw may leave
-  restLen: 0,          // the rest the last throw left (for the ring)
-  anim: -1,            // the hand's clock (seconds since the click), -1 at rest
-  released: false,     // the throw has left this animation
-  wanted: false,       // a throw is owed to the next motor step
-  hook: null,          // { pos, from, to, dir, dist, travelled, caught, path, reel }
-  pull: null,          // { path, i, t, limit, stuck, last }
+  clock: 0,
+  readyAt: 0,
+  restLen: 0,
+  anim: -1,
+  released: false,
+  wanted: false,
+  hook: null,
+  pull: null,
   say: null,
 };
 
-/** The rig's word door, for the hook's few lines. */
 export function bindGrappleSay(say) { G.say = typeof say === 'function' ? say : null; }
-const say = (line) => { try { G.say?.(line); } catch { /* words are not the hook's problem */ } };
+const say = (line) => { try { G.say?.(line); } catch { } };
 
-/** Is the throw's animation playing (the hook is in the hand)? */
 export const grappleThrowing = () => G.anim >= 0;
-/** Seconds of rest left, and the whole rest it is part of. */
 export const grappleCooldownLeft = () => Math.max(0, G.readyAt - G.clock);
 export const grappleCooldownTotal = () => G.restLen;
 const busy = () => !!(G.hook || G.pull);
 
-/** The rig, on the hook's key: `pressed` the key's press edge. Starts the throw's animation when the hook may go. */
 export function grappleClick(pressed) {
   if (!pressed) return false;
   if (G.anim >= 0 || busy()) return false;
@@ -53,7 +47,6 @@ export function grappleClick(pressed) {
   return true;
 }
 
-/** The rig, every frame: the hand's clock, and the throw owed on its throw frame. Answers the frame to draw. */
 export function grappleFrame(dt) {
   if (G.anim < 0) return 0;
   G.anim += Math.max(0, dt || 0);
@@ -64,7 +57,6 @@ export function grappleFrame(dt) {
   return 0;
 }
 
-/** What the overlay draws: the hook's place (null when it is in the hand), whether it pulls, and the rest. */
 export function grappleView() {
   return {
     held: G.anim >= 0 || busy() || grappleCooldownLeft() > 0,
@@ -75,9 +67,7 @@ export function grappleView() {
   };
 }
 
-/** Cancels a throw still winding up; a hook already thrown keeps flying. */
 export function stopGrappleWindup() { if (!G.released) G.anim = -1; }
-/** Ends the wind-up, the flight, and the pull at once, on the rig's dispose and on death. */
 export function cancelGrapple() { G.hook = null; G.pull = null; G.wanted = false; G.anim = -1; G.released = false; }
 
 const unit = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
@@ -85,8 +75,7 @@ const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const groundAt = (c, x, z) => { const h = c?.heightAt?.(x, z); return Number.isFinite(h) ? h : -Infinity; };
 
-/** The first thing the throw meets: `{ dist, normal }`, or null. The meshes by their ray, the terrain by a march (the
- *  mesh ray never sees bare ground - collider.js surfaceHit says why). */
+// The mesh ray never sees bare ground, so the terrain is found by a march along the throw.
 export function castHook(c, eye, dir, range = GRAPPLE_RANGE) {
   let best = null;
   const out = { dist: Infinity, key: null, normal: [0, 0, 0] };
@@ -98,7 +87,7 @@ export function castHook(c, eye, dir, range = GRAPPLE_RANGE) {
     for (let s = 0.5; s <= lim + 1e-6; s += 0.5) {
       const p = add(eye, dir, s);
       if (p[1] <= groundAt(c, p[0], p[2])) {
-        let lo = prev, hi = s;   // the crossing, to a few centimetres
+        let lo = prev, hi = s;
         for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; const q = add(eye, dir, mid); if (q[1] <= groundAt(c, q[0], q[2])) hi = mid; else lo = mid; }
         const at = add(eye, dir, hi);
         best = { dist: hi, normal: c.groundNormal ? c.groundNormal(at[0], at[2]) : [0, 1, 0] };
@@ -110,8 +99,6 @@ export function castHook(c, eye, dir, range = GRAPPLE_RANGE) {
   return best;
 }
 
-/** Is a place inside the world the collider holds? Outdoors (a terrain under it) any place is; indoors, inside the
- *  bounds of what is built, by a metre. */
 function insideWorld(c, p) {
   if (Number.isFinite(groundAt(c, p[0], p[2]))) return true;
   const b = c?.bounds?.();
@@ -120,7 +107,6 @@ function insideWorld(c, p) {
   return true;
 }
 
-/** A place near `p` the body fits in: as it is, a little higher, or a little back toward `back`. */
 function fitNear(c, p, height, back) {
   const fits = (q) => insideWorld(c, q) && (!c?.penetrationAt || capsuleFits(c, q, height));
   for (let up = 0; up <= 3; up++) {
@@ -132,8 +118,6 @@ function fitNear(c, p, height, back) {
   return null;
 }
 
-/** Where the body is to end, and the way there (the motor's feet). `hit` the hook's point, `n` the surface's normal,
- *  `dir` the throw's. Null when no place there holds it. */
 export function pullPlan(c, feet, height, hit, n, dir) {
   const back = unit([-dir[0], 0, -dir[2]]);
   if (n[1] >= FLOOR_NORMAL_Y) {
@@ -142,7 +126,6 @@ export function pullPlan(c, feet, height, hit, n, dir) {
     return dest[1] > feet[1] + 0.3 ? [add(dest, UP, 0.35), dest] : [dest];
   }
   const nh = unit([n[0], 0, n[2]]);
-  // a wall: the top over the hook, if a hand there would find one
   const probe = [hit[0] - nh[0] * (BODY_RADIUS + 0.15), hit[1] + LEDGE_REACH + 0.3, hit[2] - nh[2] * (BODY_RADIUS + 0.15)];
   const down = c?.surfaceHit?.(probe, [0, -1, 0], LEDGE_REACH + 0.8) ?? c?.raycastHit?.(probe, [0, -1, 0], LEDGE_REACH + 0.8);
   if (down && Number.isFinite(down.dist)) {
@@ -153,13 +136,11 @@ export function pullPlan(c, feet, height, hit, n, dir) {
       return [lip, top];
     }
   }
-  // no top: hang under the hook, against the wall
   const hang = [hit[0] + nh[0] * (BODY_RADIUS + 0.08), Math.max(hit[1] - (height - 0.2), groundAt(c, hit[0], hit[2])), hit[2] + nh[2] * (BODY_RADIUS + 0.08)];
   const dest = fitNear(c, hang, height, nh);
   return dest ? [dest] : null;
 }
 
-/** May the body throw now? Not riding, swimming, levitating, climbing, on a wall or ledge, frozen, or knocked down. */
 function bodyFree(m) {
   return !(m.riding || m.swimming || m.levitating || m.climb?.isClimbing || m._wall || m._pkMove || m.freezeMotor > 0 || m._downLeft > 0);
 }
@@ -183,9 +164,9 @@ function launch(m, yaw, pitch) {
 
 function hookStep(m, dt) {
   const h = G.hook;
-  if (h.body !== m || dist(m.pos, h.last) > 1) { G.hook = null; return; }   // another body, or this one moved by something else (a door, a teleport, the world's origin): the throw is void
+  if (h.body !== m || dist(m.pos, h.last) > 1) { G.hook = null; return; }
   h.last = [...m.pos];
-  if (h.reel >= 0) {   // a miss coming back to the hand
+  if (h.reel >= 0) {
     h.reel += dt;
     const k = Math.min(1, h.reel / REEL_S);
     const hand = add(m.eye, h.dir, 0.5);
@@ -205,14 +186,15 @@ function hookStep(m, dt) {
 function endPull(m) {
   G.pull = null;
   m.velY = 0; m._airVelX = 0; m._airVelZ = 0;
-  m.falling = false; m.fallStart = m.pos[1];   // a drop from here is billed from here, the pull itself never
+  m.falling = false; m.fallStart = m.pos[1];
 }
 
 function pullStep(m, dt, input) {
   const p = G.pull;
-  if (p.body !== m) { G.pull = null; return false; }   // another body steps now: the pull was the last one's
-  if (dist(m.pos, p.last) > 1 || !bodyFree(m)) { endPull(m); return false; }   // moved by something else: let go
-  if (input?.jump) { endPull(m); return false; }   // Jump lets go
+  if (p.body !== m) { G.pull = null; return false; }
+  // A body moved by something else (a door, a teleport, or an origin shift) lets go.
+  if (dist(m.pos, p.last) > 1 || !bodyFree(m)) { endPull(m); return false; }
+  if (input?.jump) { endPull(m); return false; }
   p.t += dt;
   const wp = p.path[p.i];
   const d = [wp[0] - m.pos[0], wp[1] - m.pos[1], wp[2] - m.pos[2]];
@@ -222,23 +204,20 @@ function pullStep(m, dt, input) {
     p.last = [...m.pos];
     return true;
   }
-  const speed = PULL_SPEED * Math.min(1, 0.35 + p.t / 0.25);   // it takes up the slack, then hauls
+  const speed = PULL_SPEED * Math.min(1, 0.35 + p.t / 0.25);
   const s = Math.min(len, speed * dt);
   const before = [...m.pos];
   const r = m.collider.move(m.pos, d[0] / len * s, d[1] / len * s, d[2] / len * s, m.height, false);
   m.grounded = !!r?.grounded;
   m.velY = 0; m._airVelX = 0; m._airVelZ = 0; m.jumping = false; m.standing = false;
-  m.falling = false; m.fallStart = m.pos[1];   // NO FALL from the pull
+  // Resetting the fall start every step keeps the pull itself from dealing falling damage.
+  m.falling = false; m.fallStart = m.pos[1];
   p.stuck = dist(m.pos, before) < s * 0.3 ? p.stuck + 1 : 0;
   p.last = [...m.pos];
-  if (p.stuck >= 8 || p.t > p.limit) endPull(m);   // blocked, or too long: it ends where it is
+  if (p.stuck >= 8 || p.t > p.limit) endPull(m);
   return true;
 }
 
-/**
- * THE MOTOR'S ONE HOOK (player/motor.js `_step`, after the freeze): the clock, a throw owed, the hook in the air, the
- * pull. Answers true while the pull holds the body - the step is the pull's, nothing else moves it.
- */
 export function grappleStep(m, dt, input, yaw, pitch) {
   G.clock += dt;
   if (!m?.collider) return false;

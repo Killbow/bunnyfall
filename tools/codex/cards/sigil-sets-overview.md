@@ -31,6 +31,7 @@ invariants:
 traps:
   - "Only the four non-Aetheric sets (`WORLD_SET_IDS`: malacath, dagon, nocturnal, mora) roll from ordinary loot; every other set is Aetheric and source-specific."
   - "Only the local player's own entity is ever awake (`awakeTier` returns null for peers and enemies)."
+  - "No tier brief may run past `BRIEF_MAX` (32 characters) at any stage, and nothing in code or tests enforces this."
 dfu: []
 tags:
   - sigil

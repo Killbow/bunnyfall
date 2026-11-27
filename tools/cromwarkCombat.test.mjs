@@ -158,9 +158,9 @@ test('a long render stall cannot replay damage, and paused frames do not advance
   const c = createCromwarkCombat({ collider: { raycast: () => Infinity }, hurt: () => hits.push(1),
     renderer: {}, getTexture: async () => ({}), uploadRecordFrame() {}, clock: () => clock });
   const tick = (dt, seconds) => { clock += seconds; c.begin(dt, [f]); c.frame(f, dt, [0, 0, 5], 1.8, false); };
-  tick(.05, 1); // Starts, on its monotonic clock.
+  tick(.05, 1);
   tick(0, 10); assert.equal(f._crom.previous, 0); assert.equal(hits.length, 0);
-  tick(.05, 1.3); // A hitch crossed the release, but the player did not see the intervening frames.
+  tick(.05, 1.3);
   assert.equal(hits.length, 0);
 });
 test('ranged target distance survives wire encoding and invalid remote origins are refused', () => {
@@ -173,7 +173,7 @@ test('ranged target distance survives wire encoding and invalid remote origins a
 test('Judge creates visible projectile batches, hits through its live controller and cleans them up', async () => {
   const h = harness(), judge = foe(3136);
   h.step([judge], [0, 0, 6], 1.1);
-  await Promise.resolve(); // The registered orb archive is ready before release.
+  await Promise.resolve();
   h.step([judge], [0, 0, 6], 2.5);
   assert.ok(h.combat.batches().length > 0);
   assert.ok(h.hits.length > 0);

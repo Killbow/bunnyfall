@@ -1,64 +1,24 @@
 #!/usr/bin/env node
-// FIELD BUGS 2026-10-16b STALL-SHAPE: A YARD'S SAVED STALLS AND BOULDERS, RE-SEATED WHERE THEIR OWNERS PUT THEM.
-//
-//   node tools/yardReseat.mjs           print the migration (server-account/migrations/0121_yard_reseat.sql) it writes
-//   node tools/yardReseat.mjs --write   write it
-//
-// A yard's piece is a record of where its model's ORIGIN stands - `pos`, from its building's own origin, with its turn
-// and its scale (net/decorLaw.js decorPlaceOf) - worked out by the placer against the model as it stood that day: a
-// model is lifted by its own bottom and set clear of a wall by its own reach (systems/decor/decorPlacer.js - "the RECORD says
-// where the origin is - nothing is re-derived at a restore"). So a stand-in rebuilt round another origin moves every
-// piece placed by the old one. FIELD BUGS 2026-10-15f TEMPLE-STEPS (c2b52fdff1, the web's deploy done at
-// 2026-10-16T00:43:25Z) rebuilt two kinds a yard can hold:
-//
-//   - THE MARKET STALLS: the mesh at the prefab's 0.75 about the origin Unity stands it on - its counter at the origin,
-//     its back 2 m along -x - where the stand-in had been the mesh at 1 with its back at the origin. Every saved stall
-//     drew 2.06 m (times its scale) further back - into the wall its owner had stood it against - and a quarter smaller.
-//     STALL-SHAPE rebuilds the pack's other stall (53113 on) about its own origin too, 0.26 m further back again.
-//   - THE BOULDERS: the mesh's box at its prefab's scale of 2 to 8, centred on the box's middle - where the stand-in had
-//     been the mesh at 1, round the origin. Every saved boulder grew two to eight times about another middle.
-//
-// The migration puts each back: its model's box as it stood when the piece was placed (WAS), and as it stands now (NOW),
-// turned by the piece's own turn and times its scale - the origin moved so the box's middle over the ground and its foot
-// stand where they stood, and the scale divided by what the stand-in grew (`k`), so the piece is the size its owner saw.
-// No piece is made smaller than the law's least scale (DECOR_SCALE_MIN, a boulder of 8 placed under 2 stands at it,
-// bigger than it was), none moves past its yard's bound (DECOR_YARD_POS_MAX, down as well - decorPlaceOf drops a place
-// past it on any axis) or up past its height (DECOR_YARD_HIGH),
-// and a piece re-seated carries `reseat` in its place (decorPlaceOf reads past it), which this statement never moves
-// twice. A piece placed before the deploy (`placed_at`, the service's own clock) was placed by WD3's stand-ins; one placed
-// since, by TEMPLE-STEPS' - its rocks are STALL-SHAPE's, and only the second stall moved. No record says a piece was moved
-// since it was placed: one placed before and moved since is put back as if it had not been (the owner moves it once more).
-//
-// The turn is the place's yaw alone (`rot[0]`): the placer mints a model's place [yaw, 0, 0] (systems/decor/decorPlacer.js), so
-// no saved stall or boulder carries a pitch or a roll; one sent by hand is re-seated about its yaw.
-//
-// Arithmetic alone: the turn's cosine and sine are their Taylor series to the 18th and 19th powers (|turn| <= 180
-// degrees - within 1e-8), so no statement leans on SQLite's math extension, which a D1 database is not promised to carry.
-// The WAS boxes are the stand-ins' own, evaluated from their builders at f3ed9e2097 (WD3, unchanged to c2b52fdff1^) and
-// at c2b52fdff1; the NOW boxes are the builders' at this change - test/world/fb1016b_stallshape.test.js holds them to the live
-// builders, so a stand-in whose box moves again fails there until its saved pieces are re-seated.
+// Writes server-account/migrations/0121_yard_reseat.sql, which moves saved yard stalls and boulders back to where
+// their owners placed them. Their stand-in models were rebuilt about a different origin and at a different scale.
+// Run: node tools/yardReseat.mjs [--write | --check]; with no flag it prints the SQL.
 import { writeFileSync, readFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 import { DECOR_SCALE_MIN, DECOR_SCALE_MAX, DECOR_YARD_POS_MAX, DECOR_YARD_HIGH } from '../src/net/decorLaw.js';
 
 export const YARD_RESEAT_FILE = 'server-account/migrations/0121_yard_reseat.sql';
-/** What a re-seated piece's place carries, and the statement asks before it moves one. */
+// A re-seated place carries this mark, and no marked place is moved again.
 export const YARD_RESEAT_MARK = 'STALL-SHAPE';
-/** TEMPLE-STEPS' stand-ins reached the players: #934's web deploy done, 2026-10-16T00:43:25Z (the service's seconds). */
+// The deploy time of the rebuilt stand-ins in service clock seconds; pieces placed earlier used the first boxes.
 export const YARD_RESEAT_AT = 1792111405;
 
-/** A box: render/frustum.js localAabb's [minX, minY, minZ, maxX, maxY, maxZ], metres. */
-/** Every stall's, WD3's builder (x0 -0.4 to x1 2.75, the awning's high edge 4.4). */
+// Boxes are [minX, minY, minZ, maxX, maxY, maxZ] in meters, as localAabb returns; *_WD3 are the first stand-ins.
 export const STALL_BOX_WD3 = Object.freeze([-0.4, 0, -2.4, 2.75, 4.4, 2.45]);
-/** Every stall's, TEMPLE-STEPS' - and STALL-SHAPE's counter stall's (the box kept). */
 export const STALL_BOX_NOW = Object.freeze([-2.0625, 0, -1.86, 0.3, 3.3, 1.8]);
-/** STALL-SHAPE's open stall (53113 on): the frame 0.2 m back, 0.206 up, 0.066 across, no counter, at 0.75. */
 export const OPEN_STALL_BOX_NOW = Object.freeze([-2.2125, 0, -1.8105, -0.0615, 3.4545, 1.8495]);
 export const COUNTER_STALLS = Object.freeze([53100, 53101, 53102, 53103, 53104, 53106, 53107, 53108, 53109]);
 export const OPEN_STALLS = Object.freeze([53113, 53115, 53117, 53118, 53121, 53122, 53123, 53124]);
-/** What the stalls grew by at TEMPLE-STEPS: the prefab's 0.75. */
 export const STALL_K = 0.75;
-/** Each rock's, WD3's builder (the boulder round its origin, the mesh at 1, its rim pushed out by its id's seed). */
 export const ROCK_BOX_WD3 = Object.freeze({
   53006: [-0.226406, -0.12, -0.251709, 0.278465, 0.33, 0.296942], 53012: [-0.473724, -0.13, -0.268142, 0.431261, 0.28, 0.26585],
   53014: [-0.615383, -0.05, -0.46802, 0.47357, 0.35, 0.535653], 53017: [-0.2817, -0.05, -0.428387, 0.296552, 0.64, 0.429729],
@@ -73,7 +33,6 @@ export const ROCK_BOX_WD3 = Object.freeze({
   53083: [-0.406759, -0.05, -0.23743, 0.335147, 0.13, 0.249957], 53085: [-0.346818, -0.05, -0.318846, 0.316258, 0.14, 0.27277],
   53086: [-1.208504, -0.05, -0.617461, 1.16387, 0.56, 0.633971],
 });
-/** Each rock's, TEMPLE-STEPS' builder - unchanged by STALL-SHAPE. */
 export const ROCK_BOX_NOW = Object.freeze({
   53006: [-1.366447, -0.738, -1.562793, 1.492473, 1.962, 1.594734], 53012: [-2.148195, -0.65, -1.271291, 1.946256, 1.39, 1.189943],
   53014: [-1.885066, -0.05, -1.489733, 2.188409, 1.396, 2.212384], 53017: [-1.211771, -0.05, -2.031227, 1.987632, 3.834, 2.642086],
@@ -88,17 +47,13 @@ export const ROCK_BOX_NOW = Object.freeze({
   53083: [-2.233555, -0.05, -1.357521, 1.974411, 0.798, 1.402978], 53085: [-1.930978, -0.05, -3.009645, 2.948896, 1.088, 1.476333],
   53086: [-5.163713, -0.05, -2.232297, 3.400785, 2.24, 2.427954],
 });
-/** What each rock grew by at TEMPLE-STEPS: its prefab's scale (world/townStandIns.js RMBRP_ROCK_SCALE as it stood). */
 export const ROCK_K = Object.freeze({
   53006: 6, 53012: 5, 53014: 4, 53017: 6, 53020: 4, 53023: 2, 53029: 6, 53030: 8, 53031: 6, 53032: 3, 53033: 4, 53035: 4,
   53036: 6, 53037: 4, 53038: 4, 53039: 4, 53040: 3, 53042: 4, 53054: 8, 53064: 6, 53083: 6, 53085: 8, 53086: 4,
 });
 
-/**
- * THE RE-SEATS, one a model and a time: `before` - placed before YARD_RESEAT_AT (WD3's stand-ins) or since (TEMPLE-STEPS');
- * `was` the box it was placed by, `now` the box it stands by, `k` what the model grew by between them.
- * @type {ReadonlyArray<{ model: number, before: boolean, was: readonly number[], now: readonly number[], k: number }>}
- */
+// Pieces placed before YARD_RESEAT_AT use the first stand-in boxes; k is how much the model grew between boxes.
+/** @type {ReadonlyArray<{ model: number, before: boolean, was: readonly number[], now: readonly number[], k: number }>} */
 export const YARD_RESEATS = Object.freeze([
   ...COUNTER_STALLS.map((model) => ({ model, before: true, was: STALL_BOX_WD3, now: STALL_BOX_NOW, k: STALL_K })),
   ...OPEN_STALLS.map((model) => ({ model, before: true, was: STALL_BOX_WD3, now: OPEN_STALL_BOX_NOW, k: STALL_K })),
@@ -110,16 +65,14 @@ const round = (v, places) => { const p = 10 ** places; return Math.round(v * p) 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const mid = (b, a) => (b[a] + b[a + 3]) / 2;
 
-/** The re-seat's own numbers for a piece of `scale` turned `yaw` degrees: its new scale, and how far its origin moves in
- *  the yard's frame - [dx, dy, dz]. */
 export function reseatMove({ was, now, k }, scale, yaw) {
   const s2 = clamp(round(scale / k, 3), DECOR_SCALE_MIN, DECOR_SCALE_MAX);
   const lx = scale * mid(was, 0) - s2 * mid(now, 0), lz = scale * mid(was, 2) - s2 * mid(now, 2);
   const r = (yaw * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
-  // world/mat4.js trs's turn about y: a model's +x stands at (cos, -sin) in the yard, its +z at (sin, cos)
+  // This matches the y rotation in trs (world/mat4.js): model +x maps to (cos, -sin) and +z to (sin, cos).
   return { scale: s2, d: [c * lx + s * lz, scale * was[1] - s2 * now[1], -s * lx + c * lz] };
 }
-/** A yard piece's `place` re-seated - the same fields, its origin and scale moved, the mark set - as the migration writes it. */
+// Only the yaw (rot[0]) turns the move, since the placer writes model places as [yaw, 0, 0].
 export function reseatPlace(place, reseat) {
   const { scale, d } = reseatMove(reseat, place.scale, place.rot[0]);
   const B = DECOR_YARD_POS_MAX;
@@ -127,12 +80,9 @@ export function reseatPlace(place, reseat) {
   return { ...place, pos, scale, reseat: YARD_RESEAT_MARK };
 }
 
+// Applies the migration to a home_decor row restored from a snapshot. A matching row placed after YARD_RESEAT_AT
+// stays as the snapshot holds it and returns unsure, since no record says which stand-in it was placed against.
 /**
- * STALL-SHAPE's audit: A YARD PIECE BROUGHT BACK FROM A SNAPSHOT (tools/realmRestore.mjs, a `home_decor` row as the dump
- * holds it) stands as this migration would have left it. One placed by WD3's stand-ins (before YARD_RESEAT_AT) with no
- * mark was never re-seated - by this law it is now. One placed since by TEMPLE-STEPS' open stall may have been placed by
- * STALL-SHAPE's instead (no record says which stand-in a piece was placed against, nor a snapshot whether 0121 had run):
- * it is written as the snapshot holds it, and `unsure` says so to the operator. Never moved twice: a marked place is kept.
  * @param {Record<string, any>} row
  * @returns {{ row: Record<string, any>, reseated: boolean, unsure: boolean }}
  */
@@ -150,13 +100,11 @@ export function reseatRestored(row) {
 }
 
 const num = (v) => String(round(v, 6));
-/** A Taylor series in Horner's form over `r2` (r squared): 1 - r2/d0 (1 - r2/d1 (1 - ...)), each d the next two terms'
- *  ratio - the cosine's 1*2, 3*4, ... 17*18 (to r^18), the sine's 2*3, ... 18*19 (to r^19, times r). */
+// Cosine and sine are Taylor series to r^18 and r^19, since D1 does not promise SQLite's math extension.
 const horner = (denominators) => denominators.reduceRight((inner, d) => `(1 - r2 / ${d} * ${inner})`, '1');
 const COS = horner([2, 12, 30, 56, 90, 132, 182, 240, 306]);
 const SIN = `r * ${horner([6, 20, 42, 72, 110, 156, 210, 272, 342])}`;
 
-/** THE MIGRATION's text. */
 export function reseatSql() {
   const rows = YARD_RESEATS.map((m) => `  (${m.model}, ${m.before ? 1 : 0}, ${num(mid(m.was, 0))}, ${num(mid(m.was, 2))}, ${num(m.was[1])}, ${num(mid(m.now, 0))}, ${num(mid(m.now, 2))}, ${num(m.now[1])}, ${num(m.k)})`);
   const B = DECOR_YARD_POS_MAX;

@@ -15,6 +15,7 @@ files:
   - src/ui/craftXpWords.js
   - server-account/src/alchemy.js
   - server-account/src/masterWork.js
+  - server-account/src/profCraft.js
 routes:
   - /v1/prof/craft
   - /v1/prof/make
@@ -53,6 +54,7 @@ invariants:
 traps:
   - "Base `craftXp` is `CRAFT_XP_PER_TIER` (20) times tier (Masonry and Cooking substitute the rank's tier), scaled by `CRAFT_PACE` and Focus with zero first-make bonus."
   - "`LOOSE_ONLY_KEYS` (graded gems and `DAEDRA_HEART`) enter Stores only as `loose` units, walling them off from player markets and writs."
+  - "A smelt whose recipe spends Deadlands Embers (`workEmbers`) raises `players.insignia_spent` in its own batch, and the `prof_smelts` insert is guarded by the ember purse, so two smelts sent at once never spend one ember twice. No recipe in `SMELT_RECIPES` sets `embers`, so `DAEDRIC_EMBERS` is unused."
 tags:
   - crafting
   - provenance

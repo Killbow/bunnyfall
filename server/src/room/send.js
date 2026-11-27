@@ -1,4 +1,3 @@
-// How a room sends a frame to one socket, refuses a socket, and reaps the sockets it closed.
 import { CLOSE_POLICY } from '../relay.js';
 import { staffNetClosed } from '../staffFeeds.js';
 
@@ -22,8 +21,7 @@ export class SendPart {
     this._dead.add(ws);
     this._closed(ws);
   }
-  // The runtime sends no close event for a socket this object closed;
-  // every door awaits this on its way out to run that socket's leave.
+  // The runtime sends no close event for a socket this object closed, so this runs that socket's leave.
   async _reap() {
     while (this._dead.size) {
       const [ws] = this._dead;

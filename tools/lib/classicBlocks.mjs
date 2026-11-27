@@ -1,37 +1,12 @@
-// CSA-A (2026-09-27): IS A LARGE PICTURE BUILT OUT OF CLASSIC TEXTURES?
-//
-// Detailed Ships' search (tools/detailedShipsAssets.mjs findClassicSource)
-// asks whether ONE classic record covers a picture of about its own size. A
-// mod's 640x640 animation frame is no record's size, so that search passes
-// it without looking. This one looks: the picture is cut into aligned blocks
-// of each square record size the TEXTURE files use (32, 64, 128), and every
-// record of that size is laid on every block; the best share of a block's
-// VISIBLE pixels a record matches exactly (RGB; a clear pixel never draws,
-// so it is neither a match nor a miss) is the answer. A block less than a
-// quarter visible is not judged - a few pixels agree with anything. DS1's bar, DERIVED_SHARE of the block,
-// is the line between a picture that happens to share a palette's greys and
-// one made of a record.
-//
-// Laid naively that is billions of comparisons, so a record is first bounded
-// by colour: it can match no more of a block than the pixels whose colours it
-// has at all, counted with their multiplicity on both sides. A record whose
-// bound is under the bar is skipped unread.
-//
-// A FLAT RECORD PROVES NOTHING, so it is not laid at all. TEXTURE.000 is a
-// shelf of single-colour swatches (the flat faces of Daggerfall's models),
-// and a block that is mostly one grey of the palette "matches" the swatch of
-// that grey as far as it is that grey - Come Sail Away's waves reach 59% of a
-// 32x32 block against TEXTURE.000 record 119 that way. A record one colour
-// covers FLAT_SHARE of is a swatch, and the search says which it skipped.
+// Finds whether a large picture is built from classic texture records, on aligned blocks of 32, 64, and 128.
+// Flat records (one color covering FLAT_SHARE) are skipped, since they match any flat area of that color.
 
 import { DERIVED_SHARE } from '../detailedShipsAssets.mjs';
 
 const rgbAt = (d, i) => (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
 
-/** A record one colour covers this much of is a flat swatch, not a picture. */
 export const FLAT_SHARE = 0.9;
 
-/** A record's pixels as packed RGB, with its colour counts. */
 function prepare(rec) {
   const { width: w, data } = rec.rgba;
   const px = new Int32Array(w * w);
@@ -46,9 +21,6 @@ function prepare(rec) {
 }
 
 /**
- * The best exact match any square classic record that is not a flat swatch
- * makes on an aligned block of `pic` ({ width, height, data } RGBA, rows
- * top-down as the records are).
  * @returns {{ archive:number, record:number, frame:number, size:number, at:[number,number], share:number, flatsSkipped:number } | null}
  */
 export function bestClassicBlock(pic, records, sizes = [32, 64, 128]) {
@@ -71,7 +43,7 @@ export function bestClassicBlock(pic, records, sizes = [32, 64, 128]) {
         for (let y = 0; y < w; y++) {
           for (let x = 0; x < w; x++) {
             const i = ((by + y) * pic.width + bx + x) * 4;
-            if (pic.data[i + 3] === 0) { block[y * w + x] = -1; continue; }   // clear: no packed RGB is -1
+            if (pic.data[i + 3] === 0) { block[y * w + x] = -1; continue; }
             const c = rgbAt(pic.data, i);
             block[y * w + x] = c;
             counts.set(c, (counts.get(c) ?? 0) + 1);
@@ -95,7 +67,6 @@ export function bestClassicBlock(pic, records, sizes = [32, 64, 128]) {
   return best && { ...best, flatsSkipped: flats };
 }
 
-/** A picture cut to the box its visible pixels fill - a small sprite pasted on a clear canvas is judged at its own size. */
 export function cropToVisible(pic) {
   let x0 = pic.width, y0 = pic.height, x1 = -1, y1 = -1;
   for (let y = 0; y < pic.height; y++) {
@@ -111,5 +82,4 @@ export function cropToVisible(pic) {
   return { width: w, height: h, data, at: [x0, y0] };
 }
 
-/** Whether a block match is a derivation by DS1's bar. */
 export const isDerivedBlock = (m) => !!m && m.share >= DERIVED_SHARE;

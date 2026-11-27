@@ -1,26 +1,6 @@
-// PERF9 - THE PERFORMANCE PROBE (2026-09-11). Every PERF slice so far was
-// read out of the frame, not measured: this session has no GPU and no
-// ARENA2. This boots the real game on a machine that has both and logs
-// the FPS counter's own numbers - frames a second, frame ms and worst,
-// script ms and worst, draws and texture binds a frame - for three
-// scenes: a city (Daggerfall), the open road (a random spawn) and a
-// dungeon (Privateer's Hold, the ?shot boot). Run it before and after
-// a change and the difference is the change.
-//
-// Run:  ARENA2_PATH=/path/to/arena2 npm run perf
-//   HEADED=1      a visible browser on the machine's own GPU - the
-//                 number that matters. Headless runs on SwiftShader
-//                 (software GL) and its numbers are only relative.
-//   SECONDS=8     how long each scene is sampled after it settles
-//   SCENES=city,road,dungeon   which to run
-//   SCENES=jungle  BANTHA1 (AUDIT BANTHA1 DOC-10; BANTHA2's area): the city of Satakalaam, deep in the jungle and its haze
-//                 (LOC=<a town of Satakalaam's> for another - tools/jungleExtent.mjs lists the area's); JUNGLE=off its kill
-//                 door, to A/B the jungle
-//   OUT=perf.json where to append the rows (default: print only)
-//
-// The scene is settled when the world says so (`window.__shotReady`:
-// the stream queue empty, nothing building); the probe then discards
-// the first second and takes the mean of the rest.
+// Boots the game and logs the FPS counter's numbers for a city, the open road, a dungeon, and the jungle.
+// Usage: ARENA2_PATH=<dir> npm run perf. Other settings come from environment variables.
+// Headless runs use software GL, so their numbers are only relative; HEADED=1 uses the machine's GPU.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -31,16 +11,8 @@ const PORT = Number(process.env.PORT || 5237);
 const SECONDS = Math.max(3, Number(process.env.SECONDS || 8));
 const HEADED = process.env.HEADED === '1';
 const WANT = (process.env.SCENES || 'city,road,dungeon').split(',').map((s) => s.trim()).filter(Boolean);
-// GRAIN AUDIT 1: GROUND=off|default|max points every scene at one tier of
-// the ground-sharpness dial (the `?ground=` door), so the dial can be A/B'd
-// on a real GPU: HEADED=1 SCENES=road SECONDS=12 GROUND=off npm run perf,
-// then again with max, and compare frameMs while scriptMs holds flat.
 const GROUND = process.env.GROUND ? `&ground=${encodeURIComponent(process.env.GROUND)}` : '';
-// LPT1: TREES=off runs every scene with Low Poly Trees' kill door (`?trees=off`), so the trees' cost is an A/B on a real
-// GPU: HEADED=1 SCENES=road TREES=off npm run perf, then again without it, and compare frameMs, draws and scriptMs.
 const TREES = process.env.TREES === 'off' ? '&trees=off' : '';
-// BANTHA1 (AUDIT BANTHA1 DOC-10): JUNGLE=off runs every scene with the jungle's kill door (`?jungle=off`) - HEADED=1
-// SCENES=jungle npm run perf, then again with JUNGLE=off, and compare frameMs, draws and scriptMs.
 const JUNGLE = process.env.JUNGLE === 'off' ? '&jungle=off' : '';
 
 const SCENES = {
@@ -61,11 +33,12 @@ page.on('pageerror', (e) => errors.push(e.message));
 
 const rows = [];
 for (const name of WANT) {
-  const url = SCENES[name] && `${SCENES[name]}${TREES}${JUNGLE}`;   // LPT1: the trees' door on every scene the TREES switch names; BANTHA1: the jungle's
+  const url = SCENES[name] && `${SCENES[name]}${TREES}${JUNGLE}`;
   if (!url) { console.warn(`perf: no scene "${name}"`); continue; }
   await page.goto(`http://localhost:${PORT}${url}${GROUND}`);
   await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 300000 });
-  await page.waitForTimeout(1000);   // the first second after settling is the stream's tail, not the scene
+  // The first second after settling is the stream's tail, so it is not sampled.
+  await page.waitForTimeout(1000);
   const samples = [];
   for (let s = 0; s < SECONDS; s++) {
     await page.waitForTimeout(1000);
@@ -88,8 +61,5 @@ for (const name of WANT) {
 if (process.env.OUT) appendFileSync(process.env.OUT, rows.map((r) => JSON.stringify({ at: new Date().toISOString(), ...r })).join('\n') + '\n');
 await browser.close();
 await server.close();
-// The judgement: a scene that never reported a second, or threw on
-// the page, is not a measurement - a probe that prints a dash and
-// exits 0 is the disease test/tooling/probehygiene.test.js T3 names.
 const bad = rows.filter((r) => !r.seconds || r.errors || !(r.fps > 0)).map((r) => r.scene);
 if (bad.length || rows.length !== WANT.length) throw new Error(`perf: no measurement for ${bad.join(', ') || 'a scene'}`);

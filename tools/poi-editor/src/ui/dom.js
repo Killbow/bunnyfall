@@ -1,10 +1,8 @@
 // @ts-check
 
-// A very small element builder, so the panels read as markup and not as createElement calls.
-
 /**
  * @param {string} tag
- * @param {Record<string, any> | null} [props] `class`, `text`, `on: { click }`, `style`, anything else is an attribute or property
+ * @param {Record<string, any> | null} [props]
  * @param {...(Node | string | null | false | undefined)} kids
  * @returns {HTMLElement}
  */
@@ -23,5 +21,5 @@ export function h(tag, props = null, ...kids) {
   return el;
 }
 
-/** Remove every child. @param {Element} el */
+/** @param {Element} el */
 export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };

@@ -1,16 +1,9 @@
 #!/usr/bin/env node
-// BUNNYFALL (2026-11-04, the owner: "remove the fallback, if the town has no usable street the raid checks for another
-// town"): THE TOWNS A RAID CANNOT MUSTER IN. A raid's waves gather at camps at the town's edge and march its streets
-// to its square (systems/raidMuster.js, scenes/raidSitesHost.js way). A town whose walk grid has no streets for that -
-// no square, or no way from any of its four edges to it - is struck off the raid table (systems/raidingParties.js
-// raidRegions), so the day's roll picks another town instead, the same on every machine.
-//
-// The walk grid is built here as the streaming host builds it (scenes/pixelBuild.js: CityNavigation over each block's
-// automap and ground), both water lanes; a town is struck off only when it has no way in either.
-//
-//   ARENA2_PATH=/path/to/arena2 node tools/raidStreets.mjs [--dry]
-//
-// writes src/worldEvents/raidStreetless.js (`--dry`: prints the count alone).
+// Lists the towns whose walk grid has no street from any edge to the square and writes them to
+// src/worldEvents/raidStreetless.js, which drops them from the raid table. The grid uses CityNavigation, as
+// src/world/pixelBuild.js does.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/raidStreets.mjs [--dry]
+
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MapsFile } from '../src/formats/mapsFile.js';
@@ -28,10 +21,8 @@ const file = (n) => new Uint8Array(readFileSync(join(A2, n)));
 const maps = new MapsFile(); maps.load(file('MAPS.BSA'), file('CLIMATE.PAK'), file('POLITIC.PAK'));
 const blocks = new BlocksFile(); blocks.load(file('BLOCKS.BSA'));
 const picker = new ImgFile(); picker.load(file('TRAV0I01.IMG'), 'TRAV0I01.IMG');
-// the table as the game reads it, none struck off yet
 const regions = raidRegions(maps, picker.getDFBitmap().data, { all: true }) ?? [];
 
-/** Whether the town's walk grid (one water lane) gives a camp a way to its square from some edge. */
 function musters(loc, enhancedWater) {
   const nav = new CityNavigation(loc.width, loc.height);
   for (const b of loc.blocks) {

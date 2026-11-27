@@ -1,117 +1,37 @@
 // @ts-check
-// WB7 (2026-09-25, Mac: "Proper boss audio during the boss fight"): THE WARDEN'S SCORE - the Burning Court's own music,
-// written here as notes, and the law of which of it plays. Design: bible/11-Multiplayer/World-Bosses.md section 5
-// ("His voice and his music").
-//
-// WHY MADE, NOT CHOSEN. Daggerfall has no fight music: its dungeon tracks are made to be walked through, and none of
-// MIDI.BSA's 131 songs rises and falls with anything. So the court's songs are made in code, in the shape an HMI song
-// decodes to (formats/hmiFile.js - a tick-ordered event stream, one tempo, notes that carry their own durations), and
-// played by the game's own player and voice bank (systems/song/songPlayer.js, gmSynth.js FM) under names of their own
-// (music.registerSong) - so they sit in the same mix as every other song, fade in and out by the same law (DISC20-B),
-// and a player's music pack can replace them by name as it replaces any song (M-EXT).
-//
-// THE SCORE, in D minor, on the instruments the FM bank plays with their own articulation (low brass for the driving
-// ostinato, a struck timpani, the orchestra hit, brass, choir, church organ, a tolled bell, the kit):
-//   GATEWAR1 - HE WAKES. 132 BPM, the villain's turn - D minor to B-flat MINOR and back, then iv and the dominant - under
-//              a low pedal ostinato accented 3-3-2, the timpani and the taiko-low kit in half time; low brass stabs in
-//              open fifths, then the Warden's theme on the brass, then the choir under it; a bell tolled each section.
-//   GATEWAR2 - THE WARD BREAKS (phase two). 138 BPM, the kit in full time and rolling into each fourth bar, the choir
-//              from the first bar, the theme dotted and restless.
-//   GATEWAR3 - HIS WRATH (phase three, and the last minute before the Wrath at any phase). 150 BPM, the Neapolitan Eb
-//              against D, the kick on every beat, crashes every other bar, the tritone tolled, the theme over it all.
-//   GATEFELL - HE FALLS. A timpani roll into D major - Daggerfall's minor turned to its major - fanfare, choir, bells;
-//              then quiet: the court is the Deadlands' air alone.
-// Each loops (the player's own law) but GATEFELL, which the law stops once it has sounded.
-//
-// WBX9 (2026-09-26, Mac: "The music needs to be louder and more intense"): LOUDER - every voice's level raised and each
-// song played SCORE_LEVEL over the player's own (systems/song/songPlayer.js `song.level`: the game's songs stand at 1), so the
-// fight sounds over the Deadlands' air and the dungeon's tracks it replaces, its peaks still under the clip at the
-// highest MusicVolume (tools/gateScoreProbe.mjs measures both); MORE INTENSE - no song waits to begin: the strings,
-// the brass stabs and the whole kit from the first bar, the theme from the ninth, the choir from the ninth in the first
-// song and from the first after; the ostinato driving in sixteenths as the phases turn (a bar's last beat in the first,
-// every other bar's second half in the second, every bar whole in the third), the orchestra hit and the timpani on more
-// beats, the kit's fills every fourth bar, the third song's choir chanting on the beat. The key, the tempos, the themes
-// and the law are as they were.
-//
-// WB10a (2026-09-30, Mac: "improve the boss music, make it more loud, just feel like its too quite, and I feel like the
-// music is too jolly"): LOUDER - WBX9's level had spent the headroom (a decibel under the clip at the highest
-// MusicVolume, the drums' peaks 15 to 19 dB over the song's body), so each song is now PRESSED (SCORE_PRESS through
-// systems/song/songPlayer.js `song.press`: a compressor, its own drive, a soft ceiling) - its peaks held down and the whole
-// of it raised, never past a decibel under the clip. LESS JOLLY - what made it bright went: the pizzicato's pluck and
-// its arpeggio bouncing up the chord, the bell rung high on the one, the tambourine and the hi-hat's pop groove, the
-// brass stabs voiced as bright triads, the war's C major (VII), and a theme that ran up the D minor chord to a fanfare.
-// In their place: the
-// villain's harmony (i to the flat-six MINOR, D against D-flat, A against B-flat), a pedal ostinato on low brass
-// hammered 3-3-2 with a sigh leaning into the next bar at each bar's end, stabs and pads in open fifths (no third to
-// brighten them), a kit of low drums and toms, the bell tolled low, and themes that turn on half steps and sit in the
-// brass's low register. The key, the tempos, the lengths, the channels, the law, the drive's law (how many ostinato
-// notes each bar carries) and the fall's fanfare are as they were.
-//
-// THE LAW (`courtScoreFor`): no fight, no score (the host's music director stands); a fight, the war song of his phase
-// (the third from SCORE_WRATH_WARN_MS before the Wrath); his fall, GATEFELL for SCORE_STING_MS, then silence.
-// Pure: the relay's clock in, a song's name (or SCORE_SILENCE, or null) out.
-// Not a DFU member. Ledger A (WB).
 
-/** The HMI clock: ticks a quarter note (formats/hmiFile.js HMI_TICKS_PER_QUARTER). */
+// Must match `HMI_TICKS_PER_QUARTER` in `formats/hmiFile.js`.
 export const SCORE_TPQ = 60;
-/** The songs' names - their own, beside MIDI.BSA's (no record there is called this). */
+// These names match no record in MIDI.BSA, so a music pack can replace them by name like any other song.
 export const GATE_SONGS = Object.freeze({ war1: 'GATEWAR1.HMI', war2: 'GATEWAR2.HMI', war3: 'GATEWAR3.HMI', fell: 'GATEFELL.HMI' });
-/** The law's answer when the court wants nothing sounding. */
 export const SCORE_SILENCE = 'silence';
-/** The last stretch before the Wrath at which the third song plays whatever his phase, and how long the fall's
- *  fanfare is given before the court falls quiet (its four bars and a hit at 92 BPM, 11.1 s, and their ring). */
 export const SCORE_WRATH_WARN_MS = 60000;
+// `SCORE_STING_MS` covers the fanfare (four bars and a hit at 92 BPM, about 11.1 s) plus its ring.
 export const SCORE_STING_MS = 12500;
-/** AUDIT WBX W3: how long after the court asks for the fanfare it begins - the song before it fades out first
- *  (systems/music.js MUSIC_FADE_OUT_S) and the player starts a beat on (systems/song/songPlayer.js' 0.06 s) - so its time is
- *  counted from its own first note, and its last hit is never under the fade. */
+// Equals `MUSIC_FADE_OUT_S` in `audio/music.js` plus the 0.06 s start delay in `songPlayer.js`; update it when
+// either changes.
 export const SCORE_STING_LEAD_MS = 1560;
 
-/** GM programs (gmSynth.js FM bank - the per-program articulations matter: 47, 55 and 14 are struck). WB10a: the
- *  ostinato on the brass family, low (57, the trombone - its FM brightness holds through a short note, so the drive
- *  snarls where the pizzicato's pluck, 45, plinked: the jolliest sound the score had). */
 export const SCORE_PROGRAMS = Object.freeze({ ostinato: 57, bass: 32, strings: 48, brass: 61, choir: 52, organ: 19, timpani: 47, hit: 55, bells: 14 });
-/** Channels: one voice each, the kit on GM's channel 9. */
 export const SCORE_CHANNELS = Object.freeze({ ostinato: 0, bass: 1, strings: 2, brass: 3, choir: 4, organ: 5, timpani: 6, hit: 7, bells: 8, kit: 9 });
-/** Each voice's level (CC7) and place (CC10, 64 the middle) - the ostinato and the strings a little apart. WB10a: the
- *  bass under the rest - nearly all of it below 120 Hz, where a laptop's or a phone's speakers give nothing back and
- *  where the peaks the press must hold were made. */
 const MIX = Object.freeze({
   ostinato: [116, 50], bass: [98, 64], strings: [108, 80], brass: [122, 60], choir: [114, 70], organ: [86, 64], timpani: [112, 64], hit: [110, 64], bells: [96, 76],
 });
-/** WBX9: the kit's level (CC7 on channel 9). */
 const KIT_LEVEL = 114;
-/** WBX9: each song over the player's own level (systems/song/songPlayer.js `song.level`; the game's songs stand at 1) - the
- *  war growing with his phases, the fall's fanfare over them. WB10a: the drive into the song's press. Measured through
- *  the real player: tools/gateScoreProbe.mjs. */
 export const SCORE_LEVEL = Object.freeze({ war1: 1.42, war2: 1.6, war3: 1.64, fell: 1.7 });
-/** WB10a: EACH SONG'S PRESS (systems/song/songPlayer.js songPress) - a gentle compressor (4:1 over a wide knee, so a
- *  section's swell is evened and nothing pumps), each song's own drive after it (`out`: the war growing with his
- *  phases, the fall's fanfare between them), and the CEILING a decibel under the clip at the highest MusicVolume, whose
- *  soft clip rounds off what the compressor lets through of a drum's first milliseconds. Measured through the real
- *  player: tools/gateScoreProbe.mjs (-15.8 / -15.4 / -14.2 dBFS at war and -15.6 at his fall, from WBX9's -25.6 /
- *  -22.1 / -21.5 and -22.9). */
 const PRESS = Object.freeze({ threshold: -18, knee: 12, ratio: 4, attack: 0.003, release: 0.25, ceiling: -1 });
 export const SCORE_PRESS = Object.freeze({
   war1: Object.freeze({ ...PRESS, out: 5.2 }), war2: Object.freeze({ ...PRESS, out: 5 }), war3: Object.freeze({ ...PRESS, out: 5.8 }), fell: Object.freeze({ ...PRESS, out: 5.6 }),
 });
-/** GM kit keys (gmSynth.js DRUMS; `lowTom` is GM's low floor tom, `tom` its low tom). WB10a: no hi-hat and no
- *  tambourine - the low drums and the toms carry it. */
 const KIT = Object.freeze({ kick: 36, snare: 38, lowTom: 41, highFloorTom: 43, tom: 45, lowMidTom: 47, hiMidTom: 48, crash: 49, chinese: 52, surdo: 87 });
 
 const PITCH = Object.freeze({ C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 });
-/** A note by name: `D4` is 62 (C4 is middle C, 60). */
 export function midiNote(name) {
   const m = /^([A-G](?:#|b)?)(-?\d)$/.exec(name);
   if (!m || PITCH[m[1]] === undefined) throw new Error(`gateScore: not a note: ${name}`);
   return 12 * (Number(m[2]) + 1) + PITCH[m[1]];
 }
 
-/** The harmony: each chord's bass and timpani, its pad (the organ), the strings' and the choir's voicings, its ostinato
- *  bar (eight eighths) and its brass stab. WB10a: the war's chords struck and padded in open fifths (no third to
- *  brighten them), their thirds kept where they are held (the strings, the choir); the ostinato a pedal on the root, its
- *  last two eighths a sigh leaning into the next bar (Dm's the flat six falling to the five, B-flat minor's creeping up
- *  to D, the dominant's F falling to E). D major is the fall's alone, and as it was. */
 const CHORDS = Object.freeze({
   Dm: { bass: 'D2', timp: 'D2', pad: ['D3', 'A3', 'D4'], str: ['D4', 'F4', 'A4'], choir: ['D3', 'A3', 'F4'], ost: ['D3', 'D3', 'D3', 'D3', 'D3', 'D3', 'Bb2', 'A2'], stab: ['D3', 'A3', 'D4'] },
   Bbm: { bass: 'Bb1', timp: 'F2', pad: ['Bb2', 'F3', 'Bb3'], str: ['Db4', 'F4', 'Bb4'], choir: ['Bb2', 'F3', 'Db4'], ost: ['Bb2', 'Bb2', 'Bb2', 'Bb2', 'Bb2', 'Bb2', 'C3', 'Db3'], stab: ['Bb2', 'F3', 'Bb3'] },
@@ -120,14 +40,8 @@ const CHORDS = Object.freeze({
   Eb: { bass: 'Eb2', timp: 'Bb2', pad: ['Eb3', 'Bb3', 'Eb4'], str: ['Eb4', 'G4', 'Bb4'], choir: ['Eb3', 'Bb3', 'G4'], ost: ['Eb3', 'Eb3', 'Eb3', 'Eb3', 'Eb3', 'Eb3', 'B2', 'Bb2'], stab: ['Eb3', 'Bb3', 'Eb4'] },
   D: { bass: 'D2', timp: 'D2', pad: ['D3', 'F#3', 'A3'], choir: ['A3', 'D4', 'F#4'], ost: ['D3', 'D3', 'A3', 'D3', 'B3', 'D3', 'A3', 'F#3'], stab: ['D4', 'F#4', 'A4'] },
 });
-/** The progressions, a chord a bar. WB10a: the villain's turn - D minor to B-flat MINOR (D against D-flat, A against
- *  B-flat) and back, then iv, i and the dominant held two bars; the wrath's on the Neapolitan in its place. No major
- *  chord but the dominant (and the Neapolitan, his wrath's own). */
 const WAR_A = Object.freeze(['Dm', 'Bbm', 'Dm', 'Bbm', 'Gm', 'Dm', 'A', 'A']);
 const WAR_C = Object.freeze(['Dm', 'Eb', 'Dm', 'Eb', 'Bbm', 'Gm', 'A', 'A']);
-/** THE WARDEN'S THEME, three ways: [note, beats] a bar, eight bars over its progression. WB10a: it turns on half steps
- *  (D and C#, D-flat and C, A and B-flat, D and E-flat in his wrath) and falls where it used to climb; the first ends on
- *  the tritone's leap from E to B-flat over the dominant. */
 const THEME_A = Object.freeze([
   [['D4', 2], ['C#4', 0.5], ['D4', 0.5], ['A3', 1]],
   [['Db4', 2], ['C4', 0.5], ['Bb3', 0.5], ['F3', 1]],
@@ -159,21 +73,14 @@ const THEME_C = Object.freeze([
   [['A4', 2], ['Bb4', 0.5], ['A4', 0.5], ['G#4', 0.5], ['A4', 0.5]],
 ]);
 
-/** Control events sort before notes on the same tick (the reader's rank order: a program change is heard by the note
- *  it stands beside). */
+// Control events sort before notes on the same tick, so a program change applies to the note that starts with it.
 const RANK = { programChange: 0, controller: 0, noteOn: 1 };
 
-/**
- * A song in the shape the player plays (formats/hmiFile.js HmiFile: `events`, `secondsPerTick`, `durationTicks`):
- * `write(w)` lays its notes with `w.note(voice, bar, beat, beats, name, velocity)` and `w.hit(key, bar, beat,
- * velocity)`; every voice gets its program, level and place at tick 0.
- */
 function makeSong(name, bpm, bars, write, level = 1, press = null) {
   const events = [];
   const tick = (bar, beat) => Math.round((bar * 4 + beat) * SCORE_TPQ);
-  // AUDIT SD III (A8): ONE NOTE A KEY A MOMENT - a note laid where the same voice already strikes it (a theme's note on
-  // its bar's own chord tone) is one note, its loudest and its longest: two note-ons as one doubled the hit or cut the
-  // first short, twenty-five times over the war's three songs (the Hour's score, systems/superDungeon/sdScore.js, keeps the same law)
+  // A second note on the same voice, key, and tick merges into the first with the louder velocity and longer
+  // duration. Two note-ons at once would double the hit or cut it short.
   const struck = new Map();
   const w = {
     note(voice, bar, beat, beats, n, velocity) {
@@ -196,20 +103,16 @@ function makeSong(name, bpm, bars, write, level = 1, press = null) {
   }
   events.push({ tick: 0, type: 'controller', channel: SCORE_CHANNELS.kit, controller: 7, value: KIT_LEVEL });
   events.sort((a, b) => a.tick - b.tick || RANK[a.type] - RANK[b.type]);
-  // AUDIT WB D4: a song written as whole bars loops on its bar line (systems/song/songPlayer.js `seamless`) - the player's
-  // classic rewind rings a second past the end first, and the war songs fell silent that long at every pass
+  // The song loops on its bar line, because the classic player rewinds a second past the end and leaves a gap of
+  // silence at every loop.
   return { name, press, beatsPerMinute: bpm, secondsPerTick: 60 / (bpm * SCORE_TPQ), events, durationTicks: bars * 4 * SCORE_TPQ, seamless: true, level };
 }
 
-/** WB10a: the ostinato's accents - 3-3-2 over a bar's eighths, and over each half bar's sixteenths. */
 const ACCENT8 = Object.freeze([true, false, false, true, false, false, true, false]);
 
-/** The ostinato, the bass and the pads under a chord for one bar. `busy` sixteenths in the last beat; WBX9 `drive`
- *  sixteenths from that beat on (0 the whole bar, 2 its second half). WB10a: the ostinato hammers the chord's root,
- *  accented 3-3-2, and its bar's last two notes (eighths or sixteenths) are the chord's sigh - never an arpeggio. */
 function underBar(w, bar, chord, { pads = true, strings = false, choir = false, organ = 1, busy = false, drive = null, vel = 1 } = {}) {
   const c = CHORDS[chord];
-  const from = drive ?? (busy ? 3 : 4);   // the beat the sixteenths take over from
+  const from = drive ?? (busy ? 3 : 4);
   c.ost.forEach((n, i) => { if (i * 0.5 < from) w.note('ostinato', bar, i * 0.5, 0.4, n, (ACCENT8[i] ? 108 : 80) * vel); });
   for (let s = from * 4; s < 16; s++) w.note('ostinato', bar, s * 0.25, 0.2, s >= 14 ? c.ost[s - 8] : c.ost[0], (ACCENT8[s % 8] ? 110 : 78) * vel);
   w.note('bass', bar, 0, 1.8, c.bass, 104 * vel);
@@ -219,7 +122,6 @@ function underBar(w, bar, chord, { pads = true, strings = false, choir = false, 
   if (choir) for (const n of c.choir) w.note('choir', bar, 0, 4, n, 96 * vel);
 }
 
-/** A theme's eight bars from `bar0`, over `voice`, shifted `octave` octaves. */
 function themeBars(w, bar0, theme, voice, velocity, octave = 0) {
   theme.forEach((notes, b) => {
     let beat = 0;
@@ -230,11 +132,6 @@ function themeBars(w, bar0, theme, voice, velocity, octave = 0) {
   });
 }
 
-/** GATEWAR1 - he wakes: 32 bars, the groove, the stabs and the strings from the first bar, the theme from the ninth
- *  with the choir under it, the theme again over the strings, then with the brass and the choir an octave below. WBX9:
- *  nothing waits - the whole band from the first bar. WB10a: the kit in half time, low - the surdo and the floor tom
- *  on the one and the kick 3-3-2 through the first half, the snare's one backbeat on the third, the toms answering -
- *  and a bell tolled low at each section. */
 function war1() {
   return makeSong(GATE_SONGS.war1, 132, 32, (w) => {
     for (let bar = 0; bar < 32; bar++) {
@@ -243,11 +140,9 @@ function war1() {
       w.note('timpani', bar, 0, 1, c.timp, 110);
       w.note('timpani', bar, 1.5, 0.5, c.timp, 94);
       if (bar % 4 === 3) { for (const [b, n] of [[2.5, c.timp], [3, c.timp], [3.5, 'A2']]) w.note('timpani', bar, b, 0.45, n, 106); }
-      // the brass: a stab on the one and the and-of-two - every bar before the theme, every other bar under it
       if (bar < 8 || bar % 2 === 0) for (const n of c.stab) { w.note('brass', bar, 0, 0.9, n, 112); w.note('brass', bar, 1.5, 0.45, n, 98); }
       if (bar % 4 === 0) for (const n of c.stab) w.note('hit', bar, 0, 1, n, 104);
-      if (bar % 8 === 0) w.note('bells', bar, 0, 4, 'D3', 96);   // the knell, low
-      // the kit: the low end 3-3-2, the backbeat in half time, the toms answering, a fill into every fourth bar
+      if (bar % 8 === 0) w.note('bells', bar, 0, 4, 'D3', 96);
       w.hit('surdo', bar, 0, 106);
       w.hit('lowTom', bar, 0, 96);
       for (const b of [0.75, 1.5]) w.hit('kick', bar, b, 94);
@@ -266,10 +161,6 @@ function war1() {
   }, SCORE_LEVEL.war1, SCORE_PRESS.war1);
 }
 
-/** GATEWAR2 - the ward breaks: 32 bars, the choir from the first, the ostinato driving in sixteenths through every
- *  other bar's second half, the kit rolling into every fourth bar, the theme dotted and restless. WB10a: the kit in
- *  full time - the kick 3-3-2 through the whole bar, the snare on two and four, the toms where the hi-hat was - the
- *  theme low on the brass, a bell tolled every fourth bar. */
 function war2() {
   return makeSong(GATE_SONGS.war2, 138, 32, (w) => {
     for (let bar = 0; bar < 32; bar++) {
@@ -299,24 +190,19 @@ function war2() {
   }, SCORE_LEVEL.war2, SCORE_PRESS.war2);
 }
 
-/** GATEWAR3 - his wrath: 32 bars on the Neapolitan, the ostinato driving in sixteenths through every bar, the timpani
- *  on every eighth, the kick on every beat, the choir chanting on the beat, the theme over it all. WB10a: the toms on
- *  every offbeat where the hi-hat was, the tritone tolled low, the theme on the brass an octave down and its last pass
- *  doubled two octaves down, the strings holding it where the brass stood. */
 function war3() {
   return makeSong(GATE_SONGS.war3, 150, 32, (w) => {
     for (let bar = 0; bar < 32; bar++) {
       const chord = WAR_C[bar % 8], c = CHORDS[chord];
       underBar(w, bar, chord, { strings: true, choir: false, drive: 0, organ: 1.2, vel: 1.05 });
-      // the choir chants the chord on every beat, the first strongest
       for (let b = 0; b < 4; b++) for (const n of c.choir) w.note('choir', bar, b, 0.9, n, b === 0 ? 106 : 92);
       for (let i = 0; i < 8; i++) w.note('timpani', bar, i * 0.5, 0.4, i % 4 === 3 ? 'A2' : c.timp, i === 0 ? 110 : 96);
       for (const n of c.stab) { w.note('hit', bar, 0, 1, n, 106); w.note('hit', bar, 2.5, 0.5, n, 100); if (bar % 2 === 1) w.note('hit', bar, 3.5, 0.5, n, 100); }
-      if (bar % 4 === 0) { w.note('bells', bar, 0, 2, 'D3', 98); w.note('bells', bar, 2, 2, 'Ab2', 94); }   // the tritone, tolled
+      if (bar % 4 === 0) { w.note('bells', bar, 0, 2, 'D3', 98); w.note('bells', bar, 2, 2, 'Ab2', 94); }
       w.hit('surdo', bar, 0, 106);
       w.hit('surdo', bar, 2, 96);
       for (let b = 0; b < 4; b++) w.hit('kick', bar, b, b === 0 ? 112 : 98);
-      if (bar % 4 === 3) for (const b of [0.5, 1.5, 2.5, 3.5]) w.hit('kick', bar, b, 88);   // the kick on every eighth into each fourth bar
+      if (bar % 4 === 3) for (const b of [0.5, 1.5, 2.5, 3.5]) w.hit('kick', bar, b, 88);
       for (const b of [1, 3]) w.hit('snare', bar, b, 112);
       for (const b of [0.5, 1.5, 2.5, 3.5]) w.hit('tom', bar, b, 84);
       if (bar % 2 === 0) w.hit('crash', bar, 0, 98);
@@ -333,11 +219,9 @@ function war3() {
   }, SCORE_LEVEL.war3, SCORE_PRESS.war3);
 }
 
-/** GATEFELL - he falls: a timpani roll into D major, fanfare, choir and bells, four bars; then eight bars' quiet (the
- *  law stops it long before it could come round again). */
 function fell() {
   return makeSong(GATE_SONGS.fell, 92, 12, (w) => {
-    for (let i = 0; i < 16; i++) w.note('timpani', 0, i * 0.25, 0.24, 'D2', 56 + i * 4);   // the roll, rising
+    for (let i = 0; i < 16; i++) w.note('timpani', 0, i * 0.25, 0.24, 'D2', 56 + i * 4);
     for (const n of ['A3', 'D4', 'F#4']) w.note('choir', 0, 2, 2, n, 82);
     const D = CHORDS.D;
     for (const n of D.stab) w.note('hit', 1, 0, 1.5, n, 112);
@@ -347,11 +231,10 @@ function fell() {
     const call = [['D4', 0, 0.5], ['F#4', 0.5, 0.5], ['A4', 1, 1], ['D5', 2, 2]];
     /** @type {Array<[string, number, number]>} */
     const answer = [['A4', 0, 1], ['B4', 1, 1], ['A4', 2, 1], ['F#4', 3, 1]];
-    // WBX9: the call and its answer on the brass and, an octave over it, the strings
     for (const [n, b, len] of call) { w.note('brass', 1, b, len * 0.95, n, 124); w.note('strings', 1, b, len * 0.95, midiNote(n) + 12, 100); }
     for (const [n, b, len] of answer) { w.note('brass', 2, b, len * 0.95, n, 118); w.note('strings', 2, b, len * 0.95, midiNote(n) + 12, 96); }
     w.note('brass', 3, 0, 4, 'D5', 122);
-    for (const n of D.pad) { w.note('organ', 1, 0, 12, n, 94); w.note('strings', 3, 0, 5, midiNote(n) + 12, 100); }   // held into the last hit, never past it
+    for (const n of D.pad) { w.note('organ', 1, 0, 12, n, 94); w.note('strings', 3, 0, 5, midiNote(n) + 12, 100); }
     for (const n of D.choir) w.note('choir', 1, 0, 12, n, 108);
     w.note('bass', 1, 0, 12, 'D2', 118);
     w.note('bells', 1, 0, 4, 'D5', 100); w.note('bells', 3, 0, 2, 'A4', 92); w.note('bells', 3, 2, 2, 'D5', 96);
@@ -363,28 +246,22 @@ function fell() {
 }
 
 let _songs = null;
-/** The four songs, made once (pure: the same notes every time). */
 export function gateScoreSongs() {
   return (_songs ??= Object.freeze({ war1: war1(), war2: war2(), war3: war3(), fell: fell() }));
 }
 
-/**
- * THE LAW: what the court plays for the fight state `s` (net/gate/gateLink.js) at `now` (the relay's clock, ms) - a
- * GATE_SONGS name, SCORE_SILENCE, or null (no fight on this screen: the host's music director stands).
- */
+// Returns null when no fight is on this client, which leaves music to the host's director; `SCORE_SILENCE` asks for
+// quiet.
 export function courtScoreFor(s, now) {
   if (!s || s.day === null || s.day === undefined) return null;
   if (s.fell) return now - s.fell.at < SCORE_STING_MS ? GATE_SONGS.fell : SCORE_SILENCE;
-  if (s.wrath != null) return SCORE_SILENCE;   // the Wrath has landed: nothing plays over it
+  if (s.wrath != null) return SCORE_SILENCE;
   if (Number.isFinite(s.wrathAt) && s.wrathAt - now <= SCORE_WRATH_WARN_MS) return GATE_SONGS.war3;
   return s.phase >= 3 ? GATE_SONGS.war3 : s.phase === 2 ? GATE_SONGS.war2 : GATE_SONGS.war1;
 }
 
-/**
- * AUDIT WB D2: THE SCORE AS ONE MACHINE HEARS IT - courtScoreFor, but his fall's fanfare, once begun here, plays WHOLE:
- * SCORE_STING_MS from when it began on this screen, not from his fall (a word of the kill that came late cut it short),
- * and what follows it is quiet. A fight of another day starts fresh. `want(s, now)` answers as courtScoreFor does.
- */
+// The fanfare is timed from when it starts on this client, not from the boss's fall, so a late kill message does
+// not cut it short.
 export function createCourtScore() {
   let stingAt = null, day = null;
   return {
@@ -392,7 +269,7 @@ export function createCourtScore() {
       const law = courtScoreFor(s, now);
       if (law === null) { stingAt = null; day = null; return null; }
       if (s.day !== day) { day = s.day; stingAt = null; }
-      if (law === GATE_SONGS.fell && stingAt === null) stingAt = now + SCORE_STING_LEAD_MS;   // AUDIT WBX W3: from when it sounds
+      if (law === GATE_SONGS.fell && stingAt === null) stingAt = now + SCORE_STING_LEAD_MS;
       if (stingAt !== null && s.fell) return now - stingAt < SCORE_STING_MS ? GATE_SONGS.fell : SCORE_SILENCE;
       return law;
     },

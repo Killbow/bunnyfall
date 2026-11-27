@@ -39,11 +39,6 @@ export const ABILITY_REFUSAL = Object.freeze({
   followup: 'Land the ranged opener before using the follow-up',
 });
 
-/**
- * Owns one cast and per-action cooldowns for one character. The simulation
- * supplies context, reserves costs and starts the delivery. Requests carry
- * only an ability ID. Timelines use simulation milliseconds.
- */
 export function createAbilityEngine({ deliveryFor, reserve, release, canRepeat = () => false, event = () => {} }) {
   let time = 0;
   let cast = null;

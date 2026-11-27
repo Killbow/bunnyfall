@@ -1,5 +1,6 @@
-// Real-browser check of the sweep and clear-the-table chores: keys, pads, visible progress, one finish, and the mess
-// restored when a chore is left unfinished. No ARENA2 or live realm needed. SHOTS_DIR=... saves screenshots.
+// Real-browser check of the sweep and clear-the-table chores: keys, pads, visible progress, one finish, and the
+// mess restored when a chore is left unfinished. No ARENA2 or live realm needed. SHOTS_DIR=<dir> saves screenshots.
+
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -29,7 +30,6 @@ try {
   });
   const shots = process.env.SHOTS_DIR; if (shots) await mkdir(shots, { recursive: true });
 
-  // Sweeping: the same side twice does nothing; eight alternating strokes finish it once.
   await page.evaluate(() => window.probe.open('spill'));
   await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft');
   assert.equal(await page.evaluate(() => window.probe.log.length), 1, 'a repeated side must not count');
@@ -42,18 +42,16 @@ try {
   await page.waitForFunction(() => !document.querySelector('.ts-chore'));
   assert.equal(await page.evaluate(() => window.probe.restores), 0, 'a finished chore is not put back');
 
-  // Clearing a table: Space gathers the three cups (never twice from one press), then two clockwise circles wipe it.
   await page.evaluate(() => window.probe.open('table'));
   for (let i = 0; i < 3; i++) await page.keyboard.press('Space');
   assert.deepEqual(await page.evaluate(() => window.probe.log.map((x) => x.taken)), [1, 2, 3]);
   if (shots) { await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(600); await page.screenshot({ path: join(shots, 'tavern-chore-table.png') }); }
   else { await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowRight'); }
-  await page.keyboard.press('ArrowLeft');   // out of turn: the rag slips, nothing counts
+  await page.keyboard.press('ArrowLeft');
   for (const key of ['ArrowDown', 'ArrowLeft', 'KeyW', 'KeyD', 'KeyS', 'KeyA']) await page.keyboard.press(key);
   assert.equal(await page.evaluate(() => window.probe.finishes), 2);
   await page.waitForFunction(() => !document.querySelector('.ts-chore'));
 
-  // Left unfinished (Escape or Tab): the mess goes back as it was.
   await page.evaluate(() => window.probe.open('spill'));
   await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Escape');
   await page.evaluate(() => window.probe.open('table'));
@@ -61,7 +59,6 @@ try {
   assert.equal(await page.evaluate(() => window.probe.restores), 2);
   assert.equal(await page.locator('.ts-chore').count(), 0);
 
-  // A refused finish keeps the panel open for another try.
   await page.evaluate(() => { window.probe.ok = false; window.probe.open('spill'); });
   for (let i = 0; i < 4; i++) { await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowRight'); }
   await page.waitForFunction(() => /did not go through/.test(document.querySelector('.ts-chore .ts-status')?.textContent ?? ''));

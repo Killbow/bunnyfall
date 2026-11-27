@@ -1,27 +1,6 @@
-// CARD-FIT (2026-09-28, Discord - Cruor, "New sigil items descriptor is a bit long!": "all the buttons on it's pop-up
-// card are.. off the screen, because it's got a bit much on it!") - THE ITEM CARD, DRAWN AND MEASURED.
-//
-// A pin can say the card pins its buttons and the sheet bounds its height; only a layout engine can say a player can
-// PRESS them. So the REAL pack (ui/inventoryDoor.js createInventoryWindow, the enhanced skin) is drawn over the real
-// sheets with the heaviest cards the game has - a piece of Ruhn's Regalia carried (the report's own Horned Crown), a
-// raid set's weapon (a sigil's blow and a set), Ruhn's Gatecleaver, a Legendary with an enchantment, a worn set piece
-// held at its stage (the longest stage line), a raid piece with the longest name, a stack with its how-many field and
-// a locked piece - at a wide screen, the reporter's class of laptop, a 1280x720 window, a netbook, a phone on its side
-// and a phone upright. For each card it reads:
-//   - THE BUTTONS: every one of the card's acts inside the screen and the TOPMOST thing at its own centre (pressable,
-//     never under the screen's foot, the window's edge or the card's own scroll);
-//   - THE CARD: inside the screen, its name on screen, and never taller than the window it stands in;
-//   - THE HOVER CARD (a pointer's screens): inside the screen, nothing cut.
-// Every card is photographed (the whole screen, so what a player sees is what is kept).
-//
-// The container has no ARENA2, so no picture loads; the page stands a 96px block where the card's picture would be
-// (its own box, SLOT_BOX.card) - shrunk and taken as the card's fit steps take the picture - so every card is measured
-// as tall as the game draws it.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (tools/qs3Probe.mjs's reason).
-//
-//     node tools/cardFitProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/cardFitProbe.mjs     -> reuse a dev server already listening there
+// Draws the heaviest item cards at several screen sizes and checks that every button can be pressed.
+// Run: node tools/cardFitProbe.mjs (PROBE_PORT=<n> reuses a running dev server; SHOT_DIR sets the shots folder).
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -171,15 +150,14 @@ globalThis.__ready = true;
 const VIEWS = [
   { name: 'wide', viewport: { width: 1920, height: 1080 } },
   { name: 'laptop', viewport: { width: 1366, height: 768 } },
-  { name: 'laptop-bars', viewport: { width: 1366, height: 625 } },   // a 768 laptop less its taskbar and the browser's bars
+  { name: 'laptop-bars', viewport: { width: 1366, height: 625 } },
   { name: 'small', viewport: { width: 1280, height: 720 } },
   { name: 'netbook', viewport: { width: 1024, height: 600 } },
-  { name: 'tablet', viewport: { width: 768, height: 1024 }, isMobile: true, hasTouch: true },   // the 641-860 band, upright
-  { name: 'phone-wide', viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true },   // the band, a phone on its side
+  { name: 'tablet', viewport: { width: 768, height: 1024 }, isMobile: true, hasTouch: true },
+  { name: 'phone-wide', viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true },
   { name: 'phone-land', viewport: { width: 740, height: 360 }, isMobile: true, hasTouch: true },
   { name: 'phone', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
 ];
-// each card: its key in the page's kit and the pack page it is on
 const CARDS = [
   ['crown', 'Armor'], ['worn', 'Armor'], ['pauldron', 'Armor'], ['locked', 'Armor'],
   ['oathsunder', 'Weapons'], ['gatecleaver', 'Weapons'], ['stack', 'Weapons'], ['legendary', 'Magic'],
@@ -219,14 +197,12 @@ try {
       const unreachable = m.acts.filter((a) => !a.inside || !a.pressable).map((a) => `${a.label}@${a.box.y.toFixed(0)}..${a.box.b.toFixed(0)}`);
       const scrolls = m.body && m.body.sh > m.body.ch + 1;
       console.log(`${v.name} ${key.padEnd(11)} card ${m.card.w.toFixed(0)}x${m.card.h.toFixed(0)} at ${m.card.y.toFixed(0)}..${m.card.b.toFixed(0)} of ${m.vh} (frame ${m.frame.y.toFixed(0)}..${m.frame.b.toFixed(0)}) lines ${m.lines} ${scrolls ? `BODY SCROLLS ${m.body.sh}/${m.body.ch}` : 'whole'} [${m.fits.join(' ')}] acts ${m.acts.length}${unreachable.length ? ` UNREACHABLE ${unreachable.join(', ')}` : ''}`);
-      // a laptop and up: the heaviest card is read WHOLE, no scroll (a netbook's and a phone's may scroll under their buttons)
       if (v.viewport.height >= 720) check(!scrolls, `${v.name}: the ${key} card needs a scroll (${m.body?.sh} of ${m.body?.ch})`);
       check(m.acts.length > 0, `${v.name}: the ${key} card has no buttons`);
       check(!unreachable.length, `${v.name}: the ${key} card's buttons cannot be pressed: ${unreachable.join(', ')}`);
       check(m.name && m.name.y >= -0.5 && m.name.b <= m.vh + 0.5, `${v.name}: the ${key} card's name is off the screen (${m.name?.y.toFixed(0)}..${m.name?.b.toFixed(0)})`);
       check(m.card.y >= -0.5 && m.card.b <= m.vh + 0.5, `${v.name}: the ${key} card runs off the screen (${m.card.y.toFixed(0)}..${m.card.b.toFixed(0)} of ${m.vh})`);
       await page.screenshot({ path: join(OUT, `cardfit-${v.name}-${key}.png`) });
-      // THE HOVER CARD, on a pointer's screen: inside the screen, nothing cut
       if (!v.hasTouch) {
         const t = await page.evaluate((k) => globalThis.__hover(k), key);
         if (t) {
@@ -236,8 +212,6 @@ try {
         await page.evaluate(() => globalThis.__closeCard());
       }
     }
-    // THE TRADE WINDOW'S STRIP (U4): each heavy piece picked in my pack column - the strip inside the window, its
-    // buttons pressable, and the lists above it never squeezed to nothing
     check(await page.evaluate(() => globalThis.__trade()), `${v.name}: the trade window did not open`);
     await settle(page);
     for (const key of ['crown', 'gatecleaver', 'oathsunder', 'stack']) {

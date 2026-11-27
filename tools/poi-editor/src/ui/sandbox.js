@@ -1,11 +1,5 @@
 // @ts-check
 
-// The DM Sandbox: the POI's game logic run here, on a copy of the open document, with nothing sent to the store. The
-// builder sets what a test visitor carries (items, gold, starting values), then plays: walks into zones, uses objects,
-// talks, picks replies, runs trades, finishes encounters and moves the clock. Every step is written to a log. The rules
-// are the game's own (src/poi/poiDmCore.js), so what happens here is what happens in the world, except that the store's
-// counts (once per character, stock) start empty each time the sandbox restarts.
-
 import { h, clear } from './dom.js';
 import { itemName } from '../../../../src/poi/poiDmEdit.js';
 import {
@@ -14,7 +8,7 @@ import {
 
 const WHY = { when: 'condition not met', items: 'missing items', gold: 'not enough gold', limit: 'already done', cooldown: 'cooling down', stock: 'sold out', missing: 'missing' };
 
-/** One log line as words. @param {any} l @param {any} catalogue */
+/** @param {any} l @param {any} catalogue */
 export function logText(l, catalogue) {
   const st = (/** @type {any[]} */ xs) => xs.map((s) => itemName(catalogue, s)).join(', ');
   switch (l.k) {
@@ -51,7 +45,6 @@ export function logText(l, catalogue) {
 export function createSandbox({ host, getDoc, catalogue, onChange = () => {} }) {
   /** @type {any} */
   let dm = null;
-  /** what the visitor starts with */
   const start = { items: /** @type {any[]} */ ([]), gold: 100, vars: /** @type {Record<string, any>} */ ({}) };
 
   function restart() {

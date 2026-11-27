@@ -48,6 +48,7 @@ invariants:
 traps:
   - "Whether any Daedra's Heart should satisfy Q0C4XY04 is an open owner decision."
   - "Do not pin ACCOUNT_VERSION from this arc; the live value has moved on."
+  - "In `planStore`, the quest arm (`questTransferRefused`) can write `playerDropped`, so the storage-limit refusal runs above it and the wagon capacity gate below it. In `planTake`, the quest arm clears `playerDropped` above the carry gate. `dryRun` skips both quest arms."
 dfu:
   - Assets/Scripts/Game/Questing/Foe.cs
   - Assets/Scripts/Game/Questing/Components/QuestResourceBehaviour.cs

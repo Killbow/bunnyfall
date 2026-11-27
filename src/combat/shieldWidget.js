@@ -1,144 +1,65 @@
 // @ts-check
-// SW1 (2026-09-19, Mac: "This is the next mod I want to integrate 1:1"):
-// SHIELD WIDGET 1.6 by RedRoryOTheGlen - ported 1:1.
-//
-// The sibling of WW1 (combat/weapon/weaponWidget.js), by the same author and
-// built against the same DFU: one MonoBehaviour, `ShieldWidget`, that
-// draws the classic shield sprite in the first-person view when a
-// shield is in the left hand. Where the weapon clone REPLACED DFU's
-// FPSWeapon, this one adds a surface DFU does not have at all - classic
-// Daggerfall draws no shield - so nothing is hidden and nothing is
-// cloned: it reads the weapon manager and draws beside it.
-//
-// The script ships only as a compiled DLL (24,574 bytes); the
-// `ShieldWidget.cs` its manifest names is not in the bundle, so it was
-// read off the IL method by method with a disassembler written for it.
-// The record, with every method against its home here, is
-// bible/05-Combat/Shield-Widget.md. IL offsets in the notes below cite
-// that reading.
-//
-// THE SPRITES. 600 of them - four archives (112360 Buckler, 112361
-// Round, 112362 Kite, 112363 Tower) x 30 records x 5 frames. A record
-// is a MATERIAL GROUP plus a CONDITION TIER, which is what makes the
-// shield visibly batter as it wears: ten material groups (0..9) and
-// three tiers (+0 pristine, +10 worn, +20 battered) stacked into the
-// thirty. They are the mod's own art and are read at play time FROM THE
-// PLAYER'S OWN COPY OF THE MOD, never from this repository
-// (combat/shieldWidgetAssets.js) - the doctrine
-// vendor/weapon-widget/README.md records for the sibling's repaints.
-//
-// THE SHAPE HERE. createShieldWidget() is the component; the host owns
-// one and feeds it what Unity handed the MonoBehaviour - the frame's
-// dt, the equipped shield, the motor's answers, the look - through
-// lateUpdate(); draw() is OnGUI's repaint. The two coroutines are
-// GENERATORS driven on the sibling's clock: `yield seconds` is
-// WaitForSeconds, `yield FRAME` is WaitForEndOfFrame. The channels the
-// mod publishes - Position, Offset, Scale - feed the sprite draw alone:
-// under the Morrowind arms the shield sprite does not draw (the rig's
-// arm branch returns first), and the arms' composite already takes the
-// WEAPON widget's transform (AUDIT 68 S09-shield-dead-exports).
-//
-// CARRIED, because the port has the mods: Eye of the Beholder's
-// `onToggleOffset` (the third-person toggle - `isInThirdPerson` hides
-// the sprite) and PCAAO's `onAttackDamageCalculated` (the Recoil
-// module's whole trigger; the settings pane names it "Vanilla Combat
-// Event Handler", which is the message's own mod).
-//
-// NOT CARRIED, recorded: the FPS-models seam (GUID
-// 41284af0-81c7-4630-bbc5-a976efa162a0, the `getAnimator` message and
-// the `ShieldHand_` / `ShieldArm_` / `Unarmed_` animator states it
-// plays a "...Recoil" clip on). That mod is not in the port. The arm's
-// condition becomes its own switch the day it is integrated, as
-// Meaner Monsters' unleveled-mobs arm does.
+// Shield Widget 1.6 (RedRoryOTheGlen), ported from the mod's compiled IL: draws the classic shield sprite in
+// first person while a shield is in the left hand. Its coroutines are generators: yield seconds or FRAME.
 
 import { modSettingsOf } from '../mods/modSettings.js';
 import { getInt } from '../platform/settings.js';
 import { liveStat } from '../characters/statMods.js';
-import { IDLE_BREATH, moveTowards, moveTowards2, snap, STEP_CONDITION } from './weaponWidgetMotion.js';   // AUDIT 68 S09-unused-and-heavy-imports: the leaf built for these, not the component
-export { STEP_CONDITION };   // the same enum, one home (the sibling's)
+import { IDLE_BREATH, moveTowards, moveTowards2, snap, STEP_CONDITION } from './weaponWidgetMotion.js';
+export { STEP_CONDITION };
 import { shieldProtectedBodyParts } from './enemyEquipment.js';
-// the classic 320x200 the sprite's scale is measured against (SetGuard
-// IL 0x0d / 0x3b) - one home, the weapon sprite's
 import { NATIVE_W, NATIVE_H } from './fpsWeapon.js';
-// SW1: the large HUD's height, the sprite's floor. Read HERE and not in
-// the rig: weaponWidget.js reads it the same way, and importing
-// ui/hud/hudLarge.js into weaponRig.js directly reorders that module graph
-// enough to break the rig's own boot (the unsheathe went silent).
+// Read here, not in weaponRig.js: importing hudLarge.js there reorders the module graph and breaks the rig's boot.
 import { weaponOffsetHeight } from '../ui/hudLarge.js';
 
 export const SHIELD_WIDGET_VENDOR = 'shield-widget';
 
-/** The four "when X" poses, in the settings' own order. */
 export const SHIELD_POSE = Object.freeze({ Hide: 0, OffScreen: 1, Corner: 2, Ready: 3 });
-/** Animation.Direction. */
 export const ANIM_DIRECTION = Object.freeze({ Both: 0, ForwardOnly: 1, ReverseOnly: 2 });
-/** Recoil.Condition. NOT the sibling's `RECOIL_CONDITION`: Weapon
- *  Widget's six are about what the PLAYER'S swing met, these six about
- *  what met the player's shield, and neither list is the other's. */
 export const SHIELD_RECOIL_CONDITION = Object.freeze({
   HitOnShield: 0, MissOnShield: 1, AttackOnShield: 2, AnyHit: 3, AnyMiss: 4, AnyAttack: 5,
 });
 
-/** The four shield templates, and the archive each one's sprites live in. */
 export const SHIELD_TEMPLATES = Object.freeze({ Buckler: 109, Round: 110, Kite: 111, Tower: 112 });
 export const SHIELD_ARCHIVE_FIRST = 112360;
 export const SHIELD_FRAMES = 5;
 export const SHIELD_RECORDS = 30;
-export const SHIELD_TEXTURE_COUNT = 600;   // InitializeShieldTextures (IL 0x00): `new Texture2D[600]`
+export const SHIELD_TEXTURE_COUNT = 600;
 
-/** PlayImpactSound (IL 0x00): `SoundClips.Parry1 + Random.Range(0, 9)`. */
 export const PARRY_CLIP_FIRST = 428;
 export const PARRY_CLIP_COUNT = 9;
 
+const FRAME = 'frame';
 
-const FRAME = 'frame';   // WaitForEndOfFrame
-
-// ---- LoadSettings (IL 0x00-0x409): the fields, with the mod's own multipliers ----
-/** The widget's settings from the store, exactly as LoadSettings derives
- *  them (Shield.Speed x5000, Bob.Length /100, SizeX/Y x2, SpeedMove x4,
- *  SpeedState x500, Shape x0.5, Inertia.Scale/Speed x500,
- *  ForwardDepth/ForwardSpeed x0.2, Recoil.Scale x2, Recoil.Speed x0.5,
- *  Animation.Speed as `1 - v * 0.5`). */
 export function readShieldWidgetSettings(read = () => modSettingsOf(SHIELD_WIDGET_VENDOR)) {
   const s = read();
   const num = (k, d = 0) => { const v = Number(s[k]); return Number.isFinite(v) ? v : d; };
   return {
     enabled: !!s.Enabled,
-    // [Shield]
     offsetX: num('Shield.OffsetHorizontal', 0.5), offsetY: num('Shield.OffsetVertical', 0.5),
     scale: num('Shield.Scale', 1), offsetSpeed: num('Shield.Speed', 1) * 5000,
     whenSheathed: s['Shield.WhenSheathed'] | 0, whenAttacking: s['Shield.WhenAttacking'] | 0,
     whenCasting: s['Shield.WhenCasting'] | 0, lockAspectRatio: !!s['Shield.LockAspectRatio'],
     conditionThresholdUpper: s['Shield.ConditionThresholdUpper'] | 0,
     conditionThresholdLower: s['Shield.ConditionThresholdLower'] | 0,
-    // [Modules]
     bob: !!s['Modules.Bob'], inertia: !!s['Modules.Inertia'], animated: !!s['Modules.Animation'],
     stepTransforms: !!s['Modules.Step'], recoil: !!s['Modules.Recoil'],
-    // [Bob]
     bobLength: (s['Bob.Length'] | 0) / 100, bobOffset: num('Bob.Offset'),
     bobSizeXMod: num('Bob.SizeX', 1) * 2, bobSizeYMod: num('Bob.SizeY', 1) * 2,
     moveSmoothSpeed: num('Bob.SpeedMove', 1) * 4, bobSmoothSpeed: num('Bob.SpeedState', 1) * 500,
     bobShape: (s['Bob.Shape'] | 0) * 0.5, bobWhileIdle: !!s['Bob.BobWhileIdle'],
-    // [Inertia]
     inertiaScale: num('Inertia.Scale', 1) * 500, inertiaSpeed: num('Inertia.Speed', 1) * 500,
     inertiaForwardScale: num('Inertia.ForwardDepth', 1) * 0.2, inertiaForwardSpeed: num('Inertia.ForwardSpeed', 1) * 0.2,
-    // [Animation] - Speed is INVERTED here: a bigger number is a shorter animation
+    // Animation.Speed is inverted: a bigger number is a shorter animation.
     animationTime: 1 - num('Animation.Speed', 1) * 0.5, animationDirection: s['Animation.Direction'] | 0,
-    // [Step]
     stepLength: s['Step.Length'] | 0, stepCondition: s['Step.Condition'] | 0,
-    // [Recoil]
     recoilScale: num('Recoil.Scale', 1) * 2, recoilOffset: !!s['Recoil.Offset'],
     recoilSpeed: num('Recoil.Speed', 1) * 0.5, recoilCondition: s['Recoil.Condition'] | 0,
-    // [Compatibility]
     scaleTextureFactor: Math.max(1, s['Compatibility.TextureScaleFactor'] | 0),
   };
 }
 
-// ---- UpdateShieldTextures (IL 0x0e-0x117): which of the 600 ----
-/** The base of a template's 150 (IL 0x15 `switch` on TemplateIndex-109).
- *  A template that is not one of the four answers 0, as the `switch`'s
- *  own default does - the Buckler's block, which is why a modded shield
- *  with a strange template draws a buckler rather than nothing. */
+// An unknown template answers 0, as the mod's switch default does, so a modded shield draws as a buckler.
 export function shieldArchiveBase(templateIndex) {
   switch (templateIndex) {
     case SHIELD_TEMPLATES.Buckler: return 0;
@@ -149,68 +70,49 @@ export function shieldArchiveBase(templateIndex) {
   }
 }
 
-/** The material's record group, five texture slots apart (IL 0x51's
- *  `switch` on NativeMaterialValue). LEATHER, CHAIN AND SILVER SHARE
- *  GROUP 0 - leather and chain because the art has no plate for them,
- *  silver because the author's switch sends 514 to the same 0. Kept:
- *  it is what the shipped table says and a silver shield really does
- *  draw the leather art in the mod. */
+// Leather, chain, and silver share group 0 in the mod's table, so a silver shield draws the leather art.
 export function shieldMaterialOffset(nativeMaterialValue) {
   switch (nativeMaterialValue) {
-    case 0: return 0;       // Leather
-    case 256: return 0;     // Chain
-    case 512: return 5;     // Iron
-    case 513: return 10;    // Steel
-    case 514: return 0;     // Silver - the author's own 0
-    case 515: return 15;    // Elven
-    case 516: return 20;    // Dwarven
-    case 517: return 25;    // Mithril
-    case 518: return 30;    // Adamantium
-    case 519: return 35;    // Ebony
-    case 520: return 40;    // Orcish
-    case 521: return 45;    // Daedric
-    default: return 0;      // the `switch`'s fall-through: group 0
+    case 0: return 0;
+    case 256: return 0;
+    case 512: return 5;
+    case 513: return 10;
+    case 514: return 0;
+    case 515: return 15;
+    case 516: return 20;
+    case 517: return 25;
+    case 518: return 30;
+    case 519: return 35;
+    case 520: return 40;
+    case 521: return 45;
+    default: return 0;
   }
 }
 
-/** The condition tier, ten records (fifty slots) apart (IL 0xcf). At or
- *  below the LOWER threshold the battered art, at or below the UPPER the
- *  worn art, else the pristine. */
 export function shieldConditionOffset(conditionPercentage, upper, lower) {
   if (conditionPercentage <= lower) return 100;
   if (conditionPercentage <= upper) return 50;
   return 0;
 }
 
-/** The whole index, frame 0 - `indexCurrent` (IL 0xf4). */
 export function shieldTextureIndex(item, upper, lower) {
   return shieldArchiveBase(item?.templateIndex ?? -1)
     + shieldMaterialOffset(item?.nativeMaterialValue ?? 0)
     + shieldConditionOffset(item?.conditionPercentage ?? 100, upper, lower);
 }
 
-/** InitializeShieldTextures' own walk (IL 0x10-0x70), as a name: the
- *  archive climbs every 30 records, the record every 5 frames. */
 export function shieldTextureName(index) {
   const archive = SHIELD_ARCHIVE_FIRST + Math.floor(index / (SHIELD_RECORDS * SHIELD_FRAMES));
   const within = index % (SHIELD_RECORDS * SHIELD_FRAMES);
   return { archive, record: Math.floor(within / SHIELD_FRAMES), frame: within % SHIELD_FRAMES };
 }
 
-/** IsPartShielded (IL 0x00): the part is one the shield covers.
- *  `GetShieldProtectedBodyParts` is already the port's
- *  (combat/enemyEquipment.js), so this is the mod's loop over it. */
 export function isPartShielded(item, bodyPart) {
-  const parts = shieldProtectedBodyParts(item?.coverTemplate ?? item?.templateIndex ?? -1);   // AUDIT HORIZONTAL E2: the piece's own, under any look (weaponRig.js shieldItem)
+  const parts = shieldProtectedBodyParts(item?.coverTemplate ?? item?.templateIndex ?? -1);
   for (let i = 0; i < parts.length; i++) if (parts[i] === bodyPart) return true;
   return false;
 }
 
-/** GetShieldAnimationGroup (IL 0x00) - the FPS-models animator's state
- *  prefix. The port has no such mod, so nothing calls this; it is here
- *  because the record names it and because the day that mod lands this
- *  is the row it needs. The Buckler is a HAND shield and the other
- *  three are ARM shields, which is the author's own split. */
 export function shieldAnimationGroup(item) {
   if (!item) return 'Unarmed_';
   const t = item.templateIndex;
@@ -219,7 +121,6 @@ export function shieldAnimationGroup(item) {
   return 'Unarmed_';
 }
 
-// ---- Unity's pieces the mod calls, in the shapes this file uses ----
 const v2 = (x, y) => [x, y];
 const add2 = (a, b) => [a[0] + b[0], a[1] + b[1]];
 const mul2 = (a, k) => [a[0] * k, a[1] * k];
@@ -229,35 +130,15 @@ const nonZero2 = (a) => a[0] !== 0 || a[1] !== 0;
 const clamp = (v, lo, hi) => (v < lo ? lo : (v > hi ? hi : v));
 const rectEq = (a, b) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 
-// SHIELD-OUT (2026-09-27, SlipperyPeasant on Discord: "My shield is fully repaired and looks as such inside, but once
-// I'm out in the open world it visually appears as if its broken"): THE MOD HAS ONE COMPONENT, THE PORT ONE PER RIG.
-// Every host builds its own weapon rig and only the host on screen steps it, so a widget sat out every frame another
-// host stepped - the street's through a whole visit to a smith - and resumed on the sprite it last read: its template
-// key had not moved, and only a DOWNWARD crossing (hitShield) repoints the sheet, so a shield repaired indoors stood
-// battered outside (and one battered indoors stood whole). The mod's one component sees the shield come off for the
-// repair and re-reads it when it goes back on. Here the steps are counted across every widget, and a widget that
-// missed any re-reads its shield on its next frame - what the one component would have seen.
+// The mod has one component but every rig here has its own, and only the rig on screen steps.
+// A widget that missed a shared step marks itself stale and rereads its sprite, since the shield may have changed.
 let _widgetSteps = 0;
 
-/**
- * The component. `deps`:
- *   settings()      the fields (readShieldWidgetSettings), re-read per frame
- *   textures        size(index) -> { width, height } | null - the sprite sheet
- *                   (combat/shieldWidgetAssets.js), or null before it loads
- *   audio           playOneShot(clip, volume, pitch) - PlayImpactSound
- *   rolls           Random.value, for Random.Range(0, 9)
- *   handedness()    Settings Controls/Handedness == 1 (Awake IL 0xda: flipped)
- */
 export function createShieldWidget({
   settings = readShieldWidgetSettings, textures = null, audio = null, rolls = Math.random,
   handedness = () => getInt('Controls', 'Handedness', 0, 3) === 1,
 } = {}) {
-  // .ctor (IL 0x00): the fields' resting values. The settings overwrite
-  // most on the first LoadSettings; the ones that survive are the state.
   const w = {
-    // Awake (IL 0x72): InitializeShieldTextures ends on
-    // `shieldTexture = shieldTextures[0]`, so the sprite is never null
-    // after it - the first LateUpdate repoints it at the real shield.
     shieldTexture: 0, indexCurrent: 0, frameCurrent: 0,
     shieldPositionCurrent: { x: 0, y: 0, width: 0, height: 0 },
     shieldPositionTarget: { x: 0, y: 0, width: 0, height: 0 },
@@ -265,7 +146,6 @@ export function createShieldWidget({
     screenRect: { x: 0, y: 0, width: NATIVE_W, height: NATIVE_H },
     screenRectLast: { x: 0, y: 0, width: NATIVE_W, height: NATIVE_H },
     weaponScaleX: 1, weaponScaleY: 1, weaponOffsetHeight: 0, weaponOffsetHeightLast: 0,
-    // the published channels
     position: [0, 0], offset: [0, 0], scale: [1, 1],
     moveSmooth: 0, bobSmooth: [0, 0],
     inertiaCurrent: [0, 0], inertiaTarget: [0, 0], inertiaSpeedMod: 1,
@@ -273,7 +153,7 @@ export function createShieldWidget({
     recoilCurrent: [0, 0], recoiling: null, animating: null,
     attacked: false, sheathed: false, spelled: false,
     lastTemplate: -1, flipped: false, conditionPrevious: 0,
-    lastStep: -1, stale: false,   // SHIELD-OUT: the last of the widgets' shared steps this one took, and whether it missed any
+    lastStep: -1, stale: false,
     attackDelayTimer: 0, attackDelayTime: 0.1, isInThirdPerson: false,
     started: false, awoke: false, s: settings(),
   };
@@ -285,35 +165,22 @@ export function createShieldWidget({
   const haveTexture = () => w.shieldTexture >= 0 && !!texSize(w.shieldTexture);
   const liveSpeed = () => (ctx?.entity ? liveStat(ctx.entity, 'speed') : 50);
 
-  // get_offsetSpeedLive (IL 0x00): LiveSpeed / 100 * offsetSpeed
   const offsetSpeedLive = () => liveSpeed() / 100 * w.s.offsetSpeed;
-  // get_animationTimeLive (IL 0x00): animationTime / (LiveSpeed / 50)
   const animationTimeLive = () => w.s.animationTime / (liveSpeed() / 50);
 
-  // ---- the sprite's width and height, the four setters share them ----
   const spriteW = () => texW() * w.s.scale * w.weaponScaleX / w.s.scaleTextureFactor;
   const spriteH = () => texH() * w.s.scale * w.weaponScaleY / w.s.scaleTextureFactor;
-  /** SetGuard/SetAttack/SetBlock all open on this (IL 0x00-0x46). */
   function measure() {
     w.weaponScaleX = w.screenRect.width / NATIVE_W;
     w.weaponScaleY = w.s.lockAspectRatio ? w.weaponScaleX : w.screenRect.height / NATIVE_H;
   }
 
-  // ---- PlayImpactSound (IL 0x00) ----
   function playImpactSound() {
     const clip = PARRY_CLIP_FIRST + Math.floor(rolls() * PARRY_CLIP_COUNT);
-    // AUDIT 68 S09-shield-impact-silent: the IL's (clip, 0, 1.1f) is
-    // DaggerfallAudioSource.PlayOneShot(sound, spatialBlend, volumeScale)
-    // - 2D at volume 1.1, FPSWeapon.PlaySwingSound's own shape - and this
-    // port's playOneShot is (clip, volume, pitch), non-positional already.
+    // The IL passes (clip, spatialBlend 0, volumeScale 1.1); this playOneShot takes (clip, volume, pitch).
     audio?.playOneShot?.(clip, 1.1, 1);
   }
 
-  // ---- the two coroutines ----
-  /** AnimateShield (<AnimateShield>d__111 MoveNext): step frameCurrent
-   *  from `start` to `end`, a fifth of `time` a frame, repointing the
-   *  sprite each step. The DLL reads Time.unscaledTime here and DROPS
-   *  it - a leftover with no effect, recorded and not carried. */
   function* animateShield(start, end, time) {
     const interval = time / 5;
     w.frameCurrent = start;
@@ -324,10 +191,6 @@ export function createShieldWidget({
     }
     w.animating = null;
   }
-  /** BlockCoroutine (<BlockCoroutine>d__110 MoveNext): the Recoil
-   *  module's OFFSET arm - raise the shield into the block pose, wait
-   *  for it to arrive, THEN take the kick and ring, hold half a second,
-   *  and fall back to whatever stance the frame is in. */
   function* blockCoroutine(magnitude) {
     setBlock();
     while (!rectEq(w.shieldPositionCurrent, w.shieldPositionTarget)) yield FRAME;
@@ -337,7 +200,6 @@ export function createShieldWidget({
     if (w.attacked || ctx?.sheathed) setAttack(); else setGuard();
   }
 
-  // the coroutine clock, WW1's (weaponWidget.js resume/stepSecondsWaits)
   function startAnimating(gen) { w.animating = { gen, wait: 0 }; resume(w.animating); }
   function startRecoiling(gen) { w.recoiling = { gen, wait: 0 }; resume(w.recoiling); }
   function resume(a) {
@@ -364,7 +226,6 @@ export function createShieldWidget({
       resume(a);
     }
   }
-  /** WaitForEndOfFrame: the host calls this after the frame's draw. */
   function endOfFrame() {
     for (const a of [w.animating, w.recoiling]) {
       if (!a || a.wait !== FRAME) continue;
@@ -373,12 +234,6 @@ export function createShieldWidget({
     }
   }
 
-  // ---- the three stance setters ----
-  /** SetGuard (IL 0x00-0x3b4): the resting pose - the shield held at
-   *  the settings' own offsets. The DLL writes the rect FOUR times
-   *  (animated/not x flipped/not) and all four are the same expression;
-   *  only the frame reset and the x term differ, so it is written once
-   *  here. */
   function setGuard() {
     measure();
     if (w.s.animated) {
@@ -402,12 +257,6 @@ export function createShieldWidget({
     };
   }
 
-  /** SetAttack (IL 0x00-0x560): where the shield goes when it is OUT of
-   *  the way - sheathed, attacking or casting. Under the Animation
-   *  module it plays the sprite out to frame 4 and holds the READY pose
-   *  (the same rect SetGuard builds); without it, it slides to the
-   *  Corner or Off-screen pose the active reason's setting names. Mode
-   *  0 (Hide) sets no rect at all - OnGUI's gate is what hides it. */
   function setAttack() {
     measure();
     const r = w.screenRect;
@@ -431,9 +280,7 @@ export function createShieldWidget({
       w.frameCurrent = 0;
       w.shieldTexture = w.indexCurrent + w.frameCurrent;
     }
-    // the pose belongs to whichever reason is active, in the DLL's own
-    // order: sheathed (neither casting nor attacking), then casting,
-    // then attacking (IL 0x24e, 0x394)
+    // Poses follow the DLL's order: sheathed, then casting, then attacking.
     const poseFor = (mode) => (!w.spelled && !w.attacked && w.s.whenSheathed === mode)
       || (w.spelled && w.s.whenCasting === mode)
       || (w.attacked && w.s.whenAttacking === mode);
@@ -453,21 +300,8 @@ export function createShieldWidget({
         width, height,
       };
     }
-    // SHIELD_POSE.Hide and Ready leave the target where it stood
   }
 
-  /** SetBlock (IL 0x00-0x3ac): the Recoil module's raised pose - the
-   *  guard rect with offsetX forced to 1 and offsetY to 0.8, so the
-   *  shield comes up in front of the eyes whatever the player's own
-   *  offsets are.
-   *
-   *  KEPT BUG FOR BUG: the animated + LEFT-HANDED branch writes
-   *  `shieldPositionCurrent`, where the other three write
-   *  `shieldPositionTarget` (IL 0x172 against 0x219, 0x300, 0x3a7). A
-   *  left-handed player with the Animation module on gets a block that
-   *  SNAPS instead of easing - and BlockCoroutine, which waits for
-   *  current to reach target, therefore falls straight through its
-   *  wait. That is the mod's behaviour and it is what ships here. */
   function setBlock() {
     measure();
     if (w.s.animated) {
@@ -489,47 +323,37 @@ export function createShieldWidget({
       y: r.y + r.height - w.weaponOffsetHeight - r.height * 0.25 * 0.8,
       width: spriteW(), height: spriteH(),
     };
-    if (w.s.animated && w.flipped) w.shieldPositionCurrent = rect;   // the author's slip, kept
+    // Kept from the mod: this branch writes the current position, so a left-handed animated block snaps.
+    if (w.s.animated && w.flipped) w.shieldPositionCurrent = rect;
     else w.shieldPositionTarget = rect;
   }
 
-  /** RefreshShield (IL 0x00): sheathed or mid-swing is the away pose,
-   *  anything else is the guard. */
   function refreshShield() {
     if (ctx?.sheathed || ctx?.attacking) setAttack(); else setGuard();
   }
 
-  /** UpdateShieldTextures (IL 0x00-0x117): repoint the sheet at this
-   *  shield's template, material and condition tier. */
   function updateShieldTextures(item) {
     w.conditionPrevious = item?.conditionPercentage ?? 0;
     w.indexCurrent = shieldTextureIndex(item, w.s.conditionThresholdUpper, w.s.conditionThresholdLower);
     w.shieldTexture = w.indexCurrent + w.frameCurrent;
   }
 
-  // ---- HitShield (IL 0x00-0x293) ----
-  /** The Recoil module's kick, and the condition watch that rides with
-   *  it. The condition arm fires on a DOWNWARD crossing of either
-   *  threshold and repoints the sheet - which is how a shield visibly
-   *  batters mid-fight rather than only when it is re-equipped. */
+  // The condition check fires on a downward crossing of either threshold and repoints the sheet.
   function hitShield(damage, item) {
     if (!w.s.recoil) return;
     const c = w.s.recoilCondition;
     let kick;
     if (c === SHIELD_RECOIL_CONDITION.HitOnShield || c === SHIELD_RECOIL_CONDITION.AnyHit) kick = damage > 0;
     else if (c === SHIELD_RECOIL_CONDITION.MissOnShield || c === SHIELD_RECOIL_CONDITION.AnyMiss) kick = damage < 1;
-    else kick = true;   // AttackOnShield / AnyAttack: hit or miss, it rang
+    else kick = true;
     if (kick) {
       const magnitude = 0.1 + damage * 0.01;
       if (w.s.recoilOffset && !w.attacked) {
-        // the block arm rings inside the coroutine, once the shield is up
         startRecoiling(blockCoroutine(magnitude));
       } else {
         w.recoilCurrent = add2(w.recoilCurrent, [magnitude, magnitude]);
         playImpactSound();
       }
-      // fpsModelsAnimator.Play(GetShieldAnimationGroup(item) + "Recoil", 1)
-      // is the FPS-models seam, and the port has no such mod.
     }
     const cond = item?.conditionPercentage ?? 0;
     const upper = w.s.conditionThresholdUpper, lower = w.s.conditionThresholdLower;
@@ -540,9 +364,6 @@ export function createShieldWidget({
     w.conditionPrevious = cond;
   }
 
-  /** OnAttackDamageCalculated (IL 0x00-0x68) - PCAAO's message. The
-   *  first three Recoil conditions ask whether the shield covers the
-   *  part that was struck; the last three do not. */
   function onAttackDamageCalculated({ targetIsPlayer = false, bodyPart = -1, damage = 0, item = null } = {}) {
     if (!targetIsPlayer || !w.s.recoil) return;
     if (!item || !item.isShield) return;
@@ -550,10 +371,6 @@ export function createShieldWidget({
     if (isPartShielded(item, bodyPart)) hitShield(damage, item);
   }
 
-  // ---- GetShieldRect (IL 0x00-0x239) ----
-  /** The rect the sprite draws into: the eased position, then the
-   *  frame's three channels, then the clamps that keep it on screen and
-   *  the Step module's snap. */
   function getShieldRect() {
     const r = { ...w.shieldPositionCurrent };
     r.x += w.position[0];
@@ -564,13 +381,10 @@ export function createShieldWidget({
     r.y -= r.height * 0.5;
     r.x += r.width * w.offset[0];
     r.y += r.height * w.offset[1];
-    // the large HUD's own height, when it is docked or offsets the weapon
     const hud = w.weaponOffsetHeight;
     const sr = w.screenRect;
     r.y = clamp(r.y, sr.height - r.height - hud, sr.height);
     if (w.s.animated) {
-      // the animated sprite slides in from the screen's edge, so its x
-      // is clamped to that edge rather than to the whole width
       r.x = w.flipped
         ? clamp(r.x, sr.x + sr.width - r.width, sr.x + sr.width)
         : clamp(r.x, -r.width, 0);
@@ -583,23 +397,7 @@ export function createShieldWidget({
     return r;
   }
 
-  // ---- LateUpdate (IL 0x00-0x95d) ----
-  /** The frame. `ctx`:
-   *    dt, time                the frame's delta and Unity's Time.time
-   *    screenRect              DaggerfallUI.CustomScreenRect, or the canvas
-   *    largeHudHeight          HUDLarge.ScreenHeight when it is docked or
-   *                            offsets the weapon, else 0
-   *    item                    the LEFT-HAND item, or null
-   *    attacking, sheathed     the weapon manager's two answers
-   *    castingAnim, hasReadySpell
-   *    equipCountdownLeftHand, isClimbing, isPaused, loadInProgress
-   *    entity                  for LiveSpeed
-   *    motor { speed, baseSpeed, isGrounded, isCrouching, isRiding,
-   *            isStandingStill, moveDirectionLocal: [x, y, z] }
-   *    look  { x, y, cursorActive, swingAction } */
   function lateUpdate(next) {
-    // SHIELD-OUT: another rig's widget stepped since this one last did - its sprite may be of a shield since repaired
-    // (or battered); kept until a frame gets as far as reading the shield
     const step = ++_widgetSteps;
     if (w.lastStep !== step - 1) w.stale = true;
     w.lastStep = step;
@@ -609,13 +407,11 @@ export function createShieldWidget({
     stepSecondsWaits(dt);
     if (!w.started) { w.flipped = !!handedness(); w.curAnimRect = w.flipped ? { u0: 1, v0: 0, u1: 0, v1: 1 } : { u0: 0, v0: 0, u1: 1, v1: 1 }; w.started = true; }
 
-    // the three channels are a FRAME's and open at nothing (IL 0x01)
     w.position = [0, 0]; w.offset = [0, 0]; w.scale = [0, 0];
     if (!haveTexture() || !ctx?.entity) return;
 
     const attacking = !!ctx.attacking;
     const item = ctx.item ?? null;
-    // no shield in the hand: forget the template so the next one re-reads
     if (!item || !item.isShield) { w.lastTemplate = -1; return; }
     if ((Number(ctx.equipCountdownLeftHand) || 0) > 0 || ctx.isClimbing || ctx.isPaused || ctx.loadInProgress) return;
 
@@ -626,26 +422,18 @@ export function createShieldWidget({
     w.screenRectLast = { ...w.screenRect };
     w.weaponOffsetHeightLast = w.weaponOffsetHeight;
 
-    // the template KEY: the mod adds template + material (IL 0x1a0), and
-    // that sum COLLIDES - 109..112 + 512..521 give eleven shared sums, so
-    // an Iron Tower swapped straight for a Steel Kite (624) never re-read.
-    // AUDIT 68 S09-shield-template-key-collision, a named departure: the
-    // port keys on the PAIR (materials stay below 1024).
+    // The mod keys on template + material, and those sums collide, so this keys on the pair.
     const template = (item.templateIndex | 0) * 1024 + (item.nativeMaterialValue | 0);
     if (w.lastTemplate !== template) {
       updateShieldTextures(item);
       refreshShield();
       w.lastTemplate = template;
       w.attacked = false; w.sheathed = false; w.spelled = false;
-    } else if (w.stale) updateShieldTextures(item);   // SHIELD-OUT: the same shield, read again - its condition tier may have moved while another rig drew it
+    } else if (w.stale) updateShieldTextures(item);
     w.stale = false;
-    // Awake's tail (IL 0xb9): the shield OPENS in its stance rather than
-    // sliding into it from the screen's origin. Awake ran before any
-    // LateUpdate in the mod; here it is the first frame that knows both
-    // a screen rect and a shield.
+    // The shield opens in its stance instead of sliding in from the screen origin.
     if (!w.awoke) { w.awoke = true; w.shieldPositionCurrent = { ...w.shieldPositionTarget }; }
 
-    // ---- the three states, each with its own pose (IL 0x1e0-0x35f) ----
     const away = (mode) => mode === SHIELD_POSE.OffScreen || mode === SHIELD_POSE.Corner;
     if (attacking) {
       if (!w.attacked) {
@@ -654,8 +442,6 @@ export function createShieldWidget({
         w.attackDelayTimer = 0;
       }
     } else if (w.attacked) {
-      // the swing's tail: the shield waits a tenth of a second before it
-      // comes back, so a combo does not flap it
       if (w.attackDelayTimer > w.attackDelayTime) { w.attacked = false; refreshShield(); }
       else w.attackDelayTimer += dt;
     }
@@ -675,7 +461,6 @@ export function createShieldWidget({
       }
     } else if (!casting && w.sheathed) { w.sheathed = false; refreshShield(); }
 
-    // ---- the ease (IL 0x35f) ----
     const eased = moveTowards2(
       [w.shieldPositionCurrent.x, w.shieldPositionCurrent.y],
       [w.shieldPositionTarget.x, w.shieldPositionTarget.y],
@@ -690,7 +475,6 @@ export function createShieldWidget({
     const speedRatio = (Number(motor.speed) || 0) / baseSpeed;
     const settled = !attacking && rectEq(w.shieldPositionCurrent, w.shieldPositionTarget) && !w.animating;
 
-    // ---- BOB (IL 0x401-0x5ff) ----
     if (w.s.bob) {
       let bobTarget = [0, 0];
       if (settled) {
@@ -707,8 +491,6 @@ export function createShieldWidget({
         const size = [w.screenRect.width * amp * reach * w.s.bobSizeXMod, w.screenRect.height * amp * reach * w.s.bobSizeYMod];
         let sx = 1; const sy = 1;
         if (w.flipped) sx *= -1;
-        // with Inertia on and Animation off the horizontal swing is the
-        // inertia's to give, so the bob drops its own
         if (w.s.inertia && !w.s.animated) sx = 0;
         const time = Number(ctx.time) || 0;
         bobTarget = [
@@ -720,7 +502,6 @@ export function createShieldWidget({
       w.position = add2(w.position, w.bobSmooth);
     }
 
-    // ---- INERTIA (IL 0x600-0x875) ----
     if (w.s.inertia) {
       if (!settled || w.frameCurrent !== 0) {
         w.inertiaCurrent = [0, 0]; w.inertiaTarget = [0, 0];
@@ -731,8 +512,7 @@ export function createShieldWidget({
         const my = motor.isGrounded ? 0 : clamp((md[1] ?? 0) / 10, -1, 1);
         const mz = clamp((md[2] ?? 0) / 10, -1, 1);
         const look = ctx.look ?? {};
-        // while the mouse is DRAWING A SWING its motion is the swing and
-        // not the view, so the look is left out of the lean
+        // While the mouse draws a swing, its motion is the swing and not the view, so it leaves the lean out.
         if (look.cursorActive || look.swingAction) {
           w.inertiaTarget = [-mx * 0.5 * w.s.inertiaScale, 0];
         } else {
@@ -746,8 +526,7 @@ export function createShieldWidget({
         w.inertiaCurrent = moveTowards2(w.inertiaCurrent, w.inertiaTarget, dt * w.s.inertiaSpeed * w.inertiaSpeedMod * mult);
         w.position = add2(w.position, w.inertiaCurrent);
 
-        // the forward lean reads the OLD target for its multiplier and
-        // then overwrites it - the author's order, kept
+        // The forward lean reads the old target for its multiplier and then overwrites it, in the mod's order.
         const fmult = nonZero2(w.inertiaForwardTarget) ? 3 : 1;
         w.inertiaForwardTarget = [mz * w.s.inertiaForwardScale, mz * w.s.inertiaForwardScale];
         w.inertiaForwardCurrent = moveTowards2(w.inertiaForwardCurrent, w.inertiaForwardTarget, dt * w.s.inertiaForwardSpeed * fmult);
@@ -755,7 +534,6 @@ export function createShieldWidget({
       }
     }
 
-    // ---- RECOIL (IL 0x876-0x955) ----
     if (w.s.recoil) {
       if (!settled || w.frameCurrent !== 0) { w.recoilCurrent = [0, 0]; return; }
       if (nonZero2(w.recoilCurrent)) {
@@ -767,17 +545,7 @@ export function createShieldWidget({
     }
   }
 
-  // ---- OnGUI (IL 0x00-0x1c2) ----
-  /** Should the sprite draw this frame, and into what? Answers null
-   *  when the mod would draw nothing.
-   *
-   *  THE GATE LADDER, in the DLL's own order. Each of the three
-   *  reasons - sheathed, attacking, casting - hides the sprite two
-   *  ways: WITHOUT the Animation module when its pose is Hide, and WITH
-   *  it when the pose is Hide or Off-screen AND the slide has already
-   *  finished (`animating` is what keeps it on screen while it leaves).
-   *  The sheathed rung also yields to the other two, because a sheathed
-   *  player who is casting is casting. */
+  // Gates run in the DLL's order; the sheathed rung yields to casting and attacking.
   function drawRect() {
     if (!haveTexture() || !ctx?.entity || w.isInThirdPerson) return null;
     const item = ctx.item ?? null;
@@ -791,13 +559,9 @@ export function createShieldWidget({
     if (w.sheathed && !w.attacked && !w.spelled && hidden(w.s.whenSheathed)) return null;
     if (w.attacked && hidden(w.s.whenAttacking)) return null;
     if (w.spelled && hidden(w.s.whenCasting)) return null;
-    // `if (fpsModels) return;` - that mod draws the shield on its own
-    // models instead, and the port has none.
     return getShieldRect();
   }
 
-  /** The repaint. `paint(textureIndex, rect, uv)` is the host's blit -
-   *  DaggerfallUI.DrawTextureWithTexCoords, at the weapon's own tint. */
   function draw(paint) {
     const r = drawRect();
     if (!r || typeof paint !== 'function') return false;
@@ -805,14 +569,11 @@ export function createShieldWidget({
     return true;
   }
 
-  /** AUDIT 27h S3: a rig frame with the Shield Widget switched OFF is a step every widget misses - the switch "takes
-   *  effect at once" (features.js), and a shield repaired or battered while it was off stood at its old sprite when it
-   *  came back on, since no widget had stepped to mark this one stale. */
+  // A frame with the widget switched off still counts as a shared step, so the sprite rereads when it comes back.
   function offFrame() { ++_widgetSteps; }
 
   return {
     lateUpdate, draw, drawRect, endOfFrame, onAttackDamageCalculated, offFrame,
-    /** Eye of the Beholder's `onToggleOffset` (ModCompatibilityChecking IL 0x00). */
     setThirdPerson(v) { w.isInThirdPerson = !!v; },
     get position() { return [w.position[0], w.position[1]]; },
     get scale() { return [w.scale[0], w.scale[1]]; },

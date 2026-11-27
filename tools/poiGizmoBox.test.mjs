@@ -1,6 +1,3 @@
-// The in-game editor's size box (src/poi/poiGizmoBox.js, drawn by src/poi/poiGizmoLook.js): dragging one of its handles
-// outward grows the selection, and by about as much as the cursor moved.
-
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { gizmoSize } from '../src/poi/poiGizmo.js';

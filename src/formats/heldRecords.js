@@ -1,8 +1,10 @@
 // @ts-check
-// Most recently used records of an archive reader, at most max; holding one more evicts the oldest through drop.
 
 export class HeldRecords {
-  /** @param {number} max @param {(index: number) => void} drop */
+  /**
+   * @param {number} max
+   * @param {(index: number) => void} drop
+   */
   constructor(max, drop) {
     this.max = max;
     this._drop = drop;

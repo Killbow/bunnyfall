@@ -1,10 +1,5 @@
-// FIRM2 balance tool (2026-10-15): reads the authored SKY of src/net/firmament/firmamentTree.js and finds every channel whose stars,
-// summed over ONE sign's whole sky (starts, roads, small stars, notables, keystones, the Wayfarer's road beside it), pass
-// the channel's cap (firmamentLaw.js STAT_DEFS). Such a channel makes some stars worth nothing - the cap eats them. The
-// tool scales the stars of an over-full channel down, in proportion and in whole numbers (never under 1), until the sum
-// fits - so every star in the sign counts. A keystone keeps its stars in step (its prices are left alone).
-//   node tools/firmamentRebalance.mjs            the report: what passes its cap now, what the fix would be
-//   node tools/firmamentRebalance.mjs --write    put the fixed table back into src/net/firmament/firmamentTree.js
+// Scales down each Firmament channel whose stars over one sign's sky pass the channel's cap, in whole numbers.
+// Run: node tools/firmamentRebalance.mjs [--write] (without --write it only reports).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -15,14 +10,13 @@ const text = readFileSync(file, 'utf8');
 const a = text.indexOf('const SKY = {');
 const b = text.indexOf('\n};\n', a) + 4;
 const block = text.slice(a, b);
-const heads = new Map();   // the comment line above each sign
+const heads = new Map();
 for (const m of block.matchAll(/^( {2}\/\/ ══.*)\n {2}(\w+): \{$/gm)) heads.set(m[2], m[1]);
 
 const N = (name, stats) => ({ name, stats: { ...stats } });
 const K = (name, stats, t) => ({ name, stats: { ...stats }, text: t });
 const SKY = new Function('N', 'K', `${block}\nreturn SKY;`)(N, K);
 
-// ── the table, written the way it is authored ──
 const q = (s) => (s.includes("'") ? `"${s}"` : `'${s}'`);
 const key = (k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : q(k));
 const obj = (o) => `{ ${Object.entries(o).map(([k, v]) => `${key(k)}: ${v}`).join(', ')} }`;
@@ -57,7 +51,6 @@ const { smallStats } = T;
 
 if (process.argv.includes('--roundtrip')) { console.log(serialise(SKY) === block ? 'roundtrip: identical' : 'roundtrip: DIFFERS'); if (serialise(SKY) !== block) writeFileSync(process.argv[3] ?? 'roundtrip.out', serialise(SKY)); process.exit(0); }
 
-// ── every term: one raw number in the table, the stars that carry it, the channel it lands on ──
 /** @type {{ sign: string, kind: string, holder: any, k: string, count: number }[]} */
 const terms = [];
 const sorted = (n) => [...T.FIRM_NODES.values()].filter((x) => x.sector === n);
@@ -82,7 +75,6 @@ const effOf = (t, v = t.holder[t.k]) => {
   if (t.kind === 'small' || t.kind === 'road') { const o = smallStats({ [t.k]: v }); const [[ch, ev]] = Object.entries(o); return [ch, ev]; }
   return [t.k, v];
 };
-// what the Wayfarer's road (a constant outside the table) and nothing else adds, by sign
 const fixed = {};
 for (const n of T.FIRM_NODES.values()) if (/\.(bt|w|x|xr1|xr2|lgx)$/.test(n.key)) for (const [k, v] of Object.entries(n.stats)) { fixed[n.sector] ??= {}; fixed[n.sector][k] = (fixed[n.sector][k] ?? 0) + v; }
 
@@ -106,7 +98,6 @@ for (let pass = 0; pass < 30; pass++) {
     for (const t of mine) if (t.kind === 'keystone') t.was ??= { ...t.holder };
     const f = room / (total() - (fixed[sign]?.[ch] ?? 0));
     for (const t of mine) if (t.kind !== 'start') t.holder[t.k] = Math.max(1, Math.round(t.holder[t.k] * f));
-    // whatever is left over: take the coarsest step that still fits, else the finest
     for (let guard = 0; guard < 200 && total() > cap; guard++) {
       const excess = total() - cap;
       let best = null;
@@ -125,7 +116,6 @@ for (let pass = 0; pass < 30; pass++) {
       if (!best) break;
       best.t.holder[best.t.k] -= best.d;
     }
-    // a keystone's other gains follow its scaled one, so the card stays one idea (its prices stay as they are)
     for (const t of mine) if (t.kind === 'keystone') {
       const was = (t.was ??= { ...t.holder }), r = t.holder[t.k] / was[t.k];
       for (const [k2, v2] of Object.entries(t.holder)) if (k2 !== t.k && v2 > 0 && !/Taken$/.test(k2)) t.holder[k2] = Math.max(1, Math.round(v2 * Math.min(1, r)));

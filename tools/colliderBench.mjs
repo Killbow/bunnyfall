@@ -1,11 +1,6 @@
-// Standing collider/foe perf bench (the 2026-08-17 live-lag fix):
-// 29 EnemyAI foes on the REAL Privateer's Hold collider - ms per
-// rendered frame of ai.update at various render rates (P17's
-// accumulator makes total steps/s constant, so these are
-// render-rate-independent sim costs). Baselines at CELL=2 + the
-// idle rest path: IDLE 60fps ~0.7ms/frame, worst-case all-29
-// pursuing at 10fps ~65ms/frame (pre-fix: 66ms / 767ms).
-// Run: ARENA2_PATH=... node tools/colliderBench.mjs
+// Times enemy AI updates on the real Privateer's Hold collider at several render rates.
+// Run: ARENA2_PATH=... node tools/colliderBench.mjs.
+
 import { readFileSync } from 'node:fs';
 import { BsaFile } from '../src/formats/bsaFile.js';
 import { Arch3dFile } from '../src/formats/arch3dFile.js';
@@ -37,8 +32,6 @@ for (const b of dungeon.blocks) {
     collider.addMesh('dungeon', cpu.positions, cpu.indices, multiply(originMatrix, p.matrix));
   }
 }
-// Foes at the real monster spawn spread (from the probe): mix of
-// grounded + flyers across the dungeon.
 const enemies = dungeon.blocks.flatMap((b) => (b.layout.flats ?? []).map((e) => ({ x: e.x + b.originX, y: e.y, z: e.z + b.originZ })));
 console.log('enemy spawns:', enemies.length);
 const mkFoes = (behaviour) => enemies.slice(0, 29).map((e, i) =>
@@ -52,8 +45,8 @@ function bench(label, foes, playerFeet, renderDt, seconds) {
   console.log(`${label}: ${(total / frames).toFixed(2)} ms/frame (${frames} frames, ${total.toFixed(0)}ms total)`);
 }
 
-const far = [500, 0, 500];             // undetected: idle foes
-const near = [enemies[0].x, enemies[0].y, enemies[0].z + 8];   // some pursue
+const far = [500, 0, 500];
+const near = [enemies[0].x, enemies[0].y, enemies[0].z + 8];
 
 bench('IDLE   60fps', mkFoes('General'), far, 1 / 60, 5);
 bench('IDLE   10fps', mkFoes('General'), far, 1 / 10, 5);

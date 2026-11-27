@@ -55,7 +55,6 @@ function encounter(seed) {
     if (at <= windows.at(-1) && total >= bossHP && !Number.isFinite(kill)) kill = at / 1000;
     windows.forEach((end, i) => { if (at <= end) damage[i] += Math.max(0, amount); });
   }
-  // Keep the stationary dummy alive to measure the entire 120-second damage window.
   return { target, rolls, hit, result: () => ({ damage, kill }) };
 }
 

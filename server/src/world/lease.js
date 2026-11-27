@@ -1,5 +1,3 @@
-// The hello doors of a room: ground, grant, loot, and lease, each with its own refusal.
-// It asks the hub whether a door is on, waits for the lease answer, and meters lease frames.
 import { groundRoom, GROUND_LAW, CLOSE_POLICY, GROUND_OLD_REASON, GRANT_OLD_REASON, LOOT_OLD_REASON, CELL_OLD_REASON, isSocialRoom, streamsFoes, GRANT_HELLO_LAW, lootRoom, LOOT_HELLO_LAW } from '../relay.js';
 import { relayCfgValue } from '../../../src/net/relayCfg.js';
 import { GROUND_OLD_WORDS } from '../room/constants.js';
@@ -38,7 +36,7 @@ export class LeasePart {
   async _leaseHeard(ws, a) {
     if (ws.virtual) return a;
     const meter = this._meterOf(ws);
-    // Wait behind this socket's earlier door (`dq`) so frames are heard in the order sent;
+    // Wait behind this socket's earlier door (`dq`) so frames are handled in the order sent;
     // the socket may close or be replaced during each wait.
     while (meter.dq) { await meter.dq.catch(() => null); if (!(a = this._pastWait(ws))) return null; }
     if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); }
@@ -53,7 +51,7 @@ export class LeasePart {
     const a = this._pastWait(ws);
     if (!a) return null;
     if (!on || a.ld * 1000 >= Date.now()) return a;
-    // A bound socket without a live lease is ignored, not closed: a reconnect would be ignored too.
+    // A bound socket without a live lease is ignored, not closed, since a reconnect would be ignored too.
     // An unbound socket in a lease room is refused as its hello would be.
     if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
     return null;

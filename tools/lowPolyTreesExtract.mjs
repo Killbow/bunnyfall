@@ -1,37 +1,7 @@
 #!/usr/bin/env node
-// LPT1 (2026-10-05): LOW POLY TREES 5 (SquidKamer - Kamer) - THE TREES AS DATA, OUT OF THE SHIPPED BUNDLE.
-//
-//   node tools/lowPolyTreesExtract.mjs "<path-to>/lowpolytrees.dfmod" --arena2 <ARENA2> [outDir]
-//
-// Default outDir is vendor/low-poly-trees. The bundle is read with tools/lib/unityScene.mjs (Come Sail Away's reader);
-// bible/07-Rendering/Low-Poly-Trees.md is the record. What the port carries:
-//
-// - `lowpolytrees.dfmod.json` - the mod's manifest, the bundle's own TextAsset byte for byte.
-// - `Trees/trees.json` + `Trees/trees.bin` - Kamer's own geometry: every mesh's positions, normals and uv0 (f32,
-//   interleaved, 32 bytes a vertex) and its submeshes' 16-bit indices, in the prefab's own space (Unity's, so the
-//   port's: metres, +Y up, left-handed - world/arena/arenaModel.js's law); each of the 253 prefabs as its archive and record,
-//   its mesh, the root's scale and its submeshes' materials; each material as its texture and its alpha cut (0 for the
-//   opaque ones); and each texture as an ATLAS SPEC, below.
-// - NO PICTURE. Measured here against every record of TEXTURE.500-511, each of the mod's textures is Daggerfall's own
-//   sprites: the five small ones a classic record whole, each larger atlas 75-91% classic records copied texel for
-//   texel (turned or mirrored in places, cut down in others), the rest the author's top-down crowns and larger side
-//   views made from the same records (on the winter atlases capped with painted snow) plus a few hand-written record
-//   numbers. A render of game data IS game data (01-Overview/Port-Doctrine.md), so the spec names what to copy and the
-//   runtime paints the atlas from the player's own records (src/world/lowPolyTrees.js paintAtlas): BLITS - the record,
-//   its turn, where it lands, the rectangle it may paint and its ERASE spans (each the whole gap between this copy's
-//   own claims, so none traces a record's silhouette - AUDIT LPT D13) - in the greedy order the match found them, the
-//   first paint holding a texel; and FILLS - a region no copy paints, the record it was made from and a coarse map of
-//   its 8-texel cells, painted as a folded crown (synthTop), a tiled crop (tileCrop) or the record stretched over it
-//   (fitRecord), whichever comes nearer the author's own. The spec is checked here: painted from the same records,
-//   every texel a copy claimed comes back (main throws otherwise).
-//
-// THE MATCH: every record of the twelve nature archives, in all eight orientations, indexed by its 3x3 patches of
-// colour; every second texel of the atlas votes for (record, orientation, offset); offsets with votes are verified texel
-// by texel (within 6 of 765 - the bundle's own rounding) and taken greedily, largest first, a texel to the first, each
-// copy MIN_BLIT texels at the least. Every verified copy is KEPT (AUDIT LPT C5: the pieces of a folded crown too - each
-// an exact copy). What they leave is grouped (REACH texels); a group of FILL_MIN texels (FILL_MIN_OPAQUE on an opaque
-// atlas) is a FILL, its candidates the records of the flats whose trees sample it, the copies about it, the winter
-// twins on a winter atlas, else the nearest copy's (AUDIT LPT C4).
+// Extracts Low Poly Trees geometry and atlas specs from the mod bundle (default out: vendor/low-poly-trees).
+// No picture ships: each atlas is a spec of classic record blits and fills that the runtime paints from ARENA2.
+// Run: node tools/lowPolyTreesExtract.mjs "<path>/lowpolytrees.dfmod" --arena2 <ARENA2> [outDir].
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,14 +15,12 @@ import { isMain } from './lib/isMain.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PATCH = 3, TOLERANCE = 6, MIN_BLIT = 40, FILL_MIN = 40, FILL_MIN_OPAQUE = 4, REACH = 2, USE_CELL = 8;
 
-/** A fill's cell map as world/lowPolyTrees.js fillCells reads it: hex, four cells a digit, the first its high bit. */
 const hexOf = (cells) => {
   let hex = '';
   for (let i = 0; i < cells.length; i += 4) hex += ((cells[i] << 3) | ((cells[i + 1] ?? 0) << 2) | ((cells[i + 2] ?? 0) << 1) | (cells[i + 3] ?? 0)).toString(16);
   return hex;
 };
 
-/** A texture's texels, top-down RGBA (Unity stores rows bottom-up; mip 0 only). */
 export function textureRgba(scene, t) {
   const v = t.v;
   let data = v['image data'];
@@ -70,12 +38,11 @@ export function textureRgba(scene, t) {
   return { width: w, height: h, data: out, alpha: bpp === 4 };
 }
 
-/** Every record of the source archives (frame 0 .. n), top-down RGBA. */
 export function sourceRecords(arena2) {
   const palette = new DFPalette();
   palette.load(new Uint8Array(readFileSync(join(arena2, 'ART_PAL.COL'))));
   const recs = new Map();
-  for (const a of LPT_ARCHIVES) {   // the nature archives the mod replaces, and the only ones its pictures are cut from
+  for (const a of LPT_ARCHIVES) {
     const name = `TEXTURE.${a}`;
     const path = [name, name.toLowerCase()].map((n) => join(arena2, n)).find((p) => existsSync(p));
     if (!path) throw new Error(`${name} is not in ${arena2}`);
@@ -95,7 +62,6 @@ export function sourceRecords(arena2) {
 const colour = (d, i) => (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
 const near = (a, i, b, j) => Math.abs(a[i] - b[j]) + Math.abs(a[i + 1] - b[j + 1]) + Math.abs(a[i + 2] - b[j + 2]) <= TOLERANCE;
 
-/** A record under an orientation, top-down RGBA. */
 function orient(rgba, o) {
   const [ow, oh] = orientedSize(rgba.width, rgba.height, o);
   const d = new Uint8Array(ow * oh * 4);
@@ -113,14 +79,13 @@ const patchKey = (d, w, x, y) => {
 };
 
 /**
- * THE SPEC of one picture: its blits, its fills, and what the match found.
  * @param {{width:number,height:number,data:Uint8Array,alpha:boolean}} pic
  * @param {Map<string, {a:number,r:number,f:number,rgba:any}>} records
- * @param {{snow?: boolean}} [opts] a winter archive's picture (its crowns may be capped)
+ * @param {{snow?: boolean}} [opts]
  */
 export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
   const W = pic.width, H = pic.height;
-  // a texel is the picture's when it is drawn: its alpha on an alpha picture, not black on an opaque one
+  // A texel is drawn when its alpha is set on an alpha picture, or when it is not black on an opaque one.
   const drawn = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) drawn[i] = pic.alpha ? (pic.data[i * 4 + 3] > 127 ? 1 : 0) : (pic.data[i * 4] + pic.data[i * 4 + 1] + pic.data[i * 4 + 2] > 6 ? 1 : 0);
   const srcs = [];
@@ -179,7 +144,6 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
     for (const i of px) owner[i] = blits.length;
     blits.push({ ...c, n: px.length, clip: [x0, y0, x1 + 1, y1 + 1], clean: px.length / Math.max(1, under) });
   }
-  // KEPT: every verified copy (AUDIT LPT C5 - a folded crown's pieces are exact copies too)
   const kept = blits.map(() => true);
   const keptIndex = new Int32Array(blits.length).fill(-1);
   const keptBlits = [];
@@ -187,10 +151,6 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
     if (!kept[bi]) return;
     keptIndex[bi] = keptBlits.length;
     const { img } = srcs[b.si];
-    // ERASE: where this copy must not paint - the record's texels inside the clip the author cut, or a LATER copy holds.
-    // Each span is a whole gap between the texels this copy claims (a record's clear texel and one an earlier copy
-    // painted are passed through - the paint skips them anyway), so its ends are this copy's own claims or the clip's
-    // edges and never the record's silhouette (AUDIT LPT D13)
     const erase = [];
     for (let y = b.clip[1]; y < b.clip[3]; y++) {
       let gap = b.clip[0], cut = false;
@@ -208,7 +168,6 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
     const s0 = srcs[b.si];
     keptBlits.push([s0.a, s0.r, s0.f, s0.o, b.ox, b.oy, ...b.clip, ...(erase.length ? [erase] : [])]);
   });
-  // what the kept copies leave, grouped
   const claimedBy = (i) => owner[i] >= 0 && kept[owner[i]];
   const left = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) left[i] = drawn[i] && !claimedBy(i) ? 1 : 0;
@@ -232,15 +191,11 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
     }
     groups.push(g);
   }
-  // THE FILLS: each group of FILL_MIN texels or more, from the record the copies about it are of - a folded crown or
-  // a tiled crop of it, whichever comes nearer the author's own (mean colour error over its texels, a clear texel where
-  // the author drew counting the most)
   const fills = [];
   let fillErr = 0, fillTexels = 0;
   for (const g of groups) {
     if (g.n < (pic.alpha ? FILL_MIN : FILL_MIN_OPAQUE)) continue;
     const gw = g.x1 - g.x0 + 1, gh = g.y1 - g.y0 + 1;
-    // its cells: where in its box the region lies (a quarter of a cell's texels), never its picture
     const cols = Math.ceil(gw / LPT_FILL_CELL), rows = Math.ceil(gh / LPT_FILL_CELL);
     const cellOn = new Uint8Array(cols * rows);
     for (let cy = 0; cy < rows; cy++) for (let cx = 0; cx < cols; cx++) {
@@ -263,8 +218,6 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
       tally.set(k, (tally.get(k) ?? 0) + Math.min(b.n, ix * iy));
     });
     const tops = [...tally].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k);
-    // the flats whose trees draw from this region - the author made a tree's picture out of the flat it stands for
-    // (AUDIT LPT C5): their records first among the candidates
     const mine = new Map();
     for (const u of uses) {
       let n = 0;
@@ -272,7 +225,7 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
       if (n) mine.set(u.key, (mine.get(u.key) ?? 0) + n);
     }
     for (const [k] of [...mine].sort((a, b) => b[1] - a[1]).slice(0, 4).reverse()) if (records.has(`${k}_0`) && !tops.includes(k)) tops.unshift(k);
-    if (!tops.length) {   // no copy within reach: the nearest kept copy's record
+    if (!tops.length) {
       let nearest = null;
       blits.forEach((b) => {
         const dx = Math.max(0, b.clip[0] - g.x1, g.x0 - b.clip[2]), dy = Math.max(0, b.clip[1] - g.y1, g.y0 - b.clip[3]);
@@ -281,10 +234,8 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
       });
       if (nearest) tops.push(nearest.k);
     }
-    // a winter picture's region may be the winter record of a summer copy beside it: its twin a candidate too
     if (snow) for (const k of [...tops]) { const [a, r] = k.split('_').map(Number); if (!(a & 1) && records.has(`${a + 1}_${r}_0`) && !tops.includes(`${a + 1}_${r}`)) tops.push(`${a + 1}_${r}`); }
     if (!tops.length) continue;
-    // the author's own stats over the group's texels
     let mr = 0, mg = 0, mb = 0;
     for (let y = g.y0; y <= g.y1; y++) for (let x = g.x0; x <= g.x1; x++) {
       const i = y * W + x;
@@ -317,7 +268,6 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
         const e = score(fillPicture(f, src));
         if (!best || e < best.e) best = { f, e };
       }
-      // the crop whose mean colour comes nearest the group's (summed tables over the record), tiled
       const cw = Math.min(gw, src.width), ch = Math.min(gh, src.height);
       const sat = new Float64Array((src.width + 1) * (src.height + 1) * 4);
       const at = (x, y, c) => sat[((y * (src.width + 1)) + x) * 4 + c];
@@ -342,8 +292,8 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
     }
     if (!best) continue;
     if (!pic.alpha) {
-      // AUDIT LPT A9: an opaque card samples black wherever nothing is painted - on an opaque atlas each cell of the
-      // fill's map is painted when it brings back more of the author's colour than it lays over his black
+      // An opaque card samples black wherever nothing is painted, so a cell is painted only when it brings back
+      // more of the author's color than black.
       const fp = fillPicture(best.f, records.get(`${best.f[1]}_${best.f[2]}_0`).rgba);
       const on = new Uint8Array(cols * rows);
       for (let cy = 0; cy < rows; cy++) for (let cx = 0; cx < cols; cx++) {
@@ -368,10 +318,8 @@ export function atlasSpec(pic, records, { snow = false, uses = [] } = {}) {
   };
 }
 
-/** Painted back from the records, the copies alone: how many texels they paint, how many of those come back within
- *  the match's tolerance, and (with `claimed`, the count the match made) whether every texel a copy claimed is painted. */
 export function verifySpec(spec, pic, records, eraseBytes = null) {
-  const back = composeAtlas({ size: spec.size, blits: spec.blits }, (a, r, f) => records.get(`${a}_${r}_${f}`)?.rgba ?? null, eraseBytes);   // the copies alone
+  const back = composeAtlas({ size: spec.size, blits: spec.blits }, (a, r, f) => records.get(`${a}_${r}_${f}`)?.rgba ?? null, eraseBytes);
   let painted = 0, exact = 0;
   for (let i = 0; i < spec.size[0] * spec.size[1]; i++) {
     if (!back.data[i * 4 + 3]) continue;
@@ -381,8 +329,6 @@ export function verifySpec(spec, pic, records, eraseBytes = null) {
   return { painted, exact };
 }
 
-/** A blit's erase spans packed (the runtime's decodeErase): three unsigned LEB128 numbers a span - the row's step
- *  from the last span's (the clip's top first), the start past the clip's left edge, the length. */
 export function packErase(erase, clipX0, clipY0) {
   const out = [];
   const put = (v) => { do { let b = v & 0x7f; v = Math.floor(v / 128); if (v) b |= 0x80; out.push(b); } while (v); };
@@ -395,7 +341,6 @@ export function packErase(erase, clipX0, clipY0) {
   return out;
 }
 
-/** The bundle read: manifest, meshes, materials, textures, prefabs. */
 export function readBundle(bytes) {
   const scene = openScene(bytes);
   const container = bundleContainer(scene);
@@ -419,10 +364,8 @@ export function readBundle(bytes) {
       const floats = m.v.m_SavedProperties?.m_Floats ?? [];
       const float = (n) => floats.find((f) => f.first === n)?.second;
       const cut = float('_Cutoff') ?? 0.5;
-      // the faces it draws: SpeedTree's _Cull, SpeedTree8's _TwoSided (both a CullMode - 0 off, 2 back), Standard's back
       const shader = scene.get(m.v.m_Shader)?.v?.m_ParsedForm?.m_Name ?? '';
       const cull = shader === 'Standard' ? 2 : (shader === 'Nature/SpeedTree8' ? float('_TwoSided') : float('_Cull')) ?? 2;
-      // its colour (_Color, which every one of the mod's shaders multiplies the texture by) - kept when not white
       const c = (m.v.m_SavedProperties?.m_Colors ?? []).find((e) => e.first === '_Color')?.second;
       const color = c && (c.r !== 1 || c.g !== 1 || c.b !== 1) ? [c.r, c.g, c.b].map((v) => Math.round(v * 1000) / 1000) : undefined;
       const k = unique(m.v.m_Name, materials);
@@ -456,7 +399,6 @@ export function readBundle(bytes) {
   return { scene, manifest, meshes, materials, textures, prefabs };
 }
 
-/** The geometry, packed: f32 x 8 a vertex (position, normal, uv0), then each mesh's u16 indices. */
 export function packMeshes(meshes) {
   let vCount = 0, iCount = 0;
   for (const m of meshes) { vCount += m.vertexCount; iCount += m.submeshes.reduce((a, s) => a + s.count, 0); }
@@ -489,8 +431,6 @@ export function packMeshes(meshes) {
   return { bin, index, vertexBytes: vBytes };
 }
 
-/** Each prefab drawing from texture `name`: its flat (`ARCHIVE_RECORD`) and the atlas cells its triangles' uv boxes
- *  cover (USE_CELL texels a cell, top-down) - which flat's tree a region of the picture belongs to. */
 function usesOfAll(meshes, materials, prefabs) {
   const out = new Map();
   for (const [key, pf] of Object.entries(prefabs)) {
@@ -540,12 +480,11 @@ function main() {
     const spec = atlasSpec(pic, records, { snow: /^5(05|07|09|11)/.test(name), uses: usesOf(name, pic) });
     const check = verifySpec(spec, pic, records);
     if (check.exact !== check.painted) throw new Error(`${name}: ${check.painted - check.exact} of ${check.painted} painted texels do not come back`);
-    if (check.painted !== spec.stats.claimed) throw new Error(`${name}: the copies claim ${spec.stats.claimed} texels and paint ${check.painted}`);   // AUDIT LPT C9: every claimed texel painted, no more
+    if (check.painted !== spec.stats.claimed) throw new Error(`${name}: the copies claim ${spec.stats.claimed} texels and paint ${check.painted}`);
     const { stats } = spec;
     console.log(`${name.padEnd(22)} ${pic.width}x${pic.height}  copied ${(100 * stats.claimed / stats.drawn).toFixed(1)}% of ${stats.drawn} (${stats.kept} blits, every texel back exact), filled ${(100 * stats.filled / stats.drawn).toFixed(1)}% (${stats.fills} fills: ${stats.tops} crowns, ${stats.fits} fitted; mean error ${stats.fillError.toFixed(0)}/765)`);
     atlases[name] = { size: spec.size, alpha: pic.alpha, blits: spec.blits, fills: spec.fills };
   }
-  // the erase lists packed into Trees/atlases.bin, and a spec another atlas already holds named once (`same`)
   const eraseBytes = [];
   const seen = new Map();
   for (const [name, a] of Object.entries(atlases)) {
@@ -559,7 +498,6 @@ function main() {
       return [...b.slice(0, 10), at, b[10].length / 3];
     });
   }
-  // the packed form painted back again: the same texels as before the packing
   const packed = Uint8Array.from(eraseBytes);
   for (const [name, a] of Object.entries(atlases)) {
     if (a.same) continue;

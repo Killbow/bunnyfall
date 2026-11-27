@@ -1,22 +1,5 @@
-// ONE-BAD-BODY LIVE PROOF (FIELD BUGS 2026-10-13b, bible/01-Overview/bugs/Field-Bugs-2026-10-13b.md): ONE BODY'S BAD MEASURE
-// BLANKS NO OTHER, ON A REAL GL.
-//
-// test/net/peer/fb1013b_onebadbody.test.js holds the law in node over a recording GL: a picture whose size is not a number is
-// refused at the batch's door, and every other picture keeps its own tile. What node cannot do is draw. This does, on
-// one Renderer in a real page, under the enhanced lighting lane (EL_LANE, its shadows on): the 3D horse - the committed
-// Courser, through the very skinned pass every Morrowind body takes (world/horseRig.js -> characterSprite.js
-// drawRigSpriteBox) - three abreast in ONE body batch, frame after frame, as the world frame takes them (beginFrame,
-// beginCharacterSpriteBatch, the draws, flushCharacterSpriteBatch, the resolve), the screen read back:
-//   - all three at finite places: each draws its own picture, every frame;
-//   - the middle one at a place that is not a number (a peer whose drawn pose went non-finite): the third still draws,
-//     every frame - before the door it drew nothing (0 texels). (Where the tiles after the bad one land - over the first -
-//     is the suite's pin, test/net/peer/fb1013b_onebadbody.test.js: a texel count cannot tell one horse's picture from another's.)
-//   - no GL error, no page error, and the refusal said once on the console.
-//
-// What it canNOT see: a Morrowind person (their meshes are the player's own Data Files), nor where a non-finite pose
-// comes from online - the console lines the fix adds are for that. SwiftShader is not a GPU.
-//
-// Usage: node tools/oneBadBodyProbe.mjs [frames]
+// Browser probe: a body with a non-finite position in one sprite batch must not blank the other bodies.
+// Usage: node tools/oneBadBodyProbe.mjs [frames].
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 

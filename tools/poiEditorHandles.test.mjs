@@ -1,7 +1,4 @@
-// Tests the in-game editor host (src/poi/poiEditorHost.js) with a stub world: clicking a handle after the camera
-// moves without the mouse, caching selection box outlines across frames, and picking DM spots on deep snow.
-//   node --test tools/poiEditorHandles.test.mjs
-
+// Tests the in-game editor host with a stub world. Run: node --test tools/poiEditorHandles.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPoiEdit } from '../src/poi/poiEdit.js';

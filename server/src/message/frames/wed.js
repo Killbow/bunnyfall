@@ -1,4 +1,3 @@
-// The `wed` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, isChatRoom, WED_HZ_MAX } from '../../relay.js';
 
 export function wedFrame(ws, a, m) {

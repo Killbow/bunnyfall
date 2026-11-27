@@ -1,9 +1,6 @@
-// THE CARD TABLE, SEEN (CARDS3). Opens the card table lab (cards.html, src/tools/cardsLab.js) headless and takes the
-// table at moments of a seeded evening - the deal in the air, the cards settled, the flop turned, from the player's
-// seat and from over the table - and checks the picture itself (AUDIT CARDS-2 M10: the first cut checked a pose count
-// and called it the picture): the frame draws without an error, the cards and chips change the frame's pixels, and a
-// card lying face up paints face pixels - a face culled, lost or drawn black fails it. It measures no frame cost.
-//     node tools/cardsProbe.mjs          (writes $PROBE_SHOTS or /tmp/cards-*.png)
+// Shoots the card table lab at moments of a seeded evening and checks that the cards and chips draw.
+// Run: node tools/cardsProbe.mjs (PROBE_SHOTS sets the shots folder).
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -18,8 +15,6 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 let failed = 0;
-/** The least the cards must change of a 1100x640 frame, and the least face pixels a face-up card paints (calibrated on
- *  the probe's own shots, AUDIT CARDS-2: the smallest face seen from the seat is several hundred). */
 const MIN_CARD_PIXELS = 300, MIN_FACE_PIXELS = 150;
 for (const [label, q] of [['deal-air', 't=0.25&cam=over&nohud'], ['dealt-seat', 't=2.2&cam=seat'], ['dealt-over', 't=2.2&cam=over&nohud'], ['later-seat', 't=14&cam=seat'], ['later-over', 't=14&cam=over&nohud'], ['near-hand', 't=9&cam=near&nohud&seed=6&patrons=2'], ['board-turn', 't=6.4&cam=board&nohud&seed=4&patrons=2'], ['turn-seat', 't=6.4&cam=seat&seed=4&patrons=2'], ['riffle', 't=0.4&cam=near&nohud'], ['held-seat', 't=4&cam=seat&nohud'], ['peek-seat', 't=4&cam=seat&nohud&peek=1'], ['squeeze-seat', 't=4&cam=seat&nohud&peek=1&squeeze=1']]) {
   await page.goto(`${BASE}/cards.html?${q}`, { waitUntil: 'load' });

@@ -25,9 +25,11 @@ invariants:
   - "Every object must match its `PIECES` bounding box within `BOX_SLACK = 0.02` or `bakeObject` throws by name and `--import` aborts before writing."
   - "Reference head and neck meshes (`REFERENCE_PARTS` `Breton_Male.003` and `Breton_Male.006`) are stripped from committed sources via `stripFbx`, preserving only the 12 bound numbers in `SCENE_BODY`."
   - "`retailBind` rejects any skeleton whose skinned `Tri Shadow` node is missing, translated, rotated, or scaled."
+  - "`jointWeights` assigns each vertex to the bone whose segment distance, minus that bone's `bias`, is smallest, blends across a joint by a smoothstep over the bone's `blend` distance, and gives welded vertices one shared weight list, so a seam never opens under a pose."
 traps:
   - "Runtime rig helpers (`fitShift`, `shiftBatch`, `bindPoseMats`, `rebindSkin`, `skeletonBindSkins`) are retired and absent from `src/`; never reintroduce runtime skin transfer for steel plate (`bindSkinnedFromBody` in `src/formats/mwFirstPerson.js` serves only `skinFrom` brigandine parts)."
   - "`HELM_LIFT = 4` raises only the open helm (`Sphere.002`); the closed helm stays at exported height (`z` `113.88..132.82`) because it hides the head."
+  - "The Morrowind NIF readers (`src/formats/mwNifMesh.js` and `src/formats/mwVfx.js`) use a texture only when its `NiSourceTexture` is external and has a file name, so `tools/nifWrite.mjs` must reference each texture externally by name."
 dfu: []
 tags:
   - "bake"

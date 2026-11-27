@@ -1,16 +1,5 @@
-// EG-G2 - THE SCORE OF THE SPIRE, PLAYED BY THE GAME'S OWN PLAYER IN A REAL BROWSER, RENDERED AND MEASURED (the Hour's own
-// probe's method, tools/sdScoreProbe.mjs; bible/11-Multiplayer/Elite-Gates.md section 26).
-//
-// node holds the score's shape and its law (test/systems/eliteGates/eglook_score.test.js); what node cannot answer is what the songs SOUND
-// like through the game's own song player and FM bank: whether every song sounds, whether the mix stays under its ceiling
-// at the highest MusicVolume, whether the war grows by phase and the count and the Valkynaz stand over it, whether the
-// halls sit under the fights, and whether the end decays inside the time the law gives it. So: the repo's own modules
-// served as they are, each song of one context played by systems/song/songPlayer.js into an OfflineAudioContext (the player's
-// clock carried through the song window by window), the render read back and measured; and one player through every song
-// in one context, the press on for each.
-//
-//     node tools/egScoreProbe.mjs [--band <0-3>] [--wav <dir>] [--seconds <n>]
-//         --band the context's band (the Galleries by default); --wav writes each render as 16-bit WAV, normalised
+// Plays each Spire score song through the game's song player into an offline audio context and measures the render.
+// Run: node tools/egScoreProbe.mjs [--band <0-3>] [--wav <dir>] [--seconds <n>]
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';

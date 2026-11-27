@@ -1,10 +1,5 @@
-// A5: render a song to a WAV so a human can HEAR it.
-//
-// The probe proves the graph emits signal. This proves it emits MUSIC -
-// it renders offline through the REAL production voice code (SongPlayer
-// ._voice, gmSynth's specs) and writes a file you can play.
-//
-// Usage: node tools/musicRender.mjs [SONG.HMI] [seconds] [out.wav]
+// Renders a song offline through the real voice code to a WAV.
+// Run: node tools/musicRender.mjs [SONG.HMI] [seconds] [out.wav].
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
@@ -44,9 +39,6 @@ const out = await page.evaluate(async ({ SONG, SECONDS, RATE }) => {
   p._state = freshChannelState();
   p._originTime = 0;
 
-  // Fold state forward event by event and schedule every note - the same
-  // production _voice the live player calls, just without the lookahead
-  // loop, which offline rendering does not need.
   let notes = 0;
   for (const e of song.events) {
     const t = e.tick * song.secondsPerTick;
@@ -60,7 +52,6 @@ const out = await page.evaluate(async ({ SONG, SECONDS, RATE }) => {
   const buf = await off.startRendering();
   const L = buf.getChannelData(0), R = buf.numberOfChannels > 1 ? buf.getChannelData(1) : L;
 
-  // 16-bit PCM WAV
   const n = buf.length;
   const bytes = new Uint8Array(44 + n * 4);
   const dv = new DataView(bytes.buffer);

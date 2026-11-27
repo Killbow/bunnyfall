@@ -1,9 +1,4 @@
 // @ts-check
-// BUNNYFALL COMPANIES (2026-11-12, the war against Rodney): WHAT THE SERVICE KEEPS OF THE GARRISONS - a Company's guard at
-// its hall's town and a City Charter's garrison at its capital (migration 0200). The law both ends read is
-// src/net/garrisonLaw.js. Each garrison is reckoned on the first read of each UTC day: its soldiers eat out of the
-// Company Stores (a Charter's: every member's), the unfed desert, and the soldiers at the front push Rodney's blight back
-// (blight.js blightNudge) and lose their tenth.
 import { guildActorOf } from './guilds.js';
 import { displayName } from './accounts.js';
 import { mustChange } from './realm.js';
@@ -22,13 +17,11 @@ const todayOf = (nowS) => Math.floor(nowS / DAY_S);
 const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
 const IN_MAX = 20;
 
-/** The Companies whose Stores feed a garrison: its own, or every Company of its Charter. */
 async function feedersOf(db, owner) {
   if (owner.startsWith('g:')) return [owner.slice(2)];
   const { results } = await db.prepare('SELECT guild_id FROM city_charter_members WHERE map_id = ?').bind(Number(owner.slice(2))).all();
   return (results ?? []).map((r) => r.guild_id).slice(0, IN_MAX);
 }
-/** The supplies those Stores hold: `{ have, rows }` - `rows` each `{ rid, supply, qty }`, the cheapest first. */
 async function storesOf(db, guildIds) {
   const have = { food: 0, ingots: 0, planks: 0, herbs: 0 };
   /** @type {{ rid: number, supply: string, qty: number }[]} */
@@ -44,15 +37,11 @@ async function storesOf(db, guildIds) {
   return { have, rows };
 }
 
-/**
- * RECKON A GARRISON to today: each day since it was last reckoned (GARRISON_DAYS_MAX at most) its soldiers eat, the
- * unfed desert, the march pushes and dies. Claimed by moving its day first, so two readers never reckon it twice.
- * Answers the row as it now stands.
- */
 async function reckon(db, row, nowS) {
   const today = todayOf(nowS);
   const days = Math.min(GARRISON_DAYS_MAX, today - Number(row.day));
   if (days <= 0) return row;
+  // Moving the day first claims the reckoning, so two readers never reckon the same days twice.
   const claim = await db.prepare('UPDATE garrisons SET day = ?1 WHERE owner = ?2 AND day = ?3').bind(today, row.owner, row.day).run();
   if (!claim?.meta?.changes) return await db.prepare('SELECT * FROM garrisons WHERE owner = ?').bind(row.owner).first() ?? row;
   let troops = troopsOf(parse(row.troops));
@@ -72,7 +61,6 @@ async function reckon(db, row, nowS) {
     troops = r.troops;
     orders = ordersFit({ ...orders, march: Math.max(0, march - r.lost) }, troopTotal(troops));
   }
-  // what was eaten comes out of the Stores, the fullest rows first
   const take = [];
   for (const s of Object.keys(eaten)) {
     let n = eaten[s];
@@ -86,7 +74,6 @@ async function reckon(db, row, nowS) {
   return { ...row, day: today, troops: JSON.stringify(troops), orders: JSON.stringify(orders), report: JSON.stringify(report) };
 }
 
-/** Where the acting character's Company and Charter keep (or would keep) their garrisons. */
 async function placesOf(db, player, character) {
   const a = await guildActorOf(db, player, character);
   if ('error' in a) return a;
@@ -103,7 +90,6 @@ async function placesOf(db, player, character) {
 }
 const kindOf = (owner) => (owner.startsWith('c:') ? 'charter' : 'company');
 
-/** A garrison as its own Companies read it. */
 async function viewOf(db, row, place, kind) {
   const troops = row ? troopsOf(parse(row.troops)) : troopsOf({});
   const orders = row ? ordersOf(parse(row.orders)) : ordersOf({});
@@ -116,19 +102,13 @@ async function viewOf(db, row, place, kind) {
   };
 }
 
-/**
- * EVERY GARRISON, reckoned to today, as the streets show them (`all`: each town's patrols on their routes, in its
- * owner's colours) - and, for a member, their Company's guard and their Charter's garrison in full (`mine`).
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function garrisonsRead({ db, nowS }, player, { character } = {}) {
-  /** null when another request loaded the list */
   let read = /** @type {Map<string, any>|null} */ (null);
   const all = await keptWorld(db, 'garrisons', async () => {
     const { results } = await db.prepare('SELECT * FROM garrisons').all();
     const rows = [];
     for (const r of results ?? []) rows.push(await reckon(db, r, nowS));
-    // the owners still standing: a Company with its hall, a Charter still held - and their colours
     const [halls, charters] = await db.batch([
       db.prepare('SELECT h.guild_id, h.map_id, g.tag, g.heraldry FROM homes h JOIN guilds g ON g.id = h.guild_id WHERE h.guild_id IS NOT NULL'),
       db.prepare('SELECT c.map_id, c.name, g.tag, g.heraldry FROM city_charters c LEFT JOIN guilds g ON g.id = c.founded_by'),
@@ -141,7 +121,7 @@ export async function garrisonsRead({ db, nowS }, player, { character } = {}) {
       if (!o) continue;
       const arms = heraldryOfRow(o.heraldry);
       const orders = ordersOf(parse(r.orders));
-      list.push({ owner: r.owner, kind: kindOf(r.owner), mapId: Number(o.map_id), tag: o.tag ?? null, name: o.name ?? null, field: arms?.field ?? null, border: arms?.border ?? null, routes: orders.routes, march: orders.march, sector: Number.isSafeInteger(r.sector) ? r.sector : null });   // MARCH-ARROWS: how many march and on which slice, for the map's arrows
+      list.push({ owner: r.owner, kind: kindOf(r.owner), mapId: Number(o.map_id), tag: o.tag ?? null, name: o.name ?? null, field: arms?.field ?? null, border: arms?.border ?? null, routes: orders.routes, march: orders.march, sector: Number.isSafeInteger(r.sector) ? r.sector : null });
     }
     read = new Map(rows.map((r) => [r.owner, r]));
     return list;
@@ -165,7 +145,6 @@ export async function garrisonsRead({ db, nowS }, player, { character } = {}) {
   return { ok: true, all, mine };
 }
 
-/** The acting Captain's or Officer's place for `which` garrison, or a refusal. */
 async function commandOf(db, player, character, which) {
   const p = await placesOf(db, player, character);
   if ('error' in p) return p;
@@ -175,11 +154,7 @@ async function commandOf(db, player, character, which) {
   return { ...p, place };
 }
 
-/**
- * RECRUIT `n` soldiers of `type` into the Company's guard or the Charter's garrison (`which`), paid with gold from the
- * recruiter's Company treasury - up to the garrison's cap.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function garrisonRecruit({ db, nowS }, player, { character, which, type, n } = {}) {
   const t = troopOf(type);
   if (!t || !Number.isSafeInteger(n) || n < 1 || n > RECRUIT_MAX) return { error: 'garrison-bad' };
@@ -224,11 +199,7 @@ export async function garrisonDismiss({ db, nowS }, player, { character, which, 
   return { ok: true, recalled: d.recalled };
 }
 
-/**
- * GIVE ORDERS to a garrison: how many walk each route and how many march to the front (`sector` the blight's slice the
- * town faces, the client's measure) - no more than it holds.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function garrisonOrders({ db, nowS }, player, { character, which, routes, march, sector } = {}) {
   const c = await commandOf(db, player, character, which);
   if ('error' in c) return c;

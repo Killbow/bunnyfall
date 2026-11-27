@@ -1,15 +1,5 @@
-// MWFIX LIVE PROOF: the attach door, pressed in a real browser.
-//
-// The three defects this guards were ALL invisible to the node suite -
-// a z-index that loses to the pane that opens it is not a logic error,
-// it is a stacking one, and only a real layout answers it. The proof is
-// the browser's own hit test: press "Attach data" in the enhanced
-// shell, then ask document.elementFromPoint what sits at the file
-// input's centre. Before the fix it answered a SHELL element
-// (DIV.row-note) and the input was unreachable; it must answer the
-// input itself.
-//
-// Usage: node tools/mwAttachProbe.mjs
+// Browser probe: presses Attach data in the enhanced shell and checks that the file input is on top at its center.
+// Usage: node tools/mwAttachProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -42,7 +32,6 @@ const r = await page.evaluate(async () => {
   em.mountEnhancedMenu(host, { mode: 'boot' });
   await new Promise((s) => setTimeout(s, 400));
 
-  // the ENHANCED pane (the face's buttons carry diamonds)
   const tab = [...host.querySelectorAll('button')]
     .find((b) => /Enhanced/.test(b.textContent ?? '') && b.textContent.includes('◆'));
   out.reachedPane = !!tab;
@@ -63,7 +52,6 @@ const r = await page.evaluate(async () => {
   out.topAtPicker = top ? `${top.tagName}#${top.id || '-'}` : null;
   out.pickerIsHitTarget = top === input || input.contains(top);
 
-  // ...and it can be dismissed without the mouse (the never-traps arm)
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   await new Promise((s) => setTimeout(s, 200));
   out.escapeClosed = !document.querySelector('#pickassets');

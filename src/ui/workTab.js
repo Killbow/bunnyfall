@@ -132,14 +132,14 @@ const commissionSaid = (state) => (state === 'filled' ? t('prof.work.said.filled
   : state === 'declined' ? t('prof.work.said.declined', 'declined') : state === 'expired' ? t('prof.work.said.expired', 'run out') : state);
 /** AUDIT 31 U13: what a sale's words say of its pay - "114 Marks struck to your account (6 Marks tax taken)", never
  *  "114 struck, less 6 tax", which reads as 108. */
-export const paidText = (pay, tax) => (tax > 0 ? t('prof.work.paidTax', '{pay} struck to your account ({tax} tax taken)', { pay: marksText(pay), tax: marksText(tax) })
-  : t('prof.work.paid', '{pay} struck to your account', { pay: marksText(pay) }));
+export const paidText = (pay, tax) => (tax > 0 ? t('prof.work.paidTax', '{pay} credited to your account ({tax} tax deducted)', { pay: marksText(pay), tax: marksText(tax) })
+  : t('prof.work.paid', '{pay} credited to your account', { pay: marksText(pay) }));
 /** WRIT-WALL (FIELD BUGS 2026-10-13e, "Cant turn in writs": "Have the materials literally on hand. They don't accept
  *  them"): what a writ's card says of the units held that no writ may spend (net/profBook.js `walled`) - law 3 and the
  *  gold wall in UNCOUNTED's words, on the card and on its button's title alike: a Court or chapter writ's
  *  (ui/noticeWindow.js writNode) and a guild writ's (guildWritCard). `material` its name, counted. */
 export const writWalledText = (n, material) => t('prof.work.writ.walled',
-  '{n, number} {material} you hold can\'t fill a writ. Only what you gathered or bought with Imperial Argents counts.',
+  '{n, number} {material} you have cannot be used for a writ. Only materials you gathered or bought with Imperial Argents are eligible.',
   { n: Number(n), material });
 
 /**
@@ -191,8 +191,8 @@ export function createWorkTab(w, ui) {
   const guildName = (g) => (g?.tag ? `${g.name} [${g.tag}]` : g?.name ?? t('prof.work.aGuild', 'A company'));
   /** The bounds a guild's writ and contract share, said before the press (AUDIT 31 U10). */
   const treasuryShort = (g) => t('prof.work.treasuryShort', 'The company\'s treasury holds only {held}.', { held: marksText(g.marks ?? 0) });
-  const noBudget = () => t('prof.work.noBudget', 'The Captain has set no writ budget for Officers this week.');
-  const pastBudget = (g) => t('prof.work.pastBudget', 'That is past your writ budget this week ({left} left).', { left: marksText(g.left ?? 0) });
+  const noBudget = () => t('prof.work.noBudget', 'The Captain has not set a writ budget for Officers this week.');
+  const pastBudget = (g) => t('prof.work.pastBudget', 'That exceeds your writ budget for this week ({left} left).', { left: marksText(g.left ?? 0) });
   const budgetLine = (g) => t('prof.work.budget', 'Your writ budget this week: {left} of {budget} left.', { left: marksText(g.left ?? 0), budget: marksText(g.budget ?? 0) });
   /** AUDIT 31 S6: whether this character's rank in the writ's guild delivers to it (writLaw writDeliverMay). */
   const mayDeliver = (data, x) => data?.guild?.id !== x.guild?.id || writDeliverMay(data.guild.rank);
@@ -202,7 +202,7 @@ export function createWorkTab(w, ui) {
     const d = button(`work-decline${armed() ? ' armed' : ''}`, armed() ? t('prof.work.declineArmed', 'Decline? Press again') : t('prof.work.decline', 'Decline'), () => {
       if (!armed()) { st.arm = { id: c.id, at: nowMs() }; ui.rerender(); return; }
       st.arm = null;
-      return act(() => w.writs.decline(c.id), t('prof.work.declined', 'Declined. Its pay goes back to its poster.'));
+      return act(() => w.writs.decline(c.id), t('prof.work.declined', 'Commission declined. The payment has been returned to the poster.'));
     });
     return why(d, busyWhy());
   };
@@ -226,7 +226,7 @@ export function createWorkTab(w, ui) {
     const walled = x.state === 'open' && mayDeliver(data, x) && held < Math.min(x.left, room) ? Number(w.walled?.(x.material)) || 0 : 0;
     const walledSaid = walled > 0 ? writWalledText(walled, w.countName(x.material, walled)) : null;
     const bar = el('div', 'writ-take');
-    if (x.state === 'open' && !mayDeliver(data, x)) bar.append(el('span', 'work-none', t('prof.work.writ.ownGuild', 'Officers and the Captain do not deliver to their own company\'s writs.')));
+    if (x.state === 'open' && !mayDeliver(data, x)) bar.append(el('span', 'work-none', t('prof.work.writ.ownGuild', 'Officers and the Captain cannot deliver to writs for their own company.')));
     else if (x.state === 'open' && most > 0) {
       const units = () => intOf(st.supply[x.id] ?? most, 1, most);
       const n = input('number', units(), t('prof.work.writ.unitsLabel', 'Units to deliver to {guild}', { guild: guildName(x.guild) }), `supply|${x.id}`);
@@ -243,8 +243,8 @@ export function createWorkTab(w, ui) {
     } else if (x.state === 'open') {
       // AUDIT BAG1: a carrying book's count is the Stores' and what is carried - said as such. WRIT-WALL: never "You have
       // none" beside units held and walled - the walled line under the bar says what they are
-      const none = held > 0 ? t('prof.work.writ.guildFull', 'The company\'s Stores can take no more of it.') : walledSaid ? null
-        : w.carrying?.() ? t('prof.work.writ.noneCarried', 'You have none in your Stores, Materials Bag or pack.') : t('prof.work.writ.noneHeld', 'Your Stores hold none of it.');
+      const none = held > 0 ? t('prof.work.writ.guildFull', 'The company\'s Stores cannot hold any more of this material.') : walledSaid ? null
+        : w.carrying?.() ? t('prof.work.writ.noneCarried', 'You have none in your Stores, Materials Bag, or pack.') : t('prof.work.writ.noneHeld', 'You have none in your Stores.');
       if (none) bar.append(el('span', 'work-none', none));
     }
     bar.append(el('span', null, w.carrying?.() ? t('prof.work.writ.heldCarried', '{n, number} held', { n: Number(held) }) : t('prof.work.writ.held', '{n, number} in your Stores', { n: Number(held) })));
@@ -257,7 +257,7 @@ export function createWorkTab(w, ui) {
   /** AUDIT 31 U10: the units a delivery may bring a guild writ - what it still asks, what is held, what the guild Stores can
    *  still take (BOARD-SIFT: the card's Deliver and the bar's "Only what I can fill" alike). */
   const guildWritMost = (x, held = w.held(x.material)) => Math.min(x.left, held, Number.isSafeInteger(x.room) ? x.room : Infinity);
-  const withdrawWrit = (x) => why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.withdraw(x.id), t('prof.work.withdrawnGuild', 'Withdrawn. The unpaid Imperial Argents are back in the company\'s treasury.'))),
+  const withdrawWrit = (x) => why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.withdraw(x.id), t('prof.work.withdrawnGuild', 'Withdrawn. The remaining Imperial Argents have been returned to the company treasury.'))),
     busyWhy());
 
   // ─── A GUILD CONTRACT (SILVER-WAYS) ────────────────────────────────
@@ -266,18 +266,18 @@ export function createWorkTab(w, ui) {
     li.append(el('span', 'notice-pin'), el('span', 'writ-kind', t('prof.work.contract.kind', 'Company contract')));
     const flag = writBanner(x.guild?.heraldry);
     if (flag) li.append(flag);
-    li.append(el('p', 'writ-need', t('prof.work.contract.need', '{guild} pays the defenders of {region}\'s towns against raiders', { guild: guildName(x.guild), region: w.regionNameOf(x.region) })));
+    li.append(el('p', 'writ-need', t('prof.work.contract.need', '{guild} pays defenders who protect towns in {region} from raiders', { guild: guildName(x.guild), region: w.regionNameOf(x.region) })));
     li.append(el('p', 'writ-pay', t('prof.work.contract.pay', '{pay} each · {n, plural, one {{n, number} defender} other {{n, number} defenders}} left of {deeds, number}', { pay: marksText(x.pay), n: Number(x.left), deeds: Number(x.deeds) })));
     li.append(el('p', 'writ-left', writLeftText(x.expiresAt, ui.nowS())));
     const bar = el('div', 'writ-take');
     const own = data?.guild?.id === x.guild?.id && !contractPaidMay(data.guild.rank);
-    bar.append(el('span', 'work-none', own ? t('prof.work.contract.ownGuild', 'Officers and the Captain are not paid by their own company\'s contracts.')
-      : t('prof.work.contract.how', 'Hit a raider in a town here and stay until the town is cleansed. You are paid when the raid is counted, less {tax} tax.', { tax: marksText(saleTax(x.pay)) })));   // AUDIT 657 B6: what earns it said (raidLaw.js - a blow struck, and the town stood in at the cleanse)
+    bar.append(el('span', 'work-none', own ? t('prof.work.contract.ownGuild', 'Officers and the Captain do not earn pay from contracts posted by their own company.')
+      : t('prof.work.contract.how', 'Strike a raider during a town raid in this region and stay until the town is cleared. You are paid once the raid concludes, minus {tax} tax.', { tax: marksText(saleTax(x.pay)) })));   // AUDIT 657 B6: what earns it said (raidLaw.js - a blow struck, and the town stood in at the cleanse)
     if (x.may) bar.append(withdrawContract(x));
     li.append(bar, el('span', 'notice-seal', ''));
     return li;
   }
-  const withdrawContract = (x) => why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.withdrawContract(x.id), t('prof.work.withdrawnGuild', 'Withdrawn. The unpaid Imperial Argents are back in the company\'s treasury.'))),
+  const withdrawContract = (x) => why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.withdrawContract(x.id), t('prof.work.withdrawnGuild', 'Withdrawn. The remaining Imperial Argents have been returned to the company treasury.'))),
     busyWhy());
 
   // ─── A COMMISSION (this board's region's) ──────────────────────────
@@ -291,7 +291,7 @@ export function createWorkTab(w, ui) {
     const bar = el('div', 'writ-take');
     if (c.state === 'open' && c.forMe) bar.append(...fillNodes(c), declineButton(c));
     if (c.state === 'open' && c.mine) {
-      bar.append(why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.cancel(c.id), t('prof.work.comm.withdrawn', 'Withdrawn. {pay} back to your account.', { pay: marksText(c.pay) }))), busyWhy()));
+      bar.append(why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.cancel(c.id), t('prof.work.comm.withdrawn', 'Commission withdrawn. {pay} has been returned to your account.', { pay: marksText(c.pay) }))), busyWhy()));
     }
     li.append(bar, el('span', 'notice-seal', ''));
     return li;
@@ -302,20 +302,20 @@ export function createWorkTab(w, ui) {
     const pieces = w.pieces(c);
     if (!pieces.length) {
       // AUDIT 31 H8: one that answers it is in the pack but will not leave it - said, never "you carry none"
-      return [el('span', 'work-none', /** @type {any} */ (pieces).blocked > 0 ? t('prof.work.fill.blocked', 'Your piece for it is equipped, locked or bound. Free it first.')
-        : t('prof.work.fill.none', 'You carry no unworn piece you made for it.'))];
+      return [el('span', 'work-none', /** @type {any} */ (pieces).blocked > 0 ? t('prof.work.fill.blocked', 'Your matching piece is equipped, locked, or bound. Free it first.')
+        : t('prof.work.fill.none', 'You have no unworn piece you crafted for this commission.'))];
     }
     const picked = () => pieces.find((p) => p.item.provenance === st.pick[c.id]) ?? pieces[0];
     const label = (p) => (p.quality != null ? t('prof.work.fill.pieceQuality', '{name} ({quality})', { name: p.name, quality: QUALITY_NAMES[p.quality] }) : p.name);
     const s = select(pieces.map((p) => [p.item.provenance, label(p)]), picked().item.provenance, (v) => { st.pick[c.id] = v; },
-      c.poster ? t('prof.work.fill.pieceLabel', "The piece to fill {name}{endsInS, select, yes {''} other {''s}} commission with", { name: c.poster, endsInS: endsInS(c.poster) })
-        : t('prof.work.fill.pieceLabelNone', "The piece to fill its poster's commission with"));
+      c.poster ? t('prof.work.fill.pieceLabel', 'Piece to fill {name}{endsInS, select, yes {\'\'} other {\'\'s}} commission', { name: c.poster, endsInS: endsInS(c.poster) })
+        : t('prof.work.fill.pieceLabelNone', 'Piece to fill this commission'));
     const go = button('primary work-fill', t('prof.work.fill', 'Fill'), () => {
       const p = picked();
       const paid = paidText(c.pay - saleTax(c.pay), saleTax(c.pay));
       return act(() => w.writs.fulfil({ region: w.region, commission: c.id, provenance: p.item.provenance, wear: WEAR_WHOLE }, p),
         c.poster != null ? t('prof.work.fill.filled', 'Filled: {piece} is on its way to {poster}. {paid}.', { piece: p.name, poster: c.poster, paid })
-          : t('prof.work.fill.filledNone', 'Filled: {piece} is on its way to its poster. {paid}.', { piece: p.name, paid }));
+          : t('prof.work.fill.filledNone', 'Filled: {piece} is on its way to the poster. {paid}.', { piece: p.name, paid }));
     });
     return [labelled(t('prof.work.label.piece', 'Piece'), s, 'work-label-wide'), why(go, busyWhy())];
   }
@@ -332,21 +332,21 @@ export function createWorkTab(w, ui) {
       const what = { piece: commissionPieceText(c), pay: marksText(c.pay) };
       const who = !c.mine ? t('prof.work.yours.commFor', '{poster} commissioned you: {piece}, {pay}', { ...what, poster: c.poster })
         : c.crafter != null ? t('prof.work.yours.commBy', 'You commissioned {crafter}: {piece}, {pay}', { ...what, crafter: c.crafter })
-          : t('prof.work.yours.commGone', 'You commissioned a crafter whose account is gone: {piece}, {pay}', what);
+          : t('prof.work.yours.commGone', 'You commissioned a crafter whose account no longer exists: {piece}, {pay}', what);
       const here = c.region === w.region;
       const where = here ? t('prof.work.here', 'here') : w.regionNameOf(c.region);
       // AUDIT 31 H6: a filled one of yours comes by the market's deliveries - collected at the Market tab
       const said = c.state === 'open' ? writLeftText(c.expiresAt, ui.nowS())
-        : c.mine && c.state === 'filled' ? t('prof.work.yours.collect', 'filled. Collect it at the Market tab')
+        : c.mine && c.state === 'filled' ? t('prof.work.yours.collect', 'filled. Collect it in the Market tab')
           : !c.mine ? commissionSaid(c.state)
-            : c.returned ? t('prof.work.yours.silverBack', '{state}, Imperial Argents back', { state: commissionSaid(c.state) }) : t('prof.work.yours.silverToCome', '{state}, Imperial Argents to come back', { state: commissionSaid(c.state) });
+            : c.returned ? t('prof.work.yours.silverBack', '{state}, Imperial Argents returned', { state: commissionSaid(c.state) }) : t('prof.work.yours.silverToCome', '{state}, Imperial Argents refund pending', { state: commissionSaid(c.state) });
       li.append(el('span', 'work-what', who), el('span', 'work-where', t('prof.work.yours.where', '{where} · {said}', { where, said })));
       if (c.state === 'open' && c.mine) {
-        li.append(why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.cancel(c.id), t('prof.work.comm.withdrawn', 'Withdrawn. {pay} back to your account.', { pay: marksText(c.pay) }))), busyWhy()));
+        li.append(why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.cancel(c.id), t('prof.work.comm.withdrawn', 'Commission withdrawn. {pay} has been returned to your account.', { pay: marksText(c.pay) }))), busyWhy()));
       }
       // AUDIT 31 U4: one naming you - declined from here, filled at its own region's boards
       if (c.state === 'open' && c.forMe) {
-        li.append(el('span', 'work-where', here ? t('prof.work.yours.fillAbove', 'Fill it on its card above.') : t('prof.work.yours.fillThere', 'Filled at the boards of {where}.', { where })), declineButton(c));
+        li.append(el('span', 'work-where', here ? t('prof.work.yours.fillAbove', 'Fill it on the card above.') : t('prof.work.yours.fillThere', 'Fill it at the boards in {where}.', { where })), declineButton(c));
       }
       list.append(li);
     }
@@ -359,7 +359,7 @@ export function createWorkTab(w, ui) {
     }
     for (const x of gc) {   // SILVER-WAYS: the guild's contracts, every region
       const li = el('li', 'work-row');
-      li.append(el('span', 'work-what', t('prof.work.yours.contract', '{guild}: {pay} to each of {n, plural, one {{n, number} defender} other {{n, number} defenders}} more', { guild: guildName(x.guild), pay: marksText(x.pay), n: Number(x.left) })),
+      li.append(el('span', 'work-what', t('prof.work.yours.contract', '{guild}: {pay} each for {n, plural, one {{n, number} more defender} other {{n, number} more defenders}}', { guild: guildName(x.guild), pay: marksText(x.pay), n: Number(x.left) })),
         el('span', 'work-where', t('prof.work.yours.where', '{where} · {said}', { where: x.region === w.region ? t('prof.work.here', 'here') : w.regionNameOf(x.region), said: writLeftText(x.expiresAt, ui.nowS()) })));
       if (x.may) li.append(withdrawContract(x));
       list.append(li);
@@ -373,9 +373,9 @@ export function createWorkTab(w, ui) {
     const box = el('div', 'work-form');
     box.append(el('h3', 'work-head', t('prof.work.contract.title', 'Post a company contract: {guild}', { guild: guildName(g) })));
     const f = st.contract;
-    const pay = input('number', f.pay, t('prof.work.contract.payLabel', 'Argents each defender'), 'contract|pay');
+    const pay = input('number', f.pay, t('prof.work.contract.payLabel', 'Argents per defender'), 'contract|pay');
     pay.min = '1'; pay.max = String(CONTRACT_PAY_MAX);
-    const deeds = input('number', f.deeds, t('prof.work.contract.deedsLabel', 'Defenders it pays'), 'contract|deeds');
+    const deeds = input('number', f.deeds, t('prof.work.contract.deedsLabel', 'Defenders paid'), 'contract|deeds');
     deeds.min = '1'; deeds.max = String(CONTRACT_DEEDS_MAX);
     const said = el('p', 'work-hint');
     said.setAttribute('aria-live', 'polite');
@@ -390,7 +390,7 @@ export function createWorkTab(w, ui) {
           : escrow > (g.marks ?? 0) ? treasuryShort(g)
             : officer && !(g.budget > 0) ? noBudget()
               : officer && escrow > (g.left ?? 0) ? pastBudget(g) : '');
-      said.textContent = t('prof.work.contract.said', 'Pays each defender of a raid in {region}, less 5% tax. Holds {escrow} of the treasury\'s {held} for up to 7 days. Your own Officers and Captain are not paid.',
+      said.textContent = t('prof.work.contract.said', 'Pays each raid defender in {region}, minus 5% tax. Reserves {escrow} from the company treasury ({held} available) for up to 7 days. Your own Officers and Captain are not paid.',
         { region: w.regionName, escrow: marksText(escrow), held: marksText(g.marks ?? 0) })
         + (officer ? ` ${budgetLine(g)}` : '')
         + (reason && !busyWhy() ? ` ${reason}` : '');
@@ -420,10 +420,10 @@ export function createWorkTab(w, ui) {
     const camp = f.seat != null && !!seats.find((x) => x.key === f.seat)?.camp;
     const choices = f.seat != null ? catalogue.filter((m) => FORT_MATERIALS.includes(m.key) || (camp && m.key === RAM_KIT_KEY)) : catalogue.filter((m) => m.key !== RAM_KIT_KEY);
     if (!choices.some((m) => m.key === f.material)) f.material = choices[0]?.key ?? f.material;
-    const forSel = seats.length ? select([['', t('prof.work.writ.guildStores', 'The company Stores')], ...seats.map((x) => [String(x.key), seatWritPlace(x, { cap: true })])], f.seat == null ? '' : String(f.seat),
-      (v) => { f.seat = v === '' ? null : Number(v); ui.rerender(); }, t('prof.work.writ.forLabel', "Where the writ's units go")) : null;
-    const mat = select(choices.map((m) => [m.key, w.countName(m.key, 2)]), f.material, (v) => { f.material = v; f.pay = Math.min(f.pay, writPayMax(v)); ui.rerender(); }, t('prof.work.writ.materialLabel', 'The material the writ asks'));
-    const units = input('number', f.units, t('prof.work.writ.unitsAsked', 'Units the writ asks'), 'writ|units');
+    const forSel = seats.length ? select([['', t('prof.work.writ.guildStores', 'Company Stores')], ...seats.map((x) => [String(x.key), seatWritPlace(x, { cap: true })])], f.seat == null ? '' : String(f.seat),
+      (v) => { f.seat = v === '' ? null : Number(v); ui.rerender(); }, t('prof.work.writ.forLabel', 'Delivery destination')) : null;
+    const mat = select(choices.map((m) => [m.key, w.countName(m.key, 2)]), f.material, (v) => { f.material = v; f.pay = Math.min(f.pay, writPayMax(v)); ui.rerender(); }, t('prof.work.writ.materialLabel', 'Requested material'));
+    const units = input('number', f.units, t('prof.work.writ.unitsAsked', 'Units requested'), 'writ|units');
     units.min = '1'; units.max = String(WRIT_UNITS_MAX);
     const pay = input('number', f.pay, t('prof.work.label.silverEach', 'Argents each'), 'writ|pay');
     pay.min = '1'; pay.max = String(max());
@@ -437,11 +437,11 @@ export function createWorkTab(w, ui) {
       const officer = g.rank !== GUILD_RANK_MASTER;
       // AUDIT 31 U10: every bound the service keeps, said before the press
       const reason = busyWhy()
-        || (standing >= GUILD_WRITS_MAX ? t('prof.work.writ.full', 'The company has {n} writs posted already.', { n: GUILD_WRITS_MAX })
+        || (standing >= GUILD_WRITS_MAX ? t('prof.work.writ.full', 'The company already has {n} writs posted.', { n: GUILD_WRITS_MAX })
           : escrow > (g.marks ?? 0) ? treasuryShort(g)
             : officer && !(g.budget > 0) ? noBudget()
               : officer && escrow > (g.left ?? 0) ? pastBudget(g) : '');
-      said.textContent = t('prof.work.writ.said', 'Holds {escrow} of the treasury\'s {held} for up to 7 days. At most {most} each.',
+      said.textContent = t('prof.work.writ.said', 'Reserves {escrow} of {held} in the treasury for up to 7 days. Maximum pay is {most} each.',
         { escrow: marksText(escrow), held: marksText(g.marks ?? 0), most: marksText(max()) })
         + (officer ? ` ${budgetLine(g)}` : '')
         + (reason && !busyWhy() ? ` ${reason}` : '');
@@ -460,21 +460,21 @@ export function createWorkTab(w, ui) {
     const box = el('div', 'work-form');
     box.append(el('h3', 'work-head', t('prof.work.comm.title', 'Commission a piece')));
     const f = st.comm;
-    const who = input('text', f.crafter, t('prof.work.comm.crafterLabel', 'The crafter\'s name'), 'comm|crafter', 'notice-input work-text');
+    const who = input('text', f.crafter, t('prof.work.comm.crafterLabel', 'Crafter\'s name'), 'comm|crafter', 'notice-input work-text');
     who.maxLength = 24;
     who.placeholder = t('prof.work.comm.crafterHint', 'Their username');
-    const fam = select(CRAFTED_FAMILIES.map(([k, label]) => [k, label]), f.family, (v) => { f.family = v; f.recipe = firstRecipe(v); ui.rerender(); }, t('prof.work.comm.familyLabel', 'The family of piece'));
+    const fam = select(CRAFTED_FAMILIES.map(([k, label]) => [k, label]), f.family, (v) => { f.family = v; f.recipe = firstRecipe(v); ui.rerender(); }, t('prof.work.comm.familyLabel', 'Piece type'));
     const rec = select(recipesOf(f.family).map((r) => [r.id, r.name]), f.recipe, (v) => { f.recipe = v; ui.rerender(); }, t('prof.work.comm.recipeLabel', 'The piece'));
     const takesQ = commissionTakesQuality(f.recipe);
     const q = takesQ ? select(QUALITY_NAMES.map((n, i) => [String(i), t('prof.work.comm.orBetter', '{quality} or better', { quality: n })]), String(f.quality), (v) => { f.quality = intOf(v, 0, MASTERWORK); },
-      t('prof.work.comm.qualityLabel', 'The least quality it takes')) : null;
-    const pay = input('number', f.pay, t('prof.work.comm.payLabel', 'Argents it pays'), 'comm|pay');
+      t('prof.work.comm.qualityLabel', 'Minimum quality')) : null;
+    const pay = input('number', f.pay, t('prof.work.comm.payLabel', 'Payment (Argents)'), 'comm|pay');
     pay.min = '1'; pay.max = String(MARKET_PRICE_MAX);
     const said = el('p', 'work-hint');
     said.setAttribute('aria-live', 'polite');
     const go = button('primary work-post', t('prof.work.comm.go', 'Commission'), () => act(() => w.writs.commission({
       region: w.region, crafter: f.crafter.trim(), recipe: f.recipe, quality: takesQ ? f.quality : null, pay: f.pay,
-    }), () => { st.form = null; return t('prof.work.comm.done', 'Commissioned from {crafter}. The pay is held until it is filled, withdrawn or declined.', { crafter: f.crafter.trim() }); }));
+    }), () => { st.form = null; return t('prof.work.comm.done', 'Commissioned from {crafter}. Payment is held until the commission is filled, withdrawn, or declined.', { crafter: f.crafter.trim() }); }));
     const mineOpen = (data?.yours?.commissions ?? []).filter((c) => c.mine && c.state === 'open').length;
     const balance = Number.isSafeInteger(data?.balance) ? data.balance : null;
     const refresh = () => {
@@ -486,8 +486,8 @@ export function createWorkTab(w, ui) {
             : data?.me && name.toLowerCase() === String(data.me).toLowerCase() ? t('prof.work.comm.self', 'You cannot commission yourself.')
               : !f.recipe ? t('prof.work.comm.noRecipe', 'Choose the piece.')
                 : mineOpen >= COMMISSIONS_MAX ? t('prof.work.comm.full', 'You have {n} commissions posted already.', { n: COMMISSIONS_MAX })
-                  : balance != null && f.pay > balance ? t('prof.work.comm.short', 'You hold only {balance}.', { balance: marksText(balance) }) : '');
-      said.textContent = t('prof.work.comm.said', 'Holds {pay} for 7 days. The crafter gets it, less {tax} tax, for an unworn piece they made. Up to {n} at a time.',
+                  : balance != null && f.pay > balance ? t('prof.work.comm.short', 'You only have {balance}.', { balance: marksText(balance) }) : '');
+      said.textContent = t('prof.work.comm.said', 'Holds {pay} for 7 days. The crafter receives the payment, minus {tax} tax, for delivering an unworn piece they crafted. Limit {n} at a time.',
         { pay: marksText(f.pay), tax: marksText(saleTax(f.pay)), n: COMMISSIONS_MAX })
         + (reason && !busyWhy() ? ` ${reason}` : '');
       why(go, reason);

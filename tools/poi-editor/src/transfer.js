@@ -1,10 +1,5 @@
 // @ts-check
 
-// The editor's store and file actions beyond save and submit: an approver's review of the queue (the change shown
-// against the live revision, the approval naming the exact document it read), a rollback, a withdrawal, a .zip POI pack
-// out and in, and a .glb model in. Each reuses the game's own modules (poi/poiTransfer.js, poi/poiImport.js,
-// poi/gltfImport.js, poi/poiDiff.js), so a pack or a model means the same thing here and in the old editor.
-
 import { exportPack, importPack, fileNameOf } from '../../../src/poi/poiTransfer.js';
 import { readPackBytes } from '../../../src/poi/poiPack.js';
 import { readGltf, bakeGltf } from '../../../src/poi/gltfImport.js';
@@ -14,7 +9,7 @@ import { poiDiff } from '../../../src/poi/poiDiff.js';
 import { diffText, packErrorText, gltfErrorText, meshErrorText, problemText } from '../../../src/poi/poiText.js';
 import { ask, confirmBox } from './ui/dialog.js';
 
-/** Let the builder pick a file. @param {string} accept @returns {Promise<File | null>} */
+/** @param {string} accept @returns {Promise<File | null>} */
 export function pickFile(accept) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -24,7 +19,7 @@ export function pickFile(accept) {
     input.click();
   });
 }
-/** Hand the builder a file. @param {Uint8Array} bytes @param {string} name @param {string} type */
+/** @param {Uint8Array} bytes @param {string} name @param {string} type */
 export function download(bytes, name, type) {
   const url = URL.createObjectURL(new Blob([bytes], { type }));
   const a = document.createElement('a');
@@ -33,7 +28,7 @@ export function download(bytes, name, type) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** What a revision changes, as lines. @param {any} live @param {any} doc */
+/** @param {any} live @param {any} doc */
 export const diffLines = (live, doc) => poiDiff(live, doc).map((c) => { try { return diffText(c); } catch { return c.code; } });
 
 /**
@@ -42,7 +37,6 @@ export const diffLines = (live, doc) => poiDiff(live, doc).map((c) => { try { re
  */
 export function createTransfer({ api, edit, getDoc, docId, say, act, opened, refresh }) {
   return {
-    /** The open POI, every asset it names with it, as a .zip pack. */
     async exportPack() {
       const doc = getDoc();
       if (!doc) return;
@@ -51,7 +45,6 @@ export function createTransfer({ api, edit, getDoc, docId, say, act, opened, ref
       download(r.bytes, fileNameOf(doc.name, 'zip'), 'application/zip');
       say(`Exported ${doc.name} as a pack.`);
     },
-    /** A pack's POIs opened as drafts, its assets uploaded first. */
     async importPack() {
       const f = await pickFile('.zip');
       if (!f) return;
@@ -67,7 +60,6 @@ export function createTransfer({ api, edit, getDoc, docId, say, act, opened, ref
       say(`Imported ${r.open.length} POI(s) as drafts; ${r.uploaded} asset(s) uploaded, ${r.existed} already stored. Save to keep them.`);
       refresh();
     },
-    /** A .glb (or a .gltf with its files inlined) as parts of the open POI, its meshes and pictures uploaded. */
     async importGlb() {
       if (!getDoc()) { say('Open a POI first.'); return; }
       const f = await pickFile('.glb,.gltf');
@@ -87,7 +79,6 @@ export function createTransfer({ api, edit, getDoc, docId, say, act, opened, ref
       });
       say(`Imported ${up.asset.parts.length} part(s) from ${f.name}.`);
     },
-    /** An approver's review: a submission from the queue, its change against the live revision, then approve or reject. */
     async review() {
       const q = await api.queue();
       if (!q.ok) { say(`The store said: ${q.error}`); return; }
@@ -104,14 +95,13 @@ export function createTransfer({ api, edit, getDoc, docId, say, act, opened, ref
       if (!w) return;
       if (w.verdict === 'open') { edit.open(x.id, { doc: structuredClone(x.doc), saved: x.doc, base: x.liveRev, rev: x.rev, state: 'submitted' }); opened(x.id); refresh(); return; }
       if (!(await confirmBox(w.verdict === 'approve' ? 'Approve' : 'Reject', w.verdict === 'approve' ? 'Players will see this revision.' : 'The builder can fix it and submit again.', w.verdict === 'approve' ? 'Approve' : 'Reject'))) return;
-      // the approval names the document read (docSha): a change saved over it since is refused, never approved unseen
+      // The docSha makes the server refuse the approval when the POI changed after the approver read it.
       const r = await api.review(x.id, x.rev, w.verdict, w.note || null, x.docSha ?? null);
       say(r.ok ? `${w.verdict === 'approve' ? 'Approved, now live' : 'Rejected'}: ${x.doc?.name ?? x.id} revision ${x.rev}.` : `Not decided: ${r.error}${r.error === 'poi-changed' ? ' (it changed since you read it; review again)' : ''}`);
       const e = edit.entryOf(x.id);
       if (r.ok && e) edit.markSaved(x.id, { rev: x.rev, state: r.data.state });
       refresh();
     },
-    /** An approver puts an earlier approved revision back in the world (recorded as a revision of its own). */
     async rollback() {
       const id = docId();
       if (!id) { say('Open a POI first.'); return; }
@@ -125,7 +115,6 @@ export function createTransfer({ api, edit, getDoc, docId, say, act, opened, ref
       say(r.ok ? `Revision ${v.rev} is live again. The rollback is recorded as a new revision.` : `Not rolled back: ${r.error}`);
       refresh();
     },
-    /** The author takes a submission back. */
     async withdraw() {
       const id = docId(), e = id ? edit.entryOf(id) : null;
       if (!e || e.state !== 'submitted') { say('Only a submitted revision can be withdrawn.'); return; }

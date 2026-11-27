@@ -1,4 +1,3 @@
-// The `trade` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, byteGate, isChatRoom, tokenGate, TRADE_ROOM_HZ_MAX, TRADE_ROOM_BYTES_PER_S } from '../../relay.js';
 
 export function tradeFrame(ws, a, m) {

@@ -1,10 +1,5 @@
 // @ts-check
 
-// THE GAME'S PLACES, for finding one by name and for drawing its buildings round a POI. The towns, cities and dungeons
-// come from MAPS.BSA; a place's buildings are laid out by the game's own layoutLocation (world/locationLayout.js), so a
-// building stands where it does in the game. Heights: a place's ground is the flat plane the game cuts for it, the
-// pixel's average height (the same calcAvgMaxHeight the game's terrain kernel takes).
-
 import { MapsFile, longitudeLatitudeToMapPixel } from '../../../src/formats/mapsFile.js';
 import { BlocksFile } from '../../../src/formats/blocksFile.js';
 import { layoutLocation, RMB_SIDE } from '../../../src/world/locationLayout.js';
@@ -16,8 +11,8 @@ const TILE_SIDE = TERRAIN_SIZE / 128;
 const WORLD_HEIGHT = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;
 
 /**
- * @param {(name: string) => Promise<Uint8Array>} read an ARENA2 file's bytes
- * @param {() => any} getWoods the loaded WoodsFile (the ground's), or null
+ * @param {(name: string) => Promise<Uint8Array>} read
+ * @param {() => any} getWoods
  */
 export function createPlaces(read, getWoods = () => null) {
   /** @type {'unknown' | 'loaded' | 'missing'} */
@@ -31,9 +26,7 @@ export function createPlaces(read, getWoods = () => null) {
 
   return {
     state: () => status,
-    /** Why the places could not be loaded (the file that was missing), or ''. */
     why: () => why,
-    /** Load the map tables and the block library, and list every place. Answers whether they are there. */
     async open() {
       try {
         const m = new MapsFile(); m.autoDiscard = false;
@@ -56,10 +49,6 @@ export function createPlaces(read, getWoods = () => null) {
       } catch (e) { status = 'missing'; why = String(e?.message ?? e); maps = null; blocks = null; list = []; }
       return status === 'loaded';
     },
-    /**
-     * Places matching `text`, best first: the name itself (exact, then all words in the name), then places only the region
-     * name matches. "wayrest, wayrest" or "wayrest in wayrest" asks for a name inside a region.
-     */
     find(text, max = 40) {
       const parts = String(text).toLowerCase().split(/,|\bin\b/).map((x) => x.trim()).filter(Boolean);
       const nameWords = (parts[0] ?? '').split(/\s+/).filter(Boolean), regionWords = (parts[1] ?? '').split(/\s+/).filter(Boolean);
@@ -74,20 +63,13 @@ export function createPlaces(read, getWoods = () => null) {
       };
       return list.map((p) => ({ p, k: rank(p) })).filter((x) => x.k >= 0).sort((a, b) => a.k - b.k || a.p.name.length - b.p.name.length).slice(0, max).map((x) => x.p);
     },
-    /**
-     * Where a place's middle is in its pixel's frame (x east, z north of the pixel's south-west corner), and its size.
-     * @param {{ regionIndex: number, locationIndex: number }} p
-     */
+    /** @param {{ regionIndex: number, locationIndex: number }} p */
     centreOf(p) {
       const loc = maps?.getLocation(p.regionIndex, p.locationIndex);
       if (!loc) return null;
       const o = getLocationTerrainTileOrigin(loc), w = loc.exterior.exteriorData.width, h = loc.exterior.exteriorData.height;
       return { x: o.x * TILE_SIDE + (w * RMB_SIDE) / 2, z: o.y * TILE_SIDE + (h * RMB_SIDE) / 2, width: w * RMB_SIDE, depth: h * RMB_SIDE };
     },
-    /**
-     * The buildings of the place on a map pixel, in the pixel's frame: `[{ id, m }]` (ARCH3D model id, a column-major 4 x 4),
-     * and the plane the game cuts for the place. Null when the pixel has no place.
-     */
     at(px, py) {
       const key = `${px},${py}`;
       if (cache.has(key)) return cache.get(key);

@@ -1,20 +1,5 @@
-// MW-D9g: THE SEAM NOTHING HAS EVER RUN.
-//
-// mwArmProbe proves the ARM draws: it builds one and calls update/draw
-// itself. test/formats/morrowind/fparm.test.js proves the ENGINE's arithmetic. Both of them
-// drive fpArm DIRECTLY, and its own header says what that leaves out:
-// "weaponRig's branch, the four hosts' camera dep, and the enhanced-menu
-// card are pinned in node and proven by Mac in the game".
-//
-// Mac has now reported twice that a BUILT arm does not appear. The first
-// cause was exactly in that gap (the rig gated update() on active(),
-// which update() is the only thing that can make true). This probe closes
-// the gap for good: it constructs the REAL createWeaponRig against a REAL
-// WebGL2 renderer and drives rig.frame()/rig.draw() the way a host does,
-// then reads the DEFAULT FRAMEBUFFER - the pixels a player would see -
-// rather than the offscreen target the arm probe reads.
-//
-// Usage: node tools/mwRigProbe.mjs
+// Browser probe: drives the real weapon rig the way a host does and reads the default framebuffer for the arm.
+// Usage: node tools/mwRigProbe.mjs.
 import { readFileSync } from 'node:fs';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
@@ -44,11 +29,6 @@ const body = (id, race, part, model) => {
   return [...ascii('BODY'), ...u32(d.length), ...u32(0), ...u32(0), ...d];
 };
 const loose = (n) => [...readFileSync(`test/fixtures/mw/${n}`)];
-// The FIRST-PERSON-SHAPED fixtures (MW-D10). armskel's arms hang
-// straight down like a T-pose and armidle swings them 90 degrees, which
-// is right for the clip laws they were built for and useless for
-// measuring where an arm lands on screen. These have an eye, arms
-// forward of and below it, and a quiet sway.
 const BSA = buildBsa([
   { name: 'meshes\\XBase_Anim.1st.nif', data: loose('armfp.nif') },
   { name: 'meshes\\b\\H1.nif', data: loose('armfphand.nif') },
@@ -89,7 +69,6 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
   document.body.append(cv);
   const renderer = new Renderer(cv);
 
-  // THE HOST'S OWN CONSTRUCTION, as world.js:"const weaponRig = createWeaponRig" writes it.
   const entity = { items: [], equipCountdown: 0 };
   const log = [];
   const weaponRig = rig.createWeaponRig({
@@ -104,7 +83,6 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
     bindWorn: false,
   });
 
-  // The card's build: the SHIPPED singleton, which is what the rig holds.
   const archive = new MwBsaFile(bytes(bsa));
   const built = await fp.fpArm.build({
     race: 'fprace',
@@ -116,11 +94,7 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
     },
   });
 
-  // A LIT-PIXEL COUNT CANNOT FAIL HERE: the canvas is opaque, so every
-  // pixel is "lit" whether the arm drew or not - the first run of this
-  // probe answered 691200 out of 960x720, which is the whole screen.
-  // What can fail is a DIFFERENCE against the same frame with the arm
-  // unloaded, which is the picture the player has been getting.
+  // The canvas is opaque, so every pixel counts as lit; the arm is measured against the same frame without it.
   const grab = () => {
     const gl = renderer.gl;
     const w = gl.drawingBufferWidth; const h = gl.drawingBufferHeight;
@@ -129,19 +103,9 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
     return { px, w, h };
   };
-  // WHERE, not just whether. MW-D8's framing put the arms adrift at the
-  // horizon and every measurement in this tree still passed, because all
-  // of them asked "are there lit pixels" or "is the model symmetric" -
-  // questions a mis-framed arm answers yes to. This one asks where on
-  // the screen the ink landed.
   const diff = (a, b) => {
     let n = 0; let sx = 0; let sy = 0;
     let minY = 1e9; let maxY = -1e9;
-    // MW-D11: the fixture texture is four solid quadrants - RED, GREEN,
-    // BLUE and white - so a TEXTURED arm puts strongly-hued pixels on the
-    // screen and an untextured one (white lit by a white sun) cannot.
-    // "Is there ink" passed a flat arm for three slices; this asks what
-    // COLOUR the ink is.
     let hued = 0;
     for (let i = 0, p = 0; i < a.px.length; i += 4, p++) {
       if (Math.abs(a.px[i] - b.px[i]) > 6 || Math.abs(a.px[i + 1] - b.px[i + 1]) > 6
@@ -154,7 +118,7 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
         if (y < minY) minY = y; if (y > maxY) maxY = y;
       }
     }
-    // readPixels puts y = 0 at the BOTTOM, so a small y is low on screen.
+    // readPixels puts y = 0 at the bottom, so a small y is low on screen.
     return n ? {
       n,
       hued,
@@ -165,7 +129,6 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
     } : { n: 0 };
   };
 
-  // A neutral world frame, then the host's two calls, in the host's order.
   const I = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
   const beforeToggle = { sheathed: weaponRig.playerWeapon.sheathed };
   weaponRig.toggleSheath();
@@ -181,27 +144,15 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
   const withArm = grab();
   const armFrames = fp.fpArm.frames;
   const activeWhenDrawn = fp.fpArm.active();
-  // Look UP. The arms are attached to the rig, not the lens, so they
-  // must slide DOWN the frame - the neck takes 0.75 of the pitch and
-  // the lens all of it, which is the lag rule 54 produces.
   window.__pitch = 0.5;
   runFrames(1);
   const pitchedUp = grab();
 
-  // THE CONTROL: the same host, the same frames, no arm. Whatever this
-  // leaves on the screen is what Mac has been looking at.
   fp.fpArm.unload();
   runFrames(4);
   const withoutArm = grab();
 
-  // ---- THE BOOT ORDER, which is the order a player actually hits.
-  //
-  // scenes/shared.js starts registerMorrowindData() when a host boots and
-  // does not wait for it; createWeaponRig latches the generation
-  // SYNCHRONOUSLY, during the same host setup. So the rig's latch is
-  // taken BEFORE the count lands. If that first count counts as a
-  // generation change, the rig's very first frame calls fpArm.unload()
-  // and throws away whatever the player built.
+  // The rig latches the data generation during host setup, before the first Morrowind data count lands.
   const ds = await import('/src/scenes/dataSource.js');
   const rebuilt = await fp.fpArm.build({
     race: 'fprace',
@@ -225,7 +176,7 @@ const out = await page.evaluate(async ({ bsa, esm }) => {
   });
   rig2.toggleSheath();
   const genBefore = ds.morrowindDataGeneration();
-  await ds.registerMorrowindData().catch(() => 0);     // the boot arm landing
+  await ds.registerMorrowindData().catch(() => 0);
   const genAfter = ds.morrowindDataGeneration();
   renderer.beginFrame(I, I, new Float32Array([0.3, -0.9, 0.2]));
   rig2.frame(1 / 60);

@@ -1,4 +1,5 @@
-// Real ARENA2 texture rendering and browser input; the body-hold seam is injected.
+// Browser probe for Farming Mode on real ARENA2 textures with real input; the body-hold seam is injected.
+// Run: ARENA2_PATH=... node tools/farmingModeUiProbe.mjs.
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
@@ -21,7 +22,7 @@ try {
     const {stepFarmUpgrade,stepFarmDelivery}=await import('/src/net/farmProgressLaw.js');
     const { stepFarmHaul } = await import('/src/net/farm/haulLaw.js');
     const { stepFarmWorkshop } = await import('/src/net/farm/workshopLaw.js'); const { stepFarmHerdAction } = await import('/src/net/farm/herdLaw.js'); const { farmWeek } = await import('/src/net/farmProgressLaw.js');
-    const { stepFarmPlough } = await import('/src/net/farmGardenLaw.js'); const { stepFarmStation } = await import('/src/net/farm/stationLaw.js');   // PHASE 5
+    const { stepFarmPlough } = await import('/src/net/farmGardenLaw.js'); const { stepFarmStation } = await import('/src/net/farm/stationLaw.js');
     const { registerFlatField } = await import('/src/world/flatFields.js');
     const { perspective, mirrorProjectionX, lookAt } = await import('/src/world/mat4.js');
     const { projectToScreen } = await import('/src/player/tapRay.js');
@@ -43,7 +44,6 @@ try {
     const uploadRecord = (archive, record, opts = {}) => { const texture = textures.get(archive); renderer.uploadTexture(archive, record, texture.getColor32(texture.getDFBitmap(record,0),opts.opaque ? -1 : 0), opts); };
     const farm = { mapId: 42, name: 'Test farm', choreDone: false };
     const book = { placeOf: () => ({ px: 1, py: 2 }), mine: () => ({ farms: observer || p.visitor ? [] : [farm] }), atFarm: () => true, visibleHere: () => farm, refresh() {},
-      // PHASE 7: market day - the gate for a visitor, and the service's answers to the market's acts
       marketHere: () => (p.visitor ? farm : null),
       async market(id, body) { (window.__bookReqs ??= []).push(body); return { ok: true, data: body.op === 'read' ? structuredClone(p.marketData) : {} }; },
       async garden(id, body = {}) {
@@ -72,7 +72,6 @@ try {
       p.glError = renderer.gl.getError(); p.proj = proj; p.view = view; p.eye = eye;
     };
     p.bedPoint = (i) => projectToScreen([(i%4+.5)*2,0,(Math.floor(i/4)+.5)*2],canvas.clientWidth,canvas.clientHeight,p.proj,p.view,renderer.worldViewportRect);
-    // FARM EXPANSION PHASE 1: the farmyard's fixtures, where they stand on screen; walk to one before using it
     p.project = (at) => projectToScreen(at, canvas.clientWidth, canvas.clientHeight, p.proj, p.view, renderer.worldViewportRect);
     p.fixture = (id) => p.mode.inspect().fixtures.find((f) => f.id === id);
     p.fixturePoint = (id) => { const f = p.fixture(id); return projectToScreen([f.pos[0], f.pos[1] + f.h * .5, f.pos[2]], canvas.clientWidth, canvas.clientHeight, p.proj, p.view, renderer.worldViewportRect); };
@@ -95,7 +94,6 @@ try {
   await page.keyboard.press('3'); await clickBed(0);
   assert.ok(await page.evaluate(() => window.probe.garden.beds[0].wetUntil > window.probe.now));
   assert.equal(await page.evaluate(() => window.probe.glError), 0, 'WebGL upload/draw error');
-  // A separate browser page is a visitor with no Company, no Farming Mode and no input holds.
   const visitor = await browser.newPage({viewport:{width:1122,height:800}});
   await visitor.route('**/__farming_probe*',route=>route.fulfill({contentType:'text/html',body:'<canvas style="width:100vw;height:100vh;display:block"></canvas>'}));
   await visitor.exposeFunction('remoteFarmRead',()=>page.evaluate(()=>({ok:true,data:{garden:structuredClone(window.probe.garden),version:window.probe.version,nowS:window.probe.now}})));
@@ -130,7 +128,6 @@ try {
   await page.mouse.move(atZoom.x, atZoom.y); await page.mouse.wheel(0, 100);
   await page.evaluate(() => { for(let i=0;i<20;i++) window.probe.render(); });
   assert.ok(await page.evaluate(before => window.probe.eye[1] > before + .3, zoomBefore), 'Wheel zoom did not raise the camera');
-  // THE FARMYARD (docs/FARM-EXPANSION.md section 3): every fixture laid out, drawn without a GL error, and used in place
   const ids = await page.evaluate(() => window.probe.mode.inspect().fixtures.map((f) => f.id));
   for (const id of ['orderPost', 'wagon', 'ledger', 'apiary', 'seed:grain', 'seed:mushroom', 'seed:herbs', 'toolRack', 'well', 'compost', 'haystack', 'scarecrow']) assert.ok(ids.includes(id), `farmyard lacks ${id}`);
   assert.equal(await page.evaluate(() => window.probe.glError), 0, 'farmyard draw error');
@@ -150,7 +147,6 @@ try {
   await page.waitForTimeout(1100);await page.evaluate(()=>window.probe.render());
   assert.equal(await page.getByRole('button',{name:'Progress & orders',exact:true}).count(),0,'The sidebar is gone');
   await useFixture('ledger');
-  // 2026-11-20: the ledger opens one page with everything (it used to speak one line a click)
   assert.equal(await page.locator('.farm-ledger').count(), 1, 'The ledger opens its page');
   const ledgerText = await page.locator('.farm-ledger').textContent();
   for (const want of ['This week', 'wagon', 'Harvested here', '19,000', 'Improvements', 'Workshops', 'Animals']) assert.ok(ledgerText.includes(want), `the ledger page shows "${want}": ${ledgerText.slice(0, 300)}`);
@@ -170,7 +166,6 @@ try {
   await page.waitForFunction(()=>window.probe.garden.progress.upgrades.tools===1);
   await useFixture('orderPost');
   assert.ok((await page.locator('.farm-message').textContent()).includes('filled this week'), 'The order post shows the filled order');
-  // THE WORKSHOPS (Phase 4): a staked plot, ordered built with Y/N, rising, then a batch from its crate and the shelf collected
   const shops = await page.evaluate(() => ['windmill', 'press', 'churn', 'smokehouse', 'loom', 'brewery'].filter((id) => window.probe.fixture(id)));
   console.log('workshops placed on the probe farm:', shops.join(',') || 'none');
   assert.ok(shops.includes('windmill') || shops.length, 'the farmstead has room for a workshop');
@@ -192,7 +187,6 @@ try {
   assert.equal(await page.evaluate(() => window.probe.glError), 0, 'shelf draw error');
   await useFixture(`${shop}:out`);
   await page.waitForFunction((s) => !window.probe.garden.batches?.[s], shop);
-  // SACKS (section 3.3): a harvest's sack is shouldered at its bed and loaded onto the wagon
   await page.evaluate(()=>{const p=window.probe;p.garden.sacks=[{id:7,crop:'grain',qty:2,bed:0,t:p.now},{id:8,crop:'grain',qty:3,bed:0,t:p.now}];p.garden.nextSack=9;p.version++;});
   await page.waitForTimeout(1100);await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
   assert.equal(await page.evaluate(()=>window.probe.mode.inspect().sacks.length),2,'The sacks lie at their bed');
@@ -205,8 +199,7 @@ try {
   await page.waitForFunction(()=>window.probe.garden.cargo?.grain===5);
   assert.deepEqual(await page.evaluate(()=>window.probe.mode.inspect().carried),[],'The wagon takes the sacks');
   assert.equal(await page.evaluate(()=>window.probe.glError),0,'sack draw error');
-  // THE HERD (PHASE 3): a cow in the pen is drawn, clicked and fed - through the same fake book as every other act.
-  // A read is started inside frame() and answers after it: wait for the mode to take the new version, THEN render again.
+  // A read starts inside frame() and resolves after it, so wait for the new version before rendering again.
   await page.evaluate(()=>{const p=window.probe;p.garden.herd=[{id:1,kind:'cow',name:'Bessie',tick:p.now,fedUntil:p.now,wateredUntil:p.now,content:60}];p.version++;});
   await page.waitForFunction(()=>{window.probe.render();return window.probe.mode.inspect().version===window.probe.version;},null,{timeout:5000});
   await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
@@ -218,11 +211,10 @@ try {
   assert.equal(await page.evaluate(()=>window.probe.requests.filter((r)=>r.op==='herd').at(-1).act),'feed','Clicking the hungry cow feeds her');
   await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
   assert.equal(await page.evaluate(()=>window.probe.glError),0,'herd draw error');
-  // CAREFUL WORK (PHASE 2): F turns sowing into the sowing game, pinned over the bed; its report rides the planting
   await page.evaluate(()=>{const p=window.probe;p.feet=[(1%4+.5)*2-1.6,0,(Math.floor(1/4)+.5)*2];for(let i=0;i<30;i++)p.render();});
   await page.keyboard.press('f'); await page.keyboard.press('2'); await page.evaluate(()=>window.probe.render());
   assert.equal(await page.locator('.farm-careful').getAttribute('aria-pressed'),'true','Careful work is on');
-  const acts=()=>page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').length);   // the once-a-second reads are not actions
+  const acts=()=>page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').length);
   const sowBefore=await acts();
   await clickBed(1);
   assert.equal(await page.locator('.farm-game').count(),1,'The sowing game appears over the bed');
@@ -233,7 +225,6 @@ try {
   const sowReq=await page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').at(-1));
   assert.equal(sowReq.op,'plant');assert.equal(sowReq.game?.kind,'sow','The play rides the planting');assert.ok(sowReq.game.ms>=2500,'A real play takes its time: '+sowReq.game.ms);
   await page.keyboard.press('f');
-  // SWORN BEASTS (PHASE 5): beast posts on the farmstead; a sworn wolf walked to one is stationed with Y, drawn and held by the farm, called back with Y
   assert.ok(await page.evaluate(() => window.probe.mode.inspect().fixtures.some((f) => f.id === 'beastPost0')), 'The farmstead has beast posts');
   await useFixture('beastPost0');
   assert.ok((await page.locator('.farm-message').textContent()).includes('sworn beast'), 'With no beast at my side the post says so');
@@ -260,7 +251,6 @@ try {
   await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
   await page.waitForFunction(() => !window.probe.garden.stations?.length);
   assert.equal(await page.evaluate(() => { const p = window.probe; return p.sworn.R.revenantRecord(p.sworn.player, 'w1').companion.state; }), 'with', 'called back, it walks at my heel again');
-  // the ploughing game: a stationed grizzly and Careful work make the hoe on wild ground a row-ploughing game
   await page.evaluate(() => { const p = window.probe, g = p.garden; g.stations = [{ player: 'tester', character: 'char1', revenantId: 'b1', kind: 4, name: 'Bruin the Scarred', rank: 3, art: null, post: 1, since: 1 }]; g.stationDay = Math.floor(p.now / 86400); p.version++; });
   await page.waitForTimeout(1100); await page.evaluate(() => window.probe.render());
   await page.evaluate(() => { const p = window.probe; p.feet = [(9 % 4 + .5) * 2 - 1.6, 0, (Math.floor(9 / 4) + .5) * 2]; for (let i = 0; i < 30; i++) p.render(); });
@@ -275,8 +265,6 @@ try {
   assert.ok(ploughReq && ploughReq.beds.includes(9) && ploughReq.game.kind === 'plough' && ploughReq.game.ms >= 6000, 'The play rides the ploughing: ' + JSON.stringify(ploughReq));
   assert.ok(await page.evaluate(() => Object.values(window.probe.garden.beds).filter((b) => b && b.crop === null && b.care >= 1).length) >= 1, 'The plough turned wild beds with care');
   await page.keyboard.press('f');
-  // PHASE 7: MARKET DAY - the green appears on the farm's market day, a stall is stocked and bought from, a table is entered,
-  // and a visitor may use the green and nothing else
   await page.evaluate(async () => {
     const m = await import('/src/net/farm/marketLaw.js'), p = window.probe;
     let n = p.now; while (!m.marketToday(42, n)) n += 86400; p.now = n;
@@ -291,12 +279,12 @@ try {
   if (process.env.MARKET_SHOT) { await page.evaluate(() => { const p = window.probe; p.walkTo('stall1'); p.cam.yaw = 0; for (let i = 0; i < 10; i++) p.render(); }); await page.screenshot({ path: process.env.MARKET_SHOT }); }
   const marketAct = (id) => useFixture(id);
     await page.evaluate(() => { window.probe.asked = null; });
-  await marketAct('stall0');   // a member's click on a stocked stall asks: buy one, five, stock more
+  await marketAct('stall0');
   assert.ok(await page.evaluate(() => !!window.probe.asked), 'A stall asks before money moves');
   assert.ok(await page.evaluate(() => window.probe.asked.options.some((o) => o.code === 'KeyY') && window.probe.asked.options.some((o) => o.code === 'KeyS')));
   await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
   await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
-  await marketAct('stall1');   // an empty stall: a member picks a lot from the Stores
+  await marketAct('stall1');
   assert.ok(await page.evaluate(() => window.probe.asked?.options.some((o) => o.code === 'Digit1')), 'An empty stall offers the Stores\' goods');
   await page.evaluate(() => { window.probe.asked.input('Digit1'); window.probe.asked = null; });
   await marketAct('table0');
@@ -305,7 +293,6 @@ try {
   await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
   const ops = await page.evaluate(() => window.__bookReqs.filter((r) => r.op !== 'read').map((r) => [r.op, r.slot ?? r.contest, r.material ?? null, r.qty ?? null]));
   assert.deepEqual(ops, [['buy', 0, 'food:grain', 1], ['stock', 1, 'food:corn', 10], ['enter', 'sheaf', null, null]], JSON.stringify(ops));
-  // a visitor of no Company: the stall buys, the order post is not theirs
   await page.keyboard.press('Escape');
   await page.evaluate(async () => { const p = window.probe; p.visitor = true; p.asked = null; await p.enter(); for (let i = 0; i < 20; i++) p.render(); });
   assert.ok(await page.evaluate(() => window.probe.mode.active), 'A visitor enters Farming Mode on market day');

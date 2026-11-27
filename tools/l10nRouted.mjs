@@ -1,16 +1,5 @@
-// L10N3d (2026-09-27): THE DFU WORDS THE PORT ROUTES, READ OFF THE SOURCE.
-//
-// DFU shows its interface words through TextManager.GetLocalizedText(key); the port holds them as constants and reads
-// each through the text core where it is shown. This reads every such word in src/ - each `localizedText('key', ...)`
-// and `localizedTextList('key', [...])` with a literal key, and each entry of a `localizedStrings({...})` or
-// `localizedTable({...})` table, in a module that imports them from systems/textManager.js (under any local name); an
-// English may be a literal or the module's own `const NAME = '...'` -
-// for test/systems/l10n3d_sites.test.js's pins, and says how far the routing has come.
-//
-//   node tools/l10nRouted.mjs            the routed words, file by file (the sites test's ROUTED map), the name lookups
-//                                        file by file (its NAMED map), the grammar's sites file by file
-//                                        (test/ui/l10n3g_wiring.test.js's GRAMMAR map), and coverage:
-//                                        DFU's keys the port routes, of those DFU's own code asks for by name
+// Lists the Daggerfall Unity text keys that src/ routes through the text core, the name lookups, and grammar sites.
+// Run: node tools/l10nRouted.mjs (DFU_SCRIPTS=<DFU Assets/Scripts> adds the keys DFU code asks for by name).
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +10,6 @@ import { isMain } from './lib/isMain.mjs';
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ROUTERS = new Set(['localizedText', 'localizedTextList', 'localizedStrings', 'localizedTable']);
 
-/** DFU's English, collection -> Map(key -> English): the vendored master tables (vendor/dfu-text). */
 export function dfuTables(root = ROOT) {
   const out = new Map();
   for (const [collection, name] of Object.entries(DEFAULT_COLLECTION_NAMES)) {
@@ -38,11 +26,8 @@ const walk = (d, out = []) => {
 };
 const literal = (n) => (n?.type === 'Literal' && typeof n.value === 'string' ? n.value
   : n?.type === 'TemplateLiteral' && !n.expressions.length ? n.quasis[0].value.cooked : undefined);
-/** A router's collection argument: `TextCollections.<name>`, Internal when there is none, null for anything else. */
 const collectionOf = (n) => (n?.type === 'MemberExpression' && n.object?.name === 'TextCollections' ? n.property.name : n ? null : 'Internal');
 
-/** Each src/ module (not the text core itself) that imports one of `names` from systems/textManager.js, parsed:
- *  { file, ast, local } - `local` maps the name the module calls it by to the core's own name (an alias kept). */
 function* coreCallers(root, names) {
   for (const path of walk(join(root, 'src'))) {
     const file = relative(root, path).split('\\').join('/');
@@ -59,7 +44,6 @@ function* coreCallers(root, names) {
   }
 }
 
-/** Every node of `ast`, with whether it stands inside a function - a call outside every function runs once, at load. */
 function walkNodes(ast, onNode) {
   const visit = (n, inFn) => {
     if (!n || typeof n.type !== 'string') return;
@@ -74,14 +58,10 @@ function walkNodes(ast, onNode) {
   visit(ast, false);
 }
 
-/**
- * Every routed word in src/: { file, line, via, key, en, collection, loose }. `en` is undefined where the English is
- * not a literal; `loose` marks a single word read outside any function - once, at module load.
- */
 export function routedWords(root = ROOT) {
   const out = [];
   for (const { file, ast, local } of coreCallers(root, ROUTERS)) {
-    const consts = new Map();   // a module's own `const NAME = 'text'` (exported or not): an English held by name
+    const consts = new Map();
     for (const d of ast.body) {
       const decl = d.type === 'ExportNamedDeclaration' ? d.declaration : d;
       if (decl?.type !== 'VariableDeclaration' || decl.kind !== 'const') continue;
@@ -98,7 +78,7 @@ export function routedWords(root = ROOT) {
         out.push({ file, line, via, key: str(a), en, collection: collectionOf(c), loose: !inFn });
       } else if ((via === 'localizedStrings' || via === 'localizedTable') && a?.type === 'ObjectExpression') {
         for (const p of a.properties) {
-          if (via === 'localizedTable' && /FunctionExpression$/.test(p.value?.type ?? '')) continue;   // the port's own line beside DFU's - its words are a `t` call's, read off by l10nExtract
+          if (via === 'localizedTable' && /FunctionExpression$/.test(p.value?.type ?? '')) continue;
           const pair = via === 'localizedTable' && p.value?.type === 'ArrayExpression' ? p.value.elements : null;
           const key = via === 'localizedTable' ? str(pair?.[0]) : (p.key.name ?? String(p.key.value));
           out.push({ file, line: p.loc.start.line, via, key, en: str(via === 'localizedTable' ? pair?.[1] : p.value), collection: collectionOf(b), loose: false });
@@ -112,11 +92,6 @@ export function routedWords(root = ROOT) {
 const NAMERS = new Set(['getLocalizedLocationName', 'getLocalizedRegionName', 'getLocalizedEnemyName', 'getLocalizedSpellName',
   'getLocalizedItemName', 'getLocalizedMagicItemName', 'getLocalizedFactionName']);
 
-/**
- * L10N3e: every call to one of DFU's name lookups (the text core's getLocalized*Name, under any local name) in src/ -
- * the names come from the game's own data, so there is no English to hold to a table here, only the site:
- * { file, line, via, loose }, `loose` a lookup made once at module load.
- */
 export function namedSites(root = ROOT) {
   const out = [];
   for (const { file, ast, local } of coreCallers(root, NAMERS)) {
@@ -127,12 +102,6 @@ export function namedSites(root = ROOT) {
   return out;
 }
 
-/**
- * L10N3g: every call to the text core's processGrammar (DFU's GrammarManager.grammarProcessor.ProcessGrammar, under
- * any local name) in src/ - DFU runs the grammar at a fixed set of display sites, and a French pack's tokens stay raw
- * wherever a site is lost: { file, line, loose }, `loose` a call made once at module load (whatever language was
- * chosen then, and whatever gender the text carried in).
- */
 export function grammarSites(root = ROOT) {
   const out = [];
   for (const { file, ast, local } of coreCallers(root, new Set(['processGrammar']))) {
@@ -143,7 +112,6 @@ export function grammarSites(root = ROOT) {
   return out;
 }
 
-/** The Internal_Strings keys DFU's own code asks for by a literal key, read off a DFU checkout's Assets/Scripts. */
 export function dfuAskedKeys(dfuScripts) {
   const keys = new Set();
   const cs = [];

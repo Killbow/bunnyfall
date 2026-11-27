@@ -1,15 +1,6 @@
-// U31: THE CLASSIC START CAN BE LEFT.
-//
-// The bug this proves fixed: the bare-URL start booted scenes/dungeon.js,
-// which has no exit branch at all, so Privateer's Hold was a sealed box.
-// The classic start now boots the WORLD host at the settings' own start
-// cell and enters that location's dungeon, which makes the tested
-// worldModes.tryExitDungeon the way out.
-//
-// Nothing here is faked: the exit is the same raycast pick a player
-// makes, taken while standing at the real exit door.
-//
-// Usage: ARENA2_PATH=... node tools/classicStartProbe.mjs
+// Boots the classic start and leaves the dungeon through its real exit door.
+// Run: ARENA2_PATH=... node tools/classicStartProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -27,8 +18,6 @@ page.on('pageerror', (e) => errors.push(String(e.message)));
 let fails = 0;
 const check = (ok, label) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`); if (!ok) fails++; };
 
-// ?world+?shot reaches the world host WITH the probe surface; ?classic is
-// the new start path; ?class=1 is the headless chargen skip.
 await page.goto('http://localhost:5219/play/?world&shot&classic&class=1&novideo&nofoes');
 
 const until = Date.now() + 240000;
@@ -44,17 +33,8 @@ const dungeon = await page.evaluate(() => (window.__dungeon ? JSON.parse(window.
 check(!!dungeon && dungeon.exits.length > 0, `the start location's dungeon has ${dungeon?.exits?.length ?? 0} exit door(s)`);
 
 if (dungeon?.exits?.length) {
-  // Stand where a player who walked to the door would stand: on the
-  // door's own normal side (the normal faces INTO the dungeon), close,
-  // looking back at it.
-  //
-  // The -0.5 is not a fudge. player.spawn puts the EYE about 1.2 above
-  // the position it is given, and the exit-door AABB is centred near
-  // its reported y - so a stand at the door's own height leaves the eye
-  // roughly 2.3 above the door centre and the activation ray sails over
-  // the box. Measured, not guessed: the first draft of this probe stood
-  // at pos[1] + 0.6 and reported the exit as broken when it was not.
   const { pos, normal } = dungeon.exits[0];
+  // The exit door's normal faces into the dungeon. Standing 0.5 below the door keeps the activation ray on its box.
   const stand = [pos[0] + normal[0] * 0.8, pos[1] - 0.5, pos[2] + normal[2] * 0.8];
   const yaw = Math.atan2(-normal[0], -normal[2]);
   await page.evaluate(([p, y]) => window.__warpTo(p, y), [stand, yaw]);
@@ -65,9 +45,6 @@ if (dungeon?.exits?.length) {
   await page.waitForTimeout(1200);
   const after = await page.evaluate(() => window.__mode());
   check(after === 'exterior', `and the player is OUT, standing in the world (mode: ${after})`);
-  // FIX-C: STANDING, not in the sky and not in the ground. Wait for the
-  // roads sweep and the rebuild it queues (the start pixel comes back
-  // first), then read the player against the terrain under the feet.
   await page.waitForTimeout(4000);
   const st = JSON.parse(await page.evaluate(() => window.__standing()));
   check(st.spawned === true, `the player has SPAWNED (the boot gate fired, or the dungeon start counted) - ${JSON.stringify(st)}`);

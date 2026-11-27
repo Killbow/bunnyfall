@@ -1,81 +1,22 @@
-// X11: THE MAGIC CANDLE - what the Light effect (15,255) actually
-// DOES. Verbatim from DFU (MIT, Daggerfall Workshop):
-//   LightNormal.cs:76-101   - StartLight / StartMagicCandle / EndLight
-//   MagicCandleBehaviour.cs - the sprite, the wobble, DestroyCandle
-//   Assets/Resources/MagicCandle.prefab - the Light component itself
-//
-// THE LAW, line by line:
-//  - the candle hangs `candleDistance` = 1.4 units in FRONT of the
-//    player (:82), with `candlePosition.y += PlayerController.height
-//    * 0.25` (:85). DFU's own comment explains the 1.4: classic puts
-//    it around 4.5, which in a dungeon is usually through a wall, so
-//    DFU deliberately pulls it in. The port keeps DFU's number, not
-//    classic's - this is the build being ported.
-//  - it is PARENTED to the player object (:91), so it rides along and
-//    swings round as the player turns. The port has no transform
-//    hierarchy, so the base offset is recomputed from the live facing
-//    every frame, which is the same thing.
-//  - the Light component is a POINT light (m_Type: 2), white
-//    (1,1,1,1), intensity 1, range 15 - the same range the interior
-//    lights already use, so it drops straight into the hosts' existing
-//    per-light range arrays.
-//  - MagicCandleBehaviour.Update (:42-56) wobbles it: pick a target
-//    inside a 0.125-radius sphere around the base offset, lerp there
-//    at `moveSpeed` = 8 per second, then pick another. moveAmount is
-//    NOT clamped before the lerp, so the last frame of a leg can
-//    overshoot slightly - Vector3.Lerp clamps t internally, so the
-//    visible result is "arrive and hold for the remainder of that
-//    frame". The port lerps with the same unclamped accumulator and
-//    clamps inside, which is what Unity's Lerp does.
-//  - the sprite is archive 210 record 3 (:22-23) - the LIGHTS_ARCHIVE
-//    the world already loads for city lanterns.
-//  - DestroyCandle also fires on a new game and on a save load
-//    (:31-32, :71-78), which the port's scene teardown covers: a host
-//    that drops its candle mount drops the candle.
-//
-// RECORDED DEPARTURE (Ledger A): the jitter offset is added in WORLD
-// space rather than player-local space, because the base offset is
-// recomputed rather than parented. The two differ only by the yaw
-// rotation of a vector shorter than 12cm.
-//
-// WHO HOLDS IT: the player only. DFU's StartLight gates the candle on
-// `entityBehaviour == PlayerEntityBehaviour` (:76-77) - a Light cast
-// on a FOE lands its rounds and lights nothing at all. The effect
-// entry itself is in systems/effects.js's BUFF_KINDS, which is where
-// the rounds live; this module is only ever asked about the player.
+// The Magic Candle for the Light effect (15,255): a point light above the player's head with the DFU wobble.
+// As in DFU, only the player gets a candle; a Light cast on an enemy lights nothing.
 
 import { billboardSize } from '../world/rmbFlats.js';
 import { LIGHTS_ARCHIVE } from '../world/cityLights.js';
-import { lightList, packLight, copyLights } from '../render/lightId.js';   // LIGHT-ID: the player's lights into the list through the one seam
+import { lightList, packLight, copyLights } from '../render/lightId.js';
 
-/** MagicCandleBehaviour + the prefab's Light, as numbers. */
 export const CANDLE = Object.freeze({
-  archive: LIGHTS_ARCHIVE,   // 210 (MagicCandleBehaviour.cs:22)
-  record: 3,                 // (:23)
-  distance: 1.4,             // candleDistance (LightNormal.cs:89)
-  heightFraction: 0.25,      // candlePosition.y += height * 0.25 (:96) - unused since BUNNYFALL
-  aboveHead: 0.35,           // BUNNYFALL: how far above the top of the head the candle floats
-  range: 15,                 // MagicCandle.prefab m_Range
-  jitterRadius: 0.125,       // Random.insideUnitSphere * 0.125 (:47)
-  moveSpeed: 8,              // moveSpeed (:14), lerp units per second
+  archive: LIGHTS_ARCHIVE,
+  record: 3,
+  distance: 1.4,
+  heightFraction: 0.25,
+  aboveHead: 0.35,
+  range: 15,
+  jitterRadius: 0.125,
+  moveSpeed: 8,
 });
 
-/** The unwobbled position: `transform.position + forward * 1.4`, then
- *  `y += height * 0.25` (LightNormal.cs:95-96).
- *
- *  AUDIT 62 F21 (review): `feet` is NOT DFU's transform.position. The
- *  header used to say it was, and the whole candle hung half a
- *  capsule low as a result. The player's CharacterController has no
- *  centre offset and PlayerHeightChanger.cs:477-478
- *  (ControllerHeightChange) moves the transform by heightChange/2
- *  with the capsule bottom planted, so DFU's transform.position is
- *  feet + height/2 and its candle sits at feet + 0.75 * height -
- *  1.35 standing, where the port hung it at 0.45. The port keeps the
- *  FEET as every host's player origin, so the half-capsule is added
- *  here rather than assumed away. */
-// BUNNYFALL: the candle floats ABOVE the player's head instead of 1.4
-// units in front. `forward` is kept in the signature for the callers
-// but no longer moves it.
+// The candle floats above the head instead of 1.4 units in front as in DFU, so `_forward` is unused.
 export function candleBase(feet, height, _forward) {
   return [
     feet[0],
@@ -84,9 +25,6 @@ export function candleBase(feet, height, _forward) {
   ];
 }
 
-/** Random.insideUnitSphere - a uniform point in the unit ball, which
- *  is NOT three uniform axes (that fills a cube). Rejection sampling
- *  gives the same distribution Unity's does with no cube corners. */
 export function insideUnitSphere(rolls = Math.random) {
   for (let i = 0; i < 32; i++) {
     const x = rolls() * 2 - 1, y = rolls() * 2 - 1, z = rolls() * 2 - 1;
@@ -95,11 +33,9 @@ export function insideUnitSphere(rolls = Math.random) {
   return [0, 0, 0];
 }
 
-/** The wobble alone, with no renderer in sight: `offset()` is the
- *  current displacement from the base, `tick(dt)` advances the leg. */
 export function createCandleWobble(rolls = Math.random) {
   let last = [0, 0, 0];
-  let next = null;          // null IS DFU's Vector3.zero sentinel (:44)
+  let next = null;
   let moveAmount = 0;
   const cur = [0, 0, 0];
   return {
@@ -109,7 +45,7 @@ export function createCandleWobble(rolls = Math.random) {
         const j = insideUnitSphere(rolls);
         next = [j[0] * CANDLE.jitterRadius, j[1] * CANDLE.jitterRadius, j[2] * CANDLE.jitterRadius];
       }
-      const t = Math.min(1, Math.max(0, moveAmount));   // Vector3.Lerp clamps t
+      const t = Math.min(1, Math.max(0, moveAmount));
       cur[0] = last[0] + (next[0] - last[0]) * t;
       cur[1] = last[1] + (next[1] - last[1]) * t;
       cur[2] = last[2] + (next[2] - last[2]) * t;
@@ -120,30 +56,7 @@ export function createCandleWobble(rolls = Math.random) {
   };
 }
 
-/**
- * Put the lights the PLAYER carries at the front of a host's
- * `nearestLights` array.
- *
- * They are always the nearest lights there are - the candle hangs 1.4
- * units away and the torch is in the player's own hand - so
- * nearestLights' distance sort would put them first anyway;
- * prepending saves re-sorting. The renderer's cap is 16 vec4s
- * (setPointLights subarrays at 16 * 4), so the far lights drop off
- * rather than the array growing past it.
- *
- * T1 renamed this from `withCandleLight` (X11a, the same day): the
- * magic candle was its first consumer and the player's torch is its
- * second, so a name that says "candle" would have been the first half
- * of a drift. Nulls are skipped, which is how a host says "no torch"
- * and "no candle" without branching.
- */
 export function withPlayerLights(base, ...lights) {
-  // LT1: a host riding the per-light colour channel hands the PAIRED
-  // shape - `{ data, colors }` from nearestLights' colorOf arm - and
-  // gets it back with the player lights prepended to BOTH arrays under
-  // the one cap. A player light may carry its own `color` (colour x
-  // intensity); absent, it stays the white the shared channel always
-  // gave it - the torch/candle look is not this seam's to change.
   if (base && base.data) {
     const live = lights.filter(Boolean);
     if (!live.length) return base;
@@ -155,23 +68,16 @@ export function withPlayerLights(base, ...lights) {
       colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2];
     });
     colors.set(base.colors.subarray(0, keep), live.length * 3);
-    return { data, colors, carried: data.carried };   // MAC-T1: the mask rides the pair too
+    return { data, colors, carried: data.carried };
   }
   const live = lights.filter(Boolean);
   if (!live.length) return base;
-  // AUDIT-EL F4: NO CAP HERE. This composer cut the scene's lights to
-  // sixteen minus the player's, which was the shader's cap restated - and
-  // under the Enhanced Lighting lane (forty-eight slots) it silently kept
-  // the classic count in every host. The renderer's setPointLights cuts
-  // the total to the INSTALLED set's cap, and since the player's lights
-  // sit first, what it drops is the base's farthest - which is exactly
-  // what the old arithmetic dropped on the classic set, light for light.
+  // No cap here: the renderer cuts the list to its installed cap, and the player lights sit first,
+  // so it drops the farthest base lights.
   const keep = (base.length / 4) * 4;
-  const out = lightList(keep / 4 + live.length);   // LIGHT-ID: each light's identity beside it, the base's carried over
-  // MAC-T1: THE CARRIED MASK - one byte per light, in the array's own order, 1 for a record that says `carried`
-  // (the player's torch and candle; playerTorch.js says why). Per LIGHT, not "the first N": this same list carries the
-  // dropped and thrown torches and the burning foes (droppedTorches.lights()), which sit over real billboards and
-  // keep their glare. It rides the array as a property; the renderer lifts it off before it cuts the array to its cap.
+  const out = lightList(keep / 4 + live.length);
+  // The carried mask has one byte per light in list order, because dropped and thrown torches share this list
+  // and keep their glare.
   const carried = new Uint8Array(keep / 4 + live.length);
   live.forEach((l, i) => {
     packLight(out, i, l);
@@ -183,27 +89,15 @@ export function withPlayerLights(base, ...lights) {
   return out;
 }
 
-/**
- * One host's candle mount. `update` is called every frame with
- * whether the player currently carries the Light effect; the mount
- * lights, spawns and destroys itself from that one answer, exactly as
- * Start/End do in DFU.
- *
- * deps: renderer, getTexture, uploadRecord - the same three the
- * hitEffects pool takes. A host with no uploadRecord gets the light
- * and no sprite rather than a crash.
- */
 export function createMagicCandle({
   renderer, getTexture, uploadRecord = null, rolls = Math.random,
-  // The hitEffects pool's shape: a host whose draw list is a standing
-  // array registers the batch instead of merging one every frame.
   onSpawn = null, onRetire = null,
 }) {
   const wobble = createCandleWobble(rolls);
   const pos = [0, 0, 0];
   let lit = false;
   let batch = null;
-  let basePos = null;     // where the batch's baked centre sits
+  let basePos = null;
   let warming = false;
 
   function spawnSprite() {
@@ -211,8 +105,7 @@ export function createMagicCandle({
     warming = true;
     getTexture(CANDLE.archive).then((t) => {
       warming = false;
-      // The pool can be torn down while the archive warms - the corpse
-      // mint's lesson, the same shape hitEffects guards.
+      // The candle can go out while the archive loads, so check again before building the sprite.
       if (!lit || batch || !t) return;
       if (t.recordCount != null && CANDLE.record >= t.recordCount) return;
       uploadRecord(CANDLE.archive, CANDLE.record);
@@ -229,7 +122,6 @@ export function createMagicCandle({
   }
 
   return {
-    /** @param active - hasActiveEffect(playerEntity, 'light') */
     update(dt, { active, feet, height, forward }) {
       if (!active) { if (lit) { lit = false; dropSprite(); } return; }
       lit = true;
@@ -240,17 +132,9 @@ export function createMagicCandle({
       if (!batch) spawnSprite();
       else batch.origin = [pos[0] - basePos[0], pos[1] - basePos[1], pos[2] - basePos[2]];
     },
-    /** The point light, in nearestLights' own shape, or null. */
-    light: () => (lit ? { x: pos[0], y: pos[1], z: pos[2], range: CANDLE.range, carried: true } : null),   // MAC-T1: the candle is the player's own light too
+    light: () => (lit ? { x: pos[0], y: pos[1], z: pos[2], range: CANDLE.range, carried: true } : null),
     batch: () => batch,
-    /** THE FOUR HOSTS RULE: a floating-origin recenter would leave the
-     *  candle behind in the old space - its centre is baked into a
-     *  STATIC_DRAW buffer and only `origin` moves. So the sprite is
-     *  dropped and the next update rebuilds it around the new base;
-     *  the archive is already warm by then, so the gap is one frame.
-     *  (Unused `offset` kept in the signature: every other host mount
-     *  takes one, and a caller that stops passing it should not start
-     *  silently working.) */
+    // A recenter drops the sprite, since its center is baked into a static buffer; the next update rebuilds it.
     offsetAll(offset) {
       if (!offset) return;
       dropSprite();

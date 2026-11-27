@@ -1,17 +1,6 @@
 #!/usr/bin/env node
-// L10N6 (2026-10-03): THE REVIEW FILE - how a person who reads a language fixes its machine draft without a code editor.
-//
-// Mac's second decision (Localization-Arc.md): "fixes come in through a review file or PRs. A human pack always
-// outranks a draft." A pull request that edits `locales/<tag>/Port_Strings.csv` is one door (the pipeline already sees
-// the edit and keeps the row the person's). This is the other: a language's rows exported as a spreadsheet - the key,
-// the English, the current translation, whose it is, and an empty `fix` column - and the filled sheet imported back.
-// Each fix is held to the pipeline's own placeholder law (tools/translate.mjs checkDraft: every `{argument}` the
-// English names, a language's own plural categories) and recorded in `Port_Strings.meta.json` as a person's
-// (`by: "human"`), so neither a session's drafts nor the pipeline ever writes over it. A row whose English moved since
-// the sheet was exported is refused as stale: the fix was for other words.
-//
-//   node tools/l10nReview.mjs --export fr > fr-review.csv            every row (add --machine for the machine's alone)
-//   node tools/l10nReview.mjs --import fr fr-review.csv              apply the filled `fix` cells (exit 1 if any refused)
+// Exports a language's rows as a review CSV and imports the filled fix column back as human-owned rows.
+// Run: node tools/l10nReview.mjs --export <lang> [--machine] > sheet.csv, or --import <lang> sheet.csv.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +14,6 @@ const TABLE = 'Port_Strings';
 export const REVIEW_COLUMNS = Object.freeze(['key', 'english', 'translation', 'owner', 'fix']);
 
 const cell = (v) => (/[",\r\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
-/** RFC 4180 rows, as a spreadsheet writes them (quotes doubled, a cell may hold a line break). */
 export function parseCsv(text) {
   const rows = [];
   let row = [], cur = '', q = false;
@@ -52,7 +40,6 @@ function readLanguage(root, code) {
 const englishOf = (root) => new Map(parseStringTableCsv(readFileSync(join(root, 'locales/en', `${TABLE}.csv`), 'utf8')));
 const assertLanguage = (code) => { if (code === 'en' || !catalogLocale(code)) throw new Error(`${code} is not a language the catalog drafts`); };
 
-/** The review sheet for `code`: every catalog key in the catalog's order (or the machine's rows alone). */
 export function exportReview(code, root = ROOT, { machineOnly = false } = {}) {
   assertLanguage(code);
   const en = englishOf(root);
@@ -67,7 +54,6 @@ export function exportReview(code, root = ROOT, { machineOnly = false } = {}) {
   return `${lines.join('\n')}\n`;
 }
 
-/** Apply a filled sheet's `fix` cells to `code`. Answers { applied: [key], refused: [reason] }. */
 export function importReview(code, sheet, root = ROOT) {
   assertLanguage(code);
   const [head, ...body] = parseCsv(sheet);

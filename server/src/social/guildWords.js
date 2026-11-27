@@ -1,5 +1,3 @@
-// Guild removals and disbandings a room applied, held per key, loaded, and saved.
-// It drops a removed member's guild and builds a player's guild tag frame.
 import { GUILD_OUTS_MAX, GUILD_OUTS_KEY, GUILD_OUT_KEEP_S } from '../room/holds.js';
 
 export class GuildWordsPart {

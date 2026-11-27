@@ -14,6 +14,7 @@ files:
   - "src/mods/features.js"
   - "src/player/pitchLimit.js"
   - "src/characters/ownArmorModels.js"
+  - "src/combat/weaponSheathing.js"
 routes: []
 tables: []
 replacesBible:
@@ -35,6 +36,7 @@ traps:
   - "carriedLeftVisible hides a carried torch when the weapon is two-handed. The torch overlays the left arm through blendMaskBones('bip01 l clavicle')."
   - "BEAST-BOOTS: the mwBeastFeet tiers are worn/shafts/hidden and the mwBeastHelm tiers are worn/open/hidden (src/mods/features.js). beastCut applies them in src/formats/mwItemMap.js."
   - "PITCH_LIMIT = (PI/2)*0.99, not PI/2 - 1e-6."
+  - "Holster, scabbard, and quiver parts (`src/combat/weaponSheathing.js`) attach bare at the sheathing bone with no BoneOffset and no mirror, thrown weapons never show holstered, and the one-handed axe sheathes at the long blade bone (`Bip01 LongBladeOneHand`)."
 dfu:
   - "Assets/Scripts/Game/Entities/PlayerEntity.cs"
 tags:

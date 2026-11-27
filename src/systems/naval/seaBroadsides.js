@@ -95,17 +95,17 @@ export function createSeaBroadsides(deps) {
     if (g.k === 'hull') {
       if (g.to === me) {
         pvp()?.struck?.({ frac: g.d / 1000, sail: g.s / 1000, fire: g.f === 1, left: g.h / 1000 });
-        once(`on:${g.by}`, () => deps.say?.(t('sea.pvp.underFire', '{name}\'s guns are on you!', { name: nameOf(g.by) }), 4));
+        once(`on:${g.by}`, () => deps.say?.(t('sea.pvp.underFire', '{name}\'s broadside strikes your ship.', { name: nameOf(g.by) }), 4));
       } else if (g.by === me) once(`by:${g.to}`, () => deps.say?.(t('sea.pvp.striking', 'Your broadside strikes {name}\'s ship.', { name: nameOf(g.to) }), 4));
       return;
     }
     if (g.k === 'wreck') {
-      if (g.id === me) { pvp()?.wreck?.(); deps.mid?.(t('sea.pvp.wrecked', 'Your ship is wrecked by {name}\'s guns! She lies crippled.', { name: nameOf(g.by) }), 6); return; }
+      if (g.id === me) { pvp()?.wreck?.(); deps.mid?.(t('sea.pvp.wrecked', 'Your ship is wrecked by {name}\'s guns. She lies crippled.', { name: nameOf(g.by) }), 6); return; }
       if (g.by !== me) return;
       const name = nameOf(g.id), site = placeOf(pvp()?.peerAt?.(g.id));
       mine.set(g.r, { victim: g.id, at: now(), sentAt: 0, name, room, site, seen: site });
       if (mine.size > 8) mine.delete(mine.keys().next().value);
-      deps.mid?.(t('sea.pvp.wreckedHer', '{name}\'s ship is wrecked! Come alongside and board her for her hold.', { name }), 6);
+      deps.mid?.(t('sea.pvp.wreckedHer', '{name}\'s ship is wrecked. Come alongside and board her for her hold.', { name }), 6);
       return;
     }
     if (g.k === 'wc') { mine.delete(g.r); deps.receipt?.(g.rc); }

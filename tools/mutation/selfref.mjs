@@ -1,5 +1,4 @@
-// Flag assertions whose EXPECTED side is computed by the same production code
-// path as the actual side (self-referential / non-falsifiable pins).
+// Flags test assertions whose expected side calls the same production code as the actual side.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -21,9 +20,8 @@ function splitArgs(s) {
   return out.map(x => x.trim());
 }
 
-for (const f of fs.readdirSync(TEST, { recursive: true }).map(String).filter(x => x.endsWith('.test.js')).sort()) {   // TIDY5: the tests in their folders
+for (const f of fs.readdirSync(TEST, { recursive: true }).map(String).filter(x => x.endsWith('.test.js')).sort()) {
   const text = fs.readFileSync(path.join(TEST, f), 'utf8');
-  // imported production symbols
   const imported = new Set();
   for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*'((?:\.\.\/)+src\/[^']*)'/g)) {
     for (const p of m[1].split(',')) {
@@ -44,7 +42,6 @@ for (const f of fs.readdirSync(TEST, { recursive: true }).map(String).filter(x =
     const idsB = new Set([...b.matchAll(/\b([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/g)].map(x => x[1]));
     const shared = [...idsA].filter(x => idsB.has(x) && imported.has(x));
     if (shared.length) console.log(`${f}:${i + 1}  shared=${shared.join(',')}  ${L.trim().slice(0, 150)}`);
-    // also: identical arg text
     if (a === b) console.log(`${f}:${i + 1}  IDENTICAL ARGS  ${L.trim().slice(0, 150)}`);
   }
 }

@@ -11,7 +11,6 @@ import path from 'node:path';
 const ARENA2 = process.env.ARENA2_PATH || (process.env.ARENA2_PATH ?? '');
 openOut(process.argv[2]);
 
-// ---- SND ----
 for (const name of files(/\.SND$/)) {
   const sf = new SndFile();
   const ok = sf.load(read(name));
@@ -31,7 +30,6 @@ for (const name of files(/\.SND$/)) {
     sf.discardSound(i);
   }
 }
-// ---- PAK ----
 for (const name of files(/\.PAK$/)) {
   const pf = new PakFile();
   const ok = pf.load(read(name));
@@ -48,7 +46,6 @@ for (const name of files(/\.PAK$/)) {
   for (let y = 0; y < 500; y += 41) for (let x = 0; x < 1001; x += 43)
     out(`${p0}v.${pad(x, 4)}.${pad(y, 4)}`, pf.getValue(x, y));
 }
-// ---- FNT ----
 for (const name of files(/^FONT.*\.FNT$/)) {
   const ff = new FntFile();
   let ok = true;
@@ -63,7 +60,6 @@ for (const name of files(/^FONT.*\.FNT$/)) {
     out(p + 'pixels', sha1(ff.getGlyphPixels(i)));
   }
 }
-// ---- GFX ----
 for (const name of files(/\.GFX$/)) {
   const gf = new GfxFile();
   const ok = gf.load(read(name), name);
@@ -81,7 +77,6 @@ for (const name of files(/\.GFX$/)) {
     out(`${p}f${pad(f, 2)}.idx`, sha1(bm.data));
   }
 }
-// ---- SKY ----
 for (let i = 0; i < 32; i++) {
   const name = SkyFile.indexToFileName(i);
   if (!fs.existsSync(path.join(ARENA2, name))) continue;
@@ -102,7 +97,6 @@ for (let i = 0; i < 32; i++) {
     out(p + 'idx', sha1(bm.data));
   }
 }
-// ---- PALETTES ----
 for (const name of files(/\.COL$/)) {
   const dp = new DFPalette();
   const ok = dp.load(read(name), name);
@@ -123,7 +117,6 @@ for (const name of files(/\.PAL$/)) {
   out(p0 + 'headerLength', dp.headerLength);
   out(p0 + 'sha', sha1(dp.paletteBuffer));
 }
-// ---- CLASSES.DAT ----
 {
   const p = path.join(ARENA2, 'CLASSES.DAT');
   if (fs.existsSync(p)) out('class.CLASSES.DAT.length', fs.statSync(p).size);

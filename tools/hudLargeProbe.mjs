@@ -1,11 +1,3 @@
-// U45 probe: the classic bottom bar, live, in a real town.
-//
-// The unit tests drive the geometry and the two cycles over fixtures.
-// This proves the HOST half, which is where every previous slice's
-// bugs lived: that the setting nothing read now turns the bar ON,
-// that all four ARENA2 files decode and upload, that the eleven
-// panels reach real windows through the SAME doors the keyboard uses,
-// and that the mode panel walks its own cycle - not the keyboard's.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -15,11 +7,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errors = [];
 page.on('pageerror', (e) => { errors.push(e.message); console.log('[pageerror]', e.message); });
-// T2: `class=16` SKIPS THE CHARGEN WIZARD. Without it the wizard holds
-// townTalk's overlay slot and townTalk.keydown - FIRST in this host's
-// keydown ladder (exterior.js:"if (e.code === 'Escape') backButtonHeld = true") - swallows every
-// page.keyboard.press below, so this probe pressed its keys into a
-// character-creation screen it never knew was up.
+// class=16 skips the character-creation wizard, which would otherwise take every key press below.
 await page.goto('http://localhost:5220/play/?shot&play&exterior&time=12:00&class=16');
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 180000 });
 
@@ -43,7 +31,6 @@ if (await bar() !== null) fail('the bar drew itself with LargeHUD off');
 console.log('off:', await bar());
 await setLarge(true);
 await waitFrames(4);
-// the art loads on the first frame the setting is on, so give it one
 await page.waitForFunction(async () => {
   const m = await import('/src/ui/hud.js');
   return m.largeHudBar() !== null;
@@ -79,13 +66,11 @@ if (art.compassSize[0] !== 48 || art.compassSize[1] !== 40) fail('and each is 48
 if (!art.head) fail('the racial head did not load - the bar has an empty portrait');
 
 console.log('\n== THE MODE PANEL WALKS ITS OWN CYCLE ==');
-// The panel's cycle is Steal > Talk > Grab > Info; the keyboard's is
-// Steal > Grab > Info > Talk. Driven through the real click router.
 const clickPanel = (key, button = 0) => page.evaluate(async ([k, b]) => {
   const hl = await import('/src/ui/hudLarge.js');
   const hud = await import('/src/ui/hud.js');
   const pl = await import('/src/player/pointerLock.js');
-  pl.setCursorActive(true);                       // IsLargeHUDInteractable
+  pl.setCursorActive(true);
   const bar = hud.largeHudBar();
   const [x, y, w, h] = hl.LARGE_HUD_RECTS[k];
   const hit = hl.largeHudClick(bar, bar.x + (x + w / 2) * bar.s, bar.y + (y + h / 2) * bar.s, b);
@@ -157,7 +142,7 @@ console.log('overlay after clicking the panel:', JSON.stringify({ overlay: talk.
 if (!talk.overlay) fail('clicking the INVENTORY panel opened nothing - the door is not connected');
 
 console.log('\n== OFF AGAIN ==');
-await page.keyboard.press('Escape');   // close the inventory the click opened
+await page.keyboard.press('Escape');
 await waitFrames(2);
 await setLarge(false);
 await waitFrames(4);

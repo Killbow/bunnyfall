@@ -161,8 +161,6 @@ function startMelee(chain, { rig, tc, entity }) {
 
 const flatTo = (feet, foe) => Math.hypot(foe.ai.feet[0] - feet[0], foe.ai.feet[2] - feet[2]);
 
-/** Where a dash or leap lands: at the locked enemy, beside it for a side hop, else where the plain aim says.
- *  Hops and targeted advances keep the enemy the chain struck; lane advances lock the one in the crosshair. */
 function advanceAim(cast, chain, advance, { cam, collider }) {
   const foes = huntableFoes(foe => !cast.link || foe.entity === cast.link.target);
   const range = advanceReach(advance) + AUTOAIM.leapSlackM;
@@ -392,7 +390,6 @@ function cancelDelivery(rig) {
 
 const occupied = (state) => state.engine.busy() || !!(state.rig?.blow || state.rig?.shot || state.rig?.follow || state.rig?.advance);
 
-/** The stepping scene owns the cast. Old rigs cannot deliver queued intent. */
 export function stepAbilityRig(dt, tc) {
   const { entity, pw } = tc;
   if (!entity) return false;
@@ -460,7 +457,6 @@ export function stepAbilityRig(dt, tc) {
   if (pw.machine.state === 'Idle') {
     if (pw.techniqueBlow === rig.blow) pw.techniqueBlow = null;
     rig.blow = null;
-    // A bow still playing its release in the arm holds the 'hit' event.
     if (!tc.holding && rig.shot) {
       finishRhythmShot(rig, rig.shot.rhythm, 0);
       rig.shot = null;
@@ -486,7 +482,6 @@ export function stepAbilityRig(dt, tc) {
   return occupied(state);
 }
 
-/** An ability owns its bow's hit event and spends one arrow per projectile. */
 export function claimAbilityEvents(events, tc) {
   const rig = tc && rigs.get(tc.rig);
   const shot = rig?.shot;

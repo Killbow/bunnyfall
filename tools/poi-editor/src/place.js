@@ -1,15 +1,12 @@
 // @ts-check
 
-// Placing a catalogue asset in a document: which row it becomes, or why it cannot be placed yet.
-// A kind of asset that has no working path to the game says so plainly and stays unplaceable.
-
 import { ITEM_GROUPS } from '../../../src/characters/equipRules.js';
 import { POI_V2_PINS as P, POI_V2_LIMITS } from '../../../src/poi/poiLawV2.js';
 import { freshKey } from './scene.js';
 
 const TROPHY_TEMPLATE = P.trophyTemplate ?? 0;
 
-/** Why an asset cannot be placed in this milestone, or null when it can. @param {any} a */
+/** @param {any} a */
 export function whyNotPlaceable(a) {
   if (a.namespace === 'df-arch3d') return null;
   if (a.namespace === 'df-flat') return a.archive < 172 ? 'This picture wraps models and walls. It is not a standing picture.' : null;
@@ -22,8 +19,10 @@ export function whyNotPlaceable(a) {
 const base = (key, name, at) => ({ key, name, t: at.map((c) => Math.round(c * 1000) / 1000) });
 
 /**
- * Put an asset into the document at `at` (the POI's frame). Answers `{ id }` for the new node or `{ refused }`.
- * @param {any} doc @param {any} a a catalogue asset @param {number[]} at @param {string | null} [group]
+ * @param {any} doc
+ * @param {any} a
+ * @param {number[]} at
+ * @param {string | null} [group]
  */
 export function placeAsset(doc, a, at, group = null) {
   const why = whyNotPlaceable(a);

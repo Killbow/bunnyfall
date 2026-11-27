@@ -1,5 +1,3 @@
-// T1 probe: boot the exterior in walk+shot mode, wait for a
-// townsperson to complete a move, close-up screenshot (doctrine).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -20,8 +18,6 @@ for (let i = 0; i < 60; i++) {
 const people = JSON.parse(await page.evaluate(() => window.__people()));
 console.log('people:', people.length, JSON.stringify(people.slice(0, 5)));
 const live = people.find((p) => p.visible && p.moves > 0);
-// Re-read RIGHT before posing (walkers wander during waits), face the
-// live position, one short beat for the frame, shoot.
 const fresh = JSON.parse(await page.evaluate(() => window.__people())).find((p) => p.i === live.i);
 await page.evaluate(([x, y, z]) => window.__pose(x, y, z, Math.PI, -0.05), [fresh.pos[0], fresh.pos[1] + 0.2, fresh.pos[2] + 2.2]);
 const f0 = await page.evaluate(() => window.__frame);

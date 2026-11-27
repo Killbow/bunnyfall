@@ -11,6 +11,7 @@ files:
   - src/ui/notebook.js
   - src/ui/questlines/qlJournal.js
   - src/systems/quest/onlineRepute.js
+  - tools/qlSheetLaw.mjs
 routes: []
 tables: []
 replacesBible:
@@ -27,6 +28,7 @@ invariants:
 traps:
   - "`goldStillOwed(paid, outcome)` pays only the difference between the outcome's target gold and the gold the quest script already awarded, preventing double payouts."
   - "Outcome gold multipliers are clamped between `OUTCOME_GOLD_MIN = 0.75` and `OUTCOME_GOLD_MAX = 1.5`."
+  - "The questline layer offers an outcome's gear only when the quest is paid (by `give pc`, `ql paid`, or `train pc`) or ends as a success, so `tools/qlSheetLaw.mjs` refuses a gear outcome whose script never pays, or whose ending task ends the quest unpaid while no start task pays."
 dfu: []
 tags:
   - questlines

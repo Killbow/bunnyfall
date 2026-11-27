@@ -1,4 +1,3 @@
-// The `rite` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, riteRelayGate } from '../../relay.js';
 
 export async function riteFrame(ws, a, m) {

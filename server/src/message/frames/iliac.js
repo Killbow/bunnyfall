@@ -1,4 +1,3 @@
-// The `iliac` frame's handler, called by message/dispatch.js with the room as `this`.
 import { CHAT_STRIKES_MAX, holdemGate } from '../../relay.js';
 
 export async function iliacFrame(ws, a, m) {

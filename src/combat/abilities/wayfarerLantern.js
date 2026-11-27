@@ -1,6 +1,3 @@
-// BUNNYFALL: the lantern left on the ground where Wayfarer's Anchor Mark was set. It belongs to the scene the mark was
-// set in (the running host's player door) and shows there while the player is near. A new mark moves it; Recall
-// consumes the anchor, which puts the lantern out, as does a reload (the restored anchor is a new record).
 import { LANTERN_BEAT_S } from '../../render/wayfarerLanternFx.js';
 import { playerDoor } from '../../player/playerDoor.js';
 

@@ -1,5 +1,4 @@
-// The World Builder's own Vite app. `npm run poi-editor` serves it, `npm run build:poi-editor` builds it.
-// The game's vite.config.js does not know it. It serves ARENA2 at /arena2 the way the game's dev server does.
+// The World Builder's own Vite app (npm run poi-editor). It serves ARENA2 at /arena2 like the game's dev server.
 
 import { defineConfig } from 'vite';
 import { createReadStream, readdirSync, statSync } from 'node:fs';
@@ -9,14 +8,13 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
 
-/** ARENA2 files by name, whatever case the disk keeps them in. The data is never built into the app. */
 function arena2Server() {
   const root = process.env.ARENA2_PATH || '/home/claude/dfdata/arena2';
   let byUpper = null;
   const onDisk = (name) => {
     if (!byUpper) {
       byUpper = new Map();
-      try { for (const f of readdirSync(root)) byUpper.set(f.toUpperCase(), f); } catch { /* no folder: every request falls through */ }
+      try { for (const f of readdirSync(root)) byUpper.set(f.toUpperCase(), f); } catch { }
     }
     return byUpper.get(name.toUpperCase()) ?? name;
   };

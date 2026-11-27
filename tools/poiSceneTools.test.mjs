@@ -1,7 +1,3 @@
-// The in-game editor's scene tools: the scene hierarchy (poiScene), the list selection in poiEdit, the clipboard
-// (poiClip), the arrange tools (poiArrange), and the gizmo over several things (poiMulti). Every document they leave
-// passes the law.
-// Run: node --test tools/poiSceneTools.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
@@ -17,7 +13,6 @@ const rand = (b) => { b.fill(7); return b; };
 const law = (d) => poiDocProblems(d).map((p) => `${p.path}: ${p.code}`);
 const near = (a, b, eps = 1e-3) => a.every((x, i) => Math.abs(x - b[i]) < eps);
 
-/** A v2 POI: three parts (one in a group), two lights, a person. */
 function sceneDoc() {
   const d = Edit.newPoiDoc({ id: 'poi-0123456789ab', px: 500, py: 250, x: 10, z: 10, name: 'Yard' });
   for (const [name, t] of [['Crate', [0, 0, 0]], ['Barrel', [2, 0, 0]], ['Cart', [6, 0, 2]]]) d.parts.push(Edit.newPart(d, { mesh: SHA, submeshes: 1, name, t }));
@@ -70,7 +65,6 @@ test('poiScene: group, ungroup, regroup, reorder, rename, and delete', () => {
   assert.deepEqual(d.parts.map((p) => p.key), ['cart', 'barrel']);
   assert.equal(d.groups, undefined);
   assert.deepEqual(law(d), []);
-  // nine groups deep is past the law
   const deep = sceneDoc();
   let parent = 'stack';
   for (let i = 0; i < 7; i++) { const g = Scene.groupNodes(deep, [`group:${parent}`], `g${i}`); assert.ok(g.key, `level ${i + 2}`); parent = g.key; }
@@ -107,14 +101,12 @@ test('poiEdit: the selection is a list, one selected thing reads as before', () 
   assert.deepEqual(edit.selection(), { id: d.id, items: [], part: null, light: null });
   edit.select({ id: d.id, items: ['part:crate', 'npc:npc-1', 'part:cart', 'part:gone'] });
   assert.deepEqual(edit.selection(), { id: d.id, items: ['part:crate', 'npc:npc-1', 'part:cart'], part: 'cart', light: null }, 'the last is the primary; a row not there is dropped');
-  // a step leaves its selection, and undo and redo bring each back
   edit.edit(d.id, 'delete', (x) => { Scene.removeNodes(x, ['part:crate', 'part:cart']); }, { id: d.id, items: [] });
   assert.deepEqual(edit.selection().items, []);
   edit.undo();
   assert.deepEqual(edit.selection().items, ['part:crate', 'npc:npc-1', 'part:cart']);
   edit.redo();
   assert.deepEqual(edit.selection().items, []);
-  // a lazy selection: answered once the change has run
   edit.edit(d.id, 'paste', (x) => { x.parts.push(Edit.newPart(x, { mesh: SHA, submeshes: 1, name: 'Late' })); }, (x) => Edit.selectionOf(d.id, [`part:${x.parts.at(-1).key}`]));
   assert.equal(edit.selection().part, 'late');
   edit.undo(); edit.redo();
@@ -132,7 +124,6 @@ test('poiClip: copy and paste a selection with its group, through text, with fre
   assert.equal(d.parts.at(-1).group, 'stack-2', 'a copied group comes along under a fresh key');
   assert.deepEqual(d.parts.at(-1).t, [1, 0, 1]);
   assert.deepEqual(law(d), []);
-  // a part copied alone keeps its group in its own POI, and loses it in a POI without that group
   const one = Clip.copyNodes(d, ['part:crate']);
   Clip.pasteClip(d, one);
   assert.equal(d.parts.at(-1).group, 'stack');
@@ -141,14 +132,12 @@ test('poiClip: copy and paste a selection with its group, through text, with fre
   assert.equal(other.parts[0].group, undefined);
   assert.deepEqual(o2.top, ['part:crate']);
   assert.deepEqual(law(other), []);
-  // a long key pastes without hanging (31 and 32 characters)
   const long = sceneDoc();
   long.parts[1].key = 'k'.repeat(31); long.parts[2].key = 'q'.repeat(32);
   const lc = Clip.copyNodes(long, [`part:${'k'.repeat(31)}`, `part:${'q'.repeat(32)}`]);
   const lo = Clip.pasteClip(long, lc);
   assert.equal(lo.ids.length, 2);
   assert.deepEqual(law(long), []);
-  // duplicate: in place, in the same groups
   const dup = Clip.duplicateNodes(d, ['group:stack']);
   assert.equal(dup.top.length, 1);
   assert.deepEqual(law(d), []);
@@ -164,7 +153,6 @@ test('poiClip: a row whose asset the store does not have is left out and named; 
   assert.deepEqual(out.ids, ['part:barrel-2']);
   assert.equal(Clip.readClip('{"tag":"bunnyfall-poi-clip","v":1,"parts":[1]}'), null);
   assert.equal(Clip.readClip('not json'), null);
-  // the whole POI is copied by its top nodes
   assert.deepEqual(Clip.topIds(d), ['group:stack', 'part:barrel', 'part:cart', 'light:0', 'light:1', 'npc:npc-1']);
   const full = sceneDoc();
   while (full.parts.length < 128) full.parts.push(Edit.newPart(full, { mesh: SHA, submeshes: 1 }));
@@ -185,7 +173,6 @@ test('poiArrange: align, distribute, reset, move by, and drop to the ground; loc
   assert.deepEqual([d.parts[0].r, d.parts[0].s], [[0, 0, 0, 1], [1, 1, 1]]);
   assert.equal(Arrange.moveNodes(d, ['npc:npc-1', 'light:0'], [0, 1, 0]), 2);
   assert.deepEqual([d.npcs[0].t, d.lights[0].t], [[1, 1, 1], [0, 3, 0]]);
-  // the ground: each row lifted by what the caller measures; a light and an unknown ground stay
   const n = Arrange.groundNodes(d, ['part:crate', 'part:cart', 'light:0', 'npc:npc-1'], (id) => (id === 'part:cart' ? null : -1));
   assert.equal(n, 2);
   assert.deepEqual([d.parts[0].t[1], d.parts[2].t[1], d.lights[0].t[1], d.npcs[0].t[1]], [-1, 0, 3, 0]);
@@ -210,7 +197,6 @@ test('poiMulti: the gizmo moves, turns, and sizes several things about their mid
   const c = structuredClone(d);
   applyMulti(c, ids, { size: [2, 1, 1] }, { pivot, axes });
   assert.deepEqual([c.parts[0].t, c.parts[1].t, c.parts[0].s], [[-1, 0, 0], [3, 0, 0], [2, 1, 1]]);
-  // a POI turned a quarter: a world move east is the document's own +z (the place's turn is taken out)
   const e = structuredClone(d);
   e.place.r = Edit.quatOfEuler([0, 90, 0]);
   applyMulti(e, ids, { move: [1, 0, 0] }, { pivot, axes });
@@ -232,20 +218,17 @@ test('scene acts: locked rows are not deleted, light reorders keep the selection
   }
   assert.equal(edit.docOf(d.id).parts.length, 3);
   assert.match(said.at(-1), /Unlock them first/);
-  // lights 0 and 2 selected, light 2 dragged before light 0: the same two lights stay selected
   edit.select({ id: d.id, items: ['light:0', 'light:2'] });
   const spots = () => edit.selection().items.map((i) => edit.docOf(d.id).lights[Number(i.slice(6))].t[0]);
   const before = spots();
   acts.reorder(d.id, 'light:2', 'light:0');
   assert.deepEqual(spots().sort(), before.sort());
-  // a reset of people and lights alone changes nothing, and says it is not a lock
   edit.select({ id: d.id, items: ['npc:npc-1', 'light:1'] });
   assert.equal(acts.arrange('reset'), 0);
   assert.match(said.at(-1), /no turn or size/);
   edit.select({ id: d.id, items: ['light:1'] });
   assert.equal(acts.arrange('ground'), 0);
-  assert.match(said.at(-1), /lights cannot be dropped/);
-  // a flat's reset takes its scale back to one (but a figure's)
+  assert.match(said.at(-1), /lights stay/);
   const f = sceneDoc();
   f.flats = [{ key: 'sign', kind: 'billboard', flat: [210, 0], t: [0, 0, 0], rot: [0, 30, 0], scale: 2, layer: 0, collide: false }];
   assert.equal(Arrange.resetNodes(f, ['flat:sign']), 1);

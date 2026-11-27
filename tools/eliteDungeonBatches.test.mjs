@@ -1,6 +1,4 @@
-// BUNNYFALL (2026-11-19, the owner: "pick 3 to 5 every 2 hours"): the elite dungeons rise in BATCHES. Real SQLite with the real
-// migration (0216), the real service code (server-account/src/eliteDungeons.js) over it.
-//   node --test tools/eliteDungeonBatches.test.mjs
+// Run: node --test tools/eliteDungeonBatches.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -22,7 +20,7 @@ function fixture() {
   });
   return { sql, db: { prepare } };
 }
-const T0 = Math.floor(1_800_000_000 / 86400) * 86400;   // a UTC midnight
+const T0 = Math.floor(1_800_000_000 / 86400) * 86400;
 const read = (f, nowS) => eliteDungeonsRead({ db: f.db, nowS });
 
 test('the batch of a moment: two-hour windows, twelve a day, sizes three to five that vary', () => {
@@ -61,13 +59,11 @@ test('they stay until cleansed; at the cap nothing rises; a cleansing lets an em
   let w = 0, n = 0;
   for (; w < 40 && n < ED_ACTIVE_MAX; w++) { n = (await read(f, T0 + w * ED_BATCH_S + 3)).list.length; assert.ok(n <= ED_ACTIVE_MAX, `never past the cap: ${n}`); }
   assert.ok(n >= ED_ACTIVE_MAX - ED_BATCH_MAX + 1, `the map fills: ${n}`);
-  // fill it to the cap exactly with one more window, then a window that finds it full raises nothing
   for (; w < 60; w++) { const got = await read(f, T0 + w * ED_BATCH_S + 3); n = got.list.length; if (n === ED_ACTIVE_MAX) break; }
   assert.equal(n, ED_ACTIVE_MAX); w++;
   const full = await read(f, T0 + w * ED_BATCH_S + 3);
   assert.equal(full.list.length, ED_ACTIVE_MAX, 'a full map raises nothing');
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM elite_dungeons').get().n, ED_ACTIVE_MAX);
-  // cleanse the oldest (as a player who asked for the summon, after the fight's least time)
   const key = full.list[0].key, now = T0 + w * ED_BATCH_S + 10;
   assert.ok((await eliteDungeonSummon({ db: f.db, nowS: now }, { id: 'p1' }, { key })).summon);
   const cleared = await eliteDungeonClear({ db: f.db, nowS: now + ED_FIGHT_MIN_S + 1 }, { id: 'p1' }, { key });
@@ -76,7 +72,6 @@ test('they stay until cleansed; at the cap nothing rises; a cleansing lets an em
   assert.ok(after.list.length > ED_ACTIVE_MAX - 1 && after.list.length <= ED_ACTIVE_MAX, `the freed place is filled in the same window: ${after.list.length}`);
   assert.ok(!after.list.some((e) => e.key === key), 'a cleansed one is gone');
   assert.equal((await read(f, now + ED_FIGHT_MIN_S + 3)).list.length, after.list.length, 'and no more than that in the window');
-  // the rest of the old batches stand on, days later: only the cleansed one left
   const standing = new Set(after.list.map((e) => e.key));
   for (const e of full.list) if (e.key !== key) assert.ok(standing.has(e.key), `${e.key} still stands`);
   f.sql.close();

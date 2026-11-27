@@ -1,5 +1,4 @@
-// Static structure scan of test/*.test.js: per test() block, count assertion
-// call sites and how many sit inside a conditional / loop (i.e. can be skipped).
+// Counts the assertions in each test() block under test/ and how many sit inside a conditional or loop.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -7,10 +6,9 @@ const ROOT = process.cwd();
 const TEST = path.join(ROOT, 'test');
 const out = [];
 
-for (const f of fs.readdirSync(TEST, { recursive: true }).map(String).filter(x => x.endsWith('.test.js')).sort()) {   // TIDY5: the tests in their folders
+for (const f of fs.readdirSync(TEST, { recursive: true }).map(String).filter(x => x.endsWith('.test.js')).sort()) {
   const text = fs.readFileSync(path.join(TEST, f), 'utf8');
   const lines = text.split('\n');
-  // find top-level test( calls
   const re = /^(\s*)(?:await\s+)?test\(/gm;
   let m;
   const starts = [];
@@ -22,19 +20,15 @@ for (const f of fs.readdirSync(TEST, { recursive: true }).map(String).filter(x =
     const startLine = text.slice(0, s).split('\n').length;
     const nameM = body.match(/test\(\s*(['"`])((?:\\.|(?!\1).)*)\1/);
     const name = nameM ? nameM[2] : '?';
-    // assertion sites
     const asserts = [...body.matchAll(/\bassert\s*[.(]/g)];
-    // depth-aware: is each assert inside an if/for/while/&&-guard?
     let guarded = 0;
     for (const a of asserts) {
       const before = body.slice(0, a.index);
-      // count unclosed if/for/while blocks: crude — look at the enclosing line prefix
       const lineStart = before.lastIndexOf('\n') + 1;
       const linePrefix = body.slice(lineStart, a.index);
       if (/^\s*(if|for|while)\s*\(.*\)\s*$/.test(linePrefix.trimEnd()) ||
           /\b(if|for|while)\s*\([^)]*\)\s*(\{\s*)?$/.test(linePrefix)) guarded++;
       else {
-        // inside an open block opened by if/for/while whose brace is still unclosed
         let depth = 0; const stack = [];
         for (let k = before.length - 1, d = 0; k >= 0; k--) {
           const ch = before[k];

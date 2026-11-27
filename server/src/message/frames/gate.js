@@ -1,4 +1,3 @@
-// The `gate` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, bodyWordRelayGate, gateGate } from '../../relay.js';
 import { isGateRoom } from '../../../../src/net/gateLaw.js';
 

@@ -23,7 +23,7 @@ test('soil preparation, seeds, water and real-time growth form a harvest loop', 
   const ripe = 100 + 6 * 3600;
   assert.equal(gardenStage(garden.beds[0], ripe), 'ripe');
   const harvest = stepFarmGarden(garden, { op: 'harvest', bed: 0 }, ripe);
-  assert.deepEqual(harvest.harvest, { crop: 'grain', material: 'food:grain', qty: 2, grade: 0, care: 0, traits: [] });   // PHASE 2: a Common crop, no strain
+  assert.deepEqual(harvest.harvest, { crop: 'grain', material: 'food:grain', qty: 2, grade: 0, care: 0, traits: [] });
   assert.equal(gardenStage(harvest.garden.beds[0], ripe), 'tilled');
   assert.ok(stepFarmGarden(harvest.garden, { op: 'harvest', bed: 0 }, ripe).error);
   assert.ok(stepFarmGarden(garden, { op: 'hoe', bed: 65536 }, ripe).error);
@@ -43,7 +43,7 @@ function fixture() {
     INSERT INTO guilds VALUES ('guild1',1000000,1000000,NULL,0,NULL);
     INSERT INTO company_farms VALUES (42, 'guild1', 'Test farm', 223, 17);`);
   sql.exec(readFileSync(new URL('../server-account/migrations/0212_farm_gardens.sql', import.meta.url), 'utf8'));
-  sql.exec(readFileSync(new URL('../server-account/migrations/0217_farm_work.sql', import.meta.url), 'utf8'));   // FARM EXPANSION: farm work
+  sql.exec(readFileSync(new URL('../server-account/migrations/0217_farm_work.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('../server-account/migrations/0025_marks.sql', import.meta.url), 'utf8'));
   sql.exec("INSERT INTO guild_marks VALUES ('guild1',1000)");
   const prepare = (text, args = []) => ({ bind: (...a) => prepare(text, a),
@@ -78,7 +78,7 @@ test('actual handler and SQLite keep shared revisions and credit a harvest exact
 test('two gardeners racing to harvest cannot both commit', async () => {
   const f = fixture(); const ripe = emptyGarden(); ripe.beds[0] = { crop: 'grain', grown: 6 * 3600, wetUntil: 0, tick: 100 };
   f.sql.prepare('INSERT INTO company_farm_gardens VALUES (?, 3, ?)').run(42, JSON.stringify(ripe));
-  // Both calls can read revision 3; SQL's guarded claim rolls back the loser including its store deposit.
+  // Both calls can read revision 3; the guarded SQL claim rolls back the loser, store deposit included.
   const request = { character: 'char1', mapId: 42, op: 'harvest', bed: 0, version: 3 };
   const results = await Promise.all([farmGarden(f.ctx, f.player, request), farmGarden(f.ctx, f.player, request)]);
   assert.equal(results.filter((r) => r.ok).length, 1);
@@ -260,7 +260,6 @@ test('two farms share one weekly Argent cap, guarded inside the payout transacti
   f.sql.close();
 });
 
-// PHASE 6: THREATS (threatLaw.js)
 test('blight: the same dice on every end, stable once stamped, pulled for the crop, harvested Common at half yield', async () => {
   const { settleGarden } = await import('../src/net/farmGardenLaw.js');
   const { blightChance } = await import('../src/net/farm/threatLaw.js');
@@ -298,7 +297,6 @@ test('prowlers: an unchased wolf frightens the herd once it has gone; a click ch
   assert.ok(settleGarden(dog, 7, w.to + 60).herd[0].content >= 80);
 });
 
-// ─── PHASE 5: sworn beasts on the farm ───
 import { stepFarmStation, validStations, stationDaily, herdKeep, birdsWarded, truffleChance, harvestExtras, guanoCare, rankScale, pruneStations } from '../src/net/farm/stationLaw.js';
 import { stepFarmPlough, validGarden } from '../src/net/farmGardenLaw.js';
 import { createFarmGame, ploughLine } from '../src/net/farm/farmGameLaw.js';
@@ -320,7 +318,7 @@ test('stationing: bounded to real beast kinds, six a farm, four a character, pos
   assert.equal(stepFarmStation(g, { ...base, post: 1 }, 100).error, 'farm-station-bad', 'one beast, one post');
   assert.equal(stepFarmStation(g, { ...base, revenantId: 'b', post: 0 }, 100).error, 'farm-station-post');
   g = stepFarmStation(g, { ...base, revenantId: 'b', kind: MT.Spider, post: 1 }, 100).garden;
-  let four = g;   // the cap is four a character (it was two): two more do-nothing beasts, and the fifth is refused
+  let four = g;
   four = stepFarmStation(four, { ...base, revenantId: 'c', kind: MT.SabertoothTiger, post: 2 }, 100).garden;
   four = stepFarmStation(four, { ...base, revenantId: 'd', kind: MT.SabertoothTiger, post: 3 }, 100).garden;
   assert.equal(four.stations.length, 4);
@@ -341,7 +339,7 @@ test('wolves keep the herd content and the birds off; rank scales', () => {
   const g = withBeasts(beast(WOLF));
   assert.ok(herdKeep(g) > 0 && birdsWarded(g)); assert.equal(herdKeep(emptyGarden()), 0);
   assert.ok(herdKeep(withBeasts(beast(WOLF, { rank: 5 }))) > herdKeep(withBeasts(beast(WOLF, { rank: 1 }))));
-  const a = { id: 1, kind: 'dog', name: 'Rex', tick: 0, fedUntil: 0, wateredUntil: 0, content: 40 };   // tended by no one for a day
+  const a = { id: 1, kind: 'dog', name: 'Rex', tick: 0, fedUntil: 0, wateredUntil: 0, content: 40 };
   assert.ok(contentAt(a, 86400, herdKeep(g)) > contentAt(a, 86400), 'the wolf lifts what neglect lowers');
   const tended = { ...g, herd: [{ ...a, fedUntil: 86400, wateredUntil: 86400, content: 55 }] };
   assert.equal(kindContent(tended, 'dog', 86400), true);
@@ -368,7 +366,7 @@ test('boars find truffles in mushroom beds only; bats add guano care; spiders an
 test('a dragonling\'s greenhouse lets four beds grow out of climate, at full pace in winter; without it the climate refuses', () => {
   let g = withBeasts(beast(MT.Dragonling));
   for (let i = 0; i < 5; i++) g = stepFarmGarden(g, { op: 'hoe', bed: i }, 100).garden;
-  const away = { op: 'plant', crop: 'grapes', climate: 226 };   // a mountain farm: grapes grow in none
+  const away = { op: 'plant', crop: 'grapes', climate: 226 };
   for (let i = 0; i < 4; i++) g = stepFarmGarden(g, { ...away, bed: i }, 100).garden;
   assert.equal(g.beds[0].glass, 1);
   assert.equal(stepFarmGarden(g, { ...away, bed: 4 }, 100).error, 'farm-seed-climate', 'only four beds under glass');
@@ -389,7 +387,6 @@ test('the plough: a stationed grizzly, a played game, a whole row of wild beds a
   const sown = stepFarmGarden(done.garden, { op: 'plant', bed: 2, crop: 'grain' }, 100).garden;
   assert.equal(sown.beds[2].care, 3, 'the furrow\'s care is kept by the sowing');
   assert.equal(stepFarmPlough(g, { beds: [0], game: play(.2), who: 'b' }, 100).garden.beds[0].care, 1);
-  // the game itself: untouched it wanders off the line; steered it holds it
   const idle = createFarmGame('plough'); for (let i = 0; i < 130; i++) idle.tick(.1);
   const steered = createFarmGame('plough'); for (let i = 0; i < 130; i++) { steered.input({ steer: Math.sign(ploughLine(steered.state.t + .2) - steered.state.pos) }); steered.tick(.1); }
   assert.ok(steered.report().score > .8 && idle.report().score < steered.report().score);
@@ -406,7 +403,6 @@ test('the route: station, recall, the Company\'s cross-farm cap, the silk deposi
   const D = 86400;
   assert.equal((await at(D * 20, 42, { ...mk('a', 0), version: v(42) })).station.revenantId, 'a');
   assert.ok((await at(D * 20, 43, { ...mk('b', 0, MT.Rat), version: v(43) })).ok);
-  // four a character across the Company's farms (it was two): two more beasts that do no daily work, then the fifth is refused
   assert.ok((await at(D * 20, 42, { ...mk('c', 1, MT.SabertoothTiger), version: v(42) })).ok);
   assert.ok((await at(D * 20, 43, { ...mk('e', 1, MT.SabertoothTiger), version: v(43) })).ok);
   assert.equal((await at(D * 20, 42, { ...mk('f', 2, MT.SabertoothTiger), version: v(42) })).error, 'farm-station-limit', 'four a character across both farms');
@@ -432,17 +428,15 @@ test('a big harvest keeps every sack: a hundred beds harvested leave a hundred s
   const beds = new Set(liveSacks(g, T + 200).map((s) => s.bed));
   assert.equal(beds.size, N, 'every harvested bed has its sack');
   assert.ok(validGardenLaw(g));
-  // past the cap the oldest go, the newest stay
   const big = emptyGarden();
   for (let b = 0; b < SACKS_MAX + 10; b++) big.beds[b] = { crop: 'grain', grown: 9e9, tick: T, wetUntil: T, quality: 0, care: 0 };
   let h = big;
   for (let b = 0; b < SACKS_MAX + 10; b++) h = stepFarmGardenAction(h, { op: 'harvest', bed: b, mapId: 7, who: 'p' }, T + 60 + b).garden;
-  const kept = liveSacks(h, T + 60 + SACKS_MAX + 10).map((s) => s.bed);   // right after the last harvest: none has expired yet
+  const kept = liveSacks(h, T + 60 + SACKS_MAX + 10).map((s) => s.bed);
   assert.equal(kept.length, SACKS_MAX); assert.ok(kept.includes(SACKS_MAX + 9) && !kept.includes(0), 'the oldest ten went, the newest stay');
 });
 
 test('every crop the farm grows can be drawn, as a plant at every stage and as a sack on the ground and the shoulder', async () => {
-  // a desert root harvest once crashed the sack drawing: only the first three crops had a sack picture
   const { FARM_SEED_IDS } = await import('../src/net/farm/cropLaw.js');
   const { createSackArt } = await import('../src/world/farm/sackArt.js');
   const { createFarmGardenArt, FARM_ART } = await import('../src/world/farmGardenArt.js');
@@ -456,7 +450,7 @@ test('every crop the farm grows can be drawn, as a plant at every stage and as a
   const art = createFarmGardenArt(renderer, assets); await art.prepare();
   const T = 1_800_000_000, site = { beds: FARM_SEED_IDS.map((_, i) => [i * 2, 0, 0]) };
   for (const crop of FARM_SEED_IDS) assert.ok(FARM_ART[crop]?.seedling && FARM_ART[crop].growing && FARM_ART[crop].ripe, `${crop} has art for every stage`);
-  for (const when of [0, 3 * 3600, 99 * 3600]) {   // seedling, growing, ripe
+  for (const when of [0, 3 * 3600, 99 * 3600]) {
     const beds = {}; FARM_SEED_IDS.forEach((crop, i) => { beds[i] = { crop, grown: when, tick: T, wetUntil: T, quality: 0, care: 0 }; });
     art.update(site, { beds }, T, -1);
   }

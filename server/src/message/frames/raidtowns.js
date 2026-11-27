@@ -1,4 +1,3 @@
-// The `raidtowns` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, raidTownsGate } from '../../relay.js';
 
 export async function raidtownsFrame(ws, a, m) {

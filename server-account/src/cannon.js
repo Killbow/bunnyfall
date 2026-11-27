@@ -1,9 +1,4 @@
 // @ts-check
-// BUNNYFALL (2026-11-05): THE GREAT CANNON BY WAYREST, KEPT (src/net/cannonLaw.js says the law). One build the realm gives
-// ingots and planks to: what this round holds, who gave what, the Dusk Tokens a gift pays (counted as the reach's coins are,
-// players.nyx_found - server-account/src/nyx.js), and the shot when the build is whole: the round moves on and `fired_at`
-// says when, so every game can see it fire. A friends' server: a gift is the game's word, bounded (CANNON_GIVE_MAX) and
-// held to what the build still needs.
 import { CANNON_NYX_BONUS, CANNON_NEED, CANNON_KEYS, CANNON_VALUE, CANNON_GIVE_MAX, cannonCoins, cannonWhole } from '../../src/net/cannonLaw.js';
 
 async function readBuild(db) {
@@ -17,7 +12,6 @@ async function readBuild(db) {
   return { round, firedAt: Number(row.fired_at) || 0, got };
 }
 
-/** The build as it stands, and this player's own count: `{ ok, round, firedAt, got, need, mine }`. */
 export async function cannonStatus({ db: session, primary }, player) {
   const db = primary ?? session;
   const b = await readBuild(db);
@@ -25,10 +19,9 @@ export async function cannonStatus({ db: session, primary }, player) {
   return { ok: true, ...b, need: CANNON_NEED, mine: { given: Number(me?.cannon_given) || 0, toward: Number(me?.cannon_pts) || 0 } };
 }
 
-/** A gift: `{ material, n }`. Answers the build after it with `taken` (what the build still needed of it), `coins` paid,
- *  and `fired` when this gift made it whole. */
 export async function cannonGive({ db: session, primary, nowS }, player, body) {
-  const db = primary ?? session;   // a read-then-store: the binding itself, never a session's replica
+  // A read-then-write must use the primary binding, never a session replica that can lag behind it.
+  const db = primary ?? session;
   const key = String(body?.material ?? '');
   const n = Math.trunc(Number(body?.n));
   if (!player?.id || !CANNON_KEYS.includes(key) || !(n >= 1 && n <= CANNON_GIVE_MAX)) return { error: 'bad-cannon' };
@@ -45,16 +38,14 @@ export async function cannonGive({ db: session, primary, nowS }, player, body) {
     if ((res?.meta?.changes ?? 0) > 0) taken = t;
   }
   if (!taken) return { error: 'busy' };
-  // the coins: the gift's worth and what was kept toward the next, paid as the reach's coins are counted
   const me = await db.prepare('SELECT cannon_pts FROM players WHERE id = ?').bind(player.id).first();
   const pay = cannonCoins((Number(me?.cannon_pts) || 0) + taken * CANNON_VALUE[key]);
   await db.prepare('UPDATE players SET cannon_pts = ?2, cannon_given = cannon_given + ?3, nyx_found = nyx_found + ?4, last_seen = ?5 WHERE id = ?1')
     .bind(player.id, pay.rest, taken, pay.coins, nowS).run();
-  // whole: it fires, and the next one begins (one gift wins the move, by the round it read)
   let fired = false;
   const after = await readBuild(db);
   if (after.round === round && cannonWhole(after.got)) {
-    const moved = await db.prepare('UPDATE cannon SET round = round + 1, fired_at = ?2, nyx_bonus = nyx_bonus + ?3 WHERE id = 1 AND round = ?1').bind(round, nowS, CANNON_NYX_BONUS).run();   // and the realm's count its 500
+    const moved = await db.prepare('UPDATE cannon SET round = round + 1, fired_at = ?2, nyx_bonus = nyx_bonus + ?3 WHERE id = 1 AND round = ?1').bind(round, nowS, CANNON_NYX_BONUS).run();
     fired = (moved?.meta?.changes ?? 0) > 0;
   }
   return { ok: true, ...(await readBuild(db)), need: CANNON_NEED, taken, coins: pay.coins, fired };

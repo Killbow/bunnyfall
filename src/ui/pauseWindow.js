@@ -393,7 +393,7 @@ export class PauseOptionsWindow {
         this.hooks.openControls();
       } else {
         this.top = 'note';
-        this._noteRows = [t('pause.controlsNoArt', 'The controls window’s art hasn’t loaded.')];
+        this._noteRows = [t('pause.controlsNoArt', 'The controls menu art has not loaded.')];
       }
       return true;
     }

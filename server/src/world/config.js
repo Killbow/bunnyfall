@@ -1,5 +1,3 @@
-// The relay settings the hub holds in storage, read once a wake and refreshed from the hub.
-// A saved setting is held and its lease door told to every socket in the room.
 import { relayCfgValue, RELAY_CFG_TTL_MS, RELAY_INTERNAL_CFG } from '../../../src/net/relayCfg.js';
 import { SOCIAL_ROOM } from '../relay.js';
 import { ROOM_CALL_MS } from '../relayScale.js';
@@ -17,8 +15,8 @@ export class ConfigPart {
   }
   async _relayCfgFresh(now) {
     if (now - this._relayCfgAt < RELAY_CFG_TTL_MS) return;
-    // Stamp before the ask, so unawaited calls from beats send one ask per TTL; `_relayCfgAsk`
-    // catches every failure, since nobody awaits it.
+    // Stamp before the ask, so unawaited calls from beats send one ask per TTL;
+    // `_relayCfgAsk` catches every failure, since nobody awaits it.
     this._relayCfgAt = now;
     const rooms = this.env?.ROOMS;
     if (!rooms?.idFromName || !rooms?.get) return;

@@ -15,6 +15,7 @@ files:
   - src/worldEvents/riteChest.js
   - src/worldEvents/sigilBroker.js
   - server/src/index.js
+  - src/world/spoilsWorld.js
 routes:
   - "/internal/gate/seat"
   - "/internal/gate/court"
@@ -32,6 +33,9 @@ invariants:
   - "Courts are booked on the `gate:<day>` director room (`gatebook` key), and `gateRoomKey(day, k)` addresses court `k` as `gate:<day>.<k>`."
   - "`placeSeat` keeps party members in the same court, expires unclaimed reservations after `GATE_SEAT_PENDING_MS` (60 seconds), and closes the night via `nightDone` at `GATE_NIGHT_GRACE_MS` (3 seconds) past wrath."
   - "Local rite completion and chest claims persist in character saves under the `RiteDay` and `RiteChest` synthetic vendor records (`src/worldEvents/riteChest.js`)."
+  - "The hub's broken and cleared messages are stored by `circleKey(day, px, py)`, so a message about another circle never unseals this casket or opens this cage."
+  - "The broker sale in `src/world/spoilsWorld.js` refuses unless `sigilBroker.stands()` is true, so a window left open on a caged broker or past midnight sells nothing."
+  - "`createSigilBroker` saves and sends nothing: the cage spot derives from the breach day through `cageSpotLocal`, and the door opens from the host's `freed` rite state."
 traps:
   - "The relay accepts exterior rite pose reports within `RITE_REACH_M` (60 meters) and locks in a player-discovered site once `GATE_SITE_AGREE` (2) accounts agree (`src/net/gateHerald.js`)."
   - "Discord Herald posts thread updates through `gateThread` (`server/src/index.js`) and halts retries on any 4xx HTTP response other than 429."

@@ -8,7 +8,6 @@ if (!ok) { out('woods.load', 'FAIL'); }
 else {
   out('woods.mapWidth', MAP_WIDTH);
   out('woods.mapHeight', MAP_HEIGHT);
-  // GetHeightMapDFBitmap
   out('woods.heightMap.w', MAP_WIDTH);
   out('woods.heightMap.h', MAP_HEIGHT);
   out('woods.heightMap.sha', sha1(w.heightMapBuffer));
@@ -19,7 +18,7 @@ else {
   for (let y = 0; y < 500; y += 37)
     for (let x = 0; x < 1000; x += 53)
       out(`woods.hv.${pad(x, 4)}.${pad(y, 4)}`, w.getHeightMapValue(x, y));
-  // GetLargeHeightMapValuesRange - C# flattens [x,y] as x-major; mirror that.
+  // C# flattens [x, y] in x-major order, and this side matches it.
   for (let y = 3; y < 500; y += 61) {
     for (let x = 7; x < 1000; x += 71) {
       const dim = 4, side = dim * 3;

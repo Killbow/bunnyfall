@@ -1,20 +1,5 @@
-// HT2 - THE PACK'S ACT ON A LIGHT SOURCE, in a real browser.
-//
-// Mac: "So you cant equip the torch in your offhand, you can only drop
-// it on the ground". The enhanced pack's primary act was Wear, no light
-// source has an equip slot, and the card answered "torch cannot be
-// worn." - so the only act on it that named the torch honestly was
-// Drop. The law is headless and pinned there
-// (test/systems/ht2_packlight.test.js drives `localPrimaryAct` and the use);
-// what only a browser answers is whether the CARD a player actually
-// presses now offers Light, lights that torch, says which one burns,
-// and comes back offering Douse.
-//
-// No ARENA2 is needed: the items are built from the port's own
-// templates, as tools/enhancedPackProbe.mjs builds its.
-//
-//     npx vite --port 5199 &
-//     node tools/ht2TorchProbe.mjs
+// Browser probe that checks the enhanced pack card offers Light on a torch, lights it, and then offers Douse.
+// Run: npx vite --port 5199 & node tools/ht2TorchProbe.mjs.
 import { chromium } from 'playwright';
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const out = [];
@@ -26,7 +11,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
 await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
-if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();
 await page.locator('#enhanced-menu .doorbtn.door-new').first().click();
 await page.getByRole('button', { name: 'Begin', exact: true }).click();
 await page.waitForSelector('#enhanced-menu', { state: 'detached', timeout: 20000 });
@@ -68,7 +53,6 @@ const statLine = await page.$eval('#enhanced-inventory .packdetail .stats', (n) 
 check('the card reads Lit, never Worn', /Lit/.test(statLine) && !/Worn/.test(statLine), statLine);
 await page.locator('#enhanced-inventory .acts button', { hasText: 'Douse' }).first().click();
 check('and dousing puts it out', await page.evaluate(() => globalThis.__ent.lightSource === null));
-// the sword is untouched
 await page.locator('#enhanced-inventory .packtab', { hasText: 'Weapons' }).first().click();
 await page.locator('#enhanced-inventory .itemrow', { hasText: 'Longsword' }).first().click();
 check('a sword is still Wear', (await acts())[0] === 'Wear', (await acts()).join(' | '));

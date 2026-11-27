@@ -1,8 +1,5 @@
 // @ts-check
 
-// The top toolbar: menus, the transform and snap controls, the view controls, the environment, the sign-in and the
-// state badge. Each control calls an action; an action that cannot run yet is disabled and says why.
-
 import { h, clear } from './dom.js';
 import { ENVIRONMENTS } from '../api.js';
 

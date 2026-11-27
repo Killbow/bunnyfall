@@ -766,7 +766,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
      * @returns {Promise<{ ok: boolean, text: string, kept?: boolean, busy?: boolean }>}
      */
     async withdraw(material, qty, mint) {
-      if (_withdrawBusy) return { ok: false, busy: true, text: t('prof.page.stores.withdrawBusy', 'The Stores are still counting your last withdrawal.') };   // AUDIT2 BAG1 K10: `busy`, for a station's words
+      if (_withdrawBusy) return { ok: false, busy: true, text: t('prof.page.stores.withdrawBusy', 'Your previous withdrawal is still being processed.') };   // AUDIT2 BAG1 K10: `busy`, for a station's words
       const key = slot();
       const c = character();
       if (!c || !account()) return { ok: false, text: accountRefusalText('no-session') };
@@ -1615,7 +1615,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       try { mint(r.data?.material ?? w.material, Number.isSafeInteger(r.data?.qty) ? r.data.qty : w.qty); } catch (e) { console.warn('[prof] a withdrawal would not mint', e); }
       return { ok: true, text: '', material: w.material, qty: r.data?.qty ?? w.qty };
     }
-    if (keptAnswer(r)) return { ok: false, kept: true, text: t('prof.page.stores.withdrawKept', 'The Stores have your order and will send it when the counting-house answers.') };
+    if (keptAnswer(r)) return { ok: false, kept: true, text: t('prof.page.stores.withdrawKept', 'Your withdrawal is saved and will be sent again once the account server responds.') };
     kept.withdrawals = kept.withdrawals.filter((x) => x.rid !== w.rid);
     writeKept(kept, key);
     shutBy(r);

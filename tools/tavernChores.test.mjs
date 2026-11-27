@@ -4,7 +4,6 @@ import { placeChore, createTavernChores, CHORE_ART } from '../src/scenes/tavernC
 import { createTavernServiceHost } from '../src/scenes/tavernServiceHost.js';
 import { createTavernShift, stepTavernShift, TAVERN_RECIPES, TAVERN_INGREDIENTS, tavernOrder } from '../src/net/tavernServiceLaw.js';
 
-/** A room with a floor at y=0 and, optionally, one table top 0.8 high east of the customer. */
 const room = (table = true) => ({
   raycast(o, d, max) {
     if (d[1] !== -1) return Infinity;
@@ -74,7 +73,7 @@ test('the host offers a served customer\'s chore on hover, opens it on press, an
     },
   });
   service.innRows(keeper)[0].action(); await flush();
-  while (!state.orders[state.index].chore) {   // play up to the first customer who leaves something behind
+  while (!state.orders[state.index].chore) {
     const recipe = TAVERN_RECIPES.find((r) => r.id === tavernOrder(state).recipe);
     for (const k of TAVERN_INGREDIENTS) for (let n = 0; n < recipe[k]; n++) { service.activate(keeper, `tservice:${k}`); await flush(); }
     nowS += 21; service.activate(patron, 'tservice:serve'); await flush();

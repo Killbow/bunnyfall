@@ -1,6 +1,4 @@
-// The game logic of a v2 POI (src/poi/poiDmCore.js) run on the four worked scenarios of tools/poiV2Examples.mjs, and the
-// save-side rules (src/poi/poiSettle.js) the account service settles with.
-
+// Tests the v2 POI game logic and the save-side settle rules. Run: node --test tools/poiDmCore.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';

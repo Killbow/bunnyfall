@@ -1,31 +1,6 @@
-// VC7b (2026-09-23): THE SUN IN THE HAZE, AND THE BEAMS THROUGH THE GAPS, ON A REAL GPU.
-//
-// Mac: "I really want to improve the volumetric cloud system to be more
-// immersive" - light shafts. Two terms join EL3's shaft image, and no pin
-// can see either (the pins run on a fake GL that draws nothing; the sky
-// lab has no air pass). So: the real renderer on a real WebGL2 context
-// (headless Chromium over SwiftShader), a wide ground under the game's own
-// clear-day fog (linear to 2400), synthetic decks handed to
-// `setCloudShadow` as both exterior hosts hand the real one, and the
-// SHAFT IMAGE read back.
-//
-//     node tools/vc7bHazeProbe.mjs [outDir]
-//
-// THE HAZE (the march through the cloud shadow). It fails on: a program
-// that will not compile; haze with no deck, or through `?haze=off`'s door
-// (the door must shut it); no haze under a deck that is all light (the
-// march would be dead and the rest vacuous); haze under a SOLID deck (the
-// shade must take it - the square covers the whole reach, so nothing is
-// read outside it); a STRIPED deck that does not stripe the air (against the
-// same view under a lit deck, pixel by pixel, the ratio must swing - the
-// shafts ARE that swing - where a uniform deck's ratio is one number) or whose mean does not sit
-// between the solid and the lit; and a phase that does not favour the sun
-// (the same lit air seen toward the sun must be brighter than away).
-//
-// THE BEAMS (the sky map in the mask). With the sun on screen and the
-// player in full sun: a sky map that is all gap keeps the beams as they
-// were with no sky map; one that is all cloud takes them away; a sky map
-// half cloud in stripes leaves beams between the two.
+// Checks on a real WebGL2 context that haze and sun beams follow the cloud shadow and sky maps.
+// Usage: node tools/vc7bHazeProbe.mjs [outDir]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -48,7 +23,7 @@ function chunk(type, data) {
   const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
   return Buffer.concat([len, td, crc]);
 }
-function png(w, h, rgba) {   // readPixels' rows are bottom-up
+function png(w, h, rgba) {
   const raw = Buffer.alloc((w * 4 + 1) * h);
   for (let y = 0; y < h; y++) { const src = (h - 1 - y) * w * 4; raw[y * (w * 4 + 1)] = 0; Buffer.from(rgba.buffer, rgba.byteOffset + src, w * 4).copy(raw, y * (w * 4 + 1) + 1); }
   const ihdr = Buffer.alloc(13);
@@ -69,7 +44,7 @@ const W = 640, H = 400;
 const out = await page.evaluate(async ({ W, H, keep }) => {
   const { Renderer, WORLD_FRAME } = await import('/src/render/renderer.js');
   const { EL_LANE } = await import('/src/render/enhancedLighting.js');
-  const { AIR_HAZE_PROBE_KEY } = await import('/src/render/airPass.js');   // AUDIT-VC7 (B6): the key the haze's gain was tuned under
+  const { AIR_HAZE_PROBE_KEY } = await import('/src/render/airPass.js');
   const { perspective, lookAt, identity } = await import('/src/world/mat4.js');
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
@@ -83,7 +58,6 @@ const out = await page.evaluate(async ({ W, H, keep }) => {
     return { width: w, height: h, colors };
   })();
   r.uploadTexture(1, 1, grass);
-  // A WIDE GROUND, so the view ray's reach is the haze's own (AIR_HAZE_REACH), not a wall's
   const E = 6000;
   const P = [-E, 0, -E, E, 0, -E, E, 0, E, -E, 0, E], N = [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], UV = [0, 0, 400, 0, 400, 400, 0, 400];
   const mesh = r.createMesh({ positions: new Float32Array(P), normals: new Float32Array(N), uvs: new Float32Array(UV), indices: new Uint32Array([0, 1, 2, 0, 2, 3]), subMeshes: [{ textureArchive: 1, textureRecord: 1, startIndex: 0, primitiveCount: 2 }] });
@@ -91,12 +65,11 @@ const out = await page.evaluate(async ({ W, H, keep }) => {
   const proj = perspective(Math.PI / 3, W / H, 0.5, 8000);
   const eye = [0, 2, 0];
   const I = identity();
-  // a LOW sun from +z, 25 degrees up - the light that throws long shafts through a broken deck
   const el = 25 * Math.PI / 180;
   const lightDir = new Float32Array([0, Math.sin(el), Math.cos(el)]);
-  const toward = lookAt(eye, [0, 2 + 0.25 * 1000, 1000], [0, 1, 0]);    // the sun in view
-  const away = lookAt(eye, [0, 2 + 0.25 * 1000, -1000], [0, 1, 0]);     // the sun behind
-  const side = lookAt(eye, [1000, 2 + 0.05 * 1000, 0], [0, 1, 0]);      // across the shafts
+  const toward = lookAt(eye, [0, 2 + 0.25 * 1000, 1000], [0, 1, 0]);
+  const away = lookAt(eye, [0, 2 + 0.25 * 1000, -1000], [0, 1, 0]);
+  const side = lookAt(eye, [1000, 2 + 0.05 * 1000, 0], [0, 1, 0]);
 
   const tex = (w, h, rgba, wrapS) => {
     const t = gl.createTexture();
@@ -109,8 +82,6 @@ const out = await page.evaluate(async ({ W, H, keep }) => {
     gl.bindTexture(gl.TEXTURE_2D, null);
     return t;
   };
-  // A SHADOW MAP over a square that covers the whole reach from the eye (nothing read outside it): `fn(u, v)` the
-  // transmittance at the square's (u, v); 128 texels over 16 km is VC4's own texel (~125 m)
   const SIDE = 16000, N0 = 128;
   const shadowOf = (fn) => {
     const b = new Uint8Array(N0 * N0 * 4);
@@ -118,11 +89,8 @@ const out = await page.evaluate(async ({ W, H, keep }) => {
     return tex(N0, N0, b);
   };
   const rect = [eye[0] - SIDE / 2, eye[2] - SIDE / 2, 1 / SIDE, 1];
-  // STRIPES ACROSS THE SUN'S AZIMUTH: bands of cloud shadow 500 m wide, every kilometre, running along x - a
-  // broken deck's lanes of light and shade, which the sun (from +z) throws across the view ray looking along x
   const striped = shadowOf((u, v) => (Math.floor((v * SIDE) / 500) % 2 === 0 ? 1 : 0.1));
   const lit = shadowOf(() => 1), solid = shadowOf(() => 0);
-  // A SKY MAP (equirect, alpha = transmittance by direction): all gap, all cloud, or azimuth stripes of cloud
   const skyOf = (fn) => {
     const w = 64, h = 16, b = new Uint8Array(w * h * 4);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; b[i] = b[i + 1] = b[i + 2] = 200; b[i + 3] = Math.round(fn(x / w, y / h) * 255); }
@@ -137,20 +105,19 @@ const out = await page.evaluate(async ({ W, H, keep }) => {
     if (r.air) r.air._now = () => 1000;
     r.setClearColor([0.55, 0.7, 0.9, 1]);
     r.setLighting(new Float32Array([0.35, 0.35, 0.4]), AIR_HAZE_PROBE_KEY, new Float32Array([1, 0.95, 0.85]));
-    r.setFog('linear', 0, 0, 2400, new Float32Array([0.62, 0.68, 0.78]));   // the clear day's own: Sunny/Overcast are linear fog to 2400
+    // The game's Sunny and Overcast weathers use linear fog to 2400.
+    r.setFog('linear', 0, 0, 2400, new Float32Array([0.62, 0.68, 0.78]));
     r.setPointLights(new Float32Array([]), null);
     let stats = null, img = null, frame = null;
     for (let f = 0; f < 3; f++) {
       r.beginFrame(proj, view, lightDir, WORLD_FRAME);
-      r.setCloudShadow(deck);   // AFTER beginFrame, as the hosts do
+      // This must follow beginFrame, which clears the deck every frame.
+      r.setCloudShadow(deck);
       r.drawMesh(mesh, I, null);
       r.resolveFrame();
       stats = { gl: gl.getError(), shafts: r.air?.stats.shafts, haze: r.air?.stats.haze };
-      // LA-POST3: a half float where the GL renders one - readTarget reads it as the bytes a byte image held; LA-POST8:
-      // a frame that drew neither the beams nor the haze leaves the image unread and uncleared - it adds nothing
       const T = r.air.readTarget('shaft');
       const b = stats.shafts || stats.haze ? T.px : new Uint8Array(T.px.length);
-      // per column: the mean luminance down the column - a shaft is a column that differs from its neighbours
       const cols = new Float64Array(T.w);
       let sum = 0;
       for (let y = 0; y < T.h; y++) for (let x = 0; x < T.w; x++) { const i = (y * T.w + x) * 4; const l = b[i] + b[i + 1] + b[i + 2]; cols[x] += l / T.h; sum += l; }
@@ -186,10 +153,6 @@ if (outDir) {
   for (const k of ['striped', 'stripedOff', 'towardStriped']) if (R[k].frame) writeFileSync(`${outDir}/vc7b-${k}.png`, png(W, H, Uint8Array.from(R[k].frame)));
   console.log('frames written to', outDir);
 }
-// HOW STRIPED an image is against the same view under a lit deck: per pixel the ratio of the two (the phase, the fog
-// and the reach are the same in both and cancel), and that ratio's spread about its mean as a share of the mean. A
-// uniform deck's ratio is one number everywhere; lanes of shade make it swing between them. Pixels too dim to divide
-// (the byte's first few steps) are left out.
 const stripes = (v, ref) => { const a = v.img.lum, b = ref.img.lum, q = []; for (let i = 0; i < a.length; i++) if (b[i] >= 24) q.push(a[i] / b[i]); const m = q.reduce((x, y) => x + y, 0) / q.length; return { n: q.length, cv: m > 0 ? Math.sqrt(q.reduce((x, y) => x + (y - m) ** 2, 0) / q.length) / m : 0 }; };
 
 check('no page errors and no GL error', pageErrors.length === 0 && Object.values(R).every((v) => v.stats.gl === 0), pageErrors.join(' | '));

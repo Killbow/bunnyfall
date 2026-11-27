@@ -1,11 +1,6 @@
 #!/usr/bin/env node
-// PLAIN-TEXT (2026-10-26; the owner: "We need a law to reduce over explanatory text + reduce the amount of ai-like
-// crafted text"). Measures the three places text grows: the player's strings, code comments and the bible.
-// AGENTS.md sets the comment limit this tool measures.
-//
-//   node tools/plainText.mjs              report what breaks the law, against the baseline
-//   node tools/plainText.mjs --lower      rewrite the baseline to today's excess (never raises one)
-//   node tools/plainText.mjs --seed REF   at a merge from a base without the law: admit REF's own excess, no more
+// Measures player strings, source comments, and long reference paragraphs against tools/plainTextBaseline.json.
+// Usage: node tools/plainText.mjs [--lower | --seed REF]  (--lower rewrites the baseline down to today's excess)
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, sep } from 'node:path';
@@ -16,31 +11,21 @@ import { isMain } from './lib/isMain.mjs';
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const BASELINE = 'tools/plainTextBaseline.json';
 
-/** A player string's limits: words in the whole string and in its longest sentence. Longer help is a page or a fold. */
 export const STRING_WORDS_MAX = 40;
 export const SENTENCE_WORDS_MAX = 25;
-/** Phrases that pad or sell instead of saying. Only words never needed in this game's text. */
 export const PADDING = Object.freeze([
   /\bseamless(ly)?\b/i, /\bdelve\b/i, /\belevate\b/i, /\bembark\b/i, /\bunleash\b/i, /\bvibrant\b/i, /\bbustling\b/i,
   /\ba testament to\b/i, /\btapestry of\b/i, /\bin the world of\b/i, /\bdive into\b/i, /\bwhether you're\b/i,
   /\bnot (just|only|merely)\b/i, /\bsimply\b/i, /\bplease note\b/i, /\brest assured\b/i, /\bit'?s worth noting\b/i,
   /\bgame-?changer\b/i, /—/, /[\u{1F300}-\u{1FAFF}]/u,
 ]);
-/** A comment block's most lines (a run of comment lines with no code between). */
 export const COMMENT_LINES_MAX = 8;
-/** A bible paragraph's most words (tables and code blocks aside). */
 export const PARAGRAPH_WORDS_MAX = 150;
-/** Where comments are measured. */
 export const SOURCE_DIRS = Object.freeze(['src', 'server-account/src', 'server/src']);
-/** AUDIT HORIZONTAL PT1, PT4: the baseline's parts, each `key -> excess past its limit` - a string's words past 40, its
- *  longest sentence's past 25 and its padding phrases; a source file's comment lines past 8, summed over its blocks; a
- *  bible page's words past 150, summed over its paragraphs. A count of long blocks let a block grow unseen. */
 export const PARTS = Object.freeze(['strings', 'sentences', 'padding', 'comments', 'bible']);
 
 const count = (s) => String(s).split(/\s+/).filter(Boolean).length;
-/** The most renderings a message is read in (a message of many choices is measured by its first ones). */
 export const RENDERINGS_MAX = 256;
-/** The index of the brace closing the one at `at`, or -1. */
 function closing(s, at) {
   for (let i = at, d = 0; i < s.length; i++) {
     if (s[i] === '{') d++;
@@ -48,8 +33,6 @@ function closing(s, at) {
   }
   return -1;
 }
-/** AUDIT HORIZONTAL PT3: what a message renders as - each plural or select branch in turn, every argument one word (X).
- *  The branches were one X, so a long branch was never read. Unbalanced braces read as the text itself. */
 export function renderings(text) {
   const s = String(text);
   let out = [''];
@@ -74,10 +57,8 @@ export function renderings(text) {
   }
   return out;
 }
-/** The words a player reads in a message: its longest rendering's. */
 export const messageWords = (text) => Math.max(0, ...renderings(text).map(count));
 
-/** A player string's breaches: `{ words, sentence, padding }` with each over its limit, or null where it keeps the law. */
 export function stringBreach(text) {
   const all = renderings(text);
   const w = Math.max(0, ...all.map(count));
@@ -87,9 +68,7 @@ export function stringBreach(text) {
   return { words: w, sentence: s, padding };
 }
 
-/** A source file's comment lines past COMMENT_LINES_MAX, summed over its blocks. AUDIT HORIZONTAL PT2: a block is a run
- *  of comment lines no code line breaks - a blank line ends none. PT6: a version log's entry (`// world271:`,
- *  `// acct198:`) is a block of its own, as PT5's list item is - a bump's note moved into the log grows no block. */
+// A comment block is a run of comment lines with no code line between, and a version log entry is its own block.
 export const VERSION_LOG_LINE = /^\/\/\s*(?:world|acct)\d+:/;
 export function commentExcess(text) {
   let run = 0, inBlock = false, n = 0;
@@ -107,14 +86,11 @@ export function commentExcess(text) {
   return n + Math.max(0, run - COMMENT_LINES_MAX);
 }
 
-/** A bible page's words past PARAGRAPH_WORDS_MAX, summed over its paragraphs (tables and code blocks aside). A top-level
- *  list item is a paragraph of its own: an index page is one list, and its next entry is not its last one grown. */
 export function paragraphExcess(text) {
   return String(text).split(/\n\s*\n/).filter((p) => !/^\s*(\||```)/.test(p)).flatMap((p) => p.split(/\n(?=(?:[-*+]|\d+\.) )/))
     .reduce((n, p) => n + Math.max(0, count(p) - PARAGRAPH_WORDS_MAX), 0);
 }
 
-/** A path as the baseline writes it: always with `/`, whatever separator the OS uses. */
 export const baselineKey = (p, separator = sep) => p.split(separator).join('/');
 
 const walk = (root, dir, ext, out = []) => {
@@ -126,9 +102,7 @@ const walk = (root, dir, ext, out = []) => {
   return out;
 };
 
-/** The tree on disk, as measure() reads it. */
 const diskTree = (root) => ({ list: (dir, ext) => walk(root, dir, ext), read: (f) => readFileSync(join(root, f), 'utf8') });
-/** The tree at a git ref, read in one `git cat-file --batch`. */
 export function gitTree(ref, root = ROOT) {
   const git = (args, input) => execFileSync('git', args, { cwd: root, input, maxBuffer: 1 << 30 });
   const paths = String(git(['ls-tree', '-r', '--name-only', ref, '--', ...SOURCE_DIRS, 'bible', 'locales/en'])).split('\n').filter(Boolean);
@@ -144,8 +118,6 @@ export function gitTree(ref, root = ROOT) {
   return { list: (dir, ext) => paths.filter((p) => p.startsWith(`${dir}/`) && ext.test(p)), read: (f) => files.get(f) ?? '' };
 }
 
-/** Today's excess, each part's (PARTS) - a key listed only where it has some. `tree` the files read (the disk's, or
- *  gitTree's). */
 export function measure(root = ROOT, tree = diskTree(root)) {
   const out = Object.fromEntries(PARTS.map((p) => [p, /** @type {Record<string, number>} */ ({})]));
   const put = (part, k, n) => { if (n > 0) out[part][k] = n; };
@@ -158,8 +130,6 @@ export function measure(root = ROOT, tree = diskTree(root)) {
   return out;
 }
 
-/** A merge from a base that does not hold the law yet: each excess past the baseline is admitted up to the base's own
- *  for it, never past it - what the base wrote before the law stands, what this branch adds does not. */
 export function seeded(base, now, at) {
   const out = {};
   for (const part of PARTS) {
@@ -172,18 +142,14 @@ export function seeded(base, now, at) {
   return out;
 }
 
-/** AUDIT HORIZONTAL PT4: whether `ref` already holds the law - its baseline file. Seeded from such a ref (the branch's own
- *  HEAD), a seed admitted everything the branch wrote. */
 export function holdsLaw(ref, root = ROOT) {
   try { execFileSync('git', ['cat-file', '-e', `${ref}:${BASELINE}`], { cwd: root, stdio: 'ignore' }); return true; } catch { return false; }
 }
-/** `--seed REF`: the baseline with REF's own excess admitted, or null - refused - where REF holds the law. */
 export function seedFrom(ref, base, now, root = ROOT) {
   return holdsLaw(ref, root) ? null : seeded(base, now, measure(root, gitTree(ref, root)));
 }
 
-/** What breaks the law against `base`: an entry past its baseline (none for one not listed), and a baseline entry now
- *  lower than written (the baseline only shrinks, so it is lowered in the same change). */
+// The baseline only shrinks, so an entry now lower than written must be lowered in the same change.
 export function verdict(now, base) {
   const over = [], stale = [];
   for (const part of PARTS) {
@@ -194,7 +160,6 @@ export function verdict(now, base) {
   return { over, stale };
 }
 
-/** A baseline as written: every part, its keys in order. */
 const sortedBaseline = (b) => Object.fromEntries(PARTS.map((p) => [p, Object.fromEntries(Object.entries(b[p] ?? {}).sort(([x], [y]) => x.localeCompare(y)))]));
 
 if (isMain(import.meta.url)) {

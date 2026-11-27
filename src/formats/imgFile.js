@@ -1,31 +1,14 @@
-// *.IMG reader. Each IMG file contains a single image.
-// 1:1 translation of Daggerfall Unity's ImgFile.cs (MIT, Daggerfall Workshop /
-// Gavin Clayton). Quirks kept verbatim:
-//   - Headerless (RCI-style) files carry no header; dimensions come from an
-//     exact file-length table. These images are never compressed.
-//   - Six palettized files carry their own 768-byte palette AFTER the image
-//     data; it is very dark and multiplied x4 on load.
-//   - ReadImage copies width*height raw bytes regardless of the header's
-//     compression field, exactly as DFU does.
-//   - getSize reports the decoded record's dimensions, so it returns 0x0
-//     until the image has been read (DFU behaviour).
 
 import { BaseImageFile, COMPRESSION_FORMATS, emptyBitmap } from './baseImageFile.js';
 
-// The three IMG filenames below have no image data or are otherwise invalid.
 export const UNSUPPORTED_IMG_FILENAMES = Object.freeze([
   'FMAP0I00.IMG',
   'FMAP0I01.IMG',
   'FMAP0I16.IMG',
 ]);
 
-// IMG files that define their own palette following the image data.
-// ReadPalette's switch, verbatim (ImgFile.cs:477-489) - these six and
-// no others. EXPORTED because it is the law the 2026-09-01 incident's
-// site sweep is written against: a consumer of one of these names must
-// mint its own DFPalette (_readPalette writes INTO the instance it is
-// handed), and a consumer of any OTHER IMG must not, because for those
-// `paletteName` is a real palette file the host has already loaded.
+// A consumer of these six files must create its own DFPalette, since `_readPalette` writes into the palette it is
+// given. For any other IMG, `paletteName` names a palette file the host has already loaded.
 export const PALETTIZED_FILENAMES = Object.freeze([
   'CHGN00I0.IMG',
   'DIE_00I0.IMG',
@@ -35,11 +18,6 @@ export const PALETTIZED_FILENAMES = Object.freeze([
   'TITL00I0.IMG',
 ]);
 
-/**
- * IMG files have a fixed width and height not specified in a header.
- * Returns the correct dimensions by exact file length, or 0x0 if the file
- * carries a real header.
- */
 export function getHeaderlessFileImageDimensions(length) {
   switch (length) {
     case 44: return { width: 22, height: 22 };
@@ -75,15 +53,10 @@ export class ImgFile extends BaseImageFile {
     this._loaded = false;
   }
 
-  /** Specifies if this IMG file defines its own palette. */
   get isPalettized() {
     return this._isPalettized;
   }
 
-  /**
-   * IMG files use a variety of palettes. Returns the correct palette filename
-   * for this image; palettized images return ''.
-   */
   get paletteName() {
     if (this._isPalettized) return '';
     const fn = this._fileName;
@@ -100,12 +73,10 @@ export class ImgFile extends BaseImageFile {
     return this._loaded ? 1 : 0;
   }
 
-  /** Always "IMG File" - game files carry no text descriptions for this type. */
   get description() {
     return 'IMG File';
   }
 
-  /** XOffset and YOffset from image header as {x,y}. */
   get imageOffset() {
     return { x: this._header.xOffset, y: this._header.yOffset };
   }
@@ -115,12 +86,10 @@ export class ImgFile extends BaseImageFile {
   }
 
   /**
-   * Loads an IMG file.
-   * @param {Uint8Array} bytes - full file contents.
-   * @param {string} fileName - e.g. 'TITL00I0.IMG'; drives headerless,
-   *   palettized, and unsupported handling.
+   * @param {Uint8Array} bytes
+   * @param {string} fileName
    * @param {import('./dfPalette.js').DFPalette} [palette]
-   * @returns {boolean} true if successful.
+   * @returns {boolean}
    */
   load(bytes, fileName, palette = null) {
     if (!fileName.toUpperCase().endsWith('.IMG')) return false;
@@ -139,36 +108,28 @@ export class ImgFile extends BaseImageFile {
     return true;
   }
 
-  /** The single bitmap of this file (record/frame default to 0). */
   getDFBitmap(record = 0, frame = 0) {
     if (record !== 0 || frame !== 0) return emptyBitmap();
     if (!this._readImageData()) return emptyBitmap();
     return this._imgRecord;
   }
 
-  /** Always 1 for loaded IMG files (record must be 0). */
   getFrameCount(record) {
     if (record !== 0) return -1;
     if (!this._readImageData()) return -1;
     return 1;
   }
 
-  /** {width,height} of the decoded record (0x0 before decode - DFU behaviour). */
   getSize(record) {
     if (record !== 0) return { width: 0, height: 0 };
     return { width: this._imgRecord.width | 0, height: this._imgRecord.height | 0 };
   }
 
-  // --- Readers ---
-
   _readHeader() {
-    // Create header based on the byte-size test.
     const sz = getHeaderlessFileImageDimensions(this._bytes.byteLength);
     if (sz.width === 0 && sz.height === 0) {
-      // This image has a header.
       this._header = this.readImgFileHeader(0);
     } else {
-      // RCI-style image with no header; build one. Never compressed.
       this._header = {
         position: 0,
         xOffset: 0,
@@ -185,27 +146,22 @@ export class ImgFile extends BaseImageFile {
   }
 
   _readImageData() {
-    if (this._imgRecord.data !== null) return true; // already read
+    if (this._imgRecord.data !== null) return true;
 
     const h = this._header;
     const data = new Uint8Array(h.width * h.height);
 
-    // Read image bytes (raw width*height, regardless of compression field).
+    // Copies raw width * height bytes whatever the header compression field says, as DFU does.
     data.set(this._bytes.subarray(this._imageDataPosition, this._imageDataPosition + data.length));
 
     this._imgRecord = { width: h.width, height: h.height, data, palette: this.palette };
 
-    // Read palette data for palettized files.
     this._readPalette(this._imageDataPosition + data.length);
 
     return true;
   }
 
-  /**
-   * Some IMG files contain palette information following the image data.
-   * This palette replaces any previously specified palette. It is very dark;
-   * multiplying the RGB values by 4 gives correct-looking colours.
-   */
+  // Replaces the palette passed in. The embedded palette is stored dark, and DFU scales each channel by 4.
   _readPalette(position) {
     if (!PALETTIZED_FILENAMES.includes(this._fileName)) {
       this._isPalettized = false;

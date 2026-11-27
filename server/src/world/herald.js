@@ -1,5 +1,3 @@
-// The heralds of the hub: the gate, the Sea Serpent, the super dungeon, the ketch, and the spire.
-// Each has its state, its alarm, and its beat, and posts its card when its time comes.
 import { heraldWebhook, heraldRole, HERALD_TIMEOUT_MS, gateSiteDayOk, foldGateSite, heraldOmenDue, heraldFellLive, agreedGateSite, HERALD_RETRY_MS, ritePost, fellPost, omenPost } from '../../../src/net/gateHerald.js';
 import { relayCfgValue } from '../../../src/net/relayCfg.js';
 import { heraldThread, HERALD_FAMILIES, heraldPostUrl } from '../../../src/net/herald/heraldCard.js';
@@ -122,7 +120,7 @@ export class HeraldPart {
         else retry = now + HERALD_RETRY_MS;
       }
       if (JSON.stringify(st) !== was) {
-        // Merge into storage as it is now; a kill or rite owed during the Discord awaits must stay.
+        // Merge into storage as it is now; a kill or rite owed during the webhook awaits must stay.
         const cur = await this._heraldState();
         st.omen = Math.max(st.omen, cur.omen); st.fell = Math.max(st.fell, cur.fell); st.rite = Math.max(st.rite, cur.rite);
         if (cur.owe && cur.owe.d !== read?.d && cur.owe.d > st.fell) st.owe = cur.owe;

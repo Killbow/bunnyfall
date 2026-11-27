@@ -12,6 +12,7 @@ files:
   - "src/maps/discovery.js"
   - "src/scenes/worldModes.js"
   - "src/world/worldSaveLoad.js"
+  - "src/formats/saveVarsFile.js"
 routes: []
 tables: []
 replacesBible:
@@ -25,12 +26,7 @@ invariants:
   - "Character identity keys on `characterId` rather than character name: `snapshotPlayer` (`src/saves/save.js`) mints missing ids via `characterIdOf` (`src/characters/characterId.js`), and `adoptLegacyCards` stamps matching legacy cards."
   - "restorePlayer (src/saves/save.js:810) re-anchors lastGameMinutes and calls resetMagicRoundMarker to the restored classic minutes, so a load never replays day changes or magic rounds."
   - "restoreSessionState (src/saves/save.js:1474) runs removeAllOrphanedItems after quests restore."
-  - "`shared._loading` is set before the first await in a quickload, and every early return releases it in the `finally`. An await between guard and latch lets two loads run over one entity."
-  - "`closeWindowsForLoad` runs before the save is restored and before the first await, then again after the last await. A window closed after the restore hands its taken items to the loaded game and duplicates them."
-  - "`interiorSaveData` resolves first when composing a save, because it writes the live interior scene into the entity cache that `snapshotPlayer` reads next."
-  - "A load leaves a mounted mode with `forceExitToExterior({ cacheScene: false })`. The entity cache already holds the save's scene, and caching the dying one over it would corrupt the restored player."
-  - "A classic import calls `assignShipToPlayer` after `restorePlayer`, because `restorePlayer` mints an empty permanent scene cache from the converter's null and the ship's scenes must be added to the new cache."
-  - "The exit autosave runs inside `beforeunload`, so every composer it reaches must stay synchronous with no await, or the page can close mid-write."
+  - "`SaveVars.climateWeathers` holds the raw classic bytes; the 0x7f fog mask and the 5/6 weather swap happen in `convertClassicClimateWeathers`."
 traps:
   - "Keying save slots by characterName alone collides when characters share a name. quickLoadSlot and hasQuickSave take characterId."
   - "Restoring without resetting the magic-round marker lets the catch-up run up to MAX_CATCHUP_ROUNDS on the first tick."

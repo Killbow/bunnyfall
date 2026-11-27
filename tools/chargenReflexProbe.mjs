@@ -1,32 +1,6 @@
-// THE WIZARD'S PRIMARY ACTION IS ALWAYS ON SCREEN, MEASURED.
-//
-// Fay on Discord, on desktop build 0.1.3612: "The Continue button on
-// the Reflex page is not clickable. Tried all the different reflex
-// options, but I can only click the Back button." She could not create
-// a character at all.
-//
-// The button was not disabled and the flow was not stuck - both were
-// checked first and both were fine. It was COVERED. `.choose` is
-// centred and `height: 100%`, `.stagebody`'s implicit grid row is
-// `auto` (max-content), so a stage taller than the pane kept its full
-// height while `.stagebody` shrank under `flex: 1; min-height: 0`, and
-// the difference spilled out of the bottom as visible overflow - under
-// the opaque `.actionbar` that is laid out straight after it. At
-// 1280x720 `document.elementFromPoint` at the button's own centre
-// answers `DIV.actionbar`.
-//
-// Reflexes is the ONLY `.choose` stage with a Continue at all (sex,
-// class method and biography method all advance on the answer itself)
-// and it is the tallest, five answers at `min-height: 88px`. So it is
-// the only stage that could strand a player, and nothing measured it.
-//
-// A source pin cannot see this: the markup is right, the handler is
-// right, and the fault is a painted rectangle. So it is MEASURED, the
-// way enhancedTapProbe measures thumb targets - and at the window
-// sizes players actually use, because it is green at 1920x1080 and red
-// at everything below 768 tall.
-//
-//     node tools/chargenReflexProbe.mjs
+// Checks that the character wizard's primary button is uncovered and pressable at common window sizes.
+// Run: node tools/chargenReflexProbe.mjs.
+
 import { chromium } from 'playwright';
 import { ENHANCED_CSS, ENHANCED_TOKENS } from '../src/ui/enhancedStyle.js';
 const BUG = process.env.SHOW_BUG === '1';

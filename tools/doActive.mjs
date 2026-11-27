@@ -1,73 +1,41 @@
 #!/usr/bin/env node
-// HOW MANY ROOMS ARE AWAKE, READ BY THE OPERATOR (bible/11-Multiplayer/Scale-Arc.md, COST-0). Cloudflare bills a Durable
-// Object's duration while it runs or sits in memory unable to hibernate, 128 MB a second at $12.50 per million GB-s:
-// $0.135 an object-day. The owner's bill of 2026-10-24 was about $90 a day, $50 of it duration - some 370 objects awake
-// around the clock - and nothing in the tree could say which. Cloudflare's GraphQL analytics can:
-// `durableObjectsPeriodicGroups` carries each object's active time. Its fields are not in Cloudflare's docs, so this asks
-// the schema first and builds every question from what the account's schema says it has.
-// selfhost/upstream-ci/workflows/do-active.yml runs it by hand with the deploy's token. It reads only.
-//
-//   node tools/doActive.mjs --account <id> --days [days]   the reading, as Markdown on stdout (the token from
-//                                                         CLOUDFLARE_API_TOKEN); the schema first, so a run that
-//                                                         stops part way still says what the account exposes
-//   node tools/doActive.mjs --check [days]                 the window a run reads (refused like the run refuses it)
-//
-// THE READING, for each of the last `days` whole UTC days: every object's summed active time (its hours awake that
-// day), how many were awake over ALWAYS_ON_H hours, the object-days the day's total comes to and what they cost - split
-// by namespace (the relay's `Room`, the Worker's `AdmitGate`) where the schema has one - and over the window a histogram
-// of hours a day and the objects awake longest.
-// - THE UNIT IS NOT DOCUMENTED: the busiest object-day is read under each candidate unit, and the reading used is the
-//   one that puts it nearest a whole day without passing it (the hub's bus is awake all day).
-// - THE PAGE IS CUT: a day touches more objects than a page holds, so the per-object rows are the busiest first and a
-//   cut page says so; the day's total is its own question, never a sum of a cut page.
+// Reads each Durable Object's daily active time from Cloudflare's GraphQL analytics, as Markdown. It reads only.
+// Run: node tools/doActive.mjs --account <id> --days [days] | --check [days] (token from CLOUDFLARE_API_TOKEN).
 
 import { isMain } from './lib/isMain.mjs';
 
 /**
- * What the account's schema exposes of the dataset (introspect).
  * @typedef {object} DatasetSchema
- * @property {string} root - the query type's name
- * @property {string} group - the dataset's group type
- * @property {Record<string, string[] | null>} parts - each part of the group (dimensions, sum, ...) and its fields;
- *   null for a value of the group's own (a count)
- * @property {string[]} filters - the filter's fields
- * @property {string[]} orders - the orders it may sort by
- * @property {Record<string, unknown> | null} settings - the account's settings for the dataset, where exposed
+ * @property {string} root
+ * @property {string} group
+ * @property {Record<string, string[] | null>} parts
+ * @property {string[]} filters
+ * @property {string[]} orders
+ * @property {Record<string, unknown> | null} settings
  */
 /**
- * How the reading asks, as the schema allows it (readingPlan).
  * @typedef {object} ReadingPlan
- * @property {number} days - the whole days read, cut to what the account keeps
- * @property {number | null} cut - the days the account keeps, when fewer than were asked
- * @property {'date' | 'date_range' | 'datetime'} byDay - how a day is filtered
- * @property {number} slice - the seconds one question covers (a day, or the account's longest window)
- * @property {number} pageSize - the most rows one question asks for
- * @property {string | null} order - the order that puts the busiest first, where the schema has it
- * @property {boolean} namespace - whether rows can be split by namespace
+ * @property {number} days
+ * @property {number | null} cut
+ * @property {'date' | 'date_range' | 'datetime'} byDay
+ * @property {number} slice
+ * @property {number} pageSize
+ * @property {string | null} order
+ * @property {boolean} namespace
  */
 
 export const GRAPHQL = 'https://api.cloudflare.com/client/v4/graphql';
-/** The dataset read. */
 export const DATASET = 'durableObjectsPeriodicGroups';
-/** The longest window asked, whole days; the default too. */
 export const DAYS_MAX = 7;
 export const DAY_S = 86_400;
-/** An object awake more than this many hours of a day is counted as always awake. */
 export const ALWAYS_ON_H = 22;
-/** What an object-day of duration costs: 128 MB (0.125 GB) held DAY_S seconds at $12.50 per million GB-s. */
 export const OBJECT_DAY_USD = (0.125 * DAY_S * 12.5) / 1e6;
-/** The histogram's upper edges, hours a day. */
 export const HOUR_EDGES = Object.freeze([1, 2, 4, 8, 12, 16, 20, 22, 24]);
-/** The units `activeTime` may be in, each its seconds - Cloudflare's GraphQL times are microseconds elsewhere. */
 export const UNITS = Object.freeze([['microseconds', 1e-6], ['milliseconds', 1e-3]]);
-/** How many of the objects awake longest the summary lists. */
 export const TOP_N = 40;
-/** The most rows a page asks for, whatever the account's settings allow. */
 export const PAGE_MAX = 10_000;
-/** The settings this reads, where the account's schema has them. */
 const SETTINGS = ['enabled', 'maxDuration', 'maxNumberOfFields', 'maxPageSize', 'notOlderThan'];
 
-/** A window in whole days, 1 to DAYS_MAX (an empty input is DAYS_MAX), or throw: digits only. */
 export function activeDays(raw) {
   const text = String(raw ?? '').trim();
   if (text === '') return DAYS_MAX;
@@ -76,24 +44,19 @@ export function activeDays(raw) {
   return days;
 }
 
-/** An account id as wrangler.toml carries it, or throw - it is written into the questions. */
 export function accountId(raw) {
   const text = String(raw ?? '').trim();
   if (!/^[0-9a-f]{32}$/.test(text)) throw new Error(`not an account id: ${JSON.stringify(raw)}`);
   return text;
 }
 
-/** The last `days` whole UTC days before `now`, oldest first, as YYYY-MM-DD. */
 export function windowDays(days, now = Date.now()) {
   const today = Math.floor(now / 1000 / DAY_S) * DAY_S;
   return Array.from({ length: days }, (_, index) => new Date((today - (days - index) * DAY_S) * 1000).toISOString().slice(0, 10));
 }
 
-// ─────────────────────────────────────────── the schema ───────────────────────────────────────────
 const TYPE_REF = 'name kind ofType { name kind ofType { name kind ofType { name kind } } }';
-/** One type's introspection - standard GraphQL, which Cloudflare's endpoint answers. */
 export const typeQuery = (name) => `query { __type(name: ${JSON.stringify(name)}) { name kind fields { name type { ${TYPE_REF} } args { name type { ${TYPE_REF} } } } inputFields { name } enumValues { name } } }`;
-/** A type reference's named type, through its LIST and NON_NULL wrappers. */
 const unwrap = (typeRef) => {
   let inner = typeRef;
   while (inner && !inner.name) inner = inner.ofType;
@@ -104,10 +67,7 @@ const fieldOf = (type, name) => type?.fields?.find((field) => field.name === nam
 const names = (list) => (list ?? []).map((field) => field.name);
 
 /**
- * WHAT THE ACCOUNT EXPOSES: the schema walked from its root to the dataset - the query type, `viewer`, `accounts`, the
- * dataset's group and each of its parts (dimensions, sum, max, ...), its filter's fields and its orders - and the
- * account's settings for it, where the schema has a `settings` node. Every name past the root is the schema's own.
- * @param {(query: string) => Promise<any>} ask a GraphQL question's `data`
+ * @param {(query: string) => Promise<any>} ask
  * @param {string} account
  * @returns {Promise<DatasetSchema>}
  */
@@ -130,7 +90,7 @@ export async function introspect(ask, account) {
   const parts = {};
   for (const field of group.type.fields ?? []) {
     const typeRef = unwrap(field.type);
-    parts[field.name] = typeRef?.kind === 'OBJECT' ? names((await type(typeRef.name)).fields) : null;   // null: a value of the group's own (a count)
+    parts[field.name] = typeRef?.kind === 'OBJECT' ? names((await type(typeRef.name)).fields) : null;
   }
   const argType = async (arg) => {
     const argument = group.field.args?.find((declared) => declared.name === arg);
@@ -149,8 +109,7 @@ export async function introspect(ask, account) {
   return { root, group: group.type.name, parts, filters, orders, settings };
 }
 
-/** The schema's answer drawn - each part's fields, the filters, the orders that sort by active time, the settings.
- *  @param {DatasetSchema} schema */
+/** @param {DatasetSchema} schema */
 export function schemaTable(schema) {
   const rows = [['group', schema.group]];
   for (const [part, fields] of Object.entries(schema.parts)) rows.push([part, fields ? fields.join(', ') : '(a value)']);
@@ -160,11 +119,10 @@ export function schemaTable(schema) {
   return `**What the account exposes (\`${DATASET}\`)**\n\n| part | fields |\n|---|---|\n${rows.map(([label, text]) => `| ${label} | ${String(text).replace(/\|/g, '\\|')} |`).join('\n')}\n`;
 }
 
-// ─────────────────────────────────────────── the questions ───────────────────────────────────────────
 /**
- * The plan the schema allows, or throw naming what is missing: the per-object dimension, the active time, a filter by
- * day, the page and the order. A window the account keeps no data for is cut to what it keeps.
- * @param {DatasetSchema} schema @param {number} days @returns {ReadingPlan}
+ * @param {DatasetSchema} schema
+ * @param {number} days
+ * @returns {ReadingPlan}
  */
 export function readingPlan(schema, days) {
   const dimensions = schema.parts.dimensions ?? [];
@@ -192,7 +150,10 @@ export function readingPlan(schema, days) {
   };
 }
 
-/** A day's filters, one a slice of `plan.slice` seconds, each a GraphQL literal. @param {ReadingPlan} plan @param {string} day */
+/**
+ * @param {ReadingPlan} plan
+ * @param {string} day
+ */
 export function dayFilters(plan, day) {
   if (plan.byDay === 'date') return [`{date: "${day}"}`];
   if (plan.byDay === 'date_range') return [`{date_geq: "${day}", date_leq: "${day}"}`];
@@ -205,21 +166,15 @@ export function dayFilters(plan, day) {
 }
 
 const groups = (account, args, body) => `query { viewer { accounts(filter: {accountTag: "${accountId(account)}"}) { g: ${DATASET}(${args}) { ${body} } } } }`;
-/** A slice's objects, the busiest first: each its id, its namespace where the schema has one, and its active time. */
 export const objectsQuery = (account, plan, filter) => groups(account, `limit: ${plan.pageSize}, filter: ${filter}${plan.order ? `, orderBy: [${plan.order}]` : ''}`, `dimensions { objectId${plan.namespace ? ' namespaceId' : ''} } sum { activeTime }`);
-/** A slice's total active time - by namespace where the schema has one, never through a page that could be cut. */
 export const totalQuery = (account, plan, filter) => groups(account, `limit: ${plan.pageSize}, filter: ${filter}`, `${plan.namespace ? 'dimensions { namespaceId } ' : ''}sum { activeTime }`);
 
-// ─────────────────────────────────────────── the reading ───────────────────────────────────────────
-/** The unit the busiest object-day says: each candidate's hours, and the one nearest a day without passing it (the
- *  hub's bus is awake all day) - or the first, said unsure, when every reading passes a day. */
 export function unitOf(busiestRaw) {
   const readings = UNITS.map(([name, seconds]) => ({ name, s: seconds, hours: (busiestRaw * seconds) / 3600 }));
   const fit = readings.filter((candidate) => candidate.hours <= 24.5).sort((left, right) => right.hours - left.hours)[0];
   return { readings, chosen: fit ?? readings[0], sure: !!fit };
 }
 
-/** The histogram bucket an object-day's hours fall in: the first edge it does not pass. */
 export const bucketOf = (hours) => {
   const index = HOUR_EDGES.findIndex((edge) => hours <= edge);
   return index < 0 ? HOUR_EDGES.length - 1 : index;
@@ -228,11 +183,7 @@ export const bucketOf = (hours) => {
 const num = (value, digits = 1) => (Number.isInteger(value) ? value.toLocaleString('en-US') : Number(value).toLocaleString('en-US', { maximumFractionDigits: digits }));
 const table = (title, columns, rows) => `**${title}**\n\n| ${columns.join(' | ')} |\n|${columns.map(() => '---').join('|')}|\n${rows.map((row) => `| ${row.join(' | ')} |`).join('\n')}\n`;
 
-/**
- * THE RUN: the schema, then each day's objects and total, drawn as they come (`out`), so a run that stops part way keeps
- * what it read. Throws where it cannot go on; the caller says so.
- * @param {{ ask: (query: string) => Promise<any>, account: string, days: number, now?: number, out: (md: string) => void, namespaces?: Map<string, string> }} options
- */
+/** @param {{ ask: (query: string) => Promise<any>, account: string, days: number, now?: number, out: (md: string) => void, namespaces?: Map<string, string> }} options */
 export async function reading({ ask, account, days, now = Date.now(), out, namespaces = new Map() }) {
   const schema = await introspect(ask, account);
   out(`${schemaTable(schema)}\n`);
@@ -241,9 +192,9 @@ export async function reading({ ask, account, days, now = Date.now(), out, names
   const namespaceName = (id) => (id == null ? '(all)' : namespaces.get(id) ?? id);
   const perDay = [];
   for (const day of windowDays(plan.days, now)) {
-    const objects = new Map();   // objectId -> { ns, raw }
+    const objects = new Map();
     let cut = false;
-    const totals = new Map();    // namespace -> raw
+    const totals = new Map();
     for (const filter of dayFilters(plan, day)) {
       const rows = (await ask(objectsQuery(account, plan, filter)))?.viewer?.accounts?.[0]?.g ?? [];
       if (rows.length >= plan.pageSize) cut = true;
@@ -311,7 +262,6 @@ export async function reading({ ask, account, days, now = Date.now(), out, names
   return { schema, plan, unit, perDay, objectDays };
 }
 
-/** A GraphQL question's `data`, or throw its errors. */
 export function graphqlAsk(token, fetchImpl = fetch) {
   return async (query) => {
     const response = await fetchImpl(GRAPHQL, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ query }), signal: AbortSignal.timeout(60_000) });
@@ -322,8 +272,6 @@ export function graphqlAsk(token, fetchImpl = fetch) {
   };
 }
 
-/** The account's Durable Object namespaces by id, each its class (and script), or an empty map where the token may not
- *  read them - the split still stands on the ids. */
 export async function namespacesOf(token, account, fetchImpl = fetch) {
   try {
     const response = await fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${accountId(account)}/workers/durable_objects/namespaces?per_page=100`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60_000) });

@@ -1,62 +1,14 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// MAP3 — THE HELD POSE: the Morrowind first-person arms holding a
-// sheet of paper, and the sheet itself.
-//
-// Mac (2026-09-18, the Held Map arc): "Morrowind will need its own
-// handcrafted map with hand placement just like the sprite. Our first
-// custom rig change." This is that change, and it is the FIRST pose in
-// this port that is not one of Morrowind's own animations: a set of
-// hand-authored rotations laid over the idle, and a paper quad placed
-// in front of the eye for the hands to hold.
-//
-// THE MECHANISM IS THE TORCH'S. combat/fpArm.js poses the rig from a
-// TRACK MAP and a SAMPLER (formats/morrowind/mwFirstPerson.js poseAssembly ->
-// mwSkin.js poseSkeleton, which asks `tracks.get(boneName)` and then
-// `sampleTrack(track, time)` and expects `{rotation: quaternion,
-// translation, scale}`). MW-D51 blended the torch clip onto the left
-// arm by wrapping masked bones' tracks (`{__overlay: track}`) and
-// handing a sampler that reads the wrapper on its own clock. This
-// module wraps the same way (`{__delta, __base, __rest}`), and its
-// sampler answers the base pose's rotation TIMES a constant delta - a
-// rotation about the bone's own axes, on top of whatever the idle is
-// doing. The arm keeps breathing; the hands come up.
-//
-// WHY DELTAS AND NOT ABSOLUTE ROTATIONS. An absolute local rotation is
-// a number about ONE skeleton's rest frames; retail's xbase_anim.1st
-// and the fixtures' armfp do not share them. "Bend the left forearm
-// forty degrees more" means the same thing on both. The default deltas
-// are ZERO: the session had the fixture arm only, and the pose is tuned
-// on the retail arm through the live surface the host exposes
-// (window.__heldPose - bible/10-UI/Held-Map-Arc.md, MAP3).
-//
-// QUATERNIONS ARE [w, x, y, z] HERE, because they are everywhere the
-// rig reads them: mwAnim.js's sampler answers [w,x,y,z] and mwSkin.js's
-// quatToMat33 destructures `[w, x, y, z]`. AUDIT-MAP2 found the first
-// draft packed [x,y,z,w] - a 40-degree bend about X reached the rig as
-// a 140-degree turn about Z.
-//
-// THE PAPER is a rigid piece like the weapon and the torch (a `source`
-// of vertices placed by an attachment transform each frame), but its
-// attachment is the RIG ROOT rather than a hand bone: it is put where
-// the eye is looking, at arm's length, and the hands are posed to it,
-// so the sheet is still whatever the arms do. Its picture is NOT here:
-// the ink stays a DOM canvas at full resolution, laid over the quad's
-// projected corners by ui/quadMap.js; the piece is the parchment under
-// it - a flat, lit, parchment-coloured quad the thumbs can rest on.
-// ═══════════════════════════════════════════════════════════════════
+// Held map pose: deltas over the Morrowind first-person idle, plus a parchment quad the hands hold.
+// ui/quadMap.js draws the map itself as a DOM canvas over the quad's projected corners.
 
 import { transformPoint } from '../world/mat4.js';
 
-/** Morrowind's own scale: MW_UNITS_PER_METER (formats/morrowind/mwFirstPerson.js). */
+// Rounded from MW_UNITS_PER_METER in mwFirstPerson.js.
 const UNITS_PER_METRE = 69.99;
 
-/**
- * The pose, in DEGREES about each bone's own axes, applied after the
- * idle's rotation - and the paper, in metres from the eye. Bone names
- * are the first-person skeleton's own (formats/morrowind/mwNpc.js PART_BONES),
- * lowercased as the track map keys them.
- */
+// Bone deltas are degrees about each bone's own axes, applied after the idle, because retail and fixture skeletons
+// have different rest frames. Paper sizes are meters from the eye and tilt is degrees.
 export const HELD_POSE_DEFAULT = Object.freeze({
   bones: Object.freeze({
     'left upper arm': Object.freeze([0, 0, 0]),
@@ -67,27 +19,19 @@ export const HELD_POSE_DEFAULT = Object.freeze({
     'right hand': Object.freeze([0, 0, 0]),
   }),
   paper: Object.freeze({
-    width: 0.46,      // metres across
-    forward: 0.42,    // metres in front of the eye
-    drop: 0.14,       // metres below the eye
-    tilt: 22,         // degrees the sheet leans back (top away from the eye)
-    colour: Object.freeze([0.80, 0.68, 0.47]),   // parchment, lit by the pass
+    width: 0.46,
+    forward: 0.42,
+    drop: 0.14,
+    tilt: 22,
+    colour: Object.freeze([0.80, 0.68, 0.47]),
   }),
 });
 
-/** The bones a held pose may name: the two arms, hands to clavicles,
- *  in the part-attach names (mwNpc.js PART_BONES, lowercased). */
 export const HELD_BONES = Object.freeze([
   'left clavicle', 'left upper arm', 'left forearm', 'left wrist', 'left hand',
   'right clavicle', 'right upper arm', 'right forearm', 'right wrist', 'right hand',
 ]);
-/** AUDIT-MAP2: retail skeletons carry BOTH families - the animated
- *  `Bip01 L Forearm` and, under it, the part-attach node `Left Forearm`
- *  the .kf never keys. A delta on the attach node would turn the forearm
- *  mesh and leave the hand (a child of the Bip01 bone, not of the attach
- *  node) where it was. So a named bone resolves to whichever of its two
- *  spellings the CLIP keys, then to whichever the skeleton has - the
- *  fixture rig keys the attach names, retail keys the Bip01 ones. */
+// Retail clips key the Bip01 bones and never the attach nodes; posing an attach node would leave the hand behind.
 export const HELD_BONE_ALIASES = Object.freeze({
   'left clavicle': 'bip01 l clavicle', 'left upper arm': 'bip01 l upperarm', 'left forearm': 'bip01 l forearm', 'left hand': 'bip01 l hand',
   'right clavicle': 'bip01 r clavicle', 'right upper arm': 'bip01 r upperarm', 'right forearm': 'bip01 r forearm', 'right hand': 'bip01 r hand',
@@ -100,7 +44,7 @@ export function resolveHeldBone(name, base, skeleton) {
   return names.find((n) => base?.has?.(n) && has(n)) ?? names.find(has) ?? null;
 }
 
-// ── QUATERNIONS ([w, x, y, z], Hamilton - the rig's own packing) ──
+// Quaternions are [w, x, y, z] because mwAnim.js and mwSkin.js quatToMat33 read that packing.
 export const QUAT_IDENTITY = Object.freeze([1, 0, 0, 0]);
 export function quatMul(a, b) {
   const [aw, ax, ay, az] = a, [bw, bx, by, bz] = b;
@@ -116,13 +60,10 @@ export function quatAxis(axis, deg) {
   const s = Math.sin(h), c = Math.cos(h);
   return axis === 0 ? [c, s, 0, 0] : axis === 1 ? [c, 0, s, 0] : [c, 0, 0, s];
 }
-/** X, then Y, then Z, each about the bone's own (already rotated) axes.
- *  @param {number[]} e degrees about X, Y, Z */
+/** @param {number[]} e */
 export function quatFromEulerDeg(e) {
   return quatMul(quatMul(quatAxis(0, e[0] ?? 0), quatAxis(1, e[1] ?? 0)), quatAxis(2, e[2] ?? 0));
 }
-/** A 3x3 (row-major, as mwSkin keeps a node's rest rotation) to a
- *  [w, x, y, z] quaternion - the algebraic inverse of mwSkin's quatToMat33. */
 export function mat33ToQuat(m) {
   const [m00, m01, m02, m10, m11, m12, m20, m21, m22] = m;
   const tr = m00 + m11 + m22;
@@ -144,15 +85,8 @@ export function mat33ToQuat(m) {
 }
 const isZero = (e) => !e || (Math.abs(e[0]) < 1e-9 && Math.abs(e[1]) < 1e-9 && Math.abs(e[2]) < 1e-9);
 
-// ── THE TRACKS ───────────────────────────────────────────────────
-
+// The caller memoizes the returned map per (base, spec, skeleton), so a frame allocates nothing.
 /**
- * The idle's track map with the held bones wrapped: `{__delta, __base,
- * __rest}` per posed bone - the delta quaternion, the base track (or
- * null), and the bone's rest rotation as a quaternion for a bone the
- * clip never keys. Every other bone is the base track, untouched. One
- * Map per (base, spec, skeleton) - the caller memoises it, as the
- * torch's overlay is memoised, so a frame allocates nothing.
  * @param {Map<string, any>|null} base
  * @param {{bones?: Record<string, number[]>}} spec
  * @param {{byName?: Map<string, any>, nodes?: Map<any, any>}|null} skeleton
@@ -161,11 +95,11 @@ export function deltaTracks(base, spec, skeleton) {
   const out = new Map(base ?? []);
   const bones = spec?.bones ?? {};
   for (const name of Object.keys(bones)) {
-    if (isZero(bones[name])) continue;   // a zero delta leaves the idle alone
+    if (isZero(bones[name])) continue;
     const key = resolveHeldBone(name, base, skeleton);
     const ref = key != null ? skeleton?.byName?.get(key) : null;
     const node = ref != null ? skeleton?.nodes?.get(ref) : null;
-    if (!node) continue;                 // a bone this skeleton does not have (under either name) is not posed
+    if (!node) continue;
     out.set(key, {
       __delta: quatFromEulerDeg(bones[name]),
       __base: base?.get(key) ?? null,
@@ -175,12 +109,6 @@ export function deltaTracks(base, spec, skeleton) {
   return out;
 }
 
-/**
- * The sampler: a wrapped bone answers the base rotation (the clip's at
- * `time`, or the rest) TIMES the delta - the delta turns the bone about
- * its own axes on top of the idle - with the base's translation and
- * scale; an unwrapped track is sampled as it always was.
- */
 export function heldSampler(sampleTrack) {
   return (track, time) => {
     if (!track || !track.__delta) return sampleTrack(track, time);
@@ -190,40 +118,23 @@ export function heldSampler(sampleTrack) {
   };
 }
 
-// ── THE PAPER ────────────────────────────────────────────────────
-
+// Rig space is Z up with the actor facing +Y. Corners run top-left, top-right, bottom-right, bottom-left.
 /**
- * The sheet's four corners in RIG space (Z up, the actor faces +Y):
- * centred `forward` metres ahead of the eye and `drop` below it, `width`
- * across, `width / aspect` tall, leaning back by `tilt` about the
- * sheet's own horizontal. Order: top-left, top-right, bottom-right,
- * bottom-left, as the eye sees them (the actor's left is -X).
- * @param {number[]} eye the camera node's rig-space translation
+ * @param {number[]} eye
  * @param {{width: number, forward: number, drop: number, tilt: number}} paper
- * @param {number} aspect width / height of the sheet
+ * @param {number} aspect
  */
 export function paperCornersRig(eye, paper, aspect) {
   const w = paper.width * UNITS_PER_METRE;
   const h = w / (aspect > 0 ? aspect : 1.6);
   const t = (paper.tilt ?? 0) * Math.PI / 180;
   const cx = eye[0], cy = eye[1] + paper.forward * UNITS_PER_METRE, cz = eye[2] - paper.drop * UNITS_PER_METRE;
-  // the sheet's up vector leans back: up = (0, sin t, cos t)
   const uy = Math.sin(t), uz = Math.cos(t);
   const at = (sx, sv) => [cx + sx * w / 2, cy + sv * (h / 2) * uy, cz + sv * (h / 2) * uz];
   return [at(-1, 1), at(1, 1), at(1, -1), at(-1, -1)];
 }
 
-/**
- * The rigid piece the rig packs and draws: two triangles, parchment
- * coloured, attached to the rig root (`attachRef` null - the identity
- * transform), so its `source` IS its rig-space position. The UVs run
- * the sheet's way (u across, v down from the top-left) so a texture,
- * if one is ever hung on it, reads upright. ONE winding, the one whose
- * flat normal faces the eye (-Y of the sheet): the character pass draws
- * with culling off, so a second winding would only be a coplanar twin
- * fighting the first for the depth buffer with its normal turned away
- * (AUDIT-MAP2).
- */
+// One winding only: the character pass draws with culling off, so a second winding would fight for depth.
 export function paperPiece(eye, paper, aspect) {
   const c = paperCornersRig(eye, paper, aspect);
   const source = new Float32Array(12);
@@ -239,9 +150,7 @@ export function paperPiece(eye, paper, aspect) {
   };
 }
 
-/** Write the sheet's corners for a new eye into a piece's source in
- *  place (the eye moves with the neck; the sheet follows it - AUDIT-MAP2).
- *  @returns {number} the farthest corner's distance from the eye, rig units */
+/** @returns {number} */
 export function refreshPaperSource(piece, eye, paper, aspect) {
   const c = paperCornersRig(eye, paper, aspect);
   let far = 0;
@@ -254,11 +163,7 @@ export function refreshPaperSource(piece, eye, paper, aspect) {
 }
 
 /**
- * Where the sheet's corners land on the composite: the piece's posed
- * positions through the pass's own model, view and projection (the
- * same three the rig draws with), to NDC, to CSS pixels of the rect the
- * composite covers. Null when any corner is behind the lens.
- * @param {Float32Array} positions the piece's posed rig-space vertices (12 floats)
+ * @param {Float32Array} positions
  * @param {{model: Float32Array, view: Float32Array, proj: Float32Array}} cam
  * @param {{x: number, y: number, w: number, h: number}} rect
  */
@@ -279,10 +184,6 @@ export function projectPaperCorners(positions, cam, rect) {
   return out;
 }
 
-/** A pose spec merged over `base` (the pose in force, or the default):
- *  unknown bones dropped, numbers coerced, so a hand-typed tuning cannot
- *  leave the rig with a NaN - and a PARTIAL spec (one bone, or the paper
- *  alone) changes only what it names, which is how the door is used. */
 export function normaliseHeldPose(spec, base = HELD_POSE_DEFAULT) {
   const bones = {};
   for (const name of HELD_BONES) {

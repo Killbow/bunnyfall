@@ -1,4 +1,3 @@
-// A gate court's copies: their hellos and poses, one seat an account, and frames to every copy.
 import { courtOfCopy } from '../../../../src/net/hubShards.js';
 import { ShardSocket } from './shardSocket.js';
 import { gateHolds, gateDayOfRoom } from '../../../../src/net/gateLaw.js';

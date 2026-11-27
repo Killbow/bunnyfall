@@ -1,5 +1,5 @@
-// Preload (via NODE_OPTIONS=--import): counts every assert.* invocation and
-// attributes it to the test/*.test.js call site. Written out at process exit.
+// Preload (via NODE_OPTIONS=--import): counts every assert.* call and attributes it to its test-file call site.
+// Written out at process exit.
 import assertStrict from 'node:assert/strict';
 import assertLoose from 'node:assert';
 import fs from 'node:fs';
@@ -18,8 +18,7 @@ function note() {
     if (m) { const k = path.basename(m[1]) + ':' + m[2]; if (!inner) inner = k; outer = k; }
   }
   if (!outer) { counts.set('<no-test-frame>', (counts.get('<no-test-frame>') || 0) + 1); return; }
-  // attribute to the OUTERMOST test-file frame (the test body), so local
-  // helpers like `approx()` do not absorb the count.
+  // Attribute to the outermost test-file frame, so local helpers do not absorb the count.
   counts.set(outer, (counts.get(outer) || 0) + 1);
   if (inner !== outer) counts.set('SITE ' + inner, (counts.get('SITE ' + inner) || 0) + 1);
 }

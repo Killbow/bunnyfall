@@ -1,5 +1,3 @@
-// The Worker's live ask of the hub for the Super dungeon record, with its cache, retry, and seat
-// timings. A realm sends the busy refusal while the hub does not answer.
 import { SOCIAL_ROOM, SD_INTERNAL_LIVE, validSdRecord } from '../relay.js';
 import { ROOM_CALL_MS } from '../relayScale.js';
 
@@ -16,11 +14,11 @@ export async function sdLiveAsk(rooms, s) {
   if (!rooms?.idFromName || !rooms?.get) return null;
   try {
     const res = await rooms.get(rooms.idFromName(SOCIAL_ROOM)).fetch(new Request(`https://relay.internal${SD_INTERNAL_LIVE}`, { method: 'POST', body: JSON.stringify({ s }), signal: AbortSignal.timeout(ROOM_CALL_MS) }));
-    // `undefined` means the hub did not answer and the hello is refused busy;
+    // `undefined` means the hub did not answer and the hello is refused as busy;
     // `null` means no record and the hello is refused as closed.
     if (!res?.ok) return undefined;
     return validSdRecord((await res.json())?.rec);
   } catch (e) { console.warn('[sd] live', e?.message ?? e); return undefined; }
 }
-// The client retries a busy refusal; SD_NO_CLOSED is final, so never send it on hub silence.
+// The client retries a busy refusal; SD_NO_CLOSED is final, so never send it when the hub is silent.
 export const SD_NO_BUSY = 'busy';

@@ -1,34 +1,7 @@
-// QS3 - THE QUICKSLOT DIAMOND, MEASURED IN A REAL BROWSER.
-//
-// Node has no layout engine, so "the diamond clears the vitals column"
-// and "it does not stand under the phone's jump button" are claims the
-// suite cannot check. This is the artifact that checks them: a page
-// over the REAL modules (src/ui/enhancedHud.js and
-// src/ui/enhancedStyle.js, imported rather than re-implemented), a fake
-// player carrying a weapon, a shield and two potions, and every box
-// read back off the live engine at three sizes, two HUD scales and both
-// virtual-stick anchors.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER rather than a static file server,
-// and that is not a convenience: the HUD's module graph reaches
-// `import.meta.glob` (scenes/quest/questData.js, systems/dynamicSkiesAssets
-// .js, systems/betterAmbience.js), which is a Vite COMPILE-TIME macro.
-// A plain server hands the browser the macro itself and the page dies
-// with "(intermediate value).glob is not a function" - measured, on the
-// first draft of this file. The shipping graph is the transformed one,
-// so the probe uses the transform.
-//
-// The rectangles it must clear belong to the other layers, and are
-// stated here as the numbers those layers use rather than measured off
-// them - ui/touch/touch.js: the bottom-right column at edge 16 with 48-tall
-// buttons, and a FIXED virtual stick at inset 36 radius 56
-// (FIXED_STICK_INSET, STICK_RADIUS).
-//
-//     node tools/qs3Probe.mjs
-//
-// PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers here; pass CHROMIUM=... to
-// point at another executable. QS3_SHOTS=<dir> writes a screenshot per
-// page beside the numbers.
+// Measures the quickslot diamond against the HUD's other layers in a real browser at three sizes, two HUD scales,
+// and both stick anchors. It runs on the Vite dev server because the HUD's modules use import.meta.glob.
+// Run: node tools/qs3Probe.mjs (CHROMIUM=<path> for another browser, QS3_SHOTS=<dir> for screenshots).
+
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -132,8 +105,7 @@ window.__probe = {
 document.title = 'ready';
 <\/script></body></html>`;
 
-/** The other layers' own rectangles, in viewport px off the edges they
- *  are inset from (ui/touch/touch.js). */
+// These rectangles copy the layout in src/ui/touch.js and must change with it.
 const touchButtons = (W, H) => ({ x: W - 296, y: H - 64, right: W - 16, bottom: H - 16 });
 const fixedStickBox = (H) => ({ x: 36, y: H - 148, right: 148, bottom: H - 36 });
 const overlaps = (a, b) => !!a && !!b && a.x < b.right && b.x < a.right && a.y < b.bottom && b.y < a.bottom;
@@ -145,15 +117,13 @@ const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: p
 const fails = [];
 const notes = [];
 try {
-  // AUDIT 68 X2-probe-tmp-page-leak: written inside the try, so the finally that unlinks it always runs.
+  // The page is written inside the try so the finally that unlinks it always runs.
   await writeFile(PAGE_PATH, PAGE);
   const sizes = [['desktop', { width: 1280, height: 800 }], ['phone-landscape', { width: 860, height: 400 }], ['phone-portrait', { width: 430, height: 860 }]];
   for (const [name, size] of sizes) {
     for (const scale of [1, 1.5, 2]) {
       for (const stick of ['float', 'fixed']) {
-        // The phone sizes are opened as a PHONE - a touch-first device, so the
-        // sheet's `(pointer: coarse) and (hover: none)` rule is live and the
-        // hit test below measures what a finger lands on.
+        // Phone sizes open as touch devices so the sheet's (pointer: coarse) rules apply to the hit test.
         const touch = name !== 'desktop';
         const page = await browser.newPage({ viewport: size, hasTouch: touch, isMobile: touch });
         const errors = [];
@@ -174,17 +144,7 @@ try {
         console.log(`   counts c1 "${p.counts.c1}" c2 "${p.counts.c2}"; cell pointer-events ${p.pointer}, root ${p.rootPointer}; .hud-hands present: ${p.hands}`);
         console.log(`   touch buttons ${JSON.stringify(btns)}${stick === 'fixed' ? `  fixed stick ${JSON.stringify(stickBox)}` : ''}`);
 
-        // WHAT IS CHECKED IS WHAT IS DRAWN. `.hud-quick` is a padded box
-        // whose caption row is as wide as its longest chip and whose
-        // bottom 18px are empty, so measuring IT reports collisions
-        // between two pieces of nothing. The drawn parts are the
-        // diamond, the caption and whichever tags are standing.
-        // ...and the diamond's own SQUARE is four corners of nothing, so
-        // the four cells are measured rather than the box round them.
         console.log(`   .hud-qspell   ${p.spellOn ? `x ${p.spellChip.x} y ${p.spellChip.y} ${p.spellChip.w}x${p.spellChip.h} "${p.spellName}" key "${p.spellKey}" [${p.spellClass}]` : 'hidden'}; the readied chip ${p.readiedOn ? 'drawn' : 'stood down'}`);
-        // QS6: the chip is drawn, it names the slot's spell, and - when the
-        // readied spell IS the slot's - the generic readied chip stands down
-        // rather than saying the same word twice.
         if (!p.spellOn) fails.push(`${label}: the caption's spell chip is not drawn`);
         if (p.spellOn && !p.spellName) fails.push(`${label}: the spell chip carries no name`);
         if (p.spellOn && p.readiedOn) fails.push(`${label}: the readied chip doubles the spell chip's own word ("${p.readiedName}")`);
@@ -192,16 +152,11 @@ try {
         if (touch && p.spellOn && p.spellPointer !== 'auto') fails.push(`${label}: a phone cannot reach the spell chip (pointer-events ${p.spellPointer})`);
         if (touch && p.spellKeyShown) fails.push(`${label}: a KEY chip is drawn on a device with no keyboard`);
         if (!touch && !p.spellKeyShown) fails.push(`${label}: the spell chip names no key`);
+        // The drawn cells, caption, and tags are measured, not the padded .hud-quick box or the diamond's square.
         const drawn = [...['main', 'off', 'c1', 'c2'].map((k) => [`the ${k} cell`, p.cells[k]]), ['the caption', p.cap],
           ...['top', 'left', 'right', 'bottom'].filter((k) => p.tagsOn[k]).map((k) => [`the ${k} tag`, p.tags[k]])];
         const hit = (box, what) => { for (const [name, r] of drawn) if (overlaps(r, box)) fails.push(`${label}: ${name} overlaps ${what}`); };
-        // AT hudScale 2 ON A PHONE THE WHOLE HUD IS OVER-SCALED, and
-        // that is not this slice's doing: the vitals column itself is
-        // 710px wide on a 430px screen and hangs off BOTH edges
-        // (measured below, `.hud-bars x -140.4`). Where the reference
-        // element does not fit either, the containment check is a NOTE
-        // rather than a verdict - it would be a pin on PX30c's clamp,
-        // not on the diamond.
+        // When the vitals column itself does not fit the screen, containment is a note, not a failure.
         const hudFits = p.bars.x >= 0 && p.bars.right <= p.W;
         if (p.hands) fails.push(`${label}: the old hand plaques are still in the DOM`);
         hit(p.bars, 'the vitals column');
@@ -223,16 +178,11 @@ try {
           if (p.hit.corner !== null) fails.push(`${label}: c1's square corner hits the ${p.hit.corner} cell - the cell is a square, not a rhombus`);
         } else if (p.pointer !== 'none') fails.push(`${label}: a desktop's cells take the pointer`);
         console.log(`   hit test: centres ${['c1', 'off', 'main', 'c2'].map((k) => p.hit[k]).join('/')}, middle ${p.hit.middle}, corner ${p.hit.corner}, gap ${p.hit.gap}`);
-        // QS3_SHOTS=<dir>: a screenshot per page, for a reader who wants
-        // to SEE the diamond rather than read its rectangles.
         if (process.env.QS3_SHOTS) await page.screenshot({ path: join(process.env.QS3_SHOTS, `qs3-${name}-x${scale}-${stick}.png`) });
         await page.close();
       }
     }
   }
-  // QS6, the other half: a spell readied from the BOOK is not the slot's, so
-  // BOTH chips stand - the stand-down above must be about identity and not
-  // about the chip merely existing.
   {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?nofonts&scale=1&stick=float&spell=1&other=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -245,9 +195,6 @@ try {
     if (p2?.spellClass.includes('readied')) fails.push('book-readied: the slot\'s chip lit for a spell that is not in it');
     await page.close();
   }
-  // QS6: A LONG SPELL NAME on the narrowest screen. A spell can be called
-  // anything a player types, and an unbounded chip on this row is exactly
-  // what ran the whole block off a 430px phone once already (the qcap cap).
   for (const [name, size] of [['phone-portrait', { width: 430, height: 860 }], ['desktop', { width: 1280, height: 800 }]]) {
     const page = await browser.newPage({ viewport: size, hasTouch: name !== 'desktop', isMobile: name !== 'desktop' });
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?nofonts&scale=1&stick=float&longspell=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });

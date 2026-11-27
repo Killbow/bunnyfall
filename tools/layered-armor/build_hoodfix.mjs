@@ -1,22 +1,6 @@
-// WORN-ARMOUR: build vendor/layered-armor/hoodfix/ from the hand-cleaned hooded frames.
-//
-// The hooded frames (worn_armour_all_frames, <body>/with-hood: every outfit with a cloak of no dye, Light Brown) were
-// cleaned by hand on their own, so they are not always "body + cloak". For every strip this script composes the
-// outfit with its cloak (layeredArmor.js, the vendored strips as they are) and compares it with the frame in each
-// metal. Where they differ, the pixel goes into hoodfix/<body>/<combo>/<record>-<frame>.png, which composeStrip lays
-// over the finished cloaked picture. A strip with no difference gets no file.
-//
-// A hoodfix strip has the body strip's first 9 tiles: base, slot map (red head, green top, blue legs), the 7 metals.
-// A pixel the same in every metal is in the base; one that differs is in the metal tiles, on the slot whose metal it
-// follows (as in strips_from_frames.py: the outfit with only that piece in plate shows the same colours there; else
-// the body strip's nearest slot). The alpha says how the pixel is laid down:
-//   255  the colour, and if it is the cloth's green it takes the cloak's dye (cloth is stored in the green ramp)
-//   128  the colour exactly, never dyed
-//     1  the pixel is cleared
-// A frame colour counts as cloth when the cloaked picture already showed cloak cloth there and some green of the ramp
-// dyes Light Brown to exactly that colour, or when fix_hood_fragments.py laid it as cloth (<frames>/<body>/clothmask).
-//
-// usage: node build_hoodfix.mjs <repo> <frames root with male/with-hood and female/with-hood>   (needs pngjs)
+// Builds vendor/layered-armor/hoodfix/ from the hand-cleaned hooded frames, where they differ from the composition.
+// Hoodfix alpha: 255 is the color (dyed when it is cloak green), 128 the exact color, and 1 clears the pixel.
+// Run: node build_hoodfix.mjs <repo> <frames root with male/with-hood and female/with-hood> (needs pngjs).
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { PNG } from 'pngjs';
@@ -33,7 +17,7 @@ const piece = (t) => (t === 'leather' ? 'l' : t === 'chain' ? 'c' : `p${METALS.i
 const rd = (p) => PNG.sync.read(readFileSync(p));
 const cloakOver = (body, rf) => { const rec = Number(rf.split('-')[0]), m = cman[body], of = m?.overFrames ?? []; return rec >= 20 ? of.includes(rf) : (m?.over ?? [3, 4]).includes(rec % 5) || of.includes(rf); };
 
-function isCloth(r, g, b) {   // layeredArmor.js isCloth
+function isCloth(r, g, b) {
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
   if (d === 0 || mx < 31 || d / mx < 0.15) return false;
   let h;
@@ -41,7 +25,6 @@ function isCloth(r, g, b) {   // layeredArmor.js isCloth
   if (h < 0) h += 360;
   return h >= 60 && h <= 165;
 }
-// Light Brown colour -> a green of the ramp that dyes to it
 const UNDYE = new Map();
 {
   const ramp = cman.ramp;
@@ -59,7 +42,7 @@ const UNDYE = new Map();
 const stats = {};
 for (const body of ['male', 'female']) {
   const sdir = `${framesRoot}/${body}/with-hood`;
-  const groups = {};   // combo -> {metal|'': {folder, code}}
+  const groups = {};
   for (const fo of readdirSync(sdir).sort()) {
     const [h, t, l] = /^(\w+)-helm_(\w+)-chest_(\w+)-legs$/.exec(fo).slice(1);
     const combo = [h, t, l].map(fam).join('_');
@@ -76,7 +59,6 @@ for (const body of ['male', 'female']) {
   for (const rf of cman[body].frames) {
     const cs = rd(`${V}/cloak/${body}/${rf}.png`);
     const cloak = { strip: cs, over: cloakOver(body, rf), noSlivers: cman[body]?.noSlivers === true };
-    // the frames and the cloaked / plain composition of every outfit
     const T = {}, C = {}, P = {}, strips = {}, MK = {};
     for (const [combo, g] of Object.entries(groups)) {
       strips[combo] = rd(`${V}/${body}/${combo}/${rf}.png`);
@@ -85,7 +67,7 @@ for (const body of ['male', 'female']) {
         const t = rd(`${sdir}/${fo}/${names[fo][rf]}`).data;
         for (let i = 0; i < t.length; i += 4) if (!t[i + 3]) t[i] = t[i + 1] = t[i + 2] = 0;
         T[combo][metal] = t;
-        const mp = `${framesRoot}/${body}/clothmask/${fo}/${names[fo][rf]}`;   // px fix_hood_fragments.py laid as the cloak's cloth
+        const mp = `${framesRoot}/${body}/clothmask/${fo}/${names[fo][rf]}`;
         (MK[combo] ??= {})[metal] = existsSync(mp) ? rd(mp).data : null;
         C[combo][metal] = LA.composeStrip(strips[combo], `${code}~${DYE}`, cloak).data;
         P[combo][metal] = LA.composeStrip(strips[combo], code).data;
@@ -112,7 +94,6 @@ for (const body of ['male', 'female']) {
         st.exact++;
         return [t[i], t[i + 1], t[i + 2], isCloth(t[i], t[i + 1], t[i + 2]) ? 128 : 255];
       };
-      // body strip's slot map, for the nearest-slot fallback
       const slotOf = (p) => { if (!plate) return -1; const o = (Math.floor(p / w) * s0.width + w + (p % w)) * 4; const d = s0.data; if (!d[o + 3]) return -1; return SLOT_RGB.findIndex(([r, gg, b]) => d[o] === r && d[o + 1] === gg && d[o + 2] === b); };
       const fams = combo.split('_');
       for (const p of R) {

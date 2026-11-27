@@ -1,16 +1,6 @@
-// PORT-CHANNELS (2026-11-04, the owner: "carve a river or inlet but make sure you dont touch any important land"): FINDS
-// EACH INLAND PORT A SHORT WATER WAY TO THE OPEN SEA, and writes it as data (src/world/portChannelData.js).
-//
-// A port settlement (tools/portAudit.mjs) with no open sea within SEA_RING gets a channel of map pixels from the open sea
-// (or a lake that is already water - costing nothing, so a river runs on through it) to within SEA_RING of the town. The way
-// is Dijkstra's over the 8-neighbours, cheapest through LOW ground (each land pixel costs 1 + its height byte / 8) and
-// never over IMPORTANT LAND: a pixel holding any location (a town, a keep, a temple, a dungeon: every one but the port's
-// own), a pixel next to one (it costs LOCATION_NEAR_COST more, and is refused outright beside a town of 40+ houses'
-// kind - any non-dungeon location), mountain climate, or a pixel the town's own map holds the port's block in. A town
-// whose way would carve more than MAX_CARVE pixels is left as it is (its far capitals: Dragontail, Wrothgaria... stand
-// no shipyard, as INLAND-PORTS made them).
-//
-// Writes src/world/portChannelData.js. Usage: ARENA2_PATH=/path/to/arena2 node tools/portChannels.mjs [--dry]
+// Finds each inland port a short water channel to the open sea that avoids other locations and mountains, and
+// writes src/world/portChannelData.js. Run: ARENA2_PATH=/path/to/arena2 node tools/portChannels.mjs [--dry]
+
 import { readFileSync, writeFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 import { MapsFile, longitudeLatitudeToMapPixel, CLIMATES } from '../src/formats/mapsFile.js';
@@ -30,7 +20,6 @@ class Heap {
   get size() { return this.a.length; }
 }
 
-/** Every location's pixel -> its kind, so a way keeps off them. */
 function locationPixels(maps) {
   const at = new Map();
   for (let r = 0; r < maps.regionCount; r++) {
@@ -47,7 +36,6 @@ function locationPixels(maps) {
   return at;
 }
 
-/** The channel for one port: the land pixels to make water, or null where none is short enough / clear enough. */
 export function channelFor(port, ctx) {
   const { seaPixel, sea, locAt, climateAt } = ctx;
   const start = port.py * MAP_WIDTH + port.px;
@@ -68,14 +56,14 @@ export function channelFor(port, ctx) {
         if (nx < 1 || ny < 1 || nx >= MAP_WIDTH - 1 || ny >= MAP_HEIGHT - 1) continue;
         const j = ny * MAP_WIDTH + nx;
         let c;
-        if (seaPixel(nx, ny)) c = 0.05;   // water already: a lake or the sea itself
+        if (seaPixel(nx, ny)) c = 0.05;
         else {
           const other = locAt.get(j);
-          if (other !== undefined && other !== port.mapId) continue;   // important land: never
+          if (other !== undefined && other !== port.mapId) continue;
           if (climateAt(nx, ny) === CLIMATES.Mountain) continue;
           let near = 0;
           for (let ey = -1; ey <= 1; ey++) for (let ex = -1; ex <= 1; ex++) { const o = locAt.get((ny + ey) * MAP_WIDTH + nx + ex); if (o !== undefined && o !== port.mapId) near++; }
-          if (near > 1) continue;   // hemmed in by other places
+          if (near > 1) continue;
           c = 1 + ctx.height(nx, ny) / 8 + near * LOCATION_NEAR_COST;
           if (dx && dy) c *= 1.41;
         }
@@ -85,12 +73,12 @@ export function channelFor(port, ctx) {
   }
   if (goal < 0) return null;
   const path = [];
-  for (let i = goal; i !== -1; i = prev[i]) path.push(i);   // sea ... town
-  path.reverse();   // town ... sea
+  for (let i = goal; i !== -1; i = prev[i]) path.push(i);
+  path.reverse();
   const keep = [];
   for (const i of path) {
     const x = i % MAP_WIDTH, y = (i - x) / MAP_WIDTH;
-    if (Math.max(Math.abs(x - port.px), Math.abs(y - port.py)) <= SEA_RING - 1) continue;   // the town's own ground stays: the channel stops a pixel short of its ring
+    if (Math.max(Math.abs(x - port.px), Math.abs(y - port.py)) <= SEA_RING - 1) continue;
     if (!seaPixel(x, y)) keep.push([x, y]);
   }
   if (keep.length === 0 || keep.length > MAX_CARVE) return null;
@@ -102,7 +90,7 @@ if (isMain(import.meta.url)) {
   if (!A2) { console.error('ARENA2_PATH is not set'); process.exit(2); }
   const bytes = (n) => new Uint8Array(readFileSync(`${A2}/${n}`));
   const maps = new MapsFile(); maps.load(bytes('MAPS.BSA'), bytes('CLIMATE.PAK'), bytes('POLITIC.PAK'));
-  WoodsFile.portChannels = false;   // the map as the game made it
+  WoodsFile.portChannels = false;
   const woods = new WoodsFile(); woods.load(bytes('WOODS.WLD'));
   const seaPixel = (x, y) => isWaterPixel(maps.getClimateIndex(x, y), woods.getHeightMapValue(x, y));
   const sea = openSeaOf(seaPixel, MAP_WIDTH, MAP_HEIGHT);

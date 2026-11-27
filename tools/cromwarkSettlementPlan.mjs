@@ -1,5 +1,5 @@
-// Reproduce the settlement revision using the owner's local classic data.
-// node tools/cromwarkSettlementPlan.mjs --arena2 <path> [--write] [--report <json>]
+// Reproduces the Cromwark settlement revision from local classic data.
+// Run: node tools/cromwarkSettlementPlan.mjs --arena2 <path> [--write] [--report <json>].
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,8 +9,6 @@ import { wildMaskOf, wildInside, wildRingAt } from '../src/world/wildZone.js';
 export const CIVILIAN_TYPES = new Set([0, 1, 2, 3, 5, 6, 8, 9, 11]);
 export const CROMWARK_HAMLET_ID = 505449455;
 
-/** Farthest-point selection per location type: sparse but distributed, deterministic
- * regardless of input order. Keep about one third of each kind, and the named heart. */
 export function chooseCromwarkSettlements(locations) {
   const candidates = locations.filter((l) => l.inside && CIVILIAN_TYPES.has(l.type));
   const kept = new Set();

@@ -1,5 +1,3 @@
-// The PvP dungeon halls the hub records, read once a wake, with their words, wipes, and resets.
-// It answers whether a party holds an account, for the halls and the instance door, and who left.
 import { wdunOf, WDUN_KEY, wdunPrune, wdunGiants, wdunBound, wdunCrows, wdunState, wdunGiantDie, wdunFleetSunk, wdunFleets, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone } from '../../../src/net/wildLaw.js';
 import { WDUN_HERE_MS, wdunHall, WILD_REMAINS_MS as WDUN_PILE_MS, wdunRoomKey, layerName, WDUN_INTERNAL_RESET, DUNGEON_ROOM_TAGS, LAYERS_MAX, SOCIAL_ROOM, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE } from '../relay.js';
 import { ROOM_CALL_MS } from '../relayScale.js';

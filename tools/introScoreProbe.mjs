@@ -1,23 +1,11 @@
-// INTRO3 - THE MAIN THEME, PLAYED BY THE GAME'S OWN PLAYER IN A REAL BROWSER, RENDERED AND MEASURED.
-//
-// node holds the score's shape (test/systems/intro3_score.test.js); what node cannot answer is what it SOUNDS like through the
-// game's own song player and FM bank: whether the whole of it sounds, whether it clips, whether it stands as loud as
-// the recording it replaced, and whether the film's two landmarks are heard where the cue sheet puts them. So: the
-// repo's own modules served as they are, the theme played by systems/song/songPlayer.js into an OfflineAudioContext (the
-// player's clock carried through the song window by window, as its own pump carries it, as tools/gateScoreProbe.mjs
-// does), the render read back and measured.
-//
-//     node tools/introScoreProbe.mjs [--wav <file>] [--seconds <n>]
-//         --wav writes the render there as 16-bit WAV from the song's own tick 0 (the film's time zero), normalised to
-//               -1 dBFS, for a person to listen to and for tools/introCapture.mjs's preview
-//         --seconds renders only the opening (the whole song by default; the loudness against the recording is
-//               measured over 24-160 s, so a shorter render skips it - intro-quality.yml renders the film's 27 s)
+// Renders the intro theme through the game's song player in a browser and checks level, clipping, cues, and tone.
+// Run: node tools/introScoreProbe.mjs [--wav <file>] [--seconds <n>].
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CLOUD_REVEAL_TIME, CREST_TIME as TITLE_IMPACT_TIME } from '../src/ui/introCue.js';   // INTRO4: the score's impact is the 19 s beat, the film's crest
+import { CLOUD_REVEAL_TIME, CREST_TIME as TITLE_IMPACT_TIME } from '../src/ui/introCue.js';
 import { introThemeSong, INTRO_CHANNELS, INTRO_SECONDS_PER_TICK } from '../src/audio/introScore.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -26,9 +14,8 @@ const wavAt = arg('--wav');
 const SECONDS = Number(arg('--seconds') ?? 170);
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
 
-// The recording INTRO3 replaced (assets/intro/theme.mp3, 164.3 s), measured the same way before it left the tree: its
-// loudness from 24 s to 160 s, a second at a time, stereo RMS at full scale times the 0.82 the intro played it at and
-// the 0.5 MusicVolume this renders at.
+// The replaced intro recording's loudness, measured before it was removed: stereo RMS from 24 s to 160 s at the
+// intro's 0.82 gain and MusicVolume 0.5.
 const RECORDING_DB = -22.4;
 
 const PAGE = `<!doctype html><html><body><script type=module>
@@ -97,7 +84,6 @@ function wav(pcmB64, rate) {
   return Buffer.concat([h, data]);
 }
 
-/** Positive spectral flux over a local mean (tools/introAudioCheck.mjs): Hann 1024, hop 128, 12 kHz, peak centre. */
 function onsets(pcm, rate = 12000, size = 1024, hop = 128) {
   const count = 1 + Math.floor((pcm.length - size) / hop), flux = new Float64Array(count);
   let previous = null;
@@ -123,7 +109,6 @@ function onsets(pcm, rate = 12000, size = 1024, hop = 128) {
   return { peakBetween };
 }
 
-/** A radix-2 FFT in place (real and imag, a power of two long). */
 function fft(real, imag) {
   const size = real.length;
   for (let a = 1, j = 0; a < size; a++) { let bit = size >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (a < j) { [real[a], real[j]] = [real[j], real[a]]; [imag[a], imag[j]] = [imag[j], imag[a]]; } }
@@ -137,9 +122,6 @@ function fft(real, imag) {
   }
 }
 
-/** INTRO3b: the spectrum's centre of weight (Hz) and the share of its energy from 2 kHz up (dB), over the mono at 12 kHz
- *  from `from` s - Hann 4096, hop 2048, the power averaged over the frames. The flat render measured 265 Hz against the
- *  recording's 552 over the film, its 2-6 kHz share 12 dB under the recording's. */
 function spectrum(pcm, rate = 12000, from = 1, size = 4096, hop = 2048) {
   const power = new Float64Array(size / 2 + 1);
   let frames = 0;
@@ -160,15 +142,6 @@ function spectrum(pcm, rate = 12000, from = 1, size = 4096, hop = 2048) {
   return { frames, centroid: total > 0 ? weighted / total : 0, presenceDb: total > 0 ? 10 * Math.log10(Math.max(1e-18, high / total)) : -Infinity };
 }
 
-/** INTRO3c (the owner: "I dont like the high pitch whine" ... "Its not natural"): THE SHAPE OF A HELD CHORD - what the
- *  whine was, measured. Over the first strings chord of the opening (the score's own: its top note and its span), the
- *  level of each harmonic of the top note against the loudest, and the width of each partial at -6 dB in cents. The
- *  recording's top note (G4): harmonics 1-9 at -14, 0, -16, -12, -35, -27, -19, -23, -19 dB - a dense series with a
- *  plateau from the 5th up - its partials 19 to 52 cents wide (a section's spread). The FM render's: -5, -3, -16, 0,
- *  -33, -4, -50, -17, -49 - the 4th and the 6th as loud as the fundamentals with the 7th and the 9th 50 dB under them,
- *  isolated pure lines 6 to 12 cents wide: that is a whine, by construction. Two conditions, then: no harmonic above the
- *  third within 8 dB of the loudest, and the partials from the 3rd to the 6th 12 cents wide or more on average. Hann 4096
- *  at 12 kHz (2.9 Hz a bin; a pure line reads 6 to 12 cents at these pitches). */
 function chordShape(pcm, rate = 12000, size = 4096, hop = 1024) {
   const song = introThemeSong();
   const first = song.events.find((e) => e.type === 'noteOn' && e.channel === INTRO_CHANNELS.strings && e.tick * INTRO_SECONDS_PER_TICK >= 2);
@@ -200,11 +173,6 @@ function chordShape(pcm, rate = 12000, size = 4096, hop = 1024) {
   return { note: top, from, to, frames, levels: levels.map((l) => l - loudest), widths, isolated: Math.max(...levels.slice(3)) - loudest, meanWidth: widths.slice(2, 6).reduce((x, y) => x + y, 0) / 4 };
 }
 
-/** INTRO3c (the owner: "Theres still a high pitch whine in the build up leading to the title drop"): THE BUILD-UP - over the
- *  four beats before the impact (the riser's span), the most prominent narrow peak from 2.5 kHz to the top of the band:
- *  its level over the mean of the 300 Hz either side of it, in dB. The recording's worst there is +11 (a harmonic of
- *  the chord); INTRO3b's FM riser put its sidebands at +17 (4.4 kHz) and +14 (2.9 and 5.1 kHz), where no harmonic of
- *  the chord falls; a cymbal's roll is a band of noise and puts none. Hann 2048 at 12 kHz (5.9 Hz a bin). */
 function riserShape(pcm, impactAt, rate = 12000, size = 2048, hop = 512) {
   const beat = 60 / introThemeSong().beatsPerMinute, from = impactAt - 4 * beat + 0.05, to = impactAt - 0.05;
   const half = size / 2, power = new Float64Array(half + 1);
@@ -228,13 +196,6 @@ function riserShape(pcm, impactAt, rate = 12000, size = 2048, hop = 512) {
   return { from, to, frames, worst, hz };
 }
 
-/** INTRO3c (the owner: "The background monotone hum is too constant. Needs more variation and flow. Too overpowering"):
- *  THE BASS - over a window, the 40-120 Hz band's share of the whole (dB) and how still it stands: the spread of its
- *  level frame to frame (p90 - p10) and the share of frames within 1.5 dB of its median. Hann 4096, hop 1024, at 12 kHz.
- *  The recording, at the probe's own measure: over the film's opening (0.5-11.7 s) a share of -7.6 dB, still 9% of the
- *  time; over its body (11.7-27 s) -5.9 dB, a spread of 8.8 dB, still 23%. The hum render: -4.3 and -4.3 dB (3.3 and
- *  1.6 over), still 18% and 49% - a held sawtooth pedal with no arc, raised by the tone. INTRO3c's bed, with the bow's arc
- *  and the sway and the bass brought down: -9.8 and -7.9 dB, still 17% and 31%. */
 function bassShape(pcm, from, to, rate = 12000, size = 4096, hop = 1024, lo = 40, hi = 120) {
   const half = size / 2, levels = [];
   let bass = 0, total = 0;
@@ -273,23 +234,16 @@ try {
   const body = r.rms.slice(24, 160), meanDb = body.length ? db(body.reduce((a, b) => a + b, 0) / body.length) : -Infinity;
   console.log(`     ${r.secs.toFixed(1)} s, peak ${db(r.peak).toFixed(1)} dBFS, loudness ${meanDb.toFixed(1)} dBFS (24-160 s) at MusicVolume 0.5 and the intro's ${r.gain}`);
   check('it plays - every second of it sounding, no NaN', r.nan === 0 && r.rms.slice(1, Math.floor(r.secs) - 1).every((x) => x > 1e-4), r.rms.map((x) => db(x).toFixed(0)).join(' '));
-  // at the highest MusicVolume (twice the 0.5 this renders at: +6 dB) the intro's level of the press's ceiling
+  // The highest MusicVolume is twice this render's 0.5, which adds 6 dB.
   check(`never clipping, under its ceiling of ${r.ceiling} dBFS even at the highest MusicVolume`, db(r.peak) + 6.02 <= r.ceiling + 0.05, `${(db(r.peak) + 6.02).toFixed(2)} dBFS at full volume`);
   if (r.rms.length >= 160) check(`as loud as the recording it replaced (${RECORDING_DB} dBFS, within 2 dB)`, Math.abs(meanDb - RECORDING_DB) <= 2, `${meanDb.toFixed(1)} dBFS`);
   else console.log(`     (the loudness against the recording needs 160 s rendered; this render is ${r.secs.toFixed(0)} s)`);
-  // the opening swells from nothing, and the cloud break and the impact are the loudest moments of the film's first 22 s
   check('the opening swells from quiet', r.rms[1] < r.rms[7] * 0.5, r.rms.slice(0, 9).map((x) => db(x).toFixed(0)).join(' '));
   const { peakBetween } = onsets(Float32Array.from(r.mono));
   for (const [name, at] of [['cloud break', CLOUD_REVEAL_TIME], ['impact', TITLE_IMPACT_TIME]]) {
     const near = peakBetween(at - 0.25, at + 0.25), wide = peakBetween(at - 2, at + 1);
     check(`the ${name} is heard on its cue (${at.toFixed(3)} s): the strongest onset from 2 s before it, within 25 ms`, Math.abs(near.time - at) <= 0.025 && Math.abs(wide.time - near.time) < 1e-9, `onset at ${near.time.toFixed(3)} s, ${((near.time - at) * 1000).toFixed(1)} ms, strength ${near.strength.toFixed(2)}`);
   }
-  // INTRO3b: not flat - wide (the two channels are not one: the recording's L/R correlation is 0.33 over the film, 0.59
-  // over its body; the dry render's was 0.985, INTRO3b's 0.61) and present (the spectrum's centre of weight and its
-  // share from 2 kHz up, measured on the recording the same way: 521 Hz and -12.8 dB over the film; the dry render's
-  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7, INTRO3c's 483 Hz and -13.3 over the film - the pins a margin under
-  // where it lands); INTRO3c: and no whine - the held chord's shape (chordShape): the recording's loudest harmonic above
-  // the third -12 dB with partials 38 cents wide, the FM render's 0 dB and 8.5 cents, the bowed render's -13 and 27
   const sp = spectrum(Float32Array.from(r.mono)), shape = chordShape(Float32Array.from(r.mono));
   check('wide: the two channels are not one (L/R correlation under 0.8)', r.corr < 0.8, `correlation ${r.corr.toFixed(3)}`);
   check('present: the spectrum’s centre of weight over 400 Hz and its share from 2 kHz up over -18 dB', sp.centroid > 400 && sp.presenceDb > -18, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);

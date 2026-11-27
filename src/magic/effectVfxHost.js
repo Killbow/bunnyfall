@@ -1,7 +1,4 @@
 // @ts-check
-// BUNNYFALL SPELL VISUALS: who is drawn with their effects this frame - me (seen from outside my head), the foes and
-// NPCs of the place, and the peers drawn this frame (their pose's `ef`) - and the one draw (render/effectMotes.js).
-// The world host wires `peers(seen)` with the auras, `draw()` with the veiled bodies, and effectVfxBits into its pose.
 import { compiledPass } from '../render/glProgram.js';
 import { EffectMotes } from '../render/effectMotes.js';
 import { effectVfxBits, FX_ALL } from './effectVisuals.js';
@@ -47,14 +44,12 @@ export function createEffectVfxHost({ renderer, self, foes, peerAt, off }) {
   }
 
   return {
-    /** The peers drawn this frame (the auras' list). */
     peers(seen) { seenPeers = seen ?? []; },
-    /** Draw this frame's motes under the frame's camera. */
     draw() {
       const proj = renderer._proj, view = renderer._view, eye = renderer._camPos;
       if (off() || !proj || !view || !eye) { seenPeers = []; return; }
       gather(eye);
-      seenPeers = [];   // this frame's, drawn once
+      seenPeers = [];
       if (!bodies.length) return;
       const pass = passOf();
       if (!pass) return;

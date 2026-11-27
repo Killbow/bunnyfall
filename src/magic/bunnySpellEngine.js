@@ -1,25 +1,6 @@
 // @ts-check
-// BUNNY-SPELLS (2026-10-30): WHAT BUNNYFALL'S OWN EFFECTS DO IN THE SCENE - built by the cast engine (scenes/hostMagic.js),
-// one per engine, so every host that casts has them (THE FOUR HOSTS RULE: the engine is the one seam they share).
-//
-//   METEOR        an Area at Range spell carrying it falls on the spot aimed at, from the sky or from under whatever
-//                 is overhead (`meteorStart`, drawn by meteorFall.js). Its burst (`burst`) throws the enemies in
-//                 it back.
-//   GRAVITY WELL  where an area spell carrying it bursts, a well pulls the enemies near it toward its center for its
-//                 rounds, through their own collider. Allies, companions, and staff event bosses are skipped, and an
-//                 enemy inside overlapping wells is pulled only by the strongest. The pull must not use the motor's
-//                 knockback: renewed every frame, it holds an enemy in its Hurt state.
-//   WALL OF EARTH a box of earth rises where the caster looks (`cast`), a collider bucket of its own that stops the
-//                 player and every enemy. It lasts as long as the caster's buff. It is drawn as a mound (`draw`) that
-//                 settles in the last 2 seconds of a timed buff and crumbles in five steps, its box lowered with it.
-//                 Other players' walls and meteors appear here too (net/peer/peerConjured.js).
-//   DECOY         a double appears where the caster looks and lasts as long as the buff; enemies lose track of the
-//                 caster as they do of a blending one (effects.js isBlending), and hostile enemies near it go to it
-//                 (their last known place of the target, the motor's own pursuit).
-//   NECROMANCY    Cheb's summons and Recall Minions (systems/necromancy/necromancy.js necroCast) - the minions appear
-//                 in the world and follow the caster through scenes/necroHost.js.
-//   RESCUE        the party member, companion or allied creature the caster can see (`rescue`) is brought to their side
-//                 - another player through their own client (the host's `rescuePeer`), anyone this engine runs here.
+// What Bunnyfall's own spell effects do in the scene. The cast engine builds one per engine, so every host that
+// casts has them.
 
 import {
   METEOR_TYPE, WELL_TYPE, WALL_TYPE, DECOY_TYPE, spellHas, METEOR_HEIGHT_M, METEOR_KNOCKBACK, RESCUE_REACH_M,
@@ -27,7 +8,7 @@ import {
 } from './bunnySpellLaw.js';
 import { hasActiveEffect, rollDuration } from './effects.js';
 import { t } from '../ui/textManager.js';
-import { necroCast, isNecroSpell } from '../systems/necromancy/necromancy.js';   // CHEB'S NECROMANCY: the summons and the recall
+import { necroCast, isNecroSpell } from '../systems/necromancy/necromancy.js';
 import { sweepHeight } from '../characters/foeSpacing.js';
 import { rayHit } from '../player/groundRay.js';
 import { moundModel, WALL_SKIRT_M } from '../world/earthWallModel.js';
@@ -41,13 +22,9 @@ import { coverDistance } from '../ai/cover.js';
 import { MISSILE_SPEED } from './spellcast.js';
 import { seededRandom } from '../world/flatMesh.js';
 
-/** How often a standing shape shimmers, seconds. */
 const SHIMMER_S = 0.45;
-/** Seconds a round lasts (a magic round, DFU's). */
 const ROUND_S = 5;
-/** Knockback units per classic unit (enemyMotor.js KB): the motor's own scale. */
 const KB = (v) => v / 3.95;
-/** How near the aim a body must pass to be picked, metres. */
 const PICK_SLACK_M = 0.9;
 const WALL_RISE_S = 0.4, WALL_WARN_S = 2, WALL_SETTLE_M = 0.3, WALL_TRICKLE_S = 0.3, WALL_TREMBLE_M = 0.015;
 const WALL_BOX_STEP_M = 0.05;
@@ -86,8 +63,7 @@ export function createBunnySpellEngine(deps) {
 
   const unit = (d) => { const l = Math.hypot(d[0], d[1], d[2]) || 1; return [d[0] / l, d[1] / l, d[2] / l]; };
   const owner = () => collider?.target?.() ?? collider;
-  /** Where the aim meets a surface within `reach`, or the point `reach` along it, set down on the floor beneath. In
-   *  third person the aim starts at the drawn camera, and `reach` grows by how far the camera sits behind the head. */
+  // In third person the aim starts at the drawn camera, and `reach` grows by how far the camera is behind the head.
   function aimPoint(eye, dir, reach) {
     const u = unit(dir);
     const c = seen && seen.frames <= 2 ? seen.at : null;
@@ -105,10 +81,9 @@ export function createBunnySpellEngine(deps) {
       const down = collider.raycast([p[0], p[1] + 0.5, p[2]], [0, -1, 0], 40);
       if (Number.isFinite(down)) p[1] = p[1] + 0.5 - down;
       else if (typeof collider.heightAt === 'function') { const g = collider.heightAt(p[0], p[2]); if (Number.isFinite(g)) p[1] = g; }
-    } catch { /* where it is */ }
+    } catch { }
     return p;
   }
-  /** Is the way from the eye to `to` clear? */
   function clear(eye, to) {
     const d = [to[0] - eye[0], to[1] - eye[1], to[2] - eye[2]];
     const len = Math.hypot(d[0], d[1], d[2]);
@@ -117,7 +92,6 @@ export function createBunnySpellEngine(deps) {
     return !(Number.isFinite(h) && h < len - 0.3);
   }
 
-  // ── METEOR ─────────────────────────────────────────────────────────────────────────────────────────────────────
   function overhead(at) {
     const o = [at[0], at[1] + 0.3, at[2]], u = [0, 1, 0];
     let h = Infinity;
@@ -152,7 +126,6 @@ export function createBunnySpellEngine(deps) {
     return { pos: from, dir: unit(d).map((v) => v * speed), to, indoor };
   }
 
-  // ── BURSTS: Meteor's throw, Gravity Well's opening ─────────────────────────────────────────────────────────────
   function burst(pos, spell, radius) {
     if (spellHas(spell, METEOR_TYPE)) {
       for (const f of foes()) {
@@ -174,7 +147,6 @@ export function createBunnySpellEngine(deps) {
     }
   }
 
-  // ── WALL OF EARTH and DECOY: placed at the cast ───────────────────────────────────────────────────────────────
   const wallBox = (at, f) => ({ at, f, r: [f[2], 0, -f[0]], hw: WALL_SIZE.w / 2, hd: WALL_SIZE.d / 2, y0: at[1] - 0.3, y1: at[1] + WALL_SIZE.h });
   const newWall = (stood, at, f, seed, src) => ({ ...stood, at, dir: f, age: 0, seed, mesh: null, mat: new Float32Array(16), gpu: null, trickle: 0, warn: false, warnAge: 0, settle: 0, src });
   function raiseWall(eye, dir) {
@@ -286,7 +258,7 @@ export function createBunnySpellEngine(deps) {
         [f[0] * side * rand(0.5, 1.5) + x[0] * rand(-0.4, 0.4), rand(0.3, 1.2), f[2] * side * rand(0.5, 1.5) + x[2] * rand(-0.4, 0.4)], rand(0.12, 0.28), w.at[1]);
     }
   }
-  /** A magic round is one game minute, so the last round ends with this minute; with no clock, warn the whole round. */
+  // A magic round is one game minute, so the last round ends with this minute. With no clock, warn the whole round.
   function endingSoon() {
     if (!lastRound()) return false;
     const m = Number(deps.now?.());
@@ -305,9 +277,7 @@ export function createBunnySpellEngine(deps) {
         [f[0] * side * rand(0.4, 1) + rand(-0.3, 0.3), rand(0, 0.8), f[2] * side * rand(0.4, 1) + rand(-0.3, 0.3)], rand(0.08, 0.16), w.at[1]);
     }
   }
-  /** A caster-only cast just landed (the cast engine's CasterOnly arm): what it placed, where the caster looks. */
   function cast(sp, eye, dir) {
-    // CHEB'S NECROMANCY (systems/necromancy/necromancy.js): a summon or a recall in the spell, wherever the caster looks
     if (isNecroSpell(sp)) { try { necroCast(sp, { entity: playerEntity, level: deps.casterLevel(), say }); } catch (e) { console.warn('[necromancy] the cast', e?.message ?? e); } }
     if (!eye || !dir) return;
     if (spellHas(sp, WALL_TYPE) && hasActiveEffect(playerEntity, 'wallOfEarth')) raiseWall(eye, dir);
@@ -317,8 +287,6 @@ export function createBunnySpellEngine(deps) {
     }
   }
 
-  // ── RESCUE ─────────────────────────────────────────────────────────────────────────────────────────────────────
-  /** The body the aim passes nearest along it, within reach and in sight: `{ rec, feet, name }`. */
   function pickBody(eye, dir, bodies) {
     const u = unit(dir);
     let best = null, bestT = Infinity;
@@ -336,17 +304,15 @@ export function createBunnySpellEngine(deps) {
     }
     return best;
   }
-  /** Where a rescued body is set down: a step in front of the caster, on the floor. */
   function setDownAt(feet, eye, dir) {
     const f = unit([dir[0], 0, dir[2]]);
     const p = [feet[0] + f[0] * RESCUE_SET_DOWN_M, feet[1], feet[2] + f[2] * RESCUE_SET_DOWN_M];
-    try { const c = owner().findClearFloor?.(p); if (c) return c; } catch { /* the step itself */ }
+    try { const c = owner().findClearFloor?.(p); if (c) return c; } catch { }
     return p;
   }
-  /** Cast: the one the caster sees is brought to them. Answers whether anyone was. */
   function rescue(eye, dir, feet) {
     if (!eye || !dir || !feet) { say(t('spell.bunny.noRescue', 'There is no one in sight to rescue.')); return false; }
-    // another player first (their own client moves them: the host's door)
+    // Another player is tried first, and their own client moves them.
     const peer = deps.rescueTarget?.(eye, dir, RESCUE_REACH_M) ?? null;
     if (peer && deps.rescuePeer?.(peer.id)) { say(t('spell.bunny.rescueCall', 'You call {name} to your side.', { name: peer.name })); return true; }
     const bodies = [];
@@ -371,7 +337,6 @@ export function createBunnySpellEngine(deps) {
     return true;
   }
 
-  // ── THE FRAME ──────────────────────────────────────────────────────────────────────────────────────────────────
   function update(dt) {
     if (seen) seen.frames++;
     clock += dt;
@@ -432,6 +397,8 @@ export function createBunnySpellEngine(deps) {
         if (step > (pulls.get(f)?.step ?? 0)) pulls.set(f, { step, x: d[0] / dist, z: d[2] / dist });
       }
     }
+    // An enemy inside overlapping wells is pulled only by the strongest. The pull moves the collider directly,
+    // because the motor's knockback, renewed every frame, would hold the enemy in its Hurt state.
     for (const [f, q] of pulls) {
       const ai = f.ai;
       ai.collider.move(ai.feet, q.x * q.step, 0, q.z * q.step, sweepHeight(ai), !(ai.flies || ai.swims || ai.levitating));
@@ -439,7 +406,6 @@ export function createBunnySpellEngine(deps) {
     pulls.clear();
   }
 
-  /** A floating origin's shift: every place this engine keeps moves with the scene. */
   function shift(o) {
     for (const p of [...[...walls.values()].map((w) => w.at), decoy?.at, seen?.at, lastMeteor?.from, lastMeteor?.to, ...wells.map((w) => w.at), ...sinking.map((s) => s.at)]) if (p) { p[0] += o[0]; p[1] += o[1]; p[2] += o[2]; }
     for (const s of stones.values()) s.debris.shift(o);
@@ -448,7 +414,6 @@ export function createBunnySpellEngine(deps) {
     for (const [id, s] of walls) if (s.key && !boxes.move(s, o)) { freeMesh(s); walls.delete(id); }
     for (const s of sinking) if (s.key) boxes.move(s, o);
   }
-  /** The scene is leaving: nothing stands in the next. */
   function clearAll() {
     for (const id of [...walls.keys()]) dropWall(id, false);
     for (const s of sinking) { boxes.lower(s, Infinity); freeMesh(s); }

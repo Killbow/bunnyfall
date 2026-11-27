@@ -1,22 +1,17 @@
 // @ts-check
 
-// The bottom panel: what the law says about the document, the budgets, the steps taken, the revisions the store keeps
-// and a log. The UV editor tab is listed and switched off: it comes in a later milestone.
-
 import { h, clear } from './dom.js';
 import { poiDocProblems, poiDocBytesOf } from '../../../../src/poi/poiLaw.js';
 import { POI_V2_LIMITS } from '../../../../src/poi/poiLawV2.js';
 import { poiTradeProblems } from '../../../../src/poi/poiTradeLaw.js';
 import { problemText, problemWhere } from '../../../../src/poi/poiText.js';
 
-/** The problems for a document: shapes, then (when the shapes are sound) the items against the game. */
 export function problemsOf(doc) {
   if (!doc) return [];
   const p = poiDocProblems(doc);
   return p.length ? p : poiTradeProblems(doc);
 }
 
-/** Budget rows for a document: what is used, the most allowed. */
 export function budgetsOf(doc) {
   if (!doc) return [];
   const v = doc.v === 2 ? 2 : 1;

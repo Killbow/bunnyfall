@@ -1,29 +1,6 @@
 #!/usr/bin/env node
-// QUEST-AUDIT II TEMPLE-SUMMONER: THE BEAUTIFUL VILLAGES TEMPLES' DAEDRA SUMMONERS, MEASURED - the rows the port's
-// curation carries (src/world/curatedPeople.js CURATED_TEMPLE_SUMMONERS), made from the player's own data, as
-// tools/townQuestMarkers.mjs made the quest-marker curation.
-//
-//   ARENA2_PATH=<the player's arena2> node tools/templeSummoners.mjs           print the rows
-//   ARENA2_PATH=<...> node tools/templeSummoners.mjs --check                   compare them with the committed rows (exit 1)
-//
-// Every Daggerfall temple stands its deity's Daedra summoner (factions 456-498, DaedraSummoning in guildServices.js
-// NPC_SERVICE); all 24 of Beautiful Villages' temple designs (TEMPAS*, TEMPBS*) leave it out, and they are new
-// buildings - Kynareth's 277 models over two storeys against Daggerfall's 9 - so Daggerfall's spot means nothing in
-// them. For each design this lays the interior out over the player's ARCH3D (townQuestMarkers.mjs interiorTriangles)
-// and walks it from its entrance (walkFloor), and stands the summoner at the walk's nearest floor cell to the temple's
-// priest (its Quests NPC, faction 240) with half a metre of the same floor all round (clearSpot), on THE RAY's floor and
-// the priest's own, and 1.5 m clear of every person, quest marker (199.11, 199.18) and enter marker (199.8, 199.4) of
-// the room - so a quest's person or thing never stands on it and the player never lands in it - where it TAKES NO CLICK
-// MEANT FOR ANOTHER (AUDIT QA2): from every floor cell the walk reaches, the eye at the player's (motor.js EYE_HEIGHT),
-// aimed at the middle of each person of the room in reach (activate.js STATIC_NPC_ACTIVATION_DISTANCE) with no wall
-// between, the summoner's pick box (the port's: a person's billboard swept square, worldModes.js personAabb; activate.js
-// rayAabb) is never the first box the ray meets. The first measure stood every summoner at the 1.5 m bound beside its
-// priest, and from 5-24% of the floor a click on the priest - the temple's questor - opened the summoner; in Daggerfall's
-// own temples none does. The person is Daggerfall's own summoner of the temple's deity (its faction, flags and picture,
-// and the record position that seeds its name - the next free one where a person of the room holds it), read from the
-// deity's classic temple (TEMPAAA0-TEMPAAH0, the eight Daggerfall lays; Beautiful Villages' Akatosh temples carry faction
-// 26 where Daggerfall's carry 92 - both Akatosh). Nothing of ARENA2 or the packs is written; the numbers are a
-// measurement of the player's data.
+// Measures a Daedra summoner spot for each Beautiful Villages temple design from ARENA2, for the curated rows.
+// Usage: ARENA2_PATH=<dir> node tools/templeSummoners.mjs [--check]   (--check compares with the committed rows)
 import { join } from 'node:path';
 import { isMain } from './lib/isMain.mjs';
 import { openTownData, interiorTriangles, walkFloor, rayVerdict, rayHit, UNIT } from './townQuestMarkers.mjs';
@@ -31,20 +8,13 @@ import { SUMMONER_FACTIONS, TEMPLE_SUMMONER_VENDOR as VENDOR } from '../src/worl
 import { rayAabb, STATIC_NPC_ACTIVATION_DISTANCE } from '../src/player/activate.js';
 import { EYE_HEIGHT } from '../src/player/motor.js';
 
-/** Beautiful Villages' temple faction where Daggerfall's names the same deity otherwise (Akatosh: 26 for 92). */
+// Beautiful Villages' Akatosh temples use faction 26 where the classic temples use 92.
 export const DEITY_ALIAS = Object.freeze({ 26: 92 });
-/** The temple's priest - its Quests NPC (guildServices.js NPC_SERVICE 240). */
 const PRIEST = 240;
-/** How far the summoner stands from every person and marker of the room, metres. */
 export const SUMMONER_CLEAR_M = 1.5;
-/** A view from nearer a person than this is from inside it (the player's capsule and the person's box meet), metres. */
 const NEAREST_VIEW_M = 0.6;
 const EDITOR = 199, SPAWN = 11, ITEM = 18, ENTER = 8, REST = 4;
 
-/** Daggerfall's summoner of each deity: { [deityFaction]: person record } from its temple - TEMPAAA0-TEMPAAH0, the eight
- *  Daggerfall lays (AUDIT QA2: TEMPAA00, which no town lays, sorted first and stood its Stendarr summoner's name seed in
- *  for TEMPAAG0's), the first by name holding one - BLOCKS.BSA's own block (readClassicBlock: past the world-data door,
- *  which serves the town mods' own temples under these names). */
 export function classicSummoners(blocks) {
   const out = {};
   const names = [];
@@ -61,7 +31,6 @@ export function classicSummoners(blocks) {
   return out;
 }
 
-/** Each Beautiful Villages temple design's summoner row - { block, record, deity, person: { ...spot } } - sorted. */
 export async function measureSummoners(data, { log = () => {} } = {}) {
   const { blocks, packs, getModel, packBlock, billboardSize } = data;
   const summoners = classicSummoners(blocks);
@@ -79,8 +48,7 @@ export async function measureSummoners(data, { log = () => {} } = {}) {
       const deity = dfBlock.rmbBlock.fldHeader.buildingDataList[r]?.factionId;
       const classic = summoners[DEITY_ALIAS[deity] ?? deity];
       if (!classic) throw new Error(`${name} #${r}: no Daggerfall summoner for deity ${deity}`);
-      // the record position seeds the person's name and identity (staticNpc.js nameSeed): Daggerfall's own where it is
-      // free in the room, else the next free one
+      // The record position seeds the person's name, so the classic one stays unless a person in the room holds it.
       const used = new Set(people.map((p) => p.position));
       let position = classic.position;
       while (used.has(position)) position++;
@@ -93,8 +61,6 @@ export async function measureSummoners(data, { log = () => {} } = {}) {
         ...interior.blockFlatObjectRecords.filter((f) => f.textureArchive === EDITOR && (f.textureRecord === SPAWN || f.textureRecord === ITEM)).map(metres),
         ...entries,
       ];
-      // every click a player makes at a person of the room - from each floor cell the walk reaches, the eye at the
-      // player's, at the person's middle, in reach and in sight - with the box the port's pick meets first on it
       const boxAt = (m, size) => ({ min: [m.x - size.w / 2, m.y, m.z - size.w / 2], max: [m.x + size.w / 2, m.y + size.h, m.z + size.w / 2] });
       const room = people.map((p) => { const m = metres(p), size = billboardSize(p.textureArchive, p.textureRecord); return { aim: [m.x, m.y + size.h / 2, m.z], box: boxAt(m, size) }; });
       const views = [];

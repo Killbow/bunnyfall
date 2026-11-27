@@ -1,13 +1,9 @@
-// Tests comparing two POI revisions in the review panel history.
-// Run: node --test tools/poiRevCompare.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { comparableRevs, compareRevisions, defaultPair } from '../src/poi/poiRevCompare.js';
 import { diffText } from '../src/poi/poiText.js';
 import { poiV2Example } from './poiV2Examples.mjs';
 
-/** Builds a revision history fixture in store order (oldest first), including a rollback to revision 1 and a
- *  retirement, neither of which carries its own document. */
 function history() {
   const r1 = poiV2Example();
   const r2 = structuredClone(r1);
@@ -31,7 +27,6 @@ test('compare: lists all resolvable revisions and defaults to the newest two', (
   assert.deepEqual(comparableRevs(h).map((x) => x.rev), [1, 2, 3, 4, 5]);
   assert.deepEqual(defaultPair(h), { from: 4, to: 5 });
   assert.equal(defaultPair({ revs: [h.revs[0]] }), null);
-  // a rollback to a revision missing from the history cannot be compared
   const lost = { revs: [h.revs[0], { rev: 2, kind: 'rollback', state: 'approved', base: 9, doc: null }] };
   assert.deepEqual(comparableRevs(lost).map((x) => x.rev), [1]);
   assert.equal(compareRevisions(lost, 1, 2), null);

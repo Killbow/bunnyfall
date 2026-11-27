@@ -14,6 +14,7 @@ files:
   - src/scenes/world.js
   - src/scenes/exterior.js
   - src/scenes/dungeon.js
+  - src/combat/weaponRig.js
 routes: []
 tables: []
 replacesBible:
@@ -31,6 +32,7 @@ traps:
   - "Deriving edges from held state loses sub-frame taps at low FPS; use keyEdges/noteKeyDown/noteKeyUp/pressed/released."
   - "Multi-binding dispatch must stop iterating shared-key actions once a window opens, or one keypress stacks windows."
   - "Capture-phase Enter cursor toggle must ignore text entry targets (isTextEntryTarget)."
+  - "The large HUD sheath panel calls the raw `toggleSheath` with none of the key refusals. `readyWeapon` (`src/combat/weaponRig.js`) refuses during the bow cooldown and a swing, and with a readied spell outside the spell hand it aborts the spell and draws the weapon in one press."
 dfu:
   - Assets/Scripts/Game/InputManager.cs
 tags:

@@ -1,6 +1,6 @@
 // @ts-check
-// Runtime sound recipes (`meteorFall`, `meteorImpact`) for Meteor, mixed by `systems/soundRemix.js` from DAGGER.SND
-// records; `METEOR_PICK` selects the active candidate from `METEOR_CANDIDATES` for each sound.
+// Runtime sound recipes (`meteorFall`, `meteorImpact`) for Meteor, mixed from DAGGER.SND records by
+// `audio/soundRemix.js`. `METEOR_PICK` selects the active candidate from `METEOR_CANDIDATES` for each sound.
 import { remixSounds, WORK_RATE } from '../audio/soundRemix.js';
 
 const RECORDS = {

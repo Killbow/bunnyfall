@@ -21,6 +21,7 @@ invariants:
   - "playImpactSound uses SoundClips.Parry1 + Random.Range(0, 9) (clips 428..436) at volume 1.1, non-positional."
   - "PCAAO seam: setAttackOnPlayerHook in src/combat/formulas.js feeds onAttackDamageCalculated at the tail of calculateAttackDamage."
   - "Frame gate in weaponRig.js is widgetOn() || _torchesOn || shieldOn() (SW1b)."
+  - "On the classic one-hand path, `drawLayer` draws the shield first, then the Handheld Torches hand, then the weapon (the widget clone or the classic sprite), so nothing covers the weapon."
 traps:
   - "Animated left-handed `setBlock` writes `shieldPositionCurrent` directly so the block snaps and `blockCoroutine` ease wait falls through."
   - "shieldItem() must use optional chaining, never materialize entity.equip (SW1a zeroed player weapons)."

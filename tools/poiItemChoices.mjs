@@ -1,14 +1,11 @@
 #!/usr/bin/env node
-// Writes src/poi/poiItemChoices.js from the item law as the service loads it, since the browser registers templates the
-// service does not know. It leaves out the Glass Bottle and Potion Recipe; poiDmEdit.js offers potions by name instead.
-//   node tools/poiItemChoices.mjs           write the file
-//   node tools/poiItemChoices.mjs --check   exit 1 when the file differs from what the law gives now
+// Writes src/poi/poiItemChoices.js from the item law as the service loads it (--check exits 1 when it differs).
+// It leaves out the Glass Bottle and Potion Recipe because src/poi/poiDmEdit.js offers potions by name instead.
 import { writeFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const OUT = fileURLToPath(new URL('../src/poi/poiItemChoices.js', import.meta.url));
 
-/** Returns the `[template, group, name]` rows allowed by the item and trade laws, sorted by group and name. */
 export async function lawItemChoices() {
   const { lawTemplate, templateGroups } = await import('../src/items/itemLaw.js');
   const { ITEM_TEMPLATES } = await import('../src/items/itemTemplates.js');
@@ -34,7 +31,6 @@ export async function lawItemChoices() {
   return rows.sort((a, b) => a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]));
 }
 
-/** Formats the generated module source for `rows`. */
 export function moduleText(rows) {
   return `// @ts-check
 // Written by tools/poiItemChoices.mjs; do not edit. Lists the items the POI editors offer in their item pickers as

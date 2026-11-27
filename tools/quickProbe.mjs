@@ -1,12 +1,7 @@
-// PERF-CROWD (2026-10-10, Dudey: "keep the tests short cause those seem to take loooooooooong"): THE FRAME PROBE, SHORT.
-// tools/frameProbe.mjs boots at the player's default land view (11 x 11 map pixels) and settles the grass - a quarter of
-// an hour a scene on SwiftShader before a frame is measured. This boots the same scene with the land view at RADIUS
-// (default 2: 5 x 5 pixels) through the player's own pref, waits for the shot to be ready and N_SETTLE frames, and takes
-// the frame probe's own CPU profile and heap windows (tools/frameProbe.mjs measure) over FRAMES frames. Its numbers are
-// a smaller world's - read them as an A/B of two trees (TREE=) over the same scene, never against frameProbe's.
-//
-//   node tools/quickProbe.mjs knight [snow ...]      scenes: frameProbe's, and `snow` (Knightstale in winter, snowing)
-//   TREE=<dir> TAG=<name> OUT=<dir> FRAMES=24 RADIUS=2 N_SETTLE=20 W=320 H=180 PORT=5251
+// A short frame probe: boots a frameProbe scene with a smaller land view (RADIUS, default 2) and profiles it.
+// Its numbers only compare two trees (TREE=) on the same scene, never frameProbe's own.
+// Run: node tools/quickProbe.mjs knight [snow ...] (TREE, TAG, RADIUS, N_SETTLE, W, H, and PORT are optional).
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +22,7 @@ const browser = await chromium.launch({ args: SWIFTSHADER_ARGS });
 try {
   for (const name of names) {
     const ctx = await browser.newContext({ viewport: { width: W, height: H } });
-    await ctx.addInitScript((r) => { try { const k = 'dagger.ui.v1'; const o = JSON.parse(localStorage.getItem(k) || '{}'); o.landViewDistance = r; localStorage.setItem(k, JSON.stringify(o)); } catch { /* none */ } }, RADIUS);
+    await ctx.addInitScript((r) => { try { const k = 'dagger.ui.v1'; const o = JSON.parse(localStorage.getItem(k) || '{}'); o.landViewDistance = r; localStorage.setItem(k, JSON.stringify(o)); } catch { } }, RADIUS);
     await ctx.addInitScript(CENSUS);
     const page = await ctx.newPage();
     const errors = [];

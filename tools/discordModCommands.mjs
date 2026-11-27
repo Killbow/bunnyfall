@@ -1,32 +1,8 @@
-// SAFE8 (2026-10-17, the chat safety plan, bible/11-Multiplayer/Chat-Safety-Arc.md section 9): THE BOT'S COMMANDS,
-// REGISTERED WITH DISCORD. The account service answers them (server-account/src/discord.js onCommand); Discord has to be
-// told they exist. DISCORD-CODE moved their declaration to server-account/src/discordCommands.js, beside the service that
-// answers them; this tool writes that list to Discord, and nothing here declares a command.
-//
-//   DISCORD_APP_ID=<application id> DISCORD_BOT_TOKEN=<bot token> DISCORD_GUILD_ID=<server id> node tools/discordModCommands.mjs
-//   ... --print   the commands' JSON alone, nothing sent
-//
-// The token is read from the environment and never printed.
-//
-// DISCORD-SETUP (2026-10-17, Mac: "Can you set the discord end up for me"): THE WHOLE DISCORD END, FROM THE TOKEN ALONE -
-// what the deploy runs (account-deploy.yml, "Point Discord at the service"), so the bot's token never leaves the
-// repository's secrets and no id is typed twice:
-//
-//   DISCORD_BOT_TOKEN=... DISCORD_MOD_CHANNEL=<channel id> DISCORD_PUBLIC_KEY=<hex> DISCORD_INTERACTIONS_URL=<url> \
-//     node tools/discordModCommands.mjs --setup
-//
-// The application's id and public key are Discord's answer to its own bot (GET /applications/@me), the server is the
-// moderators' channel's (GET /channels/<id>), the Interactions Endpoint URL is set only when it differs (PATCH
-// /applications/@me - Discord signs a PING to it and keeps the URL only if the service answers), and the commands are
-// written over whatever was registered (PUT, Discord's bulk overwrite). A public key in wrangler.toml that is not the
-// application's is said before Discord is asked anything of it: every press would be refused as a bad signature, and
-// Discord's own refusal of the URL would not say why.
-//
-// DISCORD-CODE (2026-10-17, Mac: "Do it"): THE WHOLE LIST, AND THE BOT'S HANDS CHECKED. Every command in
-// DISCORD_COMMANDS is written, so the server holds exactly the declared list. Then the bot's permissions in the
-// moderators' channel are computed the way Discord computes them (channelPermissions: @everyone and the bot's roles,
-// Administrator, then the channel's overwrites - @everyone's, its roles', its own) against what the cards need
-// (discord.js MOD_CHANNEL_NEEDS); one missing turns the deploy red and is named, where before a card simply never came.
+// Registers the bot commands with Discord. With --setup it also points the application at the service and checks
+// the bot permissions in the moderator channel. The token comes from the environment and is never printed.
+// Run: DISCORD_APP_ID=... DISCORD_BOT_TOKEN=... DISCORD_GUILD_ID=... node tools/discordModCommands.mjs [--print].
+// --setup reads DISCORD_BOT_TOKEN, DISCORD_MOD_CHANNEL, DISCORD_PUBLIC_KEY, and DISCORD_INTERACTIONS_URL.
+
 import { isMain } from './lib/isMain.mjs';
 import { DISCORD_USER_AGENT, MOD_CHANNEL_NEEDS } from '../server-account/src/discord.js';
 import { DISCORD_COMMANDS, MOD_COMMAND } from '../server-account/src/discordCommands.js';
@@ -34,20 +10,17 @@ import { DISCORD_COMMANDS, MOD_COMMAND } from '../server-account/src/discordComm
 export { DISCORD_COMMANDS, MOD_COMMAND };
 
 const DISCORD_API = 'https://discord.com/api/v10';
-/** Discord's PING can reach an instance of the Worker the deploy has not yet replaced (the password-route check's lesson,
- *  account-deploy.yml): the URL is offered this many times, SETUP_RETRY_MS apart, before its refusal is believed. */
 export const SETUP_TRIES = 4;
+// Discord's PING can reach a Worker instance the deploy has not replaced yet, so the URL is offered more than once.
 export const SETUP_RETRY_MS = 10_000;
 const SNOWFLAKE_RE = /^\d{5,25}$/;
 const ADMINISTRATOR = 1n << 3n;
 const ALL = (1n << 64n) - 1n;
 
-/** A member's permissions in a channel, as Discord computes them (its Permissions page, compute_base_permissions then
- *  compute_overwrites): @everyone's and the member's roles, Administrator for everything, then the channel's overwrites -
- *  @everyone's, the member's roles' together, the member's own - each denying before it allows. Permissions are strings
- *  on the wire.
- *  @param {{ guildId: string, roles: { id: string, permissions: string }[], memberRoles: string[], userId: string, overwrites: { id: string, type: number, allow: string, deny: string }[] }} a
- *  @returns {bigint} */
+/**
+ * @param {{ guildId: string, roles: { id: string, permissions: string }[], memberRoles: string[], userId: string, overwrites: { id: string, type: number, allow: string, deny: string }[] }} a
+ * @returns {bigint}
+ */
 export function channelPermissions({ guildId, roles, memberRoles, userId, overwrites }) {
   const of = new Map(roles.map((r) => [r.id, BigInt(r.permissions ?? 0)]));
   let p = of.get(guildId) ?? 0n;
@@ -64,10 +37,6 @@ export function channelPermissions({ guildId, roles, memberRoles, userId, overwr
   return p;
 }
 
-/** DISCORD-SETUP: the application pointed at `url`, every command written in the server `channel` is in, and the bot's
- *  permissions there read. Answers `{ app, guild, pointed, commands, missing }` (`pointed`: the URL was changed, not
- *  already right; `missing`: what the cards need that the bot lacks there), or throws an Error saying which step Discord
- *  refused and its words - never the token. */
 export async function discordSetup({ token, channel, publicKey, url, commands = DISCORD_COMMANDS, fetchFn = (u, i) => globalThis.fetch(u, i), wait = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   if (!token) throw new Error('no bot token');
   if (!SNOWFLAKE_RE.test(channel ?? '')) throw new Error(`DISCORD_MOD_CHANNEL is not a channel id: "${channel ?? ''}"`);
@@ -90,8 +59,6 @@ export async function discordSetup({ token, channel, publicKey, url, commands = 
   if (String(app.verify_key ?? '').toLowerCase() !== publicKey.toLowerCase()) {
     throw new Error(`DISCORD_PUBLIC_KEY is not this application's public key - set it to ${app.verify_key} in server-account/wrangler.toml`);
   }
-  // DISCORD-CODE: the first live run's refusal (2026-10-17) - a 404 is no channel at all, where a channel the bot cannot
-  // see is a 403: the id copied was another thing's (a server's, a user's, the application's look the same)
   const read = await call('reading the moderators\' channel (is the bot in the server, with View Channel there?)', `/channels/${channel}`);
   if (read.status === 404) throw new Error(`reading the moderators' channel: Discord knows no channel ${channel} (404) - DISCORD_MOD_CHANNEL is likely a server's, a user's or the application's id; with Developer Mode on (User Settings, Advanced), right-click the channel itself and Copy Channel ID`);
   const chan = got(read);
@@ -114,8 +81,10 @@ export async function discordSetup({ token, channel, publicKey, url, commands = 
   return { app: app.id, guild: chan.guild_id, pointed, commands: commands.map((c) => c.name), missing };
 }
 
-/** What the deploy says of a setup: its lines, and what stops it (`error` - the deploy goes red on it): the cards'
- *  permissions the bot lacks in the moderators' channel. @param {{ app: string, guild: string, pointed: boolean, commands: string[], missing: string[] }} done @param {string} url */
+/**
+ * @param {{ app: string, guild: string, pointed: boolean, commands: string[], missing: string[] }} done
+ * @param {string} url
+ */
 export function setupReport(done, url) {
   const lines = [
     `- the Interactions Endpoint URL: \`${url}\` (${done.pointed ? 'set now' : 'already set'})`,
@@ -146,7 +115,7 @@ async function main() {
   }
   const res = await fetch(`https://discord.com/api/v10/applications/${app}/guilds/${guild}/commands`, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json', authorization: `Bot ${token}`, 'user-agent': DISCORD_USER_AGENT },   // AUDIT SAFE DISCORD-10
+    headers: { 'content-type': 'application/json', authorization: `Bot ${token}`, 'user-agent': DISCORD_USER_AGENT },
     body: JSON.stringify(DISCORD_COMMANDS),
   });
   const text = await res.text();

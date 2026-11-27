@@ -1,4 +1,3 @@
-// The `wdun` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, tokenGate, WDUN_HZ_MAX } from '../../relay.js';
 
 export async function wdunFrame(ws, a, m) {

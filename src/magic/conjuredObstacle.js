@@ -1,6 +1,6 @@
 // @ts-check
-// Solid boxes a spell conjures, each in its own collider bucket that can be lowered, moved with the floating origin,
-// and removed. The push (pushOutOfBox) moves bodies out of the space a new box takes.
+// Solid boxes a spell conjures, each in its own collider bucket that can be lowered, moved with the floating
+// origin, and removed. The push (pushOutOfBox) moves bodies out of the space a new box takes.
 
 const IDENTITY = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const BOX_INDICES = new Uint32Array([0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7, 4, 3, 4, 0]);
@@ -13,7 +13,7 @@ export function boxCorners({ at, f, r, hw, hd, y0, y1 }) {
   return new Float32Array(c.flat());
 }
 
-/** Call before the box joins the collider, or its own faces block every way out. */
+// Call before the box joins the collider, or its own faces block every way out.
 export function pushOutOfBox(collider, bodies, { at, f, r, hw, hd, y0, y1 }) {
   const stuck = [];
   for (const c of bodies) {

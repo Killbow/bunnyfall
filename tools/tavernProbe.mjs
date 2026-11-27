@@ -1,17 +1,7 @@
-// U39 probe: find a tavern in the exterior city, walk in, click the
-// innkeeper, and drive BOTH chains the panel raises - rent a room and
-// buy a meal - against the live game.
-//
-// The seam this exercises is the one the unit tests cannot see: the
-// host wiring. staticNpcRoute has answered { merchant, 'tavern' } since
-// G8 and NOTHING consumed it, so the innkeeper fell through to talk.
-// A source-text pin can only prove the arm was TYPED; this proves the
-// panel opens, the buttons route, gold leaves the purse and a rental
-// record lands on the entity.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
-const TAVERN = 15;   // BUILDING_TYPES.Tavern
+const TAVERN = 15;
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5211, strictPort: true } });
 await server.listen();
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -19,11 +9,7 @@ const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 const errors = [];
 page.on('pageerror', (e) => { errors.push(e.message); console.log('[pageerror]', e.message); });
 page.on('console', (m) => { if (/tavern|interior static/i.test(m.text())) console.log('[page]', m.text()); });
-// T2: `class=16` SKIPS THE CHARGEN WIZARD. Without it the wizard holds
-// townTalk's overlay slot and townTalk.keydown - FIRST in this host's
-// keydown ladder (exterior.js:"if (e.code === 'Escape') backButtonHeld = true") - swallows every
-// page.keyboard.press below, so this probe pressed its keys into a
-// character-creation screen it never knew was up.
+// class=16 skips character creation, which otherwise takes every key press below.
 await page.goto('http://localhost:5211/play/?shot&play&exterior&time=12:00&class=16');
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 180000 });
 
@@ -67,8 +53,6 @@ if (!opened) fail('NO TAVERN PANEL OPENED - the innkeeper still falls through to
 console.log('panel:', JSON.stringify(opened.o), 'at', JSON.stringify(opened.building));
 await page.screenshot({ path: '/home/claude/tavern-panel.png' });
 
-// A purse the innkeeper can actually take from, and an empty hunger
-// clock so the meal arm is reachable.
 await page.evaluate(() => {
   const e = window.__playerEntity;
   e.items = e.items ?? [];
@@ -78,7 +62,6 @@ await page.evaluate(() => {
   e.health = Math.max(1, Math.floor(e.maxHealth / 2));
 });
 
-// ---- THE ROOM CHAIN ------------------------------------------------
 console.log('\n== ROOM ==');
 await page.evaluate(() => window.__tavernClick('room'));
 await waitFrames(6);
@@ -87,7 +70,6 @@ console.log('day field:', JSON.stringify(field));
 if (!field?.field) fail('the ROOM button did not raise the day field');
 if (field.value !== '1') fail(`TextBox.Text should open on "1", got ${JSON.stringify(field.value)}`);
 
-// type 3 over the pre-fill
 await page.keyboard.press('Backspace');
 for (const ch of '3') await page.keyboard.press(`Digit${ch}`);
 await waitFrames(2);
@@ -119,10 +101,8 @@ if (Number.isFinite(priceSaid) && gold0 - after.gold !== priceSaid) {
   fail(`the price CHARGED (${gold0 - after.gold}) is not the price OFFERED (${priceSaid})`);
 }
 
-// The panel is gone - ConfirmRenting closes it either way.
 if (JSON.parse(await overlay() ?? 'null')) fail('the tavern window survived the confirm (:212 closes it first)');
 
-// ---- THE RENEWAL PROMPT --------------------------------------------
 console.log('\n== RENEWAL ==');
 await page.evaluate((i) => window.__activateNpc(i), opened.npc.i);
 await waitFrames(8);
@@ -136,7 +116,6 @@ if (/%dwr/.test(renew.box ?? '')) fail('the RoomHoursLeft macro was left unexpan
 await page.keyboard.press('Escape');
 await waitFrames(4);
 
-// ---- THE FOOD CHAIN ------------------------------------------------
 console.log('\n== FOOD ==');
 await page.evaluate((i) => window.__activateNpc(i), opened.npc.i);
 await waitFrames(8);
@@ -151,7 +130,6 @@ const before = JSON.parse(await page.evaluate(() => JSON.stringify({
   gold: window.__playerEntity.items.find((i) => i.group === 'Currency').stackCount,
   health: window.__playerEntity.health,
 })));
-// pick row 3 (Wine, 3 gold) with the list picker's own keys
 for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowDown'); await waitFrames(1); }
 await page.keyboard.press('Enter');
 await waitFrames(8);
@@ -168,7 +146,6 @@ if (ate.health - before.health !== 2 * (before.gold - ate.gold)) {
 }
 if (!ate.lastAte) fail('the hunger clock was not stamped');
 
-// ---- AND THE GATE IT SETS ------------------------------------------
 console.log('\n== NOT HUNGRY ==');
 await page.evaluate((i) => window.__activateNpc(i), opened.npc.i);
 await waitFrames(8);

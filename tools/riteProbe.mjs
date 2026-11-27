@@ -1,14 +1,6 @@
-// AUDIT WB12d - THE FAITHFUL'S CIRCLE, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds the circle's law (test/net/gate/wb12d_rite_world.test.js drives the smoke's shaders through test/glsl.mjs and the
-// stone over fakes); what node cannot answer is whether the smoke's GLSL COMPILES and LINKS in a real WebGL2 context,
-// whether the frame's light survives as a uniform the optimiser did not drop, and what lands on the pixels: the
-// fire's glow over the altar, the plume dark on a clear sky a kilometre and a half off and on the night's, gone in
-// weather's fog; the sigil's burned earth from above, its cuts alight, the land showing past its ragged rim. So: the
-// repo's own modules served as they are, the ground and the stone drawn with their own art by a stand-in shader (its
-// alpha a cutout, as the world's), the smoke drawn by its own class, and the frame read back.
-//
-//     node tools/riteProbe.mjs [--shots <dir>]     (writes near / far / night / fog / side / mid / under / above .png there)
+// Compiles, links, and draws the rite circle's smoke and sigil in a real WebGL2 browser and reads the frame back.
+// Run: node tools/riteProbe.mjs [--shots <dir>]
+
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -73,7 +65,7 @@ window.ready = true;
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }   // not the root: U60 keeps that the landing page's
+  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const f = join(ROOT, url);
   if (!f.startsWith(ROOT) || !existsSync(f)) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': extname(f) === '.js' ? 'text/javascript' : 'application/octet-stream' });
@@ -94,14 +86,12 @@ try {
   const lum = (c) => c[0] + c[1] + c[2];
   const shot = async (name) => { if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, `${name}.png`) }); };
   const DAY = [0.62, 0.72, 0.86];
-  // near: a fighter's eye 30 m off, the altar's top and the plume's first metres over it
   const near = await page.evaluate((sky) => window.draw({ eye: [0, 2.2, 30], centre: [0, 4, 0], sky, light: 1, at: [[0, 1.6, 0], [0, 14, 0], [0, 14, 60]] }), DAY);
   await shot('near');
   check('no GL error drawing it', near.error === 0, `error ${near.error}`);
   check('drawn', near.drawn === 1);
   check('the fire glows over the altar', near.at[0][0] > 90 && near.at[0][0] > near.at[0][2] * 1.6, JSON.stringify(near.at[0]));
   check('and is gone a few metres up, the smoke dark on the sky there', lum(near.at[1]) < lum(near.at[2]) * 0.6 && near.at[1][0] < near.at[1][2] * 1.4, `${JSON.stringify(near.at[1])} against ${JSON.stringify(near.at[2])}`);
-  // far: a clear day's distance fog over 1.5 km - a dark line on the sky
   const fog = { mode: 1, range: new Float32Array([200, 1200]), density: 0 };
   const strip = [...Array(16).keys()].map((i) => { const h = (40 + i * 12) / 340; return [60 * h * h, 40 + i * 12, 24 * h * h]; });
   const mean = (px) => px.reduce((n, c) => n + lum(c), 0) / px.length;
@@ -117,14 +107,12 @@ try {
   const fogged = await page.evaluate(({ sky, fog, at }) => window.draw({ eye: [1500, 30, 0], centre: [0, 160, 0], sky, light: 1, fog, at }), { sky: DAY, fog: thick, at: [...strip, ...beside] });
   await shot('fog');
   check('weather\'s fog takes it whole', fogged.at.every((c) => Math.abs(lum(c) - lum(fogged.at.at(-1))) <= 3), `${mean(fogged.at.slice(0, -1)).toFixed(1)} against ${lum(fogged.at.at(-1))}`);
-  // and for the eye alone: from the north, where its lean shows; from 400 m; from under it at the altar
   if (shotsAt) {
     for (const [name, eye, centre] of [['side', [0, 30, 1200], [0, 170, 0]], ['mid', [0, 20, 400], [0, 120, 0]], ['under', [0, 2, 14], [0, 30, 0]]]) {
       await page.evaluate(({ eye, centre, sky, fog }) => window.draw({ eye, centre, sky, light: 1, fog }), { eye, centre, sky: DAY, fog });
       await shot(name);
     }
   }
-  // above: the sigil from over the circle, the smoke left out to see it
   const r = 6.5, ang = FACING + Math.PI / 2;
   const above = await page.evaluate(({ ang }) => window.draw({ eye: [0, 26, 0.01], centre: [0, 0, 0], up: [Math.sin(0.6), 0, Math.cos(0.6)], sky: [0, 0, 0], light: 1, smoke: false,
     at: [[Math.sin(ang) * 3.4, 0, Math.cos(ang) * 3.4], [Math.sin(ang) * 7.6, 0, Math.cos(ang) * 7.6], [Math.sin(0.6) * 10, 0, Math.cos(0.6) * 10]] }), { ang });

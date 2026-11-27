@@ -1,16 +1,6 @@
-// CHAT-CHAN, MEASURED (2026-09-23, kurkku: "Global chat ... regional chat ... party chat"; Addison Knox: "Roleplay chat
-// channels (IC/OOC)").
-//
-// test/net/chatchan.test.js holds the law on fakes; this mounts the REAL panel over the real sheets in Chromium and reads
-// the layout back where a fake cannot: the tab bar's four tabs AND the Social button on ONE row at the sheet's width
-// and at the narrowest box a phone gives (352px) - on the desktop skin and the touch skin, whose tabs are a thumb's -
-// every tab's hover, the field's placeholder following the tab, an aside drawn leaning and dimmed, and the peek's
-// channel mark in the tab's own colour (the Party mark in the party's one green). DICE1 and EMOTE1 read theirs here
-// too: a roll's colour; the form row with the emoji button at every width (the field never under the narrowest the
-// chat had before it), the picker's round trip, an action's face, and a joined emoji drawn as ONE glyph after the
-// wire's own sanitizer.
-//
-//     node tools/chatChanProbe.mjs
+// Mounts the real chat panel in Chromium and checks the channel tabs, form row, rolls, and emotes at each width.
+// Run: node tools/chatChanProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -21,8 +11,6 @@ const server = await createServer({ server: { port: 5234, strictPort: true }, lo
 await server.listen();
 const browser = await chromium.launch({ headless: true });
 const pageErrors = [];
-// EMOTE1: the narrowest field the chat shipped before the emoji button - the touch skin's at a 320px phone (114.9px,
-// measured at d7da2279), a skin the button never reaches. No skin at any width may squeeze the field under it.
 const FIELD_FLOOR = 114;
 
 async function mount(page, touch) {
@@ -38,11 +26,8 @@ async function mount(page, touch) {
     globalThis.__chan = { panel, log, setAnswer: (a) => { answer = a; } };
   }, touch);
 }
-/** The bar as the eye meets it: every button's own box against the strip's and the box's. A tab is SEEN when its whole
- *  box lies inside the strip's visible part (the strip scrolls sideways on a phone; a tab past its edge is reached by a
- *  swipe, and is not squeezed). */
 const bar = (page) => page.evaluate(async () => {
-  await document.fonts.ready;   // the pixel face's own widths, not a fallback's
+  await document.fonts.ready;
   const tabs = document.querySelector('.dfchat-tabs');
   const strip = document.querySelector('.dfchat-tablist');
   const buttons = [...strip.children, tabs.querySelector('.dfchat-social-tab')];
@@ -52,7 +37,6 @@ const bar = (page) => page.evaluate(async () => {
   const social = tabs.querySelector('.dfchat-social-tab').getBoundingClientRect();
   const inRow = buttons.every((b) => { const r = b.getBoundingClientRect(); return r.top >= bar.top - 0.5 && r.bottom <= bar.bottom + 0.5; });
   const tabEls = [...strip.querySelectorAll('.dfchat-tab')];
-  // a label is whole when its text's own box fits inside its button (a squeezed tab's text spills past it)
   const whole = (b) => { const range = document.createRange(); range.selectNodeContents(b.firstChild); const t = range.getBoundingClientRect(); const r = b.getBoundingClientRect(); return t.right <= r.right + 0.5 && t.left >= r.left - 0.5; };
   return { inRow, overflow: tabs.scrollWidth - tabs.clientWidth, boxW: Math.round(box.width), socialRight: Math.round(social.right), boxRight: Math.round(box.right),
     squeezed: tabEls.filter((b) => !whole(b)).map((b) => b.dataset.tab),
@@ -66,15 +50,11 @@ for (const touch of [false, true]) {
     const page = await browser.newPage({ viewport: { width: W, height: H } });
     page.on('pageerror', (e) => pageErrors.push(String(e.message)));
     await page.goto('http://localhost:5234/play/');
-    await page.evaluate(() => { try { localStorage.removeItem('dagger.ui.v1'); } catch { /* none */ } });
+    await page.evaluate(() => { try { localStorage.removeItem('dagger.ui.v1'); } catch { } });
     await mount(page, touch);
     await page.evaluate(() => { globalThis.__chan.panel.open(); globalThis.__chan.panel.render({}); });
     const skin = touch ? 'touch' : 'desktop';
     const b = await bar(page);
-    // EMOTE1: THE FORM ROW with the emoji button - every control inside the box, the field no narrower than the
-    // narrowest the chat shipped before the button (FIELD_FLOOR) - and the picker: open, a pick into the field, closed
-    // by the pick. In a box the screen narrowed below any a drag can choose, the button gives way; a grid opened in a
-    // wider box (the window narrowed under it) must still open inside this one and close on a pick.
     const form = await page.evaluate(async (touch) => {
       const { CHAT_WIDTH_MIN } = await import('/src/ui/chatPanel.js');
       const box = document.querySelector('.dfchat-box').getBoundingClientRect();
@@ -99,8 +79,6 @@ for (const touch of [false, true]) {
     else if (form.narrow) check(`${skin} ${W}px: a box the screen narrowed below any a drag can choose - the button gives way; a grid opened wider still opens inside it, a pick lands and closes it`, !form.shown && form.open && form.value === 'hi\u{1F604}' && form.closed, JSON.stringify(form));
     else check(`${skin} ${W}px: the picker opens inside the box, a pick lands in the field and closes it`, form.shown && form.open && form.value === 'hi\u{1F604}' && form.closed, JSON.stringify(form));
     if (!touch && W === 1440) {
-      // THE EDGE: the smallest box a drag can make keeps the button; a pixel under it (only a screen can do that) gives
-      // it way - the query measures inside the box's border, and the rule takes the border off to ask about the box
       const edge = await page.evaluate(async () => {
         const { CHAT_WIDTH_MIN } = await import('/src/ui/chatPanel.js');
         const root = document.querySelector('.dfchat'), btn = document.querySelector('.dfchat-emoji');
@@ -111,7 +89,6 @@ for (const touch of [false, true]) {
       });
       check('the smallest box a drag can make keeps the emoji button; a pixel under it gives it way', edge.atMin.shown && !edge.under.shown, JSON.stringify(edge));
     }
-    // THE WORST BAR: the three tabs the player is not reading all unread (the open, active one reads as lines arrive)
     const u = await page.evaluate(async () => {
       const { log, panel } = globalThis.__chan;
       for (const t of ['region', 'party', 'local']) for (let i = 0; i < 12; i++) log.push(t, { id: 'punread00001', name: 'Uma', text: `unread ${i}` });
@@ -139,7 +116,6 @@ for (const touch of [false, true]) {
     check(`${skin} ${W}px: World, Region, Party, Local and Social on ONE row`, b.inRow && b.labels.join(',') === 'World,Region,Party,Local,Social', b.labels.join(', '));
     check(`${skin} ${W}px: ...the bar inside the box, Social in it`, b.overflow <= 0 && b.socialRight <= b.boxRight, `overflow ${b.overflow}px, Social ends at ${b.socialRight} of ${b.boxRight}`);
     check(`${skin} ${W}px: ...no tab squeezed below its own name`, b.squeezed.length === 0, b.squeezed.join(', '));
-    // a 320px phone's box is 292px: there the strip scrolls sideways - the rest a swipe away, nothing cut
     if (W >= 380) check(`${skin} ${W}px: ...every tab seen at once, nothing to scroll`, b.seen.length === 4 && !b.stripScrolls, `seen ${b.seen.join(', ')}`);
     else check(`${skin} ${W}px: ...the strip scrolls sideways for the rest`, b.stripScrolls && b.seen.includes('world'), `seen ${b.seen.join(', ')}`);
     if (!touch && W === 1440) {
@@ -166,7 +142,6 @@ for (const touch of [false, true]) {
         return [style(lines.at(-2)), style(lines.at(-1))];
       });
       check('an aside out of character is drawn as one - leaning, and a line in character is not', ooc[0].ooc && ooc[0].italic === 'italic' && !ooc[1].ooc && ooc[1].italic === 'normal' && ooc[0].color !== ooc[1].color, JSON.stringify(ooc));
-      // DICE1: a roll the relay made, in its own colour and the dice's own words; a typed line that reads like one is not
       const roll = await page.evaluate(() => {
         const { log, panel } = globalThis.__chan;
         log.push('local', { id: 'plocal000001', name: 'Ysolde', roll: { n: 2, m: 6, k: 3, dice: [4, 5], total: 12 } });
@@ -177,8 +152,6 @@ for (const touch of [false, true]) {
         return [read(lines.at(-2)), read(lines.at(-1))];
       });
       check('a roll is drawn in its own colour, in the dice\'s words - and a typed line that reads like one is not', roll[0].roll && roll[0].text === 'rolls 2d6+3: 4 + 5 +3 = 12' && roll[0].color === 'rgb(231, 196, 106)' && !roll[1].roll && roll[1].color !== roll[0].color, JSON.stringify(roll));
-      // EMOTE1: an action leans; a joined family through the wire's own sanitizer is ONE glyph wide, and the same
-      // three people with the joiners gone (as the sanitizer had them) are three
       const emo = await page.evaluate(async () => {
         const { log, panel } = globalThis.__chan;
         const { sanitizeChat } = await import('/src/net/wire.js');

@@ -1,5 +1,3 @@
-// A crew sky-ketch: one room a ship, its voyage read once a wake and saved at each change.
-// It admits and welcomes the crew, answers its words, runs the tick and falls, and hands receipts.
 import { KT_VOYAGE_KEY, validKetchIn, ketchRelayGate, KT_BRAIN_MIN, KT_TELL_RETRY_MS, KT_INTERNAL_RC, validKtRcTell, ketchReceiptKey } from '../../../src/net/wire.js';
 import { newVoyage, KT_POSE_FRESH_MS, joinVoyage, idlePlaces, freePlace, voyageStateOf, voyageWord, stampFightFall, dropCell, stepVoyage, voyageLive, voyageEarners, fightBodyOf } from '../../../src/net/ketch/ketchBrain.js';
 import { CHECKPOINT_MS, BRAIN_TICK_MS, earnedBy } from '../../../src/net/gateBrain.js';

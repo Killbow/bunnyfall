@@ -1,19 +1,13 @@
 // @ts-check
 
-// Copy, cut and paste of scene nodes, as text. The text is JSON, so it survives a reload and goes to another
-// POI, another tab or the system clipboard. Paste never trusts it: keys are made fresh, groups are rebuilt,
-// links to things the target does not have are dropped and a node that needs an asset the catalogue lacks is
-// left out and named.
-
 import { KINDS, find, parseId, freshKey } from './scene.js';
 import { POI_V2_LIMITS } from '../../../src/poi/poiLawV2.js';
 
 export const CLIP_TAG = 'bunnyfall-poi-clip';
 const CAPS = { parts: 128, flats: POI_V2_LIMITS.flats, lights: 32, npcs: 32 };
-/** Links a person carries to other collections. They only make sense where the target has the same key. */
 const NPC_LINKS = /** @type {const} */ (['route', 'dialogue', 'trade']);
 
-/** Copy the nodes (and the groups they stand in) into clip text. @param {any} doc @param {string[]} ids */
+/** @param {any} doc @param {string[]} ids */
 export function copyNodes(doc, ids) {
   const clip = { tag: CLIP_TAG, v: 1, from: doc.id ?? null, groups: [], parts: [], flats: [], lights: [], npcs: [] };
   const groupKeys = new Set();
@@ -43,7 +37,7 @@ function inside(doc, groupKey, ancestor) {
 
 export const clipText = (clip) => JSON.stringify(clip);
 
-/** Clip text back into a clip, or null when it is not one. @param {string} text */
+/** @param {string} text */
 export function readClip(text) {
   let c;
   try { c = JSON.parse(text); } catch { return null; }
@@ -53,10 +47,9 @@ export function readClip(text) {
 }
 
 /**
- * Put a clip into a document. Answers `{ ids, missing, full }`: the new nodes' ids, what was left out for a missing asset
- * and what was left out because the document is full. `has` answers whether an asset is in the catalogue:
- * `has('df-arch3d:123')`, `has('df-flat:334.2')`.
- * @param {any} doc @param {any} clip @param {{ offset?: number[], has?: (id: string) => boolean, into?: string | null, keepGroups?: boolean }} [opts]
+ * @param {any} doc
+ * @param {any} clip
+ * @param {{ offset?: number[], has?: (id: string) => boolean, into?: string | null, keepGroups?: boolean }} [opts]
  */
 export function pasteClip(doc, clip, { offset = [1, 0, 1], has = () => true, into = null, keepGroups = false } = {}) {
   const out = { ids: /** @type {string[]} */ ([]), missing: /** @type {{ what: string, why: string }[]} */ ([]), full: /** @type {string[]} */ ([]) };
@@ -91,7 +84,7 @@ export function pasteClip(doc, clip, { offset = [1, 0, 1], has = () => true, int
       if (r.key !== undefined) { r.key = freshKey(r.key, keys); keys.add(r.key); }
       if (r.t) r.t = [r.t[0] + offset[0], r.t[1] + offset[1], r.t[2] + offset[2]];
       if (r.group && gmap.has(r.group)) r.group = gmap.get(r.group);
-      else if (keepGroups && r.group && doc.groups.some((g) => g.key === r.group)) { /* the copy stays beside its original */ }
+      else if (keepGroups && r.group && doc.groups.some((g) => g.key === r.group)) { }
       else if (into) r.group = into; else delete r.group;
       if (kind === 'npcs') for (const link of NPC_LINKS) if (r[link] !== undefined && !(doc[link === 'route' ? 'routes' : link === 'dialogue' ? 'dialogues' : 'trades'] ?? []).some((x) => x.key === r[link])) delete r[link];
       if (kind === 'npcs') delete r.showWhen;
@@ -102,7 +95,6 @@ export function pasteClip(doc, clip, { offset = [1, 0, 1], has = () => true, int
   return out;
 }
 
-/** Copy of nodes in the same document (Ctrl+D). The copies stand in the same groups. A group that was itself chosen is copied with what is in it. */
 export function duplicateNodes(doc, ids, opts = {}) {
   const clip = copyNodes(doc, ids);
   const chosen = ids.filter((i) => i.startsWith('group:')).map((i) => i.slice(6));

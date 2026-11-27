@@ -99,8 +99,6 @@ export function abilityMayStrike(foe) {
     && !foe.yielded && !foe.executing && !foe.sparing && !foe.leaving && !foe.roaring;
 }
 
-/** Provisional preview rides the shared hit and mitigation roll. Potency is
- * split between animation beats, so another beat cannot duplicate the budget. */
 export function previewDamage(blow, rolled, foe, { distance = 0, pos = null, secondary = false, splashShare = null, unaware = false } = {}) {
   if (rolled <= 0) return rolled;
   let bonus = 0;
@@ -145,7 +143,6 @@ export function settleAbilityArrow(m, damage = 0, foe = null) {
   resolve(damage, foe);
 }
 
-/** Cap flight at the configured path length. Ordinary projectile steps pass through. */
 export function abilityFlightStep(m, distance) {
   const ability = m?.technique;
   if (!ability?.ability) return distance;
@@ -154,7 +151,7 @@ export function abilityFlightStep(m, distance) {
   const travelled = m.abilityDistance ?? 0;
   if (ability.execution) m.abilityStepStart = travelled;
   const next = Math.min(distance, Math.max(0, ability.rangeM - travelled) / length);
-  // Emit at the last confirmed position, after the previous frame's collision check.
+  // The trail uses the position confirmed by the previous frame's collision check, before this step advances it.
   if (m.pos && travelled >= (m.nextTrailDistance ?? 1) && travelled <= 30) {
     ability.trail?.(m.pos);
     m.nextTrailDistance = travelled + 2;

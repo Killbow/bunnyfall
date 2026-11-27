@@ -1,10 +1,6 @@
-// ARENA2, SEEN (2026-10-02, Mac: "extremely detailed and authentic ... AAA grade. All UI elements and text must be
-// enhanced UI plus"): the arena's bouts played through on the world host in a real browser - the city's exhibition on
-// the hour (the fighters, the crowd in the tiers, the HUD), the Herald's choice at the gate, the floor's instance and
-// a ladder bout fought to its verdict, the ladder's step and the way out. test/arena2_*.test.js hold the laws headless;
-// this stands them over the real game and photographs what a fake cannot.
-//
-//     ARENA2_PATH=<the game's ARENA2> SHOTS=<dir> node tools/arenaProbe.mjs
+// Plays arena bouts on the world host in a real browser, from the city exhibition to a ladder bout's verdict,
+// with screenshots.
+// Run with `SHOTS=<dir> node tools/arenaProbe.mjs`.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -44,7 +40,6 @@ await ev(() => window.__arenaCloseOverlays());
 let a = await arena();
 check(!!a?.centre, `the colosseum's sand stands in the city (centre ${JSON.stringify(a?.centre?.map((v) => +v.toFixed(1)))})`);
 
-// THE CITY'S EXHIBITION: stand on the lower terrace's south side, looking north over the sand
 if (a?.centre) {
   const c = a.centre;
   await ev(([p]) => window.__pose(p[0], p[1], p[2], 0, -0.25), [[c[0], c[1] + 7.2, c[2] - 21.6]]);
@@ -62,7 +57,6 @@ if (a?.centre) {
   await shot('3-city-blows.png');
 }
 
-// THE HERALD'S CHOICE at the gate
 a = await arena();
 if (a?.herald) {
   const h = a.herald;
@@ -88,7 +82,6 @@ if (a?.herald) {
   a = await waitFor((x) => x.phase === 'fight', 120000);
   await page.waitForTimeout(1500);
   await shot('6-floor-fight.png');
-  // the bout fought to its end by my blows (the probe's own door, through the pool's damage door)
   for (let i = 0; i < 40; i++) {
     a = await arena();
     if (a?.phase !== 'fight') break;

@@ -8,13 +8,27 @@ files:
   - src/combat/playerWeapon.js
   - src/characters/powerCeiling.js
   - tools/powerCeiling.mjs
+  - src/combat/pcaao.js
+  - src/ui/armourCard.js
+  - src/ui/chargen.js
+  - src/magic/enchantments.js
 invariants:
   - "calculateAttackDamage evaluates target.minMetalToHit first and clamps final hit chance from calculateSuccessfulHit between 3 and 97."
   - "weaponAttackDamage derives baseDamageMin and baseDamageMax from templateIndex per swing and halves non-0x10 weapons against skeletal targets."
   - "blowRoom and guardRoom in src/characters/powerCeiling.js enforce per-registry limits alongside composite caps (43.18x damage ceiling and 10.71% minimum damage taken)."
+  - "An off-hand blow (`blowWeight` below 1) counts as whole only when one extra roll lands under `blowWeight`; every other blow is whole and draws no extra roll. Only a whole blow runs the weapon Strikes payloads, and player strike listeners receive the result as `info.blow`."
+  - "`calculateAttackDamage` passes `nowMinutes` as `null`, not 0, when `enchantCtx` gives no minute, so `doItemEnchantmentPayloads` tries the merged host clock (`ctx.now()`) before it falls back to minute 0 for the HealthLeech use time."
+  - "Class enemies with the Burglar, Rogue, Acrobat, Thief, Assassin, or Nightblade career use Streetwise for pacification (`CLASS_STREETWISE`), and every other class uses Etiquette, following DFU. Classic uses Etiquette for every class."
+  - "`handToHandAttackDamage` adds the Strength `damageModifier` for the player only, as DFU does. Classic applies none, despite the Strength description in the game."
+  - "`handToHandMaxDamage` is `skill / 5 + 1` at every skill, as in DFU and the classic character sheet, not the `+ 2` that the Daggerfall Chronicles table lists for skills of 80 and above."
+  - "Callers that hold a live entity read `entityMaxEncumbrance`, which adds `Math.trunc(amount * multiplier)` for a positive IncreasedWeightAllowance multiplier. The chargen bonus-stats screen (`src/ui/chargen.js`) reads raw `maxEncumbrance` off working stats, because no entity exists yet."
+  - "The tail of `calculateAttackDamage` runs after both the stock core and a registered core, because DFU does that work in every caller. Only the stock core's ineffective-material return skips it. The tail ends normal-power concealment on the attacker (`breakNormalPowerConcealment`) whenever the attack deals damage."
 traps:
   - "Enemy-vs-enemy combat must call dropWeaponIfTargetImmune before swinging against material-immune targets so attackers fall back to hand-to-hand."
   - "Flat-point wards, Bulwark, and Shield pools sit outside GUARD_LEAST and do not scale with percentage guard caps."
+  - "A registered core that rolls struck parts from its own table must also register a `struckBodyPartTable` override. `src/combat/pcaao.js` returns `PCAAO_BODY_PARTS` when `armorHitFormulaRedone` is on and `undefined` to decline otherwise, and `struckCounts` (`src/ui/armourCard.js`) weighs parts by whichever table is in force, with `STRUCK_BODY_PARTS` as the fallback."
+  - "`damageEquipment` consults the registered override before its weapon and damage check, because the PCAAO version also wears gear on unarmed blows."
+  - "`weaponKnockbackSpeed` divides by the classic weight of the target and is undefined at 0. For a monster, the `mobileWeight > 0` term of `weaponKnockbackApplies` is the only gate, and it is what keeps zero-weight monsters such as Ghost and Wraith out of that division."
 dfu:
   - Assets/Scripts/Game/Formulas/FormulaHelper.cs
   - Assets/Scripts/Game/WeaponManager.cs

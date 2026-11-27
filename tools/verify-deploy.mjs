@@ -1,57 +1,17 @@
-// Deploy verification BY CONTENT (standing lesson: a failed deploy
-// leaves the site on the previous build - HTTP 200 proves nothing).
-// The pipeline is the CI workflow (selfhost/upstream-ci/workflows/deploy.yml,
-// Pages build_type: workflow - push to main deploys). This tool
-// closes the loop: build the commit locally (buildTag = commit sha,
-// so hashes are commit-deterministic), then run this to poll the
-// live index until it can prove your commit is what the site serves.
+// Polls the live site until it serves this commit's build: the same entry chunk, or a build tag descended from it.
 // Usage: npm run build && node tools/verify-deploy.mjs [url]
-//
-// TWO WAYS TO PROVE IT, and the second one is why this file was
-// rewritten. Exact chunk-hash equality only holds while YOUR build
-// tag is the head that CI built - and other sessions push to main
-// constantly, so the deploy that actually landed is routinely a
-// DESCENDANT of your commit rather than your commit. That is a pass,
-// not a timeout: the bundle on the site contains your work. Four
-// separate cycles were spent re-running a red verifier against a
-// perfectly good deploy before this arm existed. So: match the entry
-// chunk if it matches, and otherwise read the deployed head's own
-// build tag (vite.config.js stamps it into every built page as
-// <meta name="build-tag">) and ask git whether your commit is an
-// ancestor of it.
+
 import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { isMain } from './lib/isMain.mjs';
 
-/** The ENTRY script as a page actually names it. This used to match
- *  /assets\/index-[\w-]+\.js/ - a hardcoded chunk NAME - and when the
- *  entry chunk became `main-*.js` the tool stopped being able to
- *  verify anything at all, reporting "no bundle ref" against a
- *  perfectly good build. Read what the page loads instead of assuming
- *  what it is called. Only the entry is wanted, so the FIRST script
- *  element wins - the modulepreload links that follow are <link>. */
 export function entryBundle(html) {
-  // `../assets/` too: the game page sits at /play/ (U60) and a relative
-  // base writes its chunk refs one directory up.
   return String(html ?? '').match(/<script[^>]+src="(?:\.{0,2}\/)?(assets\/[\w.-]+\.js)"/)?.[1] ?? null;
 }
 
-/** The commit a built page was stamped with, or null on a page built
- *  before the stamp existed (which is the whole reason the caller has
- *  to keep the exact-hash arm).
- *
- *  SRV-N moved the body to `src/net/updateNotice.js` and left this
- *  re-export, because the GAME now asks the same question of the same
- *  tag from a running tab. Two copies of the regex would have been two
- *  answers to "has the site moved?" - the tool's and the player's - and
- *  the one that matters is the one nobody is watching. */
 export { buildTagOf } from '../src/net/updateNotice.js';
 import { buildTagOf } from '../src/net/updateNotice.js';
 
-/** The verdict, with the git question injected so it is testable
- *  without a repository. `contains(a, d)` answers whether commit `a`
- *  is an ancestor of (or equal to) commit `d`, or null when it cannot
- *  tell - an unknown object is NOT a "no". */
 export function deployVerdict({ localHtml, liveHtml, contains = () => null }) {
   const bundle = entryBundle(localHtml);
   if (!bundle) return { kind: 'nolocal', message: 'no entry script ref in local dist/play/index.html' };
@@ -64,12 +24,7 @@ export function deployVerdict({ localHtml, liveHtml, contains = () => null }) {
   if (!localTag || !liveTag) {
     return { kind: 'wait', bundle, theirs, message: `live serves ${theirs ?? '(no bundle / not up yet)'}` };
   }
-  // Same commit, different chunk hash: the deploy is fine and the
-  // LOCAL artifact is the odd one out - almost always a dist/ built
-  // from a dirty tree. Say that rather than polling for a hash CI
-  // will never produce. AUDIT 68: by PREFIX - a page stamped before
-  // scripts/buildTag.mjs fixed the length carries git's own choice (9
-  // here, 7 on CI), and the same commit then read as two.
+  // Build tags compare by prefix, since older pages carry a different hash length.
   if (localTag.startsWith(liveTag) || liveTag.startsWith(localTag)) {
     return {
       kind: 'dirty', bundle, theirs, localTag, liveTag,
@@ -89,10 +44,8 @@ export function deployVerdict({ localHtml, liveHtml, contains = () => null }) {
   };
 }
 
-/** git's own answer. --is-ancestor exits 0 for yes and 1 for no; any
- *  other status (128 on an object this clone has never fetched) is
- *  "cannot tell", which must not be reported as a no. */
 export function gitContains(a, d) {
+  // Git exits 1 when the commit is not an ancestor; any other status (128 for an unknown commit) means it cannot tell.
   const ask = () => {
     try {
       execFileSync('git', ['merge-base', '--is-ancestor', a, d], { stdio: 'ignore' });
@@ -101,15 +54,14 @@ export function gitContains(a, d) {
   };
   let out = ask();
   if (out === null) {
-    // The deployed head can be a commit this clone has not seen yet.
-    try { execFileSync('git', ['fetch', 'origin', 'main'], { stdio: 'ignore' }); } catch { /* offline */ }
+    try { execFileSync('git', ['fetch', 'origin', 'main'], { stdio: 'ignore' }); } catch { }
     out = ask();
   }
   return out;
 }
 
 async function main() {
-  const url = process.argv[2] || 'https://daggerfalljs.dev/play/';   // U64: the custom domain is the live site
+  const url = process.argv[2] || 'https://daggerfalljs.dev/play/';
   const localHtml = await readFile('dist/play/index.html', 'utf8');
   const bundle = entryBundle(localHtml);
   if (!bundle) { console.error('no entry script ref in local dist/play/index.html'); process.exit(1); }
@@ -136,7 +88,4 @@ async function main() {
   process.exit(1);
 }
 
-// THE FILE IS A LIBRARY UNLESS IT IS THE PROGRAM. tools/musicNames.mjs
-// taught this the expensive way: top-level work plus process.exit
-// killed the test runner mid-file and reported a green suite.
 if (isMain(import.meta.url)) main();

@@ -1,5 +1,3 @@
-// A socket's close and error entries and the leave they share: the index, the drain sweep, the
-// leave frame, and each game's own leave.
 import { staffLeft } from '../staffFeeds.js';
 import { isWorldRoom, worldTtlMsFor, isChatRoom, isSocialRoom } from '../relay.js';
 import { flushAtDrain } from '../drainWindows.js';

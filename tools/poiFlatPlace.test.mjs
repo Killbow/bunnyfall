@@ -1,7 +1,3 @@
-// Tests the asset browser's flat placers (src/ui/poi/poiFlatUi.js, registered via src/poi/poiAssetPlace.js) for
-// billboards, mounted weapons, and paperdoll items, and verifies that every picture and item in the catalog either can
-// be placed or reports a reason.
-
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -12,7 +8,6 @@ import { createPoiEdit, newPoiDoc } from '../src/poi/poiEdit.js';
 import { placeFlatAt } from '../src/poi/poiFlatRows.js';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
 
-/** Builds a test harness whose editor places the armed flat on drop just as poiEditorHost.js `standAt` does. */
 function rig() {
   const edit = createPoiEdit();
   const doc = newPoiDoc({ id: 'poi-f1a7d0000001', px: 600, py: 250, x: 10, z: 10, name: 'Placed' });
@@ -59,15 +54,12 @@ test('places a picture, a weapon, and a robe from the asset browser as flat rows
     assert.deepEqual(flats[2].item, { t: 200 });
     assert.deepEqual(flats[2].flat, [204, 0]);
     assert.deepEqual(poiDocProblems(r.edit.docOf(r.doc.id)), []);
-    // clicking Place (without a drop point) arms placement, prompts the user to click the ground, and resolves once
-    // placed
     const clicked = placePoiAsset(/** @type {any} */ (entries[0]), { ...r.ctx, at: null });
     await new Promise((res) => setTimeout(res, 20));
     assert.ok(r.armedNow());
     assert.match(r.said.at(-1), /Click the ground/);
     r.standNow();
     assert.equal(await clicked, true, 'placed by the click');
-    // canceling placement with Esc before clicking resolves to false so the browser's Recent list does not record it
     const dropped = placePoiAsset(/** @type {any} */ (entries[1]), { ...r.ctx, at: null });
     await new Promise((res) => setTimeout(res, 20));
     r.letGo();

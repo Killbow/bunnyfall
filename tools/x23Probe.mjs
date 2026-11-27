@@ -1,15 +1,6 @@
-// X2/X3 live probe: does exterior enemy ARCHERY and CASTING actually
-// fire in a real browser? Spawns an Archer (141, a bow foe) and a
-// Mage (128, a caster) through the world host's __spawnEncounter and
-// watches the live pools: an enemy arrow record in flight, and a
-// caster releasing (an engine missile, or the foe's magicka moving
-// on a self/AoC release).
-//
-// Frame-synced (the process doctrine): SwiftShader crawls at a few
-// fps with dt clamped at 0.1 - every wait below is in FRAMES via
-// window.__frame.
-//
-// Usage: node tools/x23Probe.mjs
+// Probe: spawns an Archer and a Mage in the exterior world and checks that the archer fires and the mage casts.
+// Waits count frames, since a software renderer runs at a few frames per second.
+// Run: node tools/x23Probe.mjs (BOOT_WAIT sets the boot wait in milliseconds).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -42,35 +33,26 @@ const waitFrames = async (n, cond = null, capMs = 240000) => {
   }
 };
 
-// the world page needs its boot frames before the probe hooks exist
 await waitFrames(5, async () => page.evaluate(() => !!window.__x23 && !!window.__spawnEncounter));
 const x23 = async () => JSON.parse(await page.evaluate(() => window.__x23()));
 
 let fails = 0;
 const check = (ok, label) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`); if (!ok) fails++; };
 
-// --- X2: the Archer ---
 const archerType = await page.evaluate(() => window.__spawnEncounter(141, 15));
 check(archerType === 141, `archer spawned (type ${archerType})`);
 let s = await x23();
 const archer = s.foes.find((f) => f.type === 141);
 check(!!archer && archer.bow === true, `the archer ARMS as a bow foe (bow=${archer?.bow})`);
 
-// wait for a live enemy arrow (the band roll + yaw turn take classic ticks)
 const sawArrow = await waitFrames(0, async () => {
   const st = await x23();
   return st.enemyArrows > 0 ? st : null;
 });
 check(!!sawArrow, `an enemy arrow FLEW (enemyArrows=${sawArrow ? sawArrow.enemyArrows : 0})`);
 
-// --- X3: the Mage ---
-// the Mage's tier list (Ice Bolt 2 / Ice Storm 4) is ALL ranged - at
-// melee it can never cast (faithful: DoTouchSpell picks 0/1 only).
-// And DETECTION is faithful too: outside the 25-unit hearing radius
-// an away-facing spawn never notices the player (the P13 stealth
-// flow - the first probe draft spawned at 40 and the mage stood
-// blind). Spawn INSIDE hearing (20) so detection fires, and watch
-// the 20 -> 6 approach window (~86 classic ticks at 1/40).
+// The Mage's spells are all ranged, so it never casts in melee, and it notices the player only within hearing.
+// It spawns at 20 units, inside hearing range, so the cast window is its approach.
 const mageType = await page.evaluate(() => window.__spawnEncounter(128, 20));
 check(mageType === 128, `mage spawned (type ${mageType})`);
 s = await x23();
@@ -79,8 +61,7 @@ check(!!mage && mage.caster === true && mage.spells > 0,
   `the mage MINTS a caster with a spell list (caster=${mage?.caster}, spells=${mage?.spells})`);
 const mp0 = mage?.mp ?? 0;
 
-// a release shows as an engine missile OR the mage's magicka moving
-// (self/AoC releases have no flight)
+// A self or area release has no missile, so a drop in the mage's magicka also counts as a cast.
 let retried = false;
 const sawCast = await waitFrames(0, async () => {
   const st = await x23();
@@ -88,9 +69,7 @@ const sawCast = await waitFrames(0, async () => {
   if (!mages.length) return null;
   if (st.missiles > 0) return { via: 'missile', st };
   if (mages.some((m) => (m.mp ?? 0) < mp0)) return { via: 'magicka-spend', st };
-  // the ~11% tail: a mage that reached melee undischarged can never
-  // cast again (all-ranged list, faithful) - send one more through
-  // the band
+  // A mage that reaches melee without casting never casts, so one more spawns once.
   if (!retried && mages.every((m) => m.dist < 7)) {
     retried = true;
     await page.evaluate(() => window.__spawnEncounter(128, 20));
@@ -103,9 +82,7 @@ if (!sawCast) {
 }
 check(!!sawCast, `the mage RELEASED a cast (${sawCast ? sawCast.via : 'nothing in the window'})`);
 
-// CURSOR.IMG is absent from this ARENA2 set and cursor.js degrades
-// gracefully (its header: NEVER TRAPS) - the network 404 still logs,
-// so that ONE known miss is filtered; anything else fails.
+// CURSOR.IMG may be missing from this ARENA2 set; the game handles that, so its 404 is not an error.
 const realErrors = errors.filter((e) => !/CURSOR\.IMG|Failed to load resource/.test(e));
 check(realErrors.length === 0, realErrors.length ? `page errors: ${realErrors.slice(0, 3).join(' | ')}` : 'zero page errors (the guarded CURSOR.IMG 404 filtered)');
 

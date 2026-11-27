@@ -1,22 +1,7 @@
 #!/usr/bin/env node
-// MAC-U - WHERE DFU'S TEXT TABLE DIFFERS FROM THE PLAYER'S TEXT.RSC.
-//
-// Daggerfall Unity reads its Internal_RSC string table before the
-// classic file (TextProvider.cs:167-188), and the table was edited
-// after its extraction - record 7333 is the row Mac's directions bug
-// found (src/formats/rscTable.js). This lists every OTHER record whose
-// plain text differs between the vendored master CSV
-// (vendor/dfu-text/Internal_RSC.csv) and a real ARENA2's TEXT.RSC, so
-// the next carried row is chosen from a census rather than found in a
-// screenshot. A difference is a CANDIDATE, not a finding: a row is
-// carried only once someone has read both texts and the seam that
-// speaks them.
-//
-//   ARENA2_PATH=/path/to/ARENA2 node tools/rscTableDiff.mjs           # the census
-//   ARENA2_PATH=... node tools/rscTableDiff.mjs 7333 7250               # these records, both texts in full
-//
-// Whitespace at a variant's ends is not a difference; a record the
-// file lacks, or the table lacks, is listed as such.
+// Lists TEXT.RSC records whose text differs between vendor/dfu-text/Internal_RSC.csv and a real ARENA2.
+// Run: ARENA2_PATH=... node tools/rscTableDiff.mjs [record ...]
+
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +16,7 @@ if (!ARENA2 || !existsSync(join(ARENA2, 'TEXT.RSC'))) {
 }
 
 const table = parseRscCsv(readFileSync(join(ROOT, 'vendor/dfu-text/Internal_RSC.csv'), 'utf8'));
-// the file ALONE: the census must not read the carried rows back as the file's
+// Load the file alone so the census never reads the carried table rows back as the file's own.
 const file = new TextRsc().load(new Uint8Array(readFileSync(join(ARENA2, 'TEXT.RSC'))), { table: null });
 
 const norm = (vs) => vs.map((v) => v.replace(/[ \n]+$/g, '').replace(/^[ \n]+/g, ''));

@@ -1,18 +1,7 @@
-// WATER-NEXT (2026-10-07): THE REAL WORLD'S WATER, PHOTOGRAPHED - THE REVERT's lesson (bible/07-Rendering/Water-Arc.md:
-// "a look change wants a shot from the real game before it lands, not a probe number"). Boots the streaming world
-// (`?world`) headless on SwiftShader at a one-square view radius, as tools/grassLookProbe.mjs does, waits for the shot
-// flag and the stream, then takes one photograph per SHOTS entry from the one boot - each an expression run in the
-// page first (shot mode's hooks: `__findTiles`, `__pose`, `__look`, `__move`). Fails on any page error or a shader that
-// would not build.
-//
-// Needs ARENA2_PATH (the game's data, which never enters this tree) and the provisioned Chromium. Renders of game data
-// are game data (Port-Doctrine) - write them outside the tree.
-//
-//   ARENA2_PATH=... SHOTS='[{"name":"pond","eval":"__look(0,-0.35)"}]' node tools/waterLookProbe.mjs /tmp/shots/water
-//
-// Env: Q the page query (default the Daggerfall streaming boot at noon, sunny); PREFS a JSON of uiPrefs to boot with;
-// SETUP an expression run once after the boot (a pose); SHOTS a JSON array of {name, eval?, frames?}; KEYS the intro's
-// keys (default `Enter,n,n`); W/H; PORT (5202).
+// Boots the streaming world and takes one screenshot per SHOTS entry. Renders of game data stay outside the tree.
+// Usage: `ARENA2_PATH=<dir> SHOTS=<json> node tools/waterLookProbe.mjs <dir>`
+// Env: SHOTS (a JSON array of {name, eval?, frames?}), Q, PREFS, SETUP, KEYS (default Enter,n,n), W, H, and PORT.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -37,7 +26,6 @@ await page.addInitScript((p) => {
   localStorage.setItem('dagger.ui.v1', JSON.stringify({ landViewDistance: 1, ...p }));
   localStorage.setItem('dagger.settings.v1', JSON.stringify({ Experimental: { TerrainDistance: '1' } }));
 }, prefs);
-/** wait until the page has drawn `n` more frames (shot mode's counter - never a sleep) */
 const frames = async (n) => { const f = await page.evaluate(() => window.__frame); await page.waitForFunction(([f0, k]) => window.__frame >= f0 + k, [f, n], { timeout: 600000, polling: 1000 }); };
 const idle = () => page.waitForFunction(() => !window.__streamIdle || window.__streamIdle() === true, null, { timeout: 900000, polling: 2000 });
 const t0 = Date.now();

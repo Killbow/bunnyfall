@@ -1,13 +1,6 @@
-// THE CLOUD NOISE, SEEN (VC2). Opens the sky lab's `?noise=` door and
-// reads the volumes back: both compile and draw (no page error, no GL
-// error), a slice is a field and not a flat (many levels, a mid mean),
-// the volume TILES - two tiles across the frame are the same picture
-// and the seam between them is no busier than its neighbours; the z
-// axis wraps (z=0 and z=1 are one slice) and varies (z=0.25 and z=0.5
-// are not); and the Worley octaves rise in frequency across the
-// channels.
-//
-//     node tools/cloudNoiseProbe.mjs          (writes /tmp/noise-*.png)
+// Opens the sky lab's noise view and checks that the cloud volumes compile, tile, and wrap.
+// Run: node tools/cloudNoiseProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -39,11 +32,9 @@ async function shoot(label, q) {
     for (let i = 0; i < n; i++) { const v = px[i * 4]; sum += v; levels.add(v); }
     const row = (h >> 1) * w * 4;
     for (let x = 1; x < w; x++) if (Math.abs(px[row + x * 4] - px[row + (x - 1) * 4]) > 2) changes++;
-    // the two halves (for tiles=2): the same picture?
     const half = w >> 1; let halfDiff = 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < half; x++) halfDiff += Math.abs(px[(y * w + x) * 4] - px[(y * w + x + half) * 4]);
     halfDiff /= half * h;
-    // the seam column against its neighbours: mean |dx| at x=half vs the mean over the frame
     let seam = 0, all = 0;
     for (let y = 0; y < h; y++) {
       seam += Math.abs(px[(y * w + half) * 4] - px[(y * w + half - 1) * 4]);

@@ -1,13 +1,5 @@
-// MAIL1 PROBE: THE LETTERS TAB IN A REAL BROWSER.
-//
-//   node tools/mailProbe.mjs        (SHOT_DIR=tools/shots by default)
-//
-// test/server/mail1.test.js drives the tab over a fake document, which proves what it DOES and nothing about how it LOOKS:
-// whether the widest sender, the longest subject and a letter of one unbroken word stay inside the panel, whether the
-// form fits a phone, whether a finger can hit what it needs. This mounts the REAL panel (ui/socialPanel.js) over the
-// real enhanced sheet in Chromium with a REAL MailBox (net/mail.js) whose fetch answers the service's own shapes, at
-// the widest content the letter's law allows, and reads the layout back - at a desktop, a narrow window, and a phone
-// on the touch skin.
+// Renders the Letters tab with the widest allowed content in Chromium and checks the layout.
+// Run: node tools/mailProbe.mjs (screenshots go to SHOT_DIR, default tools/shots).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -36,8 +28,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
     document.body.innerHTML = '';
     document.body.style.cssText = 'margin:0;background:repeating-linear-gradient(45deg,#2a2721 0 14px,#231f1a 14px 28px);height:100vh';
     (await import('/src/ui/enhancedStyle.js')).injectEnhancedStyle();
-    // THE WIDEST LETTERS THE LAW ALLOWS: a full box, every sender at the handle's bound in its widest letter and every
-    // glyph, every subject at its bound; the one opened is the body's bound of one unbroken word and the lines' bound.
     const W24 = 'W'.repeat(HANDLE_MAX_LEN);
     const now = Math.floor(Date.now() / 1000);
     const heads = Array.from({ length: LETTERS_INBOX_MAX }, (_, i) => ({
@@ -63,7 +53,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
     window.__mail = { panel, box };
   }, touch);
   const frame = async () => { await page.evaluate(async () => { for (let i = 0; i < 4; i++) { await new Promise((r) => setTimeout(r, 30)); window.__mail.panel.render(); } }); };
-  // the read-back: the panel against the screen, a view's body against its own box, every row and button inside it
   const measure = () => page.evaluate(() => {
     const root = document.querySelector('.dfsocial');
     const body = root.querySelector('.dfsocial-body');
@@ -81,12 +70,12 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
       panel: { left: r.left, right: r.right, top: r.top, bottom: r.bottom, vw: innerWidth, vh: innerHeight },
       bodyScrollsX: body.scrollWidth > body.clientWidth + 1, spills, tabsFit: tabs.scrollWidth <= tabs.clientWidth + 1,
       fields, minButton: buttons.length ? Math.min(...buttons) : 0,
-      text: body.textContent.slice(0, 600),   // the words as written - innerText would read the section heading's text-transform
+      // textContent, because innerText applies the section heading's text-transform.
+      text: body.textContent.slice(0, 600),
     };
   });
   const inScreen = (m) => m.panel.left >= 0 && m.panel.right <= m.panel.vw + 0.5 && m.panel.bottom <= m.panel.vh + 0.5;
 
-  // THE BOX
   await page.evaluate(() => window.__mail.panel.openLetters());
   await frame(); await frame();
   let m = await measure();
@@ -97,7 +86,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   if (touch) check(`${label}: every row, tab and button is a finger's (44px)`, m.minButton >= 44, `smallest ${m.minButton}`);
   await page.screenshot({ path: `${OUT}/mail-list-${label}.png` });
 
-  // ONE LETTER: a word two hundred letters long, and the lines' bound
   await page.evaluate(() => document.querySelector('.dfsocial-letter').click());
   await frame(); await frame();
   m = await measure();
@@ -107,7 +95,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   await page.evaluate(() => { document.querySelector('.dfsocial-body').scrollTop = 0; });
   await page.screenshot({ path: `${OUT}/mail-read-${label}.png` });
 
-  // THE FORM, and a refusal in it
   await page.evaluate(() => [...document.querySelectorAll('.dfsocial-btn')].find((x) => x.textContent === 'Reply').click());
   await frame();
   m = await measure();
@@ -121,7 +108,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   check(`${label}: a refusal is said in the form, and the draft stands`, m.text.includes('Their letterbox is full') && await page.evaluate(() => document.querySelector('textarea.dfsocial-field').value === 'Agreed.'));
   await page.screenshot({ path: `${OUT}/mail-write-${label}.png` });
 
-  // A FRIEND'S ROW: Invite, Letter and Remove beside the widest name; a guest's Letter refused with its reason
   await page.evaluate(() => [...document.querySelectorAll('.dfsocial-tab')].find((x) => x.dataset.tab === 'friends').click());
   await frame();
   m = await measure();

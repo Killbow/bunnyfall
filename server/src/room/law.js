@@ -1,5 +1,3 @@
-// The chat law of a room: new voices paced, lines stamped, and staff and mute orders taken.
-// It applies bans, closes banned sockets, refuses a banned hello, and loads and saves the bans.
 import { isChatRoom, NEW_VOICE_GAP_MS, muteGate, CLOSE_POLICY } from '../relay.js';
 import { mintStamp, stampTabOf } from '../../../src/net/safety/chatStamp.js';
 import { lawKindOf } from '../worker/asks.js';
@@ -24,15 +22,14 @@ export class LawPart {
     if (!isChatRoom(a.key) || !this._newVoice(a)) return;
     for (const [k, at] of this._paces) { if (at + NEW_VOICE_GAP_MS > now) break; this._paces.delete(k); }
     const k = a.sub ?? a.id;
-    // Delete before set so a reset meter moves to the back; the prune walk
-    // above needs oldest first.
+    // Delete before set so a reset meter moves to the back; the prune walk above needs oldest first.
     this._paces.delete(k);
     this._paces.set(k, now);
   }
   async _stamped(ws, a, ch, frame) {
     const key = a.sub ? await this._receiptKeyOf() : null;
-    const sg = key ? await mintStamp({ tab: stampTabOf(a.key, ch), sub: a.sub, name: frame.name, at: frame.at, text: frame.text }, key, { subtle: crypto.subtle }) : '';
     // Signing awaits, and a ban can close the speaker meanwhile; its line then goes to nobody.
+    const sg = key ? await mintStamp({ tab: stampTabOf(a.key, ch), sub: a.sub, name: frame.name, at: frame.at, text: frame.text }, key, { subtle: crypto.subtle }) : '';
     if (this._dead.has(ws) || this._gone.has(ws)) return null;
     return sg ? { ...frame, sg } : frame;
   }
@@ -122,7 +119,7 @@ export class LawPart {
       if (!kept || typeof kept !== 'object') return;
       for (const [s, v] of Object.entries(kept)) {
         if (!Array.isArray(v) || !Number.isSafeInteger(v[0]) || v[0] < nowS - BAN_KEEP_S) continue;
-        // A ban heard since the wake can land before this read finishes; keep it when it is newer.
+        // A ban received since the wake can land before this read finishes; keep it when it is newer.
         if (this._bans.get(s)?.i >= v[0]) continue;
         this._bans.set(s, { i: v[0], bn: Number.isSafeInteger(v[1]) ? v[1] : 0, sig: typeof v[2] === 'string' ? v[2] : '' });
       }

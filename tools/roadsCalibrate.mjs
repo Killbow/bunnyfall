@@ -1,19 +1,6 @@
-// ROADS 14: THE ANSWER KEY, MEASURED. Basic Roads' hand-drawn network
-// is what "as close as we can" means, and its data cannot ship with the
-// port (bible/03-World/Roads.md, "The line"). What CAN be taken from it
-// is its judgement, expressed as numbers the generator's dials control:
-// how often a road bends, by how much, how many steps are diagonal, how
-// many ends dead, how many junctions. This tool prints those numbers
-// for the mod's arrays and, when ARENA2 is present, for OUR network on
-// the same map, side by side - so a dial is turned toward a measurement
-// rather than a feeling.
-//
-//   node tools/roadsCalibrate.mjs --bytes <dir with roadData.bytes trackData.bytes>
-//   ARENA2_PATH=/path/to/ARENA2 node tools/roadsCalibrate.mjs --bytes <dir> [--turnCost 0.7 --climbCost 40 ...]
-//
-// The .bytes come from the author's public repo (ajrb/dfunity-mods,
-// BasicRoads/). Reading them here is reading, not shipping; nothing is
-// written anywhere but the console.
+// Prints road shape statistics for the Basic Roads data and, with ARENA2, for the generated network, side by side.
+// Run: node tools/roadsCalibrate.mjs --bytes <dir> (ARENA2_PATH=... to compare). The mod's data is never shipped.
+
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { MAP_WIDTH, MAP_HEIGHT, WoodsFile } from '../src/formats/woodsFile.js';
@@ -42,14 +29,14 @@ export function measure(mask) {
       st.two++;
       if (OPP(bits[0]) === bits[1]) { st.straight++; continue; }
       let d = Math.abs(ORDER.indexOf(bits[0]) - ORDER.indexOf(bits[1])); d = Math.min(d, 8 - d);
-      if (d === 3) st.bend45++; else if (d === 2) st.bend90++; else st.bend135++;   // d=3 -> a 45-degree heading change
+      if (d === 3) st.bend45++; else if (d === 2) st.bend90++; else st.bend135++;
     }
   }
   const bends = st.two - st.straight;
   return {
     pixels: st.px,
-    bendRate: st.two ? bends / st.two : 0,            // share of through-pixels that bend
-    rightAngleShare: bends ? st.bend90 / bends : 0,   // of the bends, how many are 90 degrees
+    bendRate: st.two ? bends / st.two : 0,
+    rightAngleShare: bends ? st.bend90 / bends : 0,
     hairpinShare: bends ? st.bend135 / bends : 0,
     diagonalShare: (st.diag + st.card) ? st.diag / (st.diag + st.card) : 0,
     deadEndRate: st.px ? st.ends / st.px : 0,

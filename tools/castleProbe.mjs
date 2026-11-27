@@ -1,10 +1,6 @@
-// CASTLE1 (DragynDance, Discord, 2026-09-22: "Entering castle daggerfall
-// removes your ability to interact with anything, so you are unable to
-// leave, talk to the guard, or open any doors"): walk INTO Castle
-// Daggerfall through its own entrance door, from the street, on the
-// world host - then try to interact the way a player would.
-//
-// Usage: ARENA2_PATH=/home/user/dfdata/arena2 node tools/castleProbe.mjs
+// Walks into Castle Daggerfall from the street and checks that interaction, the exit, and saves still work.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/castleProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -48,8 +44,7 @@ check(entrances.length > 0, `${entrances.length} dungeon entrance door(s) in the
 const pixel = await ev(() => window.__currentPixel());
 console.log(`player pixel ${pixel}`);
 
-// The headless class start pops the main quest's opening box on the street; a player reads it and clicks it away.
-for (let i = 0; i < 60; i++) {   // the tutorial's pages, then the main quest's opening box
+for (let i = 0; i < 60; i++) {
   const t = JSON.parse(await ev(() => window.__talk()));
   if (!t.overlay) break;
   await page.keyboard.press('Space');
@@ -57,7 +52,7 @@ for (let i = 0; i < 60; i++) {   // the tutorial's pages, then the main quest's 
 }
 console.log('talk before entering: ' + JSON.stringify(JSON.parse(await ev(() => window.__talk())).overlay));
 const d = entrances[0];
-// An exterior door's normal points OUT of the building; stand in front, look at it.
+// An exterior door's normal points out of the building.
 const stand = [d.pos[0] + d.normal[0] * 1.0, d.pos[1] - 0.5, d.pos[2] + d.normal[2] * 1.0];
 const yaw = Math.atan2(-d.normal[0], -d.normal[2]);
 console.log(await ev(([p, y]) => window.__warpTo(p, y), [stand, yaw]));
@@ -82,7 +77,6 @@ check(probe.transitioning === false, 'the transition latch is down');
 check(!probe.overlay, `no window is up in the dungeon's own slot (${probe.overlayKind})`);
 console.log(`street slot held: ${probe.talkOverlay} (a headless class start's tutorial pages ride there; a played character read them on the street)`);
 
-// Try the exit door the way classicStartProbe does.
 if (probe.exits.length) {
   const { pos, normal } = probe.exits[0];
   const st = [pos[0] + normal[0] * 0.8, pos[1] - 0.5, pos[2] + normal[2] * 0.8];
@@ -99,13 +93,6 @@ check(before.pick?.key === 'exit:0', `the ray at the exit door names the exit ($
   check(after === 'exterior', `the exit door answers (mode after: ${after})`);
 }
 
-// The save/load half of the report. Three loads, the way a player makes
-// them: the dungeon's OWN door (F12 / the pause menu underground) on a
-// save taken in this castle; that same door on a save taken on the
-// street (another place - the world host's load must take over and put
-// the player there); and the street's load on the castle save (the load
-// re-enters the SAVED dungeon, not the first door the streaming world
-// loaded).
 const untilMode = async (want, ms = 240000) => {
   for (const until = Date.now() + ms; Date.now() < until;) {
     const m = await ev(() => window.__mode());
@@ -130,13 +117,11 @@ await page.waitForTimeout(500);
 const keys = JSON.parse(await ev(() => window.__saveKeys()));
 const castleSave = keys.find((k) => k.name === 'castle')?.key ?? null;
 check(castleSave != null, `the castle save has a slot (${JSON.stringify(keys)})`);
-// 1. the dungeon's own door, the castle's own save: home, no line
 await ev((k) => window.__dungeonQuickLoad(k), castleSave);
 await page.waitForTimeout(2500);
 let p1 = JSON.parse(await ev(() => window.__dungeonProbe()) ?? 'null');
 console.log(`load 1 (own door, castle save): mode=${await ev(() => window.__mode())} key=${p1?.locationKey} hud=${JSON.stringify(p1?.hud)}`);
 check(p1 && p1.locationKey === castleKey && !(p1.hud ?? []).some((l) => /different dungeon/.test(l)), 'the dungeon\'s own door loads its own save in place');
-// 2. a save from the STREET, loaded through the dungeon's own door
 await ev(() => window.__dungeonExit());
 await untilMode('exterior', 60000);
 await page.waitForTimeout(2000);
@@ -149,7 +134,6 @@ await ev((k) => window.__dungeonQuickLoad(k), streetSave);
 const m2 = await untilMode('exterior');
 console.log(`load 2 (own door, street save): mode=${m2} street hud=${await ev(() => window.__hudLines())}`);
 check(m2 === 'exterior', 'a save from another place, loaded underground, puts the player THERE (the world host\'s load took it)');
-// 3. the street's load on the castle save: the SAVED dungeon is re-entered
 await ev((k) => window.__loadSave(k), castleSave);
 const m3 = await untilMode('dungeon');
 await page.waitForTimeout(2000);

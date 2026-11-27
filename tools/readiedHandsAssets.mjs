@@ -1,38 +1,24 @@
-// RSH1: THE MOD'S OWN SOURCE, OUT OF ITS OWN BUNDLE.
-//
-// Readied Spellcasting Hands 1.3 ships one file - `readied spellcasting hands.dfmod`, a Unity 2019.4.10f1 AssetBundle -
-// and, like World Tooltips (the same author's, tools/worldTooltipsAssets.mjs), it carries its whole implementation as
-// TextAssets rather than a compiled assembly: the author's `Modded_FPSSpellCasting_Ready.cs`, the `ModLoader.cs` that
-// adds it to the player, and the manifest. The licence ships beside the bundle in the zip, as plain text.
-//
-// So `vendor/readied-spellcasting-hands/Scripts/` holds the author's source rather than a decompile, and every cite the
-// port writes against it resolves against a file anyone holding the shipped zip can reproduce byte for byte:
-//
-//   node tools/readiedHandsAssets.mjs <path-to>/"readied spellcasting hands.dfmod" [outDir]
-//
-// Default outDir is vendor/readied-spellcasting-hands. It prints each asset's size and sha256, which is what
-// test/systems/rsh1_readiedhands.test.js pins.
+// Extracts the Readied Spellcasting Hands source text assets from its .dfmod bundle into vendor/.
+// Run: node tools/readiedHandsAssets.mjs <path>/"readied spellcasting hands.dfmod" [outDir]
+
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { isMain } from './lib/isMain.mjs';
 
-/** The bundle's three text assets, by the name they carry inside it, mapped to the path this tree keeps them at. */
 export const READIED_HANDS_ASSETS = Object.freeze({
   'Modded_FPSSpellCasting_Ready.cs': 'Scripts/Modded_FPSSpellCasting_Ready.cs',
   'ModLoader.cs': 'Scripts/ModLoader.cs',
   'readiedSpellCastHand.dfmod': 'readiedSpellCastHand.dfmod.json',
 });
 
-/** The text assets as { name, path, body } - pure, for a test to drive. */
 export function readReadiedHands(bytes) {
   const bundle = readUnityBundle(bytes);
   return bundle.textAssets.map((t) => ({
     name: t.name,
     path: READIED_HANDS_ASSETS[t.name] ?? null,
-    // the asset's own BYTES - the decoded text would drop a byte-order mark (AUDIT BRANCH (WoD) n's lesson, in
-    // tools/worldOfDaggerfallAssets.mjs); these three carry none, and the bytes are what the sha256 pins hold
+    // Keep the raw bytes: TextDecoder drops a byte-order mark, and the printed sha256 must hash the file's bytes.
     body: t.bytes ? Buffer.from(t.bytes) : Buffer.from(t.text ?? '', 'utf8'),
   }));
 }

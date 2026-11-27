@@ -1,4 +1,3 @@
-// The `act` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isWorldRoom, byteGate, tokenGate, ACT_ROOM_HZ_MAX, ACT_SENDER_BYTES_PER_S, ACT_ROOM_BYTES_PER_S } from '../../relay.js';
 
 export function actFrame(ws, a, m) {

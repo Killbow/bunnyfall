@@ -1,12 +1,5 @@
-// BUNNYFALL FARM EXPANSION (docs/FARM-EXPANSION.md): A CONTACT SHEET of Daggerfall's sprite archives, so the farm's art
-// can be chosen by eye. Each record's first frame is drawn on a grid, labelled with its record number and its frame
-// count, one PNG per archive. Colours come from ART_PAL.COL in the same folder; without it the sheet is drawn in grey
-// (index brightness), which is enough to tell shapes apart.
-//
-//   node tools/farmArtSheet.mjs <arena2 dir> <out dir> [archive ...]
-//   node tools/farmArtSheet.mjs $ARENA2_PATH /tmp/sheets 201 205 211 213 214
-//
-// The game's files are read, never copied: the sheets are for looking at and stay out of the repo.
+// Draws contact sheets of Daggerfall sprite archives, one PNG per archive, labeled with record and frame counts.
+// Run: node tools/farmArtSheet.mjs <arena2 dir> <out dir> [archive ...]; the sheets stay out of the repo.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { deflateSync } from 'node:zlib';
@@ -27,7 +20,6 @@ const rgbOf = (i) => {
   return [b[o], b[o + 1], b[o + 2]];
 };
 
-// A 3x5 digit font for the labels.
 const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001',
   '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
 const CELL = 140, LABEL = 9, SCALE_MAX = 2;
@@ -49,7 +41,7 @@ for (const archive of archives) {
   if (!tex.load(new Uint8Array(readFileSync(path)), name, palette)) { console.log(`${name}: could not be read`); continue; }
   const n = tex.recordCount, cols = Math.min(8, n), rows = Math.ceil(n / cols);
   const W = cols * CELL, H = rows * (CELL + LABEL), img = Buffer.alloc(W * H * 3, 0);
-  for (let i = 0; i < img.length; i += 3) { img[i] = 255; img[i + 1] = 0; img[i + 2] = 255; }   // magenta ground: transparent
+  for (let i = 0; i < img.length; i += 3) { img[i] = 255; img[i + 1] = 0; img[i + 2] = 255; }
   const put = (x, y, c) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const o = (y * W + x) * 3; img[o] = c[0]; img[o + 1] = c[1]; img[o + 2] = c[2]; };
   const text = (s, x, y) => { for (const ch of s) { const d = DIGITS[Number(ch)]; if (d) for (let p = 0; p < 15; p++) if (d[p] === '1') put(x + (p % 3), y + Math.floor(p / 3), [255, 255, 255]); x += ch === ' ' ? 3 : 4; } };
   const lines = [];

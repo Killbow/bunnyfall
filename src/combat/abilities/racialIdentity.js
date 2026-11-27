@@ -51,7 +51,6 @@ export function racialPace(entity, mode, motor, outdoors = false) {
   return trait?.pace === mode && meets(trait.condition, entity, motor, outdoors) ? 1 + TRAIT_SHARE : 1;
 }
 
-/** The tail of both physical damage paths, after armor and the shared blow modifiers. */
 export function racialGuardDamage(damage, attacker, target, kind) {
   if (!(damage > 0) || !previewPhysicalActor(target) || !attacker || attacker.isPlayer || attacker.peer) return damage;
   const trait = RACIAL_TRAITS[racialKey(target)];
@@ -74,7 +73,6 @@ export function stepRacialAccuracy(entity, dt) {
 
 export const clearRacialAccuracy = entity => stance.delete(entity);
 
-/** Shared by the stock and overhaul attack formulas when testing racial identities. */
 export function previewRacialModifiers(entity, weapon) {
   if (!previewPhysicalActor(entity)) return null;
   const favorites = RACIAL_FAVORITES[racialKey(entity)];
