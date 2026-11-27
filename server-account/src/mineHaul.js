@@ -1,16 +1,13 @@
 // BUNNYFALL (2026-11-26, caverns): A DRILL'S HAUL, PAID - the account service's half of the drill (the spec's sections 5
 // and 7). The relay signed what a drill's setter took from its hopper (src/net/mine/mineReceipt.js); this verifies the
 // signature with the relay's public half (the gate's key, as the arena's receipts), checks the haul is the caller's,
-// keeps it once (`mine_hauls`, migration 0221: one row a receipt, whoever carries it twice), holds the account to
-// MINE_HAULS_PER_DAY pieces a day, and pays the ore into the character's Stores as its own.
+// keeps it once (`mine_hauls`, migration 0221: one row a receipt, whoever carries it twice), and pays the ore into the
+// character's Stores as its own. No cap on the day (2026-11-27, the owner: "remove the cap"; as the life skills' CAP-OFF).
 import { verifyMineReceipt, mineReceiptId, mineReceiptOldId } from '../../src/net/mine/mineReceipt.js';
 import { asks, shut } from './profShared.js';
 import { STORES_MAX, PROF_XP_MAX } from '../../src/net/professionLaw.js';
 import { drillHaulPaid } from '../../src/net/mine/mineHaulLaw.js';
 import { firmStatsOf } from './firmament.js';
-
-/** The most drill ore an account banks in a UTC day (a few full shifts). */
-export const MINE_HAULS_PER_DAY = 400;
 
 /**
  * @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx
@@ -31,10 +28,9 @@ export async function claimMineHaul(ctx, player, env, body, publicKey) {
   const day = Math.floor(nowS / 86400);
   // a haul banked before the taker joined the row's id is still this player's, and still banked
   if (await db.prepare('SELECT 1 AS x FROM mine_hauls WHERE id = ?1 AND player = ?2').bind(mineReceiptOldId(c), player.id).first()) return { paid: 0, why: 'claimed' };
-  const today = Number((await db.prepare('SELECT COALESCE(SUM(n), 0) AS n FROM mine_hauls WHERE player = ?1 AND day = ?2').bind(player.id, day).first())?.n ?? 0);
-  const n = Math.max(0, Math.min(c.n, MINE_HAULS_PER_DAY - today));
-  if (n <= 0) return { error: 'day-full' };
-  // the character's Firmament mining yield and XP apply as at a node (the signed n is the cap on the day, the yield after it)
+  const n = c.n;
+  if (!(n > 0)) return { paid: 0, why: 'claimed' };
+  // the character's Firmament mining yield and XP apply as at a node
   const roll = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
   const { qty, xp } = drillHaulPaid(n, c.o, await firmStatsOf(db, player, env, body.character), roll);
   const id = mineReceiptId(c), nonce = crypto.randomUUID();   // this request's own: the Stores' write pays only the row it made
@@ -50,5 +46,5 @@ export async function claimMineHaul(ctx, player, env, body, publicKey) {
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MIN(?4, prof_tracks.xp + excluded.xp), updated_at = excluded.updated_at`).bind(id, player.id, nonce, PROF_XP_MAX, xp, nowS),
   ]);
   if (!took?.meta?.changes) return { paid: 0, why: 'claimed' };
-  return { paid: qty, ore: c.o, xp, ...(n < c.n ? { capped: true } : {}) };
+  return { paid: qty, ore: c.o, xp };
 }
