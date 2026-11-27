@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Changed: Character creation now happens in Nyx's tavern, in 3D: the camera turns from Nyx at her bar to the patrons standing by the benches, steps close to the one you choose, and comes back to her bar for your class and her ledger. On a computer that cannot open the hall, the painted tavern stands in.
+- Changed (2D): Character creation now happens in Nyx's tavern. Pick your people from the patrons at her bar, choose your sex and face up close (or upload your own paperdoll), take your class from the pages on her desk, tell her your history, and sign your first and last name in her ledger.
 - Changed: Updates are now numbered from 0.2, and count up from there (0.2.1, 0.2.2, ...).
 - Changed: The main menu is now a tavern. The logo stands upper left on the wood rail, Online is the big door on the right with Settings, Overhauls and Tutorials under it, and Play Offline, Screenshots and About sit small along the bottom. When you are signed in, your custom paperdoll shows on the left, where you can flip through your approved skins and wear one.
 - Changed: Mine drills no longer stop paying after a day's ore; there is no daily cap on what you haul.

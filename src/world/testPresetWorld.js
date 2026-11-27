@@ -4,6 +4,7 @@
 import {
   applyHeadlessChargen, createChargenFlow, createChargenWindow, finishChargen, loadSpellIndex,
 } from '../characters/chargenSession.js';
+import { takeHallBorn } from '../characters/hallBorn.js';   // BUNNYFALL: the character Nyx's hall made
 import { applyTestCharacter, seedTestLoot, seedTestMount } from '../characters/testRoom.js';
 import { artRaceOf } from '../characters/races.js';
 import { autoBuildArms, buildArmsFor } from '../combat/weaponRig.js';
@@ -75,24 +76,30 @@ export function createTestPresetWorld(shared) {
   } else if (!playerEntity.chargenDone && !params.has('load')
     && !(params.has('classicload') && peekPendingClassicSave())) {
     // No wizard when a save is about to load: the save carries chargenDone but arrives after the boot walk.
-    createChargenFlow(fetchBytes).then(({ flow, spellsByIndex: sbi }) => {
+    // BUNNYFALL: a character signed in Nyx's hall before the world booted (scenes/chargenHall.js) is born here, without the wizard
+    const born = takeHallBorn();
+    const made = (r, sbi) => {
+      shared.spellsByIndex = sbi;
+      setLoadingAside('window', false);
+      finishChargen(playerEntity, r, sbi);
+      // Online, the skill check stamp follows the shared world clock, or the six-hour gate is open at birth.
+      if (sharedClockOn()) playerEntity.lastSkillCheckTime = Math.floor(ownMinutes());
+      preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
+        { race: artRaceOf(r), gender: r.gender, faceIndex: r.faceIndex });
+      surfacePlayer();
+      questInitAtGameStart();
+      autoBuildArms(playerEntity);
+      shared.legacyHost?.onCharacterMade(r.legacyModel ?? null);
+      if (realmNew) realmBirth().catch((e) => { console.error('[realm] the birth failed', e); realmLost('server'); });
+    };
+    if (born) {
+      loadSpellIndex(fetchBytes).then((sbi) => { made(born, sbi); console.info(`[chargen] born in Nyx's hall: ${playerEntity.name} (${playerEntity.race} ${playerEntity.gender}, first ${playerEntity.firstName ?? '-'}, last ${playerEntity.lastName ?? '-'})`); }).catch((e) => console.warn('[chargen] the hall\'s character could not be born', e));
+    } else createChargenFlow(fetchBytes).then(({ flow, spellsByIndex: sbi }) => {
       shared.spellsByIndex = sbi;
       setLoadingAside('window', true);
       townTalk.showOverlay(createChargenWindow(flow, {
         onCancel: () => { releaseUnloadGuard(); location.reload(); },
-        onDone: (r) => {
-          setLoadingAside('window', false);
-          finishChargen(playerEntity, r, sbi);
-          // Online, the skill check stamp follows the shared world clock, or the six-hour gate is open at birth.
-          if (sharedClockOn()) playerEntity.lastSkillCheckTime = Math.floor(ownMinutes());
-          preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-            { race: artRaceOf(r), gender: r.gender, faceIndex: r.faceIndex });
-          surfacePlayer();
-          questInitAtGameStart();
-          autoBuildArms(playerEntity);
-          shared.legacyHost?.onCharacterMade(r.legacyModel ?? null);
-          if (realmNew) realmBirth().catch((e) => { console.error('[realm] the birth failed', e); realmLost('server'); });
-        },
+        onDone: (r) => made(r, sbi),
       }));
     }).catch((e) => console.warn('[chargen] CLASS*.CFG unavailable; the interim entity stands in', e));
   }
