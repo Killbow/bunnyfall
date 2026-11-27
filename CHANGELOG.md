@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Fixed: In the desktop app, "Upload or manage" under your paperdoll on the main menu showed "not found"; it now opens the skins page on the website.
 - Changed: Character creation now happens in Nyx's tavern, in 3D: the camera turns from Nyx at her bar to the patrons standing by the benches, steps close to the one you choose, and comes back to her bar for your class and her ledger. On a computer that cannot open the hall, the painted tavern stands in.
 - Changed (2D): Character creation now happens in Nyx's tavern. Pick your people from the patrons at her bar, choose your sex and face up close (or upload your own paperdoll), take your class from the pages on her desk, tell her your history, and sign your first and last name in her ledger.
 - Changed: Updates are now numbered from 0.2, and count up from there (0.2.1, 0.2.2, ...).

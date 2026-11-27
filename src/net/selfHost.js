@@ -30,3 +30,13 @@ export function selfAccountUrl() {
 export function selfUpdaterUrl() {
   return `${selfAccountUrl()}/updater`;
 }
+
+/**
+ * A page of the site beside the game (skins.html and the like), by its path from the site's root. On the web it is the
+ * page's own origin; in the desktop app, whose game runs on dagger://game and has no such page, it is the public site -
+ * which the app opens in the system browser (app/main.cjs window-open fence).
+ * @param {string} path
+ */
+export function selfSiteUrl(path) {
+  return `${selfAccountUrl()}/${String(path).replace(/^\/+/, '')}`;
+}
