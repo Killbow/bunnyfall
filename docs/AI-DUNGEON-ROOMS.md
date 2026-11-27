@@ -43,7 +43,8 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
   entering a spawned dungeon in the full world host (the hook was exercised there only as a function call, and it
   reports on, door open, switch on).
 - Foes come from the plain random-enemy marker, so their kind follows the dungeon, as in classic blocks.
-- The relay and account service were not checked for any dependency on block names.
+- The relay and account service do not mention block names (grepped), so they need nothing. Online, every client builds the
+  same layout from the same code, and the room owns the switch, so they agree.
 - New pieces are single-sided stone (dungeon slot textures); no wood, metal or glass textures yet.
 
 ## Regenerating
