@@ -158,5 +158,165 @@
   "index": 910020,
   "shell": 7100120,
   "note": "Low wet tunnels in the rock, the lower corridors all meeting here."
+ },
+ {
+  "name": "N7000015.RDB",
+  "title": "Altar Cave",
+  "kind": "interior",
+  "index": 910021,
+  "shell": 7100121,
+  "note": "Natural rock, an altar and a ring of standing stones."
+ },
+ {
+  "name": "N7000016.RDB",
+  "title": "Barracks",
+  "kind": "interior",
+  "index": 910022,
+  "shell": 7100122,
+  "note": "A guardroom passage with small rooms on both sides."
+ },
+ {
+  "name": "B7000007.RDB",
+  "title": "Barrow Gate",
+  "kind": "border",
+  "index": 910023,
+  "shell": 7100123,
+  "note": "A square court with an arch at each entrance and a well in the middle."
+ },
+ {
+  "name": "B7000008.RDB",
+  "title": "Causeway",
+  "kind": "border",
+  "index": 910024,
+  "shell": 7100124,
+  "note": "Two causeways cross a pit 3.2 m deep; a ramp leads down into each of its four corners."
+ },
+ {
+  "name": "N7000017.RDB",
+  "title": "Cistern Vaults",
+  "kind": "interior",
+  "index": 910025,
+  "shell": 7100125,
+  "note": "A low square hall, a grid of short columns."
+ },
+ {
+  "name": "B7000009.RDB",
+  "title": "Colonnade Gallery",
+  "kind": "border",
+  "index": 910026,
+  "shell": 7100126,
+  "note": "A broad east-west hall, two rows of columns."
+ },
+ {
+  "name": "N7000018.RDB",
+  "title": "Crossroads Pillar",
+  "kind": "interior",
+  "index": 910027,
+  "shell": 7100127,
+  "note": "An octagonal hall, one huge column in the middle and four about it."
+ },
+ {
+  "name": "B7000010.RDB",
+  "title": "Four Shrines",
+  "kind": "border",
+  "index": 910028,
+  "shell": 7100128,
+  "note": "Cross corridors with a small shrine off each quarter."
+ },
+ {
+  "name": "N7000019.RDB",
+  "title": "Gallery of Statues",
+  "kind": "interior",
+  "index": 910029,
+  "shell": 7100129,
+  "note": "Statues stand in two rows down a long lower hall."
+ },
+ {
+  "name": "N7000020.RDB",
+  "title": "Great Stairwell",
+  "kind": "interior",
+  "index": 910030,
+  "shell": 7100130,
+  "note": "A double flight down 19.2 m: upper ports W and N, lower ports W, E and S."
+ },
+ {
+  "name": "B7000011.RDB",
+  "title": "Lantern Hall",
+  "kind": "border",
+  "index": 910031,
+  "shell": 7100131,
+  "note": "Braziers burn all along a wide lower hall."
+ },
+ {
+  "name": "N7000021.RDB",
+  "title": "Mausoleum",
+  "kind": "interior",
+  "index": 910032,
+  "shell": 7100132,
+  "note": "A north-south aisle lined with niches of coffins."
+ },
+ {
+  "name": "B7000012.RDB",
+  "title": "Octagon Chapel",
+  "kind": "border",
+  "index": 910033,
+  "shell": 7100133,
+  "note": "An eight-sided chapel with an altar and eight columns."
+ },
+ {
+  "name": "N7000022.RDB",
+  "title": "Pier Hall",
+  "kind": "interior",
+  "index": 910034,
+  "shell": 7100134,
+  "note": "Four massive piers of masonry stand in a square hall."
+ },
+ {
+  "name": "N7000023.RDB",
+  "title": "Round Keep",
+  "kind": "interior",
+  "index": 910035,
+  "shell": 7100135,
+  "note": "A ring passage round a drum-shaped keep, entered by one door."
+ },
+ {
+  "name": "B7000013.RDB",
+  "title": "Ruined Crossing",
+  "kind": "border",
+  "index": 910036,
+  "shell": 7100136,
+  "note": "A round hall at the crossing, its roof and columns half down."
+ },
+ {
+  "name": "N7000024.RDB",
+  "title": "Sinkhole",
+  "kind": "interior",
+  "index": 910037,
+  "shell": 7100137,
+  "note": "A vast round cave, stone fangs hanging and rubble heaped below."
+ },
+ {
+  "name": "B7000014.RDB",
+  "title": "Terraced Cavern",
+  "kind": "border",
+  "index": 910038,
+  "shell": 7100138,
+  "note": "Rock in three terraces, each 0.4 m above the last."
+ },
+ {
+  "name": "N7000025.RDB",
+  "title": "Tomb of Kings",
+  "kind": "interior",
+  "index": 910039,
+  "shell": 7100139,
+  "note": "A high hall; on its stepped platform a great sarcophagus guarded by statues."
+ },
+ {
+  "name": "N7000026.RDB",
+  "title": "Torture Chamber",
+  "kind": "interior",
+  "index": 910040,
+  "shell": 7100140,
+  "note": "A central chamber of cages and slabs, small cells off the western passage."
  }
 ]

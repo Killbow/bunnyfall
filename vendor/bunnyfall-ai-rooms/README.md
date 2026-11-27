@@ -1,6 +1,6 @@
 # Bunnyfall AI Rooms
 
-Twenty dungeon rooms (RDB blocks) laid out by an AI, with twenty new 3D pieces, mixed into the random dungeons.
+Forty dungeon rooms (RDB blocks) laid out by an AI, with twenty new 3D pieces, mixed into the random dungeons.
 **Made by `tools/aiRoom`; nothing here is edited by hand.** Run `ARENA2_PATH=<arena2> node tools/aiRoom/build.mjs` to
 rebuild it (add `--check` to only test the rooms, `--preview <dir>` to draw each one top-down).
 

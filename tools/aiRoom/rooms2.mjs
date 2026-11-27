@@ -1,7 +1,7 @@
 // AI-ROOMS, batch 2: border rooms (they ring a dungeon) and the first interiors. Cells are 1.6 m; port A's corridor
 // is columns/rows 9-10 on the floor at 32.0, port B's 21-22 at 12.8. See dsl.mjs and shell.mjs.
 import { RoomSpec, A, B, rng } from './dsl.mjs';
-import { blobs, link } from './lib.mjs';
+import { blobs, link, switchbackCore } from './lib.mjs';
 
 /** Cistern (border, B): a round dry cistern, a well at its heart and a ring of columns. */
 export function cistern() {
@@ -41,16 +41,7 @@ export function boneGallery() {
 /** Switchback Stair (border, both floors): a double flight joins the upper corridors to the lower. */
 export function switchbackStair() {
   const r = new RoomSpec('Switchback Stair', { kind: 'border', theme: 122, seed: 24, note: 'A double flight down 19.2 m: upper ports N and W, lower ports N, S and E.' });
-  const up = r.floor(A), mid = r.floor(22.4), low = r.floor(B);
-  r.rect(7, 1, 15, 2, up).rect(7, 1, 8, 10, up);
-  r.port('N', 'A', 3, up); r.port('W', 'A', 9, up);
-  r.rect(14, 18, 18, 19, mid);
-  r.rect(14, 3, 15, 17, r.ramp('-z'));
-  r.rect(17, 3, 18, 17, r.ramp('+z'));
-  r.rect(17, 1, 22, 2, low).rect(21, 0, 22, 31, low).rect(22, 21, 31, 22, low);
-  r.port('N', 'B', 3, low); r.port('S', 'B', 4, low); r.port('E', 'B', 10, low);
-  r.prop('statue', 8, 1.9); r.prop('lectern', 17.5, 18.7);
-  // the hall on the stair's middle landing, and a lamp at each flight's end
+  switchbackCore(r);
   return r.autoLights(4, { radius: 100 }).populate({ enemies: 6, loot: 3, quest: 2, seed: 24 });
 }
 

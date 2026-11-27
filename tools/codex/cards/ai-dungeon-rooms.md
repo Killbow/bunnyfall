@@ -23,7 +23,7 @@ invariants:
 traps:
   - "Rooms and pieces in `vendor/bunnyfall-ai-rooms` are generated: edit `tools/aiRoom/rooms*.mjs` and `pieces.mjs`, then run `build.mjs` (`--check` tests, `walk.mjs` walks every room with the real motor)."
   - "Port blocks are carved last (`RoomSpec.finish`), so a shape drawn after `port()` cannot overwrite a corridor."
-  - "Block indexes 910001+ and model ids 7100001+ must stay clear of the other port blocks (900000-900500) and the editor's 7000001+."
+  - "Block indexes 910001+, block positions 60,000,000+ (a step of 100,000 a room: action-door load ids) and model ids 7100001+ must stay clear of the other port blocks (900000-900500) and the editor's 7000001+."
 tags:
   - dungeons
   - rdb
@@ -32,6 +32,6 @@ tags:
 
 # AI Dungeon Rooms
 
-Twenty rooms (6 border, 14 interior) and twenty new 3D pieces, laid out in code by `tools/aiRoom` and shipped as `vendor/bunnyfall-ai-rooms` (an editor-mod folder: one `Enabled` switch, a Features row, an online room key). A room is a 32 x 32 grid of 1.6 m cells turned into one shell model (floors, walls, ceilings, door holes) plus props, lights, doors and markers. Textures are Daggerfall's slot numbers (120/122/123/124), so each dungeon's texture table dresses them.
+Forty rooms (14 border, 26 interior) and twenty new 3D pieces, laid out in code by `tools/aiRoom` and shipped as `vendor/bunnyfall-ai-rooms` (an editor-mod folder: one `Enabled` switch, a Features row, an online room key). A room is a 32 x 32 grid of 1.6 m cells turned into one shell model (floors, walls, ceilings, door holes) plus props, lights, doors and markers. Textures are Daggerfall's slot numbers (120/122/123/124), so each dungeon's texture table dresses them.
 
-`aiRooms.js` serves the blocks through `registerPortBlock` and `withAiRooms` applies the law in `aiRoomLaw.js`: 30% of a dungeon's ordinary blocks. Checks, all in `tools/aiRoom`: `build.mjs --check` (ports, reachability, markers), `walk.mjs` (348 legs walked by the game's own controller), `integrate.mjs` (real MAPS dungeons through `layoutDungeon`).
+`aiRooms.js` serves the blocks through `registerPortBlock` and `withAiRooms` applies the law in `aiRoomLaw.js`: 30% of a dungeon's ordinary blocks. Checks, all in `tools/aiRoom`: `build.mjs --check` (ports, reachability, markers), `walk.mjs` (698 legs walked by the game's own controller), `integrate.mjs` (real MAPS dungeons through `layoutDungeon`).

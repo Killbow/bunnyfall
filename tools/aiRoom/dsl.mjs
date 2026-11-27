@@ -43,6 +43,8 @@ export class RoomSpec {
   disc(ci, cj, ri, rj, ch) { for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) if (((i + 0.5 - ci) / ri) ** 2 + ((j + 0.5 - cj) / rj) ** 2 <= 1) this.set(i, j, ch); return this; }
   /** A ring: the cells between two ellipses. */
   annulus(ci, cj, ro, ri, ch) { for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) { const d = Math.hypot(i + 0.5 - ci, j + 0.5 - cj); if (d <= ro && d > ri) this.set(i, j, ch); } return this; }
+  /** An octagon of cells centred on (ci, cj): `rad` cells from the middle to a side, corners cut at 1.5 rad. */
+  octagon(ci, cj, rad, ch) { for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) { const dx = Math.abs(i + 0.5 - ci), dz = Math.abs(j + 0.5 - cj); if (dx <= rad && dz <= rad && dx + dz <= rad * 1.5) this.set(i, j, ch); } return this; }
   /** Rectangle outline, `t` cells thick. */
   frame(i0, j0, i1, j1, t, ch) { this.rect(i0, j0, i1, j0 + t - 1, ch).rect(i0, j1 - t + 1, i1, j1, ch).rect(i0, j0, i0 + t - 1, j1, ch).rect(i1 - t + 1, j0, i1, j1, ch); return this; }
   at(i, j) { return this.legend[this.grid[j]?.[i]] ?? null; }
@@ -119,4 +121,17 @@ export class RoomSpec {
     const bounds = shell.positions; for (let k = 0; k < bounds.length; k++) if (bounds[k] < -0.001 || ((k % 3 !== 1) && bounds[k] > 51.201)) { problems.push('the shell leaves the block'); break; }
     return { shell, block: blk.toJson(), problems, stats: { tris: shell.indices.length / 3, open, reached: seen.size, ports: this.ports.join(' '), ...blk.counts } };
   }
+}
+
+/** A room mirrored across its diagonal (x <-> z), BEFORE it is populated: the grid, the ramps' directions, the ports and
+ *  the props follow (north <-> west, south <-> east). A new room in its own right: give it a name, a kind, a theme. */
+export function transpose(src, name, { kind = src.kind, theme = src.theme, seed = 1, note = src.note } = {}) {
+  const r = new RoomSpec(name, { kind, theme, seed, note });
+  const flip = { '+x': '+z', '-x': '-z', '+z': '+x', '-z': '-x' }, edge = { N: 'W', W: 'N', S: 'E', E: 'S' };
+  r.legend = Object.fromEntries(Object.entries(src.legend).map(([ch, L]) => [ch, L.ramp ? { ...L, ramp: flip[L.ramp] } : { ...L }]));
+  r.next = src.next;
+  r.grid = Array.from({ length: SIDE }, (_, j) => Array.from({ length: SIDE }, (_, i) => src.grid[i][j]));
+  r.portSpecs = src.portSpecs.map((q) => ({ ...q, edge: edge[q.edge] })); r.ports = r.portSpecs.map((q) => q.edge + q.port);
+  r.props = src.props.map((p) => ({ ...p, x: p.z, z: p.x, rot: (90 - p.rot + 360) % 360 }));
+  return r;
 }
