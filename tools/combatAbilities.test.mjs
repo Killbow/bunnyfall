@@ -15,6 +15,7 @@ import { makeAnchor, WORLD_CONTEXT } from '../src/travel/teleportAnchor.js';
 import { ChargenFlow } from '../src/ui/chargen.js';
 import { chargenHit } from '../src/ui/chargenArt.js';
 import { EXTRA_RACE_TEMPLATES, PLAYABLE_RACE_TEMPLATES, RACE_TEMPLATES, artRaceOf, raceArt, raceById } from '../src/characters/races.js';
+import { duelAttackerOf } from '../src/combat/duelCombat.js';
 import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../src/combat/abilities/racialProfiles.js';
 import { noteRacialReadiness, racialGuardDamage, racialPace } from '../src/combat/abilities/racialIdentity.js';
 import { calculateAttackDamage, racialModifiers } from '../src/combat/formulas.js';
@@ -28,6 +29,15 @@ import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, hotbarPre
 
 const longsword = { templateIndex: 120, group: 'Weapons' };
 const makeEntity = () => ({ isPlayer: true, race: 'Nord', skills: [], fatigue: 1000, health: 100 });
+
+test('a duel sheet sends a Bunnyfall people as the classic people it is drawn as', () => {
+  const sheet = (race, raceId) => duelAttackerOf({ ...makeEntity(), race, raceId, level: 5, stats: {}, items: [] }).r;
+  assert.equal(sheet('Orc', 103), 2);
+  assert.equal(sheet('Imperial', 100), 1);
+  assert.equal(sheet('Lilmothit', 101), 7);
+  assert.equal(sheet('Lungaris', 102), 7);
+  assert.equal(sheet('Nord', 3), 3);
+});
 
 test('extra character creation races keep their identity and racial ability when saved', (t) => {
   const previous = globalThis.location;
