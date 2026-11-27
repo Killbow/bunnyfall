@@ -1354,6 +1354,7 @@ export class Renderer {
     this.outsideViewDraws = new Set();
     this.outsideViewSkip = new Set();
     this._rwExterior = null; this._rwTarget = null; this._rwOutside = null; this._rwBg = null; this._rwEmptyVao = null;
+    this._portalPv = null; this._portalPlanes = null;
     this._rwPv = null; this._rwQ = null; this._rwPanes = []; this._rwPaneN = 0; this._rwPaneOn = false; this._rwPaneProg = null; this._rwViewDraws = 0;
     // The last value uploaded to the solid program's uEmissionColor; uniforms are program state, so it persists.
     this._emissionColorUp = null;
@@ -4497,6 +4498,125 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       this._rwOutside = null;
     }
     return drew;
+  }
+
+  /**
+   * @param {WebGLFramebuffer} fbo
+   * @param {number} w
+   * @param {number} h
+   * @param {Float32Array} proj
+   * @param {Float32Array} view
+   * @param {{ useKeptExterior?: boolean, setup?: (r: Renderer) => (ArrayLike<number> | void), draw: (info: { renderer: Renderer, proj: Float32Array, view: Float32Array, pv: Float32Array, planes: Float32Array, eye: number[] }) => void }} scene
+   */
+  portalViewFrame(fbo, w, h, proj, view, scene) {
+    this._close2D();
+    if (!fbo || this._rwOutside || this._panelSaved || !this._rw || typeof scene?.draw !== 'function') return false;
+    if (this._retroOwed || this._air?.pending) { if (this._worldViewportPx) this.endWorldPass(); this._compositeAir(); }
+    const gl = this.gl;
+    const pv = (this._portalPv ??= new Float32Array(16));
+    const planes = (this._portalPlanes ??= new Float32Array(24));
+    const was = this._rwOutside = {
+      lane: this._lane, air: this._air, shadows: this._shadows, frameFbo: this._frameFbo, frameTarget: frameTarget(),
+      ambient: this._ambient, ambientTri: this._ambientTri, sunScale: this._sunScale, sunColor: this._sunColor, clockLit: this._clockLit,
+      moonScale: this._moonScale, moonDir: [...this._moonDir], moonColor: [...this._moonColor],
+      fogMode: this._fogMode, fogDensity: this._fogDensity, fogRange: [this._fogRange[0], this._fogRange[1]], fogColor: this._fogColor,
+      windowEmission: this._windowEmission, pointLights: this._pointLights, pointCarried: this._pointCarried, pointIds: this._pointIds, pointColor: this._pointColor, pointColors: this._pointColors,
+      indirect: [this._indirect[0], this._indirect[1], this._indirect[2], this._indirect[3]], indirectColor: this._indirectColor,
+      clearColor: [this._clearColor[0], this._clearColor[1], this._clearColor[2], this._clearColor[3]],
+      proj: this._proj, view: this._view, lightDir: this._lightDir, camPos: [this._camPos[0], this._camPos[1], this._camPos[2]],
+      worldViewportPx: this._worldViewportPx, rw: { rooms: this._rw.rooms, watch: this._rw.watch, live: this._rw.live },
+    };
+    let drew = false;
+    try {
+      if (this._lane) { this._lane = null; this._installWorldSet(this._classicSet); }
+      this._air = null; this._shadows = null;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      this._frameFbo = fbo; setFrameTarget(fbo);
+      const k = scene.useKeptExterior ? this._rwExterior : null;
+      if (k?.taken) {
+        this.setLighting(new Float32Array(k.ambient), k.sunScale, new Float32Array(k.sunColor), k.tri);
+        this.setMoonlight(k.moonScale ? { scale: k.moonScale, dir: k.moonDir, color: k.moonColor } : null);
+        this.setFog(FOG_MODE_NAMES[k.fogMode] ?? 'off', k.fogDensity, k.fogStart, k.fogEnd, new Float32Array(k.fogColor));
+        this.setJungleHaze(k.haze[4] ? k.haze : null);
+        this.setWindowEmission(new Float32Array(k.emission));
+        this.setPointLights(k.points.slice(0, k.n), new Float32Array(k.pointColor), k.hasColors ? k.colors.slice(0, (k.n / 4) * 3) : null);
+      }
+      this.setIndirectLight([0, 0, 0], 0, new Float32Array(3));
+      const sunDir = scene.setup?.(this);
+      if (scene.useKeptExterior && !k?.taken) {
+        const day = Math.min(1, Math.max(0, this._sunScale / 0.6)), f = 0.1 + 0.9 * day;
+        this.setFog('linear', 0, 0, 2400, new Float32Array([SKY_CLEAR[0] * f, SKY_CLEAR[1] * f, SKY_CLEAR[2] * f]));
+      }
+      this.beginFrame(proj, view, sunDir ?? (k?.taken ? k.lightDir : this._lightDir));
+      this._frameFbo = fbo; setFrameTarget(fbo);
+      gl.viewport(0, 0, w, h);
+      this._worldViewportPx = [0, 0, w, h];
+      this._rw.rooms = !!scene.useKeptExterior;
+      this._rw.watch = false;
+      this._rw.live = false;
+      mat4Multiply(proj, view, pv);
+      spherePlanes(pv, planes);
+      scene.draw({ renderer: this, proj, view, pv, planes, eye: [this._camPos[0], this._camPos[1], this._camPos[2]] });
+      drew = true;
+    } catch (e) {
+      console.warn('[portal view] offscreen pass failed', e?.message ?? e);
+    } finally {
+      gl.colorMask(true, true, true, true); gl.depthMask(true); gl.disable(gl.BLEND); gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE);
+      this.clearScreenScissor();
+      this._worldViewportPx = was.worldViewportPx;
+      this._frameFbo = was.frameFbo; setFrameTarget(was.frameTarget);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, was.frameTarget ?? null);
+      this._air = was.air; this._shadows = was.shadows;
+      if (was.lane) { this._lane = was.lane; this._installWorldSet(this._laneSet); }
+      this.setFog(FOG_MODE_NAMES[was.fogMode] ?? 'off', was.fogDensity, was.fogRange[0], was.fogRange[1], was.fogColor);
+      this.setLighting(was.ambient, was.sunScale, was.sunColor);
+      this.setAmbientTrilight(was.ambientTri);
+      this._clockLit = was.clockLit;
+      this.setMoonlight(was.moonScale ? { scale: was.moonScale, dir: was.moonDir, color: was.moonColor } : null);
+      this._moonDir[0] = was.moonDir[0]; this._moonDir[1] = was.moonDir[1]; this._moonDir[2] = was.moonDir[2];
+      this._moonColor[0] = was.moonColor[0]; this._moonColor[1] = was.moonColor[1]; this._moonColor[2] = was.moonColor[2];
+      this.setWindowEmission(was.windowEmission);
+      this.setPointLights(was.pointLights, was.pointColor, was.pointColors);
+      this._pointCarried = was.pointCarried ?? null;
+      this._pointIds = was.pointIds ?? null;
+      this.setIndirectLight([was.indirect[0], was.indirect[1], was.indirect[2]], was.indirect[3], was.indirectColor);
+      this.setClearColor(was.clearColor);
+      this._proj = was.proj; this._view = was.view; this._lightDir = was.lightDir;
+      this._camPos[0] = was.camPos[0]; this._camPos[1] = was.camPos[1]; this._camPos[2] = was.camPos[2];
+      Object.assign(this._rw, was.rw);
+      gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+      if (this._worldViewportPx) this._restoreWorldViewport();
+      this.markForeignPass();
+      this._rwOutside = null;
+    }
+    return drew;
+  }
+
+  /**
+   * Run a sanctum interior frame on the classic world set so lighting matches portalViewFrame 1:1
+   * while leaving exterior shadow cubemaps and eye-adaptation untouched.
+   * @template T
+   * @param {() => T} fn
+   * @returns {T}
+   */
+  withClassicSanctumFrame(fn) {
+    if (this._retroOwed || this._air?.pending) {
+      if (this._worldViewportPx) this.endWorldPass();
+      this._compositeAir();
+    }
+    const wasLane = this._lane, wasAir = this._air, wasShadows = this._shadows;
+    if (wasLane) { this._lane = null; this._installWorldSet(this._classicSet); }
+    this._air = null; this._shadows = null;
+    try {
+      return fn();
+    } finally {
+      if (this._retroOwed) {
+        if (this._worldViewportPx) this.endWorldPass();
+        this._presentRetroFrame();
+      }
+      this._air = wasAir; this._shadows = wasShadows;
+      if (wasLane) { this._lane = wasLane; this._installWorldSet(this._laneSet); }
+    }
   }
 
   _rwSkips(mesh) { return !!this._rwOutside && !!this.outsideViewSkip?.has(mesh); }

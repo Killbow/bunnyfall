@@ -97,7 +97,9 @@ const WORDS = {
   'staff-item-template': 'That item cannot be made like that (count, material or kind).', 'staff-item-enchant': 'Those enchantments do not fit.',
   'staff-item-unlawful': 'The game would flag that item as impossible.', dead: 'That character is dead.', 'no-clean': 'There is no clean save to roll back to.',
   'service-moved': 'The server moved items since the clean save (a sale or trade), so a rollback would duplicate them.', 'bank-moved': 'Their bank changed meanwhile. Open it again.',
-  'greed-amount': 'Give between 1 and 1,000,000 gold, or 1 and 1,000 Dusk Tokens.', 'greed-no-player': 'No such player.', 'bad-minutes': 'Pick a time.', 'bad-days': 'A ban is 1 to 365 days, or forever.',
+  'greed-amount': 'Give between 1 and 1,000,000 gold, or 1 and 1,000 Dusk Tokens.', 'greed-no-player': 'No such player.',
+  'seals-amount': 'Give or adjust between -100 and 100 Psijic Seals (non-zero).', 'seals-no-player': 'No such player.',
+  'bad-minutes': 'Pick a time.', 'bad-days': 'A ban is 1 to 365 days, or forever.',
   'no-case': 'That case is already closed.', 'case-closed': 'That case is already closed.', 'case-acted': 'Someone is acting on that case right now. Refresh.',
   'staff-claimed': 'Another staff member has taken that case.', 'not-developer': 'Only a developer can close a spawn check.', 'not-moderator': 'Only a moderator can do that.',
   'watch-full': 'Your watch list is full.', 'not-watched': 'Not on your watch list.', 'staff-message-long': 'Keep it under 200 characters.',
@@ -268,7 +270,8 @@ function homePage(/** @type {HTMLElement} */ root) {
       h('button', { class: 'primary', onclick: () => noticeDialog() }, 'Send a notice'),
       h('button', { onclick: () => giveItemDialog(null) }, 'Give an item'),
       h('button', { onclick: () => greedDialog(null, 'gold') }, 'Give gold'),
-      h('button', { onclick: () => greedDialog(null, 'nyx') }, 'Give Dusk Tokens'))),
+      h('button', { onclick: () => greedDialog(null, 'nyx') }, 'Give Dusk Tokens'),
+      h('button', { onclick: () => sealsDialog(null) }, 'Give Psijic Seals'))),
     h('div', { class: 'grid section' },
       h('div', { class: 'card' }, h('div', { class: 'row' }, h('h2', { style: 'margin:0' }, 'Playing now'), h('span', { style: 'flex:1' }), nOnline), h('div', { class: 'section' }, online)),
       h('div', { class: 'card' }, h('div', { class: 'row' }, h('h2', { style: 'margin:0' }, 'Open reports'), h('span', { style: 'flex:1' }), nReports), h('div', { class: 'section' }, reports)),
@@ -353,6 +356,7 @@ function charPage(/** @type {HTMLElement} */ root, /** @type {any} */ c) {
       h('button', { class: 'primary', onclick: () => giveItemDialog(c), disabled: !c.id }, 'Give an item'),
       h('button', { class: 'primary', onclick: () => greedDialog(c, 'gold') }, 'Give gold'),
       h('button', { class: 'primary', onclick: () => greedDialog(c, 'nyx') }, 'Give Dusk Tokens'),
+      h('button', { class: 'primary', onclick: () => sealsDialog(c) }, 'Give Psijic Seals'),
       h('button', { onclick: () => bankDialog(c), disabled: !c.id }, 'Set bank gold'),
       h('button', { onclick: () => rollbackDialog(c), disabled: !c.id }, 'Roll back'))),
     h('div', { class: 'section' }, h('h2', null, 'Moderation'), h('div', { class: 'actions' },
@@ -489,6 +493,23 @@ function greedDialog(/** @type {any} */ c, /** @type {'gold'|'nyx'} */ kind) {
       const j = await call('/v1/staff/greed', { to: x.account.id, [kind]: n });
       if (j.error) return why(j);
       toast(`${n.toLocaleString()} ${kind === 'gold' ? 'gold' : 'Dusk Tokens'} on the way to ${j.to ?? x.account.name}.`);
+    },
+  });
+}
+
+function sealsDialog(/** @type {any} */ c) {
+  const who = charChooser(c);
+  const amount = h('input', { type: 'number', value: '1', placeholder: 'e.g. 1 or -1' });
+  const note = h('input', { type: 'text', placeholder: 'reason (optional)' });
+  dialog('Give Psijic Seals', `${c ? `To ${c.account.name}. ` : ''}Updates the account's Psijic Seals wallet counter immediately.`, [who.el, field('Amount (+/-)', amount), field('Note', note)], {
+    label: 'Apply', run: async () => {
+      const x = who.get();
+      if (!x) return 'Pick who gets it.';
+      const delta = Number(amount.value);
+      if (!Number.isSafeInteger(delta) || delta === 0) return 'Write a non-zero whole number.';
+      const j = await call('/v1/staff/seals/grant', { target: x.account.id, delta, note: note.value.trim() || undefined, click: rid() });
+      if (j.error) return why(j);
+      toast(`${j.to ?? x.account.name} now holds ${Number(j.balance ?? 0).toLocaleString()} Psijic Seals.`);
     },
   });
 }

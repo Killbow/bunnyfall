@@ -3,8 +3,9 @@ import { displayName } from './accounts.js';
 import { REALM_PLAYING_S } from './realm.js';
 import { onlineNow } from './staffPlayers.js';
 import { greedGive } from './staffCommands.js';
+import { grantPsijicSeals } from './psijicSeals.js';
 
-export const PANEL_ROUTES = Object.freeze(['/v1/staff/chars', '/v1/staff/greed']);
+export const PANEL_ROUTES = Object.freeze(['/v1/staff/chars', '/v1/staff/greed', '/v1/staff/seals/grant']);
 export const CHARS_LIST_MAX = 5000;
 
 const num = (/** @type {unknown} */ v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -38,6 +39,16 @@ export async function staffPanelDesk(ctx, env, path, body, who, audit) {
     const r = await greedGive(ctx, who.player, env, { to: body.to, gold: body.gold ?? 0, nyx: body.nyx ?? 0 });
     await audit('greed', null, { to: String(body.to ?? '').slice(0, 64), gold: body.gold ?? 0, nyx: body.nyx ?? 0, ...(r.error ? { error: r.error } : {}) },
       r.error ? { outcome: r.error === 'staff-admin' ? 'denied' : 'failed' } : {}).run();
+    return r;
+  }
+  if (path === '/v1/staff/seals/grant') {
+    const r = await grantPsijicSeals(ctx, who.player, env, body);
+    await audit('seals-grant', 'target' in r ? r.target : null, {
+      to: String(body.target ?? body.to ?? '').slice(0, 64),
+      delta: body.delta ?? 0,
+      note: typeof body.note === 'string' ? body.note.slice(0, 120) : null,
+      ...('error' in r ? { error: r.error } : {}),
+    }, 'error' in r ? { outcome: r.error === 'staff-admin' ? 'denied' : 'failed' } : {}).run();
     return r;
   }
   return { error: 'not-found' };

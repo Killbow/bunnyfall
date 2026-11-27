@@ -236,6 +236,22 @@ function returnKit(entity, sv) {
   for (const it of gearItems(sv.gear)) addItem(entity.items ??= [], it);
   sv.gear = {};
 }
+/** @param {any} entity */
+export function returnAllServantKits(entity) {
+  let n = 0;
+  for (const sv of _s.servants) {
+    for (const it of gearItems(sv.gear)) { addItem(entity.items ??= [], it); n++; }
+    sv.gear = {};
+  }
+  return n;
+}
+/** @param {number} dtDays */
+export function rebaseThrallDays(dtDays) {
+  const d = Math.max(0, Math.trunc(Number(dtDays) || 0));
+  if (!d) return;
+  if (_s.upkeepDay != null && Number.isFinite(_s.upkeepDay)) _s.upkeepDay += d;
+  if (_s.hushDay != null && Number.isFinite(_s.hushDay)) _s.hushDay += d;
+}
 
 export function giftable(entity, id) {
   const sv = servantOf(id);

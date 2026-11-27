@@ -1,5 +1,6 @@
 // The frame's input phases: the mouse look, the online step above the window gate, and the
 // first simulation step with the party ping and the music.
+import { bazaarScoreFrame } from '../../audio/bazaarAudio.js';
 import { closeBrokerDoor } from '../../ui/brokerDoor.js';
 import { COURT_TEXT, courtRing } from '../../world/gateArena.js';
 import { DeathScreen } from '../../ui/deathScreen.js';
@@ -186,7 +187,7 @@ export function createInputFrame(shared) {
     // so it fell silent for the rest of the visit. The whole interior and
     // dungeon music path was dead code in this host.
     const frameMusic = () => {   // PERF-V8 (AUDIT SOUNDSCAPE: the sea's score in the chain put the host's frame past three quarters of the ceiling)
-    if (!hourScoreFrame() && !gateScoreFrame() && !arenaScoreFrame() && !soundscape.scoreFrame()) musicDirector.update({   // WB7: the court holds the music while it stands; ARENA2: and a bout while it is heard; SD13: and a Hollow or its Hour while I stand in it; SOUNDSCAPE: and the sea's songs while I sail
+    if (!hourScoreFrame() && !gateScoreFrame() && !arenaScoreFrame() && !soundscape.scoreFrame() && !bazaarScoreFrame(!!modes?.inBazaarBetwixt?.())) musicDirector.update({
       inside: false,
       inLocationRect: _musicInLocationRect(),
       locationType: _musicLocationType(),

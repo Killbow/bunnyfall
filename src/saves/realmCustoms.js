@@ -256,8 +256,25 @@ const REST_ITEM_IDS = new Set(Object.values(REST_ITEM));
  * @param {any} snap
  */
 export function crossLeveling(snap) {
+  let parkedChanged = false;
+  const pst = snap?.parkedRespec?.state;
+  if (pst && typeof pst === 'object') {
+    const pSys = newCharacterLevelingSystem(pst.levelingSystem, { online: true });
+    if ((pst.levelingSystem ?? LEVELING_CLASSIC) !== pSys) {
+      pst.levelingSystem = pSys;
+      pst.levelProgress = 0;
+      pst.levelRollUp = 0;
+      const pLvl = Number.isFinite(pst.level) ? pst.level : 1;
+      releaseCapLatch(pst);
+      const pTarget = pst.readyToLevelUp === true ? pLvl + 1 : pLvl;
+      if (Number.isFinite(pst.currentLevelUpSkillSum)) {
+        pst.startingLevelUpSkillSum = levelUpSkillSumAnchor(pst.currentLevelUpSkillSum, pTarget);
+      }
+      parkedChanged = true;
+    }
+  }
   const system = newCharacterLevelingSystem(snap.levelingSystem, { online: true });
-  if ((snap.levelingSystem ?? LEVELING_CLASSIC) === system) return false;
+  if ((snap.levelingSystem ?? LEVELING_CLASSIC) === system) return parkedChanged;
   snap.levelingSystem = system;
   snap.levelProgress = 0;
   snap.levelRollUp = 0;

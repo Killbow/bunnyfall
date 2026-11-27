@@ -31,6 +31,8 @@ export const CONTENT = Object.freeze({
   chatFilter: false,
   // On: in a town with two taverns or more, one picked by map id opens the shared hall (systems/magicTavern.js).
   magicTaverns: true,
+  // Off: Envoy Valenis opens no portal and the Bazaar Betwixt cannot be entered (systems/bazaarBetwixt.js).
+  bazaarBetwixt: true,
   // Off: no daily elite dungeons are picked and the game shows none (systems/eliteDungeons/edBook.js).
   eliteDungeons: true,
   // Off: no Company farm holds a market day (net/farm/marketLaw.js marketToday).

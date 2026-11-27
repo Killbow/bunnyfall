@@ -159,6 +159,15 @@ import { createTavernFavorShop } from './tavernFavorShop.js';
 import { createSocietyDesk } from '../guilds/societyDesk.js';
 import { bunnyGainRep } from '../guilds/bunnyServices.js';   // BUNNYFALL (2026-11-26, caverns): the Cartographers' ore contracts and Survey Seals
 import { magicHallEntry, magicRoomIdentity, magicHallGreeting } from './magicTavernRoom.js';   // MAGIC-TAVERN: a blue tavern's door opens the shared hall
+import {
+  applyBazaarLighting,
+  bazaarGreeting,
+  bazaarLightDir,
+  bazaarRoomIdentity,
+  createBazaarIndoorRuntime,
+  openBazaarMystic,
+  setupBazaarInteriorCtx,
+} from './bazaarBetwixtRoom.js';
 import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from '../characters/exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
@@ -4482,6 +4491,7 @@ export function createWorldModes(host) {
       openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), services);
       return;
     }
+    if (!info && pn?.bazaarMystic) { openBazaarMystic(townTalk, { entity: playerEntity, fetchBytes, magic, spellsByIndex: () => (typeof spellsByIndex === 'function' ? spellsByIndex() : spellsByIndex), saveSoon: () => host.saveSoon?.(), nowMinutes: () => interiorTicker.ownMinutes, onCurseLifted: (w) => host.onCurseLifted?.(w) }); return; }
     if (!info && pn?.lamp) { lampChoice(pn); return; }   // LAMP-KEEPER II: the lamp's own words, its shop, and its title
     if (!info && pn?.witch && host.witches?.shop()) return;   // WITCH1: a Wyrd Sister's window (scenes/witchesHost.js) - a host with none lets her talk
     if (!info && pn?.arenaRole === 'pitMaster') { pitMasterChoice(); return; }
@@ -8674,6 +8684,7 @@ export function createWorldModes(host) {
     return enterSailingCabin(cabin, pos);
   }
   const roomPrebuild = createRoomPrebuild({ free: abandonContext });
+  const bazaarIndoor = createBazaarIndoorRuntime({ free: abandonContext });
   /**
    * @param {any} hit @param {any} entries @param {any} restore @param {() => boolean} live
    * @param {((plan: string, build: () => Promise<any>) => any) | null} [pre]
@@ -8810,8 +8821,10 @@ export function createWorldModes(host) {
       // (the same door and building record: the exit, a save and a tavern shift all keep naming the tavern walked into); the way back
       // out is the original's siblings (`exitHit`).
       const exitHit = hit;
-      const magicRoom = !restore?.privateRoom && !hit.sailingCabin ? magicHallEntry({ hit, building, blocks, mapId: hit.dfLocation?.mapTableData?.mapId ?? questSceneCtx?.()?.mapId ?? 0 }) : null;
+      const _entryMapId = hit.dfLocation?.mapTableData?.mapId ?? questSceneCtx?.()?.mapId ?? 0;
+      const magicRoom = !restore?.privateRoom && !hit.sailingCabin ? magicHallEntry({ hit, building, blocks, mapId: _entryMapId }) : null;
       if (magicRoom) { await townTalk?.ensureFactions?.(); hit = magicRoom.hit; }
+      const bazaarRoom = !!hit.bazaarPortal;
       const magicKeeper = (fid) => { const r = staticNpcRouteIn({ npcFactionId: fid, dict: townTalk?.factionDict ?? null, building }); return r.kind === 'merchant' && r.service === 'tavern'; };
       // P8: parent the interior at the entered building's world matrix
       // (verbatim ownerPosition + buildingMatrix) - context coordinates
@@ -8827,7 +8840,7 @@ export function createWorldModes(host) {
         // building reached through ?interior=NAME:REC omitted it.
         hit.dfBlock, hit.dfBlock.index, hit.recordIndex, hit.climateBase, hit.season,
         hit.door.matrix, {
-          voxelfolk, piece, paint, setupStaticNpc, houseOwned, peopleVisible, baseEditable, restyle: hit.restyle ?? null,   // CABIN-LOOK: a cabin stained (scenes/cabinLook.js)
+          voxelfolk, piece, paint, setupStaticNpc, houseOwned, peopleVisible: bazaarRoom ? true : peopleVisible, baseEditable, restyle: hit.restyle ?? null,
           // TAVERN-TABLE (world/card/cardTableProp.js; the owner: "Lets instead place a specific table in each inn"): every
           // tavern stands the card table's own prop - its one card table
           placeCardTable: isTavern(building?.buildingType ?? BUILDING_TYPES.None),
@@ -8835,6 +8848,7 @@ export function createWorldModes(host) {
           // LAMP-KEEPER II (systems/lampKeeper.js): a shop's keeper standing as the lamp today - the town, the building, the
           // person and the day, one answer for every client in the room
           magicTavern: magicRoom ? { folk: magicRoom.folk, isKeeper: magicKeeper } : null,   // MAGIC-TAVERN: the shared hall's people
+          bazaarBetwixt: !!bazaarRoom,
           bunnyHall: bunnyGuildOfFaction(building?.factionId)?.key ?? null,   // BUNNY-GUILDS: a converted house that is a guild's hall stands its clerk
           guildClerkArt: (pn) => {
             const route = staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict ?? null, building });
@@ -8868,9 +8882,10 @@ export function createWorldModes(host) {
         }).catch((e) => { buildingHold.release(); if (live()) say(NOTHING_OF_VALUE_TEXT); throw e; }); };   // PLACE-LRU: a build that throws hands no context back to release it; FIELD BUGS 2026-10-04d VOID-ENTRY: TransitionInterior's catch (PlayerEnterExit.cs:719-730) - a room that will not lay out says DFU's old chestnut; the player stays in the street (the hosts log the throw)
       const roomPlan = [_hour, cardDay(), peopleVisible, houseOwned, baseEditable, !!home, host.onlineHomes?.version?.() ?? 0, building?.buildingKey ?? null].join();
       if (pre) return pre(roomPlan, buildRoom);
-      const ctx = (await roomPrebuild.take(hit, roomPlan)) ?? await buildRoom();
+      const ready = bazaarRoom ? bazaarIndoor.takeReadyCtx([hit.door.matrix[12], hit.door.matrix[13], hit.door.matrix[14]]) : null;
+      const ctx = ready ?? (bazaarRoom ? await bazaarIndoor.takeWarmCtx() : null) ?? (await roomPrebuild.take(hit, roomPlan)) ?? await buildRoom();
       if (!live()) { abandonContext(ctx); return false; }   // AUDIT 68 X3-transition-build-race: the world moved under the build (a load, a teleport) - nothing is published
-      const siblings = entries.filter((e) =>
+      const siblings = bazaarRoom ? [exitHit] : entries.filter((e) =>
         e.dfBlock === exitHit.dfBlock && e.recordIndex === exitHit.recordIndex);   // MAGIC-TAVERN: the door walked in by, whichever hall is behind it
       const landing = interiorLanding(   // FIELD BUGS 2026-10-04d VOID-ENTRY: only a spot with a floor under it (enterExit.js) - the town mods' rooms keep the building's own exterior model, whose door faces OUT, and nearest the enter marker DFU's landing stood over nothing; a room with nowhere to stand is refused, its line DFU's for a room it cannot lay out
         doorWorldPosition(hit.door), ctx.enterMarkers, ctx.doors, (p) => standsOnFloor(ctx.collider, p)) ?? void say(NOTHING_OF_VALUE_TEXT);
@@ -8892,6 +8907,11 @@ export function createWorldModes(host) {
       exteriorDoor = hit.door;   // IS1: SetExteriorDoors - the save's way back in
       interiorCtx = ctx;
       if (magicRoom) { ctx.magicTavern = true; if (!restore && !pre) say(magicHallGreeting()); }   // MAGIC-TAVERN: this visit's room is the shared hall (its relay room, its pose frame, its windows)
+      if (bazaarRoom) {
+        const bzReady = setupBazaarInteriorCtx(ctx, [hit.door.matrix[12], hit.door.matrix[13], hit.door.matrix[14]], renderer, getTexture);
+        if (bzReady) await bzReady;
+        if (!restore && !pre) say(bazaarGreeting());
+      }
       interiorHallBanners = bunnyHallInterior(ctx.people, building ? bunnyGuildOfFaction(building.factionId)?.key : null, (o, d, m) => ctx.collider?.raycast?.(o, d, m) ?? Infinity);
       // AUDIT 68 S23-failed-entry-stale-building: the identity and the
       // three PlayerActivate.cs:1120-1122 latches, committed with the
@@ -8932,7 +8952,7 @@ export function createWorldModes(host) {
         // HOME1: an ONLINE home keeps its room - its owner and whoever they let in stand in it together, and its
         // cupboards are never the room's (the owner's are their storage, a visitor's are shut - the container arm).
         const owned = !!privateVisitRoom || b?.buildingType === BUILDING_TYPES.Ship || (!interiorHome && houseOwnedAt(b, b?.buildingKey));
-        const _mr = ctx.magicTavern ? magicRoomIdentity(null) : null;   // MAGIC-TAVERN: the shared hall's memory is the shared hall's relay room's
+        const _mr = ctx.magicTavern ? magicRoomIdentity(null) : ctx.bazaarBetwixt ? bazaarRoomIdentity(null) : null;
         _intShared = mintInteriorShared(_mr ? interiorLocationKey(_mr.sharedMapId, _mr.buildingKey, null) : interiorLocationKey(questSceneCtx?.()?.mapId ?? 0, b?.buildingKey ?? 0, visitLayoutNow()), { owned, home: !!interiorHome, net: { selfId: () => host.selfId?.() ?? null, seat: () => host.roomHost?.() ?? null, now: () => performance.now(), wallNow: () => (sharedClockOn() ? wallMsForClassicMinutes(worldMinutes()) : null), send: (d) => host.onActions?.(d), say: (t) => setMidScreenText(t), claimed: () => host.onLootClaimed?.(), entity: () => playerEntity, carried: () => carriedPieces(playerEntity) } });   // WD3 (AUDIT WD3 B3): the room of the building in its layout   // AUDIT WORLD6a A1: the bag from the one mint, its key spelled as the pure half reads it   // OUTDOOR-LOOT: and the host's wiring - the act path, the SHARED clock (R-3), the seat, the player's hands - for the cupboards' room law
         interiorLootAside(ctx, _intShared);   // OUTDOOR-LOOT: a list a stranger's cupboard was built with is no one's word (again after the cache restore below)
         const key = _intShared.locationKey;
@@ -8967,11 +8987,11 @@ export function createWorldModes(host) {
       // removed it (:715-722) - is simply rebuilt with fresh loot,
       // which is what SerializableStateManager.RestoreLootContainerData
       // (:427-459) does by having no entry to apply.
-      if (!privateVisitRoom && !interiorCabin && !cromwarkLooted(interiorBuilding)) seedTreasureMarkers(hit.dfLocation?.mapTableData?.locationType ?? -1);
+      if (!bazaarRoom && !privateVisitRoom && !interiorCabin && !cromwarkLooted(interiorBuilding)) seedTreasureMarkers(hit.dfLocation?.mapTableData?.locationType ?? -1);
       // Q4-v: the quest layer mounts with the interior (RMBLayout's
       // AddQuestResourceObjects moment - the walk runs once the site's
       // buildingKey is known).
-      if (!interiorCabin) mountQuestResources();
+      if (!bazaarRoom && !interiorCabin) mountQuestResources();
       loadHomeDecor();   // DECOR1c: an online home's pieces, from the account service - after the restore, which kept the save's
       // Music is NOT started here any more. AUDIT 19's 1:1 pass moved it
       // to the SongManager: the host feeds a context every frame and the
@@ -8988,7 +9008,7 @@ export function createWorldModes(host) {
       // a click.
       const spot = restore?.pos ?? floored;
       player.spawn(spot[0], spot[1], spot[2]);
-      interiorNav.mount(ctx, spot);   // INDOOR-WATCH: the room's mesh, anchored on the arrival, the ways in and the doors' watch spots
+      if (!bazaarRoom) interiorNav.mount(ctx, spot);
       _hccLanded = true; host.horseCart?.()?.handleSuccessfulInteriorTransition({ type: 'ToBuildingInterior', buildingKey: interiorBuilding?.buildingKey ?? 0 });   // HCC: OnTransitionInterior [IL_99ac] - the wagon parks, the horse waits, the access id is this building's
       setMode('interior');
       host.unlockOn?.();   // AUDIT 62 F16/F28: the lock never outlives a mode change (its pin wants this on the next line)
@@ -9396,7 +9416,9 @@ export function createWorldModes(host) {
     host.onInteriorLeave?.();   // WORLD6a: the room's memory goes out while the building still stands
     teardownQuestFlats();   // Q4-v: OnDestroy for the quest stands, before the batch teardown
     peopleBodies.destroy();   // MWNPC8a: the room's people's bodies with it
-    interiorCtx.destroy();
+    const _wasBazaar = !!interiorCtx?.bazaarBetwixt;
+    if (_wasBazaar) bazaarIndoor.parkCtx(interiorCtx);
+    else interiorCtx.destroy();
     dropViewOut();   // RW1 (AUDIT)
     _intShared = null;
     interiorFoes?.destroy?.();   // IF: OnTransitionExterior tears the interior's enemies down with it
@@ -9404,7 +9426,7 @@ export function createWorldModes(host) {
     interiorFoes = null;
     interiorGuards?.clearLive?.();   // ROAD-B: the watch are enemies too - same transition, same teardown
     interiorGuards = null;
-    interiorNav.release();   // INDOOR-WATCH: the room's mesh and its worker, with the room
+    if (!_wasBazaar) interiorNav.release();
     interiorDropped.restorePiles(null);   // ID1: the piles are cached above; free their batches with the scene
     interiorHitEffects.clear();   // HE1: a splash mid-animation must not follow the player into the next building
     interiorBloodMarks.clear();   // BLOOD1a (HARD1): ...and neither do the marks. Named HERE rather than left to ride the line above: the ring is its own binding, so its end is its own line, which is what makes the ownership auditable at every teardown path.
@@ -10604,7 +10626,7 @@ export function createWorldModes(host) {
   // the host's exterior path (streaming, sky, weather) must not run.
   const _dwSwimMove = createSwimMovement({ settings: deepWatersSwimSettings, collider: () => player.collider });   // DW-D
   function frame(dt, now) {
-    if (mode === 'exterior') return false;
+    if (mode === 'exterior' || (mode === 'interior' && bazaarIndoor.takeExit(exitInteriorNow, player, cam, renderer))) return false;
     // E2: modal frames advance the shot-mode frame counter too - the
     // hosts' early return froze __frame inside interiors/dungeons and
     // every probe frame-sync starved (the process doctrine).
@@ -10836,6 +10858,7 @@ export function createWorldModes(host) {
           yaw: cam.yaw, pitch: cam.pitch, lookDir: fwd, cameraY: cam.pos[1], oceanY: null, seafloorY: () => null,
         });
       } else _dwSwimMove.reset(player);
+      if (mode === 'interior') bazaarIndoor.motor(player, cam, interiorCtx);
       // FS-slice: PlayerFootsteps - buildings walk on wood, dungeons on
       // stone with the water arms (shallow = the LIVE capsule centre
       // 0.57 under the block water line - AUDIT 64 F4).
@@ -10856,7 +10879,7 @@ export function createWorldModes(host) {
           standingStill: player.standing,
           halfSpeed: player.movingLessThanHalfSpeed,
         }, pickFootstepSet(_fsCtx = mode === 'interior'
-          ? { inside: true, inBuilding: true }
+          ? { inside: true, inBuilding: !interiorCtx?.bazaarBetwixt }
           : { inside: true, inBuilding: false,
               dungeonSwimming: player.swimming,
               // F090: the LATCHED flag - shallow is entered at 0.57 and
@@ -10974,7 +10997,7 @@ export function createWorldModes(host) {
         parkoured: player.parkoured,   // CLIMB1
         odometer: player.odometer,   // MOVE-REAL: the ground the body covered - the movement skills past 100 count it
       });
-      interiorNav.frame(foeDt, player.pos, interiorGuards?.guards, !!player.grounded);   // INDOOR-WATCH: before both pools step - the routes' budget, the bake, NO ROUTE
+      if (!interiorCtx.bazaarBetwixt) interiorNav.frame(foeDt, player.pos, interiorGuards?.guards, !!player.grounded);
       // IF: the pool's frame. Armed for MobileTeams targeting like
       // every other pool (MT) - the candidate list is this host's
       // whole active-enemy database, which is the pool itself.
@@ -11319,6 +11342,15 @@ export function createWorldModes(host) {
     // dispatch that is itself running off interiorCtx would pull the
     // rug out from under its own caller.
     if (pendingInteriorExit) { pendingInteriorExit = false; exitInteriorNow(); return true; } else if (standFromVoid(interiorCtx.voidRescue, player)) { cam.pos = [...player.eye]; say(INTERIOR_VOID_TEXT); }   // FIELD BUGS 2026-10-04d VOID-ENTRY: THE FAILSAFE (enterExit.js standFromVoid) - a body below everything the building stands on fell for good, in the black ("Complete darkness and possibly stuck"); it stands again where the door landed it, and is told
+    if (interiorCtx.bazaarBetwixt) {
+      bazaarIndoor.preFrame({
+        renderer, ctx: interiorCtx, proj, view, eye: mwv.eye, cam, host,
+        fovY: fieldOfView() + (host.climbFeel?.fovRad() ?? 0),
+        aspect: largeHudWorldAspect(canvas.clientWidth, canvas.clientHeight),
+        nowMs: now,
+      });
+    }
+    const _drawInteriorBody = () => {
     // AUDIT 23 (C12: cross-6 = wts-3) - PlayerAmbientLight.cs:75-80: a
     // night interior takes the darker purple-tinted ambient.
     renderer.setLighting(new Float32Array(roomAmbient(isNight(skyMinutes() % 1440) ? INTERIOR_NIGHT_AMBIENT : INTERIOR_AMBIENT, interiorCtx.roomLamps)), 0);   // TIME1: the sky's night; RPT1026-WORLD DARK-ROOM: a room with no lamp of its own lit as DFU's Lit Interiors lights it (interiorLights.js roomAmbient) - AUDIT RPT1026 J1: by the lamps it was built with
@@ -11331,7 +11363,7 @@ export function createWorldModes(host) {
     // (host.outsideView: its lights, its pixels; PANE-CLIP keeps the room's side of the glass out) into a target of its own, before this frame's
     // lamps and its beginFrame; a bracket, so the room's light just set is put back as it was; cropped to the glass the
     // last frame met, kept while the camera is still
-    const _rwView = viewOutFrame(viewOut, { renderer, mode: interiorCtx?.magicTavern ? 'off' : realWindowsMode(), proj, view, now: performance.now(), scene: host.outsideView?.() ?? null });
+    const _rwView = viewOutFrame(viewOut, { renderer, mode: interiorCtx?.magicTavern || interiorCtx?.bazaarBetwixt ? 'off' : realWindowsMode(), proj, view, now: performance.now(), scene: host.outsideView?.() ?? null });
     // AUDIT 26 F001: DaggerfallInterior lays out EVERY interior mesh
     // with WindowStyle.Disabled - individual models (:473), the
     // combined static batch (:517) and action doors (:1270) - and
@@ -11348,17 +11380,17 @@ export function createWorldModes(host) {
     // keep the white the shared channel always gave them.
     // IIL1: Improved Interior Lighting, attached and Enhanced Lighting off - every room light warm, range 10 and
     // flickering, a light on each fireplace, the torch in the mod's colour (ImproveInteriorLighting/Fireplaces/Torch)
-    iilSyncLane(renderer, true);   // IIL2: the mod's own shadows, on its classic-look lane, when the row asks
-    const _iilOnIt = iilActive(renderer.lightingLane);
+    if (!interiorCtx.bazaarBetwixt) iilSyncLane(renderer, true);
+    const _iilOnIt = !interiorCtx.bazaarBetwixt && iilActive(renderer.lightingLane);
     const _iilIt = _iilOnIt ? iilInteriorLights(interiorCtx.lights, interiorCtx.iilFireplaces ?? []) : null;
     const _itLit = withPlayerLights(
       _iilIt
         ? nearestLights(_iilIt.lights, cam.pos, renderer.maxPointLights, _iilIt.ranges, _iilIt.colorOf)
         : nearestLights(interiorCtx.lights, cam.pos, renderer.maxPointLights, interiorCtx.lights.map((l) => l.range),   // EL1: the installed set's cap
-          (l) => interiorLightColor(!!renderer.lightingLane, l.color, l.intensity)),   // INTERIOR-DIM: on the lane the room's lamps burn lower, the white ones in the flame
+          (l) => interiorCtx.bazaarBetwixt ? [l.color[0] * l.intensity, l.color[1] * l.intensity, l.color[2] * l.intensity] : interiorLightColor(!!renderer.lightingLane, l.color, l.intensity)),
       magic?.candleLight(), (_iilOnIt ? iilTorch : (l) => l)(playerTorchLight(playerEntity, player.feetAt(), cam.yaw)), ...(host.modeLights?.() ?? []), ...(host.peerLights?.() ?? []), ...interiorTorches.lights());   // PEERLIGHT1: the others' torches   // X11 candle; T1 torch; HT1 the dropped lights; FIELD-GUN13 the muzzle flash; DISC13-A the hand lights ride the render feet (feetAt), as the camera does
     renderer.setPointLights(_itLit.data, null, _itLit.colors);
-    renderer.everyLightCasts();   // DISC15: the building is drawn whole below (no view cull) - every lamp keeps a shadow map, none lights through the ceiling as the nearest eight change
+    if (!interiorCtx.bazaarBetwixt) renderer.everyLightCasts();
     // AUDIT 39 (#33): the gate the dungeon arm above already carries.
     // A paused game advances no movers - DFU's door swing is an iTween
     // that never opts out of timeScale - so a swing begun before the
@@ -11372,8 +11404,9 @@ export function createWorldModes(host) {
     if (!overlayHeld) interiorCtx.automapTick?.(dt, cam.pos, fwd);
     renderer.setSceneGrade?.(interiorGrade(!!renderer.lightingLane));   // INTERIOR-DIM: the room's grade - the eye aimed darker and held at 1.2; set after the view out, which shows any world image still owed (a resolve takes the grade); above the clear and the rect, which E5 keeps on its beginFrame
     renderer.setClearColor(INTERIOR_CLEAR);   // REVIEW 2026-09-05 (PR #55 review): the world-hosted dungeon/interior frame is THIS one - the host's own setClearColor sits after its `modes.frame` return
+    if (interiorCtx.bazaarBetwixt) applyBazaarLighting(renderer);
     renderer.setWorldViewport(worldViewportRect(canvas.clientWidth, canvas.clientHeight));   // E5: ViewportChanger.Update, every frame
-    renderer.beginFrame(proj, view, INTERIOR_LIGHT_DIR, WORLD_FRAME);   // AUDIT-EL F5: a WORLD frame - the lane replays its records for this one
+    renderer.beginFrame(proj, view, interiorCtx.bazaarBetwixt ? bazaarLightDir() : INTERIOR_LIGHT_DIR, WORLD_FRAME);
     renderer.setGlassView(_rwView);   // RW1: the street (or the sky) behind the glass, its texels cut to it - and this frame's glass measured for the next
     renderer.beginCharacterSpriteBatch?.();
     try {
@@ -11387,6 +11420,7 @@ export function createWorldModes(host) {
     // WM4b: the mill's machinery turns at Kamer's rate, in here too.
     turnInteriorRotors(renderer, interiorCtx, overlayHeld, dt);
     drawInteriorMovers(renderer, interiorCtx);
+    if (interiorCtx.bazaarBetwixt) bazaarIndoor.drawOpaque(renderer, interiorCtx, proj, view, now);
     // C13: interior arrows fly and draw with the meshes; a new
     // interior (different ctx) drops the stale flights.
     // FIELD-GUN14: through the flight's own door, not by emptying the
@@ -11578,6 +11612,7 @@ export function createWorldModes(host) {
       if (magic.batches().length) renderer.drawBillboards(magic.batches(), camRight, UP_Y);
       magic.drawFx?.();   // IMPACTFX: the spells' landings in light, over their flashes
     }
+    if (interiorCtx.bazaarBetwixt) bazaarIndoor.drawTranslucent({ renderer, ctx: interiorCtx, proj, view, eye: mwv.eye, playerFeet: player.feetAt(), nowMs: now });
     // LM1: the transformed move-sound loop, in this host's INTERIOR
     // arm (dungeon mode runs dungeonContext's frame, which carries its
     // own). Outside the `if (magic)` above on purpose - the beast
@@ -11842,6 +11877,10 @@ export function createWorldModes(host) {
       else { interiorOverlay.dispose?.(); interiorOverlay = null; }   // AUDIT ENH-NOTICE3 A3: the font-less arm DROPPED the occupant - an enhanced DOM window needs no classic font to mount, and the tavern's held panel, its full-screen host and its capture listener outlived the drop (townTalk's twin disposes, :1126)
     }
     return true;
+    };
+    return interiorCtx.bazaarBetwixt && renderer.withClassicSanctumFrame
+      ? renderer.withClassicSanctumFrame(_drawInteriorBody)
+      : _drawInteriorBody();
   }
 
   // Shot-mode hooks for everything modal (parity with the pre-P7 world
@@ -13419,7 +13458,7 @@ export function createWorldModes(host) {
     // location, the interior's building; null in the exterior
     // ARENA4: the floor's instance standing a relay's bout is that bout's room (`arena:b<id>`)
     roomIdentity: () => (mode === 'dungeon' ? (isGateArena(dungeonLoc) ? { kind: 'gate', day: dungeonLoc.gate } : isSdRealm(dungeonLoc) ? { kind: 'sd', s: dungeonLoc.sdRealm } : isEgHall(dungeonLoc) ? { kind: 'eg', b: dungeonLoc.egBreach } : isArenaFloor(dungeonLoc) && dungeonLoc.arenaBout ? { kind: 'arena', o: dungeonLoc.arenaBout } : isKetchShip(dungeonLoc) ? { kind: 'kt', key: dungeonLoc.ketch.key } : { kind: 'dungeon', mapId: dungeonLoc?.mapTableData?.mapId ?? null, regionIndex: dungeonLoc?.regionIndex ?? -1, name: dungeonLoc?.name ?? '', size: builtDungeonSize(dungeonLoc) })   // WB3b: the court's room is its gate's own; SD-ONLINE: a dungeon's room is its layout's (the size it was BUILT at); ONLINE-PUBLIC: no instance room
-      : mode === 'interior' ? { kind: 'interior', buildingKey: interiorBuilding?.buildingKey ?? 0, layout: _visitLayout, ...(interiorCabin ? { boatUid: interiorCabin.uid } : {}), ...(interiorCtx?.magicTavern ? magicRoomIdentity(buildingOrigin()) : {}), ...(_intShared?.owned ? { private: true, privateRoom: privateVisitRoom } : {}) } : null),   // personal interiors share presence in an owner-specific room, never world memory/loot
+      : mode === 'interior' ? { kind: 'interior', buildingKey: interiorBuilding?.buildingKey ?? 0, layout: _visitLayout, ...(interiorCabin ? { boatUid: interiorCabin.uid } : {}), ...(interiorCtx?.magicTavern ? magicRoomIdentity(buildingOrigin()) : {}), ...(interiorCtx?.bazaarBetwixt ? bazaarRoomIdentity(buildingOrigin()) : {}), ...(_intShared?.owned ? { private: true, privateRoom: privateVisitRoom } : {}) } : null),
     get dungeonLocation() { return dungeonLoc; },   // B2: playerInside's dungeon arm
     /** X7: the Identify SPELL's window (Identify.cs:71-76 pushes the
      *  trade window itself). The spell can be cast anywhere, but the
@@ -13932,7 +13971,7 @@ export function createWorldModes(host) {
         // real thing to drop. The clear() below carries the dispose.
         teardownQuestFlats();
         peopleBodies.destroy();   // MWNPC8a
-        interiorCtx.destroy();
+        if (interiorCtx.bazaarBetwixt) bazaarIndoor.forceLeave(interiorCtx); else interiorCtx.destroy();
         dropViewOut();   // RW1 (AUDIT): the forced way out too
         interiorFoes?.destroy?.();
         magic?.clearFlyingMissiles?.();
@@ -14508,6 +14547,7 @@ export function createWorldModes(host) {
       // WAGONS1: a save made in the caravan comes back into it while the player still drives one; else outside -
       // WAGONS2 (AUDIT): and while it stands where the room was (`caravanAt`, a load's own parked place; a Recall's the live one)
       if (saved?.caravanRoom && saved.privateRoom) return false;   // WAGONS2-VISIT: a save made visiting another's caravan comes back outside it - their room is theirs to stand
+      if (bazaarIndoor.matchesSave(saved)) return bazaarIndoor.restoreSaved(saved, pos, { mode, renderer, enterInteriorCore, player, cam, floorLanding });
       if (saved?.caravanRoom) {
         if (mode !== 'exterior' || !host.caravanRoom?.canRestore(saved.caravanRoom, saved.caravanAt)) return false;
         try { await enterCaravanRoom(readCaravanRoom(saved.caravanRoom), pos); } catch (e) { console.error('[worldModes] restoreInterior (caravan) failed:', e); return false; }
@@ -14569,6 +14609,10 @@ export function createWorldModes(host) {
     workshopReforgeDeps,
     enterSailingCabin,
     enterCaravanRoom,   // WAGONS1
+    prebuildBazaarPortal: (origin) => bazaarIndoor.prebuild(origin, renderer, interiorTransition, getTexture),
+    releaseBazaarPortal: () => bazaarIndoor.releaseWarm(),
+    enterBazaarPortal: (p) => bazaarIndoor.enter(p, { mode, renderer, enterInteriorCore, player, cam, floorLanding }),
+    inBazaarBetwixt: () => mode === 'interior' && !!interiorCtx?.bazaarBetwixt,
     tryEnter,
     exteriorActivationDistance,   // AUDIT 63 F33 (review): the rival distance the living-foe arm must beat
     exteriorActivationHit,   // FB1012d ALLY-YIELDS: ...and its pick, reach and all, for the race's `next`

@@ -34,6 +34,7 @@ export const STAFF_TABS = {
       { t: 'Banned list', p: '/v1/staff/banned', f: [['name', 't', 'name (optional)']] },
       { t: 'Sign them out everywhere', p: '/v1/staff/player/signout', f: [['who']], danger: 'Sign this player out of every device?' },
       { t: 'Rename', p: '/v1/staff/player/rename', f: [['who'], ['name', 't', 'new name']], danger: 'Rename this account?' },
+      { t: 'Grant Psijic Seals', p: '/v1/staff/seals/grant', f: [['who'], ['delta', 'n', 'seals (+/-)'], ['note', 't', 'reason (optional)']], click: true },
     ] },
     { h: 'Notes, watch list, messages', acts: [
       { t: 'Notes', p: '/v1/staff/notes', f: [['who']] },
