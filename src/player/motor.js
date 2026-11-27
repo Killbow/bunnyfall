@@ -889,7 +889,7 @@ export class PlayerMotor {
       const wd = probe.wallDir ?? [Math.sin(yaw), 0, Math.cos(yaw)];
       const ci = climb.deps?.inputs?.() ?? {};
       const r = this.collider.move(this.pos,
-        wd[0] * this.speed * dt, climbingSpeed(this.speed, !!ci.enhanced, ci.climbing ?? 0) * dt, wd[2] * this.speed * dt,
+        wd[0] * this.speed * dt, climbingSpeed(this.speed, !!ci.enhanced, ci.climbing ?? 0) * (this.stats.racialPace?.('climb', this) ?? 1) * dt, wd[2] * this.speed * dt,
         this.height, false);
       this.grounded = r.grounded;
     } else {
@@ -938,10 +938,10 @@ export class PlayerMotor {
     const pk = this.parkour;
     this._pkOn = false;
     this._pkLookNow = [Math.sin(yaw), 0, Math.cos(yaw)];
-    if (!pk) return false;
     const was = this._pkLastPos;
     this._pkPace = was && dt > 0 ? Math.hypot(this.pos[0] - was[0], this.pos[2] - was[2]) / dt : 0;
     this._pkLastPos = [this.pos[0], this.pos[1], this.pos[2]];
+    if (!pk) return false;
     const pressed = !!input.jump && !this._pkJumpWas;
     this._pkJumpWas = !!input.jump;
     if (pressed) this._pkArm = { t: 0, air: !this.grounded };
@@ -1483,7 +1483,7 @@ export class PlayerMotor {
     w.stuck = false;
     if (vert < 0 || (w.past != null && this.pos[1] >= w.past + PARKOUR_UP_GAP)) w.past = null;
     if (!side && !vert) return true;
-    const v = freeClimbSpeed(this.speed, skill, !!inputs.enhanced, inputs.climbing ?? 0) * (side && vert ? DIAGONAL_FACTOR : 1);
+    const v = freeClimbSpeed(this.speed, skill, !!inputs.enhanced, inputs.climbing ?? 0) * (this.stats.racialPace?.('climb', this) ?? 1) * (side && vert ? DIAGONAL_FACTOR : 1);
     const n = c.normal;
     const was = [this.pos[0], this.pos[1], this.pos[2]];
     this._fcMove(was, side, vert, v, n, dt);

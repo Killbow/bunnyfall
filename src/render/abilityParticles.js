@@ -28,8 +28,8 @@ const paths = {
   veil: (t,k) => [(.3+.5*t)*cos(k*Math.PI+t*2.8), .86*t-.48, .5+.2*sin(t*turn)],
   step: (t,k) => [(k ? -1 : 1)*.32, -.7+.12*sin(t*Math.PI), .1+.48*t+.32*k],
   bubbles: (t,k) => [(k-1)*.4+.1*sin(t*8+k), 1.35*t-.55, .35+.12*k],
-  anchor: (t,k) => k ? [.6*cos(Math.PI*t), -.5*sin(Math.PI*t), .62] : [0, .64-1.1*t, .62],
-  return: (t,k) => [(1-t)*cos(turn*t+k*Math.PI), (1-t)*sin(turn*t+k*Math.PI), .8-.35*t],
+  anchor: (t,k) => [(.48-.31*t)*cos(turn*3*t+k*.12), -.58+.45*t, .65+.32*sin(turn*3*t+k*.12)],
+  return: (t,k) => [(.45*(1-t)+.05)*cos(turn*3*t+k*.12), -.6+2.3*t, .7+.24*(1-t)*sin(turn*3*t+k*.12)],
   key: (t,k) => k ? [.6*t-.1,.4-.9*t+(t > .72 ? .17 : 0),.62] : [.23*cos(t*turn)-.18,.23*sin(t*turn)+.4,.62],
 };
 const strands = { fan:3, claw:3, mark:4, fracture:3, roots:3, rain:3, bubbles:3, crack:3, crown:3,
@@ -55,7 +55,20 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
   if (phase === 'stroke' || self) {
     const along = distance => [at[0]+dx*distance, at[1]+(dir?.[1] ?? 0)*distance, at[2]+dz*distance];
     const plane = [dx,dir?.[1] ?? 0,dz];
-    if (['helix','needle','dash','braid','return'].includes(form)) {
+    if (self && (form === 'step' || form === 'bubbles')) {
+      for (let j = 0; j < 6; j++) {
+        const foot = along(.25 + j * .19);
+        const side = j % 2 ? .18 : -.18;
+        foot[0] += rightX * side;
+        foot[1] -= .88;
+        foot[2] += rightZ * side;
+        if (form === 'bubbles') {
+          fx._part(look, foot, [0, 1.5 + j * .14, 0], { delay: j * .04, life: .5, w: .08, g: 0 });
+        } else {
+          fx._decal(look, foot, { r0: .06, r1: .22, band: .05, delay: j * .045, life: .38 });
+        }
+      }
+    } else if (['helix','needle','dash','braid','return'].includes(form)) {
       for (let j=0; j<3; j++) {
         fx._decal(look, along(reach*(.24+j*.32)), { n:plane, r0:.58-j*.09, r1:.08,
           band:.095, delay:j*.055, life:.22, I:1.7 });
@@ -73,7 +86,7 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
         for (const side of [-1,1]) fx._part(look, point, [rightX*side*2,3+j*.7,rightZ*side*2],
           { delay:j*.05, life:.33, w:.085, g:13, drag:1, streak:.19, maxLen:.65, I:1.6 });
       }
-    } else if (self || ['ward','crown','orbit','halo','eye','mark'].includes(form)) {
+    } else if (['ward','crown','orbit','halo','eye','mark'].includes(form)) {
       const center = along(self ? .95 : reach*.65);
       fx._decal(look, center, { n:plane, r0:.15, r1:.95, band:.075, life:.39, I:1.45 });
       for (let j=0; j<8; j++) {
@@ -103,9 +116,10 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
     for (let i=0; i<7; i++) fx._part(look, at, [fx.r(-2,2),fx.r(.6,2.5),fx.r(-2,2)],
       { life:.34, w:.027, g:7, streak:.065, I:1 });
   }
-  const duration = charging ? .08 : self ? .28 : impact ? .07 : .13;
-  const steps = impact ? 6 : 10;
-  const ribbonLife = self ? .36 : impact ? .20 : .29;
+  const duration = charging ? .08 : self ? .46 : impact ? .07 : .13;
+  const rope = form === 'anchor' || form === 'return';
+  const steps = rope ? 24 : impact ? 6 : 10;
+  const ribbonLife = self ? .62 : impact ? .36 : .44;
   const moteLife = charging ? .11 : self ? .25 : impact ? .21 : .15;
   for (let k=0; k<(strands[form] ?? 2); k++) {
     let previous;

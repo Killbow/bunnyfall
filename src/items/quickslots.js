@@ -3,7 +3,7 @@
 import { TEMPLATES } from './itemKinds.js';
 import { ABILITIES, abilityById } from '../combat/abilities/registry.js';
 import { abilitiesEnabled, learnedAbility } from '../combat/abilities/progress.js';
-import { activeAbilityWeapon, abilityCooldown, abilityInHand, abilityPlayable, abilityRefusalText, requestHotbarAbility } from '../combat/abilities/rig.js';
+import { activeAbilityWeapon, abilityCooldown, abilityInHand, abilityPlayable, abilityRefusalText, interruptCombatAbility, requestHotbarAbility } from '../combat/abilities/rig.js';
 import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
 import { requestUtility } from '../combat/abilities/utility.js';
 import { isPotion, isDrug, isLightSource, useItem, USE_PENDING } from './useItem.js';
@@ -746,7 +746,9 @@ export function hotbarPress(i, { entity = null, doors = {}, say = null } = {}) {
     return { kind: result.ok ? 'ability' : 'refused', name: ability?.name ?? e.name };
   }
   if (e.type === 'ability') {
-    const result = utilityProfile(e.id) ? requestUtility(entity, e.id) : requestHotbarAbility(entity, e.id);
+    const utility = utilityProfile(e.id);
+    const result = utility ? requestUtility(entity, e.id) : requestHotbarAbility(entity, e.id);
+    if (utility && result.ok) interruptCombatAbility(entity);
     if (!result.ok) say?.(result.message ?? abilityRefusalText(result.why));
     return { kind: result.ok ? 'ability' : 'refused', name: e.name };
   }

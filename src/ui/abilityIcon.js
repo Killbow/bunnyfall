@@ -56,7 +56,7 @@ const marks = {
 const utilities = {
   trailblazer:'step', 'unbound-will':'ward', featherstep:'feather', 'wayfarers-anchor-mark':'anchor',
   'wayfarers-anchor-recall':'anchor', 'hunters-awareness':'eye', 'deepwater-training':'wave',
-  riverstride:'wave', breakaway:'step', 'skyward-ascent':'feather', 'field-antidote':'flask', lockbreaker:'key',
+  riverstride:'wave', breakaway:'step', 'field-antidote':'flask', lockbreaker:'key',
 };
 const families = { 'short-blade':'dagger', 'long-blade':'blade', axe:'axe', blunt:'hammer', 'hand-to-hand':'fist', archery:'bow' };
 const races = { breton:'ward', redguard:'blade', nord:'hammer', 'dark-elf':'dagger', 'high-elf':'eye',
@@ -95,7 +95,7 @@ export function abilityIcon(id) {
   const pips = kind === 'weapon' ? Math.floor(ability.rank / 25) : kind === 'combination' ? (capstone ? 2 : 1) : 0;
   const detail = Array.from({length:pips}, (_,i) => '<circle cx="'+(16+(i-(pips-1)/2)*4)+'" cy="29" r="1"/>').join('');
   const accent = style.endsWith('recall') ? 'M5 12l-3 3 3 3m-3-3h7'
-    : style === 'riverstride' || style === 'skyward-ascent' || style === 'breakaway' ? 'M3 10l4-4m-1 7 4-4' : '';
+    : style === 'riverstride' || style === 'breakaway' ? 'M3 10l4-4m-1 7 4-4' : '';
   const emblem = kind === 'combination'
     ? '<path transform="translate(-1 3) scale(.75)" d="'+marks[families[style]]+'"/><path transform="translate(31 3) scale(-.75 .75)" d="'+marks[families[second]]+'"/>'
     : '<path d="'+marks[mark]+'"/>';

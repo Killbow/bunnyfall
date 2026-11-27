@@ -142,7 +142,7 @@ test('weapon changes and save restore cancel an unreleased ability shot without 
     entity.items.push({ templateIndex: 131, group: 'Weapons', stackCount: 2 });
     frame();
     assert.ok(requestHotbarAbility(entity, PREVIEW_DEADEYE).ok);
-    for (let i = 0; i < 11; i++) frame();
+    for (let i = 0; i < 6; i++) frame();
     assert.equal(shots.length, 0);
     if (cancel === 'swap') pw.weapon = { templateIndex: 130, group: 'Weapons' };
     else restoreAbilityProgress(entity, entity.combatAbilities, true);
@@ -732,9 +732,18 @@ test('Skyfall fits the barrage under cover, spends actual arrows and caps contac
   assert.equal(requestHotbarAbility(entity, PREVIEW_SKYFALL).why, 'ammo');
   entity.items[0].stackCount = 7;
   frame();
+  let marker;
+  tc.door.fx = (kind, at) => { if (kind === 'shock') marker = [...at]; };
   assert.ok(requestHotbarAbility(entity, PREVIEW_SKYFALL).ok);
+  assert.ok(marker);
+  tc.cam.pos[0] += 2;
+  tc.cam.feet[0] += 2;
   for (let i = 0; i < 100; i++) assert.ok(!frame().includes('hit'));
   assert.equal(shots.length, 7);
+  assert.equal(shots[0].from[0], marker[0]);
+  assert.equal(shots[0].from[2], marker[2]);
+  const aerial = skyfallPattern(tc.cam, { raycast: () => Infinity }, milestoneDelivery(PREVIEW_SKYFALL), [0, 11, 7]);
+  assert.ok(aerial.shots.every(shot => shot.from[1] > 11));
   assert.equal(entity.items.length, 0);
   assert.ok(shots.every(shot => shot.sky && shot.from[1] < 3 && shot.from[1] > 2));
   assert.ok(shots.every(shot => shot.direction[1] === -1));
@@ -783,7 +792,7 @@ test('Siege of Heaven braces, retains its arc, and hits the nearest eligible spl
   tc.cam.move = { grounded: true };
   frame();
   assert.ok(requestHotbarAbility(entity, PREVIEW_SIEGE_OF_HEAVEN).ok);
-  for (let i = 0; i < 29; i++) frame();
+  for (let i = 0; i < 18; i++) frame();
   assert.equal(shots.length, 0);
   tc.cam.feet[0] = 0.2;
   frame();
@@ -946,13 +955,13 @@ test('Sword-Song commits once and its temporary accuracy expires in simulation t
   const id = 'racial.redguard.sword-song';
   assert.ok(requestHotbarAbility(entity, id).ok);
   for (let i = 0; i < 10; i++) frame();
-  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 9);
+  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 5);
   assert.ok(abilityCooldown(entity, id) > 0);
   assert.deepEqual(swings, []);
   for (let i = 0; i < 44; i++) frame(.25);
-  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 9, 'still up after eleven seconds');
+  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 5, 'still up after eleven seconds');
   for (let i = 0; i < 256; i++) frame(.25);
-  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 4, 'gone after the racial buff length (15 rounds, 75 seconds)');
+  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 0, 'gone after the racial buff length (15 rounds, 75 seconds)');
 });
 
 test('Forest Ambush requires a bow, spends one arrow and applies concealment', (t) => {
@@ -1002,7 +1011,7 @@ test("Commander's Call buffs the Imperial and only nearby companions in sight", 
   const id = 'racial.imperial.commanders-call';
   assert.ok(requestHotbarAbility(entity, id).ok);
   for (let i = 0; i < 10; i++) frame();
-  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 8);
+  assert.equal(racialModifiers(entity, pw.weapon).toHitMod, 4);
   assert.equal(liveStat(entity, 'speed'), 56);
   assert.equal(liveStat(near.entity, 'speed'), 56);
   for (let round = 1; round < 15; round++) tickActiveEffects(near.entity, {}, () => 0);
@@ -1361,7 +1370,7 @@ test('utility buffs last ten rounds or more, rising with rank, and instant effec
   };
   assert.ok(rounds('utility.trailblazer')[0] < 10, 'the raw table is short');
   for (const id of ['utility.trailblazer', 'utility.unbound-will', 'utility.featherstep', 'utility.hunters-awareness',
-    'utility.deepwater-training', 'utility.riverstride', 'utility.breakaway', 'utility.skyward-ascent']) {
+    'utility.deepwater-training', 'utility.riverstride', 'utility.breakaway']) {
     const profile = utilityProfile(id);
     const ability = ABILITIES.find(entry => entry.id === id);
     for (const effect of [].concat(profile.effects ?? [profile])) {

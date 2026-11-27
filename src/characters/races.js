@@ -65,10 +65,10 @@ const extraRace = (key, id, artRace, description) => Object.freeze({
 });
 
 export const EXTRA_RACE_TEMPLATES = Object.freeze([
-  extraRace('Imperial', 100, 'Breton', 'Imperials favor the broadsword and mace.'),
-  extraRace('Lilmothit', 101, 'Khajiit', 'Lilmothit are foxfolk who favor the wakizashi and short bow.'),
-  extraRace('Lungaris', 102, 'Khajiit', 'Lungaris are harefolk who favor the shortsword and crossbow.'),
-  extraRace('Orc', 103, 'Redguard', 'Orcs favor the warhammer and axes.'),
+  extraRace('Imperial', 100, 'Breton', 'Imperials inspire nearby companions.'),
+  extraRace('Lilmothit', 101, 'Khajiit', 'Lilmothit are foxfolk skilled in misdirection.'),
+  extraRace('Lungaris', 102, 'Khajiit', 'Lungaris are harefolk known for powerful leaps.'),
+  extraRace('Orc', 103, 'Redguard', 'Orcs withstand physical blows when wounded.'),
 ]);
 export const PLAYABLE_RACE_TEMPLATES = Object.freeze([...RACE_TEMPLATES, ...EXTRA_RACE_TEMPLATES]);
 export const RACE_KEYS = Object.freeze(PLAYABLE_RACE_TEMPLATES.map((r) => r.key));

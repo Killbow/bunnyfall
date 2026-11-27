@@ -1,5 +1,5 @@
 import { abilitiesEnabled } from './progress.js';
-import { RACIAL_FAVORITES, RACIAL_TRAITS, racialKey } from './racialProfiles.js';
+import { RACIAL_TRAITS, racialKey } from './racialProfiles.js';
 import { sigilDueling } from '../../items/sigilDuelState.js';
 import { maxFatigue } from '../../characters/statMods.js';
 
@@ -36,7 +36,8 @@ function meets(condition, entity, motor, outdoors) {
     }
     case 'outdoors': return outdoors;
     case 'sneaking': return !!motor?.isSneaking && !motor.swimming && !motor.isPlayerSwimming;
-    case 'running': return !!motor?.isRunning && !motor.riding && !motor.swimming && !motor.isPlayerSwimming;
+    case 'amphibious': return meets('swimming', entity, motor) || !!entity.activeEffects?.some(effect => !effect.ended && effect.kind === 'waterBreathing');
+    case 'running': return !!motor?.isRunning && motor._pkPace > 0.5 && !motor.riding && !motor.swimming && !motor.isPlayerSwimming;
     case 'swimming': return !!(motor?.swimming || motor?.isPlayerSwimming) && !motor.waterWalking;
     case 'concealed': return !!entity.activeEffects?.some(effect =>
       !effect.ended && (effect.kind === 'chameleonNormal' || effect.kind === 'chameleonTrue' || effect.kind === 'decoy'));
@@ -57,7 +58,7 @@ export function racialGuardDamage(damage, attacker, target, kind) {
   if (!trait?.guard) return damage;
   const matches = trait.guard === kind || (trait.guard === 'physical' && (kind === 'melee' || kind === 'arrow'));
   if (!matches || !meets(trait.guardCondition, target, motors.get(target))) return damage;
-  return Math.max(1, Math.round(damage * (1 - TRAIT_SHARE)));
+  return Math.max(1, Math.round(damage * (1 - (trait.guardShare ?? TRAIT_SHARE))));
 }
 
 export function setRacialAccuracy(entity, profile) {
@@ -73,10 +74,7 @@ export function stepRacialAccuracy(entity, dt) {
 
 export const clearRacialAccuracy = entity => stance.delete(entity);
 
-export function previewRacialModifiers(entity, weapon) {
+export function previewRacialModifiers(entity) {
   if (!previewPhysicalActor(entity)) return null;
-  const favorites = RACIAL_FAVORITES[racialKey(entity)];
-  if (!favorites) return { damageMod: 0, toHitMod: 0 };
-  const preferred = steady(entity) && favorites.includes(weapon?.templateIndex ?? 'bare') ? 4 : 0;
-  return { damageMod: 0, toHitMod: preferred + (stance.get(entity)?.bonus ?? 0) };
+  return { damageMod: 0, toHitMod: stance.get(entity)?.bonus ?? 0 };
 }

@@ -88,7 +88,7 @@ function crackle(c, out, at, voice, level) {
 export const MOMENTS = Object.freeze({
   'wind-up': { whoosh: { level: .35, length: .32, from: .5, to: 1.1 } },
   release: { whoosh: { level: .8, length: .2, from: 1.3, to: .6 } },
-  impact: { ring: .5, ringScale: 1, thud: .9, crackle: .6, whoosh: { level: .35, length: .08, from: 1.6, to: 1 } },
+  impact: { ring: .8, ringScale: 1, thud: .9, crackle: .6, whoosh: { level: .35, length: .08, from: 1.6, to: 1 } },
   self: { ring: .45, ringScale: 2, whoosh: { level: .3, length: .45, from: .6, to: 1.4 } },
   land: { thud: 1.1, whoosh: { level: .4, length: .14, from: .7, to: .4 } },
 });
@@ -113,6 +113,7 @@ export function playAbilitySfx(id, moment) {
   const voice = abilityVoice(id);
   if (shape.whoosh) whoosh(c, out, now, voice, shape.whoosh);
   if (shape.ring && voice.ring.length) ring(c, out, now + .005, voice, shape.ring, voice.ringDecay * shape.ringScale);
+  if (moment === 'impact') thud(c, out, now, { pitch: 95, body: .85 }, .95, .14);
   if (shape.thud) thud(c, out, now, voice, shape.thud);
   if (shape.crackle && voice.crackle) crackle(c, out, now, voice, shape.crackle);
   setTimeout(() => { try { out.disconnect(); } catch { } }, 1500);

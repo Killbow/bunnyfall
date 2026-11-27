@@ -1,5 +1,3 @@
-import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
-import { SOUND } from '../../audio/soundClips.js';
 import { showAbilityArt } from './abilityArt.js';
 import { strikeMotionKind, strikeMotionPath } from './strikeMotion.js';
 import { ABILITY_REFUSAL, createAbilityEngine } from './engine.js';
@@ -47,7 +45,7 @@ function deliveryFor(id, ctx) {
   if (!profile) return null;
   const spend = profile.spend * FATIGUE_MULTIPLIER;
   const swings = profile.kind === 'self' ? 0 : (profile.beats ?? 1);
-  return { ...profile, spend, fatigue: spend + SWING_FATIGUE_COST * swings + 1, impactsMs: [] };
+  return { ...profile, windUpMs: profile.windUpMs * .75, recoveryMs: profile.recoveryMs * .75, spend, fatigue: spend + SWING_FATIGUE_COST * swings + 1, impactsMs: [] };
 }
 
 function markers(cast, entity) {
@@ -97,18 +95,14 @@ function startMelee(chain, { rig, tc, entity }) {
     mult: meleeBeatMult(cast.ability, profile.potency, stage.share ?? (1 / profile.beats), cast.standBonus ?? 0),
     reach: Math.max(reach, chain.reach ?? 0), arc: stage.arcRad ?? 'view', single: !stage.targetCap, feet, yaw,
     control: (final && stage.finishControl) || stage.control, counterBonus: stage.counterBonus,
-    targetCap: stage.targetCap, redirect: profile.redirect || !!stage.targetCap, damageMod: cast.power, tempo: stage.tempo,
+    targetCap: stage.targetCap, redirect: profile.redirect || !!stage.targetCap, damageMod: cast.power, tempo: (stage.tempo ?? profile.tempo ?? 1) * 1.2,
     hitFx: (final && stage.finishFx) || stage.fx || (profile.beats > 1 ? 'haymaker' : null),
     unawareBonus: stage.unawareBonus, rearBonus: stage.rearBonus, lowHealthBonus: stage.lowHealthBonus,
     beatShare: stage.share ?? (1 / profile.beats),
     armorPierce: stage.armorPierce, toHit: stage.toHit, opening: stage.opening, exploit: stage.exploit,
   };
-  let sounded = false;
   blow.noteDamage = foe => {
-    if (!sounded && (final || next === 0) && enhancedSoundsOn()) {
-      sounded = true;
-      tc.door?.sound?.(final ? SOUND.Hit4 : SOUND.Hit2, final ? .7 : .45, final ? .78 : .95);
-    }
+    chain.target ??= foe.entity;
     playAbilitySfx(cast.ability.id, 'impact');
     const feet = foe.ai?.feet;
     if (feet) showAbilityArt(tc.door, cast.ability.id, 'impact',
@@ -309,10 +303,7 @@ function release(cast, ctx) {
   }
   const { rig, tc } = ctx;
   if (cast.continuingRhythm && cast.continuingRhythm !== rig.rhythm) return false;
-  // Arrow rain centers on the enemy under the crosshair (its feet), else on the ground the look meets.
-  const rainLock = delivery.rain && tc.cam ? autoaimFoe(tc.cam, tc.collider, Math.min(delivery.rangeM, AUTOAIM.rangedM)) : null;
-  const rain = delivery.rain ? (rainLock && skyfallPattern(camToward(tc.cam, rainLock, 0), tc.collider, delivery))
-    || skyfallPattern(tc.cam, tc.collider, delivery) : null;
+  const rain = cast.rain;
   if (delivery.rain && !rain) { tc.say?.('Aim at visible ground in range'); return false; }
   if (!tc.door?.fireArrow || !tc.cam || !tc.pw.machine.isBow || !tc.startSwing(cast.delivery.strike)) return false;
   applyEffect();
@@ -349,6 +340,14 @@ function stateFor(entity) {
     release,
     canRepeat,
     event: (moment, cast) => {
+      if (moment !== 'wind-up') state.rig.aimedRain = null;
+      if (moment === 'wind-up' && cast.delivery.rain) {
+        const { cam, collider, door } = state.ctx.tc;
+        const target = autoaimFoe(cam, collider, cast.delivery.rangeM);
+        cast.rain = skyfallPattern(cam, collider, cast.delivery, target?.ai.feet);
+        state.rig.aimedRain = cast.rain;
+        if (cast.rain) door?.fx?.('shock', cast.rain.centre, { ground: cast.rain.centre[1], r: cast.delivery.rain.radius });
+      }
       if (moment === 'wind-up') playAbilitySfx(cast.ability.id, 'wind-up');
       if (moment === 'release') playAbilitySfx(cast.ability.id, cast.delivery.kind === 'self' ? 'self' : 'release');
       if (moment === 'wind-up' || (moment === 'release' && cast.delivery.kind === 'self')) {
@@ -382,13 +381,25 @@ function stateFor(entity) {
 function cancelDelivery(rig) {
   if (rig.blow) rig.blow.cancelled = true;
   if (rig.shot) rig.shot.cancelled = true;
+  rig.pending = null;
   rig.follow = null;
   rig.advance = null;
   rig.rhythm = null;
   rig.takedown = null;
 }
 
-const occupied = (state) => state.engine.busy() || !!(state.rig?.blow || state.rig?.shot || state.rig?.follow || state.rig?.advance);
+export function combatAbilityBusy(entity) {
+  const state = sessions.get(entity);
+  return !!state && state.load === abilityLoad(entity) && occupied(state);
+}
+
+export function interruptCombatAbility(entity) {
+  const state = sessions.get(entity);
+  if (state?.rig) cancelDelivery(state.rig);
+  state?.engine.cancel();
+}
+
+const occupied = (state) => state.engine.busy() || !!(state.rig?.pending || state.rig?.blow || state.rig?.shot || state.rig?.follow || state.rig?.advance);
 
 export function stepAbilityRig(dt, tc) {
   const { entity, pw } = tc;
@@ -472,6 +483,13 @@ export function stepAbilityRig(dt, tc) {
   };
   state.rig = rig;
   state.ctx = ctx;
+  if (rig.pending && rig.pending.weapon !== weapon) rig.pending = null;
+  if (rig.pending && ctx.ready) {
+    const id = rig.pending.id;
+    rig.pending = null;
+    const result = state.engine.request(id, ctx);
+    if (!result.ok) tc.say?.(ABILITY_REFUSAL[result.why]);
+  }
   if (rig.follow && canStart && !interrupted) {
     const chain = rig.follow;
     const advance = chain.cast.delivery.stages?.[chain.next]?.advance;
@@ -602,8 +620,11 @@ export function offsetAbilities(offset, entity) {
   move(advance?.origin); move(advance?.point); move(advance?.lane?.from, true);
   for (const chain of [advance?.chain, blow?.chain, rig.follow]) { move(chain?.origin); move(chain?.lane?.from, true); }
   move(blow?.feet); move(blow?.lane?.from, true);
-  move(shot?.cast.stance?.feet); move(shot?.rain?.centre);
-  for (const shaft of shot?.rain?.shots ?? []) move(shaft.from);
+  move(shot?.cast.stance?.feet);
+  for (const rain of [rig.aimedRain, shot?.rain]) {
+    move(rain?.centre);
+    for (const shaft of rain?.shots ?? []) move(shaft.from);
+  }
 }
 
 export function abilityRigBusy(entity, owner) {
@@ -620,7 +641,15 @@ export function requestHotbarAbility(entity, id) {
   if (!abilitiesEnabled() || entity?._online) return { ok: false, why: 'unavailable' };
   const state = sessions.get(entity);
   if (!state?.ctx || state.load !== abilityLoad(entity)) return { ok: false, why: 'busy' };
-  const result = state.engine.request(id, state.ctx);
+  const { ctx, rig } = state;
+  if (!ctx.ready && occupied(state) && !ctx.interrupted) {
+    const why = state.engine.check(id, { ...ctx, ready: true });
+    if (why) return { ok: false, why };
+    interruptCombatAbility(entity);
+    rig.pending = { id, weapon: ctx.weapon };
+    return { ok: true };
+  }
+  const result = state.engine.request(id, ctx);
   if (result.ok && state.rig.rhythm?.id !== id) state.rig.rhythm = null;
   return result;
 }
