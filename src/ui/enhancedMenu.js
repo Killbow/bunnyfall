@@ -102,7 +102,9 @@ import { questTracker, followOn, trackButton } from './questTracker.js';   // GU
 import { closeOnOutsideTap } from './enhancedOverlays.js';   // OT1: a tap on the scrim resumes
 import { drawTutorialsPane, releaseTutorialsPane } from './tutorialsPane.js';   // TUT1: the Tutorials tab and section - every tutorial page, to read again
 import { drawShotsPane, releaseShotsPane } from './shotsPane.js';   // LOAD1: the Screenshots pane - the gallery the PrintScreen key keeps
-import { TEST_PRESETS, TEST_RIDE, TEST_SEA, TEST_LOOT } from '../characters/testRoom.js';   // TR3: the one home the pane shows; TSR4: the ride; LR3: the loot ladder
+import { COMBAT_PREVIEW_PRESET } from '../combat/abilities/progress.js';
+import { PLAYABLE_RACE_TEMPLATES } from '../characters/races.js';
+import { COMBAT_PREVIEW_POWER, TEST_PRESETS, TEST_RIDE, TEST_SEA, TEST_LOOT } from '../characters/testRoom.js';   // TR3: the one home the pane shows; TSR4: the ride; LR3: the loot ladder
 import { mwRaceId } from '../formats/mwNpc.js';
 import { EQUIP_SLOTS, equipTableOf } from '../characters/equip.js';
 import { boonStatRows } from './temperatureCard.js';   // AUDIT C&C B11: the Attributes page names the boons that raise them
@@ -1077,6 +1079,37 @@ function paneBegin(body) {
 // testRoom.js - ONE home the route (main.js) and the boot (world.js)
 // also read; this pane only shows them. Each card is a door: pressing
 // it IS the boot, the same shape Continue's card takes.
+function combatPreviewControls(preset) {
+  const controls = el('div', 'row');
+  const makeSelect = (label, options, selected) => {
+    const field = el('label', 'row-main');
+    const select = el('select', 'act');
+    for (const [value, text] of options) {
+      const option = el('option', '', text);
+      option.value = value;
+      select.append(option);
+    }
+    select.value = selected;
+    field.append(el('span', 'row-name', label), select);
+    controls.append(field);
+    return select;
+  };
+  const race = makeSelect(t('menu.test.race', 'Race'),
+    PLAYABLE_RACE_TEMPLATES.map(({ key, name }) => [key, name]), preset.race);
+  const powerLabels = {
+    '1': t('menu.test.allAtOne', 'All at 1'),
+    '50': t('menu.test.allAtFifty', 'All at 50'),
+    max: t('menu.test.maxCharacter', 'Max Character'),
+  };
+  const power = makeSelect(t('menu.test.startingPower', 'Starting power'),
+    COMBAT_PREVIEW_POWER.map(value => [value, powerLabels[value]]), 'max');
+  return [controls, acts([{
+    label: t('menu.test.startCombatPreview', 'Start Combat Preview'),
+    primary: true,
+    onClick: () => onAction(`test:${preset.id}:${race.value}:${power.value}`),
+  }])];
+}
+
 function paneTest(body) {
   const intro = el('div', 'card');
   intro.append(el('h3', null, t('menu.test.title', 'The test room')));
@@ -1087,7 +1120,8 @@ function paneTest(body) {
     const c = el('div', 'card');
     c.append(el('h3', null, p.label));
     c.append(el('p', 'meta', p.blurb));
-    c.append(acts([{ label: t('menu.test.enterAs', 'Enter as the {preset}', { preset: p.label }), primary: true, onClick: () => onAction(`test:${p.id}`) }]));
+    if (p.id === COMBAT_PREVIEW_PRESET) c.append(...combatPreviewControls(p));
+    else c.append(acts([{ label: t('menu.test.enterAs', 'Enter as the {preset}', { preset: p.label }), primary: true, onClick: () => onAction(`test:${p.id}`) }]));
     body.append(c);
   }
   // TSR4: the ride - one more door through the SAME `test:<id>` choice,

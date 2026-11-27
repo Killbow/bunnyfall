@@ -3,9 +3,10 @@
 // through the floating origin. The window hooks that use them stay in the world.
 
 import { doorSpotsNear } from '../characters/foeSpacing.js';
-import { floorLanding } from '../player/enterExit.js';
+import { dungeonEntranceLanding, floorLanding, repositionFeetY } from '../player/enterExit.js';
 import { playerEntity } from '../characters/playerEntity.js';
 import { TEST_SEA, TEST_SEA_TEXT, testEntryById } from '../characters/testRoom.js';
+import { DOOR_TYPE } from './meshReader.js';
 import { TRANSPORT_MODES } from '../travel/transport.js';
 
 /** @param {any} shared */
@@ -14,7 +15,7 @@ export function createWorldProbes(shared) {
     _teleportToPixel, buildingDoors, cam, collider, heightAt, inFlight, locationLandingFor, params, player, queue,
     setTransportModeHere, startPixel, state, townTalk, tvSeaLandAlong, tvSeaY,
   } = shared;
-  const testEntry = !playerEntity.chargenDone && params.has('test') ? testEntryById(params.get('test')) : null;
+  const testEntry = !playerEntity.chargenDone && params.has('test') ? testEntryById(params.get('test'), params) : null;
   const testPreset = testEntry?.preset ?? null;
 
   let rideOutEdge = null;
@@ -87,5 +88,17 @@ export function createWorldProbes(shared) {
     matrix[14] = m[14] + t[2];
     return { ...entry.door, matrix };
   };
-  return { _tactDoorSpots, rideOut, seaTest, shiftedDoor, testEntry, testPreset };
+  const spawnOutsideHold = () => {
+    const key = `${startPixel.x},${startPixel.y}`;
+    const doors = buildingDoors.filter(entry => entry.pixelKey === key && entry.door.doorType === DOOR_TYPE.DUNGEON_ENTRANCE);
+    const landing = dungeonEntranceLanding(doors.map(shiftedDoor));
+    if (!landing) return false;
+    const [x, y, z] = landing.pos;
+    player.spawn(x, repositionFeetY(collider.heightAt(x, z), y), z);
+    cam.pos = player.eyeAt();
+    cam.yaw = Math.atan2(landing.normal[0], landing.normal[2]);
+    cam.pitch = 0;
+    return true;
+  };
+  return { _tactDoorSpots, rideOut, seaTest, shiftedDoor, spawnOutsideHold, testEntry, testPreset };
 }
