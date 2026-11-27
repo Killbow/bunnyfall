@@ -15,8 +15,8 @@ const models = pieceModels();
 for (const m of models) kit.addCustomModel(m);
 const out = [];
 let bad = 0;
-for (const { spec, blockName, shellId, index } of allRooms()) {
-  const res = spec.finish({ shellId, index, blockName });
+for (const { spec, blockName, shellId, index, position } of allRooms()) {
+  const res = spec.finish({ shellId, index, blockName, position });
   kit.addCustomModel(res.shell);
   const lay = kit.layoutJson(res.block, blockName);
   out.push({ spec, res, blockName });

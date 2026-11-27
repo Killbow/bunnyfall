@@ -8,7 +8,9 @@
 
 import { PORTS, DOOR_W } from './shell.mjs';
 
-export const RAW = 40;   // units per metre
+export const RAW = 40;
+/** Positions a room's objects may use; rooms are placed this far apart (all.mjs) from 60,000,000, past every classic block. */
+export const POSITION_SPAN = 100000;   // units per metre
 const u = (m) => Math.round(m * RAW);
 export const DOOR_MODELS = Object.freeze({ N: 55003, S: 55001, W: 55001, E: 55004 });   // as the classic edge doors
 /** The classic pose of an edge door (raw units): where its origin is and how it is turned (units of 360/2048 degrees). */
@@ -36,8 +38,10 @@ export const FLATS = Object.freeze({   // [archive, record, flags, magnitude, so
 });
 
 export class RoomBlock {
-  constructor({ name, index }) {
-    this.name = name; this.index = index; this.refs = []; this.refIndex = new Map(); this.roots = Array.from({ length: 16 }, () => []); this.n = 0; this.nextPos = 100;
+  /** `position` is the block's place among every block's (a classic block's is its file offset, to 33 million): an
+   *  action door's load id is that plus the object's own, so no two rooms may share one (saves key doors by it). */
+  constructor({ name, index, position }) {
+    this.name = name; this.index = index; this.position = position; this.refs = []; this.refIndex = new Map(); this.roots = Array.from({ length: 16 }, () => []); this.n = 0; this.nextPos = 100;
     this.counts = { model: 0, flat: 0, light: 0, enemy: 0, loot: 0, quest: 0 };
   }
   ref(id, description = 'XXX') {
@@ -73,8 +77,9 @@ export class RoomBlock {
     if (kind in this.counts) this.counts[kind]++;
   }
   toJson() {
+    if (this.nextPos >= POSITION_SPAN) throw new Error(`${this.name}: ${this.nextPos} object positions - past the ${POSITION_SPAN} a room may use`);
     return {
-      Position: 0, Index: this.index, Name: this.name, Type: 'Rdb',
+      Position: this.position, Index: this.index, Name: this.name, Type: 'Rdb',
       RmbBlock: { FldHeader: { NumBlockDataRecords: 0, NumMisc3dObjectRecords: 0, NumMiscFlatObjectRecords: 0, BlockPositions: null, BuildingDataList: null, BlockDataSizes: null, GroundData: {}, AutoMapData: null, Name: null, OtherNames: null }, SubRecords: null, Misc3dObjectRecords: null, MiscFlatObjectRecords: null },
       RdbBlock: { ModelReferenceList: this.refs, ObjectRootList: this.roots.map((r) => ({ RdbObjects: r.length ? r : null })) },
       RdiBlock: { Data: null },

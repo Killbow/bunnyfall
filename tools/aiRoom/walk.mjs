@@ -46,9 +46,9 @@ function walkLeg(col, cells, route) {
 }
 
 let bad = 0, legs = 0;
-for (const { spec, blockName, shellId, index } of allRooms()) {
+for (const { spec, blockName, shellId, index, position } of allRooms()) {
   if (arg('--only') && !(blockName + spec.name).toLowerCase().includes(arg('--only').toLowerCase())) continue;
-  const res = spec.finish({ shellId, index, blockName });
+  const res = spec.finish({ shellId, index, blockName, position });
   kit.addCustomModel(res.shell);
   const lay = kit.layoutJson(res.block, blockName);
   const col = new Collider(() => -Infinity);

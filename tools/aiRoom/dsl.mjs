@@ -90,11 +90,11 @@ export class RoomSpec {
     return this;
   }
   /** Everything: the shell model JSON, the block JSON and a report. */
-  finish({ shellId, index, blockName }) {
+  finish({ shellId, index, blockName, position }) {
     this._carvePorts();
     const { mesh } = buildShell([this.grid.map((r) => r.join(''))], this.legend, this.ports);
     const shell = mesh.toModel(shellId);
-    const blk = new RoomBlock({ name: blockName, index });
+    const blk = new RoomBlock({ name: blockName, index, position });
     blk.model(shellId, 0, 0, 0);
     for (const p of this.ports) blk.door(p[0], p[1]);
     const problems = [];
