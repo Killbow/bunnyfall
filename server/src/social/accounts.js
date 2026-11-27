@@ -1,5 +1,3 @@
-// Social accounts on the hub, their records and secrets kept through a bounded cache. The hello
-// guards and refreshes an account; a profile's friends merge in once, and a leave lets go.
 import { acctSecretKey, acctKey, newAcct } from '../room/keys.js';
 import { isHidden } from '../staffHidden.js';
 import { ACCOUNT_SWEEP_MS, FRIENDS_MAX, PENDING_MAX, INVITE_TTL_MS } from '../relay.js';
@@ -14,8 +12,8 @@ export class AccountsPart {
     return held;
   }
   async _acct(id) {
-    // The cached copy is trusted as storage: every account write goes through `_putAcct` or
-    // `_putAccts`, and a delete also clears the cached copy.
+    // The cached copy is trusted as storage: every account write goes through `_putAcct` or `_putAccts`,
+    // and a delete also clears the cached copy.
     if (this._recs.has(id)) return this._recs.get(id);
     const r = await this.state.storage.get(acctKey(id));
     const rec = r && typeof r === 'object' ? r : null;
@@ -65,8 +63,7 @@ export class AccountsPart {
     let a = this._attach(ws);
     if (a.id !== m.id) return;
     const had = await this._acct(me);
-    // Use `a.name`, the name `_named` decided, never the name the frame asked for;
-    // this record is durable.
+    // Use `a.name`, the name `_named` decided, never the name the frame asked for; this record is durable.
     let rec = { ...(had ?? newAcct(a.name, now)), name: a.name, seen: now };
     let party = null;
     if (rec.party) {

@@ -1,9 +1,5 @@
-// P1 probe: an interior REMEMBERS across a visit.
-//
-// The port rebuilt every interior from block data on entry, so a
-// shelf the player emptied restocked and anything dropped inside was
-// gone. This walks into a shop, empties a shelf, steps outside, walks
-// back in, and reads the shelf back.
+// Checks that an interior keeps its state across a visit: empties a shop shelf, leaves, re-enters, and reads it.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -52,9 +48,7 @@ console.log('shelf 0 stocked:', stocked);
 if (!stocked) fail('the shelf did not stock');
 await page.evaluate(() => window.__tradeClick('exit'));
 await waitFrames(2);
-// CHANGE the shelf, so the pin is not "3 equals 3" - a shelf that
-// simply restocked on re-entry would pass that, which is the vacuous
-// shape this repo has caught before.
+// Change the shelf first, so a shelf that restocks on re-entry cannot pass.
 const changed = await page.evaluate(() => window.__takeFromShelf(0));
 console.log('shelf 0 after taking one:', changed);
 if (changed == null || changed !== stocked - 1) fail('could not change the shelf');

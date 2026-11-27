@@ -1,18 +1,8 @@
-// THE SYNTH KIT - the DSP the port's synthesised sounds are built from, shared (NAV-E, 2026-09-28: the naval arc's
-// guns joined the gun lab's). Moved out of tools/gunSfx.mjs unchanged, so its three clips come out byte for byte as
-// they did; tools/navalSfx.mjs builds the sea fight's six from the same pieces. Everything here synthesises at RATE
-// and is baked down to DAGGER.SND's own 11025 Hz 8-bit mono by tools/sndify.mjs.
-// GATHER-FEEL (2026-10-13): the climb's pieces (unit, knock, rough, bandSweep, rub, grit) moved here out of
-// tools/climbSfx.mjs unchanged - its eleven clips come out byte for byte as they did - so tools/gatherSfx.mjs builds the
-// gathering's sounds from them too.
-// SOUNDSCAPE (2026-10-24): the gathering's own pieces (modes, burst, bubble, leaves, groan, splash, bellNote and TOP_HZ)
-// moved here out of tools/gatherSfx.mjs unchanged - its thirty-six clips come out byte for byte as they did - so
-// tools/soundscapeSfx.mjs builds the sea's and the wild's sounds from them too.
+// Shared DSP for the synthesized sound tools, which bake to 11025 Hz 8-bit mono through tools/sndify.mjs.
+// A change here changes the baked clips of every tool that imports it.
 
-/** Synthesise high, bake down - the bake owns the aliasing. */
 export const RATE = 44100;
 
-/** mulberry32 - a seeded PRNG, so a re-run is byte-identical. */
 export function rng(seed) {
   let a = seed >>> 0;
   return () => {
@@ -25,21 +15,16 @@ export function rng(seed) {
 export const seconds = (s) => Math.round(s * RATE);
 export const buf = (s) => new Float32Array(seconds(s));
 
-/** Exponential decay, the shape every percussive envelope wants. */
 export const decay = (i, tau) => Math.exp(-i / (tau * RATE));
-/** A short attack so a transient does not start on a vertical edge -
- *  a step is a click, and a click survives the bake louder than the
- *  sound it belongs to. */
 export const attack = (i, ms) => Math.min(1, i / Math.max(1, seconds(ms / 1000)));
 
-/** RBJ biquad, the two shapes used here. */
 export function biquad(x, { type, f0, q }) {
   const w = 2 * Math.PI * f0 / RATE, cw = Math.cos(w), sw = Math.sin(w);
   const alpha = sw / (2 * q);
   let b0, b1, b2;
   const a0 = 1 + alpha, a1 = -2 * cw, a2 = 1 - alpha;
   if (type === 'bandpass') { b0 = alpha; b1 = 0; b2 = -alpha; }
-  else { b0 = (1 - cw) / 2; b1 = 1 - cw; b2 = (1 - cw) / 2; }   // lowpass
+  else { b0 = (1 - cw) / 2; b1 = 1 - cw; b2 = (1 - cw) / 2; }
   const out = new Float32Array(x.length);
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
   for (let i = 0; i < x.length; i++) {
@@ -50,9 +35,6 @@ export function biquad(x, { type, f0, q }) {
   return out;
 }
 
-/** A one-pole lowpass whose cutoff MOVES - the sound of a pressure
- *  wave losing its top as it leaves the barrel. A fixed filter gives a
- *  flat "pff"; the sweep is what makes it a gunshot. */
 export function sweepLowpass(x, fromHz, toHz, tau) {
   const out = new Float32Array(x.length);
   let y = 0;
@@ -71,7 +53,6 @@ export const noise = (len, rand) => {
   return out;
 };
 
-/** dst += src * gain, starting at `at` seconds. */
 export function mix(dst, src, at = 0, gain = 1) {
   const o = seconds(at);
   for (let i = 0; i < src.length; i++) {
@@ -81,16 +62,10 @@ export function mix(dst, src, at = 0, gain = 1) {
   return dst;
 }
 
-/** tanh saturation: the grit a loud sound has, and a limiter that
- *  cannot overshoot into the 8-bit rail. */
 export const softClip = (x, drive = 1) => x.map((v) => Math.tanh(v * drive) / Math.tanh(drive));
 
 export const envelope = (x, fn) => { for (let i = 0; i < x.length; i++) x[i] *= fn(i); return x; };
 
-// ---- the climb's pieces (CLIMB4), shared since GATHER-FEEL --------------------------------------------------------
-
-/** Scaled to a peak of 1, so a piece's gain in a mix is its peak there - a narrow band of noise comes out of its
- *  filter a tenth as loud as it went in, and a slap mixed "at 1" beside a sine knock vanished under it. */
 export function unit(x) {
   let max = 0;
   for (const v of x) max = Math.max(max, Math.abs(v));
@@ -98,7 +73,6 @@ export function unit(x) {
   return x;
 }
 
-/** A sine sweep from `from` to `to` Hz over `tau`, enveloped - a knock's body. */
 export function knock(len, from, to, tau, decayTau, attackMs = 0.6) {
   const out = buf(len);
   let phase = 0;
@@ -110,8 +84,6 @@ export function knock(len, from, to, tau, decayTau, attackMs = 0.6) {
   return out;
 }
 
-/** A slow random wobble, 0..1, `hz` new values a second, joined smoothly (cosine) - a rub's roughness: the grain of
- *  stone under skin or leather is an uneven drag, not a steady hiss. */
 export function rough(len, rand, hz) {
   const out = new Float32Array(len);
   const step = Math.max(1, Math.round(RATE / hz));
@@ -125,7 +97,6 @@ export function rough(len, rand, hz) {
   return out;
 }
 
-/** A bandpass whose centre MOVES (`f0(t)` Hz, t in seconds) - coefficients recomputed every 32 samples. */
 export function bandSweep(x, f0, q) {
   const out = new Float32Array(x.length);
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
@@ -143,7 +114,6 @@ export function bandSweep(x, f0, q) {
   return out;
 }
 
-/** A rub of `len` s: noise through `f0`'s band, dragged unevenly (`rough`), swelling in over `inMs` and dying on `tau`. */
 export function rub(rand, len, { f0 = 1800, q = 1.5, hz = 120, inMs = 10, tau = 0.04, depth = 0.85 } = {}) {
   const n = seconds(len);
   const x = biquad(noise(n, rand), { type: 'bandpass', f0, q });
@@ -152,7 +122,6 @@ export function rub(rand, len, { f0 = 1800, q = 1.5, hz = 120, inMs = 10, tau = 
   return unit(x);
 }
 
-/** Short bandpassed ticks at uneven times, loudest first on average - grit coming away, debris. */
 export function grit(out, rand, { count, from, to, lo = 2200, hi = 4400, tauLo = 0.0015, tauHi = 0.004, gain = 0.3, q = 1.8 }) {
   for (let k = 0; k < count; k++) {
     const at = from + (to - from) * Math.pow(rand(), 1.5);
@@ -165,14 +134,8 @@ export function grit(out, rand, { count, from, to, lo = 2200, hi = 4400, tauLo =
   return out;
 }
 
-/** The bake keeps nothing past its rate's top - a partial over this is left out rather than aliased. */
 export const TOP_HZ = 4800;
 
-// ---- the gathering's pieces (GATHER-FEEL), shared since SOUNDSCAPE ---------------------------------------------------------------------------------------------------
-
-/** A struck body's modes: damped sines, `list` [[Hz, tau s, gain]] - wood's few and quickly gone, stone's brief and
- *  bright, metal's long. Each starts from rest (a sine), so a mode begins as a struck body does, and fades over the
- *  buffer's last 12 ms, so one still ringing at its end is never cut (a cut is a click). */
 export function modes(len, list, { attackMs = 0.4 } = {}) {
   const out = buf(len);
   const fade = seconds(0.012);
@@ -184,15 +147,12 @@ export function modes(len, list, { attackMs = 0.4 } = {}) {
   return out;
 }
 
-/** A burst of noise through a band, enveloped and scaled to a peak of 1: an edge's crack, a bite, a snap. */
 export function burst(rand, { f0, q = 1, tau, attackMs = 0.2 }) {
   const x = biquad(noise(seconds(tau * 9 + 0.004), rand), { type: 'bandpass', f0, q });
   envelope(x, (i) => attack(i, attackMs) * decay(i, tau));
   return unit(x);
 }
 
-/** A bubble: a sine whose pitch RISES as it rings (a bubble's resonance climbing as it shrinks toward the surface) from
- *  `from` toward `to` over `rise` s - water's "bloop". */
 export function bubble(len, from, to, rise, tau, attackMs = 0.5) {
   const out = buf(len);
   let ph = 0;
@@ -204,8 +164,6 @@ export function bubble(len, from, to, rise, tau, attackMs = 0.5) {
   return out;
 }
 
-/** Leaves: many short grains through a leaf's band (`lo`..`hi` Hz) at uneven times, each grain's loudness `env(u)` of
- *  where it falls in the span (0..1), a few of them louder - a rustle is a crackle, not a hiss. */
 export function leaves(out, rand, { count, from, to, lo = 1800, hi = 4200, tauLo = 0.0005, tauHi = 0.002, gain = 0.4, q = 1.4, env = () => 1 }) {
   for (let k = 0; k < count; k++) {
     const u = rand();
@@ -213,15 +171,12 @@ export function leaves(out, rand, { count, from, to, lo = 1800, hi = 4200, tauLo
     const tau = tauLo + (tauHi - tauLo) * rand();
     const g = biquad(noise(seconds(tau * 8), rand), { type: 'bandpass', f0, q });
     envelope(g, (i) => attack(i, 0.1) * decay(i, tau));
-    const crackle = rand() < 0.15 ? 1.7 : 1;   // a leaf folding over, a twig: a few louder among the many
+    const crackle = rand() < 0.15 ? 1.7 : 1;
     mix(out, unit(g), from + (to - from) * u, gain * crackle * (0.25 + 0.75 * rand()) * env(u));
   }
   return out;
 }
 
-/** Wood groaning, hide ripping: a stick-slip train - pulses at a rate `rate(u)` Hz (u the share of the span), each
- *  jittered by up to `jitter` of its gap and weighed by `env(u)`, ringing `bands` [[Hz, q, gain]], with the friction's
- *  breath under it. */
 export function groan(rand, len, { rate, jitter = 0.25, bands, env, noiseGain = 0.12 }) {
   const n = seconds(len);
   const pulses = new Float32Array(n);
@@ -241,8 +196,6 @@ export function groan(rand, len, { rate, jitter = 0.25, bands, env, noiseGain = 
   return unit(out);
 }
 
-/** A splash: water thrown up - noise whose top falls away as the drops scatter (a moving low-pass), a wet body under
- *  it, and `drops` little plips falling back within `dropsTo` s. */
 export function splash(rand, { len = 0.35, from = 4200, to = 500, tau = 0.05, body = 0.5, drops = 6, dropsTo = 0.3 } = {}) {
   const out = buf(len);
   const n = seconds(len);
@@ -260,8 +213,6 @@ export function splash(rand, { len = 0.35, from = 4200, to = 500, tau = 0.05, bo
   return unit(out);
 }
 
-/** A bell's note: its fundamental and three partials over it (an octave, a bell's 2.76, a breath-sharp twin that makes
- *  it shimmer), none past the bake's top. */
 export function bellNote(f, tau, len = tau * 5) {
   return unit(modes(len, [[f, tau, 1], [f * 1.0035, tau * 0.9, 0.3], [f * 2, tau * 0.45, 0.24], [f * 2.76, tau * 0.25, 0.1]], { attackMs: 1.5 }));
 }

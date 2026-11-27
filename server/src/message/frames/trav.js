@@ -1,4 +1,3 @@
-// The `trav` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isRegionRoom, badged, travRoomGate } from '../../relay.js';
 
 export function travFrame(ws, a, m) {

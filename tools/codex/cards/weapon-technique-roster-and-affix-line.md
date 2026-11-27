@@ -26,6 +26,7 @@ invariants:
   - "`AFFIX_WORTH.technique` is `30` gold per point."
   - "A technique line is the piece's last own line, placed before any socketed gem line."
   - "`techniqueFamily` maps across `TECHNIQUE_FAMILIES` (`archery`, `longBlade`, `shortBlade`, `axe`, `blunt`, and `handToHand`) by weapon skill, with Gauntlets (template `103`) carrying `handToHand`."
+  - "`MARTIAL_FAMILY` must stay equal to the family words in `TECHNIQUE_FAMILIES` in `techniqueRoster.js`. It is duplicated because the roster imports item tables, which `martialPaths.js` must not."
 traps:
   - "`ITEM_LAW_VERSION` has moved far past the `2` that `TECH1` set; read the constant rather than hardcoding a version number."
   - "`techniqueFamily` resolves RRI weapon classes even when the RRI switch is off so valid lines are not flagged as forgeries."

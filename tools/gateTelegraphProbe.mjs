@@ -1,13 +1,5 @@
-// WB4a - THE BOSS'S TELEGRAPH, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds the telegraph's law (test/net/gate/wb4_gate_boss.test.js: the shader's own reading held to the strike's law at
-// every point of the floor, the pass over a fake GL); what node cannot answer is whether the GLSL COMPILES and LINKS in
-// a real WebGL2 context, whether the targets' array survives as a uniform the optimiser did not drop, and whether the
-// shape actually lands on the court's floor - bright where the slam lands, dark past its edge, dim through its
-// wind-up, the nova's ring lit and its heart safe. So: the repo's own modules served as they are (no bundler), the
-// court drawn with its own art by a stand-in shader, the pass drawn by its own class, and the frame read back.
-//
-//     node tools/gateTelegraphProbe.mjs [--shots <dir>]     (writes slam.png / windup.png / nova.png there when given)
+// Browser probe that compiles, links, and draws the boss telegraph pass on the court floor.
+// Run: node tools/gateTelegraphProbe.mjs [--shots <dir>].
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -66,11 +58,10 @@ window.ready = true;
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }   // not the root: U60 keeps that the landing page's
+  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const f = join(ROOT, url);
   if (!f.startsWith(ROOT) || !existsSync(f)) { res.writeHead(404); res.end(); return; }
-  // WB9e: a JSON module is served as JSON - the court's modules reach a JSON table now (the browser refuses an import
-  // served as a stream of bytes)
+  // The browser refuses a JSON module import served as bytes, so JSON files go out as application/json.
   res.writeHead(200, { 'content-type': extname(f) === '.js' ? 'text/javascript' : extname(f) === '.json' ? 'application/json' : 'application/octet-stream' });
   res.end(readFileSync(f));
 });

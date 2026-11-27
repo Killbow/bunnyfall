@@ -1,5 +1,3 @@
-// A private arena session beside its bout, read, saved, armed, and shown to its members.
-// It answers the session words, says who has a place on the floor, and drops, clears, or ends it.
 import { privateSessionDeadline, isArenaPrivateRoom, arenaPrivateCodeOf, ARENA_PRIVATE_JOIN_HZ } from '../../../src/net/arenaLaw.js';
 import { sessionWord, fighterOfSub, boutFinished, openSession, sessionJoin, sessionPick, sessionGoFighters, openBout, sessionKick, leaveSeat } from '../../../src/net/arenaBrain.js';
 import { lookKey, arenaId } from '../room/keys.js';

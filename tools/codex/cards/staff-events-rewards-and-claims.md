@@ -29,6 +29,7 @@ invariants:
   - "Ranking is by kills, then killing blow, then stand ticks (STAFF_EVENT_STAND_TICK_MS 4000), then account id. The board (staffEventBoard) is the top STAFF_EVENT_BOARD_MAX (10)."
   - "The cell pays once, at the first boss fall (payReward), and stores the receipts with the ledger before saying anything."
   - "/v1/event/claim pays silver once per (event, account) via INSERT OR IGNORE into event_pay. The amount comes from the stored staff_events.ev, never from the client."
+  - "Staff event spoils go through `shared.raidSpoils.grant` under `spoilsLock`, keyed `sev:<id>` per account, so a receipt the relay re-sends after a reconnect grants nothing."
 traps:
   - "Staff receipts use prefix 'e1' (STAFF_RECEIPT_V), the same string as EG_RECEIPT_V in egReceipt.js. Both are signed with GATE_SIGNING_KEY, so only the claim shapes keep them apart."
   - "Without GATE_SIGNING_KEY the receipt is sent unsigned ('e1.<body>.'). The game still rolls spoils, but the claim is refused."

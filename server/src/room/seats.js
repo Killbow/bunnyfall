@@ -1,4 +1,3 @@
-// Who hosts a room: the host walk, who leads, a seat gone quiet, and the host frame the room says.
 import { seatBarred } from '../staffFreeze.js';
 import { seatOf, seatStreams, seatHeardAt, seatTraffic, seatSilent, othersInOf, seatElder, seatInAt } from '../../../src/net/seatLive.js';
 import { FOES_STALE_MS } from '../relay.js';

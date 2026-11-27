@@ -26,6 +26,7 @@ invariants:
   - "`validLookItem` (`src/net/wire.js`) retains the optional `ap = [t, m, v]` tuple on an equipped look item only when `validWireAppearance` (`src/net/appearanceLaw.js`) confirms it is a valid look matching the item kind, omitting `ap` otherwise."
   - "`validFoeRecord` (`src/net/wire.js`) accepts `la` only alongside `lw`, requiring strictly ascending in-range `[lwIndex, t, m, v]` tuples, dropping invalid entries, and omitting `la` when empty."
   - "`appearance` is listed in `RECEIVER_MARKS` (`src/net/realmTradeLaw.js`), so player trades, vault moves, and market transfers strip `item.appearance` and deliver the base item look to the recipient."
+  - "`encodeKit` returns `la` as null when no piece wears a look, so the record omits it. `la` is a separate field so an older reader drops it instead of refusing the whole record."
 traps:
   - "Relays predating `ap` and `la` strip those fields and show peers the base item look, so relay and client updates can deploy in either order."
   - "The account server (`server-account/src/service.js`) must deploy before the client when changing `appearance` schema rules; an older account service rejects trades, listings, and vault moves carrying an unrecognized `appearance` field."

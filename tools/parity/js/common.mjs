@@ -1,4 +1,4 @@
-// Differential parity harness - shared JS helpers (AUDIT 18).
+// Shared helpers for the differential parity harness.
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import fs from 'node:fs';
@@ -7,8 +7,6 @@ import path from 'node:path';
 export const ARENA2 = process.env.ARENA2_PATH || (process.env.ARENA2_PATH ?? '');
 import { fileURLToPath as _f } from 'node:url';
 import { dirname as _d, join as _j } from 'node:path';
-// AUDIT 18: the port root derives from this file (tools/parity/js/), so the
-// harness runs from any checkout. PORT_ROOT overrides it.
 export const PORT = process.env.PORT_ROOT ?? _j(_d(_f(import.meta.url)), '..', '..', '..');
 
 let chunks = [];
@@ -29,7 +27,7 @@ export async function closeOut() {
 
 const f32 = new Float32Array(1);
 const u32 = new Uint32Array(f32.buffer);
-/** float32 bit pattern, identical encoding to the C# side. */
+// Encodes the float32 bit pattern exactly as the C# side does.
 export function F(v) {
   f32[0] = v;
   return 'f' + u32[0].toString(16).padStart(8, '0');
@@ -46,7 +44,6 @@ export function sha1(bytes) {
   h.update(Buffer.from(bytes.buffer ? bytes.buffer : bytes, bytes.byteOffset || 0, bytes.byteLength !== undefined ? bytes.byteLength : bytes.length));
   return h.digest('hex');
 }
-/** SHA-1 over an RGBA byte stream given as a Uint8ClampedArray of r,g,b,a. */
 export function sha1Rgba(colors) {
   if (!colors) return 'null';
   return sha1(new Uint8Array(colors.buffer, colors.byteOffset, colors.byteLength));
@@ -70,7 +67,7 @@ export function read(name) { return new Uint8Array(fs.readFileSync(path.join(ARE
 export function files(re) {
   return fs.readdirSync(ARENA2).filter((f) => re.test(f)).sort();
 }
-/** Byte writer used to build deterministic checksum streams (matches C# BinaryWriter LE). */
+// Little-endian byte writer that matches C# BinaryWriter, for deterministic checksum streams.
 export class BW {
   constructor() { this.buf = Buffer.alloc(1 << 16); this.len = 0; }
   _need(n) { if (this.len + n > this.buf.length) { const nb = Buffer.alloc(Math.max(this.buf.length * 2, this.len + n)); this.buf.copy(nb, 0, 0, this.len); this.buf = nb; } }

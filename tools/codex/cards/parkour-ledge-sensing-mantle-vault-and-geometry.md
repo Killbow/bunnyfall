@@ -25,6 +25,7 @@ traps:
   - "Landing probes nudge laterally by PARKOUR_NUDGE [0, +/-0.15, +/-0.3] near corners. Do not reduce this to a single probe."
   - "Overhead jambs route around via a sidestep search up to PARKOUR_SIDESTEP_MAX = 0.45 m (`_fcSidestep`)."
   - "Eaves up to PARKOUR_EAVE_OUT = 0.8 m are found by `senseEave`/`senseEaveAhead`/`senseEaveLedge`."
+  - "`capsuleFits` needs the upward ray as well as `penetrationAt`, because the collider reverts instead of depenetrating a body up into a ceiling, so a standing body inside a slab reads clear."
 dfu: []
 tags:
   - parkour

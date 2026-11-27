@@ -1,12 +1,5 @@
-// DXT1 / DXT5 (BC1 / BC3) block decoding to RGBA8, for the textures a
-// Unity AssetBundle stores compressed (TextureFormat 10 DXT1, 12 DXT5).
-// Written from the S3TC block layout: 4x4 texels per block, two RGB565
-// endpoints and 2-bit selectors; DXT5 prefixes each block with two
-// 8-bit alpha endpoints and 3-bit selectors. Endpoint interpolation is
-// the integer form the common decoders use ((2*a + b) / 3 with
-// truncation), which is what the reference extraction produced for the
-// pins. Unity stores the block rows bottom-up like every other texture
-// it serialises; the caller flips, this stays a plain decoder.
+// Endpoint interpolation truncates, as in ((2 * a + b) / 3), to match the common reference decoders. Unity stores
+// block rows bottom-up, and the caller flips the result.
 
 function rgb565(v) {
   const r = (v >>> 11) & 31;
@@ -15,9 +8,6 @@ function rgb565(v) {
   return [(r << 3) | (r >>> 2), (g << 2) | (g >>> 4), (b << 3) | (b >>> 2)];
 }
 
-/** Decode one colour block (8 bytes at `off`) into `out` at texel
- *  (x0, y0) of a `width`-wide RGBA image; `dxt1` enables the 3-colour
- *  + transparent mode for c0 <= c1. */
 function colourBlock(src, off, out, width, height, x0, y0, dxt1) {
   const c0 = src[off] | (src[off + 1] << 8);
   const c1 = src[off + 2] | (src[off + 3] << 8);
@@ -50,8 +40,6 @@ function colourBlock(src, off, out, width, height, x0, y0, dxt1) {
   }
 }
 
-/** Decode one DXT5 alpha block (8 bytes at `off`) into the alpha
- *  channel of `out`. */
 function alphaBlock(src, off, out, width, height, x0, y0) {
   const a0 = src[off];
   const a1 = src[off + 1];
@@ -65,9 +53,6 @@ function alphaBlock(src, off, out, width, height, x0, y0) {
     pal[6] = 0;
     pal[7] = 255;
   }
-  // 48 selector bits, little-endian, 3 per texel in raster order. AUDIT 68
-  // S10-dxt5-alpha-bigint: two 24-bit words (texels 0-7, then 8-15) hold
-  // them exactly - no field straddles - so no BigInt per block.
   const lo = src[off + 2] | (src[off + 3] << 8) | (src[off + 4] << 16);
   const hi = src[off + 5] | (src[off + 6] << 8) | (src[off + 7] << 16);
   for (let t = 0; t < 16; t++) {
@@ -80,13 +65,11 @@ function alphaBlock(src, off, out, width, height, x0, y0) {
 }
 
 /**
- * Decode a DXT1 (`dxt5` false) or DXT5 image to RGBA8, top row first
- * in the order the blocks are stored.
- * @param {Uint8Array} src block data
+ * @param {Uint8Array} src
  * @param {number} width
  * @param {number} height
  * @param {boolean} dxt5
- * @returns {Uint8Array} width * height * 4
+ * @returns {Uint8Array}
  */
 export function dxtDecode(src, width, height, dxt5) {
   const out = new Uint8Array(width * height * 4);

@@ -1,5 +1,4 @@
-// Duplicate a whole POI (the in-game editor's inspector): a new id, a copy name, fresh keys, and every reference pointed
-// at the copy. Run: node --test tools/poiDuplicate.test.mjs
+// Tests duplicating a whole POI from the in-game editor. Run: node --test tools/poiDuplicate.test.mjs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
@@ -10,9 +9,6 @@ import { poiV2Example } from './poiV2Examples.mjs';
 
 const law = (d) => poiPayProblems(d, poiDocProblems(d));
 
-/** Builds a v2 POI fixture containing every kind of key reference validated by the v2 schema: nested groups, grouped
- *  lights and flats, NPC visibility conditions, waypoint events, spawn routes, encounter events, interactive state
- *  variables, dialogue and trade conditions, and event triggers and actions. */
 function richDoc() {
   const d = poiV2Example();
   d.groups.push({ key: 'stalls', name: 'Stalls', parent: 'market', visible: true, locked: false });
@@ -42,7 +38,6 @@ function richDoc() {
   return d;
 }
 
-/** Every key a document's top-level rows hold, by collection. */
 const keysOf = (d) => Object.fromEntries(POI_KEYED.map((k) => [k, (d[k] ?? []).map((r) => r.key)]));
 
 test('duplicate: the source fixture passes schema and trade validation', () => {
@@ -62,7 +57,7 @@ test('duplicate: assigns a new id, a copy name, and fresh keys in every collecti
     for (const k of now[kind]) assert.ok(!was[kind].includes(k), `${kind}: ${k} is a fresh key`);
     assert.equal(new Set(now[kind]).size, now[kind].length, `${kind}: each key once`);
   }
-  // an old key left anywhere would be a reference to a row the copy does not hold: the law says "ref-missing"
+  // An old key left anywhere would reference a row the copy lacks, which the law reports as ref-missing.
   assert.deepEqual(law(c), []);
   assert.equal(c.lights.length, 1);
   assert.deepEqual(c.lights[0].color, src.lights[0].color);
@@ -147,7 +142,6 @@ test('duplicate: trims long copy names to the schema limit and shifts west near 
   const d = richDoc();
   d.place.x = 815;
   assert.equal(duplicatePoiDoc(d, { id: 'poi-bbbbbbbbbbbb', name: 'x' }).place.x, 815 - POI_DUPLICATE_SHIFT_M);
-  // a 32-character key gets a fresh key that passes validation
   d.parts[1].key = 'k'.repeat(32);
   d.interactives[0].appearance.key = d.parts[1].key;
   const c = duplicatePoiDoc(d, { id: 'poi-bbbbbbbbbbbb', name: 'x' });

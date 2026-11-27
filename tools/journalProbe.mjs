@@ -1,19 +1,5 @@
-// JOURNAL1 PROBE: THE JOURNAL, SHARED, IN A REAL BROWSER.
-//
-//   node tools/journalProbe.mjs        (SHOT_DIR=tools/shots by default)
-//
-// test/net/journal1.test.js drives the chronicle's Share, the reader's window and the Letters tab's Keep over fake documents,
-// which proves what they DO and nothing about how they LOOK. This stands the real surfaces over the real enhanced sheet
-// in Chromium, at the widest content the law allows, and reads the layout back - at a desktop, a narrow window, and a
-// phone on the touch skin:
-//   - THE CHRONICLE'S SHARE: a note's strip naming a crowd of readers at the name's bound (NAME_MAX of the face's widest
-//     letter), the letter, and what a press said - all inside the note's card, nothing scrolling sideways;
-//   - THE READER'S WINDOW: the widest page the law takes - a head at PAGE_HEAD_MAX, PAGE_LINES_MAX lines, one of them a
-//     single unbroken word at PAGE_LINE_MAX - inside the screen, its page scrolling inside the card and its buttons on
-//     screen at the card's foot; and kept;
-//   - THE LETTERS TAB: a letter read, with Keep in my journal beside Reply and Delete;
-//   - THE F-MENU: "Read their page" on a player at the name's bound.
-// A finger's 44px wherever the phone asks for it. Photographs to tools/shots/.
+// Renders the journal share strip, reader window, Letters tab, and F-menu row in Chromium and checks the layout.
+// Run: node tools/journalProbe.mjs (screenshots go to SHOT_DIR, default tools/shots).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -28,8 +14,6 @@ await server.listen();
 const browser = await chromium.launch({ headless: true });
 const pageErrors = [];
 
-/** Inside the page: every node matching `sel` under `root` against the box of `within` (a node, or the viewport) - the
- *  ones that spill sideways, and the ones that scroll their own text sideways. */
 const SPILLS = `(root, sel, within) => {
   const b = within ? within.getBoundingClientRect() : { left: 0, right: innerWidth, top: 0, bottom: innerHeight };
   const out = [];
@@ -49,7 +33,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
   if (touch) check(`${label}: the phone points coarse, as a finger does`, coarse);
 
-  // ── THE CHRONICLE'S SHARE ──────────────────────────────────────────────────────────────────────────────────────
   await page.evaluate(async () => {
     const { PlayerNotebook, breakableNote } = await import('/src/ui/notebook.js');
     const { NAME_MAX } = await import('/src/net/wire.js');
@@ -73,7 +56,7 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
       onExit: () => { window.__jr.exited = true; },
     });
     host.querySelector('.cr-share').click();
-    [...host.querySelectorAll('.cr-sharebox .act')][0].click();   // the widest name, pressed: what it said stands under the strip
+    [...host.querySelectorAll('.cr-sharebox .act')][0].click();
   });
   const cr = await page.evaluate((SPILLS) => {
     const spills = eval(SPILLS);
@@ -97,7 +80,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   if (touch) check(`${label}: every Share button a finger's (44px)`, cr.minButton >= 44, `smallest ${cr.minButton}`);
   await page.screenshot({ path: `${OUT}/journal-share-${label}.png` });
 
-  // ── THE READER'S WINDOW ────────────────────────────────────────────────────────────────────────────────────────
   await page.evaluate(async () => {
     const { createPageWindow, pageView } = await import('/src/ui/pageWindow.js');
     const { PAGE_HEAD_MAX, PAGE_LINE_MAX, PAGE_LINES_MAX, NAME_MAX } = await import('/src/net/wire.js');
@@ -136,7 +118,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   check(`${label}: kept - the button says so and the note stands inside the card`, pw.labels[0] === 'Kept in your journal' && !pw.spills.length && pw.buttonsOnScreen, pw.labels.join(' | '));
   await page.screenshot({ path: `${OUT}/journal-page-kept-${label}.png` });
 
-  // ── THE LETTERS TAB: KEEP IN MY JOURNAL ────────────────────────────────────────────────────────────────────────
   await page.evaluate(async (touch) => {
     const { createSocialPanel } = await import('/src/ui/socialPanel.js');
     const { SocialState } = await import('/src/net/social.js');
@@ -185,7 +166,6 @@ for (const [W, H, label, touch] of [[1440, 900, 'desktop', false], [480, 800, 'n
   check(`${label}: kept - the button says so, the note under the letter stands inside the panel`, lt.labels.some((l) => l.startsWith('Kept in your journal')) && !lt.spills.length, lt.labels.join(' | '));
   await page.screenshot({ path: `${OUT}/journal-letter-${label}.png` });
 
-  // ── THE F-MENU'S ROW ───────────────────────────────────────────────────────────────────────────────────────────
   await page.evaluate(async () => {
     const { createSocialMenu } = await import('/src/ui/socialMenu.js');
     const { NAME_MAX } = await import('/src/net/wire.js');

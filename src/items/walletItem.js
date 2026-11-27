@@ -1,37 +1,14 @@
 // @ts-check
-// WALLET1 (2026-10-05, Mac: "We need to develop a wallet item that holds forms of currency and sits in the inventory"):
-// THE WALLET - a piece every character carries in the pack that holds its currencies. Design and record:
-// bible/06-Systems/Wallet.md.
-//
-// AN ORGANIZER, NEVER A SECOND LIST. The pieces it holds - DFU's letters of credit (template 275), the gate's Deadlands
-// Embers (570) and the Welkynd Shards salvage gives (571) - stay in the pack's own collection (`entity.items`), so every
-// door that reads or spends one reads it where it always did: the bank's letters and the court's fines
-// (systems/banking.js, court.js), the Broker's embers (sigilBroker.js), the Reforge's shards (reforge.js), the save, the
-// realm's customs and its gold law. What the wallet changes is where the ENHANCED pack shows them - in the wallet's
-// sheet, not on its pages (ui/enhanced/enhancedInventory.js packModel) - beside the two currencies that are no pieces at all: the
-// purse's gold (`entity.goldPieces`, E4's counter) and the account's silver (online, the marks book's balance -
-// `setWalletSilver`). The classic window is DFU's and keeps DFU's four tabs; there the wallet's Use says what it holds.
-//
-// THE PIECE: DFU's Small Sack's picture and price (ItemTemplates 86: TEXTURE.205 record 18, 1 gold - the picture is DFU's
-// own), no weight (`hasNoEncumbrance`, the Small Cart's column), one to a slot. BOUND (systems/item/itemBound.js - never
-// dropped, traded or sold; net/realm/realmTradeLaw.js BOUND_TEMPLATES names it) and PACK-ONLY (`packOnly` - not even the wagon
-// or the player's own storage take it: a wallet that left the pack would leave its pieces back on the pages). EVERY
-// CHARACTER HAS ONE: a new character's starting kit holds it (startingGear.js addSurvivalProvisions, the port's own tail -
-// DFU's kit and a mod's alike), and every character made before it is given one, once - PORTAL-GIFT's shape
-// (systems/gate/gateSpoils.js): a save's `walletGift` mark says it has had it, a save from before the wallet carries none, and
-// the gift is given as the save is restored (save.js restorePlayer - every load, offline and online, the realm's boot
-// among them).
-//
-// Not a DFU member: Daggerfall's currencies are its gold and its letters, in the pack's lists. Ledger A (WALLET1).
+// The wallet item organizes the pack's letters of credit, Deadlands Embers, and Welkynd Shards into one sheet. The
+// pieces stay in `entity.items`, so every reader and spender finds them where it always did.
 import { registerCustomTemplates, setItemFields, mintCondition, registerItemUseHandler } from './itemTemplates.js';
-import { addItem, itemWeight, LETTER_OF_CREDIT_TEMPLATE } from './inventory.js';   // WALLET-WEIGHT: what its pieces weigh
+import { addItem, itemWeight, LETTER_OF_CREDIT_TEMPLATE } from './inventory.js';
 import { SIGIL_STONE_TEMPLATE, WELKYND_SHARD_TEMPLATE } from '../worldEvents/gateSpoils.js';
 import { isEquipped } from '../characters/equip.js';
 
-/** The wallet's template - the port's own, beside the gate's 570-572 and below the professions' reserved 600. */
+// Templates 570 to 572 belong to the gate, and 600 and up are reserved for professions.
 export const WALLET_TEMPLATE = 580;
-/** Its row, in the port's template columns. Rarity 20: no shelf and no loot table rolls it - every character is given
- *  its one. */
+// Pack-only, because a wallet outside the pack would send its pieces back to the pack pages.
 export const WALLET_ROW = Object.freeze({
   index: WALLET_TEMPLATE, name: 'Wallet', baseWeight: 0, hitPoints: 0, capacityOrTarget: 0, basePrice: 1,
   enchantmentPoints: 0, rarity: 20, variants: 0, drawOrderOrEffect: 0, isBluntWeapon: false, isLiquid: false,
@@ -41,22 +18,15 @@ export const WALLET_ROW = Object.freeze({
 });
 registerCustomTemplates([WALLET_ROW]);
 
-/** Whether a record IS a wallet - its template and its group, the one spelling every rule reads. */
 export const isWalletItem = (/** @type {any} */ item) => item?.templateIndex === WALLET_TEMPLATE && item?.group === 'UselessItems2';
-/** Whether a list (the pack) holds one. */
 export const hasWallet = (/** @type {any} */ items) => Array.isArray(items) && items.some(isWalletItem);
 
-/** The pieces a wallet holds, by template: DFU's Letter of Credit, the Deadlands Ember, the Welkynd Shard. */
 export const WALLET_HOLDS = Object.freeze([LETTER_OF_CREDIT_TEMPLATE, SIGIL_STONE_TEMPLATE, WELKYND_SHARD_TEMPLATE]);
-/** Whether a piece is one the wallet holds. */
 export const walletHolds = (/** @type {any} */ item) => !!item && WALLET_HOLDS.includes(item.templateIndex);
 
-/** A wallet, minted on its own row. */
 export function mintWallet() {
   return mintCondition(setItemFields({ group: 'UselessItems2', templateIndex: WALLET_TEMPLATE }));
 }
-/** A character with no wallet in its pack is given one (the pack made a list where it had none). Answers 1 for a wallet
- *  given, 0 for one already carried. */
 export function giveWallet(/** @type {any} */ entity) {
   if (!entity || typeof entity !== 'object') return 0;
   if (!Array.isArray(entity.items)) entity.items = [];
@@ -64,10 +34,8 @@ export function giveWallet(/** @type {any} */ entity) {
   addItem(entity.items, mintWallet());
   return 1;
 }
-/** The wallet's gift, PORTAL-GIFT's shape: the mark a save carries once its character has been given one. */
+// A save's `walletGift` mark records the gift, so a character from before the wallet gets one, once, on restore.
 export const WALLET_GIFT = 1;
-/** A character from before the wallet (its save's mark short of WALLET_GIFT) is given one, once - and marked, so a
- *  character given it is never given it again. Answers giveWallet's count. */
 export function giveWalletGift(/** @type {any} */ entity) {
   if (!entity || typeof entity !== 'object') return 0;
   if ((Number.isSafeInteger(entity.walletGift) ? entity.walletGift : 0) >= WALLET_GIFT) return 0;
@@ -75,14 +43,10 @@ export function giveWalletGift(/** @type {any} */ entity) {
   return giveWallet(entity);
 }
 
-/** The account's silver, as the host knows it - online, the marks book's: its balance, null while it is not known yet,
- *  false for an account that holds none (a guest's, or silver not struck yet) - or no host at all (offline, the bench);
- *  and the host's ask to learn it afresh (the book's refresh). */
 /** @type {(() => (number|null|false)) | null} */
 let _silver = null;
 /** @type {(() => any) | null} */
 let _refresh = null;
-/** AUDIT 625 W5: the one ask in flight - a look while it is out waits on it, never asks again beside it. */
 /** @type {Promise<void> | null} */
 let _asking = null;
 export function setWalletSilver(/** @type {any} */ read, /** @type {any} */ refresh = null) {
@@ -90,8 +54,6 @@ export function setWalletSilver(/** @type {any} */ read, /** @type {any} */ refr
   _refresh = typeof refresh === 'function' ? refresh : null;
   _asking = null;
 }
-/** The silver asked afresh of the host, as the wallet is looked at - a promise that settles when the host has answered
- *  (or could not), never one that rejects; while an ask is out, that ask. */
 export function refreshWalletSilver() {
   if (_asking) return _asking;
   let ask;
@@ -100,10 +62,7 @@ export function refreshWalletSilver() {
   _asking = mine;
   return mine;
 }
-/** AUDIT 625 W5: whether this page counts the account's silver at all - a host told it how (online). */
 export const walletSilverHere = () => _silver != null;
-/** The silver the wallet counts: a whole number of it; false where the account holds none; null where it is not known
- *  here. */
 export function walletSilver() {
   try {
     const n = _silver?.() ?? null;
@@ -112,15 +71,7 @@ export function walletSilver() {
   } catch { return null; }
 }
 
-/**
- * WHAT THE WALLET HOLDS, from the pack (`items`) and the purse (`entity`): the gold, the silver (null where it is not
- * counted here, and `silverWhy` why - AUDIT 625 W5), the letters of credit (how many, and the gold they are worth), the
- * embers and the shards (their counts, every stack together), and the pieces themselves (`held`, in the pack's own order
- * - worn ones aside, as the pages leave them). WALLET-WEIGHT: and what they weigh - each holding's (`weights`) and all of
- * them (`weight`), every stack the encumbrance's own way (inventory.js itemWeight), so the sheet says what the carry
- * weight counts.
- * @param {any[]} items @param {any} entity
- */
+/** @param {any[]} items @param {any} entity */
 export function walletContents(items, entity, { silver = walletSilver(), here = walletSilverHere() } = {}) {
   const held = (Array.isArray(items) ? items : []).filter((it) => walletHolds(it) && !isEquipped(it));
   const count = (t) => held.reduce((n, it) => n + (it.templateIndex === t ? Math.max(1, Math.trunc(Number(it.stackCount) || 1)) : 0), 0);
@@ -128,9 +79,7 @@ export function walletContents(items, entity, { silver = walletSilver(), here = 
   const kg = (t) => held.reduce((w, it) => w + (it.templateIndex === t ? itemWeight(it) : 0), 0);
   return {
     gold: Math.max(0, Math.trunc(Number(entity?.goldPieces) || 0)),
-    silver: typeof silver === 'number' && Number.isSafeInteger(silver) ? silver : null,   // a count, or none counted (`false` is the account's none: silverWhy says so)
-    // AUDIT 625 W5: why none is counted - offline the account keeps it online; online the page is asking (every look asks
-    // afresh), or the account holds none
+    silver: typeof silver === 'number' && Number.isSafeInteger(silver) ? silver : null,
     silverWhy: Number.isSafeInteger(silver) ? null : !here ? 'offline' : silver === false ? 'none' : 'asking',
     letters: { count: letters.length, gold: letters.reduce((g, it) => g + Math.max(0, Math.trunc(Number(it.value) || 0)), 0) },
     embers: count(SIGIL_STONE_TEMPLATE),
@@ -142,35 +91,12 @@ export function walletContents(items, entity, { silver = walletSilver(), here = 
 }
 
 const num = (/** @type {number} */ n) => Number(n).toLocaleString('en-US');
-/** WALLET-WEIGHT: a weight as the pack's card and rows say one ("30.90 kg"). */
 export const walletKg = (/** @type {number} */ kg) => `${(Number(kg) || 0).toFixed(2)} kg`;
-/** TRADE-LOC II (2026-10-11, from play: "Cant see how much a letter of credit is worth when trading directly with
- *  players"): a LETTER OF CREDIT's worth as the gold it stands for ("12,500 gold"), or null for anything else - the line
- *  below's figure, for a surface that names it under its own word (the pack's card says it as its Worth pair). */
 export const letterWorthGold = (/** @type {any} */ item) => (item?.templateIndex === LETTER_OF_CREDIT_TEMPLATE
   ? `${num(Math.max(0, Math.trunc(Number(item.value) || 0)))} gold` : null);
-/** A LETTER OF CREDIT's worth, as a line - the gold it stands for (its `value`, the whole price it was minted at), or null
- *  for anything else. TRADE-LOC (Dudey: "when players trade in any ui the letter of credit doesnt show how many gold its
- *  worth when being clicked on it in the info box"): a letter is nothing but its worth, so a window that describes an item
- *  without its price - the player trade's - says it here. */
 export const letterWorthLine = (/** @type {any} */ item) => { const g = letterWorthGold(item); return g == null ? null : `Worth ${g}`; };
-/** AUDIT 625 W5: the silver's words where no figure is counted, by why (walletContents' `silverWhy`): offline the
- *  account keeps it; online the page is asking it (every look asks afresh - the sheet, the classic box, the hotbar); an
- *  account that holds none (a guest's, the counting-houses not striking yet). The online wait once said the offline
- *  words. */
 export const SILVER_WHY = Object.freeze({ offline: 'held in your online account', asking: 'checking your account', none: 'none' });
-/**
- * WALLET-UI (2026-10-07, Mac: "Polish and organize the ingame wallet item for ease of readability"): THE WALLET'S
- * LEDGER - its currencies in two parts, the coin (the purse's gold, the account's silver) and what the wallet holds (the
- * letters of credit, the Deadlands Embers, the Welkynd Shards), each a label and a figure: `none` for one it holds none
- * of (`none` true), null where the silver is not counted here (its `note` says why), and a `note` where the figure needs
- * one (what the letters are worth). The enhanced sheet draws the rows; the classic box says each as a line (walletLines) -
- * one set of words for both. WALLET-WEIGHT (2026-10-19, from play: "Are these supposed to be weighing us down even in the
- * wallet?"): a holding it holds any of says what it weighs (`weight`, null for none and for the coin - the gold is the
- * purse's, the silver no piece) - the enhanced sheet's alone: the classic window keeps the pieces on DFU's tabs, each
- * piece's Info saying its own weight, and its box's words stand.
- * @param {ReturnType<typeof walletContents>} c
- */
+/** @param {ReturnType<typeof walletContents>} c */
 export function walletLedger(c) {
   const count = (/** @type {string} */ key, /** @type {string} */ label, /** @type {number} */ n, /** @type {number} */ kg, /** @type {string|null} */ note = null) =>
     ({ key, label, figure: n ? num(n) : 'none', none: !n, note: n ? note : null, weight: n ? walletKg(kg) : null });
@@ -186,24 +112,17 @@ export function walletLedger(c) {
     ] },
   ];
 }
-/** A ledger row as the classic box says it: its label, then its figure and its note. */
 export const walletLine = (/** @type {{label: string, figure: string|null, note: string|null}} */ r) =>
   `${r.label}: ${[r.figure, r.note].filter(Boolean).join(', ')}`;
-/** The wallet's lines, as the classic window's box says them: every currency, a `none` where it holds none, the silver's
- *  where it is not counted here said why - the ledger's rows (walletLedger), a line each. */
 export function walletLines(/** @type {ReturnType<typeof walletContents>} */ c) {
   return ['Your wallet holds:', ...walletLedger(c).flatMap((part) => part.rows.map(walletLine))];
 }
 
-/** The card's lines (systems/item/itemInfo.js): what a wallet is for. */
 export const WALLET_CARD_LINES = Object.freeze([
   'Holds your letters of credit, Deadlands Embers and Welkynd Shards,',
   'and counts your gold and your Imperial Argents.',
 ]);
 
-/** The pack's Use: the wallet opened - its sheet on the enhanced skin, its box on the classic (the readers route
- *  'wallet'). */
 registerItemUseHandler(WALLET_TEMPLATE, (item) => ({ kind: 'wallet', item }));
 
-/** Tests only: no silver known, none asked. */
 export function _resetWalletForTests() { _silver = null; _refresh = null; _asking = null; }

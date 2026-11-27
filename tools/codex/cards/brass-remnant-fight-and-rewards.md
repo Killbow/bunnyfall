@@ -14,6 +14,8 @@ files:
   - src/items/aetheric.js
   - server-account/src/sds.js
   - server/src/index.js
+  - src/worldEvents/sdRemnant.js
+  - src/net/gateBrain.js
 routes:
   - "/v1/sd/claim"
   - "/v1/account"
@@ -28,9 +30,12 @@ related:
 invariants:
   - "Account honours (`Hourbreaker` and `The Turning Hour`) roll exclusively on the account server during the first `sd_kills` insert for `(slot, account)` using a server-drawn seed."
   - "Inbound client `sd` kinds are restricted to `SD_KINDS` (`found`, `pz`, `in`, `hit`, `ehit`, `xhit`, `spent`, `vt`, and `rz`), while `ev`, `rcpt`, `st`, `mv`, `atk`, `hp`, `ph`, `ec`, `cx`, `cxh`, `cxb`, `stun`, `fell`, `lost`, and `no` are outbound or internal."
+  - "Client `remnantOpenAt` and `heartsOpenAt` (`src/worldEvents/sdRemnant.js`) mirror the relay's `remnantOpen` and `heartsOpen` (`src/net/sdRemnant.js`) on the client fight state, so a change to one check must reach the other."
+  - "Bodies one attack hits in the same frame share one blow sequence `q`, which `spendBlow` (`src/net/gateBrain.js`) charges as a single blow (within `BLOW_GROUP_MS`, at most `BLOW_BODIES_MAX` bodies). A repeat hit on a body already hit opens a new sequence."
 traps:
   - "Standing on top of a pillar (feet at or above `SD_PILLAR_OVER_Y = SD_PILLAR_H - 0.5`) grants no shade from the Hour-Hand beam, and Gearward triggers only on direct boss or Echo blows."
   - "Guests earn `h1` receipts and local spoils, but honours roll only if they register an account and claim within the 7-day receipt window."
+  - "`rollSdSpoils` draws from one stream seeded by the receipt seed, and `sdSpoilsList` draws pictures from a second. A new draw in either must go after the existing ones, or every existing seed yields different spoils or pictures."
 tags:
   - super-dungeons
   - boss

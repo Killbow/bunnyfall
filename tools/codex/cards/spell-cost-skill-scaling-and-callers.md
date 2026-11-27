@@ -28,6 +28,7 @@ invariants:
   - "Online above `SPELL_COST_SKILL_REFERENCE` (`100`), `skillScaledCost` computes `trunc(value * 10 * 100 / (skill * divisor))` in one division so skill `200` pays half of skill-`100` cost and effects never price below `0`."
   - "Offline, or at `skill <= 100`, `skillScaledCost` preserves classic `trunc(value * (110 - skill) / divisor)`, and `calculateCastCost` clamps total spell point cost to `CAST_COST_FLOOR` (`5`)."
   - "`hostMagic.js`, `spellMaker.js` (`spellMakerCost`), and `enemyCasting.js` call `calculateCastCost`; `absorption.js` (`effectCastingCost`) floors `effectCost` at `CAST_COST_FLOOR`; `enchantments.js` (`spellEnchantPtCost`, `assignHeldSpell`) reads `classicCastingCost`."
+  - "A spell record with `minimumCastingCost` costs exactly `CAST_COST_FLOOR` (5) however much its effects price, as DFU sets for vampire clan and lycanthropy spells. Player cost mods and free casts still apply after that."
 traps:
   - "Offline past effective skill `110`, classic `(110 - skill)` turns negative and can offset other effects down to `CAST_COST_FLOOR` (`5`), whereas online `100 / skill` prices higher than classic between effective `101` and `110`."
   - "`enemyCasting.js` intentionally prices enemy casts against `playerEntity` skills with `{ portMods: false }`, and `spellMaker.js` `editedEffectCost` displays raw unfloored effect costs."

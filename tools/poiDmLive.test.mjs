@@ -1,8 +1,4 @@
-// Tests the DM fields offered by the in-game DM panel in the live runtime (src/poi/poiDmRuntime.js on poiDmCore.js's
-// rules, POI people in scenes/poiNpcs.js, and the POI host's parts): an encounter starting when the player walks into
-// its area and, when set to come back, again on the next walk in; a person's talk range and "shown only when"
-// condition; an object's look, reach, door and chest behavior, key item, and state taken from a persistent variable;
-// and `event` variables resetting on each event run.
+// Tests the in-game DM panel's fields in the live POI runtime. Run: node --test tools/poiDmLive.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -46,7 +42,6 @@ test('walking into an encounter\'s area starts it with no event', async () => {
   const w = setup(noZoneEvent);
   await w.step(); await w.step();
   assert.equal(w.dm().encounters.ambush, 'idle');
-  // inside its 20 m round [35, 0, 0], outside the zone
   w.at([50, 0, 0]);
   await w.step(); await w.step();
   assert.equal(w.dm().encounters.ambush, 'active');
@@ -135,7 +130,6 @@ test('an object whose state comes from a persistent variable takes it when the P
   runEvent(w.dm(), 'open-it');
   await w.step(); await w.step();
   assert.equal(w.dm().states.gate, 'open');
-  // the next visit (a new run on this device) stands it open
   const w2 = setup(edit, { store });
   await w2.step(); await w2.step();
   assert.equal(w2.dm().states.gate, 'open');

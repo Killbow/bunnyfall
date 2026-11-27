@@ -1,15 +1,6 @@
-// DS1: MANY CAMERA POSES, ONE BOOT. tools/screenshot.mjs boots vite and a
-// browser for a single picture; a scene read from several places (a ship's
-// rooms, a shoreline) wants one boot and a picture per pose.
-//
-//   ARENA2_PATH=... SHOT_QUERY='shot&interior=SHIPAA00.RMB:0' \
-//     node tools/shotPoses.mjs <poses.json> <out-prefix>
-//
-// poses.json: [[x, y, z, yawRadians, pitchRadians], ...] in the scene's own
-// coordinates, handed to the host's `window.__pose` (the exterior and
-// interior hosts carry it in shot mode). Each picture waits SHOT_FRAMES
-// frames of the host's own counter when it has one (window.__frame), else
-// a short settle - never a bare sleep standing in for a frame.
+// Takes one screenshot per camera pose in a single boot; poses.json holds [[x, y, z, yaw, pitch], ...].
+// Usage: ARENA2_PATH=<dir> SHOT_QUERY=<query> node tools/shotPoses.mjs <poses.json> [out-prefix]
+
 import { readFileSync } from 'node:fs';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';

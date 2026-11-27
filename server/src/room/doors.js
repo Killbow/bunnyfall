@@ -1,5 +1,3 @@
-// The room's request entry: the internal doors other rooms and the Worker call, tried in order,
-// then the socket upgrade with its seat cap, layer walk, and first attachment.
 import { cellDoors } from '../cellMoves.js';
 import { PARK_INTERNAL_REG, PARK_INTERNAL_DROP, GATE_INTERNAL_FELL, GATE_INTERNAL_SEAT, GATE_INTERNAL_COURT, GATE_INTERNAL_PARTY, SERPENT_INTERNAL_FELL, RAID_INTERNAL_CLEAN, STAR_INTERNAL_HELD, RAID_INTERNAL_DAY, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, RITE_INTERNAL_BROKEN, RITE_INTERNAL_DAY, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_INTERNAL_FELL, SD_INTERNAL_IN, EG_INTERNAL_OPEN, roomOf, isChatRoom, CHAT_SOCKETS_MAX, SOCKETS_MAX, isLayered, layerOf, LAYER_HEADER, LAYER_ASK_HEADER, LAYER_EMPTY_HEADER, LAYER_LAST_HEADER, LAYER_FULL_HEADER, isCellRoom } from '../relay.js';
 import { SEV_INTERNAL_BOOK, staffBookInternal, SEV_INTERNAL_TELL, staffTellInternal, SEV_INTERNAL_CALL, staffCallInternal } from '../staffEvents.js';

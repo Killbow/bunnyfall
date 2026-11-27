@@ -1,4 +1,3 @@
-// The `party` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom } from '../../relay.js';
 import { followNoted } from '../../staffFollow.js';
 

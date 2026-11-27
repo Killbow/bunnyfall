@@ -1,5 +1,3 @@
-// A cell's overworld ledger, read once a life and shared, pruned and written back. The welcome says
-// it, and the spent, spawn, and grave words of the players in the cell change it.
 import { owLedgerOf, owPrune, owLedgerEmpty, toWelcome, owIdInCell, owRowSane, owRowInCell, owFoldSpent, owFoldRows, owRowsBehind, owFoldGraves } from '../../../src/net/overworldLaw.js';
 import { OW_LEDGER_KEY, sharedClassicMinutes, owRoomGate, owGraveGate } from '../relay.js';
 import { coverOf } from '../cellNodes.js';

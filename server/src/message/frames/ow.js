@@ -1,4 +1,3 @@
-// The `ow` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, owGate } from '../../relay.js';
 
 export async function owFrame(ws, a, m) {

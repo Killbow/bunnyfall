@@ -1,75 +1,29 @@
-// SHADOW-FANG (2026-09-26, Mac): "Wants a custom morrowind werewolf skin (skin base but blacker amd like crimson red
-// thru out the edging in the fur, red eyes)" - for SirMcMobdon, whose title and glyph are Shadow Fang
-// (ui/playerBadge.js). The werewolf is Bloodmoon's (WEREWOLF1: combat/fpArm.js builds it from the player's own
-// Bloodmoon data), so its textures are the player's own files and never this repo's: the skin cannot be a painted
-// texture shipped with the build. It is a LAW over the texture's pixels, applied on the way to the GPU, to a copy -
-// the decoded texture cache is shared by every rig on the page (the local body and every peer's).
-//
-// ═══ WHO WEARS IT ══════════════════════════════════════════════════
-//
-// The holder of the Shadow Fang GLYPH. A glyph is TRUE of a player and rides the identity token the relay verifies,
-// so every client in a room reads the same grant off the same signature: the peer who is SirMcMobdon is drawn in it
-// on everybody's screen, and nobody can type themselves into it. The player's own screen reads the glyphs the
-// account service last stated for this device (net/accountClient.js keeps them on the stored session; systems/
-// ownGlyphs.js reads them), so the skin is theirs offline too - a local read of a cosmetic, which only that player sees.
-// This module is the LAW alone and imports nothing: the rig (combat/fpArm.js) takes it without the storage.
-//
-// ═══ THE LAW ═══════════════════════════════════════════════════════
-//
-// AUDIT F (2026-09-26, the audit before the merge) remade it - bible/04-Characters/Werewolf-Body.md, "AUDIT".
-//
-// ON THE TEXTURE'S FIRST LEVEL, and the rest of its chain is that level box-filtered down, each level keeping its own
-// alpha (AUDIT F4: the law run on every level apart faded the edging with distance and grew a cut's fringe a texel a
-// level - the colour popped as the wolf walked away). Per texel (alpha is kept; a texel of alpha 0 is left alone, and
-// any other is dressed):
-//   THE EYES burn red, WHERE THE EYES ARE: every texel of a texture - or a shape - that names an eye, and on the HEAD's
-//   own texture a small, compact blob that glows (bright and saturated in the yellow-to-cyan hues, or a hot red) well
-//   above the texels round it. Never a colour alone and never the body's fur (AUDIT F2: golden, wheat, amber and
-//   auburn fur burned red by colour, in blotches). An eye's own dark - a pupil - keeps its dark.
-//   THE BASE is the skin's own colour, blacker: 0.3 of its light, 40% of its colour drained toward its grey - so the
-//   wolf is still its own wolf, in shadow.
-//   THE EDGING is crimson, through the fur: a strand lighter than the fur round it (the texel's light over its 5x5
-//   neighbourhood's), the lit tips - the lightest of THIS texture's own texels (AUDIT F3: a fixed brightness turned a
-//   blond or a cream wolf red all over) - and, on an ALPHA-TESTED card alone, the fringe beside a cut (AUDIT F6: an
-//   opaque texture's UV padding is no fur's edge, and no texel is its own fringe). Its weight is the strongest of the
-//   three, the crimson lit by the texel's own light. The neighbourhood and the fringe wrap as the texture does.
-
-/** The skins that exist, and the glyph that dresses a werewolf in each. */
+// Shadow Fang werewolf skin: a recolor applied to a copy of the texture pixels. Imports nothing.
 export const WEREWOLF_SKINS = Object.freeze(['shadowfang']);
 export const SKIN_GLYPH = Object.freeze({ shadowfang: 'shadowfang' });
 
-/** The skin a player's glyphs dress their werewolf in, or null. */
 export function werewolfSkinOf(glyphs) {
   if (!Array.isArray(glyphs)) return null;
   for (const s of WEREWOLF_SKINS) if (glyphs.includes(SKIN_GLYPH[s])) return s;
   return null;
 }
 
-/** Shadow Fang's constants, in one place: the base's light and drain, the three edging rules, the two reds, and what
- *  an eye blob on the head's texture must be. */
 export const SHADOW_FANG = Object.freeze({
-  dark: 0.3,                                  // the base keeps this share of its light
-  drain: 0.4,                                 // and loses this share of its colour toward its grey
-  strand: Object.freeze([0.04, 0.15, 0.85]),  // a strand: its light over the neighbourhood's, low to high, and its weight
-  tip: Object.freeze([0.85, 0.97, 0.6]),      // the lit tips: the texture's own light at these two quantiles, and the weight
-  tipSpan: 0.04,                              // quantiles closer than this are a flat colour: it has no tips
-  fringe: 0.65,                               // an alpha-cut card's fringe
-  crimson: Object.freeze([196, 18, 48]),      // #c41230
-  eye: Object.freeze([255, 34, 46]),          // #ff222e - the glyph's own eye (ui/playerBadge.js GLYPH_DETAIL)
-  // an eye on the head's texture: at least `min` texels, at most `share` of the texture's, filling `fill` of its box,
-  // no longer than `aspect` times its width, `lift` brighter (its brightest channel) than the texels round it, and
-  // ALONE there - no more than `crowd` of the texels round it another blob's eye colour
+  dark: 0.3,
+  drain: 0.4,
+  strand: Object.freeze([0.04, 0.15, 0.85]),
+  tip: Object.freeze([0.85, 0.97, 0.6]),
+  tipSpan: 0.04,
+  fringe: 0.65,
+  crimson: Object.freeze([196, 18, 48]),
+  eye: Object.freeze([255, 34, 46]),
   eyeBlob: Object.freeze({ min: 6, share: 1 / 256, fill: 0.25, aspect: 4, lift: 0.3, crowd: 0.1 }),
 });
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-/** Is this texture (or shape) an eye's, by its name - Morrowind names its eye textures so (tx_*eye*). */
 export const isEyeTexture = (file) => /eye/i.test(String(file || ''));
 
-/** A texel that glows the way an eye does: bright and saturated in the yellow-to-cyan hues (a beast's eye), or a hot,
- *  saturated red (an eye already red). A CANDIDATE only - on the head's texture an eye is also a small blob standing
- *  above its ring (eyeBlobs); the colour alone takes golden fur for an eye. */
 export function looksLikeEye(r, g, b) {
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
   if (!mx || !d) return false;
@@ -79,11 +33,6 @@ export function looksLikeEye(r, g, b) {
   return (v > 0.7 && s > 0.55 && hue >= 40 && hue <= 200) || (v > 0.8 && s > 0.7 && (hue >= 350 || hue <= 10));
 }
 
-/** Which rules a texture takes where a piece of the body wears it: the eyes ('all' - the texture or the shape names
- *  an eye; 'colour' - the head's own texture, where an eye is found; 'none' - the fur), whether its range is
- *  alpha-tested (a cut, whose fringe is edged), and its NiTexturingProperty clamp (3 wraps both ways). The piece is
- *  mwFirstPerson's: `slot` 'head' for WerewolfHead (or 'head (werewolfrobe)' for a robe's), `material`, the shape's
- *  name on `shape` or its batch. */
 export function skinUseOf(piece, file = '') {
   const m = piece?.material ?? null;
   const shape = piece?.shape ?? piece?.batch?.name ?? '';
@@ -96,11 +45,8 @@ export function skinUseOf(piece, file = '') {
   };
 }
 
-/** The key a skinned copy is kept under: one texture may be worn under several uses. */
 export const skinUseKey = (skin, use) => `${skin}|${use?.eyes ?? 'none'}|${use?.cut ? 1 : 0}|${(use?.clamp ?? 3) & 3}`;
 
-/** Each index's 2r+1 taps along an axis of `size`, wrapped or clamped (-1: off the edge) - built once a pass, so no
- *  tap pays a modulo. */
 function tapsOf(size, r, wrap) {
   const n = 2 * r + 1, t = new Int32Array(size * n);
   for (let x = 0; x < size; x++) {
@@ -112,8 +58,6 @@ function tapsOf(size, r, wrap) {
   return t;
 }
 
-/** The 5x5 mean light of every texel over its opaque neighbours, wrapping as the texture does - two 5-tap passes over
- *  precomputed taps (a row, then a column). */
 function neighbourhoodLight(L, A, w, h, wrapS, wrapT) {
   const R = 2, N = 2 * R + 1;
   const cx = tapsOf(w, R, wrapS), cy = tapsOf(h, R, wrapT);
@@ -148,8 +92,6 @@ function neighbourhoodLight(L, A, w, h, wrapS, wrapT) {
   return mean;
 }
 
-/** Every texel with a transparent (alpha under 128) texel among its eight neighbours or itself - a 3x3 dilation of
- *  the holes, a row then a column, wrapping as the texture does. */
 function besideACut(A, w, h, wrapS, wrapT) {
   const cx = tapsOf(w, 1, wrapS), cy = tapsOf(h, 1, wrapT);
   const row = new Uint8Array(w * h), near = new Uint8Array(w * h);
@@ -167,7 +109,6 @@ function besideACut(A, w, h, wrapS, wrapT) {
   return near;
 }
 
-/** The texture's own light at two quantiles, over its opaque texels (a 256-bin histogram). */
 function lightQuantiles(L, A, qLo, qHi) {
   const hist = new Uint32Array(256);
   let n = 0;
@@ -182,11 +123,6 @@ function lightQuantiles(L, A, qLo, qHi) {
   return [at(qLo), at(qHi)];
 }
 
-/** The eyes on a head's texture: the 8-connected blobs of eye-coloured opaque texels that are small (SHADOW_FANG
- *  eyeBlob `min` to `share` of the texture), compact (filling `fill` of their box, no longer than `aspect` times
- *  their width), glowing (`lift` brighter, by the brightest channel - a red eye is bright and dark in luminance at
- *  once - than the opaque texels within two of their box) and alone (`crowd`). A fur of the eye's colour is one great
- *  blob, or strands and specks crowded by their kind and no brighter than the fur round them - none of them an eye. */
 function eyeBlobs(rgba, A, w, h, isEye) {
   const k = SHADOW_FANG.eyeBlob;
   const n = w * h;
@@ -241,14 +177,13 @@ function eyeBlobs(rgba, A, w, h, isEye) {
   return eye;
 }
 
+// Returns a new array; the input belongs to the shared texture cache and is never written.
 /**
- * SHADOW FANG over one level's RGBA texels (row-major, 4 bytes a texel). Answers a NEW array; the input is never
- * written - it is the shared cache's.
  * @param {Uint8Array} rgba
  * @param {number} w
  * @param {number} h
  * @param {{ eyes?: 'all'|'colour'|'none', cut?: boolean, wrapS?: boolean, wrapT?: boolean,
- *   isEye?: (r: number, g: number, b: number) => boolean }} [opts]
+ * isEye?: (r: number, g: number, b: number) => boolean }} [opts]
  */
 export function shadowFangPixels(rgba, w, h, { eyes = 'none', cut = true, wrapS = true, wrapT = true, isEye = looksLikeEye } = {}) {
   const k = SHADOW_FANG;
@@ -272,7 +207,7 @@ export function shadowFangPixels(rgba, w, h, { eyes = 'none', cut = true, wrapS 
     if (!a) { out[o] = r; out[o + 1] = g; out[o + 2] = b; continue; }
     const l = L[i];
     if (allEye || (eye && eye[i])) {
-      const q = 0.25 + 0.75 * Math.min(1, l / 0.6);   // the eye's light: its glow burns, its pupil stays dark
+      const q = 0.25 + 0.75 * Math.min(1, l / 0.6);
       out[o] = (k.eye[0] * q + 0.5) | 0; out[o + 1] = (k.eye[1] * q + 0.5) | 0; out[o + 2] = (k.eye[2] * q + 0.5) | 0;
       continue;
     }
@@ -292,8 +227,6 @@ export function shadowFangPixels(rgba, w, h, { eyes = 'none', cut = true, wrapS 
   return out;
 }
 
-/** One level box-filtered to the next one's size: each colour the alpha-weighted mean of its footprint (a cut
- *  texel's own colour lends nothing to the fur), the alpha the plain mean. */
 export function downsampleLevel(src, sw, sh, dw, dh) {
   const out = new Uint8Array(dw * dh * 4);
   for (let y = 0; y < dh; y++) {
@@ -318,13 +251,9 @@ export function downsampleLevel(src, sw, sh, dw, dh) {
 }
 
 /**
- * A decoded texture's mips in a skin: the law on the FIRST level, and every later level that one box-filtered down,
- * keeping the level's own alpha (its cut is the texture's). Each level is its own copy; a skin nobody has - or a level
- * whose texels do not fill its size - is the mips as they are.
  * @param {Array<{width: number, height: number, rgba: Uint8Array}>} mips
  * @param {string|null} skin
- * @param {{file?: string, eyes?: 'all'|'colour'|'none', cut?: boolean, clamp?: number}|string} [use] skinUseOf's
- *   answer, or a file name alone (its eyes by name, a cut assumed, wrapping both ways)
+ * @param {{file?: string, eyes?: 'all'|'colour'|'none', cut?: boolean, clamp?: number}|string} [use]
  */
 export function skinMips(mips, skin, use = {}) {
   if (skin !== 'shadowfang' || !Array.isArray(mips) || !mips.length) return mips;

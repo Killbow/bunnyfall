@@ -1,7 +1,5 @@
-// Headless proof of the World Builder foundation (Milestone 2): boots the editor's own Vite server,
-// drives it in Chromium, and fails on any console error or page error.
-//   ARENA2_PATH=... node tools/poiEditorProbe.mjs [screenshot.png]
-// Without ARENA2_PATH the checks that need the game's models are skipped and said so.
+// Boots the World Builder's Vite server, drives it in Chromium, and fails on any console or page error.
+// Run: ARENA2_PATH=... node tools/poiEditorProbe.mjs [shot.png]; without ARENA2_PATH the model checks are skipped.
 
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
@@ -33,14 +31,12 @@ try {
   check('catalogue loads', total > 10000, `${total} assets`);
   check('asset cards are drawn (virtual grid)', (await page.locator('.card').count()) > 5 && (await page.locator('.card').count()) < 200);
 
-  // search and filter
   await page.fill('.filters input[type=search]', 'orc');
   await page.waitForTimeout(200);
   const orcs = await page.evaluate(() => document.querySelectorAll('.card').length);
   check('search narrows the grid', orcs > 0 && orcs < 100, `${orcs} cards`);
   await page.fill('.filters input[type=search]', '');
 
-  // new POI through the dialog
   await page.click('.menu >> text=File');
   await page.click('.items >> text=New POI...');
   await page.fill('.dialog input[type=text]', 'Probe POI');
@@ -51,7 +47,6 @@ try {
   check('badge says draft, not saved', (await page.locator('.badge').innerText()).includes('NOT SAVED'));
 
   if (haveGame) {
-    // place a model by double-clicking its card
     await page.fill('.filters input[type=search]', 'model 44010');
     await page.waitForTimeout(300);
     await page.dblclick('.card >> nth=0');
@@ -60,7 +55,6 @@ try {
     await page.waitForTimeout(1500);
     const lit = await page.evaluate(() => { const c = document.querySelector('#viewport-gl'); const g = document.createElement('canvas'); g.width = c.width; g.height = c.height; const x = g.getContext('2d'); x.drawImage(c, 0, 0); const d = x.getImageData(0, 0, g.width, g.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 33) + Math.abs(d[i + 1] - 36) + Math.abs(d[i + 2] - 43) > 40) n++; return n; });
     check('viewport draws the model', lit > 2000, `${lit} non-background pixels`);
-    // pick it by clicking the middle of the viewport
     await page.evaluate(() => { window.__builder.S.sel.length = 0; window.__builder.viewport.frameSelection(); });
     const box = await page.locator('#viewport-gl').boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -75,7 +69,6 @@ try {
     console.log('skip: the game files are not set, so the model is added to the document without drawing it');
   }
 
-  // inspector numeric entry, undo, redo
   await page.evaluate(() => { const b = window.__builder; b.S.sel = [`part:${b.getDoc().parts[0].key}`]; });
   await page.waitForTimeout(300);
   const posInput = page.locator('.vec input').first();
@@ -87,7 +80,6 @@ try {
   await page.keyboard.press('Control+Shift+z'); await page.waitForTimeout(150);
   check('redo reapplies it', (await page.evaluate(() => window.__builder.getDoc().parts[0].t[0])) === 3.5);
 
-  // clipboard, duplicate, group, delete
   await page.evaluate(() => document.activeElement?.blur());
   await page.keyboard.press('Control+d'); await page.waitForTimeout(200);
   check('Ctrl+D duplicates', (await page.evaluate(() => window.__builder.getDoc().parts.length)) === 2);
@@ -106,7 +98,6 @@ try {
   for (let i = 0; i < 12; i++) await page.keyboard.press('Control+z');
   check('undo history reaches back', (await page.evaluate(() => window.__builder.getDoc())) !== null);
 
-  // ── Milestone 3: ground, drop, view toggles, 2D tools, interior, hanging ──
   const hasGround = await page.evaluate(() => window.__builder.terrain.state());
   check(haveGame ? 'ground loads from WOODS.WLD' : 'no ground without game files says so', haveGame ? hasGround === 'loaded' : hasGround === 'missing', hasGround);
   await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe', (d) => { d.parts.push({ key: 'rock', name: 'Rock', arch3d: 44010, t: [10, 50, 10], r: [0, 0, 0, 1], s: [1, 1, 1], collide: 'mesh', shadow: true }); }); b.S.sel = ['part:rock']; });
@@ -121,7 +112,6 @@ try {
   await page.waitForTimeout(250);
   await page.screenshot({ path: shot.replace('.png', '-ground.png') });
 
-  // interior: shell and a taken-out piece, from the inspector
   await page.waitForSelector('.right input[placeholder=none]');
   await page.fill('.right input[placeholder=none]', '4321'); await page.press('.right input[placeholder=none]', 'Enter'); await page.locator('.right input[placeholder=none]').blur();
   await page.waitForTimeout(150);
@@ -133,7 +123,6 @@ try {
   await page.locator('.right button', { hasText: 'Put all back' }).click(); await page.waitForTimeout(100);
   check('putting all back leaves no hidden pieces', await page.evaluate(() => !(window.__builder.getDoc().interior?.hiddenBaseKeys?.length)));
 
-  // 2D canvas: pivot by click, mirror, layers
   await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe flats', (d) => { d.flats ??= []; d.flats.push({ key: 'lamp', name: 'Lamp', kind: 'billboard', flat: [210, 24], t: [0, 0, 0], rot: [0, 0, 0], scale: 1, layer: 0, collide: false }, { key: 'pot', name: 'Pot', kind: 'billboard', flat: [210, 22], t: [1, 0, 0], rot: [0, 0, 0], scale: 1, layer: 1, collide: false }); }); b.S.sel = ['flat:lamp']; b.A.view('2d'); });
   await page.waitForTimeout(600);
   check('layer list shows both flats, front first', (await page.locator('.c2d-row').allInnerTexts()).map((t) => t.replace(/^\d+\s*/, '').trim()).join(',') === 'Pot,Lamp');
@@ -154,7 +143,6 @@ try {
   } else console.log('skip: the game files are not set, so the pivot click needs a picture and is not tried');
   await page.evaluate(() => window.__builder.A.view('3d'));
 
-  // hanging a mount on a part's face
   await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe mount', (d) => { d.flats.push({ key: 'axe', name: 'Axe', kind: 'mount', item: { t: 1, g: 3 }, t: [0, 1, 0], rot: [0, 0, 0], scale: 1, layer: 0, collide: false }); }); b.S.sel = ['flat:axe']; b.viewport.setCamera('top'); b.viewport.frameSelection(); });
   await page.waitForTimeout(250);
   await page.evaluate(() => window.__builder.A.hang());
@@ -164,7 +152,6 @@ try {
   check('the click hangs it: turned to the surface it hit', await page.evaluate(() => { const r = window.__builder.getDoc().flats.find((f) => f.key === 'axe'); return window.__builder.viewport.hanging() === null && r.rot[1] === 90; }));
   await page.evaluate(() => window.__builder.A.camera('persp'));
 
-  // ── Milestone 4: the DM view, built through its own controls ──
   await page.evaluate(() => { const b = window.__builder; b.S.sel = []; b.A.view('dm'); });
   await page.waitForTimeout(300);
   check('DM view opens and points to the Sandbox', (await page.locator('.dmbar .dim').innerText()).includes('Sandbox'));
@@ -174,10 +161,8 @@ try {
   check('adding a route gives it two waypoints', await page.evaluate(() => { const r = window.__builder.getDoc().routes; return r?.length === 1 && r[0].waypoints.length === 2; }));
   await page.locator('.dmform button', { hasText: 'Add waypoint at the view' }).click(); await page.waitForTimeout(200);
   check('a waypoint is added at the view', (await page.evaluate(() => window.__builder.getDoc().routes[0].waypoints.length)) === 3);
-  // the wait field sets every stop
   await page.fill('.dmform input[placeholder="set all"]', '15'); await page.press('.dmform input[placeholder="set all"]', 'Enter'); await page.waitForTimeout(250);
   check('wait at every stop sets 15 s on all', await page.evaluate(() => window.__builder.getDoc().routes[0].waypoints.every((w) => w.waitS === 15)));
-  // pick a waypoint spot on the ground: the view switches, the next click answers, the view comes back
   await page.locator('.dmform button', { hasText: 'Add waypoint on the ground' }).click(); await page.waitForTimeout(250);
   check('picking switches to the 3D view and arms the click', await page.evaluate(() => window.__builder.S.view === '3d' && window.__builder.viewport.picking()));
   const vb2 = await page.locator('#viewport-gl').boundingBox();
@@ -187,14 +172,12 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: shot.replace('.png', '-route.png') });
   await page.evaluate(() => { window.__builder.viewport.setCamera('persp'); window.__builder.A.view('dm'); });
-  // a person walks it
   await page.locator('.dmbar button', { hasText: 'People' }).click(); await page.waitForTimeout(150);
   const hasPeople = await page.evaluate(() => (window.__builder.getDoc().npcs ?? []).length);
   if (!hasPeople) await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe npc', (d) => { d.npcs ??= []; d.npcs.push({ key: 'merchant', name: 'Wandering Merchant', t: [0, 0, 0], yaw: 0, h: 1.8, look: { k: 'df', a: 182, r: 0 }, lines: [] }); }); b.dm.open('npcs', 'merchant'); });
   await page.waitForTimeout(250);
   await page.selectOption('.dmform select >> nth=0', { index: 1 }); await page.waitForTimeout(250);
   check('a person is given the route', await page.evaluate(() => !!window.__builder.getDoc().npcs[0].route));
-  // encounter, variable, event, dialogue and trade through the controls
   await page.locator('.dmbar button', { hasText: 'Variables' }).click();
   await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.fill('.dialog input[type=text]', 'Bridge unlocked'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
   check('a variable is added with its scope', await page.evaluate(() => window.__builder.getDoc().variables?.[0]?.scope === 'poi_global'));
@@ -220,7 +203,6 @@ try {
   await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.waitForTimeout(150);
   await page.selectOption('.dialog select', 'trigger'); await page.fill('.dialog input[type=text]', 'Ambush zone'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
   check('a zone object is added', await page.evaluate(() => window.__builder.getDoc().interactives[0].kind === 'trigger'));
-  // deleting something an event needs is refused in words
   await page.locator('.dmbar button', { hasText: 'Encounters' }).click(); await page.waitForTimeout(150);
   await page.locator('.dmside .c2d-row').first().click(); await page.waitForTimeout(150);
   await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe need', (x) => { x.events[0].then = [{ k: 'start_encounter', encounter: x.encounters[0].key }]; }); });
@@ -233,7 +215,6 @@ try {
   const probs = await page.evaluate(() => document.querySelector('.tabs .tab.on')?.innerText);
   check('the problems tab still counts', typeof probs === 'string');
 
-  // ── Milestone 5: the Sandbox plays the example POI; the badge says SANDBOX; the File menu offers packs and .glb import ──
   await page.evaluate(async (root) => {
     const b = window.__builder;
     const { poiV2Example } = await import(`/@fs${root}/tools/poiV2Examples.mjs`);
@@ -256,7 +237,6 @@ try {
   await page.mouse.click(5, 300);
   await page.evaluate(() => window.__builder.A.view('3d'));
 
-  // problems panel and environment
   check('problems tab lists the law', (await page.locator('.tabs .tab.on').innerText()).startsWith('Problems'));
   await page.selectOption('.toolbar select[title=Server]', 'production');
   check('environment selector switches server', (await page.evaluate(() => window.__builder.api.environment().base)) === 'https://dagg.campfirerp.com');

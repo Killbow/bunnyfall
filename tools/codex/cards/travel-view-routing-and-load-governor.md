@@ -20,9 +20,10 @@ related:
   - naval-and-come-sail-away
 invariants:
   - "Overland A* uses `ROUTE_COST` (`road = 1`, `track = 1.6`, `open = 3.5`), while maritime legs use `SEA_COST` (`sea = 1.2`, `coast = 1.5`, `shore = 6`) with boarding and landfall transitions."
-  - "Open-terrain steps onto mountain climate pixels (`TV_MOUNTAIN_CLIMATE = 226`) or elevation rises above `TV_STEEP_RISE` (`16`) are blocked; only roads and tracks traverse mountain passes."
+  - "`openStepBlocked`, `openBlocked`, and `peak` return false, so no open-terrain step is refused for mountain climate (`TV_MOUNTAIN_CLIMATE = 226`) or a rise above `TV_STEEP_RISE` (`16`)."
   - "The streaming load governor halves the speed ceiling (rounded to multiples of `5`, minimum `1`) after `TV_GOV_HOLD_S` (`0.25` s) of unbuilt ground, waits `TV_GOV_SETTLE_S` (`2` s) before cutting again, and climbs one `TV_GOV_STEP` (`5`) per `TV_GOV_CLEAR_S` (`4` s) clean window."
   - "Within town borders, speed caps at `TOWN_PACE_MAX` (`5`), and `townWalk.js` runs weighted A* (`TOWN_WAY_H_WEIGHT = 1.5`) through gates within `GATE_REACH_CELLS` (`24`)."
+  - "When the host passes `owed` pixels, `step` caps the rate with `leadCap` so the traveller needs at least `TV_GOV_LEAD_S` (`4` s) of real time to reach the nearest owed pixel; the halving runs only on a bare `unbuilt` count."
 traps:
   - "Nighttime locked gates end a town walk at the gate with a shut notice rather than walking the player into the city wall."
   - "Failed terrain tile builds back off and retry at `BUILD_RETRY_MS` (`2`, `4`, `8`, `16`, and `32` s)."
@@ -38,7 +39,7 @@ Overworld autopilot combines regional A* road and sea routing, local town street
 
 ## Overland and Maritime Routing
 
-`src/travel/travelRoute.js` searches up to `ROUTE_MAX_EXPANSIONS` (`200000` states) using `ROUTE_COST` weights (`road = 1`, `track = 1.6`, `open = 3.5`) and `SEA_COST` weights (`sea = 1.2`, `coast = 1.5`, `shore = 6`) across boarding and landfall points. Off-road steps onto mountain climate tiles (`TV_MOUNTAIN_CLIMATE = 226`) or elevation deltas above `TV_STEEP_RISE` (`16`) are rejected, forcing mountain crossings onto established roads and tracks. Rendered route polylines clip to the viewport plus `ROUTE_CLIP_PX` (`16` px).
+`src/travel/travelRoute.js` searches up to `ROUTE_MAX_EXPANSIONS` (`200000` states) using `ROUTE_COST` weights (`road = 1`, `track = 1.6`, `open = 3.5`) and `SEA_COST` weights (`sea = 1.2`, `coast = 1.5`, `shore = 6`) across boarding and landfall points. The mountain and steep-rise tests always return false, so no open land step is refused for climate or slope and mountains need no road. Rendered route polylines clip to the viewport plus `ROUTE_CLIP_PX` (`16` px).
 
 ## Town Walks and the Streaming Load Governor
 

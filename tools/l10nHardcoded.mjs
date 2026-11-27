@@ -1,16 +1,6 @@
 #!/usr/bin/env node
-// L10N4 (2026-09-28): THE PORT'S OWN ENGLISH STILL WRITTEN INTO THE CODE, COUNTED.
-//
-// A player reads the port's own words - menus, the enhanced interface, the online game, every notice DFU does not have -
-// only in English until each goes through the text core (`t(key, en, args)`, Port_Strings). This finds the words that
-// have not yet: every string or template literal in src/ that reads as prose (two words of letters or more) and is not
-// the argument of a text-core call, a console line, a thrown error, an import's source or an object's key. It is a
-// heuristic - a data table's English (an item's canonical name, a key) counts too - so it is held as a RATCHET, file by
-// file (test/systems/l10n4_hardcoded.test.js): a file's count may fall, as its words are routed, and may not rise, so a new
-// hard-coded sentence fails the suite where it is written instead of reaching a player in English.
-//
-//   node tools/l10nHardcoded.mjs           the counts, file by file (the ratchet's HARDCODED map), and the total
-//   node tools/l10nHardcoded.mjs <file>    that file's literals, with their lines
+// Counts prose string literals in src/ that do not go through the text core, file by file.
+// Run: node tools/l10nHardcoded.mjs [<file>].
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,10 +9,8 @@ import { isMain } from './lib/isMain.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** The text core's calls whose string arguments are already the player's language's (or DFU's keys). */
 const ROUTED = new Set(['t', 'tIn', 'localizedText', 'localizedTextList', 'localizedStrings', 'localizedTable', 'formatText',
   'getLocalizedText', 'getLocalizedTextWithReversion', 'getLocalizedTextList', 'databaseText', 'gameSettingsText']);
-/** Files the scan skips: the text core itself (its English is the fallback law's own) and the grammar rules (French). */
 const SKIP = [/^src\/ui\/textManager\.js$/, /^src\/systems\/grammar\//];
 
 const walk = (d, out = []) => {
@@ -30,32 +18,23 @@ const walk = (d, out = []) => {
   return out;
 };
 
-/** A CSS identifier - a class's, an id's, an attribute's or a pseudo-class's name: never a digit first (`#1` is no id). */
 const CSS_IDENT = String.raw`-?[A-Za-z_][\w-]*`;
-/** A compound selector: a type (or *), then its classes, ids, attributes and pseudo-classes. */
 const COMPOUND_SELECTOR = new RegExp(String.raw`^(?:[a-z][\w-]*|\*)?(?:[.#]${CSS_IDENT}|\[${CSS_IDENT}(?:[~|^$*]?=(?:"[^"]*"|'[^']*'|[\w-]+))?\]|::?${CSS_IDENT}(?:\([^()\s]*\))?)*$`);
-/** A class in a compound - every selector the port writes into its code names one. */
 const HAS_CLASS = new RegExp(String.raw`\.${CSS_IDENT}`);
-/** Prose: two words of two letters or more, not a CSS value, a selector, a path, code or a URL. */
 export function isProse(s) {
   if (!/[A-Za-z]{2,}[\s\u00a0]+[A-Za-z]{2,}/.test(s)) return false;
   if (/(^|\s)(px|em|rem|vh|vw)(\s|;|$)|\d(px|em|rem|vh|vw|ms|deg)\b|rgba?\(|hsla?\(|var\(--|calc\(|linear-gradient|;\s*$|=>|\bfunction\b|\bimport\b|\bconst\b|\breturn\b|https?:|\.(js|mjs|json|png|wav|ttf|glb|bsa|img|cif)\b/i.test(s)) return false;
-  if (/^[a-z]+(-[a-z0-9]+)+( [a-z]+(-[a-z0-9]+)*)*$/.test(s)) return false;   // class lists
+  if (/^[a-z]+(-[a-z0-9]+)+( [a-z]+(-[a-z0-9]+)*)*$/.test(s)) return false;
   const english = /\s(a|an|the|of|to|is|in|on|and|or|you|your)\s/i.test(` ${s} `);
-  if (/^[\w$.-]+( [\w$.-]+)*$/.test(s) && !/[A-Z]/.test(s[0]) && !english) return false;   // identifier runs
-  // CARDS-PLUS (2026-10-13): a selector naming an id, an attribute or a pseudo-class (`#wp-menu input.wpm-name`,
-  // `body .dfiliac button[data-kind="warn"]`, `:scope > .px-tabs button`) - the identifier runs above read only words
-  // and dots, so a kit role written this way was counted as a sentence. AUDIT CARDS-PLUS D1: every part a compound of
-  // CSS identifiers AND a class among them - without the class, "press [E] when ready", "[locked] needs more gold" and
-  // "item:sword equipped" read as selectors and English slipped past the ratchet
+  if (/^[\w$.-]+( [\w$.-]+)*$/.test(s) && !/[A-Z]/.test(s[0]) && !english) return false;
+  // A literal is a selector only when every part is a CSS compound and one has a class, so "press [E]" is prose.
   if (/[#[:]/.test(s) && !english) {
     const parts = s.trim().split(/\s*[,>+~]\s*|\s+/);
-    if (parts.every((p) => p && COMPOUND_SELECTOR.test(p)) && parts.some((p) => HAS_CLASS.test(p))) return false;   // selectors
+    if (parts.every((p) => p && COMPOUND_SELECTOR.test(p)) && parts.some((p) => HAS_CLASS.test(p))) return false;
   }
   return true;
 }
 
-/** Every hard-coded prose literal in `root`'s src/: { file, line, text }. */
 export function hardcodedStrings(root = ROOT) {
   const out = [];
   for (const path of walk(join(root, 'src'))) {
@@ -64,8 +43,6 @@ export function hardcodedStrings(root = ROOT) {
     const text = readFileSync(path, 'utf8');
     let ast;
     try { ast = parse(text, { ecmaVersion: 'latest', sourceType: 'module', locations: true }); } catch { continue; }
-    // L10N4: a top-level const whose name a text-core call takes (`t('k', NO_PARTY_TEXT)`, `localizedText('k', X)`) is
-    // that call's English - routed where it is read, so its words are not counted where they are written
     const routedNames = new Set();
     (function find(n) {
       if (!n || typeof n.type !== 'string') return;
@@ -109,7 +86,6 @@ export function hardcodedStrings(root = ROOT) {
   return out;
 }
 
-/** The counts, file by file. */
 export function hardcodedCounts(root = ROOT) {
   const counts = {};
   for (const s of hardcodedStrings(root)) counts[s.file] = (counts[s.file] ?? 0) + 1;

@@ -1,15 +1,5 @@
-// THE ECLIPSE VAULT, BAKED - the Shade's hero chamber, through the bake every authored fragment goes through.
-//
-//     node tools/bakeEgHeroEclipse.mjs [--fbx=src/assets/egfrags/source/egheroEclipse.fbx]
-//
-// EG-HERO (2026-10-13, the owner: "You have to author the fragments"; bible/11-Multiplayer/Elite-Gates.md section 11.6:
-// "each fragment its own bake script and byte-for-byte test, as every bake in the port has"). The scene is the port's own
-// (tools/egHeroEclipseScene.mjs writes it); the bake is tools/fragBake.mjs's, the reference's script's shape
-// (tools/bakeEgRefFrag.mjs). Its SPEC says what the scene cannot: which fragment it is (`id`), its library kit (the Eclipse
-// Vault - its band, reverb, light and engine follow, net/eliteGates/egFragLaw.js EG_FRAGS), its class (a chamber), which hero of the
-// kit it is (`variant` 'eclipse' - a hero a hall may lay, never the reference), and its play (section 11.4, EG_PLAYS: a
-// second fight floor on two stairs where Casters stand - the two galleries - and an engine, the Moon-Mirror). The two halves land beside the source: `LAW` (registered in net/eliteGates/egHeroFrags.js) and `MESH` (registered in
-// world/eliteGates/egHeroFragModel.js), each held to its bytes by test/tooling/eghero_shade.test.js.
+// Bakes the Eclipse Vault hero chamber's LAW and MESH from its committed FBX through tools/fragBake.mjs.
+// Run with `node tools/bakeEgHeroEclipse.mjs [--fbx=src/assets/egfrags/source/egheroEclipse.fbx]`.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { bakeFrag, fragJson } from './fragBake.mjs';

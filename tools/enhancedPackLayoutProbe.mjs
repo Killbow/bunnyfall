@@ -1,39 +1,5 @@
-// PX31 - THE PACK'S LAYOUT, MEASURED IN A REAL BROWSER.
-//
-// PX31 is a MEDIA QUERY and node cannot see one, so this is its only
-// pin. It is deliberately a NEW probe rather than more checks bolted
-// onto enhancedPackProbe.mjs, whose body still asserts the U53 slot
-// map (`.node`, `.node.filled`) that PX19d and PX20a replaced with the
-// worn map - a separate rot with its own repair, and not something to
-// bury inside a layout slice.
-//
-// Every number here was MEASURED on the shipped screen before the
-// change, because the reverted 2026-08-31 pack attempt picked 74px and
-// 820px against a fixture page and both were wrong in play. At
-// 1440x900, 1920x1080 and 1280x720 - all identical, since .pack-win is
-// min(660px, 94dvh) and the cap binds on every desktop - the window
-// was 1040x660, the title bar 62, the character region 400, the tab
-// strip 38, and the item list was left A 116px VIEWPORT.
-//
-// The checks are GEOMETRIC on purpose. They ask where the dock is and
-// how much the list got, not what a rule says, so each one fails when
-// the breakpoint is disabled rather than when a selector is renamed.
-//
-// PACK-PHONE (FIELD BUGS 2026-09-30, "Still can't use my bag/Inventory on mobile"): THE PHONE, WITH ITS DOLL. The
-// phone case below measured a Pixel 5 with no ARENA2 behind the page - no doll art - and the stacked list with the art
-// was 0px: a phone on its side (915x412) could reach none of its tiles, and upright (412x915) the worn panels' columns
-// came to 0px and the list to 8px. The container still has no ARENA2, so the page stands the art in: a 440x736 figure
-// (the classic doll's 110x184 at paperDollDataUrl's 4x) wherever the pack draws its Avatar plaque, repainted with every
-// render. For each phone this reads the list a finger has, whether every tile in its first row and Close and Body are
-// the topmost thing at their centres, that the body is hidden until Body and capped when shown, that the worn panels
-// keep their width, and that a worn piece is still a tap from its card and its Take off; a tablet and a narrow mouse
-// window keep the figure, capped; the desk is PX31's and keeps its doll whole. The probe no longer boots the game:
-// the front door it clicked through ('.doorbtn') is gone, so like tools/cardFitProbe.mjs it draws the REAL pack
-// (ui/inventoryDoor.js createInventoryWindow) on a page of its own, on VITE'S OWN DEV SERVER (tools/qs3Probe.mjs's
-// reason).
-//
-//     node tools/enhancedPackLayoutProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/enhancedPackLayoutProbe.mjs     -> reuse a dev server already listening there
+// Measures the pack layout at desktop, tablet, and phone sizes and writes screenshots and a report.
+// Run: node tools/enhancedPackLayoutProbe.mjs (shots in tools/shots/ or SHOT_DIR); PROBE_PORT=<n> reuses a server.
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -44,7 +10,6 @@ import { createServer } from 'vite';
 const ROOT = normalize(join(dirname(fileURLToPath(import.meta.url)), '..'));
 const PAGE_NAME = 'packlayout.tmp.html';
 const OUT = process.env.SHOT_DIR ?? join(ROOT, 'tools/shots');
-/** Two rows of a phone's 56px tiles and their gaps: the least list a player can scan. */
 const LIST_FLOOR = 120;
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PACK layout probe</title>
@@ -146,13 +111,13 @@ globalThis.__ready = true;
 const touch = { isMobile: true, hasTouch: true, deviceScaleFactor: 1 };
 const PHONES = [
   { name: 'phone-side-915x412', viewport: { width: 915, height: 412 } },
-  { name: 'phone-side-bars-915x340', viewport: { width: 915, height: 340 } },   // the same phone less Chrome's bars
+  { name: 'phone-side-bars-915x340', viewport: { width: 915, height: 340 } },
   { name: 'phone-side-740x360', viewport: { width: 740, height: 360 } },
   { name: 'phone-412x915', viewport: { width: 412, height: 915 } },
   { name: 'phone-bars-412x780', viewport: { width: 412, height: 780 } },
   { name: 'phone-small-360x640', viewport: { width: 360, height: 640 } },
 ];
-const FIGURES = [   // stacked, the figure kept and capped: a tablet upright, a narrow mouse window
+const FIGURES = [
   { name: 'tablet-768x1024', ctx: { viewport: { width: 768, height: 1024 }, ...touch } },
   { name: 'window-900x700', ctx: { viewport: { width: 900, height: 700 } } },
 ];
@@ -185,29 +150,16 @@ async function open(ctxOpts, count, art) {
 const fmt = (m) => `list ${Math.round(m.list)}px, first row ${m.firstRowReach}/${m.firstRow} reachable, doll ${m.doll?.shown ? `${Math.round(m.doll.w)}x${Math.round(m.doll.h)}` : 'hidden'}, panels ${Math.round(m.cellMinW)}px wide at least`;
 
 async function desk(label, viewport) {
-  // PX31's own checks, with the doll's art stood in - the desk is not the phone's rule and keeps its figure whole
   const { ctx, page, errors } = await open({ viewport }, 40, true);
   const m = await page.evaluate(() => globalThis.__measure());
   console.log(`${label}: ${fmt(m)}`);
-  // THE DOCK IS A COLUMN BESIDE THE REGION. Stacked, it begins below
-  // the region's bottom; as a column it shares the region's top and
-  // starts at its right edge. This is the check the breakpoint owns,
-  // and it is the one that dies when the breakpoint does.
   check(`${label}: the dock is a COLUMN beside the character region`,
     m.dock.x >= m.main.r - 2 && Math.abs(m.dock.y - m.main.y) <= 4,
     `dock x${Math.round(m.dock.x)} y${Math.round(m.dock.y)}, region right ${Math.round(m.main.r)} y${Math.round(m.main.y)}`);
-  // AND IT WAS WORTH DOING. 116 is the measured before and 483 is
-  // what shipped; the floor sits between them, well clear of both,
-  // so the pin holds a LAW rather than a font's rounding.
   check(`${label}: the item list clears the dock's old ceiling`, m.list >= 380, `${Math.round(m.list)}px viewport (116 stacked)`);
-  // THE REGION FILLS THE COLUMN IT WAS GIVEN - no dead glass under what
-  // stands last in it (PLUS11: the accessory shelf, where PX21a's
-  // transport strip stood when this was written).
   check(`${label}: no dead glass under the accessory shelf`, m.charcol.b - m.shelf.b <= 40, `${Math.round(m.charcol.b - m.shelf.b)}px of slack`);
-  // PX31's NINE PAGES, three by three, all inside the box.
   check(`${label}: the tab strip is a 3x3 and stays in its box`,
     m.tabs === 9 && m.tabRows === 3 && m.tabCols === 3 && m.tabsInside, `${m.tabs} tabs, ${m.tabRows}x${m.tabCols}, inside=${m.tabsInside}`);
-  // PACK-PHONE: the desk keeps its figure whole (it is height-driven in rows of 1fr, never the phone's cap) and no Body
   check(`${label}: the figure stands whole, no Body button`, m.doll.shown && m.doll.art && m.doll.h > 300 && !m.body?.shown,
     `doll ${Math.round(m.doll.h)}px tall, body button ${m.body?.shown ? 'shown' : 'hidden'}`);
   await page.screenshot({ path: join(OUT, `packlayout-${label}.png`) });
@@ -229,13 +181,11 @@ async function phone(label, ctxOpts) {
   check(`${label}: nothing of the region runs past it sideways`, m.sideways <= 1, `${Math.round(m.sideways)}px`);
   check(`${label}: a list of forty scrolls inside the dock`, m.listScrolls);
   await page.screenshot({ path: join(OUT, `packlayout-${label}.png`) });
-  // the item count never sizes the region: the same pack with five items
   const many = m.main.h;
   await page.evaluate(() => globalThis.__open(5, true));
   await settle(page);
   const few = (await page.evaluate(() => globalThis.__measure())).main.h;
   check(`${label}: the region is the same height with five items as with forty`, Math.abs(few - many) <= 1, `${Math.round(few)} / ${Math.round(many)}`);
-  // Body shows it, capped; the list keeps its floor
   await page.evaluate(() => globalThis.__body());
   await settle(page);
   m = await page.evaluate(() => globalThis.__measure());
@@ -246,7 +196,6 @@ async function phone(label, ctxOpts) {
     `${Math.round(m.cellMinW)}px panels, ${Math.round(m.list)}px list`);
   check(`${label}: and nothing of the region runs past it sideways`, m.sideways <= 1, `${Math.round(m.sideways)}px`);
   await page.screenshot({ path: join(OUT, `packlayout-${label}-body.png`) });
-  // hidden again: a worn piece is still a tap from its card, and its Take off takes it off
   await page.evaluate(() => globalThis.__body());
   await settle(page);
   const t = await page.evaluate(() => globalThis.__wornTap());
@@ -274,12 +223,8 @@ async function figure(label, ctxOpts) {
 
 try {
   await writeFile(join(ROOT, `tools/${PAGE_NAME}`), PAGE);
-  // The three desktop sizes measured identical, because the window is
-  // capped at 660 on all of them - so the narrow one is the interesting
-  // one: it is the closest to the 1000px breakpoint that still takes it.
   await desk('1440x900', { width: 1440, height: 900 });
   await desk('1280x720', { width: 1280, height: 720 });
-  // THE PHONE: PX31's Pixel 5 (it measured one with no doll), and the phones the report's screenshots are
   for (const p of [{ name: 'pixel5', ctx: devices['Pixel 5'] }, ...PHONES.map((v) => ({ name: v.name, ctx: { viewport: v.viewport, ...touch } }))]) {
     await phone(p.name, p.ctx);
   }

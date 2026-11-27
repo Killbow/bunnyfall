@@ -17,6 +17,7 @@ files:
   - src/characters/foeLook.js
   - src/underwater/oceanHolesAbyss.js
   - src/net/professionLaw.js
+  - tools/dexExtract.mjs
 routes: []
 tables: []
 replacesBible:
@@ -35,6 +36,7 @@ invariants:
 traps:
   - "`processAbyssEnemy` in `src/underwater/oceanHolesAbyss.js` treats only IDs `128-146` as humanoid classes, so custom classes `384-398` follow the monster branch there."
   - "Mounted rider classes listed in `NO_RIDE` (`src/mods/enemyExpansion/dexBodies.js`) always keep their 2D sprites rather than switching to 3D person bodies."
+  - "`tools/dexExtract.mjs` counts a picture as traced when its alpha outline overlaps a `TEXTURE` frame's outline at an IoU of at least `SILHOUETTE_IOU` (0.6). It refuses any archive whose traced share reaches `SILHOUETTE_TRACED` (0.25) unless `REPAINTED_ARCHIVES` or `SILHOUETTE_ALLOWED` lists it, and it also refuses a listed archive that the measure does not flag."
 dfu:
   - vendor/daggerfall-enemy-expansion/Scripts/BestiaryMod.cs
   - vendor/daggerfall-enemy-expansion/Scripts/BestiaryTextProvider.cs

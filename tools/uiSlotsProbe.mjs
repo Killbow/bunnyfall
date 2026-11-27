@@ -1,25 +1,7 @@
-// UI1 (2026-09-27, the Plus UI pass - bible/10-UI/Slots-Hotbar-Status.md; Mac: "make the actual inventory plots have
-// the rarity frame with sprites enlarged properly, instead of the inventory icon just plopping into a slot") - THE
-// SLOTS, DRAWN FROM THE REAL ARENA2 AND MEASURED.
-//
-// A pin can say the tile asks for a fitted picture and the sheet sizes the well; only a layout engine with the real
-// records can say the sprite FILLS its well, is drawn at exactly the size it was made (the page resamples nothing), and
-// that the corners - the key, the rune, the pips, the count, the padlock, the wear bar - do not land on each other. So
-// the REAL pack (ui/inventoryDoor.js createInventoryWindow, the enhanced skin) is drawn here over the real sheets with a
-// kit of every kind of picture the game mints - a staff (141px tall), a longsword (88x29), a cuirass, a helm, gems
-// (11px), rings, potions, ingredients, arrows, a torch, a book, clothing - in every tier, one locked, one worn down,
-// stacks of three sizes, and a loot pile beside it. At a desktop (1x and 2x), a laptop (1.25x) and a phone (2.625x):
-//   - every grid slot is 64px (56 on the phone) around a 52px (44) well, five or more a row (six on a 393px phone);
-//   - every picture is a fitted one: its bitmap is its drawn size times the device ratio (no resampling by the page),
-//     its longest side at least three quarters of the box (or the cap's reach for a gem), never past it;
-//   - a stack wears its count, bottom right, clear of the padlock and the wear bar;
-//   - the hover card, the loot rows, the worn panels, the shelf and the drag ghost draw fitted pictures too.
-// Every state is photographed.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER, whose /arena2/ mount serves the local game data (never the repo's).
-//
-//     node tools/uiSlotsProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/uiSlotsProbe.mjs     -> reuse a dev server already listening there
+// Draws the enhanced inventory with every kind of item picture at several sizes and checks slot sizes and fit.
+// It runs on a Vite dev server whose /arena2/ mount serves local game data.
+// Usage: `[SHOT_DIR=<dir>] [PROBE_PORT=<n>] node tools/uiSlotsProbe.mjs`
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -168,14 +150,12 @@ try {
     const page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    // a page under tools/ asks for ./arena2/ relatively: the dev server's one mount answers it
     await page.route('**/tools/arena2/**', (route) => route.continue({ url: route.request().url().replace('/tools/arena2/', '/arena2/') }));
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => typeof globalThis.__openPack === 'function', null, { timeout: 90000 });
     await page.evaluate(() => globalThis.__openPack(false));
     const tag = `${v.name}`;
-    // EVERY PAGE OF THE PACK, one after another: each picture made (the pack repaints as each lands), then read
-    await page.waitForFunction(() => globalThis.__tabs().length > 0, null, { timeout: 60000 });   // the pack mounts after its module loads
+    await page.waitForFunction(() => globalThis.__tabs().length > 0, null, { timeout: 60000 });
     const tabs = await page.evaluate(() => globalThis.__tabs());
     const all = { rows: [], perRow: 99, phone: false, dpr: v.dpr, want: 0 };
     for (let i = 0; i < tabs.length; i++) {
@@ -188,7 +168,7 @@ try {
       const gi = await page.evaluate(() => globalThis.__grid());
       if (!gi.rows.length) continue;
       Object.assign(all, { phone: gi.phone, want: gi.want, dpr: gi.dpr });
-      if (gi.rows.length >= 7) all.perRow = Math.min(all.perRow, gi.perRow);   // a page with a row to fill
+      if (gi.rows.length >= 7) all.perRow = Math.min(all.perRow, gi.perRow);
       all.rows.push(...gi.rows.map((r) => ({ ...r, tab: tabs[i] })));
       if (v.name === 'desktop-1x' || v.name === 'desktop-2x' || v.isMobile) {
         await page.locator('#enhanced-inventory .pack-dock').screenshot({ path: join(OUT, `ui1-grid-${tag}-tab${i}.png`) }).catch(() => {});
@@ -213,7 +193,6 @@ try {
     const stacks = g.rows.filter((r) => /×\d+/.test(r.name ?? ''));
     check(`${tag}: every stack wears its count (${stacks.length})`, stacks.length >= 5 && stacks.every((r) => r.count && r.name.endsWith(`×${r.count.text}`)),
       stacks.filter((r) => !r.count || !r.name.endsWith(`×${r.count.text}`)).map((r) => r.name).join(', '));
-    // the corners: the count clear of the padlock (a locked stack) and lifted over the wear bar
     const lockedStacks = g.rows.filter((r) => r.count && r.locked);
     check(`${tag}: a locked stack's count stands clear of the padlock (${lockedStacks.length})`, lockedStacks.every((r) => r.row.x + r.row.w - (r.count.box.x + r.count.box.w) >= 14));
     console.log(`     fills: ${pics.map((r) => `${r.name.replace(/ ×\d+/, '')}=${(r.pic.fill * 100).toFixed(0)}%${r.pic.css ? `(${r.pic.nat.join('x')})` : ''}`).join(', ')}`);
@@ -230,7 +209,6 @@ try {
       check(`${tag}: the ${k} wells stand inside their panels`, o[k].every((p) => p.tile.y >= p.row.y - 0.5 && p.tile.y + p.tile.h <= p.row.y + p.row.h + 0.5 && p.tile.x + p.tile.w <= p.row.x + p.row.w + 0.5));
       console.log(`     ${k}: ${o[k].map((p) => `${p.name.slice(0, 12)} well ${p.tile.w.toFixed(0)}x${p.tile.h.toFixed(0)} inner ${p.inner.map((x) => x.toFixed(0)).join('x')} pic ${p.css.map((x) => x.toFixed(1)).join('x')} nat ${p.nat.join('x')}${p.resampled ? ' RESAMPLED' : ''} in ${p.row.w.toFixed(0)}x${p.row.h.toFixed(0)}`).join(' | ')}`);
     }
-    // the hover card, over the longsword's neighbour in the pack (a staff: the tallest record)
     if (!v.isMobile) {
       await page.evaluate(() => globalThis.__hoverName('Staff'));
       await page.waitForFunction(() => globalThis.__card()?.nat?.[0] > 0, null, { timeout: 20000 }).catch(() => {});
@@ -238,7 +216,6 @@ try {
       check(`${tag}: the hover card's picture is fitted, unresampled, its box filled`, !!c && c.fit && !c.resampled && c.fill > 0.74 && c.fill <= 1.001, JSON.stringify(c));
       await page.locator('.inv-tip').screenshot({ path: join(OUT, `ui1-card-${tag}.png`) }).catch(() => {});
       await page.evaluate(() => document.querySelectorAll('.inv-tip').forEach((n) => n.remove()));
-      // the drag ghost: a held press carried off a slot
       const row = page.locator('#enhanced-inventory .pack-dock .itemrow').nth(2);
       const rb = await row.boundingBox({ timeout: 5000 }).catch(() => null);
       if (!rb) { check(`${tag}: a slot to carry`, false); await ctx.close(); continue; }
@@ -251,7 +228,6 @@ try {
       await page.keyboard.press('Escape');
       await page.mouse.up();
     }
-    // the loot window beside the pack: a pile's rows, each its picture fitted to the row's box
     await page.evaluate(() => { globalThis.__closePack(); globalThis.__openPack(true); });
     await page.waitForFunction(() => { const o = globalThis.__others(); return o.loot.length >= 5 && o.loot.every((p) => p.nat[0] > 0); }, null, { timeout: 30000 }).catch(() => {});
     const lo = await page.evaluate(() => globalThis.__others());

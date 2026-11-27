@@ -1,9 +1,4 @@
-// The game-side runtime (src/poi/poiDmRuntime.js) on the example POI, offline (no realm session): a trigger zone starts
-// the ambush, the foes fall and the gate opens; the supplier's trade moves the real pack; a walker reports its waypoints.
-// The encounters' lifecycle: enemies are taken away on a reset or a take-down through the outdoor pool's own removal; a
-// passive encounter's enemies stand non-hostile; the completion rules count only the enemies that stood, and a survival
-// timer counts only the time the player spends in the encounter's area. Online, a settle that failed is reported by its
-// cause.
+// Tests the game-side POI runtime on the example POI, offline. Run: node --test tools/poiDmRuntime.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -75,7 +70,7 @@ test('objects become targets the Use key reaches', async () => {
   assert.ok(!xs.some((x) => x.key.endsWith(':ambush-zone')), 'a trigger zone is no object');
 });
 
-/** Step into the ambush zone so the encounter spawns its enemies. @param {ReturnType<typeof setup>} w */
+/** @param {ReturnType<typeof setup>} w */
 async function ambush(w) {
   await w.step(); await w.step();
   w.at([30, 0, 0]);
@@ -86,7 +81,6 @@ test('an encounter ended by an event takes its standing enemies away', async () 
   const w = setup();
   await ambush(w);
   assert.equal(w.foes.length, 5);
-  // what end_encounter does
   w.rt.modelOf(w.doc.id).encounters.ambush = 'idle';
   await w.step();
   assert.deepEqual(w.removed, w.foes);
@@ -180,11 +174,9 @@ test('timer survived: the time counts only while the player is in the encounter\
   const w = setup((d) => { d.encounters[0].complete = { rule: 'timer_survived', seconds: 1 }; });
   await ambush(w);
   const dm = w.rt.modelOf(w.doc.id);
-  // far away
   w.at([5000, 0, 5000]);
   for (let i = 0; i < 10; i++) await w.step(0.5);
   assert.equal(dm.encounters.ambush, 'active', 'five seconds away from it count nothing');
-  // back inside its 20 m
   w.at([35, 0, 10]);
   await w.step(0.5);
   assert.equal(dm.encounters.ambush, 'active', 'half a second there');

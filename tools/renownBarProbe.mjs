@@ -1,29 +1,7 @@
-// RENOWN-BAR (2026-09-26, Mac: "with the new renown xp bar, I want to remove the xp amount on the lefthand side and
-// integrate it into the bar itself, then center the bar properly"; then "Actually lets just keep the other bar and
-// remove the xp. Just have it visible in the player profile") - THE HUD'S RENOWN ROW, DRAWN AND MEASURED.
-//
-// Whether a bar is centred is a thing about pixels: a pin can say the row's rule reads `grid` with two equal outer
-// columns, and only a layout engine can say the bar's middle IS the vitals' middle. So the REAL HUD is drawn here
-// (ui/enhanced/enhancedHud.js's drawEnhancedHud over the real sheets, the enhanced skin - Plus is its only dress) with a Renown
-// the page hands it through ui/hud/hudRenown.js's own seam, at a desktop, a laptop and a phone both ways up, and for each
-// Renown state - a level part-way (with XP earned and not yet answered), a level's start, a level's last XP, the cap,
-// and a level with no total yet (the box alone) - it reads:
-//   - UI3 (2026-09-27, Mac: "more space for the XP bar and being able to fit the XP amounts inside"): THE NUMBERS IN
-//     THE BAR - the level's credit over its span ("Highest" at the cap), inside the track and on one line, never
-//     beside it; none with no total;
-//   - THE BAR IS CENTRED: the track's middle within 1px of the vitals row's middle (the health bar's - the screen's);
-//   - THE VITALS' HEIGHT: a 20px track, as tall as a vital's, inside the row's 22px (the HUD's boxes count their frame);
-//   - the level's box stands clear of the track, and the row is on the screen.
-// Each state's row is photographed. Before RENOWN-BAR it read the bar 42px left of the vitals' middle (57px at the
-// widest numbers), the numbers beside it; RENOWN-BAR took the numbers off and kept the bar thin while the status row
-// stood under it.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (tools/qs3Probe.mjs's reason).
-//
-//     node tools/renownBarProbe.mjs                  -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/renownBarProbe.mjs   -> reuse a dev server already listening there
-//     NOFONTS=1 node tools/renownBarProbe.mjs        -> offline: the sheet's fallback faces, not the web fonts (the
-//                                                       widths it reports are then the fallback's)
+// Draws the real HUD's Renown row at several screen sizes and states and checks that the bar is centered.
+// It runs on the Vite dev server for the same reason as tools/qs3Probe.mjs. Run: node tools/renownBarProbe.mjs
+// (SHOT_DIR for shots, PROBE_PORT=<n> to reuse a dev server, NOFONTS=1 for the offline fallback fonts).
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -100,7 +78,7 @@ try {
     page.on('pageerror', (err) => fails.push(`${v.name}: page error ${err.message}`));
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced${process.env.NOFONTS ? '&nofonts' : ''}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => typeof globalThis.__measure === 'function' && !!document.querySelector('.hud-renown'), null, { timeout: 60000 });
-    // the box's width is its FACE's: wait for the web fonts the page asked for (a face that never came says so)
+    // Box widths depend on the font face, so wait for the web fonts the page asked for.
     const face = await page.evaluate(async () => {
       const link = document.getElementById('dagger-enhanced-fonts');
       if (link && !link.sheet) await new Promise((res) => { link.addEventListener('load', res, { once: true }); link.addEventListener('error', res, { once: true }); setTimeout(res, 15000); });

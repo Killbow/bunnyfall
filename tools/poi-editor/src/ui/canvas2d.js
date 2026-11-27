@@ -1,9 +1,5 @@
 // @ts-check
 
-// The 2D canvas: the selected flat picture shown as the game draws it, on a backdrop you choose, with zoom and pan, a
-// pixel grid, and the tools that belong to a picture: set its pivot by clicking, mirror it, turn it, send it forward or
-// back in the layer stack. Every change is one poiEdit step (one undo). The picture is the game's own palette picture.
-
 import { h, clear } from './dom.js';
 import { find } from '../scene.js';
 import { isMirrored, setMirrored, turnFlat, pivotAt, setPivot, PIVOT_PRESETS, layerStack, shiftLayer, layerEnd } from '../flat2d.js';
@@ -24,7 +20,6 @@ export function createCanvas2d({ host, arena, getDoc, getSel, catalogue, edit, d
   const v = { zoom: 4, x: 0, y: 0, grid: true, backdrop: 'checker', snap: 'pixel', tool: /** @type {'pan' | 'pivot'} */ ('pan'), asPlaced: true };
   /** @type {{ x: number, y: number } | null} */ let drag = null;
   /** @type {{ x: number, y: number } | null} */ let cursor = null;
-  /** The picture on screen right now, for hit tests: where it sits and its size. */
   let shown = /** @type {{ left: number, top: number, z: number, pic: any, id: string, mirrored: boolean } | null} */ (null);
   let readout = '';
 
@@ -37,7 +32,6 @@ export function createCanvas2d({ host, arena, getDoc, getSel, catalogue, edit, d
     return null;
   }
 
-  // ── view input ──
   canvas.addEventListener('wheel', (e) => { e.preventDefault(); v.zoom = Math.max(0.5, Math.min(40, v.zoom * (e.deltaY > 0 ? 0.9 : 1.1))); paint(); }, { passive: false });
   canvas.addEventListener('pointerdown', (e) => {
     if (v.tool === 'pivot' && e.button === 0 && !e.shiftKey && shown) { pickPivot(e); return; }
@@ -52,7 +46,6 @@ export function createCanvas2d({ host, arena, getDoc, getSel, catalogue, edit, d
   canvas.addEventListener('pointerup', () => { drag = null; });
   canvas.addEventListener('pointerleave', () => { cursor = null; paint(); });
 
-  /** The picture pixel under a screen point (picture pixels from the top-left, as the picture stands unmirrored), or null. */
   function pixelAt(sx, sy) {
     if (!shown) return null;
     let px = (sx - shown.left) / shown.z; const py = (sy - shown.top) / shown.z;
@@ -69,7 +62,6 @@ export function createCanvas2d({ host, arena, getDoc, getSel, catalogue, edit, d
     run('set pivot', (d) => { const g = find(d, shown?.id ?? ''); if (g) setPivot(g.row, pv); });
   }
 
-  // ── tool bar ──
   function renderBar() {
     clear(bar);
     const f = selected(), flat = f?.kind === 'flat' ? f : null;
@@ -103,7 +95,7 @@ export function createCanvas2d({ host, arena, getDoc, getSel, catalogue, edit, d
     clear(stack);
     const d = getDoc();
     if (!d) return;
-    const rows = layerStack(d).reverse();   // front first, as a layer list reads
+    const rows = layerStack(d).reverse();
     stack.append(h('div', { class: 'c2d-title', text: 'Layers (front first)' }));
     if (!rows.length) stack.append(h('div', { class: 'c2d-empty', text: 'No flat pictures yet.' }));
     for (const r of rows) stack.append(h('button', { class: `c2d-row ${getSel().includes(r.id) ? 'on' : ''}`, title: r.name, on: { click: () => select([r.id], 'set') } }, h('span', { text: String(r.layer), class: 'n' }), ` ${r.name}`));
@@ -141,13 +133,11 @@ export function createCanvas2d({ host, arena, getDoc, getSel, catalogue, edit, d
     if (mirrored) { ctx.save(); ctx.translate(left + w, top); ctx.scale(-1, 1); ctx.drawImage(bmp, 0, 0, w, hh); ctx.restore(); } else ctx.drawImage(bmp, left, top, w, hh);
     if (v.grid && z >= 6) { ctx.strokeStyle = 'rgba(255,255,255,0.08)'; for (let x = 0; x <= pic.width; x++) { ctx.beginPath(); ctx.moveTo(left + x * z, top); ctx.lineTo(left + x * z, top + hh); ctx.stroke(); } for (let y = 0; y <= pic.height; y++) { ctx.beginPath(); ctx.moveTo(left, top + y * z); ctx.lineTo(left + w, top + y * z); ctx.stroke(); } }
     ctx.strokeStyle = '#ffb347'; ctx.strokeRect(left, top, w, hh);
-    // the pivot is a fraction of the picture as stored; a mirrored picture shows it mirrored too
     const pv = f.row.pivot ?? [0.5, 1], px = mirrored ? 1 - pv[0] : pv[0];
     const ax = left + px * w, ay = top + pv[1] * hh;
     ctx.strokeStyle = '#ffb347'; ctx.beginPath(); ctx.moveTo(ax - 10, ay); ctx.lineTo(ax + 10, ay); ctx.moveTo(ax, ay - 10); ctx.lineTo(ax, ay + 10); ctx.stroke();
     ctx.fillStyle = '#ffb347'; ctx.beginPath(); ctx.arc(ax, ay, 4, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
-    // the pixel under the pointer: where it is and the colour the game draws there
     readout = '';
     if (cursor) {
       const p = cursor ? pixelAt(cursor.x, cursor.y) : null;

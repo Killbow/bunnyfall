@@ -21,6 +21,7 @@ invariants:
   - "Camera focus eases at `TV_FOCUS_RATE` (`10`) and snaps immediately when lag exceeds `TV_FOCUS_SNAP` (`60` m)."
   - "Billboards pitch back by `TV_BILLBOARD_LEAN` (`0.5`) of the camera tilt, and movement keys steer the player at `TV_TURN_RATE` (`6` rad/s)."
   - "Pointer presses moving less than `TV_CLICK_SLOP` (`6` px) trigger a world pick, while larger drags orbit the camera."
+  - "`invert4` lives in `src/player/tapRay.js` and not in `src/world/mat4.js` because `mat4.js` ships in the relay's bundle; the automap pick imports it from `tapRay.js`."
 traps:
   - "Ground picking marches built terrain only out to `TV_PICK_MAX` (`6000` m); clicking unbuilt tiles or water fails with a player notice."
   - "The player sprite scale (`tvOwnGrow`) expands by `1 + d / TV_OWN_GROW_M` (`32`), capped at `TV_OWN_GROW_MAX` (`12`)."

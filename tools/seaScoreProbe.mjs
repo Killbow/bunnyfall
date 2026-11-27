@@ -1,17 +1,6 @@
-// SEA-SCORE - THE SEA'S MUSIC, PLAYED BY THE GAME'S OWN PLAYER IN A REAL BROWSER, RENDERED AND MEASURED (the Warden's
-// and the Hour's probes' method, tools/gateScoreProbe.mjs, tools/sdScoreProbe.mjs).
-//
-// node holds the score's shape and its law (test/systems/soundscape/seascore.test.js); what node cannot answer is what the
-// songs SOUND like through systems/song/songPlayer.js and the FM bank: whether every second of each sounds, whether any
-// clips at the highest MusicVolume, and - the sea's own question - whether they sit where Daggerfall's own outdoor songs
-// sit, since a helm hears them in place of SUNNYDAY and its kin: never a boss's level. With the player's ARENA2 at hand
-// (ARENA2_PATH, `sh tools/fetch-data.sh`) the day, cloudy, night and rain songs of MIDI.BSA are rendered through the same
-// player and measured beside them; without it the comparison is skipped and said so.
-//
-//     node tools/seaScoreProbe.mjs [--wav <dir>] [--seconds <n>]
-//         --wav writes each render there as 16-bit WAV, normalised to -1 dBFS, for a person to listen to
-//         --seconds renders only so much of each song (default: the whole of it - AUDIT SOUNDSCAPE M4: the first cut
-//         measured 30 s, 11 to 26 bars of songs 32 to 64 long, and never heard the storm's stabs or the fight's tutti)
+// Renders each sea song through the game's song player in a browser and compares it with the classic outdoor songs.
+// Usage: ARENA2_PATH=<dir> node tools/seaScoreProbe.mjs [--wav <dir>] [--seconds <n>]
+
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -26,7 +15,6 @@ const ARENA2 = process.env.ARENA2_PATH ?? '/home/claude/dfdata/arena2';
 const MIDI_BSA = join(ARENA2, 'MIDI.BSA');
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
 const KEYS = ['calm', 'open', 'storm', 'night', 'port', 'fight'];
-/** DFU's outdoor songs a helm heard before (systems/song/songManager.js SUNNY_SONGS, CLOUDY_SONGS, NIGHT_SONGS, RAIN_SONGS). */
 const CLASSIC = ['SUNNYDAY.HMI', 'GDAY___D.HMI', 'GSUNNY2.HMI', '02.HMI', '29.HMI', 'OVERCAST.HMI', '10.HMI', 'GEERIE.HMI', 'RAINING.HMI'];
 
 const PAGE = `<!doctype html><html><body><script type=module>
@@ -101,7 +89,6 @@ try {
   await page.goto(`http://127.0.0.1:${port}/probe/`);
   await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
   const db = (x) => (x > 0 ? 20 * Math.log10(x) : -Infinity);
-  // the loudness of the whole render (its first second, the band's attack, left out) - M4: it was seconds 1 to 24 alone
   const loudness = (rms) => { const loud = rms.slice(1); return db(Math.sqrt(loud.reduce((a, b) => a + b * b, 0) / loud.length)); };
   const r = {};
   for (const key of KEYS) {
@@ -111,7 +98,7 @@ try {
     if (wavAt) writeFileSync(join(wavAt, `${key}.wav`), wav(r[key].pcm, r[key].rate));
   }
   for (const key of KEYS) check(`${key}: it plays - every second of it sounding, no NaN`, r[key].nan === 0 && r[key].rms.every((x) => x > 1e-4), r[key].rms.slice(0, 12).map((x) => db(x).toFixed(0)).join(' '));
-  // the highest MusicVolume is twice the 0.5 this renders at: +6 dB - under the clip there
+  // The highest MusicVolume doubles the 0.5 gain this renders at, which adds 6.02 dB.
   for (const key of KEYS) check(`${key}: under the clip at the highest MusicVolume`, db(r[key].peak) + 6.02 <= -1, `${(db(r[key].peak) + 6.02).toFixed(2)} dBFS at full volume`);
   check('the night under the open sea, the storm and the fight over the still sea', r.night.meanDb < r.open.meanDb && r.storm.meanDb > r.calm.meanDb && r.fight.meanDb > r.calm.meanDb,
     KEYS.map((k) => `${k} ${r[k].meanDb.toFixed(1)}`).join(', '));
@@ -129,8 +116,6 @@ try {
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const day = ['SUNNYDAY.HMI', 'GDAY___D.HMI', 'GSUNNY2.HMI'].map((n) => c[n]).filter(Number.isFinite);
     const dayDb = day.reduce((a, b) => a + b, 0) / day.length;
-    // a helm's songs inside the range of the songs they stand in for - none a boss's level over them (the Warden's war
-    // reads -15.8 dBFS) - and the open sea and landfall, which stand in for the day songs, within 2 dB of them
     for (const key of KEYS) check(`${key}: inside Daggerfall's outdoor songs (${lo.toFixed(1)} to ${hi.toFixed(1)} dBFS, a decibel over at most)`, r[key].meanDb >= lo && r[key].meanDb <= hi + 1, `${r[key].meanDb.toFixed(1)} dBFS`);
     for (const key of ['open', 'port']) check(`${key}: within 2 dB of the day songs (${dayDb.toFixed(1)} dBFS)`, Math.abs(r[key].meanDb - dayDb) <= 2, `${r[key].meanDb.toFixed(1)} dBFS`);
   }

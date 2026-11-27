@@ -1,55 +1,20 @@
-// S3c/U9: the RACE TABLE - DFU RaceTemplate (MIT Daggerfall
-// Workshop, Assets/Scripts/Game/Entities/RaceTemplate.cs:172-345)
-// verbatim for all eight playable races.
-//
-// Every race's paperdoll art follows one regular scheme. The port had
-// only ever instantiated it for Breton - the stand-in the U8f/U8g
-// records carried - and S3c/U9 shipped the other seven HERE, at
-// RACE_TEMPLATES (:109-110), which builds all eight from the scheme:
-//   background  SCBG0<n>I0.IMG
-//   male body   BODY0<n>I0.IMG (unclothed) / BODY0<n>I1.IMG (clothed)
-//   female body BODY1<n>I0.IMG / BODY1<n>I1.IMG
-//   male heads  FACE0<n>I0.CIF   female heads FACE1<n>I0.CIF
-// with n = the race's zero-based art index (Breton 0 .. Argonian 7);
-// the Races ENUM is 1-based (Breton = 1), so the two differ by one -
-// exactly the off-by-one that makes hand-written tables drift, which
-// is why this is generated from the scheme and pinned against the
-// DFU literals rather than typed out.
-//
-// Each FACE CIF carries 10 head records (verified against the
-// shipping ARENA2 data), so faceIndex is 0..9.
-//
-// Body MORPHOLOGY (ItemBuilder.GetBodyMorphology) is a SEPARATE
-// 4-value axis that armor art keys on - it lives with the armor
-// material tables, and this module names each race's morphology so
-// the two never drift apart.
+// The race table: DFU RaceTemplate data (MIT, Daggerfall Workshop) for the eight classic races, plus three extra races.
 
-// AUDIT 17f: from the single armor-material home, not through
-// paperdollArt - paperdollArt now resolves morphology THROUGH this
-// table, and the old import made that a cycle.
 import { BODY_MORPHOLOGY } from '../items/armorMaterials.js';
 
-/** EntityEnums.Races (1-based; Vampire/Werewolf/Wereboar are the
- *  transformed pseudo-races and are not selectable at chargen). */
 export const RACES = Object.freeze({
   Breton: 1, Redguard: 2, Nord: 3, DarkElf: 4,
   HighElf: 5, WoodElf: 6, Khajiit: 7, Argonian: 8,
 });
 
-/** GetBodyMorphology (ItemBuilder.cs:910-925): Argonian 0, the three
- *  elves 1, the three humans 2, Khajiit 3. */
 const MORPHOLOGY_OF = Object.freeze({
   Breton: 'Human', Redguard: 'Human', Nord: 'Human',
   DarkElf: 'Elf', HighElf: 'Elf', WoodElf: 'Elf',
   Khajiit: 'Khajiit', Argonian: 'Argonian',
 });
 
-export const FACES_PER_RACE = 10;   // records in each FACE*.CIF
+export const FACES_PER_RACE = 10;
 
-/** RaceTemplate DescriptionID / ClipID (RaceTemplate.cs:177-332).
- *  U11: the chargen race screen pops the description in a Yes/No
- *  message box, so the TEXT.RSC record has to ride the table. Note
- *  the ids are NOT in enum order - Nord is 2000, Breton 2003. */
 const DESCRIPTION_ID = Object.freeze({
   Breton: 2003, Redguard: 2002, Nord: 2000, DarkElf: 2007,
   HighElf: 2006, WoodElf: 2005, Khajiit: 2001, Argonian: 2004,
@@ -59,35 +24,16 @@ const CLIP_ID = Object.freeze({
   HighElf: 213, WoodElf: 214, Khajiit: 215, Argonian: 216,
 });
 
-/** AUDIT 18: the four RACIAL EFFECT-FLAG fields (RaceTemplate.cs:38-42)
- *  the table used to drop entirely, so SavingThrow's racial arm had
- *  nothing to read. DFCareer.EffectFlags bits (DFCareer.cs:398-408):
- *  Paralysis 1, Magic 2, Poison 4, Fire 8, Frost 16, Shock 32,
- *  Disease 64 - the same numbers spellcast.js's EFFECT_FLAGS carries,
- *  spelled out here so the leaf race table takes no import.
- *
- *  Only three playable races set anything, and each sets exactly one
- *  field: Breton ResistanceFlags = Magic (:191), Nord ResistanceFlags
- *  = Frost (:235), HighElf ImmunityFlags = Paralysis (:279). No
- *  playable race sets LowToleranceFlags, CriticalWeaknessFlags or
- *  SpecialAbilities - those stay 0, verbatim.
- *
- *  The CONSUMER is FormulaHelper.SavingThrow's player block
- *  (:1463-1476), which reads all four through SpellHasFlags BEFORE
- *  the career tolerance folds and ASSIGNS savingThrow = 100 for an
- *  immunity. That block SHIPPED in src/systems/spellcast.js (:80-86
- *  reads all four channels through spellHasFlags - AUDIT 23 corrected
- *  the stale 'not written yet' routing note). */
 const RACE_EFFECT_FLAGS = Object.freeze({
-  Breton: { resistanceFlags: 2 },     // EffectFlags.Magic
-  Nord: { resistanceFlags: 16 },      // EffectFlags.Frost
-  HighElf: { immunityFlags: 1 },      // EffectFlags.Paralysis
+  Breton: { resistanceFlags: 2 },
+  Nord: { resistanceFlags: 16 },
+  HighElf: { immunityFlags: 1 },
 });
 
 const two = (n) => String(n).padStart(2, '0');
 const build = (key, artIndex) => Object.freeze({
   key,
-  name: key.replace(/([a-z])([A-Z])/g, '$1 $2'),   // DarkElf -> "Dark Elf"
+  name: key.replace(/([a-z])([A-Z])/g, '$1 $2'),
   id: RACES[key],
   artIndex,
   descriptionId: DESCRIPTION_ID[key],
@@ -128,16 +74,11 @@ export const RACE_KEYS = Object.freeze(PLAYABLE_RACE_TEMPLATES.map((r) => r.key)
 export const raceByKey = (key) => PLAYABLE_RACE_TEMPLATES.find((r) => r.key === key) ?? null;
 export const raceById = (id) => PLAYABLE_RACE_TEMPLATES.find((r) => r.id === id) ?? null;
 
-/** BUNNYFALL (2026-11-04, the owner: "a special option only for killbunny if selecting redguard as a race, but the body
- *  uses nord 9 as a skin color and head"): THE RACE A CHARACTER IS DRAWN AS - its `lookRace` where it has one (a Redguard
- *  drawn with a Nord's body and head), else its race. Every picture of a character reads this; every rule reads `race`. */
 export const LOOK_RACES = Object.freeze(['Nord']);
 export const artRaceOf = (/** @type {any} */ e) => (e?.lookRace && LOOK_RACES.includes(e.lookRace)
   ? e.lookRace : raceByKey(e?.race)?.artRace ?? e?.race ?? 'Breton');
-/** The Nord look's face: the ninth of the ten (records 0-9). */
 export const NORD_LOOK_FACE = 8;
 
-/** The paperdoll's art set for one identity. */
 export function raceArt(raceKey, gender = 'male') {
   const r = raceByKey(raceKey) ?? RACE_TEMPLATES[0];
   const male = gender !== 'female';

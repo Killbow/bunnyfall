@@ -1,15 +1,6 @@
-// M3 live probe: does CLIMBING actually climb in a real browser?
-// Boots ?world at the classic start, turns the player at a wall
-// (four compass tries - Daggerfall city has buildings in most
-// directions), HOLDS W through the real key path, and watches
-// window.__climb: the 14-unit countdown, the skill check on the
-// LIVE Climbing skill, and the capsule rising up real geometry.
-// Releasing W must abort the climb (the classic abort key).
-//
-// Frame-synced (the process doctrine): SwiftShader crawls, so every
-// wait is in FRAMES via window.__frame.
-//
-// Usage: node tools/climbProbe.mjs
+// Holds W at a wall in a real browser and checks that the climb starts, rises, and stops on release.
+// Run: node tools/climbProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -47,18 +38,15 @@ const climb = async () => JSON.parse(await page.evaluate(() => window.__climb())
 let fails = 0;
 const check = (ok, label) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`); if (!ok) fails++; };
 
-// a building DOOR is a wall with a known outward normal - stand a
-// step outside it, face square INTO the wall, and hold W (the blind
-// compass walk slid along angled walls and the 0.12 stationarity
-// gate faithfully refused the drift)
 const doors = JSON.parse(await page.evaluate(() => window.__doorSpots()));
 check(doors.length > 0, `door spots streamed (${doors.length})`);
 if (!doors.length) { await browser.close(); await server.close(); process.exit(1); }
 
 let climbed = null;
 for (const d of doors.slice(0, 8)) {
+  // A building door is a wall with a known outward normal, so the probe faces square into it.
   const stand = [d.pos[0] + d.n[0] * 1.2, d.pos[1], d.pos[2] + d.n[2] * 1.2];
-  const yaw = Math.atan2(-d.n[0], -d.n[2]);   // face INTO the wall
+  const yaw = Math.atan2(-d.n[0], -d.n[2]);
   await page.evaluate(([p, y]) => window.__pose(p[0], p[1], p[2], y, 0), [stand, yaw]);
   await waitFrames(4);
   await page.keyboard.down('KeyW');
@@ -82,8 +70,6 @@ check(!!climbed, climbed
   : 'no wall climbed in any direction');
 
 if (climbed) {
-  // the classic abort: release W -> the machine stops and the player
-  // falls back to the ground
   await page.keyboard.up('KeyW');
   const released = await waitFrames(0, async () => {
     const c = await climb();

@@ -1,12 +1,3 @@
-// G6 probe: the knightly smith's gift and the Spymaster's greeting,
-// in a live guild hall.
-//
-// The unit tests drive the ladder and the choose-one mode over
-// fixtures; this proves the HOST half - that the two destinations
-// reach something (both were FLAGGED nulls), that the gift really
-// opens THIS host's inventory over a reward pile, that taking one
-// piece puts it in the real pack and claims the rank, and that the
-// smith then refuses.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -44,7 +35,6 @@ for (let i = 0; i < doors.length && !inside; i++) {
 if (!inside) fail('could not get inside any building');
 console.log('inside:', await page.evaluate(() => window.__building()));
 
-// GUILD_GROUPS.KnightlyOrder - the order the smith belongs to.
 console.log('member:', await page.evaluate(() => window.__joinGuild(window.__knightlyGroup, 4, window.__knightlyFaction)));
 
 console.log('\n== THE SMITH OFFERS ==');
@@ -56,7 +46,6 @@ if (!inv) fail('guildServiceReceiveArmor did not open an inventory - the G6 rout
 console.log('reward pile:', inv.remote.length, JSON.stringify(inv.remote));
 if (inv.remote.length < 4 || inv.remote.length > 7) fail(`four to seven pieces, got ${inv.remote.length}`);
 if (inv.mode !== 'remove') fail(`choose-one opens in Remove mode, got ${inv.mode}`);
-// rank 4 -> Dwarven (Iron + 4)
 if (!inv.remote.every((p) => p.m === inv.remote[0].m)) fail('one gift, one material');
 console.log('material:', inv.remote[0].m, '(Iron + rank 4 = Dwarven 516)');
 if (inv.remote[0].m !== 516) fail(`expected Dwarven 516 at rank 4, got ${inv.remote[0].m}`);

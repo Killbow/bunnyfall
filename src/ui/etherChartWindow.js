@@ -103,11 +103,11 @@ export const CHART_KEY = Object.freeze([
   keyRow('port', () => t('sea.chart.key.port', 'Port')), keyRow('ruin', () => t('sea.chart.key.ruin', 'Ruin')),
   keyRow('wild', () => t('sea.chart.key.wild', 'Wild isle')), keyRow('rock', () => t('sea.chart.key.rock', 'Bare rock')),
   keyRow('ship', () => t('sea.chart.key.ship', 'Your ship')), keyRow('haunt', () => t('sea.chart.key.haunt', 'A legend\'s haunt')),
-  keyRow('sunk', () => t('sea.chart.key.sunk', 'A legend sunk')),
+  keyRow('sunk', () => t('sea.chart.key.sunk', 'A sunken legend')),
 ]);
 /** ETHER-WILD (2026-10-21): the key's row for Veilhaven's peace - shown while the chart's word says the open sea is an
  *  open PvP zone (`pvp`: online, at a relay that raises it), beside CHART_KEY's marks. */
-export const CHART_PEACE_KEY = keyRow('peace', () => t('sea.chart.key.peace', 'Veilhaven’s peace. Past it, open PvP'));
+export const CHART_PEACE_KEY = keyRow('peace', () => t('sea.chart.key.peace', 'Veilhaven\'s peace (open PvP beyond it)'));
 /** ETHER-WILD: the peace's colours - a safe harbour's green over the depths, apart from every isle's and haunt's. */
 export const PEACE_FILL = 'rgba(110,214,170,0.13)';
 export const PEACE_LINE = 'rgba(140,232,190,0.85)';
@@ -740,12 +740,12 @@ export function mountEtherChartWindow(host, deps) {
   ruler.setAttribute('aria-hidden', 'true');
   const canvas = /** @type {HTMLCanvasElement} */ (el('canvas', 'dfchart-map'));
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', t('sea.chart.canvas', 'A chart of {sea}: your ship, the isles you have charted, the depths, the Veil and the legends\' haunts', { sea: ETHER_SEA_NAME }));
+  canvas.setAttribute('aria-label', t('sea.chart.canvas', 'A chart of {sea}: your ship, the isles you have charted, the depths, the Veil, and the legends\' haunts', { sea: ETHER_SEA_NAME }));
   const stage = el('div', 'dfchart-stage');
   stage.append(canvas);
   const chart = el('div', 'dfchart-chart');
   chart.append(ruler, stage);
-  const hint = el('p', 'dfnaval-lede dfchart-hint', t('sea.chart.hint', 'Drag or use the arrow keys to pan. Scroll, pinch or press + and - to zoom. C finds your ship. Point at or tap an isle to see its name.'));
+  const hint = el('p', 'dfnaval-lede dfchart-hint', t('sea.chart.hint', 'Drag or use the arrow keys to pan. Scroll, pinch, or press + and - to zoom. Press C to find your ship. Hover over or tap an isle to see its name.'));
   // AUDIT CAPTAIN'S SEA X6: the window's own presses - a finger and a pad's cursor zoom and find the ship by them
   const tools = el('div', 'dfnaval-chart-tools dfchart-tools');
   const tool = (label, fn) => { const b = /** @type {HTMLButtonElement} */ (el('button', 'dfnaval-btn', label)); b.type = 'button'; b.style.minWidth = '0'; b.addEventListener('click', () => { fn(); draw(); }); tools.append(b); return b; };

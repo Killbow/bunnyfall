@@ -1,15 +1,6 @@
-// Draped garments - standoff cloth that hangs OFF the body (skirts, robes,
-// cloaks, dresses, surcoats, togas, sashes, wraps, mummy wraps). Unlike
-// body-hugging clothing (vertex displacement), each is a separate GRID
-// that the verlet cloth sim (clothSim.js) simulates + collides against the
-// body. This module owns the geometry: the measured body collider
-// (BODY_CORE), the per-garment grids (drapedGrid), and materials
-// (DRAPE_MATERIAL). Two grid kinds: ring lofts (GRIDSPEC - skirts, robes,
-// capes, tunics) and centreline strips (stripGrid - the sash).
+// Draped garments: standoff cloth grids that hang off the body and are simulated by clothSim.js.
 import { shadePiece, pushQuad } from './pieceLoft.js';
 
-// Body-core half-extents (torso+legs, NO arms), measured from the rig.
-// Drapes are clamped OUTSIDE this + a cloth standoff so they never clip.
 export const BODY_CORE = [[1.55,0.072,0.084],[1.50,0.205,0.090],[1.45,0.215,0.088],[1.40,0.215,0.096],[1.30,0.208,0.098],[1.20,0.182,0.092],[1.05,0.160,0.082],[0.95,0.168,0.088],[0.90,0.178,0.100],[0.85,0.202,0.120],[0.80,0.202,0.120],[0.75,0.194,0.114],[0.65,0.178,0.100],[0.55,0.168,0.090],[0.50,0.154,0.080],[0.45,0.158,0.088],[0.40,0.152,0.072],[0.30,0.166,0.088],[0.20,0.142,0.063],[0.10,0.137,0.050]];
 const STANDOFF = 0.038;
 export function coreHalfExtents(y) {
@@ -18,16 +9,11 @@ export function coreHalfExtents(y) {
   for (let i = 0; i+1 < BODY_CORE.length; i++) { const a = BODY_CORE[i], b = BODY_CORE[i+1]; if (y <= a[0] && y >= b[0]) { const t = (y-a[0])/(b[0]-a[0]); return [a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; } }
   return [0.2, 0.1];
 }
-// clamp a ring's rx/rz to sit outside the body core at height y
 function clip(y, rx, rz) { const [cx, cz] = coreHalfExtents(y); return [Math.max(rx, cx + STANDOFF), Math.max(rz, cz + STANDOFF)]; }
 
-
-// ---- Ring-loft grids: rings of points swept down the body -> a pinned
-// cloth mesh. Row count scales with garment length (~constant spacing).
-// flareRows: waist/chest/shoulder -> hem cones. capeRows/shawlRows: arcs. --
 function flareRows(topY, hemY, tRx, tRz, hRx, hRz) {
   const rows = [];
-  const steps = Math.max(6, Math.min(24, Math.round((topY - hemY) / 0.055)));  // ~constant ring spacing
+  const steps = Math.max(6, Math.min(24, Math.round((topY - hemY) / 0.055)));
   for (let k = 0; k <= steps; k++) { const t = k/steps, y = topY - t*(topY-hemY), e = t*t; const [rx, rz] = clip(y, tRx + e*(hRx-tRx), tRz + e*(hRz-tRz)); rows.push({ y, rx, rz }); }
   return rows;
 }
@@ -38,8 +24,6 @@ function capeRows(hemY, wide) {
   return rows;
 }
 const CAPE_ARC = [Math.PI/2 + 1.25, Math.PI/2 - 1.25 + Math.PI*2];
-// Shawl: a wide wrap sitting over the shoulders, draping the back + sides
-// + around the front (small front gap), to mid-torso. One cohesive piece.
 function shawlRows() {
   const rows = [], topY = 1.560, hemY = 1.040, steps = 10;
   for (let k = 0; k <= steps; k++) { const t = k/steps, y = topY - t*(topY-hemY), grow = Math.pow(t, 0.65);
@@ -60,25 +44,17 @@ const GRIDSPEC = {
   'Casual Cloak':    { rows: capeRows(0.450, false), wrap: false, seg: 26, arc: CAPE_ARC },
   'Formal Cloak':    { rows: capeRows(0.360, true),  wrap: false, seg: 26, arc: CAPE_ARC },
   'Wrap':            { rows: shawlRows(), wrap: false, seg: 28, arc: SHAWL_ARC },
-  // one-shoulder diagonal wrap: an arc covering ~270deg, open on one side
   'Toga':            { rows: flareRows(1.520, 0.330, 0.150, 0.115, 0.255, 0.190), wrap: false, seg: 24, arc: [Math.PI*0.12, Math.PI*0.12 + Math.PI*1.5] },
-  // sleeveless over-tunics to mid-thigh
   'Dwynnen Surcoat': { rows: flareRows(1.500, 0.600, 0.150, 0.125, 0.205, 0.170), wrap: true, seg: 24 },
   'Anticlere Surcoat': { rows: flareRows(1.500, 0.560, 0.150, 0.125, 0.208, 0.172), wrap: true, seg: 24 },
 };
 
-// ---- Strip garments: a ribbon of cloth along a centreline path -----
-// Builds a (rows x cols) grid by sweeping a width across each path point,
-// perpendicular to the path and tangent to the body surface. Supports an
-// explicit pin mask (which rows are fixed to the body). These give the
-// detailed, asymmetric drapes (scarves, sashes) the ring grids can't.
 function stripGrid(center, halfW, cols, pinRows) {
   const R = center.length, pos = new Float32Array(R * cols * 3);
   const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], cross=(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]], dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
   const norm=(a)=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
   const T = [];
   for (let r = 0; r < R; r++) T.push(norm(sub(center[Math.min(R-1,r+1)], center[Math.max(0,r-1)])));
-  // stable start frame; then PARALLEL-TRANSPORT it so the ribbon never flips
   let p0 = cross(T[0], [0,0,1]); if (Math.hypot(p0[0],p0[1],p0[2]) < 0.1) p0 = cross(T[0], [1,0,0]);
   const P = [norm(p0)];
   for (let r = 1; r < R; r++) { const prev = P[r-1], d = dot(prev, T[r]); P.push(norm([prev[0]-d*T[r][0], prev[1]-d*T[r][1], prev[2]-d*T[r][2]])); }
@@ -93,22 +69,17 @@ function stripGrid(center, halfW, cols, pinRows) {
   return { rows: R, cols, wrap: false, pos, faces, pin };
 }
 
-// Sash: a wide band from the right shoulder diagonally across the chest to a
-// knot at the left hip, then a tapering tail hanging free below the knot.
 function sashGrid() {
   const c = [
-    [0.150, 1.505, 0.095], [0.108, 1.395, 0.116], [0.048, 1.280, 0.124], [-0.020, 1.165, 0.122], // R shoulder -> chest
-    [-0.082, 1.050, 0.112], [-0.128, 0.955, 0.108],                                               // down to the waist
-    [-0.158, 0.878, 0.168], [-0.150, 0.850, 0.176], [-0.172, 0.828, 0.166],                        // KNOT: bulges forward, pinched
-    [-0.188, 0.712, 0.120], [-0.194, 0.590, 0.092], [-0.188, 0.470, 0.068], [-0.176, 0.352, 0.050], // tail, free
+    [0.150, 1.505, 0.095], [0.108, 1.395, 0.116], [0.048, 1.280, 0.124], [-0.020, 1.165, 0.122],
+    [-0.082, 1.050, 0.112], [-0.128, 0.955, 0.108],
+    [-0.158, 0.878, 0.168], [-0.150, 0.850, 0.176], [-0.172, 0.828, 0.166],
+    [-0.188, 0.712, 0.120], [-0.194, 0.590, 0.092], [-0.188, 0.470, 0.068], [-0.176, 0.352, 0.050],
   ];
-  const hw = [0.052,0.055,0.058,0.056, 0.054,0.056, 0.082,0.090,0.078, 0.050,0.044,0.040,0.052];   // knot fat, tail tapers then frays
-  return stripGrid(c, hw, 5, [0, 6, 7, 8]);   // pin shoulder + the knot rows
+  const hw = [0.052,0.055,0.058,0.056, 0.054,0.056, 0.082,0.090,0.078, 0.050,0.044,0.040,0.052];
+  return stripGrid(c, hw, 5, [0, 6, 7, 8]);
 }
 
-/** Cloth grid for a garment name: { rows, cols, wrap, pos (rows*cols*3),
- *  faces (quad indices), pin? }. Ring loft (GRIDSPEC) or centreline strip
- *  (sash). null only for an unknown name. */
 export function drapedGrid(name) {
   if (name === 'Sash') return sashGrid();
   const spec = GRIDSPEC[name];
@@ -125,10 +96,6 @@ export function drapedGrid(name) {
   }
   return { rows: R, cols, wrap, pos, faces };
 }
-// One grid quad -> a pieceLoft-convention face ({p: 12 floats, n, g}).
-// AUDIT 68 S06-draped-group-tag: g is the RIG GROUP every packer and
-// animator keys on - a drape hangs off the torso, so 'body' (it carried
-// the DRAPE_MATERIAL table itself, and packed as body only by accident).
 function facesFromGrid(g) {
   const f = []; const P = (k) => [g.pos[k*3], g.pos[k*3+1], g.pos[k*3+2]];
   for (const [a, b, c, d] of g.faces) pushQuad(f, P(a), P(b), P(c), P(d), 'body');
@@ -137,15 +104,11 @@ function facesFromGrid(g) {
 
 export const DRAPED_NAMES = [...Object.keys(GRIDSPEC), 'Sash'];
 
-/** Standoff faces for a draped garment name, shaded with `ramp`. [] if not draped. */
 export function drapedPiece(name, ramp) {
   const g = drapedGrid(name);
   return g ? shadePiece(facesFromGrid(g), ramp) : [];
 }
 
-// Per-garment MATERIAL: a colour ramp (dark->light, for the normal shade)
-// plus sheen (specular highlight -> silk/satin) and rim (edge light). Gives
-// every drape a distinct look instead of one shared grey cloth.
 export const DRAPE_MATERIAL = {
   'Short Skirt':      { ramp: [[52,44,32],[86,74,54],[122,106,78],[158,140,104],[190,174,138],[214,202,172]], sheen: 0.03, rim: 0.0 },
   'Long Skirt':       { ramp: [[30,32,20],[54,58,34],[82,86,50],[114,118,74],[150,154,106],[186,188,146]], sheen: 0.04, rim: 0.0 },

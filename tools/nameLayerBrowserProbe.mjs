@@ -1,29 +1,6 @@
-// ═══════════════════════════════════════════════════════════════════
-// THE NAME LAYER IN A REAL BROWSER (2026-09-19). The other half of
-// tools/onlinePerfProbe.mjs, and the half that can actually answer the
-// question.
-//
-// The Node probe counts DOM WRITES: with a walking, turning eye the
-// layer writes ~1.65 inline styles a name a frame, and they are `left`
-// and `top` (fontSize is rounded and barely moves - 0.007 a name a
-// frame). What Node cannot say is what those writes COST, because the
-// cost is not the assignment, it is the layout the assignment dirties.
-// `left`/`top` on an absolutely positioned element invalidate layout;
-// `transform` does not - it stays on the compositor. Whether that
-// matters at 70 names is an empirical question about Blink, so it is
-// asked of Blink.
-//
-// Chromium's own instrumentation answers it: Performance.getMetrics
-// gives LayoutDuration and RecalcStyleDuration in seconds of main
-// thread, which is exactly the quantity in dispute.
-//
-//   node tools/nameLayerBrowserProbe.mjs [names] [frames]
-//
-// The page is a STANDALONE reproduction of ui/nameLayer.js's DOM shape
-// (the .dfnames/.dfname/.dfname-tag stack and NAME_CSS's own rules) -
-// not an import, because the point is to compare two ways of moving
-// that shape and a module can only be one of them at a time.
-// ═══════════════════════════════════════════════════════════════════
+// Compares the layout cost of moving name labels by left and top against transform, in Chromium.
+// The page copies the name layer's DOM shape instead of importing it, so both ways of moving it can run.
+// Usage: node tools/nameLayerBrowserProbe.mjs [names] [frames].
 import { chromium } from 'playwright';
 
 const NAMES = Number(process.argv[2] ?? 72);
@@ -109,8 +86,6 @@ async function run(mode) {
   const after = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((m) => [m.name, m.value]));
   await browser.close();
   const d = (k) => (after[k] ?? 0) - (before[k] ?? 0);
-  // PERF-NAMES (2026-10-10): and the main thread's WHOLE work - TaskDuration, the paint and the commit with the layout
-  // and the style: the layout alone was 0.12 ms a frame here, and the layer's whole cost twenty times it
   return { layout: d('LayoutDuration') * 1000, style: d('RecalcStyleDuration') * 1000, script: d('ScriptDuration') * 1000,
     task: d('TaskDuration') * 1000, layoutCount: d('LayoutCount'), styleCount: d('RecalcStyleCount'), frames: d('Frames') };
 }

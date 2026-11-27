@@ -13,6 +13,7 @@ files:
   - server-account/src/seatRoyal.js
   - server/src/index.js
   - src/net/gateBrain.js
+  - src/net/townSeatLaw.js
 routes:
   - /v1/seats/window
   - /v1/seats/siege/sign
@@ -46,6 +47,7 @@ invariants:
   - "Team rosters cap at `SIEGE_SIDE_MAX` and `SIEGE_PLACES` (`10` palace, `20` crown) with up to `SIEGE_SPECTATORS_MAX` (`60`) spectators, reserving a disconnected fighter slot for `SIEGE_PLACE_KEPT_MS` (`5` minutes)."
   - "Attackers with zero presence for `SIEGE_FORFEIT_MS` (`10` minutes) after start forfeit automatically, and the room checkpoints state every `CHECKPOINT_MS` (`2000` ms, shared from `src/net/gateBrain.js`)."
   - "Palace holders pick battle windows between Wednesday and Saturday at `16:00` to `02:00` UTC (`SIEGE_WINDOW_DAYS`, `SIEGE_WINDOW_HOURS`), whereas crown sieges use fixed Saturday slots (`CROWN_SIEGE_SLOT` at `20:00`, `21:00`, and `22:00` UTC)."
+  - "`siegeFieldOf` reads only town records, and `siegeWorldPoint` builds points from the pixel and local meters, never the floating origin, rounded to whole units. `settleField` (`src/net/townSeatLaw.js`) prefers a field an attacker and a defender submitted alike."
 traps:
   - "Receipt tags `k1`, `s1`, and `t1` identify signed Watch, Siege (`SIEGE_RECEIPT_V`), and Royal (`ROYAL_RECEIPT_V`) receipts rather than WebSocket frame types; live traffic uses `{t: 'siege', k: ...}` frames."
   - "`battleStep` steps the authoritative simulation every `SIEGE_TICK_MS`; never trust client-reported hit damage or positions."

@@ -1,7 +1,6 @@
 // @ts-check
 
-// The viewport's camera, as pure math. Left-handed like the game and the POI frame: +x east, +y up, +z north.
-// Matrices are column-major arrays of 16, as WebGL takes them. Rays are in the POI's own frame, in metres.
+// Left-handed like the game: +x east, +y up, +z north. Matrices are column-major arrays of 16, as WebGL takes them.
 
 /** @typedef {{ mode: 'persp' | 'top' | 'front' | 'side', target: number[], yaw: number, pitch: number, dist: number, orthoH: number, fovY: number }} Camera */
 
@@ -19,17 +18,14 @@ export function createCamera() {
   return { mode: 'persp', target: [0, 1, 0], yaw: Math.PI * 0.85, pitch: 0.45, dist: 14, orthoH: 20, fovY: FOV_Y };
 }
 
-/** The eye's forward and up for the camera's mode. */
 function basis(cam) {
   if (cam.mode === 'top') return { f: [0, -1, 0], up: [0, 0, 1] };
   if (cam.mode === 'front') return { f: [0, 0, 1], up: [0, 1, 0] };
   if (cam.mode === 'side') return { f: [-1, 0, 0], up: [0, 1, 0] };
   const cp = Math.cos(cam.pitch);
-  // yaw 0 looks north; the eye sits behind the target
   return { f: norm([Math.sin(cam.yaw) * cp * -1, -Math.sin(cam.pitch), Math.cos(cam.yaw) * cp * -1]).map((v) => v), up: [0, 1, 0] };
 }
 
-/** Forward in persp mode: from the eye to the target. The eye is `target - f * dist`. */
 export function eyeOf(cam) {
   const { f } = basis(cam);
   return sub(cam.target, mul(f, cam.mode === 'persp' ? cam.dist : 4000));
@@ -78,7 +74,6 @@ export function invert(m) {
   return inv.map((v) => v / det);
 }
 
-/** The view, projection and their product for a viewport `aspect` wide over high. */
 export function matrices(cam, aspect) {
   const { f, up } = basis(cam);
   const eye = eyeOf(cam);
@@ -87,7 +82,6 @@ export function matrices(cam, aspect) {
   return { view, proj, vp: mulMat(proj, view), eye, viewDir: f, up };
 }
 
-/** Where a world point lands: `[x, y]` in -1..1 (y up) and its depth, or null behind the eye. */
 export function project(cam, aspect, p) {
   const { vp } = matrices(cam, aspect);
   const x = vp[0] * p[0] + vp[4] * p[1] + vp[8] * p[2] + vp[12], y = vp[1] * p[0] + vp[5] * p[1] + vp[9] * p[2] + vp[13];
@@ -96,7 +90,6 @@ export function project(cam, aspect, p) {
   return { x: x / w, y: y / w, z: z / w };
 }
 
-/** The ray through a screen point (`nx`, `ny` in -1..1, y up): its origin and unit direction. */
 export function rayAt(cam, aspect, nx, ny) {
   const { vp, eye, viewDir } = matrices(cam, aspect);
   const inv = invert(vp);
@@ -106,14 +99,12 @@ export function rayAt(cam, aspect, nx, ny) {
   return cam.mode === 'persp' ? { o: eye, d: norm(sub(b, a)) } : { o: a, d: norm(sub(b, a)) };
 }
 
-/** Orbit by mouse movement in pixels (persp only). */
 export function orbit(cam, dx, dy) {
   if (cam.mode !== 'persp') return;
   cam.yaw -= dx * 0.005;
   cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch + dy * 0.005));
 }
 
-/** Pan the target across the view plane by pixels, `h` the viewport height. */
 export function pan(cam, dx, dy, h, aspect) {
   const { viewDir, up } = matrices(cam, aspect);
   const r = norm(cross(up, viewDir)), u = cross(viewDir, r);
@@ -121,20 +112,17 @@ export function pan(cam, dx, dy, h, aspect) {
   cam.target = add(add(cam.target, mul(r, -dx * per)), mul(u, dy * per));
 }
 
-/** Dolly or zoom by a factor (wheel). */
 export function zoom(cam, k) {
   if (cam.mode === 'persp') cam.dist = Math.max(0.5, Math.min(3000, cam.dist * k));
   else cam.orthoH = Math.max(0.5, Math.min(3000, cam.orthoH * k));
 }
 
-/** Free flight: move the target (and so the eye) along the eye's own axes by metres: `[right, up, forward]`. */
 export function fly(cam, m) {
   const { f, up } = basis(cam);
   const r = norm(cross(up, f));
   cam.target = add(cam.target, add(add(mul(r, m[0]), mul(up, m[1])), mul(f, m[2])));
 }
 
-/** Frame a sphere (the F key). */
 export function frame(cam, centre, radius) {
   cam.target = [...centre];
   const r = Math.max(0.5, radius);
@@ -142,7 +130,6 @@ export function frame(cam, centre, radius) {
   cam.orthoH = r * 1.4;
 }
 
-/** Ground point under a ray at height `y`, or null. */
 export function groundAt(ray, y = 0) {
   if (Math.abs(ray.d[1]) < 1e-6) return null;
   const t = (y - ray.o[1]) / ray.d[1];

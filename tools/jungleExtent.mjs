@@ -1,12 +1,5 @@
-// AUDIT BANTHA1 (RISK, bible/01-Overview/audits/Audit-Bantha.md): WHERE THE JUNGLE STANDS ON THE MAP - read off the
-// owner's own ARENA2, which this repository does not hold. BANTHA1 stood the jungle on a political region and found region
-// 10 (Bantha) holds no pixel and no place - Daggerfall names it and never paints it - so it stood on Glenpoint. BANTHA2
-// (2026-10-19, the owner: "The area is red in bantha and should be the jungle biome"): the jungle is the area the owner
-// painted (world/jungle/banthaArea.js). This says how many map pixels it holds, its box, the regions and climates it
-// covers (the jungle lays the rainforest's law over whatever they are) and its towns and cities (the names
-// `SCENES=jungle LOC=<town> npm run perf` takes, with the town's region), beside Daggerfall's region for scale.
-//
-//   sh tools/fetch-data.sh && ARENA2_PATH=/home/claude/dfdata/arena2 node tools/jungleExtent.mjs
+// Reports the jungle area's map pixels, bounds, regions, climates, and towns from a local ARENA2.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/jungleExtent.mjs.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MapsFile, REGION_NAMES } from '../src/formats/mapsFile.js';
@@ -18,7 +11,6 @@ const read = (f) => new Uint8Array(readFileSync(join(A, f)));
 const maps = new MapsFile();
 maps.load(read('MAPS.BSA'), read('CLIMATE.PAK'), read('POLITIC.PAK'));
 
-/** Pixels `has(x, y)` holds on the 1000 x 500 map: their count, box, regions and climates. */
 function extent(has) {
   let n = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
   const climates = new Map(), regions = new Map();
@@ -33,7 +25,6 @@ function extent(has) {
   return { pixels: n, box: n ? [x0, y0, x1, y1] : null, climates: Object.fromEntries(climates), regions: Object.fromEntries(regions) };
 }
 
-/** The towns and cities (MapTable location type 0 and 1) whose pixel is in the area: [region, name, x, y]. */
 function towns(regions) {
   const out = [];
   for (const name of regions) {

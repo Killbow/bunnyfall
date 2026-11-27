@@ -1,34 +1,17 @@
-// SCALE3 (2026-10-08, Mac: "Do 1 2 and 3"): THE ACCOUNT SERVICE AS THE LOAD HARNESS RUNS IT. Never deployed -
-// tools/loadHarness.mjs hands this file to `wrangler dev` as the entry, over server-account/wrangler.toml's own bindings.
-//
-// It is the real Worker (server-account/src/index.js), unchanged, with two things kept in the isolate that a deploy sends
-// elsewhere, so the harness can read them back at /__load/stats (each read drains what it answers):
-//   - the service's own metrics point a request (metrics.js `measured`: the route as a template, the status, wall ms and
-//     the D1 statements it ran) - where the deploy writes them to Analytics Engine, and miniflare's local dataset drops
-//     every one;
-//   - D1's own count of the ROWS each statement read and wrote (`meta.rows_read`, `meta.rows_written`), by its SQL - the
-//     figure the database is billed and throttled by, the one `wrangler d1 insights` read in YARD-SHED and STORM-SHED.
-//
-// THE DATABASE IS WRAPPED ONCE AN ISOLATE, never a request: the service keys its kept answers by the binding
-// (service.js DB_ROOT - the yards, the homes' layouts, the seats' rows), and this answers DB_ROOT with the binding itself,
-// so a kept answer is kept here exactly as it is in the deploy. A `first()` is asked as `all()` and its first row
-// returned - the same row, and the only door D1 opens on a statement's meta.
+// The account Worker entry that tools/loadHarness.mjs runs under wrangler dev; it is never deployed.
+// It keeps metrics points and D1 row counts in the isolate, drained by each read of /__load/stats.
+// The database is wrapped once per isolate and answers DB_ROOT with the real binding, so the service's caches
+// keyed by that binding behave as they do in a deploy.
 import service from '../server-account/src/index.js';
 import { DB_ROOT } from '../server-account/src/service.js';
-// AUDIT SCALE II L2 (2026-10-11; Mac: "Lets do an audit on everything. Ensure perfection"): AND EVERY DURABLE OBJECT CLASS
-// THE SERVICE'S ENTRY EXPORTS. wrangler.toml binds them by class name from the entry it runs - this file, here - and
-// `wrangler dev` refuses an entry that does not export one ("Your Worker depends on the following Durable Objects, which
-// are not exported in your entrypoint file: AdmitGate"): from ADMIT-LINE on, the harness could not boot the service at
-// all. Every named export of the service's entry is passed through, so the next object it binds comes with it.
+// wrangler dev refuses an entry that does not export every Durable Object class the bindings name.
 export * from '../server-account/src/index.js';
 
-/** The points and statements kept between two reads of /__load/stats - bounded, so a long run cannot grow the isolate. */
 const POINTS_MAX = 500_000;
 const points = [];
 /** @type {Map<string, { n: number, rowsRead: number, rowsWritten: number, ms: number }>} */
 const bySql = new Map();
-// each point with its moment (AUDIT SCALE C5: the storm's seconds are bucketed by when a request ended, not by when the
-// harness happened to read)
+// Each point is stamped with when its request ended, so storm seconds do not depend on when the harness reads.
 const sink = { writeDataPoint(/** @type {any} */ p) { if (points.length < POINTS_MAX) points.push({ ...p, t: Date.now() }); } };
 
 const note = (/** @type {string} */ sql, /** @type {any} */ meta) => {
@@ -41,7 +24,6 @@ const note = (/** @type {string} */ sql, /** @type {any} */ meta) => {
   bySql.set(key, row);
 };
 
-/** The real statement behind each one this wrapper handed out - a batch is given the real ones. */
 const realOf = new WeakMap();
 const sqlOf = new WeakMap();
 
@@ -55,13 +37,13 @@ function statement(/** @type {any} */ real, /** @type {string} */ sql) {
           note(sql, r?.meta);
           const row = r?.results?.[0] ?? null;
           if (col === undefined || row === null) return row;
-          // AUDIT SCALE C13: as workerd's binding answers a column the row has not - a throw, never a quiet null
+          // Throw on a missing column, as workerd's D1 binding does.
           if (!(col in row)) throw new Error(`D1_COLUMN_NOTFOUND: Column not found (${col})`);
           return row[col];
         };
       }
       if (key === 'all' || key === 'run') return async () => { const r = await target[key](); note(sql, r?.meta); return r; };
-      // raw() answers no meta: counted as a statement, its rows unknown (the service asks none today) - never run twice
+      // raw() returns no meta, so it is counted as a statement with unknown rows.
       if (key === 'raw') return async (/** @type {any} */ opts) => { const r = await target.raw(opts); note(sql, null); return r; };
       const v = Reflect.get(target, key);
       return typeof v === 'function' ? v.bind(target) : v;
@@ -100,8 +82,7 @@ const withLoad = (/** @type {any} */ env) => ({ ...env, DB: database(env.DB), ME
 export default {
   async fetch(/** @type {Request} */ request, /** @type {any} */ env, /** @type {any} */ ctx) {
     const url = new URL(request.url);
-    // EVERY READ DRAINS: the points and the statements since the last read, never a running total - a reader that
-    // folds each read into its own sum (the storm's every second) counts each statement once
+    // Every read drains, so a reader that sums its reads counts each statement once.
     if (url.pathname === '/__load/stats') {
       const body = JSON.stringify({ points: points.splice(0), statements: [...bySql].map(([sql, s]) => ({ sql, ...s })) });
       bySql.clear();

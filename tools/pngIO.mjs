@@ -1,12 +1,4 @@
-// PNG in and out, in Node, with no dependencies.
-//
-// The sprite tools need to read 8-bit RGBA PNGs and write them back;
-// this container has no image library and pulling one in for two
-// functions that are mostly zlib would be a dependency to keep in step
-// forever. Handles what the art actually is - 8-bit, colour type 6
-// (RGBA), 2 (RGB) or 3 (indexed, DW2) - and says so loudly for anything
-// else rather than quietly producing garbage.
-
+// Reads and writes 8-bit PNGs (RGBA, RGB, or indexed) in Node with no dependencies, and throws on any other format.
 import { inflateSync, deflateSync } from 'node:zlib';
 
 const CRC = (() => {
@@ -30,13 +22,13 @@ const paeth = (a, b, c) => {
   return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
 };
 
-/** @returns {{ width: number, height: number, data: Uint8ClampedArray }} RGBA */
+/** @returns {{ width: number, height: number, data: Uint8ClampedArray }} */
 export function readPng(bytes) {
   const b = Buffer.from(bytes);
   if (b.readUInt32BE(0) !== 0x89504E47) throw new Error('not a PNG');
   let w = 0, h = 0, depth = 0, type = 0;
   const idat = [];
-  let plte = null, trns = null;   // DW2: colour type 3 - the palette and its transparent entries
+  let plte = null, trns = null;
   for (let p = 8; p + 8 <= b.length;) {
     const len = b.readUInt32BE(p);
     const tag = b.toString('latin1', p + 4, p + 8);
@@ -107,25 +99,17 @@ export function writePng({ width, height, data }) {
   const stride = width * 4;
   const raw = Buffer.alloc((stride + 1) * height);
   for (let y = 0; y < height; y++) {
-    raw[y * (stride + 1)] = 0;   // filter: none - these are small, and it keeps the bytes reproducible
+    // Filter type none keeps the bytes reproducible.
+    raw[y * (stride + 1)] = 0;
     Buffer.from(data.buffer, data.byteOffset + y * stride, stride).copy(raw, y * (stride + 1) + 1);
   }
   return Buffer.concat([SIGNATURE, chunk('IHDR', ihdrOf(width, height, 6)), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 }
 
-/**
- * DW2: an INDEXED PNG (colour type 3) - the encoding Shield Widget's 600
- * sprites went out in (vendor/shield-widget/README.md): every drawn
- * pixel identical, every hidden pixel still hidden, and the ghost colour
- * an exporter leaves under the transparent pixels collapsed to one
- * index. Answers null when the picture will not fit - an alpha that is
- * neither 0 nor 255, or more than 255 opaque colours - and the caller
- * writes RGBA instead. Index 0 is the transparent entry (tRNS of one
- * byte); the rest are the opaque colours in first-seen order, so the
- * same picture writes the same bytes.
- */
+// Returns null when the picture needs partial alpha or more than 255 opaque colors, and the caller writes RGBA.
+// Index 0 is the transparent entry; the rest follow in first-seen order, so a picture always writes the same bytes.
 export function writeIndexedPng({ width, height, data }) {
-  const palette = new Map();   // rgb packed -> index
+  const palette = new Map();
   const idx = new Uint8Array(width * height);
   let transparent = false;
   for (let i = 0, p = 0; i < idx.length; i++, p += 4) {
@@ -137,7 +121,7 @@ export function writeIndexedPng({ width, height, data }) {
     if (k === undefined) { k = palette.size + 1; if (k > 255) return null; palette.set(key, k); }
     idx[i] = k;
   }
-  const plte = Buffer.alloc((palette.size + 1) * 3);   // entry 0: the transparent index, black
+  const plte = Buffer.alloc((palette.size + 1) * 3);
   for (const [key, k] of palette) { plte[k * 3] = key >> 16; plte[k * 3 + 1] = (key >> 8) & 255; plte[k * 3 + 2] = key & 255; }
   const raw = Buffer.alloc((width + 1) * height);
   for (let y = 0; y < height; y++) { raw[y * (width + 1)] = 0; raw.set(idx.subarray(y * width, (y + 1) * width), y * (width + 1) + 1); }

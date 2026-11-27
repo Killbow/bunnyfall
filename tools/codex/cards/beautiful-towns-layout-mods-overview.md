@@ -13,6 +13,8 @@ files:
   - "src/mods/rrQuestLine.js"
   - "vendor/beautiful-villages/README.md"
   - "vendor/beautiful-cities/README.md"
+  - "tools/worldDataPackBuild.mjs"
+  - "src/formats/worldDataPack.js"
 routes: []
 tables: []
 replacesBible:
@@ -28,10 +30,11 @@ invariants:
   - "`WORLD_DATA_PRIORITY` (src/mods/modWorldData.js) is `{ 'beautiful-villages': 10, 'beautiful-cities': 20 }`, so Beautiful Cities wins a block both mods ship."
   - "`layoutStampOf` joins sorted `vendor@version` parts with `+` (versions from `LAYOUT_MOD_VERSIONS`), or returns `CLASSIC_LAYOUT` ('classic')."
   - "`dungeonFromJson` keeps `LocationDungeon.RecordElement` headers so the castles in Daggerfall, Sentinel, and Wayrest resolve their LocationId."
+  - "A pack's `$c` reference names a classic block by index, and `tools/worldDataPackBuild.mjs` records each referenced block's name in `classicNames`, so with a `BLOCKS.BSA` in a different order the game refuses that file and serves the classic block instead of reading another block's pieces."
 traps:
   - "A mod switch flipped mid-game reaches nothing until the next load; read `modLatchedOn`, not the live setting."
   - "`BLOCK_CACHE_MAX` (192) evicts the oldest block; do not assume every replaced block stays resident."
-  - "`setLocationVariant` returns whether the key existed before the write, the inverse of `setNewLocationVariant`. This matches the C# and is kept on purpose."
+  - "A `b` base, and a `$c` reference when the pack carries `classicNames`, checks the classic block name at its index, so a BLOCKS.BSA in another order makes that file throw and the classic layout shows."
 dfu:
   - "Assets/Scripts/Game/Serialization/SerializableGameObject.cs"
   - "Assets/Scripts/Utility/RMBLayout.cs"

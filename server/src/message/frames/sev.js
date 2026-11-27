@@ -1,4 +1,3 @@
-// The `sev` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, raidGate } from '../../relay.js';
 import { staffEventWord } from '../../staffEvents.js';
 

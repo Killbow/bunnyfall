@@ -1,15 +1,5 @@
-// GRASS-LIT: THE GRASS AGAINST THE GROUND IT STANDS ON, IN NUMBERS - no GPU, no game data.
-//
-// The ground is drawn by the terrain programs (render/renderer.js TERRAIN_FS on the classic lane,
-// render/enhancedLighting.js EL_TERRAIN_FS under Enhanced Lighting) and the grass by its own
-// (render/labGrass.js GAME_GRASS_FS). This walks the day's real light (world/worldClock.js, the
-// weather's own scales) through both, term for term in JS, for a grass tile of every climate
-// (their measured means, below), and prints what the eye gets: the ground's displayed colour and the
-// grass's at its root, its middle and its tip. `node tools/grassLightProbe.mjs`.
-//
-// GRASS-LIT2: and the two cases GRASS-LIT left unpaid - a hillside facing toward and away from a low sun (the blade
-// lit about the ground's own normal, against straight up as it was), and a lantern at night beside the field (the
-// ground lit by it, the grass now too).
+// Computes the displayed colors of ground and grass under daylight for each climate, in JS with no GPU.
+// Run: node tools/grassLightProbe.mjs.
 import { exteriorAmbient, sunScale, sunDirection, SUN_RIG_COLOR } from '../src/world/worldClock.js';
 import { weatherSunlightScale } from '../src/world/weather.js';
 import { elDecode, elEncode, elTonemapRGB, elAttenuation, EL_EXPOSURE } from '../src/render/enhancedLighting.js';
@@ -22,8 +12,6 @@ const CASES = [
   ['noon, sunny', minute(12), 'sunny'], ['9:00, sunny', minute(9), 'sunny'], ['18:30, sunny', minute(18, 30), 'sunny'],
   ['noon, overcast', minute(12), 'overcast'], ['noon, rain', minute(12), 'rain'], ['noon, thunder', minute(12), 'thunder'],
 ];
-/** the terrain's displayed colour for an albedo on ground of normal `light.normal` (up when absent), with
- *  `light.points` (lanterns, display colours) at `light.root` - TERRAIN_FS / EL_TERRAIN_FS's lit line, spec aside */
 function ground(tex, light, lane) {
   const n = light.normal ?? [0, 1, 0];
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -39,7 +27,7 @@ function ground(tex, light, lane) {
   const lit = tex.map((t, i) => dec(t) * (dec(light.amb[i]) + dec(light.sunCol[i]) * light.sunScale * diff + pt[i]));
   return lane ? elTonemapRGB(lit.map((v) => v * EL_EXPOSURE)).map(elEncode) : lit;
 }
-const old = (ground, t, light) => {   // the shipped law (GAME_GRASS_FS before GRASS-LIT), smooth style, sun on a leaning blade ~ the flat's lambert
+const old = (ground, t, light) => {
   const mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
   const ss = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
   let c = mix(ground.map((v) => v * 0.62), [0.13, 0.20, 0.07], ss(0, 0.55, t));
@@ -63,10 +51,7 @@ for (const lane of [false, true]) {
   }
 }
 
-// GRASS-LIT2: the hillside and the lantern. `was` is the blade before GRASS-LIT2 (straight up, no lanterns, and on the
-// classic lane GRASS_TONES - its own tones are GRASS-LIT2's) - grassLit with the case's normal and lanterns taken away;
-// `now` is grassLit as it stands. AUDIT GRASS-LIT2: the classic `was` had been painted in today's classic tones.
-const SLOPES = [['level', [0, 1, 0]], ['30 deg toward the sun', [0.5, 0.866, 0]], ['30 deg away from it', [-0.5, 0.866, 0]]];   // the 9:00 sun stands to +x
+const SLOPES = [['level', [0, 1, 0]], ['30 deg toward the sun', [0.5, 0.866, 0]], ['30 deg away from it', [-0.5, 0.866, 0]]];
 const LANTERN = { at: [2.5, 1.6, 0], range: 18, color: [0.98, 0.79, 0.54] };
 for (const lane of [false, true]) {
   console.log(`\n== GRASS-LIT2, ${lane ? 'ENHANCED LIGHTING' : 'CLASSIC'} lane ==`);

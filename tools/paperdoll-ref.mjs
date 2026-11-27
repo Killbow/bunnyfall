@@ -1,7 +1,5 @@
-// C6 art-reference extractor: dump a wearable's classic paperdoll art
-// as a labeled sheet - variant rows x dye columns, colors resolved
-// through the C5b band swap + ART_PAL, 3x nearest for review.
-// Usage: ARENA2_PATH=... node tools/paperdoll-ref.mjs <templateIndex> [out.png]
+// Dumps a wearable's classic paperdoll art as a labeled sheet of variant rows by dye columns, at 3x nearest.
+// Usage: ARENA2_PATH=... node tools/paperdoll-ref.mjs <templateIndex> [out.png].
 import { readFileSync, writeFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 import { TextureFile } from '../src/formats/textureFile.js';
@@ -16,10 +14,6 @@ const out = process.argv[3] || `/tmp/paperdoll-${tplIndex}.png`;
 const tpl = getTemplate(tplIndex);
 if (!tpl) { console.error('unknown template', tplIndex); process.exit(1); }
 
-// Armor sheets are MATERIAL-CORRECT (C6a fix, caught by the band pin):
-// leather + chain rows undyed on their own variant rows; plate designs
-// x the ten metal tables. Gender/race pick the archive (human male
-// default). Clothing keeps the ten clothing dyes.
 import { armorArchive, armorVariant, MATERIAL_FAMILY } from '../src/characters/paperdollArt.js';
 const isArmor = tplIndex >= 102 && tplIndex <= 112;
 const gender = process.env.PD_GENDER || 'male';

@@ -1,23 +1,5 @@
-// NODE-GLINT - A GATHERING NODE'S GLINT, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds the glint's law (test/scenes/nodeglint.test.js: who is lit and how, the pictures the host hands it, the
-// rectangles, the pass over a fake GL); what node cannot answer is whether the two programs - the mask's (the billboard
-// program's own vertex stage, the node's rectangle stretched over its tile of a depth-only atlas) and the light's -
-// COMPILE and LINK in a real WebGL2 context, and whether what they draw is the glint they say: light added onto the
-// picture (never darkening a pixel), its glints' cores on the picture's own cut silhouette and their rays no further
-// than a glint's reach from it, one flat of a batch and not its neighbour, a 3D tree lit through the door's own buffers,
-// hidden by a wall in front, half as bright half kindled, held still under reduced motion and moving without it, and
-// the sheen crossing a far picture from its foot to its crown but never a near one; and the frame's target and GL
-// baseline handed back. AUDIT NODE-GLINT: and a node behind the eye costs nothing, the rays reach past the picture at
-// their glint's depth, no glint moves across the clock's wrap, two nodes of one picture glint apart, and on a leafy
-// picture a glint holds its place as the eye moves a pixel at a time. GLINT-LIGHT: and it is as bright as the light where
-// the node stands (the renderer's own flatLightAt) - whole at a clear noon, a quarter at night and still clear, held at the
-// night's by the flats' floor in a black mine, and no sheen crossing the far picture at night. NODE-CROWN (FIELD BUGS
-// 2026-10-25i): and the 3D tree, a prefab the mod scales (its run as the door makes it), lit to its top. So: the repo's own modules served as they are (no bundler), a floor, the node's own picture
-// drawn by a stand-in of the billboard placement (depth written, cut at a half), the pass drawn by its own class over
-// them, and the frame read back.
-//
-//     node tools/nodeGlintProbe.mjs [--shots <dir>]     (writes node_glint_near.png and node_glint_far.png there when given)
+// Browser probe: compiles, links, and draws the gathering-node glint pass, then reads the frame.
+// Usage: node tools/nodeGlintProbe.mjs [--shots <dir>]  (writes node_glint_near.png and node_glint_far.png there)
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -174,9 +156,8 @@ try {
   const rise = (a, b, x, y) => { const u = at(a, x, y), v = at(b, x, y); return v[0] - u[0] + v[1] - u[1] + v[2] - u[2]; };
   const isPicture = (bare) => (x, y) => { const c = at(bare.pix, x, y); return c[1] > 100 && c[1] > c[0] + 40; };
   const nearOf = (f) => (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < W && yy < H && f(xx, yy)) return true; } return false; };
-  const herbCol = (x) => x >= W * 0.33 && x < W * 0.56, treeCol = (x) => x >= W * 0.56, flat0Col = (x) => x < W * 0.33;   // the herb reaches past the middle; the tree starts past 0.56
+  const herbCol = (x) => x >= W * 0.33 && x < W * 0.56, treeCol = (x) => x >= W * 0.56, flat0Col = (x) => x < W * 0.33;
 
-  // NEAR: a run of moments over the glints' lives - every pixel the light touched, read against the bare frame
   const bare = await draw({ lit: false });
   const onPic = isPicture(bare), nearPic = nearOf(onPic);
   const first = await draw({ seconds: 0 });
@@ -184,10 +165,7 @@ try {
   check('the GL baseline handed back: depth LESS and written, blend off, faces culled', first.state.depthFunc && first.state.depthMask && !first.state.blend && first.state.cull, JSON.stringify(first.state));
   const reach = Math.ceil(first.reach) + 1;
   check('a glint\'s reach on screen is its law\'s (a few pixels, never past the image\'s most)', first.reaches[0] > 1 && first.reaches[0] <= p.reachMax, `the herb's ${first.reaches[0].toFixed(2)} px of ${p.reachMax.toFixed(2)}`);
-  // NODE-CROWN (AUDIT FB1025i C1, the report's "Needs to be size aware"): a big 3D crown's glints grown - twice as many,
-  // twice the reach; the herb's six as they were
   check('NODE-CROWN: a big 3D crown glints twice as many, reaching twice as far; the herb its six', first.counts[0] === 6 && first.counts[1] === 12 && Math.abs(first.reaches[1] - p.crownMax) < 1e-6, `counts ${first.counts.join(', ')}; the tree's reach ${first.reaches[1].toFixed(2)} px of ${p.crownMax.toFixed(2)}`);
-  // NODE-CROWN: the tree's rows on screen (row 0 the bottom), and the top two fifths of them - its crown's upper reach
   let treeLo = H, treeHi = -1;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (treeCol(x) && onPic(x, y)) { if (y < treeLo) treeLo = y; if (y > treeHi) treeHi = y; }
   const crownFrom = treeLo + 0.6 * (treeHi - treeLo);
@@ -196,7 +174,6 @@ try {
     const f = await draw({ seconds: t });
     frames++;
     if (shotsAt && Math.abs(t - 1.5) < 1e-9) await page.locator('#c').screenshot({ path: join(shotsAt, 'node_glint_near.png') });
-    // NODE-CROWN: each glint's heart - a local peak of 300 or more, one within 2 px of another the same
     const hs = [];
     for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
       if (!herbCol(x) && !treeCol(x)) continue;
@@ -220,8 +197,6 @@ try {
     }
   }
   check('over the glints\' lives the herb glints, and the tree', herb > 40 && tree > 40, `herb ${herb} px, tree ${tree} px over ${frames} frames`);
-  // FIELD BUGS 2026-10-25i NODE-CROWN ("Big trees hide resource node particles"): a prefab of the mod's own scale glints to
-  // its top - its scale counted once (it stood the crown at its scale's share of the tree: half of this one, the top bare)
   check('NODE-CROWN (AUDIT FB1025i C1): the big crown\'s glint hearts a frame more than the herb\'s six make', treeHearts > herbHearts * 1.3, `the tree's ${(treeHearts / frames).toFixed(2)} a frame, the herb's ${(herbHearts / frames).toFixed(2)}`);
   check('NODE-CROWN: a scaled prefab\'s 3D tree glints to its top - its crown\'s upper two fifths lit', treeTop > 40 && treeTop < tree, `${treeTop} px of the tree's ${tree} in its rows ${Math.ceil(crownFrom)}-${treeHi} (the tree ${treeLo}-${treeHi})`);
   check('light only added: no pixel darker', darker === 0, `${darker} px`);
@@ -229,7 +204,6 @@ try {
   check('every glint\'s heart on the picture (its brightest pixels within 3 px of it)', strongOff === 0, `${strongOff} px`);
   check('one flat of the batch: its neighbour (flat 0) unlit', flat0 === 0, `${flat0} px`);
   check('the rays reach past the picture\'s edge, at their glint\'s depth (not the background\'s)', offPic > 20, `${offPic} px off the picture`);
-  // near, no sheen: the light on the picture is the glints' alone - few of its pixels at any moment
   let maxShare = 0, picPx = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (herbCol(x) && onPic(x, y)) picPx++;
   for (let t = 0; t < p.sheenPeriod; t += 0.5) {
@@ -239,14 +213,10 @@ try {
     maxShare = Math.max(maxShare, lit / picPx);
   }
   check('near, no sheen crosses the picture (none within GLINT_SHEEN_NEAR_M; the node an act works is quiet whole - the host\'s, test/scenes/nodeglint.test.js)', maxShare < 0.12, `at most ${(maxShare * 100).toFixed(1)}% of the herb's ${picPx} px lit at once`);
-  // half kindled: half the light, near enough (a saturated pixel holds a little more back)
   const full = await draw({ seconds: 1.5 }), half = await draw({ seconds: 1.5, alpha: 0.5 });
   let sumFull = 0, sumHalf = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { sumFull += Math.max(0, rise(bare.pix, full.pix, x, y)); sumHalf += Math.max(0, rise(bare.pix, half.pix, x, y)); }
   check('half kindled, half the light', sumFull > 0 && sumHalf / sumFull > 0.4 && sumHalf / sumFull < 0.65, `${sumHalf} of ${sumFull} (${(sumHalf / sumFull).toFixed(3)})`);
-  // GLINT-LIGHT: the light where the node stands, through the renderer's own flatLightAt - a clear noon's (whole), the
-  // night's (the clock's own night ambient, 0.25: a quarter, and its brightest still clear on the picture) and a black
-  // mine's (no light at all: the flats' floor holds it at the night's)
   const noon = await draw({ seconds: 1.5, ambient: [1, 1, 1] }), night = await draw({ seconds: 1.5, ambient: [0.25, 0.25, 0.25] }), mine = await draw({ seconds: 1.5, ambient: [0, 0, 0] });
   let sumNoon = 0, sumNight = 0, sumMine = 0, peakFull = 0, peakNight = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -257,7 +227,6 @@ try {
   check('a clear noon\'s light: the glints whole', sumNoon === sumFull, `${sumNoon} of ${sumFull}`);
   check('at night a quarter of the light, its brightest still clear on the picture', sumNight / sumFull > 0.18 && sumNight / sumFull < 0.32 && peakNight >= 120, `${sumNight} of ${sumFull} (${(sumNight / sumFull).toFixed(3)}), brightest ${peakNight} of the day's ${peakFull}`);
   check('in a black mine the flats\' floor holds it at the night\'s', sumMine === sumNight, `${sumMine} against the night's ${sumNight}`);
-  // reduced motion: still - the same frame at any moment, and a lit one; without it, the glints move
   const s0 = await draw({ seconds: 0.5, still: true }), s1 = await draw({ seconds: 3.75, still: true });
   const m0 = await draw({ seconds: 0.5 }), m1 = await draw({ seconds: 3.75 });
   let stillDiff = 0, stillLit = 0, moveDiff = 0;
@@ -268,7 +237,6 @@ try {
   }
   check('under reduced motion it stands still, and still glints', stillDiff === 0 && stillLit > 20, `${stillDiff} px moved, ${stillLit} px lit`);
   check('without it the glints live and die', moveDiff > 20, `${moveDiff} px changed between two moments`);
-  // a wall in front hides the tree's light; the herb's (left of the wall) stands
   const wb = await draw({ walled: true, lit: false });
   let behind = 0, herbStill = 0;
   for (let t = 0; t < 4; t += 0.5) {
@@ -279,7 +247,6 @@ try {
     }
   }
   check('a wall in front hides it', behind === 0 && herbStill > 40, `behind the wall ${behind} px, the herb's ${herbStill} px`);
-  // a far picture inside its 3D tree's radius gives way: no tree drawn this frame, no tree lit
   let treeLit = 0;
   for (const t of [0.5, 1.5, 2.5]) {
     const f = await draw({ lpt: false, seconds: t });
@@ -287,15 +254,12 @@ try {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (treeCol(x) && rise(bare.pix, f.pix, x, y) > 24) treeLit++;
   }
   check('no 3D tree drawn this frame: no tree lit, in its pixels too (the frame\'s, never a stale one)', treeLit === 0, `${treeLit} px`);
-  // AUDIT NODE-GLINT: a node behind the eye is none - it was the whole screen's rectangle, a full-screen pass a frame
   const back = await draw({ behind: true, seconds: 1.5 });
   check('a node behind the eye costs nothing (none of its rectangle drawn)', back.drawn === 2, `drawn ${back.drawn} of 3`);
-  // AUDIT NODE-GLINT: the life at the clock's wrap is the life at zero - every glint jumped once a minute
   const w0 = await draw({ seconds: 59.9999 }), w1 = await draw({ seconds: 0 });
   let jumped = 0, wrapLit = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (Math.abs(rise(w0.pix, w1.pix, x, y)) > 24) jumped++; if (rise(bare.pix, w1.pix, x, y) > 24) wrapLit++; }
   check('across the clock\'s wrap no glint moves', jumped === 0 && wrapLit > 20, `${jumped} px changed, ${wrapLit} px lit`);
-  // AUDIT NODE-GLINT: each node its own glints - two flats of one picture, two seeds, two patterns (in each picture's frame)
   const heartsOf = (b, f, col) => {
     let x0 = W, y0 = H;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (col(x) && onPic(x, y)) { if (x < x0) x0 = x; if (y < y0) y0 = y; }
@@ -318,11 +282,8 @@ try {
     shared += a.filter((h) => b.some((k) => Math.hypot(h[0] - k[0], h[1] - k[1]) <= 2)).length;
   }
   check('each node its own glints (two seeds, two patterns)', twinHearts >= 8 && shared <= twinHearts * 0.2, `${shared} of ${twinHearts} hearts at the same place`);
-  // AUDIT NODE-GLINT: a glint holds its place as the eye moves a pixel - on a leafy picture its spot was chosen again each
-  // frame against the moving silhouette, and came and went at a leaf's edge (12 events over 20 steps before). A heart is
-  // a local peak of 300 or more; it has GONE when the other frame holds no glint light (120) within 2.5 px of its place in
-  // the picture - a peak only dimming under the 300 as it slides across a pixel is the same glint
-  const leafCol = (x) => x >= W * 0.35 && x < W * 0.56;   // the herb alone, its neighbour flat clear of it at every step
+  const leafCol = (x) => x >= W * 0.35 && x < W * 0.56;
+  // A heart is a local peak of 300 or more; it is gone when the other frame has no glint light within 2.5 px of it.
   let prev = null, events = 0, held = 0;
   for (let k = 0; k <= 12; k++) {
     const b = await draw({ lit: false, leafy: true, strafe: k * 0.012 }), f = await draw({ leafy: true, strafe: k * 0.012, seconds: 1.5 });
@@ -349,10 +310,8 @@ try {
   }
   check('on a leafy picture a glint holds its place as the eye moves a pixel at a time', held >= 13 && events === 0, `${events} comings and goings over 12 steps, ${held} hearts seen`);
 
-  // FAR: the herb 25 m off through a long lens - the sheen crosses it, rising: each moment the row of its picture most lit
-  // (by the row's median - a glint is a few pixels of a row, the sheen the whole of it)
   const fbare = await draw({ lit: false, far: true });
-  const fPic = isPicture(fbare), herbFar = (x) => x >= W * 0.3 && x < W * 0.7;   // the herb the lens is on, its neighbours apart
+  const fPic = isPicture(fbare), herbFar = (x) => x >= W * 0.3 && x < W * 0.7;
   const rows = [];
   for (let y = 0; y < H; y++) { let n = 0; for (let x = 0; x < W; x++) if (herbFar(x) && fPic(x, y)) n++; if (n > 20) rows.push(y); }
   const peaks = [];
@@ -377,7 +336,6 @@ try {
   check('rising, from its foot toward its crown', up >= 3 && down <= 1, `${up} steps up, ${down} down`);
   const dark = peaks.filter((k) => k.best <= 8).length;
   check('and dark between crossings', dark >= peaks.length * 0.3, `${dark} of ${peaks.length} moments unlit`);
-  // GLINT-LIGHT: the same far herb at night - no sheen crosses it at any moment (the glints are a few pixels of a row)
   let nightBest = 0;
   for (const k of crossing) {
     const f = await draw({ seconds: k.t, far: true, ambient: [0.25, 0.25, 0.25] });
@@ -389,8 +347,6 @@ try {
     }
   }
   check('far, at night, no sheen crosses it (at every moment it crossed by day)', crossing.length >= 4 && nightBest <= 8, `the most lit row's median ${nightBest} over the day's ${crossing.length} crossing moments`);
-  // RESOURCE-HIGHLIGHTS (2026-10-26): NODE-OUTLINE's ring, back as a choice - round each picture in its profession's colour,
-  // never over it, within its width of it, hidden by a wall, the glints off; and with both, the ring and the glints
   const RING = { glint: false, ring: true }, BOTH = { glint: true, ring: true };
   const ringed = await draw({ seconds: 1.5, highlight: RING });
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'node_outline_near.png') });
@@ -414,8 +370,6 @@ try {
   for (let t = 0; t < 3; t += 0.5) {
     const b = await draw({ seconds: t, highlight: BOTH }), g = await draw({ seconds: t });
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      // the ring is what Both adds to the glints at the same moment: never on a picture - the tree's tile is FITTED here
-      // (the glints' room round it), its texels coarser than its pixels
       if (Math.abs(rise(g.pix, b.pix, x, y)) > 24) { if (onPic(x, y)) ringOver++; else if (treeCol(x)) ringTree++; }
       if (rise(bare.pix, b.pix, x, y) <= 24 || !herbCol(x)) continue;
       if (onPic(x, y)) bothOn++; else bothOff++;

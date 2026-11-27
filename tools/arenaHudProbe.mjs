@@ -1,14 +1,6 @@
-// ARENA2, MEASURED (2026-10-02, Mac: "All UI elements and text must be enhanced UI plus"): the bout's HUD (ui/arena/arenaHud.js)
-// and the Herald's choice (ui/enhanced/enhancedDialog.js drawEnhancedChoice, systems/arena/arenaHerald.js) drawn over the real sheets in
-// Chromium - the Enhanced Plus sheet and the classic skin's bare page - at a desktop's width, a narrow window's and a
-// phone's, with the widest names a bout can carry, a two-against-one, a Grand Melee's three and the yield hint up. Each
-// must stand inside the viewport, its words in the pixel face, nothing spilling sideways. test/systems/arena/arena2_hud.test.js holds
-// the law on a fake document; this photographs what a fake cannot. Photographs to SHOT_DIR (default tools/shots/).
-// ARENA4b: and THE STANDS - a watcher of a relay's bout with the two presses under the plate (Cheer, Boo): inside the
-// viewport, a finger's size on the phone (the touch sheet), the kit's stone button on Plus, a real click on each and the
-// + and - keys reaching the door (test/systems/arena/arena4b_stands.test.js holds the law).
-//
-//     node tools/arenaHudProbe.mjs
+// Draws the arena bout HUD, the Herald's choice, and the watcher buttons at desktop, narrow, and phone widths
+// in Chromium.
+// Run with `node tools/arenaHudProbe.mjs`; screenshots go to SHOT_DIR.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -50,7 +42,6 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     const crowd = newCrowd({ fighters: b.fighters });
     crowd.mood = shape === 'duel' ? 0.72 : shape === 'stands' ? 0.3 : -0.4;
     crowd.favour.f1 = -0.6;
-    // ARENA4b: the stands - a watcher, the presses up, the door recording what reaches it; the phone's touch sheet
     window.__shouts = [];
     const stands = shape === 'stands';
     const model = arenaHudModel(b, crowd, t + 47000, stands ? { stands: { ready: true }, bark: 'Arena! Arena!', teams: { p0: 'red', p1: 'blue' } } : { you: 'you', stamina: 0.63, bark: shape === 'duel' ? 'Blood! Blood on the sand!' : 'Is that a sword or a spoon?' });
@@ -72,7 +63,6 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     check(`${tag} the presses a finger's size`, P.every((q) => q.h >= minH - 0.5 && q.w >= 44), P.map((q) => `${Math.round(q.w)}x${Math.round(q.h)}`).join(' '));
     check(`${tag} the presses in the pixel face`, P.every((q) => /Pixelify/.test(q.font)), P[0]?.font ?? '');
     if (sheet === 'enhanced') check(`${tag} the kit's stone button on Plus`, P.every((q) => q.img && q.img !== 'none'), P[0]?.img?.slice(0, 40) ?? '');
-    // a real click on each (the readout takes no pointer; its presses do), then the + and - keys
     for (const q of P) await page.mouse.click((q.l + q.r) / 2, (q.t + q.b) / 2);
     await page.keyboard.press('Equal');
     await page.keyboard.press('Minus');
@@ -80,7 +70,6 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
     check(`${tag} a click on each and the + and - keys reach the door`, JSON.stringify(shouts) === JSON.stringify([1, -1, 1, -1]), JSON.stringify(shouts));
   }
   await page.screenshot({ path: `${OUT}/arena-hud-${tag}.png` });
-  // the Herald's choice (the enhanced dialog - the Plus face of ChoiceWindow)
   if (shape === 'duel') {
     const d = await page.evaluate(async () => {
       const { drawEnhancedChoice } = await import('/src/ui/enhancedDialog.js');
@@ -89,7 +78,8 @@ for (const [W, H, width] of [[1440, 900, 'desktop'], [800, 600, 'narrow'], [390,
       const owner = { input: () => {} };
       const draw = () => drawEnhancedChoice(owner, ch.lines, ch.options.filter((o) => o.label).map((o) => ({ code: o.code, label: o.label })));
       draw();
-      window.__heraldDraw = setInterval(draw, 50);   // the dialog lives while it is drawn (DIALOG_WATCHDOG_MS) - a frame's redraw
+      // The dialog closes unless it is redrawn within DIALOG_WATCHDOG_MS.
+      window.__heraldDraw = setInterval(draw, 50);
       await new Promise((res) => setTimeout(res, 300));
       const win = document.querySelector('.dlg-choice .dlg-win');
       if (!win) return null;

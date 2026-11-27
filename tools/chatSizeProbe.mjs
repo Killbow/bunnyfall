@@ -1,12 +1,6 @@
-// CHAT-SIZE, MEASURED (2026-09-23, Mac: "the ability to click and drag the chat to resize/along with the text").
-//
-// test/ui/chatsize.test.js holds the law on a fake; this drags the REAL grip with the real mouse over the real sheets in
-// Chromium and reads the layout back: the box's width, the list's height, a line's computed font size and a roster
-// row's, the Send button's (which must NOT scale - a thumb's target), and the friends panel's rectangle against the
-// chat box's - beside it on a wide screen, under it on a narrow one, and never over it (AUDIT SOC C13's law, which the
-// old fixed numbers kept only while the chat could not change size). Then a reload: the size is the player's.
-//
-//     node tools/chatSizeProbe.mjs
+// Drags the chat resize grip and checks the box, the text sizes, and the friends panel position.
+// Run: node tools/chatSizeProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -60,7 +54,7 @@ for (const [W, H] of [[1440, 900], [900, 900]]) {
   const page = await browser.newPage({ viewport: { width: W, height: H } });
   page.on('pageerror', (e) => pageErrors.push(String(e.message)));
   await page.goto('http://localhost:5233/play/');
-  await page.evaluate(() => { try { localStorage.removeItem('dagger.ui.v1'); } catch { /* none */ } });
+  await page.evaluate(() => { try { localStorage.removeItem('dagger.ui.v1'); } catch { } });
   await mount(page);
   const a = await measure(page);
   if (a.socialErr) console.log('note: the friends panel could not mount here:', a.socialErr);
@@ -80,12 +74,10 @@ for (const [W, H] of [[1440, 900], [900, 900]]) {
     if (wantFit === 'beside') check(`${W}x${H}: ...it stands beside it`, b.social.l >= b.box.r, `${b.social.l} >= ${b.box.r}`);
     else check(`${W}x${H}: ...it stands under it`, b.social.t >= b.box.b, `${b.social.t} >= ${b.box.b}`);
   } else check(`${W}x${H}: the friends panel was drawn to measure`, false, 'not drawn');
-  // a reload: the size is the player's
   await page.reload();
   await mount(page);
   const c = await measure(page);
   check(`${W}x${H}: after a reload the box is still 660 and the text 19.5`, c.box.w === 660 && Math.abs(c.line - 19.5) < 0.01, `${c.box.w}px, ${c.line}px`);
-  // a double click puts the sheet's size back
   await page.dblclick('.dfchat-grip');
   await page.evaluate(() => globalThis.__chat.panel.render({}));
   const d = await measure(page);

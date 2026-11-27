@@ -1,14 +1,6 @@
-// SD17 - THE BODY MOVED, DRAWN IN A REAL BROWSER (the motes' and the sparks' probes' method, tools/sdFxProbe.mjs; on
-// Vite's own server - the scene's graph reaches `import.meta.glob`).
-//
-// node holds the rig's law (test/scenes/superDungeon/sd17_body.test.js - the states, the joints kept, every blow moved); what node cannot
-// answer is what the body LOOKS like in each pose, and whether the beam's pass compiles, links and lights the frame. So:
-// the Remnant's own seven parts (world/superDungeon/sdRemnantModel.js buildRemnantParts) stood by the rig's own matrices
-// (scenes/superDungeon/sdRemnantRig.js) in a plain lit pass, one pose a tile - and the Hour-Hand's beam (render/superDungeon/sdBeam.js) out of its
-// hand mid-sweep. Each pose must draw its body and differ from its rest; the beam must light the frame along its line.
-// SD_BODY_SHOT=<file.png> writes the tiles.
-//
-//     node tools/sdBodyProbe.mjs
+// Draws the Remnant's poses and the Hour-Hand's beam in a real browser on the Vite dev server (import.meta.glob).
+// Run: node tools/sdBodyProbe.mjs (SD_BODY_SHOT=<file.png> writes the tiles).
+
 import { chromium } from 'playwright';
 import { writeFile, unlink } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -126,7 +118,6 @@ try {
   check('the beam\'s program compiles and links', !p.beamErr && p.beamLinked === true, p.beamErr ?? '');
   const r = await page.evaluate((names) => window.drawAll(names), POSES);
   for (const name of POSES.filter((n) => n !== 'beam')) check(`${name}: the rig names it so, no GL error`, r[name].state === name && r[name].glErr === 0, `${r[name].state}`);
-  // the pixels: each tile's body drawn, and differing from its rest ('still')
   const px = await page.evaluate(([W, H, C, R, names]) => {
     const gl = document.getElementById('c').getContext('webgl2');
     const all = new Uint8Array(W * C * H * R * 4); gl.readPixels(0, 0, W * C, H * R, gl.RGBA, gl.UNSIGNED_BYTE, all);

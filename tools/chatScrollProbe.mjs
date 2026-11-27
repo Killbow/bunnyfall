@@ -1,16 +1,6 @@
-// CHAT-SCROLL, MEASURED (2026-09-23, Starempire42: "when you open the chat it just stays idle so you have to manually
-// scroll down to the newest message every single time").
-//
-// test/ui/chatscroll.test.js proves the law on a fake that lays out; this drives the REAL panel over the real sheet in
-// Chromium and reads the list's own scrollTop against its own scroll range after each thing a player does: the first
-// open, an open after lines arrived while closed, an open after the reader had scrolled up and closed, lines under a
-// reader at the bottom, lines under a reader who scrolled up (not yanked, counted on the bar), the bar's click, and
-// every line wearing a badge that wraps it (the title before the name, the glyphs after it).
-//
-// Chromium keeps a display:none scroller's offset; the engines that drop it are exactly the case the fake models, so
-// this probe cannot show that half - it shows the rest in a real layout.
-//
-//     node tools/chatScrollProbe.mjs
+// Drives the real chat panel and checks the list's scroll position after each thing a player does.
+// Run: node tools/chatScrollProbe.mjs.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 

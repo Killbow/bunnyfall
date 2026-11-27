@@ -1,23 +1,7 @@
-// UI2 (2026-09-27, the Plus UI pass - bible/10-UI/Slots-Hotbar-Status.md; Mac: "The hotbar also is missing sprite
-// icons like spells, and you should be able to slot spells and different items") - THE HOTBAR, DRAWN FROM THE REAL
-// ARENA2 AND MEASURED.
-//
-// The REAL enhanced HUD (ui/enhanced/enhancedHud.js drawEnhancedHud) with the hotbar chosen, over the real sheets, its slots
-// holding every kind a slot now takes: three spells (their ICON00I0 icons off the real sheet, one of them a spell the
-// book has lost), a potion stack, a longsword, a kite shield, a cuirass, a ring, three rubies, a book, seven herbs, a
-// torch - and the crossbar's sixteen at a phone's width. At a desktop (1x, 2x), a laptop (1.25x) and a phone (2.625x) it reads:
-//   - every spell slot shows its icon - a fitted picture, not its initials - the lost one too, dimmed;
-//   - every item slot shows a fitted picture the page does not resample (bitmap = drawn size x the device ratio,
-//     through the HUD's own scale), none past its face;
-//   - a stack's count on its slot (the potion, the rubies, the herbs), none on a single piece;
-//   - a tiered piece's outline is the SLOT's own frame, spanning it, in its tier's colour (UI1b) - no icon in an icon;
-//   - the diamond's spell chip (the diamond chosen instead) wears its spell's icon before its name.
-// Every state is photographed.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER, whose /arena2/ mount serves the local game data (never the repo's).
-//
-//     node tools/uiHotbarProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/uiHotbarProbe.mjs     -> reuse a dev server already listening there
+// Draws the enhanced HUD hotbar with every slot kind at several sizes and checks icons, counts, and outlines.
+// It runs on a Vite dev server whose /arena2/ mount serves local game data.
+// Usage: `[SHOT_DIR=<dir>] [PROBE_PORT=<n>] node tools/uiHotbarProbe.mjs`
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -102,7 +86,7 @@ const check = (name, ok, detail = '') => { if (!ok) failures++; console.log(`${o
 const VIEWS = [
   { name: 'desktop-1x', viewport: { width: 1440, height: 900 }, dpr: 1 },
   { name: 'desktop-2x', viewport: { width: 1440, height: 900 }, dpr: 2 },
-  { name: 'laptop-1.25x', viewport: { width: 1366, height: 768 }, dpr: 1.25 },   // AUDIT UI B2: where a spell's icon ran past its face
+  { name: 'laptop-1.25x', viewport: { width: 1366, height: 768 }, dpr: 1.25 },
   { name: 'phone-2.625x', viewport: { width: 393, height: 851 }, dpr: 2.625, isMobile: true, hasTouch: true },
 ];
 try {
@@ -116,7 +100,7 @@ try {
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => typeof globalThis.__slots === 'function' && globalThis.__slots().length >= 10, null, { timeout: 90000 });
     await page.waitForFunction(() => globalThis.__slots().filter((s) => s.title && s.title !== `Slot ${s.slot + 1}`).every((s) => s.pic?.nat?.[0] > 0), null, { timeout: 30000 }).catch(() => {});
-    await page.waitForTimeout(1500);   // a second pass of the bar's measure (its FIT_TTL)
+    await page.waitForTimeout(1500);
     const slots = await page.evaluate(() => globalThis.__slots());
     const tag = v.name;
     const filled = slots.filter((s) => s.title && s.title !== `Slot ${s.slot + 1}`);
@@ -133,14 +117,12 @@ try {
     check(`${tag}: the stacks show their counts, a single piece none`, Object.entries(counts).filter(([, c]) => c).length >= 3
       && filled.filter((s) => /Ruby|Red Flowers|Potion|Glass/.test(s.title)).every((s) => Number(s.count) > 1)
       && filled.filter((s) => /Cuirass|Ring|Book|Longsword/.test(s.title)).every((s) => !s.count), JSON.stringify(counts));
-    // UI1b: A TIERED ITEM'S OUTLINE IS THE SLOT'S OWN EDGE - the frame spans the slot, and wears the tier's colour
     const tiered = filled.filter((s) => s.rarity);
     check(`${tag}: the tiered slots' own frames wear their tiers (${tiered.map((s) => s.rarity).join(', ')})`, tiered.length === 3
       && tiered.every((s) => s.frame !== filled.find((x) => !x.rarity && !x.spell)?.frame && Math.abs(s.frameBox.w - s.slotBox.w) < 0.5 && Math.abs(s.frameBox.h - s.slotBox.h) < 0.5),
       JSON.stringify(tiered.map((s) => [s.rarity, s.frame, s.frameBox?.w, s.slotBox.w])));
     console.log(`     ${filled.map((s) => `${s.title.slice(0, 16)}${s.count ? `x${s.count}` : ''}=${s.pic ? s.pic.shown.map((x) => x.toFixed(0)).join('x') : 'none'}`).join(', ')}`);
     await page.locator('.hb').screenshot({ path: join(OUT, `ui2-hotbar-${tag}.png`) }).catch(() => {});
-    // the diamond instead: its spell chip wears the icon
     await page.evaluate(() => globalThis.__mode('diamond'));
     await page.waitForFunction(() => globalThis.__chip()?.icon?.nat?.[0] > 0, null, { timeout: 20000 }).catch(() => {});
     const chip = await page.evaluate(() => globalThis.__chip());

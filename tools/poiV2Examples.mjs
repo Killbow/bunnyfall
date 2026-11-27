@@ -1,8 +1,4 @@
-// The four worked examples from the World Builder spec as one v2 document on the game's real ids, for the tests. Items
-// are Red Berries 16, Troll's Blood 42, Iron 71, Copper 72, and a Heal True potion (Glass Bottle 83 with its recipe).
-// Enemies use classes 136 (Rogue), 141 (Archer), and 143 (Barbarian). Arch3d model 1 is a placeholder: the law checks
-// only the number's range.
-
+// Arch3d model 1 is a placeholder: the law checks only the number's range.
 const part = (key, name, extra = {}) => ({ key, name, arch3d: 1, t: [0, 0, 0], r: [0, 0, 0, 1], s: [1, 1, 1], collide: 'mesh', shadow: true, ...extra });
 const npc = (key, name, t, extra = {}) => ({ key, name, t, yaw: 0, h: 1.8, look: { k: 'df', a: 182, r: 0 }, lines: [], ...extra });
 

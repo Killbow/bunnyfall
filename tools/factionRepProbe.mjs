@@ -1,6 +1,5 @@
-// S25 LIVE PROBE: the faction reputation store through the REAL chargen
-// seam and the REAL crime path, on the real FACTION.TXT.
-// Usage: ARENA2_PATH=... node tools/factionRepProbe.mjs
+// Live probe of the faction reputation store through character creation and the crime path, on FACTION.TXT.
+// Run: ARENA2_PATH=... node tools/factionRepProbe.mjs.
 import { readFileSync } from 'node:fs';
 import { FactionFile } from '../src/formats/factionFile.js';
 import { finishChargen, loadCareers } from '../src/characters/chargenSession.js';
@@ -29,7 +28,6 @@ console.log('  42 is', f42?.name, '| allies', [f42?.ally1,f42?.ally2,f42?.ally3]
 for (const a of [f42?.ally1, f42?.ally2, f42?.ally3].filter(Boolean))
   console.log('  ally', a, dict.get(a)?.name, '->', getReputation(entity.factionRep, a), '(expect +10)');
 
-// now a crime in region 17
 const REGION = 17;
 const people = getPeopleOfCurrentRegion(entity.factionRep.dict, REGION);
 console.log('\nPeople of region', REGION + ':', people?.id, people?.name);

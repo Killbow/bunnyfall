@@ -1,5 +1,3 @@
-// A Royal Tourney's room: a contender's account by peer id, and the ladder and bout frames.
-// It says a contender's entry, answers a challenge or its accept, and ends each bout.
 import { royalLadder, royalAsk, royalLevel, royalAccept, royalMarks, royalNextBeat, ROYAL_RC_KEEP } from '../../../src/net/siegeRef.js';
 import { mintRoyalReceipt } from '../../../src/net/siegeReceipt.js';
 

@@ -1,27 +1,8 @@
 #!/usr/bin/env node
-// L10N6b (2026-09-27, Mac: "Both" - the port's own strings translated in-session, and the game's text through a
-// pipeline on the Claude API that he runs with his key): THE TRANSLATION PIPELINE. It drafts a language's string
-// table from its English source, a batch of rows a request, and writes it where the game reads it -
-// `locales/<tag>/<table>.csv`, DFU's own string-table format, so a draft and a DFU translation pack are the same kind
-// of file (scenes/localeData.js loads both).
-//
-// What it will not do:
-// - Overwrite a person. Beside each table it keeps `<table>.meta.json`: for every row it wrote, a hash of the English
-//   it read and of the text it wrote. A row whose text no longer matches what the pipeline wrote was edited by
-//   someone, and is theirs from then on - kept, and marked `human`. A row whose English changed is drafted again,
-//   unless a person owns it; then it is only reported, for them to review.
-// - Lose a placeholder. Every draft is checked against its English before it is kept: the same ICU arguments for the
-//   port's own strings, the same %macros, [/markup] tags, {n} arguments and quest symbols for Daggerfall's text. A
-//   draft that breaks one is asked for again once, with the problem named, and left out if it is still wrong.
-// - Guess the cost. `--dry-run` prints the batches and the prompt, and sends nothing.
-//
-//   ANTHROPIC_API_KEY=... node tools/translate.mjs --lang fr --table Port_Strings
-//   node tools/translate.mjs --lang ja --table Internal_RSC --dry-run
-//   options: --model <id> (default claude-opus-5-5; claude-sonnet-5 costs less), --batch <n> rows a request (40),
-//            --jobs <n> requests at once (4), --limit <n> rows this run, --retranslate (draft every machine row again)
-//
-// A language's words for its names (places, people, factions) stay the same across batches only if they are told:
-// `locales/<tag>/glossary.json` ({ "English": "theirs" }) goes into every request.
+// Drafts a language's string table from its English source through the Messages API into locales/<tag>/<table>.csv.
+// Rows a person edited are preserved, every draft must keep its placeholders, and --dry-run sends nothing.
+// Usage: ANTHROPIC_API_KEY=<key> node tools/translate.mjs --lang <tag> --table <table> [--dry-run] [--model <id>]
+//   [--batch <n>] [--jobs <n>] [--limit <n>] [--retranslate]
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,7 +15,6 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_MODEL = 'claude-opus-5-5';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 
-/** The English each table is drafted from, and what its rows are (told to the model). */
 export const SOURCES = Object.freeze({
   Port_Strings: { path: 'locales/en/Port_Strings.csv', kind: 'icu', about: 'the web port\'s own interface: menus, settings, the online game. Values are ICU MessageFormat patterns.' },
   Internal_Strings: { path: 'vendor/dfu-text/Internal_Strings.csv', kind: 'dfu', about: 'Daggerfall\'s interface and game messages (FALL.EXE\'s strings and Daggerfall Unity\'s own).' },
@@ -48,24 +28,19 @@ export const SOURCES = Object.freeze({
   Internal_Factions: { path: 'vendor/dfu-text/Internal_Factions.csv', kind: 'dfu', about: 'faction, guild, temple and noble house names.' },
 });
 
-// ─── the placeholders a draft must keep ────────────────────────────────────────────────────────────────────────────
-/** The ICU arguments a pattern names, once each, sorted. Throws on a pattern parseMessage cannot read. */
 function icuArguments(pattern) {
   const out = new Set();
   const walk = (nodes) => { for (const n of nodes) if (typeof n === 'object' && n.arg) { out.add(n.arg); if (n.options) for (const b of n.options.values()) walk(b); } };
   walk(parseMessage(pattern));
   return [...out].sort();
 }
-// Daggerfall's: a %macro (%s, %loc, %di, %1bs), a [/markup] tag, a {0} argument, a quest symbol (_x_, =x_, __x_, ___x_).
 const DFU_TOKEN = /%[a-zA-Z0-9]+|\[\/[^\]]*\]|\{\d+\}|(?:={1,2}|_{1,3})[A-Za-z][A-Za-z0-9]*_/g;
-/** The tokens a value must carry through translation, as a sorted multiset (a list with repeats). */
 export function protectedTokens(value, kind) {
   const s = String(value ?? '');
   if (kind === 'icu') return icuArguments(s);
   return (s.match(DFU_TOKEN) ?? []).sort();
 }
 
-/** Whether `draft` keeps everything `english` must keep. Answers the problems (empty when it does). */
 export function checkDraft(english, draft, kind) {
   const problems = [];
   if (typeof draft !== 'string' || !draft.trim()) return ['no text'];
@@ -80,23 +55,17 @@ export function checkDraft(english, draft, kind) {
   return problems;
 }
 
-// ─── the rows owed ─────────────────────────────────────────────────────────────────────────────────────────────────
 export const hash = (s) => createHash('sha1').update(String(s)).digest('hex').slice(0, 12);
 
-/**
- * What a run owes, given the English rows, the language's rows and its meta. Every English key is one of:
- * `draft` (no row, a machine row whose English changed, or every machine row under `retranslate`), `human` (a row a
- * person wrote or edited - kept; `stale` when its English changed since), or `done`.
- * @returns {{ draft: string[], human: string[], stale: string[], done: string[], meta: object }} the meta with every
- *   person's edit marked
- */
+/** @returns {{ draft: string[], human: string[], stale: string[], done: string[], meta: object }} */
 export function planRun(english, rows, meta = {}, { retranslate = false } = {}) {
   const out = { draft: [], human: [], stale: [], done: [], meta: { ...meta } };
   for (const [key, en] of english) {
     const have = rows.get(key);
     const m = meta[key];
     if (have === undefined) { out.draft.push(key); continue; }
-    const byPerson = m ? m.by === 'human' || hash(have) !== m.tr : true;   // a row the pipeline never wrote is a person's
+    // A row the pipeline never wrote, or whose text no longer matches its hash, belongs to a person.
+    const byPerson = m ? m.by === 'human' || hash(have) !== m.tr : true;
     if (byPerson) {
       out.human.push(key);
       if (m && m.en !== hash(en)) out.stale.push(key);
@@ -109,11 +78,8 @@ export function planRun(english, rows, meta = {}, { retranslate = false } = {}) 
   return out;
 }
 
-/** The rows in batches of `size`. */
 export const batchesOf = (keys, size) => Array.from({ length: Math.ceil(keys.length / size) }, (_, i) => keys.slice(i * size, (i + 1) * size));
 
-// ─── the request ───────────────────────────────────────────────────────────────────────────────────────────────────
-/** The system prompt for a language and table, with the glossary. */
 export function systemPrompt({ code, table, glossary = {} }) {
   const loc = catalogLocale(code);
   const lang = loc ? `${loc.englishName} (${loc.name}, ${code})` : code;
@@ -140,8 +106,6 @@ export const TOOL = Object.freeze({
   input_schema: { type: 'object', properties: { translations: { type: 'object', additionalProperties: { type: 'string' } } }, required: ['translations'] },
 });
 
-/** One request to the Messages API: the system prompt cached (every batch of a run shares it), the tool forced.
- *  Retries a rate limit or an overload with backoff. Answers { key: text }. */
 export async function callClaude({ apiKey, model, system, rows, fix = null, fetchImpl = globalThis.fetch, tries = 5 }) {
   const content = [`Translate these rows (key -> English):\n${JSON.stringify(Object.fromEntries(rows), null, 1)}`];
   if (fix) content.push(`Your previous answer for these rows broke a rule:\n${fix}\nKeep every placeholder of the English exactly.`);
@@ -170,18 +134,10 @@ export async function callClaude({ apiKey, model, system, rows, fix = null, fetc
   }
 }
 
-// ─── a run ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 const readJson = (p, fallback) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; } };
-/** A table's rows as DFU loads them (LoadCSV: the BOM a StreamReader strips, stripped - DFU's masters and a pack's
- *  files carry one, and a kept BOM makes the header a row). */
 const readRows = (p) => (existsSync(p) ? new Map(loadStringTableCsv(readFileSync(p, 'utf8')) ?? []) : new Map());
-/** The parser trims a value's outer line breaks, so a written value never carries them. */
 const tidy = (s) => String(s).replace(/^[\r\n]+|[\r\n]+$/g, '');
 
-/**
- * Draft `table` for `code`. `model(rows, fix, system)` answers { key: text } for [key, english] rows (the API in a
- * real run, a stand-in in the tests). Writes the table and its meta unless `dryRun`. Answers the run's account.
- */
 export async function translateTable({ code, table, root = ROOT, model, modelId = DEFAULT_MODEL, batch = 40, jobs = 4, limit = Infinity, retranslate = false, dryRun = false, log = () => {} }) {
   const src = SOURCES[table];
   if (!src) throw new Error(`no source for ${table} (known: ${Object.keys(SOURCES).join(', ')})`);
@@ -224,7 +180,6 @@ export async function translateTable({ code, table, root = ROOT, model, modelId 
   };
   for (let i = 0; i < groups.length; i += jobs) await Promise.all(groups.slice(i, i + jobs).map(runOne));
   account.drafted = drafted.size;
-  // the table in the English's own key order, a person's rows as they are
   const out = [];
   for (const key of english.keys()) {
     const v = drafted.get(key) ?? rows.get(key);
@@ -236,7 +191,6 @@ export async function translateTable({ code, table, root = ROOT, model, modelId 
   return account;
 }
 
-// ─── the command ───────────────────────────────────────────────────────────────────────────────────────────────────
 export function parseArgs(argv) {
   const o = { batch: 40, jobs: 4, limit: Infinity, model: DEFAULT_MODEL, retranslate: false, dryRun: false };
   for (let i = 0; i < argv.length; i++) {

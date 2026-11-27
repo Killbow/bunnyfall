@@ -1,14 +1,6 @@
-// NOTICE1b's MEASURE - BOARD-COUNT (PROF0 10.1: "Every seat and hub has one. A seat or hub whose blocks place no board
-// gets one ... SEAT-COUNT counts them"). The Notice Board is a town's RUMOUR boards' (BOUNTY1 took every other one,
-// systems/bounty/bountyBoard.js questBoardIndices), so a hub has a Notice Board wherever its blocks place at least one
-// bulletin board. This walks MAPS.BSA and BLOCKS.BSA from the player's own ARENA2 exactly as the world host's boot pass
-// does (the game's own rows, regionHubs.js pickRegionHubs), lays out every hub (world/locationLayout.js) and prints
-// each: its region, its name, whether it is a capital, how many bulletin boards its blocks place, how many of them
-// are bounty boards and how many rumour boards - and the hubs with none, which are NOTICE1b's whole list.
-//
-// It writes nothing to the tree; Mac runs it (the servers and this lane hold no ARENA2).
-//
-// Usage: ARENA2_PATH=/path/to/arena2 node tools/boardCount.mjs [--json]
+// Prints each hub's bulletin boards and how they split into bounty and rumour boards. It writes nothing.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/boardCount.mjs [--json].
+
 import { readFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 import { BlocksFile } from '../src/formats/blocksFile.js';
@@ -19,8 +11,6 @@ import { pickRegionHubs } from '../src/world/regionHubs.js';
 import { questBoardIndices } from '../src/guilds/bountyBoard.js';
 
 /**
- * A laid-out location's boards: every placed model the town sign wears (rmbLayout isBulletinBoard), and how BOUNTY1
- * splits them - pure over the layout's blocks, so a pin drives it without game data.
  * @param {Array<{ originX?: number, originZ?: number, layout?: { models?: Array<{ modelIdNum: number, matrix?: ArrayLike<number> }> } }>} blocks
  * @returns {{ boards: number, bounty: number, rumour: number }}
  */
@@ -37,7 +27,6 @@ export function boardTally(blocks) {
   return { boards: boxes.length, bounty, rumour: boxes.length - bounty };
 }
 
-/** Every hub, with its boards (the game's own rows alone, as the boot pass collects them). */
 export function hubBoards(maps, blocks) {
   const rows = [];
   for (let r = 0; r < maps.regionCount; r++) {
@@ -54,8 +43,9 @@ export function hubBoards(maps, blocks) {
   const out = [];
   for (const hub of hubs.byRegion.values()) {
     const loc = byKey.get(`${hub.regionIndex}:${hub.locationIndex}`);
-    let tally = { boards: -1, bounty: 0, rumour: 0 };   // -1: the layout failed - read it as "not measured", never as none
-    try { if (loc) tally = boardTally(layoutLocation(loc, maps, blocks, { enhanced: false, windmills: false }).blocks); } catch { /* not measured */ }
+    // -1 means the layout failed and the hub was not measured, not that it has no boards.
+    let tally = { boards: -1, bounty: 0, rumour: 0 };
+    try { if (loc) tally = boardTally(layoutLocation(loc, maps, blocks, { enhanced: false, windmills: false }).blocks); } catch { }
     out.push({ region: hub.regionName, name: hub.name, capital: hub.capital, ...tally });
   }
   return out;

@@ -1,18 +1,6 @@
 #!/usr/bin/env node
-// EOTB-IL: pull `Eye Of The Beholder.dll` out of the shipped `.dfmod`.
-//
-// The bundle is a UnityFS archive and the assembly rides in it as a
-// TextAsset whose bytes start with the PE magic (`MZ`). The port's own
-// reader (`src/formats/unityBundle.js`) opens it; nothing else is
-// needed. The second half of the recipe - reading the IL - is
-// `tools/ilDump.py` (dnfile + dncil; `monodis` segfaults on this one).
-//
-//   node tools/eotbIl.mjs "<path to>/Mods/eye of the beholder.dfmod" [outDir]
-//
-// writes `<outDir>/Eye Of The Beholder.dll` (default: the vendor dir,
-// beside the art) and lists every text asset in the bundle so the
-// manifest, settings, presets and the `.xml` sprite offsets can be
-// checked against what `vendor/eye-of-the-beholder/` carries.
+// Extracts Eye Of The Beholder.dll from the shipped .dfmod bundle and lists the bundle's text assets.
+// Run: node tools/eotbIl.mjs "<path to>/eye of the beholder.dfmod" [outDir].
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';

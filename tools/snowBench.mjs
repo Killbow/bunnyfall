@@ -1,10 +1,6 @@
-// PERF-SNOW bench (2026-10-10, Dudey: "snowfall and snow in general is pretty demanding"): THE SNOW'S CPU, A WALK.
-// systems/snowfallRuntime.js over test/render/snowfall1_runtime.test.js's synthetic world (planes of 128 x 128 tiles a map
-// pixel), with Basic Roads on every pixel (a network of roads and tracks, predicted as the classifier predicts them), the
-// player walking east at a run for FRAMES frames at 60 fps. Prints the frames' snow time (mean, p95, worst), the
-// allocations (the scavenges and mark-compacts a --trace-gc run counts are the caller's), and a hash of everything the
-// GL layer would upload (every tier's mesh, masks and contexts) - two trees with the same hash drew the same snow.
-//   node tools/snowBench.mjs [frames=1800] [budgetMs=2]      (budget 'inf': the mod's sample budgets alone)
+// Times the snow runtime's CPU cost on a synthetic world while the player runs east, and hashes its GL uploads.
+// Usage: [SPANS=1] node tools/snowBench.mjs [frames=1800] [budgetMs=2|inf]
+
 import { readFileSync } from 'node:fs';
 import { SnowCoverage, predictRoadTile, BasicRoadsTerrain, roadCorners } from '../src/weather/snowfall.js';
 import { SnowfallRuntime } from '../src/weather/snowfallRuntime.js';
@@ -48,7 +44,6 @@ function world() {
     terrainDistance: 2,
   };
 }
-// SPANS=1: each of the runtime's own steps timed a frame, so a slow frame says which step it was
 const spans = process.env.SPANS ? new Map() : null;
 let frameSpans = null;
 if (spans) {

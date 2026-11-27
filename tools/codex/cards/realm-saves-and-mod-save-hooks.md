@@ -12,6 +12,7 @@ files:
   - src/net/realmSaveCodec.js
   - src/characters/renownLayer.js
   - server-account/src/realm.js
+  - server-account/src/routes/storageRoutes.js
 routes:
   - /v1/realm
   - /v1/realm/customs
@@ -27,6 +28,7 @@ invariants:
 traps:
   - "Checkpoint payloads gzip-compress up to `REALM_TEXT_MAX_BYTES` (`16 MiB`) uncompressed; byte-length checks alone allow gzip bombs or reject valid packed saves."
   - Settled online actions must trigger `createSaveSoon` immediately instead of waiting for `ONLINE_CHECKPOINT_MS` (`300_000` ms), or crashes revert client inventory after D1 already settled.
+  - "Every realm answer that grants a lease (create, customs, and join) carries `gzip: true`, and the client packs checkpoints only after it receives that flag, so a new client against an older service sends plain text."
 tags:
   - saves
   - realm

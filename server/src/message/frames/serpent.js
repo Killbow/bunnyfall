@@ -1,4 +1,3 @@
-// The `serpent` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, isSocialRoom, bodyWordRelayGate, serpentGate } from '../../relay.js';
 
 export async function serpentFrame(ws, a, m) {

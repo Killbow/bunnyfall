@@ -1,21 +1,3 @@
-// T3f probe: the tone cycle on the live talk window - greet, cycle
-// T (Normal -> Blunt -> Polite), and re-ask Where-is under a new
-// tone; the selection tracks and the toned answer still renders.
-//
-// ROAD-E E8 PORTED IT ACROSS THE WINDOW. This probe was written
-// against the KEYED talk window and asserted on a text option row
-// naming the tone, read out of `overlayOptions`. B5-6's native window
-// (ui/native/nativeTalk.js) draws the tone as ART - three 6x6 radios at
-// (258,18/28/38), the selection a flat toggleColor fill (:63-65,
-// :545-547) - so there IS no text row to find and the probe failed on
-// a window that was working. The DRIVE is unchanged, because the keys
-// are: F3 is TalkToneBlunt - ET1-AUDIT F1: DFU's own DialogShortcuts
-// row, which the window walks first (nativeTalk.js input) - KeyW opens the
-// where-is categories (:430) and a digit uses a visible row (:435).
-// What moved is what is READ: `native` (townTalk.js:"native: !!overlay?.conversation", true only
-// when the art window is up), `tone`, and the ABSENCE of
-// `overlayOptions` - which is the positive statement that the window
-// under the keys is the native one and not the keyed fallback.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 const server = await createServer({ root: '/home/user/project-dagger', server: { port: 5199, strictPort: true } });
@@ -23,11 +5,7 @@ await server.listen();
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
-// T2: `class=16` SKIPS THE CHARGEN WIZARD. Without it the wizard holds
-// townTalk's overlay slot and townTalk.keydown - FIRST in this host's
-// keydown ladder (exterior.js:"if (e.code === 'Escape') backButtonHeld = true") - swallows every
-// page.keyboard.press below, so this probe pressed its keys into a
-// character-creation screen it never knew was up.
+// class=16 skips character creation, which otherwise takes every key press below.
 await page.goto('http://localhost:5199/play/?shot&play&exterior&time=12:00&class=16');
 await page.waitForFunction(() => window.__shotReady === true, null, { timeout: 180000 });
 const readPeople = async () => JSON.parse(await page.evaluate(() => window.__people()));
@@ -52,7 +30,7 @@ console.log('greeting:', JSON.stringify({ text: greet.overlayText, native: greet
 if (!greet.native) { console.log('NOT THE NATIVE TALK WINDOW'); process.exit(1); }
 if (greet.overlayOptions) { console.log('KEYED OPTION ROWS ARE UP - the art window did not mount'); process.exit(1); }
 if (greet.tone !== 'Normal') { console.log(`TONE DOES NOT START NORMAL: ${greet.tone}`); process.exit(1); }
-await press('F3');   // Normal -> Blunt: TalkToneBlunt (ET1-AUDIT F1; the port's T-cycles-tone is gone, T is Things)
+await press('F3');
 const blunt = await talk();
 console.log('after F3:', JSON.stringify({ native: blunt.native, tone: blunt.tone }));
 if (blunt.tone !== 'Blunt') { console.log('TONE DID NOT CYCLE'); process.exit(1); }

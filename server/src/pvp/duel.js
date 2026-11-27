@@ -1,5 +1,3 @@
-// The duels a room referees, held in its memory alone: opened, struck, forfeited, and beaten.
-// A duel's words and its end, with a won bout's signed receipt, go to its two fighters.
 import { newDuelRef, duelOpen, duelBoutOf, duelBlow, duelVitals, duelEnd, duelForfeit, duelStep } from '../../../src/net/duelRef.js';
 import { lookKey } from '../room/keys.js';
 import { SIEGE_HIT, siegeHeld } from '../../../src/net/siegeRef.js';

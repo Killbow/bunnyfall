@@ -1,4 +1,3 @@
-// The ladder order follows the four proficiency ranks in the registry.
 const dash = (length, halfW = .55) => ({ mech: 'dash', aim: 'lane', length, halfW });
 const leap = (length, apex = 1.3) => ({ ...dash(length), mech: 'leap', apex });
 // A side hop lands beside the locked enemy (or sideways from the view), alternating sides unless `side` is set.

@@ -30,6 +30,7 @@ invariants:
   - "`livingWorldOn()` checks `LIVING_WORLD_TUNING.override` and otherwise enables the simulation in Enhanced mode unless `getPref(LIVING_WORLD_KEY)` is `false`, falling back to classic random walkers (`src/characters/townPopulation.js`) when disabled or in Classic mode."
   - "Every resident identity, daily schedule, path, and street incident is a deterministic pure function of the `lwSeed` seed, static world data, and the sky clock, requiring zero network replication across multiplayer clients."
   - "Online play advances the simulation clock via `skyMinutesPerMsAt` (`SKY_SEGMENTS` in `src/net/skyLaw.js`), while offline play uses `CLASSIC_MINUTES_PER_SECOND` multiplied by the world time scale."
+  - "The population timer resets to zero when it fires, so a slow frame runs at most one tick and drops the remainder. Carrying the remainder would spawn a crowd after a stall."
 traps:
   - "Town builders sample `livingWorldOn()` when a settlement loads, so toggling `livingWorld` takes effect only on the next town load."
   - "Never consume shared random state or local wall-clock time outside `lwSeed` and the simulation clock, or connected players will see different residents."

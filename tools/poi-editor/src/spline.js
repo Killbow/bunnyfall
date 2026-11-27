@@ -1,9 +1,6 @@
 // @ts-check
 
-// A smooth path through waypoints, for drawing a route in the viewport. Catmull-Rom through every point (centripetal
-// parameterisation would suit uneven spacing; the uniform form is enough for a preview), closed for a loop.
-
-/** @param {number[][]} pts @param {boolean} closed @param {number} [steps] segments per span */
+/** @param {number[][]} pts @param {boolean} closed @param {number} [steps] */
 export function splinePoints(pts, closed, steps = 10) {
   const n = pts.length;
   if (n < 2) return pts.map((p) => [...p]);
@@ -20,5 +17,4 @@ export function splinePoints(pts, closed, steps = 10) {
   return out;
 }
 
-/** Consecutive points as line-segment pairs, flat, for a GL line list. */
 export const segments = (pts) => { const o = []; for (let i = 0; i + 1 < pts.length; i++) o.push(...pts[i], ...pts[i + 1]); return o; };

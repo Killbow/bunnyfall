@@ -1,8 +1,5 @@
 // @ts-check
 
-// The inspector: the fields of whatever is selected. One node shows its own fields, several show what they share.
-// A field change is one editor step. Fields that are not built yet are not shown.
-
 import { h, clear } from './dom.js';
 import { find } from '../scene.js';
 import { setNumber, isFigure } from '../transforms.js';
@@ -82,7 +79,6 @@ export function createInspector({ host, getDoc, docId, edit, getSel }) {
     interiorFields(doc);
   }
 
-  /** The room: its shell model and the built-in pieces taken out of it. */
   function interiorFields(doc) {
     const it = interiorOf(doc);
     host.append(h('div', { class: 'section', text: 'Interior' }));

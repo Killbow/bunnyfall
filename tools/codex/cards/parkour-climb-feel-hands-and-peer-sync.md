@@ -15,6 +15,7 @@ files:
   - src/net/wire.js
   - src/net/onlineWorld.js
   - src/player/motor.js
+  - src/combat/weaponRig.js
 routes: []
 tables: []
 replacesBible:
@@ -29,10 +30,12 @@ invariants:
   - "CLIMB_MOVE_KINDS = ['catch','reach','mantle','vault','lower','corner','leap','wallrun'] in src/net/wire.js. Append only, because indices go on the wire."
   - "The `ClimbPose` class (src/player/climbPose.js) is the single climb choreography that `ClimbHands` and `applyClimbRig` both follow, and `climbRigInput` snapshots it."
   - "First-person climb hands stay anchored to the wall and switch to reach art when the view turns more than LOOK_FROM_DEG = 40 off the wall's face."
+  - "While a cast animation plays, the climbing hands receive no climb pose, so they let go of the wall and ease back after the cast. The readied-spell hands are skipped while the climbing hands show, and the climbing hands never draw in a frame where spell hands were drawn."
 traps:
   - "Peer climb audio is rate-limited: PEER_CUE_MS = 150 between cues and PEER_RHYTHM_MS = 100 rhythm floor (`PeerClimbSounds`)."
   - "Weapons lower or hide while hands grip (`climbHandsWanted`). Do not draw the weapon sprite over climb hands."
   - "BODY_TURN_TAU = 0.08 smooths the body yaw toward `climbFacing`."
+  - "Untracked bones share the `node.rest` entry of the skeleton, so the climb rig (`src/combat/climbRig.js`) writes every bone through `pose.set` as a new entry and never mutates an existing one."
 dfu: []
 tags:
   - parkour

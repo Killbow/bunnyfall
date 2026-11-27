@@ -1,21 +1,5 @@
-// LOOT-STACK, MEASURED (2026-09-23, Janome: "a toggle key to switch between the inventories of enemies stacked on top
-// of each other"; Mac, on the key the first slice shipped: "that solution is better than a keybind").
-//
-// test/ui/lootstack.test.js holds the law on fakes; this draws the REAL surfaces in Chromium and reads back what a fake
-// cannot.
-//   - THE PLAQUE, through the real seam the four hosts call (ui/worldPlaque.js worldHoverFrame) with three bodies in one
-//     pile under the reticle: the front body named, and the pile's mark - "3 bodies" - ONE line inside the plaque's box,
-//     at a desktop's width and a narrow window's (the sheet shrinks the plaque under 720px), with a long name too. The
-//     first slice's probe found two defects in the plaque it draws on, both older than the pile, and still measures
-//     them: the divider is the LIST's top edge, not the title's foot; and the list's cap clips DOWN only, so quick
-//     loot's lit band stays edge to edge with its name whole and unmoved.
-//   - THE LOOT WINDOW, through the real inventory door (ui/inventoryDoor.js createInventoryWindow) on the enhanced skin,
-//     opened the way a host's corpse door opens it: a tab per body in the pile, the open one lit; a real click on
-//     another tab closes this window and opens that body's, whose own tab is lit; and on a phone's width a pile of five
-//     wraps inside the window, every tab a finger's height, the page never scrolling sideways.
-// Photographs to tools/shots/ (or SHOT_DIR).
-//
-//     node tools/lootStackProbe.mjs
+// Renders the loot plaque and loot window tabs for stacked bodies in Chromium and checks their layout.
+// Run: node tools/lootStackProbe.mjs (screenshots go to SHOT_DIR, default tools/shots).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -66,9 +50,6 @@ for (const [W, H] of [[1440, 900], [480, 800]]) {
         const q = s.getBoundingClientRect();
         return { text: s.textContent, lines, inside: q.left >= box.left - 0.5 && q.right <= box.right + 0.5 && q.top >= box.top - 0.5 && q.bottom <= box.bottom + 0.5 };
       });
-      // the lit row (quick loot's highlight): its band should reach the plaque's inner edges and its name be whole -
-      // the list clips what overflows it, so a band that reached past the list lost its ends and its name's first
-      // letter with them
       const sel = n.querySelector('.wplaque-row.sel');
       let lit = null;
       if (sel) {
@@ -79,13 +60,11 @@ for (const [W, H] of [[1440, 900], [480, 800]]) {
         const range = document.createRange(); range.selectNodeContents(sel.firstChild);
         const text = range.getBoundingClientRect();
         const clipL = getComputedStyle(n.querySelector('.wplaque-list')).overflowX === 'visible' ? innerL : Math.max(innerL, list.left);
-        // ...and the lit name stands where every other name stands - the band moves no name
         const other = n.querySelector('.wplaque-row:not(.sel):not(.wplaque-empty):not(.wplaque-more)');
         let shift = null;
         if (other) { const r2 = document.createRange(); r2.selectNodeContents(other.firstChild); shift = Math.round((text.left - r2.getBoundingClientRect().left) * 10) / 10; }
         lit = { bandL: Math.round(band.left - innerL), bandR: Math.round(innerR - band.right), textClipped: text.left < clipL - 0.5, overflowX: getComputedStyle(n.querySelector('.wplaque-list')).overflowX, shift };
       }
-      // the divider is the list's top edge: every sub-line stands above it
       const listTop = n.querySelector('.wplaque-list')?.getBoundingClientRect().top ?? null;
       const subBottom = Math.max(...[...n.querySelectorAll('.wplaque-sub')].map((s) => s.getBoundingClientRect().bottom));
       return { on: n.classList.contains('on'), title: n.querySelector('.wplaque-title')?.textContent, subs, rows: n.querySelectorAll('.wplaque-row').length, w: Math.round(box.width), lit, subAboveList: listTop == null || subBottom <= listTop + 0.5 };
@@ -106,8 +85,6 @@ for (const [W, H] of [[1440, 900], [480, 800]]) {
   await page.close();
 }
 
-// THE LOOT WINDOW'S TABS, through the real inventory door, opened as a host's corpse door opens it: the pile handed
-// in, each tab back through the "door" with the pile in hand (player/lootStack.js lootPile)
 for (const [W, H, n] of [[1440, 900, 3], [390, 800, 5]]) {
   const page = await browser.newPage({ viewport: { width: W, height: H } });
   page.on('pageerror', (e) => pageErrors.push(String(e.message)));
@@ -163,8 +140,6 @@ for (const [W, H, n] of [[1440, 900, 3], [390, 800, 5]]) {
   await page.screenshot({ path: `${OUT}/lootstack_tabs_${W}_switched.png` });
   await page.close();
 }
-// THE CAP STILL CLIPS DOWNWARD: a six-row pile at a short window - the list stops at its cap (the room below the
-// cross, R7) with its rows clipped under it, while the band across it stays whole
 {
   const page = await browser.newPage({ viewport: { width: 1024, height: 360 } });
   page.on('pageerror', (e) => pageErrors.push(String(e.message)));

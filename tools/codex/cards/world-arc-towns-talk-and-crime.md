@@ -23,7 +23,8 @@ files:
   - "src/combat/enemyEquipment.js"
   - "src/justice/court.js"
   - "src/justice/arrestFlow.js"
-  - "src/world/buildingSummaries.js"
+  - "src/characters/interiorPeople.js"
+  - "src/characters/exteriorNpcs.js"
 routes: []
 tables: []
 replacesBible:
@@ -39,13 +40,14 @@ invariants:
   - "Talk refuses with TEXT.RSC NO_RESPONSE_TEXT_ID 7205 when reaction < REFUSE_TALK_REACTION (-20)."
   - "Where-is knowledge roll: rollToBeat = knowledgeModifiers[qIndex*5 + socialGroup] + 10 (Commoners local building = 15), random 1..20 <= rollToBeat knows."
   - "At most MAX_ACTIVE_GUARD_SPAWNS = 5 city-watch guards stand at once."
-  - "`buildingSummaries` saves the shared DFRandom seed before generating names and restores it after, so later rolls are unchanged."
+  - "Billboards must be placed after `setupExteriorQuestStaticNpcs` runs, because a quest that placed an individual elsewhere calls `setActive(false)` on its host, and that host state removes the home copy from drawing and clicks."
 traps:
   - "Pickpocketing rolls dice100(33) (Dice100.FailedRoll(33)) in src/talk/talk.js, not townTalk.js."
   - "Info/Grab/Talk activate at 6.4 (256 * GLOBAL_SCALE) but Steal alone at 3.2; a 6.4 pre-gate on Steal is a regression."
   - "Map reveal fires only when the roll is <= CHANCE_TO_REVEAL_LOCATION_ON_MAP (0.35) and the player is outside."
   - "Killed guards drop gear via equipmentItems() from src/combat/enemyEquipment.js, not a loot table key."
-  - "`generateBuildingName` draws name parts in DFU source order (B before A) and `%ef` burns one `rand()`; reordering any draw changes every building name."
+  - "`peopleAreVisible` hides the people of an owned house, shows a shop's people by the entry-time `insideOpenShop` latch rather than the hour, and applies hours to every type up to House4, which includes Temple, Tavern, and Palace."
+  - "`updateNpcPresence` only ever makes people present and never hides anyone. It ignores house ownership and excludes `HouseForSale`, so resting in a bought House2 to House4 by day brings its people back. This matches the original game."
 dfu:
   - "Assets/Scripts/Game/Utility/PopulationManager.cs"
   - "Assets/Scripts/Game/MobilePersonMotor.cs"

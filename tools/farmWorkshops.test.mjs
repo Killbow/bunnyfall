@@ -1,4 +1,3 @@
-// PHASE 4: the workshop yard - built on a staked plot, a batch from the Stores, collected once, one product order a week
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -51,7 +50,6 @@ test('a workshop rises over real time; its batch takes inputs, waits on the shel
   assert.equal(workshopStages(g, done).wo_churn, 2, 'shelf full');
   assert.deepEqual(got.deposit, [{ material: 'food:butter', qty: 3 }]); assert.equal(got.garden.batches, undefined);
   assert.equal(stepFarmWorkshop(got.garden, { act: 'collect', workshop: 'churn' }, done).error, 'farm-workshop-nothing', 'A shelf is collected once');
-  // a late start collects the finished batch first, so nothing is lost
   const next = stepFarmWorkshop(g, { act: 'start', workshop: 'churn', recipe: 'cheesewheel' }, done + 99999);
   assert.deepEqual(next.deposit, [{ material: 'food:butter', qty: 3 }]); assert.equal(next.garden.batches.churn.out, 'food:cheesewheel');
   assert.equal(stepFarmWorkshop(g, { act: 'start', workshop: 'churn', recipe: 'nope' }, done).error, 'farm-workshop-bad');
@@ -80,7 +78,6 @@ test('the workshop handler spends gold and Stores exactly once, pays one product
   assert.equal(f.sql.prepare("SELECT qty FROM guild_prof_stores WHERE material='food:ale'").get().qty, 5);
   assert.equal(f.sql.prepare('SELECT farm_work FROM players').get().farm_work, 10, 'Collecting is no extra work');
   assert.equal((await go({ act: 'collect', workshop: 'brewery' }, ready + 12 * 3600)).error, 'farm-workshop-nothing', 'Ale is credited once');
-  // the product order: stock-checked, paid once a week, an officer's
   const week = farmWeek(ready), o = productOrder(42, week);
   assert.equal((await go({ act: 'order' }, ready)).error, 'farm-workshop-nostock');
   f.sql.prepare("INSERT INTO guild_prof_stores VALUES ('guild1',?,'','',?,'t',1) ON CONFLICT (guild_id,material,dep_player,dep_char) DO UPDATE SET qty=?").run(o.key, o.qty + 5, o.qty + 5);
@@ -105,7 +102,6 @@ test('the workshop handler spends gold and Stores exactly once, pays one product
 });
 
 test('the apiary makes honey from nothing; the loom and the press have recipes a desert farm can run', async () => {
-  // 2026-11-20, a player: no honey on a farm for the brewery's mead; the loom and press useless in the desert
   const f = fixture();
   f.sql.exec("INSERT INTO players (id) VALUES ('tester')");
   let version = 0;
@@ -123,7 +119,6 @@ test('the apiary makes honey from nothing; the loom and the press have recipes a
   assert.ok((await go({ act: 'collect', workshop: 'apiary' }, ready + 12 * 3600)).ok);
   assert.equal(stores('food:honey'), 4, 'four honey for the brewery');
   assert.equal(f.sql.prepare('SELECT farm_work FROM players').get().farm_work, 10);
-  // the loom: desert root and grain straw both make linen, each taking exactly its own input
   assert.ok((await go({ act: 'build', workshop: 'loom' }, ready)).ok);
   const woven = ready + WORKSHOPS.loom.buildS;
   f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:root','','',20,'t',1), ('guild1','food:grain','','',30,'t',1)");
@@ -133,7 +128,6 @@ test('the apiary makes honey from nothing; the loom and the press have recipes a
   assert.equal(stores('cloth:linen'), 2);
   assert.ok((await go({ act: 'start', workshop: 'loom', recipe: 'strawlinen' }, woven + 4 * 3600)).ok);
   assert.equal(stores('food:grain'), 18, 'twelve grain of straw');
-  // the press: root oil and grain oil
   assert.ok((await go({ act: 'build', workshop: 'press' }, woven + 5 * 3600)).ok);
   const pressed = woven + 5 * 3600 + WORKSHOPS.press.buildS;
   assert.ok((await go({ act: 'start', workshop: 'press', recipe: 'rootoil' }, pressed)).ok);

@@ -1,9 +1,7 @@
-// Writes the in-game POI editor's asset catalog, public/poi/asset-catalogue.json, from the game files and the repo.
-//   ARENA2_PATH=/path/to/arena2 node tools/poiAssetCatalogue.mjs [--check] [--out <file>]
-// The game files are required: without ARENA2_PATH the catalog would list no models or classic flats, so the tool
-// stops. --check builds the catalog and compares it with the file on disk (exit 1 when they differ) without writing.
-// The entries are built by src/poi/poiAssetCatalogueBuild.js; the editor reads them with src/poi/poiAssetCatalogue.js.
-
+// Writes the POI editor's asset catalog, public/poi/asset-catalogue.json, from the game files and the repo.
+// Usage: ARENA2_PATH=<dir> node tools/poiAssetCatalogue.mjs [--check] [--out <file>].
+// --check builds the catalog and exits 1 when it differs from the file on disk, without writing.
+// The tool stops without ARENA2_PATH, because the catalog would list no models or classic flats.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -38,7 +36,6 @@ const { FESTIVAL_ARCHIVE, FESTIVAL_ART } = await src('world/festivalArt.js');
 const { SOUL_CAKE_ROW, HEARTH_OFFERING_ROW } = await src('systems/festival/soulCake.js');
 const { DECORATION_POOLS, WATER_BIOME } = await src('world/underwaterDecorations.js');
 
-// the files
 const arch3d = new Arch3dFile(); arch3d.load(rd('ARCH3D.BSA'));
 const flatsCfg = new FlatsFile(); flatsCfg.load(rd('FLATS.CFG'));
 const blocks = new BlocksFile(); blocks.load(rd('BLOCKS.BSA'), 'BLOCKS.BSA');
@@ -52,8 +49,6 @@ const pngs = (dir) => (existsSync(join(ROOT, dir)) ? readdirSync(join(ROOT, dir)
 const modFiles = ['public/art/roleplay-realism-items', 'vendor/climates-calories/Textures', 'vendor/detailed-ships/Textures', 'vendor/foraging/Textures']
   .map((dir) => ({ source: dir, files: pngs(dir) }));
 
-// the items: the classic templates with their groups, then the mods' own rows, the trophy, and the Witches' Festival
-// items
 const groupOf = new Map();
 for (const [g, list] of Object.entries(GROUP_TEMPLATE_INDICES)) for (const i of list) groupOf.set(i, ITEM_GROUPS[g] ?? -1);
 const items = ITEM_TEMPLATES.filter(Boolean).map((t) => ({ ...t, group: groupOf.get(t.index) ?? -1 }));
@@ -63,7 +58,6 @@ for (const t of cc) if (t.index > 511 && t.name && !items.some((x) => x.index ==
 items.push({ ...TROPHY_ROW, group: -1, sourcePath: 'src/net/trophyLaw.js' });
 for (const t of [SOUL_CAKE_ROW, HEARTH_OFFERING_ROW]) items.push({ ...t, group: -1, source: 'witches-festival', sourcePath: 'src/systems/festival/soulCake.js' });
 
-// the Witches' Festival's painted pictures (world/festivalArt.js), and Iliac Puddle No More's seafloor pieces by water biome
 const FESTIVAL_NAMES = { cake: 'Soul Cake', offeringIcon: 'Hearth Offering (in a pack)', offering: 'Hearth Offering', turnip: 'Turnip lantern', effigy: 'Straw effigy', wardStaff: 'Ward-staff' };
 const ownFlats = Object.entries(FESTIVAL_ART).map(([k, r]) => ({ archive: FESTIVAL_ARCHIVE, record: r, name: FESTIVAL_NAMES[k] ?? k, source: 'src/world/festivalArt.js' }));
 const biomeWords = (k) => k.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
@@ -73,7 +67,6 @@ for (const [biome, pool] of Object.entries(DECORATION_POOLS)) {
   for (const p of pool) { const k = `${p.archive}.${p.record}`; if (!underwater.has(k)) underwater.set(k, []); if (!underwater.get(k).includes(word)) underwater.get(k).push(word); }
 }
 
-// the creatures: every spawnable encounter enemy ID (`FOES` in `poiDmEdit.js`), after registering Enemy Expansion names
 installEnemyExpansion({ on: true, meaner: false, log: () => {} });
 const { FOES } = await src('poi/poiDmEdit.js');
 const creatures = FOES.map((f) => ({ id: f.id, name: enemyDisplayName(f.id) || f.name, texture: ENEMY_BASICS[f.id]?.maleTexture ?? null }));

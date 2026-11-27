@@ -1,63 +1,16 @@
-// AN FBX, LESS SOME OF ITS OBJECTS - every record that stays copied byte for byte.
-//
-//     node tools/fbxStrip.mjs <in.fbx> <out.fbx> --drop=<Model>[,<Model>...]
-//
-// MW-STEEL1 (2026-10-06, Mac: "These 2 files are for the armor replacement of the morrowind steel armor"). Mac's
-// steel-plate scenes carry, beside the armour, the body it was fitted on: two objects of a Breton man out of a
-// "Morrowind_TPose_Models" pack - his head (`Breton_Male.003`) and his neck (`Breton_Male.006`), textured with
-// Morrowind's own tx_b_n_breton_m_* pictures. They are Bethesda's meshes. The port never ships Morrowind data (it reads
-// the player's own archives), and a public repository publishes every file it commits, so the source committed for
-// the bake is Mac's export with those objects taken out - and nothing else changed.
-//
-// ═══ WHY BYTES AND NOT THE READER'S TREE ═══════════════════════════
-//
-// tools/fbxRead.mjs decodes every property into a JavaScript value, and a value has lost the type code it was written
-// with: an int16, an int32 and a double all come back as a Number. A file re-written from that tree would be a
-// different file wearing the same numbers. So the records are walked again here at the byte level, and a record that
-// stays is copied exactly as it was written - its name, its property bytes (compressed arrays still compressed) and
-// its children. The reader's tree, walked in the same order, is used only to READ: which objects are which, what
-// connects them, how many there are.
-//
-// What is rewritten, and nothing else:
-//   - every record's END OFFSET, which is an absolute file position, so every record after a removal moves;
-//   - the Connections that name a removed object;
-//   - the Definitions counts (each ObjectType's Count and the section's total), which count the objects;
-//   - the footer's alignment padding, which depends on where the footer now starts (Blender's encode_bin.py rule:
-//     pad to 16, a whole 16 when already aligned).
-//
-// A removed object takes with it what hangs ONLY from it - its geometry, its node attribute, a material no kept
-// object wears, that material's textures, their videos. An object parented under a removed one is refused by name
-// rather than orphaned.
-//
-// ═══ A CUT: ONE MATERIAL'S POLYGONS OUT OF AN OBJECT THAT STAYS ═══
-//
-//     node tools/fbxStrip.mjs <in.fbx> <out.fbx> --cut=<Model>:<material>[,...]
-//
-// MW-FOLK1 (2026-10-13, the owner's townsfolk outfits). An outfit can carry, joined into its own object, a piece of the
-// body it was made on: the 385 outfit (`Breton_Male.018`) holds 61 polygons of a Morrowind groin under its tunic, worn
-// in material slot 6 - Morrowind's own tx_b_n_generic_m_g00 - and dropping the object would drop the outfit. A cut
-// takes out the polygons that wear that slot, with every vertex, normal and UV only they used, and rewrites the
-// object's Geometry arrays - and nothing else: the slot itself stays (no polygon wears it), so every polygon left keeps
-// its material's index, and every array left keeps its order - a vertex no polygon uses at all was never the cut's, and
-// stays. An edge a cut polygon shared with one that stays is kept, written from the polygon that stays. Two slots of
-// one object are cut in ONE pass, from the one Geometry (AUDIT MW-FOLK1 L1-F1: each cut read the object's arrays as
-// the file held them, so a second cut of the same object re-wrote the first's arrays from the original and the first
-// slot's polygons came back, both reported cut). A Geometry holding anything this tool does not know how to cut
-// (another layer, another mapping) or carrying a deformer - a skin's clusters or a blend shape, each naming its
-// vertices by their index (AUDIT MW-FOLK1 L1-F2) - is refused by name rather than half cut.
+// Copies an FBX without the named objects (--drop) or one material's polygons (--cut), keeping every other byte.
+// Run: node tools/fbxStrip.mjs <in.fbx> <out.fbx> [--drop=<Model>[,...]] [--cut=<Model>:<material>[,...]]
+// Records are copied as raw bytes because decoded values lose their type codes. Only end offsets, Connections,
+// Definitions counts, footer padding, and cut Geometry arrays are rewritten.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { readFbx, childrenNamed, nodeAt, objectName } from './fbxRead.mjs';
 import { isMain } from './lib/isMain.mjs';
 
-/** The sixteen bytes Blender's encoder writes first in the footer (encode_bin.py _FOOT_ID). */
 export const FOOT_ID = Buffer.from('fabcab09d0c8d466b176fb831cf7267e', 'hex');
-/** ...and the sixteen it ends the file with. */
 export const FOOT_MAGIC = Buffer.from('f85a8c6adef5d97eece90ce3758f290b', 'hex');
 
-/** The byte-level record tree: each record's name, its property bytes as written, its children, and whether its
- *  child list closed with a null record. */
 function rawRecords(buf) {
   const version = buf.readUInt32LE(23);
   const wide = version >= 7500;
@@ -95,8 +48,6 @@ function rawRecords(buf) {
   return { version, wide, HEAD, top, footerAt: p };
 }
 
-/** Pair the byte-level tree with the reader's decoded one, record for record - the two walks must agree on every
- *  name, or the file is not one this tool understands. */
 function pair(raw, decoded, path = '') {
   if (raw.length !== decoded.length) throw new Error(`${path || 'the file'}: ${raw.length} records read raw, ${decoded.length} decoded`);
   raw.forEach((r, i) => {
@@ -107,10 +58,8 @@ function pair(raw, decoded, path = '') {
   });
 }
 
-/** An object's id as one key, whatever width the reader handed it back in. */
 const idKey = (v) => String(v);
 
-/** MW-FOLK1: the array types a cut re-writes - the reader's widths (tools/fbxRead.mjs ARRAY), written back. */
 const ARRAY_WRITE = {
   d: [8, (b, v, o) => b.writeDoubleLE(v, o)],
   f: [4, (b, v, o) => b.writeFloatLE(v, o)],
@@ -118,7 +67,6 @@ const ARRAY_WRITE = {
   l: [8, (b, v, o) => b.writeBigInt64LE(BigInt(v), o)],
 };
 
-/** A one-array record's property bytes with new values - its type code and its encoding (raw, or deflated) kept. */
 function arrayProps(rec, values) {
   const t = String.fromCharCode(rec.props[0]);
   const w = ARRAY_WRITE[t];
@@ -135,15 +83,9 @@ function arrayProps(rec, values) {
   return Buffer.concat([head, body]);
 }
 
-/** What a cut knows a Geometry, and each of its layer elements, to hold - anything else is refused by name. */
 const CUT_GEOMETRY = new Set(['Properties70', 'GeometryVersion', 'Vertices', 'PolygonVertexIndex', 'Edges', 'LayerElementNormal', 'LayerElementUV', 'LayerElementMaterial', 'Layer']);
 const CUT_LAYER = new Set(['Version', 'Name', 'MappingInformationType', 'ReferenceInformationType']);
 
-/**
- * MW-FOLK1: cut out of a raw Geometry record (paired with its decoded twin) the polygons that wear any of the material
- * slots `materials`, with every vertex, normal and UV only they used (see the header). Each array left keeps its order
- * and its encoding. Answers how many polygons each slot gave up, and how many vertices went with them.
- */
 function cutGeometry(geo, materials, label) {
   for (const c of geo.children) if (!CUT_GEOMETRY.has(c.name)) throw new Error(`${label}: its Geometry holds "${c.name}", which a cut does not know - refused rather than half cut`);
   const one = (parent, name) => {
@@ -168,7 +110,6 @@ function cutGeometry(geo, materials, label) {
   for (const c of matEl.children) if (!CUT_LAYER.has(c.name) && c.name !== 'Materials') throw new Error(`${label}: its LayerElementMaterial holds "${c.name}"`);
   const matsRec = one(matEl, 'Materials');
   const mats = matsRec.decoded.props[0];
-  // one material for the whole object (AllSame): every polygon wears it, or none does
   if (value(matEl, 'MappingInformationType') === 'AllSame') {
     for (const m of materials) if (mats[0] === m) throw new Error(`${label}: every polygon wears material ${m} - drop the object instead`);
     throw new Error(`${label}: no polygon wears material ${materials[0]} - nothing to cut`);
@@ -185,8 +126,6 @@ function cutGeometry(geo, materials, label) {
   const keptPV = polys.flatMap(([s, e], p) => (keep[p] ? Array.from({ length: e - s + 1 }, (_, i) => s + i) : []));
   const newPV = new Map(keptPV.map((k, n) => [k, n]));
 
-  // THE VERTICES: every one but those only the cut polygons used (a vertex no polygon uses was never theirs), in their
-  // order; the polygons left re-pointed at them
   const vOf = (k) => (pvi[k] < 0 ? ~pvi[k] : pvi[k]);
   const theirs = new Set(polys.flatMap(([s, e], p) => (keep[p] ? [] : Array.from({ length: e - s + 1 }, (_, i) => vOf(s + i)))));
   for (const k of keptPV) theirs.delete(vOf(k));
@@ -196,8 +135,6 @@ function cutGeometry(geo, materials, label) {
   pviRec.props = arrayProps(pviRec, keptPV.map((k) => (pvi[k] < 0 ? ~vTo.get(~pvi[k]) : vTo.get(pvi[k]))));
   matsRec.props = arrayProps(matsRec, mats.filter((_, p) => keep[p]));
 
-  // THE EDGES, each written as the polygon corner it starts at: an edge a polygon left still has is kept, from that
-  // polygon's corner where its own was cut; an edge only cut polygons had goes with them
   const edgesRec = geo.children.find((c) => c.name === 'Edges');
   if (edgesRec) {
     const next = (k) => { const [s, e] = polys[polyOf[k]]; return k === e ? s : k + 1; };
@@ -213,8 +150,6 @@ function cutGeometry(geo, materials, label) {
     edgesRec.props = arrayProps(edgesRec, out);
   }
 
-  // EACH CORNER'S LAYER - its normals, its UVs: direct values per corner kept, or an index per corner into a table
-  // kept to the entries still used, in their order
   const corners = (el, valueName, width, wName) => {
     for (const c of el.children) if (!CUT_LAYER.has(c.name) && ![valueName, `${valueName}Index`, wName].includes(c.name)) throw new Error(`${label}: its ${el.name} holds "${c.name}"`);
     if (value(el, 'MappingInformationType') !== 'ByPolygonVertex') throw new Error(`${label}: its ${el.name} is not mapped ByPolygonVertex - a cut reads no other`);
@@ -224,7 +159,6 @@ function cutGeometry(geo, materials, label) {
     const wRec = wName ? el.children.find((c) => c.name === wName) : null;
     let keepAt;
     if (ref === 'Direct') {
-      // a value a corner, and no index table beside them (the audit's own fixture: one there was cut as if it were not)
       if (el.children.some((c) => c.name === `${valueName}Index`)) throw new Error(`${label}: its ${el.name} is referenced Direct yet carries a ${valueName}Index`);
       if (values.length !== pvi.length * width) throw new Error(`${label}: its ${valueName} is not one value a corner`);
       keepAt = keptPV;
@@ -232,7 +166,6 @@ function cutGeometry(geo, materials, label) {
       const idxRec = one(el, `${valueName}Index`);
       const idx = idxRec.decoded.props[0];
       if (idx.length !== pvi.length || idx.some((i) => i < 0)) throw new Error(`${label}: its ${valueName}Index is not one entry a corner`);
-      // every entry but those only the cut corners used (an entry no corner uses was never theirs), in their order
       const cutCorner = new Set(polys.flatMap(([s, e], p) => (keep[p] ? [] : Array.from({ length: e - s + 1 }, (_, i) => s + i))));
       const only = new Set([...cutCorner].map((k) => idx[k]));
       for (const k of keptPV) only.delete(idx[k]);
@@ -248,15 +181,6 @@ function cutGeometry(geo, materials, label) {
   return { polygons, vertices: theirs.size };
 }
 
-/**
- * Strip the named Models (by their Blender object name) out of an FBX, with what hangs only from them, and (MW-FOLK1)
- * CUT out of a Model that stays the polygons wearing a material slot (`cut`: `[{ object, material }]`, an object's
- * slots cut together - see the header). Returns `{ bytes, dropped: [{ kind, name, id }], cut: [{ object, materials,
- * polygons, vertices }] }` - a cut object each, its slots in the order named, the polygons each gave up and the vertices
- * only they used. Throws on a name that is not a Model of the file, on an object parented under a removed one, on a
- * cut of a removed object, of a slot named twice, of a Geometry another object shares or a deformer names, and on a
- * footer this tool does not recognise.
- */
 export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
   const buf = Buffer.from(bytes);
   const tree = readFbx(buf);
@@ -275,15 +199,12 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
     if (!model) throw new Error(`no Model named "${name}" in this FBX`);
     gone.add(idKey(model.decoded.props[0]));
   }
-  // A model under a removed one would be orphaned: refused, not guessed at.
   for (const l of links) {
     const child = byId.get(l.child);
     if (gone.has(l.parent) && child?.name === 'Model' && !gone.has(l.child)) {
       throw new Error(`${objectName(child.decoded.props[1])} is parented under a removed object - remove it too, or keep its parent`);
     }
   }
-  // What hangs ONLY from removed objects goes with them, to a fixed point (model -> geometry/material -> texture ->
-  // video). An object with a parent that stays, stays.
   for (let grew = true; grew;) {
     grew = false;
     for (const [id, r] of byId) {
@@ -298,7 +219,6 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
   objectsRaw.children = objectsRaw.children.filter((r) => !gone.has(idKey(r.decoded.props[0])));
   connRaw.children = connRaw.children.filter((r) => r.name !== 'C' || !(gone.has(idKey(r.decoded.props[1])) || gone.has(idKey(r.decoded.props[2]))));
 
-  // MW-FOLK1: THE CUTS - each object's one Geometry, re-written less its slots' polygons, every slot of it in one pass
   const slotsOf = new Map();
   for (const { object, material } of cut) {
     const list = slotsOf.get(object) ?? [];
@@ -313,13 +233,12 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
     const geos = links.filter((l) => l.parent === id && byId.get(l.child)?.name === 'Geometry').map((l) => l.child);
     if (geos.length !== 1) throw new Error(`${label} has ${geos.length} Geometry records - a cut reads one`);
     if (links.some((l) => l.child === geos[0] && l.parent !== id && byId.get(l.parent)?.name === 'Model')) throw new Error(`${label}'s Geometry is another object's too - a cut would cut both`);
-    // AUDIT MW-FOLK1 L1-F2: what hangs FROM the Geometry - a skin's deformer, a blend shape - names its vertices by index
+    // A skin deformer or blend shape names vertices by index, so a cut of a Geometry that carries one is refused.
     const hung = links.find((l) => l.parent === geos[0]);
     if (hung) throw new Error(`${label}'s Geometry carries a ${byId.get(hung.child)?.name ?? 'record'} that names its vertices by their index - a cut would leave it on the old numbering: refused`);
     return { object, materials, ...cutGeometry(byId.get(geos[0]), materials, label) };
   });
 
-  // THE DEFINITIONS COUNT THE OBJECTS: each ObjectType's Count, and the section's own total.
   const definitions = raw.top.find((r) => r.name === 'Definitions');
   if (definitions) {
     const lessBy = new Map();
@@ -339,8 +258,8 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
     if (total && dropped.length) setCount(total, total.decoded.props[0] - dropped.length);
   }
 
-  // THE FOOTER, as Blender writes it: its id, four zero bytes, zeros to the next 16 (16 when already there), the
-  // version, 120 zeros, the closing magic. Anything else is a file this tool does not know.
+  // The footer as Blender writes it: id, four zeros, zeros to the next 16 (a full 16 when aligned), version,
+  // 120 zeros, and the closing magic.
   const foot = buf.subarray(raw.footerAt);
   if (!foot.subarray(0, 16).equals(FOOT_ID) || !foot.subarray(foot.length - 16).equals(FOOT_MAGIC)) {
     throw new Error('the footer is not the one Blender writes - this tool re-pads only that one');
@@ -359,7 +278,7 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
   };
   const emit = (r) => {
     const slot = out.length;
-    out.push(null);   // the header, written once the record's end is known
+    out.push(null);
     at += raw.HEAD + Buffer.byteLength(r.name, 'latin1');
     push(r.props);
     for (const c of r.children) emit(c);
@@ -368,7 +287,7 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
   };
   push(buf.subarray(0, 27));
   for (const r of raw.top) emit(r);
-  push(Buffer.alloc(raw.HEAD));   // the top level's null record
+  push(Buffer.alloc(raw.HEAD));
   push(FOOT_ID);
   push(Buffer.alloc(4));
   let pad = ((at + 15) & ~15) - at;
@@ -380,7 +299,6 @@ export function stripFbx(bytes, { drop = [], cut = [] } = {}) {
   return { bytes: Buffer.concat(out), dropped, cut: cuts };
 }
 
-/** The Mesh Models of an FBX by name - what a strip keeps, for the record. */
 export function meshModelNames(bytes) {
   const objects = nodeAt(readFbx(Buffer.from(bytes)).nodes, 'Objects');
   return childrenNamed(objects, 'Model').filter((m) => m.props[2] === 'Mesh').map((m) => objectName(m.props[1]));

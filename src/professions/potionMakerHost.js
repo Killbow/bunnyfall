@@ -38,10 +38,10 @@ import { t } from '../ui/textManager.js';
 
 /** The words a classic mix says online - why it earned nothing (L10N4: read when said). */
 export const POTION_DOOR_WORDS = Object.freeze({
-  away: () => t('prof.maker.away', 'A potion mixed here earns no {profession} experience. At an alchemy station (an Alchemist\'s, a Mages Guild hall or your own home) the potion maker brews it from your Stores and what you carry, and it does.', { profession: professionName('alchemy') }),
-  rank: (/** @type {string} */ name, /** @type {number} */ rank) => t('prof.maker.rank', 'Mixed as the classic potion maker mixes, it earns no {profession} experience: {potion} is brewed from {profession} rank {rank}.', { profession: professionName('alchemy'), potion: name, rank }),
-  fee: (/** @type {number} */ fee) => t('prof.maker.fee', 'Mixed as the classic potion maker mixes, it earns no {profession} experience: brewing it here costs {fee} gold.', { profession: professionName('alchemy'), fee }),
-  stored: (/** @type {string} */ name, /** @type {number} */ rank) => t('prof.maker.storedRank', '{potion} is brewed from {profession} rank {rank}. Take your Stores\' ingredients out of the cauldron to mix it from what you carry.', { profession: professionName('alchemy'), potion: name, rank }),
+  away: () => t('prof.maker.away', 'Mixing potions here earns no {profession} experience. To earn it, brew at an alchemy station (an Alchemist\'s, a Mages Guild hall, or your home), using your Stores and what you carry.', { profession: professionName('alchemy') }),
+  rank: (/** @type {string} */ name, /** @type {number} */ rank) => t('prof.maker.rank', 'Mixed the classic way, so it earns no {profession} experience. Brewing {potion} at this station requires {profession} rank {rank}.', { profession: professionName('alchemy'), potion: name, rank }),
+  fee: (/** @type {number} */ fee) => t('prof.maker.fee', 'Mixed the classic way, so it earns no {profession} experience. Brewing it at this station costs {fee} gold, more than you have.', { profession: professionName('alchemy'), fee }),
+  stored: (/** @type {string} */ name, /** @type {number} */ rank) => t('prof.maker.storedRank', 'Brewing {potion} requires {profession} rank {rank}. Take the ingredients from your Stores out of the cauldron to mix it from what you carry.', { profession: professionName('alchemy'), potion: name, rank }),
   brewing: () => t('prof.page.alchemy.brewing', 'Brewing...'),
 });
 

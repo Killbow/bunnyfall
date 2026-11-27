@@ -1,11 +1,5 @@
-// MW-IMPORT SLICE 2 LIVE PROOF: the whole path at once - fixture.bsa in
-// through the picker, MwBsaFile -> parseNif -> flattenNif -> three.js,
-// fixture.dds decoded and mapped - by asserting the four quadrant colors
-// of the fixture texture actually reach pixels on screen. A green suite
-// says every stage answers correctly in isolation; this says the wiring
-// between them draws.
-//
-// Usage: node tools/mwViewerProbe.mjs
+// Browser probe for the Morrowind viewer: loads the fixture archive and texture and checks the colors on screen.
+// Usage: node tools/mwViewerProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
@@ -36,17 +30,12 @@ await page.waitForFunction(
   { timeout: 15000 },
 );
 
-// Deterministic pose for sampling: stop the spin, tip the pitch high so
-// the up-facing quad fills the view.
 await page.click('#spin');
-// Straight down at the up-facing quad: four equal quadrants, even light.
 await page.evaluate(() => window.__mwviewerView(0, 1.45));
 const status1 = await page.textContent('#status');
 console.log('status:', status1.replace('\n', ' | '));
 ok(/1 batch, 2 tris, 1 textured/.test(status1), 'quad loads: 1 batch, 2 tris, textured');
 
-// The pure texture path: plain.nif carries no vertex colors, so with
-// apply mode 2 (MODULATE) the quadrants reach the screen unmixed.
 await page.selectOption('#meshsel', 'meshes/fixture/plain.nif');
 await page.evaluate(() => window.__mwviewerView(0, 1.45));
 await page.waitForTimeout(600);
@@ -66,21 +55,15 @@ for (const k of ['red', 'green', 'blue', 'white']) {
 writeFileSync('/tmp/mw-viewer-probe.png', PNG.sync.write(shot));
 console.log('shot: /tmp/mw-viewer-probe.png');
 
-// The skinned fixture: untextured path, bind-pose preview marker.
 await page.selectOption('#meshsel', 'meshes/fixture/skinned.nif');
 await page.waitForTimeout(300);
 const status2 = await page.textContent('#status');
 ok(/skinned \(bind-pose preview\)/.test(status2), 'skinned fixture loads as bind-pose preview');
 
-// SLICE 3: skeleton + keyframes, the deterministic way - seek the Move
-// group to its end and read the CPU-skinned verts back. Hand-computed:
-// Bone1 slides z 1->2, Bone0 turns 90deg about Z; v1 (1,0,0) lands at
-// (0,1,0), v3 (1,0,1) lands at (1,0,2), v2 blends to z=1.6.
 await page.selectOption('#meshsel', 'meshes/fixture/animated.nif');
 await page.waitForTimeout(200);
 const status3 = await page.textContent('#status');
 ok(/skinned \(bind-pose preview\)/.test(status3), 'animated fixture loads with skin');
-// Bind pose is the default now - playing is a choice the probe makes.
 await page.selectOption('#animsel', 'Move');
 await page.evaluate(() => window.__mwviewerSetAnimTime(1.5));
 await page.waitForTimeout(200);
@@ -100,7 +83,6 @@ await page.waitForTimeout(200);
 const rest = await page.evaluate(() => window.__mwviewerSkinnedPositions());
 ok(rest && Math.abs(rest[11] - 1) < 1e-3, 'seek back to group start restores bind z');
 
-// External .kf overrides inline tracks: Bone1 rides to z=3 at its end.
 await page.setInputFiles('#file', 'test/fixtures/mw/xfixture.kf');
 await page.waitForTimeout(300);
 await page.selectOption('#animsel', 'Move');
@@ -112,11 +94,6 @@ ok(
   `dropped .kf drives Bone1 to z=3, got ${kfPosed && kfPosed[11].toFixed(3)}`,
 );
 
-// SLICE 4: assembly - load the animated base, add part.nif in add-part
-// mode with the Hat on Bone1, seek the pose, and read BOTH the part's
-// rebound skin and the attachment matrix back. Hand-computed: part v0/v1
-// swing with Bone0's quarter turn, v2 rides Bone1 to z=2, and the Hat's
-// attach translation IS Bone1's posed position (0,0,2).
 await page.selectOption('#meshsel', 'meshes/fixture/animated.nif');
 await page.waitForTimeout(200);
 await page.click('#addpart');
@@ -141,9 +118,6 @@ ok(
   `Hat rides Bone1 to (0,0,2), got (${attachT && attachT.map((v) => v.toFixed(3))})`,
 );
 
-// SLICE 6: the ESM path - drop fixture.esm, pick an NPC, and the whole
-// character assembles: base skeleton from the archive, the chest skin
-// rebound, head+hair attached at the Head bone, sex matching live.
 await page.setInputFiles('#file', 'test/fixtures/mw/fixture.esm');
 await page.waitForTimeout(300);
 const esmStatus = await page.textContent('#status');
@@ -153,12 +127,6 @@ await page.waitForTimeout(400);
 const npcStatus = await page.textContent('#status');
 ok(/Test NPC \(Test Race\) - 3\/3 parts bound/.test(npcStatus), `npc assembles: ${npcStatus}`);
 ok(/11 slots without skins/.test(npcStatus), 'the honest missing-slots census reaches the status line');
-// MW-D21: the NPC rides the ONE assembly door (bindPartsInto +
-// poseAssembly, the same the game's arm uses), so what the probe reads
-// is the assembly's own census: every attach bone, rule 15's filter
-// (the chest shape is "Tri Chest" - the retail naming the filter
-// exists for), the Hat riding as a rigid sibling, and the rest pose
-// computed through the real skinning equation.
 const npcParts = await page.evaluate(() => ({
   skins: window.__mwviewer.loaded.skinnedMeshes.length,
   pieces: window.__mwviewer.loaded.npcAsm.pieces
@@ -181,7 +149,6 @@ ok(JSON.stringify(npcParts.chestRest) === JSON.stringify([0.5, 0, 0, 1.5, 0, 0, 
   `the chest rests through the real skinning equation (${npcParts.chestRest})`);
 ok(npcParts.headMinZ > 1.0,
   `the head sits on the Head bone above the chest (minZ ${npcParts.headMinZ})`);
-// The female NPC swaps in the female chest - read the bound part ids.
 await page.selectOption('#npcsel', 'test npc f');
 await page.waitForTimeout(400);
 const fStatus = await page.textContent('#status');
@@ -190,18 +157,9 @@ const fBound = await page.evaluate(() => window.__mwviewer.loaded.npcBound);
 ok(fBound && fBound.includes('b_test_chest_f') && !fBound.includes('b_test_chest'),
   `sex matching bound the female chest (${fBound})`);
 
-// MW-D17: THE CLIP LAW IS THE VIEWER'S ONE HOME FOR TIME. The retired
-// player - start + (elapsed modulo span) - looped EVERY group forever
-// and replayed the intro on each wrap, so "does it stop" is the one
-// question that separates the law from the modulo. Both layers discover
-// their answer by CROSSING (waitForFunction polls on the page's own
-// frames), never by sleeping against SwiftShader's clock.
 await page.selectOption('#meshsel', 'meshes/fixture/animated.nif');
 await page.waitForTimeout(200);
 await page.selectOption('#animsel', 'Move');
-// "move" is in no hardcoded set and the fixture has no loop keys: rule
-// 51 answers loopFallback FALSE, so the clip plays once to its stop key
-// and freezes there. The modulo player can never satisfy this wait.
 await page.waitForFunction(
   () => { const c = window.__mwviewerClip(); return c && c.playing === false; },
   null, { timeout: 20000 },
@@ -215,9 +173,6 @@ const frozen = await page.evaluate(() => window.__mwviewerSkinnedPositions());
 ok(frozen && Math.abs(frozen[11] - 2) < 1e-3,
   `and the POSE holds the stop key - v3 stays at z=2, got ${frozen && frozen[11].toFixed(3)}`);
 
-// "idle" IS rule 51's hardcoded set: same file, same absence of loop
-// keys, and it loops for ever. The wrap is observed, not assumed: the
-// playhead must approach the stop and then come back down.
 await page.selectOption('#animsel', 'Idle');
 await page.evaluate(() => { window.__probeMaxT = 0; });
 await page.waitForFunction(

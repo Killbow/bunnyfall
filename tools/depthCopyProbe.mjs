@@ -1,9 +1,6 @@
-// CACHE-COPY (2026-10-07): THE SHADOW CACHE'S COPY CHECK, HEADLESS. Opens tools/fixtures/depth-copy-check.html
-// (src/tools/depthCopyCheck.js) through the real page on SwiftShader and holds the draw copy exact - every texel of
-// every layer, every round. The old blit is reported, not held: SwiftShader (ANGLE over Vulkan) copies it right, and
-// the machines it failed on are Direct3D's - which is what the page is for, opened in the browser that flickered.
-//
-// Usage: node tools/depthCopyProbe.mjs [size=128] [layers=72] [rounds=4]
+// Runs the shadow cache's depth copy check page on SwiftShader and requires the draw copy to match exactly.
+// Run: node tools/depthCopyProbe.mjs [size=128] [layers=72] [rounds=4].
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 

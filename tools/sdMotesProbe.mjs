@@ -1,13 +1,3 @@
-// SD14c - THE HOUR'S MOTES, COMPILED, LINKED AND DRAWN IN A REAL BROWSER (the Deadlands' probe's method,
-// tools/deadlandsProbe.mjs).
-//
-// node holds the motes' law (test/world/superDungeon/sd14c_motes.test.js - sdMoteAt, the shader's own in JS); what node cannot answer is
-// whether the GLSL COMPILES and LINKS in a real WebGL2 context, whether the points light the frame, and whether the
-// shader puts each mote where the JS law says. So: the repo's own modules served as they are, the pass drawn by its own
-// class over a cleared frame from the hall, the Steps and the arena, the frame read back - and, for motes of every kind
-// standing in view, the pixels where sdMoteAt projects them read.
-//
-//     node tools/sdMotesProbe.mjs
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';

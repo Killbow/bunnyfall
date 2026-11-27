@@ -1,4 +1,3 @@
-// The `wild` frame's handler, called by message/dispatch.js with the room as `this`.
 import { streamsFoes, wildGate, wildDirected, WILD_HZ_MAX } from '../../relay.js';
 
 export async function wildFrame(ws, a, m) {

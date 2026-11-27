@@ -1,4 +1,3 @@
-// The `sd` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, isSocialRoom, bodyWordRelayGate, sdPzRelayGate, sdFightRelayGate, sdRelayGate } from '../../relay.js';
 import { isSdRoom } from '../../../../src/net/sdLaw.js';
 

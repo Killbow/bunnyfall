@@ -1,32 +1,10 @@
 // @ts-check
-// HCC-IL (2026-09-23): THE EMBEDDED RESOURCES OF A .NET ASSEMBLY.
-//
-// Horse Cart and Cargo ships its horse art INSIDE `TrailingWagon.dll` -
-// 45 PNGs as manifest resources (`TrailingWagon.Horse.horse1..5.png`,
-// the five stationary directions, and `TrailingWagon.Horse.Walk.<d>-<f>.png`,
-// five directions of an eight-frame walk), read at runtime through
-// `Assembly.GetManifestResourceStream` (HorseTextureSet.LoadAll,
-// HorseWalkAnimationSet.LoadAll). No other mod this port carries did
-// that; every earlier one shipped its art as Unity textures in the
-// bundle, which `formats/unity/unityBundle.js` already opens. So this is the
-// other door: the PE file's CLI header, its metadata root, the `#~`
-// table stream walked table by table (ECMA-335 II.22 - every table
-// before ManifestResource has to be measured to find it, which is why
-// the schema of thirty-nine of them is written out below), and the
-// ManifestResource rows resolved to `[length][bytes]` records in the
-// CLI resources blob. Pure: bytes in, `{ name, bytes }` out, so
-// `tools/hccAssets.mjs` reproduces `vendor/horse-cart-and-cargo/Textures/`
-// from the shipped bundle and `test/tooling/hcc_assets.test.js` pins that the
-// vendored files ARE the assembly's.
 
 const u16 = (b, o) => b[o] | (b[o + 1] << 8);
 const u32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
 
-/** ECMA-335 II.22: the tables in token order. Each column is a kind:
- *  a byte width (2 or 4), 'S' (#Strings), 'G' (#GUID), 'B' (#Blob),
- *  ['i', table] (a simple index) or ['c', tagBits, [tables]] (a coded
- *  index). Only the ROW SIZES matter here - the walk skips every table
- *  before 0x28 and reads that one. */
+// Column kinds: a byte width, 'S', 'G' or 'B' for a heap index, ['i', table], or ['c', tagBits, tables]. List every
+// table before ManifestResource, since the walk sums their row sizes.
 const CA = ['MethodDef', 'Field', 'TypeRef', 'TypeDef', 'Param', 'InterfaceImpl', 'MemberRef', 'Module', 'DeclSecurity', 'Property',
   'Event', 'StandAloneSig', 'ModuleRef', 'TypeSpec', 'Assembly', 'AssemblyRef', 'File', 'ExportedType', 'ManifestResource', 'GenericParam',
   'GenericParamConstraint', 'MethodSpec'];
@@ -78,7 +56,6 @@ export const TABLES = Object.freeze([
 ]);
 const MANIFEST_RESOURCE = 0x28;
 
-/** The PE's section table, for RVA -> file offset. */
 function sections(b) {
   const pe = u32(b, 0x3c);
   if (u32(b, pe) !== 0x00004550) throw new Error('not a PE file');
@@ -101,12 +78,7 @@ const rvaToOffset = (secs, rva) => {
   throw new Error(`RVA 0x${rva.toString(16)} falls in no section`);
 };
 
-/**
- * Every manifest resource of the assembly, in table order: `{ name, bytes }`.
- * Resources implemented outside this file (Implementation != 0 - another
- * module or assembly) carry `bytes: null`.
- * @param {Uint8Array} b
- */
+/** @param {Uint8Array} b */
 export function readManifestResources(b) {
   const { cli, secs } = sections(b);
   if (!cli.rva) throw new Error('no CLI header: not a .NET assembly');
@@ -131,7 +103,7 @@ export function readManifestResources(b) {
   const strs = streams['#Strings'];
   if (!tab || !strs) throw new Error('no metadata table stream');
   const heapSizes = b[tab.off + 6];
-  const valid = [u32(b, tab.off + 8), u32(b, tab.off + 12)];   // low, high
+  const valid = [u32(b, tab.off + 8), u32(b, tab.off + 12)];
   const present = (i) => (i < 32 ? (valid[0] >>> i) & 1 : (valid[1] >>> (i - 32)) & 1) === 1;
   let q = tab.off + 24;
   const rows = new Map();
@@ -147,7 +119,6 @@ export function readManifestResources(b) {
     const max = Math.max(0, ...c[2].map((t) => rowsOf(t)));
     return max < (1 << (16 - c[1])) ? 2 : 4;
   };
-  // walk to the ManifestResource table
   let off = q;
   for (let i = 0; i < MANIFEST_RESOURCE; i++) {
     if (!present(i)) continue;

@@ -1,22 +1,5 @@
-// COATS3D LIVE PROOF: THE 3D HORSE DRAWS THROUGH THE REAL RENDERER - its bake, its pictures, its looks, its gaits.
-//
-// test/formats/morrowind/coats3d_horse3d.test.js holds the horse's law in node: the bake against its FBX, the stream, the gait, the
-// palette's pose against the skin's bind, the texel map, the 3D dye against the sprites' dye, the saddle solved on
-// retail's biped. What node cannot do is run the GLSL. This does, on one Renderer in a real page: the rig loads the
-// committed bake and both pictures over the dev server (world/horseRig.js, the hosts' own door), dyes three looks on
-// its frame budget (DYE_ROWS a tick), and draws the horse through the character sprite pass under an ortho camera from
-// either side and from the front, standing and at each gait - and reads every picture back:
-//   - the horse covers its picture (the skin's palette posed it inside the camera, not at the origin or the sky);
-//   - its mane and tail are drawn (the alpha cards cut, not dropped: dark pixels along the top line);
-//   - a look's picture is not the bay's, and a pinto's left flank is not its right's mirror (each flank its own texels);
-//   - every gait's picture differs from the stand (the gait's bones reach the shader);
-//   - no GL error, no page error.
-// The pictures are written to `outDir` for the eye.
-//
-// What it canNOT see, stated so nobody mistakes green for finished: no rider (the Morrowind body needs the player's
-// own Data Files), no world around the horse, and SwiftShader is not a GPU.
-//
-// Usage: node tools/horse3dProbe.mjs [outDir]
+// Browser probe that draws the 3D horse through the real renderer for each look and gait and reads each picture.
+// Run: node tools/horse3dProbe.mjs [outDir].
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -39,7 +22,6 @@ function chunk(type, data) {
   const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
   return Buffer.concat([len, td, crc]);
 }
-/** RGBA rows bottom first (GL's) as a PNG, top first. */
 function png(w, h, rgba) {
   const raw = Buffer.alloc((w * 4 + 1) * h);
   for (let y = 0; y < h; y++) { const src = (h - 1 - y) * w * 4; raw[y * (w * 4 + 1)] = 0; Buffer.from(rgba.buffer, rgba.byteOffset + src, w * 4).copy(raw, y * (w * 4 + 1) + 1); }
@@ -87,7 +69,6 @@ try {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return Array.from(px);
     };
-    // yaw PI/2 faces +x: the camera at +x sees its face end-on - so the flanks are taken from +z and -z
     const shots = {
       bayRight: shot(looks.bay, Math.PI / 2, { eyeDir: [0, 0.25, -1] }), bayLeft: shot(looks.bay, Math.PI / 2, { eyeDir: [0, 0.25, 1] }),
       pintoRight: shot(looks.pinto, Math.PI / 2, { eyeDir: [0, 0.25, -1] }), pintoLeft: shot(looks.pinto, Math.PI / 2, { eyeDir: [0, 0.25, 1] }),

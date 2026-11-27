@@ -1,64 +1,25 @@
-// TECH-FX (bible/05-Combat/Weapon-Techniques.md THE FEEL; 2026-10-10, the owner: "lets do code driven design for each
-// technique, like real detail and ensure performance remains in tact"): WHAT A TECHNIQUE FEELS LIKE - the camera's
-// springs, the hands' dip, the shake, the world's burst and the sound, at each of its moments.
-//
-// The runner (combat/techniques.js) cues a moment - `release`, `hit`, `loose`, `shaft`, `close` - with the host's door
-// and the place; this file answers it from its table (TECH_FX). The camera's channel is read by the climb's own view
-// step (player/climb/climbFeel.js createClimbFeelHost - the pitch, roll and eye first person only, the field of view's kick
-// every lens's as the climb's, and the sky's pitch); the hands' by the rig's draw (combat/weapon/weaponRig.js drawInner: the
-// classic sprites through the renderer's screen offset, the Morrowind arm through its own screen transform); the
-// shake, the burst and the sound go out through the door at the moment (betterAmbience.weaponKick, the cast engine's
-// impact engine, the audio bus).
-//
-// PERFORMANCE LAW: a frame at rest does nothing and makes nothing - the springs live in one preallocated typed array,
-// the two outputs are filled in place, and the step returns at once when every spring is still. A moment allocates at
-// the moment (its place, its burst's sparks under the impact engine's caps, a sound) - never a frame.
-
 import { getPref } from '../../ui/uiPrefs.js';
 import { enhancedSoundsOn } from '../../audio/enhancedSounds.js';
 import { SOUND } from '../../audio/soundClips.js';
 
 const DEG = Math.PI / 180;
 
-/** The springs: the camera's pitch (rad), roll (rad, the camera's own - see techniqueCue), eye height (m) and field of
- *  view (degrees), and the hands' dip (screen heights, down). Each is critically damped toward rest at its own
- *  stiffness (1/s). AUDIT TECH-FX: the hands only ever DIP - every first-person sprite sits flush on the screen's bottom
- *  edge (the classic weapon, the clone, the torch, the spell's hands) or a side edge (a right-aligned Idle, a
- *  left-aligned StrikeRight), so a push up or across lifted it off that edge and showed where its art ends; a dip only
- *  takes it further off the screen. */
+// The hands only dip: first-person sprites sit flush on a screen edge, so a push up or sideways shows their edge.
 export const FX_CH = Object.freeze({ pitch: 0, roll: 1, eye: 2, fov: 3, hands: 4 });
 export const FX_K = Object.freeze([17, 11, 14, 9, 15]);
 const N = FX_K.length;
-/** The springs' state: position then velocity, a channel each. */
 const _sv = new Float64Array(N * 2);
 let _live = false;
-/** Below these, a spring has settled and is put to rest exactly. */
 const REST_X = 1e-5, REST_V = 1e-4;
 
-/** THE OUTPUTS, filled in place - the shape player/climb/climbFeel.js applyClimbView reads (`pitch`, `roll`, `eye`), and the
- *  field of view's kick in degrees; the hands' dip in screen heights (`y`, down). A class each, never a literal: a
- *  literal's shape is shared with every `{ x, y }` and `{ pitch, roll, ... }` the game makes, and one of those holding
- *  anything but a number turns the field general - then each write here boxed its number (32 bytes a frame in flight,
- *  test/systems/techfx1.test.js). A class's shape is its own, its number fields only ever numbers, written in place. */
+// Classes, not object literals, keep these number-only shapes separate so per-frame writes do not box the numbers.
 class TechView { constructor() { this.pitch = 0; this.roll = 0; this.eye = [0, 0, 0]; this.fov = 0; } }
 class TechHands { constructor() { this.y = 0; } }
 const VIEW = new TechView();
 const HANDS = new TechHands();
 
-/**
- * THE TABLE: each technique's moments. A moment's `cam` are the springs' PEAKS, AS THE SCREEN SHOWS THEM: `pitch` in
- * degrees, the look up positive; `roll` in degrees, the view leaning right positive (a head tilted to the right
- * shoulder: the horizon's right end rises); `fov` in degrees, wider positive; `eye` in metres, down negative. `hands` is
- * the hands' dip (`y`, screen heights, down - the only way they move: FX_CH). `shake` a Better Ambience kick, `burst`
- * the impact engine's recipe (`r` its radius), `sound` a SOUND name with its volume and pitch.
- *
- * A roll is at most 3 degrees: the sky's backdrop does not roll (render/skyRenderer.js draw(yaw, pitch, fovY, aspect) -
- * the climb's own roll shares it), so a larger one tilts the land against a level sky. A swing's roll leans with the
- * blade's travel: a StrikeLeft (Whirlwind) leans left into it and settles back past level; a StrikeRight (Cleave,
- * Shadowstep, Haymaker) winds up leaning left and lands leaning right. A bow's loose plays no layer of its own: the
- * host's bowSound plays the same ArrowShoot a tick earlier (and a Thunderlock's loose is its own shot), so a second one
- * only doubled it. bible/05-Combat/Weapon-Techniques.md THE FEEL's table says each in words.
- */
+// Peaks in screen terms: pitch, roll, and fov in degrees (up, lean right, and wider are positive), eye in meters.
+// Roll stays within 3 degrees because the sky backdrop does not roll.
 const f = Object.freeze;
 export const TECH_FX = f({
   volley: f({
@@ -172,49 +133,35 @@ export const TECH_FX = f({
   }),
 });
 
-/** How much a technique moves the screen: the player's own "Technique camera motion" (0..1, systems/uiPrefs.js
- *  techniqueMotion - Full, 75%, Half, Low, Off) - the springs, the shake and the hands alike. */
 export function techniqueMotion() {
   const v = Number(getPref('techniqueMotion'));
   return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
 }
 
-/** A spring kicked so its peak from rest is `peak` (a critically damped spring kicked to velocity v peaks at v/(k e)). */
 function kick(ch, peak) {
   if (!peak) return;
   _sv[ch * 2 + 1] += peak * FX_K[ch] * Math.E;
   _live = true;
 }
 
+// Roll is kicked negated because every host lens mirrors the camera X axis (world/mat4.js mirrorProjectionX).
 /**
- * THE SPRINGS' ONE DOOR: a moment's camera (`c`, as TECH_FX's rows speak it - the screen's own degrees and metres) and
- * its hands' dip (`hands.y`, screen heights, down), kicked at `m` of their peaks. A technique's moment comes through it
- * (techniqueCue), and GATHER-FEEL II's landed blow - an axe in the trunk, a pick on the stone (systems/gatherBlow.js
- * gatherBlowFeel) - so both ride the one set of springs every host's view already folds (player/climb/climbFeel.js), and the
- * roll's mirror is said once. Nothing at m 0 or below.
  * @param {{ pitch?: number, roll?: number, eye?: number, fov?: number }|null|undefined} c
- * @param {{ y?: number }|null|undefined} hands @param {number} [m]
+ * @param {{ y?: number }|null|undefined} hands
+ * @param {number} [m]
  */
 export function kickFx(c, hands, m = 1) {
   if (!(m > 0)) return;
   if (c) { kick(FX_CH.pitch, (c.pitch ?? 0) * DEG * m); kick(FX_CH.roll, -(c.roll ?? 0) * DEG * m); kick(FX_CH.eye, (c.eye ?? 0) * m); kick(FX_CH.fov, (c.fov ?? 0) * m); }
-  if (hands?.y > 0) kick(FX_CH.hands, hands.y * m);   // a dip only (FX_CH)
+  if (hands?.y > 0) kick(FX_CH.hands, hands.y * m);
 }
 
-/**
- * A MOMENT. `id` the technique, `moment` one of release / hit / loose / shaft / close, `door` the host's technique door
- * (`fx(recipe, at, o)`, `shake(k)`, `sound(clip, volume, pitch)` - each optional), `place` the burst's where
- * (`{ at, ground, yaw, dir, to, len, r, spin, half }`; null: no burst). Answers whether the technique has the moment.
- * AUDIT TECH-FX: the roll is kicked NEGATED - the table speaks the screen, and every host's lens mirrors the camera's x
- * (world/mat4.js mirrorProjectionX, HANDEDNESS), so the camera's own roll, positive, leans the view LEFT on screen
- * (test/systems/techfx1_audit.test.js projects it through the hosts' own lens).
- */
 export function techniqueCue(id, moment, door = null, place = null) {
   const row = TECH_FX[id]?.[moment];
   if (!row) return false;
   const m = techniqueMotion();
   if (m > 0) {
-    kickFx(row.cam, row.hands, m);   // GATHER-FEEL II: the springs' one door
+    kickFx(row.cam, row.hands, m);
     if (row.shake) door?.shake?.(row.shake * m);
   }
   if (row.burst && place?.at) door?.fx?.(row.burst, place.at, row.r != null ? { ...place, r: row.r } : place);
@@ -225,8 +172,6 @@ export function techniqueCue(id, moment, door = null, place = null) {
   return true;
 }
 
-/** A FRAME: every spring stepped `dt` toward rest, exactly (the critically damped closed form - any frame rate the same
- *  curve), and the outputs filled. At rest it returns at once. */
 export function stepTechniqueFx(dt) {
   if (!_live || !(dt > 0)) return;
   let any = false;
@@ -243,15 +188,10 @@ export function stepTechniqueFx(dt) {
   HANDS.y = _sv[FX_CH.hands * 2];
 }
 
-/** The camera's channel now (`pitch`, `roll` radians in the camera's own frame, `eye` metres, `fov` degrees) - filled in
- *  place, never a copy. */
 export const techniqueView = () => VIEW;
-/** The hands' dip now, in screen heights (`y`, down - never up or across: FX_CH) - filled in place. */
 export const techniqueHands = () => HANDS;
-/** Whether a spring is still moving. */
 export const techniqueFxLive = () => _live;
 
-/** Everything at rest (a load, a teleport, a test). */
 export function resetTechniqueFx() {
   _sv.fill(0);
   _live = false;

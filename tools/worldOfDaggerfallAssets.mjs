@@ -1,28 +1,7 @@
-// WOD1: WORLD OF DAGGERFALL - THE MOD'S OWN FILES, OUT OF ITS OWN ARCHIVE.
-//
-// World of Daggerfall 2.0 (Kamer) ships as a RAR holding two trees:
-//
-//   Mods/world_of_daggerfall.dfmod - a Unity 2019.4.10f1 AssetBundle
-//     that carries the WHOLE implementation as TextAssets: eight C#
-//     sources and the manifest. So, as with World Tooltips,
-//     vendor/world-of-daggerfall/Scripts/ holds the author's source,
-//     not a decompile.
-//   Locations/ - StreamingAssets content: 65 prefab layouts under
-//     LocationPrefab/ and 2,413 instance lists in 44 region folders.
-//
-// The prefabs are copied byte for byte. The instance lists are not
-// carried as XML (61.0 MB); each region folder becomes ONE pack of the
-// ported reader's output (src/world/wodLocationPack.js explains the
-// layout and why it is a cache of the author's files rather than a
-// re-authoring of them), and locations.json records every source file
-// the packs were read from - name, byte size, sha256, instance count.
-//
-//   node tools/worldOfDaggerfallAssets.mjs <extracted archive root> [outDir]
-//
-// The root is the folder holding `Mods/` and `Locations/` (unrar x the
-// shipped .rar; the archive tests clean with unrar 7). Default outDir
-// is vendor/world-of-daggerfall. It prints each written file's size
-// and sha256, which is what test/systems/wod1_vendor.test.js pins.
+// Vendors World of Daggerfall from its extracted archive. The bundle's C# sources, manifest, and prefabs copy
+// byte for byte, each region folder becomes one pack, and locations.json lists every source file.
+// Run: node tools/worldOfDaggerfallAssets.mjs <archive root> [outDir]; the root holds Mods/ and Locations/.
+// The default outDir is vendor/world-of-daggerfall.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -31,8 +10,6 @@ import { loadLocationInstance, loadLocationPrefab, ntfsCompare } from '../src/wo
 import { encodeRegionPack, decodeRegionPack, WOD_PACK_VERSION } from '../src/world/wodLocationPack.js';
 import { isMain } from './lib/isMain.mjs';
 
-/** The bundle's text assets, by the name they carry inside it, mapped
- *  to the path this tree keeps them at. */
 export const WOD_BUNDLE_ASSETS = Object.freeze({
   'LocationLoader.cs': 'Scripts/LocationLoader.cs',
   'LocationHelper.cs': 'Scripts/LocationHelper.cs',
@@ -47,8 +24,7 @@ export const WOD_BUNDLE_ASSETS = Object.freeze({
 
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
 
-/** The bundle's text assets as { name, path, body } - pure. `body` is the TextAsset's own BYTES (AUDIT BRANCH
- *  (WoD) n: the decoded text drops a UTF-8 byte-order mark, so a file that carried one was not written byte for byte). */
+// The body uses the TextAsset bytes because the decoded text drops a UTF-8 byte-order mark.
 export function readWorldOfDaggerfallBundle(bytes) {
   const bundle = readUnityBundle(bytes);
   return bundle.textAssets.map((t) => ({
@@ -58,17 +34,13 @@ export function readWorldOfDaggerfallBundle(bytes) {
   }));
 }
 
-/**
- * One region folder, read the way LocationLoader reads it: every file
- * in Directory.GetFiles order (NTFS name order), LoadLocationInstance
- * over each. Pure over { name, bytes } records.
- * @returns {{files:Array<{file:string, instances:object[], bytes:number, sha256:string}>}}
- */
+// Files load in NTFS name order, the order Directory.GetFiles gives the mod's LocationLoader.
+/** @returns {{files:Array<{file:string, instances:object[], bytes:number, sha256:string}>}} */
 export function readRegionFolder(entries) {
   const files = [];
   for (const { name, bytes } of [...entries].sort((a, b) => ntfsCompare(a.name, b.name))) {
     if (!/^[\x20-\x7e]+$/.test(name)) throw new Error(`non-ASCII file name ${name}: NTFS order would need the upcase table`);
-    if (!name.endsWith('.txt')) continue;   // LocationLoader.cs:84 - file.EndsWith(".txt")
+    if (!name.endsWith('.txt')) continue;
     const instances = loadLocationInstance(Buffer.from(bytes).toString('utf8'));
     if (instances == null) throw new Error(`${name}: no <locations> element`);
     files.push({ file: name, instances, bytes: bytes.length, sha256: sha256(bytes) });
@@ -87,7 +59,6 @@ if (isMain(import.meta.url)) {
     return dest;
   };
 
-  // 1. The bundle: the eight sources and the manifest, byte for byte.
   const dfmod = readFileSync(`${root}/Mods/world_of_daggerfall.dfmod`);
   console.log(`world_of_daggerfall.dfmod  ${dfmod.length} bytes  ${sha256(dfmod)}`);
   for (const a of readWorldOfDaggerfallBundle(dfmod)) {
@@ -96,8 +67,6 @@ if (isMain(import.meta.url)) {
     console.log(`  ${a.path}  ${a.body.length} bytes  ${sha256(a.body)}`);
   }
 
-  // 2. The prefabs, byte for byte - and read once through the ported
-  // reader, so a file it cannot read fails here, not in the game.
   const prefabDir = `${root}/Locations/LocationPrefab`;
   const prefabs = [];
   for (const name of readdirSync(prefabDir).sort(ntfsCompare)) {
@@ -109,7 +78,6 @@ if (isMain(import.meta.url)) {
   }
   console.log(`  LocationPrefab/  ${prefabs.length} files`);
 
-  // 3. The region folders, one pack each.
   const regions = [];
   const folders = readdirSync(`${root}/Locations`).filter((d) => d !== 'LocationPrefab');
   for (const d of folders.sort((a, b) => Number(a) - Number(b))) {
@@ -117,7 +85,7 @@ if (isMain(import.meta.url)) {
     const dir = `${root}/Locations/${d}`;
     const { files } = readRegionFolder(readdirSync(dir).map((name) => ({ name, bytes: readFileSync(`${dir}/${name}`) })));
     const pack = encodeRegionPack(Number(d), files);
-    const back = decodeRegionPack(pack);   // the pack must read back as what was written
+    const back = decodeRegionPack(pack);
     if (back.count !== files.reduce((n, f) => n + f.instances.length, 0)) throw new Error(`region ${d}: round trip`);
     write(`Locations/${d}.bin`, pack);
     regions.push({

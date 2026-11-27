@@ -1,12 +1,3 @@
-// V1 probe: a real bite, a real dream, a real turn - in a live town.
-//
-// The unit tests drive the two gates and the cancels over fixtures.
-// This proves the HOST half, which is where every previous slice's
-// bugs lived: that the infection is minted through the producer, that
-// the magic round the host already runs carries it (nothing new is
-// called from a frame body), that the two ARENA2 dream videos are in
-// the diet and DECODE, and that the turn lands a clan read off the
-// region the bite happened in.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -24,9 +15,6 @@ const state = async () => JSON.parse(await page.evaluate(() => window.__infectio
 const videos = async () => (await state()).videos;
 
 console.log('== THE BITE ==');
-// DiseaseEffect.Start's gate first, on the character the probe boots
-// with: a level-1 player cannot be turned any more than they can
-// catch plague.
 console.log('level:', await page.evaluate(() => window.__playerEntity.level));
 if (await page.evaluate(() => window.__playerEntity.level) < 2) {
   const cub = JSON.parse(await page.evaluate(() => window.__infect('Vampirism-Infection')));

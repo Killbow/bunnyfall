@@ -1,4 +1,3 @@
-// The `narrate` frame's handler, called by message/dispatch.js with the room as `this`.
 import { dmGate } from '../../relay.js';
 
 export function narrateFrame(ws, a, m) {

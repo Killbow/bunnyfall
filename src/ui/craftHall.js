@@ -159,20 +159,20 @@ export function xpSources(track, rank, { pct = 0, focus = true } = {}) {
       rows.push([t('prof.hall.src.anvil', 'A piece at the anvil or jeweler\'s bench'), piece(['smithing', 'jewelcrafting'])]);
       rows.push([t('prof.hall.src.firstPiece', 'Your first piece at each grade'), first()]);
       rows.push([t('prof.hall.src.smelt', 'Smelting an ingot'), at(smeltXp(top, 1, rank), top)]);
-      rows.push([t('prof.hall.src.temperAnvil', 'Tempering at the anvil'), t('prof.hall.src.temper', 'The piece\'s craft XP')]);
+      rows.push([t('prof.hall.src.temperAnvil', 'Tempering at the anvil'), t('prof.hall.src.temper', 'Same XP as crafting the piece')]);
       rows.push([t('prof.hall.src.kitWrit', 'Guild writ for Repair Kits'), twice()]);
       break;
     case 'building':
       rows.push([t('prof.hall.src.bench', 'A piece at the workbench'), piece(['carpentry'])]);
       rows.push([t('prof.hall.src.mason', 'A cut or mix at the mason\'s bench'), t('prof.hall.src.masonXp', '{xp, number} XP each, {more, number} for clean work', { xp: pay(masonXp(1, rank)), more: pay(masonXp(1, rank, { clean: true })) })]);
-      rows.push([t('prof.hall.src.firstBuild', 'Your first piece at each grade, first cut and first mix'), first()]);
+      rows.push([t('prof.hall.src.firstBuild', 'Your first piece at each grade, first cut, and first mix'), first()]);
       rows.push([t('prof.hall.src.saw', 'Sawing planks'), none()]);
       break;
     case 'outfitting':
       rows.push([t('prof.hall.src.loom', 'A piece at the loom'), piece(['outfitting'])]);
-      rows.push([t('prof.hall.src.firstCloth', 'Your first piece at each grade (not of cloth bought with Imperial Argents)'), first()]);
-      rows.push([t('prof.hall.src.temperLoom', 'Tempering at the loom'), t('prof.hall.src.temper', 'The piece\'s craft XP')]);
-      rows.push([t('prof.hall.src.cure', 'Curing, weaving and spinning'), none()]);
+      rows.push([t('prof.hall.src.firstCloth', 'Your first piece at each grade (excluding cloth bought with Imperial Argents)'), first()]);
+      rows.push([t('prof.hall.src.temperLoom', 'Tempering at the loom'), t('prof.hall.src.temper', 'Same XP as crafting the piece')]);
+      rows.push([t('prof.hall.src.cure', 'Curing, weaving, and spinning'), none()]);
       break;
     case 'provisioning': {
       const potion = [...POTIONS].filter((p) => rank >= p.rank).sort((a, b) => b.tier - a.tier)[0] ?? null;
@@ -199,7 +199,7 @@ export function gradeNote(track, rank) {
   const id = trackOf(track), top = topTierOf(rank);
   const per = PROFESSIONS.find((p) => p.id === id)?.kind === 'gathering' ? HARVEST_XP_PER_TIER : CRAFT_XP_PER_TIER;
   if (id === 'herbalism' || id === 'fishing' || id === 'enchanting') return '';
-  if (id === 'smithing') return t('prof.hall.src.gradeNoteSmith', 'Each grade is worth {per, number} experience a piece and {ingot, number} an ingot. Work more than two grades below your best (grade {top}) earns a quarter.', { per, ingot: smeltXp(1, 1), top });
+  if (id === 'smithing') return t('prof.hall.src.gradeNoteSmith', 'Each grade is worth {per, number} experience per piece and {ingot, number} per ingot. Work more than two grades below your best (grade {top}) earns a quarter.', { per, ingot: smeltXp(1, 1), top });
   return t('prof.hall.src.gradeNote', 'Each grade is worth {per, number} experience. Work more than two grades below your best (grade {top}) earns a quarter.', { per, top });
 }
 /** "First-time bonuses: 12 of 221 made (+500 XP each)"; Enchanting's "No first-time bonuses"; a closed craft's no pay;
@@ -207,7 +207,7 @@ export function gradeNote(track, rank) {
 export function firstsLine(standing) {
   if (!standing) return '';
   if (!standing.all) return t('prof.hall.firsts.none', 'No first-time bonuses');
-  if (standing.closed) return t('prof.hall.firsts.closed', 'First-time bonuses: {spent, number} of {all, number} made. This craft can rise no further, so they pay nothing.', standing);
+  if (standing.closed) return t('prof.hall.firsts.closed', 'First-time bonuses: {spent, number} of {all, number} made. This profession cannot advance further, so remaining bonuses grant no XP.', standing);
   return t('prof.hall.firsts.line', 'First-time bonuses: {spent, number} of {all, number} made (+{share, number} XP each)', standing);
 }
 /** A card's mark: "First-time bonus" when owed, "Made before" when spent, '' when unknown. */

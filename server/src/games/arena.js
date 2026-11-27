@@ -1,5 +1,3 @@
-// The arena hall with its queue, offers, and bout list, and each bout's own room.
-// It answers the hall and bout words, opens, saves, and fans a bout, and runs leaves and the tick.
 import { ROOM_CALL_MS } from '../relayScale.js';
 import { MATCH_QUEUE_MAX, matchBand, arenaRatingOk, bannerClaim, ARENA_LIVE_MAX, MATCH_REPAIR_MS, arenaBoutRoom, pairQueue, MATCH_ACCEPT_MS, ARENA_TICK_MS, ARENA_HALL, isArenaExhibitionRoom, isArenaPrivateRoom, arenaExhibitionHourOf, arenaBoutIdOf, isArenaHall, privateSessionOver, ARENA_EX_KEEP_MS, ARENA_PRIVATE_KEEP_MS, ARENA_KEEP_MS } from '../../../src/net/arenaLaw.js';
 import { arenaId, ARENA_INTERNAL_OPEN, ARENA_SAY_BAND_MS, ARENA_SAVE_MS, ARENA_INTERNAL_LIVE, ARENA_LIVE_TELL_MS } from '../room/keys.js';

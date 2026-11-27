@@ -1,5 +1,3 @@
-// What a room reads once from storage: the live event, an id's secret, and the keys under a prefix.
-// Its sweep forgets looks, secrets, and parties, and never an account or its world.
 import { EVENT_KEY, validLiveEvent, isChatRoom, isSocialRoom, SWEEP_PAGE } from '../relay.js';
 import { HOLDEM_STAKE_KEEP_S } from './keys.js';
 

@@ -14,6 +14,7 @@ files:
   - src/scenes/world.js
   - src/scenes/exterior.js
   - src/scenes/dungeon.js
+  - src/combat/weaponRig.js
 routes: []
 tables: []
 replacesBible:
@@ -31,6 +32,8 @@ traps:
   - "Deriving edges from held state loses sub-frame taps at low FPS; use keyEdges/noteKeyDown/noteKeyUp/pressed/released."
   - "Multi-binding dispatch must stop iterating shared-key actions once a window opens, or one keypress stacks windows."
   - "Capture-phase Enter cursor toggle must ignore text entry targets (isTextEntryTarget)."
+  - "A pointer-lock loss within `TOUCH_UNLOCK_MS` of a touch event comes from the finger, not from Escape, because Gecko ends any lock on the next touch event; treating it as Escape opens the pause menu on every tap."
+  - "The cursor-toggle keydown listener must stay on the capture phase, so `isWindowUp()` is read before bubble listeners close a window on Enter; otherwise the dismissing press also frees the cursor."
 dfu:
   - Assets/Scripts/Game/InputManager.cs
 tags:

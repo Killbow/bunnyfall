@@ -23,9 +23,11 @@ invariants:
   - "meleeFamilyOf: 'one'/'dual' -> 'one'; 'two'/'wide'/'spear' -> 'two'; 'fists' -> 'fists'; anything else -> null (the clip owns it)."
   - "solveBody writes each local rotation through orthonormal (climbRig.js, a Gram-Schmidt step that keeps handedness), so float32 skew does not compound down deep chains."
   - "The legs reach their ankles through climbRig.js solveReach, so the gait keeps walking under a blow."
+  - "The solve places hips, trunk, head, and legs before the arms. `arms(ctx)` is asked after the trunk is placed, because hand targets are read off the shoulders they hang from."
 traps:
   - "A blow thrown while strafing takes back BLOW_TRUNK.steer 0.6 of the gait steer and caps the chest twist off the hips at 50 degrees (AUDIT MELEE-8)."
   - "MELEE keys are written for the right hand only. Left-hand blows (dual-wield, a left fist) are mirrored."
+  - "The trunk bones are decided top down in one pass and the skeleton is composed once after. A `turn` recomposes its whole subtree, so turning bone by bone costs several full compositions per body per frame."
 dfu: []
 tags:
   - body-motion

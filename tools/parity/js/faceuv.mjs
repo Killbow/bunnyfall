@@ -23,12 +23,7 @@ for (const line of corpus) {
   try { ok = computeFaceUVCoordinates(pin, pout); } catch (e) { ok = false; }
   const p = `faceuv.${pad(caseIndex, 5)}.`;
   out(p + 'ok', ok);
-  // FU1 (2026-09-11): the C# side prints EVERY point whether or not the
-  // tool succeeded - its `pout` is a fresh struct array, zeros where
-  // nothing was written (Dump.cs DumpFaceUV) - and this side printed
-  // nothing on a false, so every singular face counted 2n "differing
-  // lines" that were the harness disagreeing with itself, not the port
-  // with DFU. Print what C# prints: the written point, or zero.
+  // The C# side prints every point, zero where nothing was written, so this side prints zero on failure too.
   for (let i = 0; i < n; i++) {
     out(`${p}${pad(i, 2)}.u`, ok ? pout[i].u : 0);
     out(`${p}${pad(i, 2)}.v`, ok ? pout[i].v : 0);

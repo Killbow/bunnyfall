@@ -1,7 +1,4 @@
-// Tests the DM editing module (src/poi/poiDmEdit.js), which both POI editors use: new rows pass the document law, the
-// item picker offers the game's items with their groups and materials, a stack retains only the group and material its
-// item supports, removing a referenced row is refused with the referrer's name, and DM fields that the in-game panel
-// does not edit are counted.
+// Tests the DM editing module that both POI editors use. Run: node --test tools/poiDmEdit.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems } from '../src/poi/poiLaw.js';
@@ -126,7 +123,6 @@ test('removing a row something needs is refused with who needs it; links that ma
 
 test('an object takes its state only from a persistent text variable', () => {
   const d = poiV2Example();
-  // a boolean
   d.interactives[0].stateVar = 'bridge_unlocked';
   assert.deepEqual(poiDocProblems(d).map((p) => [p.path, p.code]), [['interactives[0].stateVar', 'state-var']]);
   d.interactives[0].stateVar = 'nobody';

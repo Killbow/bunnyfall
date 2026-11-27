@@ -1,4 +1,3 @@
-// The `duel` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, isChatRoom, DUEL_HZ_MAX } from '../../relay.js';
 import { ROYAL_RING } from '../../../../src/net/siegeRef.js';
 import { duelNote, duelVitals } from '../../../../src/net/duelRef.js';

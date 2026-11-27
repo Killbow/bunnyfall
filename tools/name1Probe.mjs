@@ -1,19 +1,5 @@
-// AUDIT NAME1 F15: THE NAMES OVER THE OTHERS, MEASURED IN A REAL BROWSER.
-//
-// The NAME1 + BUBBLE1 record said "Seen in Chromium" and shipped no artifact. This is the artifact: a page served
-// from this repo, over the REAL modules (src/ui/nameLayer.js, src/net/remotePlayers.js, src/world/mat4.js - imported
-// same-origin, not re-implemented here), three peers standing at three depths, and the numbers read back off the
-// live layout engine. Node has no layout engine, so every claim about a BOX - the label's bottom edge landing the
-// gap above the head, the size it wears at a distance, a bubble wrapping and being cut - is a claim the suite
-// cannot check and this file can.
-//
-// It needs no game data and no dev server: it serves the tree itself on a loopback port, so the module graph is the
-// shipping one.
-//
-//     node tools/name1Probe.mjs
-//
-// PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers in this environment; pass CHROMIUM=/path/to/chromium to override the
-// executable.
+// Browser probe for the name labels and chat bubbles over other players, served from this repo on a loopback port.
+// Usage: node tools/name1Probe.mjs  (CHROMIUM=<path> picks another browser)
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +9,6 @@ import { chromium } from 'playwright';
 const ROOT = normalize(join(dirname(fileURLToPath(import.meta.url)), '..'));
 const MIME = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.html': 'text/html' };
 
-/** The page: the real modules, three peers, one frame, and every box read back. */
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>NAME1 probe</title>
 <style>html,body{margin:0;height:100%;background:#12141a;overflow:hidden}</style></head><body>
 <script type="module">
@@ -84,8 +69,6 @@ document.title = 'ready';
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
-  // the probe's own page has its own path: the ROOT is the landing page's, and a tool that drives the root as if it
-  // were the game is a thing test/ui/enhanced/landing.test.js refuses (U60).
   if (url.pathname === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const path = normalize(join(ROOT, url.pathname));
   if (!path.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
@@ -130,12 +113,11 @@ for (const [fov, size] of [[60, { width: 1600, height: 900 }], [120, { width: 16
   if (bubbles.length !== 2) fails.push(`FOV ${probe.FOV}: ${bubbles.length} bubbles standing, not 2`);
   const long = probe.peers.find((p) => p.id === 'mid');
   if (long.bubble) {
-    // the cut's own length, which trims the tail before the mark, so it is AT MOST chars + the mark
     if (!long.bubble.text.endsWith(probe.cut.mark) || long.bubble.text.length > probe.cut.chars + probe.cut.mark.length) {
       fails.push(`the long line is ${long.bubble.text.length} chars and ends "${long.bubble.text.slice(-3)}", not the cut's ${probe.cut.chars} + "${probe.cut.mark}"`);
     }
     if (long.bubble.lines < 2) fails.push('the long line did not WRAP - the bubble is one line');
-    // 15em of the BUBBLE's own size (.92em of the label's), plus its padding and border - the box, not the text
+    // 15em at the bubble's own size (0.92em of the label's), plus its padding and border.
     const bound = 0.92 * long.fontPx * (15 + 2 * 0.55) + 2 + 1;
     if (long.bubble.w > bound) fails.push(`the bubble is ${long.bubble.w.toFixed(1)}px wide, past its ${bound.toFixed(1)}px bound`);
   }
@@ -146,8 +128,6 @@ for (const [fov, size] of [[60, { width: 1600, height: 900 }], [120, { width: 16
 await browser.close();
 server.close();
 
-// THE TWO LAWS ACROSS RUNS: a far name is smaller than a near one, and a wide lens (or a small screen) makes every
-// name smaller than the same peer wore on the reference frame.
 const [ref, wide, phone] = runs;
 if (ref) {
   const [near, mid, far] = ref.peers;

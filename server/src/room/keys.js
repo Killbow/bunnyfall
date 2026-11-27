@@ -1,5 +1,3 @@
-// Keys and door paths the relay's rooms use. They cover status and arena doors, bout ids, look
-// and stake keys, owed result keys and their caps, world chunk keys, and account and party records.
 import { CARD_RECEIPT_TTL_S } from '../../../src/net/cardReceipt.js';
 
 export const STATUS_INTERNAL = '/internal/status';

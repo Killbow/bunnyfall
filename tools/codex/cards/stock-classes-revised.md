@@ -26,6 +26,7 @@ invariants:
 traps:
   - "Out-of-range indices or null careers return unchanged from `reviseStockCareer`."
   - "`classAffinityIndex` (`src/characters/customClass.js`) scores custom classes against the revised careers passed in from `loadCareers`."
+  - "The magery band is read only when the career carries `abilityFlagsAndSpellPointsBitfield`. A missing field reads as 0, which decodes to the strongest multiplier, and would be listed for a character who never picked it."
 dfu: []
 tags:
   - "chargen"

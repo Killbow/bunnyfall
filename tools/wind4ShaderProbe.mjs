@@ -1,19 +1,5 @@
-// WIND4 - THE THREE EDITS, COMPILED AND LINKED IN A REAL BROWSER.
-//
-// Mac's three (too many wisps, a sky that drifted the wrong way, grass
-// that never went dark) are a constant, a sign and two missing uniform
-// terms. The constant and the sign are pinned in node
-// (test/render/wind4_windweather.test.js); what node cannot answer is whether
-// the GLSL still COMPILES and whether the grass's new uniforms survive
-// the link - a uniform the optimiser drops reads as null, and a shader
-// that fails to compile is a silent black pass in play.
-//
-// So: a real WebGL2 context, the wisp and grass programs built by their
-// own constructors, both cloud marches compiled as themselves, and the
-// drift's sign counted in the field both marches include.
-//
-//     npx vite --port 5199 &
-//     node tools/wind4ShaderProbe.mjs
+// Probe: compiles and links the wisp, grass, and cloud shaders in WebGL2 and checks the cloud drift sign.
+// Run it against a dev server on port 5199 with node tools/wind4ShaderProbe.mjs.
 import { chromium } from 'playwright';
 const BASE = 'http://127.0.0.1:5199';
 const out = []; const check = (n, ok, d='') => { out.push(ok); console.log(`${ok?'ok  ':'FAIL'} ${n}${d?` - ${d}`:''}`); };
@@ -31,20 +17,15 @@ const r = await page.evaluate(async () => {
   log.push(['wisps', !!wisp]);
   const grass = new LabGrass(gl);
   log.push(['grass', !!grass]);
-  // every program must have linked: ask GL, not the constructor
   const progs = [];
   for (const [name, obj] of [['wisps', wisp], ['grass', grass]]) {
     const p = obj.program ?? obj.prog;
     progs.push([name, !!p && gl.getProgramParameter(p, gl.LINK_STATUS) === true, p ? (gl.getProgramInfoLog(p) || '') : 'no program']);
   }
-  // the grass's new uniforms must EXIST in the linked program (a
-  // uniform the compiler optimised away would be null)
   const gp = grass.program ?? grass.prog;
   const have = {};
   for (const n of ['uSunScale', 'uMoonScale', 'uMoonCol', 'uMoonDir', 'uSunCol', 'uAmb'])
     have[n] = gl.getUniformLocation(gp, n) !== null;
-  // the CLOUD stages, compiled as themselves - the drift's sign lives
-  // in CLOUD_FIELD_GLSL, which both marches include
   const vcm = await import('/src/render/volumetricClouds.js');
   const clouds = [];
   for (const name of ['MARCH_FS', 'SHADOW_FS']) {
@@ -53,7 +34,6 @@ const r = await page.evaluate(async () => {
     clouds.push([name, gl.getShaderParameter(sh, gl.COMPILE_STATUS) === true, (gl.getShaderInfoLog(sh) || '').slice(0, 200)]);
     gl.deleteShader(sh);
   }
-  // every USE of the drift (the declaration line is not one)
   const body = vcm.CLOUD_FIELD_GLSL.replace(/uniform vec2 uDrift;[^\n]*/g, '');
   const driftSigns = (body.match(/uDrift/g) || []).length;
   const minus = (body.match(/- uDrift/g) || []).length;

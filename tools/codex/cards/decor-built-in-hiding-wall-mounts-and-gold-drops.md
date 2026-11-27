@@ -19,6 +19,7 @@ files:
   - "server-account/src/homes.js"
   - "server-account/src/decor.js"
   - "server-account/migrations/0015_home_hidden.sql"
+  - "src/items/roomCarriedList.js"
 routes: []
 tables:
   - "home_hidden"
@@ -34,6 +35,7 @@ invariants:
   - "`decorIsMount` (`src/net/decorLaw.js`) flags wall-mountable gear, and `renderer.drawDecalPicture` sets `uPicture` so mounted item icons render untinted."
   - "Owned ship and house containers open as two-way `loot.storage` sessions in `src/ui/enhancedInventory.js` and `src/ui/nativeInventory.js`."
   - "`planDropGold` (`src/items/itemTransfer.js`) routes gold Drop, Store, and Stow actions under `LOOT_STACK_MAX` (`65535` in `src/items/loot.js`)."
+  - "`markRoomCarried` (`src/items/roomCarriedList.js`) marks room-synced loot lists in a `WeakSet`, so `planDropGold` caps a gold drop into one at `LOOT_STACK_MAX`. The module imports nothing, so the transfer planner stays off the room module graph, and a replaced list loses its mark."
 traps:
   - "`homeDoorPrompt` (`src/homes/onlineHomes.js`) offers unowned houses for sale on every interaction mode except Steal."
   - "`src/homes/decorPlacer.js` hangs ceiling pieces below downward-facing normals so models stay inside the room shell."

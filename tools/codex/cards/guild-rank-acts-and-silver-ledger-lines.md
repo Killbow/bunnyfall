@@ -13,6 +13,7 @@ files:
   - src/net/marksLaw.js
   - src/ui/socialPanel.js
   - server-account/src/guilds.js
+  - tools/grantGuildGold.mjs
 routes:
   - /v1/guilds/rank
   - /v1/guilds/ranks
@@ -35,6 +36,7 @@ invariants:
   - "Domain permission tables remain in their owning modules (`GUILD_POWERS` in `src/net/guildLaw.js`, `HALL_POWERS` in `src/net/hallLaw.js`, `WRIT_POWERS` in `src/net/writLaw.js`, and `SEAT_POWERS` plus `SEAT_LEVER_RANKS` in `src/net/townSeatLaw.js`); `src/net/guildPowers.js` only composes them."
   - "`GUILD_RANK_ACTS` derives every rank capability from those tables, predicate rules (`writDeliverMay`, `contractPaidMay`), `'any'`, `'master'`, or vault defaults, ensuring UI descriptions never drift from `guildMay`, `hallMay`, `writMay`, and `seatMay`."
   - "Treasury ledger wording follows both entry kind and direction so funds leaving `guild_ledger` or `guild_marks` never read as deposits."
+  - "An operator grant (`tools/grantGuildGold.mjs`) raises both `treasury` and `realm_gold` on one guild, found by `name_key`, never past `GUILD_TREASURY_MAX`, and sets `moved_kind = 'grant'` so the ledger trigger records the line as a grant."
 traps:
   - "Only `GUILD_SILVER_MEMBER_KINDS` format the acting member as the grammatical subject; for all other kinds, `who` is a service label and the entry reads as an action by or upon the guild."
   - "Bidirectional ledger kinds (`'conscription'` and `'fealty-tribute'`) carry separate `in` and `out` wording templates."

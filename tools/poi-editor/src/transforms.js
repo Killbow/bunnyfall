@@ -1,16 +1,11 @@
 // @ts-check
 
-// Moving, turning and sizing scene nodes, in the POI's own frame (metres, +x east, +y up, +z north). Pure: the editor
-// runs these inside one poiEdit step, so a drag or a numeric entry is one undo. A node that has no turn (a light) or
-// no size (a person) is moved only. Frozen nodes are never changed.
-
 import { quatMultiply, quatAngleAxis, quatRotate } from '../../../src/world/quat.js';
 import { tidyQuat } from '../../../src/poi/poiEdit.js';
 import { find, buildTree } from './scene.js';
 
 const r3 = (v) => Math.round(v * 1000) / 1000;
 
-/** The ids among `ids` that may change: not hidden, not frozen, not groups (a group moves by its members). */
 export function movable(doc, ids) {
   const ok = new Set();
   const walk = (ns) => ns.forEach((n) => { if (n.kind !== 'group' && !n.frozen) ok.add(n.id); walk(n.children); });
@@ -23,7 +18,6 @@ export function movable(doc, ids) {
 
 const rowsOf = (doc, ids) => movable(doc, ids).map((id) => find(doc, id)).filter(Boolean);
 
-/** The mean position of the nodes, or null. */
 export function centroid(doc, ids) {
   const rows = rowsOf(doc, ids).filter((f) => f?.row.t);
   if (!rows.length) return null;
@@ -32,14 +26,12 @@ export function centroid(doc, ids) {
   return s.map((v) => v / rows.length);
 }
 
-/** Move by a world delta. Answers how many nodes moved. */
 export function moveNodes(doc, ids, d) {
   let n = 0;
   for (const f of rowsOf(doc, ids)) { if (!f?.row.t) continue; f.row.t = f.row.t.map((c, k) => r3(c + d[k])); n++; }
   return n;
 }
 
-/** Turn about a world axis through `pivot` (default: the nodes' centre). */
 export function turnNodes(doc, ids, axis, deg, pivot = centroid(doc, ids)) {
   const q = quatAngleAxis(deg, axis);
   const ax = axis.map(Math.abs);
@@ -57,7 +49,6 @@ export function turnNodes(doc, ids, axis, deg, pivot = centroid(doc, ids)) {
   return n;
 }
 
-/** Size by factors along x, y, z (parts) or the mean factor (flats). People and lights keep their size. */
 export function sizeNodes(doc, ids, f) {
   let n = 0;
   const mean = (f[0] + f[1] + f[2]) / 3;
@@ -69,10 +60,8 @@ export function sizeNodes(doc, ids, f) {
   return n;
 }
 
-/** A flat picture of a person keeps its scale (the law says 1). */
 export const isFigure = (flat) => flat.kind === 'billboard' && Array.isArray(flat.flat) && [334, 346, 357, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184].includes(flat.flat[0]);
 
-/** Put nodes back to no turn and no size, where the kind has them. */
 export function resetNodes(doc, ids) {
   let n = 0;
   for (const x of rowsOf(doc, ids)) {
@@ -84,7 +73,6 @@ export function resetNodes(doc, ids) {
   return n;
 }
 
-/** Set one number of a node exactly (the inspector's field). `path` like `t.1`, `scale`, `yaw`. */
 export function setNumber(doc, id, path, value) {
   const f = find(doc, id);
   if (!f || !Number.isFinite(value)) return false;
@@ -95,14 +83,12 @@ export function setNumber(doc, id, path, value) {
   return true;
 }
 
-/** Put the nodes on the ground plane of the POI (height 0), or on `y`. */
 export function groundNodes(doc, ids, y = 0) {
   let n = 0;
   for (const f of rowsOf(doc, ids)) if (f?.row.t) { f.row.t = [f.row.t[0], r3(y), f.row.t[2]]; n++; }
   return n;
 }
 
-/** Align nodes along an axis index (0 x, 1 y, 2 z) to the `min`, `mid` or `max` of their positions. */
 export function alignNodes(doc, ids, axis, mode) {
   const rows = rowsOf(doc, ids).filter((f) => f?.row.t);
   if (rows.length < 2) return 0;
@@ -112,7 +98,6 @@ export function alignNodes(doc, ids, axis, mode) {
   return rows.length;
 }
 
-/** Spread nodes evenly along an axis between the outermost two. */
 export function distributeNodes(doc, ids, axis) {
   const rows = rowsOf(doc, ids).filter((f) => f?.row.t).sort((a, b) => a?.row.t[axis] - b?.row.t[axis]);
   if (rows.length < 3) return 0;
@@ -121,5 +106,4 @@ export function distributeNodes(doc, ids, axis) {
   return rows.length;
 }
 
-/** A value snapped to a step (0 or less: no snap). */
 export const snap = (v, step) => (step > 0 ? Math.round(v / step) * step : v);

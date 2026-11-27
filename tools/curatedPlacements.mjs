@@ -1,20 +1,7 @@
 #!/usr/bin/env node
-// FIELD BUGS 2026-10-09e - HILL-HOUSE: THE CURATED PLACEMENTS, MEASURED - the rows src/world/curatedPlacements.js
-// carries, made from the player's own data, as tools/templeSummoners.mjs made the summoners'.
-//
-//   ARENA2_PATH=<the player's arena2> node tools/curatedPlacements.mjs           print each row's measurement
-//   ARENA2_PATH=<...> node tools/curatedPlacements.mjs --check                   compare with the committed rows (exit 1)
-//
-// For each row: the record's block as the door mints it (townQuestMarkers.mjs openTownData's packBlock - the pack's own
-// rebuild over the player's BLOCKS.BSA, before any curation), every OTHER piece of the block laid as the exterior lays
-// it (a subrecord's models under its own transform, the misc models under theirs, every flat), the pack's hills as the
-// port draws them (townStandIns.js blockHillSeat - a hill is a surface, not a box: AUDIT FB1005 T3), and the record's
-// own models at a candidate spot: its footprint (each model's box, PLACE_CLEAR_M wider all round) must stand inside the
-// block EDGE_M from its edge, under no hill's surface higher than HILL_LIFT_M over the ground, over no other piece's
-// footprint (PLACE_CLEAR_M wider) and no flat; its doors and DOOR_CLEAR_M before each must stand under no hill and in no
-// other piece. The row's spot is the NEAREST such to the author's, at the author's own facing, on a SEARCH_STEP grid
-// (the first found at the least distance, x then z ascending); its automap cells are the footprint's (the models'
-// boxes, unwidened). Nothing of ARENA2 or the packs is written; the numbers are a measurement of the player's data.
+// Measures the rows src/world/curatedPlacements.js carries from local game data, or checks the committed rows.
+// Run: ARENA2_PATH=<arena2> node tools/curatedPlacements.mjs [--check].
+
 import { join } from 'node:path';
 import { isMain } from './lib/isMain.mjs';
 import { openTownData, UNIT } from './townQuestMarkers.mjs';
@@ -22,18 +9,13 @@ import { trs, multiply } from '../src/world/mat4.js';
 import { RMBRP_HILLS, blockHillSeat } from '../src/world/townStandIns.js';
 import { DOOR_APPROACH_M } from '../src/world/curatedPlacements.js';
 
-/** A footprint's clearance all round, metres. */
 export const PLACE_CLEAR_M = 1.5;
-/** The door's approach: the door and every metre before it to this, metres (its one home is the module's, FIELD BUGS
- *  2026-10-15f TEMPLE-STEPS: the town sweep and the HILL-SEAT pads hold every door to it). */
 export const DOOR_CLEAR_M = DOOR_APPROACH_M;
-/** A footprint's distance from the block's edge, metres (the block is 4096 units, 102.4 m). */
 export const EDGE_M = 2;
-/** A hill's surface over the ground under a footprint, metres, past which the hill stands on it. */
 export const HILL_LIFT_M = 0.15;
-/** The search's grid, block units. */
 export const SEARCH_STEP = 32;
-const BLOCK = 4096, RD = 512 / 90;   // RMB block units; Daggerfall's angle units a degree
+// A block is 4096 RMB units, and Daggerfall's angles run 512 units to 90 degrees.
+const BLOCK = 4096, RD = 512 / 90;
 
 const at = (M, p) => [0, 1, 2].map((k) => M[k] * p[0] + M[4 + k] * p[1] + M[8 + k] * p[2] + M[12 + k]);
 const boxOf = (m) => {
@@ -42,12 +24,9 @@ const boxOf = (m) => {
   for (let i = 0; i < m.positions.length; i += 3) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], m.positions[i + k]); hi[k] = Math.max(hi[k], m.positions[i + k]); }
   return { lo, hi };
 };
-/** The exterior's transforms, as the wd3 sweep lays them: a subrecord at (xPos, 4096 - zPos), its models under it; a
- *  misc model at (xPos, zPos + 4096). Metres. */
 const subMatrix = (x, z, rot) => trs(x * UNIT, 0, (BLOCK - z) * UNIT, 0, -rot / RD, 0);
 const modelMatrix = (S, m) => multiply(S, trs(m.xPos * UNIT, -m.yPos * UNIT, m.zPos * UNIT, -m.xRotation / RD, -m.yRotation / RD, -m.zRotation / RD, m.xScale || 1, m.yScale || 1, m.zScale || 1));
 const miscMatrix = (m) => trs(m.xPos * UNIT, (-m.yPos - 4) * UNIT, (m.zPos + BLOCK) * UNIT, -m.xRotation / RD, -m.yRotation / RD, -m.zRotation / RD, m.xScale || 1, m.yScale || 1, m.zScale || 1);
-/** A box's footprint on the ground (x, z), `pad` metres wider: four corners. */
 const footprint = (M, b, pad = 0) => [[b.lo[0] - pad, b.lo[2] - pad], [b.hi[0] + pad, b.lo[2] - pad], [b.hi[0] + pad, b.hi[2] + pad], [b.lo[0] - pad, b.hi[2] + pad]]
   .map(([x, z]) => { const w = at(M, [x, 0, z]); return [w[0], w[2]]; });
 const inPoly = (pt, poly) => {
@@ -58,7 +37,6 @@ const inPoly = (pt, poly) => {
   }
   return c;
 };
-/** A quad's points on an n x n lattice (its corners and edges included). */
 const lattice = (q, n = 8) => {
   const out = [];
   const [a, b, c, d] = q;
@@ -69,10 +47,7 @@ const lattice = (q, n = 8) => {
   return out;
 };
 
-/**
- * The block round one record: { dfBlock, sub, others: [{ id, poly }], seat, flats: [[x, z]], getModel }.
- * @param {Awaited<ReturnType<typeof openTownData>>} data
- */
+/** @param {Awaited<ReturnType<typeof openTownData>>} data */
 export function placementContext(data, vendor, block, record) {
   const { dfBlock } = data.packBlock(vendor, block);
   const rmb = dfBlock.rmbBlock;
@@ -92,7 +67,6 @@ export function placementContext(data, vendor, block, record) {
   return { dfBlock, sub: rmb.subRecords[record], others, seat: blockHillSeat(hills), flats, getModel: data.getModel };
 }
 
-/** What stands in the way of the record at (xPos, zPos, yRotation): a list of words, empty where the spot is clear. */
 export function placementIssues(ctx, xPos, zPos, yRotation) {
   const S = subMatrix(xPos, zPos, yRotation);
   const issues = new Set();
@@ -118,7 +92,6 @@ export function placementIssues(ctx, xPos, zPos, yRotation) {
   return [...issues];
 }
 
-/** The nearest clear spot to the author's, at the author's facing: { xPos, zPos, yRotation, metres } or null. */
 export function nearestClear(ctx, step = SEARCH_STEP) {
   const { xPos: ax, zPos: az, yRotation } = ctx.sub;
   let best = null;
@@ -132,8 +105,6 @@ export function nearestClear(ctx, step = SEARCH_STEP) {
   return best ? { xPos: best.x, zPos: best.z, yRotation, metres: +(best.d * UNIT).toFixed(2) } : null;
 }
 
-/** The automap cells the record's models cover at a spot: [col0, row0, col1, row1], a cell 64 block units, the row a
- *  zPos's (the automap's own: a building's pixels stand at its xPos / 64, zPos / 64). */
 export function footprintCells(ctx, xPos, zPos, yRotation) {
   let c0 = Infinity, r0 = Infinity, c1 = -Infinity, r1 = -Infinity;
   const S = subMatrix(xPos, zPos, yRotation);
@@ -148,7 +119,6 @@ export function footprintCells(ctx, xPos, zPos, yRotation) {
   return [Math.max(0, c0), Math.max(0, r0), Math.min(63, c1), Math.min(63, r1)];
 }
 
-/** Every row measured: { block, record, model, authored: issues, from, to, automap }. */
 export async function measurePlacements(data, rows) {
   const out = [];
   for (const r of rows) {

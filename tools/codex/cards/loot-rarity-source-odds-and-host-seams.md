@@ -12,6 +12,7 @@ files:
   - src/scenes/interiorContext.js
   - src/characters/equip.js
   - src/items/loot.js
+  - src/items/roomLootHost.js
 routes: []
 tables: []
 replacesBible:
@@ -26,10 +27,12 @@ invariants:
   - "Per tier: `min(cap, (base + perTier * tier) * mult * luckMult(luck))` with `RARITY_WEIGHTS` magic {100, 15, 600}, rare {15, 6, 260}, legendary {1, 1.2, 45}; the ladder never inverts (rare <= magic, legendary <= rare)."
   - "`SOURCE_MULT` corpse 1, pile 1.3, boss 2.5; `corpseSource` marks boss at any Daedra or level >= `BOSS_LEVEL` (18)."
   - "Every random threshold is finally multiplied by `MAGIC_DROP_SCALE` (0.25); LOOT-GATE (`rareGate`, `legendaryGate`) scales Rare and Legendary by roller level, never Magic."
+  - "Shared room loot bases roll inside `withRollerLevel` at the room level (`src/items/roomLootHost.js`), so every client rolls the same base. `withRollerLevel` throws when its body returns a promise."
 traps:
   - "`rollCorpseLoot` skips pieces on the enemy's `equipTableOf` so an enemy never wields a rolled piece (LR4)."
   - "Shops and quest rewards never roll; only the corpse (`spawnEnemyLoot`), dungeon-pile and interior-pile seams call the ladder."
   - "DFU magic items with worn-only powers (`powersNeedWearing`) redraw their base up to `MAGIC_BASE_DRAWS` (64) until `wearableItem` passes (HELD-BASE)."
+  - "Player-facing text, patch notes, and release notes must never state the levels, factors, or chances of the level gate (`src/items/lootLevelGate.js`). They may say only that Rare and Legendary gear is rarer early on and more common later."
 dfu: []
 tags:
   - loot

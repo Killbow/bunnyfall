@@ -1,61 +1,7 @@
 #!/usr/bin/env node
-// CSA-A (2026-09-27): COME SAIL AWAY 2.1 (RedRoryOTheGlen) - THE VENDORED
-// PICTURES AND SOUNDS, OUT OF THE SHIPPED BUNDLE AND THE PLAYER'S OWN ARENA2.
-//
-//   node tools/comeSailAwayExtract.mjs "<path-to>/come sail away.dfmod" [outDir] --arena2 <ARENA2>
-//
-// Default outDir is vendor/come-sail-away. Every picture is measured before
-// anything is written, because a render of game data is game data
-// (Port-Doctrine) and never enters the tree - bible/03-World/Come-Sail-Away.md
-// "The bundle" has the measurements:
-//
-// - `Textures/112395_0-0.png`, `Textures/112395_1-<frame>.png` - the splash
-//   and the wind widget's 24 frames: the author's own drawings. Each is held
-//   to Detailed Ships' bar first (no record within a pixel of its size covers
-//   DERIVED_SHARE of it - the picture whole, and cut to its visible box, so a
-//   small sprite on a clear canvas is judged at its own size) and to the
-//   block search (tools/lib/classicBlocks.mjs: no square record that is not
-//   a flat swatch matches that share of any aligned block's visible pixels),
-//   and the tool refuses to write one that fails.
-// - `Textures/112395_2-base<n>.paint.png` + `Textures/derived.json` - the
-//   waves' 32 frames. Each is the author's wave shapes and troughs laid over
-//   Daggerfall's snow, TEXTURE.303 record 1, tiled across the frame; the
-//   crests are the record's pixels exactly. And the 32 are two pictures,
-//   each scrolled down the same sixteen steps (the even frames the first,
-//   the odd the second). So what is carried is the author's two paints, the
-//   crests as the spec's key colour, and each frame's scroll and phase
-//   (formats/derivedTexture.js composeTiledPicture rebuilds a frame from the
-//   player's own record); every frame's rebuild is checked exact against the
-//   bundle's before anything is written, and each paint - the snow taken
-//   out - must pass the block search itself.
-// - record 3 (1000x500) is NOT written: it is TEXTURE `TRAV0I00.IMG`'s map,
-//   Daggerfall's own art (the port builds it from the player's file, CSA-I).
-//   The tool measures it against that file and reports the measure.
-// - Unity's own pictures (Default-Particle, Default-ParticleSystem) and the
-//   two Bayer tables are not the mod's, and are not written.
-// - `Sounds/<clip>.ogg` + `Sounds/sounds.json` - the five clips the assembly
-//   loads (ComeSailAway.Start: SmallShipAmbience, ShipExteriorAmbience2,
-//   Oars_In, Oars_Sweep, Oars_Out), each the bundle's FSB5 Vorbis packets
-//   remuxed into Ogg untouched (tools/lib/fsb5Vorbis.mjs) with the setup
-//   header vendor/vorbis-fsb-setups/ names by CRC32. The three it ships and
-//   never plays are not carried.
-// - `Textures/textures.json` - each carried picture's import settings, and
-//   `come-sail-away.files.json` - the carried pictures by name, the listing
-//   test/tooling/doctrine.test.js holds Textures/ to (both ways).
-// - `Models/` - the boats (tools/lib/unityScene.mjs reads them): the twelve
-//   prefabs the assembly asks DFU for (PREFABS) as the trees its C# walks by
-//   name, their components shared where two are the same (`prefabs.json`);
-//   the 209 meshes they draw and collide with - position, normal, uv0 and
-//   the one-bone skin index, the index buffer and submeshes, a skinned
-//   mesh's bind poses (`meshes.json` + `meshes.bin`); the 46 materials they
-//   wear and the one Start loads by name (CSA-F: CurrentMaterial, the waves'); and
-//   the animation - the 5 controllers, 26 overrides and 141 clips they play,
-//   each clip's muscle-clip curves (`animation.json`). Every clip binding is
-//   resolved against every Animator that plays it; the six that name no node
-//   (three staysail clips animate a bone the skiff's rig has not got - Unity
-//   animates nothing there) are reported.
-//
-// The output is a function of the bundle and the ARENA2 alone.
+// Extracts Come Sail Away's own pictures, sounds, and models from the shipped bundle into vendor/come-sail-away.
+// Every picture is measured against the game data first, and one that matches it is never written.
+// Run: node tools/comeSailAwayExtract.mjs "<path>/come sail away.dfmod" [outDir] --arena2 <ARENA2>.
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -77,29 +23,16 @@ import { openScene, prefabTree, assetRefs, bundleContainer, decodeMesh, decodeCl
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLASS_AUDIO_CLIP = 83;
 
-/** The mod's own texture archive (ComeSailAway.Start / InitializeWaveTextures). */
 export const CSA_ARCHIVE = 112395;
-/** The snow the waves' crests are, and the paint colour that stands for it. */
 export const WAVE_SOURCE = Object.freeze([303, 1, 0]);
 export const WAVE_KEY = 'ff00ffff';
-/**
- * The prefabs the assembly asks DFU's MeshReplacement for: the five hulls
- * (SpawnBoat, 112410 + hull) and the triggers GetBoatTransforms stands under
- * the nodes that name them (112400 DriveTrigger, 112401 BoardTrigger, 112402
- * CargoTrigger, 112403 DoorTrigger) and the three Start also registers an
- * activation for (112404 variant, 112405 status, 112406 position).
- */
 export const PREFABS = Object.freeze([112400, 112401, 112402, 112403, 112404, 112405, 112406, 112410, 112411, 112412, 112413, 112414]);
-/** A mesh's channels the tool writes: what the boats' shaders and one-bone skinning read. */
 export const MESH_WRITTEN = Object.freeze(['position', 'normal', 'uv0', 'blendIndices']);
 
-/** CSA-F: the material Start loads by name beside the ones the prefabs name - the waves' (`GetAsset<Material>("CurrentMaterial.mat")`). */
 export const NAMED_MATERIALS = Object.freeze(['CurrentMaterial']);
 
-/** The five clips ComeSailAway.Start loads by name, in its audioClips order. */
 export const PLAYED_CLIPS = Object.freeze(['SmallShipAmbience', 'ShipExteriorAmbience2', 'Oars_In', 'Oars_Sweep', 'Oars_Out']);
 
-/** The bundle's serialized file and a reader for its `.resS` / `.resource` streams. */
 export function openBundle(bytes) {
   const fs = readUnityFs(bytes);
   const main = fs.files.find((f) => !/\.res(S|ource)$/.test(f.path));
@@ -113,7 +46,6 @@ export function openBundle(bytes) {
   return { sf, resource };
 }
 
-/** The tile phase that explains the most opaque pixels - sampled one pixel in sixteen, then counted whole. */
 function tilePhase(pic, src) {
   let best = null;
   for (let py = 0; py < src.height; py++) {
@@ -134,7 +66,6 @@ function tilePhase(pic, src) {
   return best.tile;
 }
 
-/** How near record 3 is to TRAV0I00.IMG's 320x160 interior (row 12 down) sampled at the texel centres: mean |RGB| per pixel. */
 function travelMapDistance(pic, arena2) {
   const img = new ImgFile();
   img.load(new Uint8Array(readFileSync(join(arena2, 'TRAV0I00.IMG'))), 'TRAV0I00.IMG');
@@ -158,7 +89,6 @@ function travelMapDistance(pic, arena2) {
 
 const byFrame = (a, b) => a.frame - b.frame;
 
-/** The rows `pic` is `base` moved down by (pic's row y is base's row (y + n) mod height), or null - clear pixels alike whatever their colour. */
 function verticalScroll(pic, base) {
   const { width: w, height: h } = pic;
   if (base.width !== w || base.height !== h) return null;
@@ -176,9 +106,8 @@ function verticalScroll(pic, base) {
 }
 
 /**
- * Every file the tool writes, as { path: bytes | string }, and a report.
- * @param {Uint8Array} bundleBytes the shipped `come sail away.dfmod`
- * @param {string} arena2 the player's ARENA2 folder
+ * @param {Uint8Array} bundleBytes
+ * @param {string} arena2
  */
 export function comeSailAwayAssets(bundleBytes, arena2) {
   const { sf, resource } = openBundle(bundleBytes);
@@ -199,7 +128,6 @@ export function comeSailAwayAssets(bundleBytes, arena2) {
   }
   const settings = (t) => ({ filterMode: t.m_TextureSettings.m_FilterMode, wrapU: t.m_TextureSettings.m_WrapU, wrapV: t.m_TextureSettings.m_WrapV, mipCount: t.m_MipCount });
 
-  // records 0 and 1: the author's own, or refused
   for (const e of textures.filter((x) => x.record === 0 || x.record === 1).sort((a, b) => a.record - b.record || byFrame(a, b))) {
     const crop = cropToVisible(e.pic);
     for (const pic of [e.pic, crop]) {
@@ -213,13 +141,11 @@ export function comeSailAwayAssets(bundleBytes, arena2) {
     report.push(`${e.name}: the author's (${e.pic.width}x${e.pic.height}; best block ${block ? `${(block.share * 100).toFixed(1)}% TEXTURE.${block.archive} r${block.record}` : 'none'})`);
   }
 
-  // record 2: the waves, as paint over the player's snow
   const [sa, sr, sfr] = WAVE_SOURCE;
   const tf = new TextureFile();
   if (!tf.load(new Uint8Array(readFileSync(join(arena2, `TEXTURE.${String(sa).padStart(3, '0')}`))), `TEXTURE.${sa}`, palette)) throw new Error(`TEXTURE.${sa} did not load`);
   const snow = classicRecordRgba(tf.getDFBitmap(sr, sfr), palette);
   const waves = textures.filter((x) => x.record === 2).sort(byFrame);
-  // the frames are pictures scrolled: each is a base, or a base moved down whole rows
   const bases = [];
   const frames = [];
   for (const e of waves) {
@@ -235,7 +161,6 @@ export function comeSailAwayAssets(bundleBytes, arena2) {
     base.tile = tilePhase(base.pic, snow);
     const d = deriveTiledPaint(base.pic, snow, base.tile, WAVE_KEY);
     base.paint = d.paint;
-    // the author's part alone, the snow taken out, must be no record's either
     const own = { width: d.paint.width, height: d.paint.height, data: new Uint8Array(d.paint.data) };
     for (let i = 0; i < own.data.length; i += 4) if (own.data[i] === 0xff && own.data[i + 1] === 0 && own.data[i + 2] === 0xff) own.data.fill(0, i, i + 4);
     const block = bestClassicBlock(own, records);
@@ -249,26 +174,23 @@ export function comeSailAwayAssets(bundleBytes, arena2) {
     const spec = { from: sfr ? [sa, sr, sfr] : [sa, sr], size: [e.pic.width, e.pic.height], paint: `${b.name}.paint.png`, scroll, tile: [b.tile[0], (b.tile[1] + scroll) % snow.height], key: WAVE_KEY };
     const back = composeTiledPicture(spec, snow, b.paint);
     for (let i = 0; i < e.pic.width * e.pic.height; i++) {
-      if (e.pic.data[i * 4 + 3] === 0 && back.data[i * 4 + 3] === 0) continue;   // clear either way: the shader's cut-out never draws it
+      if (e.pic.data[i * 4 + 3] === 0 && back.data[i * 4 + 3] === 0) continue;
       for (let k = 0; k < 4; k++) if (back.data[i * 4 + k] !== e.pic.data[i * 4 + k]) throw new Error(`${e.name}: the rebuild differs at pixel ${i}`);
     }
     derived[e.name] = spec;
     report.push(`${e.name}: ${b.name} scrolled ${scroll} rows - rebuilt exact`);
     meta.push({ name: e.name, kind: 'derived', width: e.pic.width, height: e.pic.height, ...settings(e.tex) });
   }
-  // one palette for the paints, so they index alike
   const shared = [...new Set(bases.flatMap((b) => pictureColours(b.paint)))].sort((x, y) => x - y);
   for (const b of bases) out[`Textures/${b.name}.paint.png`] = encodeIndexedPng(b.paint, shared);
   out['Textures/derived.json'] = `{\n${Object.entries(derived).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n')}\n}\n`;
 
-  // record 3: Daggerfall's travel map, measured and never written
   for (const e of textures.filter((x) => x.record === 3)) {
     report.push(`${e.name}: TRAV0I00.IMG's interior scaled (mean |RGB| ${travelMapDistance(e.pic, arena2).toFixed(1)} of 765) - Daggerfall's own, not carried`);
   }
   const unknown = textures.filter((x) => x.record > 3);
   if (unknown.length) throw new Error(`records the tool has not measured: ${unknown.map((x) => x.name).join(', ')}`);
   out['Textures/textures.json'] = `[\n${meta.map((m) => `  ${JSON.stringify(m)}`).join(',\n')}\n]\n`;
-  // the listing test/tooling/doctrine.test.js reads for what may stand under Textures/ - the tool's, not a hand's
   const pictures = Object.keys(out).filter((p) => /^Textures\//.test(p)).map((p) => p.slice('Textures/'.length)).sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
   out['come-sail-away.files.json'] = `${JSON.stringify({
     ModTitle: 'Come Sail Away', ModVersion: '2.1', ModAuthor: 'RedRoryOTheGlen',
@@ -278,7 +200,6 @@ export function comeSailAwayAssets(bundleBytes, arena2) {
     Files: pictures,
   }, null, 2)}\n`;
 
-  // the five played clips
   const setups = new Map();
   for (const f of readdirSync(join(ROOT, 'vendor/vorbis-fsb-setups')).filter((n) => /^setup_[0-9a-f]{8}\.bin$/.test(n))) {
     const b = new Uint8Array(readFileSync(join(ROOT, 'vendor/vorbis-fsb-setups', f)));
@@ -304,15 +225,8 @@ export function comeSailAwayAssets(bundleBytes, arena2) {
   return { out, report };
 }
 
-/** A JSON value with its numbers as they are and nothing Unity-typed left in it. */
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? String(x) : x instanceof Uint8Array ? Buffer.from(x).toString('base64') : x)));
 
-/**
- * The boats as data: the prefabs' trees (their components shared where two
- * are the same), the meshes they draw and collide with (Models/meshes.bin
- * and its index), the materials, and the animation - controllers,
- * overrides and the clips they play.
- */
 export function comeSailAwayModels(bundleBytes) {
   const scene = openScene(bundleBytes);
   const refs = assetRefs(scene);
@@ -324,7 +238,6 @@ export function comeSailAwayModels(bundleBytes) {
     if (!ptr) throw new Error(`the bundle has no prefab ${id}`);
     trees[id] = prefabTree(scene, ptr, refs);
   }
-  // components shared by content, so the 250 particle systems of the oar stations are a few dozen
   const components = [];
   const seen = new Map();
   const share = (n) => ({
@@ -337,7 +250,6 @@ export function comeSailAwayModels(bundleBytes) {
     children: n.children.map(share),
   });
   const prefabs = Object.fromEntries(Object.entries(trees).map(([id, t]) => [id, share(t)]));
-  // CSA-F: the materials the C# loads by name, carried with the ones the prefabs name
   for (const name of NAMED_MATERIALS) {
     const ptr = cont.get(`assets/game/mods/comesailaway/material/${name.toLowerCase()}.mat`);
     if (!ptr) throw new Error(`the bundle has no material ${name}`);
@@ -346,7 +258,6 @@ export function comeSailAwayModels(bundleBytes) {
   const nodeCount = (n) => 1 + n.children.reduce((a, c) => a + nodeCount(c), 0);
   report.push(`prefabs: ${Object.values(trees).reduce((a, t) => a + nodeCount(t), 0)} nodes, ${seen.size} distinct components`);
 
-  // the animation: every controller an Animator names, the base of every override, and every clip either plays
   const clipKey = (pptr) => refs.ref(pptr)?.clip ?? null;
   const controllers = {};
   const overrides = {};
@@ -361,7 +272,6 @@ export function comeSailAwayModels(bundleBytes) {
   }
   const clips = {};
   for (const [k, t] of refs.used('clip')) clips[k] = decodeClip(t.v);
-  // every binding resolves under every Animator that plays it
   const clipsOf = (ctlKey) => {
     const o = overrides[ctlKey];
     if (!o) return controllers[ctlKey].clips;
@@ -387,7 +297,6 @@ export function comeSailAwayModels(bundleBytes) {
   report.push(`animation: ${Object.keys(controllers).length} controllers, ${Object.keys(overrides).length} overrides, ${Object.keys(clips).length} clips; ${checked} bindings checked, ${unresolved.size} unresolved`);
   if (unresolved.size) report.push(...[...unresolved].slice(0, 20).map((u) => `  unresolved: ${u}`));
 
-  // the materials, and the pictures they name
   const materials = {};
   for (const [k, t] of refs.used('material')) {
     const m = t.v;
@@ -406,7 +315,6 @@ export function comeSailAwayModels(bundleBytes) {
   }
   report.push(`materials: ${Object.keys(materials).length} (${[...new Set(Object.values(materials).map((m) => m.shader))].join(', ')}); pictures they name: ${[...refs.used('texture').keys()].join(', ') || 'none'}`);
 
-  // the meshes, into one little-endian binary
   const parts = [];
   let size = 0;
   const put = (arr) => {

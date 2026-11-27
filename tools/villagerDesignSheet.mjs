@@ -1,9 +1,6 @@
-// A colour proof of the 25 villager DESIGNS (villagerDesigns.js), in
-// roster order: one card per variation, each material drawn as its
-// resolved ART_PAL ramp so the palette can be judged before any
-// geometry is built. The legend prints to stdout - pngjs has no font.
-//
-// Usage: ARENA2_PATH=... node tools/villagerDesignSheet.mjs [out.png]
+// Draws a color proof card of each villager design's material ramps; the legend prints to stdout.
+// Usage: ARENA2_PATH=<dir> node tools/villagerDesignSheet.mjs [out.png]
+
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { DFPalette } from '../src/formats/dfPalette.js';
@@ -28,7 +25,6 @@ const px = (x, y, c) => {
 VILLAGER_DESIGNS.forEach((d, i) => {
   const ox = (i % COLS) * CW, oy = ((i / COLS) | 0) * CH;
   const mats = designOpts(d, pal).mats;
-  // a race stripe down the left edge so the three cultures read apart
   const stripe = { Redguard: [198, 140, 60], Nord: [110, 150, 130], Breton: [120, 130, 190], Guard: [150, 155, 165] }[d.race];
   for (let y = PAD; y < CH - PAD; y++) for (let x = 0; x < 5; x++) px(ox + PAD + x, oy + y, stripe);
   Object.values(mats).forEach((ramp, m) => {

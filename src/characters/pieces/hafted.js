@@ -1,24 +1,10 @@
-// The hafted family (Daggerfall 115 Staff, 124 Mace, 125 Flail, 126
-// Warhammer, 127 Battle Axe, 128 War Axe): ONE parameterized builder
-// on the grip system. House layout: the business end DESCENDS below
-// the grip (the seat bake maps down to point-forward carry).
-//   - 1H (Mace, Battle Axe): longsword grip + station, inherit
-//     melee1H + ATTACKS_1H free.
-//   - 2H (Staff, Flail, Warhammer, War Axe): the CLAYMORE-STANDARD
-//     grip block - the off-hand station at (-0.235, 0.8038, -0.1578)
-//     is the 2H CONTRACT: solved melee2H pose + station-coupled
-//     attack tracks transfer by construction.
-// Fidelity notes: the flail's chain-and-ball is RIGID (a thin tube +
-// ball along the haft line - same simplification class as the drawn
-// bow string); axe blades are flat plates hanging forward of the
-// shaft (single-bit) or both sides (double-bit war axe).
+// The hafted weapon family (Daggerfall 115, 124, 125, 126, 127, 128): one parameterized builder on the grip system.
 import { loftPiece, shadePiece, compress, LEFT_FIST_X, GRIP_Y, SEAT_PITCH, TWO_HAND_GRIP_ROWS, pitchAbout } from './pieceLoft.js';
 
-// spec: { twoHand, shaft, shaftR, head, staffUp }
 function buildHafted(ramp, spec) {
   const faces = [];
   const G = { group: 'armL', cx: LEFT_FIST_X, seg: 8 };
-  const sR = spec.shaftR ?? 0.020;   // girth pass (Mac 2026-07-06)
+  const sR = spec.shaftR ?? 0.020;
   let gripLo;
   if (spec.twoHand) {
     gripLo = TWO_HAND_GRIP_ROWS[0].y;
@@ -31,19 +17,16 @@ function buildHafted(ramp, spec) {
       { y: 0.998, rx: 0.019, rz: 0.020 },
     ], { ...G, capTop: false, capBottom: false });
   }
-  // butt cap above the grip
   const bTop = spec.twoHand ? 1.058 : 0.998;
   loftPiece(faces, [
     { y: bTop, rx: sR + 0.003, rz: sR + 0.003 },
     { y: bTop + (spec.staffUp ?? 0.028), rx: spec.staffUp ? sR : 0.006, rz: spec.staffUp ? sR : 0.006 },
   ], G);
-  // shaft descending to the head seat
   const headY = gripLo - 0.02 - spec.shaft;
   loftPiece(faces, [
     { y: gripLo - 0.002, rx: sR, rz: sR },
     { y: headY + 0.02, rx: sR, rz: sR },
   ], { ...G, capTop: false, capBottom: false });
-  // heads
   if (spec.head === 'mace') {
     loftPiece(faces, [
       { y: headY + 0.02, rx: 0.022, rz: 0.022 },
@@ -60,7 +43,7 @@ function buildHafted(ramp, spec) {
         { y: headY - 0.14, rx: 0.013, rz: 0.082, p: 0.5, cz: off * 0.45 },
       ], G);
     }
-    loftPiece(faces, [   // poll/spike cap
+    loftPiece(faces, [
       { y: headY + 0.02, rx: 0.016, rz: 0.016 },
       { y: headY - 0.05, rx: 0.012, rz: 0.012 },
     ], G);
@@ -71,7 +54,6 @@ function buildHafted(ramp, spec) {
       { y: headY - 0.13, rx: 0.030, rz: 0.030, cz: 0.016 },
     ], G);
   } else if (spec.head === 'ball') {
-    // rigid chain + ball continuing down the haft line
     loftPiece(faces, [
       { y: headY + 0.02, rx: 0.009, rz: 0.009 },
       { y: headY - 0.10, rx: 0.009, rz: 0.009 },
@@ -82,7 +64,7 @@ function buildHafted(ramp, spec) {
       { y: headY - 0.22, rx: 0.018, rz: 0.018 },
     ], G);
   } else {
-    loftPiece(faces, [   // staff foot
+    loftPiece(faces, [
       { y: headY + 0.02, rx: sR + 0.002, rz: sR + 0.002 },
       { y: headY - 0.02, rx: 0.007, rz: 0.007 },
     ], G);

@@ -60,7 +60,7 @@ export function createNavalRams(deps) {
       wayIn = [];
       const dealt = Math.min(blow, ramRoom(e.ship.damage));
       landed(stem, fwd, 3);
-      deps.mid?.(galley ? t('naval.ram.galley', 'Your ram smashes into the hull!') : t('naval.ram.mine', 'You ram the ship!'), 2);
+      deps.mid?.(galley ? t('naval.ram.galley', 'Your ram smashes into the hull.') : t('naval.ram.mine', 'You ram the ship.'), 2);
       deps.charge(e);
       if (!e.owner) deps.strike(e, { hull: blow, sail: 0, crew: ramMen(dealt, deps.random()), floor: ramLine(e.ship.damage) }, deps.myId());
       // Another player's ship takes the ram on her own client, down to her own line.
@@ -85,7 +85,7 @@ export function createNavalRams(deps) {
     galleyAt.set(e, now);
     st.damage.apply({ hull: hurt, sail: 0, crew: ramMen(dealt, deps.random(), PLAYER_CREW_TOUGHNESS) }, now, { floor: ramLine(st.damage) });
     landed(bow, f, 3.5);
-    deps.mid?.(t('naval.ram.taken', '{ship} rams you!', { ship: deps.called(e) }), 2);
+    deps.mid?.(t('naval.ram.taken', '{ship} rams you.', { ship: deps.called(e) }), 2);
     recoil(e, blow, now);
     return true;
   }

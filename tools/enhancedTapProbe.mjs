@@ -1,38 +1,17 @@
-// EVERY TARGET ON THE ENHANCED SCREENS IS A THUMB, MEASURED.
-//
-// AUDIT 2026-08-25 F1. The enhanced menu shipped with forty sub-44px
-// targets on a Pixel 5 - every row label at 19px, every value pill at
-// 38, every stepper at 34 - under a CSS comment claiming "the hit box
-// around it is 44 because a thumb is". The rule beneath that comment
-// was `content: ''` and `position: absolute` and nothing else: it drew
-// no box, claimed no space and hit nothing.
-//
-// AUDIT 24 found this exact class in the CLASSIC settings screen and
-// pinned it there (settingsUI T14), and the screen that replaced it
-// broke the same law in a place that pin could not see. So the law
-// gets a check on THIS side too, and it MEASURES rather than reads:
-// a target's real size is getBoundingClientRect, not a stylesheet.
-//
-//     npx vite --port 5199 &
-//     node tools/enhancedTapProbe.mjs
-//
-// The floor is 44 CSS px on the short axis, which is what
-// settingsMetrics.tapMin uses and where the number comes from.
+// Browser probe that measures every enhanced menu and wizard target against the 44 CSS px tap floor.
+// Run: npx vite --port 5199 & node tools/enhancedTapProbe.mjs.
 import { chromium, devices } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const FLOOR = 44;
 
-// The pointer target of an element: its own box, unioned with any
-// ::after the design uses to grow the target past the drawn pill.
-// Reading the box alone would report the DRAWN size and re-fail a
-// screen that is actually fine.
+// A target's size includes any ::after the design uses to grow it past the drawn pill.
 const MEASURE = (floor) => {
   const bad = [];
   const seen = new Set();
   for (const el of document.querySelectorAll('#enhanced-menu button, #app button, #app input')) {
     const r = el.getBoundingClientRect();
-    if (!r.width || !r.height) continue;          // not displayed
+    if (!r.width || !r.height) continue;
     let w = r.width;
     let h = r.height;
     const a = getComputedStyle(el, '::after');
@@ -65,9 +44,6 @@ for (const [label, opts] of [
   const ctx = await browser.newContext(opts);
   const page = await ctx.newPage();
   await page.goto(`${BASE}/play/`, { waitUntil: 'networkidle' });
-  // PX1/PX8: the boot door opens on the PIXEL HOME now, not the rail.
-  // The home's own buttons are targets too, so it is measured before
-  // walking through it into the shell.
   await page.waitForSelector('#enhanced-menu .px-home');
   {
     const bad = await page.evaluate(MEASURE, FLOOR);
@@ -76,8 +52,6 @@ for (const [label, opts] of [
   await page.locator('#enhanced-menu .px-menu button', { hasText: 'Load Game' }).click();
   await page.waitForSelector('#enhanced-menu .doorbtn');
 
-  // every pane, because a target that only exists under Settings is
-  // still a target
   for (const pane of ['Continue', 'New Game', 'Load Game', 'Mods', 'About']) {
     await page.locator('#enhanced-menu .doorbtn', { hasText: pane }).click();
     const bad = await page.evaluate(MEASURE, FLOOR);
@@ -86,20 +60,13 @@ for (const [label, opts] of [
 
   await page.locator('#enhanced-menu .doorbtn', { hasText: 'Settings' }).click();
   await page.waitForSelector('#enhanced-menu .row');
-  // every CATEGORY, because the widget kinds differ between them - a
-  // colour swatch, a stepper and a switch are three different rows
   const cats = await page.locator('#enhanced-menu .subbtn').count();
   for (let i = 0; i < cats; i++) {
     const name = await page.locator('#enhanced-menu .subbtn').nth(i).textContent();
-    // A second tap on the ACTIVE category raises its card as a sheet
-    // (AUDIT F8), and on a phone that sheet covers the rail - so close
-    // it before reaching for the next tab, exactly as a finger would.
-    // isVisible() is not the question: the sheet's close bar is
-    // display:block whether the sheet is up or translated 101% off the
-    // bottom. The class is the state.
+    // The sheet's close bar stays display:block while the sheet is off screen, so the open class is the state.
     if (await page.locator('#enhanced-menu .detail.open').count()) {
       await page.locator('#enhanced-menu .sheet-close').click();
-      await page.waitForTimeout(280);   // the slide
+      await page.waitForTimeout(280);
     }
     await page.locator('#enhanced-menu .subbtn').nth(i).click();
     await page.waitForTimeout(60);
@@ -109,11 +76,6 @@ for (const [label, opts] of [
   await ctx.close();
 }
 
-// ── AND THE WIZARD, which inherited the menu's controls and its hole.
-// The chargen steppers are the same `.step` class and measured 34x34
-// on a Pixel 5 the first time this probe was pointed at them, which is
-// exactly why the walk lives here rather than in a second probe: one
-// floor, one measurement, every enhanced surface.
 for (const [label, opts] of [['phone', { ...devices['Pixel 5'] }]]) {
   const ctx = await browser.newContext(opts);
   const page = await ctx.newPage();
@@ -159,8 +121,6 @@ for (const [label, opts] of [['phone', { ...devices['Pixel 5'] }]]) {
   await primary().click();
   await page.waitForTimeout(200);
   await at('attributes');
-  // spend the pool so the screen advances, then measure the skills
-  // steppers - three groups, three pools, and the same control
   for (let i = 0; i < 40; i++) {
     if (!(await primary().isDisabled())) break;
     await page.locator('.row .step').last().click();

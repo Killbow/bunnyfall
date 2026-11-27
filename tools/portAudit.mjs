@@ -1,12 +1,6 @@
-// PORT-AUDIT (2026-11-04, the owner: "Audit settlements designated as ports and give each a plausible water connection,
-// either a coastline or a river leading to the ocean"): EVERY SETTLEMENT THE GAME CALLS A PORT, AND WHAT WATER IT STANDS BY.
-// A port by its own data (systems/portPlaces.js portTownByData - Travel Options' list or Daggerfall's PortTownAndUnknown
-// byte) is read against the map's open sea (world/portSites.js openSeaOf, the flood of the water that reaches the map's
-// border) with the coast law's own test (net/fortLaw.js seaBears): ON THE COAST (the open sea within SEA_RING), or INLAND
-// - with how far the nearest open sea and the nearest water of any kind are, in map pixels.
-//
-// Writes nothing to the tree. Usage: ARENA2_PATH=/path/to/arena2 node tools/portAudit.mjs [--json] [--carved]
-// (--carved reads the map with world/portChannelData.js's channels laid: the check that each carved port now stands on the sea.)
+// Lists every port settlement and whether it is on the open sea coast, with the distance to sea and to any water.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/portAudit.mjs [--json] [--carved] (--carved lays the channels first).
+
 import { readFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 import { MapsFile, longitudeLatitudeToMapPixel } from '../src/formats/mapsFile.js';
@@ -19,7 +13,6 @@ import { LOCATION_TYPES } from '../src/formats/mapsFile.js';
 
 const TYPE_NAME = Object.fromEntries(Object.entries(LOCATION_TYPES).map(([k, v]) => [v, k]));
 
-/** The nearest pixel (Euclidean, to `limit`) for which `test` holds, or null. */
 export function nearest(px, py, test, limit = 80) {
   let best = null;
   for (let dy = -limit; dy <= limit; dy++) {
@@ -65,7 +58,7 @@ if (isMain(import.meta.url)) {
   if (!A2) { console.error('ARENA2_PATH is not set - point it at your own arena2 folder.'); process.exit(2); }
   const bytes = (n) => new Uint8Array(readFileSync(`${A2}/${n}`));
   const maps = new MapsFile(); maps.load(bytes('MAPS.BSA'), bytes('CLIMATE.PAK'), bytes('POLITIC.PAK'));
-  WoodsFile.portChannels = process.argv.includes('--carved');   // the map as the game made it, unless asked to read it with the channels laid
+  WoodsFile.portChannels = process.argv.includes('--carved');
   const woods = new WoodsFile(); if (!woods.load(bytes('WOODS.WLD'))) throw new Error('WOODS.WLD failed to load');
   const rows = auditPorts(maps, woods);
   if (process.argv.includes('--json')) { console.log(JSON.stringify(rows, null, 2)); process.exit(0); }

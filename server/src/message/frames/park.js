@@ -1,4 +1,3 @@
-// The `park` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isCellRoom, isSocialRoom, isChatRoom, parkKeyOf, cellRoomOfWire } from '../../relay.js';
 import { coverOf, atCover } from '../../cellNodes.js';
 

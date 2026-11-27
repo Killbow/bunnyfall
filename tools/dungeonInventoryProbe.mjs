@@ -1,11 +1,5 @@
-// U26 probe: the DUNGEON opens the same classic inventory the exterior
-// hosts have had since U8d. Until this slice it opened ui/inventory.js's
-// keyed text window - no tabs, no paperdoll, no info panel and, after
-// U25, no point-and-click Use either, which is where a torch is lit.
-//
-// It also exercises the two things the swap needed: RAW KEY CODES
-// through routeKey (the action map cannot express F6 or a mode
-// button), and a GROUND PILE for Remove-mode drops.
+// Browser probe: the dungeon opens the classic inventory window, and its info, use, and remove modes work,
+// including a ground pile for dropped items. Run: node tools/dungeonInventoryProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -29,8 +23,7 @@ await page.evaluate(() => {
   ];
 });
 
-// F6 through the REAL key path - routeKey has to hand the window a raw
-// code, not an action.
+// The action map cannot express F6, so the key goes through the real key path as a raw code.
 await page.keyboard.press('F6');
 await waitFrames(8);
 let ov = JSON.parse(await page.evaluate(() => window.__overlay()) ?? 'null');
@@ -38,26 +31,23 @@ console.log('overlay:', JSON.stringify(ov));
 if (ov?.kind !== 'NativeInventoryWindow') { console.log('THE DUNGEON DID NOT OPEN THE NATIVE WINDOW'); process.exit(1); }
 await page.screenshot({ path: '/home/claude/dungeon-inventory.png' });
 
-// the info panel, on the real TEXT.RSC record for a weapon
-await page.evaluate(() => window.__overlayClick(230, 43));      // info mode
+await page.evaluate(() => window.__overlayClick(230, 43));
 await page.evaluate(() => window.__overlayClick(163 + 9 + 25, 48 + 5));
 await waitFrames(4);
 console.log('info:', JSON.parse(await page.evaluate(() => window.__overlay())).box);
 await page.screenshot({ path: '/home/claude/dungeon-inventory-info.png' });
-await page.evaluate(() => window.__overlayClick(10, 190));      // dismiss
+await page.evaluate(() => window.__overlayClick(10, 190));
 
-// USE: light the torch (clothing & misc tab, equip-mode click)
-await page.evaluate(() => window.__overlayClick(163 + 5, 5));   // clothing tab
-await page.evaluate(() => window.__overlayClick(230, 65));      // equip mode
+await page.evaluate(() => window.__overlayClick(163 + 5, 5));
+await page.evaluate(() => window.__overlayClick(230, 65));
 await page.evaluate(() => window.__overlayClick(163 + 9 + 25, 48 + 5));
 await waitFrames(4);
 console.log('after equip-click on the torch:', JSON.parse(await page.evaluate(() => window.__overlay())).box,
   'lightSource=', await page.evaluate(() => window.__playerEntity.lightSource?.name ?? null));
 await page.evaluate(() => window.__overlayClick(10, 190));
 
-// REMOVE the sword to the ground: the pile is what the dungeon never had
-await page.evaluate(() => window.__overlayClick(0 + 5, 5));     // weapons tab
-await page.evaluate(() => window.__overlayClick(230, 87));      // remove mode
+await page.evaluate(() => window.__overlayClick(0 + 5, 5));
+await page.evaluate(() => window.__overlayClick(230, 87));
 await page.evaluate(() => window.__overlayClick(163 + 9 + 25, 48 + 5));
 await waitFrames(4);
 ov = JSON.parse(await page.evaluate(() => window.__overlay()));
@@ -71,7 +61,6 @@ if (!piles.length || !piles[0].n) { console.log('THE DROPPED ITEM VANISHED - no 
 await waitFrames(10);
 await page.screenshot({ path: '/home/claude/dungeon-pile.png' });
 
-// and the pile is activatable, opening the window with it as the target
 const took = await page.evaluate(() => window.__activate());
 await waitFrames(6);
 console.log('after activating the pile:', await page.evaluate(() => window.__overlay()), 'activate ->', took);

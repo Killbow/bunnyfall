@@ -17,7 +17,8 @@ test('NPC plaque actions complete service and apply a server payment before the 
       else result = stepTavernShift(state, body, nowS);
       assert.ok(!result.error, result.error); state = result.state;
       const reply = { ok: true, data: { ...result, version: ++version } };
-      apply(reply); // the actual world host's realmGoldAct calls apply BEFORE its final checkpoint
+      // The world host's realmGoldAct calls apply before its final checkpoint.
+      apply(reply);
       if (result.gold) checkpointGold = entity.goldPieces;
       return reply;
     },

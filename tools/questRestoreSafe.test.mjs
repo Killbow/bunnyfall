@@ -31,7 +31,6 @@ test('a quest that will not restore is kept as saved, written back and tried aga
   assert.equal(saved.unrestored.length, 1, 'the set-aside quest rides the next save');
   assert.equal(saved.unrestored[0].questName, 'BADQ');
 
-  // the cause fixed (the action type is known again): the next load takes it back with no progress lost
   const again = new QuestMachine({});
   again.actionTemplates.push({ typeName: 'NoSuchActionType', constructor: class { restoreActionSaveData() {} } });
   again.restoreSaveData(saved);

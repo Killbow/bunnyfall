@@ -1,4 +1,3 @@
-// The `social` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, tokenGate, SOCIAL_ROOM_HZ_MAX } from '../../relay.js';
 
 export async function socialFrame(ws, a, m) {

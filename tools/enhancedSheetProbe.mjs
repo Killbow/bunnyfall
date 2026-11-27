@@ -1,27 +1,5 @@
-// U52 - THE ENHANCED CHARACTER SHEET, in a real browser.
-//
-// WHAT ONLY A BROWSER CAN PROVE HERE is the CHILD CONTRACT. The sheet
-// is not a leaf: its four navigation buttons push a window, the port's
-// hosts hold one overlay slot so the sheet owns that child and
-// delegates to it, and the child is a CANVAS window living underneath
-// an opaque DOM div. Every claim in that sentence is a real object
-// interacting with a real layout, and node has neither.
-//
-// So this drives the actual push: a hook that hands back a fake child,
-// a click on the real button, and then the questions that matter -
-// did the div go hidden, does every arm of the contract reach the
-// child, does a finished child pop, does the sheet come BACK, and does
-// it re-read the pack it may have been changed by. U42 is why the arm
-// list is exhaustive: the classic sheet forwarded four of five and the
-// spellbook lost its highlight and its tooltips, silently, for a
-// slice.
-//
-// The arithmetic is NOT here - it is pure and pinned in node against
-// ui/charsheet.js's own expressions (test/ui/enhanced/enhancedCharSheet.test.js).
-//
-// Run against a dev server with NO arena2 on disk:
-//     npx vite --port 5199 &
-//     node tools/enhancedSheetProbe.mjs
+// Browser probe for the enhanced character sheet and the canvas windows it pushes and pops.
+// Run: npx vite --port 5199 & node tools/enhancedSheetProbe.mjs.
 import { chromium, devices } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -32,29 +10,14 @@ const check = (name, ok, detail = '') => {
 };
 const browser = await chromium.launch();
 
-/** THE BOOT MUST SETTLE BEFORE AN IN-GAME SCREEN OPENS.
- *
- *  main.js's top-level catch does `document.body.textContent = ...` on
- *  a failed boot, and assigning textContent REMOVES EVERY CHILD OF
- *  BODY - including an enhanced overlay opened a moment earlier. With
- *  no ARENA2 on disk the world boot always fails here, so a probe that
- *  opens a screen before that lands is racing a page wipe. It won that
- *  race often enough to look reliable, which is the worst kind: this
- *  repo has a commit called "the verifier said TIMEOUT four times
- *  against good deploys". So: wait for it.
- *
- *  A boot that SUCCEEDS never writes that text, so the wait times out
- *  and that is the correct outcome - hence the swallowed rejection. */
+// A failed boot replaces the whole page body, so a screen opened before it lands is wiped.
+// A successful boot never writes the text, so the timeout is the expected outcome.
 async function bootSettled(page) {
   await page.waitForFunction(
     () => document.body.textContent.includes('boot failed'), null, { timeout: 15000 },
-  ).catch(() => { /* a successful boot never says it - nothing to wait for */ });
+  ).catch(() => { });
 }
 
-
-/** Drive the front door to the moment a game starts, so the boot menu
- *  unmounts through runEnhancedMenu's own resolve and what is left is
- *  the game's real page. */
 async function toGamePage(page) {
   await page.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
   await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
@@ -64,9 +27,6 @@ async function toGamePage(page) {
   await bootSettled(page);
 }
 
-/** Open the sheet with a chosen set of hooks. `withChild` names the
- *  hooks that hand back a FAKE canvas child - a plain object answering
- *  the window contract and recording which arms reached it. */
 async function openSheet(page, withChild = ['inventory', 'spellbook']) {
   await page.evaluate(async (which) => {
     const { createCharSheetWindow } = await import('/src/ui/charSheetDoor.js');
@@ -113,7 +73,6 @@ async function run(label, opts) {
   await toGamePage(page);
   await openSheet(page);
 
-  // ── 1. THE SCREEN ──────────────────────────────────────────────
   check(`${label}: F5's screen is the enhanced one`,
     (await page.locator('#enhanced-charsheet').count()) === 1);
   check(`${label}: the host is holding it`, (await done(page)) === false);
@@ -122,11 +81,6 @@ async function run(label, opts) {
   check(`${label}: eight attributes, every one on a track`,
     (await page.locator('#enhanced-charsheet .sheetcol').first().locator('.meter').count()) === 8);
 
-  // ── 2. THE DENSITY ARGUMENT ────────────────────────────────────
-  // The classic sheet shows NINE skills at a time behind keys 1-4
-  // (_drawSkillPage's ids.slice(0, 9)). This shows the seven career
-  // skills at once and the rest one press away - disclosure, not
-  // deletion, which is the whole reason this screen exists.
   const career = await page.locator('#enhanced-charsheet .skillrow').count();
   check(`${label}: the career skills are all on the screen at once`, career === 7, `${career} rows`);
   await page.locator('#enhanced-charsheet button.more').click();
@@ -138,20 +92,12 @@ async function run(label, opts) {
   check(`${label}: back to the career skills`,
     (await page.locator('#enhanced-charsheet .skillrow').count()) === 7);
 
-  // ── 3. A BUTTON ONLY WHERE THE HOST HANDED A FACTORY ───────────
   const nav = await page.$$eval('#enhanced-charsheet .sheet-nav button', (ns) => ns.map((n) => n.textContent));
-  // HISTORY IS ALWAYS DRAWN and that is charSheetNav.js's own law: it
-  // needs nothing but the entity, so every host can open it. The
-  // LOGBOOK is withheld here because this call hands no quest source,
-  // which is the standalone ?dungeon page's real situation - and an
-  // empty journal would tell a player they have no quests when the
-  // truth is that this screen cannot see them.
   check(`${label}: the host-specific windows are drawn, the refused one is not`,
     JSON.stringify(nav) === JSON.stringify(['Inventory', 'Spellbook', 'History']), nav.join('/'));
   check(`${label}: ...and History is there whatever the host hands`, nav.includes('History'));
   check(`${label}: ...and the Logbook is not, with no quest source`, !nav.includes('Logbook'));
 
-  // ── 4. THE PUSH: the div hides, the child takes the contract ───
   await page.locator('#enhanced-charsheet .sheet-nav button', { hasText: 'Inventory' }).click();
   check(`${label}: pushing a canvas child HIDES the opaque sheet`,
     (await visible(page)) === 'hidden',
@@ -170,7 +116,6 @@ async function run(label, opts) {
     forwarded.drew === 'drew');
   check(`${label}: the sheet is still the host's one overlay`, (await done(page)) === false);
 
-  // ── 5. THE POP: a finished child gives the sheet back ──────────
   await page.evaluate(() => { globalThis.__child.done = true; globalThis.__slot.tick(0.016); });
   check(`${label}: a finished child pops and the sheet returns`, (await visible(page)) === 'visible');
   check(`${label}: ...and the popped child was disposed`,
@@ -179,14 +124,12 @@ async function run(label, opts) {
     (await page.locator('#enhanced-charsheet .skillrow').count()) === 7);
   check(`${label}: the host never saw the sheet finish`, (await done(page)) === false);
 
-  // ── 6. A REFUSED WINDOW SAYS SO ────────────────────────────────
   await page.evaluate(() => globalThis.__slot.dispose());
   await openSheet(page, ['inventory']);
   const nav2 = await page.$$eval('#enhanced-charsheet .sheet-nav button', (ns) => ns.map((n) => n.textContent));
   check(`${label}: a host that hands no spellbook draws no Spellbook button`,
     !nav2.includes('Spellbook') && nav2.includes('Inventory'), nav2.join('/'));
 
-  // ── 7. THE KEYS THAT OPENED IT CLOSE IT ────────────────────────
   await page.keyboard.press('Escape');
   await page.waitForSelector('#enhanced-charsheet', { state: 'detached', timeout: 10000 });
   check(`${label}: Escape closes the sheet`, (await done(page)) === true);
@@ -197,7 +140,6 @@ async function run(label, opts) {
     (await done(page)) === true && (await page.evaluate(() => !!globalThis.__slot)),
     'an unclaimed F5 destroys the session');
 
-  // ── 8. THE PHONE LESSON, APPLIED IN ADVANCE ────────────────────
   await openSheet(page);
   const small = await page.$$eval('#enhanced-charsheet button', (ns) => ns
     .map((n) => ({ t: (n.textContent ?? '').trim().slice(0, 20), r: n.getBoundingClientRect() }))
@@ -217,15 +159,12 @@ async function run(label, opts) {
 await run('desktop', { viewport: { width: 1280, height: 800 } });
 await run('phone', devices['Pixel 5']);
 
-// ── THE BARE ENTITY, and the classic skin ────────────────────────
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await toGamePage(page);
-  // Every host can open this before a character exists. A sheet that
-  // throws takes the host's overlay slot with it.
   const bare = await page.evaluate(async () => {
     const { createCharSheetWindow } = await import('/src/ui/charSheetDoor.js');
     const { playerEntity } = await import('/src/characters/playerEntity.js');
@@ -237,11 +176,7 @@ await run('phone', devices['Pixel 5']);
   check('bare: no page errors', errors.length === 0, errors.join(' | '));
   await page.evaluate(() => document.getElementById('enhanced-charsheet')?.remove());
 
-  // A PAGE OF ITS OWN. ?skin= answers for the page load and OUTRANKS
-  // the stored choice (systems/uiSkin.js), so setUiSkin('classic') on
-  // a page loaded with ?skin=enhanced changes nothing - which is the
-  // property that keeps the 25 classic-geometry probes in tools/
-  // honest, and it caught this probe writing the test wrong.
+  // The ?skin= query outranks the stored skin choice, so the classic window needs a page loaded with ?skin=classic.
   await page.goto(`${BASE}/play/?skin=classic`, { waitUntil: 'domcontentloaded' });
   const kind = await page.evaluate(async () => {
     const { createCharSheetWindow } = await import('/src/ui/charSheetDoor.js');

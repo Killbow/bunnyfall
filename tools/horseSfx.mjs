@@ -1,37 +1,6 @@
-// THE HORSE'S SOUNDS, SYNTHESISED AND BAKED (HORSE-VOICE, 2026-10-24, the owner: "more varied horse sounds" -
-// bible/08-Audio/Audio.md HORSE-VOICE, bible/06-Systems/Horse-Care.md).
-//
-// OURS, the climb's and the gathering's way (tools/climbSfx.mjs, tools/gatherSfx.mjs): built here from noise and sine
-// with the shared kit (tools/sfxSynth.mjs) and put through the one bake - tools/sndify.mjs, down to DAGGER.SND's own
-// 11025 Hz unsigned 8-bit mono - so a hoof in the grass sits beside Daggerfall's own clop. DAGGER.SND has one horse
-// voice (AnimalHorse, 99), the two clops on hard ground (HorseClop 97, HorseClop2 298) and the cart (104); it has no
-// snort, no breath, and no hoof on grass, in snow or in water - these fifteen.
-//
-//   horse-snort-1/-3     a snort: a forceful breath out through the nostrils - a noise burst through the nose's two
-//                        bands (300 Hz body, 1.6 kHz hiss), fluttering at ~32 Hz as the false nostril shakes in it
-//   horse-blow-1/-2      the long, relaxed blow ("brrr"): the nostrils' flutter as a pulse train slowing from ~27 Hz
-//                        through the nose's bands, a breath's noise under it, a second and more
-//   horse-breath-1/-3    a gallop's breath: one short hard exhale ("huh"), the effort's low grunt under it - a galloping
-//                        horse breathes once a stride, so these come in its rhythm (systems/horse/horseVoice.js)
-//   horse-spook          the alarm: a sharp snort and a harder one on its heels, higher and quicker in the flutter
-//   horse-soft-slow/-fast  hooves on grass and earth: a dull thump (no ring - the ground takes it), the turf's swish and
-//                        a clod or two - on DAGGER.SND's own rhythm: the slow clop's four falls in 1.508 s, the fast
-//                        clop's ten in 2.606 s, each fall at the accent the classic clip gives it (measured off the
-//                        player's own DAGGER.SND, records 97 and 298), so the gait's cadence is the game's
-//   horse-snow-slow/-fast  hooves in snow: the crunch (a dense crackle of grains packing, 1.2-3.5 kHz) over a muffled thump
-//   horse-water-slow/-fast hooves in shallow water: a splash and its drops falling back, a low plop under it
-//
-//     node tools/horseSfx.mjs            # writes public/sfx/horse-*.wav
-//     node tools/horseSfx.mjs --measure  # and prints each clip's loudest 50 ms against its target
-//
-// LEVELS: each clip is baked to a loudness target (its loudest 50 ms in dBFS, at the bake's own rate) set against
-// DAGGER.SND's clips the runtime plays beside it - HorseClop -18.3, HorseClop2 -11.0, AnimalHorse -8.6, measured off
-// the archive - so a hoof on grass is a shade under the clop on a road, and a snort well under the neigh. A first mix,
-// set on numbers; not one of these has been heard by ear.
-//
-// DETERMINISTIC: every noise is a seeded PRNG (each clip its own seed), so re-running writes the same bytes - the rule
-// public/README.md sets for anything of ours that ships. Provenance: public/sfx/SOURCES.md; the doctrine allow-list
-// (test/tooling/doctrine.test.js) carries a row for each.
+// Synthesizes the horse sound clips and bakes them to DAGGER.SND's 11025 Hz unsigned 8-bit mono at set loudness.
+// Run: node tools/horseSfx.mjs [--measure]; it writes public/sfx/horse-*.wav.
+// Every noise is a seeded PRNG so a rerun writes the same bytes; public/sfx/SOURCES.md records provenance.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -41,10 +10,6 @@ import { isMain } from './lib/isMain.mjs';
 
 const OUT = 'public/sfx';
 
-// ---- the pieces -------------------------------------------------------
-
-/** A breath out through the nose: noise through the nose's bands, fluttering at `flutter` Hz (its depth `depth`), on an
- *  attack of `inMs` and a hold of `hold` s before it dies on `tau`. */
 function nasal(rand, len, { body = 300, hiss = 1600, top = 2600, hissGain = 0.55, topGain = 0.2, flutter = 32, depth = 0.45, inMs = 12, hold = 0.12, tau = 0.08 } = {}) {
   const n = seconds(len);
   const out = new Float32Array(n);
@@ -53,7 +18,7 @@ function nasal(rand, len, { body = 300, hiss = 1600, top = 2600, hissGain = 0.55
     const y = unit(biquad(src, { type: 'bandpass', f0, q }));
     for (let i = 0; i < n; i++) out[i] += y[i] * g;
   }
-  const wob = rough(n, rand, flutter * 0.25);   // the flutter's rate wanders a little
+  const wob = rough(n, rand, flutter * 0.25);
   let ph = rand() * Math.PI * 2;
   const holdN = seconds(hold);
   for (let i = 0; i < n; i++) {
@@ -64,7 +29,6 @@ function nasal(rand, len, { body = 300, hiss = 1600, top = 2600, hissGain = 0.55
   return unit(out);
 }
 
-/** One hoof on soft ground: a dull thump the earth takes (no ring), the turf's swish, a clod or two. */
 function softFall(rand) {
   const out = buf(0.2);
   mix(out, unit(knock(0.16, 150 + 20 * rand(), 62, 0.008, 0.03, 0.8)), 0, 1);
@@ -76,7 +40,6 @@ function softFall(rand) {
   return out;
 }
 
-/** One hoof in snow: the crunch of grains packing over a muffled thump. */
 function snowFall(rand) {
   const out = buf(0.22);
   mix(out, unit(knock(0.14, 115 + 15 * rand(), 55, 0.01, 0.028, 1.2)), 0, 0.75);
@@ -87,7 +50,6 @@ function snowFall(rand) {
   return out;
 }
 
-/** One hoof in shallow water: a splash and its drops, a low plop under it. */
 function waterFall(rand) {
   const out = buf(0.42);
   mix(out, splash(rand, { len: 0.4, from: 3400, to: 450, tau: 0.045, body: 0.6, drops: 5, dropsTo: 0.34 }), 0, 1);
@@ -95,10 +57,6 @@ function waterFall(rand) {
   return out;
 }
 
-/** DAGGER.SND's own cadences (measured off the player's archive, the loudest 10 ms of each fall, as a share of the clip's
- *  loudest): HorseClop (97), 1.508 s, and HorseClop2 (298), 2.606 s - [at s, accent]. HorseClop2 has a second hoof
- *  40-60 ms after seven of its main falls (0.09, 0.34, 0.61, 1.12, 1.37, 1.64, 1.91 s, at 0.20-0.38 of its peak); the
- *  cadence keeps three of them (0.09, 1.12, 1.37), the main falls carrying the beat (AUDIT SOUNDSCAPE H7). */
 export const HOOF_CADENCE = Object.freeze({
   slow: Object.freeze({ len: 1.508, falls: Object.freeze([[0.37, 0.22], [0.65, 0.45], [1.09, 1], [1.39, 0.68]]) }),
   fast: Object.freeze({
@@ -107,7 +65,6 @@ export const HOOF_CADENCE = Object.freeze({
   }),
 });
 
-/** A gait's loop on a ground: each fall of the cadence a hoof of its own (a fresh seed's - no two alike), at its accent. */
 function hooves(seed, fall, gait) {
   return () => {
     const rand = rng(seed);
@@ -118,21 +75,18 @@ function hooves(seed, fall, gait) {
       const room = seconds(len) - seconds(at);
       mix(out, hoof.length > room ? hoof.subarray(0, room) : hoof, at, accent * (0.9 + 0.1 * rand()));
     }
-    // the clip's last 8 ms fade to nothing: the loop is re-armed from its start, and a fall still ringing at the cut clicks
+    // The loop restarts from its first sample, so the last 8 ms fade out to avoid a click.
     const fade = seconds(0.008);
     for (let i = 0; i < fade; i++) out[out.length - 1 - i] *= i / fade;
     return softClip(out, 1.2);
   };
 }
 
-// ---- the voices -------------------------------------------------------
-
 function snort(seed, { body = 300, hiss = 1600, flutter = 32, len = 0.45 } = {}) {
   return () => {
     const rand = rng(seed);
     const out = buf(len + 0.05);
     mix(out, nasal(rand, len, { body, hiss, flutter, depth: 0.5, inMs: 10, hold: len * 0.3, tau: len * 0.18 }), 0, 1);
-    // the huff the snort starts with: a short lower breath in front of it
     mix(out, nasal(rand, 0.09, { body: body * 0.8, hiss: hiss * 0.8, flutter: 0, depth: 0, inMs: 4, hold: 0.01, tau: 0.02, hissGain: 0.3 }), 0, 0.4);
     return softClip(out, 1.5);
   };
@@ -159,7 +113,7 @@ function breath(seed, { band = 520, hiss = 1500, len = 0.24 } = {}) {
     const rand = rng(seed);
     const out = buf(len + 0.04);
     mix(out, nasal(rand, len, { body: band, hiss, flutter: 18, depth: 0.25, inMs: 8, hold: len * 0.2, tau: len * 0.25, hissGain: 0.6, topGain: 0.1 }), 0, 1);
-    mix(out, unit(knock(0.14, 125, 88, 0.03, 0.04, 6)), 0.004, 0.3);   // the effort under it
+    mix(out, unit(knock(0.14, 125, 88, 0.03, 0.04, 6)), 0.004, 0.3);
     return softClip(out, 1.3);
   };
 }
@@ -172,9 +126,6 @@ function spook() {
   return softClip(out, 1.7);
 }
 
-// ---- write ----------------------------------------------------------
-
-/** [name, make, loudness target (dBFS, the loudest 50 ms at the bake's rate)]. */
 export const CLIPS = [
   ['horse-snort-1', snort(0x5a0e01), -12],
   ['horse-snort-2', snort(0x5a0e02, { body: 270, hiss: 1450, flutter: 29, len: 0.5 }), -12],
@@ -193,7 +144,6 @@ export const CLIPS = [
   ['horse-water-fast', hooves(0xa7e702, waterFall, 'fast'), -11],
 ];
 
-/** The loudest 50 ms of a baked clip (unsigned 8-bit at DF_RATE), dBFS - the measure every level here is set on. */
 export function loudest50(pcm) {
   const w = Math.round(DF_RATE * 0.05), hop = Math.round(w / 5);
   let best = 0;
@@ -205,8 +155,7 @@ export function loudest50(pcm) {
   return best > 0 ? 20 * Math.log10(best) : -Infinity;
 }
 
-/** Bake `mono` to its loudness target: the peak walked toward the target (never past 0.97 - the 8-bit rail), the
- *  trim off (a hoof loop's silence before its first fall IS its cadence). */
+// The trim stays off: a hoof loop's silence before its first fall is part of its cadence.
 export function bakeTo(mono, target) {
   let peak = 0.89;
   let pcm = bake(mono, RATE, { peak, trim: false });

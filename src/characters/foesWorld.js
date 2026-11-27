@@ -74,7 +74,6 @@ export function createFoesWorld(shared) {
 
   const onTheRoad = () => !playerEntity.isResting && (!!(shared.travelOptions?.isTravelActive && shared.travelOptions.state?.autopilot) || !!shared.travelView?.active);
 
-  // Indoors the street list is stale (rebuilt only in the exterior frame), so the pool is empty.
   const _guardPool = () => ((shared.modes?.mode ?? 'exterior') !== 'exterior' ? [] : _livePersons.map(({ person, pos }) => ({
     pos, fwdYaw: person.facingYaw, guard: person.guard, person,
     live: ((living) => () => _streetHolds(person, living))(person.living),
@@ -137,10 +136,8 @@ export function createFoesWorld(shared) {
     const host = enchantFoeHost(f, shared.modes?.dungeonCtx ?? null, _insidePool);
     if (host === 'dungeon') { shared.modes?.dungeonCtx.replaceFoe?.(targetEntity, mobileType); return; }
     if (host === 'inside') { Promise.resolve(shared.modes?.insideReplaceFoe?.(f, mobileType, feet)).then(stamp).catch(() => {}); return; }
-    // Remove through the pool that holds the record: each pool tears down its own.
     if (cityGuards.guards.includes(f)) cityGuards.removeGuard(f);
     else exteriorFoes.removeFoe(f);
-    // A replacement: removing a guard frees no encounter slot, so the cap must not refuse it.
     exteriorFoes.spawnFoe(mobileType, feet, { replacing: true, ...siteFoeSpawn(f) }).then((nf) => { stamp(nf); carrySiteFoe(f, nf); }).catch(() => {});
   };
   const _standEncounterFoe = (hit, feet) => {
@@ -437,7 +434,6 @@ export function createFoesWorld(shared) {
     }, mobileType, opts);
   };
   const exteriorFoePool = () => [...cityGuards.guards, ...exteriorFoes.foes];
-  // spawnFoe places after its awaits, so count the spots of spawns still in flight.
   const _placingPool = () => [...exteriorFoePool(), ...exteriorFoes.pendingFeet().map((feet) => ({ feet }))];
 
   const _foeSenses = () => sensesContext(playerEntity, playerTicker.ownMinutes, {

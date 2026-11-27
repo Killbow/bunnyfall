@@ -1,5 +1,3 @@
-// A socket's frame entry, the window's metrics point, and the hello's name: the signed token
-// checked against the configured identity key, loaded once.
 import { staffNetFrame } from '../staffFeeds.js';
 import { RELAY_VERSION, REALM_DOOR_WORD } from '../relay.js';
 import { cellLevelOf } from '../cellNodes.js';

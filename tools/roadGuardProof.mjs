@@ -1,17 +1,7 @@
 #!/usr/bin/env node
-// FAST-SUITE (2026-10-04): THE ROAD PAINTER'S SKIP GUARD, PROVEN - world/road/roadPainter.js paintRoads passes by every tile
-// no painter can reach (off the centre cross, the two diagonals and the location rect). This runs the painter as it is
-// against the painter as it stood BEFORE the guard - taken from git, `--ref` (default the guard's parent commit) - over
-// every road, track, river and stream pixel of the shipped map (vendor/roads-hazelnut), water on and off, a location
-// rect and a few location tiles on some, the GRASS-PATH1 paths mask on all; then a synthetic sweep of every road mask
-// with random tracks, rivers, streams, corners and rects. Tilemap bytes, the paths mask and the count must agree,
-// case for case. AUDIT FAST-SUITE: the record's "103,487 cases" could be checked by nobody until this was committed.
-//
-//   node tools/roadGuardProof.mjs                 # the whole proof (a few minutes)
-//   node tools/roadGuardProof.mjs --every 25      # every 25th pixel of the map (a quick look)
-//   node tools/roadGuardProof.mjs --ref <commit>  # against the painter of another commit
-//
-// Not a test: it needs the repository's history, which a shallow checkout has not. Exits 1 on any difference.
+// Compares the road painter with its skip guard against the painter before the guard over the shipped map and a
+// random sweep. Not a test: it needs git history. Run: node tools/roadGuardProof.mjs [--every 25] [--ref <commit>]
+
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -20,9 +10,8 @@ import { execFileSync } from 'node:child_process';
 import { isMain } from './lib/isMain.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-export const GUARD_PARENT = 'ae33fe8e7';   // the commit the guard (a06279295) was made on
+export const GUARD_PARENT = 'ae33fe8e7';
 
-/** The painter as it stood at `ref`, its relative imports pointed back into this tree; answers its module. */
 async function painterAt(ref) {
   const text = execFileSync('git', ['show', `${ref}:src/world/roadPainter.js`], { cwd: ROOT, encoding: 'utf8' })
     .replace(/from '\.\/([^']+)'/g, (_, p) => `from '${pathToFileURL(join(ROOT, 'src/world', p)).href}'`)

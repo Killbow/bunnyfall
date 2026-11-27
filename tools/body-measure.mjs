@@ -1,16 +1,6 @@
-// FULL-BODY measurement of the classic paperdoll body (C6k resculpt
-// foundation). Every dimension the voxel model needs, pose-corrected:
-//   - torso width per row about the DRIFTING centreline (contrapposto
-//     lean tracked row to row); where an arm merges into the torso,
-//     subtract the arm's thickness measured from the SPLIT side at
-//     that row (both merged -> subtract both nearest arm widths)
-//   - head rows + width + centre, neck pinch row + width
-//   - shoulder row (max span) + deltoid extent
-//   - arm thickness per split row, wrist row
-//   - leg thickness per row, knee = width minimum mid-leg, ankle, foot
-// Output: rig-unit measurement JSON (unit = 1.922 / body rows) - the
-// input to SPEC v2 (full body incl. head/arms) upstream.
-// Usage: ARENA2_PATH=... node tools/body-measure.mjs [race] [gender]
+// Measures the classic paperdoll body sprite row by row into rig-unit JSON for the voxel model.
+// Run: ARENA2_PATH=... node tools/body-measure.mjs [race] [gender].
+
 import { readFileSync } from 'node:fs';
 import { ImgFile } from '../src/formats/imgFile.js';
 import { DFPalette } from '../src/formats/dfPalette.js';
@@ -51,12 +41,6 @@ const RIG_H = 1.922;
 const u = RIG_H / (feet - top + 1);
 const yRig = (row) => +((feet - row + 0.5) * u).toFixed(4);
 
-// Crotch = the TORSO SPLIT: first row where two similar-width runs
-// (|wA-wB| <= 8) overlap the previous torso span with the previous
-// torso centre strictly between their centres. Arm separations fail
-// the symmetry test (torso vs arm widths differ wildly); the tracked
-// centreline can sit a pixel onto the weight leg at the split, so the
-// between-centres test replaces any exact gap-straddle.
 let torsoRun0 = rows[top][0];
 let crotch = -1;
 for (let y = top + 1; y <= feet; y++) {
@@ -72,7 +56,6 @@ for (let y = top + 1; y <= feet; y++) {
     }
     if (crotch >= 0) break;
   }
-  // Track the torso: the inside run nearest the previous centre.
   let best = inside.length ? inside[0] : r[0], bd = Infinity;
   for (const run of (inside.length ? inside : r)) {
     const d = prevCx >= run[0] && prevCx <= run[1] ? 0 : Math.min(Math.abs(prevCx - run[0]), Math.abs(prevCx - run[1]));
@@ -81,7 +64,6 @@ for (let y = top + 1; y <= feet; y++) {
   torsoRun0 = best;
 }
 
-// Shoulder row: max span above the first arm separation.
 let armpit = crotch;
 for (let y = top; y < crotch; y++) if (rows[y].length >= 2) { armpit = y; break; }
 let shoulder = top, shoulderSpan = 0;
@@ -90,9 +72,6 @@ for (let y = top; y <= armpit; y++) {
   const span = rows[y][rows[y].length - 1][1] - rows[y][0][0] + 1;
   if (span > shoulderSpan) { shoulderSpan = span; shoulder = y; }
 }
-// Head: the crown rows before the silhouette widens into hair/
-// shoulders (this sprite has NO separable neck pinch - hair merges it;
-// measured as headBottom = first row wider than 1.5x the crown).
 const crownW = width(rows[top][0]);
 let headBottom = top;
 for (let y = top; y <= shoulder; y++) {
@@ -106,14 +85,8 @@ for (let y = top; y <= headBottom; y++) {
   headCx += mid(rows[y][0]); headN++;
 }
 headCx /= Math.max(1, headN);
-const neckSeparable = false; // hair-merged on BODY00 - recorded, not invented
+const neckSeparable = false;
 
-// ONE PARTITION: each row armpit..crotch-1 splits into
-// [left arm][torso][right arm] at EXACT shared edges - split rows give
-// the edge from the runs themselves; merged rows interpolate the torso
-// edge from that side's split-row samples. torsoProfile and armRows
-// both emit from this partition, so the lofts TILE with no seam and
-// no overlap (adjacent pixel intervals share the boundary).
 let cx = mid(rows[shoulder].length ? rows[shoulder][rows[shoulder].length > 1 ? 1 : 0] : rows[shoulder][0]);
 const midX = (W - 1) / 2;
 const edgeSamples = { left: [], right: [] };
@@ -143,12 +116,6 @@ const edgeAt = (samples, y) => {
   if (hi.y === lo.y) return lo.x;
   return lo.x + (hi.x - lo.x) * (y - lo.y) / (hi.y - lo.y);
 };
-// The drawn CROTCH LINE: the artist divides the thighs inside the
-// merged pelvis rows. Walk up from the first 2-run row's gap centre
-// while the dark line holds contrast (<= 0.92 of local median, one
-// gap row tolerated, re-admitted if the line resumes). Band rows
-// leave the trunk and join the LEGS as two thigh-top intervals split
-// at the seam - the union tiles, the 1:1 pin is safe by construction.
 const crotchBand = new Map();
 {
   const lum = (i) => { const c = pal.get(i); return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b; };
@@ -179,7 +146,7 @@ const crotchBand = new Map();
     }
   }
 }
-const crotchLegs = { weight: [], free: [] }; // image-left = weight leg
+const crotchLegs = { weight: [], free: [] };
 const torso = [];
 const armRows = { left: [], right: [] };
 let mergedCounts = [0, 0, 0];
@@ -192,7 +159,7 @@ for (const part of rowParts) {
   else { const e = edgeAt(edgeSamples.right, y); re = e == null ? t[1] : Math.round(e); merged++; }
   mergedCounts[merged]++;
   part.trunkInt = [le, re];
-  if (crotchBand.has(y)) { // the trunk ends where the drawn thighs begin - these rows join the LEGS; arms on the same rows emit normally below
+  if (crotchBand.has(y)) {
     const sc = crotchBand.get(y);
     crotchLegs.weight.push({ y: yRig(y), cx: +((((le + sc) / 2) - headCx) * u).toFixed(4), rx: +(((sc - le + 1) / 2) * u).toFixed(4) });
     crotchLegs.free.push({ y: yRig(y), cx: +((((sc + 1 + re) / 2) - headCx) * u).toFixed(4), rx: +(((re - sc) / 2) * u).toFixed(4) });
@@ -202,12 +169,6 @@ for (const part of rowParts) {
     centerRig: +((((le + re) / 2) - headCx) * u).toFixed(4),
     merged,
   });
-  // Arms tile against the torso edges: split rows use the arm run's
-  // own outer edge; merged rows run from the combined run's outer edge
-  // to the shared torso edge.
-  // SPLIT rows: the arm run's OWN edges (the gap between arm and
-  // torso is real there). MERGED rows: outer edge .. shared torso
-  // edge (tiles the torso, no gap exists).
   const sides = [
     arm.left ? ['left', arm.left[0], arm.left[1]] : ['left', t[0], le - 1],
     arm.right ? ['right', arm.right[0], arm.right[1]] : ['right', re + 1, t[1]],
@@ -224,9 +185,6 @@ for (const part of rowParts) {
   }
 }
 
-// Legs: crotch down to the ANKLE (run width collapse < 5px or the
-// two-run structure ending) - foot rows are excluded from thigh/knee/
-// calf measurement.
 const legs = { weight: [], free: [] };
 {
   const first = [...rows[crotch]].sort((a, b) => width(b) - width(a)).slice(0, 2).sort((a, b) => a[0] - b[0]);
@@ -248,12 +206,7 @@ const legs = { weight: [], free: [] };
     if (!alive) break;
   }
 }
-// Full series snapshot for the ROW TRACE (the trace runs to the real
-// bottom of the leg pixels; only the knee/calf STATS want the ankle
-// truncation - the foot flare is real geometry the trace must carry).
 const fullLegs = { weight: legs.weight.slice(), free: legs.free.slice() };
-// The foot flares gradually - the ANKLE is the last width minimum in
-// the bottom 40%; truncate both series there.
 const truncAtAnkle = (leg) => {
   if (leg.length < 10) return leg;
   let ai = leg.length - 1;
@@ -273,10 +226,6 @@ const kneeOf = (leg) => {
 };
 const kneeW = kneeOf(legs.weight), kneeF = kneeOf(legs.free);
 const thighW = Math.max(...legs.weight.slice(0, Math.ceil(legs.weight.length / 3)).map((l) => l.w));
-// Leg ROW TRACE: per-row centre + half-width for each leg, crotch to
-// ankle, in rig units about the head centreline - the paperdoll legs
-// build as lofts through these (geometry + stance in one; the trace
-// IS the pose).
 const legRows = {};
 for (const [name, leg] of [['weight', fullLegs.weight], ['free', fullLegs.free]]) {
   legRows[name] = crotchLegs[name].concat(leg.map((r) => ({
@@ -291,12 +240,9 @@ const hipXpx = legs.weight.length > 2 && legs.free.length > 2
 const kneeIdx = kneeW ? legs.weight.findIndex((l) => l.y === kneeW.y) : Math.floor(legs.weight.length / 2);
 const calfW = Math.max(...legs.weight.slice(kneeIdx).map((l) => l.w));
 
-// Wrist: the last split-arm row.
 const splitRows = rowParts.filter((p) => p.arm.left || p.arm.right).map((p) => p.y);
 const wristRow = splitRows.length ? Math.max(...splitRows) : armpit;
 
-// Arm BARS from the partition's split rows (median width + top/bottom
-// centres per side) - the arm-skeleton generator's input.
 const barStats = (name) => {
   const b = rowParts.filter((p) => p.arm[name]).map((p) => ({ y: p.y, cx: mid(p.arm[name]), w: width(p.arm[name]) }));
   if (b.length < 4) return null;
@@ -312,15 +258,11 @@ const barStats = (name) => {
 };
 const armBars = { left: barStats('left'), right: barStats('right') };
 
-// Hand tails: the fist can run past wristRow (its last row sits at
-// the crotch). Extend each arm through runs contiguous with its last
-// interval until none overlap.
 for (const name of ['left', 'right']) {
   const list = armRows[name];
   if (!list.length) continue;
   let last = rowParts[rowParts.length - 1];
   let prev = null;
-  // recover the last emitted pixel interval for this side
   for (let y = wristRow + 1; y <= feet; y++) {
     const lastRow = list[list.length - 1];
     const lc = (lastRow.cx / u) + headCx, lr = lastRow.rx / u;
@@ -338,20 +280,6 @@ for (const name of ['left', 'right']) {
   }
 }
 
-// TUCKED-HAND OVERLAY (additive only - the proven torso/arm emission
-// above is untouched). Walk the interior seam down from the right
-// arm's last split row across the merged band: per row, the min-
-// luminance column near the previous seam (stay-put prior +18/px,
-// +-5 clamp to the split-band exit edge). Emit [seam..runOuter] rows;
-// a subset of the sprite run cannot change the silhouette union.
-// RIGHT FOREARM + HAND: the reference draws it as the BRIGHT skin
-// cluster (the raised form catches light: ramp indices 69-71 against
-// the hip's darker 73-78, with idx-35 highlights on the thumb),
-// descending from the elbow and resting on the hip. Track the
-// contiguous bright run per row: seed = the last split row's arm run;
-// window = previous interval +-2; bright = luminance >= local median
-// + 8; min width 2; one gap row tolerated. The cluster's own end IS
-// the hand's drawn bottom.
 const armOverlay = [];
 const overlayCols = new Map();
 {
@@ -365,16 +293,12 @@ const overlayCols = new Map();
       const { y, t, arm } = rowParts[i];
       if (arm.right) break;
       const w0 = Math.max(t[0] + 1, lo - 2), w1 = Math.min(t[1], hi + 2);
-      // Brightness reference = the FLANKING hip skin (outside the
-      // tracked window), not the window itself - a window centred on
-      // the hand is mostly hand and its own median starves the test.
       const flank = [];
       for (let x = t[0] + 1; x < w0; x++) if (data[y * W + x]) flank.push(lum(data[y * W + x]));
       for (let x = w1 + 1; x < t[1]; x++) if (data[y * W + x]) flank.push(lum(data[y * W + x]));
       if (!flank.length) for (let x = t[0] + 1; x < t[1]; x++) if (data[y * W + x]) flank.push(lum(data[y * W + x]));
       if (!flank.length) break;
       const med = flank.sort((p, q) => p - q)[(flank.length / 2) | 0];
-      // longest contiguous bright run in the window
       let bLo = -1, bHi = -1, cLo = -1;
       for (let x = w0; x <= w1 + 1; x++) {
         const bright = x <= w1 && data[y * W + x] && lum(data[y * W + x]) >= med + 8;
@@ -400,13 +324,6 @@ const overlayCols = new Map();
   }
 }
 
-// TORSO/GROIN RELIEF: on the lit sprite, INTERIOR bright islands are
-// raised form (pec tops, abs, navel highlights). The light comes from
-// the upper right, so flank columns carry rim light - only runs whose
-// BOTH ends sit >= 2px inside the trunk interval qualify (rim light
-// self-excludes); the hand's traced columns are excluded explicitly.
-// Each island becomes a thin additive plate: lift ~ brightness over
-// the row median. A subset of the run - the silhouette is untouched.
 const torsoRelief = [];
 const rawIslands = [];
 {
@@ -439,15 +356,8 @@ const rawIslands = [];
   }
 }
 
-// UPPER-TORSO RELIEF: the shoulder/trap/collar band (headBottom ..
-// armpit-1) rides the hairRows loft with no interior form - same
-// interior-island rule over the single run's own edges; the head rows
-// stay out (face highlights are not plates).
 {
   const lum = (i) => { const c = pal.get(i); return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b; };
-  // The FACE box (measured: crown width about the head centreline,
-  // the head's own row span) is excluded - headPieces owns the face;
-  // hair-strand and trap highlights outside it emit normally.
   const faceRowMax = top + Math.round(0.24 / u);
   const faceL = headCx - (headW / 2 + 1), faceR = headCx + (headW / 2 + 1);
   for (let y = headBottom; y < armpit; y++) {
@@ -476,15 +386,10 @@ const rawIslands = [];
   }
 }
 
-// STRANDS: chain islands across rows by pixel-interval overlap - the
-// drawn forms (a pec, a strand of hair) are vertical shapes, not
-// per-row speckle. Within a strand the loft bridges continuously and
-// the lift takes a 3-row average; single-row strands are dropped
-// (denoise). Strand starts carry brk.
 {
   rawIslands.sort((a, b) => a.row - b.row);
   const strands = [];
-  const open = []; // { rows: [...], lastRow, lo, hi }
+  const open = [];
   for (const isl of rawIslands) {
     let best = null, bo = 0;
     for (const st of open) {
@@ -502,7 +407,7 @@ const rawIslands = [];
     }
   }
   for (const st of strands) {
-    if (st.rows.length < 2) continue; // speckle
+    if (st.rows.length < 2) continue;
     const L = st.rows.map((r) => r.lift);
     for (let i = 0; i < st.rows.length; i++) {
       const isl = st.rows[i];
@@ -518,13 +423,6 @@ const rawIslands = [];
   }
 }
 
-// AUDIT 68 X5-dead-tools-housekeeping: the BACK RELIEF arm is gone. It read
-// src/characters/paint/body-back.png, which left the tree with the paint
-// pipeline, inside a catch that emptied it - so every run emitted an empty
-// backRelief and said nothing (C6z had already emptied it on purpose).
-
-// Head/hair/shoulder mass: rows above the armpit are SINGLE-RUN -
-// the silhouette there is exact (hair + traps + deltoids fused).
 const hairRows = [];
 for (let y = top; y < armpit; y++) {
   if (rows[y].length !== 1) continue;

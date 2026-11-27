@@ -1,39 +1,8 @@
 #!/usr/bin/env node
-// HAZE1 / WINDFALL1 / SNOWFALL1 / ALIKR1 (2026-10-08, Mac: "We have permission to use and implement everything into
-// the codebase. These should be on by default and integrate into our enhanced environments seamlessly.") - THE FOUR
-// ENVIRONMENT MODS, OUT OF THE ARCHIVES MAC HANDED OVER.
-//
-//   node tools/environmentModsExtract.mjs \
-//     --heat     "<path-to>/heat-haze.dfmod" \
-//     --windfall "<path-to>/windfall.dfmod" --windfall-readme "<path-to>/README-Windfall-Console-Commands.txt" \
-//     --snowfall "<path-to>/snowfall.dfmod" \
-//     --sands    "<path-to>/Sands of the Alik'r/Textures" \
-//     [--write]
-//
-// Without --write the committed tree is checked against what the archives make, file by file (sha256); with it, the
-// files are written. The output is a function of the four archives alone - nothing of the player's ARENA2 is read.
-//
-// What is written, and from where:
-//   vendor/heat-haze/      heat-haze.dfmod.json, modsettings.json (the bundle's TextAssets, verbatim), HeatHaze.dll
-//                          (byte for byte)
-//   vendor/windfall/       windfall.dfmod.json, modsettings.json, Windfall.dll, README-Windfall-Console-Commands.txt
-//                          (the zip's own note, verbatim); Textures/{spring_summer_leaves,fall_leaves,snowflake}.png -
-//                          the bundle's three Texture2D objects (RGBA32, one mip: the PNG is the texture exactly);
-//                          Sound/<clip>.ogg - the 27 AudioClips, each the bundle's FSB5 Vorbis packets remuxed into
-//                          Ogg untouched (tools/lib/fsb5Vorbis.mjs, CSA-A's door) with the setup header
-//                          vendor/vorbis-fsb-setups/ names by CRC32 - and Sound/sounds.json; windfall.files.json, the
-//                          listing test/tooling/doctrine.test.js holds Textures/ to
-//   vendor/snowfall/       snowfall.dfmod.json (the bundle's `dynamic-snow.dfmod`), modsettings.json,
-//                          DynamicSnow.dll, BasicRoadsNotice.md (the bundle's own notice, verbatim); snowfall.files.json
-//                          (the listing of public/art/snowfall/) and snowfall.index.json (the texture door's index)
-//   public/art/snowfall/   <archive>_<record>-0.png - the 168 winter records (TEXTURE.103, .303, .403; RGB24 with a mip
-//                          chain: mip 0 is what is written, losslessly) - snow_albedo.png, and the three surface-mask
-//                          TextAssets as snow_surface_masks_<archive>.bytes (56 records x 64 x 64 coverage bytes each)
-//   vendor/sands-of-the-alikr/  sands-of-the-alikr.files.json and sands-of-the-alikr.index.json
-//   public/art/sands-of-the-alikr/  the 47 loose PNGs, byte for byte
-//
-// The IL dumps (vendor/<mod>/il/, tools/ilDump.py) and the shaders read back as GLSL (vendor/<mod>/shaders/,
-// tools/dxbcGlsl.py) are the two Python tools' - each README gives its line.
+// Extracts the Heat Haze, Windfall, Snowfall, and Sands of the Alik'r files into vendor/ and public/art/.
+// Run: node tools/environmentModsExtract.mjs --heat <dfmod> --windfall <dfmod> --windfall-readme <txt>
+//   --snowfall <dfmod> --sands <Textures dir> [--write]
+// Without --write it checks the committed files against the archives by sha256.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
@@ -50,22 +19,18 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLASS_AUDIO_CLIP = 83;
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 const sorted = (a) => [...a].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
-/** A record's name in DFU's loose-texture form sorts by archive, then record, as a number. */
 const byRecord = (a, b) => {
   const pa = /^(\d+)_(\d+)-(\d+)/.exec(a), pb = /^(\d+)_(\d+)-(\d+)/.exec(b);
   if (!pa || !pb) return a < b ? -1 : a > b ? 1 : 0;
   return (Number(pa[1]) - Number(pb[1])) || (Number(pa[2]) - Number(pb[2])) || (Number(pa[3]) - Number(pb[3]));
 };
 
-/** Where the Nexus pages are - the archives' own names carry the mod ids (`Heat_Haze_1397_1.0.1_...`). */
 export const SOURCES = Object.freeze({
   'heat-haze': 'https://www.nexusmods.com/daggerfallunity/mods/1397',
   windfall: 'https://www.nexusmods.com/daggerfallunity/mods/1396',
   snowfall: 'https://www.nexusmods.com/daggerfallunity/mods/1401',
   'sands-of-the-alikr': 'https://www.nexusmods.com/daggerfallunity/mods/1390',
 });
-/** The 27 clips Windfall's WindMod.CreateEnvironmentalEffects loads, in the three pools it hands
- *  WindEnvironmentEffects.Initialize - gusts, the long windy/storm passages, the foliage ruffles. */
 export const WINDFALL_CLIPS = Object.freeze({
   gust: Object.freeze(Array.from({ length: 12 }, (_, i) => `wind_gust_${String(i + 1).padStart(2, '0')}`)),
   ambient: Object.freeze([
@@ -76,12 +41,9 @@ export const WINDFALL_CLIPS = Object.freeze({
   ruffle: Object.freeze(Array.from({ length: 6 }, (_, i) => `leaf_ruffle_${String(i + 1).padStart(2, '0')}`)),
 });
 export const WINDFALL_TEXTURES = Object.freeze(['spring_summer_leaves', 'fall_leaves', 'snowflake']);
-/** Snowfall's winter archives (SnowCoverageData.Archives) and the surface-mask asset each pairs with. */
 export const SNOWFALL_ARCHIVES = Object.freeze([103, 303, 403]);
-/** SnowCoverageData: 56 records of 64 x 64 coverage bytes - DynamicSnowMod.SurfaceMaskByteCount. */
 export const SNOW_MASK_BYTES = 229376;
 
-/** The bundle's main serialized file, its objects read, and its resource streams. */
 export function openBundle(bytes) {
   const fs = readUnityFs(bytes);
   const main = fs.files.find((f) => !/\.res(S|ource)$/.test(f.path));
@@ -96,7 +58,6 @@ export function openBundle(bytes) {
   return { objects, resource };
 }
 
-/** The bundle's TextAssets by name, as bytes. */
 function textAssets(b) {
   const out = new Map();
   for (const o of b.objects) {
@@ -106,7 +67,6 @@ function textAssets(b) {
   }
   return out;
 }
-/** The bundle's Texture2D objects by name, decoded top row first. */
 function textures(b) {
   const out = new Map();
   for (const o of b.objects) {
@@ -120,16 +80,14 @@ const need = (map, name, what) => {
   if (!map.has(name)) throw new Error(`${what} carries no ${name}`);
   return map.get(name);
 };
-/** A manifest TextAsset is the `<name>.dfmod` one - the JSON with a ModTitle. */
 function manifestOf(assets, what) {
   for (const [name, bytes] of assets) {
     if (!/\.dfmod$/i.test(name)) continue;
-    try { const j = JSON.parse(new TextDecoder().decode(bytes)); if (j?.ModTitle) return { name, bytes, json: j }; } catch { /* not this one */ }
+    try { const j = JSON.parse(new TextDecoder().decode(bytes)); if (j?.ModTitle) return { name, bytes, json: j }; } catch { }
   }
   throw new Error(`${what} carries no manifest`);
 }
 
-/** The Vorbis setup headers vendor/vorbis-fsb-setups/ carries, by CRC32 - each checked against its own name. */
 function setupHeaders() {
   const setups = new Map();
   const dir = join(ROOT, 'vendor/vorbis-fsb-setups');
@@ -144,7 +102,6 @@ function setupHeaders() {
 
 const json = (v) => Buffer.from(`${JSON.stringify(v, null, 2)}\n`);
 
-/** Heat Haze: the manifest, the settings and the assembly. */
 export function heatHazeFiles(bytes) {
   const b = openBundle(bytes);
   const assets = textAssets(b);
@@ -156,7 +113,6 @@ export function heatHazeFiles(bytes) {
   return { out, report: [`heat-haze: ${m.json.ModTitle} ${m.json.ModVersion}`] };
 }
 
-/** Windfall: the manifest, the settings, the assembly, the console note, its three pictures and 27 clips. */
 export function windfallFiles(bytes, readmeBytes) {
   const b = openBundle(bytes);
   const assets = textAssets(b);
@@ -204,7 +160,6 @@ export function windfallFiles(bytes, readmeBytes) {
   return { out, report };
 }
 
-/** Snowfall: the manifest, the settings, the assembly, the Basic Roads notice, and its art under public/art/snowfall/. */
 export function snowfallFiles(bytes) {
   const b = openBundle(bytes);
   const assets = textAssets(b);
@@ -251,10 +206,8 @@ export function snowfallFiles(bytes) {
       key: dfmodStoreKey('snowfall.dfmod'), dir: '.',
       index: {
         v: DFMOD_INDEX_VERSION, title: m.json.ModTitle, version: m.json.ModVersion, author: m.json.ModAuthor, guid: m.json.GUID,
-        // SNOWFALL1: the port orders the shipped winter records after Vanilla Enhanced's Base (an optional dependency, which
-        // orders when the Base is attached and is dropped when it is not - dfmodLoadOrder), as a player orders Snowfall
-        // in DFU's mod window for its packaged winter archives to decide over the Base's arrays. The shipped manifest
-        // names none (`"Dependencies": []`) - bible/03-World/Snowfall.md, the departures.
+        // The shipped manifest names no dependencies; the optional Base dependency orders Snowfall's winter records
+        // after it, as a player orders them in DFU's mod window.
         deps: [...manifestDeps(m.json), ['vanilla enhanced - base', true, false]],
         textures: records, arrays: [], xml: {},
       },
@@ -263,7 +216,6 @@ export function snowfallFiles(bytes) {
   return { out, report };
 }
 
-/** Sands of the Alik'r: the loose pictures, byte for byte, and the door's index. */
 export function sandsFiles(dir) {
   const out = new Map();
   const names = sorted(readdirSync(dir).filter((n) => /\.png$/i.test(n))).sort(byRecord);
@@ -273,7 +225,6 @@ export function sandsFiles(dir) {
     if (!m) throw new Error(`Sands of the Alik'r: an unexpected file ${n}`);
     const bytes = new Uint8Array(readFileSync(join(dir, n)));
     out.set(`public/art/sands-of-the-alikr/${n}`, bytes);
-    // the PNG's own size, off its IHDR - every one is a 64 x 64 terrain record
     const v = new DataView(bytes.buffer, bytes.byteOffset);
     records.push([n.replace(/\.png$/i, ''), v.getUint32(16), v.getUint32(20)]);
   }
@@ -290,10 +241,8 @@ export function sandsFiles(dir) {
       key: dfmodStoreKey('sands of the alikr.dfmod'), dir: '.',
       index: {
         v: DFMOD_INDEX_VERSION, title: "Sands of the Alik'r", version: '2', author: null, guid: null,
-        // ALIKR1: a loose pack in DFU, shipped as the door's mod; ordered after Vanilla Enhanced's Base (optional - see
-        // snowfall.index.json) so its records keep their names on the texture door, and the desert's ground follows the
-        // pack's own rule: `looseGround` - TEXTURE.002 made of its records over Daggerfall's own, as DFU makes it from a
-        // loose folder no mod's array overrides (systems/dfmodTextures.js groundSource, ALIKR1)
+        // Ordered after the optional Base; looseGround builds TEXTURE.002 from the pack's records, as DFU does
+        // for a loose folder.
         deps: [['vanilla enhanced - base', true, false]],
         textures: records, arrays: [], xml: {}, looseGround: [2],
       },
@@ -321,7 +270,6 @@ function main() {
   ];
   const out = new Map(parts.flatMap((p) => [...p.out]));
   for (const p of parts) for (const line of p.report) console.log(line);
-  // the art directories are the tool's whole: a file there it does not make is a stranger
   const ART = ['public/art/snowfall', 'public/art/sands-of-the-alikr', 'vendor/windfall/Textures', 'vendor/windfall/Sound'];
   const have = ART.flatMap((d) => (existsSync(join(ROOT, d)) ? readdirSync(join(ROOT, d)).map((n) => `${d}/${n}`) : []));
   if (process.argv.includes('--write')) {

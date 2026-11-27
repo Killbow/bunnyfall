@@ -1,31 +1,6 @@
 #!/usr/bin/env node
-// FIELD BUGS 2026-10-15f TEMPLE-STEPS: THE SOLIDS THE PORT STANDS IN A TOWN'S BLOCK, SWEPT - against the author's own
-// models and against every exterior door's approach. The law test/world/wd3_standins.test.js holds on the player's data.
-//
-//   ARENA2_PATH=<the player's arena2> node tools/townSolidsSweep.mjs          print every finding over both packs' blocks
-//   ARENA2_PATH=<...> node tools/townSolidsSweep.mjs TEMPASF1.RMB ...         only these blocks
-//
-// Each block of both vendored town packs - each pack's own, rebuilt over the player's BLOCKS.BSA as the world-data door
-// rebuilds it and curated for that pack (world/curatedPlacements.js) - is laid out as the streaming host lays it
-// (layoutRmbBlock, the enhanced skin), every model the mesh the pipeline builds for it (tools/townQuestMarkers.mjs
-// openTownData's getModel: the stand-ins, the alias beds, the rest out of the player's ARCH3D), and its drawn hills and
-// HILL-SEAT pads as the host builds them (townStandIns.js blockHillSeat, blockHillPatch over the same meshes). Three laws:
-//
-//   HELD - no structure the port stands in for the RMB Resource Pack (RMBRP_STRUCTURES: the pieces whose stand-in is the
-//     pack's own mesh, box for box) holds a vertex of another model the author placed in the block more than TOUCH_M
-//     inside its faces. A structure drawn bigger than its prefab swallows what the author stood against it: the
-//     foundation drawn 16 m square buried TEMPASF1's and TEMPASH4's temple stairs and landings. (What the author laid
-//     into a structure himself - a landing half under its foundation, a rock against one - the pack's own meshes hold
-//     too: the test names each.)
-//   PADS - no HILL-SEAT pad stands over a vertex of any model the drawn hills and the plane leave in the open (more than
-//     HILL_PATCH_SINK over them): a pad is the port's own, and buries nothing the author left in sight.
-//   APPROACH - every exterior door's approach is clear of every solid the port generates there: the door's step and
-//     DOOR_APPROACH_M before it (HILL-HOUSE's rule), across the door, from APPROACH_FOOT_M over its foot to
-//     APPROACH_HEAD_M - no stand-in holds a point of it (deeper than TOUCH_M), and no drawn hill or pad stands over one
-//     (by more than TOUCH_M).
-//
-// A finding names the pack, the block, the piece and what it holds or stands in. Nothing of ARENA2 or the packs is
-// written; the numbers are a measurement of the player's data.
+// Checks that the stand-in structures, hill pads, and door approaches in the town packs' blocks bury nothing.
+// Usage: ARENA2_PATH=<dir> node tools/townSolidsSweep.mjs [BLOCK.RMB ...]
 import { join } from 'node:path';
 import { isMain } from './lib/isMain.mjs';
 import { openTownData, VENDORS } from './townQuestMarkers.mjs';
@@ -35,17 +10,11 @@ import { hasCustomModel } from '../src/world/customModels.js';
 import { blockFromJson } from '../src/formats/worldDataReplacement.js';
 import { curateBlockPlacements } from '../src/world/curatedPlacements.js';
 
-/** "A few centimetres": two classic units (0.05 m - the overlap the author's own models stand in: TEMPASF1's temple floor
- *  two units under its foundations' tops) and a centimetre's slack. A point no deeper than this inside a solid, or
- *  under a drawn surface, only touches it. */
+// Two classic units (5 cm) plus 1 cm of slack, since the author's own models overlap by that much.
 export const TOUCH_M = 0.06;
-/** The approach's height over the door's foot: from a hair over the step to a person's head (townQuestMarkers' WALK.head). */
 export const APPROACH_FOOT_M = 0.1;
 export const APPROACH_HEAD_M = 1.7;
-/** The approach's samples: every APPROACH_STEP_M out and across, every twice that up. */
 export const APPROACH_STEP_M = 0.25;
-/** HELD's holders: the RMB Resource Pack's structures whose stand-in is the pack's own mesh - the temple's platform and the
- *  foundation (townStandIns.js RMBRP_BLOCK_CM), the docks and their two stairs, the three domes, the city-wall piece. */
 export const RMBRP_STRUCTURES = Object.freeze([53160, 53170, ...Object.keys(RMBRP_DOCKS).map(Number), 53143, 53144, 53182, 53187, 53194, CITY_WALL_PIECE]);
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -54,7 +23,6 @@ const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a
 const len = (a) => Math.hypot(a[0], a[1], a[2]);
 const at = (M, x, y, z) => [M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]];
 
-/** A placed mesh as a solid in the block's frame: its triangles and its box. */
 export function placedSolid(mesh, M) {
   const p = mesh.positions, w = [];
   for (let i = 0; i < p.length; i += 3) w.push(at(M, p[i], p[i + 1], p[i + 2]));
@@ -64,8 +32,6 @@ export function placedSolid(mesh, M) {
   for (const v of w) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], v[k]); hi[k] = Math.max(hi[k], v[k]); }
   return { tris, lo, hi };
 }
-/** The generalised winding number of a solid's faces round `q` (Van Oosterom and Strackee's solid angle): +-1 inside a
- *  closed shell, 0 outside it, whichever way its faces wind. */
 function winding(s, q) {
   let w = 0;
   for (const [A, B, C] of s.tris) {
@@ -74,7 +40,6 @@ function winding(s, q) {
   }
   return w / (4 * Math.PI);
 }
-/** A point's distance to a triangle (Ericson's closest point, Real-Time Collision Detection 5.1.5). */
 function distanceToTriangle(p, a, b, c) {
   const ab = sub(b, a), ac = sub(c, a), ap = sub(p, a), d1 = dot(ab, ap), d2 = dot(ac, ap);
   if (d1 <= 0 && d2 <= 0) return len(ap);
@@ -91,7 +56,6 @@ function distanceToTriangle(p, a, b, c) {
   const den = 1 / (va + vb + vc), v = vb * den, w = vc * den;
   return len(sub(p, [a[0] + ab[0] * v + ac[0] * w, a[1] + ab[1] * v + ac[1] * w, a[2] + ab[2] * v + ac[2] * w]));
 }
-/** How far inside the solid `q` stands - its distance to the nearest face - or 0 outside it. */
 export function depthInside(s, q) {
   if (q[0] < s.lo[0] || q[1] < s.lo[1] || q[2] < s.lo[2] || q[0] > s.hi[0] || q[1] > s.hi[1] || q[2] > s.hi[2]) return 0;
   if (Math.abs(winding(s, q)) < 0.5) return 0;
@@ -100,8 +64,6 @@ export function depthInside(s, q) {
   return d;
 }
 
-/** A door's approach as the sweep reads it: the ground's points (townStandIns.js doorApproachPoints, HILL-HOUSE's rule), each
- *  from APPROACH_FOOT_M over the door's foot to APPROACH_HEAD_M. */
 export function approachPoints(a) {
   const pts = [];
   for (const [x, z, k] of doorApproachPoints(a, APPROACH_STEP_M)) {
@@ -110,16 +72,11 @@ export function approachPoints(a) {
   return pts;
 }
 
-/**
- * One block's findings. `models` its layout (layoutRmbBlock's), `getModel(id)` the mesh the pipeline builds for an id;
- * `drawn` the hills' meshes (the stand-ins'), `pads` whether the host's HILL-SEAT pads are laid (they are).
- * @returns {{held: Array<{standIn:number, index:number, other:number, otherIndex:number, vertices:number, depth:number}>, pads: Array<{model:number, index:number, vertices:number, over:number}>, approach: Array<{model:number, index:number, door:number, by:string, k:number, over:number}>, padTriangles:number}}
- */
+/** @returns {{held: Array<{standIn:number, index:number, other:number, otherIndex:number, vertices:number, depth:number}>, pads: Array<{model:number, index:number, vertices:number, over:number}>, approach: Array<{model:number, index:number, door:number, by:string, k:number, over:number}>, padTriangles:number}} */
 export function sweepBlock(models, getModel, { drawn = drawnHillStandIn, pads = true } = {}) {
   const placed = models.map((m, index) => ({ index, id: m.modelIdNum, M: m.matrix, mesh: getModel(m.modelIdNum) })).filter((p) => p.mesh?.positions?.length && !RMBRP_HILLS[p.id]);
   const solidOf = new Map();
   const solid = (p) => { if (!solidOf.has(p)) solidOf.set(p, placedSolid(p.mesh, p.M)); return solidOf.get(p); };
-  // HELD: a structure holds no other model's vertex past a touch
   const held = [];
   for (const s of placed.filter((p) => RMBRP_STRUCTURES.includes(p.id))) {
     for (const o of placed) {
@@ -133,11 +90,9 @@ export function sweepBlock(models, getModel, { drawn = drawnHillStandIn, pads = 
       if (vertices) held.push({ standIn: s.id, index: s.index, other: o.id, otherIndex: o.index, vertices, depth: +depth.toFixed(2) });
     }
   }
-  // the drawn hills, and the pads the host lays under what the author stood on them (scenes/world.js: the same meshes)
   const hills = blockHillSeat(models, drawn), seat = blockHillSeat(models, drawn);
   const patch = pads && seat ? blockHillPatch(seat, models, (m) => getModel(m.modelIdNum), drawn) : null;
   const padTop = patch ? blockHillSeat([{ modelIdNum: 1, matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] }], () => patch) : null;
-  // PADS: no pad over what the hills and the plane leave in the open
   const padFindings = [];
   if (padTop) {
     for (const o of placed) {
@@ -145,14 +100,13 @@ export function sweepBlock(models, getModel, { drawn = drawnHillStandIn, pads = 
       const p = o.mesh.positions;
       for (let i = 0; i < p.length; i += 3) {
         const [x, y, z] = at(o.M, p[i], p[i + 1], p[i + 2]);
-        if (y <= Math.max(hills.topAt(x, z) ?? 0, 0) + HILL_PATCH_SINK) continue;   // the drawn ground buries it anyway
+        if (y <= Math.max(hills.topAt(x, z) ?? 0, 0) + HILL_PATCH_SINK) continue;
         const t = padTop.topAt(x, z);
         if (t !== null && t > y - HILL_PATCH_SINK + 1e-4) { vertices++; over = Math.max(over, t - y); }
       }
       if (vertices) padFindings.push({ model: o.id, index: o.index, vertices, over: +over.toFixed(2) });
     }
   }
-  // APPROACH: every door's step and the metres before it clear of every solid the port generates there
   const standIns = placed.filter((p) => hasCustomModel(p.id));
   const approach = [];
   for (const o of placed) {
@@ -171,7 +125,6 @@ export function sweepBlock(models, getModel, { drawn = drawnHillStandIn, pads = 
   return { held, pads: padFindings, approach, padTriangles: patch ? patch.indices.length / 3 : 0 };
 }
 
-/** Every block of both packs, each pack's own, curated as the door curates it: `each(vendor, name, models)`. */
 export function eachPackBlock(data, each, only = null) {
   for (const [vendor] of VENDORS) {
     const p = data.packs[vendor];
@@ -186,7 +139,6 @@ export function eachPackBlock(data, each, only = null) {
   }
 }
 
-/** The sweep over both packs: counts, and each law's findings as lines '<pack> <block>: ...'. */
 export function sweepTownPacks(data, { only = null } = {}) {
   const out = { blocks: 0, doors: 0, padded: 0, held: [], pads: [], approach: [] };
   eachPackBlock(data, (vendor, name, models) => {

@@ -1,11 +1,6 @@
-// WALLET-UI (2026-10-07, Mac: "Polish and organize the ingame wallet item for ease of readability"), MEASURED: the real
-// enhanced pack (ui/inventoryDoor.js - the door the game opens) over the real sheet in Chromium, a character carrying the
-// wallet and everything it holds (test/systems/wallet1.test.js's own pack: the purse's gold, two letters of credit, a stack of
-// Deadlands Embers, the Welkynd Shards), its Valuables page opened and the Wallet picked - at a desktop's width and a
-// phone's, with the account's silver counted and with it kept online. The sheet must stand inside the viewport with
-// nothing spilling sideways, its figures in one column. Photographs to tools/shots/ (or SHOT_DIR).
-//
-//     node tools/walletProbe.mjs
+// Draws the inventory wallet sheet at desktop and phone widths and checks it fits the viewport.
+// Usage: `[SHOT_DIR=<dir>] node tools/walletProbe.mjs`
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -33,7 +28,6 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     document.getElementById('intro')?.remove();
     document.getElementById('enhanced-menu')?.remove();
     document.body.style.cssText = 'margin:0;background:#0b0d10;height:100vh';
-    // online the marks book answers the silver; offline (or before it is struck) nothing counts it here
     setWalletSilver(silver === 'counted' ? () => 35 : null);
     const e = { name: 'Aelwyn', career: { name: 'Spellsword' }, stats: { strength: 50, endurance: 48 }, goldPieces: 1240, items: [] };
     e.items = [{ group: 'Weapons', templateIndex: 121, name: 'Katana' }, letterOfCredit(5000), Object.assign(sigilStone(), { stackCount: 12 }),
@@ -69,7 +63,6 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
   check(`${tag}: a row for every currency`, r.rows.length >= 5, JSON.stringify(r.rows));
   check(`${tag}: the figures stand in one column`, r.figuresAligned);
   check(`${tag}: the pieces it holds, each a row of the pack's own`, r.pieces === 4, `${r.pieces}`);
-  // the card scrolled to the sheet, the pointer off every tile (a tile's hover card is not the sheet), then photographed
   await page.evaluate(() => document.querySelector('#enhanced-inventory .walletsheet')?.scrollIntoView({ block: 'center' }));
   await page.mouse.move(2, H - 2);
   await page.waitForTimeout(150);

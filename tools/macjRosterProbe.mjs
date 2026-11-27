@@ -1,13 +1,5 @@
-// MAC-J IN A REAL BROWSER: a roster name is a row, not a button.
-//
-// The defect was a CASCADE - the chat's own sheet and the enhanced skin's
-// sheet in one document, with `.act` meaning two different things - so it
-// cannot be seen in either file alone, and a node test can only read the two
-// texts. This mounts the panel with BOTH sheets loaded, the way an online
-// game has them, and measures the rows.
-//
-//     npx vite --port 5199 &
-//     node tools/macjRosterProbe.mjs
+// Checks chat roster rows with both the chat sheet and the enhanced skin sheet loaded, as in an online game.
+// Run against a dev server: npx vite --port 5199 & node tools/macjRosterProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -29,7 +21,7 @@ const out = await page.evaluate(async () => {
   const { ChatLog } = await import('/src/net/chat.js');
   const { createChatPanel } = await import('/src/ui/chatPanel.js');
   const { injectEnhancedStyle } = await import('/src/ui/enhancedStyle.js');
-  injectEnhancedStyle();   // the skin online forces (OL1) - the other half of the collision
+  injectEnhancedStyle();
   const session = {
     id: 'me-0001', name: 'Janome', roomCount: 5,
     peers: new Map([
@@ -43,7 +35,7 @@ const out = await page.evaluate(async () => {
     rowActions: (id) => (id === 'me-0001' ? [] : [{ id: 'friend', label: 'Add friend' }]),
     social: { onToggle: () => {} }, touch: false,
   });
-  panel.open();   // the panel appends itself to the document at create (chatPanel.js: doc.body.append(root))
+  panel.open();
   const root = document.querySelector('.dfchat');
   root.style.zIndex = '99999';
   document.querySelectorAll('.px-home, .px-menu').forEach((n) => { n.style.display = 'none'; });
@@ -52,10 +44,7 @@ const out = await page.evaluate(async () => {
     door: r.classList.contains('dfchat-act'), me: r.classList.contains('me'),
     border: getComputedStyle(r).borderTopWidth,
   }));
-  // WHAT THE NAMES OCCUPY, first row's top to last row's bottom. Neither the
-  // column nor the list can be measured for this: both are sized by the box
-  // (.dfchat-list is a fixed 220px and the list stretches to it), so their
-  // heights are the same before the fix and after it.
+  // Measure the span of the rows themselves; the column and the list are fixed-size boxes.
   const boxes = [...document.querySelectorAll('.dfchat-who-row')].map((r) => r.getBoundingClientRect());
   return { rows, span: Math.round(boxes.at(-1).bottom - boxes[0].top) };
 });

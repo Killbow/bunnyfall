@@ -1,5 +1,3 @@
-// The room's Iliac tables, read once a wake and saved. It answers the table words and vouches,
-// keeps the results and receipts owed, and runs hellos, ghosts, leaves, and the tick.
 import { iliacEmpty, iliacNextAt, iliacStand, iliacLook, iliacSeatOf, newIliacTable, iliacSitRefusal, iliacSit, iliacCommit, iliacVouch, iliacBack, iliacVoid, iliacGone, iliacTick as iliacTableTick } from '../../../src/net/iliacTable.js';
 import { verifyOrder, deckDigest } from '../../../src/net/identityToken.js';
 import { emptyTable as holdemEmpty, stand as holdemStand } from '../../../src/net/holdemTable.js';

@@ -29,6 +29,7 @@ invariants:
 traps:
   - "Yielding to anything on the ray made the companion unreachable indoors and answered 'You are too far away' from a distant shelf."
   - "Only companions (when `f.companion` is non-null) carry the ally mark; hostile enemies never yield."
+  - "Each host calls `tryMobileEnemyActivate` once, at the ray's reach, with `nearerThan` set to the ladder's winning distance. A second call or a missing `nearerThan` lets a distant enemy take the click from a nearer door."
 dfu: []
 tags:
   - activation

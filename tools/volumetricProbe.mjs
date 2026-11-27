@@ -1,18 +1,6 @@
-// VOL1 (2026-09-23, Mac: "Continue" - the second arc's last step): THE LANTERNS' GLOW THROUGH THEIR SHADOWS, on a
-// real GPU. A crate stands on a floor between the eye and a lantern behind it, in a fogged night.
-//
-// AUDIT REACH: THE GLOW IS READ AS A DIFFERENCE. The first cut compared whole pixels, and on a lit floor the glow is a
-// two-hundredth of the pixel - a dead glow (uScatter 0) and a wrong ray (the view's rotation untransposed) both
-// passed. Three frames of the one scene: BASE (no glow anywhere - the door open so the lane's own glow is off, the
-// pass itself held shut), ON (the march) and OFF (the lane's closed-form glow per fragment, as before EL1..HQ1); the
-// glow of each is its frame minus BASE, and the checks are on the glows:
-//   - the sky above the lantern: the march glows there (a ray to the far plane; the lane, with no fragment on the
-//     sky, never did) - and by more than a byte;
-//   - a dark floor far past the crate, its air lit either way: the march's glow within a fifth of the closed form's
-//     (the march sums the closed form's own integrand over the same chord);
-//   - the crate's front, its air in the crate's own shadow: the march's glow under a third of the closed form's.
-//
-// Usage: node tools/volumetricProbe.mjs [outDir]
+// Checks the lantern glow through shadows on a real GPU. Each glow is read as its frame minus a frame with no glow,
+// since the glow is a tiny share of a lit pixel. Usage: node tools/volumetricProbe.mjs [outDir]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -71,22 +59,20 @@ const result = await page.evaluate(async ({ W, H }) => {
     quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0]);
   };
   const sub = (build) => { const start = IDX.length; build(); subs.push({ textureArchive: 1, textureRecord: 1, startIndex: start, primitiveCount: (IDX.length - start) / 3 }); };
-  sub(() => quad([-20, 0, 20], [20, 0, 20], [20, 0, -20], [-20, 0, -20], [0, 1, 0], 10));   // the floor
-  sub(() => box(-1.5, 0, -1, 1.5, 2.5, 1));   // the crate, tall, between the eye and the lantern
+  sub(() => quad([-20, 0, 20], [20, 0, 20], [20, 0, -20], [-20, 0, -20], [0, 1, 0], 10));
+  sub(() => box(-1.5, 0, -1, 1.5, 2.5, 1));
   const mesh = r.createMesh({ positions: new Float32Array(P), normals: new Float32Array(N), uvs: new Float32Array(UV), indices: new Uint32Array(IDX), subMeshes: subs });
   const proj = mirrorProjectionX(perspective(Math.PI / 3, W / H, 0.1, 200));
-  // the eye stands OFF the crate's shadow volume (which spreads from the crate away from the lantern, toward +z),
-  // so a ray to the crate's front ends inside the shadow and a ray to the floor on the eye's own side never enters it
   const eye = [5, 1.6, 7];
   const view = lookAt(eye, [0, 1.0, 0], [0, 1, 0]);
   const I = identity();
   r.setLightingLane(EL_LANE); r.setAir(true); r.setContact(false);
   if (r.air) r.air._now = () => 1000;
   r.setClearColor([0.02, 0.02, 0.03, 1]);
-  r.setLighting(new Float32Array([0.05, 0.05, 0.06]), 0, new Float32Array([1, 1, 1]));   // night: no sun
-  r.setFog('exp', 0.03, 60, 180, new Float32Array([0.02, 0.02, 0.03]));   // a dense enough air to glow
+  r.setLighting(new Float32Array([0.05, 0.05, 0.06]), 0, new Float32Array([1, 1, 1]));
+  r.setFog('exp', 0.03, 60, 180, new Float32Array([0.02, 0.02, 0.03]));
   const lightDir = new Float32Array([0.2, 0.9, 0.3]);
-  const lantern = new Float32Array([0, 1.2, -4, 14]);   // behind the crate, toward the far floor
+  const lantern = new Float32Array([0, 1.2, -4, 14]);
   const draw = () => { r.setPointLights(lantern, new Float32Array([1, 0.8, 0.5])); r.beginFrame(proj, view, lightDir, WORLD_FRAME); r.drawMesh(mesh, I, null); r.resolveFrame(); };
   const grab = () => { const a = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, a); return a; };
   const project = (p) => {
@@ -96,12 +82,10 @@ const result = await page.evaluate(async ({ W, H }) => {
   };
   const lum = (img, pts) => { let s = 0, n = 0; for (const p of pts) { const [px, py] = project(p); if (!(px >= 0 && px < W && py >= 0 && py < H)) continue; const i = (Math.round(py) * W + Math.round(px)) * 4; s += (0.2126 * img[i] + 0.7152 * img[i + 1] + 0.0722 * img[i + 2]) / 255; n++; } return n ? s / n : NaN; };
   const grid = (pts) => pts;
-  const front = []; for (let x = -1.2; x <= 1.2; x += 0.3) for (let y = 0.4; y <= 2.2; y += 0.3) front.push([x, y, 1]);   // the crate's front face
-  const beside = []; for (let x = 2; x <= 3.5; x += 0.5) for (let z = -5; z <= -2; z += 1) beside.push([x, 0, z]);   // the floor on the eye's side of the crate, between it and the lantern: its air lit, the rays to it clear of the shadow (which spreads toward +z)
-  const farFloor = []; for (let x = -3; x <= 3; x += 0.5) for (let z = -18; z <= -14; z += 0.5) farFloor.push([x, 0, z]);   // dark, far past the crate: its air lit by the lantern either way
+  const front = []; for (let x = -1.2; x <= 1.2; x += 0.3) for (let y = 0.4; y <= 2.2; y += 0.3) front.push([x, y, 1]);
+  const beside = []; for (let x = 2; x <= 3.5; x += 0.5) for (let z = -5; z <= -2; z += 1) beside.push([x, 0, z]);
+  const farFloor = []; for (let x = -3; x <= 3; x += 0.5) for (let z = -18; z <= -14; z += 0.5) farFloor.push([x, 0, z]);
   const skyMean = (img) => { let s = 0, n = 0; for (let y = H - 40; y < H - 5; y++) for (let x = W / 2 - 60; x < W / 2 + 60; x++) { const i = (y * W + x) * 4; s += (0.2126 * img[i] + 0.7152 * img[i + 1] + 0.0722 * img[i + 2]) / 255; n++; } return s / n; };
-  // BASE: no glow anywhere - the door open (the lane's own glow is 0 on a world frame the pass glows for) and the
-  // pass itself held shut
   r.setVolumetrics(true); r.air.volOn = false;
   for (let f = 0; f < 4; f++) draw();
   const base = grab();

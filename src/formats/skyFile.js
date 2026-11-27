@@ -1,15 +1,3 @@
-// SKY??.DAT reader: day-sky backdrops. 1:1 translation of Daggerfall Unity's
-// SkyFile.cs (MIT, Daggerfall Workshop / Gavin Clayton). Layout verbatim:
-//   - 32 palettes at offset 0, stride 776, palette data 8 bytes into each
-//     block (768 bytes RGB).
-//   - 64 raw indexed frames (record * 32 + frame) of 512x220 at offset
-//     549120. Record 0 is the EAST half, record 1 the WEST half (the
-//     DaggerfallSky consumer maps them so; the file itself has no names).
-//   - 32 frames sweep sunrise to noon; afternoon reuses frame 63 - n with
-//     the halves swapped. DFU's cameraClearColor/fogColor is west ELEMENT
-//     0 of getColor32's bottom-up array, i.e. the source image's BOTTOM
-//     (horizon) row - not the zenith.
-// getColor32 keeps the base convention: bottom-up rows, per-FRAME palette.
 
 import { DFPalette } from './dfPalette.js';
 
@@ -27,7 +15,6 @@ export class SkyFile {
     this._bitmaps = new Array(64).fill(null);
   }
 
-  /** Always 2 for a SKY file (one animation each for east and west sky). */
   get recordCount() {
     return this._bytes ? 2 : 0;
   }
@@ -37,10 +24,9 @@ export class SkyFile {
   }
 
   /**
-   * Load a SKY??.DAT file.
    * @param {Uint8Array} bytes
    * @param {string} fileName
-   * @returns {boolean} true if successful.
+   * @returns {boolean}
    */
   load(bytes, fileName) {
     const fn = fileName.toUpperCase();
@@ -50,7 +36,6 @@ export class SkyFile {
     return true;
   }
 
-  /** Palette for specified frame (32 per file), cached. Null if invalid. */
   getDFPalette(frame) {
     if (frame < 0 || frame >= 32) return null;
     if (this._palettes[frame] === null) {
@@ -61,7 +46,7 @@ export class SkyFile {
     return this._palettes[frame];
   }
 
-  /** Indexed 8-bit bitmap for record (0 east / 1 west) and frame (0-31). */
+  // Record 0 is the east half of the sky and record 1 the west half; the file itself does not name them.
   getDFBitmap(record, frame) {
     if (record < 0 || record > 1 || frame < 0 || frame > 31) {
       return { width: 0, height: 0, data: new Uint8Array(0) };
@@ -78,7 +63,6 @@ export class SkyFile {
     return this._bitmaps[index];
   }
 
-  /** Always 32 for SKY files; -1 on invalid record. */
   getFrameCount(record) {
     if (!this._bytes || record < 0 || record >= 2) return -1;
     return 32;
@@ -90,8 +74,7 @@ export class SkyFile {
   }
 
   /**
-   * RGBA for record/frame using that frame's palette, bottom-up rows (the
-   * base image convention this repo uploads with flipY off).
+   * Output rows are bottom-up, so row 0 is the bottom (horizon) row of the source image.
    * @returns {{colors:Uint8ClampedArray,width:number,height:number}}
    */
   getColor32(record, frame) {
@@ -116,7 +99,6 @@ export class SkyFile {
     return { colors, width, height };
   }
 
-  /** SKY??.DAT filename for an index; invalid index gives an invalid name. */
   static indexToFileName(skyIndex) {
     return `SKY${String(skyIndex).padStart(2, '0')}.DAT`;
   }

@@ -1,10 +1,7 @@
-// AUDIT 28 SELF-AUDIT 5: the DFU-constants diff, kept as a tool.
-// Every `const int/float NAME = value` in a DFU checkout against every
-// `export const SCREAMING_NAME = value` in src/. Same-named constants
-// with different values are printed; most are name collisions across
-// DFU classes, so read each against the port constant's OWN cited
-// source before calling it a finding.
-//   node tools/dfuConstDiff.mjs [/path/to/dfu/Assets/Scripts]
+// Prints DFU constants whose names match an exported constant in src/ with a different value. Most are name
+// collisions, so check each against the constant's cited source.
+// Run: node tools/dfuConstDiff.mjs [<dfu>/Assets/Scripts].
+
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 

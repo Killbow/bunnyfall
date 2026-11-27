@@ -1,14 +1,6 @@
-// SEAT-COUNT (bible/11-Multiplayer/Seats-Arc.md 3.1: "tools/seatCount.mjs ... walks MAPS.BSA from ARENA2_PATH exactly as
-// the boot pass does and prints every seat (region, kingdom, name, tier, hub or not, whether its blocks place a bulletin
-// board, the pixel) and the totals. It writes nothing to the tree; Mac runs it."). The seats are systems/town/townSeats.js
-// deriveTownSeats over the game's own rows (the boot pass's, regionHubs.js pickRegionHubs's); each is laid out
-// (world/locationLayout.js) and its bulletin boards tallied as BOARD-COUNT tallies a hub's (tools/boardCount.mjs), so a
-// seat whose blocks place no Notice Board is named - PROF0 10.1's "a seat ... whose blocks place no board gets one".
-//
-// The economy is built so the count does not break it: every cost is per seat, and a guild's influence is capped per
-// account (SEAT0 3.1). The count is recorded in Seats-Arc 14 when Mac has run it.
-//
-// Usage: ARENA2_PATH=/path/to/arena2 node tools/seatCount.mjs [--json]
+// Lists every town seat from ARENA2 with its bulletin board tally, plus the totals.
+// Usage: ARENA2_PATH=<dir> node tools/seatCount.mjs [--json]
+
 import { readFileSync } from 'node:fs';
 import { isMain } from './lib/isMain.mjs';
 import { BlocksFile } from '../src/formats/blocksFile.js';
@@ -18,7 +10,6 @@ import { pickRegionHubs } from '../src/world/regionHubs.js';
 import { deriveTownSeats, seatTotals } from '../src/guilds/townSeats.js';
 import { boardTally } from './boardCount.mjs';
 
-/** The game's own rows, as the world host's boot pass collects them (a mod's appended rows never count). */
 export function baseRows(maps) {
   const rows = [];
   for (let r = 0; r < maps.regionCount; r++) {
@@ -33,14 +24,14 @@ export function baseRows(maps) {
   return rows;
 }
 
-/** Every seat with its boards, and the totals. `layout(loc)` lays a location out (the host's; a pin hands its own). */
 export function countSeats(rows, { regionNameOf, layout = null } = {}) {
   const hubs = pickRegionHubs(rows, { regionNameOf });
   const seats = deriveTownSeats(rows, { regionNameOf, isHub: (k) => hubs.byMapId.has(k) });
   const byKey = new Map(rows.map((loc) => [loc.mapTableData?.mapId >>> 0, loc]));
   const out = seats.list.map((s) => {
-    let tally = { boards: -1, bounty: 0, rumour: 0 };   // -1: not laid out, never "none"
-    try { if (layout) tally = boardTally(layout(byKey.get(s.key)).blocks); } catch { /* not measured */ }
+    // A board count of -1 means the seat was not laid out.
+    let tally = { boards: -1, bounty: 0, rumour: 0 };
+    try { if (layout) tally = boardTally(layout(byKey.get(s.key)).blocks); } catch { }
     return { ...s, regionName: regionNameOf ? regionNameOf(s.region) : String(s.region), ...tally };
   });
   return { seats: out, totals: seatTotals(seats.list) };

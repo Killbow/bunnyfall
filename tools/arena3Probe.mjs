@@ -1,12 +1,6 @@
-// ARENA3, SEEN (2026-10-02, Mac: "join a team (red and blue)"; "Joining a team comes with it's own enhanced UI where you
-// can view your ranking and even player leaderboards"): the banners, the Arena window and the bookmaker over the real
-// game on the world host - the Red Banner's recruiter at the gate and his choice, joining (the window opening on its
-// Team page), the window's every page over the real save, the bookmaker's stall and a wager paid from the purse, the
-// Herald's choice with the window's door, the pause window's Arena door once joined, and a ladder bout under the
-// banner - its pennant on the versus bar and its point for the banner. test/arena3_*.test.js hold the laws headless;
-// this stands them over the real game and photographs what a fake cannot.
-//
-//     ARENA2_PATH=<the game's ARENA2> SHOTS=<dir> node tools/arena3Probe.mjs
+// Plays through joining an arena team, the Arena window, the bookmaker, and a ladder bout in the real game,
+// with screenshots.
+// Run with `SHOTS=<dir> node tools/arena3Probe.mjs`.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -53,7 +47,6 @@ await ev(([p]) => window.__pose(p[0], p[1] + 0.3, p[2] + 4, Math.PI, 0), [h]);
 await page.waitForTimeout(2000);
 await ev(() => window.__arenaCloseOverlays());
 
-// THE RED BANNER'S RECRUITER: his choice, then join
 check(await ev(() => window.__arenaGate.recruiter('redRecruiter')), 'the Red Banner\'s recruiter answers');
 await page.waitForTimeout(3000);
 const rc = await dialog();
@@ -70,7 +63,6 @@ check(await windowUp(), 'the Arena window opened on joining');
 const onPage = await ev(() => document.querySelector('.aw-tab.on')?.dataset.page);
 check(onPage === 'team', `on its Team page (${onPage})`);
 await shot('2-window-team.png');
-// every page, over the real save
 for (const pg of ['bouts', 'ladder', 'boards', 'records', 'rules']) {
   await ev((p) => [...document.querySelectorAll('.aw-tab')].find((t) => t.dataset.page === p)?.click(), pg);
   await page.waitForTimeout(400);
@@ -84,7 +76,6 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(600);
 check(!(await windowUp()), 'Escape puts the window away');
 
-// THE BOOKMAKER: back the first fighter, the third stake
 await ev(() => window.__arenaCloseOverlays());
 check(await ev(() => window.__arenaGate.bookmaker()), 'the bookmaker\'s stall answers');
 await page.waitForTimeout(3000);
@@ -103,7 +94,6 @@ if (bc.some((l) => /^A - Back /.test(l))) {
   check(!!w && w.stake === 50 && L.gold === gold0 - 50, `a wager of 50 gold placed and paid (${JSON.stringify(w && { stake: w.stake, on: w.names[w.side], price: `${w.num}/${w.den}` })}, purse ${gold0} -> ${L?.gold})`);
 } else console.log('  (no book open this hour)');
 
-// THE HERALD: the window's door in his choice; the pause window's door once joined
 await ev(() => window.__arenaCloseOverlays());
 await ev(() => window.__arenaHerald());
 await page.waitForTimeout(3000);
@@ -112,7 +102,6 @@ check(hc.includes('The Arena window'), `the Herald's choice carries the window (
 await shot('6-herald.png');
 check((await league()).pauseDoor, 'the pause window\'s Arena door stands, once joined');
 
-// A LADDER BOUT UNDER THE BANNER: the pennant on the versus bar, the point for the banner
 await page.keyboard.press('KeyF');
 for (const until = Date.now() + 180000; Date.now() < until;) {
   mode = await ev(() => window.__mode());

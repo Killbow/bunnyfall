@@ -1,6 +1,5 @@
-// Build a random-sample confirmation spec from the automated survivors,
-// restricted to mutants whose token occurs EXACTLY ONCE on its line so the
-// mutant is uniquely reproducible from the log.
+// Builds a random-sample confirmation spec from the automated survivors, limited to mutants whose token occurs once
+// on its line so each mutant is reproducible from the log.
 import fs from 'node:fs';
 import path from 'node:path';
 

@@ -1,5 +1,3 @@
-// The super dungeon: the one record the hub holds, its beat, census, and finds, read once a wake.
-// It answers finds and hall words, tells cells and realms, admits by the record, and marks falls.
 import { validSdRecord, SD_KEY, SD_SLOT_KEY, SD_REGION_COUNT, chatRegionRoom, SD_INTERNAL_CENSUS, CHAT_SOCKETS_MAX, validSdFoundTell, worldRoom, sanitizeName, SD_FOUND_KEY, SD_TELL_RETRY_MS, SOCIAL_ROOM, SD_INTERNAL_FOUND, SD_REALM_KEY, SD_FIGHTERS_MAX, sdDeadKey, SD_INTERNAL_IN, SD_ORRERY_KEY } from '../relay.js';
 import { sdDue, sdFirst, sdGone, sdRise, pickSdRegion, sdFindBelieved, sdFind, sdNearSite, sdSlotOfRoom, sdHolds, SD_NO_CLOSED, sdDownWord, SD_NO_FALLEN, sdAdmits, SD_NO_FULL, sdMayRaise, isSdRoom, SD_REZ_MS } from '../../../src/net/sdLaw.js';
 import { SD_BEAT_RETRY_MS, SD_CENSUS_BATCH, SD_FIND_KNOWN_MS, SD_LIVE_FRESH_MS, SD_LIVE_KEEP_MS, SD_LIVE_MISS_MS, sdLiveAsk, SD_NO_BUSY, SD_GUEST_SEATS, SD_PZ_WAIT_SAY_MS } from '../worker/sdLive.js';

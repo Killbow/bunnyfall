@@ -1,6 +1,4 @@
-// Edge cases of the game-side POI runtime (src/poi/poiDmRuntime.js): online saved values and claims, encounters whose
-// enemies rise or vanish, talks and trades when a POI unloads or the player talks to someone else, and log trimming.
-//   node --test tools/poiDmRuntimeEdge.test.mjs
+// Edge cases of the game-side POI runtime. Run: node --test tools/poiDmRuntimeEdge.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';

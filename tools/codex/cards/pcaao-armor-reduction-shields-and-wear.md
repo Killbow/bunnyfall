@@ -26,6 +26,7 @@ invariants:
 traps:
   - "Shield base block chances (strong/weak) are Buckler `109` (`30/20`), Round `110` (`35/10`), Kite `111` (`45/5`), Tower `112` (`55/-5`), and default `40/0`, with upstream `Mathf.Clamp` results discarded."
   - "Condition threshold warnings repeat while an item sits at `48%` or `15%`, and `fadingEnchantedItems` destroys broken player enchanted gear while sparing rarity-stamped pieces (`pcaaoFades`)."
+  - "`updateEquippedArmorValues` gives armor value to boots and shoes in the clothing footwear id window, but sandals (150 and 189) sit outside it and give nothing. This matches the original game."
 dfu:
   - Assets/Scripts/Game/Formulas/FormulaHelper.cs
   - Assets/Scripts/Game/Items/DaggerfallUnityItem.cs

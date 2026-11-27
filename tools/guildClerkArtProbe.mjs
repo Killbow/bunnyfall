@@ -1,4 +1,4 @@
-// The actual supplied PNGs, selection rules, texture orientation, and billboard stand/hide lifecycle.
+// Browser probe for the guild clerk art: the PNGs, selection rules, texture orientation, and billboard lifecycle.
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 import {chromium} from 'playwright';

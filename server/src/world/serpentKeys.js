@@ -1,4 +1,3 @@
-// A serpent fight's timings, and the key a cell stores each fight under.
 import { SERPENT_FIGHT_KEY } from '../relay.js';
 
 export const SERPENT_REST_MS = 5000;

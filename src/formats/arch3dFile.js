@@ -1,32 +1,11 @@
-// ARCH3D.BSA mesh reader and decomposer.
-// 1:1 translation of Daggerfall Unity's Arch3dFile.cs (MIT, Daggerfall
-// Workshop / Gavin Clayton, Ferital). Output DFMesh shape matches DFMesh.cs:
-// submeshes grouped by unique texture, each plane a triangle fan of points
-// {x,y,z,nx,ny,nz,u,v} with positions/normals divided by 256 and UVs by 16.
-//
-// Quirks kept verbatim:
-//   - Arch3dPatch byte fixes applied before parsing - to each record's
-//     private copy (DFU patches the whole file buffer; every entry is a
-//     model fix, so the parsed bytes are the same).
-//   - Bounding min/max start at 0, so Size always spans the origin.
-//   - UVunpack applies only to the first 3 points of a plane and only for
-//     record ids below 905.
-//   - v2.5 meshes multiply point offsets by 3; v2.6/2.7 use them directly.
-//   - Fixed decomposition buffer sizes (16 corners, 32 textures/submeshes,
-//     512 planes per submesh, 16 points per plane, 24 UV slots) throw on
-//     overflow exactly where C# would, failing that record's load.
-//   - Corner detection: angle(l0,l1) > 0.001 rad marks a corner; normalize
-//     of a zero-length edge throws, failing the record (caught upstream).
-// Not ported (no port consumer): DiscardAllRecords.
-// Numeric note: JS doubles replace C# float/double mix; (Int32) casts are
-// Math.trunc. The full-corpus gate pins observed output.
+// Matches Daggerfall Unity's Arch3dFile.cs output, quirks included: mesh bounds start at 0, so `size` always spans
+// the origin.
 
 import { BsaFile, DIRECTORY_TYPES } from './bsaFile.js';
 import { computeFaceUVCoordinates } from './faceUVTool.js';
 import { ARCH3D_PATCH } from './arch3dPatch.js';
 import { HeldRecords } from './heldRecords.js';
 
-// Buffer lengths used during decomposition.
 const CORNER_BUFFER_LENGTH = 16;
 const UNIQUE_TEXTURE_BUFFER_LENGTH = 32;
 const SUB_MESH_BUFFER_LENGTH = 32;
@@ -34,7 +13,6 @@ const PLANE_BUFFER_LENGTH = 512;
 const POINT_BUFFER_LENGTH = 16;
 const CALCULATED_UV_BUFFER_LENGTH = 24;
 
-// Divisors for points and textures.
 const POINT_DIVISOR = 256.0;
 const TEXTURE_DIVISOR = 16.0;
 
@@ -70,14 +48,9 @@ function getVersion(version) {
   return MESH_VERSIONS.Unknown;
 }
 
-/**
- * Unpack special texture coordinates. A packed coordinate is outside the
- * -14335..14335 range; -7168 is the only known exception.
- */
 export function uvUnpack(u) {
   if (u > -14336 && u < 14336 && u !== -7168) return u;
 
-  // Get the nearest multiple of 8192.
   let nextMult = u - 1;
   nextMult = nextMult >> 13;
   ++nextMult;
@@ -85,12 +58,9 @@ export function uvUnpack(u) {
   const prevMult = nextMult - 8192;
   const mult = u - prevMult < nextMult - u ? prevMult : nextMult;
 
-  // Unpack the coordinate by subtracting the above multiple.
   return u - mult;
 }
 
-/** Index of the record whose bytes hold file offset `pos`, or -1. Records
- *  are packed back to back, so positions ascend with the index. */
 function recordAt(bsa, pos) {
   let lo = 0;
   let hi = bsa.count - 1;
@@ -104,9 +74,6 @@ function recordAt(bsa, pos) {
   return -1;
 }
 
-/** ARCH3D_PATCH re-keyed by record: Map<record, [recordOffset, bytes][]>.
- *  An entry crossing a record edge is split at it; a byte no record holds
- *  is dropped (no entry touches the header or the directory). */
 function indexPatch(bsa) {
   const byRecord = new Map();
   for (const [offset, data] of ARCH3D_PATCH) {
@@ -135,7 +102,6 @@ export class Arch3dFile {
     this._lastRecord = -1;
     this._held = new HeldRecords(MODELS_HELD_MAX, (record) => { this._records[record] = null; });
 
-    // Scratch buffers reused across records, as in DFU.
     this._cornerPointBuffer = new Array(CORNER_BUFFER_LENGTH);
     this._calculatedUVBuffer = new Array(CALCULATED_UV_BUFFER_LENGTH);
     this._subMeshBuffer = new Array(SUB_MESH_BUFFER_LENGTH);
@@ -145,21 +111,15 @@ export class Arch3dFile {
     return 'ARCH3D.BSA';
   }
 
-  /** Number of BSA records in ARCH3D.BSA. */
   get count() {
     return this._bsa ? this._bsa.count : 0;
   }
 
   /**
-   * Load ARCH3D.BSA contents. The caller's buffer is wrapped, never
-   * written: the Arch3dPatch model fixes go onto each record's private
-   * copy in loadRecord (DFU patches its memory buffer in place).
    * @param {Uint8Array} bytes
-   * @returns {boolean} true if successful.
+   * @returns {boolean}
    */
   load(bytes) {
-    // AUDIT 68 S10-arch3d-26mb-copy: copying the ~26 MB archive to patch
-    // 2 KB kept ARCH3D.BSA resident twice for the scene.
     this._bsa = new BsaFile(bytes);
     if (this._bsa.directoryType !== DIRECTORY_TYPES.NumberRecord) return false;
     this._records = new Array(this._bsa.count).fill(null);
@@ -167,10 +127,6 @@ export class Arch3dFile {
     return true;
   }
 
-  /**
-   * Index of mesh record with specified id, or -1. Cached in a lookup map so
-   * subsequent calls are fast.
-   */
   getRecordIndex(id) {
     if (this._recordIndexLookup.has(id)) return this._recordIndexLookup.get(id);
     for (let i = 0; i < this.count; i++) {
@@ -182,22 +138,20 @@ export class Arch3dFile {
     return -1;
   }
 
-  /** ID of record from index. */
   getRecordId(record) {
     return this._bsa.getRecordId(record);
   }
 
-  /** Load a mesh record into memory and decompose it for use. */
   loadRecord(record) {
     if (record < 0 || record >= this.count) return false;
 
-    // Exit if already loaded.
     if (this._records[record] !== null) {
       if (this.autoDiscard) this._held.hold(record);
       return true;
     }
 
-    // A byte past a truncated record's end drops, as it did past the file's.
+    // `getRecordBytes` returns a copy, so patch writes never reach the archive buffer; `getRecordView` would mutate
+    // it.
     const bytes = this._bsa.getRecordBytes(record);
     for (const [at, data] of this._patch.get(record) ?? []) {
       for (let i = 0; i < data.length; i++) bytes[at + i] = data[i];
@@ -226,20 +180,16 @@ export class Arch3dFile {
     return true;
   }
 
-  /** Discard a mesh record from memory. */
   discardRecord(record) {
     if (record < 0 || record >= this.count) return;
     this._records[record] = null;
     this._held.forget(record);
   }
 
-  /** DFMesh representation of a record (empty mesh on failure). */
   getMesh(record) {
     if (!this.loadRecord(record)) return emptyMesh();
     return this._records[record].dfMesh;
   }
-
-  // --- Readers ---
 
   _read(record) {
     try {
@@ -266,12 +216,10 @@ export class Arch3dFile {
       pointCount: v.getInt32(4, true),
       planeCount: v.getInt32(8, true),
       radius: v.getUint32(12, true),
-      // nullValue1: u64 at 16
       planeDataOffset: v.getInt32(24, true),
       objectDataOffset: v.getInt32(28, true),
       objectDataCount: v.getInt32(32, true),
       unknown2: v.getUint32(36, true),
-      // nullValue2: u64 at 40
       pointListOffset: v.getInt32(48, true),
       normalListOffset: v.getInt32(52, true),
       unknown3: v.getUint32(56, true),
@@ -296,7 +244,6 @@ export class Arch3dFile {
     let centre = { x: 0, y: 0, z: 0 };
 
     for (let plane = 0; plane < faceCount; plane++) {
-      // Read plane header.
       const header = {
         position: pos,
         planePointCount: rec.bytes[pos],
@@ -306,13 +253,11 @@ export class Arch3dFile {
       };
       pos += 8;
 
-      // Read the normal data for this plane.
       const nx = v.getInt32(normalPos, true);
       const ny = v.getInt32(normalPos + 4, true);
       const nz = v.getInt32(normalPos + 8, true);
       normalPos += 12;
 
-      // Build list of unique textures across all planes.
       const textureArchive = header.texture >> 7;
       const textureRecord = header.texture & 0x7f;
       let foundTexture = false;
@@ -332,7 +277,6 @@ export class Arch3dFile {
         uniqueTextureBuffer.push({ archive: textureArchive, record: textureRecord });
       }
 
-      // Read plane points.
       const pointCount = header.planePointCount;
       const points = new Array(pointCount);
       for (let point = 0; point < pointCount; point++) {
@@ -341,14 +285,11 @@ export class Arch3dFile {
         let uv = v.getInt16(pos + 6, true);
         pos += 8;
 
-        // Fix some UV coordinates (only the first 3 points; coordinates from
-        // point 4 up are ignored). Only models with id below 905 need this.
         if (point < 3 && recordId < 905) {
           u = uvUnpack(u);
           uv = uvUnpack(uv);
         }
 
-        // Get point position.
         let pointPosition = rec.header.pointListOffset;
         switch (version) {
           case MESH_VERSIONS.Version27:
@@ -364,7 +305,6 @@ export class Arch3dFile {
         const y = v.getInt32(pointPosition + 4, true);
         const z = v.getInt32(pointPosition + 8, true);
 
-        // Track min/max of native points for a tight box around the mesh.
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
@@ -375,7 +315,6 @@ export class Arch3dFile {
         points[point] = { x, y, z, nx, ny, nz, u, v: uv };
       }
 
-      // Read unknown plane data.
       const pdPos = rec.header.planeDataOffset + plane * 24;
       const planeData = rec.bytes.slice(pdPos, pdPos + 24);
 
@@ -386,7 +325,6 @@ export class Arch3dFile {
         points,
       };
 
-      // Store size and centre of mesh (recomputed per plane, as DFU does).
       size = {
         x: maxX / POINT_DIVISOR - minX / POINT_DIVISOR,
         y: maxY / POINT_DIVISOR - minY / POINT_DIVISOR,
@@ -397,7 +335,6 @@ export class Arch3dFile {
 
     rec.pureMesh = { uniqueTextures: uniqueTextureBuffer, planes, size, centre };
 
-    // Prepare submesh decomposition buffers.
     for (let i = 0; i < uniqueTextureBuffer.length; i++) {
       this._subMeshBuffer[i] = {
         textureArchive: uniqueTextureBuffer[i].archive,
@@ -410,10 +347,6 @@ export class Arch3dFile {
     return true;
   }
 
-  /**
-   * Decompose pure mesh into submeshes grouped by texture, each plane a
-   * triangle-friendly fan.
-   */
   _decomposeMesh(record) {
     const rec = this._records[record];
     const uniqueTextureCount = rec.pureMesh.uniqueTextures.length;
@@ -422,7 +355,6 @@ export class Arch3dFile {
     dfMesh.objectId = rec.objectId;
     dfMesh.radius = rec.header.radius / POINT_DIVISOR;
 
-    // Decompose each plane of this mesh into a buffer.
     const planeCount = rec.pureMesh.planes.length;
     for (let plane = 0; plane < planeCount; plane++) {
       const p = rec.pureMesh.planes[plane];
@@ -434,7 +366,6 @@ export class Arch3dFile {
       this._writePlane(subMeshIndex, p);
     }
 
-    // Copy valid mesh data from buffer into mesh record.
     let totalTriangles = 0;
     for (let submesh = 0; submesh < uniqueTextureCount; submesh++) {
       const buf = this._subMeshBuffer[submesh];
@@ -461,7 +392,6 @@ export class Arch3dFile {
     dfMesh.size = rec.pureMesh.size;
     dfMesh.centre = rec.pureMesh.centre;
     rec.dfMesh = dfMesh;
-    // Held records keep only the built mesh; the raw planes and bytes are dropped.
     rec.pureMesh = null;
     rec.bytes = null;
     rec.view = null;
@@ -469,7 +399,6 @@ export class Arch3dFile {
   }
 
   _writePlane(subMeshIndex, planeIn) {
-    // Handle planes with greater than 3 points.
     if (planeIn.points.length > 3) return this._writeVariablePlane(subMeshIndex, planeIn);
 
     const buf = this._subMeshBuffer[subMeshIndex];
@@ -482,13 +411,12 @@ export class Arch3dFile {
     };
     buf.planeCount++;
 
-    // Points 1 & 2 UVs are deltas added to the previous point.
+    // In a 3-point plane, the stored UVs of points 1 and 2 are deltas from the previous point.
     planeIn.points[1].u += planeIn.points[0].u;
     planeIn.points[1].v += planeIn.points[0].v;
     planeIn.points[2].u += planeIn.points[1].u;
     planeIn.points[2].v += planeIn.points[1].v;
 
-    // Write the 3 points.
     this._writePoint(planeIn.points[0], buf.planeBuffer[planeIndex]);
     this._writePoint(planeIn.points[1], buf.planeBuffer[planeIndex]);
     this._writePoint(planeIn.points[2], buf.planeBuffer[planeIndex]);
@@ -497,7 +425,6 @@ export class Arch3dFile {
     return planeIndex;
   }
 
-  /** Write an N-point triangle fan to buffer by finding corners. */
   _writeVariablePlane(subMeshIndex, planeIn) {
     const buf = this._subMeshBuffer[subMeshIndex];
     if (buf.planeCount >= PLANE_BUFFER_LENGTH) throw new RangeError('planeBuffer overflow');
@@ -509,10 +436,8 @@ export class Arch3dFile {
     };
     buf.planeCount++;
 
-    // Find corner points.
     const cornerCount = this._getCornerPoints(planeIn.points);
 
-    // Calculate UV coordinates of all points.
     if (computeFaceUVCoordinates(planeIn.points, this._calculatedUVBuffer)) {
       for (let pt = 0; pt < planeIn.points.length; pt++) {
         planeIn.points[pt].u = this._calculatedUVBuffer[pt].u;
@@ -522,7 +447,6 @@ export class Arch3dFile {
         UV_GENERATION_METHODS.ModifiedMatrixGenerator;
     }
 
-    // Write first 3 points, then the remaining corners.
     let cornerPos = 0;
     this._writePoint(planeIn.points[this._cornerPointBuffer[cornerPos++]], buf.planeBuffer[planeIndex]);
     this._writePoint(planeIn.points[this._cornerPointBuffer[cornerPos++]], buf.planeBuffer[planeIndex]);
@@ -534,10 +458,6 @@ export class Arch3dFile {
     return planeIndex;
   }
 
-  /**
-   * Write a single point to buffer. Vector coordinates are divided by 256,
-   * texture coordinates by 16.
-   */
   _writePoint(srcPoint, dstPlane) {
     if (dstPlane.pointCount >= POINT_BUFFER_LENGTH) throw new RangeError('pointBuffer overflow');
     const pointPos = dstPlane.pointCount;
@@ -555,7 +475,6 @@ export class Arch3dFile {
     return pointPos;
   }
 
-  /** Find submesh this archive/record combo belongs to. */
   _getSubMesh(mesh, textureArchive, textureRecord) {
     for (let i = 0; i < mesh.uniqueTextures.length; i++) {
       if (
@@ -568,11 +487,6 @@ export class Arch3dFile {
     throw new Error('GetSubMesh() index not found.');
   }
 
-  /**
-   * Find corner points from a pure face - reduces the number of points in
-   * the final strip. Angle between successive edge vectors above 0.001 rad
-   * marks a corner.
-   */
   _getCornerPoints(pointsIn) {
     let cornerCount = 0;
     const pointCount = pointsIn.length;
@@ -598,12 +512,10 @@ export class Arch3dFile {
         cornerIndex = 0;
       }
 
-      // Direction vectors.
       const l0x = b.x - a.x, l0y = b.y - a.y, l0z = b.z - a.z;
       const l1x = c.x - a.x, l1y = c.y - a.y, l1z = c.z - a.z;
 
-      // Angle between direction vectors: acos of normalized dot. Normalizing
-      // a zero-length vector throws, matching DFU's Vector3.Normalize.
+      // A zero-length edge throws, matching DFU's `Vector3.Normalize`, so only that record fails to load.
       const m0 = Math.sqrt(l0x * l0x + l0y * l0y + l0z * l0z);
       const m1 = Math.sqrt(l1x * l1x + l1y * l1y + l1z * l1z);
       if (m0 === 0 || m1 === 0) {

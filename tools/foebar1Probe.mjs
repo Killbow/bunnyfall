@@ -1,16 +1,5 @@
-// FOEBAR1 (2026-09-17, Mac, from a friend's two pictures) - THE BLADE
-// FACE, SEEN. The enhanced HUD is drawn over the real module on a phone
-// context, a foe is marked struck at full, half and a tenth of its
-// health, and the target block is screenshotted under both faces (the
-// plain bar, the blade) so the pictures Mac's friend sent can be checked
-// against what the port draws: the dark shape as the empty bar, the red
-// one as the fill, receding from both tips toward the skull hub.
-//
-// It also reads the laws off the DOM: the blade shows only under the
-// pref, the plain track hides under it, the clip is inset(0 X% 0 X%) with
-// X = (100 - pct) / 2, and both pictures resolve (no broken image).
-//
-//     PROBE_PORT=5199 FOEBAR1_OUT=<dir> node tools/foebar1Probe.mjs   # shots into <dir>/foebar1-*.png (default tools/)
+// Browser probe that screenshots the enhanced HUD's target bar, plain and blade faces, at three health values.
+// Run: PROBE_PORT=5199 FOEBAR1_OUT=<dir> node tools/foebar1Probe.mjs.
 import { writeFile, unlink, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -18,7 +7,7 @@ import { chromium } from 'playwright';
 import { createServer } from 'vite';
 
 const ROOT = normalize(join(dirname(fileURLToPath(import.meta.url)), '..'));
-const PAGE_NAME = 'foebar1-probe.tmp.html';   // written into play/ - the game's own directory (U60: no probe drives the root as the game)
+const PAGE_NAME = 'foebar1-probe.tmp.html';
 const OUT = process.env.FOEBAR1_OUT ?? join(ROOT, 'tools');
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FOEBAR1 probe</title>
@@ -60,7 +49,7 @@ if (vite) await vite.listen();
 const port = vite ? vite.httpServer.address().port : Number(process.env.PROBE_PORT);
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 try {
-  // AUDIT 68 X2-probe-tmp-page-leak: written inside the try, so the finally that unlinks it always runs.
+  // The page is written inside the try, so the finally always unlinks it.
   await writeFile(join(ROOT, 'play', PAGE_NAME), PAGE);
   const ctx = await browser.newContext({ viewport: { width: 900, height: 500 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
@@ -82,7 +71,7 @@ try {
       if (style === 'blade') {
         check(`blade @${pct}: the blade shows and the track hides`, r.blade && r.bladeDisplay === 'block' && r.trackDisplay === 'none', `${r.bladeDisplay}/${r.trackDisplay}`);
         const x = ((100 - pct) / 2).toFixed(2);
-        // the browser normalises the four-value inset to its short form (`inset(0px 25%)`)
+        // The browser normalizes the four-value inset to its short form (inset(0px 25%)).
         const insets = (r.clip.match(/[\d.]+%/g) ?? []).map(parseFloat);
         check(`blade @${pct}: the fill is clipped in ${x}% from each tip`, insets.length >= 1 && insets.every((v) => Math.abs(v - Number(x)) < 0.01) && /^inset\(0(?:px)? /.test(r.clip), r.clip);
         check(`blade @${pct}: both pictures are the crop`, /foe-blade-empty\.png/.test(r.emptyImg) && /foe-blade-full\.png/.test(r.fullImg), `${r.emptyImg} | ${r.fullImg}`);

@@ -1,16 +1,9 @@
-// BUNNYFALL: THE CROSSBOW'S FIRST-PERSON ART. Three owner frames (public/art/crossbow-*.png, 189x94): the slack string,
-// the string drawn with the bolt's tip showing, and the bolt loaded. The crossbow rides the BOW's machine (a draw that
-// holds, a loose, a cooldown), whose record is seven frames, so the three are laid across them:
-//   0 idle (slack)   1-2 drawing   3 loaded (the hold frame)   4-6 loosed, the string slack again
-// Same shape loadFpsWeaponArt answers, with the bow's anim table moved to the screen's middle (the art is symmetric).
-
 import { WEAPON_TYPES, BOW_ANIMS, ALIGN } from './fpsWeapon.js';
 import { decodePng } from '../render/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';
 import { APP_ROOT } from '../platform/appRoot.js';
 
 const FILES = Object.freeze({ idle: 'art/crossbow-idle.png', draw: 'art/crossbow-draw.png', loaded: 'art/crossbow-loaded.png' });
-/** The seven bow frames, as indices into [idle, draw, loaded]. */
 export const CROSSBOW_FRAME_MAP = Object.freeze([0, 1, 1, 2, 0, 0, 0]);
 export const CROSSBOW_ANIMS = Object.freeze(BOW_ANIMS.map((a) => Object.freeze({ ...a, Alignment: ALIGN.Center, Offset: 0 })));
 

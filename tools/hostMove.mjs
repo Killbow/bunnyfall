@@ -1,37 +1,11 @@
-// THE HOST MOVE - a group of a host function's members moved, verbatim, into a module of its own (HOST-SPLIT,
-// bible/01-Overview/Host-Split.md, MOVE, DON'T REWRITE).
-//
-//   node tools/hostMove.mjs src/scenes/world.js --group tvBadgeOf,TV_PEER_HEAD_M,travelViewMarks \
-//        --to src/travel/travelViewMarks.js --name createTravelViewMarks            the plan, nothing written
-//   ... --write                                                                      the move
-//
-// A move by hand of a block that reads sixty names of its host's scope is where a silent change hides - a `let` read
-// as a copy goes stale, a `const` read before its line throws. This decides every name by rule, so each move is the
-// same move and its review is a review of the rules, once:
-//
-//   - the group is CONTIGUOUS members of the host function, so its code runs at the very point in the host's
-//     sequence it ran before - the host constructs the module where the group stood;
-//   - a host name the group reads is handed over BY VALUE (destructured once, at construction) when its value cannot
-//     change and is already made there: a `const`, `class` or never-written `let` declared above the group, a
-//     function declaration (hoisted), a never-written parameter;
-//   - every other host name is handed over LIVE - a getter (and a setter when the group writes it) on the handles,
-//     and the group's every use of it reads `host.<name>`: a `let` someone writes, a `const` declared below the group
-//     (read at the use, as before - never touched in its temporal dead zone);
-//   - a name the group's own code declares (a parameter, an inner `const`) shadows the host's and is left alone -
-//     resolved by scope, not by spelling;
-//   - module-scope names come along as imports from the host's own import lines; a host-module top-level declaration
-//     the group reads is refused (move it to a shared module first);
-//   - the names the group declares that the rest of the host uses are returned, and the host destructures them where
-//     the group stood. One the host uses ABOVE the group is reported - read it; a function declaration was hoisted.
-//
-// What it cannot see, it refuses; what it moved it prints. Read the diff.
+// Moves a contiguous group of a host function's members verbatim into its own module, deciding each name by rule.
+// Run: node tools/hostMove.mjs <host> --group a,b --to <module> --name createX [--write]; then read the diff.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, relative, basename } from 'node:path';
 import { parse } from 'acorn';
 import { isMain } from './lib/isMain.mjs';
 import { parseModule, findHostFunction, scopeOf } from './hostScope.mjs';
 
-/** The names a pattern binds. */
 function bound(p, out = []) {
   if (!p) return out;
   if (p.type === 'Identifier') out.push(p.name);
@@ -45,7 +19,6 @@ function bound(p, out = []) {
 const isFn = (n) => n.type === 'FunctionDeclaration' || n.type === 'FunctionExpression' || n.type === 'ArrowFunctionExpression';
 const childKeys = (n) => Object.keys(n).filter((k) => k !== 'loc' && k !== 'start' && k !== 'end' && k !== 'type');
 
-/** Every identifier a subtree names - references and bindings alike, never a non-computed key. */
 function namesIn(roots) {
   const out = new Set();
   const walk = (n, parent, key) => {
@@ -62,7 +35,6 @@ function namesIn(roots) {
   return out;
 }
 
-/** Whether a function's own body reads `this` (an arrow inside it reads the same `this`; a nested function does not). */
 function readsThis(fnNode) {
   let found = false;
   const walk = (n) => {
@@ -75,10 +47,6 @@ function readsThis(fnNode) {
   return found;
 }
 
-/** Names a block (or function body / program) declares directly: let/const/class at block level; var and function
- *  declarations hoisted to the nearest function - over-approximated here as the block that holds them, which only
- *  ever shadows MORE, so a host reference is never wrongly left as a local one by it... except a `var` declared in an
- *  inner block and read outside it; such a group is refused below. */
 function blockDecls(stmts) {
   const out = new Set();
   for (const s of stmts) {
@@ -88,8 +56,6 @@ function blockDecls(stmts) {
   return out;
 }
 
-/** Every host-scope reference in `roots`: [{ node, name, parent, key }] - identifiers that resolve to no declaration
- *  inside the group, by scope. `own` are the group's own top-level names (resolved in the module, left alone). */
 function hostRefs(roots, own) {
   const refs = [];
   let varInBlock = false, keyedNext = false;
@@ -104,9 +70,9 @@ function hostRefs(roots, own) {
       keyedNext = false;
       return;
     }
-    if (n.type === 'MetaProperty') return;   // new.target, import.meta - no binding
+    if (n.type === 'MetaProperty') return;
     if (n.type === 'Property' && n.shorthand && n.value?.type === 'AssignmentPattern' && n.value.left.type === 'Identifier') {
-      keyedNext = true;   // the default's own target, next: it keeps its key when rewritten
+      keyedNext = true;
       walk(n.value.left, n.value, 'left', scopes);
       keyedNext = false;
       walk(n.value.right, n.value, 'right', scopes);
@@ -117,8 +83,6 @@ function hostRefs(roots, own) {
       const ps = new Set(n.params.flatMap((p) => bound(p)));
       if (n.id && n.type === 'FunctionExpression') ps.add(n.id.name);
       const pscopes = [...scopes, ps];
-      // the parameters' defaults in the parameters' scope; the body in its own, inside it. The declaration's own id
-      // is the outer scope's.
       for (const p of n.params) walkPattern(p, pscopes);
       walk(n.body, n, 'body', [...pscopes, n.body.type === 'BlockStatement' ? blockDecls(n.body.body) : new Set()]);
       return;
@@ -139,14 +103,13 @@ function hostRefs(roots, own) {
       else if (v && typeof v.type === 'string') walk(v, n, k, inner);
     }
   };
-  // a binding pattern's own names are declarations, not references - but its defaults and computed keys are reads
   const walkPattern = (p, scopes) => {
     if (!p) return;
     if (p.type === 'AssignmentPattern') { walkPattern(p.left, scopes); walk(p.right, p, 'right', scopes); }
     else if (p.type === 'ObjectPattern') for (const q of p.properties) { if (q.type === 'RestElement') walkPattern(q.argument, scopes); else { if (q.computed) walk(q.key, q, 'key', scopes); walkPattern(q.value, scopes); } }
     else if (p.type === 'ArrayPattern') for (const q of p.elements) walkPattern(q, scopes);
     else if (p.type === 'RestElement') walkPattern(p.argument, scopes);
-    else if (p.type === 'MemberExpression') walk(p, null, null, scopes);   // an assignment target, `a.b = ...`
+    else if (p.type === 'MemberExpression') walk(p, null, null, scopes);
   };
   for (const r of roots) {
     if (r.type === 'VariableDeclaration') for (const d of r.declarations) { walkPattern(d.id, []); if (d.init) walk(d.init, d, 'init', []); }
@@ -156,10 +119,8 @@ function hostRefs(roots, own) {
   return { refs, varInBlock };
 }
 
-/** The plan for moving `names` out of `hostFile`'s host function into `toFile` as `createName`. */
 export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' }) {
   const src = readFileSync(hostFile, 'utf8');
-  // parseModule's options, with the comments kept - the doc block above the group moves with it
   const comments = [];
   const ast = parse(src, { ecmaVersion: 'latest', sourceType: 'module', locations: true, allowHashBang: true, onComment: comments });
   const host = findHostFunction(ast, fn);
@@ -167,7 +128,6 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
   const { members, owner } = scopeOf(host);
   const refuse = [];
 
-  // THE GROUP: contiguous members
   const group = [...new Set(names.map((n) => { const m = owner.get(n); if (!m) refuse.push(`${n} is not a member of ${host.name}`); return m; }).filter(Boolean))].sort((a, b) => a.i - b.i);
   if (refuse.length) return { refuse };
   for (let k = 1; k < group.length; k++) if (group[k].i !== group[k - 1].i + 1) refuse.push(`the group is not contiguous: ${group[k - 1].names[0]} and ${group[k].names[0]} have members between them`);
@@ -175,9 +135,8 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
   const own = new Set(group.flatMap((m) => m.names));
   for (const m of group) if (m.isLet) refuse.push(`${m.names.join(', ')}: a group-declared let would need a live export - move its writers with it`);
 
-  // every host-scope name: where declared, how
   const params = host.fn.params.flatMap((p) => bound(p));
-  const declAt = new Map();   // name -> { m, kind }
+  const declAt = new Map();
   for (const m of members) {
     const s = m.stmt;
     const kind = s.type === 'VariableDeclaration' ? s.kind : s.type === 'FunctionDeclaration' ? 'function' : s.type === 'ClassDeclaration' ? 'class' : null;
@@ -186,11 +145,9 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
   const writtenAnywhere = new Set();
   for (const m of members) {
     for (const n of m.wrote) writtenAnywhere.add(n);
-    // a `let x;` declared bare and first given a value by assignment is written; its own initializer is not a write
   }
 
-  // the module scope: imports, and top-level declarations
-  const imports = new Map();   // local -> { source, imported, kind }
+  const imports = new Map();
   const topLevel = new Set();
   for (const s of ast.body) {
     if (s.type === 'ImportDeclaration') for (const sp of s.specifiers) imports.set(sp.local.name, { source: s.source.value, imported: sp.type === 'ImportSpecifier' ? (sp.imported.name ?? sp.imported.value) : sp.type === 'ImportDefaultSpecifier' ? 'default' : '*' });
@@ -213,13 +170,11 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
       const above = d && d.m.i < first.i;
       const settled = d
         ? (d.kind === 'function' && neverWritten) || (above && (d.kind === 'const' || (d.kind === 'class' && neverWritten) || ((d.kind === 'let' || d.kind === 'var') && neverWritten && d.m.stmt.declarations?.every((x) => x.init))))
-        : neverWritten;   // a parameter
+        : neverWritten;
       (settled ? byValue : live).add(n);
     } else if (imports.has(n)) mod.set(n, imports.get(n));
     else if (topLevel.has(n)) stray.add(n);
-    // anything else is a global (Math, window, performance...) - left as it is
   }
-  // what the group assigns of the host's (by spelling - a local of the same name only makes a name live that need not be)
   for (const m of group) for (const n of m.wrote) if (!own.has(n) && (declAt.has(n) || params.includes(n)) && refs.some((r) => r.name === n)) writes.add(n);
   for (const n of writes) { byValue.delete(n); live.add(n); }
   for (const n of stray) refuse.push(`${n} is a top-level declaration of ${hostFile} - move it to a module both can import first`);
@@ -230,7 +185,6 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
     if (fnNode && fnNode.type !== 'ArrowFunctionExpression' && isFn(fnNode) && readsThis(fnNode)) refuse.push(`${n} is called live, and \`${handle}.${n}()\` would make \`this\` the handles object - its function reads \`this\`; move it by hand`);
   }
 
-  // what the rest of the host uses of the group, and whether any of it is used above the group
   const exported = new Set(), above = [];
   for (const m of members) {
     if (group.includes(m)) continue;
@@ -238,15 +192,13 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
   }
   for (const m of members) if (!group.includes(m)) for (const n of m.wrote) if (own.has(n)) refuse.push(`${n} is assigned outside the group`);
 
-  // the text: the group's span, with its doc comment above
   let start = first.stmt.start;
   const lineStart = (pos) => src.lastIndexOf('\n', pos - 1) + 1;
   start = lineStart(start);
   for (let k = comments.length - 1; k >= 0; k--) {
     const c = comments[k];
     if (c.end > start) continue;
-    // FIELD BUGS 2026-10-14 (PARTY-LOOT's move): a comment that ENDS a code line above is that line's, never the group's
-    // doc - taken as one, its line (a host `let` above the group) went into the module and out of the host
+    // A comment that ends a code line above belongs to that line, never to the group's doc.
     if (src.slice(lineStart(c.start), c.start).trim()) break;
     const between = src.slice(c.end, start);
     if (/^[ \t]*\n?[ \t]*$/.test(between) && !/\n\s*\n/.test(between)) start = lineStart(c.start); else break;
@@ -258,7 +210,6 @@ export function planMove({ hostFile, fn, names, toFile, ctor, handle = 'host' })
 
 export function renderMove(p) {
   const { src, start, end, refs, byValue, live, writes, mod, exported, handle, hostFile, toFile, ctor, host } = p;
-  // the module: the group's text, every live reference read through the handle
   const edits = refs.filter((r) => live.has(r.name)).map((r) => {
     const shorthand = (r.parent?.type === 'Property' && r.parent.shorthand && r.key === 'value') || r.keyed;
     return { from: r.node.start, to: r.node.end, text: shorthand ? `${r.name}: ${handle}.${r.name}` : `${handle}.${r.name}` };
@@ -307,7 +258,6 @@ export function renderMove(p) {
     '}',
   ].filter((x) => x !== null).join('\n')}\n`;
 
-  // the host: the group's span replaced by the construction
   const getters = sortedLive.map((n) => `get ${n}() { return ${n}; },${writes.has(n) ? ` set ${n}(v) { ${n} = v; },` : ''}`);
   const construction = [
     `  ${ret.length ? `const { ${ret.join(', ')} } = ` : ''}${ctor}({   // HOST-SPLIT: ${toFile}`,
@@ -316,7 +266,6 @@ export function renderMove(p) {
     '  });',
   ].filter((x) => x !== null).join('\n');
   let hostText = src.slice(0, start) + construction + '\n' + src.slice(end);
-  // the import of the constructor, after the host's last import
   const lastImport = [...hostText.matchAll(/^import [^;]+;[^\n]*\n/gm)].pop();
   const spec = `./${relative(dirname(hostFile), toFile).replace(/\\/g, '/')}`;
   const line = `import { ${ctor} } from '${spec.startsWith('./..') ? spec.slice(2) : spec}';   // HOST-SPLIT\n`;
@@ -325,7 +274,6 @@ export function renderMove(p) {
   return { moduleText, hostText, importLines, construction };
 }
 
-/** Imports of the host that nothing in the host reads any more - after a move, the ones the group took with it. */
 export function unusedImports(hostText, candidates) {
   const ast = parseModule(hostText);
   const used = new Set();
@@ -347,7 +295,6 @@ export function unusedImports(hostText, candidates) {
   return [...candidates].filter((n) => !used.has(n));
 }
 
-/** The host's import lines with `names` taken out (a line left empty goes). */
 export function dropImports(hostText, names) {
   if (!names.length) return hostText;
   const ast = parseModule(hostText);
@@ -373,7 +320,6 @@ export function dropImports(hostText, names) {
   return hostText;
 }
 
-/** A text from the host as it reads in the moved module: each live name read through the handle. */
 const asMoved = (text, live, handle) => {
   let t = text;
   for (const n of live) t = t.replace(new RegExp(`(?<![\\w$.])${n.replace(/\$/g, '\\$')}(?![\\w$])`, 'g'), `${handle}.${n}`);
@@ -381,8 +327,6 @@ const asMoved = (text, live, handle) => {
 };
 const count = (hay, needle) => hay.split(needle).length - 1;
 
-/** Each element of a JSON array of objects, as [start, end) of its own braces - a scan that knows strings, so a brace
- *  in a quoted value is no brace, and a record's fields are found in whatever order it wrote them. */
 function recordSpans(text) {
   const spans = [];
   let depth = 0, inString = false, from = -1;
@@ -396,9 +340,6 @@ function recordSpans(text) {
   return spans;
 }
 
-/** THE RECORDS MOVE WITH THE CODE: every mutant record (tools/mutants/*.json) and every doc anchor (bible/**, the
- *  CITE-ANCHOR form - a file's name, a colon, the quoted line) that named moved text in the host is pointed at the module - verbatim where the
- *  text moved verbatim, through the handle where a live name was rewritten. What it cannot place once, it reports. */
 export function retargetRecords({ hostFile, toFile, handle = 'host', write = false, root = '.' }) {
   const host = readFileSync(`${root}/${hostFile}`, 'utf8'), mod = readFileSync(`${root}/${toFile}`, 'utf8');
   const live = [...new Set([...mod.matchAll(new RegExp(`(?<![\\w$.])${handle}\\.([A-Za-z_$][\\w$]*)`, 'g'))].map((m) => m[1]))];
@@ -409,9 +350,7 @@ export function retargetRecords({ hostFile, toFile, handle = 'host', write = fal
     let list;
     try { list = JSON.parse(text); } catch { continue; }
     if (!Array.isArray(list)) continue;
-    // edited IN PLACE, never re-serialised: each list keeps its own layout, and the diff is the three strings that moved.
-    // A record opens with its "name" (every list's shape; a quote inside a value is escaped, so the key cannot stand in
-    // one), so a record's text runs from its name to the next.
+    // Records are edited in place, never re-serialized, so each list keeps its own layout.
     const spans = recordSpans(text);
     if (spans.length !== list.length) { if (list.some((m) => m.file === hostFile && !host.includes(m.old))) report.unplaced.push(`${f}: its records could not be told apart - by hand`); continue; }
     let out = text;
@@ -421,7 +360,7 @@ export function retargetRecords({ hostFile, toFile, handle = 'host', write = fal
       const old = count(mod, m.old) === 1 ? m.old : asMoved(m.old, live, handle);
       if (count(mod, old) !== 1) { report.unplaced.push(`${f}::${m.name}`); continue; }
       const nw = old === m.old ? m.new : asMoved(m.new, live, handle);
-      const [from, to] = spans[k];   // the record's own braces - its fields and nobody else's
+      const [from, to] = spans[k];
       let span = out.slice(from, to);
       const swaps = [[m.file, toFile], [m.old, old], [m.new, nw]].filter(([a, b]) => a !== b);
       if (!swaps.every(([a]) => count(span, JSON.stringify(a)) === 1)) { report.unplaced.push(`${f}::${m.name} (its strings are not written as JSON writes them)`); continue; }
@@ -430,7 +369,7 @@ export function retargetRecords({ hostFile, toFile, handle = 'host', write = fal
       report.records++;
     }
     if (out !== text && write) {
-      JSON.parse(out);   // still a list - a bad edit throws here, before it is written
+      JSON.parse(out);
       writeFileSync(path, out);
     }
   }
@@ -447,7 +386,7 @@ export function retargetRecords({ hostFile, toFile, handle = 'host', write = fal
       const q = count(mod, quote) === 1 ? quote : asMoved(quote, live, handle);
       if (count(mod, q) !== 1) { report.unplaced.push(`${path.slice(root.length + 1)}: ${all}`); return all; }
       changed = true; report.anchors++;
-      return `${dir}${toBase}:"${q}"`;   // the module stands beside its host (main refuses otherwise), so the anchor's path keeps its folder
+      return `${dir}${toBase}:"${q}"`;
     });
     if (changed && write) writeFileSync(path, out);
   }
@@ -456,7 +395,6 @@ export function retargetRecords({ hostFile, toFile, handle = 'host', write = fal
 
 function main(args) {
   if (args[0] === '--records') {
-    // the records of a move already written: node tools/hostMove.mjs --records <host> <module> [--write]
     const r = retargetRecords({ hostFile: args[1], toFile: args[2], write: args.includes('--write') });
     console.log(`records retargeted: ${r.records}; anchors retargeted: ${r.anchors}${r.unplaced.length ? `\nUNPLACED - by hand:\n  ${r.unplaced.join('\n  ')}` : ''}`);
     return;

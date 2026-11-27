@@ -1,30 +1,5 @@
-// ═══════════════════════════════════════════════════════════════════
-// GROUND TEXTURE PROTOTYPE (Mac: prototype and develop the new ground
-// textures BEFORE any code change, so he can see them).
-//
-// THE SHAPE OF THE PROBLEM, read off the data first: a climate ground
-// archive is not four tiles. TEXTURE.302 carries 56 records - FOUR
-// bases (water, dirt, grass, stone) and fifty-two BLEND tiles that
-// carry Daggerfall's own hand-drawn transition shapes between them.
-// Replacing four tiles and leaving the rest is a world with sharp
-// grass and blurry edges.
-//
-// SO THE BLENDS ARE DERIVED, NOT DRAWN. Every original texel is
-// classified to the base it belongs to by palette distance; that
-// mask is upsampled smoothly; the new high-res bases are composited
-// through it. The world keeps Daggerfall's exact tile shapes - the
-// same coastlines, the same paths - at whatever resolution the bases
-// are drawn at, and any two tiles meet seamlessly because they are
-// made of the same four surfaces.
-//
-// THE BASES themselves are procedural and TILEABLE BY CONSTRUCTION:
-// every noise lookup is periodic over the tile, so a base repeats
-// without a seam, and the blends inherit that.
-//
-//   node tools/groundProto.mjs [--arena2 DIR] [--size 512] [--archive 302]
-//
-// Writes to prototype/ground/: the four bases, every derived tile, a
-// before/after sheet, and a tiled ground-plane preview.
+// Prototypes high-resolution ground textures: tileable procedural bases composited through each record's mask.
+// Run: node tools/groundProto.mjs [--arena2 DIR] [--size 512] [--archive 302]; it writes prototype/ground/.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { PNG } from 'pngjs';
 import { TextureFile } from '../src/formats/textureFile.js';
@@ -39,9 +14,6 @@ const SIZE = Number(arg('size', 512));
 const ARCHIVE = arg('archive', '302');
 const OUT = 'prototype/ground';
 
-// ── periodic value noise ───────────────────────────────────────────
-// Tileable by construction: the lattice wraps at `period`, so a
-// texture sampled over [0,period) repeats with no seam.
 function makeNoise(seed) {
   const p = new Uint8Array(512);
   let s = seed >>> 0;
@@ -76,8 +48,6 @@ const fbm = (n, x, y, period, octaves, gain = 0.5) => {
   for (let o = 0; o < octaves; o++) { sum += a * n(x * f, y * f, period * f); norm += a; a *= gain; f *= 2; }
   return sum / norm;
 };
-/** Periodic Worley - the cell centres live on a wrapping lattice, so
- *  pebbles and clumps repeat without a seam. */
 function worley(x, y, period, seed) {
   const rnd = (i, j) => {
     let h = ((i * 374761393) ^ (j * 668265263) ^ (seed * 2246822519)) >>> 0;
@@ -103,31 +73,22 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const shade = (rgb, k) => rgb.map((v) => clamp(v * k, 0, 255));
 
-// ── the four bases ─────────────────────────────────────────────────
-// Each is a function (u, v) -> [r,g,b] over [0,1), tileable.
 function baseGrass(n, px) {
   const P = 8;
   return (u, v) => {
     const x = u * P; const y = v * P;
-    // patchy colour: two greens plus a dry straw, drifted by low fbm
     const patch = fbm(n, x * 0.6, y * 0.6, P * 0.6, 4);
     const dry = clamp((fbm(n, x * 0.35 + 11, y * 0.35 - 7, P * 0.35, 3) - 0.45) * 3.2, 0, 1);
     let c = mix([58, 84, 40], [86, 112, 52], clamp((patch - 0.35) * 2.2, 0, 1));
     c = mix(c, [124, 122, 68], dry * 0.55);
-    // blade grain: high-frequency directional streaks, the thing a
-    // 64px tile could only suggest
-    // blades: a fine anisotropic streak field, two crossing lays so
-    // the sward has direction without combing all one way
     const b1 = fbm(n, x * 52 + 3, y * 13 - 5, P * 52, 2);
     const b2 = fbm(n, x * 15 + 61, y * 44 + 8, P * 44, 2);
     const blade = (b1 * 0.6 + b2 * 0.4);
     c = shade(c, 0.72 + blade * 0.62);
-    // clumps: Worley domes read as tufts, brighter at their crowns
     const { f1, f2 } = worley(x * 5, y * 5, P * 5, 91);
     const tuft = clamp((f2 - f1) * 2.2, 0, 1);
     c = shade(c, 0.84 + tuft * 0.34);
-    c = mix(c, [40, 58, 30], clamp(1 - tuft * 2.4, 0, 1) * 0.35);   // shadow between clumps
-    // sparse soil showing through the thin places
+    c = mix(c, [40, 58, 30], clamp(1 - tuft * 2.4, 0, 1) * 0.35);
     const bare = clamp((0.30 - patch) * 4, 0, 1) * clamp(1 - tuft, 0, 1);
     c = mix(c, [96, 76, 52], bare * 0.5);
     return c;
@@ -141,8 +102,6 @@ function baseDirt(n) {
     const tone = fbm(n, x * 1.1 - 4, y * 1.1 + 2, P * 1.1, 4);
     let c = mix([116, 88, 58], [150, 118, 78], clamp((tone - 0.35) * 2.0, 0, 1));
     c = shade(c, 0.88 + grain * 0.26);
-    // pebbles: small Worley cells with a catch-light and a dropped
-    // shadow, PLACED rather than smeared
     const { f1, f2 } = worley(x * 9 + 0.5, y * 9 + 0.5, P * 9, 17);
     const stone = clamp((0.16 - f1) * 9, 0, 1) * clamp((f2 - f1) * 3, 0, 1);
     if (stone > 0.01) {
@@ -158,8 +117,6 @@ function baseStone(n) {
   const P = 6;
   return (u, v) => {
     const x = u * P; const y = v * P;
-    // plates: Worley cells domed off sqrt(f2)-sqrt(f1) so each plate
-    // has volume instead of being one flat tone
     const warpX = (fbm(n, x * 0.8, y * 0.8, P * 0.8, 3) - 0.5) * 0.9;
     const warpY = (fbm(n, x * 0.8 + 31, y * 0.8 - 17, P * 0.8, 3) - 0.5) * 0.9;
     const { f1, f2 } = worley(x * 2.2 + warpX, y * 2.2 + warpY, P * 2.2, 53);
@@ -167,10 +124,8 @@ function baseStone(n) {
     const grit = fbm(n, x * 22, y * 22, P * 22, 2);
     let c = mix([84, 84, 86], [138, 137, 130], dome);
     c = shade(c, 0.9 + grit * 0.22);
-    // the seam between plates goes dark and a hair cool
     const seam = clamp(1 - dome * 3.2, 0, 1);
     c = mix(c, [46, 48, 54], seam * 0.7);
-    // lichen, sparse and green, only on the crowns
     const lich = clamp((fbm(n, x * 3 + 60, y * 3 + 12, P * 3, 3) - 0.62) * 5, 0, 1) * dome;
     c = mix(c, [96, 108, 62], lich * 0.45);
     return c;
@@ -182,8 +137,6 @@ function baseWater(n) {
     const x = u * P; const y = v * P;
     const depth = fbm(n, x * 0.9 + 5, y * 0.9 - 3, P * 0.9, 4);
     let c = mix([26, 54, 86], [44, 92, 128], clamp((depth - 0.35) * 2.2, 0, 1));
-    // two crossing ripple trains, periodic so they tile
-    // wavelets: a warped ridged field reads as chop, not corduroy
     const wx = x + (fbm(n, x * 1.6, y * 1.6, P * 1.6, 3) - 0.5) * 2.4;
     const wy = y + (fbm(n, x * 1.6 + 23, y * 1.6 + 11, P * 1.6, 3) - 0.5) * 2.4;
     const ridge = 1 - Math.abs(fbm(n, wx * 7, wy * 5, P * 7, 3) - 0.5) * 2;
@@ -194,13 +147,11 @@ function baseWater(n) {
   };
 }
 
-// ── read the archive, classify, derive ─────────────────────────────
 const pal = new DFPalette();
 pal.load(new Uint8Array(readFileSync(`${ARENA2}/ART_PAL.COL`)), 'ART_PAL.COL');
 const tex = new TextureFile();
 tex.load(new Uint8Array(readFileSync(`${ARENA2}/TEXTURE.${ARCHIVE}`)), `TEXTURE.${ARCHIVE}`, pal);
 
-/** The four base records, in the archive's own order. */
 const BASES = ['water', 'dirt', 'grass', 'stone'];
 const baseRgb = BASES.map((_, i) => {
   const bm = tex.getDFBitmap(i, 0);
@@ -210,9 +161,6 @@ const baseRgb = BASES.map((_, i) => {
   return [r / n2, g / n2, b / n2];
 });
 
-/** Every texel of every record, classified to the base it belongs to
- *  by palette distance against the four base MEANS - the same reading
- *  a human makes looking at the sheet. */
 function classify(record) {
   const bm = tex.getDFBitmap(record, 0);
   const w = bm.width; const h = bm.height;
@@ -232,7 +180,6 @@ function classify(record) {
 const noise = makeNoise(0x51ed);
 const surfaces = [baseWater(noise), baseDirt(noise), baseGrass(noise), baseStone(noise)];
 
-/** One base, rendered at SIZE. */
 function renderBase(i) {
   const png = new PNG({ width: SIZE, height: SIZE });
   for (let y = 0; y < SIZE; y++) {
@@ -245,16 +192,10 @@ function renderBase(i) {
   return png;
 }
 
-/** A derived tile: the original's shape, the new surfaces' detail.
- *  The mask is bilinear over the 64px classification with a little
- *  noise-warp on the lookup, so an edge reads as a natural boundary
- *  rather than a stair-stepped one. */
 function renderDerived(record, basePixels) {
   const { w, h, out } = classify(record);
   const png = new PNG({ width: SIZE, height: SIZE });
   const weightAt = (fx, fy, want) => {
-    // bilinear over a 0/1 membership field, sampled with wrap so the
-    // tile's own edges stay seamless with its neighbours
     const gx = fx * w - 0.5; const gy = fy * h - 0.5;
     const x0 = Math.floor(gx); const y0 = Math.floor(gy);
     const tx = gx - x0; const ty = gy - y0;
@@ -271,8 +212,6 @@ function renderDerived(record, basePixels) {
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
       const u = x / SIZE; const v = y / SIZE;
-      // warp the MASK lookup, not the surfaces: the boundary wanders
-      // like a real one while the ground itself stays put
       const wu = u + (fbm(noise, u * 9 + 3, v * 9 - 2, 9, 3) - 0.5) * 0.035;
       const wv = v + (fbm(noise, u * 9 + 17, v * 9 + 5, 9, 3) - 0.5) * 0.035;
       let r = 0; let g = 0; let b = 0; let tot = 0;

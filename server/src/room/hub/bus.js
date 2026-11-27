@@ -1,4 +1,3 @@
-// The bus side of the hub: shard batches, ShardSockets, the hub count, owed batches, silent shards.
 import { HUB_COUNT_MS, upOf, HUB_BATCH_MAX, isCourtCopy, busOf, SHARD_LAW_KEYS, HUB_SYNC_MS, HUB_SILENT_MS, HUB_BATCH_MS, HUB_OUTBOX_MAX, HUB_OUTBOX_BYTES } from '../../../../src/net/hubShards.js';
 import { json } from '../json.js';
 import { CLOSE_POLICY, SOCIAL_ROOM, CLOSE_REPLACED, SEAT_ELSEWHERE, badged, TRAV_STALE_MS, TRAV_WELCOME_MAX } from '../../relay.js';

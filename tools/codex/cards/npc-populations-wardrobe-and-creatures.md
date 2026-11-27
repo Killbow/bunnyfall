@@ -34,6 +34,7 @@ invariants:
   - "Spectral actors render under `SPECTRAL_VEIL` (mode `3`, alpha `SPECTRAL_ALPHA/255`); Lysandus (archive `473`) keeps his own sprite."
   - "Decor figures use `figureLook` with `FIGURE_ROLE_WORDS` over `FLATS.CFG` captions; `offerDecorFigures` places them; `isNpcFlat` filters flat sprites."
   - "Enemy look seeds sync on the wire as `ls` and worn kits as `lw`, validated by `validFoeRecord`, minted once at spawn."
+  - "`foeSeed` is minted once by the owning client, cached in `_mwSeed`, and streamed as `ls`. A copy built from a record adopts that seed, because the wire number alone is not unique between owners."
 traps:
   - "Re-deriving an enemy seed on each wire update changes its appearance mid-fight."
   - "`drawBodiesUnderWindow` must mark corpse flats `castOnly` while loot is open or dead enemies revert to sprites."

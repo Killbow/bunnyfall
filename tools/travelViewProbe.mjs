@@ -1,29 +1,6 @@
-// TV1 - THE TRAVEL VIEW, IN A REAL BROWSER (bible/06-Systems/Travel-View.md).
-//
-// The node pins drive the camera's law and the host's machine against fakes. What only a real GL and a real DOM can
-// say, this says - on a SYNTHETIC valley (CI has no ARENA2 and never will), through the real renderer:
-//
-//   1. THE FOG IS THE TRAVELLER'S. From 260 m up in a rain fog (exp 0.003), the ground at the traveller's feet is
-//      drawn as the traveller sees it - nearly clear - with the focus set, and fogged as the camera's 330 m of air
-//      would fog it without. Read off the pixel under the projected feet against the fog colour.
-//   2. THE SUN'S SHADOWS FALL ABOUT THE TRAVELLER. A block beside the feet casts onto the ground under the raised
-//      eye with the focus set; without it every cascade stands about a point in the sky and the ground is lit.
-//   3. THE FLATS LEAN. A standing sprite seen from 52 degrees down covers more screen rows leaned (the view's up)
-//      than upright - and still stands on its own foot.
-//   4. THE INPUT IS THE VIEW'S. scenes/travelView.js on a real canvas, real pointer events from the browser: a click
-//      is a pick, a drag turns the view and picks nothing, the wheel zooms, and a listener the "host" put on the
-//      window's bubble phase hears none of it; the readout's Return button brings the view down. Two screenshots.
-//   6. TV4: THE CURTAINS FROM ABOVE. A falling cell's veil 500 m north of the traveller, drawn through the real
-//      renderer's frame as the world host draws it (a foreign pass after the world): the picture greys where the veil
-//      stands, most through its middle (the chord) and least at its rim, and nothing where it does not.
-//   5. TV2: THE PLACES AND THE WAY. A place's plate is drawn on the readout's canvas (PERF-TV) and found where it
-//      landed - a click on it is the place's journey (onMark) and never a pick; the route line is drawn as an SVG path
-//      through the projected points; the trip's line is in the bar; the travel panel reads "x20 / x40" while the
-//      governor holds the clock. TV5: a far place held at the right edge, its plate on the screen, a click its journey.
-//   7. EDGE-FURNITURE + AUDIT DEEP2 E1: with the game HUD's own vitals standing (drawEnhancedHud), the Overworld's bar
-//      stands clear of them, Return is on top where it is drawn, and a mark off the foot stands over the bar.
-//
-// Usage: node tools/travelViewProbe.mjs [outDir]   (PNGs land in outDir, default scratch/tv1/)
+// Checks the travel view in a real browser on a synthetic valley: fog, shadows, leaning flats, input, curtains,
+// marks, and the bar. Usage: node tools/travelViewProbe.mjs [outDir]
+
 import { chromium } from 'playwright';
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -72,7 +49,6 @@ try {
   page.on('pageerror', (e) => pageErrors.push(String(e.message)));
   await page.goto('http://localhost:5231/play/');
 
-  // ── 1-3: THE RENDER ─────────────────────────────────────────────────────────────────────────────────────────────
   const r = await page.evaluate(async ({ W, H }) => {
     const { Renderer, WORLD_FRAME } = await import('/src/render/renderer.js');
     const { EL_LANE } = await import('/src/render/enhancedLighting.js');
@@ -84,9 +60,9 @@ try {
     const rr = new Renderer(canvas);
     const gl = rr.gl;
     const tex = (w, h, f) => { const colors = new Uint8Array(w * h * 4); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; const [a, b, c, d] = f(x, y); colors[i] = a; colors[i + 1] = b; colors[i + 2] = c; colors[i + 3] = d; } return { width: w, height: h, colors }; };
-    rr.uploadTexture(1, 1, tex(16, 16, () => [200, 200, 200, 255]));          // the ground: flat light grey, so fog and shadow read clean
-    rr.uploadTexture(1, 2, tex(16, 16, () => [150, 120, 90, 255]));           // the block
-    rr.uploadTexture(210, 1, tex(16, 32, (x, y) => [40, 140, 50, (x > 3 && x < 12) ? 255 : 0]));   // a "tree": a green bar
+    rr.uploadTexture(1, 1, tex(16, 16, () => [200, 200, 200, 255]));
+    rr.uploadTexture(1, 2, tex(16, 16, () => [150, 120, 90, 255]));
+    rr.uploadTexture(210, 1, tex(16, 32, (x, y) => [40, 140, 50, (x > 3 && x < 12) ? 255 : 0]));
     const P = [], N = [], UV = [], IDX = [], subs = [];
     const quad = (a, b, c, d, n, s = 1) => { const base = P.length / 3; for (const v of [a, b, c, d]) P.push(...v); for (let k = 0; k < 4; k++) N.push(...n); UV.push(0, 0, s, 0, s, s, 0, s); IDX.push(base, base + 1, base + 2, base, base + 2, base + 3); };
     const box = (x0, y0, z0, x1, y1, z1) => {
@@ -98,9 +74,9 @@ try {
     };
     const sub = (rec, build) => { const start = IDX.length; build(); subs.push({ textureArchive: 1, textureRecord: rec, startIndex: start, primitiveCount: (IDX.length - start) / 3 }); };
     sub(1, () => quad([-1500, 0, 1500], [1500, 0, 1500], [1500, 0, -1500], [-1500, 0, -1500], [0, 1, 0], 100));
-    sub(2, () => box(6, 0, -4, 14, 12, 4));   // a block 10 m east of the feet: its shadow falls on the ground about them
+    sub(2, () => box(6, 0, -4, 14, 12, 4));
     const mesh = rr.createMesh({ positions: new Float32Array(P), normals: new Float32Array(N), uvs: new Float32Array(UV), indices: new Uint32Array(IDX), subMeshes: subs });
-    const tree = rr.createBillboardBatch(210, 1, { w: 6, h: 18 }, [[-20, 9, 20]]);   // centres stand at half height, as the world's flats do
+    const tree = rr.createBillboardBatch(210, 1, { w: 6, h: 18 }, [[-20, 9, 20]]);
     const feet = [0, 0, 0], head = [0, 1.7, 0];
     const yaw = 0, tilt = TV_TILT_DEFAULT, height = 260;
     const { eye, fwd } = eyeFor(feet, yaw, tilt, height);
@@ -121,8 +97,9 @@ try {
       if (fog) rr.setFog('exp', 0.003, 0, 0, FOG); else rr.setFog('off', 0, 0, 0, FOG);
       rr.setPointLights(new Float32Array(0), new Float32Array(0));
       let px = null;
-      for (let f = 0; f < 4; f++) {   // the shadow maps draw from the last frame's records
-        if (focus !== undefined) rr.setFocus(focus);   // undefined: a host that never sets it (an interior, a dungeon)
+      // The shadow maps draw from the previous frame's records, so each read waits several frames.
+      for (let f = 0; f < 4; f++) {
+        if (focus !== undefined) rr.setFocus(focus);
         rr.beginFrame(proj, view, new Float32Array([0.6, 0.55, 0.2]), WORLD_FRAME);
         rr.drawMesh(mesh, I, null);
         rr.drawBillboards([tree], new Float32Array(rightOf(yaw)), new Float32Array(up));
@@ -132,26 +109,21 @@ try {
       return px;
     };
     const feetPx = project(feet);
-    // 2. the shadow: the ground just by the block, where the sun throws its shadow; 1. is read off open ground clear of it
     const shadowPt = project([2, 0, -2]);
     const litPt = project([-12, 0, -12]);
-    // 1. the fog - read on open ground a few metres from the feet, clear of the block's shadow
     const fogOff = frame({ focus: null, lane: true, fog: true });
     const fogOn = frame({ focus: head, lane: true, fog: true });
     const clear = frame({ focus: head, lane: true, fog: false });
-    // AUDIT TV B1: the view's frames, then a host that never sets the focus (a door taken with the view up)
     frame({ focus: head, lane: true, fog: true });
     const fogAfter = frame({ focus: undefined, lane: true, fog: true });
     const shOff = frame({ focus: null, lane: true, fog: false });
     const shOn = frame({ focus: head, lane: true, fog: false });
-    // 3. the flats: count the tree's green rows upright and leaned
     const green = (px) => { let rows = 0; let foot = -1; for (let y = 0; y < H; y++) { let hit = false; for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (px[i + 1] - px[i] > 35 && px[i + 1] - px[i + 2] > 35) { hit = true; break; } } if (hit) { rows++; if (foot < 0) foot = y; } } return { rows, foot }; };
     const upright = frame({ focus: head, lane: true, fog: false, up: [0, 1, 0] });
     const leaned = frame({ focus: head, lane: true, fog: false, up: leanedUp(yaw, tilt) });
-    // 6. TV4: the curtains - the same frame, the pass drawn after the world as the host draws it
     const { RainCurtainsRenderer, curtainsOf } = await import('/src/render/rainCurtains.js');
     const rc = new RainCurtainsRenderer(gl);
-    const cells = [{ x: 0, z: 500, r: 250 / 0.55, base: 600, top: 2600, fall: 1, fallKind: 0 }];   // R 250 m, its near face 250 m north - inside the picture's lower half
+    const cells = [{ x: 0, z: 500, r: 250 / 0.55, base: 600, top: 2600, fall: 1, fallKind: 0 }];
     const curtains = curtainsOf(cells, { focus: head, eye, ground: 0 });
     const withCurtain = (on, v = view, e = eye) => {
       rr.setLightingLane(EL_LANE); rr.setAir(false); rr.setClearColor([0.35, 0.4, 0.5, 1]);
@@ -161,14 +133,11 @@ try {
       rr.setFocus(head);
       rr.beginFrame(proj, v, new Float32Array([0.6, 0.55, 0.2]), WORLD_FRAME);
       rr.drawMesh(mesh, I, null);
-      if (on) { rc.draw(curtainsOf(cells, { focus: head, eye: e, ground: 0 }), proj, v, e, 1, { light: 0, fog: null }); rr.markForeignPass(); }   // black: the change IS the veil's alpha over the ground
+      if (on) { rc.draw(curtainsOf(cells, { focus: head, eye: e, ground: 0 }), proj, v, e, 1, { light: 0, fog: null }); rr.markForeignPass(); }
       rr.resolveFrame();
       return read();
     };
     const cOff = withCurtain(false), cOn = withCurtain(true);
-    // THE CHORD, read from a level eye 600 m south at 60 m (the view's lowest tilt looks much like it): the picture's
-    // middle row crosses the veil from rim to rim against the sky, so along it the veil ends where the line of sight
-    // grazes it - dense through its middle, thin at its rims
     const eye2 = [0, 60, -600], view2 = lookAt(eye2, [0, 60, 500], [0, 1, 0]);
     const lOff = withCurtain(false, view2, eye2), lOn = withCurtain(true, view2, eye2);
     const midPx = project([0, 20, 250]), besidePx = project([-420, 0, 150]);
@@ -203,7 +172,6 @@ try {
   check(r.curtain.row.atMid > r.curtain.row.nearRim * 1.5, `TV4: denser through its middle than near its rim, across its row - the chord (${r.curtain.row.atMid} against ${r.curtain.row.nearRim}, the veil ${r.curtain.row.x0}..${r.curtain.row.x1})`);
   check(cd(r.curtain.besideOn, r.curtain.besideOff) < 2, `TV4: and nothing where it does not stand (${r.curtain.besideOff} -> ${r.curtain.besideOn})`);
 
-  // ── 4: THE INPUT ────────────────────────────────────────────────────────────────────────────────────────────────
   const page2 = await browser.newPage({ viewport: { width: 1366, height: 768 } });
   page2.on('pageerror', (e) => pageErrors.push(String(e.message)));
   await page2.goto('http://localhost:5231/play/');
@@ -215,14 +183,12 @@ try {
     const canvas = document.createElement('canvas');
     canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;background:#223';
     document.body.append(canvas);
-    // AUDIT DEEP2 E1: the game HUD's own vitals stand, as they do under the view in the game
     const { drawEnhancedHud } = await import('/src/ui/enhancedHud.js');
     const vitals = { health: 96, maxHealth: 118, fatigue: 104 * 64, maxFatigue: 120 * 64, magicka: 40, maxMagicka: 80, currentBreath: 0 };
     for (let i = 0; i < 3; i++) drawEnhancedHud(vitals, 0.1, 16, { hidden: false, reticleHidden: true });
-    // the page's own title screen boots behind this set-up (the awaited import gives it time) - never under the view
     const noIntro = document.createElement('style'); noIntro.textContent = '#intro { display: none !important; }'; document.head.append(noIntro);
     const log = window.__tv = { picks: [], hostHeard: [], cursor: [], marked: [] };
-    for (const t of ['pointerdown', 'mousedown', 'wheel', 'contextmenu']) window.addEventListener(t, (e) => { if (e.target === canvas) log.hostHeard.push(t); });   // the host's own ladders: the bubble phase
+    for (const t of ['pointerdown', 'mousedown', 'wheel', 'contextmenu']) window.addEventListener(t, (e) => { if (e.target === canvas) log.hostHeard.push(t); });
     let yaw = 0;
     const tv = createTravelView({
       canvas, feet: () => [0, 0, 0], headView: () => ({ eye: [0, 1.7, 0], fwd: forwardOf(yaw, 0) }), yaw: () => yaw, setYaw: (y) => { yaw = y; },
@@ -230,10 +196,10 @@ try {
       freeCursor: (f) => log.cursor.push(f), where: () => 'Near Daggerfall, Daggerfall',
       project: (p) => (p ? { x: innerWidth / 2 + p[0] * 4, y: innerHeight / 2 - p[2] * 4, front: true } : null),
       onPick: (x, y) => log.picks.push([Math.round(x), Math.round(y)]),
-      onMark: (k) => log.marked.push(k),   // TV2: a plate's click
+      onMark: (k) => log.marked.push(k),
       marks: () => [{ key: 'place:7', at: [60, 0, 40], label: 'Ripwych', kind: 'place', pick: true },
-        { key: 'far:9', at: [2000, 0, 10], label: 'Daggerfall', sub: '12 km', kind: 'far', pick: true, edge: true },   // TV5: a far place off the picture's right
-        { key: 'far:foot', at: [0, 0, -2000], label: 'Glenpoint', sub: '18 km', kind: 'far', pick: true, edge: true }],   // EDGE-FURNITURE: one off the foot
+        { key: 'far:9', at: [2000, 0, 10], label: 'Daggerfall', sub: '12 km', kind: 'far', pick: true, edge: true },
+        { key: 'far:foot', at: [0, 0, -2000], label: 'Glenpoint', sub: '18 km', kind: 'far', pick: true, edge: true }],
       route: () => [[0, 0, 0], [20, 0, 10], [40, 0, 30], [60, 0, 40]],
       trip: () => 'To Ripwych, by the road',
       hud: { show: hud.showTravelViewHud, hide: hud.hideTravelViewHud, update: hud.updateTravelViewHud, pickAt: hud.travelViewHudPickAt },
@@ -259,36 +225,31 @@ try {
   check(st.h < h0, `the wheel zoomed in (${h0.toFixed(0)} -> ${st.h.toFixed(0)})`);
   check(st.hostHeard.length === 0, `the host's own listeners heard nothing (${JSON.stringify(st.hostHeard)})`);
   check(JSON.stringify(st.cursor) === '[true]', 'the cursor freed once');
-  // TV2: the plate takes a click - the place's journey, never a pick. PERF-TV: the plate is DRAWN on the readout's
-  // canvas, so the click lands on the world's canvas and the view finds the plate by where it landed
   const picksBefore = st.picks.length;
   const plate = await page2.evaluate(() => window.__tvHud.travelViewHudState().hits.find((h) => h.key === 'place:7') ?? null);
   check(!!plate, `the plate is drawn and takes a click (${JSON.stringify(plate)})`);
+  // The plate is drawn on the readout canvas, so the view finds a click on the world canvas by its position.
   if (plate) await page2.mouse.click((plate.x0 + plate.x1) / 2, plate.y0 + 6);
-  const lit = await page2.waitForFunction(() => document.body.style.cursor === 'pointer', null, { timeout: 2000 }).then(() => 'pointer', () => page2.evaluate(() => document.body.style.cursor));   // the hover is the next frame's
+  const lit = await page2.waitForFunction(() => document.body.style.cursor === 'pointer', null, { timeout: 2000 }).then(() => 'pointer', () => page2.evaluate(() => document.body.style.cursor));
   const tv2 = await page2.evaluate(() => ({ marked: window.__tv.marked, picks: window.__tv.picks.length,
     d: document.querySelector('.tview-route-line')?.getAttribute('d') ?? '', trip: document.querySelector('.tview-trip')?.textContent ?? '' }));
   check(JSON.stringify(tv2.marked) === '["place:7"]' && tv2.picks === picksBefore, `a plate's click is the place's journey, not a pick (${JSON.stringify(tv2)})`);
   check(lit === 'pointer', `the pointer over a plate says it takes a click (cursor ${lit})`);
-  // TV5: the far place, held at the right edge with its plate on the screen, is a journey too
   const farBox = await page2.evaluate(() => window.__tvHud.travelViewHudState().hits.find((h) => h.key === 'far:9') ?? null);
   check(!!farBox && farBox.x1 <= 1366 && farBox.x0 > 1000, `TV5: the far place is held at the right edge, its plate on the screen (${JSON.stringify(farBox)})`);
   if (farBox) await page2.mouse.click((farBox.x0 + farBox.x1) / 2, (farBox.y0 + farBox.y1) / 2);
   const farMarked = await page2.evaluate(() => window.__tv.marked.slice());
   check(JSON.stringify(farMarked) === '["place:7","far:9"]', `TV5: a far place's click is its journey (${JSON.stringify(farMarked)})`);
-  // PERF-TV: the marks are painted - the plate's brass is on the canvas where the hit box says
   const painted = await page2.evaluate(({ x, y }) => { const c = document.querySelector('.tview-canvas'); const g = c.getContext('2d'); const d = devicePixelRatio || 1; const px = g.getImageData(Math.round(x * d), Math.round(y * d), 1, 1).data; return [...px]; }, { x: plate ? (plate.x0 + plate.x1) / 2 : 0, y: plate ? plate.y1 - 8 : 0 });
   check(painted[3] > 0, `the plate's dot is painted on the canvas (${painted})`);
   check(/^M\d+ \d+ L/.test(tv2.d), `the route line is drawn (${tv2.d.slice(0, 40)})`);
   check(tv2.trip === 'To Ripwych, by the road', `the trip is in the bar (${tv2.trip})`);
   const barBox = await page2.locator('.tview-bar').boundingBox();
   check(!!barBox && barBox.x >= 0 && barBox.x + barBox.width <= 1366 && barBox.y + barBox.height <= 768, `the readout's bar is on screen (${JSON.stringify(barBox)})`);
-  // EDGE-FURNITURE: a far place off the foot stands ABOVE the real bar, its name over its arrow, where a click finds it
   const footBox = await page2.evaluate(() => window.__tvHud.travelViewHudState().hits.find((h) => h.key === 'far:foot') ?? null);
   check(!!footBox && !!barBox && footBox.y1 <= barBox.y && footBox.y0 > barBox.y - 90, `EDGE-FURNITURE: the mark off the foot stands just above the bar (${JSON.stringify(footBox)}, the bar from ${barBox?.y})`);
   const footTop = footBox ? await page2.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.className ?? '', { x: (footBox.x0 + footBox.x1) / 2, y: footBox.y0 + 14 }) : '';
-  check(!/tview-bar|tview-back/.test(String(footTop)), `EDGE-FURNITURE: nothing of the bar over its plate (${footTop})`);   // the bar takes pointers since AUDIT DEEP2 E13, so this can fail
-  // AUDIT DEEP2 E1: the bar clear of the HUD's vitals; Return on top where it is drawn
+  check(!/tview-bar|tview-back/.test(String(footTop)), `EDGE-FURNITURE: nothing of the bar over its plate (${footTop})`);
   const e1 = await page2.evaluate(() => {
     const r = (s) => { const b = document.querySelector(s)?.getBoundingClientRect(); return b ? { l: b.left, t: b.top, r: b.right, b: b.bottom } : null; };
     const bar = r('.tview-bar'), vit = r('.hud-bottom'), back = r('.tview-back');
@@ -303,7 +264,6 @@ try {
   await page2.waitForFunction(() => window.__tvObj.state === 'off', null, { timeout: 5000 });
   const end = await page2.evaluate(() => ({ cursor: window.__tv.cursor, shown: getComputedStyle(document.getElementById('travel-view')).display }));
   check(JSON.stringify(end.cursor) === '[true,false]' && end.shown === 'none', `Return brought it down and put everything back (${JSON.stringify(end)})`);
-  // the phone
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await phone.goto('http://localhost:5231/play/');
   await phone.evaluate(async () => {
@@ -313,7 +273,6 @@ try {
     hud.updateTravelViewHud({ feet: { x: 195, y: 420, front: true }, heading: 30, yaw: 0.5, where: 'The wilds of the Wrothgarian Mountains', touch: true });
   });
   const pb = await phone.locator('.tview-bar').boundingBox();
-  // TV2: the travel panel says when the governor holds the clock under the spinner
   const held = await phone.evaluate(async () => {
     const { drawEnhancedTravelControl, hideEnhancedTravelControl } = await import('/src/ui/enhancedTravelControl.js');
     drawEnhancedTravelControl({ showing: true, destination: 'Ripwych', accel: 40, held: 20 });

@@ -1,10 +1,7 @@
-// Tests the in-game POI editor's panel layout and saved snap steps and camera speed (ui/poi/poiLayout.js).
-// Run: node --test tools/poiLayout.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dockTops, fitPoiLayout, readPoiLayout, createPoiPrefs, readPoiPrefs, POI_LAYOUT_KEY, POI_PREFS_KEY, POI_LAYOUT_DEFAULTS, POI_LAYOUT_BOUNDS, POI_SNAP_KEPT_MAX } from '../src/ui/poi/poiLayout.js';
 
-/** An in-memory Storage double, and one that throws on every call to simulate blocked storage. */
 const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, m }; };
 const blocked = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } };
 
@@ -17,7 +14,6 @@ test('layout: reads saved sizes, clamps them to bounds, and fits them to the win
   s.setItem(POI_LAYOUT_KEY, 'not json');
   assert.deepEqual(readPoiLayout(s), { ...POI_LAYOUT_DEFAULTS });
   assert.deepEqual(fitPoiLayout({ left: 10, right: 9999, dm: 10 }, 3000, 1200), { left: POI_LAYOUT_BOUNDS.left[0], right: POI_LAYOUT_BOUNDS.right[1], dm: POI_LAYOUT_BOUNDS.dm[0] });
-  // a narrow window: the docks shrink to keep the minimum gap between them, the right dock first
   const f = fitPoiLayout({ left: 400, right: 600, dm: 900 }, 1280, 720);
   assert.ok(f.left + f.right <= 1280 - 32 - POI_LAYOUT_BOUNDS.gap, JSON.stringify(f));
   assert.equal(f.left, 400);

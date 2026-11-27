@@ -1,4 +1,3 @@
-// The `world` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isWorldRoom, byteGate, FOES_ROOM_BYTES_PER_S, worldFrameMaxFor, WORLD_MIN_MS, WORLD_CHUNK } from '../../relay.js';
 import { WORLD_META, worldChunkKey } from '../../room/keys.js';
 

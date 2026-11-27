@@ -23,6 +23,7 @@ invariants:
 traps:
   - "381-383 hide only the groin; 398 leaves knees visible because its side hem rises to 29.4."
   - "A hood that binds nothing restores hair through capsHead and bareHeadRows in src/combat/fpArm.js."
+  - "A `composeWornArmor` note about a piece must start with its untranslated label (`outfit <id>:`, `armor <template>:`, or the garment name), because `wornVerdicts` in `src/combat/fpArm.js` matches notes to pieces by that prefix."
 dfu: []
 tags:
   - "wardrobe"

@@ -1,34 +1,10 @@
-// WD2 (2026-09-25): A MOD'S SPRITE THAT IS A CLASSIC RECORD, OR ONE WITH
-// THE AUTHOR'S EDITS ON IT - REBUILT FROM THE PLAYER'S OWN ART.
-//
-// Detailed Ships (Cliffworms) ships thirteen pictures under two archives
-// of its own, 1210 and 1230. Measured against every record of every
-// TEXTURE file (tools/detailedShipsAssets.mjs), five of them are classic
-// records exported whole - a map, a loaf, a scroll - moved to the new
-// archive so an xml can size them; four more are classic records with
-// the author's paint on them (fruit in an empty basket, a potion's
-// colour, a cork). A render of game data IS game data (Port-Doctrine),
-// so none of those nine are carried: the spec below names the classic
-// record, where it stands on the picture, and the pixels the author
-// changed, and the picture is rebuilt from the player's own ARENA2 when
-// the archive loads (systems/textureReplacement.js `build`). The author's
-// own drawings - which no classic record is - ship as the files they are.
-//
-// A spec:
-//   { from: [archive, record, frame?],    the classic record, frame 0 by default
-//     size: [width, height],              the picture (default: the record's)
-//     at: [x, y],                         where the record's top-left lands (default 0, 0)
-//     edits: [[x, y, 'rrggbbaa'], ...] }  the author's pixels, top-down, laid over it
-// A pixel the record does not cover and no edit names is clear.
+// Rebuilds a mod picture from a classic record in the player data plus pixel edits by the mod author, so no game
+// data ships with the mod. Spec: { from: [archive, record, frame?], size: [w, h], at: [x, y], edits: [[x, y,
+// 'rrggbbaa'], ...] }. Edits are top-down, and pixels that neither the record nor an edit covers are transparent.
 
 const hex = (s, i) => Number.parseInt(s.slice(i, i + 2), 16);
 
-/**
- * Build the picture. `classicRgba(archive, record, frame)` resolves to a
- * top-down RGBA picture of the player's record (index 0 clear), the one
- * shape a decoded PNG has too.
- * @returns {Promise<{width:number, height:number, data:Uint8Array}>}
- */
+/** @returns {Promise<{width:number, height:number, data:Uint8Array}>} */
 export async function buildDerivedPicture(spec, classicRgba) {
   const [archive, record, frame = 0] = spec.from;
   const src = await classicRgba(archive, record, frame);
@@ -36,7 +12,6 @@ export async function buildDerivedPicture(spec, classicRgba) {
   return composeDerivedPicture(spec, src);
 }
 
-/** The synchronous half, over a record already read. */
 export function composeDerivedPicture(spec, src) {
   const [w, h] = spec.size ?? [src.width, src.height];
   const [ax, ay] = spec.at ?? [0, 0];
@@ -59,7 +34,6 @@ export function composeDerivedPicture(spec, src) {
   return { width: w, height: h, data };
 }
 
-/** A classic record as a top-down RGBA picture: its palette's colours, index 0 clear (the billboard cutout, TextureReader's alphaIndex 0). */
 export function classicRecordRgba(bitmap, palette) {
   const { width, height } = bitmap;
   const data = new Uint8Array(width * height * 4);
@@ -70,10 +44,8 @@ export function classicRecordRgba(bitmap, palette) {
   }
   return { width, height, data };
 }
-/** A classic record of the player's own as such a picture, read through a texture source (`getTexture(archive)`, a
- *  pipeline's or an interior builder's) and its palette - null where the player's data has none: no archive, a mod's own
- *  (`vendor`), no such record, an empty one. The one read for every painter of a classic record (SHIP-LIVERY's paint
- *  shop, CABIN-LOOK's stain - AUDIT 2026-10-17: two copies, the paint shop's without the record's guard). */
+// Returns null unless the player's own data holds a non-empty record. A mod archive (`vendor`) never counts as
+// classic data.
 export async function classicPictureOf(getTexture, palette, archive, record) {
   const t = await getTexture(archive);
   if (!t || t.vendor || !(record < t.recordCount)) return null;
@@ -81,21 +53,12 @@ export async function classicPictureOf(getTexture, palette, archive, record) {
   return bm?.width ? classicRecordRgba(bm, palette) : null;
 }
 
-/**
- * The spec that rebuilds `picture` from `src` placed at `at` - every
- * pixel that differs is an edit (the tool's half; a picture that IS the
- * record comes back with none).
- */
 export function deriveSpec(from, picture, src, at = [0, 0]) {
   const base = composeDerivedPicture({ from, size: [picture.width, picture.height], at }, src);
   const edits = [];
   for (let y = 0; y < picture.height; y++) {
     for (let x = 0; x < picture.width; x++) {
       const i = (y * picture.width + x) * 4;
-      // A pixel clear in both is equal: the colour Unity's importer bled under
-      // a clear pixel (Alpha Is Transparency) never draws - the cutout drops
-      // it - and the port keeps index 0's black there, as under every
-      // classic sprite.
       if (picture.data[i + 3] === 0 && base.data[i + 3] === 0) continue;
       if (picture.data[i] === base.data[i] && picture.data[i + 1] === base.data[i + 1] && picture.data[i + 2] === base.data[i + 2] && picture.data[i + 3] === base.data[i + 3]) continue;
       const c = [0, 1, 2, 3].map((k) => picture.data[i + k].toString(16).padStart(2, '0')).join('');
@@ -109,24 +72,8 @@ export function deriveSpec(from, picture, src, at = [0, 0]) {
   return spec;
 }
 
-/**
- * CSA-A (2026-09-27): A PICTURE THAT IS A CLASSIC RECORD TILED UNDER THE
- * AUTHOR'S PAINT. Come Sail Away's thirty-two wave frames (archive 112395,
- * record 2, 640x640) are the author's wave shapes and dark troughs laid over
- * Daggerfall's own snow, TEXTURE.303 record 1, repeated across the frame:
- * every crest pixel is the record's, exactly. And the frames are two
- * pictures, each scrolled down the same sixteen steps. The edit list above
- * would be a quarter of a million pixels a frame, so this kind carries the
- * author's pixels as pictures of their own - the PAINT - in which one
- * colour, the spec's `key`, means "the record's pixel here":
- *   { from: [archive, record, frame?], size: [width, height],
- *     paint: '<file>',      the author's picture this frame is cut from
- *     scroll: n,            the frame's row y is the paint's row (y + n) mod height
- *     tile: [px, py],       the record's pixel under the FRAME's (x, y) is ((x + px) mod w, (y + py) mod h)
- *     key: 'rrggbbaa' }     the paint colour that is not the author's
- * A key pixel comes back opaque with the record's colour; every other paint
- * pixel is the author's as it stands.
- */
+// Row y of the frame comes from paint row (y + scroll) mod height. A paint pixel equal to `key` takes the record's
+// pixel at ((x + px) mod w, (y + py) mod h), fully opaque.
 export function composeTiledPicture(spec, src, paint) {
   const [w, h] = spec.size;
   if (paint.width !== w || paint.height !== h) throw new Error(`derived texture: a ${paint.width}x${paint.height} paint for a ${w}x${h} picture`);
@@ -148,14 +95,7 @@ export function composeTiledPicture(spec, src, paint) {
   return { width: w, height: h, data };
 }
 
-/**
- * The tool's half of composeTiledPicture: the paint that rebuilds `picture`
- * over `src` tiled at `tile`. An opaque pixel that is the record's becomes
- * the key; a clear pixel becomes clear black (a cut-out never draws the
- * colour under it); every other pixel is the author's. Refuses a picture
- * that already holds the key colour of its own.
- * @returns {{ paint: {width:number,height:number,data:Uint8Array}, fromRecord: number, own: number, clear: number }}
- */
+/** @returns {{ paint: {width:number,height:number,data:Uint8Array}, fromRecord: number, own: number, clear: number }} */
 export function deriveTiledPaint(picture, src, tile, key) {
   const { width: w, height: h } = picture;
   const k = [hex(key, 0), hex(key, 2), hex(key, 4), hex(key, 6)];

@@ -1,5 +1,3 @@
-// The room's Hold'em tables, read once a wake and saved. It answers the table words, stakes,
-// top-ups, and voids, keeps the receipts and cash-outs owed, and runs ghosts, leaves, and the tick.
 import { emptyTable as holdemEmpty, nextAt as holdemNextAt, stateDelta as holdemDelta, tableLook as holdemLook, holdemGoldTable, newTable, sitRefusal as holdemSitRefusal, sit as holdemSit, stand as holdemStand, actAt as holdemAct, topUp as holdemTopUp, tick as holdemTick } from '../../../src/net/holdemTable.js';
 import { iliacEmpty } from '../../../src/net/iliacTable.js';
 import { gambitEmpty } from '../../../src/net/gambit/gambitTable.js';

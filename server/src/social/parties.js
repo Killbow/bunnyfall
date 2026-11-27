@@ -1,5 +1,3 @@
-// Parties on the hub: kept through a bounded cache and stored, a living party's view said to its
-// members, and the invite, accept, decline, leave, kick, and lead words.
 import { partyKey } from '../room/keys.js';
 import { PARTY_OFFLINE_MS, mintPartyId, PARTY_MAX, INVITE_TTL_MS, PARTY_INVITES_MAX, PENDING_MAX } from '../relay.js';
 import { withoutRoom } from '../staffFollow.js';
@@ -76,8 +74,7 @@ export class PartiesPart {
     const t = this._targetOf(me, m);
     if (t.error) return t.error;
     const them = t.acct;
-    // Refuse a non-friend named by account before the online check, or the reply reveals whether
-    // any id is online.
+    // Refuse a non-friend named by account before the online check, or the reply reveals whether any id is online.
     if (m.acct && !rec.friends.includes(them)) return 'meet them first';
     if (!this._socketsOf(them).length) return 'they are not online';
     const trec = await this._acct(them);

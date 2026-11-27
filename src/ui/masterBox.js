@@ -90,7 +90,7 @@ export function drawMasterBox(box, kit, r, { station, book, state, free, rerende
     sel.append(none);
     const others = picks.filter((_, j) => j !== i);
     const procElsewhere = others.filter((k) => options.find((o) => o.key === k)?.proc).length >= MASTER_PROCS_MAX;
-    for (const [proc, word] of [[false, t('prof.master.bonuses', 'Bonuses')], [true, t('prof.master.effects', 'Effects, one at most')]]) {
+    for (const [proc, word] of [[false, t('prof.master.bonuses', 'Bonuses')], [true, t('prof.master.effects', 'Effects (at most one)')]]) {
       const group = /** @type {HTMLOptGroupElement} */ (el('optgroup'));
       group.label = String(word);
       for (const o of options.filter((x) => x.proc === proc)) {
@@ -107,7 +107,7 @@ export function drawMasterBox(box, kit, r, { station, book, state, free, rerende
     lines.append(lab);
   });
   sec.append(lines);
-  sec.append(el('p', 'px-note', t('prof.master.takes', 'It takes these goods, the station\'s fee and these catalysts:')));
+  sec.append(el('p', 'px-note', t('prof.master.takes', 'Requires these goods, the station fee, and these catalysts:')));
   const goods = masterGoods(r, book);
   for (const g of goods) {
     const words = t('prof.page.craft.input', '{name} {have} / {need} ({held} stored)', { name: name(g.key), have: Math.min(g.have, g.n), need: g.n, held: g.have });
@@ -122,11 +122,11 @@ export function drawMasterBox(box, kit, r, { station, book, state, free, rerende
     sec.append(el('div', cls.join(' '), words));
   }
   const made = book?.state?.master?.made === true;
-  sec.append(el('p', `px-note${made ? ' prof-short' : ''}`, made ? t('prof.master.madeToday', 'Today\'s Master\'s work is made. The next can be made after midnight UTC.')
+  sec.append(el('p', `px-note${made ? ' prof-short' : ''}`, made ? t('prof.master.madeToday', 'You have already made a Master\'s work today. You can make another after midnight UTC.')
     : t('prof.master.oneADay', 'One Master\'s work a day.')));
   const can = free && !made && !busy && masterChoiceRefusal(r, picks) === null && needs.every((c) => c.have >= c.need)
     && (goods.every((g) => g.have >= g.n) || goodsFromRaw(r, book, goods));
-  const btn = /** @type {HTMLButtonElement} */ (el('button', 'act primary prof-master-go', busy ? t('prof.master.making', 'Making...') : t('prof.master.go', 'Make the Master\'s work')));
+  const btn = /** @type {HTMLButtonElement} */ (el('button', 'act primary prof-master-go', busy ? t('prof.master.making', 'Making...') : t('prof.master.go', 'Make Master\'s work')));
   btn.type = 'button';
   btn.disabled = !can;
   btn.onclick = async () => {

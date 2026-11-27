@@ -1,14 +1,6 @@
-// L10N2 (2026-09-27): THE CLASSIC TEXT PATH, IN A REAL BROWSER, IN EVERY SCRIPT THE PORT OFFERS.
-//
-// test/ui/l10n2.test.js runs the face over a fake canvas; what only a browser can show is the real one: the system's
-// fonts rasterised through OffscreenCanvas, the pages uploaded to a real WebGL renderer, and ui/text.js's drawText
-// putting ink where each line should be. It needs no ARENA2: the classic font here is a stand-in FNT with blank
-// glyphs, so English (which keeps Daggerfall's own glyphs) draws nothing, and every other language draws only through
-// its face - lit pixels are the face's, and nothing else's.
-//
-// Run against a dev server:
-//     npx vite --port 5199 &
-//     node tools/classicTextProbe.mjs            (PROBE_SHOTS=dir to keep the picture)
+// Draws the classic text path in a real browser in every offered script and checks where the ink lands.
+// Run: npx vite --port 5199 & node tools/classicTextProbe.mjs (PROBE_SHOTS=dir keeps the picture).
+
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -54,7 +46,6 @@ const out = await page.evaluate(async (lines) => {
   const gl = renderer.gl;
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-  // a stand-in FONT0003: blank glyphs, Daggerfall's metrics
   const fnt = { fixedHeight: 9, fixedWidth: 6, glyphWidth: () => 5, getGlyphPixels: () => new Uint8Array(256) };
   const font = text.makeFont(renderer, fnt, 'FONT0003');
   const was = tm.currentLocale();

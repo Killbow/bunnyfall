@@ -10,6 +10,7 @@ files:
   - src/player/motor.js
   - src/world/terrainLodWorld.js
   - src/scenes/frame/motorFrame.js
+  - src/travel/immersiveTravel.js
 routes: []
 tables: []
 replacesBible:
@@ -23,10 +24,13 @@ invariants:
   - "Feelers run at `FEELER_HEIGHT = STEP_OFFSET + 0.1` in `FEELER_LEG = 8` m legs through the motor collider (`createColliderProbe`). They ride up to `FEELER_RIDES = 4` walkable faces per leg (`TRAVEL-NAV2`)."
   - "`travelFrameReach` bounds a frame as `speed * min(dt, MAX_FRAME_DT) * scale` plus one fixed step. `MAX_FRAME_DT = 0.25` (`src/player/motor.js`) is applied before scaling."
   - "Steering runs only when `settings.avoidObstacles` is on and the traveller is not at sea. A `'stuck'` or `'blocked'` stop shows `MsgStuck`/`MsgBlocked` and interrupts."
+  - "A leg with a `lane` or `path` aims every frame at a point `LANE_LOOK_STEPS` frame steps ahead along the line, clamped to `lookMin`..`lookMax`, instead of the mod's once-per-pixel re-aim."
+  - "With `limitedRangeInSmallDocks` on, `seafarerRefusal` still allows any dock destination when `borderingRegionIndex` returns -1, as the mod does."
 traps:
   - "A position jump above `jumpMin` and `jumpReaches` times the frame reach (ship boarding, teleport) re-seats the line without spending the detour or headway budget."
   - "`TRAVEL-STRAFE`: held `A`/`D` suspends detours, re-aligns the line from the sidestep, and exempts the move from the headway/grind windows. The full corridor is still cast while strafing."
   - "`travelDriveForward` holds forward force when `travelLookaheadFor` (`floor: 64`, `margin: 1.5`) finds unbuilt ground ahead, so the body cannot fall through unstreamed terrain."
+  - "On a carriage trip `itTogglePress` refuses any press that would switch Rest from `At inns` to `Camp out`, sets `sleepModeInn` back to true, and returns `carriageNoCampOut`."
 dfu: []
 tags:
   - travel-options

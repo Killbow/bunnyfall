@@ -162,17 +162,17 @@ function dumpRdb(p, b) {
       out(q + 'index', objs[i].index);
       out(q + 'x', objs[i].xPos); out(q + 'y', objs[i].yPos); out(q + 'z', objs[i].zPos);
       out(q + 'type', objs[i].type);
-      if (objs[i].type === 1) {  // Model
+      if (objs[i].type === 1) {
         const m = objs[i].resources.modelResource;
         out(q + 'm.xr', m.xRotation); out(q + 'm.yr', m.yRotation); out(q + 'm.zr', m.zRotation);
         out(q + 'm.modelIndex', m.modelIndex);
         out(q + 'm.trigLock', m.triggerFlagStartingLock);
         out(q + 'm.sound', m.soundIndex);
         dumpAction(q + 'm.act.', m.actionResource);
-      } else if (objs[i].type === 2) {  // Light
+      } else if (objs[i].type === 2) {
         const l = objs[i].resources.lightResource;
         out(q + 'l.u1', l.unknown1); out(q + 'l.u2', l.unknown2); out(q + 'l.radius', l.radius);
-      } else if (objs[i].type === 3) {  // Flat
+      } else if (objs[i].type === 3) {
         const fl = objs[i].resources.flatResource;
         out(q + 'f.arch', fl.textureArchive); out(q + 'f.rec', fl.textureRecord);
         out(q + 'f.flags', fl.flags); out(q + 'f.magnitude', fl.magnitude);

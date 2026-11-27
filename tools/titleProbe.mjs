@@ -1,16 +1,5 @@
-// U21c: the title screen, proved by a real boot and a real click.
-//
-// The menu path is the BARE url, so there is no __shotReady flag to wait
-// on (that belongs to the scene hosts) - this probe waits for the status
-// line instead, which runTitle/runMenu set as they hand off.
-//
-// It shoots THREE frames: the title screen, the menu it advances to on a
-// click, and - with the logo file moved aside - the boot with no logo at
-// all, which must land on the menu directly rather than on a black hole.
-// The NEVER TRAPS law is the one worth a live proof; a pin can only
-// assert that runTitle returns early, not that the boot survives it.
-//
 // Usage: node tools/titleProbe.mjs [outdir]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { existsSync, renameSync } from 'node:fs';

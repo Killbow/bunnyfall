@@ -1,14 +1,7 @@
-// STUDIO1 (2026-10-17, bible/07-Rendering/Studio-Art.md): THE STUDIO'S TOOL - what the game's artists can paint, the
-// pictures they start from, and whether their folder is ready to ship.
-//
-//   node tools/studioArt.mjs                 every slot the port paints itself, and which the studio already covers
-//   node tools/studioArt.mjs templates [dir] each slot's picture as the game wears it today, as a PNG named the way the
-//                                            studio names it - repaint it, drop it in your folder (default dir:
-//                                            studio-templates/, which git ignores)
-//   node tools/studioArt.mjs check           the folder's rules (scripts/studioArtIndex.mjs) and every picture decoded;
-//                                            exits 1 on a problem - the suite runs the same check
-//
-// The studio page (studio.html, on the dev server and the site) shows and hands out the same templates in a browser.
+// `node tools/studioArt.mjs` lists the painted slots and which ones the studio covers.
+// `node tools/studioArt.mjs templates [dir]` writes each slot's current picture as a PNG template.
+// `node tools/studioArt.mjs check` checks the studio folder and exits 1 on a problem.
+
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -23,11 +16,8 @@ import { STUDIO_SETS, studioSlots } from '../src/systems/studioArt/studioSlots.j
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
-/** Every picture the studio holds, by the key it paints. */
 const studioByKey = (listing) => new Map(studioEntries(listing.files).map((e) => [e.key, e]));
 
-/** AUDIT STUDIO1 C4: the pictures git would never commit - a folder named as one .gitignore passes over - each with the
- *  pattern that ignores it. Nothing outside a git checkout (a tree of a test's own). */
 function ignoredByGit(at, files) {
   if (!files.length) return [];
   const r = spawnSync('git', ['check-ignore', '-v', '--no-index', '--stdin'], { cwd: at, input: files.map((f) => `${STUDIO_TREE}/${f}`).join('\n'), encoding: 'utf8' });
@@ -38,15 +28,6 @@ function ignoredByGit(at, files) {
   });
 }
 
-/**
- * THE CHECK: the folder's rules, then - `problems`, which fail - every picture decoded whole (a header can say PNG over
- * bytes that will not decode), a picture git would never commit (C4), and a name of a painted model's archive that is
- * none of its slots (no door asks for it: a digit dropped, the frame mistyped); and `notes`, said: a picture whose shape
- * is not its slot's (its face would stretch it), clear texels on a slot the game draws solid (they come out black), and
- * an archive past TEXTURE.511 that is no painted model's (a mod's, or a number to check). Daggerfall's own archives'
- * names cannot be checked here: they are the player's data. Exported for the suite
- * (test/systems/studioArt/studio1_folder.test.js, auditstudio1.test.js).
- */
 export async function checkStudio(at = root) {
   const listing = studioListing(at);
   const problems = [...listing.problems], notes = [];
@@ -96,7 +77,7 @@ async function list(at, log) {
 }
 
 async function templates(at, log, dir = null) {
-  const out = dir ? resolve(dir) : join(at, 'studio-templates');   // a folder named is the caller's; the default is the checkout's (ignored)
+  const out = dir ? resolve(dir) : join(at, 'studio-templates');
   let n = 0;
   for (const set of STUDIO_SETS) {
     mkdirSync(join(out, set.id), { recursive: true });
@@ -118,10 +99,6 @@ async function check(at, log) {
   return problems.length ? 1 : 0;
 }
 
-/**
- * The tool's commands, run over the checkout at `at` (AUDIT STUDIO1 E13: a tree of a test's own), each line said to
- * `log`. Answers the exit code: 0, 1 when `check` finds a problem, 2 for a command it does not know.
- */
 export async function studioCli([cmd = 'list', arg] = [], { at = root, log = console.log } = {}) {
   if (cmd === 'list') return list(at, log);
   if (cmd === 'templates') return templates(at, log, arg);

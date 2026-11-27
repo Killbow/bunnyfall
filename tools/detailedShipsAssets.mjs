@@ -1,28 +1,6 @@
 #!/usr/bin/env node
-// DS1 (2026-09-25): DETAILED SHIPS 1.0.0 (Cliffworms) - EVERY VENDORED
-// FILE, OUT OF THE SHIPPED BUNDLE AND THE PLAYER'S OWN BLOCKS.BSA.
-//
-//   node tools/detailedShipsAssets.mjs <arena2> "<path-to>/detailed ships.dfmod" [outDir]
-//
-// Default outDir is vendor/detailed-ships. What it writes, and why each
-// is what it is:
-//
-// - `WorldDataPatches/SHIPAA0x.RMB-<index>-building0.json` - the author's
-//   edit of each ship's building record (formats/worldData/worldDataPatch.js); the
-//   record itself is the player's classic block.
-// - `Textures/derived.json` - the pictures that ARE classic records, or
-//   classic records with the author's paint on them, as specs
-//   (formats/derivedTexture.js). Each is found by measurement, not by a
-//   list: every record of every TEXTURE file is tried at every offset
-//   that keeps the picture on it, and a picture whose visible pixels a
-//   record covers by DERIVED_SHARE or more is carried as that record plus
-//   the pixels that differ. The rebuild is checked exact (visible pixels)
-//   before anything is written.
-// - `Textures/<name>.png` - the pictures no classic record is: the
-//   author's own drawings (and the Kynareth statue the readme credits to
-//   King of Worms and Zoran), re-encoded from the bundle's pixels.
-// - `Textures/<name>.xml` - the scale files, the bundle's text verbatim.
-// - `detailed-ships.dfmod.json` - the manifest, verbatim.
+// Writes the vendored Detailed Ships files from the shipped bundle and local BLOCKS.BSA into vendor/detailed-ships.
+// Run: node tools/detailedShipsAssets.mjs <arena2> "<path>/detailed ships.dfmod" [outDir].
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -37,12 +15,10 @@ import { DFPalette } from '../src/formats/dfPalette.js';
 import { classicRecordRgba, deriveSpec, composeDerivedPicture } from '../src/formats/derivedTexture.js';
 import { makePatch, formatPatch } from './worldDataPatch.mjs';
 
-/** A picture is a classic record's when the record covers at least this share of its visible pixels exactly. */
 export const DERIVED_SHARE = 0.6;
 
 const visible = (pic, i) => pic.data[i * 4 + 3] !== 0;
 
-/** How many of `pic`'s visible pixels `src` placed at (ax, ay) matches exactly. */
 function coverage(pic, src, ax, ay) {
   let same = 0;
   for (let y = 0; y < pic.height; y++) {
@@ -59,7 +35,6 @@ function coverage(pic, src, ax, ay) {
   return same;
 }
 
-/** Every classic record, frame 0..n, as RGBA - the search space (DW-E3's fish go through it too). */
 export function* classicRecords(arena2, palette) {
   for (const f of readdirSync(arena2).filter((n) => /^TEXTURE\.\d{3}$/i.test(n)).sort()) {
     const t = new TextureFile();
@@ -74,7 +49,6 @@ export function* classicRecords(arena2, palette) {
   }
 }
 
-/** The best classic source for a picture, or null: records within one pixel of its size, at every offset that keeps them on it. */
 export function findClassicSource(pic, records) {
   let visibleCount = 0;
   for (let i = 0; i < pic.width * pic.height; i++) if (visible(pic, i)) visibleCount++;
@@ -94,7 +68,6 @@ export function findClassicSource(pic, records) {
 
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 
-/** Everything the vendor directory holds, as { path: bytes | string } - pure but for the two files it reads. */
 export function detailedShipsAssets(arena2, bundleBytes) {
   const bundle = readUnityBundle(bundleBytes);
   const palette = new DFPalette();

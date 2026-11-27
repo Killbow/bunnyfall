@@ -1,5 +1,3 @@
-// The socket index of a room in arrival order, the account, subject, id, and guild indexes, and
-// attachments. The index walks the runtime's sockets again once IDX_TRUST_MS has passed.
 import { HELLO_WAIT_MS, CLOSE_BUSY, ACCOUNT_TABS_MAX, RELAY_VERSION } from '../relay.js';
 import { IDX_TRUST_MS, ATTACH_LAZY_MS } from '../relayScale.js';
 import { keyMove, STATUS_NAMES_MAX } from './keys.js';
@@ -24,7 +22,7 @@ export class SocketsPart {
     const sockets = this.state.getWebSockets();
     if (!this._idx) { this._idx = new Map(); this._acctIdx = null; this._subIdx = null; this._idIdx = null; this._giIdx = null; this._hostMemo = undefined; }
     let moved = false;
-    // A ShardSocket is never in the runtime's list; the walk must not drop it from the index.
+    // A ShardSocket is never in the runtime's list, so the walk must not drop it from the index.
     if (this._idx.size) { const live = new Set(sockets); for (const ws of [...this._idx.keys()]) if (!live.has(ws) && !ws.virtual) { this._idx.delete(ws); moved = true; } }
     // Keep indexed entries: after a lazy pose write the index is newer than the stored attachment.
     for (const ws of sockets) if (!this._idx.has(ws)) { let a; try { a = ws.deserializeAttachment() ?? {}; } catch { a = {}; } this._enter(ws); this._idx.set(ws, a); moved = true; }

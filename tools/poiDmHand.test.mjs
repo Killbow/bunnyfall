@@ -1,7 +1,4 @@
-// Tests the POI hand-over (src/poi/poiDmRuntime.js): the player chooses the records before an event or trade runs;
-// Cancel, the timeout, a dropped POI, a new revision, and close() hand over nothing; online, the chosen records leave
-// the pack while the act is out and come back on a refusal.
-//   node --test tools/poiDmHand.test.mjs
+// Tests the POI hand-over of chosen records before an event or trade. Run: node --test tools/poiDmHand.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';

@@ -39,7 +39,7 @@ traps:
   - "A schedule day starts at 04:00 (`DAY_START_MIN`), so night shifts cross midnight and require neighboring day plans to stay cached."
   - "In walled cities, `doorsNet` must select the navigation grid component reaching the highest number of building doors, or residents stay trapped indoors."
   - "An alerted guard spawned from a watch resident carries `livingFrom`; only a player kill counts as slaying that resident, and an unslain guard despawning returns the resident to their routine."
-  - "Traveller slots are dealt in `TRAVELLER_JOBS`, then `ROAD_JOBS`, then `MORE_JOBS` order; a new job must be appended, or every later `L<mapId>.t<slot>` id and the regard saved under it re-keys."
+  - "The best-neighbor scan covers directions 0 to 2 only, so west is never chosen as the best direction. A westward road is entered only by the random branch or by already heading west. This matches the original game."
 tags:
   - census
   - day-plan

@@ -23,6 +23,7 @@ invariants:
   - "The owner's `hv.ps` list (`[[peer, seat], ...]`, at most MAX_SEATS = 4 entries) is the only record of who sits where. A rider is seated only when the owner's word names them."
   - "The rider says `wr: { a: owner }` on its enemies frame while asking, then `wr: { s: [owner, seat] }` once seated."
   - "`hv.pn` lists the peers the owner just turned away, so the rider learns of a refusal at once instead of waiting for the ask to expire."
+  - "The owner's `go` message is `[x, y, n]`, and a seated rider follows each journey number `n` once; the owner waits `GO_LEAD_MS` after `announce` before leaving."
 traps:
   - "DFU billboards have no seated sprites, so riders and companions are drawn standing in the wagon bed."
   - "The parked box collider leaves out bodies that are still inside the footprint (capsuleInBox, bodyCapsules, playerCapsule) until they walk out. Its contact skin is CAPSULE_BOX_SKIN = 0.05."

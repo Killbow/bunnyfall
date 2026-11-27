@@ -1,5 +1,4 @@
-// Decode the ACTUAL shipped recording and measure its onset, independently of
-// the cue sheet. No mux correction is allowed to manufacture a passing result.
+// Decodes the shipped intro recording and measures its onsets independently of the cue sheet.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -54,14 +53,8 @@ function peakBetween(from, to) {
   }
   return { time: (peak * hop + size / 2) / rate, strength: normalized[peak], analysisSample: peak * hop + size / 2 };
 }
-// INTRO2b: the logo landed on the beat Mac hears "around the 19 second mark"
-// — sample 230016 of the remastered master, a true local maximum and the
-// largest raw onset between the cloud break and the close. The louder answer
-// at 252800 is still ignored, and is still reported so a replacement track
-// cannot silently swap the two. INTRO4: that beat is the film's crest now, and
-// the film is cut to four more of the recording's downbeats - bar 4 and bar 8
-// after it, bar 14 (the map's words) and bar 16 (the logo's landing) - each a
-// peak of the same flux inside a window of its bar.
+// The crest is the 19 s beat; the louder onset near 21 s is reported as crestAnswer so a replacement track cannot
+// swap the two unnoticed.
 const crest = peakBetween(19.0, 19.35), crestAnswer = peakBetween(20.85, 21.25), clouds = peakBetween(11.45, 11.95);
 const districts = peakBetween(26.5, 26.9), ascent = peakBetween(34.05, 34.45), map = peakBetween(45.4, 45.75), title = peakBetween(49.15, 49.55);
 const report = {

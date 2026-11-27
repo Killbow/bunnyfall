@@ -1,5 +1,3 @@
-// The relay Worker's entry: health and status, the relay prefix, the room key gates, and the walk
-// of layers and cells that picks the room a request reaches.
 import { json } from '../room/json.js';
 import { RELAY_VERSION, SAFE_LAW_PATH, roomOf, isChatRoom, sharedClassicMinutes, isCellRoom, isLayered, layerOf } from '../relay.js';
 import { EG_LIVE_PATH } from '../../../src/net/eliteGates/egDurable.js';
@@ -23,6 +21,7 @@ export default {
     url.pathname = url.pathname.replace(/^\/relay(?=\/)/, '');
     if (url.pathname === '/health') return json({ ok: true, service: 'daggerfall-online', version: RELAY_VERSION, t: Date.now() });
     if (url.pathname === '/status') return statusAsk(env.ROOMS);
+    // routesCheck finds relay routes by quoted path, so this names `/v1/eg/live`, which EG_LIVE_PATH holds.
     if (url.pathname === EG_LIVE_PATH) return egLiveAsk(env.ROOMS);
     if (url.pathname === SAFE_LAW_PATH) return lawDoor(request, env);
     const key = roomOf(url.pathname);

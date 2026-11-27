@@ -1,8 +1,4 @@
 // @ts-check
-// BUNNYFALL COMPANIES (2026-11-12): WHAT THE SERVICE KEEPS OF THE COMPANY FARMS (migration 0201) - who holds which farm,
-// its crop, the chores done there, and each finished day's yield put into the Company Stores on the first read after it.
-// The law both ends read is src/net/farmLaw.js. The farm's place (inside the territory, the player standing at it for a
-// chore) is the client's word: the service knows no map - a friends' server.
 import { keptWorld, dropWorld } from './worldCache.js';
 import { guildActorOf } from './guilds.js';
 import { displayName } from './accounts.js';
@@ -19,21 +15,19 @@ const mapIdOk = (m) => Number.isSafeInteger(m) && m >= 0 && m <= 0xffffffff;
 const nameOk = (n) => typeof n === 'string' && n.length >= 1 && n.length <= 48 && /^[\x20-\x7e]+$/.test(n);
 const pixelOf = (p) => (Array.isArray(p) && Number.isSafeInteger(p[0]) && Number.isSafeInteger(p[1]) && p[0] >= 0 && p[0] < 1000 && p[1] >= 0 && p[1] < 500 ? [p[0], p[1]] : [null, null]);
 const reachIds = (db, gid) => db.prepare('SELECT (SELECT map_id FROM homes WHERE guild_id = ?1) AS hall, (SELECT map_id FROM city_charter_members WHERE guild_id = ?1) AS cap').bind(gid).first();
-/** Returns six nulls unless the client measured from the same hall and Charter capital the service holds now. */
+// Six nulls unless the farm pixel is valid and the client measured from the hall and Charter capital the service
+// holds now.
 function pixelsOf(ids, { at, hall, hallMap = null, capital, capMap = null } = {}) {
   const [px, py] = pixelOf(at), [hx, hy] = pixelOf(hall), [cx, cy] = pixelOf(capital);
   const ok = px != null && (hx == null ? null : hallMap) === (ids?.hall ?? null) && (cx == null ? null : capMap) === (ids?.cap ?? null);
   return ok ? [px, py, hx, hy, cx, cy] : Array(6).fill(null);
 }
 
-/**
- * REAP A FARM to today: each finished day since it was last reaped (FARM_DAYS_MAX at most) its yield - more for each
- * chore done there that day - goes into its Company's Stores. Claimed by moving its day first.
- */
 async function reap(db, f, nowS) {
   const today = todayOf(nowS);
   const from = Math.max(Number(f.day), today - FARM_DAYS_MAX);
   if (from >= today) return f;
+  // Moving the day first claims the reap, so concurrent reads pay each finished day once.
   const claim = await db.prepare('UPDATE company_farms SET day = ?1 WHERE map_id = ?2 AND day = ?3').bind(today, f.map_id, f.day).run();
   if (!claim?.meta?.changes) return f;
   const { results } = await db.prepare('SELECT day, COUNT(*) AS n FROM company_farm_chores WHERE map_id = ?1 AND day >= ?2 AND day < ?3 GROUP BY day').bind(f.map_id, from, today).all();
@@ -54,21 +48,15 @@ async function reap(db, f, nowS) {
   return { ...f, day: today, last: JSON.stringify({ days: today - from, got: last }) };
 }
 
-/** The acting character's Company and rank, or a refusal. */
 async function actorOf(db, player, character) {
   const a = await guildActorOf(db, player, character);
   if ('error' in a) return a;
   return { gid: a.me.guild_id, rank: a.me.rank, name: String(a.me.name ?? '') };
 }
 
-/**
- * EVERY FARM, reaped to today, as the maps show them (`all`: each farm's place and its Company's colours) - and for a
- * member their Company's farms in full (`mine`: crop, today's chores, the last harvest).
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function farmsRead({ db, nowS }, player, { character, places } = {}) {
   const farmRows = 'SELECT f.*, g.tag, g.heraldry, r.px IS NOT NULL AS placed FROM company_farms f JOIN guilds g ON g.id = f.guild_id LEFT JOIN company_farm_reach r ON r.map_id = f.map_id';
-  /** null when another request loaded the list */
   let read = /** @type {any[]|null} */ (null);
   const all = await keptWorld(db, 'farms', async () => {
     const { results } = await db.prepare(farmRows).all();
@@ -81,7 +69,6 @@ export async function farmsRead({ db, nowS }, player, { character, places } = {}
   if (typeof character === 'string' && character) {
     const a = await actorOf(db, player, character).catch(() => null);
     if (a && !('error' in a)) {
-      // Members report pixels for Company farms saved without them; only the first report is stored.
       const sent = Array.isArray(places) ? places.slice(0, FARMS_MAX).filter((p) => mapIdOk(p?.mapId)) : [];
       try {
         const ids = sent.length ? await reachIds(db, a.gid) : null;
@@ -92,7 +79,7 @@ export async function farmsRead({ db, nowS }, player, { character, places } = {}
             WHERE map_id = ?1 AND px IS NULL AND hall_map IS ?8 AND cap_map IS ?9 AND map_id IN (SELECT map_id FROM company_farms WHERE guild_id = ?10)`)
             .bind(p.mapId, ...row, ids.hall, ids.cap, a.gid).run();
         }
-      } catch { /* a report never breaks the read */ }
+      } catch { }
       const today = todayOf(nowS);
       let own;
       if (read) own = read.filter((f) => f.guild_id === a.gid);
@@ -116,11 +103,7 @@ export async function farmsRead({ db, nowS }, player, { character, places } = {}
   return { ok: true, all, mine };
 }
 
-/**
- * BUY A FARM at `mapId` (its `name`, `climate`, `region` - the map's, as the client reads them) for the Company, with
- * treasury gold, growing `crop`.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function farmBuy({ db, nowS }, player, { character, mapId, name, climate, region, crop = 'food', ...placed } = {}) {
   if (!mapIdOk(mapId) || !nameOk(name) || !Number.isSafeInteger(climate) || !Number.isSafeInteger(region) || region < 0 || region > 61 || !CROP_KEYS.includes(crop)) return { error: 'farm-bad' };
   const a = await actorOf(db, player, character);
@@ -150,7 +133,6 @@ export async function farmBuy({ db, nowS }, player, { character, mapId, name, cl
   return { ok: true };
 }
 
-/** The acting Captain's or Officer's farm at `mapId`, reaped - or a refusal. */
 async function ownFarm(db, player, character, mapId, nowS, command = true) {
   if (!mapIdOk(mapId)) return { error: 'farm-bad' };
   const a = await actorOf(db, player, character);
@@ -161,28 +143,22 @@ async function ownFarm(db, player, character, mapId, nowS, command = true) {
   return { a, f: await reap(db, f, nowS) };
 }
 
-/**
- * CHANGE A FARM'S CROP (from tomorrow's yield on - today's is reaped as it was).
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function farmCrop({ db, nowS }, player, { character, mapId, crop } = {}) {
   if (!CROP_KEYS.includes(crop)) return { error: 'farm-bad' };
   const o = await ownFarm(db, player, character, mapId, nowS);
   if ('error' in o) return o;
+  // ownFarm reaps first, so the new crop applies from the next day's yield.
   await db.prepare('UPDATE company_farms SET crop = ?2 WHERE map_id = ?1').bind(mapId, crop).run();
   dropWorld(db, 'farms');
   return { ok: true };
 }
 
-/**
- * LET A FARM GO (no gold back) - a Captain's or an Officer's choice, or (`lapsed`) any member's client finding that the
- * territory no longer reaches it. A lapsed release is refused while the farm is still in reach (territory.js
- * farmInReach) or when the check fails.
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function farmRelease({ db, nowS }, player, { character, mapId, lapsed = false } = {}) {
   const o = await ownFarm(db, player, character, mapId, nowS, lapsed !== true);
   if ('error' in o) return o;
+  // A lapsed release is refused while the farm is still in reach, or when the reach check fails.
   if (lapsed === true && await farmInReach(db, o.a.gid, mapId, nowS).catch(() => true)) return { error: 'farm-in-reach' };
   await db.batch([
     db.prepare('DELETE FROM company_farms WHERE map_id = ?').bind(mapId),
@@ -195,11 +171,7 @@ export async function farmRelease({ db, nowS }, player, { character, mapId, laps
   return { ok: true };
 }
 
-/**
- * TODAY'S CHORE at a farm of the member's Company - once an account a farm a day (the client asks it only of a player
- * standing at the farm).
- * @param {{ db: any, nowS: number }} ctx
- */
+/** @param {{ db: any, nowS: number }} ctx */
 export async function farmChore({ db, nowS }, player, { character, mapId } = {}) {
   const o = await ownFarm(db, player, character, mapId, nowS, false);
   if ('error' in o) return o;

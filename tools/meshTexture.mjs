@@ -1,93 +1,27 @@
-// THE TEXTURE, BAKED OFF THE MODEL RATHER THAN PAINTED BLIND.
-//
-//     node tools/meshTexture.mjs <mesh.json> <out.dds> [--size=512]
-//                                [--rays=64] [--preview=out.png]
-//
-// FIELD-GUN-MW2 (2026-09-20). Mac asked for "texturing and rigging", and
-// the FBX he sent carries a UV unwrap and NO Material, Texture or Video
-// record at all - so there is nothing to bake FROM and no image to ship.
-// Painting one by hand into a 1024x1024 atlas, sight unseen, is guessing
-// where the barrel is; every stroke would be a claim about an island
-// whose shape nobody here can see.
-//
-// ═══ SO THE GEOMETRY PAINTS IT ════════════════════════════════════
-//
-// A texel is not a blank square: the mesh says exactly which point of
-// which triangle it covers. Rasterise the model INTO its own UV space
-// and every texel knows its 3D position, its normal and how enclosed it
-// is - and those three answer the questions a metal texture asks:
-//
-//   WHERE ON THE GUN AM I?   The long axis is the gun (+Y forward after
-//     the MW1 bake), so position along it separates muzzle from barrel
-//     from receiver from grip, and each takes its own base colour. No
-//     island has to be identified by eye.
-//
-//   HOW ENCLOSED AM I?       Ambient occlusion, cast for real: rays over
-//     the cosine hemisphere against the mesh's own triangles. This is
-//     the one shading term that belongs in a texture at all - it is
-//     view- and light-independent, where a baked highlight would fight
-//     the renderer's own lighting and follow the gun around the room.
-//
-//   WHICH WAY DO I FACE?     The normal, for the lengthwise brushing on
-//     a turned barrel and for keeping the top plates cleaner than the
-//     undersides, which is where a carried weapon actually wears.
-//
-// Everything here is DETERMINISTIC - a fixed integer hash, no seeded
-// RNG, no clock - so the same mesh bakes the same bytes and a change in
-// the output is a change somebody made.
-//
-// ═══ THIS IS A FIRST TEXTURE, NOT A FINISHED ONE ══════════════════
-//
-// Said plainly: it is a material, not artwork. It gives the model
-// believable dwemer bronze with its own occlusion so the gun reads as a
-// solid object in the hand, and `tools/meshSheets.mjs --uv` still draws
-// the unwrap for painting over. When Mac paints one, his file replaces
-// this one at the same name and nothing else moves.
+// Bakes a first texture for a mesh into a DDS: color bands along the long axis, brushing noise, and occlusion.
+// Run: node tools/meshTexture.mjs <mesh.json> <out.dds> [--size=512] [--rays=64] [--preview=out.png].
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { writePng } from './pngIO.mjs';
 import { isMain } from './lib/isMain.mjs';
 
-// ── the palette, along the gun ───────────────────────────────────────
-//
-// Four bands by FRACTION BACK FROM THE MUZZLE, and the direction is
-// stated because getting it backwards is the bug this file already
-// had: `along` was measured from the minimum of the long axis, which
-// after the MW1 bake is the BUTT - so the sooted-muzzle band painted
-// the grip and the matte-grip band painted the barrel. It looked
-// plausible on screen, because both ends are dark and only the two
-// middle bands were actually swapped.
-//
-// The boundaries are the model's own: sliced along the long axis, the
-// forward half is a uniform 0.12 x 0.14 tube for its whole length
-// (the barrel) and the rear carries everything 0.21 and 0.26 deep
-// (the receiver, then the grip).
-//
-// THE NUMBERS ARE LINEAR, and that is why they look so low: linear
-// 0.30 encodes to sRGB 0.59, so a palette typed as though these were
-// screen values comes out of the encode pale and chalky - which is
-// exactly what the first bake of this file did.
+// The palette values are linear: 0.30 encodes to sRGB 0.59.
 export const BANDS = [
-  { at: 0.00, name: 'muzzle',   colour: [0.070, 0.045, 0.026], rough: 0.90 },   // scorched, sooted
-  { at: 0.07, name: 'barrel',   colour: [0.305, 0.148, 0.036], rough: 0.55 },   // turned bronze
-  { at: 0.50, name: 'receiver', colour: [0.205, 0.112, 0.034], rough: 0.50 },   // the same alloy, cast
-  { at: 0.76, name: 'grip',     colour: [0.055, 0.034, 0.022], rough: 0.95 },   // dark, matte
+  { at: 0.00, name: 'muzzle',   colour: [0.070, 0.045, 0.026], rough: 0.90 },
+  { at: 0.07, name: 'barrel',   colour: [0.305, 0.148, 0.036], rough: 0.55 },
+  { at: 0.50, name: 'receiver', colour: [0.205, 0.112, 0.034], rough: 0.50 },
+  { at: 0.76, name: 'grip',     colour: [0.055, 0.034, 0.022], rough: 0.95 },
 ];
-/** GILDED1 (2026-10-07): THE HOURLOCK'S GOLD LEAF, the same four bands. The barrel and the receiver gilt and polished
- *  (a third of the bronze's roughness), the muzzle a scorched gilt, the grip a dark enamel - a gilded gun is gilt where
- *  the eye goes and dark where the hand does. Linear, as the bronze's are (0.80 encodes to sRGB 0.91). */
 export const GILDED_BANDS = [
-  { at: 0.00, name: 'muzzle',   colour: [0.150, 0.096, 0.030], rough: 0.80 },   // scorched gilt
-  { at: 0.07, name: 'barrel',   colour: [0.800, 0.530, 0.120], rough: 0.20 },   // gold leaf, polished
-  { at: 0.50, name: 'receiver', colour: [0.680, 0.430, 0.095], rough: 0.25 },   // the same, cast
-  { at: 0.76, name: 'grip',     colour: [0.090, 0.040, 0.020], rough: 0.85 },   // dark enamel
+  { at: 0.00, name: 'muzzle',   colour: [0.150, 0.096, 0.030], rough: 0.80 },
+  { at: 0.07, name: 'barrel',   colour: [0.800, 0.530, 0.120], rough: 0.20 },
+  { at: 0.50, name: 'receiver', colour: [0.680, 0.430, 0.095], rough: 0.25 },
+  { at: 0.76, name: 'grip',     colour: [0.090, 0.040, 0.020], rough: 0.85 },
 ];
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-/** The band colour at a fraction of the long axis, interpolated so the
- *  parts meet instead of banding. */
 export function bandAt(t, bands = BANDS) {
   const x = clamp01(t);
   let i = 0;
@@ -95,9 +29,6 @@ export function bandAt(t, bands = BANDS) {
   const a = bands[i];
   const b = bands[Math.min(i + 1, bands.length - 1)];
   const span = b.at - a.at;
-  // A SHORT blend, not a ramp across the whole band: a gun is machined
-  // parts bolted together, and a smooth gradient from muzzle to butt
-  // would read as one dipped rod.
   const k = span > 0 ? clamp01((x - a.at) / span) : 0;
   const s = k * k * (3 - 2 * k);
   return {
@@ -107,9 +38,6 @@ export function bandAt(t, bands = BANDS) {
   };
 }
 
-/** A deterministic 3D value hash: no seed, no clock, same bytes every
- *  run. Cheap integer mixing, then a trilinear blend so it is noise and
- *  not static. */
 function hash3(x, y, z) {
   let h = (Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(z | 0, 2246822519)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -128,16 +56,12 @@ export function valueNoise(x, y, z) {
   return out;
 }
 
-// ── ambient occlusion, cast against the real triangles ───────────────
-
-/** Moller-Trumbore, returning the hit distance or Infinity. */
 function rayTri(o, d, a, b, c) {
   const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
   const e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
   const p = [d[1] * e2[2] - d[2] * e2[1], d[2] * e2[0] - d[0] * e2[2], d[0] * e2[1] - d[1] * e2[0]];
   const det = e1[0] * p[0] + e1[1] * p[1] + e1[2] * p[2];
-  // NOT one-sided: this mesh is an open shell with two-sided faces
-  // (the NIF carries DrawMode Both), so a back face still occludes.
+  // Two-sided: the mesh is an open shell with two-sided faces, so a back face still occludes.
   if (Math.abs(det) < 1e-12) return Infinity;
   const inv = 1 / det;
   const t = [o[0] - a[0], o[1] - a[1], o[2] - a[2]];
@@ -150,25 +74,10 @@ function rayTri(o, d, a, b, c) {
   return dist > 1e-5 ? dist : Infinity;
 }
 
-/**
- * PER VERTEX, not per texel, and that is a decision rather than a
- * shortcut: 539 vertices against 295 triangles is five million ray
- * tests, where a 512x512 atlas would be a thousand times that for a
- * term that varies smoothly over a face anyway. The texels interpolate
- * it barycentrically, exactly as a renderer would.
- *
- * `range` bounds the occluder distance so the far side of the weapon
- * does not shade the near side into a tube of mud - AO is about
- * crevices, and on a mesh normalised to a longest axis of 1 a crevice
- * is a few hundredths.
- */
 export function vertexAO(mesh, { rays = 64, range = null } = {}) {
   const P = mesh.positions; const N = mesh.normals; const I = mesh.indices;
   const n = P.length / 3;
-  // THE RANGE IS RELATIVE TO THE MODEL, or it is a constant that only
-  // works at one scale - and the scale changed the moment the bake
-  // started emitting Morrowind units instead of a normalised 1. A
-  // crevice is a proportion of the object, not a number of units.
+  // The occlusion reach is a share of the model's longest axis, so it works at any scale.
   const reach = range ?? 0.12 * longestAxis(mesh.bounds);
   const tris = [];
   for (let t = 0; t < I.length; t += 3) {
@@ -181,7 +90,6 @@ export function vertexAO(mesh, { rays = 64, range = null } = {}) {
   const out = new Float32Array(n);
   for (let v = 0; v < n; v++) {
     const nrm = [N[v * 3], N[v * 3 + 1], N[v * 3 + 2]];
-    // An orthonormal frame about the normal, branchlessly stable.
     const s = nrm[2] >= 0 ? 1 : -1;
     const a = -1 / (s + nrm[2]);
     const b = nrm[0] * nrm[1] * a;
@@ -190,9 +98,6 @@ export function vertexAO(mesh, { rays = 64, range = null } = {}) {
     const origin = [P[v * 3] + nrm[0] * 1e-4, P[v * 3 + 1] + nrm[1] * 1e-4, P[v * 3 + 2] + nrm[2] * 1e-4];
     let open = 0;
     for (let r = 0; r < rays; r++) {
-      // A GOLDEN-RATIO SPIRAL, cosine-weighted: deterministic, evenly
-      // spread, and no two vertices share a pattern of jitter that
-      // could print itself into the atlas.
       const u1 = (r + 0.5) / rays;
       const u2 = (r * 0.6180339887498949 + v * 0.7548776662466927) % 1;
       const sinT = Math.sqrt(u1);
@@ -209,7 +114,6 @@ export function vertexAO(mesh, { rays = 64, range = null } = {}) {
         if (dist < hit) hit = dist;
         if (hit < 1e-4) break;
       }
-      // A hit beyond `reach` is the other side of the gun, not a crevice.
       open += hit >= reach ? 1 : hit / reach;
     }
     out[v] = open / rays;
@@ -217,14 +121,6 @@ export function vertexAO(mesh, { rays = 64, range = null } = {}) {
   return out;
 }
 
-// ── the UV-space bake ────────────────────────────────────────────────
-
-/**
- * Rasterise every triangle into UV space, keeping the interpolated
- * position, normal and AO per texel. V is flipped to image rows here,
- * the same way tools/meshSheets.mjs draws the unwrap, so the sheet a
- * painter works over and the sheet this writes are the same sheet.
- */
 export function bakeAttributes(mesh, size, ao) {
   const P = mesh.positions; const N = mesh.normals; const U = mesh.uvs; const I = mesh.indices;
   if (!U) throw new Error('this mesh has no UVs - there is nothing to bake into');
@@ -239,10 +135,7 @@ export function bakeAttributes(mesh, size, ao) {
     const s = idx.map(uvAt);
     const area = (s[1][0] - s[0][0]) * (s[2][1] - s[0][1]) - (s[2][0] - s[0][0]) * (s[1][1] - s[0][1]);
     if (Math.abs(area) < 1e-12) continue;
-    // CONSERVATIVE by one texel in each direction: a triangle thinner
-    // than a texel covers no pixel centre at all, and an island that
-    // bakes to nothing is a hole in the atlas that the dilation below
-    // would then fill with its neighbour's colour.
+    // Conservative by one texel each way, so a triangle thinner than a texel still covers pixels.
     const minX = Math.max(0, Math.floor(Math.min(s[0][0], s[1][0], s[2][0])) - 1);
     const maxX = Math.min(size - 1, Math.ceil(Math.max(s[0][0], s[1][0], s[2][0])) + 1);
     const minY = Math.max(0, Math.floor(Math.min(s[0][1], s[1][1], s[2][1])) - 1);
@@ -253,9 +146,6 @@ export function bakeAttributes(mesh, size, ao) {
         let w0 = ((s[1][0] - s[0][0]) * (py - s[0][1]) - (px - s[0][0]) * (s[1][1] - s[0][1])) / area;
         let w1 = ((s[2][0] - s[1][0]) * (py - s[1][1]) - (px - s[1][0]) * (s[2][1] - s[1][1])) / area;
         let w2 = ((s[0][0] - s[2][0]) * (py - s[2][1]) - (px - s[2][0]) * (s[0][1] - s[2][1])) / area;
-        // Clamped rather than rejected, which is what makes the
-        // one-texel margin above land ON the triangle's edge instead of
-        // extrapolating past it.
         const outside = w0 < 0 || w1 < 0 || w2 < 0;
         if (outside && covered[y * size + x]) continue;
         const sum = Math.abs(w0) + Math.abs(w1) + Math.abs(w2);
@@ -265,8 +155,7 @@ export function bakeAttributes(mesh, size, ao) {
           if (k <= 0) continue;
           w0 /= k; w1 /= k; w2 /= k;
         } else if (sum > 0) { w0 /= sum; w1 /= sum; w2 /= sum; }
-        // The weights are opposite-edge areas, so each belongs to the
-        // vertex ACROSS from it: w0 -> idx[2], w1 -> idx[0], w2 -> idx[1].
+        // The weights are opposite-edge areas, so w0 belongs to idx[2], w1 to idx[0], and w2 to idx[1].
         const [c, a, b] = [idx[2], idx[0], idx[1]];
         const at = y * size + x;
         for (let k = 0; k < 3; k++) {
@@ -274,86 +163,45 @@ export function bakeAttributes(mesh, size, ao) {
           nrm[at * 3 + k] = N[c * 3 + k] * w0 + N[a * 3 + k] * w1 + N[b * 3 + k] * w2;
         }
         occ[at] = ao[c] * w0 + ao[a] * w1 + ao[b] * w2;
-        covered[at] = outside ? (covered[at] || 2) : 1;   // 1 = real, 2 = margin
+        covered[at] = outside ? (covered[at] || 2) : 1;
       }
     }
   }
   return { pos, nrm, occ, covered, size };
 }
 
-/** The model's longest extent. One home, because the occlusion reach
- *  and the noise frequencies below are both PROPORTIONS of it. */
 export const longestAxis = (bounds) =>
   Math.max(...[0, 1, 2].map((k) => bounds.max[k] - bounds.min[k])) || 1;
 
-/** How far back from the MUZZLE a point is, 0 at the muzzle and 1 at
- *  the butt. One home, because the bands and the pins both ask it. */
 export function muzzleFraction(y, bounds) {
   const span = bounds.max[1] - bounds.min[1] || 1;
   return clamp01((bounds.max[1] - y) / span);
 }
 
-/** Shade one baked texel. Linear RGB out. */
 export function shadeTexel(p, n, ao, bounds, bands = BANDS) {
-  // WHERE ON THE GUN: FORWARD IS +Y after the MW1 bake, so the muzzle
-  // is the axis MAXIMUM and the fraction runs back from it. Measured
-  // from the minimum - the obvious way round - this paints the gun
-  // back to front.
+  // +Y is forward, so the muzzle is the axis maximum and the fraction runs back from it.
   const band = bandAt(muzzleFraction(p[1], bounds), bands);
   let [r, g, b] = band.colour;
 
-  // BRUSHING, along the barrel. The frequency is high across the gun
-  // and low along it, which is what a turned surface looks like: rings
-  // and lengthwise drag, not blobs.
-  //
-  // MEASURED IN MODEL LENGTHS, not in units, for the same reason the
-  // occlusion reach is: these numbers were tuned against a mesh
-  // normalised to 1, and the bake now emits Morrowind units - at 52
-  // units a frequency of 220 is eleven thousand cycles across the
-  // barrel, which is not brushing, it is static.
   const L = longestAxis(bounds);
   const q = [p[0] / L, p[1] / L, p[2] / L];
   const brush = valueNoise(q[0] * 220, q[1] * 26, q[2] * 220) - 0.5;
   const grain = valueNoise(q[0] * 60, q[1] * 60, q[2] * 60) - 0.5;
   const tone = 1 + brush * 0.34 * band.rough + grain * 0.16;
 
-  // WHICH WAY DO I FACE: the top plates of a carried weapon are
-  // polished by handling and the undersides are not. +Z is up.
   const up = clamp01(n[2] * 0.5 + 0.5);
   const wear = 0.88 + 0.26 * up * (1 - band.rough);
 
-  // HOW ENCLOSED: the occlusion, with a floor so a crevice is dark and
-  // not black - the renderer still has to light this surface, and a
-  // texel baked to zero can never be lit.
   const occ = 0.22 + 0.78 * clamp01(ao);
 
   const k = tone * wear * occ;
   r *= k; g *= k; b *= k;
-  // NO VERDIGRIS. Two versions of it were tried and both are gone: a
-  // green tint keyed on occlusion fired over most of the gun (this
-  // mesh's mean AO is 0.60, so "the deepest crevices" was nearly all
-  // of it), and tightening the threshold moved the blotches without
-  // removing them - the recessed plates along the barrel are exactly
-  // the places that are both occluded AND the most visible surface on
-  // the weapon. A patina that lands on the parts a player looks at all
-  // day is worse than no patina, and there is no threshold that
-  // distinguishes "a crevice" from "a machined channel" out of
-  // occlusion alone. If the gun should go green it should go green
-  // where an artist puts it, not where a number happens to dip.
   return [clamp01(r), clamp01(g), clamp01(b)];
 }
 
-/** sRGB encode - the texture is colour, and a linear buffer written
- *  straight out is the classic too-dark asset. */
 const toSrgb = (v) => Math.round(255 * (v <= 0.0031308 ? v * 12.92 : 1.055 * (v ** (1 / 2.4)) - 0.055));
 
-/**
- * DILATE the covered texels outward. Bilinear filtering and every mip
- * level sample ACROSS an island's edge, so an atlas whose background is
- * left empty draws a dark rim around every seam on the model - and it
- * gets worse the further away you stand, because each mip mixes in more
- * of the background.
- */
+// Bilinear filtering and mips sample across island edges, so empty texels would draw a dark rim at every seam.
 export function dilate(rgba, covered, size, passes) {
   const have = Uint8Array.from(covered);
   for (let pass = 0; pass < passes; pass++) {
@@ -381,7 +229,6 @@ export function dilate(rgba, covered, size, passes) {
   }
 }
 
-/** Bake one mesh to an RGBA atlas. */
 export function bakeTexture(mesh, { size = 512, rays = 64, dilatePasses = 8, bands = BANDS } = {}) {
   const ao = vertexAO(mesh, { rays });
   const { pos, nrm, occ, covered } = bakeAttributes(mesh, size, ao);
@@ -399,11 +246,6 @@ export function bakeTexture(mesh, { size = 512, rays = 64, dilatePasses = 8, ban
   return { width: size, height: size, data: rgba, covered };
 }
 
-// ── the DDS container ────────────────────────────────────────────────
-
-/** Box-filter one level down. The chain matters more here than on most
- *  textures: a first-person weapon spends its life at a few hundred
- *  pixels and its atlas is a thousand. */
 export function halve({ width, height, data }) {
   const w = Math.max(1, width >> 1); const h = Math.max(1, height >> 1);
   const out = new Uint8ClampedArray(w * h * 4);
@@ -424,49 +266,44 @@ export function halve({ width, height, data }) {
   return { width: w, height: h, data: out };
 }
 
-/**
- * An uncompressed 32-bit DDS with a full mip chain, in the A8R8G8B8
- * layout the format's masks describe (bytes B, G, R, A). Uncompressed
- * rather than DXT1 on purpose: the port's decoder reads both, DXT's
- * 4x4 blocks smear a metal gradient, and the size difference on one
- * weapon does not buy anything a player would notice.
- */
 export function writeDds(levels) {
   const HEADER = 128;
   let bytes = 0;
   for (const m of levels) bytes += m.width * m.height * 4;
   const buf = Buffer.alloc(HEADER + bytes);
-  buf.writeUInt32LE(0x20534444, 0);            // 'DDS '
-  buf.writeUInt32LE(124, 4);                   // header size
-  // CAPS | HEIGHT | WIDTH | PITCH | PIXELFORMAT | MIPMAPCOUNT
+  buf.writeUInt32LE(0x20534444, 0);
+  buf.writeUInt32LE(124, 4);
+  // Flags: CAPS, HEIGHT, WIDTH, PITCH, PIXELFORMAT, and MIPMAPCOUNT.
   buf.writeUInt32LE(0x1 | 0x2 | 0x4 | 0x8 | 0x1000 | 0x20000, 8);
   buf.writeUInt32LE(levels[0].height, 12);
   buf.writeUInt32LE(levels[0].width, 16);
-  buf.writeUInt32LE(levels[0].width * 4, 20);  // pitch
-  buf.writeUInt32LE(0, 24);                    // depth
+  buf.writeUInt32LE(levels[0].width * 4, 20);
+  buf.writeUInt32LE(0, 24);
   buf.writeUInt32LE(levels.length, 28);
-  buf.writeUInt32LE(32, 76);                   // pixel format size
-  buf.writeUInt32LE(0x1 | 0x40, 80);           // ALPHAPIXELS | RGB
-  buf.writeUInt32LE(0, 84);                    // no fourCC
-  buf.writeUInt32LE(32, 88);                   // bits per pixel
-  buf.writeUInt32LE(0x00ff0000, 92);           // R
-  buf.writeUInt32LE(0x0000ff00, 96);           // G
-  buf.writeUInt32LE(0x000000ff, 100);          // B
-  buf.writeUInt32LE(0xff000000, 104);          // A
-  buf.writeUInt32LE(0x1000 | 0x8 | 0x400000, 108);   // TEXTURE | COMPLEX | MIPMAP
+  buf.writeUInt32LE(32, 76);
+  // Pixel format flags: ALPHAPIXELS and RGB.
+  buf.writeUInt32LE(0x1 | 0x40, 80);
+  buf.writeUInt32LE(0, 84);
+  buf.writeUInt32LE(32, 88);
+  buf.writeUInt32LE(0x00ff0000, 92);
+  buf.writeUInt32LE(0x0000ff00, 96);
+  buf.writeUInt32LE(0x000000ff, 100);
+  buf.writeUInt32LE(0xff000000, 104);
+  // Caps: TEXTURE, COMPLEX, and MIPMAP.
+  buf.writeUInt32LE(0x1000 | 0x8 | 0x400000, 108);
   let off = HEADER;
   for (const m of levels) {
     for (let i = 0; i < m.width * m.height; i++) {
-      buf[off++] = m.data[i * 4 + 2];          // B
-      buf[off++] = m.data[i * 4 + 1];          // G
-      buf[off++] = m.data[i * 4];              // R
-      buf[off++] = m.data[i * 4 + 3];          // A
+      // A8R8G8B8 stores each pixel as B, G, R, and A.
+      buf[off++] = m.data[i * 4 + 2];
+      buf[off++] = m.data[i * 4 + 1];
+      buf[off++] = m.data[i * 4];
+      buf[off++] = m.data[i * 4 + 3];
     }
   }
   return buf;
 }
 
-/** The whole chain, down to 1x1. */
 export function mipChain(top) {
   const levels = [top];
   let cur = top;

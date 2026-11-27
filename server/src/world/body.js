@@ -1,5 +1,3 @@
-// The body count of the boss fights: the line it runs by, the trails, and the counted bodies.
-// It says and tells the count, and measures it for the receipt.
 import { bodyConfig, BODY_TRAIL_MAX, BODY_TRAIL_MS, bodyStruck, bodyTellOwed, bodyMeasure } from '../../../src/net/bossBody.js';
 import { relayCfgValue } from '../../../src/net/relayCfg.js';
 import { isGateRoom } from '../../../src/net/gateLaw.js';
@@ -19,8 +17,7 @@ export class BodyPart {
     return false;
   }
   _trailPose(ws, p, now) {
-    // Keep trails per socket, never per account: a merged trail lets a decoy socket far off make
-    // every blow miss.
+    // Keep trails per socket, never per account: a merged trail lets a decoy socket far off make every blow miss.
     const all = (this._trails ??= new Map());
     const tr = all.get(ws) ?? [];
     tr.push([now, p.x, p.y ?? 0, p.z]);
@@ -30,11 +27,11 @@ export class BodyPart {
   }
   _trailOf(ws, frame) {
     const tr = this._trails?.get(ws);
-    // Entries are `[t, x, z, y]`: src/net/bossRef.js posAt and posAfter read x and z,
-    // posYAt the height.
+    // Entries are `[t, x, z, y]`: posAt and posAfter in src/net/bossRef.js read x and z,
+    // and posYAt reads the height.
     if (tr?.length) return tr.map(([t, x, y, z]) => { const c = frame({ x, y, z }); return [t, c.x, c.z, c.y ?? y]; });
-    // `[]` means a wake lost the trail, so src/net/bossRef.js posAt reads the position as unknown;
-    // `undefined` means no pose since, so posAt uses the current one.
+    // `[]` means a wake lost the trail, so posAt reads the position as unknown; `undefined` means no pose since,
+    // so posAt uses the current one.
     return Date.now() - this._trailsAt < BODY_TRAIL_MS ? [] : undefined;
   }
   _trailSeed(ws, a, now) { if (a?.pose && !this._trails?.has(ws) && this._trailing(a)) this._trailPose(ws, a.pose, now); }

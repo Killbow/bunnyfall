@@ -1,22 +1,17 @@
 #!/usr/bin/env node
-// STAFF-EVENT (2026-10-24, mob: "should allow all of the monster in the game"): EVERY MONSTER THE GAME STANDS, for the
-// Staff Panel's Events page (its lib/pages/eventKinds.js) - MobileTypes' monsters (0-42) and classes (128-145), and Enemy
-// Expansion's (256-290, 384-398), which the game registers on every load (systems/enemyExpansion/dexInstall.js). The two
-// the event law bars are left out (net/staffEvent/staffEventLaw.js STAFF_EVENT_KINDS_BARRED). Prints the panel's module.
-//
-//   node tools/eventKinds.mjs > <panel>/lib/pages/eventKinds.js
+// Prints the Staff Panel's eventKinds.js module: every monster and class the game registers, less the barred kinds.
+// Run: node tools/eventKinds.mjs > <panel>/lib/pages/eventKinds.js.
 import { ENEMY_NAMES } from '../src/characters/enemyBasics.js';
 import { dexRead } from '../src/mods/enemyExpansion/dexInstall.js';
 import { STAFF_EVENT_KINDS_BARRED } from '../src/net/staffEvent/staffEventLaw.js';
 import { isMain } from './lib/isMain.mjs';
 
-/** Each group's kinds, `[id, name]`, in the game's order. */
 export function eventKinds() {
   const groups = { Monsters: [], People: [], 'Expansion monsters': [], 'Expansion people': [] };
   ENEMY_NAMES.forEach((name, i) => {
     const id = i <= 42 ? i : 128 + (i - 43);
     if (STAFF_EVENT_KINDS_BARRED.includes(id)) return;
-    groups[id >= 128 ? 'People' : 'Monsters'].push([id, id === 40 ? 'Dragonling (alternate)' : name]);   // MobileTypes' second Dragonling
+    groups[id >= 128 ? 'People' : 'Monsters'].push([id, id === 40 ? 'Dragonling (alternate)' : name]);
   });
   for (const [id, e] of dexRead({ log: () => {}, mudex: false }).enemies) groups[id >= 384 ? 'Expansion people' : 'Expansion monsters'].push([id, e.props.name]);
   return Object.entries(groups).map(([group, kinds]) => ({ group, kinds }));

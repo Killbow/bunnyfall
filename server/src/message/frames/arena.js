@@ -1,4 +1,3 @@
-// The `arena` frame's handler, called by message/dispatch.js with the room as `this`.
 import { arenaGate } from '../../relay.js';
 import { isArenaFloorRoom, isArenaPrivateRoom, isArenaHall } from '../../../../src/net/arenaLaw.js';
 

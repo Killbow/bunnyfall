@@ -1,5 +1,3 @@
-// The Horse Cart and Cargo mod in the world: the wagon pool, its settings and hotkeys, the
-// per-frame tick, and the parked wagon record. Also camp position converters and Field Cook checks.
 import { birthHorses } from './horseCoats.js';
 import { CAPSULE_RADIUS } from '../player/motor.js';
 import { cellRoomOfWire } from '../net/wire.js';

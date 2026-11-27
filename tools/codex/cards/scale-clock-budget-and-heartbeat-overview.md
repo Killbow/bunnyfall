@@ -30,6 +30,8 @@ invariants:
   - "tools/mutate.mjs runs the unmutated tests before mutants so an unparseable test file cannot report mutants as dead."
 traps:
   - "The load harness must not invent polling: /v1/prof/state is read on arrival, UTC day turn, and after refusal, with closed state rechecked every PROF_CLOSED_RECHECK_MS."
+  - "The heartbeat runs its read parts before the beat, because a D1 session sends every statement after a write to the primary, and no part reads what the beat writes."
+  - "`FIRE_MINUTE` and `FIRE_HOUR` in `tools/loadHarness.mjs` must equal `CRON_MINUTE` and `CRON_HOUR` in `server-account/src/cron.js` (`'* * * * *'` and `'41 * * * *'`)."
 dfu: []
 tags:
   - audit

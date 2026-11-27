@@ -1,26 +1,7 @@
-// SHADER-STALL (2026-10-20, a player via the owner: "the load problem is a bunch if fucking shaders ive stripped out like 5
-// diffrent shader and i dont lag oon load up" - "Gate shader initialization: 11.43-second stall", "Node-outline shader
-// initialization: 5.65-second stall"): WHERE THE MAIN THREAD WAITS ON THE DRIVER, IN THE REAL GAME. A program's build
-// asks the driver whether it linked (render/glProgram.js buildProgram), and that question is a round trip that waits
-// until the GPU process has compiled and linked it - and everything queued ahead of it. This boots a scene over the
-// freeware ARENA2 with every such question timed where the page asks it (`getProgramParameter`'s LINK_STATUS and
-// COMPLETION_STATUS_KHR, and each program's first `getUniformLocation`), each named by the pass whose build asked it (the
-// first frame of its stack outside glProgram.js), and splits them at the first world frame - a wait before it is the
-// loading screen's, a wait after it a frame the player saw freeze.
-//
-// `passes` builds the passes a scene here never stands (a gate's fire, the court's telegraph and blows, the veil, the
-// nodes' glint) each in a context of its own, as a host builds it: at once (`new`), and - where the tree has it - by
-// SHADER-STALL's door (glProgram.js startPrograms: the compile started, the build made when the driver says it is done).
-//
-// The browser is the probes' SwiftShader, with ANGLE's parallel compile on (`enableParallelCompileAndLink`, what ANGLE
-// runs on a GPU's D3D11, Metal and Vulkan - and so what exposes KHR_parallel_shader_compile to a player's Chromium);
-// PARALLEL=0 runs without it, the browsers that cannot say when a compile is done. The waits are this machine's CPU
-// compiling for SwiftShader, read as relative: the driver a player runs has its own compiler (D3D11's is the slow one).
-//
-// Run:  ARENA2_PATH=/path/to/arena2 node tools/compileStallProbe.mjs knight     (scenes: tools/frameProbe.mjs SCENES)
-//       node tools/compileStallProbe.mjs passes
-//   TREE=<dir> serve another worktree (an A/B's base);  SECONDS=60 after the first frame;  PARALLEL=0;  PORT=5245
-//   PROFILE=<file>: the run under a CPU profile, and its long tasks after the first frame by their own time
+// Times every shader link wait in a booting scene, split at the first world frame.
+// Run: ARENA2_PATH=/path/to/arena2 node tools/compileStallProbe.mjs <scene> | passes.
+// Env: TREE, SECONDS, PARALLEL, PORT, and PROFILE.
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -33,12 +14,10 @@ process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const ROOT = process.env.TREE || fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 5245);
 const SECONDS = Number(process.env.SECONDS || 60);
-const PROFILE = process.env.PROFILE || null;   // a file: the run under a CPU profile, its long tasks after the first frame printed
+const PROFILE = process.env.PROFILE || null;
 const W = Number(process.env.W || 480), H = Number(process.env.H || 270);
 export const PARALLEL_ARGS = ['--enable-angle-features=enableParallelCompileAndLink'];
 
-/** Every question that waits on the driver for a program, timed and named. `__glWaits` holds
- *  `{ at, kind, ms, site }` - `at` the page's clock, `site` the pass that asked. */
 export const GL_WAITS = `(() => {
   const P = WebGL2RenderingContext.prototype;
   const waits = window.__glWaits = [];
@@ -69,7 +48,6 @@ export const GL_WAITS = `(() => {
   timed('getUniformLocation', (gl, a) => { if (asked.has(a[0])) return false; asked.add(a[0]); return true; });
 })();`;
 
-/** The waits summed by site and kind, split at the first world frame (`firstAt`, the page's clock; null: all before). */
 export function waitsBySite(waits, firstAt) {
   const rows = new Map();
   for (const w of waits) {
@@ -106,7 +84,6 @@ async function runScene(browser, name) {
   return { name, errors, ...got, ...waitsBySite(got.waits, got.first), tasks: profile ? longTasks(profile).long.filter((k) => k.fromFirstMs >= 0) : null };
 }
 
-/** The passes no scene here stands, built in a context each: at once, and by the started door where the tree has it. */
 const PASSES = `async (started) => {
   const { startPrograms } = await import('/src/render/glProgram.js');
   if (started && !startPrograms) return { none: 'this tree has no startPrograms' };
@@ -170,7 +147,6 @@ if (isMain(import.meta.url)) {
       console.log(`== ${name} (KHR_parallel_shader_compile ${r.ext ? 'on' : 'off'}): ${r.frames} frames; the main thread waited on programs ${r.beforeMs.toFixed(0)} ms before the first world frame, ${r.afterMs.toFixed(0)} ms after; errors ${r.errors.length}`);
       for (const k of r.tasks ?? []) console.log(`  task ${k.fromFirstMs} ms after the first frame: ${k.ms} ms - ${k.self.slice(0, 4).map(([f, ms]) => `${f} ${ms}`).join('; ')}`);
       for (const x of r.rows.filter((x) => x.ms >= 5)) console.log(`  ${x.when.padEnd(6)} ${x.kind.padEnd(8)} ${x.ms.toFixed(0).padStart(7)} ms in ${String(x.n).padStart(3)} (worst ${x.worst.toFixed(0)})  ${x.site}`);
-      // a run is a measurement when the first world frame was seen and the page threw nothing
       const why = r.first == null ? 'no world frame' : r.errors[0] ?? null;
       if (why) failed.push(`${name} (${why})`);
     }

@@ -1,9 +1,7 @@
-// WEAPON-GLOW1 probe (bible/05-Combat/Weapon-Glow.md): renders the element glows through the REAL renderer, headless,
-// on art that is NOT game data - a pixel sword drawn here, and a sword mesh built here - so the looks can be seen and
-// tuned without ARENA2 or the Morrowind archives. Top row: the classic sprite's outline (drawScreenQuadGlow), fire,
-// frost, shock, and fire again on the same sword painted at three texels a pixel (an HD frame); bottom row: the Morrowind pass (drawCharacter's _drawWeaponGlow in the sprite
-// target), fire, frost, shock and arcane. One PNG per clock time asked.
-// Usage: node tools/weaponGlowProbe.mjs [outDir] [seconds...]   (starts its own vite server; needs Chromium)
+// Renders the weapon element glows through the real renderer on art drawn here, with no game data.
+// Writes one PNG per time given.
+// Usage: node tools/weaponGlowProbe.mjs [outDir] [seconds...]
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';

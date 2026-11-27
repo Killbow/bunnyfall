@@ -1,27 +1,6 @@
-// TO1: THE PORTS. TravelOptionsMapWindow.cs:875-989, the mod's own
-// `portLocationIds` table, carried entry for entry in its own order.
-//
-// Daggerfall's map data does not say which towns have a harbour, so
-// Hazelnut wrote the list by hand: every location a ship may sail from
-// or to while "Only From Ports" / "Only To Ports" are set. It decides
-// three things - the travel map's PORTS filter button, whether the
-// popup will let the ship toggle be chosen at all, and the `hasPort`
-// answer the mod hands to other mods (TravelOptionsMod.cs:1299).
-//
-// THE ID IS MASKED. A location's MapId carries flags in its top bits;
-// `MaskMapId` keeps the low twenty (:855-858) and the table is written
-// in those masked values. The port's own map summaries carry `mapId`
-// the same way, so the mask is applied here and nowhere else.
-//
-// THE DUPLICATES ARE THE MOD'S. The table is 417 entries but only 378
-// distinct ones: the "Extras allowing travel to" block at the end
-// repeats thirty-nine ids already in the main block, each with the
-// region and name Hazelnut noted beside it. `Array.Exists` does not
-// care, and neither does the Set below; the numbers are kept as
-// written because the comments beside the extras are the only record
-// of WHY a given hamlet counts as a port.
+// The ids are masked `MapId` values (low 20 bits, see `maskMapId`) copied from the Travel Options mod's port table
+// in its order. The extras block repeats some main-block ids, as the mod's table does.
 
-/** :875-931 - the main block, in the mod's own rows of ten. */
 export const PORT_LOCATION_IDS_MAIN = Object.freeze([
   443401, 280614, 285597, 485856, 86496, 137544, 139547, 143535, 143542, 149513,
   150625, 158629, 162631, 162646, 164648, 166644, 168652, 169640, 170654, 178663,
@@ -60,119 +39,101 @@ export const PORT_LOCATION_IDS_MAIN = Object.freeze([
   86334, 89333, 343439,
 ]);
 
-/** :932-989 - "Extras allowing travel to:", each with the mod's own
- *  note of the region and the location it stands for. */
 export const PORT_LOCATION_IDS_EXTRAS = Object.freeze([
-  205676,   // "Isle of Balfiera", "Blackhead"
-  278901,   // "Mournoth", "Zagoparia"
-  263119,   // "Betony", "Whitefort"
-  148062,   // "Tulune", "The Citadel of Hearthham"
-  144059,   // "Tulune", "The Elyzanna Assembly"
-  343439,   // "Cybiades", "Ruins of Cosh Hall"
-  243846,   // Wayrest	Penwall Derry
-  273975,   // Wayrest	Tunmont
-  255884,   // Wayrest	Eastwold
-  256887,   // Wayrest	Chardale
-  262931,   // Wayrest	Longmore Field
-  106061,   // Tulune	Midmont
-  164072,   // Tulune  Lambrugh
-  157092,   // Tulune	Gallocart
-  296558,   // Tigonus Antelibuton
-  297552,   // Tigonus Wadijerareg
-  308527,   // Tigonus Kalureg
-  376329,   // Sentinel	Pibuda
-  359347,   // Sentinel	Zenuhno
-  357347,   // Sentinel	Mji-Ij
-  358355,   // Sentinel	Antelajda
-  350370,   // Sentinel	Naresa
-  347375,   // Sentinel	Jalonia
-  343397,   // Sentinel Sentinel
-  373407,   // Sentinel	Cudakasa
-  373415,   // Sentinel	Bubumbaret
-  327404,   // Sentinel	Bubissidata
-  283779,   // Satakalaam	Tulajidax
-  406266,   // Pothago	Berbajan
-  42127,    // Northmoor	Gothcroft
-  5229,     // Northmoor	Knightshope
-  8219,     // Northmoor	Stokwall
-  34162,    // Northmoor	Vanpath
-  38152,    // Northmoor	Pencart
-  45124,    // Northmoor	Burgcart Heath
-  403279,   // Myrkwasa	Elissinia
-  285898,   // Mournoth	Wadijilanis
-  278962,   // Mournoth	Meseraara
-  216791,   // Menevia	Chesterbrugh
-  279754,   // Lainlyn	Kalunnunu
-  281658,   // Lainlyn	Syrotubu
-  286674,   // Lainlyn	Papiladisu
-  281699,   // Lainlyn	Syrallao
-  281702,   // Lainlyn	Pythohajer
-  73079,    // Glenumbra Moors	Tambridge
-  77077,    // Glenumbra Moors	Deerpath
-  223207,   // Daggerfall	Westhead Moor
-  199102,   // Daggerfall	Whitecroft
-  201118,   // Daggerfall	Holwych
-  213285,   // Daggerfall	Ripmore
-  214207,   // Daggerfall	Copperfield Manor
-  221160,   // Daggerfall	Fontborne
-  225169,   // Daggerfall	Longwich End
-  224178,   // Daggerfall	Wilderham
-  217198,   // Daggerfall	Midbrugh
-  214294,   // Daggerfall	Vanvale
-  214297,   // Daggerfall	Blackcart Hollow
-  239144,   // Daggerfall	Aldpath Hall
-  236143,   // Daggerfall	Grimton
-  139588,   // Bhoriane	Wartale
-  113637,   // Bhoriane	Fontbridge
-  112652,   // Bhoriane	Stokbrone
-  255114,   // Betony	Kirkbeth Hamlet
-  364449,   // Ayasofya Umbopala
-  183401,   // Anticlere	Aldwall Rock
-  175401,   // Anticlere	Crossleigh
-  187406,   // Anticlere	Cathwold Heath
-  195353,   // Anticlere	Vanwood Hollow
-  193358,   // Anticlere	Ipspath
-  197366,   // Anticlere	Wilderbury Rock
-  133718,   // Alcaire	Cathborne
-  140760,   // Alcaire	Wargate
-  455174,   // Abibon-Gora	Papyrydai
-  202333,   // Shalgora Aldbrugh
+  205676,
+  278901,
+  263119,
+  148062,
+  144059,
+  343439,
+  243846,
+  273975,
+  255884,
+  256887,
+  262931,
+  106061,
+  164072,
+  157092,
+  296558,
+  297552,
+  308527,
+  376329,
+  359347,
+  357347,
+  358355,
+  350370,
+  347375,
+  343397,
+  373407,
+  373415,
+  327404,
+  283779,
+  406266,
+  42127,
+  5229,
+  8219,
+  34162,
+  38152,
+  45124,
+  403279,
+  285898,
+  278962,
+  216791,
+  279754,
+  281658,
+  286674,
+  281699,
+  281702,
+  73079,
+  77077,
+  223207,
+  199102,
+  201118,
+  213285,
+  214207,
+  221160,
+  225169,
+  224178,
+  217198,
+  214294,
+  214297,
+  239144,
+  236143,
+  139588,
+  113637,
+  112652,
+  255114,
+  364449,
+  183401,
+  175401,
+  187406,
+  195353,
+  193358,
+  197366,
+  133718,
+  140760,
+  455174,
+  202333,
 ]);
 
-/** The whole table, as `Array.Exists` walks it. */
 export const PORT_LOCATION_IDS = Object.freeze([...PORT_LOCATION_IDS_MAIN, ...PORT_LOCATION_IDS_EXTRAS]);
 
-/** The membership set the lookup actually uses - 378 distinct ids of
- *  the table's 417 entries. */
 const PORT_SET = new Set(PORT_LOCATION_IDS);
 
-/** :855-858, MaskMapId. */
 export function maskMapId(mapId) {
   return (mapId | 0) & 0x000FFFFF;
 }
 
-/** :870-873, HasPort(int mapId). The two overloads above it
- *  (:860-868) take a MapSummary or a RegionMapTable and reach the same
- *  place through their `.ID` / `.MapId`, so the port has one function
- *  and its callers pass the number. A null or undefined id - a pixel
- *  with no location - is not a port. */
 export function hasPort(mapId) {
   if (mapId == null || !Number.isFinite(mapId)) return false;
   return PORT_SET.has(maskMapId(mapId));
 }
 
-// SEAT2b part two (bible/11-Multiplayer/Seats-Arc.md 7.5: "Harbour (coastal seats only) ... ships (the Sea update) dock at
-// the seat; the town is a Travel Options port for members"): A SEAT'S HARBOUR. The mod's own table above is untouched
-// (hasPort stays TravelOptionsMapWindow.cs's list); every place that asks Travel Options whether a town is a port asks
-// `hasPortFor`, which adds the host's word - a Harbour standing at a seat the playing character's guild holds
-// (scenes/world.js, net/fortLaw.js harbourPortFor): the travel map's PORTS filter, the popup's ship rules, the held map,
-// the "hasPort" Travel Options answers other mods (travelOptions.js - Roleplay Realism's ship gate) and Come Sail
-// Away's deed. A DEPARTURE - Travel Options has no seats (Port-Ledger A, EVERY PALACE A SEAT's row).
+// Callers that ask whether a town is a port use `hasPortFor`, which adds a members' Harbour at a guild seat;
+// `hasPort` stays the mod's table alone.
 let _seatHarbour = () => false;
-/** The host's word on a map id (the location's own, unmasked - the seats' key): a members' Harbour there. Anything but a
- *  function clears it. */
+// `fn` receives the unmasked map id, which is the seats' key.
 export const setSeatHarbours = (fn) => { _seatHarbour = typeof fn === 'function' ? fn : () => false; };
-/** HasPort, or a members' Harbour at the seat. */
 export function hasPortFor(mapId) {
   if (hasPort(mapId)) return true;
   if (mapId == null || !Number.isFinite(mapId)) return false;

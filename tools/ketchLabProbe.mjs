@@ -1,24 +1,6 @@
-// KETCH-LOOK KL0 (bible/11-Multiplayer/Sky-Ketch-Look.md section 17) - THE KETCH LAB'S PROBES. Opens the Ketch lab
-// (ketch.html, src/tools/ketchLab.js) on Vite's own server in a real Chromium, frame-synced on the lab's counter (never a
-// sleep - bible/Home.md's Process), and measures what the look is held to:
-//
-//     node tools/ketchLabProbe.mjs value [views...]   every view at six hours: its display luma (p50, p95 of the frame and
-//                                                     of its floor - the lower 30%) against the value ladder (KETCH-LOOK KL1,
-//                                                     world/ketch/ketchLook.js KT_LADDER): below decks p50 and its telegraph
-//                                                     floor at every hour, her open decks' floor at noon, dusk and night;
-//                                                     the rest measured. One page, its eye settled (?eye) at each
-//     node tools/ketchLabProbe.mjs flash              the flash law: a live arc in the hold, its frame sampled at 60 Hz for
-//                                                     4 s - at most 3 transitions a second (TELEGRAPH_THROB_MAX_HZ)
-//     node tools/ketchLabProbe.mjs shadow             no moving part records a shadow: the mast-lift riding and the
-//                                                     bridge's sections warned, falling and rising, the bill's `moving` 0
-//     node tools/ketchLabProbe.mjs bill               (KETCH-LOOK KL3) the ship's GL draws at each zone's view - the waist,
-//                                                     the gallery, the hold, the bridge, the cabin - at most its ceiling
-//                                                     (src/tools/ketchLabViews.js KT_LAB_BILL), the PVS culling the rest
-//     KETCH_Q='lane=off' ...                          more of the lab's query on every page (the classic set)
-//     KETCH_PORT=5262 ...                             another port (two probes at once)
-//     KETCH_HOURS=12,2 ...                            the value probe at these hours alone
-//
-// Fails (exit 1) on a page error, a frame that drew nothing, or a law broken.
+// Ketch lab probes on Vite's dev server: value (luma per view), flash, shadow, and bill (draw counts per view).
+// Run: node tools/ketchLabProbe.mjs <value|flash|shadow|bill> [views...] (env KETCH_Q, KETCH_PORT, KETCH_HOURS).
+// Exits 1 on a page error, a frame that drew nothing, or a failed check.
 import { existsSync } from 'node:fs';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
@@ -29,7 +11,6 @@ process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const extra = process.env.KETCH_Q ?? '';
 const VIEWS = ['arrive', 'waist', 'waist-aft', 'gallery', 'landing', 'hold', 'engine', 'lift', 'top-out', 'sailwalk', 'sailwalk-side', 'bridge', 'helm', 'cabin', 'bow', 'side', 'stern', 'below', 'city'];
 const HOURS = process.env.KETCH_HOURS ? process.env.KETCH_HOURS.split(',').map(Number) : [5.5, 7, 12, 18.5, 19.5, 2];
-/** The views the ladder judges (KT_LADDER): below decks', her open decks' (the four whose lower frame is her deck), the cabin. */
 const BELOW = ['gallery', 'landing', 'hold', 'engine', 'lift'], DECK = ['arrive', 'waist', 'bridge', 'helm'];
 const [mode = 'value', ...rest] = process.argv.slice(2);
 const results = [];
@@ -38,7 +19,7 @@ const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ?
 const port = Number(process.env.KETCH_PORT ?? 5261);
 const server = await createServer({ server: { port, strictPort: true, watch: { ignored: ['**/.claude/**'] } }, logLevel: 'error' });
 await server.listen();
-const exe = process.env.KETCH_CHROMIUM ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);   // a cloud box's own Chromium, where the installed Playwright's build is another
+const exe = process.env.KETCH_CHROMIUM ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const browser = await chromium.launch({ executablePath: exe, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: Number(process.env.KETCH_W ?? 480), height: Number(process.env.KETCH_H ?? 300) } });
 const errors = [];
@@ -49,12 +30,10 @@ const open = async (q) => {
   await page.goto(`http://127.0.0.1:${port}/ketch.html?still&nopanel&${q}${extra ? `&${extra}` : ''}`, { waitUntil: 'load' });
   await page.waitForFunction(() => (window.__frame ?? 0) >= 4, null, { timeout: 240000 });
 };
-/** One more frame drawn after the clock is set (the lab's own counter). */
 const step = async (t) => {
   const f0 = await page.evaluate((s) => { window.__lab.clock(s); return window.__frame; }, t);
   await page.waitForFunction((f) => window.__frame > f + 1, f0, { timeout: 120000 });
 };
-/** The frame's display luma (Rec. 709 over the sRGB bytes), row 0 the frame's foot (readPixels' order). */
 const lumaOf = () => page.evaluate(() => {
   const c = document.getElementById('c'), gl = c.getContext('webgl2'), w = c.width, h = c.height, px = new Uint8Array(w * h * 4);
   gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
@@ -72,7 +51,7 @@ try {
       await page.evaluate((v) => window.__lab.view(v), view);
       for (const hour of HOURS) {
         await page.evaluate((hr) => window.__lab.hour(hr), hour);
-        for (let k = 0; k < 3; k++) await step(40);   // the eye settled (?eye: its rates x24 - three quarters of the way a frame)
+        for (let k = 0; k < 3; k++) await step(40);
         const { w, h, y } = await lumaOf();
         const floor = y.slice(0, Math.floor(h * 0.3) * w), fMean = floor.reduce((a, v) => a + v, 0) / floor.length;
         const p50 = pct(y, 0.5), f50 = pct(floor, 0.5), f95 = pct(floor, 0.95);
@@ -88,8 +67,6 @@ try {
       }
     }
   } else if (mode === 'flash') {
-    // a live arc (KT_ARCS: the first's span is the first 1.4 s of every 5 s) seen down the hold; 4 s at 60 Hz from 0.2 s
-    // before a strike, so its waking and its whole span are in the window
     await open('t=4.8&view=hold&hour=12');
     let prev = null, transitions = 0;
     const T0 = 4.8, N = 240;
@@ -113,7 +90,6 @@ try {
       check(`no moving part records a shadow: ${name}`, worst === 0 && !errors.length, `moving casters at most ${worst} of ${casters}${errors.length ? `; ${errors[0]}` : ''}`);
     }
   } else if (mode === 'bill') {
-    // the voyage at its fight (every part the ship can show standing: the cells, the sockets, the forks, the sections)
     await open('t=40&hour=12&stage=4&fight=song&lo=7:9,8:9&carry=2&bill');
     for (const view of rest.length ? rest : Object.keys(KT_LAB_BILL)) {
       await page.evaluate((v) => window.__lab.view(v), view);

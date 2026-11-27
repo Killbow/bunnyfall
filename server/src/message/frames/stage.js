@@ -1,4 +1,3 @@
-// The `stage` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, eventGate, EVENT_KEY } from '../../relay.js';
 
 export async function stageFrame(ws, a, m) {

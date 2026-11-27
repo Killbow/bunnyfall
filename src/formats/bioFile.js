@@ -1,8 +1,4 @@
-// BIO.DAT reader (SAV1). 1:1 translation of DFU API/BioFile.cs (MIT,
-// Daggerfall Workshop) - the classic save's player biography text.
-// The file is NUL-delimited text; Load splits on '\0' and keeps EVERY
-// piece, including the empty string a trailing NUL produces - verbatim
-// (String.Split does not drop empties).
+// The split keeps every piece, including the empty string after a trailing NUL, as C# `String.Split` does.
 
 export class BioFile {
   constructor() {
@@ -10,7 +6,7 @@ export class BioFile {
     this.lines = [];
   }
 
-  /** @param {Uint8Array|ArrayBuffer} buffer - full BIO.DAT contents. */
+  /** @param {Uint8Array|ArrayBuffer} buffer */
   load(buffer) {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     let text = '';

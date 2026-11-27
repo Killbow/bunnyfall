@@ -1,25 +1,5 @@
-// LV1 — THE ASCENSION, IN A REAL BROWSER, WITH NO ARENA2.
-//
-// The claim a source sweep cannot make: the enhanced level-up window
-// DRAWS, its stars spend the pool the law rolled, it refuses every way
-// out while a point is unspent, and the commit that ends it moves the
-// entity by exactly one level - in all three lanes, at four viewport
-// sizes, by pointer and by keyboard alone.
-//
-// Run against a dev server (no game data needed):
-//     npx vite --port 5199 &
-//     node tools/levelUpProbe.mjs
-//
-// It drives levelup.html (src/tools/levelUpLab.js), which mounts the
-// SHIPPING window over a made-up character. The window and both
-// rollout laws under it are the game's own modules; only the entity is
-// the lab's.
-//
-// IT MEASURES BOXES, NOT WORDS. The first run of this probe found the
-// whole column sized at 1776px inside a 1400px window - the ribbon's
-// min-content width had escaped its grid row - so the race cell and
-// the Ascend button were both drawn past the right-hand edge. Every
-// text assertion passed while that was true.
+// Drives the enhanced level-up window in levelup.html across lanes, viewports, pointer, and keyboard.
+// Run against a dev server: npx vite --port 5199 & node tools/levelUpProbe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -33,8 +13,6 @@ const check = (name, ok, detail = '') => {
 
 const browser = await chromium.launch();
 
-/** One page on the lab, with page errors collected. `lane` is the
- *  lab's own query door. */
 async function open(lane, viewport) {
   const ctx = await browser.newContext({ viewport });
   const page = await ctx.newPage();
@@ -46,8 +24,6 @@ async function open(lane, viewport) {
   return { ctx, page, errors };
 }
 
-/** What the window is showing, off its own model seam - the reading
- *  the window paints from, not a re-parse of the pixels. */
 const model = (page) => page.evaluate(() => globalThis.__lv.view.model());
 const stats = (page) => page.evaluate(() => ({ ...globalThis.__lv.entity.stats }));
 const entity = (page) => page.evaluate(() => {
@@ -55,7 +31,6 @@ const entity = (page) => page.evaluate(() => {
   return { level: e.level, maxHealth: e.maxHealth, ready: !!e.readyToLevelUp, oghma: !!e.oghmaLevelUp };
 });
 
-/** Every band, and the two controls a player must be able to reach. */
 async function boxes(page) {
   return page.evaluate(() => {
     const r = (s) => { const n = document.querySelector(s); if (!n) return null; const b = n.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height, r: b.right, b: b.bottom }; };
@@ -70,7 +45,6 @@ async function boxes(page) {
   });
 }
 
-// ── 1. THE WINDOW DRAWS, AND IT DRAWS THE LAW ────────────────────
 {
   const { ctx, page, errors } = await open('classic', { width: 1400, height: 900 });
   const m = await model(page);
@@ -79,11 +53,9 @@ async function boxes(page) {
   check('classic: no page errors', errors.length === 0, errors.join(' | '));
   check('classic: the crown names the level it is offering', m.crown.to === m.crown.from + 1, `${m.crown.from} -> ${m.crown.to}`);
   check('classic: the ribbon leads with a skill that actually rose', m.ribbon[0]?.risen === true, m.ribbon[0]?.name);
-  // THE SUM'S OWN LAW, on screen: a primary counts, a misc does not.
   const primary = m.ribbon.find((s) => s.group === 'Primary');
   check('classic: a primary skill says it counts', /counts toward your next level/.test(primary?.note ?? ''), primary?.name);
 
-  // ── 2. GEOMETRY ────────────────────────────────────────────────
   const b = await boxes(page);
   check('geometry: nothing is drawn past the right edge', b.scrollW <= b.vw + 1, `scrollW ${b.scrollW} vs ${b.vw}`);
   check('geometry: nothing is drawn past the bottom edge', b.scrollH <= b.vh + 1, `scrollH ${b.scrollH} vs ${b.vh}`);
@@ -93,14 +65,9 @@ async function boxes(page) {
   }
   check('geometry: the Ascend button is a thumb target', b.ok.h >= 44, `${Math.round(b.ok.h)}px tall`);
   check('geometry: every star is a thumb target', b.stars.every((s) => s.h >= 44), b.stars.map((s) => Math.round(s.h)).join(','));
-  // NO TWO STARS OVERLAP. The figure is authored in normalized
-  // coordinates and stretched to the stage, so a short window is the
-  // case that could collide them - and a star under another star is a
-  // point spent on the wrong attribute.
   const overlap = b.stars.some((a, i) => b.stars.some((c, j) => j > i && a.x < c.r && c.x < a.r && a.y < c.b && c.y < a.b));
   check('geometry: no two stars overlap', !overlap);
 
-  // ── 3. A CLICK SPENDS EXACTLY ONE POINT ───────────────────────
   const before = await model(page);
   await page.locator('.lv-star').nth(0).click();
   const after = await model(page);
@@ -108,14 +75,9 @@ async function boxes(page) {
   check('press: and the star says so', (await page.locator('.lv-star.raised').count()) === 1);
   check('press: the stats are NOT written until the commit',
     (await stats(page)).strength === before.rows[0].base, 'the law writes at confirm, never at a press');
-  await page.locator('.lv-press').first().click();   // the minus
+  await page.locator('.lv-press').first().click();
   check('press: the minus takes it back', (await model(page)).pool === before.pool);
 
-  // ── 4. EVERY WAY OUT IS REFUSED WHILE A POINT IS UNSPENT ──────
-  // THE REFUSAL MUST BE REACHABLE. A `disabled` button cannot be
-  // pressed, so its refusal can never be read - this probe's first run
-  // timed out here against exactly that, which is how the not-yet
-  // paint replaced the attribute.
   check('refuse: the Ascend button is pressable while it refuses',
     (await page.locator('.lv-ok').isEnabled()) && (await page.locator('.lv-ok.notyet').count()) === 1);
   check('refuse: ...and carries the reason before it is pressed',
@@ -134,7 +96,6 @@ async function boxes(page) {
 
   await page.screenshot({ path: `${shots}/levelup-classic.png` });
 
-  // ── 5. THE COMMIT ─────────────────────────────────────────────
   const start = await entity(page);
   const m2 = await model(page);
   const spend = m2.pool;
@@ -158,7 +119,6 @@ async function boxes(page) {
   await ctx.close();
 }
 
-// ── 6. THE OGHMA ARM PROMISES NO LEVEL ───────────────────────────
 {
   const { ctx, page, errors } = await open('oghma', { width: 1400, height: 900 });
   const m = await model(page);
@@ -177,19 +137,14 @@ async function boxes(page) {
   await ctx.close();
 }
 
-// ── 7. THE MOD'S LANE, BY ITS OWN RULES ──────────────────────────
 {
   const { ctx, page, errors } = await open('virtue', { width: 1400, height: 900 });
   const m = await model(page);
   check('virtue: the purse is counted in the mod’s own words', /virtue/i.test(m.poolLabel), m.poolLabel);
   check('virtue: the window is the mod’s lane', m.lane === 'virtue');
-  // Luck is priced differently from the rest (attributeOffset), and the
-  // window must say so rather than let a player discover it by pressing.
   const luck = m.rows.find((r) => r.key === 'luck');
   check('virtue: Luck carries its own price', luck.cost >= 1, `${luck.cost} per point`);
   await page.screenshot({ path: `${shots}/levelup-virtue.png` });
-  // Spend the purse the way a player would - into the row the window
-  // offers - until nothing is legal, then commit.
   for (let i = 0; i < 40; i++) {
     const cur = await model(page);
     if (cur.pool === 0) break;
@@ -210,7 +165,6 @@ async function boxes(page) {
   await ctx.close();
 }
 
-// ── 8. THE KEYBOARD ALONE ────────────────────────────────────────
 {
   const { ctx, page } = await open('classic', { width: 1400, height: 900 });
   const m = await model(page);
@@ -226,7 +180,6 @@ async function boxes(page) {
   await ctx.close();
 }
 
-// ── 9. THE SMALL SCREENS ─────────────────────────────────────────
 for (const [label, viewport] of [
   ['phone', { width: 390, height: 844 }],
   ['short laptop', { width: 1024, height: 600 }],
@@ -241,8 +194,6 @@ for (const [label, viewport] of [
   check(`${label}: the presses stay thumb-sized`, b.ok.h >= 44 && b.stars.every((s) => s.h >= 44));
   const overlap = b.stars.some((a, i) => b.stars.some((c, j) => j > i && a.x < c.r && c.x < a.r && a.y < c.b && c.y < a.b));
   check(`${label}: no two stars overlap`, !overlap);
-  // A POINT STILL GOES IN. A screen that draws and cannot be used is
-  // the failure this probe exists to catch on a phone.
   const before = await model(page);
   await page.locator('.lv-star').nth(3).click();
   check(`${label}: a star still takes a point`, (await model(page)).pool === before.pool - 1);
@@ -251,14 +202,7 @@ for (const [label, viewport] of [
   await ctx.close();
 }
 
-// ── 10. THE CHARACTER THE WINDOW COULD NOT LET GO OF ─────────────
-//
-// LV1's audit found CheckIfDoneLeveling's SECOND term missing
-// (DaggerfallCharacterSheetWindow.cs:437-443:
-// `BonusPool > 0 && !Stats.IsAllMax()`). At 100 across the board every
-// press is refused, the pool never reaches zero, and an exit that
-// tests for zero alone never opens: the game is over, on a screen with
-// no other way out. This is that character, driven.
+// Classic Daggerfall ends leveling when the pool is empty or every attribute is at its maximum.
 {
   const { ctx, page, errors } = await open('allmax', { width: 1400, height: 900 });
   const m = await model(page);
@@ -280,7 +224,6 @@ for (const [label, viewport] of [
   await ctx.close();
 }
 
-// ── 11. THE KEYBOARD'S OWN FOCUS ─────────────────────────────────
 {
   const { ctx, page } = await open('classic', { width: 1400, height: 900 });
   await page.locator('.lv-star').nth(3).click();
@@ -294,21 +237,11 @@ for (const [label, viewport] of [
   await ctx.close();
 }
 
-// ── 12. THE DOOR, AND THE PAUSE IN FRONT OF THE WINDOW ───────────
-//
-// LV1's audit recorded this and Mac asked for it closed: every other
-// enhanced screen pays for its lazy chunk inside a key the player
-// pressed, and this one opens because the GAME decided - so the host
-// pauses behind a transparent div with nothing on it. Here the chunk
-// is held back deliberately, and what a player sees in that gap is
-// read off the page.
 {
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  // The chunk, delayed. The warm at boot is the real fix; this proves
-  // the OTHER half - that a cold fetch is not a blank frozen game.
   await page.route('**/enhancedLevelUp.js*', async (route) => {
     await new Promise((r) => setTimeout(r, 900));
     await route.continue();
@@ -323,7 +256,6 @@ for (const [label, viewport] of [
   await page.waitForSelector('.lv-star', { timeout: 20000 });
   check('door: the window arrives and the wait is gone', (await page.locator('#levelup-wait').count()) === 0);
   check('door: the door built the window the skin asks for', (await page.locator('#enhanced-levelup .lv-sky').count()) === 1);
-  // THE HOST CONTRACT, off the object the hosts are actually handed.
   const arms = await page.evaluate(() => {
     const w = globalThis.__lv.door;
     return { done: w.done, isChoice: w.isChoiceWindow === true, marker: w.isEnhancedLevelUp === true,
@@ -336,18 +268,15 @@ for (const [label, viewport] of [
   await ctx.close();
 }
 
-// ── 13. A WARM CHUNK NEVER FLASHES THE WAIT ──────────────────────
 {
   const { ctx, page, errors } = await open('classic', { width: 1400, height: 900 });
-  // The view lane has already imported the module, so the door lane
-  // that follows mounts from the module registry - which is what the
-  // boot warm buys every player.
   await page.evaluate(async () => {
     const { createCharSheetWindow } = await import('/src/ui/charSheetDoor.js');
     globalThis.__lv.view.destroy();
     globalThis.__warm = createCharSheetWindow({ entity: globalThis.__lv.entity });
   });
-  await page.waitForTimeout(300);   // twice LEVELUP_WAIT_MS, and then some
+  // 300 ms is more than twice LEVELUP_WAIT_MS.
+  await page.waitForTimeout(300);
   check('warm: the wait is never drawn when the chunk is already in hand',
     (await page.locator('#levelup-wait').count()) === 0);
   check('warm: and the window is up', (await page.locator('#enhanced-levelup .lv-star').count()) === 8);
@@ -355,21 +284,6 @@ for (const [label, viewport] of [
   await ctx.close();
 }
 
-// ── 14. LV2: THE RISING, over the real HUD ───────────────────────
-//
-// The notification is a HUD element and placement is its whole
-// question, so the lab mounts the REAL enhanced HUD under it and this
-// reads the boxes: a strip judged over an empty page is judged against
-// nothing.
-//
-// AUDIT LV2 F4: ...AND THE BLOCK IS LIVE WHEN IT IS MEASURED. The lab
-// mounts the HUD with nothing in three of `.hud-bottom`'s four rows -
-// no breath bar, no effect chips, no needs strip - so the clearance
-// check below passed over a block 30px tall that is 111px tall in an
-// ordinary fight. It is filled here before it is measured, and a third
-// lane runs at `--hud-scale` 2, the top of ui/enhanced/enhancedHud.js's own
-// range: a strip judged over an empty block at one scale is judged
-// against nothing.
 for (const [label, viewport, hudScale] of [
   ['notice', { width: 1400, height: 900 }, 1],
   ['notice phone', { width: 390, height: 844 }, 1],
@@ -381,10 +295,6 @@ for (const [label, viewport, hudScale] of [
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(`${BASE}/levelup.html?lane=notice`, { waitUntil: 'load' });
   await page.waitForSelector('#enhanced-levelnotice .lv-note', { timeout: 20000 });
-  // A LIVE BOTTOM BLOCK: the breath bar up - the row a player levelling
-  // in a dungeon has over the vitals (UI3: the effects and the needs are
-  // the status widget's tiles at the left edge now, not the column's) -
-  // and the scale this lane is measuring at.
   await page.evaluate((scale) => {
     document.querySelector('.hud')?.style.setProperty('--hud-scale', String(scale));
     const br = document.querySelector('.hud-breath');
@@ -405,11 +315,6 @@ for (const [label, viewport, hudScale] of [
     const r = (s) => { const n = document.querySelector(s); if (!n) return null; const b = n.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height, r: b.right, b: b.bottom }; };
     const strip = r('#enhanced-levelnotice');
     return { vw: window.innerWidth, vh: window.innerHeight, strip, bottom: r('.hud-bottom'), top: r('.hud-top'),
-      // AUDIT LV2 F4: the strip HANGS IN `.hud-bottom` now, so the
-      // block's own box contains it and cannot be what it is measured
-      // against. The thing it must clear is the first row UNDER it -
-      // the breath bar when one is up, the vitals otherwise - and
-      // `home` says it is where the flex box can do that placing.
       home: strip ? (document.querySelector('.hud-bottom')?.firstElementChild?.id ?? '') : '',
       firstRow: r('.hud-breath.on') ?? r('.hud-bars'),
       events: strip ? getComputedStyle(document.querySelector('#enhanced-levelnotice')).pointerEvents : null,
@@ -417,8 +322,6 @@ for (const [label, viewport, hudScale] of [
   });
   check(`${label}: the strip is on screen`, geo.strip && geo.strip.x >= 0 && geo.strip.r <= geo.vw + 1 && geo.strip.y >= 0 && geo.strip.b <= geo.vh + 1,
     geo.strip ? `${Math.round(geo.strip.x)},${Math.round(geo.strip.y)} ${Math.round(geo.strip.w)}x${Math.round(geo.strip.h)}` : 'missing');
-  // IT MUST NOT SIT ON THE HUD. The bottom block is the vitals and the
-  // quickslots - the two things a player reads in a fight.
   check(`${label}: it hangs in the HUD's own bottom column, above every row it carries`,
     geo.home === 'enhanced-levelnotice', geo.home || '(on the body)');
   const clear = !geo.firstRow || geo.strip.b <= geo.firstRow.y + 1;
@@ -428,19 +331,10 @@ for (const [label, viewport, hudScale] of [
     `strip top ${Math.round(geo.strip.y)} vs compass bottom ${Math.round(geo.top?.b ?? 0)}`);
   check(`${label}: no overflow`, geo.scrollW <= geo.vw + 1 && geo.scrollH <= geo.vh + 1,
     `${geo.scrollW}x${geo.scrollH} vs ${geo.vw}x${geo.vh}`);
-  // IT CANNOT EAT A CLICK. The HUD is pointer-transparent and this is
-  // part of the HUD: the key is the way in, and a player at mouselook
-  // has no cursor to click with anyway.
   check(`${label}: it is pointer-transparent, like the rest of the HUD`, geo.events === 'none', geo.events);
   await page.screenshot({ path: `${shots}/levelnotice-${label.replace(/\W+/g, '-')}.png` });
 
-  // THE ANNOUNCEMENT IS AN EVENT: past its hold, the chatter goes and
-  // the level FOLDS to a reminder that says something else.
-  // Waited FOR rather than waited OUT: ANNOUNCE_MS is 4500 but the fold
-  // rides the HUD's own tick, and a loaded machine can run that tick late
-  // enough that a flat 4700 reads the strip mid-announcement (caught under
-  // a parallel `npm run check`). The deadline is generous; the happy path
-  // still leaves the moment the chatter goes.
+  // ANNOUNCE_MS is 4500, but the fold runs on the HUD tick, which can run late under load, so wait for the fold.
   await page.waitForFunction(() => document.querySelectorAll('.lv-note').length <= 1, null, { timeout: 15000 })
     .catch(() => {});
   const after = (await page.locator('.lv-note').allInnerTexts()).map((s) => s.replace(/\s+/g, ' ').trim());
@@ -448,7 +342,6 @@ for (const [label, viewport, hudScale] of [
   check(`${label}: and the level folds to a standing reminder, in different words`,
     /awaits/i.test(after[0] ?? '') && (await page.locator('.lv-note.lv-standing').count()) === 1, after[0]);
 
-  // THE REMINDER IS A STATE: spend the level by any road and it goes.
   await page.evaluate(() => globalThis.__lv.spend());
   await page.waitForFunction(() => !document.querySelector('#enhanced-levelnotice'), null, { timeout: 5000 })
     .catch(() => {});

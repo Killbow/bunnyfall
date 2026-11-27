@@ -1,4 +1,3 @@
-// The `roll` frame's handler, called by message/dispatch.js with the room as `this`.
 import { CHAT_STRIKES_MAX, rollGate, rollDice } from '../../relay.js';
 import { rand32 } from '../../room/dice.js';
 

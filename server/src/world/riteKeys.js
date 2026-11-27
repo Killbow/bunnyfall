@@ -1,5 +1,3 @@
-// A rite's records as the hub and the cells read them. They cover who broke a circle, the hub's
-// words for a broken rite and an open cage, the circles a day counts, who is paid, and the shape.
 import { RITE_BY_MAX } from '../relay.js';
 import { RITE_HELPERS_MAX } from '../../../src/net/gateRite.js';
 

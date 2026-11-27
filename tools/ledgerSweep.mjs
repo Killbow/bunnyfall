@@ -1,50 +1,6 @@
-// THE LEDGER SWEEP AID - Port-Ledger section C, cross-referenced against
-// the arc docs and the tree. Prints every UNSTRUCK row beside the evidence
-// that it might already have shipped, so "is this row still true?" is a
-// read instead of a manual grep per row.
-//
-// TWO SIGNALS, because neither alone found all four stale rows in the
-// 2026-08-19 sweep:
-//
-//   1. ARC HEADINGS. Every closed slice writes a `## ... SHIPPED` (or
-//      CLOSED) heading in its arc doc. A row whose feature words show up
-//      in one of those headings is very likely closed - this is what
-//      catches "breath/drowning + crouch" against "## P12 (breath/drowning
-//      + crouch): SHIPPED". The strongest signal, because it compares the
-//      row's CLAIM against a slice's own claim.
-//   2. MEMBER GREP. The row's DFU members, found in NON-COMMENT src/.
-//      Weaker and noisier - a format reader's name (MapsFile) matches for
-//      rows about things built ON that reader - but it is the only thing
-//      that catches a row closed without a matching heading, which is how
-//      MakeHouseContainer shipped inside S2b.
-//
-// MEASURED, by running it against the PRE-sweep ledger (2f477a1) where
-// the four stale rows were still standing:
-//   caught 2 of 4 - transition stingers (arc heading, shares
-//     [transition, stingers]) and breath/drowning (shares [breath,
-//     drowning, crouch] AND AcrobatMotor in code).
-//   missed 2 of 4 - interior containers, because the port RENAMED the
-//     member (MakeHouseContainer -> isHouseContainerModel), and the
-//     U20b career flags, because S23's vocabulary shares nothing with
-//     CreateCharSpecialAdvantageWindow.ParseCareerData.
-//   2 standing false positives - the two rows naming MapsFile, which is
-//     a ported READER that other unported things are built on.
-// So: A CLEAN RUN IS NOT PROOF. This narrows ~14 rows to 2-4 worth
-// reading. The two it missed are exactly the shape a person catches and
-// a matcher cannot - a rename, and a slice that used its own words.
-//
-// WHY THIS IS AN AID AND NOT A GATE. It cannot decide the question: a
-// member matching in src/ might be a real port or a comment saying the
-// thing is FLAGGED, and only a person can tell which. Wired into
-// `npm run check` it would either fire constantly or - far worse - decay
-// into a date-bump nobody reads, a FALSE attestation that section C was
-// swept when it was not. A stale row already lies; a rubber-stamped sweep
-// line would lie about the lying. So this reports and ranks; a person calls it.
-//
-// Usage: node tools/ledgerSweep.mjs [--all] [--ledger <path>]
-//   --all              also list the rows that matched nothing
-//   --ledger <path>    sweep a different copy (used to self-test against
-//                      a pre-sweep ledger out of git)
+// Lists unstruck Port-Ledger section C rows beside evidence they may have shipped: arc doc headings and DFU members
+// in src/. It is an aid, not a gate, and a clean run proves nothing.
+// Run: node tools/ledgerSweep.mjs [--all] [--ledger <path>].
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,12 +12,8 @@ const LEDGER = argv.includes('--ledger')
   ? argv[argv.indexOf('--ledger') + 1]
   : join(ROOT, 'bible/01-Overview/Port-Ledger.md');
 
-// ---- section C's rows -------------------------------------------------
 const ledger = readFileSync(LEDGER, 'utf8');
-// AUDIT 68 X5-ledgersweep-section-c-runs-to-eof: section C ends at the next
-// `## ` heading - unbounded, D's board, AUDIT 27 and Ledger A (continued)
-// were swept as unported features - and a heading that is gone is an error,
-// never slice(-1)'s "0 unstruck rows".
+// Section C ends at the next ## heading; a missing heading is an error, not zero rows.
 const HEAD_C = '## C. DFU features not yet ported';
 const startC = ledger.indexOf(HEAD_C);
 if (startC < 0) { console.error(`"${HEAD_C}" is not in ${LEDGER}`); process.exit(2); }
@@ -73,11 +25,9 @@ const rows = secC.split('\n')
     const c = l.split('|').slice(1, -1).map((x) => x.trim());
     return { feature: c[0] ?? '', source: c[1] ?? '', target: c[2] ?? '' };
   });
-// A `Kept` or `Not planned` row is a DECISION, not a claim that
-// something is unported, so it cannot go stale the same way.
+// Kept and Not planned rows are decisions, not claims that something is unported, so they are skipped.
 const open = rows.filter((r) => !r.feature.includes('~~') && !/^(Kept|Not planned)/.test(r.target));
 
-// ---- signal 1: the arc docs' own SHIPPED/CLOSED headings --------------
 const bible = [];
 (function walk(d) {
   for (const e of readdirSync(d)) {
@@ -95,7 +45,6 @@ for (const f of bible) {
   }
 }
 
-// Feature words worth comparing: lowercase, long enough to mean something.
 const STOPW = new Set(['interior', 'exterior', 'player', 'system', 'systems', 'shipped', 'closed',
   'classic', 'verbatim', 'arc', 'until', 'their', 'these', 'those', 'which', 'where', 'still',
   'audit', 'window', 'windows', 'effects', 'effect', 'quest', 'items', 'item']);
@@ -103,7 +52,6 @@ const wordsOf = (s) => new Set((s.toLowerCase().match(/[a-z][a-z/-]{4,}/g) || []
   .flatMap((w) => w.split(/[/-]/))
   .filter((w) => w.length >= 5 && !STOPW.has(w)));
 
-// ---- signal 2: DFU members in non-comment src/ ------------------------
 const files = [];
 (function walk(d) {
   for (const e of readdirSync(d)) {
@@ -116,13 +64,11 @@ const tree = files.map((f) => ({ path: f.slice(ROOT.length), src: readFileSync(f
 
 const STOP = new Set(['Systems', 'Rendering', 'Player', 'Audio', 'Combat', 'Kept', 'Unity', 'DFU',
   'Increased', 'Decreased', 'Interior', 'Exterior', 'Assets', 'Scripts']);
-// Two CamelCase humps minimum: `Increased` alone is a fragment of a
-// slashed compound and matches half the tree; `MakeHouseContainer` is a member.
+// Require two CamelCase humps: a single word such as Increased matches half the tree.
 const membersOf = (s) => [...new Set((s.match(/\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g) || []))]
   .filter((m) => !STOP.has(m) && m.length >= 8);
 const isComment = (l) => /^\s*(\/\/|\*|\/\*)/.test(l);
 
-// ---- report -----------------------------------------------------------
 let suspects = 0;
 for (const r of open) {
   const fw = wordsOf(r.feature);

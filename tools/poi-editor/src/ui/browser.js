@@ -1,8 +1,5 @@
 // @ts-check
 
-// The asset browser: a virtual grid or list over the whole catalogue, with search, filters, favourites,
-// recent items, collections and a preview pane. Cards can be dragged into the viewport or placed with a button.
-
 import { h, clear } from './dom.js';
 import { visibleRows } from '../catalogue.js';
 import { whyNotPlaceable } from '../place.js';

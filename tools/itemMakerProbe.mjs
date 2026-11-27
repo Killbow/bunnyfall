@@ -1,11 +1,3 @@
-// M4 probe: drive the item maker against the live game.
-//
-// The unit tests drive the law over fixtures; this proves the HOST
-// half - that the guild-service DESTINATION really reaches the window
-// (it was a FLAGGED null until this slice), that the tabs filter the
-// player's real pack, that a bound soul drags its forced children in
-// through the real pickers, and that enchanting really spends gold
-// off the entity and leaves the enchantments on the item.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -43,14 +35,13 @@ for (let i = 0; i < doors.length && !inside; i++) {
 if (!inside) fail('could not get inside any building');
 console.log('inside:', await page.evaluate(() => window.__building()));
 
-// A real pack: a steel wakizashi to enchant, a robe, a ruby, and gold.
 await page.evaluate(() => {
   const e = window.__playerEntity;
   e.items = e.items ?? [];
   const g = e.items.find((i) => i.group === 'Currency');
   if (g) g.stackCount = 200000;
   else e.items.push({ group: 'Currency', name: 'Gold pieces', stackCount: 200000 });
-  e.items.push({ group: 'Weapons', templateIndex: 117, material: 0, name: 'Wakizashi', stackCount: 1 });   // material 0 is IRON
+  e.items.push({ group: 'Weapons', templateIndex: 117, material: 0, name: 'Wakizashi', stackCount: 1 });
   e.items.push({ group: 'MensClothing', templateIndex: 19, name: 'Robe', stackCount: 1 });
   e.items.push({ group: 'Gems', templateIndex: 0, name: 'Ruby', stackCount: 1 });
 });
@@ -83,10 +74,9 @@ console.log('\n== REFUSALS BEFORE AN ITEM IS PICKED ==');
 await page.evaluate(() => window.__itemMakerClick('powersButton'));
 s = await win();
 if (!/must be selected/i.test(s.box?.[0] ?? '')) fail(`expected the no-item refusal, got ${JSON.stringify(s.box)}`);
-await page.evaluate(() => window.__itemMakerClick('powersButton'));   // dismiss
+await page.evaluate(() => window.__itemMakerClick('powersButton'));
 
 console.log('\n== SELECT + THE PICKERS ==');
-// slot 0 of the item scroller, at that slot's own cell
 s = JSON.parse(await page.evaluate(() => window.__itemMakerSlot(0)));
 if (s.selected !== 'Wakizashi') fail(`selecting the first slot picked ${s.selected}`);
 console.log('selected:', s.selected, 'labels:', JSON.stringify(s.labels));
@@ -146,8 +136,6 @@ if (!s.powers.some((e) => e.type === 'PotentVs' && e.param === 1)) fail('the Dae
 if (!s.sideEffects.some((e) => e.type === 'ExtraWeight')) fail('...and Extra Weight');
 
 console.log('\n== REMOVING THE PARENT TAKES THE CHILDREN ==');
-// through the window's own hit test, at the rect rowLayout puts the
-// Soul Bound row at - not by reaching into the array
 const withSoul = after;
 s = JSON.parse(await page.evaluate(() => window.__itemMakerRemoveRow('sideEffects', 'SoulBound:31')) ?? 'null');
 if (!s) fail('the Soul Bound row was not where rowLayout says it is');

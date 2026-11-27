@@ -1,15 +1,6 @@
-// WB6a - THE DEADLANDS' SKY AND SEA, COMPILED, LINKED AND DRAWN IN A REAL BROWSER.
-//
-// node holds the pass's law (test/world/gate/wb6a_deadlands.test.js drives it over a fake GL); what node cannot answer is whether
-// the GLSL COMPILES and LINKS in a real WebGL2 context, whether the sky lands only where the court left the far plane
-// clear (PERF2's law), and whether what lands is the Deadlands: a red overcast over the horizon, the beam standing over
-// the great tower, the fire of the sea under the rim, and no edge between the sea and the sky. So: the repo's own
-// modules served as they are (no bundler - every import in this chain is relative), the court drawn with its own art by
-// a stand-in shader, the pass drawn by its own class after it, and the frame read back.
-// WB6b: the land out in the fire and the floor's shards drawn with the court (world/deadlandsLand.js), and the air's
-// life after the pass (drawLife) - its program linked, and its embers lighting the air over the frame without it.
-//
-//     node tools/deadlandsProbe.mjs [--shots <dir>]     (writes arrive.png / up.png / over.png there when given)
+// Compiles and draws the Deadlands sky, sea, and land pass in a real WebGL2 page and reads the frame back.
+// Run: node tools/deadlandsProbe.mjs [--shots <dir>].
+
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -86,7 +77,7 @@ window.ready = true;
 
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }   // not the root: U60 keeps that the landing page's
+  if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
   const f = join(ROOT, url);
   if (!f.startsWith(ROOT) || !existsSync(f)) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': extname(f) === '.js' ? 'text/javascript' : extname(f) === '.json' ? 'application/json' : 'application/octet-stream' });
@@ -119,10 +110,8 @@ try {
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'over.png') });
   const hottest = over.below.reduce((a, c) => (lum(c) > lum(a) ? c : a));
   check('the sea burns round the court - crust plates over molten fire', red(hottest) && lum(hottest) > 200 && over.below.some((c) => lum(c) < lum(hottest) * 0.5), `hottest ${JSON.stringify(hottest)} of ${over.below.length}`);
-  // no edge: along the top of the overview, where the sea's rim meets the sky, the colour moves smoothly
   const steps = over.rim.map((c, i, a) => (i ? Math.abs(lum(c) - lum(a[i - 1])) : 0));
   check('the sea\'s rim meets the sky with no edge', Math.max(...steps) < 60, JSON.stringify(over.rim));
-  // WB6b: the air's life over the arrival's view - the same frame without it and with it
   const bare = await page.evaluate(() => window.draw([0, 1.7, 18], [0, 4, 0], 40, false));
   const lived = await page.evaluate(() => window.draw([0, 1.7, 18], [0, 4, 0], 40, true));
   if (shotsAt) await page.locator('#c').screenshot({ path: join(shotsAt, 'life.png') });

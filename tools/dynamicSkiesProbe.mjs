@@ -1,13 +1,5 @@
-// DYNAMIC SKIES, SEEN (DS1). Opens the sky lab with `?sky=dynamic` - the
-// mod's own pass, presets and textures on the lab's canvas, no game data
-// needed - at a set of hours and weathers and screenshots each. Judges
-// what a screenshot can: the pass compiles and draws (no page error,
-// no WebGL error), the textures landed (the lab reports ready only once
-// they have), the frame is not black, noon is brighter than midnight,
-// the sun's disc is in the frame at noon looking up at it, the stars
-// are there at midnight, and the weathers differ from one another.
-//
-//     node tools/dynamicSkiesProbe.mjs          (writes /tmp/dsky-*.png)
+// Screenshots the sky lab with ?sky=dynamic at several hours and weathers and checks that each frame draws.
+// Run: node tools/dynamicSkiesProbe.mjs (writes $PROBE_SHOTS or /tmp/dsky-*.png)
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -23,7 +15,7 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
-page.on('console', (m) => { if ((m.type() === 'error' || m.type() === 'warning') && !/GPU stall due to ReadPixels/.test(m.text())) errors.push(`[${m.type()}] ${m.text()}`); });   // SwiftShader's readback note is not a fault
+page.on('console', (m) => { if ((m.type() === 'error' || m.type() === 'warning') && !/GPU stall due to ReadPixels/.test(m.text())) errors.push(`[${m.type()}] ${m.text()}`); });
 
 async function shoot(label, q) {
   await page.goto(`${BASE}/sky.html?sky=dynamic&still&nopanel&${q}`, { waitUntil: 'load' });

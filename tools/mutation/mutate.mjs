@@ -1,11 +1,6 @@
-// Mutation driver for project-dagger AUDIT 18.
-//
-//   node tools/mutation/mutate.mjs --files <glob-ish substr,...> [--ops REL,NUM,...]
-//                             [--per-file N] [--seed N] [--out log.jsonl] [--full]
-//
-// For each mutant: patch file -> node --check -> run the minimal test subset that
-// V8 coverage says executes that line -> revert. Survivors are re-confirmed against
-// the full suite by confirm.mjs.
+// Mutation driver: patches one site, runs the tests whose coverage includes that line, and reverts.
+// Usage: node tools/mutation/mutate.mjs --files <substr,...> [--ops REL,NUM,...] [--lines A-B,...] [--per-file N].
+//   [--seed N] [--out log.jsonl] [--full] [--escalate]
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -20,8 +15,6 @@ const flag = (name) => argv.includes('--' + name);
 
 const filesSel = (arg('files', '') || '').split(',').filter(Boolean);
 const opsSel = new Set((arg('ops', '') || '').split(',').filter(Boolean));
-// --lines A-B[,C-D,...]: restrict mutation sites to line ranges (slice
-// campaigns sweep only the lines the slice touched).
 const linesSel = (arg('lines', '') || '').split(',').filter(Boolean)
   .map((r) => r.split('-').map(Number));
 const inLines = (line) => !linesSel.length || linesSel.some(([a, b]) => line >= a && line <= (b ?? a));
@@ -31,9 +24,6 @@ const MAXSUBSET = Number(arg("max-subset", "126"));
 let seed = Number(arg('seed', '12345'));
 function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
 
-/* ------------------------------------------------------------------ masking */
-// Returns array `mask` where mask[i] is true when index i is *code* (not string /
-// comment / regex / template literal body).
 function maskCode(s) {
   const m = new Uint8Array(s.length).fill(1);
   let i = 0;
@@ -60,7 +50,6 @@ function maskCode(s) {
     if (c === '/') {
       const p = prevSignificant(i);
       if (p === '' || '=(,:[!&|?{;+*%~^'.includes(p) || /\n/.test(s.slice(0, i).slice(-1))) {
-        // possible regex literal
         let j = i + 1, cls = false, ok = false;
         while (j < s.length && s[j] !== '\n') {
           if (s[j] === '\\') { j += 2; continue; }
@@ -77,7 +66,6 @@ function maskCode(s) {
   return m;
 }
 
-/* ---------------------------------------------------------------- operators */
 const PAIR_OPS = [
   ['REL', '<=', '<'], ['REL', '>=', '>'], ['REL', '===', '!=='], ['REL', '!==', '==='],
   ['LOGIC', '&&', '||'], ['LOGIC', '||', '&&'],
@@ -97,21 +85,18 @@ function sites(text, rel) {
   const lineOf = (() => { const ls = [0]; for (let i = 0; i < text.length; i++) if (text[i] === '\n') ls.push(i + 1); return (o) => { let lo = 0, hi = ls.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ls[mid] <= o) lo = mid; else hi = mid - 1; } return lo + 1; }; })();
   const codeAt = (i, n) => { for (let k = i; k < i + n; k++) if (!m[k]) return false; return true; };
 
-  // ordered scan so longer ops win (>>> before >>, <= before <, === before ==)
   for (let i = 0; i < text.length; i++) {
     if (!m[i]) continue;
     let matched = false;
     for (const [op, from, to] of PAIR_OPS) {
       if (text.startsWith(from, i) && codeAt(i, from.length)) {
-        // avoid matching inside a longer operator
         if (from === '>>' && text.startsWith('>>>', i)) continue;
-        if (from === '<=' || from === '>=') { /* ok */ }
+        if (from === '<=' || from === '>=') { }
         out.push({ op, start: i, end: i + from.length, from, to, line: lineOf(i) });
         i += from.length - 1; matched = true; break;
       }
     }
     if (matched) continue;
-    // bare < and > (not part of <=, >=, <<, >>, =>, </)
     if ((text[i] === '<' || text[i] === '>') && m[i]) {
       const n = text[i + 1], p = text[i - 1];
       if (n !== '=' && n !== text[i] && p !== '=' && p !== '<' && p !== '>' && p !== '!') {
@@ -119,7 +104,6 @@ function sites(text, rel) {
       }
       continue;
     }
-    // identifier-ish ops
     for (const [op, from, to] of IDENT_OPS) {
       if (text.startsWith(from, i) && codeAt(i, from.length)) {
         const p = text[i - 1] || ' ', n = text[i + from.length] || ' ';
@@ -131,7 +115,6 @@ function sites(text, rel) {
     }
   }
 
-  // numeric literals
   const NUM = /(?<![A-Za-z0-9_$.])(0[xX][0-9a-fA-F]+|\d+\.\d+|\d+)(?![A-Za-z0-9_$.])/g;
   let g;
   while ((g = NUM.exec(text))) {
@@ -146,7 +129,6 @@ function sites(text, rel) {
     out.push({ op: 'NUM', start: i, end: i + lit.length, from: lit, to, line: lineOf(i) });
   }
 
-  // unary ! removal
   const NOT = /(^|[(,=&|?:;{[\s])!(?=[A-Za-z_$(])/g;
   while ((g = NOT.exec(text))) {
     const i = g.index + g[1].length;
@@ -158,27 +140,25 @@ function sites(text, rel) {
   return out.sort((a, b) => a.start - b.start);
 }
 
-/* ------------------------------------------------------------------- runner */
 function testsForLine(rel, line) {
   const f = COV[rel];
-  if (!f) return null;                       // file never loaded by any test
+  if (!f) return null;
   const t = f[String(line)];
-  return t ? [...new Set(t)] : [];           // [] === line never executed
+  return t ? [...new Set(t)] : [];
 }
 
 function runTests(list) {
   const argsList = list.length ? list.map(t => path.join('test', t)) : [];
   const r = spawnSync(process.execPath, ['--test', ...argsList], {
-    cwd: ROOT, encoding: 'utf8', timeout: 300000, maxBuffer: 1 << 28,   // AUDIT 68: a whole-suite TAP outgrows the 1 MiB default
+    // A whole-suite TAP output exceeds the 1 MiB default buffer.
+    cwd: ROOT, encoding: 'utf8', timeout: 300000, maxBuffer: 1 << 28,
     env: { ...process.env, ARENA2_PATH: process.env.ARENA2_PATH },
   });
   if (r.error && r.error.code === 'ETIMEDOUT') return { status: 'TIMEOUT' };
-  // AUDIT 68 X5-mutation-harness-enobufs-orphaned: a child the harness lost (ENOBUFS, a signal) is not a failing test
   if (r.error || r.status === null) return { status: 'ERROR', error: r.error?.code ?? r.signal };
   return { status: r.status === 0 ? 'PASS' : 'FAIL', out: (r.stdout || '') + (r.stderr || '') };
 }
 
-/* --------------------------------------------------------------------- main */
 const allSrc = [];
 (function walk(d) {
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -188,25 +168,23 @@ const allSrc = [];
 })(path.join(ROOT, 'src'));
 
 const targets = allSrc.filter(f => !filesSel.length || filesSel.some(s => f.includes(s))).sort();
-const log = { write: (s) => fs.appendFileSync(OUTLOG, s), end: () => {} };  // sync: spawnSync starves the event loop
+// Log writes are synchronous because spawnSync starves the event loop.
+const log = { write: (s) => fs.appendFileSync(OUTLOG, s), end: () => {} };
 let nRun = 0, nCaught = 0, nSurv = 0, nDead = 0, nSkip = 0, nErr = 0;
 
 for (const rel of targets) {
   const abs = path.join(ROOT, rel);
   const orig = fs.readFileSync(abs, 'utf8');
   let cand = sites(orig, rel).filter(s => (!opsSel.size || opsSel.has(s.op)) && inLines(s.line));
-  // prefer covered lines, then sample
   const covered = [], uncovered = [];
   for (const s of cand) {
     const t = testsForLine(rel, s.line);
     if (t === null || t.length === 0) uncovered.push(s); else { s.tests = t; covered.push(s); }
   }
-  // report uncovered-by-construction sites without running
   for (const s of uncovered) {
     nDead++;
     log.write(JSON.stringify({ file: rel, line: s.line, op: s.op, from: s.from, to: s.to, verdict: 'NO_TEST_EXECUTES_LINE', tests: 0 }) + '\n');
   }
-  // sample covered sites
   const pick = [];
   const pool = covered.slice();
   const budget = Math.min(perFile, pool.length);
@@ -222,8 +200,6 @@ for (const rel of targets) {
     const subset = s.tests.length && s.tests.length <= MAXSUBSET && !flag('full') ? s.tests : ALLTESTS;
     let res = runTests(subset);
     let escalated = false;
-    // Escalate to the FULL suite whenever the minimal subset passes, so every
-    // SURVIVED verdict is definitive (no reliance on coverage-map precision).
     if (flag('escalate') && res.status === 'PASS' && subset.length < ALLTESTS.length) {
       escalated = true;
       res = runTests(ALLTESTS);
@@ -239,7 +215,6 @@ for (const rel of targets) {
     }) + '\n');
     process.stderr.write(`${verdict === 'SURVIVED' ? 'SURV ' : 'caught'} ${rel}:${s.line} ${s.op} ${s.from}->${s.to} (${subset.length} tests)\n`);
   }
-  // safety: ensure clean
   fs.writeFileSync(abs, orig);
 }
 log.end();

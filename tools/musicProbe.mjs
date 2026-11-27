@@ -1,12 +1,5 @@
-// A5: does the music layer actually make a sound?
-//
-// A pin can prove the scheduler picks the right song and computes the
-// right times; only a real browser proves the audio graph produces
-// signal. This taps an AnalyserNode onto the shared AudioContext's
-// destination and measures RMS over several seconds, so "music plays"
-// is a MEASUREMENT rather than "nothing threw".
-//
-// Usage: node tools/musicProbe.mjs
+// Measures RMS on the shared AudioContext output in a minimal page to check that the music layer makes sound.
+// Run: node tools/musicProbe.mjs.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -21,18 +14,13 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 page.on('console', (m) => { const t = m.text(); if (/music|MIDI|song|error/i.test(t)) console.log('[page]', t); });
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 
-// A MINIMAL PAGE, not the game. Booting a whole dungeon host to ask
-// "does the synth make a sound" couples this probe to every other
-// system; intercepting the root and serving one script isolates the
-// audio question, and the modules under test are the real ones vite
-// serves from src/.
 await page.route('**/', (route) => route.fulfill({
   status: 200,
   contentType: 'text/html',
   body: '<!doctype html><meta charset="utf-8"><title>music probe</title><body><canvas id="c"></canvas>',
 }));
 await page.goto('http://localhost:5206/play/');
-await page.mouse.click(200, 200);          // the gesture that allows audio
+await page.mouse.click(200, 200);
 
 const result = await page.evaluate(async () => {
   const mod = await import('/src/audio/music.js');
@@ -44,7 +32,6 @@ const result = await page.evaluate(async () => {
   await mod.music.ensure(fetchBytes);
   if (!mod.music.enabled) return { error: 'MIDI.BSA did not load' };
 
-  // The context is created lazily on gesture; force it up for the probe.
   aud.audio._ensureCtx();
   const ctx = aud.audio.ctx;
   if (!ctx) return { error: 'no AudioContext' };
@@ -82,13 +69,7 @@ const result = await page.evaluate(async () => {
 });
 console.log(JSON.stringify(result, null, 2));
 
-// T3: the question in this file's own header is "does the music layer
-// actually make a sound?", and the answer was sitting in peakRms and
-// audibleFrames while the probe exited 0 either way - so a silent
-// audio graph, which is the entire thing it was built to catch, read
-// as a pass. `> 0.001` is the same audibility floor the sampler above
-// already uses for audibleFrames; a MAJORITY of the forty frames must
-// clear it, because a single click at the start is not music.
+// A majority of the forty frames must clear the 0.001 audibility floor, since one click is not music.
 const verdict = [];
 if (result.error) verdict.push(result.error);
 else {

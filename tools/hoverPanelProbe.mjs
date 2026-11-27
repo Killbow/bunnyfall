@@ -1,11 +1,5 @@
-// U47 probe: the inventory's hover info panel, live.
-//
-// The unit tests drive the panel over fixtures. What this proves is
-// the SEAM: that a real mousemove over a real inventory window
-// reaches the window's new hover(vx,vy) at all. townTalk's hover
-// channel has existed since U37 and gated on `overlay?.hover` - so
-// until this slice the inventory was the window it skipped, and a
-// method nothing calls is the failure this project keeps finding.
+// Browser probe that checks a real mouse move over the inventory window reaches its hover info panel.
+// Run: ARENA2_PATH=... node tools/hoverPanelProbe.mjs (starts its own dev server).
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
@@ -23,7 +17,6 @@ const waitFrames = async (n) => {
   const f = await page.evaluate(() => window.__frame);
   await page.waitForFunction(([f0, k]) => window.__frame > f0 + k, [f, n], { timeout: 60000 });
 };
-/** Move the real mouse to a VIRTUAL (320x200) point. */
 const moveTo = async (vx, vy) => {
   const at = await page.evaluate(async ([x, y]) => {
     const { nativeMetrics } = await import('/src/ui/nativePanel.js');
@@ -46,7 +39,7 @@ console.log('overlay open:', talk.overlay, 'native:', talk.native);
 console.log('\n== A REAL MOUSEMOVE OVER A REAL SLOT ==');
 const before = await page.evaluate(() => window.__invInfo?.() ?? 'null');
 console.log('before:', before);
-await moveTo(163 + 30, 48 + 10);          // list slot 0
+await moveTo(163 + 30, 48 + 10);
 const after = await page.evaluate(() => window.__invInfo?.() ?? 'null');
 console.log('after slot 0:', after);
 if (after === 'null') fail('no probe surface for the panel - add window.__invInfo');
@@ -54,11 +47,11 @@ const a = JSON.parse(after);
 if (!a.item) fail('hovering a real slot did not fill the panel - the seam does not reach the window');
 
 console.log('\n== STICKY, AND CLEARED BY A TAB ==');
-await moveTo(20, 100);                     // dead space
+await moveTo(20, 100);
 const stuck = JSON.parse(await page.evaluate(() => window.__invInfo()));
 console.log('over dead space:', JSON.stringify(stuck));
 if (stuck.item !== a.item) fail('the panel must be sticky');
-await moveTo(226 + 15, 126 + 7);           // the GOLD button
+await moveTo(226 + 15, 126 + 7);
 const gold = JSON.parse(await page.evaluate(() => window.__invInfo()));
 console.log('over gold:', JSON.stringify(gold));
 if (!gold.gold) fail('the gold button did not take the panel');

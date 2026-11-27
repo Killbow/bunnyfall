@@ -14,6 +14,7 @@ files:
   - server-account/src/garrisons.js
   - server-account/src/farms.js
   - src/net/bunnyGuildLaw.js
+  - tools/yardReseat.mjs
 routes:
   - /v1/homes/yards
   - /v1/homes/town
@@ -42,6 +43,7 @@ invariants:
 traps:
   - Home access uses `heldByAccount` and `OWNS` across characters on an account, so changing cap or deletion checks to account-wide breaks per-character deed limits.
   - "`/v1/homes/yards` (`yardsKept`) runs without a session and caches town yard counts in isolate memory; mutations must invalidate that cache."
+  - "Migration `0121_yard_reseat.sql`, written by `tools/yardReseat.mjs`, compares `placed_at` with `YARD_RESEAT_AT` to pick the old stand-in box, marks each moved place with `reseat` (`YARD_RESEAT_MARK`), and never moves a marked place again. Its cosine and sine are Taylor series because D1 does not promise SQLite's math extension."
 tags:
   - account
   - homes

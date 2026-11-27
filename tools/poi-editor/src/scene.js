@@ -1,26 +1,19 @@
 // @ts-check
 
-// The scene hierarchy of a v2 POI document, as pure functions on the document.
-// Parts, flats, lights and people sit in groups (`group` is a group key). A group holds groups.
-// Nothing here knows the DOM. The editor runs the changing functions inside poiEdit's `edit`,
-// so each one is a single undo step.
-
 import { POI_V2_LIMITS } from '../../../src/poi/poiLawV2.js';
 import { freshKey } from '../../../src/poi/poiDmEdit.js';
 
-/** The collections a scene node can live in, by node kind. */
 export const KINDS = Object.freeze({ part: 'parts', flat: 'flats', light: 'lights', npc: 'npcs' });
 
-/** A node's id: `kind:key`, or `light:index` (lights have no key). */
 export const nodeId = (kind, doc, i) => `${kind}:${kind === 'light' ? i : doc[KINDS[kind]][i].key}`;
 
-/** Split an id. @param {string} id */
+/** @param {string} id */
 export function parseId(id) {
   const c = id.indexOf(':');
   return { kind: id.slice(0, c), key: id.slice(c + 1) };
 }
 
-/** The document's row for an id, with its index, or null. @param {any} doc @param {string} id */
+/** @param {any} doc @param {string} id */
 export function find(doc, id) {
   const { kind, key } = parseId(id);
   if (kind === 'group') { const i = (doc.groups ?? []).findIndex((g) => g.key === key); return i < 0 ? null : { kind, index: i, row: doc.groups[i] }; }
@@ -30,14 +23,9 @@ export function find(doc, id) {
   return list[i] ? { kind, index: i, row: list[i] } : null;
 }
 
-/** A key from a wanted word, unique among `taken` (the game's DM module makes them the same way). */
 export { freshKey };
 
-/**
- * The tree for the hierarchy panel. Every node: `{ id, kind, name, children, visible, locked, hidden, frozen }`.
- * `hidden` and `frozen` are what the node is in fact: its own flag or any group above it.
- * @param {any} doc
- */
+/** @param {any} doc */
 export function buildTree(doc) {
   const groups = doc.groups ?? [];
   const byKey = new Map(groups.map((g) => [g.key, g]));
@@ -56,7 +44,7 @@ export function buildTree(doc) {
   return walk(null, false, false, new Set());
 }
 
-/** Every id in the document, tree order, for shift-click ranges. @param {any} doc */
+/** @param {any} doc */
 export function flatOrder(doc) {
   const out = [];
   const walk = (ns) => ns.forEach((n) => { out.push(n.id); walk(n.children); });
@@ -64,7 +52,6 @@ export function flatOrder(doc) {
   return out;
 }
 
-/** The ids a click selects: with Shift, the range from the anchor to the clicked id in tree order. */
 export function rangeIds(doc, anchor, id) {
   const order = flatOrder(doc);
   const a = order.indexOf(anchor), b = order.indexOf(id);
@@ -72,7 +59,6 @@ export function rangeIds(doc, anchor, id) {
   return order.slice(Math.min(a, b), Math.max(a, b) + 1);
 }
 
-/** Ids whose bounding rows a box selects: the caller measures; this drops the frozen and hidden. */
 export function pickable(doc, ids) {
   const live = new Set();
   const walk = (ns) => ns.forEach((n) => { if (n.kind !== 'group' && !n.hidden && !n.frozen) live.add(n.id); walk(n.children); });
@@ -82,12 +68,11 @@ export function pickable(doc, ids) {
 
 const depthOf = (doc, key) => { let d = 0; const seen = new Set(); for (let g = (doc.groups ?? []).find((x) => x.key === key); g && !seen.has(g.key); g = (doc.groups ?? []).find((x) => x.key === g.parent)) { seen.add(g.key); d++; } return d; };
 
-/** Set a flag on nodes. @param {any} doc @param {string[]} ids @param {'visible' | 'locked'} flag @param {boolean} value */
+/** @param {any} doc @param {string[]} ids @param {'visible' | 'locked'} flag @param {boolean} value */
 export function setFlag(doc, ids, flag, value) {
   for (const id of ids) { const f = find(doc, id); if (f) f.row[flag] = value; }
 }
 
-/** Put the nodes in a new group, under the group the first one sat in. Answers the group key, or a refusal `{ refused }`. */
 export function groupNodes(doc, ids, name = 'Group') {
   const found = ids.map((id) => find(doc, id)).filter(Boolean);
   if (!found.length) return { refused: 'nothing' };
@@ -101,7 +86,6 @@ export function groupNodes(doc, ids, name = 'Group') {
   return { key };
 }
 
-/** Dissolve a group: its children go to the group above it. */
 export function ungroup(doc, groupKey) {
   const g = (doc.groups ?? []).find((x) => x.key === groupKey);
   if (!g) return false;
@@ -112,7 +96,6 @@ export function ungroup(doc, groupKey) {
   return true;
 }
 
-/** Delete nodes. A group's children are deleted with it. Answers how many rows went. */
 export function removeNodes(doc, ids) {
   const groupKeys = new Set();
   const del = { part: new Set(), flat: new Set(), light: new Set(), npc: new Set() };
@@ -136,7 +119,6 @@ export function removeNodes(doc, ids) {
   return n;
 }
 
-/** Move nodes into a group (null: out of every group). A group cannot go into itself or what is inside it, nor deeper than the law's depth. */
 export function moveToGroup(doc, ids, groupKey) {
   const target = groupKey && (doc.groups ?? []).find((g) => g.key === groupKey) ? groupKey : null;
   if (groupKey && !target) return { refused: 'nogroup' };
@@ -152,7 +134,6 @@ export function moveToGroup(doc, ids, groupKey) {
   return { ok: true };
 }
 
-/** Rename a node. Groups and rows share the `name` field. */
 export function renameNode(doc, id, name) {
   const f = find(doc, id);
   const clean = String(name).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 64);

@@ -1,15 +1,5 @@
-// THE REFERENCE HERO FRAGMENT, BAKED - its own bake script, as each of Mac's fragments will have one.
-//
-//     node tools/bakeEgRefFrag.mjs [--fbx=src/assets/egfrags/source/egRefFrag.fbx]
-//
-// EG6c (2026-10-12, bible/11-Multiplayer/Elite-Gates.md section 11.6: "each fragment its own bake script and byte-for-byte
-// test, as every bake in the port has"). The scene is the port's own (tools/egRefFragScene.mjs writes it); the bake is
-// tools/fragBake.mjs's, the one every authored fragment goes through. Its SPEC says what the scene cannot: which fragment
-// it is (`id`), the library kit it belongs to (the Oblivion Caverns - its band, reverb, light and engine follow, net/
-// egFragLaw.js EG_FRAGS), its class, which hero of the kit it is (`variant` - 'reference': the stand-in, which no hall
-// lays - net/eliteGates/egHeroFrags.js), and a chamber's play (a passage names none). The two halves land beside the source:
-// `LAW` (net/eliteGates/egFragLaw.js's record, the relay's - registered in net/eliteGates/egHeroFrags.js) and `MESH` (the client's - registered
-// in world/eliteGates/egHeroFragModel.js), each held to its bytes by test/tooling/eg6c_bake.test.js.
+// Bakes the reference fragment, a stand-in that no hall places, into its LAW and MESH through tools/fragBake.mjs.
+// Run with `node tools/bakeEgRefFrag.mjs [--fbx=src/assets/egfrags/source/egRefFrag.fbx]`.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { bakeFrag, fragJson } from './fragBake.mjs';

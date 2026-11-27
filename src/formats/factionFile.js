@@ -1,15 +1,3 @@
-// T3a talk foundation: FACTION.TXT (DFU FactionFile.cs, MIT Daggerfall
-// Workshop). The faction tree underpins talk reactions, guilds,
-// temples, courts and quests. Verbatim parse: '#'-headed blocks,
-// tag:value lines (the original file's one malformed tag splits on
-// space), parent/child by preceding-TAB depth stack, duplicate ids
-// remapped from resolver 980, region converted 1-based -> 0-based,
-// flats packed archive<<7|record (a single flat stores to BOTH
-// male/female slots; a second flat is the female), ruler name seed
-// drawn from DFRandom in classic call order (rand()<<16 | rand(),
-// power bonus random_range_inclusive(0,50)+20 - stream-position
-// dependent in DFU too, so values are session-random, structure
-// verbatim). RelinkChildren builds the children lists.
 
 import { rand, randomRangeInclusive } from './dfRandom.js';
 
@@ -20,9 +8,8 @@ export const FACTION_TYPES = Object.freeze({
   Courts: 14, People: 15,
 });
 
-/** FactionFile.Flags (:629-633) - the only two DFU names. Here, beside FACTION_TYPES, since FIELD BUGS 2026-10-14's
- *  SUMMON-REPAIR: the account Worker reads the bits (net/repairLaw.js), and systems/faction/factionRep.js, their home before, is
- *  no module the Worker can bundle; factionRep hands these on. */
+// Defined here because the account worker (`net/repairLaw.js`) reads these bits and cannot bundle `factionRep.js`,
+// which re-exports them.
 export const FACTION_FLAGS = Object.freeze({ RulerImmune: 0x10, Summoned: 0x40 });
 
 export const SOCIAL_GROUPS = Object.freeze({
@@ -37,11 +24,6 @@ export const GUILD_GROUPS = Object.freeze({
   Bards: 5, TheFey: 6, Prostitutes: 7, KnightlyOrder: 9, MagesGuild: 10,
   FightersGuild: 11, Necromancers: 14, Region: 15, HolyOrder: 17,
   Witches: 22, Vampires: 23, Orsinium: 24,
-  // The placeholder members are REAL enum names in FactionFile.cs
-  // :568-602 and Enum.IsDefined matches them - the quest-list router
-  // (QuestListsManager.ParseQuestList) files a "GGroup12" row under
-  // guilds in DFU, so the mirror carries them too (Q2b-ii VERIFY; no
-  // shipped row uses one).
   GGroup0: 0, GGroup1: 1, GGroup8: 8, GGroup12: 12, GGroup13: 13,
   GGroup16: 16, GGroup18: 18, GGroup19: 19, GGroup20: 20, GGroup21: 21,
   GGroup25: 25, GGroup26: 26, GGroup27: 27, GGroup28: 28, GGroup29: 29,
@@ -54,7 +36,6 @@ const countPrecedingTabs = (line) => {
   return n;
 };
 
-// ParseFlat: "archive record" -> archive<<7|record; single part -> 0.
 const parseFlat = (value) => {
   const parts = value.split(/\s+/).filter((s) => s.length);
   if (parts.length === 1) return 0;
@@ -85,7 +66,6 @@ function parseFactionBlock(block, faction) {
     if (!line.trim().length) continue;
     let parts = line.split(':');
     if (parts.length !== 2) {
-      // the original faction.txt has one malformed tag missing its colon
       parts = line.split(' ');
       if (parts.length !== 2) throw new Error(`Invalid tag format for data ${line} on faction ${faction.id}`);
     }
@@ -97,7 +77,6 @@ function parseFactionBlock(block, faction) {
       case 'summon': faction.summon = parseInt(value, 10); break;
       case 'region':
         faction.region = parseInt(value, 10);
-        // 1-based -> 0-based, as classic does
         if (faction.region !== -1) faction.region--;
         break;
       case 'type': faction.type = parseInt(value, 10); break;
@@ -134,11 +113,11 @@ function parseFactionBlock(block, faction) {
         const flat = parseFlat(value);
         if (flat > 0) {
           if (flatCount === 0) {
-            // one flat specified -> both male and female slots
+            // A single flat fills both the male and female slots. A second flat replaces the female slot.
             faction.flat1 = flat;
             faction.flat2 = flat;
           } else if (flatCount === 1) {
-            faction.flat2 = flat;   // the second flat is the female
+            faction.flat2 = flat;
           } else {
             throw new Error(`Too many flats for faction #${faction.id}`);
           }
@@ -152,11 +131,6 @@ function parseFactionBlock(block, faction) {
   }
 }
 
-/** FactionFile.RegisterCustomFaction (:702-719): a mod's faction that
- *  is not in FACTION.TXT, keyed by id; false when the id is taken. The
- *  registry is read by PersistentFactionData.AddCustomFactions (the
- *  port's factionRep.addCustomFactions) when the player's dictionary
- *  is reset, and by the talk host over its own reader. */
 const _customFactions = new Map();
 export function registerCustomFaction(factionId, factionData) {
   if (_customFactions.has(factionId)) return false;
@@ -178,11 +152,10 @@ export function relinkChildren(dict) {
 
 export class FactionFile {
   constructor() {
-    this.factionDict = new Map();       // id -> faction
-    this.factionNameToId = new Map();   // first name wins (DFU ignores dupes)
+    this.factionDict = new Map();
+    this.factionNameToId = new Map();
   }
 
-  /** Parse FACTION.TXT bytes (UTF-8 text). */
   load(bytes) {
     this.parse(new TextDecoder().decode(bytes));
     relinkChildren(this.factionDict);
@@ -190,12 +163,10 @@ export class FactionFile {
   }
 
   parse(txt) {
-    // unmodded FACTION.TXT contains duplicate ids; the resolver
-    // counter hands those a unique id (classic-compatible base 980)
+    // Unmodded FACTION.TXT has duplicate ids. Each duplicate gets a new id counting up from 980, as in classic.
     let resolverId = 980;
     this.factionDict.clear();
 
-    // First pass: split into '#'-headed blocks (comments ';' skipped).
     const factionBlocks = [];
     let currentBlock = [];
     for (const line of txt.split(/\r?\n/)) {
@@ -208,7 +179,6 @@ export class FactionFile {
     }
     if (currentBlock.length) factionBlocks.push(currentBlock);
 
-    // Second pass: parse blocks; parents from the preceding-tab stack.
     let lastPrecedingTabs = 0;
     let previousId = 0;
     const parentStack = [];
@@ -235,23 +205,11 @@ export class FactionFile {
         this.factionNameToId.set(faction.name, faction.id);
       }
 
-      // Ruler name seed + power bonus. AUDIT 18 F3: the draws happen -
-      // they advance the DFRandom stream and every later faction depends
-      // on that - but the RESULTS ARE DISCARDED, because DFU discards
-      // them. FactionData is a STRUCT (FactionFile.cs:640), so
-      // `factionDict.Add(faction.id, faction)` at :1003/:1009 takes a
-      // COPY before :1026-1027 assign these two fields to the local. The
-      // only thing that outlives the loop body is `previousFaction`, read
-      // for `.id` alone (:984). Every faction in DFU's FactionDict
-      // therefore carries rulerNameSeed 0 and rulerPowerBonus 0, and
-      // PersistentFactionData.Reset() hands that same zeroed dict to the
-      // game - which is why MacroHelper.cs:328 seeds every province's
-      // ruler name from 0, and why PlayerEntity's ten regional-power
-      // rolls all add nothing. The port stored what DFU throws away.
-      // Bug-for-bug: draw, then drop.
+      // The ruler seed and power draws must run to advance the DFRandom stream. DFU assigns them to a struct copy
+      // and drops them, so every faction keeps 0 for both.
       const random = (rand() << 16) >>> 0;
-      void ((rand() | random) >>> 0);          // DFU: faction.rulerNameSeed on the discarded copy
-      void (randomRangeInclusive(0, 50) + 20);  // DFU: faction.rulerPowerBonus on the discarded copy
+      void ((rand() | random) >>> 0);
+      void (randomRangeInclusive(0, 50) + 20);
 
       previousId = faction.id;
     }

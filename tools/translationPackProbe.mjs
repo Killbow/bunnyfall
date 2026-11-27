@@ -1,14 +1,8 @@
-// L10N3b (2026-09-27): A REAL DFU TRANSLATION PACK, INSTALLED THROUGH THE SETTINGS ROW, IN A REAL BROWSER.
-//
-// test/systems/l10n3b.test.js runs the store and the loader over an in-memory IndexedDB; this installs a pack the way a player
-// does - the Translation pack row's Install, its folder picked (then its .zip) - into Chromium's own IndexedDB, and
-// reads the game's tables back: the pack's Internal_Strings and Internal_RSC words live, its font registered for its
-// language, all of it still there after a reload, and gone again after Remove.
-//
-// A pack is its authors' work under their own terms, so none ships with the port and none is committed here: point
-// PACK_DIR at one on your own disk (its folder, the one holding Text/). No PACK_DIR, no run.
-//     npx vite --port 5199 &
-//     PACK_DIR="/path/to/French files for DFU 1.2" PACK_LANG=fr node tools/translationPackProbe.mjs
+// Installs a DFU translation pack through its settings row in a real browser and checks its text, font, reload,
+// and Remove.
+// No pack ships with the game, so point PACK_DIR at one on disk (the folder holding Text/).
+// Usage: start `npx vite --port 5199`, then run `PACK_DIR=<dir> PACK_LANG=fr node tools/translationPackProbe.mjs`
+
 import { chromium } from 'playwright';
 import { existsSync, readFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
@@ -29,7 +23,6 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`);
 };
 
-// the pack's own words, read here the way DFU reads them, to compare against what the game shows
 const csvValue = (file, key) => {
   const text = readFileSync(join(PACK_DIR, 'Text', file), 'utf8').replace(/^﻿/, '');
   const m = new RegExp(`(?:^|\\n)${key},((?:"[^"]*")+|[^",\\n]*)`).exec(text);
@@ -58,14 +51,12 @@ const tables = () => page.evaluate(async () => {
     pack: tm.localeInfo()?.pack?.name ?? null,
   };
 });
-// the pack row: the second row of the Interface pane on the front door
 const packRow = () => page.locator('#enhanced-menu .row').nth(1);
 
 await open();
 check('before: the pack row offers an install', (await packRow().locator('button').count()) === 1);
 check('before: no pack text in the tables', (await tables()).save === null);
 
-// 1. THE FOLDER
 await packRow().locator('button').first().click();
 await page.waitForSelector('#pickassets');
 await page.setInputFiles('#pickassets', PACK_DIR);
@@ -81,19 +72,16 @@ check('the pack row names it and offers a removal', (await packRow().locator('bu
 const hasFont = existsSync(join(PACK_DIR, 'Fonts'));
 if (hasFont) check('the pack\'s font is the one FONT0003 draws with', /dfu-pack-/.test(t.font ?? ''), t.font ?? 'none');
 
-// 2. A RELOAD: the pack is the browser's now
 await open();
 t = await tables();
 check('after a reload the pack is still there, loaded before the front door', t.save === wantSave && !!t.pack);
 
-// 3. REMOVE
 const oneButton = () => page.waitForFunction(() => document.querySelectorAll('#enhanced-menu .row')[1]?.querySelectorAll('button').length === 1);
 await packRow().locator('button').nth(1).click();
 await oneButton();
 t = await tables();
 check('removed: the pack\'s text is gone and the drafts stand', t.save === null && t.pack === null);
 
-// 4. THE ZIP, as a pack is downloaded
 const zipDir = mkdtempSync(join(tmpdir(), 'packprobe-'));
 const zipPath = join(zipDir, 'pack.zip');
 execFileSync('zip', ['-qr', zipPath, 'Text'], { cwd: PACK_DIR });

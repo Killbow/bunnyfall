@@ -1,20 +1,6 @@
-// C6i: IN-HOUSE back derivation (no AI generation - Mac's mandate).
-// Everything derives from data we already own:
-//   MATERIAL - the mirrored front supplies each pixel's palette RAMP
-//     (ART_PAL is organized in shading ramps; a pixel's ramp = its
-//     material, its position = its lit level).
-//   SHADING - our own back-shell geometry: normals from the distance
-//     field's gradient, lit by one fixed key, quantized back into the
-//     SAME ramp. Front-baked forms (pecs, face, breastplate design)
-//     vanish because levels are recomputed, not copied.
-//   DETAIL - procedural features parameterized from landmarks detected
-//     in the front sprite itself: hair fill (the front's own hair
-//     ramp) over the head region, a spine line + scapula highlights on
-//     the torso, and for armor a center ridge + lame lines at the rows
-//     where the FRONT's real design changes level.
-// Deterministic, classic-palette, dye-band safe (armor stays in
-// 0x70-0x7F because relighting never leaves the source ramp).
-// Usage: ARENA2_PATH=... node tools/derive-back.mjs [body|cuirass ...]
+// Derives the paperdoll back view from the palette ramps of the front sprite and the back shell geometry.
+// Run: ARENA2_PATH=... node tools/derive-back.mjs [body|cuirass ...].
+
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -35,9 +21,6 @@ if (!A) { console.error('ARENA2_PATH required'); process.exit(1); }
 const pal = new DFPalette();
 pal.load(readFileSync(`${A}/ART_PAL.COL`), 'ART_PAL.COL');
 
-// ── ART_PAL ramp decomposition ───────────────────────────────────────
-// A ramp is a maximal contiguous index run of similar hue with
-// monotonically decreasing luminance (classic ramps run light -> dark).
 const lum = (i) => { const c = pal.get(i); return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b; };
 const hue = (i) => { const c = pal.get(i); const mx = Math.max(c.r, c.g, c.b), mn = Math.min(c.r, c.g, c.b); if (mx === mn) return -1; let h; if (mx === c.r) h = (c.g - c.b) / (mx - mn); else if (mx === c.g) h = 2 + (c.b - c.r) / (mx - mn); else h = 4 + (c.r - c.g) / (mx - mn); return ((h * 60) + 360) % 360; };
 const hueDist = (a, b) => (a < 0 || b < 0) ? 0 : Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
@@ -46,42 +29,39 @@ const RAMP = new Array(256).fill(null);
   let start = 1;
   for (let i = 2; i <= 256; i++) {
     const breaks = i === 256
-      || lum(i) > lum(i - 1) + 6            // luminance rises = new ramp
-      || hueDist(hue(i), hue(i - 1)) > 40;  // hue jump = new ramp
+      || lum(i) > lum(i - 1) + 6
+      || hueDist(hue(i), hue(i - 1)) > 40;
     if (breaks) {
       for (let j = start; j < i; j++) RAMP[j] = { start, len: i - start };
       start = i;
     }
   }
 }
-const BACK_BIAS = 0.14;        // the back turns from the key: darker overall
-const hash2 = (x, y) => {      // deterministic dither for hair texture
+const BACK_BIAS = 0.14;
+const hash2 = (x, y) => {
   let h = (x * 374761393 + y * 668265263) | 0;
   h = (h ^ (h >> 13)) * 1274126177;
   return ((h ^ (h >> 16)) >>> 0) / 4294967295;
 };
-const relit = (srcIdx, shade) => { // shade 0 = brightest .. 1 = darkest
+const relit = (srcIdx, shade) => {
   const r = RAMP[srcIdx];
   if (!r || r.len < 2) return srcIdx;
   return r.start + Math.min(r.len - 1, Math.max(0, Math.round(shade * (r.len - 1))));
 };
 
-// ── back-surface shading from our own geometry ───────────────────────
 const KEY = (() => { const v = [-0.35, 0.55, -0.75]; const l = Math.hypot(...v); return v.map((x) => x / l); })();
 function backShade(field, W, H, x, y) {
   const f = (xx, yy) => (xx < 0 || yy < 0 || xx >= W || yy >= H) ? 0 : field[yy * W + xx];
   const z = (xx, yy) => DEPTH_RATIO * Math.sqrt(f(xx, yy));
   const dzdx = (z(x + 1, y) - z(x - 1, y)) / 2;
   const dzdy = (z(x, y + 1) - z(x, y - 1)) / 2;
-  // Back surface: z is negated -> normal [dz/dx, -dz/dy(y-up flip), -1]
   let nx = dzdx, ny = -dzdy, nz = -1;
   const nl = Math.hypot(nx, ny, nz);
   nx /= nl; ny /= nl; nz /= nl;
   const d = nx * KEY[0] + ny * KEY[1] + nz * KEY[2];
-  return 1 - Math.max(0, Math.min(1, d * 0.5 + 0.5)); // 0 bright .. 1 dark
+  return 1 - Math.max(0, Math.min(1, d * 0.5 + 0.5));
 }
 
-// ── per-row runs (landmarks in the front's own pixels) ───────────────
 function rowRuns(data, W, H) {
   const rows = [];
   for (let y = 0; y < H; y++) {
@@ -96,8 +76,6 @@ function rowRuns(data, W, H) {
   return rows;
 }
 
-// The torso run on a row = the run holding the silhouette centreline
-// (arm-gap rows put the arm first or last depending on side).
 function torsoRun(runs, cx) {
   if (!runs.length) return null;
   let best = runs[0], bd = Infinity;
@@ -116,10 +94,6 @@ const TARGETS = {
       const rows = rowRuns(mir, W, H);
       let armpit = 0;
       for (let y = 0; y < H; y++) if (rows[y].length >= 2) { armpit = y; break; }
-      // Hair ramp + its LEVEL DISTRIBUTION from the front's own hair
-      // pixels (top 6 rows): the back of the head must read as HAIR,
-      // not a blank skin-toned blob - textured dither over the darker
-      // half of the observed level range.
       const count = new Map();
       let lvSum = 0, lvN = 0;
       for (let y = 0; y < Math.min(6, H); y++) for (let x = 0; x < W; x++) {
@@ -138,9 +112,6 @@ const TARGETS = {
         const w = rows[y][0][1] - rows[y][0][0] + 1;
         if (w <= neckW) { neckW = w; neck = y; }
       }
-      // Hair covers the whole head DOWN THROUGH the neck pinch + 2 (a
-      // back shows more hair), dithered two-tone; a darkest hairline
-      // edge row terminates it.
       const hairEnd = Math.min(H - 1, neck + 2);
       for (let y = 0; y <= hairEnd; y++) for (let x = 0; x < W; x++) {
         if (!mir[y * W + x]) continue;
@@ -149,10 +120,6 @@ const TARGETS = {
         const lv = y === hairEnd ? 1 : Math.min(1, Math.max(0, hairBase + tex + sh * 0.3));
         grid[y * W + x] = hairRamp.start + Math.min(hairRamp.len - 1, Math.round(lv * (hairRamp.len - 1)));
       }
-      // Skin unification below the hair: cross-ramp painted accents
-      // (nipples/navel/face leftovers) are FRONT features - remap any
-      // skin-hue ramp to the region's dominant skin ramp, then those
-      // forms cannot survive.
       const skinCount = new Map();
       for (let y = hairEnd + 1; y < H; y++) for (let x = 0; x < W; x++) {
         const i = mir[y * W + x];
@@ -178,8 +145,6 @@ const TARGETS = {
       const lastTorso = crotch - 1;
       const spineTop = armpit + 2;
       const level = (i) => (i && RAMP[i]) ? (i - RAMP[i].start) / Math.max(1, RAMP[i].len - 1) : 0;
-      // Spine v2: a real groove - 1px highlight beside a 2px shadow,
-      // strongest between the scapulae, easing toward the waist.
       for (let y = spineTop; y <= lastTorso; y++) {
         const run = torsoRun(rows[y], midX);
         if (!run) continue;
@@ -190,7 +155,6 @@ const TARGETS = {
           if (i && RAMP[i]) grid[y * W + cx + dx] = relit(i, Math.min(1, Math.max(0, level(i) + d)));
         }
       }
-      // Scapulae v2: larger two-tone plates (top-lit, under-shadowed).
       const scapY = spineTop + Math.round((lastTorso - spineTop) * 0.16);
       const torso = torsoRun(rows[scapY], midX);
       const tw = torso[1] - torso[0] + 1;
@@ -202,11 +166,10 @@ const TARGETS = {
           const x = cx + dx, y = scapY + dy;
           const i = grid[y * W + x];
           if (!i || !RAMP[i]) continue;
-          const d = dy < 0 ? -0.3 : 0.22; // lit plate above, shadow under
+          const d = dy < 0 ? -0.3 : 0.22;
           grid[y * W + x] = relit(i, Math.min(1, Math.max(0, level(i) + d)));
         }
       }
-      // Lower-back dip: a shaded band just above the crotch.
       for (let y = lastTorso - 3; y <= lastTorso; y++) {
         const run = torsoRun(rows[y], midX);
         if (!run) continue;
@@ -225,12 +188,8 @@ const TARGETS = {
       const rows = rowRuns(mir, W, H);
       const level = (i) => (i && RAMP[i]) ? (i - RAMP[i].start) / Math.max(1, RAMP[i].len - 1) : 0;
       const midX = (W - 1) / 2;
-      // A backplate does NOT echo the front's design (v1 defect - it
-      // read as the front). Plain relit plate + leather cross-straps
-      // with buckles: the real construction of a cuirass rear, and an
-      // immediate silhouette-independent back tell. Straps stay
-      // leather under every metal dye (material-honest).
-      const LEATHER = 0x40; // classic leather band
+      // The classic palette's leather ramp starts at 0x40.
+      const LEATHER = 0x40;
       const lramp = RAMP[LEATHER + 4] || { start: LEATHER, len: 16 };
       let top = 0;
       while (top < H && !rows[top].length) top++;
@@ -255,9 +214,6 @@ const TARGETS = {
       const ly = top + Math.round(span * 0.12), by = top + Math.round(span * 0.78);
       const shoulderRuns = rows[top + Math.round(span * 0.15)];
       const run1 = torsoRun(rows[top + Math.round(span * 0.75)], midX);
-      // The gorget top splits into two shoulder runs around the neck
-      // gap - anchor one strap on each; a single wide run anchors at
-      // its edges.
       let lx, rx;
       if (shoulderRuns.length >= 2) {
         const L = shoulderRuns[0], R = shoulderRuns[shoulderRuns.length - 1];
@@ -269,7 +225,6 @@ const TARGETS = {
       }
       strap(lx, ly, Math.round((run1[0] + run1[1]) / 2) + 4, by, 1);
       strap(rx, ly, Math.round((run1[0] + run1[1]) / 2) - 4, by, 1);
-      // Buckles: darkest-metal 2x2 where the straps meet the plate edge.
       const buckle = (x, y) => {
         for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
           const i = mir[(y + dy) * W + x + dx];
@@ -277,7 +232,6 @@ const TARGETS = {
         }
       };
       buckle(lx - 1, ly); buckle(rx - 1, ly);
-      // Centre ridge (kept from v1).
       for (let y = top; y <= bottom; y++) {
         if (!rows[y].length) continue;
         const run = torsoRun(rows[y], midX);
@@ -296,12 +250,10 @@ function derive(name) {
   const T = TARGETS[name];
   const bmp = T.load();
   const { width: W, height: H } = bmp;
-  // Rear-view space: mirror the front.
   const mir = new Uint8Array(W * H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) mir[y * W + x] = bmp.data[y * W + (W - 1 - x)];
   const mbmp = { width: W, height: H, data: mir };
   const field = distanceField(mbmp);
-  // Base: material from the mirror, level from OUR geometry.
   const grid = new Array(W * H).fill(0);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const src = mir[y * W + x];

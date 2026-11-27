@@ -1,4 +1,3 @@
-// Each entry selects a silhouette and material. Keep the names beside their authored effects.
 const looks = new Map();
 function family(material, entries) {
   for (const [action, form] of Object.entries(entries)) looks.set(action, { material, form });
@@ -40,7 +39,6 @@ family('wind', { 'jab-chain':'braid', 'shoulder-break':'fracture', 'flow-state':
 family('tide', { 'frostborn-charge':'fracture', 'marsh-coil':'helix', 'unbound-will':'fracture',
   'wayfarers-anchor-mark':'anchor', 'wayfarers-anchor-recall':'return', 'deepwater-training':'bubbles', riverstride:'step' });
 
-// A second, shorter shape resolves abilities that share the same first silhouette.
 const finishes = {
   'fatal-opening':'cross', 'shadow-pin':'roots', 'hidden-relay':'needle', 'vanishing-execution':'veil',
   'consecrated-break':'fracture', 'adaptive-guard':'crescent', 'judgement-bastion':'crown',

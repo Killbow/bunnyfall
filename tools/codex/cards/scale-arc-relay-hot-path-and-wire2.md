@@ -27,6 +27,7 @@ traps:
   - "`Room._poseFrame` must stay a separate method so `Room._message` remains below V8's optimized-bytecode size ceiling; never inline it."
   - "`workerd` treats every named export on the worker entrypoint module as a top-level binding or service entrypoint, so shared relay helpers must live in `server/src/relayScale.js`."
   - "Re-serializing numbers such as `1e20` expands JSON byte length; always check the outgoing serialized frame size before charging sender byte budgets."
+  - "Analytics Engine queries read `RoomMetrics` doubles and blobs by position, so new counts are appended as blobs and never reordered, and blob counts are decimal strings read back with `toUInt32`."
 tags:
   - relay
   - performance

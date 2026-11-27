@@ -1,44 +1,5 @@
-// WB5b (2026-09-25): mint the Oblivion Gate's receipt pair - the relay's
-// ONE signing key and the account service's half that verifies it.
-//
-//   node tools/mintGateKeys.mjs          both halves, labelled, for a person
-//   node tools/mintGateKeys.mjs --pipe   both halves, bare, one per line
-//
-// Prints and keeps nothing. NOTHING IS EVER WRITTEN TO DISK, and
-// test/net/gate/wb5b_gate_claim.test.js reads this file to keep it that way.
-//
-// GATE-KEYS (2026-09-26): THE ACCOUNT DEPLOY RUNS THIS, ONCE. Its step
-// "Mint the gate receipt pair" (selfhost/upstream-ci/workflows/account-deploy.yml)
-// reads --pipe and puts both halves as Worker secrets whenever either is
-// missing, so nobody has to; by hand it is the same two `secret put`s.
-//
-//   GATE_SIGNING_KEY  the RELAY's secret, base64 PKCS8 - the key a kill
-//                     receipt is signed with (src/net/gateReceipt.js).
-//                     `npx wrangler secret put GATE_SIGNING_KEY` from
-//                     server/. NEVER into a file, a toml, or a command
-//                     line a shell will remember.
-//   GATE_PUBLIC_KEY   base64url raw, and NOT a secret - it can verify a
-//                     receipt and cannot sign one. It is the ACCOUNT
-//                     SERVICE's, the one party that honours a receipt: a
-//                     Worker secret there too (`npx wrangler secret put
-//                     GATE_PUBLIC_KEY` from server-account/), never a var
-//                     - a var is rewritten by every deploy.
-//
-// THE MIRROR OF THE IDENTITY PAIR (tools/mintIdentityKeys.mjs): there the
-// account service signs and the relay verifies; here the relay signs,
-// because the relay is the one party that SAW the kill, and the account
-// service verifies. Two pairs, two directions, and neither key can pass
-// for the other: a receipt's `r1` is refused by the identity verifier
-// before a byte is parsed, and a token's `v1` by the receipt's.
-//
-// ONE RUN EMITS THE WHOLE PAIR, for the identity tool's reason: calling
-// this twice, once per half, mints two unrelated pairs, and every
-// receipt the relay signs would be declined as forged. Replacing a pair
-// costs only the receipts in flight - a claim of one signed by the old
-// key is declined - and never a kill already recorded.
-//
-// Ed25519: 32 bytes of public key, 64 of signature. The private half is
-// base64 PKCS8, the one format WebCrypto imports a private key from.
+// Mints the gate receipt Ed25519 pair: GATE_SIGNING_KEY for the relay and GATE_PUBLIC_KEY for the account service.
+// Run: node tools/mintGateKeys.mjs [--pipe]. Nothing is written to disk, and one run emits both halves of one pair.
 const { subtle } = globalThis.crypto;
 
 const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
@@ -49,8 +10,7 @@ const b64url = (buf) => Buffer.from(new Uint8Array(buf)).toString('base64url');
 const priv = b64(await subtle.exportKey('pkcs8', kp.privateKey));
 const pub = b64url(await subtle.exportKey('raw', kp.publicKey));
 
-// PRIVATE FIRST, PUBLIC SECOND, one line each and nothing else on
-// stdout - the order is the contract a pipe reads them in.
+// Private key first, public key second, one line each and nothing else: the pipe reads them in this order.
 if (process.argv.includes('--pipe')) {
   process.stdout.write(`${priv}\n${pub}\n`);
   process.exit(0);

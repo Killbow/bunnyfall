@@ -1,28 +1,6 @@
-// SET7 (2026-09-26, Sigil Sets - bible/11-Multiplayer/Sigil-Sets.md section 7; Mac: "Sigil stones become a currency to
-// trade for daily reset sigil items at a new NPC vendor that stands outside the oblivion gate") - THE SIGIL BROKER,
-// DRAWN AND MEASURED.
-//
-// A pin can say she stands at a spot in the circle's frame and her window lays out six rows; only a renderer and a
-// layout engine can say she is SEEN there - her sprite, at her size, in her cage - and that the window reads at a desk
-// and on a phone. So:
-//   - THE WORLD: the REAL Renderer (render/renderer.js) and the REAL Broker pool (scenes/sigilBrokerPool.js) on the REAL
-//     data pipeline (scenes/dataPipeline.js - her TEXTURE.284 off the dev server's ARENA2), BROKER-CAGE: caged at the
-//     faithful's circle (the circle's spot, its day's own), shot from the gate's side, up close and from her side: she
-//     stands, caged, her sprite loaded, an idle record, her height a person's, and her pixels and her cage's ON the frame
-//     (a frame drawn without them differs where she stands); then freed, the door swung open;
-//   - THE WINDOW: the REAL door (ui/brokerDoor.js - the lazy chunk through the one home) over the day's REAL stock, a
-//     pack of seven spendable stones in one stack and a locked one (SS1), at a desktop, a laptop and a phone: it fits the screen; its title,
-//     the line under it, the purse and Close clear of each other; six rows, each row's picture, name, set, price and Buy
-//     clear of each other (a refusal's sentence on the Buy once starved the name to "Ruh..." and ran the set into the
-//     price), every Buy inside its row and pressable or saying why not in a word, the pictures landed (the pack's own icon door), the
-//     pressed offer's card with its set block and its sigil block, a sale that says so and takes its stones, and the
-//     back key that shuts it.
-// Every state is photographed.
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (tools/qs3Probe.mjs's reason), with ARENA2 behind it (vite.config.js - ARENA2_PATH).
-//
-//     node tools/brokerProbe.mjs                    -> shots (tools/shots/, or SHOT_DIR) and a report
-//     PROBE_PORT=<n> node tools/brokerProbe.mjs     -> reuse a dev server already listening there
+// Draws the Sigil Broker in the world and her shop window at desktop and phone sizes, and checks the layout.
+// Run: node tools/brokerProbe.mjs (PROBE_PORT=<n> reuses a running dev server; SHOT_DIR sets the shots folder).
+
 import { mkdirSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -151,7 +129,6 @@ const VIEWS = [
   { name: 'desktop', viewport: { width: 1440, height: 900 } },
   { name: 'laptop', viewport: { width: 1024, height: 700 } },
   { name: 'phone', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
-  // AUDIT SET U1: the skin is the player's choice online - the window lays its own sheet on the classic skin
   { name: 'desktop-classic', skin: 'classic', viewport: { width: 1440, height: 900 } },
   { name: 'phone-classic', skin: 'classic', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
 ];
@@ -165,12 +142,9 @@ const fails = [];
 let checks = 0;
 const check = (ok, what) => { checks++; if (!ok) fails.push(what); };
 const settle = (page) => page.evaluate(() => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res))));
-/** Do two boxes overlap (by more than a hair)? */
 const overlap = (a, b) => !!a && !!b && Math.min(a.r, b.r) - Math.max(a.x, b.x) > 1 && Math.min(a.b, b.b) - Math.max(a.y, b.y) > 1;
-/** Every pair of named boxes that overlaps. */
 const clashes = (boxes) => { const k = Object.keys(boxes).filter((n) => boxes[n]); const out = []; for (let i = 0; i < k.length; i++) for (let j = i + 1; j < k.length; j++) if (overlap(boxes[k[i]], boxes[k[j]])) out.push(`${k[i]}/${k[j]}`); return out; };
 const inside = (a, w) => !!a && a.x >= w.x - 0.5 && a.r <= w.r + 0.5 && a.y >= w.y - 0.5 && a.b <= w.b + 0.5;
-/** How many pixels of two frames differ, and the box they differ in. */
 const diff = (a, b, w, h) => {
   let n = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
   for (let i = 0; i < a.length; i += 4) {
@@ -183,12 +157,12 @@ const diff = (a, b, w, h) => {
 };
 try {
   await writeFile(join(ROOT, `tools/${PAGE_NAME}`), PAGE);
-  // ── THE WORLD ──
   {
     const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } });
     const page = await ctx.newPage();
     page.on('pageerror', (err) => fails.push(`world: page error ${err.message}`));
-    await page.route('**/tools/arena2/**', (route) => route.continue({ url: route.request().url().replace('/tools/arena2/', '/arena2/') }));   // dataSource fetches ./arena2/ RELATIVE to the page
+    // The data source fetches ./arena2/ relative to the page, so tool pages are routed to the root copy.
+    await page.route('**/tools/arena2/**', (route) => route.continue({ url: route.request().url().replace('/tools/arena2/', '/arena2/') }));
     await page.goto(`http://127.0.0.1:${port}/tools/${PAGE_NAME}?skin=enhanced`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => globalThis.__ready === true, null, { timeout: 120000 });
     const errs = await page.evaluate(() => globalThis.__errs);
@@ -224,7 +198,6 @@ try {
     }
     await ctx.close();
   }
-  // ── THE WINDOW ──
   for (const v of VIEWS) {
     const ctx = await browser.newContext({ viewport: v.viewport, isMobile: !!v.isMobile, hasTouch: !!v.hasTouch, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
@@ -240,7 +213,6 @@ try {
     }
     await page.waitForSelector('.broker-win .broker-offer', { timeout: 30000 });
     await page.evaluate(() => document.fonts.ready);
-    // the pictures land through the pack's own icon door and repaint the window
     await page.waitForFunction(() => document.querySelectorAll('.broker-offer .tile img').length === 6, null, { timeout: 30000 }).catch(() => {});
     await settle(page);
     let s = await page.evaluate(() => globalThis.__win());
@@ -251,7 +223,6 @@ try {
     check(/^Deadlands Embers buy the day's stock · it turns in \d+(h \d\dm|m)$/.test(s.sub), `${v.name}: the sub line reads "${s.sub}"`);
     check(/Pixel|monospace|VT323|Press/i.test(s.font) || s.font.length > 0, `${v.name}: the window has no font (${s.font})`);
     check(s.border !== 'none', `${v.name}: the kit did not dress the window (border ${s.border})`);
-    // the header: the title, the line under it, the purse and Close each clear of the others, all inside the window
     const hc = clashes(s.head);
     check(hc.length === 0, `${v.name}: the header's pieces overlap: ${hc.join(', ')} ${JSON.stringify(s.head)}`);
     for (const [k, b] of Object.entries(s.head)) check(inside(b, s.win), `${v.name}: the header's ${k} runs out of the window ${JSON.stringify(b)}`);
@@ -276,15 +247,13 @@ try {
     check(s.card && s.card.x >= -0.5 && s.card.r <= v.viewport.width + 0.5, `${v.name}: the card runs off the screen sideways`);
     check(!/null|undefined|NaN/.test(s.cardText), `${v.name}: the card says null/undefined: ${s.cardText.slice(0, 200)}`);
     await page.screenshot({ path: join(OUT, `broker-${v.name}-window.png`) });
-    // the Regalia's card
     await page.evaluate(() => globalThis.__press('5'));
     await settle(page);
-    await page.waitForTimeout(600);   // a phone's press scrolls the card up, smoothly
+    await page.waitForTimeout(600);
     s = await page.evaluate(() => globalThis.__win());
     check(/Ruhn's Regalia/.test(s.cardText) && s.rows[5].box, `${v.name}: the Regalia's card does not read Ruhn's Regalia`);
-    if (v.isMobile) check(s.card && s.card.y < v.viewport.height * 0.6 && s.card.y > -1, `${v.name}: a press left the card off the screen (its top at ${s.card?.y?.toFixed(0)})`);   // AUDIT SET U4
+    if (v.isMobile) check(s.card && s.card.y < v.viewport.height * 0.6 && s.card.y > -1, `${v.name}: a press left the card off the screen (its top at ${s.card?.y?.toFixed(0)})`);
     await page.screenshot({ path: join(OUT, `broker-${v.name}-regalia.png`) });
-    // a sale
     const before = await page.evaluate(() => globalThis.__stones());
     const slot = await page.evaluate(() => globalThis.__buyFirst());
     await settle(page);
@@ -294,11 +263,9 @@ try {
     console.log(`${v.name}: bought slot ${slot} - "${s.note}" stones ${before.spendable}->${after.spendable} (locked ${after.locked}) purse "${s.purse}"`);
     check(slot != null && /^Bought: .+, for \d+ Deadlands Embers?\.$/.test(s.note ?? ''), `${v.name}: the sale says "${s.note}"`);
     const paid = Number(/for (\d+) Sigil/.exec(s.note ?? '')?.[1]);
-    // SS1: the price out of the one stack, which keeps the rest - a record more in the pack (the piece), none fewer
     check(after.locked === 1 && before.spendable - after.spendable === paid && after.items === before.items + 1, `${v.name}: the stones ${JSON.stringify({ before, after, paid })}`);
     check(sold?.buyText === 'Bought' && sold.buyTitle === 'Bought today' && sold.disabled, `${v.name}: the bought row reads "${sold?.buyText}" (${sold?.buyTitle})`);
     await page.screenshot({ path: join(OUT, `broker-${v.name}-sold.png`) });
-    // the back key shuts it through the door
     await page.keyboard.press('Escape');
     await settle(page);
     check(!(await page.evaluate(() => globalThis.__doorOpen())) && !(await page.$('.broker-win')), `${v.name}: Escape did not shut the window`);

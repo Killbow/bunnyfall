@@ -1,10 +1,5 @@
 // @ts-check
 
-// The DM view: people, routes, encounters, objects, dialogues, trades, events and variables, one tab each, plus the
-// event graph. Every control writes the document through one editor step, so it undoes, and every value is held to the
-// law (poiLawV2.js) by the Problems panel. The game runs these from Milestone 5: until then the editor saves and
-// validates them, and the banner says so.
-
 import { h, clear } from './dom.js';
 import { createSandbox } from './sandbox.js';
 import { find } from '../scene.js';
@@ -31,8 +26,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
   const sandbox = createSandbox({ host: sandboxBox, getDoc, catalogue, onChange: onSandbox });
   const ui = { tab: 'routes', key: /** @type {string | null} */ (null), sub: /** @type {string | null} */ (null) };
 
-  // ── reading and writing the document by path ──
-  // a path step is a property name, an index, or { key } to find a row of an array by its key
   const step = (o, s) => (o == null ? undefined : typeof s === 'object' ? o.find?.((r) => r.key === s.key) : o[s]);
   const get = (d, path) => path.reduce(step, d);
   const set = (path, v) => (d) => { const parent = get(d, path.slice(0, -1)), last = path.at(-1); if (parent == null) return; if (v === undefined) delete parent[last]; else parent[last] = v; };
@@ -40,7 +33,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
   const put = (label, path, v) => run(label, set(path, v));
   const doc = () => getDoc();
 
-  // ── controls ──
   const field = (label, ...els) => h('div', { class: 'field' }, h('label', { text: label }), h('div', { class: 'vec' }, ...els));
   const text = (label, path, value, max = 48) => field(label, h('input', { type: 'text', value: value ?? '', maxLength: max, on: { change: (e) => { const v = e.target.value.trim(); if (v) put(label, path, v); } } }));
   const para = (label, path, value) => field(label, h('textarea', { rows: 2, maxLength: LIM.text, value: value ?? '', on: { change: (e) => { const v = e.target.value.trim(); if (v) put(label, path, v); } } }));
@@ -60,7 +52,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
   const note = (t) => h('div', { class: 'pane dim', text: t });
   const refused = (r) => { if (r?.refused) say(r.refused); return r; };
 
-  // an item stack: the game's item, a count
   const items = catalogue.assets.filter((a) => a.namespace === 'paperdoll-item' && Number.isInteger(a.template)).sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
   const itemSelect = (stack, path, label) => {
     const cats = [...new Set(items.map((a) => a.category))];
@@ -74,7 +65,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
     ...list.map((s, i) => h('div', { class: 'row2' }, itemSelect(s, [...path, i], label), btn('x', () => run('remove item', (d) => { get(d, path).splice(i, 1); }), 'Remove this item'))),
     btn(`Add ${label.toLowerCase()}`, () => run('add item', (d) => { const a = get(d, path); if (a.length < max) a.push({ template: items[0]?.template ?? 71, count: 1 }); else say(`At most ${max} here.`); }), '', list.length >= max));
 
-  // a condition tree, edited in place
   function cond(label, path, c, onDrop) {
     const box = h('div', { class: 'cond' });
     box.append(select(label, [], c?.k, [...Object.entries(COND_WORD)], { none: 'Always', onPick: (v) => (v === '' ? (onDrop ? onDrop() : put(label, path, undefined)) : put(label, path, DM.conditionOf(doc(), v))) }));
@@ -98,7 +88,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
     : type === 'number' ? num(label, path, value, { whole: false, step: 1 })
       : field(label, h('input', { type: 'text', maxLength: 48, value: String(value ?? ''), on: { change: (e) => put(label, path, e.target.value) } }));
 
-  // ── lists ──
   function listPane(coll, label, kids, { add, extra } = {}) {
     const d = doc(), rowsOf = d?.[coll] ?? [];
     const list = h('div', { class: 'dmlist' });
@@ -119,7 +108,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
     ui.key = made?.row?.key ?? null; render(); changed();
   };
 
-  // ── tabs ──
   const tabs = {
     npcs() {
       const d = doc(), n = d.npcs?.find((x) => x.key === ui.key) ?? null, p = ['npcs', { key: ui.key }];
@@ -277,7 +265,6 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
     },
   };
 
-  /** The fields one action asks for. */
   function actionFields(a, ap) {
     const d = doc();
     switch (a.k) {

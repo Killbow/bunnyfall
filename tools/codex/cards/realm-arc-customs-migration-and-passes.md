@@ -30,6 +30,7 @@ invariants:
   - "Liquid wealth is trimmed to `CUSTOMS_WEALTH_BASE` (20,000) + `CUSTOMS_WEALTH_PER_LEVEL` (10,000) per level, from stashed containers first; outstanding loans are called in."
   - "`crossDeeds` marks imported deeds so they cannot be sold back to Empire banks; `CUSTOMS_HOUSE_PRICE` (100,000) values a carried house."
   - "Homes, guild ties, and renown carry over through `customsCarry` on the service."
+  - "A customs entry marks every `realm_census` row of its origin spent, on every account, in the same batch that writes the character, so a character copied to two accounts enters the realm once."
 traps:
   - "A customs character whose first save never landed is undone (`undoCustoms` via `/v1/realm/undo`), not deleted, and its property is restored offline via `reclaimCustomsDeeds` and `reclaimFromDevice`."
   - "`grantCustomsPass` supports `revoke`; `realm_passes_open` is unique per player, so only one open pass exists at a time."

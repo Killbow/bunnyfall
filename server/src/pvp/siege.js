@@ -1,5 +1,3 @@
-// A siege or battle room's fighters, seats, and hello gate, read once a wake and saved.
-// It admits fighters, answers their frames, judges blows, and runs the step, tick, and end.
 import { CHECKPOINT_MS } from '../../../src/net/gateBrain.js';
 import { isBattleRoom, royalPrune, SIEGE_FIGHTERS_MAX, siegePlaceFree, battleOfRoom, SIEGE_OPENS_MS, SIEGE_SPECTATORS_MAX, siegeReturn, fieldOf, worksOf, newBattle, royalNextBeat, SIEGE_TICK_MS, siegeCampPose, newFighter, siegeFieldFrame, SIEGE_WORK_IDS, siegeOffGround, siegeGroundOf, SIEGE_HEIGHT_M, isSiegeNpcId, royalMayStrike, refereeCast, refereeBlow, siegeHeld, royalEnd, siegeNextWave, siegeWaveMs, SIEGE_WAVE_MS, refereeWorkBlow, SIEGE_GATEHOUSE, SIEGE_RAM, siegeBreach, siegeRamDown, siegeNpcFoe, siegeNpcInReach, siegeNpcPose, siegeNpcFell, siegeNpcProvoked, siegeStepLevel, royalStepOk, refereeStep, royalStep, siegeRise, battleStep, siegeNextBeat, honoured } from '../../../src/net/siegeRef.js';
 import { tokenGate, HELLO_HZ_MAX, SOCKETS_MAX, SIEGE_IN_MS } from '../relay.js';

@@ -1,5 +1,3 @@
-// The gate fight and the courts of a night: admission, the fight, its book, seats, and falls.
-// It fans and saves the fight, runs its tick, tells the hub, and holds the receipts owed.
 import { isGateBook, courtsJoined, bookNew, courtOk, courtCounts, GATE_COURT_FIGHTERS, placeSeat, nightDone, bookNextAt, riteOnly, nightWord, courtFell, GATE_MATES_KEEP_MS } from '../../../src/net/gateCourts.js';
 import { gatePortentsOf, gateDayOfRoom, gateHolds, gateCourtOfRoom, gateAdmits, gateTimes, gateBossOf, gateModsOf, gateTitheOf, GATE_COLLAPSE_MS, gateRoomKey } from '../../../src/net/gateLaw.js';
 import { COURT_CENTRE, CHECKPOINT_MS, BRAIN_TICK_MS, GATE_FIGHTERS_MAX, COURT_WATCH_ASK_MS, hasPart, applyHeal, healRef, applyCrystalHit, applyHostHit, earnedBy, receiptPortents } from '../../../src/net/gateBrain.js';
@@ -96,8 +94,8 @@ export class GatePart {
       return;
     }
     const line = this._bodyLine();
-    // Keep `vt` above the junk check: a body frame from a non-fighter is ignored,
-    // since its `in` frame may still be in flight.
+    // Keep `vt` above the junk check: a body frame from a non-fighter is ignored, since its `in` frame may still be
+    // in flight.
     if (m.k === 'vt') { if (f?.players[a.sub]) bodySaid(f.players[a.sub], m.v / 1000, now, line.body, { enforce: line.enforce }); return; }
     if (!f || !f.players[a.sub]) { this._junk(ws); return; }
     if (m.k === 'heal') {
@@ -143,16 +141,15 @@ export class GatePart {
     return true;
   }
   async _gateFall(f, now) {
-    // Run one fall at a time: its awaits let blows and beats in, and each would fell the boss again
-    // on new seeds.
+    // Run one fall at a time: its awaits let blows and beats in, and each would fell the boss again on new seeds.
     if (this._falling) return this._falling;
     this._falling = this._gateFallOnce(f, now).finally(() => { this._falling = null; });
     return this._falling;
   }
   async _gateFallOnce(f, now) {
     if (f.said) return;
-    // Tell the book before any await, so no newcomer is seated after the kill; await it last,
-    // so a slow first court never delays this kill.
+    // Tell the book before any await, so no newcomer is seated after the kill; await it last, so a slow first court
+    // never delays this kill.
     const booking = this._gateTellBookOnce(f, now).catch((e) => console.warn('[gate] book', e?.message ?? e));
     const key = await this._receiptKeyOf();
     const nowS = Math.floor(now / 1000);
@@ -372,8 +369,8 @@ export class GatePart {
     const kept = await this.state.storage.get(k);
     const d = kept && typeof kept === 'object' && Number.isSafeInteger(kept.d) ? kept.d : null;
     if (d !== null && (d > day || (d === day && kept.spent))) return;
-    // Mark the receipt spent instead of deleting it: the spent message can arrive before
-    // the kill report, which must then store no copy over it.
+    // Mark the receipt spent instead of deleting it: the spent message can arrive before the kill report,
+    // which must then store no copy over it.
     await this.state.storage.put(k, { d: day, spent: true, e: Math.floor(now / 1000) + RECEIPT_TTL_S });
   }
   async _gateFellOf() {

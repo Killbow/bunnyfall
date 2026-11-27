@@ -33,6 +33,7 @@ invariants:
 traps:
   - "An encounter table whose enemy IDs fail to parse remains in the candidate list, so a selection landing on it leaves the active table unchanged."
   - "Spellbook table names match case-insensitively; an unrecognized name logs once at install and falls back to the classic spellbook list."
+  - "`SPELL_CAST_SOUND` holds sound record ids, not indices. Play them only through `audio.playOneShotId` or `audio.play3dId`, because the raw index entry points would ring unrelated sounds."
 dfu:
   - vendor/daggerfall-enemy-expansion/Scripts/BestiaryMod.cs
   - vendor/daggerfall-enemy-expansion/Scripts/BestiaryEnemySpells.cs

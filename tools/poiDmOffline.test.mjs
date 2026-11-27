@@ -1,11 +1,6 @@
-// Tests offline POI event and trade settlement (`src/poi/poiDmRuntime.js` with no realm session) against the server
-// rules in `server-account/src/poiTrade.js` (`eventClaimPoi` and `tradePoi`). A gift-only event gives its reward once
-// per character; every offline character is `local`, so offline that is once per device, across visits too (the claim
-// is saved in device storage beside the persistent variables). Item and gold costs are refused when the player has too
-// little and taken when the player has enough, counting all takes together and never a worn or quest item; conditions
-// read the same inventory; a condition that reads a non-persistent variable is refused; a refused event or trade
-// changes nothing; a missing or damaged saved claim counts as a gift not yet given; and an arrow reward is minted as on
-// the server.
+// Tests offline POI event and trade settlement against the account service's rules.
+// Every offline character is local, so a once-per-character gift is once per device.
+// Run: node --test tools/poiDmOffline.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -27,7 +22,6 @@ function handOver(name, line, view, on) {
   }
 }
 
-/** The example POI with its zone's events replaced by `events`, run offline over a pack holding `gold` and `items`. */
 function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {} } = {}) {
   const doc = poiV2Example();
   doc.events = doc.events.filter((e) => e.key !== 'ambush-start').concat(events);
@@ -46,7 +40,6 @@ function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {
   });
   const s = { id: doc.id, rev: 1, doc, place: I, draft: false };
   const step = async () => { clock += 0.1; rt.frame(s, [0, 0, 0], []); await tick(); };
-  /** Simulates one visit: start outside the trigger zone, walk in, wait six ticks, and walk back out. */
   const visit = async () => {
     feet = [500, 0, 500];
     await step(); await step();
@@ -56,7 +49,7 @@ function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {
     await step();
   };
   const count = (t) => player.items.filter((it) => it.templateIndex === t).reduce((n, it) => n + (it.stackCount ?? 1), 0);
-  /** Talk to the supplier and run one of its recipes. @param {string} recipe */
+  /** @param {string} recipe */
   const buy = async (recipe) => { await step(); rt.talk(doc.id, 'supplier'); trade?.(recipe); await tick(); await tick(); };
   return { doc, rt, player, said, store, visit, count, buy, offers: () => offers, leave: () => rt.drop(doc.id) };
 }
@@ -68,7 +61,6 @@ test('offline, a gift event gives the character its gold and item once, on this 
   assert.equal(w.count(71), 1);
   await w.visit();
   assert.equal(w.player.goldPieces, 35, 'walking in again on the same visit gives nothing');
-  // unload the POI when the player leaves, then load a fresh run on the next visit
   w.leave();
   await w.visit();
   assert.equal(w.player.goldPieces, 35, 'nor on the next visit');
@@ -117,24 +109,20 @@ test('offline, an event\'s condition reads the same pack its takes come from', a
 });
 
 test('offline, an event the service would refuse moves nothing', async () => {
-  // rejects a condition that reads a non-persistent variable
   const scoped = setup([{ key: 'g', name: 'G', trigger: ZONE, when: { k: 'var', var: 'step', op: 'eq', value: 0 }, then: [{ k: 'give_gold', amount: 7 }] }],
     { edit: (d) => d.variables.push({ key: 'step', name: 'Step', type: 'number', scope: 'instance', initial: 0 }) });
   await scoped.visit();
   assert.equal(scoped.player.goldPieces, 0);
   assert.ok(scoped.said.some((l) => /cannot be done/.test(l)), 'refused as the service refuses it');
-  // if any reward item cannot be minted, the whole event is rejected and grants neither the valid item nor the gold
   const unlawful = setup([{ key: 'g', name: 'G', trigger: ZONE, then: [{ k: 'give_gold', amount: 7 }, { k: 'give_item', item: { template: 71, count: 1 } }, { k: 'give_item', item: { template: 99999, count: 1 } }] }]);
   await unlawful.visit();
   assert.equal(unlawful.player.goldPieces, 0);
   assert.equal(unlawful.count(71), 0);
   assert.ok(unlawful.said.some((l) => /cannot be done/.test(l)), 'refused as the service refuses it');
-  // a purse that cannot hold the gold
   const full = setup([{ key: 'g', name: 'G', trigger: ZONE, then: [{ k: 'give_gold', amount: 10 }] }], { gold: GOLD_INT_MAX - 5 });
   await full.visit();
   assert.equal(full.player.goldPieces, GOLD_INT_MAX - 5);
   assert.ok(full.said.some((l) => /cannot be done/.test(l)), 'refused as the service refuses it');
-  // a rejected gift event does not record a claim
   assert.equal(full.rt.modelOf(full.doc.id).claims['event/g|char:local'], undefined);
 });
 
@@ -195,7 +183,6 @@ test('offline, an arrow reward is minted as the service mints it, whatever mater
 });
 
 test('offline, a trade the service would refuse moves nothing: a reward it cannot mint, or a purse that cannot hold the gold', async () => {
-  // the supplier's delivery: 10 of item 71 and 5 of item 72 for its rewards
   const edit = (rewardItems, rewardGold) => (d) => { const r = d.trades.find((t) => t.key === 'supplies').recipes[0]; r.rewardItems = rewardItems; r.rewardGold = rewardGold; };
   const goods = [{ template: 71, count: 10 }, { template: 72, count: 5 }];
   const unmintable = setup([], { items: goods, edit: edit([{ template: 62, count: 1 }, { template: 99999, count: 1 }], 5) });

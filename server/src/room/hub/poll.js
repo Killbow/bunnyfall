@@ -1,4 +1,3 @@
-// The bus answering a shard's poll with the deliveries it has not acknowledged.
 import { json } from '../json.js';
 import { upOf, HUB_POLL_MS, HUB_BATCH_BYTES } from '../../../../src/net/hubShards.js';
 

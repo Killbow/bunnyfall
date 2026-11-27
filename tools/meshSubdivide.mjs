@@ -1,27 +1,7 @@
-// LOOP SUBDIVISION, for a baked mesh too coarse for its own curve.
-//
-// MW-CLOAK2 (2026-10-09, Mac: "I dont like how the cloak isnt smooth around the shoulders"). The cloak's export is
-// 140 vertices about five units apart; over the shoulders, where the sheet turns from the back over the top, a face
-// normal stands up to 35 degrees off its corners' - the silhouette is the polygon, and the straps' ends a ragged run of
-// small triangles. Lighting cannot round a polygon's edge. Loop's scheme (Loop 1987) does: each level splits every
-// triangle in four and moves every vertex toward the smooth surface the mesh is the control net of -
-//
-//   an edge's new vertex   3/8 (a + b) + 1/8 (c + d), c and d the two faces' far corners; on the open edge,
-//                          (a + b) / 2
-//   an old vertex          (1 - n beta) v + beta (its n neighbours), beta = (5/8 - (3/8 + cos(2 pi / n) / 4)^2) / n;
-//                          on the open edge, 3/4 v + 1/8 (its two neighbours along that edge) - so a ragged edge
-//                          relaxes into a curve and never pulls into the sheet
-//
-// - and the normals are the result's own, area-weighted, turned to face as the source's did. The UVs ride linearly (an
-// edge's new vertex at its edge's middle, an old vertex where it was): the painting is cloth, and the slide is under a
-// unit. One vertex a position, as the bake's meshes are where no seam splits them; a mesh with a seam, an edge three
-// faces share, or a vertex two open edges' runs meet at (a bow tie's waist - AUDIT MW-CLOAK: it took the first two of
-// its rim neighbours and dragged one wing across the other) is refused rather than torn. The result's bounds are its
-// own; nothing per-vertex the subdivision does not carry rides along at the old length.
+// Loop subdivision for baked meshes; a mesh with a seam, an edge three faces share, or a bow-tie vertex is refused.
 
 const key = (a, b) => (a < b ? a * 1048576 + b : b * 1048576 + a);
 
-/** One level of Loop subdivision of `{ positions, indices, uvs?, normals? }`; the same shape back. */
 export function loopSubdivideOnce(mesh) {
   const P = mesh.positions; const I = mesh.indices; const U = mesh.uvs ?? null;
   const n = P.length / 3;
@@ -32,7 +12,6 @@ export function loopSubdivideOnce(mesh) {
     if (seen.has(k)) throw new Error(`vertex ${v} shares its position with another - a seam this subdivision does not split`);
     seen.add(k);
   }
-  // edges: their faces' far corners
   const edges = new Map();
   for (let t = 0; t < I.length; t += 3) {
     for (let e = 0; e < 3; e++) {
@@ -57,7 +36,7 @@ export function loopSubdivideOnce(mesh) {
   for (let v = 0; v < n; v++) {
     const r = rim[v];
     let w0, nb, wn;
-    if (r.length === 2) { w0 = 3 / 4; nb = r; wn = 1 / 8; }   // on the open edge
+    if (r.length === 2) { w0 = 3 / 4; nb = r; wn = 1 / 8; }
     else {
       nb = [...ring[v]];
       const k = nb.length;
@@ -95,14 +74,12 @@ export function loopSubdivideOnce(mesh) {
   };
 }
 
-/** `levels` of Loop subdivision; the mesh untouched at 0. */
 export function loopSubdivide(mesh, levels = 1) {
   let m = mesh;
   for (let i = 0; i < levels; i++) m = loopSubdivideOnce(m);
   return m;
 }
 
-/** The way a mesh's normals face against its winding: +1 with it, -1 against (the sum over its vertices decides). */
 function facing(mesh) {
   const fresh = vertexNormals(mesh.positions, mesh.indices, null);
   let s = 0;
@@ -110,14 +87,13 @@ function facing(mesh) {
   return s < 0 ? -1 : 1;
 }
 
-/** Area-weighted vertex normals of an indexed mesh, unit length, times `sign` (null: +1, the winding's own way). */
 export function vertexNormals(positions, indices, sign = null) {
   const N = new Float64Array(positions.length);
   for (let t = 0; t < indices.length; t += 3) {
     const a = indices[t] * 3, b = indices[t + 1] * 3, c = indices[t + 2] * 3;
     const e1 = [positions[b] - positions[a], positions[b + 1] - positions[a + 1], positions[b + 2] - positions[a + 2]];
     const e2 = [positions[c] - positions[a], positions[c + 1] - positions[a + 1], positions[c + 2] - positions[a + 2]];
-    const f = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];   // twice the area, along the face
+    const f = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
     for (const v of [a, b, c]) { N[v] += f[0]; N[v + 1] += f[1]; N[v + 2] += f[2]; }
   }
   const out = new Float32Array(positions.length);

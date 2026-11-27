@@ -1,6 +1,3 @@
-// The room's one alarm and the duties it runs in turn: hub sync, boss and table beats, rites,
-// raids, and a drained world's forgetting. On the hub it also sweeps lapsed accounts and records,
-// a page at a time.
 import { isCellDirectory, cellPlanAlarm } from '../cellMoves.js';
 import { HUB_SYNC_MS } from '../../../src/net/hubShards.js';
 import { PARK_TTL_MS, CARAVAN_DECOR_KEY, RITE_TELL_RETRY_MS, SD_TELL_RETRY_MS, SWEEP_PAGE, ACCOUNT_IDLE_MS, PARTY_OFFLINE_MS, RAID_RC_PREFIX, SERPENT_RC_PREFIX, SD_RC_PREFIX, egCallKey, STAR_RC_PREFIX, SWEEP_STEP_MS, ACCOUNT_SWEEP_MS } from '../relay.js';

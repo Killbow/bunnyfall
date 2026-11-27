@@ -1,18 +1,5 @@
-// MAC-M2 - THE BODY'S DRAG AND THE LOOT BAR, in a real browser.
-//
-// Its own probe rather than a block inside tools/enhancedPackProbe.mjs,
-// because that one still hunts the `.node` dots PX19e retired (25 of
-// them; the map has been eleven `.wornrow` family panels since) and
-// dies on a timeout before it reaches anything this slice touched. The
-// dots were gone long before MAC-M2 - recorded here, not repaired here.
-//
-// What only a browser can answer: whether a real mouse pressed on a
-// real slot panel and dragged to the dock carries a ghost, reads the
-// right verb over each region, and actually takes the piece off - and
-// what the loot session's bar draws when the pane is really mounted.
-//
-//     npx vite --port 5199 &
-//     node tools/macM2Probe.mjs
+// Checks dragging worn items to the dock and the loot bar in the enhanced inventory in a browser.
+// Run against a dev server: npx vite --port 5199 & node tools/macM2Probe.mjs.
 import { chromium } from 'playwright';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
@@ -32,15 +19,13 @@ async function bootSettled(page) {
 async function toGamePage(page) {
   await page.goto(`${BASE}/play/?skin=enhanced`, { waitUntil: 'networkidle' });
   await page.waitForSelector('#enhanced-menu .doorbtn', { timeout: 20000 });
-  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();
   await page.locator('#enhanced-menu .doorbtn.door-new').first().click();
   await page.getByRole('button', { name: 'Begin', exact: true }).click();
   await page.waitForSelector('#enhanced-menu', { state: 'detached', timeout: 20000 });
   await bootSettled(page);
 }
 
-/** `wear` names a template to put on the body before the window opens;
- *  `loot` mints a container so the pane opens in LOOT mode. */
 async function openPack(page, { wear = null, loot = false } = {}) {
   await page.evaluate(async ({ wear: w, loot: l }) => {
     const { createInventoryWindow } = await import('/src/ui/inventoryDoor.js');
@@ -77,7 +62,6 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 await toGamePage(page);
 
-// ── A: THE BODY DRAGS ────────────────────────────────────────────
 await openPack(page, { wear: 'Cuirass' });
 const panel = page.locator('#enhanced-inventory .wornrow:not(.wornempty)').first();
 check('A: a filled slot panel is on the map', (await panel.count()) === 1);
@@ -91,7 +75,6 @@ await page.mouse.move(from.x + from.width / 2 + 20, from.y + from.height / 2 + 2
 const ghost = page.locator('body > .dragghost');
 check('A: the hold really carries the worn piece - a ghost on the BODY',
   (await ghost.count()) === 1);
-// still over the MAP: the cancel gesture, so the ghost promises nothing
 check('A: over the body it promises nothing - a release there is the cancel',
   (await ghost.locator('.ghostact').textContent()) === '',
   JSON.stringify(await ghost.locator('.ghostact').textContent()));
@@ -111,8 +94,6 @@ const afterDrag = await page.evaluate(() => ({
 }));
 check('A: the piece came OFF', afterDrag.worn === false);
 check('A: and is in the bag, not on the floor', afterDrag.held === true);
-// the ARMOUR page, because a cuirass is not a weapon and the tab does
-// not follow a take-off (only a take does - PX31)
 const armourRows = await page.evaluate(() => {
   [...document.querySelectorAll('#enhanced-inventory .packtab')]
     .find((b) => b.textContent.startsWith('Armor') || b.textContent.startsWith('Armour'))?.click();
@@ -122,7 +103,6 @@ check('A: so the pack list shows it again', armourRows.includes('Cuirass'),
   armourRows.join(', ') || afterDrag.rows.join(', '));
 await page.evaluate(() => globalThis.__slot.dispose());
 
-// ── A2: THE PLAIN CLICK IS UNTOUCHED ─────────────────────────────
 await openPack(page, { wear: 'Cuirass' });
 await page.locator('#enhanced-inventory .wornrow:not(.wornempty)').first().click();
 check('A2: a plain click raises the card',
@@ -134,20 +114,18 @@ check('A2: the card’s Take off still works',
   await page.evaluate(() => !globalThis.__ent.items.find((i) => i.name === 'Cuirass')?.equipSlot));
 await page.evaluate(() => globalThis.__slot.dispose());
 
-// ── B: THE LOOT BAR ──────────────────────────────────────────────
 await openPack(page, { loot: true });
 const bar = await page.$$eval('#enhanced-inventory .remoteacts .act', (ns) => ns.map((n) => n.textContent));
 check('B: the loot frame is the only window', await page.locator('#enhanced-inventory .pack-win').count() === 0);
 check('B: and its bar carries no Gold and no Pack', bar.length === 0, JSON.stringify(bar));
 await page.evaluate(() => globalThis.__slot.dispose());
 
-// ── B2: THE NORMAL PACK KEEPS GOLD ───────────────────────────────
 await openPack(page);
 const row = page.locator('#enhanced-inventory .itemrow').first();
 const rb = await row.boundingBox();
 await page.mouse.move(rb.x + rb.width / 2, rb.y + rb.height / 2);
 await page.mouse.down();
-await page.mouse.move(20, 20, { steps: 8 });   // off the panel: a ground drop
+await page.mouse.move(20, 20, { steps: 8 });
 await page.mouse.up();
 const bar2 = await page.$$eval('#enhanced-inventory .remoteacts .act', (ns) => ns.map((n) => n.textContent));
 const gold2 = await page.$$eval('#enhanced-inventory .goldbtn', (ns) => ns.map((n) => n.textContent));

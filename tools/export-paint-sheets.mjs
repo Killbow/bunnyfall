@@ -1,13 +1,5 @@
-// C6L: hand-shading kit for Mac. Exports the two paintable sheets in
-// classic sprite space (69x145, 1:1 pixels - the doctrine resolution):
-//   body-front.png - STARTER = the classic BODY00I0 itself (edit or keep)
-//   body-back.png  - STARTER = the mirrored front as an underlay guide
-//     (repaint the content; the SILHOUETTE must stay - pixels outside
-//     the front mask are ignored by the loader)
-// Plus 4x previews for eyeballing. The engine samples these per face
-// (front/back by normal); transparent pixel 0 = fall through to the
-// classic projection.
-// Usage: ARENA2_PATH=... node tools/export-paint-sheets.mjs [outdir]
+// Exports the paintable body sheets (front and back) in classic sprite space, with 4x previews.
+// Run: ARENA2_PATH=... node tools/export-paint-sheets.mjs [outdir].
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -40,11 +32,7 @@ const front = (x, y) => {
   const c = pal.get(i);
   return [c.r, c.g, c.b, 255];
 };
-// The back SAMPLES THE SPRITE (the classic projection - exactly how
-// the front gets its clarity): a back face shares x,y with its front
-// counterpart, so it reads the same sprite pixel. The starter is
-// therefore fully TRANSPARENT - every back face falls through to the
-// sprite projection. Painting it (optional) overrides per pixel.
+// The back starter is fully transparent, so every back face falls through to the sprite projection.
 const back = () => [0, 0, 0, 0];
 write('body-front.png', front);
 write('body-back.png', back);

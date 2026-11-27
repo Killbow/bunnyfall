@@ -33,7 +33,6 @@ export function restoreAbilityProgress(entity, block, enabled = abilitiesEnabled
   if (enabled) syncAbilityUnlocks(entity);
 }
 
-/** Reconcile unlocks from trained ranks. Existing unlocks remain permanent. */
 export function syncAbilityUnlocks(entity) {
   if (!entity) return [];
   const block = entity.combatAbilities;

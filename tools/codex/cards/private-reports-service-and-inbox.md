@@ -14,6 +14,7 @@ files:
   - "server-account/migrations/0129_private_reports.sql"
   - "src/net/reportLaw.js"
   - "src/net/serverPost.js"
+  - "tools/sendServerPost.mjs"
 routes:
   - "/v1/report/send"
   - "/v1/report/mine"
@@ -34,6 +35,7 @@ invariants:
   - "For non-readers, `postBoxOf` (`server-account/src/post.js`) omits the `reports` field and executes zero `private_reports` queries."
 traps:
   - "Guest sessions receive HTTP `403` (`report-needs-account`), `/v1/report/send` caps payloads at `REPORT_BODY_BYTES = 24` KiB while sibling report routes enforce `MAX_BODY_BYTES = 4` KiB (`server-account/src/service.js`), and `reportContextOf` strips context to update, build hash, and platform."
+  - "`HOURS_FIRST` and `HOURS_FIRST_RECORD` in `tools/sendServerPost.mjs` stay frozen to match migration `0094_hours_first_post.sql`, because an applied migration never reruns. Each send is an `INSERT OR IGNORE` over `ux_server_post_batch` (`to_id`, `batch`), so a send run twice delivers once."
 dfu: []
 tags:
   - "reports"

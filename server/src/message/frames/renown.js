@@ -1,4 +1,3 @@
-// The `renown` frame's handler, called by message/dispatch.js with the room as `this`.
 import { isSocialRoom, isChatRoom, renownGate, renownRoomGate } from '../../relay.js';
 import { verifyOrder, renownIssuable } from '../../../../src/net/identityToken.js';
 

@@ -1,25 +1,5 @@
-// MAC-R2 (2026-09-17, Mac: "The enhanced quickbar sometimes shows double
-// messages") - THE DIAMOND'S TAP PATH, COUNTED UNDER A REAL FINGER.
-//
-// The quickbar's cells are the phone's keys (ui/enhanced/enhancedHud.js, QS3's
-// second departure): a tap performs the slot, a hold cycles it, and every
-// performer says its one line through the host's popup channel. A
-// "double message" is one press reaching a performer TWICE, and node
-// cannot see that - the cells are pointer-event listeners on real DOM,
-// under Chromium's own pointer/touch/mouse compatibility machinery. So
-// the HUD is drawn over the real module here and pressed with real touch
-// points through CDP (`Input.dispatchTouchEvent`), and each press's
-// performer calls are counted.
-//
-// What it reports, as pass/fail: one tap on each cell (c1, c2, off, main,
-// the spell chip) is exactly ONE call; a tap that wanders a few pixels is
-// still one; two quick taps are two, not three or four; a hold past the
-// cycle threshold is NO call (the choosing is the act); a MOUSE click is
-// no call at all (AUDIT QS F8: the mouse swings, it does not press).
-//
-// IT RUNS ON VITE'S OWN DEV SERVER (tools/qs3Probe.mjs's reason).
-//
-//     node tools/macrHudTapProbe.mjs
+// Counts quickbar performer calls per press in Chromium: a tap is one call; a hold or a mouse click is none.
+// Run: node tools/macrHudTapProbe.mjs (PROBE_PORT=<n> reuses a dev server already running there).
 import { writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
@@ -71,15 +51,12 @@ const check = (name, ok, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`);
 };
 
-// PROBE_PORT=<n> reuses a dev server already listening there (a container's
-// file-watcher budget can refuse a second vite); otherwise one is made here,
-// with its watcher off - the probe changes nothing it would need to see.
 const vite = process.env.PROBE_PORT ? null : await createServer({ root: ROOT, server: { port: 0, host: '127.0.0.1', watch: null }, logLevel: 'error' });
 if (vite) await vite.listen();
 const port = vite ? vite.httpServer.address().port : Number(process.env.PROBE_PORT);
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 try {
-  // AUDIT 68 X2-probe-tmp-page-leak: written inside the try, so the finally that unlinks it always runs.
+  // Written inside the try so the finally that unlinks it always runs.
   await writeFile(join(ROOT, `tools/${PAGE_NAME}`), PAGE);
   const ctx = await browser.newContext({ viewport: { width: 430, height: 860 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
@@ -110,16 +87,13 @@ try {
     if (!pt) continue;
     check(`one tap on ${k} is ONE call`, (await tap(pt)) === want, `got "${await P(() => globalThis.__probe.calls())}"`);
     check(`a wandering tap on ${k} is still ONE call`, (await tap(pt, { wander: 3 })) === want, `got "${await P(() => globalThis.__probe.calls())}"`);
-    // two quick taps: two calls, never three or four
     await P(() => globalThis.__probe.reset());
     for (let i = 0; i < 2; i++) { await send('touchStart', pt.x, pt.y); await sleep(50); await send('touchEnd', pt.x, pt.y); await sleep(80); }
     await sleep(120);
     check(`two quick taps on ${k} are TWO calls`, (await P(() => globalThis.__probe.calls())) === `${want},${want}`, `got "${await P(() => globalThis.__probe.calls())}"`);
   }
-  // a hold past the cycle threshold performs nothing (the choosing is the act)
   const c1 = await P(() => globalThis.__probe.cell('c1'));
   if (c1) check('a HOLD on c1 is no call', (await tap(c1, { hold: 700 })) === '', `got "${await P(() => globalThis.__probe.calls())}"`);
-  // a mouse click is not a press (AUDIT QS F8)
   if (c1) {
     await P(() => globalThis.__probe.reset());
     await page.mouse.click(c1.x, c1.y);

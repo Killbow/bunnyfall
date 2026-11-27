@@ -1,20 +1,7 @@
 #!/usr/bin/env node
-// WD3 (2026-10-01): A MOD'S WHOLE WORLD DATA AS ONE PACK - the author's edits over the player's own MAPS.BSA and
-// BLOCKS.BSA, every shared piece once (formats/worldData/worldDataPack.js says what a pack is and why).
-//
-//   node tools/worldDataPackBuild.mjs <arena2> <bundle.dfmod> <vendor> <out.json> [--title T] [--author A] [--version V]
-//
-// What it does, file by file, for every world-data TextAsset in the bundle that DFU's WorldDataReplacement reads
-// (`location-<r>-<i>.json`, `<BLOCK>.RMB.json`; a TextAsset no DFU name reaches is reported and not carried):
-//   1. parses the author's file as FullSerializer does (`\0` and `\a` are its escapes, not JSON's);
-//   2. takes its BASE - the classic location (MAPS.BSA) or block (BLOCKS.BSA) of its own name; for a block
-//      BLOCKS.BSA has not got, the classic block or the pack's own file it is nearest to (fewest bytes of edit);
-//   3. writes the EDIT, subtree by subtree, each the smaller of WD1's op script and a whole value, values encoded:
-//      a large piece the classic game has is a reference into the player's BLOCKS.BSA (with the author's edits to
-//      it, when that is smaller), a large piece the pack already holds is its node number, records are rows;
-//   4. rebuilds EVERY file through the runtime's own reader and refuses to write the pack if one file's canonical
-//      sha256 is not the author's.
-// The output is a function of the bundle and the ARENA2 alone.
+// Packs a mod's world data as edits over the classic MAPS.BSA and BLOCKS.BSA, storing each shared piece once.
+// It refuses to write the pack unless every file rebuilds through the runtime reader to the author's sha256.
+// Run it without arguments to print its usage.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -27,7 +14,7 @@ import { MapsFile } from '../src/formats/mapsFile.js';
 import { blockToDfuJson, locationToDfuJson, diffJson, canonicalJson } from '../src/formats/worldDataJson.js';
 import { PACK_FORMAT, ROW_ENCODERS, runLength, openWorldDataPack, classicIndicesOf } from '../src/formats/worldDataPack.js';
 
-/** FullSerializer's string escapes that JSON lacks (fsJsonParser.UnescapeChar: `\0`, `\a`), rewritten, then parsed. */
+// FullSerializer writes the \0 and \a string escapes, which JSON lacks.
 export function parseFullSerializerJson(text) {
   let out = '';
   let start = 0, inStr = false;
@@ -45,8 +32,7 @@ export function parseFullSerializerJson(text) {
   return JSON.parse(start === 0 ? text : out + text.slice(start));
 }
 
-/** The DFU file name a bundle TextAsset is looked up by, or null (DFU's asset lookup is case-blind; the port's door
- *  asks with the block name as the location spells it, upper case). */
+// DFU matches asset names case-blind, but the game looks blocks up by their upper-case name.
 export function dfuWorldDataName(containerPath) {
   const base = containerPath.split('/').pop();
   if (/^location-\d+-\d+\.json$/i.test(base)) return base.toLowerCase();
@@ -59,7 +45,6 @@ const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const size = (v) => JSON.stringify(v).length;
 
-/** The bundle's world-data TextAssets: Map<dfuName, {path, text}>, and the ones no DFU name reaches. */
 export function bundleWorldData(bytes) {
   const fs = readUnityFs(bytes);
   const main = fs.files.find((f) => !/\.res(S|ource)$/.test(f.path));
@@ -79,25 +64,21 @@ export function bundleWorldData(bytes) {
     if (!name) { ignored.push(path); continue; }
     if (found.has(name)) {
       if (found.get(name).text !== text) throw new Error(`${name}: two different TextAssets in one bundle (${found.get(name).path}, ${path})`);
-      continue;   // the same file twice (Beautiful Cities carries Beautiful Villages' farms under their own path)
+      continue;
     }
     found.set(name, { path, text });
   }
   return { files: found, ignored, manifest };
 }
 
-// ---- the classic game's pieces, by content ------------------------------------------------------------------------
-
 const HALF_KEYS = ['Header', 'Block3dObjectRecords', 'BlockFlatObjectRecords', 'BlockSection3Records', 'BlockPeopleRecords', 'BlockDoorRecords'];
 const isHalf = (o) => isObj(o) && HALF_KEYS.every((k) => Object.hasOwn(o, k));
 const isSubRecord = (o) => isObj(o) && isHalf(o.Exterior) && isHalf(o.Interior);
 
-/** Every classic RMB block's buildings and their two halves by canonical hash -> [index, path] (what a pack may name
- *  instead of carrying), and the halves by record for the nearest-half search. */
 function classicIndex(blocks) {
   const byHash = new Map();
-  const halves = [];   // { ref, json, recs:Set }
-  const recordIndex = new Map();   // record hash -> [half ids]
+  const halves = [];
+  const recordIndex = new Map();
   const blockJson = new Map();
   const add = (v, ref) => { const h = sha256(canonicalJson(v)); if (!byHash.has(h)) byHash.set(h, ref); };
   for (let i = 0; i < blocks.count; i++) {
@@ -122,12 +103,10 @@ function classicIndex(blocks) {
   return { byHash, halves, recordIndex, blockJson };
 }
 
-// ---- the encoder ----------------------------------------------------------------------------------------------------
-
 function createEncoder(classic) {
   const nodes = [];
-  const nodeOf = new Map();   // canonical hash -> node id
-  const memo = new WeakMap(); // object -> canonical string
+  const nodeOf = new Map();
+  const memo = new WeakMap();
   const canon = (v) => {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     let s = memo.get(v);
@@ -135,7 +114,6 @@ function createEncoder(classic) {
     return s;
   };
 
-  /** Rows for an array of records, when its elements are (mostly) one codec's records. */
   function rowsOf(arr) {
     if (!arr.length) return null;
     for (const [key, enc] of Object.entries(ROW_ENCODERS)) {
@@ -147,8 +125,6 @@ function createEncoder(classic) {
     return null;
   }
 
-  /** The nearest classic half to a half of the author's: most records in common (the inverted index), then the
-   *  smallest edit. */
   function nearestClassicHalf(v) {
     const counts = new Map();
     for (const r of [...v.Block3dObjectRecords, ...v.BlockFlatObjectRecords]) {
@@ -166,8 +142,6 @@ function createEncoder(classic) {
     return best;
   }
 
-  /** A building or a half of one: a classic reference, a node already held, or a new node (itself a classic half with
-   *  the author's edits when that is much smaller than carrying it). */
   const refMemo = new WeakMap();
   function nodeRef(v) {
     const memoed = refMemo.get(v);
@@ -224,7 +198,6 @@ function createEncoder(classic) {
     return encodeFields(v);
   }
 
-  /** WD1 ops, values encoded, element sets of a number array grouped into runs. */
   function encodeOps(ops) {
     const out = [];
     for (let i = 0; i < ops.length; i++) {
@@ -253,7 +226,6 @@ function createEncoder(classic) {
     return out;
   }
 
-  /** The edit of `base` into `mod` at `path`, subtree by subtree, each the smaller of an op script and a whole value. */
   function bestOps(base, mod, path) {
     if (canon(base) === canon(mod)) return [];
     if (isObj(base) && isObj(mod) && !(path.length && (isSubRecord(mod) || isHalf(mod)))) {
@@ -276,22 +248,18 @@ function createEncoder(classic) {
   return { nodes, bestOps, encodeValue, nodeCount: () => nodes.length };
 }
 
-// ---- the base of a block BLOCKS.BSA has not got ---------------------------------------------------------------------
-
-/** Candidate bases for a new block: the classic block or pack file whose name it carries (`DABOOKBM00` -> BOOKBM00;
- *  `WALLAA03.FARMBA07` -> FARMBA07, WALLAA03), then classic blocks of its own prefix - chosen by the smallest edit. */
 function baseCandidates(name, blocks, packNames) {
   let stem = name.replace(/\.RMB$/, '');
   const names = new Set();
   for (const p of stem.split('.')) names.add(p);
-  if (/^DA[A-Z]{4}[A-Z0-9]{2}\d\d$/.test(stem)) { stem = stem.slice(2); names.add(stem); }   // the desert architecture's twin of a block
+  // A DA prefix names the desert architecture twin of a block.
+  if (/^DA[A-Z]{4}[A-Z0-9]{2}\d\d$/.test(stem)) { stem = stem.slice(2); names.add(stem); }
   const out = [];
   for (const n of names) {
     if (packNames.has(`${n}.RMB.json`) && `${n}.RMB` !== name) out.push({ kind: 'f', name: `${n}.RMB.json` });
     const i = blocks.getBlockIndex(`${n}.RMB`);
     if (i >= 0) out.push({ kind: 'b', name: `${n}.RMB`, index: i });
   }
-  // the classic blocks and pack files of the same four-letter kind (TEMPASA0 -> TEMPAA*, TEMPAS*; FARMBA03 -> FARMAA*)
   const last = stem.split('.').pop();
   const head = last.slice(0, 4);
   for (let i = 0; i < blocks.count; i++) {
@@ -302,9 +270,7 @@ function baseCandidates(name, blocks, packNames) {
   return out;
 }
 
-/** About how many bytes the edit of `base` into `mod` costs, outside the buildings (which are references either way):
- *  ground tiles and scenery, automap cells and the block's own models and flats that differ - counted in place, not
- *  diffed (a Myers script over a 4,096-cell automap for every candidate of 415 new blocks is an hour). */
+// Counts the edit cost in place instead of diffing, since a full diff for every candidate block is far too slow.
 function baseCost(base, mod) {
   const b = base.RmbBlock, m = mod.RmbBlock;
   if (!b?.FldHeader || !m?.FldHeader) return Infinity;
@@ -323,8 +289,6 @@ function baseCost(base, mod) {
   return cost;
 }
 
-/** Every classic RMB block, for a new block of a kind Daggerfall has none of (Beautiful Cities' EMTYAA00) - narrowed
- *  by the ground: the ten whose 256 tiles agree most with the new block's. */
 function nearestByGround(json, classic) {
   const tiles = json.RmbBlock?.FldHeader?.GroundData?.GroundTiles ?? [];
   const scored = [];
@@ -336,8 +300,6 @@ function nearestByGround(json, classic) {
   }
   return scored.sort((a, b) => b.same - a.same).slice(0, 10);
 }
-
-// ---- the build -------------------------------------------------------------------------------------------------------
 
 export function buildPack({ arena2, bundleBytes, vendor, mod = {}, log = () => {} }) {
   const blocks = new BlocksFile();
@@ -353,9 +315,8 @@ export function buildPack({ arena2, bundleBytes, vendor, mod = {}, log = () => {
   const parsed = new Map([...files].map(([name, f]) => [name, parseFullSerializerJson(f.text)]));
   const packNames = new Set(parsed.keys());
 
-  // Bases first. A location's is its classic self, a block's its classic self when BLOCKS.BSA has it; a block BLOCKS.BSA
-  // has not got takes the nearest candidate whose own base is already settled - plain new blocks before the composites
-  // made of them (`WALLAA03.FARMBA07` after `FARMBA07`), so no chain of bases can close on itself.
+  // A new block takes the nearest candidate whose own base is already settled. Plain new blocks sort before the
+  // composites made of them, such as WALLAA03.FARMBA07, so no chain of bases can close on itself.
   const bases = new Map();
   const pending = [];
   for (const [name, json] of parsed) {
@@ -401,9 +362,8 @@ export function buildPack({ arena2, bundleBytes, vendor, mod = {}, log = () => {
     if (++done % 1000 === 0) log(`  encoded ${done}/${order.length} (${enc.nodeCount()} nodes)`);
   }
 
-  // Every file rebuilt through the runtime's own reader, from the pack as it will be SHIPPED (serialised and read back),
-  // the author's sha256 for sha256.
-  // AUDIT WD3 P5: the name of every classic block a `$c` reference reads, as the BLOCKS.BSA it was built against has it
+  // Verification reads the pack as shipped (serialized and read back). The runtime checks each classic block a $c
+  // reference reads against the block name recorded here.
   out.classicNames = Object.fromEntries(classicIndicesOf(out).map((i) => [i, blocks.getBlockName(i)]));
   const shipped = serialisePack(out);
   const pack = openWorldDataPack(JSON.parse(shipped), { blocks });
@@ -415,8 +375,7 @@ export function buildPack({ arena2, bundleBytes, vendor, mod = {}, log = () => {
   return { pack: out, shipped, ignored, manifest };
 }
 
-/** The pack as shipped: each file's entry and each node its own JSON text (read when first wanted), the files other
- *  files are based on named up front, the whole gzipped by the caller. */
+// Each file entry and node is its own JSON string, so the runtime parses only the parts it reads.
 export function serialisePack(pack) {
   const bases = [...new Set(Object.values(pack.files).filter(([, b]) => b?.[0] === 'f').map(([, b]) => b[1]))].sort();
   const files = {};

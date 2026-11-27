@@ -27,6 +27,7 @@ traps:
   - "With no host registered and no clock passed, playerInDarkness is false. An unregistered clock reads minute 0 (midnight) and would otherwise answer dark."
   - "Enchantment darkness is not career darkness: a lit shop at noon is dark for the enchantment (inside) but not for the career (day, not a dungeon)."
   - "Every host ctx must answered inDarkness, so the enchantment's In Darkness arm never healed in any host."
+  - "Raw max magicka is read with `maxMagickaModifier` set to zero and then restored, never by subtracting the modifier, because the accessor floors at 0 and the unable value of -10000000 would corrupt a subtraction."
 dfu:
   - Assets/Scripts/Game/PlayerEnterExit.cs
   - Assets/Scripts/Game/MagicAndEffects/Effects/Enchanting/RegensHealth.cs

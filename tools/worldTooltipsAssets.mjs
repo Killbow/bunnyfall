@@ -1,35 +1,17 @@
-// WORLD-HOVER: THE MOD'S OWN SOURCE, OUT OF ITS OWN BUNDLE.
-//
-// World Tooltips 1.1 ships one file - `world tooltips.dfmod`, a Unity
-// 2019.4.28f1 AssetBundle - and unlike most mods it carries its whole
-// implementation as a TextAsset rather than a compiled assembly: the
-// author's `Modded_HUDTooltipWindow.cs`, the manifest and the settings
-// schema, all three in plain text inside the bundle.
-//
-// That is why `vendor/world-tooltips/Scripts/` can hold the author's
-// source rather than a decompile, and why every cite the port writes
-// against it resolves against a file anyone holding the shipped zip
-// can reproduce byte for byte:
-//
-//   node tools/worldTooltipsAssets.mjs <path-to>/"world tooltips.dfmod" [outDir]
-//
-// Default outDir is vendor/world-tooltips. It prints each asset's
-// size and sha256, which is what test/tooling/vendorIntegrity.test.js pins.
+// Vendors the World Tooltips bundle's text assets (C# source, settings, and manifest) into vendor/world-tooltips.
+// Run: node tools/worldTooltipsAssets.mjs <path>/"world tooltips.dfmod" [outDir].
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { readUnityBundle } from '../src/formats/unityBundle.js';
 import { isMain } from './lib/isMain.mjs';
 
-/** The bundle's three text assets, by the name they carry inside it,
- *  mapped to the path this tree keeps them at. */
 export const WORLD_TOOLTIPS_ASSETS = Object.freeze({
   'Modded_HUDTooltipWindow.cs': 'Scripts/Modded_HUDTooltipWindow.cs',
   'modsettings': 'modsettings.json',
   'tooltip.dfmod': 'tooltip.dfmod.json',
 });
 
-/** The text assets as { name, path, body } - pure, for a test to drive. */
 export function readWorldTooltips(bytes) {
   const bundle = readUnityBundle(bytes);
   return bundle.textAssets.map((t) => ({

@@ -1,44 +1,8 @@
-// CLIMB6 - THE MORROWIND BODY ON THE WALL, THE SKELETON'S HALF (the Enhanced Climbing arc - bible/03-World/Parkour-Arc.md;
-// Mac: "Definitely want you to use the morrowind model to get correct animations for everything. Be as detailed as
-// possible").
-//
-// Morrowind has no climbing animation: on a wall the body played the jump's in-air clip and the arms hung where the clip
-// left them. This module poses the rig's own bones onto the climb - the hands ON the lip, the feet ON the wall - by
-// inverse kinematics solved on whatever skeleton it is handed. It holds NO number about any skeleton's bones: every
-// length, every rest direction, every axis it turns about is read off the skeleton in the frame being posed (the
-// joints' own positions), so retail's xbase_anim (bones along their local X), a Blender biped (along Y) and the
-// fixtures (attach nodes only) take the same request to the same place. CLIMB4 left the arms unposed because "a
-// per-bone pose tuned blind ... would ship arms bent wrong"; a pose SOLVED from the joints is not tuned at all.
-//
-// THE REQUEST is in RIG SPACE (Morrowind units, Z up, the actor facing +Y, its right +X - the space skeletonSpaceMatrices
-// answers with GRAPH_ROOT) and every field is optional (player/climb/climbPose.js makes it from the world, combat/fpArm.js maps
-// it into the rig):
-//   w       - the whole pose's weight, 0..1 (the climb eased in and out over the clip's own pose);
-//   offset  - [x, y, z] the body moved (the drawn body closer to the wall than the capsule's axis, say);
-//   fit     - { up, down }: how far the body may be raised or lowered so the hands REACH their holds (a hang's arms
-//             straight, never stretched past their bones);
-//   swing   - { pitch, roll } radians the hips swing under the hands (a catch's pendulum);
-//   lean    - { pitch, roll } radians the spine bends, spread over its bones (toward the wall, over a top);
-//   hands   - { L, R }: { at, fingers, palm, w, pole, curl, shrug } - the wrist's point, the way the fingers point and the
-//             palm faces, the limb's own weight, the elbow's way, the fingers' curl (radians), the clavicle's share;
-//             releaseAtReach opts vaults into letting go before full extension; reachAt preserves physical distance
-//             when first-person screen projection instead asks the hand to take a nearby point on a ray.
-//   feet    - { L, R }: { at, toe, w, pole } - the ankle's point, the way the toes point, the weight, the knee's way;
-//   look    - { at, w }: the point the head turns to.
-// Bones are found by name, case-blind, as the rig resolves every other (rule 16): the Bip01 chain, else the part-attach
-// family the fixtures carry (combat/heldPose.js HELD_BONE_ALIASES - one table). A limb whose bones are missing is left
-// as the clip has it.
-//
-// THE POSE MAP: an untracked bone's entry is the skeleton's own shared `node.rest` (mwSkin.js poseSkeleton) - every
-// write here is a NEW entry through pose.set, never a mutation (the hazard applyFirstPersonNeck's note names).
-//
-// BODY-MOTION (characters/bodyMotion/bodySolve.js) poses the walking, carrying and striking body on the same algebra -
-// `rotationPart`, `restAxes` and `orthonormal` are exported for it beside the solves it already took.
-
+// Poses the climb by inverse kinematics on any skeleton, reading every bone length and axis off the frame being
+// posed. Requests are in rig space: Morrowind units, Z up, the actor facing +Y, and its right +X.
+// Untracked bones share the skeleton's node.rest entry, so every write goes through pose.set as a new entry.
 import { mat33Mul } from '../formats/mwNifMesh.js';
 import { HELD_BONE_ALIASES } from './heldPose.js';
-
-// ---- small vector and rotation algebra (row-major 3x3, column vectors - the rig's own) ---------------------------------
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -52,7 +16,6 @@ const clamp01 = (t) => Math.min(1, Math.max(0, t));
 const IDENT = Object.freeze([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 const transpose = (m) => Float32Array.from([m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]]);
 const apply = (m, v) => [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]];
-/** A matrix's rotation with its (uniform, NIF) scale divided out. */
 export function rotationPart(a) {
   const s = Math.hypot(a[0], a[3], a[6]);
   if (!(s > 1e-8) || Math.abs(s - 1) < 1e-7) return a;
@@ -61,7 +24,6 @@ export function rotationPart(a) {
   return out;
 }
 
-/** Rotation about unit `axis` by `ang` (Rodrigues). */
 export function rotAxisAngle(axis, ang) {
   const [x, y, z] = axis, c = Math.cos(ang), s = Math.sin(ang), k = 1 - c;
   return Float32Array.from([
@@ -70,7 +32,6 @@ export function rotAxisAngle(axis, ang) {
     z * x * k - y * s, z * y * k + x * s, c + z * z * k,
   ]);
 }
-/** The least rotation taking unit `a` onto unit `b`. */
 export function rotFromTo(a, b) {
   const c = dot(a, b);
   if (c > 1 - 1e-12) return Float32Array.from(IDENT);
@@ -81,7 +42,6 @@ export function rotFromTo(a, b) {
   }
   return rotAxisAngle(norm(cross(a, b)), Math.acos(Math.min(1, Math.max(-1, c))));
 }
-/** The rotation taking the frame (f0, u0) onto (f1, u1): f exactly, u as near as f allows (all unit). */
 export function rotFrames(f0, u0, f1, u1) {
   const r = rotFromTo(f0, f1);
   const u = apply(r, u0);
@@ -90,26 +50,19 @@ export function rotFrames(f0, u0, f1, u1) {
   const n0 = norm(p0), n1 = norm(p1);
   return mat33Mul(rotAxisAngle(f1, Math.atan2(dot(cross(n0, n1), f1), dot(n0, n1))), r);
 }
-/** A rotation's fraction `t` (0 the identity, 1 the whole of it) - about its own axis. */
 export function rotFraction(m, t) {
   if (t >= 1) return m;
   const ang = Math.acos(Math.min(1, Math.max(-1, (m[0] + m[4] + m[8] - 1) / 2)));
   if (ang < 1e-9 || t <= 0) return Float32Array.from(IDENT);
   const s = 2 * Math.sin(ang);
   let axis = [(m[7] - m[5]) / s, (m[2] - m[6]) / s, (m[3] - m[1]) / s];
-  if (!(len(axis) > 1e-6)) {   // a half turn: the axis off the symmetric part
+  if (!(len(axis) > 1e-6)) {
     const xx = Math.sqrt(Math.max(0, (m[0] + 1) / 2)), yy = Math.sqrt(Math.max(0, (m[4] + 1) / 2)), zz = Math.sqrt(Math.max(0, (m[8] + 1) / 2));
     axis = xx >= yy && xx >= zz ? [xx, m[1] / (2 * xx), m[2] / (2 * xx)] : yy >= zz ? [m[1] / (2 * yy), yy, m[5] / (2 * yy)] : [m[2] / (2 * zz), m[5] / (2 * zz), zz];
   }
   return rotAxisAngle(norm(axis), ang * t);
 }
 
-/**
- * THE TWO-BONE SOLVE: a root at `root` with bones `a` and `b` long reaching for `target`, the middle joint bent toward
- * `pole`. Answers { mid, end }: the middle joint's point and the end's (the target, or as near as the bones reach -
- * never past `maxFrac` of their length, never nearer than the bones can fold). The middle joint lies in the plane of the
- * reach and the pole, on the pole's side. Pure.
- */
 export function solveReach(root, a, b, target, pole, maxFrac = 0.995) {
   const d = sub(target, root);
   let dist = len(d);
@@ -124,10 +77,6 @@ export function solveReach(root, a, b, target, pole, maxFrac = 0.995) {
   return { mid: add(root, add(scale(dir, a * cosA), scale(side, a * sinA))), end: add(root, scale(dir, dist)) };
 }
 
-// ---- the skeleton's climbing bones -----------------------------------------------------------------------------------
-
-/** The names each limb's bones go by, in the order they are asked (the Bip01 chain first - retail's animated family -
- *  then the part-attach names a fixture carries; heldPose's table is the one map between them). */
 const ATTACH_OF = Object.fromEntries(Object.entries(HELD_BONE_ALIASES).map(([attach, bip]) => [bip, attach]));
 const named = (bip) => (ATTACH_OF[bip] ? [bip, ATTACH_OF[bip]] : [bip]);
 const LIMB_NAMES = Object.freeze({
@@ -137,17 +86,10 @@ const LIMB_NAMES = Object.freeze({
     thigh: ['bip01 r thigh', 'right upper leg'], calf: ['bip01 r calf', 'right knee'], foot: ['bip01 r foot', 'right foot'], toe: ['bip01 r toe0'] },
 });
 const SPINE_NAMES = Object.freeze(['bip01 spine', 'bip01 spine1', 'bip01 spine2']);
-/** A child of the hand is a THUMB by these names (retail's Finger0, a Blender biped's Thumb1), a finger by these. */
 const THUMB_RE = /(finger0|thumb)\d*$/;
 const FINGER_RE = /(finger[1-9]|pointer|middle|ring|pinky|index)\d*$/;
 
 const _bones = new WeakMap();
-/**
- * The climb's bones on `skeleton`, found once per skeleton: each side's arm chain (clavicle, upper arm, forearm, hand;
- * the hand's fingers and thumb, each a chain), leg chain (thigh, calf, foot, toe), the spine's bones, the neck and
- * head, the pelvis and the body's root - refs, or null where the skeleton has none. Children lists for the subtree
- * re-pose. Memoised.
- */
 export function climbBones(skeleton) {
   if (!skeleton || !skeleton.byName) return null;
   const hit = _bones.get(skeleton);
@@ -184,9 +126,6 @@ export function climbBones(skeleton) {
   return out;
 }
 
-// ---- the posing machinery: a world turn written as a local, the subtree's matrices kept current -----------------------
-
-/** The rig-space matrices of `ref` and everything under it, recomputed from the pose (after a write to `ref`). */
 function refresh(skeleton, pose, mats, bones, ref) {
   const node = skeleton.nodes.get(ref);
   if (!node) return;
@@ -205,14 +144,8 @@ function refresh(skeleton, pose, mats, bones, ref) {
   mats.set(ref, m);
   for (const k of bones.children.get(ref) ?? []) refresh(skeleton, pose, mats, bones, k);
 }
-/**
- * BODY-MOTION: A ROTATION KEPT A ROTATION - Gram-Schmidt on the columns, the third rebuilt from the first two with the
- * original's handedness (a mirrored bone - the pair's Weapon Bone Left - stays mirrored). A turn's local is a product of
- * four float32 matrices through a parent frame that carries every turn above it; unsquared, the skew compounds about
- * fourfold a level down a chain of turns - a deep climb (the body moved and swung, the spine bent, the shoulders drawn,
- * both arms, both legs, the look) left its rotations 2.65e-3 from orthonormal and its hands up to 3e-3 units off their
- * holds. Squared, it stays at float32's own rounding however deep the chain (bible/04-Characters/Body-Motion.md).
- */
+// Re-orthonormalizes each written local so float32 skew does not compound down a chain of turns; the original
+// handedness is kept so a mirrored bone stays mirrored.
 export function orthonormal(m) {
   let x = [m[0], m[3], m[6]], y = [m[1], m[4], m[7]];
   const zIn = [m[2], m[5], m[8]];
@@ -222,9 +155,6 @@ export function orthonormal(m) {
   if (dot(z, zIn) < 0) z = scale(z, -1);
   return Float32Array.from([x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]]);
 }
-/** Turn bone `ref` by the RIG-SPACE rotation `D` about its own joint: written as its new local (R_local' =
- *  Rp^T D Rp R_local - the parent's frame conjugates the turn; the joint's point is unmoved; kept a rotation -
- *  `orthonormal`), its subtree refreshed. */
 function turn(skeleton, pose, mats, bones, ref, D) {
   const node = skeleton.nodes.get(ref);
   if (!node) return;
@@ -235,7 +165,6 @@ function turn(skeleton, pose, mats, bones, ref, D) {
   pose.set(ref, { rotation, translation: local.translation, scale: local.scale });
   refresh(skeleton, pose, mats, bones, ref);
 }
-/** Move bone `ref`'s joint by the rig-space vector `dv` (its local translation, in its parent's frame). */
 function shift(skeleton, pose, mats, bones, ref, dv) {
   const node = skeleton.nodes.get(ref);
   if (!node) return;
@@ -251,9 +180,6 @@ function shift(skeleton, pose, mats, bones, ref, dv) {
 }
 const at = (mats, ref) => mats.get(ref)?.t ?? null;
 
-/** The hand's frame as the skeleton has it now: the way its fingers point (to the fingers' first joints, else on along
- *  the forearm) and its palm's normal (off the thumb's side - Z-up, +Y-forward, right-handed rig space: a right palm is
- *  the fingers crossed with the thumb's side, a left one the other way). Null without a hand. */
 export function handFrame(mats, limb, side) {
   const wrist = at(mats, limb.hand);
   if (!wrist) return null;
@@ -268,16 +194,11 @@ export function handFrame(mats, limb, side) {
   if (thumb) {
     const t = sub(thumb, wrist);
     const lateral = sub(t, scale(f, dot(t, f)));
-    // fingers ahead and palm down, a right thumb lies to the body's left (-X): forward x left is UP, so the palm is its
-    // negative - and a left hand's the other way
     if (len(lateral) > 1e-6) palm = scale(norm(cross(f, norm(lateral))), side === 'R' ? -1 : 1);
   }
   return { wrist, fingers: f, palm };
 }
 
-/** The rest-pose meaning of "forward" and "up" in a bone's own frame - what the rig's +Y and +Z were to it standing in
- *  the skeleton's rest pose - so a bone with no child to point along (a foot without a toe, a hand without fingers)
- *  can still be turned to face a way. Memoised per skeleton. */
 const _restAxes = new WeakMap();
 export function restAxes(skeleton, ref) {
   let per = _restAxes.get(skeleton);
@@ -293,10 +214,6 @@ export function restAxes(skeleton, ref) {
   return out;
 }
 
-// ---- THE POSE --------------------------------------------------------------------------------------------------------
-
-/** A limb's arm: the clavicle's share toward the hold, the two-bone reach, the hand turned to the hold and its fingers
- *  curled over it. */
 function poseArm(skeleton, pose, mats, bones, limb, side, h, w) {
   let k = clamp01((h.w ?? 1) * w);
   if (!(k > 0) || limb.upper == null || limb.fore == null || limb.hand == null || !(h.at || h.ray)) return;
@@ -304,15 +221,12 @@ function poseArm(skeleton, pose, mats, bones, limb, side, h, w) {
   const S = at(mats, limb.upper), E = at(mats, limb.fore), W = at(mats, limb.hand);
   const a = len(sub(E, S)), b = len(sub(W, E));
   if (!(a > 1e-6 && b > 1e-6)) return;
-  // VAULT-HANDS: as the body clears the obstacle, release its planted hand before full extension. Measure on the
-  // posed bones (after the body's lean/fit), so race scales and animation poses use their own reach. Blend the whole
-  // hand influence, including elbow, palm and fingers, back to the clip; never chase an unreachable stone.
+  // Vault release is measured on the posed bones, after the lean and fit, so each race uses its own reach.
   if (h.releaseAtReach) {
     const t = clamp01((len(sub(h.reachAt ?? h.at, S)) / (a + b) - 0.8) / 0.18);
     k *= 1 - t * t * (3 - 2 * t);
     if (!(k > 0)) return;
   }
-  // the weight eases the reach from where the clip holds the wrist to the hold, and the elbow's way from the clip's
   const target = lerp3(W, h.at, k);
   const clipElbow = norm(sub(E, add(S, scale(norm(sub(W, S)), dot(sub(E, S), norm(sub(W, S)))))));
   const pole = h.pole ? norm(lerp3(len(clipElbow) > 0.5 ? clipElbow : h.pole, h.pole, k)) : clipElbow;
@@ -320,7 +234,6 @@ function poseArm(skeleton, pose, mats, bones, limb, side, h, w) {
   turn(skeleton, pose, mats, bones, limb.upper, rotFromTo(norm(sub(E, S)), norm(sub(sol.mid, S))));
   const E2 = at(mats, limb.fore), W2 = at(mats, limb.hand);
   turn(skeleton, pose, mats, bones, limb.fore, rotFromTo(norm(sub(W2, E2)), norm(sub(sol.end, E2))));
-  // the hand: its fingers' way and its palm's, as near as the frame allows
   if (h.fingers) {
     const fr = handFrame(mats, limb, side);
     if (fr) {
@@ -329,7 +242,6 @@ function poseArm(skeleton, pose, mats, bones, limb, side, h, w) {
       turn(skeleton, pose, mats, bones, limb.hand, D);
     }
   }
-  // the fingers curl toward the palm (over a lip, round a hold), each joint a share
   const curl = (h.curl ?? 0) * k;
   if (curl > 1e-4) {
     const fr = handFrame(mats, limb, side);
@@ -339,7 +251,6 @@ function poseArm(skeleton, pose, mats, bones, limb, side, h, w) {
     }
   }
 }
-/** A digit's joints each turned toward the palm side by a share of `curl` (the knuckle most, the tip least). */
 function curlChain(skeleton, pose, mats, bones, chain, palm, curl) {
   const shares = [0.45, 0.35, 0.2];
   for (let i = 0; i < chain.length; i++) {
@@ -353,29 +264,20 @@ function curlChain(skeleton, pose, mats, bones, chain, palm, curl) {
     turn(skeleton, pose, mats, bones, chain[i], rotAxisAngle(axis, curl * (shares[i] ?? 0.15) * 2));
   }
 }
-/** A hand asked by a RAY (the first person's: the eye's line through its hold) holds it at this share of the arm's
- *  length from the shoulder - the arms are drawn over the world, so any point on the line covers the hold on screen;
- *  the one the arm reaches is the one taken. */
 export const RAY_REACH = 0.9;
 const limbReach = (mats, limb) => len(sub(at(mats, limb.fore), at(mats, limb.upper))) + len(sub(at(mats, limb.hand), at(mats, limb.fore)));
-/** The point on the ray { from, dir } (dir unit) `dist` from `p`, the farther of the two (the one ahead); the ray's
- *  nearest point to `p` where it never comes that near. Pure. */
 export function onRay(p, dist, ray) {
   const o = sub(ray.from, p), b = dot(ray.dir, o), c = dot(o, o) - dist * dist;
   const disc = b * b - c;
   const s = disc >= 0 ? -b + Math.sqrt(disc) : -b;
   return add(ray.from, scale(ray.dir, Math.max(0, s)));
 }
-/** The clavicle: a share of the way toward the hand's hold (the shoulder drawn up to a hand over the head). */
 function shrug(skeleton, pose, mats, bones, limb, h, w) {
   const k = clamp01((h.w ?? 1) * w) * clamp01(h.shrug ?? 0);
   if (!(k > 0) || limb.clavicle == null || limb.upper == null || !h.at) return;
   const c = at(mats, limb.clavicle), u = at(mats, limb.upper);
   if (c && u) turn(skeleton, pose, mats, bones, limb.clavicle, rotFraction(rotFromTo(norm(sub(u, c)), norm(sub(h.at, c))), k));
 }
-/** A leg: the two-bone reach to the foothold, the foot turned to point its toes the way asked. A foothold with `hang`
- *  (0..1) asks the leg to hang that share of its own length: the ankle under the hip by the leg's length, not a height
- *  in metres no skeleton agrees on - the point's level position kept. */
 function poseLeg(skeleton, pose, mats, bones, limb, f, w) {
   const k = clamp01((f.w ?? 1) * w);
   if (!(k > 0) || limb.thigh == null || limb.calf == null || limb.foot == null || !f.at) return;
@@ -404,13 +306,6 @@ function poseLeg(skeleton, pose, mats, bones, limb, f, w) {
   }
 }
 
-/**
- * THE CLIMB'S POSE ON THE SKELETON, written into `pose` (a poseSkeleton map) after the clip's: the body moved and fitted,
- * the hips swung, the spine bent, the arms reached and the hands set, the legs reached and the feet set, the head
- * turned. `skelMats` is the assembly's (mwSkin skeletonSpaceMatrices), `rootRef` its space (GRAPH_ROOT). Answers
- * { fit, reach: { L, R } } - the body's fitted rise and how near each hand came to its hold (rig units) - or null when
- * nothing was posed.
- */
 export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
   const w = clamp01(req?.w ?? 0);
   if (!(w > 0)) return null;
@@ -418,17 +313,14 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
   if (!bones) return null;
   const mats = skelMats(skeleton, pose, rootRef);
   const out = { fit: 0, reach: { L: null, R: null } };
-  // (the shrug's and the fit's hold, for a hand asked by a ray: where the arm will take it)
   if (req.hands) for (const s of ['L', 'R']) {
     const h = req.hands[s], limb = bones[s];
     if (h?.ray && !h.at && limb.upper != null && limb.fore != null && limb.hand != null) req = { ...req, hands: { ...req.hands, [s]: { ...h, at: onRay(at(mats, limb.upper), limbReach(mats, limb) * RAY_REACH, h.ray), ray: null } } };
   }
-  // 1. the body moved (closer to the wall than the capsule's axis, say)
   if (bones.root != null && req.offset) {
     const off = scale(req.offset, w);
     if (len(off) > 1e-9) shift(skeleton, pose, mats, bones, bones.root, off);
   }
-  // 2. the body swings under the hands like a pendulum (a catch's): turned about the point between the holds
   if (req.swing && bones.root != null) {
     const { pitch = 0, roll = 0 } = req.swing;
     const holds = ['L', 'R'].map((s) => req.hands?.[s]?.at).filter(Boolean);
@@ -441,7 +333,6 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
       shift(skeleton, pose, mats, bones, bones.root, sub(moved, root));
     }
   }
-  // 3. the spine bends, its share to each bone (forward is +Y: a positive pitch bends the chest toward it)
   if (req.lean && bones.spine.length) {
     const { pitch = 0, roll = 0 } = req.lean;
     const n = bones.spine.length;
@@ -450,10 +341,8 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
       if (roll) turn(skeleton, pose, mats, bones, ref, rotAxisAngle([0, 1, 0], (roll * w) / n));
     }
   }
-  // 4. the shoulders drawn up toward the hands (before the fit: a shrug brings the shoulder nearer its hold)
+  // The shrug runs before the fit because raising the shoulder changes how far the hand must reach.
   if (req.hands) for (const s of ['L', 'R']) if (req.hands[s]) shrug(skeleton, pose, mats, bones, bones[s], req.hands[s], w);
-  // 5. the body raised or lowered so the hands REACH (the farther hand at 97 % of its bones) - inside the request's
-  // bounds: a hang's arms let out straight, a hold just out of reach met
   if (bones.root != null && req.fit && req.hands) {
     let need = null;
     for (const s of ['L', 'R']) {
@@ -463,9 +352,8 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
       const reach = (len(sub(E, S)) + len(sub(Wr, E))) * 0.97;
       const dh = Math.hypot(h.at[0] - S[0], h.at[1] - S[1]);
       if (dh >= reach) continue;
-      // the shoulder's height that puts the hold at the reach (under it for a hold over the head)
       const rise = (h.at[2] - Math.sqrt(reach * reach - dh * dh)) - S[2];
-      need = need == null ? rise : Math.max(need, rise);   // the farther hand decides
+      need = need == null ? rise : Math.max(need, rise);
     }
     if (need != null) {
       const up = Math.max(0, req.fit.up ?? 0), down = Math.max(0, req.fit.down ?? 0);
@@ -473,7 +361,6 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
       if (Math.abs(dz) > 1e-9) { shift(skeleton, pose, mats, bones, bones.root, [0, 0, dz]); out.fit = dz; }
     }
   }
-  // 6. the arms and the hands
   if (req.hands) {
     for (const s of ['L', 'R']) {
       const h = req.hands[s];
@@ -483,9 +370,7 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
       if (wr && h.at) out.reach[s] = len(sub(wr, h.at));
     }
   }
-  // 7. the legs and the feet
   if (req.feet) for (const s of ['L', 'R']) if (req.feet[s]) poseLeg(skeleton, pose, mats, bones, bones[s], req.feet[s], w);
-  // 8. the head turns to look (the neck takes a third, the head the rest), never more than 70 degrees off the chest
   if (req.look?.at && bones.head != null) {
     const k = clamp01((req.look.w ?? 1) * w);
     const head = mats.get(bones.head);
@@ -509,14 +394,6 @@ export function applyClimbRig(skeleton, pose, rootRef, skelMats, req) {
   return out;
 }
 
-// ---- THE WORLD'S REQUEST IN THE RIG'S SPACE (combat/fpArm.js maps with these) -----------------------------------------
-
-/**
- * The world's request (player/climb/climbPose.js ClimbPose's answer, metres) in the THIRD-PERSON rig's space - drawThird's
- * own model inverted: world = feet + (x right + y forward) weight / U + up z height / U, right = [cos yaw, 0, -sin yaw],
- * forward = [sin yaw, 0, cos yaw] (U the rig's units per metre, weight and height the race's scales). Points map as
- * points, ways as ways (normalised), the offset as a vector, the fit's metres as heights. Pure.
- */
 export function climbRequestToRig(wq, { feet, yaw, unitsPerMetre, weight = 1, height = 1 }) {
   if (!wq || !(wq.w > 0) || !feet) return null;
   const U = unitsPerMetre, r = [Math.cos(yaw), 0, -Math.sin(yaw)], f = [Math.sin(yaw), 0, Math.cos(yaw)];
@@ -535,34 +412,23 @@ export function climbRequestToRig(wq, { feet, yaw, unitsPerMetre, weight = 1, he
   };
 }
 
-/**
- * The world's request in the FIRST-PERSON rig's space: the hands only, each as a RAY from the rig's eye through where
- * its hold stands ON SCREEN. The arm pass is the rig's own lens (`lensFov`, `lensPitch` - fpArm's draw) laid over the
- * world's (`eye`, `yaw`, `pitch`, `fov` - the frame's), so a hold is matched by its place in the picture: its offsets
- * across and up the view scaled by the two lenses' ratio. The arm takes the point on its ray it reaches (RAY_REACH).
- * Ways map through the same frame. `rigEye` is the camera node's rig-space point the lens stands at. Vaults also
- * carry the actual world hold in rig units (`unitsPerMetre`), without the lens ratio: a ray alone discards distance
- * and would let the hand keep chasing a stone far below the rising body. Pure.
- */
 export function climbRequestToFirstPerson(wq, { eye, yaw, pitch = 0, fov, lensFov, lensPitch = 0, rigEye, unitsPerMetre }) {
   if (!wq || !(wq.w > 0) || !eye || !rigEye) return null;
   const cp = Math.cos(pitch), sp = Math.sin(pitch), cy = Math.cos(yaw), sy = Math.sin(yaw);
-  const fw = [sy * cp, sp, cy * cp], rw = [cy, 0, -sy], uw = [-sy * sp, cp, -cy * sp];   // the world view's frame
+  const fw = [sy * cp, sp, cy * cp], rw = [cy, 0, -sy], uw = [-sy * sp, cp, -cy * sp];
   const k = Math.tan(lensFov / 2) / Math.tan(fov / 2);
   const cl = Math.cos(lensPitch), sl = Math.sin(lensPitch);
-  const R = [1, 0, 0], F = [0, cl, sl], Up = [0, -sl, cl];   // the arm lens's frame in the rig (forward +Y, up +Z)
-  // a world way, across/up/ahead of the world view, as the same share of the arm lens's picture
+  const R = [1, 0, 0], F = [0, cl, sl], Up = [0, -sl, cl];
   const lensVec = (v, ratio = k) => { const x = dot(v, rw) * ratio, y = dot(v, uw) * ratio, z = dot(v, fw); return add(add(scale(R, x), scale(Up, y)), scale(F, z)); };
   const limbOf = (h) => {
     if (!(h && h.at && h.w > 0)) return null;
     const d = sub(h.at, eye);
     const ahead = dot(d, fw);
-    if (ahead <= 0.05) return null;   // a hold behind the eye: the arm is not asked for it
-    // A vault's grip fades before crossing the eye plane, instead of snapping off at the cull. Its physical reach
-    // is measured separately from the screen ray, which always picks a point near the arm regardless of distance.
+    if (ahead <= 0.05) return null;
     const approach = h.releaseAtReach ? clamp01((ahead - 0.05) / 0.2) : 1;
     const grip = approach * approach * (3 - 2 * approach);
     return { ray: { from: rigEye.slice(), dir: norm(lensVec(d)) }, fingers: h.fingers ? norm(lensVec(h.fingers)) : null, palm: h.palm ? norm(lensVec(h.palm)) : null, pole: h.pole ? norm(lensVec(h.pole)) : null, w: h.w * grip, curl: h.curl, shrug: 0,
+      // A ray discards distance, so vaults also carry the real hold in rig units for the release test.
       ...(h.releaseAtReach && unitsPerMetre > 0 ? { releaseAtReach: true, reachAt: add(rigEye, scale(lensVec(d, 1), unitsPerMetre)) } : {}),
     };
   };

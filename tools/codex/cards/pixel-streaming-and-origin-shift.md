@@ -10,9 +10,8 @@ files:
   - src/world/terrainGen.js
   - src/world/terrainGenClient.js
   - src/formats/woodsFile.js
-  - src/render/labGrass.js
-  - src/world/terrainLodWorld.js
-  - src/world/terrainHeightWorld.js
+  - src/characters/corpseMarker.js
+  - src/characters/enemyMotor.js
 dfu:
   - Assets/Scripts/Terrain/StreamingWorld.cs
   - Assets/Scripts/Utility/FloatingOrigin.cs
@@ -23,12 +22,8 @@ related:
 invariants:
   - Exterior streaming loads a Chebyshev `(2d + 1)^2` grid (`TERRAIN_DISTANCE = 3` default, `819.2` scene units per pixel at `GLOBAL_SCALE = 0.025`) nearest-first via `StreamingWorldState`.
   - Floating-origin recenters shift every world-space holder in the same frame by `(-dx * 819.2, 0, +dy * 819.2)` on pixel crossings and vertically past `+/-500` after `adjustFallStart`.
-  - "The grass field (`src/render/labGrass.js`) keeps its own cell-grid origin, which `shiftOrigin` moves with each origin shift, so cell keys and seeds never change, and a half-placed cell starts again in the new frame."
-  - "`init` zeroes the x and z compensation but keeps the vertical component, as DFU's `ResetStreamingWorld` does. Zeroing all three moves the player vertically on a re-init or teleport."
-  - "`onMap` must gate placement: the world map reader clamps, so an off-map pixel would otherwise stream invented Temperate terrain with its own ground archive and scatter, where DFU leaves the edge of the world empty."
-  - "A pixel build is shared through the `inFlight` promise map, so pump, boot, and teleport callers await the same build; a second build of one pixel leaks its GPU resources and doubles colliders and doors."
-  - "`heightAt` finds the containing pixel by inverting the affine pixel translation from `compensation`, which is correct only while the current pixel's frame sits at the origin under compensation."
-  - "The ring stride is re-checked at publish, because the player may cross a pixel during the worker round trip and the restride sweep cannot see an unpublished pixel; promotions queue and demotions settle at once."
+  - "A corpse marker keeps its creation parameters because a floating-origin recenter rebuilds its billboard batch, whose centers are baked into a static buffer."
+  - "`offsetOrigin` shifts every world position the motor holds, such as `feet`, destinations, last-known and predicted target positions, the flee point, the fall anchor, and a charge head. Aliased arrays move once."
 traps:
   - "`WOODS.WLD` heightmaps run `py` southward (`z = (499 - py) * 32768`); `getLargeHeightMapValuesRange` must strip each 5x5 cell to its interior 3x3, invert sample Y (`srcData[ix][4 - iy]`), and step descending map Y (`mapPixelY - y`)."
   - Missing any world-space system (camera, interpolation endpoints, colliders, billboards, grass, arrows, or ships) during origin recenter strands it `819.2` units away.

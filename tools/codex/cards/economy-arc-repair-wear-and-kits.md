@@ -27,9 +27,11 @@ invariants:
   - "`DFU_WEAR_MULTIPLE = 1`."
   - "Every non-ammunition weapon mints from `WEAPON_CONDITION_POOL = 1600`; `maxCondition = trunc(pool * conditionMultipliersByMaterial[material] / 4)`. Arrows keep the hitPoints from their template row."
   - "`kitCeiling = floor(maxCondition * kitReach(kit))`: `KIT_CEILING = 0.75`, or `KIT_CEILING_HIGH = 0.9` for Superior and Masterwork kits. A kit mends `FIELD_KIT_REPAIR = 0.15` (field) or `KIT_REPAIR = 0.25` of maxCondition per use."
+  - "A Repairs Objects tick (`repairsObjectsTarget`) mends worn pieces first, then worn pieces that wear themselves (Cast When Held or Item Deteriorates), then the pack. It skips pieces a smith will not repair (`isNotRepairable`), wagons, and enchanted pieces unless `allowMagicRepairs` is on."
 traps:
   - "`kitGives` refuses a piece whose gap to the ceiling is at most `floor(maxCondition / 100)`, so no kit is spent on a 75%-to-75% mend."
   - "A Repairs Objects tick (every `CONDITION_PER_ROUNDS = 4` rounds, in play and in rest) mends `round(maxCondition / MEND_SHARE_OF)` (a fiftieth), but magic items and artifacts mend only `CONDITION_AMOUNT = 1`."
+  - "`weightForMaterial` rounds half to even through `roundHalfEven`, as Unity's `Mathf.Round` does. `Math.round` would turn 22.5 quarter-kilograms into 23 where Daggerfall Unity gives 22."
 dfu:
   - Assets/Scripts/Game/Formulas/FormulaHelper.cs
   - Assets/Scripts/Game/MagicAndEffects/Effects/Enchanting/RepairsObjects.cs

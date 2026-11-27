@@ -14,6 +14,11 @@ files:
   - server-account/src/decor.js
   - tools/realmReview.mjs
   - server-account/migrations/0096_integrity.sql
+  - src/items/itemIds.js
+  - src/items/possessedItems.js
+  - src/world/sceneCache.js
+  - src/net/realmGoldLaw.js
+  - src/homes/realmHoldHost.js
 routes:
   - /v1/mod/realm-gains
   - /v1/mod/realm-trades
@@ -29,9 +34,13 @@ invariants:
   - "GOLD_INT_MAX = 2147483647 mirrors DFU int goldPieces, value and stackCount."
   - "CLASSIC_VALUE_MAX = 4294967295 covers classic save getUint32 records."
   - "judge.js purseWord rejects a purse above GOLD_INT_MAX as a law finding."
+  - "Each realm checkpoint (`realmCheckpoint` calls `stampItemIds`) stamps a random 16-hex `uid` on every valuable piece that lacks one and is not a stack, bound, or a quest item. The piece keeps that `uid` through saves, the wire, and trades."
+  - "`possessedItemLists` (`src/items/possessedItems.js`) is the one list walk for the server item judge, the id ledger, and the client hold check (`src/homes/realmHoldHost.js`). It never includes ground piles, dungeon chests, bodies, or shop shelves."
 traps:
   - "verdict.js clean ignores budget findings, so inflated checkpoints can be rollback points."
   - "decor.js removal refunds half of cost without holds."
+  - "`ITEM_LAW_VERSION` must increase on any rule change. Each finding records the law version that made it (the `law` column of `realm_findings`), which tells staff which older findings to review again under the new law."
+  - "The interior scene name in `src/items/possessedItems.js` must match `interiorSceneName` in `src/world/sceneCache.js` and `src/net/realmGoldLaw.js`, or a rented room chest drops out of the walk."
 dfu:
   - PlayerEntity.cs
   - DaggerfallUnityItem.cs

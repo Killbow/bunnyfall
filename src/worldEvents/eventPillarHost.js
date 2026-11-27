@@ -1,48 +1,30 @@
 // @ts-check
-// BUNNYFALL (2026-11-13, the owner: "a purple sky pillar at the location of the event"): A STAFF EVENT'S PILLAR. Over each
-// staff event running (systems/staffEvents.js staffRaids) a column of purple light straight up from its town's ground, seen
-// from EVENT_PILLAR_PX map pixels round, outside alone, coming up and thinning away as the event begins and ends. It is the
-// Hollow's omen pass (render/superDungeon/sdOmenPass.js, the gate's beacon) in purple. A module the host wires (HOST-SPLIT):
-// the host hands its doors; nothing here stands a foe, and the column is the same on every machine (the event's own pixel).
 import { SdOmenPassRenderer } from '../render/sdOmenPass.js';
 import { RiteSmokeRenderer, RITE_SMOKE_PROGRAMS } from '../render/riteSmoke.js';
 import { compiledPass } from '../render/glProgram.js';
 
-/** Its light, display-encoded as the beacons are: violet, near white at its heart. */
 export const EVENT_PILLAR_COLOR = Object.freeze([0.62, 0.22, 1.0]);
-/** The pixels round the player it is seen from (the Hollow's is further), and how long it takes to rise and to go (s). */
 export const EVENT_PILLAR_PX = 4;
 export const EVENT_PILLAR_FADE_S = 6;
-/** The smoke over the event's town: columns spread over its houses (never fewer than SMOKE_GAP_M apart), each this big
- *  against the rite's (340 m), as many as SMOKE_MAX. */
 export const EVENT_SMOKE_SCALE = 0.3;
 export const EVENT_SMOKE_MAX = 7;
 export const EVENT_SMOKE_GAP_M = 70;
-/** The sky about the pillar: dark purple within EVENT_SKY_M of it, whole inside EVENT_SKY_FULL_M, and how strongly it
- *  takes the sky (the horizon's fog, the sky's own mix) and its colour. */
 export const EVENT_SKY_M = 120;
 export const EVENT_SKY_FULL_M = 50;
 export const EVENT_SKY_MIX = 0.88;
 export const EVENT_SKY_COLOR = Object.freeze([0.11, 0.035, 0.2]);
-/** A pixel's width (m): where an event has no built town to stand on, its column stands at the pixel's middle. */
+// Width of one world map pixel in meters, matching the Daggerfall terrain tile (32768 units at 0.025 scale).
 const PIXEL_M = 819.2;
 
-/**
- * `deps`: `gl`; `events()` the staff raids running (each `{ staff: { id }, px, py }`); `built()` the world's built pixels
- * (`{ px, py, locOrigin }`); `translation(px, py)` a pixel's place in the scene now; `heightAt(x, z)` the ground, NaN where
- * none; `pixel()` the player's travel pixel `{ x, y }`; `now()` seconds.
- * @param {{ gl: WebGL2RenderingContext | null, events: () => any[], built: () => Iterable<any>, translation: (px: number, py: number) => number[], heightAt: (x: number, z: number) => number, pixel: () => { x: number, y: number }, now: () => number }} deps
- */
+/** @param {{ gl: WebGL2RenderingContext | null, events: () => any[], built: () => Iterable<any>, translation: (px: number, py: number) => number[], heightAt: (x: number, z: number) => number, pixel: () => { x: number, y: number }, now: () => number }} deps */
 export function createEventPillar({ gl, events, built, translation, heightAt, pixel, now }) {
   /** @type {SdOmenPassRenderer | null | undefined} */
   let pass;
-  /** id -> { px, py, fade } */
   const fades = new Map();
   let lastT = /** @type {number | null} */ (null);
   const smokePass = gl ? compiledPass(gl, RITE_SMOKE_PROGRAMS, () => new RiteSmokeRenderer(gl, { max: EVENT_SMOKE_MAX }), (e) => console.warn('[event] the smoke would not build', e?.message ?? e)) : null;
   let smoke = null;
 
-  /** The column's foot: the town's frame where its pixel is built, else the pixel's middle, on the ground there. */
   function footOf(/** @type {number} */ px, /** @type {number} */ py) {
     const t = translation(px, py);
     let lx = PIXEL_M / 2, lz = PIXEL_M / 2;
@@ -52,15 +34,13 @@ export function createEventPillar({ gl, events, built, translation, heightAt, pi
     return [x, Number.isFinite(y) ? y : t[1], z];
   }
 
-  /** A string's hash, 0..1 (the same on every machine). */
+  // Deterministic hash, so every client picks the same houses for the smoke columns.
   function unit(/** @type {string} */ str) {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return ((h >>> 0) % 100003) / 100003;
   }
 
-  /** The event town's smoke, in the pixel's frame: houses taken in the event's own order, each at least EVENT_SMOKE_GAP_M
-   *  from those taken (so the columns spread over the town and stand in no ring), at most EVENT_SMOKE_MAX. */
   function smokeOf(/** @type {string} */ id, /** @type {number} */ px, /** @type {number} */ py) {
     let frames = null;
     for (const p of built()) if (p.px === px && p.py === py) { frames = p.homeFrames ?? null; break; }
@@ -103,7 +83,6 @@ export function createEventPillar({ gl, events, built, translation, heightAt, pi
     return out;
   }
 
-  /** The smoke's columns now, in the scene: [{ origin, fade, scale }]. */
   function smokes(/** @type {any[]} */ list) {
     const out = [];
     for (const c of list) {
@@ -116,9 +95,7 @@ export function createEventPillar({ gl, events, built, translation, heightAt, pi
   }
 
   return {
-    /** Whether any event stands (the host builds the pass's arguments only then). */
     showing: () => (events() ?? []).length > 0 || fades.size > 0,
-    /** The pillars' pass, after the world's: how many it drew. */
     draw(proj, view, eye, seconds, fog = null) {
       const list = columns();
       if (!list.length || !gl) return 0;
@@ -127,12 +104,10 @@ export function createEventPillar({ gl, events, built, translation, heightAt, pi
       if (pass === undefined) { try { pass = new SdOmenPassRenderer(gl, EVENT_PILLAR_COLOR); } catch (e) { console.warn('[event] the pillar would not build', e?.message ?? e); pass = null; } }
       return pass ? pass.draw(list, proj, view, eye, seconds, fog) : 0;
     },
-    /** The pillar's foot for a staff raid (`{ staff: { id } }`), in the scene now: [x, y, z], or null where none stands. */
     footOf(/** @type {any} */ raid) {
       const e = fades.get(raid?.staff?.id);
       return e ? footOf(e.px, e.py) : (Number.isInteger(raid?.px) && Number.isInteger(raid?.py) ? footOf(raid.px, raid.py) : null);
     },
-    /** The sky's weight about the nearest event's pillar from `eye` (0 away, 1 within EVENT_SKY_FULL_M), times its fade. */
     skyWeight(/** @type {ArrayLike<number>} */ eye) {
       let w = 0;
       for (const c of columns()) {
@@ -142,13 +117,11 @@ export function createEventPillar({ gl, events, built, translation, heightAt, pi
       }
       return w;
     },
-    /** The fog's colour drawn toward the event's purple by weight `w` (a new array; `color` is not written). */
     tint(/** @type {ArrayLike<number>} */ color, /** @type {number} */ w) {
       const out = new Float32Array(color.length);
       for (let i = 0; i < out.length; i++) out[i] = i < 3 ? color[i] + (EVENT_SKY_COLOR[i] - color[i]) * Math.min(1, w) : color[i];
       return out;
     },
-    /** For the probes. */
     list: () => columns(),
   };
 }

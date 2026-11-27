@@ -1,5 +1,3 @@
-// The last moment fight of a super dungeon realm, read once a wake and saved, with its frames.
-// It runs the tick and the falls, tells the hub who fell, and holds the receipts owed.
 import { SD_FIGHT_KEY, SD_BRAIN_MIN, SD_NO_WORDS, SD_TELL_RETRY_MS, SD_FIGHTERS_MAX, SOCIAL_ROOM, SD_INTERNAL_FELL, validSdFellTell, validSdInTell, SD_HERE_HOLD_MS, sdReceiptKey, SD_HELD_KEY } from '../relay.js';
 import { CHECKPOINT_MS, BRAIN_TICK_MS, earnedBy } from '../../../src/net/gateBrain.js';
 import { dungeonToRealm } from '../../../src/net/sdBrain.js';
@@ -63,7 +61,7 @@ export class SdFightPart {
       if (typeof a.sub !== 'string' || !a.sub || !a.pose || a.pose.dd) return;
       if (!(await this._sdHallOf(s)).ok) return;
       // Re-read the fight and the clock after the last await and decide with no await between;
-      // two in frames that awaited together would each start a fresh fight.
+      // two `in` frames that awaited together would each start a fresh fight.
       now = Date.now();
       f = this._sdFight ?? null;
       if (f && f.s !== s) f = this._sdFight = null;

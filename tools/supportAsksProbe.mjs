@@ -1,32 +1,6 @@
-// SUPPORT1 - THE DOOR'S ASKS AND THE CORNERS' BAND, in a real browser, WITH NO ARENA2.
-//
-// First the asks themselves: two icons top-left of the front door, Patreon then Ko-fi at SUPPORT_ASKS' addresses,
-// and a PRESS on one opens its page in a new one - the door's outside-tap and key handling must not swallow a link
-// (the desktop app hands that new window to the system browser, app/main.cjs setWindowOpenHandler). That the pause
-// face draws none (PX4: no foot, no corner asks over a game) is pinned in node, where it mounts without a world
-// (test/ui/enhanced/support1_asks.test.js).
-//
-// Then the door's two laws, swept across 192 viewport sizes on one page (a resize, not a reload), under the Plus skin
-// and the classic one.
-//
-// THE CORNERS' BAND: the door carries a mark in each top corner - the asks top-left, the profile top-right - over a
-// stage whose wordmark is a picture up to 540px or 84% of the screen wide. Whether a mark stands ON the logo is a
-// question about the logo's own pixels (its corners are transparent), so it is answered the way the bible's
-// ground-truth probes answer: the logo PNG's alpha is read here, mapped onto the screen through the <img>'s own box,
-// and every opaque pixel under a mark's box (the Plus frame's outset included) is counted. Neither mark may stand on
-// one at any size - the profile measured twice, with its caption as a new player sees it and with a caption at its
-// bound (a long name and a long character line, ellipsised at the door's 140px).
-//
-// DOOR-FIT: the door never cuts itself off. At every size the wordmark's top is on the screen and the LAST menu row,
-// once the stage is scrolled to its end, stands whole and takes a press; and where the door fits, it is centred -
-// the auto margins over and under it equal - so a door that fits did not move.
-//
-// It also proves the asks cost nothing they must not: they cover no menu row, no foot plaque and no profile mark,
-// and each is a 44px target.
-//
-// Run against a dev server:
-//     npx vite --port 5199 &
-//     node tools/supportAsksProbe.mjs
+// Checks the title screen's support links and that its corner marks never cover the logo at 192 viewport sizes.
+// Usage: start `npx vite --port 5199` (or set PROBE_BASE), then run `node tools/supportAsksProbe.mjs`
+
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
@@ -34,8 +8,8 @@ import { OUTSET } from '../src/ui/enhancedFrame.js';
 import { SUPPORT_ASKS } from '../src/ui/supportAsks.js';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
-const LONG_NAME = 'Wolfgangheimer';   // fourteen letters, the name's own 14ch
-const LONG_LINE = 'Wolfgangheimer the Nightblade · level 30';   // past the 140px the door bounds a caption line at
+const LONG_NAME = 'Wolfgangheimer';
+const LONG_LINE = 'Wolfgangheimer the Nightblade · level 30';
 const logo = PNG.sync.read(readFileSync(new URL('../src/assets/branding/bunnyfall.png', import.meta.url)));
 const opaque = (x, y) => logo.data[(y * logo.width + x) * 4 + 3] > 40;
 
@@ -49,7 +23,6 @@ const SIZES = [];
 for (const w of [320, 360, 375, 390, 412, 430, 480, 540, 600, 700, 768, 800, 900, 1007, 1008, 1024, 1280, 1366, 1920]) for (const h of [568, 640, 667, 720, 768, 844, 900, 1080]) SIZES.push([w, h]);
 for (const w of [568, 640, 667, 740, 812, 851, 915, 932]) for (const h of [320, 360, 375, 393, 414]) SIZES.push([w, h]);
 
-/** CSS px² of opaque logo under a box (the frame's outset added when the skin draws one). */
 function logoUnder(img, box, outset) {
   const b = { l: box.l - outset, t: box.t - outset, r: box.r + outset, b: box.b + outset };
   const sx = (img.r - img.l) / logo.width, sy = (img.b - img.t) / logo.height;
@@ -63,11 +36,10 @@ const meets = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
 const browser = await chromium.launch();
 
-// THE ASKS ON THE DOOR, and a press on each.
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
   const page = await ctx.newPage();
-  // the pages the asks open are another site's: answered here, so the check is the press and not the network
+  // The linked pages are answered locally, so the check covers the press and never reaches the network.
   await ctx.route(/patreon\.com|ko-fi\.com/, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>ask</title>' }));
   await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.px-menu button', { timeout: 90000 });
@@ -104,21 +76,17 @@ for (const [skin, query, outset] of [['plus', '', OUTSET], ['classic', '&skin=cl
       const out = { img: r(document.querySelector('.px-wordmark img')), support: r(document.querySelector('.px-support')),
         profile: r(document.querySelector('.px-profile')), foot: [...document.querySelectorAll('.px-foot .px-about')].map(r),
         links: [...document.querySelectorAll('.px-supportlink')].map(r), rows: rows.map(r) };
-      // DOOR-FIT: the wordmark's top on the screen as the door opens; and where the stage does not scroll, centred -
-      // the room over the first child (its auto margin) equal to the room under the last
       out.wordmarkTop = document.querySelector('.px-wordmark').getBoundingClientRect().top;
       const cs = getComputedStyle(stage), sb = stage.getBoundingClientRect();
       out.fits = stage.scrollHeight <= stage.clientHeight;
       out.over = stage.firstElementChild.getBoundingClientRect().top - (sb.top + parseFloat(cs.paddingTop));
       out.under = (sb.bottom - parseFloat(cs.paddingBottom)) - stage.lastElementChild.getBoundingClientRect().bottom;
-      // ...and the last row, once the stage is scrolled to its end: whole on the screen, a press at its middle its own
       stage.scrollTop = stage.scrollHeight;
       const last = rows.at(-1).getBoundingClientRect();
       const hit = document.elementFromPoint(last.left + last.width / 2, Math.min(last.top + last.height / 2, innerHeight - 1));
       out.lastPressed = !!hit && rows.at(-1).contains(hit);
       out.lastWhole = last.bottom <= innerHeight && last.top >= 0;
       stage.scrollTop = 0;
-      // THE CAPTION AT ITS BOUND: a long name and a long character line written in, measured, and put back
       const name = document.querySelector('.px-profilename'), line = document.querySelector('.px-profilesub');
       const was = [name?.textContent, line?.textContent];
       if (name && line) {
@@ -139,7 +107,6 @@ for (const [skin, query, outset] of [['plus', '', OUTSET], ['classic', '&skin=cl
       if (q) onLogo.profileLong.push(`${at}(${q}px²)`);
       if (w > 480 && g.captionLong > 140.5) wide.push(`${at}: ${g.captionLong.toFixed(1)}px`);
     }
-    // the foot's plaques: About, and LOAD1's Screenshots beside it in About's own box
     for (const [name, box] of [['the profile', g.profile], ...g.foot.map((b, i) => [`foot plaque ${i + 1}`, b]), ...g.rows.map((b, i) => [`row ${i + 1}`, b])]) {
       if (meets(g.support, box)) covers.push(`${at}: ${name}`);
     }

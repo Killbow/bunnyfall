@@ -1,68 +1,12 @@
-// WM1 - THE WINDMILL PROBE: what is actually inside an ARCH3D model.
-//
-// Not part of the suite. Run against your own ARENA2:
-//
-//   ARENA2_PATH=/path/to/ARENA2 node tools/windmillProbe.mjs
-//   ARENA2_PATH=... node tools/windmillProbe.mjs 41600 41601 21411
-//
-// THE QUESTION THIS WAS WRITTEN FOR IS RETIRED (MODS AUDIT, 2026-09-08).
-// WM1 shipped the law that turns a rotor (world/windmills.js) and
-// flagged the half it could not answer - WHICH classic models carry a
-// sail, and WHERE its hub sits - and this tool was going to answer it
-// by drawing model 41600 out of the player's ARCH3D.BSA. WM2d then
-// found that classic Daggerfall stands NO windmill: 41600 is Kamer's
-// own replacement id, read out of HIS WorldData overrides, and no such
-// record exists in a stock ARCH3D.BSA (asking for it here prints the
-// reader's refusal). The sail is his Blade.dae, vendored with
-// permission and baked by scripts/bakeWindmill.mjs; the hub is his
-// prefab's offset (ROTOR_HUB); WINDMILL_MODELS is gone. The default id
-// list below is kept as it was so the record of WM1's question stays
-// legible - the tool still does what it says for any classic id you
-// give it (21411 is a real farm building), and `--selftest` needs
-// neither ARENA2 nor pngjs.
-//
-// It answers three things about a model, and the third is why it draws:
-//
-//  1. THE SUBMESHES. A DF mesh is grouped by texture, so a part with its
-//     own texture record is already split off.
-//  2. THE CONNECTED COMPONENTS. A separate island of geometry - no vertex
-//     shared with the rest - is split a second way, and more robustly,
-//     because it does not depend on the art.
-//  3. A PICTURE. This project's own rule: "the road avoids the ridge" is a
-//     claim about a picture and a passing assertion is not a picture. Same
-//     here - "component 2 is the sail" is a claim only an eye can settle, so
-//     every component is drawn in its own colour from three sides.
-//
-// It writes windmill-<id>.png beside the repo root and prints the numbers a
-// WM2 slice needs: per component, its bounding box, its centroid, and the axis
-// it is flattest in - which for a sail cross IS the axis it turns about.
+// Probe: prints the submeshes and connected components of ARCH3D models, draws them to windmill-<id>.png,
+// and lists the RMB blocks in BLOCKS.BSA that place them.
+// Run: ARENA2_PATH=/path/to/ARENA2 node tools/windmillProbe.mjs [model ids], or --selftest without ARENA2.
 
 import fs from 'node:fs';
 import { Arch3dFile } from '../src/formats/arch3dFile.js';
 
-// pngjs is imported LAZILY, at the point of drawing. The numbers are the
-// half of this tool that has no dependencies, and a missing dev dependency
-// should cost you the picture, not the reading - the self-test below needs
-// neither ARENA2 nor pngjs, which is the whole point of it.
-
-// ── SELF-TEST ────────────────────────────────────────────────────
-//
-// A tool you have never watched run is a guess with a shell script
-// around it, and this one was written in a container with no ARENA2 -
-// so it can prove ITSELF before you trust its reading of a real mesh.
-//
-//   node tools/windmillProbe.mjs --selftest
-//
-// It builds a windmill the way one is built - a tower box, and a sail
-// cross standing clear of it in Z - and asserts the analysis finds
-// exactly the two parts and calls the sail flat in the axis it turns
-// about. If this fails, the numbers below mean nothing.
 if (process.argv.includes('--selftest')) {
   const quad = (pts) => ({ points: pts.map(([x, y, z]) => ({ x, y, z })) });
-  /** A CLOSED box - six faces sharing their corners. The first draft of
-   *  this fixture emitted only the front and back quads, which share no
-   *  vertex with each other, so every "box" was already two islands and
-   *  the self-test failed on its own fixture rather than on the code. */
   const box = (x0, x1, y0, y1, z0, z1) => [
     quad([[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]]),
     quad([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]),
@@ -71,8 +15,6 @@ if (process.argv.includes('--selftest')) {
     quad([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]]),
     quad([[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]]),
   ];
-  // Tower: wide and tall, sitting at z 0..40. Sail: the cross's bounding
-  // slab standing clear in front at z 60..64, sharing NO vertex with it.
   const tower = { textureArchive: 67, textureRecord: 1, planes: box(-30, 30, 0, 200, 0, 40) };
   tower.totalTriangles = tower.planes.length * 2;
   const sail = { textureArchive: 67, textureRecord: 3, planes: box(-90, 90, 60, 240, 60, 64) };
@@ -87,7 +29,6 @@ if (process.argv.includes('--selftest')) {
   if (flat !== 2) fail(`the sail should be flattest in Z (its turning axis), got ${'XYZ'[flat]}`);
   const towerComp = comps.find((c) => c !== sailComp);
   if (towerComp.hi[2] > 40) fail('the tower component swallowed sail geometry');
-  // ...and a WELDED mesh must NOT report two parts, or the split means nothing.
   const welded = { textureArchive: 67, textureRecord: 1, planes: [...tower.planes, ...box(-30, 30, 200, 260, 0, 40)] };
   welded.totalTriangles = welded.planes.length * 2;
   if (components([welded]).length !== 1) fail('a welded mesh was reported as separable');
@@ -96,24 +37,6 @@ if (process.argv.includes('--selftest')) {
   process.exit(0);
 }
 
-// ── THE BLOCK SCAN ───────────────────────────────────────────────
-//
-// The question this was extended to answer, after WM2b wired the rotor
-// and Mac reported seeing no windmills at all: DOES ANY CLASSIC BLOCK
-// PLACE ONE?
-//
-// WM2a read model 41600 out of Kamer's WorldData block overrides and
-// concluded the port already drew the tower. That reading may have been
-// backwards - his mod's own description is "Adds Windmills to some
-// farms", and a WorldData override REPLACES a block, so the 41600 in
-// those files may be HIS addition rather than Daggerfall's. If no
-// classic block places one, the port has nothing to hang a rotor on and
-// no amount of wiring will show a sail.
-//
-// Only BLOCKS.BSA can settle it, so this walks every RMB block in it and
-// reports which ones name a mill model - in the subrecords (buildings)
-// and in the misc-3d list, counted separately, because WM2a's reading
-// came from the subrecords.
 async function scanBlocks(arena2, ids) {
   const { BlocksFile } = await import('../src/formats/blocksFile.js');
   const blocks = new BlocksFile();
@@ -184,11 +107,6 @@ if (!arch3d.load(fs.readFileSync(`${A}/ARCH3D.BSA`))) {
 }
 console.log(`ARCH3D.BSA: ${arch3d.count} records\n`);
 
-/** Union-find over quantised vertex positions: two planes are in the same
- *  component when they share a corner. Quantised because DF stores integers
- *  but a shared corner is only USEFUL if it is exactly shared - a tolerance
- *  of 1 unit keeps a hand-authored seam together without merging the sail
- *  into the tower it stands in front of. */
 function components(sub) {
   const planes = [];
   for (let s = 0; s < sub.length; s++) {
@@ -267,9 +185,9 @@ for (const id of IDS) {
       + `  <- a sail cross is flat in its OWN turning axis`);
   });
 
-  // ── the picture ──────────────────────────────────────────────────
   const VIEWS = [[0, 1, 'front XY'], [2, 1, 'side ZY'], [0, 2, 'top XZ']];
   const CELL = 300, PAD = 10;
+  // pngjs loads only here, so the printed numbers and --selftest work without it.
   let PNG;
   try {
     ({ PNG } = await import('pngjs'));
