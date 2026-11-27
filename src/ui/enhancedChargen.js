@@ -1730,6 +1730,7 @@ function paintTavern() {
   if (acct) layer.append(acct);
   tavern.root.append(layer);
   tavern.layer = layer;
+  tavern.scene?.place?.();   // the hall's figures where they stand, now rather than on its next frame
 }
 
 function paintInto() {

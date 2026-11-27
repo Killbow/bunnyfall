@@ -175,7 +175,9 @@ export async function runChargenHall(canvas, renderer, status = () => {}) {
     const key = `${raceKey}|${gender}|${faceIndex}`;
     if (!bodies.has(key)) {
       bodies.set(key, null);
-      queue = queue.then(() => composeOnce(raceKey, gender, faceIndex)).then((px) => {
+      // the one the player is looking at (any sex or face but a patron's own) does not wait behind the patrons
+      const asked = gender === 'male' && faceIndex === 0 ? (queue = queue.catch(() => null).then(() => composeOnce(raceKey, gender, faceIndex))) : composeOnce(raceKey, gender, faceIndex);
+      asked.then((px) => {
         if (!px?.rgba) { console.warn('[chargen hall] no paperdoll for', key); return; }
         const c = document.createElement('canvas');
         c.width = px.width; c.height = px.height;
@@ -265,7 +267,7 @@ export async function runChargenHall(canvas, renderer, status = () => {}) {
   return new Promise((resolve) => {
     const stop = () => { running = false; };
     mountWizardOverHall(bundle.flow, {
-      hall: { aim, body, onBody: (f) => { bodyListener = f; } },
+      hall: { aim, body, place, onBody: (f) => { bodyListener = f; } },   // place: the wizard asks it after each repaint, so a new figure is never drawn hidden for a frame
       onDone: (result) => { stop(); setHallBorn(result); resolve({ result }); },
       onCancel: () => { stop(); resolve({ cancel: true }); },
     });

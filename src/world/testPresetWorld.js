@@ -93,7 +93,7 @@ export function createTestPresetWorld(shared) {
       if (realmNew) realmBirth().catch((e) => { console.error('[realm] the birth failed', e); realmLost('server'); });
     };
     if (born) {
-      loadSpellIndex(fetchBytes).then((sbi) => made(born, sbi)).catch((e) => console.warn('[chargen] the hall\'s character could not be born', e));
+      loadSpellIndex(fetchBytes).then((sbi) => { made(born, sbi); console.info(`[chargen] born in Nyx's hall: ${playerEntity.name} (${playerEntity.race} ${playerEntity.gender}, first ${playerEntity.firstName ?? '-'}, last ${playerEntity.lastName ?? '-'})`); }).catch((e) => console.warn('[chargen] the hall\'s character could not be born', e));
     } else createChargenFlow(fetchBytes).then(({ flow, spellsByIndex: sbi }) => {
       shared.spellsByIndex = sbi;
       setLoadingAside('window', true);
