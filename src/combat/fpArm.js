@@ -66,6 +66,7 @@ import { createHipLantern, HIP_LANTERN_HEIGHT } from '../player/lanternSwing.js'
 import { createBodyMotion, motionWord } from '../characters/bodyMotion/bodyMotion.js';
 import { spinePitchFactor, spineAimSlot } from './spineAim.js';
 import { vfxOf, createVfx, vfxCapacity, vfxTextures } from '../formats/mwVfx.js';
+import { spellVisualIntensity } from '../magic/spellVisualSettings.js';
 import { spellFxPlan } from '../formats/mwSpellFx.js';
 import { effectSchool } from '../magic/spellcost.js';
 import { createVfxGpu } from '../render/vfxGpu.js';
@@ -2307,6 +2308,7 @@ export function createFpArm() {
 
   function stepCastFx(view, assembly, target, dt) {
     if (!castFx.length || !target) return;
+    const intensity = spellVisualIntensity(view === 'third');
     let changed = false;
     for (let i = castFx.length - 1; i >= 0; i--) {
       const c = castFx[i];
@@ -2316,12 +2318,12 @@ export function createFpArm() {
       if ((c.mesh && c.mesh !== target) || !bone) { c.gpu?.release(); castFx.splice(i, 1); changed = true; continue; }
       const r = c.fx.update(dt, { place: bone });
       if (r.done) { c.gpu?.release(); castFx.splice(i, 1); changed = true; continue; }
-      if (!renderer) continue;
+      if (!renderer || !intensity) continue;
       if (!c.gpu) { c.gpu = createVfxGpu(renderer, c.textures, c.capacity); c.mesh = target; changed = true; }
-      c.gpu.sync(r.streams);
+      c.gpu.sync(r.streams, intensity, intensity < 1);
     }
     const own = (assembly?.effects ?? []).length;
-    const mine = castFx.filter((c) => c.view === view && c.mesh === target && c.gpu).flatMap((c) => c.gpu.effects());
+    const mine = intensity ? castFx.filter((c) => c.view === view && c.mesh === target && c.gpu).flatMap((c) => c.gpu.effects()) : [];
     if (!changed && (target.effects?.length ?? 0) === own + mine.length) return;
     const head = Array.from({ length: own }, (_, i) => target.effects?.[i] ?? null);
     target.effects = [...head, ...mine];

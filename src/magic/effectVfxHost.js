@@ -2,6 +2,8 @@
 import { compiledPass } from '../render/glProgram.js';
 import { EffectMotes } from '../render/effectMotes.js';
 import { effectVfxBits, FX_ALL } from './effectVisuals.js';
+import { mwViewThirdPerson } from '../player/mwView.js';
+import { spellVisualIntensity } from './spellVisualSettings.js';
 import { isMagicallyConcealed } from './effects.js';
 
 const RANGE = 40, BODIES_MAX = 32;
@@ -47,13 +49,14 @@ export function createEffectVfxHost({ renderer, self, foes, peerAt, off }) {
     peers(seen) { seenPeers = seen ?? []; },
     draw() {
       const proj = renderer._proj, view = renderer._view, eye = renderer._camPos;
-      if (off() || !proj || !view || !eye) { seenPeers = []; return; }
+      const intensity = spellVisualIntensity(mwViewThirdPerson());
+      if (!intensity || off() || !proj || !view || !eye) { seenPeers = []; return; }
       gather(eye);
       seenPeers = [];
       if (!bodies.length) return;
       const pass = passOf();
       if (!pass) return;
-      pass.draw(bodies, proj, view, performance.now() / 1000 % 3600);
+      pass.draw(bodies, proj, view, performance.now() / 1000 % 3600, intensity);
       if (pass.drawn) renderer.markForeignPass();
     },
   };

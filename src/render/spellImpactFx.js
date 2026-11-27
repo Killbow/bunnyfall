@@ -96,6 +96,7 @@ export class SpellImpactFx {
     this.looks = { ...FX_LOOK };
     this.buf = new Float32Array(FX_MAX_INSTANCES * FX_FLOATS);
     this.count = 0;
+    this.weapon = false;
   }
 
   // The heal look is never replaced, whatever element a heal spell carries.
@@ -123,7 +124,7 @@ export class SpellImpactFx {
       w: o.w ?? 0.03, w1: o.w1 ?? 1, g: o.g ?? 9.8, drag: o.drag ?? 0.5, streak: o.streak ?? 0.04, maxLen: o.maxLen ?? 0.6,
       shape: o.shape ?? FX_SHAPE.spark, gy: o.gy ?? -Infinity, bounce: o.bounce ?? 0, bounces: o.bounces ?? 0,
       linger: o.linger ?? 0, flick: o.flick ?? 0, sway: o.sway ?? 0, fadeIn: o.fadeIn ?? 0, I: o.I ?? 1, onLand: o.onLand ?? null,
-      seed: this.rng() * 100, rest: false,
+      seed: this.rng() * 100, rest: false, weapon: this.weapon,
     };
     this.parts.push(p);
     return p;
@@ -131,21 +132,21 @@ export class SpellImpactFx {
   _decal(look, at, o) {
     if (this.decals.length > 160) return;
     this.decals.push({ look, at: [at[0], at[1], at[2]], n: o.n ?? UP, age: -(o.delay ?? 0), life: o.life ?? 1, r0: o.r0 ?? 0, r1: o.r1 ?? 1, band: o.band ?? 0.1,
-      shape: o.shape ?? FX_SHAPE.ring, I: o.I ?? 1, fadeIn: o.fadeIn ?? 0, hot: !!o.hot });
+      shape: o.shape ?? FX_SHAPE.ring, I: o.I ?? 1, fadeIn: o.fadeIn ?? 0, hot: !!o.hot, weapon: this.weapon });
   }
   _light(look, at, s, o = {}) {
-    this.lights.push({ at: [at[0], at[1] + 0.5, at[2]], age: -(o.delay ?? 0), life: o.life ?? look.lightS, range: look.range * s, color: look.light, flick: o.flick ?? 0, fadeIn: o.fadeIn ?? 0 });
+    this.lights.push({ at: [at[0], at[1] + 0.5, at[2]], age: -(o.delay ?? 0), life: o.life ?? look.lightS, range: look.range * s, color: look.light, flick: o.flick ?? 0, fadeIn: o.fadeIn ?? 0, weapon: this.weapon });
     if (this.lights.length > 8) this.lights.shift();
   }
   _ribbon(look, from, to, width, delay, life) {
     if (this.bolts.length >= 48) return;
     this.bolts.push({ look, from: [...from], to: [...to], pts: [[...from], [...to]], fork: [],
-      next: Infinity, age: -delay, life, flash: .92, w: width });
+      next: Infinity, age: -delay, life, flash: .92, w: width, weapon: this.weapon });
   }
 
   _bolt(look, from, to, o = {}) {
     if (this.bolts.length > 48) return;
-    this.bolts.push({ look, from: [...from], to: [...to], age: -(o.delay ?? 0), life: o.life ?? 0.3, next: 0, flash: 1, w: o.w ?? 0.08, pts: [], fork: [] });
+    this.bolts.push({ look, from: [...from], to: [...to], age: -(o.delay ?? 0), life: o.life ?? 0.3, next: 0, flash: 1, w: o.w ?? 0.08, pts: [], fork: [], weapon: this.weapon });
   }
 
   // With no struck surface, as for a body or the air, the floor takes the rings only within a body's height of it.
@@ -374,6 +375,12 @@ export class SpellImpactFx {
       this._decal(p.look, p.p, { shape: FX_SHAPE.pool, r0: 0.05, r1: 0.32, life: 1.1, I: 0.8 });
       if (this.rng() < 0.7) this._part(p.look, [p.p[0], p.p[1] + 0.02, p.p[2]], [0, this.r(0.3, 0.7), 0], { delay: this.r(0.05, 0.4), life: this.r(0.4, 0.7), w: 0.03, g: 0, drag: 1, streak: 0, I: 0.9 });
     }
+  }
+
+  weaponTechnique(recipe, at, options) {
+    this.weapon = true;
+    try { return this.technique(recipe, at, options); }
+    finally { this.weapon = false; }
   }
 
   technique(recipe, at, { phase = null, form = null, material = null, ground = null, yaw = 0, r = 2.5, dir = null, len = 0, to = null, spin = 1, half = 80 * Math.PI / 180 } = {}) {
@@ -657,21 +664,23 @@ export class SpellImpactFx {
 
   clear() { this.parts.length = 0; this.decals.length = 0; this.bolts.length = 0; this.lights.length = 0; this.count = 0; }
 
-  light() {
+  light(intensity = 1) {
     let best = null, bestK = 0;
     for (const l of this.lights) {
-      if (l.age < 0) continue;
+      const opacity = l.weapon ? 1 : intensity;
+      if (!opacity || l.age < 0) continue;
       const u = l.age / l.life;
       let k = Math.pow(1 - u, 1.5) * (l.fadeIn > 0 ? Math.min(1, l.age / l.fadeIn) : 1);
       if (l.flick) k *= 1 - l.flick * 0.5 * this.rng();
-      if (k * l.range > bestK) { bestK = k * l.range; best = { l, k }; }
+      const strength = k * l.range * opacity;
+      if (strength > bestK) { bestK = strength; best = { l, k, opacity }; }
     }
     if (!best) return null;
-    const { l, k } = best;
-    return { x: l.at[0], y: l.at[1], z: l.at[2], range: l.range * (0.45 + 0.55 * k), color: [l.color[0] * k, l.color[1] * k, l.color[2] * k], carried: true };
+    const { l, k, opacity } = best;
+    return { x: l.at[0], y: l.at[1], z: l.at[2], range: l.range * (0.45 + 0.55 * k), color: l.color.map((c) => c * k * opacity), carried: true };
   }
 
-  build() {
+  build(intensity = 1) {
     const B = this.buf, max = FX_MAX_INSTANCES;
     let n = 0;
     const put = (a, b, w, c, I, shape, nn = UP) => {
@@ -687,7 +696,7 @@ export class SpellImpactFx {
       if (q.age < 0) continue;
       const u = q.age / q.life, e = 1 - Math.pow(1 - u, 3);
       const R = q.r0 + (q.r1 - q.r0) * e;
-      let I = q.I * Math.pow(1 - u, 1.4);
+      let I = q.I * Math.pow(1 - u, 1.4) * (q.weapon ? 1 : intensity);
       if (q.fadeIn > 0) I *= Math.min(1, q.age / q.fadeIn);
       const c = q.hot ? mix3(q.look.hot, q.look.main, Math.min(1, u * 2.5)) : q.look.main;
       if (q.shape === FX_SHAPE.ring) {
@@ -700,7 +709,7 @@ export class SpellImpactFx {
     for (const p of this.parts) {
       if (p.age < 0) continue;
       const u = Math.min(1, p.age / p.life), uc = Math.min(1, p.age / p.life0);
-      let I = p.I * Math.pow(1 - u, 1.3);
+      let I = p.I * Math.pow(1 - u, 1.3) * (p.weapon ? 1 : intensity);
       if (p.fadeIn > 0) I *= Math.min(1, p.age / p.fadeIn);
       if (p.flick) I *= 1 - p.flick * 0.55 * (0.5 + 0.5 * Math.sin(p.age * 38 + p.seed * 7));
       const w = p.w * (1 + (p.w1 - 1) * u);
@@ -717,7 +726,7 @@ export class SpellImpactFx {
     }
     for (const b of this.bolts) {
       if (b.age < 0 || !b.pts.length) continue;
-      const u = b.age / b.life, I = b.flash * (1 - u * u);
+      const u = b.age / b.life, I = b.flash * (1 - u * u) * (b.weapon ? 1 : intensity);
       const draw = (pts, k) => {
         for (let i = 1; i < pts.length; i++) {
           put(pts[i - 1], pts[i], b.w * 1.4 * k, b.look.main, I * 0.55, FX_SHAPE.spark);

@@ -53,6 +53,8 @@ import { blowTaken } from '../combat/blowTaken.js';
 import { noteFeudHarm, elementFeudClass } from '../revenants/feudLedger.js';
 import { noteSkillChallenge } from '../characters/skillSoftcap.js';
 import { sandSpellRefusal } from '../arena/arenaKit.js';
+import { mwViewThirdPerson } from '../player/mwView.js';
+import { spellVisualIntensity } from './spellVisualSettings.js';
 import { createMwMagicFx } from './mwMagicFx.js';
 import { egAllyLook } from '../ui/eliteGates/egAccess.js';
 import { CONCEAL_MODE } from '../combat/combatVisuals.js';
@@ -195,6 +197,7 @@ export function createPlayerMagic({
   giftClockMs = undefined,
   mwMagicFx = null,
 }) {
+  const spellIntensity = () => spellVisualIntensity(mwViewThirdPerson());
   const mwFx = mwMagicFx ?? createMwMagicFx({ renderer });
   // A cast token is minted at the release and carried by every landing, so passives count one cast once.
   const playerCaster = (cast = null) => ({ entity: playerEntity, sinks: playerSinks, cast });
@@ -410,19 +413,18 @@ export function createPlayerMagic({
   const missiles = [];
   const flatAnims = new FlatAnimator();
   const batches = [];
-  const candle = createMagicCandle({
-    renderer,
-    getTexture,
-    uploadRecord,
-    onSpawn: (b) => batches.push(b),
-    onRetire: (b) => { const i = batches.indexOf(b); if (i >= 0) batches.splice(i, 1); },
-  });
+  const candleBatches = new Set();
+  const addCandleBatch = (batch) => { batches.push(batch); candleBatches.add(batch); };
+  const removeCandleBatch = (batch) => {
+    candleBatches.delete(batch);
+    const i = batches.indexOf(batch);
+    if (i >= 0) batches.splice(i, 1);
+  };
+  const candle = createMagicCandle({ renderer, getTexture, uploadRecord, onSpawn: addCandleBatch, onRetire: removeCandleBatch });
   const peerCandleMounts = new Map();
   const _peerCandleLights = [];
   const mintPeerCandle = () => createMagicCandle({
-    renderer, getTexture, uploadRecord,
-    onSpawn: (b) => batches.push(b),
-    onRetire: (b) => { const i = batches.indexOf(b); if (i >= 0) batches.splice(i, 1); },
+    renderer, getTexture, uploadRecord, onSpawn: addCandleBatch, onRetire: removeCandleBatch,
   });
 
   // The impact flash needs the frame uploader, since hitEffects draws under `record#frame` keys.
@@ -980,7 +982,7 @@ export function createPlayerMagic({
     stepSparks(dt);
     fx.step(dt);
     bunny.update(dt);
-    mwFx.update(dt);
+    mwFx.update(dt, spellIntensity());
     for (const m of missiles) if (!m.dead && m.spell && !m._artNoted) { m._artNoted = true; noteElementArt(m.spell.element); }
     flatAnims.tick(dt);
     impacts.tick(dt);
@@ -1187,7 +1189,15 @@ export function createPlayerMagic({
         }
       }
     },
-    batches: () => batches,
+    batches() {
+      const intensity = spellIntensity();
+      if (intensity === 1) return batches;
+      if (!intensity) return batches.filter((batch) => candleBatches.has(batch));
+      return batches.map((batch) => candleBatches.has(batch) ? batch : {
+        ...batch,
+        conceal: batch.conceal ? { ...batch.conceal, alpha: batch.conceal.alpha * intensity } : allyConceal({ alpha: intensity }),
+      });
+    },
     peerCandles(list, dt) {
       if (egAllyLook()?.glow === 0) list = null;
       const want = new Set();
@@ -1217,6 +1227,7 @@ export function createPlayerMagic({
       impacts.clear();
       for (const b of batches) { flatAnims.remove(b); renderer.destroyBillboardBatch(b); }
       batches.length = 0;
+      candleBatches.clear();
     },
     // Interior teardown does not end its missiles, so the street retires every missile still in flight.
     clearFlyingMissiles: retireAllMissiles,
@@ -1227,14 +1238,15 @@ export function createPlayerMagic({
       mwFx.clear();
     },
     fxColours: () => fx.artColours(),
-    candleLight: () => candle.light() ?? fx.light(),
-    techniqueFx: (recipe, at, o) => fx.technique(recipe, at, o),
+    candleLight: () => candle.light() ?? fx.light(spellIntensity()),
+    techniqueFx: (recipe, at, o) => fx.weaponTechnique(recipe, at, o),
     // Hosts call this right after this engine's billboards, in their world pass.
     drawFx() {
-      try { bunny.draw(renderer); } catch (e) { console.warn('[spells] Failed to draw conjured spell effects', e?.message ?? e); }
-      const mw = mwFx.draw();
+      const intensity = spellIntensity();
+      try { bunny.draw(renderer, intensity); } catch (e) { console.warn('[spells] Failed to draw conjured spell effects', e?.message ?? e); }
+      const mw = intensity > 0 && mwFx.draw();
       if (!fx.live || fxBroken || !renderer?.gl || !renderer._proj || !renderer._view) return mw;
-      const n = fx.build();
+      const n = fx.build(intensity);
       if (!n) return mw;
       if (!fxPass) { try { fxPass = new SpellImpactPass(renderer.gl); } catch (e) { fxBroken = true; console.warn('[magic] the impact pass would not build', e?.message ?? e); return mw; } }
       renderer.endUiRun?.();
