@@ -243,7 +243,7 @@ body[data-ready] .loot .spark.s2 { animation-delay: 1.1s; }
   body[data-ready] .loot .spark { animation: none; opacity: 1; }
   .progress .track i, .play { transition: none; }
   /* the moving pictures hold still too */
-  body[data-ready] .go .anim, body[data-fire="4"] .bunny .anim { display: none; }
+  body[data-ready] .go .anim, body:not([data-panel="setup"])[data-fire="4"] .bunny .anim { display: none; }   /* as specific as the rule that shows it, or the still stacks on the dance */
   body[data-ready] .go .still, body[data-fire="4"]:not([data-panel="setup"]) .bunny .still { display: block; }
   body[data-ready] .play:disabled img, body[data-ready] .go .still { filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
 }

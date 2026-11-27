@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Fixed: The launcher's rabbit no longer shows twice, one on top of the other, once it has finished checking for updates when animations are reduced.
 - Changed: Mine drills no longer stop paying after a day's ore; there is no daily cap on what you haul.
 - Fixed: Gathering and crafting no longer lock out for the rest of the hour after a long session of mining and crafting; the hourly limit on profession actions is six times higher.
 - Changed: POI notices, mod credits, and many other short messages now use plainer wording.
