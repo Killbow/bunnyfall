@@ -27,7 +27,7 @@ export class RoomSpec {
   constructor(name, { kind = 'interior', theme = 120, note = '', seed = 1 } = {}) {
     this.name = name; this.kind = kind; this.theme = theme; this.note = note; this.rand = rng(seed);
     this.grid = Array.from({ length: SIDE }, () => new Array(SIDE).fill(' '));
-    this.legend = {}; this.next = 0; this.ports = []; this.portSpecs = []; this.props = []; this.lights = []; this.flats = [];
+    this.legend = {}; this.next = 0; this.ports = []; this.portSpecs = []; this.joinsLevels = false; this.props = []; this.lights = []; this.flats = [];
   }
   /** A character for a floor/clear/theme combination (the same arguments give the same character). */
   floor(h, { clear = 3.2, theme = this.theme, tex = null } = {}) {
@@ -132,6 +132,7 @@ export function transpose(src, name, { kind = src.kind, theme = src.theme, seed 
   r.next = src.next;
   r.grid = Array.from({ length: SIDE }, (_, j) => Array.from({ length: SIDE }, (_, i) => src.grid[i][j]));
   r.portSpecs = src.portSpecs.map((q) => ({ ...q, edge: edge[q.edge] })); r.ports = r.portSpecs.map((q) => q.edge + q.port);
+  r.joinsLevels = src.joinsLevels;
   r.props = src.props.map((p) => ({ ...p, x: p.z, z: p.x, rot: (90 - p.rot + 360) % 360 }));
   return r;
 }

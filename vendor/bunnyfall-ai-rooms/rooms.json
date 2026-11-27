@@ -5,6 +5,13 @@
   "kind": "border",
   "index": 910001,
   "shell": 7100101,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A guard hall where four corridors meet, pillars at the crossing."
  },
  {
@@ -13,6 +20,13 @@
   "kind": "interior",
   "index": 910002,
   "shell": 7100102,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A great hall of columns; the four corridors run into it."
  },
  {
@@ -21,6 +35,13 @@
   "kind": "border",
   "index": 910003,
   "shell": 7100103,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A barrow hall, a coffin in every alcove."
  },
  {
@@ -29,6 +50,13 @@
   "kind": "border",
   "index": 910004,
   "shell": 7100104,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Natural rock: a chain of chambers with stalagmites."
  },
  {
@@ -37,6 +65,13 @@
   "kind": "border",
   "index": 910005,
   "shell": 7100105,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A round vaulted cistern; the four lower corridors run into it."
  },
  {
@@ -45,6 +80,13 @@
   "kind": "interior",
   "index": 910006,
   "shell": 7100106,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A ring passage round a vault of coffins; one narrow way in."
  },
  {
@@ -53,6 +95,13 @@
   "kind": "border",
   "index": 910007,
   "shell": 7100107,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A square court, columns half down."
  },
  {
@@ -61,6 +110,13 @@
   "kind": "interior",
   "index": 910008,
   "shell": 7100108,
+  "ports": [
+   "NB",
+   "WB",
+   "SB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A circular fighting floor, a ring of cages and columns on a step above."
  },
  {
@@ -69,6 +125,14 @@
   "kind": "border",
   "index": 910009,
   "shell": 7100109,
+  "ports": [
+   "NA",
+   "WA",
+   "NB",
+   "SB",
+   "EB"
+  ],
+  "joins": true,
   "note": "A double flight down 19.2 m: upper ports N and W, lower ports N, S and E."
  },
  {
@@ -77,6 +141,13 @@
   "kind": "interior",
   "index": 910010,
   "shell": 7100110,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A long hall to a throne on a two-step dais."
  },
  {
@@ -85,6 +156,13 @@
   "kind": "interior",
   "index": 910011,
   "shell": 7100111,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A maze of crossing passages on a four-cell lattice."
  },
  {
@@ -93,6 +171,13 @@
   "kind": "interior",
   "index": 910012,
   "shell": 7100112,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A tunnel broken into caves, half of it fallen."
  },
  {
@@ -101,6 +186,13 @@
   "kind": "interior",
   "index": 910013,
   "shell": 7100113,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A high-roofed cross: nave north-south, transept east-west, an altar at the crossing."
  },
  {
@@ -109,6 +201,13 @@
   "kind": "interior",
   "index": 910014,
   "shell": 7100114,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "Braziers burn along a long hall of slab anvils."
  },
  {
@@ -117,6 +216,13 @@
   "kind": "interior",
   "index": 910015,
   "shell": 7100115,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Two round chambers and a narrow neck between them."
  },
  {
@@ -125,6 +231,13 @@
   "kind": "interior",
   "index": 910016,
   "shell": 7100116,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Reading stands and slab tables in ordered rows."
  },
  {
@@ -133,6 +246,13 @@
   "kind": "interior",
   "index": 910017,
   "shell": 7100117,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A long low hall, bones heaped on every side."
  },
  {
@@ -141,6 +261,13 @@
   "kind": "interior",
   "index": 910018,
   "shell": 7100118,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A walled-in pit with its own ramp: the loot is below."
  },
  {
@@ -149,6 +276,13 @@
   "kind": "interior",
   "index": 910019,
   "shell": 7100119,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A cellblock: gated cells off a long passage."
  },
  {
@@ -157,6 +291,13 @@
   "kind": "interior",
   "index": 910020,
   "shell": 7100120,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "Low wet tunnels in the rock, the lower corridors all meeting here."
  },
  {
@@ -165,6 +306,13 @@
   "kind": "interior",
   "index": 910021,
   "shell": 7100121,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Natural rock, an altar and a ring of standing stones."
  },
  {
@@ -173,6 +321,13 @@
   "kind": "interior",
   "index": 910022,
   "shell": 7100122,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A guardroom passage with small rooms on both sides."
  },
  {
@@ -181,6 +336,13 @@
   "kind": "border",
   "index": 910023,
   "shell": 7100123,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A square court with an arch at each entrance and a well in the middle."
  },
  {
@@ -189,6 +351,13 @@
   "kind": "border",
   "index": 910024,
   "shell": 7100124,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Two causeways cross a pit 3.2 m deep; a ramp leads down into each of its four corners."
  },
  {
@@ -197,6 +366,13 @@
   "kind": "interior",
   "index": 910025,
   "shell": 7100125,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A low square hall, a grid of short columns."
  },
  {
@@ -205,6 +381,13 @@
   "kind": "border",
   "index": 910026,
   "shell": 7100126,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A broad east-west hall, two rows of columns."
  },
  {
@@ -213,6 +396,13 @@
   "kind": "interior",
   "index": 910027,
   "shell": 7100127,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "An octagonal hall, one huge column in the middle and four about it."
  },
  {
@@ -221,6 +411,13 @@
   "kind": "border",
   "index": 910028,
   "shell": 7100128,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Cross corridors with a small shrine off each quarter."
  },
  {
@@ -229,6 +426,13 @@
   "kind": "interior",
   "index": 910029,
   "shell": 7100129,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "Statues stand in two rows down a long lower hall."
  },
  {
@@ -237,6 +441,14 @@
   "kind": "interior",
   "index": 910030,
   "shell": 7100130,
+  "ports": [
+   "WA",
+   "NA",
+   "WB",
+   "EB",
+   "SB"
+  ],
+  "joins": true,
   "note": "A double flight down 19.2 m: upper ports W and N, lower ports W, E and S."
  },
  {
@@ -245,6 +457,13 @@
   "kind": "border",
   "index": 910031,
   "shell": 7100131,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "Braziers burn all along a wide lower hall."
  },
  {
@@ -253,6 +472,13 @@
   "kind": "interior",
   "index": 910032,
   "shell": 7100132,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A north-south aisle lined with niches of coffins."
  },
  {
@@ -261,6 +487,13 @@
   "kind": "border",
   "index": 910033,
   "shell": 7100133,
+  "ports": [
+   "NB",
+   "WB",
+   "SB",
+   "EB"
+  ],
+  "joins": false,
   "note": "An eight-sided chapel with an altar and eight columns."
  },
  {
@@ -269,6 +502,13 @@
   "kind": "interior",
   "index": 910034,
   "shell": 7100134,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "Four massive piers of masonry stand in a square hall."
  },
  {
@@ -277,6 +517,13 @@
   "kind": "interior",
   "index": 910035,
   "shell": 7100135,
+  "ports": [
+   "NB",
+   "WB",
+   "SB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A ring passage round a drum-shaped keep, entered by one door."
  },
  {
@@ -285,6 +532,13 @@
   "kind": "border",
   "index": 910036,
   "shell": 7100136,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A round hall at the crossing, its roof and columns half down."
  },
  {
@@ -293,6 +547,13 @@
   "kind": "interior",
   "index": 910037,
   "shell": 7100137,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A vast round cave, stone fangs hanging and rubble heaped below."
  },
  {
@@ -301,6 +562,13 @@
   "kind": "border",
   "index": 910038,
   "shell": 7100138,
+  "ports": [
+   "NB",
+   "WB",
+   "SB",
+   "EB"
+  ],
+  "joins": false,
   "note": "Rock in three terraces, each 0.4 m above the last."
  },
  {
@@ -309,6 +577,13 @@
   "kind": "interior",
   "index": 910039,
   "shell": 7100139,
+  "ports": [
+   "NA",
+   "SA",
+   "WA",
+   "EA"
+  ],
+  "joins": false,
   "note": "A high hall; on its stepped platform a great sarcophagus guarded by statues."
  },
  {
@@ -317,6 +592,13 @@
   "kind": "interior",
   "index": 910040,
   "shell": 7100140,
+  "ports": [
+   "NB",
+   "SB",
+   "WB",
+   "EB"
+  ],
+  "joins": false,
   "note": "A central chamber of cages and slabs, small cells off the western passage."
  }
 ]

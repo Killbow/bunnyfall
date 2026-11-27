@@ -29,7 +29,7 @@ if (!process.argv.includes('--check')) {
   mkdirSync(join(root, 'Models'), { recursive: true }); mkdirSync(join(root, 'Rooms'), { recursive: true });
   for (const m of models) writeFileSync(join(root, 'Models', `${m.id}.json`), JSON.stringify(m));
   for (const { res, blockName } of out) { writeFileSync(join(root, 'Models', `${res.shell.id}.json`), JSON.stringify(res.shell)); writeFileSync(join(root, 'Rooms', `${blockName}.json`), JSON.stringify(res.block)); }
-  writeFileSync(join(root, 'rooms.json'), JSON.stringify(out.map(({ spec, res, blockName }, n) => ({ name: blockName, title: spec.name, kind: spec.kind, index: FIRST_BLOCK_INDEX + n, shell: res.shell.id, note: spec.note })), null, 1));
+  writeFileSync(join(root, 'rooms.json'), JSON.stringify(out.map(({ spec, res, blockName }, n) => ({ name: blockName, title: spec.name, kind: spec.kind, index: FIRST_BLOCK_INDEX + n, shell: res.shell.id, ports: spec.ports, joins: spec.joinsLevels, note: spec.note })), null, 1));
 }
 console.log(bad ? `${bad} problem(s)` : 'all rooms pass');
 process.exit(bad ? 1 : 0);

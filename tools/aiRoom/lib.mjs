@@ -27,5 +27,6 @@ export function switchbackCore(r) {
   r.rect(17, 1, 22, 2, low).rect(21, 0, 22, 31, low).rect(22, 21, 31, 22, low);
   r.port('N', 'B', 3, low); r.port('S', 'B', 4, low); r.port('E', 'B', 10, low);
   r.prop('statue', 8, 1.9); r.prop('lectern', 17.5, 18.7);
+  r.joinsLevels = true;   // the flights join the room's two floors: the connectivity rule (world/aiRoomLaw.js) reads it
   return r;
 }

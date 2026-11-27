@@ -28,7 +28,7 @@ let bad = 0;
 for (const [region, name] of RECORD_DUNGEONS.slice(0, 12)) {
   const loc = data.maps.getLocationByName(region, name);
   if (!loc?.hasDungeon || isMainStoryDungeon(loc.mapTableData.mapId)) continue;
-  const { blocks, swapped } = swapAiRooms(loc.dungeon.blocks, rooms, loc.mapTableData.mapId, 1);
+  const { blocks, swapped } = swapAiRooms(loc.dungeon.blocks, rooms, loc.mapTableData.mapId, { share: 1 });
   const laid = layoutDungeon({ ...loc, dungeon: { ...loc.dungeon, blocks } }, data.blocks, getModel);
   const names = laid.blocks.map((b) => b.name), ai = names.filter((n) => /7\d{6}\.RDB$/.test(n)).length;
   const markers = laid.blocks.reduce((n, b) => n + b.layout.markers.length, 0), foes = laid.blocks.reduce((n, b) => n + b.layout.markers.filter((m) => m.flatRecord === 15 || m.record === 15).length, 0);
@@ -52,5 +52,5 @@ for (let r = 0; r < 62; r++) {
     swappedTotal += res.swapped;
   }
 }
-console.log(`share ${AI_ROOM_SHARE}: ${dungeons} dungeons (${main} main story, untouched); ${withAi} of the rest get an AI room; ${swappedTotal} of ${ordinary} non-start blocks swapped (${((100 * swappedTotal) / ordinary).toFixed(1)}%)`);
+console.log(`share ${AI_ROOM_SHARE} (WITHOUT the connectivity rule, which keeps about nine in ten of these - see connect.mjs): ${dungeons} dungeons (${main} main story, untouched); ${withAi} of the rest get an AI room; ${swappedTotal} of ${ordinary} non-start blocks swapped (${((100 * swappedTotal) / ordinary).toFixed(1)}%)`);
 process.exit(bad ? 1 : 0);

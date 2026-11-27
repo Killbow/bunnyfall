@@ -17,7 +17,11 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
 - **How they get into dungeons.** `src/world/aiRoomLaw.js`: after a dungeon's blocks are drawn (including the small and
   medium re-draws), 30% of its ordinary blocks are swapped for a room of the same kind (border for border, interior for
   interior), by a hash of the dungeon and the block's place. It never touches the starting block, a main-story dungeon,
-  an editor dungeon or a non-classic block, and it moves none of DFU's own random draws. `src/world/aiRooms.js` serves
+  an editor dungeon or a non-classic block, and it moves none of DFU's own random draws. **A swap is kept only if the
+  dungeon stays connected**: classic rooms have doors on both floors, most of the new ones on one, so after the swap
+  every block that could be reached from the start must still be, and the new room must be reachable; otherwise the
+  next room of its pool is tried, and if none fits the block stays classic. A classic block's ports are read from its own
+  corridor stubs at its edges (`portsOfBlock`, 95% right against the real floors); a room's from `rooms.json`. `src/world/aiRooms.js` serves
   the blocks and is called last in `dungeonLocationFor`. Spawned dungeons are covered too, since they come through the
   same door. One switch: `Enabled` (Features, Gameplay > Dungeons); online the room owns it.
 - **Saves.** A layout with rooms in it adds 16 to the dungeon save stamp, so a save made in the old layout is put at
@@ -29,6 +33,10 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
   stands on floor under a high enough ceiling, a quest marker exists. All 40 pass.
 - `walk.mjs`: the game's own player controller and collider walk from each room's first door to every other door and
   marker: **698 of 698 legs arrive** (this found prop-blocked corridors, which were fixed).
+- `connect.mjs`: over every dungeon, the blocks reachable from the start before and after the swap, with the ports
+  measured from real floors (independent of the law's). Without the connectivity rule 11% of the new rooms were cut off
+  from the start; with it **0.4%** are, only one dungeon in 3,521 loses a classic block (2 blocks), and 93% of the swaps
+  are kept (9,961 rooms in 3,521 dungeons).
 - `integrate.mjs`: real MAPS.BSA dungeons through the game's own `layoutDungeon`, every ordinary block swapped: all lay
   out with their start marker. Over all 4,232 dungeons (14 main-story ones untouched), 3,869 get at least one room and
   29.9% of non-start blocks are swapped.
