@@ -36,4 +36,4 @@ tags:
 
 `combinations.js` holds the two-skill abilities. `combinationDescription` gives the page text, and `combinationDelivery` builds the stages for the held weapon. Blade Weave, Thousand Cuts, Hunting Line, Predator's Crossing, Knockout Chain, and Titan's Hands are built in this file; the rest come from the `meleeCombinations` and `rangedCombinations` tables in `combinationLadders.js`.
 
-`racialIdentity.js` gives each race its passive edge: a 15% pace bonus in its own condition (`racialPace`), a 15% guard against one kind of damage, or all physical damage (`racialGuardDamage`), and +4 accuracy with its favorite weapons (two of them; the Orc's are the warhammer and both axes) at half health or higher (`previewRacialModifiers`). An active racial ability can add a timed accuracy bonus (`setRacialAccuracy`).
+Combat Preview uses the guard and movement conditions in `racialProfiles.js`. The Redguard guard reduces melee damage by 10%. The other conditional guards reduce matching damage by 15%. Only a timed active can grant racial weapon accuracy. The bonus works with any weapon.

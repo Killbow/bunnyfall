@@ -16,7 +16,7 @@ import { ChargenFlow } from '../src/ui/chargen.js';
 import { chargenHit } from '../src/ui/chargenArt.js';
 import { EXTRA_RACE_TEMPLATES, PLAYABLE_RACE_TEMPLATES, RACE_TEMPLATES, artRaceOf, raceArt, raceById } from '../src/characters/races.js';
 import { duelAttackerOf } from '../src/combat/duelCombat.js';
-import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../src/combat/abilities/racialProfiles.js';
+import { racialDelivery, RACIAL_TRAITS } from '../src/combat/abilities/racialProfiles.js';
 import { noteRacialReadiness, racialGuardDamage, racialPace } from '../src/combat/abilities/racialIdentity.js';
 import { calculateAttackDamage, racialModifiers } from '../src/combat/formulas.js';
 import { installPcaao, pcaaoRacialModifiers, uninstallPcaao } from '../src/combat/pcaao.js';
@@ -75,18 +75,10 @@ test('the preview applies the same conditional racial accuracy in both combat co
   t.after(() => { if (previous) globalThis.location = previous; else delete globalThis.location; });
   for (const race of PLAYABLE_RACE_TEMPLATES) {
     const entity = { ...makeEntity(), race: undefined, raceId: race.id, health: 50, maxHealth: 100 };
-    const favorites = RACIAL_FAVORITES[race.key];
-    assert.ok(favorites.length >= 2 && new Set(favorites).size === favorites.length, race.key);   // two favored weapons, or the Orc's warhammer and both axes
-    const expected = { damageMod: 0, toHitMod: 4 };
-    for (const favorite of favorites) {
-      const weapon = favorite === 'bare' ? null : { templateIndex: favorite };
-      assert.deepEqual(racialModifiers(entity, weapon), expected);
-      assert.deepEqual(pcaaoRacialModifiers(entity, weapon), expected);
-    }
     const zero = { damageMod: 0, toHitMod: 0 };
     assert.deepEqual(racialModifiers(entity, { templateIndex: 122 }), zero);
     entity.health = 49;
-    assert.deepEqual(pcaaoRacialModifiers(entity, { templateIndex: favorites[0] }), zero);
+    assert.deepEqual(pcaaoRacialModifiers(entity, { templateIndex: 120 }), zero);
   }
   const redguard = { ...makeEntity(), race: 'Redguard', raceId: 2, level: 30, maxHealth: 100, _online: true };
   const classic = { damageMod: 10, toHitMod: 10 };
@@ -110,13 +102,13 @@ test('each race has a conditional preview movement perk and a defensive passive'
     if (race.key === 'Imperial') noteRacialReadiness(entity, longsword, true, false);
     else if (race.key === 'Khajiit') noteRacialReadiness(entity, null, false, false);
     else noteRacialReadiness(entity, longsword, false, true);
-    const motor = { isRunning: race.key === 'Lungaris', isSneaking: race.key === 'WoodElf',
+    const motor = { _pkPace: 4, isRunning: race.key === 'Lungaris', isSneaking: race.key === 'WoodElf',
       swimming: race.key === 'Argonian' };
     assert.equal(racialPace(entity, trait.pace, motor, true), 1.15, race.key);
     assert.equal(racialPace(entity, 'levitate', motor, true), 1);
     if (trait.guard) {
       const kind = trait.guard === 'physical' ? 'melee' : trait.guard;
-      assert.equal(racialGuardDamage(100, hostile, entity, kind), 85, race.key);
+      assert.equal(racialGuardDamage(100, hostile, entity, kind), 100 - 100 * (trait.guardShare ?? .15), race.key);
       assert.equal(racialGuardDamage(100, { isPlayer: true }, entity, kind), 100);
       assert.equal(racialGuardDamage(100, hostile, entity, 'spell'), 100);
       assert.equal(racialGuardDamage(1, hostile, entity, kind), 1);
@@ -160,7 +152,7 @@ test('racial pace reaches player displacement and guarded hits use both combat c
 });
 
 test('registry keeps every planned action, with no firearm delivery', () => {
-  assert.equal(ABILITIES.length, 146);
+  assert.equal(ABILITIES.length, 145);
   assert.equal(new Set(ABILITIES.map(a => a.id)).size, ABILITIES.length);
   assert.equal(ABILITIES.filter(a => a.category === 'weapon').length, 92);
   assert.equal(ABILITIES.filter(a => a.category === 'combination').length, 30);
@@ -269,7 +261,7 @@ test('all universal utilities use trained ranks and the nine new actions produce
   globalThis.location = { search: '?abilities' };
   t.after(() => { setPlayerDoor(null); if (old) globalThis.location = old; else delete globalThis.location; });
   const utilities = ABILITIES.filter(ability => ability.category === 'utility');
-  assert.equal(utilities.length, 12);
+  assert.equal(utilities.length, 11);
   for (const ability of utilities) {
     const novice = makeEntity();
     novice.skills[SKILLS.Axe] = ability.rank - 1;
@@ -305,7 +297,7 @@ test('all universal utilities use trained ranks and the nine new actions produce
   assert.equal(utilityCooldown(entity, 'utility.breakaway'), 0);
   for (const [id, kind] of [
     ['featherstep', 'slowfall'], ['hunters-awareness', 'detectEnemy'], ['deepwater-training', 'waterBreathing'],
-    ['riverstride', 'waterWalking'], ['skyward-ascent', 'levitate'],
+    ['riverstride', 'waterWalking'],
   ]) {
     assert.ok(cast(id).ok, id);
     assert.ok(hasActiveEffect(entity, kind), kind);
@@ -319,7 +311,7 @@ test('all universal utilities use trained ranks and the nine new actions produce
   consumeDoorSpell(entity, 'open');
   assert.equal(doorSpellFor(entity), null);
   door.previewUtilityRefusal = () => 'This area blocks levitation';
-  assert.deepEqual(cast('skyward-ascent'), { ok: false, why: 'unavailable', message: 'This area blocks levitation' });
+  assert.deepEqual(cast('skyward-ascent'), { ok: false, why: 'unavailable' });
   assert.equal(entity.magicka, 0);
 });
 
@@ -356,6 +348,18 @@ test('successful weapon capstones delay combination capstones and leave lower ra
   assert.equal(engine.cooldown(PREVIEW_THRUST), 0);
   for (let i = 0; i < 112; i++) engine.step(250, ctx);
   assert.ok(engine.request(combination.id, ctx).ok);
+});
+
+test('a learned skill can replace a wind-up, and a refused input keeps the original cast', () => {
+  const { engine, ctx, spent, events } = fixture();
+  const next = 'weapon.longsword.kings-measure';
+  assert.ok(engine.request(PREVIEW_THRUST, ctx).ok);
+  assert.equal(engine.request(next, { ...ctx, ready: false }).ok, false);
+  assert.ok(engine.request(next, ctx).ok);
+  engine.step(120, ctx);
+  assert.equal(spent(), 1);
+  assert.equal(engine.cooldown(PREVIEW_THRUST), 0);
+  assert.deepEqual(events.slice(0, 3).map(([moment]) => moment), ['wind-up', 'cancel', 'wind-up']);
 });
 
 test('casts own their cue order, cooldown, and one resource commit', () => {
@@ -554,7 +558,7 @@ test('utility buffs are cast at ten rounds or more, rising with rank, while inst
   assert.deepEqual(rounds('utility.trailblazer'), [10]);
   assert.deepEqual(rounds('utility.unbound-will'), [10]);
   assert.deepEqual(rounds('utility.deepwater-training'), [14]);
-  assert.deepEqual(rounds('utility.skyward-ascent'), [16]);
+  assert.equal(utilityProfile('utility.skyward-ascent'), null);
   assert.deepEqual(rounds('utility.breakaway'), [14, 14]);
   assert.deepEqual(rounds('utility.field-antidote'), [1]);
 });

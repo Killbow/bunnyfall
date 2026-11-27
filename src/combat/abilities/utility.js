@@ -69,6 +69,10 @@ export function requestUtility(entity, id, door = playerDoor()) {
   if (profile.travel) {
     if (profile.travel === 'recall' && !entity.wayfarerAnchor) return { ok: false, why: 'anchor' };
     if (!door.utilityTravel) return { ok: false, why: 'unavailable' };
+    const at = door.feet?.();
+    if (at && profile.travel === 'recall') {
+      showAbilityArt(door, id, 'self', [at[0], at[1] + 1, at[2]], { yaw: door.facingYaw?.() ?? 0 });
+    }
     const result = door.utilityTravel(profile.travel);
     if (result === false) return { ok: false, why: 'unavailable' };
     const state = startCooldown(entity, id, profile.cooldownMs);

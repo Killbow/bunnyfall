@@ -21,16 +21,16 @@ export function abilityLook(cam, yaw = cam.yaw) {
   return [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
 }
 
-export function skyfallPattern(cam, collider, { rain, rangeM, ammo }) {
+export function skyfallPattern(cam, collider, { rain, rangeM, ammo }, target = null) {
   if (!cam || !collider) return null;
-  const aim = groundAim(cam.pos, abilityLook(cam), cam.feet, collider, rangeM);
-  if (!aim || aim.dist < 2 || Math.abs(aim.point[1] - cam.feet[1]) > 8) return null;
-  const centre = aim.point;
+  const aim = target ? { point: target, dist: Math.hypot(...target.map((v, i) => v - cam.pos[i])) } : groundAim(cam.pos, abilityLook(cam), cam.feet, collider, rangeM);
+  if (!aim || aim.dist < 2 || aim.dist > rangeM || (!target && Math.abs(aim.point[1] - cam.feet[1]) > 8)) return null;
+  const centre = [...aim.point];
   const shots = [];
   const points = [centre, ...volleyPoints(centre, rain.radius, ammo - 1)];
   for (const [i, point] of points.entries()) {
     const [x, , z] = point;
-    const y = floorUnder(point, collider);
+    const y = target ? centre[1] : floorUnder(point, collider);
     if (y == null || Math.abs(y - centre[1]) > 2.5 || Math.hypot(x - cam.feet[0], z - cam.feet[2]) > rangeM) continue;
     const sight = [x - cam.pos[0], y + 0.8 - cam.pos[1], z - cam.pos[2]];
     const length = Math.hypot(...sight);

@@ -154,7 +154,6 @@ const definitions = [
   ["utility.deepwater-training", "Deepwater Training", 40, null, null, null],
   ["utility.riverstride", "Riverstride", 40, null, null, null],
   ["utility.breakaway", "Breakaway", 40, null, null, null],
-  ["utility.skyward-ascent", "Skyward Ascent", 50, null, null, null],
   ["utility.field-antidote", "Field Antidote", 50, null, null, null],
   ["utility.lockbreaker", "Lockbreaker", 50, null, null, null],
 

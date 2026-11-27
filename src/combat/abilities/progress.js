@@ -23,7 +23,7 @@ function trainedFor(entity, ability) {
 
 function savedIds(value) {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.slice(0, MAX_LEARNED).filter(id => typeof id === 'string' && id.length <= 128 && ID.test(id)))];
+  return [...new Set(value.slice(0, MAX_LEARNED).filter(id => id !== 'utility.skyward-ascent' && typeof id === 'string' && id.length <= 128 && ID.test(id)))];
 }
 
 export function restoreAbilityProgress(entity, block, enabled = abilitiesEnabled()) {

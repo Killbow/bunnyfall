@@ -133,7 +133,7 @@ const loadout = new Map([
   [PREVIEW_SKYFALL, { kind: 'ranged', strike: 'StrikeDown', rangeM: 38, projectileSpeed: 36, potency: 4.1,
     capstone: { base: 42, stat: 'agility' }, rain: { radius: 3.3, height: 12, perTarget: 3 }, linearRadius: 0.3, projectileScale: 1,
     spend: 16, ammo: 7, cooldownMs: 38000, windUpMs: 850, activeMs: 750, recoveryMs: 1050, fx: 'skyfall',
-    description: 'Aim at visible ground to rain up to seven arrows into the area. Requires seven arrows in the quiver.' }],
+    description: 'Aim at an enemy, including a flying one, or visible ground. Seven arrows fall on the marked area. You can move after marking it. Requires seven arrows in the quiver.' }],
   [PREVIEW_FINAL_VERDICT, { kind: 'ranged', strike: 'StrikeDown', rangeM: 72, projectileSpeed: 62, potency: 2.8,
     capstone: { base: 50, stat: 'agility' }, linearRadius: 0.18, projectileScale: 1.3, armorPierce: 0.5,
     weakPointBonus: 1.25, execution: { rangeM: 24, missingHealth: 0.55, bonus: 1.55 },

@@ -10,7 +10,6 @@ const pilot = new Map([
   ['utility.riverstride', { effect: 31, rounds: 6, description: 'Walk across the water’s surface with Water Walking.' }],
   ['utility.breakaway', { effects: [{ effect: 9, subType: 6, rounds: 1, magnitude: 18 }, { effect: 23, subType: 0, rounds: 1 }],
     cooldownMs: 22000, description: 'Gain 18 Speed and blend into your surroundings to escape. Recovers in 22 seconds.' }],
-  ['utility.skyward-ascent', { effect: 14, rounds: 5, description: 'Rise and steer through the air using the standard Levitate controls.' }],
   ['utility.field-antidote', { effect: 3, subType: 1, description: 'Remove active poisons with the Cure Poison effect.' }],
   ['utility.lockbreaker', { effect: 17, description: 'Arm Open for the next eligible lock you activate. The normal lock and quest rules apply.' }],
 ]);

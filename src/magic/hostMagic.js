@@ -1,5 +1,6 @@
 // The player-cast engine every host shares: readied spells, the four range arms, landings, bursts, and missiles.
 
+import { combatAbilityBusy } from '../combat/abilities/rig.js';
 import { FlatAnimator, armFlatAnim, MISSILE_FPS } from '../render/flatAnimation.js';
 import { effectiveLevel } from '../characters/mentorMode.js';
 import { hasSpellbook } from './spellMaker.js';
@@ -862,6 +863,7 @@ export function createPlayerMagic({
 
   // As in DFU CastReadySpell: silence, ready, and touch gates, then the spend, then the hands.
   function castInput(eye, dir) {
+    if (combatAbilityBusy(playerEntity)) return false;
     const sp = readiedSpell;
     if (!sp) return false;
     if (knockedDown()) return false;
@@ -899,6 +901,7 @@ export function createPlayerMagic({
   }
 
   function readySpell(sp, { free = false } = {}) {
+    if (combatAbilityBusy(playerEntity)) { say(localizedText('finishCombatSkill', 'Finish your combat skill before readying a spell.')); return false; }
     const prevArm = _lastArm; _lastArm = null;
     if (pendingClickCast) setPending(false);
     if (barredHere()) return false;

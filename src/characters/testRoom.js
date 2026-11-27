@@ -1,5 +1,6 @@
 // The test room: prebuilt characters, their armory, and the seeding for a preset.
 
+import { createGrapplingHook } from '../systems/heavyGear.js';
 import { raceByKey } from './races.js';
 import { resurrectionSpell } from '../magic/resurrect.js';
 import { applyHeadlessChargen } from './chargenSession.js';
@@ -164,7 +165,7 @@ const COMBINATION_PREVIEW_SLOTS = [
 ];
 const EXTRA_UTILITY_PREVIEW_SLOTS = [
   'utility.trailblazer', 'utility.featherstep', 'utility.hunters-awareness', 'utility.deepwater-training',
-  'utility.riverstride', 'utility.breakaway', 'utility.skyward-ascent', 'utility.field-antidote', 'utility.lockbreaker',
+  'utility.riverstride', 'utility.breakaway', 'utility.field-antidote', 'utility.lockbreaker',
 ];
 
 export function seedCombatPreview(entity, power = 'max') {
@@ -198,6 +199,7 @@ export function seedCombatPreview(entity, power = 'max') {
     addItem(entity.items, item);
     if (i === 0 || row.kind === 'armor') equipItem(entity, item);
   }
+  addItem(entity.items, createGrapplingHook());
   restoreAbilityProgress(entity, null, true);
   const bindLearned = (id, slot) => {
     if (learnedAbility(entity, id)) setHotbarSlot(slot, hotbarEntryForAbility(id));
@@ -222,7 +224,7 @@ export function seedCombatPreview(entity, power = 'max') {
   [...DAGGER_MILESTONES, ...TANTO_MILESTONES].forEach(bindLearned);
   switchHotbarPreset(0);
   setPref('quickbarStyle', 'hotbar');
-  return rows.length;
+  return rows.length + 1;
 }
 
 export function seedTestGear(entity) {

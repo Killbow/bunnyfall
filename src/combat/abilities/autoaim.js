@@ -8,10 +8,10 @@ import { CANNOT_LEAP_TEXT, DASH_APEX, NO_ROOM_TEXT, OUT_OF_REACH_TEXT, TECH_DROP
 import { abilityMayStrike } from './previewHits.js';
 
 export const AUTOAIM = Object.freeze({
-  coneRad: 0.26,
-  closeConeRad: 0.55,
+  coneRad: 0.34,
+  closeConeRad: 0.72,
   closeM: 3,
-  meleeSlackM: 1,
+  meleeSlackM: 1.5,
   leapSlackM: 2.5,
   landReachM: 1.6,
   rangedM: 45,

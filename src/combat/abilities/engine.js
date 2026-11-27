@@ -58,11 +58,16 @@ export function createAbilityEngine({ deliveryFor, reserve, release, canRepeat =
     event('cancel', interrupted);
   }
 
+  function check(id, ctx, ability = abilityById(id), delivery = ability && deliveryFor(id, ctx)) {
+    return refusal(ability, delivery, ctx) ?? (cooldown(id) > 0 && !canRepeat(id, ctx) ? 'cooldown' : cast?.ability.id === id ? 'busy' : null);
+  }
+
   function request(id, ctx) {
     const ability = abilityById(id);
-    const delivery = ability ? deliveryFor(ability.id, ctx) : null;
-    const why = refusal(ability, delivery, ctx) ?? (cast ? 'busy' : cooldown(id) > 0 && !canRepeat(id, ctx) ? 'cooldown' : null);
+    const delivery = ability && deliveryFor(id, ctx);
+    const why = check(id, ctx, ability, delivery);
     if (why) return { ok: false, why };
+    if (cast) cancel();
     cast = {
       id: ++nextId, ability, delivery, acceptedAt: time, releaseAt: time + delivery.windUpMs,
       weapon: ctx.weapon, owner: ctx.owner, phase: 'wind-up', impact: 0,
@@ -116,5 +121,5 @@ export function createAbilityEngine({ deliveryFor, reserve, release, canRepeat =
     }
   }
 
-  return { request, step, cancel, cooldown, shortenCooldown, busy: () => !!cast, windingUp: () => cast?.phase === 'wind-up' };
+  return { request, check, step, cancel, cooldown, shortenCooldown, busy: () => !!cast, windingUp: () => cast?.phase === 'wind-up' };
 }

@@ -18,10 +18,10 @@ family('moon', { crosscut:'cross', 'twin-guard':'ward', 'mirrored-tempo':'braid'
   'flowing-pursuit':'dash', 'crescent-current':'crescent', 'moonlit-torrent':'helix', 'iai-cut':'horizon',
   'iron-draw':'needle', 'falling-moon':'vault', 'execution-stance':'mark', 'heaven-splitting-draw':'fracture',
   'double-lash':'braid', 'chain-flicker':'lash', 'storm-of-links':'orbit', 'silver-tempest':'crown' });
-family('stone', { 'wide-arc':'crescent', earthwheel:'orbit', 'reaping-circle':'halo', greatstorm:'cyclone',
+family('stone', { 'wayfarers-anchor-mark':'anchor', 'wayfarers-anchor-recall':'return', 'wide-arc':'crescent', earthwheel:'orbit', 'reaping-circle':'halo', greatstorm:'cyclone',
   'brace-and-hew':'cross', 'iron-root':'roots', 'guardians-break':'fracture', mountainfall:'crack',
   'crack-plate':'fracture', 'hammer-the-gap':'needle', 'crushing-verdict':'crack', 'shatter-dominion':'roots',
-  'hammer-drop':'crack', faultline:'roots', bonebreaker:'cross', worldbreaker:'fracture',
+  skullsplitter:'fracture', 'hammer-drop':'crack', faultline:'roots', bonebreaker:'cross', worldbreaker:'fracture',
   'siege-stance':'ward', earthsplitter:'roots', 'siege-bolt':'helix', 'anchor-and-fire':'ward',
   linebreaker:'needle', 'siege-of-heaven':'rain', 'titans-hands':'crack' });
 family('ember', { 'hunters-hook':'lash', 'blood-trail':'dash', 'relentless-pursuit':'claw', 'no-escape':'mark',
@@ -35,9 +35,9 @@ family('leaf', { 'quick-draw-cleave':'cross', 'arrow-to-axe':'needle', 'split-pu
   'forest-ambush':'claw', trailblazer:'step', 'hunters-awareness':'eye', 'field-antidote':'roots' });
 family('wind', { 'jab-chain':'braid', 'shoulder-break':'fracture', 'flow-state':'orbit', 'hundred-fist-ascension':'cyclone',
   'reversal-step':'dash', 'cyclone-form':'cyclone', 'knockout-chain':'cross', 'windstep-shot':'feather', stormrunner:'dash',
-  'predators-pounce':'claw', harebound:'vault', featherstep:'feather', breakaway:'veil', 'skyward-ascent':'cyclone' });
+  'predators-pounce':'claw', harebound:'vault', featherstep:'feather', breakaway:'veil' });
 family('tide', { 'frostborn-charge':'fracture', 'marsh-coil':'helix', 'unbound-will':'fracture',
-  'wayfarers-anchor-mark':'anchor', 'wayfarers-anchor-recall':'return', 'deepwater-training':'bubbles', riverstride:'step' });
+  'deepwater-training':'bubbles', riverstride:'step' });
 
 const finishes = {
   'fatal-opening':'cross', 'shadow-pin':'roots', 'hidden-relay':'needle', 'vanishing-execution':'veil',
@@ -49,7 +49,7 @@ const finishes = {
   bonebreaker:'fracture', 'shatter-dominion':'crown', faultline:'crack', earthsplitter:'fan',
   'crack-plate':'mark', worldbreaker:'halo', 'crushing-verdict':'mark', 'hammer-drop':'vault',
   'titans-hands':'cross', linebreaker:'fan', 'foxfire-feint':'veil', 'felling-volley':'roots',
-  'siege-stance':'roots', 'cyclone-form':'orbit', 'skyward-ascent':'feather', stormrunner:'helix',
+  'siege-stance':'roots', 'cyclone-form':'orbit', stormrunner:'helix',
   featherstep:'step', 'unbound-will':'ward',
 };
 for (const [action, finish] of Object.entries(finishes)) looks.get(action).finish = finish;

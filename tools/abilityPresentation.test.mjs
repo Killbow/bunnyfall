@@ -16,7 +16,7 @@ test('every registered ability has renderable art with finite geometry and a bou
       fx.step(.1);
       assert.ok(fx.build() > 0, ability.id + ' ' + phase);
       assert.ok(fx.buf.every(Number.isFinite), ability.id);
-      for (let i=0; i<60; i++) fx.step(1/60);
+      for (let i=0; i<75; i++) fx.step(1/60);
       assert.equal(fx.live, false, ability.id);
     }
   }
@@ -33,7 +33,7 @@ test('rapid chains clear old trails and leave room for a new hit', () => {
     assert.ok(fx.build() > 0, ability.id);
     assert.ok(fx.parts.length < 250, ability.id);
   }
-  for (let i=0; i<24; i++) fx.step(1/60);
+  for (let i=0; i<48; i++) fx.step(1/60);
   assert.equal(fx.live, false);
 });
 

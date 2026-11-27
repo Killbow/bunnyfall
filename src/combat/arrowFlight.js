@@ -1,5 +1,6 @@
 // Arrow flight for hosts without the dungeon missile system. The dungeon lane also calls playerArrowHitFoe, so
 // every host prices a shot from the player the same way. arrowMatrix mirrors the dungeon arrow matrix.
+import { playBasicImpact } from '../audio/abilitySfx.js';
 import { abilityArrowAllowed, abilityFlightStep, previewDamage, settleAbilityArrow, weaponOpening } from './abilities/previewHits.js';
 import { rayUprightCapsule } from '../world/passiveFish.js';
 import { MISSILE_SPEED, ARROW_FLIGHT_SPEED, MISSILE_COLLIDER_RADIUS, MISSILE_LIFESPAN_S, playerShotOrigin, missileHitsCapsule, missileReach, PLAYER_BODY_RADIUS, BODY_CAPSULE_RADIUS, sphereOverlapsCapsule } from '../magic/spellcast.js';
@@ -345,6 +346,7 @@ export function playerArrowHitFoe(m, foe, {
   if (dmg > 0) {
     const axeBonus = weaponOpening(playerEntity, foe, { exploit: 'axe', opening: { channel: 'arrow', seconds: 7, share: .65 } });
     if (axeBonus) dmg = Math.round(dmg * (1 + axeBonus));
+    if (!m.technique && !playerBody(foe)) playBasicImpact(m.weapon, true);
     audio?.play3d?.(hitSoundFor(m.weapon ?? null), at, ENEMY_HIT_VOLUME, { maxDistance: 16 });
     hitEffects?.showBloodSplash?.(foe.entity?.basics?.bloodIndex ?? 0, bloodAt, null, bloodHit(dmg, foe.bloodOf ?? foe.entity, { fromPlayer: true, weapon: m.weapon ?? null }));
     const pain = enemyPainVoice(foe, dmg, rolls);

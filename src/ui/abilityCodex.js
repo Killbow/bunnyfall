@@ -11,7 +11,7 @@ import { ABILITIES, PHYSICAL_SKILLS } from '../combat/abilities/registry.js';
 import { learnedAbility } from '../combat/abilities/progress.js';
 import { milestoneDelivery } from '../combat/abilities/milestones.js';
 import { utilityProfile } from '../combat/abilities/utilityProfiles.js';
-import { racialDelivery, racialKey, RACIAL_FAVORITES, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
+import { racialDelivery, racialKey, RACIAL_TRAITS } from '../combat/abilities/racialProfiles.js';
 import { combinationDelivery, combinationDescription } from '../combat/abilities/combinations.js';
 import { meleeBeatMult, shotMult } from '../combat/abilities/damage.js';
 import { buffRounds, ROUND_SECONDS, withBuffDuration } from '../combat/abilities/buffDuration.js';
@@ -131,13 +131,9 @@ function catalog(entity) {
   const racial = add(t('abilities.group.racial', 'Racial abilities'), 'racial');
   for (const ability of ABILITIES) {
     if (ability.category !== 'racial') continue;
-    const favorites = RACIAL_FAVORITES[ability.race].map(id =>
-      id === 'bare' ? styleNames['hand-to-hand']() : customStyleNames[id]?.() ?? templateByIndex(id)?.name);
     const trait = RACIAL_TRAITS[ability.race];
     push(racial, ability, { ...racialDelivery(ability.id), description: [
       t('abilities.racial.active', 'Active: {text}', { text: racialDelivery(ability.id).description }),
-      t('abilities.racial.passive', 'Passive: {weapons} gain 4 weapon accuracy at half health or higher.',
-        { weapons: favorites.join(t('abilities.and', ' and ')) }),
       trait.passive + (trait.passive.endsWith('.') ? '' : '.'),
       trait.movement,
     ].join(' ') }, raceByKey(ability.race)?.name ?? ability.race);
