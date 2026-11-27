@@ -224,11 +224,11 @@ export function createBunnySpellEngine(deps) {
     const step = Math.min(WALL_CRUMBLE_STEPS - 1, Math.floor(t / WALL_STEP_S)), into = t - step * WALL_STEP_S;
     return s.settle + share * (step + Math.min(1, into / WALL_STEP_DROP_S));
   }
-  function draw(r) {
+  function draw(r, intensity = 1) {
     const cp = r?._camPos;
     if (cp && cp.length === 3 && [...cp].every(Number.isFinite)) seen = { at: [cp[0], cp[1], cp[2]], frames: 0 };
-    let drew = meteors.draw(r);
-    if (peerMeteors.draw(r)) drew = true;
+    let drew = meteors.draw(r, intensity);
+    if (peerMeteors.draw(r, intensity)) drew = true;
     if ((!walls.size && !sinking.length && !stones.size) || !r?.createMesh || !r.drawMesh) return drew;
     for (const s of sinking) {
       if (s.mesh) drawMound(r, s, crumbleSunk(s, s.age));
@@ -237,7 +237,7 @@ export function createBunnySpellEngine(deps) {
     for (const s of stones.values()) {
       const a = wallArt(r, s.src);
       if (a) s.art = a;
-      if (s.art && s.debris.draw(r, s.art.key, s.art.mound)) drew = true;
+      if (s.art && s.debris.draw(r, s.art.key, s.art.mound, intensity)) drew = true;
     }
     for (const wall of walls.values()) {
       const a = wallArt(r, wall.src);

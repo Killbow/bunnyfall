@@ -45,7 +45,7 @@ export function createVfxGpu(renderer, textures, capacity) {
   }
 
   return {
-    sync(streams, alpha = 1) {
+    sync(streams, alpha = 1, fadeOpaque = false) {
       if (released) return [];
       const live = new Set();
       const out = [];
@@ -57,8 +57,8 @@ export function createVfxGpu(renderer, textures, capacity) {
           effects.set(s.key, e);
         }
         e.tex = textureFor(s.texture, s.drawState?.clampMode ?? 3);
-        e.blend = !!s.drawState?.blend; e.srcBlend = s.drawState?.srcBlend ?? 6; e.dstBlend = s.drawState?.dstBlend ?? 7;
-        e.alphaCut = s.drawState?.alphaCut ?? 0; e.depthTest = s.drawState?.depthTest !== false; e.depthWrite = s.drawState?.depthWrite !== false;
+        e.blend = !!s.drawState?.blend || fadeOpaque; e.srcBlend = s.drawState?.srcBlend ?? 6; e.dstBlend = s.drawState?.dstBlend ?? 7;
+        e.alphaCut = s.drawState?.alphaCut ?? 0; e.depthTest = s.drawState?.depthTest !== false; e.depthWrite = !fadeOpaque && s.drawState?.depthWrite !== false;
         e.hidden = false;
         if (alpha < 1 && s.count > 0) { const need = s.count * VFX_VERTEX_FLOATS; if (!e.faded || e.faded.length < need) e.faded = new Float32Array(need); renderer.updateParticleEffect(e, vfxFade(s.packed, s.count, alpha, e.blend ? e.srcBlend : -1, e.faded), s.count); }
         else renderer.updateParticleEffect(e, s.packed, s.count);

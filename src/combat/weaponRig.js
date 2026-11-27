@@ -66,6 +66,7 @@ import './swingLaw.js';
 import { walkSpeed } from '../player/motor.js';
 import { localizedText, t } from '../ui/textManager.js';
 import { HANDS_MODE, twoHanded, runHandsWanted, runHandsKept, runPhaseOfBob, guardStep } from './twoHands/handsLaw.js';
+import { spellVisualIntensity } from '../magic/spellVisualSettings.js';
 import { spellHandOf, tellSpellHand, castPending, drawSpellHand, guardDrop } from './twoHands/spellHand.js';
 import { stepTechnique, claimShot, techniqueFlying, techniqueState, TECHNIQUE_ACTION } from './techniques.js';
 // Registers the martial powers on import, so every host's rig has them.
@@ -837,8 +838,12 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       let spellHandsDrawn = false;
       if (c && !fpArm.active() && !eotbHidesSpellHands()) {
         const side = _spellHand ? spellHandSide() : null;
-        const castHands = (art, f) => (side ? drawSpellHand(renderer, c, art, f, { side, tint: fpTint, guard: fpsSpellCasting.isPlayingAnim ? 0 : _spellGuard.hand }) : drawSpellCastHands(renderer, c, art, f, { tint: fpTint }));
-        castHands(spellArtFor(fpsSpellCasting.element), fpsSpellCasting.frameIndex);
+        const castHands = (art, f, opacity = 1) => {
+          if (side) drawSpellHand(renderer, c, art, f, { side, tint: fpTint, opacity, guard: fpsSpellCasting.isPlayingAnim ? 0 : _spellGuard.hand });
+          else drawSpellCastHands(renderer, c, art, f, { tint: fpTint, opacity });
+        };
+        const intensity = spellVisualIntensity(false);
+        if (intensity) castHands(spellArtFor(fpsSpellCasting.element), fpsSpellCasting.frameIndex, intensity);
         spellHandsDrawn = fpsSpellCasting.isPlayingAnim;
         if (readiedHandsOn() && !fpsSpellCasting.isPlayingAnim && !climbHands.showing()) {
           const sp = readiedSpell();

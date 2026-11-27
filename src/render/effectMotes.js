@@ -44,13 +44,13 @@ void main() {
 const fract = (x) => x - Math.floor(x);
 const hash = (n) => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
 
-export function motesInto(bodies, t, out) {
+export function motesInto(bodies, t, out, intensity = 1) {
   let n = 0;
   const max = Math.floor(out.length / STRIDE);
   const put = (x, y, z, r, g, b, a, size, shape) => {
     if (n >= max) return;
     const o = n++ * STRIDE;
-    out[o] = x; out[o + 1] = y; out[o + 2] = z; out[o + 3] = r; out[o + 4] = g; out[o + 5] = b; out[o + 6] = a;
+    out[o] = x; out[o + 1] = y; out[o + 2] = z; out[o + 3] = r; out[o + 4] = g; out[o + 5] = b; out[o + 6] = a * intensity;
     out[o + 7] = size; out[o + 8] = shape;
   };
   for (const w of bodies) {
@@ -114,9 +114,9 @@ export class EffectMotes {
     this.drawn = 0;
   }
 
-  draw(bodies, proj, view, t) {
+  draw(bodies, proj, view, t, intensity = 1) {
     const gl = this.gl;
-    this.drawn = motesInto(bodies, t, this.data);
+    this.drawn = motesInto(bodies, t, this.data, intensity);
     if (!this.drawn) return;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.proj, false, proj);

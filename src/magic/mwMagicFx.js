@@ -139,7 +139,7 @@ export function createMwMagicFx({
       for (const v of plan.area) spawn(v, () => place);
       return plan.area.length;
     },
-    update(dt) {
+    update(dt, intensity = 1) {
       if (dead) return;
       clock += dt;
       if (!enabled()) { this.clear(); return; }
@@ -150,7 +150,7 @@ export function createMwMagicFx({
         const place = e.handle.state() === 'live' ? e.place() : null;
         const r = place ? e.fx.update(dt, { place, view: MW_TO_PASS, eye }) : { done: true };
         if (r.done) { e.handle.end(); e.gpu.release(); live.splice(i, 1); continue; }
-        e.gpu.sync(r.streams, e.alpha);
+        e.gpu.sync(intensity ? r.streams : [], e.alpha * intensity, intensity < 1);
       }
     },
     draw() {

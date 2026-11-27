@@ -159,6 +159,8 @@ export function mwViewFrame({ fpEye, feet, yaw, pitch, heightScale = null, rayca
   return eyeOverride ? { ...eye, eye: eyeOverride, ownEye: eye.eye } : eye;
 }
 
+export const mwViewThirdPerson = () => eotbLane() ? eotbCamera.thirdPerson() : mwCamera.thirdPerson();
+
 export function mwViewWheel(deltaY) {
   const clicks = deltaY < 0 ? 1 : deltaY > 0 ? -1 : 0;
   if (!clicks) return false;

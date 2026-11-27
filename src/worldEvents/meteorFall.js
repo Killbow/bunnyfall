@@ -178,24 +178,24 @@ export function createMeteorFall(deps) {
     freeMesh(o);
     try { o.mesh = r.createMesh(model()); o.gpu = r; o.artKey = art.key; return true; } catch (e) { console.warn('[spells] Failed to build meteor or crater mesh', e?.message ?? e); return false; }
   }
-  function draw(r) {
-    if ((!falls.length && !craters.length && !stones.count) || !r?.createMesh || !r.drawMesh) return false;
+  function draw(r, intensity = 1) {
+    if (!intensity || (!falls.length && !craters.length && !stones.count) || !r?.createMesh || !r.drawMesh) return false;
     let drew = false;
     for (const f of falls) {
       const a = artFor(r, f.src);
       if (!a || !build(r, f, a, () => rockModel(f.seed, a.art))) continue;
       rot(f.mat, f.axis, f.age * f.spin, 1, f.pos);
-      r.drawMesh(f.mesh, f.mat);
+      r.drawMesh(f.mesh, f.mat, null, intensity < 1 ? { translucent: intensity } : undefined);
       drew = true;
     }
     const sa = stoneSrc && artFor(r, stoneSrc);
     if (sa) stoneArt = sa;
-    if (stoneArt && stones.draw(r, stoneArt.key, stoneArt.art)) drew = true;
+    if (stoneArt && stones.draw(r, stoneArt.key, stoneArt.art, intensity)) drew = true;
     for (const c of craters) {
       const a = craterArt(r, c);
       if (!a || !build(r, c, a, () => craterModel(c.seed, a.art, c.floorAt))) continue;
       c.mat.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, c.at[0], c.at[1], c.at[2], 1]);
-      r.drawMesh(c.mesh, c.mat, null, { translucent: Math.min(1, (CRATER_S - c.age) / CRATER_FADE_S) });
+      r.drawMesh(c.mesh, c.mat, null, { translucent: intensity * Math.min(1, (CRATER_S - c.age) / CRATER_FADE_S) });
       drew = true;
     }
     return drew;
