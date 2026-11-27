@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Changed: Mine drills no longer stop paying after a day's ore; there is no daily cap on what you haul.
+- Fixed: Gathering and crafting no longer lock out for the rest of the hour after a long session of mining and crafting; the hourly limit on profession actions is six times higher.
 - Changed: POI notices, mod credits, and many other short messages now use plainer wording.
 - Changed: POI editor controls and inspector text use plainer words.
 - Changed: Revenant, home decor, birthsign, growth, collection, and online text uses plainer words.
