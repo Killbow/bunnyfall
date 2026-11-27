@@ -30,7 +30,9 @@ import { isEnhanced } from '../ui/uiSkin.js';   // DSIZE1: the medium size is th
 import { getPref } from '../ui/uiPrefs.js';   // DSIZE1: ...and the player's ask (the `medium-dungeons` row)
 import { isOnlinePage } from '../platform/onlineLane.js';   // AUDIT DELVE E4 / SD-ONLINE: online the quest's stamp is the world's sizes
 import { seededFirst } from '../weather/wind.js';   // SD-ONLINE: the port's one seeded die - a dungeon's online size, the same on every client
-import { dungeonTier } from './dungeonTier.js';   // AUDIT SD: a Hollow, by the one tier law
+import { dungeonTier } from './dungeonTier.js';
+import { withAiRooms, hasAiRooms } from './aiRooms.js';   // BUNNYFALL: AI rooms among a dungeon's blocks (world/aiRooms.js)
+import { AI_STAMP_OFFSET } from './aiRoomLaw.js';   // AUDIT SD: a Hollow, by the one tier law
 
 /** QuestSmallerDungeonsState (DaggerfallUnityEnums.cs:758-763) -
  *  NotSet, DISABLED, ENABLED, in that order. F-B3 (self-audit 2): the
@@ -384,8 +386,9 @@ export function builtDungeonSize(dfLocation) {
 export function smallerDungeonsStamp(dfLocation) {
   // DSIZE1: the build, at its own value - MEDIUM-DISTINCT: and a medium build whose interior block was taken again, at
   // its own, so a save made in the layout that laid it twice (3) is another layout's
-  if (isMediumDungeon(dfLocation)) return dfLocation.dungeon.distinct === true ? MEDIUM_DISTINCT_STAMP : MEDIUM_DUNGEONS_STATE;
-  return isSmallerDungeon(dfLocation) ? SMALLER_DUNGEONS_STATE.Enabled : SMALLER_DUNGEONS_STATE.Disabled;
+  const ai = hasAiRooms(dfLocation) ? AI_STAMP_OFFSET : 0;   // BUNNYFALL: a layout with AI rooms is another layout (needsStartWarp)
+  if (isMediumDungeon(dfLocation)) return (dfLocation.dungeon.distinct === true ? MEDIUM_DISTINCT_STAMP : MEDIUM_DUNGEONS_STATE) + ai;
+  return (isSmallerDungeon(dfLocation) ? SMALLER_DUNGEONS_STATE.Enabled : SMALLER_DUNGEONS_STATE.Disabled) + ai;
 }
 
 /**
@@ -406,8 +409,9 @@ export function needsStartWarp(savedState, dfLocation) {
 /** The one door the hosts use: the location to BUILD, sized by the law. DSIZE1: at any of the three sizes. */
 export function dungeonLocationFor(dfLocation, deps = {}) {
   const size = dungeonSizeFor(dfLocation, deps);
-  if (size === 'small') return generateSmallerDungeon(dfLocation);
-  return size === 'medium' ? generateMediumDungeon(dfLocation) : dfLocation;
+  // BUNNYFALL: AI rooms are a second pass over whatever the size drew (world/aiRooms.js): no draw of DFU's is moved
+  if (size === 'small') return withAiRooms(generateSmallerDungeon(dfLocation));
+  return withAiRooms(size === 'medium' ? generateMediumDungeon(dfLocation) : dfLocation);
 }
 
 /**

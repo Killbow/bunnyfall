@@ -1,0 +1,162 @@
+[
+ {
+  "name": "B7000001.RDB",
+  "title": "Gatehouse",
+  "kind": "border",
+  "index": 910001,
+  "shell": 7100101,
+  "note": "A guard hall where four corridors meet, pillars at the crossing."
+ },
+ {
+  "name": "N7000001.RDB",
+  "title": "Hall of Pillars",
+  "kind": "interior",
+  "index": 910002,
+  "shell": 7100102,
+  "note": "A great hall of columns; the four corridors run into it."
+ },
+ {
+  "name": "B7000002.RDB",
+  "title": "Bone Gallery",
+  "kind": "border",
+  "index": 910003,
+  "shell": 7100103,
+  "note": "A barrow hall, a coffin in every alcove."
+ },
+ {
+  "name": "B7000003.RDB",
+  "title": "Cavern Mouth",
+  "kind": "border",
+  "index": 910004,
+  "shell": 7100104,
+  "note": "Natural rock: a chain of chambers with stalagmites."
+ },
+ {
+  "name": "B7000004.RDB",
+  "title": "Cistern",
+  "kind": "border",
+  "index": 910005,
+  "shell": 7100105,
+  "note": "A round vaulted cistern; the four lower corridors run into it."
+ },
+ {
+  "name": "N7000002.RDB",
+  "title": "Crypt of Niches",
+  "kind": "interior",
+  "index": 910006,
+  "shell": 7100106,
+  "note": "A ring passage round a vault of coffins; one narrow way in."
+ },
+ {
+  "name": "B7000005.RDB",
+  "title": "Ruined Cloister",
+  "kind": "border",
+  "index": 910007,
+  "shell": 7100107,
+  "note": "A square court, columns half down."
+ },
+ {
+  "name": "N7000003.RDB",
+  "title": "Sunken Arena",
+  "kind": "interior",
+  "index": 910008,
+  "shell": 7100108,
+  "note": "A circular fighting floor, a ring of cages and columns on a step above."
+ },
+ {
+  "name": "B7000006.RDB",
+  "title": "Switchback Stair",
+  "kind": "border",
+  "index": 910009,
+  "shell": 7100109,
+  "note": "A double flight down 19.2 m: upper ports N and W, lower ports N, S and E."
+ },
+ {
+  "name": "N7000004.RDB",
+  "title": "Throne Room",
+  "kind": "interior",
+  "index": 910010,
+  "shell": 7100110,
+  "note": "A long hall to a throne on a two-step dais."
+ },
+ {
+  "name": "N7000005.RDB",
+  "title": "Warren",
+  "kind": "interior",
+  "index": 910011,
+  "shell": 7100111,
+  "note": "A maze of crossing passages on a four-cell lattice."
+ },
+ {
+  "name": "N7000006.RDB",
+  "title": "Collapsed Passage",
+  "kind": "interior",
+  "index": 910012,
+  "shell": 7100112,
+  "note": "A tunnel broken into caves, half of it fallen."
+ },
+ {
+  "name": "N7000007.RDB",
+  "title": "Cruciform Chapel",
+  "kind": "interior",
+  "index": 910013,
+  "shell": 7100113,
+  "note": "A high-roofed cross: nave north-south, transept east-west, an altar at the crossing."
+ },
+ {
+  "name": "N7000008.RDB",
+  "title": "Forge Hall",
+  "kind": "interior",
+  "index": 910014,
+  "shell": 7100114,
+  "note": "Braziers burn along a long hall of slab anvils."
+ },
+ {
+  "name": "N7000009.RDB",
+  "title": "Hourglass",
+  "kind": "interior",
+  "index": 910015,
+  "shell": 7100115,
+  "note": "Two round chambers and a narrow neck between them."
+ },
+ {
+  "name": "N7000010.RDB",
+  "title": "Library of Slabs",
+  "kind": "interior",
+  "index": 910016,
+  "shell": 7100116,
+  "note": "Reading stands and slab tables in ordered rows."
+ },
+ {
+  "name": "N7000011.RDB",
+  "title": "Ossuary",
+  "kind": "interior",
+  "index": 910017,
+  "shell": 7100117,
+  "note": "A long low hall, bones heaped on every side."
+ },
+ {
+  "name": "N7000012.RDB",
+  "title": "Pit Hall",
+  "kind": "interior",
+  "index": 910018,
+  "shell": 7100118,
+  "note": "A walled-in pit with its own ramp: the loot is below."
+ },
+ {
+  "name": "N7000013.RDB",
+  "title": "Prison Block",
+  "kind": "interior",
+  "index": 910019,
+  "shell": 7100119,
+  "note": "A cellblock: gated cells off a long passage."
+ },
+ {
+  "name": "N7000014.RDB",
+  "title": "Sump Tunnels",
+  "kind": "interior",
+  "index": 910020,
+  "shell": 7100120,
+  "note": "Low wet tunnels in the rock, the lower corridors all meeting here."
+ }
+]
