@@ -37,7 +37,7 @@ const CSS = `
 `;
 
 /**
- * @param {{ storage: any, doc?: Document, fetch?: typeof fetch }} deps
+ * @param {{ storage: any, doc?: Document, fetch?: typeof globalThis.fetch }} deps
  * @returns {HTMLElement | null} the section, or null when nobody is signed in
  */
 export function tavernPaperdoll({ storage, doc = globalThis.document, fetch = (...a) => globalThis.fetch(.../** @type {[any, any]} */ (a)) }) {

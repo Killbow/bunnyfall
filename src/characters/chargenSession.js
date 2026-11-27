@@ -20,13 +20,14 @@ import { attachFactionRep } from '../guilds/factionRep.js';
 import { createRegionConditions } from '../world/regionConditions.js';
 import { clearWorldDataVariants } from '../world/worldDataVariants.js';
 import { bootstrapRegionPower } from '../guilds/regionPower.js';
-import { LevelingChoiceScreen } from '../ui/levelingChoice.js';
+import { LevelingChoiceScreen, levelingOptions } from '../ui/levelingChoice.js';
 import { oblivionLevelingEnabled, initVirtueLeveling, LEVELING_CLASSIC, newCharacterLevelingSystem } from './oblivionLeveling.js';
 import { isOnlinePage } from '../platform/onlineLane.js';
 import { legacyOn } from '../systems/legacy/settings.js';
-import { legacyModelScreen } from '../ui/legacyModelChoice.js';
+import { legacyModelScreen, legacyModelOptions } from '../ui/legacyModelChoice.js';
 import { contentOn } from '../mods/contentOff.js';
 import { isLegacyChoice } from '../systems/legacy/family.js';
+import { setNames } from './names.js';
 
 export async function loadSpellIndex(fetchBytes) {
   try {
@@ -122,6 +123,7 @@ export function applyCreationExtras(playerEntity, result, spellsByIndex = null, 
 
 export function finishChargen(playerEntity, result, spellsByIndex = null, { rolls = Math.random } = {}) { handHeroGenderToGrammar(playerEntity);
   applyCharacter(playerEntity, result.career, result.careerIndex, result);
+  if (result.firstName) setNames(playerEntity, result.firstName, result.lastName ?? '');   // BUNNYFALL: the tavern ledger's first and last name (characters/names.js)
   if (result.reflexes != null) playerEntity.reflexes = result.reflexes;
   playerEntity.backStory = [...(result.backStory ?? [])];
   applyCreationExtras(playerEntity, result, spellsByIndex, { rolls });
@@ -168,15 +170,26 @@ function chargenWizard(flow, { onDone, onCancel, hudScale = 2 } = {}) {
   return classicChargenWindow(flow, { onDone, onCancel, hudScale });
 }
 
+/** BUNNYFALL (the tavern wizard): the two questions asked after the wizard, and the answers each offers - null when it is
+ *  not asked. The tavern's ledger asks them itself (ui/tavernChargen.js); the result then carries the answer and the
+ *  screen below is skipped. One gate for both, so the ledger and the screens cannot disagree about what is asked. */
+export function creationAsks({ online = isOnlinePage() } = {}) {
+  return {
+    leveling: contentOn('oblivionLeveling') && (oblivionLevelingEnabled() || online) ? levelingOptions(null, { online }) : null,
+    legacy: contentOn('permadeath') && legacyOn() ? legacyModelOptions({ online }) : null,
+  };
+}
+
 function withLevelingChoice(flow, { onDone, onCancel, hudScale = 2 } = {}) {
   const online = isOnlinePage();
+  const { leveling, legacy } = creationAsks({ online });
   const asks = [];
-  if (contentOn('oblivionLeveling') && (oblivionLevelingEnabled() || online)) asks.push((answer) => new LevelingChoiceScreen((id) => answer({ levelingSystem: id }), { online }));
-  if (contentOn('permadeath') && legacyOn()) asks.push((answer) => legacyModelScreen((model) => answer({ legacyModel: model })));
+  if (leveling) asks.push({ key: 'levelingSystem', make: (answer) => new LevelingChoiceScreen((id) => answer({ levelingSystem: id }), { online }) });
+  if (legacy) asks.push({ key: 'legacyModel', make: (answer) => legacyModelScreen((model) => answer({ legacyModel: model })) });
   const unasked = { levelingSystem: LEVELING_CLASSIC };
   if (!asks.length) {
     return chargenWizard(flow, {
-      onCancel, hudScale, onDone: (r) => onDone?.({ ...r, ...unasked }),
+      onCancel, hudScale, onDone: (r) => onDone?.({ ...unasked, ...r }),
     });
   }
   let fired = false;
@@ -185,9 +198,10 @@ function withLevelingChoice(flow, { onDone, onCancel, hudScale = 2 } = {}) {
   let answers = { ...unasked };
   let result = null;
   const next = () => {
+    while (stage < asks.length && result?.[asks[stage].key] !== undefined) { answers = { ...answers, [asks[stage].key]: result[asks[stage].key] }; stage++; }   // the tavern's ledger asked it already
     if (stage >= asks.length) { prompt = null; fired = true; onDone?.({ ...result, ...answers }); return; }
     const i = stage++;
-    prompt = asks[i]((a) => { answers = { ...answers, ...a }; next(); });
+    prompt = asks[i].make((a) => { answers = { ...answers, ...a }; next(); });
   };
   const inner = chargenWizard(flow, {
     hudScale,
@@ -258,7 +272,7 @@ function enhancedChargenOverlay(flow, { onDone, onCancel, hudScale = 2 } = {}) {
     view?.unmount();
     view = null;
     if (why === 'cancel') onCancel?.();
-    else onDone?.(flow.result());
+    else onDone?.({ ...flow.result(), ...(flow.tavernAnswers ?? {}) });   // BUNNYFALL: the tavern ledger's names and answers ride the result
   };
   const host = document.createElement('div');
   host.id = 'enhanced-chargen';

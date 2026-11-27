@@ -64,6 +64,11 @@ import { repaintKeepingScroll } from './domRepaint.js';
 // PX13: the wizard stands on the same living sky as every other
 // enhanced face - drawn by the one module, clocked by this mount.
 import { drawPixelGround } from './pixelGround.js';
+import {   // BUNNYFALL: the tavern wizard's hall, chrome and own stages
+  tavernMemory, skipHidden, tavernBackdrop, aimCamera, tavernChrome, accountLayer as tavernAccount,
+  raceStage as tavernRace, appearanceStage as tavernLook, classMethodStage as tavernClassMethod,
+  bioMethodStage as tavernBioMethod, ledgerStage as tavernLedger,
+} from './tavernChargen.js';
 import { localizedStrings } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { raceDisplayName } from '../talk/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
 
@@ -1650,7 +1655,85 @@ let stagePrimary = null;
 let stageSecondary = null;
 let nameOk = null;   // the name stage's own handle on the bar's button
 
+/** Every stage's renderer, by the flow's state name (one table for both faces of the wizard). */
+const wizardStages = () => ({
+  race: raceStage, gender: genderStage,
+  classMethod: classMethodStage, classQuestions: classQuestionsStage,
+  class: classStage, customClass: customClassStage,
+  bioMethod: bioMethodStage, biography: biographyStage, name: nameStage,
+  face: faceStage, stats: statsStage, skills: skillsStage,
+  reflexes: reflexStage, summary: summaryStage,
+});
+
+/** BUNNYFALL: the tavern wizard (ui/tavernChargen.js) - null for the classic sky face. */
+let tavern = null;
+/** The tavern wizard is the enhanced face; false brings back the sky and the side rail. */
+const TAVERN_WIZARD = true;
+
+/**
+ * BUNNYFALL (2026-11-27): THE TAVERN FACE. The same stages and the same action bar, in Nyx's hall: the hall and its camera
+ * persist across repaints (so the camera glides), and only the layer over it is rebuilt. Homeland, the look, the class
+ * method, the history method and the ledger are the tavern's own; every other stage is this file's, laid on a page.
+ */
+function paintTavern() {
+  if (groundTimer) { clearInterval(groundTimer); groundTimer = null; }
+  for (let i = 0; i < 8 && skipHidden(flow, tavern.mem); i++) { /* the name and face screens, answered for the player */ }
+  if (flow.done) { onExit('done'); return; }
+  if (!tavern.root || tavern.root.parentNode !== host) {
+    host.innerHTML = '';
+    tavern.root = el('div', 'tc-root');
+    tavern.hall = tavernBackdrop(document);
+    tavern.root.append(tavern.hall);
+    host.append(tavern.root);
+  }
+  tavern.layer?.remove();
+  aimCamera(tavern.hall, flow.state);
+  const ctx = { doc: document, flow, mem: tavern.mem, paint, onExit: (why) => onExit(why), loadFaces };
+  if (flow.state !== 'customClass') { classIo = null; classIoNote = null; }
+  stageSecondary = null;
+  stagePrimary = null;
+  nameOk = null;
+  const page = (node, cls = '') => { const w = el('div', `tc-pagewrap ${cls}`.trim()); const wiz = el('div', 'wizard tc-wiz'); const pn = el('div', 'pane'); pn.append(node); wiz.append(pn); w.append(wiz); return w; };   // the look's own wizard dress (Grimoire's parchment) reaches what stands in .wizard
+  const here = stageOf(flow.state);
+  let stage;
+  if (flow.biogRepBox?.length) stage = page(repBoxPane(), 'tc-askwrap');
+  else if (flow.state === 'race') stage = tavernRace(ctx);
+  else if (flow.state === 'gender') stage = tavernLook(ctx);
+  else if (flow.state === 'classMethod') stage = tavernClassMethod(ctx);
+  else if (flow.state === 'bioMethod') stage = tavernBioMethod(ctx);
+  else if (flow.state === 'summary' && !flow.poolBox) { const sum = summaryStage(); stagePrimary = null; stage = tavernLedger(ctx, sum); }
+  else {
+    const draw = wizardStages()[flow.state] ?? (() => pendingStage(STAGE_RAIL[here]));
+    stage = page(draw(), flow.state === 'biography' || flow.state === 'classQuestions' ? 'tc-askwrap' : '');
+  }
+  const bar = el('div', 'actionbar');
+  const back = el('button', 'act', here <= 0 && !flow.raceConfirm ? 'Leave' : 'Back');
+  back.onclick = () => {
+    if (here <= 0 && !flow.raceConfirm && !flow.extraRacesOpen) { onExit('cancel'); return; }
+    flow.input('back');
+    paint();
+  };
+  bar.append(back);
+  if (stageSecondary) { const b2 = el('button', 'act', stageSecondary.label); b2.onclick = stageSecondary.act; bar.append(b2); }
+  if (stagePrimary) {
+    const go = el('button', 'act primary', stagePrimary.label);
+    go.disabled = !!stagePrimary.disabled;
+    go.onclick = stagePrimary.act;
+    bar.append(go);
+    stagePrimary.bind?.(go);
+  }
+  const layer = el('div', 'tc-layer');
+  const main = el('main', 'tc-main');
+  main.append(stage);
+  layer.append(tavernChrome(document, flow), main, bar);
+  const acct = tavernAccount(ctx);
+  if (acct) layer.append(acct);
+  tavern.root.append(layer);
+  tavern.layer = layer;
+}
+
 function paintInto() {
+  if (tavern) { paintTavern(); return; }
   if (groundTimer) { clearInterval(groundTimer); groundTimer = null; }
   host.innerHTML = '';
   // PX13: the sky behind the walk - same drawPixelGround, same 8fps
@@ -1718,14 +1801,7 @@ function paintInto() {
   // questions and the custom-class builder - and both are reached from
   // THIS screen's own buttons, so the fallback pane below was a door
   // drawn onto nothing rather than a stage waiting its turn.
-  const STAGES = {
-    race: raceStage, gender: genderStage,
-    classMethod: classMethodStage, classQuestions: classQuestionsStage,
-    class: classStage, customClass: customClassStage,
-    bioMethod: bioMethodStage, biography: biographyStage, name: nameStage,
-    face: faceStage, stats: statsStage, skills: skillsStage,
-    reflexes: reflexStage, summary: summaryStage,
-  };
+  const STAGES = wizardStages();
   if (flow.state !== 'customClass') { classIo = null; classIoNote = null; }   // UXB1-H: the card is the builder's, and leaves with it
   stageSecondary = null;   // UI-CALM: the bar's quieter press, cleared with its primary
   stagePrimary = null;
@@ -1912,6 +1988,7 @@ export function mountEnhancedChargen(hostEl, {
   host = hostEl;
   flow = muteConstellation(f);
   onExit = exit;
+  tavern = TAVERN_WIZARD ? { mem: tavernMemory(), root: null, hall: null, layer: null } : null;   // BUNNYFALL: Nyx's hall
   loadFaces = faceLoader;
   faces = null;
   hover = null;
@@ -1945,6 +2022,7 @@ export function mountEnhancedChargen(hostEl, {
       keyHandler = null;
       lockHandler = null;
       hostEl.innerHTML = '';
+      tavern = null;
       delete globalThis.__chargen;
     },
   };
