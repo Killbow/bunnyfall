@@ -1,5 +1,6 @@
 // Player melee, ported from DFU WeaponManager.cs and FormulaHelper.cs: reach, the hit rule, swing modifiers,
 // the two hands, and the drag gesture.
+import { playBasicImpact } from '../audio/abilitySfx.js';
 import { abilityMayStrike, applyEdgeRitual, localAbilityActor, previewDamage } from './abilities/previewHits.js';
 import { createWeaponMachine, machineAttack, machineStep, gestureDirection, strikeTicks, getMeleeWeaponAnimTime, MAX_GESTURE_SECONDS, BOW_DRAWN_HOLD_FRAME, machineCancelBowDraw, CLASSIC_UPDATE_INTERVAL, blowSchedule } from '../characters/weaponStates.js';
 import { DIRECTION_TO_STRIKE, ATTACKS_FP, sampleClip } from '../characters/anims.js';
@@ -406,6 +407,7 @@ export class PlayerWeapon {
         : techOn(foe) ? scaleBlowDamage(rolled, blowMult(tb, foe)) : rolled;
       if (!tb?.ability && techOn(foe)) tellTechniqueLanded(tb, foe, blow);
       const damage = applyEdgeRitual(playerCombat, this.strikingWeapon, foe, blow);
+      if (damage > 0 && !tb && !playerBody(foe)) playBasicImpact(this.strikingWeapon);
       if (damage > 0) tb?.noteDamage?.(foe);
       results.push({ foe, damage });
       this.onAttackResult?.({ foe, damage });

@@ -1,3 +1,4 @@
+import { abilitiesEnabled } from '../combat/abilities/progress.js';
 import { audio } from './audio.js';
 import { enhancedSoundsOn } from './enhancedSounds.js';
 import { abilityArt } from '../combat/abilities/abilityArt.js';
@@ -118,4 +119,20 @@ export function playAbilitySfx(id, moment) {
   if (shape.crackle && voice.crackle) crackle(c, out, now, voice, shape.crackle);
   setTimeout(() => { try { out.disconnect(); } catch { } }, 1500);
   return true;
+}
+
+// Layer a short contact transient underneath the weapon's normal hit sample.
+export function playBasicImpact(weapon, ranged = false) {
+  const c = audio.ctx;
+  if (!c || c.state !== 'running' || !audio.enabled || !abilitiesEnabled() || !enhancedSoundsOn()) return;
+  const now = c.currentTime;
+  if (now - (last.get('basic-impact') ?? -1) < MIN_GAP_S) return;
+  const bus = audio._out?.();
+  if (!bus) return;
+  last.set('basic-impact', now);
+  const weight = Math.min(1, Math.max(0, (weapon?.weightInKg ?? 2) / 8));
+  const pitch = ranged ? 145 : weapon ? 110 - 35 * weight : 85;
+  thud(c, bus, now, { pitch, body: 1 }, ranged ? .11 : .18, ranged ? .08 : .14 + .04 * weight);
+  whoosh(c, bus, now, ranged ? VOICES.leaf : VOICES.shadow,
+    { level: ranged ? .07 : .10, length: .045, from: 1.7, to: .65 });
 }
