@@ -1,17 +1,12 @@
 // @ts-check
-// The harbors found before a sailing cabin visit, reused on the way out when the boat and the world have not moved.
-// The street stays loaded while the player is in the cabin.
-
 export const CABIN_BOAT_DRIFT_M = 1;
 
-/**
- * @param {{ clear: () => void, place: (uid: any) => ({ pixel: number[], origin: number[], boat: number[] | null }) }} deps
- */
+/** @param {{ clear: () => void, place: (uid: any) => ({ pixel: number[], origin: number[], boat: number[] | null }) }} deps */
 export function createCabinHarbours(deps) {
   let held = null;
   const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   return {
-    /** @param {any} uid the boat whose cabin the player is entering */
+    /** @param {any} uid */
     enter(uid) { held = { uid, at: deps.place(uid) }; },
     cancel() { held = null; },
     transition(door = null) {

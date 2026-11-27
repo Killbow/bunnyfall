@@ -16,6 +16,7 @@ files:
   - src/render/enhancedLighting.js
   - spire.html
   - tools/spireLabProbe.mjs
+  - src/world/eliteGates/egGround.js
 routes: []
 tables: []
 replacesBible:
@@ -37,6 +38,8 @@ traps:
   - "`EL_DUNGEON_AMBIENT_SCALE` is 0.35 (`src/render/enhancedLighting.js`), not 1/3."
   - "Telegraphs, edge lines, and white hazards keep their fog floor under every band's fog. Never tint them from `EG_ATMOS`."
   - "Code comments cite `world/superDungeon/...` and `scenes/eliteGates/...` paths that do not exist; the real files are under `src/world/` and `src/systems/eliteGates/`."
+  - "`EG_VIGNETTE_BOX` (0.4, 1.0, 1.4) in `egGround.js` is repeated as literals in `egCircleColliderTris` (`src/world/eliteGates/egHall.js`); change both together."
+  - "`egFogKept` and the GLSL `uFogFloor` smoothstep in `src/render/gateTelegraph.js`, `src/render/sdStepsPass.js`, and `src/render/eliteGates/egLinePass.js` compute the same fog floor curve; change them together."
 dfu: []
 tags:
   - elite-gates

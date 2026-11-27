@@ -29,6 +29,7 @@ invariants:
 traps:
   - "Running `mendRevenantLairs` before `ensureMirror` allows the incoming mirror snapshot to overwrite repaired lair coordinates."
   - "If no enterable dungeon exists within `20` px, a Dread revenant retains its original lair while any other revenant clears `lair = null`, `lairKnown = false`, and `trail = 0`."
+  - "`blocksPlaceEntrance` returns null when a model mesh cannot be read, and `enterable` treats null as enterable, so a place the host cannot lay or read stays a lair."
 dfu: []
 tags:
   - "revenants"

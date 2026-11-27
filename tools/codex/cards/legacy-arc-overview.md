@@ -34,9 +34,11 @@ invariants:
   - "A family record outlives individual saves: offline under `FAMILY_KEY_PREFIX` (`dagger.legacy.family.`), online in `lineages` keyed by (`player`, `id`) with `LINEAGE_ID_RE` ids."
   - "Online lineage records are capped at `LINEAGE_MAX_BYTES` (`128 KiB`), `LINEAGE_PEOPLE_MAX` (`400`) people, and `LINEAGES_MAX` (`40`) lines per account."
   - "`realm_characters` links a character to its line through `lineage_id` and `person_id`, unique per (`player`, `lineage_id`, `person_id`)."
+  - "The device store owns world facts such as deaths and tolls, while a save owns what its character was given, so `mergeFamily` rewinds only those grants on reload."
 traps:
   - "`putLineage` writes with a `base` revision; merging client copies must go through `mergeFacts` and `mergeFamily` rather than overwriting, or concurrent tabs drop members."
   - "A character with no line shows no Family tab; never assume a family exists for `NO_LINEAGE` saves."
+  - "`revived.js` identifies a revived death by its minute alone, so `onDeath` stamps each new death at least one minute after any revived one."
 dfu: []
 tags:
   - legacy

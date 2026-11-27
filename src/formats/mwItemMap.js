@@ -634,8 +634,8 @@ export function composeWornArmor({ pieces, armors, clothes, bodyPool, female = f
       const o = ownOutfitFor(piece.id);
       // each note opens with its piece's label, `outfit <id>:` - the card's rows find a piece's reason by it
       // (fpArm.js wornVerdicts), so it stands outside the player's language as every label does; the rest is theirs
-      if (!o) { notes.push(`outfit ${piece.id}: ${t('body.outfit.unknown', 'no outfit the port carries')}`); continue; }
-      if (outfitAdd) { notes.push(`outfit ${o.id}: ${t('body.outfit.second', 'a second outfit - the first ({first}) is the one drawn', { first: outfitAdd.recordId })}`); continue; }
+      if (!o) { notes.push(`outfit ${piece.id}: ${t('body.outfit.unknown', 'unknown outfit')}`); continue; }
+      if (outfitAdd) { notes.push(`outfit ${o.id}: ${t('body.outfit.second', 'second outfit skipped; only {first} is rendered', { first: outfitAdd.recordId })}`); continue; }
       const prio = ((0 + 1) << 1) + 0;
       outfitAdd = { slot: `outfit (${o.id})`, partName: 'outfit', bones: [], model: o.model, recordId: o.id, piece, hides: o.hides };
       for (const h of o.hides) claim(ARMO_PART.findIndex((r) => r.name === h), prio, null, outfitAdd);
@@ -805,10 +805,10 @@ const PRT_SHIELD = 10;
 export const BEAST_WEAR_WORN = Object.freeze({ feet: 'worn', helm: 'worn' });
 const BEAST_FEET = new Set(['right foot', 'left foot']);
 // each cut's note: its piece's label before it stands outside the player's language, as every label does
-const beastRefused = (id) => t('body.beast.helm', '{id} covers the head - a beast race wears no closed helm', { id });
-const beastBared = (id) => t('body.beast.feet', '{id} - a beast race\'s feet stay bare', { id });
-const beastNoFootwear = (id) => t('body.beast.noFootwear', '{id} - a beast race wears no footwear', { id });
-const beastNoHelm = () => t('body.beast.noHelm', 'a beast race wears no helmet');
+const beastRefused = (id) => t('body.beast.helm', '{id} covers the head (beast races cannot wear closed helms)', { id });
+const beastBared = (id) => t('body.beast.feet', '{id}: beast feet remain bare', { id });
+const beastNoFootwear = (id) => t('body.beast.noFootwear', '{id}: beast races cannot wear footwear', { id });
+const beastNoHelm = () => t('body.beast.noHelm', 'beast races cannot wear helmets');
 
 /** BEAST-BOOTS: what a beast race's figure draws of one ARMO/CLOT record under `wear` (BEAST_WEAR_WORN's shape) -
  *  `refused` 'helm' (a head part, helmets not worn) or 'feet' (a foot part, footwear hidden), else `rec`, without its

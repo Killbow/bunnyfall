@@ -1,31 +1,5 @@
 // @ts-check
-// THE ORDERED DITHER'S WORLD-FIXED CELL - what remains of the retro
-// pass after FT3.
-//
-// FT3 (2026-09-14, Mac: "Remove our version of pixelated sky"): the
-// port's pixelated sky - ES1e's angular pixel and 26-level posterise
-// over the dome, PS2's copy of it over the volumetric clouds' composite
-// and Dynamic Skies' skybox, PS1's switch, the `?sky=retro`/`?sky=smooth`
-// doors - is GONE, root and branch. This file was `retroPixel.js`, the
-// pass's shared GLSL; two of its functions outlive it because PS3's
-// dither over Dynamic Skies' own REDUCE_COLOR reads them: `ringSnap`
-// (the ring grid ES1g built, used now only to name a world-fixed cell a
-// third of a degree across) and `bayer4` (the ordered pattern). The
-// mod's colour reduction is the mod's own; the dither on it is the
-// port's fix for its progressing circles (PS3), not a pixelation.
-//
-// ringSnap's ring grid: rows of constant elevation one stepRad tall,
-// each holding as many cells as fit at one stepRad wide, the count
-// rounded to a multiple of four so the 4x4 dither never dislocates
-// across the azimuth wrap. No faces, so no edge; the ring count falls
-// toward the pole, so no pinwheel. cellOut is CONTINUOUS (AUDIT 39
-// F53's law): floor() is the cell's id and fract() is where the
-// fragment sits inside it.
 
-/** ringSnap(dir, stepRad, cellOut) and bayer4(p). */
-/** EL6: THE BAYER FUNCTION ALONE - what the lane's encodes, the resolve
- *  and the AO's rotation take (one home: this is the port's only bayer4).
- *  Zero-mean use is bayer4(p) - BAYER_MEAN. */
 export const BAYER_GLSL = `
 // Bayer 4x4, the ordered dither a 256-colour gradient used.
 // LA-COST4 (2026-09-27, Mac: "performance improvements"): THE MATRIX BY ITS BITS, NOT BY A TABLE. This built a
@@ -41,12 +15,7 @@ float bayer4(vec2 p) {
 }
 `;
 
-/** SHIP-FADE (2026-10-02, Mac: "If theyre going out to open sea, they should fade away"): A THING FADING IN OR OUT OF THE
- *  WORLD - a ship of the sea's - keeps a fragment where bayer4's threshold over the screen's 4x4 tile stands under its
- *  share (exactly k of 16 kept at k/16: no blending, no sorting, the depth written as any opaque's). The uniform is the
- *  share CUT, `uDissolveCut`, so nought - every uniform's own start - is whole: a program needs no word to draw all of
- *  everything, and the branch is never taken but about a fading ship's draws (renderer.js setDissolve). Wants
- *  BAYER_GLSL above it; the mesh shaders call dissolveCut() after their slice. */
+// A cut of 0, the uniform's default, draws everything. Needs BAYER_GLSL above it.
 export const DISSOLVE_GLSL = `
 uniform float uDissolveCut;
 void dissolveCut() {
@@ -88,15 +57,10 @@ vec3 ringSnap(vec3 dir, float stepRad, out vec2 cellOut) {
 
 ${BAYER_GLSL}`;
 
-/** bayer4's mean is 7.5/16, so `bayer4(p) - 0.5` is biased low by 1/32 of
- *  a step. Anything that must not move a quantizer's MEAN subtracts this
- *  instead. */
+// bayer4's mean is 7.5/16, so code that must keep a quantizer's mean subtracts this rather than 0.5.
 export const BAYER_MEAN = 0.46875;
 
-/** SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md "The pixel law"): THE HOUR'S SHADER SURFACES AS PIXEL
- *  ART - `sdPixel(c, cell, steps)` posterizes a display colour's brightness (its brightest channel, so its hue holds) to
- *  `steps` levels through the ordered dither at the integer `cell` (a texel of the surface's own grid, never the screen's
- *  pixel - a surface snapped to its texels dithers as one). Needs BAYER_GLSL beside it. */
+// Needs BAYER_GLSL beside it. `cell` is a texel of the surface's own grid, not a screen pixel.
 export const SD_PIXEL_GLSL = `
 vec3 sdPixel(vec3 c, vec2 cell, float steps) {
   float l = max(max(c.r, c.g), c.b);

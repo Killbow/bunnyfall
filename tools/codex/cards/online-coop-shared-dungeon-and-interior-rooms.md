@@ -15,6 +15,7 @@ files:
   - src/items/roomLoot.js
   - src/items/roomLootHost.js
   - src/items/claimLedger.js
+  - src/world/interiorRoomLoot.js
 routes: []
 tables: []
 replacesBible:
@@ -33,6 +34,7 @@ invariants:
 traps:
   - "Owned houses and ships never mint a shared interior room (buildingKey 0), which keeps their storage per-player."
   - "Apply stored room loot only after asynchronous enemy retyping completes, or level-mismatched corpses duplicate gold."
+  - "Building cupboard words carry `d` equal to `g` and no `r`, so an older build passes its day check, reads no list, and marks the cupboard unreadable instead of overwriting it."
 dfu: []
 tags:
   - dungeon

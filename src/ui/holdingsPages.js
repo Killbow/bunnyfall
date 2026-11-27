@@ -271,9 +271,9 @@ export const wagonMeterTone = (w) => (w.wearSlows === false && w.stateKey === 'f
 /** WAGON-TIERS: Boons' words - a worn-down wagon rolls at its pace (the yard's price follows, mendLine), and a Sound one
  *  rolls faster for it. */
 const WAGON_ADVICE_BOONS = Object.freeze({   // in the player's language (L10N4's ratchet), read as it is shown
-  get rickety() { return t('holdings.wagon.boons.rickety', 'Rickety, but it still rolls at full pace.'); },
-  get failing() { return t('holdings.wagon.boons.failing', 'Failing, but it still rolls at full pace.'); },
-  get sound() { return t('holdings.wagon.boons.sound', 'Sound, and it rolls faster for it.'); },   // Mac: "Sound wagon rolls faster"
+  get rickety() { return t('holdings.wagon.boons.rickety', 'Rickety, but it still travels at full speed.'); },
+  get failing() { return t('holdings.wagon.boons.failing', 'Failing, but it still travels at full speed.'); },
+  get sound() { return t('holdings.wagon.boons.sound', 'Sound, so it travels faster.'); },   // Mac: "Sound wagon rolls faster"
 });
 /** STEED-UI: what a Wagon Yard asks to make it whole - at the yard, and with its wright going out to it. */
 export const mendLine = (w) => (w.mend > 0 ? `A Wagon Yard repairs it fully for ${w.mend} gold, or ${w.mendAway} if its wright must travel to it.` : 'A town’s Wagon Yard mends it.');

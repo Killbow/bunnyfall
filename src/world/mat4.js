@@ -1,11 +1,7 @@
-// Minimal column-major 4x4 matrix math for world assembly.
-// TRS matches Unity's Matrix4x4.TRS with Quaternion.Euler semantics: rotation
-// applied in Z, then X, then Y order (R = Ry * Rx * Rz), degrees in, and
-// matrices compose parent * child. This is the contract RMBLayout's verbatim
-// placement formulas assume.
+// Column-major 4x4 matrices. `trs` matches Unity Matrix4x4.TRS with Quaternion.Euler: degrees in, R = Ry * Rx * Rz,
+// and parent * child composition, which the RMB layout formulas assume.
 
 export function identity() {
-  // prettier-ignore
   return new Float32Array([
     1, 0, 0, 0,
     0, 1, 0, 0,
@@ -14,34 +10,11 @@ export function identity() {
   ]);
 }
 
-/** EV2: the billboard up axis, ONE array for the whole program. It
- *  was `new Float32Array([0, 1, 0])` at twenty-two call sites, most
- *  of them per-frame in draw loops. Read-only by convention - every
- *  consumer treats an up axis as a constant. */
+// One shared up axis for every caller; never write to it.
 export const UP_Y = new Float32Array([0, 1, 0]);
 
-/** ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
- *  online"): WRAP AN ANGLE TO (-PI, PI], IN ONE STEP.
- *
- *  This is the port's one wrap, moved here from player/lockOn.js, where
- *  it could not be reached by the four sites that had hand-rolled it as
- *  a LOOP:
- *
- *      while (d >  Math.PI) d -= 2 * Math.PI;
- *      while (d < -Math.PI) d += 2 * Math.PI;
- *
- *  A loop is the same answer for a small angle and a NON-TERMINATING
- *  one for a large: at 1e300, `d - 2 * Math.PI === d` in IEEE doubles,
- *  so the condition never falls and the tab hangs until the browser
- *  kills it. Two of those four sites are fed an angle STRAIGHT OFF THE
- *  WIRE - net/online.js eases a peer's yaw, net/peer/peerBodies.js turns its
- *  rig by it - so one player's yaw was enough to freeze every other
- *  player in the room. `%` is exact on doubles, so this answers in one
- *  step for any finite input. NaN in, NaN out: the callers that take
- *  wire data check `Number.isFinite` at their own door (net/wire.js).
- *
- *  It lives in the math module and not beside a caller because the
- *  three callers that did not know lockOn.js existed are the defect. */
+// Uses `%` and not a loop, because a large wire-fed angle never leaves a subtract loop in doubles. NaN returns NaN,
+// so callers with wire data check `Number.isFinite`.
 export function wrapAngle(a) {
   let r = a % (2 * Math.PI);
   if (r > Math.PI) r -= 2 * Math.PI;
@@ -49,17 +22,10 @@ export function wrapAngle(a) {
   return r;
 }
 
-/** EV2: multiply's scratch, module-level. The old body allocated a
- *  fresh Float32Array(16) on EVERY call - even with `out` supplied -
- *  and multiply runs once per model per frame in the streaming host,
- *  so the render loop minted ~10^3 typed arrays a frame and the GC
- *  spikes rode the judder. multiply is never re-entrant (no caller
- *  calls it from inside it), so one scratch serves; it still exists
- *  at all because `out` may ALIAS a or b, and writing out in place
- *  would corrupt the inputs mid-product. */
+// One module scratch, because `out` may alias `a` or `b`; `multiply` must never call itself.
 const _mulScratch = new Float32Array(16);
 
-/** out = a * b (apply b first, then a). May alias out with a or b. */
+// Computes a * b, so b applies first; `out` may alias `a` or `b`.
 export function multiply(a, b, out = new Float32Array(16)) {
   const r = _mulScratch;
   for (let col = 0; col < 4; col++) {
@@ -75,9 +41,6 @@ export function multiply(a, b, out = new Float32Array(16)) {
 
 const DEG2RAD = Math.PI / 180;
 
-/**
- * Translation * Rotation(euler degrees, Unity ZXY order) * Scale.
- */
 export function trs(tx, ty, tz, rxDeg, ryDeg, rzDeg, sx = 1, sy = 1, sz = 1) {
   const rx = rxDeg * DEG2RAD;
   const ry = ryDeg * DEG2RAD;
@@ -86,7 +49,6 @@ export function trs(tx, ty, tz, rxDeg, ryDeg, rzDeg, sx = 1, sy = 1, sz = 1) {
   const cy = Math.cos(ry), syn = Math.sin(ry);
   const cz = Math.cos(rz), szn = Math.sin(rz);
 
-  // R = Ry * Rx * Rz
   const r00 = cy * cz + syn * sxn * szn;
   const r01 = -cy * szn + syn * sxn * cz;
   const r02 = syn * cx;
@@ -97,7 +59,6 @@ export function trs(tx, ty, tz, rxDeg, ryDeg, rzDeg, sx = 1, sy = 1, sz = 1) {
   const r21 = syn * szn + cy * sxn * cz;
   const r22 = cy * cx;
 
-  // prettier-ignore
   return new Float32Array([
     r00 * sx, r10 * sx, r20 * sx, 0,
     r01 * sy, r11 * sy, r21 * sy, 0,
@@ -106,13 +67,10 @@ export function trs(tx, ty, tz, rxDeg, ryDeg, rzDeg, sx = 1, sy = 1, sz = 1) {
   ]);
 }
 
-/** Rotation matrix (column-major, no translation) from a unit
- *  quaternion [x, y, z, w] - Unity's component order, the standard
- *  formula, so a prefab's m_LocalRotation is usable verbatim. */
+// Takes a unit quaternion in Unity component order [x, y, z, w], so a prefab `m_LocalRotation` passes in unchanged.
 export function quatToMat4([x, y, z, w]) {
   const xx = x * x, yy = y * y, zz = z * z;
   const xy = x * y, xz = x * z, yz = y * z, wx = w * x, wy = w * y, wz = w * z;
-  // prettier-ignore
   return new Float32Array([
     1 - 2 * (yy + zz), 2 * (xy + wz),     2 * (xz - wy),     0,
     2 * (xy - wz),     1 - 2 * (xx + zz), 2 * (yz + wx),     0,
@@ -121,7 +79,6 @@ export function quatToMat4([x, y, z, w]) {
   ]);
 }
 
-/** Transform point (x,y,z,1) by m; returns [x,y,z]. */
 export function transformPoint(m, x, y, z) {
   return [
     m[0] * x + m[4] * y + m[8] * z + m[12],
@@ -130,7 +87,6 @@ export function transformPoint(m, x, y, z) {
   ];
 }
 
-/** Right-handed perspective projection (GL clip space). */
 export function perspective(fovYRad, aspect, near, far) {
   const f = 1 / Math.tan(fovYRad / 2);
   const out = new Float32Array(16);
@@ -142,34 +98,11 @@ export function perspective(fovYRad, aspect, near, far) {
   return out;
 }
 
-/** Right-handed lookAt view matrix. */
-/** THE HANDEDNESS LAW (Mac's playtest: "signage is inverted").
- *
- *  The world DATA is Daggerfall Unity's, verbatim - x east, y up,
- *  z north, LEFT-handed (the layout math in rmbLayout/rdbLayout is a
- *  1:1 translation). The RIGHT-handed lookAt below then puts world +x
- *  on screen-LEFT, so the port has presented the MIRROR IMAGE of
- *  classic since M1: every town flipped east-west, every sign and
- *  wall text reading backwards, every sprite's handedness swapped -
- *  and the whole input layer (yaw sign, strafe sign, fly right) was
- *  tuned against the mirror, so it PLAYED correctly and only text
- *  could tell. (The motor even carried a comment proving the old
- *  screen side from the projection and reverting a prior fix - the
- *  proof was true, the convention it proved was the mirror.)
- *
- *  The fix is ONE mirror at the projection: negate the NDC x row.
- *  Screen x flips for every world pass at once - meshes, billboards,
- *  missiles, precipitation - and with it world +x lands screen-RIGHT,
- *  Unity's own presentation of the same data. Consequences, each at
- *  its site: triangle winding flips on screen (renderer init sets
- *  frontFace(CW)); the input signs flip back to Unity's (yaw += dx,
- *  strafe/fly right = (cos, -sin)); the billboard camRight and the
- *  sky's screen ray were ALREADY written to this convention and
- *  simply stop mismatching. The FP viewmodel keeps its own unmirrored
- *  perspective (its pass never culls). */
+// World data is left-handed, so negating the NDC x row puts world +x on screen right. This flips screen winding
+// (the renderer uses `frontFace(CW)`) and the input signs.
 export function mirrorProjectionX(m) {
   m[0] = -m[0];
-  m[8] = -m[8];   // col2row0 - zero for this perspective, kept general
+  m[8] = -m[8];
   return m;
 }
 
@@ -181,7 +114,6 @@ export function lookAt(eye, center, up) {
   const xl = Math.hypot(x[0], x[1], x[2]);
   x[0] /= xl; x[1] /= xl; x[2] /= xl;
   const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
-  // prettier-ignore
   return new Float32Array([
     x[0], y[0], z[0], 0,
     x[1], y[1], z[1], 0,

@@ -1,32 +1,4 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// LW3 - THE ROAD'S PEOPLE, SEEN (bible/06-Systems/Living-World.md).
-//
-// Each member of a party on the road (systems/livingWorld/trips.js) as a billboard: one walking ARMED (an adventurer, a
-// caravan's sellsword, a courier - LW0 decision 5) in their class's eight-way sprite, the enemy's own MobileUnit on the
-// class archive (the bands' body, world/bandSprites.js); the rest in their own townsperson's outfit, the walker's
-// billboard (characters/residentWalker.js - the street's records on the outfit's archive). Faded in by distance as the
-// bands are, and grown under the Overworld. Where each stands is the roads' (scenes/livingWorld/livingRoads.js); this draws, and
-// answers each drawn body as a talk target (the street's own shape: `nameNPC`, `personFaceRecordId`, `_talkSeed`).
-//
-// EVERY ALLOCATION HAS AN OWNER: a body's billboard batch is made with it and freed when it leaves the list, and
-// `clear()` frees them all (the host's teardown and every frame outside the open world).
-//
-// LW4: THE ROAD'S TROUBLE, SEEN. A body can STRIKE (an armed member or a foe, the unit's own attack on the edge the
-// roads hand it), stand as no talk target (a foe: `talk: false`), or be a FLAT - a still picture (`flat: { archive,
-// record }`: the fallen, on the class corpse's own record) on the same batch law.
-//
-// LW-LOOKS: A RESIDENT'S STILL PICTURE (systems/livingWorld/looks.js - a courtier at home in the palace) is a flat too,
-// and a talk target in the street's shape as any resident is (the fallen, `talk: false`, none); its frames animated on
-// the game's own billboard clock (render/flatAnimation.js FlatAnim) as Daggerfall's still people are.
-//
-// MWNPC10c (bible/04-Characters/Morrowind-NPCs.md section 15c): EACH BODY ON THE GROUND IN ITS MORROWIND BODY, on a lane
-// of the host's own (`laneName`: the roads', a room's) - dressed as its sprite shows it (characters/rosterBodies.js
-// residentLook: a class's sprite its class's look and blade, a still picture its kind's garments, the rest their own
-// outfit), walking as it walks, each strike begun a blow, the fallen dead; offered by `drawBodies` before the host's
-// billboard pass draws the sprites (cast-only where a body stands). Never under the Overworld: the bands' grown,
-// fading sprites are the far view's.
-// ═══════════════════════════════════════════════════════════════════
 import { MobileUnit } from '../characters/mobileUnit.js';
 import { ENEMY_BASICS } from '../characters/enemyBasics.js';
 import { ResidentWalker } from '../characters/residentWalker.js';
@@ -34,16 +6,13 @@ import { mobileBillboardSize } from './rmbFlats.js';
 import { bandSpriteReach, stepBandAlpha, BAND_SPRITE_FAR_M } from './bandSprites.js';
 import { lwSeed, textSeed } from '../systems/livingWorld/seed.js';
 import { FlatAnim } from '../render/flatAnimation.js';
-import { createPopulationLane } from '../characters/npcBodies.js'; import { residentLook, rosterActor } from '../characters/rosterBodies.js';   // MWNPC10c
+import { createPopulationLane } from '../characters/npcBodies.js'; import { residentLook, rosterActor } from '../characters/rosterBodies.js';
 
-/** Under the Overworld a body past this (m) is not drawn - the bands' own far edge, the same fade. */
 export const TRAVELLER_FAR_M = BAND_SPRITE_FAR_M;
-/** Below this opacity nothing is drawn. */
 const ALPHA_MIN = 0.02;
-/** The renderer's blended pass, plain (render/renderer.js uConceal). */
 const PLAIN_BLEND_MODE = 3;
 
-/** A resident's class sprite: the class's basics and its archive by their sex, or null (no class, no art). @param {any} res */
+/** @param {any} res */
 export function classLookOf(res) {
   const basics = res?.cls != null ? ENEMY_BASICS[res.cls] : null;
   if (!basics) return null;
@@ -53,18 +22,13 @@ export function classLookOf(res) {
 
 /**
  * @param {{ renderer: any, getTexture: (archive: number) => Promise<any>, uploadRecordFrame: (archive: number, record: number, frame: number) => void,
- *   living?: any, laneName?: string, wantBodies?: () => boolean, makeBodies?: (() => any) | null }} deps - `living` the
- *   handle each talk target carries (`person.living.town`: the roads' refusal and noted word); MWNPC10c `laneName` the
- *   body lane's, `wantBodies` / `makeBodies` its seams
+ *   living?: any, laneName?: string, wantBodies?: () => boolean, makeBodies?: (() => any) | null }} deps
  */
 export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame, living = null, laneName = 'roads', wantBodies = undefined, makeBodies = null }) {
-  const bodiesLane = createPopulationLane({ laneName, renderer, ...(wantBodies ? { want: wantBodies } : {}), make: makeBodies });   // MWNPC10c: their Morrowind bodies
-  /** MWNPC10c: the bodies drawn at the last sync, and whether it stood them on the ground */
+  const bodiesLane = createPopulationLane({ laneName, renderer, ...(wantBodies ? { want: wantBodies } : {}), make: makeBodies });
   const shown = [];
   let _ground = false, _ids = 0;
-  /** archive -> texture | null (failed) | Promise (loading) */
   const texs = new Map();
-  /** key -> its body */
   const bodies = new Map();
   const drawn = [];
   /** @type {{ person: any, pos: number[] }[]} */
@@ -83,10 +47,8 @@ export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame
     bodies.delete(key);
   }
 
-  /** A body for a resident: armed in their class's sprite where they have one, else their own outfit - LW-LOOKS: or their
-   *  still picture, a talk target where it is one (`talk`). */
   function make(res, tex, look, flat = null, talk = true) {
-    const talkSeed = lwSeed(textSeed(res.id), 0x74616c6b) & 0x7fffffff;   // 'talk': the town's own seed for them
+    const talkSeed = lwSeed(textSeed(res.id), 0x74616c6b) & 0x7fffffff;
     if (flat) {
       const person = talk ? { nameNPC: res.name, personFaceRecordId: res.face, _talkSeed: talkSeed, living: { id: res.id, res, town: living },
         pos: [0, 0, 0], facingYaw: 0, guard: false, archive: flat.archive, pickpocketAttempted: false } : null;
@@ -98,7 +60,7 @@ export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame
         pos: [0, 0, 0], facingYaw: 0, guard: false, archive: look.archive, pickpocketAttempted: false };
       return { res, archive: look.archive, tex, unit, walker: null, person, flat: null, batch: null, alpha: 0 };
     }
-    const archive = res.civvies ?? res.archive;   // WATCH-DAY: one of the watch here is off duty, in his own clothes (sync's own read)
+    const archive = res.civvies ?? res.archive;
     const walker = new ResidentWalker({}, { archive, frameCount: (rec) => tex.getFrameCount(rec), groundY: () => 0 });
     walker.nameNPC = res.name; walker.personFaceRecordId = res.face; walker._talkSeed = talkSeed;
     walker.living = { id: res.id, res, town: living };
@@ -106,37 +68,31 @@ export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame
   }
 
   /**
-   * One frame. `list`: [{ key, res, feet: [x,y,z] (scene), yaw, moving, distM }]; `eye` the frame's eye; `grow` the
-   * Overworld's (1 on the ground); `fade` the view's blend (1 on the ground); `near` the distance whole inside (m) - on
-   * the ground the bodies stand whole to the list's own edge.
-   * LW4: `striking` the edge an armed body's attack begins on; `talk: false` no talk target (a foe); `flat` a still
-   * picture's archive and record (the fallen).
    * @param {Array<{ key: string, res: any, feet: number[], yaw: number, moving: boolean, distM: number, striking?: boolean, talk?: boolean, flat?: { archive: number, record: number } | null, body?: boolean }>} list
    * @param {{ dt?: number, eye?: number[]|null, grow?: number, fade?: number, ground?: boolean }} [o]
    */
   function sync(list, { dt = 0, eye = null, grow = 1, fade = 1, ground = true } = {}) {
     drawn.length = 0;
     seats.length = 0;
-    shown.length = 0; _ground = !!ground;   // MWNPC10c
+    shown.length = 0; _ground = !!ground;
     const seen = new Set();
     for (const m of list ?? []) {
       if (!m?.feet || !m.res) continue;
       const flat = m.flat ?? null;
       const look = flat ? null : classLookOf(m.res);
-      const archive = flat ? flat.archive : look ? look.archive : (m.res.civvies ?? m.res.archive);   // WATCH-DAY: a watchman off duty in his own clothes
+      const archive = flat ? flat.archive : look ? look.archive : (m.res.civvies ?? m.res.archive);
       const tex = texOf(archive);
-      if (!tex || typeof tex.then === 'function') continue;   // loading, or no art: not yet
+      if (!tex || typeof tex.then === 'function') continue;
       seen.add(m.key);
       let b = bodies.get(m.key);
       if (!b || b.res.id !== m.res.id || b.archive !== archive || !!b.flat !== !!flat || (flat && b.flat.record !== flat.record)) {
         if (b) drop(m.key);
         b = make(m.res, tex, look, flat, m.talk !== false);
-        // MWNPC10c: its lane id (a new body a new one), its blows, whether it talks, its death's roll; its look read once
         Object.assign(b, { id: `${laneName}:${++_ids}`, yaw: 0, moving: false, swings: 0, striking: false, talk: m.talk !== false, roll: 1 + (textSeed(String(m.res.id)) % 3), look: undefined });
         bodies.set(m.key, b);
       }
-      b.yaw = m.yaw; b.moving = !!m.moving; b.body = m.body !== false;   // CAMP-FIRE: a camp's fire is a flame, nobody's body
-      if (m.striking && !b.striking) b.swings++;   // MWNPC10c: each strike begun, one blow
+      b.yaw = m.yaw; b.moving = !!m.moving; b.body = m.body !== false;
+      if (m.striking && !b.striking) b.swings++;
       b.striking = !!m.striking;
       const target = ground ? 1 : bandSpriteReach(m.distM) * Math.max(0, Math.min(1, fade));
       b.alpha = ground ? 1 : stepBandAlpha(b.alpha, target, dt);
@@ -178,24 +134,23 @@ export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame
   }
 
   /**
-   * MWNPC10c: the last sync's bodies in their Morrowind bodies, before the host's billboard pass draws their sprites -
-   * on the ground only; a class's sprite drawn (its blade out), the rest not; the fallen (a flat no one talks to) dead.
-   * CAMP-FIRE (FIELD BUGS 2026-10-11b): a flat that is nobody (`body: false`, a camp's fire) stands no body - its sprite draws.
-   * @param {any} canvas @param {Float32Array} proj @param {Float32Array} view @param {number[]} eye @param {number} dt
+   * @param {any} canvas
+   * @param {Float32Array} proj
+   * @param {Float32Array} view
+   * @param {number[]} eye
+   * @param {number} dt
    */
   function drawBodies(canvas, proj, view, eye, dt) {
     bodiesLane.frame();
     if (_ground) {
       for (const b of shown) {
-        if (!b.body) continue;   // CAMP-FIRE (FIELD BUGS 2026-10-11b): its flame drawn, never one of the fallen
+        if (!b.body) continue;
         if (b.look === undefined) b.look = residentLook(b, b.res, { still: !!b.flat && b.talk });
         if (!b.look) continue;
         bodiesLane.offer(rosterActor(b, { id: b.id, look: b.look, feet: b.batch.origin, yaw: b.yaw, moving: b.moving, swingKey: b.swings || null,
           dead: b.flat && !b.talk ? b.roll : 0, drawn: !!b.unit }), b.batch);
       }
     } else {
-      // AUDIT MW-NPC C3: under the Overworld no body stands, so every sprite draws - a batch the last ground frame left
-      // cast-only (its body stood) is a party member drawn nowhere, its shadow alone
       for (const b of shown) if (b.batch) b.batch.castOnly = false;
     }
     bodiesLane.draw(canvas, proj, view, eye, dt);
@@ -203,21 +158,17 @@ export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame
 
   return {
     sync,
-    drawBodies,   // MWNPC10c
-    /** MWNPC10c: the floating origin moved - the bodies' feet follow it. @param {number[]} o */
+    drawBodies,
+    /** @param {number[]} o */
     offsetBodies(o) { bodiesLane.offsetAll(o); },
-    /** MWNPC13: the veiled bodies (a road's ghost), translucent - after the host's opaque world. */
     drawVeiledBodies() { bodiesLane.drawVeiled(); },
-    /** This frame's drawn bodies, for the exterior's billboard pass. */
     batches: () => drawn,
-    /** This frame's talk targets on the ground ({ person, pos } - the street's activation shape). */
     persons: () => seats,
-    /** The body standing for a resident's id, if drawn. @param {string} key */
+    /** @param {string} key */
     bodyOf: (key) => bodies.get(key) ?? null,
     /** @param {(body: any) => boolean} test */
     someBody(test) { for (const b of bodies.values()) if (test(b)) return true; return false; },
-    /** Every body freed (the host's teardown; the open world left). */
-    clear() { for (const key of [...bodies.keys()]) drop(key); drawn.length = 0; seats.length = 0; shown.length = 0; bodiesLane.destroy(); },   // MWNPC10c: and their bodies
+    clear() { for (const key of [...bodies.keys()]) drop(key); drawn.length = 0; seats.length = 0; shown.length = 0; bodiesLane.destroy(); },
     get size() { return bodies.size; },
   };
 }

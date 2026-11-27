@@ -1,17 +1,4 @@
 // @ts-check
-// ATMO1 (2026-11-13, Killbunny: "life and light" for the open land) - THE AIR'S SMALL LIFE: fireflies at dusk, butterflies
-// by day, petals / fluff / leaves on the wind, dust in the light, shafts of sun, and far flocks of birds. Visual only:
-// it reads no collision data, writes none, and sends nothing over the network. Every effect is a flat sprite or strip
-// drawn by one program in two instanced draws (an additive one and an alpha one), simulated on the CPU around the eye.
-//
-// WHAT IT TAKES FROM THE HOST (scenes/atmosphereHost.js): the eye, the ground's height, the sun, the wind the flora lean
-// by (WIND3's `windV` and `gust`), the calendar's season, the weather's wetness. It owns no clock: its `t` is the sum of
-// the frames it was given, so a paused game holds it.
-//
-// THE PICTURES are painted here once into an 8-tile atlas (no files): a soft glow, a petal, a butterfly's wings, a leaf,
-// a flake, a mote and a bird with its wings up and down. Colour comes from the instance, the shape from the tile.
-//
-// AN INSTANCE is 12 floats: x y z size | r g b a | rotation, tile, p1, p2 (p1 a butterfly's flap phase / a shaft's width).
 
 import { buildProgram } from './glProgram.js';
 
@@ -83,7 +70,6 @@ void main() {
   outColor = vec4(t.rgb * vColor.rgb * lightMul, a);
 }`;
 
-/** The atlas, painted. Browser only (none in node). */
 function paintAtlas() {
   const c = document.createElement('canvas');
   c.width = TILES * TILE_PX; c.height = TILE_PX;
@@ -124,7 +110,7 @@ const hash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Mat
 const noise = (x) => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return (hash(i) + (hash(i + 1) - hash(i)) * u) * 2 - 1; };
 
 const MAX_PET = 150, MAX_FLY = 90, MAX_BUT = 18, MAX_SHAFT = 14, MOTES_PER = 8;
-const AREA = 26;   // metres: the radius about the eye the life is kept in
+const AREA = 26;
 const BUT_COLS = [[1, 0.62, 0.16], [0.4, 0.65, 1], [1, 0.92, 0.45], [1, 1, 1], [0.95, 0.45, 0.7]];
 const PET_COLS = {
   spring: [[1, 0.76, 0.82], [1, 0.84, 0.88], [0.97, 0.66, 0.76]],
@@ -168,22 +154,16 @@ export class Atmosphere {
     }
   }
 
-  /** Somewhere in the ring about the eye (never closer than `min` metres). */
   _ring(eye, min, max) {
     const a = this.R() * TAU, d = Math.sqrt(min * min + this.R() * (max * max - min * min));
     return [eye[0] + Math.cos(a) * d, eye[2] + Math.sin(a) * d];
   }
-  /** A thing that wandered out of the area comes back in on the far side. */
   _wrap(p, eye) {
     const dx = p.x - eye[0], dz = p.z - eye[2];
     if (dx * dx + dz * dz > AREA * AREA) { p.x = eye[0] - dx * 0.92; p.z = eye[2] - dz * 0.92; return true; }
     return false;
   }
 
-  /**
-   * The frame. `f` { eye [x,y,z], groundY(x,z), sun [x,y,z] (toward the sun), windV [x,z], gust, season ('spring'|'summer'|
-   * 'autumn'|'winter'), rainy, density, fx { shafts, fireflies, butterflies, petals, birds } }.
-   */
   step(f, dt) {
     const d = Math.min(0.1, Math.max(0, dt)); this.t += d;
     const t = this.t, R = this.R, eye = f.eye, gy = f.groundY;
@@ -194,7 +174,6 @@ export class Atmosphere {
     this.env = { day, night, dusk, elev };
     const wx = Math.max(-10, Math.min(10, f.windV[0] * 0.9)), wz = Math.max(-10, Math.min(10, f.windV[1] * 0.9)), gust = f.gust ?? 0;
 
-    // ---- petals, fluff, leaves ----
     const season = f.season;
     const cfg = season === 'spring' ? { n: 130, fall: 0.55, size: [0.13, 0.22], tile: TILE.petal, flut: 1 }
       : season === 'summer' ? { n: 34, fall: 0.2, size: [0.07, 0.12], tile: TILE.mote, flut: 1.4 }
@@ -220,7 +199,6 @@ export class Atmosphere {
     }
     for (let i = pn; i < MAX_PET; i++) this.pet[i].ready = false;
 
-    // ---- fireflies ----
     const warm = season === 'winter' ? 0 : season === 'autumn' ? 0.35 : season === 'spring' ? 0.7 : 1;
     this.flyVis = f.fx.fireflies ? Math.min(1, night * 1.25 + dusk * 0.55) * warm * dryK : 0;
     const fn = this.flyVis > 0.02 ? Math.min(MAX_FLY, Math.round(60 * dens * Math.min(1, this.flyVis * 1.5))) : 0;
@@ -237,7 +215,6 @@ export class Atmosphere {
     }
     for (let i = fn; i < MAX_FLY; i++) this.fly[i].ready = false;
 
-    // ---- butterflies ----
     const bk = (season === 'spring' || season === 'summer' ? 1 : season === 'autumn' ? 0.3 : 0) * day * dryK * (1 - Math.min(1, Math.max(0, Math.hypot(wx, wz) - 5) / 4));
     const bn = f.fx.butterflies && bk > 0.05 ? Math.min(MAX_BUT, Math.round(MAX_BUT * 0.6 * dens * bk)) : 0;
     this.live.butterflies = bn;
@@ -248,14 +225,13 @@ export class Atmosphere {
       const sp = p.sp * (0.7 + 0.5 * (noise(t * 0.8 + i * 7) + 1));
       p.x += (Math.cos(p.a) * sp + wx * 0.25) * d; p.z += (Math.sin(p.a) * sp + wz * 0.25) * d;
       const dx = p.x - eye[0], dz = p.z - eye[2], dd = Math.hypot(dx, dz);
-      if (dd < 3.5 && dd > 0.01) { p.x += dx / dd * 2.6 * d; p.z += dz / dd * 2.6 * d; p.a = Math.atan2(dz, dx); }   // it keeps clear of the player
+      if (dd < 3.5 && dd > 0.01) { p.x += dx / dd * 2.6 * d; p.z += dz / dd * 2.6 * d; p.a = Math.atan2(dz, dx); }
       const target = gy(p.x, p.z) + 0.8 + Math.sin(t * 0.9 + i) * 0.4;
       p.y += (target - p.y) * Math.min(1, d * 1.5) + Math.sin(p.ph * 0.15) * 0.3 * d;
       this._wrap(p, eye);
     }
     for (let i = bn; i < MAX_BUT; i++) this.but[i].ready = false;
 
-    // ---- shafts of sun (fixed to the land by a cell hash, so they stay where they are as you walk) ----
     this.shafts = [];
     const shaftK = f.fx.shafts && !f.rainy ? smooth(0.1, 0.4, elev) * (1 - smooth(0.85, 0.99, elev)) : 0;
     if (shaftK > 0.02) {
@@ -271,7 +247,6 @@ export class Atmosphere {
     this.live.shafts = this.shafts.length;
     this.live.motes = f.fx.shafts ? this.shafts.length * MOTES_PER : 0;
 
-    // ---- birds ----
     const birdsOk = f.fx.birds && (day > 0.3 || dusk > 0.3) && dryK;
     this.nextFlock -= d;
     if (birdsOk && this.nextFlock <= 0 && this.flocks.length < 2) { this._spawnFlock(eye); this.nextFlock = (14 + R() * 12) / dens; }
@@ -281,7 +256,7 @@ export class Atmosphere {
       for (const b of fl.birds) {
         b.x += (fl.vx + noise(t * 0.5 + b.ph) * 1.5) * d; b.z += (fl.vz + noise(t * 0.45 + b.ph * 2) * 1.5) * d;
         b.y += noise(t * 0.4 + b.ph * 3) * 1.2 * d; b.ph += d * 7.5;
-        b.x += (fl.cx - b.x) * 0.05 * d; b.z += (fl.cz - b.z) * 0.05 * d;   // the flock holds together
+        b.x += (fl.cx - b.x) * 0.05 * d; b.z += (fl.cz - b.z) * 0.05 * d;
       }
       fl.cx += fl.vx * d; fl.cz += fl.vz * d;
     }
@@ -299,7 +274,6 @@ export class Atmosphere {
     this.flocks.push(fl);
   }
 
-  /** The floating origin moved the scene by `o`: everything stays where it was on the land. */
   offsetOrigin(o) {
     for (const list of [this.pet, this.fly, this.but]) for (const p of list) { p.x += o[0]; p.y += o[1]; p.z += o[2]; }
     for (const fl of this.flocks) { fl.cx += o[0]; fl.cz += o[2]; for (const b of fl.birds) { b.x += o[0]; b.y += o[1]; b.z += o[2]; } }
@@ -312,13 +286,12 @@ export class Atmosphere {
     return n + 1;
   }
 
-  /** Draw. Answers whether anything was drawn (the host marks the foreign pass). */
+  // Returns true when it drew, so the host can mark the foreign pass.
   draw(proj, view, right, up, light) {
     const gl = this.gl, f = this.f;
     if (!gl || !f || !this.tex) return false;
     const { day, dusk } = this.env, t = this.t, P = this._put.bind(this);
     let n = 0;
-    // the additive group: shafts, motes, fireflies
     const warmK = Math.min(1, dusk * 1.2 + (1 - Math.min(1, f.sun[1] * 2)) * 0.5);
     const sc = [1, 0.94 - 0.2 * warmK, 0.78 - 0.34 * warmK];
     for (const s of this.shafts) n = P(n, s.x, s.y, s.z, s.len, sc[0], sc[1], sc[2], 0.8 * s.a, 0, TILE.shaft, s.w, 0);
@@ -338,7 +311,6 @@ export class Atmosphere {
       n = P(n, p.x, p.y, p.z, 0.14 * p.size, 0.96, 1, 0.8, b, 0, TILE.mote, 0, 0);
     }
     const nAdd = n;
-    // the alpha group: petals / fluff / leaves, butterflies, birds
     const cfg = this.petCfg, pal = PET_COLS[f.season];
     if (pal) for (let i = 0; i < this.live.petals; i++) {
       const p = this.pet[i], c = pal[p.ci % pal.length];
@@ -377,7 +349,6 @@ export class Atmosphere {
     return true;
   }
 
-  /** EVERY ALLOCATION HAS AN OWNER: the program, the buffers, the vertex array, the atlas. */
   dispose() {
     const gl = this.gl;
     if (!gl || !this.prog) return;

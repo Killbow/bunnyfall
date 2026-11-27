@@ -16,6 +16,7 @@ files:
   - "src/ui/hudFoeTarget.js"
   - "src/combat/healthShare.js"
   - "src/world/gateBoss.js"
+  - "src/world/ketch/ketchKit.js"
 routes: []
 tables: []
 replacesBible:
@@ -33,6 +34,7 @@ invariants:
 traps:
   - "Rotten Rigging wind gusts (`src/worldEvents/sdSteps.js`) must gate on `sdBreathBand` (`SD_BREATH_BAND_M = 3`), never on `z` coordinate alone."
   - "Stand-in target bars must read `relayShare` through `healthShare`, never `STAND_IN_WHOLE`."
+  - "The ketch collider is two-sided, so a solid face blocks from both sides and an undrawn solid underside is an invisible ceiling; `quad(null, ...)` lays a collider-only face."
 dfu: []
 tags:
   - "sky-ketch"

@@ -1,65 +1,30 @@
-// Dungeon assembly: RDB blocks on their grid with the per-dungeon texture
-// table, start/enter markers, water levels, and overlapping-door removal.
-// 1:1 translation of Daggerfall Unity's DaggerfallDungeon.cs layout paths
-// (MIT, Daggerfall Workshop). Verbatim:
-//   - Block (X, Z) sits at (X * RDBSide, 0, Z * RDBSide), RDBSide = 2048 *
-//     GlobalScale = 51.2. No row inversion.
-//   - Exit doors (model 70300) only lay out in the starting block
-//     (allowExitDoors = IsStartingBlock).
-//   - Texture table comes from RandomTextureTableClassic seeded with the
-//     dungeon's LocationId (classic algorithm; DFU's default for classic
-//     parity).
-//   - Water level and castleBlock read from each block's first start
-//     marker; blocks without one have no water (10000).
-//   - RemoveOverlappingDoors: the registry seeds with the DungeonExit
-//     static door centre in DUNGEON-ROOT space - DFU multiplies the
-//     building matrix only, without the block origin (benign because the
-//     starting block sits at grid 0,0; kept verbatim). Then every action
-//     door (world position, block order) within 1.4 of a registry entry is
-//     disabled; survivors join the registry.
-
 import { layoutRdbBlock, RDB_SIDE } from './rdbLayout.js';
-import { dungeonTextureTable } from './dungeonTextures.js';   // AUDIT 28 W3c: the whole modes-0-4 fork
+import { dungeonTextureTable } from './dungeonTextures.js';
 import { DOOR_TYPE } from './meshReader.js';
 import { transformPoint } from './mat4.js';
 
 export { RDB_SIDE };
 
-/**
- * CRUX-DOOR (2026-09-27, Discord: in the Mantellan Crux "when reaching entrance to the Fire Skull Room after touching
- * the big crystal, it will not go there, instead it leads back to outside"). A block's `exitDoors` is DFU's own
- * misnomer (RDBLayout.cs:37): EVERY door face of every model the block places - building (74), dungeon-entrance
- * (56/331) and dungeon-exit (95) alike. Only a DungeonExit door leaves a dungeon (PlayerActivate.cs:649; an entrance
- * door wants the player outside, :640, and a building door's TransitionExterior finds no interior, :634), and only
- * an exit door gets a collider (DaggerfallStaticDoors.cs:44-66) - so the model's own action (the Crux's Teleport)
- * answers the click on any other.
- */
+// `exitDoors` holds every door face the block models carry (building, entrance, and exit); only a DungeonExit door
+// leaves the dungeon.
 export const isDungeonExitDoor = (door) => door?.doorType === DOOR_TYPE.DUNGEON_EXIT;
 
 const OVERLAP_TOLERANCE = 1.4;
 
 /**
- * Assemble a full dungeon from location data.
- * @param {object} dfLocation - MapsFile.getLocationByName output
- *   (hasDungeon true).
- * @param {object} blocksFile - loaded BlocksFile.
- * @param {(modelIdNum:number) => object} getModel - resolves a model id to
- *   dfMeshToModel output.
- * @returns {{blocks:Array<{name:string,originX:number,originZ:number,
- *   isStartingBlock:boolean,layout:object}>,textureTable:number[],
- *   startMarker:{x,y,z}|null,enterMarker:{x,y,z}|null}}
+ * @param {object} dfLocation
+ * @param {object} blocksFile
+ * @param {(modelIdNum:number) => object} getModel
+ * @returns {{blocks:Array<{name:string,originX:number,originZ:number, isStartingBlock:boolean,layout:object}>,textureTable:number[], startMarker:{x,y,z}|null,enterMarker:{x,y,z}|null}}
  */
 export function layoutDungeon(dfLocation, blocksFile, getModel) {
   if (!dfLocation.hasDungeon) {
     throw new Error(`location has no dungeon: ${dfLocation.name}`);
   }
 
-  // AUDIT 28 W3c: the whole RandomDungeonTextures fork (modes 0-4 with
-  // the main-story gate on the raw MapId), not the bare classic call -
-  // the setting had sat stored while the port always answered mode 0.
   const textureTable = dungeonTextureTable({
     locationId: dfLocation.dungeon.recordElement.header.locationId,
-    mapId: dfLocation.mapTableData?.mapId ?? 0,   // a fixture without a map-table entry is nobody's main story
+    mapId: dfLocation.mapTableData?.mapId ?? 0,
     worldClimate: dfLocation.climate.worldClimate,
   });
 
@@ -75,8 +40,6 @@ export function layoutDungeon(dfLocation, blocksFile, getModel) {
     const originX = block.x * RDB_SIDE;
     const originZ = block.z * RDB_SIDE;
 
-    // Start and enter markers assign from the starting block only,
-    // verbatim FindMarkers (first marker wins).
     if (block.isStartingBlock) {
       if (layout.startMarkers.length > 0) {
         const m = layout.startMarkers[0];
@@ -94,7 +57,7 @@ export function layoutDungeon(dfLocation, blocksFile, getModel) {
       originZ,
       isStartingBlock: block.isStartingBlock,
       layout,
-      dfBlock, // retained for per-block consumers (R6 dungeon lights)
+      dfBlock,
     });
   }
 
@@ -103,14 +66,11 @@ export function layoutDungeon(dfLocation, blocksFile, getModel) {
   return { blocks, textureTable, startMarker, enterMarker };
 }
 
-// Verbatim DaggerfallDungeon.RemoveOverlappingDoors: disabled doors get
-// `disabled: true` (DFU SetActive(false)).
 function removeOverlappingDoors(blocks) {
   const registry = [];
 
-  // Seed with DungeonExit static door centres - dungeon-root space,
-  // building matrix only (no block origin). DFU breaks after the first
-  // exit per collection (block) but keeps scanning collections, verbatim.
+  // Matches DFU: exit door centers use the building matrix without the block origin, harmless because the starting
+  // block sits at grid 0,0. Only the first exit per block is taken.
   for (const b of blocks) {
     for (const door of b.layout.exitDoors) {
       if (isDungeonExitDoor(door)) {

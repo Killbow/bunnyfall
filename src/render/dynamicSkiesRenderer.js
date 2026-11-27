@@ -1,71 +1,15 @@
 // @ts-check
-// DYNAMIC SKIES - THE PASS (DS1). BLB/SkyBox/BLBProceduralSkybox
-// (vendor/dynamic-skies/Shaders/BLBProceduralSkybox.shader, with
-// Includes/Scattering.cginc and Includes/MoonFunctions.cginc) as one
-// GLSL ES 3.00 fullscreen pass, translated line for line. The shader's
-// property names are the uniform names, so the two can be read side by
-// side.
-//
-// THREE TRANSLATIONS, said out loud:
-//   1. Unity draws a skybox as a tessellated mesh and runs `vert` per
-//      vertex, interpolating skyColor/sunColor/fogColor across each
-//      triangle; here `vert` runs per PIXEL on the same eye ray ABOVE
-//      the horizon, which is the limit of the tessellation. BELOW it
-//      the limit is wrong: the ground arm's `far = -kCameraHeight /
-//      min(-0.001, y)` is at its 0.1 maximum for rays a hair under the
-//      horizon, where no mesh vertex ever sits (a vertex at y = 0 takes
-//      the sky arm), so a per-pixel `vert` painted a bright rim along
-//      the whole horizon that the shipped mod does not draw (the review
-//      of DS1 measured it: a full-white row under the horizon at dawn).
-//      So below the horizon the pass does what the mesh does: it
-//      evaluates `vert` at the two vertex rows the ray falls between
-//      (MESH_ROW apart, the first at y = 0) and interpolates. Unity's
-//      own skybox mesh is not in the tree; MESH_ROW is a sixteen-row
-//      hemisphere, recorded as the equivalence.
-//   2. Colour space. DFU renders LINEAR (ProjectSettings
-//      m_ActiveColorSpace 1): sRGB textures are linearised on sample
-//      (SRGB8_ALPHA8 here - the GPU's own decode, before filtering, as
-//      Unity's), Material.SetColor values are linearised at upload
-//      (dynamicSkies.srgbToLinear), the shader works in linear and the
-//      backbuffer encodes. The port's framebuffer is not sRGB, so the
-//      pass encodes its own output: outColor = linearToSrgb(col).
-//      UNITY_COLORSPACE_GAMMA is therefore NOT defined: no sqrt on the
-//      colours, COLOR_2_GAMMA is the pow(1/2.2) arm (unused - the mod
-//      feeds tintedSky, not kSkyTintInGammaSpace, to the wavelengths).
-//   3. Keywords are the material's, baked: REDUCE_COLOR on,
-//      _SUNDISK_HIGH_QUALITY, _MOONSPINOPTION_TIDAL_LOCK and
-//      _SECUNDASPINOPTION_TIDAL_LOCK. PHASE_LIGHT is off and its arm is
-//      commented out in the source anyway.
-//
-// HLSL -> GLSL notes at the lines they touch: `saturate` is clamp 0..1;
-// `smoothstep` is spelled out as HLSL's (GLSL's is undefined for
-// edge0 >= edge1 - not that any preset does it); `mul(M, v)` on a
-// float3x3 built from ROWS is rows dot v, which is `v * mat3(rows)` in
-// GLSL; `tex2D` is texture(); `frac` is fract(); `atan2(y, x)` is
-// atan(y, x); UnpackNormal is UnpackNormalmapRGorAG (desktop: x = R*A,
-// no DXT5nm keyword) and the vendored CdMCloudsNormal.png IS Unity's
-// converted normal map (R = 1, A = x), so the formula is exact;
-// BlendNormals is UnityStandardUtils' normalize(n1.xy + n2.xy, n1.z*n2.z);
-// UNITY_CALC_FOG_FACTOR_RAW computes a factor the fragment never
-// reads, and is left out.
-//
-// The contract is EnhancedSkyRenderer's: draw(yaw, pitch, fovY, aspect)
-// after beginFrame, fogMix / fogColor written by the host, clearColor /
-// fillColor read by it. The mod does no retro pass of its own kind
-// (REDUCE_COLOR is its posterise) and the port applies none over it -
-// PS2's copy of the port's pixelated sky was removed at FT3 with the
-// pass itself; PS3 gave REDUCE_COLOR the ordered dither its bare ceil()
-// never had - see the block itself.
+// Dynamic Skies BLBProceduralSkybox.shader translated to one GLSL ES 3.00 fullscreen pass; uniform names match
+// the shader's property names. Below the horizon `vert` runs at MESH_ROW mesh rows and interpolates, as Unity's
+// skybox mesh does. The framebuffer is not sRGB, so the pass encodes its own linear output.
 
-import { DITHER_GLSL, BAYER_MEAN } from './orderedDither.js';   // PS2: the port's retro pass, shared with the dome and the clouds
+import { DITHER_GLSL, BAYER_MEAN } from './orderedDither.js';
 import { MATERIAL_DEFAULTS, TEXTURE_SLOTS, TEXTURE_IMPORTS, SLOT_DEFAULT_TEXEL, srgbToLinear } from '../weather/dynamicSkies.js';
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
-import { DREAD_GLSL } from '../world/dreadSky.js';   // EVENT1: the live event's grade, the sky's last word
-import { SD_BRASS_GLSL } from '../world/sdBrassSky.js';   // AUDIT SD III (V8): the brass air's grade on the sky as on its haze
-import { HAZE_SKY_GLSL } from './hazeGlsl.js';   // BANTHA1: the jungle's haze over the sky (render/hazeGlsl.js)
+import { buildProgram } from './glProgram.js';
+import { DREAD_GLSL } from '../world/dreadSky.js';
+import { SD_BRASS_GLSL } from '../world/sdBrassSky.js';
+import { HAZE_SKY_GLSL } from './hazeGlsl.js';
 
-/** Which material properties are COLOURS (SetColor -> linearised at
- *  upload under linear colour space). Every other vec4 is SetVector. */
 export const COLOR_PROPERTIES = Object.freeze([
   '_SkyTint', '_GroundColor', '_FogColor', '_FogDayColor', '_FogNightColor', '_MoonNightColor',
   '_CloudTopColor', '_CloudTopNightColor', '_CloudTopSunColor',
@@ -91,19 +35,16 @@ export const FLOAT_PROPERTIES = Object.freeze([
   '_SecundaMaxSize', '_SecundaMinSize', '_SecundaOrbitSpeed', '_SecundaOrbitOffset', '_SecundaSemiMajAxis', '_SecundaSemiMinAxis',
 ]);
 const ST_PROPERTIES = TEXTURE_SLOTS.map((s) => s + '_ST');
-/** Every uniform the pass fetches a location for - which must be every
- *  uniform the GLSL declares (the DS1 review found `_CloudTopColorBoost`
- *  read by the shader and fetched by nobody, so its upload was a silent
- *  no-op and the mod's red-only boost never happened). Pinned against
- *  the FS's own declarations in test/systems/dynamicSkies.test.js. */
+// Must list every uniform the FS declares: an unlisted one gets no location, so its upload silently does nothing.
 export const UNIFORM_NAMES = Object.freeze(['uYaw', 'uPitch', 'uTanHalfFov', 'uAspect', 'uBandDither', 'uDread', 'uBrass', 'uHazeSky', '_WorldSpaceLightPos0', '_LightColor0',
-  '_CloudTopColorBoost',   // the float3-fed-by-a-float quirk, uploaded apart from the float list
+  '_CloudTopColorBoost',
   ...FLOAT_PROPERTIES, ...COLOR_PROPERTIES, ...VEC4_RAW, ...VEC3_RAW, ...TEXTURE_SLOTS, ...ST_PROPERTIES]);
 
+// The pass sits at the far plane, so LEQUAL draws only where the depth is still cleared.
 const VS = `#version 300 es
 layout(location=0) in vec2 aPos;
 out vec2 vNdc;
-void main() { vNdc = aPos; gl_Position = vec4(aPos, 1.0, 1.0); }`;   // PERF2: AT the far plane, so LEQUAL passes only the cleared depth
+void main() { vNdc = aPos; gl_Position = vec4(aPos, 1.0, 1.0); }`;
 
 export const FS = `#version 300 es
 precision highp float;
@@ -773,9 +714,6 @@ void main() {
   outColor.rgb = hazeSky(outColor.rgb, dir);   // BANTHA1: the jungle's haze toward the horizon - the port's ground haze, in front of the mod's skybox (it takes no fog of its own); AUDIT BANTHA1 HAZE-8: after the grades
 }`;
 
-/** The pass. Textures arrive through `setTexture(name, image)` as the
- *  vendored files load; until one lands its slot shows the shader's own
- *  default ("black", "bump", "white"). */
 export class DynamicSkiesRenderer {
   /** @returns {[string, string][]} */
   static bootPrograms() { return [[VS, FS]]; }
@@ -794,7 +732,6 @@ export class DynamicSkiesRenderer {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
-    // the slot defaults, one 1x1 texture each
     this.defaults = {};
     for (const slot of TEXTURE_SLOTS) {
       const t = gl.createTexture();
@@ -805,35 +742,28 @@ export class DynamicSkiesRenderer {
       this.defaults[slot] = t;
     }
     gl.bindTexture(gl.TEXTURE_2D, null);
-    /** the vendored textures by file name, once uploaded */
     this.textures = new Map();
-    /** EVENT1: the live event's grade over the dome, 0..1 (world/dreadSky.js) - the host's. */
     this.dread = 0;
-    /** AUDIT SD III (V8): the brass air's grade over it, 0..1 (world/superDungeon/sdBrassSky.js) - the host's. */
     this.brass = 0;
-    this.hazeSky = new Float32Array(4);   // BANTHA1: the jungle's haze over the sky (render/hazeGlsl.js uHazeSky) - the host's, w 0 none
-    this.bandDither = true;                            // PS3: the ordered dither over the mod's own colour reduction; false is its raw ceil, 1:1
-    this.cloudsExternal = false;                       // DS2: the volumetric clouds are drawn over this pass - its two cloud sheets stand down (the dome's cloudsExternal, one pass over)
-    this.fogMix = 0;                                   // written by the host on every pass; unread here - the mod's skybox takes no fog (see the FS)
-    this.fogColor = new Float32Array([0.5, 0.5, 0.5]);   // likewise
-    this.clearColor = new Float32Array([0.4667, 0.5137, 0.7176]);   // FogSunny's day colour until the first state
+    this.hazeSky = new Float32Array(4);
+    this.bandDither = true;
+    this.cloudsExternal = false;
+    // The host writes fogMix and fogColor every pass; the mod's skybox takes no fog, so neither is read here.
+    this.fogMix = 0;
+    this.fogColor = new Float32Array([0.5, 0.5, 0.5]);
+    this.clearColor = new Float32Array([0.4667, 0.5137, 0.7176]);
     this.fillColor = new Float32Array([0.4667, 0.5137, 0.7176]);
     this.state = null;
     this._c3 = new Float32Array(3);
     this._c4 = new Float32Array(4);
   }
 
-  /** One vendored file, uploaded with its Unity import settings:
-   *  Point -> NEAREST (with NEAREST_MIPMAP_NEAREST when it has mips),
-   *  Bilinear -> LINEAR (LINEAR_MIPMAP_NEAREST with mips), Repeat, and
-   *  SRGB8_ALPHA8 for the sRGB-flagged files so the sample is
-   *  linearised before filtering, as Unity's is. Unity's v = 0 is the
-   *  image's bottom row, hence the flip. */
   setTexture(name, image) {
     const gl = this.gl;
     const imp = TEXTURE_IMPORTS[name] ?? { filter: 'point', mips: true, srgb: true };
     const t = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, t);
+    // Unity's v = 0 is the image's bottom row, hence the flip.
     // An ImageBitmap arrives already flipped, and WebGL ignores the flip flag for it.
     const bitmap = typeof globalThis.ImageBitmap === 'function' && image instanceof globalThis.ImageBitmap;
     if (!bitmap) gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -856,8 +786,6 @@ export class DynamicSkiesRenderer {
     this.textures.set(name, t);
   }
 
-  /** The frame's state: { mat, sunDir, lightColor, fogColorSrgb,
-   *  clearColor } from dynamicSkiesState. Cheap: a reference. */
   setState(state) {
     this.state = state;
     if (state.clearColor) {
@@ -883,16 +811,16 @@ export class DynamicSkiesRenderer {
     const gl = this.gl, u = this.u, mat = s.mat;
     gl.useProgram(this.program);
     gl.depthMask(false);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);   // PERF2: only where nothing nearer has drawn - z is the far plane
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.uniform1f(u.uYaw, yaw); gl.uniform1f(u.uPitch, pitch);
     gl.uniform1f(u.uTanHalfFov, Math.tan(fovY / 2)); gl.uniform1f(u.uAspect, aspect);
-    gl.uniform1f(u.uBandDither, this.bandDither ? 1 : 0);   // PS3
-    gl.uniform1f(u.uDread, this.dread);   // EVENT1
-    gl.uniform1f(u.uBrass, this.brass);   // AUDIT SD III (V8)
-    gl.uniform4fv(u.uHazeSky, this.hazeSky);   // BANTHA1
+    gl.uniform1f(u.uBandDither, this.bandDither ? 1 : 0);
+    gl.uniform1f(u.uDread, this.dread);
+    gl.uniform1f(u.uBrass, this.brass);
+    gl.uniform4fv(u.uHazeSky, this.hazeSky);
     gl.uniform3f(u._WorldSpaceLightPos0, s.sunDir[0], s.sunDir[1], s.sunDir[2]);
     gl.uniform3f(u._LightColor0, s.lightColor[0], s.lightColor[1], s.lightColor[2]);
-    for (const name of FLOAT_PROPERTIES) gl.uniform1f(u[name], this.cloudsExternal && (name === '_CloudTopOpacity' || name === '_CloudOpacity') ? 0 : (mat[name] ?? MATERIAL_DEFAULTS[name] ?? 0));   // DS2: opacity 0 to the shader under the volumetric clouds; the material keeps the preset's
+    for (const name of FLOAT_PROPERTIES) gl.uniform1f(u[name], this.cloudsExternal && (name === '_CloudTopOpacity' || name === '_CloudOpacity') ? 0 : (mat[name] ?? MATERIAL_DEFAULTS[name] ?? 0));
     for (const name of COLOR_PROPERTIES) {
       const c = mat[name] ?? MATERIAL_DEFAULTS[name];
       if (VEC3_COLOR.has(name)) this._color3(u[name], c);
@@ -900,14 +828,7 @@ export class DynamicSkiesRenderer {
     }
     for (const name of VEC4_RAW) { const v = mat[name] ?? MATERIAL_DEFAULTS[name]; gl.uniform4f(u[name], v[0], v[1], v[2], v[3] ?? 0); }
     for (const name of VEC3_RAW) { const v = mat[name] ?? MATERIAL_DEFAULTS[name]; gl.uniform3f(u[name], v[0], v[1], v[2]); }
-    // QUIRK: _CloudTopColorBoost is a float3 in the shader fed by SetFloat -
-    // the value lands in x and y, z are 0, so only red is boosted (the
-    // mod's readme: "broken on the top layer for some reason")
-    // AUDIT 61: what the player SEES is no boost at all - the mod's own
-    // readme: "Color boost - broken on the top layer for some reason".
-    // A Range property SetFloat into a float3 uniform leaves the vector
-    // zero, so the divide is by 1.0; (boost, 0, 0) would have tinted the
-    // top layer red, which the mod never shows. Uploaded as the zero it is.
+    // The mod sets this float3 with SetFloat, which leaves it zero in Unity, so the top layer shows no color boost.
     void mat;
     gl.uniform3f(u._CloudTopColorBoost, 0, 0, 0);
     for (let i = 0; i < TEXTURE_SLOTS.length; i++) {
@@ -924,7 +845,7 @@ export class DynamicSkiesRenderer {
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
     gl.enable(gl.CULL_FACE);
-    gl.depthFunc(gl.LESS);   // PERF2: the renderer's own compare back
+    gl.depthFunc(gl.LESS);
     gl.depthMask(true);
   }
 }

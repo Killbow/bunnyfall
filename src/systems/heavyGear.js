@@ -1,15 +1,4 @@
 // @ts-check
-// BUNNYFALL: THE ROYAL BALLISTA AND THE GRAPPLING HOOK - their rows, their words, how they are minted, where they are
-// sold and found, and their pictures in a list. The numbers are characters/heavyGearIds.js's (a leaf).
-//   - The Royal Ballista (564): a heavier crossbow on the bow's own machine. It spends arrows and is scored on Archery;
-//     its bolt flies on an arc and bursts where it lands (combat/ballista/ballistaFlight.js); drawn, it slows its bearer.
-//     A Weapons row copied from the Long Bow (so the paperdoll shows a bow, as the crossbow's does), in the metal ladder.
-//   - The Grappling Hook (565): a tool carried in the pack, never held or swung, and open to every character. The
-//     GrapplingHook key throws it; what it catches the bearer is pulled to (combat/grapple/grapple.js). Iron only.
-//   - First-person art: combat/heavyGearArt.js. The owner's own art lives in public/art/bunnyfall-ballista/ and
-//     public/art/bunnyfall-grapple/ (the originals under owner/).
-//   - Where: the Royal Ballista on a good Weapon Smith's shelf, now and then, and rarely in a deep dungeon pile; the
-//     hook on a General Store's and a Pawn Shop's shelf, and now and then in a dungeon pile.
 
 import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerTemplateLore, registerOwnItemImage } from '../items/itemTemplates.js';
 import { registerTabledLootHandler } from '../items/loot.js';
@@ -21,7 +10,6 @@ export { BALLISTA_TEMPLATE, GRAPPLE_TEMPLATE };
 const LONG_BOW = 130;
 const DAGGER = 113;
 
-/** The Royal Ballista's row: the Long Bow's, far heavier and dearer. */
 export const BALLISTA_ROW = Object.freeze({
   ...ITEM_TEMPLATES[LONG_BOW],
   index: BALLISTA_TEMPLATE,
@@ -33,7 +21,6 @@ export const BALLISTA_ROW = Object.freeze({
   rarity: 1,
   isOneHanded: false,
 });
-/** The hook's row: a Dagger template with the weight and price of an iron tool, and no hand (equipTable.js). */
 export const GRAPPLE_ROW = Object.freeze({
   ...ITEM_TEMPLATES[DAGGER],
   index: GRAPPLE_TEMPLATE,
@@ -49,30 +36,25 @@ registerCustomTemplates([BALLISTA_ROW, GRAPPLE_ROW]);
 registerTemplateLore(BALLISTA_TEMPLATE, 'A siege engine cut down to a soldier\'s arms, crowned on the stock. It lobs its bolt high and the bolt bursts where it lands, striking all about it. It is a slow thing to carry and slower to wind.');
 registerTemplateLore(GRAPPLE_TEMPLATE, 'Three iron prongs and a long rope. Press its key to throw it from your pack at a wall, a ledge, or the ground, and it pulls you there. The rope takes a moment to coil again.');
 
-/** Mint a Royal Ballista. Material rides the weapon metal ladder (0 Iron .. 9 Daedric). */
 export function createBallista({ material = 0 } = {}) {
   return mintCondition(setItemFields({
     group: 'Weapons', templateIndex: BALLISTA_TEMPLATE, material, flags: 0, variant: 0, message: 0, stackCount: 1,
   }));
 }
-/** Mint a Grappling Hook (iron, always). */
 export function createGrapplingHook() {
   return mintCondition(setItemFields({
     group: 'Weapons', templateIndex: GRAPPLE_TEMPLATE, material: 0, flags: 0, variant: 0, message: 0, stackCount: 1,
   }));
 }
 
-/** Better shops and richer finds reach for better metal: Iron..Dwarven at the best (the crossbow's ladder). */
 const metalFor = (/** @type {number} */ quality, /** @type {() => number} */ rolls) => Math.min(4, Math.floor(rolls() * (1 + quality / 4)));
 const clampQuality = (/** @type {any} */ quality) => Math.max(1, Math.min(20, Math.trunc(Number(quality)) || 1));
 
-/** A shop's first shelf, after its other draws: what it adds. A Weapon Smith of quality 12 or more carries a Royal
- *  Ballista on half its days; a General Store or a Pawn Shop of quality 5 or more carries a Grappling Hook. */
 export const BALLISTA_SHOP_QUALITY = 12;
 export const BALLISTA_SHOP_CHANCE = 0.5;
 export const GRAPPLE_SHOP_QUALITY = 5;
-/** `kind` 'WeaponSmith', 'GeneralStore' or 'PawnShop' (any other answers nothing) - a name, not BUILDING_TYPES, so the
- *  account service reading this file headless (systems/item/itemLaw.js) does not pull the town's names in. */
+// `kind` is a plain name rather than a `BUILDING_TYPES` value so the headless item law on the account service can
+// import this file.
 export function heavyGearShelfStock(/** @type {string | null} */ kind, /** @type {number} */ shelfIndex, quality = 10, rolls = Math.random) {
   if (shelfIndex !== 0) return [];
   const q = clampQuality(quality);
@@ -85,7 +67,7 @@ export function heavyGearShelfStock(/** @type {string | null} */ kind, /** @type
   return [];
 }
 
-/** A dungeon pile's (keys J-O) chance of each, in percent. Neither comes off a foe: no one fights with them. */
+// Percent chance in a dungeon pile; classic loot table keys J to O are the dungeon piles.
 export const BALLISTA_PILE_PERCENT = 1;
 export const GRAPPLE_PILE_PERCENT = 2;
 const isDungeonPileKey = (/** @type {any} */ key) => { const n = String(key ?? '').charCodeAt(0) - 64; return n >= 10 && n <= 15; };
@@ -95,10 +77,6 @@ export function rollHeavyGearLoot(/** @type {any[]} */ items, rolls = Math.rando
   return items;
 }
 
-// ── THEIR PICTURES IN A LIST ─────────────────────────────────────────
-// The Thunderlock's door (systems/thunderlock.js installThunderlockIcons): our own PNGs as stand-ins for archives that
-// exist only as this art. Record 0 is the list picture; on the paperdoll they keep their rows' own layers (the Long
-// Bow's and the Dagger's) until there is body art, as the crossbow does.
 export const HEAVY_GEAR_ICONS = Object.freeze([
   { archive: BALLISTA_ARCHIVE, record: 0, frame: 0, file: 'bunnyfall-ballista/ballista-icon.png' },
   { archive: GRAPPLE_ARCHIVE, record: 0, frame: 0, file: 'bunnyfall-grapple/grapple-icon.png' },
@@ -106,11 +84,10 @@ export const HEAVY_GEAR_ICONS = Object.freeze([
 registerOwnItemImage(BALLISTA_TEMPLATE, (_item, { forPaperDoll = false } = {}) => (forPaperDoll ? null : { archive: BALLISTA_ARCHIVE, record: 0 }));
 registerOwnItemImage(GRAPPLE_TEMPLATE, (_item, { forPaperDoll = false } = {}) => (forPaperDoll ? null : { archive: GRAPPLE_ARCHIVE, record: 0 }));
 
-/** The site's root, never the document's (AUDIT-THUNDERLOCK F7). */
+// Resolves against the app root rather than the document URL, so the art loads under any page path.
 export const heavyGearArtUrl = (/** @type {string} */ file) => new URL(`art/${file}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
 
 let _installed = false;
-/** The loot roll and the pictures, once, in every host (scenes/shared.js, beside the crossbow's). */
 export function installHeavyGear() {
   if (_installed) return;
   _installed = true;

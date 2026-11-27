@@ -1,23 +1,20 @@
 // @ts-check
-// HUNTERS-MARK-II (2026-10-27; bible/06-Systems/Bounty-Boards.md 12.4): THE NAMED MARK, THE SAME ON EVERY CLIENT. A week's
-// mark is a pure function of the week and the tier (net/huntLaw.js huntMarkOf), so a peer's foe reads as one off what its
-// record already carries - its kind and its traits' mask (net/wire.js validFoeRecord `t`, `bt`). A mate sees the hunter's
-// beast under its name, and the wire carries nothing new.
+// A named mark is derived from the week and tier, so a peer reads it from the existing enemy record (`t` and `bt`)
+// and the wire carries nothing extra.
 import { BOUNTY_TIERS } from '../../guilds/bountyBoard.js';
 import { huntMarkOf, huntMarkSeed, huntWeekAt, HUNT_MARK_NAMES } from '../../net/huntLaw.js';
 import { rollBossTraits, bossTraitMask } from '../../characters/bossTraits.js';
 import { eliteRng } from '../../characters/eliteFoes.js';
 import { trophyTitle } from './trophies.js';
 
-/** A named mark's boss traits: two, as a raid's leader carries. */
 export const HUNT_MARK_TRAITS = 2;
-/** The week's two traits for a tier, the same on every client. */
 export const huntMarkTraits = (/** @type {number} */ week, /** @type {number} */ tier) => rollBossTraits(HUNT_MARK_TRAITS, eliteRng(huntMarkSeed(week, tier)));
 
 /**
- * The week's named mark a peer's leader is - `{ week, tier, foe, nameIndex, title }` - read off its kind and its traits'
- * mask, or null. This week's first, then last week's: a mark stood before the Turning still stands after it.
- * @param {number} mobileType @param {unknown} mask the record's `bt` @param {number} nowMs the event clock's wall instant
+ * Checks this week and then last week, so a mark spawned before the week turns is still recognized after it.
+ * @param {number} mobileType
+ * @param {unknown} mask
+ * @param {number} nowMs
  */
 export function huntMarkSeen(mobileType, mask, nowMs) {
   const week = huntWeekAt(nowMs);

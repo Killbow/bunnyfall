@@ -218,13 +218,13 @@ function stateWord(/** @type {string} */ kind, /** @type {any} */ e, /** @type {
 function accountLine(el, /** @type {any} */ flow, /** @type {string} */ kind) {
   if (!flow) return null;
   const p = el('p', 'coll-acct');
-  if (flow.stage === 'loading') p.append(el('span', null, t('coll.acct.loading', 'Reading your account…')));
+  if (flow.stage === 'loading') p.append(el('span', null, t('coll.acct.loading', 'Loading your account…')));
   else if (flow.stage !== 'in') {
     if (flow.error) p.append(el('span', 'fail', flow.error), el('span', null, ' '));   // AUDIT COLLECTIONS-II (lane 2): why it signed out (`auth`), never swallowed
-    p.append(el('span', null, t('coll.acct.out', 'Sign in from your profile to see which of these your account holds.')));
+    p.append(el('span', null, t('coll.acct.out', 'Sign in from your profile to see which of these you have unlocked.')));
   }
   else if (!flow.wardrobe) {
-    p.append(el('span', 'fail', flow.error || t('coll.acct.none', 'Your account could not be read just now.')));
+    p.append(el('span', 'fail', flow.error || t('coll.acct.none', 'Could not load your account right now.')));
     // AUDIT COLLECTIONS-II (lane 3): a read that failed is asked again here, never only by leaving the page
     const again = el('button', 'act coll-retry', t('coll.acct.retry', 'Try again'));
     again.type = 'button';
@@ -234,11 +234,11 @@ function accountLine(el, /** @type {any} */ flow, /** @type {string} */ kind) {
   }
   else if (flow.account?.kind === 'guest') {
     // AUDIT COLLECTIONS-II (lane 1): a guest's row earns nothing but the sprout - every grant asks a registered account
-    p.append(el('span', null, t('coll.acct.guest', 'A guest account keeps none of these but the sprout: add a username from your profile to earn them.')));
+    p.append(el('span', null, t('coll.acct.guest', 'Guest accounts only have the sprout. Add a username in your profile to earn the rest.')));
   } else {
-    p.append(el('span', null, t('coll.acct.scope', 'Held by your account, on every character.')));
+    p.append(el('span', null, t('coll.acct.scope', 'Shared across all characters on your account.')));
     // AUDIT COLLECTIONS-II (lane 3): a press waits in words, and its answer is said on its own kind's part alone
-    if (flow.busy) p.append(el('span', null, ' '), el('span', 'said', t('coll.acct.busy', 'Asking your account…')));
+    if (flow.busy) p.append(el('span', null, ' '), el('span', 'said', t('coll.acct.busy', 'Updating your account…')));
     else if (flow.error && _noteKind === kind) p.append(el('span', null, ' '), el('span', 'fail', flow.error));
     else if (flow.note && _noteKind === kind) p.append(el('span', null, ' '), el('span', 'said', flow.note));
   }
@@ -260,7 +260,7 @@ export function drawWardrobePart(detail, rerender, kit, kind, flow) {
   if (line) detail.append(line);
   const entries = wardrobeEntries(kind);
   const until = festivalUntilText(now);
-  if (until && entries.some((e) => e.avail === 'seasonal')) detail.append(el('p', 'coll-season', t('coll.season.on', 'The Witches’ Festival is on until {date}: its pieces can be had now.', { date: until })));
+  if (until && entries.some((e) => e.avail === 'seasonal')) detail.append(el('p', 'coll-season', t('coll.season.on', 'The Witches’ Festival runs until {date}, and festival pieces are available now.', { date: until })));
   // AUDIT COLLECTIONS-II (lane 3): Held and Not held only where the account is read - unread, "Held" found nothing and
   // "Not held" listed everything
   if (!wardrobe && (_filter === 'held' || _filter === 'missing')) _filter = 'all';
@@ -335,7 +335,7 @@ function wholeOf(ctx, e) {
   text.append(el('h5', null, t('coll.whole.how', 'How to get it')), el('p', 'coll-how', e.how()));
   text.append(el('h5', null, t('coll.whole.avail', 'Availability')), el('p', 'coll-availline', availLine(e, ctx.now)));
   const held = wardrobeHeld(e.kind, e.key, wardrobe);
-  if (!wardrobeKnown(e)) text.append(el('p', 'coll-own', t('coll.whole.character', 'It shows next to the name of each member of that kind of guild, on that character. Your account doesn’t keep it.')));
+  if (!wardrobeKnown(e)) text.append(el('p', 'coll-own', t('coll.whole.character', 'Shown next to your name on a character in that kind of guild. It belongs to that character, not your account.')));
   else if (wardrobe) text.append(el('p', `coll-own${held ? '' : ' no'}`, held ? t('coll.whole.held', 'Your account holds this.') : t('coll.whole.missing', 'Your account does not hold this yet.')));
   box.append(text);
   // AUDIT COLLECTIONS-II (lane 3): the presses in a foot across the whole box, each centred under the row - the pad steps

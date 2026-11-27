@@ -28,6 +28,7 @@ invariants:
   - "A quest freezes its size at start through `smallerDungeonsStateNow`. Online, the stamp is `ONLINE_DUNGEONS_STATE` (`4`)."
   - "On an online save load, `relayOnlineDungeons` re-enumerates the dungeon markers of each running quest on the room build before anything mounts, then stamps `ONLINE_DUNGEONS_STATE`."
   - "`adoptLinkedDungeonSize` returns `null` online."
+  - "`distinctInterior` replaces a repeated medium interior block from the pool without making any random draw, so every later row draws as before. Adding a draw there shifts every block after it."
 traps:
   - "Stamp values are a persisted save format: `NotSet: 0`, `Disabled: 1`, and `Enabled: 2` (DFU `SMALLER_DUNGEONS_STATE` order), followed by `MEDIUM_DUNGEONS_STATE = 3`, `ONLINE_DUNGEONS_STATE = 4`, and `MEDIUM_DISTINCT_STAMP = 5`. Append new values and never renumber."
   - "`relayWholeDungeons` is retired and survives only in a comment in `src/systems/quest/questRepair.js`. Call `relayOnlineDungeons` or `relayQuestOnline` (for shared quests)."

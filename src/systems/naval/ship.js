@@ -1,66 +1,22 @@
-// TR4 - THE SHIP: TransportManager's ship arm (:79-84, :360-402), the
-// last slice of the transport arc and the reason TR3's picker had
-// `shipAvailable: false` nailed shut.
-//
-// The OWNERSHIP half was already ported, by the bank arc rather than
-// this one: `banking.js` carries ShipType, the two prices, the two
-// map-pixel coords, `ownedShipType`/`ownsShip`/`shipCoords` and
-// `assignShipToPlayer`, and `save.js` persists `ownedShip`. Nothing
-// here re-states any of it.
-//
-// What was missing is that "Ship" is not a mode you travel IN - DFU's
-// own comment on the enum says "(not a real player transport mode)".
-// Picking it is a TELEPORT, and the mode lands back on Foot:
-//
-//   NOT on the ship -> remember where you are, go to the ship's map
-//   pixel with a RandomStartMarker reposition.
-//   ON the ship     -> go back to where you were remembered, with NO
-//   reposition, and forget the memory.
-//
-// `boardShipPosition` is the whole state, and IsOnShip (:79-84) is the
-// question "do I have a memory AND am I standing on the ship's pixel" -
-// so a player who owns a ship, boards, saves, and loads somewhere else
-// is NOT on the ship and boarding again would overwrite the memory.
-// That is DFU's behaviour and the port keeps it.
-//
-// The terrain-sampler check (:373-379) has no counterpart: the port has
-// one sampler and no version, so the `RandomStartMarker` fallback it
-// guards can never fire. Recorded, not invented.
-
 import { ownsShip, shipCoords } from '../../trade/banking.js';
 import { TRANSPORT_MODES } from '../../travel/transport.js';
 
-/** StreamingWorld.RepositionMethods (StreamingWorld.cs:215-223). The
- *  ship arm uses the
- *  first two; AUDIT 64 F18 added the third, which is fast travel's own
- *  (DaggerfallTravelPopUp.cs:334) and runs the SAME
- *  PositionPlayerToLocation as RandomStartMarker (StreamingWorld.cs:279-282),
- *  differing only by the travelStartX/travelStartZ facing hint
- *  (StreamingWorld.cs:1076-1083, world/locationEntrance.js's pickLocationSide). */
 export const REPOSITION = Object.freeze({
   None: 'None',
   RandomStartMarker: 'RandomStartMarker',
   DirectionFromStartMarker: 'DirectionFromStartMarker',
 });
 
-/**
- * IsOnShip (:79-84): a remembered boarding AND the player standing on
- * the ship's own map pixel.
- */
-// RR1: `TransportManager.ShipAvailiable` (TransportManager.cs:52-ish, a
-// `Func<bool>` defaulted to HasShip) - a mod assigns its own (Roleplay &
-// Realism's IsShipAvailiable, under shipPorts). The port's question
-// carries what the C# reads: on the ship, the location's loaded/port
-// state, the owned ship - and `canSail`, the host's own "there is
-// somewhere to sail to", which gates the row either way.
 let _shipAvailable = null;
 export function setShipAvailable(fn) { _shipAvailable = typeof fn === 'function' ? fn : null; }
 export function isShipAvailable({ canSail = false, ownsShip = false, onShip = false, locationLoaded = false, portTown = null } = {}) {
   if (!canSail) return false;
   const o = _shipAvailable?.({ onShip, locationLoaded, portTown, ownsShip });
-  return o ?? ownsShip;   // HasShip()
+  return o ?? ownsShip;
 }
 
+// As in classic Daggerfall, a player who boards, saves, and loads elsewhere is off the ship,
+// so boarding again replaces the memory.
 export function isOnShip(player, boardShipPosition, mapPixel) {
   const coords = shipCoords(player);
   return !!boardShipPosition && !!coords && !!mapPixel
@@ -68,21 +24,15 @@ export function isOnShip(player, boardShipPosition, mapPixel) {
 }
 
 /**
- * UpdateMode's ship arm (:360-402), as a decision. The caller does the
- * teleport and the fade; this answers WHERE to go, WHAT to remember,
- * and with which reposition.
- *
  * @returns {{go:{x:number,y:number}, reposition:string,
  *            boardShipPosition:object|null, mode:string}|null}
- *          null when the player owns no ship - DFU reaches
- *          GetShipCoords() null and would throw, but the picker's row
- *          is disabled without one, so the port answers "nothing".
  */
 export function shipTransition(player, { boardShipPosition = null, mapPixel = null, position = null } = {}) {
   const coords = shipCoords(player);
+  // Classic Daggerfall throws here with no ship; the picker disables the row, so this returns null.
   if (!ownsShip(player) || !coords) return null;
+  // Ship is not a travel mode: it teleports to the ship or back to the saved spot, and the mode returns to Foot.
   if (isOnShip(player, boardShipPosition, mapPixel)) {
-    // Disembark: back to the remembered spot, exactly, and forget it.
     return {
       go: { x: boardShipPosition.mapPixel.x, y: boardShipPosition.mapPixel.y },
       reposition: REPOSITION.None,
@@ -91,7 +41,6 @@ export function shipTransition(player, { boardShipPosition = null, mapPixel = nu
       mode: TRANSPORT_MODES.Foot,
     };
   }
-  // Board: remember where we are, and land at a start marker.
   return {
     go: { x: coords.x, y: coords.y },
     reposition: REPOSITION.RandomStartMarker,
@@ -101,20 +50,14 @@ export function shipTransition(player, { boardShipPosition = null, mapPixel = nu
   };
 }
 
-/** AUDIT 68 S22: the boarding memory's height, COMPENSATION-FREE - a raw
- *  scene y carried the streamer's vertical compensation, so a recenter or
- *  a reload put the disembark hundreds of units off. DFU restores with
- *  the difference (RestorePosition's diffY, SerializablePlayer.cs:486-491);
- *  the port sheds it, as for every other height it stores. */
+// The memory stores height without the streamer's vertical compensation, so a recenter or reload keeps the spot.
 export function shipMemory(position, compensationY) {
   const p = position.pos;
   return { ...position, pos: [p[0], p[1] - compensationY, p[2]], compensationFree: true };
 }
 
-/** The remembered spot in the CURRENT scene frame, or null for a memory
- *  written raw (before the flag) - its height cannot be recovered, so the
- *  host grounds that arrival instead. */
 export function shipRestorePos(restore, compensationY) {
+  // A memory saved without the flag cannot recover its height, so the host grounds that arrival.
   if (!restore?.compensationFree) return null;
   const p = restore.pos;
   return [p[0], p[1] + compensationY, p[2]];

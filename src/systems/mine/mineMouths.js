@@ -1,37 +1,22 @@
 // @ts-check
-// BUNNYFALL (2026-11-25, caverns): MINE MOUTHS IN THE WILDS - stood on every streamed pixel whose roll holds one
-// (net/mine/mineSites.js mineAt), from Daggerfall's own flats: the mountain nature set's arched rock as the portal, a boulder
-// either side and a standing torch. Walking into the arch takes the player in (the Sky-Ketch's lift is boarded the same
-// way, systems/ketch/ketchSky.js), and the way back out lands them before it, so the mouth waits until they have stepped
-// away before it takes them again. A sealed mouth (collapsed, net/mine/mineBrain.js) says how long it has left instead.
-//
-// The flats go into the pixel's own batches, drawn with it and torn down with it; nothing here outlives a pixel.
 import { mineAt } from '../../net/mine/mineSites.js';
 import { groundAt } from '../../world/terrainNature.js';
 import { TERRAIN_SIZE } from '../../world/terrainSampler.js';
 import { t } from '../../ui/textManager.js';
 import { multiply, trs, transformPoint } from '../../world/mat4.js';
 
-/** The mountain nature archive and its records: the arched rock, two boulders. The standing torch (TEXTURE.210). */
 export const MOUTH_ROCKS = Object.freeze({ archive: 510, arch: 3, left: 2, right: 6 });
 export const MOUTH_TORCH = Object.freeze({ archive: 210, record: 6 });
-/** The arch's scale over its own picture, and how far the boulders and the torch stand from it (m). */
 export const MOUTH_ARCH_SCALE = 2.6;
 export const MOUTH_SIDE_M = 4.5;
-/** How near the arch's foot a body walks in (m, across and up), how far it must step away before it is taken again, and
- *  how near a mouth is first said. */
 export const MOUTH_ENTER_M = 2.2;
 export const MOUTH_REARM_M = 8;
 export const MOUTH_SPOT_M = 120;
-/** The entrance model's walk-in point: this far into its portal from its door (m). */
 export const MOUTH_MODEL_IN_M = 1.6;
-/** A mouth's press key (`mine:mouth:<px>,<py>`), how near its dark is pressed (m), and how far its box reaches past it. */
 export const MOUTH_KEY = 'mine:mouth:';
 export const MOUTH_PRESS_M = 4;
 const MOUTH_DARK_PAD_M = 0.15;
-/** The entrance model's turn on a pixel: a quarter turn of four, by the pixel (degrees). */
 export const mouthYaw = (/** @type {number} */ px, /** @type {number} */ py) => (((px * 7 + py * 13) % 4) + 4) % 4 * 90;
-/** How often the streamed pixels are walked for mouths (s). */
 const SCAN_S = 0.5;
 
 export const MOUTH_TEXT = Object.freeze({
@@ -44,50 +29,36 @@ export const MOUTH_TEXT = Object.freeze({
   sealed: (/** @type {number} */ m) => t('mine.sealed', 'The mouth is choked with rubble. It reopens in about {m} minutes.', { m }),
 });
 
-/** Where the spotted mouths are remembered, and the most kept (the newest). */
 export const MOUTH_SPOTTED_KEY = 'bunnyfall.mines.spotted';
 export const MOUTH_SPOTTED_MAX = 64;
 function readSpotted(/** @type {any} */ storage) {
   try { const v = JSON.parse(storage?.getItem?.(MOUTH_SPOTTED_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((k) => typeof k === 'string' && /^\d{1,4},\d{1,4}$/.test(k)).slice(-MOUTH_SPOTTED_MAX) : []; } catch { return []; }
 }
 function writeSpotted(/** @type {any} */ storage, /** @type {Set<string>} */ set) {
-  try { storage?.setItem?.(MOUTH_SPOTTED_KEY, JSON.stringify([...set].slice(-MOUTH_SPOTTED_MAX))); } catch { /* a page that keeps nothing still marks this session's */ }
+  try { storage?.setItem?.(MOUTH_SPOTTED_KEY, JSON.stringify([...set].slice(-MOUTH_SPOTTED_MAX))); } catch { }
 }
 
-/** What this page last heard of each mine it stood in: its reset and its seal, by pixel - the mouths' word on them. */
 const _heard = new Map();
-/** A mine's state heard (systems/mine/mineHost.js). */
 export function noteMineState(/** @type {number} */ px, /** @type {number} */ py, /** @type {any} */ st) {
   if (st && Number.isSafeInteger(st.reset)) _heard.set(`${px},${py}`, { reset: st.reset, sealedUntil: Number(st.sealedUntil) || 0 });
 }
-/** A mine's last heard reset (0 never heard) and how many seconds its seal has left at `nowS` (0 open). */
 export const mineHeardReset = (/** @type {number} */ px, /** @type {number} */ py) => _heard.get(`${px},${py}`)?.reset ?? 0;
 export const mineSealLeft = (/** @type {number} */ px, /** @type {number} */ py, /** @type {number} */ nowS) => Math.max(0, (_heard.get(`${px},${py}`)?.sealedUntil ?? 0) - nowS);
-/** Where a pixel's mouth stands, pixel-local: its middle, on the ground. */
 export const mouthLocal = (/** @type {any} */ entry) => {
   const x = TERRAIN_SIZE / 2, z = TERRAIN_SIZE / 2;
   const y = entry?.samples ? groundAt(entry.samples, x, z) : 0;
   return [x, Number.isFinite(y) ? y : 0, z];
 };
 
-/**
- * @param {{ renderer: any, getTexture: (a: number) => Promise<any>, uploadRecord: (a: number, r: number) => void,
- *   billboardSize: (t: any, r: number) => { w: number, h: number }, flatBatchAabb?: ((c: number[][], s: any) => number[]) | null,
- *   built: () => Map<string, any>, climateAt: (px: number, py: number) => number, occupiedAt: (px: number, py: number) => boolean,
- *   pixelTranslation: (px: number, py: number, out: number[]) => number[], feet: () => (number[]|null), outside: () => boolean,
- *   enter: (px: number, py: number) => void, sealedFor: (px: number, py: number) => number, say: (text: string) => void, nowMs?: () => number,
- *   art?: (() => ({ state: 'loading'|'ready'|'none', art: any })) | null, collider?: (() => any) | null, riding?: ((px: number, py: number) => any) | null, storage?: { getItem: (k: string) => (string|null), setItem: (k: string, v: string) => void } | null }} deps
- */
+/** @param {{ renderer: any, getTexture: (a: number) => Promise<any>, uploadRecord: (a: number, r: number) => void, billboardSize: (t: any, r: number) => { w: number, h: number }, flatBatchAabb?: ((c: number[][], s: any) => number[]) | null, built: () => Map<string, any>, climateAt: (px: number, py: number) => number, occupiedAt: (px: number, py: number) => boolean, pixelTranslation: (px: number, py: number, out: number[]) => number[], feet: () => (number[]|null), outside: () => boolean, enter: (px: number, py: number) => void, sealedFor: (px: number, py: number) => number, say: (text: string) => void, nowMs?: () => number, art?: (() => ({ state: 'loading'|'ready'|'none', art: any })) | null, collider?: (() => any) | null, riding?: ((px: number, py: number) => any) | null, storage?: { getItem: (k: string) => (string|null), setItem: (k: string, v: string) => void } | null }} deps */
 export function createMineMouths(deps) {
   const nowMs = deps.nowMs ?? (() => performance.now());
-  /** stood mouths by pixel key: `{ entry, px, py, local, batches }` */
   const stood = new Map();
   const pending = new Set();
   const spotted = new Set(readSpotted(deps.storage));
   let scanAt = -Infinity, armed = true;
   const _t = [0, 0, 0];
 
-  /** Into a mouth, or told how long its seal has left. */
   function goIn(/** @type {any} */ s) {
     const left = deps.sealedFor(s.px, s.py);
     if (left > 0) { deps.say(MOUTH_TEXT.sealed(Math.max(1, Math.ceil(left / 60)))); return; }
@@ -100,7 +71,6 @@ export function createMineMouths(deps) {
     pending.add(key);
     try {
       const local = mouthLocal(entry);
-      // THE OWNER'S ENTRANCE: its door on the mouth's spot, turned by the pixel, its rock solid; the walk-in point inside its portal
       const a = deps.art?.() ?? null;
       if (a?.state === 'ready' && a.art?.entrance) {
         if (deps.built().get(key) !== entry || stood.has(key)) return;
@@ -120,7 +90,7 @@ export function createMineMouths(deps) {
         if (!tex || record >= tex.recordCount) return;
         deps.uploadRecord(archive, record);
         const base = deps.billboardSize(tex, record), size = { w: base.w * scale, h: base.h * scale };
-        const centers = [[at[0], at[1], at[2]]];   // a billboard's centre is its base
+        const centers = [[at[0], at[1], at[2]]];
         const b = deps.renderer.createBillboardBatch(archive, record, size, centers);
         if (!b) return;
         if (deps.flatBatchAabb) b._box = deps.flatBatchAabb(centers, size);
@@ -142,8 +112,10 @@ export function createMineMouths(deps) {
 
   function scan() {
     const built = deps.built();
-    for (const [key, s] of stood) if (built.get(key) !== s.entry) { stood.delete(key); if (s.model) deps.collider?.()?.removeBucket?.(s.model.bucket); }   // its pixel's teardown took its batches
-    if (deps.art && deps.art()?.state === 'loading') return;   // the owner's entrance first, once known - never flats stood a moment before it
+    // The pixel teardown frees the batches, so only the collider bucket is removed here.
+    for (const [key, s] of stood) if (built.get(key) !== s.entry) { stood.delete(key); if (s.model) deps.collider?.()?.removeBucket?.(s.model.bucket); }
+    // Wait while the entrance art loads, so fallback flats never appear just before the model replaces them.
+    if (deps.art && deps.art()?.state === 'loading') return;
     for (const [key, entry] of built) {
       if (stood.has(key) || pending.has(key) || !Number.isSafeInteger(entry?.px)) continue;
       if (!mineAt({ px: entry.px, py: entry.py, climate: deps.climateAt(entry.px, entry.py), occupied: deps.occupiedAt(entry.px, entry.py) })) continue;
@@ -152,7 +124,6 @@ export function createMineMouths(deps) {
   }
 
   return {
-    /** Every frame: the streamed pixels walked now and then; the player's feet against each mouth. */
     frame() {
       const now = nowMs();
       if (now - scanAt >= SCAN_S * 1000) { scanAt = now; scan(); }
@@ -172,7 +143,6 @@ export function createMineMouths(deps) {
       armed = false;
       goIn(near);
     },
-    /** The dark of each entrance's way in, pressable (the world's press and hover picks, beside Nyx's): boxes where they stand now. */
     targets() {
       const out = [];
       for (const s of stood.values()) {
@@ -185,9 +155,7 @@ export function createMineMouths(deps) {
       }
       return out;
     },
-    /** What a mouth's dark is called under the crosshair. */
     hoverName: (/** @type {string} */ key) => (String(key).startsWith(MOUTH_KEY) ? { title: MOUTH_TEXT.title(), subs: [MOUTH_TEXT.enter()] } : null),
-    /** A press on a mouth's dark: Info names it, anything else goes in. Answers whether the key was a mouth's. */
     activate(/** @type {string} */ key, mode = 'grab') {
       if (!String(key).startsWith(MOUTH_KEY)) return false;
       const s = stood.get(String(key).slice(MOUTH_KEY.length));
@@ -196,7 +164,6 @@ export function createMineMouths(deps) {
       else { armed = false; goIn(s); }
       return true;
     },
-    /** The entrances, with the world (world.js's scene frame): each model at its pixel's translation now. */
     draw(/** @type {any} */ r) {
       if (!r?.drawMesh) return 0;
       let n = 0;
@@ -210,11 +177,8 @@ export function createMineMouths(deps) {
       }
       return n;
     },
-    /** The mouths this player has spotted, for the world maps: `{ px, py, label }` each (ui/poi/poiMapMark.js's shape). */
     mapMarks: () => [...spotted].map((k) => { const [px, py] = k.split(',').map(Number); return { px, py, label: MOUTH_TEXT.mapLabel() }; }).filter((m) => Number.isSafeInteger(m.px) && Number.isSafeInteger(m.py)),
-    /** The mouths stood now (probes). */
     stood: () => [...stood.values()].map((s) => ({ px: s.px, py: s.py, local: [...s.local] })),
-    /** The way out landed the player before a mouth: wait until they step away. */
     disarm() { armed = false; },
   };
 }

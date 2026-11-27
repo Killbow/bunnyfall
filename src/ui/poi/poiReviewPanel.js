@@ -35,7 +35,7 @@ export const revStateText = (state) => (state === 'draft' ? t('poi.editor.state.
     : state === 'approved' ? t('poi.review.approved', 'approved')
       : state === 'rejected' ? t('poi.editor.state.rejected', 'sent back')
         // AUDIT POI C2: a retirement its builder took back (the store's own state, no English note)
-        : state === 'withdrawn' ? t('poi.review.withdrawn', 'taken back by its builder')
+        : state === 'withdrawn' ? t('poi.review.withdrawn', 'withdrawn by builder')
           : String(state));
 
 /**
@@ -93,47 +93,47 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
   const lawOf = (d) => facts.check(d, poiPayProblems(d, poiDocProblems(d)));
   function drawQueue() {
     if (!dialog || dialog.dataset.kind !== 'queue') return;
-    const rows = [el('div', 'dfpoi-h', t('poi.review.title', 'Approvals')), el('div', 'dfpoi-sub', t('poi.review.hint', 'Look at each one in the world, then approve it or send it back with a note.'))];
+    const rows = [el('div', 'dfpoi-h', t('poi.review.title', 'Approvals')), el('div', 'dfpoi-sub', t('poi.review.hint', 'Inspect each submission in the world, then approve it or send it back with a note.'))];
     const top = el('div', 'dfpoi-row');
-    top.append(btn(t('poi.editor.refresh', 'Refresh the list'), () => refreshQueue()), btn(t('poi.review.close', 'Close'), () => close()));
+    top.append(btn(t('poi.editor.refresh', 'Refresh'), () => refreshQueue()), btn(t('poi.review.close', 'Close'), () => close()));
     rows.push(top);
-    if (!queue) rows.push(el('div', 'dfpoi-sub', t('poi.library.loading', 'Asking the store...')));
-    else if (!queue.length) rows.push(el('div', 'dfpoi-ok', t('poi.review.none', 'Nothing waits for approval.')));
+    if (!queue) rows.push(el('div', 'dfpoi-sub', t('poi.library.loading', 'Loading...')));
+    else if (!queue.length) rows.push(el('div', 'dfpoi-ok', t('poi.review.none', 'No submissions are waiting for approval.')));
     else for (const item of queue) rows.push(queueRow(item));
     // AUDIT POI C3: the queue is bounded - what waits past it is said, not left to be guessed
-    if (queue?.length && more) rows.push(el('div', 'dfpoi-sub', t('poi.review.more', 'More submissions are waiting. Decide on these to see the rest.')));
+    if (queue?.length && more) rows.push(el('div', 'dfpoi-sub', t('poi.review.more', 'More submissions are waiting. Review these to see the rest.')));
     dialog.replaceChildren(...rows);
   }
   function queueRow(item) {
     const r = el('div', 'dfpoi-review');
     const name = item.doc?.name ?? item.liveDoc?.name ?? item.id;
-    const kind = item.kind === 'retire' ? t('poi.review.kindRetire', 'take out of the world') : item.liveDoc ? t('poi.review.kindChange', 'a change') : t('poi.review.kindNew', 'new');
+    const kind = item.kind === 'retire' ? t('poi.review.kindRetire', 'remove from the world') : item.liveDoc ? t('poi.review.kindChange', 'a change') : t('poi.review.kindNew', 'new');
     r.append(el('div', 'dfpoi-shelf-name', name), el('div', 'dfpoi-shelf-meta', t('poi.review.sent', '{kind} · by {author} · sent {ago}', { kind, author: item.author, ago: agoText(item.submittedAt, now()) })));
-    if (item.stale) r.append(el('div', 'dfpoi-warn', t('poi.review.stale', 'Made from an older live revision. Approving it overwrites what went live since.')));
+    if (item.stale) r.append(el('div', 'dfpoi-warn', t('poi.review.stale', 'Based on an older live revision. Approving it will overwrite changes made since then.')));
     // what it changes
     const changes = poiDiff(item.liveDoc, item.kind === 'retire' ? null : item.doc);
     const list = el('div', 'dfpoi-sub');
     for (const c of changes) list.append(el('div', '', diffText(c)));
-    if (!changes.length) list.append(el('div', '', t('poi.review.noChange', 'Nothing differs from the live one.')));
-    r.append(el('div', 'dfpoi-h', t('poi.review.changes', 'What it changes')), list);
+    if (!changes.length) list.append(el('div', '', t('poi.review.noChange', 'No differences from the live revision.')));
+    r.append(el('div', 'dfpoi-h', t('poi.review.changes', 'Changes')), list);
     // the law's report
     if (item.doc) {
       const { list: ps, checking, unchecked, unloaded } = lawOf(item.doc);
       r.append(el('div', 'dfpoi-h', t('poi.review.law', 'Checks')));
       if (unchecked) r.append(...uncheckedRows(item.doc, unloaded, el, btn, () => facts.retry()));
-      else if (!ps.length) r.append(el('div', checking ? 'dfpoi-sub' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.review.lawOk', 'Nothing wrong.')));
+      else if (!ps.length) r.append(el('div', checking ? 'dfpoi-sub' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking models and pictures...') : t('poi.review.lawOk', 'No problems found.')));
       for (const p of ps.slice(0, 12)) { const where = problemWhere(p.path, item.doc); r.append(el('div', 'dfpoi-problem', where ? `${where}: ${problemText(p)}` : problemText(p))); }
     }
     // looking, then the word
     const acts = el('div', 'dfpoi-row');
     const mine = looking?.id === item.id && looking.rev === item.rev;
-    acts.append(btn(t('poi.review.look', 'Look at it'), () => look(item)));
+    acts.append(btn(t('poi.review.look', 'View in world'), () => look(item)));
     if (mine) {
-      const toggle = btn(showing === 'after' ? t('poi.review.showBefore', 'Show the live one') : t('poi.review.showAfter', 'Show the submission'), () => flip());
-      acts.append(toggle, el('span', 'dfpoi-chip', showing === 'after' ? t('poi.review.showingAfter', 'showing: the submission') : t('poi.review.showingBefore', 'showing: the live one')));
+      const toggle = btn(showing === 'after' ? t('poi.review.showBefore', 'Show live version') : t('poi.review.showAfter', 'Show submission'), () => flip());
+      acts.append(toggle, el('span', 'dfpoi-chip', showing === 'after' ? t('poi.review.showingAfter', 'showing: submission') : t('poi.review.showingBefore', 'showing: live version')));
     }
     const note = el('textarea');
-    note.maxLength = POI_LIMITS.note; note.placeholder = t('poi.review.notePlaceholder', 'A note for the builder (needed to send it back)');
+    note.maxLength = POI_LIMITS.note; note.placeholder = t('poi.review.notePlaceholder', 'Note for the builder (required when sending back)');
     note.value = notes.get(`${item.id}:${item.rev}`) ?? '';
     note.addEventListener('input', () => notes.set(`${item.id}:${item.rev}`, note.value));
     const decide = el('div', 'dfpoi-row');
@@ -183,7 +183,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     // loser's refusal was said over the winner's word)
     if (deciding.has(key)) return;
     const word = note.trim();
-    if (verdict === 'reject' && !word) { say(t('poi.review.needWord', 'Say why it goes back. The builder reads it.'), 'bad'); return; }
+    if (verdict === 'reject' && !word) { say(t('poi.review.needWord', 'Add a note for the builder explaining why you are sending it back.'), 'bad'); return; }
     deciding.add(key);
     drawQueue();
     let r;
@@ -198,7 +198,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
       return;
     }
     const name = item.doc?.name ?? item.liveDoc?.name ?? item.id;
-    say(verdict === 'approve' ? t('poi.review.approvedName', 'Approved: {name}. It stands in the world.', { name }) : t('poi.review.rejectedName', 'Sent back: {name}.', { name }));
+    say(verdict === 'approve' ? t('poi.review.approvedName', 'Approved: {name}. It is now live in the world.', { name }) : t('poi.review.rejectedName', 'Sent back: {name}.', { name }));
     notes.delete(key);
     endLook(item);
     feed?.refresh?.();   // AUDIT POI C7: the world on this screen as it now stands, not at the feed's next minute
@@ -227,7 +227,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const h = history.h;
     const named = h?.revs?.slice().reverse().find((x) => x.doc)?.doc?.name ?? history.id;
     const rows = [el('div', 'dfpoi-h', t('poi.review.historyTitle', 'History: {name}', { name: named })), btn(t('poi.review.close', 'Close'), () => close())];
-    if (!h) rows.push(el('div', 'dfpoi-sub', t('poi.library.loading', 'Asking the store...')));
+    if (!h) rows.push(el('div', 'dfpoi-sub', t('poi.library.loading', 'Loading...')));
     else { rows.push(...compareRows(h)); for (const rev of [...h.revs].reverse()) rows.push(historyRow(h, rev)); }
     dialog.replaceChildren(...rows);
   }
@@ -243,7 +243,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const pair = history?.pair;
     if (!pair) return [];
     // labels rollback and retirement revisions by their action, matching their history rows
-    const options = comparableRevs(h).map((x) => [x.rev, x.kind === 'retire' || x.kind === 'rollback' ? t('poi.review.rev', 'Revision {rev}: {what}', { rev: x.rev, what: x.kind === 'retire' ? t('poi.review.kindRetire', 'take out of the world') : t('poi.review.kindRollback', 'put revision {rev} back in the world', { rev: x.base }) })
+    const options = comparableRevs(h).map((x) => [x.rev, x.kind === 'retire' || x.kind === 'rollback' ? t('poi.review.rev', 'Revision {rev}: {what}', { rev: x.rev, what: x.kind === 'retire' ? t('poi.review.kindRetire', 'remove from the world') : t('poi.review.kindRollback', 'restore revision {rev}', { rev: x.base }) })
       : t('poi.review.compareRev', 'Revision {rev} ({state})', { rev: x.rev, state: revStateText(x.state) })]);
     const pick = (side) => {
       const s = el('select');
@@ -260,7 +260,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const changes = compareRevisions(h, pair.from, pair.to) ?? [];
     const list = el('div', 'dfpoi-sub dfpoi-compare');
     if (pair.from === pair.to) list.append(el('div', '', t('poi.review.compareSame', 'Pick two different revisions.')));
-    else if (!changes.length) list.append(el('div', '', t('poi.review.compareNone', 'Nothing differs between these two.')));
+    else if (!changes.length) list.append(el('div', '', t('poi.review.compareNone', 'No differences between these revisions.')));
     for (const c of changes) list.append(el('div', '', diffText(c)));
     return [el('div', 'dfpoi-h', t('poi.review.compare', 'Compare two revisions')), head, list];
   }
@@ -268,18 +268,18 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const r = el('div', 'dfpoi-review');
     const live = rev.rev === h.liveRev;
     // AUDIT POI C2: a put-back is a revision of its own (no document; its base the revision it put back)
-    const what = rev.kind === 'retire' ? t('poi.review.kindRetire', 'take out of the world')
-      : rev.kind === 'rollback' ? t('poi.review.kindRollback', 'put revision {rev} back in the world', { rev: rev.base })
+    const what = rev.kind === 'retire' ? t('poi.review.kindRetire', 'remove from the world')
+      : rev.kind === 'rollback' ? t('poi.review.kindRollback', 'restore revision {rev}', { rev: rev.base })
         : rev.doc?.name ?? '';
     r.append(el('div', 'dfpoi-shelf-name', t('poi.review.rev', 'Revision {rev}: {what}', { rev: rev.rev, what })));
     r.append(el('div', 'dfpoi-shelf-meta', t('poi.review.revMeta', '{state} · by {author} · {ago}', { state: revStateText(rev.state), author: rev.author, ago: agoText(rev.at, now()) })));
     if (live) r.append(el('div', 'dfpoi-ok', t('poi.review.live', 'In the world now.')));
-    if (rev.reviewer) r.append(el('div', 'dfpoi-sub', rev.note ? t('poi.review.word', '{reviewer}: {note}', { reviewer: rev.reviewer, note: rev.note }) : t('poi.review.decidedBy', 'Decided by {reviewer}.', { reviewer: rev.reviewer })));
+    if (rev.reviewer) r.append(el('div', 'dfpoi-sub', rev.note ? t('poi.review.word', '{reviewer}: {note}', { reviewer: rev.reviewer, note: rev.note }) : t('poi.review.decidedBy', 'Reviewed by {reviewer}.', { reviewer: rev.reviewer })));
     const acts = el('div', 'dfpoi-row');
-    if (rev.doc) acts.append(btn(t('poi.review.openRev', 'Open this one'), () => openRevision(h, rev)));
+    if (rev.doc) acts.append(btn(t('poi.review.openRev', 'Open revision'), () => openRevision(h, rev)));
     // AUDIT POI C2: only a document goes back - an approved retirement or put-back has none (the store refuses it)
     if (me.approver && rev.state === 'approved' && !live && rev.kind === 'doc' && rev.doc) {
-      const b = btn(puttingBack === rev.rev ? t('poi.review.putBackSure', 'Put it back in the world?') : t('poi.review.putBack', 'Put this one back'), () => putBack(h, rev));
+      const b = btn(puttingBack === rev.rev ? t('poi.review.putBackSure', 'Restore this revision?') : t('poi.review.putBack', 'Restore revision'), () => putBack(h, rev));
       b.disabled = rolling;   // AUDIT POI U12: held while a put-back is out
       acts.append(b);
     }
@@ -307,7 +307,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     try { r = await act((i) => poiRollback(i, h.id, rev.rev)); } finally { rolling = false; }
     if (!r) { drawHistory(); return; }
     if (!r.ok) { say(refusal(r), 'bad'); drawHistory(); return; }
-    say(t('poi.review.putBackDone', 'Revision {rev} stands in the world again.', { rev: rev.rev }));
+    say(t('poi.review.putBackDone', 'Revision {rev} is live in the world again.', { rev: rev.rev }));
     feed?.refresh?.();   // AUDIT POI C7
     // AUDIT POI U12, P8: the history asked again in place - never opened anew over a queue opened since (ending its look),
     // nor over the editor once a revision was opened from it

@@ -11,6 +11,7 @@ files:
   - src/world/pixelBuild.js
   - src/render/labGrass.js
   - src/world/terrainNature.js
+  - src/world/terrainGenClient.js
 routes: []
 tables: []
 replacesBible:
@@ -29,6 +30,8 @@ invariants:
 traps:
   - "Never exclude grass by record number to clear paths (grassRecordsOf). Use the `paths` mask from the painter."
   - "Heightmap index is y + x*hDim, while tilemap index is x + y*tDim. The skip rect in the smoother is max-exclusive."
+  - "The road network object is assembled at several sites in the client and worker; a field such as `smooth`, `water`, or `source` added to one site is silently ignored on the path the game actually takes."
+  - "A pixel built before the road network landed is rebuilt inside the same call and the rebuilt entry is returned, once; returning nothing breaks the boot path, which awaits the player's pixel entry."
 dfu: []
 tags:
   - roads

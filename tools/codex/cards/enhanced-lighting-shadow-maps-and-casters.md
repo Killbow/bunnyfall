@@ -24,9 +24,12 @@ invariants:
   - "Sun: SHADOW_SUN_SIZE = 2048 cascades SHADOW_CASCADES = [12, 48, 240], SHADOW_SUN_DEPTH = 600, sunAnchorFor snapped by SUN_ANCHOR_STEP = 8 / SUN_ANCHOR_HOLD = 24, SUN_CASCADE_BAND = 0.2 blend."
   - "Point: SHADOW_POINT_SIZE = 512 cube layers for up to SHADOW_POINT_CASTERS = 12 hi slots, plus a SHADOW_LO_SIZE = 256 static lo tier (SHADOW_LO_UNIT = 8, SHADOW_LO_STEP = 8, SHADOW_LO_REBUILDS = 2)."
   - "Cadence: SHADOW_NEAR_CASTERS = 2 redraw every frame, far cascade every SHADOW_FAR_CASCADE_EVERY = 2 frames, far casters every SHADOW_FAR_CASTER_EVERY = 3 frames. steadyShadows (SHADOW_TUNING.steady) removes this skipping."
+  - "`volumeName` never reuses a name, even after its table starts over, so a cached answer on a placement grid can never match a new plane set."
 traps:
   - "The static cache is copied into live layers by a full-screen triangle draw (_blitSlot, DEPTH_COPY_VS/DEPTH_COPY_FS), not by blitFramebuffer. A blit of depth arrays caused the D3D11 blink (CACHE-COPY)."
   - "Carried lights (pointCarried) never take a caster slot. Loot archive 216 (SHADOW_NO_CAST_ARCHIVES), SHADOW_LIGHT_FLATS and flats shorter than SHADOW_FLAT_MIN_HEIGHT = 0.5 do not cast."
+  - "`batchSphere` (`src/render/bounds.js`) lifts a billboard batch's cull sphere by half its height because the billboard vertex shader is bottom-anchored, and every pass culls flats through it so the main pass and the shadow and air replays agree."
+  - "`batchReach` grows the cull radius to the half-diagonal of the batch's current size, because producers rewrite `size` every frame without new bounds."
 dfu: []
 tags:
   - shadows

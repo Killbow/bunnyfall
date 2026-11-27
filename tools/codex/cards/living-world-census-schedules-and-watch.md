@@ -34,10 +34,12 @@ invariants:
   - "The town watch divides into `WATCH_COMPANIES` (`4`) companies rotating through `WATCH_SHIFTS` (`06`–`14` day, `14`–`22` evening, `22`–`06` night, plus a fourth day off)."
   - "`WatchVoice` throttles the entire watch to one HALT shout every `HALT_GAP_S` (`15` s) across all guards."
   - "Social gatherings maintain `SPACE_M` (`0.9` m) spacing via `circleStands` and `aloneStands` in `meetups.js`."
+  - "The second guard of a watch pair (`pair === 1`) never calls the hour, stops a stranger, or breaks up a quarrel; only the first does."
 traps:
   - "A schedule day starts at 04:00 (`DAY_START_MIN`), so night shifts cross midnight and require neighboring day plans to stay cached."
   - "In walled cities, `doorsNet` must select the navigation grid component reaching the highest number of building doors, or residents stay trapped indoors."
   - "An alerted guard spawned from a watch resident carries `livingFrom`; only a player kill counts as slaying that resident, and an unslain guard despawning returns the resident to their routine."
+  - "Traveller slots are dealt in `TRAVELLER_JOBS`, then `ROAD_JOBS`, then `MORE_JOBS` order; a new job must be appended, or every later `L<mapId>.t<slot>` id and the regard saved under it re-keys."
 tags:
   - census
   - day-plan

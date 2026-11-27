@@ -156,11 +156,11 @@ const USAGE = Object.freeze({
  *  alone (MODERATOR_HANDLES), so a player who asks reads what they could not do. */
 export const modHelpLines = () => [
   t('net.safety.modHelpHead', 'Moderators\' commands:'),
-  t('net.safety.modHelpMute', '/mute <name> [minutes], /unmute <name>: stop a player chatting for a while, or let them again'),
+  t('net.safety.modHelpMute', '/mute <name> [minutes], /unmute <name>: stop a player from chatting for a while, or let them chat again'),
   t('net.safety.modHelpBan', '/ban <name> [days|perm][: reason], /unban <name>: ban an account (they see the reason), or lift the ban'),
   t('net.safety.modHelpStrikes', '/strikes <name>: their strikes, the next penalty, any mute or ban, and their recent history'),
   t('net.safety.modHelpCases', '/cases: the open reports, most credible first'),
-  t('net.safety.modHelpCase', '/case <name>: one case, with its lines (theirs marked >), reasons, notes and the reviewer’s verdict (marked !)'),
+  t('net.safety.modHelpCase', '/case <name>: view a case, including its chat lines (theirs marked >), reasons, and notes'),
   t('net.safety.modHelpDismiss', '/dismiss <name>: close a case with no action and lift any automatic mute it caused'),
 ];
 const COMMAND_RE = new RegExp(`^/(${SAFETY_COMMANDS.join('|')})(?:\\s+([\\s\\S]*))?$`, 'i');

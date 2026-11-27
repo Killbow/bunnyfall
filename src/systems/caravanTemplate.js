@@ -1,18 +1,17 @@
 // @ts-check
-// A caravan template, as the decorator makes it and the owner checks it. Pieces are in the save's
-// (unturned) frame, as caravanVisit.js documents them. Pure: no DOM, no network, no clock.
+// Pieces are in the save's unrotated frame, the same frame `travel/caravanVisit.js` uses.
 import { decorGoldMove, decorPieceOf, decorPrice, mintDecorId, DECOR_PRICE_MIN, DECOR_PRICE_MAX } from '../net/decorLaw.js';
 import { decoratorPieceOk, templateBaseOf } from '../net/decoratorLaw.js';
 import { decorDelta } from '../homes/decorDraft.js';
 
-/** The hash a template is made against: the caravan's pieces as a visitor reads them. @param {any[]} pieces */
+/** @param {any[]} pieces */
 export const caravanBaseOf = (pieces) => templateBaseOf(JSON.stringify((pieces ?? []).map(decorPieceOf).filter(Boolean)));
 
 const sameWhat = (a, b) => (a.model ?? null) === (b.model ?? null) && JSON.stringify(a.flat ?? null) === JSON.stringify(b.flat ?? null);
 
 /**
- * The decorator's side: what changed from `base` to `now`, as `{ put, drop }` - only plain pieces, or `{ error }`.
- * @param {any[]} base @param {any[]} now
+ * @param {any[]} base
+ * @param {any[]} now
  */
 export function caravanTemplateOf(base, now) {
   const { put, drop } = decorDelta(base, now);
@@ -31,11 +30,10 @@ export function caravanTemplateOf(base, now) {
 }
 
 /**
- * The owner's side. `current` is the caravan's pieces, unturned; `radiusOf` gives a piece's radius, or null.
- * The price is the value of new pieces plus the growth of moved ones, less half the value of removed ones.
- * Answers `{ error }` ('stale', 'decorator-piece', 'pricing') or `{ pieces, pay, back, added, moved, removed }`.
- * @param {any[]} current @param {{ base: string, put: any[], drop: string[] }} template
- * @param {(piece: any) => (number | null)} radiusOf @param {() => number} [rand]
+ * @param {any[]} current
+ * @param {{ base: string, put: any[], drop: string[] }} template
+ * @param {(piece: any) => (number | null)} radiusOf
+ * @param {() => number} [rand]
  */
 export function caravanTemplateApply(current, template, radiusOf, rand = Math.random) {
   if (caravanBaseOf(current) !== template?.base) return { error: 'stale' };

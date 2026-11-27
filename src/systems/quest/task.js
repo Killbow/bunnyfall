@@ -1,18 +1,3 @@
-// THE QUEST TASK (Q1) - Task.cs, the parse half. Task types:
-// Headless (the startup block, begins triggered, symbol = NextUID),
-// Standard ("_sym_ task:"), PersistUntil ("until _sym_ performed:" -
-// begins triggered, terminates when the target sets), Variable
-// ("variable _sym_"), GlobalVarLink (a header naming a
-// Quests-GlobalVars row). The Update() trigger/action loop ships with
-// the machine (Q2).
-//
-// ACTION LINES: DFU resolves each body line against the machine's
-// action-template registry and logs "Action not found. Ignoring" for
-// the rest. Q1 has no registry yet, so EVERY body line lands in
-// `pendingActionLines` - the honest record Q2's registry consumes
-// (and the corpus pins count) instead of 10,000 lines of log noise.
-// The registry rides quest.actionFactory (AUDIT quest-2).
-
 import { Symbol as QuestSymbol, symbolToSaveData, symbolFromSaveData } from './symbol.js';
 import { matchFirst } from './questResource.js';
 import { nextUid } from './quest.js';
@@ -25,8 +10,7 @@ export const TaskType = Object.freeze({
   GlobalVarLink: 'globalVarLink',
 });
 
-// C# ReadTaskHeader alternation, in order (Node lacks duplicate named
-// groups, so an ordered list with matchFirst's .NET semantics).
+// Tried in order by matchFirst, since one alternation would need repeated named groups.
 const TASK_HEADER = [
   /(?<symbol>[a-zA-Z0-9_.]+) (?<task>task):/,
   /until (?<sym2>[a-zA-Z0-9_.]+) (?<persist>performed:)/,
@@ -47,7 +31,7 @@ export class Task {
     this.globalVarLink = -1;
     this.hasTriggerConditions = false;
     this.actions = [];
-    this.pendingActionLines = [];   // Q1: lines awaiting the action registry
+    this.pendingActionLines = [];
     if (lines !== null) this.setTask(lines, globalVar);
   }
 
@@ -64,7 +48,6 @@ export class Task {
     if (this._readTaskHeader(lines[i])) {
       i++;
     } else {
-      // No header match: the headless startup task, begins triggered
       this.type = TaskType.Headless;
       this.targetSymbol = null;
       this.triggered = true;
@@ -78,8 +61,6 @@ export class Task {
   drop() { this.dropped = true; this.setTriggerValue(false); }
 
   getTriggerValue() {
-    // A GlobalVarLink task reads the shared 64-global store (classic
-    // SAVEVARS.DAT state) through the machine's hooks.
     const globals = this.parentQuest?.hooks?.globalVars;
     if (this.globalVarLink !== -1 && globals) {
       this.triggered = globals.get(this.globalVarLink) ?? false;
@@ -91,25 +72,12 @@ export class Task {
     const globals = this.parentQuest?.hooks?.globalVars;
     if (this.globalVarLink !== -1 && globals) globals.set(this.globalVarLink, value);
     this.triggered = value;
-    // AUDIT quest-P1 (Task.cs SetTriggerValue): a dropped task can
-    // never change state - and CLEARING a live task REARMS its
-    // completed actions so a restart runs them again ("clear" exists
-    // exactly so tasks can re-trigger; without this, a cleared task's
-    // second activation ran zero actions).
+    // A dropped task never changes state, and clearing a live task rearms its actions so a restart runs them again.
     if (this.dropped) { this.triggered = false; return; }
     if (value === false) this._rearmActions();
   }
 
-  /** Q2 - Task.cs Update: the trigger law. The FIRST always-on
-   *  trigger is PRIMARY (can start AND stop the task - S0000977's
-   *  Daggerfall-city vengeance spawn); later always-on triggers are
-   *  SECONDARY (start only - W0C00Y00's dual "when" reward). Ordinary
-   *  triggers run only while untriggered. Actions tick when active,
-   *  initialising on the untriggered->triggered edge, and a
-   *  questBreak bails mid-task. A PersistUntil task checks its target
-   *  AFTER at least one tick (the classic Z.CFG start observation)
-   *  and REARMS its actions while the target stays unset (S0000011's
-   *  Barenziah click clear). */
+  // As in classic, the first always-on trigger can start and stop the task; later ones can only start it.
   update() {
     let ranPrimaryAlwaysOnTrigger = false;
     for (const action of this.actions) {
@@ -134,11 +102,10 @@ export class Task {
     }
 
     if (this.type === TaskType.PersistUntil) {
-      // AUDIT quest-P11: a missing target THROWS (C# NREs and the
-      // machine error-terminates the quest) - never a silent rearm.
+      // A missing target task throws, so the machine ends the quest with an error as classic does.
       const targetTask = this.parentQuest.getTask(this.targetSymbol);
       if (targetTask.getTriggerValue()) this.clear();
-      else this._rearmActions({ persist: true });   // QUEST-AUDIT III MUTE-HELD: the persisting re-arm (actions.js MuteNpc)
+      else this._rearmActions({ persist: true });
     }
 
     this.prevTriggered = this.getTriggerValue();
@@ -171,7 +138,6 @@ export class Task {
       this.targetSymbol = null;
       this.symbol = new QuestSymbol(g.symbol);
     } else if (g.persist) {
-      // Starts automatically, terminates when target symbol is true
       this.type = TaskType.PersistUntil;
       this.targetSymbol = new QuestSymbol(g.sym2);
       this.triggered = true;
@@ -186,9 +152,6 @@ export class Task {
   }
 
   _readTaskLines(lines, startLine) {
-    // AUDIT quest-2: the factory rides the QUEST, not a module global -
-    // a global was owned by the last-constructed machine, so a second
-    // QuestMachine anywhere silently stole the first one's registry.
     const factory = this.parentQuest?.actionFactory ?? null;
     for (let i = startLine; i < lines.length; i++) {
       const action = factory?.(lines[i], this.parentQuest) ?? null;
@@ -201,13 +164,10 @@ export class Task {
     }
   }
 
-  /** Quest.AddTask's duplicate-symbol arm merges actions in. */
   copyQuestActions(other) {
     this.actions.push(...other.actions);
     this.pendingActionLines.push(...other.pendingActionLines);
   }
-
-  // ---- the save envelope (Q4-iv; Task.cs:485-553) ----
 
   getSaveData() {
     return {
@@ -224,14 +184,8 @@ export class Task {
     };
   }
 
-  /** RestoreSaveData: C#'s EXACT sequence is law - IsTriggered runs
-   *  through SetTriggerValue while globalVarLink still holds the
-   *  fresh -1 and dropped holds false, so a load never re-writes the
-   *  global var and never trips the dropped guard; the action rearm
-   *  arm fires over an EMPTY action list (actions restore LAST).
-   *  Actions reconstruct through the machine's type registry (C#'s
-   *  reflection ctor); an unknown type throws out to the machine's
-   *  per-quest catch - the removed-mod law. */
+  // Classic order: on a fresh task the trigger is set while globalVarLink is -1 and dropped is false.
+  // Actions restore last.
   restoreSaveData(data, resolveActionType) {
     this.symbol = symbolFromSaveData(data.symbol);
     this.targetSymbol = symbolFromSaveData(data.targetSymbol);

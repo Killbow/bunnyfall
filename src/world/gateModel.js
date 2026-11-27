@@ -1,76 +1,31 @@
 // @ts-check
-// WB2 (2026-09-25, Mac: "A gate model would be spawned with a timer that leads to a completely different area, a gate
-// of oblivion"): THE GATE'S SHAPE. Design: bible/11-Multiplayer/World-Bosses.md section 3.
-//
-// GATE-FBX (2026-10-09, Mac: "replace the oblivion gate model with this handcrafted model which also needs
-// texturing"): MAC'S OWN GATE, baked out of his Blender scene (src/assets/gate/oblivionGate.json, tools/bakeGate.mjs) -
-// two pillars of black volcanic stone on clawed feet, a lintel flaring over them, the opening's top corners cut in, three
-// spines down each pillar's outside. WB2's gate, two horns swept along a cubic over a stepped plinth in code, is gone
-// with it. The portal hangs between the pillars (the membrane is a pass of its own - render/gate/gatePass.js - never this
-// mesh), fitted to the opening as the stone stands (`gateArchProfile`, sliced off this mesh).
-//
-// THE TEXTURING. The bake carries none - Mac's materials are Blender's default grey - so every face is laid on the
-// port's own art (world/gate/gateArt.js) here: the stone wears the cracked basalt, PROJECTED along the axis its face looks
-// down most (`gateFaceUv`, a tile every GATE_TILE_M, v up every standing face, so the fire's veins climb the pillars) -
-// seared where a face looks into the opening (`gateRimFace`, GATE_RIM_RECORD: the frame the fire burns in) - and the
-// spines - each a cone of faces apart from the rest, meeting at its point (`gateSpines`; Mac's two materials split the
-// pillars, not the spines) - wear the spine's horn (GATE_SPINE_RECORD) laid root to point along each, its point
-// burning. Every face is flat-shaded (its own three vertices and one normal), the low-polygon stone the rest of
-// Daggerfall's world is cut from, and the feet run GATE_FOOT_SINK on under the ground, so a slope never shows light
-// under them (WB2's plinth sank its foot the same).
-//
-// PURE: positions, normals, uvs and indices in the GATE'S OWN FRAME - metres, origin at the centre of the threshold on
-// the ground, +y up, the pillars across x and the portal facing +z and -z - and the sub-meshes by texture. The pool
-// (scenes/gate/gatePool.js) uploads it once, draws it with the gate's matrix and hands the collider the same triangles.
-//
-// Not a DFU member. Ledger A (WB).
 import GATE_BAKE from '../assets/gate/oblivionGate.json' with { type: 'json' };
 
-/** The gate's textures (world/gate/gateArt.js): the stone's cracked basalt, and the carved flags WB2's plinth wore (the
- *  Sigil Broker's cage wears them still - world/cageModel.js) - the port's own pseudo-archive, far above any classic
- *  archive (bloodArt.js's law, BLOOD_ATLAS_ARCHIVE 38001). */
+// A pseudo-archive above every classic ARENA2 archive and clear of the other generated atlases such as
+// `BLOOD_ATLAS_ARCHIVE`.
 export const GATE_ARCHIVE = 38101;
 export const GATE_STONE_RECORD = 0;
 export const GATE_PLINTH_RECORD = 1;
-/** WB12d: the faithful's sigil, burned into the earth (world/gate/gateArt.js riteSigilArt) - AUDIT WB12d (G11): its own, where
- *  it wore the plinth's flags across thirteen metres. */
 export const RITE_SIGIL_RECORD = 2;
-/** GATE-FBX: the spines' horn and the stone seared round the opening (world/gate/gateArt.js gateSpineArt, gateRimArt). */
 export const GATE_SPINE_RECORD = 3;
 export const GATE_RIM_RECORD = 4;
-/** EG-F (bible/11-Multiplayer/Elite-Gates.md section 6.3): AN ELITE BREACH'S ARCH is this gate at 0.62, in Imperial white
- *  marble inlaid with gold and cracked through with the Warden's basalt (world/gate/gateArt.js archArt) - its stone, its rim
- *  and its spines, each the gate's own record's twin (`EG_ARCH_RECORD_OF`). */
 export const EG_ARCH_STONE_RECORD = 5;
 export const EG_ARCH_SPINE_RECORD = 6;
 export const EG_ARCH_RIM_RECORD = 7;
 export const EG_ARCH_RECORD_OF = Object.freeze({ [GATE_STONE_RECORD]: EG_ARCH_STONE_RECORD, [GATE_SPINE_RECORD]: EG_ARCH_SPINE_RECORD, [GATE_RIM_RECORD]: EG_ARCH_RIM_RECORD });
 
-/** The bake's one part: the gate, in its own frame (tools/bakeGate.mjs FRAME - Mac's metres x 0.53). */
 const PART = GATE_BAKE.parts[0];
-/** The basalt's tile on the stone, metres - five, where WB2's horns wore one every ~3 m: on Mac's broad flat faces the
- *  veins of a three-metre tile read as a wallpaper of sparks. */
 export const GATE_TILE_M = 5;
-/** How far the feet run on under the ground, metres. */
 export const GATE_FOOT_SINK = 1.2;
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const norm = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 
-/** A corner of the bake. */
 const corner = (i) => [PART.positions[i * 3], PART.positions[i * 3 + 1], PART.positions[i * 3 + 2]];
-/** The whole gate's height - its lintel's crown, read off the bake (16.19 m: the 16.2 of WB2's, tools/bakeGate.mjs
- *  SCALE), for the rise out of the ground and the eye's box. */
 export const GATE_HEIGHT = PART.positions.reduce((m, v, i) => (i % 3 === 1 ? Math.max(m, v) : m), 0);
-/** How far the stone reaches across x either side of the threshold, its spines' points included (the clearing's
- *  measure - world/gate/gateClearance.js GATE_CLEAR_M). */
 export const GATE_HALF_W = PART.positions.reduce((m, v, i) => (i % 3 === 0 ? Math.max(m, Math.abs(v)) : m), 0);
 
-/**
- * THE PIECES: the bake's polygons gathered by the corners they share - the lintel, each pillar on its feet, each spine:
- * `[[k, ...]]`, each piece's polygon indices.
- */
 export function gatePieces(part = PART) {
   const up = part.polygons.map((_, k) => k);
   const find = (k) => { while (up[k] !== k) k = up[k] = up[up[k]]; return k; };
@@ -81,11 +36,6 @@ export function gatePieces(part = PART) {
   return [...pieces.values()];
 }
 
-/**
- * THE SPINES: of the bake's pieces (gatePieces), the cones - three faces or more, every one meeting at one point -
- * `[{ polygons, tip }]`, each spine's polygon indices and the corner they all share (Mac's are three triangles each).
- * Nothing in the file names them: his two materials are the two pillars.
- */
 export function gateSpines(part = PART) {
   const out = [];
   for (const ks of gatePieces(part)) {
@@ -95,12 +45,8 @@ export function gateSpines(part = PART) {
   return out;
 }
 
-/** What a face belongs to: the stone, or a spike (a spine of the gate's - the model's `parts` - or spike()'s, the court's
- *  and the Deadlands' builders'). */
 export const GATE_PART = Object.freeze({ Stone: 0, Spike: 1 });
 
-/** A builder of flat-shaded triangles, gathered by texture record, each tagged with its part. WB3b: the Burning
- *  Court's builder too (world/gate/gateArena.js) - the court is cut from the gate's own stone. */
 export function faces() {
   const byRec = new Map();
   let part = GATE_PART.Stone;
@@ -115,8 +61,6 @@ export function faces() {
   return { tri, quad, byRec, as: (p) => { part = p; } };
 }
 
-/** A four-sided spike from a base square (centre `b`, half-size `w`, in the plane its axis `ax` leaves) to `tip` -
- *  the court's spires', the Deadlands' and the bridge's one shape, wound outward whatever way it points. */
 export function spike(f, b, w, tip) {
   f.as(GATE_PART.Spike);
   const ax = norm(sub(tip, b));
@@ -132,23 +76,14 @@ export function spike(f, b, w, tip) {
   }
 }
 
-/** How many heights the arch's opening is measured at - the membrane's mask (render/gate/gatePass.js uProfile). */
 export const ARCH_PROFILE_N = 24;
-/** The opening's bottom: the ground - the feet's inner edges meet it. */
 export const ARCH_Y0 = 0;
-/**
- * The opening's top: the least height at which a part's stone stands over the middle of the threshold, (0, 0) - for
- * Mac's gate the lintel's underside, read off the bake. A face standing edge-on over the middle answers nothing (its
- * height there is no number). A part with no stone over the middle has no opening to hang a fire in, and is refused
- * (AUDIT GATE-FBX G8: the shader took "Infinity" for a number and the fire would not build).
- */
 export function gateArchTop(part = PART) {
   const at = (i) => [part.positions[i * 3], part.positions[i * 3 + 1], part.positions[i * 3 + 2]];
   let top = Infinity;
   const T = part.triangles;
   for (let t = 0; t < T.length; t += 3) {
     const [a, b, c] = [at(T[t]), at(T[t + 1]), at(T[t + 2])];
-    // (0, 0) inside the triangle seen from above: the same side of all three edges
     const side = (p, q) => (q[0] - p[0]) * (0 - p[2]) - (q[2] - p[2]) * (0 - p[0]);
     const s1 = side(a, b), s2 = side(b, c), s3 = side(c, a);
     if (!((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0))) continue;
@@ -159,14 +94,11 @@ export function gateArchTop(part = PART) {
   return top;
 }
 export const ARCH_Y1 = gateArchTop();
-/** The portal's centre: half-way up the opening (the fire's light and its vortex turn about it - the beacon is measured
- *  from the gate's foot, render/gate/gatePass.js BEACON_START_M). */
 export const PORTAL_CENTRE_Y = (ARCH_Y0 + ARCH_Y1) / 2;
 
 /**
- * THE CLEAR AT A HEIGHT: the least |x| of the stone's section at height `y` (every triangle of the soup `P` the height
- * cuts, the segment it cuts there), 0 where a piece of stone spans the middle, Infinity where none is cut.
- * @param {ArrayLike<number>} P triangles, nine numbers each @param {number} y
+ * @param {ArrayLike<number>} P
+ * @param {number} y
  */
 export function gateClearAt(P, y) {
   let clear = Infinity;
@@ -182,22 +114,17 @@ export function gateClearAt(P, y) {
   }
   return clear;
 }
-/** The bake's triangles as one soup (gateClearAt's). */
 const BAKE_SOUP = Float64Array.from(PART.triangles.flatMap((v) => corner(v)));
-/** The heights of a soup's corners within the opening - where its section bends - by a millimetre clear of its two ends,
- *  as the profile's heights are (a lintel corner held in single precision stands 1e-7 under ARCH_Y1, in its plane). */
+// Heights stay 1 mm inside both ends: a lintel corner in single precision sits about 1e-7 below `ARCH_Y1`, in the
+// lintel plane.
 const cornerHeights = (P) => [...new Set(Array.from({ length: P.length / 3 }, (_, i) => P[i * 3 + 1]))].filter((y) => y > ARCH_Y0 + 1e-3 && y < ARCH_Y1 - 1e-3);
-/** The opening at its widest: the stone's least |x| at the height where it stands furthest apart (the pillars' inner
- *  faces at their feet's top, 3.74 m) - where the rim's faces stop (gateRimFace). */
 export const GATE_OPEN_HALF_W = Math.max(...cornerHeights(BAKE_SOUP).map((y) => gateClearAt(BAKE_SOUP, y)).filter(Number.isFinite));
 
 /**
- * Where a point of a face of normal `n` lies on the basalt: projected along the axis the face looks down most - a top
- * or a bottom across x and z, a face looking along x across z and up y, one looking along z across x and up y - a tile
- * every GATE_TILE_M. A box projection: the bake has no seams to unwrap along, and the stone is the same stone whichever
- * way a face is turned. AUDIT GATE-FBX G3: `n` is the TRIANGLE's own - four of Mac's quads stand 0.3-0.4 m out of
- * their plane, and a triangle of each laid along its quad's axis stood its texels 4.5 times wide.
- * @param {number[]} p @param {number[]} n
+ * `n` must be the triangle normal, not the quad normal: some baked quads are 0.3 to 0.4 m out of plane and would
+ * stretch the texels.
+ * @param {number[]} p
+ * @param {number[]} n
  */
 export function gateFaceUv(p, n) {
   const ax = Math.abs(n[0]), ay = Math.abs(n[1]), az = Math.abs(n[2]);
@@ -206,16 +133,10 @@ export function gateFaceUv(p, n) {
   return [p[0] / GATE_TILE_M, p[1] / GATE_TILE_M];
 }
 
-/** How far past the opening's widest a rim face's middle may stand, metres: the pillars' inner faces lean a hand's
- *  breadth either way of it; their outer flanks stand past five metres. */
 export const RIM_REACH_M = 0.5;
 /**
- * GATE-FBX: WHETHER A FACE OF THE STONE LOOKS INTO THE OPENING - the frame the fire burns in: within the opening's widest
- * reach (GATE_OPEN_HALF_W and RIM_REACH_M), a face turned in across the threshold toward its middle (the pillars' and the
- * feet's inner faces, the soles' inner walls) or one looking down over it (the cut corners' and the lintel's
- * undersides). AUDIT GATE-FBX G1: unbounded and turned only a half toward the middle, it seared the pillars' outer
- * flanks - their faces look out of the gate's front and back, five metres out. `c` its middle, `n` its normal.
- * @param {number[]} c @param {number[]} n
+ * @param {number[]} c
+ * @param {number[]} n
  */
 export function gateRimFace(c, n) {
   if (!(Math.abs(c[0]) < GATE_OPEN_HALF_W + RIM_REACH_M)) return false;
@@ -223,11 +144,6 @@ export function gateRimFace(c, n) {
   return n[1] < -0.3 && c[1] > ARCH_Y0 + 1;
 }
 
-/**
- * THE STONE AS IT IS LAID: every face of the bake as the model lays it - `[{ k, piece, kind, tri, ids }]`: the polygon it
- * is of, its piece (gatePieces), what it is ('spine', 'stone', a foot's 'sole' sunk GATE_FOOT_SINK under the ground,
- * or a 'wall' down to it from the sole's edge), its corners, and (a spine's) the bake's corner indices.
- */
 function laidFaces() {
   const trisOf = PART.polygons.map(() => []);
   PART.triangleOf.forEach((k, t) => trisOf[k].push([PART.triangles[t * 3], PART.triangles[t * 3 + 1], PART.triangles[t * 3 + 2]]));
@@ -239,7 +155,6 @@ function laidFaces() {
     const piece = pieceOf[k];
     if (tipOf.has(k)) { for (const ids of trisOf[k]) out.push({ k, piece, kind: 'spine', tri: ids.map(corner), ids }); return; }
     if (poly.every((v) => Math.abs(corner(v)[1]) < 1e-3)) {
-      // A FOOT'S SOLE: run on under the ground - a wall down from each of its edges, and the sole again below
       const down = (p) => [p[0], p[1] - GATE_FOOT_SINK, p[2]];
       for (let i = 0; i < poly.length; i++) {
         const a = corner(poly[i]), b = corner(poly[(i + 1) % poly.length]);
@@ -253,17 +168,11 @@ function laidFaces() {
   return out;
 }
 
-/**
- * The gate, whole: `{ positions, normals, uvs, indices, subMeshes: [{ textureArchive, textureRecord, startIndex,
- * primitiveCount }] }` - renderer.createMesh's own model shape - and `triangles`, the collider's copy (the positions,
- * unindexed, which flat shading makes them anyway), and `parts`, each triangle's GATE_PART (the spines' Spike).
- */
 export function buildGateModel() {
   const f = faces();
   const tipOf = new Map(gateSpines().flatMap((s) => s.polygons.map((k) => [k, s.tip])));
   for (const { k, kind, tri: [a, b, c], ids } of laidFaces()) {
     if (kind === 'spine') {
-      // the spine's horn laid root to point: its point at v 1, the two corners of its root along v 0
       f.as(GATE_PART.Spike);
       const tip = tipOf.get(k), roots = PART.polygons[k].filter((v) => v !== tip);
       const uvOf = (v) => (v === tip ? [0.5, 1] : v === roots[0] ? [0, 0] : [1, 0]);
@@ -271,7 +180,7 @@ export function buildGateModel() {
       continue;
     }
     f.as(GATE_PART.Stone);
-    const n = norm(cross(sub(b, a), sub(c, a)));   // AUDIT GATE-FBX G3: the triangle's own
+    const n = norm(cross(sub(b, a), sub(c, a)));
     const mid = [(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3];
     const lay = (p) => gateFaceUv(p, n);
     f.tri(gateRimFace(mid, n) ? GATE_RIM_RECORD : GATE_STONE_RECORD, a, b, c, lay(a), lay(b), lay(c));
@@ -280,7 +189,7 @@ export function buildGateModel() {
   const count = recs.reduce((n, r) => n + f.byRec.get(r).p.length / 3, 0);
   const positions = new Float32Array(count * 3), normals = new Float32Array(count * 3), uvs = new Float32Array(count * 2);
   const parts = new Uint8Array(count / 3);
-  const indices = new Uint32Array(count);   // WBX1: the renderer's one index type (renderer.createMesh) - a Uint16Array under it drew nothing
+  const indices = new Uint32Array(count);
   const subMeshes = [];
   let v = 0;
   for (const rec of recs) {
@@ -295,17 +204,10 @@ export function buildGateModel() {
 }
 
 /**
- * THE OPENING'S SHAPE: at ARCH_PROFILE_N heights from ARCH_Y0 to ARCH_Y1, the half-width of the clear space between
- * the pillars, less `margin`, never below zero - the stone's own clear at each height (gateClearAt; inside the opening
- * by a millimetre at its two ends, where the soles and the lintel's underside lie IN those planes). GATE-FBX: SLICED,
- * where WB2's read the horns' vertices in bands - Mac's gate has 72 corners, and most heights have none. The pass draws
- * the fire as the line between two heights (render/gate/gatePass.js uProfile), and where the stone narrows between them and
- * widens again - the cut corners' tips, 13.08 m up - that line runs into it (0.27 m, sampled bare), so at every corner's
- * height between two the line is measured against the stone, and both lowered by what it overruns. AUDIT GATE-FBX G2:
- * each height took the least clear over both its bands, and the fire stood up to 1.15 m short of the stone - a see-through
- * strip 0.49 m wide up the feet. Measured off the built mesh itself, so the membrane fits the stone it hangs in whatever
- * its shape becomes.
- * @param {{positions: Float32Array}} [model] @param {number} [margin] metres left between the fire and the stone
+ * The pass draws the fire edge as a straight line between profile heights. Where a stone corner falls between two
+ * samples, both are lowered by what that line would overrun.
+ * @param {{positions: Float32Array}} [model]
+ * @param {number} [margin]
  */
 export function gateArchProfile(model = buildGateModel(), margin = 0.15) {
   const out = new Float32Array(ARCH_PROFILE_N);
@@ -328,12 +230,8 @@ export function gateArchProfile(model = buildGateModel(), margin = 0.15) {
   return out;
 }
 
-/**
- * AUDIT GATE-FBX E1: THE STONE'S SOLIDS - each piece of the stone as it is laid (gatePieces; the soles sunk on their
- * walls), closed: a spine's open root, which stands inside its pillar, capped by its three root corners. Triangle
- * soups, one a piece, for insideGateStone. (The collider takes the gate as one part, and the open cones flip a ray's
- * parity through the pillars - so the inside is asked here, a piece at a time.)
- */
+// Each piece is closed on its own, spine roots capped, because the open spine cones would flip ray parity through
+// the pillars.
 export function gateSolids() {
   const byPiece = new Map();
   for (const f of laidFaces()) { if (!byPiece.has(f.piece)) byPiece.set(f.piece, []); byPiece.get(f.piece).push(...f.tri.flat()); }
@@ -346,10 +244,8 @@ export function gateSolids() {
   return [...byPiece.values()].map((a) => Float64Array.from(a));
 }
 let _solids = null;
-/** The ray a point's inside is counted along - skew to every face of the gate, so it never runs down an edge. */
 const INSIDE_RAY = norm([0.4813, 0.6127, 0.6271]);
-/** Whether a point (the gate's own frame) stands inside the stone: inside one of its closed pieces, by the parity of a
- *  ray's crossings (Moller-Trumbore). Pure. @param {number[]} p */
+/** @param {number[]} p */
 export function insideGateStone(p) {
   const solids = (_solids ??= gateSolids()), d = INSIDE_RAY;
   for (const T of solids) {

@@ -36,6 +36,7 @@ invariants:
 traps:
   - "A kinsman killer inherited by an heir joins past `REVENANT_MAX` without burying anyone, whereas deserters and betrayers past the cap bury the weakest, oldest hunting revenant."
   - "A marked enemy whose flight starts after it is no longer a candidate (such as when the hunting cap fills mid-fight) returns `cornered` instead of escaping."
+  - "A killing blow is confirmed in a microtask after the hurt finishes (`armDeathCheck`), so a death that the Temple of Stendarr's avoid-death benefit (`avoidDeath`) undoes makes no revenant."
 dfu: []
 tags:
   - revenants

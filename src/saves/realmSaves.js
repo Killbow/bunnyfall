@@ -1067,7 +1067,7 @@ export const REALM_RESTORED_TEXT = 'Your last save had not reached the realm whe
 /** STRANDED: said once the world stands, when the join set aside this device's copy of a save the realm never took
  *  because the character was played on elsewhere since - in the player's language. "May": a put whose answer was lost
  *  may have landed after all. */
-export const realmStrandedText = () => t('realm.stranded', 'This device kept a save of this character that did not reach the realm, and the character was played somewhere else since. That save may hold progress you do not have now. It is set aside on this device, not played.');
+export const realmStrandedText = () => t('realm.stranded', 'This device has a save of this character that did not reach the realm, and the character was played elsewhere since. That save may hold progress you no longer have. It is set aside on this device and not loaded.');
 /** Said once the world stands, when an online boot carried no realm character (a stale address, a local save). */
 export const REALM_OFFLINE_TEXT = 'Online characters live in the realm now, so this one plays offline. Use the Online door to bring it in. You can do this once.';
 

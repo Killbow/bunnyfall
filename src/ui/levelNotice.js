@@ -323,8 +323,8 @@ export function announceLevelUp(entity, { say = null, open = null, now = nowMs()
 export function announceRenownRise(level, { stars = 0, say = null, now = nowMs(), doc = DOC } = {}) {
   audio.playOneShot(SOUND.LevelUp, 1);
   if (!isEnhanced() || !doc) {
-    say?.(stars > 0 ? t('level.renown.risenStars', 'You have risen to Renown {level}! {stars, plural, one {# new Star shines} other {# new Stars shine}} in your Firmament.', { level, stars })
-      : t('level.renown.risen', 'You have risen to Renown {level}!', { level }));
+    say?.(stars > 0 ? t('level.renown.risenStars', 'You have risen to Renown {level}. {stars, plural, one {# new Star shines} other {# new Stars shine}} in your Firmament.', { level, stars })
+      : t('level.renown.risen', 'You have risen to Renown {level}.', { level }));
     return false;
   }
   levelNotices.announceRenown(level, stars, now);

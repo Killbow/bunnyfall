@@ -36,9 +36,14 @@ invariants:
   - "Travelling parties march single-file spaced by `FILE_GAP_N` (`72` native units, `1.8` m) and pitch camp on a `CAMP_RING_N` (`90` native units, `2.25` m) circle verified on dry land via `createDryGround` (`sampleKernel`)."
   - "`ways.js` computes at least `WAYS_PER_FRAME` (`2`) inter-town routes per frame within a `WAYS_MS_PER_FRAME` (`2` ms) budget, capped at `WAYS_MAX_PER_FRAME` (`32`)."
   - "Fallen dungeon diver remains persist for `DEEP_REMAINS_MIN` (`3 * DAY_MIN`), and `TURNS_MAX` (`200`) bounds each saved category of permanent resident fate (`spared`, `fallen`)."
+  - "No save records who died: `placeAt` derives deaths, vacancies of `VACANT_CYCLES` (`3`) cycles, and newcomers (such as `L<map>.t<slot>~<cycle>`) from seeded slot dice plus saved character turns."
+  - "Road party placement, shared camps (`campGroups`), lanes (`roadLanes`), and passing lines (`passingLine`) derive only from the clock and trip timelines, so every client draws and hears the same road."
+  - "`createRoadFights` remembers up to `ENDED_MAX` (`64`) won or lost fights in `ended` and never stands one of them live again."
+  - "`troubleOf` rolls whether, where, and how an encounter happens from `diced`, which ignores player turns; only `dies` decides who falls, so sparing a member never re-rolls it."
 traps:
   - "Road ambush enemies spawn through `spawnFoe` (`src/characters/exteriorFoes.js`) as temporary encounter entities; never persist them to the save file."
   - "When a road party loses an ambush near the player, surviving enemies transfer into the active exterior encounter pool to pursue the player."
+  - "`KEEPSAKE_TEMPLATE` (`1800`) must equal `PATRON_KEEPSAKE_TEMPLATE` in `src/net/patronLaw.js`, which keeps hired traders from taking keepsakes."
 tags:
   - trips
   - caravans

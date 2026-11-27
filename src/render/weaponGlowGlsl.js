@@ -1,120 +1,48 @@
 // @ts-check
-// WEAPON-GLOW1 (2026-10-16; bible/05-Combat/Weapon-Glow.md): THE GLOW'S DRAWING - one design, two drawers. A leaf: the
-// shaders' source and the numbers they are drawn by, no import (render/renderer.js builds the programs and issues the
-// draws; systems/weaponGlow.js decides what a weapon shows).
-//
-// THE DESIGN. An element's glow is an OUTLINE that lives: a band round the weapon's silhouette, hottest at the edge and
-// cooling outward in four steps of the element's ramp (systems/weaponGlow.js GLOW_RAMPS - Daggerfall's own way with
-// light, a few palette shades and never a smooth blend), its REACH - how far the band stands off the edge - moving:
-//   - FIRE: tongues that climb. The reach is two octaves of value noise scrolled up the screen, stretched upward and
-//     cut short below (a flame rises), and an ember now and then drifts up off the top.
-//   - FROST: a rime that breathes. A square reach (the Chebyshev metric - ice is angular), still spikes where a cell's
-//     hash says so, a slow pulse, and a glint that flashes white on a crystal for a fifth of a second.
-//   - SHOCK: an edge that crackles. A diamond reach (Manhattan - jagged), a band that flickers in 2x2 blocks at
-//     twelve steps a second, arcs thrown out where a stepped noise peaks, and a surge a few times a second.
-//   - ARCANE (the Morrowind hand's enchanted look - systems/weaponGlow.js law 5): an even halo that turns slowly.
-// Inside the silhouette the weapon's own edge takes the element's light (the RIM), so the outline reads as the
-// weapon's and not a sticker behind it.
-//
-// THE TWO DRAWERS.
-//   - THE CLASSIC SPRITE (Renderer.drawScreenQuadGlow): one quad over the frame's own rect, grown by the search window,
-//     that reads the frame's FIELD - each Daggerfall pixel's distance to the nearest opaque one in the look's metric,
-//     measured once a frame and look into a small picture (GLOW_FIELD_FS; AUDIT WEAPON-GLOW SPR-1) - and moves the band
-//     over it. Evaluated per Daggerfall pixel of the frame, so the outline is drawn in the sprite's own pixels.
-//   - THE MORROWIND MESH (Renderer._drawWeaponGlow, inside drawCharacter's sprite pass): the weapon's ranges drawn
-//     again, SHIFTED in screen space round GLOW_DIRS directions at each of GLOW_RINGS distances - the union of a ring's
-//     copies is the silhouette dilated by its distance, so the ring's fragment knows its band without searching - at
-//     the BACK of the pass and before the body, so the real weapon and everything else the pass draws cover them, an
-//     inner ring nearer than an outer so it paints over it. Opaque, because the arm's composite cuts at half alpha
-//     (drawScreenOverlayQuad). Then, after the body, the CHARGE: the weapon's own surface again, additive, lit at its
-//     rim and patterned by its element - the detail a model can carry that a 2D frame cannot. The ring's `c` is the fragment's place in glow UNITS (a Daggerfall pixel at
-//     the pass's height, GLOW_UNIT_ROWS), so a flame on a model is a flame the size of one on a sprite.
-//
-// THE CLOCK. Every rate is whole over GLOW_CLOCK_PERIOD (the renderer wraps its seconds there): the scrolls' noise is
-// periodic in y over exactly the cells a period scrolls (gwNoise's `py`), the pulses' periods divide it, and the stepped
-// hashes start their count again - so the wrap is a frame like any other, never a jump in a flame.
+// Weapon glow shaders and their numbers, a leaf with no imports. renderer.js builds the programs and issues the
+// draws, and weaponGlow.js decides what a weapon shows.
 
-/** The seconds the glow's clock wraps at - every rate below is whole over it. */
+// Every rate is whole over this period, and the renderer wraps its seconds here, so the wrap never jumps a flame.
 export const GLOW_CLOCK_PERIOD = 240;
-/** A glow unit is a Daggerfall pixel: the pass's height over Daggerfall's 200 rows - in first person the LENS's rows
- *  (combat/fpArm.js lays it on the mesh, `glowUnit`, so a Weapon Widget scale grows the outline with the arm), a
- *  third-person picture's own rows otherwise. Never under GLOW_UNIT_MIN of a texel (a far body's outline is a thin one,
- *  never none) nor over GLOW_UNIT_MAX. */
 export const GLOW_UNIT_ROWS = 200;
 export const GLOW_UNIT_MIN = 0.5;
 export const GLOW_UNIT_MAX = 8;
 export const glowUnit = (rows) => Math.min(GLOW_UNIT_MAX, Math.max(GLOW_UNIT_MIN, rows / GLOW_UNIT_ROWS));
-/** The Morrowind outline's bands, in glow units from the edge - drawn outermost first. */
 export const GLOW_RINGS = Object.freeze([4.75, 3.25, 2, 1]);
-/** The directions a ring's copies are shifted round. */
 export const GLOW_DIRS = 12;
-/** Fire's reach is stretched upward and cut short below: the up and down factors on a shift's y (the sprite's metric
- *  is the same pair, inverted - gwMetric). */
 export const GLOW_FIRE_UP = 1.8;
 export const GLOW_FIRE_DOWN = 0.6;
-/** The embers' shifts over a fire weapon (glow units, three heights, each straight up and a hair to either side). */
 export const GLOW_EMBER_RISE = Object.freeze([6, 7.5, 9]);
-/** How far a look's outline stands off the weapon at most, in glow units: the outer ring, fire's stretched up and its
- *  embers over it. */
 export const glowReach = (look) => (look === 'fire' ? Math.max(GLOW_RINGS[0] * GLOW_FIRE_UP, ...GLOW_EMBER_RISE) : GLOW_RINGS[0]);
-/** AUDIT WEAPON-GLOW MW-3: THE ROOM A THIRD-PERSON PICTURE NEEDS FOR ITS OUTLINE, in texels a side (render/
- *  characterSprite.js drawRigSpriteBox pads the window by it, as it pads for a foe's tells - bodyFxPad): the reach in
- *  glow units at the unit the PADDED picture will draw at, and a texel over. `rows` the picture's rows before the pad.
- *  The drawn weapon is often the box's edge - a blade held high is its top - so without it the outline was cut flat. */
+// The drawn weapon often sits on the picture's edge, so the picture needs this pad or the outline is cut flat.
 export function glowPad(look, rows) {
   const reach = glowReach(look);
   let pad = 0;
   for (let i = 0; i < 4; i++) pad = Math.ceil(reach * glowUnit(rows + 2 * pad)) + 1;
   return pad;
 }
-/** WHERE A RING STANDS IN DEPTH: at the back of the pass, NDC z `GLOW_RING_FAR + ring x GLOW_RING_STEP` - an outer ring
- *  farther than an inner one, so the inner paints over it, and every ring behind anything the pass draws after it. The
- *  rings are drawn BEFORE the body: a shifted copy of a tilted blade can stand nearer than the blade's own surface at
- *  a pixel, and drawn after it the rings painted over the weapon they outline (the probe saw it, tools/
- *  weaponGlowProbe.mjs). An ember stands at the front of the rings. AUDIT WEAPON-GLOW MW-2: the sprite target's depth was
- *  DEPTH_COMPONENT16, a step of 1/65535 in window depth - the rings were 1e-5 apart there, and the two inner ones fell on
- *  one value, so the hottest band never drew; GLOW_RING_STEP keeps every neighbour at least GLOW_DEPTH_STEPS of those steps
- *  apart (test/systems/weaponglow1.test.js), and more than enough at the 24 bits BODY-CROP gave it. The pass's own
- *  geometry stands nearer than GLOW_RING_FAR everywhere it draws (the first-person arm's far plane is four reaches, and the
- *  arm reaches 0.999 only past 2.8 of them; a third-person picture's ortho holds its box well inside; BODY-CROP's picture
- *  takes the frame's own depth, under 0.999 for a body within about 375 m in the street and 80 m in a building - the
- *  lenses' 0.2 and 0.05 m near planes - and a texel past GLOW_DEPTH_FLOOR takes the quad's depth). The charge's pull is toward the eye, a hair - its vertex shader is
- *  another program's arithmetic, and LEQUAL alone would lose a texel where the two round apart. */
+// Rings sit at the back of the pass, outer ones farther, so the inner rings and the body cover them. Neighbors stay at
+// least GLOW_DEPTH_STEPS steps of a 16-bit depth buffer apart.
 export const GLOW_RING_FAR = 0.999;
 export const GLOW_RING_STEP = 1e-4;
 export const GLOW_DEPTH_STEPS = 2;
+// The charge pulls toward the eye because its vertex shader is another program, and LEQUAL alone loses texels
+// where the two round apart.
 export const GLOW_CHARGE_PULL = -1e-5;
-/** AUDIT WEAPON-GLOW MW-1: the window depth at and past which a texel of a picture is a ring's (or an ember's), never
- *  the body's - two D16 steps under the nearest of them. render/renderer.js's body quad gives such a texel the quad's
- *  own depth (BODY-DEPTH would have stood it where its depth says: a reach behind the body, under a wall's or a floor's). */
+// A picture texel at or past this window depth is a ring's or an ember's, never the body's.
 export const GLOW_DEPTH_FLOOR = (GLOW_RING_FAR + 1) / 2 - GLOW_DEPTH_STEPS / 65535;
-/** The most draws glowRingDraws answers - the instanced pass's uniform array (fire: 48 rings and 9 embers). */
 export const GLOW_DRAWS_MAX = 64;
-/** THE MOST A LOOK'S BAND REACHES, in glow cells (a Daggerfall pixel - the frame's own on a classic sprite): gwReach at
- *  level 3 with its noise at the top - fire (1.2 + 3)(0.5 + 1.25), frost 0.8 + 2.4 + 2.4 + 0.5, shock 1.6 + 0.9 + 6.5 +
- *  1, arcane (its one level, 2) 1.6 + 1.2. The sprite clamps its reach here (`uReachMax`), and its window below holds
- *  every cell within it, so no band is ever cut short by the window's box (AUDIT WEAPON-GLOW SPR-2: the window was a
- *  guess, and shock's band reached past it in every frame at level 3). */
+// The most each look's band reaches at level 3, in glow cells. The sprite clamps its reach here, and its search
+// window holds every cell within it.
 export const GLOW_REACH_MAX = Object.freeze({ fire: 7.35, frost: 6.1, shock: 10, arcane: 2.8 });
-/** How far past its band a fire ember may rise off the weapon (GLOW_SPRITE_FS - an ember stands only over a solid). */
 export const GLOW_EMBER_SLACK = 3;
-/** The farthest a look's field measures, in glow cells: its reach, and fire's embers past it. */
 export const glowFieldReach = (look) => GLOW_REACH_MAX[/** @type {keyof typeof GLOW_REACH_MAX} */ (look)] + (look === 'fire' ? GLOW_EMBER_SLACK : 0);
-/** The sprite's search window per look, in glow cells: [half-width, rows above the cell, rows below it] - every cell
- *  within glowFieldReach in the look's metric (gwMetric), and no more. Fire's flame stands over its weapon, so it looks
- *  far DOWN (its metric shrinks a rise by GLOW_FIRE_UP) and a little way up (a fall grows by 1/GLOW_FIRE_DOWN), and only
- *  its band looks up - an ember rises off a solid below it. */
 export const GLOW_SPRITE_WINDOW = Object.freeze(Object.fromEntries(['fire', 'frost', 'shock', 'arcane'].map((look) => {
   const r = GLOW_REACH_MAX[/** @type {keyof typeof GLOW_REACH_MAX} */ (look)], e = glowFieldReach(look);
   return [look, Object.freeze(look === 'fire' ? [Math.floor(e), Math.floor(r * GLOW_FIRE_DOWN), Math.floor(e * GLOW_FIRE_UP)] : [Math.floor(e), Math.floor(e), Math.floor(e)])];
 })));
-/** AUDIT WEAPON-GLOW SPR-1: the most frames' fields the renderer keeps (render/renderer.js drawScreenQuadGlow) - a
- *  weapon's sheet is seven records of a few frames each, so two weapons' worth and the Thunderlock's; the least
- *  recently drawn goes first. */
 export const GLOW_FIELDS_MAX = 128;
 
-/** The shared half: hash, periodic value noise, and the four looks' reach, shade, rim and charge. `c` is a place in
- *  glow cells with y UP; `uRamp` the look's four stops, dark to hot. */
 export const GLOW_LOOK_GLSL = `
 uniform vec3 uRamp[4];
 float gwHash(vec2 p) {
@@ -201,8 +129,6 @@ float gwSurface(int look, vec2 uv, vec2 c, float t) {
 }
 `;
 
-/** THE CLASSIC SPRITE'S QUAD: the frame's rect grown by `uPad` glow cells a side (left, top, right, bottom - none on a
- *  side the frame is cut at), its parameter `vQ` running past 0..1 into the pad; `uArt` the frame's size in cells. */
 export const GLOW_SPRITE_VS = `#version 300 es
 layout(location=0) in vec2 aPos;
 uniform vec4 uDst;
@@ -219,21 +145,10 @@ void main() {
   gl_Position = vec4(px.x / uCanvas.x * 2.0 - 1.0, 1.0 - px.y / uCanvas.y * 2.0, 0.0, 1.0);
 }`;
 
-/** The field's bake covers its whole target - the screen quad's corners, as they are. */
 export const GLOW_FIELD_VS = `#version 300 es
 layout(location=0) in vec2 aPos;
 void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
-/** AUDIT WEAPON-GLOW SPR-1: THE FRAME'S FIELD, baked once a frame and look (render/renderer.js _glowField) - the
- *  search the outline used to run for every screen pixel of every frame (up to 234 texel reads each, 80 times the
- *  sprite's own cost) run once, a cell at a time, into a small RGBA8 picture the outline then reads once a pixel. A cell
- *  is a Daggerfall pixel of the frame (`uArt` cells over the texture's texels - SPR-4: an HD frame's or the Thunderlock's
- *  outline the size of a classic one's, never a few texels thin), solid when the texel at its middle is at half alpha.
- *  Out: r the distance to the nearest solid cell in the look's metric over `uDmax` (1 for none within), g whether that
- *  cell is below (a fire ember rises only off a solid), b the cell's own kind - 0 open, 0.5 an edge (the rim), 1 inside.
- *  SPR-3: a side the frame is CUT at (`uCut`: left, right, bottom, in the texture's own sides) is no silhouette - a cell
- *  past it reads as the edge cell beside it, so the arm leaving the screen takes no rim and throws no band. The field
- *  stands `uFieldPad` cells round the frame (left, top, right, bottom). */
 export const GLOW_FIELD_FS = `#version 300 es
 precision highp float;
 precision highp int;
@@ -273,12 +188,6 @@ void main() {
   outColor = vec4(d / uDmax, below ? 1.0 : 0.0, 0.0, 1.0);
 }`;
 
-/** THE CLASSIC SPRITE'S OUTLINE: per Daggerfall pixel of the frame, off its field (two reads a pixel - the field's cell
- *  and the frame's own texel) - an edge cell's solid texels take the rim, an open cell its band at the distance the
- *  field says, the reach clamped where the field stops measuring (`uReachMax`). Premultiplied out (the renderer blends
- *  ONE, ONE_MINUS_SRC_ALPHA). The frame's alpha law is drawScreenQuad's: a texel is opaque at half alpha. A texel the
- *  field's cell disagrees with (an HD frame's antialiased edge, a cell finer than its texels) draws nothing: the frame
- *  shows there as it is. */
 export const GLOW_SPRITE_FS = `#version 300 es
 precision highp float;
 precision highp int;
@@ -324,14 +233,7 @@ void main() {
   outColor = vec4(s.rgb * s.a, s.a);
 }`;
 
-/** THE MORROWIND PASS'S VERTEX SHADER: the character program's skinned vertex shader (renderer.js CHAR_SKIN_VS) with
- *  the glow's after its own gl_Position - the SAME expression first, so an unshifted draw is the body's own position -
- *  and the view-space position the charge lights by. AUDIT WEAPON-GLOW MW-5: THE RINGS ARE INSTANCED - one draw a
- *  weapon range for every ring and ember (it was one draw a range a ring: fire's 57 x the ranges, each re-binding its
- *  texture), each instance its row of `uGlowDraw` (xy the shift in NDC, z the depth it stands at in NDC - 0 keeps the
- *  body's own, moved by `uGlowPull` - and w its band in glow units, -1 an ember), `uGlowInstanced` 0 for the charge's
- *  plain draw. Throws on a source without exactly one of each needle: a silent no-op here is a glow drawn nowhere
- *  (skinFaceFs' rule). */
+// Throws unless the source holds exactly one of each needle, because a silent no-op would draw the glow nowhere.
 export function glowMeshVs(charSkinVs) {
   const decl = 'out vec3 vEmissive;';
   const pos = 'gl_Position = uProj * uView * world;';
@@ -344,11 +246,7 @@ export function glowMeshVs(charSkinVs) {
     .replace(pos, `${pos}\n  vViewPos = (uView * world).xyz;\n  vec4 gwD = uGlowInstanced == 1 ? uGlowDraw[gl_InstanceID] : vec4(0.0);\n  gl_Position.xy += gwD.xy * gl_Position.w;\n  gl_Position.z = gwD.z > 0.0 ? gwD.z * gl_Position.w : gl_Position.z + uGlowPull * gl_Position.w;\n  vRingD = gwD.w;`);
 }
 
-/** THE MORROWIND PASS'S FRAGMENT SHADER: `uMode` 0 the rings (opaque, each fragment's band its instance's `vRingD`, -1
- *  an ember), 1 the charge (additive - the renderer masks alpha). The range's own cutout holds in both. AUDIT
- *  WEAPON-GLOW MW-7: the charge's derivatives are taken first, in uniform control flow, before any discard
- *  (skinFaceFs' rule). MW-4: a place is counted from the picture's own corner (`uGlowOrigin` - a batched body's tile
- *  moves in the target from frame to frame, and its glow moved with it). */
+// The charge takes its derivatives first, in uniform control flow, before any discard.
 export const GLOW_MESH_FS = `#version 300 es
 precision highp float;
 precision highp int;
@@ -394,12 +292,7 @@ void main() {
   outColor = vec4(mix(uRamp[1], uRamp[3], pat) * k, 0.0);
 }`;
 
-/**
- * The Morrowind outline's draws for a look: each `{ shift: [dx, dy], ring, far }` in glow units (y up), the rings
- * outermost first, each round GLOW_DIRS directions - fire's stretched up and cut short below - then fire's embers
- * (`ring` -1). Pure: the renderer scales the shifts to the pass's pixels.
- * @param {string} look
- */
+/** @param {string} look */
 export function glowRingDraws(look) {
   const out = [];
   for (const ring of GLOW_RINGS) {

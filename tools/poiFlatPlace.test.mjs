@@ -82,7 +82,7 @@ test('a seafloor plant below archive 172 is placed; an item with no picture or a
     assert.equal(poiAssetWhyNot(/** @type {any} */ ({ id: 'flat:105.0', kind: 'flat', placing: 'billboard', flat: [105, 0] })), null);
     assert.match(poiAssetWhyNot(/** @type {any} */ ({ id: 'flat:x', kind: 'flat', placing: 'billboard' })), /Missing image/);
     assert.match(poiAssetWhyNot(/** @type {any} */ ({ id: 'item:220', kind: 'item', placing: 'paperdoll', template: 220, group: 8 })), /no world sprite/);
-    assert.match(poiAssetWhyNot(/** @type {any} */ ({ id: 'item:601', kind: 'item', placing: 'mount', template: 601, group: 25 })), /needs its beast/);
+    assert.match(poiAssetWhyNot(/** @type {any} */ ({ id: 'item:601', kind: 'item', placing: 'mount', template: 601, group: 25 })), /require a creature type/);
   } finally { r.off(); }
 });
 

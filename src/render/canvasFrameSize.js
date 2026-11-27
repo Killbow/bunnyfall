@@ -1,5 +1,5 @@
 // @ts-check
-// The size of the canvas in CSS pixels, read once a frame. A read after the HUD writes to the page forces a layout.
+// The size is cached per frame, because a read after the HUD writes to the page forces a layout.
 
 import { framesBegun } from '../platform/frameClock.js';
 

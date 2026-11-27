@@ -1,68 +1,37 @@
 // @ts-check
 import { drawAbilityArt } from './abilityParticles.js';
 import { drawWayfarerLantern } from './wayfarerLanternFx.js';
-// IMPACTFX (2026-10-05, the player: "give it a high quality effect that suits the game and the spell that sprays to the
-// ground based on the element, you have to see that it is shock and fire, water and heal like green heal lineish
-// sparkles that rise up"): A LANDING SPELL, SEEN. The classic impact flash (record 1 of the element's own archive,
-// scenes/hostMagic.js showImpactFlash) still plays - this is drawn OVER it, in light:
-//
-//   FIRE    a fireball bloom, ember streaks thrown out and up that fall, land and smoulder before they go out, licks of
-//           flame climbing out of the burst, a scorch glow on the floor and a shock ring running out over it
-//   FROST   (the player's "water") a splash crown of droplets that rain back down, each one a ripple ring where it
-//           lands, ice glints scattered on the floor, a cold mist, two ripple rings and a frost glow
-//   POISON  slow green globs lobbed out that splat into small pools and bubble, a sickly vapour, a spreading pool
-//   SHOCK   jagged lightning arcing from the impact down to the floor - re-struck every few hundredths of a second,
-//           with after-crackles - and fast white-blue sparks skittering over the ground, a flash ring
-//   MAGIC   violet motes spiralling out, glints, rune rings
-//   HEAL    no burst: a green pool of light on the floor and thin mint lines of light RISING out of it with twinkles
-//
-// Each burst also throws a short coloured light (`light()`) the host lights the walls with.
-//
-// The duel wall's law (render/duelWall.js, render/gate/gateFx.js): ADDED onto the frame (ONE, ONE) so it only brightens,
-// depth-tested against the world and never writing depth, fogged by the renderer's one fog block. One instanced quad
-// per spark, bolt segment, glint, ring or pool; the simulation is plain JS and the pass only draws what it is handed.
-// Not a DFU member.
+// Spell landing effects drawn over the classic impact flash, added onto the frame (ONE, ONE) and depth-tested
+// without depth writes. The simulation is plain JS, and the pass only draws the instances it is handed.
 import { FOG_GLSL } from './fogGlsl.js';
 import { buildProgram } from './glProgram.js';
 
-/** The looks, by name; the element order is DFU's ElementTypes (fire, frost, poison, shock, magic). */
+// Element order is Daggerfall Unity's ElementTypes (fire, frost, poison, shock, magic).
 export const IMPACT_FX_KINDS = Object.freeze(['fire', 'frost', 'poison', 'shock', 'magic', 'heal']);
-/** A spell element (0..4) as its look; anything else is magic's. */
 export const elementFxKind = (el) => IMPACT_FX_KINDS[Number.isInteger(el) && el >= 0 && el <= 4 ? el : 4];
 
-/** The shapes the pass draws. */
 export const FX_SHAPE = Object.freeze({ spark: 0, bolt: 1, star: 2, flare: 3, ring: 4, pool: 5 });
-/** Floats per instance: a.xyz, b.xyz, width, r, g, b, intensity, shape, and (WALL-RING) the normal of the plane a ring
- *  or a pool lies in - up for the floor, the struck surface's for a wall or a ceiling. */
 export const FX_FLOATS = 15;
 const UP = Object.freeze([0, 1, 0]);
-/** The most instances one frame draws, and the most sparks alive at once. */
 export const FX_MAX_INSTANCES = 2400;
 export const FX_MAX_PARTS = 1500;
-/** The narrowest a spark may stand on the screen, as an angle of the eye's view - a burst across a hall still reads. */
 export const FX_MIN_RAD = 0.0016;
-const NO_HAZE = new Float32Array(8);   // BANTHA1: uJungleHaze off ([1].x 0)
+const NO_HAZE = new Float32Array(8);
 
-/** The colours: white-hot at birth, the element's colour, what it cools to; and the light it throws (colour x level).
- *  ART-COLOUR: for the five elements these are only the FIRST GUESS - each is replaced by its own missile art's colour
- *  the first time that art is in hand (SpellImpactFx.setArtColour). The heal's green is the player's ask, and stays. */
+// These are first guesses. Each element's color is replaced by the color of its missile art once that art is
+// sampled (setArtColour), and the heal green stays.
 export const FX_LOOK = Object.freeze({
   fire: Object.freeze({ hot: [1.0, 0.9, 0.62], main: [1.0, 0.46, 0.08], end: [0.5, 0.07, 0.01], light: [1.7, 0.8, 0.28], range: 7, lightS: 0.45 }),
   frost: Object.freeze({ hot: [0.9, 0.97, 1.0], main: [0.42, 0.74, 1.0], end: [0.1, 0.28, 0.72], light: [0.6, 0.95, 1.7], range: 6, lightS: 0.4 }),
   poison: Object.freeze({ hot: [0.9, 1.0, 0.5], main: [0.5, 0.92, 0.1], end: [0.14, 0.32, 0.02], light: [0.7, 1.4, 0.3], range: 5, lightS: 0.45 }),
   shock: Object.freeze({ hot: [1.0, 1.0, 1.0], main: [0.55, 0.72, 1.0], end: [0.38, 0.22, 0.95], light: [1.2, 1.35, 2.1], range: 8, lightS: 0.3 }),
-  // ART-COLOUR: magic's first guess was violet - the player: "magic spells are also greenish". These are only the
-  // colours before the element's own art is sampled (artLook below); this one now guesses the art's sea-green.
   magic: Object.freeze({ hot: [0.88, 1.0, 0.95], main: [0.35, 0.95, 0.72], end: [0.06, 0.4, 0.3], light: [0.7, 1.6, 1.25], range: 6, lightS: 0.4 }),
   heal: Object.freeze({ hot: [0.85, 1.0, 0.88], main: [0.3, 1.0, 0.5], end: [0.04, 0.48, 0.2], light: [0.5, 1.5, 0.7], range: 5, lightS: 0.9 }),
 });
 
 const TAU = Math.PI * 2;
 
-/** TECH-FX (bible/05-Combat/Weapon-Techniques.md THE FEEL): a weapon technique's two looks - its ENERGY, in the
- *  technique's own blue (combat/techniques.js TECH_COLOR, the marks' and the HUD chip's), and the STONE-DUST its blows
- *  throw off the ground, warm and short-lived (the pass is additive, so it reads as glowing grit, never grey). Not
- *  elements: no art replaces them and `artColours` never lists them. */
+// Not elements: no art replaces them, and artColours never lists them.
 export const TECH_FX_LOOK = Object.freeze({
   energy: Object.freeze({ hot: [0.92, 0.98, 1.0], main: [0.35, 0.78, 1.0], end: [0.06, 0.2, 0.55], light: [0.55, 1.1, 1.9], range: 6, lightS: 0.32 }),
   stone: Object.freeze({ hot: [1.0, 0.93, 0.78], main: [0.82, 0.62, 0.4], end: [0.22, 0.15, 0.09], light: [1.2, 0.9, 0.6], range: 4, lightS: 0.3 }),
@@ -73,27 +42,17 @@ const abilityMaterials = {
   moon: { ...FX_LOOK.frost, main: [.79,.72,1] }, stone: TECH_FX_LOOK.stone,
   ember: FX_LOOK.fire, leaf: FX_LOOK.heal, wind: FX_LOOK.magic, tide: FX_LOOK.frost,
 };
-/** TECH-FX: a point - an Array or a typed array - of three finite numbers. */
 const vec3 = (v) => v != null && v.length >= 3 && Number.isFinite(v[0]) && Number.isFinite(v[1]) && Number.isFinite(v[2]);
-/** TECH-FX: the recipes `technique` knows. */
 export const TECH_FX_RECIPES = Object.freeze(['shock', 'land', 'sweep', 'arc', 'star', 'chop', 'punch', 'vanish', 'trail', 'tracer', 'flare', 'shaft', 'close', 'capstone-bloom', 'ability-art', 'strike-sweep', 'strike-thrust', 'strike-jab', 'strike-lash', 'strike-chop', 'frost-rush', 'ash-rush', 'wayfarer-lantern']);
 
 
-/**
- * ART-COLOUR (the player: "magic spells are also greenish ... i dont know if the violet effects fit"): A LOOK OUT OF THE
- * ELEMENT'S OWN ART. `rgb` the colour sampled off the element's missile archive (375-379, the player's own ARENA2 -
- * characters/thunderlockIds.js orbColourFrom: chroma-weighted, peak-normalised, so the halo votes and the white core
- * does not), `base` the guess it replaces (its range and timing kept). The art's colour, a shade more saturated so it
- * still reads as light, is the burst's colour; white-hot at birth is that colour lifted most of the way to white; what
- * it cools to is that colour deepened; the light it throws is that colour. Pure. Null for no usable colour.
- */
 export function artLook(rgb, base) {
   if (!Array.isArray(rgb) || rgb.length < 3 || !rgb.every(Number.isFinite)) return null;
   const peak = Math.max(rgb[0], rgb[1], rgb[2]);
   if (!(peak > 0.05)) return null;
   const c = rgb.map((v) => Math.max(0, v) / peak);
   const grey = (c[0] + c[1] + c[2]) / 3;
-  const main = c.map((v) => Math.min(1, Math.max(0, grey + (v - grey) * 1.25)));   // a shade more saturated: it is light
+  const main = c.map((v) => Math.min(1, Math.max(0, grey + (v - grey) * 1.25)));
   const m = Math.max(...main);
   for (let i = 0; i < 3; i++) main[i] /= m || 1;
   return Object.freeze({
@@ -105,15 +64,8 @@ export function artLook(rgb, base) {
     art: true,
   });
 }
-/**
- * AOE-REACH: HOW FAR ALONG THE FLOOR A BLAST CATCHES A BODY. The sweep (systems/spellcast.js sphereOverlapsCapsule) does
- * not test a body's feet against the sphere - it tests its CAPSULE: the point of the body's axis nearest the sphere's
- * centre, clamped between `bodyR` over the feet and `bodyR` under the head, must lie within `A + bodyR`. So a body
- * standing level with the blast is caught `A + bodyR` out (4.45 m for a person in a 4 m blast, 5.8 m for the court's
- * boss), and one under a blast high on a wall still is, by the gap between the blast and its head. `h` the sphere
- * centre's height over the floor. Answers the radius on the floor inside which a body of that size standing there is
- * caught - the same arithmetic as the sweep, so the ring drawn is the line a foe crosses to get out of it.
- */
+// Same arithmetic as the spell sweep's capsule test (magic/spellcast.js sphereOverlapsCapsule), so the drawn ring
+// is where a body standing there stops being caught.
 export function areaFootprint(A, h, bodyR = 0.45, bodyH = 1.8) {
   if (!(A > 0)) return 0;
   const half = Math.min(bodyR, bodyH / 2);
@@ -121,7 +73,6 @@ export function areaFootprint(A, h, bodyR = 0.45, bodyH = 1.8) {
   const R = A + bodyR;
   return dy >= R ? 0 : Math.sqrt(R * R - dy * dy);
 }
-/** WALL-RING: two unit axes across a plane of unit normal `n` - the shader's own basis for a ring or a pool, in JS. */
 export function planeAxes(n) {
   const ref = Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 0, 1];
   let a = [n[1] * ref[2] - n[2] * ref[1], n[2] * ref[0] - n[0] * ref[2], n[0] * ref[1] - n[1] * ref[0]];
@@ -129,18 +80,12 @@ export function planeAxes(n) {
   a = [a[0] / l, a[1] / l, a[2] / l];
   return [a, [n[1] * a[2] - n[2] * a[1], n[2] * a[0] - n[0] * a[2], n[0] * a[1] - n[1] * a[0]]];
 }
-/** The body the drawn reach is measured for: a person, the sweep's default (spellcast.js BODY_CAPSULE_RADIUS). */
 export const AREA_BODY = Object.freeze({ r: 0.45, h: 1.8 });
 const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-/** The colour ramp: hot to the element's colour over the first quarter of a life, to the cooled colour after. */
 export function rampColour(look, u) {
   return u < 0.25 ? mix3(look.hot, look.main, u / 0.25) : mix3(look.main, look.end, Math.min(1, (u - 0.25) / 0.75));
 }
 
-/**
- * THE SIMULATION - every live spark, bolt, ring and light of every burst. `burst` adds one, `step` flies them,
- * `build` writes this frame's instances into `buf` and answers how many. Floating-origin safe (`shift`).
- */
 export class SpellImpactFx {
   constructor({ rng = Math.random } = {}) {
     this.rng = rng;
@@ -148,14 +93,12 @@ export class SpellImpactFx {
     /** @type {any[]} */ this.decals = [];
     /** @type {any[]} */ this.bolts = [];
     /** @type {any[]} */ this.lights = [];
-    /** ART-COLOUR: the looks this engine draws - the first guesses, until each element's art has been sampled. */
     this.looks = { ...FX_LOOK };
     this.buf = new Float32Array(FX_MAX_INSTANCES * FX_FLOATS);
     this.count = 0;
   }
 
-  /** ART-COLOUR: the element `kind`'s look from its art's colour (artLook); answers whether it took. The heal's is
-   *  never replaced - it is the player's green, whatever element a heal spell carries. */
+  // The heal look is never replaced, whatever element a heal spell carries.
   setArtColour(kind, rgb) {
     if (kind === 'heal' || !FX_LOOK[kind]) return false;
     const look = artLook(rgb, FX_LOOK[kind]);
@@ -163,7 +106,6 @@ export class SpellImpactFx {
     this.looks[kind] = look;
     return true;
   }
-  /** ART-COLOUR: each element's colour as this engine draws it now, and whether it came from the art. */
   artColours() {
     const out = {};
     for (const k of IMPACT_FX_KINDS) out[k] = { main: this.looks[k].main.map((v) => +v.toFixed(3)), fromArt: !!this.looks[k].art };
@@ -173,7 +115,6 @@ export class SpellImpactFx {
   get live() { return this.parts.length + this.decals.length + this.bolts.length + this.lights.length > 0; }
   r(a, b) { return a + this.rng() * (b - a); }
 
-  /** A spark. Defaults are a plain falling ember; a recipe overrides what it needs. */
   _part(look, at, v, o = {}) {
     if (this.parts.length >= FX_MAX_PARTS) return null;
     const life = o.life ?? 1;
@@ -207,31 +148,16 @@ export class SpellImpactFx {
     this.bolts.push({ look, from: [...from], to: [...to], age: -(o.delay ?? 0), life: o.life ?? 0.3, next: 0, flash: 1, w: o.w ?? 0.08, pts: [], fork: [] });
   }
 
-  /**
-   * ONE LANDING. `kind` an IMPACT_FX_KINDS name; `at` where it landed (scene frame). `ground` the floor's height under it (null:
-   * a body's height below), `back` the unit direction out of what it struck (sparks spray back that way), `scale` the
-   * missile's size, `power` 1 a bolt's, more for a blast, less for a touch; `radius` a heal's reach and `minR` the hole
-   * a heal leaves at its middle (the caster's own eye stands there).
-   * AOE-SIZE: `area` (metres) an area spell's blast radius - the sphere its sweep catches (spellcast.js EXPLOSION_RADIUS),
-   * centred on `areaFrom` (default `at`). The burst is then drawn TO what it catches: AOE-REACH, its front runs out to
-   * exactly where a body (`body`, a person's by default) standing on the floor stops being caught (areaFootprint), its
-   * edge holds there a moment, a glow swells to the sphere's rim, and a heal's light fills it - and the wider that
-   * footprint, the more the blast throws: its element breaks out across the whole of it as the front passes.
-   * WALL-RING (the player: "the explosion shockwave when shot a bit higher at the wall still happens on the floor"):
-   * THE SHOCKWAVE LIES ON WHAT WAS STRUCK. `normal` the struck surface's (collider.surfaceHit), `surfaceAt` the point
-   * on it: the rings, the glow pool, the racing sparks and the outbreaks lie flat on that wall, ceiling or floor at the
-   * impact, the blast's own radius across. Only with no surface (a body, the air) does the floor under it take them -
-   * while it is within a body's height of it; higher than that the ring stands in the air across the line of flight.
-   */
+  // With no struck surface, as for a body or the air, the floor takes the rings only within a body's height of it.
+  // Higher up, the ring hangs in the air across the line of flight.
   burst(kind, at, { ground = null, back = null, scale = 1, power = 1, radius = null, minR = 0, area = 0, areaFrom = null, body = AREA_BODY, normal = null, surfaceAt = null } = {}) {
     if (!Array.isArray(at) || at.length < 3 || !at.every(Number.isFinite)) return false;
-    const look = this.looks[kind] ?? this.looks.magic;   // ART-COLOUR: the element's own art's colour once sampled
+    const look = this.looks[kind] ?? this.looks.magic;
     const s = Math.max(0.3, Math.min(4, Number.isFinite(scale) ? scale : 1));
     const P = Math.max(0.3, Math.min(2.5, Number.isFinite(power) ? power : 1));
     let gy = Number.isFinite(ground) ? ground : at[1] - 1.2;
     if (gy > at[1]) gy = at[1] - 0.05;
     const floorAt = [at[0], gy + 0.04, at[2]];
-    // WALL-RING: the plane the shockwave lies in - its centre `pc`, its normal `pn`, and whether it is the floor
     const nl = Array.isArray(normal) && normal.every(Number.isFinite) ? Math.hypot(normal[0], normal[1], normal[2]) : 0;
     const bl = Array.isArray(back) && back.every(Number.isFinite) ? Math.hypot(back[0], back[1], back[2]) : 0;
     let pn = UP, pc = floorAt, onFloor = true;
@@ -251,35 +177,32 @@ export class SpellImpactFx {
     const out = (h, up, bk = 0) => { const a = r(0, TAU); return [Math.cos(a) * h + B[0] * bk, up + B[1] * bk, Math.sin(a) * h + B[2] * bk]; };
     const pg = gy + 0.02;
     const R = this.r.bind(this);
-    // AOE-SIZE: the sphere's footprint on the floor, and whether the element's own rings and light give way to it
     const A = Number.isFinite(area) && area > 0 ? area : 0;
     const C = Array.isArray(areaFrom) && areaFrom.length >= 3 && areaFrom.every(Number.isFinite) ? areaFrom : at;
-    const fr = A > 0 ? (onFloor ? areaFootprint(A, C[1] - gy, body?.r ?? AREA_BODY.r, body?.h ?? AREA_BODY.h) : A) : 0;   // AOE-REACH: the sweep's own law on the floor; WALL-RING: on a wall, the blast's own radius
+    const fr = A > 0 ? (onFloor ? areaFootprint(A, C[1] - gy, body?.r ?? AREA_BODY.r, body?.h ?? AREA_BODY.h) : A) : 0;
     const own = A <= 0;
     const done = () => { if (A > 0) this._areaLayer(look, kind, at, onFloor ? [C[0], gy + 0.04, C[2]] : pc, onFloor ? UP : pn, A, fr, s); return true; };
-    const Pn = A > 0 ? Math.min(2.5, P * Math.max(1, fr / 3)) : P;   // AOE-REACH: a wider area throws more, not the same spread thinner
+    const Pn = A > 0 ? Math.min(2.5, P * Math.max(1, fr / 3)) : P;
     const n = (k) => Math.max(1, Math.round(k * Pn));
 
     if (kind === 'heal') {
-      const rad = A > 0 ? Math.max(0.5, fr * 0.92) : (radius ?? 0.9) * Math.sqrt(s);   // AOE-SIZE: an area heal fills its sphere
+      const rad = A > 0 ? Math.max(0.5, fr * 0.92) : (radius ?? 0.9) * Math.sqrt(s);
       const edge = A > 0 ? Math.max(0.6, fr) : rad * 1.5;
       const hole = Math.min(minR, rad * 0.8);
-      const many = Math.min(3, Math.max(1, rad / 1.2));   // a wider heal rises in more lines, not thinner ones
+      const many = Math.min(3, Math.max(1, rad / 1.2));
       const hf = [C[0], gy + 0.04, C[2]];
-      // HEAL-NOWAVE (the player: "the healing still gives a wave on the floor"): NO RING, NO SPREAD. A heal is not a blast -
-      // only a still, soft pool of green light under the rising lines, fading in and out where it stands.
       const poolR = A > 0 ? edge : rad * 1.15;
       this._decal(look, hf, { shape: FX_SHAPE.pool, r0: poolR, r1: poolR, life: 1.7, fadeIn: 0.3, I: 0.55 });
       const place = () => {
         const a = R(0, TAU), d = hole + Math.sqrt(this.rng()) * (rad - hole);
         return [[C[0] + Math.cos(a) * d, gy + R(0, 0.5), C[2] + Math.sin(a) * d], a];
       };
-      for (let i = 0, N = n(44 * many); i < N; i++) {   // the rising lines
+      for (let i = 0, N = n(44 * many); i < N; i++) {
         const [p, a] = place(), tw = R(0.1, 0.35);
         this._part(look, p, [-Math.sin(a) * tw, R(1.1, 2.4), Math.cos(a) * tw], { delay: R(0, 0.95), life: R(0.9, 1.5), w: R(0.012, 0.022), g: -2.2, drag: 0.15,
           streak: 0.16, maxLen: 0.6, fadeIn: 0.14, sway: 0.5, I: R(1.0, 1.6) });
       }
-      for (let i = 0, N = n(16 * many); i < N; i++) {   // the twinkles among them
+      for (let i = 0, N = n(16 * many); i < N; i++) {
         const [p] = place();
         this._part(look, p, [0, R(0.5, 1.3), 0], { delay: R(0, 1.05), life: R(0.7, 1.2), w: R(0.05, 0.09), g: -0.8, drag: 0.5, shape: FX_SHAPE.star, flick: 1, fadeIn: 0.15, I: 1.4 });
       }
@@ -291,11 +214,11 @@ export class SpellImpactFx {
     if (kind === 'fire') {
       this._part(look, at, [0, 0, 0], { life: 0.28, w: 1.0 * s * P, w1: 1.7, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 2.0 });
       this._part(look, at, [0, 0.5, 0], { life: 0.6, w: 0.75 * s * P, w1: 2.1, g: -0.5, drag: 1, shape: FX_SHAPE.flare, streak: 0, I: 0.9 });
-      for (let i = 0, N = n(34); i < N; i++) {   // embers: out, up, down - and they smoulder where they land
+      for (let i = 0, N = n(34); i < N; i++) {
         this._part(look, at, out(R(2, 7.5) * Math.sqrt(P), R(1.5, 6), R(1, 4)), { life: R(0.7, 1.5), w: R(0.018, 0.04) * s, g: 9.5, drag: 0.9, streak: 0.045, maxLen: 0.45,
           gy: pg, bounce: 0.3, bounces: 1, linger: R(0.4, 1.1), flick: 0.5, I: R(1.2, 2.0) });
       }
-      for (let i = 0, N = n(10); i < N; i++) {   // the flame licking up out of it
+      for (let i = 0, N = n(10); i < N; i++) {
         const j = [at[0] + R(-0.15, 0.15), at[1] + R(-0.1, 0.1), at[2] + R(-0.15, 0.15)];
         this._part(look, j, out(R(0.3, 1.2), R(1, 2.6)), { life: R(0.4, 0.75), w: R(0.12, 0.22) * s, w1: 2.2, g: -1.5, drag: 2.5, streak: 0, shape: FX_SHAPE.flare, I: 0.7 });
       }
@@ -309,15 +232,15 @@ export class SpellImpactFx {
 
     if (kind === 'frost') {
       this._part(look, at, [0, 0, 0], { life: 0.2, w: 0.8 * s * P, w1: 1.5, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 1.8 });
-      for (let i = 0, N = n(28); i < N; i++) {   // the splash crown: up, over, down - a ripple where some land
+      for (let i = 0, N = n(28); i < N; i++) {
         this._part(look, at, out(R(1.2, 3.8), R(3.5, 7.5), R(0.5, 2.5)), { life: R(0.8, 1.3), w: R(0.016, 0.03) * s, g: 17, drag: 0.4, streak: 0.06, maxLen: 0.35,
           gy: pg, onLand: this.rng() < 0.45 ? 'ripple' : null, I: R(1.1, 1.7) });
       }
-      for (let i = 0, N = n(10); i < N; i++) {   // ice: glints that settle on the floor and wink out
+      for (let i = 0, N = n(10); i < N; i++) {
         this._part(look, at, out(R(1, 3), R(1.5, 4), R(0.5, 2)), { life: R(0.9, 1.4), w: 0.07 * s, g: 14, drag: 0.6, streak: 0, shape: FX_SHAPE.star,
           gy: pg + 0.03, linger: 0.6, flick: 0.9, I: 1.3 });
       }
-      for (let i = 0, N = n(8); i < N; i++) {   // the cold mist
+      for (let i = 0, N = n(8); i < N; i++) {
         this._part(look, at, out(R(0.5, 1.5), R(0.2, 1)), { life: R(0.8, 1.4), w: R(0.25, 0.45) * s, w1: 2.4, g: 0, drag: 2.2, streak: 0, shape: FX_SHAPE.flare, I: 0.35 });
       }
       if (own) {
@@ -331,11 +254,11 @@ export class SpellImpactFx {
 
     if (kind === 'poison') {
       this._part(look, at, [0, 0, 0], { life: 0.3, w: 0.7 * s * P, w1: 1.6, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 1.0 });
-      for (let i = 0, N = n(16); i < N; i++) {   // the globs, lobbed - each splats into a little pool
+      for (let i = 0, N = n(16); i < N; i++) {
         this._part(look, at, out(R(0.8, 3), R(2, 5), R(0.5, 2)), { life: R(1.0, 1.6), w: R(0.05, 0.09) * s, g: 9.5, drag: 0.3, streak: 0.02, maxLen: 0.12,
           gy: pg, onLand: 'splat', I: R(0.8, 1.2) });
       }
-      for (let i = 0, N = n(10); i < N; i++) {   // the vapour
+      for (let i = 0, N = n(10); i < N; i++) {
         this._part(look, at, out(R(0.2, 0.8), R(0.3, 0.9)), { life: R(1.2, 2.0), w: R(0.3, 0.5) * s, w1: 2, g: -0.3, drag: 1.5, streak: 0, shape: FX_SHAPE.flare, I: 0.28 });
       }
       if (own) {
@@ -349,14 +272,14 @@ export class SpellImpactFx {
     if (kind === 'shock') {
       this._part(look, at, [0, 0, 0], { life: 0.12, w: 0.9 * s * P, w1: 1.3, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 3.0 });
       this._part(look, at, [0, 0, 0], { life: 0.25, w: 1.4 * s * P, w1: 1.5, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 0.9 });
-      const arc = (delay, life) => {   // to the floor when there is one near, into the air about it when not
-        const a = R(0, TAU), d = A > 0 ? Math.max(0.8, fr) * R(0.5, 1) : R(0.8, 2.6) * s * Math.sqrt(P);   // AOE-SIZE: an area's arcs reach its edge
-        const to = onFloor ? [at[0] + Math.cos(a) * d, gy + 0.02, at[2] + Math.sin(a) * d] : inPlane(a, d);   // WALL-RING: along the wall it struck
+      const arc = (delay, life) => {
+        const a = R(0, TAU), d = A > 0 ? Math.max(0.8, fr) * R(0.5, 1) : R(0.8, 2.6) * s * Math.sqrt(P);
+        const to = onFloor ? [at[0] + Math.cos(a) * d, gy + 0.02, at[2] + Math.sin(a) * d] : inPlane(a, d);
         this._bolt(look, at, to, { delay, life, w: 0.08 * s });
       };
       for (let i = 0, N = n(5); i < N; i++) arc(0, R(0.18, 0.4));
-      for (let i = 0, N = n(4); i < N; i++) arc(R(0.12, 0.65), R(0.1, 0.2));   // the after-crackle
-      for (let i = 0, N = n(32); i < N; i++) {   // fast sparks, skittering over the floor
+      for (let i = 0, N = n(4); i < N; i++) arc(R(0.12, 0.65), R(0.1, 0.2));
+      for (let i = 0, N = n(32); i < N; i++) {
         this._part(look, at, out(R(4, 11), R(1, 5), R(1, 4)), { life: R(0.35, 0.8), w: R(0.012, 0.022) * s, g: 13, drag: 0.5, streak: 0.03, maxLen: 0.5,
           gy: pg, bounce: 0.55, bounces: 2, flick: 0.6, I: R(1.4, 2.2) });
       }
@@ -368,10 +291,9 @@ export class SpellImpactFx {
       return done();
     }
 
-    // magic
     this._part(look, at, [0, 0, 0], { life: 0.22, w: 0.9 * s * P, w1: 1.4, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 2.0 });
     this._part(look, at, [0, 0, 0], { life: 0.45, w: 1.2 * s * P, w1: 1.6, g: 0, shape: FX_SHAPE.flare, streak: 0, I: 0.7 });
-    for (let i = 0, N = n(26); i < N; i++) {   // the motes: out and round
+    for (let i = 0, N = n(26); i < N; i++) {
       const a = R(0, TAU), rad = R(1.5, 4.5), tan = R(1.5, 3) * (this.rng() < 0.5 ? -1 : 1);
       this._part(look, at, [Math.cos(a) * rad - Math.sin(a) * tan + B[0], R(1, 4) + B[1], Math.sin(a) * rad + Math.cos(a) * tan + B[2]], { life: R(0.8, 1.4),
         w: R(0.02, 0.035) * s, g: 3.5, drag: 1.6, streak: 0.05, maxLen: 0.35, gy: pg, flick: 0.4, I: 1.5 });
@@ -388,22 +310,16 @@ export class SpellImpactFx {
     return done();
   }
 
-  /**
-   * AOE-SIZE: THE AREA, DRAWN TO ITS SIZE. `C` the sphere's centre, `A` its radius, `fr` its footprint on the floor.
-   * A front in the element's hot colour runs out to the footprint's rim, sparks race along the floor to that same rim
-   * and stop there, the rim holds a moment as a thin ring (where the blast stopped catching), a pool lies under it and
-   * a glow swells to the sphere's own size. Its light reaches about twice the radius.
-   */
   _areaLayer(look, kind, at, pc, pn, A, fr, s) {
     const r = (a, b) => this.r(a, b);
     const [t1, t2] = planeAxes(pn);
     const along = (a, d, lift = 0) => [pc[0] + (t1[0] * Math.cos(a) + t2[0] * Math.sin(a)) * d + pn[0] * lift, pc[1] + (t1[1] * Math.cos(a) + t2[1] * Math.sin(a)) * d + pn[1] * lift, pc[2] + (t1[2] * Math.cos(a) + t2[2] * Math.sin(a)) * d + pn[2] * lift];
     if (fr > 0.3) {
-      this._decal(look, pc, { n: pn, shape: FX_SHAPE.ring, r0: 0.3, r1: fr, life: 0.5, band: 0.12, I: 1.6, hot: true });   // the front
-      this._decal(look, pc, { n: pn, shape: FX_SHAPE.ring, r0: fr, r1: fr, life: 0.9, band: 0.05, delay: 0.35, fadeIn: 0.12, I: 0.75 });   // the rim, held
+      this._decal(look, pc, { n: pn, shape: FX_SHAPE.ring, r0: 0.3, r1: fr, life: 0.5, band: 0.12, I: 1.6, hot: true });
+      this._decal(look, pc, { n: pn, shape: FX_SHAPE.ring, r0: fr, r1: fr, life: 0.9, band: 0.05, delay: 0.35, fadeIn: 0.12, I: 0.75 });
       this._decal(look, pc, { n: pn, shape: FX_SHAPE.pool, r0: 0.3 * fr, r1: 0.85 * fr, life: kind === 'poison' ? 1.8 : 1.1, I: 0.55 });
       const N = Math.min(70, Math.round(10 * fr));
-      for (let i = 0; i < N; i++) {   // racing along the surface to the rim, and out there
+      for (let i = 0; i < N; i++) {
         const a = (i / N) * TAU + r(-0.1, 0.1), T = r(0.32, 0.45), v = (fr * r(0.93, 1.0)) / T;
         const o = along(a, 0, 0.06), e = along(a, 1, 0.06);
         this._part(look, o, [(e[0] - o[0]) * v, (e[1] - o[1]) * v, (e[2] - o[2]) * v], { life: T, w: r(0.02, 0.035) * s, g: 0, drag: 0, streak: 0.06, maxLen: 0.7, I: r(1.1, 1.6) });
@@ -411,20 +327,18 @@ export class SpellImpactFx {
       if (kind === 'shock') {
         for (let i = 0; i < 4; i++) this._bolt(look, at, along(r(0, TAU), fr * r(0.75, 1), 0.02), { delay: r(0, 0.15), life: r(0.2, 0.35), w: 0.09 * s });
       }
-      // AOE-REACH: THE ELEMENT BREAKS OUT ACROSS ALL OF IT - one small outbreak per ~1.8 m² of the footprint, each going
-      // off as the front passes over it (the front's own ease, inverted: it covers d of fr at 0.5 * (1 - cbrt(1 - d/fr)) s)
+      // One outbreak per about 1.8 square meters, each going off as the front passes: the front covers d of fr at
+      // 0.5 * (1 - cbrt(1 - d / fr)) s.
       const K = Math.min(48, Math.round((Math.PI * fr * fr) / 1.8));
       for (let i = 0; i < K; i++) {
         const d = fr * Math.sqrt(r(0.04, 0.92));
         this._outbreak(look, kind, along(r(0, TAU), d), 0.5 * (1 - Math.cbrt(1 - d / fr)) + r(0, 0.06), s, pn);
       }
     }
-    this._part(look, at, [0, 0, 0], { life: 0.4, w: A * 0.3, w1: 1 / 0.3, g: 0, drag: 0, streak: 0, shape: FX_SHAPE.flare, I: 0.3 });   // the sphere, swelling to its rim
+    this._part(look, at, [0, 0, 0], { life: 0.4, w: A * 0.3, w1: 1 / 0.3, g: 0, drag: 0, streak: 0, shape: FX_SHAPE.flare, I: 0.3 });
     this._light(look, at, Math.max(1, (Math.max(A, fr) * 2) / look.range));
   }
 
-  /** AOE-REACH: one small outbreak of the element on the floor at `p`, `delay` seconds in - flame, frost, a spark of
-   *  lightning, a bubble of venom, a mote. */
   _outbreak(look, kind, p, delay, s, pn = UP) {
     const r = (a, b) => this.r(a, b), up = [p[0] + pn[0] * 0.06, p[1] + pn[1] * 0.06, p[2] + pn[2] * 0.06];
     switch (kind) {
@@ -447,13 +361,12 @@ export class SpellImpactFx {
         this._part(look, up, [0, r(0.3, 0.7), 0], { delay: delay + r(0.05, 0.3), life: r(0.4, 0.7), w: 0.03 * s, g: 0, drag: 1, streak: 0, I: 0.9 });
         break;
       case 'heal':
-        break;   // a heal's own lines already fill its area, more of them the wider it is
+        break;
       default:
         this._part(look, up, [0, r(0.8, 1.8), 0], { delay, life: r(0.5, 0.9), w: 0.025 * s, g: -0.5, drag: 0.6, streak: 0.12, maxLen: 0.4, flick: 0.4, I: 1.3 });
     }
   }
 
-  /** What a spark does where it lands, beyond resting: a droplet's ripple, a glob's splat and its bubble. */
   _land(p) {
     if (p.onLand === 'ripple') {
       this._decal(p.look, p.p, { shape: FX_SHAPE.ring, r0: 0.03, r1: 0.38, life: 0.45, band: 0.035, I: 0.9 });
@@ -463,19 +376,10 @@ export class SpellImpactFx {
     }
   }
 
-  /**
-   * TECH-FX: A WEAPON TECHNIQUE'S BURST (bible/05-Combat/Weapon-Techniques.md THE FEEL). `recipe` one of TECH_FX_RECIPES,
-   * `at` where (scene frame): the feet for a ring, the blow's point for a star, the eye for a tracer, the start of a
-   * trail. `ground` the floor's height (default `at`'s), `yaw` the facing (forward on the floor is [sin, 0, cos]), `r` a
-   * ring's reach, `dir` a shot's or a punch's unit direction, `len` a tracer's length, `to` a trail's end, `spin` +1 (a
-   * sweep carried to the player's left) or -1, `half` an arc's half-angle (radians). Any point may be an Array or a
-   * typed array (AUDIT TECH-FX: the motor's feet are a Float32Array). The same sparks, rings and light the spells'
-   * landings are made of, in the technique's blue and its warm stone-dust, under this engine's own caps. Answers
-   * whether it drew anything.
-   */
   technique(recipe, at, { phase = null, form = null, material = null, ground = null, yaw = 0, r = 2.5, dir = null, len = 0, to = null, spin = 1, half = 80 * Math.PI / 180 } = {}) {
     if (!vec3(at)) return false;
-    if (!Number.isFinite(yaw)) yaw = 0;   // AUDIT TECH-FX: a lost facing faces +z rather than writing NaN instances
+    // A lost facing faces +z instead of writing NaN instances.
+    if (!Number.isFinite(yaw)) yaw = 0;
     const E = TECH_FX_LOOK.energy, S = TECH_FX_LOOK.stone;
     const R = (a, b) => this.r(a, b);
     const gy = Number.isFinite(ground) ? Math.min(ground, at[1]) : at[1];
@@ -491,14 +395,14 @@ export class SpellImpactFx {
         this._part(E, p, [Math.cos(a) * R(lo, hi), up * R(lo, hi) * 0.6, Math.sin(a) * R(lo, hi)], { life: R(life * 0.7, life * 1.2), w: R(0.016, 0.03), g: 6, drag: 1.1, streak: 0.06, maxLen: 0.45, gy: gy + 0.02, I: R(1.2, 1.8) });
       }
     };
-    const debris = (n, rr, hi) => {   // stone thrown up off the floor round the blow, settling where it falls
+    const debris = (n, rr, hi) => {
       for (let i = 0; i < n; i++) {
         const a = R(0, TAU), out = R(1.2, 4.2) * Math.sqrt(rr / 2.5);
         this._part(S, [at[0] + Math.cos(a) * 0.4, gy + 0.08, at[2] + Math.sin(a) * 0.4], [Math.cos(a) * out, R(hi * 0.5, hi), Math.sin(a) * out],
           { life: R(0.7, 1.2), w: R(0.024, 0.048), g: 13, drag: 0.6, streak: 0.03, maxLen: 0.25, gy: gy + 0.02, bounce: 0.35, bounces: 1, linger: R(0.2, 0.5), I: R(0.9, 1.4) });
       }
     };
-    const racers = (n, rr) => {   // the blow's energy racing out along the floor to its reach
+    const racers = (n, rr) => {
       for (let i = 0; i < n; i++) {
         const a = R(0, TAU), sp = R(6, 9) * (rr / 3);
         this._part(E, [at[0], gy + 0.06, at[2]], [Math.cos(a) * sp, R(0.2, 0.7), Math.sin(a) * sp], { life: R(0.26, 0.4), w: R(0.02, 0.034), g: 2, drag: 1.2, streak: 0.09, maxLen: 0.7, gy: gy + 0.02, I: R(1.3, 1.9) });
@@ -527,7 +431,6 @@ export class SpellImpactFx {
       case 'strike-lash':
       case 'strike-chop':
       case 'strike-sweep': {
-        // Tapered strips are revealed in stroke order. Each strip has two fixed endpoints.
         const count = recipe === 'strike-jab' ? 4 : 10;
         const sign = spin < 0 ? -1 : 1;
         const point = t => {
@@ -586,7 +489,7 @@ export class SpellImpactFx {
         this._light(E, at, 0.7, { life: 0.22 });
         return true;
       }
-      case 'shock': {   // Ground Slam: the floor struck - two rings to its reach, a glow, the most stone and blue
+      case 'shock': {
         flare([at[0], gy + 0.35, at[2]], 0.9, 0.2, 1.6);
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.3, r1: reach, life: 0.45, band: 0.16, I: 1.5, hot: true });
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.2, r1: reach * 0.7, life: 0.5, band: 0.1, delay: 0.09, I: 1.0 });
@@ -595,7 +498,7 @@ export class SpellImpactFx {
         this._light(E, floor, 1.1, { life: 0.4 });
         return true;
       }
-      case 'land': {   // a leap's landing: one ring to its reach, a glow, stone and blue
+      case 'land': {
         flare([at[0], gy + 0.3, at[2]], 0.7, 0.18, 1.4);
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.2, r1: reach, life: 0.4, band: 0.13, I: 1.35, hot: true });
         this._decal(E, floor, { shape: FX_SHAPE.pool, r0: 0.25, r1: reach * 0.45, life: 0.55, I: 0.5 });
@@ -603,7 +506,7 @@ export class SpellImpactFx {
         this._light(E, floor, 0.8, { life: 0.35 });
         return true;
       }
-      case 'sweep': {   // Whirlwind: a ring to its reach and sparks flung round it, tangent to the spin
+      case 'sweep': {
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.5, r1: reach, life: 0.35, band: 0.1, I: 1.2, hot: true });
         const sg = spin < 0 ? -1 : 1;
         for (let i = 0; i < 24; i++) {
@@ -614,7 +517,7 @@ export class SpellImpactFx {
         this._light(E, [at[0], gy + 0.6, at[2]], 0.6, { life: 0.3 });
         return true;
       }
-      case 'arc': {   // Cleave: a fan of sparks along its arc in front (its own half-angle), swept across it
+      case 'arc': {
         const hw = Number.isFinite(half) && half > 0 ? Math.min(half, Math.PI) : 80 * Math.PI / 180;
         for (let i = 0; i < 20; i++) {
           const a = yaw - hw + (2 * hw * i) / 19, rr = reach * R(0.45, 0.7), sp = R(4, 7);
@@ -624,22 +527,22 @@ export class SpellImpactFx {
         flare([at[0] + fx * reach * 0.55, gy + 1.1, at[2] + fz * reach * 0.55], 0.6, 0.16, 1.2);
         return true;
       }
-      case 'star':   // a heavy blow's point: a star of light and a spray
+      case 'star':
         star(at, 0.4); spray(at, 12, 2, 5, 0.3);
         this._light(E, at, 0.5, { life: 0.22 });
         return true;
-      case 'chop':   // Headsman's Chop: the star, the spray and a small ring under it
+      case 'chop':
         star(at, 0.42); spray(at, 12, 2, 5, 0.3);
         this._decal(E, [at[0], gy + 0.04, at[2]], { shape: FX_SHAPE.ring, r0: 0.1, r1: 0.9, life: 0.3, band: 0.08, I: 1.1, hot: true });
         this._light(E, at, 0.5, { life: 0.22 });
         return true;
-      case 'punch': {   // Haymaker: the star and a ring standing in the air, facing the one who threw it
+      case 'punch': {
         star(at, 0.45);
         this._decal(E, at, { n: D, shape: FX_SHAPE.ring, r0: 0.05, r1: 0.7, life: 0.22, band: 0.08, I: 1.3, hot: true });
         for (let i = 0; i < 10; i++) this._part(E, at, [D[0] * R(3, 6) + R(-1, 1), D[1] * R(3, 6) + R(-0.5, 1), D[2] * R(3, 6) + R(-1, 1)], { life: R(0.2, 0.32), w: R(0.016, 0.028), g: 4, drag: 1, streak: 0.07, maxLen: 0.5, I: R(1.2, 1.7) });
         return true;
       }
-      case 'vanish': {   // Shadowstep's leaving: a ring where you stood, the light of you rising out of it
+      case 'vanish': {
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.2, r1: 1.1, life: 0.3, band: 0.08, I: 1.1, hot: true });
         for (let i = 0; i < 14; i++) {
           const a = R(0, TAU), rr = R(0, 0.35);
@@ -648,7 +551,7 @@ export class SpellImpactFx {
         flare([at[0], gy + 1.1, at[2]], 0.6, 0.18, 1.2);
         return true;
       }
-      case 'trail': {   // Lunge: sparks down the lane you ran, left behind in the order you passed
+      case 'trail': {
         if (!vec3(to)) return false;
         const lx = to[0] - at[0], lz = to[2] - at[2], L = Math.hypot(lx, lz);
         if (!(L > 0.3)) return false;
@@ -659,7 +562,7 @@ export class SpellImpactFx {
         }
         return true;
       }
-      case 'tracer': {   // a Piercing Shot: a flare at the bow and sparks down the shot's lane, laid as it flies
+      case 'tracer': {
         flare(at, 0.45, 0.12, 1.6);
         const L = Math.max(1, Math.min(32, Number.isFinite(len) ? len : 12));
         const n = Math.min(20, Math.round(L / 1.2));
@@ -669,15 +572,15 @@ export class SpellImpactFx {
         }
         return true;
       }
-      case 'flare':   // a Volley's loose: a flare at the bow
+      case 'flare':
         flare(at, 0.4, 0.12, 1.4);
         for (let i = 0; i < 6; i++) this._part(E, at, [D[0] * R(2, 4) + R(-0.6, 0.6), R(1, 3), D[2] * R(2, 4) + R(-0.6, 0.6)], { life: R(0.2, 0.3), w: 0.018, g: 3, drag: 1, streak: 0.06, maxLen: 0.4, I: 1.4 });
         return true;
-      case 'shaft':   // one of a Volley's arrows down: a puff of stone and a small ring
+      case 'shaft':
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: 0.1, r1: 0.5, life: 0.25, band: 0.05, I: 0.9 });
         debris(5, 1, 3);
         return true;
-      case 'close':   // a Volley done: the circle closes in a ring over its disc
+      case 'close':
         this._decal(E, floor, { shape: FX_SHAPE.ring, r0: reach * 0.2, r1: reach, life: 0.45, band: 0.1, I: 1.3, hot: true });
         this._decal(E, floor, { shape: FX_SHAPE.pool, r0: 0.3, r1: reach * 0.6, life: 0.5, I: 0.45 });
         this._light(E, floor, 0.6, { life: 0.35 });
@@ -724,7 +627,6 @@ export class SpellImpactFx {
     }
   }
 
-  /** A bolt struck again: a fresh jagged path from its root to its end, and a short fork off its middle. */
   _jitter(b) {
     const N = 7, f = b.from, t = b.to;
     const dx = t[0] - f[0], dy = t[1] - f[1], dz = t[2] - f[2], len = Math.hypot(dx, dy, dz) || 1;
@@ -744,7 +646,6 @@ export class SpellImpactFx {
     b.flash = this.r(0.45, 1);
   }
 
-  /** The floating origin moved: everything moves with it. */
   shift(o) {
     if (!o) return;
     const mv = (p) => { p[0] += o[0]; p[1] += o[1]; p[2] += o[2]; };
@@ -756,7 +657,6 @@ export class SpellImpactFx {
 
   clear() { this.parts.length = 0; this.decals.length = 0; this.bolts.length = 0; this.lights.length = 0; this.count = 0; }
 
-  /** The brightest light the live bursts throw this frame, in nearestLights' shape (`color` colour x level), or null. */
   light() {
     let best = null, bestK = 0;
     for (const l of this.lights) {
@@ -771,7 +671,6 @@ export class SpellImpactFx {
     return { x: l.at[0], y: l.at[1], z: l.at[2], range: l.range * (0.45 + 0.55 * k), color: [l.color[0] * k, l.color[1] * k, l.color[2] * k], carried: true };
   }
 
-  /** This frame's instances into `this.buf`; answers how many. */
   build() {
     const B = this.buf, max = FX_MAX_INSTANCES;
     let n = 0;
@@ -783,7 +682,7 @@ export class SpellImpactFx {
       B[o + 12] = nn[0]; B[o + 13] = nn[1]; B[o + 14] = nn[2];
       n++;
     };
-    // the floor's first, so the sparks lie over their glow
+    // The floor's first, so the sparks lie over their glow.
     for (const q of this.decals) {
       if (q.age < 0) continue;
       const u = q.age / q.life, e = 1 - Math.pow(1 - u, 3);
@@ -821,8 +720,8 @@ export class SpellImpactFx {
       const u = b.age / b.life, I = b.flash * (1 - u * u);
       const draw = (pts, k) => {
         for (let i = 1; i < pts.length; i++) {
-          put(pts[i - 1], pts[i], b.w * 1.4 * k, b.look.main, I * 0.55, FX_SHAPE.spark);   // the glow round it
-          put(pts[i - 1], pts[i], b.w * 0.28 * k, b.look.hot, I * 1.6, FX_SHAPE.bolt);    // the white core
+          put(pts[i - 1], pts[i], b.w * 1.4 * k, b.look.main, I * 0.55, FX_SHAPE.spark);
+          put(pts[i - 1], pts[i], b.w * 0.28 * k, b.look.hot, I * 1.6, FX_SHAPE.bolt);
         }
       };
       draw(b.pts, 1);
@@ -951,9 +850,6 @@ void main() {
   o = vec4(c * (k * vI * fogFactorAt(vWorld)), 1.0);
 }`;
 
-/** THE PASS: one program, one quad, one instance buffer, re-filled per frame. */
-/** SHADER-STALL: the pass's one program, as its constructor builds it - what the warm starts ahead of the build
- *  (scenes/hostMagic.js; render/glProgram.js startPrograms). */
 export const SPELL_IMPACT_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[SPELL_FX_VS, SPELL_FX_FS]]));
 
 export class SpellImpactPass {
@@ -982,14 +878,12 @@ export class SpellImpactPass {
     this.drawn = 0;
   }
 
-  /** EVERY ALLOCATION HAS AN OWNER: the cast engine frees its pass with itself (hostMagic destroy). */
   destroy() {
     const gl = this.gl;
     gl.deleteBuffer(this.quad); gl.deleteBuffer(this.inst); gl.deleteVertexArray(this.vao); gl.deleteProgram(this.prog);
   }
 
-  /** Draw `count` instances of `buf` under this frame's camera and fog (`fog` the renderer's: mode, density, range,
-   *  camPos, focus, haze). Leaves the renderer's baseline: no blend, depth written, faces culled. */
+  // Leaves the renderer's baseline: no blend, depth written, faces culled.
   draw(buf, count, proj, view, eye, fog = null) {
     this.drawn = 0;
     if (!(count > 0) || !proj || !view) return 0;
@@ -1006,7 +900,7 @@ export class SpellImpactPass {
     gl.uniform2fv(u.uFogRange, fog?.range ?? [0, 1]);
     gl.uniform3fv(u.uCamPos, fog?.camPos ?? eye);
     if (u.uFocus) gl.uniform4fv(u.uFocus, fog?.focus ?? [0, 0, 0, 0]);
-    if (u.uJungleHaze) gl.uniform4fv(u.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1: the jungle's haze (renderer.setJungleHaze)
+    if (u.uJungleHaze) gl.uniform4fv(u.uJungleHaze, fog?.haze ?? NO_HAZE);
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.inst);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, buf, 0, count * FX_FLOATS);

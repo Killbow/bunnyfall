@@ -103,7 +103,7 @@ export function installLegalNotices({ playerEntity, say, regionName = () => 'thi
 
 /** SENTENCE-MENDS (FIELD BUGS 2026-10-21d): a sentence served mends the name a penance's step - said apart from the
  *  charge it gave back ("Your debt ... is paid"). */
-const SERVED_TEXT = 'Time served mends your name in {name} ({by}). You are {word}.';
+const SERVED_TEXT = 'Time served improves your standing in {name} ({by}). You are {word}.';
 
 /** The notice's words. */
 export function legalNoticeLine({ name, after, delta, cause }) {

@@ -12,6 +12,7 @@ files:
   - "src/underwater/deepWatersLoot.js"
   - "src/items/droppedLoot.js"
   - "src/mods/modSettings.js"
+  - "src/world/oceanHoles.js"
 routes: []
 tables: []
 replacesBible:
@@ -26,8 +27,10 @@ invariants:
   - "Exterior enemies swim only while the swim driver publishes the forged waterLevelY (the null default means no water)."
   - "Loot pulse: LOOT_PULSE_DISTANCE 90 m, MIN_PULSE_INTERVAL_SECONDS 8, FAILED_PULSE_RETRY_SECONDS 3, DESPAWN_DISTANCE 140."
   - "Caps come from settings: MaxLiveLootObjects default 192 (max 256), MaxLiveTreasureClusters default 12 (max 32)."
+  - "`heightGridFromPositions` reads the 65 by 65 height grid from only the first 4225 vertices of the floor mesh; the wall vertices after them are not part of the grid."
 traps:
   - "The loot spawner has no offsetAll, as in the mod. After a FloatingOrigin shift the next pulse forgets every wreck past 140 m. Piles move only through droppedLoot.offsetAll."
+  - "`upgradeLoot` mirrors a DFU bug: the weapon arm meant to skip the arrow tests the template index 131 against a group index, so arrows are upgraded too and a stack becomes one arrow of the next material."
 dfu: []
 tags:
   - "deep-waters"

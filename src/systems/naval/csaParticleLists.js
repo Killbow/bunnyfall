@@ -1,6 +1,5 @@
 // @ts-check
-// The living particles of every boat, by the material of their renderer: the wake and splash quads, the flag cubes, and
-// the blended drops. The lists and their records are reused from frame to frame; the draw reads them in the same frame.
+// The lists and their records are reused from frame to frame; the draw reads them in the same frame.
 import { RENDER_MODE } from '../../world/unityParticles.js';
 
 /**

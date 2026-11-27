@@ -33,6 +33,7 @@ invariants:
   - "LEFAY_TOWN = Privateer's Hold; the monument search starts at the exit landing (dungeonEntranceLanding) and keeps MONUMENT_LANDING_M 3.2 m on each side of the exit line, from MONUMENT_DOOR_BACK_M 4 m behind it to MONUMENT_WALK_M 8 m ahead."
   - "Camp clearance: MONUMENT_RUIN_KEEP_M 8 m around ruins, MONUMENT_CAMP_KEEP_M 4 m around HOLD_MODELS (33 models)."
   - "Honor banners fire only on newly earned honors (titleNew/auraNew)."
+  - "Saves store `lefayTribute` through `normalTribute` as `{count, laid}`, each laid entry `[deg, kind, ring, across]`, so reordering `FLOWER_RINGS` or `LEFAY_FLOWERS` moves or changes saved flowers."
 traps:
   - "Changing RESPAWN_MS is a wire change and needs a relay protocol bump."
   - "dungeonContext.js stands no monument."

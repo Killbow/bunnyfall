@@ -1,52 +1,20 @@
-// Floating-origin streaming logic for the world scene: which map pixels
-// are in range, when the world recenters, and where everything sits.
-// 1:1 semantics from Daggerfall Unity's StreamingWorld + FloatingOrigin
-// (MIT, Daggerfall Workshop), as pure state - the scene owns assets.
-// Verbatim:
-//   - TerrainDistance 3: the desired set is the (2d+1)^2 pixel grid
-//     around the player; IsInRange is |delta| <= TerrainDistance on both
-//     axes, pixels beyond are collected (unloaded).
-//   - World coordinates: SceneMapRatio = 1 / GlobalScale (40 native
-//     units per scene unit); pixel = WorldCoordToMapPixel(worldX / 32768,
-//     499 - worldZ / 32768) with C#-style truncating division. DFU
-//     accumulates worldX/worldZ incrementally with the last player
-//     position compensated on every recenter; the closed form here -
-//     native = originPixelCorner + (scenePos - compensation) *
-//     SceneMapRatio - is the same mapping without drift.
-//   - FloatingOrigin: on a pixel change the whole world (and player)
-//     shifts by (-dPixelX * 819.2, 0, +dPixelY * 819.2); vertical
-//     recenter fires past +/-500 with yChange = -y. The compensation
-//     vector accumulates every shift, and terrain placement is
-//     (pixel - mapOrigin) * (819.2, -819.2) + compensation - map Y runs
-//     south.
-//   - Init matches ResetStreamingWorld: compensation zeroed on x/z,
-//     mapOrigin = the player's current pixel.
+// Floating-origin streaming for the world scene: which map pixels are in range, when the world recenters,
+// and where everything sits. Ported from Daggerfall Unity's StreamingWorld and FloatingOrigin as pure state.
 
 import { TERRAIN_SIZE } from './terrainSampler.js';
 import { GLOBAL_SCALE } from './meshReader.js';
 import { WORLD_MAP_TILE_DIM, getLocationTerrainTileOrigin } from './terrainTiles.js';
 
-export const TERRAIN_DISTANCE = 3;   // DFU's default (StreamingWorld.cs:56); D1: the world host passes the LIVE Experimental/TerrainDistance (1..4) into the constructor
-/** BUILD-RETRY (bible/06-Systems/Travel-View.md LOAD-OWED, the port's own - DFU's builds do not fail): the stream's own
- *  re-asks of a pixel whose build THREW, real milliseconds after each failure - five, doubling from two seconds, a
- *  minute in all. Past the last the pixel waits for the next crossing that lists it, as every failed pixel waited
- *  before (the load list's law). */
+export const TERRAIN_DISTANCE = 3;
 export const BUILD_RETRY_MS = Object.freeze([2000, 4000, 8000, 16000, 32000]);
 const VERTICAL_THRESHOLD = 500;
-// MapsFile.MinMapPixelX/Y and MaxMapPixelX/Y - max EXCLUSIVE, so the
-// world map is 0..999 by 0..499 (terrainSampler keeps its own copy of
-// the Y bound for the same reason: no reader dependency here).
 const MIN_MAP_PIXEL_X = 0;
 const MIN_MAP_PIXEL_Y = 0;
 const MAX_MAP_PIXEL_X = 1000;
 const MAX_MAP_PIXEL_Y = 500;
-export const SCENE_MAP_RATIO = 1 / GLOBAL_SCALE;   // HCC: StreamingWorld.SceneMapRatio, the mod's scene<->world conversions read it by name
-const NATIVE_PIXEL = 32768; // MapsFile world units per map pixel
+export const SCENE_MAP_RATIO = 1 / GLOBAL_SCALE;
+const NATIVE_PIXEL = 32768;
 
-/** Verbatim MapsFile.WorldCoordToMapPixel (truncating division). DFU
- * casts the accumulated float to int first; trunc(trunc(w) / k) equals
- * trunc(w / k) for positive integer k, so the single trunc here is the
- * same mapping. */
 export function worldCoordToMapPixel(worldX, worldZ) {
   return {
     x: Math.trunc(worldX / NATIVE_PIXEL),
@@ -54,18 +22,12 @@ export function worldCoordToMapPixel(worldX, worldZ) {
   };
 }
 
-/** Verbatim MapsFile.MapPixelToWorldCoords (pixel corner). */
 export function mapPixelToWorldCoords(mapPixelX, mapPixelY) {
   return { x: mapPixelX * NATIVE_PIXEL, z: (499 - mapPixelY) * NATIVE_PIXEL };
 }
 
-/** MapsFile.WorldMapRMBDim - world units per RMB block. */
 export const WORLD_MAP_RMB_DIM = 4096;
 
-/** PlayerGPS.SetWorldLocationRect (PlayerGPS.cs:636-659): the
- *  location's footprint in WORLD units - the pixel corner, shifted by
- *  the terrain tile origin (x2, in tile units), sized by the exterior's
- *  RMB block count. */
 export function locationWorldRect(dfLocation, mapPixelX, mapPixelY) {
   const origin = mapPixelToWorldCoords(mapPixelX, mapPixelY);
   const tileOrigin = getLocationTerrainTileOrigin(dfLocation);
@@ -79,31 +41,15 @@ export function locationWorldRect(dfLocation, mapPixelX, mapPixelY) {
   };
 }
 
-/** PlayerGPS.PlayerLocationRectCheck (:668-716). AUDIT 24 (the
- *  seven-slice sweep): IsPlayerInLocationRect is NOT "this map pixel
- *  carries a location" - C#'s own comment says so in as many words
- *  ("Player can be inside a map pixel with location but not inside
- *  location rect"). It is a world-coordinate test against the town's
- *  actual footprint, widened by one full city block on every side "to
- *  better match classic". A map pixel is 32768 units across; a
- *  1x1 town plus its slack is 12288. The port had been answering the
- *  pixel, which is up to seven times the area, and every consumer of
- *  the seam - the quest machine's `when pc enters/exits`, CreateFoe's
- *  `send` gate, the music director's location context - read that
- *  widened answer. */
+// IsPlayerInLocationRect is a world-coordinate test against the town's footprint widened by one city block,
+// not "this map pixel carries a location".
 export function isInLocationRect(worldX, worldZ, rect) {
   if (!rect) return false;
-  const extraRect = WORLD_MAP_RMB_DIM;   // size of a full city block
+  const extraRect = WORLD_MAP_RMB_DIM;
   return worldX >= rect.minX - extraRect && worldX <= rect.maxX + extraRect
     && worldZ >= rect.minZ - extraRect && worldZ <= rect.maxZ + extraRect;
 }
 
-/** The load list's order, nearest-first around `current` (a map pixel):
- *  Chebyshev ring first - the player's pixel, then each ring out - and
- *  Euclid within a ring. A comparator over `{px, py}` entries. AUDIT 68
- *  S22: ONE copy - the host's three rebuild sweeps (roads, WoD, the
- *  season) re-queue in this same order, and said so while keeping
- *  literals of their own. */
 export const nearestFirstFrom = (current) => (a, b) => {
   const ca = Math.max(Math.abs(a.px - current.x), Math.abs(a.py - current.y));
   const cb = Math.max(Math.abs(b.px - current.x), Math.abs(b.py - current.y));
@@ -117,38 +63,27 @@ export class StreamingWorldState {
     this.mapOrigin = { x: 0, y: 0 };
     this.compensation = [0, 0, 0];
     this.current = { x: 0, y: 0 };
-    this.loaded = new Map(); // key -> {px, py}, built or building
-    this.failed = new Map();   // BUILD-RETRY: key -> {px, py, tries, at} - a pixel whose build threw, and when the stream asks again
-    this.initOffset = [0, 0, 0];   // FIELD-CSA1: the last init's move of the scene (init)
+    this.loaded = new Map();
+    this.failed = new Map();
+    this.initOffset = [0, 0, 0];
   }
 
   static key(px, py) {
-    // String key: safe for negative/out-of-map pixel coordinates.
     return `${px},${py}`;
   }
 
-  /** Start streaming with the player's scene position on this pixel.
-   * Verbatim ResetStreamingWorld: x/z compensation zeroes, the vertical
-   * component SURVIVES re-inits. FIELD-CSA1 (the port's own bookkeeping):
-   * `initOffset` is the move this init made of every scene point - the old
-   * frame's origin as the new frame reads it, none up or down - which a
-   * host carrying scene-space objects across a teleport rides as it rides
-   * a recentre's offset (world.js csaReanchor). */
   init(mapPixelX, mapPixelY) {
     const was = this.worldCoords([0, 0, 0]);
     this.mapOrigin = { x: mapPixelX, y: mapPixelY };
     this.compensation = [0, this.compensation[1], 0];
     this.current = { x: mapPixelX, y: mapPixelY };
     this.loaded.clear();
-    this.failed.clear();   // BUILD-RETRY: the new grid asks for every pixel afresh
+    this.failed.clear();
     const [ox, oz] = this.localFromWorld(was.x, was.z);
     this.initOffset = [ox, 0, oz];
     return this._loadList();
   }
 
-  /** Native world coordinates -> scene position under the CURRENT
-   *  origin/compensation (worldCoords' inverse; the P-slice save
-   *  stores natives so a quicksave survives any floating origin). */
   localFromWorld(nativeX, nativeZ) {
     const corner = mapPixelToWorldCoords(this.mapOrigin.x, this.mapOrigin.y);
     return [
@@ -157,7 +92,6 @@ export class StreamingWorldState {
     ];
   }
 
-  /** Scene position -> native Daggerfall world coordinates. */
   worldCoords(scenePos) {
     const corner = mapPixelToWorldCoords(this.mapOrigin.x, this.mapOrigin.y);
     return {
@@ -166,10 +100,6 @@ export class StreamingWorldState {
     };
   }
 
-  /** Translation for a pixel's local frame under current compensation.
-   *  EV2: `out` reuses a caller's array - the streaming draw loop and
-   *  the collision floor ask this per pixel per frame, and the fresh
-   *  three-array per call was measurable GC. Semantics unchanged. */
   pixelTranslation(px, py, out = [0, 0, 0]) {
     out[0] = (px - this.mapOrigin.x) * TERRAIN_SIZE + this.compensation[0];
     out[1] = this.compensation[1];
@@ -177,26 +107,12 @@ export class StreamingWorldState {
     return out;
   }
 
-  /** PlaceTerrain's first statement (StreamingWorld.cs:855-860): a
-   *  pixel outside the world map is never placed. The port has no crash
-   *  to show for it - WoodsFile clamps and PakFile answers -1, which
-   *  getWorldClimateSettings turns into Temperate/Woodlands - so an
-   *  off-map pixel would stream a whole invented terrain, its climate,
-   *  its ground archive and its nature scatter where DFU leaves the
-   *  edge of the world empty. */
   static onMap(px, py) {
     return px >= MIN_MAP_PIXEL_X && px < MAX_MAP_PIXEL_X
       && py >= MIN_MAP_PIXEL_Y && py < MAX_MAP_PIXEL_Y;
   }
 
-  /** TAMRIEL2 (2026-10-08, Mac: "only implement the land mass"): THE FRAME THE WORLD STREAMS OVER, past the map - the
-   *  continent's box in the map's own coordinates (world/tamriel/tamrielFrame.js tamrielFrameInBay), set by the world host
-   *  when the land beyond the Bay is on, null for DFU's own edge of the world. `onMap` stays the MAP's law (World of
-   *  Daggerfall's slots and every reader of the data ask it); `streams` is what the load list and the range ask. */
   static frame = null;
-  /** ETHER-SEA (bible/03-World/Eltheric-Ocean.md): THE OTHER BOXES the world streams over - each `{ x0, y0, w, h }` in the
-   *  map's own coordinates (the Eltheric Ocean's, world/ethericSea.js etherFrame), set by the world host apart from the
-   *  continent's `frame` (which the picture's fit resets as it lands). */
   static frames = [];
   static streams(px, py) {
     if (StreamingWorldState.onMap(px, py)) return true;
@@ -212,12 +128,11 @@ export class StreamingWorldState {
   }
 
   _loadList() {
-    // Desired grid, nearest-first (player pixel leads, rings follow).
     const list = [];
     const d = this.terrainDistance;
     for (let py = this.current.y - d; py <= this.current.y + d; py++) {
       for (let px = this.current.x - d; px <= this.current.x + d; px++) {
-        if (!StreamingWorldState.streams(px, py)) continue;   // TAMRIEL2: the frame, where the host set one
+        if (!StreamingWorldState.streams(px, py)) continue;
         if (this.loaded.has(StreamingWorldState.key(px, py))) continue;
         list.push({ px, py });
       }
@@ -227,15 +142,10 @@ export class StreamingWorldState {
     return list;
   }
 
-  /** Drop a pixel from the loaded set (after the scene destroys it). */
   release(px, py) {
     this.loaded.delete(StreamingWorldState.key(px, py));
   }
 
-  /** BUILD-RETRY: A PIXEL WHOSE BUILD THREW - let go, as `release` lets go, and asked for again by the stream itself
-   *  (`retryDue`) the next of BUILD_RETRY_MS after this failure while it is still in the grid. It was asked again only
-   *  by the next crossing that listed it, and a failure the next read would not have had (a fetch dropped, a store read
-   *  that failed) stood as a hole in the grid until then. `now` is real milliseconds. */
   fail(px, py, now) {
     const key = StreamingWorldState.key(px, py);
     this.loaded.delete(key);
@@ -243,20 +153,16 @@ export class StreamingWorldState {
     this.failed.set(key, { px, py, tries, at: tries <= BUILD_RETRY_MS.length ? now + BUILD_RETRY_MS[tries - 1] : Infinity });
   }
 
-  /** BUILD-RETRY: a pixel that stood - its failures forgotten. */
   stood(px, py) {
     this.failed.delete(StreamingWorldState.key(px, py));
   }
 
-  /** BUILD-RETRY: the failed pixels whose wait is over, still in the grid and still let go - taken back on the books (as
-   *  the load list takes a pixel) and handed back, nearest first, for the queue. A pixel out of the grid is forgotten
-   *  (a crossing that lists it again asks afresh); one a crossing has listed already waits on that ask. */
   retryDue(now) {
     const out = [];
     for (const [key, f] of this.failed) {
       if (!this.inRange(f.px, f.py)) { this.failed.delete(key); continue; }
       if (f.at > now || this.loaded.has(key)) continue;
-      f.at = Infinity;   // asked: its next failure sets the next wait, its standing forgets it
+      f.at = Infinity;
       const p = { px: f.px, py: f.py };
       this.loaded.set(key, p);
       out.push(p);
@@ -264,21 +170,13 @@ export class StreamingWorldState {
     return out.sort(nearestFirstFrom(this.current));
   }
 
-  /** QUEUE-OWED (bible/06-Systems/Travel-View.md QUEUE-OWED): whether the host's build queue holds a pixel the stream
-   *  still owes next - the ones at its head the stream let go while they waited (left the grid behind a crossing) are
-   *  dropped unbuilt, so what stands at the head is the next to build. DFU's UpdateTerrains collects first and builds
-   *  only the terrains still active (StreamingWorld.cs:654-657); the pump built every entry and threw the ones let go
-   *  away after, so a fast journey's road spent the stream's time on ground nobody would see while the grid round the
-   *  traveller waited. */
   owes(queue) {
     while (queue.length && !this.loaded.has(StreamingWorldState.key(queue[0].px, queue[0].py))) queue.shift();
     return queue.length > 0;
   }
 
   /**
-   * Per-frame step. Mutates compensation on recenters.
-   * @param {number[]} camPos - scene position; caller applies the
-   *   returned offset to it (FloatingOrigin shifts the player too).
+   * @param {number[]} camPos
    * @returns {{offset:number[]|null, load:Array, unload:Array,
    *   pixelChanged:boolean, current:{x,y}}}
    */
@@ -286,7 +184,6 @@ export class StreamingWorldState {
     const offset = [0, 0, 0];
     let moved = false;
 
-    // Vertical recenter, verbatim threshold.
     if (camPos[1] < -VERTICAL_THRESHOLD || camPos[1] > VERTICAL_THRESHOLD) {
       offset[1] = -camPos[1];
       moved = true;
@@ -298,7 +195,6 @@ export class StreamingWorldState {
     let load = [];
     const unload = [];
     if (pixelChanged) {
-      // Verbatim FloatingOrigin: (-xChange, y, +zChange).
       offset[0] = -(pixel.x - this.current.x) * TERRAIN_SIZE;
       offset[2] = (pixel.y - this.current.y) * TERRAIN_SIZE;
       moved = true;
@@ -319,47 +215,30 @@ export class StreamingWorldState {
   }
 }
 
-/** StreamingWorld.cs:44 - "Maximum terrains in memory at any time". */
 export const MAX_TERRAIN_ARRAY = 256;
 
-/**
- * AUDIT BRANCH (WoD) L1-3: DFU'S TERRAIN ARRAY, AS SLOTS. The port frees a pixel the moment it leaves range; DFU
- * only POOLS it - the terrain GameObject goes inactive with every child it holds and stays keyed - and reuses the
- * slot when a new tile needs one. A pooled tile placed again is reactivated WITHOUT a promote (PlaceTerrain,
- * :866-885), so a mod's objects parented to the terrain come back as they were left. This models the array alone -
- * which pixel holds a slot, active or pooled - so a host can keep what DFU keeps for exactly as long:
- *   - UpdateWorld (:602-614) places the (2d+1)^2 grid in row order: a keyed pixel is reactivated; a new one takes
- *     the FIRST slot that was never instantiated or is pooled out of range (FindNextAvailableTerrain, :937-985),
- *     and a pooled slot so taken is RECYCLED - its pixel unkeyed;
- *   - then UpdateTerrains' CollectTerrains (:654, :1007-1034) pools every active slot out of range;
- *   - ClearStreamingWorld (:993-998) pools everything out of range (mapPixel = int.MinValue) and clears the keys.
- * Placement runs before collection, so a tile that has just left range is never the one a new tile takes on the
- * same crossing: it survives until the next placement that needs its slot, and one step back finds it.
- */
+// Placement runs before collection, so a tile that just left range survives until a new tile needs its slot.
 export class TerrainSlots {
   constructor(size = MAX_TERRAIN_ARRAY) {
     this.size = size;
     /** @type {Array<{px:number, py:number, active:boolean}>} */
     this.slots = [];
-    /** @type {Map<string, number>} pixel key -> slot */
+    /** @type {Map<string, number>} */
     this.keys = new Map();
   }
 
-  /** The pixel holds a slot, active or pooled. */
   has(key) { return this.keys.has(key); }
 
-  /** ClearStreamingWorld: CollectTerrains(true) and terrainIndexDict.Clear(). */
   clear() {
     for (const s of this.slots) { s.active = false; s.px = -2147483648; s.py = -2147483648; }
     this.keys.clear();
   }
 
   /**
-   * One crossing (or the first frame after a clear): UpdateWorld's placements around (cx, cy), then CollectTerrains.
    * @param {number} cx
    * @param {number} cy
-   * @param {number} distance - TerrainDistance
-   * @param {(px:number, py:number) => boolean} [onMap] - PlaceTerrain's first test
+   * @param {number} distance
+   * @param {(px:number, py:number) => boolean} [onMap]
    * @returns {{reactivated:string[], recycled:string[], pooled:string[]}}
    */
   step(cx, cy, distance, onMap = () => true) {
@@ -380,7 +259,7 @@ export class TerrainSlots {
           const s = this.slots[i];
           if (!s || (!s.active && !inRange(s.px, s.py))) { found = i; break; }
         }
-        if (found === -1) continue;   // "Unable to find free terrain" - DFU quits the game; 256 slots never run out at distance <= 4
+        if (found === -1) continue;
         const old = this.slots[found];
         if (old) {
           const k = `${old.px},${old.py}`;

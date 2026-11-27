@@ -3,11 +3,6 @@ import { cromwarkProfile } from './cromwarkRoster.js';
 import { cromwarkPattern, inCromwarkMark, shotPosition, shotHits, CROMWARK_ORB_RADIUS } from './cromwarkPatterns.js';
 import { fitBlowToGround } from '../../ai/foeBlows.js';
 
-/** One local player judges their own capsule against every owner's cast, including
- * casts aimed at someone else. No hit RPC, no duplicate damage from the owner.
- * Existing wind-up fields carry locked origin/yaw/serial; wp is elapsed seconds
- * and wk's upper four bits encode locked aim distance in 2m steps for these
- * seven IDs only. Late arrivals get a grace period and no past hits. */
 export function createCromwarkCombat({ collider, hurt, impact, renderer, getTexture, uploadRecordFrame, clock = null }) {
   let now = 0, marks = [], bullets = [], batches = [];
   let lastClock = clock?.() ?? 0, elapsed = 0;
@@ -76,7 +71,7 @@ export function createCromwarkCombat({ collider, hurt, impact, renderer, getText
     const age = now - s.started, canHit = playerAlive && now - s.heard >= .35 && elapsed > 0 && elapsed <= .5;
     const hit = (hazard, origin) => {
       if (!canHit || now < s.nextHit || !clearRay([origin[0], origin[1] + .8, origin[2]], [feet[0], feet[1] + .8, feet[2]])) return;
-      s.nextHit = now + .4; // Intersecting spokes/volley pellets are one mistake, not an instant death.
+      s.nextHit = now + .4;
       if (hurt(hazard.damage, f) === false) return;
       let dx = feet[0] - origin[0], dz = feet[2] - origin[2];
       if (Math.hypot(dx, dz) < .001) { dx = Math.sin(s.yaw); dz = Math.cos(s.yaw); }
@@ -90,13 +85,14 @@ export function createCromwarkCombat({ collider, hurt, impact, renderer, getText
         phase: { t: Math.max(0, Math.min(1, (age - m.start) / (m.land - m.start))), flash: age >= m.land ? 1 : 0 } });
       if (age >= m.land && !s.hit.has(i) && inCromwarkMark(m, feet)) { s.hit.add(i); hit(m, m.origin); }
       if (m.dash && age >= m.land && !f.puppet && dt > 0) {
-        // Drive through the same collision capsule as ordinary walking, never teleport.
+        // The dash moves through the collision capsule like walking and never teleports.
         const step = Math.min(dt, .05) * m.dim.len / m.duration;
         collider.move(f.ai.feet, Math.sin(m.yaw) * step, -.05, Math.cos(m.yaw) * step, f.ai.controllerHeight, true);
       }
     }
     for (let i = 0; i < s.pattern.shots.length; i++) {
-      if (!orbReady) continue; // An unavailable image must never become an invisible damaging projectile.
+      // An unavailable orb image never becomes an invisible damaging projectile.
+      if (!orbReady) continue;
       const shot = s.pattern.shots[i], key = `s${i}`;
       if (age < shot.start || age > shot.start + shot.life || s.blocked.has(i)) continue;
       const pos = shotPosition(shot, age), prev = shotPosition(shot, Math.max(shot.start, s.previous));
@@ -111,7 +107,8 @@ export function createCromwarkCombat({ collider, hurt, impact, renderer, getText
     if (r.wk === undefined || !origin || !Number.isFinite(r.wp)) { cancel(f); return; }
     if ((r.wk & 7) !== 0 || Math.hypot(origin[0] - f.ai.feet[0], origin[2] - f.ai.feet[2]) > 35
       || Math.abs(origin[1] - f.ai.feet[1]) > 8) { cancel(f); return; }
-    if (f._cromSeen === r.wn) return; // Receipt jitter or an interrupted cast must never restart warnings.
+    // A repeated receipt for the same warning serial never restarts it.
+    if (f._cromSeen === r.wn) return;
     const range = (r.wk >> 3) * 2;
     const p = cromwarkPattern(f.mobileType, origin, r.wy, r.wn, !!f.entity.eliteFoe, range);
     if (r.wp < 0 || r.wp > p.duration) { cancel(f); return; }
@@ -130,7 +127,6 @@ export function createCromwarkCombat({ collider, hurt, impact, renderer, getText
       return [];
     }
     if (bullets.length) uploadRecordFrame(9947, 0, 0);
-    // Reuse allocated batches. One small sprite per projectile; the maximum is bounded by the pressure budget.
     while (batches.length < bullets.length) {
       const b = renderer.createBillboardBatch(9947, '0#0', { w: 2 * CROMWARK_ORB_RADIUS, h: 2 * CROMWARK_ORB_RADIUS }, [[0, 0, 0]]);
       b.noShadow = true; batches.push(b);

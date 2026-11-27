@@ -1,11 +1,4 @@
 // @ts-check
-// PLAYER-FESTIVALS (2026-10-30, the owner: "players being able to make a festival ... a custom entry"): THE FESTIVALS
-// PLAYERS HOST, AS THIS CLIENT LIVES THEM (net/playerFestivalLaw.js its law, server-account/src/playerFestival.js its
-// registry). At any innkeeper, online, a registered account may host one: it names the festival and says what it is, pays
-// FEST_COST_GOLD, and for FEST_HOURS the town holds it. Every client polls the registry, says each festival once in the
-// chat, marks its town on the held map, and lays a small buff (Festival Cheer) on whoever stands in the town.
-//
-// The host hands in its doors: the homes' service, the town of a map id, a line, the overlay.
 
 import { InputMessageBoxWindow } from '../../ui/inputMessageBox.js';
 import { assignModBundle } from '../../magic/effects.js';
@@ -18,10 +11,9 @@ import {
   festStanding, festMinutesLeft,
 } from '../../net/playerFestivalLaw.js';
 
-/** How often the registry is read, and how often the buff is looked at, ms. */
 export const FEST_POLL_MS = 60_000;
 export const FEST_BUFF_LOOK_MS = 5000;
-/** A held map card's line, characters (ui/eventMapMarks.js TIP_TEXT_MAX). */
+// Matches `TIP_TEXT_MAX` in `eventMapMarks.js`, which cuts longer card lines.
 const CARD_LINE = 80;
 
 export const festivalWords = {
@@ -37,7 +29,6 @@ export const festivalWords = {
   left: (/** @type {number} */ min) => t('festival.card.left', '{min} minutes left', { min }),
 };
 
-/** A description cut into at most two lines for a map card, on spaces. */
 function cardLines(/** @type {string} */ text) {
   const out = [];
   let rest = text;
@@ -51,10 +42,7 @@ function cardLines(/** @type {string} */ text) {
   return out;
 }
 
-/**
- * @param {{ api: any, on: () => boolean, entity: () => any, mapIdNow: () => number, townOf: (mapId: number) => ({ name: string, px: number, py: number } | null | undefined),
- *   hostName: () => string, say: (s: string) => void, show: (w: any) => void, refusal: (word: string) => string, nowMs?: () => number }} deps
- */
+/** @param {{ api: any, on: () => boolean, entity: () => any, mapIdNow: () => number, townOf: (mapId: number) => ({ name: string, px: number, py: number } | null | undefined), hostName: () => string, say: (s: string) => void, show: (w: any) => void, refusal: (word: string) => string, nowMs?: () => number }} deps */
 export function createPlayerFestivals(deps) {
   const nowS = () => Math.floor((deps.nowMs ?? Date.now)() / 1000);
   /** @type {Array<{ id: number, host: string, mapId: number, town: string, name: string, text: string, startsAt: number, endsAt: number, mine: boolean }>} */
@@ -69,7 +57,6 @@ export function createPlayerFestivals(deps) {
   const standing = () => list.filter((f) => festStanding(f, nowS()));
   const text = (/** @type {unknown} */ v, /** @type {number} */ max) => String(v ?? '').slice(0, max);
 
-  /** Reads the registry, and says each festival not yet said. */
   function poll(force = false) {
     const now = performance.now();
     if (!deps.api || busy || (!force && (now < nextPoll || ride.active())) || !deps.on()) return;
@@ -91,7 +78,6 @@ export function createPlayerFestivals(deps) {
     }
   }
 
-  /** Lays Festival Cheer on the entity, renewed once it has run out. */
   function cheer(/** @type {any} */ e) {
     if ((e.activeEffects ?? []).some((/** @type {any} */ a) => a.bundleName === FEST_BUFF_NAME)) return false;
     const b = assignModBundle(e, { name: FEST_BUFF_NAME, kind: 'fortifyAttribute', rounds: FEST_BUFF_ROUNDS, sinks: {}, rolls: Math.random });
@@ -99,7 +85,6 @@ export function createPlayerFestivals(deps) {
     return true;
   }
 
-  /** Asks for the festival's name, then its words, then hosts it. */
   function startHosting() {
     const e = deps.entity();
     const mapId = deps.mapIdNow() >>> 0;
@@ -119,7 +104,6 @@ export function createPlayerFestivals(deps) {
     }));
   }
 
-  /** Hosts it: the gold is taken first and given back if the service says no. */
   function host(/** @type {number} */ mapId, /** @type {string} */ town, /** @type {string} */ name, /** @type {string} */ words) {
     const e = deps.entity();
     if (!e || goldPiecesOf(e) < FEST_COST_GOLD) { deps.say(festivalWords.poor()); return; }
@@ -134,13 +118,10 @@ export function createPlayerFestivals(deps) {
   }
 
   return {
-    /** Whether the innkeeper lists the row: online. */
     on: () => !!deps.api && deps.on(),
-    /** The innkeeper's row. */
     rowLabel: () => festivalWords.host(FEST_COST_GOLD),
     startHosting,
     heartbeatPart: () => ride.attach(),
-    /** Each frame: the registry read when due, and the buff laid on whoever stands in a festival's town. */
     frame() {
       if (!deps.api || !deps.on()) return;
       poll();
@@ -153,7 +134,6 @@ export function createPlayerFestivals(deps) {
       if (!f || !e) return;
       if (cheer(e) && !joined.has(f.id)) { joined.add(f.id); deps.say(festivalWords.joined(f.name)); }
     },
-    /** The held map's marks (ui/eventMapMarks.js readRaidMarks's shape): each standing festival at its town's pixel. */
     mapMarks() {
       const out = [];
       for (const f of standing()) {
@@ -166,7 +146,6 @@ export function createPlayerFestivals(deps) {
       }
       return out;
     },
-    /** The festivals standing now (a read for the legend and tests). */
     standing,
   };
 }

@@ -152,7 +152,7 @@ export function createTavernRecipeWindow({ onBack } = {}) {
   el('h1', '', title, left);
   el('div', 'ts-flourish', '— ❦ —', left).setAttribute('aria-hidden', 'true');
   bottle(el('div', 'ts-book-seal', undefined, left), 'wine');
-  el('p', 'ts-rule', t('tavern.service.bookRule', 'Three doses per cup. Order does not matter. Discard a wrong mixture.'), left);
+  el('p', 'ts-rule', t('tavern.service.bookRule', 'Three doses per cup, in any order. Discard a wrong mixture.'), left);
   const legend = el('div', 'ts-book-legend', undefined, left);
   TAVERN_INGREDIENTS.forEach((k) => { const item = el('span', '', undefined, legend); el('i', `ts-${k}`, undefined, item); el('span', '', tavernIngredientName(k), item); });
   const right = el('section', 'ts-book-leaf ts-book-recipes', undefined, w.body);

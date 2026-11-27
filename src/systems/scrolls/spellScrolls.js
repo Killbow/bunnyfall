@@ -1,20 +1,6 @@
 // @ts-check
-// BUNNYFALL: SPELL SCROLLS. A scroll is a one-use "Cast When Used" magic item carrying one of the classic spells (the
-// SPELLS.STD list the Mages Guild sells from). Using it casts the spell free, whatever the reader's skill or magicka, and
-// the scroll is gone: it is made of the machinery magic items already run on, so the pack's Use, the Use Magic Item key
-// and the hotbar all work with no host change.
-//
-//   - ONE template (1820, Parchment's picture), not stackable; each scroll's own name ("Scroll of Levitate") and its one
-//     CastWhenUsed row (param = the classic spell index) say which spell it is. The item law passes it as a regular
-//     magic item (itemLaw.js regularMagicFindings: one row, a kind MAGIC.DEF's regular items carry).
-//   - ONE USE: it is minted at DURABILITY_LOSS_ON_USE condition (10), the cost of one use of any Cast When Used item
-//     (enchantments.js), so its use breaks it, and enchantLowerCondition removes a broken magic item from the pack.
-//   - A CasterOnly spell goes off at once; any other is readied free, as a Cast When Used item's is. Like those items,
-//     the scroll is spent when the spell is readied, not when it is finally fired.
-//   - WHERE THEY ARE: the Mages Guild's Buy Magic Items shelf, the Alchemist's, the General Store's and the Pawn Shop's
-//     shelves (the better the shop, the dearer the scrolls it carries), and as loot (foes, dungeon piles J-O).
-//   - PRICE: the item's value is the enchantment worth a magic item of that spell has (legacyEnchantmentValue).
-//   - Indices are held to 0..127: a Cast When Used row's param is a signed byte in the item law.
+// A spell scroll is a Cast When Used item minted at DURABILITY_LOSS_ON_USE condition, so its one use breaks it.
+// Spell indices stay within 0..127 because a Cast When Used param is a signed byte in the item law.
 
 import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerValueLaw } from '../../items/itemTemplates.js';
 import { ENCHANTMENT_TYPES } from '../../formats/magicDef.js';
@@ -23,31 +9,23 @@ import { registerTabledLootHandler, registerEnemyLootExtra } from '../../items/l
 
 export const SCROLL_TEMPLATE = 1820;
 export const SCROLL_GROUP = 'UselessItems2';
-const PARCHMENT_TEMPLATE = 279;   // UselessItems2.Parchment - the scroll wears its picture
+const PARCHMENT_TEMPLATE = 279;
 const MAX_SPELL_INDEX = 127;
 
-/** A SCROLL'S WORTH (2026-11-05, a player: "I sold a Balyna's Balm for like 800gp in the first shop ... cheap starter
- *  spells for like 10% of that"): the enchantment worth (10 x the spell's casting cost at skill 50) scaled by how dear
- *  the spell is - a spell of casting cost FULL_WORTH_COST or more keeps the whole of it, a cheaper one the share its cost
- *  is of that, never under a tenth: Balyna's Balm (cost 15) 15 gold, Light 42, Heal 86, Fireball 147, Lightning 385,
- *  Shield 721, and Paralysis, Soul Trap or Sphere of Negation their whole worth. */
 export const FULL_WORTH_COST = 150;
 export function scrollValue(/** @type {number} */ worth) {
+  // Enchantment worth is 10 times the spell's classic casting cost.
   const cost = worth / 10;
   return Math.max(10, Math.round(worth * Math.min(1, Math.max(0.1, cost / FULL_WORTH_COST))));
 }
 
-/** How dear a scroll may be on a shelf of a given quality: a scroll worth `value` needs a shop of quality `tier`
- *  (1 + value / TIER_STEP, to 20). The one number to turn if the shelves run too cheap or too dear. */
 export const TIER_STEP = 250;
-/** Per-shop scroll counts, by shop quality (1-20). */
 export const SCROLL_SHELVES = Object.freeze({
   Guild: (q) => 2 + Math.floor(q / 3),
   Alchemist: (q) => 1 + Math.floor(q / 5),
   GeneralStore: (q) => Math.floor(q / 6),
   PawnShop: (q) => Math.floor(q / 8),
 });
-/** A looting foe's and a dungeon pile's (keys J-O) chance of a scroll, in percent. */
 export const SCROLL_FOE_PERCENT = 2;
 export const SCROLL_PILE_PERCENT = 5;
 
@@ -60,18 +38,12 @@ registerCustomTemplates([Object.freeze({
 
 export const isSpellScroll = (/** @type {any} */ item) => item?.templateIndex === SCROLL_TEMPLATE && item?.group === SCROLL_GROUP;
 
-// ── the spells a scroll may carry ─────────────────────────────────
-
 /** @type {(() => Map<number, any> | null) | null} */
 let _source = null;
-/** The host's `spellsByIndex` (hostEnchant.js hands it in): the classic spell records by index. With none, no scroll is
- *  minted anywhere - a shelf simply lacks them. */
 export function setScrollSpellSource(fn) { _source = typeof fn === 'function' ? fn : null; _poolFor = null; _pool = []; }
 
 let _poolFor = null;
 let _pool = [];
-/** The scrollable spells, sorted by index: a name the file does not hide ('!'), an index a signed byte holds. Cached on
- *  the map the source answers. */
 export function scrollPool() {
   const map = _source?.() ?? null;
   if (!map || typeof map.get !== 'function') return [];
@@ -90,8 +62,7 @@ export function scrollPool() {
   return _pool;
 }
 
-/** A scroll's worth by today's law, whatever it was minted at (a scroll bought before 2026-11-05 carries the old price):
- *  the item a spell scroll - this template, one Cast When Used row - and its spell in the pool, else null. */
+// Prices a scroll by the current rule, whatever value it was minted with.
 export function scrollWorthOf(/** @type {any} */ item) {
   if (item?.templateIndex !== SCROLL_TEMPLATE || item.group !== SCROLL_GROUP) return null;
   const e = item.enchantments?.[0];
@@ -100,7 +71,6 @@ export function scrollWorthOf(/** @type {any} */ item) {
 }
 registerValueLaw('spellScroll', scrollWorthOf);
 
-/** One scroll of the classic spell at `spellIndex`, or null when the source has no such spell. */
 export function createSpellScroll(spellIndex) {
   const entry = scrollPool().find((e) => e.index === spellIndex);
   if (!entry) return null;
@@ -116,9 +86,6 @@ export function createSpellScroll(spellIndex) {
   });
 }
 
-// ── sources ───────────────────────────────────────────────────────
-
-/** `n` distinct scrolls for a shelf of `quality`, none dearer than the shop's tier. */
 function pickScrolls(n, maxTier, rolls) {
   const pool = scrollPool().filter((e) => e.tier <= maxTier);
   const out = [];
@@ -130,7 +97,6 @@ function pickScrolls(n, maxTier, rolls) {
   return out;
 }
 
-/** A shop's scrolls: `kind` is a SCROLL_SHELVES key. Minted after every other draw of the shelf. */
 export function scrollShelfStock(kind, quality = 10, rolls = Math.random) {
   const count = SCROLL_SHELVES[kind];
   if (!count) return [];
@@ -138,8 +104,6 @@ export function scrollShelfStock(kind, quality = 10, rolls = Math.random) {
   return pickScrolls(count(q), q, rolls);
 }
 
-/** A foe's or a pile's roll: one scroll at `percent`, the cheaper of two random spells (so the common find is the small
- *  one). */
 export function rollScrollLoot(items, percent, rolls = Math.random) {
   if (rolls() * 100 >= percent) return items;
   const pool = scrollPool();
@@ -151,9 +115,9 @@ export function rollScrollLoot(items, percent, rolls = Math.random) {
   return items;
 }
 
+// Dungeon pile keys J to O.
 const isDungeonPileKey = (/** @type {any} */ key) => { const n = String(key ?? '').charCodeAt(0) - 64; return n >= 10 && n <= 15; };
 
-/** Hooks the piles and the foes (scenes/shared.js calls this where the other supplies' loot hooks go). */
 export function installScrollLoot() {
   registerTabledLootHandler('SCROLL', ({ key, items, rolls }) => { if (isDungeonPileKey(key)) rollScrollLoot(items, SCROLL_PILE_PERCENT, rolls); });
   registerEnemyLootExtra('SCROLL', ({ items, rolls }) => { rollScrollLoot(items, SCROLL_FOE_PERCENT, rolls); });

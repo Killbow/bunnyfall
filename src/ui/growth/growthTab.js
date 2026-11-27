@@ -153,8 +153,8 @@ function levelPage(detail, ctx) {
     badge: String(entity.level ?? 1),
     heading: owed ? t('growth.level.owedHead', 'A level up is waiting') : t('growth.level.viewHead', 'Level {n}', { n: entity.level ?? 1 }),
     lead: owed ? t('growth.level.owed', 'You have a level up waiting. Place your points, then press {ascend}. If you leave first, the points stay unspent.', { ascend: t('levelup.ok.ascend', 'Ascend') })   // AUDIT GROWTH LANE5-2: the button's own word, in every language
-      : atLevelCap(entity) ? t('charsheet.levelCap', 'The highest level is {level, number}: no more levels are gained.', { level: LEVEL_CAP })   // AUDIT FB1026d II C3: no next level at the cap - the sheet's own words
-      : t('growth.level.view', 'Your attributes, skills and progress to the next level. When you level up, you spend your points here.'),
+      : atLevelCap(entity) ? t('charsheet.levelCap', 'You have reached the maximum level of {level, number}.', { level: LEVEL_CAP })   // AUDIT FB1026d II C3: no next level at the cap - the sheet's own words
+      : t('growth.level.view', 'Your attributes, skills, and progress to the next level. When you level up, you spend your points here.'),
   });
 }
 
@@ -171,7 +171,7 @@ function firmamentPage(detail, ctx) {
   const { el, divider } = ctx;
   if (!firmamentBook()) {
     dropStage();
-    detail.append(divider(t('growth.firm.title', 'Firmament')), el('p', 'gr-lead', t('growth.firm.offline', 'The Firmament is a tree of passive bonuses, online only. Choose a birthsign, then spend the stars you earn from Renown.')));
+    detail.append(divider(t('growth.firm.title', 'Firmament')), el('p', 'gr-lead', t('growth.firm.offline', 'The Firmament is a tree of passive bonuses for online play. Choose a birthsign, then spend the stars you earn from Renown.')));
     return;
   }
   detail.append(divider(t('growth.firm.title', 'Firmament')));
@@ -189,7 +189,7 @@ function captainPage(detail, ctx) {
   drawStage(detail, 'captain', (host) => import('../captainTreeWindow.js').then(({ mountCaptainTreeWindow }) =>
     mountCaptainTreeWindow(host, { ledger: deps.ledger, changed: deps.changed, embed: true })), {
     el, ...stageWords(),
-    lead: t('growth.captain.lead', 'Master stars improve sailing, cargo and trade. Commander stars improve guns and boarding.'),
+    lead: t('growth.captain.lead', 'Master stars improve sailing, cargo, and trade. Commander stars improve guns and boarding.'),
   });
 }
 

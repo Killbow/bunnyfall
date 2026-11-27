@@ -1,45 +1,18 @@
 // @ts-check
-// SD-LOOK S7 (2026-10-09, bible/11-Multiplayer/Super-Dungeons-Look.md section 9): THE PILLARS' WATCH - one foreign pass
-// over the arena's four clock-towers (world/superDungeon/sdPillarModel.js), drawn by the world host with the arena's reads:
-//
-//   THE DIALS - a small clock on each face of each capital (sixteen), laid a hair out of the stone on the pixel law's
-//     cells (SD_DIAL_TEXELS a radius): a dark enamel face, a brass bezel lit from the top-left, twelve ticks (the
-//     quarters broad) and ONE HAND, which TURNS TO POINT AT THE REMNANT - they watch it (scenes/superDungeon/sdArenaWatch.js
-//     sdPillarHandsAt: where it stands, seen on each face's own plane, on the escapement). Lit by the lantern over them
-//     (the ambient rung), never by the scene: they read across the arena in the void's dark. Red when the Hour ends.
-//   THE LANTERNS - the flame in each lantern stage's brass cage (world/superDungeon/sdPillarModel.js SD_LANTERN): a gold core and its
-//     glow posterized in four steps, camera-facing, the cage's bars and the stage's posts in front of it (depth-tested).
-//     The glow is the classic set's bloom (SD_HALO_GAIN's law: 1 on the classic set, half on the lane, which blooms it
-//     too). Its light on its own housing - the hood's underside over it, the cornice's top under it - laid on them here,
-//     posterized in three steps. A light to see, not one that lights the world: the Hour's lamps keep their count
-//     (world/superDungeon/sdRealm.js SD_LAMPS).
-//   THE RESET'S DIMMING - dials and flames together by `dim` (scenes/superDungeon/sdArenaWatch.js sdLampDimInto, the arena's lamps'
-//     own factor), so the Hearts are the brightest things in the world.
-//
-// Premultiplied (the enamel darkens the stone; the light adds), depth-tested and never written, fogged. One static
-// buffer made once, one draw; a frame sets uniforms alone. Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon pillar pass: clock dials whose hands point at the Remnant, and lantern flames. The flames light
+// nothing in the world, so the realm's lamp count (SD_LAMPS) stays unchanged.
 import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from './orderedDither.js';
 import { sdPillarDials, sdLanterns, SD_PILLAR_DIAL, SD_PILLAR_LOOK, SD_LANTERN } from '../world/sdPillarModel.js';
 
-/** A dial's radius in the pixel law's cells (its stone's own 32 texels a metre, SD_PILLAR_DIAL.r across). */
 export const SD_DIAL_TEXELS = Math.round(SD_PILLAR_DIAL.r * 32);
-/** The hand in a dial's cells: its shaft's half-width and reach, its spade (from, to, half-width), its tail and the
- *  counterweight's radius, the boss's radius; the bezel's and the ticks' rings (cells in from the rim). */
 export const SD_DIAL_HAND = Object.freeze({ shaftW: 1, reach: 13, spade0: 11, spade1: 18, spadeW: 3.2, tail: 5, weight: 2.3, boss: 2.2 });
 export const SD_DIAL_RINGS = Object.freeze({ bezel: 2.2, tick0: 3.2, tick1: 7, tickW: 0.9, quarterW: 1.6 });
-/** The parts of a dial (dialPart's answer). */
 export const SD_DIAL_PART = Object.freeze({ off: -1, enamel: 0, bezel: 1, tick: 2, hand: 3, boss: 4 });
-/** The lantern's flame: its quad's half-size (m, the glow's reach), its core's half-width and half-height (m), the
- *  core's light and the glow's (linear, over SD_LIGHT.gold). */
 export const SD_LANTERN_FLAME = Object.freeze({ size: 1.1, coreW: 0.1, coreH: 0.17, core: 1.5, glow: 0.55 });
-/** The dial's lights over gold (the lantern's): its bezel and ticks (the ambient rung), its hand (brighter), its boss;
- *  the enamel's darkening. */
 export const SD_DIAL_LIGHT = Object.freeze({ bezel: 0.26, tick: 0.3, hand: 0.62, boss: 0.4, enamel: 0.6 });
-/** The lantern's light on its housing: the hood's underside's and the cornice's top's (over gold, at the lantern). */
 export const SD_LANTERN_SPILL = Object.freeze({ hood: 0.34, cornice: 0.22 });
-/** How many dials, how many flames, how many lit faces of their housings: the static buffer's. */
 export const SD_PILLAR_DIALS = 16;
 export const SD_LANTERNS = 4;
 export const SD_LANTERN_SPILLS = 8;
@@ -145,20 +118,16 @@ void main() {
   o = vec4(col * uDim * fog, 0.0);
 }`;
 
-/** The static buffer: each dial a quad over its face (its centre, its right and up times its radius), each flame a quad
- *  about its centre (the vertex shader turns it to the eye) - centre xyz, corner uv, which (0-15 a dial, 16-19 a flame). */
 export function sdPillarPassGeometry() {
   const D = sdPillarDials(), L = sdLanterns(), R = SD_PILLAR_DIAL.r, out = [];
   const corners = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]];
   D.forEach((d, i) => { for (const [u, v] of corners) out.push(d.at[0] + d.right[0] * u * R, d.at[1] + v * R, d.at[2] + d.right[2] * u * R, u, v, i); });
   L.forEach((p, k) => { for (const [u, v] of corners) out.push(p[0], p[1], p[2], u, v, SD_PILLAR_DIALS + k); });
-  // the housing's lit faces: each hood's underside a hair under it, then each cornice's top a hair over it
   const P = SD_PILLAR_LOOK, faces = [[P.lantern.y1 - 0.004, P.roof.w - 0.01], [P.cornice.y1 + 0.004, P.cornice.w - 0.01]];
   faces.forEach(([y, h], f) => L.forEach((p, k) => { for (const [u, v] of corners) out.push(p[0] + u * h, p[1] - SD_LANTERN.flameY + y, p[2] + v * h, u, v, SD_PILLAR_DIALS + SD_LANTERNS * (1 + f) + k); }));
   return new Float32Array(out);
 }
 
-/** The pass. */
 export class SdPillarPassRenderer {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -178,8 +147,6 @@ export class SdPillarPassRenderer {
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 24, 20);
     gl.bindVertexArray(null);
   }
-  /** Draw the dials and the flames as `look` says (`{ hands, k: [dim, end] }` - scenes/superDungeon/sdArenaWatch.js's kept record),
-   *  in `fog`, at the pixel law's `steps`, the flames' glow at `gain`. Answers whether it drew. */
   draw(proj, view, look, fog = null, steps = 10, gain = 1) {
     const gl = this.gl, U = this.u;
     gl.enable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.CULL_FACE);

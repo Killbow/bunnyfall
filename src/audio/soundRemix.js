@@ -1,7 +1,7 @@
 // @ts-check
-// Builds spell sounds at runtime from the player's own DAGGER.SND and the MP3 clips Bunnyfall ships, so no Daggerfall
-// audio is stored in the repository. The filters port ffmpeg's and the 8-bit bake ports tools/sndify.mjs: keep their
-// arithmetic and rounding as they are, or the approved sounds change. remixSounds builds once per `spec` object.
+// Builds spell sounds at runtime from the player's DAGGER.SND and the shipped MP3 clips, so no Daggerfall audio is
+// stored in the repo. The filters match ffmpeg and the 8-bit bake matches tools/sndify.mjs: keep their arithmetic
+// and rounding as they are, or the approved sounds change.
 import { defaultFetchClip } from './immersiveFootsteps.js';
 
 export const WORK_RATE = 44100;

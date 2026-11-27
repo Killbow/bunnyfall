@@ -29,8 +29,8 @@ const WITNESS_RULE = 'Witnessed once {n} players with accounts at least a week o
 export const ORE_WITNESS_RULE = formatMessage(WITNESS_RULE, { n: WITNESS.confirm });
 /** The state line's words, each its English. */
 const WITNESSED = 'Every vein can appear here';   // BUNNYFALL WITNESSED-GROUND: the ground's word, no longer the witnesses'
-const NONE_HELD = 'No vein here needs witnesses';
-const NOT_YET = 'Not yet witnessed: no {ores} here yet';
+const NONE_HELD = 'No veins here require witnesses';
+const NOT_YET = 'Not yet witnessed: no {ores} here for now';
 const ONLY_WITNESSED = '{ores} only on witnessed ground';
 /** DEEP-OPEN: a climate's deep ore, which waits on the dungeon's own witnesses - beside the ground's word, or alone. */
 const DEEP_WITNESSED = '{ores} in witnessed dungeons';
@@ -64,7 +64,7 @@ export function oreMapTip({ climate, region = null, fact = null, surveyed = fals
   if (sig) {
     const crown = kingdomOf(region);
     const owner = crown ? KINGDOMS[crown].name : REGION_NAMES[/** @type {number} */ (region)] ?? t('ore.tip.thisLand', 'This land');
-    lines.push(t('ore.tip.own', '{owner}\'s own ore: {ore}', { owner, ore: oreWord(sig.ore) }));
+    lines.push(t('ore.tip.own', '{owner}\'s signature ore: {ore}', { owner, ore: oreWord(sig.ore) }));
   }
   // what the witnesses hold back: the table's veins over the unwitnessed tier, and the signature - MINE-PERKS: from a
   // Surveyor the signature alone (their own word witnesses the rest), so their card says no vein waits, or only it

@@ -37,6 +37,7 @@ invariants:
   - "`pruneDiscoveryLayouts` drops a town's discovered buildings when its current stamp no longer matches."
   - "`homeLayoutsMatch` compares the set of layout mods and ignores versions. A mismatched claim returns `home-layout` (HTTP 409). A claim body without `layout` returns `home-update` (HTTP 426)."
   - "`ONLINE_ROOM_MOD_KEYS` forces `beautiful-villages` and `beautiful-cities` `Enabled: true` in online rooms."
+  - "`stampLayout` deletes `layout` for the classic layout, so records from a game without town mods save exactly as records that predate stamps."
 traps:
   - "`layoutRoomKey` adds `tag * 0x1000000` to the building key; always derive interior room keys through it so peers in different layouts never share a room."
   - "Boot waits `HOME_LAYOUTS_WAIT_MS` (6000) for `/v1/homes/layouts`, then retries `HOME_LAYOUTS_RETRIES` (4) times behind play; `homeLayoutsHeard` stays false while packs are missing."

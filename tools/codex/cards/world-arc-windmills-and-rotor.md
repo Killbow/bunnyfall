@@ -30,6 +30,7 @@ traps:
   - "Vendored meshes are Unity left-handed; X must be negated on bake or the blades spin and face mirrored."
   - "Mills are gated by windmillsOn() (a pref); hosts must not mount rotors or MILL_SOUND when it is off."
   - "FARMAA00/FARMAA01 RMB JSON declare fewer subrecords than they carry; read every record, not NumBlockDataRecords."
+  - "Use `mountRotor` for origin-centered rotor geometry and `rotorMatrix` only for geometry already at the hub; `rotorMatrix` on origin-centered geometry orbits the hub instead of spinning."
 dfu:
   - "Assets/Scripts/Utility/RMBLayout.cs"
   - "Assets/Scripts/Internal/DaggerfallStaticDoors.cs"

@@ -1,71 +1,26 @@
-// BETTER AMBIENCE 0.1.4 (Joshua Steinhauer / joshcamas), THE MOD, 1:1
-// (BA1, 2026-09-16, Mac: "Next mod to integrate 1:1 ensuring compatibility").
-//
-// "Adds camera shaking, better footsteps, and dungeon fog + reverb." Six
-// modules, sixteen sources - every one of them carried INSIDE the shipped
-// bundle as a TextAsset (vendor/better-ambience/Scripts/, byte for byte),
-// under the author's MIT licence (vendor/better-ambience/LICENSE, from the
-// author's repository, which carries the 0.1.3 sources and the WAV clips):
-//
-//   BetterFootstepsMod + BetterFootstepsComponent(Player)  - the player's stride,
-//       a SoundList per ground with a random clip at a random pitch and an
-//       ARMOUR clank over it when the chest or legs are not leather; the
-//       NPC and Enemy components exist in the bundle and NOTHING adds them
-//       (the two hooks are commented out in Start, :37-38) - dead, not ported
-//   ReverbMod            - an AudioReverbZone on the player, on inside a dungeon
-//   CameraShakeMod / CameraShaker / CameraShakeInstance / DamageShaker
-//                        - EZ Camera Shake on the camera's parent, fed by RemoveHealth
-//   FoggyDungeonsMod     - a dungeon's own fog colour and trilight ambient, seeded by its name
-//   BetterRainMod        - Unity ParticleSystem tweaks (NO TWIN: the port's precipitation is
-//                          its own presentation, Port-Doctrine) and the indoor rain loop
-//                          (InteriorAmbientSoundSource), which IS ported
-//   DungeonSoundsMod     - empty (Start and Update with no body)
-//
-// COMPATIBILITY WITH IMMERSIVE FOOTSTEPS (Mac's brief). The two mods both
-// own the player's stride, and Immersive Footsteps' own author says which
-// wins: its ModCompatibilityChecking reads THIS mod's "Better Footsteps"
-// switch and posts a warning box at every game start while it is on
-// ("you should always have Better Ambience's 'Better Footsteps' setting
-// disabled, otherwise you will be constantly hearing overlapping footstep
-// sounds"). So this port ships `Better Footsteps.enable` OFF - the one
-// departure from the shipped keys, recorded in modSettings.js - and ports
-// the warning itself (immersiveFootsteps.js reportModCompatibilityIssues),
-// so a player who turns both on is told exactly what a DFU player is told.
-// Every other module is on, as the mod ships it.
-//
-// THE CLIPS. The bundle's 51 clips are Unity's Vorbis imports (FSB5 in the
-// AssetBundle's .resource, undecodable here); the author's repository
-// ships the WAVs they were imported from, and the 29 this mod actually
-// asks for are vendored from it (vendor/better-ambience/Sound/). The
-// water list asks for six and the bundle carries five (there is no
-// sfx_footstep_water_001 anywhere): TryImportAudioClips skips the miss
-// and the list plays five, verbatim.
-
 import { EQUIP_SLOTS } from '../characters/paperdoll.js';
 import { equipTableOf } from '../characters/equip.js';
 import { ARMOR_MATERIAL } from '../items/armorMaterials.js';
-import { rriNativeMaterialValue } from '../mods/rriItems.js';   // DISC29-B: the class's NativeMaterialValue, the port's one reader
+import { rriNativeMaterialValue } from '../mods/rriItems.js';
 import { modSettingsOf } from '../mods/modSettings.js';
 import { audio as defaultAudio } from './audio.js';
 import { FOOTSTEP } from './footsteps.js';
 import { multiply, trs } from '../world/mat4.js';
-import { heardWeather, heardRainGain } from '../weather/weatherSim.js';   // DISC9: the weather the player HEARS outdoors, not the sim's word; DISC11: and its level
-import { INDOOR_RAIN_GAIN, AMBIENT_RAIN_LOOP } from './ambientEffects.js';   // DISC11: the street's rain and its through-the-walls law
+import { heardWeather, heardRainGain } from '../weather/weatherSim.js';
+import { INDOOR_RAIN_GAIN, AMBIENT_RAIN_LOOP } from './ambientEffects.js';
 import { immersiveFootsteps } from './immersiveFootsteps.js';
 import { isSnowFreeClimate } from '../world/weather.js';
-import { stringHash, NetRandom as SystemRandom } from '../formats/netRuntime.js';   // string.GetHashCode's one home; HAZE1: and System.Random's
-import { perlinNoise } from '../world/perlin.js';   // Mathf.PerlinNoise's one home   // WeatherManager.IsSnowFreeClimate
-import { setRemoveHealthListener } from '../ui/damageFlash.js';   // the SendMessage("RemoveHealth", amount) edge
+import { stringHash, NetRandom as SystemRandom } from '../formats/netRuntime.js';
+import { perlinNoise } from '../world/perlin.js';
+import { setRemoveHealthListener } from '../ui/damageFlash.js';
 import { playerEntity } from '../characters/playerEntity.js';
 
 export const BETTER_AMBIENCE_VENDOR = 'better-ambience';
 export const BETTER_AMBIENCE_MOD = Object.freeze({
   title: 'Better Ambience', version: '0.1.4', author: 'Joshua Steinhauer',
   guid: 'd5655077-ba38-4dbc-a41f-2b358cb1d680', dfunity: '0.13',
-  nexusFile: '0.1.5',   // the Nexus archive is labelled 0.1.5; the manifest inside it says 0.1.4
+  nexusFile: '0.1.5',
 });
-
-// --- Settings (each module's LoadSettings) ----------------------------------
 
 export const BA_SETTING_KEYS = Object.freeze([
   'Enabled',
@@ -83,6 +38,7 @@ export function readBetterAmbienceSettings(read = () => modSettingsOf(BETTER_AMB
   const g = (k, d) => (s[k] === undefined ? d : s[k]);
   return {
     Enabled: s.Enabled !== false,
+    // Better Footsteps ships off, unlike the mod, because Immersive Footsteps owns the stride and warns on overlap.
     footstepsEnable: g('Better Footsteps.enable', false), armorVolume: g('Better Footsteps.armorVolume', 1), footstepVolume: g('Better Footsteps.footstepVolume', 1),
     reverbLevel: g('Dungeon Reverb.level', 1),
     shakeAmountAdd: g('Camera Shake.shakeAmountAdd', 0), shakeAmountMultiplier: g('Camera Shake.shakeAmountMultiplier', 10), maxShake: g('Camera Shake.maxShake', 10),
@@ -95,9 +51,6 @@ export function readBetterAmbienceSettings(read = () => modSettingsOf(BETTER_AMB
 }
 const sameSettings = (a, b) => a && b && Object.keys(a).every((k) => a[k] === b[k]);
 
-// --- The clips (SoundUtility.TryImportAudioClips: `name_000`.. `name_00N`) ----
-
-/** ApplyFootsteps (BetterFootstepsMod.cs:74-91): each list's asset stem and count. */
 export const CLIP_LISTS = Object.freeze({
   FootstepSoundBuilding: Object.freeze({ stem: 'sfx_footstep_wood', count: 4, pitch: [0.8, 1.2] }),
   FootstepSoundDungeon: Object.freeze({ stem: 'sfx_footstep_stone', count: 4, pitch: [0.8, 1.2] }),
@@ -105,27 +58,25 @@ export const CLIP_LISTS = Object.freeze({
   FootstepSoundOutside: Object.freeze({ stem: 'sfx_footstep_crunchy-grass', count: 4, pitch: [0.8, 1.2] }),
   FootstepSoundShallow: Object.freeze({ stem: 'sfx_footstep_water', count: 6, pitch: [0.8, 1.2] }),
 });
-/** The two lists that are CLASSIC clips (AddSoundClip): the splash and the snow pair. */
 export const CLASSIC_LISTS = Object.freeze({
-  FootstepSoundSubmerged: Object.freeze({ clips: [FOOTSTEP.Submerged], pitch: [0.8, 1.2] }),   // SoundClips.SplashSmall
+  FootstepSoundSubmerged: Object.freeze({ clips: [FOOTSTEP.Submerged], pitch: [0.8, 1.2] }),
   FootstepSoundSnow: Object.freeze({ clips: [FOOTSTEP.Snow1, FOOTSTEP.Snow2], pitch: [0.8, 1.2] }),
 });
-/** LoadSettings (BetterFootstepsMod.cs:61-73): each list's own volume, times the switch's multiplier. */
 export const LIST_VOLUME = Object.freeze({
   FootstepsArmor: ['armorVolume', 0.4], FootstepSoundDungeon: ['footstepVolume', 0.3], FootstepSoundBuilding: ['footstepVolume', 0.4],
   FootstepSoundShallow: ['footstepVolume', 0.4], FootstepSoundOutside: ['footstepVolume', 0.15], FootstepSoundSubmerged: ['footstepVolume', 1], FootstepSoundSnow: ['footstepVolume', 1],
 });
 export const AMBIENT_RAIN_CLIP = 'AmbientRaining';
-export const AMBIENT_RAIN_LOWPASS_HZ = 4236;   // InteriorAmbientSoundSource.cs:27
-export const baClipName = (stem, i) => `${stem}_${String(i).padStart(3, '0')}`;   // SoundUtility.cs:64
-/** Every name TryImportAudioClips asks for (29 present in the bundle; water_001 is asked for and never was). */
+export const AMBIENT_RAIN_LOWPASS_HZ = 4236;
+export const baClipName = (stem, i) => `${stem}_${String(i).padStart(3, '0')}`;
 export function baClipNames() {
   const out = [];
   for (const l of Object.values(CLIP_LISTS)) for (let i = 0; i < l.count; i++) out.push(baClipName(l.stem, i));
   out.push(AMBIENT_RAIN_CLIP);
   return out;
 }
-export const MISSING_CLIPS = Object.freeze(['sfx_footstep_water_001']);   // not in the bundle, not in the repository
+// The mod asks for six water clips and ships five; the missing one is skipped, as in the mod.
+export const MISSING_CLIPS = Object.freeze(['sfx_footstep_water_001']);
 export const baClipPath = (name) => `vendor/better-ambience/Sound/${name}.wav`;
 const IN_BROWSER = typeof window !== 'undefined';
 const URLS = IN_BROWSER
@@ -141,15 +92,10 @@ async function defaultFetchClip(name) {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-/** DisableBuiltInFootsteps (BetterFootstepsMod.cs:92-105), VERBATIM: the
- *  mod nulls Dungeon1 TWICE and Outside1 TWICE, so the classic component
- *  keeps FootstepSoundDungeon2 and FootstepSoundOutside2 - every second
- *  classic step on stone and outdoors still plays under the mod's own. */
+// The mod nulls the first stone and outdoor clips twice each, so the classic stride keeps the second of each.
 export const CLASSIC_CLIPS_KEPT = Object.freeze(new Set([FOOTSTEP.Stone2, FOOTSTEP.Outside2]));
 
-// --- SoundList (SoundList.cs:11-55) ------------------------------------------
-
-/** UnityEngine.Random.Range(int, int): max exclusive; (float, float): inclusive. */
+// As UnityEngine.Random.Range: the int form excludes max.
 const rangeInt = (random, min, max) => min + Math.floor(random() * (max - min));
 const rangeFloat = (random, min, max) => min + random() * (max - min);
 
@@ -157,7 +103,6 @@ export class SoundList {
   constructor() { this.soundClips = []; this.audioClips = []; this.pitchMin = 1; this.pitchMax = 1; this.volume = 1; }
   setVolume(v) { this.volume = v; }
   setPitchRange(min, max) { this.pitchMin = min; this.pitchMax = max; }
-  /** PlayRandomClip (:27-31): the source's pitch is rolled, then PlayOneShot at this.volume x volume. */
   playRandomClip(audio, volume, random) {
     const pitch = rangeFloat(random, this.pitchMin, this.pitchMax);
     const clip = this.getRandomClip(random);
@@ -165,14 +110,12 @@ export class SoundList {
     audio.playOneShot(clip, this.volume * volume, pitch);
     return { clip, pitch, volume: this.volume * volume };
   }
-  /** GetRandomClip (:32-42). [verbatim] `audioClips[rand]` for a roll past the
-   *  classic entries indexes the mod clips by the UNSHIFTED roll - it cannot
-   *  bite, since no list of the mod's mixes the two kinds. */
   getRandomClip(random) {
     const max = this.soundClips.length + this.audioClips.length;
     if (max === 0) return null;
     const rand = rangeInt(random, 0, max);
     if (rand < this.soundClips.length) return this.soundClips[rand];
+    // The mod indexes its own clips by the unshifted roll; no list mixes the two kinds, so it never misses.
     return this.audioClips[rand] ?? null;
   }
   addAudioClip(c) { this.audioClips.push(c); }
@@ -180,17 +123,13 @@ export class SoundList {
   addSoundClip(c) { this.soundClips.push(c); }
 }
 
-// --- Better Footsteps (BetterFootstepsComponent.cs + ComponentPlayer.cs) --------
-
-export const BA_WALK_STEP_INTERVAL = 2.5;   // :12-13 "Matched to classic"
+export const BA_WALK_STEP_INTERVAL = 2.5;
 export const BA_RUN_STEP_INTERVAL = 2.5;
-export const BA_FOOTSTEP_VOLUME_SCALE = 0.7;   // :14
-export const SHALLOW_ENTER = 0.55;          // :129 - NOT PlayerFootsteps' 0.57
-export const SHALLOW_LEAVE = 0.95;          // :137
+export const BA_FOOTSTEP_VOLUME_SCALE = 0.7;
+// The mod enters shallow water at 0.55, not the classic footsteps' 0.57.
+export const SHALLOW_ENTER = 0.55;
+export const SHALLOW_LEAVE = 0.95;
 
-/** HasArmor (:211-220): chest or legs worn and not leather. DISC29-B: `chest.NativeMaterialValue`
- *  (BetterFootstepsComponent.cs:256-259) is the PROPERTY a custom class overrides - a Roleplay & Realism: Items
- *  brigandine jerkin of iron answers leather (ItemJerkin.cs:65-68) and walks quiet; the raw `material` rattled it. */
 export function hasArmor(entity) {
   let slots;
   try { slots = entity ? equipTableOf(entity) : null; } catch { slots = null; }
@@ -201,41 +140,29 @@ export function hasArmor(entity) {
   return false;
 }
 
-/**
- * BetterFootstepsComponentPlayer, one instance on the player.
- *   update(m): the frame (Update, not FixedUpdate); m is
- *     { loadInProgress, season (SEASON), climateIndex, inside, inBuilding, inDungeon,
- *       onExteriorWater (Swimming || WaterWalking), onExteriorPath, onStaticGeometry,
- *       waterSurfaceY (null = blockWaterLevel 10000), centreY (transform.position.y),
- *       swimming (IsPlayerSwimming), motorSwimming (playerMotor.IsSwimming), levitating,
- *       onFoot, onExteriorWaterAny (OnExteriorWater != None), grounded, standingStill,
- *       isRunning, movingLessThanHalfSpeed, pos [x,y,z], entity }
- */
 export function createBetterFootsteps({ audio = defaultAudio, random = Math.random, snowFree = () => false } = {}) {
   const lists = {
     FootstepSoundDungeon: new SoundList(), FootstepSoundOutside: new SoundList(), FootstepSoundSnow: new SoundList(),
     FootstepSoundBuilding: new SoundList(), FootstepSoundShallow: new SoundList(), FootstepSoundSubmerged: new SoundList(), FootstepsArmor: new SoundList(),
   };
-  let lastPosition = null;      // Start: GetHorizontalPosition (x, 0, z)
+  let lastPosition = null;
   let lostGrounding = false;
   let distance = 0;
   let ignoreLostGrounding = true;
-  let currentFootstepSoundList = lists.FootstepSoundDungeon;   // Start :58
+  let currentFootstepSoundList = lists.FootstepSoundDungeon;
   let currentSeason = 0, currentClimateIndex = 0, isInside = false, isInOutsideWater = false, isInOutsidePath = false, isOnStaticGeometry = false;
   const played = [];
   const nameOf = (l) => Object.keys(lists).find((k) => lists[k] === l) ?? null;
 
-  /** ApplyFootsteps (Mod.cs:74-91): the clips into the lists, by key (`ba:<name>`) for the mod's, by index for the classic. */
   function applyFootsteps(present) {
     for (const [k, l] of Object.entries(CLIP_LISTS)) {
       const clips = [];
-      for (let i = 0; i < l.count; i++) { const n = baClipName(l.stem, i); if (present.has(n)) clips.push(baSoundKey(n)); }   // TryImportAudioClips skips a miss
+      for (let i = 0; i < l.count; i++) { const n = baClipName(l.stem, i); if (present.has(n)) clips.push(baSoundKey(n)); }
       lists[k].addAudioClips(clips);
       lists[k].setPitchRange(l.pitch[0], l.pitch[1]);
     }
     for (const [k, l] of Object.entries(CLASSIC_LISTS)) { for (const c of l.clips) lists[k].addSoundClip(c); lists[k].setPitchRange(l.pitch[0], l.pitch[1]); }
   }
-  /** LoadSettings (Mod.cs:61-73). */
   function loadSettings(s) {
     for (const [k, [key, base]] of Object.entries(LIST_VOLUME)) lists[k].setVolume(base * s[key]);
   }
@@ -249,14 +176,13 @@ export function createBetterFootsteps({ audio = defaultAudio, random = Math.rand
     }
     if (played.length > 12) played.splice(0, played.length - 12);
   }
-  const horizontal = (pos) => [pos[0], 0, pos[2]];   // GetHorizontalPosition (:203-206): y is ZERO here (Immersive Footsteps keeps it)
+  // The mod's horizontal position zeroes y; Immersive Footsteps keeps it.
+  const horizontal = (pos) => [pos[0], 0, pos[2]];
 
-  /** Update (:60-192), the player's overrides in place (ComponentPlayer.cs). */
   function update(m) {
-    // FootstepsEnabled: Travel Options' accelerated travel is not vendored - the callback never answers, so never disabled
     if (m.loadInProgress) { ignoreLostGrounding = true; return; }
     if (lastPosition === null) lastPosition = horizontal(m.pos);
-    const playerSeason = m.winter ? 1 : 0;   // DaggerfallDateTime.Seasons.Winter is the one value the selection reads; the hosts hand the calendar's winter
+    const playerSeason = m.winter ? 1 : 0;
     const climateIndex = m.climateIndex ?? 0;
     const inside = !!m.inside;
     const inBuilding = !!m.inBuilding;
@@ -280,9 +206,9 @@ export function createBetterFootsteps({ audio = defaultAudio, random = Math.rand
     if (!onExteriorWater
       && (currentFootstepSoundList === lists.FootstepSoundSubmerged || currentFootstepSoundList === lists.FootstepSoundShallow)
       && (m.waterSurfaceY == null || (m.centreY - SHALLOW_LEAVE) >= m.waterSurfaceY)) {
-      currentFootstepSoundList = lists.FootstepSoundDungeon;   // :139 - the DUNGEON list, wherever you are
+      currentFootstepSoundList = lists.FootstepSoundDungeon;
     }
-    // :142 - `IsLevitating() || !IsOnFoot && OnExteriorWater == None` (C#'s && binds tighter)
+    // The mod's condition reads with C# precedence, where && binds tighter than ||.
     if (m.levitating || (m.onFoot === false && !m.onExteriorWaterAny)) { distance = 0; return; }
     if (!m.motorSwimming) {
       if (!m.grounded) { distance = 0; lostGrounding = true; return; }
@@ -291,7 +217,7 @@ export function createBetterFootsteps({ audio = defaultAudio, random = Math.rand
         lastPosition = horizontal(m.pos);
         lostGrounding = false;
         if (ignoreLostGrounding) ignoreLostGrounding = false;
-        else if (currentFootstepSoundList) playFootstep(BA_FOOTSTEP_VOLUME_SCALE, m.entity);   // SoundVolume is the master bus's
+        else if (currentFootstepSoundList) playFootstep(BA_FOOTSTEP_VOLUME_SCALE, m.entity);
         return;
       }
     }
@@ -309,22 +235,14 @@ export function createBetterFootsteps({ audio = defaultAudio, random = Math.rand
   }
   return {
     applyFootsteps, loadSettings, update,
-    /** EV1: the floating origin moved the world, not the feet (footsteps.js rebase). AUDIT-BA F2: that shift
-     *  IS StreamingWorld.IsRepositioningPlayer (:66-70), which the mod answers with ignoreLostGrounding = true -
-     *  the next landing step is swallowed, as after a load; the first draft only dropped the anchor. */
+    // A floating-origin shift is the mod's repositioning case, so the next landing step is swallowed.
     rebase() { lastPosition = null; ignoreLostGrounding = true; },
     lists,
     status() { return { list: nameOf(currentFootstepSoundList), distance, lostGrounding, ignoreLostGrounding, played: played.slice() }; },
   };
 }
 
-// --- Camera shake (CameraShakeInstance.cs, CameraShaker.cs, DamageShaker.cs) ----
-
-// Mathf.PerlinNoise: the port's one home is world/perlin.js (Ken Perlin's improved noise on the
-// z = 0 plane, remapped to 0..1 - the same statistical character as Unity's, not its table).
-
 export class CameraShakeInstance {
-  /** (magnitude, roughness, fadeInTime, fadeOutTime) - :39-56; (magnitude, roughness) - :62-68. */
   constructor(magnitude, roughness, fadeInTime = undefined, fadeOutTime = undefined, random = Math.random) {
     this.Magnitude = magnitude; this.Roughness = roughness;
     this.PositionInfluence = [0, 0, 0]; this.RotationInfluence = [0, 0, 0];
@@ -337,9 +255,8 @@ export class CameraShakeInstance {
       this.fadeOutDuration = fadeOutTime; this.fadeInDuration = fadeInTime;
       if (fadeInTime > 0) { this.sustain = true; this.currentFadeTime = 0; } else { this.sustain = false; this.currentFadeTime = 1; }
     }
-    this.tick = rangeInt(random, -100, 100);   // Random.Range(-100, 100), an int
+    this.tick = rangeInt(random, -100, 100);
   }
-  /** UpdateShake (:69-88). */
   updateShake(dt) {
     this.amt[0] = perlinNoise(this.tick, 0) - 0.5;
     this.amt[1] = perlinNoise(0, this.tick) - 0.5;
@@ -359,33 +276,30 @@ export class CameraShakeInstance {
   get isShaking() { return this.currentFadeTime > 0 || this.sustain; }
   get isFadingOut() { return !this.sustain && this.currentFadeTime > 0; }
   get isFadingIn() { return this.currentFadeTime < 1 && this.sustain && this.fadeInDuration > 0; }
-  /** CurrentState (:143-155): 0 fading in, 1 fading out, 2 shaking, 3 inactive. */
   get currentState() { return this.isFadingIn ? 0 : this.isFadingOut ? 1 : this.isShaking ? 2 : 3; }
 }
 
-export const DEFAULT_POS_INFLUENCE = Object.freeze([0.15, 0.15, 0.15]);   // CameraShaker.cs:16
-export const DEFAULT_ROT_INFLUENCE = Object.freeze([1, 1, 1]);            // :20
-const mulVec = (v, w) => [v[0] * w[0], v[1] * w[1], v[2] * w[2]];        // CameraUtilities.MultiplyVectors
+export const DEFAULT_POS_INFLUENCE = Object.freeze([0.15, 0.15, 0.15]);
+export const DEFAULT_ROT_INFLUENCE = Object.freeze([1, 1, 1]);
+const mulVec = (v, w) => [v[0] * w[0], v[1] * w[1], v[2] * w[2]];
 
 export class CameraShaker {
   constructor(random = Math.random) { this.random = random; this.instances = []; this.posAddShake = [0, 0, 0]; this.rotAddShake = [0, 0, 0]; }
-  /** Update (:30-52) - VERBATIM, UpdateShake is called TWICE per instance per frame (once for the position
-   *  term, once for the rotation), so the fade and the noise clock advance twice; EZ Camera Shake's own. */
   update(dt) {
     let pos = [0, 0, 0], rot = [0, 0, 0];
     for (let i = 0; i < this.instances.length; i++) {
       const c = this.instances[i];
       if (c.currentState === 3 && c.DeleteOnInactive) { this.instances.splice(i, 1); i--; }
       else if (c.currentState !== 3) {
+        // The mod calls updateShake twice per instance per frame, so the fade and the noise clock advance twice.
         const p = mulVec(c.updateShake(dt), c.PositionInfluence);
         const r = mulVec(c.updateShake(dt), c.RotationInfluence);
         pos = [pos[0] + p[0], pos[1] + p[1], pos[2] + p[2]];
         rot = [rot[0] + r[0], rot[1] + r[1], rot[2] + r[2]];
       }
     }
-    this.posAddShake = pos; this.rotAddShake = rot;   // localPosition = shake + initial (0); localEulerAngles = rot
+    this.posAddShake = pos; this.rotAddShake = rot;
   }
-  /** ShakeOnce (:84-93). */
   shakeOnce(magnitude, roughness, fadeInTime, fadeOutTime) {
     if (magnitude === 0) return null;
     const shake = new CameraShakeInstance(magnitude, roughness, fadeInTime, fadeOutTime, this.random);
@@ -396,7 +310,6 @@ export class CameraShaker {
   get active() { return this.instances.length > 0; }
 }
 
-/** DamageShaker.RemoveHealth (:20-27): the SendMessage("RemoveHealth", amount) receiver. */
 export function damageShake(shaker, s, amount, maxHealth) {
   if (!shaker || !(maxHealth > 0)) return;
   let shakeAmount = s.shakeAmountAdd + (s.shakeAmountMultiplier * amount / maxHealth);
@@ -404,7 +317,6 @@ export function damageShake(shaker, s, amount, maxHealth) {
   shaker.shakeOnce(shakeAmount, s.roughness, s.fadeInTime, s.fadeOutTime);
 }
 
-/** The inverse of a rigid 4x4 (column-major): [R | t]^-1 = [R^T | -R^T t]. */
 export function rigidInverse(m) {
   const r = new Float32Array(16);
   r[0] = m[0]; r[1] = m[4]; r[2] = m[8];
@@ -416,31 +328,21 @@ export function rigidInverse(m) {
   r[15] = 1;
   return r;
 }
-/** The shaker is the camera's PARENT (SetUpPlayer :41-49): a local offset and a local euler on the
- *  camera's own frame. In the port that is a rigid transform in VIEW space, folded into the view
- *  matrix the frame is drawn with; Unity's local +z is forward, the view's is -z. */
 export function shakeView(view, pos, rotDeg) {
   if (!pos || (pos[0] === 0 && pos[1] === 0 && pos[2] === 0 && rotDeg[0] === 0 && rotDeg[1] === 0 && rotDeg[2] === 0)) return view;
+  // In Unity, local +z points forward; in view space, forward is -z.
   const local = trs(pos[0], pos[1], -pos[2], rotDeg[0], rotDeg[1], rotDeg[2]);
   return multiply(rigidInverse(local), view);
 }
 
-// --- Foggy dungeons (FoggyDungeonsMod.cs) -------------------------------------
-
-/** System.Random (the .NET reference: Knuth's subtractive generator), as the mod seeds it with the dungeon's name -
- *  formats/netRuntime.js's one port since HAZE1, under the name this module gave it. NextDouble is InternalSample /
- *  Int32.MaxValue. */
 export { SystemRandom };
 
-/** DaggerfallDungeon's GameObject name (GameObjectHelper.CreateDaggerfallDungeonGameObject). */
 export const dungeonGameObjectName = (regionName, name) => `DaggerfallDungeon [Region=${regionName}, Name=${name}]`;
-const GREY = Object.freeze({ sky: [0.433, 0.433, 0.433], equator: [0.396, 0.396, 0.396], ground: [0.254, 0.254, 0.254] });   // :107-109
+const GREY = Object.freeze({ sky: [0.433, 0.433, 0.433], equator: [0.396, 0.396, 0.396], ground: [0.254, 0.254, 0.254] });
 const lerp = (a, b, t) => a + t * (b - a);
-const lerp3 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];   // Color.Lerp (t is 0..1 from the slider)
+const lerp3 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 const scale3 = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
 
-/** EnableDungeonFog (:86-114) as a pure function of the seed and the settings:
- *  { fog: {mode:'linear', density:0, start, end, color} | null, ambient: {sky, equator, ground} | null }. */
 export function dungeonFogFor(dungeonName, s, { totalRandom = false, now = 0 } = {}) {
   const rnd = new SystemRandom(totalRandom ? stringHash(String(now)) : stringHash(dungeonName));
   const fogColor = [rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble()];
@@ -460,24 +362,11 @@ export function dungeonFogFor(dungeonName, s, { totalRandom = false, now = 0 } =
   return { fogColor, fog, ambient };
 }
 
-// --- Reverb (ReverbMod.cs) ------------------------------------------------------
-
-/** UpdateReverbZone (:34-47): the level's AudioReverbPreset. */
-export const REVERB_PRESETS = Object.freeze(['Cave', 'Stoneroom', 'Quarry']);   // level 0 Low, 1 Medium, 2 High
+export const REVERB_PRESETS = Object.freeze(['Cave', 'Stoneroom', 'Quarry']);
 export const reverbPresetFor = (level) => REVERB_PRESETS[level] ?? null;
 
-// --- The component ---------------------------------------------------------------
-
-/**
- * The six modules as one component, driven by the four hosts.
- *   frame(dt, m) - once a frame; m = { inDungeon, inBuilding, entity, ...the footsteps' fields }
- *   view(view) - the camera shake folded into the frame's view matrix (after frame())
- *   removeHealth(amount, maxHealth) - the SendMessage("RemoveHealth") receiver
- *   onStartGame / onLoad / onTransition({ dungeon: {regionName, name, inCastle, exitPos} | null, building: bool })
- *   dungeonFog() / dungeonAmbient() - what FoggyDungeons set, or null
- *   classicClipKept(clip) / ownsStride() - DisableBuiltInFootsteps' answer for the classic component
- */
-export const TRANSITION_WAIT_FRAMES = 4;   // "Wait some frames XD" - four yields in UpdateDungeonFog and UpdateAmbientSoundSources
+// The mod waits four frames after a start, a load, or a transition before it reads the new place.
+export const TRANSITION_WAIT_FRAMES = 4;
 
 export function createBetterAmbience({ audio = defaultAudio, settings = readBetterAmbienceSettings, random = Math.random, fetchClip = defaultFetchClip, weather = heardWeather, rainLevel = heardRainGain, snowFree = isSnowFreeClimate } = {}) {
   let s = null;
@@ -486,22 +375,22 @@ export function createBetterAmbience({ audio = defaultAudio, settings = readBett
   let clipsLoaded = false, loading = null;
   const present = new Set();
   let place = { dungeon: null, building: false };
-  let fogState = null;            // FoggyDungeons' { fog, ambient } while inside a dungeon that is not a castle
-  let reverbOn = null;            // the preset name the bus carries, or null
-  let rainLoop = null;            // InteriorAmbientSoundSource's AudioSource
-  let rainKind = null;            // 'interior' (2D) or 'exit' (3D at the dungeon exit)
-  let rainWeather = null;         // currentWeatherType - UpdateSource on a change
-  let waitFrames = -1;            // the coroutines' four-frame wait after a start, a load or a transition; -1 is nothing owed
+  let fogState = null;
+  let reverbOn = null;
+  let rainLoop = null;
+  let rainKind = null;
+  let rainWeather = null;
+  let waitFrames = -1;
 
-  async function loadAudio() {   // one in flight at most: syncSettings starts it only while `loading` is empty
+  async function loadAudio() {
     await Promise.all(baClipNames().map(async (name) => {
       if (present.has(name)) return;
       try {
         const bytes = await fetchClip(name);
         if (bytes && await audio.registerSound(baSoundKey(name), bytes)) present.add(name);
-      } catch { /* TryImportAudioClip answers false */ }
+      } catch { }
     }));
-    footsteps.applyFootsteps(present);   // Start: DisableBuiltInFootsteps, AddComponent, ApplyFootsteps
+    footsteps.applyFootsteps(present);
     clipsLoaded = true;
   }
   const settle = () => (loading ? loading.then(() => undefined) : Promise.resolve());
@@ -513,28 +402,16 @@ export function createBetterAmbience({ audio = defaultAudio, settings = readBett
     if (s.Enabled && !clipsLoaded && !loading) loading = loadAudio().finally(() => { loading = null; });
   }
 
-  // ReverbMod.Update: on the inside-dungeon edge, UpdateReverbZone
   function updateReverb(inDungeon) {
-    // EG-ZH (bible/11-Multiplayer/Elite-Gates.md section 11.9): A HELD ZONE IS ITS HOLDER'S - the Spire's halls hold the
-    // reverb (audio.holdReverb) and this component yields, its cache forgotten: the zone it last set is gone, so the first
-    // frame after the release asserts its wish again
+    // A held zone belongs to its holder; the cache is cleared so the first frame after release sets the preset.
     if (audio.reverbHeld?.() != null) { reverbOn = null; return; }
     const want = s.Enabled && inDungeon ? reverbPresetFor(s.reverbLevel) : null;
     if (want === reverbOn) return;
     reverbOn = want;
     audio.setReverb?.(want);
   }
-  // InteriorAmbientSoundSource: Start adds the source (2D in a building, 3D at the exit), Update follows the weather
   function stopRain() { if (rainLoop) { rainLoop.stop?.(); rainLoop = null; } rainWeather = null; }
-  // DISC11 (Mac: "ITS LOUDER ON THE INSIDE COMPARED TO THE OUTSIDE"): THE MOD'S RAIN IS THE STREET'S RAIN, HEARD
-  // FROM INSIDE. InteriorAmbientSoundSource plays AmbientRaining.wav at the AudioSource's own volume, 1 - whatever
-  // falls outside. The street's loop plays DAGGER.SND's rain at the front's level (a light shower 0.15), so a tavern
-  // under a drizzle played a full downpour through its walls, in a louder recording. The mod's source now takes the
-  // street's level (`rainLevel`, the heard seam), matched to the street's recording by measured RMS (`clipLevel`),
-  // and in a building the street's own through-the-walls factor on top (INDOOR_RAIN_GAIN), the mod's low-pass after
-  // it: indoors it is never louder than the street it comes from. At a dungeon's exit it is the street at the door.
-  // Set when the source is made: indoors the street's level cannot move (the front does not tick there), and every
-  // door, load and weather change remakes the source at the level of that moment.
+  // The mod rain plays at the street level, matched to the street clip by RMS, so indoors it is never louder.
   function rainTarget() {
     const street = audio.clipLevel?.(AMBIENT_RAIN_LOOP);
     const mine = audio.clipLevel?.(baSoundKey(AMBIENT_RAIN_CLIP));
@@ -545,59 +422,45 @@ export function createBetterAmbience({ audio = defaultAudio, settings = readBett
   function updateAmbientSoundSources() {
     stopRain();
     if (!s.Enabled) { rainKind = null; return; }
-    if (place.dungeon) rainKind = place.dungeon.exitPos ? 'exit' : null;   // GameObject.Find("DungeonExit") - none, no source
+    if (place.dungeon) rainKind = place.dungeon.exitPos ? 'exit' : null;
     else if (place.building) rainKind = 'interior';
     else rainKind = null;
   }
   function updateSource() {
     const w = weather();
-    if (w === 'rain' || w === 'thunder') {   // WeatherType.Rain / Rain_Normal / Thunder
+    if (w === 'rain' || w === 'thunder') {
       if (!rainLoop && present.has(AMBIENT_RAIN_CLIP)) {
-        // (a kind of 'exit' means settle4 read a dungeon with an exit, and BA-CRASH1 makes onTransition drop the kind with
-        // the place - so `place.dungeon.exitPos` is there whenever this branch runs; a guard here would only hide the
-        // next stale kind instead of crashing on it)
         rainLoop = rainKind === 'interior'
-          ? audio.loop(baSoundKey(AMBIENT_RAIN_CLIP), rainTarget(), { lowpass: AMBIENT_RAIN_LOWPASS_HZ })   // DISC11: the street's level, not 1
+          ? audio.loop(baSoundKey(AMBIENT_RAIN_CLIP), rainTarget(), { lowpass: AMBIENT_RAIN_LOWPASS_HZ })
           : audio.loop3d(baSoundKey(AMBIENT_RAIN_CLIP), place.dungeon.exitPos, rainTarget(), { refDistance: 1, maxDistance: 500, distanceModel: 'inverse', lowpass: AMBIENT_RAIN_LOWPASS_HZ });
       }
-      // AUDIT 68 S24-ba-rain-never-retried: the weather is handled only once the source plays - a clip still decoding
-      // or a context not yet running (loop answers null) is asked again next frame, not forgotten until the next door
+      // The weather counts as handled only once the loop plays, so a clip still decoding is tried again next frame.
       rainWeather = rainLoop ? w : null;
-    } else { stopRain(); rainWeather = w; }   // after stopRain, which forgets the weather
+    } else { stopRain(); rainWeather = w; }
   }
-  // FoggyDungeonsMod.UpdateDungeonFog: the settings re-read, then Enable or Disable
   function updateDungeonFog() {
     s = settings();
     const d = place.dungeon;
-    const inCastle = typeof d?.inCastle === 'function' ? !!d.inCastle() : !!d?.inCastle;   // IsPlayerInsideDungeonCastle, read after the wait
-    if (!s.Enabled || !d || inCastle) { fogState = null; return; }   // DisableDungeonFog: PlayerAmbientLight back on, flat ambient
+    const inCastle = typeof d?.inCastle === 'function' ? !!d.inCastle() : !!d?.inCastle;
+    if (!s.Enabled || !d || inCastle) { fogState = null; return; }
     fogState = dungeonFogFor(dungeonGameObjectName(d.regionName ?? '', d.name ?? ''), s);
   }
-  /** OnStartGame / OnLoad / the four transitions all StartCoroutine the same two waits; the frame pays them. */
   function owe() { waitFrames = TRANSITION_WAIT_FRAMES; }
   function settle4() { updateDungeonFog(); updateAmbientSoundSources(); }
 
   const api = {
     frame(dt, m) {
       syncSettings();
-      if (waitFrames >= 0 && --waitFrames < 0) settle4();   // the fourth yield lands
+      if (waitFrames >= 0 && --waitFrames < 0) settle4();
       if (!s.Enabled) { if (reverbOn) updateReverb(false); if (rainLoop) stopRain(); fogState = null; return; }
       updateReverb(!!m.inDungeon);
       if (rainKind && rainWeather !== weather()) updateSource();
-      shaker.update(m.paused ? 0 : Math.max(0, Number(dt) || 0));   // CameraShaker.Update - AUDIT-BA F3: Time.deltaTime is 0 under IsGamePaused, so a shake freezes under a window
-      if (s.footstepsEnable && clipsLoaded) footsteps.update(m);   // BetterFootstepsComponentPlayer.Update
+      // A paused game freezes the shake, as Unity's deltaTime is 0 then.
+      shaker.update(m.paused ? 0 : Math.max(0, Number(dt) || 0));
+      if (s.footstepsEnable && clipsLoaded) footsteps.update(m);
     },
     view(view) { return s?.Enabled ? shakeView(view, shaker.posAddShake, shaker.rotAddShake) : view; },
     removeHealth(amount, maxHealth) { syncSettings(); if (s.Enabled) damageShake(shaker, s, amount, maxHealth); },
-    /** FIELD-GUN6: a shake that is not a wound. DamageShaker is the
-     *  mod's only producer and it prices a blow by how much of you it
-     *  took; the Dwarven Thunderlock going off is neither damage nor
-     *  the mod's, but the camera it wants to move is this one - the
-     *  port has exactly one shaker and `view()` is already wired
-     *  through all four hosts. So the magnitude arrives made, rather
-     *  than derived from a health fraction, and it is still clamped by
-     *  the player's own maxShake: a person who turned the shake down
-     *  turned it down for everything that shakes. */
     weaponKick(magnitude) {
       syncSettings();
       if (!s.Enabled) return;
@@ -606,26 +469,16 @@ export function createBetterAmbience({ audio = defaultAudio, settings = readBett
     },
     onStartGame() { syncSettings(); owe(); },
     onLoad() { syncSettings(); owe(); },
-    // BA-CRASH1 (2026-09-20, Mac's screenshot: "Cannot read properties of null (reading 'exitPos')" in frame): THE KIND
-    // GOES WITH THE PLACE. `stopRain` stops the loop and forgets the weather it was started for, but `rainKind` kept
-    // the OLD place's answer - 'exit' from the dungeon just left - through the four wait frames until settle4()
-    // recomputed it. In those frames `frame()` saw a kind, a weather that differed (null after stopRain), and asked
-    // updateSource() for a 3D source at `place.dungeon.exitPos` with `place.dungeon` already null: leaving a dungeon
-    // into rain crashed the tab. In DFU the InteriorAmbientSoundSource is destroyed with the scene and Start makes
-    // the next one after the wait; here the kind is the component, so it is dropped here and made again at settle.
+    // The rain kind is dropped with the place, so no frame before the settle asks for the old dungeon's exit.
     onTransition(next) { syncSettings(); place = { dungeon: next?.dungeon ?? null, building: !!next?.building }; fogState = null; stopRain(); rainKind = null; owe(); footsteps.rebase(); },
-    /** For the pins: the wait, paid at once. */
     settleTransition() { waitFrames = -1; settle4(); },
     dungeonFog() { return fogState?.fog ?? null; },
     dungeonAmbient() { return fogState?.ambient ?? null; },
     rebase() { footsteps.rebase(); },
-    /** DisableBuiltInFootsteps has run: the classic stride is the mod's - except the two clips it forgot. */
     ownsStride() { return !!(s?.Enabled && s.footstepsEnable && clipsLoaded); },
     classicClipKept(clip) { return CLASSIC_CLIPS_KEPT.has(clip); },
     settle,
     footsteps, shaker,
-    /** DISC11: whether the mod's rain - in a building OR at a dungeon's exit - is what the player hears inside; the
-     *  street's carried loop stands down for either, so the two never stack. */
     rainPlaying() { return !!rainLoop; },
     status() {
       return { enabled: !!s?.Enabled, footstepsOn: !!s?.footstepsEnable, clipsLoaded, present: [...present], place, fog: fogState, reverb: reverbOn, rain: rainLoop ? rainKind : null, rainWeather, shake: { pos: shaker.posAddShake, rot: shaker.rotAddShake, instances: shaker.instances.length } };
@@ -634,13 +487,9 @@ export function createBetterAmbience({ audio = defaultAudio, settings = readBett
   return api;
 }
 
-/** One component, every host (HT1's shape). */
 export const betterAmbience = createBetterAmbience();
-// DamageShaker on the player object: the same RemoveHealth message the flash rides (DamageShaker.cs:20-27)
 setRemoveHealthListener((amount) => betterAmbience.removeHealth(amount, playerEntity.maxHealth ?? 0));
 
-/** The classic PlayerFootsteps' clip, gated by BOTH mods' DisableBuiltInFootsteps:
- *  Immersive Footsteps nulls every clip; Better Ambience nulls all but two. */
 export function classicFootstepAllowed(clip) {
   if (immersiveFootsteps.ownsStride()) return false;
   if (betterAmbience.ownsStride()) return betterAmbience.classicClipKept(clip);

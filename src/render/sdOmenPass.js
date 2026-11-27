@@ -1,29 +1,19 @@
 // @ts-check
-// SD2c (2026-10-06, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 4): THE HOLLOW'S OMEN,
-// DRAWN - a column of brass-gold light straight up over a Super dungeon's pixel from the moment it rises, seen from
-// SD_OMEN_PX map pixels round (systems/superDungeon/sdOmen.js). It is the gate's beacon in its own colours: the gate's column - its
-// shaders and its geometry, exported by render/gate/gatePass.js - built again here under this pass's own program, so the
-// gate's module is not touched (SERPENT1's rule, Sea-Serpent.md: the gate's bytes stay as their pins hold them). ADDED
-// onto the frame (ONE, ONE), both faces, fogged by the frame's own fog but never below the gate's floor of its light, so
-// a Hollow kilometres off still stands on the horizon. No depth written, depth tested.
-//
-// Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon omen column: the gate beacon's shaders and geometry under this pass's own program and color,
+// so the gate module stays unchanged.
 import { BEACON_VS, BEACON_FS, BEACON_RADIUS_M, beaconVertices, gateClock } from './gatePass.js';
 import { buildProgram } from './glProgram.js';
 import { multiply } from '../world/mat4.js';
 
-/** Its light, display-encoded as the gate's beacon's is (gatePass.js BEACON_COLOR): brass, gold at its heart - the
- *  gate's red never, so a column on the horizon says which it is. */
 export const SD_OMEN_COLOR = Object.freeze([1.0, 0.7, 0.26]);
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_FOCUS = new Float32Array(4);
-const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
+const NO_HAZE = new Float32Array(8);
 const WHITE = new Float32Array([1, 1, 1]);
 
-/** The Hollow's column, one foreign pass. */
 export class SdOmenPassRenderer {
-  /** @param {WebGL2RenderingContext} gl @param {ArrayLike<number>} [color] the column's light (BUNNYFALL: a staff event's pillar is this pass in purple) */
+  /** @param {WebGL2RenderingContext} gl @param {ArrayLike<number>} [color] */
   constructor(gl, color = SD_OMEN_COLOR) {
     this.gl = gl;
     this._color = new Float32Array(color);
@@ -39,15 +29,9 @@ export class SdOmenPassRenderer {
     gl.bindVertexArray(null);
     this.count = verts.length / 2;
     this._vp = new Float32Array(16);
-    /** the columns the last draw put up, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /**
-   * Draw the columns: `omens` [{ origin: [x, y, z] the Hollow's ground in the scene, fade 0..1 }] (the dark skipped),
-   * `eye` the view's own eye, `seconds` any clock (wrapped here), `fog` the frame's fog. Answers how many it drew -
-   * nothing to draw, nothing touched.
-   */
   draw(omens, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
     const list = (Array.isArray(omens) ? omens : []).filter((o) => o && Array.isArray(o.origin) && o.origin.length === 3 && o.origin.every(Number.isFinite) && o.fade > 0.001);
@@ -68,7 +52,7 @@ export class SdOmenPassRenderer {
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye ?? WHITE);
     if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.bindVertexArray(this.vao);
     for (const o of list) {

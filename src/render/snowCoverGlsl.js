@@ -1,55 +1,25 @@
 // @ts-check
-// PRECIP4 (2026-10-19, the owner: "If its snowing in one area and raining in the next, the transition should be seamless
-// both in ground texture and everything else") - THE GROUND'S SNOW, in both terrain programs (renderer.js TERRAIN_FS and
-// the lane's EL_TERRAIN_FS), right after ECOTONE1's border (render/ecotoneGlsl.js). systems/weather/snowpack.js is the
-// law: what fell and has not melted, at every place and height; scenes/snowCoverHost.js reads it about the player into
-// a lattice of SNOWLINES - the heights where the cover crosses 10, 50 and 90 % at map-pixel corners every two pixels -
-// and the renderer hands the window of them about the player to the frame as one small texture (uSnowLines, a texel a
-// lattice point: AUDIT PRECIP GROUND-7, it was six uniforms a draw, and HOST-5/GROUND-4, the line a fragment read was
-// another function from the one every reader on the CPU read). A fragment reads the line at its own place between the
-// four points about it - snowCoverHost.js lineAt's bilinear, term for term - its cover off its own height against it
-// (snowAtHeight - snowpack.js coverAtHeight), and breaks a thin cover into patches (snowCoverAt below is all of it on the CPU, for the grass and the feet: GROUND-3); then its tile is its OWN climate's WINTER record of the same tile (DFU's winter archive, TerrainMaterialProvider's +1 - every set is the same
-// 56 records, R9) in that share. On the snow lane a ground set wearing a winter IS its twin - its summer records, then
-// its winter ones, one array (renderer.js uploadTileArray; GROUND-2) - and the renderer sets each bound array's winter
-// offset off the array itself (uSnowArr: GROUND-1, the host had kept its own record, and a released twin read layer 55
-// of the summer set); a border's neighbours' twins are on ECOTONE1's units, and the winter texel crosses the border by
-// the ecotone's own weights. uSnowSet.y is 0 for every draw off the lane - the classic skin, the interiors, a world whose
-// ground wears DFU's season - and the whole chunk is then one uniform test.
+// Ground snow chunk for both terrain programs, after the ecotone border. Fragments read the snowline lattice with
+// the same bilinear as weather/snowCoverHost.js lineAt. The snowCoverAt function below repeats the shader cover
+// on the CPU for grass and feet, so the GPU and CPU paths must change together.
 
-/** The ground's snow constants: the patches' cells (in world tiles, 6.4 m) and weights, their edge, and how a patch
- *  octave fades with the fragment's footprint (AUDIT PRECIP GROUND-8). SNOW-FACE (FIELD BUGS 2026-10-21): no slope - a
- *  steep face keeps the snow its height lays, as DFU's winter set dresses every tile. The face's own record has no rock
- *  under it to shed to: its summer grass is what showed, a green wall up a white mountain where the landforms stand
- *  their faces past 52 degrees (and DFU's TerrainNature refuses a tree past 50, so it stood bare of them too). */
+// No slope term: a steep face keeps the snow its height lays, as Daggerfall Unity's winter set dresses every tile.
 export const SNOW_GROUND = Object.freeze({
   patch: Object.freeze([Object.freeze({ cell: 1, weight: 0.35 }), Object.freeze({ cell: 4, weight: 0.4 }), Object.freeze({ cell: 16, weight: 0.25 })]),
   edge: 0.07,
-  salt: 0x534e4f57,   // 'SNOW'
-  fade: Object.freeze([2, 2]),   // an octave's share kept: a - b x footprint / cell (whole to half a cell a pixel, gone at one)
+  salt: 0x534e4f57,
+  fade: Object.freeze([2, 2]),
 });
-/** The layers a twin array holds before its winter half: a ground set's records (R9). */
 export const TWIN_LAYERS = 56;
-/** The texture unit the frame's snowlines bind on (renderer.js setSnowFrame) - free of every other pass's. */
 export const SNOW_LINES_UNIT = 23;
-/** A world tile (m) - the patches' lattice and the ecotone's. */
 export const SNOW_TILE_M = 6.4;
 const TILE_M = SNOW_TILE_M;
-/** The ecotone's frame (world/ecotone.js ecoOrigin): a pixel's first tile north is (row0 - py) x 128. */
+// Must match world/ecotone.js ecoOrigin: a pixel's first tile north is (SNOW_TILE_ROW0 - py) * 128.
 export const SNOW_TILE_ROW0 = 512;
 
 const f = (v) => (Number.isInteger(v) ? `${v}.0` : `${v}`);
 
-/**
- * THE COVER'S CHUNK - what any program that asks the ground's snow needs: the frame's lines (uSnowLines, uSnowSet,
- * uSnowWin) and `float snowCover(vec2 local, float y, vec2 gx, vec2 gy)` - the cover of the ground at pixel-local
- * metres `local`, world height `y`, its tile footprint `gx`/`gy` (tiles a screen pixel): 0 off the lane, else the line
- * there, its height's cover, the patches as far as the footprint resolves them
- * (main asks it once and never reads the chunk's uniforms - AUDIT 47's rule: a unit uses what it declares), and
- * `float snowLaid(...)` the same at the same place for a snow lying on the ground - 1 off the lane. Reads the
- * draw's first world tile off `uEcoOrigin` (declared before it: the ecotone's in the terrain programs, its own in the
- * water's). The terrain's chunk (snowCoverGlsl) and the water's (AUDIT PRECIP GROUND-5: a puddle under snow is the winter
- * art's) both carry it.
- */
+// Reads the draw's first world tile from uEcoOrigin, which must be declared before this chunk.
 export function snowCoreGlsl() {
   const e = SNOW_GROUND.edge, P = SNOW_GROUND.patch;
   return `// PRECIP4 (render/snowCoverGlsl.js; the law is systems/weather/snowpack.js)
@@ -117,15 +87,8 @@ float snowLaid(vec2 local, float y, vec2 gx, vec2 gy) {
 `;
 }
 
-/**
- * The terrain's chunk, for a program whose texels decode through `decode` (the lane's elDecode; '' for the classic
- * program's display values) and whose own tile array is uTileArr. After ecotoneGlsl (its uEcoOrigin - every lane draw
- * sends the pixel's first world tile there). The cover's chunk, then
- * `vec3 snowGround(vec3 bare, vec4 ew, float c, vec3 tl, vec2 gx, vec2 gy)`: `bare` the ground's texel as the ecotone
- * left it, `ew` the ecotone's weights there (ecoWeights, computed once by main - AUDIT PRECIP GROUND-6), `c` its cover
- * (main's snowCover - the water bed reads it too), `tl` its (tuv, layer), `gx`/`gy` its gradient.
- * @param {string} decode
- */
+// Include after ecotoneGlsl, which declares uEcoOrigin.
+/** @param {string} decode */
 export function snowCoverGlsl(decode = '') {
   return `${snowCoreGlsl()}
 vec3 snowGround(vec3 bare, vec4 ew, float c, vec3 tl, vec2 gx, vec2 gy) {
@@ -143,19 +106,15 @@ vec3 snowGround(vec3 bare, vec4 ew, float c, vec3 tl, vec2 gx, vec2 gy) {
 `;
 }
 
-// ---- THE SAME, ON THE CPU (AUDIT PRECIP GROUND-3: the grass, the feet - snowCoverHost.js buries, winterAt) -------------
-
 const smooth = (a, b, v) => {
   const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
-/** snowHash, in 32-bit integers as the GLSL takes them. Pure. */
 export function snowHash(cx, cy, salt) {
   let h = (Math.imul(cx, 0x8da6b343) ^ Math.imul(cy, 0xd8163841) ^ Math.imul(salt >>> 0, 0xcb1ab31f)) >>> 0;
   h ^= h >>> 16; h = Math.imul(h, 0x7feb352d) >>> 0; h ^= h >>> 15; h = Math.imul(h, 0x846ca68b) >>> 0; h ^= h >>> 16;
   return (h >>> 8) * (1 / 16777216);
 }
-/** snowNoise at pixel-local tiles `lt` of the pixel whose first world tile is (ox, oz) (the ecotone's ecoOrigin). Pure. */
 function snowNoise(ltx, ltz, ox, oz, cell, salt) {
   const qx = ltx / cell, qz = ltz / cell, flx = Math.floor(qx), flz = Math.floor(qz);
   const ix = Math.trunc(ox / cell) + flx, iz = Math.trunc(oz / cell) + flz;
@@ -164,12 +123,7 @@ function snowNoise(ltx, ltz, ox, oz, cell, salt) {
   const top = a + (b - a) * ux, bot = c + (d - c) * ux;
   return top + (bot - top) * uz;
 }
-/**
- * THE GROUND'S COVER AS IT IS DRAWN, on the CPU - snowCover term for term at a footprint below a cell (the near field,
- * where the grass and the feet are; AUDIT PRECIP GROUND-8's fade is the distance's): `cover` its cover off the snowline at its
- * height (snowpack.js coverAtHeight), `lx`/`lz` its pixel-local metres and (`ox`, `oz`) its pixel's first world tile
- * (ecotone.js ecoOrigin: the patches' lattice). 0 bare, 1 white. Pure. SNOW-FACE: no slope, as the chunk's.
- */
+// Matches snowCover in the shader term for term below one cell of footprint; keep the two in sync.
 export function snowCoverAt(cover, lx, lz, ox, oz) {
   const e = SNOW_GROUND.edge, c = cover;
   if (c <= 0 || c >= 1) return Math.max(0, Math.min(1, c));

@@ -1,6 +1,5 @@
 // @ts-check
-// Loads the code of an event that mods/contentOff.js can switch off, only while it is on. The world host asks here
-// before it makes the event's pieces, so an event that is off makes nothing. Spoils recovery stays in the host.
+// Loads an event's code only while contentOff.js has the event on, so an event that is off builds nothing.
 import { contentOn } from '../mods/contentOff.js';
 
 const LOADERS = Object.freeze({

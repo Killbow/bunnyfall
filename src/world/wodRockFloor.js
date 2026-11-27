@@ -1,7 +1,8 @@
 // @ts-check
-// World of Daggerfall builds its rock fields from ARCH3D pebbles that have no bottom face. Where the open bottom of a
-// piece shows, the rock is see-through and hollow. This module closes each open rim loop with a floor, built once per
-// model for both the drawn mesh and the collider.
+// World of Daggerfall builds its rock fields from ARCH3D pebbles that have no bottom face. Where the open
+// bottom of a piece shows, the rock is see-through and hollow. This module closes each open rim loop with a
+// floor, built once per model for both the drawn mesh and the collider.
+
 import { WOD_ROCK_MODELS } from './wodRockUv.js';
 
 const FLOORS = new WeakMap();
@@ -14,7 +15,9 @@ const turn = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] 
 
 /**
  * @template {{positions: Float32Array, normals?: Float32Array, uvs?: Float32Array, indices: Uint32Array, subMeshes: Array<any>}} M
- * @param {M} cpu @param {?number} modelId @returns {M & {floorAt?: number}}
+ * @param {M} cpu
+ * @param {?number} modelId
+ * @returns {M & {floorAt?: number}}
  */
 export function wodRockFloor(cpu, modelId) {
   if (!cpu?.normals || !cpu.uvs || !WOD_ROCK_MODELS.has(modelId)) return cpu;

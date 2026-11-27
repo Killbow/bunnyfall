@@ -1,5 +1,6 @@
 // World of Daggerfall sites: marker spawners, their piles and captives carried across rebuilds,
 // springs shared with peers, the Privateers' Hold, city gates at night, and the mod's lights.
+
 import { addPileLootExtras, DUNGEON_LOOT_KEYS, generateItems as generateLootItems } from '../items/loot.js';
 import { adoptLight } from '../render/lightId.js';
 import { alignBillboardToGround } from './groundAlign.js';
@@ -47,7 +48,6 @@ export function createWodSites(shared) {
 
   const wodPathsPoint = (x, y) => {
     const net = terrainGen.roads();
-    // Only Basic Roads arrays answer; generated fallback roads leave the mask 0, as DFU does.
     return net?.source === 'basic-roads' ? basicRoadsPathsPoint(net, x, y) : 0;
   };
 

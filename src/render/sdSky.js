@@ -1,36 +1,7 @@
 // @ts-check
-// SD5b (2026-10-07, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 7): THE SHATTERED HOUR'S SKY -
-// "a void of brass light and slow aurorae, the Bay's skylines hanging upside down in it - Daggerfall's towers,
-// Sentinel's domes, Wayrest's bridges - the shards of the endings, turning on the realm's clock; a great clock-face of
-// stars behind the arena whose hands run backwards."
-//
-// SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md section 5): A PAINTED SKY, in two stages.
-//
-//   THE MAP - an octahedral SD_SKY_MAP x SD_SKY_MAP picture of the whole sky, one texel about 0.4 degrees (Daggerfall's
-//     own sky is pi/512 a pixel - render/skyRenderer.js SKY_ANGLE_PER_PIXEL), NEAREST: painted by SD_SKY_PAINT_FS a
-//     quadrant a frame (`SdSkyMap.paint`), so the whole refreshes every four, every texel forced to the posterized,
-//     dithered steps of the pixel law (render/orderedDither.js SD_PIXEL_GLSL). Everything slow lives in it: the void in
-//     eight dithered bands from the black overhead to the brass haze that meets the fog; stars, single crisp texels,
-//     the brightest with four-point glints; the aurorae, banded curtains with rays, posterized to four steps; the
-//     clock-face of stars - a dense rim, sixty minute dots, its twelve hours in Roman numerals plotted in stars, the six
-//     Endings as constellations on its inner ring (world/superDungeon/sdSkyArt.js - the stones' own signs), the Hollow's own burning
-//     in its light; six of the Bay's cities hanging upside down, black with warm windows; the mist below the horizon
-//     deepening to black, and the furnace glowing at the nadir.
-//   THE FETCH - one triangle at the far plane (the Deadlands' law, render/deadlands.js), each pixel one tap of the map
-//     (SD_SKY_FETCH_GLSL - the Rift's window reads the same) and the LIVE things over it, snapped to the map's texels so
-//     they are exactly as chunky as its stars: the hour and minute hands running BACKWARDS on the escapement (world/
-//     sdLook.js sdTick), the second hand stepping back one tick each second on the Hour's tock, and what the sky says of
-//     the fight (`uClock`: the Hour's length as a red arc, the Reset's hands sweeping to XII, the Dragon Break's doubled
-//     face, the End's red, the collapse's hands running forward and its numerals going dark).
-//
-// THE FACE is lowered (elevation 0.20, radius 0.34) so from the end of the Crumble the Remnant's head stands at its hub,
-// its lower edge sinking behind the arena like a rising sun. Azimuth is measured from the realm's +z - toward the arena,
-// where the face hangs - turning toward +x. THE CLOCK is the realm's, anchored (world.js hands the Deadlands' own anchored
-// relay clock), so every screen shows one moment; every rate is a whole number of cycles over SD_SKY_PERIOD and the clock
-// is handed wrapped, so the sky never jumps.
-//
-// Colours are display-encoded (the lit lane's frame image), scaled by `gain` with the realm's fog (render/deadlands.js
-// skyGain's law) at the fetch. Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon painted sky: an octahedral map painted one quadrant a frame, then a far-plane fetch that adds the
+// live clock hands snapped to the map's texels. The clock is the realm's anchored relay clock. Every rate is a
+// whole number of cycles over SD_SKY_PERIOD, so every screen shows the same moment and the sky never jumps.
 import { buildProgram } from './glProgram.js';
 import { DEAD_NOISE_GLSL } from './deadlands.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from './orderedDither.js';
@@ -38,14 +9,9 @@ import { createRenderTarget, withTarget } from './renderTarget.js';
 import { sdSkySigns, SD_SKY_SIGN_GRID, SD_GLYPHS, SD_HOUR_NUMERALS, numeralWidth } from '../world/sdSkyArt.js';
 import { SD_TICK_EASE_S } from '../world/sdLook.js';
 
-/** Every rate is whole cycles over this many seconds; the clock is handed wrapped to it. */
 export const SD_SKY_PERIOD = 720;
 export const sdSkyClock = (seconds) => ((seconds % SD_SKY_PERIOD) + SD_SKY_PERIOD) % SD_SKY_PERIOD;
-/** The clock-face: where it hangs (radians - over the arena, +z), how wide, and its hands' turns a period (backwards).
- *  SD-LOOK: lowered (it hung at 0.38, 0.36 wide) - the Remnant's head at its hub from the Crumble's end. */
 export const SD_CLOCK_FACE = Object.freeze({ az: 0, elev: 0.2, r: 0.34, hourTurns: 1, minuteTurns: 12 });
-/** The far skylines: each city's azimuth at the clock's zero, its half-width and depth (radians), its turns a period.
- *  SD-LOOK: six - Orsinium's tusked walls, the Underking's bone spire and the Blades' dragon keep beside the three. */
 export const SD_SKY_SHARDS = Object.freeze([
   Object.freeze({ name: 'daggerfall', az: 2.2, halfW: 0.42, depth: 0.32, turns: 1 }),
   Object.freeze({ name: 'sentinel', az: -2.1, halfW: 0.38, depth: 0.26, turns: -1 }),
@@ -54,28 +20,17 @@ export const SD_SKY_SHARDS = Object.freeze([
   Object.freeze({ name: 'underking', az: -1.0, halfW: 0.22, depth: 0.3, turns: 1 }),
   Object.freeze({ name: 'blades', az: -3.0, halfW: 0.34, depth: 0.28, turns: -2 }),
 ]);
-/** The clock-face's rim: its half-width (in the face's radii) - and so the face's highest drawn point, its rim's outer
- *  edge over its centre (radians of elevation). */
 export const SD_CLOCK_RING_W = 0.035;
 export const SD_CLOCK_TOP = SD_CLOCK_FACE.elev + SD_CLOCK_FACE.r * (1 + SD_CLOCK_RING_W);
-/** Where the skylines hang from (the upper sky, radians of elevation), the aurorae's band, and their slow drift's turns.
- *  AUDIT SD II (L2 F15): every skyline hangs wholly over the clock-face's highest point, SD_SHARD_CLEAR clear of it, so no
- *  drift ever carries one across it. SD-LOOK: the aurorae over the face's top, so it is never smoked over. */
+// Every skyline hangs wholly above the clock face's highest point, SD_SHARD_CLEAR clear of it, so no drift carries
+// one across it.
 export const SD_SHARD_CLEAR = 0.05;
 export const SD_SHARD_TOP = SD_CLOCK_TOP + SD_SHARD_CLEAR + Math.max(...SD_SKY_SHARDS.map((s) => s.depth));
 export const SD_AURORA = Object.freeze({ low: 0.62, high: 1.3, turns: 3 });
-/** SD-LOOK S11: THE FURNACE at the nadir - it rises from `from` radians under the horizon to its full glow at `full`:
- *  the band the course looks down through onto the Works (world/superDungeon/sdWorksModel.js), so they stand black against it. */
 export const SD_FURNACE = Object.freeze({ from: 0.6, full: 1.3 });
-/** SD-LOOK: the map's side (texels), and the steps the pixel law posterizes its brightness to on the lane and the classic set. */
 export const SD_SKY_MAP = 512;
 export const SD_SKY_STEPS = Object.freeze({ lane: 10, classic: 8 });
-/** SD-LOOK: the face's parts, in its radii - the minute dots' ring, the numerals' (their middle) and a numeral's cell,
- *  the constellations' (their middle) and a sign's size across. */
 export const SD_CLOCK_PARTS = Object.freeze({ minutes: 0.915, numerals: 0.74, cell: 0.03, signs: 0.43, sign: 0.3 });
-/** SD-LOOK: the fetch's word for the fight (`uClock.x`): none, a living fight (the Hour's length burning round the rim),
- *  the Reset's wind-up (the hands sweeping back to XII), the Dragon Break (the face doubled), the Hour Ends (red), the
- *  collapse (the hands running forward to XII, the numerals going dark). */
 export const SD_SKY_MODE = Object.freeze({ none: 0, fight: 1, reset: 2, break: 3, end: 4, collapse: 5 });
 
 const HEAD = `#version 300 es
@@ -92,8 +47,6 @@ void main() {
 
 const f4 = (v) => v.toFixed(4);
 const f6 = (v) => v.toFixed(6);
-/** AUDIT SD II (L2 F15): the clock-face's frame on the sky - its centre's direction (the realm's azimuth from +z toward
- *  +x, its elevation), the way its third hour lies (azimuth growing) and its twelfth (elevation growing). */
 export const CLOCK_BASIS = Object.freeze((() => {
   const { az, elev } = SD_CLOCK_FACE;
   return {
@@ -103,8 +56,7 @@ export const CLOCK_BASIS = Object.freeze((() => {
   };
 })());
 
-/** SD-LOOK: THE OCTAHEDRAL MAP - a direction to its place on the map (0..1 each way) and back, +y the inner diamond. Pure
- *  (the shaders' own, pinned equal). */
+// The shaders use the same mapping; keep them in sync.
 export function octEncode(d) {
   const s = Math.abs(d[0]) + Math.abs(d[1]) + Math.abs(d[2]);
   let x = d[0] / s, z = d[2] / s;
@@ -132,9 +84,6 @@ vec3 octDecode(vec2 uv) {
 }
 `;
 
-/** THE CLOCK-FACE's own frame for a ray d, and back: AUDIT SD II (L2 F15) read on the sphere (the azimuthal equidistant
- *  frame about its centre) - the twelfth hour up, the third toward the arena's right; `faceDir` the direction of a
- *  point of the face. */
 export const SD_CLOCK_GLSL = `const vec3 FACE_CENTRE = vec3(${CLOCK_BASIS.centre.map(f6).join(', ')});
 const vec3 FACE_RIGHT = vec3(${CLOCK_BASIS.right.map(f6).join(', ')});
 const vec3 FACE_UP = vec3(${CLOCK_BASIS.up.map(f6).join(', ')});
@@ -149,8 +98,6 @@ vec3 faceDir(vec2 p) {
 }
 `;
 
-/** The Bay's skylines, upside down: each (u across, -1..1; v down from the ground the city hangs from, 0..1) answers
- *  whether it is city. Read by the map's paint and (right way up) by the Return's window. */
 export const SD_SKYLINE_GLSL = `float box(float u, float v, float c, float w, float h) { return step(abs(u - c), w) * step(v, h); }
 // DAGGERFALL: towers of uneven height hanging from the shard's edge, each ending in a spire (pointing down)
 float skyline0(float u, float v) {
@@ -215,9 +162,7 @@ float skyline5(float u, float v) {
 }
 `;
 
-/** The numerals as the paint draws them (world/superDungeon/sdSkyArt.js's glyphs, the cells of `numeralCell`): `numeralLit(h, cx,
- *  cy)` - hour h (0 the twelfth), cell cx from the numeral's left, cy from its top row. The veil's dial reads them too
- *  (render/superDungeon/sdVeil.js). */
+// The veil's dial (render/sdVeil.js) reads these glyphs too.
 export const SD_NUMERAL_GLSL = `const int GLYPH_I[7] = int[7](${SD_GLYPHS.I.rows.join(', ')});
 const int GLYPH_V[7] = int[7](${SD_GLYPHS.V.rows.join(', ')});
 const int GLYPH_X[7] = int[7](${SD_GLYPHS.X.rows.join(', ')});
@@ -246,7 +191,6 @@ const skylineDraw = SD_SKY_SHARDS.map((s, i) => `  { float c = ${f4(s.az)} + ${f
       col = mix(col, SHARD_DARK, m * 0.95); col = max(col, BRASS * 0.75 * rim);
       if (m > 0.5 && dv > 0.14 && fract(dv * 11.0) < 0.45 && fract(du * 9.0) < 0.5 && dhash(floor(vec2(du * 9.0, dv * 11.0)) + ${f4(i * 17.3 + 4.1)}) > 0.55) col = WINDOW * (0.42 + 0.3 * dhash(cellF + 1.7)); } }`).join('\n');
 
-/** THE PAINT: one texel of the map a fragment - its direction the octahedral decode of its centre. */
 export const SD_SKY_PAINT_VS = HEAD + `layout(location = 0) in vec2 aPos;
 uniform vec4 uQuad;   // the quadrant painted: its corner and its size on the map (0..1)
 out vec2 vUv;
@@ -367,9 +311,7 @@ ${skylineDraw}
   o = vec4(sdPixel(col, cellF, uSteps), 1.0);
 }`;
 
-/** THE FETCH - one tap of the map along a ray, and the live hands over it, snapped to its texels. `sdSkyAt(d)` - the
- *  sky's colour (display-encoded, at the gain) along d. The sky's pass and the Rift's window (render/superDungeon/sdRiftPass.js) read
- *  the one function. Uniforms: uSkyMap, uTime (wrapped), uGain, uClock (SD_SKY_MODE, a0, a1, lit numerals). */
+// The sky pass and the Rift window (render/sdRiftPass.js) both read this one function.
 export const SD_SKY_FETCH_GLSL = `uniform sampler2D uSkyMap;
 uniform float uTime;
 uniform float uGain;
@@ -450,8 +392,7 @@ void main() {
   o = vec4(sdSkyAt(d), 1.0);
 }`;
 
-/** AUDIT SD II (L2 F9): the sky's ray basis into `out`'s own arrays - render/deadlands.js skyBasis's reading, which makes
- *  four arrays a call (pinned equal to it). The pass's frame makes nothing. */
+// Reads the same basis as render/deadlands.js skyBasis, but fills the arrays of `out` instead of allocating.
 export function sdSkyBasisInto(view, proj, out) {
   out.right[0] = view[0]; out.right[1] = view[4]; out.right[2] = view[8];
   out.up[0] = view[1]; out.up[1] = view[5]; out.up[2] = view[9];
@@ -460,8 +401,6 @@ export function sdSkyBasisInto(view, proj, out) {
   return out;
 }
 
-/** SD-LOOK: THE MAP - its target, its paint program, its signs strip; painted a quadrant a call. Owned by the sky's pass
- *  (SdSkyRenderer.map), which the host keeps for the session as it keeps the program; `release()` frees all of it. */
 export class SdSkyMap {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -485,12 +424,9 @@ export class SdSkyMap {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
-    /** the next quadrant painted, and the look the map was last painted in (a change paints it whole) */
     this.next = 0;
     this.painted = 0;
     this._quad = new Float32Array(4);
-    // AUDIT SD V (P4): the look it was painted in as numbers (steps, the Ending's index and light, the haze), and the
-    // quadrants' draw made once - the key a string of two joins and a closure each frame made ~0.8 KB a frame
     this._was = new Float64Array(8).fill(NaN);
     this._all = false;
     this._quads = () => {
@@ -504,9 +440,7 @@ export class SdSkyMap {
       }
     };
   }
-  /** Paint the map's next quadrant (the whole map when it has never been painted or its look changed): `seconds` the
-   *  realm's clock, `haze` the fog's colour, `look` `{ steps, ending: [r, g, b] | null, endingIdx }`, `viewport` the
-   *  world viewport handed back. A DRAW PATH: binds its target, and hands back the frame's (render/renderTarget.js). */
+  // It binds its own render target, and withTarget restores the frame's target and `viewport` afterward.
   paint(seconds, haze, look, viewport) {
     const gl = this.gl, U = this.u, steps = look?.steps ?? SD_SKY_STEPS.lane, idx = look?.endingIdx ?? -1, light = look?.ending ?? null;
     const W = this._was, n0 = light ? light[0] : -1, n1 = light ? light[1] : -1, n2 = light ? light[2] : -1, h0 = haze ? haze[0] : -1, h1 = haze ? haze[1] : -1, h2 = haze ? haze[2] : -1;
@@ -536,10 +470,8 @@ export class SdSkyMap {
   }
 }
 
-/** A haze and an Ending's light for a look that names none, made once (AUDIT SD V P4). */
 const NO_HAZE = Object.freeze([0.2, 0.15, 0.07]), NO_LIGHT = Object.freeze([0, 0, 0]);
 
-/** The Hour's sky, one foreign pass - the fetch over the map it owns. */
 export class SdSkyRenderer {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -553,21 +485,14 @@ export class SdSkyRenderer {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
-    /** whether the last draw put the sky up (the stats and the tests) */
     this.drawn = false;
-    /** the frame's basis, filled in place (sdSkyBasisInto) */
     this._b = { right: new Float32Array(3), up: new Float32Array(3), fwd: new Float32Array(3), lens: new Float32Array(4) };
-    /** SD-LOOK: the painted map (made with the pass; the Rift's window reads it too) and the fight's word to the face */
     this.map = new SdSkyMap(gl);
     this.clock = new Float32Array(4);
   }
 
-  /** SD-LOOK: the map's next quadrant (SdSkyMap.paint) - before the draw, in the frame's own air. */
   paint(seconds, fog, look, viewport) { this.map.paint(seconds, fog?.color ?? null, look, viewport); }
 
-  /** Paint the sky where nothing nearer has drawn: `seconds` the realm's clock (wrapped here), `fog` the frame's (its
-   *  colour the haze the horizon meets), `gain` the realm's light against its own; `clock` the fight's word to the face
-   *  ([SD_SKY_MODE, a0, a1, lit] - none by default). Answers true. */
   draw(proj, view, seconds, fog = null, gain = 1, clock = null) {
     const gl = this.gl, U = this.u, b = sdSkyBasisInto(view, proj, this._b);
     gl.disable(gl.BLEND);
@@ -581,7 +506,7 @@ export class SdSkyRenderer {
     gl.uniform4fv(U.uClock, this.clock);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.map.texture); gl.uniform1i(U.uSkyMap, 0);
     gl.depthMask(false);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);   // PERF2: only where nothing nearer has drawn - z is the far plane
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.depthFunc(gl.LESS);

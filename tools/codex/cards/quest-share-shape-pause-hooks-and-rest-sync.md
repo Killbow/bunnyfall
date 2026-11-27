@@ -15,6 +15,9 @@ files:
   - "src/scenes/exterior.js"
   - "src/scenes/dungeonContext.js"
   - "src/systems/quest/onlineGuard.js"
+  - "src/systems/quest/shareActions.js"
+  - "src/systems/quest/actions.js"
+  - "src/systems/quest/foe.js"
   - "src/net/wire.js"
 routes: []
 tables: []
@@ -29,6 +32,12 @@ invariants:
   - "`shapeMismatch` (`src/systems/quest/questShare.js`, `src/systems/quest/machine.js`) compares the normalized output of `parseQuestShape` fed by `_readTaskHeader` (`task.js`) and `_assignHomeTown` (`person.js`)."
   - "`pauseMenuAct` and `pauseMenuHooks` (`src/ui/pauseDoor.js`) pass `routeKey` and `setPlayerPos` across `world`, `exterior`, and `dungeonContext` so loading a save from the character sheet places the player."
   - "In `src/systems/quest/onlineGuard.js`, quest `N0B10Y03` starts on player arrival with `delaySeconds: 10 * 60` and `lengthSeconds: 60 * 60` game seconds."
+  - "Online, a player who stays in the place after the `N0B10Y03` watch window closes keeps it shut so the questor can pay; leaving and coming back starts a new watch (`guardWindowStep`)."
+  - "A finished or ending share envelope (`questComplete`, or a completed `EndQuest` action per `shareEnvelopeEnding`) never builds a new copy, and `hasFinishedSharedCopy` refuses a copy finished under a share when the same `shareId` arrives again."
+  - "Holder-owned action fields (`holders` in `shareActions.js`: `QlAct` and `VampClouded` `from`, the `DailyFrom` guard anchor, and `CastSpellDo` classic effects) are validated like progress but never taken from the partner; a resync keeps the values of the live copy."
+  - "`slimShareMarkers` leaves off a Place marker's `questUID` and `placeSymbol` when they match its site and Place, a null `targetResources`, and a zero `buildingKey`, and `fullShareMarkers` restores them on receipt. A marker's index in its list is its identity, so none is dropped."
+  - "`PickOneOf` in a party-shared copy draws `sharedPickRoll(shareId, task name, action index)`, so every copy starts the same task."
+  - "A party member's kill of a quest enemy is not counted again when that member's shared quest envelope already brought it: the merge in `machine.js` fills `learnedKills` per owner, and `creditPartnerKill` (`foe.js`) spends it."
   - "The dungeon room host owns rest encounters: joiners request at most once per `REST_ASK_GAP_MS` (`20000` ms), and shared encounter corpses use container key `enc:<_encId>`."
 traps:
   - "Encounter identity uses `_encId`; never reuse `_sh*` properties reserved for billboard shadow state."

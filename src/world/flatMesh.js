@@ -1,9 +1,8 @@
 // @ts-check
-// Builds flat-shaded meshes in code, one picture each. It also exports seededRandom, a repeatable random series.
 
 export function flatMesh(tile, uvOf = null) {
   const p = [], n = [], uv = [];
-  /** cross(b - a, c - a) must point along `out`: the renderer draws gl.frontFace(CW) through a mirrored projection. */
+  // cross(b - a, c - a) must point along `out`: the renderer draws gl.frontFace(CW) through a mirrored projection.
   const tri = (a, b, c, out, ownUv = uvOf) => {
     const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
     let nx = e1[1] * e2[2] - e1[2] * e2[1], ny = e1[2] * e2[0] - e1[0] * e2[2], nz = e1[0] * e2[1] - e1[1] * e2[0];

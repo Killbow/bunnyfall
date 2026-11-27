@@ -31,6 +31,7 @@ invariants:
 traps:
   - "Query doors are URL parameters read once lazily: ?wxmap=off falls back to the WEATHER2b field (src/weather/weatherField.js), ?wxfield=off to the zone word, ?snowground=off disables the ground law, ?weather=<word> pins a word whole."
   - "The Slice E travel-map weather layer (ui/weatherLayer.js) was removed by DISC17-C; do not reintroduce map-layer constants or glyph code."
+  - "`skyOffsetForWeather` returns a DFU WeatherStyle where 0 is Normal; hosts use 0 to select the calendar-season sky and keep the night sky, so the season must never be added to this return."
 dfu:
   - "Assets/Scripts/Game/WeatherManager.cs"
 tags:

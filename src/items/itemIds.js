@@ -109,7 +109,7 @@ export function stampItemIds(entity, rand) {
  *  leaf a trade's refusal reads it from too (FIELD BUGS 2026-10-11g HELD-SIDE). */
 export { TRADE_HELD_NOTICES, tradeHeldLawNotice };   // RPT1026-MARKET HOLD-SAID: the law's named hold lives beside the others, in the player's language
 /** RPT1026-MARKET HOLD-SAID: what the hold froze, open again - in the player's language. */
-export const TRADE_OPEN_NOTICE = 'This character\'s trading, gathering and crafting are open again.';
+export const TRADE_OPEN_NOTICE = 'This character\'s trading, gathering, and crafting are open again.';
 /** What to say when a checkpoint's answer moves the hold from `prev` to `now` (each a reason or null) - a notice, or
  *  null when nothing changed or nothing is known (`undefined`: no answer that says). `why`: the first thing the law found
  *  (`{ t }`, its template) - the notice names it, so a player held over a piece can find it - or (AUTO-HOLD) the law's

@@ -40,7 +40,7 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
   /** The banner line said in the bar and over the panel. */
   function banner() {
     const on = test.testing();
-    return on ? t('poi.test.banner', 'Testing {name}. Trades and events use a test copy of your gold and items. The game is not saved, and your character is put back when the test ends.', { name: on.name }) : '';
+    return on ? t('poi.test.banner', 'Testing {name}: trades and events use a temporary copy of your gold and items. You cannot save during the test, and your character is restored when it ends.', { name: on.name }) : '';
   }
 
   function purse() {
@@ -66,7 +66,7 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
     return section(t('poi.test.purse', 'Test gold and items'),
       row(el('label', '', t('poi.sandbox.gold', 'Gold')), gold, el('span', 'dfpoi-sub', t('poi.test.goldWas', 'was {n, number}', { n: p.first.goldPieces }))),
       el('div', '', t('poi.test.gained', 'Gained: {list}', { list: moreIn(first, now) || none() })),
-      el('div', '', t('poi.test.givenUp', 'Given up: {list}', { list: moreIn(now, first) || none() })),
+      el('div', '', t('poi.test.givenUp', 'Spent or lost: {list}', { list: moreIn(now, first) || none() })),
       el('div', 'dfpoi-sub', t('poi.test.carrying', 'Carrying {n, plural, one {# item} other {# items}}.', { n: carried })),
       wrap(row(el('label', '', t('poi.sandbox.addItem', 'Add item')), pick, count, btn(t('poi.sandbox.add', 'Add'), () => {
         test.addStack({ ...choiceItem(pick.value), count: Math.max(1, Math.floor(Number(count.value)) || 1) }); redraw();
@@ -81,8 +81,8 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
     const kindOf = (/** @type {string} */ key) => (d.interactives ?? []).find((/** @type {any} */ o) => o.key === key)?.kind;
     /** @type {Record<string, () => string>} */
     const enc = { idle: () => t('poi.sandbox.enc.idle', 'waiting'), active: () => t('poi.sandbox.enc.active', 'fighting'), done: () => t('poi.sandbox.enc.done', 'won') };
-    return section(t('poi.test.now', 'The test now'),
-      el('div', '', t('poi.test.enemies', 'Enemies standing: {n, number}', { n: test.enemies() })),
+    return section(t('poi.test.now', 'Test status'),
+      el('div', '', t('poi.test.enemies', 'Enemies alive: {n, number}', { n: test.enemies() })),
       el('div', '', t('poi.sandbox.encountersNow', 'Encounters: {list}', { list: Object.entries(m.encounters).map(([k, v]) => `${nameIn('encounters', k)} ${enc[String(v)]?.() ?? v}`).join(', ') || none() })),
       el('div', '', t('poi.sandbox.objectsNow', 'Objects: {list}', { list: Object.entries(m.states).map(([k, v]) => `${nameIn('interactives', k)} ${stateWord(String(v), kindOf(k))}`).join(', ') || none() })),
       el('div', '', t('poi.sandbox.valuesNow', 'Values: {list}', { list: Object.entries(m.vars).map(([k, v]) => `${nameIn('variables', k)} = ${JSON.stringify(v)}`).join(', ') || none() })));
@@ -93,7 +93,7 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
     const box = el('div', 'dfpoi-test');
     box.append(el('div', 'dfpoi-warn', banner()));
     box.append(row(btn(t('poi.test.stop', 'Stop test'), () => onStop()), btn(t('poi.test.reset', 'Start again'), () => { test.reset(); redraw(); })));
-    box.append(el('div', 'dfpoi-sub', t('poi.test.resetHint', 'Start again copies your gold and items again and sets every value, object, and encounter back to how it is authored.')));
+    box.append(el('div', 'dfpoi-sub', t('poi.test.resetHint', 'Start again resets your test gold and items and restores all variables, objects, and encounters to their initial state.')));
     const p = purse(), s = state();
     if (p) box.append(p);
     if (s) box.append(s);
@@ -102,8 +102,8 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
     const lines = m ? m.log.filter((/** @type {any} */ l) => l.k !== 'to_service').map((/** @type {any} */ l) => logText(m.doc, l)) : [];
     box.append(section(t('poi.sandbox.log', 'Log ({n, plural, one {# step} other {# steps}})', { n: lines.length }), el('pre', 'dfpoi-dm-log', lines.join('\n') || t('poi.sandbox.empty', 'Nothing has happened yet.'))));
     // what the end of a test does not put back (the world's own, outside the character)
-    box.append(el('div', 'dfpoi-sub', t('poi.test.limits', 'Other POIs wait while you test. A quest step taken in a test stays done, and loot taken from the world\'s own enemies is gone when the test ends.')));
-    box.append(el('div', 'dfpoi-sub', t('poi.test.limitsArrows', 'Arrows you shoot come back to your pack when the test ends, and the ones that landed can still be picked up.')));
+    box.append(el('div', 'dfpoi-sub', t('poi.test.limits', 'Other POIs are paused during a test. Quest steps completed during a test remain finished, while loot from regular world enemies is discarded when the test ends.')));
+    box.append(el('div', 'dfpoi-sub', t('poi.test.limitsArrows', 'Arrows fired during a test are returned to your inventory when it ends, and any landed arrows can still be picked up.')));
     return box;
   }
 

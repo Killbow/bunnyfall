@@ -13,6 +13,9 @@ files:
   - src/saves/save.js
   - src/magic/hostMagic.js
   - src/combat/duelCombat.js
+  - src/afflictions/infection.js
+  - src/afflictions/racialLive.js
+  - src/afflictions/curseRepair.js
 replacesBible:
   - "05-Combat/Balance-Arc.md"
 related:
@@ -25,10 +28,12 @@ invariants:
   - "`clawMetalDamage` (`src/combat/clawMetal.js`) returns `Math.max(0, weaponMaterialModifier(plateMetal(metal)))` for an unbroken plate item equipped in the Gloves slot during beast form (otherwise `0`), adding flat damage without altering to-hit rolls, material gates, or silver doubling."
   - "Beast-form claw attacks count as bare hands and skip `weaponBlowMods` whenever `isInBeastForm` is true."
   - "`vampireStatMod` (`src/afflictions/vampirism.js`) returns `-VAMPIRE_STAT_MOD` (`-20`) in sunlight when sun-averse, `0` in sunlight while wearing a raised hood, and `+20` at night or indoors."
+  - "Infection and curse entries (`createInfection`, `createLycanthropyCurse`, and `createVampirismCurse`) carry `permanent: true` so the magic-round clock never prunes them; `src/saves/save.js` forces the flag on load for `racialOverride` and infection entries, and `repairLostCurses` (`src/afflictions/curseRepair.js`, called from `src/saves/save.js`) restores a curse whose tagged spells outlived it."
 traps:
   - "Brigandine Gloves belong to the leather armor class via `rriNativeMaterialValue` (`src/mods/rriItems.js`), so they contribute `0` `clawMetalDamage` regardless of their metal tier name."
   - "Refereed duel proxies (`src/combat/duelCombat.js`) lack a full equipment table and pass `clawMetal` as a pre-resolved integer instead."
   - "`src/saves/save.js` clamps `lastMorphHeal` alongside other curse timestamps; a missing field defaults to `-Infinity` so the first transformation after loading heals normally."
+  - "`src/afflictions/racialLive.js` must stay import-free: `src/combat/formulas.js` imports it, and `vampirism.js` reaches `formulas.js` through `src/items/loot.js`, so moving `liveVampirism` back into `vampirism.js` recreates an import cycle."
 dfu:
   - Assets/Scripts/Game/MagicAndEffects/Effects/Special/LycanthropyEffect.cs
   - Assets/Scripts/Game/MagicAndEffects/Effects/Illusion/MorphSelf.cs

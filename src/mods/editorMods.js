@@ -1,16 +1,5 @@
-// BUNNYFALL: MODS THE DUNGEON EDITOR MADE. The Bunnyfall Dungeon Editor (the C++ project beside this repo) exports
-// a project as a mod folder of its own, `vendor/<name>/`, and marks it with `dungeon-editor.mod.json`:
-//
-//   { "format": "bunnyfall-dungeon-mod/1", "title": "Crypts of Hope", "author": "Kay", "description": "..." }
-//
-// Every such folder is a world-data mod like `bunnyfall-dungeons` (WorldData/, WorldDataPatches/, Models/), with
-// the same one switch, `Enabled`: modSettings.js declares it, features.js gives it a Features row, settingsMap.js
-// places that row under Gameplay > Dungeons, and onlineLane.js hands the switch to the room. So a new editor mod
-// needs no code here - only its folder.
-//
-// `bunnyfall-dungeons` is declared by hand (modSettings.js) and is left out of this list.
-//
-// BROWSER-ONLY glob (as scenes/modWorldData.js): in node the list is empty.
+// Mods made by the Bunnyfall Dungeon Editor: a `vendor/<name>/` folder marked with `dungeon-editor.mod.json`.
+// Each is a world-data mod with the one `Enabled` switch.
 
 export const EDITOR_MOD_FORMAT = 'bunnyfall-dungeon-mod/1';
 
@@ -19,7 +8,6 @@ const HAND_DECLARED = new Set(['bunnyfall-dungeons']);
 const VENDOR_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : '');
 
-/** The editor mods among `files` (a glob's path -> manifest), checked: a bad manifest is warned about and skipped. */
 export function readEditorMods(files) {
   const mods = [];
   for (const [path, json] of Object.entries(files)) {
@@ -39,7 +27,6 @@ export function readEditorMods(files) {
   return Object.freeze(mods.sort((a, b) => a.vendor.localeCompare(b.vendor)));
 }
 
-/** Every editor mod in vendor/, by vendor folder. */
 export const EDITOR_MODS = readEditorMods(IN_BROWSER
   ? import.meta.glob('../../vendor/*/dungeon-editor.mod.json', { eager: true, import: 'default' })
   : {});

@@ -87,7 +87,7 @@ export function createAccountVaultOverlay(deps) {
     noteLine.textContent = note;
     if (!note) noteLine.setAttribute('hidden', ''); else noteLine.removeAttribute('hidden');
     for (const c of [...body.children]) c.remove();
-    if (!v) { body.append(el('p', 'broker-sub', deps.book.error ? vaultWords(deps.book.error) : t('avault.reading', 'Reading the vault...'))); return; }
+    if (!v) { body.append(el('p', 'broker-sub', deps.book.error ? vaultWords(deps.book.error) : t('avault.reading', 'Loading vault...'))); return; }
     // the purse
     body.append(el('div', 'av-head', t('avault.goldHead', 'Gold')));
     const g = el('div', 'av-gold');
@@ -105,7 +105,7 @@ export function createAccountVaultOverlay(deps) {
       const label = it.rec?.group ? itemLongName(it.rec) : it.name;
       const btns = [button(t('avault.takeOut', 'Take out'), () => run(deps.book.take(it.slot)), busy)];
       if (it.count > 1) btns.unshift(button(t('avault.takeOne', 'Take 1'), () => run(deps.book.take(it.slot, 1)), busy));
-      shelf.append(rowOf(it.count > 1 ? `${label} x${it.count}` : label, t('avault.by', 'Put in by {name}', { name: it.by }), btns));
+      shelf.append(rowOf(it.count > 1 ? `${label} x${it.count}` : label, t('avault.by', 'Deposited by {name}', { name: it.by }), btns));
     }
     body.append(shelf);
     // the pack

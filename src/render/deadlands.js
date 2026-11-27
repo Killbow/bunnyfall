@@ -1,59 +1,14 @@
 // @ts-check
-// WB6a (2026-09-25, Mac, having walked the Burning Court: "the transition and the arena needs to be an oblivion
-// masterpiece ... the outside bounds arent a perfect square, maybe somehow introduce distant skybox design or some
-// other ambient detail. Whole thing needs to feel alive"): THE DEADLANDS' SKY AND SEA - what stands round the court
-// and burns under it. Design: bible/11-Multiplayer/World-Bosses.md section 4 ("The Deadlands").
-//
-// WHAT THEY REPLACE. The court stood on a SQUARE of fire 520 m across under a shell of flat fog-red: the fog hid the
-// square's middle and never its edge, and the shell was one colour. Both are gone from the court's mesh
-// (world/gate/gateArena.js buildCourtModel); these two passes stand in their place, drawn in the court's world pass AFTER
-// its solid geometry and BEFORE its flats (PERF2's law, render/skyRenderer.js: the court, the players and the boss's
-// body are drawn first, so the sea burns and the sky churns only where they show, and a flat blended over the sky is
-// drawn over it, never under).
-//
-// THE SKY is painted, not built: one triangle over the screen AT THE FAR PLANE, depth-tested and never written, each
-// pixel reading its own ray. From the
-// zenith down: a churning overcast of smoke lit from below (domain-warped value noise on a cloud deck, drifting on a
-// closed path so the clock can wrap); the VORTEX - Oblivion's own sign, a whirl in the clouds over the great tower,
-// its eye burning, its arms turning faster toward it; the BEAM, a column of fire from the tower's crown up into the
-// eye; the TOWERS, black Daedric spires with horns and a crown, the great one behind the boss as the players arrive
-// and lesser ones round the horizon; three rings of JAGGED RIDGES, far to near, hazier the further, each lit at its
-// crest and glowing at its foot where the fire meets it; and under them the glow of a sea of fire going on for ever.
-// Lightning (`deadlandsFlash`) lights the deck from within at seeded moments. Every rate is a whole number of cycles
-// over DEAD_CLOCK_PERIOD and the clock is handed wrapped, so the sky never jumps (the gate's own law, gatePass.js).
-//
-// THE SEA is built: a disc SEA_R across round the court, rings closer near the middle, depth-tested and written, so
-// the court and everything on it stand in front of it. Its fire moves - crust plates drifting on molten channels, fine cracks
-// glowing in the plates, a slow pulse - fogged by the frame's own fog, and at its rim it becomes exactly the sky's
-// horizon (the one GLSL function both read, HORIZON_GLSL), so no edge is ever seen: not a square, not a circle.
-//
-// THE LIGHT the court stands in is here too (`courtLighting`): a trilight red from above and fire-orange from below,
-// and the vortex's fire as a key light from behind the boss - the dungeon's dark ambient is no place's but a dungeon's.
-//
-// Colours are DISPLAY-encoded (the frame image the lit lane draws foreign passes into is 8-bit and display encoded -
-// duelWall.js), scaled by `gain` with the court's fog (the lane darkens a dungeon's fog, and the sky must meet it).
-//
-// WB6b (2026-09-25, the same ask - "Whole thing needs to feel alive"): THE AIR'S LIFE (`drawLife`) - embers rising off
-// the sea round the court and off its braziers, turning with the drift of the air (`deadlandsWind`), cooling as they
-// climb, and ash falling through it all - one vertex a mote, every life a whole number a period. And a strike LIGHTS
-// THE COURT (`courtLighting(flash)`): the trilight's sky flares and the key light swings toward the strike while it
-// outshines the vortex. The clock the hosts hand is the relay's (world.js deadlandsSeconds), so a strike, its light and
-// its thunder (scenes/deadlandsAir.js) are the same moment on every screen.
-//
-// Not a DFU member. Ledger A (WB).
+// Colors are display-encoded, because the lit lane draws foreign passes into an 8-bit display-encoded image.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 
-/** Every rate is whole cycles over this many seconds; the clock is handed wrapped to it. */
+// Every rate is a whole number of cycles over this period, and the clock arrives wrapped, so the sky never jumps.
 export const DEAD_CLOCK_PERIOD = 600;
 export const deadClock = (seconds) => ((seconds % DEAD_CLOCK_PERIOD) + DEAD_CLOCK_PERIOD) % DEAD_CLOCK_PERIOD;
-/**
- * AUDIT WB D7: THE DEADLANDS' CLOCK AS ONE MACHINE READS THE RELAY'S - carried on the page's clock (`perf`, which never
- * steps back) from an anchor on the wall clock with the relay's offset (`wall`), taken again whenever the two part by
- * more than `slackMs`: a sleep stops the page's clock and not the wall's (timeOrigin + now() drifted from every other
- * screen after one), and an offset can move. Answers a reader of seconds.
- * @param {{perf: () => number, wall: () => number, slackMs?: number}} clocks
- */
+// The page clock carries the time between anchors; a gap over slackMs re-anchors to the wall clock, since a sleep
+// stops the page clock.
+/** @param {{perf: () => number, wall: () => number, slackMs?: number}} clocks */
 export function anchoredClock({ perf, wall, slackMs = 1000 }) {
   let anchor = null;
   return () => {
@@ -62,92 +17,67 @@ export function anchoredClock({ perf, wall, slackMs = 1000 }) {
     return (anchor + p) / 1000;
   };
 }
-/** Azimuths are measured from the court's -z (toward the boss from the arrival), turning toward +x. */
 export const deadAzimuth = (dx, dz) => Math.atan2(dx, -dz);
 
-/** THE GREAT TOWER: its azimuth, its foot and crown (elevations, radians), its half-width at the foot. */
 export const SIGIL_TOWER = Object.freeze({ az: 0.2, foot: -0.02, top: 0.36, w: 0.05 });
-/** The lesser towers round the horizon: azimuth, foot, crown, half-width. */
 export const LESSER_TOWERS = Object.freeze([
   Object.freeze({ az: -1.25, foot: -0.01, top: 0.14, w: 0.022 }),
   Object.freeze({ az: 1.55, foot: -0.01, top: 0.11, w: 0.018 }),
   Object.freeze({ az: 2.55, foot: -0.01, top: 0.17, w: 0.026 }),
   Object.freeze({ az: -2.35, foot: -0.01, top: 0.095, w: 0.016 }),
 ]);
-/** The vortex: over the great tower, this high (radians), turning this many times a period at its rim. */
 export const VORTEX_ELEV = 0.78;
 export const VORTEX_TURNS = 12;
-/** ...and pouring inward: one doubling of its scale every period / VORTEX_INFLOW_TURNS seconds. */
 export const VORTEX_INFLOW_TURNS = 75;
-/** The cloud deck's drift: once round a closed loop a period (so the clock can wrap); the sea's twice. */
 export const CLOUD_LOOP_TURNS = 1;
 export const SEA_LOOP_TURNS = 2;
-/** The beam's bands climbing, the great tower's heart beating, the sea's slow pulse: cycles a period. */
 export const BEAM_CLIMB_TURNS = 300;
 export const SPINE_TURNS = 240;
 export const SEA_PULSE_TURNS = 60;
-/** The falls of fire down the near range: their grain slides down this many times a period. AUDIT WB D8: each slide is
- *  one layer of grain crossing FALL_SLIDE of the noise, two layers half a slide apart, each faded out as it wraps (the
- *  vortex's endless law) - a whole number of slides a period, so the clock's wrap is one more wrap; the grain read at
- *  the clock's radians never met itself there, and the falls jumped. */
+// The falls use two layers of grain half a slide apart, each fading as it wraps, so the clock's wrap shows no jump.
 export const FALL_TURNS = 180;
 export const FALL_SLIDE = 2 * Math.PI;
-/** AUDIT WB D9: above this elevation (radians) no ridge and no tower stands - the great tower's crown is at 0.36, its
- *  crest and the antialiasing's margin above it - and the sky skips their noise there, the most of its sky. */
+// This stays above the great tower's crown and its antialiasing margin, because the sky skips ridge noise above it.
 export const RIDGES_TOP = 0.42;
-/** A rate of `turns` cycles a period, as the shader's radians a second. */
 const w = (turns) => ((turns / DEAD_CLOCK_PERIOD) * 2 * Math.PI).toFixed(6);
-/** The ridges, far to near: base elevation, rise, features round the horizon, jaggedness, haze toward the horizon. */
 export const RIDGES = Object.freeze([
   Object.freeze({ base: 0.012, rise: 0.05, freq: 5.0, sharp: 1.6, haze: 0.62 }),
   Object.freeze({ base: -0.004, rise: 0.07, freq: 8.0, sharp: 2.2, haze: 0.38 }),
   Object.freeze({ base: -0.02, rise: 0.11, freq: 13.0, sharp: 3.0, haze: 0.14 }),
 ]);
-/** The sea: its radius (inside the host's 500 m far plane from anywhere on the court), the span over which its rim
- *  becomes the horizon, its rings and spokes. */
+// The sea's radius stays inside the host's 500 m far plane from anywhere on the court.
 export const SEA_R = 460;
 export const SEA_FADE = Object.freeze([260, 450]);
 export const SEA_RINGS = 36;
 export const SEA_SPOKES = 96;
-/** The sea's depth under the court's floor (world/gate/gateArena.js LAVA_Y - pinned equal; render/ reads no world/ module). */
+// This must equal LAVA_Y in src/world/gateArena.js, which this module does not import.
 export const DEAD_SEA_Y = -36;
-/** THE AIR'S LIFE: embers rising off the sea round the court (from past its edge, never up through its floor), a few
- *  off each brazier, and ash falling over it all - how many, and how long each lives (whole cycles a period, so the
- *  clock can wrap: a life is DEAD_CLOCK_PERIOD / turns). */
 export const SEA_EMBERS = 520;
 export const BRAZIER_EMBERS = 16;
 export const ASH_FLAKES = 280;
 export const EMBER_TURNS = Object.freeze([60, 110]);
 export const BRAZIER_EMBER_TURNS = Object.freeze([90, 150]);
 export const ASH_TURNS = Object.freeze([10, 16]);
-/** Where the sea's embers rise (metres from the court's centre) and how high the ash starts over the floor. */
 export const EMBER_RING = Object.freeze([27, 95]);
 export const ASH_TOP = 45;
 export const ASH_RADIUS = 60;
-/** The most braziers the pass takes (world/gate/gateArena.js courtBraziers has five - the sixth is the bridge's gap). */
+// This must cover the braziers one courtBraziers call places in src/world/gateArena.js.
 export const LIFE_BRAZIERS_MAX = 6;
-/** The air's drift over the court: its speed (metres a second) and its turns round the compass a period. */
 export const WIND_SPEED = 1.4;
 export const WIND_TURNS = 2;
-/** The drift at `seconds`: `[x, z]` metres a second, turning WIND_TURNS times round a period (whole, so the clock wraps). */
 export function deadlandsWind(seconds) {
   const a = (deadClock(seconds) / DEAD_CLOCK_PERIOD) * WIND_TURNS * 2 * Math.PI;
   return [Math.cos(a) * WIND_SPEED, Math.sin(a) * WIND_SPEED];
 }
-/** Lightning: the period cut into FLASH_SLOTS slots of FLASH_SLOT_S (whole - WB6b: a 7 s slot left a 5 s stub at the
- *  wrap), about half of them striking, each strike lit for FLASH_S, flickering. */
 export const FLASH_SLOT_S = 7.5;
 export const FLASH_SLOTS = DEAD_CLOCK_PERIOD / FLASH_SLOT_S;
 export const FLASH_S = 0.55;
-/** How far off a strike is (metres - its thunder's lateness at the speed of sound, and its loudness). */
 export const FLASH_DIST = Object.freeze([350, 2600]);
-/** THE COURT'S LIGHT - display-encoded, the dungeon host's own units. */
 export const COURT_TRILIGHT = Object.freeze({
   sky: Object.freeze([0.34, 0.1, 0.07]),
   equator: Object.freeze([0.3, 0.1, 0.06]),
   ground: Object.freeze([0.72, 0.3, 0.1]),
 });
-/** The vortex's fire as a key light: toward the vortex over the great tower (a unit vector), its strength, its colour. */
 export const COURT_KEY_LIGHT = Object.freeze({
   scale: 0.55,
   dir: Object.freeze((() => {
@@ -157,19 +87,13 @@ export const COURT_KEY_LIGHT = Object.freeze({
   color: Object.freeze([1.0, 0.46, 0.22]),
 });
 
-/** WB6b: A STRIKE'S LIGHT on the court at its full strength - what it adds to the trilight's sky and equator, what it
- *  adds to the key (which swings toward it as it outshines the vortex), and its colour: the white heart of the
- *  Deadlands' fire. */
 export const FLASH_LIGHT = Object.freeze({ sky: 0.62, equator: 0.3, key: 1.25, color: Object.freeze([1.0, 0.8, 0.64]) });
 
-/** The court's lighting: the trilight and the key, for the dungeon host to set over its own - fresh copies. WB6b:
- *  `flash` the strike lit now (deadlandsFlash), or null. */
 export function courtLighting(flash = null) {
   const s = Math.max(0, Math.min(1, Number(flash?.strength) || 0));
   const lift = (c, k) => c.map((v, i) => v + s * k * FLASH_LIGHT.color[i]);
   const tri = { sky: lift(COURT_TRILIGHT.sky, FLASH_LIGHT.sky), equator: lift(COURT_TRILIGHT.equator, FLASH_LIGHT.equator), ground: [...COURT_TRILIGHT.ground] };
   if (!(s > 0) || !Number.isFinite(flash.az) || !Number.isFinite(flash.elev)) return { tri, key: { scale: COURT_KEY_LIGHT.scale, dir: [...COURT_KEY_LIGHT.dir], color: [...COURT_KEY_LIGHT.color] } };
-  // the key goes over to the strike by its share of the light: all the vortex's in the dark, most of the strike's at its peak
   const w = (s * FLASH_LIGHT.key) / (s * FLASH_LIGHT.key + COURT_KEY_LIGHT.scale);
   const to = [Math.sin(flash.az) * Math.cos(flash.elev), Math.sin(flash.elev), -Math.cos(flash.az) * Math.cos(flash.elev)];
   const d = COURT_KEY_LIGHT.dir.map((v, i) => v + (to[i] - v) * w);
@@ -177,14 +101,9 @@ export function courtLighting(flash = null) {
   return { tri, key: { scale: COURT_KEY_LIGHT.scale + s * FLASH_LIGHT.key, dir: l > 1e-6 ? d.map((v) => v / l) : to, color: COURT_KEY_LIGHT.color.map((v, i) => v + (FLASH_LIGHT.color[i] - v) * w) } };
 }
 
-/** A small seeded hash, [0, 1). */
 const hash01 = (n) => { let x = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
 
-/**
- * A SLOT'S STRIKE, pure: the strike slot `n` of the period throws (wrapped to FLASH_SLOTS) - `{ slot, at, az, elev,
- * dist }`: when it lights (seconds into the period), where on the sky, how far off (FLASH_DIST) - or null, as about
- * half the slots are. WB6b: the one answer the sky's flash and the thunder (scenes/deadlandsAir.js) both read.
- */
+// The sky's flash and the thunder in src/audio/deadlandsAir.js both read this, so they stay in step.
 export function flashOfSlot(n) {
   const slot = ((Math.floor(n) % FLASH_SLOTS) + FLASH_SLOTS) % FLASH_SLOTS;
   if (hash01(slot * 3 + 1) < 0.45) return null;
@@ -197,11 +116,6 @@ export function flashOfSlot(n) {
   };
 }
 
-/**
- * LIGHTNING, pure of everything but the clock: the strike lit at `seconds` (the Deadlands' clock, wrapped or not) -
- * `{ strength, az, elev, slot }` - or null. A slot's strike (flashOfSlot) flickers twice as it dies. The same on
- * every screen the clock is.
- */
 export function deadlandsFlash(seconds) {
   const t = deadClock(seconds);
   const f = flashOfSlot(t / FLASH_SLOT_S);
@@ -215,7 +129,6 @@ export function deadlandsFlash(seconds) {
 const HEAD = `#version 300 es
 precision highp float;
 `;
-/** The noise both passes read: value noise, fbm with a turn between octaves. */
 export const DEAD_NOISE_GLSL = `float dhash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float dnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p);
@@ -225,8 +138,7 @@ float dnoise(vec2 p) {
 const mat2 DROT = mat2(0.8, -0.6, 0.6, 0.8);
 float dfbm(vec2 p, int oct) { float v = 0.0, a = 0.5; for (int k = 0; k < 6; k++) { if (k >= oct) break; v += a * dnoise(p); p = DROT * p * 2.03 + 11.7; a *= 0.5; } return v; }
 `;
-/** THE HORIZON, one function both passes read: the sky's colour just under the level of the eye along `d` - the glow
- *  of the sea going on for ever, meeting the frame's haze. The sea's rim becomes exactly this. */
+// The sky and the sea both read this, so the rim of the sea becomes exactly the horizon, with no visible edge.
 export const HORIZON_GLSL = `vec3 deadHorizon(vec3 d) {
   float e = asin(clamp(d.y, -1.0, 1.0));
   vec3 glow = vec3(0.86, 0.3, 0.075) * uGain;
@@ -237,7 +149,6 @@ export const HORIZON_GLSL = `vec3 deadHorizon(vec3 d) {
 }
 `;
 
-// ── the sky ──────────────────────────────────────────────────────────
 export const DEAD_SKY_VS = HEAD + `layout(location = 0) in vec2 aPos;
 uniform vec3 uRight, uUp, uFwd;
 uniform vec4 uProj;   // proj[0], proj[5], proj[8], proj[9] - the lens, and its offset if it has one
@@ -414,7 +325,6 @@ void main() {
   o = vec4(col, 1.0);
 }`;
 
-// ── the sea ──────────────────────────────────────────────────────────
 export const DEAD_SEA_VS = HEAD + `layout(location = 0) in vec2 aXZ;   // metres from the court's centre
 uniform mat4 uVP;
 uniform vec3 uCentre;   // the court's centre on the sea's plane (its y the sea's)
@@ -464,7 +374,6 @@ void main() {
   o = vec4(col, 1.0);
 }`;
 
-/** The sea's disc: rings closer near the middle (the eye is over it), triangles facing up. Pure. */
 export function seaVertices(rings = SEA_RINGS, spokes = SEA_SPOKES, radius = SEA_R) {
   const out = [];
   const R = (i) => radius * Math.pow(i / rings, 1.6);
@@ -474,7 +383,7 @@ export function seaVertices(rings = SEA_RINGS, spokes = SEA_SPOKES, radius = SEA
       const a0 = (k / spokes) * Math.PI * 2, a1 = ((k + 1) / spokes) * Math.PI * 2;
       const p00 = [Math.cos(a0) * r0, Math.sin(a0) * r0], p01 = [Math.cos(a1) * r0, Math.sin(a1) * r0];
       const p10 = [Math.cos(a0) * r1, Math.sin(a0) * r1], p11 = [Math.cos(a1) * r1, Math.sin(a1) * r1];
-      // wound counter-clockwise seen from above (+y): the face is up
+      // Wound counter-clockwise seen from above (+y), so the face is up.
       out.push(...p00, ...p11, ...p10);
       if (i > 0) out.push(...p00, ...p01, ...p11);
     }
@@ -482,9 +391,7 @@ export function seaVertices(rings = SEA_RINGS, spokes = SEA_SPOKES, radius = SEA
   return new Float32Array(out);
 }
 
-// ── the air's life ───────────────────────────────────────────────────
-/** One vertex a mote: kind (0 an ember off the sea, 1 off a brazier, 2 ash), three draws in [0, 1). Seeded, pure:
- *  the embers first, then the ash, so each is one draw of its own blend. */
+// Embers come first, then ash, so each kind is one draw with its own blend.
 export function lifeVertices(seed = 0xe3be5, braziers = LIFE_BRAZIERS_MAX) {
   let x = seed >>> 0;
   const r = () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296; };
@@ -575,7 +482,6 @@ void main() {
   o = vec4(hot * (core * 1.4 + halo) * vAlpha * f * uGain, 1.0);
 }`;
 
-/** The camera's basis and lens off a view and a projection (column-major): what the sky's triangle turns into rays. */
 export function skyBasis(view, proj) {
   return {
     right: [view[0], view[4], view[8]],
@@ -585,8 +491,7 @@ export function skyBasis(view, proj) {
   };
 }
 
-/** The sky's gain against the court's own fog: the frame's fog colour over COURT_FOG's, by its red (the lane scales
- *  all three alike). */
+// Matched by red alone, because the lane scales all three fog channels alike.
 export function skyGain(fogColor, courtFogColor) {
   const want = courtFogColor?.[0] ?? 0, have = fogColor?.[0] ?? 0;
   return want > 0 && have > 0 ? Math.min(1.5, have / want) : 1;
@@ -610,14 +515,12 @@ export class DeadlandsRenderer {
     for (const n of ['uRight', 'uUp', 'uFwd', 'uProj', 'uTime', 'uHaze', 'uGain', 'uFlash']) this.us[n] = gl.getUniformLocation(this.sky, n);
     this.ue = {};
     for (const n of ['uVP', 'uCentre', 'uTime', 'uHaze', 'uGain', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos']) this.ue[n] = gl.getUniformLocation(this.sea, n);
-    // the sky's one triangle over the screen
     this.skyVao = gl.createVertexArray();
     gl.bindVertexArray(this.skyVao);
     this.skyVbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.skyVbo);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
-    // the sea's disc
     const verts = seaVertices();
     this.seaCount = verts.length / 2;
     this.seaVao = gl.createVertexArray();
@@ -627,7 +530,6 @@ export class DeadlandsRenderer {
     gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
-    // the air's life: one vertex a mote
     this.life = buildProgram(gl, DEAD_LIFE_VS, DEAD_LIFE_FS);
     this.ul = {};
     for (const n of ['uVP', 'uCentre', 'uTime', 'uPxPerM', 'uBraziers', 'uBrazierCount', 'uWind', 'uAsh', 'uGain', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos']) this.ul[n] = gl.getUniformLocation(this.life, n);
@@ -643,17 +545,11 @@ export class DeadlandsRenderer {
     gl.bindVertexArray(null);
     this._vp = new Float32Array(16);
     this._beds = new Float32Array(LIFE_BRAZIERS_MAX * 3);
-    /** what the last draw drew, for the stats and the tests: 'sky', 'sea' - and the life's: 'ash', 'embers' */
     this.drawn = [];
     this.lifeDrawn = [];
   }
 
-  /**
-   * THE AIR'S LIFE - the ash laid over the frame and the embers added onto it, depth-tested and never written: after
-   * the court's flats, beside its telegraph. `centre` the court's centre on its floor (the dungeon's frame),
-   * `braziers` the fire beds in the court's frame (world/gate/gateArena.js courtBraziers), `viewH` the world image's height in
-   * pixels (RETRO1's - render/lightningBolts.js reads it the same way; the drawing buffer's when not handed).
-   */
+  // Drawn after the court's flats, depth-tested and never written.
   drawLife(proj, view, centre, seconds, fog = null, gain = 1, braziers = [], viewH = 0) {
     const gl = this.gl;
     this.lifeDrawn = [];
@@ -665,7 +561,7 @@ export class DeadlandsRenderer {
     gl.uniform3fv(L.uCentre, centre);
     gl.uniform1f(L.uTime, deadClock(seconds));
     gl.uniform2fv(L.uWind, deadlandsWind(seconds));
-    gl.uniform1f(L.uPxPerM, (Math.max(1, viewH || gl.drawingBufferHeight || 720) * proj[5]) / 2);   // proj[5] = 1 / tan(fov / 2): a metre at one metre off, in pixels
+    gl.uniform1f(L.uPxPerM, (Math.max(1, viewH || gl.drawingBufferHeight || 720) * proj[5]) / 2);
     const beds = (Array.isArray(braziers) ? braziers : []).filter((p) => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite)).slice(0, LIFE_BRAZIERS_MAX);
     this._beds.fill(0);
     beds.forEach((p, i) => this._beds.set(p, i * 3));
@@ -680,7 +576,6 @@ export class DeadlandsRenderer {
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(false);
     gl.enable(gl.BLEND);
-    // the ash first, laid over (premultiplied); then the embers, added - light on whatever the ash left
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.uniform1i(L.uAsh, 1);
     gl.drawArrays(gl.POINTS, this.emberCount, this.ashCount);
@@ -695,12 +590,7 @@ export class DeadlandsRenderer {
     return true;
   }
 
-  /**
-   * Draw the sea (depth-tested and written) and then the sky (at the far plane, tested, never written) - in the court's
-   * world pass after its solid geometry, before its flats. `centre` the court's centre on the sea's plane (the
-   * dungeon's frame), `seconds` any clock (wrapped here), `fog` the frame's fog as the renderer set it ({ mode,
-   * density, range, color, camPos }), `gain` skyGain's.
-   */
+  // Drawn after the court's solid geometry and before its flats, so the sea and the sky shade only where they show.
   draw(proj, view, centre, seconds, fog = null, gain = 1) {
     const gl = this.gl;
     const t = deadClock(seconds);
@@ -710,7 +600,6 @@ export class DeadlandsRenderer {
     this.drawn = [];
     gl.disable(gl.BLEND);
     gl.disable(gl.CULL_FACE);
-    // THE SEA: solid - only what of it the court leaves showing burns
     if (Array.isArray(centre) && centre.length === 3 && centre.every(Number.isFinite)) {
       gl.enable(gl.DEPTH_TEST);
       gl.depthMask(true);
@@ -728,18 +617,17 @@ export class DeadlandsRenderer {
       gl.drawArrays(gl.TRIANGLES, 0, this.seaCount);
       this.drawn.push('sea');
     }
-    // THE SKY: whatever nothing nearer has drawn
     gl.useProgram(this.sky);
     const S = this.us;
     gl.uniform3fv(S.uRight, b.right); gl.uniform3fv(S.uUp, b.up); gl.uniform3fv(S.uFwd, b.fwd); gl.uniform4fv(S.uProj, b.lens);
     gl.uniform1f(S.uTime, t); gl.uniform3fv(S.uHaze, haze); gl.uniform1f(S.uGain, gain);
     gl.uniform4f(S.uFlash, f ? f.az : 0, f ? f.elev : 0, f ? f.strength : 0, 0);
     gl.depthMask(false);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);   // PERF2: only where nothing nearer has drawn - z is the far plane
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.bindVertexArray(this.skyVao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     this.drawn.push('sky');
-    gl.depthFunc(gl.LESS);   // PERF2: the renderer's own compare back
+    gl.depthFunc(gl.LESS);
     gl.depthMask(true);
     gl.bindVertexArray(null);
     gl.enable(gl.CULL_FACE);

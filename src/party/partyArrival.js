@@ -12,9 +12,8 @@ export class PartyArrivalUnavailable extends Error {
   constructor() { super('No supported party arrival'); this.name = 'PartyArrivalUnavailable'; }
 }
 
-/** Probe a COPY with the actual player capsule. A ray alone can miss a deck
- * seam or reject a supported stair position. Never accept an unresolved body,
- * a ceiling hit, a shove sideways, or an unrelated level below the leader. */
+/** Probes a copy with the real player capsule: a ray alone can miss a deck seam or reject a supported stair.
+ * Never accepts an unresolved body, a ceiling hit, a sideways shove, or an unrelated level below the leader. */
 export function supportedPartyPosition(collider, at, minimumY = -Infinity) {
   if (!at?.every(Number.isFinite)) return null;
   const pos = new Float32Array(at);
@@ -40,11 +39,8 @@ export function partyArrivalBeside(at, collider, seat = 0, minimumY = -Infinity)
   return own ? { ...own, yaw: null } : null;
 }
 
-/** Bounded retries, including when a background tab's clock stalls. The caller
- * samples the leader AND hull on every attempt. Nothing is placed by a retry.
- * `probe(last)` returns a landing, or null to be asked again. `last` is true on
- * the final attempt: a caller that waits for a better landing than its fallback
- * (beside the leader, not the place's own arrival) takes the fallback then. */
+/** Bounded retries, including when a background tab's clock stalls; nothing is placed by a retry. `probe(last)`
+ * returns a landing or null, and on the last attempt a caller waiting for a better landing takes its fallback. */
 export async function waitForPartyArrival(probe, {
   wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = () => performance.now(), onWait = () => {},
@@ -61,34 +57,19 @@ export async function waitForPartyArrival(probe, {
   throw new PartyArrivalUnavailable();
 }
 
-// THE PARTY ARRIVAL, out of the host (PARTY-FOLLOW, 2026-10-25; HOST-SPLIT, bible/01-Overview/Host-Split.md). This
-// was a callback inside bootWorld's fastTravelTo; it is the party's own law, so it lives here and the host wires it:
-// one construction (createPartyArrivalHost), one `land` in the teleport's arrival, one `arrivalLine` when it is said.
-//
-// A follower's landing is chosen once the destination pixel is built:
-//   1. beside the leader's feet, when their pose stands in the pixel's open air and a spot there holds a body;
-//   2. while the leader stands there but no spot does (mid-jump, knocked back, on a ledge, swimming), asked again
-//      until the wait's last attempt - the place's own arrival can be far from them;
-//   3. the place's own outside/entrance landing on dry, supported ground: at once when there is no leader in the
-//      pixel's open air, else on the last attempt. Neither: the wait throws PartyArrivalUnavailable.
-
 /**
  * @typedef {{ pos: number[], yaw?: number|null, groundKey?: string|null }} PartyLanding
- * @typedef {{ x: number, y: number, z: number }} LeaderFeet   natives: MapsFile's X and Z, the height with the
- *   floating origin's vertical shift shed (partyTravelLaw.js besideTargetOf)
+ * @typedef {{ x: number, y: number, z: number }} LeaderFeet
  * @typedef {{ besideAt: () => LeaderFeet|null, besideSeat?: number, besideText?: string, besideMissedText?: string }} PartyPick
  * @typedef {object} PartyArrivalSeams
- * @property {(feet: LeaderFeet, seat: number) => PartyLanding|null} besideLanding   a spot beside the leader's feet, or null
- * @property {(at: number[]) => PartyLanding|null} supportedLanding   the place's own landing `at`, if it holds a body on dry ground
- * @property {() => void} sync   bring peer hulls and their colliders up to this moment (the leader may stand on a deck)
- * @property {(line: string) => void} waiting   the wait said, once, when the first attempt finds no landing
- * @property {{ wait?: (ms: number) => Promise<void>, now?: () => number }} [clock]   waitForPartyArrival's own clock
+ * @property {(feet: LeaderFeet, seat: number) => PartyLanding|null} besideLanding
+ * @property {(at: number[]) => PartyLanding|null} supportedLanding
+ * @property {() => void} sync
+ * @property {(line: string) => void} waiting
+ * @property {{ wait?: (ms: number) => Promise<void>, now?: () => number }} [clock]
  */
 
-/** The arrival's law over its seams - what a test runs with fakes. */
 export function createPartyArrival(/** @type {PartyArrivalSeams} */ seams) {
-  /** Where `pick` lands, `fallback` being the place's own landing the build computed. `beside` is the landing when it
-   *  stands beside the leader, else null. Throws PartyArrivalUnavailable when no landing holds a body. */
   async function land(/** @type {PartyPick} */ pick, /** @type {number[]} */ fallback) {
     /** @type {PartyLanding|null} */
     let beside = null;
@@ -102,8 +83,6 @@ export function createPartyArrival(/** @type {PartyArrivalSeams} */ seams) {
     return { landing, beside };
   }
 
-  /** The line an arrival says: the pick's own when it stood beside the leader, the pick's "no room" line when a
-   *  party arrival took the place's landing instead, else `ordinaryLine`. */
   function arrivalLine(/** @type {PartyPick} */ pick, /** @type {boolean} */ partyArrival, /** @type {PartyLanding|null} */ beside, /** @type {string} */ ordinaryLine) {
     if (beside && pick.besideText) return pick.besideText;
     if (partyArrival && pick.besideMissedText) return pick.besideMissedText;
@@ -113,14 +92,11 @@ export function createPartyArrival(/** @type {PartyArrivalSeams} */ seams) {
   return { land, arrivalLine };
 }
 
-/** The leader's feet in this scene's frame (`state`, the streaming world's floating origin), then a spot beside them
- *  against the capsule that will stand there, never below the sea (`seaY`). */
 export function besideLeaderLanding(/** @type {LeaderFeet} */ feet, /** @type {number} */ seat, /** @type {any} */ state, /** @type {any} */ collider, /** @type {number} */ seaY) {
   const [localX, localZ] = state.localFromWorld(feet.x, feet.z);
   return partyArrivalBeside([localX, feet.y + state.compensation[1], localZ], collider, seat, seaY - 0.1);
 }
 
-/** The arrival bound to the world's streaming state, its collider and its sea - the host's one construction. */
 export function createPartyArrivalHost({ state, collider, seaY, sync, waiting }) {
   return createPartyArrival({
     besideLanding: (feet, seat) => besideLeaderLanding(feet, seat, state, collider, seaY()),

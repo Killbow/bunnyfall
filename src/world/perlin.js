@@ -1,14 +1,5 @@
-// 2D Perlin gradient noise in the role of Unity's Mathf.PerlinNoise.
-// DEPARTURE (Port-Ledger A, pending review): DFU's TerrainHelper.GetNoise
-// calls Unity's engine-internal Mathf.PerlinNoise, whose exact permutation
-// is not in DFU's source and cannot be translated. This is Ken Perlin's
-// improved noise (2002) with his reference permutation table, evaluated on
-// the z = 0 plane and remapped from [-1, 1] to [0, 1] to match Unity's
-// output range. Same statistical character, different concrete samples;
-// terrain built on it is self-consistent and deterministic. All corpus
-// pins downstream pin OUR samples.
+// Ken Perlin's improved noise on the z = 0 plane, remapped from [-1, 1] to [0, 1].
 
-// Ken Perlin's reference permutation, doubled.
 const P = new Uint8Array(512);
 const PERM = [
   151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
@@ -42,7 +33,6 @@ function lerp(t, a, b) {
 }
 
 function grad(hash, x, y) {
-  // 3D gradients at z = 0.
   const h = hash & 15;
   const u = h < 8 ? x : y;
   const v = h < 4 ? y : (h === 12 || h === 14 ? x : 0);
@@ -50,7 +40,6 @@ function grad(hash, x, y) {
 }
 
 /**
- * Perlin noise sample, remapped to [0, 1].
  * @param {number} x
  * @param {number} y
  * @returns {number}

@@ -37,10 +37,12 @@ invariants:
   - "A mine is one relay room (`dungeon:m<mapId>`) over the `mn` frame; `MINE_RELAY_MIN` (278) gates the client."
   - "Cave veins (`cvein:`) are server-checked harvests with no ground test, capped at `MINE_VEINS_PER_DAY` (150)."
   - "A collapse seals the mine for `MINE_SEAL_S` (3600 s) and the next opening bumps its `reset`, which reshuffles the layout."
+  - "A room state whose `reset` differs from the mine the page entered puts the player out: a sealed mine through the collapse, an open one at once with `MINE_TEXT.shifted`."
 traps:
   - "The player's `pos` is the feet: the start marker sits 0.3 m over the mouth tunnel's floor, never 1.75 m up."
   - "Billboard batch centres are the base; never add half the height."
   - "Walking into a mouth runs from onlineWorld's frame alone; offline probes call `window.__mine()`."
+  - "A mouth stays disarmed after entry or a landing until the player steps beyond `MOUTH_REARM_M` (`8` m), or the way out lands them straight back inside."
 tags:
   - caverns
   - mining

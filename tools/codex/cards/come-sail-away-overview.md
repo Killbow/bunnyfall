@@ -23,6 +23,9 @@ files:
   - "src/ui/boatMarks.js"
   - "src/systems/naval/farLife.js"
   - "tools/comeSailAwayExtract.mjs"
+  - "src/world/carrackModel.js"
+  - "src/world/largeBoatRig.js"
+  - "src/world/largeBoatModel.js"
 routes: []
 tables: []
 replacesBible:
@@ -40,9 +43,13 @@ invariants:
   - "Hull prefab id is `FIRST_HULL_MODEL_ID` (112410) + hull index 0..4 (Rowboat, Large Boat, Small Ship, Large Galley, Carrack); trigger prefabs are `TRIGGER_MODEL` 112400..112406 (drive, board, cargo, door, variant, status, position)."
   - "Boat items are `BOAT_PARTS_TEMPLATE` (1320) and `BOAT_DEED_TEMPLATE` (1321); Shipyards, not general stores, trade them (`src/trade/shopStock.js`)."
   - "`packedHullWeight(hull)` = min(`HULL_WEIGHTS[hull]`, `PACKED_WEIGHT_MAX`), where `PACKED_WEIGHT_MAX` = `HULL_WEIGHTS[1]` (120 kg)."
+  - "The Come Sail Away walk counts every node whose name contains `Sail` as a sail and reads its kind and size from the name. Large boat rig part keys drop `Skiff` and `Sail`."
 traps:
   - "Three declared settings (`Handling.BadTack`, `Handling.BadTackMultiplier`, `SailingAssist.AutoStowGaffSails`) are intentionally unread; do not wire them."
   - "Ship art pseudo-archives (`GALLEON_ARCHIVE` 38131, `CARRACK_ARCHIVE` 38141, `LARGE_BOAT_ARCHIVE` 38171) must not collide with other pseudo-archives; 38151 belongs to the Shattered Hour realm."
+  - "`carrackPrefab` must keep the hull node as the first MeshCollider in the prefab tree, because the boat walk reads that collider as the boat's frame."
+  - "`Variants` must hold a child for every saved `variant`; a missing child throws in the walk, so the large boat carries all `VARIANT_COUNT` (7) plans."
+  - "The frame of a hull prefab (`Boat.MeshObject`) is the node of its first `MeshCollider`, so `LARGE_BOAT_HULL_NODE` must carry the first MeshCollider in the tree."
 dfu: []
 tags:
   - "come-sail-away"

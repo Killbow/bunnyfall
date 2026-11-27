@@ -1,18 +1,6 @@
 // @ts-check
-// Character mesh packing (Characters C4b).
-// Rewrite-rig faces ({p: flat verts 3f/vtx, n: normal, c: [r,g,b]
-// 0-255}) into the renderer's interleaved character vertex stream:
-// [pos.xyz, color.rgb (0-1), normal.xyz] per vertex, faces
-// fan-triangulated (v0, vi, vi+1) exactly like the engine's own
-// consumer. Dagger departures from Voxlight's meshFromFaces, by
-// design: REAL normals ride the stream (dagger's character program
-// lights in-shader with the scene's ambient/sun/point model - no
-// baked cel shade, no pixel-lock ref-slot), and no eye-space culling -
-// instead drawCharacter DISABLES GL back-face culling for its draws
-// (rig winding is inconsistent by upstream design; the authored
-// normals are correct and light the faces).
 
-/** @returns {Float32Array} interleaved 9 floats/vertex */
+/** @returns {Float32Array} */
 export function packCharacterFaces(faces) {
   let tris = 0;
   for (const f of faces) tris += f.p.length / 3 - 2;

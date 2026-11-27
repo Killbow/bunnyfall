@@ -27,9 +27,11 @@ invariants:
   - "No isle spawns in edge cells (`EDGE_CELLS = 1`) or in any cell east of `VEILHAVEN_CELL`, four cells west of the Veil column on the middle row (`Math.floor(CELLS_H / 2)`)."
   - "Isle place IDs use lane `ETHER_PLACE_SALT` (`0xe7`) in the high 12 bits, start from `ETHER_PLACE_BASE` (`500000`), and report region `ETHER_REGION` (`19`, Betony)."
   - "`EtherWatersBake extends DeepWatersBake` over `ETHER_FRAME`, building planes lazily and flooding one isle cell at a time across the roughly forty-million-pixel box."
+  - "`etherTemplates` sorts each template list by map id and `etherTemplateOf` picks by `etherHash(isle.seed, 11)`, so every client clones the same game place onto an isle."
 traps:
   - "Changing `ETHER_SALT` moves every procedural isle and invalidates saved `\"cx,cy\"` isle keys."
   - "Port isles center their land on the town pixel middle (`landCentre`) so the shore sits about `ETHER_PORT_SHORE_M` (`900`) meters out; shrinking that radius puts water past `ETHER_HARBOUR_REACH` and prevents quay placement."
+  - "Location templates are cached objects shared with the exterior layout, so `synthesizeEtherLocation` copies every nested object it changes and must never mutate the template."
 dfu: []
 tags:
   - eltheric-ocean

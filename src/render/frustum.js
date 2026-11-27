@@ -1,49 +1,15 @@
 // @ts-check
-// EV3: FRUSTUM CULLING - the pure half. The exploration lane found
-// ZERO frustum tests in the render path: ~1045 drawMesh calls in a
-// city and 49 terrain pixels (~1.6M triangles) drawn every frame,
-// two-thirds of them behind the camera. Presentation is ours under
-// Port-Doctrine (DFU gets culling free from Unity), so there is no
-// verbatim law here - just the standard mathematics, kept pure so
-// the whole thing pins in node with no GL and no game data.
-//
-// PLANE EXTRACTION is Gribb/Hartmann over the combined proj*view:
-// with column-major m and clip = m * world, the six planes are sums
-// and differences of row 3 with rows 0..2. The planes are NOT
-// normalized - the outside test only asks for the sign, and
-// normalizing would spend four sqrts a frame on nothing. This works
-// unchanged under mirrorProjectionX (the handedness law): the mirror
-// is part of the matrix, so it is part of the planes.
-//
-// THE OUTSIDE TEST is the p-vertex form: for each plane, take the
-// box corner FARTHEST along the plane normal; if even that corner is
-// behind the plane, the whole box is. It is deliberately
-// CONSERVATIVE the safe way round - a box that straddles or
-// surrounds the frustum always answers "not outside" (false), so the
-// worst failure mode is drawing something invisible, never popping
-// something visible. That direction is what lets the hosts pad their
-// bounds generously (buildings above terrain, trees above ground)
-// and stay correct.
-//
-// ?cull=off is the escape hatch, the ?sky=classic shape: one query
-// flag, read once at scene build, so a wrong bound in the field is a
-// URL away from proof rather than a rebuild.
 
-import { pageParam } from '../platform/pageQuery.js';   // AUDIT PERF-URL A3: the ?cull=off hatch reads the page's one parse
+import { pageParam } from '../platform/pageQuery.js';
 
-/** The six planes of clip space, as 24 floats [a,b,c,d] x 6, from a
- *  column-major combined projection*view matrix. Order: left, right,
- *  bottom, top, near, far. */
+// Gribb/Hartmann planes (left, right, bottom, top, near, far), unnormalized: the outside test needs only the sign.
 export function frustumPlanes(m, out = new Float32Array(24)) {
-  // row_i of column-major m is [m[i], m[4+i], m[8+i], m[12+i]]
   for (let i = 0; i < 3; i++) {
     const o = i * 8;
-    // row3 + row_i
     out[o] = m[3] + m[i];
     out[o + 1] = m[7] + m[4 + i];
     out[o + 2] = m[11] + m[8 + i];
     out[o + 3] = m[15] + m[12 + i];
-    // row3 - row_i
     out[o + 4] = m[3] - m[i];
     out[o + 5] = m[7] - m[4 + i];
     out[o + 6] = m[11] - m[8 + i];
@@ -52,12 +18,7 @@ export function frustumPlanes(m, out = new Float32Array(24)) {
   return out;
 }
 
-/** Is the axis-aligned box [minX..maxX, minY..maxY, minZ..maxZ],
- *  offset by (ox, oy, oz), entirely outside the planes? The offset
- *  form exists for the streamed world, whose per-model boxes are
- *  PIXEL-LOCAL and ride the pixel's translation - adding three
- *  numbers here beats materialising a world-space box per model per
- *  frame (the EV2 lesson). */
+// Conservative: a box that straddles or surrounds the frustum is never outside, so hosts may pad their bounds.
 export function aabbOutside(planes, box, ox = 0, oy = 0, oz = 0) {
   const minX = box[0] + ox, minY = box[1] + oy, minZ = box[2] + oz;
   const maxX = box[3] + ox, maxY = box[4] + oy, maxZ = box[5] + oz;
@@ -71,9 +32,6 @@ export function aabbOutside(planes, box, ox = 0, oy = 0, oz = 0) {
   return false;
 }
 
-/** The local AABB of a flat position array [x,y,z,...]. Build-time
- *  only - the archetype scan runs once per model id, never per
- *  frame. */
 export function localAabb(positions) {
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -86,9 +44,6 @@ export function localAabb(positions) {
   return [minX, minY, minZ, maxX, maxY, maxZ];
 }
 
-/** The AABB of a local box under a 4x4 (column-major): transform the
- *  eight corners, take the extremes. Exact for the corners, which is
- *  exactly conservative for the box. Build-time only. */
 export function transformedAabb(box, m, out = [0, 0, 0, 0, 0, 0]) {
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -108,9 +63,6 @@ export function transformedAabb(box, m, out = [0, 0, 0, 0, 0, 0]) {
   return out;
 }
 
-/** PERF-WAGON: the AABB round a mesh's measured sphere (renderer.createMesh's `bounds` - [x, y, z, r] in the mesh's
- *  own frame) under a 4x4 (column-major): the centre carried, the radius grown by the matrix's longest axis (a grown
- *  wagon's scale). Conservative the safe way round, as the sphere is. Null for a mesh with no sphere. */
 export function sphereAabb(s, m, out = [0, 0, 0, 0, 0, 0]) {
   if (!s || !(s.length >= 4) || !m) return null;
   const x = m[0] * s[0] + m[4] * s[1] + m[8] * s[2] + m[12];
@@ -122,13 +74,8 @@ export function sphereAabb(s, m, out = [0, 0, 0, 0, 0, 0]) {
   return out;
 }
 
-/** The AABB of a billboard batch. Centers are the flat's BASE
- *  (the renderer's own law - createBillboardBatch: "centers describe
- *  the billboard BASE; the shader lifts by half height"), so the box
- *  rises a full height above the highest base and spreads half a
- *  width around the outermost centers. The quad also yaws to face
- *  the camera, so the half-width applies on BOTH horizontal axes.
- *  Build-time only. */
+// Centers are the flat bases and the quad yaws to face the camera, so the box rises a full height and spreads
+// half a width on both horizontal axes.
 export function flatBatchAabb(centers, size) {
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -141,8 +88,6 @@ export function flatBatchAabb(centers, size) {
   return [minX - hw, minY, minZ - hw, maxX + hw, maxY + size.h, maxZ + hw];
 }
 
-/** The escape hatch, read once at scene build. AUDIT PERF-URL A3: through the page's one parse (systems/pageQuery.js) -
- *  it was the last door sniffing the search with a regex of its own. */
 export function cullDisabled() {
   return pageParam('cull') === 'off';
 }

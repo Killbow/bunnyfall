@@ -1,19 +1,8 @@
 // @ts-check
-// NAV-B (2026-09-28) - A BURNING SHIP'S FLAMES: Daggerfall's own fire flat (TEXTURE.210 record 1 - the camp's fire,
-// systems/survival/camp.js FIRE_FLAT) stood on her deck and carried with her as she drifts, heels and settles. The
-// naval host asks `flame(pos)` for each fire it lights (scenes/naval/navalHost.js igniteShip - one on a rowboat, three along
-// a larger deck) and moves or retires the handle; the smoke and embers over them are the naval pass's own
-// (systems/naval/navalEffects.js burn).
-//
-// A burning foe's flame's shape (scenes/droppedTorches.js tickFlames): ONE batch per flame placed by its `origin`
-// (AUDIT 68 S18-torch-batch-churn: a moving flame is a moved origin, never a new batch a frame), the frames animated
-// by FlatAnim on the frame's clock, drawn on the flats' axis with the foes. A ship's fire is a deck ablaze, not a
-// campfire: FLAME_SCALE times the camp's size.
 import { FIRE_FLAT } from '../survival/camp.js';
 import { FlatAnim } from '../../render/flatAnimation.js';
 import { GLOBAL_SCALE } from '../../player/activate.js';
 
-/** A deck fire's size over the camp's. */
 export const FLAME_SCALE = 1.8;
 
 /**
@@ -51,8 +40,6 @@ export function createNavalFlames({ renderer, getTexture = null, uploadRecordFra
   }
 
   return {
-    /** A flame at a place: `{ move(pos), show(on), retire() }` - AUDIT BAY A14: `show(false)` stands it down
-     *  (her ship half faded out of the world: a flat, it goes with her flats), `show(true)` up again. */
     flame(pos) {
       const f = { pos: [pos[0], pos[1], pos[2]], batch: null, anim: null, dead: false, hidden: false };
       live.add(f);
@@ -64,13 +51,9 @@ export function createNavalFlames({ renderer, getTexture = null, uploadRecordFra
         retire() { f.dead = true; unmount(f); live.delete(f); },
       };
     },
-    /** The frames, on the frame's clock. */
     tick(dt) { for (const f of live) if (f.batch && f.anim) f.batch.frame = f.anim.tick(dt); },
-    /** The batches, for the flats' axis - a flame stood down none. */
     batches() { const out = []; for (const f of live) if (f.batch && !f.hidden) out.push(f.batch); return out; },
-    /** The floating origin moved: every flame with it (the host re-places them next frame anyway). */
     offsetAll(o) { for (const f of live) { f.pos[0] += o[0]; f.pos[1] += o[1]; f.pos[2] += o[2]; } },
-    /** Every flame out (the sea emptied). */
     clear() { for (const f of [...live]) { f.dead = true; unmount(f); } live.clear(); },
     get count() { return live.size; },
   };

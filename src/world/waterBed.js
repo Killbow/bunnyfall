@@ -1,71 +1,26 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// WATER-NEXT 2 - THE BED (2026-10-07, Mac: "real translucent water with proper waves and shoreline interactivity
-// completely replacing our current water implementation"): CLEAR WATER MUST HAVE SOMETHING UNDER IT.
-//
-// Daggerfall's water is a tile of the ground: a pond, a river, a moat is the ground itself, painted, at the height the
-// ground stands. WATER1 drew its sheet a hand's breadth over that ground, so nothing could be seen THROUGH it - there
-// was nothing under it but the paint. Here the ground the eye sees is lowered under the water into a bowl, and the
-// water's sheet stays where the ground was:
-//
-//   - A grid vertex is WET when every tile that meets it calls that corner water (WATER1's corner table, the draw's -
-//     world/water/waterCorners.js WATER_DRAW_MASK_TABLE); a corner one tile calls dry is the bank. A tile past the map's edge
-//     is no vote, so a river crossing a pixel's seam is not dammed at it.
-//   - Its distance to the bank is a 3-4 chamfer transform over the grid (exact enough at a tile's resolution), in world
-//     units at the grid's own stride.
-//   - The depth eases off the bank - a shallow shelf, a slope, a flat heart (`bedProfile`) - to BED_DEPTH over BED_RAMP.
-//
-// DRAWN ONLY. `carveBed` lowers a COPY of the uploaded positions and re-lights the slopes it made; the game's ground -
-// world.js heightAt over the pixel's samples, the fixed town's flat quad - never moves: the feet swim, the foes stand
-// and the flats are seated where DFU has them. The sheet takes the grid AS IT STOOD and the depth under each vertex,
-// so the water knows, at every pixel it draws, how much water lies under it (WATER-NEXT's shading reads it).
-// ═══════════════════════════════════════════════════════════════════
 import { WATER_DRAW_MASK_TABLE, NO_BED_DEPTH, SHEET_NO_BED } from './waterCorners.js';
 import { convertTile } from './terrainSurface.js';
-import { tileDataAt, marchTile, sampleHeight } from './terrainTiles.js';   // AUDIT WATER-NEXT F2: a neighbour's tiles, by its own law
-import { PUDDLE_RECORDS } from './puddleMask.js';   // BANK-FLUSH: a puddle's water ends where its art does
+import { tileDataAt, marchTile, sampleHeight } from './terrainTiles.js';
+import { PUDDLE_RECORDS } from './puddleMask.js';
 
-/** The bed's depth at the heart of wide water, world units (a tile is 6.4; a man stands about 1.8). */
 export const BED_DEPTH = 4.0;
-/** How far from the bank the bed reaches its depth, world units (three tiles). */
 export const BED_RAMP = 19.2;
-/** A tile's side, world units. */
 export const TILE_UNITS = 6.4;
-/** The sheet's depths for water with no bed under it - their one home is the water's leaf (waterCorners.js). */
 export { NO_BED_DEPTH, SHEET_NO_BED };
 
-/**
- * BANK-FLUSH (2026-10-12, Dudey's field video: "on the bank you can look under the blue, it's like the whole water
- * texture is flying"): THE GROUND IS CARVED ONLY WHERE NO SHORE CAN SEE IT. The carve lowers grid VERTICES, and the
- * sheet stops mid-tile, where its corner table's coverage crosses a half (or where a puddle's art stops). A shore tile
- * runs from a bank vertex (0) to a wet one (a unit deep a cell in), so at the sheet's edge the ground had already fallen
- * half of that: the water's edge hung half a unit over the slope and the eye at the bank looked under it. Every tile
- * the sheet has an edge in has a dry corner (a corner its own table calls dry is a dry vertex), so every vertex within
- * one cell of a dry one - the 3-4 chamfer's 3 and 4 - is left where it stood, and a vertex touching a puddle tile too;
- * the carve's profile starts a cell further in and still reaches BED_DEPTH. The SHEET keeps the bed's own depths
- * (waterBedDepths): the water is shaded as deep as it was, foam and swell where they were - only the ground the eye
- * sees under it moved, and it now meets the sheet wherever the sheet ends.
- */
 export const SHELF_CHAMFER = 4;
 
-/** 0..1 off the bank: a smoothstep - a shallow shelf off the bank (where clear water shows its bed), the slope
- *  steepest between, the middle flat. The real game's first shots (the moat) took an ease-out: a tile from the bank
- *  was already 2.2 deep, and the shallows the eye looks for were a sliver. */
 export const bedProfile = (t) => { const c = Math.min(1, Math.max(0, t)); return c * c * (3 - 2 * c); };
 
 /**
- * Every grid vertex's bed depth (world units, 0 on and beyond the bank).
- * @param {Uint8Array} bytes the CONVERTED tilemap (record << 2 | turn), row-major, `tileDim` a row
+ * @param {Uint8Array} bytes
  * @param {{stride?: number, tileDim?: number, width?: number, height?: number, table?: Uint8Array|number[], halo?: ?{tp: number, dim: number, bits: Uint8Array}}} [o]
- *   `halo` (stride 1): bedHalo's band of the neighbours' tiles - their votes and banks across the seams
- *   `width`/`height` the tiles the grid spans (the whole map by default), `stride` tiles a grid cell
- * @returns {Float32Array|null} (width/stride + 1) x (height/stride + 1), x fastest; null where no vertex is wet
+ * @returns {Float32Array|null}
  */
 export function waterBedDepths(bytes, o = {}) { return bedFields(bytes, o)?.depths ?? null; }
 
 /**
- * BANK-FLUSH: the depths the GROUND is carved by - 0 within a cell of the bank and round a puddle tile, then the bed's
- * profile a cell further in (SHELF_CHAMFER) - or null where no vertex is wet. Same options as waterBedDepths.
  * @param {Uint8Array} bytes
  * @param {{stride?: number, tileDim?: number, width?: number, height?: number, table?: Uint8Array|number[], halo?: ?{tp: number, dim: number, bits: Uint8Array}}} [o]
  * @returns {Float32Array|null}
@@ -73,8 +28,7 @@ export function waterBedDepths(bytes, o = {}) { return bedFields(bytes, o)?.dept
 export function waterBedCarve(bytes, o = {}) { return bedFields(bytes, o)?.carve ?? null; }
 
 /**
- * The bed's two fields, one chamfer: the sheet's depths and the ground's carve (BANK-FLUSH).
- * @param {Uint8Array} bytes the CONVERTED tilemap
+ * @param {Uint8Array} bytes
  * @param {{stride?: number, tileDim?: number, width?: number, height?: number, table?: Uint8Array|number[], halo?: ?{tp: number, dim: number, bits: Uint8Array}}} [o]
  * @returns {{depths: Float32Array, carve: Float32Array}|null}
  */
@@ -84,9 +38,6 @@ export function bedFields(bytes, { stride = 1, tileDim = 128, width = tileDim, h
   const n = gx * gz;
   const wet = new Uint8Array(n);
   let any = false;
-  // the corner bits as the water shader reads them (waterSurface.js coverage): bit 0 the tile's (0,0), bit 1 (1,0),
-  // bit 2 (0,1), bit 3 (1,1) - so the tile south-west of a vertex votes its bit 3, south-east 2, north-west 1, north-east 0.
-  // AUDIT WATER-NEXT P1: the four votes written out - the loop of [dx, dz, bit] rows cost the build twice this
   for (let vz = 0; vz < gz; vz++) {
     const cz = vz * stride, south = cz > 0, north = cz < height, rowS = (cz - 1) * tileDim, rowN = cz * tileDim;
     for (let vx = 0; vx < gx; vx++) {
@@ -95,15 +46,14 @@ export function bedFields(bytes, { stride = 1, tileDim = 128, width = tileDim, h
       if (south && east && !(table[bytes[rowS + cx]] & 4)) continue;
       if (north && west && !(table[bytes[rowN + cx - 1]] & 2)) continue;
       if (north && east && !(table[bytes[rowN + cx]] & 1)) continue;
-      if (!((south || north) && (west || east))) continue;   // a tile past the map's edge is no vote - and no tile, no vertex
+      if (!((south || north) && (west || east))) continue;
       wet[vz * gx + vx] = 1; any = true;
     }
   }
   if (!any) return null;
-  // the 3-4 chamfer: 3 a step, 4 a diagonal, from every dry vertex; a grid with no bank at all is open water
   const BIG = 1e9;
   const d = chamfer(wet, gx, gz);
-  const unit = (stride * TILE_UNITS) / 3;   // a chamfer step of 3 is one grid cell
+  const unit = (stride * TILE_UNITS) / 3;
   const out = new Float32Array(n), carve = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     if (!wet[i]) continue;
@@ -114,11 +64,8 @@ export function bedFields(bytes, { stride = 1, tileDim = 128, width = tileDim, h
   return { depths: out, carve };
 }
 
-/** BANK-FLUSH: the ground's carve at a chamfer distance - nothing within a cell of the bank, then the bed's profile. */
-const carveAt = (d, unit) => BED_DEPTH * bedProfile(Math.min(d - SHELF_CHAMFER, 1e9) * unit / BED_RAMP);   // bedProfile clamps: 0 on the shelf
+const carveAt = (d, unit) => BED_DEPTH * bedProfile(Math.min(d - SHELF_CHAMFER, 1e9) * unit / BED_RAMP);
 
-/** BANK-FLUSH: a vertex touching a puddle tile (its water's edge the art's, anywhere in the tile) is not carved. `pad`
- *  the grid's vertices past the map's edge on each side (the halo's), `gx` x `gz` the grid `carve` spans. */
 function flushPuddles(carve, bytes, tileDim, width, height, stride, gx, gz, pad) {
   for (let tz = 0; tz < height; tz++) {
     for (let tx = 0; tx < width; tx++) {
@@ -129,31 +76,19 @@ function flushPuddles(carve, bytes, tileDim, width, height, stride, gx, gz, pad)
   }
 }
 
-/** AUDIT WATER-NEXT F2: how far past a near pixel's edge the bed looks, in tiles - its ramp (BED_RAMP, three tiles) and
- *  the tile a vertex's vote reaches into. */
 export const BED_HALO_TILES = Math.ceil(BED_RAMP / TILE_UNITS) + 1;
 
 /**
- * AUDIT WATER-NEXT F2 (2026-10-07): THE BED ACROSS A SEAM. Each pixel carved its bed alone - a tile past its edge no
- * vote, a bank past its edge unseen - so a vertex on the seam two pixels share was carved to two depths, 4 on one side
- * and 1 or 0 on the other, and a near grid has no skirt: an open crack in the drawn ground under clear water (drawn as
- * the water's own dark body in Full, the frame's clear colour in Simple). The bed now reads BED_HALO_TILES of each
- * neighbour's tiles past the edge, classified and marched by the neighbour's own law from the kernel's ghost samples
- * (terrainSampler.js ghostSampler: the neighbour's own kernel) - its index's beach jitter, its latitude, its corners -
- * so both pixels carve a seam vertex from the same tiles, and agree. A neighbour's STAMPED or PAINTED tiles (a town's
- * blocks, a road, a river) are not in its kernel: a bed there may still part at the seam (recorded,
- * bible/01-Overview/audits/Audit-WATER-NEXT.md). Near grids only (stride 1): a strided grid's skirt closes its seams.
- * @param {(x: number, z: number) => number} ghost the sample at a coordinate of this pixel's frame, past its edge too
- * @param {number} px @param {number} py the pixel
+ * @param {(x: number, z: number) => number} ghost
+ * @param {number} px
+ * @param {number} py
  * @param {Uint8Array|number[]} [table]
- * @returns {{tp: number, dim: number, bits: Uint8Array}} each tile's water corners in a band `tp` deep round the
- *   128-tile map (`dim` a row; the map's own tiles left 0 - they are the TileMap's)
+ * @returns {{tp: number, dim: number, bits: Uint8Array}}
  */
 export function bedHalo(ghost, px, py, table = WATER_DRAW_MASK_TABLE) {
   const tp = BED_HALO_TILES, side = 128, dim = side + 2 * tp;
   const bits = new Uint8Array(dim * dim);
   const memo = new Map();
-  /** a corner of a neighbour's tile: its tileData in ITS frame (its index's jitter, its latitude) */
   const corner = (x, z, dx, dz) => {
     const key = ((dx + 1) * 3 + (dz + 1)) * 1048576 + (x + 512) * 1024 + (z + 512);
     let v = memo.get(key);
@@ -164,7 +99,6 @@ export function bedHalo(ghost, px, py, table = WATER_DRAW_MASK_TABLE) {
     return v;
   };
   for (let tz = -tp; tz < side + tp; tz++) {
-    // the map's Y runs south: a tile before row 0 is the south neighbour's (py + 1), past row 127 the north's
     const dz = tz < 0 ? 1 : tz >= side ? -1 : 0;
     for (let tx = -tp; tx < side + tp; tx++) {
       const dx = tx < 0 ? -1 : tx >= side ? 1 : 0;
@@ -176,22 +110,18 @@ export function bedHalo(ghost, px, py, table = WATER_DRAW_MASK_TABLE) {
   return { tp, dim, bits };
 }
 
-/** AUDIT WATER-NEXT F2: whether a TileMap's water comes within the halo's reach of the map's edge - where it does not,
- *  no seam vertex is near water and the bed needs no neighbour's tile. */
 export function bedNearEdge(bytes, table = WATER_DRAW_MASK_TABLE, side = 128) {
   const reach = BED_HALO_TILES;
   for (let z = 0; z < side; z++) {
     const band = z < reach || z >= side - reach;
     for (let x = 0; x < side; x++) {
-      if (!band && x === reach) x = side - reach;   // the row's middle is no edge's
+      if (!band && x === reach) x = side - reach;
       if (table[bytes[z * side + x]]) return true;
     }
   }
   return false;
 }
 
-/** waterBedDepths with a halo (stride 1): the votes and the banks of the neighbours' tiles, the chamfer run over the
- *  pixel and BED_HALO_TILES - 1 vertices round it, the pixel's own vertices answered. */
 function haloBedDepths(bytes, tileDim, width, height, table, halo) {
   const pad = halo.tp - 1, gx = width + 1, gz = height + 1, ex = gx + 2 * pad, ez = gz + 2 * pad;
   const bitsAt = (tx, tz) => (tx >= 0 && tz >= 0 && tx < width && tz < height
@@ -225,7 +155,6 @@ function haloBedDepths(bytes, tileDim, width, height, table, halo) {
   return { depths: out, carve };
 }
 
-/** The 3-4 chamfer from every dry vertex of a `gx` x `gz` grid (a wet vertex with no bank in the grid stays 1e9). */
 function chamfer(wet, gx, gz) {
   const n = gx * gz, d = new Float32Array(n);
   for (let i = 0; i < n; i++) d[i] = wet[i] ? 1e9 : 0;
@@ -261,21 +190,17 @@ function chamfer(wet, gx, gz) {
 }
 
 /**
- * The ground the eye sees, carved: a copy of `positions` with every grid vertex lowered by its bed depth (the skirt
- * of a strided grid, appended after the g*g vertices, follows its edge vertex), and `normals` re-lit where the carve
- * made a slope (central differences over the carved grid, one-sided at its edge). The inputs are not touched.
- * @param {Float32Array} positions the grid as built (x, y, z a vertex; g*g first, x fastest)
+ * @param {Float32Array} positions
  * @param {Float32Array} normals
- * @param {Float32Array} depths waterBedDepths' answer for the same grid
- * @param {number} gx vertices a row
- * @param {number} gz rows
+ * @param {Float32Array} depths
+ * @param {number} gx
+ * @param {number} gz
  * @returns {{positions: Float32Array, normals: Float32Array}}
  */
 export function carveBed(positions, normals, depths, gx, gz) {
   const p = positions.slice(), nm = normals.slice();
   const g = gx * gz;
   for (let i = 0; i < g; i++) if (depths[i] > 0) p[i * 3 + 1] -= depths[i];
-  // a strided grid's skirt: four edges of g vertices each, south, north, west, east (terrainSurface.js buildTerrainGrid)
   if (positions.length > g * 3 && gx === gz) {
     const edges = [(i) => i, (i) => (gz - 1) * gx + i, (i) => i * gx, (i) => i * gx + (gx - 1)];
     let o = g;
@@ -287,7 +212,6 @@ export function carveBed(positions, normals, depths, gx, gz) {
   for (let z = 0; z < gz; z++) {
     for (let x = 0; x < gx; x++) {
       const i = z * gx + x;
-      // only where the carve reaches: a vertex or a neighbour lowered
       if (!(depths[i] > 0 || depths[z * gx + Math.max(0, x - 1)] > 0 || depths[z * gx + Math.min(gx - 1, x + 1)] > 0
         || depths[Math.max(0, z - 1) * gx + x] > 0 || depths[Math.min(gz - 1, z + 1) * gx + x] > 0)) continue;
       const nx = (y(x - 1, z) - y(x + 1, z)) / (2 * cellX), nz = (y(x, z - 1) - y(x, z + 1)) / (2 * cellZ);
@@ -299,14 +223,9 @@ export function carveBed(positions, normals, depths, gx, gz) {
 }
 
 /**
- * AUDIT WATER-NEXT H2 (2026-10-07): THE SHEET'S DEPTHS - the water's attribute 1, beside the carve's own depths. Where the
- * carve reaches, the bed's: a wet vertex its depth, and a bank vertex beside one 0 (where the shore's foam lies). Where it
- * does not - a one-tile stream in a pixel whose pond was carved: no vertex of it is wet, so nothing under it moved -
- * SHEET_NO_BED, as a pixel with no bed at all draws its every sheet. The sheet had taken the carve's 0 there: a stream
- * that is tinted water in one pixel was a clear film edged in foam in the next, whenever a pond stood somewhere in it.
- * @param {Float32Array} depths waterBedDepths' answer
- * @param {number} gx vertices a row
- * @param {number} gz rows
+ * @param {Float32Array} depths
+ * @param {number} gx
+ * @param {number} gz
  * @returns {Float32Array}
  */
 export function sheetDepthsOf(depths, gx, gz) {
@@ -331,13 +250,9 @@ export function sheetDepthsOf(depths, gx, gz) {
 }
 
 /**
- * One grid's bed, whole: the depths, the carved ground to upload, and the sheet (the grid as it stood) with its own
- * depths (sheetDepthsOf). null where the grid holds no wet vertex - the ground uploads as built and the water, if any,
- * lies on it as WATER1's did.
  * @param {{positions: Float32Array, normals: Float32Array}} grid
- * @param {Uint8Array} bytes the converted tilemap
+ * @param {Uint8Array} bytes
  * @param {{stride?: number, tileDim?: number, width?: number, height?: number, halo?: ?{tp: number, dim: number, bits: Uint8Array}}} [o]
- *   `halo` bedHalo's band (a near grid of the streaming world: the seams agree)
  */
 export function waterBedOf(grid, bytes, o = {}) {
   const stride = o.stride ?? 1, tileDim = o.tileDim ?? 128;
@@ -345,13 +260,10 @@ export function waterBedOf(grid, bytes, o = {}) {
   const fields = bedFields(bytes, { stride, tileDim, width, height, halo: o.halo ?? null });
   if (!fields) return null;
   const gx = width / stride + 1, gz = height / stride + 1;
-  const ground = carveBed(grid.positions, grid.normals, fields.carve, gx, gz);   // BANK-FLUSH: the ground by the carve, the sheet by the bed
-  // `depths` is what the GROUND moved (the snow and the hosts' heights read the drawn ground by it); the sheet's own
+  const ground = carveBed(grid.positions, grid.normals, fields.carve, gx, gz);
   return { depths: fields.carve, sheetDepths: sheetDepthsOf(fields.depths, gx, gz), ground, sheet: grid.positions, gx, gz };
 }
 
-/** A flat grid `width` x `height` tiles at height `y` (the fixed town's ground, which DFU lays as one flat quad), the
- *  terrain's vertex order and triangulation (terrainSurface.js buildTerrainIndices), so a bed can be carved in it. */
 export function flatGrid(width, height, y, cell = TILE_UNITS) {
   const gx = width + 1, gz = height + 1;
   const positions = new Float32Array(gx * gz * 3), normals = new Float32Array(gx * gz * 3);

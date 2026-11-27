@@ -33,6 +33,7 @@ invariants:
   - "Ship names cap at `SHIP_NAME_MAX` (`24`) characters, and plaque glyph scale clamps between `PLAQUE_LETTER_MIN` (`0.22`) and `PLAQUE_LETTER_MAX` (`0.6`) so long names shrink instead of distorting the mesh."
 traps:
   - "Do not share archive IDs between hull liveries (`38191`) and bow name plaques (`38193`); they are separate synthetic archives with distinct eviction lifecycles."
+  - "The wire sends each fitting as its index in `DECK_FITTINGS` (`fittingsCode`, `fittingsOfCode`), so new fittings go at the end of the list."
 tags:
   - naval
   - livery

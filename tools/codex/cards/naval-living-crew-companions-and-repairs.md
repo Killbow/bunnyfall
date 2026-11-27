@@ -26,6 +26,11 @@ invariants:
   - "At most `COMPANION_MAX` (`2`) crewmen go ashore."
   - "`packCapacityKg` follows DFU MaxEncumbrance of the companion's Strength."
   - "Deck walkers stay on `buildDeck` grids moved by `intoDeck` and `outOfDeck`."
+  - "Companion spell effects carry from one body to the next in memory only, keyed by party member; a save keeps health but not spells (`crewAshore.js`)."
+  - "`buildDeck` clips each wall face to every grid cell and marks the cell with that clipped height range, so the baked deck does not depend on how the hull mesh is triangulated."
+  - "Only upward flat faces enter a cell's `floors` list and the side-midpoint heights that join treads."
+  - "Floors in side-by-side cells join within `DECK_JOIN`, or within `FLIGHT_JOIN` when a floor at their shared side's midpoint lies within `DECK_JOIN` of both."
+  - "The edge inset (`DECK_INSET`) keeps a one-cell way up to any raised deck (more than `FLIGHT_OVER` above the main deck and at least `FLIGHT_CELLS` cells) that it would otherwise cut off from the open deck (`keepFlights`)."
 traps:
   - "Crew morale is gentle: no wages and no desertion. Do not add pay hooks."
   - "Damage control under fire repairs slowly and never douses fires or refloats wrecks."

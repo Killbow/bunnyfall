@@ -1,16 +1,12 @@
 // @ts-check
-// The sky the sea reflects under Dynamic Skies. The mod publishes one color, the fog color, which is black by sunset.
-// This adds a night floor and the sunset's glow, and sets how much of the sea's light takes the land's exposure.
-// Display-space colors, as the water program sums them.
+// Sea reflection sky under Dynamic Skies, which publishes only the fog color (black by sunset).
+// Colors are in display space because the water program sums them there.
 import { MOONLIGHT } from './enhancedSky.js';
 
-/** The night sky's floor at the horizon and overhead, clear and moonless. */
 export const NIGHT_SEA_HORIZON = Object.freeze([0.05, 0.075, 0.16]);
 export const NIGHT_SEA_ZENITH = Object.freeze([0.02, 0.03, 0.09]);
-/** The sunset's glow on the horizon on the sun's side at its strongest, and the warm band round the rest of it. */
 export const DUSK_SEA_GLOW = Object.freeze([0.85, 0.38, 0.14]);
 export const DUSK_SEA_BAND = Object.freeze([0.2, 0.11, 0.1]);
-/** The zenith as a share of the fog color, darker and bluer, since the mod publishes no second color to reflect. */
 const ZENITH_OF_FOG = Object.freeze([0.55, 0.65, 0.85]);
 
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -19,12 +15,8 @@ const mean3 = (c) => (c[0] + c[1] + c[2]) / 3;
 
 /** @typedef {{ zenith: number[], horizon: number[], glow: number[], glowDir: number[], night: number }} SeaSky */
 
-/**
- * One sky controller's sea sky. The returned function writes the same object on every call.
- * By day (the sun over 0.35) it is the fog color with its derived zenith, no glow, and `night` 0.
- * With the sun down `night` is 1: the share of the sea's own light that takes the eye's exposure.
- * @returns {(fog: ArrayLike<number>, sunDir: ArrayLike<number> | null | undefined, moon: number, cover: number) => SeaSky}
- */
+// The returned function writes the same object on every call.
+/** @returns {(fog: ArrayLike<number>, sunDir: ArrayLike<number> | null | undefined, moon: number, cover: number) => SeaSky} */
 export function createSeaNightSky() {
   /** @type {SeaSky} */
   const out = { zenith: [0, 0, 0], horizon: [0, 0, 0], glow: [0, 0, 0], glowDir: [0, 1], night: 0 };

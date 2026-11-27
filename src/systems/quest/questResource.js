@@ -1,29 +1,11 @@
-// THE QUEST RESOURCE BASE (Q1 parse + Q2b lifecycle) -
-// QuestResource.cs. Q1: every resource (Clock/Item/Person/Place/Foe)
-// carries a Symbol and the three message tags its declaration may
-// name (anyInfo / used / rumors, by id or by static-message name).
-// Q2b: the click lifecycle - SetPlayerClicked (with the base's
-// muted/destroyed Person refusal), RearmPlayerClick, and PostTick's
-// UNCONDITIONAL rearm (a click lives for exactly one quest tick
-// unless an action consumes it via Quest.ScheduleClickRearm) - plus
-// the IsHidden setter and Tick's show/hide law. Tick's whole body is
-// gated on questResourceBehaviour (the scene link), which stays null
-// until Q3 spawns world objects - including the destroyed-Person->
-// hidden rule, which DFU only applies to a Person standing in the
-// scene. The C# `this is Person`/`this is Foe` type tests ride the
-// isPerson/isFoe flags (the getClock/getPlace flag pattern).
-//
-// matchFirst: C# Regex alternations reuse one group name across
-// alternatives, which this Node cannot express in a single RegExp -
-// so a C# "a|b|c" pattern becomes an ordered pattern list, and the
-// winner is the match at the LEFTMOST position, ties broken by
-// pattern order. That is exactly .NET's alternation semantics.
+// Tick does nothing until a scene behavior is linked, as in C#.
+// C# alternations reuse one group name, which a JS RegExp cannot, so matchFirst takes an ordered pattern list
+// and returns the leftmost match, ties to pattern order, as .NET does.
 
 import { symbolToSaveData, symbolFromSaveData } from './symbol.js';
 import { staticMessagesTable } from './tables.js';
 import { parseInt as questParseInt } from './parseUtils.js';
 
-/** .NET-alternation matcher over an ordered pattern list. */
 export function matchFirst(line, patterns) {
   let best = null, bestIndex = Infinity;
   for (const p of patterns) {
@@ -44,93 +26,46 @@ export class QuestResource {
     this.rumorsMessageID = -1;
     this._isHidden = false;
     this.hasPlayerClicked = false;
-    // The scene link (QuestResourceBehaviour). Null until the scene
-    // mount stands an object - Tick's show/hide half is inert until
-    // then. The destroy handler carries its own identity so the
-    // accessor's subscribe/unsubscribe pair matches (Q4-iii).
+    // The destroy handler keeps one identity so the subscribe and unsubscribe calls match.
     this._questResourceBehaviour = null;
     this._onBehaviourDestroyed = (behaviour) => {
-      // Clean up when target GameObject being destroyed (:373-377).
-      //
-      // AUDIT 24 (the seven-slice sweep): C#'s handler writes
-      // `questResourceBehaviour = null;` - and its PARAMETER is named
-      // `questResourceBehaviour` too, so that assignment lands on the
-      // shadowing local and the FIELD is never cleared. It reads as
-      // cleared anyway, because a destroyed MonoBehaviour compares
-      // == null under Unity's fake-null; the port has no fake-null, so
-      // clearing the field is the faithful EFFECT and stays.
-      //
-      // What does NOT stay is clearing it blindly. A resource that has
-      // already been RECOUPLED to a new behaviour would have its live
-      // link nulled by the old one's late destroy event - and C#
-      // cannot do that, because its assignment never reaches the field
-      // at all. So the clear is guarded on identity.
+      // C# never clears the field (its parameter shadows it). Clear it only while it is still this behavior, so a
+      // late destroy of an old behavior cannot drop a newer link.
       this.uncoupleBehaviour(behaviour);
     };
   }
 
-  /** Let go of a behaviour: its destroy event no longer reaches this
-   *  resource, and the link clears if it is still that behaviour.
-   *  AUDIT 68 S30-relink-leaks-orphan-resources: the destroy handler
-   *  above, and a behaviour relinking to the live resource after a
-   *  shared-quest resync - the orphan it leaves stayed subscribed. */
   uncoupleBehaviour(behaviour) {
     behaviour.offDestroy(this._onBehaviourDestroyed);
     if (this._questResourceBehaviour === behaviour) this._questResourceBehaviour = null;
   }
 
-  /** QuestResourceBehaviour (QuestResource.cs:105-117): setting the
-   *  scene link SUBSCRIBES the destroy uncoupling, so a torn-down
-   *  object never strands a stale link. C#'s setter dereferences the
-   *  value - a null assignment throws, kept: only real behaviours
-   *  are ever assigned. */
   get questResourceBehaviour() { return this._questResourceBehaviour; }
   set questResourceBehaviour(value) {
     this._questResourceBehaviour = value;
     value.onDestroy(this._onBehaviourDestroyed);
   }
 
-  /** IsHidden get/set -> SetHidden (QuestResource.cs:90,362). NOTE
-   *  from the C#: Foes are a one-to-many resource - hiding a Foe
-   *  removes ALL spawned instances of that Foe. */
   get isHidden() { return this._isHidden; }
   set isHidden(value) { this._isHidden = value; }
 
-  /** Base SetResource parses the message tags off the line. */
   setResource(line) {
     this._parseMessageTags(line);
   }
 
-  /** Tick (QuestResource.cs:155-174): the show/hide law, whole body
-   *  gated on the scene link - INCLUDING destroyed-Person->hidden,
-   *  which C# only applies while a behaviour stands in the scene.
-   *  Overridden by resources that act (Clock). */
   tick(_caller) {
     if (!this.questResourceBehaviour) return;
-    // Ignore for Foes
     if (this.isFoe) return;
-    // A destroyed NPC is always hidden
     if (this.isPerson && this.isDestroyed) this.isHidden = true;
-    // Show or hide the mapped GameObject off the hidden flag
-    // (Q4-iii closes the Q3 pend; C# notes this can conflict with
-    // other code disabling the object for its own reasons)
     this.questResourceBehaviour.setGameObjectActive(!this.isHidden);
   }
 
-  /** PostTick (QuestResource.cs:176-182): the click rearms every
-   *  quest tick, unconditionally. */
   postTick(_caller) {
     this.rearmPlayerClick();
   }
 
-  /** ExpandMacro (QuestResource.cs): the base answers nothing; the
-   *  resources override. Returns a string or false. */
   expandMacro(_macroType) { return false; }
 
-  /** GetMessage (QuestResource.cs:283-296): every variant's
-   *  UNEXPANDED tokens as a list, null when the id resolves to no
-   *  message (the -1 defaults fall out here). TK-ii's topic answers
-   *  ride this - TalkManager expands just in time, never at store. */
   getMessage(messageId) {
     const message = this.parentQuest?.getMessage(messageId);
     if (!message) return null;
@@ -141,17 +76,11 @@ export class QuestResource {
     return tokenList;
   }
 
-  /** Gender (QuestResource.cs:100-103): Male unless overridden
-   *  (Person -> npcGender, Foe -> humanoidGender); the pronoun
-   *  macros read it off lastResourceReferenced. */
-  get gender() { return 0; }   // GENDERS.Male
+  get gender() { return 0; }
 
   dispose() {}
 
-  // ---- the save envelope (Q4-iv; QuestResource.cs:300-357) ----
-
-  /** The envelope's type identity (C# GetType()); derived from the
-   *  is* flags so a minifying build cannot rename it. */
+  // Derived from the is* flags so a minifying build cannot rename it.
   get resourceTypeName() {
     if (this.isPerson) return 'Person';
     if (this.isPlace) return 'Place';
@@ -161,11 +90,7 @@ export class QuestResource {
     return 'QuestResource';
   }
 
-  /** GetResourceSaveData (:319-331): the base fields + the
-   *  resource-specific inner shape. QUIRK KEPT: rumorsMessageID sits
-   *  in C#'s struct but is never written and never restored - it
-   *  serializes as the default and a loaded resource's rumors id
-   *  resets to the ctor's -1. */
+  // rumorsMessageID is never written or restored, as in C#, so a loaded resource's rumors id resets to -1.
   getResourceSaveData() {
     return {
       type: this.resourceTypeName,
@@ -179,7 +104,6 @@ export class QuestResource {
     };
   }
 
-  /** RestoreResourceSaveData (:336-344). */
   restoreResourceSaveData(data) {
     this.symbol = symbolFromSaveData(data.symbol);
     this.infoMessageID = data.infoMessageID;
@@ -189,13 +113,9 @@ export class QuestResource {
     this.restoreSaveData(data.resourceSpecific);
   }
 
-  /** The resource-specific halves - abstract in C#, overridden by the
-   *  five resources; the base answers nothing. */
   getSaveData() { return null; }
   restoreSaveData(_dataIn) {}
 
-  /** SetPlayerClicked (QuestResource.cs:264-272): a muted or
-   *  destroyed Person refuses the click, loudly. */
   setPlayerClicked() {
     if (this.isPerson && (this.isMuted || this.isDestroyed)) {
       console.warn(`[quest] Ignoring click on muted or destroyed Person ${this.symbol?.original}.`);
@@ -204,7 +124,6 @@ export class QuestResource {
     this.hasPlayerClicked = true;
   }
 
-  /** RearmPlayerClick (QuestResource.cs:278-281). */
   rearmPlayerClick() { this.hasPlayerClicked = false; }
 
   _parseMessageTags(line) {

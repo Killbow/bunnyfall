@@ -19,6 +19,7 @@ invariants:
 traps:
   - "Omitting stop() on src/audio/soundscape/soundscapeHost.js during modal interior or dungeon frames leaves outdoor surf and doorway beds playing indoors."
   - "Dividing decayTime by decayHFRatio instead of multiplying inverts high-frequency attenuation in two-band reverb tails."
+  - "While `holdReverb` has an owner, `setReverb` refuses every change until `releaseReverb` runs with that owner, so every Spire exit must call the `createEgReverb` seam's `release()`."
 dfu:
   - Assets/Scripts/API/SndFile.cs
   - Assets/Scripts/Internal/DaggerfallSongPlayer.cs

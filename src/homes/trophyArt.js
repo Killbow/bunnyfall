@@ -1,24 +1,18 @@
 // @ts-check
-// HUNTERS-MARK (2026-10-27; bible/06-Systems/Bounty-Boards.md 12.5): A MOUNTED TROPHY'S PICTURE - a carved shield of dark
-// wood with a brass plate, drawn here in code, and the beast's own front frame from the player's data set on it. Composed at
-// runtime and uploaded under its own key (scenes/decor/decorRoom.js hangs it as a mount): nothing of ARENA2 is kept, as the
-// doctrine's non-negotiables ask (01-Overview/Port-Doctrine.md). Pure but for the loader at the foot.
+// A mounted trophy picture: a wooden plaque drawn in code, with the front frame of the beast from game data.
+// It is composed at runtime, so no ARENA2 data is stored.
 import { TextureFile } from '../formats/textureFile.js';
 
-/** The plaque, pixels, and the size it hangs at, metres (a shield a forearm wide). */
 export const TROPHY_W = 96;
 export const TROPHY_H = 120;
 export const TROPHY_M = Object.freeze({ w: 0.6, h: 0.75 });
-/** The wood, its rim and the plate - a dark stained oak, a lighter bevel, an old brass. */
 export const TROPHY_WOOD = Object.freeze([74, 44, 24]);
 export const TROPHY_RIM = Object.freeze([138, 90, 50]);
 export const TROPHY_BRASS = Object.freeze([184, 145, 58]);
 const RIM = 4;
-/** Where the beast stands on the plaque (top-down rows), and the plate under it. */
 const BEAST = Object.freeze({ x0: 8, x1: TROPHY_W - 8, y0: 6, y1: Math.round(TROPHY_H * 0.74) });
 const PLATE = Object.freeze({ x0: Math.round(TROPHY_W * 0.3), x1: Math.round(TROPHY_W * 0.7), y0: Math.round(TROPHY_H * 0.78), y1: Math.round(TROPHY_H * 0.86) });
 
-/** The shield's half width at a row (top-down): straight sides, rounded top corners, a rounded point below. */
 export function shieldHalf(/** @type {number} */ y) {
   const half = TROPHY_W / 2 - 1;
   const r = 6;
@@ -28,24 +22,19 @@ export function shieldHalf(/** @type {number} */ y) {
   const t = (y - knee) / (TROPHY_H - knee);
   return half * Math.sqrt(Math.max(0, 1 - t * t));
 }
-/** A small stable hash of a texel - the grain's own noise, the same picture on every machine. */
 const grain = (/** @type {number} */ x, /** @type {number} */ y) => {
   let h = Math.imul(x * 374761393 + y * 668265263, 1274126177) >>> 0;
   h = (h ^ (h >>> 13)) >>> 0;
   return (h & 255) / 255;
 };
 
-/**
- * THE PLAQUE WITH ITS BEAST: `frame` a picture in the port's color32 order (`{ width, height, colors }`, row 0 the
- * bottom - formats/color32Order.js), its opaque box fitted into the plaque's upper part, kept in aspect, its feet on the
- * box's floor. Answers the same shape, TROPHY_W x TROPHY_H; outside the shield is clear.
- * @param {{ width: number, height: number, colors: ArrayLike<number> } | null} frame
- */
+/** @param {{ width: number, height: number, colors: ArrayLike<number> } | null} frame */
 export function composeTrophy(frame) {
   const W = TROPHY_W, H = TROPHY_H;
   const out = new Uint8ClampedArray(W * H * 4);
   const put = (/** @type {number} */ x, /** @type {number} */ y, /** @type {ArrayLike<number>} */ c, a = 255) => {
-    const i = ((H - 1 - y) * W + x) * 4;   // top-down in, bottom-up out
+    // `y` counts rows top-down; the output stores rows bottom-up.
+    const i = ((H - 1 - y) * W + x) * 4;
     out[i] = c[0]; out[i + 1] = c[1]; out[i + 2] = c[2]; out[i + 3] = a;
   };
   for (let y = 0; y < H; y++) {
@@ -85,10 +74,8 @@ export function composeTrophy(frame) {
 }
 
 /**
- * The picture a trophy hangs as: its beast's front frame (record 0, frame 0 of `archive` - the spectral ones as the
- * world draws them) composed on the plaque and uploaded once under `trophy`/`archive` - `{ tex, w, h }` in metres, or
- * null (no archive, no texture). `deps` the room's or the tool's: getTexture, renderer.
- * @param {{ getTexture?: (a: number) => any, renderer?: any }} deps @param {number} archive
+ * @param {{ getTexture?: (a: number) => any, renderer?: any }} deps
+ * @param {number} archive
  */
 export function loadTrophyArt({ getTexture, renderer }, archive) {
   return Promise.resolve(getTexture?.(archive)).then((t) => {

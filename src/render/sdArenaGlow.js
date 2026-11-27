@@ -1,23 +1,5 @@
 // @ts-check
-// SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md section 9): THE LAST MOMENT'S ARENA, READ - one foreign
-// pass over the arena's dark bronze (premultiplied, depth-tested, never written, fogged, the pixel law's cells), drawn
-// by the dungeon arm with the Hour's telegraphs. It tells the fight's clock-blows through the floor, never as a second
-// telegraph:
-//
-//   THE FISSURES - eight bold cracks from the boss to the rim (`SD_FISSURES`, a distance field baked once into a 256 R8
-//     texture: one tap a fragment), dark, the Mantella barely alight deep in them. ON EVERY MANTELLA PULSE, AT ITS
-//     LANDING, they flood green from the centre outward (SD_FLOOD.front_s) and fade (SD_FLOOD.fade_s) - the Hour's
-//     heartbeat felt through the floor.
-//   THE RIM'S NUMERALS - twelve Roman numerals round the rim (the sky's own glyphs, render/superDungeon/sdSky.js SD_NUMERAL_GLSL),
-//     foot to the boss, so a raid can call "to IX!"; at rest a brass glint. THE RESET IS COUNTED ON THEM: over its
-//     wind-up they light one by one in its soul-white, the last two in ember, and when XII lights it lands.
-//   THE HOUR ENDS - every fissure and numeral red.
-//
-// What it reads of the fight is `sdArenaGlowAt` (pure over the page's fight state - net/superDungeon/sdFightLink.js - and the clock):
-// the Pulse's landing (kept: the clock's blow is replaced by the next), the Reset's wind-up, the End. The same word for
-// the Hour's sky (`sdHourClockOf`, render/superDungeon/sdSky.js uClock): the hands sweep to XII with the numerals.
-//
-// Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon arena floor pass: fissures that flood on each Pulse landing and rim numerals that count the Reset.
 import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from './orderedDither.js';
@@ -25,19 +7,12 @@ import { SD_NUMERAL_GLSL, SD_SKY_MODE } from './sdSky.js';
 import { SD_ARENA } from '../net/sdBrain.js';
 import { SD_BLOWS } from '../net/sdRemnant.js';
 
-/** The fissures: how many, their reach (m from the boss: from, to), the jag of their runs (m), and the field's texels a
- *  side and its reach (m - the field saturates past it). */
 export const SD_FISSURES = Object.freeze({ n: 8, from: 1.6, to: SD_ARENA.r - 1.2, steps: 14, jag: 0.55, size: 256, reach: 2 });
-/** The flood on a Pulse's landing: its front's run from the boss to the rim, then its fading (s). */
 export const SD_FLOOD = Object.freeze({ front_s: 0.4, fade_s: 1.2 });
-/** The rim's numerals: their ring (m from the boss) and a glyph cell (m). */
 export const SD_ARENA_NUMERALS = Object.freeze({ r: SD_ARENA.r - 2.1, cell: 0.16 });
-/** The floor's cells (m) - the pixel law's chunk at the arena's scale. */
 export const SD_ARENA_CELL_M = 0.08;
-/** How many of the Reset's numerals light in ember (the last). */
 export const SD_RESET_EMBER = 2;
 
-/** mulberry32 (world/superDungeon/sdPixelKit.js's). */
 function rng(seed) {
   let a = seed >>> 0;
   return () => {
@@ -48,8 +23,7 @@ function rng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-/** The fissures' runs, in the arena's frame (x, z m): each from near the boss to near the rim on its own bearing (one each
- *  eighth, nudged), jagged by a seeded walk. Pure: the same on every page. */
+// Seeded, so every page draws the same fissures.
 export function sdFissurePaths(seed = 0x5d26) {
   const F = SD_FISSURES, r = rng(seed), out = [];
   for (let i = 0; i < F.n; i++) {
@@ -65,8 +39,6 @@ export function sdFissurePaths(seed = 0x5d26) {
   }
   return out;
 }
-/** The fissures' distance field over the arena's disc: SD_FISSURES.size texels a side over [-r, r] (x across, z up the
- *  image), each the distance to the nearest run over SD_FISSURES.reach, 0..255 (R8). */
 export function sdFissureField(paths = sdFissurePaths()) {
   const F = SD_FISSURES, N = F.size, R = SD_ARENA.r, data = new Uint8Array(N * N);
   const segs = paths.flatMap((run) => run.slice(1).map((b, k) => [run[k], b]));
@@ -83,17 +55,14 @@ export function sdFissureField(paths = sdFissurePaths()) {
 }
 
 const RESET = SD_BLOWS.reset, PULSE = SD_BLOWS.pulse, END = SD_BLOWS.end;
-/**
- * WHAT THE ARENA'S FLOOR TELLS at `t` of the fight state `s` (net/superDungeon/sdFightLink.js state(); null - none): `memo`, filled and
- * answered - `{ flood: the front's reach (m, < 0 none), floodK: its strength 0..1, reset: numerals lit (-1 none), end:
- * 0|1, pulseAt }`. The Pulse's landing is kept in `memo` (the clock's blow is replaced by the next), so a flood plays out
- * once landed; a stun takes the Reset's count out. Nothing made (the frame's).
- */
+// The Pulse landing stays in memo because the fight clock replaces each blow with the next, so a flood plays
+// out once it lands.
 export function sdArenaGlowAt(s, t, memo) {
   memo.flood = -1; memo.floodK = 0; memo.reset = -1; memo.end = 0;
-  if (!s || !(s.fi > 0) || s.fell) return memo;   // AUDIT SD V (S1): no fight heard (SD_FIGHT_EMPTY's ends 0) is no End
+  // Without this guard an empty fight state (ends 0) would read as the End.
+  if (!s || !(s.fi > 0) || s.fell) return memo;
   const clk = s.clk;
-  if (clk && clk.a === PULSE.id && clk.at > (memo.pulseAt ?? -Infinity)) memo.pulseAt = clk.at;   // its landing, before or after: the age says
+  if (clk && clk.a === PULSE.id && clk.at > (memo.pulseAt ?? -Infinity)) memo.pulseAt = clk.at;
   const age = (t - (memo.pulseAt ?? -Infinity)) / 1000;
   if (age >= 0 && age < SD_FLOOD.front_s + SD_FLOOD.fade_s) {
     memo.flood = Math.min(1, age / SD_FLOOD.front_s) * SD_ARENA.r;
@@ -107,14 +76,10 @@ export function sdArenaGlowAt(s, t, memo) {
   if (s.lost || (clk && clk.a === END.id) || (Number.isFinite(s.ends) && t >= s.ends - END.windup)) memo.end = 1;
   return memo;
 }
-/**
- * THE HOUR'S SKY'S WORD FOR THE FIGHT (render/superDungeon/sdSky.js uClock) at `t` of `s`, into `out` (4 floats): the End, the
- * Reset's hands sweeping to XII (its share of the wind-up), the Dragon Break while the Echoes stand, or the living
- * fight's share of its Hour burnt and whether its last minute has come; none once it has fallen.
- */
 export function sdHourClockOf(s, t, out) {
   out[0] = SD_SKY_MODE.none; out[1] = 0; out[2] = 0; out[3] = 0;
-  if (!s || !(s.fi > 0) || s.fell || !(t >= s.op)) return out;   // AUDIT SD V (S1): no fight heard is no End - the sky red over every fresh Hour
+  // Without this guard an empty fight state (ends 0) would read as the End and turn every new sky red.
+  if (!s || !(s.fi > 0) || s.fell || !(t >= s.op)) return out;
   const atk = s.rem?.atk;
   if (s.lost || s.clk?.a === END.id || (Number.isFinite(s.ends) && t >= s.ends - END.windup)) out[0] = SD_SKY_MODE.end;
   else if (atk && atk.a === RESET.id && t < atk.at && !(s.su > t)) { out[0] = SD_SKY_MODE.reset; out[1] = Math.max(0, Math.min(1, (t - (atk.at - RESET.windup)) / RESET.windup)); }
@@ -202,7 +167,6 @@ void main() {
   o = vec4(sdPixel(col, cell, uSteps), alpha);
 }`;
 
-/** The pass: one disc over the arena's floor. */
 export class SdArenaGlowRenderer {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -233,8 +197,6 @@ export class SdArenaGlowRenderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
     this._flood = new Float32Array(2);
   }
-  /** Draw over the arena's floor at `model` (its centre, the realm's frame into the dungeon's) what `look`
-   *  (sdArenaGlowAt's) says, in `fog`, at the pixel law's `steps`. Answers whether it drew. */
   draw(proj, view, model, look, fog = null, steps = 10) {
     const gl = this.gl, U = this.u;
     gl.enable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.CULL_FACE);

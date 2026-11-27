@@ -118,7 +118,7 @@ function boonLines(id) {
   if (id === 'hearth') return ['A lit fire close by gives back fatigue while you are awake.'];
   if (id === 'vitae') return [t('vampire.tip.sated', 'The Beast is quiet. You pass for mortal.')];   // BUNNYFALL VAMPIRE EXPANSION
   if (id === 'blood') return [t('vampire.tip.blood', 'The last blood you drank still sings in you, a gift by its kind. Better blood reaches a higher tier; it fades with the days.')];
-  if (id === 'meal') return [t('survival.boon.mealTip', 'A hearty tavern meal: you stay fed and your thirst is held while it lasts.')];   // HEARTY-MEAL (survival/needs.js)
+  if (id === 'meal') return [t('survival.boon.mealTip', 'A hearty tavern meal keeps you fed and holds off thirst while it lasts.')];   // HEARTY-MEAL (survival/needs.js)
   const b = BOON[id];
   if (!b) return [];
   return [`${Object.entries(b).map(([k, n]) => `${n > 0 ? '+' : ''}${n} ${statWord(k)}`).join(', ')}.`];

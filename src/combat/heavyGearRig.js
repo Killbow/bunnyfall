@@ -45,7 +45,7 @@ export function stepHeavyGear(rig, { dt, weapon, sheathed, held, canAttack, para
   const drawn = !sheathed && !paralyzed;
   _ballistaDrawn = drawn && isBallistaItem(weapon);
   const edge = !!hookDown && !_hookWas && !!canHook && !paralyzed;
-  if (edge && !hasHook) say?.(t('grapple.noHook', 'You carry no grappling hook.'));
+  if (edge && !hasHook) say?.(t('grapple.noHook', 'You do not have a grappling hook.'));
   else grappleClick(edge);
   _hookWas = !!hookDown;
   if (paralyzed) stopGrappleWindup();

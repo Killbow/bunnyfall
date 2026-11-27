@@ -22,6 +22,7 @@ files:
   - "src/world/terrainSurface.js"
   - "src/platform/onlineLane.js"
   - "src/mods/modSettings.js"
+  - src/render/columnGlsl.js
 routes: []
 tables: []
 replacesBible:
@@ -38,6 +39,7 @@ invariants:
   - "The port carves every streamed pixel, deferred builds nearest first. The mod carves only within one pixel of the player. The deferred queue outlives a transient reset."
   - "`FAR-CLIP1`: `terrainClipFs` (`renderer.js`) appends a discard on `CLIP_SENTINEL` (255, `terrainSurface.js`) after the tile decode derivative, built lazily by `_ensureTerrainClip` / `prepareTerrainClip` for cap-patched pixels (`clippedTerrainIndices` in `deepWaterCap.js`)."
   - "Online rooms pin 13 iliac-puddle-no-more keys in onlineLane.js: Enabled, WaterDepth, enemy spawn/frequency/MaxLiveEnemies, loot rate/caps/cove, SwimSpeedMultiplier, EnableSwimStroke, ArgonianInfiniteBreath. Looks (fog, fish, weed, surfaces) stay per-player."
+  - "The world pass has no depth texture, so the water-top alpha `a + (1 - a) * min(behind / vision, 1)` is split across two draws: `dwColumn` (`src/render/columnGlsl.js`) moves each covered fragment toward the surface color by `min(behind / vision, 1)`, and the top then blends at `a`."
 traps:
   - "DFU TerrainNature reads tilemapSamples[x, y], but the mod reads [z, x]. The port keeps the transpose (deepWaterClassification.js), so a water quad can sit at sea level under raised ground."
   - "The clip discard must stay after the dFdy line (CLIP_AFTER). A derivative next to a discarded fragment is undefined in GLSL ES 3.00."

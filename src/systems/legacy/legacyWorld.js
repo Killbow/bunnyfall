@@ -1,6 +1,3 @@
-// Death, respawn, and Project Legacy in the world. It holds the online respawn, the cemetery
-// transfer, Resurrect, and the death reset, plus the Succession, the fallen's remains, inherited
-// houses, and the once-a-second legacy tick.
 import { ActionTextBox } from '../../ui/actionText.js';
 import { allocateHouseToPlayer, BANK_REGION_COUNT, createHouses } from '../../trade/banking.js';
 import { applyDeathPenalty, deathPenaltyText, statedDeathLoss, stateDeathLoss } from '../../player/deathPenalty.js';
@@ -290,7 +287,7 @@ export function createLegacyWorld(shared) {
       if (diedInHour) { shared.gateVeil?.flash('hourCast'); kind = 'hour'; }
       shared.townTalk.showOverlay(new ActionTextBox([respawnFlavorText(kind), deathPenaltyText(goldLost), took?.line].filter(Boolean)));
     }).catch((e) => {
-      // The heal already ran, so a failed rise still closes the death screen.
+      // The heal already ran, so a failed respawn still closes the death screen.
       console.error('[respawn] failed - the player stands where they fell:', e?.message ?? e);
       closeDeathScreen();
     }).finally(() => { shared._respawning = false; });

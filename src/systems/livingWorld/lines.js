@@ -1,30 +1,10 @@
 // @ts-check
-// LW1 (2026-10-04, bible/06-Systems/Living-World.md): WHAT THE TOWN SAYS - the words of two or three residents met at
-// a spot (meetups.js), of a traveller to the player, of a caravan at its fire. Original to the port, in the crew's own
-// shape (naval/crewLife.js CREW_TALKS: a script of two or three lines, the first speaker first, then each in turn).
-//
-// A script may carry TOKENS the reader fills from where and when it is said (`fillLine`): {town} and {region} where it
-// is said, {a} and {b} the first names of the first and second speaker, {place} a town of the road (a neighbour, or
-// where the speaker last went), {player} the player's name. A token the reader cannot fill takes its fallback
-// (`TOKEN_FALLBACK`) - never a brace on the screen.
-//
-// WHICH SCRIPT (`pickScript`) is a seeded draw over the pools that fit: the town's own talk always, the speakers'
-// trades, the weather, the morning, the day, the evening and the night, the season's holiday - so a smith and a farmer
-// on a wet evening talk of iron, of rain or of the tavern, and every reader of that minute hears the same.
-//
-// LW-TALK (2026-10-06): A SCRIPT IS A DIALOGUE - its opener says its even lines and the others answer in turn
-// (meetups.js circleLine), so a third line is the opener's again: "Did you hear about the miller's daughter?" /
-// "Everyone's heard. Twice." / "Well, I hadn't." gave the asker a line that undid the question. The morning's greeting
-// and the day's "Fine day." keep their hours (heard at six in the evening, and by the night watch), and a trade's pool
-// is the trade's once however many share it: a pair of homemakers drew their trade's one script half the time, and
-// "The baker's bread is getting smaller." opened a fifth of the town's talk.
-import { t, textRevision } from '../../ui/textManager.js';   // TOWN-ECON TE3: the town's talk of trade in the player's language (L10N4)
+import { t, textRevision } from '../../ui/textManager.js';
 import { seededRng } from '../../weather/wind.js';
 import { BUILDING_TYPES } from '../../world/buildingNames.js';
 
 const S = (...lines) => Object.freeze(lines);
 
-/** Any two of the town, any hour. */
 export const TOWN_TALKS = Object.freeze([
   S('Did you hear about the miller\'s daughter?', 'Everyone\'s heard. Twice.', 'Then you\'ll hear it a third time.'),
   S('Prices are up again.', 'They\'re always up again.', 'Not my wages.'),
@@ -51,7 +31,6 @@ export const TOWN_TALKS = Object.freeze([
   S('Have you been to the temple lately?', 'The gods know where I live.', 'That\'s what worries me.'),
 ]);
 
-/** By a speaker's trade (the first speaker's, else the second's). */
 export const JOB_TALKS = Object.freeze({
   keeper: Object.freeze([
     S('Business is slow.', 'Lower your prices.', 'Raise my hopes, you mean.'),
@@ -154,7 +133,6 @@ export const JOB_TALKS = Object.freeze({
   ]),
 });
 
-/** By the weather the reader passes (`weatherWord`). */
 export const WEATHER_TALKS = Object.freeze({
   rain: Object.freeze([S('Wet again.', 'Good for the crops.', 'Bad for my roof.'), S('This rain will never stop.', 'It will. Then it\'ll snow.')]),
   thunder: Object.freeze([S('Hear that thunder?', 'Gods are arguing again.')]),
@@ -163,7 +141,6 @@ export const WEATHER_TALKS = Object.freeze({
   sunny: Object.freeze([S('Warm today.', 'Enjoy it. It never lasts.')]),
 });
 
-/** LW-TALK: the street's morning (05:00 to 11:00) and day (08:00 to 18:00) - before, "Morning" was heard at any hour. */
 export const MORNING_TALKS = Object.freeze([
   S('Morning, {b}.', 'Is it? I hadn\'t noticed.'),
   S('Up early, {b}?', 'Never went to bed.', 'It shows.'),
@@ -187,7 +164,6 @@ export const DAY_TALKS = Object.freeze([
   S('The street\'s full of carts again.', 'Somebody\'s getting rich.', 'Not us.'),
 ]);
 
-/** After dusk (the evening), and deep in the night. */
 export const EVENING_TALKS = Object.freeze([
   S('Long day.', 'They\'re all long.', 'This one longer.'),
   S('One for the road at the tavern?', 'One. Then two. Then the road forgets us.'),
@@ -205,16 +181,12 @@ export const NIGHT_TALKS = Object.freeze([
   S('Can\'t sleep?', 'Not with that dog barking.'),
 ]);
 
-/** LW6c: the words of one of a household handed home the keepsake of one of theirs the deep kept (livingTown.js moment) -
- *  `{who}` the fallen's first name, `{player}` the player's. */
 export const LIVING_KEEPSAKE = Object.freeze([
   S('This is {who}\'s.', 'You found {who}? Down there?', 'We had given up hope of anything coming home. Thank you.'),
   S('Where did you get this?', '...So that is where {who} lies.', 'Thank you for bringing it home. We will not forget it.'),
   S('{who}\'s. I would know it anywhere.', 'You are welcome in this house, {player}. Always.'),
 ]);
 
-/** LW8b: THE ROOM'S OWN TALK - two or three met inside a building, by the room's kind (`roomKindOf`): the tavern's, the
- *  temple's, a shop's, the guild hall's, the palace's, a home's. */
 export const ROOM_TALKS = Object.freeze({
   tavern: Object.freeze([
     S('Another round?', 'If you\'re buying.', 'I\'m always buying. That\'s the trouble.'),
@@ -270,7 +242,6 @@ export const ROOM_TALKS = Object.freeze({
   ]),
 });
 
-/** LW3: a party on the road, walking - the train's own talk. */
 export const ROAD_TALKS = Object.freeze([
   S('How far to {place}?', 'Two days, if the weather holds.', 'It never holds.'),
   S('My feet are bleeding.', 'Walk on the grass, it\'s softer.', 'Then the snakes get me.'),
@@ -284,7 +255,6 @@ export const ROAD_TALKS = Object.freeze([
   S('Is that smoke ahead?', 'A farmstead, I hope.', 'Let\'s hope it\'s only a farmstead.'),
   S('Back home they\'ll be at the tavern by now.', 'And we\'ll be in a ditch. Keep walking.'),
 ]);
-/** LW3: a party camped for the night, about its fire. */
 export const CAMP_TALKS = Object.freeze([
   S('I\'ll take first watch.', 'Wake me if anything moves.', 'Everything moves out here.'),
   S('Pass the bread.', 'There\'s no bread.', 'Then pass whatever there is.'),
@@ -294,8 +264,6 @@ export const CAMP_TALKS = Object.freeze([
   S('My grandmother said the dead walk on nights like this.', 'Your grandmother said a lot of things.'),
   S('Get some sleep. Long road tomorrow.', 'Every road is a long road.'),
 ]);
-/** LW9: two parties passing on the road - a word from each (the first the one who speaks first): the road's own talk, or,
- *  where either has met trouble behind it ({foe}), its warning. */
 export const ROAD_PASS_SCRIPTS = Object.freeze([
   S('Road\'s clear behind us.', 'And ahead of us. Safe travels.'),
   S('Far to go?', 'Far enough. Yourselves?'),
@@ -308,23 +276,23 @@ export const ROAD_PASS_WARNINGS = Object.freeze([
   S('Watch yourselves - {foe} back the way we came.', 'We\'ll keep our eyes open.'),
   S('{foe} on the road behind us. We lost time to them.', 'Then we\'ll go careful.'),
 ]);
-/** LW12: a traveller's warning of a band whose hideout lies near - `{band}` its name. */
 export const BAND_WARNINGS = Object.freeze([
   'Mind yourself - {band} keep a camp off this road.',
   'They say {band} hide out near here. Keep your purse close.',
   'Watch the trees. {band} have a camp somewhere about.',
 ]);
-/** LW9: a minstrel playing a tavern's common room - the song's line over them. */
 export const MINSTREL_SONGS = Object.freeze([
   '♪ The Lusty Argonian Maid, she sang it to the moon... ♪', '♪ Oh the road to {place} is long and the ale is thin... ♪',
   '♪ Fair Wayrest, fair Wayrest, where the river runs to sea... ♪', '♪ The knight of the Dragon rode out in the rain... ♪',
   '♪ Sing of the Iliac, the bay and the gold... ♪', '♪ Ten septims for a song, and a song for a kiss... ♪',
 ]);
-/** LW9: a minstrel plays a song every MINSTREL_EVERY_MIN of the clock, its line up MINSTREL_UP_MIN of it. */
 export const MINSTREL_EVERY_MIN = 4;
 export const MINSTREL_UP_MIN = 1.5;
-/** LW9: the minstrel's song at minute `t`, or null between songs - their seed's, the same for every reader.
- *  @param {{ id: string }} res @param {number} t @param {Record<string, any>} [ctx] */
+/**
+ * @param {{ id: string }} res
+ * @param {number} t
+ * @param {Record<string, any>} [ctx]
+ */
 export function minstrelLine(res, t, ctx = {}) {
   const k = Math.floor(t / MINSTREL_EVERY_MIN);
   if (t - k * MINSTREL_EVERY_MIN >= MINSTREL_UP_MIN) return null;
@@ -332,10 +300,8 @@ export function minstrelLine(res, t, ctx = {}) {
   for (const c of `${res.id}:${k}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   return fillLine(MINSTREL_SONGS[h % MINSTREL_SONGS.length], ctx);
 }
-/** LW9: what a patrol says drawing on a player wanted in its region. */
 export const PATROL_HALT_LINES = Object.freeze(['Halt! You are wanted in these lands!', 'In the name of the law - stand and yield!', 'There\'s a price on your head. Draw!']);
 
-/** LW3: what a traveller says to the player met on the road, by their regard. */
 export const ROAD_GREETINGS = Object.freeze({
   friend: Object.freeze(['{player}! Well met on the road.', 'Safe travels, {player}.', 'Good to see a friendly face out here, {player}.']),
   known: Object.freeze(['Safe travels.', 'The road\'s quiet today.', 'Mind yourself out here.']),
@@ -343,14 +309,12 @@ export const ROAD_GREETINGS = Object.freeze({
   enemy: Object.freeze(['Keep your distance.', 'Walk on.', 'I\'ve nothing for you.']),
 });
 
-/** LW13: a company's member's word in passing - `{company}` its name - by its head's regard. */
 export const COMPANY_GREETINGS = Object.freeze({
   friend: Object.freeze(['{player}! {company} remember their friends.', 'Walk with {company} a while, {player}?']),
   known: Object.freeze(['{company}, on the road again.', 'You again. {company} keep turning up where you are.']),
   stranger: Object.freeze(['{company} - you\'ve heard of us?', 'Make way for {company}.', 'Good road. We\'re {company}.']),
 });
 
-/** What a resident says to the player in passing, by their regard (relations.js). */
 export const LIVING_GREETINGS = Object.freeze({
   friend: Object.freeze(['Well met, {player}!', '{player}! Good to see you.', 'Ho, {player}. Keeping safe?', 'There\'s a friendly face.']),
   known: Object.freeze(['Good day.', 'Hello again.', 'You again.', 'Mind how you go.']),
@@ -358,9 +322,6 @@ export const LIVING_GREETINGS = Object.freeze({
   enemy: Object.freeze(['You.', 'Keep walking.', 'I\'ve nothing to say to you.', 'Get away from me.']),
 });
 
-/** WATCH-KNOWS: the watch's word to the player on duty - by the player's legal standing in the town's region, not the
- *  man's own regard (`watchBand`): the honoured by name, the respected and the common citizen as the law sees them, one
- *  under its eye warned, a known criminal told so. */
 export const WATCH_GREETINGS = Object.freeze({
   honoured: Object.freeze(['{player}. The watch salutes you.', 'An honor, {player}.', 'Safe roads, {player}.', 'Good day to you, {player}.']),
   respected: Object.freeze(['Good day, citizen.', 'Citizen. All well?', 'Keep well.', 'An honest face. Good day.']),
@@ -368,22 +329,19 @@ export const WATCH_GREETINGS = Object.freeze({
   watched: Object.freeze(['I have my eye on you.', 'No trouble, now.', 'Watch yourself.', 'Mind your step in {town}.']),
   known: Object.freeze(['We know your face.', 'One wrong step and it is the cells.', 'The watch has not forgotten you.', 'Keep your hands where I can see them.']),
 });
-/** WATCH-KNOWS: the watch's band for a legal standing (legalBands.js's ladder): above 40 honoured (honored and up), above
- *  10 respected, 0 to 10 a common citizen (and dependable), below 0 watched - and `known`, a known criminal (standing.js
- *  knownCriminal: under -10, or banished), whatever the number says. @param {number} rep @param {boolean} known */
+/**
+ * Thresholds follow the `legalBands.js` ladder (above 40 honored, above 10 respected), and `known` overrides the
+ * number.
+ * @param {number} rep
+ * @param {boolean} known
+ */
 export function watchBand(rep, known) {
   if (known) return 'known';
   return rep > 40 ? 'honoured' : rep > 10 ? 'respected' : rep >= 0 ? 'citizen' : 'watched';
 }
 
-/** The fallback for a token the reader cannot fill. LW-TALK: {place} is filled from the town's own road (meetups.js). */
-export const TOKEN_FALLBACK = Object.freeze({ town: 'town', region: 'the court', a: 'friend', b: 'friend', place: 'the next town', player: 'friend', who: 'someone', foe: 'brigands', house: 'that house', hour: 'The hour', guild: 'the guild', from: 'the next town' });   // CHAP5b: {guild}, a chapter's; LW16: {from}, the town the word came from   // LW-STIR: {hour}, the watch's call
+export const TOKEN_FALLBACK = Object.freeze({ town: 'town', region: 'the court', a: 'friend', b: 'friend', place: 'the next town', player: 'friend', who: 'someone', foe: 'brigands', house: 'that house', hour: 'The hour', guild: 'the guild', from: 'the next town' });
 
-/**
- * LW4: WHAT THE TOWN SAYS OF THE ROAD - two- and three-line scripts on a trouble its own travellers met: `{who}` the one
- * it befell (the party's leader, or the one who fell), `{foe}` what met them, `{place}` the town they were bound for.
- * By the end: driven off, won hard, fled home, and fallen.
- */
 export const ROAD_NEWS = Object.freeze({
   driven: Object.freeze([
     Object.freeze(['{who} saw off a pack of {foe} on the road to {place}, I hear.', 'Good. The roads are no place for the timid.']),
@@ -402,14 +360,12 @@ export const ROAD_NEWS = Object.freeze({
     Object.freeze(['Have you heard about {who}? {foe}, near {place}.', 'Gods. I spoke with {who} only last week.', 'The road takes the best of us.']),
     Object.freeze(['They buried what they could find of {who}.', 'The road to {place}. Always that road.']),
   ]),
-  // LW12: held up by a band - {foe} its name
   robbed: Object.freeze([
     Object.freeze(['They say {foe} took {who}\'s goods on the road to {place}.', 'Again? Somebody should do something about them.']),
     Object.freeze(['{who} came home with empty hands. {foe}, near {place}.', 'At least {who} came home.']),
     Object.freeze(['Have you heard? {foe} held up {who} on the {place} road.', 'Not a drop of blood, they say. Just everything else.']),
   ]),
 });
-/** LW6: what the town says of a DIVE - `{place}` the dungeon. */
 export const DIVE_NEWS = Object.freeze({
   driven: Object.freeze([
     Object.freeze(['{who} went down into {place} and came back up grinning.', 'Grinning? Then there was gold in it.']),
@@ -426,10 +382,6 @@ export const DIVE_NEWS = Object.freeze({
     Object.freeze(['Has anyone seen {who}?', 'Not since {place}. Not since the {foe} down there.', 'Then we won\'t.']),
   ]),
 });
-/**
- * LW7: what the town says of one of its own STRUCK DOWN by the player - `{who}` the slain; `seen`, `{player}` named
- * (someone saw whose hand it was), else a murder nobody can put a name to.
- */
 export const SLAIN_NEWS = Object.freeze({
   seen: Object.freeze([
     Object.freeze(['{who} is dead. Cut down in the street, in plain sight.', 'By whose hand?', '{player}\'s. Half the street saw it.']),
@@ -441,13 +393,10 @@ export const SLAIN_NEWS = Object.freeze({
     Object.freeze(['{who}, murdered. Here, of all places.', 'Bar your door tonight.']),
   ]),
 });
-/** LW7: of one of its own who died fighting at the player's side. */
 export const DIED_NEWS = Object.freeze([
   Object.freeze(['{who} died fighting beside {player}, they say.', 'There are worse ways to go.']),
   Object.freeze(['Have you heard? {who} fell at {player}\'s side.', 'Then {player} owes {who} a debt that can\'t be paid.']),
 ]);
-/** WATCH-FIX: of one of its own another hand cut down in the street - a beast, a fall, a stranger (`killed`): one of the
- *  watch's, and anyone else's. */
 export const KILLED_NEWS = Object.freeze({
   watch: Object.freeze([
     Object.freeze(['{who} of the watch is dead. Killed in the street, they say.', 'Doing his duty. Gods keep him.']),
@@ -458,23 +407,19 @@ export const KILLED_NEWS = Object.freeze({
     Object.freeze(['Did you hear about {who}?', 'I heard. Nobody is safe out there any more.']),
   ]),
 });
-/** LW6d: of a keepsake of one of its own the deep kept, carried home by the player - `{who}` the one it was. */
 export const HOME_NEWS = Object.freeze([
   Object.freeze(['Did you hear? {player} brought {who}\'s keepsake up out of the deep.', 'Home to the family? Gods bless them.']),
   Object.freeze(['{who}\'s people have something of theirs back, thanks to {player}.', 'Not many would go down there for the dead.']),
   Object.freeze(['That {player} - went into the dark and came back with {who}\'s keepsake.', 'There is kindness in the world yet.']),
 ]);
-/** LW12: of a band of the region the PLAYER routed - `{who}` its name. */
 export const ROUTED_NEWS = Object.freeze([
   Object.freeze(['{player} routed {who}, they say. Their camp off the road stands empty.', 'Then the road is safe for a while. A while.']),
   Object.freeze(['Have you heard? {who} are finished. {player} saw to it.', 'Somebody had to. The watch never would.']),
 ]);
-/** LW16: of a party of the region the PLAYER robbed on the road, once a witness carried it in - `{who}` the one robbed. */
 export const HELD_NEWS = Object.freeze([
   Object.freeze(['{player} robbed {who} on the road, they say.', 'In broad day?', 'Bold as brass. The watch has their name now.']),
   Object.freeze(['Did you hear? {who} was held up on the road. {player}, they say.', 'Then I\'m keeping my purse close.']),
 ]);
-/** LW7: of a fight on the road the PLAYER turned for its party (the character's `won`) - `{player}` the one who came. */
 export const HELPED_NEWS = Object.freeze({
   won: Object.freeze([
     Object.freeze(['{foe} set on {who} on the road to {place}. {player} was there.', 'And?', 'And now the crows are fat.']),
@@ -484,21 +429,17 @@ export const HELPED_NEWS = Object.freeze({
     Object.freeze(['{player} fought beside {who}\'s party near {place}. Not everyone came home.', 'More would be in the ground without {player}.']),
   ]),
 });
-/** LW5b: what the town says of a passage by sea that cost a life - `{place}` the port they sailed for. */
 export const SEA_NEWS = Object.freeze({
   fell: Object.freeze([
     Object.freeze(['{who} was lost at sea, on the crossing to {place}.', 'The Bay takes its share.']),
     Object.freeze(['Did you hear? {who} went over the side, halfway to {place}.', 'In that weather?', 'In any weather. The sea does not ask.']),
   ]),
 });
-/** LEGACY6 (Legacy-Arc.md section 10): what a town says of PROJECT LEGACY'S HOUSE - a member's death, a laying to rest, a
- *  wedding and a birth, in the town where it happened and in the seat (systems/legacy/influence.js newsFor) - `{who}`
- *  the member, `{house}` the family's name. */
 export const KIN_NEWS = Object.freeze({
   died: Object.freeze([
     Object.freeze(['Did you hear? {who} of House {house} is dead.', 'The house will feel that.']),
     Object.freeze(['They are burying {who} - or would be, if anyone could find the body.', 'House {house} has had a hard year.']),
-    Object.freeze(['{who}, gone. I saw them in the market not a week past.', 'Arkay keeps no calendar.']),   // LEGACY-NAME: "{who} {house}" read "Tlist Sentinel" for a seat's house ({who} the first name, meetups.js firstNameOf - AUDIT LEGACY III A16)
+    Object.freeze(['{who}, gone. I saw them in the market not a week past.', 'Arkay keeps no calendar.']),
   ]),
   rested: Object.freeze([
     Object.freeze(['{who} was laid to rest at last. The family brought the bones home.', 'Good. A house should keep its dead.']),
@@ -513,15 +454,12 @@ export const KIN_NEWS = Object.freeze({
     Object.freeze(['Did you hear? {who} - born to House {house}.', 'The line goes on, then.']),
   ]),
 });
-/** CHAP5b (bible/11-Multiplayer/Chapters-Arc.md 9: "the chapter's lines, keyed by ... its standing"): WHAT THE TOWN SAYS
- *  OF ITS GUILDS' CHAPTERS - by a chapter's band off the chapter sheet, `{guild}` the chapter's guild ("the Fighters
- *  Guild"). A Steady chapter is no news. Its Season's event is CHAP6's. AUDIT CHAP4 C4: `{guild}` never a sentence's
- *  first word (it is filled lower-case) nor its subject (an order's name is plural) - the chapter is. */
+// `{guild}` is a plural order name, so it is never a sentence's subject; the chapter is.
 export const CHAPTER_NEWS = Object.freeze({
   failing: Object.freeze([
     Object.freeze(['The hall of {guild} is half empty of an evening.', 'Hard times for them.']),
     Object.freeze(['They say the chapter of {guild} here is failing.', 'Someone ought to help them, before it shuts.']),
-    Object.freeze(['They say the chapter of {guild} here is in decline.', 'It needs its members, and soon.']),   // GUILD3e: a Decline's, the band's now
+    Object.freeze(['They say the chapter of {guild} here is in decline.', 'It needs its members, and soon.']),
   ]),
   thriving: Object.freeze([
     Object.freeze(['Have you seen the hall of {guild} of an evening? Full to the door.', 'Somebody is paying them well, then.']),
@@ -530,14 +468,10 @@ export const CHAPTER_NEWS = Object.freeze({
   ascendant: Object.freeze([
     Object.freeze(['They say the chapter of {guild} here is the strongest in {region}.', 'I believe it. You should see the hall.']),
     Object.freeze(['The chapter of {guild} has never stood higher in {town}.', 'Then we are in good hands.']),
-    Object.freeze(['The chapter of {guild} here is in its ascendancy, they say.', 'Everyone wants to be seen in that hall.']),   // GUILD3e: an Ascendancy's, the band's now
+    Object.freeze(['The chapter of {guild} here is in its ascendancy, they say.', 'Everyone wants to be seen in that hall.']),
   ]),
 });
-/** CHAP5b: the days a week a chapter's news is told in its town - drawn on the seed, by the town and its guild. */
 export const CHAPTER_NEWS_DAYS = 2;
-/** CHAP6c (Chapters-Arc 9: "keyed by the event and its standing"): WHAT THE TOWN SAYS OF A CHAPTER'S SEASON - by its
- *  event, and its halls shut; told before its band's news (an event is the Season's story; the band the week's). Calm is
- *  no news. Worded as CHAPTER_NEWS is: `{guild}` never first, never the subject. */
 export const CHAPTER_EVENT_NEWS = Object.freeze({
   schism: Object.freeze([
     Object.freeze(['They say the chapter of {guild} here is split over who leads it.', 'Two of them, and neither will give way.']),
@@ -558,10 +492,6 @@ export const CHAPTER_EVENT_NEWS = Object.freeze({
   ]),
 });
 
-/** TOWN-ECON TE3 (bible/06-Systems/Town-Economy-Arc.md 5): WHAT THE TOWN SAYS OF ITS TRADE - by its economy's band
- *  (net/townEconLaw.js townBandOf), lower-case; `{town}` its name, filled by the meeting. A Steady town is no news.
- *  Through the text core (L10N4), read when it is told - each pool kept while the language holds, so a script is its
- *  pool's own. */
 const econRows = () => [
   ['booming', t('lw.econ.booming.a', 'Trade has never been better in {town}.'), t('lw.econ.booming.b', 'Every stall sold out by noon.')],
   ['thriving', t('lw.econ.thriving.a', 'Business is good in {town} these days.'), t('lw.econ.thriving.b', 'Long may it last.')],
@@ -572,9 +502,8 @@ const econRows = () => [
 let _econNews = null;
 let _econSig = '';
 let _econRev = -1;
-/** TOWN-ECON TE3: the town's talk of trade by band, in the player's language now. AUDIT TOWN-ECON 2 LIV-12: its words
- *  read again only when the text core's revision moved (textRevision - a locale switched, a table patched): every
- *  built town's talk asks it each frame, and each ask said its eight lines and joined them to look at its memo. */
+// Every built town asks this each frame, so it rereads the strings only when `textRevision()` changes and keeps the
+// same frozen pools while they match.
 export function townEconNews() {
   if (_econNews && textRevision() === _econRev) return _econNews;
   _econRev = textRevision();
@@ -586,23 +515,16 @@ export function townEconNews() {
   }
   return _econNews;
 }
-/** TOWN-ECON TE3: the days a week a town's trade is told - drawn on the seed, by the town. */
 export const TOWN_ECON_NEWS_DAYS = 3;
 
-/** Of a meeting with news to tell, the share that tells it. */
 export const NEWS_SHARE = 0.4;
-/** LW16: of the news told, the share that is the word carried in from the towns about (a town with none tells its own). */
 export const CARRIED_SHARE = 0.3;
-/** LW16: the word carried's first line - `{from}` the town it came from (the script of the news itself after it). */
 export const CARRIED_OPENERS = Object.freeze([
   'There\'s word from {from}.',
   'A carter in from {from} had news.',
   'You hear what they\'re saying in {from}?',
   'Travelers from {from} are telling it.',
 ]);
-/** LW16: A STRANGER WHO HAS HEARD of the character greets them by it - a fight they turned on the road (`helped`), a
- *  keepsake carried home (`saved`), a band routed, one of a town struck down where it was seen (`slain`), a party robbed
- *  (`robbed`); `{who}`, `{foe}`, `{place}` the deed's. */
 export const HEARD_GREETINGS = Object.freeze({
   helped: Object.freeze(['You\'re the one who drove off {foe} on the road to {place}?', 'They say you stood with {who} against {foe}. Good day to you.', 'I heard what you did for {who}\'s party.']),
   saved: Object.freeze(['You brought {who}\'s keepsake home, didn\'t you? Bless you.', 'You went into the dark for {who}. Not many would.']),
@@ -611,41 +533,32 @@ export const HEARD_GREETINGS = Object.freeze({
   robbed: Object.freeze(['You\'re the one who robbed {who} on the road. I\'m watching you.', 'Hand on my purse, stranger. I heard about {who}.']),
 });
 
-/** LW7: a news item's words - a deed's (struck down by the player, seen or not; died at their side; WATCH-FIX: one of
- *  the watch another hand killed), a fight the player turned, a passage by sea's (LW5b), a dive's (LW6), the road's.
- *  LEGACY6: or Project Legacy's house's (`kin`). CHAP5b: or a guild's chapter's (`chapter`). TOWN-ECON TE3: or the town's
- *  trade (`econ`).
- *  @param {{ kind: string, dive?: boolean, helped?: boolean, seen?: boolean, sea?: boolean, watch?: boolean, kin?: boolean, chapter?: boolean, econ?: boolean }} item */
-const newsPool = (item) => (item.kin ? KIN_NEWS[/** @type {keyof typeof KIN_NEWS} */ (item.kind)]   // LEGACY6: the house's own words
-  : item.chapter ? (/** @type {Record<string, any>} */ (CHAPTER_EVENT_NEWS)[item.kind] ?? CHAPTER_NEWS[/** @type {keyof typeof CHAPTER_NEWS} */ (item.kind)])   // CHAP5b: a chapter's standing; CHAP6c: its Season
-  : item.econ ? townEconNews()[item.kind]   // TOWN-ECON TE3: the town's trade
+/** @param {{ kind: string, dive?: boolean, helped?: boolean, seen?: boolean, sea?: boolean, watch?: boolean, kin?: boolean, chapter?: boolean, econ?: boolean }} item */
+const newsPool = (item) => (item.kin ? KIN_NEWS[/** @type {keyof typeof KIN_NEWS} */ (item.kind)]
+  : item.chapter ? (/** @type {Record<string, any>} */ (CHAPTER_EVENT_NEWS)[item.kind] ?? CHAPTER_NEWS[/** @type {keyof typeof CHAPTER_NEWS} */ (item.kind)])
+  : item.econ ? townEconNews()[item.kind]
   : item.kind === 'slain' ? SLAIN_NEWS[item.seen ? 'seen' : 'unseen']
   : item.kind === 'died' ? DIED_NEWS
   : item.kind === 'killed' ? KILLED_NEWS[item.watch ? 'watch' : 'town']
-  : item.kind === 'home' ? HOME_NEWS   // LW6d: a keepsake carried home
-  : item.kind === 'routed' ? ROUTED_NEWS   // LW12: a band the player routed
-  : item.kind === 'held' ? HELD_NEWS   // LW16: a party the player robbed
+  : item.kind === 'home' ? HOME_NEWS
+  : item.kind === 'routed' ? ROUTED_NEWS
+  : item.kind === 'held' ? HELD_NEWS
     : item.helped && HELPED_NEWS[/** @type {keyof typeof HELPED_NEWS} */ (item.kind)] ? HELPED_NEWS[/** @type {keyof typeof HELPED_NEWS} */ (item.kind)]
-      : item.sea ? SEA_NEWS[/** @type {keyof typeof SEA_NEWS} */ (item.kind)]   // LW5b: the sea's own words
+      : item.sea ? SEA_NEWS[/** @type {keyof typeof SEA_NEWS} */ (item.kind)]
         : (item.dive ? DIVE_NEWS : ROAD_NEWS)[/** @type {keyof typeof ROAD_NEWS} */ (item.kind)]);
 
 /**
- * LW4: a meeting's news, if it tells one - NEWS_SHARE of the meetings with news to tell, the item drawn on the seed -
- * and its script by the news's end.
- * @param {number} seed @param {readonly { kind: string, dive?: boolean, helped?: boolean, seen?: boolean, carried?: boolean }[] | null | undefined} news
+ * @param {number} seed
+ * @param {readonly { kind: string, dive?: boolean, helped?: boolean, seen?: boolean, carried?: boolean }[] | null | undefined} news
  * @returns {{ item: any, script: readonly string[] } | null}
  */
 export function newsScript(seed, news) {
   if (!news?.length) return null;
-  const rng = seededRng((seed ^ 0x4e455753) >>> 0);   // 'NEWS'
+  const rng = seededRng((seed ^ 0x4e455753) >>> 0);
   if (rng() >= NEWS_SHARE) return null;
-  // LW16: the word carried in from the towns about, CARRIED_SHARE of the news told - on a draw of its own, so a town
-  // with none tells its own as ever
   const carried = news.filter((n) => n.carried);
   const own = carried.length ? news.filter((n) => !n.carried) : news;
-  // AUDIT LW-II B10: a town with only the word carried tells it as often as another its own (on the draw it fell to its
-  // own, found none and told nothing: a third as often)
-  const list = carried.length && (!own.length || seededRng((seed ^ 0x43415252) >>> 0)() < CARRIED_SHARE) ? carried : own;   // 'CARR'
+  const list = carried.length && (!own.length || seededRng((seed ^ 0x43415252) >>> 0)() < CARRIED_SHARE) ? carried : own;
   if (!list.length) return null;
   const item = list[Math.floor(rng() * list.length)];
   const pool = newsPool(item);
@@ -654,23 +567,27 @@ export function newsScript(seed, news) {
   return { item, script: item.carried ? carriedScript(Math.floor(rng() * CARRIED_OPENERS.length), script) : script };
 }
 
-/** LW16: a carried news's script - its opener before the news's own (one array a pair, so a circle never says it twice
- *  running). @type {WeakMap<readonly string[], (readonly string[])[]>} */
+/**
+ * One frozen array per script and opener keeps a repeat's identity, since `meetups.js` compares scripts by
+ * reference to avoid saying one twice running.
+ * @type {WeakMap<readonly string[], (readonly string[])[]>}
+ */
 const _carriedScripts = new WeakMap();
-/** @param {number} o @param {readonly string[]} script */
+/**
+ * @param {number} o
+ * @param {readonly string[]} script
+ */
 function carriedScript(o, script) {
   let row = _carriedScripts.get(script);
   if (!row) { row = []; _carriedScripts.set(script, row); }
   return (row[o] ??= Object.freeze([CARRIED_OPENERS[o], ...script]));
 }
 
-/** LW4: the names Daggerfall's foes take more than one at a time that no rule makes. */
 const FOE_PLURALS = Object.freeze({ Werewolf: 'Werewolves', Wereboar: 'Wereboars', Thief: 'Thieves', Slaughterfish: 'Slaughterfish', Dreugh: 'Dreugh', Lich: 'Liches', 'Ancient Lich': 'Ancient Liches' });
 
 /**
- * LW4: a foe's word for the town's talk and a mark - many ("Orcs", "Harpies", "Frost Daedra") or one ("a Giant", "an
- * Imp"). `name` the foe's own (enemyBasics.js enemyDisplayName).
- * @param {string} name @param {number} n
+ * @param {string} name
+ * @param {number} n
  */
 export function foeWord(name, n) {
   const w = String(name ?? '').trim() || 'foe';
@@ -682,9 +599,10 @@ export function foeWord(name, n) {
   return `${w}s`;
 }
 
-/** A line with its tokens filled. AUDIT LW-II-2 W8: a token that opens a sentence - the line's first, or after a stop and a
- *  space - opens it with a capital ("The Red Hand are finished", where a band's minted name is "the Red Hand"); mid-
- *  sentence it keeps its case. @param {string} text @param {Record<string, string|undefined|null>} ctx */
+/**
+ * @param {string} text
+ * @param {Record<string, string|undefined|null>} ctx
+ */
 export function fillLine(text, ctx = {}) {
   return text.replace(/\{(\w+)\}/g, (_, k, at) => {
     const s = ctx[k] ? String(ctx[k]) : TOKEN_FALLBACK[/** @type {keyof typeof TOKEN_FALLBACK} */ (k)] ?? '';
@@ -693,9 +611,7 @@ export function fillLine(text, ctx = {}) {
 }
 
 /**
- * LW8b: a building's kind for its talk (ROOM_TALKS) - a tavern, a temple, the guild hall, the palace, a house (`home`),
- * any shop, bank or library (`shop`); else null (the town's talk alone).
- * @param {number} type - BUILDING_TYPES
+ * @param {number} type
  * @returns {keyof typeof ROOM_TALKS | null}
  */
 export function roomKindOf(type) {
@@ -709,14 +625,12 @@ export function roomKindOf(type) {
 const SHOP_ROOMS = new Set(/** @type {number[]} */ ([BUILDING_TYPES.Alchemist, BUILDING_TYPES.Armorer, BUILDING_TYPES.Bank, BUILDING_TYPES.Bookseller, BUILDING_TYPES.ClothingStore,
   BUILDING_TYPES.FurnitureStore, BUILDING_TYPES.GemStore, BUILDING_TYPES.GeneralStore, BUILDING_TYPES.Library, BUILDING_TYPES.PawnShop, BUILDING_TYPES.WeaponSmith]));
 
-/** A resident's first name (the walkers' FullName is "First Surname"; a single-part name is all first). @param {string} name */
+/** @param {string} name */
 export const firstNameOf = (name) => String(name ?? '').split(' ')[0] || '';
 
 /**
- * A script for two or three speakers: the pools that fit, drawn on `seed`. `jobs` the speakers' trades; `weather` the
- * reader's weather word; `hour` the hour of the day; `road` a party's talk ('walk' on the road, 'camp' at its fire) in
- * place of the town's. LW8b: `room` a building's kind (`roomKindOf`) - its own talk two shares of three of the town's.
- * @param {number} seed @param {{ jobs?: readonly string[], weather?: string|null, hour?: number, road?: 'walk'|'camp'|null, room?: string|null }} [o]
+ * @param {number} seed
+ * @param {{ jobs?: readonly string[], weather?: string|null, hour?: number, road?: 'walk'|'camp'|null, room?: string|null }} [o]
  * @returns {readonly string[]}
  */
 export function pickScript(seed, { jobs = [], weather = null, hour = 12, road = null, room = null } = {}) {
@@ -724,11 +638,11 @@ export function pickScript(seed, { jobs = [], weather = null, hour = 12, road = 
   /** @type {(readonly (readonly string[])[])[]} */
   const pools = road === 'camp' ? [CAMP_TALKS, CAMP_TALKS, CAMP_TALKS] : road === 'walk' ? [ROAD_TALKS, ROAD_TALKS, ROAD_TALKS] : [TOWN_TALKS, TOWN_TALKS];
   const own = !road && room ? ROOM_TALKS[/** @type {keyof typeof ROOM_TALKS} */ (room)] : null;
-  if (own) pools.splice(0, 1, own, own);   // LW8b: inside, the room's own talk beside the town's
-  for (const j of new Set(jobs)) { const p = JOB_TALKS[/** @type {keyof typeof JOB_TALKS} */ (j)]; if (p) pools.push(p); }   // LW-TALK: a trade's once
+  if (own) pools.splice(0, 1, own, own);
+  for (const j of new Set(jobs)) { const p = JOB_TALKS[/** @type {keyof typeof JOB_TALKS} */ (j)]; if (p) pools.push(p); }
   const w = weather ? WEATHER_TALKS[/** @type {keyof typeof WEATHER_TALKS} */ (weather)] : null;
   if (w) pools.push(w);
-  if (!road && !own && hour >= 5 && hour < 11) pools.push(MORNING_TALKS);   // LW-TALK: the street's - a room keeps its own two shares of three
+  if (!road && !own && hour >= 5 && hour < 11) pools.push(MORNING_TALKS);
   if (!road && !own && hour >= 8 && hour < 18) pools.push(DAY_TALKS);
   if (!road && hour >= 18 && hour < 23) pools.push(EVENING_TALKS);
   if (!road && (hour >= 23 || hour < 5)) pools.push(NIGHT_TALKS, NIGHT_TALKS);
@@ -736,16 +650,9 @@ export function pickScript(seed, { jobs = [], weather = null, hour = 12, road = 
   return pool[Math.floor(rng() * pool.length)];
 }
 
-/**
- * LW-STIR (2026-10-08, bible/06-Systems/Living-World.md "LW-STIR"): THE STREET'S INCIDENTS - scripts of fixed parts
- * (stir.js): `a` the one who begins it (the watchman stopping a stranger, the one with the grievance, the buyer, the
- * beggar), `b` the one it is put to, `g` the watch stepping into a quarrel; a line `loud` is shouted (the HUD's shout).
- * A stranger answers the watch by their humour that day (stir.js humourOf): civil, curt or hostile.
- */
 const L = (/** @type {'a'|'b'|'g'} */ by, /** @type {string} */ text, loud = false) => Object.freeze({ by, text, loud });
 const X = (/** @type {{ by: 'a'|'b'|'g', text: string, loud: boolean }[]} */ ...lines) => Object.freeze(lines);
 
-/** LW-STIR: the watch stops a stranger - by the stranger's humour. */
 export const CHALLENGE_SCRIPTS = Object.freeze({
   civil: Object.freeze([
     X(L('a', 'You there. What\'s your business in {town}?'), L('b', 'Trade, officer. I\'ll be on my way by the week\'s end.'), L('a', 'See that you are. Keep the peace while you\'re here.')),
@@ -767,8 +674,6 @@ export const CHALLENGE_SCRIPTS = Object.freeze({
   ]),
 });
 
-/** LW-STIR: the watch at a gate (`a`) and a stranger come in by it (`b`), by the stranger's humour - the longest
- *  GATE_LINES (stir.js gateHalt stands them there long enough for it). */
 export const GATE_SCRIPTS = Object.freeze({
   civil: Object.freeze([
     X(L('a', 'Halt. What brings you to {town}?'), L('b', 'Trade, officer. I\'ll be gone by the week\'s end.'), L('a', 'Then welcome to {town}. Keep the peace.')),
@@ -788,7 +693,6 @@ export const GATE_SCRIPTS = Object.freeze({
   ]),
 });
 
-/** LW-STIR: two of the town fall out - the grievance's own (`a` the aggrieved). */
 export const QUARREL_SCRIPTS = Object.freeze([
   X(L('a', 'You still owe me for that cart wheel, {b}.'), L('b', 'It was broken when you lent it, and you know it!', true), L('a', 'Liar! Pay up or I\'ll have it out of your hide!', true), L('b', 'Try it, and see what you get!', true)),
   X(L('a', 'Your goat was in my garden again.'), L('b', 'My goat goes where it pleases.'), L('a', 'Then it\'ll please me to put it in a stew!', true), L('b', 'Lay a finger on her and you\'ll answer to me!', true)),
@@ -798,14 +702,12 @@ export const QUARREL_SCRIPTS = Object.freeze([
   X(L('a', 'You sold me a lame horse, {b}.'), L('b', 'It walked well enough when you paid for it.'), L('a', 'It walked to the end of the street and lay down!', true), L('b', 'Then you rode it wrong!', true)),
 ]);
 
-/** LW-STIR: the watch, standing by, steps into a quarrel (`g`, loud) - and the one who began it has the last word. */
 export const BREAK_UP_LINES = Object.freeze([
   X(L('g', 'Break it up, you two! Or I\'ll break it up for you!', true), L('a', '...This isn\'t over.')),
   X(L('g', 'Enough! Take it home, or take it to the cells!', true), L('a', 'We\'re done here.')),
   X(L('g', 'That\'s enough! Both of you, move along!', true), L('a', 'Yes, officer.')),
 ]);
 
-/** LW-STIR: a buyer at a stall (`a`) and its keeper (`b`). */
 export const HAGGLE_SCRIPTS = Object.freeze([
   X(L('a', 'How much for the cloth?'), L('b', 'Six septims. Finest in {town}.'), L('a', 'Six! I\'ll give you four.'), L('b', 'Five, and you\'re robbing me blind.')),
   X(L('a', 'Are these fresh?'), L('b', 'Picked this very morning.'), L('a', 'Which morning?'), L('b', 'Two for the price of one, and not a word more.')),
@@ -813,7 +715,6 @@ export const HAGGLE_SCRIPTS = Object.freeze([
   X(L('a', 'I\'ll take the lot if you knock off a septim.'), L('b', 'And feed my children on what?'), L('a', 'On the rest of my septims.'), L('b', '...Done.')),
 ]);
 
-/** LW-STIR: a beggar (`a`) asks one standing near (`b`). */
 export const PLEA_SCRIPTS = Object.freeze([
   X(L('a', 'Spare a coin, friend? Just the one?'), L('b', 'Here. Don\'t drink it all at once.')),
   X(L('a', 'Alms, for an old soldier?'), L('b', 'Which war?'), L('a', 'All of them.')),
@@ -821,8 +722,6 @@ export const PLEA_SCRIPTS = Object.freeze([
   X(L('a', 'The gods bless you - a coin?'), L('b', 'I\'ve barely enough for myself.'), L('a', 'Then we\'re kin, you and I.')),
 ]);
 
-/** LW-STIR: THE STREET'S SMALL VOICES - the night watch calling the hour ({hour}) by the weather, a stall crying its
- *  wares, a beggar's call, a drinker's song on the way home from the tavern. */
 export const WATCH_HOURS = Object.freeze({ 21: 'Nine o\'clock', 22: 'Ten o\'clock', 23: 'Eleven o\'clock', 0: 'Midnight', 1: 'One o\'clock', 2: 'Two o\'clock', 3: 'Three o\'clock', 4: 'Four o\'clock', 5: 'Five o\'clock' });
 export const WATCH_CALLS = Object.freeze({
   fair: Object.freeze(['{hour}, and all\'s well!', '{hour}, and all\'s well in {town}!', '{hour}, and a quiet night!']),

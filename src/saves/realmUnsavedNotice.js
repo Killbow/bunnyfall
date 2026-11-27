@@ -23,7 +23,7 @@ export const REALM_UNSAVED_SAY_EVERY_MS = ONLINE_CHECKPOINT_MS;
 
 /** The warning, with how long the saves have failed, in the player's language. */
 export const realmUnsavedText = (/** @type {number} */ minutes) =>
-  t('realm.unsaved.warning', 'Your progress has not reached the realm for {minutes, plural, one {# minute} other {# minutes}}. This device is keeping it. Play this character only here until the realm takes it.', { minutes });
+  t('realm.unsaved.warning', 'Your progress has not reached the realm for {minutes, plural, one {# minute} other {# minutes}}. It is saved on this device for now. Only play this character here until your save reaches the realm.', { minutes });
 /** Said once when a save lands after a warning, in the player's language. */
 export const realmSavedAgainText = () => t('realm.unsaved.reachedAgain', 'Your progress reached the realm again.');
 

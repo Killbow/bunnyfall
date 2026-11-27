@@ -1,28 +1,5 @@
 // @ts-check
-// SHIP-LIVERY (2026-10-17, the owner: "Letting players customize the exterior and interior textures of the ship";
-// bible/03-World/Naval-Refit.md SHIP-LIVERY) - A SHIP'S PAINT: the law, and the painter. The port's own; pure.
-//
-// A LIVERY is four choices, each a paint of SHIP_PAINTS or none (0 - as she was built):
-//   strake - the painted strakes of a port-built hull (world/ships/galleonArt.js and its kin: the galleon's oxblood, the
-//            carrack's Bay blue, the large boat's sea green) - her gunport strake, her castles, her lids;
-//   accent - their trim's colour (the galleon's gilt, the carrack's and the large boat's ochre);
-//   sail   - her canvas;
-//   stain  - the wood of a hull built of Daggerfall's own planks (the mod's Rowboat and Large Galley, TEXTURE.067) - a
-//            stain over the whole of her, its grain kept.
-// Which a hull takes is `liveryPartsOf`: the port's ships strake, accent and sail; the galley stain and sail; the rowboat
-// stain alone.
-//
-// THE PAINTER REPAINTS A PICTURE BY ITS FAMILIES. A port ship's pictures are painted from a palette (`C` and her own
-// `K`) shaded and mixed over noise; each texel is read as the palette colour nearest it, and one of the family the
-// livery paints takes that paint at the texel's own lightness against the family's base (`paintFamilies`) - her planks'
-// seams, her grain and her light kept, every other colour (her oak, her tar, her black wales, her glass) left as built.
-// Canvas is a family of its own. A classic plank takes a stain (`stainPicture`): the paint at the texel's lightness,
-// laid over the wood at STAIN_STRENGTH, so the plank still reads as a plank. Sails of classic canvas take `tintPicture`.
-//
-// THE WORD: a livery is one number on the boats' word (`liveryCode`, four nibbles; systems/comeSailAway/
-// comeSailAwayWire.js `l`) - a reader takes it through the door (`liveryOfCode`), one it refuses as built.
-
-/** The paints, index 1 up (0 is none - as she was built): each in Daggerfall's own earths and dyes. */
+// A paint index fills one nibble of the livery code, so the list holds at most 16 entries; index 0 is none.
 export const SHIP_PAINTS = Object.freeze([
   null,
   Object.freeze({ id: 'oxblood', rgb: Object.freeze([118, 34, 27]) }),
@@ -40,17 +17,14 @@ export const SHIP_PAINTS = Object.freeze([
   Object.freeze({ id: 'purple', rgb: Object.freeze([86, 40, 80]) }),
   Object.freeze({ id: 'tan', rgb: Object.freeze([150, 112, 72]) }),
 ]);
-/** The most a paint's index is. */
 export const PAINT_MAX = SHIP_PAINTS.length - 1;
 export const LIVERY_PARTS = Object.freeze(['strake', 'accent', 'sail', 'stain']);
-/** The pseudo-archive a livery's pictures go up under (a painted picture a session's own, never a file). */
+// A pseudo-archive for textures painted in the session; no data file uses this number.
 export const LIVERY_ARCHIVE = 38191;
-/** How much of a stain lies over a classic plank (the rest the plank's own colour). */
 export const STAIN_STRENGTH = 0.62;
-/** How much of a paint a classic sail takes. */
 export const SAIL_TINT = 0.85;
 
-/** The parts a hull takes (HULL_NAMES' order: Rowboat, Large Boat, Small Ship, Large Galley, Carrack). */
+// Hulls follow HULL_NAMES order: Rowboat, Large Boat, Small Ship, Large Galley, and Carrack.
 export function liveryPartsOf(hull) {
   if (hull === 1 || hull === 2 || hull === 4) return ['strake', 'accent', 'sail'];
   if (hull === 3) return ['stain', 'sail'];
@@ -58,12 +32,10 @@ export function liveryPartsOf(hull) {
   return [];
 }
 const paintIndex = (v) => (Number.isInteger(v) && v >= 0 && v <= PAINT_MAX ? v : null);
-/** Whether `v` is a paint's index (0 none - as built). */
 export const isPaint = (v) => paintIndex(v) != null;
 /**
- * A livery through its door: `{ strake, accent, sail, stain }`, each a paint's index (0 none) - a part the hull does not
- * take none - or null: none chosen at all, or a field that is no paint (the whole refused, as the flag's door refuses).
- * @param {any} raw @param {number} [hull] - when given, the parts it does not take are made none
+ * @param {any} raw
+ * @param {number} [hull]
  */
 export function liveryOf(raw, hull) {
   if (!raw || typeof raw !== 'object') return null;
@@ -77,38 +49,28 @@ export function liveryOf(raw, hull) {
   if (hull != null) { const takes = liveryPartsOf(hull); for (const p of LIVERY_PARTS) if (!takes.includes(p)) out[p] = 0; }
   return LIVERY_PARTS.some((p) => out[p]) ? out : null;
 }
-/** A livery as the word's one number (0 as built): a nibble a part. */
 export const liveryCode = (l) => { const v = liveryOf(l); return v ? v.strake | (v.accent << 4) | (v.sail << 8) | (v.stain << 12) : 0; };
-/** The word's number as a livery - null as built, or a number that is not one. */
 export function liveryOfCode(n) {
   if (!Number.isInteger(n) || n <= 0 || n >= 1 << 16) return null;
   return liveryOf({ strake: n & 15, accent: (n >> 4) & 15, sail: (n >> 8) & 15, stain: (n >> 12) & 15 });
 }
 
-// ── the painter ──────────────────────────────────────────────────────────────────────────────────────────────────────
-
-/** A colour's lightness (Rec. 601). */
 export const lumOf = (c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
 const clamp8 = (v) => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
-/** `paint` at the lightness of `px` against `base`'s - the paint shaded as the texel was shaded. */
 function shadeAs(paint, px, base) {
   const k = lumOf(px) / Math.max(1, lumOf(base));
   return [clamp8(paint[0] * k), clamp8(paint[1] * k), clamp8(paint[2] * k)];
 }
 
 /**
- * A picture repainted by its families: each texel read as the `palette` colour nearest it, and one of a `family`'s
- * members painted that family's `paint` at its lightness against the family's `base`. Answers `{ picture, changed }` -
- * a new picture (the source untouched), and whether any texel took a paint.
  * @param {{ width: number, height: number, data: Uint8Array }} pic
- * @param {ReadonlyArray<ReadonlyArray<number>>} palette - every colour the picture was painted from
+ * @param {ReadonlyArray<ReadonlyArray<number>>} palette
  * @param {{ members: ReadonlyArray<ReadonlyArray<number>>, base: ReadonlyArray<number>, paint: ReadonlyArray<number> | null }[]} families
  */
 export function paintFamilies(pic, palette, families) {
   const out = new Uint8Array(pic.data);
   const live = families.filter((f) => f.paint);
   if (!live.length) return { picture: { ...pic, data: out }, changed: false };
-  // the palette and each family's members as one list, each entry the family it paints (-1 none)
   const anchors = [...palette.map((c) => ({ c, f: -1 }))];
   live.forEach((f, i) => { for (const c of f.members) anchors.push({ c, f: i }); });
   const memo = new Map();
@@ -135,14 +97,11 @@ export function paintFamilies(pic, palette, families) {
   return { picture: { ...pic, data: out }, changed };
 }
 
-/** The mean lightness of a picture's opaque texels. */
 export function meanLum(pic) {
   let s = 0, n = 0;
   for (let i = 0; i < pic.data.length; i += 4) if (pic.data[i + 3]) { s += lumOf([pic.data[i], pic.data[i + 1], pic.data[i + 2]]); n++; }
   return n ? s / n : 0;
 }
-/** A picture with `paint` laid over it at `strength`: each texel the paint at its lightness against the picture's mean
- *  (its grain kept), mixed over its own colour. A new picture. */
 export function tintPicture(pic, paint, strength) {
   const out = new Uint8Array(pic.data);
   const mean = Math.max(1, meanLum(pic)), base = [mean, mean, mean];
@@ -153,5 +112,4 @@ export function tintPicture(pic, paint, strength) {
   }
   return { ...pic, data: out };
 }
-/** A classic plank stained: `tintPicture` at STAIN_STRENGTH. */
 export const stainPicture = (pic, paint) => tintPicture(pic, paint, STAIN_STRENGTH);

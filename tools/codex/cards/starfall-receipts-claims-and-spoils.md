@@ -34,6 +34,7 @@ invariants:
 traps:
   - "Unregistered guest sessions roll local `star_spoils` once per device but never write rows to `stars_held`."
   - "Claim rejections return `no-gate-key`, `receipt` (with `why`), `not-yours`, or `renown-character`, and the client queue retries only `STAR_CLAIM_MENDABLE` failure reasons."
+  - "The item is named Starfall Glass, never Starglass, because Starglass is already the name of a naval trade good (template `1340` in `tradeGoods.js`)."
 dfu: []
 tags:
   - starfall

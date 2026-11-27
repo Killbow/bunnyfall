@@ -1,34 +1,11 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// OH-C (2026-09-26): THE PIT'S LOOK - There's a Hole in the Bottom of the
-// Ocean's CreateMaterials and BuildPit, drawn. Three discs of the one
-// 48-segment mesh CreateDiscMesh builds (each wedge wound both ways, so it
-// shows from either side), on Unity's Unlit/Color: the flat colour, the
-// world's fog over it (the shader's multi_compile_fog), opaque. Then, as
-// every pass over the carved sea takes them, the water column's share
-// (COLUMN_GLSL - it gates itself to what lies under the sea with the camera
-// over it) and the sea's distance fog (FOG_GLSL dwWaterFog - on only with
-// the camera under). In the mod's render queues: the pit's black (2000) and
-// the surface's underside (2001) with the opaque floors, the surface's core
-// (3001) after the sea's own transparent top, and the miasma (3002) last.
-//
-// THE MIASMA is Unity's Standard shader in Fade mode (SrcAlpha /
-// OneMinusSrcAlpha, no depth write) with emission: the puff texture's alpha
-// times the tint's, the tint lit by the scene's light plus the emission,
-// fogged. Standard's physically based lighting of a camera-facing quad is
-// taken as the port's billboards take the day's light - ambient plus the
-// sun's Lambert term on a normal toward the camera (Port-Ledger, the Ocean
-// Holes row); with an albedo this dark the emission is nearly all of it.
-// Billboards facing the camera's plane, turned by their own rotation, and
-// no larger than maxParticleSize (0.08) of the view's height.
-// ═══════════════════════════════════════════════════════════════════
 
 import { buildProgram, startPrograms } from './glProgram.js';
 import { FOG_GLSL } from './fogGlsl.js';
 import { COLUMN_GLSL } from './columnGlsl.js';
 import { createDiscMesh, createMiasmaTexture, MIASMA_COLOR, MIASMA_EMISSION } from '../world/oceanHoles.js';
 
-/** ParticleSystemRenderer.maxParticleSize. */
+// The mod's maxParticleSize: the largest share of view height that one particle may cover.
 export const MAX_PARTICLE_SIZE = 0.08;
 
 const DISC_VS = `#version 300 es
@@ -116,9 +93,8 @@ void main() {
 
 const locs = (gl, p, names) => Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)]));
 
-/** The pit's programs and shared buffers, on the Deep Waters renderer they draw beside. */
 export class OceanHolesRenderer {
-  /** @param {any} dw - the DeepWatersRenderer (its frame and column uniforms are these passes' too) */
+  /** @param {any} dw */
   constructor(dw) {
     this.dw = dw;
     this.gl = dw.gl;
@@ -126,7 +102,6 @@ export class OceanHolesRenderer {
     this._stream = null;
   }
 
-  /** BUNNYFALL AUDIT STUT-1c: the holes' two programs, started together at idle (render/warmPrograms.js `{ start, run }`). */
   warmSteps() {
     const pairs = /** @type {[string, string][]} */ ([[DISC_VS, DISC_FS], [MIASMA_VS, MIASMA_FS]]);
     return [{ start: () => startPrograms(this.gl, pairs), run: () => { this._ensure(); }, need: () => !this._res }];
@@ -153,9 +128,9 @@ export class OceanHolesRenderer {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, puff.width, puff.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, puff.pixels);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);   // FilterMode.Bilinear, no mips
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);   // TextureWrapMode.Clamp
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
     this.dw.renderer.markForeignPass?.();
@@ -163,16 +138,15 @@ export class OceanHolesRenderer {
       disc: { p: disc, u: locs(gl, disc, ['uProj', 'uView', 'uCentre', 'uRadius', 'uColor', 'uCamPos', 'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uDwFog', 'uFocus', 'uJungleHaze',
         'uSurfaceTex', 'uDwCamFwd', 'uColumnOn', 'uSeaY', 'uTopColor', 'uTopVision', 'uSurfaceScroll', 'uPixelOrigin']) },
       miasma: { p: miasma, u: locs(gl, miasma, ['uProj', 'uView', 'uCamRight', 'uCamUp', 'uCamPos', 'uMaxSize', 'uPuff', 'uColor', 'uEmission',
-        'uAmbient', 'uSunColor', 'uSunScale', 'uLightDir', 'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uDwFog', 'uFocus', 'uJungleHaze']) },   // TV1: the travel view's focus - Deep Waters' _frameUniforms sends it
+        'uAmbient', 'uSunColor', 'uSunScale', 'uLightDir', 'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uDwFog', 'uFocus', 'uJungleHaze']) },
       vao, vbo, ebo, count: mesh.indices.length, tex,
     };
     return this._res;
   }
 
   /**
-   * One queue's discs.
    * @param {Array<{centre: number[], radius: number, color: ArrayLike<number>, origin: number[]}>} list
-   * @param {object} frame - dwColumnFrame's (the column's share)
+   * @param {object} frame
    */
   drawDiscs(list, frame) {
     if (!list.length) return;
@@ -184,9 +158,10 @@ export class OceanHolesRenderer {
     this.dw._columnUniforms(u, frame);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-    gl.depthMask(true);   // Unlit/Color writes depth
+    gl.depthMask(true);
     gl.disable(gl.BLEND);
-    gl.enable(gl.CULL_FACE);   // Cull Back - the mesh carries both windings
+    // The disc mesh carries both windings, so it shows from either side with back faces culled.
+    gl.enable(gl.CULL_FACE);
     gl.bindVertexArray(vao);
     for (const it of list) {
       gl.uniform3fv(u.uCentre, it.centre);
@@ -200,11 +175,7 @@ export class OceanHolesRenderer {
     this.dw.renderer.markForeignPass?.();
   }
 
-  /**
-   * The miasma's particles, every pit's in one stream: world centres, sizes
-   * and rotations.
-   * @param {Array<{centre: number[], size: number, rot: number}>} parts
-   */
+  /** @param {Array<{centre: number[], size: number, rot: number}>} parts */
   drawMiasma(parts) {
     if (!parts.length) return;
     const gl = this.gl, r = this.dw.renderer;
@@ -235,7 +206,8 @@ export class OceanHolesRenderer {
     }
     gl.useProgram(miasma.p);
     this.dw._frameUniforms(u);
-    gl.uniform3f(u.uCamRight, -v[0], -v[4], -v[8]);   // the lookAt's first row is minus the camera's right
+    // The first row of the view matrix is minus the camera right vector.
+    gl.uniform3f(u.uCamRight, -v[0], -v[4], -v[8]);
     gl.uniform3f(u.uCamUp, v[1], v[5], v[9]);
     gl.uniform1f(u.uMaxSize, MAX_PARTICLE_SIZE * 2 / Math.abs(P[5] || 1));
     gl.uniform4fv(u.uColor, MIASMA_COLOR);
@@ -252,9 +224,9 @@ export class OceanHolesRenderer {
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, d.subarray(0, n * 4 * 7));
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-    gl.depthMask(false);   // _ZWrite 0
+    gl.depthMask(false);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);   // _SrcBlend 5, _DstBlend 10
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.disable(gl.CULL_FACE);
     gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, 0);
     gl.bindVertexArray(null);

@@ -171,18 +171,18 @@ function resetModel(entity, id, law, held, on) {
   // AUDIT SPEC-RESET L3-1: the reset that can never help says so first - short of the gold too, or the player saves
   // 200,000 for it
   const refusal = (after.others ? null
-    : t('growth.spec.reset.only', 'No other {family} path can open for you, so a reset would only let you choose {name} again.', { family: famWord(id), name: held.name }))
+    : t('growth.spec.reset.only', 'You can\'t unlock any other {family} path, so resetting would only let you choose {name} again.', { family: famWord(id), name: held.name }))
     ?? specResetRefusal(entity, id);
   const rows = () => [
     t('growth.spec.reset.ask', 'Reset {name} for {gold, number} gold?', { name: held.name, gold: SPEC_RESET_GOLD }),
     '',
     id !== 'arcane' ? t('growth.spec.reset.loseTechnique', 'You lose its passive and its signature technique.')
       : (entity?.spells ?? []).some((sp) => isSignatureSpell(sp) && sp.path === held.id) ? t('growth.spec.reset.loseSpell', 'You lose its passive. Its signature spell stays in your spellbook as an ordinary spell.')
-        : t('growth.spec.reset.loseUnbought', 'You lose its passive, and its signature spell is no longer sold to you.'),
+        : t('growth.spec.reset.loseUnbought', 'You lose its passive, and you can no longer buy its signature spell.'),
     t('growth.spec.reset.keep', 'Your mastered skills stay mastered.'),
     '',
     ...(!on ? [t('growth.spec.reset.off', 'Master Skills is off. Turn it on to choose a specialization again.')]
-      : [t('growth.spec.reset.then', 'Open to you after the reset: {names}.', { names: after.open.join(', ') }),
+      : [t('growth.spec.reset.then', 'Available after the reset: {names}.', { names: after.open.join(', ') }),
         ...(after.later ? [t('growth.spec.reset.later', 'More paths unlock as you master more skills.')] : [])]),
   ];
   return { refusal, rows, go: () => resetSpec(entity, id) };
@@ -346,7 +346,7 @@ export function drawSpecGuide(detail, rerender, { el, divider, skillMeter = null
   const head = el('section', 'px-mgroup gr-head');
   head.append(el('div', 'gr-headline', familyLine(fam)));
   // SKILL-SWAP: a class that can never meet a path is told the one way it now can
-  if (fam.swapOpens) head.append(el('p', 'gr-fine', fam.id === 'arcane' ? t('growth.swap.hintArcane', 'You can change one of your class skills for a school of magic below.') : t('growth.swap.hintMartial', 'You can change one of your class skills for a weapon skill below.')));
+  if (fam.swapOpens) head.append(el('p', 'gr-fine', fam.id === 'arcane' ? t('growth.swap.hintArcane', 'You can swap one of your class skills for a school of magic below.') : t('growth.swap.hintMartial', 'You can swap one of your class skills for a weapon skill below.')));
   const grid = el('div', 'gr-skills');
   for (const s of fam.skills) {
     const cell = el('div', 'gr-skill');
@@ -389,7 +389,7 @@ export function drawSpecGuide(detail, rerender, { el, divider, skillMeter = null
   }
   detail.append(list);
   if (reachable.length < fam.paths.length) {
-    const more = el('button', 'act gr-more', _all ? t('growth.spec.showReach', 'Show only paths you can get') : t('growth.spec.showAll', 'Show all 15 paths'));
+    const more = el('button', 'act gr-more', _all ? t('growth.spec.showReach', 'Show only paths you can unlock') : t('growth.spec.showAll', 'Show all 15 paths'));
     more.onclick = () => { _all = !_all; rerender(); };
     detail.append(more);
   }
@@ -402,7 +402,7 @@ function drawSkillSwap(detail, rerender, { el, divider, askCard }, sw) {
   if (!sw.out.includes(_swapOut)) _swapOut = sw.out[0];
   if (!sw.in.includes(_swapIn)) _swapIn = sw.in[0];
   detail.append(divider(t('growth.swap.title', 'Change a class skill')));
-  detail.append(el('p', 'gr-lead', t('growth.swap.lead', 'Give up a class skill you have not mastered, and take a skill from outside your class in its place, in the same group. It costs {gold, number} gold. Your level and your skills\' values do not change.', { gold: SKILL_SWAP_GOLD })));
+  detail.append(el('p', 'gr-lead', t('growth.swap.lead', 'Swap an unmastered class skill for a skill outside your class in the same group for {gold, number} gold. Your level and skill values do not change.', { gold: SKILL_SWAP_GOLD })));
   const box = el('section', 'px-mgroup gr-swap');
   const pick = (label, ids, value, onPick) => {
     const s = el('select', 'act');
@@ -418,10 +418,10 @@ function drawSkillSwap(detail, rerender, { el, divider, askCard }, sw) {
   // AUDIT SUGGESTIONS-1019 L5-1/L5-2 and SWAP-CYCLE: what the swap costs beyond the gold, said beside the picks and again in the ask
   const lock = sw.lockTurn(out, inn), short = Math.ceil(sw.shortfall(out, inn));
   const warns = [
-    ...(short > 0 ? [t('growth.swap.ground', 'Your level stays, but your class skills then earn nothing toward your next level until they make up {n, plural, one {# point} other {# points}}.', { n: short })] : []),
-    ...(sw.slotsLeft(out) === 0 ? [t('growth.swap.noSlots', 'Your {group} mastery slots are spent, so {inn} could never be mastered.', words)] : []),
-    ...(lock === 'on' ? [t('growth.swap.lockOn', 'With Master Skills off, {inn} at 100 as a primary skill holds your other skills at 95.', words)]
-      : lock === 'off' ? [t('growth.swap.lockOff', 'With Master Skills off, your other skills are no longer held at 95 once {out} leaves your primary skills.', words)] : []),
+    ...(short > 0 ? [t('growth.swap.ground', 'Your level stays the same. Your class skills won\'t count toward your next level until they make up {n, plural, one {# point} other {# points}}.', { n: short })] : []),
+    ...(sw.slotsLeft(out) === 0 ? [t('growth.swap.noSlots', 'You have no {group} mastery slots left, so {inn} cannot be mastered.', words)] : []),
+    ...(lock === 'on' ? [t('growth.swap.lockOn', 'With Master Skills off, having {inn} at 100 as a primary skill caps your other skills at 95.', words)]
+      : lock === 'off' ? [t('growth.swap.lockOff', 'With Master Skills off, your other skills are no longer capped at 95 once {out} leaves your primary skills.', words)] : []),
   ];
   for (const w of warns) box.append(el('p', 'gr-fine gr-swap-warn', w));
   const acts = el('div', 'gr-acts');
@@ -430,7 +430,7 @@ function drawSkillSwap(detail, rerender, { el, divider, askCard }, sw) {
   b.onclick = () => {
     if (refusal) return;
     askCard([
-      t('growth.swap.ask', 'Give up {out} for {inn} for {gold, number} gold?', words),
+      t('growth.swap.ask', 'Replace {out} with {inn} for {gold, number} gold?', words),
       t('growth.swap.askGroup', '{inn} becomes one of your {group} skills. {out} becomes a miscellaneous skill: it keeps its value but can no longer be mastered.', words),
       ...warns,
     ], () => { _note = sw.go(out, inn).text; _noteFresh = true; rerender(); });
@@ -459,7 +459,7 @@ export function familyLine(fam) {
   if (fam.held) return t('growth.spec.heldLine', 'Your {family} specialization: {name}.', { family: famWord(fam.id), name: fam.held.name });
   if (fam.open) return t('growth.spec.openLine', '{n, plural, one {# path is available. Choose it below.} other {# paths are available. Choose one below.}}', { n: fam.open });
   if (!fam.possible && !fam.classPossible) return arc ? t('growth.spec.arcaneNever', 'Your class can\'t master two schools of magic, so no arcane path is available.') : t('growth.spec.martialNever', 'Your class can\'t master two weapon skills, so no martial path is available.');
-  if (!fam.possible) return arc ? t('growth.spec.arcaneSpent', 'Your mastery slots left can\'t hold two schools of magic, so no arcane path is available.') : t('growth.spec.martialSpent', 'Your mastery slots left can\'t hold two weapon skills, so no martial path is available.');
+  if (!fam.possible) return arc ? t('growth.spec.arcaneSpent', 'You don\'t have enough mastery slots left for two schools of magic, so no arcane path is available.') : t('growth.spec.martialSpent', 'You don\'t have enough mastery slots left for two weapon skills, so no martial path is available.');
   return arc ? t('growth.spec.arcaneHow', 'Master any two schools of magic to unlock the path for that pair.') : t('growth.spec.martialHow', 'Master any two weapon skills to unlock the path for that pair.');
 }
 

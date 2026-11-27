@@ -33,6 +33,7 @@ invariants:
 traps:
   - "Mehrunes Razor returns `null` on `spareGear` stand-ins (`src/items/artifactEffects.js`) because Strikes weapon wear cannot ride relay stand-ins."
   - "Always compute `STAND_IN_WHOLE` from `HIT_CAP_X * dpsRef(LV_MAX) * EG_BUCKET_X_MAX` rather than hardcoding `975`."
+  - "`STAND_IN_WHOLE` (975) must stay under the smallest wire damage ceiling, the 10,000 that `validArenaIn` allows, or a Disintegrate on a stand-in is refused by that relay."
 dfu:
   - "Assets/Scripts/Game/MagicAndEffects/Effects/Destruction/Disintegrate.cs"
 tags:

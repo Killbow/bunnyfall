@@ -1,6 +1,4 @@
 // @ts-check
-// PARTY-PING: the name a look is pointing at — a foe, a door, a chest —
-// so the mark can say it. Not a DFU member.
 import { pickFoeHit, pickActivatableHit, activationTargets } from '../player/activate.js';
 import { enemyDisplayName } from '../characters/enemyBasics.js';
 import { properName } from '../characters/champions.js';
@@ -13,8 +11,6 @@ import { pickPeerInFront } from '../player/socialPick.js';
 const clean = (s) => String(s ?? '').replace(/\s+/g, ' ').replace(/[^\w .'-]/g, '').trim().slice(0, 48);
 
 /**
- * The named thing under a look, the nearest of a foe and an action object.
- * Null when the look names nothing. `at` is where the mark should stand.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {{ collider?: { raycast?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => number }|null, foes?: ReadonlyArray<object>|null, objects?: Map<string, { key?: string, modelIdNum?: number, currentLockValue?: number, kind?: string }>|null, look?: { targets?: ReadonlyArray<object>, name?: (key: string) => string }|null, crowd?: ReadonlyArray<{ name?: string, elite?: boolean, dist: number }>|null, reach?: number }} src
@@ -61,9 +57,6 @@ function objectName(o) {
 }
 
 /**
- * A walking person and another player under the look, the nearer first
- * not applied here — the subject race does that. A solid in front of
- * either one hides them. Each namer is given the record the pick found.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {number} reach

@@ -1,40 +1,32 @@
 // @ts-check
 
-// The v2 part of the POI law: what a document may hold beyond the v1 scenery (parts, lights, people, marker).
-// A v2 document adds groups, an interior, flat pictures, routes, encounters, interactive objects, dialogues, trades,
-// variables and events. This file checks their shape and that every key they name exists. It does not check an item
-// against the game's item law: that module pulls in most of the game, so poiTradeLaw.js does it where it is wanted.
-// Like poiLaw.js this file imports nothing, so the account service, the game and the editor run the same rules.
-// Numbers copied from other laws (decor, foes, items) are pinned to their source by tools/poiLaw.test.mjs.
-
 export const POI_V2_LIMITS = Object.freeze({
   docBytes: 256 * 1024,
   groups: 64,
   groupDepth: 8,
   flats: 200,
   routes: 32,
-  waypoints: 128,          // in one route
+  waypoints: 128,
   encounters: 16,
-  spawns: 32,              // in one encounter
+  spawns: 32,
   foesPerSpawn: 16,
   foesPerEncounter: 24,
   interactives: 64,
   dialogues: 32,
-  nodes: 64,               // in one dialogue
-  options: 8,              // on one node
+  nodes: 64,
+  options: 8,
   trades: 32,
-  recipes: 8,              // in one trade
-  stacks: 8,               // required or rewarded item stacks in one recipe
+  recipes: 8,
+  stacks: 8,
   variables: 64,
   events: 64,
-  conditions: 16,          // leaves in one condition tree
+  conditions: 16,
   conditionDepth: 4,
-  actions: 32,             // then and else together
+  actions: 32,
   text: 240,
   hiddenBase: 200,
 });
 
-/** Values this law copies from the decor, item, foe and NPC laws. tools/poiLaw.test.mjs checks each against its source. */
 export const POI_V2_PINS = Object.freeze({
   decorModelMax: 999_999,
   decorArchiveMax: 99_999,
@@ -54,19 +46,16 @@ export const POI_V2_PINS = Object.freeze({
   decorBaseKeyRe: /^(?:m(?:0|[1-9]\d{0,3}):(?:0|[1-9]\d{0,5})|f(?:0|[1-9]\d{0,3}):(?:0|[1-9]\d{0,4})\.(?:0|[1-9]\d{0,2}))$/,
 });
 
-/** Foe ids the game defines: monsters 0 to 42 (39 is the horse), classes 128 to 146, and the two Enemy Expansion bands. */
 export const POI_FOE_RANGES = Object.freeze([[0, 38], [40, 42], [128, 146], [256, 290], [384, 398]]);
 export const poiFoeIdOk = (/** @type {any} */ id) => Number.isInteger(id) && POI_FOE_RANGES.some(([a, b]) => id >= a && id <= b);
 
 export const POI_FLAT_KINDS = Object.freeze(['billboard', 'mount', 'paperdoll']);
 export const POI_ROUTE_MODES = Object.freeze(['loop', 'pingpong', 'once']);
 export const POI_AGGRESSION = Object.freeze(['hostile', 'passive']);
-/** Returns whether language skills can pacify an encounter's enemies (true unless `pacifiable` is false). */
 export const encounterPacifiable = (/** @type {any} */ e) => e?.pacifiable !== false;
 export const POI_RESPAWN = Object.freeze(['never', 'on_reentry']);
 export const POI_COMPLETE_RULES = Object.freeze(['all_dead', 'leader_dead', 'timer_survived']);
 export const POI_INTERACTIVE_KINDS = Object.freeze(['chest', 'door', 'switch', 'quest_object', 'trigger']);
-/** The states each kind of object can be in. */
 export const POI_INTERACTIVE_STATES = Object.freeze({
   chest: Object.freeze(['closed', 'open', 'locked']),
   door: Object.freeze(['closed', 'open', 'locked']),
@@ -83,7 +72,6 @@ export const POI_CONDITION_KINDS = Object.freeze(['all', 'any', 'has_item', 'has
 export const POI_ACTION_KINDS = Object.freeze(['say', 'set_var', 'set_state', 'start_encounter', 'end_encounter', 'start_route', 'stop_route', 'spawn_npc', 'despawn_npc', 'open_dialogue', 'open_trade', 'give_item', 'take_item', 'give_gold', 'take_gold', 'trigger_event']);
 export const POI_OPTION_KINDS = Object.freeze(['goto', 'close', 'open_trade', 'run_trade_recipe', 'trigger_event']);
 
-// every key set the law knows, so an unknown field is a problem at any depth
 const set = (/** @type {string[]} */ ...k) => new Set(k);
 const KEYS = Object.freeze({
   group: set('key', 'name', 'parent', 'visible', 'locked'),
@@ -107,15 +95,12 @@ const KEYS = Object.freeze({
   stack: set('template', 'group', 'material', 'count', 'recipe'),
   event: set('key', 'name', 'trigger', 'when', 'then', 'else'),
 });
-/** Keys v2 adds to v1 parts, lights and people. poiLaw.js reads these. */
 export const POI_V2_PART_KEYS = Object.freeze(['arch3d', 'group', 'visible', 'locked']);
 export const POI_V2_LIGHT_KEYS = Object.freeze(['group', 'visible', 'locked']);
 export const POI_V2_NPC_KEYS = Object.freeze(['route', 'dialogue', 'trade', 'radius', 'showWhen', 'group', 'visible', 'locked']);
-/** The collections a v2 document may hold beyond v1's. */
 export const POI_V2_DOC_KEYS = Object.freeze(['groups', 'interior', 'flats', 'routes', 'encounters', 'interactives', 'dialogues', 'trades', 'variables', 'events']);
 
 /**
- * What poiLaw.js hands in so the two files share one set of helpers.
  * @typedef {{ say: (path: string, code: string, args?: any) => void, textOk: (s: any, max: number, min?: number) => boolean,
  *   vec: (v: any, n: number) => boolean, finite: (v: any) => boolean, enumOk: (v: any, list: readonly string[]) => boolean,
  *   unknown: (o: any, known: Set<string>, at: string) => void, keyRe: RegExp }} Kit
@@ -125,9 +110,8 @@ const int = (/** @type {any} */ v, /** @type {number} */ lo, /** @type {number} 
 const isObj = (/** @type {any} */ v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
- * Every way the v2 parts of `raw` fall short. People, parts and lights are read by poiLaw.js; this reads the rest, and the
- * keys those three name (group, route, dialogue, trade, event).
- * @param {any} raw @param {Kit} kit
+ * @param {any} raw
+ * @param {Kit} kit
  */
 export function poiV2Problems(raw, kit) {
   const { say, textOk, vec, finite, enumOk, unknown, keyRe } = kit;
@@ -137,7 +121,6 @@ export function poiV2Problems(raw, kit) {
     if (!Array.isArray(v) || v.length > max) { say(at, code, { max }); return null; }
     return /** @type {any[]} */ (v);
   };
-  /** the keys of an array's members that are well formed, in order, each once */
   const keysOf = (/** @type {any} */ arr) => {
     const out = new Set();
     if (Array.isArray(arr)) for (const o of arr) if (isObj(o) && typeof o.key === 'string' && keyRe.test(o.key)) out.add(o.key);
@@ -160,12 +143,15 @@ export function poiV2Problems(raw, kit) {
   if (Array.isArray(raw.interactives)) for (const o of raw.interactives) if (isObj(o) && typeof o.key === 'string') ctx.kinds.set(o.key, String(o.kind));
   if (Array.isArray(raw.encounters)) for (const e of raw.encounters) if (isObj(e) && typeof e.key === 'string') ctx.spawns.set(e.key, keysOf(e.spawns));
 
-  /** @param {any} v @param {Set<string>} keys @param {string} at */
+  /**
+   * @param {any} v
+   * @param {Set<string>} keys
+   * @param {string} at
+   */
   const ref = (v, keys, at) => {
     if (typeof v !== 'string' || !keyRe.test(v)) say(at, 'key');
     else if (!keys.has(v)) say(at, 'ref-missing', { key: v });
   };
-  /** the optional group, visible and locked an object may carry */
   const layout = (/** @type {any} */ o, /** @type {string} */ at) => {
     if (o.group !== undefined) ref(o.group, ctx.groups, `${at}.group`);
     for (const f of ['visible', 'locked']) if (o[f] !== undefined && typeof o[f] !== 'boolean') say(`${at}.${f}`, 'bool');
@@ -173,13 +159,9 @@ export function poiV2Problems(raw, kit) {
   const at3 = (/** @type {any} */ v, /** @type {string} */ at) => { if (!vec(v, 3) || v.some((c) => Math.abs(c) > 2000)) say(at, 'offset', { max: 2000 }); };
   const count = (/** @type {any} */ v, /** @type {string} */ at, /** @type {number} */ max) => { if (!int(v, 1, max)) say(at, 'count', { max }); };
 
-  // a variable's value must match its type
   const valueOk = (/** @type {any} */ v, /** @type {string} */ type) => (type === 'boolean' ? typeof v === 'boolean'
     : type === 'number' ? finite(v) && Math.abs(v) <= 1e9 : type === 'string' ? textOk(v, 64) : false);
 
-  // Checks an item stack against the game's own numbers, as the server mints them. A potion's `recipe` and an
-  // encounter's `pacifiable` are only known keys here: poiTradeLaw.js checks their values at save, submission, and
-  // approval, so this law, which the game runs over every live POI, refuses nothing new.
   const stack = (/** @type {any} */ s, /** @type {string} */ at) => {
     if (!isObj(s)) { say(at, 'not-object'); return; }
     if (!int(s.template, 0, P.decorTemplateMax)) say(`${at}.template`, 'template', { max: P.decorTemplateMax });
@@ -189,7 +171,6 @@ export function poiV2Problems(raw, kit) {
     unknown(s, KEYS.stack, at);
   };
 
-  /** a condition tree, at most L.conditions leaves and L.conditionDepth deep */
   const condition = (/** @type {any} */ c, /** @type {string} */ at, /** @type {{ n: number }} */ budget, /** @type {number} */ depth) => {
     if (!isObj(c)) { say(at, 'not-object'); return; }
     if (depth > L.conditionDepth) { say(at, 'too-deep', { max: L.conditionDepth }); return; }
@@ -215,13 +196,15 @@ export function poiV2Problems(raw, kit) {
   };
   const when = (/** @type {any} */ c, /** @type {string} */ at) => { if (c !== undefined) condition(c, at, { n: 0 }, 1); };
 
-  // zero-delay edges between events, for the cycle check
   /** @type {Map<string, Set<string>>} */
   const instant = new Map();
-  /** every event named by a link other than a trigger: an action, a route, an encounter, a trade or a dialogue */
   const linked = new Set();
 
-  /** @param {any} a @param {string} at @param {string | null} from the event the action belongs to, for the cycle check */
+  /**
+   * @param {any} a
+   * @param {string} at
+   * @param {string | null} from
+   */
   const action = (a, at, from) => {
     if (!isObj(a)) { say(at, 'not-object'); return; }
     if (!enumOk(a.k, POI_ACTION_KINDS)) { say(`${at}.k`, 'unknown'); return; }
@@ -253,7 +236,7 @@ export function poiV2Problems(raw, kit) {
       case 'open_trade': ref(a.trade, ctx.trades, `${at}.trade`); only('trade'); break;
       case 'give_item': case 'take_item': stack(a.item, `${at}.item`); only('item'); break;
       case 'give_gold': case 'take_gold': if (!int(a.amount, 1, P.goldMax)) say(`${at}.amount`, 'gold', { max: P.goldMax }); only('amount'); break;
-      default: {   // trigger_event
+      default: {
         ref(a.event, ctx.events, `${at}.event`);
         if (!int(a.delayS, 0, 86400)) say(`${at}.delayS`, 'seconds', { max: 86400 });
         else if (typeof a.event === 'string') {
@@ -266,7 +249,6 @@ export function poiV2Problems(raw, kit) {
   };
   const link = (/** @type {any} */ ev, /** @type {string} */ at) => { if (ev === undefined) return; ref(ev, ctx.events, at); if (typeof ev === 'string') linked.add(ev); };
 
-  // ── groups ──────────────────────────────────────────────────────
   if (raw.groups !== undefined) {
     const rows = list(raw.groups, L.groups, 'groups', 'groups');
     const seen = new Set();
@@ -289,7 +271,6 @@ export function poiV2Problems(raw, kit) {
     }
   }
 
-  // ── interior ────────────────────────────────────────────────────
   if (raw.interior !== undefined) {
     const it = raw.interior;
     if (!isObj(it)) say('interior', 'not-object');
@@ -301,7 +282,6 @@ export function poiV2Problems(raw, kit) {
     }
   }
 
-  // ── flat pictures ───────────────────────────────────────────────
   const flatPair = (/** @type {any} */ f) => Array.isArray(f) && f.length === 2 && int(f[0], 0, P.decorArchiveMax) && int(f[1], 0, P.decorRecordMax);
   const isMount = (/** @type {any} */ it) => it.t === P.trophyTemplate || (it.g === P.decorWeaponsGroup && it.t !== P.decorArrowTemplate) || it.g === P.decorArmorGroup;
   if (raw.flats !== undefined) {
@@ -352,7 +332,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── variables ───────────────────────────────────────────────────
   if (raw.variables !== undefined) {
     const rows = list(raw.variables, L.variables, 'variables', 'variables');
     const seen = new Set();
@@ -368,7 +347,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── routes ──────────────────────────────────────────────────────
   if (raw.routes !== undefined) {
     const rows = list(raw.routes, L.routes, 'routes', 'routes');
     const seen = new Set();
@@ -396,7 +374,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── interactive objects ─────────────────────────────────────────
   if (raw.interactives !== undefined) {
     const rows = list(raw.interactives, L.interactives, 'interactives', 'interactives');
     const seen = new Set();
@@ -417,7 +394,6 @@ export function poiV2Problems(raw, kit) {
       if (!finite(o.yaw) || Math.abs(o.yaw) > 720) say(`${at}.yaw`, 'size', { max: 720 });
       if (!finite(o.radius) || o.radius < 0.5 || o.radius > 200) say(`${at}.radius`, 'radius', { min: 0.5, max: 200 });
       if (o.keyItem !== undefined) stack(o.keyItem, `${at}.keyItem`);
-      // the persistent text variable the object takes its state from (poiDmCore.js followKeptStates)
       if (o.stateVar !== undefined) {
         ref(o.stateVar, /** @type {any} */ (ctx.vars), `${at}.stateVar`);
         const v = ctx.vars.get(o.stateVar);
@@ -428,7 +404,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── trades ──────────────────────────────────────────────────────
   if (raw.trades !== undefined) {
     const rows = list(raw.trades, L.trades, 'trades', 'trades');
     const seen = new Set();
@@ -468,7 +443,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── dialogues ───────────────────────────────────────────────────
   if (raw.dialogues !== undefined) {
     const rows = list(raw.dialogues, L.dialogues, 'dialogues', 'dialogues');
     const seen = new Set();
@@ -514,7 +488,6 @@ export function poiV2Problems(raw, kit) {
         unknown(n, KEYS.node, nat);
         if (typeof n.key === 'string') edges.set(n.key, out);
       });
-      // a node nobody can reach from the start is a mistake, not a feature
       if (typeof d.start === 'string' && nodeKeys.has(d.start)) {
         const reached = new Set([d.start]);
         const todo = [d.start];
@@ -525,7 +498,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── encounters ──────────────────────────────────────────────────
   if (raw.encounters !== undefined) {
     const rows = list(raw.encounters, L.encounters, 'encounters', 'encounters');
     const seen = new Set();
@@ -572,7 +544,6 @@ export function poiV2Problems(raw, kit) {
     });
   }
 
-  // ── events ──────────────────────────────────────────────────────
   /** @type {Map<string, string>} */
   const triggerKinds = new Map();
   if (raw.events !== undefined) {
@@ -614,9 +585,7 @@ export function poiV2Problems(raw, kit) {
       other?.forEach((a, k) => action(a, `${at}.else[${k}]`, from));
       unknown(e, KEYS.event, at);
     });
-    // an event only others can start must be started by something, or it never runs
     rows?.forEach((e, i) => { if (isObj(e) && typeof e.key === 'string' && triggerKinds.get(e.key) === 'chained' && !linked.has(e.key)) say(`events[${i}].trigger`, 'event-unreachable', { key: e.key }); });
-    // an event that starts another with no delay, round to itself, would run without end in one tick
     const state = new Map();
     const walk = (/** @type {string} */ k) => {
       state.set(k, 1);
@@ -630,7 +599,6 @@ export function poiV2Problems(raw, kit) {
     for (const k of instant.keys()) if (!state.has(k) && walk(k)) { say('events', 'event-cycle'); break; }
   }
 
-  // ── what the people, parts and lights name ─────────────────────
   const rowsAt = (/** @type {any} */ arr, /** @type {(o: any, at: string) => void} */ fn, /** @type {string} */ name) => {
     if (Array.isArray(arr)) arr.forEach((o, i) => { if (isObj(o)) fn(o, `${name}[${i}]`); });
   };
@@ -646,5 +614,4 @@ export function poiV2Problems(raw, kit) {
   rowsAt(raw.lights, (l, at) => layout(l, at), 'lights');
 }
 
-/** The arch3d model id of a v2 part: a number the game's ARCH3D.BSA holds. */
 export const poiArch3dOk = (/** @type {any} */ id) => int(id, 1, POI_V2_PINS.decorModelMax);

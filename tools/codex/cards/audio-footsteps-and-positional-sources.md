@@ -12,6 +12,8 @@ files:
   - src/scenes/dungeonContext.js
   - src/ui/videoPlayer.js
   - src/ui/loadClassicWindow.js
+  - src/audio/immersiveFootsteps.js
+  - src/net/remotePlayers.js
 routes: []
 tables: []
 replacesBible:
@@ -25,9 +27,11 @@ invariants:
   - "lastPosition is written only on the lost-grounding landing reset and after accumulation. Levitation, mount, and airborne early returns leave the anchor stale, so a step fires on the first open frame."
   - "The first landing after load or entry is swallowed (ignoreLostGrounding = true in the constructor)."
   - "Dungeon shallow water is latched when (`centreY` - 0.57) < surface, where centreY is the live capsule center."
+  - "`src/audio/immersiveFootsteps.js` keeps three Immersive Footsteps mod quirks on purpose: `altStep` is never true, so the Alt tables go unused; the chain and plate sway branches re-roll the leather interval instead of their own; and the swim step ignores `AllowFootstepSounds`."
 traps:
   - "Rebasing the anchor in early returns suppresses the step DFU plays on dismount, on landing out of levitation, and on falling into water."
   - "Exterior torches are silent. Only dungeon TORCH_ARCHIVE 210 records {0,1,6,16,17,18,19,20} loop Burning (420)."
+  - "Peers send the `FOOTSTEP_KIND` value as the pose field `fk` (`src/net/wire.js`, `0` to `5`) and look the clip pair up in `FOOTSTEP_CLIP_SETS` on their own side (`src/net/remotePlayers.js`), so those values and that table order are wire data."
 dfu:
   - Assets/Scripts/Game/PlayerFootsteps.cs
   - Assets/Scripts/Game/AmbientEffectsPlayer.cs

@@ -317,7 +317,7 @@ export const DECOR_ACT_GROUPS = Object.freeze({
   get arrange() { return t('decor.panel.group.arrange', 'Arrange'); }, get use() { return t('decor.panel.group.use', 'Light and storage'); },   // a placed piece
   get station() { return t('decor.panel.group.station', 'Crafting station'); },
   get piece() { return t('decor.panel.group.piece', 'This piece'); }, get whole() { return t('decor.panel.group.whole', 'The whole room'); },   // BASE-HIDE: the room's own furniture
-  get price() { return t('decor.panel.group.price', 'Price a day'); }, get offer() { return t('decor.panel.group.offer', 'Offer this room'); },   // HOME-RENT
+  get price() { return t('decor.panel.group.price', 'Price per day'); }, get offer() { return t('decor.panel.group.offer', 'Offer this room'); },   // HOME-RENT
   get rent() { return t('decor.panel.group.rent', 'Rent held'); },
 });
 /** MENU-ORDER: the painter's rows - a part's climate, then its building's style (walls, windows) or its own (a roof, a
@@ -813,7 +813,7 @@ export function createDecorPanel({
     const one = (icon, word) => { const x = el('span', 'dfdecor-badge'); x.dataset.dficon = icon; x.title = word; x.setAttribute('aria-label', word); return x; };
     if (storage) b.append(one('storage', t('decor.panel.badge.storage', 'Holds things')));
     if (light) b.append(one('light', t('decor.panel.badge.light', 'Gives light')));
-    if (station) b.append(one('station', t('decor.panel.badge.station', 'A crafting station')));
+    if (station) b.append(one('station', t('decor.panel.badge.station', 'Crafting station')));
     return b;
   }
   function drawTabs() {
@@ -1326,7 +1326,7 @@ export function createDecorPanel({
     pickName.textContent = it ? it.name : rows.length ? 'Choose a piece of this room\'s own furniture' : DECOR_BASE_EMPTY;
     pickLine.textContent = it ? decorBaseSub(it) : '';
     pickPrice.textContent = it || rows.length ? 'Free to take out or put back' : '';
-    baseBtn.textContent = it?.hidden ? 'Put back' : it?.holds ? t('decor.look.takeOutHolds', 'Take out (its contents to your pack)') : 'Take out';
+    baseBtn.textContent = it?.hidden ? 'Put back' : it?.holds ? t('decor.look.takeOutHolds', 'Take out (moves contents to your pack)') : 'Take out';
     baseBtn.dataset.dficon = it?.hidden ? 'put-back' : 'take-out';   // MENU-ORDER
     baseBtn.disabled = !it;
     allOutBtn.disabled = !rows.some((r) => !r.hidden && !r.door);
@@ -1466,10 +1466,10 @@ const DECOR_BAR_ICONS = Object.freeze({ place: 'place', turnLeft: 'turn-left', t
 /** MENU-ORDER: THE BAR'S LEGEND - each key's name and what presses it, a pair a line (a finger's two: the stick and
  *  Fly, and the look). DECOR-FIGURE: `sized` false tells no Size key. */
 export function decorBarKeys(touch, sized = true) {
-  if (touch) return [['Fly', t('decor.bar.keys.flyTouch', 'the stick, and hold Fly up or Fly down')], ['Look', t('decor.bar.keys.lookTouch', 'drag: the piece stands where you look')]];
+  if (touch) return [['Fly', t('decor.bar.keys.flyTouch', 'the stick, and hold Fly up or Fly down')], ['Look', t('decor.bar.keys.lookTouch', 'drag to aim where the piece is placed')]];
   return [['Fly', t('decor.bar.keys.fly', 'walk keys, Jump up, Crouch down, Run faster')], ['Look', t('decor.bar.keys.look', 'mouse')],
-    ['Turn', t('decor.bar.keys.turn', 'wheel or Turn Left/Right (Shift for fine turns, and turn a picture halfway round to flip it)')], ['Raise/lower', t('decor.bar.keys.raise', 'Float Up/Down')],
-    ['Nudge', t('decor.bar.keys.nudge', 'Numpad 4, 6, 8 and 2 (Shift or Ctrl for a short step; one grid step with the grid on)')],   // HOUSING-2
+    ['Turn', t('decor.bar.keys.turn', 'wheel or Turn Left/Right (Shift for fine turns, or turn a picture halfway around to flip it)')], ['Raise/lower', t('decor.bar.keys.raise', 'Float Up/Down')],
+    ['Nudge', t('decor.bar.keys.nudge', 'Numpad 4, 6, 8, and 2 (Shift or Ctrl for fine steps, or one grid step when the grid is on)')],   // HOUSING-2
     ...(sized ? [['Size', '- and =']] : []), ['Grid', '/'], ['Place', t('decor.bar.keys.place', 'click or Interact')], ['Back', t('decor.bar.keys.back', 'right click or Escape')]];
 }
 

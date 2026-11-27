@@ -56,7 +56,7 @@ export function drawGatheredPart(detail, { el, divider }, id, wardrobe) {
     const have = gatheredOf('trophies');
     const n = gatheredCount(id, wardrobe);
     detail.append(divider(t('coll.trophies.head', 'Trophies · {n} of {total} beasts', { n: n.held, total: n.total })));
-    detail.append(el('p', 'coll-acct', t('coll.trophies.how', 'A named beast from a bounty board gives one, and so does a Trophy Hunter\'s clean pelt of a grade 5 or 6 body.')));
+    detail.append(el('p', 'coll-acct', t('coll.trophies.how', 'Earned by slaying a named beast from a bounty board, or by taking a clean grade 5 or 6 pelt as a Trophy Hunter.')));
     for (const foe of trophyKeys()) {
       const row = have[foe];
       list.append(line(el, trophyBeastName(foe), row ? t('coll.gathered.row', '{n} taken · first on {date}', { n: row.n, date: dateOf(row.day) }) : t('coll.trophies.none', 'No trophy yet'), !!row));
@@ -65,7 +65,7 @@ export function drawGatheredPart(detail, { el, divider }, id, wardrobe) {
     const have = gatheredOf('fish');
     const n = gatheredCount(id, wardrobe);
     detail.append(divider(t('coll.fish.head', 'Fish · {n} of {total} kinds', { n: n.held, total: n.total })));
-    detail.append(el('p', 'coll-acct', t('coll.fish.how', 'Cast a Fishing-Net in water. Each water has its own fish.')));
+    detail.append(el('p', 'coll-acct', t('coll.fish.how', 'Cast a Fishing-Net into the water. Different waters have different fish.')));
     for (const s of PASSIVE_FISH_SPECIES) {
       const row = have[s.templateIndex];
       list.append(line(el, getLocalizedItemName(s.templateIndex, s.itemName), row ? t('coll.fish.row', '{n} hauls · first on {date}', { n: row.n, date: dateOf(row.day) }) : t('coll.fish.none', 'Not caught yet'), !!row));
@@ -73,10 +73,10 @@ export function drawGatheredPart(detail, { el, divider }, id, wardrobe) {
   } else {
     const held = annalsHeldOf(wardrobe);
     detail.append(divider(t('coll.annals.head', 'The Annals of 3E 398 · {n} of {total} pages', { n: held ? held.length : '–', total: EG_ANNALS.length })));
-    if (!held) detail.append(el('p', 'coll-acct', t('coll.annals.signIn', 'Sign in to your account to read the pages it keeps.')));
+    if (!held) detail.append(el('p', 'coll-acct', t('coll.annals.signIn', 'Sign in to your account to read the pages you have found.')));
     EG_ANNALS.forEach(([title, text], p) => {
       const found = !!held?.includes(p);
-      const how = p < EG_ANNALS_FOUND ? t('coll.annals.hidden', 'Hidden in the Elite Breach\'s halls') : t('coll.annals.lord', 'Given at a lord\'s first fall');
+      const how = p < EG_ANNALS_FOUND ? t('coll.annals.hidden', 'Hidden inside the Elite Breach') : t('coll.annals.lord', 'Awarded the first time you defeat a lord');
       list.append(line(el, found ? title : t('coll.codex.unfound', 'Unfound'), found ? text : how, found));
     });
   }

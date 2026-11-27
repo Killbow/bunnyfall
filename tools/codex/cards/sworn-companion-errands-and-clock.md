@@ -22,9 +22,12 @@ invariants:
   - "At most `ERRAND.MAX` (`2`) sworn companions can be abroad at once, and `errandRefusal` also blocks companions that are already abroad, stationed, resting, or active at the player's side inside the open PvP zone."
   - "Online, `chargeErrands` advances errands against `errandWorldNow()` (trusted world minutes, the shared-clock heard mark, and a monotonic clock) rather than character-raised or rested minutes."
   - "Each tick advances an offline lived-step errand by at most `ERRAND.STEP_MAX` (`30`) lived minutes."
+  - "`newErrand` copies the companion's star sky (`rvnErrandSky`: odds, haul, road, and bold) onto the errand as it sets out, so changing stars while it is away changes neither its length nor its haul."
+  - "`returnFromErrand` pays loyalty and XP only for a seed missing from `companion.paid` (the last `PAID_KEEP` = `16` seeds), so reloading a save made while the companion was away returns the haul again but never pays twice."
 traps:
   - "Rest, fast travel, and character clock raises never speed up online errands; offline errands use the lived-step path to push `until` forward instead."
   - "A companion knocked out at the player's side inside the open PvP zone hands its pack and equipped kit back to the player before leaving (`leftWithYou`)."
+  - "`restUntil` writes its clamp back to the save and the device mirror (`revenantCompanionUpdate`); clamping only the returned value moves the rest deadline forward every frame, and the rest never ends."
 dfu: []
 tags:
   - companions

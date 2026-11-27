@@ -1,11 +1,5 @@
-// BUNNYFALL MODPACK1: AN LZMA AND LZMA2 DECODER, for the 7z archives mods are downloaded as (Paperdoll Enhanced's
-// Nexus file is one). The algorithm is Igor Pavlov's (LZMA SDK, public domain); this is a plain reading of it, written
-// for the port, with no dependency.
-//
-// RESUMABLE BY DESIGN. A mod's archive holds hundreds of megabytes, and a decode that never yields freezes the tab.
-// Every piece of the decoder's state lives on the object, so `step(budget)` decodes about `budget` bytes, hands them to
-// the sink and returns; the caller awaits a frame between steps. Input is the packed stream whole, in memory (the
-// compressed side); output goes to `sink(bytes)` a window at a time and is never held whole here.
+// All decoder state lives on the object so `step(budget)` can stop and resume between frames; a decode that never
+// yields freezes the tab on large archives.
 
 const kNumStates = 12;
 const kEndPosModelIndex = 14;
@@ -90,7 +84,6 @@ class LenDecoder {
   }
 }
 
-/** The output window: the dictionary, flushed to the sink as it fills. */
 class Window {
   constructor(size, sink) {
     this.buf = new Uint8Array(size);
@@ -98,7 +91,7 @@ class Window {
     this.pos = 0;
     this.flushed = 0;
     this.full = false;
-    this.total = 0;   // bytes produced, all told
+    this.total = 0;
     this.sink = sink;
   }
   put(b) {
@@ -112,7 +105,8 @@ class Window {
     this.flushed = 0;
     this.full = true;
   }
-  get(dist) {   // dist 0 = the last byte
+  // `dist` 0 is the most recent byte written.
+  get(dist) {
     let i = this.pos - dist - 1;
     if (i < 0) i += this.size;
     return this.buf[i];
@@ -127,7 +121,6 @@ class Window {
   }
 }
 
-/** The LZMA state machine over a window - LZMA1 and LZMA2 share it. */
 class LzmaCore {
   constructor(window) { this.win = window; this.lc = 3; this.lp = 0; this.pb = 2; }
   setProps(byte) {
@@ -184,7 +177,6 @@ class LzmaCore {
     dist = (dist + (rc.direct(numDirect - kNumAlignBits) << kNumAlignBits)) >>> 0;
     return (dist + rc.reverse(this.align, 0, kNumAlignBits)) >>> 0;
   }
-  /** Decode until `limit` bytes are out (the window's total) or an end marker; answers false at the marker. */
   run(rc, limit) {
     const w = this.win;
     const pbMask = (1 << this.pb) - 1;
@@ -197,11 +189,11 @@ class LzmaCore {
         len = this.lenDec.decode(rc, posState);
         this.state = s < 7 ? 7 : 10;
         const dist = this.distance(rc, len);
-        if (dist === 0xFFFFFFFF) return false;   // the end marker
+        if (dist === 0xFFFFFFFF) return false;
         this.rep3 = this.rep2; this.rep2 = this.rep1; this.rep1 = this.rep0; this.rep0 = dist;
       } else {
         if (rc.bit(this.isRepG0, s) === 0) {
-          if (rc.bit(this.isRep0Long, (s << 4) + posState) === 0) {   // a short rep: one byte
+          if (rc.bit(this.isRep0Long, (s << 4) + posState) === 0) {
             this.state = s < 7 ? 9 : 11;
             w.put(w.get(this.rep0));
             continue;
@@ -229,7 +221,6 @@ class LzmaCore {
 
 const windowSize = (dict, unpackSize) => Math.max(4096, Math.min(dict, Number.isFinite(unpackSize) ? unpackSize : dict, 1 << 30));
 
-/** LZMA1 as 7z stores it: 5 property bytes (lc/lp/pb, dictionary size) beside the coder; `unpackSize` known. */
 export function lzmaDecoder(props, input, unpackSize, sink) {
   const dict = (props[1] | (props[2] << 8) | (props[3] << 16) | (props[4] << 24)) >>> 0;
   const win = new Window(windowSize(dict, unpackSize), sink);
@@ -250,7 +241,6 @@ export function lzmaDecoder(props, input, unpackSize, sink) {
   };
 }
 
-/** LZMA2: one property byte (the dictionary size), the stream in chunks of its own. */
 export function lzma2Decoder(props, input, unpackSize, sink) {
   const p = props[0] & 0x3F;
   if (p > 40) throw new Error('lzma2: bad dictionary size');
@@ -264,7 +254,7 @@ export function lzma2Decoder(props, input, unpackSize, sink) {
     const c = input[pos++];
     if (c === undefined) throw new Error('lzma2: truncated');
     if (c === 0x00) return false;
-    if (c === 0x01 || c === 0x02) {   // a stored chunk
+    if (c === 0x01 || c === 0x02) {
       const size = ((input[pos] << 8) | input[pos + 1]) + 1;
       pos += 2;
       for (let i = 0; i < size; i++) win.put(input[pos + i]);

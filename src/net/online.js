@@ -597,7 +597,7 @@ export const peerSecret = (storage = tabStorage()) => keptToken(storage, 'dagger
  */
 /** ONE-SEAT (Mac: "the player can only have one character only at a time"): the line a superseded session says - another
  *  tab or window of this player went online (or this tab's own id was taken), so this one is out of every room. */
-export const SEAT_TEXT = 'online in another tab, window or device, so this one is offline';
+export const SEAT_TEXT = 'online in another tab, window, or device, so this one is offline';
 /** L10N4: SEAT_TEXT as the player reads it, read when it is said. */
 export const seatText = () => t('net.online.seat', SEAT_TEXT);
 /** AUDIT ONESEAT C1: how long a claim speaks for the player's act. A claim is the moment a tab went online (or Play online

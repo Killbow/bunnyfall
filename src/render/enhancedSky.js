@@ -1,74 +1,21 @@
 // @ts-check
-// THE ENHANCED SKY (ES1, 2026-08-27, Mac's call: "for the enhanced
-// version of the game, I want us to develop our own take on the
-// procedural sky system mod from DFU").
-//
-// Daggerfall's sky is 64 painted frames a day (SKY??.DAT) and one
-// painted night (NITE??I0.IMG); DFU's Enhanced Sky mod (Lypyl) replaced
-// them with a real sky - sun, two moons with phases, stars, cloud layers,
-// weather - out of textures. This is OUR take, and it is entirely
-// procedural: one fullscreen pass, no textures at all, so it ships
-// with the port and needs no data. It lives behind the enhanced skin;
-// the classic sky pass (skyRenderer.js) is untouched and stays verbatim.
-//
-// WHAT IS DFU'S AND WHAT IS OURS. The LAWS the sky reads are the port's
-// verbatim ones: the sun's position (worldClock.sunDirection - dawn from
-// map east, noon straight down), day and night (DawnHour 6 / DuskHour
-// 18), the two moons' phases (gameDate: DFU's own 32-day ratio, Masser
-// +3 and Secunda -1 - taken since CLK3 CONTINUOUS on the clock,
-// `lunarPhaseFractionsFromMinutes`, never a ring step from the ladder
-// every SYSTEM still reads), and the weather (weatherSim,
-// WeatherManager verbatim). Everything that turns those into light is
-// ours: the palette below, the moons' PLACES in the sky, the stars, the
-// clouds.
-//
-// THE PALETTE IS A RECORD. `SKY_KEYS` is a table keyed by the sun's
-// elevation in degrees - night, twilight, the horizon, the day - and
-// every colour on the dome is an interpolation of it; `WEATHER_SKY` is
-// a table per weather type. Change a row, change the sky. The shader
-// carries no colours: it takes the interpolated palette as uniforms, so
-// there is exactly one place a colour lives.
-//
-// THE MOONS' PLACES are our law with a physical spine: a moon sits on
-// the sun's own arc, BEHIND the sun in the day's motion by its phase -
-// new beside the sun (and so never seen at night), a waxing crescent a
-// little behind it (in the west after sunset, setting soon after), full
-// opposite it (rising as the sun sets, up all night), a waning half
-// three quarters behind (rising at midnight, high at dawn) - so DFU's
-// phase and the moon you see agree, and a lycanthrope's full moon is a
-// full moon overhead at midnight. The terminator is a lit sphere, not
-// a texture.
 
 import { dayFraction, daylightScale, isNight } from '../world/worldClock.js';
-import { lunarPhaseFractionsFromMinutes, LUNAR_PHASES } from '../world/gameDate.js';   // CLK3: the dome takes the phase as a number on the clock
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
-import { DREAD_GLSL } from '../world/dreadSky.js';   // EVENT1: the live event's grade, the sky's last word
-import { SD_BRASS_GLSL } from '../world/sdBrassSky.js';   // AUDIT SD III (V8): the brass air's grade on the sky as on its haze
-import { HAZE_SKY_GLSL } from './hazeGlsl.js';   // BANTHA1: the jungle's haze over the sky (render/hazeGlsl.js)
+import { lunarPhaseFractionsFromMinutes, LUNAR_PHASES } from '../world/gameDate.js';
+import { buildProgram } from './glProgram.js';
+import { DREAD_GLSL } from '../world/dreadSky.js';
+import { SD_BRASS_GLSL } from '../world/sdBrassSky.js';
+import { HAZE_SKY_GLSL } from './hazeGlsl.js';
 
 const hex = (h) => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
 const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
-/** The palette by the sun's elevation (degrees above the horizon).
- *  zenith / horizon: the dome's two ends. sun: the disc. glow: the
- *  colour and strength of the horizon glow on the sun's side. stars:
- *  how much of the star field shows. Between rows, everything is
- *  linear in elevation. */
 export const SKY_KEYS = Object.freeze([
   { elev: -90, zenith: '#04060d', horizon: '#090c16', sun: '#000000', glow: '#000000', glowAmount: 0.0, stars: 1.0 },
   { elev: -18, zenith: '#060914', horizon: '#0f131f', sun: '#000000', glow: '#1a1420', glowAmount: 0.0, stars: 1.0 },
   { elev: -9,  zenith: '#0c1330', horizon: '#2b2238', sun: '#000000', glow: '#6a3a3a', glowAmount: 0.30, stars: 0.85 },
   { elev: -4,  zenith: '#1a2a5a', horizon: '#4e4258', sun: '#000000', glow: '#d6693a', glowAmount: 0.75, stars: 0.45 },
-  // EE2 F3: THE SUNSET BAND. The ramp stepped -4 -> 0 -> 4, and the
-  // whole of a sunrise or sunset happens inside those eight degrees, so
-  // the most-looked-at sky in the game was one straight line between
-  // three keys. Four keys where there were two, tuned in the lab: the
-  // horizon goes ember, then peach; the zenith takes the violet that
-  // exists for a few minutes either side of the horizon; the glow
-  // swings warm and then cools as the sun clears the haze. The
-  // interpolation is untouched - only the rungs are closer together
-  // where the eye is looking.
   { elev: -2,  zenith: '#233674', horizon: '#8e6062', sun: '#e06a2c', glow: '#f07c3c', glowAmount: 0.92, stars: 0.24 },
   { elev: 0,   zenith: '#2c4d8e', horizon: '#c4a49a', sun: '#ffa64e', glow: '#ff9a4c', glowAmount: 1.0, stars: 0.10 },
   { elev: 2,   zenith: '#335ca4', horizon: '#e0b49c', sun: '#ffb96a', glow: '#ffac60', glowAmount: 0.84, stars: 0.03 },
@@ -79,9 +26,6 @@ export const SKY_KEYS = Object.freeze([
   { elev: 90,  zenith: '#2a5ab8', horizon: '#a8c8ea', sun: '#ffffff', glow: '#ffffff', glowAmount: 0.08, stars: 0.0 },
 ]);
 
-/** The weather's hand on the sky: cloud cover (0..1), how soft the
- *  cloud edges are, how far the dome greys toward `grey`, the clouds'
- *  lit and shaded colours by day, and a wind (dome units per second). */
 export const WEATHER_SKY = Object.freeze({
   sunny:    { cover: 0.32, soft: 0.34, grey: 0.00, lit: '#f4f6fa', shade: '#98a4b2', wind: [0.010, 0.004] },
   cloudy:   { cover: 0.55, soft: 0.28, grey: 0.25, lit: '#eef1f5', shade: '#8a95a2', wind: [0.016, 0.006] },
@@ -90,53 +34,27 @@ export const WEATHER_SKY = Object.freeze({
   rain:     { cover: 0.97, soft: 0.20, grey: 0.85, lit: '#7f8890', shade: '#444b53', wind: [0.030, 0.010] },
   snow:     { cover: 0.95, soft: 0.26, grey: 0.80, lit: '#c3c8ce', shade: '#7f878f', wind: [0.012, 0.004] },
   thunder:  { cover: 1.00, soft: 0.18, grey: 0.95, lit: '#5b626b', shade: '#262b31', wind: [0.045, 0.016] },
-  sandstorm: { cover: 0.90, soft: 0.30, grey: 0.70, lit: '#d8b47a', shade: '#8a6a3c', wind: [0.040, 0.014] },   // WEATHER2d: a tan lid under a gale
+  sandstorm: { cover: 0.90, soft: 0.30, grey: 0.70, lit: '#d8b47a', shade: '#8a6a3c', wind: [0.040, 0.014] },
 });
 export const GREY_ZENITH = '#66707c';
 export const GREY_HORIZON = '#9aa3ac';
 
-/** The moons: angular radius (radians) and colour. Masser is the big
- *  red one, Secunda the small pale one; Secunda rides a little higher. */
 export const MOONS = Object.freeze({
   masser:  { radius: 0.040, color: '#d39a86', tilt: 0.00 },
   secunda: { radius: 0.021, color: '#e9e6dc', tilt: 0.22 },
 });
 
-/** The sun's angular radius (radians) - larger than the real sun, as
- *  every game sun is, so it reads at a glance. */
 export const SUN_RADIUS = 0.032;
 
-// THE RETRO PASS IS GONE (FT3, 2026-09-14, Mac: "Remove our version of
-// pixelated sky"). ES1e's angular pixel and posterise, ES1f/ES1g's grid,
-// PS1's switch and PS2's copy over the other sky passes were removed
-// whole; the dome is the smooth pass only, and there is no `?sky=retro`
-// or `?sky=smooth` door. Record: bible/10-UI/Features-Arc.md FT3.
+export const STAR_POLE = Object.freeze([0, 0.622244, 0.782823]);
 
-/** The pole the star field turns about: north (+Z here, since the sun's
- *  arc is the XZ east-west line), leaned toward the zenith so the field
- *  wheels at an angle rather than spinning flat overhead. Ours - the
- *  Iliac Bay has no stated latitude. */
-export const STAR_POLE = Object.freeze([0, 0.622244, 0.782823]);   // unit: the shader normalises anyway, but a direction should BE one
-
-// ── THE CLOUD FIELD, ON THE CPU (ES1d) ───────────────────────────
-// The shader's hash/value-noise/fbm, in JS, IDENTICALLY - so the port
-// can ask "is a cloud in front of the sun right now" without reading a
-// pixel back. The shader is the same three functions in GLSL, and
-// test/render/enhancedSky.test.js pins the two texts against each other line
-// for line, because a drift here is a sun that dims when the sky says
-// it should not.
+// CPU twin of the shader's hash, value noise, and fbm, so the game can tell when a cloud covers the sun.
+// Keep the two texts identical, or the world light dims when the drawn sky says it should not.
 const fract = (x) => x - Math.floor(x);
-/** CLK1 review: the deck's lattice has a PERIOD - every octave's
- *  integer corner is taken modulo DECK_LATTICE, so the field repeats
- *  every DECK_LATTICE units of each octave's own coordinate and, the
- *  octaves doubling exactly, every DECK_LATTICE units of the base
- *  coordinate. The drift can then be wrapped (DECK_PERIOD, a whole
- *  number of lattice periods for BOTH decks - the far one reads 0.55 of
- *  it) with no seam, and the hash never sees a large number: its input
- *  is under DECK_LATTICE whatever the drift, so float32 keeps every
- *  fraction (EE2 F1's failure, the constant field, cannot return). */
+// The hash wraps every DECK_LATTICE units, so the drift wraps without a seam and float32 keeps every fraction.
 export const DECK_LATTICE = 256;
-export const DECK_PERIOD = 5120;   // 20 lattice periods; 0.55 of it is 11 - both decks whole
+// 20 lattice periods; the far deck's 0.55 of it is 11, so both decks wrap whole.
+export const DECK_PERIOD = 5120;
 export const wrapDeck = (v) => v - Math.floor(v / DECK_PERIOD) * DECK_PERIOD;
 export function hash21(x, y) {
   x = x - Math.floor(x / DECK_LATTICE) * DECK_LATTICE; y = y - Math.floor(y / DECK_LATTICE) * DECK_LATTICE;
@@ -156,63 +74,35 @@ export function fbm(x, y) {
   let v = 0, amp = 0.5, px = x, py = y;
   for (let i = 0; i < 5; i++) {
     v += amp * vnoise(px, py);
-    const nx = px * 2.0 + 17.1, ny = py * 2.0 + 9.7;   // CLK1 review: exactly two, so every octave shares the lattice's period
+    // Exactly 2, so every octave shares the lattice's period.
+    const nx = px * 2.0 + 17.1, ny = py * 2.0 + 9.7;
     px = nx; py = ny; amp *= 0.5;
   }
   return v;
 }
 const smoothstep = (e0, e1, x) => { const t = clamp01((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
 
-/** One deck's cover along a direction - the shader's `deck`, in JS. */
 function deckCover(dir, scale, drift, cover, soft) {
-  // WIND2: the deck moves by an INTEGRATED drift, not wind * time. With
-  // a fixed per-weather wind the two were the same number; with WIND1's
-  // wind changing every frame through a three-hour front, wind * time
-  // made the field's offset jump by (delta wind) * (seconds since the
-  // sky began) - the clouds streamed across the sky at every front.
+  // The deck moves by an integrated drift, not wind * time, so a changing wind never jumps the field.
   const k = 1 / (dir[1] + 0.18);
   const n = fbm(dir[0] * k * scale + drift[0], dir[2] * k * scale + drift[1]);
   return smoothstep(1 - cover, 1 - cover + soft, n);
 }
 
-/**
- * ES1d - THE CLOUD IN FRONT OF THE SUN, 0..1 (Mac: the fifth fault).
- * The shader already draws it: the sun's disc is multiplied by
- * `1 - cloud` along the sun's own ray. This is that same number, on the
- * CPU, for the WORLD's light - so when a bank crosses the sun you SEE
- * the disc go and FEEL the ground go with it, and the two cannot
- * disagree, because it is one field evaluated at one direction.
- *
- * It is a dimming, not a projected shadow: the dome is infinitely far,
- * so the cover does not change as the player walks (a real cloud
- * shadow moves with the cloud, which this does - via the wind - and
- * with the walker, which this does not). Below the horizon there is no
- * sun to occlude and it is 0.
- */
 export function sunOcclusion(state) {
   if (!state || state.sunDir[1] <= 0) return 0;
   const d = state.sunDir, dr = state.drift ?? [state.wind[0] * state.seconds, state.wind[1] * state.seconds];
   const hi = deckCover(d, 0.95, [dr[0] * 0.55, dr[1] * 0.55], state.cloudCover * 0.75, state.cloudSoft * 1.5);
   const lo = deckCover(d, 1.9, dr, state.cloudCover, state.cloudSoft);
   const cov = clamp01(lo + hi * (1 - lo) * 0.7);
-  // AUDIT 39 F54: the HORIZON term the shader applies to the same cover
-  // before it dims the disc (`cloud = mix(cov, cov * uCloudCover, near)`)
-  // - without it, a sun below ~16 degrees took up to half again as much
-  // light off the ground as off the disc the player can still see, and
-  // those are the hours the palette is built around.
-  const near = 1 - smoothstep(0, 0.28, d[1]);   // AUDIT SD III (V14): the shader's own, edges rising
-  // EE2 F4: thins exactly as the shader does - mix(cover, 1, 0.75)
+  // The shader's horizon term and thinning, so the ground dims by the same cover as the visible disc.
+  const near = 1 - smoothstep(0, 0.28, d[1]);
   const thin = state.cloudCover + (1 - state.cloudCover) * 0.75;
   return cov * (1 - near) + cov * thin * near;
 }
 
-/** How much of the sun a full cover takes off the WORLD. Not 1: even
- *  under a solid deck the ground is lit, by the sky itself, and the
- *  weather's own sunlight scale (WeatherManager, verbatim) has already
- *  had its say - this is the moving cloud on top of that. */
 export const CLOUD_SHADOW = 0.55;
 
-/** Interpolate the palette at a sun elevation (degrees). Pure. */
 export function paletteAt(elevDeg) {
   const keys = SKY_KEYS;
   if (elevDeg <= keys[0].elev) return rowOf(keys[0]);
@@ -234,19 +124,11 @@ export function paletteAt(elevDeg) {
 }
 const rowOf = (k) => ({ zenith: hex(k.zenith), horizon: hex(k.horizon), sun: hex(k.sun), glow: hex(k.glow), glowAmount: k.glowAmount, stars: k.stars });
 
-/** The sun's place in the sky: worldClock's own arc - dawn at map east
- *  (+X), noon straight up, dusk at map west - CONTINUED below the
- *  horizon. sunDirection clamps its day fraction to [0, 1] because the
- *  sun rig is disabled at night; the sky needs to know how far under
- *  the horizon the sun is (twilight is a matter of degrees), so this
- *  takes the unclamped fraction (SunlightManager's t) through the same
- *  angle. Unit vector, y up; x is map east. */
 export function sunSkyDirection(minuteOfDay) {
   const x = Math.PI * dayFraction(minuteOfDay);
   return [Math.cos(x), Math.sin(x), 0];
 }
 
-/** Rotate a vector about the Z axis (the sun's arc lies in the XY plane). */
 function rotZ(v, a) {
   const c = Math.cos(a), s = Math.sin(a);
   return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]];
@@ -256,56 +138,28 @@ function rotX(v, a) {
   return [v[0], v[1] * c - v[2] * s, v[1] * s + v[2] * c];
 }
 
-/** Where a moon is: on the sun's arc, BEHIND the sun by its phase (new
- *  0, full half a turn - so a full moon rises as the sun sets and a
- *  waning half rises at midnight), tilted a little off the arc per
- *  moon. The arc runs east (+X) up (+Y) west (-X); behind is the
- *  negative turn about Z. */
 export function moonSkyDirection(minuteOfDay, phase, tilt = 0) {
   const sun = sunSkyDirection(minuteOfDay);
-  const p = phase === LUNAR_PHASES.None ? 0 : phase;   // 0..8, New=0 ... Full=4 - a ladder step or, since CLK3, the clock's own fraction
+  const p = phase === LUNAR_PHASES.None ? 0 : phase;
   const angle = (p / 8) * Math.PI * 2;
   return rotX(rotZ(sun, -angle), tilt);
 }
 
-/* ── EV5: MOONLIGHT (Mac: "I want sunlight and moonlight to matter") ──
-   The sky has computed both moons' directions, phases and
-   visibilities every frame since ES1 and the world's light consumed
-   none of it. The MASSER leads: it is the big moon, and its phase-lit
-   fraction times its visibility (already dimmed by daylight and by the
-   eased cloud cover - the same field the dome is drawn with) scales a
-   second directional N.L term in the lit shaders, coloured like the
-   disc. SECUNDA rides the AMBIENT: too small and too white for a
-   readable second shadow direction, it lifts the night floor a little
-   when it is up and lit. Both terms exist only while skyState answers
-   night - by day the sun owns the sky - and only under the ENHANCED
-   sky, because only it has this state at all: the classic lane keeps
-   DFU's hard-off night verbatim. The two scales are the dials, the
-   STUDIO_AMBIENT shape. */
 export const MOONLIGHT = Object.freeze({
-  masser: 0.25,    // full-Masser key scale (night ambient is 0.25 - a full moon roughly doubles a moonlit face)
-  secunda: 0.06,   // full-Secunda ambient lift
-  dayFade: 0.06,   // CLK3 review: the daylight level under which the moonlight rises to full - the rig's curve reaches 0 at 18:00, so the term ramps over the last minutes of dusk and the first of dawn instead of stepping at the hour
+  masser: 0.25,
+  secunda: 0.06,
+  dayFade: 0.06,
 });
 
-/** How much of a moon's disc is lit, 0..1: New (0) none, Full (4)
- *  all, the halves half - the phase ring folded at Full. */
 export function phaseLitFraction(phase) {
   const p = phase === LUNAR_PHASES.None ? 0 : phase;
   return p <= 4 ? p / 4 : (8 - p) / 4;
 }
 
-// The moonlight follows the daylight curve, so it rises and fades smoothly with the clock.
-// A state without the curve uses the night flag.
 const moonNightness = (state) => (state.daylight == null ? (state.night ? 1 : 0) : clamp01(1 - state.daylight / MOONLIGHT.dayFade));
-/** Masser's light scale, moonlightTerm's `scale` (0 where moonlightTerm returns null), with no allocation. */
 export const masserKey = (state, nightness = moonNightness(state)) =>
   MOONLIGHT.masser * phaseLitFraction(state.masser.phase) * state.masser.vis * nightness;
 
-/** The world light's moon term for one frame, from skyState's own
- *  output: null when the sky is not night's, or when neither moon
- *  contributes. `dir`/`scale`/`color` drive the second directional
- *  term (the masser); `ambient` is secunda's additive floor lift. */
 export function moonlightTerm(state) {
   const nightness = moonNightness(state);
   if (nightness <= 0) return null;
@@ -321,8 +175,6 @@ export function moonlightTerm(state) {
   };
 }
 
-/** Fold the secunda lift into a host's ambient, in place (the hosts
- *  mint the ambient array fresh each frame - no second allocation). */
 export function withMoonAmbient(ambient, moon) {
   if (!moon) return ambient;
   ambient[0] += moon.ambient[0];
@@ -331,34 +183,11 @@ export function withMoonAmbient(ambient, moon) {
   return ambient;
 }
 
-/** THE WEATHER'S HAND, EASED (ES1c). The sim flips its type on one
- *  frame - sunny to rain, between two ticks - and the sky was rebuilt
- *  from the type every frame, so the whole dome changed in the time it
- *  takes to draw once. A weather row is a set of NUMBERS, so the sky
- *  keeps its own and walks them toward the row the sim is asking for:
- *  cover, softness, greyness, wind and the two cloud colours, all on
- *  one time constant. Pure and injectable: `dt` in, the eased row out.
- *  (The same lesson as the danger meter's slew - a slow, meaningful
- *  state should arrive slowly, and nothing about a sky changes in a
- *  frame.)
- *
- *  CLK1 (2026-09-08, Mac: "in sync with the world clock"): the ease
- *  runs on GAME MINUTES, the clock the sun, the moons and the wind
- *  model already read - not on the wall's seconds the controller used
- *  to keep for itself. Fourteen real seconds at the default TimeScale
- *  of 12 (worldTick.js CLASSIC_MINUTES_PER_SECOND) is 2.8 game
- *  minutes, so the look at the default scale is the one ES1c shipped;
- *  a rest, a travel, a jail term or a `?timescale` now move the sky
- *  with the clock. The constant is the span in minutes; `dt` is
- *  minutes. */
 export const WEATHER_EASE_MINUTES = 2.8;
-/** CLK1: the rows' wind vectors are dome units per REAL SECOND at the
- *  default scale (the lab's slider, WIND1's calibration); the drift
- *  integrates on game minutes now, and a game minute is five real
- *  seconds there (60 / TimeScale 12). One constant, so every deck
- *  keeps the speed it was tuned at and follows the clock. */
+// Row winds are dome units per real second at TimeScale 12; the drift integrates on game minutes.
 export const WIND_SECONDS_PER_MINUTE = 60 / 12;
 
+// `dt` and `span` are game minutes, so rests, travel, and time scale move the sky with the clock.
 export function easeWeather(from, to, dt, span = WEATHER_EASE_MINUTES) {
   if (!from) return { ...to };
   const k = span <= 0 ? 1 : 1 - Math.exp(-Math.max(0, dt) / span);
@@ -371,90 +200,58 @@ export function easeWeather(from, to, dt, span = WEATHER_EASE_MINUTES) {
   };
 }
 
-/** A weather row as numbers (colours resolved), for the ease. */
 export const weatherRow = (weather) => {
   const w = WEATHER_SKY[weather] ?? WEATHER_SKY.sunny;
   return { cover: w.cover, soft: w.soft, grey: w.grey, wind: [...w.wind], lit: hex(w.lit), shade: hex(w.shade) };
 };
 
-/** The whole state the shader takes for one frame. Pure but for the
- *  clock it is handed. `row` overrides the weather's numbers with an
- *  eased set (the controller keeps one and walks it). */
-export function skyState({ minuteOfDay, weather = 'sunny', classicMinutes = 0, skyMinutes = classicMinutes, seconds = 0, drift = null, phases = null, row = null }) {   // TIME1: `skyMinutes` the moons' date, `classicMinutes` the clouds' clock
+export function skyState({ minuteOfDay, weather = 'sunny', classicMinutes = 0, skyMinutes = classicMinutes, seconds = 0, drift = null, phases = null, row = null }) {
   const sunDir = sunSkyDirection(minuteOfDay);
   const elevDeg = Math.asin(Math.max(-1, Math.min(1, sunDir[1]))) * 180 / Math.PI;
   const pal = paletteAt(elevDeg);
   const w = row ?? weatherRow(weather);
   const day = daylightScale(minuteOfDay);
-  // Weather greys the dome and hides the sun, the stars and the moons.
   const zenith = mix3(pal.zenith, hex(GREY_ZENITH), w.grey * (0.35 + 0.65 * day));
   const horizon = mix3(pal.horizon, hex(GREY_HORIZON), w.grey * (0.35 + 0.65 * day));
   const cloudLitDay = w.lit, cloudShadeDay = w.shade;
-  // By night the clouds are the night's own colour, faintly lit by the moons.
   const nightLit = [0.16, 0.19, 0.25], nightShade = [0.07, 0.09, 0.13];
-  // VC6b (2026-09-18, Mac: "in the evening when the sun is setting and
-  // the sky is golden, clouds arent influenced by the sun"). Three
-  // numbers here, and the dome's own decks take them with the volumetric
-  // field, because they are one palette:
-  //  - the twilight ramp reached ONE only at twelve degrees up and was
-  //    three quarters at the horizon, so a quarter of the cloud's colour
-  //    was already night in the golden hour. The clouds are 1400 m up:
-  //    they hold their own colour until the sun is below THEIR horizon
-  //    (VC6b's dip, a degree and a half) and only then walk to night,
-  //    over the civil twilight that follows.
-  //  - the lit colour leaned a quarter of the way toward the sun's at a
-  //    low sun. Over half, now, and off a curve that is spent by sixteen
-  //    degrees rather than twenty, so noon is untouched and the last
-  //    hour is the sun's colour.
-  //  - the shade was the weather's grey at every hour. The shaded side
-  //    of a cloud at dusk is lit by the horizon's glow, which is what
-  //    the palette's own `glow` already is.
-  const twilight = clamp01((elevDeg + 9) / 10);   // 0 by deep dusk, 1 at and above the horizon
+  const twilight = clamp01((elevDeg + 9) / 10);
   const lowSun = 1 - clamp01(elevDeg / 16);
   const lit = mix3(nightLit, mix3(cloudLitDay, pal.sun, 0.55 * lowSun), twilight);
   const shade = mix3(nightShade, mix3(cloudShadeDay, pal.glow, 0.30 * (1 - clamp01(elevDeg / 12))), twilight);
-  // CLK3: the phase is CONTINUOUS on the clock - a moon that used to
-  // jump 45 degrees along its arc at midnight (and the moonlight with
-  // it) now walks there through the day. A caller's own `phases` (the
-  // tests' ladder steps) still go in whole.
-  const ph = phases ?? lunarPhaseFractionsFromMinutes(skyMinutes);   // TIME1: the moons are the sky's - online its own clock, offline the one
+  const ph = phases ?? lunarPhaseFractionsFromMinutes(skyMinutes);
   const moon = (name, phase) => {
     const m = MOONS[name];
     const dir = moonSkyDirection(minuteOfDay, phase, m.tilt);
-    const vis = dir[1] > -0.05 ? clamp01(1 - 0.9 * day) * (1 - w.cover * 0.35) : 0;   // faint by day; the clouds themselves hide it where they are
+    const vis = dir[1] > -0.05 ? clamp01(1 - 0.9 * day) * (1 - w.cover * 0.35) : 0;
     return { dir, radius: m.radius, color: hex(m.color), vis, phase };
   };
-  // ES1c: the field's turn. One full revolution a day about the pole -
-  // the same clock the sun rides, so the two agree - and the pole is
-  // north, tilted off the zenith the way a sky's is anywhere but the
-  // pole itself.
   const starAngle = (minuteOfDay / 1440) * Math.PI * 2;
   const state = {
     sunDir, elevDeg, starAngle, starPole: STAR_POLE,
     zenith, horizon, sun: pal.sun, glow: pal.glow,
     glowAmount: pal.glowAmount * (1 - w.grey * 0.7),
-    sunVis: sunDir[1] > -0.02 ? 1 : 0,               // the clouds occlude the disc where they are (shader)
-    stars: pal.stars * (1 - w.cover * 0.5),          // a hazy sky dims the field; the clouds hide it where they are
+    sunVis: sunDir[1] > -0.02 ? 1 : 0,
+    stars: pal.stars * (1 - w.cover * 0.5),
     masser: moon('masser', ph.masser), secunda: moon('secunda', ph.secunda),
     cloudCover: w.cover, cloudSoft: w.soft, cloudLit: lit, cloudShade: shade,
     wind: w.wind, seconds,
-    drift: drift ? [wrapDeck(drift[0]), wrapDeck(drift[1])] : [w.wind[0] * seconds, w.wind[1] * seconds],   // WIND2: the integrated cloud offset; a caller without one gets the old product. CLK1 review: wrapped ONCE, here, where it becomes the state both the shader and the CPU twin read
+    // Wrapped once, here, where the drift becomes the state both the shader and the CPU twin read.
+    drift: drift ? [wrapDeck(drift[0]), wrapDeck(drift[1])] : [w.wind[0] * seconds, w.wind[1] * seconds],
     night: isNight(minuteOfDay),
-    minuteOfDay, minutes: classicMinutes,   // VC7a: the clock the clouds live on - the game's own, so every player sees one boil and one ice sky
-    daylight: day,   // CLK3 review: the rig's own curve, for a moonlight that rises with the dusk and not with the hour
-    // What the hosts read for the distance haze and the clear (the
-    // classic pass's clearColor/fillColor roles).
+    minuteOfDay, minutes: classicMinutes,
+    daylight: day,
     clearColor: horizon, fillColor: zenith,
   };
-  // ES1d: the cloud in front of the sun, for the world's light.
   state.sunOcclusion = sunOcclusion(state);
   return state;
 }
 
+// The pass sits at the far plane, so LEQUAL draws only where the depth is still cleared.
 const VS = `#version 300 es
 layout(location=0) in vec2 aPos;
 out vec2 vNdc;
-void main() { vNdc = aPos; gl_Position = vec4(aPos, 1.0, 1.0); }`;   // PERF2: AT the far plane, so LEQUAL passes only the cleared depth
+void main() { vNdc = aPos; gl_Position = vec4(aPos, 1.0, 1.0); }`;
 
 const FS = `#version 300 es
 precision highp float;
@@ -684,9 +481,6 @@ void main() {
   outColor.rgb = hazeSky(outColor.rgb, dir);   // BANTHA1: the jungle's haze toward the horizon - AUDIT BANTHA1 HAZE-8: after the grades, its colour the frame's fog colour, graded once already (shared.js fogColorFor)
 }`;
 
-/** The pass. Same contract as SkyRenderer: draw(yaw, pitch, fovY, aspect)
- *  after beginFrame; fogMix / fogColor set by the host; clearColor /
- *  fillColor read by the host for the haze. */
 export class EnhancedSkyRenderer {
   /** @returns {[string, string][]} */
   static bootPrograms() { return [[VS, FS]]; }
@@ -698,7 +492,7 @@ export class EnhancedSkyRenderer {
     this.u = {};
     for (const name of ['uYaw', 'uPitch', 'uTanHalfFov', 'uAspect', 'uZenith', 'uHorizon', 'uSunColor', 'uGlowColor', 'uCloudLit', 'uCloudShade',
       'uFogColor', 'uSunDir', 'uSunRadius', 'uSunVis', 'uGlowAmount', 'uStars', 'uMoonA', 'uMoonB', 'uMoonAColor', 'uMoonBColor',
-      'uMoonAVis', 'uMoonBVis', 'uCloudCover', 'uCloudSoft', 'uDrift', 'uFogMix', 'uStarPole', 'uStarAngle', 'uDread', 'uBrass', 'uHazeSky']) {   // BANTHA1: the jungle's haze
+      'uMoonAVis', 'uMoonBVis', 'uCloudCover', 'uCloudSoft', 'uDrift', 'uFogMix', 'uStarPole', 'uStarAngle', 'uDread', 'uBrass', 'uHazeSky']) {
       this.u[name] = gl.getUniformLocation(prog, name);
     }
     this.vao = gl.createVertexArray();
@@ -710,39 +504,27 @@ export class EnhancedSkyRenderer {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
     this.fogMix = 0;
-    /** EVENT1: the live event's grade over the dome, 0..1 (world/dreadSky.js) - the host's. */
     this.dread = 0;
-    /** AUDIT SD III (V8): the brass air's grade over it, 0..1 (world/superDungeon/sdBrassSky.js) - the host's. */
     this.brass = 0;
-    this.hazeSky = new Float32Array(4);   // BANTHA1: the jungle's haze over the sky (render/hazeGlsl.js uHazeSky) - the host's, w 0 none
+    this.hazeSky = new Float32Array(4);
     this.fogColor = new Float32Array([0.5, 0.5, 0.5]);
     this.clearColor = new Float32Array([0.66, 0.78, 0.92]);
     this.fillColor = new Float32Array([0.17, 0.35, 0.72]);
     this.state = null;
-    // VC3: with the volumetric clouds on the lane, the dome's own two
-    // noise decks stand down (cover 0 to the shader); the state keeps
-    // the row's cover for every other reader (the moonlight, the deck
-    // the ground takes until VC4 replaces it).
     this.cloudsExternal = false;
   }
 
-  /** The frame's state (skyState). Cheap: numbers into fields. */
   setState(state) {
     this.state = state;
     this.clearColor = new Float32Array(state.clearColor);
     this.fillColor = new Float32Array(state.fillColor);
-    // EE5: the deck the GROUND shadows under, published from the SAME
-    // state the dome is drawn from - so the shadow on the land and the
-    // cloud overhead are one field, and no host can feed them different
-    // numbers by accident. The amount sits below one because a cloud
-    // dims the sun rather than extinguishing it; the softness has a
-    // floor because a zero would divide by nothing in the smoothstep.
     this.cloudShadow = {
       cover: state.cloudCover ?? 0,
+      // A zero softness would divide by zero in the smoothstep.
       soft: Math.max(1e-3, state.cloudSoft ?? 0.25),
       wind: state.wind ?? [0, 0],
       time: state.seconds ?? 0,
-      drift: state.drift ?? [0, 0],   // WIND2: what the ground's shadows move by
+      drift: state.drift ?? [0, 0],
       amount: 0.62,
     };
   }
@@ -751,11 +533,9 @@ export class EnhancedSkyRenderer {
     const s = this.state;
     if (!s) return;
     const gl = this.gl, u = this.u;
-    // EV6: no program save/restore and no getParameter round-trip -
-    // the R9 law, as the classic pass; the hosts mark the seam.
     gl.useProgram(this.program);
     gl.depthMask(false);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);   // PERF2: only where nothing nearer has drawn - z is the far plane
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.uniform1f(u.uYaw, yaw); gl.uniform1f(u.uPitch, pitch);
     gl.uniform1f(u.uTanHalfFov, Math.tan(fovY / 2)); gl.uniform1f(u.uAspect, aspect);
     gl.uniform3fv(u.uZenith, s.zenith); gl.uniform3fv(u.uHorizon, s.horizon);
@@ -769,22 +549,21 @@ export class EnhancedSkyRenderer {
     gl.uniform4f(u.uMoonB, s.secunda.dir[0], s.secunda.dir[1], s.secunda.dir[2], s.secunda.radius);
     gl.uniform3fv(u.uMoonAColor, s.masser.color); gl.uniform3fv(u.uMoonBColor, s.secunda.color);
     gl.uniform1f(u.uMoonAVis, s.masser.vis); gl.uniform1f(u.uMoonBVis, s.secunda.vis);
-    gl.uniform1f(u.uCloudCover, this.cloudsExternal ? 0 : s.cloudCover); gl.uniform1f(u.uCloudSoft, s.cloudSoft);   // VC3: the decks stand down under the volumetric clouds
-    gl.uniform2f(u.uDrift, s.drift?.[0] ?? s.wind[0] * s.seconds, s.drift?.[1] ?? s.wind[1] * s.seconds);   // WIND2
+    gl.uniform1f(u.uCloudCover, this.cloudsExternal ? 0 : s.cloudCover); gl.uniform1f(u.uCloudSoft, s.cloudSoft);
+    gl.uniform2f(u.uDrift, s.drift?.[0] ?? s.wind[0] * s.seconds, s.drift?.[1] ?? s.wind[1] * s.seconds);
     gl.uniform1f(u.uFogMix, this.fogMix);
     gl.uniform3fv(u.uStarPole, s.starPole);
     gl.uniform1f(u.uStarAngle, s.starAngle);
-    gl.uniform1f(u.uDread, this.dread);   // EVENT1
-    gl.uniform1f(u.uBrass, this.brass);   // AUDIT SD III (V8)
-    gl.uniform4fv(u.uHazeSky, this.hazeSky);   // BANTHA1
-    // HANDEDNESS: as the classic pass - the triangle winds CCW under a
-    // CW front face, so culling is off for it.
+    gl.uniform1f(u.uDread, this.dread);
+    gl.uniform1f(u.uBrass, this.brass);
+    gl.uniform4fv(u.uHazeSky, this.hazeSky);
+    // The triangle winds CCW under a CW front face, so culling is off for it.
     gl.disable(gl.CULL_FACE);
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
     gl.enable(gl.CULL_FACE);
-    gl.depthFunc(gl.LESS);   // PERF2: the renderer's own compare back
+    gl.depthFunc(gl.LESS);
     gl.depthMask(true);
   }
 }

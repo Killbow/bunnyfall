@@ -1,6 +1,6 @@
 // @ts-check
-// The in-game editor's per-frame drawings of the selection (scenes/poiEditorHost.js), made again only when they change,
-// and the point a placing ray picks.
+// The in-game editor's per-frame drawings of the selection (scenes/poiEditorHost.js), made again only when
+// they change, and the point a placing ray picks.
 
 import { marksOf, movable } from './poiScene.js';
 import { boxAlong } from './poiGizmoBox.js';
@@ -19,9 +19,7 @@ function drawnFrom() {
   };
 }
 
-/**
- * @param {{ edit: any, host: any, boxLines: (b: number[], color: number[]) => any[], colors: Record<string, number[]> }} deps
- */
+/** @param {{ edit: any, host: any, boxLines: (b: number[], color: number[]) => any[], colors: Record<string, number[]> }} deps */
 export function createSelectionBoxes({ edit, host, boxLines, colors }) {
   const from = drawnFrom(), set = { inWorld: /** @type {any[]} */ ([]), onTop: /** @type {any[]} */ ([]), picked: new Set(), marks: new Map() };
   let lastSel = null, lastGen = -1;
@@ -66,9 +64,10 @@ export function createSizeBox({ edit, host }) {
 }
 
 /**
- * DM spots are drawn `rise` above the ground, so pick on ground raised that much but return the ground point.
- * @param {{ o: number[], d: number[] }} ray @param {(o: number[], d: number[]) => ({ point: number[] | null } | null)} groundHit
- * @param {(x: number, z: number) => number} surfaceAt @param {number} rise
+ * @param {{ o: number[], d: number[] }} ray
+ * @param {(o: number[], d: number[]) => ({ point: number[] | null } | null)} groundHit
+ * @param {(x: number, z: number) => number} surfaceAt
+ * @param {number} rise
  */
 export function pointUnder(ray, groundHit, surfaceAt, rise) {
   const g = groundHit(ray.o, ray.d)?.point ?? null;

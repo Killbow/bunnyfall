@@ -1,20 +1,7 @@
 // @ts-check
-// LEGACY6 (2026-10-05, bible/06-Systems/Legacy-Arc.md section 10; Mac: "World Influence"): WHAT THE WORLD REMEMBERS OF
-// THE HOUSE - the law, pure. The host (scenes/legacyHost.js) writes a member's standing as they are saved, hands a share
-// of it to the child born of them, and keeps the house's news; the Living World's towns tell it (livingTown.js
-// familyNews, lines.js KIN_NEWS).
-//
-//  - THE STANDING a member leaves (`memberStanding`): their legal reputation in every region, their faction standings (the
-//    FACTIONS_KEPT furthest from nothing) and the Living World's regard of the residents who know them (the REGARDS_KEPT
-//    strongest, at least REGARD_FLOOR either way) - read off the character at every save, on their person.
-//  - THE BIRTH'S SHARE (`inheritStanding`, `inheritRegards`): a child born of them starts with STANDING_SHARE of what
-//    the parent held over the child's own start - a region's law, a guild's regard - and REGARD_SHARE of each
-//    resident's regard ("your mother saved my son"; and a grudge is half a grudge).
-//  - THE HOUSE'S NEWS (`noteNews`, `newsFor`): a death, a laying to rest, a wedding and a birth are told for HOUSE_NEWS_DAYS in
-//    the town where they happened and in the family's seat - by name and by house.
 import { LEGAL_REP_MIN, LEGAL_REP_MAX } from '../../justice/court.js';
 import { changeReputation } from '../../guilds/factionRep.js';
-import { houseWord } from './houseName.js';   // LEGACY-NAME: "House Sentinel", never "House of Sentinel"
+import { houseWord } from './houseName.js';
 
 export const STANDING_SHARE = 0.25;
 export const REGARD_SHARE = 0.5;
@@ -28,17 +15,15 @@ const DAY_MIN = 1440;
 const NAME_MAX = 60;
 
 /** @typedef {{ legal: Record<string, number>, factions: Record<string, number>, regard: Record<string, number> }} Standing */
-/** @typedef {{ k: string, who: string, t: number, m: number|null }} News - kind, whole name, the town's minute, its map id */
+/** @typedef {{ k: string, who: string, t: number, m: number|null }} News */
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const top = (entries, n) => entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]) || (a[0] < b[0] ? -1 : 1)).slice(0, n);
 
 /**
- * The standing the played character holds now - their person's `standing`, written at every save.
- * @param {any} entity - the player entity (`legalRep`, `factionRep.dict`)
- * @param {{ entries?: () => { id: string }[], regard?: (id: string, day: number) => number } | null} regards - the
- *   Living World's relations, or none
- * @param {number} day - the relations' day
+ * @param {any} entity
+ * @param {{ entries?: () => { id: string }[], regard?: (id: string, day: number) => number } | null} regards
+ * @param {number} day
  * @returns {Standing}
  */
 export function memberStanding(entity, regards, day) {
@@ -55,7 +40,6 @@ export function memberStanding(entity, regards, day) {
   return { legal, factions: Object.fromEntries(top(facs, FACTIONS_KEPT)), regard: Object.fromEntries(top(regs, REGARDS_KEPT)) };
 }
 
-/** A standing read back (a save, the store) - the shape held, anything else dropped; null when there is none. */
 export function readStanding(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const pick = (o, keyOk, lo, hi, n) => top(Object.entries(o && typeof o === 'object' ? o : {})
@@ -68,10 +52,9 @@ export function readStanding(raw) {
 }
 
 /**
- * THE BIRTH'S SHARE of the law and the guilds: STANDING_SHARE of what the parent held over the child's own start, added
- * to the child's (a region's law written straight - no crime's word is said for it - and held to DFU's bounds; a
- * faction's flat, never walked to its allies). Answers how many standings moved.
- * @param {any} entity - the newborn's @param {Standing|null} parent
+ * Faction shares pass `false` to `changeReputation` so allied factions do not move.
+ * @param {any} entity
+ * @param {Standing|null} parent
  */
 export function inheritStanding(entity, parent) {
   if (!entity || !parent) return 0;
@@ -95,10 +78,9 @@ export function inheritStanding(entity, parent) {
 }
 
 /**
- * THE BIRTH'S SHARE of the town's regard: REGARD_SHARE of each resident's regard of the parent, into the child's
- * relations (relations.js inherit - no word is counted for it). Answers how many residents know the child now.
  * @param {{ inherit?: (id: string, amount: number, day: number) => number } | null} relations
- * @param {Standing|null} parent @param {number} day
+ * @param {Standing|null} parent
+ * @param {number} day
  */
 export function inheritRegards(relations, parent, day) {
   if (!relations?.inherit || !parent) return 0;
@@ -110,14 +92,12 @@ export function inheritRegards(relations, parent, day) {
   return n;
 }
 
-/** AUDIT LEGACY III P17: the news in ONE order - its minute, then its kind, its name, its town - so two copies that hold
- *  the same news keep the same NEWS_MAX at the cap (two items of one minute were kept by whichever copy merged first). */
+// A total order keeps the `NEWS_MAX` cap identical on two copies that merge the same news.
 const newsOrder = (/** @type {News} */ a, /** @type {News} */ b) => a.t - b.t || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0)
   || (a.who < b.who ? -1 : a.who > b.who ? 1 : 0) || (a.m ?? -1) - (b.m ?? -1);
-/** One piece of news, as a reader's `heard` names it. */
 export const newsKey = (/** @type {News} */ n) => `${n.k}|${n.t}|${n.who}`;
 
-/** The house's news read back - kinds known, names bounded, the newest NEWS_MAX. @returns {News[]} */
+/** @returns {News[]} */
 export function readNews(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.filter((n) => n && NEWS_KINDS.includes(n.k) && typeof n.who === 'string' && n.who && Number.isFinite(Number(n.t)))
@@ -126,9 +106,11 @@ export function readNews(raw) {
 }
 
 /**
- * Something befell the house that its towns will talk of: `kind` one of NEWS_KINDS, `who` the member's whole name, at
- * the town's minute `t`, in the town `mapId` (or none - the seat alone tells it). Answers whether it was new.
- * @param {any} family @param {string} kind @param {string} who @param {number} t @param {number|null|undefined} mapId
+ * @param {any} family
+ * @param {string} kind
+ * @param {string} who
+ * @param {number} t
+ * @param {number|null|undefined} mapId
  */
 export function noteNews(family, kind, who, t, mapId) {
   if (!family || !NEWS_KINDS.includes(kind) || !who || !Number.isFinite(t)) return false;
@@ -140,7 +122,6 @@ export function noteNews(family, kind, who, t, mapId) {
   return true;
 }
 
-/** Two copies' news as one (store.js mergeFacts): the union, the newest NEWS_MAX. */
 export function mergeNews(a, b) {
   const out = readNews(a);
   for (const n of readNews(b)) if (!out.some((x) => x.k === n.k && x.who === n.who && x.t === n.t)) out.push(n);
@@ -148,13 +129,11 @@ export function mergeNews(a, b) {
 }
 
 /**
- * AUDIT LEGACY III A8: WHEN THE ONE PLAYED HEARD each piece of the house's news, on their own world's clock (`t`) - into
- * `reader.heard`, the house's news alone (what the towns no longer tell is forgotten). News of their own clock's past
- * was heard as it happened (its own minute - online the towns' clock is one, and this is it); news their clock has not
- * reached - stamped on another member's world, offline, where every member keeps their own (a born heir's starts at the
- * game's first day) - is heard now. It lay in the heir's future: their towns said nothing of the parent's death at the
- * birth, and told it as fresh two hundred days on. Answers whether anything was heard.
- * @param {any} family @param {any} reader @param {number} t
+ * Offline, each member runs a separate world clock, so news stamped later than the reader minute `t` counts as
+ * heard at `t`.
+ * @param {any} family
+ * @param {any} reader
+ * @param {number} t
  */
 export function hearNews(family, reader, t) {
   if (!reader || !Number.isFinite(t)) return false;
@@ -172,13 +151,11 @@ export function hearNews(family, reader, t) {
   if (fresh || dropped || !reader.heard) reader.heard = heard;
   return fresh || dropped;
 }
-/** A reader's `heard` read back: news keys to minutes, at most NEWS_MAX of them - or none. */
 export function readHeard(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const out = Object.entries(raw).filter(([k, v]) => typeof k === 'string' && k.length <= NAME_MAX + 40 && Number.isFinite(v)).slice(-NEWS_MAX);
   return out.length ? Object.fromEntries(out.map(([k, v]) => [k, Math.floor(Number(v))])) : null;
 }
-/** Two copies' `heard` of one reader as one: each the earlier hearing. */
 export function mergeHeard(a, b) {
   const out = { ...(readHeard(a) ?? {}) };
   for (const [k, v] of Object.entries(readHeard(b) ?? {})) if (!(k in out) || v < out[k]) out[k] = v;
@@ -186,11 +163,10 @@ export function mergeHeard(a, b) {
 }
 
 /**
- * WHAT A TOWN SAYS OF THE HOUSE at minute `t`: each piece of news of the last HOUSE_NEWS_DAYS that happened in it, or of any
- * kind when it is the family's seat - in the shape the town's news takes (livingTown.js lineCtx), `kin` its own words,
- * `house` the family's name. AUDIT LEGACY III A8: the week runs from when the READER first heard it (`heard`, their own
- * clock's - hearNews), else from its own minute.
- * @param {any} family @param {number} mapId @param {number} t @param {Record<string, number>|null} [heard]
+ * @param {any} family
+ * @param {number} mapId
+ * @param {number} t
+ * @param {Record<string, number>|null} [heard]
  * @returns {{ kind: string, kin: true, who: string, house: string, foe: string, place: string, t: number, seen: true }[]}
  */
 export function newsFor(family, mapId, t, heard = null) {

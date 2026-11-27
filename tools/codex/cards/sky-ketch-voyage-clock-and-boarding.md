@@ -28,6 +28,8 @@ invariants:
   - "`ketchAdmits` readmits existing crew while `ketchHolds` is true, admits new crew with owner, party, or staff authority only while `'docked'` (`ketchBoards`), and rejects a ninth account with `'full'`; hidden staff spectators do not consume a crew slot."
   - "When a ship is full, `_ktFreePlace` evicts only a non-captain member unseen for `KT_PLACE_KEEP_MS` (`5 min`) who dealt no Warden participation and is no longer in the captain's party."
   - "The client stores its active room and party ID under `KT_SHIP_KEY`, rejoining the same vessel until the player switches parties."
+  - "A terminal refusal equal to `KT_TEXT.refuse.crew` clears `KT_SHIP_KEY`, so the next ride up boards the ship of the party leader, or else the ship of the player."
+  - "`ketchSkyPose` derives the ship's place, turn, and lift only from the shared clock through `ketchVoyageAt`, so every client shows one ship in one place without exchanging messages."
 traps:
   - "At `endAt`, the relay closes active sockets and deletes the room state, but finishes retrying `/internal/ketch/rc` receipt deliveries to the hub first; `_ktTick` reloads the voyage key from storage on alarm wakeups so empty rooms still clean up."
   - "`ketchRefusal` translates `KT_TEXT.refuse` strings (`closed`, `gone`, `crew`, `full`) into `KT_REFUSE_WORDS` by exact English text match, so changing `KT_TEXT.refuse.closed` in `ketchLaw.js` without updating `ketchWords.js` leaks raw relay strings."

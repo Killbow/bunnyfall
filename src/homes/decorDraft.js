@@ -1,5 +1,4 @@
 // @ts-check
-// DECOR-BATCH: a decorating session's final differences. Nothing here talks to the service.
 import { decorGoldMove, mintDecorId } from '../net/decorLaw.js';
 import { t } from '../ui/textManager.js';
 
@@ -17,14 +16,14 @@ const shapeOf = (p) => JSON.stringify({
   name: p?.name ?? null,
 });
 
-/** A Confirm's id: long enough for decorLaw's DECOR_TXN_RE, and a new one after each kept Confirm. */
+// Two ids make 24 characters, enough for DECOR_TXN_RE in net/decorLaw.js.
 export function mintDecorTxn(rand = Math.random) {
   return `${mintDecorId(rand)}${mintDecorId(rand)}`;
 }
 
 /**
- * The final differences. A piece added and then removed is neither. Several edits of one piece are its last state.
- * @param {any[]} before @param {any[]} after
+ * @param {any[]} before
+ * @param {any[]} after
  */
 export function decorDelta(before, after) {
   const was = new Map((before ?? []).filter((p) => p?.id).map((p) => [p.id, p]));
@@ -39,8 +38,7 @@ export function decorDelta(before, after) {
   return { put, drop };
 }
 
-/** What the session costs, split. `delta` is the purse's net (negative: it pays). `pay` is what is spent.
- *  `back` is what comes back. A hall spends `pay` from the keeper and gives `back` to the guild, and does not net them. */
+// A guild hall spends `pay` from the keeper and gives `back` to the guild, so the two are kept apart, not netted.
 export function decorDraftParts(before, after) {
   const was = new Map((before ?? []).filter((p) => p?.id).map((p) => [p.id, p]));
   const now = new Map((after ?? []).filter((p) => p?.id).map((p) => [p.id, p]));
@@ -56,12 +54,10 @@ export function decorDraftParts(before, after) {
   return { delta, pay, back };
 }
 
-/** What the record gains for the whole session (negative: the purse pays), off the same law as one piece. */
 export function decorDraftGold(before, after) {
   return decorDraftParts(before, after).delta;
 }
 
-/** The bar's line in a guild hall: the keeper pays the cost, and what comes back is the guild's. */
 export function decorHallDraftText(parts) {
   const pay = parts?.pay ?? 0;
   const back = parts?.back ?? 0;
@@ -70,7 +66,6 @@ export function decorHallDraftText(parts) {
   return decorDraftText(-pay);
 }
 
-/** The bar's line for that gold, before Confirm. */
 export function decorDraftText(delta) {
   if (!delta) return t('decor.draft.free', 'nothing to pay');
   const n = Math.abs(delta).toLocaleString('en-US');

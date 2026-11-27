@@ -1,50 +1,22 @@
 // @ts-check
-// EG-ZN (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section 11.8, "The camera in
-// rock"): OCCLUDERS BETWEEN THE CAMERA AND THE BODY DITHER OUT - the circle's rock a camera ray to my body crosses drawn
-// through the renderer's ordered dither (render/renderer.js setDissolve - SHIP-FADE's: bayer4's 4x4 threshold over the
-// screen, a fragment kept where it stands under the share), every other piece of the circle drawn whole.
-//
-// WHAT AN OCCLUDER IS. The circle is one mesh and one upload (world/eliteGates/egHall.js buildEgCircleModel), and stays one: its rock
-// is marked as it is laid (`model.occluders` - a passage's wall runs and vault, each box of its kit's dress, a niche's walls
-// and lid, a vignette, a ring wall's segment, an arch's walls, a door's posts and lintel, a slag spout), each piece a few
-// runs of the mesh's own indices. The cameras' casts meet only the collider's proxy (the drawn rock's inner envelope), so
-// the dress is what most often stands between; the walls and vaults are marked too, for the eye a cast never reached.
-//
-// THE RAY. Each frame in third person, a segment from the eye to the body's pivot (the lane's focal) and to its chest
-// (EG_OCCLUDE_CHEST_M over the feet), each stopped EG_OCCLUDE_BODY_M short of the body, is tried against every piece's box
-// and then its own triangles: a piece it crosses dithers out to EG_OCCLUDE_KEEP over EG_OCCLUDE_FADE_S, and back the same
-// way once the ray is clear. A witness's eye, first person and every frame outside the Spire try nothing.
-//
-// THE DRAW, AND THE BUDGET. While nothing stands between, the circle's draw is the loop's own, untouched: the GL draws are
-// the mesh's sub-meshes, as before. While pieces dither, this pass takes the circle's draw for the frame (`hidden` - the
-// loop skips it): it records the WHOLE mesh's shadow, as the loop would have (the lanterns' caches see the record they
-// always saw), draws the rest of the mesh as a view of its own buffers with the pieces' runs cut out (render/renderer.js
-// meshView), and each share's pieces as one view at that share - their adjacent runs drawn as one. Nothing is uploaded;
-// only the cut sub-meshes cost a draw more. Measured in test/world/eliteGates/egz_camera.test.js.
-//
-// EVERY ALLOCATION HAS AN OWNER: the views share the circle mesh's buffers and own none; `clear()` drops them (and the
-// mesh) before the mesh is freed - the swap's and the stand's slot emptied first - and a dead mesh is never drawn through.
-//
-// Not a DFU member. Ledger A (ELITE-GATES).
 
-/** The share of an occluder's fragments kept while it stands between the camera and the body (4 of bayer4's 16). */
+// 0.25 keeps 4 of the 16 thresholds of the renderer's 4x4 Bayer dither.
 export const EG_OCCLUDE_KEEP = 0.25;
-/** How long an occluder takes to dither out to its keep, and back (s). */
 export const EG_OCCLUDE_FADE_S = 0.2;
-/** How far short of the body's point the ray stops (m) - the ground it stands on and the wall it leans on are no occluders. */
+// The ray stops short of the body so the floor under it and a wall beside it never count as occluders.
 export const EG_OCCLUDE_BODY_M = 0.3;
-/** The body's second point over its feet (m): its chest. The first is the camera's own pivot (its focal). */
 export const EG_OCCLUDE_CHEST_M = 0.9;
-/** The most views kept for one circle before the cache is let go (a view is a few small objects - no GL object). */
 export const EG_OCCLUDE_VIEWS_MAX = 64;
 const NO_SHADOW = Object.freeze({ noShadow: true });
-/** AUDIT EG III (lane4 #10): the ray's unit way, one scratch for every segment tried (egOccludersHit is synchronous). */
+// One scratch serves every segment, which is safe only because `egOccludersHit` is synchronous.
 const _dir = [0, 0, 0];
 
 /**
- * Whether the segment from `o` along the unit `d` for `len` crosses triangle `k` of `T` (nine floats a triangle - its three
- * corners), from either face. Moller-Trumbore. Pure.
- * @param {number[]} o @param {number[]} d @param {number} len @param {Float32Array} T @param {number} k
+ * @param {number[]} o
+ * @param {number[]} d
+ * @param {number} len
+ * @param {Float32Array} T
+ * @param {number} k
  */
 export function egSegTri(o, d, len, T, k) {
   const i = k * 9;
@@ -52,7 +24,7 @@ export function egSegTri(o, d, len, T, k) {
   const e2x = T[i + 6] - T[i], e2y = T[i + 7] - T[i + 1], e2z = T[i + 8] - T[i + 2];
   const px = d[1] * e2z - d[2] * e2y, py = d[2] * e2x - d[0] * e2z, pz = d[0] * e2y - d[1] * e2x;
   const det = e1x * px + e1y * py + e1z * pz;
-  if (Math.abs(det) < 1e-12) return false;   // the segment runs along the triangle's plane
+  if (Math.abs(det) < 1e-12) return false;
   const inv = 1 / det, sx = o[0] - T[i], sy = o[1] - T[i + 1], sz = o[2] - T[i + 2];
   const u = (sx * px + sy * py + sz * pz) * inv;
   if (u < 0 || u > 1) return false;
@@ -62,7 +34,6 @@ export function egSegTri(o, d, len, T, k) {
   const t = (e2x * qx + e2y * qy + e2z * qz) * inv;
   return t > 0 && t < len;
 }
-/** Whether the segment from `o` along unit `d` for `len` meets box `b` ([x0, y0, z0, x1, y1, z1]) - the slab test. Pure. */
 export function egSegBox(o, d, len, b) {
   let t0 = 0, t1 = len;
   for (let a = 0; a < 3; a++) {
@@ -76,12 +47,12 @@ export function egSegBox(o, d, len, b) {
   return true;
 }
 /**
- * The occluders a camera ray crosses: the indices of `pieces` (each `{ b, at, n }` - its box, and its `n` triangles from
- * triangle `at` of `T`) that a segment from `eye` to any of `points` - stopped EG_OCCLUDE_BODY_M short of it - crosses,
- * in the pieces' order, each once. Pure. AUDIT EG III (lane4 #10): `out` and `seen` the caller's own to fill (emptied and
- * cleared here - a frame's pass hands its scratch, never a new list a frame); none, and they are made.
- * @param {Array<{ b: number[], at: number, n: number }>} pieces @param {Float32Array} T @param {number[]} eye @param {number[][]} points
- * @param {number[]} [out] @param {Uint8Array|null} [seen]
+ * @param {Array<{ b: number[], at: number, n: number }>} pieces
+ * @param {Float32Array} T
+ * @param {number[]} eye
+ * @param {number[][]} points
+ * @param {number[]} [out]
+ * @param {Uint8Array|null} [seen]
  */
 export function egOccludersHit(pieces, T, eye, points, out = [], seen = null) {
   out.length = 0;
@@ -103,17 +74,15 @@ export function egOccludersHit(pieces, T, eye, points, out = [], seen = null) {
   for (let i = 0; i < pieces.length; i++) if (seen[i]) out.push(i);
   return out;
 }
-/** An occluder's share kept after `dt` (s): toward EG_OCCLUDE_KEEP while the ray crosses it (`hit`), toward whole when it
- *  does not, at (1 - keep) every EG_OCCLUDE_FADE_S. Pure. */
 export function egOccludeEase(k, hit, dt) {
   const step = ((1 - EG_OCCLUDE_KEEP) * Math.max(0, Number(dt) || 0)) / EG_OCCLUDE_FADE_S;
   return hit ? Math.max(EG_OCCLUDE_KEEP, k - step) : Math.min(1, k + step);
 }
 /**
- * The runs of `ids`' pieces (`pieces[i].r` - `[subMesh, startIndex, primitiveCount]`), merged where one ends where the next
- * begins, as sub-meshes of `subs` (the model's, for their archive and record). `cut` true: every sub-mesh's runs OUTSIDE
- * them instead - the rest of the mesh. Pure.
- * @param {any[]} subs @param {Array<{ r: number[][] }>} pieces @param {number[]} ids @param {boolean} cut
+ * @param {any[]} subs
+ * @param {Array<{ r: number[][] }>} pieces
+ * @param {number[]} ids
+ * @param {boolean} cut
  */
 export function egOccludeRanges(subs, pieces, ids, cut) {
   const by = subs.map(() => /** @type {number[][]} */ ([]));
@@ -132,21 +101,14 @@ export function egOccludeRanges(subs, pieces, ids, cut) {
   return out;
 }
 
-/**
- * The circle's occluders on this screen. EG-LOOK (Elite-Gates-Look.md section 3, THE RUIN): `shadow` false for a mesh drawn
- * `noShadow` (the ruin's - scenes/eliteGates/egGroundLook.js): its dithering frame records no shadow for it, as the loop would not.
- * @param {{ renderer?: any, shadow?: boolean }} deps
- */
+/** @param {{ renderer?: any, shadow?: boolean }} deps */
 export function createEgOccluders({ renderer = null, shadow = true } = {}) {
   /** @type {any} */
   let mesh = null, subs = /** @type {any[]} */ ([]), draw = null, hid = false, lastDraws = 0;
   /** @type {Array<{ b: number[], at: number, n: number, r: number[][] }>} */
   let pieces = [];
   let T = new Float32Array(0);
-  /** each dithering piece's share kept (1 whole) */
   const share = new Map();
-  /** AUDIT EG III (lane4 #10): the frame's scratch - the pieces the ray crosses (and as a set), the seen marks, the draw's
-   *  dithering pieces - kept, never made a frame */
   const _hits = [], _hitSet = new Set(), _act = [];
   let _seen = new Uint8Array(0);
   const views = new Map();
@@ -161,8 +123,6 @@ export function createEgOccluders({ renderer = null, shadow = true } = {}) {
   };
   const unhide = () => { if (draw && hid) draw.hidden = false; hid = false; };
   return {
-    /** The circle stood: its mesh (the renderer's) and the model it was made from (its sub-meshes and `occluders`). Only
-     *  the occluders' own triangles are kept, for the ray. */
     set(gpu, model) {
       unhide();
       mesh = gpu ?? null; subs = model?.subMeshes ?? []; share.clear(); views.clear();
@@ -179,17 +139,12 @@ export function createEgOccluders({ renderer = null, shadow = true } = {}) {
       }
       return pieces.length;
     },
-    /** The circle's draw in this context's list (a stand's, a swap's): the one this pass hides while pieces dither. */
     stand(d) { unhide(); draw = d ?? null; share.clear(); },
-    /** Gone: the mesh, the views and the shares let go (before the mesh is freed - the slot emptied first). */
+    // Call before the circle mesh is freed: the views share its buffers and own none.
     clear() { unhide(); mesh = null; subs = []; pieces = []; T = new Float32Array(0); draw = null; lastDraws = 0; share.clear(); views.clear(); },
-    /**
-     * This frame's ray (`eye` and the body's `points`; none - first person, a witness - tries nothing) and every piece's
-     * share eased by `dt`. Answers how many pieces dither.
-     * @param {{ eye?: number[] | null, points?: number[][] | null, dt?: number }} f
-     */
+    /** @param {{ eye?: number[] | null, points?: number[][] | null, dt?: number }} f */
     frame({ eye = null, points = null, dt = 0 } = {}) {
-      if (!share.size && (!mesh || !eye || !points?.length)) return 0;   // AUDIT EG III (lane4 #10): first person, a witness, nothing dithering - nothing tried, nothing made
+      if (!share.size && (!mesh || !eye || !points?.length)) return 0;
       if (_seen.length < pieces.length) _seen = new Uint8Array(pieces.length);
       const hit = _hitSet;
       hit.clear();
@@ -201,14 +156,12 @@ export function createEgOccluders({ renderer = null, shadow = true } = {}) {
       return n;
     },
     /**
-     * THE DRAW (after the frame's beginFrame - the shadow record open - and before the loop draws the list): nothing while
-     * no piece dithers (the loop draws the circle whole); else the whole mesh's shadow recorded, the rest of the mesh drawn,
-     * and each share's pieces at that share. Answers the GL draws it made.
+     * Call after `beginFrame` opens the shadow record and before the loop draws the list.
      * @param {any} [texRemap]
      */
     draw(texRemap = null) {
       lastDraws = 0;
-      if (!share.size) { unhide(); return 0; }   // AUDIT EG III (lane4 #10): the common frame - nothing dithers, nothing made
+      if (!share.size) { unhide(); return 0; }
       const act = _act;
       act.length = 0;
       for (const e of share) if (e[1] < 1) act.push(e);
@@ -234,9 +187,7 @@ export function createEgOccluders({ renderer = null, shadow = true } = {}) {
       renderer.setDissolve(1);
       return lastDraws;
     },
-    /** Each dithering piece's share (tests): `[[piece, share], ...]`. */
     shares: () => [...share].filter(([, k]) => k < 1),
-    /** What the pass holds and drew last (tests, the budget's measure). */
     stats: () => ({ pieces: pieces.length, tris: T.length / 9, dithering: [...share.values()].filter((k) => k < 1).length, glDraws: lastDraws, views: views.size, hidden: hid }),
   };
 }

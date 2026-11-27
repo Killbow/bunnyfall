@@ -1,22 +1,13 @@
 // @ts-check
-// Copy, cut, paste, and duplicate for a POI's scene nodes as JSON text, so a copy survives a reload and reaches another
-// POI, another tab, or the system clipboard. Ported from the World Builder's clipboard.js. Paste never trusts the text:
-// keys are made fresh, links to things the target lacks are dropped, and a row whose model or picture the store does
-// not have is left out and named. Pure (no DOM).
-// Groups: a group copied itself (selected, or inside a selected group) comes along with what is in it, under a fresh
-// key. A row copied on its own retains its group only where the POI pasted into has a group with that key (pasted into
-// its own POI, it sits beside its original); elsewhere it lands outside every group.
 
 import { KINDS, find, freshKey } from './poiScene.js';
 import { POI_V2_LIMITS } from './poiLawV2.js';
 import { POI_LIMITS, POI_SHA_RE } from './poiLaw.js';
 
 export const CLIP_TAG = 'bunnyfall-poi-clip';
-/** The `localStorage` key where the editor saves the last copied selection in this browser. */
 export const CLIP_STORE_KEY = 'bunnyfall.poieditor.clip';
 const CAPS = { parts: POI_LIMITS.parts, flats: POI_V2_LIMITS.flats, lights: POI_LIMITS.lights, npcs: POI_LIMITS.npcs };
 const COLLECTIONS = /** @type {const} */ ([['parts', 'part'], ['flats', 'flat'], ['lights', 'light'], ['npcs', 'npc']]);
-/** Links a person carries to other collections, by the collection they name. */
 const NPC_LINKS = /** @type {const} */ ([['route', 'routes'], ['dialogue', 'dialogues'], ['trade', 'trades']]);
 
 const inside = (doc, groupKey, ancestor) => {
@@ -24,7 +15,7 @@ const inside = (doc, groupKey, ancestor) => {
   return false;
 };
 
-/** The ids of everything at the top of a document's tree: what copying the whole POI takes. @param {any} doc */
+/** @param {any} doc */
 export function topIds(doc) {
   const groups = new Set((doc?.groups ?? []).map((g) => g?.key));
   const out = (doc?.groups ?? []).filter((g) => g && !(g.parent && groups.has(g.parent))).map((g) => `group:${g.key}`);
@@ -32,11 +23,12 @@ export function topIds(doc) {
   return out;
 }
 
-/** Copy the nodes into a clip: the rows asked for, every row inside a group asked for, and those groups.
- *  @param {any} doc @param {string[]} ids */
+/**
+ * @param {any} doc
+ * @param {string[]} ids
+ */
 export function copyNodes(doc, ids) {
   const clip = { tag: CLIP_TAG, v: 1, from: doc?.id ?? null, groups: /** @type {any[]} */ ([]), parts: /** @type {any[]} */ ([]), flats: /** @type {any[]} */ ([]), lights: /** @type {any[]} */ ([]), npcs: /** @type {any[]} */ ([]) };
-  // group keys copied as groups
   const chosen = new Set();
   const rows = { parts: new Set(), flats: new Set(), lights: new Set(), npcs: new Set() };
   for (const id of ids) {
@@ -51,14 +43,14 @@ export function copyNodes(doc, ids) {
   return clip;
 }
 
-/** How many rows and groups a clip holds. @param {any} clip */
+/** @param {any} clip */
 export const clipCount = (clip) => (clip ? clip.groups.length + clip.parts.length + clip.flats.length + clip.lights.length + clip.npcs.length : 0);
-/** How many rows (not groups) a clip holds. @param {any} clip */
+/** @param {any} clip */
 export const clipRows = (clip) => (clip ? clip.parts.length + clip.flats.length + clip.lights.length + clip.npcs.length : 0);
 
 export const clipText = (clip) => JSON.stringify(clip);
 
-/** Clip text back into a clip, or null when it is not one. @param {string | null | undefined} text */
+/** @param {string | null | undefined} text */
 export function readClip(text) {
   if (typeof text !== 'string' || !text) return null;
   let c;
@@ -71,7 +63,7 @@ export function readClip(text) {
   return c;
 }
 
-/** The uploaded assets a clip row needs (its model, its pictures, a person's picture), as sha256 names. @param {any} r */
+/** @param {any} r */
 export function assetsOf(r) {
   const out = [];
   const add = (s) => { if (typeof s === 'string' && POI_SHA_RE.test(s)) out.push(s); };
@@ -84,10 +76,9 @@ export function assetsOf(r) {
 const r4 = (v) => { const r = Math.round(v * 1e4) / 1e4; return r === 0 ? 0 : r; };
 
 /**
- * Put a clip into a document. Answers `{ ids, top, missing, full }`: every new node's id, the new nodes at the top of
- * what was pasted (what the editor selects), what was left out for an asset the store does not have, and what was left
- * out because the document is full. `has(sha)` answers false for an asset known to be missing.
- * @param {any} doc @param {any} clip @param {{ offset?: number[], has?: (sha: string) => boolean }} [opts]
+ * @param {any} doc
+ * @param {any} clip
+ * @param {{ offset?: number[], has?: (sha: string) => boolean }} [opts]
  */
 export function pasteClip(doc, clip, { offset = [0, 0, 0], has = () => true } = {}) {
   const out = { ids: /** @type {string[]} */ ([]), top: /** @type {string[]} */ ([]), missing: /** @type {string[]} */ ([]), full: /** @type {string[]} */ ([]) };
@@ -101,7 +92,6 @@ export function pasteClip(doc, clip, { offset = [0, 0, 0], has = () => true } = 
     const key = freshKey(g.key, taken); taken.add(key); gmap.set(g.key, key);
   }
   if (gmap.size) doc.groups ??= [];
-  // a group whose parents in the clip lead back to itself (only a clip made by hand) stands at the top instead
   const clipParent = new Map(clip.groups.map((g) => [g.key, g.parent]));
   const cyclic = (k) => { const seen = new Set(); for (let c = k; c && clipParent.has(c); c = clipParent.get(c)) { if (seen.has(c)) return true; seen.add(c); } return false; };
   for (const g of clip.groups) {
@@ -127,7 +117,6 @@ export function pasteClip(doc, clip, { offset = [0, 0, 0], has = () => true } = 
       else if (r.group !== undefined && !had.has(r.group)) delete r.group;
       if (kind === 'npc' && !sameDoc) {
         for (const [link, coll] of NPC_LINKS) if (r[link] !== undefined && !(doc[coll] ?? []).some((x) => x?.key === r[link])) delete r[link];
-        // its conditions name the source POI's variables
         delete r.showWhen;
       }
       list.push(r);
@@ -141,7 +130,6 @@ export function pasteClip(doc, clip, { offset = [0, 0, 0], has = () => true } = 
   return out;
 }
 
-/** Copies of nodes in the same document, where they stand (Ctrl+D). A selected group is copied with what is in it. */
 export function duplicateNodes(doc, ids, opts = {}) {
   return pasteClip(doc, copyNodes(doc, ids), { offset: [0, 0, 0], ...opts });
 }

@@ -200,7 +200,7 @@ test('online, a trade the realm did not settle is never said as done already', a
   const act = async (path, body, o) => (o?.read ? { ok: true, data: { vars: {} } } : answers.shift());
   const w = setup(undefined, { act });
   await w.step();
-  for (const [answer, words] of [[{ ok: false, error: 'offline', unknown: true }, /may or may not/], [{ ok: false, error: 'busy' }, /still being settled/], [{ ok: false, error: 'poi-limit' }, /already done/]]) {
+  for (const [answer, words] of [[{ ok: false, error: 'offline', unknown: true }, /may or may not/], [{ ok: false, error: 'busy' }, /still being processed/], [{ ok: false, error: 'poi-limit' }, /already done/]]) {
     answers.push(answer);
     w.said.length = 0;
     w.rt.talk(w.doc.id, 'supplier');

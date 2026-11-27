@@ -1,53 +1,42 @@
 // @ts-check
-// BUNNYFALL PHASE 2: CONTENT SWITCHED OFF, to make room for our own. One list, read by the client and the relay alike
-// (server/src imports it too), so both sides agree. The code stays; flip a flag back to true to bring a piece back.
-// Saves are left as they are: progress and items from these stay in the save, they just lead nowhere.
-//
-// A LEAF: imports nothing, so any law file can read it without a cycle.
+
+// Owner switches for content: false turns a piece off. The client and the relay both read this one list.
+// Switching content off never edits saves: its progress and items stay in the save and lead nowhere.
+// It imports nothing, so any rules file can read it without a cycle.
 
 export const CONTENT = Object.freeze({
-  /** Daggerfall's main quest: a new game starts no backbone (_BRISIEN, S0000999). */
+  // Off: a new game starts no main quest (systems/quest/questBridge.js GAME_START_QUESTS, mainSpine.js).
   mainQuest: true,
-  /** The Curse of Daggerfall (S0000977): no longer the first quest of a new game. */
+  // Off: The Curse of Daggerfall is not the first quest of a new game (systems/quest/questBridge.js).
   curseOfDaggerfall: true,
-  /** The Sky-Ketch: no voyage ever comes (net/ketch/ketchLaw.js ketchVoyageAt). */
+  // Off: no Sky-Ketch voyage comes (net/ketch/ketchLaw.js ketchVoyageAt).
   skyKetch: false,
-  /** The Sea Serpent: no serpent day (net/serpent/serpentLaw.js isSerpentDay). */
+  // Off: no serpent day (net/serpentLaw.js isSerpentDay).
   seaSerpent: false,
-  /** The Abyss Dungeons: no new Hollow rises; one already standing ends on its own clock (net/superDungeon/sdLaw.js sdDue). */
+  // Off: no new Hollow rises, and one already open ends on its own clock (net/sdLaw.js).
   abyssDungeons: false,
-  /** The Elite Breach: the Spire's road shut - a key used at the arch is handed back (server egDraining). */
+  // Off: the relay treats the Elite Breach as draining and shuts the arch (server/src/world/eg.js _egDraining).
   eliteBreach: false,
-  /** Dagon's Breaches: no gate day (net/gate/gateLaw.js isGateDay). */
+  // Off: no gate day (net/gateLaw.js isGateDay).
   dagonBreaches: false,
-  /** The Witches' Festival: never open (net/festivalLaw.js festivalAt). */
+  // Off: the Witches' Festival never opens (net/festivalLaw.js festivalAt).
   witchesFestival: false,
-  /** Oblivion leveling: not offered at creation, and every character levels Daggerfall's way. */
+  // Off: not offered at creation, and every character levels Daggerfall's way (characters/oblivionLeveling.js).
   oblivionLeveling: false,
-  /** Permadeath: a death never ends a character or passes the line on - Daggerfall's own respawn. Family, marriage and
-   *  heirs are kept for fun (scenes/legacyHost.js onDeath, systems/chargenSession.js). */
+  // Off: a death never ends a character, and Daggerfall's own respawn applies (systems/legacy/legacyHost.js).
   permadeath: false,
-  /** BUNNYFALL PHASE 1: Witnessed ground. Off, every map pixel and dungeon counts as confirmed on the word of whoever
-   *  stands there (net/nodeLaw.js groundWitnessed): no waiting for three week-old accounts to vouch for a place before its
-   *  higher-tier veins, signature ore, rare wood, gems, the March's bounty and the Tide can appear. A small server never
-   *  had the crowd the rule assumed. */
+  // Off: one report from an account a day old confirms a map pixel or dungeon (net/nodeLaw.js WITNESS).
   witnessedGround: false,
-  /** BUNNYFALL (2026-11-12, the owner: "we need to disable the nsfw filter on the chat"): the chat's word filter. Off, a
-   *  chat line is sent as typed: no word starred (net/wire.js sanitizeChat). Names, guild names, notes and letters keep
-   *  the filter. */
+  // Off: a chat line is sent as typed (net/wire.js); names, guild names, notes, and letters keep the filter.
   chatFilter: false,
-  /** BUNNYFALL (2026-11-18, the owner's idea): MAGICAL TAVERNS. On, a town with two taverns or more has one of them, picked by
-   *  its map id, turned blue with a portal for a door, and every such door opens the one shared hall (systems/magicTavern.js). */
+  // On: in a town with two taverns or more, one picked by map id opens the shared hall (systems/magicTavern.js).
   magicTaverns: true,
-  /** BUNNYFALL (2026-11-18): the daily elite dungeons - eight picked a day, a crystal over each, the spread, Sifrit inside
-   *  and the cleanse's Dusk Tokens (net/eliteDungeonLaw.js). Off, no new ones are picked and the game shows none. */
+  // Off: no daily elite dungeons are picked and the game shows none (systems/eliteDungeons/edBook.js).
   eliteDungeons: true,
-  /** FARM EXPANSION, PHASE 7: market day on every Company farm (net/farm/marketLaw.js marketToday). Off, no farm holds a market. */
+  // Off: no Company farm holds a market day (net/farm/marketLaw.js marketToday).
   farmMarkets: true,
-  /** BUNNYFALL VAMPIRE EXPANSION, PHASE 1 (2026-11-20): Vitae, the Beast, Blood Sight and feeding in Steal mode, awakened by
-   *  the Clan Elder's summons (systems/vampire/). Off, no summons comes and a vampire lives by Daggerfall's rules. */
+  // Off: no Clan Elder summons comes, and a vampire lives by Daggerfall's rules (systems/vampire/vitae.js).
   vampireBlood: true,
 });
 
-/** Whether a piece of content is on. */
 export const contentOn = (/** @type {keyof typeof CONTENT} */ key) => CONTENT[key] === true;

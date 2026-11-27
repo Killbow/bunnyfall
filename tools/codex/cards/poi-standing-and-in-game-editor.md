@@ -14,6 +14,8 @@ files:
   - src/poi/poiEditorHost.js
   - src/ui/poi/poiEditorPanel.js
   - src/ui/poi/poiMapMark.js
+  - src/poi/poiImageDecode.js
+  - src/poi/poiGizmoLook.js
 routes: []
 tables: []
 replacesBible:
@@ -26,9 +28,15 @@ invariants:
   - "`createPoiHost` limits per-frame instantiation work to `POI_STAND_BUDGET_MS` (`4` ms) and decodes meshes incrementally through `decodePoiMeshSteps`."
   - "A `'snap'` POI has height `NaN` while the terrain beneath it is unknown, neither rendering nor colliding until terrain resolves, and re-samples terrain every `POI_GROUND_EVERY` (`30`) frames."
   - "A part collider stays disabled while the player feet sit inside its bounding box (`carry`), preventing a newly loaded POI from trapping a character."
+  - "The outer view ring is pushed before the axis rings so the axis rings draw over it where they overlap."
+  - "`POI_TEXTURE_ARCHIVE` (600000) must stay clear of every archive number the game draws; each archive has one owner, registered in `src/world/eliteGates/pseudoArchives.js`."
 traps:
   - "Mirrored parts with a negative determinant flip triangle winding in `src/poi/poiRuntime.js`."
   - "Gizmo handles nearly parallel to the view ray enter `hidden` state (`END_ON` or `EDGE_ON` in `src/poi/poiGizmo.js`) and cannot be picked."
+  - "POI pictures are read back through a WebGL2 texture with `premultipliedAlpha: false`, never a 2D canvas, because a 2D canvas premultiplies and returns black or quantized colors for clear texels, which darkens filtered cutout edges."
+  - "A gizmo drag measures its rays in the scene frame captured at drag start from the POI's pixel translation, because a floating-origin recenter mid-drag would otherwise mix two frames and throw the POI about 819 m."
+  - "`lineMeasure` mutates and returns one shared `MEASURE` object, so a caller must read its fields before calling `lineMeasure` again."
+  - "`poiPartModels` bakes the part's own scale into positions and normals, because the mesh shader lights through the model matrix and a stretched matrix tilts normals; a two-sided blended submesh lays its back faces down first."
 dfu: []
 tags:
   - poi

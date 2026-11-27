@@ -1,8 +1,4 @@
 // @ts-check
-// PARTY-PING: the dotted floor route. The mark itself is a screen pin
-// (render/partyPingLabels.js), one size at any distance. Added over the
-// opaque world, depth-tested, no depth written - the veiled-bodies' slot
-// (scenes/world.js drawVeiledPeerBodies). Not a DFU member.
 import { buildProgram } from './glProgram.js';
 import { pathRibbon } from '../party/partyPing.js';
 

@@ -1,22 +1,17 @@
 // @ts-check
-// SUNBABY1: THE SUN BABY'S SKY - one fullscreen pass over whichever sky the lane draws (world/sunbabySky.js says why
-// it replaces the sky rather than grading it). The enhanced sky's contract: draw(yaw, pitch, fovY, aspect) after the
-// sky and its clouds, at the far plane (LEQUAL passes only the cleared depth, so the land stands over it), blended over
-// what is there by the event's weight. At weight 0 it draws nothing.
+// Fullscreen sky event pass, drawn after the sky and clouds at the far plane so LEQUAL lets the land cover it.
+// It blends over the sky by the event weight and draws nothing at weight 0.
 
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
+import { buildProgram } from './glProgram.js';
 import { SUNBABY_GLSL, sunbabySunDir } from '../world/sunbabySky.js';
 
-/** SUNBABY3: Todd's photograph, as Mac supplied it (cropped to the face's disk, world/sunbabySky.js
- *  SUNBABY_TODD_PHOTO_FIT) - bundled by Vite, a file URL under Node where there is no Image to load it. */
 export const SUNBABY_TODD_PHOTO_URL = new URL('../assets/sunbaby/todd.jpg', import.meta.url).href;
 
 const VS = `#version 300 es
 layout(location=0) in vec2 aPos;
 out vec2 vNdc;
-void main() { vNdc = aPos; gl_Position = vec4(aPos, 1.0, 1.0); }`;   // AT the far plane, as the enhanced sky's
+void main() { vNdc = aPos; gl_Position = vec4(aPos, 1.0, 1.0); }`;
 
-/** The pass's fragment shader - the enhanced sky's ray, then the flower sky and the sun baby along it. */
 export const SUNBABY_FS = `#version 300 es
 precision highp float;
 in vec2 vNdc;
@@ -40,7 +35,7 @@ void main() {
 
 export const SUNBABY_UNIFORMS = Object.freeze(['uYaw', 'uPitch', 'uTanHalfFov', 'uAspect', 'uWeight', 'uTime', 'uSunDir', 'uFace', 'uToddPhoto', 'uToddPhotoOn']);
 
-/** The flower sky's real-second clock wraps here, so the drift stays inside a float's fraction. */
+// Wraps the clock so the shader time keeps float precision.
 const TIME_WRAP_S = 3600;
 
 export class SunbabySkyRenderer {
@@ -57,14 +52,10 @@ export class SunbabySkyRenderer {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
-    /** The event's weight, 0..1 - the host's (world/sunbabySky.js createSunbaby). */
     this.weight = 0;
-    /** SUNBABY2: the faces' weights, 0..1 - the wrath's and Todd's (world/sunbabySky.js sunbabyPhase); the baby the rest. */
     this.evil = 0;
     this.todd = 0;
-    // SUNBABY3: Todd's photograph - a black texel until it has loaded (a sampler never reads an incomplete texture),
-    // fetched when the pass is first built (the event's first showing, minutes before Todd's phase) and uploaded by the
-    // next draw, inside the frame; a failed load warns and keeps the cartoon
+    // The photo texture starts as one black texel so the sampler never reads an incomplete texture.
     this.photoTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.photoTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
@@ -86,21 +77,22 @@ export class SunbabySkyRenderer {
     const now = typeof performance !== 'undefined' ? performance.now() : 0;
     gl.useProgram(this.program);
     gl.depthMask(false);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);   // only where nothing nearer has drawn - z is the far plane
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.BLEND);
-    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);   // over the sky by the weight; the buffer's alpha untouched
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
     gl.uniform1f(u.uYaw, yaw); gl.uniform1f(u.uPitch, pitch);
     gl.uniform1f(u.uTanHalfFov, Math.tan(fovY / 2)); gl.uniform1f(u.uAspect, aspect);
     gl.uniform1f(u.uWeight, this.weight);
     gl.uniform1f(u.uTime, ((now - this.t0) / 1000) % TIME_WRAP_S);
     gl.uniform3fv(u.uSunDir, sunbabySunDir(this.weight));
-    gl.uniform2f(u.uFace, this.evil, this.todd);   // SUNBABY2
-    if (this._photo) this._uploadPhoto();   // SUNBABY3: loaded since the last frame
+    gl.uniform2f(u.uFace, this.evil, this.todd);
+    if (this._photo) this._uploadPhoto();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.photoTex);
     gl.uniform1i(u.uToddPhoto, 0);
     gl.uniform1f(u.uToddPhotoOn, this.photoOn);
-    gl.disable(gl.CULL_FACE);   // the triangle winds CCW under a CW front face, as the sky's
+    // The fullscreen triangle winds CCW under a CW front face, so culling is off for this draw.
+    gl.disable(gl.CULL_FACE);
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
@@ -111,8 +103,6 @@ export class SunbabySkyRenderer {
     gl.depthMask(true);
   }
 
-  /** SUNBABY3: the loaded photograph into its texture, mipmapped (it is drawn small, a sun in the sky), rows as the
-   *  file has them whatever the unpack flip was left at - then Todd wears it. */
   _uploadPhoto() {
     const gl = this.gl, img = this._photo;
     this._photo = null;
@@ -129,7 +119,6 @@ export class SunbabySkyRenderer {
     this.photoOn = 1;
   }
 
-  /** EVERY ALLOCATION HAS AN OWNER: the program, its triangle, its VAO - SUNBABY3: and Todd's photograph. */
   dispose() {
     const gl = this.gl;
     gl.deleteProgram(this.program);

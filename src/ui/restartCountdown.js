@@ -65,7 +65,7 @@ function create(doc, now) {
     /** @param {number} ms */
     hear(ms) {
       if (!ms) {
-        if (end && end > now()) self.say(t('restart.cancelled', 'The server restart has been called off.'));
+        if (end && end > now()) self.say(t('restart.cancelled', 'The server restart has been canceled.'));
         stop();
         return;
       }
@@ -106,7 +106,7 @@ function create(doc, now) {
       marks = [];
       if (box.textContent !== t('restart.now', 'Server restarting now...')) {
         box.textContent = t('restart.now', 'Server restarting now...');
-        self.say(t('restart.nowChat', 'The server is restarting now. You will reconnect on your own.'));
+        self.say(t('restart.nowChat', 'The server is restarting now. You will reconnect automatically.'));
       }
       box.hidden = false;
       return;

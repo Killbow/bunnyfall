@@ -1,23 +1,11 @@
 // @ts-check
-// SD17 (2026-10-07, the Super Dungeons arc; bible/11-Multiplayer/Super-Dungeons.md section 16's SD17): THE HOUR-HAND'S
-// BEAM IN THE AIR - a ribbon of the Remnant's gold light from its pointing hand to where the sweep's bearing meets the
-// floor (or a pillar's face), turned about its own length to face the eye, ADDED onto the frame (ONE, ONE - the duel
-// wall's law, render/duelWall.js: fixed geometry placed by uniforms, no depth written, tested against the depth the world
-// wrote, fogged, its rates whole cycles over the wrapped clock). A bright core and a soft glow across it, brightest at
-// the hand, light running out along it toward the floor, its far end flaring where it strikes. The floor's telegraph is
-// SD8d's (scenes/superDungeon/sdRemnantBlows.js); this is the blow itself. AUDIT SD III (V2): and THE BAND IT SWEEPS - the same light
-// laid flat on the floor (`uFlat`) from its body's rim to its reach, the law's width across, its rims bright: the ribbon
-// passed over the heads of the bodies the law struck, a third of its width.
-//
-// Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Additive beam pass for the super dungeon hour-hand sweep, plus the band it sweeps across the floor.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { duelClock } from './duelWall.js';
 
-/** The most beams a frame draws (the Remnant's, and the two Echoes' paired sweep). */
 export const SD_BEAM_MAX = 3;
-/** Its width at the hand and at its far end (m), the narrowest it stands on the screen (an angle of the eye's view), the
- *  light's run out along it (cycles a second, whole over the duel clock), and its colours: the core, the glow. */
+// SD_BEAM_RUN_HZ gives whole cycles over the duel clock's wrap period, so the light has no seam at the wrap.
 export const SD_BEAM_W = Object.freeze([0.55, 1.6]);
 export const SD_BEAM_MIN_RAD = 0.003;
 export const SD_BEAM_RUN_HZ = 2;
@@ -27,7 +15,6 @@ export const SD_BEAM_GLOW = Object.freeze([1.0, 0.62, 0.18]);
 const HEAD = `#version 300 es
 precision highp float;
 `;
-/** One strip a beam: x across it (-1..1), y along it (0 at the hand, 1 at its far end). */
 export const SD_BEAM_VS = HEAD + `layout(location = 0) in vec2 aP;
 uniform mat4 uVP;
 uniform vec3 uA;         // the hand
@@ -93,7 +80,6 @@ void main() {
   o = vec4(c * uAlpha * fogFactorAt(vWorld), 1.0);
 }`;
 
-/** The strip: x across (-1, 1), y along (0, 1) - eight steps along it, so the fog and the glow follow its length. Pure. */
 export function sdBeamVertices(steps = 8) {
   const v = [];
   for (let i = 0; i < steps; i++) {
@@ -119,19 +105,11 @@ export class SdBeamRenderer {
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
     this._vp = new Float32Array(16);
-    /** the beams the last draw lit, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /**
-   * Draw the beams: `beams` [{ a: [x, y, z] the hand, b: [x, y, z] where its light meets the floor - the scene's frame,
-   * f0 and f1 its band's ends on the floor and w its width (AUDIT SD III, V2), alpha }] (at most SD_BEAM_MAX), `eye` the
-   * camera, `seconds` any clock (wrapped here), `fog` the frame's as the renderer set it. Nothing to draw, nothing touched;
-   * answers whether it drew.
-   */
   draw(beams, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
-    // AUDIT SD III (V5): walked in place - the beams worth drawing, SD_BEAM_MAX at most, with nothing made a frame
     const n = Array.isArray(beams) ? beams.length : 0;
     let first = null;
     for (let i = 0; i < n && !first; i++) if (drawable(beams[i])) first = beams[i];
@@ -163,7 +141,6 @@ export class SdBeamRenderer {
       gl.uniform3f(U.uA, g.a[0], g.a[1], g.a[2]);
       gl.uniform3f(U.uB, g.b[0], g.b[1], g.b[2]);
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
-      // AUDIT SD III (V2): the band it sweeps, on the floor
       if (point3(g.f0) && point3(g.f1) && g.w > 0) {
         gl.uniform1i(U.uFlat, 1);
         gl.uniform2f(U.uW, g.w, g.w);
@@ -181,9 +158,7 @@ export class SdBeamRenderer {
   }
 }
 
-/** A point the pass can place: three finite numbers. */
 const point3 = (p) => Array.isArray(p) && p.length === 3 && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2]);
-/** A beam the pass draws: its hand and its far end placed, its light not out. */
 const drawable = (g) => !!g && point3(g.a) && point3(g.b) && !(g.alpha <= 0.001);
 
 function mat4Multiply(out, a, b) {

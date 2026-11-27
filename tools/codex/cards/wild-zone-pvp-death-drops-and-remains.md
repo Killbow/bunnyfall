@@ -18,6 +18,7 @@ files:
   - server-account/src/index.js
   - server-account/migrations/0104_referee.sql
   - server-account/migrations/0118_wild_escrow.sql
+  - src/world/wild/wildSeizeHost.js
 routes:
   - "/v1/wild/fall"
   - "/v1/wild/collect"
@@ -39,10 +40,12 @@ invariants:
   - "Gold loss is `WILD_GOLD_LOSS` (`1 / WILD_GOLD_DIVISOR` with `WILD_GOLD_DIVISOR` = `10`), floored per source, and letters of credit contribute a tenth of their value in gold (`gold.letters`) while staying in the bag."
   - "Remains persist for `WILD_REMAINS_MS` (`12` min), capped at `WILD_REMAINS_ITEMS_MAX` (`96`) items per pile and `WILD_ROOM_REMAINS_MAX` (`24`) piles per room."
   - "The PvP death screen enforces a `WILD_DEATH_HOLD_S` (`120` s) hold minus any seconds already served."
+  - "The fallen player's game removes exactly the pieces the account service reported as taken, found by uid, provenance, or marks, and never reruns the drop rules on the live pack, which would take pieces the service kept."
 traps:
   - "`WILD_FALL_PACKS` and `WILD_FALL_LETTERS` (`1`) are client opt-in flags on `/v1/wild/fall`; older clients omitting them retain companion pack items and letter-of-credit gold cuts."
   - "`wildCartMayBeAway` (`src/world/wild/wildCart.js`) spares a wagon parked outside the wild zone, so cart drops never run unconditionally."
   - "In the Cromwark reach, `src/player/wildDeath.js` respawns the player outside the zone without recording a PvP fall."
+  - "An account service without the rejoin reply returns `grace` for a seizure. The host asks once more after `WILD_FALL_GRACE_S + 5` seconds, guarded by `graceWaited`, so it does not loop."
 dfu: []
 tags:
   - wild-zone

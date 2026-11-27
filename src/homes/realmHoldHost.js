@@ -1,46 +1,29 @@
 // @ts-check
-// THE REALM'S HOLDS, SAID TO THE PLAYER (INT3; AUTO-HOLD, 2026-10-16 - Mac: "We need to figure out a better system for
-// trade banning. I dont want to have to manually review"; bible/06-Systems/Integrity-Arc.md AUTO-HOLD). The realm session
-// (systems/realmSaves.js) hears two things from a landed checkpoint: the hold on the character's trade as it moves
-// (onTradeHeld - the law's piece named, or a timed hold's end) and the pieces the ledger locked (onPiecesLocked - copies
-// found, locked piece by piece; the character trades on). bootWorld wires both here, one line (HOST-SPLIT) - and, AUDIT
-// AUTO-HOLD, what the client does with them: the locked pieces bound while they are (systems/item/itemBound.js
-// setRealmLocked), and the pieces the character stowed read off the last save the realm took for the shop's shelf
-// (systems/item/itemIds.js setStowedKeys).
 import { tradeHeldNotice, lockedPiecesOf, ledgerKeyOf, setStowedKeys, carriedPieces } from '../items/itemIds.js';
 import { itemLongName } from '../items/itemInfo.js';
 import { setRealmLocked } from '../items/itemBound.js';
 import { possessedItemLists } from '../items/possessedItems.js';
-import { setCarriedFilter } from '../net/peerWord.js';   // AUDIT AUTO-HOLD: a peer's word never hands the reader a piece it carries
+import { setCarriedFilter } from '../net/peerWord.js';
 import { withoutCarried } from '../world/interiorShared.js';
-import { t } from '../ui/textManager.js';   // L10N4: the notice in the player's language
-import { setTradeHeldSaid } from '../net/realmTradeLaw.js';   // RPT1026-MARKET HOLD-SAID: the standing hold, said by every refusal of it
+import { t } from '../ui/textManager.js';
+import { setTradeHeldSaid } from '../net/realmTradeLaw.js';
 
-/** How many locked pieces one notice names; the rest are counted. */
 const NAMED_MAX = 3;
 
-/** AUTO-HOLD: the notice for locked pieces, in the player's language - `names` the pieces found in the character's own
- *  lists (each piece, a key the pack shows twice twice), `count` how many were locked in all (a piece set out in a room,
- *  a boat's hold, is locked as well, and named by none). Null for none. AUDIT AUTO-HOLD: it says what happened and what
- *  it means, and accuses no one - a receiver whose giver's game died, a piece taken back from its owner's own remains
- *  (server-account/src/wild.js), a shelf's stale word: none of them copied anything. */
 export function piecesLockedNotice(/** @type {string[]} */ names, /** @type {number} */ count) {
   if (!(count > 0)) return null;
   if (count === 1) {
     return names[0]
-      ? t('realm.locked.named', 'The realm has locked your {name}: it found the same piece somewhere else too. It stays with you and cannot be traded, sold, dropped or stored where others can take it. Your other pieces and your trading are not affected.', { name: names[0] })
-      : t('realm.locked.one', 'The realm has locked one of your pieces: it found the same piece somewhere else too. It stays with you and cannot be traded, sold, dropped or stored where others can take it. Your other pieces and your trading are not affected.');
+      ? t('realm.locked.named', 'The realm locked your {name} because a duplicate was found elsewhere. It stays with you and cannot be traded, sold, dropped, or stored where others can take it. Your other items and trading are unaffected.', { name: names[0] })
+      : t('realm.locked.one', 'The realm locked one of your items because a duplicate was found elsewhere. It stays with you and cannot be traded, sold, dropped, or stored where others can take it. Your other items and trading are unaffected.');
   }
   const shown = names.slice(0, NAMED_MAX);
-  if (!shown.length) return t('realm.locked.many', 'The realm has locked {n, number} of your pieces: it found the same pieces somewhere else too. They stay with you and cannot be traded, sold, dropped or stored where others can take them. Your other pieces and your trading are not affected.', { n: count });
+  if (!shown.length) return t('realm.locked.many', 'The realm locked {n, number} of your items because duplicates were found elsewhere. They stay with you and cannot be traded, sold, dropped, or stored where others can take them. Your other items and trading are unaffected.', { n: count });
   const more = count - shown.length;
   const list = more > 0 ? t('realm.locked.listMore', '{names} and {n, number} more', { names: shown.join(', '), n: more }) : shown.join(', ');
-  return t('realm.locked.manyNamed', 'The realm has locked {n, number} of your pieces ({list}): it found the same pieces somewhere else too. They stay with you and cannot be traded, sold, dropped or stored where others can take them. Your other pieces and your trading are not affected.', { n: count, list });
+  return t('realm.locked.manyNamed', 'The realm locked {n, number} of your items ({list}) because duplicates were found elsewhere. They stay with you and cannot be traded, sold, dropped, or stored where others can take them. Your other items and trading are unaffected.', { n: count, list });
 }
 
-/** AUDIT AUTO-HOLD: the ledger keys of the pieces a save holds BEYOND the character's own five lists - a room's chest, a
- *  ship's hold, a companion's pack (systems/item/possessedItems.js, the judge's own reading) - the own lists being the live
- *  pack's to say (a piece sold since the save is no longer held, and its shelf must show it). */
 export function stowedKeysOf(/** @type {any} */ save) {
   const stowed = new Set();
   if (!save || typeof save !== 'object') return stowed;
@@ -49,7 +32,6 @@ export function stowedKeysOf(/** @type {any} */ save) {
   return stowed;
 }
 
-/** The stowed keys off the session's last landed save, read once a landing (a save is parsed only when a shelf asks). */
 function stowedReader(/** @type {any} */ session) {
   /** @type {string | null} */ let text = null;
   /** @type {Set<string> | null} */ let keys = null;
@@ -64,16 +46,13 @@ function stowedReader(/** @type {any} */ session) {
 }
 
 /**
- * Wire `session`'s two notices to `say`, naming pieces from `entity`'s own lists; and bind the locked pieces and read the
- * stowed ones for the client's own laws. A null session (offline) unbinds and reads nothing.
- * @param {any} session @param {{ say: (text: string) => void, entity: any }} deps
+ * @param {any} session
+ * @param {{ say: (text: string) => void, entity: any }} deps
  */
 export function wireRealmHolds(session, { say, entity }) {
   setRealmLocked(session?.lockedKeys ?? []);
   setStowedKeys(session ? stowedReader(session) : () => null);
   setCarriedFilter(session ? (list) => withoutCarried(list, carriedPieces(entity)) : null);
-  // RPT1026-MARKET HOLD-SAID: a `trade-held` refusal anywhere (a harvest, a craft, a sale) says this hold's own notice -
-  // its reason, its piece, its end - as the session last heard it
   setTradeHeldSaid(session ? () => tradeHeldNotice(null, session.tradeHeld, session.tradeHeldWhy) : null);
   if (!session) return;
   session.onTradeHeld = (/** @type {string | null} */ prev, /** @type {string | null} */ now, /** @type {any} */ why) => { const text = tradeHeldNotice(prev, now, why); if (text) say(text); };

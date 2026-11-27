@@ -1,57 +1,5 @@
-// RDB dungeon block assembly: placed models, action doors, flats, lights,
-// markers, exit doors, and linked action records for one block.
-// 1:1 translation of the layout paths of Daggerfall Unity's RDBLayout.cs
-// (MIT, Daggerfall Workshop): AddModels, GetModelMatrix, IsActionDoor,
-// AddActionDoors, AddFlats, AddLights, AddAction and the action vector
-// builders, LinkActionNodes. Verbatim:
-//   - Model matrix is T * Rz * Rx * Ry composed from separate multiplies -
-//     NOT the RMB TRS order (Ry * Rx * Rz). Kept exactly.
-//   - Exit door models (70300) are filtered unless allowExitDoors (only the
-//     starting block gets them); red brick doors (72100) are never action
-//     doors despite the DOR tag; action doors are model refs described
-//     DOR / DDR / NEW / CAV and are placed by the action-door pass, closed,
-//     with the starting lock decoded from triggerFlagStartingLock >> 4
-//     through DFU's 16-entry lock table.
-//   - Tapestries/banners (42500..42571 without actions) are collider-free
-//     standalone adds in DFU; a pure layout has no colliders, so they are
-//     ordinary placements here (noted for the Player arc).
-//   - Static doors accumulate from every placed model via getStaticDoors
-//     with recordIndex 0 and the block's BSA index.
-//   - Flats sit at (X, -Y, Z) * scale. Editor flats (archive 199) become
-//     data-only markers (DFU spawns-then-hides): record 10 start markers
-//     (which also carry the block water level: soundIndex != 0 ->
-//     -8 * soundIndex else 10000, and castleBlock = magnitude != 0),
-//     record 8 enter markers; 15/16 are enemy markers (SetActive(false) in
-//     DFU). Fixed-treasure flats (archive 216) are renderer-disabled in DFU
-//     and land in markers too. Everything else renders.
-//   - Lights are NOT built here: dungeonLights.collectDungeonLights is
-//     the single source (verbatim AddLight incl. the in-code range * 3;
-//     the old "prefab-side" claim here was wrong, and the second copy
-//     this pass emitted without the * 3 was unconsumed - the
-//     double-sourcing class, audit 2026-08-16).
-//   - Actions: models act when actionResource.flags != 0; flats when
-//     flatResource.action > 0. Action/trigger flags only bind when the raw
-//     value is a defined enum member (Enum.IsDefined), else None.
-//     Translation vectors NEGATE x and z relative to the axis sign;
-//     rotation vectors do not, and divide by RotationDivisor. Flag cases
-//     PositiveX..NegativeZ force duration 50 and magnitude = axisRaw * 8.
-//     Special-case rotations: LID -> (0, 0, -90), WHE -> (0, -360, 0);
-//     TRP with raw axis 13 -> NegativeX at magnitude 400 (DFU's classic
-//     workaround, classic value 392). AddActionFlatHelper passes the flat's
-//     MAGNITUDE as the raw axis (verbatim DFU quirk).
-//   - Action links key on obj.position; model links carry
-//     next/previousObjectOffset, flat links next only (prev -1). Editor
-//     flats always join the link dict; other flats only when they act.
-//   - ROAD-B B4: every serialized action object carries a LoadID, minted
-//     as `(ulong)(blockData.Position + rdbObj.Position)` - the block's
-//     BSA record offset plus the object's own offset inside the block
-//     (RDBLayout.cs:240-242 for action doors, :893-895/:940-942 for
-//     action models). "Based on unique position in gamedata and always
-//     the same" (DaggerfallAction.cs:259), which is exactly why the
-//     Castle Daggerfall foyer hack can name two doors by number.
-// Not built here (routed): enemies fixed/random (Characters arc), treasure
-// piles/loot (Systems arc), torch/animal audio (Audio arc), point-light and
-// water rendering (Rendering arc), door/action behavior (Player arc).
+// RDB dungeon block assembly, 1:1 with Daggerfall Unity's RDBLayout.cs (MIT, Daggerfall Workshop).
+// The model matrix is T * Rz * Rx * Ry, not the RMB order.
 
 import { ROTATION_DIVISOR, RDB_RESOURCE_TYPES } from '../formats/blocksFile.js';
 import { GLOBAL_SCALE } from './meshReader.js';
@@ -60,18 +8,15 @@ import { trs, multiply } from './mat4.js';
 
 export const RDB_SIDE = 2048 * GLOBAL_SCALE;
 
-export const EXIT_DOOR_MODEL_ID = 70300;   // DECOR-DUNGEON: the dungeons' census leaves it out too (test/systems/decor/decordungeon.test.js) - a door, though no action door
+export const EXIT_DOOR_MODEL_ID = 70300;
 const RED_BRICK_DOOR_MODEL_ID = 72100;
 const MIN_TAPESTRY_ID = 42500;
 const MAX_TAPESTRY_ID = 42571;
 const EDITOR_FLATS_ARCHIVE = 199;
-import { RANDOM_TREASURE_ARCHIVE as FIXED_TREASURE_FLATS_ARCHIVE } from '../items/loot.js';   // single source (DaggerfallLootDataTables; audit 2026-07-06b)
+import { RANDOM_TREASURE_ARCHIVE as FIXED_TREASURE_FLATS_ARCHIVE } from '../items/loot.js';
 
-// DFBlock.RdbActionFlags, defined members only (Enum.IsDefined parity).
-// RDBLayout.NPCFlatArchives / IsNPCFlat (RDBLayout.cs:1250-1254) - their one home is the leaf world/npcFlatArchives.js
-// (DECOR-FIGURE: the decor law, which the account service reads, names a person's flat by them).
 import { isNpcFlat } from './npcFlatArchives.js';
-import { editorPersonOf } from './editorPeople.js';   // BUNNYFALL
+import { editorPersonOf } from './editorPeople.js';
 export { NPC_FLAT_ARCHIVES, isNpcFlat } from './npcFlatArchives.js';
 
 export const ACTION_FLAGS = Object.freeze({
@@ -83,11 +28,10 @@ export const ACTION_FLAGS = Object.freeze({
   CloseDoor: 0x14, Hurt21: 0x15, Hurt22: 0x16, Hurt23: 0x17, Hurt24: 0x18,
   Hurt25: 0x19, Poison: 0x1a, Unknown27: 0x1b, DrainMagicka: 0x1c,
   Dialogue: 0x1d, Activate: 0x1e, SetGlobalVar: 0x1f, Unknown32: 0x20,
-  Unknown50: 0x32, DoorText: 0x63,   // audit 2026-08-16: DFBlock defines both; missing here broke Enum.IsDefined parity (raw 0x32/0x63 fell to None)
-  Unknown100: 0x64,   // AUDIT 23 (wa-1): DFBlock.cs:748 - defined, delegate-less (acts as None), on 2 objects
+  Unknown50: 0x32, DoorText: 0x63,
+  Unknown100: 0x64,
 });
 
-/** The movement family DaggerfallAction routes to Move (P2/P5). */
 export const MOVE_ACTION_FLAGS = new Set([
   ACTION_FLAGS.Translation,
   ACTION_FLAGS.PositiveX, ACTION_FLAGS.NegativeX,
@@ -96,14 +40,12 @@ export const MOVE_ACTION_FLAGS = new Set([
   ACTION_FLAGS.Rotation,
 ]);
 
-// DFBlock.RdbTriggerFlags, defined members only.
 export const TRIGGER_FLAGS = Object.freeze({
   None: 0x00, Collision01: 0x01, Direct: 0x02, Collision03: 0x03,
   Attack: 0x05, Direct6: 0x06, MultiTrigger: 0x08, Collision09: 0x09,
   Door: 0x0a,
 });
 
-// DFBlock.RdbActionAxes.
 const AXES = Object.freeze({
   None: 0, NegativeX: 1, PositiveX: 2, NegativeY: 3, PositiveY: 4,
   NegativeZ: 5, PositiveZ: 6,
@@ -112,13 +54,11 @@ const AXES = Object.freeze({
 const ACTION_FLAG_VALUES = new Set(Object.values(ACTION_FLAGS));
 const TRIGGER_FLAG_VALUES = new Set(Object.values(TRIGGER_FLAGS));
 
-// AddActionDoor starting-lock table, verbatim.
 const LOCK_VALUES = [
   0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e,
   0x10, 0x12, 0x14, 0x19, 0x1e, 0x32, 0x80, 0xff,
 ];
 
-/** Verbatim RDBLayout.GetModelMatrix: T * Rz * Rx * Ry. */
 export function getModelMatrix(obj) {
   const mr = obj.resources.modelResource;
   const degreesX = -mr.xRotation / ROTATION_DIVISOR;
@@ -133,29 +73,24 @@ export function getModelMatrix(obj) {
   return multiply(multiply(multiply(t, rz), rx), ry);
 }
 
-/** Verbatim RDBLayout.IsActionDoor. */
 export function isActionDoor(rdb, modelReference) {
-  // Always reject red brick doors, not action doors despite the DOR tag.
   if (rdb.modelReferenceList[modelReference].modelIdNum === RED_BRICK_DOOR_MODEL_ID) {
     return false;
   }
-  // Door (DOR), double-door (DDR), NEW tag (55007/55024/5018 - always
-  // doors), CAV cave-wall doors (like 55033 in S0000204.RDB).
   const description = rdb.modelReferenceList[modelReference].description;
   return description === 'DOR' || description === 'DDR' ||
     description === 'NEW' || description === 'CAV';
 }
 
-/** Whether a model object acts (its action record's flags set) - DECOR-DUNGEON: the decor catalogue offers none that do. */
 export function rdbModelActs(obj) {
   return obj.resources.modelResource.actionResource.flags !== 0;
 }
 
-// GetRotationActionVector, verbatim (including the TRP raw-axis-13 hack).
 function rotationActionVector(action, axis) {
   if (action.axisRaw === 13 && action.description === 'TRP') {
     axis = AXES.NegativeX;
-    action.magnitude = 400; // Classic is 392 but the player can stick to that angle
+    // Classic uses 392, but the player can get stuck at that angle.
+    action.magnitude = 400;
   }
   const v = { x: 0, y: 0, z: 0 };
   const magnitude = action.magnitude;
@@ -175,7 +110,6 @@ function rotationActionVector(action, axis) {
   };
 }
 
-// GetTranslationActionVector, verbatim: x and z NEGATE the axis sign.
 function translationActionVector(action, axis) {
   const v = { x: 0, y: 0, z: 0 };
   const magnitude = action.magnitude;
@@ -195,7 +129,6 @@ function translationActionVector(action, axis) {
   };
 }
 
-// AddAction, verbatim data paths (components/audio are their arcs').
 function buildAction(description, soundIndex, duration, magnitude, axisRaw, triggerRaw, actionRaw, isFlat) {
   const action = {
     description,
@@ -253,16 +186,14 @@ function buildAction(description, soundIndex, duration, magnitude, axisRaw, trig
       break;
   }
 
-  // Quick hack for special-case rotations, verbatim DFU.
   switch (description) {
-    case 'LID': action.rotation = { x: 0, y: 0, z: -90 }; break; // Coffin lids (e.g. Scourg Barrow)
-    case 'WHE': action.rotation = { x: 0, y: -360, z: 0 }; break; // Wheels (e.g. Direnni Tower)
+    case 'LID': action.rotation = { x: 0, y: 0, z: -90 }; break;
+    case 'WHE': action.rotation = { x: 0, y: -360, z: 0 }; break;
   }
 
   return action;
 }
 
-// AddActionModelHelper data path.
 function modelAction(rdb, obj) {
   const mr = obj.resources.modelResource;
   const description = rdb.modelReferenceList[mr.modelIndex].description;
@@ -278,41 +209,29 @@ function modelAction(rdb, obj) {
   );
 }
 
-// AddActionFlatHelper data path. axis = magnitude is a verbatim DFU quirk.
 function flatAction(obj) {
   const fr = obj.resources.flatResource;
   return buildAction('FLT', fr.soundIndex, 0, fr.magnitude, fr.magnitude, fr.flags, fr.action, true);
 }
 
-/** Every object of an RDB block, its groups in order (DECOR-DUNGEON: the decor catalogue walks them too). */
 export function* rdbObjects(rdb) {
   for (const group of rdb.objectRootList) {
-    if (!group.rdbObjects) continue; // Skip empty object groups
+    if (!group.rdbObjects) continue;
     yield* group.rdbObjects;
   }
 }
 
 /**
- * Assemble one RDB dungeon block.
- * @param {object} dfBlock - BlocksFile.getBlock output (type Rdb).
- * @param {number} blockIndex - the block's BSA record index (door identity).
- * @param {boolean} allowExitDoors - exit door models (70300) placed only
- *   when set (the starting block).
- * @param {(modelIdNum:number) => object} getModel - resolves a model id to
- *   dfMeshToModel output.
+ * @param {object} dfBlock
+ * @param {number} blockIndex
+ * @param {boolean} allowExitDoors
+ * @param {(modelIdNum:number) => object} getModel
  * @returns {{placements:Array,actionDoors:Array,flats:Array,markers:Array,
  *   startMarkers:Array,enterMarkers:Array,exitDoors:Array,
  *   actionLinks:Map,waterLevel:number,castleBlock:boolean}}
- *   Each actionDoors entry carries `loadID` (ROAD-B B4).
  */
 export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
   const rdb = dfBlock.rdbBlock;
-  // ROAD-B B4: the LoadID base. RDBLayout.cs:240-242 mints an action
-  // door's id as `(ulong)(blockData.Position + obj.Position)` - the
-  // BSA record offset of the block plus the object's offset inside it.
-  // blocksFile records the former as dfBlock.position (the same
-  // bsaFile.GetRecordPosition DFU stores at BlocksFile.cs:323), and
-  // obj.position is already the chain key every action rides.
   const blockPosition = dfBlock.position ?? 0;
   const placements = [];
   const actionDoors = [];
@@ -321,8 +240,8 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
   const startMarkers = [];
   const enterMarkers = [];
   const exitDoors = [];
-  const actionLinks = new Map(); // position -> { nextKey, prevKey, action }
-  const objectPositions = new Map(); // position -> { x, y, z, yawDeg } - P10 teleport destinations (any object, actionless included)
+  const actionLinks = new Map();
+  const objectPositions = new Map();
 
   const addModelLink = (obj, action) => {
     if (!actionLinks.has(obj.position)) {
@@ -339,25 +258,18 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
       const modelReference = obj.resources.modelResource.modelIndex;
       const modelIdNum = rdb.modelReferenceList[modelReference].modelIdNum;
 
-      // Filter exit door models where flag not set.
       if (modelIdNum === EXIT_DOOR_MODEL_ID && !allowExitDoors) continue;
 
       const matrix = getModelMatrix(obj);
       const acts = rdbModelActs(obj);
       const action = acts ? modelAction(rdb, obj) : null;
 
-      // Action doors are placed by their own pass, closed.
       if (isActionDoor(rdb, modelReference)) {
         const mr = obj.resources.modelResource;
         actionDoors.push({
           modelIdNum,
           matrix,
-          // The chain key: RDBLayout.cs:888/936 add the door's link under
-          // obj.Position, and LinkActionNodes (RDBLayout.cs:1094) resolves
-          // nextKey/prevKey against those same keys - so doors join the
-          // chain graph (Lock/Unlock/Open/Close ride the door's own action).
           position: obj.position,
-          // ROAD-B B4: RDBLayout.cs:242 - the door's serialized identity.
           loadID: blockPosition + obj.position,
           startingLockValue: LOCK_VALUES[mr.triggerFlagStartingLock >> 4],
           action,
@@ -383,16 +295,12 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
       const action = acts ? flatAction(obj) : null;
 
       if (fr.textureArchive === EDITOR_FLATS_ARCHIVE) {
-        // C3: enemy markers (15/16) need the flat resource on the marker -
-        // raw classic Y for the water rules, flags (slot/gender),
-        // factionOrMobileId (fixed type), soundIndex (spawn distance),
-        // and the raw action byte (Passive = 99).
         const marker = {
           record: fr.textureRecord, x, y, z, position: obj.position, action,
-          loadID: blockPosition + obj.position,   // OH-E: RDBLayout.cs:1351 - an enemy's serialized identity, the door's law
+          loadID: blockPosition + obj.position,
           rawY: obj.yPos, flags: fr.flags, factionOrMobileId: fr.factionOrMobileId,
           soundIndex: fr.soundIndex, actionByte: fr.action,
-          isCustomData: !!fr.isCustomData,   // WD1: RdbFlatResource.IsCustomData - only a world-data JSON block sets it
+          isCustomData: !!fr.isCustomData,
         };
         markers.push(marker);
         if (fr.textureRecord === 10) {
@@ -400,47 +308,15 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
         } else if (fr.textureRecord === 8) {
           enterMarkers.push(marker);
         }
-        // Editor flats always join the link dict (prev -1), verbatim.
         if (!actionLinks.has(obj.position)) {
           actionLinks.set(obj.position, { nextKey: fr.nextObjectOffset, prevKey: -1, action });
         }
       } else if (fr.textureArchive === FIXED_TREASURE_FLATS_ARCHIVE) {
-        // Renderer-disabled in DFU, restored in place by AddFixedTreasure
-        // (Systems arc). Marker data only.
-        //
-        // AUDIT 39 (#19): these share `markers` with the 199 editor
-        // flats, and they share the RECORD NAMESPACE with them too -
-        // 216/15 and 216/16 exist. DFU never has to discriminate,
-        // because its editorObjects list is archive-199 by construction
-        // (RDBLayout.cs:352) and every enemy/treasure reader iterates
-        // only that. Here the archive is what separates them: a 216
-        // entry carries `archive`, a 199 entry does not, and EVERY
-        // consumer of this array must test it before trusting a record.
-        // A 216 entry also carries none of the enemy fields (rawY,
-        // flags, factionOrMobileId, soundIndex, actionByte) the 199
-        // branch above sets, so a reader that skips the test builds an
-        // enemy out of undefined.
         markers.push({ record: fr.textureRecord, archive: fr.textureArchive, x, y, z, position: obj.position, action });
         if (acts && !actionLinks.has(obj.position)) {
           actionLinks.set(obj.position, { nextKey: fr.nextObjectOffset, prevKey: -1, action });
         }
       } else {
-        // AUDIT 64 F13: the STATIC-NPC inputs ride every ordinary RDB
-        // flat, because AddFlat's two NPC acts do:
-        //   - `if (IsNPCFlat(archive)) { StaticNPC npc = ...;
-        //     npc.SetLayoutData(obj); }`               (RDBLayout.cs:1226-1231)
-        //   - `QuestMachine.Instance.SetupIndividualStaticNPC(go,
-        //     obj.Resources.FlatResource.FactionOrMobileId);` - OUTSIDE
-        //     the IsNPCFlat block, so it runs for EVERY flat
-        //                                              (RDBLayout.cs:1233-1236)
-        // SetLayoutData(RdbObject) (StaticNPC.cs:145-160) hashes the
-        // RAW, UN-NEGATED XPos/YPos/ZPos (the billboard's -YPos is the
-        // render transform only) and seeds the name off the FLAT
-        // RESOURCE's stream position (fr.position), not the object
-        // offset the action chains key on - so both ride here, named
-        // apart. The port had funnelled these into scenery with none
-        // of it, which is why the people in Castle Daggerfall, Wayrest
-        // and Sentinel were inert and NPC_CONTEXT.Dungeon had no writer.
         flats.push({
           archive: fr.textureArchive, record: fr.textureRecord, x, y, z, action,
           position: obj.position,
@@ -448,26 +324,23 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
           factionID: fr.factionOrMobileId, flags: fr.flags,
           flatPosition: fr.position,
           rawX: obj.xPos, rawY: obj.yPos, rawZ: obj.zPos,
-          editorPerson: editorPersonOf(fr.editorPerson),   // BUNNYFALL: the Dungeon Editor's name and lines (a person's, or a flat's: scenes/editorReadables.js)
+          editorPerson: editorPersonOf(fr.editorPerson),
         });
         if (acts && !actionLinks.has(obj.position)) {
           actionLinks.set(obj.position, { nextKey: fr.nextObjectOffset, prevKey: -1, action });
         }
       }
-      objectPositions.set(obj.position, { x, y, z, yawDeg: 0 });   // flats carry no rotation (a flat teleport destination faces the marker's identity)
+      objectPositions.set(obj.position, { x, y, z, yawDeg: 0 });
     }
   }
 
-  // LinkActionNodes: resolve next/prev keys into action references.
   for (const link of actionLinks.values()) {
     if (!link.action) continue;
     if (actionLinks.has(link.nextKey)) link.action.nextObject = link.nextKey;
     if (actionLinks.has(link.prevKey)) link.action.previousObject = link.prevKey;
   }
 
-  // Block water level and castle flag ride on the first start marker,
-  // verbatim SetRDBResourceData + FindMarkers.
-  let waterLevel = 10000; // no water
+  let waterLevel = 10000;
   let castleBlock = false;
   if (startMarkers.length > 0) {
     const first = startMarkers[0];
@@ -482,9 +355,6 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
   };
 }
 
-/** Teleport-destination transform for a model object: the placement
- *  translation + the Y rotation DFU's transform carries (degreesY =
- *  -yRotation / RotationDivisor - the player lands facing it). */
 function positionEntryFromMatrix(matrix, obj) {
   return {
     x: matrix[12], y: matrix[13], z: matrix[14],

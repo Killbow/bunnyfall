@@ -1,17 +1,8 @@
-// AUDIT DEX A6 (2026-10-20, Mac: "We need to make everything compatible. No if ands or vutts") - THE FIFTY NAMES IN THE
-// PLAYER'S LANGUAGE. DFU shows a custom enemy by the mod's own name (BestiaryTextProvider.GetCustomEnemyName, the
-// MonsterBase and ClassBase `Name` column), so a Goblin is "Goblin" in every language; the port names it in the
-// player's (textManager.js registerCustomEnemyNameText, asked by getLocalizedEnemyName - the HUD's "You see", the death
-// line, a quest's foe, a soul's name, the troll's recovery line). A departure: Port-Ledger A, the DEX row.
-//
-// Each name is the mod's English as its tables write it (the test holds every one to the reading's `Name`), keyed for
-// the catalog the translators read (`dex.enemy.*`, read off these t() calls by tools/l10nExtract.mjs). The English the
-// game keeps for itself - the quest Foes table's keys, the save, the log - is still the table's (enemyBasics.js
-// enemyDisplayName). A LEAF but for the text manager.
+// The fifty enemy names in the player's language. Each is the mod's English name,
+// keyed for the translators' catalog (`dex.enemy.*`).
 
 import { t } from '../../ui/textManager.js';
 
-/** By MobileTypes id: the name in the player's language. */
 export const DEX_ENEMY_NAME_TEXT = Object.freeze({
   256: () => t('dex.enemy.goblin', 'Goblin'),
   257: () => t('dex.enemy.homunculus', 'Homunculus'),
@@ -65,5 +56,4 @@ export const DEX_ENEMY_NAME_TEXT = Object.freeze({
   398: () => t('dex.enemy.archerRider', 'Archer Rider'),
 });
 
-/** The door's answer: the name of `id` in the player's language, or null where the mod names no such enemy. */
 export const dexEnemyNameText = (id) => DEX_ENEMY_NAME_TEXT[id]?.() ?? null;

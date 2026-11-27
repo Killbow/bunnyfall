@@ -12,6 +12,8 @@ files:
   - src/world/farmGardenArt.js
   - src/ui/farmWords.js
   - server-account/src/farmProgress.js
+  - src/world/farmGardenSite.js
+  - src/world/farm/farmstead.js
 routes:
   - /v1/farms/garden
 tables: []
@@ -21,9 +23,11 @@ related:
 invariants:
   - "`FARM_UPGRADES` in `farmProgressLaw.js` is the one table of prices and thresholds; the tier counts, `FARM_TOOL_AREAS` and the validation of saved levels all derive from it, so adding a tier adds no other code."
   - "The service checks `farmToolArea` (1, 3, 5 or 9 beds) on every action; the client picks the beds, the service never trusts the pick beyond that count."
+  - "Bed addresses are indexes into `site.beds`: `farmGardenSite` adds the 16 legacy beds of the first field first, and `validGarden` accepts ids below `FARM_BEDS` or a 16-entry legacy array."
 traps:
   - "Soil is stamped on a bed when it is planted (`quality` is the extra items, `rate` the pace, from `FARM_SOIL`), so buying a tier never changes crops already in the ground, and `validGarden` rejects a rate or quality that is not in that table."
   - "Tools at tier 3 take the whole 3x3 block, diagonals included, within `blockReach`; a bed out of reach or blocked is left out and the aimed bed is always worked. Areas 3 and 5 stay within one bed step, nearest first."
+  - "`layFarmstead` claims plots in `FIXTURES` order with a jitter seeded by the farm's map id, so a fixture inserted before the end moves the layout of every existing farm."
 dfu: []
 tags:
   - farms

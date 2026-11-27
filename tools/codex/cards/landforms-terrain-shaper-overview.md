@@ -14,6 +14,7 @@ files:
   - src/mods/features.js
   - src/render/farRing.js
   - src/scenes/world.js
+  - src/world/terrainGenWorker.js
 routes: []
 tables: []
 replacesBible:
@@ -31,6 +32,7 @@ invariants:
   - "The shaper is a pure function of world position plus world data (WOODS.WLD, road network, landformSites, landformClimates), so a pixel-edge sample is the same number from both pixels."
   - "Off or on the classic skin, `landformsOn()` returns false, `sampleKernel` gets `landform = null`, and the kernel matches DFU to the bit."
   - "Tiles are classified on DFU `classic` samples through DFU blend (`terrainGen.js` `generateTileData(classic ?? samples)`); landforms move ground, never a tile."
+  - "Kernel jobs and replies cross the worker boundary whole, by object spread, so a new kernel input or output is never dropped by a hand-copied field list; the fallback path resolves the whole object too."
 traps:
   - "The kill door `?landforms=off` is ignored online: the feature is forced on in online pages because it is the room's ground."
   - "Only the small-heightmap term `low` is lifted; lifting ground noise produces 25 m spikes."

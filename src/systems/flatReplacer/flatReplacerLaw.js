@@ -1,27 +1,10 @@
-// BUNNYFALL WEEB1: FLAT REPLACER'S LAW - which picture an interior NPC wears, from the JSON files a mod ships.
-//
-// Flat Replacer (Numidium3rd, MIT - https://github.com/numidium/dfu-mods/tree/master/FlatReplacer) is the framework
-// Weeberfall's townsfolk ride: a list of records, each saying "an NPC drawn as archive_record, in these regions,
-// factions, building types and qualities, is drawn as this other picture instead, with this portrait and name bank".
-// This is its matching, pure: ReplacementConverter's defaults (parseFlatRecords), FlatReplacer.ReplaceBillboard's
-// filters, priority and specificity (chooseFlatReplacement). No DOM, no store, no clock.
-//
-// Departures, each on purpose:
-//   - Specificity is counted fresh for every NPC. The original adds to a field it never resets, so a record's score
-//     grows with every NPC it was ever weighed for; the intent (prefer the more specific record) is what is kept.
-//   - Keeping only the most specific candidates removes every lower one. The original's RemoveAt inside a counting
-//     loop skips the element after each removal.
-//   - The pick among equals is a hash of the NPC's name seed, not .NET's System.Random(nameSeed): the same NPC still
-//     gets the same picture every time, which is what the seed was for.
-//   - Records are read leniently (leading zeros, trailing commas, comments): FullSerializer's parser accepts the
-//     `"Regions": [05, 16]` Weeberfall's own files carry, and JSON.parse does not.
+// Flat Replacer matching with deliberate departures from the original. Specificity is recomputed for every NPC,
+// only the most specific candidates remain, and ties pick by a hash of the name seed instead of .NET
+// `System.Random`. Records parse leniently (leading zeros, trailing commas, comments), as FullSerializer does.
 
 export const WILDCARD = -1;
 export const LOCATION = Object.freeze({ All: 0, Building: 1, Dungeon: 2 });
 
-// ---- reading the files ----------------------------------------------------------------------------------------------
-
-/** A tolerant JSON reader: JSON plus leading zeros on numbers, trailing commas and // or /* comments. */
 export function parseRelaxedJson(text) {
   const s = String(text ?? '').replace(/^﻿/, '');
   let i = 0;
@@ -96,9 +79,6 @@ export function parseRelaxedJson(text) {
 
 const int = (o, k, d = WILDCARD) => (Number.isInteger(o?.[k]) ? o[k] : d);
 
-/** ReplacementConverter.DoDeserialize: one record with its defaults, or null when it names no flat to replace or no
- *  picture to replace it with (FlatReplacer.Start drops those). Only vanilla-named pictures (archive_record) are
- *  read: every Weeberfall record names one; a custom FlatTextureName is kept for the record but not drawn. */
 export function flatRecord(o) {
   if (!o || typeof o !== 'object') return null;
   const regions = Array.isArray(o.Regions) && o.Regions.length ? o.Regions.filter(Number.isInteger) : [WILDCARD];
@@ -126,14 +106,12 @@ export function flatRecord(o) {
   return r;
 }
 
-/** Every record of one file's text: `[record]`, the unreadable ones left out. Throws when the file is not a list. */
 export function parseFlatRecords(text) {
   const list = parseRelaxedJson(text);
   if (!Array.isArray(list)) throw new Error('not a list of replacements');
   return list.map(flatRecord).filter(Boolean);
 }
 
-/** The records indexed by the flat they replace: Map(`archive_record` -> [record]). */
 export function indexFlatRecords(records) {
   const map = new Map();
   for (const r of records ?? []) {
@@ -144,9 +122,6 @@ export function indexFlatRecords(records) {
   return map;
 }
 
-// ---- the choice -----------------------------------------------------------------------------------------------------
-
-/** A small stable hash of the name seed, for the pick among equals. */
 const seedPick = (seed, n) => {
   let x = (seed | 0) ^ 0x9E3779B9;
   x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B);
@@ -155,14 +130,12 @@ const seedPick = (seed, n) => {
 };
 
 /**
- * FlatReplacer.ReplaceBillboard's choice for one NPC, or null.
- * @param index       indexFlatRecords' map
- * @param npc         { archive, record } - the flat the NPC is drawn as; `factionId`; `nameSeed`; `isQuestNpc`
- * @param place       { location: LOCATION.Building | LOCATION.Dungeon, region, building: { factionId, buildingType,
- *                      quality } (a building's), socialGroup (the NPC's faction's sgroup) }
+ * @param index
+ * @param npc { archive, record }
+ * @param place { location: LOCATION.Building | LOCATION.Dungeon, region, building: { factionId, buildingType, quality }, socialGroup }
  */
 export function chooseFlatReplacement(index, npc, place) {
-  if (!index || !npc || npc.isQuestNpc) return null;   // a quest's NPC keeps its billboard (QuestResourceBehaviour)
+  if (!index || !npc || npc.isQuestNpc) return null;
   const list = index.get(`${npc.archive}_${npc.record}`);
   if (!list?.length) return null;
   const candidates = [];
@@ -183,7 +156,8 @@ export function chooseFlatReplacement(index, npc, place) {
       if (r.buildingType !== WILDCARD && r.buildingType !== b.buildingType) continue;
       const q = b.quality ?? 0;
       if (q < r.qualityMin || q > r.qualityMax) continue;
-    } else if (r.factionId !== WILDCARD) continue;   // castles and dungeons are factionless
+    // Outside a building there is no building faction, so a faction-bound record never matches.
+    } else if (r.factionId !== WILDCARD) continue;
     if (r.socialGroup !== WILDCARD && r.socialGroup !== place.socialGroup) continue;
     if (r.qualityMin !== 1) spec++;
     if (r.qualityMax !== 20) spec++;
@@ -200,13 +174,12 @@ export function chooseFlatReplacement(index, npc, place) {
   return kept[kept.length > 1 ? seedPick(npc.nameSeed ?? 0, kept.length) : 0].r;
 }
 
-/** FlatReplacer.OnWindowChange: the talk window's portrait for a chosen record, or null to keep the NPC's own. A named
- *  individual whose own face is a special one (faction type 4, face 60 or less) draws from FACES.CIF. */
+// As in Flat Replacer, a named individual (faction type 4) whose face is 60 or less draws from the special faces
+// file.
 export function flatPortrait(record, factionData = null) {
   if (!record || !(record.portrait > WILDCARD)) return null;
   const special = factionData?.type === 4 && (factionData.face ?? 0) <= 60;
   return { archive: special ? 'SpecialFaces' : 'CommonFaces', record: record.portrait };
 }
 
-/** The name bank a chosen record gives its NPC (NameHelper.BankTypes 0-10), or null to keep the region's. */
 export const flatNameBank = (record) => (record && record.nameBank >= 0 && record.nameBank <= 10 ? record.nameBank : null);

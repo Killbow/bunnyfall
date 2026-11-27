@@ -1,69 +1,41 @@
 // @ts-check
-// STAR4 (2026-10-20): THE FALLEN STAR, MADE - its crater and its stone, in code, on the gate's own faces
-// (world/gate/gateModel.js faces) and under the star's own art (world/starfall/starArt.js). Design:
-// bible/11-Multiplayer/Starfall.md section 3.
-//
-// A CRATER THE LAND KEEPS. The land's own triangles are never cut (a pixel's terrain is every client's same mesh, and
-// the port has no hole in it), so the crater is made ON the ground as a burned one reads from a stride away: a scorched
-// floor laid on the land's own heights (the rite's sigil's drape - each point the highest ground about it, a hand's
-// breadth over), a rim of thrown earth rising round it to a crest and falling away outside, stones thrown onto the rim,
-// and at its heart the star: a jagged stone of pale glass, half buried, its shards leaning out of the earth, with the
-// coven's black thread wound about it and running straight up into the dark. Held, the thread is gone and the glass
-// gold; lost, the glass dark (the host builds it again with the record it wears).
-//
-// THE STAR'S OWN FRAME: x east and z north from its heart, y up from the ground there - the host stands it at the heart
-// unturned. Every shape is the star's own (its rolls, net/starfall/starfallLaw.js starRoll): every screen makes the same
-// crater for the same star. Pure.
-//
-// Not a DFU member. Ledger A (STARFALL).
+// The fallen star's model: a scorched crater, its rim, stones, glass shards, and a thread, built in code.
+// Pure. Every shape comes from the star's own rolls, so every client builds the same crater.
 import { faces } from '../gateModel.js';
 import { STAR_ARCHIVE, STAR_EARTH_RECORD, STAR_RIM_RECORD, STAR_GLASS_RECORD, STAR_THREAD_RECORD } from './starArt.js';
 import { starRoll } from '../../net/starfall/starfallLaw.js';
 
-/** The crater: its radius to the rim's crest (fourteen metres across), and how far out the rim's thrown earth falls. */
 export const STAR_CRATER_R = 7;
 export const STAR_RIM_OUT = 2.6;
-/** The rim's crest over the ground, and the floor's lift over the land (no fighting its depth). */
 export const STAR_RIM_H = 1.1;
 export const STAR_FLOOR_LIFT = 0.05;
-/** The floor's drape: its rings and segments, and how far about a point the highest ground is read (the rite's law). */
 export const STAR_FLOOR_RINGS = 10;
 export const STAR_FLOOR_SEGS = 40;
 export const STAR_FLOOR_REACH = 0.5;
-/** The stone: its tallest shard stands this high out of the earth, and goes this deep into it. */
 export const STAR_STONE_H = 2.5;
 export const STAR_STONE_SINK = 0.9;
-/** The shards round the heart's: how many, and how far out they lean from. */
 export const STAR_SHARDS = 6;
 export const STAR_SHARD_R = 0.9;
-/** The stones thrown onto the rim. */
 export const STAR_RIM_STONES = 9;
-/** The thread: how many strands, how many turns each takes about the stone, how far up into the dark it runs, and how
- *  thick it is (a cord: a hand could close round it). */
 export const STAR_THREADS = 3;
 export const STAR_THREAD_TURNS = 1.5;
 export const STAR_THREAD_H = 90;
 export const STAR_THREAD_W = 0.05;
-/** The grass none grows on: the crater and its rim. */
 export const STAR_BARE_R = STAR_CRATER_R + STAR_RIM_OUT;
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-/** A triangle wound so its face looks away from `centre` (a shard's, a stone's own middle). */
 function outward(f, rec, a, b, c, centre, ua = [0, 0], ub = [1, 0], uc = [0.5, 1]) {
   const mid = [(a[0] + b[0] + c[0]) / 3 - centre[0], (a[1] + b[1] + c[1]) / 3 - centre[1], (a[2] + b[2] + c[2]) / 3 - centre[2]];
   if (dot(cross(sub(b, a), sub(c, a)), mid) >= 0) f.tri(rec, a, b, c, ua, ub, uc);
   else f.tri(rec, a, c, b, ua, uc, ub);
 }
-/** The star's roll `j` in [0, 1). */
 const u = (n, k, j) => starRoll(n, k, 900 + j) / 4294967296;
 
 /**
- * WHERE ITS PARTS STAND, in the star's frame: the shards `{ base: [x, z], lean: [dx, dz], h, w, sides }` (the heart's
- * first, upright and tallest), the rim's stones `{ x, z, s }` and the thread's strands `{ a0 }` (the bearing each starts
- * its turns from). Pure: the star's own rolls.
- * @param {number} n the night @param {number} k the star
+ * @param {number} n
+ * @param {number} k
  */
 export function starLayout(n, k) {
   const shards = [{ base: [0, 0], lean: [0, 0], h: STAR_STONE_H, w: 0.55, sides: 6 }];
@@ -83,8 +55,6 @@ export function starLayout(n, k) {
   return { shards, stones, threads };
 }
 
-/** The rim's height over the ground at `r` from the heart: none inside its foot, up to its crest at the crater's edge,
- *  down again outside. */
 export function rimAt(r) {
   const foot = STAR_CRATER_R * 0.55, out = STAR_CRATER_R + STAR_RIM_OUT;
   if (r <= foot || r >= out) return 0;
@@ -94,11 +64,8 @@ export function rimAt(r) {
 }
 
 /**
- * THE STAR'S MODEL: renderer.createMesh's shape, in the star's frame. `heightAt(x, z)` is the ground over the heart's at
- * a point of the frame (0 where nothing answers). `parts`: `ground` the floor, the rim and its stones; `stone` the shards;
- * `thread` the coven's thread (gone once the star is held); `glass` the record the shards wear (starArt.js: the glass,
- * held gold, lost dark). Sub-meshes by the star's archive's records.
- * @param {number} n @param {number} k
+ * @param {number} n
+ * @param {number} k
  * @param {(x: number, z: number) => number} [heightAt]
  * @param {{ ground?: boolean, stone?: boolean, thread?: boolean, glass?: number }} [parts]
  */
@@ -107,8 +74,6 @@ export function buildStarModel(n, k, heightAt = () => 0, { ground = true, stone 
   const f = faces();
   const L = starLayout(n, k);
   if (ground) {
-    // THE FLOOR AND THE RIM, one drape: rings out from the heart to the rim's outer foot, each point on the highest ground
-    // about it, the rim's earth over it - the burned earth's art inside the crest, the thrown earth's past it
     const K = STAR_FLOOR_REACH, D = K * Math.SQRT1_2, OUT = STAR_CRATER_R + STAR_RIM_OUT;
     const ride = (x, z) => Math.max(h(x, z), h(x + K, z), h(x - K, z), h(x, z + K), h(x, z - K), h(x + D, z + D), h(x - D, z + D), h(x + D, z - D), h(x - D, z - D));
     const RINGS = STAR_FLOOR_RINGS + 6, SEGS = STAR_FLOOR_SEGS;
@@ -130,9 +95,6 @@ export function buildStarModel(n, k, heightAt = () => 0, { ground = true, stone 
         else f.quad(rec, a.p, d.p, c.p, b.p, a.uv, d.uv, c.uv, b.uv);
       }
     }
-    // the stones on the rim: low lumps of the thrown earth's stone, sunk into it - AUDIT STARFALL R6: sunk from the
-    // LOWEST of the earth under their base's corners, so a stone on the rim's outer slope never hangs over its foot; its
-    // crown over the earth at its middle, as it stood
     for (const s of L.stones) {
       const earth = (x, z) => h(x, z) + rimAt(Math.hypot(x, z));
       const base = Array.from({ length: 5 }, (_, j) => { const a = (j / 5) * 2 * Math.PI + s.s; return [s.x + Math.sin(a) * s.s, s.z + Math.cos(a) * s.s]; });
@@ -143,8 +105,6 @@ export function buildStarModel(n, k, heightAt = () => 0, { ground = true, stone 
     }
   }
   if (stone) {
-    // THE SHARDS: each a jagged column of the glass from under the earth to its tip, waisted two-thirds up (a break in
-    // the crystal), leaning out from the heart
     for (const s of L.shards) {
       const bx = s.base[0], bz = s.base[1], gy = h(bx, bz);
       const bottom = gy - STAR_STONE_SINK, waist = gy + s.h * 0.62, tipY = gy + s.h;
@@ -161,7 +121,6 @@ export function buildStarModel(n, k, heightAt = () => 0, { ground = true, stone 
     }
   }
   if (thread) {
-    // THE THREAD: each strand a thin three-sided cord - turns about the stone, climbing it, then straight up into the dark
     const W = STAR_THREAD_W, gy = h(0, 0), STEPS = 24, R0 = 0.75;
     for (const t of L.threads) {
       const pts = [];
@@ -183,7 +142,7 @@ export function buildStarModel(n, k, heightAt = () => 0, { ground = true, stone 
       }
     }
   }
-  // assembled as the gate's own (gateModel.js buildGateModel) - the indices 32-bit (a Uint16Array under it drew nothing)
+  // The indices stay 32-bit; a Uint16Array draws nothing.
   const recs = [...f.byRec.keys()].sort((a, b) => a - b);
   const count = recs.reduce((m, r) => m + f.byRec.get(r).p.length / 3, 0);
   const positions = new Float32Array(count * 3), normals = new Float32Array(count * 3), uvs = new Float32Array(count * 2);

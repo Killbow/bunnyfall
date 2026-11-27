@@ -17,10 +17,10 @@ export function createTerrainSurfaceWorld(shared) {
     const t = shared.state.pixelTranslation(p.px, p.py, _stT);
     const lx = x - t[0], lz = z - t[2];
     if (lx < 0 || lz < 0 || lx >= TERRAIN_SIZE || lz >= TERRAIN_SIZE) return -Infinity;
-    if (p.deepWaters) { const f = shared.deepWaters.floorLocalY(p, lx, lz); if (f != null) return f + t[1]; }   // DW-B: the floor is drawn there
+    if (p.deepWaters) { const f = shared.deepWaters.floorLocalY(p, lx, lz); if (f != null) return f + t[1]; }
     return surfaceHeightAt(p.samples, lx, lz, p._stride ?? 1) + t[1];
   };
   const collider = new Collider(heightAt, surfaceAt);
-  collider.cover = createCoverIndex();   // TACT1: the streamed world's trees, rocks and props are cover, with the switch on
+  collider.cover = createCoverIndex();
   return { collider, surfaceAt };
 }

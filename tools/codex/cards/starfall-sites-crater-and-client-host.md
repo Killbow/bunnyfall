@@ -13,6 +13,7 @@ files:
   - src/render/starfall/starfallPass.js
   - src/systems/starfall/starfallHost.js
   - src/systems/starfall/starfallClient.js
+  - src/systems/starfall/starCoven.js
   - src/world/wodShared.js
   - src/characters/enemyTargets.js
   - src/ui/starfall/starTracker.js
@@ -33,6 +34,7 @@ invariants:
 traps:
   - "The client presence and leash boundary `STAR_SAY_M` (55 m) is intentionally tighter than the relay validation radius `STAR_REACH_M` (60 m) so departing owners hand off before their words go out of range."
   - "Unprovoked melee attackers flagged with `huntsStar` prioritize the star core at `STAR_HUNT_PRIORITY` (+40) until struck by a defender, which redirects their aggro onto the attacker."
+  - "Each `starRoll` use takes its own index block (gate spot under 100, sites 100+, rosters 300+, circle 500+, ring angle 700 + w, night sky 900+, and stand places from `STAR_STAND_ROLLS` (1000) with radii 200 past it), so no two rolls of a star overlap."
 dfu: []
 tags:
   - starfall

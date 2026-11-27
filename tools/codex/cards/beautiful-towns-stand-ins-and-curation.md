@@ -35,6 +35,7 @@ invariants:
   - "`classicModelIdOf` maps alias models such as the recolored beds 42069-42086 back to classic beds 41000-41002, so rest-in-bed and decor sizing read the classic model."
   - "`interiorLanding` tries doors nearest the entry first, offset `ENTER_DOOR_OFFSET` (0.75) along the door normal, and accepts the first spot `standsAt` approves. A body more than `INTERIOR_VOID_DROP` (10) below the lowest triangle returns to the door."
   - "`UNCARRIED_GUILD_FACTIONS` = {1000} draws no guild hall in talk topics."
+  - "`installDetStandIns` registers the DET stand-ins once and ORs every switch it receives, so they draw while Detailed Ships or either town mod is loaded."
 traps:
   - "A stand-in texture without an image draws a clear pixel in src/scenes/dataPipeline.js; never throw from an interior load for a missing material."
   - "`DECOR_BASE_KEY_RE` accepts `m<placement>:<model>` and `f<flat>:<archive>.<record>` with up to 5-digit archives; widen it in lockstep with new flat archives."

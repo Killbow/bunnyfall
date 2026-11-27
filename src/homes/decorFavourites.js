@@ -1,12 +1,9 @@
-// Catalogue favourites. Kept on this device (appStorage), keyed by the catalogue's
-// own id (`m41000`, `f210.3`) — a renamed piece stays a favourite. Never the account.
+// Favorites live in this device's storage, never the account, keyed by catalog id so a renamed piece stays one.
 import { appStorage } from '../platform/appStorage.js';
 
 const KEY = 'dfdecor-fav';
-/** A catalogue id, not a display name. */
 const ID_RE = /^(?:m\d{1,6}|f\d{1,5}\.\d{1,5})$/;
 
-/** The saved ids, or none when the store is missing or unreadable. */
 export function loadDecorFavourites(storage = appStorage()) {
   try {
     const raw = storage?.getItem(KEY);
@@ -17,7 +14,6 @@ export function loadDecorFavourites(storage = appStorage()) {
   }
 }
 
-/** Write `ids`. A store that refuses the write leaves the last good copy. */
 export function saveDecorFavourites(ids, storage = appStorage()) {
   try {
     storage?.setItem(KEY, JSON.stringify([...ids]));
@@ -29,7 +25,6 @@ export function saveDecorFavourites(ids, storage = appStorage()) {
 
 export const decorIsFavourite = (key, storage = appStorage()) => loadDecorFavourites(storage).has(key);
 
-/** Mark or unmark `key`. Answers the ids now saved. */
 export function toggleDecorFavourite(key, storage = appStorage()) {
   const ids = loadDecorFavourites(storage);
   if (typeof key !== 'string' || !ID_RE.test(key)) return ids;

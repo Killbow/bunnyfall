@@ -24,6 +24,7 @@ invariants:
   - "After a default, `drawEmpireAccounts` takes from every branch and `garnishDeposit` takes new deposits toward defaulted loans; `empireJoin` calls in excess debt on join."
   - "`calculateTradePrice` online clamps Mercantile and Personality to 0..`ONLINE_HAGGLE_MAX` (100) and caps a sale at `ONLINE_SALE_SHARE` (0.5) of the lowest counter ask, scaled beneath it by `ONLINE_SALE_SKILL_WEIGHT` (0.5)."
   - "`unlevelPileGold` divides online pile gold by level, never below 1; `shareQuestGold` splits shared quest gold by party size, never below 1."
+  - "A quest gold item sets `goldPaid` when `GetItem` or `GivePc` pays it, so neither pays the same gold twice."
 traps:
   - "The sale ceiling is half the lowest possible ask, not the ask for the seller; using the seller ask made sales fall as skills rose (`MERC-RISE`)."
   - "`calculateTradePrice` divides rather than shifting right by 8 on the final product to avoid 32-bit integer wrap on huge lots (`TRADE-WRAP`)."

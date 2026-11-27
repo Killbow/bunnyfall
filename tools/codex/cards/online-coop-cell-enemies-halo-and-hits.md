@@ -30,6 +30,7 @@ invariants:
   - "Refused hits wait in makeHitPend for at most 64 entries and 2000 ms, and the queue clears on room change."
   - "Party toughness divides damage at the authority by partyToughness(n) = 1 + 0.5 * (n - 1) without changing max health. Damage scales by 1 + 0.1 * (n - 1). Fighters count only if they struck the enemy within PARTY_FIGHT_WINDOW_MS (30 s)."
   - "World-quest enemies (isWorldQuestFoe) count as shared cell encounters, and private quest enemies never enter room authority."
+  - "A heal on a shared enemy is divided by the same party toughness as damage (`partyFoeHeals`), and a blow marked whole (`markWholeBlow`, read once by `takeWholeBlow`) is never divided."
 traps:
   - "Route sendHit through the halo socket before checking primary readiness, or peer-owned enemies become invulnerable during primary reconnects."
   - "The own frame needs relay version OWN_RELAY_MIN or newer, or the relay strikes the client."

@@ -1,23 +1,11 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// WATER-NEXT 2 - THE BED'S FACE (2026-10-07): UNDER CLEAR WATER, THE GROUND IS A BED, NOT A PAINTING OF WATER. The water
-// carves its bed (world/water/waterBed.js) and looks through to it - and the first shots from the real game (Daggerfall's
-// moat, tools/waterLookProbe.mjs) showed the same flat blue as before: the ground under the water wore Daggerfall's
-// WATER TILE, so the look through clear water was a look at more painted water. Where the enhanced water lies over the
-// ground (`uWaterBed`, the hosts' switch - never the classic skin, which draws the tile as DFU does), each water texel
-// of the ground - the draw's corner table's own coverage (world/water/waterCorners.js WATER_DRAW_MASK_TABLE), feathered as the
-// water's shore is - takes the climate's DIRT (the tileset's record 1, the same texel turned the same way), darkened
-// and cooled to silt. A puddle record keeps its art (WATER-PUDDLE: its water is its picture's).
-// Both terrain programs take this text: renderer.js TERRAIN_FS and the lane's EL_TERRAIN_FS (enhancedLighting.js).
-// ═══════════════════════════════════════════════════════════════════
+// Bed texels for the ground under the enhanced water. TERRAIN_FS in renderer.js and EL_TERRAIN_FS in
+// enhancedLighting.js both take this text, so the two terrain programs stay in step.
 import { PUDDLE_RECORDS } from '../world/puddleMask.js';
 
-/** The silt: the dirt record's colour times this, under the water. */
 export const BED_SILT = Object.freeze([0.62, 0.6, 0.52]);
-/** The tileset's dirt record - the bed's texel. */
+// Record 1 of the climate tileset is its dirt.
 export const BED_RECORD = 1;
-/** SHORE-SILT: the fringe's wet mud - the silt's grey times this, taken at WET_MUD_SHARE where no water lies over it
- *  (bare silt beside a pond read as bright orange flecks in Vanilla Enhanced's grass; wet ground is dark and dull). */
 export const WET_MUD = 0.62;
 export const WET_MUD_SHARE = 0.8;
 
@@ -50,7 +38,6 @@ vec2 bedCover(uint data, vec2 f, vec3 tl, vec2 gx, vec2 gy, float snowC) {
   return vec2(max(k, art), max(art - k, 0.0));
 }`;
 
-/** The call site's line: the bed's texel mixed into `tex` (a decode wrapped round the sample for the lane). */
 export const waterBedMix = (decode = (s) => s) =>
   `vec2 bedK = bedCover(data, tileUV, vec3(tuv, float(layer)), gx, gy, snowC);
   if (bedK.x > 0.0) {   // WATER-NEXT 2: under the water, a bed

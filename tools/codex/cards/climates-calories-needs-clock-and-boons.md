@@ -26,10 +26,12 @@ invariants:
   - "runSurvivalMinutes caps catch-up at MAX_CATCHUP_MINUTES (two days); jumps over ROAD_MINUTES (60) that are not rests replay under a fair sky."
   - "AUTO_EAT_STAGES is ['hungry', 'starving'] (RATIONS-HUNGRY)."
   - "Casual borrows stamina into s.borrowed; settleLoan runs only when the pool rose since loanPool."
+  - "In `runSurvivalMinutes`, replayed minutes and the landing minute of a jump wound only down to `HEALTH_FLOOR` and leave at least one fatigue point (`FATIGUE_MULTIPLIER`), so neither death nor a collapse fires inside a replay; the next minute lived is the first that may."
 traps:
   - "Collapse damage goes through hurtPlayer with bypassShield so the death screen fires (AUDIT-DEATH1); never assign health = 0."
   - "Exhaustion in water or near enemies costs EXHAUSTED_SPENT_SHARE (0.1) of max health, not instant death (SWIM-SPENT, SPENT-ASHORE)."
-  - "pauseSurvival freezes hunger and wake clocks for vampires and beasts; stage lines repeat no sooner than STAGE_REPEAT_MINUTES (30) and persist via savedNotes."
+  - "`pauseSurvival` carries the hunger, wake, and meal markers forward over spans walked with survival Off, while drunkenness, wetness, and exposure still decay; `survivalMinute` carries the hunger marker (and a vampire's wake marker) forward for vampires and beasts."
+  - "Stage lines repeat no sooner than STAGE_REPEAT_MINUTES (30) and persist via savedNotes."
   - "A tavern meal holds Fed and Quenched for HEARTY_MEAL_MINUTES (6 h) via s.mealUntil (HEARTY-MEAL, post-arc)."
 dfu:
   - "Assets/Scripts/Game/Entities/PlayerEntity.cs"
@@ -48,7 +50,7 @@ tags:
 
 ## Thresholds, Catch-Up, and Loans
 
-`NEED` stages start at `Peckish` `240`, `Hungry` `720`, and `Starving` `1440` minutes (`AUTO_EAT_STAGES = ['hungry', 'starving']`), and `Thirsty` `50`, `Parched` `80`, `Dehydrated` `100`, `THIRST_HARM` `120`, and `THIRST_MAX` `150`. `runSurvivalMinutes` caps catch-up at `MAX_CATCHUP_MINUTES` (two days), replaying non-rest jumps over `ROAD_MINUTES` (`60`) under fair skies. `pauseSurvival` freezes hunger and wake clocks for vampires and beasts; stage notes throttle to `STAGE_REPEAT_MINUTES` (`30`) via `savedNotes`.
+`NEED` stages start at `Peckish` `240`, `Hungry` `720`, and `Starving` `1440` minutes (`AUTO_EAT_STAGES = ['hungry', 'starving']`), and `Thirsty` `50`, `Parched` `80`, `Dehydrated` `100`, `THIRST_HARM` `120`, and `THIRST_MAX` `150`. `runSurvivalMinutes` caps catch-up at `MAX_CATCHUP_MINUTES` (two days), replaying non-rest jumps over `ROAD_MINUTES` (`60`) under fair skies. With survival Off, `pauseSurvival` carries the hunger, wake, and meal markers forward; stage notes throttle to `STAGE_REPEAT_MINUTES` (`30`) via `savedNotes`.
 
 Minute `DRAIN` rates (`heatPer20` `6`, `starving` `4`, `parched` `6`, `dehydrated` `12`, `exhausted` `8`) clamp via `clampFatigue`. Casual borrows stamina into `s.borrowed`, calling `settleLoan` only when the pool exceeds `loanPool`.
 

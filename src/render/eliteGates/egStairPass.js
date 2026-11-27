@@ -1,58 +1,23 @@
 // @ts-check
-// EG-ZE (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md section 7 - THE STAIR, "what
-// the swap shows"): THE SPIRE'S STAIR ON THE VEIL - chosen by theme in ui/gate/gateVeil.js beside Dagon's fire and the Hour's
-// blades (render/gate/gateVeil.js keeps the clock's law: `veilAt` times this one too, run at the stair's own pace -
-// world/eliteGates/egLights.js EG_STAIR_VEIL). One triangle over the veil's own canvas, as theirs:
-//   THE FALL (a band's first hall - world/eliteGates/egLook.js egStairOf): EG-ZO - a camera falling past THE SPIRE'S UNDERSIDE, the
-//     torn academy the halls fell from, MODELLED (world/eliteGates/egUnderside.js: built with the arc's one mesh kit in the band's own
-//     dress, the camera's path and timing its law). The triangle paints the band's void as that camera sees it - the deep
-//     below rising to meet the faller, embers streaking up past the eye - and the underside is drawn over it as a mesh,
-//     depth-tested, lit from below by the band's deep (the sky's own light, render/eliteGates/egSkyPass.js - and the Shade's moon),
-//     melting into the void with distance. EG-ZE painted it as a picture on this canvas; the picture is gone;
-//   THE VEIL (every other step): the band's void, dim, its motes drifting up;
-//   THE CUT (reduced motion - the port's row or the system's, ui/eliteGates/egAccess.js): the same void standing still.
-// Each takes the screen in THE DITHER - the ordered Bayer pattern (render/orderedDither.js bayer4) against how much the
-// veil has covered, a pixel all or nothing, so the world goes and comes back in the Spire's pixel art and never slides.
-// Every pixel posterized through the same dither (the pixel law, SD_PIXEL_GLSL) in the band's own sky (world/eliteGates/egLook.js
-// EG_SKIES - the sky the hall stands in); the canvas a third of the device's pixels, drawn pixelated. Output
-// premultiplied. The hall it steps to is held centred over it by the veil's own label (ui/gate/gateVeil.js).
-//
-// EVERY ALLOCATION HAS AN OWNER: the two programs are the pass's (the veil's, freed with it - `destroy`); the underside's
-// buffers and pictures are the fall's own (`upload` answers an EgUnderside that owns them, `destroy` frees every one -
-// ui/gate/gateVeil.js frees it as the fall ends, every way it ends), and an upload that fails part way frees what it made.
-//
-// Not a DFU member. Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from '../orderedDither.js';
 import { sdSkyBasisInto } from '../sdSky.js';
 import { EG_SKIES } from '../../world/eliteGates/egLook.js';
 import { EG_DRESS } from '../../world/eliteGates/egBandArt.js';
-import { EG_SKY_MOON } from './egSkyMap.js';   // EG-LOOK: the moon the sky paints
+import { EG_SKY_MOON } from './egSkyMap.js';
 
-/** The stair's modes (ui/gate/gateVeil.js VEIL_EG_MODE): the full fall, the veil, the plain cut. */
 export const EG_STAIR_MODE = Object.freeze({ fall: 0, veil: 1, cut: 2 });
-/** THE FALL'S LOOK: how fast the deep rises to meet the faller (1/s - its share risen is 1 - e^(-rate t)), the embers'
- *  speed up the screen (half-heights a second), how dim the veil's void is, and the posterize's steps. */
 export const EG_STAIR_LOOK = Object.freeze({ rate: 0.9, streak: 1.5, veilDim: 0.55, steps: 8 });
-/** EG-ZO: THE UNDERSIDE'S LIGHT (render/eliteGates/egSkyPass.js's sky, its own colours): the deep's on a face looking down and on a
- *  face side-on, the horizon's on every face, the zenith's on a face looking up, the moon's (the Shade's - EG_SKIES
- *  `moon`) on a face toward it; the void's haze it melts into (exponential, 1/m); the embers' columns about the eye (a
- *  radian's worth). Stone and metal are structure and do not glow (SD-LOOK): nothing here is lit but by the place. */
 export const EG_UNDERSIDE_LOOK = Object.freeze({ deep: 0.9, side: 0.22, hor: 0.3, zen: 0.5, moon: 0.55, fog: 0.004, azimuth: 2 });
-/** The Shade's moon: its colour, and where it stands - EG-LOOK: the sky's own (render/eliteGates/egSkyMap.js EG_SKY_MOON, on the
- *  Shade's key light's bearing), so the fall sees the moon the halls do. */
 export const EG_MOON = Object.freeze({ color: Object.freeze([0.62, 0.66, 0.74]), dir: EG_SKY_MOON.dir });
 
 const v3 = (c) => `vec3(${c.map((v) => v.toFixed(4)).join(', ')})`;
 const f4 = (v) => v.toFixed(4);
 const unit = (c) => { const l = Math.hypot(c[0], c[1], c[2]); return c.map((v) => v / l); };
 
-/** The deep's share risen to meet the faller after `t` seconds of the fall (0 at its first frame, toward 1). Pure - the
- *  shader's own law, pinned equal. */
+// JS twin of the shader's fallen(); keep the two in step.
 export const egStairFallen = (t) => 1 - Math.exp(-Math.max(0, t) * EG_STAIR_LOOK.rate);
 
-/** EG-ZO: THE BAND'S VOID, one text for both programs - the sky's own ramps, and the void along a ray of elevation e
- *  (its sine): the deep below, the band's own overhead. The underside melts into exactly what the triangle paints. */
 export const EG_VOID_GLSL = `
 const vec3 ZEN[4] = vec3[4](${EG_SKIES.map((s) => v3(s.zenith)).join(', ')});
 const vec3 HOR[4] = vec3[4](${EG_SKIES.map((s) => v3(s.horizon)).join(', ')});
@@ -116,8 +81,6 @@ void main() {
   o = vec4(sdPixel(c, px, ${f4(EG_STAIR_LOOK.steps)}), 1.0);
 }`;
 
-/** EG-ZO: THE UNDERSIDE'S PROGRAM - the model (world/eliteGates/egUnderside.js) through the falling camera; its pictures the band's
- *  own (world/eliteGates/egBandArt.js), one a draw. */
 export const EG_UNDERSIDE_VS = `#version 300 es
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
@@ -163,8 +126,6 @@ void main() {
   o = vec4(sdPixel(c, px, ${f4(EG_STAIR_LOOK.steps)}), 1.0);
 }`;
 
-/** EG-ZO: THE UNDERSIDE ON THE GPU - the fall's own: its vertex array, its three vertex buffers and its index buffer (the
- *  pack's Uint32 indices), a picture a record, and each sub-mesh's draw. `destroy()` frees every one of them, once. */
 export class EgUnderside {
   /** @param {WebGL2RenderingContext} gl @param {any} model @param {Map<number, WebGLTexture>} tex @param {{ vao: any, bufs: any[] }} vb */
   constructor(gl, model, tex, vb) {
@@ -182,9 +143,6 @@ export class EgUnderside {
   }
 }
 
-/** The stair's pass, one triangle over the veil's canvas. `draw(w, h, t, v, look)` - `v` a veilAt answer (its `cover`),
- *  `look` `{ mode, band, cam, under }`: EG-ZO - in the fall, `cam` the falling camera (world/eliteGates/egUnderside.js egFallCamera)
- *  and `under` the underside uploaded (`upload`), drawn over the void; null while it is still being made. */
 export class EgStairRenderer {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -192,8 +150,6 @@ export class EgStairRenderer {
     this.prog = buildProgram(gl, EG_STAIR_VS, EG_STAIR_FS, 'eg stair');
     this.u = {};
     for (const n of ['uRes', 'uTime', 'uCover', 'uMode', 'uBand', 'uRight', 'uUp', 'uFwd', 'uLens']) this.u[n] = gl.getUniformLocation(this.prog, n);
-    /** EG-ZO: the underside's program (built at the first upload and kept with the pass), whether it would not build, its
-     *  uniforms, and the camera's ray basis (filled each frame, nothing made) */
     this.under = null; this.underBroken = false; this.uu = {};
     this._basis = { right: new Float32Array(3), up: new Float32Array(3), fwd: new Float32Array(3), lens: new Float32Array(4) };
     this.vao = gl.createVertexArray();
@@ -215,7 +171,7 @@ export class EgStairRenderer {
     gl.uniform1f(U.uCover, v.cover);
     gl.uniform1f(U.uMode, look?.mode ?? EG_STAIR_MODE.veil);
     gl.uniform1i(U.uBand, (look?.band ?? 0) | 0);
-    if (cam) {   // EG-ZO: the void as the falling camera sees it
+    if (cam) {
       const B = sdSkyBasisInto(cam.view, cam.proj, this._basis);
       gl.uniform3fv(U.uRight, B.right); gl.uniform3fv(U.uUp, B.up); gl.uniform3fv(U.uFwd, B.fwd); gl.uniform4fv(U.uLens, B.lens);
     }
@@ -224,8 +180,6 @@ export class EgStairRenderer {
     gl.bindVertexArray(null);
     if (cam && look.under?.live && this.under) this.drawUnderside(look.under, cam, v.cover, (look.band ?? 0) | 0);
   }
-  /** EG-ZO: THE UNDERSIDE drawn over the void through the falling camera - depth-tested and written, its back faces
-   *  culled, a sub-mesh a picture - and the state given back. */
   drawUnderside(under, cam, cover, band) {
     const gl = this.gl, U = this.uu;
     gl.useProgram(this.under);
@@ -248,13 +202,7 @@ export class EgStairRenderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.disable(gl.CULL_FACE); gl.disable(gl.DEPTH_TEST);
   }
-  /**
-   * EG-ZO: THE UNDERSIDE UPLOADED - `parts` world/eliteGates/egUnderside.js egUndersideParts' made whole (its `model` and its `art`,
-   * `[record, { albedo }]`): the program built the first time (kept with the pass; one that will not build is never tried
-   * again), the model's buffers and a picture a record (nearest up close - the Spire's pixel art - and mipmapped far off;
-   * the strata clamped top to tip). An EgUnderside, the caller's to destroy; null - and nothing held - where any of it
-   * would not build.
-   */
+  // The caller owns and destroys the returned EgUnderside; a failed upload frees what it made and returns null.
   upload(parts) {
     const gl = this.gl;
     if (!this.under && !this.underBroken) {
@@ -296,14 +244,14 @@ export class EgStairRenderer {
       return new EgUnderside(gl, m, tex, { vao, bufs });
     } catch (e) {
       console.warn('[eg] the underside would not upload', e?.message ?? e);
-      new EgUnderside(gl, m, tex, { vao, bufs }).destroy();   // what was made is freed
+      new EgUnderside(gl, m, tex, { vao, bufs }).destroy();
       return null;
     }
   }
   destroy() {
     const gl = this.gl;
     gl.deleteBuffer(this.vbo); gl.deleteVertexArray(this.vao); gl.deleteProgram(this.prog);
-    if (this.under) gl.deleteProgram(this.under);   // EG-ZO: the underside's program, kept with the pass
+    if (this.under) gl.deleteProgram(this.under);
     this.under = null;
   }
 }

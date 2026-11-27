@@ -1,52 +1,31 @@
 // @ts-check
-// Chamber walls and flattened tunnels meet at open doorways.
-// The render faces point inward. The mesh and collider share the same cave geometry.
 import { createMeshKit } from '../eliteGates/meshKit.js';
 import { gateHash } from '../../net/gateLaw.js';
 
-/** Buckets in the kit, remapped to their textures at the pack. */
 const WALL = 0, FLOOR = 1, CEILING = 2;
-/** A tunnel ring's sides, and how much its radius wobbles (a share either way). */
 export const MINE_RING_SIDES = 10;
 export const MINE_TUNNEL_WOBBLE = 0.15;
-/** A chamber's rim: its sides round, and how far it bulges past the layout's ellipse (a share, out only, so a wall slot
- *  on the ellipse stands just off the rock). */
+// The bulge only goes outward, so a wall slot on the layout ellipse stays just off the rock.
 export const MINE_CHAMBER_SIDES = Object.freeze([40, 96]);
-/** How wide a chamber wall's quad stands (m): fine enough that a doorway's cut follows its tunnel. */
 export const MINE_WALL_QUAD_M = 0.8;
-/** A chamber's sides round: its perimeter over MINE_WALL_QUAD_M, in MINE_CHAMBER_SIDES. */
 const sidesOf = (/** @type {any} */ ch) => Math.max(MINE_CHAMBER_SIDES[0], Math.min(MINE_CHAMBER_SIDES[1], Math.ceil((Math.PI * (ch.rx + ch.rz) * (1 + MINE_CHAMBER_BULGE)) / MINE_WALL_QUAD_M)));
 export const MINE_CHAMBER_BULGE = 0.12;
-/** A tunnel ring's centre stands this share of its radius over the floor, so the floor is a flat strip. */
 const RING_LIFT = 0.5;
-/** A tunnel's top: the ring's centre and its radius. */
 const tubeTop = (/** @type {number} */ r) => (RING_LIFT + 1) * r * (1 + MINE_TUNNEL_WOBBLE);
-/** The headroom a tunnel keeps under its lower chamber's height (its doorway's head and the wall over it), and the
- *  least headroom a squashed tunnel keeps over its floor (m). */
 const TUBE_UNDER_M = 0.6, TUBE_MIN_TOP_M = 3.6;
-/** How far behind the mouth (m) the mouth's tunnel is closed, so the floor runs under the way out. */
 const MOUTH_BACK_M = 1.5;
-/** Where a tube begins inside a chamber, as a share of its radius. */
 const STUB_IN = 0.74;
-/** The wall's rows (m) and the gap over a doorway's top. */
 const WALL_ROW_M = 0.6, DOOR_HEAD_M = 0.3;
-/** How far a chamber's wall leans in, a share of its radius each metre it rises. */
 const WALL_LEAN = 0.025;
-/** Texels a metre: a 64-pixel tile every two metres. */
 const UV = 0.5;
 
 const unit = (/** @type {number[]} */ ...k) => gateHash(0x6d1e, ...k) / 4294967296;
 
-/** A point of chamber `ch`'s rim at angle `a`, bulged by `b`, at height `y` over its floor. */
 const rimAt = (/** @type {any} */ ch, /** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ s, /** @type {number} */ y) =>
   [ch.c[0] + Math.cos(a) * ch.rx * b * s, ch.c[1] + y, ch.c[2] + Math.sin(a) * ch.rz * b * s];
-/** Whether (x, z) lies inside chamber `ch`'s ellipse (scaled by `s`). */
 const inside = (/** @type {any} */ ch, /** @type {number} */ x, /** @type {number} */ z, s = 1) => ((x - ch.c[0]) / (ch.rx * s)) ** 2 + ((z - ch.c[2]) / (ch.rz * s)) ** 2 < 1;
 
-/**
- * Every chamber by id, and the tunnel runs opening into each chamber.
- * @param {any} layout
- */
+/** @param {any} layout */
 function plan(layout) {
   /** @type {Map<string, any>} */
   const chambers = new Map();
@@ -54,7 +33,6 @@ function plan(layout) {
   const tubes = [];
   for (const t of layout.tunnels) {
     let pts = t.pts;
-    // a tunnel is squashed (its rings flattened top to bottom) to stand under the lower of the chambers it joins
     const hs = [t.from, t.to].map((id) => chambers.get(id)?.ch.h).filter((h) => Number.isFinite(h));
     const room = Math.max(TUBE_MIN_TOP_M, Math.min(...hs, Infinity) - TUBE_UNDER_M - DOOR_HEAD_M);
     const vs = Math.min(1, room / tubeTop(t.r));
@@ -67,7 +45,6 @@ function plan(layout) {
       let first = seq.findIndex((p) => !inside(ch, p[0], p[2], STUB_IN));
       if (first < 0) first = seq.length - 1;
       rec.doors.push({ top: tubeTop(t.r) * vs + DOOR_HEAD_M, tunnel: tubes.length });
-      // Extend the open end into the chamber, behind the leaning wall.
       const kept = seq.slice(first);
       if (first > 0) {
         const p = seq[first - 1], q = seq[first];
@@ -78,7 +55,7 @@ function plan(layout) {
       pts = atStart ? kept : kept.reverse();
     }
     const mouth = t.from === 'mouth';
-    if (mouth && pts.length >= 2) {   // the closing wall a little behind the way out
+    if (mouth && pts.length >= 2) {
       const dx = pts[1][0] - pts[0][0], dz = pts[1][2] - pts[0][2], l = Math.hypot(dx, dz) || 1;
       pts = [[pts[0][0] - (dx / l) * MOUTH_BACK_M, pts[0][1], pts[0][2] - (dz / l) * MOUTH_BACK_M], ...pts];
     }
@@ -87,7 +64,6 @@ function plan(layout) {
   return { chambers, tubes };
 }
 
-/** A chamber's wall top and its ceiling's height over its floor, room left for its doorways. */
 function heights(/** @type {any} */ rec) {
   const doorTop = rec.doors.reduce((m, d) => Math.max(m, d.top), 0);
   const wallTop = Math.max(0.55 * rec.ch.h, doorTop);
@@ -101,7 +77,6 @@ function chamberRim(ch, n, i, scale, y) {
 }
 
 /**
- * One chamber into the kit: its floor, its wall (open at its doorways), its cap.
  * @param {any} kit
  * @param {any} rec
  * @param {any[]} tubes
@@ -110,18 +85,15 @@ function chamberInto(kit, rec, tubes) {
   const { ch, doors } = rec, { wallTop, top } = heights(rec), n = sidesOf(rec.ch);
   const rim = (i, scale, y) => chamberRim(ch, n, i, scale, y);
   const centre = [ch.c[0], ch.c[1], ch.c[2]];
-  // the floor: a fan from the centre, its rim the wall's foot
   for (let i = 0; i < n; i++) {
     const a = rim(i, 1, 0), b = rim(i + 1, 1, 0);
     kit.tri(FLOOR, centre, a, b, [0, 1, 0], true, [centre[0] * UV, centre[2] * UV], [a[0] * UV, a[2] * UV], [b[0] * UV, b[2] * UV]);
   }
-  // the wall: rows of quads up to wallTop, each looking at the chamber's upright axis; a quad in a doorway's span below
-  // its top is left out
   const rows = Math.max(1, Math.ceil(wallTop / WALL_ROW_M));
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < rows; j++) {
       const y0 = (wallTop * j) / rows, y1 = (wallTop * (j + 1)) / rows;
-      const s0 = 1 - WALL_LEAN * y0, s1 = 1 - WALL_LEAN * y1;   // the wall leans in as it rises
+      const s0 = 1 - WALL_LEAN * y0, s1 = 1 - WALL_LEAN * y1;
       const p = [rim(i, s0, y0), rim(i + 1, s0, y0), rim(i + 1, s1, y1), rim(i, s1, y1)];
       const m = [(p[0][0] + p[2][0]) / 2, (p[0][1] + p[2][1]) / 2, (p[0][2] + p[2][2]) / 2];
       const scale = (Math.PI * (ch.rx + ch.rz) * UV) / n;
@@ -137,7 +109,6 @@ function chamberInto(kit, rec, tubes) {
       }
     }
   }
-  // the cap: from the wall's top in to the crown, two rings
   const s = 1 - WALL_LEAN * wallTop;
   const ringsY = [wallTop, wallTop + (top - wallTop) * 0.7, top];
   const ringsS = [s, s * 0.6, 0];
@@ -147,7 +118,7 @@ function chamberInto(kit, rec, tubes) {
       const a1 = rim(i, ringsS[r + 1], ringsY[r + 1]), b1 = rim(i + 1, ringsS[r + 1], ringsY[r + 1]);
       const look = [ch.c[0], ch.c[1] + wallTop * 0.5, ch.c[2]];
       const uv = [[a0[0] * UV, a0[2] * UV], [b0[0] * UV, b0[2] * UV], [b1[0] * UV, b1[2] * UV], [a1[0] * UV, a1[2] * UV]];
-      const m = [(a0[0] + b1[0]) / 2, (a0[1] + b1[1]) / 2, (a0[2] + b1[2]) / 2], into = [look[0] - m[0], look[1] - m[1], look[2] - m[2]];   // facing into the chamber
+      const m = [(a0[0] + b1[0]) / 2, (a0[1] + b1[1]) / 2, (a0[2] + b1[2]) / 2], into = [look[0] - m[0], look[1] - m[1], look[2] - m[2]];
       if (r === 1) kit.tri(CEILING, a0, b0, a1, into, true, uv[0], uv[1], uv[3]);
       else kit.quad(CEILING, a0, b0, b1, a1, into, true, uv);
     }
@@ -155,8 +126,6 @@ function chamberInto(kit, rec, tubes) {
 }
 
 /**
- * One tunnel's run into the kit: rings of MINE_RING_SIDES about its floor points, their lower points flattened onto the
- * floor; the mouth's run closed by a flat wall at its first ring.
  * @param {{ t: any, pts: number[][], vs: number }} tube
  * @param {number} seed
  */
@@ -168,12 +137,12 @@ function tubeRings(tube, seed) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
     let tx = b[0] - a[0], tz = b[2] - a[2];
     const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
-    const side = [tz, 0, -tx];   // horizontal, across the way
+    const side = [tz, 0, -tx];
     const p = pts[i], c = [p[0], p[1] + RING_LIFT * t.r * vs, p[2]];
     const ring = [];
     for (let k = 0; k < n; k++) {
       const a2 = (2 * Math.PI * k) / n, w = 1 + MINE_TUNNEL_WOBBLE * (2 * unit(seed, i, k) - 1), r = t.r * w;
-      const u = Math.cos(a2) * r, v = Math.max(-RING_LIFT * t.r, Math.sin(a2) * r) * vs;   // flattened: never under the floor
+      const u = Math.cos(a2) * r, v = Math.max(-RING_LIFT * t.r, Math.sin(a2) * r) * vs;
       ring.push([c[0] + side[0] * u, c[1] + v, c[2] + side[2] * u]);
     }
     rings.push(ring); centres.push(c);
@@ -181,7 +150,6 @@ function tubeRings(tube, seed) {
   return { rings, centres };
 }
 
-/** The inward half-spaces of the volume between two polygon rings. */
 function ringVolume(a, b, ca, cb, offsets) {
   const middle = ca.map((v, i) => (v + cb[i]) / 2);
   const planes = [];
@@ -218,10 +186,8 @@ const outsideBounds = (poly, bounds) =>
   bounds.some(([min, max], i) => poly.every((p) => p[i] < min) || poly.every((p) => p[i] > max));
 
 const TUNNEL_CUT = { start: -0.015, end: -0.015, floor: -0.03, side: 0.04 };
-// Keep a short overlap at the rim and preserve the tunnel surface at uneven floor joins.
 const CHAMBER_CUT = { start: 0.14, end: 0, floor: 0, side: 0, rim: 0.16 };
 
-/** Use the chamber's actual wall edges as the outside of a fan of wedges. */
 function chamberVolume(rec) {
   const { ch } = rec, { wallTop } = heights(rec), n = sidesOf(ch);
   const at = (i, y) => chamberRim(ch, n, i, 1 - WALL_LEAN * y, y);
@@ -236,7 +202,6 @@ function chamberVolume(rec) {
   const bounds = [[bottom[0] - radiusX, bottom[0] + radiusX], [bottom[1], top[1]], [bottom[2] - radiusZ, bottom[2] + radiusZ]];
   return { wedges, bounds };
 }
-/** Split a polygon around a solid volume, keeping only its outside pieces. */
 function subtractVolume(poly, { planes, bounds }) {
   if (outsideBounds(poly, bounds)) return [poly];
   const distance = ([a, b, c, d], [x, y, z]) => a * x + b * y + c * z - d;
@@ -296,7 +261,6 @@ function tubeInto(kit, { t, pts, mouth, rings, centres, portalVolumes }) {
     }
     along += len;
   }
-  // Close any part of the end ring that extends beyond the chamber.
   for (const [end, chamber] of portalVolumes.entries()) {
     if (!chamber && !(mouth && end === 0)) continue;
     const i = end === 0 ? 0 : rings.length - 1, j = end === 0 ? 1 : i - 1;
@@ -309,7 +273,6 @@ function tubeInto(kit, { t, pts, mouth, rings, centres, portalVolumes }) {
   }
 }
 
-/** The whole cave into a fresh kit. */
 function caveKit(/** @type {any} */ layout) {
   const kit = createMeshKit({ start: 4096 });
   const { chambers, tubes } = plan(layout);
@@ -329,8 +292,7 @@ function caveKit(/** @type {any} */ layout) {
 }
 
 /**
- * THE CAVE'S MESH: renderer.createMesh's model, three sub-meshes (wall, floor, ceiling) under their cave textures.
- * @param {any} layout a MineLayout
+ * @param {any} layout
  * @param {{ archive: number, wall: number, floor: number, ceiling: number }} tex
  */
 export function buildMineModel(layout, tex) {
@@ -341,15 +303,14 @@ export function buildMineModel(layout, tex) {
 }
 
 /**
- * THE CAVE'S SOLIDS: every triangle the mesh draws, as xyz triples (collider.addMesh's soup).
- * @param {any} layout a MineLayout
+ * @param {any} layout
  * @returns {Float32Array}
  */
 export function mineColliderTris(layout) {
   return caveKit(layout).pack(0).positions;
 }
 
-/** A chamber's ceiling height over its floor as the mesh stands it (its doorways may lift it past the layout's `h`). */
+// Callers use this and not the layout `h`, because doorways can lift the ceiling past it.
 export function mineChamberTop(/** @type {any} */ layout, /** @type {string} */ id) {
   const rec = plan(layout).chambers.get(id);
   return rec ? heights(rec).top : 0;

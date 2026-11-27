@@ -24,6 +24,7 @@ invariants:
   - "Clusters: CLUSTER_X/Y/Z = 16 x 9 x 24 exponential frustum cells from CLUSTER_NEAR 0.25 to CLUSTER_FAR 256, read through grid texture unit 9 and list texture unit 10 (CLUSTER_GRID_UNIT, CLUSTER_LIST_UNIT). Those units must stay TEXTURE_2D only."
   - "lightIdOf (lightId.js) gives light records a non-enumerable identity, so a moving caster is redrawn directly without invalidating static caches. Lights must pass through packLight/copyLights/adoptLight/relight to keep it."
   - "Street, dungeon and WOD pools fade the 48-light cap boundary over LIGHT_CAP_FADE = 16 units (capFadeColors, capFadePairs in cityLights.js)."
+  - "A light whose sphere reaches nearer than `CLUSTER_NEAR` is listed in every tile of slice `0` (`cellsOfSphere`), because the hosts' near planes sit closer than the slices begin."
 traps:
   - "Spreading a light record ({...light}) drops its non-enumerable identity, so the shadow cache treats it as a new light. Use copyLights/adoptLight."
   - "Building lamps under the lane are scaled by EL_INTERIOR_LIGHT_SCALE = 0.5 (interiorLightColor). The scene must also apply EL_INTERIOR_GRADE through setSceneGrade, or rooms read flat."

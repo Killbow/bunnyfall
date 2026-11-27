@@ -34,11 +34,11 @@ export function drawCraftTab(body, kit) {
   const p = profProvider(); if (!p) return;
   const root = h('section','wk'); root.setAttribute('aria-label', 'Crafting workshop');
   const header = h('header','wk-header'), words = h('div',null);
-  words.append(h('div','wk-eyebrow',t('workshop.journal','The crafting journal')),h('h2',null,t('workshop.title','Your workshop')));
+  words.append(h('div','wk-eyebrow',t('workshop.journal','Crafting journal')),h('h2',null,t('workshop.title','Your workshop')));
   const nav = h('nav','wk-pages'); nav.setAttribute('aria-label','Crafting pages');
   for (const [id,label] of CRAFT_TAB_SECTIONS) { const b=button(label(),()=>{sec=id;kit.render();},sec===id);b.dataset.workshopPage=id;b.setAttribute('aria-pressed',String(sec===id));nav.append(b); }
   const available = stationsHere();
-  header.append(words,nav,h('span','wk-location',available.size ? [...available].map((s)=>WORKSHOP_STATIONS[workshopStationOf(s)]).join(' · ') : t('workshop.planning','Planning · stand at a station to make')));
+  header.append(words,nav,h('span','wk-location',available.size ? [...available].map((s)=>WORKSHOP_STATIONS[workshopStationOf(s)]).join(' · ') : t('workshop.planning','Planning: visit a station to craft')));
   root.append(header);
   const pageKit={...kit,go:(id)=>{if(craftWorkshopBusy())return;if(id==='crafting'&&(station==='fire'||station==='alchemy')){operation='traditional';sec='make';}else sec=workshopPageOf(id);kit.render();}};
   if (sec === 'store') { const content=h('div','wk-other wk-store');drawStoresPage(content,kit.render,pageKit);root.append(content); }

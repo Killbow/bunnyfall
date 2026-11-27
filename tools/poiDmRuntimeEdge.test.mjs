@@ -145,7 +145,7 @@ test('online, a trade picked while an event settles says to try again', async ()
   w.rt.talk(w.doc.id, 'supplier');
   w.last('t').run('delivery');
   await tick();
-  assert.ok(w.said.includes('Your last dealing with the realm is still being settled. Try again in a moment.'));
+  assert.ok(w.said.includes('Your last action is still being processed. Try again in a moment.'));
 });
 
 test('talking to a second person while the first one\'s talk is open shows the second person\'s own talk or trade', async () => {

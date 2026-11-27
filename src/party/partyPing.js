@@ -1,61 +1,38 @@
 // @ts-check
 import { groundHit } from '../player/travelPick.js';
 import { staticBuildingsHasHit } from '../world/staticBuildings.js';
-// PARTY-PING: a look's point, said to the party and drawn for a moment.
-// Not a DFU member. The middle button is DFU's AutoRun (InputManager.cs:995);
-// the port's default gives that button to the ping and moves auto-run to F3
-// (systems/inputActions.js). Ledger A (PARTY-PING).
-//
-// A ping is a point in the place the player is standing, kept on the party
-// pose as `pg` (net/wire.js validPartyPose). The marker shows for PING_MARK_MS,
-// fading in and out. A dotted route is laid only while this player follows a
-// mate's mark. An older relay strips `pg` and closes nothing.
+// Pings ride the party pose as `pg`; an older relay strips the field without closing the connection.
 
-/** How long the marker stays up (ms). It fades in and out; it does not cut. */
 export const PING_MARK_MS = 5000;
-/** How long the floor route to that point stays up (ms). */
 export const PING_PATH_MS = 12000;
-/** The marker and the route fade in over this, and out over this (ms). */
 export const PING_IN_MS = 150;
 export const PING_OUT_MS = 300;
-/** The look's reach indoors (m). Past it, a click names nothing. */
 export const PING_REACH_M = 64;
-/** How far a look may name a point on open ground (m). The travel view reaches further. */
 export const PING_GROUND_M = 512;
 export const PING_TRAVEL_M = 4000;
 /** A second ping inside this is the same press settling, not a new point. */
 export const PING_COOLDOWN_MS = 350;
-/** The route stops once the feet are this close to the point (m). */
 export const PING_ARRIVE_M = 1.8;
-/** A place key's bound, the death-mark's own (net/wire.js `dd.k`). */
 export const PING_PLACE_MAX = 96;
 export const PING_PLACE_RE = /^[\w:.,-]{1,96}$/;
 
 export const PING_COLOR_MINE = Object.freeze([1, 0.84, 0.32]);
 export const PING_COLOR_MATE = Object.freeze([0.45, 0.95, 0.62]);
 
-/** The dash and the gap of the floor route (m). Short, so a corridor reads as dots and not bars. */
 export const PING_DASH_M = 0.14;
 export const PING_GAP_M = 0.12;
-/** How far a dash sits off the floor (m), and half its width. Flat: an upright reads as a stripe. */
 export const PING_LIFT_M = 0.15;
 export const PING_HALF_M = 0.04;
-/** A face whose normal's Y is under this is a wall, a rock, a tree — not a floor. */
 export const PING_WALL_NY = 0.5;
 /** How far (m) a wall hit is pulled back toward the eye, past the navmesh's snap into the far side. */
 export const PING_WALL_BACK = 0.85;
 
 /**
- * The point a look of length `dist` names, or null when the look missed or
- * reached past PING_REACH_M. `dir` need not be a unit.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {number} dist
  */
 /**
- * Where a look meets open ground. The march follows the height field, so a
- * hill is met on the near side and a tree, which is not the ground, is not
- * a hit. Null when the look stays in the air out to `reach`.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {(x: number, z: number) => number} ground
@@ -72,10 +49,6 @@ export function pingGround(eye, dir, ground, reach = PING_GROUND_M) {
 }
 
 /**
- * Where a look meets a building, or a city gate. A tree or a rock is the
- * same collider and is not a hit: only a point inside a static building's
- * box, or a gate's own bucket, stops the look. Null when the look meets
- * neither before `reach`.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {{ raycastHit?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => { dist: number, key?: string|null } }|null} col
@@ -95,8 +68,6 @@ export function buildingStop(eye, dir, col, buildings, reach = PING_GROUND_M) {
 }
 
 /**
- * The mate's icon a look is aimed at, or null. Own marks are not followed.
- * The slack grows with distance, so a far icon is still a click.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {ReadonlyArray<{ at: number[], mine?: boolean }>} marks
@@ -127,14 +98,13 @@ export function aimPoint(eye, dir, dist, reach = PING_REACH_M) {
   return p.every(Number.isFinite) ? p : null;
 }
 
-/** A place key the pose will carry. */
 export function placeOk(k) {
   return typeof k === 'string' && PING_PLACE_RE.test(k) && k.length <= PING_PLACE_MAX;
 }
 
 const safeBit = (v, n = 24) => String(v ?? '').replace(/[^\w.-]/g, '').slice(0, n);
 
-/** The instance, a private room and a cabin, so two copies of one place do not share a ping. */
+/** Tags the instance, private room, and cabin, so two copies of one place do not share a ping. */
 function placeTag(id) {
   if (!id) return '';
   const bits = [];
@@ -155,9 +125,6 @@ function placeTag(id) {
 }
 
 /**
- * The place a ping belongs to. `id` is the mode host's roomIdentity; `pixel`
- * is the map pixel under the player. Outdoors, that pixel is the place. Null when the
- * room is not named yet.
  * @param {string} mode
  * @param {{ kind?: string, mapId?: number, size?: string, day?: *, s?: *, b?: *, o?: *, buildingKey?: number, instance?: object, private?: boolean, privateRoom?: *, boatUid?: * }|null} id
  * @param {{ x: number, y: number }|null} pixel
@@ -187,8 +154,6 @@ export function pingPlace(mode, id, pixel) {
 const smooth = (t) => { const u = t < 0 ? 0 : t > 1 ? 1 : t; return u * u * (3 - 2 * u); };
 
 /**
- * How bright something born at `born` and gone at `until` is now. In over
- * PING_IN_MS from the start, out over PING_OUT_MS at the end.
  * @param {number} now
  * @param {number} born
  * @param {number} until
@@ -204,10 +169,6 @@ export function fadeAlpha(now, born, until, inn = PING_IN_MS, out = PING_OUT_MS)
 }
 
 /**
- * The point a look names. A floor is the surface the look hits. A wall, a
- * rock or a tree is the ground in front of that face (`down` is a ray cast
- * straight down from the pulled-back point), so a route cannot snap through
- * the face onto the far side.
  * @param {ArrayLike<number>} eye
  * @param {ArrayLike<number>} dir
  * @param {{ dist: number, normal?: ArrayLike<number> }|null} hit
@@ -225,10 +186,6 @@ export function settleAim(eye, dir, hit, down) {
 }
 
 /**
- * A route over open ground, from the walker's feet to a point. `ground(x, z)`
- * is the surface height. `clear(a, b)` is false when a walker cannot step from
- * a to b (a building, a rock). Straight when the way is open; otherwise a
- * short search around the span. Null when no way exists.
  * @param {ArrayLike<number>} from
  * @param {ArrayLike<number>} to
  * @param {(x: number, z: number) => number} ground
@@ -322,11 +279,7 @@ export function groundRoute(from, to, ground, clear) {
   return pts;
 }
 
-/**
- * The floor route as triangles (x,y,z triples): each dash is a short flat
- * on the floor. Empty when there is no span.
- * @param {ReadonlyArray<ReadonlyArray<number>>} points
- */
+/** @param {ReadonlyArray<ReadonlyArray<number>>} points */
 export function pathRibbon(points, { dash = PING_DASH_M, gap = PING_GAP_M, lift = PING_LIFT_M, half = PING_HALF_M } = {}) {
   /** @type {number[]} */
   const out = [];

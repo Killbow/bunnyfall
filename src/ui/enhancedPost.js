@@ -342,8 +342,8 @@ export function postWindow(doc, { box, onClose, every = POST_TICK_MS, keep = {} 
     draw(true);
     const r = await going;
     const n = r.items?.length ?? 0;
-    if (r.ok) tell(t('post.claimedAll', '{n, plural, one {# item is} other {# items are}} in your pack.', { n }), true);
-    else tell(n ? `${t('post.claimedAll', '{n, plural, one {# item is} other {# items are}} in your pack.', { n })} ${postRefusalText(r.error)}` : postRefusalText(r.error));
+    if (r.ok) tell(t('post.claimedAll', 'Claimed {n, plural, one {# item} other {# items}} to your pack.', { n }), true);
+    else tell(n ? `${t('post.claimedAll', 'Claimed {n, plural, one {# item} other {# items}} to your pack.', { n })} ${postRefusalText(r.error)}` : postRefusalText(r.error));
     draw(true);
   };
   const throwOne = async (/** @type {string} */ id) => {

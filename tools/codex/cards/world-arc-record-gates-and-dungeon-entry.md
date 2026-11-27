@@ -30,6 +30,9 @@ traps:
   - "Exterior archive-199 flats are stamped editor: true and kept for marker/quest/action chains but must stay out of billboard batching."
   - "tryEnterDungeon calls startSpawn({ preferEnterMarker: false }) and faces away from the closest exit door (closestDoorTo); the standalone dungeon host keeps the default true."
   - "Dropped loot piles carry pixelKey and must die when their pixel unloads unless restored from the world snapshot."
+  - "Fixed-treasure (archive 216) entries share `markers` with editor flats (archive 199) and share their record numbers, so every consumer must test `archive`. Only 199 entries carry the enemy fields."
+  - "`mobileBillboardSize` applies the mod xml scale to every record, while `billboardSize` applies it only when a replacement texture exists, so xml-only mods scale monsters but not corpses or other static billboards."
+  - "Exterior nature-range flats set `z` to the raw `NATURE_FLATS_OFFSET_Y` (-2) after the climate archive swap. This looks like a y/z typo but matches DFU, so leave it."
 dfu:
   - "Assets/Scripts/Utility/RDBLayout.cs"
   - "Assets/Scripts/Internal/DaggerfallInterior.cs"

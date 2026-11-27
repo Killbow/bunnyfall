@@ -27,9 +27,14 @@ invariants:
   - "`readGltf` rejects node cycles and multi-parent nodes with `GltfError`, enforcing `GLTF_READ_LIMITS` derived from `POI_MESH_LIMITS`."
   - "glTF export mirrors the X axis across positions, normals, and translations, transforms rotations to `(x, -y, -z, w)` via `mirrorQuatX`, and reverses triangle winding."
   - "UV undo retains up to `UV_UNDO_DEPTH` (`100`) steps within `UV_UNDO_BYTES` (`128` MiB), evicting the oldest entries first while always preserving the latest step."
+  - "`thumbRaster` gives a pixel center that lies exactly on a shared edge to exactly one triangle by the top-left rule; plain inclusive tests draw it twice and double-blend see-through surfaces along seams."
+  - "The unwrap worker may import only pure modules, with no `ui/`, `scenes/`, or `render/` imports, because a worker has no DOM and the whole import graph is evaluated when it loads."
+  - "`POI_PACK_LIMITS.bytes` duplicates `POI_UPLOAD_DAY_BYTES` in `server-account/src/poi.js` so the pack reader needs no server import, and the two values must change together."
 traps:
   - "When the background unwrap worker fails, `src/poi/uv/uvUnwrapClient.js` falls back to unwrapping on the main thread, causing a synchronous pause rather than throwing an error."
   - "`readPackBytes` validates the ZIP central directory before inflating entries and rejects any entry that inflates beyond its declared size (`POI_PACK_LIMITS`: `500` POIs, `2000` shelf entries, `20,000` files, and `1` GiB total)."
+  - "`new Worker(new URL('./uvUnwrapWorker.js', import.meta.url))` must keep exactly that spelling so Vite bundles the worker, and the mesh is copied to the worker, never transferred, because the editor still reads the same arrays."
+  - "`bakeModel` sizes its output arrays once and fills them with `set`; spreading a material run into `push` exceeds V8's argument limit and throws a call stack error on parts of roughly 50,000 vertices or more."
 dfu: []
 tags:
   - poi

@@ -1,38 +1,14 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// POI-4b (2026-10-14) - THE LIBRARY'S SHELF: AN ENTRY MADE, ITS PICTURE DRAWN, AND IT KEPT.
-//
-// Mac: "Allowing not just the creation of POI's using models, but also the ability to import models ... a tool my
-// developers can use without having to access the codebase" (bible/06-Systems/POI-Editor-Arc.md POI-4b). A model a
-// builder imported or made is kept on the library's shelf, shared with every builder, to stand again anywhere without
-// its file: an ENTRY is its parts (each the law's own - its mesh and materials by their hashes, its offset, turn and size
-// from the model's origin, its solidity and shadow) and its lights, a name, tags, words, and a picture of it.
-//
-//   - `shelfEntryOf(...)`: an entry from parts as an import or a POI holds them - each part made the law's (poiEdit.js
-//     newPart: keyed, its materials whole), the name and tags as the law takes them.
-//   - `shelfThumb(entry, ...)`: its picture - its parts drawn (poi/poiThumb.js) from their meshes and pictures, a PNG.
-//   - `putOnShelf(entry, ...)`: the law asked first (a refusal is the editor's sentence before it is the store's), the
-//     picture drawn and uploaded as a texture by its name, then the entry put. A picture that will not draw leaves the
-//     entry without one - it is still kept, and the library says it by its name.
-//
-// The store's side: server-account/src/poi.js listShelf / shelfEntry / shelve / unshelve. Pure but for what it is
-// handed. Not a DFU member. Ledger A (POI).
-// ═══════════════════════════════════════════════════════════════════
 
 import { poiShelfProblems, POI_SHELF_VERSION, POI_LIMITS } from './poiLaw.js';
 import { POI_V2_LIGHT_KEYS } from './poiLawV2.js';
 import { newPart, lawName } from './poiEdit.js';
 import { renderThumb, encodePng } from './poiThumb.js';
 
-/** Returns a copy of light `l` as a library shelf entry stores it: v1 fields only, leaving out any v2 group,
- *  visibility, and lock fields. */
 const shelfLight = (l) => { const c = structuredClone(l); for (const k of POI_V2_LIGHT_KEYS) delete c[k]; return c; };
-/** How many of a model's parts and lights carry a group, visibility, or lock that a shelf entry leaves out. */
 export const shelfDropsOf = ({ parts = [], lights = [] }) => [...parts, ...lights].filter((o) => o && (o.group !== undefined || o.visible !== undefined || o.locked !== undefined)).length;
 
 /**
- * An entry from parts as an import (poi/poiImport.js uploadImport's `asset.parts`) or a POI holds them. Entries are v1:
- * each part is made afresh (newPart) and each light loses its v2 fields.
  * @param {{ id: string, name: string, about?: string, tags?: string[], parts: any[], lights?: any[] }} o
  */
 export function shelfEntryOf({ id, name, about = '', tags = [], parts, lights = [] }) {
@@ -52,9 +28,8 @@ export function shelfEntryOf({ id, name, about = '', tags = [], parts, lights = 
 }
 
 /**
- * The entry's picture as PNG bytes. `meshOf(sha)` a part's mesh, decoded (null: the part is left out of the picture);
- * `pictureOf(sha)` a picture decoded to RGBA (a failure: the material drawn as its colour alone).
- * @param {any} entry @param {{ meshOf: (sha: string) => Promise<any>, pictureOf: (sha: string) => Promise<any> }} io
+ * @param {any} entry
+ * @param {{ meshOf: (sha: string) => Promise<any>, pictureOf: (sha: string) => Promise<any> }} io
  */
 export async function shelfThumb(entry, { meshOf, pictureOf }) {
   const pieces = [];
@@ -71,8 +46,6 @@ export async function shelfThumb(entry, { meshOf, pictureOf }) {
 }
 
 /**
- * Keep an entry on the shelf: the law first, its picture drawn and uploaded, then the entry put. `{ ok: true, id, item }`
- * or `{ ok: false, error, problems? }` - the store's word, or the law's problems.
  * @param {any} entry
  * @param {{ meshOf: (sha: string) => Promise<any>, pictureOf: (sha: string) => Promise<any>,
  *   putAsset: (bytes: Uint8Array, kind: 'texture') => Promise<any>, shelve: (item: any) => Promise<any> }} io

@@ -2399,7 +2399,7 @@ async function faceMatchOf({ race, female, faceIndex, werewolf = false, npcFace 
   } else if (npcFace) {
     faceMatch = { head: null, hair: null, reasons: ['an NPC: its head and hair walked off its seed'] };   // MWNPC17: no portrait is its own - nothing measured
   } else if (curatedAnswersFace(pools, race, female, faceIndex)) {
-    faceMatch = { head: null, hair: null, reasons: [t('body.face.curated', 'the curated table names both halves - nothing measured')] };
+    faceMatch = { head: null, hair: null, reasons: [t('body.face.curated', 'head and hair matched from the curated table')] };
   } else if (!d.fetchArena2Bytes) {
     faceMatch = { head: null, hair: null, reasons: ['no Daggerfall data door - the walk stands'] };
   } else {
@@ -3004,7 +3004,7 @@ export async function buildFpArm({
     const lost = third?.ok ? worn.adds.filter((a) => isOutfitSlot(a.slot) && !third.arm.pieces.some((p) => p.slot === a.slot)) : [];
     if (lost.length) {
       const without = composeWornModest({ pieces: (armor ?? []).filter((p) => !lost.some((a) => a.piece === p)), armors: armors ?? [], clothes: clothes ?? [], bodyPool: parts, female, colourOf, helmStyle, beast, beastWear }, showNudity());
-      without.notes.push(...lost.map((a) => `outfit ${a.recordId}: ${t('body.outfit.unbound', 'none of it bound - drawn without it')}`));   // the label outside the language, as the composer's notes
+      without.notes.push(...lost.map((a) => `outfit ${a.recordId}: ${t('body.outfit.unbound', 'no outfit pieces bound; rendered without it')}`));   // the label outside the language, as the composer's notes
       const again = await tpBody(without);
       if (again.ok) { third = again; wornBuilt = without; }
     }

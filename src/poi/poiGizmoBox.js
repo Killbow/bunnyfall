@@ -1,7 +1,6 @@
 // @ts-check
-// Bounding-box size handles for the in-game editor (drawn by poiGizmoLook.js): a face handle sizes its axis so the face
-// follows the cursor, corner handles scale all three axes uniformly here, and point-like selections (<= 1 cm) return
-// null so the editor falls back to arm handles.
+// Bounding-box size handles for the in-game editor, drawn by poiGizmoLook.js.
+// Point-like selections (<= 1 cm) return null so the editor falls back to arm handles.
 
 import { beginGizmoDrag, dragResult, rayPlane } from './poiGizmo.js';
 import { FACE_MIN } from './poiGizmoLook.js';
@@ -26,7 +25,11 @@ export function cornersOf(min, max, m) {
   return out;
 }
 
-/** @param {number[]} c @param {number[][]} axes @param {number[][]} points */
+/**
+ * @param {number[]} c
+ * @param {number[][]} axes
+ * @param {number[][]} points
+ */
 export function boxAlong(c, axes, points) {
   if (!points.length) return null;
   const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
@@ -34,7 +37,6 @@ export function boxAlong(c, axes, points) {
   return [0, 1, 2].some((i) => hi[i] - lo[i] > 0.01) ? { lo, hi } : null;
 }
 
-/** Mirrors where fillSizeBox (poiGizmoLook.js) draws each box handle, so change the two together. */
 function spotOf(g, key) {
   const F = FACE_MIN * g.L, lo = g.box.lo, hi = g.box.hi;
   const end = (j, up) => (Math.abs(lo[j]) < F && Math.abs(hi[j]) < F ? (up ? F : -F) : up ? hi[j] : lo[j]);
@@ -50,11 +52,12 @@ function spotOf(g, key) {
 
 /**
  * @param {{ mode: 'move' | 'turn' | 'size', c: number[], axes: number[][], L: number, viewDir: number[], box?: { lo: number[], hi: number[] } | null, eye?: number[] | null }} g
- * @param {string} key @param {number[]} o @param {number[]} d
+ * @param {string} key
+ * @param {number[]} o
+ * @param {number[]} d
  */
 export function beginHandleDrag(g, key, o, d) {
   if (g.box && /^[xyz][+-]$/.test(key)) {
-    // read on a plane through the face itself: one through the pivot can meet the grab ray on the pivot's far side
     const { at, along, i } = spotOf(g, key), axis = g.axes[i], n = cross(axis, cross(g.viewDir, axis)), nl = len(n);
     if (nl < 1e-6 || Math.abs(along) < 1e-9) return null;
     const plane = mul(n, 1 / nl), t = rayPlane(o, d, at, plane);
@@ -70,7 +73,9 @@ export function beginHandleDrag(g, key, o, d) {
 }
 
 /**
- * @param {any} s the state from beginHandleDrag @param {number[]} o @param {number[]} d
+ * @param {any} s
+ * @param {number[]} o
+ * @param {number[]} d
  * @param {{ move?: number, turn?: number, size?: number } | null} [snap]
  */
 export function handleDragResult(s, o, d, snap = null) {

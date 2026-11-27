@@ -10,12 +10,16 @@ files:
   - src/world/rmbLayout.js
   - src/world/rmbFlats.js
   - src/world/rdbLayout.js
+  - src/world/streamWorld.js
+  - src/world/transitionGate.js
 invariants:
   - "Exterior RMB models compose rotations as Ry * Rx * Rz, while dungeon RDB models multiply T * Rz * Rx * Ry."
   - "Archive 199 editor flats are never rendered."
   - "Modal exits must dispose window/overlay stacks and null interiorCtx or dungeonCtx before returning to exterior."
+  - "Door builds run through one gate, one at a time; `abort()` and any build that publishes bump the generation, so queued requests asked in the old world return null instead of building over the live context."
 traps:
   - "Center-anchored billboards (such as spell missiles and hit splashes) must pass through centredBase to subtract half height from AlignToBase."
+  - "The court release calls `forceExitToExterior` before `_teleportToPixel`: an arrest for stealing runs the world host's court flow with `modes.mode` still 'interior', and teleporting first lands the player outside the building geometry."
 dfu:
   - Assets/Scripts/Game/PlayerEnterExit.cs
   - Assets/Scripts/Utility/RMBLayout.cs

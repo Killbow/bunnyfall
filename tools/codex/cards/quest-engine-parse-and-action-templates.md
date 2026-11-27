@@ -13,6 +13,7 @@ files:
   - src/systems/quest/tables.js
   - src/systems/quest/table.js
   - src/systems/quest/task.js
+  - src/systems/quest/shareActions.js
   - src/world/worldDataVariants.js
 routes: []
 tables: []
@@ -27,6 +28,8 @@ invariants:
   - "matchFirst (questResource.js:27) replaces .NET multi-alternative regexes that reuse group names with ordered pattern lists."
 traps:
   - "WorldUpdate is now a real template backed by src/world/worldDataVariants.js (RR3), not a guard. The variant registry starts empty."
+  - "`Prompt` and `PromptMulti` complete when answered, not when shown. `getShareableQuestData` reads `heldPromptPlaces` to send a prompt whose box is up as complete, and a load forgets the in-memory hold and asks again."
+  - "An action's `saveShape` keys are a share contract: `sharedActionMatches` (`shareActions.js`) refuses incoming fields the local parse lacks, so `MakePcDiseased` saves `textId` only when it is set."
 dfu:
   - "Assets/Scripts/Game/Questing/Parser.cs"
   - "Assets/Scripts/Game/Questing/QuestMachine.cs"

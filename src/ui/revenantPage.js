@@ -93,7 +93,7 @@ export function comeWords(r, now, held = revenantHeld()) {
   if (held) return { tag: 'Held', cls: 'is-waiting', line: `It will not come for you before Renown ${REVENANT_MIN_RENOWN}.` };
   // UNQUIET II (section 47): its trail warm - gone to ground to recover, and findable there (AUDIT UNQUIET: "weakened", never
   // "wounded" - its wounds are what the player left on it, and heal by their own law)
-  if (trailWarm(r, now)) return { tag: t('rvn.unq.page.woundedTag', 'Weakened'), cls: '', line: t('rvn.unq.page.woundedCome', 'Recovering in {lair}, whole again in {hours, plural, one {# hour} other {# hours}}. Find it there.', { lair: r.lair?.name ?? '', hours: trailHours(r, now) }) };
+  if (trailWarm(r, now)) return { tag: t('rvn.unq.page.woundedTag', 'Weakened'), cls: '', line: t('rvn.unq.page.woundedCome', 'Recovering in {lair}, fully healed in {hours, plural, one {# hour} other {# hours}}. Find it there.', { lair: r.lair?.name ?? '', hours: trailHours(r, now) }) };
   const left = r.dueAt - now;
   if (left <= 0) return { tag: 'Hunting', cls: '', line: 'Hunting you. It may appear on any road.' };
   const days = Math.round(left / 1440);
@@ -226,7 +226,7 @@ export function craftLine(r) {
   if (r?.dread) return t('rvn.unq.page.dreadWill', 'At home it has nowhere to run: it never flees, and kneels at the end.');
   const c = craftWords(revenantCraft(r?.mobileType, r?.rank));
   return c ? t('rvn.unq.page.craft', 'Its flight: {name} ({effect}).', { name: c.name, effect: c.effect })
-    : t('rvn.unq.page.craftYoung', 'Its flight: it runs. From rank {rank} it will break away in its own way.', { rank: revenantRankNumeral(CRAFT.RANK) });
+    : t('rvn.unq.page.craftYoung', 'Its flight: it runs. At rank {rank}, it gains its own way to escape.', { rank: revenantRankNumeral(CRAFT.RANK) });
 }
 /** UNQUIET: what it does while it waits (none for the Dread - it waits at home). */
 export function ambitionLine(r) {
@@ -237,7 +237,7 @@ export function ambitionLine(r) {
 /** UNQUIET: its blood since its last rank - one more kill and it climbs (AUDIT UNQUIET: a companion is felled, never
  *  killed); and its tear-aways (revenantUnquiet.js TEAR_RANK) - once more its will holds, and it climbs. */
 export const bloodLine = (r) => ((r?.blood | 0) >= 1 && (r?.rank | 0) < REVENANT_MAX_RANK ? t('rvn.unq.page.blood', 'If it kills you once more, or fells one more companion, it grows bolder.') : '');
-export const tearLine = (r) => ((r?.tears | 0) >= 1 && (r?.rank | 0) < REVENANT_MAX_RANK ? t('rvn.unq.page.tears', 'If its will holds at your killing blow once more, it grows bolder.') : '');
+export const tearLine = (r) => ((r?.tears | 0) >= 1 && (r?.rank | 0) < REVENANT_MAX_RANK ? t('rvn.unq.page.tears', 'If its will is still unbroken at your killing blow once more, it grows bolder.') : '');
 /** UNQUIET: the Dread's two last stands. */
 export const dreadStandLine = (r) => (r?.dread ? t('rvn.unq.page.dreadStand', 'Last stands: twice in a fight it rises again, at {first}% and at {second}% of its health.', { first: Math.round(lastStandHealth(r.rank) * 100), second: Math.round(DREAD.SECOND_STAND * 100) }) : '');
 /** Its scars, newest first and each once - the ways it was hurt and what it learned (a deed's scar is the history's). */
@@ -356,9 +356,9 @@ export function drawRevenantsPage(detail, rerender, { el, divider, player = null
   detail.append(divider(`Revenants (${living.filter((r) => !r.dread).length} of ${REVENANT_MAX})`));   // AUDIT UNQUIET: the cap counts those that hunt - the Dread waits
   if (!living.length) {
     // UNQUIET (Revenants.md section 46): only a foe marked Unquiet rises - and far likelier by getting away than by a kill
-    const lead = all.length ? t('rvn.unq.page.noneNow', 'None hunts you now.') : t('rvn.unq.page.noneYet', 'No foe has earned your name yet.');
+    const lead = all.length ? t('rvn.unq.page.noneNow', 'No revenant is hunting you right now.') : t('rvn.unq.page.noneYet', 'No enemy has become a revenant yet.');
     const how = revenantHeld()
-      ? t('rvn.unq.page.howHeld', 'From Renown {renown}, an elite or champion marked Unquiet that escapes you, or kills you, will remember you and come back for you.', { renown: REVENANT_MIN_RENOWN })
+      ? t('rvn.unq.page.howHeld', 'Starting at Renown {renown}, an elite or champion marked Unquiet that escapes or kills you will remember you and come back for you.', { renown: REVENANT_MIN_RENOWN })
       : t('rvn.unq.page.how', 'An elite or champion marked Unquiet that escapes you, or kills you, will remember you and come back for you.');
     detail.append(el('p', 'px-note', revenantOn()
       ? `${lead} ${how}`   // AUDIT (2026-10-02): the sworn and the fallen below are revenants too; RENOWN-GATE: and when they begin

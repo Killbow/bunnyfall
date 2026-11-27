@@ -1,12 +1,6 @@
 // @ts-check
-// BUNNYFALL FARM EXPANSION, PHASE 3 (docs/FARM-EXPANSION.md section 5): THE HERD DRAWN - each animal as Daggerfall's own
-// flat (TEXTURE.201, the art register), in its pen: cows and horses in the pen, pigs in the sty, dogs and cats about the
-// yard (by the ledger). They are never still: each wanders to a new spot every few seconds, and a contented one grazes
-// (its grazing picture). Seen by everyone near the farm.
 import { ANIMALS, CONTENT_GOOD, contentAt } from '../../net/farm/herdLaw.js';
-// PHASE 5: `keep` is the stationed herders' daily lift (stationLaw.js herdKeep)
 
-/** Where an animal stands at `seconds`: its pen's centre and a wander inside its radius. */
 export function animalSpot(a, home, radius, seconds) {
   const step = Math.floor(seconds / (5 + (a.id % 4)) + a.id * .31);
   const h = (n) => { let x = Math.imul(a.id * 7919 + step * 104729 + n, 0x9e3779b1) >>> 0; x = Math.imul(x ^ (x >>> 15), 0x85ebca6b) >>> 0; return ((x ^ (x >>> 13)) >>> 0) / 4294967296; };
@@ -25,10 +19,11 @@ export function createHerdArt(renderer, assets = {}) {
   return {
     prepare,
     /**
-     * @param {any[]} herd the garden's animals
-     * @param {(a: any) => { home: number[], radius: number } | null} homeOf where each lives
-     * @param {number} nowS the garden's time (contentment), @param {number} seconds the wander's clock
-     * @returns {{ id: number, pos: number[], h: number }[]} where each was drawn, for picking
+     * @param {any[]} herd
+     * @param {(a: any) => { home: number[], radius: number } | null} homeOf
+     * @param {number} nowS
+     * @param {number} seconds
+     * @returns {{ id: number, pos: number[], h: number }[]}
      */
     update(herd, homeOf, nowS, seconds, keep = 0) {
       if (!ready) return [];
@@ -51,7 +46,10 @@ export function createHerdArt(renderer, assets = {}) {
       }
       return placed;
     },
-    /** @param {number[]} right @param {number[]} up */
+    /**
+     * @param {number[]} right
+     * @param {number[]} up
+     */
     draw(right, up) { if (batches.size) renderer.drawBillboards([...batches.values()], right, up); },
     dispose() { for (const b of batches.values()) renderer.destroyBillboardBatch(b); batches.clear(); },
   };

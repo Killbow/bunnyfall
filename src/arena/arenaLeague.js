@@ -1,31 +1,4 @@
 // @ts-check
-// ARENA3 (2026-10-02, Mac: "join a team (red and blue) and climb esclating tiers of opponents"; "Joining a team comes
-// with it's own enhanced UI where you can view your ranking and even player leaderboards"; "Being a top rank PvE fighter
-// comes with it's own title"): THE BANNERS AND THEIR SEASON, offline. Design: bible/11-Multiplayer/Arena.md "3. The
-// teams", "5. The Arena window", "6. Titles and the laurel".
-//
-// TWO COMPANIES - the Red Banner and the Blue Banner. Joining is at their recruiters at the gate, free; CHANGING COSTS A
-// SEASON - a fighter may quit at once, and may join THE OTHER only when the next season opens (rejoining the banner you
-// quit is no change). A banner gives its colours on your ladder bouts (the versus bar's mark), TEAM POINTS (a ladder
-// bout won 1, a tier champion beaten 3, the Grand Champion beaten 10 - a refereed PvP win's 2 is ARENA4's) and, to the
-// banner with more points when the SEASON closes, THE LAUREL for the next season: the crowd favours its fighters at the
-// start of every bout.
-//
-// THE SEASON offline is the game's year (Daggerfall's 360 days; the online 8 weeks are ARENA4's): its number the year
-// (3E 405), its day the day of the year. The season rolls over on the first read past its end (`rollLeague`): the
-// standings closed (the AI roster's whole season and the player's points), the winner kept for the Team board and the
-// Hall of Champions, the laurel handed on.
-//
-// THE ROSTER. Each banner fields ROSTER_PER_BANNER fighters a season - Daggerfall's own classes, named by the bout
-// names' own law (systems/arena/arenaFighters.js fighterIdentity: DFU's NameHelper over their home's bank on a seeded DFRandom
-// stream) - and each climbs the same ten tiers the player climbs (systems/arena/arenaLadder.js), one bout every few days, won
-// or lost by their talent against the tier: `leagueRoster(season, day)` is the season's every fighter on its day,
-// computed from the season alone, so the same day is the same board on every screen and at every load. The roster is
-// the leaderboards' field, the banners' points, and the Grand Champions the Hall cuts in its wall.
-//
-// THE SAVE: `arenaLeagueSnapshot` / `arenaLeagueRestore` (systems/save/save.js `arenaLeague`), versioned (`v`); any older or
-// broken shape reads back to a fighter of no banner. Pure: the game minute is handed to every call that reads the
-// calendar. Not a DFU member. Ledger A (ARENA).
 
 import { MOBILE_TYPES as M } from '../characters/mobileTypes.js';
 import { dateFromClassicMinutes, dayOfYearFromMinutes, DAYS_PER_YEAR } from '../world/gameDate.js';
@@ -34,20 +7,13 @@ import { fighterIdentity } from './arenaFighters.js';
 import { ARENA_TEXT } from './arenaText.js';
 import { bookRestore, newArenaBook } from './arenaBook.js';
 
-/** The save shape's version. */
 export const ARENA_LEAGUE_VERSION = 1;
-/** The two banners, in the order they are always read. */
 export const BANNERS = Object.freeze(['red', 'blue']);
-/** TEAM POINTS (the design's): a ladder bout won, a tier champion beaten, the Grand Champion beaten. */
 export const TEAM_POINTS = Object.freeze({ bout: 1, champion: 3, grand: 10 });
-/** The crowd's favour at the start of a bout for a fighter who wears the laurel (systems/arena/arenaCrowd.js newCrowd). */
 export const LAUREL_FAVOUR = 0.25;
-/** How many bouts the Records page keeps, and how many closed seasons the Team board keeps. */
 export const BOUTS_KEPT = 20;
 export const SEASONS_KEPT = 12;
-/** The roster: fighters a banner fields in a season. */
 export const ROSTER_PER_BANNER = 24;
-/** The classes a banner recruits (Daggerfall's own class enemies, MobileTypes 128-145). */
 export const ROSTER_CLASSES = Object.freeze([
   M.Mage, M.Spellsword, M.Battlemage, M.Sorcerer, M.Healer, M.Nightblade, M.Bard, M.Burglar, M.Rogue, M.Acrobat,
   M.Thief, M.Assassin, M.Monk, M.Archer, M.Ranger, M.Barbarian, M.Warrior, M.Knight,
@@ -58,16 +24,10 @@ const int = (v, lo, hi, d = lo) => { const n = Math.trunc(Number(v)); return Num
 const intOrNull = (v, lo = 0, hi = 1e12) => (v == null || !Number.isFinite(Number(v)) ? null : int(v, lo, hi));
 const str = (v, max = 80) => (typeof v === 'string' ? v.slice(0, max) : '');
 
-// ── THE CALENDAR ─────────────────────────────────────────────────────────────────────────────────────────────
-/** The season a game minute falls in - the year of Daggerfall's calendar (3E 405 at a new game). */
 export const seasonOf = (gameMinutes) => dateFromClassicMinutes(Math.max(0, Math.floor(Number(gameMinutes) || 0))).year;
-/** The day of its season, 1..360. */
 export const seasonDayOf = (gameMinutes) => dayOfYearFromMinutes(Math.max(0, Math.floor(Number(gameMinutes) || 0)));
-/** The other banner. */
 export const otherBanner = (b) => (b === 'red' ? 'blue' : 'red');
 
-// ── THE SAVE ─────────────────────────────────────────────────────────────────────────────────────────────────
-/** A fighter of no banner, who has fought nothing. */
 export function newArenaLeague() {
   return {
     v: ARENA_LEAGUE_VERSION, since: null, season: null, team: null, joinedAt: null, left: null,
@@ -75,7 +35,6 @@ export function newArenaLeague() {
     book: newArenaBook(),
   };
 }
-/** Any shape back to a whole league record (a save from before ARENA3, a hand-edited one). */
 export function arenaLeagueRestore(raw) {
   const L = newArenaLeague();
   if (!raw || typeof raw !== 'object') return L;
@@ -100,27 +59,17 @@ export function arenaLeagueRestore(raw) {
   L.book = bookRestore(raw.book);
   return L;
 }
-/** The league as the save writes it (a copy). */
 export function arenaLeagueSnapshot(L) {
   const s = arenaLeagueRestore(L);
   return JSON.parse(JSON.stringify(s));
 }
 
-// ── THE SEASON ROLLS ─────────────────────────────────────────────────────────────────────────────────────────
-/** The two banners' points at the close of `season`, the player's `extra` added (`{ red, blue }`). */
 export function seasonFinal(season, extra = { red: 0, blue: 0 }) {
   const t = rosterTotals(season, DAYS_PER_YEAR);
   return { red: t.red + (extra.red | 0), blue: t.blue + (extra.blue | 0) };
 }
 const winnerOf = (s) => (s.red > s.blue ? 'red' : s.blue > s.red ? 'blue' : null);
 
-/**
- * THE LEAGUE ON ITS DAY: the record rolled forward to the season `gameMinutes` falls in - each season passed CLOSED
- * (its standings with the player's points in it, its winner, which banner the player wore at its close), the laurel
- * handed to the banner that won the season just closed (worn by the player if they wore it then and still do), the
- * player's points begun again. The first read stamps `since` (the Hall's first season). A new record when it moved;
- * the same one when it did not.
- */
 export function rollLeague(raw, gameMinutes) {
   const now = seasonOf(gameMinutes);
   if (raw && raw.season === now && raw.since != null && raw.v === ARENA_LEAGUE_VERSION) return raw;
@@ -128,7 +77,6 @@ export function rollLeague(raw, gameMinutes) {
   if (L.since == null) L.since = L.season ?? now;
   if (L.season == null) { L.season = now; return L; }
   if (L.season >= now) { L.season = now; return L; }
-  // close every season between: the first with the player's points, the rest the roster's alone
   let laurel = null;
   for (let s = L.season; s < now; s++) {
     const first = s === L.season;
@@ -144,22 +92,15 @@ export function rollLeague(raw, gameMinutes) {
   L.season = now;
   return L;
 }
-/** Whether the player wears the laurel now: their banner won the season just closed. */
 export const laurelWorn = (L, gameMinutes) => {
   const s = rollLeague(L, gameMinutes);
   return !!s.team && !!s.laurel && s.laurel.season === s.season && s.laurel.banner === s.team;
 };
-/** The banner whose fighters wear the laurel this season (the last season's winner), or null. */
 export const laurelBanner = (L, gameMinutes) => {
   const s = rollLeague(L, gameMinutes);
   return s.laurel && s.laurel.season === s.season ? s.laurel.banner : null;
 };
 
-// ── JOINING AND QUITTING ─────────────────────────────────────────────────────────────────────────────────────
-/**
- * Why `banner` will not take the player now, or null: 'already' (they wear it), 'other' (they wear the other - quit it
- * first), 'season' (they quit the other this season - changing costs a season), 'banner' (no such banner).
- */
 export function joinRefusal(L, banner, gameMinutes) {
   if (!isBanner(banner)) return 'banner';
   const s = rollLeague(L, gameMinutes);
@@ -168,7 +109,6 @@ export function joinRefusal(L, banner, gameMinutes) {
   if (s.left && s.left.banner !== banner && s.left.season >= s.season) return 'season';
   return null;
 }
-/** JOIN `banner`: `{ ok, league, reason }` - a new record (the old one untouched). */
 export function joinBanner(L, banner, gameMinutes) {
   const reason = joinRefusal(L, banner, gameMinutes);
   const s = arenaLeagueRestore(rollLeague(L, gameMinutes));
@@ -178,7 +118,6 @@ export function joinBanner(L, banner, gameMinutes) {
   s.left = null;
   return { ok: true, league: s, reason: null };
 }
-/** QUIT the banner worn: `{ ok, league, reason }` ('none' - no banner to quit). The points given stay the banner's. */
 export function quitBanner(L, gameMinutes) {
   const s = arenaLeagueRestore(rollLeague(L, gameMinutes));
   if (!s.team) return { ok: false, league: s, reason: 'none' };
@@ -188,14 +127,7 @@ export function quitBanner(L, gameMinutes) {
   return { ok: true, league: s, reason: null };
 }
 
-// ── A BOUT RECORDED ──────────────────────────────────────────────────────────────────────────────────────────
-/** The points a won ladder bout gives the banner worn - AUDIT ARENA-LADDER 2: none for a bout won again after a lost run. */
 export const boutPoints = ({ won, champion = false, grand = false, repeat = false }) => (!won || repeat ? 0 : grand ? TEAM_POINTS.grand : champion ? TEAM_POINTS.champion : TEAM_POINTS.bout);
-/**
- * A LADDER BOUT'S END in the league: kept for the Records page (the newest first, BOUTS_KEPT of them), its points
- * given to the banner worn, the first bout's and the Grand Champion's minute stamped (the fastest Grand Champion's
- * board). `o` `{ gameMinutes, tier, label, opp, won, how, purse, champion, grand, repeat }`. A new record.
- */
 export function leagueAfterBout(L, o) {
   const gm = Math.max(0, Math.floor(Number(o.gameMinutes) || 0));
   const s = arenaLeagueRestore(rollLeague(L, gm));
@@ -211,32 +143,25 @@ export function leagueAfterBout(L, o) {
   return s;
 }
 
-// ── THE ROSTER ───────────────────────────────────────────────────────────────────────────────────────────────
-/** The skill a talent of 1 brings to the ladder, in tiers; how steeply a tier above it is lost. */
 const SKILL_TIERS = 10;
 const SKILL_SLOPE = 1.3;
-/** A fighter's chance against the next bout of `tier` (`champion` its champion; the last tier's is the Grand
- *  Champion, a little harder still). Pure. */
 export function rosterWinChance(talent, tier, champion) {
   const diff = tier + (champion ? 0.6 : 0) + (champion && tier === LADDER_TIERS.length - 1 ? 0.4 : 0);
   const p = 1 / (1 + Math.exp((diff - talent * SKILL_TIERS) * SKILL_SLOPE));
   return Math.max(0.04, Math.min(0.96, p));
 }
 
-/** One roster fighter's who-and-how for `season`, slot `i` (even slots Red, odd Blue). */
 function rosterEntrant(season, i) {
   const seed = arenaHash(season, 0x4c00 + i);
   const rng = seededRng(seed);
   const banner = i % 2 === 0 ? 'red' : 'blue';
   const mobile = ROSTER_CLASSES[Math.floor(rng() * ROSTER_CLASSES.length)];
   const who = fighterIdentity(seed, i, mobile);
-  // talent: most fighters are middling, a few are great (the season's Grand Champions come from them)
   const talent = 0.2 + 0.8 * rng() ** 1.6;
-  const pace = 0.05 + rng() * 0.09;   // bouts a day - a fighter heals and trains between
-  const start = Math.floor(rng() * 24);   // the day of the season they first fight
+  const pace = 0.05 + rng() * 0.09;
+  const start = Math.floor(rng() * 24);
   return { id: `s${season}:${i}`, slot: i, seed, banner, mobile, name: who.name, home: who.home, epithet: who.epithet, talent, pace, start };
 }
-/** One fighter's season up to `day`: their ladder, their record, their points. */
 function rosterClimb(e, day) {
   const rng = seededRng(arenaHash(e.seed, 0x51));
   let tier = 0, won = 0, wins = 0, losses = 0, points = 0, champs = 0, grandDay = null;
@@ -253,7 +178,6 @@ function rosterClimb(e, day) {
   return { tier, won, wins, losses, points, champs, grandDay, grand: grandDay != null };
 }
 const _entrants = new Map();
-/** The season's entrants (named once a season - the name stream is DFRandom's). */
 function entrantsOf(season) {
   let list = _entrants.get(season);
   if (!list) {
@@ -264,11 +188,7 @@ function entrantsOf(season) {
   return list;
 }
 const _roster = new Map();
-/**
- * THE ROSTER of `season` on its `day` (1..360): every fighter of both banners - `{ id, banner, name, home, epithet,
- * mobile, tier, won, wins, losses, points, champs, grand, grandDay, days, title }` (`title` the highest the ladder gave
- * them, `days` the days they took to the Grand Champion). Pure, cached by season and day.
- */
+// Computed from the season and day alone, so every screen and every load shows the same board.
 export function leagueRoster(season, day) {
   const d = Math.max(0, Math.min(DAYS_PER_YEAR, Math.floor(day)));
   const key = `${season}:${d}`;
@@ -284,14 +204,12 @@ export function leagueRoster(season, day) {
   _roster.set(key, out);
   return out;
 }
-/** The roster's points by banner on `day`. */
 export function rosterTotals(season, day) {
   const t = { red: 0, blue: 0 };
   for (const f of leagueRoster(season, day)) t[f.banner] += f.points;
   return t;
 }
 
-/** THE STANDINGS NOW: `{ season, day, red, blue, leader, mine }` - the roster's points and the player's this season. */
 export function leagueStandings(L, gameMinutes) {
   const s = rollLeague(L, gameMinutes);
   const day = seasonDayOf(gameMinutes);
@@ -300,8 +218,6 @@ export function leagueStandings(L, gameMinutes) {
   return { season: s.season, day, red, blue, leader: winnerOf({ red, blue }), mine: s.team, given: s.team ? s.points[s.team] : 0, points: { ...s.points } };
 }
 
-/** Every Grand Champion of the roster this save has seen (from `since` to now), the newest season first - the Hall's
- *  wall. `[{ season, name, home, banner, days }]`. */
 export function rosterGrandChampions(L, gameMinutes) {
   const s = rollLeague(L, gameMinutes);
   const out = [];

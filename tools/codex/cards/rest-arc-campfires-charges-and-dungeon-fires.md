@@ -27,9 +27,11 @@ invariants:
   - "fieldCookKeeps: a Field Cook's night at their own fueled Campfire (not an Ember Jar) spends no charge."
   - "CAMPS_PER_OWNER = 4: a new placing strikes the owner's oldest camps instead of being refused."
   - "dungeonFireCount = clamp(round(nonBorderBlocks / 3), 2, 7), halved (minimum 1) for elite dungeons. Online, no wandering spawn stands within DFIRE.wardM = 15 m of a placed fire (inFireWard)."
+  - "`dungeonFirePlan` is pure over layout data and collider answers, compares squared distances only, and reads the classic flat height (`lawFoot`), so every client places the same dungeon fires with nothing on the wire."
 traps:
   - "Leaving a dungeon returns the owner's fueled Campfires to the pack. Kit fires and Ember Jars stay behind with the dungeon."
   - "A deck camp whose ship is gone for DECK_GONE_S = 2 seconds is packed back to its owner (camps.js; validDeck bounds DECK_LOCAL_BOUND = 120)."
+  - "`dungeonFirePlan` runs once at dungeon build, after movers and doors are hung and before `restoreSaveData` moves them; running it later lets saved poses change where fires land."
 dfu: []
 tags:
   - campfire

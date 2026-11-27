@@ -166,12 +166,12 @@ export const raidKindAsk = (kind, town) => ({
   defend: () => t('raid.ask.defend', 'Keep the Standard-Bearer of {town} alive in the square.', { town }),
   escort: () => t('raid.ask.escort', 'Refugees flee to the square of {town}. See them there safely.', { town }),
 }[kind]?.() ?? '');
-export const raidWaveLine = (n, of, town) => t('raid.wave', 'Wave {n} of {of} falls on {town}!', { n, of, town });
-export const raidLeaderLine = (name, town) => t('raid.leaderCharge', 'The {name} leads the last charge on {town}!', { name, town });   // AUDIT WORLD-EVENTS L5-8: its article its own
-export const raidBearerFellLine = (town) => t('raid.bearerFell', 'The standard of {town} has fallen! The raiders sack the town.', { town });
+export const raidWaveLine = (n, of, town) => t('raid.wave', 'Wave {n} of {of} attacks {town}.', { n, of, town });
+export const raidLeaderLine = (name, town) => t('raid.leaderCharge', 'The {name} leads the last charge on {town}.', { name, town });   // AUDIT WORLD-EVENTS L5-8: its article its own
+export const raidBearerFellLine = (town) => t('raid.bearerFell', 'The standard of {town} has fallen. The raiders sack the town.', { town });
 export const raidRefugeeSafeLine = (n, of) => t('raid.refugeeSafe', 'A refugee reaches the square ({n} of {of} safe).', { n, of });
 export const raidRefugeeLostLine = () => t('raid.refugeeLost', 'A refugee has fallen.');
-export const raidHeldLine = (town) => t('raid.held', '{town} is held. Its people won’t forget it.', { town });
+export const raidHeldLine = (town) => t('raid.held', '{town} is safe. Its people won\'t forget it.', { town });
 /** The board's word on a raid's objective, or '' (classic). */
 export function raidObjectiveDetail(kind, o) {
   if (!o) return '';

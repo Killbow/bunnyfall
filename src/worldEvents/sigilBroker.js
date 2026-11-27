@@ -353,7 +353,7 @@ function takeFromPack(items, take) {
 export const OWED_MAX = 8;
 export const BROKER_OWED_VENDOR = 'SigilBrokerOwed';
 /** What the Broker says of a sale owed, in the player's language. */
-export const BROKER_OWED_TEXT = 'No answer from the account service. Your embers are held, and the Broker settles the sale on your next visit.';
+export const BROKER_OWED_TEXT = 'No response from the account server. Your embers are held for you, and the Broker will complete the sale on your next visit.';
 export const brokerOwedText = () => t('broker.owed', BROKER_OWED_TEXT);
 let _owed = [];
 /** The request ids a settle is on the wire for (never two asks of one sale at once). */

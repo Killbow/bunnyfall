@@ -22,6 +22,7 @@ invariants:
   - "`localeChain(code)` walks the tag, each shorter tag, then `en` (`pt-BR` -> `pt` -> `en`); `setLocale` clears the list cache, bumps the revision and re-chooses grammar (DFU never clears its cache)."
   - "`parseStringTableCsv` preserves `StringTableCSVParser` behavior verbatim: unquoted values truncate at the first comma, and only an exact `Key,Value` header row is stripped."
   - "`formatStringTableCsv` writes the `Key,Value` header, quotes every value with doubled quotes, and throws on a key holding a comma, quote or newline."
+  - "The French pack's text belongs to its authors and is never bundled; only the MIT grammar code in `frenchGrammar.js` ships with the game."
 traps:
   - "`defaultCollectionName` has no TextFlats case, so a flats miss falls back to Internal_Strings, as in DFU."
   - "`getLocalizedEnemyName` reads `enemyNames` row `id` for 0-42 and `43 + id - 128` for classes 128-146; any other id goes to `registerCustomEnemyNameText` hooks, then the fallback."

@@ -1,19 +1,14 @@
 // @ts-check
-// BUNNYFALL (2026-11-05): THE GREAT CANNON BY WAYREST, MADE IN CODE (scenes/cannonHost.js stands it). A siege bombard on a
-// timber carriage: a bronze-dark barrel with its bands and its muzzle, two cheeks, an axle and two great wheels, and the
-// builders' scaffold round it while it is unfinished. Its own two pictures (iron and timber, CANNON_ARCHIVE) painted here.
-// Model frame: metres, y up, the barrel along +z (the muzzle), the carriage's feet on y = 0.
 
 export const CANNON_ARCHIVE = 9920;
 export const REC_IRON = 0, REC_WOOD = 1;
-/** Where the muzzle's mouth is in the model frame (the shot leaves from here). */
 export const MUZZLE = Object.freeze([0, 2.35, 5.2]);
 
 function builder() {
   /** @type {number[]} */ const p = [], n = [], uv = [];
   /** @type {number[][]} */ const idx = [[], []];
-  // a face is seen from the side its normal points to: its corners turned so cross(c - a, d - a) agrees with the normal
-  // (render/renderer.js draws gl.frontFace(CW) through the mirrored projection - world/lefayMonument.js faces' law)
+  // Corners are reordered so cross(c - a, d - a) follows the normal; the projection mirrors x and the renderer uses
+  // `gl.frontFace(gl.CW)`, so that winding is front-facing.
   const quad = (sub, a, b, c, d, nx, ny, nz, us = 1, vs = 1) => {
     const e1 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]], e2 = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
     const cx = e1[1] * e2[2] - e1[2] * e2[1], cy = e1[2] * e2[0] - e1[0] * e2[2], cz = e1[0] * e2[1] - e1[1] * e2[0];
@@ -24,7 +19,6 @@ function builder() {
     uv.push(0, 0, us, 0, us, vs, 0, vs);
     idx[sub].push(base, base + 1, base + 2, base, base + 2, base + 3);
   };
-  /** A box: centre, half sizes. */
   const box = (sub, cx, cy, cz, hx, hy, hz) => {
     const x0 = cx - hx, x1 = cx + hx, y0 = cy - hy, y1 = cy + hy, z0 = cz - hz, z1 = cz + hz;
     quad(sub, [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], 0, 0, 1, hx, hy);
@@ -34,7 +28,6 @@ function builder() {
     quad(sub, [x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], 0, 1, 0, hx, hz);
     quad(sub, [x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], 0, -1, 0, hx, hz);
   };
-  /** A tube along an axis ('z' or 'x'), from `a` to `b` along it, radii r0 to r1, centred at (cx, cy) / (cy, cz); capped. */
   const tube = (sub, axis, a, b, r0, r1, c1, c2, seg = 18, cap = true) => {
     const at = (t, ang, r) => {
       const u = Math.cos(ang) * r, v = Math.sin(ang) * r;
@@ -55,30 +48,24 @@ function builder() {
   return { p, n, uv, idx, box, tube };
 }
 
-/** The cannon's model, for renderer.createMesh. `scaffold` stands the builders' timber round it. */
 export function cannonModel({ scaffold = true } = {}) {
   const b = builder();
-  // the barrel: breech to muzzle, its bands, the muzzle's swell, the cascabel behind
   const by = 2.35;
   b.tube(REC_IRON, 'z', -2.6, 4.6, 0.82, 0.62, 0, by, 20);
   for (const z of [-2.2, -0.9, 0.6, 2.2, 3.6]) b.tube(REC_IRON, 'z', z - 0.12, z + 0.12, 0.9 - (z + 2.6) * 0.028, 0.9 - (z + 2.6) * 0.028, 0, by, 20);
   b.tube(REC_IRON, 'z', 4.6, 5.2, 0.72, 0.78, 0, by, 20);
   b.tube(REC_IRON, 'z', -3.1, -2.6, 0.3, 0.6, 0, by, 14);
   b.box(REC_IRON, 0, by, -3.25, 0.2, 0.2, 0.2);
-  // the trunnions on the cheeks
   b.tube(REC_IRON, 'x', -1.25, 1.25, 0.22, 0.22, by, 0.2, 12);
-  // the carriage: two cheeks, the transoms, the trail on the ground behind
   for (const x of [-1.05, 1.05]) b.box(REC_WOOD, x, 1.45, 0.2, 0.16, 0.95, 2.4);
   b.box(REC_WOOD, 0, 0.95, 1.6, 0.9, 0.22, 0.28);
   b.box(REC_WOOD, 0, 0.95, -1.4, 0.9, 0.22, 0.28);
   b.box(REC_WOOD, 0, 0.35, -3.6, 0.45, 0.25, 1.6);
-  // the axle and the wheels, iron-shod
   b.tube(REC_IRON, 'x', -1.9, 1.9, 0.14, 0.14, 1.15, 1.0, 10);
   for (const x of [-1.55, 1.55]) {
     b.tube(REC_WOOD, 'x', x - 0.16, x + 0.16, 1.15, 1.15, 1.15, 1.0, 22);
     b.tube(REC_IRON, 'x', x - 0.18, x + 0.18, 1.2, 1.2, 1.15, 1.0, 22, false);
   }
-  // the scaffold: four posts, two rails a side, a plank deck, and a stack of the builders' planks beside
   if (scaffold) {
     for (const [x, z] of [[-2.6, -3.4], [2.6, -3.4], [-2.6, 4.2], [2.6, 4.2]]) b.box(REC_WOOD, x, 2.2, z, 0.12, 2.2, 0.12);
     for (const y of [1.6, 3.6]) for (const x of [-2.6, 2.6]) b.box(REC_WOOD, x, y, 0.4, 0.08, 0.08, 3.9);
@@ -97,7 +84,6 @@ export function cannonModel({ scaffold = true } = {}) {
   };
 }
 
-/** Its two pictures, 64 x 64 RGBA rows top first: dark iron with a bronze cast, and grained timber. */
 export function cannonArt() {
   const W = 64, pics = [];
   let seed = 9920;

@@ -314,7 +314,7 @@ export function dialogueMapView({ doc, poi, key, state, optionWord, onPick, onSo
   bar.append(btn(t('poi.dm.map.fit', 'Fit'), fit, t('poi.dm.map.fitHint', 'Show the whole dialogue (0)')),
     btn('+', () => zoomBy(1.25), t('poi.dm.map.zoomIn', 'Zoom in (+)')), btn('-', () => zoomBy(0.8), t('poi.dm.map.zoomOut', 'Zoom out (-)')),
     check(t('poi.dm.map.allLinks', 'Show all links'), state.all, (v) => { state.all = v; draw(); }),
-    check(t('poi.dm.map.sources', 'Show what opens it'), state.sources, (v) => { const had = map.sources.length > 0; state.sources = v; draw(); shiftCols(had, map.sources.length > 0); }));
+    check(t('poi.dm.map.sources', 'Show what opens this dialogue'), state.sources, (v) => { const had = map.sources.length > 0; state.sources = v; draw(); shiftCols(had, map.sources.length > 0); }));
   vp.title = t('poi.dm.map.keys', 'Drag to pan and use the wheel to zoom. Arrow keys move between lines, and Enter edits the line.');
   root.append(bar, vp);
 

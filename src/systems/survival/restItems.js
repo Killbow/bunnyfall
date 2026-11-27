@@ -1,57 +1,21 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// REST6 (2026-10-03, bible/06-Systems/Rest-Arc.md section 6; Mac: "introduce other type of consumables that can fill
-// in the gaps when a campfire isn't available"): THE SEVEN THAT FILL THE GAPS. Each answers one gap and none replaces
-// the fire. Port templates in their own block, 1700-1706, in DFU's miscellany (UselessItems2) as Foraging's are,
-// registered at import - and imported by the save (systems/save/save.js), so a saved one always has its name, its picture
-// and its weight in every scene.
-//
-//   1700 Bedroll            a rough rest point anywhere a camp could stand, dungeons too; 10 nights; a 10 s channel
-//   1701 Ember Jar          a one-night fire where a Campfire could stand: a camp rest point and a cooking fire for
-//                           180 world minutes; never picked up
-//   1702 Firewood           +3 nights of fuel to a Campfire (to its 8): your placed one in reach first, else the pack's
-//   1703 Restorative Tonic  at once: +40% fatigue; with Climates & Calories the sleep need 4 hours lighter
-//   1704 Meditation Candle  a 6 s kneel (the rest's channel - the rest key, once lit): +50% magicka; 3 uses
-//   1705 Waking Salts       an hour of the character's clock with the sleep need's penalties held off; the debt
-//                           keeps growing, and 2 hours more land when it ends; 3 uses
-//   1706 Sleeping Draught   the next night sleeps as a bed: full yield, no stiffness, the bed's sleep rate
-//
-// THE PLACED THREE (Bedroll, Ember Jar, Firewood) answer the inventory's placing kinds ('pitchCamp', 'placeFire'), so
-// every host's pack hands them to its own ground (scenes/camps.js placeItem), as the Campfire and the tent are.
-//
-// SHIP BEFORE ANYONE CAN SEE ONE (section 6's last rule). An older client drops an item its build has no template for
-// (loot.js validLootItem), so online the templates land a release before any shelf, pile, foe or recipe carries one:
-// REST_ITEMS_ONLINE is that release's switch. Offline there is no older client to meet one: they are on now, with
-// Climates & Calories, as its provisions are.
-//
-// REST-LOOT (LOOT-EASE, 2026-10-05, Mac: "the new resting items we added ... should be more common loot drops"). The
-// templates shipped with the arc's merge (#554, 2026-10-03) and every release since has carried them, so the switch is
-// ON: online the shelves, the piles and the foes carry them, and customs lets a character's own walk in. And the
-// loot is wider and commoner: a looting foe five of the seven (it was the Ember Jar alone, 2 in 100), a J-O pile six
-// (the Ember Jar and the Tonic, 4 each). The Bedroll stays the counter's - online's own rest point, bought.
-// ═══════════════════════════════════════════════════════════════════
+// Rest supply templates register at import; saves/save.js imports this file so saved supplies load in every scene.
 import { registerCustomTemplates, registerItemUseHandler, templateByIndex, mintCondition, setItemFields } from '../../items/itemTemplates.js';
-import { REST_ITEM, REST_ITEM_GROUP, BEDROLL_NIGHTS, CANDLE_USES, SALTS_USES, REST_ITEM_ROWS, isRestItem } from './restItemRows.js';   // INT1: the rows' leaf - the item law reads them headless
+import { REST_ITEM, REST_ITEM_GROUP, BEDROLL_NIGHTS, CANDLE_USES, SALTS_USES, REST_ITEM_ROWS, isRestItem } from './restItemRows.js';
 import { isOnlinePage } from '../../platform/onlineLane.js';
 import { survivalOn } from './switch.js';
 import { survivalOf, sleepStage, wakingHeld, WAKING_DEBT_HOURS } from './needs.js';
 import { ownMinutes } from '../../world/worldTick.js';
 import { maxFatigue } from '../../characters/statMods.js';
 import { registerTabledLootHandler, registerEnemyLootExtra } from '../../items/loot.js';
-import { registerLootSupply } from '../../items/foeLootCap.js';   // CAP-SUPPLIES: the seven are supplies to a body's cap
-import { renownLootQuarters, lootEased } from '../../items/renownLoot.js';   // RENOWN-LOOT: the chances by the roller's Renown
+import { registerLootSupply } from '../../items/foeLootCap.js';
+import { renownLootQuarters, lootEased } from '../../items/renownLoot.js';
 
-/** The online sources' switch (shelves, piles, foes, recipes) - false for the release the templates shipped in, on since
- *  (REST-LOOT, 2026-10-05). Off again is the way back if an older client ever meets one it cannot read. */
+// Older clients drop items with no template, so online sources stay off until a release ships the templates.
 export const REST_ITEMS_ONLINE = true;
 let _restItemsOnline = REST_ITEMS_ONLINE;
-/** The switch as every reader asks it (the sources here, the use gate below, customs) - REST_ITEMS_ONLINE, unless a test
- *  shut it to pin the way back: the shut release's laws still stand behind the switch, and still answer for it. */
 export const restItemsOnline = () => _restItemsOnline;
-/** Tests only: the switch set (null puts REST_ITEMS_ONLINE back). */
 export function _setRestItemsOnlineForTests(on) { _restItemsOnline = on == null ? REST_ITEMS_ONLINE : !!on; }
-/** Whether a source may mint one here: offline with Climates & Calories (the survival arc they belong to, as the
- *  provisions shelf is); online while the switch is on. */
 export const restItemsAvailable = (online = isOnlinePage()) => (online ? restItemsOnline() : survivalOn());
 
 export const BEDROLL_CHANNEL_SECONDS = 10;
@@ -61,22 +25,19 @@ export const TONIC_FATIGUE = 0.4;
 export const TONIC_SLEEP_HOURS = 4;
 export const CANDLE_MAGICKA = 0.5;
 export const SALTS_MINUTES = 60;
-export const SALTS_DEBT_HOURS = WAKING_DEBT_HOURS;   // the law's (survival/needs.js landWakingDebt)
-export const DRAUGHT_SPENT_MINUTES = 60;   // AUDIT REST F3: an hour's rest under it spends it - a stopped channel keeps it
+export const SALTS_DEBT_HOURS = WAKING_DEBT_HOURS;
+export const DRAUGHT_SPENT_MINUTES = 60;
 
 export { REST_ITEM, REST_ITEM_GROUP, BEDROLL_NIGHTS, CANDLE_USES, SALTS_USES, REST_ITEM_ROWS };
 registerCustomTemplates(REST_ITEM_ROWS);
 
 const INDICES = new Set(Object.values(REST_ITEM));
-// INT9: the predicate's home is systems/rest/restItemRows.js (the rows' leaf - a death in the zone's drop reads it on the account
-// Worker), re-exported here
 export { isRestItem };
-registerLootSupply('REST', isRestItem);   // CAP-SUPPLIES: a full body's cap keeps one before a Common piece (foeLootCap.js)
+registerLootSupply('REST', isRestItem);
 export const isBedroll = (item) => item?.templateIndex === REST_ITEM.Bedroll;
 export const isEmberJar = (item) => item?.templateIndex === REST_ITEM.EmberJar;
 export const isFirewood = (item) => item?.templateIndex === REST_ITEM.Firewood;
 
-/** One of the seven, minted as a shelf or a pile mints (its name and value, its charges). */
 export function createRestItem(templateIndex, { stackCount = 1 } = {}) {
   const t = templateByIndex(templateIndex);
   if (!t || !INDICES.has(templateIndex)) return null;
@@ -89,33 +50,31 @@ export const REST_ITEM_TEXT = Object.freeze({
   tonic: 'You drink the tonic. Your weariness lifts.',
   tonicSleep: 'You drink the tonic. Your weariness lifts, and you will not need sleep for a while longer.',
   candleLit: 'You light the candle. Rest to kneel and meditate before it.',
-  candleNotCarried: 'Carry the candle in your pack to light it.',   // AUDIT REST II H10
+  candleNotCarried: 'Carry the candle in your pack to light it.',
   meditated: 'You meditate before the candle. Your mind clears.',
   candleOut: 'The candle burns down to nothing.',
   salts: 'The salts sting your nose and you are wide awake. Your weariness will not trouble you for an hour.',
   saltsNotTired: 'You are not weary enough to need the salts.',
   saltsArcOff: 'The salts sting your nose, but you were not tired.',
   saltsEnd: 'The salts wear off, and all your weariness returns at once.',
-  saltsHeld: 'The last dose of salts has not yet worn off.',   // AUDIT REST-PARTY B6
+  saltsHeld: 'The last dose of salts has not yet worn off.',
   draught: 'You drink the draught. Tonight you will sleep as well as in a bed.',
   draughtHeld: 'You have already taken a draught for tonight.',
-  // the placed three (scenes/camps.js)
   bedrollLaid: 'You lay out your bedroll.',
   bedrollWorn: 'Your bedroll is worn through.',
   emberLit: 'You tip out the embers and a fire catches.',
   firewoodFed: (n) => `You feed the fire. It has ${n} ${n === 1 ? 'night' : 'nights'} of fuel.`,
   firewoodFull: 'Your Campfire cannot take any more fuel.',
   firewoodNone: 'You have no Campfire to feed.',
-  notOnline: 'This cannot yet be used in the realm.',   // AUDIT REST-PARTY B4
+  notOnline: 'This cannot yet be used in the realm.',
 });
 
-/** Each item's card lines (systems/item/itemInfo.js builds the name and the weight around them). */
 export function restItemLines(item) {
   const n = item?.currentCondition ?? 0;
   switch (item?.templateIndex) {
     case REST_ITEM.Bedroll: return [`${n} ${n === 1 ? 'night' : 'nights'} left`, 'A rough night\'s sleep anywhere you could camp.'];
     case REST_ITEM.EmberJar: return ['Makes a fire for one night. The fire cannot be carried.'];
-    case REST_ITEM.Firewood: return [`Adds ${FIREWOOD_NIGHTS} nights of fuel to a Campfire.`];   // AUDIT REST II H13: the notes' own words
+    case REST_ITEM.Firewood: return [`Adds ${FIREWOOD_NIGHTS} nights of fuel to a Campfire.`];
     case REST_ITEM.Tonic: return [`Restores ${Math.round(TONIC_FATIGUE * 100)}% of your fatigue.`, `With Climates & Calories, sleep can wait ${TONIC_SLEEP_HOURS} hours more.`];
     case REST_ITEM.Candle: return [`${n} ${n === 1 ? 'use' : 'uses'} left`, `Meditate by it to restore ${Math.round(CANDLE_MAGICKA * 100)}% of your magicka.`];
     case REST_ITEM.Salts: return [`${n} ${n === 1 ? 'use' : 'uses'} left`, 'Keeps weariness away for an hour, then it returns all at once.'];
@@ -124,14 +83,11 @@ export function restItemLines(item) {
   }
 }
 
-// ---- the uses -----------------------------------------------------------
-/** One off a stack, or the item off the list. */
 function takeOne(item, list) {
   if ((item.stackCount ?? 1) > 1) { item.stackCount -= 1; return; }
   const i = Array.isArray(list) ? list.indexOf(item) : -1;
   if (i >= 0) list.splice(i, 1);
 }
-/** One charge off a charged item; the item off the list at none. Answers whether it is gone. */
 export function spendCharge(item, list) {
   item.currentCondition = Math.max(0, (item.currentCondition ?? 1) - 1);
   if (item.currentCondition > 0) return false;
@@ -140,7 +96,6 @@ export function spendCharge(item, list) {
   return true;
 }
 
-/** THE TONIC: fatigue at once; with the arc on, the sleep debt lighter. */
 export function useTonic(item, list, entity, now = ownMinutes()) {
   if (!entity) return { kind: 'text', text: REST_ITEM_TEXT.tonic };
   const max = maxFatigue(entity);
@@ -155,17 +110,16 @@ export function useTonic(item, list, entity, now = ownMinutes()) {
   return { kind: 'text', text: sleep ? REST_ITEM_TEXT.tonicSleep : REST_ITEM_TEXT.tonic };
 }
 
-/** THE SALTS: the penalties held an hour of the character's clock; the debt lands when it ends (needs.js). */
 export function useSalts(item, list, entity, now = ownMinutes()) {
   if (!survivalOn() || !entity) return { kind: 'text', text: REST_ITEM_TEXT.saltsArcOff };
   const s = survivalOf(entity, now);
-  if (sleepStage(s.sleepDebt ?? 0) === 'rested') return { kind: 'text', text: REST_ITEM_TEXT.saltsNotTired };   // AUDIT REST F9: the stage, not the debt
-  if (wakingHeld(s, now)) return { kind: 'text', text: REST_ITEM_TEXT.saltsHeld };   // AUDIT REST-PARTY B6: one hour at a time - three taken at once held three hours and landed ONE hour's debt (needs.js landWakingDebt lands once), and at the debt's cap none
+  if (sleepStage(s.sleepDebt ?? 0) === 'rested') return { kind: 'text', text: REST_ITEM_TEXT.saltsNotTired };
+  // Refuse a second dose while one holds: the sleep debt lands only once when the hold ends.
+  if (wakingHeld(s, now)) return { kind: 'text', text: REST_ITEM_TEXT.saltsHeld };
   s.wakingUntil = Math.max(s.wakingUntil ?? 0, now) + SALTS_MINUTES;
   spendCharge(item, list);
   return { kind: 'text', text: REST_ITEM_TEXT.salts };
 }
-/** THE DRAUGHT: the next night a bed's (scenes/shared.js setResting reads and spends it). */
 export function useDraught(item, list, entity, now = ownMinutes()) {
   if (!entity) return { kind: 'text', text: REST_ITEM_TEXT.draught };
   const s = survivalOf(entity, now);
@@ -174,23 +128,16 @@ export function useDraught(item, list, entity, now = ownMinutes()) {
   takeOne(item, list);
   return { kind: 'text', text: REST_ITEM_TEXT.draught };
 }
-/** shared.js: a draught taken, whatever the tier (the arc off, every rest is a bed's already). */
 export const draughtTaken = (entity) => !!entity?.survival?.draught;
 export const spendDraught = (entity) => { if (entity?.survival) entity.survival.draught = false; };
 
-// ---- THE CANDLE: lit from the pack, knelt by through the rest key -------------------------------------------------
-let _candle = null;   // { item, list } - the candle lit, waiting for the rest's channel (createRestDeps' restAct)
-/** The candle the next rest kneels by, or null - AUDIT REST F4: only while it is still in `entity`'s pack (sold, dropped,
- *  stored or a load since, it is out). */
+let _candle = null;
 export const litCandle = (entity = null) => (_candle && (!entity || (entity.items ?? []).includes(_candle.item)) ? _candle : null);
 export function useCandle(item, list, entity = null) {
-  // AUDIT REST II H10: the kneel asks the pack (litCandle - AUDIT REST F4), so a candle lit from the wagon said "lit"
-  // and never knelt: one off the pack is refused with words
   if (entity && !(entity.items ?? []).includes(item)) return { kind: 'text', text: REST_ITEM_TEXT.candleNotCarried };
   _candle = { item, list };
   return { kind: 'text', text: REST_ITEM_TEXT.candleLit, closesWindow: true };
 }
-/** The kneel held to its end: magicka, one use. Answers the wake text. */
 export function meditate(entity) {
   const c = litCandle(entity);
   _candle = null;
@@ -200,14 +147,8 @@ export function meditate(entity) {
   const gone = spendCharge(c.item, c.list);
   return gone ? `${REST_ITEM_TEXT.meditated} ${REST_ITEM_TEXT.candleOut}` : REST_ITEM_TEXT.meditated;
 }
-/** A kneel stopped, or another rest begun: the candle goes back to the pack unspent. */
 export const snuffCandle = () => { _candle = null; };
 
-/** AUDIT REST-PARTY B4: ONLINE, NONE IS USED WHILE ITS SOURCES ARE SHUT (restItemsOnline). Customs keeps them offline
- *  then (realmCustoms.js), but a door customs never closed - an older realm save, a trade from a build that sold them -
- *  had them in hand and working online: a laid Bedroll a rest point, a Tonic a draught. The card offers no Use
- *  (`usable`, useItem.js usableItem) and a hotbar press is told why; offline as ever. REST-LOOT: open now, every one
- *  is used online as offline - this is the switch's way back. */
 const restItemsShut = () => isOnlinePage() && !restItemsOnline();
 const offlineUse = (fn) => {
   const h = (item, list, ctx) => (restItemsShut() ? { kind: 'text', text: REST_ITEM_TEXT.notOnline } : fn(item, list, ctx));
@@ -217,55 +158,39 @@ const offlineUse = (fn) => {
 registerItemUseHandler(REST_ITEM.Bedroll, offlineUse((item) => ({ kind: 'pitchCamp', item })));
 registerItemUseHandler(REST_ITEM.EmberJar, offlineUse((item) => ({ kind: 'placeFire', item })));
 registerItemUseHandler(REST_ITEM.Firewood, offlineUse((item) => ({ kind: 'placeFire', item })));
-registerItemUseHandler(REST_ITEM.Tonic, offlineUse((item, list, ctx) => useTonic(item, list, ctx?.entity)));   // AUDIT REST-PARTY T1: the ladder's ctx (useItem.js), as foragingInstall.js reads it - a `{}` default typed the deploy's tsc red
+registerItemUseHandler(REST_ITEM.Tonic, offlineUse((item, list, ctx) => useTonic(item, list, ctx?.entity)));
 registerItemUseHandler(REST_ITEM.Candle, offlineUse((item, list, ctx) => useCandle(item, list, ctx?.entity)));
 registerItemUseHandler(REST_ITEM.Salts, offlineUse((item, list, ctx) => useSalts(item, list, ctx?.entity)));
 registerItemUseHandler(REST_ITEM.Draught, offlineUse((item, list, ctx) => useDraught(item, list, ctx?.entity)));
 
-// ---- the shelves and the piles -------------------------------------------------------------------------------------
-/** A General Store's and an Alchemist's REST shelf: the counts (inclusive ranges), a better shop a few more. */
 export const REST_SHELVES = Object.freeze({
   GeneralStore: Object.freeze([[REST_ITEM.Bedroll, 0, 1], [REST_ITEM.EmberJar, 1, 3], [REST_ITEM.Firewood, 2, 5], [REST_ITEM.Tonic, 0, 2]]),
   Alchemist: Object.freeze([[REST_ITEM.Tonic, 1, 3], [REST_ITEM.Salts, 0, 2], [REST_ITEM.Draught, 1, 2], [REST_ITEM.Candle, 1, 2]]),
 });
-/** The shelf's rest items for a shop kind ('GeneralStore' | 'Alchemist'), quality 1-20 - empty where the sources are
- *  not yet on. */
 export function restItemsStock(kind, quality = 10, rolls = Math.random, { online = isOnlinePage() } = {}) {
   if (!restItemsAvailable(online)) return [];
   const out = [];
   for (const [t, lo, hi] of REST_SHELVES[kind] ?? []) {
     const n = lo + Math.floor(rolls() * (hi - lo + 1)) + (quality >= 15 && hi > 0 ? 1 : 0);
-    // AUDIT REST II H14: the Bedroll is ONLINE's rest point (section 2.1) - offline every rest is DFU's, anywhere, and a
-    // Bedroll's rough night is the bare ground's, so an offline shelf sold one for 80 to wear out and nothing more. Its
-    // count is still drawn, so the shelf's other draws stay their own.
+    // The Bedroll count is still drawn offline so the other shelf draws keep their rolls.
     if (t === REST_ITEM.Bedroll && !online) continue;
     for (let i = 0; i < n; i++) { const it = createRestItem(t); if (it) out.push(it); }
   }
   return out;
 }
-/** A dungeon pile's (keys J-O) and a looting foe's chances, in percent - each item its own roll. REST-LOOT: the fire's
- *  two (the Ember Jar, the Tonic) the commonest, the dearer charged three (Candle, Salts, Draught) the rarest, Firewood
- *  in a pile alone, the Bedroll never (the counter's). */
 export const REST_PILE_CHANCES = Object.freeze([[REST_ITEM.EmberJar, 6], [REST_ITEM.Tonic, 6], [REST_ITEM.Firewood, 4], [REST_ITEM.Candle, 2], [REST_ITEM.Salts, 2], [REST_ITEM.Draught, 2]]);
 export const REST_FOE_CHANCES = Object.freeze([[REST_ITEM.EmberJar, 3], [REST_ITEM.Tonic, 3], [REST_ITEM.Candle, 1], [REST_ITEM.Salts, 1], [REST_ITEM.Draught, 1]]);
-/** RENOWN-LOOT (systems/renownLoot.js): a table at `quarters` of LOOT-EASE's buff. Online the supplies' step starts from
- *  none - they never dropped online before LOOT-EASE - so a foe's Ember Jar is 1.5 in 100 at Renown 1, 3 at Renown 20
- *  and 4.5 at Renown 40; offline the table as it stands. Each item still draws its roll at every share, so no other
- *  draw moves. */
 export const restLootChances = (chances, quarters = renownLootQuarters()) =>
   quarters === 4 ? chances : chances.map(([t, pct]) => [t, lootEased(0, pct, quarters)]);
-/** A pile's or a foe's roll: each item at its chance, minted into `items`. */
+// Every item draws its roll even at a zero chance, so the draw sequence never shifts.
 export function rollRestLoot(items, chances, rolls = Math.random, { online = isOnlinePage() } = {}) {
   if (!Array.isArray(items) || !restItemsAvailable(online)) return items;
   for (const [t, pct] of chances) if (rolls() * 100 < pct) { const it = createRestItem(t); if (it) items.push(it); }
   return items;
 }
-/** The J-O window of LootTables.GenerateLoot (loot.js addPileLootExtras' own). */
 export const isDeepPileKey = (key) => { const a = String(key ?? '').charCodeAt(0) - 64; return a >= 10 && a <= 15; };
-/** The piles' and the foes' hooks, subscribed last (scenes/shared.js, after Foraging's): a draw taken here is after
- *  every other subscriber's, so none of theirs moves. */
+// Install after the other loot subscribers so these draws never shift theirs.
 export function installRestItemLoot() {
-  // PARTY-LOOT: at the roll's own RENOWN-LOOT share when the raiser names one (a room's base), else the roller's
   registerTabledLootHandler('REST', ({ key, items, rolls, quarters }) => { if (isDeepPileKey(key)) rollRestLoot(items, restLootChances(REST_PILE_CHANCES, quarters), rolls); });
   registerEnemyLootExtra('REST', ({ items, rolls, quarters }) => { rollRestLoot(items, restLootChances(REST_FOE_CHANCES, quarters), rolls); });
 }
