@@ -6,6 +6,7 @@ kind: "subcard"
 parent: "combat-abilities-overview"
 files:
   - "src/combat/abilities/progress.js"
+  - "src/characters/testRoom.js"
   - "src/combat/abilities/combinations.js"
   - "src/combat/abilities/racialIdentity.js"
 routes: []
@@ -16,6 +17,7 @@ related:
 invariants:
   - "abilitiesEnabled is true only offline, with the ?abilities page flag or the combat-preview test character. Only the unlock sync is gated: every save restores and writes the learned block."
   - "The save block is { version: 1, learned: [ids] }: restore keeps at most 512 valid IDs, and a block of another version is dropped. Unlocks are permanent once learned."
+  - "Combat Preview starts outside Privateer's Hold and accepts any playable race. The power setting seeds skills and attributes at 1, at 50, or at their caps. Character level respects the level cap, and learned abilities are recalculated from the selected race and skills."
   - "A weapon or combination ability unlocks when every listed skill reaches its rank, a utility when any physical skill does, and a racial ability only for its own race."
   - "previewPhysicalActor refuses online, peer, mentored, beast-form and sigil-dueling actors, so racial traits never touch PvP."
 traps:

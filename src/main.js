@@ -266,8 +266,12 @@ async function boot() {
     // testRoom home the pane showed. The param family follows F12's
     // law above: set on this choice, DELETED on every other, or a URL
     // that once entered the room would re-enter it on New Game.
-    if (typeof choice === 'string' && choice.startsWith('test:')) params.set('test', choice.slice(5));
-    else params.delete('test');
+    const [, testId, testRace, testPower] = typeof choice === 'string' ? choice.split(':') : [];
+    const enteringTest = typeof choice === 'string' && choice.startsWith('test:');
+    for (const [key, value] of [['test', testId], ['testrace', testRace], ['testpower', testPower]]) {
+      if (enteringTest && value) params.set(key, value);
+      else params.delete(key);
+    }
     // TSR4b (Mac: "it either places me in the dungeon or places me in
     // the ground"): the classic start is Privateer's Hold - a map cell
     // out of settings, and StartInDungeon puts a new character INSIDE

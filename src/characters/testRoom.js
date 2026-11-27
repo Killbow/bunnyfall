@@ -1,17 +1,18 @@
 // The test room: prebuilt characters, their armory, and the seeding for a preset.
 
-import { RACES } from './races.js';
+import { raceByKey } from './races.js';
 import { resurrectionSpell } from '../magic/resurrect.js';
 import { applyHeadlessChargen } from './chargenSession.js';
-import { hitPointsPerLevelUp, spellPointMultiplier, spellPoints } from './chargen.js';
+import { hitPointsPerLevelUp, rollMaxHealthLevel1 } from './chargen.js';
 import { LEVEL_CAP } from './levelCap.js';
-import { SKILL_HARD_CAP } from './skills.js';
+import { levelUpSkillSum, SKILL_HARD_CAP } from './skills.js';
+import { levelUpSkillSumAnchor } from './advancement.js';
 import { fillVitalSigns } from './statMods.js';
 import { setNames } from './names.js';
-import { COMBAT_PREVIEW_PRESET, syncAbilityUnlocks } from '../combat/abilities/progress.js';
+import { COMBAT_PREVIEW_PRESET, learnedAbility, restoreAbilityProgress } from '../combat/abilities/progress.js';
 import { DAGGER_MILESTONES, TANTO_MILESTONES } from '../combat/abilities/milestones.js';
 import { ABILITIES } from '../combat/abilities/registry.js';
-import { hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot, switchHotbarPreset } from '../items/quickslots.js';
+import { clearHotbar, hotbarEntryForAbility, hotbarEntryForWeaponRank, setHotbarSlot, switchHotbarPreset } from '../items/quickslots.js';
 import { BLADE_WEAVE, THOUSAND_CUTS, HUNTING_LINE, PREDATORS_CROSSING, KNOCKOUT_CHAIN, TITANS_HANDS } from '../combat/abilities/combinations.js';
 import { addItem } from '../items/inventory.js';
 import { equipItem } from './equip.js';
@@ -30,9 +31,11 @@ import { mintHourlock, mintGilded, GILDED_RECORDS } from '../items/gilded.js';
 import { welkyndStone, varlaStone } from '../items/ayleidStones.js';
 import { mintGem } from '../items/gems.js';
 
+export const COMBAT_PREVIEW_POWER = Object.freeze(['1', '50', 'max']);
+
 export const TEST_PRESETS = Object.freeze([
   { id: COMBAT_PREVIEW_PRESET, label: 'Combat Preview', race: 'Nord', gender: 'male', faceIndex: 0, classIndex: 16,
-    blurb: 'A max-level character with Daedric gear and the offline combat preview loadout.' },
+    blurb: "Start outside Privateer's Hold with the combat preview armory." },
   { id: 'nord-warrior', label: 'Nord Warrior', race: 'Nord', gender: 'male', faceIndex: 0, classIndex: 16,
     blurb: 'A plain human male in steel, with a longsword.' },
   { id: 'breton-sorceress', label: 'Breton Sorceress', race: 'Breton', gender: 'female', faceIndex: 2, classIndex: 3,
@@ -71,18 +74,26 @@ export const TEST_SEA_TEXT = Object.freeze({
   noRoom: 'No open water here for a pirate ship.',
 });
 
-export const testStartsOutdoors = (id) => id === TEST_RIDE.id || id === TEST_SEA.id;
+export const testStartsOutdoors = (id) => id === TEST_RIDE.id || id === TEST_SEA.id || id === COMBAT_PREVIEW_PRESET;
 
 export function enableTestSea() {
   setModSetting('come-sail-away', 'Enabled', true);
   setPref('naval', true);
 }
 
-export function testEntryById(id) {
+export function testEntryById(id, params = new URLSearchParams()) {
   if (id === TEST_RIDE.id) return { preset: testPresetById(TEST_RIDE.preset), ride: true };
   if (id === TEST_SEA.id) return { preset: testPresetById(TEST_SEA.preset), ride: false, sea: true };
   if (id === TEST_LOOT.id) return { preset: testPresetById(TEST_LOOT.preset), ride: false, loot: true };
   const preset = testPresetById(id);
+  if (preset?.id === COMBAT_PREVIEW_PRESET) {
+    const race = raceByKey(params.get('testrace'))?.key ?? preset.race;
+    const power = params.get('testpower') ?? 'max';
+    return {
+      preset: { ...preset, race, power: COMBAT_PREVIEW_POWER.includes(power) ? power : 'max' },
+      ride: false,
+    };
+  }
   return preset ? { preset, ride: false } : null;
 }
 
@@ -156,17 +167,20 @@ const EXTRA_UTILITY_PREVIEW_SLOTS = [
   'utility.riverstride', 'utility.breakaway', 'utility.skyward-ascent', 'utility.field-antidote', 'utility.lockbreaker',
 ];
 
-export function seedCombatPreview(entity) {
+export function seedCombatPreview(entity, power = 'max') {
   setNames(entity, 'Combat', 'Preview');
-  entity.level = LEVEL_CAP;
-  entity.skills.fill(SKILL_HARD_CAP);
-  entity.masterSkills = true;
-  entity.masterSkillsAsked = true;
-  entity.masteredSkills = Array.from(entity.skills, (_, id) => id);
-  for (const key of Object.keys(entity.stats)) entity.stats[key] = 100;
-  entity.maxHealth += (LEVEL_CAP - 1) * hitPointsPerLevelUp(entity.career, entity.stats.endurance, () => 0.5);
-  entity.maxMagicka = spellPoints(entity.stats.intelligence,
-    spellPointMultiplier(entity.career.abilityFlagsAndSpellPointsBitfield ?? 0x1000));
+  const maxed = power === 'max';
+  const stat = maxed ? 100 : Number(power);
+  entity.level = Math.min(stat, LEVEL_CAP);
+  entity.skills.fill(maxed ? SKILL_HARD_CAP : stat);
+  entity.masterSkills = maxed;
+  entity.masterSkillsAsked = maxed;
+  entity.masteredSkills = maxed ? Array.from(entity.skills, (_, id) => id) : [];
+  for (const key of Object.keys(entity.stats)) entity.stats[key] = stat;
+  entity.currentLevelUpSkillSum = levelUpSkillSum(entity);
+  entity.startingLevelUpSkillSum = levelUpSkillSumAnchor(entity.currentLevelUpSkillSum, entity.level);
+  entity.maxHealth = rollMaxHealthLevel1(entity.career)
+    + (entity.level - 1) * hitPointsPerLevelUp(entity.career, entity.stats.endurance, () => 0.5);
   fillVitalSigns(entity);
 
   const templates = ABILITIES.filter(ability => ability.category === 'weapon' && ability.rank === 25
@@ -184,16 +198,28 @@ export function seedCombatPreview(entity) {
     addItem(entity.items, item);
     if (i === 0 || row.kind === 'armor') equipItem(entity, item);
   }
-  syncAbilityUnlocks(entity);
-  [25, 50, 75, 100].forEach((rank, i) => setHotbarSlot(i, hotbarEntryForWeaponRank(rank)));
-  COMBAT_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i + 4, hotbarEntryForAbility(id)));
+  restoreAbilityProgress(entity, null, true);
+  const bindLearned = (id, slot) => {
+    if (learnedAbility(entity, id)) setHotbarSlot(slot, hotbarEntryForAbility(id));
+  };
+  const racial = ABILITIES.find(ability => ability.race === entity.race);
+  switchHotbarPreset(0);
+  clearHotbar();
+  [25, 50, 75, 100].forEach((rank, i) => {
+    if (rank <= stat) setHotbarSlot(i, hotbarEntryForWeaponRank(rank));
+  });
+  COMBAT_PREVIEW_SLOTS.forEach((id, i) => bindLearned(id, i + 4));
+  if (racial && !maxed) bindLearned(racial.id, stat >= 50 ? 2 : 0);
   switchHotbarPreset(1);
-  COMBINATION_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
+  clearHotbar();
+  COMBINATION_PREVIEW_SLOTS.forEach(bindLearned);
   switchHotbarPreset(2);
-  setHotbarSlot(0, hotbarEntryForAbility('racial.nord.frostborn-charge'));
-  EXTRA_UTILITY_PREVIEW_SLOTS.forEach((id, i) => setHotbarSlot(i + 1, hotbarEntryForAbility(id)));
+  clearHotbar();
+  if (racial) bindLearned(racial.id, 0);
+  EXTRA_UTILITY_PREVIEW_SLOTS.forEach((id, i) => bindLearned(id, i + 1));
   switchHotbarPreset(3);
-  [...DAGGER_MILESTONES, ...TANTO_MILESTONES].forEach((id, i) => setHotbarSlot(i, hotbarEntryForAbility(id)));
+  clearHotbar();
+  [...DAGGER_MILESTONES, ...TANTO_MILESTONES].forEach(bindLearned);
   switchHotbarPreset(0);
   setPref('quickbarStyle', 'hotbar');
   return rows.length;
@@ -329,7 +355,7 @@ export function addRandomTestSpells(entity, spellsByIndex = null, count = 8, ran
 
 export async function applyTestCharacter(playerEntity, preset, { fetchBytes, spellsByIndex = null } = {}) {
   playerEntity.race = preset.race;
-  playerEntity.raceId = RACES[preset.race] ?? 1;
+  playerEntity.raceId = raceByKey(preset.race)?.id ?? 1;
   playerEntity.gender = preset.gender;
   playerEntity.faceIndex = preset.faceIndex | 0;
   playerEntity.name = preset.label;
@@ -339,7 +365,7 @@ export async function applyTestCharacter(playerEntity, preset, { fetchBytes, spe
   if (preset.id === COMBAT_PREVIEW_PRESET) {
     addTestMissileSpells(playerEntity, spellsByIndex);
     addRandomTestSpells(playerEntity, spellsByIndex, 8);
-    return { added: seedCombatPreview(playerEntity) };
+    return { added: seedCombatPreview(playerEntity, preset.power) };
   }
   const added = seedTestGear(playerEntity);
   const cuirass = added.find((it) => it.group === 'Armor' && it.templateIndex === ARMOR_ENUM.Cuirass && it.material === ARMOR_MATERIAL.Steel);

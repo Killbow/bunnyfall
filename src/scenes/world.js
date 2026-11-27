@@ -903,6 +903,8 @@ import { createTerrainSurfaceWorld } from '../world/terrainSurfaceWorld.js';
 import { createLandformLiftWorld } from '../world/landformLiftWorld.js';
 import { createTerrainLodWorld } from '../world/terrainLodWorld.js';
 import { createMusicPlaceWorld } from '../audio/musicPlaceWorld.js';
+import { COMBAT_PREVIEW_PRESET } from '../combat/abilities/progress.js';
+import { isPrivateersHold } from '../world/startDungeon.js';
 import { createTestPresetWorld } from '../world/testPresetWorld.js';
 import { createHoverPickersWorld } from '../ui/hoverPickersWorld.js';
 import { createGroundStepsWorld } from '../world/groundStepsWorld.js';
@@ -2001,7 +2003,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // NEVER TRAPS: a start cell with no location falls back to the named
   // location rather than throwing the player at a black screen.
   let startLoc = null;
-  if (params.has('classic')) {
+  const combatPreviewStart = params.get('test') === COMBAT_PREVIEW_PRESET && !params.has('load');
+  if (combatPreviewStart) startLoc = [...locationIndex.values()].find(isPrivateersHold) ?? null;
+  if (!startLoc && params.has('classic')) {
     const cell = `${getInt('Startup', 'StartCellX')},${getInt('Startup', 'StartCellY')}`;
     startLoc = locationIndex.get(cell) ?? null;
     if (!startLoc) console.warn(`[world] start cell ${cell} holds no location; falling back to ${regionName}/${locationName}`);
@@ -4360,7 +4364,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     betterAmbience.onStartGame();
     reportModCompatibilityIssues({ showText: (lines) => messageBox(lines) });   // ENH-NOTICE3: through the one door - still a PUSH over what is open, which is the seam's default and B5's law for every DaggerfallUI.MessageBox
   };
-  const { _tactDoorSpots, rideOut, seaTest, shiftedDoor, testEntry, testPreset } = createWorldProbes({
+  const { _tactDoorSpots, rideOut, seaTest, shiftedDoor, spawnOutsideHold, testEntry, testPreset } = createWorldProbes({
     _teleportToPixel, buildingDoors, cam, collider, heightAt, inFlight, locationLandingFor, params, player, queue,
     setTransportModeHere, startPixel, state, townTalk, tvSeaLandAlong, tvSeaY,
     get ARRIVAL_LIFT() { return ARRIVAL_LIFT; },
@@ -14997,6 +15001,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const snap = bootSnap();
     bootSnapRead = null;
     await worldQuickLoad({ ...bootLoadPick, snap });
+  } else if (combatPreviewStart) {
+    if (walkMode && isPrivateersHold(startLoc) && spawnOutsideHold()) {
+      playerSpawned = true;
+      dwTeleported(performance.now() / 1000);
+      csaOnTeleport();
+    }
   } else if (params.has('classic') && getBool('Startup', 'StartInDungeon') && startLoc.hasDungeon) {
     status('entering the dungeon');
     const entered = await modes.startInDungeon({ holdOpen: true });   // HOLD-ONCE: the new game's start is the one way into Privateer's Hold online
