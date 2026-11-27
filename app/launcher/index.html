@@ -10,26 +10,50 @@
        the update in the bar, and Play.
        DA12: and a controller - the game's own front-door pad loop (pad.js).
        AUDIT BR5: and the product's logo, the game's own file (bunnyfall.png,
-       served by the shell out of src/assets/branding). -->
+       served by the shell out of src/assets/branding).
+       PARCHMENT: the page is a sheet of parchment under a wooden rail, dressed
+       with the game's own trinkets (art/, served out of public/art/bunnyfall-decor -
+       the site wears the same ones). The rabbit and the PLAY badge move only
+       once Play can be pressed (body[data-ready]); until then they hold still. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self'">
   <title>Bunnyfall</title>
   <link rel="stylesheet" href="launcher.css">
 </head>
 <body data-busy>
-  <div class="night" aria-hidden="true"></div>
+  <!-- the sheet: stains, grain and burnt edges, drawn once -->
+  <svg class="parchment" aria-hidden="true" width="960" height="600" viewBox="0 0 960 600">
+    <defs>
+      <filter id="blot" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".008 .012" numOctaves="4" seed="8"/><feColorMatrix values="0 0 0 0 .56 0 0 0 0 .33 0 0 0 0 .1 0 0 0 1.2 -.38"/></filter>
+      <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 .36 0 0 0 0 .2 0 0 0 0 .08 0 0 0 .55 -.05"/></filter>
+      <radialGradient id="burn" cx="50%" cy="48%" r="75%"><stop offset="55%" stop-color="#7a3a1c" stop-opacity="0"/><stop offset="100%" stop-color="#3f1c0a" stop-opacity=".72"/></radialGradient>
+    </defs>
+    <rect width="960" height="600" fill="#ccb074" opacity=".55"/>
+    <rect width="960" height="600" filter="url(#blot)" opacity=".6"/>
+    <rect width="960" height="600" filter="url(#grain)" opacity=".4"/>
+    <rect width="960" height="600" fill="url(#burn)"/>
+  </svg>
+
   <div class="launcher">
-    <header class="top">
+    <!-- THE RAIL: wood, the mark, the trinkets on the shelf, the door out -->
+    <header class="rail">
       <h1 class="wordmark"><img src="bunnyfall.png" alt="Bunnyfall" width="1600" height="382"></h1>
-      <nav class="links caps" aria-label="Links">
+      <div class="shelf" aria-hidden="true">
+        <img class="book" src="art/spellbook.png" alt="" width="345" height="225">
+        <img class="quill" src="art/feather.png" alt="" width="16" height="16">
+        <img class="coin" src="art/argent.png" alt="" width="96" height="96">
+        <img class="token" src="art/dusk-token.png" alt="" width="51" height="69">
+      </div>
+      <nav class="links" aria-label="Links">
         <button class="link" type="button" data-open="site">dagg.campfirerp.com</button>
       </nav>
+      <i class="gem" aria-hidden="true"></i>
     </header>
-    <div class="rule" aria-hidden="true"><i class="gem"></i></div>
 
     <div class="middle">
       <main class="panel">
+        <img class="seal" src="art/seal-red.png" alt="" width="62" height="67" aria-hidden="true">
         <section id="news" class="news" aria-labelledby="news-title">
-          <h2 id="news-title" class="caps">Patch notes</h2>
+          <h2 id="news-title" class="caps"><img class="mark" src="art/feather.png" alt="" width="16" height="16">Patch notes</h2>
           <div class="feed" tabindex="0"></div>
           <p class="note" hidden></p>
         </section>
@@ -42,35 +66,75 @@
       </main>
 
       <aside class="side" aria-label="Options">
+        <img class="seal green" src="art/seal-green.png" alt="" width="72" height="75" aria-hidden="true">
         <section class="opt">
-          <h3 class="caps">Game files</h3>
+          <h3 class="caps"><img class="mark" src="art/letter-icon.png" alt="" width="44" height="42">Game files</h3>
           <p id="files" class="files"></p>
           <button class="plaque small" type="button" data-act="choose-folder">Change folder</button>
         </section>
         <section class="opt">
-          <h3 class="caps">Saves</h3>
+          <h3 class="caps"><img class="mark" src="art/chest-icon.png" alt="" width="48" height="42">Saves</h3>
           <button class="plaque small" type="button" data-act="open-saves">Open saves folder</button>
         </section>
         <section class="opt">
-          <h3 class="caps">Updates</h3>
+          <h3 class="caps"><img class="mark" src="art/ship-icon.png" alt="" width="54" height="50">Updates</h3>
           <label class="check"><input id="update-check" type="checkbox"> Check automatically</label>
           <button class="link" type="button" data-act="reinstall">Reinstall...</button>
         </section>
       </aside>
     </div>
 
+    <!-- THE BAR: the rabbit, what the launcher is doing, and PLAY -->
     <footer class="bar">
-      <div class="state">
-        <p id="status" aria-live="polite"></p>
-        <p id="detail"></p>
-        <div id="progress" class="progress" hidden>
-          <div class="track" role="progressbar" aria-labelledby="status" aria-valuemin="0" aria-valuemax="100"><i></i></div>
-          <span class="label" aria-hidden="true"></span>
-        </div>
+      <!-- THE RABBIT follows the campfire (launcher.css): he lights it, cheers it on as it catches, and dances
+           beside it once it burns, with the cube sat by the fire; on the first run he carries the cube in -->
+      <div class="bunny" aria-hidden="true">
+        <img class="light" src="art/bunny-light.png" alt="" width="306" height="400">
+        <img class="hands" src="art/bunny-hands.png" alt="" width="299" height="400">
+        <img class="cube" src="art/cube.png" alt="" width="320" height="298">
+        <img class="anim" src="art/bunny-wave.gif" alt="" width="315" height="311">
+        <img class="still" src="art/bunny-cheer.png" alt="" width="420" height="420">
+        <img class="carry" src="art/bunny-carry.png" alt="" width="480" height="490">
       </div>
-      <div id="status-actions" class="status-actions"></div>
+      <!-- THE CAMPFIRE: cold while the launcher waits, embers while it checks, catching as an update comes down, and
+           burning once Play can be pressed (body[data-fire] 0-4, launcher.js) - then it stays lit -->
+      <svg class="fire" aria-hidden="true" width="96" height="88" viewBox="0 0 24 22" shape-rendering="crispEdges">
+        <g class="smoke" fill="#9a9080"><rect x="12" y="10" width="1" height="2" fill="#9a9080"/><rect x="11" y="7" width="1" height="2" fill="#9a9080"/><rect x="12" y="4" width="1" height="2" fill="#9a9080"/><rect x="11" y="1" width="1" height="2" fill="#9a9080"/></g>
+        <g class="f4 a"><rect x="8" y="6" width="8" height="9" fill="#d9481a"/><rect x="9" y="4" width="6" height="2" fill="#e8641e"/><rect x="10" y="2" width="3" height="2" fill="#f08a24"/><rect x="11" y="0" width="1" height="2" fill="#f6b23c"/><rect x="7" y="9" width="1" height="5" fill="#e8641e"/><rect x="16" y="7" width="1" height="6" fill="#e8641e"/><rect x="15" y="4" width="1" height="2" fill="#f08a24"/><rect x="9" y="7" width="6" height="7" fill="#f08a24"/><rect x="10" y="5" width="3" height="3" fill="#f6b23c"/><rect x="11" y="8" width="2" height="6" fill="#ffe27a"/></g>
+        <g class="f4 b"><rect x="8" y="6" width="8" height="9" fill="#d9481a"/><rect x="9" y="4" width="6" height="2" fill="#e8641e"/><rect x="11" y="2" width="3" height="2" fill="#f08a24"/><rect x="12" y="0" width="1" height="2" fill="#f6b23c"/><rect x="7" y="7" width="1" height="6" fill="#e8641e"/><rect x="8" y="4" width="1" height="2" fill="#f08a24"/><rect x="16" y="9" width="1" height="5" fill="#e8641e"/><rect x="9" y="7" width="6" height="7" fill="#f08a24"/><rect x="11" y="5" width="3" height="3" fill="#f6b23c"/><rect x="11" y="8" width="2" height="6" fill="#ffe27a"/></g>
+        <g class="f3"><rect x="9" y="8" width="6" height="7" fill="#e8641e"/><rect x="10" y="6" width="4" height="2" fill="#f08a24"/><rect x="11" y="4" width="2" height="2" fill="#f08a24"/><rect x="10" y="9" width="4" height="5" fill="#f6b23c"/><rect x="11" y="7" width="2" height="3" fill="#ffe27a"/></g>
+        <g class="f2"><rect x="10" y="10" width="4" height="5" fill="#e8641e"/><rect x="11" y="9" width="2" height="1" fill="#f08a24"/><rect x="11" y="11" width="2" height="3" fill="#f6b23c"/></g>
+        <g class="spark"><rect x="17" y="3" width="1" height="1" fill="#ffe27a"/></g>
+        <rect x="5" y="18" width="14" height="1" fill="#2b1a10"/>
+        <rect x="6" y="14" width="5" height="2" fill="#5e341a"/><rect x="10" y="15" width="5" height="2" fill="#5e341a"/><rect x="14" y="16" width="5" height="2" fill="#5e341a"/><rect x="6" y="14" width="5" height="1" fill="#7a4a26"/><rect x="10" y="15" width="4" height="1" fill="#7a4a26"/><rect x="18" y="16" width="2" height="2" fill="#c8955a"/><rect x="19" y="16" width="1" height="1" fill="#e0b47a"/>
+        <rect x="13" y="14" width="5" height="2" fill="#6b3f1f"/><rect x="9" y="15" width="5" height="2" fill="#6b3f1f"/><rect x="5" y="16" width="5" height="2" fill="#6b3f1f"/><rect x="13" y="14" width="5" height="1" fill="#8a5a30"/><rect x="9" y="15" width="4" height="1" fill="#8a5a30"/><rect x="4" y="16" width="2" height="2" fill="#c8955a"/><rect x="4" y="16" width="1" height="1" fill="#e0b47a"/>
+        <g class="ember"><rect x="9" y="14" width="6" height="1" fill="#e0582a"/><rect x="10" y="13" width="4" height="1" fill="#f08a24"/><rect x="8" y="16" width="1" height="1" fill="#c2361c"/><rect x="15" y="16" width="1" height="1" fill="#c2361c"/></g>
+        <rect x="0" y="14" width="4" height="4" fill="#7f7a6f"/><rect x="1" y="14" width="2" height="1" fill="#bdb7a8"/><rect x="0" y="15" width="1" height="2" fill="#a7a193"/><rect x="1" y="17" width="3" height="1" fill="#4f4b43"/><rect x="3" y="15" width="1" height="3" fill="#615d54"/><rect x="20" y="14" width="4" height="4" fill="#7f7a6f"/><rect x="21" y="14" width="2" height="1" fill="#bdb7a8"/><rect x="20" y="15" width="1" height="2" fill="#a7a193"/><rect x="21" y="17" width="3" height="1" fill="#4f4b43"/><rect x="23" y="15" width="1" height="3" fill="#615d54"/>
+        <rect x="0" y="17" width="5" height="4" fill="#8f8a7e"/><rect x="1" y="17" width="3" height="1" fill="#bdb7a8"/><rect x="0" y="18" width="1" height="2" fill="#a7a193"/><rect x="1" y="20" width="4" height="1" fill="#4f4b43"/><rect x="4" y="18" width="1" height="3" fill="#615d54"/><rect x="4" y="18" width="5" height="4" fill="#98928a"/><rect x="5" y="18" width="3" height="1" fill="#bdb7a8"/><rect x="4" y="19" width="1" height="2" fill="#a7a193"/><rect x="5" y="21" width="4" height="1" fill="#4f4b43"/><rect x="8" y="19" width="1" height="3" fill="#615d54"/><rect x="9" y="19" width="6" height="3" fill="#8f8a7e"/><rect x="10" y="19" width="4" height="1" fill="#bdb7a8"/><rect x="9" y="20" width="1" height="1" fill="#a7a193"/><rect x="10" y="21" width="5" height="1" fill="#4f4b43"/><rect x="14" y="20" width="1" height="2" fill="#615d54"/><rect x="15" y="18" width="5" height="4" fill="#98928a"/><rect x="16" y="18" width="3" height="1" fill="#bdb7a8"/><rect x="15" y="19" width="1" height="2" fill="#a7a193"/><rect x="16" y="21" width="4" height="1" fill="#4f4b43"/><rect x="19" y="19" width="1" height="3" fill="#615d54"/><rect x="19" y="17" width="5" height="4" fill="#8f8a7e"/><rect x="20" y="17" width="3" height="1" fill="#bdb7a8"/><rect x="19" y="18" width="1" height="2" fill="#a7a193"/><rect x="20" y="20" width="4" height="1" fill="#4f4b43"/><rect x="23" y="18" width="1" height="3" fill="#615d54"/>
+      </svg>
+      <div class="bubble">
+        <img class="heart" src="art/heart.png" alt="" width="16" height="16" aria-hidden="true">
+        <div class="state">
+          <p id="status" aria-live="polite"></p>
+          <p id="detail"></p>
+          <div id="progress" class="progress" hidden>
+            <div class="track" role="progressbar" aria-labelledby="status" aria-valuemin="0" aria-valuemax="100"><i></i></div>
+            <span class="label" aria-hidden="true"></span>
+          </div>
+        </div>
+        <div id="status-actions" class="status-actions"></div>
+      </div>
+      <div class="loot" aria-hidden="true">
+        <img class="pile" src="art/coins-icon.png" alt="" width="48" height="44">
+        <img class="spark s1" src="art/sparkle-gold.png" alt="" width="16" height="16">
+        <img class="spark s2" src="art/sparkle-red.png" alt="" width="16" height="16">
+      </div>
       <div class="go">
-        <button id="play" class="play" type="button" data-act="play" disabled>Play</button>
+        <button id="play" class="play" type="button" data-act="play" disabled>
+          <img class="anim" src="art/play.gif" alt="" width="361" height="362">
+          <img class="still" src="art/play-still.png" alt="" width="361" height="362">
+          <span class="play-label">Play</span>
+        </button>
         <span id="version" class="caps"></span>
       </div>
     </footer>

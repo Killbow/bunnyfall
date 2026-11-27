@@ -68,7 +68,7 @@ export const meleeCombinations = new Map([
     cut(1.9, .29, { advance: flank, rearBonus: .8, tempo: 1.5 }), hit('StrikeLeft', 1.9, .29, 'flurry', { tempo: 1.6 }),
     thrust(2.15, .42, { rearBonus: 1, counterBonus: .7, tempo: 1.5 }),
   ], { ...capstone(40, 'speed'), selfEffect: veil, fx: 'shadowstep' })],
-  ['combination.axe.blunt.siege-stance', melee(75, 'Plant your feet, raise a brief shield, and deliver an armor-piercing guard break.', [
+  ['combination.axe.blunt.siege-stance', melee(75, 'Plant your feet, raise a shield, and deliver an armor-piercing guard break.', [
     smash(2.8, 1, { armorPierce: .35, counterBonus: .65, control: { poiseShare: .95 } }),
   ], { stance: { driftM: .2 }, selfEffect: guard(20), fx: 'rally', windUpMs: 430 })],
   ['combination.axe.blunt.earthsplitter', melee(100, 'Commit to a heavy opening blow, then rupture the ground in a wide knockback sweep.', [
@@ -87,7 +87,7 @@ export const meleeCombinations = new Map([
 
 export const rangedCombinations = new Map([
   ['combination.archery.short-blade.hidden-relay', { family: SKILLS.ShortBlade, switchTo: 'a short blade',
-    description: 'Blend briefly and mark an enemy with an arrow. Equip a short blade and use the ability again to flank it and strike.',
+    description: 'Blend and mark an enemy with an arrow. Equip a short blade and use the ability again to flank it and strike.',
     arrow: { selfEffect: veil, unawareBonus: .65 }, melee: { fx: 'shadowstep', advance: flank, rearBonus: .55 } }],
   ['combination.archery.short-blade.vanishing-execution', { family: SKILLS.ShortBlade, switchTo: 'a short blade',
     description: 'Mark an enemy with a heavy shot. Equip a short blade and use the ability again to flank it under concealment and strike twice.',

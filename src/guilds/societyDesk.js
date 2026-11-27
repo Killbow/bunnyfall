@@ -262,7 +262,7 @@ export function createSocietyDesk(deps) {
 
     function renderSales() {
       if (!Array.isArray(data.oreSales)) { hint(t('society.salesClosed', 'Ore sales are currently closed.')); return; }
-      hint(t('society.oreSaleRules', 'Sell {n} gathered ore at a time. Iron pays 1 Argent per pack. Rarer ores pay more.', { n: SOCIETY_ORE_PACK }));
+      hint(t('society.oreSaleRules', 'Sell {n} gathered ore at a time. Each pack pays the ore market value, so rarer ores pay more.', { n: SOCIETY_ORE_PACK }));
       if (!data.oreSales.length) hint(t('society.noOrePacks', 'Your Stores have no full packs of gathered ore to sell.'));
       for (const sale of data.oreSales) {
         row(societyOreName(sale.ore), t('society.orePackStock', '{held} gathered in your Stores', { held: sale.held }),

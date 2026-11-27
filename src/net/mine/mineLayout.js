@@ -4,6 +4,7 @@
 // The mouth is at the origin and its heading into the mine is in radians.
 // Wall slots sit one meter above the chamber floor with inward unit normals.
 import { gateHash } from '../gateLaw.js';
+import { mineSignatureOre } from './mineRegions.js';
 
 /** Sections a mine has (inclusive). */
 export const MINE_SECTIONS = Object.freeze([4, 6]);
@@ -41,6 +42,8 @@ export const mineOresAt = (/** @type {number} */ i) => MINE_ORES_BY_DEPTH[Math.m
 /** One mine in eight is rich (roll 9 of its reset). */
 export const mineIsRich = (/** @type {number} */ mineId, /** @type {number} */ reset) => gateHash(mineId, reset, 9) % 8 === 0;
 
+/** The first section (0-based) that holds its region's own ore. */
+const SIGNATURE_FROM = 2;
 const TAU = Math.PI * 2;
 const FIRST_ROLL = 16;        // rolls 0 to 15 are kept for named rolls (9: rich, 10: the rich ore)
 const CLEAR_M = 2.5;          // gap kept between two chambers' widest ellipses (the law asks 2)
@@ -271,7 +274,7 @@ export function mineLayout(mineId, reset) {
   const floors = new Map(bores.map((bore) => [bore, boreFloor(bore)]));
 
   // Wall slots stand on the rim, out of the tunnels' mouths; holes stand on the floor, off the tunnels' paths.
-  const rich = mineIsRich(mineId, reset);
+  const rich = mineIsRich(mineId, reset), signature = mineSignatureOre(mineId);
   const richOre = MINE_RICH_ORES[gateHash(mineId, reset, 10) % MINE_RICH_ORES.length];
   /** @param {Cell} c @param {number} i */
   const finish = (c, i) => {
@@ -315,6 +318,9 @@ export function mineLayout(mineId, reset) {
       h.ore = ores[Math.floor(roll() * ores.length)];
       h.rich = count([1, 3]);
     }
+    // THE REGION'S OWN ORE (net/mine/mineRegions.js, after the rolls, so the layout's shape is the same without it): a third
+    // of the holes of the deeper sections (past the shallows) hold it, but not a rich mine's deepest section's.
+    if (signature && i >= SIGNATURE_FROM && !(rich && i === sectionCount - 1)) for (const h of holes) if (h.k % 3 === 0) h.ore = signature;
     return { id: c.id, c: cmAll([c.x, c.y, c.z]), rx: cm(c.rx), rz: cm(c.rz), h: cm(c.h), holes, walls };
   };
   const sections = sectionCells.map((here, i) => ({ i, depth: cm(-here[0].y), chambers: here.map((c) => finish(c, i)) }));

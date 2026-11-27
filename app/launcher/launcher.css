@@ -1,187 +1,289 @@
-/* DA8 - THE LAUNCHER'S FACE. The brand's own: the landing page's night,
-   wordmark, rule and gem, and its plaques - every colour here is one the
-   Enhanced skin already uses (src/ui/enhanced/enhancedStyle.js), and
-   test/tooling/da8_launcher.test.js holds it to that the way landing.test.js
-   holds the site. The two faces are on disk (fonts/README.md): this window
-   runs before anything is known about the network.
-   DA10 - THE FRONT DOOR: the patch notes on the left, the player's
-   options on the right, the update and PLAY along the bottom - the
-   Warframe launcher's shape in the brand's own pixels. Words at 12-14px
-   read #a89f88 (7.2:1 on the night); #7d7460 (4.1-4.4:1, under WCAG AA's
-   4.5) is for rules, borders and a held Play (AUDIT INSTALL L5-23). The
-   NEW badge's words read #e8e0c8 on the ruby (5.0:1 - #d8cfae there was
-   4.26, R2-E3); test/tooling/audit_install2.test.js computes every pair. */
+/* DA8 - THE LAUNCHER'S FACE. PARCHMENT: a sheet of parchment under a wooden rail, dressed with
+   the game's own trinkets (art/ - public/art/bunnyfall-decor, which the site wears too). The rail's
+   wood and the sheet's stains are drawn in the page (index.html's two SVGs), not pictures.
+   The two faces are on disk (fonts/README.md): this window runs before anything is known about
+   the network. DA10 - THE FRONT DOOR: the patch notes on the left, the player's options on the
+   right, the update and PLAY along the bottom. */
 @font-face { font-family: 'Pixelify Five'; unicode-range: U+0035; font-display: block; src: url(data:font/woff2;base64,d09GMgABAAAAAAIIAA0AAAAABKQAAAG5AAEAQgAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcIAZgADQRCAo8UQE2AiQDCAsGAAQgBYQEByAb0gMRFZQRZF8mbyrtyKnsmUtW0uh5eajRkkYiwmd9zzwevvZ7PXd3A4jjU0BFqJDHE1p0Mq4uqiyrUX1VpBcA/QCAwLv/sfo5F6Rn9t09Ls65/8pEjkFdE/m2A84AIXIHmiZwJJFm0pbQC2cFlGjCRS2xqAUWJRAZpScLgtmEN4H2INg9T6DZqHGxacuuvRoVqAhYvaSloI70IIWdVRLHLfgNBOxl356deyxZYUWpr+rJNb8JiK/pmJSRkNErC/QqJlEUgRWVXLV6ESBEVQESKEjoRA+gAFJrOROtuU2rFi1ORpsvt1y9+lW3f3N7TL8NBMKGS6Nj8yes/za5Bg8HfwuvHq+zWX05l2uol0Dwz5V3RP1cQJeUzrud3rstkMyqCwJGSQINDsuiNGGRJvRaJGn3iGytlxSz0U6dvbHww+rNxh0babDbhyLLJzB13YBvnsCnqKuRDUnSwnPAMmETnOcpx2EEPp+mbgw1LSumfKYqw0bLELM6SbGdRm08TAsa7XeSzTUZDFX+dPS7X+6RR5RVmJvg9p8MY4EtHAlMk2kyC+YFf/8E/GKovmqrnuLEDhW0/Ak2MwEAAA==) format('woff2'); }
 @font-face { font-family: 'Pixelify Five'; unicode-range: U+0032, U+005A; font-display: block; src: url(data:font/woff2;base64,d09GMgABAAAAAAGgAAoAAAAAAxAAAAFVAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAABmAAPAqBJIEfATYCJAMKCwgABCAFaQcoG08CEK4G7CZ4Jq7VZnqPaS6YXuWQw1RbJh6+H/t27nvrmtQMbRCLt0hnKJGdvlT+z5/rbZqg29elVx1WpXCJB/CNL2EDTlNMNbGZr4i7wsrKf1Qlsx1PdmMc+kB2w92NINLQ3/I4DzSggLvLbQzxeALBIZ3X3J0op6mYYkWkA21shWnP+fr/hfwzOID4lQKdICGjSRZoUmQQJYqEZNpzAflL4Y8FADIoQSVGsQwoApTJRWg/BOVjEKpJt/zRejXl4RPResYon4PypSPKH6ezwgzNirNnNhfmUC4f5rlc/pHOPd3f5P95UE+t19nX6YofP9MAgeB3e0qV0f6R8wv8LSXHVguvqTEFZAkEBz1d7mKtI1ileMUFqwJZpzKQABWZFyBUUDgpVSGLonKhSX2hpEbfbhBlI6P9rLf8Vr0BeAJRrAMjezM9SwltXWsjdQs4kyybrQEAAAA=) format('woff2'); }
 @font-face { font-family: 'Pixelify Sans'; font-weight: 400 700; font-display: block; src: url(fonts/PixelifySans-latin.woff2) format('woff2'); }
 @font-face { font-family: 'Jacquard 12'; font-display: block; src: url(fonts/Jacquard12-latin.woff2) format('woff2'); }
 
-:root { --brass: #c08a3e; --ruby: #b91309; }
+/* THE PALETTE: parchment and ink, the rabbit's reds, oranges and yellows, wood above.
+   Words read #3a1e12 (ink) or #573520 (faded ink) on the sheet - 7:1 and more on #dac696;
+   #8a2216 (sealing-wax red) for headings and links. */
+:root {
+  --ink: #3a1e12; --ink-soft: #573520; --wax: #8a2216; --ruby: #a3281c; --orange: #d9741c; --gold: #f0b92e;
+  --cream: #ddca96; --paper: rgba(218,198,150,0.86); --paper-hi: rgba(236,220,174,0.5); --edge: #7a3a1c;
+  --wood-cream: #f0e0b4;
+}
 * { box-sizing: border-box; }
 /* `hidden` must win over every region's own display below */
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; overflow: hidden; }
 body {
-  color: #d8cfae; background: #0a0c11;
+  position: relative; color: var(--ink); background: #c8aa6c;
   font-family: 'Pixelify Five', 'Pixelify Sans', monospace; font-size: 15px; line-height: 1.5;
   -webkit-font-smoothing: none; font-variant-ligatures: none; font-feature-settings: 'liga' 0, 'clig' 0;
   user-select: none; cursor: default;
 }
 button { font: inherit; color: inherit; }
+img { image-rendering: pixelated; }
 
-/* THE NIGHT: ink above, deeper ink below, and a scatter of two-pixel stars. */
-.night { position: fixed; inset: 0; z-index: -1; background: linear-gradient(#12161b, #0a0c11 55%, #050608); }
-.night::before, .night::after { content: ''; position: absolute; left: 0; top: 0; width: 2px; height: 2px; }
-.night::before {
-  background: #d8cfae;
-  box-shadow:
-    64px 38px #d8cfae, 212px 96px #7d7460, 318px 22px #d8cfae, 446px 70px #7d7460, 590px 30px #d8cfae,
-    702px 112px #7d7460, 834px 52px #d8cfae, 128px 170px #7d7460, 388px 150px #7d7460, 760px 188px #d8cfae,
-    40px 262px #7d7460, 866px 290px #7d7460, 150px 420px #7d7460, 812px 452px #7d7460, 520px 118px #d8cfae,
-    930px 140px #7d7460, 906px 560px #d8cfae;
-}
-.night::after {
-  background: rgba(216,207,174,0.7);
-  box-shadow: 276px 204px rgba(216,207,174,0.7), 640px 240px rgba(216,207,174,0.7), 96px 330px rgba(216,207,174,0.7), 744px 360px rgba(216,207,174,0.7);
-}
+.parchment { position: fixed; left: 0; top: 0; width: 960px; height: 600px; z-index: -1; }
+.launcher { position: relative; width: 960px; height: 600px; }
 
-.launcher { height: 100%; display: flex; flex-direction: column; padding: 18px 28px 16px; }
-
-/* THE MARK, left, as a game's own launcher wears it; the two doors out, right. */
-.top { flex: none; display: flex; align-items: flex-end; justify-content: space-between; }
-/* AUDIT BR5: the mark is the product's logo, the game's own file; the face stays on the heading for its alt */
-.wordmark {
-  margin: 0; font-family: 'Jacquard 12', serif; font-weight: 400; font-size: 58px; line-height: 0.9;
-  text-shadow: 4px 4px 0 rgba(0,0,0,0.7);
+/* THE RAIL: planks of wood (art/wood.png, one plank that tiles, shown at 2x), with the mark and a shelf of trinkets */
+.rail {
+  position: absolute; left: 0; top: 0; width: 960px; height: 76px;
+  background: #5f381d url(art/wood.png) -120px 0 / 640px 76px repeat-x; image-rendering: pixelated;
 }
-.wordmark img { display: block; width: auto; height: 64px; }   /* BR7: the wide wordmark */
-.links { display: flex; gap: 18px; padding-bottom: 4px; }
-.rule { flex: none; display: flex; align-items: center; gap: 16px; margin: 12px 0 14px; }
-.rule::before, .rule::after { content: ''; flex: 1; height: 2px; background: #7d7460; opacity: 0.55; }
+.rail::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: rgba(255,214,150,0.38); z-index: 1; }
+.rail::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 9px; z-index: 1;
+  background: linear-gradient(rgba(20,10,4,0), rgba(20,10,4,0.75) 66%, #1c1108 66%);
+}
+.wordmark { position: absolute; left: 32px; top: 9px; margin: 0; z-index: 2; }
+/* AUDIT BR5: the mark is the product's logo, the game's own file */
+.wordmark img { display: block; width: 234px; height: auto; image-rendering: auto; filter: drop-shadow(2px 3px 0 rgba(20,10,4,0.6)); }
+.shelf { position: absolute; left: 0; top: 0; width: 960px; height: 76px; z-index: 2; pointer-events: none; }
+.shelf img { position: absolute; filter: drop-shadow(2px 3px 0 rgba(20,10,4,0.55)); }
+.shelf .book { left: 548px; top: 4px; width: 104px; height: auto; transform: rotate(-4deg); image-rendering: auto; }
+.shelf .quill { left: 660px; top: 26px; width: 32px; height: 32px; transform: rotate(24deg); }
+.shelf .coin { left: 508px; top: 40px; width: 28px; height: 28px; image-rendering: auto; }
+.shelf .token { left: 488px; top: 32px; width: 21px; height: auto; transform: rotate(-12deg); image-rendering: auto; }
+.links { position: absolute; right: 26px; top: 14px; z-index: 2; }
+.rail .link { color: var(--wood-cream); letter-spacing: 0.2em; text-transform: uppercase; font-size: 12px; text-decoration: none; text-shadow: 2px 2px 0 rgba(20,10,4,0.7); }
+.rail .link:hover, .rail .link:focus-visible, .rail .link.pad-focus { color: var(--gold); outline: none; text-shadow: 2px 2px 0 rgba(20,10,4,0.7); }
+/* the gem sits on the rail's lower edge, and breathes while the launcher works */
 .gem {
-  position: relative; width: 2px; height: 2px; background: var(--ruby);
+  position: absolute; left: 479px; top: 75px; z-index: 3; width: 2px; height: 2px; background: var(--ruby);
   box-shadow:
-    0 -4px 0 var(--brass), 0 4px 0 var(--brass), -4px 0 0 var(--brass), 4px 0 0 var(--brass),
+    0 -4px 0 var(--orange), 0 4px 0 var(--orange), -4px 0 0 var(--orange), 4px 0 0 var(--orange),
     -2px -2px 0 var(--ruby), 2px -2px 0 var(--ruby), -2px 2px 0 var(--ruby), 2px 2px 0 var(--ruby);
 }
-/* the gem breathes while the launcher works, and holds still when it waits on the player */
 body[data-busy] .gem { animation: gleam 1.6s steps(8) infinite; }
-@keyframes gleam { 50% { background: var(--brass); } }
+@keyframes gleam { 50% { background: var(--orange); } }
 
-.middle { flex: 1; min-height: 0; display: flex; gap: 18px; }
+/* PANELS: lighter paper, a brown rule and a hard shadow */
+.panel, .side {
+  position: absolute; top: 98px; height: 330px;
+  background: var(--paper); border: 3px solid var(--edge);
+  box-shadow: 0 0 0 2px rgba(236,220,174,0.45), 4px 4px 0 rgba(90,40,15,0.35);
+}
+/* the game's own wax seals, cut out by their colour (one pixel of art drawn as 1, so they stay crisp) */
+.seal { position: absolute; z-index: 3; height: auto; pointer-events: none; filter: drop-shadow(2px 2px 0 rgba(60,25,8,0.4)); }
+.panel > .seal { right: -22px; top: -20px; width: 50px; transform: rotate(12deg); }
+.side > .seal.green { right: -18px; bottom: -18px; width: 46px; transform: rotate(-8deg); }
 
 /* THE PANEL: the patch notes - or, until the game has files, the first run's card. */
-.panel {
-  flex: 1; min-width: 0; display: flex; flex-direction: column;
-  background: rgba(10,12,17,0.6); border: 2px solid rgba(125,116,96,0.3);
-}
+.panel { left: 32px; width: 630px; display: flex; flex-direction: column; }
 .news { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.news > .caps { margin: 0; padding: 10px 16px 8px; border-bottom: 2px solid rgba(125,116,96,0.3); }
-.feed { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 16px; user-select: text; cursor: auto; }
-.feed:focus-visible { outline: 2px solid rgba(192,138,62,0.5); outline-offset: -2px; }
+.news > .caps { display: flex; align-items: center; gap: 8px; margin: 0; padding: 9px 16px 7px; border-bottom: 2px solid rgba(122,58,28,0.4); }
+.mark { flex: none; display: block; }
+.news > .caps .mark { width: 24px; height: 24px; }
+.feed { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 14px 12px 16px; user-select: text; cursor: auto; }
+.feed:focus-visible, .feed.pad-focus { outline: 2px solid var(--ruby); outline-offset: -4px; }
+/* the patch notes are the one place that scrolls with a bar */
 .feed::-webkit-scrollbar { width: 10px; }
-.feed::-webkit-scrollbar-thumb { background: rgba(125,116,96,0.45); }
-.news .note { margin: 0; padding: 12px 16px; color: #a89f88; }
-.release + .release { margin-top: 14px; padding-top: 12px; border-top: 2px solid #20262e; }
-.release .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.release .ver { font-size: 13px; letter-spacing: 0.14em; color: #d8cfae; }
-.release .date { font-size: 13px; letter-spacing: 0.14em; color: #a89f88; }
+.feed::-webkit-scrollbar-thumb { background: #a8794a; }
+.feed::-webkit-scrollbar-track { background: rgba(122,58,28,0.12); }
+.news .note { margin: 0; padding: 12px 16px; color: var(--ink-soft); }
+.release + .release { margin-top: 14px; padding-top: 12px; border-top: 2px dashed rgba(122,58,28,0.35); }
+.release .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.release .ver { font-size: 18px; font-weight: 500; color: var(--ink); }
+.release .date { font-size: 13px; letter-spacing: 0.12em; color: var(--ink-soft); }
 .badge { padding: 0 6px; font-size: 12px; line-height: 18px; letter-spacing: 0.14em; text-transform: uppercase; }
-.badge.new { color: #e8e0c8; background: var(--ruby); }
-.badge.update { color: #0a0c11; background: var(--brass); }
-.release h4 { margin: 4px 0; font-size: 18px; font-weight: 400; color: #d8cfae; }
-.release h5 { margin: 8px 0 2px; font-size: 14px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: #a89f88; }
-.release p { margin: 0 0 6px; color: #a89f88; }
-.release ul { margin: 0 0 6px; padding-left: 18px; color: #a89f88; }
-.release li > ul { margin: 2px 0 0; }
-.release li { margin: 0 0 4px; }
-.release strong { font-weight: 500; color: #d8cfae; }
+.badge.new { color: var(--wood-cream); background: var(--ruby); }
+.badge.update { color: var(--ink); background: var(--gold); }
+.release h4 { margin: 4px 0; font-size: 18px; font-weight: 400; color: var(--ink); }
+.release h5 { margin: 8px 0 2px; font-size: 14px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: var(--wax); }
+.release p { margin: 0 0 6px; color: #4a2a18; }
+.release ul { margin: 0 0 6px; padding-left: 18px; color: #4a2a18; list-style: none; }
+.release li { position: relative; margin: 0 0 6px; font-size: 14px; line-height: 1.45; }
+.release li::before { content: ''; position: absolute; left: -13px; top: 8px; width: 4px; height: 4px; background: var(--orange); transform: rotate(45deg); }
+.release li > ul { margin: 4px 0 0; }
+/* a note that begins "Fixed:" or "Changed:" wears it as a pill (launcher.js) */
+.release li.tagged { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; margin-left: -18px; }
+.release li.tagged::before { display: none; }
+.release li.tagged > ul { grid-column: 2; }
+.tag {
+  align-self: start; min-width: 70px; height: 20px; margin-top: 1px; padding: 0 10px; border-radius: 10px;
+  text-align: center; font-size: 11px; line-height: 20px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+  color: var(--ink); background: var(--gold);
+}
+.tag.fixed { color: var(--wood-cream); background: var(--ruby); }
+.tag.added, .tag.new { color: var(--wood-cream); background: #3f6b34; }
+.release strong { font-weight: 600; color: var(--ink); }
 
-/* `safe`: a card taller than the panel scrolls from its TOP - plain `center` overflows both ways, and the title
-   and the first folders went where no scroll reaches (six folders found, measured) */
-.setup { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: safe center; padding: 18px 24px; text-align: center; }
-/* R2-E7: the card scrolls in the feed's own bar, not the system's white one */
-.setup::-webkit-scrollbar { width: 10px; }
-.setup::-webkit-scrollbar-thumb { background: rgba(125,116,96,0.45); }
-#setup-title { margin: 0; font-size: 24px; font-weight: 400; line-height: 1.2; text-shadow: 2px 2px 0 rgba(0,0,0,0.8); }
-#setup-detail { margin: 8px 0 0; max-width: 58ch; color: #a89f88; }
+/* `safe`: a card taller than the panel scrolls from its TOP - plain `center` overflows both ways */
+/* it still scrolls if a long list of found folders outgrows it (wheel, keys, pad), but shows no bar */
+.setup { position: relative; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 0; padding: 14px 22px; text-align: center; }
+
+#setup-title { margin: 0; font-family: 'Jacquard 12', serif; font-size: 31px; font-weight: 400; line-height: 1.1; color: var(--ink); }
+#setup-detail { margin: 6px 0 0; max-width: 58ch; font-size: 14px; color: var(--ink-soft); }
 #setup-detail:empty { display: none; }
-.found { list-style: none; margin: 16px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.found { list-style: none; margin: 10px 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
 .found li {
-  display: flex; align-items: center; gap: 14px; padding: 10px 12px; text-align: left;
-  background: rgba(10,12,17,0.55); border: 2px solid rgba(125,116,96,0.35);
+  display: flex; align-items: center; gap: 14px; padding: 4px 6px 4px 12px; text-align: left;
+  background: var(--paper-hi); border: 2px solid rgba(122,58,28,0.55);
 }
 .found .where { flex: 1; min-width: 0; }
-.found .from { display: block; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #a89f88; }
-.path { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d8cfae; direction: rtl; text-align: left; }
-.actions { flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
+.found .from { display: block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+.path { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); direction: rtl; text-align: left; }
+.actions { flex: none; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; }
 .actions:empty { display: none; }
 
-/* THE OPTIONS: the player's own doors, beside the news. */
-.side { flex: none; width: 236px; display: flex; flex-direction: column; gap: 16px; padding: 12px 14px; background: rgba(10,12,17,0.55); border: 2px solid rgba(125,116,96,0.3); }
-.opt { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.opt > .caps { margin: 0; font-size: 13px; }
-.files { margin: 0; width: 100%; min-width: 0; font-size: 14px; color: #a89f88; }
+/* THE OPTIONS: the player's own doors, beside the news - each with a trinket from the game's bank */
+.side { right: 32px; width: 236px; display: flex; flex-direction: column; gap: 10px; padding: 10px 14px; }
+.opt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.opt + .opt { padding-top: 8px; border-top: 2px solid rgba(122,58,28,0.3); }
+.opt > .caps { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; }
+.opt > .caps .mark { width: auto; height: 24px; }
+.files { margin: 0; width: 100%; min-width: 0; font-size: 14px; color: var(--ink-soft); }
 .files .path { font-size: 14px; }
-.check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.check { display: flex; align-items: center; gap: 10px; min-height: 28px; font-size: 14px; cursor: pointer; }
 .check input {
-  appearance: none; flex: none; margin: 0; width: 18px; height: 18px; cursor: pointer;
-  border: 2px solid #7d7460; background: rgba(10,12,17,0.72);
+  appearance: none; flex: none; margin: 0; width: 20px; height: 20px; cursor: pointer;
+  border: 2px solid var(--edge); background: var(--cream);
 }
-.check input:checked { background: var(--brass); box-shadow: inset 0 0 0 2px #0a0c11; }
-.check input:focus-visible { outline: none; border-color: var(--brass); }
-.check:hover { color: rgb(243,239,44); text-shadow: 2px 2px 0 rgb(93,77,12); }
+.check input:checked { background: var(--orange); box-shadow: inset 0 0 0 3px var(--cream); }
+.check input:focus-visible, .check input.pad-focus { outline: 2px solid var(--ruby); outline-offset: 2px; }
+.check:hover { color: var(--wax); }
 
-/* THE BAR: what the launcher is doing, and PLAY. */
+/* THE BAR: the rabbit says what the launcher is doing; PLAY waits beside it */
+.bar { position: absolute; left: 0; right: 0; bottom: 0; height: 188px; }
+.bunny { position: absolute; left: 20px; bottom: 0; width: 176px; height: 176px; }
+.bunny img { position: absolute; left: 0; bottom: 0; display: block; image-rendering: auto; filter: drop-shadow(2px 3px 0 rgba(90,40,15,0.3)); }
+/* THE SCENE follows the campfire (body[data-fire]): he lights it (0-1, his own sticks stand in for the fire), cheers
+   it on as it catches (2-3), and dances beside it once it burns (4) with the cube sat by the fire. On the first run
+   (body[data-panel=setup]) he carries the cube in instead. A little overlap is the point: it is a collage. */
+.bunny img { display: none; height: auto; }
+.bunny .light { left: 88px; bottom: 2px; width: 132px; }
+.bunny .hands { left: 10px; bottom: 2px; width: 132px; }
+.bunny .anim { left: 8px; bottom: 6px; width: 158px; }
+.bunny .still { width: 172px; }
+.bunny .cube { left: -10px; bottom: 2px; width: 68px; }
+.bunny .carry { left: -14px; bottom: 0; width: 180px; }
+body:not([data-panel="setup"])[data-fire="0"] .bunny .light, body:not([data-panel="setup"])[data-fire="1"] .bunny .light,
+body:not([data-panel="setup"])[data-fire="2"] .bunny .hands, body:not([data-panel="setup"])[data-fire="3"] .bunny .hands,
+body:not([data-panel="setup"])[data-fire="4"] .bunny .anim, body:not([data-panel="setup"])[data-fire="4"] .bunny .cube,
+body[data-panel="setup"] .bunny .carry { display: block; }
+body:not([data-panel="setup"])[data-fire="0"] .fire, body:not([data-panel="setup"])[data-fire="1"] .fire { display: none; }
+/* the PLAY badge moves only while Play can be pressed */
+.go .anim { display: none; }
+body[data-ready] .go .anim { display: block; }
+body[data-ready] .go .still { display: none; }
+
 /* one height for every state - a bar that grew with its words would move the panel under the pointer */
-.bar { flex: none; display: flex; align-items: center; gap: 18px; margin-top: 14px; height: 100px; }
+.bubble {
+  position: absolute; left: 258px; right: 268px; bottom: 34px; height: 96px;
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: rgba(221,202,155,0.9); border: 3px solid var(--edge); box-shadow: 4px 4px 0 rgba(90,40,15,0.35);
+}
+.bubble::before {
+  content: ''; position: absolute; left: -15px; top: 50%; margin-top: -10px;
+  border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 12px solid var(--edge);
+}
 .state { flex: 1; min-width: 0; }
-#status { margin: 0; font-size: 20px; line-height: 1.2; text-shadow: 2px 2px 0 rgba(0,0,0,0.8); }
-#detail { margin: 4px 0 0; font-size: 14px; color: #a89f88; }
+#status { margin: 0; font-size: 21px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#detail { margin: 3px 0 0; font-size: 13px; line-height: 1.3; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 #detail:empty { display: none; }
-.progress { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.progress .track { flex: 1; height: 12px; padding: 2px; border: 2px solid #7d7460; background: rgba(10,12,17,0.72); }
-.progress .track i { display: block; height: 100%; width: 0; background: var(--brass); transition: width 0.25s linear; }
-.progress .label { flex: none; font-size: 13px; color: #a89f88; letter-spacing: 0.08em; }
-.status-actions { flex: none; display: flex; gap: 10px; }
+.progress { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.progress .track { flex: 1; height: 16px; padding: 2px; border: 2px solid var(--edge); background: var(--cream); }
+.progress .track i { display: block; height: 100%; width: 0; background: var(--orange); box-shadow: inset 0 -3px 0 var(--ruby), inset 0 3px 0 var(--gold); transition: width 0.25s linear; }
+.progress .label { flex: none; font-size: 13px; color: var(--ink-soft); letter-spacing: 0.06em; }
+.status-actions { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.status-actions .plaque { padding: 4px 10px; font-size: 11px; letter-spacing: 0.08em; }
 .status-actions:empty { display: none; }
-.go { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-#version { font-size: 12px; letter-spacing: 0.14em; text-transform: none; }
 
-.plaque {
-  min-height: 44px; padding: 8px 22px; cursor: pointer;
-  font-size: 16px; letter-spacing: 0.14em; text-indent: 0.14em; text-transform: uppercase;
-  color: #d8cfae; background: rgba(10,12,17,0.55); border: 2px solid #7d7460; text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
-}
-.plaque.primary { border-color: var(--brass); }
-.plaque.small { min-height: 34px; padding: 4px 12px; font-size: 13px; }
-.plaque:hover, .plaque:focus-visible { outline: none; color: rgb(243,239,44); border-color: var(--brass); text-shadow: 2px 2px 0 rgb(93,77,12); }
+.loot { position: absolute; right: 196px; bottom: 6px; width: 90px; height: 120px; pointer-events: none; }
+.loot img { position: absolute; display: block; }
+.loot .pile { right: 18px; bottom: 6px; width: 48px; height: 44px; filter: drop-shadow(2px 2px 0 rgba(90,40,15,0.35)); }
+.loot .spark { width: 16px; height: 16px; opacity: 0; }
+.loot .spark.s1 { right: 4px; bottom: 58px; } .loot .spark.s2 { right: 58px; bottom: 34px; }
+body[data-ready] .loot .spark { animation: twinkle 2.2s steps(2) infinite; }
+body[data-ready] .loot .spark.s2 { animation-delay: 1.1s; }
+@keyframes twinkle { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
+.go { position: absolute; right: 26px; bottom: 0; width: 168px; height: 188px; }
 .play {
-  min-width: 208px; height: 60px; padding: 0 28px; cursor: pointer;
-  font-size: 26px; letter-spacing: 0.3em; text-indent: 0.3em; text-transform: uppercase;
-  color: #d8cfae; background: rgba(192,138,62,0.18); border: 2px solid var(--brass);
-  text-shadow: 2px 2px 0 rgba(0,0,0,0.8); box-shadow: 4px 4px 0 rgba(0,0,0,0.7);
+  position: absolute; left: 2px; bottom: 14px; width: 164px; height: 164px; padding: 0; cursor: pointer;
+  border: 0; background: none; transition: transform 0.12s steps(2);
 }
-.play:not(:disabled):hover, .play:not(:disabled):focus-visible {
-  outline: none; color: rgb(243,239,44); background: rgba(192,138,62,0.25); text-shadow: 2px 2px 0 rgb(93,77,12);
-}
-.play:disabled { cursor: default; color: #7d7460; background: rgba(10,12,17,0.55); border-color: #7d7460; box-shadow: none; }
+.play img { position: absolute; left: 0; top: 0; width: 164px; height: 164px; image-rendering: auto; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
+.play-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.play:not(:disabled):hover, .play:not(:disabled):focus-visible, .play:not(:disabled).pad-focus { outline: none; transform: translateY(-4px); }
+.play:not(:disabled):focus-visible img, .play:not(:disabled).pad-focus img { filter: drop-shadow(0 0 0 #f0b92e) drop-shadow(3px 4px 0 rgba(90,40,15,0.35)) brightness(1.08); }
+.play:not(:disabled):active { transform: translateY(0); }
+.play:disabled { cursor: default; }
+.play:disabled img { filter: saturate(0.55) brightness(0.92) opacity(0.8) drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
+#version { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 12px; letter-spacing: 0.14em; text-transform: none; color: var(--ink-soft); text-shadow: none; }
 
-.caps { font-size: 14px; letter-spacing: 0.26em; text-transform: uppercase; color: #a89f88; text-shadow: 2px 2px 0 rgba(0,0,0,0.7); }
-.link { padding: 2px 4px; border: 0; background: none; cursor: pointer; color: #a89f88; letter-spacing: inherit; text-transform: inherit; }
-.link:hover, .link:focus-visible { outline: none; color: rgb(243,239,44); text-shadow: 2px 2px 0 rgb(93,77,12); }
-.opt .link { padding: 2px 0; font-size: 14px; letter-spacing: 0.08em; }
+/* PLAQUES: the launcher's buttons - cream, a brown rule, a hard shadow; the answer is gold */
+.plaque {
+  min-height: 40px; padding: 6px 16px; cursor: pointer;
+  font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink); background: var(--cream); border: 2px solid var(--edge); box-shadow: 2px 2px 0 rgba(90,40,15,0.45);
+}
+.plaque.primary { background: var(--gold); }
+.plaque.small { min-height: 34px; padding: 4px 12px; font-size: 12px; }
+.plaque:hover { background: var(--gold); }
+.plaque.primary:hover { background: #f6c94e; }
+.plaque:focus-visible, .plaque.pad-focus { outline: 2px solid var(--ruby); outline-offset: 2px; }
+.plaque:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.caps { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--wax); }
+.link { padding: 2px 4px; border: 0; background: none; cursor: pointer; color: var(--wax); letter-spacing: inherit; text-transform: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.link:hover, .link:focus-visible, .link.pad-focus { outline: none; color: var(--orange); }
+.opt .link { padding: 0; font-size: 13px; letter-spacing: 0.06em; }
 
 @media (prefers-reduced-motion: reduce) {
   body[data-busy] .gem { animation: none; }
-  .progress .track i { transition: none; }
+  body[data-ready] .loot .spark { animation: none; opacity: 1; }
+  .progress .track i, .play { transition: none; }
+  /* the moving pictures hold still too */
+  body[data-ready] .go .anim, body[data-fire="4"] .bunny .anim { display: none; }
+  body[data-ready] .go .still, body[data-fire="4"]:not([data-panel="setup"]) .bunny .still { display: block; }
+  body[data-ready] .play:disabled img, body[data-ready] .go .still { filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
 }
 
-/* DA12: the controller's focus (app/launcher/pad.js) - the game's own pad loop marks what it focused .pad-focus,
-   drawn as the keyboard's focus is above. */
-.feed.pad-focus { outline: 2px solid rgba(192,138,62,0.5); outline-offset: -2px; }
-.check input.pad-focus { outline: none; border-color: var(--brass); }
-.plaque.pad-focus, .link.pad-focus { outline: none; color: rgb(243,239,44); text-shadow: 2px 2px 0 rgb(93,77,12); }
-.plaque.pad-focus { border-color: var(--brass); }
-.play:not(:disabled).pad-focus { outline: none; color: rgb(243,239,44); background: rgba(192,138,62,0.25); text-shadow: 2px 2px 0 rgb(93,77,12); }
+/* a download's bar takes the detail's second line */
+.state:has(.progress:not([hidden])) #detail { -webkit-line-clamp: 1; }
+/* the rabbit stands in front of the sheet: he may overlap the panel's lower edge */
+.bunny { z-index: 4; }
+.bubble .heart { position: absolute; right: -11px; top: -11px; width: 24px; height: 24px; transform: rotate(10deg); filter: drop-shadow(1px 2px 0 rgba(90,40,15,0.35)); }
+.loot .scroll { right: 30px; bottom: 2px; width: 34px; height: auto; transform: rotate(-64deg); transform-origin: 50% 100%; filter: drop-shadow(2px 2px 0 rgba(90,40,15,0.3)); }
+
+/* NO SCROLLING but the patch notes: a found folder is one line (where it came from, then its path), and with four
+   or more found the card drops its explanation line rather than grow past the panel */
+.found li { min-height: 38px; padding: 3px 4px 3px 12px; }
+.found .where { display: flex; align-items: baseline; gap: 10px; }
+.found .from { flex: none; min-width: 64px; }
+.found .path { flex: 1; min-width: 0; }
+.found .plaque.small { min-height: 30px; }
+.setup:has(.found li:nth-child(4)) #setup-detail { display: none; }
+.setup:has(.found li:nth-child(4)) .found { gap: 6px; }
+
+/* THE CAMPFIRE beside the rabbit (index.html): body[data-fire] 0 cold, 1 embers, 2-3 catching, 4 burning */
+.fire { position: absolute; left: 150px; bottom: 4px; z-index: 5; width: 96px; height: 88px; overflow: visible; transition: filter 0.4s steps(4); }
+.fire g { display: none; }
+body[data-fire="0"] .fire .smoke { display: inline; opacity: 0.55; }
+body[data-fire="1"] .fire .ember, body[data-fire="2"] .fire .ember, body[data-fire="3"] .fire .ember, body[data-fire="4"] .fire .ember { display: inline; }
+body[data-fire="2"] .fire .f2, body[data-fire="3"] .fire .f3, body[data-fire="4"] .fire .f4.a, body[data-fire="4"] .fire .spark { display: inline; }
+body[data-fire="1"] .fire { filter: drop-shadow(0 0 4px rgba(226,88,42,0.5)); }
+body[data-fire="2"] .fire { filter: drop-shadow(0 0 7px rgba(240,138,36,0.55)); }
+body[data-fire="3"] .fire { filter: drop-shadow(0 0 10px rgba(240,138,36,0.6)); }
+body[data-fire="4"] .fire { filter: drop-shadow(0 0 14px rgba(246,178,60,0.7)); }
+/* burning, it flickers between two shapes and throws a spark */
+body[data-fire="4"] .fire .f4.a { animation: flick-a 0.5s steps(1) infinite; }
+body[data-fire="4"] .fire .f4.b { display: inline; animation: flick-b 0.5s steps(1) infinite; }
+body[data-fire="4"] .fire .spark { animation: spark 1.4s steps(7) infinite; }
+@keyframes flick-a { 50% { opacity: 0; } }
+@keyframes flick-b { 0% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes spark { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(-3px, -6px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  body[data-fire="4"] .fire .f4.a, body[data-fire="4"] .fire .spark { animation: none; }
+  body[data-fire="4"] .fire .f4.b { display: none; }
+  .fire { transition: none; }
+}

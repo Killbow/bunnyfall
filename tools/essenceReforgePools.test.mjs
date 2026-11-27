@@ -46,7 +46,10 @@ test('pools differ by slot: each slot leaves out the kinds the other lines hold'
   const item = gauntlets();
   assert.ok(reforgeChoices(item, 0).every((c) => c.id !== 'weight'), 'armor slot cannot take the held carrying capacity');
   assert.ok(reforgeChoices(item, 1).every((c) => c.id !== 'armor' && c.id !== 'weight'), 'carry slot cannot take armor or itself');
-  assert.ok(reforgeChoices(item, 2).every((c) => c.id !== 'skill'), 'a skill slot never offers a skill: the law replaces the kind');
+  const skills = reforgeChoices(item, 2).filter((c) => c.id === 'skill');
+  assert.ok(skills.length > 5 && skills.every((c) => c.param !== 0), 'a skill slot offers the other skills, never its own Medical');
+  const stats = reforgeChoices(item, 3).filter((c) => c.id === 'stat');
+  assert.ok(stats.length > 3 && stats.every((c) => c.param !== 'strength'), 'an attribute slot offers the other attributes');
   assert.ok(reforgeChoices(item, 3).some((c) => c.id === 'skill' && c.param === 1), 'an attribute slot offers the other skills');
   assert.ok(reforgeChoices(item, 3).every((c) => !(c.id === 'skill' && c.param === 0)), 'but not the Medical the piece holds');
 });

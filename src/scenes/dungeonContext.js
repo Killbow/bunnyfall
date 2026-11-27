@@ -64,6 +64,7 @@ import { EFFECT_ACTION_FLAGS, COLLISION_TIMEOUT_S, isActionDoorObject, hasAction
 import { TextRsc } from '../formats/textRsc.js';
 import { openPauseFlow, preloadPauseFlowArt, pauseDoorReady, pauseOpts } from '../ui/pauseDoor.js';
 import { releaseUnloadGuard } from '../platform/unloadGuard.js';   // AUDIT-MACL F3: the chargen Cancel is a door the game opened   // U51 picks the skin; MAC-L1: pauseOpts is the ONE reader of the door's options
+import { dungeonHomeOf } from '../saves/mineSaveLanding.js';
 import { longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';   // MAC6 #1: the save names the pixel the dungeon stands on
 import { openPixelDial } from '../ui/pixelDial.js';   // PX15b: the Tab compass rose
 import { ActionTextBox, ActionInputBox } from '../ui/actionText.js';
@@ -6439,10 +6440,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   }
   /** MAC6 #1: where this dungeon stands - its map pixel and map id, for the save (null for a location with no map row: the probe). */
   const dungeonHome = () => {
-    const mt = dfLocation?.mapTableData;
-    if (!mt || !Number.isFinite(mt.longitude) || !Number.isFinite(mt.latitude)) return null;
-    const p = longitudeLatitudeToMapPixel(mt.longitude, mt.latitude);
-    return { pixel: { x: p.x, y: p.y }, mapId: mt.mapId ?? null, ...(opts.placeRecord?.() ?? {}) };   // INSTANCES (the audit): and the instance it was entered as (`ins`) - a load re-enters it
+    const home = dungeonHomeOf(dfLocation, longitudeLatitudeToMapPixel);   // BUNNYFALL (caverns): a mine names its own pixel, not the corner its missing longitude reads as
+    if (!home) return null;
+    return { ...home, ...(opts.placeRecord?.() ?? {}) };   // INSTANCES (the audit): and the instance it was entered as (`ins`) - a load re-enters it
   };
   function collectWorld() {
     return {

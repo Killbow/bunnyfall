@@ -55,6 +55,10 @@
           "bunnyfall.png"
         ]
       },
+      {
+        "from": "../public/art/bunnyfall-decor",
+        "to": "launcher/art"
+      },
       "lib/**",
       "game-seed.json",
       {

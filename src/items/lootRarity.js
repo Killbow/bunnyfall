@@ -1496,7 +1496,7 @@ function reforgePool(item, index) {
   const freeParams = (id) => kindParams(id, item).filter((p) => !others.some((a) => a?.id === id && a.param === p));
   const ids = (was.technique ? ['technique'] : AFFIX_IDS).filter((id) => {
     const k = AFFIX_KINDS[id];
-    if (id === old.id || !k.groups.includes(item.group) || !!k.proc !== !!was.proc) return false;
+    if ((id === old.id && (!k.params || was.technique)) || !k.groups.includes(item.group) || !!k.proc !== !!was.proc) return false;
     return k.params ? freeParams(id).length > 0 : !others.some((a) => a?.id === id);
   });
   return { ids, others, freeParams };

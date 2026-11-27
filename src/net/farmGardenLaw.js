@@ -1,5 +1,5 @@
 // @ts-check
-import { farmProgress, validFarmProgress, farmToolArea, FARM_CROP_TYPES } from './farmProgressLaw.js';
+import { farmProgress, validFarmProgress, farmToolArea, FARM_CROP_TYPES, FARM_SOIL, FARM_UPGRADE_MAX } from './farmProgressLaw.js';
 import { FARM_SEEDS, farmSeed, seedGrowsIn, seasonGrowth } from './farm/cropLaw.js';   // FARM EXPANSION: the climate crops and the seasons
 import { CARE_MAX, WATER_CARE_S, clampCare, gradeOf, gradedYield, bedWeedy, birdsNow, birdsUnchased, BIRD_KEEP } from './farm/careLaw.js';   // PHASE 2: care and grades
 import { GAMES, gameForOp, validGame, validPlays, recordPlay, careBonus } from './farm/farmGameLaw.js';   // PHASE 2: the field games
@@ -49,7 +49,7 @@ export function validGarden(value) {
   return !!value && validFarmProgress(value.progress) && validHaul(value) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
       ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0) &&
-      (b.quality === undefined || [0,1,2].includes(b.quality)) && (b.rate === undefined || [1,1.25].includes(b.rate)) &&
+      (b.quality === undefined || FARM_SOIL.some((l,i) => i === b.quality)) && (b.rate === undefined || FARM_SOIL.some(l => l.rate === b.rate)) &&
       (b.care === undefined || okInt(b.care, CARE_MAX)) && (b.glass === undefined || b.glass === 1) && validBedStrain(b) && ['sown', 'weeded'].every((k) => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0)))));
 }
 /** One immutable operation; awards are returned separately for an atomic server commit. */
@@ -57,7 +57,7 @@ export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', strain,
   if (!validGarden(garden) || !Number.isFinite(nowS) || nowS < 0 || !Number.isInteger(index) || index < 0 || index >= FARM_BEDS) return { error: 'farm-bed-bad' };
   const next = { ...structuredClone(garden), beds: structuredClone({ ...garden.beds }) }, bed = next.beds[index] ?? null;
   const progress = farmProgress(garden), { irrigation, soil } = progress.upgrades;
-  const planted = (id, care = 0) => ({ crop:id, grown:0, tick:nowS, wetUntil:irrigation ? nowS+FARM_WATER_S : 0, quality:soil, rate:soil===2?1.25:1, sown:nowS, care:clampCare(care) });
+  const planted = (id, care = 0) => ({ crop:id, grown:0, tick:nowS, wetUntil:irrigation ? nowS+FARM_WATER_S : 0, quality:FARM_SOIL[soil].extra, rate:FARM_SOIL[soil].rate, sown:nowS, care:clampCare(care) });
   if (op === 'hoe' && bed === null) next.beds[index] = { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
   else if (op === 'plant' && bed && !bed.crop && farmSeed(crop)) {
     // PHASE 5: the dragonling's greenhouse lets a few beds grow a crop out of its climate
@@ -89,7 +89,7 @@ export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', strain,
     const sick = bedBlighted(bed);   // PHASE 6: a blighted crop comes in Common at half yield
     const qty = sick ? blightYield(gradedYield(seed.yield, bed.quality ?? 0, 0) + (bed.traits?.includes('heavy') ? 1 : 0)) : gradedYield(seed.yield, bed.quality ?? 0, grade) + (bed.traits?.includes('heavy') ? 1 : 0);
     next.rot = { ...(garden.rot ?? {}), [index]: rotAfter(garden.rot?.[index], seed.id) };
-    next.beds[index] = irrigation === 2 ? { ...planted(seed.id), ...(bed.strain ? { strain: bed.strain, traits: [...(bed.traits ?? [])] } : {}), ...(bed.glass === 1 ? { glass: 1 } : {}) } : { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
+    next.beds[index] = irrigation === FARM_UPGRADE_MAX.irrigation ? { ...planted(seed.id), ...(bed.strain ? { strain: bed.strain, traits: [...(bed.traits ?? [])] } : {}), ...(bed.glass === 1 ? { glass: 1 } : {}) } : { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
     next.progress = structuredClone(progress);
     // the weekly orders count their own three crops; the climate crops' orders come with the workshops (Phase 4)
     if (FARM_CROP_TYPES.includes(seed.id)) next.progress.harvested[seed.id] = Math.min(2147483647, next.progress.harvested[seed.id] + qty);

@@ -5,6 +5,7 @@ export const FARM_UPGRADES = Object.freeze({
   tools: Object.freeze([
     { gold: 20000, argents: 25, delivered: 1000, area: 3 },
     { gold: 100000, argents: 150, delivered: 6000, area: 5 },
+    { gold: 250000, argents: 350, delivered: 26000, area: 9 },   // a 3x3 block around the bed worked
   ]),
   irrigation: Object.freeze([
     { gold: 40000, argents: 50, delivered: 1000 },
@@ -13,8 +14,16 @@ export const FARM_UPGRADES = Object.freeze({
   soil: Object.freeze([
     { gold: 30000, argents: 40, delivered: 1000 },
     { gold: 150000, argents: 200, delivered: 6000 },
+    { gold: 300000, argents: 400, delivered: 26000 },
   ]),
 });
+/** What each soil level does to a newly planted bed: extra items per harvest (the bed's `quality`) and the growth pace (`rate`). Index = level. */
+export const FARM_SOIL = Object.freeze([
+  { extra: 0, rate: 1 }, { extra: 1, rate: 1 }, { extra: 2, rate: 1.25 }, { extra: 3, rate: 1.5 },
+]);
+/** Beds one tool click gathers, by tools level (the last is the whole 3x3 block). */
+export const FARM_TOOL_AREAS = Object.freeze([1, ...FARM_UPGRADES.tools.map(u => u.area)]);
+export const FARM_UPGRADE_MAX = Object.freeze(Object.fromEntries(Object.entries(FARM_UPGRADES).map(([k, v]) => [k, v.length])));
 export const FARM_ORDERS = Object.freeze([
   { quantity: 1000, gold: 2000, argents: 10 },
   { quantity: 5000, gold: 12000, argents: 50 },
@@ -29,11 +38,11 @@ export function validFarmProgress(p) {
   if (p === undefined) return true;
   if (!p || !p.upgrades || !p.harvested || !p.delivered || !p.orders || !p.weeks) return false;
   const int = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
-  return Object.keys(FARM_UPGRADES).every(k => int(p.upgrades[k], 0, 2)) && FARM_CROP_TYPES.every(k =>
+  return Object.keys(FARM_UPGRADES).every(k => int(p.upgrades[k], 0, FARM_UPGRADE_MAX[k])) && FARM_CROP_TYPES.every(k =>
     int(p.harvested[k], 0, 2147483647) && int(p.delivered[k], 0, p.harvested[k]) &&
     int(p.orders[k], 0, 2147483647) && int(p.weeks[k], -1, 2147483647));
 }
-export const farmToolArea = (garden) => [1, 3, 5][farmProgress(garden).upgrades.tools];
+export const farmToolArea = (garden) => FARM_TOOL_AREAS[farmProgress(garden).upgrades.tools];
 export function stepFarmUpgrade(garden, key) {
   if(typeof key!=='string'||!Object.hasOwn(FARM_UPGRADES,key))return{error:'farm-upgrade-max'};
   const next = structuredClone(garden), progress = structuredClone(farmProgress(garden));

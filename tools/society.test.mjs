@@ -95,28 +95,28 @@ test('a member turns in for a tenth more Seals a rank, read off their own realm 
   assert.equal((await societyState(c, P, { character: CHAR })).kit.fuel, 1);
 });
 
-test('ore packs debit only gathered ore and credit one Argent per tier once', async () => {
+test('ore packs debit only gathered ore and credit each pack the ore market value once', async () => {
   const { societySellOre } = await import('../server-account/src/society.js');
   const { MARKS_MAX } = await import('../src/net/marksLaw.js');
   const { db, sqlite } = d1();
   const context = { ...ctx(db), env: { MARKS_OPEN: 'on' } };
   const store = sqlite.prepare('INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, ?, ?, ?)');
-  store.run(P.id, CHAR, 'metal:iron', 'own', 125);
+  store.run(P.id, CHAR, 'metal:iron', 'own', 30);
   store.run(P.id, CHAR, 'metal:iron', 'bought', 200);
   store.run(P.id, CHAR, 'ore:ebony', 'own', 200);
   const sale = { character: CHAR, ore: 'metal:iron', txn: 'iron-pack-0001' };
   const other = { ...sale, txn: 'iron-pack-0002' };
   const sales = await Promise.all([societySellOre(context, P, sale), societySellOre(context, P, other)]);
-  assert.deepEqual(sales, [{ ore: sale.ore, n: 100, argents: 1 }, { error: 'short' }]);
-  assert.deepEqual(await societySellOre(context, P, sale), { ore: sale.ore, n: 100, argents: 1, replayed: true });
+  assert.deepEqual(sales, [{ ore: sale.ore, n: 25, argents: 1 }, { error: 'short' }]);
+  assert.deepEqual(await societySellOre(context, P, sale), { ore: sale.ore, n: 25, argents: 1, replayed: true });
   assert.deepEqual(await societySellOre(context, P, { ...sale, ore: 'ore:ebony' }), { error: 'society-bad' });
   const desk = await societyState(context, P, { character: CHAR });
-  assert.deepEqual(desk.oreSales, [{ ore: 'ore:ebony', held: 200, argents: 6 }]);
+  assert.deepEqual(desk.oreSales, [{ ore: 'ore:ebony', held: 200, argents: 14 }]);
   const ebony = { ...sale, ore: 'ore:ebony', txn: 'ebony-pack-0001' };
-  assert.deepEqual(await societySellOre(context, P, ebony), { ore: 'ore:ebony', n: 100, argents: 6 });
-  assert.equal(sqlite.prepare('SELECT balance FROM marks WHERE account = ?').get(P.id).balance, 7);
+  assert.deepEqual(await societySellOre(context, P, ebony), { ore: 'ore:ebony', n: 25, argents: 14 });
+  assert.equal(sqlite.prepare('SELECT balance FROM marks WHERE account = ?').get(P.id).balance, 15);
   assert.equal(sqlite.prepare("SELECT qty FROM prof_stores WHERE player = ? AND material = 'metal:iron' AND origin = 'bought'").get(P.id).qty, 200);
   sqlite.prepare('UPDATE marks SET balance = ? WHERE account = ?').run(MARKS_MAX, P.id);
   assert.deepEqual(await societySellOre(context, P, { ...ebony, txn: 'ebony-pack-0002' }), { error: 'marks-full' });
-  assert.equal(sqlite.prepare("SELECT qty FROM prof_stores WHERE player = ? AND material = 'ore:ebony' AND origin = 'own'").get(P.id).qty, 100);
+  assert.equal(sqlite.prepare("SELECT qty FROM prof_stores WHERE player = ? AND material = 'ore:ebony' AND origin = 'own'").get(P.id).qty, 175);
 });

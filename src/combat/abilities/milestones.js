@@ -1,5 +1,6 @@
 import { ARROW_FLIGHT_SPEED } from '../../magic/spellcast.js';
 import { expandedWeaponLadders } from './weaponLadders.js';
+import { buffRoundsForRank as rounds, ROUND_SECONDS } from './buffDuration.js';
 
 export const PREVIEW_THRUST = 'weapon.longsword.extended-thrust';
 export const PREVIEW_JAB = 'weapon.hand-to-hand.jab-chain';
@@ -33,14 +34,14 @@ const loadout = new Map([
   [TANTO_MILESTONES[0], { kind: 'melee', strike: 'StrikeRight', rangeM: 1.9, potency: 1.1, beats: 1,
     selfEffect: { type: 9, subType: 6, rounds: 2, magnitude: 8 }, fx: 'measure',
     spend: 4, cooldownMs: 7500, windUpMs: 180, activeMs: 200, recoveryMs: 350,
-    description: 'Cut while invoking a blessing that grants 8 Speed for two magic rounds.' }],
+    description: `Cut while invoking a blessing that grants 8 Speed for ${rounds(25)} magic rounds.` }],
   [TANTO_MILESTONES[1], { kind: 'self', edgeRitual: true, fx: 'measure',
     spend: 6, cooldownMs: 15000, windUpMs: 230, activeMs: 250, recoveryMs: 350,
-    description: 'Empower your next three damaging Tanto strikes for eight seconds. Stand for 25% extra damage or crouch as the ritual completes to recover fatigue on hit.' }],
+    description: `Empower your next three damaging Tanto strikes for ${rounds(50) * ROUND_SECONDS} seconds. Stand for 25% extra damage or crouch as the ritual completes to recover fatigue on hit.` }],
   [TANTO_MILESTONES[2], { kind: 'self', fx: 'rally',
     selfEffect: { type: 9, subType: 4, rounds: 2, magnitude: 8, companionRange: 8 },
     spend: 8, cooldownMs: 18000, windUpMs: 370, activeMs: 370, recoveryMs: 560,
-    description: 'Grant 8 Endurance for two magic rounds to yourself and companions in sight within eight meters.' }],
+    description: `Grant 8 Endurance for ${rounds(75)} magic rounds to yourself and companions in sight within eight meters.` }],
   [TANTO_MILESTONES[3], { kind: 'melee', rangeM: 2, arcRad: Math.PI * .3, potency: 3.05, beats: 3, tempo: 1.4,
     strikes: ['StrikeRight', 'StrikeLeft', 'StrikeDown'], capstone: { base: 48, stat: 'willpower' },
     selfEffect: [
@@ -49,7 +50,7 @@ const loadout = new Map([
       { type: 35, subType: 255, rounds: 2, magnitude: 20 },
     ], fx: 'rally', finishFx: 'measureFinish', finishControl: { poiseShare: .7 },
     spend: 14, cooldownMs: 30000, windUpMs: 510, activeMs: 1000, recoveryMs: 750,
-    description: 'Strike three times and gain 12 Speed, 10 Strength, and a 20-point Shield for two magic rounds.' }],
+    description: `Strike three times and gain 12 Speed, 10 Strength, and a 20-point Shield for ${rounds(100)} magic rounds.` }],
   [DAGGER_MILESTONES[0], { kind: 'melee', strike: 'StrikeRight', rangeM: 1.9, potency: 0.65, beats: 1,
     unawareBonus: 0.8, fx: 'shadowstep', selfEffect: { type: 23, subType: 0, rounds: 1 },
     spend: 4, cooldownMs: 6500, windUpMs: 140, activeMs: 180, recoveryMs: 330,

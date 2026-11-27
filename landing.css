@@ -1,123 +1,170 @@
+/* THE LANDING PAGE, ON PARCHMENT - the desktop launcher's sheet (app/launcher/launcher.css) read as a page: the same
+   palette, the same plaques, the same wood and the same trinkets (public/art/bunnyfall-decor). Words read #3a1e12 (ink)
+   or #573520 (faded ink) on the sheet, 7:1 and more; #8a2216 (sealing-wax red) for headings and links. */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-@font-face { font-family: 'DFO Alagard'; src: url('/art/grimoire-ui/Fonts/FONT0003-SDF.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Pixelify Sans'; font-weight: 400 700; font-display: swap; src: url('/fonts/pixel/PixelifySans-latin.woff2') format('woff2'); }
+@font-face { font-family: 'Jacquard 12'; font-display: swap; src: url('/fonts/pixel/Jacquard12-latin.woff2') format('woff2'); }
 :root {
-  --wood: #3a2414; --wood-dark: #1c1108; --wood-mid: #53351d; --wood-lit: #7a5230;
-  --page: #e3c995; --cream: #efdcae; --tan: #b3834a; --scroll: #c99a5c;
-  --ink: #2b1a0c; --ink-soft: #5b3b1f; --ink-faint: #80603e;
-  --red: #8e1a10; --red-hi: #b52418; --red-deep: #5a0a06;
-  --yellow: #f4e04c; --outline: #140b04;
+  --ink: #3a1e12; --ink-soft: #573520; --wax: #8a2216; --ruby: #a3281c; --orange: #d9741c; --gold: #f0b92e;
+  --cream: #ddca96; --paper: rgba(218,198,150,0.86); --paper-hi: rgba(236,220,174,0.5); --edge: #7a3a1c;
+  --wood-cream: #f0e0b4; --wood-ink: #1c1108;
 }
 body {
-  margin: 0; min-height: 100dvh; position: relative;
-  color: var(--cream); background: var(--wood-dark);
-  font-family: 'DFO Alagard', 'Alagard', Georgia, serif; font-size: 19px; line-height: 1.5;
-  -webkit-font-smoothing: none;
+  margin: 0; min-height: 100dvh; position: relative; overflow-x: hidden;
+  color: var(--ink); background: #c8aa6c;
+  font-family: 'Pixelify Sans', ui-monospace, monospace; font-size: 17px; line-height: 1.5;
+  -webkit-font-smoothing: none; font-variant-ligatures: none;
 }
-/* THE DESK: the clean planks at the top left of the pack's spellmaker picture,
-   one fixed layer behind everything */
-.night { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--wood); }
-.night::before { content: ''; position: absolute; inset: -24px; filter: blur(3px);
-  background: url('/art/grimoire-ui/Img/INFO01I0.IMG.png') 24px 24px / max(165vw, 220vh) auto; }
-.night::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(120% 90% at 50% 40%, rgba(0,0,0,0) 40%, rgba(10,5,2,0.55) 100%); }
+img { image-rendering: pixelated; }
+.sheet { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 
-a { color: var(--red); text-decoration: none; border-bottom: 2px solid var(--tan); }
-a:hover, a:focus-visible { outline: none; color: var(--red-hi); border-color: var(--red-hi); }
-h1, h2, h3 { font-family: inherit; font-weight: 400; margin: 0; }
-p { margin: 0 0 12px; }
-.skip { position: absolute; left: 12px; top: -60px; padding: 10px 14px; background: var(--yellow); color: var(--outline); z-index: 10; border: 0; }
+a { color: var(--wax); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+a:hover { color: var(--orange); }
+a:focus-visible { outline: 2px solid var(--ruby); outline-offset: 3px; }
+h1, h2, h3 { font-weight: 400; margin: 0; }
+p { margin: 0 0 10px; }
+.skip { position: absolute; left: 12px; top: -60px; padding: 10px 14px; background: var(--gold); color: var(--ink); z-index: 10; }
 .skip:focus { top: 12px; }
 
-/* THE RULE: a thin ink line either side of a red stone */
-.rule { display: flex; align-items: center; gap: 14px; width: min(380px, 70vw); margin: 22px auto 24px; }
-.rule::before, .rule::after { content: ''; flex: 1; height: 2px; background: currentColor; opacity: 0.45; }
-.gem { width: 8px; height: 8px; background: var(--red-hi); border: 2px solid var(--outline); transform: rotate(45deg); box-shadow: 0 0 0 1px var(--yellow); }
-
-/* THE PRESS: the pack's red Exit press, its lettering yellow.
-   Download is the wooden one beside it. */
+/* PLAQUES: cream, a brown rule, a hard shadow - the launcher's buttons. The answer is gold. */
 .plaque {
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 26px; letter-spacing: 0.06em; color: var(--yellow); min-height: 54px; padding: 8px 40px;
-  background: linear-gradient(180deg, var(--red-hi), var(--red) 55%, var(--red-deep));
-  border: 3px solid var(--outline); border-bottom-width: 5px;
-  box-shadow: inset 0 2px 0 rgba(255,196,120,0.3), 0 3px 0 rgba(0,0,0,0.5);
-  text-shadow: 2px 2px 0 #3a2400;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 18px;
+  font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none;
+  color: var(--ink); background: var(--cream); border: 2px solid var(--edge); box-shadow: 2px 2px 0 rgba(90,40,15,0.45);
 }
-.plaque:hover, .plaque:focus-visible { outline: none; color: #fff7a8; filter: brightness(1.15); border-color: var(--outline); }
-.plaque.wood { background: linear-gradient(180deg, var(--wood-lit), var(--wood-mid) 55%, var(--wood)); color: var(--cream); text-shadow: 2px 2px 0 #140b04; box-shadow: inset 0 2px 0 rgba(255,214,150,0.26), 0 3px 0 rgba(0,0,0,0.5); }
-.doorplaques { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+.plaque.primary { background: var(--gold); }
+.plaque:hover { color: var(--ink); background: var(--gold); }
+.plaque.primary:hover { background: #f6c94e; }
+.plaque:active { transform: translate(2px, 2px); box-shadow: none; }
+.plaque.big { min-height: 60px; padding: 10px 34px; font-size: 19px; letter-spacing: 0.2em; }
 
-/* THE DOOR */
-.door { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px 118px; text-align: center; }
-.wordmark { font-size: clamp(64px, 12vw, 112px); line-height: 1; }
-.wordmark img { display: block; width: min(560px, 88vw); height: auto; margin: 0 auto; transform: translateX(-2%); filter: drop-shadow(0 4px 0 rgba(0,0,0,0.55)); }
-.door .rule { color: var(--cream); }
-.dek { max-width: 46ch; margin: 0 auto 22px; font-size: 24px; color: var(--cream); text-shadow: 2px 2px 0 var(--outline); }
-.gate { max-width: 54ch; margin: 0 auto 28px; color: #d9c28f; font-size: 18px; text-shadow: 2px 2px 0 var(--outline); }
-.gate b { color: var(--yellow); font-weight: 400; }
-.doorlinks { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-.doorlinks a { display: inline-flex; align-items: center; min-height: 40px; padding: 4px 18px; font-size: 18px; color: var(--cream);
-  background: linear-gradient(180deg, var(--wood-lit), var(--wood-mid) 55%, var(--wood)); border: 3px solid var(--outline); box-shadow: inset 0 2px 0 rgba(255,214,150,0.26), 0 3px 0 rgba(0,0,0,0.5); text-shadow: 2px 2px 0 #140b04; }
-.doorlinks a:hover, .doorlinks a:focus-visible { color: var(--yellow); }
+/* THE RAIL: planks (wood.png, one plank that tiles, shown at 2x) with the mark, a shelf of trinkets and the doors */
+.rail {
+  position: relative; z-index: 2; height: 76px;
+  background: #5f381d url('/art/bunnyfall-decor/wood.png') 0 0 / 640px 76px repeat-x; image-rendering: pixelated;
+  box-shadow: 0 4px 0 rgba(60,25,8,0.25);
+}
+.rail::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: rgba(255,214,150,0.38); }
+.rail::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 9px; background: linear-gradient(rgba(20,10,4,0), rgba(20,10,4,0.75) 66%, var(--wood-ink) 66%); }
+.rail-in { position: relative; z-index: 1; max-width: 1120px; height: 76px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 18px; }
+.mark { flex: none; display: block; text-decoration: none; }
+.mark img { display: block; width: 222px; height: auto; image-rendering: auto; filter: drop-shadow(2px 3px 0 rgba(20,10,4,0.6)); }
+.shelf { position: relative; flex: 1; align-self: stretch; min-width: 0; }
+.shelf img { position: absolute; filter: drop-shadow(2px 3px 0 rgba(20,10,4,0.55)); }
+.shelf .token { left: 18%; top: 30px; width: 21px; height: auto; transform: rotate(-12deg); image-rendering: auto; }
+.shelf .coin { left: calc(18% + 22px); top: 38px; width: 28px; height: 28px; image-rendering: auto; }
+.shelf .book { left: calc(18% + 58px); top: 3px; width: 104px; height: auto; transform: rotate(-4deg); image-rendering: auto; }
+.shelf .quill { left: calc(18% + 168px); top: 24px; width: 32px; height: 32px; transform: rotate(24deg); }
+.doors { flex: none; display: flex; gap: 6px; }
+.doors a {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 4px 10px;
+  font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; text-decoration: none;
+  color: var(--wood-cream); text-shadow: 2px 2px 0 rgba(20,10,4,0.7);
+}
+.doors a:hover { color: var(--gold); }
+.doors a:focus-visible { outline-color: var(--gold); }
+.gem {
+  position: absolute; left: 50%; bottom: -1px; z-index: 2; width: 2px; height: 2px; background: var(--ruby);
+  box-shadow: 0 -4px 0 var(--orange), 0 4px 0 var(--orange), -4px 0 0 var(--orange), 4px 0 0 var(--orange),
+    -2px -2px 0 var(--ruby), 2px -2px 0 var(--ruby), -2px 2px 0 var(--ruby), 2px 2px 0 var(--ruby);
+}
 
+/* THE DOOR: the pitch on the left, the rabbit and his loot on the right */
+.door {
+  max-width: 1120px; margin: 0 auto; padding: 48px 24px 24px;
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 24px; align-items: center;
+}
+.pitch { display: flex; flex-direction: column; gap: 18px; }
+.door h1 { font-family: 'Jacquard 12', serif; font-size: clamp(38px, 5.2vw, 60px); line-height: 1.04; color: var(--ink); text-shadow: 3px 3px 0 rgba(236,220,174,0.5); text-wrap: balance; }
+.gate { max-width: 56ch; margin: 0; font-size: 17px; color: #4a2a18; }
+.gate b { color: var(--wax); font-weight: 600; }
+.presses { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+/* PLAY is the rabbit's own badge (the still one: the launcher's moves) */
+.badge { position: relative; display: block; width: 104px; height: 97px; margin: -8px 0 -8px -6px; text-decoration: none; transition: transform 0.12s steps(2); }
+.badge img { display: block; width: 104px; height: auto; image-rendering: auto; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
+.badge span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.badge:hover { transform: translateY(-4px); }
+.badge:focus-visible { outline: 2px solid var(--ruby); outline-offset: -6px; }
+
+.burrow { position: relative; height: 380px; }
+.burrow img { position: absolute; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.3)); }
+.burrow .bunny { left: 50%; bottom: 0; width: 340px; height: auto; transform: translateX(-50%); image-rendering: auto; }
+.burrow .chest { right: 2%; bottom: 4px; width: 92px; height: auto; image-rendering: auto; }
+.burrow .scroll { left: 4%; bottom: 0; width: 46px; height: auto; transform: rotate(-58deg); transform-origin: 50% 100%; }
+.burrow .pile { left: 14%; bottom: 2px; width: 72px; height: auto; }
+.burrow .spark { width: 24px; height: 24px; filter: none; }
+.burrow .s1 { left: 12%; top: 22%; } .burrow .s2 { right: 10%; top: 12%; } .burrow .s3 { left: 4%; top: 46%; width: 28px; height: 28px; }
+
+/* A CARD: lighter paper, a brown rule and a hard shadow, sealed at a corner */
+main { max-width: 1120px; margin: 0 auto; padding: 24px 24px 44px; display: flex; flex-direction: column; gap: 40px; }
+.card {
+  position: relative; padding: 28px 30px 30px;
+  background: var(--paper); border: 3px solid var(--edge);
+  box-shadow: 0 0 0 2px rgba(236,220,174,0.45), 4px 4px 0 rgba(90,40,15,0.35);
+}
+.seal { position: absolute; right: -22px; top: -22px; width: 58px; height: auto; transform: rotate(12deg); filter: drop-shadow(2px 2px 0 rgba(60,25,8,0.4)); }
+.seal.green { width: 50px; transform: rotate(-8deg); }
+.card h2 { font-family: 'Jacquard 12', serif; font-size: clamp(36px, 4.4vw, 48px); line-height: 1.05; color: var(--ink); }
+.lede { margin: 6px 0 20px; color: var(--ink-soft); }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; }
+.step, .desktop { display: flex; gap: 14px; align-items: flex-start; padding: 16px; background: var(--paper-hi); border: 2px solid rgba(122,58,28,0.55); }
+.icon { flex: none; width: auto; height: 42px; margin-top: 2px; filter: drop-shadow(1px 2px 0 rgba(90,40,15,0.3)); }
+.step h3, .desktop h3 { margin: 0 0 6px; font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--ink); }
+.step p, .desktop p { margin: 0 0 8px; font-size: 15px; color: var(--ink-soft); }
+.sources { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.sources .plaque { min-height: 40px; padding: 6px 12px; font-size: 12px; }
+.desktop { margin-top: 18px; }
+.desktop h3 { scroll-margin-top: 24px; }
+.dl { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 10px; }
+.desktop .meta { font-size: 13px; letter-spacing: 0.04em; margin: 0; }
+
+/* THE CREDITS: a few small lines */
+.credits { padding: 22px 200px 22px 30px; font-size: 14px; color: #4a2a18; }
+/* the rabbit hauling the cube - the other dev - by the names */
+.credits .haul { position: absolute; right: 18px; bottom: -14px; width: 168px; height: auto; image-rendering: auto; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.3)); }
+.credits h2 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-family: inherit; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--wax); }
+.credits h2 img { width: 24px; height: 24px; }
+.credits p { margin: 0 0 6px; }
+
+/* THE FOOT: the same wood */
+.end { position: relative; height: 60px; margin-top: 8px; background: #5f381d url('/art/bunnyfall-decor/wood.png') -200px -8px / 640px 76px repeat-x; image-rendering: pixelated; }
+.end::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: rgba(255,214,150,0.38); }
+.end-in { max-width: 1120px; height: 60px; margin: 0 auto; padding: 0 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; font-size: 14px; letter-spacing: 0.12em; color: var(--wood-cream); text-shadow: 2px 2px 0 rgba(20,10,4,0.7); }
+.end-in > span { text-transform: uppercase; letter-spacing: 0.2em; }
+.end a { color: var(--wood-cream); text-decoration: none; padding: 10px 2px; }
+.end a:hover { color: var(--gold); }
+.end a:focus-visible { outline-color: var(--gold); }
 .build::before { content: 'build '; }
 .build:empty { display: none; }
 
-/* A PAGE: cream, dark edged, laid on the desk */
-main { max-width: 860px; margin: 0 auto; padding: 24px 24px 40px; }
-main > section:not(.credits) { position: relative; color: var(--ink); text-align: center; margin: 0 0 40px; padding: 52px 30px 56px;
-  background: linear-gradient(180deg, #8f6230 0, #b58d50 90px, #b58d50 calc(100% - 90px), #8f6230 100%);
-  filter: drop-shadow(0 8px 0 rgba(0,0,0,0.4)); }
-/* the pack's scroll rolls cap the page top and bottom */
-main > section:not(.credits)::before, main > section:not(.credits)::after { content: ''; position: absolute; left: 0; right: 0; aspect-ratio: 960 / 66;
-  background: url('/art/grimoire-ui/scroll-top.png') 0 0 / 100% 100% no-repeat; pointer-events: none; }
-main > section:not(.credits)::before { top: -2px; }
-main > section:not(.credits)::after { bottom: -2px; background-image: url('/art/grimoire-ui/scroll-bot.png'); }
-/* THE BOOK: the pack's spellbook, feathered into the desk, beside the title on wide screens */
-.door { position: relative; }
-.book { position: absolute; top: 24px; right: 2vw; width: min(25vw, 340px); aspect-ratio: 345 / 225; transform: rotate(4deg); opacity: 0.95;
-  background: url('/art/grimoire-ui/spellbook.png') 0 0 / 100% 100% no-repeat; pointer-events: none; }
-@media (max-width: 960px) { .book { display: none; } }
-main > section:not(.credits) > h2 { font-size: clamp(34px, 5vw, 46px); line-height: 1; padding: 26px 16px 4px; color: var(--ink); }
-main > section:not(.credits) > h2::first-letter { color: var(--red); }
-main > section:not(.credits) > .rule { color: var(--ink); margin: 14px auto 22px; }
-.lede { color: var(--ink-soft); max-width: 56ch; margin: 0 auto 24px; font-size: 19px; }
-
-.steps { list-style: none; margin: 0 auto; padding: 0; counter-reset: step; text-align: left; max-width: 64ch; }
-.step { display: grid; grid-template-columns: 54px 1fr; gap: 0 18px; align-items: start; padding: 14px 16px 6px; margin: 0 0 12px;
-  background: rgba(179,131,74,0.22); border: 2px solid var(--ink-faint); }
-.step::before { counter-increment: step; content: counter(step); display: flex; align-items: center; justify-content: center;
-  width: 54px; height: 54px; font-size: 34px; line-height: 1; color: var(--yellow); text-shadow: 2px 2px 0 #3a2400;
-  background: linear-gradient(180deg, var(--red-hi), var(--red) 55%, var(--red-deep)); border: 3px solid var(--outline); box-shadow: inset 0 2px 0 rgba(255,196,120,0.3); }
-.step h3 { font-size: 26px; margin: 2px 0 6px; color: var(--ink); }
-.step p { color: var(--ink-soft); font-size: 18px; }
-.sources { list-style: none; margin: 8px 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 19px; }
-
-.qa { display: flex; flex-direction: column; gap: 12px; text-align: left; margin: 22px 0 0; }
-.qa > div { display: grid; grid-template-columns: 200px 1fr; gap: 6px 24px; padding: 14px 16px; background: rgba(179,131,74,0.22); border: 2px solid var(--ink-faint); }
-.qa dt { font-size: 26px; line-height: 1.1; color: var(--ink); }
-.qa dd { margin: 0; color: var(--ink-soft); font-size: 18px; }
-.qa dd .meta { display: block; color: var(--ink-faint); font-size: 16px; margin-top: 6px; }
-.qa .dl { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 12px 0 10px; font-size: 22px; }
-.qa dt[id] { scroll-margin-top: 24px; }
-
-/* THE CREDITS: a few small lines, not a page */
-.credits { max-width: 680px; margin: 0 auto 28px; padding: 0 8px; text-align: center; font-size: 14px; line-height: 1.5; color: #d9c28f; text-shadow: 1px 1px 0 var(--outline); }
-.credits p { margin: 0 0 6px; }
-.credits a { color: var(--cream); border-bottom-color: var(--wood-lit); }
-.credits a:hover { color: var(--yellow); border-color: var(--yellow); }
-
-.end { text-align: center; padding: 10px 0 56px; color: var(--tan); font-size: 15px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: center; text-shadow: 2px 2px 0 var(--outline); }
-.end a { border: 0; color: var(--tan); }
-.end a:hover { color: var(--yellow); }
-
 @media (max-width: 860px) {
-  .qa > div { grid-template-columns: 1fr; }
-  main { padding: 16px 14px 32px; }
-  main > section:not(.credits) { padding: 0 16px 22px; }
-  .step { grid-template-columns: 44px 1fr; gap: 0 14px; padding: 12px 12px 4px; }
-  .step::before { width: 44px; height: 44px; font-size: 28px; }
-  .door { padding-bottom: 140px; }
+  .rail-in { gap: 8px; padding: 0 12px; }
+  .mark img { width: 150px; }
+  .shelf { display: none; }
+  .doors { margin-left: auto; gap: 0; }
+  .doors a { padding: 4px 6px; font-size: 11px; letter-spacing: 0.12em; }
+  .door { grid-template-columns: 1fr; padding: 32px 16px 8px; }
+  .burrow { height: 250px; order: -1; }
+  .burrow .bunny { width: 230px; }
+  .burrow .chest { width: 66px; }
+  .burrow .pile { width: 54px; left: 8%; }
+  .burrow .scroll { width: 34px; left: 0; }
+  main { padding: 16px 16px 32px; gap: 32px; }
+  .card { padding: 22px 18px 22px; }
+  .seal { right: -10px; top: -16px; width: 44px; }
+  .seal.green { width: 40px; }
+  .desktop, .step { padding: 14px 12px; }
+  .end { height: auto; min-height: 60px; }
+  .end-in { height: auto; min-height: 60px; padding: 8px 16px; }
 }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media (max-width: 420px) {
+  .mark img { width: 120px; }
+  .doors a { font-size: 10px; letter-spacing: 0.06em; padding: 4px 4px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .badge { transition: none; } }
+@media (max-width: 860px) {
+  .credits { padding: 22px 18px 150px; }
+  .credits .haul { right: 50%; transform: translateX(50%); bottom: -10px; width: 150px; }
+}
